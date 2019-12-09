@@ -1,73 +1,73 @@
 /****************************************************
-@description: seqDB-4515:createCS£¬name³¤¶È³¬¹ý±ß½ç
+@description: seqDB-4515:createCSï¿½ï¿½nameï¿½ï¿½ï¿½È³ï¿½ï¿½ï¿½ï¿½ß½ï¿½
 @author:
 2019-6-4 wuyan init
 ****************************************************/
-main(); 
+main();
 
-function main()
+function main ()
 {
-   var csNameLen = 0; 
-   println( "---Begin to test csName len is 0 " ); 
-   createCSAndCheckResult( csNameLen ); 
-   
-   println( "---Begin to test csName len is 128B" ); 
-   var csNameLen = 128; 
-   createCSAndCheckResult( csNameLen ); 
+   var csNameLen = 0;
+   println( "---Begin to test csName len is 0 " );
+   createCSAndCheckResult( csNameLen );
+
+   println( "---Begin to test csName len is 128B" );
+   var csNameLen = 128;
+   createCSAndCheckResult( csNameLen );
 }
 
-function createCSAndCheckResult( csNameLen )
+function createCSAndCheckResult ( csNameLen )
 {
-   println( "\n---Begin to createCS." ); 
-   var csName = getRandomString( csNameLen ); 
-   
+   println( "\n---Begin to createCS." );
+   var csName = getRandomString( csNameLen );
+
    //create cs; 
    try
    {
-      db.createCS( csName ); 
-      throw "create cs should be fail!"; 
+      db.createCS( csName );
+      throw "create cs should be fail!";
    }
    catch( e )
    {
       if( e !== -6 )
       {
-         throw buildException( "create cs", e ); 
+         throw buildException( "create cs", e );
       }
-      
+
    }
-   
+
    //check cs is not exist; 
    try
    {
-      db.getCS( csName ); 
+      db.getCS( csName );
       throw "get cs should be fail!"
    }
    catch( e )
    {
       if( e !== -6 )
       {
-         throw buildException( "check cs", e ); 
+         throw buildException( "check cs", e );
       }
    }
-   
+
 }
 
-function getRandomString( len )
+function getRandomString ( len )
 {
-   var str = ""; 
+   var str = "";
    if( len = 0 )
    {
-      return str; 
+      return str;
    }
    else
    {
-      var chars = "1234567890abcdefghijklmnABCDEFGHIJKLMNOPQRSTUVWXYZ-ÖÐÎÄ¡£~!@#%^&()_ + ~_"; 
-      var strLen = chars.length; 
+      var chars = "1234567890abcdefghijklmnABCDEFGHIJKLMNOPQRSTUVWXYZ-ï¿½ï¿½ï¿½Ä¡ï¿½~!@#%^&()_ + ~_";
+      var strLen = chars.length;
       for( var i = 0; i < len; i++ )
       {
-         str += chars.charAt( Math.floor( Math.random()* strLen ) ); 
+         str += chars.charAt( Math.floor( Math.random() * strLen ) );
       }
    }
-   
-   return str; 
+
+   return str;
 }

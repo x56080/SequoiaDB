@@ -3,17 +3,17 @@
 *@Author     :  2019-8-7  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18942";
    var csvFile = tmpFileDir + clName + ".csv";
    var jsonFile = tmpFileDir + clName + ".json";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
-   
+
    var expResults = prepareDate( csvFile );
    println( "\n---data type int32、int64、double、decimal to import csv file." );
-   var fields = "a";   
+   var fields = "a";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
    checkImportRC( rcResults, 2000 );
    dataType = "int32";
@@ -29,10 +29,10 @@ function main()
    var expResult = getExpResult( dataType, expResults );
    checkResult( cl, dataType, expResult );
    cl.truncate();
-   
+
    expResults = prepareDate( jsonFile );
    println( "\n---data type int32、int64、double、decimal to import json file." );
-   var fields = "a";   
+   var fields = "a";
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 2000 );
    dataType = "int32";
@@ -47,11 +47,11 @@ function main()
    dataType = "decimal";
    var expResult = getExpResult( dataType, expResults );
    checkResult( cl, dataType, expResult );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var expResults = {};
    var expResult_int32 = [];
@@ -65,9 +65,9 @@ function prepareDate( typeFile )
       var right = getRandom().toString();
       while( right.substring( right.length - 1 ) == '0' )
       {
-         right = right.substring( 0, right.length-1 );
+         right = right.substring( 0, right.length - 1 );
       }
-      if( typeFile.substring( typeFile.indexOf(".")+1, typeFile.length ) == "csv" )
+      if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
       {
          file.write( left + "\n" );
          file.write( left + "." + right + "\n" );
@@ -75,7 +75,7 @@ function prepareDate( typeFile )
       else
       {
          file.write( '{ a:' + left + ' }\n' );
-         file.write( '{ a:' + left + '.' + right + ' }\n' ); 
+         file.write( '{ a:' + left + '.' + right + ' }\n' );
       }
       if( left < 2147483647 )
       {
@@ -89,19 +89,19 @@ function prepareDate( typeFile )
       //整数9007199254740992到9223372036854775807范围内使用$numberLong格式表示
       if( left > 9007199254740992 && left < 9223372036854775807 )
       {
-         expResult_int64.push( { a: { "$numberLong" : left.toString() } } );
+         expResult_int64.push( { a: { "$numberLong": left.toString() } } );
       }
       if( ( left.toString().length + right.toString().length ) <= 15 )
       {
          expResult_double.push( { a: parseFloat( left + "." + right ) } );
       }
-      if( left >= 9223372036854775807)
+      if( left >= 9223372036854775807 )
       {
-         expResult_decimal.push( { a: { "$decimal" : left + "" } } );
+         expResult_decimal.push( { a: { "$decimal": left + "" } } );
       }
       if( ( left.toString().length + right.toString().length ) > 15 )
       {
-         expResult_decimal.push( { a: { "$decimal" : left + "." + right } } );
+         expResult_decimal.push( { a: { "$decimal": left + "." + right } } );
       }
    }
    file.close();
@@ -112,7 +112,7 @@ function prepareDate( typeFile )
    return expResults;
 }
 
-function getExpResult( dataType, expResults )
+function getExpResult ( dataType, expResults )
 {
    if( dataType == "int32" )
    {
@@ -131,10 +131,10 @@ function getExpResult( dataType, expResults )
       return expResults["decimal"];
    }
 }
-function getRandom()
+function getRandom ()
 {
    //获取20位以内的随机整数
-   var num = Math.ceil( Math.random()*20 );
-   var random = Math.floor( ( Math.random()*9+1 )*Math.pow(10, num-1) );
+   var num = Math.ceil( Math.random() * 20 );
+   var random = Math.floor( ( Math.random() * 9 + 1 ) * Math.pow( 10, num - 1 ) );
    return random;
 }

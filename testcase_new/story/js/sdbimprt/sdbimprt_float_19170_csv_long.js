@@ -3,57 +3,57 @@
          import type: long
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main(); 
+main();
 
-function main()
-{  
+function main ()
+{
    var type = 'csv';
    var tmpPrefix = "sdbimprt_long_19170";
    var csName = COMMCSNAME;
    var clName = tmpPrefix + "_" + type;
    var cl = readyCL( csName, clName );
-   var importFile = tmpFileDir + tmpPrefix +"." + type;
+   var importFile = tmpFileDir + tmpPrefix + "." + type;
    var importFields = 'a int, b long';
-   var findCond = {"b": {"$type": 2, "$et": "int64"}};   
-   
-   println("\n---------------------import data, test point 1---------------------");
+   var findCond = { "b": { "$type": 2, "$et": "int64" } };
+
+   println( "\n---------------------import data, test point 1---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint1( importFile );
    var expRecs = initExpectData_testPoint1( recsNum );
    // import
-   var rc = importData( csName, clName, importFile, type, importFields, true ); 
+   var rc = importData( csName, clName, importFile, type, importFields, true );
    // check results
-   checkImportRC( rc, recsNum ); 
+   checkImportRC( rc, recsNum );
    checkCLData( cl, recsNum, expRecs, findCond );
    // clean data
-   cl.truncate(); 
-   cmd.run( "rm -rf " +  importFile ); 
-   
-   println("\n---------------------import data, test point 2---------------------");
+   cl.truncate();
+   cmd.run( "rm -rf " + importFile );
+
+   println( "\n---------------------import data, test point 2---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint2( importFile );
    var expRecs = initExpectData_testPoint2( recsNum );
    // import
-   var rc = importData( csName, clName, importFile, type, importFields, true ); 
+   var rc = importData( csName, clName, importFile, type, importFields, true );
    // check results
-   checkImportRC( rc, recsNum ); 
+   checkImportRC( rc, recsNum );
    checkCLData( cl, recsNum, expRecs, findCond );
    // clean data
-   cl.truncate(); 
-   cmd.run( "rm -rf " +  importFile ); 
-   
+   cl.truncate();
+   cmd.run( "rm -rf " + importFile );
+
    cleanCL( csName, clName );
 }
 
-function initImportFile_testPoint1( importFile )
+function initImportFile_testPoint1 ( importFile )
 {
-   println("\n---Begin to ready import file.");
+   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 400;
    // 0, b value e.g: "1.E" / "11.E"......
    var str = "";
    var bVal = "1.E";
-   for (var i = 0; i < recordsNum; i++)
+   for( var i = 0; i < recordsNum; i++ )
    {
       str += i + "," + bVal + "\n";
       bVal = "1" + bVal;
@@ -63,14 +63,14 @@ function initImportFile_testPoint1( importFile )
    return recordsNum;
 }
 
-function initImportFile_testPoint2( importFile )
+function initImportFile_testPoint2 ( importFile )
 {
-   println("\n---Begin to ready import file.");
+   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 400;
    // 0, b value e.g: "1.E+0" / "1.E+1"......"1.E+400"
    var str = "";
-   for (var i = 0; i < recordsNum; i++)
+   for( var i = 0; i < recordsNum; i++ )
    {
       str += i + ",1.E+" + i + "\n";
    }
@@ -79,59 +79,59 @@ function initImportFile_testPoint2( importFile )
    return recordsNum;
 }
 
-function initExpectData_testPoint1( expRecsNum )
-{   
-   println("\n---Begin to ready expect data.");
+function initExpectData_testPoint1 ( expRecsNum )
+{
+   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var tmpBVal = "1";
    var records;
-   for (var i = 0; i < expRecsNum; i++)
+   for( var i = 0; i < expRecsNum; i++ )
    {
-      if ( i <= 15 )
+      if( i <= 15 )
       {
-         record = {"a": i, "b": Number( tmpBVal )};
+         record = { "a": i, "b": Number( tmpBVal ) };
          tmpBVal += "1";
       }
-      else if ( i > 15 && i <= 18 )
+      else if( i > 15 && i <= 18 )
       {
-         record = {"a": i, "b": {"$numberLong": tmpBVal}};
+         record = { "a": i, "b": { "$numberLong": tmpBVal } };
          tmpBVal += "1";
-      } 
+      }
       else
       {
-         record = {"a": i, "b": 0};
-      } 
-      expRecs.push(JSON.stringify( record ));
+         record = { "a": i, "b": 0 };
+      }
+      expRecs.push( JSON.stringify( record ) );
    }
    return "[" + expRecs + "]";
 }
 
-function initExpectData_testPoint2( expRecsNum )
-{   
-   println("\n---Begin to ready expect data.");
+function initExpectData_testPoint2 ( expRecsNum )
+{
+   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var record;
-   for (var i = 0; i < expRecsNum; i++)
+   for( var i = 0; i < expRecsNum; i++ )
    {
-      if ( i <= 15 ) 
+      if( i <= 15 ) 
       {
-         var bVal = 1 * Math.pow(10, i);
-         record = {"a": i, "b": bVal};
+         var bVal = 1 * Math.pow( 10, i );
+         record = { "a": i, "b": bVal };
       }
-      else if ( i > 15 && i < 19 )  // 0 < b < 9223372036854775807
+      else if( i > 15 && i < 19 )  // 0 < b < 9223372036854775807
       {
-         var bVal = 1 * Math.pow(10, i);
-         record = {"a": i, "b":{"$numberLong": bVal + ""}};
-      } 
-      else if ( i >= 19 && i <= 308 )  // b < 1e+308
-      {
-         record = {"a": i, "b":{"$numberLong": "-9223372036854775808"}};
-      } 
-      else if ( i > 308 ) 
-      {            
-         var record = {"a": i, "b": 0};
+         var bVal = 1 * Math.pow( 10, i );
+         record = { "a": i, "b": { "$numberLong": bVal + "" } };
       }
-      expRecs.push(JSON.stringify( record ));
+      else if( i >= 19 && i <= 308 )  // b < 1e+308
+      {
+         record = { "a": i, "b": { "$numberLong": "-9223372036854775808" } };
+      }
+      else if( i > 308 ) 
+      {
+         var record = { "a": i, "b": 0 };
+      }
+      expRecs.push( JSON.stringify( record ) );
    }
    return "[" + expRecs + "]";
 }

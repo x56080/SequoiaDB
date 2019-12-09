@@ -3,107 +3,118 @@
 @Modify list :
               2018-10-24  YinZhen  Create
 ****************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db )){
-      println("Deploy is standalone");
+   if( commIsStandalone( db ) )
+   {
+      println( "Deploy is standalone" );
       return;
    }
 
    var clName = COMMCLNAME + "_ES_14369";
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
-   var dbcl = commCreateCL(db, COMMCSNAME, clName, 0);
-   
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+
    //索引名长度为1时，全文索引创建成功
    var indexName = "a_14369";
-   dbcl.createIndex(indexName, {content : "text"});
+   dbcl.createIndex( indexName, { content: "text" } );
    commCheckIndex( dbcl, indexName, true );
-   println("===create index success===");
+   println( "===create index success===" );
    var dbOperator = new DBOperator();
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, indexName);
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
    commDropIndex( dbcl, indexName, true );
-   checkIndexNotExistInES(esIndexNames);
-   
+   checkIndexNotExistInES( esIndexNames );
+
    //固定集合名长度小于127时，全文索引创建成功
    var indexName = "";
-   for (var i = 0; i < 20; i++){
-      indexName = indexName + "a";	  
+   for( var i = 0; i < 20; i++ )
+   {
+      indexName = indexName + "a";
    }
-   dbcl.createIndex(indexName, {content : "text"});
+   dbcl.createIndex( indexName, { content: "text" } );
    commCheckIndex( dbcl, indexName, true );
-   println("===create index success===");
+   println( "===create index success===" );
    commDropIndex( dbcl, indexName, true );
-   checkIndexNotExistInES(esIndexNames);
-   
+   checkIndexNotExistInES( esIndexNames );
+
    //固定集合名长度等于127时，全文索引创建成功
-   var cursor = db.snapshot(8, {Name : COMMCSNAME + "." + clName});
+   var cursor = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
    var cursor = cursor.next().toObj();
-   var cappedCLLength = String(cursor["UniqueID"]).length + 5;
-   
+   var cappedCLLength = String( cursor["UniqueID"] ).length + 5;
+
    var indexName = "";
-   for (var i = 0; i < 127 - cappedCLLength; i++){
-      indexName = indexName + "a";	  
+   for( var i = 0; i < 127 - cappedCLLength; i++ )
+   {
+      indexName = indexName + "a";
    }
-   dbcl.createIndex(indexName, {content : "text"});
-      
+   dbcl.createIndex( indexName, { content: "text" } );
+
    var dbOperater = new DBOperator();
    var cappedCLName = dbOperater.getCappedCLName( dbcl, indexName );
-   
+
    commCheckIndex( dbcl, indexName, true );
-   println("===create index success===");
+   println( "===create index success===" );
    commDropIndex( dbcl, indexName, true );
-   checkIndexNotExistInES(esIndexNames);
-   
+   checkIndexNotExistInES( esIndexNames );
+
    //SEQUOIADBMAINSTREAM-3896
    //固定集合名长度等于128时，全文索引创建失败
    var indexName = "";
-   for (var i = 0; i < 127 -cappedCLLength + 1; i++){
-      indexName = indexName + "a";  
+   for( var i = 0; i < 127 - cappedCLLength + 1; i++ )
+   {
+      indexName = indexName + "a";
    }
-   try{
-      dbcl.createIndex(indexName, {content : "text"}); 
-      throw new Error("CREATEINDEXERR") ;
+   try
+   {
+      dbcl.createIndex( indexName, { content: "text" } );
+      throw new Error( "CREATEINDEXERR" );
    }
-   catch( e ){
-	  if( e != -6){
-         throw new Error(e);
+   catch( e )
+   {
+      if( e != -6 )
+      {
+         throw new Error( e );
       }
    }
    commCheckIndex( dbcl, indexName, false );
-   checkIndexNotExistInES(esIndexNames);
-   println("===create index fail===");
-   
-   
+   checkIndexNotExistInES( esIndexNames );
+   println( "===create index fail===" );
+
+
    //固定集合名长度大于127时，全文索引创建失败
    var indexName = "";
-   for (var i = 0; i < 127 -cappedCLLength + 100; i++){
-      indexName = indexName + "a";	  
+   for( var i = 0; i < 127 - cappedCLLength + 100; i++ )
+   {
+      indexName = indexName + "a";
    }
-   try{
-      dbcl.createIndex(indexName, {content : "text"});	   
-      throw new Error("CREATEINDEXERR") ;
+   try
+   {
+      dbcl.createIndex( indexName, { content: "text" } );
+      throw new Error( "CREATEINDEXERR" );
    }
-   catch( e ){
-      if( e != -6){
-         throw new Error(e);
+   catch( e )
+   {
+      if( e != -6 )
+      {
+         throw new Error( e );
       }
    }
    commCheckIndex( dbcl, indexName, false );
-   checkIndexNotExistInES(esIndexNames);
-   println("===create index fail===");
-   
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   checkIndexNotExistInES( esIndexNames );
+   println( "===create index fail===" );
+
+   commDropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

@@ -1,71 +1,71 @@
 /************************************
-*@Description: seqDB-19145:¶à¼üÈ«ÎÄË÷Òý£¬Ë÷Òý×Ö¶ÎÎªÊý×éÔªËØ£¬È«Á¿/ÔöÁ¿Í¬²½(²»Ö§³ÖÔÚ¶à¸öÊý×éÔªËØÉÏ´´½¨Ë÷Òý)
+*@Description: seqDB-19145:ï¿½ï¿½ï¿½È«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½Îªï¿½ï¿½ï¿½ï¿½Ôªï¿½Ø£ï¿½È«ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½Í¬ï¿½ï¿½(ï¿½ï¿½Ö§ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½Ï´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 *@author:      zhaoyu
 *@createdate:  2019.08.14
 *@testlinkCase: seqDB-19145
 **************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone(db))  {   return ;   }
+   if( commIsStandalone( db ) ) { return; }
 
    var clName = COMMCLNAME + "_19145";
    var textIndexName = "textIndex_19145";
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   commDropCL( db, COMMCSNAME, clName, true, true );
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
-   //{id:5, a:[{0:"obj1"}, {1:"obj2"}, {2:"obj3"}], b:[{0:"obj1"}, {1:"obj2"}, {2:"obj3"}]}ÎÞ·¨Í¬²½µ½ES
-   var objs = new Array({id:1, a: "string1", b:"string"},
-                        {id:2, a: 1, b: 1},
-                        {id:3, a:["string1", "string2", "string3"], b:["string1", "string2", "string3"]},
-                        {id:4, a:[1, 2, 3], b:[1, 2, 3]},
-                        {id:5, a:[{0:"obj1"}, {1:"obj2"}, {2:"obj3"}], b:[{0:"obj1"}, {1:"obj2"}, {2:"obj3"}]},
-                        {id:6, a:[{0:1}, {1:2}, {2:3}], b:[{0:1}, {1:2}, {2:3}]},
-                        {id:7, a:{0:"obj3", 1:"obj4", 2:"obj5"}, b:{0:"obj3", 1:1, 2:"obj5"}},
-                        {id:8, a:[["string4","string5","string6"],["string7","string8","string9"],["string10","string11","string12"]]},
-                        {id:9, a:[[4,5,6],[7,8,9],[10,11,12]]});
-   dbcl.insert(objs);
-   dbcl.createIndex(textIndexName, {"a.1" : "text", "b.2":"text"});
-   
+   //{id:5, a:[{0:"obj1"}, {1:"obj2"}, {2:"obj3"}], b:[{0:"obj1"}, {1:"obj2"}, {2:"obj3"}]}ï¿½Þ·ï¿½Í¬ï¿½ï¿½ï¿½ï¿½ES
+   var objs = new Array( { id: 1, a: "string1", b: "string" },
+      { id: 2, a: 1, b: 1 },
+      { id: 3, a: ["string1", "string2", "string3"], b: ["string1", "string2", "string3"] },
+      { id: 4, a: [1, 2, 3], b: [1, 2, 3] },
+      { id: 5, a: [{ 0: "obj1" }, { 1: "obj2" }, { 2: "obj3" }], b: [{ 0: "obj1" }, { 1: "obj2" }, { 2: "obj3" }] },
+      { id: 6, a: [{ 0: 1 }, { 1: 2 }, { 2: 3 }], b: [{ 0: 1 }, { 1: 2 }, { 2: 3 }] },
+      { id: 7, a: { 0: "obj3", 1: "obj4", 2: "obj5" }, b: { 0: "obj3", 1: 1, 2: "obj5" } },
+      { id: 8, a: [["string4", "string5", "string6"], ["string7", "string8", "string9"], ["string10", "string11", "string12"]] },
+      { id: 9, a: [[4, 5, 6], [7, 8, 9], [10, 11, 12]] } );
+   dbcl.insert( objs );
+   dbcl.createIndex( textIndexName, { "a.1": "text", "b.2": "text" } );
+
    var dbOpr = new DBOperator();
-   checkFullSyncToES(COMMCSNAME, clName, textIndexName, 1);
-   var findCond = {"":{"$Text":{"query":{"match_all":{}}}}};
-   var actResult = dbOpr.findFromCL(dbcl, findCond, {"a":{"$include":1},"b":{"$include":1}}, {_id:1});
-   var expResult = [{a:{0:"obj3", 1:"obj4", 2:"obj5"}, b:{0:"obj3", 1:1, 2:"obj5"}}];
-   checkResult(expResult, actResult);
-   
-   //²»Ö§³Ö²åÈë¶à¸öÊý×éÔªËØÎªË÷ÒýµÄ¼ÇÂ¼£¬»á±¨-37£¬ÔÝÊ±ÆÁ±Î¸ÃÌõ¼ÇÂ¼
-   objs = new Array({id:1, a: "string1", b:"string"},
-                    {id:2, a: 1, b: 1},
-                    {id:7, a:{0:"obj3", 1:"obj4", 2:"obj5"}, b:{0:"obj3", 1:1, 2:"obj5"}});
-   dbcl.insert(objs);
-   checkFullSyncToES(COMMCSNAME, clName, textIndexName, 2);
-   var actResult = dbOpr.findFromCL(dbcl, findCond, {"a":{"$include":1},"b":{"$include":1}}, {_id:1});
-   var expResult = [{a:{0:"obj3", 1:"obj4", 2:"obj5"}, b:{0:"obj3", 1:1, 2:"obj5"}},
-                    {a:{0:"obj3", 1:"obj4", 2:"obj5"}, b:{0:"obj3", 1:1, 2:"obj5"}}];
-   
-   findCond = {"":{$Text:{query:{bool:{must:[{match:{"a.1":"obj4"}},{match:{"b.2":"obj5"}}]}}}}};                 
-   var actResult = dbOpr.findFromCL(dbcl, findCond, {"a":{"$include":1},"b":{"$include":1}}, {_id:1});
-   var expResult = [{a:{0:"obj3", 1:"obj4", 2:"obj5"}, b:{0:"obj3", 1:1, 2:"obj5"}},
-                    {a:{0:"obj3", 1:"obj4", 2:"obj5"}, b:{0:"obj3", 1:1, 2:"obj5"}}];
-   
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 1 );
+   var findCond = { "": { "$Text": { "query": { "match_all": {} } } } };
+   var actResult = dbOpr.findFromCL( dbcl, findCond, { "a": { "$include": 1 }, "b": { "$include": 1 } }, { _id: 1 } );
+   var expResult = [{ a: { 0: "obj3", 1: "obj4", 2: "obj5" }, b: { 0: "obj3", 1: 1, 2: "obj5" } }];
+   checkResult( expResult, actResult );
+
+   //ï¿½ï¿½Ö§ï¿½Ö²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½Â¼ï¿½ï¿½ï¿½á±¨-37ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Î¸ï¿½ï¿½ï¿½ï¿½ï¿½Â¼
+   objs = new Array( { id: 1, a: "string1", b: "string" },
+      { id: 2, a: 1, b: 1 },
+      { id: 7, a: { 0: "obj3", 1: "obj4", 2: "obj5" }, b: { 0: "obj3", 1: 1, 2: "obj5" } } );
+   dbcl.insert( objs );
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 2 );
+   var actResult = dbOpr.findFromCL( dbcl, findCond, { "a": { "$include": 1 }, "b": { "$include": 1 } }, { _id: 1 } );
+   var expResult = [{ a: { 0: "obj3", 1: "obj4", 2: "obj5" }, b: { 0: "obj3", 1: 1, 2: "obj5" } },
+   { a: { 0: "obj3", 1: "obj4", 2: "obj5" }, b: { 0: "obj3", 1: 1, 2: "obj5" } }];
+
+   findCond = { "": { $Text: { query: { bool: { must: [{ match: { "a.1": "obj4" } }, { match: { "b.2": "obj5" } }] } } } } };
+   var actResult = dbOpr.findFromCL( dbcl, findCond, { "a": { "$include": 1 }, "b": { "$include": 1 } }, { _id: 1 } );
+   var expResult = [{ a: { 0: "obj3", 1: "obj4", 2: "obj5" }, b: { 0: "obj3", 1: 1, 2: "obj5" } },
+   { a: { 0: "obj3", 1: "obj4", 2: "obj5" }, b: { 0: "obj3", 1: 1, 2: "obj5" } }];
+
    dbcl.remove();
-   checkFullSyncToES(COMMCSNAME, clName, textIndexName, 0);
-                                             
-   var esIndexNames = dbOpr.getESIndexNames(COMMCSNAME, clName, textIndexName);
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 0 );
+
+   var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
+   commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 ;

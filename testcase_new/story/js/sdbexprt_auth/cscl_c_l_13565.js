@@ -5,72 +5,72 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var clnum = 5 ;
-var clnames = [] ;
-var csnames = [] ;
-var doc = { a: 1 } ;
-var csvContent = "a\n1\n" ; 
+var clnum = 5;
+var clnames = [];
+var csnames = [];
+var doc = { a: 1 };
+var csvContent = "a\n1\n";
 
-main() ;
+main();
 
-function main()
+function main ()
 {
-   for( var i = 0;i < clnum;i++ )
+   for( var i = 0; i < clnum; i++ )
    {
-      var csname = COMMCSNAME + "_sdbexprt13565_" + i ;
-      var clname = COMMCLNAME + "_sdbexprt13565_" + i ;
-      var cl = commCreateCL( db, csname, clname, 0 ) ;
-      cl.insert( doc ) ;
-      clnames.push( clname ) ;
-      csnames.push( csname ) ;
+      var csname = COMMCSNAME + "_sdbexprt13565_" + i;
+      var clname = COMMCLNAME + "_sdbexprt13565_" + i;
+      var cl = commCreateCL( db, csname, clname, 0 );
+      cl.insert( doc );
+      clnames.push( clname );
+      csnames.push( csname );
    }
-  
-   testExprtNoCsCl() ;
-   testExprtCsCl() ;
-   
-   for( var i = 0;i < clnum;i++ )
+
+   testExprtNoCsCl();
+   testExprtCsCl();
+
+   for( var i = 0; i < clnum; i++ )
    {
-      commDropCS( db, csnames[i] ) ;
+      commDropCS( db, csnames[i] );
    }
 }
 
-function testExprtNoCsCl()
+function testExprtNoCsCl ()
 {
-   var csvDir = workDir + "13565/" ;
-   commMakeDir( "localhost", csvDir ) ;
-   
+   var csvDir = workDir + "13565/";
+   commMakeDir( "localhost", csvDir );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME + 
-                 " --dir " + csvDir +
-                 " --type csv" +
-                 " --force true" ;
-   testRunCommand( command ) ;
-   
-   for( var i = 0;i < clnum;i++ )
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " --dir " + csvDir +
+      " --type csv" +
+      " --force true";
+   testRunCommand( command );
+
+   for( var i = 0; i < clnum; i++ )
    {
-      var filename = csvDir + csnames[i] + "." + clnames[i] + ".csv" ;
-      checkFileContent( filename, csvContent ) ;
+      var filename = csvDir + csnames[i] + "." + clnames[i] + ".csv";
+      checkFileContent( filename, csvContent );
    }
-   
-   cmd.run( "rm -rf " + csvDir ) ;
+
+   cmd.run( "rm -rf " + csvDir );
 }
 
-function testExprtCsCl()
+function testExprtCsCl ()
 {
-   var csvfile = workDir + "sdbexprt13566.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13566.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csnames[0] +
-                 " -l " + clnames[0] +
-                 " --cscl " + csnames[0] + "." + clnames[0] + 
-                 " --file " + csvfile +
-                 " --type csv" +
-                 " --force true" ;
-   testRunCommand( command, 127 ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csnames[0] +
+      " -l " + clnames[0] +
+      " --cscl " + csnames[0] + "." + clnames[0] +
+      " --file " + csvfile +
+      " --type csv" +
+      " --force true";
+   testRunCommand( command, 127 );
+
+   cmd.run( "rm -rf " + csvfile );
 }

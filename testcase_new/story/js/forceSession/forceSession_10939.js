@@ -19,60 +19,71 @@
  */
 
 main();
-function main() {
+function main ()
+{
 
-    if (commIsStandalone(db)) return;
+    if( commIsStandalone( db ) ) return;
 
     // 需要先list(2)一下， 然后list(3)采用连接
-    var temp = db.list(2);
+    var temp = db.list( 2 );
 
     /**3.a*/
-    var sessionList = db.list(3).toArray();
-    var forceSession = JSON.parse(sessionList[0]);
+    var sessionList = db.list( 3 ).toArray();
+    var forceSession = JSON.parse( sessionList[0] );
     var NodeName = forceSession.NodeName;
     var SessionId = forceSession.SessionID;
-    var HostName = NodeName.split(":")[0];
-    var infoByNodeName = new InfoByNodeName(NodeName);
+    var HostName = NodeName.split( ":" )[0];
+    var infoByNodeName = new InfoByNodeName( NodeName );
     var GroupId = infoByNodeName.getGroupIDByNodeName();
     var NodeId = infoByNodeName.getNodeIdByNodeName();
-    try {
-        db.forceSession(SessionId, {GroupId: GroupId, NodeId: NodeId, HostName: HostName});
-    } catch (e) {
-        throw buildException("forceSession operation fail", null);
+    try
+    {
+        db.forceSession( SessionId, { GroupId: GroupId, NodeId: NodeId, HostName: HostName } );
+    } catch( e )
+    {
+        throw buildException( "forceSession operation fail", null );
     }
-    sleep(1000);
+    sleep( 1000 );
     var res = null;
-    try {
-        res = db.list(3, {SessionId: SessionId}).toArray();
-    } catch (e) {
-        throw buildException("list Session by sessionId operation fail", null);
+    try
+    {
+        res = db.list( 3, { SessionId: SessionId } ).toArray();
+    } catch( e )
+    {
+        throw buildException( "list Session by sessionId operation fail", null );
     }
-    if (res.length !== 0) {
-        throw buildException("current session be forced", null);
+    if( res.length !== 0 )
+    {
+        throw buildException( "current session be forced", null );
     }
 
     /**3.b*/
-    var sessionList = db.list(3).toArray();
-    var forceSession = JSON.parse(sessionList[0]);
+    var sessionList = db.list( 3 ).toArray();
+    var forceSession = JSON.parse( sessionList[0] );
     var NodeName = forceSession.NodeName;
     var SessionId = forceSession.SessionID;
-    var HostName = NodeName.split(":")[0];
-    var svcname = NodeName.split(":")[1];
-    var infoByNodeName = new InfoByNodeName(NodeName);
+    var HostName = NodeName.split( ":" )[0];
+    var svcname = NodeName.split( ":" )[1];
+    var infoByNodeName = new InfoByNodeName( NodeName );
     var GroupName = infoByNodeName.getGroupNameByNodeName();
-    try {
-        db.forceSession(SessionId, {GroupName: GroupName, svcname: svcname, HostName: HostName});
-    } catch (e) {
-        throw buildException("forceSession operation fail", null);
+    try
+    {
+        db.forceSession( SessionId, { GroupName: GroupName, svcname: svcname, HostName: HostName } );
+    } catch( e )
+    {
+        throw buildException( "forceSession operation fail", null );
     }
-    sleep(1000);
+    sleep( 1000 );
     var res = null;
-    try {
-        res = db.list(3, {SessionId: SessionId}).toArray();
-    } catch (e) {
-        throw buildException("list Session by sessionId operation fail", null);
+    try
+    {
+        res = db.list( 3, { SessionId: SessionId } ).toArray();
+    } catch( e )
+    {
+        throw buildException( "list Session by sessionId operation fail", null );
     }
-    if (res.length !== 0) {
-        throw buildException("current session be forced", null);
+    if( res.length !== 0 )
+    {
+        throw buildException( "current session be forced", null );
     }
 }

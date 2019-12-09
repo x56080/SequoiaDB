@@ -1,28 +1,28 @@
 /******************************************************************************
-*@Description : seqDB-8582:²åÈë³¬³ödoubleÀàÐÍ±íÊ¾·¶Î§µÄÊý¾Ý²¢¶ÁÈ¡                   
+*@Description : seqDB-8582:ï¿½ï¿½ï¿½ë³¬ï¿½ï¿½doubleï¿½ï¿½ï¿½Í±ï¿½Ê¾ï¿½ï¿½Î§ï¿½ï¿½ï¿½ï¿½ï¿½Ý²ï¿½ï¿½ï¿½È¡                   
 *@Author      : 2019-5-29  wuyan modify
 ******************************************************************************/
 main();
-function main()
+function main ()
 {
-     var clName = "insert8582";
-     var cl = readyCL( clName );
-     
-     var obj = [ 
-         {"a": -1.797693134862315e+308},   {"a": 1.797693134862315e+308}, 
-         {"a": -1.7976931348623157e+308 }, {"a": 1.7976931348623157e+308 }, 
-         {"a": -1.78E+309}, {"a": 1.78E+309} ];
-     cl.insert( obj );
-     
-     var expRecords = [ 
-         {"a": -1.797693134862315e+308}, {"a": 1.797693134862315e+308}, 
-         {"a": -Infinity }, {"a": Infinity }, 
-         {"a": -Infinity }, {"a": Infinity }]
-     var actRecords = cl.find();      
-     checkRec( actRecords, expRecords );
-          
-     cleanCL( clName );   	
-}     
+    var clName = "insert8582";
+    var cl = readyCL( clName );
+
+    var obj = [
+        { "a": -1.797693134862315e+308 }, { "a": 1.797693134862315e+308 },
+        { "a": -1.7976931348623157e+308 }, { "a": 1.7976931348623157e+308 },
+        { "a": -1.78E+309 }, { "a": 1.78E+309 }];
+    cl.insert( obj );
+
+    var expRecords = [
+        { "a": -1.797693134862315e+308 }, { "a": 1.797693134862315e+308 },
+        { "a": -Infinity }, { "a": Infinity },
+        { "a": -Infinity }, { "a": Infinity }]
+    var actRecords = cl.find();
+    checkRec( actRecords, expRecords );
+
+    cleanCL( clName );
+}
 
 
 

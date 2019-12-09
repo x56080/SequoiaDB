@@ -3,54 +3,56 @@
 @Modify list :
               2018-11-21  YinZhen  Create
 ****************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db )){
-      println("Deploy is standalone");
+   if( commIsStandalone( db ) )
+   {
+      println( "Deploy is standalone" );
       return;
    }
-   
+
    var clName = COMMCLNAME + "_ES_14375";
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
-   commCreateIndex( dbcl, "fullIndex_14375", {a : "text", b : "text", c : "text"});
-   
+   commCreateIndex( dbcl, "fullIndex_14375", { a: "text", b: "text", c: "text" } );
+
    var records = new Array();
-   for (var i = 0; i < 8000 ; i++){
-      var record = {a : "a" + i, b : "b" + i, c : "c" + i};
-      records.push(record);
+   for( var i = 0; i < 8000; i++ )
+   {
+      var record = { a: "a" + i, b: "b" + i, c: "c" + i };
+      records.push( record );
    }
-   dbcl.insert(records);
-   checkFullSyncToES(COMMCSNAME, clName, "fullIndex_14375", 8000);
-   
+   dbcl.insert( records );
+   checkFullSyncToES( COMMCSNAME, clName, "fullIndex_14375", 8000 );
+
    var dbOperator = new DBOperator();
    var esOperator = new ESOperator();
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, "fullIndex_14375");
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_14375" );
    var esIndexName = esIndexNames[0];
-   var actResult = esOperator.findFromES(esIndexName, '{"query" : {"match_all" : {}}, "size" : 10000}')
-   var expResult = dbOperator.findFromCL(dbcl, {"" : {$Text : {"query" : {"match_all" :{}}}}}, {a : "", b : "", c : ""});
-   
-   expResult.sort(compare("b"));
-   actResult.sort(compare("b"));
-   checkResult(expResult, actResult);
-   checkConsistency(COMMCSNAME, clName);
-   checkInspectResult(COMMCSNAME, clName, 5);
-   
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   var actResult = esOperator.findFromES( esIndexName, '{"query" : {"match_all" : {}}, "size" : 10000}' )
+   var expResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { a: "", b: "", c: "" } );
+
+   expResult.sort( compare( "b" ) );
+   actResult.sort( compare( "b" ) );
+   checkResult( expResult, actResult );
+   checkConsistency( COMMCSNAME, clName );
+   checkInspectResult( COMMCSNAME, clName, 5 );
+
+   commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
 
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

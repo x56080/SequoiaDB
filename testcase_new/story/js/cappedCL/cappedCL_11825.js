@@ -7,41 +7,41 @@
 
 main();
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
       return;
    }
-   
+
    var clName1 = COMMCAPPEDCLNAME + "_11825_CL1";
    var clName2 = COMMCAPPEDCLNAME + "_11825_CL2";
    var clName3 = COMMCAPPEDCLNAME + "_11825_CL3";
    var clName4 = COMMCAPPEDCLNAME + "_11825_CL4";
-   
+
    //check invalid Capped 
-   var options1 = { Capp:true, Size:1, Max:1, AutoIndexId:false };
+   var options1 = { Capp: true, Size: 1, Max: 1, AutoIndexId: false };
    checkCreateCLInvalid( COMMCAPPEDCSNAME, clName1, options1 );
-   
+
    //check invalid Max 
-   var options2 = { Capped:true, Size:1, Ma:1, AutoIndexId:false };
+   var options2 = { Capped: true, Size: 1, Ma: 1, AutoIndexId: false };
    checkCreateCLInvalid( COMMCAPPEDCSNAME, clName2, options2 );
-   
+
    //check invalid Size 
-   var options3 = { Capped:true, Siz:1, Max:1, AutoIndexId:false };
+   var options3 = { Capped: true, Siz: 1, Max: 1, AutoIndexId: false };
    checkCreateCLInvalid( COMMCAPPEDCSNAME, clName3, options3 );
-   
+
    //check invalid AutoIndexId 
-   var options4 = { Capped:true, Size:1, Max:1, AutoIndex:false };
+   var options4 = { Capped: true, Size: 1, Max: 1, AutoIndex: false };
    checkCreateCLInvalid( COMMCAPPEDCSNAME, clName4, options4 );
-   
+
    for( var i = 1; i <= 4; i++ )
    {
-      commDropCL( db, COMMCAPPEDCSNAME, COMMCAPPEDCLNAME + "_11825_CL" + i, true, true, "drop CL in the end");
+      commDropCL( db, COMMCAPPEDCSNAME, COMMCAPPEDCLNAME + "_11825_CL" + i, true, true, "drop CL in the end" );
    }
 }
 
-function checkCreateCLInvalid( csName, clName, options )
+function checkCreateCLInvalid ( csName, clName, options )
 {
    try
    {
@@ -52,7 +52,7 @@ function checkCreateCLInvalid( csName, clName, options )
    {
       if( e !== -6 )
       {
-         throw buildException("checkCreateCLInvalid()", e, "create cappedCL", "-6", e);
+         throw buildException( "checkCreateCLInvalid()", e, "create cappedCL", "-6", e );
       }
    }
 }

@@ -3,73 +3,73 @@
 *@author:      zhaoyu
 *@createdate:  2018.10.11
 **************************************/
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
       println( "Deploy mode is standalone!" );
       return;
    }
-   
+
    var clName = COMMCLNAME + "_ES_15130";
    var clFullName = COMMCSNAME + "." + clName
    var indexName = "a_15130";
-   
-   commDropCL( db, COMMCSNAME, clName);
-   var dbcl = commCreateCL( db, COMMCSNAME, clName);
-   commCreateIndex( dbcl, indexName, {a:"text"});
-   
+
+   commDropCL( db, COMMCSNAME, clName );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
+   commCreateIndex( dbcl, indexName, { a: "text" } );
+
    //insert random record
-   for(var i=0; i<3; i++)
+   for( var i = 0; i < 3; i++ )
    {
       var rd = new commDataGenerator();
       var recs = rd.getRecords( 10000, "string", ['a', 'b'] );
-      dbcl.insert(recs);
+      dbcl.insert( recs );
    }
-   
+
    var dbOperator = new DBOperator();
-   checkFullSyncToES(COMMCSNAME, clName, indexName, 30000);
-   
-   var expectRecords = dbOperator.findFromCL(dbcl, null, null, {_id:1}, null, 1000, 2000);
-   var actRecords = dbOperator.findFromCL(dbcl, {"":{"$Text":{query:{match_all:{}}}}}, null, {_id:1}, null, 1000, 2000);
-   checkResult(expectRecords, actRecords);
-   println("---check skip+limit<1w success---");
-   
-   var expectRecords = dbOperator.findFromCL(dbcl, null, null, {_id:1}, null, 8000, 7000);
-   var actRecords = dbOperator.findFromCL(dbcl, {"":{"$Text":{query:{match_all:{}}}}}, null, {_id:1}, null, 8000, 7000);
-   checkResult(expectRecords, actRecords);
-   println("---check skip<1w,limit<1w,skip+limit>1w success---");
-   
-   var expectRecords = dbOperator.findFromCL(dbcl, null, null, {_id:1}, null, 8000, 15000);
-   var actRecords = dbOperator.findFromCL(dbcl, {"":{"$Text":{query:{match_all:{}}}}}, null, {_id:1}, null, 8000, 15000);
-   checkResult(expectRecords, actRecords);
-   println("---check skip>1w,limit<1w success---");
-   
-   var expectRecords = dbOperator.findFromCL(dbcl, null, null, {_id:1}, null, 11000, 12000);
-   var actRecords = dbOperator.findFromCL(dbcl, {"":{"$Text":{query:{match_all:{}}}}}, null, {_id:1}, null, 11000, 12000);
-   checkResult(expectRecords, actRecords);
-   println("---check skip>1w,limit>1wsuccess---");
-   
-   var expectRecords = dbOperator.findFromCL(dbcl, null, null, {_id:1}, null, 11000, 8000);
-   var actRecords = dbOperator.findFromCL(dbcl, {"":{"$Text":{query:{match_all:{}}}}}, null, {_id:1}, null, 11000, 8000);
-   checkResult(expectRecords, actRecords);
-   println("---check skip<1w,limit>1w success---");
-   
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, indexName);
-   commDropCL( db, COMMCSNAME, clName);
+   checkFullSyncToES( COMMCSNAME, clName, indexName, 30000 );
+
+   var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 1000, 2000 );
+   var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 1000, 2000 );
+   checkResult( expectRecords, actRecords );
+   println( "---check skip+limit<1w success---" );
+
+   var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 8000, 7000 );
+   var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 8000, 7000 );
+   checkResult( expectRecords, actRecords );
+   println( "---check skip<1w,limit<1w,skip+limit>1w success---" );
+
+   var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 8000, 15000 );
+   var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 8000, 15000 );
+   checkResult( expectRecords, actRecords );
+   println( "---check skip>1w,limit<1w success---" );
+
+   var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 11000, 12000 );
+   var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 11000, 12000 );
+   checkResult( expectRecords, actRecords );
+   println( "---check skip>1w,limit>1wsuccess---" );
+
+   var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 11000, 8000 );
+   var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 11000, 8000 );
+   checkResult( expectRecords, actRecords );
+   println( "---check skip<1w,limit>1w success---" );
+
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
+   commDropCL( db, COMMCSNAME, clName );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 

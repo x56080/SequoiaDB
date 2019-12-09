@@ -1,67 +1,67 @@
 /******************************************************************************
 *@Description : test snapshot SDB_SNAP_CONFIGS 
-*               TestLink : seqDB-15727:Ö¸¶¨¿ìÕÕ²éÑ¯²ÎÊý²éÑ¯¿ìÕÕÐÅÏ¢£¨¶à¸ö²ÎÊý£©
+*               TestLink : seqDB-15727:Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½Õ²ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 *@auhor       : CSQ 
 ******************************************************************************/
 
-function main()
+function main ()
 {
-   var groups = commGetGroups(db);
-   if ( groups.length < 2)
-   {  
-      return ;
+   var groups = commGetGroups( db );
+   if( groups.length < 2 )
+   {
+      return;
    }
    var groupName = groups[0][0].GroupName;
-   var groupNodeNum = groups[0].length - 1 ;
+   var groupNodeNum = groups[0].length - 1;
 
    //cond+sel+skip+limit
-   var sel = {"role": 1};
-   var skip = groupNodeNum-1;
+   var sel = { "role": 1 };
+   var skip = groupNodeNum - 1;
    var limit = groupNodeNum;
-   var cond = {"$and": [{"GroupName":  groupName}, {"role": "data"}]};
-   var cursor = db.snapshot(SDB_SNAP_CONFIGS,new SdbSnapshotOption().cond(cond).sel(sel).skip(skip).limit(limit));
+   var cond = { "$and": [{ "GroupName": groupName }, { "role": "data" }] };
+   var cursor = db.snapshot( SDB_SNAP_CONFIGS, new SdbSnapshotOption().cond( cond ).sel( sel ).skip( skip ).limit( limit ) );
 
    var actResult = [];
-   var expResult = [{"role": "data"}];
+   var expResult = [{ "role": "data" }];
    while( cursor.next() )
    {
-      actResult.push(cursor.current().toObj());
+      actResult.push( cursor.current().toObj() );
    }
-   checkResult(actResult, expResult);   
-  
+   checkResult( actResult, expResult );
+
    //Specify all parameters
    skip = 0;
    limit = 1;
-   var  count = 0;
-   var options = {"expand": false};
-   sel = {"archiveon": 1,"role": 1};
-   cond = {"$and": [{"GroupName": groupName}, {"role": "data"}]};
-   cursor = db.snapshot(SDB_SNAP_CONFIGS, new SdbSnapshotOption().cond(cond).sel(sel).skip(skip).limit(limit).options(options));
+   var count = 0;
+   var options = { "expand": false };
+   sel = { "archiveon": 1, "role": 1 };
+   cond = { "$and": [{ "GroupName": groupName }, { "role": "data" }] };
+   cursor = db.snapshot( SDB_SNAP_CONFIGS, new SdbSnapshotOption().cond( cond ).sel( sel ).skip( skip ).limit( limit ).options( options ) );
    var actResult = [];
-   expResult = [{"role": "data", "archiveon": 1}];
+   expResult = [{ "role": "data", "archiveon": 1 }];
    while( cursor.next() )
    {
-      actResult.push(cursor.current().toObj());
+      actResult.push( cursor.current().toObj() );
    }
-   checkResult(actResult, expResult);
+   checkResult( actResult, expResult );
 
    //cond+sel+options+limit
    count = 0;
    limit = 1;
-   sel = {"role": 1, "archiveon": 1};
-   var options = {"expand": false};
-   cond = {$and:[{GroupName: groupName}, {role: "data"}]};
-   cursor = db.snapshot(SDB_SNAP_CONFIGS,new SdbSnapshotOption().cond(cond).sel(sel).options(options).limit(limit))
+   sel = { "role": 1, "archiveon": 1 };
+   var options = { "expand": false };
+   cond = { $and: [{ GroupName: groupName }, { role: "data" }] };
+   cursor = db.snapshot( SDB_SNAP_CONFIGS, new SdbSnapshotOption().cond( cond ).sel( sel ).options( options ).limit( limit ) )
    var actResult = [];
-   expResult = [{"role": "data"}];
+   expResult = [{ "role": "data" }];
    while( cursor.next() )
    {
-      actResult.push(cursor.current().toObj());
+      actResult.push( cursor.current().toObj() );
       count++;
    }
    if( count !== 1 )
    {
-      throw new Error("count: " + count);
+      throw new Error( "count: " + count );
    }
 }
 
@@ -69,11 +69,11 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
    throw e;
 }

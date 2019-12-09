@@ -6,96 +6,96 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var clnum = 5 ;
-var clnames = [] ;
-var csnames = [] ;
-var doc = { a: 1 } ;
-var csvContent = "a\n1\n" ;
+var clnum = 5;
+var clnames = [];
+var csnames = [];
+var doc = { a: 1 };
+var csvContent = "a\n1\n";
 var jsonContent = "{ \"a\": 1 }\n"
 
-main() ;
+main();
 
-function main()
+function main ()
 {
-   for( var i = 0;i < clnum;i++ )
+   for( var i = 0; i < clnum; i++ )
    {
-      var csname = COMMCSNAME + "_sdbexprt13560_" + i ;
-      var clname = COMMCLNAME + "_sdbexprt13560_" + i ;
-      var cl = commCreateCL( db, csname, clname, 0 ) ;
-      cl.insert( doc ) ;
-      clnames.push( clname ) ;
-      csnames.push( csname ) ;
+      var csname = COMMCSNAME + "_sdbexprt13560_" + i;
+      var clname = COMMCLNAME + "_sdbexprt13560_" + i;
+      var cl = commCreateCL( db, csname, clname, 0 );
+      cl.insert( doc );
+      clnames.push( clname );
+      csnames.push( csname );
    }
-  
-   testExprtCsv() ;
-   testExprtJson() ;
-   
-   for( var i = 0;i < clnum;i++ )
+
+   testExprtCsv();
+   testExprtJson();
+
+   for( var i = 0; i < clnum; i++ )
    {
-      commDropCS( db, csnames[i] ) ;
+      commDropCS( db, csnames[i] );
    }
 }
 
-function testExprtCsv()
+function testExprtCsv ()
 {
-   var csvDir = workDir + "13561/" ;
-   commMakeDir( "localhost", csvDir ) ;
-   
+   var csvDir = workDir + "13561/";
+   commMakeDir( "localhost", csvDir );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME + 
-                 " --dir " + csvDir +
-                 " --type csv" ;
-   command += " --cscl " ;
-   for( var i = 0;i < clnum;i++ )
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " --dir " + csvDir +
+      " --type csv";
+   command += " --cscl ";
+   for( var i = 0; i < clnum; i++ )
    {
-      command += csnames[i] + "." + clnames[i] ;
-      if( i !== clnum-1 )
-         command += "," ;
+      command += csnames[i] + "." + clnames[i];
+      if( i !== clnum - 1 )
+         command += ",";
    }
-   for( var i = 0;i < clnum;i++ )
+   for( var i = 0; i < clnum; i++ )
    {
-      command += " --fields " + csnames[i] + "." + clnames[i] + ":a" ;
+      command += " --fields " + csnames[i] + "." + clnames[i] + ":a";
    }
-   testRunCommand( command ) ;
-   
-   for( var i = 0;i < clnum;i++ )
+   testRunCommand( command );
+
+   for( var i = 0; i < clnum; i++ )
    {
-      var filename = csvDir + csnames[i] + "." + clnames[i] + ".csv" ;
-      checkFileContent( filename, csvContent ) ;
+      var filename = csvDir + csnames[i] + "." + clnames[i] + ".csv";
+      checkFileContent( filename, csvContent );
    }
-   
-   cmd.run( "rm -rf " + csvDir ) ;
+
+   cmd.run( "rm -rf " + csvDir );
 }
 
-function testExprtJson()
+function testExprtJson ()
 {
-   var jsonDir = workDir + "13560/" ;
-   commMakeDir( "localhost", jsonDir ) ;
-   
-   var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME + 
-                 " --dir " + jsonDir +
-                 " --type json" ;
-   command += " --cscl " ;
-   for( var i = 0;i < clnum;i++ )
-   {
-      command += csnames[i] + "." + clnames[i] ;
-      if( i !== clnum-1 )
-         command += "," ;
-   }
-   for( var i = 0;i < clnum;i++ )
-   {
-      command += " --fields " + csnames[i] + "." + clnames[i] + ":a" ;
-   }
-   testRunCommand( command ) ;
+   var jsonDir = workDir + "13560/";
+   commMakeDir( "localhost", jsonDir );
 
-   for( var i = 0;i < clnum;i++ )
+   var command = installPath + "bin/sdbexprt" +
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " --dir " + jsonDir +
+      " --type json";
+   command += " --cscl ";
+   for( var i = 0; i < clnum; i++ )
    {
-      var filename = jsonDir + csnames[i] + "." + clnames[i] + ".json" ;
-      checkFileContent( filename, jsonContent ) ;
+      command += csnames[i] + "." + clnames[i];
+      if( i !== clnum - 1 )
+         command += ",";
    }
-   
-   cmd.run( "rm -rf " + jsonDir ) ;
+   for( var i = 0; i < clnum; i++ )
+   {
+      command += " --fields " + csnames[i] + "." + clnames[i] + ":a";
+   }
+   testRunCommand( command );
+
+   for( var i = 0; i < clnum; i++ )
+   {
+      var filename = jsonDir + csnames[i] + "." + clnames[i] + ".json";
+      checkFileContent( filename, jsonContent );
+   }
+
+   cmd.run( "rm -rf " + jsonDir );
 }

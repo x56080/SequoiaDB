@@ -3,132 +3,132 @@
 *@Author:        2019-3-5  wangkexin
 ********************************************************************************/
 var key = "a";
-var csvContent = key + "\n" + "\"a\"\"\"" + "\n" ;
+var csvContent = key + "\n" + "\"a\"\"\"" + "\n";
 main();
-function main()
+function main ()
 {
     try
     {
         var csName = COMMCSNAME;
-        var clName = COMMCLNAME+"_11202" ;
+        var clName = COMMCLNAME + "_11202";
         var cl = readyCL( csName, clName );
-        
-        var imprtFile = tmpFileDir +"11202.csv";
+
+        var imprtFile = tmpFileDir + "11202.csv";
         readyData( imprtFile );
-        importData( csName, clName, imprtFile);
-        
+        importData( csName, clName, imprtFile );
+
         checkCLData( cl );
         exportData( clName );
         cleanCL( csName, clName );
     }
-    catch(e)
+    catch( e )
     {
         throw e;
     }
 }
 
-function readyData( imprtFile)
+function readyData ( imprtFile )
 {
-    println("\n---Begin to ready data.");
-    
+    println( "\n---Begin to ready data." );
+
     var file = fileInit( imprtFile );
-    file.write(csvContent);
-    var fileInfo = cmd.run( "cat "+ imprtFile );
+    file.write( csvContent );
+    var fileInfo = cmd.run( "cat " + imprtFile );
     file.close();
 }
 
-function importData( csName, clName, imprtFile )
+function importData ( csName, clName, imprtFile )
 {
-    println("\n---Begin to import data and check exec result.");
-    
+    println( "\n---Begin to import data and check exec result." );
+
     //remove rec file
-    var tmpRec = csName +"_"+ clName +"*.rec";
-    cmd.run( "rm -rf "+ tmpRec );
-    
+    var tmpRec = csName + "_" + clName + "*.rec";
+    cmd.run( "rm -rf " + tmpRec );
+
     //import operation
-    var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
-                    +' -c '+ csName +' -l '+ clName 
-                    +' --type csv '
-                    +' --file '+ imprtFile
-                    +' --headerline=true ';
+    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
+        + ' -c ' + csName + ' -l ' + clName
+        + ' --type csv '
+        + ' --file ' + imprtFile
+        + ' --headerline=true ';
     var rc = cmd.run( imprtOption );
-    
+
     //check import results
-    var rcObj = rc.split("\n");
-    var expParseRecords    = "parsed records: 1";
+    var rcObj = rc.split( "\n" );
+    var expParseRecords = "parsed records: 1";
     var expImportedRecords = "imported records: 1";
-    var actParseRecords    = rcObj[0];
+    var actParseRecords = rcObj[0];
     var actImportedRecords = rcObj[4];
     if( expParseRecords !== actParseRecords || expImportedRecords !== actImportedRecords )
     {
-        throw buildException( "importData", null, "[sdbimprt results]", 
-                        "["+ expParseRecords +", "+ expImportedRecords +"]", 
-                        "["+ actParseRecords +", "+ actImportedRecords +"]" );
+        throw buildException( "importData", null, "[sdbimprt results]",
+            "[" + expParseRecords + ", " + expImportedRecords + "]",
+            "[" + actParseRecords + ", " + actImportedRecords + "]" );
     }
-    
+
     // clean tmpRec
     cmd.run( "rm -rf " + tmpRec );
 }
 
-function checkCLData( cl )
+function checkCLData ( cl )
 {
-    println("\n---Begin to check cl data.");
-    
-    var rc = cl.find({},{_id:{$include:0}});
+    println( "\n---Begin to check cl data." );
+
+    var rc = cl.find( {}, { _id: { $include: 0 } } );
     var recsArray = [];
     while( tmpRecs = rc.next() )
     {
         recsArray.push( tmpRecs.toObj() );
     }
-    
+
     rc.close();
-    var expCnt  = 1;
+    var expCnt = 1;
     var expRecs = '[{"a":"a\\\""}]';
-    var actCnt  = recsArray.length;
+    var actCnt = recsArray.length;
     var actRecs = JSON.stringify( recsArray );
     if( actCnt !== expCnt || actRecs !== expRecs )
     {
-        throw buildException( "checkCLdata", null, "[find]", 
-                    "[cnt:"+ expCnt +", recs:"+ expRecs +"]", 
-                    "[cnt:"+ actCnt +", recs:"+ actRecs +"]" );
+        throw buildException( "checkCLdata", null, "[find]",
+            "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+            "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
     }
     //println( "cl records: "+ actRecs );
 }
 
-function exportData( clname )
+function exportData ( clname )
 {
-    var csvfile = tmpFileDir + "sdbexprt11202.csv" ;
-    cmd.run( "rm -rf " + csvfile ) ;
+    var csvfile = tmpFileDir + "sdbexprt11202.csv";
+    cmd.run( "rm -rf " + csvfile );
     var command = installDir + "bin/sdbexprt" +
-                " -s " + COORDHOSTNAME +
-                " -p " + COORDSVCNAME + 
-                " -c " + COMMCSNAME + 
-                " -l " + clname +
-                " --file " + csvfile + 
-                " --type csv" +
-                " --fields " + key ;
+        " -s " + COORDHOSTNAME +
+        " -p " + COORDSVCNAME +
+        " -c " + COMMCSNAME +
+        " -l " + clname +
+        " --file " + csvfile +
+        " --type csv" +
+        " --fields " + key;
     var rc = cmd.run( command );
-    
-    checkFileContent( csvfile, csvContent ) ;
+
+    checkFileContent( csvfile, csvContent );
 }
 
-function checkFileContent( filename, expContent )
+function checkFileContent ( filename, expContent )
 {
     try
     {
-        var size = parseInt( File.stat( filename ).toObj().size ) ;
-        var file = new File( filename ) ;
-        var actContent = file.read( size ) ;
-        file.close() ;
+        var size = parseInt( File.stat( filename ).toObj().size );
+        var file = new File( filename );
+        var actContent = file.read( size );
+        file.close();
     }
     catch( e )
     {
-        throw buildException( "checkFileContent", null, "read " + filename, 0, e ) ;
+        throw buildException( "checkFileContent", null, "read " + filename, 0, e );
     }
     if( actContent !== expContent )
     {
         throw buildException( "checkFileContent", null,
-                "check " + filename + " content", 
-                expContent, actContent);
+            "check " + filename + " content",
+            expContent, actContent );
     }
 }

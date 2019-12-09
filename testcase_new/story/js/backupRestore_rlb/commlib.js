@@ -6,90 +6,96 @@
 *               2018-1-10  wenjing Wang Change
 *******************************************************************************/
 
-var csName = COMMCSNAME ;
-var clName = COMMCLNAME ;
-var backupandrestoreGroup = 'backup_restore' ;
-var logSourcePaths = [] ;
+var csName = COMMCSNAME;
+var clName = COMMCLNAME;
+var backupandrestoreGroup = 'backup_restore';
+var logSourcePaths = [];
 
-function isPortUsed( port )
+function isPortUsed ( port )
 {
-   try{
-      var cmd = new Cmd();    
-      cmd.run("lsof -nP -iTCP:" + port +" -sTCP:LISTEN") ;
-      return true ;
-   }catch(e){
-      return false ;
+   try
+   {
+      var cmd = new Cmd();
+      cmd.run( "lsof -nP -iTCP:" + port + " -sTCP:LISTEN" );
+      return true;
+   } catch( e )
+   {
+      return false;
    }
 }
 
-function getLocalHostName()
+function getLocalHostName ()
 {
-   var cmd = new Cmd() ;
-   return cmd.run('hostname').split('\n')[0] ;
+   var cmd = new Cmd();
+   return cmd.run( 'hostname' ).split( '\n' )[0];
 }
 
-function createBackupRestoreGroup( db, hosts )
+function createBackupRestoreGroup ( db, hosts )
 {
-   var rg = db.createRG(backupandrestoreGroup) ;
-   var port = parseInt( RSRVPORTBEGIN ) ;
-   var hostname = getLocalHostName() ;
-   for ( var i = 0; i < 3; ++i ){
-      while ( isPortUsed( port ) ){
-         port += 10 ;
+   var rg = db.createRG( backupandrestoreGroup );
+   var port = parseInt( RSRVPORTBEGIN );
+   var hostname = getLocalHostName();
+   for( var i = 0; i < 3; ++i )
+   {
+      while( isPortUsed( port ) )
+      {
+         port += 10;
       }
       var dataPath = RSRVNODEDIR + port;
-      rg.createNode( hostname, port, dataPath, {diaglevel:5} ) ;
+      rg.createNode( hostname, port, dataPath, { diaglevel: 5 } );
       logSourcePaths.push( hostname + ":" + CMSVCNAME + "@" + dataPath + "/diaglog/sdbdiag.log" );
-      port += 10 ;
+      port += 10;
    }
    rg.start();
-   
-   var totalLen = 12000 ;
-   var alreadyWait = 0 ;
-   do{
-      var group = db.getRG(backupandrestoreGroup).getDetail().next().toObj() ;
-      if ( group.PrimaryNode !== undefined )
+
+   var totalLen = 12000;
+   var alreadyWait = 0;
+   do
+   {
+      var group = db.getRG( backupandrestoreGroup ).getDetail().next().toObj();
+      if( group.PrimaryNode !== undefined )
       {
-         break ;
-      }else{
-         sleep( 10 ) ;
+         break;
+      } else
+      {
+         sleep( 10 );
          alreadyWait += 1;
       }
-      if ( alreadyWait > totalLen )
+      if( alreadyWait > totalLen )
       {
          throw "wait select primary timeout"
       }
-   } while ( true);
-   
+   } while( true );
+
 }
 
-function nodeInfo( groupName, hostName, svcName, dbPath )
+function nodeInfo ( groupName, hostName, svcName, dbPath )
 {
-   this.hostName = hostName ;
-   this.svcName = svcName ;
-   this.groupName = groupName ;
-   this.dbPath = dbPath ;
+   this.hostName = hostName;
+   this.svcName = svcName;
+   this.groupName = groupName;
+   this.dbPath = dbPath;
 }
 
-function backUpInfo( bakName, bakPath, bakBeginIncId, bakEndIncId )
+function backUpInfo ( bakName, bakPath, bakBeginIncId, bakEndIncId )
 {
-   this.bakName = bakName ;
-   this.bakPath = bakPath ;
-   if ( bakBeginIncId === undefined )
+   this.bakName = bakName;
+   this.bakPath = bakPath;
+   if( bakBeginIncId === undefined )
    {
-      this.bakBeginIncId = 0 ;
+      this.bakBeginIncId = 0;
    }
    else
    {
-      this.bakBeginIncId = bakBeginIncId ;
+      this.bakBeginIncId = bakBeginIncId;
    }
-   if ( bakEndIncId === undefined )
+   if( bakEndIncId === undefined )
    {
-      this.bakEndIncId   = -1;
+      this.bakEndIncId = -1;
    }
    else
    {
-      this.bakEndIncId   = bakEndIncId ;
+      this.bakEndIncId = bakEndIncId;
    }
 }
 
@@ -101,41 +107,41 @@ function backUpInfo( bakName, bakPath, bakBeginIncId, bakEndIncId )
 @change :
           2014-6-20  xiaojun Hu
 ***************************************************************************** */
-function bakInsertData( cl, docs )
+function bakInsertData ( cl, docs )
 {
    try
    {
-      if ( typeof(docs) !== "object" )
+      if( typeof ( docs ) !== "object" )
       {
-         var docs = [] ;
-      
-         docs.push({no:1000,score:80,interest:["basketball","football"],major:"计算机科学与技术",dep:"计算机学院",info:{name:"Tom",age:25,sex:"男"}});
-         docs.push({no:1001,score:82,major:"计算机科学与技术",dep:"计算机学院",info:{name:"Json",age:20,sex:"男"}});
-         docs.push({no:1002,score:85,interest:["movie","photo"],major:"计算机软件与理论",dep:"计算机学院",info:{name:"Holiday",age:22,sex:"女"}});
-         docs.push({no:1003,score:90,major:"计算机软件与理论",dep:"计算机学院",info:{name:"Sam",age:30,sex:"男"}});
-         docs.push({no:1004,score:69,interest:["basketball","football","movie"],major:"计算机工程",dep:"计算机学院",info:{name:"Coll",age:26,sex:"男"}});
-         docs.push({no:1005,score:70,major:"计算机工程",dep:"计算机学院",info:{name:"Jim",age:24,sex:"女"}});
-         docs.push({no:1006,score:84,interest:["basketball","football","movie","photo"],major:"物理学",dep:"物电学院",info:{name:"Lily",age:28,sex:"女"}});
-         docs.push({no:1007,score:73,interest:["basketball","football","photo"],major:"物理学",dep:"物电学院",info:{name:"Kiki",age:18,sex:"女"}});
-         docs.push({no:1008,score:72,interest:["basketball","football","movie"],major:"物理学",dep:"物电学院",info:{name:"Appie",age:20,sex:"女"}});
-         docs.push({no:1009,score:80,major:"物理学",dep:"物电学院",info:{name:"Lucy",age:36,sex:"女"}});
-         docs.push({no:1010,score:93,major:"光学",dep:"物电学院",info:{name:"Coco",age:27,sex:"女"}});
-         docs.push({no:1011,score:75,major:"光学",dep:"物电学院",info:{name:"Jack",age:30,sex:"男"}});
-         docs.push({no:1012,score:78,interest:["basketball","movie"],major:"光学",dep:"物电学院",info:{name:"Mike",age:28,sex:"男"}});
-         docs.push({no:1013,score:86,interest:["basketball","movie","photo"],major:"电学",dep:"物电学院",info:{name:"Jaden",age:20,sex:"男"}});
-         docs.push({no:1014,score:74,interest:["football","movie","photo"],major:"电学",dep:"物电学院",info:{name:"Iccra",age:19,sex:"男"}});
-         docs.push({no:1015,score:81,major:"电学",dep:"物电学院",info:{name:"Jay",age:15,sex:"男"}});
-         docs.push({no:1016,score:92,major:"电学",dep:"物电学院",info:{name:"Kate",age:20,sex:"男"}});
-     }
-      
-      cl.insert( docs ) ;
+         var docs = [];
+
+         docs.push( { no: 1000, score: 80, interest: ["basketball", "football"], major: "计算机科学与技术", dep: "计算机学院", info: { name: "Tom", age: 25, sex: "男" } } );
+         docs.push( { no: 1001, score: 82, major: "计算机科学与技术", dep: "计算机学院", info: { name: "Json", age: 20, sex: "男" } } );
+         docs.push( { no: 1002, score: 85, interest: ["movie", "photo"], major: "计算机软件与理论", dep: "计算机学院", info: { name: "Holiday", age: 22, sex: "女" } } );
+         docs.push( { no: 1003, score: 90, major: "计算机软件与理论", dep: "计算机学院", info: { name: "Sam", age: 30, sex: "男" } } );
+         docs.push( { no: 1004, score: 69, interest: ["basketball", "football", "movie"], major: "计算机工程", dep: "计算机学院", info: { name: "Coll", age: 26, sex: "男" } } );
+         docs.push( { no: 1005, score: 70, major: "计算机工程", dep: "计算机学院", info: { name: "Jim", age: 24, sex: "女" } } );
+         docs.push( { no: 1006, score: 84, interest: ["basketball", "football", "movie", "photo"], major: "物理学", dep: "物电学院", info: { name: "Lily", age: 28, sex: "女" } } );
+         docs.push( { no: 1007, score: 73, interest: ["basketball", "football", "photo"], major: "物理学", dep: "物电学院", info: { name: "Kiki", age: 18, sex: "女" } } );
+         docs.push( { no: 1008, score: 72, interest: ["basketball", "football", "movie"], major: "物理学", dep: "物电学院", info: { name: "Appie", age: 20, sex: "女" } } );
+         docs.push( { no: 1009, score: 80, major: "物理学", dep: "物电学院", info: { name: "Lucy", age: 36, sex: "女" } } );
+         docs.push( { no: 1010, score: 93, major: "光学", dep: "物电学院", info: { name: "Coco", age: 27, sex: "女" } } );
+         docs.push( { no: 1011, score: 75, major: "光学", dep: "物电学院", info: { name: "Jack", age: 30, sex: "男" } } );
+         docs.push( { no: 1012, score: 78, interest: ["basketball", "movie"], major: "光学", dep: "物电学院", info: { name: "Mike", age: 28, sex: "男" } } );
+         docs.push( { no: 1013, score: 86, interest: ["basketball", "movie", "photo"], major: "电学", dep: "物电学院", info: { name: "Jaden", age: 20, sex: "男" } } );
+         docs.push( { no: 1014, score: 74, interest: ["football", "movie", "photo"], major: "电学", dep: "物电学院", info: { name: "Iccra", age: 19, sex: "男" } } );
+         docs.push( { no: 1015, score: 81, major: "电学", dep: "物电学院", info: { name: "Jay", age: 15, sex: "男" } } );
+         docs.push( { no: 1016, score: 92, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } } );
+      }
+
+      cl.insert( docs );
    }
-   catch ( e )
+   catch( e )
    {
-      println("bakInsertData: Failed to insert Date, e=" + e ) ;
-      throw e ;
+      println( "bakInsertData: Failed to insert Date, e=" + e );
+      throw e;
    }
-   return docs ;
+   return docs;
 }
 
 /* *****************************************************************************
@@ -147,35 +153,35 @@ function bakInsertData( cl, docs )
    path : backup path, default is ""
    isSubDir : true/false, default is false
 ***************************************************************************** */
-function bakRemoveBackups( db, filter, ignoreNotExist, path, isSubDir )
+function bakRemoveBackups ( db, filter, ignoreNotExist, path, isSubDir )
 {
-   if ( filter == undefined ) { filter = "" ; }
-   if ( ignoreNotExist == undefined ) { ignoreNotExist = true ; }
-   if ( path == undefined ) { path = ""; }
-   if ( isSubDir == undefined ) { isSubDir = false ; }
+   if( filter == undefined ) { filter = ""; }
+   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
+   if( path == undefined ) { path = ""; }
+   if( isSubDir == undefined ) { isSubDir = false; }
 
-   var backups = commGetBackups( db, filter, path, isSubDir ) ;
-   for ( var i = 0 ; i < backups.length; ++i )
+   var backups = commGetBackups( db, filter, path, isSubDir );
+   for( var i = 0; i < backups.length; ++i )
    {
       try
       {
-         println( "removeBackup(" + JSON.stringify({Name:backups[i], Path:path}) + ")");
-         if ( path.length != 0 )
+         println( "removeBackup(" + JSON.stringify( { Name: backups[i], Path: path } ) + ")" );
+         if( path.length != 0 )
          {
-            db.removeBackup( {Name:backups[i], Path:path} ) ;
+            db.removeBackup( { Name: backups[i], Path: path } );
          }
          else
          {
-            db.removeBackup( {Name:backups[i]} ) ;
+            db.removeBackup( { Name: backups[i] } );
          }
       }
       catch( e )
       {
          // not exist
-         if ( !ignoreNotExist || e != -241 )
+         if( !ignoreNotExist || e != -241 )
          {
-            println( "bakRemoveBackups: remove backup[" + backups[i] + "] failed: " + e ) ;
-            throw e ;
+            println( "bakRemoveBackups: remove backup[" + backups[i] + "] failed: " + e );
+            throw e;
          }
       }
    }
@@ -187,685 +193,697 @@ function bakRemoveBackups( db, filter, ignoreNotExist, path, isSubDir )
 @parameter:
    backupObj : backup object
 ***************************************************************************** */
-function bakBackup( db, backupObj )
+function bakBackup ( db, backupObj )
 {
-   if ( backupObj == undefined ) { backupObj = {} ; }
+   if( backupObj == undefined ) { backupObj = {}; }
 
-   if ( typeof( backupObj ) != "object" )
+   if( typeof ( backupObj ) != "object" )
    {
-      throw "bakBackup: backupObj is not object" ;
+      throw "bakBackup: backupObj is not object";
    }
    try
    {
-      db.backup( backupObj ) ;
+      db.backup( backupObj );
    }
    catch( e )
    {
-      println( "bakBackup: backup failed: " + e ) ;
-      commPrint( backupObj ) ;
-      throw e ;
+      println( "bakBackup: backup failed: " + e );
+      commPrint( backupObj );
+      throw e;
    }
 }
 
-function getDateString()
+function getDateString ()
 {
-   var d = new Date() ;
-   return d.getFullYear() + '-' 
-       + (d.getMonth() + 1) + '-' 
-       + d.getDate() + '-' 
-       + (d.getHours() + 1) + ':' 
-       + d.getMinutes() + ':' 
-       + d.getSeconds() ;
+   var d = new Date();
+   return d.getFullYear() + '-'
+      + ( d.getMonth() + 1 ) + '-'
+      + d.getDate() + '-'
+      + ( d.getHours() + 1 ) + ':'
+      + d.getMinutes() + ':'
+      + d.getSeconds();
 }
 
-function bakBackupByCheckError( db, backUpOpt )
+function bakBackupByCheckError ( db, backUpOpt )
 {
    try
    {
-      bakBackup( db, backUpOpt ) ;
+      bakBackup( db, backUpOpt );
    }
    catch( e )
    {
-      if( -264 == e || (commIsStandalone(db) && -240 == e)) 
+      if( -264 == e || ( commIsStandalone( db ) && -240 == e ) ) 
       {
-         println( "backup description is already started" ) ;
-         alreadStart = true ;
+         println( "backup description is already started" );
+         alreadStart = true;
       }
       else
       {
-         println( "failed to backup by specify description, rc = " + e ) ;
-         throw e ;
+         println( "failed to backup by specify description, rc = " + e );
+         throw e;
       }
    }
 }
 
-function checkBackupInfo( db, errDesc, bakName, path, alreadStart, opt )
+function checkBackupInfo ( db, errDesc, bakName, path, alreadStart, opt )
 {
-   var backups = commGetBackups( db, bakName, path, alreadStart, opt ) ;
-   println( "backup file = " + JSON.stringify(backups) ) ;
-   if ( !commIsStandalone( db ) && bakName === undefined )
+   var backups = commGetBackups( db, bakName, path, alreadStart, opt );
+   println( "backup file = " + JSON.stringify( backups ) );
+   if( !commIsStandalone( db ) && bakName === undefined )
    {
-      if ( 0 === backups.length )
+      if( 0 === backups.length )
       {
-         commPrint( backups ) ;
-         throw "check backup failed" ;
+         commPrint( backups );
+         throw "check backup failed";
       }
-   }else if( 1 != backups.length )
+   } else if( 1 != backups.length )
    {
-      commPrint( backups ) ;
-      throw "check backup failed" ;
+      commPrint( backups );
+      throw "check backup failed";
    }
-   return backups[0] ;
+   return backups[0];
 }
 
-function getExecPath( cmd )
+function getExecPath ( cmd )
 {
-   if ( cmd === undefined )
+   if( cmd === undefined )
    {
-      var cmd = new Cmd() ;
+      var cmd = new Cmd();
    }
-   
-   var path = "" ;
-   try{
-       cmd.run( "svn info" );
-       path = cmd.run("pwd").split("\n")[0] ;
-   }catch( e ){
-      var content = cmd.run("cat /etc/default/sequoiadb|grep INSTALL_DIR").split("\n")[0]
-      var pair = content.split("=");
-      if ( pair.length == 2 )
+
+   var path = "";
+   try
+   {
+      cmd.run( "svn info" );
+      path = cmd.run( "pwd" ).split( "\n" )[0];
+   } catch( e )
+   {
+      var content = cmd.run( "cat /etc/default/sequoiadb|grep INSTALL_DIR" ).split( "\n" )[0]
+      var pair = content.split( "=" );
+      if( pair.length == 2 )
       {
-         path = pair[1] ;
+         path = pair[1];
       }
    }
-   
-   if ( path === undefined )
+
+   if( path === undefined )
    {
-      throw new Error("execPath is invalid") ;
+      throw new Error( "execPath is invalid" );
    }
 
-   var suffix = "/bin" ;
-   var pos = path.lastIndexOf( suffix ) ;
-   if ( pos === -1 || pos + suffix.length !== path.length )
+   var suffix = "/bin";
+   var pos = path.lastIndexOf( suffix );
+   if( pos === -1 || pos + suffix.length !== path.length )
    {
-      path += "/bin/" ;
+      path += "/bin/";
    }
 
-   return path ;
+   return path;
 }
 
-function genFile( path )
+function genFile ( path )
 {
-   if ( path === undefined )
+   if( path === undefined )
    {
-      var path = "/tmp/testdat" + Math.floor( Math.random() * 100 ) ;
+      var path = "/tmp/testdat" + Math.floor( Math.random() * 100 );
    }
-   
-   var content = "" ;
-   for ( var i = 0; i < 1024 + Math.floor( Math.random() * 4096 ); ++i )
+
+   var content = "";
+   for( var i = 0; i < 1024 + Math.floor( Math.random() * 4096 ); ++i )
    {
-      var code = Math.floor( Math.random() * 127 ) ;
-      if ( code < 20 )
+      var code = Math.floor( Math.random() * 127 );
+      if( code < 20 )
       {
-         code = code + 20 ;
+         code = code + 20;
       }
       content += String.fromCharCode( code );
    }
 
    var file = new File( path );
-   file.write( content ) ;
-   file.close() ;
+   file.write( content );
+   file.close();
 }
 
-function calcMD5( cmd, path )
+function calcMD5 ( cmd, path )
 {
-   if ( path === undefined )
+   if( path === undefined )
    {
-      throw new Error("path is invalid") ;
+      throw new Error( "path is invalid" );
    }
-   
-   if ( cmd === undefined )
+
+   if( cmd === undefined )
    {
-      var cmd = new Cmd() ;
+      var cmd = new Cmd();
    }
-   
-   var output = cmd.run( "md5sum " + path ) ;
-   output = output.split("\n")[0] ;
-   var detail = output.split(" ");
-   if ( detail.length == 2 )
+
+   var output = cmd.run( "md5sum " + path );
+   output = output.split( "\n" )[0];
+   var detail = output.split( " " );
+   if( detail.length == 2 )
    {
-      var MD5 = detail[0] ;
+      var MD5 = detail[0];
    }
-   
-   return MD5 ;
+
+   return MD5;
 }
 
-function sdbPutLob( cl, filePath )
+function sdbPutLob ( cl, filePath )
 {
    try
    {
       var oid = cl.putLob( filePath );
-      return oid ;
-   }catch(e)
+      return oid;
+   } catch( e )
    {
-      throw new Error( getErr(e) );
+      throw new Error( getErr( e ) );
    }
 }
 
-function isTheSameMachine( cmd, hostName )
+function isTheSameMachine ( cmd, hostName )
 {
-   if ( hostName === undefined )
+   if( hostName === undefined )
    {
-      throw new Error("invalid parameters");
-   }
-   
-   if ( cmd === undefined )
-   {
-      var cmd = new Cmd() ;
-   }
-    
-   if ( hostName === "localhost" || hostName === "127.0.0.1" )
-   {
-      return true ;
+      throw new Error( "invalid parameters" );
    }
 
-   var curHostName = cmd.run("hostname").split("\n")[0];
-   if ( curHostName === hostName )
+   if( cmd === undefined )
    {
-      return true ;
+      var cmd = new Cmd();
+   }
+
+   if( hostName === "localhost" || hostName === "127.0.0.1" )
+   {
+      return true;
+   }
+
+   var curHostName = cmd.run( "hostname" ).split( "\n" )[0];
+   if( curHostName === hostName )
+   {
+      return true;
    }
    else
    {
-      return false ;
-   }   
+      return false;
+   }
 }
 
-function getCmdByHostName( cmd, hostName )
+function getCmdByHostName ( cmd, hostName )
 {
-   if ( !isTheSameMachine( cmd, hostName ))
+   if( !isTheSameMachine( cmd, hostName ) )
    {
-      var remote = new Remote( hostName, CMSVCNAME ) ;
-      var cmd = remote.getCmd() ;   
+      var remote = new Remote( hostName, CMSVCNAME );
+      var cmd = remote.getCmd();
    }
-   
-   return cmd ;
+
+   return cmd;
 }
 
-function sdbRestore( db, cmd, bakInfo, node )
+function sdbRestore ( db, cmd, bakInfo, node )
 {
-   if ( node !== undefined && !(node instanceof nodeInfo) )
+   if( node !== undefined && !( node instanceof nodeInfo ) )
    {
-      throw new Error(" invalid parameters ") ;
-   }
-   
-   if ( !(bakInfo instanceof backUpInfo ))
-   {
-      throw new Error(" invalid parameters ") ;
-   }
-   var isStandalone = false ;
-   if ( cmd === undefined )
-   {
-      var cmd = new Cmd() ;
-   }  
-   
-   if ( commIsStandalone( db ) )
-   {
-      var isStandalone = true ;
+      throw new Error( " invalid parameters " );
    }
 
-   println("stop node...")
-   stopNode( db, isStandalone, cmd, node ) ;
-   var execProg = getExecPath( cmd ) + "sdbrestore" ;
-   println(  execProg + " --bkname " + bakInfo.bakName + " --bkpath " + bakInfo.bakPath +
-                        " -b " + bakInfo.bakBeginIncId + " -i " + bakInfo.bakEndIncId ) ;
+   if( !( bakInfo instanceof backUpInfo ) )
+   {
+      throw new Error( " invalid parameters " );
+   }
+   var isStandalone = false;
+   if( cmd === undefined )
+   {
+      var cmd = new Cmd();
+   }
+
+   if( commIsStandalone( db ) )
+   {
+      var isStandalone = true;
+   }
+
+   println( "stop node..." )
+   stopNode( db, isStandalone, cmd, node );
+   var execProg = getExecPath( cmd ) + "sdbrestore";
+   println( execProg + " --bkname " + bakInfo.bakName + " --bkpath " + bakInfo.bakPath +
+      " -b " + bakInfo.bakBeginIncId + " -i " + bakInfo.bakEndIncId );
    var output = cmd.run( execProg + " --bkname " + bakInfo.bakName + " --bkpath " + bakInfo.bakPath +
-                        " -b " + bakInfo.bakBeginIncId + " -i " + bakInfo.bakEndIncId) ; 
-   println( output ) ;
-   startNode( db, isStandalone, cmd, node ) ;
+      " -b " + bakInfo.bakBeginIncId + " -i " + bakInfo.bakEndIncId );
+   println( output );
+   startNode( db, isStandalone, cmd, node );
 }
 
-function removeFile( cmd, filePath )
+function removeFile ( cmd, filePath )
 {
-   if ( filePath === undefined )
+   if( filePath === undefined )
    {
-      throw new Error( "invalid parameters" ) ;
+      throw new Error( "invalid parameters" );
    }
-   
-   if ( cmd === undefined )
+
+   if( cmd === undefined )
    {
-      var cmd = new Cmd() ;
+      var cmd = new Cmd();
    }
-   
-   var output = cmd.run( "rm -rf " + filePath) ;
+
+   var output = cmd.run( "rm -rf " + filePath );
 }
 
-function stopNode( db, isStandalone, cmd, node )
+function stopNode ( db, isStandalone, cmd, node )
 {
-   if ( cmd === undefined )
+   if( cmd === undefined )
    {
-      var cmd = new Cmd() ;
+      var cmd = new Cmd();
    }
-   
-   if ( isStandalone )
+
+   if( isStandalone )
    {
-      var execProg = getExecPath( cmd ) + "sdbstop" ;
-      cmd.run( execProg + " -p " + COORDSVCNAME ) ;
+      var execProg = getExecPath( cmd ) + "sdbstop";
+      cmd.run( execProg + " -p " + COORDSVCNAME );
    }
    else
    {
-      if ( !(node instanceof nodeInfo) )
+      if( !( node instanceof nodeInfo ) )
       {
-         throw new Error(" invalid parameters ") ;
+         throw new Error( " invalid parameters " );
       }
-      db.getRG(node.groupName).getNode(node.hostName, node.svcName).stop() ;
+      db.getRG( node.groupName ).getNode( node.hostName, node.svcName ).stop();
    }
 }
 
-function startNode( db, isStandalone, cmd, node )
+function startNode ( db, isStandalone, cmd, node )
 {
-   if ( cmd === undefined )
+   if( cmd === undefined )
    {
-      var cmd = new Cmd() ;
+      var cmd = new Cmd();
    }
-   
-   if ( isStandalone )
+
+   if( isStandalone )
    {
-      var execProg = getExecPath( cmd ) + "sdbstart" ;
-      cmd.run( execProg + " -p " + COORDSVCNAME ) ;
+      var execProg = getExecPath( cmd ) + "sdbstart";
+      cmd.run( execProg + " -p " + COORDSVCNAME );
    }
    else
    {
-      if ( !(node instanceof nodeInfo) )
+      if( !( node instanceof nodeInfo ) )
       {
-         throw new Error(" invalid parameters ") ;
+         throw new Error( " invalid parameters " );
       }
-      
-      db.getRG(node.groupName).getNode(node.hostName, node.svcName).start() ;
+
+      db.getRG( node.groupName ).getNode( node.hostName, node.svcName ).start();
    }
 }
 
-function IsBakPathEmpty( cmd, bakPath )
+function IsBakPathEmpty ( cmd, bakPath )
 {
-   if ( bakPath === undefined )
+   if( bakPath === undefined )
    {
-      throw new Error( " parameter's invalid" ) ;
+      throw new Error( " parameter's invalid" );
    }
-   
-   if ( cmd === undefined )
+
+   if( cmd === undefined )
    {
-      cmd = new Cmd() ;
+      cmd = new Cmd();
    }
-   
+
    try
    {
-   var output = cmd.run( " ls -A " + bakPath  ) ;
-   if ( output === "" )
+      var output = cmd.run( " ls -A " + bakPath );
+      if( output === "" )
+      {
+         return true;
+      }
+      else
+      {
+         throw new Error( "expect second item get a number" );
+      }
+   } catch( e )
    {
-      return true ;
-   }
-   else
-   {
-      throw new Error( "expect second item get a number" ) ;
-   }
-   }catch(e)
-   {
-      println( cmd.getLastOut() + " ,error:" +  e );
+      println( cmd.getLastOut() + " ,error:" + e );
    }
 }
 
-function compareObj( lobj, robj, ignoreId )
+function compareObj ( lobj, robj, ignoreId )
 {
-   if ( typeof(lobj) === "object" && 
-        typeof(robj) === "object" )
+   if( typeof ( lobj ) === "object" &&
+      typeof ( robj ) === "object" )
    {
-      if ( lobj === null && robj === null ) return true;
-      if ( lobj.constructor !== robj.constructor ) return false;
+      if( lobj === null && robj === null ) return true;
+      if( lobj.constructor !== robj.constructor ) return false;
       var _idNum = 1;
       var lkeys = Object.getOwnPropertyNames( lobj );
       var rkeys = Object.getOwnPropertyNames( robj );
-      if ( ignoreId && 
-          ( lkeys.length !== rkeys.length + _idNum && 
-            lkeys.length + _idNum !== rkeys.length )) 
+      if( ignoreId &&
+         ( lkeys.length !== rkeys.length + _idNum &&
+            lkeys.length + _idNum !== rkeys.length ) ) 
       {
          return false;
       }
-      
-      for ( key in lobj )
+
+      for( key in lobj )
       {
-         if ( ignoreId && key === "_id" ) 
+         if( ignoreId && key === "_id" ) 
          {
             continue
          }
-         
-         if ( !compareObj( lobj[key], robj[key] ) ) 
+
+         if( !compareObj( lobj[key], robj[key] ) ) 
          {
-            return false ;
+            return false;
          }
       }
-      return true ;
+      return true;
    }
-   else if ( lobj === robj )
+   else if( lobj === robj )
    {
-      return true ;
+      return true;
    }
    else
    {
-      return false ;
+      return false;
    }
 }
 
-function getBackups( db, filter, grpNameArray )
+function getBackups ( db, filter, grpNameArray )
 {
-   var backUp = {} ;
-   if ( typeof(grpNameArray) === "object" )
+   var backUp = {};
+   if( typeof ( grpNameArray ) === "object" )
    {
-      var cursor = db.listBackup( {GroupName:grpNameArray} ) ;
+      var cursor = db.listBackup( { GroupName: grpNameArray } );
    }
    else
    {
-      var cursor = db.listBackup() ;
+      var cursor = db.listBackup();
    }
-   while ( cursor.next() )
+   while( cursor.next() )
    {
-      var obj = cursor.current().toObj() ;
-      if ( filter !== undefined && 0 !== obj.Name.indexOf( filter ) )
+      var obj = cursor.current().toObj();
+      if( filter !== undefined && 0 !== obj.Name.indexOf( filter ) )
       {
-         continue ;
+         continue;
       }
-      
-      var key = obj.GroupName + ":" + obj.ID ;
-      backUp[ key ] = obj ;
+
+      var key = obj.GroupName + ":" + obj.ID;
+      backUp[key] = obj;
    }
-   
-   return backUp ;
+
+   return backUp;
 }
 
-function getAllHosts( groups )
+function getAllHosts ( groups )
 {
-   var hosts = [] ;
-   var host2Count = {} ;
-   for ( var i = 0; i < groups.length; ++i )
+   var hosts = [];
+   var host2Count = {};
+   for( var i = 0; i < groups.length; ++i )
    {
-      for ( var j = 1; j < groups[i].length; ++j ){
-         if ( host2Count[groups[i][j].HostName] === undefined )
+      for( var j = 1; j < groups[i].length; ++j )
+      {
+         if( host2Count[groups[i][j].HostName] === undefined )
          {
-            hosts.push( groups[i][j].HostName ) ;
+            hosts.push( groups[i][j].HostName );
             host2Count[groups[i][j].HostName] = 1;
          }
       }
    }
-   return hosts ;
+   return hosts;
 }
 
-function backupTestCase( sdb )
+function backupTestCase ( sdb )
 {
-   this.sdb = sdb ;
-   this.db = db ;
-   this.oids = [] ;
-   this.localCmd = new Cmd() ;
+   this.sdb = sdb;
+   this.db = db;
+   this.oids = [];
+   this.localCmd = new Cmd();
 }
 
-backupTestCase.prototype.csName = csName ;
-backupTestCase.prototype.clName = clName ;
-backupTestCase.prototype.init=
-function()
-{
-   if ( !commIsStandalone(db) ){
-      println( " running in cluster " ) ;
-      this.groups = commGetGroups( db ) ;
-      var hosts = getAllHosts( this.groups ) ;
-      createBackupRestoreGroup( db, hosts ) ;
-      this.group = db.getRG( backupandrestoreGroup ).getDetail().next().toObj() ;
-      var primaryPos = this.group.PrimaryNode ;
-      
-      for ( var i = 0; i < this.group.Group.length; ++i){
-         if ( primaryPos == this.group.Group[i].NodeID )
+backupTestCase.prototype.csName = csName;
+backupTestCase.prototype.clName = clName;
+backupTestCase.prototype.init =
+   function()
+   {
+      if( !commIsStandalone( db ) )
+      {
+         println( " running in cluster " );
+         this.groups = commGetGroups( db );
+         var hosts = getAllHosts( this.groups );
+         createBackupRestoreGroup( db, hosts );
+         this.group = db.getRG( backupandrestoreGroup ).getDetail().next().toObj();
+         var primaryPos = this.group.PrimaryNode;
+
+         for( var i = 0; i < this.group.Group.length; ++i )
          {
-            var hostName = this.group.Group[i].HostName ;
-            var svcName = this.group.Group[i].Service[0].Name ;
-            var dbPath = this.group.Group[i].dbpath ;
+            if( primaryPos == this.group.Group[i].NodeID )
+            {
+               var hostName = this.group.Group[i].HostName;
+               var svcName = this.group.Group[i].Service[0].Name;
+               var dbPath = this.group.Group[i].dbpath;
+            }
          }
+         this.nodeinfo = new nodeInfo( this.group.GroupName, hostName, svcName, dbPath );
+
+         this.db = new Sdb( hostName, svcName );
+         var opt = { Group: this.group.GroupName, ReplSize: -1 }
+         this.cl = commCreateCLByOption( this.sdb, this.csName, this.clName, opt, true, false,
+            "Create collection in the beginning" );
+         this.cmd = getCmdByHostName( this.localCmd, hostName );
       }
-      this.nodeinfo = new nodeInfo( this.group.GroupName, hostName, svcName, dbPath);
-      
-      this.db = new Sdb( hostName, svcName ) ;
-      var opt = {Group: this.group.GroupName, ReplSize:-1}
-      this.cl = commCreateCLByOption( this.sdb, this.csName, this.clName, opt,  true, false, 
-                   "Create collection in the beginning" ) ;
-      this.cmd = getCmdByHostName( this.localCmd, hostName )  ;
+      else
+      {
+         println( " running in standalone " );
+         this.cl = commCreateCL( this.sdb, this.csName, this.clName, -1, true, true, false,
+            "Create collection in the beginning" );
+         this.cmd = getCmdByHostName( this.localCmd, COORDHOSTNAME );
+      }
+      return true;
    }
-   else{
-      println( " running in standalone " ) ;
-      this.cl = commCreateCL( this.sdb, this.csName, this.clName, -1, true, true, false,
-                            "Create collection in the beginning" ) ;
-      this.cmd = getCmdByHostName( this.localCmd, COORDHOSTNAME )  ;
-   }    
-   return true ;
-}
 
 backupTestCase.prototype.setUp =
-function ()
-{
-   commDropCL( db, this.csName, this.clName, true, true, "Drop CL in the beginning" ) ;
-   bakRemoveBackups( db, CHANGEDPREFIX, true ) ;
-   var flag = false ;
-   try
+   function()
    {
-      println(" drop " + backupandrestoreGroup ) ;
-      db.getRG( backupandrestoreGroup ) ;
-      flag = true ;
-      db.removeRG( backupandrestoreGroup ) ;
-   }catch(e){
-      if ( flag ) throw e ;
-   }
-   
-   println( "Clear the backup in the beginning" ) ;
-   return this.init() ;
-}
-
-backupTestCase.prototype.reInit=
-function()
-{
-    
-}
-
-backupTestCase.prototype.checkResult=
-function( times )
-{
-   if ( times === undefined )
-   {
-      var times = 1 ;   
-   }
-   
-   this.reInit() ;
-   this.cl = this.sdb.getCS( this.csName ).getCL( this.clName ) ;
-   var cursor = this.cl.find().sort({ no:1 } ) ;
-   var index = 0 ;
-   var cnt = 0 ;
-   while ( cursor.next() )
-   {
-      var obj = cursor.current().toObj();
-      if ( !compareObj( obj, this.docs[index], true ) )
+      commDropCL( db, this.csName, this.clName, true, true, "Drop CL in the beginning" );
+      bakRemoveBackups( db, CHANGEDPREFIX, true );
+      var flag = false;
+      try
       {
-         throw new Error( "expect doc:" + JSON.stringify(this.docs[index]) + "real doc:" + JSON.stringify( obj ) ) ;
+         println( " drop " + backupandrestoreGroup );
+         db.getRG( backupandrestoreGroup );
+         flag = true;
+         db.removeRG( backupandrestoreGroup );
+      } catch( e )
+      {
+         if( flag ) throw e;
       }
-      
-      if ( ++cnt === times )
-      {
-         ++index ;
-         cnt = 0 ;
-      }
+
+      println( "Clear the backup in the beginning" );
+      return this.init();
    }
 
-   try
+backupTestCase.prototype.reInit =
+   function()
    {
-      var path = "/tmp/getdat" + getDateString() ;
-      println( "getLob " + path );
-      for ( var i = 0; i < this.oids.length; ++i )
+
+   }
+
+backupTestCase.prototype.checkResult =
+   function( times )
+   {
+      if( times === undefined )
       {
-         this.cl.getLob( this.oids[i], path, true ) ;
-         var curMD5 = calcMD5( this.localCmd, path ) ;
-         if ( this.originMD5 !== curMD5 )
+         var times = 1;
+      }
+
+      this.reInit();
+      this.cl = this.sdb.getCS( this.csName ).getCL( this.clName );
+      var cursor = this.cl.find().sort( { no: 1 } );
+      var index = 0;
+      var cnt = 0;
+      while( cursor.next() )
+      {
+         var obj = cursor.current().toObj();
+         if( !compareObj( obj, this.docs[index], true ) )
          {
-            throw new Error( "expect md5:" + this.originMD5 + "real md5:" + curMD5 ) ;
+            throw new Error( "expect doc:" + JSON.stringify( this.docs[index] ) + "real doc:" + JSON.stringify( obj ) );
+         }
+
+         if( ++cnt === times )
+         {
+            ++index;
+            cnt = 0;
          }
       }
-   }catch( e )
-   {
-      throw e ;
-   }
-   finally
-   {
-      removeFile( this.localCmd, path ) ;
-   }
-}
 
-backupTestCase.prototype.checkBackupRes=
-function ( bakInfo, times, grpNameArray )
-{
-   if ( times === undefined )
-   {
-      var times = 1 ;
-   }
-   var groupNum = grpNameArray === undefined ? 1 : grpNameArray.length ;
-   var backUp = getBackups( this.db, bakInfo.bakName, grpNameArray );
-   var props = Object.getOwnPropertyNames( backUp ) ;
-   if ( props.length !== times * groupNum  )
-   {
-      var cond = grpNameArray === undefined ? "" : "{Group:[" + JSON.stringify(grpNameArray) + "]}" ;
-      throw new Error( "expect listBack("+ cond + ") return " + (times * groupNum) + " ,real return " +
-                       props.length + " item ");
-   }
-   
-   if ( times <= 1)
-   {
-      return ;
-   }
-   
-   for ( var k = 0; k < groupNum; ++k )
-   {
-      for ( var i = 1; i < times; ++i )
-      {  
-         if ( grpNameArray !== undefined )
+      try
+      {
+         var path = "/tmp/getdat" + getDateString();
+         println( "getLob " + path );
+         for( var i = 0; i < this.oids.length; ++i )
          {
-            var key = grpNameArray[k];
-            key += ":" ;
-            key += i ;
+            this.cl.getLob( this.oids[i], path, true );
+            var curMD5 = calcMD5( this.localCmd, path );
+            if( this.originMD5 !== curMD5 )
+            {
+               throw new Error( "expect md5:" + this.originMD5 + "real md5:" + curMD5 );
+            }
          }
-         else
-         {
-            var key = i ;
-         } 
-         var obj = backUp[key];
-         if ( obj.EnsureInc !== true )
-         {
-            throw new Error( " expect EnsureInc=true, real EnsureInc=" + obj.EnsureInc );
-         }
-      }  
-   }  
-}
+      } catch( e )
+      {
+         throw e;
+      }
+      finally
+      {
+         removeFile( this.localCmd, path );
+      }
+   }
 
-backupTestCase.prototype.execTest= 
-function( backupName, path )
-{
-}
+backupTestCase.prototype.checkBackupRes =
+   function( bakInfo, times, grpNameArray )
+   {
+      if( times === undefined )
+      {
+         var times = 1;
+      }
+      var groupNum = grpNameArray === undefined ? 1 : grpNameArray.length;
+      var backUp = getBackups( this.db, bakInfo.bakName, grpNameArray );
+      var props = Object.getOwnPropertyNames( backUp );
+      if( props.length !== times * groupNum )
+      {
+         var cond = grpNameArray === undefined ? "" : "{Group:[" + JSON.stringify( grpNameArray ) + "]}";
+         throw new Error( "expect listBack(" + cond + ") return " + ( times * groupNum ) + " ,real return " +
+            props.length + " item " );
+      }
+
+      if( times <= 1 )
+      {
+         return;
+      }
+
+      for( var k = 0; k < groupNum; ++k )
+      {
+         for( var i = 1; i < times; ++i )
+         {
+            if( grpNameArray !== undefined )
+            {
+               var key = grpNameArray[k];
+               key += ":";
+               key += i;
+            }
+            else
+            {
+               var key = i;
+            }
+            var obj = backUp[key];
+            if( obj.EnsureInc !== true )
+            {
+               throw new Error( " expect EnsureInc=true, real EnsureInc=" + obj.EnsureInc );
+            }
+         }
+      }
+   }
+
+backupTestCase.prototype.execTest =
+   function( backupName, path )
+   {
+   }
 
 backupTestCase.prototype.test =
-function()
-{
-   try
+   function()
    {
-      var backupName = CHANGEDPREFIX + getDateString() ; 
-      var path = "/tmp/testdat" + getDateString() ;
-      genFile( path ) ;
-      this.originMD5 = calcMD5( this.localCmd, path ) ;
-      this.execTest( backupName, path ) ;
-   }
-   catch( e )
-   {
-      throw e;
-   }
-   finally
-   {
-      if ( this.group !== undefined )
+      try
       {
-         this.addNodeExceptPrimary() ;
+         var backupName = CHANGEDPREFIX + getDateString();
+         var path = "/tmp/testdat" + getDateString();
+         genFile( path );
+         this.originMD5 = calcMD5( this.localCmd, path );
+         this.execTest( backupName, path );
       }
-      removeFile( this.localCmd, path ) ;
+      catch( e )
+      {
+         throw e;
+      }
+      finally
+      {
+         if( this.group !== undefined )
+         {
+            this.addNodeExceptPrimary();
+         }
+         removeFile( this.localCmd, path );
+      }
    }
-}
 
 backupTestCase.prototype.removeNodeExceptPrimary =
-function()
-{
-  this.group = this.sdb.getRG( backupandrestoreGroup ).getDetail().next().toObj() ;
-  for ( var i = 0; i < this.group.Group.length; ++i )
-  {
-     var hostName = this.group.Group[i].HostName ; 
-     var svcName = this.group.Group[i].Service[0].Name ; 
-     if ( this.group.PrimaryNode !== this.group.Group[i].NodeID )
-     {
-        try
-        {
-           this.sdb.getRG( this.group.GroupName).removeNode( hostName, svcName ) ;
-        }catch(e){
-            println( "removeNodeExceptPrimary" + hostName + ":" + svcName );
-        }
-     }
-  }
-}
+   function()
+   {
+      this.group = this.sdb.getRG( backupandrestoreGroup ).getDetail().next().toObj();
+      for( var i = 0; i < this.group.Group.length; ++i )
+      {
+         var hostName = this.group.Group[i].HostName;
+         var svcName = this.group.Group[i].Service[0].Name;
+         if( this.group.PrimaryNode !== this.group.Group[i].NodeID )
+         {
+            try
+            {
+               this.sdb.getRG( this.group.GroupName ).removeNode( hostName, svcName );
+            } catch( e )
+            {
+               println( "removeNodeExceptPrimary" + hostName + ":" + svcName );
+            }
+         }
+      }
+   }
 
-backupTestCase.prototype.addNodeExceptPrimary=
-function()
-{
-  for ( var i = 0; i < this.group.Group.length; ++i )
-  {
-     var hostName = this.group.Group[i].HostName ; 
-     var svcName = this.group.Group[i].Service[0].Name ; 
-     var dbPath = this.group.Group[i].dbpath;
-     if ( this.group.PrimaryNode != this.group.Group[i].NodeID )
-     {
-        try{
-           this.sdb.getRG( this.group.GroupName).createNode( hostName, parseInt(svcName), dbPath ) ;
-           this.sdb.getRG( this.group.GroupName).start() ;
-        }catch(e){
-           if ( e !== -145){
-              println( "createNode(" + hostName + "," + svcName + "," + dbPath +" ),err" + e);
-           }
-        }
-     }
-  }
-  db.getRG( this.group.GroupName).start() ;
-  var totalTimeLen = 60 ;
-  var alreadySleepTime = 0 ;
-  while (true)
-  {
-     var errGroups = commCheckBusiness(this.groups, true) ;
-     if ( errGroups.length == 0)
-     {
-         break ;
-     }
-     
-     // 检查所有组是否都是空组
-     var i = 0;
-     for (  ;i < errGroups.length ; ++i)
-     {
-        if ( errGroups[i].length != 1 ){
-            sleep(1000) ;
-            alreadySleepTime += 1;
-            break ;
-        }
-     }
-     
-     if ( i == errGroups.length || alreadySleepTime >= totalTimeLen )
-     {
-        break ;
-     }
-  }
-}
+backupTestCase.prototype.addNodeExceptPrimary =
+   function()
+   {
+      for( var i = 0; i < this.group.Group.length; ++i )
+      {
+         var hostName = this.group.Group[i].HostName;
+         var svcName = this.group.Group[i].Service[0].Name;
+         var dbPath = this.group.Group[i].dbpath;
+         if( this.group.PrimaryNode != this.group.Group[i].NodeID )
+         {
+            try
+            {
+               this.sdb.getRG( this.group.GroupName ).createNode( hostName, parseInt( svcName ), dbPath );
+               this.sdb.getRG( this.group.GroupName ).start();
+            } catch( e )
+            {
+               if( e !== -145 )
+               {
+                  println( "createNode(" + hostName + "," + svcName + "," + dbPath + " ),err" + e );
+               }
+            }
+         }
+      }
+      db.getRG( this.group.GroupName ).start();
+      var totalTimeLen = 60;
+      var alreadySleepTime = 0;
+      while( true )
+      {
+         var errGroups = commCheckBusiness( this.groups, true );
+         if( errGroups.length == 0 )
+         {
+            break;
+         }
+
+         // 检查所有组是否都是空组
+         var i = 0;
+         for( ; i < errGroups.length; ++i )
+         {
+            if( errGroups[i].length != 1 )
+            {
+               sleep( 1000 );
+               alreadySleepTime += 1;
+               break;
+            }
+         }
+
+         if( i == errGroups.length || alreadySleepTime >= totalTimeLen )
+         {
+            break;
+         }
+      }
+   }
 
 backupTestCase.prototype.tearDown =
-function tearDown()
-{
-   bakRemoveBackups( this.db, CHANGEDPREFIX, true ) ;
-   commDropCL( this.sdb, this.csName, this.clName, true, false, "Drop CL in the end" ) ;
-}
+   function tearDown ()
+   {
+      bakRemoveBackups( this.db, CHANGEDPREFIX, true );
+      commDropCL( this.sdb, this.csName, this.clName, true, false, "Drop CL in the end" );
+   }

@@ -14,48 +14,51 @@ var mainCLName = CHANGEDPREFIX + "_mcl_12170";
 var subCLName1 = "subcl1";
 var subCLName2 = "subcl2";
 
-function main() {
-    if (true == commIsStandalone(db)) {
-        println("run mode is standalone");
+function main ()
+{
+    if( true == commIsStandalone( db ) )
+    {
+        println( "run mode is standalone" );
         return;
     }
 
-    var allGroupName = getGroupName(db, true);
-    if (1 === allGroupName.length) {
-        println("--least two groups");
+    var allGroupName = getGroupName( db, true );
+    if( 1 === allGroupName.length )
+    {
+        println( "--least two groups" );
         return;
     }
 
-    commDropCS(db, csName, true, "Failed to drop CS.");
-    commCreateCS(db, csName, false, "Failed to create CS.");
+    commDropCS( db, csName, true, "Failed to drop CS." );
+    commCreateCS( db, csName, false, "Failed to create CS." );
 
-    var sk1 = {a: 1};
-    var mainCL = createMainCL(csName, mainCLName, sk1);
-    createCL(csName, subCLName1, sk1);
-    createCL(csName, subCLName2, sk1);
+    var sk1 = { a: 1 };
+    var mainCL = createMainCL( csName, mainCLName, sk1 );
+    createCL( csName, subCLName1, sk1 );
+    createCL( csName, subCLName2, sk1 );
 
-    mainCL.attachCL(csName + "." + subCLName1, {LowBound: {"a": 0}, UpBound: {"a": 100}});
-    mainCL.attachCL(csName + "." + subCLName2, {LowBound: {"a": 100}, UpBound: {"a": 1000}});
+    mainCL.attachCL( csName + "." + subCLName1, { LowBound: { "a": 0 }, UpBound: { "a": 100 } } );
+    mainCL.attachCL( csName + "." + subCLName2, { LowBound: { "a": 100 }, UpBound: { "a": 1000 } } );
 
     //insert data
-    var docs = [{a: 1, b: 1}, {a: 101, b: 101}, {a: 1, c: 0}]
-    insertData(mainCL, docs);
+    var docs = [{ a: 1, b: 1 }, { a: 101, b: 101 }, { a: 1, c: 0 }]
+    insertData( mainCL, docs );
 
     //split data
-    clSplit(csName, subCLName1, 50);
-    clSplit(csName, subCLName2, 50);
+    clSplit( csName, subCLName1, 50 );
+    clSplit( csName, subCLName2, 50 );
 
     //upsertData( mainCL, upsertCondition, findCondition );
-    mainCL.update({$set: {a: {a: 1}}}, {}, {}, {}, {KeepShardingKey: false});
+    mainCL.update( { $set: { a: { a: 1 } } }, {}, {}, {}, { KeepShardingKey: false } );
 
     //check the update result
     var expRecs = docs;
-    checkResult(mainCL, null, null, expRecs);
-    expRecs = [{"a": 1, "b": 1, "c": {"a": 1}}, {"a": 101, "b": 101, "c": {"a": 1}}, {"a": 1, "c": {"a": 1}}]
-    mainCL.update({$set: {c: {a: 1}}}, {}, {}, {}, {KeepShardingKey: false});
-    checkResult(mainCL, null, null, expRecs);
+    checkResult( mainCL, null, null, expRecs );
+    expRecs = [{ "a": 1, "b": 1, "c": { "a": 1 } }, { "a": 101, "b": 101, "c": { "a": 1 } }, { "a": 1, "c": { "a": 1 } }]
+    mainCL.update( { $set: { c: { a: 1 } } }, {}, {}, {}, { KeepShardingKey: false } );
+    checkResult( mainCL, null, null, expRecs );
 
     //drop collectionspace in clean
-    commDropCS(db, csName, false, "Failed to drop CS.");
+    commDropCS( db, csName, false, "Failed to drop CS." );
 }
 main();

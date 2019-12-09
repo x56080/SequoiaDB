@@ -5,61 +5,61 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13487" ;
-var doc = { a: 1 } ;
-var csvContent = "a\n1\n" ;
-var jsonContent = "{ \"a\": 1 }\n" ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13487";
+var doc = { a: 1 };
+var csvContent = "a\n1\n";
+var jsonContent = "{ \"a\": 1 }\n";
 
-main() ;
+main();
 
-function main()
+function main ()
 {
    if( COORDSVCNAME !== "11810" || !isLocal( COORDHOSTNAME ) )
    {
-      println( "Run on " + COORDHOSTNAME + ":" + COORDSVCNAME ) ;
-      println( "Conflict with default sdbexprt spuw option" ) ;
-      return ;
+      println( "Run on " + COORDHOSTNAME + ":" + COORDSVCNAME );
+      println( "Conflict with default sdbexprt spuw option" );
+      return;
    }
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   cl.insert( doc ) ;
-   
-   testExprtCsv() ;
-   testExprtJson() ;
-   
-   commDropCL( db, csname, clname ) ;
+   var cl = commCreateCL( db, csname, clname, 0 );
+   cl.insert( doc );
+
+   testExprtCsv();
+   testExprtJson();
+
+   commDropCL( db, csname, clname );
 }
 
-function testExprtCsv()
+function testExprtCsv ()
 {
-   var csvfile = workDir + "sdbexprt13487.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   var command = installPath + "bin/sdbexprt" + 
-                 " -c " + csname + 
-                 " -l " + clname + 
-                 " --file " + csvfile + 
-                 " --type csv" + 
-                 " --fields a" ;
-   testRunCommand( command ) ;
+   var csvfile = workDir + "sdbexprt13487.csv";
+   cmd.run( "rm -rf " + csvfile );
+   var command = installPath + "bin/sdbexprt" +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --type csv" +
+      " --fields a";
+   testRunCommand( command );
 
-   checkFileContent( csvfile, csvContent ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+   checkFileContent( csvfile, csvContent );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtJson()
+function testExprtJson ()
 {
-   var jsonfile = workDir + "sdbexprt13487.json" ;
-   cmd.run( "rm -rf " + jsonfile ) ;
-   var command = installPath + "bin/sdbexprt" + 
-                 " -c " + csname + 
-                 " -l " + clname + 
-                 " --type json" + 
-                 " --file " + jsonfile + 
-                 " --fields a" ;
-   testRunCommand( command ) ;
-   
-   checkFileContent( jsonfile, jsonContent ) ;
-   
-   cmd.run( "rm -rf " + jsonfile ) ;
+   var jsonfile = workDir + "sdbexprt13487.json";
+   cmd.run( "rm -rf " + jsonfile );
+   var command = installPath + "bin/sdbexprt" +
+      " -c " + csname +
+      " -l " + clname +
+      " --type json" +
+      " --file " + jsonfile +
+      " --fields a";
+   testRunCommand( command );
+
+   checkFileContent( jsonfile, jsonContent );
+
+   cmd.run( "rm -rf " + jsonfile );
 }

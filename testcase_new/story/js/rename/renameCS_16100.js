@@ -7,40 +7,40 @@
 
 main();
 
-function main()
+function main ()
 {
-   println("---begin rename cs test---");
-   var oldcsName = COMMCSNAME+"_16100_old";
-   var newcsName = COMMCSNAME+"_16100_new";
+   println( "---begin rename cs test---" );
+   var oldcsName = COMMCSNAME + "_16100_old";
+   var newcsName = COMMCSNAME + "_16100_new";
    var clName = CHANGEDPREFIX + "_16100_cl";
-   var fileName = CHANGEDPREFIX+"_16100lob";
+   var fileName = CHANGEDPREFIX + "_16100lob";
    var lobNum = 10;
-   
-   var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "");
-   var cl = commCreateCLByOption( db, oldcsName, clName, {}, false, false, "create CL in the begin");
-   
+
+   var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
+   var cl = commCreateCLByOption( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
+
    var lobMD5 = createFile( fileName );
-   
+
    var lobIdArr = putLobs( cl, fileName, lobNum, 5 );
-   
-   db.renameCS(oldcsName, newcsName);
-   
-   checkRenameCSResult(oldcsName, newcsName, 1);
-   cl = db.getCS(newcsName).getCL(clName);
-   
+
+   db.renameCS( oldcsName, newcsName );
+
+   checkRenameCSResult( oldcsName, newcsName, 1 );
+   cl = db.getCS( newcsName ).getCL( clName );
+
    checkLob( cl, lobIdArr, lobMD5 );
-   
+
    deleteLobs( cl, lobIdArr );
-   
+
    var lobMD5new = createFile( fileName + "_new" );
-   
+
    var lobArrnew = putLobs( cl, fileName + "_new", lobNum, 5 );
-   
+
    checkLob( cl, lobArrnew, lobMD5new );
-   
+
    commDropCS( db, newcsName, true, false, "clean cs---" );
    deleteFile( fileName );
    deleteFile( fileName + "_new" );
-   println("---end the test---");
+   println( "---end the test---" );
 }
 

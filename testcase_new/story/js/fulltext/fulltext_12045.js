@@ -4,89 +4,89 @@
 *@createdate:  2018.10.10
 *@testlinkCase: seqDB-12045
 **************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone(db))  {   return ;   }
+   if( commIsStandalone( db ) ) { return; }
 
    //create CL
    var clName = COMMCLNAME + "_ES_12045";
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   commDropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    var textIndexName = "textIndex_12045";
-   dbcl.createIndex(textIndexName, {"a" : "text"});
+   dbcl.createIndex( textIndexName, { "a": "text" } );
 
    // insert
    var objs = new Array();
-   for(var i = 0; i < 10001; i++)
-   {   
-      objs.push({a: "test_12045_" + i});
-   }   
-   dbcl.insert(objs);
-  
-   checkFullSyncToES(COMMCSNAME, clName, textIndexName, 10001);
- 
-   var esOpr = new ESOperator(); 
+   for( var i = 0; i < 10001; i++ )
+   {
+      objs.push( { a: "test_12045_" + i } );
+   }
+   dbcl.insert( objs );
+
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 10001 );
+
+   var esOpr = new ESOperator();
    var dbOpr = new DBOperator();
-   var esIndexNames = dbOpr.getESIndexNames(COMMCSNAME, clName, textIndexName);
- 
+   var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
+
    // from 
-   var findCond = {"":{"$Text":{"query":{"match_all":{}}, "from": 9990}}};
+   var findCond = { "": { "$Text": { "query": { "match_all": {} }, "from": 9990 } } };
    var searchCond = '{"query":{"match_all":{}}, "from": 9990}'
-   var actResult = dbOpr.findFromCL(dbcl, findCond, {"a" : {"$include" : 1}});
-   var expResult = esOpr.findFromES(esIndexNames[0], searchCond);
-   actResult.sort(compare("a"));
-   expResult.sort(compare("a"));
-   checkResult(expResult, actResult); 
-  
+   var actResult = dbOpr.findFromCL( dbcl, findCond, { "a": { "$include": 1 } } );
+   var expResult = esOpr.findFromES( esIndexNames[0], searchCond );
+   actResult.sort( compare( "a" ) );
+   expResult.sort( compare( "a" ) );
+   checkResult( expResult, actResult );
+
    // size
-   var findCond = {"":{"$Text":{"query":{"match_all":{}}, "size": 10000}}};
+   var findCond = { "": { "$Text": { "query": { "match_all": {} }, "size": 10000 } } };
    var searchCond = '{"query":{"match_all":{}}, "size": 10000}'
-   var actResult = dbOpr.findFromCL(dbcl, findCond, {"a" : {"$include" : 1}});
-   var expResult = esOpr.findFromES(esIndexNames[0], searchCond);
-   actResult.sort(compare("a"));
-   expResult.sort(compare("a"));
-   checkResult(expResult, actResult);
+   var actResult = dbOpr.findFromCL( dbcl, findCond, { "a": { "$include": 1 } } );
+   var expResult = esOpr.findFromES( esIndexNames[0], searchCond );
+   actResult.sort( compare( "a" ) );
+   expResult.sort( compare( "a" ) );
+   checkResult( expResult, actResult );
 
    // from+size < 10000
-   var findCond = {"":{"$Text":{"query":{"match_all":{}}, "from": 1, "size": 9990}}};
+   var findCond = { "": { "$Text": { "query": { "match_all": {} }, "from": 1, "size": 9990 } } };
    var searchCond = '{"query":{"match_all":{}}, "from": 1, "size": 9990}'
-   var actResult = dbOpr.findFromCL(dbcl, findCond, {"a" : {"$include" : 1}});
-   var expResult = esOpr.findFromES(esIndexNames[0], searchCond);
-   actResult.sort(compare("a"));
-   expResult.sort(compare("a"));
-   checkResult(expResult, actResult);
+   var actResult = dbOpr.findFromCL( dbcl, findCond, { "a": { "$include": 1 } } );
+   var expResult = esOpr.findFromES( esIndexNames[0], searchCond );
+   actResult.sort( compare( "a" ) );
+   expResult.sort( compare( "a" ) );
+   checkResult( expResult, actResult );
 
    // from+size > 10000, should fail
    try
    {
-      var rec = dbcl.find({"":{"$Text":{"query":{"match_all":{}}, "from": 0, "size":10001}}});
+      var rec = dbcl.find( { "": { "$Text": { "query": { "match_all": {} }, "from": 0, "size": 10001 } } } );
       rec.next();
-      throw new Error("find es overrize");
+      throw new Error( "find es overrize" );
    }
-   catch(e)
+   catch( e )
    {
-      if(-10 != e)
+      if( -10 != e )
       {
-         throw new Error(e);
+         throw new Error( e );
       }
    }
 
-   commDropCL(db, COMMCSNAME, clName, true, true); 
+   commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 ;

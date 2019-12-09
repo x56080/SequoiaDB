@@ -3,104 +3,104 @@
 *@Modify list :
 *               2018-1-10  wenjing Wang Init
 *******************************************************************************/
-function backupTestCase11669(  )
+function backupTestCase11669 ()
 {
-    
+
 }
 
-backupTestCase11669.prototype = new backupTestCase( db ) ;
-backupTestCase11669.prototype.constructor = backupTestCase11669 ;
+backupTestCase11669.prototype = new backupTestCase( db );
+backupTestCase11669.prototype.constructor = backupTestCase11669;
 backupTestCase11669.prototype.clName = COMMCLNAME + "_11669";
-backupTestCase11669.prototype.reInit=
-function()
-{
-   if ( this.group === undefined )
+backupTestCase11669.prototype.reInit =
+   function()
    {
-      this.sdb = new Sdb( COORDHOSTNAME, COORDSVCNAME ) ;
-      this.db = this.sdb
+      if( this.group === undefined )
+      {
+         this.sdb = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+         this.db = this.sdb
+      }
+      else
+      {
+         this.db = new Sdb( this.nodeinfo.hostName, this.nodeinfo.svcName );
+      }
    }
-   else
-   {
-      this.db = new Sdb( this.nodeinfo.hostName, this.nodeinfo.svcName ) ;
-   }
-}
 
-backupTestCase11669.prototype.execTest=
-function(backupName, path)
-{
-   println( " begin execTest..." ) ;
-   this.docs = bakInsertData( this.cl ) ;
-   this.oids.push( sdbPutLob( this.cl, path ) );
-   bakBackup( this.db , { "Name": backupName} );      
-   if ( this.nodeinfo !== undefined )
-   { 
-      var bakInfo = new backUpInfo( backupName, this.nodeinfo.dbPath + "bakfile" ) ;
-   }
-   else
+backupTestCase11669.prototype.execTest =
+   function( backupName, path )
    {
-      var dbPath = db.snapshot(6).current().toObj()["Disk"]["DatabasePath"] ; 
-      var bakInfo = new backUpInfo( backupName, dbPath + "bakfile" ) ;
-   }
-   
-   var times = 1 ;
-   this.checkBackupRes( bakInfo, times++, [ this.group.GroupName ] ) ; 
-   bakInsertData( this.cl, this.docs ) ;
-   this.oids.push( sdbPutLob( this.cl, path ) );
-   bakBackup( this.db , { "Name": backupName, EnsureInc:true } );
-   this.checkBackupRes( bakInfo, times++, [ this.group.GroupName ] ) ;
+      println( " begin execTest..." );
+      this.docs = bakInsertData( this.cl );
+      this.oids.push( sdbPutLob( this.cl, path ) );
+      bakBackup( this.db, { "Name": backupName } );
+      if( this.nodeinfo !== undefined )
+      {
+         var bakInfo = new backUpInfo( backupName, this.nodeinfo.dbPath + "bakfile" );
+      }
+      else
+      {
+         var dbPath = db.snapshot( 6 ).current().toObj()["Disk"]["DatabasePath"];
+         var bakInfo = new backUpInfo( backupName, dbPath + "bakfile" );
+      }
 
-   bakInsertData( this.cl, this.docs ) ;
-   this.oids.push( sdbPutLob( this.cl, path ) );
-   bakBackup( this.db , { "Name": backupName, EnsureInc:true } );
-   if ( this.group !== undefined )
-   {
-      println( "backup on " + this.group.GroupName ) ;
-      this.removeNodeExceptPrimary() ;
-   }
-   this.checkBackupRes( bakInfo, times,  [ this.group.GroupName ]) ;
-   println( "begin restore..." );
-   sdbRestore( this.sdb, this.cmd, bakInfo, this.nodeinfo ) ;
-   this.checkResult( times ) ;
-   println( " end execTest ..." );
-}
+      var times = 1;
+      this.checkBackupRes( bakInfo, times++, [this.group.GroupName] );
+      bakInsertData( this.cl, this.docs );
+      this.oids.push( sdbPutLob( this.cl, path ) );
+      bakBackup( this.db, { "Name": backupName, EnsureInc: true } );
+      this.checkBackupRes( bakInfo, times++, [this.group.GroupName] );
 
-function main( db )
+      bakInsertData( this.cl, this.docs );
+      this.oids.push( sdbPutLob( this.cl, path ) );
+      bakBackup( this.db, { "Name": backupName, EnsureInc: true } );
+      if( this.group !== undefined )
+      {
+         println( "backup on " + this.group.GroupName );
+         this.removeNodeExceptPrimary();
+      }
+      this.checkBackupRes( bakInfo, times, [this.group.GroupName] );
+      println( "begin restore..." );
+      sdbRestore( this.sdb, this.cmd, bakInfo, this.nodeinfo );
+      this.checkResult( times );
+      println( " end execTest ..." );
+   }
+
+function main ( db )
 {
    try
    {
-      if ( commIsStandalone( db ) )
+      if( commIsStandalone( db ) )
       {
-         return ;
+         return;
       }
 
-      var testBackUp = new backupTestCase11669( );
-      if ( testBackUp.setUp() )
+      var testBackUp = new backupTestCase11669();
+      if( testBackUp.setUp() )
       {
-         testBackUp.test() ;
+         testBackUp.test();
       }
-      testBackUp.tearDown() ;
+      testBackUp.tearDown();
    }
    catch( e )
-   {  
+   {
       var tmp = new Error( "tmp" )
-      if ( e.constructor === tmp.constructor)
+      if( e.constructor === tmp.constructor )
       {
          println( e.fileName + ":" + e.lineNumber + " throw " + e.message );
-         println( e.stack ) ;
+         println( e.stack );
       }
-      
+
       var backupDir = "/tmp/ci/rsrvnodelog/11669";
-      File.mkdir(backupDir);
-      for(var i = 0 ; i < this.logSourcePaths.length ; i++)
+      File.mkdir( backupDir );
+      for( var i = 0; i < this.logSourcePaths.length; i++ )
       {
          File.scp( this.logSourcePaths[i], backupDir + "/sdbdiag" + i + ".log" );
-      }   
+      }
       throw e;
    }
    finally
    {
-      commDropCL( db, this.csName, backupTestCase11669.prototype.clName, true, true, "finally ：Drop CL in the end" ) ;
-      db.removeRG( backupandrestoreGroup ) ;
+      commDropCL( db, this.csName, backupTestCase11669.prototype.clName, true, true, "finally ：Drop CL in the end" );
+      db.removeRG( backupandrestoreGroup );
    }
 }
 

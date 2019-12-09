@@ -7,58 +7,58 @@
 
 main();
 
-function main()
+function main ()
 {
    //create normal CL
    var clName = COMMCLNAME + "_11838";
    dbcl = commCreateCL( db, COMMCSNAME, clName, null, null, true, false, "create normal CL" );
-   
+
    //insert data
    normalCLinsertData( dbcl );
-   
+
    //normalCL pop data
-   println("---pop data---");
+   println( "---pop data---" );
    try
    {
-      dbcl.pop( { LogicalID:0, Direction:-1 } );
+      dbcl.pop( { LogicalID: 0, Direction: -1 } );
    }
    catch( e )
    {
       if( e !== -32 )
       {
-         throw buildException( "normalCL pop data", e, "normalCL pop data", "pop fail", "pop success");
+         throw buildException( "normalCL pop data", e, "normalCL pop data", "pop fail", "pop success" );
       }
    }
-   
+
    //clean environment after test
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end");
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
    println( "---end the test---" );
 }
 
-function normalCLinsertData( dbcl )
+function normalCLinsertData ( dbcl )
 {
-   var doc = [{No:1,a:10},{No:2,a:50},{No:3,a:-1001},
-              {No:4,a:{$decimal: "123.456"}},{No:5,a:101.02}, 
-              {No:6,a:{$numberLong:"9223372036854775807"}},{No:7,a:{$numberLong:"-9223372036854775808"}},
-              {No:8,a:{$date: "2017-05-01"}},{No:9,a:{$timestamp: "2017-05-01-15.32.18.000000"}},
-              {No:10,a:{$binary:"aGVsbG8gd29ybGQ=",$type:"1"}},
-              {No:11,a:{$regex:"^z",$options:"i"}},
-              {No:13,a:{$oid:"123abcd00ef12358902300ef"}}, 
-              {No:14,a:"abc"},
-              {No:15,a:{MinKey:1}},
-              {No:16,a:{MaxKey:1}},
-              {No:17,a:true},{No:18,a:false},
-              {No:19,a:{name:"Jack"}},
-              {No:20,a:[1]},
-              {No:21,a:[3]},
-              {No:22,a:22}];
+   var doc = [{ No: 1, a: 10 }, { No: 2, a: 50 }, { No: 3, a: -1001 },
+   { No: 4, a: { $decimal: "123.456" } }, { No: 5, a: 101.02 },
+   { No: 6, a: { $numberLong: "9223372036854775807" } }, { No: 7, a: { $numberLong: "-9223372036854775808" } },
+   { No: 8, a: { $date: "2017-05-01" } }, { No: 9, a: { $timestamp: "2017-05-01-15.32.18.000000" } },
+   { No: 10, a: { $binary: "aGVsbG8gd29ybGQ=", $type: "1" } },
+   { No: 11, a: { $regex: "^z", $options: "i" } },
+   { No: 13, a: { $oid: "123abcd00ef12358902300ef" } },
+   { No: 14, a: "abc" },
+   { No: 15, a: { MinKey: 1 } },
+   { No: 16, a: { MaxKey: 1 } },
+   { No: 17, a: true }, { No: 18, a: false },
+   { No: 19, a: { name: "Jack" } },
+   { No: 20, a: [1] },
+   { No: 21, a: [3] },
+   { No: 22, a: 22 }];
    try
    {
-      dbcl.insert(doc);
+      dbcl.insert( doc );
       //println( "--insert data success" ) ;
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException("normalCLinsertData()",e,"insert", "insert success","insert fail");
+      throw buildException( "normalCLinsertData()", e, "insert", "insert success", "insert fail" );
    }
 }

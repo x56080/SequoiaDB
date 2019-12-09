@@ -5,134 +5,134 @@
 *@testlinkCase: seqDB-4530
 **************************************/
 main();
-function main()
+function main ()
 {
-   if(true == commIsStandalone( db ))
+   if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone");
+      println( "run mode is standalone" );
       return;
    }
-   
+
    var groupsArray = commGetGroups( db, false, "", true, true, true );
    var groupName = groupsArray[0][0].GroupName;
-   
+
    var csName = COMMCSNAME;
-   var clNames = ["a","123-test-中文。~!@#%^&*()_+-=\][|,/<>?~·！@#￥%……&*~!-%^*()_-+=|\/<'?*[];:/#（）——+《》{}|【】、，。~_127B"];
+   var clNames = ["a", "123-test-中文。~!@#%^&*()_+-=\][|,/<>?~·！@#￥%……&*~!-%^*()_-+=|\/<'?*[];:/#（）——+《》{}|【】、，。~_127B"];
    var clNames2 = ["b", "123-test-中文。another_test-=\][|）——,/<>?~·！@#￥%……&*~!-%^*()_-+=|\/<'?*[];:/#（+《:{}|//、，。~_127B"];
-   for(var i = 0 ; i < clNames.length; i++)
+   for( var i = 0; i < clNames.length; i++ )
    {
-       commDropCL( db, csName, clNames[i], true, true, "drop cl " + clNames[i] + " in the beginning." );
-       commDropCL( db, csName, clNames2[i], true, true, "drop cl " + clNames[i] + " in the beginning." );
+      commDropCL( db, csName, clNames[i], true, true, "drop cl " + clNames[i] + " in the beginning." );
+      commDropCL( db, csName, clNames2[i], true, true, "drop cl " + clNames[i] + " in the beginning." );
    }
 
    //name 覆盖1字节有效字符
-   var optionObj = {ShardingKey:{a:1},ShardingType:"hash",Partition:1024,ReplSize:0,Compressed:true,CompressionType:"lzw",AutoSplit:true};
+   var optionObj = { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 0, Compressed: true, CompressionType: "lzw", AutoSplit: true };
    var cl1 = commCreateCLByOption( db, csName, clNames[0], optionObj, true );
-   
-   checkResult( clNames[0], "ShardingKey", {a:1} );
+
+   checkResult( clNames[0], "ShardingKey", { a: 1 } );
    checkResult( clNames[0], "ShardingType", "hash" );
    checkResult( clNames[0], "Partition", 1024 );
    checkResult( clNames[0], "ReplSize", 7 );
    checkResult( clNames[0], "AttributeDesc", "Compressed" );
    checkResult( clNames[0], "CompressionTypeDesc", "lzw" );
    checkResult( clNames[0], "AutoSplit", true );
-   checkCLByInsertData(cl1);
-   
+   checkCLByInsertData( cl1 );
+
    //name 覆盖127字节有效字符
-   var optionObj = {ShardingKey:{a:1},ShardingType:"range",ReplSize:-1,Group:groupName};
+   var optionObj = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: -1, Group: groupName };
    var cl2 = commCreateCLByOption( db, csName, clNames[1], optionObj, true );
-   
-   checkResult( clNames[1], "ShardingKey", {a:1} );
+
+   checkResult( clNames[1], "ShardingKey", { a: 1 } );
    checkResult( clNames[1], "ShardingType", "range" );
    checkResult( clNames[1], "ReplSize", -1 );
    checkGroup( clNames[1], groupName );
-   checkCLByInsertData(cl2);
-   
+   checkCLByInsertData( cl2 );
+
    //检测 IsMainCL  覆盖边界值
-   var optionObj = {ShardingKey:{a:1},ShardingType:"range",IsMainCL:true};
+   var optionObj = { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true };
    var cl3 = commCreateCLByOption( db, csName, clNames2[0], optionObj, true );
-   
-   checkResult( clNames2[0], "ShardingKey", {a:1} );
+
+   checkResult( clNames2[0], "ShardingKey", { a: 1 } );
    checkResult( clNames2[0], "ShardingType", "range" );
    checkResult( clNames2[0], "IsMainCL", true );
    commCreateCL( db, csName, "subcl4530_1" );
-   cl3.attachCL(csName+".subcl4530_1",{LowBound:{a:0},UpBound:{a:2000}});
-   checkCLByInsertData(cl3);
-   
-   var optionObj = {ShardingKey:{a:1},IsMainCL:true};
+   cl3.attachCL( csName + ".subcl4530_1", { LowBound: { a: 0 }, UpBound: { a: 2000 } } );
+   checkCLByInsertData( cl3 );
+
+   var optionObj = { ShardingKey: { a: 1 }, IsMainCL: true };
    var cl4 = commCreateCLByOption( db, csName, clNames2[1], optionObj, true );
-   
-   checkResult( clNames2[1], "ShardingKey", {a:1} );
+
+   checkResult( clNames2[1], "ShardingKey", { a: 1 } );
    checkResult( clNames2[1], "IsMainCL", true );
    commCreateCL( db, csName, "subcl4530_2" );
-   cl4.attachCL(csName+".subcl4530_2",{LowBound:{a:0},UpBound:{a:2000}});
-   checkCLByInsertData(cl4);
-   
-   for(var i = 0 ; i < clNames.length; i++)
+   cl4.attachCL( csName + ".subcl4530_2", { LowBound: { a: 0 }, UpBound: { a: 2000 } } );
+   checkCLByInsertData( cl4 );
+
+   for( var i = 0; i < clNames.length; i++ )
    {
-       commDropCL( db, csName, clNames[i], true, true, "drop cl " + clNames[i] + " in the end." );
-       commDropCL( db, csName, clNames2[i], true, true, "drop cl " + clNames2[i] + " in the end." );
+      commDropCL( db, csName, clNames[i], true, true, "drop cl " + clNames[i] + " in the end." );
+      commDropCL( db, csName, clNames2[i], true, true, "drop cl " + clNames2[i] + " in the end." );
    }
 }
 
-function checkResult(clName, fieldName, expFieldValue)
+function checkResult ( clName, fieldName, expFieldValue )
 {
-   var clFullName = COMMCSNAME + "." + clName;   
-   var cur = db.snapshot(8,{"Name":clFullName});
+   var clFullName = COMMCSNAME + "." + clName;
+   var cur = db.snapshot( 8, { "Name": clFullName } );
    var actualFieldValue = cur.current().toObj()[fieldName];
-   
-   if ( typeof(expFieldValue) === "object" )
-   {      
-      if (JSON.stringify(expFieldValue) !== JSON.stringify(actualFieldValue))
+
+   if( typeof ( expFieldValue ) === "object" )
+   {
+      if( JSON.stringify( expFieldValue ) !== JSON.stringify( actualFieldValue ) )
       {
-         throw buildException("test fieldvalue1", "check field", "value is wrong", JSON.stringify(expFieldValue), JSON.stringify(actualFieldValue));
+         throw buildException( "test fieldvalue1", "check field", "value is wrong", JSON.stringify( expFieldValue ), JSON.stringify( actualFieldValue ) );
       }
-      
+
    }
    else
    {
-      if (expFieldValue  !== actualFieldValue)
+      if( expFieldValue !== actualFieldValue )
       {
-         throw buildException("test fieldvalue2", "check field", "value is wrong", expFieldValue, actualFieldValue);
+         throw buildException( "test fieldvalue2", "check field", "value is wrong", expFieldValue, actualFieldValue );
       }
    }
-   
+
 }
 
-function checkGroup( clName, groupName )
+function checkGroup ( clName, groupName )
 {
    var actGroups = [];
    var expGroups = [groupName]
-   var clFullName = COMMCSNAME + "." + clName;  
-   var cur = db.snapshot(4,{"Name":clFullName});
+   var clFullName = COMMCSNAME + "." + clName;
+   var cur = db.snapshot( 4, { "Name": clFullName } );
    if( cur.next() )
    {
-       var groups = cur.current().toObj()["Details"];
-       for(var i = 0 ; i < groups.length; i++)
-       {
-           actGroups.push(groups[i].GroupName);
-       }
+      var groups = cur.current().toObj()["Details"];
+      for( var i = 0; i < groups.length; i++ )
+      {
+         actGroups.push( groups[i].GroupName );
+      }
    }
-   
-   if (JSON.stringify(expGroups) !== JSON.stringify(actGroups))
+
+   if( JSON.stringify( expGroups ) !== JSON.stringify( actGroups ) )
    {
-      throw buildException("checkGroup()", null, "groups is wrong", JSON.stringify(expGroups), JSON.stringify(actGroups));
+      throw buildException( "checkGroup()", null, "groups is wrong", JSON.stringify( expGroups ), JSON.stringify( actGroups ) );
    }
 }
 
-function checkCLByInsertData( cl )
+function checkCLByInsertData ( cl )
 {
    var dataArray = new Array();
-   for(var i = 0 ; i < 1000 ; i ++)
+   for( var i = 0; i < 1000; i++ )
    {
-      var data = {a:i};
-      dataArray.push(data);
+      var data = { a: i };
+      dataArray.push( data );
    }
-   cl.insert(dataArray);
-   
+   cl.insert( dataArray );
+
    var actCount = cl.count();
-   if( Number(actCount) != 1000 )
+   if( Number( actCount ) != 1000 )
    {
-       throw "insert data field, act insert number is " + Number(actCount);
+      throw "insert data field, act insert number is " + Number( actCount );
    }
 }

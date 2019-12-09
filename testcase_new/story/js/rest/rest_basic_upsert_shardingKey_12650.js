@@ -4,31 +4,32 @@
 @modify list:
             	2017-11-29 XiaoNi Huang init
 ****************************************************/
-var csName=COMMCSNAME;
-var clName=COMMCLNAME + "12650";
-var cl="name="+csName+'.'+clName;
+var csName = COMMCSNAME;
+var clName = COMMCLNAME + "12650";
+var cl = "name=" + csName + '.' + clName;
 
-function insertRecs(){
+function insertRecs ()
+{
 	try
 	{
-		varCL.insert({a:1, b:1});
-	}catch(e)
+		varCL.insert( { a: 1, b: 1 } );
+	} catch( e )
 	{
-		println("fail to insert records in begin");
+		println( "fail to insert records in begin" );
 		throw e;
 	}
 }
 
-function upsert()
+function upsert ()
 {
 	tryCatch(
 		["cmd=upsert",
-		cl,
-		'updator={$inc:{a:1, b:1}}',
-		'flag=SDB_QUERY_KEEP_SHARDINGKEY_IN_UPDATE'],
+			cl,
+			'updator={$inc:{a:1, b:1}}',
+			'flag=SDB_QUERY_KEEP_SHARDINGKEY_IN_UPDATE'],
 		[-178],
-		"Error occurs in "+getFuncName());
-	
+		"Error occurs in " + getFuncName() );
+
 	/******check count is 1**********/
 	/*
 	try

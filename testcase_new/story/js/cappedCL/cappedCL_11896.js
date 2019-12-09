@@ -6,50 +6,50 @@
 **************************************/
 main();
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
       return;
    }
-   
+
    var csName1 = COMMCAPPEDCSNAME + "_11896_1";
    var csName2 = COMMCAPPEDCSNAME + "_11896_2";
    commDropCS( db, csName1, true, "drop CS in the beginning" );
    commDropCS( db, csName2, true, "drop CS in the beginning" );
-   commCreateCS( db, csName1, true, "", {Capped : true} );
-   commCreateCS( db, csName2, true, "", {Capped : true} );
+   commCreateCS( db, csName1, true, "", { Capped: true } );
+   commCreateCS( db, csName2, true, "", { Capped: true } );
 
-   var clOption = {Capped:true, Size:1024, AutoIndexId:false};
+   var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
    var clName = COMMCAPPEDCLNAME + "_11896";
    commCreateCLByOption( db, csName1, clName, clOption, true, true );
    commCreateCLByOption( db, csName2, clName, clOption, true, true );
-    
+
    // connect coord, check snapshot 5
-   var expectResult = [ csName1, csName2 ];
-   checkSnapshotResult( db, expectResult, SDB_SNAP_COLLECTIONSPACES ); 
-   
+   var expectResult = [csName1, csName2];
+   checkSnapshotResult( db, expectResult, SDB_SNAP_COLLECTIONSPACES );
+
    // connect data, check snapshot 5
    var groupNames = commGetCLGroups( db, csName1 + "." + clName );
    var masterNode = db.getRG( groupNames[0] ).getMaster();
    var masterDB = new Sdb( masterNode.getHostName(), masterNode.getServiceName() );
-   expectResult = [ csName1 ];
-   checkSnapshotResult( masterDB, expectResult, SDB_SNAP_COLLECTIONSPACES ); 
-   
+   expectResult = [csName1];
+   checkSnapshotResult( masterDB, expectResult, SDB_SNAP_COLLECTIONSPACES );
+
    // connect coord, check snapshot 4
-   expectResult = [ csName1 + "." + clName, csName2 + "." + clName ];
-   checkSnapshotResult( db, expectResult, SDB_SNAP_COLLECTIONS ); 
-   
+   expectResult = [csName1 + "." + clName, csName2 + "." + clName];
+   checkSnapshotResult( db, expectResult, SDB_SNAP_COLLECTIONS );
+
    // connect data, check snapshot 4
-   expectResult = [ csName1 + "." + clName ];
-   checkSnapshotResult( masterDB, expectResult, SDB_SNAP_COLLECTIONS ); 
+   expectResult = [csName1 + "." + clName];
+   checkSnapshotResult( masterDB, expectResult, SDB_SNAP_COLLECTIONS );
    masterDB.close();
-   
+
    commDropCS( db, csName1, true, "drop CS in the end" );
    commDropCS( db, csName2, true, "drop CS in the end" );
 }
 
-function checkSnapshotResult( db, expectResult, snapshotType )
+function checkSnapshotResult ( db, expectResult, snapshotType )
 {
    var actResult = [];
    var cur = db.snapshot( snapshotType ).toArray();
@@ -58,12 +58,12 @@ function checkSnapshotResult( db, expectResult, snapshotType )
       var rec = eval( "(" + cur[i] + ")" );
       actResult.push( rec["Name"] );
    }
-   
+
    for( var i = 0; i < expectResult.length; i++ )
    {
       if( actResult.indexOf( expectResult[i] ) === -1 )
       {
-         throw buildException( "check snapshot", "", "check snapshot", expectResult, actResult );              
+         throw buildException( "check snapshot", "", "check snapshot", expectResult, actResult );
       }
    }
    println( "check snapshot success" );

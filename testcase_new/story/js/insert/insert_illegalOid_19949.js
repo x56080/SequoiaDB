@@ -7,62 +7,62 @@
 
 try
 {
-   main();
+    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
-   {
-      println(e.stack) ;
-   }
-   throw e ;
+    if( e.constructor === Error )
+    {
+        println( e.stack );
+    }
+    throw e;
 };
 
-function main()
+function main ()
 {
-    var clName = COMMCLNAME + "_insert19949";	
-    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection in the beginning" ) ; 	
+    var clName = COMMCLNAME + "_insert19949";
+    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection in the beginning" );
     var dbcl = commCreateCL( db, COMMCSNAME, clName );
-   
+
     //插入Oid值长度小于24字节
     try
     {
-        dbcl.insert( {a : {"$oid" : "123abcd00af12358902300"} } );   
+        dbcl.insert( { a: { "$oid": "123abcd00af12358902300" } } );
     }
-    catch ( e )
+    catch( e )
     {
         if( -6 !== e )
         {
-            throw buildException("insert()", e, "insert", "-6", e);
-        }			
+            throw buildException( "insert()", e, "insert", "-6", e );
+        }
     }
-	
+
     //插入Oid值长度大于24字节
     try
     {
-        dbcl.insert( {a : {"$oid" : "123abcd00af12358902300123456"} } );   
+        dbcl.insert( { a: { "$oid": "123abcd00af12358902300123456" } } );
     }
-    catch ( e )
+    catch( e )
     {
         if( -6 !== e )
         {
-            throw buildException("insert()", e, "insert", "-6", e);
-        }			
+            throw buildException( "insert()", e, "insert", "-6", e );
+        }
     }
-	
+
     //插入Oid值长度等于24字节但内容不正确
     try
     {
-        dbcl.insert( {a : ObjectId( "123abcd00ef12358902300eg") } );   
+        dbcl.insert( { a: ObjectId( "123abcd00ef12358902300eg" ) } );
     }
-    catch ( e )
+    catch( e )
     {
         if( -6 !== e )
         {
-            throw buildException("insert()", e, "insert", "-6", e);
-        }			
+            throw buildException( "insert()", e, "insert", "-6", e );
+        }
     }
 
-    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection in the end" ) ;
+    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection in the end" );
 }
 

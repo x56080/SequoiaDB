@@ -2,73 +2,73 @@
 @Description :   seqDB-15981:  集合中不存在记录，创建/删除自增字段 
 @Modify list :   2018-10-15    xiaoni Zhao  Init
 ******************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("Deploy is standalone");
+      println( "Deploy is standalone" );
       return;
-   } 
-    
+   }
+
    var clName = COMMCLNAME + "_15981";
    var field = "id1";
    var cacheSize = 10;
    var acquireSize = 1;
-   
+
    commDropCL( db, COMMCSNAME, clName );
-   
+
    var dbcl = commCreateCLByOption( db, COMMCSNAME, clName );
-   
-   dbcl.createAutoIncrement( { Field : field, CacheSize : cacheSize, AcquireSize : acquireSize } );
-   
+
+   dbcl.createAutoIncrement( { Field: field, CacheSize: cacheSize, AcquireSize: acquireSize } );
+
    //check sequence
    var clID = getCLID( COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";
-   var expSequenceObj = { CacheSize : cacheSize, AcquireSize : acquireSize };
-   checkSequence( sequenceName, expSequenceObj  );
+   var expSequenceObj = { CacheSize: cacheSize, AcquireSize: acquireSize };
+   checkSequence( sequenceName, expSequenceObj );
 
-   dbcl.insert( { a : 7 } );
+   dbcl.insert( { a: 7 } );
 
    var rc = dbcl.find();
-   var expRecs = [ { id1 : 1, a : 7 } ];
-   checkRec( rc, expRecs ); 
+   var expRecs = [{ id1: 1, a: 7 }];
+   checkRec( rc, expRecs );
 
-   dbcl.update( { $set :{ a : 77 } }, { id1 : 1 } );
+   dbcl.update( { $set: { a: 77 } }, { id1: 1 } );
 
    rc = dbcl.find();
-   expRecs = [ { id1 : 1, a : 77 } ];
+   expRecs = [{ id1: 1, a: 77 }];
    checkRec( rc, expRecs );
 
    dbcl.dropAutoIncrement( field );
 
-   var cursor = db.snapshot( 8, { Name : COMMCSNAME + "." + clName } );
+   var cursor = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
    if( cursor.current().toObj().AutoIncrement.length !== 0 )
    {
-      throw new Error("drop autoIncrement failed!");
-   }       
-   
-   dbcl.insert({ a : 777 });
-   
-   rc = dbcl.find().sort({ id1 : 1 });
-   expRecs = [ { a : 777 }, { id1 : 1, a : 77 } ];
-   checkRec( rc, expRecs ); 
-   
-   dbcl.createAutoIncrement( { Field : field, CacheSize : cacheSize, AcquireSize : acquireSize } );
-   
+      throw new Error( "drop autoIncrement failed!" );
+   }
+
+   dbcl.insert( { a: 777 } );
+
+   rc = dbcl.find().sort( { id1: 1 } );
+   expRecs = [{ a: 777 }, { id1: 1, a: 77 }];
+   checkRec( rc, expRecs );
+
+   dbcl.createAutoIncrement( { Field: field, CacheSize: cacheSize, AcquireSize: acquireSize } );
+
    //insert records and check
    var coordNodes = getCoordNodeNames();
    for( var i = 0; i < coordNodes.length; i++ )
    {
-      var coord = new Sdb( coordNodes[ i ] );
+      var coord = new Sdb( coordNodes[i] );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
-      cl.insert( { "a" : 2, "b" : 2 } );
-      expRecs.push({ "a" : 2, "b" : 2, "id1" : 1 + i});
+      cl.insert( { "a": 2, "b": 2 } );
+      expRecs.push( { "a": 2, "b": 2, "id1": 1 + i } );
       coord.close();
    }
-    
-   var rc = dbcl.find().sort( { "id1" : 1 } );
+
+   var rc = dbcl.find().sort( { "id1": 1 } );
    checkRec( rc, expRecs );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
@@ -76,11 +76,11 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

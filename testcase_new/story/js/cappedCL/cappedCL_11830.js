@@ -7,15 +7,15 @@
 
 main();
 
-function main()
+function main ()
 {
    //create cappedCL
    var clName = COMMCAPPEDCLNAME + "_11830";
-   var optionObj = {Capped:true, Size:1024, Max:10000000, AutoIndexId:false};
+   var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
    var dbcl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, optionObj, false, false, "create cappedCL" );
-   
+
    //createIndex
-   println("---createIndex---")
+   println( "---createIndex---" )
    try
    {
       dbcl.createIndex( "ageIndex", { age: 1 }, true );
@@ -27,8 +27,8 @@ function main()
          throw buildException( "cappedCL createIndex", e, "cappedCL createIndex", "-32", e );
       }
    }
-   
+
    //clean environment after test
-   commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end");
+   commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
    println( "---end the test---" );
 }

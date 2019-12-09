@@ -3,14 +3,14 @@
 *@Author     :  2019-8-6  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18931_json";
    var jsonFile = tmpFileDir + clName + ".json";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( jsonFile );
-   
+
    println( "\n---data type double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 400 );
@@ -18,11 +18,11 @@ function main()
    checkResult( cl, "double", expResult );
    var expResult = getExpResult( "decimal" );
    checkResult( cl, "decimal", expResult );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "1";
@@ -34,15 +34,15 @@ function prepareDate( typeFile )
       {
          right = right + "1";
          file.write( '{ a: ' + left + '.' + right + ' }\n' );
-         file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' ); 
-      }  
+         file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' );
+      }
    }
    file.close();
 }
 
-function getExpResult( dataType )
+function getExpResult ( dataType )
 {
-   var expResult = []; 
+   var expResult = [];
    var left = "1";
    for( var i = 0; i < 10; i++ )
    {
@@ -52,21 +52,21 @@ function getExpResult( dataType )
       {
          right = right + "1";
          var decimalDate = left + "." + right;
-         if( dataType == "decimal" && (i+j) < 13 )
+         if( dataType == "decimal" && ( i + j ) < 13 )
          {
-            expResult.push({ a: { "$decimal": decimalDate }});
+            expResult.push( { a: { "$decimal": decimalDate } } );
          }
-         else if( dataType == "decimal" && (i+j) >= 13)
+         else if( dataType == "decimal" && ( i + j ) >= 13 )
          {
-            expResult.push({ a: { "$decimal": decimalDate }});
-            expResult.push({ a: { "$decimal": decimalDate }});
+            expResult.push( { a: { "$decimal": decimalDate } } );
+            expResult.push( { a: { "$decimal": decimalDate } } );
          }
-         else if( dataType == "double" && (i+j) < 13 )
+         else if( dataType == "double" && ( i + j ) < 13 )
          {
             var doubleData = parseFloat( left + "." + right );
-            expResult.push({ a: doubleData });
+            expResult.push( { a: doubleData } );
          }
       }
-   } 
+   }
    return expResult;
 }

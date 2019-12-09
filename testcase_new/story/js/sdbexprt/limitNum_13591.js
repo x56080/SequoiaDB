@@ -6,88 +6,88 @@
 * @author      : Liang XueWang
 * 
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13591" ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13591";
 
-main() ;
+main();
 
-function main()
-{  
-   var docs = [ { a: 1 }, { a: 3 }, { a: 2 }, { a: 4 } ] ;
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   cl.insert( docs ) ;
-   
-   testExprtLimit1() ;    // test limit -1
-   testExprtLimit2() ;    // test limit 0
-   testExprtLimit3() ;    // test limit 5
-   
-   commDropCL( db, csname, clname ) ;
+function main ()
+{
+   var docs = [{ a: 1 }, { a: 3 }, { a: 2 }, { a: 4 }];
+   var cl = commCreateCL( db, csname, clname, 0 );
+   cl.insert( docs );
+
+   testExprtLimit1();    // test limit -1
+   testExprtLimit2();    // test limit 0
+   testExprtLimit3();    // test limit 5
+
+   commDropCL( db, csname, clname );
 }
 
-function testExprtLimit1()
+function testExprtLimit1 ()
 {
-   var csvfile = workDir + "sdbexprt13591.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13591.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --limit -1" +
-                 " --fields a" +
-                 " --sort '{ _id: 1 }'" +
-                 " --type csv" ;                
-   testRunCommand( command ) ;
-   
-   var content = "a\n1\n3\n2\n4\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --limit -1" +
+      " --fields a" +
+      " --sort '{ _id: 1 }'" +
+      " --type csv";
+   testRunCommand( command );
+
+   var content = "a\n1\n3\n2\n4\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtLimit2()
+function testExprtLimit2 ()
 {
-   var csvfile = workDir + "sdbexprt13595.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13595.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --limit 0" +
-                 " --fields a" +
-                 " --type csv" ;                
-   testRunCommand( command ) ;
-   
-   var content = "a\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --limit 0" +
+      " --fields a" +
+      " --type csv";
+   testRunCommand( command );
+
+   var content = "a\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtLimit3()
+function testExprtLimit3 ()
 {
-   var csvfile = workDir + "sdbexprt13596.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13596.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --limit 5" +
-                 " --fields a" +
-                 " --sort '{ _id: 1 }'" +
-                 " --type csv" ;                
-   testRunCommand( command ) ;
-   
-   var content = "a\n1\n3\n2\n4\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --limit 5" +
+      " --fields a" +
+      " --sort '{ _id: 1 }'" +
+      " --type csv";
+   testRunCommand( command );
+
+   var content = "a\n1\n3\n2\n4\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + csvfile );
 }

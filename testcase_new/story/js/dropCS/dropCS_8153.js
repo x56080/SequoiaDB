@@ -1,18 +1,18 @@
 //drop innormal collection space
 
-var res = false; 
+var res = false;
 try
 {
-   db.dropCS( "dropUCS.cs" ); 
+   db.dropCS( "dropUCS.cs" );
 }
 catch( e )
 {
    if( e == -34 )
    {
-      res = true; 
+      res = true;
    }
 }
 if( !res )
 {
-   throw -1; 
+   throw -1;
 }

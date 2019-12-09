@@ -6,27 +6,27 @@
 ****************************************************/
 main();
 
-function main()
-{	
+function main ()
+{
 	try
 	{
-		var cl = readyCL({ReplSize:0,AutoIndexId:false,Compressed:true});
-		
+		var cl = readyCL( { ReplSize: 0, AutoIndexId: false, Compressed: true } );
+
 		var expRecs = [];
-				
+
 		insertRecs( cl, expRecs );
-		queryRecs( cl, expRecs );		
-		upsertRecs( cl );		
-		updateRecs( cl );	
-//		findAndRemoveRecs( cl );  //has bug, jira1323
-//		findAndUpdateRecs( cl );
+		queryRecs( cl, expRecs );
+		upsertRecs( cl );
+		updateRecs( cl );
+		//		findAndRemoveRecs( cl );  //has bug, jira1323
+		//		findAndUpdateRecs( cl );
 		removeRecs( cl );
 		queryRecs( cl, expRecs );
 		truncateCL( cl, expRecs );
-		
+
 		clean();
 	}
-	catch(e)
+	catch( e )
 	{
 		throw e;
 	}
@@ -35,58 +35,58 @@ function main()
 	}
 }
 
-function insertRecs( cl, expRecs )
+function insertRecs ( cl, expRecs )
 {
-	println("\n---begin to excute " + getFuncName() );
-	
-	for(var i = 0; i < 1000; i++)
+	println( "\n---begin to excute " + getFuncName() );
+
+	for( var i = 0; i < 1000; i++ )
 	{
-		var rec = {a:i,b:i,c:i};		
-		expRecs.push(rec);
-	}	
-	cl.insert(expRecs);
-	
+		var rec = { a: i, b: i, c: i };
+		expRecs.push( rec );
+	}
+	cl.insert( expRecs );
+
 	var rc = cl.find();
 	checkRec( rc, expRecs );
 }
 
-function queryRecs( cl, expRecs )
-{	
-	println("\n---begin to excute " + getFuncName() );
-	
+function queryRecs ( cl, expRecs )
+{
+	println( "\n---begin to excute " + getFuncName() );
+
 	//find with sort/limit/skip/size
-	var rc = cl.find().sort({a:-1}).limit(20).skip(10);
-	
+	var rc = cl.find().sort( { a: -1 } ).limit( 20 ).skip( 10 );
+
 	var tmpExpRecs = expRecs.concat();
 	tmpExpRecs.reverse();
-	tmpExpRecs = tmpExpRecs.slice(10, 10+20);
+	tmpExpRecs = tmpExpRecs.slice( 10, 10 + 20 );
 	checkRec( rc, tmpExpRecs );
-	
+
 	//find with limit/skip/size
-	var cnt = cl.find().limit(180).skip(900).size();
-	if( parseInt(cnt) !== 100 )
+	var cnt = cl.find().limit( 180 ).skip( 900 ).size();
+	if( parseInt( cnt ) !== 100 )
 	{
-		throw buildException("find with size", null, "cl.find().limit(180).skip(900).size()", 100, cnt);
+		throw buildException( "find with size", null, "cl.find().limit(180).skip(900).size()", 100, cnt );
 	}
-	
+
 	//find with count
-	var cnt = cl.find({a:{$ne:0}}).count();
-	if( parseInt(cnt) !== 999 )
+	var cnt = cl.find( { a: { $ne: 0 } } ).count();
+	if( parseInt( cnt ) !== 999 )
 	{
-		throw buildException("find with count", null, "cl.find({a:{$ne:0}}).count()", 999, cnt);
+		throw buildException( "find with count", null, "cl.find({a:{$ne:0}}).count()", 999, cnt );
 	}
 }
 
-function upsertRecs( cl )
+function upsertRecs ( cl )
 {
-	println("\n---begin to excute " + getFuncName() );
-	
+	println( "\n---begin to excute " + getFuncName() );
+
 	try
 	{
-		cl.upsert({$set:{a:-2}},{a:0});
-		var throwErr279 = false; 
+		cl.upsert( { $set: { a: -2 } }, { a: 0 } );
+		var throwErr279 = false;
 	}
-	catch(e)
+	catch( e )
 	{
 		if( e === -279 )
 		{
@@ -94,25 +94,25 @@ function upsertRecs( cl )
 		}
 		else
 		{
-			throw buildException("", null, "upsert", "e=-279", "e="+e);
+			throw buildException( "", null, "upsert", "e=-279", "e=" + e );
 		}
 	}
 	if( throwErr279 === false )
 	{
-		throw buildException("", null, "upsert", "e=-279", "did not throw error");
+		throw buildException( "", null, "upsert", "e=-279", "did not throw error" );
 	}
 }
 
-function updateRecs( cl )
+function updateRecs ( cl )
 {
-	println("\n---begin to excute " + getFuncName() );
-	
+	println( "\n---begin to excute " + getFuncName() );
+
 	try
 	{
-		cl.update({$inc:{a:1}});
-		var throwErr279 = false; 
+		cl.update( { $inc: { a: 1 } } );
+		var throwErr279 = false;
 	}
-	catch(e)
+	catch( e )
 	{
 		if( e === -279 )
 		{
@@ -120,25 +120,25 @@ function updateRecs( cl )
 		}
 		else
 		{
-			throw buildException("", null, "update", "e=-279", "e="+e);
+			throw buildException( "", null, "update", "e=-279", "e=" + e );
 		}
 	}
 	if( throwErr279 === false )
 	{
-		throw buildException("", null, "update", "e=-279", "did not throw error");
+		throw buildException( "", null, "update", "e=-279", "did not throw error" );
 	}
 }
 
-function findAndRemoveRecs( cl )
+function findAndRemoveRecs ( cl )
 {
-	println("\n---begin to excute " + getFuncName() );
-	
+	println( "\n---begin to excute " + getFuncName() );
+
 	try
 	{
-		cl.find({a:1}).remove();
-		var throwErr279 = false; 
+		cl.find( { a: 1 } ).remove();
+		var throwErr279 = false;
 	}
-	catch(e)
+	catch( e )
 	{
 		if( e === -279 )
 		{
@@ -146,25 +146,25 @@ function findAndRemoveRecs( cl )
 		}
 		else
 		{
-			throw buildException("", null, "findAndRemove", "e=-279", "e="+e);
+			throw buildException( "", null, "findAndRemove", "e=-279", "e=" + e );
 		}
 	}
 	if( throwErr279 === false )
 	{
-		throw buildException("", null, "findAndRemove", "e=-279", "did not throw error");
+		throw buildException( "", null, "findAndRemove", "e=-279", "did not throw error" );
 	}
 }
 
-function findAndUpdateRecs( cl )
+function findAndUpdateRecs ( cl )
 {
-	println("\n---begin to excute " + getFuncName() );
-	
+	println( "\n---begin to excute " + getFuncName() );
+
 	try
 	{
-		cl.find({b:{$gte:10000}}).update({$inc:{b:-1}})
-		var throwErr279 = false; 
+		cl.find( { b: { $gte: 10000 } } ).update( { $inc: { b: -1 } } )
+		var throwErr279 = false;
 	}
-	catch(e)
+	catch( e )
 	{
 		if( e === -279 )
 		{
@@ -172,25 +172,25 @@ function findAndUpdateRecs( cl )
 		}
 		else
 		{
-			throw buildException("", null, "findAndUpdate", "e=-279", "e="+e);
+			throw buildException( "", null, "findAndUpdate", "e=-279", "e=" + e );
 		}
 	}
 	if( throwErr279 === false )
 	{
-		throw buildException("", null, "findAndUpdate", "e=-279", "did not throw error");
+		throw buildException( "", null, "findAndUpdate", "e=-279", "did not throw error" );
 	}
 }
 
-function removeRecs( cl )
+function removeRecs ( cl )
 {
-	println("\n---begin to excute " + getFuncName() );
-	
+	println( "\n---begin to excute " + getFuncName() );
+
 	try
 	{
 		cl.remove();
-		var throwErr279 = false; 
+		var throwErr279 = false;
 	}
-	catch(e)
+	catch( e )
 	{
 		if( e === -279 )
 		{
@@ -198,21 +198,21 @@ function removeRecs( cl )
 		}
 		else
 		{
-			throw buildException("", null, "remove", "e=-279", "e="+e);
+			throw buildException( "", null, "remove", "e=-279", "e=" + e );
 		}
 	}
 	if( throwErr279 === false )
 	{
-		throw buildException("", null, "remove", "e=-279", "did not throw error");
+		throw buildException( "", null, "remove", "e=-279", "did not throw error" );
 	}
 }
 
-function truncateCL( cl, expRecs )
+function truncateCL ( cl, expRecs )
 {
-	println("\n---begin to excute " + getFuncName() );
-	
+	println( "\n---begin to excute " + getFuncName() );
+
 	cl.truncate();
-	
+
 	expRecs.splice( 0, expRecs.length );//remove all elements
 	var rc = cl.find();
 	checkRec( rc, expRecs );

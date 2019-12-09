@@ -1,16 +1,16 @@
 /************************************************************************
-*@Description:	seqDB-6029:ÖØ¸´Ö´ÐÐÊÂÎñ»Ø¹ö_SD.transaction.040
-               ÒÀ´ÎÖ´ÐÐ¿ªÆôÊÂÎñ¡¢É¾³ý¡¢»Ø¹ö¡¢»Ø¹ö²Ù×÷
+*@Description:	seqDB-6029:ï¿½Ø¸ï¿½Ö´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¹ï¿½_SD.transaction.040
+               ï¿½ï¿½ï¿½ï¿½Ö´ï¿½Ð¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½Ø¹ï¿½ï¿½ï¿½ï¿½Ø¹ï¿½ï¿½ï¿½ï¿½ï¿½
 *@Author:  		TingYU  2015/11/24
-               wuyan 2017/1/6(ÐÞ¸ÄÖØ¸´Ö´ÐÐ»Ø¹ö²»±¨´í)
+               wuyan 2017/1/6(ï¿½Þ¸ï¿½ï¿½Ø¸ï¿½Ö´ï¿½Ð»Ø¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 ************************************************************************/
 main();
 
-function main()
+function main ()
 {
    var csName = COMMCSNAME + "_yt6029";
    var clName = COMMCLNAME + "_yt6029";
-   
+
    try
    {
       if( !commIsTransEnabled( db ) )
@@ -18,30 +18,30 @@ function main()
          println( "transaction is disabled" );
          return;
       }
-      var cl = readyCL( csName, clName, {ReplSize:0} );
-      
+      var cl = readyCL( csName, clName, { ReplSize: 0 } );
+
       //begin and rollback
-      var dataNum = 100; 
+      var dataNum = 100;
       var insert = new insertData( cl, dataNum );
-      var remove = new removeData ( cl ); 
+      var remove = new removeData( cl );
       execTransaction( insert, beginTrans, remove, rollbackTrans );
       checkResult( cl, false, remove );
-      
+
       //rollback again
       try
-      {   
-         execTransaction( rollbackTrans );         
+      {
+         execTransaction( rollbackTrans );
       }
-      catch(e)
-      {         
-         throw e;         
+      catch( e )
+      {
+         throw e;
       }
       checkResult( cl, false, remove );
-                    
-	   clean( csName, clName );
+
+      clean( csName, clName );
    }
    catch( e )
    {
       throw e;
-   }   
+   }
 }

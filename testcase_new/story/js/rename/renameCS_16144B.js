@@ -7,75 +7,77 @@
 
 main();
 
-function main()
+function main ()
 {
-   if (commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      return ;
+      return;
    }
-   if (commGetGroupsNum(db) < 2)
+   if( commGetGroupsNum( db ) < 2 )
    {
-      return ;
+      return;
    }
-   println("---begin rename cs test---");
-   var oldcsName = CHANGEDPREFIX+"_16144B_oldcs";
-   var newcsName = CHANGEDPREFIX+"_16144B_newcs";
+   println( "---begin rename cs test---" );
+   var oldcsName = CHANGEDPREFIX + "_16144B_oldcs";
+   var newcsName = CHANGEDPREFIX + "_16144B_newcs";
    var clName = CHANGEDPREFIX + "_16144B_CL";
-   var fileName = CHANGEDPREFIX+"_16144Blob";
+   var fileName = CHANGEDPREFIX + "_16144Blob";
    var lobNum = 10;
-   
-   var groupNames = getGroupName(db, true);
+
+   var groupNames = getGroupName( db, true );
    var sourceGroup = groupNames[0][0];
    var targetGroup = groupNames[1][0];
-   
-   var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "");
-   var options = {ShardingType:"hash", ShardingKey:{a:1}, Group:sourceGroup}
-   var cl = commCreateCLByOption( db, oldcsName, clName, options, false, false, "create cl in the begin");
-   
+
+   var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
+   var options = { ShardingType: "hash", ShardingKey: { a: 1 }, Group: sourceGroup }
+   var cl = commCreateCLByOption( db, oldcsName, clName, options, false, false, "create cl in the begin" );
+
    //insert 1000 data, split 50 to target group
    insertData( cl, 1000 );
-   cl.split(sourceGroup, targetGroup, 50);
-     
+   cl.split( sourceGroup, targetGroup, 50 );
+
    var lobMD5 = createFile( fileName );
-   
+
    var lobIdArr = putLobs( cl, fileName, lobNum, 5 );
-   
-   db.renameCS(oldcsName, newcsName);
-   
-   checkRenameCSResult(oldcsName, newcsName, 1);
-   cl = db.getCS(newcsName).getCL(clName);
-   
+
+   db.renameCS( oldcsName, newcsName );
+
+   checkRenameCSResult( oldcsName, newcsName, 1 );
+   cl = db.getCS( newcsName ).getCL( clName );
+
    checkLob( cl, lobIdArr, lobMD5 );
-   
+
    deleteLobs( cl, lobIdArr );
-   
+
    var lobMD5new = createFile( fileName + "_new" );
-   
+
    var lobArrnew = putLobs( cl, fileName + "_new", lobNum, 5 );
-   
+
    checkLob( cl, lobArrnew, lobMD5new );
 
    commDropCS( db, newcsName, true, false, "clean cs---" );
    deleteFile( fileName );
    deleteFile( fileName + "_new" );
-   println("---end the test---");
+   println( "---end the test---" );
 }
 
-function updateData(cl)
+function updateData ( cl )
 {
-   cl.update({$set: {no: 10086}});
-   var recordNum = cl.count({no: 10086});
-   if(recordNum!=2000){
-      throw buildException("updateData()","","update", "update 2000 record","update fail, only: "+recordNum);
+   cl.update( { $set: { no: 10086 } } );
+   var recordNum = cl.count( { no: 10086 } );
+   if( recordNum != 2000 )
+   {
+      throw buildException( "updateData()", "", "update", "update 2000 record", "update fail, only: " + recordNum );
    }
 }
 
-function deleteData(cl)
+function deleteData ( cl )
 {
-   cl.remove({ a: { $lt: 500 }});
+   cl.remove( { a: { $lt: 500 } } );
    var recordNum = cl.count();
-   if(recordNum!=1000){
-      throw buildException("deleteData()","","delete", "delete 1000 record","delete fail, have: "+recordNum);
+   if( recordNum != 1000 )
+   {
+      throw buildException( "deleteData()", "", "delete", "delete 1000 record", "delete fail, have: " + recordNum );
    }
 }
 

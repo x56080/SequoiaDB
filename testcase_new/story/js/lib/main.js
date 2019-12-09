@@ -4,183 +4,185 @@
 *   2019-11-12 wenjing Wang  Init
 *******************************************************************************/
 
-var testConf = {skipStandAlone:false, skipOneDuplicatePerGroup:false,
-                skipOneGroup:false, clean:false, message:"", skip:false} ;
-                // csName: COMMCSNAME, csOpt:{PageSize:4096}} };
-                //clName:COMMCLNAME, clOpt:{AutoSplit:true} } ;
+var testConf = {
+   skipStandAlone: false, skipOneDuplicatePerGroup: false,
+   skipOneGroup: false, clean: false, message: "", skip: false
+};
+// csName: COMMCSNAME, csOpt:{PageSize:4096}} };
+//clName:COMMCLNAME, clOpt:{AutoSplit:true} } ;
 
-testConf.clean = CLEANFORFAIL ;
-var testPara = {} ;
+testConf.clean = CLEANFORFAIL;
+var testPara = {};
 
-var oneGroup = 1 ;
+var oneGroup = 1;
 var nodeNum = 1;
-function checkEnv( db, testConf )
+function checkEnv ( db, testConf )
 {
-   if ( testConf.skipStandAlone && commIsStandalone( db ) )
+   if( testConf.skipStandAlone && commIsStandalone( db ) )
    {
-      throw new Error( "standalone" ) ;
+      throw new Error( "standalone" );
    }
 
-   if ( testConf.skipOneGroup )
+   if( testConf.skipOneGroup )
    {
-      var groups = commGetGroups( db ) ;
-      if ( groups.length === oneGroup )
+      var groups = commGetGroups( db );
+      if( groups.length === oneGroup )
       {
-         throw new Error( "one data group" ) ;
+         throw new Error( "one data group" );
       }
    }
 
-   if ( testConf.skipOneDuplicatePerGroup )
+   if( testConf.skipOneDuplicatePerGroup )
    {
-      if ( groups === undefined )
+      if( groups === undefined )
       {
-         var groups = commGetGroups( db ) ;
+         var groups = commGetGroups( db );
       }
 
-      for ( var i = 0; i < groups.length; ++i )
+      for( var i = 0; i < groups.length; ++i )
       {
-         if ( groups[i].length - 1 > nodeNum )
+         if( groups[i].length - 1 > nodeNum )
          {
-            break ;
+            break;
          }
       }
 
-      if ( i === groups.length )
+      if( i === groups.length )
       {
          throw new Error( "one duplicate per group" );
       }
    }
 }
 
-function createCommonCS( db )
+function createCommonCS ( db )
 {
-   return commCreateCS( db, COMMCSNAME, true ) ;
+   return commCreateCS( db, COMMCSNAME, true );
 }
 
-function createCommonCL( db )
+function createCommonCL ( db )
 {
-   return commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, {ShardingType:'hash',ShardingKey:{_id:1}, AutoSplit:true}, true, true ) ;
+   return commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
 }
 
-function createDummyCL( db )
+function createDummyCL ( db )
 {
-   return commCreateCLByOption( db, COMMCSNAME, COMMDUMMYCLNAME, {ShardingType:'hash',ShardingKey:{_id:1}, AutoSplit:true}, true, true ) ;
+   return commCreateCLByOption( db, COMMCSNAME, COMMDUMMYCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
 }
 
-function createTestCS( db, testConf )
+function createTestCS ( db, testConf )
 {
-   if ( testConf.csName !== undefined )
+   if( testConf.csName !== undefined )
    {
-      if ( testConf.csOpt !== undefined )
+      if( testConf.csOpt !== undefined )
       {
-         return commCreateCS( db, testConf.csName, true, "", testConf.csOpt ) ;
+         return commCreateCS( db, testConf.csName, true, "", testConf.csOpt );
       }
       else
       {
-         return commCreateCS( db, testConf.csName, true ) ;
+         return commCreateCS( db, testConf.csName, true );
       }
    }
 }
 
-function createTestCL( db, testConf )
+function createTestCL ( db, testConf )
 {
-   if ( testConf.clName !== undefined )
+   if( testConf.clName !== undefined )
    {
-      if ( testConf.clName !== COMMCLNAME )
+      if( testConf.clName !== COMMCLNAME )
       {
-         commDropCL( db, testConf.csName, testConf.clName, true, true, testConf.message ) ;
+         commDropCL( db, testConf.csName, testConf.clName, true, true, testConf.message );
       }
 
-      if ( testConf.clOpt !== undefined )
+      if( testConf.clOpt !== undefined )
       {
-         return commCreateCLByOption( db, testConf.csName, testConf.clName, testConf.clOpt, true, true ) ;
+         return commCreateCLByOption( db, testConf.csName, testConf.clName, testConf.clOpt, true, true );
       }
       else
       {
-         return commCreateCL( db, testConf.csName, testConf.clName, 1, false, true, true ) ;
+         return commCreateCL( db, testConf.csName, testConf.clName, 1, false, true, true );
       }
    }
 }
 
-function dropTestCS( db, testConf )
+function dropTestCS ( db, testConf )
 {
-   if ( testConf.csName !== undefined && 
-        testConf.csName !== COMMCSNAME )
+   if( testConf.csName !== undefined &&
+      testConf.csName !== COMMCSNAME )
    {
-      commDropCS( db, testConf.csName, true ) ;
+      commDropCS( db, testConf.csName, true );
    }
 }
 
-function dropTestCL( db, testConf )
+function dropTestCL ( db, testConf )
 {
-   if ( testConf.clName !== undefined && 
-        testConf.clName !== COMMCLNAME &&
-        testConf.csName === COMMCSNAME )
+   if( testConf.clName !== undefined &&
+      testConf.clName !== COMMCLNAME &&
+      testConf.csName === COMMCSNAME )
    {
-      commDropCL( db, testConf.csName, testConf.clName, true, true, testConf.message ) ;
+      commDropCL( db, testConf.csName, testConf.clName, true, true, testConf.message );
    }
 }
 
-function commonSetUp( db, testConf )
+function commonSetUp ( db, testConf )
 {
-   checkEnv( db, testConf ) ;
-   testPara.commonCS = createCommonCS( db ) ;
-   testPara.commonCL = createCommonCL( db ) ;
-   createDummyCL( db ) ;
-	  
-   testPara.testCS = createTestCS( db, testConf ) ;
-   testPara.testCL = createTestCL( db, testConf ) ;
+   checkEnv( db, testConf );
+   testPara.commonCS = createCommonCS( db );
+   testPara.commonCL = createCommonCL( db );
+   createDummyCL( db );
+
+   testPara.testCS = createTestCS( db, testConf );
+   testPara.testCL = createTestCL( db, testConf );
 }
 
-function commonTearDown( db, testConf, isExecSuccess )
+function commonTearDown ( db, testConf, isExecSuccess )
 {
-   if ( db !== undefined )
+   if( db !== undefined )
    {
-      if ( isExecSuccess || testConf.clean )
+      if( isExecSuccess || testConf.clean )
       {
-         dropTestCL( db, testConf ) ;
-         dropTestCS( db, testConf ) ;
+         dropTestCL( db, testConf );
+         dropTestCS( db, testConf );
       }
-      db.close() ;
+      db.close();
    }
 }
 
-function main()
+function main ()
 {
-   var isExecSuccess = false ;
+   var isExecSuccess = false;
    try
    {
-      commonSetUp( db, testConf ) ;
-      var numArgs = arguments.length ;
-      for ( var i = 0; i < numArgs ; ++ i )
+      commonSetUp( db, testConf );
+      var numArgs = arguments.length;
+      for( var i = 0; i < numArgs; ++i )
       {
-         if ( typeof(arguments[i]) === "function" )
+         if( typeof ( arguments[i] ) === "function" )
          {
-            if ( testConf.skip === false )
+            if( testConf.skip === false )
             {
-               arguments[i]( testPara ) ;
+               arguments[i]( testPara );
             }
          }
       }
-	  
-      isExecSuccess = true ;
+
+      isExecSuccess = true;
    }
-   catch(e)
+   catch( e )
    {
       if( e.constructor === Error )
       {
-         if ( e.message === "standalone" ||
-              e.message === "one data group" ||
-              e.message === "one duplicate per group" )
+         if( e.message === "standalone" ||
+            e.message === "one data group" ||
+            e.message === "one duplicate per group" )
          {
-            return ;
+            return;
          }
          println( e.stack );
       }
       throw e;
-   }   
+   }
    finally
    {
-      commonTearDown( db, testConf, isExecSuccess ) ;
+      commonTearDown( db, testConf, isExecSuccess );
    }
 }

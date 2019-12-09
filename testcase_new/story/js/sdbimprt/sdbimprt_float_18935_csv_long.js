@@ -3,116 +3,116 @@
 *@Author     :  2019-8-6  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18935_csv_long";
    var csvFile = tmpFileDir + clName + ".csv";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( csvFile );
-   
+
    println( "\n---specify data type int64 to import csv file." );
    var fields = "a int, b long";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 80 );
-   var cond = {"b": {"$type": 2, "$et": "int64"}};
+   var cond = { "b": { "$type": 2, "$et": "int64" } };
    var expResult = getExpResult();
    checkCLData( cl, 80, expResult, cond );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "10";
    var right = "01000000000000000000";
-   for(var i=0; i<20; i++)
+   for( var i = 0; i < 20; i++ )
    {
-      left = "0" + left; 
+      left = "0" + left;
       file.write( i + ", " + left + "." + right + "\n" );
    }
-   
+
    left = "01";
    right = "00000000000000000010";
-   for(var i=20; i<40; i++)
+   for( var i = 20; i < 40; i++ )
    {
-      left = left + "0"; 
-      file.write( i + ", " + left + "." + right + "\n" );
-   } 
-   
-   left = "00000000000000000010";
-   right = "01";
-   for(var i=40; i<60; i++)
-   {
-      right = right + "0"; 
+      left = left + "0";
       file.write( i + ", " + left + "." + right + "\n" );
    }
-   
+
+   left = "00000000000000000010";
+   right = "01";
+   for( var i = 40; i < 60; i++ )
+   {
+      right = right + "0";
+      file.write( i + ", " + left + "." + right + "\n" );
+   }
+
    //当浮点数的整数位小于int64的最大值时，指定int64导入集合后显示为numberLong类型
    left = "01000000000000000000";
    right = "10";
-   for(var i=60; i<70; i++)
+   for( var i = 60; i < 70; i++ )
    {
-      right = right + "0"; 
+      right = right + "0";
       file.write( i + ", " + left + "." + right + "\n" );
-   } 
-   
+   }
+
    //当浮点数的整数位大于int64的最大值时，指定int64导入集合后显示为0
    left = "010000000000000000000";
    right = "10";
-   for(var i=70; i<80; i++)
+   for( var i = 70; i < 80; i++ )
    {
-      right = right + "0"; 
+      right = right + "0";
       file.write( i + ", " + left + "." + right + "\n" );
-   }    
-   
+   }
+
    file.close();
 }
 
-function getExpResult()
+function getExpResult ()
 {
-   var expResult = []; 
+   var expResult = [];
    var left = "10";
-   for(var i=0; i<20; i++)
+   for( var i = 0; i < 20; i++ )
    {
       expResult.push( { a: i, b: parseInt( left ) } );
    }
    left = "1";
-   for(var i=20; i<40; i++)
+   for( var i = 20; i < 40; i++ )
    {
-      left = left + "0"; 
-      if(i < 35)
+      left = left + "0";
+      if( i < 35 )
       {
-         expResult.push({ a: i, b: parseInt( left ) });
+         expResult.push( { a: i, b: parseInt( left ) } );
       }
-      else if( i >= 35 && i < 38)
+      else if( i >= 35 && i < 38 )
       {
-         expResult.push({ a: i, b: {"$numberLong": left} });
+         expResult.push( { a: i, b: { "$numberLong": left } } );
       }
       else
       {
-         expResult.push({ a: i, b: 0 });
+         expResult.push( { a: i, b: 0 } );
       }
-   } 
-   
+   }
+
    left = "10";
-   for(var i=40; i<60; i++)
+   for( var i = 40; i < 60; i++ )
    {
-      expResult.push({ a: i, b: parseInt( left ) });
-   } 
-   
+      expResult.push( { a: i, b: parseInt( left ) } );
+   }
+
    left = "1000000000000000000";
-   for(var i=60; i<80; i++)
+   for( var i = 60; i < 80; i++ )
    {
       if( i < 70 )
       {
-         expResult.push({ a: i, b: { "$numberLong": left } });
+         expResult.push( { a: i, b: { "$numberLong": left } } );
       }
       else
       {
-         expResult.push({ a: i, b: 0 });
+         expResult.push( { a: i, b: 0 } );
       }
-   }      
-   return JSON.stringify(expResult);
+   }
+   return JSON.stringify( expResult );
 }

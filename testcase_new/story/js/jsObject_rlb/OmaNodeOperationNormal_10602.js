@@ -4,35 +4,35 @@
 *               TestLink: 10602 Oma创建、删除、启动、停止协调节点和数据节点
 *@author      : Liang XueWang
 ******************************************************************************/
-import ("../jsObjectSync/commlib.js");
+import( "../jsObjectSync/commlib.js" );
 // 测试正常创建启动停止删除协调节点
 OmaTest.prototype.testCoordNodeOperationNormal = function( svcname )
 {
    var isNodeCreated = false;
-   this.testInit() ;
+   this.testInit();
    try
    {
-      var dbpath = RSRVNODEDIR + svcname ;
-      this.oma.createCoord( svcname, dbpath ) ;
+      var dbpath = RSRVNODEDIR + svcname;
+      this.oma.createCoord( svcname, dbpath );
       isNodeCreated = true;
-      this.oma.startNode( svcname ) ;
-      this.oma.stopNode( svcname ) ;
-      this.oma.removeCoord( svcname ) ; 
+      this.oma.startNode( svcname );
+      this.oma.stopNode( svcname );
+      this.oma.removeCoord( svcname );
       isNodeCreated = false;
    }
    catch( e )
    {
-      println( "coord " + svcname + " dbpath " + dbpath ) ;
-      throw buildException( "testCoordNodeOperationNormal", e, 
-                            "coord node operation " + this, 0, e ) ;
+      println( "coord " + svcname + " dbpath " + dbpath );
+      throw buildException( "testCoordNodeOperationNormal", e,
+         "coord node operation " + this, 0, e );
    }
    finally
    {
-       if(isNodeCreated)
-       {
-          this.oma.removeCoord( svcname ) ; 
-       }
-       this.oma.close() ;
+      if( isNodeCreated )
+      {
+         this.oma.removeCoord( svcname );
+      }
+      this.oma.close();
    }
 }
 
@@ -40,94 +40,94 @@ OmaTest.prototype.testCoordNodeOperationNormal = function( svcname )
 OmaTest.prototype.testDataNodeOperationNormal = function( svcname )
 {
    var isNodeCreated = false;
-   this.testInit() ;
+   this.testInit();
    try
    {
-      var dbpath = RSRVNODEDIR + svcname ;
-      this.oma.createData( svcname, dbpath, {diaglevel:5}) ;
+      var dbpath = RSRVNODEDIR + svcname;
+      this.oma.createData( svcname, dbpath, { diaglevel: 5 } );
       isNodeCreated = true;
-      this.oma.startNode( svcname ) ;
-      checkDataNodeValid( this.hostname, svcname ) ;
-      this.oma.stopNode( svcname ) ;
-      this.oma.removeData( svcname ) ;
-      isNodeCreated = false;      
+      this.oma.startNode( svcname );
+      checkDataNodeValid( this.hostname, svcname );
+      this.oma.stopNode( svcname );
+      this.oma.removeData( svcname );
+      isNodeCreated = false;
    }
    catch( e )
    {
-      println( "data " + svcname + " dbpath " + dbpath + "  e :" + e ) ;
+      println( "data " + svcname + " dbpath " + dbpath + "  e :" + e );
       var backupDir = "/tmp/ci/rsrvnodelog/10602";
-      var srcLogPath = this.hostname+":"+CMSVCNAME+"@"+dbpath+"/diaglog/sdbdiag.log";
-      File.mkdir(backupDir);
+      var srcLogPath = this.hostname + ":" + CMSVCNAME + "@" + dbpath + "/diaglog/sdbdiag.log";
+      File.mkdir( backupDir );
       File.scp( srcLogPath, backupDir + "/sdbdiag.log" );
       throw buildException( "testDataNodeOperationNormal", e,
-                            "data node operation " + this, 0, e ) ;
+         "data node operation " + this, 0, e );
    }
    finally
    {
-       if(isNodeCreated)
-       {
-          this.oma.removeData( svcname ) ;  
-       }
-       this.oma.close() ;
-   } 
+      if( isNodeCreated )
+      {
+         this.oma.removeData( svcname );
+      }
+      this.oma.close();
+   }
 }
 
 /******************************************************************************
 *@Description : check node is valid ( create cs cl in node )
 *@author      : Liang XueWang              
 ******************************************************************************/
-function checkDataNodeValid( hostname, svcname )
+function checkDataNodeValid ( hostname, svcname )
 {
    try
    {
-      var db = new Sdb( hostname, svcname ) ;
-      var CsName = "testDataNodeValidCs" ;
-      var cs = db.createCS( CsName ) ;
-      cs.createCL( "bar" ) ;
-      db.dropCS( CsName ) ;
-      db.close() ;
+      var db = new Sdb( hostname, svcname );
+      var CsName = "testDataNodeValidCs";
+      var cs = db.createCS( CsName );
+      cs.createCL( "bar" );
+      db.dropCS( CsName );
+      db.close();
    }
    catch( e )
    {
-      println( "node " + hostname + ":" + svcname ) ;
-      throw buildException( "checkDataNodeValid", e, 
-                            "check node " + hostname + ":" + svcname, 0, e ) ;
+      println( "node " + hostname + ":" + svcname );
+      throw buildException( "checkDataNodeValid", e,
+         "check node " + hostname + ":" + svcname, 0, e );
    }
 }
 
-function main()
+function main ()
 {
    // 获取本地主机和远程主机
-   var localhost = toolGetLocalhost() ;
-   var remotehost = toolGetRemotehost() ;
-   
+   var localhost = toolGetLocalhost();
+   var remotehost = toolGetRemotehost();
+
    // 获取本地和远程空闲的端口号
-   var svcname1 = toolGetIdleSvcName( localhost["hostname"], CMSVCNAME ) ;
+   var svcname1 = toolGetIdleSvcName( localhost["hostname"], CMSVCNAME );
    if( svcname1 === undefined )
    {
-      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND local" ) ;
-      return ;
+      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND local" );
+      return;
    }
-   var svcname2 = toolGetIdleSvcName( remotehost["hostname"], CMSVCNAME ) ;
+   var svcname2 = toolGetIdleSvcName( remotehost["hostname"], CMSVCNAME );
    if( svcname2 === undefined )
    {
-      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND remote" ) ;
-      return ;
+      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND remote" );
+      return;
    }
-   
-   var localOma = new OmaTest( localhost, CMSVCNAME ) ;
-   var remoteOma = new OmaTest( remotehost, CMSVCNAME ) ;
-   
-   var omas = [ localOma, remoteOma ] ;
-   var svcnames = [ svcname1, svcname2 ] ;
-   
-   for( var i = 0;i < omas.length;i++ )
+
+   var localOma = new OmaTest( localhost, CMSVCNAME );
+   var remoteOma = new OmaTest( remotehost, CMSVCNAME );
+
+   var omas = [localOma, remoteOma];
+   var svcnames = [svcname1, svcname2];
+
+   for( var i = 0; i < omas.length; i++ )
    {
       // 测试协调节点的正常操作
-      omas[i].testCoordNodeOperationNormal( svcnames[i] ) ;
-      
+      omas[i].testCoordNodeOperationNormal( svcnames[i] );
+
       // 测试数据节点的正常操作
-      omas[i].testDataNodeOperationNormal( svcnames[i] ) ;
+      omas[i].testDataNodeOperationNormal( svcnames[i] );
    }
 }
 

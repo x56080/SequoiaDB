@@ -5,75 +5,75 @@
 *@testlinkCase:seqDB-14961, seqDB-14962, seqDB-14963
 **************************************/
 
-main(); 
+main();
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ); 
-      return; 
+      println( "Run mode is standalone" );
+      return;
    }
    //less two groups no split
-   var allGroupName = getGroupName( db, true ); 
+   var allGroupName = getGroupName( db, true );
    if( 1 === allGroupName.length )
    {
-      println( "--least two groups" ); 
-      return; 
+      println( "--least two groups" );
+      return;
    }
-   
-   println( "---begin test---" ); 
-   var csName = COMMCSNAME; 
-   var clName1 = CHANGEDPREFIX + "_14961_1"; 
-   var clName2 = CHANGEDPREFIX + "_14961_2"; 
-   
-   var options = { ShardingType: 'hash', ShardingKey: {a: 1}, AutoSplit: false }; 
-   var cl1 = commCreateCLByOption( db, csName, clName1, options, true, false, "create CL in the begin" ); 
-   
-   var options2 = { ShardingType: 'hash', ShardingKey: {a: 1}, AutoSplit: false }; 
-   var cl2 = commCreateCLByOption( db, csName, clName2, options2, true, false, "create CL in the begin" ); 
+
+   println( "---begin test---" );
+   var csName = COMMCSNAME;
+   var clName1 = CHANGEDPREFIX + "_14961_1";
+   var clName2 = CHANGEDPREFIX + "_14961_2";
+
+   var options = { ShardingType: 'hash', ShardingKey: { a: 1 }, AutoSplit: false };
+   var cl1 = commCreateCLByOption( db, csName, clName1, options, true, false, "create CL in the begin" );
+
+   var options2 = { ShardingType: 'hash', ShardingKey: { a: 1 }, AutoSplit: false };
+   var cl2 = commCreateCLByOption( db, csName, clName2, options2, true, false, "create CL in the begin" );
    for( i = 0; i < 5000; i++ )
    {
-      cl2.insert( {a:i, b:"sequoiadh test hash cl1 alter option"} ); 
+      cl2.insert( { a: i, b: "sequoiadh test hash cl1 alter option" } );
    }
-   
+
    //修改AutoSplit值，hash表中无数据
-   println( "---test alter AutoSplit, no data---" ); 
-   cl1.setAttributes( { AutoSplit: true} ); 
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName1, "AutoSplit", true ); 
-   
-   clSetAttributes( cl1, { AutoSplit: false} ); 
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName1, "AutoSplit", true ); 
-   
+   println( "---test alter AutoSplit, no data---" );
+   cl1.setAttributes( { AutoSplit: true } );
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName1, "AutoSplit", true );
+
+   clSetAttributes( cl1, { AutoSplit: false } );
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName1, "AutoSplit", true );
+
    //修改AutoSplit值，hash表中有数据
-   println( "---test alter AutoSplit, have data---" ); 
-   cl2.setAttributes( { AutoSplit: true} ); 
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName2, "AutoSplit", true ); 
-   checkData( csName, clName2, 5000 ); 
-   
-   clSetAttributes( cl2, { AutoSplit: false} ); 
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName2, "AutoSplit", true ); 
-   
-   commDropCL( db, csName, clName1, true, false, "clean cl1" ); 
-   commDropCL( db, csName, clName2, true, false, "clean cl1" ); 
-   println( "---end the test---" ); 
+   println( "---test alter AutoSplit, have data---" );
+   cl2.setAttributes( { AutoSplit: true } );
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName2, "AutoSplit", true );
+   checkData( csName, clName2, 5000 );
+
+   clSetAttributes( cl2, { AutoSplit: false } );
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName2, "AutoSplit", true );
+
+   commDropCL( db, csName, clName1, true, false, "clean cl1" );
+   commDropCL( db, csName, clName2, true, false, "clean cl1" );
+   println( "---end the test---" );
 }
 
-function checkData( csName, clName, expDataNum )
+function checkData ( csName, clName, expDataNum )
 {
-   var groupNameList = getGroupName( db ); 
-   var actDataNum = 0; 
+   var groupNameList = getGroupName( db );
+   var actDataNum = 0;
    for( i = 0; i < groupNameList.length; i++ )
    {
-      var groupName = groupNameList[i]; 
-      var dataNode = new Sdb( db.getRG( groupName ).getMaster() ); 
-      var checkCL = dataNode.getCS( csName ).getCL( clName ); 
-      var recordNum = checkCL.count(); 
-      actDataNum = actDataNum + recordNum; 
-      dataNode.close(); 
+      var groupName = groupNameList[i];
+      var dataNode = new Sdb( db.getRG( groupName ).getMaster() );
+      var checkCL = dataNode.getCS( csName ).getCL( clName );
+      var recordNum = checkCL.count();
+      actDataNum = actDataNum + recordNum;
+      dataNode.close();
    }
    if( actDataNum !== expDataNum )
    {
-      throw buildException( "checkData", "check field", "total num is wrong", expDataNum, actDataNum ); 
+      throw buildException( "checkData", "check field", "total num is wrong", expDataNum, actDataNum );
    }
 }

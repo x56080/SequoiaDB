@@ -1,47 +1,47 @@
 /******************************************************************************
-*@Description : seqDB-4950:×Ö¶ÎÃû²»Âú×ã¸ñÊ½£ºÒÔ'$'¿ªÍ·£»°üº¬'.';×Ö¶ÎÃûÎª¿Õ                   
+*@Description : seqDB-4950:ï¿½Ö¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½'$'ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½'.';ï¿½Ö¶ï¿½ï¿½ï¿½Îªï¿½ï¿½                   
 *@Author      : 2019-5-29  wuyan modify
 ******************************************************************************/
 //http://jira:8080/browse/SEQUOIADBMAINSTREAM-4549
 //main();
-function main()
+function main ()
 {
-     var clName = "insert4950";
-     var cl = readyCL( clName );
-     
-     insertRecordsWithIllegalFieldName( cl);    
-     var actRecords = cl.find(); 
-     var expRecords = [];
-     checkRec( actRecords, expRecords );
-     
-     cleanCL( clName );   	
-}     
+   var clName = "insert4950";
+   var cl = readyCL( clName );
 
-function insertRecordsWithIllegalFieldName( cl )
+   insertRecordsWithIllegalFieldName( cl );
+   var actRecords = cl.find();
+   var expRecords = [];
+   checkRec( actRecords, expRecords );
+
+   cleanCL( clName );
+}
+
+function insertRecordsWithIllegalFieldName ( cl )
 {
-   println("---begin to insert.");  
-   var illegalFieldName = [ "$a", "a.b", "" ];
-   for ( var i = 0; i < illegalFieldName.length; i++ )
+   println( "---begin to insert." );
+   var illegalFieldName = ["$a", "a.b", ""];
+   for( var i = 0; i < illegalFieldName.length; i++ )
    {
       try
       {
          var fieldName = illegalFieldName[i];
-        
+
          var obj = {};
-         obj[fieldName] = "test" + i ;       
+         obj[fieldName] = "test" + i;
          cl.insert( obj );
          throw "insert should be fail!";
-      }  
+      }
       catch( e )   
       {
-         if ( -6 !== e )
+         if( -6 !== e )
          {
-            throw buildException( "insertRecords", e);
+            throw buildException( "insertRecords", e );
          }
       }
-      
+
    }
-   
+
 }
 
 

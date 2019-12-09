@@ -5,74 +5,74 @@
 *               seqDB-13178:使用ssh执行异常命令（不存在命令），获取输出结果
 *@author      : Liang XueWang
 ******************************************************************************/
-function testExecNormal( hostname )
+function testExecNormal ( hostname )
 {
-   var ssh = newSsh( hostname, sdbUser, sdbPasswd, sshPort ); 
-   var host = ssh.exec( "hostname" ).split( "\n" )[0]; 
+   var ssh = newSsh( hostname, sdbUser, sdbPasswd, sshPort );
+   var host = ssh.exec( "hostname" ).split( "\n" )[0];
    if( host !== hostname )
    {
-      throw buildException( "testExecNormal", null, 
-      "test exec hostname", hostname, host ); 
+      throw buildException( "testExecNormal", null,
+         "test exec hostname", hostname, host );
    }
-   var ret = ssh.getLastRet(); 
+   var ret = ssh.getLastRet();
    if( ret !== 0 )
    {
-      throw buildException( "testExecNormal", null, 
-      "test getLastRet", 0, ret ); 
+      throw buildException( "testExecNormal", null,
+         "test getLastRet", 0, ret );
    }
-   var out = ssh.getLastOut(); 
+   var out = ssh.getLastOut();
    if( out.split( "\n" )[0] !== hostname )
    {
-      throw buildException( "testExecNormal", null, 
-      "test getLastOut", hostname, out ); 
+      throw buildException( "testExecNormal", null,
+         "test getLastOut", hostname, out );
    }
-   ssh.close(); 
+   ssh.close();
 }
 
-function testExecAbnormal( hostname )
+function testExecAbnormal ( hostname )
 {
-   var ssh = newSsh( hostname, sdbUser, sdbPasswd, sshPort ); 
+   var ssh = newSsh( hostname, sdbUser, sdbPasswd, sshPort );
    try
    {
-      ssh.exec( "led" ); 
-      throw 0; 
+      ssh.exec( "led" );
+      throw 0;
    }
    catch( e )
    {
       if( e !== 127 )
       {
-         throw buildException( "testExecAbnormal", e, 
-         "test exec led", 127, e ); 
+         throw buildException( "testExecAbnormal", e,
+            "test exec led", 127, e );
       }
    }
-   var ret = ssh.getLastRet(); 
+   var ret = ssh.getLastRet();
    if( ret !== 127 )
    {
-      throw buildException( "testExecAbnormal", null, 
-      "test getLastRet", 127, e ); 
+      throw buildException( "testExecAbnormal", null,
+         "test getLastRet", 127, e );
    }
-   var out = ssh.getLastOut(); 
-   if( out.indexOf( "not found" )=== -1 &&
-   out.indexOf( "未找到命令" )=== -1 )
+   var out = ssh.getLastOut();
+   if( out.indexOf( "not found" ) === -1 &&
+      out.indexOf( "未找到命令" ) === -1 )
    {
-      throw buildException( "testExecAbnormal", null, 
-      "test getLastOut", "command not found", out ); 
+      throw buildException( "testExecAbnormal", null,
+         "test getLastOut", "command not found", out );
    }
-   ssh.close(); 
+   ssh.close();
 }
 
-function main()
+function main ()
 {
-   var remotehost = toolGetRemotehost(); 
-   println( "ssh hostname: " + remotehost ); 
-   
+   var remotehost = toolGetRemotehost();
+   println( "ssh hostname: " + remotehost );
+
    if( !checkSsh( remotehost, sdbUser, sdbPasswd, sshPort ) )
    {
-      return; 
+      return;
    }
-   
-   testExecNormal( remotehost ); 
-   testExecAbnormal( remotehost ); 
+
+   testExecNormal( remotehost );
+   testExecAbnormal( remotehost );
 }
 
 main()

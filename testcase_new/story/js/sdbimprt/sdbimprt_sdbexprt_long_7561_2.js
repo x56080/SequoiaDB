@@ -4,132 +4,132 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
       var csName = COMMCSNAME;
-      var clName = COMMCLNAME+"_7561" ;
+      var clName = COMMCLNAME + "_7561";
       var cl = readyCL( csName, clName );
-      
-      var imprtFile = tmpFileDir +"7561.csv";
-      var exprtFile = tmpFileDir +"sdbexprt_7561.csv";
-      
+
+      var imprtFile = tmpFileDir + "7561.csv";
+      var exprtFile = tmpFileDir + "sdbexprt_7561.csv";
+
       readyData( imprtFile );
       importData( csName, clName, imprtFile );
-   	checkCLData( cl );
-   	
+      checkCLData( cl );
+
       exprtData( csName, clName, exprtFile );
       checkExprtFile( exprtFile );
-      
+
       cleanCL( csName, clName );
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function readyData( imprtFile )
+function readyData ( imprtFile )
 {
-   println("\n---Begin to ready data.");
-   
+   println( "\n---Begin to ready data." );
+
    var file = fileInit( imprtFile );
-   file.write( '{ "num": 1, "type": "long", "v1": -2147483649, "v2": 2147483648 }' +"\n"
-              +'{ "num": 2, "type": "long", "v1": { "$numberLong": "-9223372036854775808" }, "v2": { "$numberLong": "9223372036854775807" } }' );
-   var fileInfo = cmd.run( "cat "+ imprtFile );
-   println( imprtFile +"\n" + fileInfo );
+   file.write( '{ "num": 1, "type": "long", "v1": -2147483649, "v2": 2147483648 }' + "\n"
+      + '{ "num": 2, "type": "long", "v1": { "$numberLong": "-9223372036854775808" }, "v2": { "$numberLong": "9223372036854775807" } }' );
+   var fileInfo = cmd.run( "cat " + imprtFile );
+   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
-function importData( csName, clName, imprtFile )
+function importData ( csName, clName, imprtFile )
 {
-   println("\n---Begin to import data and check exec result.");
-   
-   var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
-                  +' -c '+ csName +' -l '+ clName 
-                  +' --type json'
-                  +' --file '+ imprtFile;
+   println( "\n---Begin to import data and check exec result." );
+
+   var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
+      + ' -c ' + csName + ' -l ' + clName
+      + ' --type json'
+      + ' --file ' + imprtFile;
    println( imprtOption );
    var rc = cmd.run( imprtOption );
    println( rc );
-   var rcObj = rc.split("\n");
-   
+   var rcObj = rc.split( "\n" );
+
    //check import results
-   var expParseRecords    = "parsed records: 2";
-   var expParseFailure    = "parse failure: 0";
+   var expParseRecords = "parsed records: 2";
+   var expParseFailure = "parse failure: 0";
    var expImportedRecords = "imported records: 2";
-   var actParseRecords    = rcObj[0];
-   var actParseFailure    = rcObj[1];
+   var actParseRecords = rcObj[0];
+   var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];
-   if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords 
-    || expImportedRecords !== actImportedRecords )
+   if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords
+      || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]", 
-                        "["+ expParseRecords +", "+ expParseFailure +", "+ expImportedRecords +"]", 
-                        "["+ actParseRecords +", "+ actParseFailure +", "+ actImportedRecords +"]" );
+      throw buildException( "importData", null, "[sdbimprt results]",
+         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+         "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
 }
 
-function checkCLData( cl )
+function checkCLData ( cl )
 {
-   println("\n---Begin to check cl data.");
-   
-   var rc = cl.find({$and:[{v1:{$type:1,$et:18}},{v2:{$type:1,$et:18}}]},{_id:{$include:0}}).sort({num:1});
+   println( "\n---Begin to check cl data." );
+
+   var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 18 } }, { v2: { $type: 1, $et: 18 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {
       recsArray.push( tmpRecs.toObj() );
    }
-   
-   var expCnt  = 2;
+
+   var expCnt = 2;
    var expRecs = '[{"num":1,"type":"long","v1":-2147483649,"v2":2147483648},{"num":2,"type":"long","v1":{"$numberLong":"-9223372036854775808"},"v2":{"$numberLong":"9223372036854775807"}}]';
-   var actCnt  = recsArray.length;
+   var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]", 
-                        "[cnt:"+ expCnt +", recs:"+ expRecs +"]", 
-                        "[cnt:"+ actCnt +", recs:"+ actRecs +"]" );
+      throw buildException( "checkCLdata", null, "[find]",
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+         "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
    //println( "cl records: "+ actRecs );
-   
+
 }
 
-function exprtData( csName, clName, exprtFile )
+function exprtData ( csName, clName, exprtFile )
 {
-   println("\n---Begin to export data.");
-   
+   println( "\n---Begin to export data." );
+
    //remove export file
-   cmd.run( "rm -rf "+ exprtFile );
-   
+   cmd.run( "rm -rf " + exprtFile );
+
    //export operation
-   var exportOption = installDir +'bin/sdbexprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
-                     +' -c '+ csName +' -l '+ clName 
-                     +' --type json --fields "num,type,v1,v2"'
-                     +' --sort "{num:1}" --file '+ exprtFile;
+   var exportOption = installDir + 'bin/sdbexprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
+      + ' -c ' + csName + ' -l ' + clName
+      + ' --type json --fields "num,type,v1,v2"'
+      + ' --sort "{num:1}" --file ' + exprtFile;
    println( exportOption );
    var rc = cmd.run( exportOption );
    println( rc );
-   
+
    //cat exprt file
-   var fileInfo = cmd.run( "cat "+ exprtFile );
-   println( exprtFile +"\n" + fileInfo );
+   var fileInfo = cmd.run( "cat " + exprtFile );
+   println( exprtFile + "\n" + fileInfo );
 }
 
-function checkExprtFile( exprtFile )
+function checkExprtFile ( exprtFile )
 {
-   println("\n---Begin to check export file data.");
-   
-   var rcObj = cmd.run( "cat "+ exprtFile ).split("\n");
+   println( "\n---Begin to check export file data." );
+
+   var rcObj = cmd.run( "cat " + exprtFile ).split( "\n" );
    var actRC = JSON.stringify( rcObj );
    var expRC = '["{ \\"num\\": 1, \\"type\\": \\"long\\", \\"v1\\": -2147483649, \\"v2\\": 2147483648 }","{ \\"num\\": 2, \\"type\\": \\"long\\", \\"v1\\": { \\"$numberLong\\": \\"-9223372036854775808\\" }, \\"v2\\": { \\"$numberLong\\": \\"9223372036854775807\\" } }",""]';
-   
+
    if( actRC !== expRC )
    {
-      throw buildException( "checkCLdata", null, "[find]", 
-                        "[exprtFile data:"+ expRC +"]", 
-                        "[exprtFile data:"+ actRC +"]" );
+      throw buildException( "checkCLdata", null, "[find]",
+         "[exprtFile data:" + expRC + "]",
+         "[exprtFile data:" + actRC + "]" );
    }
-   
+
 }

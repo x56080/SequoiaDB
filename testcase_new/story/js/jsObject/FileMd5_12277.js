@@ -1,104 +1,104 @@
 /******************************************************************************
 *@Description : test js object File function: getInfo md5 stat
-*               TestLink : 10815 »ñÈ¡File¶ÔÏóÐÅÏ¢
-*                          10826 File¶ÔÏó²é¿´ÎÄ¼þÐÅÏ¢
-*                          10827 ¼ÆËãFile¶ÔÏóÎÄ¼þMd5Öµ
+*               TestLink : 10815 ï¿½ï¿½È¡Fileï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+*                          10826 Fileï¿½ï¿½ï¿½ï¿½é¿´ï¿½Ä¼ï¿½ï¿½ï¿½Ï¢
+*                          10827 ï¿½ï¿½ï¿½ï¿½Fileï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½Md5Öµ
 *@auhor       : Liang XueWang
 ******************************************************************************/
 FileTest.prototype.testMd5Mode = function()
 {
-    this.init() ;
-    
-    var readOnlyFile = "/tmp/readOnlyFile.txt" ;
-    var cannotReadFile = "/tmp/cannotReadFile.txt" ;
-    var user = this.cmd.run( "whoami" ).split( "\n" )[0] ;
-    
+    this.init();
+
+    var readOnlyFile = "/tmp/readOnlyFile.txt";
+    var cannotReadFile = "/tmp/cannotReadFile.txt";
+    var user = this.cmd.run( "whoami" ).split( "\n" )[0];
+
     // create file
     if( this.isLocal )
     {
-        var file1 = new File( readOnlyFile ) ;
-        file1.write( "123" ) ;
-        file1.close() ;
-        File.chmod( readOnlyFile, 0444 ) ;
-        var file2 = new File( cannotReadFile ) ;
-        file2.write( "abc" ) ;
-        file2.close() ;
-        File.chmod( cannotReadFile, 0222 ) ;
+        var file1 = new File( readOnlyFile );
+        file1.write( "123" );
+        file1.close();
+        File.chmod( readOnlyFile, 0444 );
+        var file2 = new File( cannotReadFile );
+        file2.write( "abc" );
+        file2.close();
+        File.chmod( cannotReadFile, 0222 );
     }
     else
     {
-        var file = this.remote.getFile() ;
-        var file1 = this.remote.getFile( readOnlyFile ) ;
-        file1.write( "123" ) ;
-        file1.close() ;
-        file.chmod( readOnlyFile, 0444 ) ;
-        var file2 = this.remote.getFile( cannotReadFile ) ;
-        file2.write( "abc" ) ;
-        file2.close() ;
-        file.chmod( cannotReadFile, 0222 ) ;
+        var file = this.remote.getFile();
+        var file1 = this.remote.getFile( readOnlyFile );
+        file1.write( "123" );
+        file1.close();
+        file.chmod( readOnlyFile, 0444 );
+        var file2 = this.remote.getFile( cannotReadFile );
+        file2.write( "abc" );
+        file2.close();
+        file.chmod( cannotReadFile, 0222 );
     }
-    
+
     // check read only file md5
     try
     {
-        this.file.md5( readOnlyFile ) ;
+        this.file.md5( readOnlyFile );
     }
     catch( e )
     {
-        throw buildException( "testMd5Mode", e, "get md5 of file" + readOnlyFile + " " + this, 
-                              0, e ) ; 
+        throw buildException( "testMd5Mode", e, "get md5 of file" + readOnlyFile + " " + this,
+            0, e );
     }
-    
+
     // check cannot read file 
     try
     {
-        this.file.md5( cannotReadFile ) ;
+        this.file.md5( cannotReadFile );
         if( user !== "root" )
         {
-            throw 0 ;
+            throw 0;
         }
     }
     catch( e )
     {
         if( user === "root" )
         {
-            throw buildException( "testMd5Mode", null, 
-                  "get md5 of file " + cannotReadFile + " with user: " + user + " " + this, 
-                  0, e ) ;
+            throw buildException( "testMd5Mode", null,
+                "get md5 of file " + cannotReadFile + " with user: " + user + " " + this,
+                0, e );
         }
         else
         {
             if( e !== -3 )
             {
                 throw buildException( "testMd5Mode", e,
-                      "get md5 of file " + cannotReadFile + " with user: " + user + " " + this, 
-                      -3, e ) ;
-            }    
+                    "get md5 of file " + cannotReadFile + " with user: " + user + " " + this,
+                    -3, e );
+            }
         }
     }
-    
-    this.cmd.run( "rm -rf " + readOnlyFile ) ;
-    this.cmd.run( "rm -rf " + cannotReadFile ) ;
-    
-    this.release() ;
+
+    this.cmd.run( "rm -rf " + readOnlyFile );
+    this.cmd.run( "rm -rf " + cannotReadFile );
+
+    this.release();
 }
 
-function main()
+function main ()
 {
-   // »ñÈ¡±¾µØÖ÷»úºÍÔ¶³ÌÖ÷»ú
-   var localhost = toolGetLocalhost() ;
-   var remotehost = toolGetRemotehost() ;
-   
-   var ft1 = new FileTest( localhost, CMSVCNAME ) ;     // ±¾µØFileÀàÀàÐÍ
-   var ft2 = new FileTest( remotehost, CMSVCNAME ) ;    // Ô¶³ÌFileÀàÀàÐÍ
-   
-   var fts = [ ft1, ft2 ] ;
-   
-   for( var i = 0; i < fts.length;i++ )
-   {
-      // ²âÊÔÎÄ¼þMD5
-      fts[i].testMd5Mode() ;
-   }
+    // ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    var localhost = toolGetLocalhost();
+    var remotehost = toolGetRemotehost();
+
+    var ft1 = new FileTest( localhost, CMSVCNAME );     // ï¿½ï¿½ï¿½ï¿½Fileï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    var ft2 = new FileTest( remotehost, CMSVCNAME );    // Ô¶ï¿½ï¿½Fileï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+
+    var fts = [ft1, ft2];
+
+    for( var i = 0; i < fts.length; i++ )
+    {
+        // ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½MD5
+        fts[i].testMd5Mode();
+    }
 }
 
 main()

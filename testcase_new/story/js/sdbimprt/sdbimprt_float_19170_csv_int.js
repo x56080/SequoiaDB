@@ -3,57 +3,57 @@
          import type: int
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main(); 
+main();
 
-function main()
-{  
+function main ()
+{
    var type = 'csv';
    var tmpPrefix = "sdbimprt_int_19170";
    var csName = COMMCSNAME;
    var clName = tmpPrefix + "_" + type;
    var cl = readyCL( csName, clName );
-   var importFile = tmpFileDir + tmpPrefix +"." + type;
+   var importFile = tmpFileDir + tmpPrefix + "." + type;
    var importFields = 'a int, b int';
-   var findCond = {"b": {"$type": 2, "$et": "int32"}};   
-   
-   println("\n---------------------import data, test point 1---------------------");
+   var findCond = { "b": { "$type": 2, "$et": "int32" } };
+
+   println( "\n---------------------import data, test point 1---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint1( importFile );
    var expRecs = initExpectData_testPoint1( recsNum );
    // import
-   var rc = importData( csName, clName, importFile, type, importFields, true ); 
+   var rc = importData( csName, clName, importFile, type, importFields, true );
    // check results
-   checkImportRC( rc, recsNum ); 
+   checkImportRC( rc, recsNum );
    checkCLData( cl, recsNum, expRecs, findCond );
    // clean data
-   cl.truncate(); 
-   cmd.run( "rm -rf " +  importFile ); 
-   
-   println("\n---------------------import data, test point 2---------------------");
+   cl.truncate();
+   cmd.run( "rm -rf " + importFile );
+
+   println( "\n---------------------import data, test point 2---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint2( importFile );
    var expRecs = initExpectData_testPoint2( recsNum );
    // import
-   var rc = importData( csName, clName, importFile, type, importFields, true ); 
+   var rc = importData( csName, clName, importFile, type, importFields, true );
    // check results
-   checkImportRC( rc, recsNum ); 
+   checkImportRC( rc, recsNum );
    checkCLData( cl, recsNum, expRecs, findCond );
    // clean data
-   cl.truncate(); 
-   cmd.run( "rm -rf " +  importFile ); 
-   
+   cl.truncate();
+   cmd.run( "rm -rf " + importFile );
+
    cleanCL( csName, clName );
 }
 
-function initImportFile_testPoint1( importFile )
+function initImportFile_testPoint1 ( importFile )
 {
-   println("\n---Begin to ready import file.");
+   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 400;
    // 0, b value e.g: "1.E" / "11.E"......
    var str = "";
    var bVal = "1.E";
-   for (var i = 0; i < recordsNum; i++)
+   for( var i = 0; i < recordsNum; i++ )
    {
       str += i + "," + bVal + "\n";
       bVal = "1" + bVal;
@@ -63,14 +63,14 @@ function initImportFile_testPoint1( importFile )
    return recordsNum;
 }
 
-function initImportFile_testPoint2( importFile )
+function initImportFile_testPoint2 ( importFile )
 {
-   println("\n---Begin to ready import file.");
+   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 400;
    // 0, b value e.g: "1.E+0" / "1.E+1"......"1.E+400"
    var str = "";
-   for (var i = 0; i < recordsNum; i++)
+   for( var i = 0; i < recordsNum; i++ )
    {
       str += i + ",1.E+" + i + "\n";
    }
@@ -79,69 +79,69 @@ function initImportFile_testPoint2( importFile )
    return recordsNum;
 }
 
-function initExpectData_testPoint1( expRecsNum )
-{   
-   println("\n---Begin to ready expect data.");
+function initExpectData_testPoint1 ( expRecsNum )
+{
+   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var bVal = "1";
    var records;
-   for (var i = 0; i < expRecsNum; i++)
+   for( var i = 0; i < expRecsNum; i++ )
    {
-      if ( i < 10 ) 
+      if( i < 10 ) 
       {
-         record = {"a": i, "b": Number( bVal )};
+         record = { "a": i, "b": Number( bVal ) };
          bVal += "1";
-      } 
-      else if ( i >= 10 && i <= 14 )
-      {
-         record = {"a": i, "b": -2147483648};          
       }
-      else if ( i === 15 )
+      else if( i >= 10 && i <= 14 )
       {
-         record = {"a": i, "b": -1223331385};          
+         record = { "a": i, "b": -2147483648 };
       }
-      else if ( i === 16 )
+      else if( i === 15 )
       {
-         record = {"a": i, "b": 651588039};          
+         record = { "a": i, "b": -1223331385 };
       }
-      else if ( i === 17 )
+      else if( i === 16 )
       {
-         record = {"a": i, "b": -2074054201};          
+         record = { "a": i, "b": 651588039 };
       }
-      else if ( i === 18 )
+      else if( i === 17 )
       {
-         record = {"a": i, "b": 734294471};          
+         record = { "a": i, "b": -2074054201 };
+      }
+      else if( i === 18 )
+      {
+         record = { "a": i, "b": 734294471 };
       }
       else 
       {
-         record = {"a": i, "b": 0};
+         record = { "a": i, "b": 0 };
       }
-      expRecs.push(JSON.stringify( record ));
+      expRecs.push( JSON.stringify( record ) );
    }
    return "[" + expRecs + "]";
 }
 
-function initExpectData_testPoint2( expRecsNum )
-{   
-   println("\n---Begin to ready expect data.");
+function initExpectData_testPoint2 ( expRecsNum )
+{
+   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var record;
-   for (var i = 0; i < expRecsNum; i++)
+   for( var i = 0; i < expRecsNum; i++ )
    {
-      if ( i < 10 ) // b < 2147483647
+      if( i < 10 ) // b < 2147483647
       {
-         var bVal = 1 * Math.pow(10, i);
-         record = {"a": i, "b": bVal};
+         var bVal = 1 * Math.pow( 10, i );
+         record = { "a": i, "b": bVal };
       }
-      else if ( i >= 10 && i <= 308 )  // b < 1e+308
+      else if( i >= 10 && i <= 308 )  // b < 1e+308
       {
-         record = {"a": i, "b": -2147483648};
-      } 
-      else if ( i > 308 )  // b > 1e+308
+         record = { "a": i, "b": -2147483648 };
+      }
+      else if( i > 308 )  // b > 1e+308
       {
-         record = {"a": i, "b": 0};
-      }   
-      expRecs.push(JSON.stringify( record ));
+         record = { "a": i, "b": 0 };
+      }
+      expRecs.push( JSON.stringify( record ) );
    }
    return "[" + expRecs + "]";
 }

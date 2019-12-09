@@ -5,68 +5,68 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_aggre" ;
-      
+      var clName = COMMCLNAME + "_aggre";
+
       var cl = readyCL( clName );
-   	
+
       insertRecs( cl );
       var rc = aggreOper( cl );
       checkResult( rc );
-   
+
       cleanCL( clName );
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl )
+function insertRecs ( cl )
 {
-   println("\n---Begin to insert records.");
-   
-   cl.insert({no:4,score:77});
-   cl.insert({no:1,score:80.5});
-   cl.insert({no:3,score:98});
-   cl.insert({no:2,score:100});
-   cl.insert({no:5,score:90});
+   println( "\n---Begin to insert records." );
+
+   cl.insert( { no: 4, score: 77 } );
+   cl.insert( { no: 1, score: 80.5 } );
+   cl.insert( { no: 3, score: 98 } );
+   cl.insert( { no: 2, score: 100 } );
+   cl.insert( { no: 5, score: 90 } );
 }
 
-function aggreOper( cl )
+function aggreOper ( cl )
 {
-   println("\n---Begin to aggregate records.");
-   
-   var rc = cl.aggregate( {$sort:{no:1}},{$limit:4},{$skip:1},{$limit:5},{$skip:2} );
-   
-   return rc ;
+   println( "\n---Begin to aggregate records." );
+
+   var rc = cl.aggregate( { $sort: { no: 1 } }, { $limit: 4 }, { $skip: 1 }, { $limit: 5 }, { $skip: 2 } );
+
+   return rc;
 }
 
-function checkResult( rc )
+function checkResult ( rc )
 {
-   println("\n---Begin to check result.");
-   
+   println( "\n---Begin to check result." );
+
    //compare the returned records
-   var no =    rc.current().toObj()["no"] ;
-   var score = rc.current().toObj()["score"] ;   
+   var no = rc.current().toObj()["no"];
+   var score = rc.current().toObj()["score"];
    //expect results:{no:4,score:77}
-   var expNo = 4 ;
-   var expScore = 77 ;
+   var expNo = 4;
+   var expScore = 77;
    if( no !== expNo || score !== expScore )
    {
-      throw buildException("checkResult", null, "[compare the records]", 
-                           "[no:"+ expNo +",score:"+ expScore +"]", 
-                           "[no:"+ no +",score:"+ score +"]");
+      throw buildException( "checkResult", null, "[compare the records]",
+         "[no:" + expNo + ",score:" + expScore + "]",
+         "[no:" + no + ",score:" + score + "]" );
    }
-   
+
    //compare the number of records
-   var nextRecs = rc.next() ;
+   var nextRecs = rc.next();
    if( nextRecs !== undefined )
    {
-      throw buildException("checkResult", null, "[compare the number of records]", 
-                           "[nextRecs:undefined]", "[nextRecs:"+ nextRecs +"]")
+      throw buildException( "checkResult", null, "[compare the number of records]",
+         "[nextRecs:undefined]", "[nextRecs:" + nextRecs + "]" )
    }
 }

@@ -1,35 +1,36 @@
 /******************************************************************************
 *@Description : test SdbQueryOption
-*               TestLink :   seqDB-15745:Ö÷×Ó±íÉÏÖ´ÐÐsort/limit/skip²ÎÊý»ìºÏ²éÑ¯
-                             seqDB-15746:Ö÷×Ó±íÉÏÖ´ÐÐcond/update²ÎÊý»ìºÏ²éÑ¯
-                             seqDB-15747:Ö÷×Ó±íÉÏÖ´ÐÐcond/sel/sort/hint²ÎÊý»ìºÏ²éÑ¯
-                             seqDB-15748:Ö÷×Ó±íÉÏÖ´ÐÐcond/remove²ÎÊý»ìºÏ²éÑ¯
+*               TestLink :   seqDB-15745:ï¿½ï¿½ï¿½Ó±ï¿½ï¿½ï¿½Ö´ï¿½ï¿½sort/limit/skipï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï²ï¿½Ñ¯
+                             seqDB-15746:ï¿½ï¿½ï¿½Ó±ï¿½ï¿½ï¿½Ö´ï¿½ï¿½cond/updateï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï²ï¿½Ñ¯
+                             seqDB-15747:ï¿½ï¿½ï¿½Ó±ï¿½ï¿½ï¿½Ö´ï¿½ï¿½cond/sel/sort/hintï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï²ï¿½Ñ¯
+                             seqDB-15748:ï¿½ï¿½ï¿½Ó±ï¿½ï¿½ï¿½Ö´ï¿½ï¿½cond/removeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï²ï¿½Ñ¯
 *@auhor       : CSQ 
 ******************************************************************************/
 
-function main()
+function main ()
 {
-   if (commGetGroupsNum(db) < 2)
+   if( commGetGroupsNum( db ) < 2 )
    {
-      return ;
+      return;
    }
-   try{
-      commDropCS( db, COMMCSNAME+"main15745", true, "drop CS "+COMMCSNAME+"main15745" );
-      commDropCS( db, COMMCSNAME+"sub15745", true, "drop CS "+COMMCSNAME+"sub15745" );
-   }catch( e ){}
-   var groups = commGetGroups(db);
+   try
+   {
+      commDropCS( db, COMMCSNAME + "main15745", true, "drop CS " + COMMCSNAME + "main15745" );
+      commDropCS( db, COMMCSNAME + "sub15745", true, "drop CS " + COMMCSNAME + "sub15745" );
+   } catch( e ) { }
+   var groups = commGetGroups( db );
    var srcGroupName = groups[0][0].GroupName;
    var destGroupName = groups[1][0].GroupName;
-   var varCS = commCreateCS( db, COMMCSNAME+"main15745", true, "create CS" );
-   var varCL = varCS.createCL(COMMCLNAME+"main15745", { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" } );
-   //×Ó±í1
-   var subCS = commCreateCS( db, COMMCSNAME+"sub15745", true, "create CS1" );
-   var subcl1 = subCS.createCL(COMMCLNAME+"subcl1_15745", { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024} );
-   //×Ó±í2
-   var subcl2 = subCS.createCL(COMMCLNAME+"subcl2_15745", { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024 } );
-   //¹ÒÔØ
-   attachCL(varCL, COMMCSNAME+"sub15745."+COMMCLNAME+"subcl1_15745", { LowBound: { a: 0 }, UpBound: { a: 50 } }  );
-   attachCL(varCL, COMMCSNAME+"sub15745."+COMMCLNAME+"subcl2_15745", { LowBound: { a: 50 }, UpBound: { a: 100 } });
+   var varCS = commCreateCS( db, COMMCSNAME + "main15745", true, "create CS" );
+   var varCL = varCS.createCL( COMMCLNAME + "main15745", { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" } );
+   //ï¿½Ó±ï¿½1
+   var subCS = commCreateCS( db, COMMCSNAME + "sub15745", true, "create CS1" );
+   var subcl1 = subCS.createCL( COMMCLNAME + "subcl1_15745", { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024 } );
+   //ï¿½Ó±ï¿½2
+   var subcl2 = subCS.createCL( COMMCLNAME + "subcl2_15745", { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024 } );
+   //ï¿½ï¿½ï¿½ï¿½
+   attachCL( varCL, COMMCSNAME + "sub15745." + COMMCLNAME + "subcl1_15745", { LowBound: { a: 0 }, UpBound: { a: 50 } } );
+   attachCL( varCL, COMMCSNAME + "sub15745." + COMMCLNAME + "subcl2_15745", { LowBound: { a: 50 }, UpBound: { a: 100 } } );
 
    varCL.createIndex( "bindex", { b: 1 }, false );
    insertRecord( varCL );
@@ -37,102 +38,103 @@ function main()
    testcombination15746( varCL );
    testcombination15747( varCL );
    testcombination15748( varCL );
-   
-   try{
-      commDropCS( db, COMMCSNAME+"main15745", true, "drop CS "+COMMCSNAME+"main15745" );
-      commDropCS( db, COMMCSNAME+"sub15745", true, "drop CS "+COMMCSNAME+"sub15745" );
-   }catch( e ){}
+
+   try
+   {
+      commDropCS( db, COMMCSNAME + "main15745", true, "drop CS " + COMMCSNAME + "main15745" );
+      commDropCS( db, COMMCSNAME + "sub15745", true, "drop CS " + COMMCSNAME + "sub15745" );
+   } catch( e ) { }
 }
 
-//Ö¸¶¨sort/limit/skip²éÑ¯Ìõ¼þ£¬²éÑ¯Êý¾Ý¸²¸Ç¶à¸ö×Ó±í£¬
-function testcombination15745( varCL )
+//Ö¸ï¿½ï¿½sort/limit/skipï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½Ý¸ï¿½ï¿½Ç¶ï¿½ï¿½ï¿½Ó±ï¿½ï¿½ï¿½
+function testcombination15745 ( varCL )
 {
-   var cur = varCL.find(new SdbQueryOption().sort( { a: 1 } ).skip(45).limit(10));
-   var expFindResult =[{"_id": 45,"a": 45,"b": 45,"c": -45},
-                       {"_id": 46,"a": 46,"b": 46,"c": -46},
-                       {"_id": 47,"a": 47,"b": 47,"c": -47},
-                       {"_id": 48,"a": 48,"b": 48,"c": -48},
-                       {"_id": 49,"a": 49,"b": 49,"c": -49},
-                       {"_id": 50,"a": 50,"b": 50,"c": -50},
-                       {"_id": 51,"a": 51,"b": 51,"c": -51},
-                       {"_id": 52,"a": 52,"b": 52,"c": -52},
-                       {"_id": 53,"a": 53,"b": 53,"c": -53},
-                       {"_id": 54,"a": 54,"b": 54,"c": -54}
-                      ];
-   checkRec(cur, expFindResult);
+   var cur = varCL.find( new SdbQueryOption().sort( { a: 1 } ).skip( 45 ).limit( 10 ) );
+   var expFindResult = [{ "_id": 45, "a": 45, "b": 45, "c": -45 },
+   { "_id": 46, "a": 46, "b": 46, "c": -46 },
+   { "_id": 47, "a": 47, "b": 47, "c": -47 },
+   { "_id": 48, "a": 48, "b": 48, "c": -48 },
+   { "_id": 49, "a": 49, "b": 49, "c": -49 },
+   { "_id": 50, "a": 50, "b": 50, "c": -50 },
+   { "_id": 51, "a": 51, "b": 51, "c": -51 },
+   { "_id": 52, "a": 52, "b": 52, "c": -52 },
+   { "_id": 53, "a": 53, "b": 53, "c": -53 },
+   { "_id": 54, "a": 54, "b": 54, "c": -54 }
+   ];
+   checkRec( cur, expFindResult );
 }
 
-//Ö¸¶¨cond/update²éÑ¯Ìõ¼þ£¬²éÑ¯Êý¾Ý¸²¸Ç¶à¸ö×Ó±í£¬
-//Èçdb.foo.bar.find(new SdbQueryOption().
-function testcombination15746( varCL )
+//Ö¸ï¿½ï¿½cond/updateï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½Ý¸ï¿½ï¿½Ç¶ï¿½ï¿½ï¿½Ó±ï¿½ï¿½ï¿½
+//ï¿½ï¿½db.foo.bar.find(new SdbQueryOption().
+function testcombination15746 ( varCL )
 {
-   var cur = varCL.find(new SdbQueryOption().sort( { a: 1 } ).cond({$and:[{a:{$gte:45}}, {b:{$lte:54}}]}).update({$set:{c:1}}));
-   while(cur.next())
+   var cur = varCL.find( new SdbQueryOption().sort( { a: 1 } ).cond( { $and: [{ a: { $gte: 45 } }, { b: { $lte: 54 } }] } ).update( { $set: { c: 1 } } ) );
+   while( cur.next() )
    {
       cur.current();
    }
-   var expFindResult =[{"_id": 45,"a": 45,"b": 45,"c": 1},
-                       {"_id": 46,"a": 46,"b": 46,"c": 1},
-                       {"_id": 47,"a": 47,"b": 47,"c": 1},
-                       {"_id": 48,"a": 48,"b": 48,"c": 1},
-                       {"_id": 49,"a": 49,"b": 49,"c": 1},
-                       {"_id": 50,"a": 50,"b": 50,"c": 1},
-                       {"_id": 51,"a": 51,"b": 51,"c": 1},
-                       {"_id": 52,"a": 52,"b": 52,"c": 1},
-                       {"_id": 53,"a": 53,"b": 53,"c": 1},
-                       {"_id": 54,"a": 54,"b": 54,"c": 1}
-                      ];
-   var cur = varCL.find(new SdbQueryOption().sort( { a: 1 } ).cond({$and:[{a:{$gte:45}}, {b:{$lte:54}}]}));
-   checkRec(cur, expFindResult);
+   var expFindResult = [{ "_id": 45, "a": 45, "b": 45, "c": 1 },
+   { "_id": 46, "a": 46, "b": 46, "c": 1 },
+   { "_id": 47, "a": 47, "b": 47, "c": 1 },
+   { "_id": 48, "a": 48, "b": 48, "c": 1 },
+   { "_id": 49, "a": 49, "b": 49, "c": 1 },
+   { "_id": 50, "a": 50, "b": 50, "c": 1 },
+   { "_id": 51, "a": 51, "b": 51, "c": 1 },
+   { "_id": 52, "a": 52, "b": 52, "c": 1 },
+   { "_id": 53, "a": 53, "b": 53, "c": 1 },
+   { "_id": 54, "a": 54, "b": 54, "c": 1 }
+   ];
+   var cur = varCL.find( new SdbQueryOption().sort( { a: 1 } ).cond( { $and: [{ a: { $gte: 45 } }, { b: { $lte: 54 } }] } ) );
+   checkRec( cur, expFindResult );
 }
 
-//Ö¸¶¨cond/sel/sort/hint²éÑ¯Ìõ¼þ£¬²éÑ¯Êý¾Ý¸²¸Ç¶à¸ö×Ó±í£¬
-//Èçdb.foo.bar.find(new SdbQueryOption().cond().sel().sort().hint()£¬ÆäÖÐÆ¥Åä×Ö¶Î°üÀ¨·ÖÇø¼üºÍ·Ç·ÖÇø¼ü×Ö¶Î 
-function testcombination15747( varCL )
+//Ö¸ï¿½ï¿½cond/sel/sort/hintï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½Ý¸ï¿½ï¿½Ç¶ï¿½ï¿½ï¿½Ó±ï¿½ï¿½ï¿½
+//ï¿½ï¿½db.foo.bar.find(new SdbQueryOption().cond().sel().sort().hint()ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¥ï¿½ï¿½ï¿½Ö¶Î°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½ 
+function testcombination15747 ( varCL )
 {
-   var cur = varCL.find(new SdbQueryOption().cond({$and:[{a:{$gte:45}}, {b:{$lt:55}}]}).sel({_id:{$include:1},a:{$include:1},b:{$include:1}}).sort({b:1}).hint({"":"bindex"}));
-   var expFindResult =[{"_id": 45,"a": 45,"b": 45},
-                       {"_id": 46,"a": 46,"b": 46},
-                       {"_id": 47,"a": 47,"b": 47},
-                       {"_id": 48,"a": 48,"b": 48},
-                       {"_id": 49,"a": 49,"b": 49},
-                       {"_id": 50,"a": 50,"b": 50},
-                       {"_id": 51,"a": 51,"b": 51},
-                       {"_id": 52,"a": 52,"b": 52},
-                       {"_id": 53,"a": 53,"b": 53},
-                       {"_id": 54,"a": 54,"b": 54}
-                      ];
-   checkRec(cur, expFindResult);
+   var cur = varCL.find( new SdbQueryOption().cond( { $and: [{ a: { $gte: 45 } }, { b: { $lt: 55 } }] } ).sel( { _id: { $include: 1 }, a: { $include: 1 }, b: { $include: 1 } } ).sort( { b: 1 } ).hint( { "": "bindex" } ) );
+   var expFindResult = [{ "_id": 45, "a": 45, "b": 45 },
+   { "_id": 46, "a": 46, "b": 46 },
+   { "_id": 47, "a": 47, "b": 47 },
+   { "_id": 48, "a": 48, "b": 48 },
+   { "_id": 49, "a": 49, "b": 49 },
+   { "_id": 50, "a": 50, "b": 50 },
+   { "_id": 51, "a": 51, "b": 51 },
+   { "_id": 52, "a": 52, "b": 52 },
+   { "_id": 53, "a": 53, "b": 53 },
+   { "_id": 54, "a": 54, "b": 54 }
+   ];
+   checkRec( cur, expFindResult );
 }
-//Ö¸¶¨cond/remove²éÑ¯Ìõ¼þ£¬²éÑ¯Êý¾Ý¸²¸Ç¶à¸ö×Ó±í£¬
-//Èçdb.foo.bar.find(new SdbQueryOption().cond().remove()
-function testcombination15748( varCL )
+//Ö¸ï¿½ï¿½cond/removeï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½Ý¸ï¿½ï¿½Ç¶ï¿½ï¿½ï¿½Ó±ï¿½ï¿½ï¿½
+//ï¿½ï¿½db.foo.bar.find(new SdbQueryOption().cond().remove()
+function testcombination15748 ( varCL )
 {
-   var cur = varCL.find(new SdbQueryOption().cond({$or:[{a:{$lt:45}}, {b:{$gte:55}}]}).remove());
-   while(cur.next())
+   var cur = varCL.find( new SdbQueryOption().cond( { $or: [{ a: { $lt: 45 } }, { b: { $gte: 55 } }] } ).remove() );
+   while( cur.next() )
    {
-    var ret = cur.current();
+      var ret = cur.current();
    }
-   var cur = varCL.find(new SdbQueryOption().sort({_id:1}));
-   var expFindResult =[{"_id": 45,"a": 45,"b": 45,"c": 1},
-                       {"_id": 46,"a": 46,"b": 46,"c": 1},
-                       {"_id": 47,"a": 47,"b": 47,"c": 1},
-                       {"_id": 48,"a": 48,"b": 48,"c": 1},
-                       {"_id": 49,"a": 49,"b": 49,"c": 1},
-                       {"_id": 50,"a": 50,"b": 50,"c": 1},
-                       {"_id": 51,"a": 51,"b": 51,"c": 1},
-                       {"_id": 52,"a": 52,"b": 52,"c": 1},
-                       {"_id": 53,"a": 53,"b": 53,"c": 1},
-                       {"_id": 54,"a": 54,"b": 54,"c": 1}
-                      ];
-   checkRec(cur, expFindResult);
+   var cur = varCL.find( new SdbQueryOption().sort( { _id: 1 } ) );
+   var expFindResult = [{ "_id": 45, "a": 45, "b": 45, "c": 1 },
+   { "_id": 46, "a": 46, "b": 46, "c": 1 },
+   { "_id": 47, "a": 47, "b": 47, "c": 1 },
+   { "_id": 48, "a": 48, "b": 48, "c": 1 },
+   { "_id": 49, "a": 49, "b": 49, "c": 1 },
+   { "_id": 50, "a": 50, "b": 50, "c": 1 },
+   { "_id": 51, "a": 51, "b": 51, "c": 1 },
+   { "_id": 52, "a": 52, "b": 52, "c": 1 },
+   { "_id": 53, "a": 53, "b": 53, "c": 1 },
+   { "_id": 54, "a": 54, "b": 54, "c": 1 }
+   ];
+   checkRec( cur, expFindResult );
 }
 
-function insertRecord( varCL )
+function insertRecord ( varCL )
 {
-   for (var i=0; i <100; i++)
+   for( var i = 0; i < 100; i++ )
    {
-      varCL.insert({_id:i,a:i,b:i,c:-i});
+      varCL.insert( { _id: i, a: i, b: i, c: -i } );
    }
 }
 

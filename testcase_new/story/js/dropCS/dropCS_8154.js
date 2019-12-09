@@ -1,18 +1,18 @@
 //drop innormal collection space
 
-var res = false; 
+var res = false;
 try
 {
-   db.dropCS( "" ); 
+   db.dropCS( "" );
 }
 catch( e )
 {
    if( e == -6 )
    {
-      res = true; 
+      res = true;
    }
 }
 if( !res )
 {
-   throw -1; 
+   throw -1;
 }

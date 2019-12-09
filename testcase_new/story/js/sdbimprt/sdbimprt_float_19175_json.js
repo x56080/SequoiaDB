@@ -2,40 +2,40 @@
 *@Description:  seqDB-19175:科学计数法，底数只有整数，且全为0（如000E+308）
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main(); 
+main();
 
-function main()
-{  
+function main ()
+{
    var type = 'json';
    var tmpPrefix = "sdbimprt_19175";
    var csName = COMMCSNAME;
    var clName = tmpPrefix + "_" + type;
    var cl = readyCL( csName, clName );
-   var importFile = tmpFileDir + tmpPrefix +"." + type;
-   
-   println("\n---------------------import data---------------------");
+   var importFile = tmpFileDir + tmpPrefix + "." + type;
+
+   println( "\n---------------------import data---------------------" );
    // init import file and expect records
-   var recsNum = initImportFile_testPoint( importFile ); 
+   var recsNum = initImportFile_testPoint( importFile );
    // import
-   var rc = importData( csName, clName, importFile, type ); 
+   var rc = importData( csName, clName, importFile, type );
    // check results
-   checkImportRC( rc, recsNum ); 
+   checkImportRC( rc, recsNum );
    var expRecs = '[{"a":0,"b":0},{"a":1,"b":0}]';
-   var findCond = {"b": {"$type": 2, "$et": "double"}};
+   var findCond = { "b": { "$type": 2, "$et": "double" } };
    checkCLData( cl, recsNum, expRecs, findCond );
-   
+
    // clean data
-   cmd.run( "rm -rf " +  importFile );   
+   cmd.run( "rm -rf " + importFile );
    cleanCL( csName, clName );
 }
 
-function initImportFile_testPoint( importFile )
+function initImportFile_testPoint ( importFile )
 {
-   println("\n---Begin to ready import file.");
+   println( "\n---Begin to ready import file." );
    var recordsNum = 2;
    var str = '{"a":0,"b":000E+308}' + '\n' + '{"a":1,"b":000E+400}';
    var file = fileInit( importFile );
    file.write( str );
-   file.close();   
+   file.close();
    return recordsNum;
 }

@@ -3,14 +3,14 @@
 *@author:      zhaoyu
 *@createDate:  2015.5.20
 **************************************/
-function insertData( dbcl, condition )
-{  
+function insertData ( dbcl, condition )
+{
     try
     {
-        dbcl.insert(condition);
-    }catch(e)
+        dbcl.insert( condition );
+    } catch( e )
     {
-        throw new Error(e);
+        throw new Error( e );
     }
 }
 
@@ -19,15 +19,15 @@ function insertData( dbcl, condition )
 *@author:      zhaoyu
 *@createDate:  2015.5.20
 **************************************/
-function updateData( dbcl, updateCondition, findCondition )
+function updateData ( dbcl, updateCondition, findCondition )
 {
-    if ( typeof(findCondition) == "undefined" ) { findCondition = null ; }  
+    if( typeof ( findCondition ) == "undefined" ) { findCondition = null; }
     try
     {
         dbcl.update( updateCondition, findCondition );
-    }catch(e)
+    } catch( e )
     {
-        throw new Error(e);
+        throw new Error( e );
     }
 }
 
@@ -36,15 +36,15 @@ function updateData( dbcl, updateCondition, findCondition )
 *@author:      zhaoyu
 *@createDate:  2015.5.20
 **************************************/
-function upsertData( dbcl, upsertCondition, findCondition )
+function upsertData ( dbcl, upsertCondition, findCondition )
 {
-    if ( typeof(findCondition) == "undefined" ) { findCondition = null ; }  
+    if( typeof ( findCondition ) == "undefined" ) { findCondition = null; }
     try
     {
         dbcl.upsert( upsertCondition, findCondition );
-    }catch(e)
+    } catch( e )
     {
-        throw new Error(e);
+        throw new Error( e );
     }
 }
 
@@ -53,15 +53,15 @@ function upsertData( dbcl, upsertCondition, findCondition )
 *@author:      zhaoyu
 *@createDate:  2015.5.20
 **************************************/
-function deleteData( dbcl, condition )
+function deleteData ( dbcl, condition )
 {
-    if ( typeof(condition) == "undefined" ) { condition = null ; }  
+    if( typeof ( condition ) == "undefined" ) { condition = null; }
     try
     {
-        dbcl.remove(condition);
-    }catch(e)
+        dbcl.remove( condition );
+    } catch( e )
     {
-        throw new Error(e);
+        throw new Error( e );
     }
 }
 
@@ -70,15 +70,15 @@ function deleteData( dbcl, condition )
 *@author:      zhaoyu
 *@createDate:  2015.5.20
 **************************************/
-function sortFindData(dbcl, findCondition, findCondition2, sortCondition )
+function sortFindData ( dbcl, findCondition, findCondition2, sortCondition )
 {
-    if ( typeof( findCondition ) == "undefined" ) { findCondition = null; }
+    if( typeof ( findCondition ) == "undefined" ) { findCondition = null; }
     try
     {
         var sortResult = dbcl.find( findCondition, findCondition2 ).sort( sortCondition );
-    }catch(e)
+    } catch( e )
     {
-        throw new Error(e);
+        throw new Error( e );
     }
     return sortResult;
 }
@@ -88,9 +88,9 @@ function sortFindData(dbcl, findCondition, findCondition2, sortCondition )
 *@author:      zhaoyu
 *@createDate:  2015.5.20
 **************************************/
-function checkResult( dbcl, findCondition, findCondition2, expRecs, sortCondition )
+function checkResult ( dbcl, findCondition, findCondition2, expRecs, sortCondition )
 {
-    var rc = sortFindData(dbcl, findCondition, findCondition2, sortCondition );
+    var rc = sortFindData( dbcl, findCondition, findCondition2, sortCondition );
     checkRec( rc, expRecs );
 }
 
@@ -101,9 +101,9 @@ function checkResult( dbcl, findCondition, findCondition2, expRecs, sortConditio
 *@author:      zhaoyu
 *@createDate:  2015.5.20
 **************************************/
-function checkRec( rc, expRecs )
-{				
-	//get actual records to array
+function checkRec ( rc, expRecs )
+{
+    //get actual records to array
     var actRecs = [];
     while( rc.next() )
     {
@@ -112,8 +112,8 @@ function checkRec( rc, expRecs )
     //check count
     if( actRecs.length !== expRecs.length )
     {
-        throw new Error("expect num: " + expRecs.length + ",actual num: " + actRecs.length 
-                        + "\nactual recs in cl= " + JSON.stringify(actRecs) + "\n\nexpect recs= " + JSON.stringify(expRecs));
+        throw new Error( "expect num: " + expRecs.length + ",actual num: " + actRecs.length
+            + "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
     }
 
     //check every records every fields,expRecs as compare source
@@ -122,12 +122,12 @@ function checkRec( rc, expRecs )
         var actRec = actRecs[i];
         var expRec = expRecs[i];
 
-        for ( var f in expRec )
+        for( var f in expRec )
         {
-            if( JSON.stringify(actRec[f]) !== JSON.stringify(expRec[f]) )
+            if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
             {
-                throw new Error("\nerror occurs in " + (parseInt(i) + 1) + "th record, in field '" + f + "'"
-                                + "\nactual recs in cl= " + JSON.stringify(actRecs) + "\n\nexpect recs= " + JSON.stringify(expRecs));
+                throw new Error( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'"
+                    + "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
             }
         }
     }
@@ -137,16 +137,16 @@ function checkRec( rc, expRecs )
         var actRec = actRecs[i];
         var expRec = expRecs[i];
 
-        for ( var f in actRec )
+        for( var f in actRec )
         {
-            if(f == "_id")
+            if( f == "_id" )
             {
                 continue;
             }
-            if( JSON.stringify(actRec[f]) !== JSON.stringify(expRec[f]) )
-            {  		
-                throw new Error("\nerror occurs in " + (parseInt(i) + 1) + "th record, in field '" + f + "'" 
-                                + "\nactual recs in cl= " + JSON.stringify(actRecs) + "\n\nexpect recs= " + JSON.stringify(expRecs));
+            if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
+            {
+                throw new Error( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'"
+                    + "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
             }
         }
     }
@@ -158,17 +158,17 @@ function checkRec( rc, expRecs )
 *@createDate:  2016/5/16
 *@parameters:               
 **************************************/
-function invalidDataUpdateCheckResult( dbcl, invalidDoc, expRecs )
+function invalidDataUpdateCheckResult ( dbcl, invalidDoc, expRecs )
 {
     try
     {
         dbcl.update( invalidDoc );
-        throw new Error("need throw error");
-    }catch(e)
+        throw new Error( "need throw error" );
+    } catch( e )
     {
-        if(expRecs != e )
+        if( expRecs != e )
         {
-            throw new Error("expect error: " + expRecs + "actual error : " + e);
+            throw new Error( "expect error: " + expRecs + "actual error : " + e );
         }
     }
 }
@@ -179,43 +179,43 @@ function invalidDataUpdateCheckResult( dbcl, invalidDoc, expRecs )
 *@createDate:  2015/10/20
 *@parameters:               
 **************************************/
-function getGroupName(db, mustBePrimary)
+function getGroupName ( db, mustBePrimary )
 {
-    var RGname = null ;
+    var RGname = null;
     try
     {
-		RGname = db.listReplicaGroups().toArray();
-		var j = 0;
-		var arrGroupName = Array();
-		for (var i=1 ; i != RGname.length ; ++i )
-		{
-		    var eRGname = eval('('+RGname[i]+')') ;   
-		    if( 1000 <= eRGname["GroupID"] )
-		    {
-			    arrGroupName[j] = Array();
-			    var primaryNodeID = eRGname["PrimaryNode"] ;
-			    var groups = eRGname["Group"] ;
-			    for ( var m = 0; m < groups.length; m++ )
-			    {  
-				    if ( true == mustBePrimary )
-				    {
-				        var nodeID = groups[m]["NodeID"] ;
-				        if ( primaryNodeID != nodeID )
-					    continue ;
-				    }               
-				    arrGroupName[j].push(eRGname["GroupName"]) ;
-				    arrGroupName[j].push(groups[m]["HostName"]) ;
-				    arrGroupName[j].push(groups[m]["Service"][0]["Name"]) ;
-				    break ;
-			    }
-			    ++j;
-		    }
-		}
-    }catch (e)
-	{
-	  throw new Error(e);
-	}
-   
+        RGname = db.listReplicaGroups().toArray();
+        var j = 0;
+        var arrGroupName = Array();
+        for( var i = 1; i != RGname.length; ++i )
+        {
+            var eRGname = eval( '(' + RGname[i] + ')' );
+            if( 1000 <= eRGname["GroupID"] )
+            {
+                arrGroupName[j] = Array();
+                var primaryNodeID = eRGname["PrimaryNode"];
+                var groups = eRGname["Group"];
+                for( var m = 0; m < groups.length; m++ )
+                {
+                    if( true == mustBePrimary )
+                    {
+                        var nodeID = groups[m]["NodeID"];
+                        if( primaryNodeID != nodeID )
+                            continue;
+                    }
+                    arrGroupName[j].push( eRGname["GroupName"] );
+                    arrGroupName[j].push( groups[m]["HostName"] );
+                    arrGroupName[j].push( groups[m]["Service"][0]["Name"] );
+                    break;
+                }
+                ++j;
+            }
+        }
+    } catch( e )
+    {
+        throw new Error( e );
+    }
+
     return arrGroupName;
 }
 
@@ -224,13 +224,13 @@ function getGroupName(db, mustBePrimary)
 *@author:      liuxiaoxuan
 *@createDate:  2017.09.18
 **************************************/
-function createIndex( dbcl, indexName, key )
+function createIndex ( dbcl, indexName, key )
 {
     try
     {
-        dbcl.createIndex(indexName , key);
-    }catch(e)
+        dbcl.createIndex( indexName, key );
+    } catch( e )
     {
-        throw new Error(e);
+        throw new Error( e );
     }
 }

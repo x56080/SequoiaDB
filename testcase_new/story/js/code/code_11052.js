@@ -7,44 +7,44 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 
-function main()
-{  
-   if( commIsStandalone(db) )
+function main ()
+{
+   if( commIsStandalone( db ) )
    {
-      println("\n---Deploy mode is standalone!");
+      println( "\n---Deploy mode is standalone!" );
       return;
-   } 
+   }
    //ready env
    var procedureName = "abc11052";
-   commRemoveProcedure( db, procedureName);
+   commRemoveProcedure( db, procedureName );
 
    //structural data
-   println("\n---Begin to createProcedure.");
-   var cmd = "db.createProcedure( function " + procedureName + "(x, y){return x+y;} )";       
+   println( "\n---Begin to createProcedure." );
+   var cmd = "db.createProcedure( function " + procedureName + "(x, y){return x+y;} )";
    db.eval( cmd );
 
-   checkResult(procedureName);
-   commRemoveProcedure( db, procedureName);
+   checkResult( procedureName );
+   commRemoveProcedure( db, procedureName );
 }
 
-function checkResult(procedureName)
+function checkResult ( procedureName )
 {
    //compare the returned records
-   var rc = db.listProcedures({ name: procedureName } ).current().toObj().func;
+   var rc = db.listProcedures( { name: procedureName } ).current().toObj().func;
 
    var expRlt = '{"$code":"function ' + procedureName + '(x, y) {\\n    return x + y;\\n}"}';
    var actRlt = JSON.stringify( rc );
    if( expRlt !== actRlt )
    {
-      throw new Error("expect: " + expRlt + ",actual: " + actRlt);
+      throw new Error( "expect: " + expRlt + ",actual: " + actRlt );
    }
 }

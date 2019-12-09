@@ -1,47 +1,47 @@
 /* *****************************************************************************
 @discretion: rename cs
-             seqDB-16115 ÇÐ·Ö±íÒÑÇÐ·Öµ½¶à¸öÊý¾Ý×é£¬ÐÞ¸ÄcsÃû 
-@author£º2018-10-13 chensiqin  Init
+             seqDB-16115 ï¿½Ð·Ö±ï¿½ï¿½ï¿½ï¿½Ð·Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é£¬ï¿½Þ¸ï¿½csï¿½ï¿½ 
+@authorï¿½ï¿½2018-10-13 chensiqin  Init
 ***************************************************************************** */
 /*
-1¡¢´´½¨cs¡¢cl£¬²åÈëÊý¾Ý²¢ÇÒ·Öµ½¶à¸öÊý¾Ý×é
-2¡¢ÐÞ¸ÄcsÃû£¬Ö´ÐÐÊý¾Ý²Ù×÷¡¢LOB²Ù×÷£¬Ë÷Òý²Ù×÷µÈ 
-3¡¢¼ì²écs¡¢cl¿ìÕÕ£¬Êý¾ÝÎÄ¼þ¡¢Ë÷ÒýÎÄ¼þ¡¢LOBÎÄ¼þ¡¢LOBÔªÊý¾ÝÎÄ¼þ
+1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½csï¿½ï¿½clï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý²ï¿½ï¿½Ò·Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+2ï¿½ï¿½ï¿½Þ¸ï¿½csï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½ï¿½ï¿½Ý²ï¿½ï¿½ï¿½ï¿½ï¿½LOBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+3ï¿½ï¿½ï¿½ï¿½ï¿½csï¿½ï¿½clï¿½ï¿½ï¿½Õ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½LOBï¿½Ä¼ï¿½ï¿½ï¿½LOBÔªï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
 */
-main(db);
-function main(db)
+main( db );
+function main ( db )
 {
-   if (commGetGroupsNum(db) < 2)
+   if( commGetGroupsNum( db ) < 2 )
    {
-      return ;
+      return;
    }
-   var csName1 = CHANGEDPREFIX+"_rename16115_1";
-   var csName2 = CHANGEDPREFIX+"_rename16115_2";
-   var clName1 = CHANGEDPREFIX+"renamecl16115_1";
+   var csName1 = CHANGEDPREFIX + "_rename16115_1";
+   var csName2 = CHANGEDPREFIX + "_rename16115_2";
+   var clName1 = CHANGEDPREFIX + "renamecl16115_1";
    var fileName = CHANGEDPREFIX + "_lobtest16115.file";
-   var groups = commGetGroups(db);
+   var groups = commGetGroups( db );
    var groupName1 = groups[0][0].GroupName;
    var groupName2 = groups[1][0].GroupName;
-   //´´½¨cs cl
+   //ï¿½ï¿½ï¿½ï¿½cs cl
    commDropCS( db, csName1, true, "ignoreNotExist is true" );
    commDropCS( db, csName2, true, "ignoreNotExist is true" );
-   var varCS1 = commCreateCS( db, csName1, true, "create CS");
-   var varCL = commCreateCLByOption( db, csName1, clName1, {ShardingKey:{a:1},ShardingType:"hash",Group:groupName1}, true, false, "create cl in the beginning" );
+   var varCS1 = commCreateCS( db, csName1, true, "create CS" );
+   var varCL = commCreateCLByOption( db, csName1, clName1, { ShardingKey: { a: 1 }, ShardingType: "hash", Group: groupName1 }, true, false, "create cl in the beginning" );
    var recordNums = 2000;
-   insertData( varCL, recordNums );  
-   varCL.split(groupName1, groupName2, 50);
+   insertData( varCL, recordNums );
+   varCL.split( groupName1, groupName2, 50 );
    try
    {
       db.renameCS( csName1, csName2 );
    }
    catch( e )
    {
-      throw buildException("renameCS( csName1, csName1 ) fail", e, "rename", "success", e); 
+      throw buildException( "renameCS( csName1, csName1 ) fail", e, "rename", "success", e );
    }
-   checkRenameCSResult(csName1, csName2, 1);
-   var cs = db.getCS(csName2);
-   var varCL = cs.getCL(clName1);
-   var srcMd5 = createFile( fileName);
+   checkRenameCSResult( csName1, csName2, 1 );
+   var cs = db.getCS( csName2 );
+   var varCL = cs.getCL( clName1 );
+   var srcMd5 = createFile( fileName );
    var lobIdArr = putLobs( varCL, fileName );
    checkDatas( csName2, clName1, recordNums, srcMd5, lobIdArr );
    commDropCS( db, csName1, true, "ignoreNotExist is true" );
@@ -50,24 +50,24 @@ function main(db)
    cmd.run( "rm -rf *" + fileName );
 }
 
-function checkDatas( csName, newCLName, expRecordNums, srcMd5, expLobArr )
-{   
+function checkDatas ( csName, newCLName, expRecordNums, srcMd5, expLobArr )
+{
    try
    {
       //check the record nums      
       var dbcl = db.getCS( csName ).getCL( newCLName );
-      var count = dbcl.count();      
-      if( count != expRecordNums  )
+      var count = dbcl.count();
+      if( count != expRecordNums )
       {
-         throw buildException("check datas", null, "check the new cl record nums",
-                           expRecordNums, count);
-      }   
-      
+         throw buildException( "check datas", null, "check the new cl record nums",
+            expRecordNums, count );
+      }
+
       //check the lob
       checkLob( dbcl, expLobArr, srcMd5 );
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException("checkDatas", e)
-   }  
+      throw buildException( "checkDatas", e )
+   }
 }

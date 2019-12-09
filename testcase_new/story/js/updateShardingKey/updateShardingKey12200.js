@@ -7,36 +7,37 @@
 var csName = CHANGEDPREFIX + "_cs_12200";
 var clName = CHANGEDPREFIX + "_cl_12200";
 
-function main() {
+function main ()
+{
 	if( true == commIsStandalone( db ) )
 	{
 		println( "run mode is standalone" );
 		return;
 	}
 
-	var allGroupName = getGroupName(db,true);         
+	var allGroupName = getGroupName( db, true );
 	if( 1 === allGroupName.length )
 	{
-		println("--least two groups");
-		return ;
-	}  
+		println( "--least two groups" );
+		return;
+	}
 
-	commDropCS( db, csName, true, "Failed to drop CS.");    
-	commCreateCS( db, csName, false, "Failed to create CS.");  
-	var mycl=db.getCS(csName).createCL(clName,{ShardingKey:{a:1}});
+	commDropCS( db, csName, true, "Failed to drop CS." );
+	commCreateCS( db, csName, false, "Failed to create CS." );
+	var mycl = db.getCS( csName ).createCL( clName, { ShardingKey: { a: 1 } } );
 
 	//insert data 	
-	var docs=[{a:1}];
-	insertData(mycl, docs);
+	var docs = [{ a: 1 }];
+	insertData( mycl, docs );
 
-	db.execUpdate( "update "+csName+"."+clName+" set a = 10 where a < 25 /*+use_flag(SQL_UPDATE_KEEP_SHARDINGKEY)*/" );
+	db.execUpdate( "update " + csName + "." + clName + " set a = 10 where a < 25 /*+use_flag(SQL_UPDATE_KEEP_SHARDINGKEY)*/" );
 
-//check the update result
-	var expRecs = [{a:10}]
-	checkResult( mycl, null, {"_id":{"$include":0}},expRecs);
+	//check the update result
+	var expRecs = [{ a: 10 }]
+	checkResult( mycl, null, { "_id": { "$include": 0 } }, expRecs );
 
-//drop collectionspace in clean
-	commDropCS( db, csName, false, "Failed to drop CS.");
+	//drop collectionspace in clean
+	commDropCS( db, csName, false, "Failed to drop CS." );
 }
 
 //main();

@@ -4,77 +4,79 @@
 *@createdate:  2018.11.27
 *@testlinkCase: seqDB-12056
 **************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("Deploy is standalone");
+      println( "Deploy is standalone" );
       return;
    }
-   
+
    var groups = commGetGroups( db );
-   if(groups.length < 2 )
+   if( groups.length < 2 )
    {
-      println("less than two groups");
+      println( "less than two groups" );
       return;
    }
 
    var mainCLName = COMMCLNAME + "_ES_12056_maincl";
    var subCLName1 = COMMCLNAME + "_ES_12056_subcl_1";
    var subCLName2 = COMMCLNAME + "_ES_12056_subcl_2";
-   commDropCL(db, COMMCSNAME, mainCLName, true, true);
-   commDropCL(db, COMMCSNAME, subCLName1, true, true);
-   commDropCL(db, COMMCSNAME, subCLName2, true, true);
-   
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCLName, {ShardingKey: {a : 1}, IsMainCL: true});
+   commDropCL( db, COMMCSNAME, mainCLName, true, true );
+   commDropCL( db, COMMCSNAME, subCLName1, true, true );
+   commDropCL( db, COMMCSNAME, subCLName2, true, true );
+
+   var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCLName, { ShardingKey: { a: 1 }, IsMainCL: true } );
    commCreateCL( db, COMMCSNAME, subCLName1 );
-   commCreateCLByOption( db, COMMCSNAME, subCLName2, {ShardingKey: {a0 : 1}, ShardingType:"range", Group: groups[0][0]["GroupName"]});
+   commCreateCLByOption( db, COMMCSNAME, subCLName2, { ShardingKey: { a0: 1 }, ShardingType: "range", Group: groups[0][0]["GroupName"] } );
 
    // attach cl
-   mainCL.attachCL(COMMCSNAME + "." + subCLName1, {LowBound: {a: "testa"}, UpBound: {a: "testa_99999"}});
-   mainCL.attachCL(COMMCSNAME + "." + subCLName2, {LowBound: {a: "zzza"}, UpBound: {a: "zzza_99999"}});
+   mainCL.attachCL( COMMCSNAME + "." + subCLName1, { LowBound: { a: "testa" }, UpBound: { a: "testa_99999" } } );
+   mainCL.attachCL( COMMCSNAME + "." + subCLName2, { LowBound: { a: "zzza" }, UpBound: { a: "zzza_99999" } } );
    var textIndexName = "textIndex12056";
-   commCreateIndex( mainCL, textIndexName, {b: "text"});
-  
+   commCreateIndex( mainCL, textIndexName, { b: "text" } );
+
    // insert
    var objs = new Array();
-   for (var i = 0; i < 10000 ; i++){
-      objs.push({a: "testa_" + i, a0: "test_a0 " + i, b: "test_12056 " + i});
+   for( var i = 0; i < 10000; i++ )
+   {
+      objs.push( { a: "testa_" + i, a0: "test_a0 " + i, b: "test_12056 " + i } );
    }
-   for (var i = 0; i < 10000 ; i++){
-      objs.push({a: "zzza_" + i, a0: "zzz_a0 " + i, b: "test_12056 " + (10000 + i)});
+   for( var i = 0; i < 10000; i++ )
+   {
+      objs.push( { a: "zzza_" + i, a0: "zzz_a0 " + i, b: "test_12056 " + ( 10000 + i ) } );
    }
-   mainCL.insert(objs);
-   checkMainCLFullSyncToES(COMMCSNAME, mainCLName, textIndexName, 20000);
-   
+   mainCL.insert( objs );
+   checkMainCLFullSyncToES( COMMCSNAME, mainCLName, textIndexName, 20000 );
+
    // check result
    var dbOpr = new DBOperator();
-   var actResult = dbOpr.findFromCL(mainCL, {"" : {$Text : {"query" : {"match" : {"b" : "test_12056"}}}}}, {"b" : ""}, null, null, null, null);
-   var expResult = dbOpr.findFromCL(mainCL, null, {"b" : ""}, null, null, null, null);
-   expResult.sort(compare("b"));
-   actResult.sort(compare("b"));
-   checkResult(expResult, actResult);
+   var actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "b": "test_12056" } } } } }, { "b": "" }, null, null, null, null );
+   var expResult = dbOpr.findFromCL( mainCL, null, { "b": "" }, null, null, null, null );
+   expResult.sort( compare( "b" ) );
+   actResult.sort( compare( "b" ) );
+   checkResult( expResult, actResult );
 
-   var esIndexNames1 = dbOpr.getESIndexNames(COMMCSNAME, subCLName1, textIndexName);
-   var esIndexNames2 = dbOpr.getESIndexNames(COMMCSNAME, subCLName2, textIndexName);
-   commDropCL(db, COMMCSNAME, subCLName1, true, true);
-   commDropCL(db, COMMCSNAME, subCLName2, true, true);
-   commDropCL(db, COMMCSNAME, mainCLName, true, true);
+   var esIndexNames1 = dbOpr.getESIndexNames( COMMCSNAME, subCLName1, textIndexName );
+   var esIndexNames2 = dbOpr.getESIndexNames( COMMCSNAME, subCLName2, textIndexName );
+   commDropCL( db, COMMCSNAME, subCLName1, true, true );
+   commDropCL( db, COMMCSNAME, subCLName2, true, true );
+   commDropCL( db, COMMCSNAME, mainCLName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames1);
-   checkIndexNotExistInES(esIndexNames2);
+   checkIndexNotExistInES( esIndexNames1 );
+   checkIndexNotExistInES( esIndexNames2 );
 }
 
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 

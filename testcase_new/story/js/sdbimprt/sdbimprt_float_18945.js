@@ -3,35 +3,35 @@
 *@Author     :  2019-8-8  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18945";
    var csvFile = tmpFileDir + clName + ".csv";
    var jsonFile = tmpFileDir + clName + ".json";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
    var expResult = prepareDate( csvFile );
-   
-   println( "\n---import csv file." ); 
-   var fields = "a";   
+
+   println( "\n---import csv file." );
+   var fields = "a";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
    checkImportRC( rcResults, 2000 );
    dataType = "double";
    checkResult( cl, dataType, expResult );
    cl.truncate();
-   
+
    expResult = prepareDate( jsonFile );
    println( "\n---data type double、decimal to import json file." );
-   var fields = "a";   
+   var fields = "a";
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 2000 );
    dataType = "double";
    checkResult( cl, dataType, expResult );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "";
@@ -49,17 +49,17 @@ function prepareDate( typeFile )
          {
             rightR = rightR + "0";
             right = rightL + rightR;
-            if( typeFile.substring(typeFile.indexOf(".")+1, typeFile.length ) == "csv" )
-            { 
-               file.write( left + "." + right + "e+" + (310+j) + "\n" );
+            if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
+            {
+               file.write( left + "." + right + "e+" + ( 310 + j ) + "\n" );
             }
             else 
             {
-               file.write( '{ a:' + left + '.' + right + "e+" + (310+j) + ' }\n' );
+               file.write( '{ a:' + left + '.' + right + "e+" + ( 310 + j ) + ' }\n' );
             }
-            expResult.push({ a: parseFloat( left + "." + right + "e+" + (310+j) ) });
+            expResult.push( { a: parseFloat( left + "." + right + "e+" + ( 310 + j ) ) } );
          }
-      }   
+      }
    }
    file.close();
    return expResult;

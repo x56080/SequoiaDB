@@ -5,42 +5,42 @@
 *@testlinkCase:seqDB-14948
 **************************************/
 
-main(); 
+main();
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ); 
-      return; 
+      println( "Run mode is standalone" );
+      return;
    }
-   
-   println( "---begin test---" ); 
-   var csName = COMMCSNAME; 
-   var clName = CHANGEDPREFIX + "_14948"; 
-   
-   var cl = commCreateCL( db, csName, clName, 1, false, true, false, "create CL in the begin" ); 
-   
-   println( "---alter ShardingType---" ); 
+
+   println( "---begin test---" );
+   var csName = COMMCSNAME;
+   var clName = CHANGEDPREFIX + "_14948";
+
+   var cl = commCreateCL( db, csName, clName, 1, false, true, false, "create CL in the begin" );
+
+   println( "---alter ShardingType---" );
    //only alter ShardingType
    try
    {
-      cl.setAttributes( {ShardingType:'range'} ); 
+      cl.setAttributes( { ShardingType: 'range' } );
    }
    catch( e )
    {
       if( e !== -245 )
       {
-         throw e; 
+         throw e;
       }
    }
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "ShardingKey", undefined ); 
-   
-   println( "---alter ShardingType and ShardingKey---" ); 
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "ShardingKey", undefined );
+
+   println( "---alter ShardingType and ShardingKey---" );
    //alter ShardingKey and ShardingType
-   cl.setAttributes( {ShardingType:'range', ShardingKey:{a :1}} ); 
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "ShardingKey", {a: 1} ); 
-   
-   commDropCL( db, csName, clName, true, false, "clean cl" ); 
-   println( "---end the test---" ); 
+   cl.setAttributes( { ShardingType: 'range', ShardingKey: { a: 1 } } );
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "ShardingKey", { a: 1 } );
+
+   commDropCL( db, csName, clName, true, false, "clean cl" );
+   println( "---end the test---" );
 }

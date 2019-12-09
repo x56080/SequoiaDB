@@ -1,52 +1,52 @@
 /************************************
-*@Description: seqDB-19149:µ¥¼üÈ«ÎÄË÷Òý£¬Ë÷Òý×Ö¶ÎÎªÊý×éÔªËØ£¬¸üÐÂÈ«ÎÄË÷Òý×Ö¶ÎÎªobjÀàÐÍ£¬ÇÒvalueÎª·ÇstringÀàÐÍ
+*@Description: seqDB-19149:ï¿½ï¿½ï¿½ï¿½È«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½Îªï¿½ï¿½ï¿½ï¿½Ôªï¿½Ø£ï¿½ï¿½ï¿½ï¿½ï¿½È«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½Îªobjï¿½ï¿½ï¿½Í£ï¿½ï¿½ï¿½valueÎªï¿½ï¿½stringï¿½ï¿½ï¿½ï¿½
 *@author:      zhaoyu
 *@createdate:  2019.08.14
 *@testlinkCase: seqDB-19149
 **************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone(db))  {   return ;   }
+   if( commIsStandalone( db ) ) { return; }
 
    var clName = COMMCLNAME + "_19149";
    var textIndexName = "textIndex_19149";
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   commDropCL( db, COMMCSNAME, clName, true, true );
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
-   dbcl.createIndex(textIndexName, {"a.1" : "text"});
-   var objs = new Array({id:1, a: "string1"},
-                        {id:2, a: 1},
-                        {id:3, a:["string1", "string2", "string3"]},
-                        {id:4, a:[1, 2, 3]},
-                        {id:5, a:[{0:"obj1"}, {1:"obj2"}, {2:"obj3"}]},
-                        {id:6, a:[{0:1}, {1:2}, {2:3}]},
-                        {id:7, a:{0:"obj", 1:"obj", 2:"obj"}},
-                        {id:8, a:[["string4","string5","string6"],["string7","string8","string9"],["string10","string11","string12"]]},
-                        {id:9, a:[[4,5,6],[7,8,9],[10,11,12]]});
-   dbcl.insert(objs);
-   dbcl.update({$set:{a:[{1:123}]}});
-   
+   dbcl.createIndex( textIndexName, { "a.1": "text" } );
+   var objs = new Array( { id: 1, a: "string1" },
+      { id: 2, a: 1 },
+      { id: 3, a: ["string1", "string2", "string3"] },
+      { id: 4, a: [1, 2, 3] },
+      { id: 5, a: [{ 0: "obj1" }, { 1: "obj2" }, { 2: "obj3" }] },
+      { id: 6, a: [{ 0: 1 }, { 1: 2 }, { 2: 3 }] },
+      { id: 7, a: { 0: "obj", 1: "obj", 2: "obj" } },
+      { id: 8, a: [["string4", "string5", "string6"], ["string7", "string8", "string9"], ["string10", "string11", "string12"]] },
+      { id: 9, a: [[4, 5, 6], [7, 8, 9], [10, 11, 12]] } );
+   dbcl.insert( objs );
+   dbcl.update( { $set: { a: [{ 1: 123 }] } } );
+
    var dbOpr = new DBOperator();
-   checkFullSyncToES(COMMCSNAME, clName, textIndexName, 0);
-   var findCond = {"":{"$Text":{"query":{"match_all":{}}}}};
-   var actResult = dbOpr.findFromCL(dbcl, findCond, {"a":{"$include":1}}, {_id:1});
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 0 );
+   var findCond = { "": { "$Text": { "query": { "match_all": {} } } } };
+   var actResult = dbOpr.findFromCL( dbcl, findCond, { "a": { "$include": 1 } }, { _id: 1 } );
    var expResult = [];
-   checkResult(expResult, actResult);
-                                                 
-   var esIndexNames = dbOpr.getESIndexNames(COMMCSNAME, clName, textIndexName);
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   checkResult( expResult, actResult );
+
+   var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
+   commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 ;

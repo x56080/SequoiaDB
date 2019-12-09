@@ -7,111 +7,111 @@
                2014-6-18  xiaojun Hu  Init
 ******************************************************************************/
 
-function main( db )
+function main ( db )
 {
    // Inspect the run mode
-   runMode = inspectRunMode( db ) ;
+   runMode = inspectRunMode( db );
    if( "standalone" == runMode )
-      throw "RunMode_StandAlone" ;
+      throw "RunMode_StandAlone";
 
    var domNames = new Array( CHANGEDPREFIX + "DomTest1", CHANGEDPREFIX + "DomTest2",
-                             CHANGEDPREFIX + "DomTest3", CHANGEDPREFIX + "DomTest4" ) ;
+      CHANGEDPREFIX + "DomTest3", CHANGEDPREFIX + "DomTest4" );
 
    // Drop all domains, if have
-   for( var i = 0 ; i < domNames.length ; ++i )
+   for( var i = 0; i < domNames.length; ++i )
    {
-      clearDomain( db, domNames[i] ) ;
+      clearDomain( db, domNames[i] );
    }
-   println( "Clear domain in the beginning" ) ;
+   println( "Clear domain in the beginning" );
 
    // Get all data groups and create domain by specify AutoSplit
    try
    {
-      var group = new Array() ;
-      group = getGroup( db ) ;
+      var group = new Array();
+      group = getGroup( db );
       //println( "Get Groups = " + group ) ;
-      for( var i = 0 ; i < domNames.length ; ++i )
+      for( var i = 0; i < domNames.length; ++i )
       {
-         createDomain( db, domNames[i], group ) ;
+         createDomain( db, domNames[i], group );
       }
-      println( "Success to create domain : [" + domNames + "]" ) ;
+      println( "Success to create domain : [" + domNames + "]" );
    }
-   catch ( e )
+   catch( e )
    {
       if( -159 != e )
       {
-         println( "Failed to create domain, rc = " + e ) ;
-         throw e ;
+         println( "Failed to create domain, rc = " + e );
+         throw e;
       }
       else
-         println( "The mode is standalong, not group" ) ;
+         println( "The mode is standalong, not group" );
    }
 
    // List not exit domain name [Testing Point]
    try
    {
-      var listDom = db.listDomains( { "Name" : "NotExistDomName" } ) ;
-      var notDomName = listDom.current().toObj()[ "Name" ] ;
+      var listDom = db.listDomains( { "Name": "NotExistDomName" } );
+      var notDomName = listDom.current().toObj()["Name"];
    }
    catch( e )
    {
       if( -29 != e )
       {
-         println( "Failed to list domains, rc = " + e ) ;
-         throw e ;
+         println( "Failed to list domains, rc = " + e );
+         throw e;
       }
       else
-         println( "Wrong to list not exist domain" ) ;
+         println( "Wrong to list not exist domain" );
    }
 
    // List all domains and inspect[Testing Point]
-   listDom = db.listDomains() ;
-   listDomArray = new Array() ;
+   listDom = db.listDomains();
+   listDomArray = new Array();
    while( listDom.next() )
    {
-      listDomArray.push( listDom.current().toObj()["Name"] ) ;
+      listDomArray.push( listDom.current().toObj()["Name"] );
    }
    // Inspect the domains
-   for( var i = 0 ; i < domNames.length ; ++i )
+   for( var i = 0; i < domNames.length; ++i )
    {
-      for( var j = 0 ; j <= listDomArray.length ; ++j )
+      for( var j = 0; j <= listDomArray.length; ++j )
       {
          if( listDomArray[j] == domNames[i] )
          {
-            break ;
+            break;
          }
          if( j == listDomArray.length )
          {
             println( "Don't have domnames, domains = [" + domNames +
-                     "] ... [" + listDomArray + "]" ) ;
-            throw "ErrDomains" ;
+               "] ... [" + listDomArray + "]" );
+            throw "ErrDomains";
          }
       }
    }
-   println( "Success to list domains" ) ;
+   println( "Success to list domains" );
 
-   for( var i = 0 ; i < domNames.length ; ++i )
+   for( var i = 0; i < domNames.length; ++i )
    {
       // Inspect domain
-      inspectDomain( db, domNames[i] ) ;
+      inspectDomain( db, domNames[i] );
 
       // Drop domain int the end
-      clearDomain( db, domNames[i] ) ;
+      clearDomain( db, domNames[i] );
 
    }
    // Clear Env
-   println( "Clear domains = [" + domNames + "]" ) ;
+   println( "Clear domains = [" + domNames + "]" );
 }
 
 try
 {
-   main( db ) ;
-   db.close() ;
+   main( db );
+   db.close();
 }
-catch ( e )
+catch( e )
 {
    if( "RunMode_StandAlone" != e )
-      throw e ;
+      throw e;
    else
-      println( "WARNNING! Run Mode is : [ standalone ]" ) ;
+      println( "WARNNING! Run Mode is : [ standalone ]" );
 }

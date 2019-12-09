@@ -7,77 +7,77 @@ var csName = CHANGEDPREFIX + "_cs"
 var clName = CHANGEDPREFIX + "_cl"
 
 main( db );
-function main( db )
+function main ( db )
 {
-	if (commIsStandalone(db)) return;
+	if( commIsStandalone( db ) ) return;
 	//prepare test environment
-	commDropCS( db, csName, true);
-	
+	commDropCS( db, csName, true );
+
 	//begin test
-	commCreateCS( db, csName);
-	commCreateCL( db, csName, clName);
-	
+	commCreateCS( db, csName );
+	commCreateCL( db, csName, clName );
+
 	//check test result
 	checkTestResult( db, csName, clName );
-	
+
 	//clear test environment
-	commDropCL( db, csName, clName);
-	commDropCS( db, csName, false, "metaOpr.002: dropCS failed");
+	commDropCL( db, csName, clName );
+	commDropCS( db, csName, false, "metaOpr.002: dropCS failed" );
 }
 
-function checkCLOnCatalog( cdb, cs, cl, message )
+function checkCLOnCatalog ( cdb, cs, cl, message )
 {
-	if ( message == undefined ) { message = "" ; }
+	if( message == undefined ) { message = ""; }
 	try
 	{
-		var data = cdb.SYSCAT.SYSCOLLECTIONS.find().toArray() ;
+		var data = cdb.SYSCAT.SYSCOLLECTIONS.find().toArray();
 		var flag = 0;
-	   for ( var i = 0 ; i < data.length ; i++  )
-	   {
-	      var tmpObj = eval( "(" + data[i] + ")" ) ;
-	      if ( tmpObj["Name"] === cs+"."+cl )
-	      {
-	         flag = 1 ;
-	         break ;
-	      }
-	   }
-	   if (flag === 0)
-	   {
-	   	throw buildException( "metaOpr.002", -1, "checkCLOnCatalog", 
-   	                         "catalog info of "+cs+"."+cl+" exist.", 
-   	                         "catalog info of "+cs+"."+cl+" doesn't exist");
-	   }
+		for( var i = 0; i < data.length; i++ )
+		{
+			var tmpObj = eval( "(" + data[i] + ")" );
+			if( tmpObj["Name"] === cs + "." + cl )
+			{
+				flag = 1;
+				break;
+			}
+		}
+		if( flag === 0 )
+		{
+			throw buildException( "metaOpr.002", -1, "checkCLOnCatalog",
+				"catalog info of " + cs + "." + cl + " exist.",
+				"catalog info of " + cs + "." + cl + " doesn't exist" );
+		}
 	}
-	catch (e)
+	catch( e )
 	{
 		throw e;
 	}
 }
-function checkTestResult( sdb, cs, cl )
+function checkTestResult ( sdb, cs, cl )
 {
 	//check using listXXX methods
 	metaOprCheckListCLs( sdb, cs, cl );
-	
+
 	//check using getXXX methods
 	metaOprCheckGetCL( sdb, cs, cl );
-	
+
 	//check on the catalog primary node
 	var host = COORDHOSTNAME;
 	var svc = CATASVCNAME;
 	var replicaGroups = commGetGroups( sdb, false, "", false, true, true );
-	for (var i = 0 ; i < replicaGroups.length; i++ )
+	for( var i = 0; i < replicaGroups.length; i++ )
 	{
 		var tmpObj = replicaGroups[i];
 		var groupName = tmpObj[0].GroupName;
-		if ( groupName === "SYSCatalogGroup" )
+		if( groupName === "SYSCatalogGroup" )
 		{
 			var primaryPos = tmpObj[0].PrimaryPos;
 			host = tmpObj[primaryPos].HostName;
 			svc = tmpObj[primaryPos].svcname;
-			println("metaOpr.002 checkTestResult get SYSCatalogGroup primary node successfully");
+			println( "metaOpr.002 checkTestResult get SYSCatalogGroup primary node successfully" );
 		}
 	}
-	var catadb = new Sdb(host, svc ) ;
+	var catadb = new Sdb( host, svc );
 	checkCLOnCatalog( catadb, cs, cl );
 	catadb.close();
 }

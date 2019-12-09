@@ -3,14 +3,14 @@
 *@Author     :  2019-8-1  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18921_json";
    var jsonFile = tmpFileDir + clName + ".json";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( jsonFile );
-   
+
    println( "\n---data type double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 800 );
@@ -18,11 +18,11 @@ function main()
    checkResult( cl, "double", expResult );
    var expResult = getExpResult( "decimal" );
    checkResult( cl, "decimal", expResult );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "";
@@ -35,14 +35,14 @@ function prepareDate( typeFile )
          right = right + "1";
          file.write( '{ a: ' + left + '.' + right + ' }\n' );
          file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' );
-      }   
+      }
    }
    file.close();
 }
 
-function getExpResult( dataType )
+function getExpResult ( dataType )
 {
-   var expResult = []; 
+   var expResult = [];
    for( var i = 0; i < 20; i++ )
    {
       var right = "";
@@ -52,18 +52,18 @@ function getExpResult( dataType )
          var decimalData = "0." + right;
          if( j < 15 && dataType == "decimal" )
          {
-            expResult.push({ a: { "$decimal": decimalData }});
+            expResult.push( { a: { "$decimal": decimalData } } );
          }
          else if( j >= 15 && dataType == "decimal" )
          {
-            expResult.push({ a: { "$decimal": decimalData }}); 
-            expResult.push({ a: { "$decimal": decimalData }});
+            expResult.push( { a: { "$decimal": decimalData } } );
+            expResult.push( { a: { "$decimal": decimalData } } );
          }
          else if( j < 15 && dataType == "double" )
          {
             expResult.push( { a: parseFloat( parseFloat( "0." + right ).toFixed( 16 ) ) } );
          }
-      } 
+      }
    }
    return expResult;
 }

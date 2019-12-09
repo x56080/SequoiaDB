@@ -7,43 +7,44 @@
 
 main();
 
-function main()
+function main ()
 {
    var clName = COMMCAPPEDCLNAME + "_11769_11893_";
-      
+
    //create cappedCL AutoIndexId:true
-   var optionObj1 = {Capped:true, Size:1024, Max:10000000, AutoIndexId:true};
-   createCappedCL( db, COMMCAPPEDCSNAME, clName+1, optionObj1);
-   
+   var optionObj1 = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: true };
+   createCappedCL( db, COMMCAPPEDCSNAME, clName + 1, optionObj1 );
+
    //create cappedCL Compressed:true
-   var optionObj2 = {Capped:true, Size:1024, Max:10000000, AutoIndexId:true, Compressed:true};
-   createCappedCL( db, COMMCAPPEDCSNAME, clName+2, optionObj2);
-   
+   var optionObj2 = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: true, Compressed: true };
+   createCappedCL( db, COMMCAPPEDCSNAME, clName + 2, optionObj2 );
+
    //create cappedCL Compressed:false
-   var optionObj3 = {Capped:true, Size:1024, Max:10000000, AutoIndexId:true, Compressed:false};
-   createCappedCL( db, COMMCAPPEDCSNAME, clName+3, optionObj3);
-   
+   var optionObj3 = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: true, Compressed: false };
+   createCappedCL( db, COMMCAPPEDCSNAME, clName + 3, optionObj3 );
+
    //create cappedCL CompressionType:"snappy"
-   var optionObj4 = {Capped:true, Size:1024, Max:10000000, AutoIndexId:true, Compressed:true, CompressionType:"snappy"};
-   createCappedCL( db, COMMCAPPEDCSNAME, clName+4, optionObj4);
-   
+   var optionObj4 = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: true, Compressed: true, CompressionType: "snappy" };
+   createCappedCL( db, COMMCAPPEDCSNAME, clName + 4, optionObj4 );
+
    //create cappedCL CompressionType:"lzw"
-   var optionObj5 = {Capped:true, Size:1024, Max:10000000, AutoIndexId:true, Compressed:true, CompressionType:"lzw"};
-   createCappedCL( db, COMMCAPPEDCSNAME, clName+5, optionObj5);
-   
+   var optionObj5 = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: true, Compressed: true, CompressionType: "lzw" };
+   createCappedCL( db, COMMCAPPEDCSNAME, clName + 5, optionObj5 );
+
    for( var i = 1; i <= 5; i++ )
    {
-      commDropCL( db, COMMCAPPEDCSNAME, clName+i, true, true, "drop CL in the end");
+      commDropCL( db, COMMCAPPEDCSNAME, clName + i, true, true, "drop CL in the end" );
    }
-   println("---end the test---")
+   println( "---end the test---" )
 }
 
-function createCappedCL( db, csName, clName, optionObj)
+function createCappedCL ( db, csName, clName, optionObj )
 {
    try
    {
       db.getCS( csName ).createCL( clName, optionObj );
-      if( optionObj.Compressed !== false ){
+      if( optionObj.Compressed !== false )
+      {
          throw "ERR_CREATE_CAPPEDCL";
       }
    }
@@ -51,7 +52,7 @@ function createCappedCL( db, csName, clName, optionObj)
    {
       if( e !== -6 )
       {
-         throw buildException( "create cappedCL AutoIndexId:true", null, "create cappedCL AutoIndexId:true", "-6",  e);
+         throw buildException( "create cappedCL AutoIndexId:true", null, "create cappedCL AutoIndexId:true", "-6", e );
       }
    }
 }

@@ -3,22 +3,22 @@
 *@author:      luweikang
 *@createDate:  2019.10.08
 **************************************/
-function makeIniFile( filePath, fileName )
-{ 
+function makeIniFile ( filePath, fileName )
+{
    var fileFullPath = filePath + "/" + fileName;
-   File.mkdir(filePath);
+   File.mkdir( filePath );
    try
    {
       File.remove( fileFullPath );
    }
-   catch(e)
+   catch( e )
    {
-      if(e != -4 )
+      if( e != -4 )
       {
-          throw new Error(e);
+         throw new Error( e );
       }
    }
-   new File(fileFullPath).close();
+   new File( fileFullPath ).close();
 }
 
 /************************************
@@ -26,17 +26,17 @@ function makeIniFile( filePath, fileName )
 *@author:      luweikang
 *@createDate:  2019.10.08
 **************************************/
-function deleteIniFile( filePath )
+function deleteIniFile ( filePath )
 {
    try
    {
       File.remove( filePath );
    }
-   catch(e)
+   catch( e )
    {
-      if(e != -4 )
+      if( e != -4 )
       {
-          throw new Error(e);
+         throw new Error( e );
       }
    }
 }
@@ -46,12 +46,12 @@ function deleteIniFile( filePath )
 *@author:      luweikang
 *@createDate:  2019.10.08
 **************************************/
-function compareValue(expValue, actValue)
+function compareValue ( expValue, actValue )
 {
-    if(expValue != actValue)
-    {
-        throw Error("\nexpValue: " + expValue + "\nactValue: " + actValue);
-    }
+   if( expValue != actValue )
+   {
+      throw Error( "\nexpValue: " + expValue + "\nactValue: " + actValue );
+   }
 }
 
 /************************************
@@ -59,9 +59,9 @@ function compareValue(expValue, actValue)
 *@author:      luweikang
 *@createDate:  2019.10.08
 **************************************/
-function initFile(filePath, content)
+function initFile ( filePath, content )
 {
-    var file = new File(filePath);
-    file.write(content);
-    file.close();
+   var file = new File( filePath );
+   file.write( content );
+   file.close();
 }

@@ -6,24 +6,24 @@
 *@Author:   2019-4-18  chensiqin
 ************************************************************************/
 
-main() ;
+main();
 
-function main()
-{  
+function main ()
+{
    try
    {
       var csName = COMMCSNAME;
-      var clName = COMMCLNAME+"_18264" ;
+      var clName = COMMCLNAME + "_18264";
       var cl = readyCL( csName, clName );
-      
-      var imprtFile = tmpFileDir +"18264.csv";
+
+      var imprtFile = tmpFileDir + "18264.csv";
       readyData( imprtFile );
-      importDataER( csName, clName, imprtFile , cl);
-      importDataAR( csName, clName, imprtFile , cl);
-      importDataEA( csName, clName, imprtFile , cl);
+      importDataER( csName, clName, imprtFile, cl );
+      importDataAR( csName, clName, imprtFile, cl );
+      importDataEA( csName, clName, imprtFile, cl );
       cleanCL( csName, clName );
    }
-   catch(e)
+   catch( e )
    {
       throw e;
    }
@@ -33,92 +33,93 @@ function main()
    }
 }
 
-function readyData( imprtFile )
+function readyData ( imprtFile )
 {
-   println("\n---Begin to ready data.");
-   
+   println( "\n---Begin to ready data." );
+
    var file = fileInit( imprtFile );
    file.write( "cYdY1YYexprtTestYY" );
-   var fileInfo = cmd.run( "cat "+ imprtFile );
-   println( imprtFile +"\n" + fileInfo );
+   var fileInfo = cmd.run( "cat " + imprtFile );
+   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
-function importDataER( csName, clName, imprtFile, cl )
+function importDataER ( csName, clName, imprtFile, cl )
 {
-   var imprtOption = installDir +"bin/sdbimprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -e 'Y' -r 'Y' --headerline true --fields='c int,d string'"
-                     +" --file "+ imprtFile;
-   
-   testRunCommand(imprtOption);
+   var imprtOption = installDir + "bin/sdbimprt -s " + COORDHOSTNAME + " -p " + COORDSVCNAME
+      + " -c " + csName + " -l " + clName
+      + " --type csv -e 'Y' -r 'Y' --headerline true --fields='c int,d string'"
+      + " --file " + imprtFile;
+
+   testRunCommand( imprtOption );
    checkCLData( cl );
    cl.truncate();
 }
 
-function importDataAR( csName, clName, imprtFile, cl )
+function importDataAR ( csName, clName, imprtFile, cl )
 {
-   var imprtOption = installDir +"bin/sdbimprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -a 'Y' -r 'Y' --headerline true --fields='c int,d string'"
-                     +" --file "+ imprtFile;
-   
-   testRunCommand(imprtOption);
+   var imprtOption = installDir + "bin/sdbimprt -s " + COORDHOSTNAME + " -p " + COORDSVCNAME
+      + " -c " + csName + " -l " + clName
+      + " --type csv -a 'Y' -r 'Y' --headerline true --fields='c int,d string'"
+      + " --file " + imprtFile;
+
+   testRunCommand( imprtOption );
    checkCLData( cl );
    cl.truncate();
 }
 
-function importDataEA( csName, clName, imprtFile, cl )
+function importDataEA ( csName, clName, imprtFile, cl )
 {
-   var imprtOption = installDir +"bin/sdbimprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --type csv -e 'Y' -a 'Y' --headerline true --fields='c int,d string'"
-                     +" --file "+ imprtFile;
-   
-   testRunCommand(imprtOption);
+   var imprtOption = installDir + "bin/sdbimprt -s " + COORDHOSTNAME + " -p " + COORDSVCNAME
+      + " -c " + csName + " -l " + clName
+      + " --type csv -e 'Y' -a 'Y' --headerline true --fields='c int,d string'"
+      + " --file " + imprtFile;
+
+   testRunCommand( imprtOption );
    checkCLData( cl );
    cl.truncate();
 }
 
-function testRunCommand(command)
+function testRunCommand ( command )
 {
    println( command );
-   try{
-     cmd.run( command );
-     throw buildException( "importData", null, "[sdbimprt results]", 
-                        "expected thow exception", 
-                        "actual success" );
+   try
+   {
+      cmd.run( command );
+      throw buildException( "importData", null, "[sdbimprt results]",
+         "expected thow exception",
+         "actual success" );
    }
-   catch(e)
+   catch( e )
    {
       if( e !== 127 )
       {
-        throw buildException( "importData", null, "[sdbimprt results]", 
-                           "expected thow exception", 
-                           "actual success" );
+         throw buildException( "importData", null, "[sdbimprt results]",
+            "expected thow exception",
+            "actual success" );
       }
    }
-   
+
 }
 
-function checkCLData( cl )
+function checkCLData ( cl )
 {
-   println("\n---Begin to check cl data.");
-   
+   println( "\n---Begin to check cl data." );
+
    var rc = cl.find();
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {
       recsArray.push( tmpRecs.toObj() );
    }
-   
-   var expCnt  = 0;
-   var actCnt  = recsArray.length;
+
+   var expCnt = 0;
+   var actCnt = recsArray.length;
    if( actCnt !== expCnt )
    {
-      throw buildException( "checkCLdata", null, "[find]", 
-                        "[cnt:"+ expCnt +"]", 
-                        "[cnt:"+ actCnt +"]" );
+      throw buildException( "checkCLdata", null, "[find]",
+         "[cnt:" + expCnt + "]",
+         "[cnt:" + actCnt + "]" );
    }
-   
+
 }

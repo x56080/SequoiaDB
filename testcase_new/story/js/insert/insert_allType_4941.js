@@ -1,56 +1,56 @@
 /******************************************************************************
-*@Description : seqDB-4941:ËùÓÐÊý¾ÝÀàÐÍ±ß½çÖµÐ£Ñé                    
+*@Description : seqDB-4941:ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í±ß½ï¿½ÖµÐ£ï¿½ï¿½                    
 *@Author      : 2019-5-29  wuyan modify
 ******************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "insert4941";
    var cl = readyCL( clName );
-     
-   var expRecords = insertRecords( cl);     
-   var actRecords = cl.find(); 
-   checkRec( actRecords, expRecords );    
-   deleteRecordsAndCheckResult( cl, expRecords);
-    
-   cleanCL( clName );   	
-}
-     
 
-function insertRecords( cl)
+   var expRecords = insertRecords( cl );
+   var actRecords = cl.find();
+   checkRec( actRecords, expRecords );
+   deleteRecordsAndCheckResult( cl, expRecords );
+
+   cleanCL( clName );
+}
+
+
+function insertRecords ( cl )
 {
-   println("---begin to insert records.");
-   
-   var values = [ -2147483648,2147483647, {"$numberLong":"-9223372036854775808"}, {"$numberLong":"9223372036854775807"},
-                  -1.7E+308, 1.7e+308, "","test_id",{a:1}, true, {"$date":"0000-01-01"},{"$date":"9999-12-31"},
-                  { "$timestamp" : "1902-01-01-00.00.00.000000" },{ "$timestamp" : "2037-12-31-23.59.59.999999" },
-                  { "$binary" : "aGVsbG8gd29ybGQ=", "$type" : "255" } ,[ -2147483648, 0, "def" ],[], null, {"$minKey": 1 },{"$maxKey": 1 },{ "$regex" : "^W", "$options" : "i" } ];
-   
+   println( "---begin to insert records." );
+
+   var values = [-2147483648, 2147483647, { "$numberLong": "-9223372036854775808" }, { "$numberLong": "9223372036854775807" },
+   -1.7E+308, 1.7e+308, "", "test_id", { a: 1 }, true, { "$date": "0000-01-01" }, { "$date": "9999-12-31" },
+   { "$timestamp": "1902-01-01-00.00.00.000000" }, { "$timestamp": "2037-12-31-23.59.59.999999" },
+   { "$binary": "aGVsbG8gd29ybGQ=", "$type": "255" }, [-2147483648, 0, "def"], [], null, { "$minKey": 1 }, { "$maxKey": 1 }, { "$regex": "^W", "$options": "i" }];
+
    var docs = [];
-   for(var i = 0 ; i < values.length ; ++i )
-   {       
+   for( var i = 0; i < values.length; ++i )
+   {
       var fieldValue = values[i];
-      var objs = { "no": i, "fieldName":fieldValue};       
-      docs.push(objs);         
-   }    
-   cl.insert( docs );    
+      var objs = { "no": i, "fieldName": fieldValue };
+      docs.push( objs );
+   }
+   cl.insert( docs );
    return docs;
 }
 
-function deleteRecordsAndCheckResult( cl, expRecords )
+function deleteRecordsAndCheckResult ( cl, expRecords )
 {
    for( var i in expRecords )
-   {       
+   {
       var condValue = expRecords[i];
-      cl.remove( condValue );            
-   }    
-   
-   //ÕýÔò±í´ïÊ½²»Âú×ãÌõ¼þ²éÑ¯Æ¥Åä£¬Ö±½ÓÆ¥Åä{ no £º20 }É¾³ý
+      cl.remove( condValue );
+   }
+
+   //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯Æ¥ï¿½ä£¬Ö±ï¿½ï¿½Æ¥ï¿½ï¿½{ no ï¿½ï¿½20 }É¾ï¿½ï¿½
    cl.remove( { "no": 20 } );
-   
+
    var actCount = cl.count();
    var expCount = 0;
-   if ( Number(expCount) !== Number(actCount) )
+   if( Number( expCount ) !== Number( actCount ) )
    {
       throw buildException( "deleteRecords", null, "cl.count()", expCount, actCount );
    }

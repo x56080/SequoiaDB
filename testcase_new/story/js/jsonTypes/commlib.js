@@ -9,8 +9,8 @@ var hostName = COORDHOSTNAME; // 主机名：'localhost'
 var coordPort = COORDSVCNAME; // 端口号：11810
 var user = null; // 用户名：
 var passwd = null; // 密码：
-var db = new Sdb( hostName, coordPort, user, passwd ); 
-var cmd = new Cmd(); 
+var db = new Sdb( hostName, coordPort, user, passwd );
+var cmd = new Cmd();
 var LocalPath = null; // 当前目录
 var InstallPath = null; // sequoiadb安装目录
 
@@ -20,30 +20,30 @@ var InstallPath = null; // sequoiadb安装目录
 *@Description : initalize the global variable in the begninning.
 初始化全局变量LocalPath、InstallPath
 ******************************************************************************/
-function initPath()
+function initPath ()
 {
    try
    {
       var local = cmd.run( "pwd" ).split( "\n" ); //获得当前目录, cmd.run()方法返回结果会在后面加入一空行
-      LocalPath = local[0]; 
+      LocalPath = local[0];
       try
       {
          var install = cmd.run( "sed -n '3p'  /etc/default/sequoiadb" ).split( "=" ); // 命令返回结果为 INSTALL_DIR = /opt/sequoiadb
-         var installPath = install[1].split( "\n" ); 
+         var installPath = install[1].split( "\n" );
          InstallPath = installPath[0]; //获得默认安装目录 /opt/sequoiadb
       }
       catch( e )
       {
          if( 2 == e )//在sequoiadb shell中运行返回错误0 uncaught exception: 2
-         InstallPath = toolGetInstallPath( LocalPath ); // 检验当前目录是否为安装目录
+            InstallPath = toolGetInstallPath( LocalPath ); // 检验当前目录是否为安装目录
          else
-         throw "failed to excute : sed -n '3p'  /etc/default/sequoiadb"; 
+            throw "failed to excute : sed -n '3p'  /etc/default/sequoiadb";
       }
    }
    catch( e )
    {
-      println( "failed to get global variable : cmd/LocalPath/InstallPath" + e ); 
-      throw e; 
+      println( "failed to get global variable : cmd/LocalPath/InstallPath" + e );
+      throw e;
    }
 }
 
@@ -52,27 +52,27 @@ function initPath()
 *@Description : when run these testcase in sequoiadb or trunk fold that not
 *               installed, get home fold. < ?how to get sequoiadb home fold? > 
 ******************************************************************************/
-function toolGetInstallPath( localPath )
+function toolGetInstallPath ( localPath )
 {
    try
    {
-      var folder = cmd.run( 'ls ' + localPath ).split( '\n' ); 
-      var fcnt = 0; 
+      var folder = cmd.run( 'ls ' + localPath ).split( '\n' );
+      var fcnt = 0;
       for( var i = 0; i < folder.length; ++i )
       {
          if( "bin" == folder[i] || "SequoiaDB" == folder[i] || "testcase" == folder[i] )
          {
-            fcnt++; 
+            fcnt++;
          }
       }
       if( 2 <= fcnt )
-      InstallPath = localPath; 
-      return InstallPath; 
+         InstallPath = localPath;
+      return InstallPath;
    }
    catch( e )
    {
-      println( "failed to get install path in source install, rc = " + e ); 
-      throw e; 
+      println( "failed to get install path in source install, rc = " + e );
+      throw e;
    }
 }
 
@@ -80,36 +80,36 @@ function toolGetInstallPath( localPath )
 *@Description : check result with expect results
 *               find, .....
 ******************************************************************************/
-function checkRec( rc, expRecs )
+function checkRec ( rc, expRecs )
 {
-   println( "enter" ); 
+   println( "enter" );
    //get actual records to array
-   var actRecs = []; 
+   var actRecs = [];
    while( rc.next() )
    {
-      actRecs.push( rc.current().toObj() ); 
+      actRecs.push( rc.current().toObj() );
    }
-   
+
    //check count
    if( actRecs.length !== expRecs.length )
    {
-      println( "\nactual recs in cl= " + JSON.stringify( actRecs )+ "\n\nexpect recs= " + JSON.stringify( expRecs ) ); 
-      throw buildException( "check count", null, "", 
-      expRecs.length, actRecs.length ); 
+      println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
+      throw buildException( "check count", null, "",
+         expRecs.length, actRecs.length );
    }
-   
+
    //check every records every fields
    for( var i in expRecs )
    {
-      var actRec = actRecs[i]; 
-      var expRec = expRecs[i]; 
+      var actRec = actRecs[i];
+      var expRec = expRecs[i];
       for( var f in expRec )
       {
-         if( JSON.stringify( actRec[f] )!== JSON.stringify( expRec[f] ) )
+         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
          {
-            println( "\nerror occurs in " +( parseInt( i )+ 1 )+ "th record, in field '" + f + "'" ); 
-            println( "\nactual recs in cl= " + JSON.stringify( actRecs )+ "\n\nexpect recs= " + JSON.stringify( expRecs ) ); 
-            throw buildException( "checkRec()", "rec ERROR" ); 
+            println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'" );
+            println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
+            throw buildException( "checkRec()", "rec ERROR" );
          }
       }
    }

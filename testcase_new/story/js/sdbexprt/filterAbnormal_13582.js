@@ -5,81 +5,81 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13582" ;
-var docs = [ { a: 1 }, { a: 2 }, { a: 3 }, { a: 4 } ] ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13582";
+var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
 
-main() ;
+main();
 
-function main()
-{  
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   cl.insert( docs ) ;
-   
-   testExprtFilter1() ;  // use --filter '{ a: { \\$gt: 2 }'
-   testExprtFilter2() ;  // use --filter '{ a: { \\$gtt: 2 } }'
-   testExprtFilter3() ;  // use --filter with --fields
-   
-   commDropCL( db, csname, clname ) ;
+function main ()
+{
+   var cl = commCreateCL( db, csname, clname, 0 );
+   cl.insert( docs );
+
+   testExprtFilter1();  // use --filter '{ a: { \\$gt: 2 }'
+   testExprtFilter2();  // use --filter '{ a: { \\$gtt: 2 } }'
+   testExprtFilter3();  // use --filter with --fields
+
+   commDropCL( db, csname, clname );
 }
 
-function testExprtFilter1()
+function testExprtFilter1 ()
 {
-   var csvfile = workDir + "sdbexprt13582.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13582.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --filter '{ a: { \\$gt: 2 }'" +
-                 " --type csv" +
-                 " --fields a" ;                
-   testRunCommand( command, 127 ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --filter '{ a: { \\$gt: 2 }'" +
+      " --type csv" +
+      " --fields a";
+   testRunCommand( command, 127 );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtFilter2()
+function testExprtFilter2 ()
 {
-   var csvfile = workDir + "sdbexprt13582.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13582.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --filter '{ a: { \\$gtt: 2 } }'" +
-                 " --type csv" +
-                 " --fields a" ;                
-   testRunCommand( command, 127 ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --filter '{ a: { \\$gtt: 2 } }'" +
+      " --type csv" +
+      " --fields a";
+   testRunCommand( command, 127 );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtFilter3()
+function testExprtFilter3 ()
 {
-   var csvfile = workDir + "sdbexprt13582.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13582.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --filter '{ a: { \\$gt: 2 } }'" +
-                 " --type csv" +
-                 " --sort '{ _id: 1 }'" +
-                 " --fields a" ;                
-   testRunCommand( command ) ;
-   
-   var content = "a\n3\n4\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --filter '{ a: { \\$gt: 2 } }'" +
+      " --type csv" +
+      " --sort '{ _id: 1 }'" +
+      " --fields a";
+   testRunCommand( command );
+
+   var content = "a\n3\n4\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + csvfile );
 }

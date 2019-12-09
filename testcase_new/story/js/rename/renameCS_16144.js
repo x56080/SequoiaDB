@@ -7,81 +7,83 @@
 
 main();
 
-function main()
+function main ()
 {
-   if (commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      return ;
+      return;
    }
-   if (commGetGroupsNum(db) < 2)
+   if( commGetGroupsNum( db ) < 2 )
    {
-      return ;
+      return;
    }
-   println("---begin rename cs test---");
-   var oldcsName = CHANGEDPREFIX+"_16144_oldcs";
-   var newcsName = CHANGEDPREFIX+"_16144_newcs";
+   println( "---begin rename cs test---" );
+   var oldcsName = CHANGEDPREFIX + "_16144_oldcs";
+   var newcsName = CHANGEDPREFIX + "_16144_newcs";
    var clName = CHANGEDPREFIX + "_16144_CL";
-   
-   var groupNames = getGroupName(db, true);
+
+   var groupNames = getGroupName( db, true );
    var sourceGroup = groupNames[0][0];
    var targetGroup = groupNames[1][0];
-   
-   var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "");
-   var options = {ShardingType:"hash", ShardingKey:{a:1}, Group:sourceGroup}
-   var cl = commCreateCLByOption( db, oldcsName, clName, options, false, false, "create cl in the begin");
-   
+
+   var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
+   var options = { ShardingType: "hash", ShardingKey: { a: 1 }, Group: sourceGroup }
+   var cl = commCreateCLByOption( db, oldcsName, clName, options, false, false, "create cl in the begin" );
+
    //insert 1000 data, split 50 to target group
    insertData( cl, 1000 );
-   cl.split(sourceGroup, targetGroup, 50);
-     
-   db.renameCS(oldcsName, newcsName);
-   
-   checkRenameCSResult(oldcsName, newcsName, 1);
-   
-   cl = db.getCS(newcsName).getCL(clName);
-   
+   cl.split( sourceGroup, targetGroup, 50 );
+
+   db.renameCS( oldcsName, newcsName );
+
+   checkRenameCSResult( oldcsName, newcsName, 1 );
+
+   cl = db.getCS( newcsName ).getCL( clName );
+
    //insert 1000 data, and check data
    insertData( cl, 1000 );
    //update ($set: {no:10086}) 2000 data, and check data
    updateData( cl );
    //delete no < 500 data, and check data
    deleteData( cl );
-   
+
    //create index and drop index，check results
-   cl.createIndex("noIndex", { no: 1 }, false);
-   cl.createIndex("phoneIndex", { phone: 1 }, false);
-   cl.dropIndex("noIndex");
+   cl.createIndex( "noIndex", { no: 1 }, false );
+   cl.createIndex( "phoneIndex", { phone: 1 }, false );
+   cl.dropIndex( "noIndex" );
    var indexArr = ['$id', "$shard", 'phoneIndex'];
    var cur = cl.listIndexes();
-   while(cur.next())
+   while( cur.next() )
    {
       var index = cur.current().toObj();
       var name = index.IndexDef.name;
-      if(indexArr.indexOf(name)===-1)
+      if( indexArr.indexOf( name ) === -1 )
       {
-         throw buildException("checkIndex", "", "index", indexArr, name);
+         throw buildException( "checkIndex", "", "index", indexArr, name );
       }
    }
 
    commDropCS( db, newcsName, true, false, "clean cs---" );
-   println("---end the test---");
+   println( "---end the test---" );
 }
 
-function updateData(cl)
+function updateData ( cl )
 {
-   cl.update({$set: {no: 10086}});
-   var recordNum = cl.count({no: 10086});
-   if(recordNum!=2000){
-      throw buildException("updateData()","","update", "update 2000 record","update fail, only: "+recordNum);
+   cl.update( { $set: { no: 10086 } } );
+   var recordNum = cl.count( { no: 10086 } );
+   if( recordNum != 2000 )
+   {
+      throw buildException( "updateData()", "", "update", "update 2000 record", "update fail, only: " + recordNum );
    }
 }
 
-function deleteData(cl)
+function deleteData ( cl )
 {
-   cl.remove({ a: { $lt: 500 }});
+   cl.remove( { a: { $lt: 500 } } );
    var recordNum = cl.count();
-   if(recordNum!=1000){
-      throw buildException("deleteData()","","delete", "delete 1000 record","delete fail, have: "+recordNum);
+   if( recordNum != 1000 )
+   {
+      throw buildException( "deleteData()", "", "delete", "delete 1000 record", "delete fail, have: " + recordNum );
    }
 }
 

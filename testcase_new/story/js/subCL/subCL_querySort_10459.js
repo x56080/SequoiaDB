@@ -12,39 +12,39 @@
  **************************************/
 
 main();
-function main()
+function main ()
 {
 	var mainCl = null;
 	var data = [];
-	var mainClName =  CHANGEDPREFIX+"_maincl_10459" ;
+	var mainClName = CHANGEDPREFIX + "_maincl_10459";
 	var subClNames = [
-		CHANGEDPREFIX+"_subcl_10459_0",
-		CHANGEDPREFIX+"_subcl_10459_1",
-		CHANGEDPREFIX+"_subcl_10459_2",
-		CHANGEDPREFIX+"_subcl_10459_3",
-	   ];
+		CHANGEDPREFIX + "_subcl_10459_0",
+		CHANGEDPREFIX + "_subcl_10459_1",
+		CHANGEDPREFIX + "_subcl_10459_2",
+		CHANGEDPREFIX + "_subcl_10459_3",
+	];
 
-   //check test environment before split
-   try 
-   {
-	   //standalone can not split
-	   if( true == commIsStandalone( db ) ) 
-	   {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups,can not split
-      allGroupName = getGroupName( db );       
-      if( 1 === allGroupName.length ) 
-      {
-         println("--least two groups");
-         return ;
-      }
-   } 
-   catch( e ) 
-   {
-		throw buildException( "init", new Error() ) ;
-   }
+	//check test environment before split
+	try 
+	{
+		//standalone can not split
+		if( true == commIsStandalone( db ) ) 
+		{
+			println( "run mode is standalone" );
+			return;
+		}
+		//less two groups,can not split
+		allGroupName = getGroupName( db );
+		if( 1 === allGroupName.length ) 
+		{
+			println( "--least two groups" );
+			return;
+		}
+	}
+	catch( e ) 
+	{
+		throw buildException( "init", new Error() );
+	}
 
 	//drop subcl and maincl
 	commDropCL( db, COMMCSNAME, subClNames[0], true, true, "clean sub collection" );
@@ -52,169 +52,172 @@ function main()
 	commDropCL( db, COMMCSNAME, subClNames[2], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, subClNames[3], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, mainClName, true, true, "clean main collection" );
-	
-   //create maincl for range split
-   db.setSessionAttr( { PreferedInstance: "M" } );
-   var mainCLOption = { IsMainCL:true, ShardingKey:{ a:1,b:-1,c:1 }, ShardingType: "range", ReplSize:0, Compressed:true };
-   mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
-   var subCLOptions = [
-   	{ ReplSize:0, Compressed:true },
-   	{ ReplSize:0, Compressed:true, ShardingKey:{a:1,b:1}, ShardingType:"hash", Partition:16 },
-   	{ ReplSize:0, Compressed:true, ShardingKey:{a:1,b:1}, ShardingType:"range" },
-   	{ ReplSize:0, Compressed:true, ShardingKey:{a:1,b:1}, ShardingType:"hash", Partition:16 }
-      ];
-   
-   //create subcl
-   commCreateCLByOption( db, COMMCSNAME, subClNames[0], subCLOptions[0], true, true );
-   commCreateCLByOption( db, COMMCSNAME, subClNames[1], subCLOptions[1], true, true );
+
+	//create maincl for range split
+	db.setSessionAttr( { PreferedInstance: "M" } );
+	var mainCLOption = { IsMainCL: true, ShardingKey: { a: 1, b: -1, c: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
+	mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
+	var subCLOptions = [
+		{ ReplSize: 0, Compressed: true },
+		{ ReplSize: 0, Compressed: true, ShardingKey: { a: 1, b: 1 }, ShardingType: "hash", Partition: 16 },
+		{ ReplSize: 0, Compressed: true, ShardingKey: { a: 1, b: 1 }, ShardingType: "range" },
+		{ ReplSize: 0, Compressed: true, ShardingKey: { a: 1, b: 1 }, ShardingType: "hash", Partition: 16 }
+	];
+
+	//create subcl
+	commCreateCLByOption( db, COMMCSNAME, subClNames[0], subCLOptions[0], true, true );
+	commCreateCLByOption( db, COMMCSNAME, subClNames[1], subCLOptions[1], true, true );
 	commCreateCLByOption( db, COMMCSNAME, subClNames[2], subCLOptions[2], true, true );
 	commCreateCLByOption( db, COMMCSNAME, subClNames[3], subCLOptions[3], true, true );
-	
-   //attach subcl
-   attachCL( mainCl, COMMCSNAME +"."+ subClNames[0], { LowBound:{a:0,b:400,c:0},     UpBound:{a:100,b:300,c:100} } );
-   attachCL( mainCl, COMMCSNAME +"."+ subClNames[1], { LowBound:{a:100,b:300,c:100}, UpBound:{a:200,b:200,c:200} } );
-   attachCL( mainCl, COMMCSNAME +"."+ subClNames[2], { LowBound:{a:200,b:200,c:200}, UpBound:{a:300,b:100,c:300} } );
-   attachCL( mainCl, COMMCSNAME +"."+ subClNames[3], { LowBound:{a:300,b:100,c:300}, UpBound:{a:400,b:0,c:400} } );
-   
+
+	//attach subcl
+	attachCL( mainCl, COMMCSNAME + "." + subClNames[0], { LowBound: { a: 0, b: 400, c: 0 }, UpBound: { a: 100, b: 300, c: 100 } } );
+	attachCL( mainCl, COMMCSNAME + "." + subClNames[1], { LowBound: { a: 100, b: 300, c: 100 }, UpBound: { a: 200, b: 200, c: 200 } } );
+	attachCL( mainCl, COMMCSNAME + "." + subClNames[2], { LowBound: { a: 200, b: 200, c: 200 }, UpBound: { a: 300, b: 100, c: 300 } } );
+	attachCL( mainCl, COMMCSNAME + "." + subClNames[3], { LowBound: { a: 300, b: 100, c: 300 }, UpBound: { a: 400, b: 0, c: 400 } } );
+
 	//init data
 	try 
 	{
 		var aVal;
 		var bVal;
 		var cVal;
-		for (var i = 0; i < 1000; i++) 
+		for( var i = 0; i < 1000; i++ ) 
 		{
 			//添加混乱的数据
-			aVal = parseInt(Math.random()*1000+1)%400+1;
-			bVal = parseInt(Math.random()*1000+1)%400+1;
-			cVal = parseInt((aVal+bVal)/2);
-			data.push( { a:aVal,b:bVal,c:cVal,d:i } );
+			aVal = parseInt( Math.random() * 1000 + 1 ) % 400 + 1;
+			bVal = parseInt( Math.random() * 1000 + 1 ) % 400 + 1;
+			cVal = parseInt( ( aVal + bVal ) / 2 );
+			data.push( { a: aVal, b: bVal, c: cVal, d: i } );
 		}
-		
-		mainCl.insert(data);
-		
+
+		mainCl.insert( data );
+
 		//split
-		ClSplitOneTimes( COMMCSNAME, subClNames[1], 50, null ); 
-		ClSplitOneTimes( COMMCSNAME, subClNames[2], 50, null ); 
-		ClSplitOneTimes( COMMCSNAME, subClNames[3], 50, null ); 
-	} 
-	catch(e) 
+		ClSplitOneTimes( COMMCSNAME, subClNames[1], 50, null );
+		ClSplitOneTimes( COMMCSNAME, subClNames[2], 50, null );
+		ClSplitOneTimes( COMMCSNAME, subClNames[3], 50, null );
+	}
+	catch( e ) 
 	{
-		throw buildException("failed to init 1000 records data for mainCl",e);				
+		throw buildException( "failed to init 1000 records data for mainCl", e );
 	}
 
 	var flag = true;//定义一个标识，用于判断对错
 	/**=查询所有数据并排序，排序字段包含所有分区键=*/
 	//正序 and 逆序
-	var sortOptions = {a:1,b:-1,c:1};
-	var cursor = mainCl.find().sort(sortOptions);
-	if (cursor.count() != data.length) 
+	var sortOptions = { a: 1, b: -1, c: 1 };
+	var cursor = mainCl.find().sort( sortOptions );
+	if( cursor.count() != data.length ) 
 	{
 		flag = false;
- 	} 
- 	else 
-   {
-   	var compareObj = cursor.next().toObj();
-   	for (var i = 1; i < cursor.count(); i++) 
-   	{
-   		var toCompareObj = cursor.next().toObj();	
-   		if (compareJSONObj(compareObj,toCompareObj,sortOptions) < 0 ) 
-   		{
-   			flag = false;
-   			break;
-   		}
-   		compareObj = toCompareObj;
-   	}
-   }
-	
-	if (!flag) 
+	}
+	else 
 	{
-		println("soryByIncludeAllSK ERROR");
-		throw buildException( "soryByIncludeAllSK", new Error(), "query all and sort by "+JSON.stringify(sortOptions) , "sort by "+JSON.stringify(sortOptions)+" is true", "sort by "+JSON.stringify(sortOptions)+" is false" ) ;
+		var compareObj = cursor.next().toObj();
+		for( var i = 1; i < cursor.count(); i++ ) 
+		{
+			var toCompareObj = cursor.next().toObj();
+			if( compareJSONObj( compareObj, toCompareObj, sortOptions ) < 0 ) 
+			{
+				flag = false;
+				break;
+			}
+			compareObj = toCompareObj;
+		}
+	}
+
+	if( !flag ) 
+	{
+		println( "soryByIncludeAllSK ERROR" );
+		throw buildException( "soryByIncludeAllSK", new Error(), "query all and sort by " + JSON.stringify( sortOptions ), "sort by " + JSON.stringify( sortOptions ) + " is true", "sort by " + JSON.stringify( sortOptions ) + " is false" );
 	}
 
 	/**=查询所有数据并排序，排序字段包含部分分区键=*/
 	//正序 and 逆序
-	var sortOptions = {a:1,c:-1};
-	var cursor = mainCl.find().sort(sortOptions);
-	if (cursor.count() != data.length) 
+	var sortOptions = { a: 1, c: -1 };
+	var cursor = mainCl.find().sort( sortOptions );
+	if( cursor.count() != data.length ) 
 	{
 		flag = false;
- 	} 
- 	else 
-   {
- 		var compareObj = cursor.next().toObj();
- 		for (var i = 1; i < cursor.count(); i++) {
- 			var toCompareObj = cursor.next().toObj();	
- 			if (compareJSONObj(compareObj,toCompareObj,sortOptions) < 0 ) {
- 				flag = false;
- 				break;
- 			}
- 			compareObj = toCompareObj;
- 		}
 	}
-	
-	if (!flag) 
+	else 
 	{
-		println("soryByIncludeSomeSK ERROR");
-		throw buildException( "soryByIncludeSomeSK", new Error(), "query all and sort by "+JSON.stringify(sortOptions) , "sort by "+JSON.stringify(sortOptions)+" is true", "sort by "+JSON.stringify(sortOptions)+" is false" ) ;
-	}	
- 
- 	/**=查询所有数据并排序，排序字段不包含分区键=*/
- 	//正序
-	var sortOptions = {d:1};
-	var cursor = mainCl.find().sort(sortOptions);
+		var compareObj = cursor.next().toObj();
+		for( var i = 1; i < cursor.count(); i++ )
+		{
+			var toCompareObj = cursor.next().toObj();
+			if( compareJSONObj( compareObj, toCompareObj, sortOptions ) < 0 )
+			{
+				flag = false;
+				break;
+			}
+			compareObj = toCompareObj;
+		}
+	}
+
+	if( !flag ) 
+	{
+		println( "soryByIncludeSomeSK ERROR" );
+		throw buildException( "soryByIncludeSomeSK", new Error(), "query all and sort by " + JSON.stringify( sortOptions ), "sort by " + JSON.stringify( sortOptions ) + " is true", "sort by " + JSON.stringify( sortOptions ) + " is false" );
+	}
+
+	/**=查询所有数据并排序，排序字段不包含分区键=*/
+	//正序
+	var sortOptions = { d: 1 };
+	var cursor = mainCl.find().sort( sortOptions );
 	var flag = true;
-	if (cursor.count() != data.length)
+	if( cursor.count() != data.length )
 	{
 		flag = false;
- 	} 
- 	else 
-   {
- 		var compareObj = cursor.next().toObj();
- 		for (var i = 1; i < cursor.count(); i++) {
- 			var toCompareObj = cursor.next().toObj();	
- 			if (compareJSONObj(compareObj,toCompareObj,sortOptions) < 0 ) 
- 			{
- 				flag = false;
- 				break;
- 			}
- 			compareObj = toCompareObj;
- 		}
 	}
-	
-	if (!flag) 
+	else 
 	{
-		println("sortByNotIncludeSK ERROR");
-		throw buildException( "sortByNotIncludeSK", new Error(), "query all and sort by "+JSON.stringify(sortOptions) , "sort by "+JSON.stringify(sortOptions)+" is true", "sort by "+JSON.stringify(sortOptions)+" is false" ) ;
+		var compareObj = cursor.next().toObj();
+		for( var i = 1; i < cursor.count(); i++ )
+		{
+			var toCompareObj = cursor.next().toObj();
+			if( compareJSONObj( compareObj, toCompareObj, sortOptions ) < 0 ) 
+			{
+				flag = false;
+				break;
+			}
+			compareObj = toCompareObj;
+		}
+	}
+
+	if( !flag ) 
+	{
+		println( "sortByNotIncludeSK ERROR" );
+		throw buildException( "sortByNotIncludeSK", new Error(), "query all and sort by " + JSON.stringify( sortOptions ), "sort by " + JSON.stringify( sortOptions ) + " is true", "sort by " + JSON.stringify( sortOptions ) + " is false" );
 	}
 
 	//逆序
-	var sortOptions = {d:-1};
-	var cursor = mainCl.find().sort(sortOptions);
-	if (cursor.count() != data.length) 
+	var sortOptions = { d: -1 };
+	var cursor = mainCl.find().sort( sortOptions );
+	if( cursor.count() != data.length ) 
 	{
 		flag = false;
- 	} 
- 	else 
-   {
- 		var compareObj = cursor.next().toObj();
- 		for (var i = 1; i < cursor.count(); i++) 
- 		{
- 			var toCompareObj = cursor.next().toObj();	
- 			if (compareJSONObj(compareObj,toCompareObj,sortOptions) < 0 ) 
- 			{
- 				flag = false;
- 				break;
- 			}
- 			compareObj = toCompareObj;
- 		}
 	}
-	
-	if (!flag) 
+	else 
 	{
-		println("sortByNotIncludeSK ERROR");
-		throw buildException( "sortByNotIncludeSK", new Error(), "query all and sort by "+JSON.stringify(sortOptions) , "sort by "+JSON.stringify(sortOptions)+" is true", "sort by "+JSON.stringify(sortOptions)+" is false" ) ;
+		var compareObj = cursor.next().toObj();
+		for( var i = 1; i < cursor.count(); i++ ) 
+		{
+			var toCompareObj = cursor.next().toObj();
+			if( compareJSONObj( compareObj, toCompareObj, sortOptions ) < 0 ) 
+			{
+				flag = false;
+				break;
+			}
+			compareObj = toCompareObj;
+		}
+	}
+
+	if( !flag ) 
+	{
+		println( "sortByNotIncludeSK ERROR" );
+		throw buildException( "sortByNotIncludeSK", new Error(), "query all and sort by " + JSON.stringify( sortOptions ), "sort by " + JSON.stringify( sortOptions ) + " is true", "sort by " + JSON.stringify( sortOptions ) + " is false" );
 	}
 
 	//drop subcl and maincl

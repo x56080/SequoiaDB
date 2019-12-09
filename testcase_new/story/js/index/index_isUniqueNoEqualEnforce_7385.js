@@ -11,7 +11,7 @@
 *@Input: cl.createIndex( indexName, {a:1}, false, true )
 *@Expectation: 创建索引失败，报-6错误【Invalid Argument】
 ********************************************************************************/
-function testIsUniqueFalse( cl, indexName )
+function testIsUniqueFalse ( cl, indexName )
 {
    try
    {
@@ -21,7 +21,7 @@ function testIsUniqueFalse( cl, indexName )
       // verify ("indexName", {a:1}, false, true)
       try
       {
-         cl.createIndex( indexName, {a:1}, false, true );
+         cl.createIndex( indexName, { a: 1 }, false, true );
          throw "create index should throw error";
       }
       catch( e )
@@ -46,16 +46,16 @@ function testIsUniqueFalse( cl, indexName )
 *@Input: cl.createIndex( indexName, {a:1}, false, true )
 *@Expectation: 创建索引成功. 且表中不可存在相同的记录
 ********************************************************************************/
-function testIsUniqueEnforced( cl, indexName )
+function testIsUniqueEnforced ( cl, indexName )
 {
    try
    {
       if( undefined == cl ) { throw "no collection handle"; }
       if( undefined == indexName ) { throw "no index name"; }
       var funcName = "testIsUniqueEnforced";
-      cl.createIndex( indexName, {a:1}, true, true );
-      var query = cl.find({a:{$lt:10}}).hint({'':''}).explain({Run: true}).toArray();
-      var queryObj = eval( "(" + query[0] + ")");
+      cl.createIndex( indexName, { a: 1 }, true, true );
+      var query = cl.find( { a: { $lt: 10 } } ).hint( { '': '' } ).explain( { Run: true } ).toArray();
+      var queryObj = eval( "(" + query[0] + ")" );
       if( "ixscan" != queryObj["ScanType"] || 2 != queryObj["ReturnNum"] )
       {
          println( "explain query: " + query );
@@ -64,7 +64,7 @@ function testIsUniqueEnforced( cl, indexName )
       // verify ("indexName", {a:1}, true, true)
       try
       {
-         cl.insert({a:-5});
+         cl.insert( { a: -5 } );
          throw "should not insert data success, need throw error";
       }
       catch( e )
@@ -83,7 +83,7 @@ function testIsUniqueEnforced( cl, indexName )
    }
 }
 
-function main()
+function main ()
 {
    try
    {
@@ -91,11 +91,11 @@ function main()
       var indexName1 = CHANGEDPREFIX + "_indexName1";
       var indexName2 = CHANGEDPREFIX + "_indexName2";
       commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-                  "drop collection begin" );
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true,false,
-                             "failed create collection in the beginning" );
-      cl.insert({a:3});
-      cl.insert({a:-5});
+         "drop collection begin" );
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+         "failed create collection in the beginning" );
+      cl.insert( { a: 3 } );
+      cl.insert( { a: -5 } );
       commDropIndex( cl, indexName1, true );
       commDropIndex( cl, indexName2, true );
       testIsUniqueFalse( cl, indexName1 );
@@ -108,7 +108,7 @@ function main()
    finally
    {
       commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-                  "drop collection end " );
+         "drop collection end " );
    }
 }
 

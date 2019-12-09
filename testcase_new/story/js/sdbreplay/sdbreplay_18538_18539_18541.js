@@ -6,42 +6,42 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    var clName;
    var rtCmd;
-   
+
    try
-   {  
-      if ( commIsStandalone( db ) )
+   {
+      if( commIsStandalone( db ) )
       {
-         println("\nThe mode is standalone.");
+         println( "\nThe mode is standalone." );
          return;
       }
-      
+
       var groupNames = getDataGroupNames();
-      var groupName  = groupNames[ getRandomInt(0, groupNames.length) ];    
+      var groupName = groupNames[getRandomInt( 0, groupNames.length )];
       var csName = COMMCSNAME;
-      clName = "cl18538_" + getRandomInt(0, 100);
-      
+      clName = "cl18538_" + getRandomInt( 0, 100 );
+
       rtCmd = getRemoteCmd( groupName );
       initTmpDir( rtCmd );
-      
+
       // ready cl data
       var cl = readyCL( csName, clName, { Group: groupName } );
-      cl.insert({t:1});
-      cl.update({$inc:{t:2}});
-      cl.remove(); 
-      
+      cl.insert( { t: 1 } );
+      cl.update( { $inc: { t: 2 } } );
+      cl.remove();
+
       // ready outputconf for sdbreplay
       var tmpConfName = "sdbreplay_18538.conf";
       getOutputConfFile( groupName, csName, clName, tmpConfName );
       configOutputConfFile( rtCmd, groupName, csName, clName );
       // replay
-      var clNameArr = [ csName + "." + clName ];
-      var confPath = tmpFileDir + csName+ "." + clName + ".conf";
+      var clNameArr = [csName + "." + clName];
+      var confPath = tmpFileDir + csName + "." + clName + ".conf";
       execSdbReplay( rtCmd, groupName, clNameArr, "replica", confPath );
-      
+
       // check results
       var expDataArr = [
          '"I",""," ","-2147483648","2147483647","-9223372036854775808","9223372036854775807","1902-01-01-00.00.00.000000","2037-12-31-23.59.59.999999"',
@@ -49,25 +49,25 @@ function main()
          '"A",""," ","-2147483648","2147483647","-9223372036854775808","9223372036854775807","1902-01-01-00.00.00.000000","2037-12-31-23.59.59.999999"',
          '"D",""," ","-2147483648","2147483647","-9223372036854775808","9223372036854775807","1902-01-01-00.00.00.000000","2037-12-31-23.59.59.999999"'];
       checkCsvFile( rtCmd, clName, expDataArr );
-            
+
       // clean env
       cleanCL( csName, clName );
       cleanFile( rtCmd );
    }
-   catch(e)
+   catch( e )
    {
       backupFile( rtCmd, clName );
       throw e;
    }
 }
 
-function configOutputConfFile( rtCmd, groupName, csName, clName )
+function configOutputConfFile ( rtCmd, groupName, csName, clName )
 {
-   println("\n---Begin to config outputconf."); 
-   var fullCLName = csName + "." + clName;   
+   println( "\n---Begin to config outputconf." );
+   var fullCLName = csName + "." + clName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
-   
-   rtCmd.run( "sed -i 's/filePrefix_ori/test_"   + groupName  + "/g' " + targetConfPath );   
-   rtCmd.run( "sed -i 's/source_fullCLName_ori/" + fullCLName + "/g' "  + targetConfPath );
+
+   rtCmd.run( "sed -i 's/filePrefix_ori/test_" + groupName + "/g' " + targetConfPath );
+   rtCmd.run( "sed -i 's/source_fullCLName_ori/" + fullCLName + "/g' " + targetConfPath );
    rtCmd.run( "sed -i 's/target_fullCLName_ori/" + fullCLName + "_new/g' " + targetConfPath );
 }

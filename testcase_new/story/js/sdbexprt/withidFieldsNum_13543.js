@@ -7,114 +7,114 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME ;
+var csname = COMMCSNAME;
 
-main() ;
+main();
 
-function main()
+function main ()
 {
-   testWithIdCsv() ;
-   testWithIdJson() ;
+   testWithIdCsv();
+   testWithIdJson();
 }
 
-function testWithIdCsv()
+function testWithIdCsv ()
 {
-   var clname = COMMCLNAME + "_sdbexprt13544" ;
-   var clname1 = COMMCLNAME + "_sdbimprt13544" ;
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
-   cl.insert( { _id: 1, a: 1 } ) ;
-   cl.insert( { _id: 2, a: 2, b: 1 } ) ;
-   cl.insert( { _id: 3, a: 3, b: 2, c: 1 } ) ;
-   
-   var csvfile = workDir + "sdbexprt13544.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ; 
-   
+   var clname = COMMCLNAME + "_sdbexprt13544";
+   var clname1 = COMMCLNAME + "_sdbimprt13544";
+   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl1 = commCreateCL( db, csname, clname1, 0 );
+   cl.insert( { _id: 1, a: 1 } );
+   cl.insert( { _id: 2, a: 2, b: 1 } );
+   cl.insert( { _id: 3, a: 3, b: 2, c: 1 } );
+
+   var csvfile = workDir + "sdbexprt13544.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME + 
-                 " -c " + csname +
-                 " -l " + clname +
-                 " --file " + csvfile +
-                 " --type csv" +
-                 " --withid true" +
-                 " --sort '{ _id: 1 }'" +
-                 " --force true" ;
-   testRunCommand( command ) ;
-   
-   var content = "_id,a\n1,1\n2,2\n3,3\n" ;
-   checkFileContent( csvfile, content ) ;
-   
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --type csv" +
+      " --withid true" +
+      " --sort '{ _id: 1 }'" +
+      " --force true";
+   testRunCommand( command );
+
+   var content = "_id,a\n1,1\n2,2\n3,3\n";
+   checkFileContent( csvfile, content );
+
    command = installPath + "bin/sdbimprt" +
-             " -s " + COORDHOSTNAME +
-             " -p " + COORDSVCNAME +
-             " -c " + csname +
-             " -l " + clname1 +
-             " --file " + csvfile +
-             " --type csv " +
-             " --fields='_id int,a int'" +
-             " --headerline true" ;
-   testRunCommand( command ) ;
-   
-   var expRecs = [ "{\"_id\":1,\"a\":1}",
-                   "{\"_id\":2,\"a\":2}",
-                   "{\"_id\":3,\"a\":3}" ] ;
-   var cursor = cl1.find() ;
-   var actRecs = getRecords( cursor ) ;
-   checkRecords( expRecs, actRecs ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
-   commDropCL( db, csname, clname ) ;
-   commDropCL( db, csname, clname1 ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname1 +
+      " --file " + csvfile +
+      " --type csv " +
+      " --fields='_id int,a int'" +
+      " --headerline true";
+   testRunCommand( command );
+
+   var expRecs = ["{\"_id\":1,\"a\":1}",
+      "{\"_id\":2,\"a\":2}",
+      "{\"_id\":3,\"a\":3}"];
+   var cursor = cl1.find();
+   var actRecs = getRecords( cursor );
+   checkRecords( expRecs, actRecs );
+
+   cmd.run( "rm -rf " + csvfile );
+   commDropCL( db, csname, clname );
+   commDropCL( db, csname, clname1 );
 }
 
-function testWithIdJson()
+function testWithIdJson ()
 {
-   var clname = COMMCLNAME + "_sdbexprt13543" ;
-   var clname1 = COMMCLNAME + "_sdbimprt13543" ;
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
-   cl.insert( { _id: 1, a: 1 } ) ;
-   cl.insert( { _id: 2, a: 2, b: 1 } ) ;
-   cl.insert( { _id: 3, a: 3, b: 2, c: 1 } ) ;
-   
-   var jsonfile = workDir + "sdbexprt13543.json" ;
-   cmd.run( "rm -rf " + jsonfile ) ; 
-   
+   var clname = COMMCLNAME + "_sdbexprt13543";
+   var clname1 = COMMCLNAME + "_sdbimprt13543";
+   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl1 = commCreateCL( db, csname, clname1, 0 );
+   cl.insert( { _id: 1, a: 1 } );
+   cl.insert( { _id: 2, a: 2, b: 1 } );
+   cl.insert( { _id: 3, a: 3, b: 2, c: 1 } );
+
+   var jsonfile = workDir + "sdbexprt13543.json";
+   cmd.run( "rm -rf " + jsonfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME + 
-                 " -c " + csname +
-                 " -l " + clname +
-                 " --file " + jsonfile +
-                 " --type json" +
-                 " --withid true" +
-                 " --sort '{ _id: 1 }'" +
-                 " --force true" ;
-   testRunCommand( command ) ;
-   
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + jsonfile +
+      " --type json" +
+      " --withid true" +
+      " --sort '{ _id: 1 }'" +
+      " --force true";
+   testRunCommand( command );
+
    var content = "{ \"_id\": 1, \"a\": 1 }\n" +
-                 "{ \"_id\": 2, \"a\": 2, \"b\": 1 }\n" +
-                 "{ \"_id\": 3, \"a\": 3, \"b\": 2, \"c\": 1 }\n" ;
-   checkFileContent( jsonfile, content ) ;
-   
+      "{ \"_id\": 2, \"a\": 2, \"b\": 1 }\n" +
+      "{ \"_id\": 3, \"a\": 3, \"b\": 2, \"c\": 1 }\n";
+   checkFileContent( jsonfile, content );
+
    command = installPath + "bin/sdbimprt" +
-             " -s " + COORDHOSTNAME +
-             " -p " + COORDSVCNAME +
-             " -c " + csname +
-             " -l " + clname1 +
-             " --file " + jsonfile +
-             " --type json" ;
-   testRunCommand( command ) ;
-   
-   var expRecs = [ "{\"_id\":1,\"a\":1}",
-                   "{\"_id\":2,\"a\":2,\"b\":1}",
-                   "{\"_id\":3,\"a\":3,\"b\":2,\"c\":1}" ] ;
-   var cursor = cl1.find() ;
-   var actRecs = getRecords( cursor ) ;
-   checkRecords( expRecs, actRecs ) ;
-   
-   cmd.run( "rm -rf " + jsonfile ) ;
-   commDropCL( db, csname, clname ) ;
-   commDropCL( db, csname, clname1 ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname1 +
+      " --file " + jsonfile +
+      " --type json";
+   testRunCommand( command );
+
+   var expRecs = ["{\"_id\":1,\"a\":1}",
+      "{\"_id\":2,\"a\":2,\"b\":1}",
+      "{\"_id\":3,\"a\":3,\"b\":2,\"c\":1}"];
+   var cursor = cl1.find();
+   var actRecs = getRecords( cursor );
+   checkRecords( expRecs, actRecs );
+
+   cmd.run( "rm -rf " + jsonfile );
+   commDropCL( db, csname, clname );
+   commDropCL( db, csname, clname1 );
 }

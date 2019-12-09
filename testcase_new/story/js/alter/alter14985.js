@@ -5,34 +5,34 @@
 *@testlinkCase:seqDB-14985
 **************************************/
 
-main(); 
+main();
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ); 
-      return; 
+      println( "Run mode is standalone" );
+      return;
    }
-   println( "---begin test---" ); 
-   var csName = COMMCSNAME; 
-   var clName = CHANGEDPREFIX + "_14985"; 
-   
-   var cl = commCreateCL( db, csName, clName, 1, false, true, false, "create CL in the begin" ); 
-   
+   println( "---begin test---" );
+   var csName = COMMCSNAME;
+   var clName = CHANGEDPREFIX + "_14985";
+
+   var cl = commCreateCL( db, csName, clName, 1, false, true, false, "create CL in the begin" );
+
    //alter cl attribute
-   println( "---test alter Size---" ); 
-   clSetAttributes( cl, { Size: 32 } ); 
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "Size", undefined ); 
-   
-   println( "---test alter Max---" ); 
-   clSetAttributes( cl, { Max: 1000} ); 
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "Max", undefined ); 
-   
-   println( "---test alter OverWrite---" ); 
-   clSetAttributes( cl, { OverWrite: true} ); 
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "OverWrite", undefined ); 
-   
-   commDropCL( db, csName, clName, true, false, "clean cl" ); 
-   println( "---end the test---" ); 
+   println( "---test alter Size---" );
+   clSetAttributes( cl, { Size: 32 } );
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "Size", undefined );
+
+   println( "---test alter Max---" );
+   clSetAttributes( cl, { Max: 1000 } );
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "Max", undefined );
+
+   println( "---test alter OverWrite---" );
+   clSetAttributes( cl, { OverWrite: true } );
+   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "OverWrite", undefined );
+
+   commDropCL( db, csName, clName, true, false, "clean cl" );
+   println( "---end the test---" );
 }

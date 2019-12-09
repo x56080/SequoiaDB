@@ -19,34 +19,41 @@
 // [备注：用例并行跑]
 
 main();
-function main() {
-    if (commIsStandalone(db)) return;
+function main ()
+{
+    if( commIsStandalone( db ) ) return;
 
     // TODO 2.a: force 一个集群中不存在sessionid
     var sessionId = 1000000000;
-    try {
-        db.forceSession(sessionId);
-        throw new Error(0);
-    } catch (e) {
-        if (e !== -62) {
-            println("exception is => " + e);
-            throw buildException("TODO 2.a: db.forceSession(sessionId)", e, "force session by session=" + sessionId, "forceSession fail and throw exception=-62", "forceSession success or fail but throw exception!=-62");
+    try
+    {
+        db.forceSession( sessionId );
+        throw new Error( 0 );
+    } catch( e )
+    {
+        if( e !== -62 )
+        {
+            println( "exception is => " + e );
+            throw buildException( "TODO 2.a: db.forceSession(sessionId)", e, "force session by session=" + sessionId, "forceSession fail and throw exception=-62", "forceSession success or fail but throw exception!=-62" );
         }
     }
 
     // TODO 2.b： force 一个集群中存在的sessionid，但是options不存在
-    var sessionList = db.list(SDB_LIST_SESSIONS, {
-        Status: {$ne: "Waiting"},
-        Type: {$nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"]}
-    }).toArray();
-    var sessionId = JSON.parse(sessionList[Math.ceil(Math.random() * 1000) % sessionList.length]).SessionID;
-    try {
-        db.forceSession(sessionId, {HostName: "sdbserver01", svcname: "21810"});
-        throw new Error(0);
-    } catch (e) {
-        if (e !== -155) {
-            println("exception is => " + e);
-            throw buildException("TODO 2.b: db.forceSession(sessionId)", e, "force session by options and session=" + sessionId, "forceSession fail and throw exception=-155", "forceSession success or fail but throw exception!=-155");
+    var sessionList = db.list( SDB_LIST_SESSIONS, {
+        Status: { $ne: "Waiting" },
+        Type: { $nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"] }
+    } ).toArray();
+    var sessionId = JSON.parse( sessionList[Math.ceil( Math.random() * 1000 ) % sessionList.length] ).SessionID;
+    try
+    {
+        db.forceSession( sessionId, { HostName: "sdbserver01", svcname: "21810" } );
+        throw new Error( 0 );
+    } catch( e )
+    {
+        if( e !== -155 )
+        {
+            println( "exception is => " + e );
+            throw buildException( "TODO 2.b: db.forceSession(sessionId)", e, "force session by options and session=" + sessionId, "forceSession fail and throw exception=-155", "forceSession success or fail but throw exception!=-155" );
         }
     }
 }

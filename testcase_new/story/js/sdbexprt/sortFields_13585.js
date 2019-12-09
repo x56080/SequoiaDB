@@ -4,110 +4,110 @@
 * @author      : Liang XueWang
 * 
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13585" ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13585";
 
-main() ;
+main();
 
-function main()
-{  
-   var docs = [ { a: 1, b: 1 }, { a: 1, b: 2 }, 
-                { a: 3 }, { a: 2 }, { a: 4 } ] ;
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   cl.insert( docs ) ;
-   
-   testExprtSort1() ;    // test sort with { a: 1, b: 1 }
-   testExprtSort2() ;    // test sort with { a: -1, b: 1 }
-   testExprtSort3() ;    // test sort with { a: 1, b: -1 }
-   testExprtSort4() ;    // test sort with { a: -1, b: -1 }
-   
-   commDropCL( db, csname, clname ) ;
+function main ()
+{
+   var docs = [{ a: 1, b: 1 }, { a: 1, b: 2 },
+   { a: 3 }, { a: 2 }, { a: 4 }];
+   var cl = commCreateCL( db, csname, clname, 0 );
+   cl.insert( docs );
+
+   testExprtSort1();    // test sort with { a: 1, b: 1 }
+   testExprtSort2();    // test sort with { a: -1, b: 1 }
+   testExprtSort3();    // test sort with { a: 1, b: -1 }
+   testExprtSort4();    // test sort with { a: -1, b: -1 }
+
+   commDropCL( db, csname, clname );
 }
 
-function testExprtSort1()
+function testExprtSort1 ()
 {
-   var csvfile = workDir + "sdbexprt13585.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13585.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --sort '{ a: 1, b: 1 }'" +
-                 " --fields a,b" +
-                 " --type csv" ;                
-   testRunCommand( command ) ;
-   
-   var content = "a,b\n1,1\n1,2\n2,\n3,\n4,\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --sort '{ a: 1, b: 1 }'" +
+      " --fields a,b" +
+      " --type csv";
+   testRunCommand( command );
+
+   var content = "a,b\n1,1\n1,2\n2,\n3,\n4,\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtSort2()
+function testExprtSort2 ()
 {
-   var csvfile = workDir + "sdbexprt13585.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13585.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --sort '{ a: -1, b: 1 }'" +
-                 " --fields a,b" +
-                 " --type csv" ;                
-   testRunCommand( command ) ;
-   
-   var content = "a,b\n4,\n3,\n2,\n1,1\n1,2\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --sort '{ a: -1, b: 1 }'" +
+      " --fields a,b" +
+      " --type csv";
+   testRunCommand( command );
+
+   var content = "a,b\n4,\n3,\n2,\n1,1\n1,2\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtSort3()
+function testExprtSort3 ()
 {
-   var csvfile = workDir + "sdbexprt13585.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13585.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --sort '{ a: 1, b: -1 }'" +
-                 " --fields a,b" +
-                 " --type csv" ;                
-   testRunCommand( command ) ;
-   
-   var content = "a,b\n1,2\n1,1\n2,\n3,\n4,\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --sort '{ a: 1, b: -1 }'" +
+      " --fields a,b" +
+      " --type csv";
+   testRunCommand( command );
+
+   var content = "a,b\n1,2\n1,1\n2,\n3,\n4,\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtSort4()
+function testExprtSort4 ()
 {
-   var csvfile = workDir + "sdbexprt13585.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13585.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --sort '{ a: -1, b: -1 }'" +
-                 " --fields a,b" +
-                 " --type csv" ;                
-   testRunCommand( command ) ;
-   
-   var content = "a,b\n4,\n3,\n2,\n1,2\n1,1\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --sort '{ a: -1, b: -1 }'" +
+      " --fields a,b" +
+      " --type csv";
+   testRunCommand( command );
+
+   var content = "a,b\n4,\n3,\n2,\n1,2\n1,1\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + csvfile );
 }

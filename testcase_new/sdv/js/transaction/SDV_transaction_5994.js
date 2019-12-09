@@ -1,40 +1,40 @@
 /* *****************************************************************************
-@discretion: Ö´ÐÐÊý¾Ý¸üÐÂ/É¾³ý²Ù×÷£¬Ìá½»ÊÂÎñ
-@author£º2015-11-18 wuyan  Init
+@discretion: Ö´ï¿½ï¿½ï¿½ï¿½ï¿½Ý¸ï¿½ï¿½ï¿½/É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á½»ï¿½ï¿½ï¿½ï¿½
+@authorï¿½ï¿½2015-11-18 wuyan  Init
 ***************************************************************************** */
 
 main();
-function main()
-{		
-	try
-	{
-	   var clName = CHANGEDPREFIX + "_transaction5994";
+function main ()
+{
+   try
+   {
+      var clName = CHANGEDPREFIX + "_transaction5994";
       if( !commIsTransEnabled( db ) )
       {
-         println( "transaction is disabled" ) ;   
+         println( "transaction is disabled" );
       }
 
-      var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true ) ; 
-      var dataNum = 1000; 
-      var insert = new insertData( cl, dataNum ); 
-       //update data,then commmit transaction
-      var update = new updateData ( cl ); 
-      execTransaction(insert,beginTrans,update,commitTrans);
-      checkResult( cl, true, update ); 
-      
+      var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true );
+      var dataNum = 1000;
+      var insert = new insertData( cl, dataNum );
+      //update data,then commmit transaction
+      var update = new updateData( cl );
+      execTransaction( insert, beginTrans, update, commitTrans );
+      checkResult( cl, true, update );
+
       //remove data and left some datas,then commit transaction
       var removeNum = 88;
-      var remove = new removeData( cl , removeNum );
-      execTransaction(beginTrans,remove,commitTrans);
-      checkResult( cl, true, remove );       
-        
-	   //@ clean end
-		commDropCL( db, COMMCSNAME, clName, false, false,"drop CL in the beginning" );
+      var remove = new removeData( cl, removeNum );
+      execTransaction( beginTrans, remove, commitTrans );
+      checkResult( cl, true, remove );
+
+      //@ clean end
+      commDropCL( db, COMMCSNAME, clName, false, false, "drop CL in the beginning" );
    }
    catch( e )
    {
       throw e;
-   }   
+   }
 }
 
 

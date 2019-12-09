@@ -4,63 +4,63 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var csName  = COMMCSNAME;
-      var clName  = COMMCLNAME+"_6178";
-      
+      var csName = COMMCSNAME;
+      var clName = COMMCLNAME + "_6178";
+
       dropCL( csName, clName, true, "Failed to drop cl in the begin." );
       createCL( csName, clName, true, true, "Failed to create cl." );
-   	
+
       insertRecs( csName, clName );
       var rc = selectRecs( csName, clName );
       checkResult( rc );
-   
+
       dropCL( csName, clName, false, "Failed to drop cl in the end." );
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( csName, clName )
+function insertRecs ( csName, clName )
 {
-   println("\n---Begin to insert records.");
-   
-   db.execUpdate( "insert into "+ csName +"."+ clName +"(a,b,c,d) values(1,1,1,1)" );
+   println( "\n---Begin to insert records." );
+
+   db.execUpdate( "insert into " + csName + "." + clName + "(a,b,c,d) values(1,1,1,1)" );
 }
 
-function selectRecs( csName, clName )
+function selectRecs ( csName, clName )
 {
-   println("\n---Begin to select records.");
-   
-   var rc = db.exec( "select a+2, b-2, c*2, d/2 from "+ csName +"."+ clName );
+   println( "\n---Begin to select records." );
+
+   var rc = db.exec( "select a+2, b-2, c*2, d/2 from " + csName + "." + clName );
 
    return rc;
 }
 
-function checkResult( rc )
+function checkResult ( rc )
 {
-   println("\n---Begin to check result.");
-   
+   println( "\n---Begin to check result." );
+
    //compare the records
    var expA = 3;
    var expB = -1;
    var expC = 2;
    var expD = 0;
-   
+
    var actA = rc.current().toObj().a;
    var actB = rc.current().toObj().b;
    var actC = rc.current().toObj().c;
    var actD = rc.current().toObj().d;
    if( expA !== actA || expB !== actB || expC !== actC || expD !== actD )
    {
-      throw buildException("checkResult", null, "[ compare records ]", 
-                          "[a:"+ expA +",b:"+ expB +",c:"+ expC +",d:"+ expD +"]",
-                          "[a:"+ actA +",b:"+ actB +",c:"+ actC +",d:"+ actD +"]");
+      throw buildException( "checkResult", null, "[ compare records ]",
+         "[a:" + expA + ",b:" + expB + ",c:" + expC + ",d:" + expD + "]",
+         "[a:" + actA + ",b:" + actB + ",c:" + actC + ",d:" + actD + "]" );
    }
-   
+
 }

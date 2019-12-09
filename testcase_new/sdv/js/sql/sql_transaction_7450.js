@@ -11,101 +11,101 @@
 @modify list:
       2015-5-13 ShanShan Hu added  2016-3-16 XiaoNi Huang modify
 ****************************************************/
-csName = COMMCSNAME ;
-clName = CHANGEDPREFIX+"_bar" ; 
+csName = COMMCSNAME;
+clName = CHANGEDPREFIX + "_bar";
 
-function main( db )
+function main ( db )
 {
    //transaction is enable, then continue.
-   if ( commIsTransEnabled( db ) == false )
+   if( commIsTransEnabled( db ) == false )
    {
-      println( "transaction is not enabled" ) ;
-      db.close() ;
-      return ;
+      println( "transaction is not enabled" );
+      db.close();
+      return;
    }
 
-   println("------Begin to ready cl.");
+   println( "------Begin to ready cl." );
    try
    {
-   // db.execUpdate("create collection "+csName+"."+clName);
-   	commDropCL(db,csName,clName,true,true,"drop cl in begin");
-   	var opt={ReplSize:0};
-   	var varCL=commCreateCLByOption(db,csName,clName,opt,true,false,"create cl in begin");
+      // db.execUpdate("create collection "+csName+"."+clName);
+      commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+      var opt = { ReplSize: 0 };
+      var varCL = commCreateCLByOption( db, csName, clName, opt, true, false, "create cl in begin" );
    }
    catch( e )
    {
-      println("Failed to drop/create cl in the begin.");
-   	throw e ;
+      println( "Failed to drop/create cl in the begin." );
+      throw e;
    }
-   
-   println("------Begin to insert into records.");
-   sqlInsertAndCheck( db, csName, clName, 20, true, true,
-                      "Insert 20 records" ) ;
-   var count = varCL.count() ;
-   println( "Query the " + varCL + "number : " + count ) ;
-   println( "CsName : " + csName + "ClName : " + clName ) ;
 
-   println("------Begin to exec [db.transBegin()].");
+   println( "------Begin to insert into records." );
+   sqlInsertAndCheck( db, csName, clName, 20, true, true,
+      "Insert 20 records" );
+   var count = varCL.count();
+   println( "Query the " + varCL + "number : " + count );
+   println( "CsName : " + csName + "ClName : " + clName );
+
+   println( "------Begin to exec [db.transBegin()]." );
    try
    {
-      db.transBegin() ;
+      db.transBegin();
    }
-   catch(e)
+   catch( e )
    {
-      println("Failed to exec [db.transBegin()].");
-      throw e ;
+      println( "Failed to exec [db.transBegin()]." );
+      throw e;
    }
-   
-   println("------Begin to exec [update] by SQL.]");
+
+   println( "------Begin to exec [update] by SQL.]" );
    try
    {
-     db.execUpdate( " update " + csName + "." + clName+
-                    " set name=\"Tom\" where age=10" ) ;
+      db.execUpdate( " update " + csName + "." + clName +
+         " set name=\"Tom\" where age=10" );
    }
-   catch(e)
+   catch( e )
    {
-     println("Failed to update the records by SQL.");
-     throw e ;
+      println( "Failed to update the records by SQL." );
+      throw e;
    }
-   
-   println("------Begin to exec [select] by SQL.]");
-   var rc ;
+
+   println( "------Begin to exec [select] by SQL.]" );
+   var rc;
    try
    {
       rc = db.exec( "select * from " + csName + "." + clName +
-                    " where name=\"Tom\"");
+         " where name=\"Tom\"" );
    }
-   catch ( e )
+   catch( e )
    {
-      println( "Failed to select the records by SQL." ) ;
-      throw e ;
+      println( "Failed to select the records by SQL." );
+      throw e;
    }
 
-   println("------Begin to check results.]");
-   if ( 1 != rc.size() )
+   println( "------Begin to check results.]" );
+   if( 1 != rc.size() )
    {
-      throw "Failed to check results." ;
+      throw "Failed to check results.";
    }
-   
-   println("------Begin to exec [db.close()].");
+
+   println( "------Begin to exec [db.close()]." );
    try
    {
-      db.close() ;
+      db.close();
    }
-   catch(e)
+   catch( e )
    {
-      println( "Failed to disconnect." ) ;
-      throw e ;
+      println( "Failed to disconnect." );
+      throw e;
    }
 
    // Whether the update operation is successful after interruption
-   var maxRollbackTime = 10 ;
-   var timeCount = 0 ;
-   
-   var rc ;
-   var size = 0 ;
+   var maxRollbackTime = 10;
+   var timeCount = 0;
 
-   println("------Begin to exec [new Sdb].");
+   var rc;
+   var size = 0;
+
+   println( "------Begin to exec [new Sdb]." );
    try
    {
       db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
@@ -116,64 +116,64 @@ function main( db )
       throw e;
    }
 
-   println("------Begin to exec [select] by SQL.]");
-   while ( true )
+   println( "------Begin to exec [select] by SQL.]" );
+   while( true )
    {
       try
       {
          rc = db.exec( "select * from " + csName + "." + clName +
-                       " where name=\"Tom\"");
-         size = rc.size() ;
-         println( "select data size: " + size ) ;
+            " where name=\"Tom\"" );
+         size = rc.size();
+         println( "select data size: " + size );
       }
-      catch ( e )
+      catch( e )
       {
-         println( "Failed to select by SQL." ) ;
-         throw e ;
+         println( "Failed to select by SQL." );
+         throw e;
       }
 
-      println("------Begin to check results.]");
-      if ( 0 != size )
+      println( "------Begin to check results.]" );
+      if( 0 != size )
       {
-         if ( timeCount < maxRollbackTime )
+         if( timeCount < maxRollbackTime )
          {
-            sleep( 1000 ) ;
+            sleep( 1000 );
             timeCount++;
-            continue ;
+            continue;
          }
-         println( "Roll back failed or time out after connect close, size: " + size ) ;
-         throw "Roll back failed or time out" ;
+         println( "Roll back failed or time out after connect close, size: " + size );
+         throw "Roll back failed or time out";
       }
       else
       {
-         break ;
+         break;
       }
    }
 
-   var count = 0 ;
+   var count = 0;
    // Clear environment
-   while ( true )
+   while( true )
    {
-       ++count ;
-	   try
-	   {
-		  db.execUpdate( "drop collection " + csName + "." + clName ) ;
-		  break ;
-	   }
-	   catch (e)
-	   {
-	      if ( e == -190 && count <= 10 )
-		  {
-		     sleep( 1000 ) ;
-		     // wait the rollback end for some seconds
-		  }
-		  else
-		  {
-		     println( "unexpected err happened when clear cl:" + e ) ;
-		     throw e ;
-          }
-	   }
+      ++count;
+      try
+      {
+         db.execUpdate( "drop collection " + csName + "." + clName );
+         break;
+      }
+      catch( e )
+      {
+         if( e == -190 && count <= 10 )
+         {
+            sleep( 1000 );
+            // wait the rollback end for some seconds
+         }
+         else
+         {
+            println( "unexpected err happened when clear cl:" + e );
+            throw e;
+         }
+      }
    }
 }
 
-main( db ) ;
+main( db );

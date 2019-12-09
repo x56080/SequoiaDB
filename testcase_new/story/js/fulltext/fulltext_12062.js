@@ -4,105 +4,107 @@
 *@createdate:  2018.11.26
 *@testlinkCase: seqDB-12062
 **************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("Deploy is standalone");
+      println( "Deploy is standalone" );
       return;
    }
-   
+
    var groups = commGetGroups( db );
-   if(groups.length < 2 )
+   if( groups.length < 2 )
    {
-      println("less than two groups");
+      println( "less than two groups" );
       return;
    }
 
    var mainCLName = COMMCLNAME + "_ES_12062_maincl";
    var subCLName1 = COMMCLNAME + "_ES_12062_subcl_1";
    var subCLName2 = COMMCLNAME + "_ES_12062_subcl_2";
-   commDropCL(db, COMMCSNAME, mainCLName, true, true);
-   commDropCL(db, COMMCSNAME, subCLName1, true, true);
-   commDropCL(db, COMMCSNAME, subCLName2, true, true);
-   
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCLName, {ShardingKey: {a : 1}, IsMainCL: true});
+   commDropCL( db, COMMCSNAME, mainCLName, true, true );
+   commDropCL( db, COMMCSNAME, subCLName1, true, true );
+   commDropCL( db, COMMCSNAME, subCLName2, true, true );
+
+   var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCLName, { ShardingKey: { a: 1 }, IsMainCL: true } );
    var subCL1 = commCreateCL( db, COMMCSNAME, subCLName1 );
-   var subCL2 = commCreateCLByOption( db, COMMCSNAME, subCLName2, {ShardingKey: {b : 1}, Group: groups[0][0]["GroupName"]});
-   subCL2.split(groups[0][0]["GroupName"], groups[1][0]["GroupName"], 50);
+   var subCL2 = commCreateCLByOption( db, COMMCSNAME, subCLName2, { ShardingKey: { b: 1 }, Group: groups[0][0]["GroupName"] } );
+   subCL2.split( groups[0][0]["GroupName"], groups[1][0]["GroupName"], 50 );
 
    // attach cl
-   mainCL.attachCL(COMMCSNAME + "." + subCLName1, {LowBound: {a: "test_12062"}, UpBound: {a: "test_12063" } });
-   mainCL.attachCL(COMMCSNAME + "." + subCLName2, {LowBound: {a: "zzz_12062"}, UpBound: {a: "zzz_12063" } });
+   mainCL.attachCL( COMMCSNAME + "." + subCLName1, { LowBound: { a: "test_12062" }, UpBound: { a: "test_12063" } } );
+   mainCL.attachCL( COMMCSNAME + "." + subCLName2, { LowBound: { a: "zzz_12062" }, UpBound: { a: "zzz_12063" } } );
    var textIndexName = "textIndex12062";
-   commCreateIndex( mainCL, textIndexName, {a: "text"});
-  
+   commCreateIndex( mainCL, textIndexName, { a: "text" } );
+
    // insert
    var objs = new Array();
-   for (var i = 0; i < 10000 ; i++){
-      objs.push({a: "test_12062 " + i, b: "testb_" + i });
+   for( var i = 0; i < 10000; i++ )
+   {
+      objs.push( { a: "test_12062 " + i, b: "testb_" + i } );
    }
-   for (var i = 0; i < 10000 ; i++){
-      objs.push({a: "zzz_12062 " + i, b: "testb_" + (10000 + i) });
+   for( var i = 0; i < 10000; i++ )
+   {
+      objs.push( { a: "zzz_12062 " + i, b: "testb_" + ( 10000 + i ) } );
    }
-   mainCL.insert(objs);
-   checkMainCLFullSyncToES(COMMCSNAME, mainCLName, textIndexName, 20000);
-   
+   mainCL.insert( objs );
+   checkMainCLFullSyncToES( COMMCSNAME, mainCLName, textIndexName, 20000 );
+
    // selector field is fulltext
    var dbOpr = new DBOperator();
-   var selector = {"a": { "$include": 1 }};
-   var actResult = dbOpr.findFromCL(mainCL, {"" : {$Text : {"query" : {"match" : {"a" : "test_12062"}}}}}, selector, null, null, null, null);
-   var expResult = dbOpr.findFromCL(mainCL, {"a" : {"$lt" : "z"}}, selector, null, null, null, null);
-   expResult.sort(compare("a"));
-   actResult.sort(compare("a"));
-   checkResult(expResult, actResult);
-   println("---check selector field is fulltext success---");
+   var selector = { "a": { "$include": 1 } };
+   var actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "a": "test_12062" } } } } }, selector, null, null, null, null );
+   var expResult = dbOpr.findFromCL( mainCL, { "a": { "$lt": "z" } }, selector, null, null, null, null );
+   expResult.sort( compare( "a" ) );
+   actResult.sort( compare( "a" ) );
+   checkResult( expResult, actResult );
+   println( "---check selector field is fulltext success---" );
 
    // selector field is non-fulltext
-   selector = {"b": { "$include": 1 }};
-   actResult = dbOpr.findFromCL(mainCL, {"" : {$Text : {"query" : {"match" : {"a" : "test_12062"}}}}}, selector, null, null, null, null);
-   expResult = dbOpr.findFromCL(mainCL, {"a" : {"$lt" : "z"}}, selector, null, null, null, null);
-   expResult.sort(compare("b"));
-   actResult.sort(compare("b"));
-   checkResult(expResult, actResult);
-   println("---check selector field is non-fulltext success---");
+   selector = { "b": { "$include": 1 } };
+   actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "a": "test_12062" } } } } }, selector, null, null, null, null );
+   expResult = dbOpr.findFromCL( mainCL, { "a": { "$lt": "z" } }, selector, null, null, null, null );
+   expResult.sort( compare( "b" ) );
+   actResult.sort( compare( "b" ) );
+   checkResult( expResult, actResult );
+   println( "---check selector field is non-fulltext success---" );
 
    // selector field is sort field
-   var sort = {"a" : 1};
-   selector = {"a": { "$include": 1 }};
-   actResult = dbOpr.findFromCL(mainCL, {"" : {$Text : {"query" : {"match" : {"a" : "zzz_12062"}}}}}, selector, sort, null, null, null);
-   expResult = dbOpr.findFromCL(mainCL, {"a" : {"$gte" : "z"}}, selector, sort, null, null, null);
-   checkResult(expResult, actResult);
-   println("---check selector field is sort field success---");
+   var sort = { "a": 1 };
+   selector = { "a": { "$include": 1 } };
+   actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "a": "zzz_12062" } } } } }, selector, sort, null, null, null );
+   expResult = dbOpr.findFromCL( mainCL, { "a": { "$gte": "z" } }, selector, sort, null, null, null );
+   checkResult( expResult, actResult );
+   println( "---check selector field is sort field success---" );
 
    // selector field is non-sort field
-   sort = {"_id" : 1};
-   selector = {"b": { "$include": 1 }};
-   actResult = dbOpr.findFromCL(mainCL, {"" : {$Text : {"query" : {"match" : {"a" : "zzz_12062"}}}}}, selector, sort, null, null, null);
-   expResult = dbOpr.findFromCL(mainCL, {"a" : {"$gte" : "z"}}, selector, sort, null, null, null);
-   checkResult(expResult, actResult);
-   println("---check selector field is non-sort field success---");
+   sort = { "_id": 1 };
+   selector = { "b": { "$include": 1 } };
+   actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "a": "zzz_12062" } } } } }, selector, sort, null, null, null );
+   expResult = dbOpr.findFromCL( mainCL, { "a": { "$gte": "z" } }, selector, sort, null, null, null );
+   checkResult( expResult, actResult );
+   println( "---check selector field is non-sort field success---" );
 
-   var esIndexNames1 = dbOpr.getESIndexNames(COMMCSNAME, subCLName1, textIndexName);
-   var esIndexNames2 = dbOpr.getESIndexNames(COMMCSNAME, subCLName2, textIndexName);
-   commDropCL(db, COMMCSNAME, subCLName1, true, true);
-   commDropCL(db, COMMCSNAME, subCLName2, true, true);
-   commDropCL(db, COMMCSNAME, mainCLName, true, true);
+   var esIndexNames1 = dbOpr.getESIndexNames( COMMCSNAME, subCLName1, textIndexName );
+   var esIndexNames2 = dbOpr.getESIndexNames( COMMCSNAME, subCLName2, textIndexName );
+   commDropCL( db, COMMCSNAME, subCLName1, true, true );
+   commDropCL( db, COMMCSNAME, subCLName2, true, true );
+   commDropCL( db, COMMCSNAME, mainCLName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames1);
-   checkIndexNotExistInES(esIndexNames2);
+   checkIndexNotExistInES( esIndexNames1 );
+   checkIndexNotExistInES( esIndexNames2 );
 }
 
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 

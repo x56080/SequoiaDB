@@ -6,7 +6,7 @@
 var com = new Cmd();                 //com.run("command");
 var info;                                    //returned information after curl command
 var errno;                                	//errno in returned information
-var infoSplit=new Array();		//split info to array 
+var infoSplit = new Array();		//split info to array 
 var str;
 /*****************************************************************
 @description:	run CURL command, to get return errno by rest	
@@ -19,24 +19,27 @@ var str;
 @modify list:	
                      2015-3-30 Ting YU init
 ******************************************************************/
-function runCurl(curlPara){
-	if(undefined == curlPara) {throw"curlPara of runCurl couldn't be undefined!";}
-	if('string'==typeof(COORDSVCNAME)){COORDSVCNAME=parseInt(COORDSVCNAME,10);}
-	if('number'!=typeof(COORDSVCNAME)){throw "COORDSVCNAME type, expect: number, actual: "+typeof(COORDSVCNAME);}
-   str="curl http://"+COORDHOSTNAME+":"+eval(COORDSVCNAME+4)+"/ -d '";
-   for(var i=0;i<curlPara.length;i++){
-		str+=curlPara[i];
-		if( i<(curlPara.length-1) ){
-	   str+="&";
-	   }
+function runCurl ( curlPara )
+{
+   if( undefined == curlPara ) { throw "curlPara of runCurl couldn't be undefined!"; }
+   if( 'string' == typeof ( COORDSVCNAME ) ) { COORDSVCNAME = parseInt( COORDSVCNAME, 10 ); }
+   if( 'number' != typeof ( COORDSVCNAME ) ) { throw "COORDSVCNAME type, expect: number, actual: " + typeof ( COORDSVCNAME ); }
+   str = "curl http://" + COORDHOSTNAME + ":" + eval( COORDSVCNAME + 4 ) + "/ -d '";
+   for( var i = 0; i < curlPara.length; i++ )
+   {
+      str += curlPara[i];
+      if( i < ( curlPara.length - 1 ) )
+      {
+         str += "&";
+      }
    }
-   str+="' 2>/dev/null";// to get curl command
-   info = com.run(str);// to get info
-//	println("command: "+str+"\n"+"return: "+info);
-   var tem = info.slice(11,18);
-   errno = parseInt(tem,10);// to get errno [int]
+   str += "' 2>/dev/null";// to get curl command
+   info = com.run( str );// to get info
+   //	println("command: "+str+"\n"+"return: "+info);
+   var tem = info.slice( 11, 18 );
+   errno = parseInt( tem, 10 );// to get errno [int]
 
-	infoSplit=info.replace(/\}\{/g,"\}\n\{").split("\n");
+   infoSplit = info.replace( /\}\{/g, "\}\n\{" ).split( "\n" );
 }
 
 /*****************************************************************
@@ -45,24 +48,27 @@ function runCurl(curlPara){
 @modify list:	
 				2017-11-22 XiaoNi Huang init 
  *****************************************************************/
-function runCurlByHttps(curlPara){
-	if(undefined == curlPara) {throw"curlPara of runCurl couldn't be undefined!";}
-	if('string'==typeof(COORDSVCNAME)){COORDSVCNAME=parseInt(COORDSVCNAME,10);}
-	if('number'!=typeof(COORDSVCNAME)){throw "COORDSVCNAME type, expect: number, actual: "+typeof(COORDSVCNAME);}
-   str="curl -k https://"+COORDHOSTNAME+":"+eval(COORDSVCNAME+4)+"/ -d '";
-   for(var i=0;i<curlPara.length;i++){
-		str+=curlPara[i];
-		if( i<(curlPara.length-1) ){
-	   str+="&";
-	   }
+function runCurlByHttps ( curlPara )
+{
+   if( undefined == curlPara ) { throw "curlPara of runCurl couldn't be undefined!"; }
+   if( 'string' == typeof ( COORDSVCNAME ) ) { COORDSVCNAME = parseInt( COORDSVCNAME, 10 ); }
+   if( 'number' != typeof ( COORDSVCNAME ) ) { throw "COORDSVCNAME type, expect: number, actual: " + typeof ( COORDSVCNAME ); }
+   str = "curl -k https://" + COORDHOSTNAME + ":" + eval( COORDSVCNAME + 4 ) + "/ -d '";
+   for( var i = 0; i < curlPara.length; i++ )
+   {
+      str += curlPara[i];
+      if( i < ( curlPara.length - 1 ) )
+      {
+         str += "&";
+      }
    }
-   str+="' 2>/dev/null";// to get curl command
-   info = com.run(str);// to get info
-//	println("command: "+str+"\n"+"return: "+info);
-   var tem = info.slice(11,18);
-   errno = parseInt(tem,10);// to get errno [int]
+   str += "' 2>/dev/null";// to get curl command
+   info = com.run( str );// to get info
+   //	println("command: "+str+"\n"+"return: "+info);
+   var tem = info.slice( 11, 18 );
+   errno = parseInt( tem, 10 );// to get errno [int]
 
-	infoSplit=info.replace(/\}\{/g,"\}\n\{").split("\n");
+   infoSplit = info.replace( /\}\{/g, "\}\n\{" ).split( "\n" );
 }
 
 /*****************************************************************
@@ -75,29 +81,37 @@ function runCurlByHttps(curlPara){
 @modify list:	
                      2015-3-30 Ting YU init
 ******************************************************************/
-function tryCatch(curlPara,throwCond,throwOutput){
-	if(undefined == curlPara) {
-		println("curlPara of tryCatch couldn't be undefined!");
-		throw "tryCatch message:"+throwOutput;}
-	if(undefined == throwCond){throwCond=[];}
-	if(undefined == throwOutput){throwOutput="";}
-   var condFlag= true;
-   try{
-      runCurl(curlPara);
-   }catch(e){
-   	println("Fail to runCurl()!");
-		println("command: "+str+"\n"+"return: "+info);
+function tryCatch ( curlPara, throwCond, throwOutput )
+{
+   if( undefined == curlPara )
+   {
+      println( "curlPara of tryCatch couldn't be undefined!" );
+      throw "tryCatch message:" + throwOutput;
+   }
+   if( undefined == throwCond ) { throwCond = []; }
+   if( undefined == throwOutput ) { throwOutput = ""; }
+   var condFlag = true;
+   try
+   {
+      runCurl( curlPara );
+   } catch( e )
+   {
+      println( "Fail to runCurl()!" );
+      println( "command: " + str + "\n" + "return: " + info );
       throw e;
    }
-   
-   try{
-      for (var i=0;i<throwCond.length;i++){   
+
+   try
+   {
+      for( var i = 0; i < throwCond.length; i++ )
+      {
          condFlag = condFlag && errno != throwCond[i];
       }
-      if ( condFlag ){ throw info; }
-   }catch(e){
-      println("tryCatch message: "+throwOutput);
-		println("command: "+str+"\n"+"return: "+info);
+      if( condFlag ) { throw info; }
+   } catch( e )
+   {
+      println( "tryCatch message: " + throwOutput );
+      println( "command: " + str + "\n" + "return: " + info );
       throw e;
    }
 }
@@ -107,29 +121,37 @@ function tryCatch(curlPara,throwCond,throwOutput){
 @modify list:	
 				2017-11-22 XiaoNi Huang init 
 ***************************************************************/
-function tryCatchByHttps(curlPara,throwCond,throwOutput){
-	if(undefined == curlPara) {
-		println("curlPara of tryCatch couldn't be undefined!");
-		throw "tryCatchByHttps message:"+throwOutput;}
-	if(undefined == throwCond){throwCond=[];}
-	if(undefined == throwOutput){throwOutput="";}
-   var condFlag= true;
-   try{
-      runCurlByHttps(curlPara);
-   }catch(e){
-   	println("Fail to runCurl()!");
-		println("command: "+str+"\n"+"return: "+info);
+function tryCatchByHttps ( curlPara, throwCond, throwOutput )
+{
+   if( undefined == curlPara )
+   {
+      println( "curlPara of tryCatch couldn't be undefined!" );
+      throw "tryCatchByHttps message:" + throwOutput;
+   }
+   if( undefined == throwCond ) { throwCond = []; }
+   if( undefined == throwOutput ) { throwOutput = ""; }
+   var condFlag = true;
+   try
+   {
+      runCurlByHttps( curlPara );
+   } catch( e )
+   {
+      println( "Fail to runCurl()!" );
+      println( "command: " + str + "\n" + "return: " + info );
       throw e;
    }
-   
-   try{
-      for (var i=0;i<throwCond.length;i++){   
+
+   try
+   {
+      for( var i = 0; i < throwCond.length; i++ )
+      {
          condFlag = condFlag && errno != throwCond[i];
       }
-      if ( condFlag ){ throw info; }
-   }catch(e){
-      println("tryCatchByHttps message: "+throwOutput);
-		println("command: "+str+"\n"+"return: "+info);
+      if( condFlag ) { throw info; }
+   } catch( e )
+   {
+      println( "tryCatchByHttps message: " + throwOutput );
+      println( "command: " + str + "\n" + "return: " + info );
       throw e;
    }
 }
@@ -138,9 +160,10 @@ function tryCatchByHttps(curlPara,throwCond,throwOutput){
 @modify list:	
 				2015-4-6 Ting YU init 
 ***************************************************************/
-function getFuncName(){
-	var func=getFuncName.caller.toString();
-	var re=/function\s*(\w*)/i;
-	var funcName=re.exec(func);
-	return funcName[1]+"()";
+function getFuncName ()
+{
+   var func = getFuncName.caller.toString();
+   var re = /function\s*(\w*)/i;
+   var funcName = re.exec( func );
+   return funcName[1] + "()";
 }

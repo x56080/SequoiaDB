@@ -3,14 +3,14 @@
 *@Author     :  2019-8-5  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18927_csv";
    var csvFile = tmpFileDir + clName + ".csv";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( csvFile );
-   
+
    println( "\n---specify data type int32 to import csv file." );
    var fields = "a int";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
@@ -19,17 +19,17 @@ function main()
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
    cl.truncate();
-   
-   println( "\n---specify data type int64 to import csv file." ); 
+
+   println( "\n---specify data type int64 to import csv file." );
    var fields = "a long";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 180 );
    var dataType = "int64";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
-   cl.truncate();  
-   
-   println( "\n---specify data type double to import csv file." ); 
+   cl.truncate();
+
+   println( "\n---specify data type double to import csv file." );
    var fields = "a double";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 180 );
@@ -37,7 +37,7 @@ function main()
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
    cl.truncate();
-   
+
    println( "\n---specify data type decimal to import csv file." );
    var fields = "a decimal";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
@@ -45,11 +45,11 @@ function main()
    dataType = "decimal";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "1";
@@ -67,7 +67,7 @@ function prepareDate( typeFile )
    file.close();
 }
 
-function getExpResult( dataType )
+function getExpResult ( dataType )
 {
    var expResult = [];
    var left = "1";
@@ -81,12 +81,12 @@ function getExpResult( dataType )
          var decimalDate = left + "." + right;
          if( dataType == "decimal" )
          {
-            expResult.push({ a: { "$decimal": decimalDate } });
+            expResult.push( { a: { "$decimal": decimalDate } } );
          }
          else
          {
-            expResult.push({ a: parseFloat( left )});
-         } 
+            expResult.push( { a: parseFloat( left ) } );
+         }
       }
    }
    return expResult;

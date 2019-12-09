@@ -2,55 +2,55 @@
 @Description :   seqDB-15983:  同时创建/删除多个自增字段 
 @Modify list :   2018-10-16    xiaoni Zhao  Init
 ******************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("Deploy is standalone");
+      println( "Deploy is standalone" );
       return;
-   } 
-    
+   }
+
    var clName = COMMCLNAME + "_15983";
-   
+
    commDropCL( db, COMMCSNAME, clName );
-   
+
    var dbcl = commCreateCLByOption( db, COMMCSNAME, clName );
-   
-   dbcl.createAutoIncrement( [ { Field : "id1", CacheSize : 10, AcquireSize : 1 }, 
-                               { Field : "id2", CacheSize : 10, AcquireSize : 1 } ] );
-   
+
+   dbcl.createAutoIncrement( [{ Field: "id1", CacheSize: 10, AcquireSize: 1 },
+   { Field: "id2", CacheSize: 10, AcquireSize: 1 }] );
+
    //check autoIncrement
    var clID = getCLID( COMMCSNAME, clName );
-   var sequenceNames = [ "SYS_" + clID + "_id1_SEQ", "SYS_" + clID + "_id2_SEQ" ];
-   var expArr = [ { Field : "id1", SequenceName : sequenceNames[0] }, 
-                  { Field : "id2", SequenceName : sequenceNames[1] } ];
+   var sequenceNames = ["SYS_" + clID + "_id1_SEQ", "SYS_" + clID + "_id2_SEQ"];
+   var expArr = [{ Field: "id1", SequenceName: sequenceNames[0] },
+   { Field: "id2", SequenceName: sequenceNames[1] }];
    checkAutoIncrementonCL( COMMCSNAME, clName, expArr );
-   
+
    //check sequence
-   var expArr = [ { CacheSize : 10, AcquireSize : 1 }, { CacheSize : 10, AcquireSize : 1 } ];
+   var expArr = [{ CacheSize: 10, AcquireSize: 1 }, { CacheSize: 10, AcquireSize: 1 }];
    for( var i in sequenceNames )
    {
-      checkSequence( sequenceNames[ i ], expArr[ i ] );
+      checkSequence( sequenceNames[i], expArr[i] );
    }
-   
-   dbcl.insert( { a : 1, b : 1} );
-   
+
+   dbcl.insert( { a: 1, b: 1 } );
+
    var rc = dbcl.find();
-   var expRecs = [ { id1 : 1, id2 : 1, a :1, b : 1} ];
+   var expRecs = [{ id1: 1, id2: 1, a: 1, b: 1 }];
    checkRec( rc, expRecs );
-   
-   dbcl.dropAutoIncrement(["id1", "id2" ]); 
-   
-   var cursor = db.snapshot( 8, { Name : COMMCSNAME + "." + clName } );
+
+   dbcl.dropAutoIncrement( ["id1", "id2"] );
+
+   var cursor = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
    if( cursor.current().toObj().AutoIncrement.length !== 0 )
    {
-      throw new Error("drop autoIncrement failed!");
+      throw new Error( "drop autoIncrement failed!" );
    }
-   
+
    rc = dbcl.find();
-   expRecs = [ { id1 : 1, id2 : 1, a :1, b : 1} ];
+   expRecs = [{ id1: 1, id2: 1, a: 1, b: 1 }];
    checkRec( rc, expRecs );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
@@ -58,11 +58,11 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

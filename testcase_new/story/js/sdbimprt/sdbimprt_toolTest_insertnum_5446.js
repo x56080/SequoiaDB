@@ -5,85 +5,85 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
       var csName = COMMCSNAME;
-      var clName = COMMCLNAME+"_5446" ;
+      var clName = COMMCLNAME + "_5446";
       var cl = readyCL( csName, clName );
-      
-      var imprtFile = tmpFileDir +"5446.csv";
+
+      var imprtFile = tmpFileDir + "5446.csv";
       readyData( imprtFile );
       importData( csName, clName, imprtFile );
-   	
+
       checkCLData( cl );
       cleanCL( csName, clName );
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function readyData( imprtFile )
+function readyData ( imprtFile )
 {
-   println("\n---Begin to ready data.");
-   
+   println( "\n---Begin to ready data." );
+
    var file = fileInit( imprtFile );
-   for( i=0; i<101; i++ )
+   for( i = 0; i < 101; i++ )
    {
-      file.write( String( i +",abc_\n-def;") );
+      file.write( String( i + ",abc_\n-def;" ) );
    }
-   var fileInfo = cmd.run( "cat "+ imprtFile );
+   var fileInfo = cmd.run( "cat " + imprtFile );
    file.close();
 }
 
-function importData( csName, clName, imprtFile )
+function importData ( csName, clName, imprtFile )
 {
-   println("\n---Begin to import data and check exec result.");
-   
-   var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
-                     +' -c '+ csName +' -l '+ clName 
-                     +' --type csv --fields a,b -r ";"'
-                     +' --insertnum 100000'
-                     +' --file '+ imprtFile;
+   println( "\n---Begin to import data and check exec result." );
+
+   var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
+      + ' -c ' + csName + ' -l ' + clName
+      + ' --type csv --fields a,b -r ";"'
+      + ' --insertnum 100000'
+      + ' --file ' + imprtFile;
    println( imprtOption );
    var rc = cmd.run( imprtOption );
    println( rc );
-   
-   var rcObj = rc.split("\n");
-   var expParseRecords    = "parsed records: 101";
+
+   var rcObj = rc.split( "\n" );
+   var expParseRecords = "parsed records: 101";
    var expImportedRecords = "imported records: 101";
-   var actParseRecords    = rcObj[0];
+   var actParseRecords = rcObj[0];
    var actImportedRecords = rcObj[4];
-   if( expParseRecords !== actParseRecords 
-    || expImportedRecords !== actImportedRecords )
+   if( expParseRecords !== actParseRecords
+      || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]", 
-                        "["+ expParseRecords +", "+ expImportedRecords +"]", 
-                        "["+ actParseRecords +", "+ actImportedRecords +"]" );
+      throw buildException( "importData", null, "[sdbimprt results]",
+         "[" + expParseRecords + ", " + expImportedRecords + "]",
+         "[" + actParseRecords + ", " + actImportedRecords + "]" );
    }
 }
 
-function checkCLData( cl )
+function checkCLData ( cl )
 {
-   println("\n---Begin to check cl data.");
-   
+   println( "\n---Begin to check cl data." );
+
    var expCnt = 101;
    var expMinRecs = '{"a":0,"b":"abc_\\n-def"}';
    var expMaxRecs = '{"a":100,"b":"abc_\\n-def"}';
    var actCnt = Number( cl.count() );
-   var actMinRecs = JSON.stringify( cl.find({},{_id:{$include:0}}).sort({a: 1}).limit(1).current().toObj() );
-   var actMaxRecs = JSON.stringify( cl.find({},{_id:{$include:0}}).sort({a:-1}).limit(1).current().toObj() );
+   var actMinRecs = JSON.stringify( cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } ).limit( 1 ).current().toObj() );
+   var actMaxRecs = JSON.stringify( cl.find( {}, { _id: { $include: 0 } } ).sort( { a: -1 } ).limit( 1 ).current().toObj() );
    if( expCnt !== actCnt || expMinRecs !== actMinRecs || expMaxRecs !== actMaxRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]", 
-                        "[cnt:"+ expCnt + ", minRecs:"+ expMinRecs +", maxRecs"+ expMaxRecs +"]", 
-                        "[cnt:"+ actCnt + ", minRecs:"+ actMinRecs +", maxRecs"+ actMaxRecs +"]" );
+      throw buildException( "checkCLdata", null, "[find]",
+         "[cnt:" + expCnt + ", minRecs:" + expMinRecs + ", maxRecs" + expMaxRecs + "]",
+         "[cnt:" + actCnt + ", minRecs:" + actMinRecs + ", maxRecs" + actMaxRecs + "]" );
    }
-   println( "cl count: "+ actCnt );
-   println( "cl minRecs: "+ actMinRecs );
-   println( "cl maxRecs: "+ actMaxRecs );
-   
+   println( "cl count: " + actCnt );
+   println( "cl minRecs: " + actMinRecs );
+   println( "cl maxRecs: " + actMaxRecs );
+
 }

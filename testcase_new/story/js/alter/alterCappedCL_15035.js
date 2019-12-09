@@ -2,46 +2,46 @@
 @discretion: cappedcl alter size/max/overWrite, the test scenario is as follows:
 test a: alter size/max/overWrite
 test b: alter capped
-@author£º2018-4-27 wuyan  Init
+@authorï¿½ï¿½2018-4-27 wuyan  Init
 ***************************************************************************** */
-var csName = CHANGEDPREFIX + "_cs15035"; 
-var clName = CHANGEDPREFIX + "_altercappedcl_15035"; 
+var csName = CHANGEDPREFIX + "_cs15035";
+var clName = CHANGEDPREFIX + "_altercappedcl_15035";
 
-main( db ); 
-function main( db )
+main( db );
+function main ( db )
 {
    try
    {
       if( true == commIsStandalone( db ) )
       {
-         println( "run mode is standalone" ); 
-         return; 
+         println( "run mode is standalone" );
+         return;
       }
       //clean environment before test
-      commDropCS( db, csName, true, "drop cs" ); 
-      
+      commDropCS( db, csName, true, "drop cs" );
+
       //create cappedCS
-      commCreateCS( db, csName, false, "beginning to create cappedCS", { Capped : true } ); 
-      var dbcl = commCreateCLByOption( db, csName, clName, {Capped:true, Size:1024, Max:10000, AutoIndexId:false} ); 
-      
+      commCreateCS( db, csName, false, "beginning to create cappedCS", { Capped: true } );
+      var dbcl = commCreateCLByOption( db, csName, clName, { Capped: true, Size: 1024, Max: 10000, AutoIndexId: false } );
+
       //test a :alter size/max/overWrite
-      println( "---alter capped cl size/max/overWrite" ); 
-      var size = 2048; 
-      var max = 8000; 
-      var overWrite = true; 
-      dbcl.alter( {Size:size, Max:max, OverWrite:overWrite} ); 
-      checkAlterCappedCLResult( clName, max, size * 1024 * 1024, overWrite ); 
-      
+      println( "---alter capped cl size/max/overWrite" );
+      var size = 2048;
+      var max = 8000;
+      var overWrite = true;
+      dbcl.alter( { Size: size, Max: max, OverWrite: overWrite } );
+      checkAlterCappedCLResult( clName, max, size * 1024 * 1024, overWrite );
+
       //test b: alter
-      println( "---alter capped cl capped" ); 
-      alterCapped( dbcl ); 
-      
+      println( "---alter capped cl capped" );
+      alterCapped( dbcl );
+
       //clean
-      commDropCS( db, csName, true, "clear cs" ); 
+      commDropCS( db, csName, true, "clear cs" );
    }
    catch( e )
    {
-      throw e; 
+      throw e;
    }
    finally
    {
@@ -52,35 +52,35 @@ function main( db )
    }
 }
 
-function alterCapped( dbcl )
+function alterCapped ( dbcl )
 {
    try
    {
-      dbcl.alter( {Capped:false} ); 
-      throw "need throw error"; 
+      dbcl.alter( { Capped: false } );
+      throw "need throw error";
    }
    catch( e )
    {
       if( e != -32 )
       {
-         throw buildException( "alter capped must be fail:", e ); 
+         throw buildException( "alter capped must be fail:", e );
       }
    }
 }
 
-function checkAlterCappedCLResult( clName, expMax, expSize, expOverWrite )
+function checkAlterCappedCLResult ( clName, expMax, expSize, expOverWrite )
 {
-   var clFullName = csName + "." + clName; 
-   var cur = db.snapshot( 8, {"Name":clFullName} ).current().toObj(); 
-   var actMax = cur["Max"]; 
-   var actSize = cur["Size"]; 
-   var actOverWrite = cur["OverWrite"]; 
-   
+   var clFullName = csName + "." + clName;
+   var cur = db.snapshot( 8, { "Name": clFullName } ).current().toObj();
+   var actMax = cur["Max"];
+   var actSize = cur["Size"];
+   var actOverWrite = cur["OverWrite"];
+
    if( expMax !== actMax && expSize !== actSize && expOverWrite !== actOverWrite )
    {
-      throw buildException( "test value", "check field", "", "", 
-      "actMax=" + actMax + " actSize=" + actSize + " actOverWrite=" + actOverWrite ); 
+      throw buildException( "test value", "check field", "", "",
+         "actMax=" + actMax + " actSize=" + actSize + " actOverWrite=" + actOverWrite );
    }
-   
+
 }
 

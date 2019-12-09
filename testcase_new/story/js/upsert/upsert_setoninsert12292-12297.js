@@ -14,34 +14,34 @@ res为结果文档
 errres 错误的结果
 *@Expectation：upsert后生成的新文档为res
 ********************************************************************************/
-function upsertandmerger( cl, rule, cond, hint, setoninsert, res, errres )
+function upsertandmerger ( cl, rule, cond, hint, setoninsert, res, errres )
 {
-   var funname = "upsertandmerger"; 
+   var funname = "upsertandmerger";
    if( undefined == rule )
    {
-      return; 
+      return;
    }
-   
+
    if( undefined == cond )
    {
-      var cond = {}; 
+      var cond = {};
    }
-   
+
    try
    {
-      cl.upsert( rule, cond, hint, setoninsert ); 
-      docnum = cl.find( res ).count(); 
+      cl.upsert( rule, cond, hint, setoninsert );
+      docnum = cl.find( res ).count();
       if( 1 != docnum )
       {
-         throw -1; 
+         throw -1;
       }
-      
+
       if( undefined != errres )
       {
-         docnum = cl.find( errres ).count(); 
+         docnum = cl.find( errres ).count();
          if( 0 != docnum )
          {
-            throw -2; 
+            throw -2;
          }
       }
    }
@@ -49,15 +49,15 @@ function upsertandmerger( cl, rule, cond, hint, setoninsert, res, errres )
    {
       if( -1 == e )
       {
-         println( "upsert( " + BuildObjStr( rule )+ ", " + BuildObjStr( cond )+ 
-         BuildObjStr( hint )+ BuildObjStr( setoninsert )+ " )" ); 
-         throw buildException( funname, e, "find( " + BuildObjStr( res )+ " )", 1, docnum ); 
+         println( "upsert( " + BuildObjStr( rule ) + ", " + BuildObjStr( cond ) +
+            BuildObjStr( hint ) + BuildObjStr( setoninsert ) + " )" );
+         throw buildException( funname, e, "find( " + BuildObjStr( res ) + " )", 1, docnum );
       }
       else if( -2 == e && undefined != errres )
       {
-         println( "upsert( " + BuildObjStr( rule )+ ", " + BuildObjStr( cond )+ 
-         BuildObjStr( hint )+ BuildObjStr( setoninsert )+ " )" ); 
-         throw buildException( funname, e, "find( " + BuildObjStr( errres )+ " )", 0, docnum ); 
+         println( "upsert( " + BuildObjStr( rule ) + ", " + BuildObjStr( cond ) +
+            BuildObjStr( hint ) + BuildObjStr( setoninsert ) + " )" );
+         throw buildException( funname, e, "find( " + BuildObjStr( errres ) + " )", 0, docnum );
       }
       else
       {
@@ -66,47 +66,47 @@ function upsertandmerger( cl, rule, cond, hint, setoninsert, res, errres )
    }
    finally
    {
-      cl.remove(); 
+      cl.remove();
    }
 }
 
-function main()
+function main ()
 {
    try
    {
-      var clName = COMMCLNAME + "_upsertsetoninsert"; 
-      var db = new Sdb( COORDHOSTNAME, COORDSVCNAME ); 
-      var cl = commCreateCL( db, COMMCSNAME, clName ); 
-      db.setSessionAttr( {PreferedInstance:"M"} ); 
-      
-      upsertandmerger( cl, {$set:{c:1, d:1}}, {}, {}, {_id:1}, 
-      {c:1, d:1, _id:1} ); 
-      upsertandmerger( cl, {$set:{a:3}}, {a:2}, {}, {a:1}, 
-      {a:1} ); 
-      cl.insert( {_id:1, a:1} ); 
-      upsertandmerger( cl, {$set:{a:2}}, {_id:1}, {}, {msg:"test"}, 
-      {_id:1, a:2}, {_id:1, a:2, msg:"test"} ); 
-      upsertandmerger( cl, {$set:{a:1}}, {b:1}, {}, {c:{d:1}}, {a:1, b:1, c:{d:1}} ); 
-      upsertandmerger( cl, {$set:{a:1}}, {b:1}, {}, {"c.d":1}, 
-      {a:1, b:1, c:{d:1}} ); 
-      upsertandmerger( cl, {$set:{a:1}}, {b:1}, {}, {c:[1]}, 
-      {a:1, b:1, c:[1]} ); 
-      cl.createIndex( 'aidx', {a:1}, false ); 
-      upsertandmerger( cl, {$set:{a:1}}, {}, {"":'aidx'}, {_id:1}, 
-      {a:1, _id:1} ); 
+      var clName = COMMCLNAME + "_upsertsetoninsert";
+      var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+      var cl = commCreateCL( db, COMMCSNAME, clName );
+      db.setSessionAttr( { PreferedInstance: "M" } );
+
+      upsertandmerger( cl, { $set: { c: 1, d: 1 } }, {}, {}, { _id: 1 },
+         { c: 1, d: 1, _id: 1 } );
+      upsertandmerger( cl, { $set: { a: 3 } }, { a: 2 }, {}, { a: 1 },
+         { a: 1 } );
+      cl.insert( { _id: 1, a: 1 } );
+      upsertandmerger( cl, { $set: { a: 2 } }, { _id: 1 }, {}, { msg: "test" },
+         { _id: 1, a: 2 }, { _id: 1, a: 2, msg: "test" } );
+      upsertandmerger( cl, { $set: { a: 1 } }, { b: 1 }, {}, { c: { d: 1 } }, { a: 1, b: 1, c: { d: 1 } } );
+      upsertandmerger( cl, { $set: { a: 1 } }, { b: 1 }, {}, { "c.d": 1 },
+         { a: 1, b: 1, c: { d: 1 } } );
+      upsertandmerger( cl, { $set: { a: 1 } }, { b: 1 }, {}, { c: [1] },
+         { a: 1, b: 1, c: [1] } );
+      cl.createIndex( 'aidx', { a: 1 }, false );
+      upsertandmerger( cl, { $set: { a: 1 } }, {}, { "": 'aidx' }, { _id: 1 },
+         { a: 1, _id: 1 } );
       //upsertandmerger( cl, {$set:{a:1}}, {"_id.b":1}, {}, {"_id.a": new Date()}, 
       //               {a:1, "_id.b":1} ); 
-      upsertandmerger( cl, {$set:{"_id.a":1}}, {"_id.b":1}, {}, {"_id.c": 1}, 
-      {_id:{a:1, b:1, c:1}} ); 
+      upsertandmerger( cl, { $set: { "_id.a": 1 } }, { "_id.b": 1 }, {}, { "_id.c": 1 },
+         { _id: { a: 1, b: 1, c: 1 } } );
    }
    catch( e )
    {
-      throw e; 
+      throw e;
    }
    finally
    {
-      commDropCL( db, COMMCSNAME, clName ); 
-      db.close(); 
+      commDropCL( db, COMMCSNAME, clName );
+      db.close();
    }
 }
 

@@ -1,18 +1,18 @@
 //drop innomal collection space
 
-var res = false; 
+var res = false;
 try
 {
-   db.dropCS( "$dropUCS" ); 
+   db.dropCS( "$dropUCS" );
 }
 catch( e )
 {
    if( e == -34 )
    {
-      res = true; 
+      res = true;
    }
 }
 if( !res )
 {
-   throw -1; 
+   throw -1;
 }

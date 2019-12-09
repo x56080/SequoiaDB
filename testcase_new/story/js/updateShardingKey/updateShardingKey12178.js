@@ -14,40 +14,43 @@ var csName = CHANGEDPREFIX + "_cs_12178";
 var clName1 = CHANGEDPREFIX + "_cl1_12178";
 var clName2 = CHANGEDPREFIX + "_cl2_12178";
 
-function main() {
-    if (true == commIsStandalone(db)) {
-        println("run mode is standalone");
+function main ()
+{
+    if( true == commIsStandalone( db ) )
+    {
+        println( "run mode is standalone" );
         return;
     }
 
-    var allGroupName = getGroupName(db, true);
-    if (1 === allGroupName.length) {
-        println("--least two groups");
+    var allGroupName = getGroupName( db, true );
+    if( 1 === allGroupName.length )
+    {
+        println( "--least two groups" );
         return;
     }
 
-    commDropCS(db, csName, true, "Failed to drop CS.");
-    commCreateCS(db, csName, false, "Failed to create CS.");
-    var mycl1 = createCL(csName, clName1, {"_id": 1});
-    var mycl2 = createCL(csName, clName2, {"a": 1});
+    commDropCS( db, csName, true, "Failed to drop CS." );
+    commCreateCS( db, csName, false, "Failed to create CS." );
+    var mycl1 = createCL( csName, clName1, { "_id": 1 } );
+    var mycl2 = createCL( csName, clName2, { "a": 1 } );
     //insert data
-    var docs = [{a: 1}];
-    insertData(mycl2, docs);
-    insertData(mycl1, docs);
+    var docs = [{ a: 1 }];
+    insertData( mycl2, docs );
+    insertData( mycl1, docs );
 
     //updateData
-    mycl2.update({$set: {a: "test"}}, {}, {}, {KeepShardingKey: true});
+    mycl2.update( { $set: { a: "test" } }, {}, {}, { KeepShardingKey: true } );
 
-    mycl1.update({$set: {"_id": "test"}}, {}, {}, {KeepShardingKey: true});
+    mycl1.update( { $set: { "_id": "test" } }, {}, {}, { KeepShardingKey: true } );
 
     //check the update result
-    var expRecs = [{a: "test"}];
-    checkResult(mycl2, null, {"_id": {"$include": 0}}, expRecs);
+    var expRecs = [{ a: "test" }];
+    checkResult( mycl2, null, { "_id": { "$include": 0 } }, expRecs );
     expRecs = docs;
-    checkResult(mycl1, null, null, expRecs);
+    checkResult( mycl1, null, null, expRecs );
 
-//	//drop collectionspace in clean
-    commDropCS(db, csName, false, "Failed to drop CS.");
+    //	//drop collectionspace in clean
+    commDropCS( db, csName, false, "Failed to drop CS." );
 }
 
 //main();

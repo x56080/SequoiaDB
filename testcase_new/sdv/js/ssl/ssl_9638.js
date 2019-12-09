@@ -6,54 +6,54 @@
 ****************************************************************************/
 var clName = CHANGEDPREFIX + "_9638";
 
-function main( dbs )
+function main ( dbs )
 {
    // drop collection in the beginning
-   commDropCL( dbs, csName, clName, true, true, "drop collection in the beginning" ) ;
+   commDropCL( dbs, csName, clName, true, true, "drop collection in the beginning" );
 
    // create cs /cl
    var dbCL = commCreateCL( dbs, csName, clName, 0, true, true );
-   
+
    //insert data 
-   insertData(dbCL);
-   
+   insertData( dbCL );
+
    //create index
-   createIndex( dbCL, "testIndex", {a:1} );
+   createIndex( dbCL, "testIndex", { a: 1 } );
    //inspect the index
-   inspecIndex( dbCL, "testIndex", "a", 1, false, false ) ;
+   inspecIndex( dbCL, "testIndex", "a", 1, false, false );
    //test find by index    
-   var rc = dbCL.find({a:3}).hint({"":"testIndex"})   
+   var rc = dbCL.find( { a: 3 } ).hint( { "": "testIndex" } )
    var expRecs = [];
-   expRecs.push({_id:3,a:3,b:"test3"});
-   checkCLData( rc,expRecs);
-   
+   expRecs.push( { _id: 3, a: 3, b: "test3" } );
+   checkCLData( rc, expRecs );
+
    //drop index
-   dbCL.dropIndex("testIndex");
+   dbCL.dropIndex( "testIndex" );
    //test the index
    try
    {
-      dbCL.getIndex("testIndex");
+      dbCL.getIndex( "testIndex" );
    }
-   catch(e)
+   catch( e )
    {
-      if (-47!==e)
-      {  
-         throw buildException( "getIndex",e); 
+      if( -47 !== e )
+      {
+         throw buildException( "getIndex", e );
       }
-   } 
-   
-  //dropCS
-   commDropCS( dbs, csName, false, "seqDB-9636: dropCS failed");
+   }
+
+   //dropCS
+   commDropCS( dbs, csName, false, "seqDB-9636: dropCS failed" );
 }
 
 try
 {
-   main( dbs ) ;
-   dbs.close() ;
+   main( dbs );
+   dbs.close();
 }
-catch ( e )
+catch( e )
 {
-   throw e ;
+   throw e;
 }
 
 
@@ -62,64 +62,64 @@ catch ( e )
 @modify list:
               2016-8-10 yan WU init
 ****************************************************/
-function checkCLData( rc,expRecs)
+function checkCLData ( rc, expRecs )
 {
-   println("\n---Begin to check cl data.");   
+   println( "\n---Begin to check cl data." );
    var recsArray = [];
    while( rc.next() )
    {
-		recsArray.push( rc.current().toObj() );
+      recsArray.push( rc.current().toObj() );
    }
    var actRecs = JSON.stringify( recsArray );
    var expRec = JSON.stringify( expRecs )
-   if(  actRecs !== expRec )
+   if( actRecs !== expRec )
    {
-      throw buildException( "checkCLdata", null, "[find]", 
-                        "[recs:"+ expRec +"]", 
-                       "[recs:"+ actRecs +"]" );
+      throw buildException( "checkCLdata", null, "[find]",
+         "[recs:" + expRec + "]",
+         "[recs:" + actRecs + "]" );
    }
-   println( "cl records: "+ actRecs );  
+   println( "cl records: " + actRecs );
 }
 
-function insertData(dbcl)
+function insertData ( dbcl )
 {
    var doc = [];
    try
    {
-      for( i = 0; i < 5; i++)
+      for( i = 0; i < 5; i++ )
       {
-         doc.push({_id:i,a:i,b:"test"+i});
+         doc.push( { _id: i, a: i, b: "test" + i } );
       }
-      dbcl.insert(doc);
+      dbcl.insert( doc );
    }
-   catch ( e )
+   catch( e )
    {
-      println( "failed to insert record, rc= " + e ) ;
-      throw e ;
+      println( "failed to insert record, rc= " + e );
+      throw e;
    }
 }
 
-function createIndex( cl, idxName, idxKeygen, unique, enforced , errno )
+function createIndex ( cl, idxName, idxKeygen, unique, enforced, errno )
 {
-   if ( undefined == unique ) { unique = false ; }
-   if ( undefined == enforced ) { enforced = false ; }
-   if ( undefined == errno ) { errno = "" ; }
+   if( undefined == unique ) { unique = false; }
+   if( undefined == enforced ) { enforced = false; }
+   if( undefined == errno ) { errno = ""; }
    try
    {
       if( undefined == cl || undefined == idxName || undefined == idxKeygen )
       {
-         println( "please check the argument of createIndex" ) ;
-         throw "ErrArg" ;
+         println( "please check the argument of createIndex" );
+         throw "ErrArg";
       }
-      cl.createIndex( idxName, idxKeygen, unique, enforced ) ;
+      cl.createIndex( idxName, idxKeygen, unique, enforced );
       // inspect the index we created
    }
-   catch ( e )
+   catch( e )
    {
-      if ( errno != e )
+      if( errno != e )
       {
-         println( "failed to create index, rc = "+ e ) ;
-         throw e ;
+         println( "failed to create index, rc = " + e );
+         throw e;
       }
    }
 }

@@ -5,18 +5,18 @@
 **************************************/
 try
 {
-   main();
+    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
-   {
-      println(e.stack);  
-   }
-   throw e;
+    if( e.constructor === Error )
+    {
+        println( e.stack );
+    }
+    throw e;
 }
 
-function main()
+function main ()
 {
     var filePath = WORKDIR + "/ini19943/";
     var fileName = "file19943";
@@ -24,13 +24,13 @@ function main()
 
     try
     {
-        var iniFile = new IniFile(fileFullPath);
-        throw new Error("open not exist file need throw error");
-    }catch (e)
+        var iniFile = new IniFile( fileFullPath );
+        throw new Error( "open not exist file need throw error" );
+    } catch( e )
     {
-        if (e !== -4)
+        if( e !== -4 )
         {
-            throw new Error("expect throw -4 but throw " + e);
+            throw new Error( "expect throw -4 but throw " + e );
         }
     }
 }

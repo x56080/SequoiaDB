@@ -6,85 +6,85 @@
 *******************************************************************************/
 
 main();
-function main()
+function main ()
 {
    if( true == commIsStandalone( db ) )
    {
       println( "---Is standalone." );
       return;
-   } 
+   }
    db.setSessionAttr( { PreferedInstance: "M" } );
-   
-   var mcsName  = COMMCSNAME;
+
+   var mcsName = COMMCSNAME;
    var scsName1 = "scs_7493_1"
    var scsName2 = "scs_7493_2"
-   var mclName  = "mcl_7493";
+   var mclName = "mcl_7493";
    var sclName1 = "scl_1";
    var sclName2 = "scl_2";
-   
+
    // clear env
    commDropCL( db, mcsName, mclName, true, true, "drop mcl in the begin" );
    commDropCS( db, scsName1, true, "drop main cs in the begin." );
    commDropCS( db, scsName2, true, "drop sub cs in the begin." );
-   
+
    // create cs and cl, attach cl
-   println("\n---Begin to create cl, and attach cl.");
-   var mclOpt = { "ShardingKey": {a:1}, "IsMainCL": true };
+   println( "\n---Begin to create cl, and attach cl." );
+   var mclOpt = { "ShardingKey": { a: 1 }, "IsMainCL": true };
    var mainCL = commCreateCLByOption( db, COMMCSNAME, mclName, mclOpt, true, false );
    commCreateCL( db, scsName1, sclName1, 0, true, true, true );
    commCreateCL( db, scsName2, sclName2, 0, true, true, true );
-   mainCL.attachCL( scsName1 + "." + sclName1, {LowBound:{a:0},   UpBound:{a:100}} );
-   mainCL.attachCL( scsName2 + "." + sclName2, {LowBound:{a:100}, UpBound:{a:200}} );
-   
+   mainCL.attachCL( scsName1 + "." + sclName1, { LowBound: { a: 0 }, UpBound: { a: 100 } } );
+   mainCL.attachCL( scsName2 + "." + sclName2, { LowBound: { a: 100 }, UpBound: { a: 200 } } );
+
    // insert records
-   println("\n---Begin to insert.");
+   println( "\n---Begin to insert." );
    var recordsNum = 200;
    var docs = [];
-   for(var i = 0; i < recordsNum ; ++i )
+   for( var i = 0; i < recordsNum; ++i )
    {
-      docs.push( {a: i} );
+      docs.push( { a: i } );
    }
    mainCL.insert( docs );
-   
+
    // drop sub cs
-   println("\n---Begin to drop sub cs.");
+   println( "\n---Begin to drop sub cs." );
    commDropCS( db, scsName1, false, "drop sub cs1" );
    commDropCS( db, scsName2, false, "drop sub cs2" );
-   
+
    // CRUD
-   println("\n---Begin to CRUD.");
+   println( "\n---Begin to CRUD." );
    // insert
    try 
    {
-      mainCL.insert( {a:1} );
+      mainCL.insert( { a: 1 } );
       throw "expect insert fail, but insert success.";
-   } 
-   catch ( e )
+   }
+   catch( e )
    {
-      if ( -135 !== e)
+      if( -135 !== e )
       {
          throw buildException( "main", null, "check insert", -135, e );
       }
    }
-   
+
    // update
-   mainCL.update( {$set:{a:1}} ); 
+   mainCL.update( { $set: { a: 1 } } );
    var cnt = mainCL.count();
    if( Number( cnt ) !== 0 )
    {
-      throw buildException("", null, "[check update]", 0, cnt );
+      throw buildException( "", null, "[check update]", 0, cnt );
    }
-   
+
    // find   
-   var cursor = mainCL.find( {a:1} );
-   if ( cursor.next() ) 
+   var cursor = mainCL.find( { a: 1 } );
+   if( cursor.next() ) 
    {
       throw buildException( "main", null, "check find", -135, e );
    }
-   
+
    // remove
-   mainCL.remove( {a:1} );
-   
+   mainCL.remove( { a: 1 } );
+
    // clear env
    commDropCL( db, COMMCSNAME, mclName, false, false, "drop mcl in the end" );
 }

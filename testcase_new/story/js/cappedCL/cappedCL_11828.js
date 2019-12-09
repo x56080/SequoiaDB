@@ -7,68 +7,68 @@
 
 main();
 
-function main()
+function main ()
 {
    if( true === commIsStandalone( db ) )
    {
       println( "mode is standalone" );
       return;
    }
-   
+
    var clName1 = COMMCAPPEDCLNAME + "_11828_CL1";
    var clName2 = COMMCAPPEDCLNAME + "_11828_CL2";
    var clName3 = COMMCAPPEDCLNAME + "_11828_CL3";
-   
+
    //check cappedCL sharding
    println( "---check sharding---" )
-   var hashOptions = { Capped:true, Size:1024, Max:10000000, AutoIndexId:false, ShardingKey:{ "age":1 },ShardingType:"hash", Partition: 1024 };
-   checkCreateCLOptions( COMMCAPPEDCSNAME, clName1, hashOptions, true);
-	
-   var rangeOptions = { Capped:true, Size:1024, Max:10000000, AutoIndexId:false, ShardingKey:{ "age":1 },ShardingType:"hash", Partition: 1024 };
+   var hashOptions = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false, ShardingKey: { "age": 1 }, ShardingType: "hash", Partition: 1024 };
+   checkCreateCLOptions( COMMCAPPEDCSNAME, clName1, hashOptions, true );
+
+   var rangeOptions = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false, ShardingKey: { "age": 1 }, ShardingType: "hash", Partition: 1024 };
    checkCreateCLOptions( COMMCAPPEDCSNAME, clName2, rangeOptions, true );
-   
+
    //check cappedCL alter
    println( "---check cappedCL alter---" )
-   var options = { Capped:true, Size:1024, Max:10000000, AutoIndexId:false};
+   var options = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
    var dbcl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName3, options, false, false, "create capped cl" );
-   var alterOption1 = { ShardingKey:{a:1}, ShardingType:"hash" };
+   var alterOption1 = { ShardingKey: { a: 1 }, ShardingType: "hash" };
    checkCappedAlter( dbcl, alterOption1 );
-   var alterOption2 = { ShardingKey:{a:1}, ShardingType:"range" };
+   var alterOption2 = { ShardingKey: { a: 1 }, ShardingType: "range" };
    checkCappedAlter( dbcl, alterOption2 );
-  	checkSnapshot(COMMCAPPEDCSNAME, clName3);
-   
+   checkSnapshot( COMMCAPPEDCSNAME, clName3 );
+
    //clean environment after test  
-   commDropCL( db, COMMCAPPEDCSNAME, clName1, true, true, "drop CL in the end");
-   commDropCL( db, COMMCAPPEDCSNAME, clName2, true, true, "drop CL in the end");
-   commDropCL( db, COMMCAPPEDCSNAME, clName3, true, true, "drop CL in the end");
+   commDropCL( db, COMMCAPPEDCSNAME, clName1, true, true, "drop CL in the end" );
+   commDropCL( db, COMMCAPPEDCSNAME, clName2, true, true, "drop CL in the end" );
+   commDropCL( db, COMMCAPPEDCSNAME, clName3, true, true, "drop CL in the end" );
    println( "---end the test---" );
 }
 
-function checkCreateCLOptions( csName, clName, options, isValid)
+function checkCreateCLOptions ( csName, clName, options, isValid )
 {
-    try
-    {
-		     db.getCS(csName).createCL(clName,options);
-	      if ( isValid == undefined ) 
-		     { 
-	         throw "NEED_CREATE_FAIL_ERROR";
-	      } 
-	      println("Create CL with option: " + JSON.stringify(options) + " success!");
-    }
-    catch(e)
-    {
-       if( e !== -6)
-       {
-          throw buildException("Invalid parameter is not -6,error msg is: " + e);
-       }
-       else
-       {
-          println("check result success!");
-       }
-    }
+   try
+   {
+      db.getCS( csName ).createCL( clName, options );
+      if( isValid == undefined ) 
+      {
+         throw "NEED_CREATE_FAIL_ERROR";
+      }
+      println( "Create CL with option: " + JSON.stringify( options ) + " success!" );
+   }
+   catch( e )
+   {
+      if( e !== -6 )
+      {
+         throw buildException( "Invalid parameter is not -6,error msg is: " + e );
+      }
+      else
+      {
+         println( "check result success!" );
+      }
+   }
 }
 
-function checkCappedAlter( dbcl, options )
+function checkCappedAlter ( dbcl, options )
 {
    try
    {
@@ -79,27 +79,27 @@ function checkCappedAlter( dbcl, options )
    {
       if( e !== -32 )
       {
-         throw buildException("checkCappedAlter()",e,"check cappedCL alter", "-32", e );
+         throw buildException( "checkCappedAlter()", e, "check cappedCL alter", "-32", e );
       }
    }
 }
 
-function checkSnapshot(csName , clName)
+function checkSnapshot ( csName, clName )
 {
-  	try
+   try
    {
-		    var cl_full_name = csName + '.' + clName;
-		    var options = {Name : cl_full_name};
+      var cl_full_name = csName + '.' + clName;
+      var options = { Name: cl_full_name };
       var rec = db.snapshot( 8, options );
       var shardingType = rec.current().toObj().ShardingType;
-		    var shardingKey = rec.current().toObj().ShardingKey;
-		    if(shardingType != undefined || shardingKey != undefined)
-	    	{
-			      throw "CHECK SNAPSHOT FAILED";
-	    	}
+      var shardingKey = rec.current().toObj().ShardingKey;
+      if( shardingType != undefined || shardingKey != undefined )
+      {
+         throw "CHECK SNAPSHOT FAILED";
+      }
    }
    catch( e )
    {
-      throw buildException("checkSnapshot()",e,"check snapshot", e, e );
+      throw buildException( "checkSnapshot()", e, "check snapshot", e, e );
    }
 }

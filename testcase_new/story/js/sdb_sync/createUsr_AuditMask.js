@@ -6,36 +6,37 @@
 ******************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    var user = "user17947";
-   
+
    try
-   {  
-      
+   {
+
       // create user
-      println("\n---Begin to create user["+ user +"]");
+      println( "\n---Begin to create user[" + user + "]" );
       var auditmask = "!ACCESS|!CLUSTER|!SYSTEM|DML|DDL|DCL|DQL|INSERT|UPDATE|DELETE|OTHER";
-      db.createUsr( user, user, {AuditMask:auditmask} );
-      
+      db.createUsr( user, user, { AuditMask: auditmask } );
+
       // connect catalog, check results
-      println("\n---Begin to check results");
+      println( "\n---Begin to check results" );
       var cdb = new Sdb( COORDHOSTNAME, CATASVCNAME, user, user );
-      var rc = cdb.SYSAUTH.SYSUSRS.find( {"User": user} );
+      var rc = cdb.SYSAUTH.SYSUSRS.find( { "User": user } );
       var rcAuditMask = rc.current().toObj()["Options"]["AuditMask"];
-      rc.close();  
-      
-      if( auditmask !== rcAuditMask ) {
+      rc.close();
+
+      if( auditmask !== rcAuditMask )
+      {
          throw buildException( "checkResult", null, "[checkResult]", auditmask, "  " + rcAuditMask );
       }
-   }   
-   catch(e)
+   }
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
    finally 
    {
-      println("\n---Begin to drop user["+ user +"]");
+      println( "\n---Begin to drop user[" + user + "]" );
       db.dropUsr( user, user );
    }
 }

@@ -1,20 +1,20 @@
 // create cs.
 // unnormal_3 case
-var res = false; 
+var res = false;
 try
 {
-   db.createCS( "" ); 
+   db.createCS( "" );
 }
 catch( e )
 {
    if( e == -6 )
    {
-      res = true; 
+      res = true;
    }
 }
 if( !res )
 {
-   throw -1; 
+   throw -1;
 }
 
 

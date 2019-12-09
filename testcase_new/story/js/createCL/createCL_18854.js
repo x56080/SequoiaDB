@@ -5,68 +5,68 @@
 *@testlinkCase: seqDB-18854
 **************************************/
 main();
-function main()
-{   
+function main ()
+{
    var csName = "18854cs01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789length127B";
    var clName_126 = "18854cl0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678length126B";
    var clName_127 = clName_126 + "a";
    var cl_rename = "newcl18854";
    var cl_rename_127 = clName_126 + "b";
    var clNames = [clName_126, clName_127, cl_rename];
-   
+
    //clean environment before test
    commDropCS( db, csName, true, "drop CS in the beginning." );
-   
-   var cs = db.createCS(csName);
-   for(var i = 0 ; i < clNames.length; i++)
+
+   var cs = db.createCS( csName );
+   for( var i = 0; i < clNames.length; i++ )
    {
-      cs.createCL(clNames[i]);
+      cs.createCL( clNames[i] );
       checkCL( cs, clNames[i] )
    }
-   
+
    //rename collection
-   cs.renameCL(cl_rename, cl_rename_127);
+   cs.renameCL( cl_rename, cl_rename_127 );
    checkReNameCL( cs, cl_rename, cl_rename_127 );
-   
+
    //清理环境
    commDropCS( db, csName, false, "drop CS in the end." );
 }
 
-function checkCL( cs, clName )
+function checkCL ( cs, clName )
 {
-    var cl = cs.getCL(clName);
-    var records = [];
-    for(var i = 0; i < 100; i++)
-    {
-       records.push({a:i,str:"test18824"});
-    }
-    cl.insert(records);
-    
-    var count = cl.count();
-    if( Number(count) !== 100 )
-    {
-       throw buildException( "checkCL", null, "check inserted records", 100, Number(count) );
-    }
+   var cl = cs.getCL( clName );
+   var records = [];
+   for( var i = 0; i < 100; i++ )
+   {
+      records.push( { a: i, str: "test18824" } );
+   }
+   cl.insert( records );
+
+   var count = cl.count();
+   if( Number( count ) !== 100 )
+   {
+      throw buildException( "checkCL", null, "check inserted records", 100, Number( count ) );
+   }
 }
 
-function checkReNameCL( cs, clName, renameClName )
+function checkReNameCL ( cs, clName, renameClName )
 {
-    try
-    {
-       cs.getCL(clName);
-       throw "cl : " + clName + "is still exist.";
-    }
-    catch( e )
-    {
-       if( e !== -23 )
-       {
-          throw buildException( "checkReNameCL", e, "check cl : " + clName, -23, e );
-       }
-    }
-    var renameCL = cs.getCL(renameClName);
-    var count = renameCL.count();
-    if( Number(count) !== 100 )
-    {
-       throw buildException( "checkReNameCL", null, "check inserted records", 100, Number(count) );
-    }
+   try
+   {
+      cs.getCL( clName );
+      throw "cl : " + clName + "is still exist.";
+   }
+   catch( e )
+   {
+      if( e !== -23 )
+      {
+         throw buildException( "checkReNameCL", e, "check cl : " + clName, -23, e );
+      }
+   }
+   var renameCL = cs.getCL( renameClName );
+   var count = renameCL.count();
+   if( Number( count ) !== 100 )
+   {
+      throw buildException( "checkReNameCL", null, "check inserted records", 100, Number( count ) );
+   }
 }

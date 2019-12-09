@@ -17,33 +17,36 @@
  */
 
 main();
-function main() {
-    if (commIsStandalone(db)) return;
+function main ()
+{
+    if( commIsStandalone( db ) ) return;
     /**
      * 初始变量值
      *    保存内容, 例：coord = [sdbserver01:11810,sdbserver02:11810,sdbserver03:11810];
      */
     var catalog = [];
     var datagroup = [];
-    var SYSCatalogGroup = commGetGroups(db, true, "SYSCatalogGroup", false, true, true);
-    for (var i = 1; i < SYSCatalogGroup[0].length; i++) {
+    var SYSCatalogGroup = commGetGroups( db, true, "SYSCatalogGroup", false, true, true );
+    for( var i = 1; i < SYSCatalogGroup[0].length; i++ )
+    {
         var url = SYSCatalogGroup[0][i].HostName + ":" + SYSCatalogGroup[0][i].svcname;
-        catalog.push(url);
+        catalog.push( url );
     }
-    var DataGroup = commGetGroups(db, true, "", true, true, true);
-    for (var i = 1; i < DataGroup[0].length; i++) {
+    var DataGroup = commGetGroups( db, true, "", true, true, true );
+    for( var i = 1; i < DataGroup[0].length; i++ )
+    {
         var url = DataGroup[0][i].HostName + ":" + DataGroup[0][i].svcname;
-        datagroup.push(url);
+        datagroup.push( url );
     }
 
     // 连catalog，配置正确options
-    doTest(catalog[Math.ceil(Math.random() * 10) % catalog.length], true);
+    doTest( catalog[Math.ceil( Math.random() * 10 ) % catalog.length], true );
     // 连catalog，配置不匹配options
-    doTest(catalog[Math.ceil(Math.random() * 10) % catalog.length], false);
+    doTest( catalog[Math.ceil( Math.random() * 10 ) % catalog.length], false );
     // 连data, 配置正确options
-    doTest(datagroup[Math.ceil(Math.random() * 10) % datagroup.length], true);
+    doTest( datagroup[Math.ceil( Math.random() * 10 ) % datagroup.length], true );
     // 连data, 配置不匹配options
-    doTest(datagroup[Math.ceil(Math.random() * 10) % datagroup.length], false);
+    doTest( datagroup[Math.ceil( Math.random() * 10 ) % datagroup.length], false );
 }
 
 
@@ -52,27 +55,33 @@ function main() {
  * @param  url 要连接的节点的地址，如sdbserver01:11820
  * @param  flag 配置options参数是否正确， true为正确，false为不匹配
  */
-function doTest(url, flag) {
+function doTest ( url, flag )
+{
     // 建立连接，list(3)获取当前session，并取得对应的sessionId用于force
-    var db = getConn(url);
-    var currentSession = db.list(SDB_LIST_SESSIONS_CURRENT).next().toObj();
+    var db = getConn( url );
+    var currentSession = db.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj();
     var oldSessionID = currentSession.SessionID;
     // force session
     var options = null;
-    if (flag) {
-        options = {"NodeName": currentSession.NodeName}
-    } else {
-        options = {"NodeID": 4321};
+    if( flag )
+    {
+        options = { "NodeName": currentSession.NodeName }
+    } else
+    {
+        options = { "NodeID": 4321 };
     }
-    try {
-        db.forceSession(oldSessionID, options);
-    } catch (e) {
-        throw buildException("TODO db.forceSession(oldSessionID, options) fail, options is +" + JSON.stringify(options), e);
+    try
+    {
+        db.forceSession( oldSessionID, options );
+    } catch( e )
+    {
+        throw buildException( "TODO db.forceSession(oldSessionID, options) fail, options is +" + JSON.stringify( options ), e );
     }
     // 通过oldSessionID查询会话列表，观察oldSessionID是否还存在
-    var res = db.list(SDB_LIST_SESSIONS, {"SessionID": oldSessionID}).toArray();
-    if (res.length === 0) {
-        throw buildException("the current session be forced", null, "list Session by SessionID=oldSessionID", "can find the session", "can not find the session");
+    var res = db.list( SDB_LIST_SESSIONS, { "SessionID": oldSessionID } ).toArray();
+    if( res.length === 0 )
+    {
+        throw buildException( "the current session be forced", null, "list Session by SessionID=oldSessionID", "can find the session", "can not find the session" );
     }
 }
 

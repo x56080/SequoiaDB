@@ -12,7 +12,8 @@
  * [main:入口函数]
  */
 main();
-function main(){
+function main ()
+{
 	var mainCl = null;
 	var subCls = [];
 	var data = [];
@@ -24,22 +25,26 @@ function main(){
 		CHANGEDPREFIX + "subcl_10477_0",
 		CHANGEDPREFIX + "subcl_10477_1"
 	];
-   //check test environment before split
-   try {
-	   //standalone can not split
-	   if( true == commIsStandalone( db ) ) {
-         println( "run mode is standalone" );
-         return;
-      }     
-      //less two groups,can not split
-      allGroupName = getGroupName( db );       
-      if( 1 === allGroupName.length ) {
-         println("--least two groups");
-         return ;
-      }
-   } catch( e ) {
-      throw buildException( "failed init environment" ,e);
-   }
+	//check test environment before split
+	try
+	{
+		//standalone can not split
+		if( true == commIsStandalone( db ) )
+		{
+			println( "run mode is standalone" );
+			return;
+		}
+		//less two groups,can not split
+		allGroupName = getGroupName( db );
+		if( 1 === allGroupName.length )
+		{
+			println( "--least two groups" );
+			return;
+		}
+	} catch( e )
+	{
+		throw buildException( "failed init environment", e );
+	}
 
 	//drop subcl and maincl
 	commDropCL( db, COMMCSNAME, subClNames[0], true, true, "clean sub collection" );
@@ -47,60 +52,64 @@ function main(){
 	commDropCL( db, COMMCSNAME, mainClName, true, true, "clean main collection" );
 	println( "LOG:clean the environment" );
 
-   //create maincl for range split
-   db.setSessionAttr( { PreferedInstance: "M" } );
-   var mainCLOption = { IsMainCL:true, ShardingKey:{ a:1 }, ShardingType: "range", ReplSize:0, Compressed:true };
-   mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
-   //create subcl
-   var subCLOptions = [
-   	{ ReplSize:0, Compressed:true },
-   	{ ReplSize:0, Compressed:true, ShardingKey:{a:1,b:1}, ShardingType:"hash", Partition:16 }
-   ];
-   //create subcl
-   subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[0], subCLOptions[0], true, true ) );
-   subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[1], subCLOptions[1], true, true ) );
-   //attach subcl
-   attachCL( mainCl, COMMCSNAME +"."+ subClNames[0], { LowBound:{a:0},  UpBound:{a:100} } );
-   attachCL( mainCl, COMMCSNAME +"."+ subClNames[1], { LowBound:{a:100},UpBound:{a:200} } );
-   //init data
-	try {
-		for (var i = 0; i < 200; i++) {
-			data.push( {name:"name"+i, a:i, b:i } );
+	//create maincl for range split
+	db.setSessionAttr( { PreferedInstance: "M" } );
+	var mainCLOption = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
+	mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
+	//create subcl
+	var subCLOptions = [
+		{ ReplSize: 0, Compressed: true },
+		{ ReplSize: 0, Compressed: true, ShardingKey: { a: 1, b: 1 }, ShardingType: "hash", Partition: 16 }
+	];
+	//create subcl
+	subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[0], subCLOptions[0], true, true ) );
+	subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[1], subCLOptions[1], true, true ) );
+	//attach subcl
+	attachCL( mainCl, COMMCSNAME + "." + subClNames[0], { LowBound: { a: 0 }, UpBound: { a: 100 } } );
+	attachCL( mainCl, COMMCSNAME + "." + subClNames[1], { LowBound: { a: 100 }, UpBound: { a: 200 } } );
+	//init data
+	try
+	{
+		for( var i = 0; i < 200; i++ )
+		{
+			data.push( { name: "name" + i, a: i, b: i } );
 		}
-		mainCl.insert(data);
-		ClSplitOneTimes( COMMCSNAME, subClNames[1], 50, null ); 
-	} catch(e) {
-		throw buildException("failed to init 200 records data for mainCl",e);	
+		mainCl.insert( data );
+		ClSplitOneTimes( COMMCSNAME, subClNames[1], 50, null );
+	} catch( e )
+	{
+		throw buildException( "failed to init 200 records data for mainCl", e );
 	}
 
 	//upsert test
-	var upsertNotExistsData_a50 = {name:"upsertName_a50",a:50,b:500};    //普通表
-	var upsertNotExistsData_a150 = {name:"upsertName_a150",a:150,b:500}; //分区表
-	mainCl.upsert( {$set:upsertNotExistsData_a50}, upsertNotExistsData_a50);
-	mainCl.upsert( {$set:upsertNotExistsData_a150}, upsertNotExistsData_a150);
+	var upsertNotExistsData_a50 = { name: "upsertName_a50", a: 50, b: 500 };    //普通表
+	var upsertNotExistsData_a150 = { name: "upsertName_a150", a: 150, b: 500 }; //分区表
+	mainCl.upsert( { $set: upsertNotExistsData_a50 }, upsertNotExistsData_a50 );
+	mainCl.upsert( { $set: upsertNotExistsData_a150 }, upsertNotExistsData_a150 );
 	var obj_upsert_a50 = mainCl.find( upsertNotExistsData_a50 ).next().toObj();
 	var obj_upsert_a150 = mainCl.find( upsertNotExistsData_a150 ).next().toObj();
 	delete obj_upsert_a50["_id"];
 	delete obj_upsert_a150["_id"];
-	
+
 	var actName1 = obj_upsert_a50["name"];
-	var actA1    = obj_upsert_a50["a"];
-	var actB1    = obj_upsert_a50["b"];
-	
+	var actA1 = obj_upsert_a50["a"];
+	var actB1 = obj_upsert_a50["b"];
+
 	var actName2 = obj_upsert_a150["name"];
-	var actA2    = obj_upsert_a150["a"];
-	var actB2    = obj_upsert_a150["b"];
-	
- 	if ( actName1 !== "upsertName_a50"  || actA1 !== 50  || actB1 !== 500 
- 	  || actName2 !== "upsertName_a150" || actA2 !== 150 || actB2 !== 500) {
- 		println("upsertTest ERROR");
- 		throw buildException( "failed to upsert", new Error(), "upsert", "upsert success", "upsert error") ;
- 	}
+	var actA2 = obj_upsert_a150["a"];
+	var actB2 = obj_upsert_a150["b"];
+
+	if( actName1 !== "upsertName_a50" || actA1 !== 50 || actB1 !== 500
+		|| actName2 !== "upsertName_a150" || actA2 !== 150 || actB2 !== 500 )
+	{
+		println( "upsertTest ERROR" );
+		throw buildException( "failed to upsert", new Error(), "upsert", "upsert success", "upsert error" );
+	}
 
 	//drop subcl and maincl
 	commDropCL( db, COMMCSNAME, subClNames[0], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, subClNames[1], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, mainClName, true, true, "clean main collection" );
-	
-	println("---run end.");
+
+	println( "---run end." );
 }

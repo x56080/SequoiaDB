@@ -1,92 +1,92 @@
 /* *****************************************************************************
 @discretion: rename cl
              seqDB-16117
-@author£º2018-10-13 chensiqin  Init
+@authorï¿½ï¿½2018-10-13 chensiqin  Init
 ***************************************************************************** */
 
-main(db);
-function main(db)
+main( db );
+function main ( db )
 {
    /*
-     1¡¢´´½¨csºÍ¶à¸öcl£¬·Ö±ðÔÚclÉÏ´´½¨¶à¸öË÷Òý 
-     2¡¢ÐÞ¸ÄcsÃû£¬Ö´ÐÐË÷Òý²Ù×÷£¬¼ì²é½á¹û 
+     1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½csï¿½Í¶ï¿½ï¿½clï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½clï¿½Ï´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+     2ï¿½ï¿½ï¿½Þ¸ï¿½csï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
      check:
-     1¡¢ÐÞ¸ÄcsÃû³É¹¦ 
-     2¡¢ÐÞ¸ÄÍê³ÉºóÔöÉ¾Ë÷Òý³É¹¦
+     1ï¿½ï¿½ï¿½Þ¸ï¿½csï¿½ï¿½ï¿½É¹ï¿½ 
+     2ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½Éºï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½É¹ï¿½
    */
-   var csName1 = CHANGEDPREFIX+"_cs16117_1";
-   var csName2 = CHANGEDPREFIX+"_cs16117_2";
-   var clName1 = CHANGEDPREFIX+"_cl16117_1";
-   var clName2 = CHANGEDPREFIX+"_cl16117_2";
-   var clName3 = CHANGEDPREFIX+"_cl16117_3";
+   var csName1 = CHANGEDPREFIX + "_cs16117_1";
+   var csName2 = CHANGEDPREFIX + "_cs16117_2";
+   var clName1 = CHANGEDPREFIX + "_cl16117_1";
+   var clName2 = CHANGEDPREFIX + "_cl16117_2";
+   var clName3 = CHANGEDPREFIX + "_cl16117_3";
    var indexName1 = "index16117_1";
    var indexName2 = "index16117_2";
    var indexName3 = "index16117_3";
-   commDropCS( db, csName1, true, "drop CS "+csName1 );
-   commDropCS( db, csName2, true, "drop CS "+csName2 );
+   commDropCS( db, csName1, true, "drop CS " + csName1 );
+   commDropCS( db, csName2, true, "drop CS " + csName2 );
    var cs = commCreateCS( db, csName1, true, "create CS1" );
    var cl1 = commCreateCLByOption( db, csName1, clName1, {}, true, false, "create cl in the beginning" );
    var cl2 = commCreateCLByOption( db, csName1, clName2, {}, true, false, "create cl in the beginning" );
    var cl3 = commCreateCLByOption( db, csName1, clName3, {}, true, false, "create cl in the beginning" );
-   
-   commCreateIndex( cl1, indexName1, {a:1}, false, false );
-   commCreateIndex( cl1, indexName2, {b:1}, false, false );
-   commCreateIndex( cl2, indexName1, {a:1}, false, false );
-   commCreateIndex( cl2, indexName2, {b:1}, false, false );
-   commCreateIndex( cl3, indexName1, {a:1}, false, false );
-   commCreateIndex( cl3, indexName2, {b:1}, false, false );
+
+   commCreateIndex( cl1, indexName1, { a: 1 }, false, false );
+   commCreateIndex( cl1, indexName2, { b: 1 }, false, false );
+   commCreateIndex( cl2, indexName1, { a: 1 }, false, false );
+   commCreateIndex( cl2, indexName2, { b: 1 }, false, false );
+   commCreateIndex( cl3, indexName1, { a: 1 }, false, false );
+   commCreateIndex( cl3, indexName2, { b: 1 }, false, false );
    try
    {
       db.renameCS( csName1, csName2 );
    }
    catch( e )
    {
-      throw buildException("renameCS( csName1, csName2 ) fail", e, "rename", "success", e); 
+      throw buildException( "renameCS( csName1, csName2 ) fail", e, "rename", "success", e );
    }
-   
-   checkRenameCSResult(csName1, csName2, 3 );
-   
-   var cs = db.getCS(csName2);
-   var cl1 = cs.getCL(clName1);
-   var cl2 = cs.getCL(clName2);
-   var cl3 = cs.getCL(clName3);
-   cl1.dropIndex(indexName2);
-   cl2.dropIndex(indexName2);
-   cl3.dropIndex(indexName2);
-   commCreateIndex( cl1, indexName3, {c:1}, false, false );
-   commCreateIndex( cl2, indexName3, {c:1}, false, false );
-   commCreateIndex( cl3, indexName3, {c:1}, false, false );
-   checkClIndex(cl1, indexName1, indexName3);
-   checkClIndex(cl2, indexName1, indexName3);
-   checkClIndex(cl3, indexName1, indexName3);
 
-   commDropCS( db, csName1, true, "drop CS "+csName1 );
-   commDropCS( db, csName2, true, "drop CS "+csName2 );
+   checkRenameCSResult( csName1, csName2, 3 );
+
+   var cs = db.getCS( csName2 );
+   var cl1 = cs.getCL( clName1 );
+   var cl2 = cs.getCL( clName2 );
+   var cl3 = cs.getCL( clName3 );
+   cl1.dropIndex( indexName2 );
+   cl2.dropIndex( indexName2 );
+   cl3.dropIndex( indexName2 );
+   commCreateIndex( cl1, indexName3, { c: 1 }, false, false );
+   commCreateIndex( cl2, indexName3, { c: 1 }, false, false );
+   commCreateIndex( cl3, indexName3, { c: 1 }, false, false );
+   checkClIndex( cl1, indexName1, indexName3 );
+   checkClIndex( cl2, indexName1, indexName3 );
+   checkClIndex( cl3, indexName1, indexName3 );
+
+   commDropCS( db, csName1, true, "drop CS " + csName1 );
+   commDropCS( db, csName2, true, "drop CS " + csName2 );
 }
 
-function checkClIndex(cl, indexName1, indexName3)
+function checkClIndex ( cl, indexName1, indexName3 )
 {
    var indexInfos = cl.listIndexes();
    var cnt = 0;
    var myIndexNum = 0;
-   while(indexInfos.next())
+   while( indexInfos.next() )
    {
       cnt++;
       var ret = indexInfos.current();
       var indexInfo = ret.toObj()["IndexDef"];
       var indeName = indexInfo["name"];
-      if (indeName == indexName1 || indeName == indexName3)
+      if( indeName == indexName1 || indeName == indexName3 )
       {
          myIndexNum++;
       }
    }
    indexInfos.close();
-   if (cnt !== 3)
+   if( cnt !== 3 )
    {
-      throw buildException("check cl.listIndexes() num fail", "fail", "check", 3, cnt); 
+      throw buildException( "check cl.listIndexes() num fail", "fail", "check", 3, cnt );
    }
-   if (myIndexNum !== 2)
+   if( myIndexNum !== 2 )
    {
-      throw buildException("check expected indexnum fail", "fail", "check", 2, cnt); 
+      throw buildException( "check expected indexnum fail", "fail", "check", 2, cnt );
    }
 }

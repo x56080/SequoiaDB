@@ -5,65 +5,65 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
       var csName = COMMCSNAME;
-      var clName = COMMCLNAME+"_5402" ;
+      var clName = COMMCLNAME + "_5402";
       var cl = readyCL( csName, clName );
-      
+
       importData( csName, clName );
-   	
+
       cleanCL( csName, clName );
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function importData( csName, clName )
+function importData ( csName, clName )
 {
-   println("\n---Begin to import data and check exec result.");
-   
+   println( "\n---Begin to import data and check exec result." );
+
    try
    {
-      var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
-                        +' -c '+ csName +' -l '+ clName 
-                        +' --type csv --fields a'
-                        +' --file '+ tmpFileDir;
-      println( "import nullDir: \n"+ imprtOption );
+      var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
+         + ' -c ' + csName + ' -l ' + clName
+         + ' --type csv --fields a'
+         + ' --file ' + tmpFileDir;
+      println( "import nullDir: \n" + imprtOption );
       cmd.run( imprtOption );
    }
    catch( e )
    {
-      var expectE = 127 ;
+      var expectE = 127;
       if( e !== expectE )
       {
-         throw buildException("importData", e, 'director is null', 
-                             "[e:"+ expectE +"]", 
-                             "[e:"+ e +"]");
+         throw buildException( "importData", e, 'director is null',
+            "[e:" + expectE + "]",
+            "[e:" + e + "]" );
       }
    }
-   
+
    try
    {
-      var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
-                        +' -c '+ csName +' -l '+ clName 
-                        +' --type csv --fields a'
-                        +' --file '+ tmpFileDir +"notExistsDir";
-      println( "\nimport notExistDir: \n"+ imprtOption );
+      var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
+         + ' -c ' + csName + ' -l ' + clName
+         + ' --type csv --fields a'
+         + ' --file ' + tmpFileDir + "notExistsDir";
+      println( "\nimport notExistDir: \n" + imprtOption );
       cmd.run( imprtOption );
    }
    catch( e )
    {
-      var expectE = 127 ;
+      var expectE = 127;
       if( e !== expectE )
       {
-         throw buildException("importData", e, 'director is null', 
-                             "[e:"+ expectE +"]", 
-                             "[e:"+ e +"]");
+         throw buildException( "importData", e, 'director is null',
+            "[e:" + expectE + "]",
+            "[e:" + e + "]" );
       }
    }
 }

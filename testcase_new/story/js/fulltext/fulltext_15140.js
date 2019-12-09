@@ -4,73 +4,73 @@
 *@createdate:  2018.10.08
 *@testlinkCase: seqDB-15140
 **************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone(db))  {   return ;   }
+   if( commIsStandalone( db ) ) { return; }
 
    //create CL
    var clName = COMMCLNAME + "_ES_15140";
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   commDropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    var textIndexName = "textIndex_15140";
-   dbcl.createIndex(textIndexName, {"a" : "text"});
-   dbcl.createIndex("commonIndex", {"b" : 1});
+   dbcl.createIndex( textIndexName, { "a": "text" } );
+   dbcl.createIndex( "commonIndex", { "b": 1 } );
 
    // insert
    var objs = new Array();
-   for(var i = 0; i < 20000; i++)
-   {   
-      objs.push({a: "test_15140_" + i, b : "testb_" + i }); 
-   }   
-   dbcl.insert(objs);
-   
-   checkFullSyncToES(COMMCSNAME, clName, textIndexName, 20000);
-   
+   for( var i = 0; i < 20000; i++ )
+   {
+      objs.push( { a: "test_15140_" + i, b: "testb_" + i } );
+   }
+   dbcl.insert( objs );
+
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 20000 );
+
    // match 0 record
-   var findNoneConf = {"$or": [{"b": {"$et" : "testb"}}, {"":{"$Text":{"query":{"match":{"a" : "testa"}}}}}]};
-   var actCount = dbcl.count(findNoneConf);
+   var findNoneConf = { "$or": [{ "b": { "$et": "testb" } }, { "": { "$Text": { "query": { "match": { "a": "testa" } } } } }] };
+   var actCount = dbcl.count( findNoneConf );
    var expectCount = 0;
-   checkCount(expectCount, actCount);
+   checkCount( expectCount, actCount );
 
    // match some records
-   var findSomeConf = {"$or": [{"b": {"$gt" : "testb_10000"}}, {"":{"$Text":{"query":{"match":{"a" : "test_15140_1"}}}}}]};
-   var actCount = dbcl.count(findSomeConf);
+   var findSomeConf = { "$or": [{ "b": { "$gt": "testb_10000" } }, { "": { "$Text": { "query": { "match": { "a": "test_15140_1" } } } } }] };
+   var actCount = dbcl.count( findSomeConf );
    var expectCount = 19995;
-   checkCount(expectCount, actCount);
+   checkCount( expectCount, actCount );
 
    // match all records
-   var findAllConf = {"$or": [{"b": {"$gte" : "testb_0"}}, {"":{"$Text":{"query":{"match":{"a" : "test_15140_1"}}}}}]};
-   var actCount = dbcl.count(findAllConf);
+   var findAllConf = { "$or": [{ "b": { "$gte": "testb_0" } }, { "": { "$Text": { "query": { "match": { "a": "test_15140_1" } } } } }] };
+   var actCount = dbcl.count( findAllConf );
    var expectCount = 20000;
-   checkCount(expectCount, actCount);
+   checkCount( expectCount, actCount );
 
    var dbOperator = new DBOperator();
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, textIndexName);
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
+   commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
-function checkCount( expectCount, actCount )
+function checkCount ( expectCount, actCount )
 {
-   if(expectCount != actCount)
+   if( expectCount != actCount )
    {
-      throw new Error("expect record num: " + expectCount + ", actual record num: " + actCount);
+      throw new Error( "expect record num: " + expectCount + ", actual record num: " + actCount );
    }
-   println("check result success!");
+   println( "check result success!" );
 }
 
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 ;

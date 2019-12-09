@@ -5,37 +5,37 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13590" ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13590";
 
-main() ;
+main();
 
-function main()
-{  
-   var docs = [ { a: 1 }, { a: 3 }, { a: 2 }, { a: 4 } ] ;
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   cl.insert( docs ) ;
-   
-   testExprtSkip() ;    // test skip "abc"
-   
-   commDropCL( db, csname, clname ) ;
+function main ()
+{
+   var docs = [{ a: 1 }, { a: 3 }, { a: 2 }, { a: 4 }];
+   var cl = commCreateCL( db, csname, clname, 0 );
+   cl.insert( docs );
+
+   testExprtSkip();    // test skip "abc"
+
+   commDropCL( db, csname, clname );
 }
 
-function testExprtSkip()
+function testExprtSkip ()
 {
-   var csvfile = workDir + "sdbexprt13588.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13588.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --skip \"abc\"" +
-                 " --fields a" +
-                 " --type csv" ;                
-   testRunCommand( command, 127 ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --skip \"abc\"" +
+      " --fields a" +
+      " --type csv";
+   testRunCommand( command, 127 );
+
+   cmd.run( "rm -rf " + csvfile );
 }

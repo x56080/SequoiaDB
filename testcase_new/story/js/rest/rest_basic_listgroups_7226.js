@@ -6,31 +6,35 @@
 @modify list:
             	2015-4-3 Ting YU init   2016-3-16 XiaoNi Huang init
 ****************************************************/
-var csName=COMMCSNAME;
-var clName=COMMCLNAME;
+var csName = COMMCSNAME;
+var clName = COMMCLNAME;
 
-function listgroupsAndCheck(){
-	var word="list groups";
-	tryCatch(["cmd="+word],[0],"listgroupsAndCheck: fail to run rest cmd="+word);
-   
-	var returnByRest=info.slice(14,info.length).replace(/\s/g,"");  
-	//14: a return message body '{ "errno": 0 }'
-	var returnByDB='';
-	var rc=db.listReplicaGroups();
-	while(rc.next()){
-		returnByDB+=JSON.stringify(rc.current().toObj());
-	}
-
-	if (returnByDB!=returnByRest){
-		println("returnByRest:\n"+returnByRest+"\n\n"+"returnByDB:\n"+returnByDB);
-		throw "db.listReplicaGroups() result is different from rest cmd="+word;
-	}
-
-}
-if(true==commIsStandalone(db))
+function listgroupsAndCheck ()
 {
-	println("Mode is standalone!");
+	var word = "list groups";
+	tryCatch( ["cmd=" + word], [0], "listgroupsAndCheck: fail to run rest cmd=" + word );
+
+	var returnByRest = info.slice( 14, info.length ).replace( /\s/g, "" );
+	//14: a return message body '{ "errno": 0 }'
+	var returnByDB = '';
+	var rc = db.listReplicaGroups();
+	while( rc.next() )
+	{
+		returnByDB += JSON.stringify( rc.current().toObj() );
+	}
+
+	if( returnByDB != returnByRest )
+	{
+		println( "returnByRest:\n" + returnByRest + "\n\n" + "returnByDB:\n" + returnByDB );
+		throw "db.listReplicaGroups() result is different from rest cmd=" + word;
+	}
+
 }
-else{
+if( true == commIsStandalone( db ) )
+{
+	println( "Mode is standalone!" );
+}
+else
+{
 	listgroupsAndCheck();
 }

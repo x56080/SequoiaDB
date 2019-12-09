@@ -4,21 +4,26 @@
  * @param nodename
  * @constructor
  */
-function InfoByNodeName(nodename) {
+function InfoByNodeName ( nodename )
+{
 
-    this.HostName = nodename.split(":")[0];
-    this.svcname = nodename.split(":")[1];
-    this.dataGroup = commGetGroups(db, true, "", true, true, true).concat(commGetGroups(db, true, "SYSCatalogGroup", false, true, true));
+    this.HostName = nodename.split( ":" )[0];
+    this.svcname = nodename.split( ":" )[1];
+    this.dataGroup = commGetGroups( db, true, "", true, true, true ).concat( commGetGroups( db, true, "SYSCatalogGroup", false, true, true ) );
     /**
      * 获取GroupID
      * @returns GroupID
      */
-    this.getGroupIDByNodeName = function () {
-        for (var i = 0; i < this.dataGroup.length; i++) {
-            for (var j = 1; j < this.dataGroup[i].length; j++) {
+    this.getGroupIDByNodeName = function()
+    {
+        for( var i = 0; i < this.dataGroup.length; i++ )
+        {
+            for( var j = 1; j < this.dataGroup[i].length; j++ )
+            {
                 // println(this.dataGroup[i][j].HostName +"=="+ this.HostName);
                 // println(this.dataGroup[i][j].svcname +"=="+ this.svcname);
-                if (this.dataGroup[i][j].HostName == this.HostName && this.dataGroup[i][j].svcname == this.svcname) {
+                if( this.dataGroup[i][j].HostName == this.HostName && this.dataGroup[i][j].svcname == this.svcname )
+                {
                     return this.dataGroup[i][0].GroupID;
                 }
             }
@@ -30,10 +35,14 @@ function InfoByNodeName(nodename) {
      * 获取GroupName
      * @returns GroupName
      */
-    this.getGroupNameByNodeName = function () {
-        for (var i = 0; i < this.dataGroup.length; i++) {
-            for (var j = 1; j < this.dataGroup[i].length; j++) {
-                if (this.dataGroup[i][j].HostName == this.HostName && this.dataGroup[i][j].svcname == this.svcname) {
+    this.getGroupNameByNodeName = function()
+    {
+        for( var i = 0; i < this.dataGroup.length; i++ )
+        {
+            for( var j = 1; j < this.dataGroup[i].length; j++ )
+            {
+                if( this.dataGroup[i][j].HostName == this.HostName && this.dataGroup[i][j].svcname == this.svcname )
+                {
                     return this.dataGroup[i][0].GroupName;
                 }
             }
@@ -45,10 +54,14 @@ function InfoByNodeName(nodename) {
      * 获取NodeId
      * @returns NodeId
      */
-    this.getNodeIdByNodeName = function () {
-        for (var i = 0; i < this.dataGroup.length; i++) {
-            for (var j = 1; j < this.dataGroup[i].length; j++) {
-                if (this.dataGroup[i][j].HostName == this.HostName && this.dataGroup[i][j].svcname == this.svcname) {
+    this.getNodeIdByNodeName = function()
+    {
+        for( var i = 0; i < this.dataGroup.length; i++ )
+        {
+            for( var j = 1; j < this.dataGroup[i].length; j++ )
+            {
+                if( this.dataGroup[i][j].HostName == this.HostName && this.dataGroup[i][j].svcname == this.svcname )
+                {
                     return this.dataGroup[i][j].NodeID;
                 }
             }
@@ -63,69 +76,72 @@ function InfoByNodeName(nodename) {
  * 通过url获取连接
  * @param url 例：sdbserver01:11820
  */
-function getConn(url) {
+function getConn ( url )
+{
     var conn = null;
-    try {
-        conn = new Sdb(url);
-    } catch (e) {
-        throw buildException("connection to sdb by url[" + url + "] error", e);
+    try
+    {
+        conn = new Sdb( url );
+    } catch( e )
+    {
+        throw buildException( "connection to sdb by url[" + url + "] error", e );
     }
     return conn;
 }
 
-function isSystemEDU( context )
+function isSystemEDU ( context )
 {
-   var nodeName = context.NodeName ;
-   var sessionId = context.SessionID ;
-   var cursor = db.snapshot( SDB_SNAP_SESSIONS, { NodeName: nodeName, SessionID: sessionId } ) ;
-   var eduType = cursor.next().toObj().Type ;
-   var systemEduTypes = [ "TCPListener", "RestListener", "ReplReader", "LogWriter",
-                          "LogArchiveMgr", "DpsRollback", "ShardReader", "Cluster",
-                          "ClusterShard", "ClusterLogNotify", "CatalogMgr",
-                          "CatalogNetwork", "CoordNetwork", "CoordMgr", "OMManager",
-                          "OMNet", "SyncClockWorker", "PipeListener", "FAPListener",
-                          "DBMonitor", "RtnNetwork", "SignalTest", "SeAdapter", "SeIndexerReader",
-                          "SeService" ] ;
-   println( "session: " + nodeName + ":" + sessionId + ", edu type is " + eduType ) ;
-   return systemEduTypes.indexOf( eduType ) !== -1 ;
+    var nodeName = context.NodeName;
+    var sessionId = context.SessionID;
+    var cursor = db.snapshot( SDB_SNAP_SESSIONS, { NodeName: nodeName, SessionID: sessionId } );
+    var eduType = cursor.next().toObj().Type;
+    var systemEduTypes = ["TCPListener", "RestListener", "ReplReader", "LogWriter",
+        "LogArchiveMgr", "DpsRollback", "ShardReader", "Cluster",
+        "ClusterShard", "ClusterLogNotify", "CatalogMgr",
+        "CatalogNetwork", "CoordNetwork", "CoordMgr", "OMManager",
+        "OMNet", "SyncClockWorker", "PipeListener", "FAPListener",
+        "DBMonitor", "RtnNetwork", "SignalTest", "SeAdapter", "SeIndexerReader",
+        "SeService"];
+    println( "session: " + nodeName + ":" + sessionId + ", edu type is " + eduType );
+    return systemEduTypes.indexOf( eduType ) !== -1;
 }
 
 
-function getDataGroups( db )
+function getDataGroups ( db )
 {
-    var groups = new Array() ;
-    var cursor = db.listReplicaGroups() ;
-    var tmpInfo ;
+    var groups = new Array();
+    var cursor = db.listReplicaGroups();
+    var tmpInfo;
     while( tmpInfo = cursor.next() )
     {
-        var groupName = tmpInfo.toObj().GroupName ;
+        var groupName = tmpInfo.toObj().GroupName;
         if( groupName == "SYSCoord" || groupName == "SYSCatalogGroup" )
-            continue ;
-        groups.push( groupName ) ;
+            continue;
+        groups.push( groupName );
     }
-    return groups ;
+    return groups;
 }
 
-function getGroupNodes( db, groupName )
+function getGroupNodes ( db, groupName )
 {
-    var arr = new Array() ;
-    var tmpObj = db.getRG( groupName ).getDetail().next().toObj() ;
-    var tmpGroupArray = tmpObj["Group"] ;
-    for( var j = 0;j < tmpGroupArray.length;++j )
+    var arr = new Array();
+    var tmpObj = db.getRG( groupName ).getDetail().next().toObj();
+    var tmpGroupArray = tmpObj["Group"];
+    for( var j = 0; j < tmpGroupArray.length; ++j )
     {
-        var tmpNodeObj = tmpGroupArray[j] ;
-        var hostName = tmpNodeObj["HostName"] ;
-        for( var k = 0;k < tmpNodeObj.Service.length;++k )
+        var tmpNodeObj = tmpGroupArray[j];
+        var hostName = tmpNodeObj["HostName"];
+        for( var k = 0; k < tmpNodeObj.Service.length; ++k )
         {
-            var tmpSvcObj = tmpNodeObj.Service[k] ;
+            var tmpSvcObj = tmpNodeObj.Service[k];
             if( tmpSvcObj["Type"] == 0 )
             {
-                var nodeName = hostName + ":" + tmpSvcObj["Name"] ;
-                arr.push( nodeName ) ;
-                break ;
+                var nodeName = hostName + ":" + tmpSvcObj["Name"];
+                arr.push( nodeName );
+                break;
             }
         }
     }
 
-    return arr ;
+    return arr;
 }

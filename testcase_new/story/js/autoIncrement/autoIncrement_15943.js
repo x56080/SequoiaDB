@@ -3,67 +3,67 @@
 @Modify list :
               2018-10-19  zhaoyu  Create
 ****************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("Deploy is standalone");
-	  return;
+      println( "Deploy is standalone" );
+      return;
    }
-   
-   var clName = COMMCLNAME + "_15953";   
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
+
+   var clName = COMMCLNAME + "_15953";
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
    var cacheSize = 10;
    var acquireSize = 1;
    var fieldName = "id";
    var generated = "always";
-   var dbcl = commCreateCLByOption(db, COMMCSNAME, clName, {AutoIncrement:{Field:fieldName, CacheSize:cacheSize, AcquireSize:acquireSize, Generated:generated}});
-   
-   var clID = getCLID(COMMCSNAME, clName);
+   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Generated: generated } } );
+
+   var clID = getCLID( COMMCSNAME, clName );
    var mainclSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
-   var expIncrementArr = [{Field:fieldName, SequenceName:mainclSequenceName, Generated:generated}];
-   checkAutoIncrementonCL(COMMCSNAME, clName, expIncrementArr);
-   
+   var expIncrementArr = [{ Field: fieldName, SequenceName: mainclSequenceName, Generated: generated }];
+   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrementArr );
+
    var expR = [];
-   for(var i=0; i<100; i++)
+   for( var i = 0; i < 100; i++ )
    {
-      if(i%2===1)
+      if( i % 2 === 1 )
       {
-         var doc = {a:i,id:i};
-         dbcl.insert(doc);
-         expR.push({a:i,id:i+1});
-      }else
+         var doc = { a: i, id: i };
+         dbcl.insert( doc );
+         expR.push( { a: i, id: i + 1 } );
+      } else
       {
-         dbcl.insert({a:i});
-         expR.push({a:i,id:i+1});
+         dbcl.insert( { a: i } );
+         expR.push( { a: i, id: i + 1 } );
       }
    }
-   
-   var actR = dbcl.find().sort({a:1});
-   checkRec(actR, expR);
-   println("---check set increment field insert record success");
-   
-   dbcl.insert({"id.1":100});
-   expR.push({"id.1":100,id:101});
-   
-   dbcl.insert({"id.a":101});
-   expR.push({"id.a":101,id:102});
-   var actR = dbcl.find().sort({_id:1});
-   checkRec(actR, expR);
-   println("---check set \"id.xxx\" insert record success");
-   
-   commDropCL(db, COMMCSNAME, clName, true, true); 
+
+   var actR = dbcl.find().sort( { a: 1 } );
+   checkRec( actR, expR );
+   println( "---check set increment field insert record success" );
+
+   dbcl.insert( { "id.1": 100 } );
+   expR.push( { "id.1": 100, id: 101 } );
+
+   dbcl.insert( { "id.a": 101 } );
+   expR.push( { "id.a": 101, id: 102 } );
+   var actR = dbcl.find().sort( { _id: 1 } );
+   checkRec( actR, expR );
+   println( "---check set \"id.xxx\" insert record success" );
+
+   commDropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

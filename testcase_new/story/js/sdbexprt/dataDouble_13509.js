@@ -5,101 +5,101 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13509_double" ;
-var clname1 = COMMCLNAME + "_sdbimprt13509_double" ;
-var key = "double" ;
-var doubleMin = -1.7e+308 ;
-var doubleMax = 1.7e+308 ;
-var docs = [ { "double": doubleMin }, 
-             { "double": doubleMax } ] ;
-var csvContent = key + "\n" + doubleMin + "\n" + doubleMax + "\n" ;
-var jsonContent = "{ \"" + key + "\": " + doubleMin + " }\n" + 
-                  "{ \"" + key + "\": " + doubleMax + " }\n" ;
-var expRecs = [ "{\"" + key + "\":" + doubleMin + "}", 
-                "{\"" + key + "\":" + doubleMax + "}" ] ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13509_double";
+var clname1 = COMMCLNAME + "_sdbimprt13509_double";
+var key = "double";
+var doubleMin = -1.7e+308;
+var doubleMax = 1.7e+308;
+var docs = [{ "double": doubleMin },
+{ "double": doubleMax }];
+var csvContent = key + "\n" + doubleMin + "\n" + doubleMax + "\n";
+var jsonContent = "{ \"" + key + "\": " + doubleMin + " }\n" +
+   "{ \"" + key + "\": " + doubleMax + " }\n";
+var expRecs = ["{\"" + key + "\":" + doubleMin + "}",
+"{\"" + key + "\":" + doubleMax + "}"];
 
-main() ;
+main();
 
-function main()
-{  
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
-   
-   cl.insert( docs ) ;
-   
-   testExprtImprtCsv() ;
-   var cursor = cl1.find( {}, { _id: { $include: 0 } } ) ;
-   var recs = getRecords( cursor ) ;
-   checkRecords( expRecs, recs ) ;
-   cl1.truncate() ;
-   
-   testExprtImprtJson() ;
-   cursor = cl1.find( {}, { _id: { $include: 0 } } ) ;
-   recs = getRecords( cursor ) ;
-   checkRecords( expRecs, recs ) ;
-   
-   commDropCL( db, csname, clname ) ;
-   commDropCL( db, csname, clname1 ) ;
+function main ()
+{
+   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl1 = commCreateCL( db, csname, clname1, 0 );
+
+   cl.insert( docs );
+
+   testExprtImprtCsv();
+   var cursor = cl1.find( {}, { _id: { $include: 0 } } );
+   var recs = getRecords( cursor );
+   checkRecords( expRecs, recs );
+   cl1.truncate();
+
+   testExprtImprtJson();
+   cursor = cl1.find( {}, { _id: { $include: 0 } } );
+   recs = getRecords( cursor );
+   checkRecords( expRecs, recs );
+
+   commDropCL( db, csname, clname );
+   commDropCL( db, csname, clname1 );
 }
 
-function testExprtImprtCsv()
+function testExprtImprtCsv ()
 {
-   var csvfile = workDir + "sdbexprt13509_double.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
+   var csvfile = workDir + "sdbexprt13509_double.csv";
+   cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --fields " + key +
-                 " --type csv" +
-                 " --floatfmt %.1e" +
-                 " --sort '{ _id: 1 }'" +
-                 " --file " + csvfile ;
-   testRunCommand( command ) ;
-   
-   checkFileContent( csvfile, csvContent ) ;
-   
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --fields " + key +
+      " --type csv" +
+      " --floatfmt %.1e" +
+      " --sort '{ _id: 1 }'" +
+      " --file " + csvfile;
+   testRunCommand( command );
+
+   checkFileContent( csvfile, csvContent );
+
    command = installPath + "bin/sdbimprt" +
-             " -s " + COORDHOSTNAME +
-             " -p " + COORDSVCNAME +
-             " -c " + csname +
-             " -l " + clname1 +
-             " --file " + csvfile +
-             " --type csv" +
-             " --headerline true" ;
-   testRunCommand( command ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ; 
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname1 +
+      " --file " + csvfile +
+      " --type csv" +
+      " --headerline true";
+   testRunCommand( command );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtImprtJson()
+function testExprtImprtJson ()
 {
-   var jsonfile = workDir + "sdbexprt13509_double.json" ;
-   cmd.run( "rm -rf " + jsonfile ) ;
+   var jsonfile = workDir + "sdbexprt13509_double.json";
+   cmd.run( "rm -rf " + jsonfile );
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname +
-                 " --type json" +
-                 " --fields " + key +
-                 " --floatfmt %.1e" +
-                 " --sort '{ _id: 1 }'" +
-                 " --file " + jsonfile ;         
-   testRunCommand( command ) ;
-   
-   checkFileContent( jsonfile, jsonContent ) ;
-   
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --type json" +
+      " --fields " + key +
+      " --floatfmt %.1e" +
+      " --sort '{ _id: 1 }'" +
+      " --file " + jsonfile;
+   testRunCommand( command );
+
+   checkFileContent( jsonfile, jsonContent );
+
    command = installPath + "bin/sdbimprt" +
-             " -s " + COORDHOSTNAME +
-             " -p " + COORDSVCNAME +
-             " -c " + csname +
-             " -l " + clname1 +
-             " --type json" +
-             " --file " + jsonfile ;
-   testRunCommand( command ) ;
-   
-   cmd.run( "rm -rf " + jsonfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname1 +
+      " --type json" +
+      " --file " + jsonfile;
+   testRunCommand( command );
+
+   cmd.run( "rm -rf " + jsonfile );
 }

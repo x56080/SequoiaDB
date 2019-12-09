@@ -1,20 +1,20 @@
 /***************************************************************************
-@Description :seqDB-16002 :´´½¨¼¯ºÏÊ±£¬Ö¸¶¨catalogÒ»´Î»º´æÐòÁÐÊý´´½¨×ÔÔö×Ö¶Î 
+@Description :seqDB-16002 :ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Ö¸ï¿½ï¿½catalogÒ»ï¿½Î»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½ 
 @Modify list :
               2018-10-24  zhaoyu  Create
 ****************************************************************************/
-var sortField=0;
-function main()
+var sortField = 0;
+function main ()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("Deploy is standalone");
-	  return;
+      println( "Deploy is standalone" );
+      return;
    }
-   
-   var clName = COMMCLNAME + "_16002";   
-   commDropCL(db, COMMCSNAME, clName, true, true);
-  
+
+   var clName = COMMCLNAME + "_16002";
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
    var increment = -2;
    var cacheSize = 2147483647;
    var acquireSize = 1;
@@ -22,33 +22,33 @@ function main()
    var minValue = -2147483647;
    var maxValue = 2147483647;
    var startValue = 0;
-   var dbcl = commCreateCLByOption(db, COMMCSNAME, clName, {AutoIncrement:{Field:fieldName,Increment:increment, CacheSize:cacheSize, AcquireSize:acquireSize, MinValue:minValue, MaxValue:maxValue, StartValue: startValue}});
-   
-   var clID = getCLID(COMMCSNAME, clName);
+   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, MinValue: minValue, MaxValue: maxValue, StartValue: startValue } } );
+
+   var clID = getCLID( COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
-   var expArr = [{Field:fieldName, SequenceName:clSequenceName}];
-   checkAutoIncrementonCL(COMMCSNAME, clName, expArr);
-   println("---check autoIncrement success");
-   
-   var expObj = {Increment:increment, CacheSize:cacheSize, AcquireSize:acquireSize, CurrentValue:startValue, MinValue:minValue, MaxValue:maxValue, StartValue: startValue};
-   checkSequence(clSequenceName, expObj);
-   println("---check sequence success");
-   
+   var expArr = [{ Field: fieldName, SequenceName: clSequenceName }];
+   checkAutoIncrementonCL( COMMCSNAME, clName, expArr );
+   println( "---check autoIncrement success" );
+
+   var expObj = { Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, CurrentValue: startValue, MinValue: minValue, MaxValue: maxValue, StartValue: startValue };
+   checkSequence( clSequenceName, expObj );
+   println( "---check sequence success" );
+
    var doc = [];
    var expR = [];
-   for(var i=0; i<2000; i++)
+   for( var i = 0; i < 2000; i++ )
    {
-      doc.push({a:sortField});
-      expR.push({a:sortField, id:startValue + increment *i});
+      doc.push( { a: sortField } );
+      expR.push( { a: sortField, id: startValue + increment * i } );
       sortField++;
    }
-   dbcl.insert(doc);
-   
-   var actR = dbcl.find().sort({a:1});
-   checkRec(actR, expR);
-   println("---check insert when set cacheSize success");
-   
-   dbcl.dropAutoIncrement(fieldName);
+   dbcl.insert( doc );
+
+   var actR = dbcl.find().sort( { a: 1 } );
+   checkRec( actR, expR );
+   println( "---check insert when set cacheSize success" );
+
+   dbcl.dropAutoIncrement( fieldName );
    var increment = -3;
    var cacheSize = 2147483647;
    var acquireSize = 1;
@@ -58,27 +58,27 @@ function main()
    var startValue = 0;
    try
    {
-      dbcl.createAutoIncrement({Field: fieldName, Increment:increment, CacheSize:cacheSize, AcquireSize:acquireSize, MinValue:minValue, MaxValue:maxValue, StartValue: startValue});
+      dbcl.createAutoIncrement( { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, MinValue: minValue, MaxValue: maxValue, StartValue: startValue } );
       throw "NEED_CREATE_ERR";
-   }catch(e)
+   } catch( e )
    {
-      if(-6 !== e)
+      if( -6 !== e )
       {
-         throw new Error(e);
+         throw new Error( e );
       }
    }
-   
-   commDropCL(db, COMMCSNAME, clName, true, true);
+
+   commDropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

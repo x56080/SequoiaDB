@@ -9,67 +9,67 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack);  
+      println( e.stack );
    }
    throw e;
 }
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ) ;
-      return ;
+      println( "Run mode is standalone" );
+      return;
    }
-   var groupName = commGetGroups(db);
-   if(groupName.length < 2)
+   var groupName = commGetGroups( db );
+   if( groupName.length < 2 )
    {
-      println( "group num less 2" ) ;
-      return ;
+      println( "group num less 2" );
+      return;
    }
-   
+
    var clName = "alter8183";
    var srcGroup = groupName[0][0]["GroupName"];
    var tarGroup = groupName[1][0]["GroupName"];
-   commDropCL( db, COMMCSNAME, clName ) ;
+   commDropCL( db, COMMCSNAME, clName );
 
-   var cl = commCreateCLByOption(db, COMMCSNAME, clName, {Group: srcGroup});
-   
+   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: srcGroup } );
+
    var data = [];
-   for(var i = 0; i < 1000; i++)
+   for( var i = 0; i < 1000; i++ )
    {
-      data.push({"id": i, "text": "test alter " + i});
+      data.push( { "id": i, "text": "test alter " + i } );
    }
-   cl.insert(data);
-   
+   cl.insert( data );
+
    //alter cl to shardingCL
-   cl.alter({"ShardingKey": {"id": 1}, "ShardingType": "range"});
-   cl.split(srcGroup, tarGroup, 50);
-   
+   cl.alter( { "ShardingKey": { "id": 1 }, "ShardingType": "range" } );
+   cl.split( srcGroup, tarGroup, 50 );
+
    //check snapshot
-   var snap = db.snapshot(8,{Name:COMMCSNAME + "." + clName});
+   var snap = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
    var info = snap.current().toObj();
    var shardingKey = info['ShardingKey'];
    var shardingType = info['ShardingType'];
-   if(JSON.stringify(shardingKey) !== '{"id":1}')
+   if( JSON.stringify( shardingKey ) !== '{"id":1}' )
    {
-      throw new Error("check shardingKey, \nexpect: {\"id\": 1}, \nbut found: " + JSON.stringify(shardingKey));
+      throw new Error( "check shardingKey, \nexpect: {\"id\": 1}, \nbut found: " + JSON.stringify( shardingKey ) );
    }
-   if(shardingType !== "range")
+   if( shardingType !== "range" )
    {
-      throw new Error("check shardingType, \nexpect: range, \nbut found: " + shardingType);
+      throw new Error( "check shardingType, \nexpect: range, \nbut found: " + shardingType );
    }
-   
+
    var num = cl.count();
-   if(num != 1000)
+   if( num != 1000 )
    {
-      throw new Error("check recordNum, \nexpect: 1000, \nbut found: " + num);
+      throw new Error( "check recordNum, \nexpect: 1000, \nbut found: " + num );
    }
-   
-   commDropCL( db, COMMCSNAME, clName ) ;
+
+   commDropCL( db, COMMCSNAME, clName );
 }
 

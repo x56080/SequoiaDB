@@ -3,127 +3,149 @@
 @Modify list :
                2015-01-15 pusheng Ding  Init
 ******************************************************************************/
-CLINDEX1 = CHANGEDPREFIX + "IND1" ;
+CLINDEX1 = CHANGEDPREFIX + "IND1";
 rownums = 1000;
 
-try{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" ) ;
-}catch( e ){
-   println( "failed to drop cl, rc = " + e );
-   throw e;
+try
+{
+	commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" );
+} catch( e )
+{
+	println( "failed to drop cl, rc = " + e );
+	throw e;
 }
 
-try{
-   var varCS = commCreateCS( db, COMMCSNAME, true, "create CS in the beginning" );
-	var varCL = varCS.createCL(COMMCLNAME,{ReplSize:0,Compressed:true});
-}catch( e ){
-   println("createCS or createCL fail");
-   throw e ;	
+try
+{
+	var varCS = commCreateCS( db, COMMCSNAME, true, "create CS in the beginning" );
+	var varCL = varCS.createCL( COMMCLNAME, { ReplSize: 0, Compressed: true } );
+} catch( e )
+{
+	println( "createCS or createCL fail" );
+	throw e;
 }
 
 //insert data
 try
 {
-   var recs = [];
-   for(var i=0; i<rownums; i++)
-   { 
-      var rec = {a:{a1:i,a2:rownums-i},b:"abcdefghijklmnopq"+i};
-      recs.push( rec ); 
-   }
-   varCL.insert(recs);
+	var recs = [];
+	for( var i = 0; i < rownums; i++ )
+	{
+		var rec = { a: { a1: i, a2: rownums - i }, b: "abcdefghijklmnopq" + i };
+		recs.push( rec );
+	}
+	varCL.insert( recs );
 }
-catch(e)
+catch( e )
 {
-   println("insert data failed!");
-   throw e;
+	println( "insert data failed!" );
+	throw e;
 }
-println("insert data finished!");
+println( "insert data finished!" );
 
 //query1
 //select a,b from foo.bar order by a.a1 desc
-try{
-	var sel = varCL.find(null,{a:null,b:'b'}).sort({"a.a1":-1});
-	var flag=true;
+try
+{
+	var sel = varCL.find( null, { a: null, b: 'b' } ).sort( { "a.a1": -1 } );
+	var flag = true;
 	var i = rownums;
-	while(sel.next()){
+	while( sel.next() )
+	{
 		i--;
 		var ret = sel.current();
-		if(ret.toObj()['b']!=("abcdefghijklmnopq"+i)
-		   || ret.toObj()['a']['a1']!=i
-		   || ret.toObj()['a']['a2']!=(rownums-i)){
+		if( ret.toObj()['b'] != ( "abcdefghijklmnopq" + i )
+			|| ret.toObj()['a']['a1'] != i
+			|| ret.toObj()['a']['a2'] != ( rownums - i ) )
+		{
 			flag = false;
 			throw "query1-result-uncorrect";
 		}
-		if(i<0){
+		if( i < 0 )
+		{
 			break;
 		}
 	}
 	sel.close();
-	if(flag && i!=0){
+	if( flag && i != 0 )
+	{
 		flag = false;
 		throw "query1-result-uncorrect";
 	}
-}catch(e){
-	if(e!="query1-result-uncorrect"){
-		println("'select a,b from foo.bar order by a.a1 desc' failed! rc="+e);
+} catch( e )
+{
+	if( e != "query1-result-uncorrect" )
+	{
+		println( "'select a,b from foo.bar order by a.a1 desc' failed! rc=" + e );
 		throw e;
-	}else{
-		println("'select a,b from foo.bar order by a.a1 desc' verify record fail!");
-  	throw e;
-  }
+	} else
+	{
+		println( "'select a,b from foo.bar order by a.a1 desc' verify record fail!" );
+		throw e;
+	}
 }
-println("'select a,b from foo.bar order by a.a1 desc' finished!");
+println( "'select a,b from foo.bar order by a.a1 desc' finished!" );
 
 //create index
-try{
-	varCL.createIndex(CLINDEX1,{a:1});
-}catch( e ){
-   println("create indexes fail");
-   throw e ;	
+try
+{
+	varCL.createIndex( CLINDEX1, { a: 1 } );
+} catch( e )
+{
+	println( "create indexes fail" );
+	throw e;
 }
-println("create indexes finished!");
+println( "create indexes finished!" );
 
 //query2
 //select a,b from foo.bar order by a.a1
-try{
-	var sel = varCL.find(null,{a:null,b:'b'}).sort({"a.a1":1}).hint({"":CLINDEX1});
-	var flag=true;
+try
+{
+	var sel = varCL.find( null, { a: null, b: 'b' } ).sort( { "a.a1": 1 } ).hint( { "": CLINDEX1 } );
+	var flag = true;
 	var i = 0;
-	while(sel.next()){
+	while( sel.next() )
+	{
 		var ret = sel.current();
-		if(ret.toObj()['b']!=("abcdefghijklmnopq"+i)
-		   || ret.toObj()['a']['a1']!=i
-		   || ret.toObj()['a']['a2']!=(rownums-i)){
+		if( ret.toObj()['b'] != ( "abcdefghijklmnopq" + i )
+			|| ret.toObj()['a']['a1'] != i
+			|| ret.toObj()['a']['a2'] != ( rownums - i ) )
+		{
 			flag = false;
 			throw "query2-result-uncorrect";
 		}
 		i++;
-		if(i>rownums){
+		if( i > rownums )
+		{
 			break;
 		}
 	}
 	sel.close();
-	if(flag && i!=rownums){
+	if( flag && i != rownums )
+	{
 		flag = false;
 		throw "query2-result-uncorrect";
 	}
-}catch(e){
-	if(e!="query2-result-uncorrect"){
-		println("'select a,b from foo.bar order by a.a1' with index failed! rc="+e);
+} catch( e )
+{
+	if( e != "query2-result-uncorrect" )
+	{
+		println( "'select a,b from foo.bar order by a.a1' with index failed! rc=" + e );
 		throw e;
-	}else{
-		println("'select a,b from foo.bar order by a.a1' with index verify record fail!");
-  	throw e;
-  }
+	} else
+	{
+		println( "'select a,b from foo.bar order by a.a1' with index verify record fail!" );
+		throw e;
+	}
 }
-println("'select a,b from foo.bar order by a.a1' with index finished!");
+println( "'select a,b from foo.bar order by a.a1' with index finished!" );
 
 try
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, false, false, "drop cl in the end" ) ;
+	commDropCL( db, COMMCSNAME, COMMCLNAME, false, false, "drop cl in the end" );
 }
-catch ( e )
+catch( e )
 {
-   println( "failed to drop cs, rc= " + e ) ;
-   throw e ;
+	println( "failed to drop cs, rc= " + e );
+	throw e;
 }

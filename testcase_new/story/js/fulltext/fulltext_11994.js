@@ -3,51 +3,55 @@
 @Modify list :
               2018-10-25  YinZhen  Create
 ****************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db )){
-      println("Deploy is standalone");
+   if( commIsStandalone( db ) )
+   {
+      println( "Deploy is standalone" );
       return;
    }
 
    var clName = COMMCLNAME + "_ES_11994";
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
-   var dbcl = commCreateCL(db, COMMCSNAME, clName, 0);
-   
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+
    //删除存在的全文索引，删除成功
    var indexName = "a_11994";
-   commCreateIndex( dbcl, indexName, {content:"text"});
+   commCreateIndex( dbcl, indexName, { content: "text" } );
    commCheckIndex( dbcl, indexName, true );
    var dbOperator = new DBOperator();
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, indexName);
-   dbcl.dropIndex( indexName ); 
-   
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
+   dbcl.dropIndex( indexName );
+
    //删除不存在的全文索引，删除失败
    commCheckIndex( dbcl, indexName, false );
-   try{
-      dbcl.dropIndex( indexName ); 
-      throw new Error("DROPINDEXERR");
+   try
+   {
+      dbcl.dropIndex( indexName );
+      throw new Error( "DROPINDEXERR" );
    }
-   catch( e ){
-      if( e != -47){
-         throw new Error("drop not exist index success");
+   catch( e )
+   {
+      if( e != -47 )
+      {
+         throw new Error( "drop not exist index success" );
       }
    }
    commCheckIndex( dbcl, indexName, false );
-   checkIndexNotExistInES(esIndexNames);
-   
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   checkIndexNotExistInES( esIndexNames );
+
+   commDropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

@@ -5,10 +5,10 @@
 2018-07-30        linsuqiang init
 ****************************************************/
 main()
-function main()
+function main ()
 {
-   var clFullName = COMMCSNAME + ".inexistent_cl_name_14233"; 
-   tryCatch( ["cmd=analyze", "options={Collection:\"" + clFullName + "\"}"], 
-   [-23], 
-   "wrong error code when analyze inexistent cl" ); 
+   var clFullName = COMMCSNAME + ".inexistent_cl_name_14233";
+   tryCatch( ["cmd=analyze", "options={Collection:\"" + clFullName + "\"}"],
+      [-23],
+      "wrong error code when analyze inexistent cl" );
 }

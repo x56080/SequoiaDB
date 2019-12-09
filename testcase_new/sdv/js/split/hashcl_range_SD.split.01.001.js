@@ -5,23 +5,23 @@
 **************************************/
 //var CHANGEDPREFIX = "local_test"
 var clName = CHANGEDPREFIX + "_hashsplitcl01001";
-function createSplitCl( csName, clName )
-{  
-	var options = {ShardingKey:{no:1}, ShardingType:"hash",Partition:1024,ReplSize:0,Compressed:true};
-	var varCL = commCreateCLByOption( db, csName, clName, options, true, true );
-   return varCL;   
+function createSplitCl ( csName, clName )
+{
+   var options = { ShardingKey: { no: 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 0, Compressed: true };
+   var varCL = commCreateCLByOption( db, csName, clName, options, true, true );
+   return varCL;
 }
 
-function checkSplitResult( CL, clName, splitGrInfo )
+function checkSplitResult ( CL, clName, splitGrInfo )
 {
    //step1:
-   checkHashClSplitResult( clName, splitGrInfo)
+   checkHashClSplitResult( clName, splitGrInfo )
    //step2:
    insertDataAfterHashClSplit( CL )
 }
 
-function main()
-{  
+function main ()
+{
    try
    {
       //@ clean start:
@@ -29,32 +29,32 @@ function main()
       {
          println( "run mode is standalone" );
          return;
-      }     
+      }
       //less two groups no split
-      var allGroupName = getGroupName(db,true);         
+      var allGroupName = getGroupName( db, true );
       if( 1 === allGroupName.length )
       {
-         println("--least two groups");
-         return ;
-      }    
-      var CL = createSplitCl( COMMCSNAME,clName );
-      
+         println( "--least two groups" );
+         return;
+      }
+      var CL = createSplitCl( COMMCSNAME, clName );
+
       var dataNums = 1000;
-      insertData( db, COMMCSNAME, clName, dataNums );      
-      condition = {Partition:512}
-      splitGrInfo = ClSplitOneTimes( COMMCSNAME, clName, condition )      
+      insertData( db, COMMCSNAME, clName, dataNums );
+      condition = { Partition: 512 }
+      splitGrInfo = ClSplitOneTimes( COMMCSNAME, clName, condition )
       checkSplitResult( CL, clName, splitGrInfo )
-      
+
       //@ clean end
-      commDropCL( db, COMMCSNAME, clName, false, false,"drop CL in the beginning" );
+      commDropCL( db, COMMCSNAME, clName, false, false, "drop CL in the beginning" );
    }
-   catch(e)
+   catch( e )
    {
       throw e;
    }
    finally
    {
-      if (undefined !== db)
+      if( undefined !== db )
       {
          db.close();
       }

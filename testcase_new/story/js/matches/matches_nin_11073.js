@@ -7,30 +7,30 @@
 
 main();
 
-function main()
+function main ()
 {
     var csName = COMMCSNAME;
     var clName = "cl11073";
 
     var cl = commCreateCL( db, csName, clName, null, null, true, false, "create cl in the begin" );
 
-    cl.insert({_id:1,a:[]});
-    cl.insert({_id:2,a:Regex("W","i")});
+    cl.insert( { _id: 1, a: [] } );
+    cl.insert( { _id: 2, a: Regex( "W", "i" ) } );
 
-    var cursor1 = cl.find({a:{$in:[Regex("W","i")]}});
+    var cursor1 = cl.find( { a: { $in: [Regex( "W", "i" )] } } );
     var expRecs1 = '[{"_id":2,"a":{"$regex":"W","$options":"i"}}]';
-    checkCLData( cursor1, expRecs1, 1);
+    checkCLData( cursor1, expRecs1, 1 );
 
-    var cursor2 = cl.find({a:{$nin:[Regex("W","i")]}});
+    var cursor2 = cl.find( { a: { $nin: [Regex( "W", "i" )] } } );
     var expRecs2 = '[{"_id":1,"a":[]}]';
-    checkCLData( cursor2, expRecs2, 1);
+    checkCLData( cursor2, expRecs2, 1 );
 
     commDropCL( db, csName, clName, true, true, "drop CL in the end" );
-}	
+}
 
-function checkCLData( rc, expRecs, expCnt )
+function checkCLData ( rc, expRecs, expCnt )
 {
-    println("\n---Begin to check cl data.");
+    println( "\n---Begin to check cl data." );
     var recsArray = [];
     while( tmpRecs = rc.next() )
     {
@@ -38,13 +38,13 @@ function checkCLData( rc, expRecs, expCnt )
     }
     rc.close();
 
-    var actCnt  = recsArray.length;
+    var actCnt = recsArray.length;
     var actRecs = JSON.stringify( recsArray );
     if( actCnt !== expCnt || actRecs !== expRecs )
     {
         throw buildException( "checkCLdata", null, "[find]",
-          "[cnt:"+ expCnt +", recs:"+ expRecs +"]",
-          "[cnt:"+ actCnt +", recs:"+ actRecs +"]" );
+            "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+            "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
     }
-    println( "cl records: "+ actRecs );
+    println( "cl records: " + actRecs );
 }

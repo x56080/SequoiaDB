@@ -1,18 +1,18 @@
 // create cl.
 // normal case.
 
-TESTCLNAME = CHANGEDPREFIX+"bar" ;
+TESTCLNAME = CHANGEDPREFIX + "bar";
 
 try
 {
    commDropCL( db, COMMCSNAME, TESTCLNAME, true, true, "drop CL in the beginning" );
 }
-catch (e)
+catch( e )
 {
-   if ( e != -34)
+   if( e != -34 )
    {
-      println( "unexpected err happened when clear cs:" + e ) ;
-      throw e ;
+      println( "unexpected err happened when clear cs:" + e );
+      throw e;
    }
 }
 
@@ -20,27 +20,27 @@ try
 {
    var varCS = commCreateCS( db, COMMCSNAME, true, "failed to create CS" );
 }
-catch ( e )
+catch( e )
 {
    println( "failed to create cs, rc= " + e );
-   throw e ;
+   throw e;
 }
 
-for(var i = 0 ; i < (128 - CHANGEDPREFIX.length) ; ++i )
+for( var i = 0; i < ( 128 - CHANGEDPREFIX.length ); ++i )
 {
-   TESTCLNAME = TESTCLNAME+"a";
+   TESTCLNAME = TESTCLNAME + "a";
 }
-var j = true ;
+var j = true;
 try
 {
-   var varCL = varCS.createCL( TESTCLNAME ) ;
+   var varCL = varCS.createCL( TESTCLNAME );
 }
-catch ( e )
+catch( e )
 {
-   j = false ;
+   j = false;
 }
 if( j )
 {
-   throw -1 ;
+   throw -1;
 }
 

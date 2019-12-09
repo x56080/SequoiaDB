@@ -7,15 +7,15 @@
 var pcdName = COMMCLNAME + '_procedurename';
 main();
 
-function main()
+function main ()
 {
-   if( commIsStandalone(db) )
+   if( commIsStandalone( db ) )
    {
-      println(" Deploy mode is standalone!");
+      println( " Deploy mode is standalone!" );
       return;
-   }  
+   }
    try
-   {       
+   {
       ready();
       createExistPcd();
       lackName();
@@ -23,7 +23,7 @@ function main()
    }
    catch( e )
    {
-      throw e ;
+      throw e;
    }
    finally
    {
@@ -31,91 +31,91 @@ function main()
    }
 }
 
-function createExistPcd()
+function createExistPcd ()
 {
-   println("\n---begin to create procedure that has existed");
-   var cmd = "db.createProcedure( function " + pcdName + "(x, y){return x-y;} )";       
+   println( "\n---begin to create procedure that has existed" );
+   var cmd = "db.createProcedure( function " + pcdName + "(x, y){return x-y;} )";
    db.eval( cmd );
-   
+
    try
-   {           
+   {
       db.eval( cmd );
       throw "did not throw error";
    }
-   catch(e)
+   catch( e )
    {
       if( e !== -342 )
       {
-         throw buildException( "testExistPcd()", "", cmd, "throw -342", e );  
+         throw buildException( "testExistPcd()", "", cmd, "throw -342", e );
       }
    }
-   
-   println("\n---begin to create procedure that has the same name and different parameter");
-   var cmd = "db.createProcedure( function " + pcdName + "(x){return x;} )";  
-   
+
+   println( "\n---begin to create procedure that has the same name and different parameter" );
+   var cmd = "db.createProcedure( function " + pcdName + "(x){return x;} )";
+
    try
-   {           
+   {
       db.eval( cmd );
       throw "did not throw error";
    }
-   catch(e)
+   catch( e )
    {
       if( e !== -342 )
       {
-         throw buildException( "testExistPcd()", "", cmd, "throw -342", e );  
+         throw buildException( "testExistPcd()", "", cmd, "throw -342", e );
       }
    }
 }
 
-function lackName()
+function lackName ()
 {
-   println("\n---begin to create procedure that lack of function name");
+   println( "\n---begin to create procedure that lack of function name" );
    db.eval( cmd );
-   
+
    try
-   {  
-      var cmd = "db.createProcedure( function "  + "(x, y){return x-y;} )";         
+   {
+      var cmd = "db.createProcedure( function " + "(x, y){return x-y;} )";
       db.eval( cmd );
       throw "did not throw error";
    }
-   catch(e)
+   catch( e )
    {
       if( e !== -6 )
       {
-         throw buildException( "testExistPcd()", "", cmd, "throw -6", e );  
+         throw buildException( "testExistPcd()", "", cmd, "throw -6", e );
       }
    }
 }
 
-function wrongParameterType()
+function wrongParameterType ()
 {
-   println("\n---begin to create procedure with wrong parameter type: eg string");
+   println( "\n---begin to create procedure with wrong parameter type: eg string" );
    db.eval( cmd );
-   
+
    try
-   {  
-      var cmd = "db.createProcedure( function " + pcdName + "{return x-y;} )";         
-      db.createProcedure("");
+   {
+      var cmd = "db.createProcedure( function " + pcdName + "{return x-y;} )";
+      db.createProcedure( "" );
       throw "did not throw error";
    }
-   catch(e)
+   catch( e )
    {
-      if ( -6 != e )
+      if( -6 != e )
       {
-         throw buildException( "testExistPcd()", "", 'db.createProcedure("")', 
-                               "-6", e ); 
+         throw buildException( "testExistPcd()", "", 'db.createProcedure("")',
+            "-6", e );
       }
    }
 }
 
-function ready()
+function ready ()
 {
-   println("\n---begin to remove procedures in ready");
-   fmpRemoveProcedures( [pcdName], true );   
+   println( "\n---begin to remove procedures in ready" );
+   fmpRemoveProcedures( [pcdName], true );
 }
 
-function clean()
+function clean ()
 {
-   println("\n---begin to clean environment");
+   println( "\n---begin to clean environment" );
    fmpRemoveProcedures( [pcdName], true );
 }

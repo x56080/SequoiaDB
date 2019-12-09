@@ -4,57 +4,57 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_matches8022" ;
+      var clName = COMMCLNAME + "_matches8022";
       var cl = readyCL( clName );
-      
+
       insertRecs( cl );
-      
+
       var rc = findRecs( cl );
       checkResult( rc );
-   
+
       cleanCL( clName );
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl )
+function insertRecs ( cl )
 {
-   println("\n---Begin to insert records.");
-   
-   cl.insert({a:"test"})
+   println( "\n---Begin to insert records." );
+
+   cl.insert( { a: "test" } )
 }
 
-function findRecs( cl )
+function findRecs ( cl )
 {
-   println("\n---Begin to find records.");
-   
-   var rc = cl.find( {"a.$1":"test"} ).sort({a:1});
+   println( "\n---Begin to find records." );
+
+   var rc = cl.find( { "a.$1": "test" } ).sort( { a: 1 } );
    return rc;
 }
 
-function checkResult( rc )
+function checkResult ( rc )
 {
-   println("\n---Begin to check result.");
-   
+   println( "\n---Begin to check result." );
+
    var findRecsArray = [];
    while( tmpRecs = rc.next() )
    {
       findRecsArray.push( tmpRecs.toObj() );
    }
-   
+
    var expLen = 0;
    var actLen = findRecsArray.length;
    if( actLen !== expLen )
    {
-      throw buildException("checkResult", null, "[compare number]", 
-                          "[recsNum:"+ expLen +"]",
-                          "[recsNum:"+ actLen +"]");
+      throw buildException( "checkResult", null, "[compare number]",
+         "[recsNum:" + expLen + "]",
+         "[recsNum:" + actLen + "]" );
    }
 }

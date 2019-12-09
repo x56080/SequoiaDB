@@ -6,22 +6,22 @@
 var pcdName = COMMCLNAME + '_procedurename';
 main();
 
-function main()
+function main ()
 {
-   if( commIsStandalone(db) )
+   if( commIsStandalone( db ) )
    {
-      println(" Deploy mode is standalone!");
+      println( " Deploy mode is standalone!" );
       return;
-   }  
+   }
    try
-   {               
+   {
       ready();
       removeNotExistPcd();
       parameterCheck();
    }
    catch( e )
    {
-      throw e ;
+      throw e;
    }
    finally
    {
@@ -29,65 +29,65 @@ function main()
    }
 }
 
-function removeNotExistPcd()
+function removeNotExistPcd ()
 {
-   println("\n---begin to remove nonexistent procedure");   
+   println( "\n---begin to remove nonexistent procedure" );
    try
-   {           
-      db.removeProcedure(pcdName);
+   {
+      db.removeProcedure( pcdName );
       throw "did not throw error";
    }
-   catch(e)
+   catch( e )
    {
       if( e !== -233 )
       {
-         throw buildException( "removeNotExistPcd()", "", 
-                               'db.removeProcedure('+pcdName+')', "throw -233", e );  
+         throw buildException( "removeNotExistPcd()", "",
+            'db.removeProcedure(' + pcdName + ')', "throw -233", e );
       }
    }
-  
+
 }
 
-function parameterCheck()
+function parameterCheck ()
 {
-   println("\n---begin to check parameter of removeProcedure");
+   println( "\n---begin to check parameter of removeProcedure" );
    try
    {
-     db.removeProcedure();
+      db.removeProcedure();
       throw "did not throw error";
    }
-   catch(e)
+   catch( e )
    {
-      if ( -259 != e )
+      if( -259 != e )
       {
-         throw buildException( "parameterCheck()", "", 'db.removeProcedure()', 
-                               "throw error: wrong arguments", e ); 
+         throw buildException( "parameterCheck()", "", 'db.removeProcedure()',
+            "throw error: wrong arguments", e );
       }
    }
-   
+
    try
    {
-     db.removeProcedure(123);
+      db.removeProcedure( 123 );
       throw "did not throw error";
    }
-   catch(e)
+   catch( e )
    {
-      if ( -6 != e )
+      if( -6 != e )
       {
-         throw buildException( "parameterCheck()", "", 'db.removeProcedure(123)', 
-                               -6, e ); 
+         throw buildException( "parameterCheck()", "", 'db.removeProcedure(123)',
+            -6, e );
       }
    }
 }
 
-function ready()
+function ready ()
 {
-   println("\n---begin to remove procedures in ready");
-   fmpRemoveProcedures( [pcdName], true );   
+   println( "\n---begin to remove procedures in ready" );
+   fmpRemoveProcedures( [pcdName], true );
 }
 
-function clean()
+function clean ()
 {
-   println("\n---begin to clean environment");
+   println( "\n---begin to clean environment" );
    fmpRemoveProcedures( [pcdName], true );
 }

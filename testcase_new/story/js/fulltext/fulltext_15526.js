@@ -2,104 +2,104 @@
 @Description :   seqDB-15526:更新_id字段，类型为支持同步的类型
 @Modify list :   2018-9-28  xiaoni Zhao  Init
 ******************************************************************************/
-function main()
+function main ()
 {
-    
+
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ) ;
-      return ;
+      println( "Run mode is standalone" );
+      return;
    }
-   
+
    var dbOperator = new DBOperator();
    var clName = COMMCLNAME + "_ES_15526";
-   var findCond  = {"":{"$Text":{"query":{"match_all":{}}}}};
-   var selectorCond = { a : "" };
+   var findCond = { "": { "$Text": { "query": { "match_all": {} } } } };
+   var selectorCond = { a: "" };
    var textIndexName = "a_15526";
 
    commDropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
-   
+
    insertData( dbcl );
-   
+
    commCreateIndex( dbcl, textIndexName, { a: "text" } );
-   
+
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 10 );
-   
-   var expectResult = dbOperator.findFromCL( dbcl, null, selectorCond ).sort( compare ( 'a' ) );
-   var actResult = dbOperator.findFromCL( dbcl, findCond, selectorCond ).sort( compare ( 'a' ) );
+
+   var expectResult = dbOperator.findFromCL( dbcl, null, selectorCond ).sort( compare( 'a' ) );
+   var actResult = dbOperator.findFromCL( dbcl, findCond, selectorCond ).sort( compare( 'a' ) );
    checkResult( expectResult, actResult );
-   
+
    updateData( dbcl );
-   dbcl.insert({a : "new"});
-   
+   dbcl.insert( { a: "new" } );
+
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 11 );
-   
-   expectResult = dbOperator.findFromCL( dbcl, null, selectorCond ).sort( compare ( 'a' ) );
-   actResult = dbOperator.findFromCL( dbcl, findCond, selectorCond ).sort( compare ( 'a' ) );
+
+   expectResult = dbOperator.findFromCL( dbcl, null, selectorCond ).sort( compare( 'a' ) );
+   actResult = dbOperator.findFromCL( dbcl, findCond, selectorCond ).sort( compare( 'a' ) );
    checkResult( expectResult, actResult );
-   
+
    dbcl.remove();
-   
+
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 0 );
-   
+
    //insert again to test synchronize from cappedCL to ES
    insertData( dbcl );
-   
+
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 10 );
-   
-   expectResult = dbOperator.findFromCL( dbcl, null, selectorCond ).sort( compare ( 'a' ) );
-   actResult = dbOperator.findFromCL( dbcl, findCond, selectorCond ).sort( compare ( 'a' ) );
-   checkResult( expectResult, actResult ); 
-   
-   updateData( dbcl );
-   dbcl.insert({a : "new"});
-   
-   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 11 );
-   
-   expectResult = dbOperator.findFromCL( dbcl, null, selectorCond ).sort( compare ( 'a' ) );
-   actResult = dbOperator.findFromCL( dbcl, findCond, selectorCond ).sort( compare ( 'a' ) );
+
+   expectResult = dbOperator.findFromCL( dbcl, null, selectorCond ).sort( compare( 'a' ) );
+   actResult = dbOperator.findFromCL( dbcl, findCond, selectorCond ).sort( compare( 'a' ) );
    checkResult( expectResult, actResult );
-   
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, textIndexName);
+
+   updateData( dbcl );
+   dbcl.insert( { a: "new" } );
+
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 11 );
+
+   expectResult = dbOperator.findFromCL( dbcl, null, selectorCond ).sort( compare( 'a' ) );
+   actResult = dbOperator.findFromCL( dbcl, findCond, selectorCond ).sort( compare( 'a' ) );
+   checkResult( expectResult, actResult );
+
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
    commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
 
-function insertData( dbcl )
+function insertData ( dbcl )
 {
    for( var i = 0; i < 10; i++ )
    {
-       dbcl.insert( { a : "a" + i } );
+      dbcl.insert( { a: "a" + i } );
    }
 }
 
-function updateData( dbcl )
+function updateData ( dbcl )
 {
-   dbcl.update( { $set : { _id : 1 } }, { a : "a0" } );
-   dbcl.update( { $set : { _id : { "$numberLong" : "4354" } } }, { a : "a1" } );
-   dbcl.update( { $set : { _id : 123.456 } }, { a : "a2" } );
-   dbcl.update( { $set : { _id : { $decimal : "153.456" } } }, { a : "a3" } );
-   dbcl.update( { $set : { _id : "string" } }, { a : "a4" } );
-   dbcl.update( { $set : { _id : false } }, { a : "a5" } );
-   dbcl.update( { $set : { _id : { "$date" : "2012-01-01" } } }, { a : "a6" } );
-   dbcl.update( { $set : { _id : { "$timestamp" : "2012-01-01-13.14.26.124233" } } }, { a : "a7" } );
-   dbcl.update( { $set : { _id : { "key" : "value" } } }, { a : "a8" } );
-   dbcl.update( { $set : { _id : { "$oid" : "123abcd00ef12358902300ef" } } }, { a : "a9" } );
+   dbcl.update( { $set: { _id: 1 } }, { a: "a0" } );
+   dbcl.update( { $set: { _id: { "$numberLong": "4354" } } }, { a: "a1" } );
+   dbcl.update( { $set: { _id: 123.456 } }, { a: "a2" } );
+   dbcl.update( { $set: { _id: { $decimal: "153.456" } } }, { a: "a3" } );
+   dbcl.update( { $set: { _id: "string" } }, { a: "a4" } );
+   dbcl.update( { $set: { _id: false } }, { a: "a5" } );
+   dbcl.update( { $set: { _id: { "$date": "2012-01-01" } } }, { a: "a6" } );
+   dbcl.update( { $set: { _id: { "$timestamp": "2012-01-01-13.14.26.124233" } } }, { a: "a7" } );
+   dbcl.update( { $set: { _id: { "key": "value" } } }, { a: "a8" } );
+   dbcl.update( { $set: { _id: { "$oid": "123abcd00ef12358902300ef" } } }, { a: "a9" } );
 }
 
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 ;

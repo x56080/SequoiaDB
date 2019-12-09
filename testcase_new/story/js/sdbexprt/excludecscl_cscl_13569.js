@@ -5,77 +5,77 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csnum = 2 ;
-var clnum = 5 ;
-var clnames = [] ;
-var csnames = [] ;
-var doc = { a: 1 } ;
-var csvContent = "a\n1\n" ; 
+var csnum = 2;
+var clnum = 5;
+var clnames = [];
+var csnames = [];
+var doc = { a: 1 };
+var csvContent = "a\n1\n";
 
-main() ;
+main();
 
-function main()
+function main ()
 {
-   for( var i = 0;i < csnum;i++ )
+   for( var i = 0; i < csnum; i++ )
    {
-      var csname = COMMCSNAME + "_sdbexprt13568_" + i ;
-      for( var j = 0;j < clnum;j++ )
+      var csname = COMMCSNAME + "_sdbexprt13568_" + i;
+      for( var j = 0; j < clnum; j++ )
       {
-         var clname = COMMCLNAME + "_sdbexprt13568_" + j ;
-         var cl = commCreateCL( db, csname, clname, 0 ) ;
-         cl.insert( doc ) ;
+         var clname = COMMCLNAME + "_sdbexprt13568_" + j;
+         var cl = commCreateCL( db, csname, clname, 0 );
+         cl.insert( doc );
          if( i == 0 )
-            clnames.push( clname ) ;
+            clnames.push( clname );
       }
-      csnames.push( csname ) ;
+      csnames.push( csname );
    }
-  
-   testExcludeCsCl() ;
-   
-   for( var i = 0;i < csnum;i++ )
+
+   testExcludeCsCl();
+
+   for( var i = 0; i < csnum; i++ )
    {
-      commDropCS( db, csnames[i] ) ;
+      commDropCS( db, csnames[i] );
    }
 }
 
-function testExcludeCsCl()
+function testExcludeCsCl ()
 {
-   var csvDir = workDir + "13568/" ;
-   commMakeDir( "localhost", csvDir ) ;
-   
+   var csvDir = workDir + "13568/";
+   commMakeDir( "localhost", csvDir );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME + 
-                 " --dir " + csvDir +
-                 " --type csv" +
-                 " --force true" ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " --dir " + csvDir +
+      " --type csv" +
+      " --force true";
    // include all cl in cs0
-   command += " --cscl " ;
-   for( var j = 0;j < clnum;j++ )
+   command += " --cscl ";
+   for( var j = 0; j < clnum; j++ )
    {
-      command += csnames[0] + "." + clnames[j] ;
-      if( j !== clnum-1 )
-         command += "," ;
-   }              
+      command += csnames[0] + "." + clnames[j];
+      if( j !== clnum - 1 )
+         command += ",";
+   }
    // exclude cs0.cl0 cs0.cl1 cs1.cl0 cs1.cl1
    command += " --excludecscl " + csnames[0] + "." + clnames[0] + "," +
-                                  csnames[0] + "." + clnames[1] + "," +
-                                  csnames[1] + "." + clnames[0] + "," +
-                                  csnames[1] + "." + clnames[1] ;                
-   testRunCommand( command ) ;
-   
-   for( var i = 0;i < csnum;i++ )
+      csnames[0] + "." + clnames[1] + "," +
+      csnames[1] + "." + clnames[0] + "," +
+      csnames[1] + "." + clnames[1];
+   testRunCommand( command );
+
+   for( var i = 0; i < csnum; i++ )
    {
-      for( var j = 0;j < clnum;j++ )
+      for( var j = 0; j < clnum; j++ )
       {
-         var filename = csvDir + csnames[i] + "." + clnames[j] + ".csv" ;
-         if( ( i == 1 ) || 
-             ( i == 0 && ( j == 0 || j == 1 ) ) )
-            checkFileExist( filename, false ) ;
+         var filename = csvDir + csnames[i] + "." + clnames[j] + ".csv";
+         if( ( i == 1 ) ||
+            ( i == 0 && ( j == 0 || j == 1 ) ) )
+            checkFileExist( filename, false );
          else
-            checkFileContent( filename, csvContent ) ;
+            checkFileContent( filename, csvContent );
       }
    }
-   
-   cmd.run( "rm -rf " + csvDir ) ;
+
+   cmd.run( "rm -rf " + csvDir );
 }

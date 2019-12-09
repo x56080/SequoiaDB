@@ -5,33 +5,33 @@
 ****************************************************************************/
 var clName = CHANGEDPREFIX + "_9636";
 
-function main( dbs )
+function main ( dbs )
 {
-   // drop collection in the beginning
-   commDropCL( dbs, csName, clName, true, true, "drop collection in the beginning" ) ;
+	// drop collection in the beginning
+	commDropCL( dbs, csName, clName, true, true, "drop collection in the beginning" );
 
-   // create cs /cl
-   var idxCL = commCreateCL( dbs, csName, clName, 0, true, true );
-   //check test result
-   CheckGetCL( dbs, csName, clName);
-   checkInsert( dbs, csName, clName );
-   
-   // drop collection 
-   commDropCL( dbs, csName, clName, false, false,"drop colleciton to test dropcl" );
-   //check the cl
-   CheckGetCL( dbs, csName, clName,true);
-   //dropCS
-   commDropCS( dbs, csName, false, "seqDB-9636: dropCS failed");
+	// create cs /cl
+	var idxCL = commCreateCL( dbs, csName, clName, 0, true, true );
+	//check test result
+	CheckGetCL( dbs, csName, clName );
+	checkInsert( dbs, csName, clName );
+
+	// drop collection 
+	commDropCL( dbs, csName, clName, false, false, "drop colleciton to test dropcl" );
+	//check the cl
+	CheckGetCL( dbs, csName, clName, true );
+	//dropCS
+	commDropCS( dbs, csName, false, "seqDB-9636: dropCS failed" );
 }
 
 try
 {
-   main( dbs ) ;
-   dbs.close() ;
+	main( dbs );
+	dbs.close();
 }
-catch ( e )
+catch( e )
 {
-   throw e ;
+	throw e;
 }
 
 /* *****************************************************************************
@@ -43,54 +43,54 @@ catch ( e )
 	ignoreNotExist:default = false, value: true/false
 	message: user define message, default:""
 ***************************************************************************** */
-function CheckGetCL( db, expectCS, expectCL, ignoreNotExist, message )
+function CheckGetCL ( db, expectCS, expectCL, ignoreNotExist, message )
 {
-	if ( ignoreNotExist == undefined ) { ignoreNotExist = false ; }
-	if ( message == undefined ) { message = "" ; }
+	if( ignoreNotExist == undefined ) { ignoreNotExist = false; }
+	if( message == undefined ) { message = ""; }
 	var tmpCS;
 	try
 	{
-		tmpCS = db.getCS(expectCS);
+		tmpCS = db.getCS( expectCS );
 	}
-	catch ( e )
+	catch( e )
 	{
-		throw buildException("CheckGetCL()",e,"CheckGetCL","getCS successfully","getCS fail");
+		throw buildException( "CheckGetCL()", e, "CheckGetCL", "getCS successfully", "getCS fail" );
 	}
 	try
 	{
-		tmpCS.getCL(expectCL);
+		tmpCS.getCL( expectCL );
 	}
-	catch ( e )
+	catch( e )
 	{
-		if ( e===-23 && ignoreNotExist )
+		if( e === -23 && ignoreNotExist )
 		{
 			//right situation, so do nothing
 		}
 		else
 		{
-			throw buildException("CheckGetCL()",e,"CheckGetCL","getCL successfully","getCL fail");
-	   }
+			throw buildException( "CheckGetCL()", e, "CheckGetCL", "getCL successfully", "getCL fail" );
+		}
 	}
 }
 
-function checkInsert( db, cs, cl )
+function checkInsert ( db, cs, cl )
 {
-	var clTmp = db.getCS(cs).getCL(cl);
+	var clTmp = db.getCS( cs ).getCL( cl );
 	try
 	{
-		clTmp.insert( {a:1} )
+		clTmp.insert( { a: 1 } )
 	}
-	catch ( e )
+	catch( e )
 	{
-		throw buildException("checkInsert()",e,"checkInsert","insert successfully","insert fail");
+		throw buildException( "checkInsert()", e, "checkInsert", "insert successfully", "insert fail" );
 	}
-	
+
 	try 
 	{
-		clTmp.find( {a:1} )
+		clTmp.find( { a: 1 } )
 	}
-	catch ( e )
+	catch( e )
 	{
-		throw buildException("checkInsert()",e,"checkInsert","find(after insert) successfully","find(after insert) fail");
+		throw buildException( "checkInsert()", e, "checkInsert", "find(after insert) successfully", "find(after insert) fail" );
 	}
 }

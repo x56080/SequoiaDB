@@ -9,110 +9,111 @@
 @modify list:
       2015-5-13 ShanShan Hu added  2016-3-16 XiaoNi Huang modify
 ****************************************************/
-var csName = CHANGEDPREFIX+"_foo" ;
+var csName = CHANGEDPREFIX + "_foo";
 
-println("------Begin to clean in the begin.");
+println( "------Begin to clean in the begin." );
 try
 {
-   db.execUpdate("drop collectionspace "+csName) ;
+   db.execUpdate( "drop collectionspace " + csName );
 }
-catch (e)
+catch( e )
 {
-   if ( e != -34)
+   if( e != -34 )
    {
-      println( "Failed to clean env in the begin." ) ;
-      throw e ;
+      println( "Failed to clean env in the begin." );
+      throw e;
    }
 }
 
-println("------Begin to create cs.");
+println( "------Begin to create cs." );
 try
 {
-   db.execUpdate( "create collectionspace "+csName ) ;
+   db.execUpdate( "create collectionspace " + csName );
 }
-catch ( e )
+catch( e )
 {
    println( "Failed to create cs." );
-   throw e ;
+   throw e;
 }
 
-println("------Begin to check results.");
+println( "------Begin to check results." );
 try
 {
-   var rc = db.getCS( csName ) ;
+   var rc = db.getCS( csName );
 }
-catch ( e )
+catch( e )
 {
    println( "Failed to create cs." );
-   throw e ;
+   throw e;
 }
 
-println("------Begin to exec [list collectionspaces].");
+println( "------Begin to exec [list collectionspaces]." );
 try
 {
-   var rc = db.exec("list collectionspaces") ;
+   var rc = db.exec( "list collectionspaces" );
 }
-catch ( e )
+catch( e )
 {
    println( "Failed to exec [list collectionspaces]." );
-   throw e ;
+   throw e;
 }
 //compare results
-if ( 0 == rc.size() )
+if( 0 == rc.size() )
    throw "Failed to compare results.";
 
-println("------Begin to create the same cs repeat.");
+println( "------Begin to create the same cs repeat." );
 try
 {
-	db.execUpdate( "create collectionspace "+csName ) ;
-	throw "Create duplicate cs success. Expect errorno: -33";
+   db.execUpdate( "create collectionspace " + csName );
+   throw "Create duplicate cs success. Expect errorno: -33";
 }
-catch ( e )
+catch( e )
 {
-	if ( e !== -33 ){
-		throw e;
-		}
+   if( e !== -33 )
+   {
+      throw e;
+   }
 }
 
-println("------Begin to drop the cs.");
+println( "------Begin to drop the cs." );
 try
 {
-   db.execUpdate("drop collectionspace "+csName) ;
+   db.execUpdate( "drop collectionspace " + csName );
 }
-catch (e)
+catch( e )
 {
-   println("Failed to drop cs.") ;
-   throw e ;
+   println( "Failed to drop cs." );
+   throw e;
 }
 
-println("------Begin to create the cs again.");
+println( "------Begin to create the cs again." );
 try
 {
-   db.execUpdate( "create collectionspace "+csName ) ;
+   db.execUpdate( "create collectionspace " + csName );
 }
-catch ( e )
+catch( e )
 {
    println( "Failed to create cs." );
-   throw e ;
+   throw e;
 }
 
 try
 {
-   var rc = db.getCS( csName ) ;
+   var rc = db.getCS( csName );
 }
-catch ( e )
+catch( e )
 {
    println( "Failed to create cs again." );
-   throw e ;
+   throw e;
 }
 
-println("------Begin to drop cs in the end.");
+println( "------Begin to drop cs in the end." );
 try
 {
-   db.execUpdate("drop collectionspace "+csName) ;
+   db.execUpdate( "drop collectionspace " + csName );
 }
-catch (e)
+catch( e )
 {
-   println( "Failed to clear env." ) ;
-   throw e ;
+   println( "Failed to clear env." );
+   throw e;
 }

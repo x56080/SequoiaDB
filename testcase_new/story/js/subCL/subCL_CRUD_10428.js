@@ -6,56 +6,56 @@
 
 main();
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println(" Deploy mode is standalone!");
+      println( " Deploy mode is standalone!" );
       return;
    }
 
-	var csName     = COMMCSNAME+"_cs" ;
-   var mainCLName = COMMCLNAME+"_mcl" ;
+   var csName = COMMCSNAME + "_cs";
+   var mainCLName = COMMCLNAME + "_mcl";
 
-	println("\n---Begin to drop cs in the pre-condition.");
-	commDropCS( db, csName, true, "Failed to drop CS.");
+   println( "\n---Begin to drop cs in the pre-condition." );
+   commDropCS( db, csName, true, "Failed to drop CS." );
 
-	db.setSessionAttr( { PreferedInstance: "M" } );
-	commCreateCS( db, csName, false, "Failed to create CS.");
-	var mainCL = createMainCL( csName, mainCLName );
+   db.setSessionAttr( { PreferedInstance: "M" } );
+   commCreateCS( db, csName, false, "Failed to create CS." );
+   var mainCL = createMainCL( csName, mainCLName );
 
-	insertRec( mainCL );
-	
-	println("\n---Begin to drop cs/domain in the end-condition.");
-   commDropCS( db, csName, false, "Failed to drop CS.");
-   
+   insertRec( mainCL );
+
+   println( "\n---Begin to drop cs/domain in the end-condition." );
+   commDropCS( db, csName, false, "Failed to drop CS." );
+
 }
 
-function createMainCL( csName, mainCLName )
+function createMainCL ( csName, mainCLName )
 {
-   println("\n---Begin to create MainCL.");
-   
-   var options = { ShardingKey: { a:1 }, IsMainCL:true } ;
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, false, 
-                                      true, "Failed to create mainCL." );                                  
-   return mainCL ; 
+   println( "\n---Begin to create MainCL." );
+
+   var options = { ShardingKey: { a: 1 }, IsMainCL: true };
+   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, false,
+      true, "Failed to create mainCL." );
+   return mainCL;
 }
 
-function insertRec( mainCL )
+function insertRec ( mainCL )
 {
    try
    {
-      println("\n---Begin to insert records.");
-      mainCL.insert({a: "adfadfadf",b: "ijijkkkijikji"});
+      println( "\n---Begin to insert records." );
+      mainCL.insert( { a: "adfadfadf", b: "ijijkkkijikji" } );
    }
    catch( e )
    {
       var exceptE = -135;
       if( e !== exceptE )
       {
-         throw buildException("insertRecOutBount", null, "[check Error Code]", 
-                           "["+ exceptE + "]", 
-                           "["+ e + "]");
+         throw buildException( "insertRecOutBount", null, "[check Error Code]",
+            "[" + exceptE + "]",
+            "[" + e + "]" );
       }
    }
 }

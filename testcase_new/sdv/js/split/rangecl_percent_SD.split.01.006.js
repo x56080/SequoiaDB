@@ -5,60 +5,60 @@
 **************************************/
 
 var clName = CHANGEDPREFIX + "_rangesplitcl006";
-function createSplitCl(csName,clName)
-{  
-   var options = {ShardingKey:{no:1}, ShardingType:"range",ReplSize:0,Compressed:true};
-   var varCL = commCreateCLByOption(db, csName, clName, options, true, true);
-   return varCL;   
+function createSplitCl ( csName, clName )
+{
+   var options = { ShardingKey: { no: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
+   var varCL = commCreateCLByOption( db, csName, clName, options, true, true );
+   return varCL;
 }
 
-function checkSplitResult( CL, clName, splitGroupsInfo )
+function checkSplitResult ( CL, clName, splitGroupsInfo )
 {
    //step1:
    checkRangeClSplitResult( clName, splitGroupsInfo );
    //step2:   
-	insertDataAfterRangeClSplit( CL, clName, splitGroupsInfo )	
+   insertDataAfterRangeClSplit( CL, clName, splitGroupsInfo )
 }
 
-function main() 
+function main () 
 {
    try
-	{
-	   //@ clean before
+   {
+      //@ clean before
       if( true == commIsStandalone( db ) )
       {
          println( "run mode is standalone" );
          return;
-      }     
+      }
       //less two groups no split
-      var allGroupName = getGroupName(db,true);         
+      var allGroupName = getGroupName( db, true );
       if( 1 === allGroupName.length )
       {
-         println("--least two groups");
-         return ;
-      }                
-      var CL = createSplitCl(COMMCSNAME,clName);
-      
+         println( "--least two groups" );
+         return;
+      }
+      var CL = createSplitCl( COMMCSNAME, clName );
+
       //insert data 
-      var dataNums = 1000; 
+      var dataNums = 1000;
       insertData( db, COMMCSNAME, clName, dataNums );
-		//split data ,and return the split groupsInfo for check split result  
-		var condition = 50;
-      var splitGroupsInfo = ClSplitOneTimes( COMMCSNAME, clName, condition ) 
-      
+      //split data ,and return the split groupsInfo for check split result  
+      var condition = 50;
+      var splitGroupsInfo = ClSplitOneTimes( COMMCSNAME, clName, condition )
+
       //check the datas of the splitgroups,find a data in splitgroups and check count	     
       checkSplitResult( CL, clName, splitGroupsInfo )
-   
+
       //@ clean end
-      commDropCL( db, COMMCSNAME, clName, false, false,"drop CL in the beginning" );
+      commDropCL( db, COMMCSNAME, clName, false, false, "drop CL in the beginning" );
    }
-   catch(e)
+   catch( e )
    {
       throw e;
    }
    finally
    {
-      if (undefined !== db)
+      if( undefined !== db )
       {
          db.close();
       }

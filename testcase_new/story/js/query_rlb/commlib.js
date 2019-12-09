@@ -11,15 +11,15 @@
     insertNum : the number of records inserted
 @return: 
 **************************************************** */
-function insertData( cl, insertNum )
+function insertData ( cl, insertNum )
 {
-   var dataArray = new Array();
-   for(var i = 0 ; i < insertNum ; i ++)
-   {
-      var data = {a:i};
-      dataArray.push(data);
-   }
-   cl.insert(dataArray);
+    var dataArray = new Array();
+    for( var i = 0; i < insertNum; i++ )
+    {
+        var data = { a: i };
+        dataArray.push( data );
+    }
+    cl.insert( dataArray );
 }
 
 /* ****************************************************
@@ -29,15 +29,15 @@ function insertData( cl, insertNum )
     hostName : host name of new node
 @return: log paths to be backed up
 **************************************************** */
-function createDataGroups( rgName, hostName, instanceidArr, logSourcePaths )
+function createDataGroups ( rgName, hostName, instanceidArr, logSourcePaths )
 {
-    var tmpArray = [] ;
+    var tmpArray = [];
     var dataRG = db.createRG( rgName );
 
-    for(var i = 0 ; i < instanceidArr.length; i++)
+    for( var i = 0; i < instanceidArr.length; i++ )
     {
-        var port = parseInt( RSRVPORTBEGIN )+ (i*10);
-        var dataPath = RSRVNODEDIR+"data/"+port;
+        var port = parseInt( RSRVPORTBEGIN ) + ( i * 10 );
+        var dataPath = RSRVNODEDIR + "data/" + port;
         var checkSucc = false;
         var times = 0;
         var maxRetryTimes = 10;
@@ -45,13 +45,13 @@ function createDataGroups( rgName, hostName, instanceidArr, logSourcePaths )
         {
             try
             {
-                dataRG.createNode( hostName, port, dataPath, {diaglevel:5,instanceid:instanceidArr[i]});
+                dataRG.createNode( hostName, port, dataPath, { diaglevel: 5, instanceid: instanceidArr[i] } );
                 checkSucc = true;
                 var obj = new Object();
                 obj.NodeName = hostName + ":" + port;
                 obj.instanceid = instanceidArr[i];
-                tmpArray.push(obj);
-                logSourcePaths.push(hostName+":"+CMSVCNAME+"@"+dataPath+"/diaglog/sdbdiag.log");
+                tmpArray.push( obj );
+                logSourcePaths.push( hostName + ":" + CMSVCNAME + "@" + dataPath + "/diaglog/sdbdiag.log" );
             }
             catch( e )
             {
@@ -59,7 +59,7 @@ function createDataGroups( rgName, hostName, instanceidArr, logSourcePaths )
                 if( e == -145 || e == -290 )
                 {
                     port = port + 10;
-                    dataPath = RSRVNODEDIR+"data/"+port;
+                    dataPath = RSRVNODEDIR + "data/" + port;
                 }
                 else
                 {
@@ -68,7 +68,7 @@ function createDataGroups( rgName, hostName, instanceidArr, logSourcePaths )
                 times++;
             }
         }
-        while(!checkSucc && times < maxRetryTimes);
+        while( !checkSucc && times < maxRetryTimes );
     }
     dataRG.start();
     return tmpArray;
@@ -80,19 +80,19 @@ function createDataGroups( rgName, hostName, instanceidArr, logSourcePaths )
     rgName : The name of data group to be removed 
 @return:
 **************************************************** */
-function removeDataRG( rgName )
+function removeDataRG ( rgName )
 {
     try
     {
-       db.removeRG( rgName );
+        db.removeRG( rgName );
     }
     catch( e )
     {
-       //-154 : SDB_CLS_GRP_NOT_EXIST
-       if( e !== -154)
-       {
-           throw buildException("removeDataRG()",e ,"remove dataRG failed.", '-154', e );
-       }
+        //-154 : SDB_CLS_GRP_NOT_EXIST
+        if( e !== -154 )
+        {
+            throw buildException( "removeDataRG()", e, "remove dataRG failed.", '-154', e );
+        }
     }
 }
 
@@ -104,25 +104,25 @@ function removeDataRG( rgName )
     expMaster : if expect the node is the primary node (true/false)
 @return:
 **************************************************** */
-function checkRole( node, groupName, expMaster )
-{   
-   println("---begin to check query node[" + node + "] is master or not");
-   try
-   {
-      db.getRG(groupName).getNode(node);
-   }
-   catch(e)
-   {
-      throw buildException("checkRole()", null, "db.getRG("+groupName+").getNode("+node+")",
-									"success", e);
-   }
-   
-   var isMaster = new Sdb(node).snapshot(7).current().toObj().IsPrimary;
-   if( isMaster !== expMaster )
-   {
-      throw buildException("checkRole()", null, node+" is master node",
-									expMaster, isMaster);
-   }
+function checkRole ( node, groupName, expMaster )
+{
+    println( "---begin to check query node[" + node + "] is master or not" );
+    try
+    {
+        db.getRG( groupName ).getNode( node );
+    }
+    catch( e )
+    {
+        throw buildException( "checkRole()", null, "db.getRG(" + groupName + ").getNode(" + node + ")",
+            "success", e );
+    }
+
+    var isMaster = new Sdb( node ).snapshot( 7 ).current().toObj().IsPrimary;
+    if( isMaster !== expMaster )
+    {
+        throw buildException( "checkRole()", null, node + " is master node",
+            expMaster, isMaster );
+    }
 }
 
 /* ****************************************************
@@ -137,19 +137,19 @@ function checkRole( node, groupName, expMaster )
     instanceid : expected instance id.
 @return:
 **************************************************** */
-function checkNodeByInstanceId( actQueryNode, nodeInfo, instanceid )
+function checkNodeByInstanceId ( actQueryNode, nodeInfo, instanceid )
 {
-   var expNodeName = "";
-   for(var i = 0; i < nodeInfo.length; i++)
-   {
-       if(nodeInfo[i].instanceid == instanceid)
-       {
-           expNodeName = nodeInfo[i].NodeName;
-           break;
-       }
-   }
-   if(actQueryNode !== expNodeName)
-   {
-       throw buildException( "checkNode()", null, "check the act query node name", expNodeName, actQueryNode );
-   }
+    var expNodeName = "";
+    for( var i = 0; i < nodeInfo.length; i++ )
+    {
+        if( nodeInfo[i].instanceid == instanceid )
+        {
+            expNodeName = nodeInfo[i].NodeName;
+            break;
+        }
+    }
+    if( actQueryNode !== expNodeName )
+    {
+        throw buildException( "checkNode()", null, "check the act query node name", expNodeName, actQueryNode );
+    }
 }

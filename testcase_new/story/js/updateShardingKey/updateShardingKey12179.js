@@ -14,40 +14,43 @@ var mainCLName = CHANGEDPREFIX + "_mcl_12179";
 var subCLName1 = "subcl1";
 var subCLName2 = "subcl2";
 
-function main() {
-    if (true == commIsStandalone(db)) {
-        println("run mode is standalone");
+function main ()
+{
+    if( true == commIsStandalone( db ) )
+    {
+        println( "run mode is standalone" );
         return;
     }
 
-    var allGroupName = getGroupName(db, true);
-    if (1 === allGroupName.length) {
-        println("--least two groups");
+    var allGroupName = getGroupName( db, true );
+    if( 1 === allGroupName.length )
+    {
+        println( "--least two groups" );
         return;
     }
 
-    commDropCS(db, csName, true, "Failed to drop CS.");
-    commCreateCS(db, csName, false, "Failed to create CS.");
+    commDropCS( db, csName, true, "Failed to drop CS." );
+    commCreateCS( db, csName, false, "Failed to create CS." );
 
-    var sk1 = {a: 1};
-    var mainCL = createMainCL(csName, mainCLName, sk1);
-    db.getCS(csName).createCL(subCLName1);
-    db.getCS(csName).createCL(subCLName2);
+    var sk1 = { a: 1 };
+    var mainCL = createMainCL( csName, mainCLName, sk1 );
+    db.getCS( csName ).createCL( subCLName1 );
+    db.getCS( csName ).createCL( subCLName2 );
 
-    mainCL.attachCL(csName + "." + subCLName1, {LowBound: {"a": 0}, UpBound: {"a": 100}});
-    mainCL.attachCL(csName + "." + subCLName2, {LowBound: {"a": 100}, UpBound: {"a": 1000}});
+    mainCL.attachCL( csName + "." + subCLName1, { LowBound: { "a": 0 }, UpBound: { "a": 100 } } );
+    mainCL.attachCL( csName + "." + subCLName2, { LowBound: { "a": 100 }, UpBound: { "a": 1000 } } );
 
     //insert data
-    var docs = [{a: 1}];
-    insertData(mainCL, docs);
+    var docs = [{ a: 1 }];
+    insertData( mainCL, docs );
 
-    updateDataError(mainCL,"update",{$set: {a: "test"}});
+    updateDataError( mainCL, "update", { $set: { a: "test" } } );
 
     //check the update result
     var expRecs = docs;
-    checkResult(mainCL, null, null, expRecs);
+    checkResult( mainCL, null, null, expRecs );
 
     //drop collectionspace in clean
-    commDropCS(db, csName, false, "Failed to drop CS.");
+    commDropCS( db, csName, false, "Failed to drop CS." );
 }
 main();

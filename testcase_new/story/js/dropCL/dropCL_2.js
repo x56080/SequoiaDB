@@ -2,47 +2,47 @@
 //innomal case1
 try
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" ); 
+   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" );
 }
 catch( e )
 {
-   println( "unexpected err happened when clear cs:" + e ); 
-   throw e; 
+   println( "unexpected err happened when clear cs:" + e );
+   throw e;
 }
 try
 {
-   var varCS = commCreateCS( db, COMMCSNAME, true, "create CS in the beginning" ); 
+   var varCS = commCreateCS( db, COMMCSNAME, true, "create CS in the beginning" );
 }
 catch( e )
 {
-   println( "failed to create cs, rc=" + e ); 
-   throw e; 
+   println( "failed to create cs, rc=" + e );
+   throw e;
 }
 
-var res = false; 
+var res = false;
 try
 {
-   varCS.dropCL( "$bar" ); 
+   varCS.dropCL( "$bar" );
 }
 catch( e )
 {
    if( e == -6 )
    {
-      res = true; 
+      res = true;
    }
 }
 if( !res )
 {
-   throw -1; 
+   throw -1;
 }
 
 try
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, 
-   "drop colleciton in the end" ); 
+   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
+      "drop colleciton in the end" );
 }
 catch( e )
 {
-   println( "unexpected err happened when clear cs:" + e ); 
-   throw e; 
+   println( "unexpected err happened when clear cs:" + e );
+   throw e;
 }

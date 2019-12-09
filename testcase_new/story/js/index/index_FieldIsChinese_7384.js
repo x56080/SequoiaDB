@@ -8,83 +8,83 @@
 *****************************************************************************/
 try
 {
-   commDropCL( db, csName, clName, true, true, "drop cl in the beginning" ) ;
-}
-catch ( e )
-{
-   println( "unexpected err happened when clear cs:"+e ) ;
-   throw e ;
-}
-
-try
-{
-   var optionObj = {ReplSize:0,Compressed:true};
-   var varCL = commCreateCLByOption( db, csName, clName, optionObj, true,
-                                     false, "create collecton 1 failed" );
+   commDropCL( db, csName, clName, true, true, "drop cl in the beginning" );
 }
 catch( e )
 {
-   println( "Failed to create CS and CL, rc="+e ) ;
-   throw e ;
-}
-
-try
-{
-   varCL.createIndex( "chen" , {"中文":1} , true ) ;
-   inspecIndex( varCL,"chen" , "中文", 1 ,true , false ) ;
-}
-catch ( e )
-{
-   println( "Failed to create index, rc="+e ) ;
+   println( "unexpected err happened when clear cs:" + e );
    throw e;
 }
 
 try
 {
-   varCL.insert({"中文":12}) ;
+   var optionObj = { ReplSize: 0, Compressed: true };
+   var varCL = commCreateCLByOption( db, csName, clName, optionObj, true,
+      false, "create collecton 1 failed" );
 }
 catch( e )
 {
-   println( "Failed to insert data after create index, rc="+e ) ;
-   throw e ;
+   println( "Failed to create CS and CL, rc=" + e );
+   throw e;
 }
-
-//test find by index 
-checkExplain( varCL, {"中文":12} );
-   
-//check the result of find  
-checkResult( varCL, {"中文":12} );
 
 try
 {
-   varCL.insert({"中文":12}) ;
+   varCL.createIndex( "chen", { "中文": 1 }, true );
+   inspecIndex( varCL, "chen", "中文", 1, true, false );
 }
 catch( e )
 {
-   if ( -38 != e )
+   println( "Failed to create index, rc=" + e );
+   throw e;
+}
+
+try
+{
+   varCL.insert( { "中文": 12 } );
+}
+catch( e )
+{
+   println( "Failed to insert data after create index, rc=" + e );
+   throw e;
+}
+
+//test find by index 
+checkExplain( varCL, { "中文": 12 } );
+
+//check the result of find  
+checkResult( varCL, { "中文": 12 } );
+
+try
+{
+   varCL.insert( { "中文": 12 } );
+}
+catch( e )
+{
+   if( -38 != e )
    {
-      println( "Failed to insert same record to database, rc="+e ) ;
-      throw e ;
+      println( "Failed to insert same record to database, rc=" + e );
+      throw e;
    }
 }
 
 try
 {
-   varCL.createIndex( "testindex", {"use.id":1}, true ) ;
+   varCL.createIndex( "testindex", { "use.id": 1 }, true );
 }
-catch ( e )
+catch( e )
 {
-   println( "failed to create index, rc="+e ) ;
-   throw e ;
+   println( "failed to create index, rc=" + e );
+   throw e;
 }
 
 try
 {
    commDropCL( db, csName, clName, false, false,
-               "drop colleciton in the end" );
+      "drop colleciton in the end" );
 }
-catch ( e )
+catch( e )
 {
-   println( "unexpected err happened when clear cs end:" + e ) ;
-   throw e ;
+   println( "unexpected err happened when clear cs end:" + e );
+   throw e;
 }

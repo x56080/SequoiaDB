@@ -1,36 +1,36 @@
 /* *****************************************************************************
-@discretion: 事务不存在执行提交
-@author：2015-11-23 wuyan  Init
+@discretion: 锟斤拷锟今不达拷锟斤拷执锟斤拷锟结交
+@author锟斤拷2015-11-23 wuyan  Init
 ***************************************************************************** */
 main();
-function main()
-{	
-   var clName = CHANGEDPREFIX + "_transaction6020";	
+function main ()
+{
+   var clName = CHANGEDPREFIX + "_transaction6020";
    if( !commIsTransEnabled( db ) )
    {
-      println( "transaction is disabled" ) ; 
-      return;  
+      println( "transaction is disabled" );
+      return;
    }
 
-   var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true ) ; 
+   var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true );
    //commit transaction not exec beginTrans 
    try
    {
-      execTransaction(commitTrans) ;
+      execTransaction( commitTrans );
    }
    catch( e )
    {
-      if ( e == "commitTrans() unknown error expect: -196" )
+      if( e == "commitTrans() unknown error expect: -196" )
       {
          // think right
       }
       else
       {
-         throw buildException("execTransaction(commitTrans)", e )
+         throw buildException( "execTransaction(commitTrans)", e )
       }
-   }      
+   }
    //@ clean end
-	commDropCL( db, COMMCSNAME, clName, false, false,"drop CL in the beginning" );
+   commDropCL( db, COMMCSNAME, clName, false, false, "drop CL in the beginning" );
 }
 
 

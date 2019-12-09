@@ -4,47 +4,47 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_matches8093" ;
+      var clName = COMMCLNAME + "_matches8093";
       var cl = readyCL( clName );
-      
+
       insertRecs( cl );
       var rc = findRecs( cl );  //find and check result
-   
+
       cleanCL( clName );
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl )
+function insertRecs ( cl )
 {
-   println("\n---Begin to insert records.");
-   
-   cl.insert( {a:"test"} );
+   println( "\n---Begin to insert records." );
+
+   cl.insert( { a: "test" } );
 }
 
-function findRecs( cl )
+function findRecs ( cl )
 {
-   println("\n---Begin to find records by matches[$type].");
-   
+   println( "\n---Begin to find records by matches[$type]." );
+
    try
    {
-      cl.find( {a:{$type:1, $et:6}} );
+      cl.find( { a: { $type: 1, $et: 6 } } );
    }
    catch( e )
    {
       //check result  //e:-6
-      var expectE = -6 ;
+      var expectE = -6;
       if( e !== expectE )
       {
-         throw buildException("checkResult", e, '{$project:{no:"test"}}', 
-                             "[e:"+ expectE +"]", "[e:"+ e +"]");
+         throw buildException( "checkResult", e, '{$project:{no:"test"}}',
+            "[e:" + expectE + "]", "[e:" + e + "]" );
       }
    }
 }

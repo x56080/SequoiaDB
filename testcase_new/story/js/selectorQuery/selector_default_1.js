@@ -8,63 +8,63 @@
 *               2015-01-29  xiaojun Hu  Change
 *******************************************************************************/
 
-function main( db )
+function main ( db )
 {
    try
    {
-      var recordNum = 1 ;
-      var addRecord = { "nest1":{"nest2":{"nest3":"when nest test, use $defalut"}}} ;
+      var recordNum = 1;
+      var addRecord = { "nest1": { "nest2": { "nest3": "when nest test, use $defalut" } } };
       var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
-                             "create colleciton in the begnning" ) ;
+         "create colleciton in the begnning" );
       // auto generate data
-      selAutoGenData( cl, recordNum, addRecord ) ;
-      println( "success to insert record: " + recordNum ) ;
+      selAutoGenData( cl, recordNum, addRecord );
+      println( "success to insert record: " + recordNum );
 
       /*【Test Point 1】 normal record, non-nest*/
-      var condObj = {} ;
-      var selObj = { "GroupID": {"$default": 255}} ;
-      var ret = selMainQuery( cl, condObj, selObj ) ;
+      var condObj = {};
+      var selObj = { "GroupID": { "$default": 255 } };
+      var ret = selMainQuery( cl, condObj, selObj );
       // verify
-      var retObj = JSON.parse( ret ) ;
+      var retObj = JSON.parse( ret );
       if( 1 == recordNum && 1 != retObj["GroupID"] )
       {
-         println( "query return record: " + ret ) ;
-         throw "ErrQueryRecord1" ;
+         println( "query return record: " + ret );
+         throw "ErrQueryRecord1";
       }
-      println( "==>success to test use: " + JSON.stringify( selObj ) ) ;
+      println( "==>success to test use: " + JSON.stringify( selObj ) );
 
       /*【Test Point 2】 nested field*/
-      var condObj = {} ;
-      var selObj = { "ExtraField1.nest1.nest2.nest3": {"$default":"when nest test, use $defalut"}} ;
-      var ret = selMainQuery( cl, condObj, selObj ) ;
-      var retObj = JSON.parse( ret ) ;
+      var condObj = {};
+      var selObj = { "ExtraField1.nest1.nest2.nest3": { "$default": "when nest test, use $defalut" } };
+      var ret = selMainQuery( cl, condObj, selObj );
+      var retObj = JSON.parse( ret );
       if( 1 == recordNum && "when nest test, use $defalut" !=
-          retObj["ExtraField1"]["nest1"]["nest2"]["nest3"] )
+         retObj["ExtraField1"]["nest1"]["nest2"]["nest3"] )
       {
-         println( "query return record: " + ret ) ;
-         throw "ErrQueryRecord2" ;
+         println( "query return record: " + ret );
+         throw "ErrQueryRecord2";
       }
-      println( "==>success to test use: " + JSON.stringify( selObj ) ) ;
+      println( "==>success to test use: " + JSON.stringify( selObj ) );
 
       /*【Test Point 3】 13 types record*/
-      var condObj = {} ;
+      var condObj = {};
       var defaultArr = new Array( 123, 3000000000, 123.456, 123e+50, "value",
-                                 { "$oid" : "123abcd00ef12358902300ef" }, true,
-                                 { "$date" : "2012-01-01" },
-                                 { "$timestamp" : "2012-01-01-13.14.26.124233" },
-                                 { "$binary" : "aGVsbG8gd29ybGQ=", "$type" : "1" },
-                                 { "$regex" : "^张", "$options" : "i" },
-                                 { "subobj" : "value" }, [ "abc", 0, "def" ], null ) ;
-      for( var i = 0 ; i < defaultArr.length ; ++i )
+         { "$oid": "123abcd00ef12358902300ef" }, true,
+         { "$date": "2012-01-01" },
+         { "$timestamp": "2012-01-01-13.14.26.124233" },
+         { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" },
+         { "$regex": "^张", "$options": "i" },
+         { "subobj": "value" }, ["abc", 0, "def"], null );
+      for( var i = 0; i < defaultArr.length; ++i )
       {
-         var selObj = { "ExtraField1.nest1.nest2.nest4.NotExist": {"$default": defaultArr[i] }} ;
-         var ret = selMainQuery( cl, condObj, selObj ) ;
-         println( "==>success to test use: " + JSON.stringify( selObj ) ) ;
+         var selObj = { "ExtraField1.nest1.nest2.nest4.NotExist": { "$default": defaultArr[i] } };
+         var ret = selMainQuery( cl, condObj, selObj );
+         println( "==>success to test use: " + JSON.stringify( selObj ) );
       }
    }
    catch( e )
    {
-      throw e ;
+      throw e;
    }
 }
 
@@ -73,8 +73,8 @@ function main( db )
 try
 {
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-               "drop collection in the begining" ) ;
-   main( db ) ;
+      "drop collection in the begining" );
+   main( db );
    //commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
    //            "drop collection in the end") ;
 }
@@ -82,5 +82,5 @@ catch( e )
 {
    //commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
    //            "drop collection in the end") ;
-   throw e ;
+   throw e;
 }

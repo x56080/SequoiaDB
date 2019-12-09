@@ -4,45 +4,45 @@
                                  b、函数值格式不正确，如{number:NumberLong(123,234)}
 *@Author:        2016-7-20  wuyan
 ************************************************************************/
-var clName = COMMCLNAME+"_9118" ;
+var clName = COMMCLNAME + "_9118";
 main();
-function main()
-{  
+function main ()
+{
    try
-   {     
-      var cl = readyCL( COMMCSNAME, clName ); 
+   {
+      var cl = readyCL( COMMCSNAME, clName );
       cmd.run( 'rm -rf ./sdbimport.log' );
-      
+
       //-------------test a：--------------------------
       //import datas          
-      var imprtFile = tmpFileDir +"9118.json";
+      var imprtFile = tmpFileDir + "9118.json";
       var srcDatas = "{number:NumberLong(abc123)}\n{number:NumberLong(123,234)}"
-      var rcInfos = importData(COMMCSNAME, clName, imprtFile,srcDatas );
-      
+      var rcInfos = importData( COMMCSNAME, clName, imprtFile, srcDatas );
+
       //check the Return Infos of the import datas
       var parseFail = 2;
-      var importRes = 0; 
-      checkImportReturn(rcInfos,parseFail,importRes);
-      
+      var importRes = 0;
+      checkImportReturn( rcInfos, parseFail, importRes );
+
       //check {number:NumberLong(abc123)} error of sdbimport.log 
       var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "ReferenceError: \'abc123\' is not defined"';
       var expLogInfo = 'ReferenceError: \'abc123\' is not defined';
-      checkSdbimportLog(matchInfos,expLogInfo);     
-      
+      checkSdbimportLog( matchInfos, expLogInfo );
+
       //check {number:NumberLong(123,234)} error of sdbimport.log 
       var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "Failed to parse the No. 1 argument"';
       var expLogInfo = 'Failed to parse the No. 1 argument';
-      checkSdbimportLog(matchInfos,expLogInfo);
-      
-             
-      
+      checkSdbimportLog( matchInfos, expLogInfo );
+
+
+
       cleanCL( COMMCSNAME, clName );
       cmd.run( 'rm -rf *.rec' );
       removeTmpDir();
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 

@@ -2,39 +2,39 @@
 // normal case.
 
 // clear
-commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" ); 
+commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" );
 // create cs, cl
-var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true, false, 
-"create cs and cl in begin" ); 
-var count = 100; 
+var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true, false,
+   "create cs and cl in begin" );
+var count = 100;
 
-var docs = []; 
-var expectDocs = []; 
+var docs = [];
+var expectDocs = [];
 try
 {
    for( i = 0; i < count; i++ )
    {
-      docs.push( {id:i, mineName:"上海矿场", mineTime:"2013-06-14", localtion:{resId:0, resourceName:null, country:"中国", state:"黑龙江", city:"佳木斯市"}} ); 
-      expectDocs.push( {id:i, mineName:"上海矿场", mineTime:"2013-06-14", localtion:{resId:0, resourceName:null, country:"中国", state:"黑龙江", city:"佳木斯市", street:"人民路12号"}} ); 
+      docs.push( { id: i, mineName: "上海矿场", mineTime: "2013-06-14", localtion: { resId: 0, resourceName: null, country: "中国", state: "黑龙江", city: "佳木斯市" } } );
+      expectDocs.push( { id: i, mineName: "上海矿场", mineTime: "2013-06-14", localtion: { resId: 0, resourceName: null, country: "中国", state: "黑龙江", city: "佳木斯市", street: "人民路12号" } } );
    }
-   varCL.insert( docs ); 
+   varCL.insert( docs );
 }
 catch( e )
 {
-   println( "failed to insert record, rc= " + e ); 
-   throw e; 
+   println( "failed to insert record, rc= " + e );
+   throw e;
 }
 
 try
 {
-   varCL.upsert( {$set:{"localtion.street":"人民路12号"}} ); 
+   varCL.upsert( { $set: { "localtion.street": "人民路12号" } } );
 }
 catch( e )
 {
-   println( "failed to update( {localtion:{$set:{street:人民路12号}}, rc= " + e ); 
-   throw e; 
+   println( "failed to update( {localtion:{$set:{street:人民路12号}}, rc= " + e );
+   throw e;
 }
-checkResult( varCL, {}, expectDocs ); 
+checkResult( varCL, {}, expectDocs );
 /*
 var rc; 
 try

@@ -7,11 +7,11 @@
 
 main();
 
-function main()
-{  
+function main ()
+{
    //create cappedCL
    var clName = COMMCAPPEDCLNAME + "_11763";
-   var optionObj = {Capped:true, Size:1024, Max:10000000, AutoIndexId:false};
+   var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
    commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, optionObj, false, true );
 
    //check cappedCL
@@ -24,11 +24,11 @@ function main()
       var nodeList = getNodeList( CATALOG_GROUPNAME );
       checkCappedCL( COMMCAPPEDCSNAME, clName, nodeList );
    }
-   
+
    //drop cappedCL
-   println("drop cappedCL");
+   println( "drop cappedCL" );
    commDropCL( db, COMMCAPPEDCSNAME, clName, false, false, "drop cappedCL" );
-   
+
    //check drop cappedCL result
    if( true === commIsStandalone( db ) )
    {
@@ -36,25 +36,25 @@ function main()
    }
    else
    {
-      checkDropCL( COMMCAPPEDCSNAME, nodeList);
+      checkDropCL( COMMCAPPEDCSNAME, nodeList );
    }
    println( "---end to drop cappedCL---" );
-   
-   commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end");
+
+   commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
 }
 
-function standaloneCheckCreateCL( COMMCAPPEDCSNAME, clName )
+function standaloneCheckCreateCL ( COMMCAPPEDCSNAME, clName )
 {
-   var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, {'Name':COMMCAPPEDCSNAME + "." + clName} );
-   var attribute   =  cursor.next().toObj().Details[0].Attribute;
+   var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, { 'Name': COMMCAPPEDCSNAME + "." + clName } );
+   var attribute = cursor.next().toObj().Details[0].Attribute;
    if( attribute !== "NoIDIndex | Capped" )
    {
-      throw buildException( "check cappedCL", null, "check cappedCL", "NoIDIndex | Capped",  attribute);
+      throw buildException( "check cappedCL", null, "check cappedCL", "NoIDIndex | Capped", attribute );
    }
    cursor.close();
 }
 
-function standaloneCheckDropCL( COMMCAPPEDCSNAME, clName )
+function standaloneCheckDropCL ( COMMCAPPEDCSNAME, clName )
 {
    try
    {
@@ -65,14 +65,14 @@ function standaloneCheckDropCL( COMMCAPPEDCSNAME, clName )
    {
       if( e !== -23 )
       {
-         throw buildException( "check drop cappedCS", null, "check drop cappedCS", "-23",  e);
+         throw buildException( "check drop cappedCS", null, "check drop cappedCS", "-23", e );
       }
    }
 }
 
-function getNodeList( groupName )
+function getNodeList ( groupName )
 {
-   var nodeList =[];
+   var nodeList = [];
    var groupInfo = db.getRG( groupName ).getDetail().current().toObj().Group;
    for( var i in groupInfo )
    {
@@ -80,57 +80,61 @@ function getNodeList( groupName )
       nodeList.push( nodeInfo );
    }
    println( "---get nodelist of " + groupName + ": " + nodeList );
-   
+
    return nodeList;
 }
 
-function checkCappedCL( COMMCAPPEDCSNAME, clName, nodeList )
+function checkCappedCL ( COMMCAPPEDCSNAME, clName, nodeList )
 {
-	  var repeatTime = 10;
-	  var clSize = 0;
-  	for(var i = 0; i < repeatTime; i++){
-		    var j = i % nodeList.length;
-		    println("j: " + j);
-		    var catadb = new Sdb( nodeList[j] );
-	     clSize = catadb.SYSCAT.SYSCOLLECTIONS.count({ 'Name' : COMMCAPPEDCSNAME + "." + clName});
-			   //judge the current node exist CL or not 
-      if(clSize == 0){
-			      // wait for the slave node sync
-			      sleep(2 * 60 * 1000);//2 mins		
-         clSize = catadb.SYSCAT.SYSCOLLECTIONS.count({ 'Name' : COMMCAPPEDCSNAME + "." + clName});			  
-		    }
-          
-		    if(clSize != 0){
-			      var cursor = catadb.SYSCAT.SYSCOLLECTIONS.find({ 'Name' : COMMCAPPEDCSNAME + "." + clName});
-			      var obj = cursor.next().toObj();
+   var repeatTime = 10;
+   var clSize = 0;
+   for( var i = 0; i < repeatTime; i++ )
+   {
+      var j = i % nodeList.length;
+      println( "j: " + j );
+      var catadb = new Sdb( nodeList[j] );
+      clSize = catadb.SYSCAT.SYSCOLLECTIONS.count( { 'Name': COMMCAPPEDCSNAME + "." + clName } );
+      //judge the current node exist CL or not 
+      if( clSize == 0 )
+      {
+         // wait for the slave node sync
+         sleep( 2 * 60 * 1000 );//2 mins		
+         clSize = catadb.SYSCAT.SYSCOLLECTIONS.count( { 'Name': COMMCAPPEDCSNAME + "." + clName } );
+      }
+
+      if( clSize != 0 )
+      {
+         var cursor = catadb.SYSCAT.SYSCOLLECTIONS.find( { 'Name': COMMCAPPEDCSNAME + "." + clName } );
+         var obj = cursor.next().toObj();
          var attributeDesc = obj.AttributeDesc;
          var max = obj.Max;
          var size = obj.Size;
-    		   if( attributeDesc !== "NoIDIndex | Capped" || max == undefined 
-			           || size == undefined)
-	        {
-		          throw buildException( "check cappedCL attributeDesc", null, "check cappedCL attributeDesc", "NoIDIndex | Capped",  attributeDesc);
-	        }
-	        cursor.close(); 
-	  	  }else{
-			      throw buildException( "check cappedCL failed , cursor is null");
-		    }
-		    catadb.close();  
-	  }
-	  
+         if( attributeDesc !== "NoIDIndex | Capped" || max == undefined
+            || size == undefined )
+         {
+            throw buildException( "check cappedCL attributeDesc", null, "check cappedCL attributeDesc", "NoIDIndex | Capped", attributeDesc );
+         }
+         cursor.close();
+      } else
+      {
+         throw buildException( "check cappedCL failed , cursor is null" );
+      }
+      catadb.close();
+   }
+
 }
 
-function checkDropCL( COMMCAPPEDCSNAME, clName, nodeList )
+function checkDropCL ( COMMCAPPEDCSNAME, clName, nodeList )
 {
-	  for( var i in nodeList )
+   for( var i in nodeList )
    {
-	     var catadb = new Sdb( nodeList[i] );
-      var count  = catadb.SYSCAT.SYSCOLLECTIONS.count({ 'Name' : COMMCAPPEDCSNAME + "." + clName});
-	     if( count != 0 )
-	     {
-		       throw buildException( "check drop cappedCL", null, "check drop cappedCL", "0",  count );
-	     }
-	     catadb.close();
+      var catadb = new Sdb( nodeList[i] );
+      var count = catadb.SYSCAT.SYSCOLLECTIONS.count( { 'Name': COMMCAPPEDCSNAME + "." + clName } );
+      if( count != 0 )
+      {
+         throw buildException( "check drop cappedCL", null, "check drop cappedCL", "0", count );
+      }
+      catadb.close();
    }
 }
 

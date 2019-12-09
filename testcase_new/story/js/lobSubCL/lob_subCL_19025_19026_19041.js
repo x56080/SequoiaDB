@@ -7,81 +7,81 @@ seqDB-19041 主子表创建、读取、删除lob
 **************************************/
 try
 {
-   main(); 
+   main();
 }
 catch( e )
 {
    if( e.constructor === Error )
    {
-      println( e.stack ); 
+      println( e.stack );
    }
-   throw e; 
+   throw e;
 }
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" ); 
-      return; 
+      println( "skip standalone mode" );
+      return;
    }
-   var csName = COMMCSNAME; 
-   var mainCLName = "cl19025_main"; 
-   var subCLName = "cl19025_sub"; 
-   var filePath = WORKDIR + "/lob19025/"; 
-   var fileName = "file19025"; 
-   var fileFullPath = filePath + fileName; 
-   var fileMD5 = makeTmpFile( filePath, fileName ); 
-   
-   commDropCL( db, csName, mainCLName ); 
-   commDropCL( db, csName, subCLName ); 
-   
+   var csName = COMMCSNAME;
+   var mainCLName = "cl19025_main";
+   var subCLName = "cl19025_sub";
+   var filePath = WORKDIR + "/lob19025/";
+   var fileName = "file19025";
+   var fileFullPath = filePath + fileName;
+   var fileMD5 = makeTmpFile( filePath, fileName );
+
+   commDropCL( db, csName, mainCLName );
+   commDropCL( db, csName, subCLName );
+
    //测试创建LobShardingKeyFormat为YYYYMMDD主表
-   var mainCL = createMainCLAndAttachCL( db, csName, mainCLName, subCLName, "YYYYMMDD" ); 
-   var nameArr = mainCL.toString().split( "." ); 
-   var mainCLFullName = nameArr[1] + "." + nameArr[2]; 
-   var lobOid1s = insertLob( mainCL, fileFullPath, "YYYYMMDD" ); 
-   checkLobMD5( mainCL, lobOid1s, fileMD5 ); 
-   checkSubCLLob( db, mainCLFullName, lobOid1s ); 
-   checkDeleteLob( mainCL, lobOid1s ); 
+   var mainCL = createMainCLAndAttachCL( db, csName, mainCLName, subCLName, "YYYYMMDD" );
+   var nameArr = mainCL.toString().split( "." );
+   var mainCLFullName = nameArr[1] + "." + nameArr[2];
+   var lobOid1s = insertLob( mainCL, fileFullPath, "YYYYMMDD" );
+   checkLobMD5( mainCL, lobOid1s, fileMD5 );
+   checkSubCLLob( db, mainCLFullName, lobOid1s );
+   checkDeleteLob( mainCL, lobOid1s );
    //TODO：1、19026的用例测试点，需要直接指定创建的子表检测子表删除结果
-   cleanMainCL( db, csName, mainCLName ); 
-   
+   cleanMainCL( db, csName, mainCLName );
+
    //测试创建LobShardingKeyFormat为YYYYMM主表
-   createMainCLAndAttachCL( db, csName, mainCLName, subCLName, "YYYYMM" ); 
-   var lobOid2s = insertLob( mainCL, fileFullPath, "YYYYMM" ); 
-   checkLobMD5( mainCL, lobOid2s, fileMD5 ); 
-   checkSubCLLob( db, mainCLFullName, lobOid2s ); 
-   checkDeleteLob( mainCL, lobOid2s ); 
-   cleanMainCL( db, csName, mainCLName ); 
-   
+   createMainCLAndAttachCL( db, csName, mainCLName, subCLName, "YYYYMM" );
+   var lobOid2s = insertLob( mainCL, fileFullPath, "YYYYMM" );
+   checkLobMD5( mainCL, lobOid2s, fileMD5 );
+   checkSubCLLob( db, mainCLFullName, lobOid2s );
+   checkDeleteLob( mainCL, lobOid2s );
+   cleanMainCL( db, csName, mainCLName );
+
    //测试创建LobShardingKeyFormat为YYYY主表
-   createMainCLAndAttachCL( db, csName, mainCLName, subCLName, "YYYY" ); 
-   var lobOid3s = insertLob( mainCL, fileFullPath, "YYYY" ); 
-   checkLobMD5( mainCL, lobOid3s, fileMD5 ); 
-   checkSubCLLob( db, mainCLFullName, lobOid3s ); 
-   checkDeleteLob( mainCL, lobOid3s ); 
-   cleanMainCL( db, csName, mainCLName ); 
-   
-   deleteTmpFile( filePath ); 
+   createMainCLAndAttachCL( db, csName, mainCLName, subCLName, "YYYY" );
+   var lobOid3s = insertLob( mainCL, fileFullPath, "YYYY" );
+   checkLobMD5( mainCL, lobOid3s, fileMD5 );
+   checkSubCLLob( db, mainCLFullName, lobOid3s );
+   checkDeleteLob( mainCL, lobOid3s );
+   cleanMainCL( db, csName, mainCLName );
+
+   deleteTmpFile( filePath );
 }
 
-function checkDeleteLob( mainCL, lobOids )
+function checkDeleteLob ( mainCL, lobOids )
 {
-   println( "---check delete lob---" ); 
+   println( "---check delete lob---" );
    for( i in lobOids )
    {
-      mainCL.deleteLob( lobOids[i] ); 
+      mainCL.deleteLob( lobOids[i] );
       try
       {
-         mainCL.getLob( lobOids[i], WORKDIR + "/checkLob19038_" + i ); 
-         throw 0; 
+         mainCL.getLob( lobOids[i], WORKDIR + "/checkLob19038_" + i );
+         throw 0;
       }
       catch( e )
       {
          if( e !== -4 )
          {
-            throw buildException( "check delete lob", e, "gets the deleted lob: " + lobOids[i], -4, e ); 
+            throw buildException( "check delete lob", e, "gets the deleted lob: " + lobOids[i], -4, e );
          }
       }
    }

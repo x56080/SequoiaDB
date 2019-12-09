@@ -4,51 +4,51 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var csName  = COMMCSNAME;
-      var clName  = COMMCLNAME+"_6184";
-      
+      var csName = COMMCSNAME;
+      var clName = COMMCLNAME + "_6184";
+
       dropCL( csName, clName, true, "Failed to drop cl in the begin." );
       createCL( csName, clName, true, true, "Failed to create cl." );
-   	
+
       insertRecs( csName, clName );
       selectRecs( csName, clName );
-   
+
       dropCL( csName, clName, false, "Failed to drop cl in the end." );
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( csName, clName )
+function insertRecs ( csName, clName )
 {
-   println("\n---Begin to insert records.");
-   
-   db.execUpdate( "insert into "+ csName +"."+ clName +"(a) values(6)" );
+   println( "\n---Begin to insert records." );
+
+   db.execUpdate( "insert into " + csName + "." + clName + "(a) values(6)" );
 }
 
-function selectRecs( csName, clName )
+function selectRecs ( csName, clName )
 {
-   println("\n---Begin to select records.");
-   
+   println( "\n---Begin to select records." );
+
    try
    {
-      db.exec( "select a+b from "+ csName +"."+ clName );
+      db.exec( "select a+b from " + csName + "." + clName );
    }
    catch( e )
    {
       //check result  //e:-6
-      var expectE = -6 ;
+      var expectE = -6;
       if( e !== expectE )
       {
-         throw buildException("checkResult", e, "mult fields", 
-                             "[e:"+ expectE +"]", "[e:"+ e +"]");
+         throw buildException( "checkResult", e, "mult fields",
+            "[e:" + expectE + "]", "[e:" + e + "]" );
       }
    }
-   
+
 }

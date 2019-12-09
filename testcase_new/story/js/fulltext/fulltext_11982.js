@@ -3,62 +3,70 @@
 @Modify list :
               2018-10-25  YinZhen  Create
 ****************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db )){
-      println("Deploy is standalone");
+   if( commIsStandalone( db ) )
+   {
+      println( "Deploy is standalone" );
       return;
    }
 
    var clName = COMMCLNAME + "_ES_11985";
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
-   var dbcl = commCreateCL(db, COMMCSNAME, clName, 0);
-   
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+
    //在已存在全文索引定义的集合中，再次创建全文索引
-   dbcl.createIndex( "a_11982", {content:"text"});
+   dbcl.createIndex( "a_11982", { content: "text" } );
    commCheckIndex( dbcl, "a_11982", true );
-   try{
-      dbcl.createIndex( "b_11982", {about:"text"});
-      throw new Error("CREATEINDEXERR");
+   try
+   {
+      dbcl.createIndex( "b_11982", { about: "text" } );
+      throw new Error( "CREATEINDEXERR" );
    }
-   catch( e ){
-      if( e != -42){
-         throw new Error("expect error: -42, actual error: " + e );
+   catch( e )
+   {
+      if( e != -42 )
+      {
+         throw new Error( "expect error: -42, actual error: " + e );
       }
    }
-   
+
    var indexes = dbcl.listIndexes();
    var arrayIndexes = new Array();
-   while (indexes.next()){
-      arrayIndexes.push(indexes.current().toObj());
+   while( indexes.next() )
+   {
+      arrayIndexes.push( indexes.current().toObj() );
    }
-   
+
    //listIndexes不显示创建失败的集合
-   if(arrayIndexes.length != 2){
-      throw new Error("more than 2 indexes: " + arrayIndexes.length);
+   if( arrayIndexes.length != 2 )
+   {
+      throw new Error( "more than 2 indexes: " + arrayIndexes.length );
    }
-   for(var i in arrayIndexes){
-      if(arrayIndexes[i]["IndexDef"]["name"] != "$id" && arrayIndexes[i]["IndexDef"]["name"] != "a_11982"){
-         throw new Error("index: $id or a_11982 is not exists.");
+   for( var i in arrayIndexes )
+   {
+      if( arrayIndexes[i]["IndexDef"]["name"] != "$id" && arrayIndexes[i]["IndexDef"]["name"] != "a_11982" )
+      {
+         throw new Error( "index: $id or a_11982 is not exists." );
       }
    }
-   
+
    var dbOperator = new DBOperator();
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, "a_11982");
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "a_11982" );
+   commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

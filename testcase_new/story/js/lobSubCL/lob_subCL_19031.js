@@ -5,76 +5,76 @@
 **************************************/
 try
 {
-   main(); 
+   main();
 }
 catch( e )
 {
    if( e.constructor === Error )
    {
-      println( e.stack ); 
+      println( e.stack );
    }
-   throw e; 
+   throw e;
 }
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" ); 
-      return; 
+      println( "skip standalone mode" );
+      return;
    }
-   
-   var csName = COMMCSNAME; 
-   var mainCLName = "mainCL_19031"; 
-   var subCLName = "subCL_19031"; 
-   
-   commDropCL( db, csName, mainCLName ); 
-   commDropCL( db, csName, subCLName ); 
-   
-   var options = {"IsMainCL": true, "ShardingKey": {"date": 1}, "LobShardingKeyFormat": "YYYYMM", "ShardingType": "range"}; 
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl" ); 
-   commCreateCL( db, csName, subCLName ); 
-   
+
+   var csName = COMMCSNAME;
+   var mainCLName = "mainCL_19031";
+   var subCLName = "subCL_19031";
+
+   commDropCL( db, csName, mainCLName );
+   commDropCL( db, csName, subCLName );
+
+   var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": "YYYYMM", "ShardingType": "range" };
+   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl" );
+   commCreateCL( db, csName, subCLName );
+
    try
    {
-      mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": 201901}, "UpBound": {"date": 201907}} ); 
-      throw 0; 
+      mainCL.attachCL( csName + "." + subCLName, { "LowBound": { "date": 201901 }, "UpBound": { "date": 201907 } } );
+      throw 0;
    }
    catch( e )
    {
       if( e !== -238 )
       {
-         throw buildException( "attach cl", e, "attachCL but bound error: " + subCLName, -238, e ); 
+         throw buildException( "attach cl", e, "attachCL but bound error: " + subCLName, -238, e );
       }
    }
-   
+
    try
    {
-      mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "201901"}, "UpBound": {"date": 201907}} ); 
-      throw 0; 
+      mainCL.attachCL( csName + "." + subCLName, { "LowBound": { "date": "201901" }, "UpBound": { "date": 201907 } } );
+      throw 0;
    }
    catch( e )
    {
       if( e !== -238 )
       {
-         throw buildException( "attach cl", e, "attachCL but bound error: " + subCLName, -238, e ); 
+         throw buildException( "attach cl", e, "attachCL but bound error: " + subCLName, -238, e );
       }
    }
-   
+
    try
    {
-      mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": "20190101"}, "UpBound": {"date": "20190701"}} ); 
-      throw 0; 
+      mainCL.attachCL( csName + "." + subCLName, { "LowBound": { "date": "20190101" }, "UpBound": { "date": "20190701" } } );
+      throw 0;
    }
    catch( e )
    {
       if( e !== -238 )
       {
-         throw buildException( "attach cl", e, "attachCL but bound error: " + subCLName, -238, e ); 
+         throw buildException( "attach cl", e, "attachCL but bound error: " + subCLName, -238, e );
       }
    }
-   
-   commDropCL( db, csName, mainCLName ); 
-   commDropCL( db, csName, subCLName ); 
+
+   commDropCL( db, csName, mainCLName );
+   commDropCL( db, csName, subCLName );
 }
 

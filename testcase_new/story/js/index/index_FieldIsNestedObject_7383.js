@@ -8,78 +8,78 @@
 *************************************************************************/
 try
 {
-   commDropCL( db, csName, clName, true, true, "drop cl in the beginning" ) ;
-}
-catch ( e )
-{
-   println( "unexpected err happened when clear cs:" + e ) ;
-   throw e ;
-}
-
-try
-{
-   var optionObj = {ReplSize:0,Compressed:true};
-   var varCL = commCreateCLByOption( db, csName, clName, optionObj, true,
-                                     false, "create collecton 1 failed" );
+   commDropCL( db, csName, clName, true, true, "drop cl in the beginning" );
 }
 catch( e )
 {
-   println( "Failed to create CS and CL, rc="+e ) ;
-   throw e ;
+   println( "unexpected err happened when clear cs:" + e );
+   throw e;
 }
 
 try
 {
-   varCL.createIndex( "testindex", {"use.id":1}, true ) ;
-   inspecIndex( varCL,"testindex" , "use.id" , 1 ,true , false ) ;
+   var optionObj = { ReplSize: 0, Compressed: true };
+   var varCL = commCreateCLByOption( db, csName, clName, optionObj, true,
+      false, "create collecton 1 failed" );
 }
-catch ( e )
+catch( e )
 {
-   println( "failed to create index, rc="+e ) ;
-   throw e ;
+   println( "Failed to create CS and CL, rc=" + e );
+   throw e;
 }
 
 try
 {
-   varCL.insert({use:{id:1,name:"chen"}}) ;
-   varCL.insert({use:{id:2,name:"chen"}}) ;
+   varCL.createIndex( "testindex", { "use.id": 1 }, true );
+   inspecIndex( varCL, "testindex", "use.id", 1, true, false );
 }
-catch ( e )
+catch( e )
 {
-   println( "failed to insert record, rc="+e ) ;
-   throw e ;
+   println( "failed to create index, rc=" + e );
+   throw e;
+}
+
+try
+{
+   varCL.insert( { use: { id: 1, name: "chen" } } );
+   varCL.insert( { use: { id: 2, name: "chen" } } );
+}
+catch( e )
+{
+   println( "failed to insert record, rc=" + e );
+   throw e;
 }
 
 //test find by index
-checkExplain( varCL, {"use.id": 1});
+checkExplain( varCL, { "use.id": 1 } );
 
 //check the result of find  
-var rc = varCL.find({"use.id": 1});
+var rc = varCL.find( { "use.id": 1 } );
 var expRecs = [];
-expRecs.push({use:{id:1,name:"chen"}});
+expRecs.push( { use: { id: 1, name: "chen" } } );
 checkRec( rc, expRecs );
 
 try
 {
-   varCL.insert({use:{id:1,name:"chensdf"}}) ;
+   varCL.insert( { use: { id: 1, name: "chensdf" } } );
 }
-catch ( e )
+catch( e )
 {
-   if ( -38 != e )
+   if( -38 != e )
    {
-      println( "Failed to insert data to database, rc="+e ) ;
-      throw e ;
+      println( "Failed to insert data to database, rc=" + e );
+      throw e;
    }
 }
 
 try
 {
    commDropCL( db, csName, clName, false, false,
-               "drop colleciton in the end" );
+      "drop colleciton in the end" );
 }
-catch ( e )
+catch( e )
 {
-  println( "unexpected err happened when clear cs:" + e ) ;
-   throw e ;
+   println( "unexpected err happened when clear cs:" + e );
+   throw e;
 }
 

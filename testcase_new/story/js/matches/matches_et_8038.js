@@ -5,63 +5,73 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_matches8038" ;
-      
+      var clName = COMMCLNAME + "_matches8038";
+
       var cl = readyCL( clName );
-   	
-   	var rawData = [ {int:   [-2147483648, 2147483647]}, 
-   	                {long:  ["-9223372036854775808", "9223372036854775807"]} ];
+
+      var rawData = [{ int: [-2147483648, 2147483647] },
+      { long: ["-9223372036854775808", "9223372036854775807"] }];
       insertRecs( cl, rawData );
-      
+
       var arrRc = findRecs( cl, rawData, "array" );
       var objRc = findRecs( cl, rawData, "object" );
-      
+
       checkResult( arrRc, objRc, rawData );
-   
+
       cleanCL( clName );
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl, rawData )
+function insertRecs ( cl, rawData )
 {
-   println("\n---Begin to insert records.");
-   cl.insert({a:0, b:[{b1: rawData[0]["int"][0]}, 
-                      {b2: rawData[0]["int"][1]}]});
-   cl.insert({a:1, b: {b1:{c1:{$numberLong: rawData[1]["long"][0]}}, 
-                       b2:{c2:{$numberLong: rawData[1]["long"][1]}}}});
+   println( "\n---Begin to insert records." );
+   cl.insert( {
+      a: 0, b: [{ b1: rawData[0]["int"][0] },
+      { b2: rawData[0]["int"][1] }]
+   } );
+   cl.insert( {
+      a: 1, b: {
+         b1: { c1: { $numberLong: rawData[1]["long"][0] } },
+         b2: { c2: { $numberLong: rawData[1]["long"][1] } }
+      }
+   } );
 }
 
-function findRecs( cl, rawData, dataType )
+function findRecs ( cl, rawData, dataType )
 {
-   println("\n---Begin to find records for dataType["+ dataType +"].");
-   
+   println( "\n---Begin to find records for dataType[" + dataType + "]." );
+
    if( dataType === "array" )
    {
-      var rc = cl.find( {"b.b1":{$et: rawData[0]["int"][0]}, 
-                         "b.b2":{$et: rawData[0]["int"][1]}} ).sort({a:1});
+      var rc = cl.find( {
+         "b.b1": { $et: rawData[0]["int"][0] },
+         "b.b2": { $et: rawData[0]["int"][1] }
+      } ).sort( { a: 1 } );
    }
    else if( dataType === "object" )
    {
-      var rc = cl.find( {"b.b1.c1":{$et: {$numberLong: rawData[1]["long"][0]}}, 
-                         "b.b2.c2":{$et: {$numberLong: rawData[1]["long"][1]}}} ).sort({a:1});
+      var rc = cl.find( {
+         "b.b1.c1": { $et: { $numberLong: rawData[1]["long"][0] } },
+         "b.b2.c2": { $et: { $numberLong: rawData[1]["long"][1] } }
+      } ).sort( { a: 1 } );
    }
-   
-   return rc ;
+
+   return rc;
 }
 
-function checkResult( arrRc, objRc, rawData )
+function checkResult ( arrRc, objRc, rawData )
 {
    //-----------------------check result for dataType[array]---------------------
-   println("\n---Begin to check result for dataType[array].");
-   
+   println( "\n---Begin to check result for dataType[array]." );
+
    var findRtn = new Array();
    while( tmpRecs = arrRc.next() )    //arrRc
    {
@@ -71,23 +81,23 @@ function checkResult( arrRc, objRc, rawData )
    var expLen = 1;
    if( findRtn.length !== expLen )
    {
-      throw buildException("checkResult", null, "[compare number]", 
-                          "[recsNum:"+ expLen +"]",
-                          "[recsNum:"+ findRtn.length +"]");
+      throw buildException( "checkResult", null, "[compare number]",
+         "[recsNum:" + expLen + "]",
+         "[recsNum:" + findRtn.length + "]" );
    }
    //compare records  ---$et: "array"
    if( findRtn[0]["b"][0]["b1"] !== rawData[0]["int"][0] ||   //expRecs--"b":[{"b1":-2147483648},{"b2":2147483647}]}]
-       findRtn[0]["b"][1]["b2"] !== rawData[0]["int"][1] )  
+      findRtn[0]["b"][1]["b2"] !== rawData[0]["int"][1] )  
    {
-      println( "---The real results after the find by matches[$et]: \n"+ JSON.stringify( findRtn ) );
-      throw buildException("checkResult", null, "[compare records]", 
-                        '["b.b1":'+ rawData[0]["int"][0] +    ',"b.b2":'+ rawData[0]["int"][1] +"]",
-                        '["b.b1":'+ findRtn[0]["b"][0]["b1"] +',"b.b2":'+ findRtn[0]["b"][1]["b1"] +"]");
+      println( "---The real results after the find by matches[$et]: \n" + JSON.stringify( findRtn ) );
+      throw buildException( "checkResult", null, "[compare records]",
+         '["b.b1":' + rawData[0]["int"][0] + ',"b.b2":' + rawData[0]["int"][1] + "]",
+         '["b.b1":' + findRtn[0]["b"][0]["b1"] + ',"b.b2":' + findRtn[0]["b"][1]["b1"] + "]" );
    }
-   
+
    //-----------------------check result for dataType[object]---------------------
-   println("\n---Begin to check result for dataType[object].");
-   
+   println( "\n---Begin to check result for dataType[object]." );
+
    var findRtn = new Array();
    while( tmpRecs = objRc.next() )    //objRc
    {
@@ -97,19 +107,19 @@ function checkResult( arrRc, objRc, rawData )
    var expLen = 1;
    if( findRtn.length !== expLen )
    {
-      throw buildException("checkResult", null, "[compare number]", 
-                          "[recsNum:"+ expLen +"]",
-                          "[recsNum:"+ findRtn.length +"]");
+      throw buildException( "checkResult", null, "[compare number]",
+         "[recsNum:" + expLen + "]",
+         "[recsNum:" + findRtn.length + "]" );
    }
    //compare records  ---$et: "object"
    if( findRtn[0]["b"]["b1"]["c1"]["$numberLong"].toString() !== rawData[1]["long"][0] ||   //"b.b1.c1":{$numberlong:"xxxxxx"}
-       findRtn[0]["b"]["b2"]["c2"]["$numberLong"].toString() !== rawData[1]["long"][1] )  
+      findRtn[0]["b"]["b2"]["c2"]["$numberLong"].toString() !== rawData[1]["long"][1] )  
    {
-      println( "---The real results after the find by matches[$et]: \n"+ JSON.stringify( findRtn ) );
-      throw buildException("checkResult", null, "[compare records]", 
-                        '["b.b1.c1":'+ rawData[1]["long"][0] 
-                       +',"b.b2.c2":'+ rawData[1]["long"][1] +"]",
-                        '["b.b1.c1":'+ findRtn[0]["b"]["b1"]["c1"]["$numberLong"].toString() 
-                       +',"b.b2.c2":'+ findRtn[0]["b"]["b1"]["c2"]["$numberLong"].toString() +"]");
+      println( "---The real results after the find by matches[$et]: \n" + JSON.stringify( findRtn ) );
+      throw buildException( "checkResult", null, "[compare records]",
+         '["b.b1.c1":' + rawData[1]["long"][0]
+         + ',"b.b2.c2":' + rawData[1]["long"][1] + "]",
+         '["b.b1.c1":' + findRtn[0]["b"]["b1"]["c1"]["$numberLong"].toString()
+         + ',"b.b2.c2":' + findRtn[0]["b"]["b1"]["c2"]["$numberLong"].toString() + "]" );
    }
 }

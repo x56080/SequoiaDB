@@ -3,14 +3,14 @@
 *@Author     :  2019-8-1  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18920_csv";
    var csvFile = tmpFileDir + clName + ".csv";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( csvFile );
-   
+
    println( "\n---specify data type int32 to import csv file." );
    var fields = "a int";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
@@ -19,7 +19,7 @@ function main()
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
    cl.truncate();
-   
+
    println( "\n---specify data type int64 to import csv file." );
    var fields = "a long";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
@@ -28,8 +28,8 @@ function main()
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
    cl.truncate();
-   
-   println( "\n---specify data type double to import csv file." ); 
+
+   println( "\n---specify data type double to import csv file." );
    var fields = "a double";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 2000 );
@@ -37,7 +37,7 @@ function main()
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
    cl.truncate();
-   
+
    println( "\n---specify data type decimal to import csv file." );
    var fields = "a decimal";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
@@ -45,11 +45,11 @@ function main()
    dataType = "decimal";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "";
@@ -65,18 +65,18 @@ function prepareDate( typeFile )
          for( var k = 0; k < 10; k++ )
          {
             rightR = rightR + "0";
-            right = rightL + "1" +rightR;
+            right = rightL + "1" + rightR;
             file.write( left + "." + right + "\n" );
          }
-      }   
+      }
    }
    file.close();
 }
 
-function getExpResult( dataType )
+function getExpResult ( dataType )
 {
-   var expResult = []; 
-   if( dataType == "double")
+   var expResult = [];
+   if( dataType == "double" )
    {
       for( var i = 0; i < 20; i++ )
       {
@@ -85,11 +85,11 @@ function getExpResult( dataType )
          executeFor( expResult, { a: 0.0001 } );
          executeFor( expResult, { a: 0.00001 } );
          executeFor( expResult, { a: 0.000001 } );
-         executeFor( expResult, { a: (1e-7) } );
-         executeFor( expResult, { a: (1e-8) } );
-         executeFor( expResult, { a: (1e-9) } );
-         executeFor( expResult, { a: (1e-10) } );
-         executeFor( expResult, { a: (1e-11) } );
+         executeFor( expResult, { a: ( 1e-7 ) } );
+         executeFor( expResult, { a: ( 1e-8 ) } );
+         executeFor( expResult, { a: ( 1e-9 ) } );
+         executeFor( expResult, { a: ( 1e-10 ) } );
+         executeFor( expResult, { a: ( 1e-11 ) } );
       }
    }
    else
@@ -104,24 +104,24 @@ function getExpResult( dataType )
             for( var k = 0; k < 10; k++ )
             {
                rightR = rightR + "0";
-               right = rightL + "1" +rightR;
+               right = rightL + "1" + rightR;
                if( dataType == "decimal" )
                {
                   var decimalData = "0." + right;
-                  expResult.push({ a: { "$decimal": decimalData }});
+                  expResult.push( { a: { "$decimal": decimalData } } );
                }
                else
                {
-                  expResult.push({ a: 0});
+                  expResult.push( { a: 0 } );
                }
             }
-         } 
+         }
       }
    }
    return expResult;
 }
 
-function executeFor( expResult, data )
+function executeFor ( expResult, data )
 {
    for( var i = 0; i < 10; i++ )
    {

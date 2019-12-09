@@ -3,18 +3,18 @@
 *@Author     :  2019-8-7  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18940";
    var csvFile = tmpFileDir + clName + ".csv";
    var jsonFile = tmpFileDir + clName + ".json";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( csvFile );
    prepareDate( jsonFile );
-   
+
    println( "\n---specify data type double、decimal to import csv file." );
-   var fields = "a";   
+   var fields = "a";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
    checkImportRC( rcResults, 400 );
    dataType = "double";
@@ -24,9 +24,9 @@ function main()
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
    cl.truncate();
-   
+
    println( "\n---specify data type double、decimal to import json file." );
-   var fields = "a";   
+   var fields = "a";
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 400 );
    dataType = "double";
@@ -35,11 +35,11 @@ function main()
    dataType = "decimal";
    var expResult = getExpResult( dataType );
    checkResult( cl, dataType, expResult );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "";
@@ -53,22 +53,22 @@ function prepareDate( typeFile )
       {
          rightR = rightR + "0";
          var right = rightL + rightR;
-         if( typeFile.substring(typeFile.indexOf(".")+1, typeFile.length ) == "csv" )
+         if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
          {
             file.write( left + "." + right + "\n" );
          }
          else
          {
-            file.write( '{ a:' + left + '.' + right + ' }\n' ); 
+            file.write( '{ a:' + left + '.' + right + ' }\n' );
          }
       }
    }
    file.close();
 }
 
-function getExpResult( dataType )
+function getExpResult ( dataType )
 {
-   var expResult = []; 
+   var expResult = [];
    var left = "";
    var rightL = "";
    for( var i = 0; i < 20; i++ )
@@ -81,13 +81,13 @@ function getExpResult( dataType )
          rightR = rightR + "0";
          var right = rightL + rightR;
          //有效数字超过15位自动识别为decimal
-         if( dataType == "decimal" && 2*i >= 13)
+         if( dataType == "decimal" && 2 * i >= 13 )
          {
-            expResult.push( { a: {"$decimal": left + "." + right } } );
+            expResult.push( { a: { "$decimal": left + "." + right } } );
          }
-         else if( dataType == "double" && 2*i < 13 )
+         else if( dataType == "double" && 2 * i < 13 )
          {
-            expResult.push({a: parseFloat( left + "." + right )});
+            expResult.push( { a: parseFloat( left + "." + right ) } );
          }
       }
    }

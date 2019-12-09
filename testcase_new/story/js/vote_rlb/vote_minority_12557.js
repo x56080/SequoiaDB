@@ -7,61 +7,61 @@
 function main ( db )
 {
    // Get Primary node related infomation
-   var group = commGetGroups( db ) ;
-   var rgSize = group.length ;
-   println( " Group Size : " + rgSize ) ;
-   for( var i = 0 ; i < rgSize ; ++i )
+   var group = commGetGroups( db );
+   var rgSize = group.length;
+   println( " Group Size : " + rgSize );
+   for( var i = 0; i < rgSize; ++i )
    {
-      var nodeSize = group[i].length ;
-      var getRG = group[i][0].GroupName ;         // GroupName
-      var primNode = group[i][0].PrimaryNode ;    // PrimaryNode
-      var result = true ;
+      var nodeSize = group[i].length;
+      var getRG = group[i][0].GroupName;         // GroupName
+      var primNode = group[i][0].PrimaryNode;    // PrimaryNode
+      var result = true;
       // If the nodes less than 3, nodes cannot be stop
       if( 3 < nodeSize )
       {
-         for( var j = 1 ; j < Math.floor(nodeSize/2) ; ++j )    //many groups,begin 1 not 0
+         for( var j = 1; j < Math.floor( nodeSize / 2 ); ++j )    //many groups,begin 1 not 0
          {
-            var node = group[i][j].svcname ;    // svcname
-            var nodeHost = group[i][j].HostName ;    // HostName
+            var node = group[i][j].svcname;    // svcname
+            var nodeHost = group[i][j].HostName;    // HostName
 
             // Stop primary node
-            stopNode( db, getRG, nodeHost, node ) ;
+            stopNode( db, getRG, nodeHost, node );
          }
          // Inspect the new primary node ant the olde primary node
-         var count = 0 ;
+         var count = 0;
          var totalTimeLen = 60;
          do
          {
-            sleep(1000) ;
-            ++ count ;
-            var newPrimNode = getPrimNode( db, getRG ) ;
+            sleep( 1000 );
+            ++count;
+            var newPrimNode = getPrimNode( db, getRG );
             //println( "node ID" + newPrimNode + " = " + primNode ) ;
             if( totalTimeLen < count )
             {
                result = false;
             }
             //println( "count : " + count ) ;
-         }while( false == newPrimNode ) ;
+         } while( false == newPrimNode );
 
-         for( var j = 1 ; j < Math.floor(nodeSize/2) ; ++j )    //many groups,begin 1 not 0
+         for( var j = 1; j < Math.floor( nodeSize / 2 ); ++j )    //many groups,begin 1 not 0
          {
-            var node = group[i][j].svcname ;    // svcname
-            var nodeHost = group[i][j].HostName ;    // HostName
+            var node = group[i][j].svcname;    // svcname
+            var nodeHost = group[i][j].HostName;    // HostName
 
             // Start primary node in the end
-            startNode( db, getRG, nodeHost, node ) ;
+            startNode( db, getRG, nodeHost, node );
          }
-         
-         if ( !result )
+
+         if( !result )
          {
-            println( "Don't change the primary node, node = " + primNode ) ;
-            throw "ErrVotePrimary" ;
+            println( "Don't change the primary node, node = " + primNode );
+            throw "ErrVotePrimary";
          }
       }
       else
       {
          println( "The nodes less than 3 in group : " + getRG +
-                  ", cannot be stop." ) ;
+            ", cannot be stop." );
       }
    }
 }
@@ -69,13 +69,13 @@ function main ( db )
 // Main Running
 try
 {
-   var mode = commIsStandalone ( db ) ;
-   if ( false == mode )
-      main ( db ) ;
+   var mode = commIsStandalone( db );
+   if( false == mode )
+      main( db );
    else
-      println ( "Run Mode is : Standalone" ) ;
+      println( "Run Mode is : Standalone" );
 }
-catch ( e )
+catch( e )
 {
-   throw e ;
+   throw e;
 }

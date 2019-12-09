@@ -7,39 +7,40 @@
 var csName = CHANGEDPREFIX + "_cs_12187";
 var clName = CHANGEDPREFIX + "_cl_12187";
 
-function main() {
+function main ()
+{
 	if( true == commIsStandalone( db ) )
 	{
 		println( "run mode is standalone" );
 		return;
 	}
 
-	var allGroupName = getGroupName(db,true);         
+	var allGroupName = getGroupName( db, true );
 	if( 1 === allGroupName.length )
 	{
-		println("--least two groups");
-		return ;
-	}  
+		println( "--least two groups" );
+		return;
+	}
 
-	commDropCS( db, csName, true, "Failed to drop CS.");    
-	commCreateCS( db, csName, false, "Failed to create CS.");  
-	var mycl=db.getCS(csName).createCL(clName);
-	mycl.alter({ShardingKey:{a:1}});
+	commDropCS( db, csName, true, "Failed to drop CS." );
+	commCreateCS( db, csName, false, "Failed to create CS." );
+	var mycl = db.getCS( csName ).createCL( clName );
+	mycl.alter( { ShardingKey: { a: 1 } } );
 
 	//insert data 	
-	var docs=[{a:1},{b:1}];
-	insertData(mycl, docs);
+	var docs = [{ a: 1 }, { b: 1 }];
+	insertData( mycl, docs );
 
 	//updateData
-	mycl.update({$set:{"a":"test"}},{},{},{KeepShardingKey:true});
-	mycl.update({$set:{"b":"test"}},{},{},{KeepShardingKey:true});
+	mycl.update( { $set: { "a": "test" } }, {}, {}, { KeepShardingKey: true } );
+	mycl.update( { $set: { "b": "test" } }, {}, {}, { KeepShardingKey: true } );
 
 	//check the update result
-	var expRecs = [{"a":"test","b":"test"},{"a":"test","b":"test"}];
-	checkResult( mycl, null, {"_id":{"$include":0}},expRecs);
+	var expRecs = [{ "a": "test", "b": "test" }, { "a": "test", "b": "test" }];
+	checkResult( mycl, null, { "_id": { "$include": 0 } }, expRecs );
 
 	//drop collectionspace in clean
-	commDropCS( db, csName, false, "Failed to drop CS.");
+	commDropCS( db, csName, false, "Failed to drop CS." );
 }
 
 //main();

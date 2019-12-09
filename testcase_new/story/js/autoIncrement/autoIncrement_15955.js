@@ -3,87 +3,87 @@
 @Modify list :
               2018-10-19  zhaoyu  Create
 ****************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("Deploy is standalone");
-	  return;
+      println( "Deploy is standalone" );
+      return;
    }
-   
-   var clName = COMMCLNAME + "_15955";   
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
+
+   var clName = COMMCLNAME + "_15955";
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
    var cacheSize = 10;
    var acquireSize = 1;
    var fieldName = "id.a.b.c";
-   var dbcl = commCreateCLByOption(db, COMMCSNAME, clName, {AutoIncrement:{Field:fieldName, CacheSize:cacheSize, AcquireSize:acquireSize}});
-   
-   var clID = getCLID(COMMCSNAME, clName);
+   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize } } );
+
+   var clID = getCLID( COMMCSNAME, clName );
    var mainclSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
-   var expIncrementArr = [{Field:fieldName, SequenceName:mainclSequenceName}];
-   checkAutoIncrementonCL(COMMCSNAME, clName, expIncrementArr);
-   
+   var expIncrementArr = [{ Field: fieldName, SequenceName: mainclSequenceName }];
+   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrementArr );
+
    var expR = [];
-   var j=1;
-   for(var i=0; i<100; i++)
+   var j = 1;
+   for( var i = 0; i < 100; i++ )
    {
-      var doc = {a:i};
-      dbcl.insert(doc);
-      expR.push({a:i,id:{a:{b:{c:i+1}}}});
+      var doc = { a: i };
+      dbcl.insert( doc );
+      expR.push( { a: i, id: { a: { b: { c: i + 1 } } } } );
    }
-   
-   var actR = dbcl.find().sort({a:1});
-   checkRec(actR, expR);
-   println("---check not set increment field insert record success");
-   
-   var arr = [{id:{a:{b:{c:1.25}}},a:"float"},
-              {id:{a:{b:{c:{$decimal:"123"}}}},a:"decimal"},
-              {id:{a:{b:{c:"string"}}},a:"string"},
-              {id:{a:{b:{c:{a:1}}}},a:"obj"},
-              {id:{a:{b:{c:{$date:"2012-01-01"}}}},a:"date"},
-              {id:{a:{b:{c:{$timestamp:"2012-01-01-13.14.26.124233"}}}},a:"timestamp"},
-              {id:{a:{b:{c:{$binary:"aGVsbG8gd29ybGQ=",$type:"1"}}}},a:"binary"},
-              {id:{a:{b:{c:{$regex:"a",$options:"i"}}}},a:"regex"},
-              {id:{a:{b:{c:{$oid:"123abcd00ef12358902300ef"}}}},a:"oid"},
-              {id:{a:{b:{c:[1,2,3]}}},a:"arr"},
-              {id:{a:{b:{c:null}}},a:"null"},
-              {id:{a:{b:{c:{$maxKey:1}}}},a:"maxKey"},
-              {id:{a:{b:{c:{$minKey:1}}}},a:"minkey"}];
-   expR = expR.concat(arr);
-   dbcl.insert(arr);
-   var actR = dbcl.find().sort({_id:1});
-   checkRec(actR, expR);
-   println("---check increment field set other dataType success");
-   
-   var arr = [{id:{a:{b:{d:1}}}},
-              {id:{a:{b:{c:{d:1}}}}},
-              {id:{a:{b:{c:1,d:1}}}},
-              {id:{a:{b:{c:{d:1,c:1}}}}}];
-   dbcl.insert(arr);
-   var expArr = [{id:{a:{b:{d:1,c:101}}}},
-                 {id:{a:{b:{c:{d:1}}}}},
-                 {id:{a:{b:{c:1,d:1}}}},
-                 {id:{a:{b:{c:{d:1,c:1}}}}}];
-   expR = expR.concat(expArr);
-   var actR = dbcl.find().sort({_id:1});
-   checkRec(actR, expR);
-   println("---check increment field success");
-   
-   insertOtherTypeDatas(dbcl, [{id:{a:{b:1}}}])
-   println("---check increment field insert failed success");
-   
-   commDropCL(db, COMMCSNAME, clName, true, true);
+
+   var actR = dbcl.find().sort( { a: 1 } );
+   checkRec( actR, expR );
+   println( "---check not set increment field insert record success" );
+
+   var arr = [{ id: { a: { b: { c: 1.25 } } }, a: "float" },
+   { id: { a: { b: { c: { $decimal: "123" } } } }, a: "decimal" },
+   { id: { a: { b: { c: "string" } } }, a: "string" },
+   { id: { a: { b: { c: { a: 1 } } } }, a: "obj" },
+   { id: { a: { b: { c: { $date: "2012-01-01" } } } }, a: "date" },
+   { id: { a: { b: { c: { $timestamp: "2012-01-01-13.14.26.124233" } } } }, a: "timestamp" },
+   { id: { a: { b: { c: { $binary: "aGVsbG8gd29ybGQ=", $type: "1" } } } }, a: "binary" },
+   { id: { a: { b: { c: { $regex: "a", $options: "i" } } } }, a: "regex" },
+   { id: { a: { b: { c: { $oid: "123abcd00ef12358902300ef" } } } }, a: "oid" },
+   { id: { a: { b: { c: [1, 2, 3] } } }, a: "arr" },
+   { id: { a: { b: { c: null } } }, a: "null" },
+   { id: { a: { b: { c: { $maxKey: 1 } } } }, a: "maxKey" },
+   { id: { a: { b: { c: { $minKey: 1 } } } }, a: "minkey" }];
+   expR = expR.concat( arr );
+   dbcl.insert( arr );
+   var actR = dbcl.find().sort( { _id: 1 } );
+   checkRec( actR, expR );
+   println( "---check increment field set other dataType success" );
+
+   var arr = [{ id: { a: { b: { d: 1 } } } },
+   { id: { a: { b: { c: { d: 1 } } } } },
+   { id: { a: { b: { c: 1, d: 1 } } } },
+   { id: { a: { b: { c: { d: 1, c: 1 } } } } }];
+   dbcl.insert( arr );
+   var expArr = [{ id: { a: { b: { d: 1, c: 101 } } } },
+   { id: { a: { b: { c: { d: 1 } } } } },
+   { id: { a: { b: { c: 1, d: 1 } } } },
+   { id: { a: { b: { c: { d: 1, c: 1 } } } } }];
+   expR = expR.concat( expArr );
+   var actR = dbcl.find().sort( { _id: 1 } );
+   checkRec( actR, expR );
+   println( "---check increment field success" );
+
+   insertOtherTypeDatas( dbcl, [{ id: { a: { b: 1 } } }] )
+   println( "---check increment field insert failed success" );
+
+   commDropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
    throw e;
 }

@@ -11,67 +11,68 @@
 ************************************************************************/
 
 
-main() ;
+main();
 
-function main()
-{  
+function main ()
+{
    try
    {
       var csName = COMMCSNAME;
-      var clName = COMMCLNAME+"_18261" ;
-      var doc = [{ c: 1,d : "exprtTest"}, { c: 2,d : "exprtTest2"}];
+      var clName = COMMCLNAME + "_18261";
+      var doc = [{ c: 1, d: "exprtTest" }, { c: 2, d: "exprtTest2" }];
       var cl = readyCL( csName, clName );
-      
-      var imprtFile = tmpFileDir +"18384.csv";
-      var exprtFile = tmpFileDir +"18384.csv";
-      exportImportDataRContainA( csName, clName, imprtFile, exprtFile , cl, doc);
-      exportImportDataRContainE( csName, clName, imprtFile, exprtFile , cl, doc);
-      exportImportDataAContainE( csName, clName, imprtFile, exprtFile , cl, doc);
-      exportImportDataAContainA( csName, clName, imprtFile, exprtFile , cl, doc);
-      exportImportDataEContainR( csName, clName, imprtFile, exprtFile , cl, doc);
-      exportImportDataEContainA( csName, clName, imprtFile, exprtFile , cl, doc);
+
+      var imprtFile = tmpFileDir + "18384.csv";
+      var exprtFile = tmpFileDir + "18384.csv";
+      exportImportDataRContainA( csName, clName, imprtFile, exprtFile, cl, doc );
+      exportImportDataRContainE( csName, clName, imprtFile, exprtFile, cl, doc );
+      exportImportDataAContainE( csName, clName, imprtFile, exprtFile, cl, doc );
+      exportImportDataAContainA( csName, clName, imprtFile, exprtFile, cl, doc );
+      exportImportDataEContainR( csName, clName, imprtFile, exprtFile, cl, doc );
+      exportImportDataEContainA( csName, clName, imprtFile, exprtFile, cl, doc );
       cleanCL( csName, clName );
    }
-   catch(e)
+   catch( e )
    {
       throw e;
    }
 }
 
-function readyData( imprtFile, content )
+function readyData ( imprtFile, content )
 {
-   println("\n---Begin to ready data.");
-   
+   println( "\n---Begin to ready data." );
+
    var file = fileInit( imprtFile );
    file.write( content );
-   var fileInfo = cmd.run( "cat "+ imprtFile );
-   println( imprtFile +"\n" + fileInfo );
+   var fileInfo = cmd.run( "cat " + imprtFile );
+   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
 //1、指定记录分隔符-r包含字符串分隔符-a执行导出再导入，检查结果
-function exportImportDataRContainA( csName, clName, imprtFile, exprtFile, cl, doc )
+function exportImportDataRContainA ( csName, clName, imprtFile, exprtFile, cl, doc )
 {
    //导出
-   cl.insert(doc);
-   var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --checkdelimeter false --type csv -r ',Y' -a 'Y' -e 'D' --fields='c ,d'"
-                     +" --file "+ exprtFile;
+   cl.insert( doc );
+   var exportOption = installDir + "bin/sdbexprt -s " + COORDHOSTNAME + " -p " + COORDSVCNAME
+      + " -c " + csName + " -l " + clName
+      + " --checkdelimeter false --type csv -r ',Y' -a 'Y' -e 'D' --fields='c ,d'"
+      + " --file " + exprtFile;
    println( exportOption );
-   try{
-     cmd.run( exportOption );
-     throw buildException( "exprtData", null, "[exprt results]", 
-                        "expected thow exception", 
-                        "actual success" );
+   try
+   {
+      cmd.run( exportOption );
+      throw buildException( "exprtData", null, "[exprt results]",
+         "expected thow exception",
+         "actual success" );
    }
-   catch(e)
+   catch( e )
    {
       if( e !== 127 )
       {
-        throw buildException( "exprtData", null, "[exprt results]", 
-                           "expected thow exception", 
-                           "actual success" );
+         throw buildException( "exprtData", null, "[exprt results]",
+            "expected thow exception",
+            "actual success" );
       }
    }
    finally
@@ -105,62 +106,62 @@ function exportImportDataRContainA( csName, clName, imprtFile, exprtFile, cl, do
 }
 
 //2、指定记录分隔符-r包含字段分隔符-e执行导出再导入，检查结果
-function exportImportDataRContainE( csName, clName, imprtFile, exprtFile, cl, doc )
+function exportImportDataRContainE ( csName, clName, imprtFile, exprtFile, cl, doc )
 {
    //导出
-   cl.insert(doc);
-   var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --checkdelimeter false --type csv -r ',Y' -e 'Y' --fields='c ,d'"
-                     +" --file "+ exprtFile;
+   cl.insert( doc );
+   var exportOption = installDir + "bin/sdbexprt -s " + COORDHOSTNAME + " -p " + COORDSVCNAME
+      + " -c " + csName + " -l " + clName
+      + " --checkdelimeter false --type csv -r ',Y' -e 'Y' --fields='c ,d'"
+      + " --file " + exprtFile;
    println( exportOption );
    cmd.run( exportOption );
    cl.truncate();
    //导入
-   var imprtOption = installDir +"bin/sdbimprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --checkdelimeter false --type csv -r ',Y' -e 'Y' --headerline true --fields='c int,d string' --linepriority false"
-                     +" --file "+ exprtFile;
+   var imprtOption = installDir + "bin/sdbimprt -s " + COORDHOSTNAME + " -p " + COORDSVCNAME
+      + " -c " + csName + " -l " + clName
+      + " --checkdelimeter false --type csv -r ',Y' -e 'Y' --headerline true --fields='c int,d string' --linepriority false"
+      + " --file " + exprtFile;
    println( imprtOption );
-   testRunCommand(imprtOption);
+   testRunCommand( imprtOption );
    checkCLData( cl );
    cl.truncate();
    cmd.run( "rm -rf " + exprtFile );
 }
 
 //3、指定字符串分隔符-a包含字段分隔符-e执行导出再导入，检查结果
-function exportImportDataAContainE( csName, clName, imprtFile, exprtFile, cl, doc )
+function exportImportDataAContainE ( csName, clName, imprtFile, exprtFile, cl, doc )
 {
    //导出
-   cl.insert(doc);
-   var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --checkdelimeter false --type csv -a ',Y'  -e 'Y' --fields='c ,d'"
-                     +" --file "+ exprtFile;
+   cl.insert( doc );
+   var exportOption = installDir + "bin/sdbexprt -s " + COORDHOSTNAME + " -p " + COORDSVCNAME
+      + " -c " + csName + " -l " + clName
+      + " --checkdelimeter false --type csv -a ',Y'  -e 'Y' --fields='c ,d'"
+      + " --file " + exprtFile;
    println( exportOption );
    cmd.run( exportOption );
    cl.truncate();
    //导入
-   var imprtOption = installDir +"bin/sdbimprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --checkdelimeter false --type csv -a ',Y'  -e 'Y' --headerline true --fields='c int,d string' --linepriority false"
-                     +" --file "+ exprtFile;
+   var imprtOption = installDir + "bin/sdbimprt -s " + COORDHOSTNAME + " -p " + COORDSVCNAME
+      + " -c " + csName + " -l " + clName
+      + " --checkdelimeter false --type csv -a ',Y'  -e 'Y' --headerline true --fields='c int,d string' --linepriority false"
+      + " --file " + exprtFile;
    println( imprtOption );
-   testRunCommand(imprtOption);
+   testRunCommand( imprtOption );
    checkCLData( cl );
    cl.truncate();
    cmd.run( "rm -rf " + exprtFile );
 }
 
 //4、指定字符串分隔符-a包含记录分隔符-r执行导出再导入，检查结果
-function exportImportDataAContainA( csName, clName, imprtFile, exprtFile, cl, doc )
+function exportImportDataAContainA ( csName, clName, imprtFile, exprtFile, cl, doc )
 {
    //导出
-   cl.insert(doc);
-   var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --checkdelimeter false --type csv -a ',Y' -r 'Y' --fields='c ,d'"
-                     +" --file "+ exprtFile;
+   cl.insert( doc );
+   var exportOption = installDir + "bin/sdbexprt -s " + COORDHOSTNAME + " -p " + COORDSVCNAME
+      + " -c " + csName + " -l " + clName
+      + " --checkdelimeter false --type csv -a ',Y' -r 'Y' --fields='c ,d'"
+      + " --file " + exprtFile;
    println( exportOption );
    cmd.run( exportOption );
    cl.truncate();
@@ -178,14 +179,14 @@ function exportImportDataAContainA( csName, clName, imprtFile, exprtFile, cl, do
 }
 
 //5、指定字段分隔符-e包含记录分隔符-r执行导出再导入，检查结果
-function exportImportDataEContainR( csName, clName, imprtFile, exprtFile, cl, doc )
+function exportImportDataEContainR ( csName, clName, imprtFile, exprtFile, cl, doc )
 {
    //导出
-   cl.insert(doc);
-   var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --checkdelimeter false --type csv -e ',Y' -r 'Y' --fields='c ,d'"
-                     +" --file "+ exprtFile;
+   cl.insert( doc );
+   var exportOption = installDir + "bin/sdbexprt -s " + COORDHOSTNAME + " -p " + COORDSVCNAME
+      + " -c " + csName + " -l " + clName
+      + " --checkdelimeter false --type csv -e ',Y' -r 'Y' --fields='c ,d'"
+      + " --file " + exprtFile;
    println( exportOption );
    cmd.run( exportOption );
    cl.truncate();
@@ -203,28 +204,29 @@ function exportImportDataEContainR( csName, clName, imprtFile, exprtFile, cl, do
 }
 
 //6、指定字段分隔符-e包含字符串分隔符-a执行导出再导入，检查结果
-function exportImportDataEContainA( csName, clName, imprtFile, exprtFile, cl, doc )
+function exportImportDataEContainA ( csName, clName, imprtFile, exprtFile, cl, doc )
 {
    //导出
-   cl.insert(doc);
-   var exportOption = installDir +"bin/sdbexprt -s "+ COORDHOSTNAME +" -p "+ COORDSVCNAME 
-                     +" -c "+ csName +" -l "+ clName 
-                     +" --checkdelimeter false --type csv -e ',Y'  -a 'Y' --fields='c ,d'"
-                     +" --file "+ exprtFile;
+   cl.insert( doc );
+   var exportOption = installDir + "bin/sdbexprt -s " + COORDHOSTNAME + " -p " + COORDSVCNAME
+      + " -c " + csName + " -l " + clName
+      + " --checkdelimeter false --type csv -e ',Y'  -a 'Y' --fields='c ,d'"
+      + " --file " + exprtFile;
    println( exportOption );
-   try{
-     cmd.run( exportOption );
-     throw buildException( "exprtData", null, "[exprt results]", 
-                        "expected thow exception", 
-                        "actual success" );
+   try
+   {
+      cmd.run( exportOption );
+      throw buildException( "exprtData", null, "[exprt results]",
+         "expected thow exception",
+         "actual success" );
    }
-   catch(e)
+   catch( e )
    {
       if( e !== 127 )
       {
-        throw buildException( "exprtData", null, "[exprt results]", 
-                           "expected thow exception", 
-                           "actual success" );
+         throw buildException( "exprtData", null, "[exprt results]",
+            "expected thow exception",
+            "actual success" );
       }
    }
    finally
@@ -258,45 +260,45 @@ function exportImportDataEContainA( csName, clName, imprtFile, exprtFile, cl, do
 
 }
 
-function testRunCommand(command)
+function testRunCommand ( command )
 {
    println( command );
    var rc = cmd.run( command );
    println( rc );
-   
-    //check import results
-    var rcObj = rc.split("\n");
-    var expParseRecords    = "parsed records: 2";
-    var expImportedRecords = "imported records: 2";
-    var actParseRecords    = rcObj[0];
-    var actImportedRecords = rcObj[4];
-    if( expParseRecords !== actParseRecords || expImportedRecords !== actImportedRecords )
-    {
-        throw buildException( "importData", null, "[sdbimprt results]", 
-                        "["+ expParseRecords +", "+ expImportedRecords +"]", 
-                        "["+ actParseRecords +", "+ actImportedRecords +"]" );
-    }
+
+   //check import results
+   var rcObj = rc.split( "\n" );
+   var expParseRecords = "parsed records: 2";
+   var expImportedRecords = "imported records: 2";
+   var actParseRecords = rcObj[0];
+   var actImportedRecords = rcObj[4];
+   if( expParseRecords !== actParseRecords || expImportedRecords !== actImportedRecords )
+   {
+      throw buildException( "importData", null, "[sdbimprt results]",
+         "[" + expParseRecords + ", " + expImportedRecords + "]",
+         "[" + actParseRecords + ", " + actImportedRecords + "]" );
+   }
 }
 
 //比较cl具体内容
-function checkCLData( cl )
+function checkCLData ( cl )
 {
-   println("\n---Begin to check cl data.");
-   
+   println( "\n---Begin to check cl data." );
+
    var rc = cl.find();
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {
       recsArray.push( tmpRecs.toObj() );
    }
-   
-   var expCnt  = 2;
-   var actCnt  = recsArray.length;
+
+   var expCnt = 2;
+   var actCnt = recsArray.length;
    if( actCnt !== expCnt )
    {
-      throw buildException( "checkCLdata", null, "[find]", 
-                        "[cnt:"+ expCnt +"]", 
-                        "[cnt:"+ actCnt +"]" );
+      throw buildException( "checkCLdata", null, "[find]",
+         "[cnt:" + expCnt + "]",
+         "[cnt:" + actCnt + "]" );
    }
-   
+
 }

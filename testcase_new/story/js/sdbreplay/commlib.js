@@ -7,11 +7,11 @@ println();
 
 isSdbReplayEnable();
 
-var cmd  = initCmd();
+var cmd = initCmd();
 var localPath = null;
-var installDir  = getInstallDir();
+var installDir = getInstallDir();
 
-var tmpFileDir  = WORKDIR + '/sdbreplay/';
+var tmpFileDir = WORKDIR + '/sdbreplay/';
 println( "tmpFileDir   = " + tmpFileDir );
 var testCaseDir = getTestCaseDir();
 
@@ -19,26 +19,26 @@ var testCaseDir = getTestCaseDir();
 /* ****************************************************
 @description: judge sdbreplay enable
 **************************************************** */
-function isSdbReplayEnable()
+function isSdbReplayEnable ()
 {
-   var cursor = db.snapshot( SDB_SNAP_CONFIGS, {"role": "data"} );
+   var cursor = db.snapshot( SDB_SNAP_CONFIGS, { "role": "data" } );
    var configs = cursor.current().toObj();
-   if ( configs.logwritemod !== "full" || configs.logtimeon !== "TRUE"
-         || configs.archiveon !== "TRUE" || configs.archivetimeout > 10  )
+   if( configs.logwritemod !== "full" || configs.logtimeon !== "TRUE"
+      || configs.archiveon !== "TRUE" || configs.archivetimeout > 10 )
    {
       cursor.close();
-      throw buildException( "isSdbReplayEnable", null, "[judge the sdbreplay is enable, data node conf as follows]", 
-                     "[logwritemod:full, logtimeon:TRUE, archiveon:TRUE, archivetimeout <= 10]", 
-                     "[logwritemod:"+ configs.logwritemod + ", logtimeon:" + configs.logtimeon 
-                     + ", archiveon:" + configs.archiveon + ", archivetimeout:" + configs.archivetimeout + "]" );
+      throw buildException( "isSdbReplayEnable", null, "[judge the sdbreplay is enable, data node conf as follows]",
+         "[logwritemod:full, logtimeon:TRUE, archiveon:TRUE, archivetimeout <= 10]",
+         "[logwritemod:" + configs.logwritemod + ", logtimeon:" + configs.logtimeon
+         + ", archiveon:" + configs.archiveon + ", archivetimeout:" + configs.archivetimeout + "]" );
    }
 }
-   
+
 /* ****************************************************
 @description: new Cmd
 @return: cmd
 **************************************************** */
-function initCmd()
+function initCmd ()
 {
    try
    {
@@ -47,7 +47,7 @@ function initCmd()
    }
    catch( e )
    {
-      println("Failed to init cmd.");
+      println( "Failed to init cmd." );
       throw e;
    }
 }
@@ -56,20 +56,20 @@ function initCmd()
 @description: new Cmd
 @return: cmd
 **************************************************** */
-function getRemoteCmd( groupName )
-{   
+function getRemoteCmd ( groupName )
+{
    var hostName = getMasterHostName( groupName );
    try
    {
       var remote = new Remote( hostName, CMSVCNAME );
       println( "remote: " + remote.getInfo() );
-      
+
       var rtCmd = remote.getCmd();
       return rtCmd;
    }
    catch( e )
    {
-      println("Failed to new remote cmd.");
+      println( "Failed to new remote cmd." );
       throw e;
    }
 }
@@ -80,104 +80,105 @@ function getRemoteCmd( groupName )
 @e.g:
   var rc = cmd.run('/opt/sequoiadb/bin/sdbreplay --type replica --path /home/sequoiadb/database/data/11850/replicalog/ --filter \'{CL:["cs.cl"],OP:["insert","update","delete"]}\' --outputconf /opt/test_sdbreplay/conf/sdbreplay.conf --status /opt/test_sdbreplay/1.status')
 **************************************************** */
-function execSdbReplay( rtCmd, groupName, clNameArr, type, confPath, statusPath, daemon, watch, filter )
-{  
-   println("\n---Begin to exec sdbreplay.");
+function execSdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath, daemon, watch, filter )
+{
+   println( "\n---Begin to exec sdbreplay." );
    var confName = clNameArr[0] + ".conf";
-   var statusName = clNameArr[0] + ".status";   
+   var statusName = clNameArr[0] + ".status";
    var tmpCLNameArr = [];
-   for ( i = 0; i < clNameArr.length; i++ )
+   for( i = 0; i < clNameArr.length; i++ )
    {
       var tmpCLName = '\"' + clNameArr[i] + '\"';
       tmpCLNameArr.push( tmpCLName );
    }
-   if ( typeof( confPath )   == "undefined" ) { confPath   = tmpFileDir + confName; }
-   if ( typeof( statusPath ) == "undefined" ) { statusPath = tmpFileDir + statusName; }
-   if ( typeof( type )   == "undefined" ) { type = "archive"; }  //archive is the main user scenario.
-   if ( typeof( daemon ) == "undefined" ) { daemon = false; }
-   if ( typeof( watch )  == "undefined" ) { watch = false; }
-   if ( typeof( filter )  == "undefined" ) 
-   { 
-      filter = '\'{CL: ['+ tmpCLNameArr +'], OP: ["insert", "update", "delete"] }\'';
+   if( typeof ( confPath ) == "undefined" ) { confPath = tmpFileDir + confName; }
+   if( typeof ( statusPath ) == "undefined" ) { statusPath = tmpFileDir + statusName; }
+   if( typeof ( type ) == "undefined" ) { type = "archive"; }  //archive is the main user scenario.
+   if( typeof ( daemon ) == "undefined" ) { daemon = false; }
+   if( typeof ( watch ) == "undefined" ) { watch = false; }
+   if( typeof ( filter ) == "undefined" ) 
+   {
+      filter = '\'{CL: [' + tmpCLNameArr + '], OP: ["insert", "update", "delete"] }\'';
    }
-   
+
    // ready file
    var dbPath = getMasterDBPath( groupName );
    var logPath = "";
-   if ( type === "archive") 
+   if( type === "archive" ) 
    {
       logPath = dbPath + "archivelog";
-   } 
-   else if ( type === "replica")
+   }
+   else if( type === "replica" )
    {
       logPath = dbPath + "replicalog";
    }
-   
+
    var command = installDir + 'bin/sdbreplay'
-                 + ' --type '   + type 
-                 + ' --path '   + logPath
-                 + ' --filter ' + filter
-                 + ' --outputconf ' + confPath
-                 + ' --status ' + statusPath
-                 + ' --daemon ' + daemon 
-                 + ' --watch '  + watch ;
+      + ' --type ' + type
+      + ' --path ' + logPath
+      + ' --filter ' + filter
+      + ' --outputconf ' + confPath
+      + ' --status ' + statusPath
+      + ' --daemon ' + daemon
+      + ' --watch ' + watch;
    println( command );
-   
+
    var totalRetryTimes = 200;
    var currentRetryTimes = 0;
-   var clName = clNameArr[0].split(".")[1];
-   var lsCommand = "ls " + tmpFileDir + " | grep "+ clName + " | grep csv";
+   var clName = clNameArr[0].split( "." )[1];
+   var lsCommand = "ls " + tmpFileDir + " | grep " + clName + " | grep csv";
    println( lsCommand );
-   while ( true ) 
+   while( true ) 
    {
       var rcSdbreplay = rtCmd.run( "cd " + tmpFileDir + "; " + command );
       var rcLS;
       try 
-      {  
-         rcLS = rtCmd.run( lsCommand ).split("\n")[0];
+      {
+         rcLS = rtCmd.run( lsCommand ).split( "\n" )[0];
          break;
-      } catch ( e ) {
+      } catch( e )
+      {
          currentRetryTimes++;
-         sleep(100);
-         rtCmd.run("cd " + tmpFileDir + "; rm *"+ clName + "*.status");
-         if ( currentRetryTimes >= totalRetryTimes ) 
+         sleep( 100 );
+         rtCmd.run( "cd " + tmpFileDir + "; rm *" + clName + "*.status" );
+         if( currentRetryTimes >= totalRetryTimes ) 
          {
             throw "Failed to get csv file, after retry " + currentRetryTimes + ".";
          }
       }
-   }      
-   
+   }
+
    return rcSdbreplay;
 }
 
 /* ****************************************************
 @description: config the output csv file
     fieldType:   
-        ORIGINAL_TIME¡¢
-        AUTO_OP¡¢
-        CONST_STRING¡¢
-        MAPPING_STRING¡¢
-        MAPPING_INT¡¢
-        MAPPING_LONG¡¢
-        MAPPING_DECIMAL¡¢
+        ORIGINAL_TIMEï¿½ï¿½
+        AUTO_OPï¿½ï¿½
+        CONST_STRINGï¿½ï¿½
+        MAPPING_STRINGï¿½ï¿½
+        MAPPING_INTï¿½ï¿½
+        MAPPING_LONGï¿½ï¿½
+        MAPPING_DECIMALï¿½ï¿½
         MAPPING_TIMESTAMP
 **************************************************** */
-function readyOutputConfFile( rtCmd, groupName, csName, clName, fieldType, delimiter )
+function readyOutputConfFile ( rtCmd, groupName, csName, clName, fieldType, delimiter )
 {
    getOutputConfFile( groupName, csName, clName );
-   configOutputConfFile( rtCmd, groupName, csName, clName, fieldType, delimiter ); 
+   configOutputConfFile( rtCmd, groupName, csName, clName, fieldType, delimiter );
 }
 
 /* ****************************************************
 @description: get outputconf file
 **************************************************** */
-function getOutputConfFile( groupName, csName, clName, confName )
+function getOutputConfFile ( groupName, csName, clName, confName )
 {
-   println("\n---Begin to get outputconf.");
-   if ( typeof( confName ) == "undefined" ) { confName = "sdbreplay.conf"; }
-   
+   println( "\n---Begin to get outputconf." );
+   if( typeof ( confName ) == "undefined" ) { confName = "sdbreplay.conf"; }
+
    var fullCLName = csName + "." + clName;
-   var mstHostName =  getMasterHostName( groupName );
+   var mstHostName = getMasterHostName( groupName );
    var sourceFilePath = testCaseDir + "conf/" + confName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
    File.scp( sourceFilePath, mstHostName + ":" + CMSVCNAME + "@" + targetConfPath );
@@ -186,67 +187,67 @@ function getOutputConfFile( groupName, csName, clName, confName )
 /* ****************************************************
 @description: config the output csv file
     fieldType:   
-        ORIGINAL_TIME¡¢
-        AUTO_OP¡¢
-        CONST_STRING¡¢
-        MAPPING_STRING¡¢
-        MAPPING_INT¡¢
-        MAPPING_LONG¡¢
-        MAPPING_DECIMAL¡¢
+        ORIGINAL_TIMEï¿½ï¿½
+        AUTO_OPï¿½ï¿½
+        CONST_STRINGï¿½ï¿½
+        MAPPING_STRINGï¿½ï¿½
+        MAPPING_INTï¿½ï¿½
+        MAPPING_LONGï¿½ï¿½
+        MAPPING_DECIMALï¿½ï¿½
         MAPPING_TIMESTAMP
 **************************************************** */
-function configOutputConfFile( rtCmd, groupName, csName, clName, fieldType, delimiter )
+function configOutputConfFile ( rtCmd, groupName, csName, clName, fieldType, delimiter )
 {
-   println("\n---Begin to config outputconf.");
-   if ( typeof( fieldType ) == "undefined" ) { fieldType = "MAPPING_STRING"; }
-   if ( typeof( delimiter ) == "undefined" ) { delimiter = ","; }
-   
-   var fullCLName = csName + "." + clName;  
+   println( "\n---Begin to config outputconf." );
+   if( typeof ( fieldType ) == "undefined" ) { fieldType = "MAPPING_STRING"; }
+   if( typeof ( delimiter ) == "undefined" ) { delimiter = ","; }
+
+   var fullCLName = csName + "." + clName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
-   
+
    rtCmd.run( "sed -i 's/filePrefix_ori/test_" + groupName + "/g' " + targetConfPath );
-   rtCmd.run( "sed -i 's/delimiter_ori/" + delimiter + "/g' " + targetConfPath );  
-   
+   rtCmd.run( "sed -i 's/delimiter_ori/" + delimiter + "/g' " + targetConfPath );
+
    rtCmd.run( "sed -i 's/source_fullCLName_ori/" + fullCLName + "/g' " + targetConfPath );
    rtCmd.run( "sed -i 's/target_fullCLName_ori/" + fullCLName + "_new/g' " + targetConfPath );
-   
+
    rtCmd.run( "sed -i 's/fieldType_ori/" + fieldType + "/g' " + targetConfPath );
 }
 
 /* ****************************************************
 @description: check the output csv file
 **************************************************** */
-function checkCsvFile( rtCmd, clName, expDataArr )
+function checkCsvFile ( rtCmd, clName, expDataArr )
 {
-   println("\n---Begin to check csv file content.");  
-   
-   var csvFileName = rtCmd.run( "ls " + tmpFileDir + " | grep "+ clName + " | grep csv" ).split("\n")[0];
+   println( "\n---Begin to check csv file content." );
+
+   var csvFileName = rtCmd.run( "ls " + tmpFileDir + " | grep " + clName + " | grep csv" ).split( "\n" )[0];
    var csvFilePath = tmpFileDir + csvFileName;
-   println("csvFilePath = " + csvFilePath + "\n");
-   
-   var actDataArr = rtCmd.run( "cat "+ csvFilePath ).split("\n");
-   for (i = 0; i < actDataArr.length; i++)
+   println( "csvFilePath = " + csvFilePath + "\n" );
+
+   var actDataArr = rtCmd.run( "cat " + csvFilePath ).split( "\n" );
+   for( i = 0; i < actDataArr.length; i++ )
    {
-      if ( actDataArr[i] !== expDataArr[i] ) 
-      {         
+      if( actDataArr[i] !== expDataArr[i] ) 
+      {
          println( "expDataArr:\n" + expDataArr );
          println( "actDataArr:\n" + actDataArr + "\n" );
-         throw buildException( "checkCsvFile", null, "[check csv file data, line: " + i + "]", 
-                        "[" + expDataArr[i] + "]", 
-                        "[" + actDataArr[i] + "]" );
+         throw buildException( "checkCsvFile", null, "[check csv file data, line: " + i + "]",
+            "[" + expDataArr[i] + "]",
+            "[" + actDataArr[i] + "]" );
       }
-   }   
+   }
 }
 
 /* ****************************************************
 @description: check the output status file
 **************************************************** */
-function checkStatusFile( rtCmd, statusFilePath, expSubString )
+function checkStatusFile ( rtCmd, statusFilePath, expSubString )
 {
-   println("\n---Begin to check status file content.");
-   var actString = rtCmd.run( "cat "+ statusFilePath ).split("\n")[0];
-   if ( !( actString.indexOf( expSubString )>=0?true:false ) ) 
-   {       
+   println( "\n---Begin to check status file content." );
+   var actString = rtCmd.run( "cat " + statusFilePath ).split( "\n" )[0];
+   if( !( actString.indexOf( expSubString ) >= 0 ? true : false ) ) 
+   {
       println( "expSubString: " + expSubString );
       println( "\nactString:\n" + actString );
       throw "Failed to check status file content, actString does not contain expSubString.";
@@ -257,16 +258,16 @@ function checkStatusFile( rtCmd, statusFilePath, expSubString )
 @description: get testcase director
 @return: testcase director
 **************************************************** */
-function getTestCaseDir()
+function getTestCaseDir ()
 {
-   if( typeof( TESTCASEDIR ) == "undefined" ) 
-   { 
-      var testCaseDir = './testcase_new/story/js/sdbreplay/'; 
+   if( typeof ( TESTCASEDIR ) == "undefined" ) 
+   {
+      var testCaseDir = './testcase_new/story/js/sdbreplay/';
    }
    else
    {
       // TESTCASEDIR default: ....../testcases/hlt/js_testcases/js/sdbreplay/
-      var testCaseDir = TESTCASEDIR +'/';
+      var testCaseDir = TESTCASEDIR + '/';
    }
    println( "testCaseDir  = " + testCaseDir );
    return testCaseDir;
@@ -276,13 +277,13 @@ function getTestCaseDir()
 @description: get install_dir of sequoiadb
 @return: install_dir
 **************************************************** */
-function getInstallDir()
+function getInstallDir ()
 {
    try
    {
-      var localPath = cmd.run( "pwd" ).split( "\n" )[0] +"/";
-      println("localPath    = " + localPath );
-      
+      var localPath = cmd.run( "pwd" ).split( "\n" )[0] + "/";
+      println( "localPath    = " + localPath );
+
       try
       {
          //get sequoiadb, if not exists to throw
@@ -290,49 +291,49 @@ function getInstallDir()
          //get sequoiadb install_dir configurature item, if not exists to throw
          var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR"' );
          //get sequoiadb director, if not exists to throw
-         var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );     
-         var installPath = tmpDir.split( "\n" )[0] + "/";     
+         var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );
+         var installPath = tmpDir.split( "\n" )[0] + "/";
       }
       catch( e )
       {
          ///etc/default/sequoiadb is not exists 
          var installPath = localPath;
-         println("instatllpath = "+ installPath );        
+         println( "instatllpath = " + installPath );
       }
-      println("instatllpath = "+ installPath ); 
-        
+      println( "instatllpath = " + installPath );
+
    }
    catch( e )
    {
       println( "failed to get global variable : cmd/localPath/installPath" + e );
       throw e;
    }
-   
+
    return installPath;
 }
 
 /* ****************************************************
 @description: ready tmp director
 **************************************************** */
-function initTmpDir( rtCmd )
+function initTmpDir ( rtCmd )
 {
    try
    {
-      rtCmd.run( "rm -rf "+ tmpFileDir + "*.*" );
+      rtCmd.run( "rm -rf " + tmpFileDir + "*.*" );
    }
    catch( e )
    {
-      println( "Failed to rm tmpFileDir = "+ tmpFileDir );
+      println( "Failed to rm tmpFileDir = " + tmpFileDir );
       throw e;
    }
-	
+
    try
    {
-      rtCmd.run( "mkdir -p "+ tmpFileDir );
+      rtCmd.run( "mkdir -p " + tmpFileDir );
    }
    catch( e )
    {
-      println("Failed to mkdir tmpFileDir = "+ tmpFileDir );
+      println( "Failed to mkdir tmpFileDir = " + tmpFileDir );
       throw e;
    }
 }
@@ -341,65 +342,66 @@ function initTmpDir( rtCmd )
 @description: create cl
 @return: cl
 **************************************************** */
-function readyCL( csName, clName, optionObj, message )
+function readyCL ( csName, clName, optionObj, message )
 {
-   println("\n---Begin to ready CL."); 
+   println( "\n---Begin to ready CL." );
    if( message == undefined ) { message = ""; }
-   if( optionObj == undefined ) { optionObj = {ReplSize:0}; }	
-   
-   commDropCL( db, csName, clName, true, true, 
-         "Failed to drop CL in the pre-condition." );  
-          
-   var cl = commCreateCLByOption( db, csName, clName, optionObj, 
-         true, true, "Failed to create CL." )
-         
+   if( optionObj == undefined ) { optionObj = { ReplSize: 0 }; }
+
+   commDropCL( db, csName, clName, true, true,
+      "Failed to drop CL in the pre-condition." );
+
+   var cl = commCreateCLByOption( db, csName, clName, optionObj,
+      true, true, "Failed to create CL." )
+
    return cl;
 }
 
 /* ****************************************************
 @description: clean cl
 **************************************************** */
-function cleanCL( csName, clName )
+function cleanCL ( csName, clName )
 {
-   println("\n---Begin to clean CL.");
-	
+   println( "\n---Begin to clean CL." );
+
    commDropCL( db, csName, clName, false, false,
-                      "Failed to drop CL in the end-condition" );
+      "Failed to drop CL in the end-condition" );
 }
 
 /* ****************************************************
 @description: clean file
 **************************************************** */
-function cleanFile( rtCmd )
+function cleanFile ( rtCmd )
 {
-   println("\n---Begin to clean file.");
-   rtCmd.run("rm -rf " + tmpFileDir + "*.*");
+   println( "\n---Begin to clean file." );
+   rtCmd.run( "rm -rf " + tmpFileDir + "*.*" );
 }
 
 /* ****************************************************
 @description: backup file, when the testcase fail
 **************************************************** */
-function backupFile( rtCmd, clName )
+function backupFile ( rtCmd, clName )
 {
-   println("\n---Begin to backup file of replay.");
-   var targetPath = tmpFileDir + clName + "/"; 
-   println("backupPath = " + targetPath);   
-   rtCmd.run("mkdir -p " + targetPath );
-   
+   println( "\n---Begin to backup file of replay." );
+   var targetPath = tmpFileDir + clName + "/";
+   println( "backupPath = " + targetPath );
+   rtCmd.run( "mkdir -p " + targetPath );
+
    // list all files in the current path
    var lsCommand = "ls -l " + tmpFileDir + " | grep ^- | awk '{print $9}'";
    println( lsCommand );
-   
+
    // copy all files to the target path
-   var fileNames = rtCmd.run( lsCommand ).split("\n");
-   for (i = 0; i < fileNames.length - 1; i++) {
+   var fileNames = rtCmd.run( lsCommand ).split( "\n" );
+   for( i = 0; i < fileNames.length - 1; i++ )
+   {
       var sourcePath = tmpFileDir + fileNames[i];
       var cpCommand = "cp " + sourcePath + " " + targetPath;
       try 
       {
          rtCmd.run( cpCommand );
-      } 
-      catch ( e )
+      }
+      catch( e )
       {
          println( cpCommand );
          throw e;
@@ -414,22 +416,22 @@ function backupFile( rtCmd, clName )
    [nameStr] "GroupName","HostName","svcname"
 @return: groupArray
 **************************************************** */
-function getDataGroupNames()
-{  
-   var tmpArray = commGetGroups( db ); 
+function getDataGroupNames ()
+{
+   var tmpArray = commGetGroups( db );
    var groupNameArray = new Array;
-   for( i = 0 ; i < tmpArray.length; i++ )
+   for( i = 0; i < tmpArray.length; i++ )
    {
       groupNameArray.push( tmpArray[i][0].GroupName );
-   } 
-   return groupNameArray ;
+   }
+   return groupNameArray;
 }
 
 /* ****************************************************
 @description: get hostName of master node
 @return: masterHostName
 **************************************************** */
-function getMasterHostName( groupName )
+function getMasterHostName ( groupName )
 {
    var masterHostName = db.getRG( groupName ).getMaster().getHostName();
    return masterHostName;
@@ -439,16 +441,16 @@ function getMasterHostName( groupName )
 @description: get the data directory of the sequoiadb node
 @return: dir
 **************************************************** */
-function getMasterDBPath( groupName ) 
+function getMasterDBPath ( groupName ) 
 {
    var info = db.list( SDB_SNAP_SYSTEM, { "GroupName": groupName } ).current().toObj();
    var primaryNode = info.PrimaryNode;
    var groups = info.Group;
-   for (i = 0; i < groups.length; i++)
+   for( i = 0; i < groups.length; i++ )
    {
       var group = groups[i];
       var nodeID = group.NodeID;
-      if ( nodeID === primaryNode ) 
+      if( nodeID === primaryNode ) 
       {
          var dbpath = group.dbpath;
          break;
@@ -461,23 +463,23 @@ function getMasterDBPath( groupName )
 @description: get random string
 @return: string
 **************************************************** */
-function getRandomString( strLen ) 
+function getRandomString ( strLen ) 
 {
-    var str = "";
-    for( var i = 0; i < strLen; i++ )
-    {
-       var ascii = getRandomInt( 48, 127 );
-       var c = String.fromCharCode( ascii );
-       str += c;
-    }
-    return str;
+   var str = "";
+   for( var i = 0; i < strLen; i++ )
+   {
+      var ascii = getRandomInt( 48, 127 );
+      var c = String.fromCharCode( ascii );
+      str += c;
+   }
+   return str;
 }
 
 /* ****************************************************
 @description: get random int
 @return: int
 **************************************************** */
-function getRandomInt( min, max ) // [min, max)
+function getRandomInt ( min, max ) // [min, max)
 {
    var range = max - min;
    var value = min + parseInt( Math.random() * range );
@@ -492,20 +494,20 @@ function getRandomInt( min, max ) // [min, max)
 @return: 
    localtime, eg: '1901-12-31-15.54.03.000000'
 **************************************************** */
-function turnLocaltime( time, format )
+function turnLocaltime ( time, format )
 {
-   if ( typeof( format ) == "undefined" ) { format = "%Y-%m-%d"; };
+   if( typeof ( format ) == "undefined" ) { format = "%Y-%m-%d"; };
    try
    {
-      var msecond = new Date( time ).getTime();  
-      var second  = parseInt( msecond / 1000 );  //millisecond to second
-      var localtime  = cmd.run( 'date -d@"'+ second +'" "+'+ format +'"' ).split( "\n" )[0];
-      
+      var msecond = new Date( time ).getTime();
+      var second = parseInt( msecond / 1000 );  //millisecond to second
+      var localtime = cmd.run( 'date -d@"' + second + '" "+' + format + '"' ).split( "\n" )[0];
+
       return localtime;
    }
    catch( e )
    {
-      println("Timestamp with time zone to local time failed.");
+      println( "Timestamp with time zone to local time failed." );
       throw e;
    }
 }
@@ -514,7 +516,7 @@ function turnLocaltime( time, format )
 @description: new File
 @return: file
 **************************************************** */
-function initFile( fileName )
+function initFile ( fileName )
 {
    try
    {
@@ -523,7 +525,7 @@ function initFile( fileName )
    }
    catch( e )
    {
-      println("Failed to init file.");
+      println( "Failed to init file." );
       throw e;
    }
 }
@@ -532,11 +534,11 @@ function initFile( fileName )
 @description: getLSN
 @return: lsn
 **************************************************** */
-function getMinLSN(groupNames)
+function getMinLSN ( groupNames )
 {
-   var cursor = db.list(SDB_SNAP_SYSTEM,{GroupName:groupNames[0]});
+   var cursor = db.list( SDB_SNAP_SYSTEM, { GroupName: groupNames[0] } );
    var svcName = cursor.current().toObj().Group[0].Service[0].Name;
-   cursor = db.snapshot(6, {ServiceName:svcName, RawData:true, IsPrimary:true});
+   cursor = db.snapshot( 6, { ServiceName: svcName, RawData: true, IsPrimary: true } );
    var minLSN = cursor.current().toObj().CompleteLSN;
    return minLSN;
 }

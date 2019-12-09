@@ -6,25 +6,29 @@
 
 var clName = CHANGEDPREFIX + "_cl_12175";
 
-function main() {
-    if (true == commIsStandalone(db)) {
-        println("run mode is standalone");
+function main ()
+{
+    if( true == commIsStandalone( db ) )
+    {
+        println( "run mode is standalone" );
         return;
     }
 
-    var mycl = createCL(COMMCSNAME, clName, {a: 1});
+    var mycl = createCL( COMMCSNAME, clName, { a: 1 } );
 
-    insertList = [{a: 1}, {a: {b: 1}}, {a: {b: {c: 1}}}, {a: [1, 2, 3, 4, 5]}];
-    upsertList = [{a: 1}, {a: {b: 1}}, {a: {b: {c: 1}}}, {a: [1, 2, 3, 4, 5]}];
+    insertList = [{ a: 1 }, { a: { b: 1 } }, { a: { b: { c: 1 } } }, { a: [1, 2, 3, 4, 5] }];
+    upsertList = [{ a: 1 }, { a: { b: 1 } }, { a: { b: { c: 1 } } }, { a: [1, 2, 3, 4, 5] }];
 
-    for (i in insertList) {
+    for( i in insertList )
+    {
         mycl.remove()
-        mycl.insert(insertList[i]);
-        for (j in upsertList) {
-            mycl.upsert({$set: upsertList[j]}, {}, {}, {}, {KeepShardingKey: true});
-            checkResult(mycl, null, null, [upsertList[j]])
+        mycl.insert( insertList[i] );
+        for( j in upsertList )
+        {
+            mycl.upsert( { $set: upsertList[j] }, {}, {}, {}, { KeepShardingKey: true } );
+            checkResult( mycl, null, null, [upsertList[j]] )
         }
     }
-    commDropCL(db,COMMCSNAME,clName)
+    commDropCL( db, COMMCSNAME, clName )
 }
 //main();

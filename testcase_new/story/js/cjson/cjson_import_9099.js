@@ -2,39 +2,39 @@
 *@Description:   seqDB-9099: 字段名/字段值中间存在多余逗号
 *@Author:        2016-7-20  wuyan
 ************************************************************************/
-var clName = COMMCLNAME+"_9099" ;
+var clName = COMMCLNAME + "_9099";
 
 main();
-function main()
-{  
+function main ()
+{
    try
-   {     
-      var cl = readyCL( COMMCSNAME, clName ); 
-      cmd.run( 'rm -rf ./sdbimport.log' );   
-      
+   {
+      var cl = readyCL( COMMCSNAME, clName );
+      cmd.run( 'rm -rf ./sdbimport.log' );
+
       //import datas          
-      var imprtFile = tmpFileDir +"9099.json";
+      var imprtFile = tmpFileDir + "9099.json";
       var srcDatas = "{a:[1,2,,4],b:{test:{d:1,,c:2}}}"
-      var rcInfos = importData(COMMCSNAME, clName, imprtFile,srcDatas );
-      
+      var rcInfos = importData( COMMCSNAME, clName, imprtFile, srcDatas );
+
       //check the Return Infos of the import datas
       var parseFail = 1;
-      var importRes = 0; 
-      checkImportReturn(rcInfos,parseFail,importRes);
-      
+      var importRes = 0;
+      checkImportReturn( rcInfos, parseFail, importRes );
+
       //check sdbimport.log 
       var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "Syntax Error: extra \',\'"';
       var expLogInfo = 'Syntax Error: extra \',\'';
-      checkSdbimportLog(matchInfos,expLogInfo);   	
-      
+      checkSdbimportLog( matchInfos, expLogInfo );
+
       cleanCL( COMMCSNAME, clName );
       cmd.run( 'rm -rf ./*.rec' );
       removeTmpDir();
-      
+
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 

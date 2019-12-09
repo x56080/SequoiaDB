@@ -5,73 +5,73 @@
 **************************************/
 
 var clName = CHANGEDPREFIX + "_rangesplitcl018";
-function createSplitCl(csName,clName)
-{  
-   var options = {ShardingKey:{no:1}, ShardingType:"range",ReplSize:0,Compressed:true};
-   var varCL = commCreateCLByOption(db, csName, clName, options, true, true);
-   return varCL;   
+function createSplitCl ( csName, clName )
+{
+   var options = { ShardingKey: { no: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
+   var varCL = commCreateCLByOption( db, csName, clName, options, true, true );
+   return varCL;
 }
 
-function insertAndUpdateResult( CL, clName, splitGroupsInfo )
+function insertAndUpdateResult ( CL, clName, splitGroupsInfo )
 {
    try
    {
-      println("--begin update");
-      insertDataAfterRangeClSplit( CL, clName, splitGroupsInfo );     
-      CL.update({$set:{test:"testupdate"}},{no:{$lte:500}});
-      var num = CL.count({test:"testupdate"});
+      println( "--begin update" );
+      insertDataAfterRangeClSplit( CL, clName, splitGroupsInfo );
+      CL.update( { $set: { test: "testupdate" } }, { no: { $lte: 500 } } );
+      var num = CL.count( { test: "testupdate" } );
       var expertNum = 502;
-      if( Number(num) !== expertNum )			
-	   {
-         throw buildException("checkRangeClSplitResult()", "count wrong", "count()", expertNum, num);
-	   }	
-   	println("--end update");
+      if( Number( num ) !== expertNum )			
+      {
+         throw buildException( "checkRangeClSplitResult()", "count wrong", "count()", expertNum, num );
+      }
+      println( "--end update" );
    }
-   catch(e)
+   catch( e )
    {
       throw e;
-   }	   
+   }
 }
 
-function main() 
+function main () 
 {
    try
-	{
-	   //@ clean before
+   {
+      //@ clean before
       if( true == commIsStandalone( db ) )
       {
          println( "run mode is standalone" );
          return;
-      }     
+      }
       //less two groups no split
-      var allGroupName = getGroupName(db,true);         
+      var allGroupName = getGroupName( db, true );
       if( 1 === allGroupName.length )
       {
-         println("--least two groups");
-         return ;
-      }                
-      var CL = createSplitCl(COMMCSNAME,clName);
-      
+         println( "--least two groups" );
+         return;
+      }
+      var CL = createSplitCl( COMMCSNAME, clName );
+
       //insert data 
-      var dataNums = 1000; 
+      var dataNums = 1000;
       insertData( db, COMMCSNAME, clName, dataNums );
-		//split data ,and return the split groupsInfo for check split result  
-		var condition = 50;
-      var splitGrInfo = ClSplitOneTimes( COMMCSNAME, clName, condition ); 
-      
+      //split data ,and return the split groupsInfo for check split result  
+      var condition = 50;
+      var splitGrInfo = ClSplitOneTimes( COMMCSNAME, clName, condition );
+
       //insert a data in splitgroups after split，then update the data
-      insertAndUpdateResult( CL, clName, splitGrInfo ) ;    
-      
+      insertAndUpdateResult( CL, clName, splitGrInfo );
+
       //@ clean end
-      commDropCL( db, COMMCSNAME, clName, false, false,"drop CL in the beginning" );
+      commDropCL( db, COMMCSNAME, clName, false, false, "drop CL in the beginning" );
    }
-   catch(e)
+   catch( e )
    {
       throw e;
    }
    finally
    {
-      if (undefined !== db)
+      if( undefined !== db )
       {
          db.close();
       }

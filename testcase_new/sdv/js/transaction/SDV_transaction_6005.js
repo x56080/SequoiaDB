@@ -1,26 +1,26 @@
 /* *****************************************************************************
-@discretion: ÇÐ·Ö±íÖ´ÐÐÊÂÎñ²Ù×÷£¬´´½¨Î¨Ò»Ë÷Òý²åÈëÏàÍ¬¼ÇÂ¼
-@author£º2015-11-21 wuyan  Init
+@discretion: ï¿½Ð·Ö±ï¿½Ö´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¨Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¬ï¿½ï¿½Â¼
+@authorï¿½ï¿½2015-11-21 wuyan  Init
 ***************************************************************************** */
 
 main();
-function main()
-{		
-	try
-	{  
-      var allGroupInfo = commGetGroups(db, true) 
+function main ()
+{
+   try
+   {
+      var allGroupInfo = commGetGroups( db, true )
       if( 2 > allGroupInfo.length )
       {
-         println("only one group.");
+         println( "only one group." );
          return;
       }
-	   var clName = CHANGEDPREFIX + "_transaction6005";
-      var cl = splitCl(COMMCSNAME,clName, allGroupInfo);; 
-      
-      transOperation(cl)  
-      
+      var clName = CHANGEDPREFIX + "_transaction6005";
+      var cl = splitCl( COMMCSNAME, clName, allGroupInfo );;
+
+      transOperation( cl )
+
       //@ clean end
-		commDropCL( db, COMMCSNAME, clName, false, false,"drop CL in the beginning" );
+      commDropCL( db, COMMCSNAME, clName, false, false, "drop CL in the beginning" );
    }
    catch( e )
    {
@@ -28,90 +28,90 @@ function main()
    }
    finally
    {
-      if ( undefined !== db )
+      if( undefined !== db )
       {
          db.close();
       }
    }
 }
 
-function splitCl(csName,clName, allGroupInfo)
+function splitCl ( csName, clName, allGroupInfo )
 {
-   var cl = commCreateCLByOption(db, COMMCSNAME, clName, 
-                  {ShardingKey:{no:1}, ShardingType:"range"}, true, true);
-                  
+   var cl = commCreateCLByOption( db, COMMCSNAME, clName,
+      { ShardingKey: { no: 1 }, ShardingType: "range" }, true, true );
+
    var CLName = csName + "." + clName
-   var srcGroupName = commGetCLGroups( db, CLName );  
-   println("srcGroupName="+srcGroupName)   
-   for(var i=0; i != allGroupInfo.length; ++i)
-   {        
-      if(  srcGroupName != allGroupInfo[i][0].GroupName )
-    	{
+   var srcGroupName = commGetCLGroups( db, CLName );
+   println( "srcGroupName=" + srcGroupName )
+   for( var i = 0; i != allGroupInfo.length; ++i )
+   {
+      if( srcGroupName != allGroupInfo[i][0].GroupName )
+      {
 
          try
-         {                                     
-            cl.split( srcGroupName.toString(),allGroupInfo[i][0].GroupName,{"no":0},{"no":100});                   
-            break;                    
+         {
+            cl.split( srcGroupName.toString(), allGroupInfo[i][0].GroupName, { "no": 0 }, { "no": 100 } );
+            break;
          }
-         catch(e)
+         catch( e )
          {
             throw e;
          }
-      }          
+      }
    }
-   
-   commCreateIndex( cl, 'idxtest', {no:-1}, true, false)  
+
+   commCreateIndex( cl, 'idxtest', { no: -1 }, true, false )
    return cl;
-   println("--end split")  
+   println( "--end split" )
 }
 
-function transOperation(cl)
+function transOperation ( cl )
 {
-   var dataNum = 1000; 
-   var insert = new insertData( cl, dataNum );       
+   var dataNum = 1000;
+   var insert = new insertData( cl, dataNum );
    //remove data and left some datas,then commit transaction
    var removeLeftNum = 100;
-   var remove = new removeData( cl , removeLeftNum );
-   execTransaction(beginTrans,insert);
-   checkResult( cl, true, insert ); 
-   execTransaction(remove);
-   checkResult( cl, true, remove ); 
-   
+   var remove = new removeData( cl, removeLeftNum );
+   execTransaction( beginTrans, insert );
+   checkResult( cl, true, insert );
+   execTransaction( remove );
+   checkResult( cl, true, remove );
+
    //insert  the same datas
    try
    {
-      execTransaction(insert) ;
+      execTransaction( insert );
    }
    catch( e )   
    {
-      if ( e == "insertData.exec() unknown error expect: -38" )
+      if( e == "insertData.exec() unknown error expect: -38" )
       {
          // think right
       }
       else  
       {
-         throw buildException("execTransaction(insert)", e )
+         throw buildException( "execTransaction(insert)", e )
       }
    }
-   
+
    //commit transaction after autoRollback 
    try
    {
-      execTransaction(commitTrans) ;
+      execTransaction( commitTrans );
    }
    catch( e )
    {
-      if ( e == "commitTrans() unknown error expect: -196" )
+      if( e == "commitTrans() unknown error expect: -196" )
       {
          // think right
       }
       else
       {
-         throw buildException("execTransaction(commitTrans)", e )
+         throw buildException( "execTransaction(commitTrans)", e )
       }
    }
-      
-   checkResult( cl, false, insert ) ;    
+
+   checkResult( cl, false, insert );
 }
 
 

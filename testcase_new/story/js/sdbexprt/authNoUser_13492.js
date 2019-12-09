@@ -4,38 +4,38 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13492" ;
-var doc = { a: 1 } ;
-var csvContent = "a\n1\n" ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13492";
+var doc = { a: 1 };
+var csvContent = "a\n1\n";
 
-main() ;
+main();
 
-function main()
-{  
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   cl.insert( doc ) ;
-   testExprtWithUser() ;
-   commDropCL( db, csname, clname ) ;
+function main ()
+{
+   var cl = commCreateCL( db, csname, clname, 0 );
+   cl.insert( doc );
+   testExprtWithUser();
+   commDropCL( db, csname, clname );
 }
 
-function testExprtWithUser()
+function testExprtWithUser ()
 {
-   var csvfile = workDir + "sdbexprt13492.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   var command = installPath + "bin/sdbexprt" + 
-                 " -s " + COORDHOSTNAME + 
-                 " -p " + COORDSVCNAME + 
-                 " -u sequoiadb" + 
-                 " -w sequoiadb" +
-                 " -c " + csname + 
-                 " -l " + clname + 
-                 " --file " + csvfile + 
-                 " --type csv" + 
-                 " --fields a" ;
-   testRunCommand( command ) ;
+   var csvfile = workDir + "sdbexprt13492.csv";
+   cmd.run( "rm -rf " + csvfile );
+   var command = installPath + "bin/sdbexprt" +
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -u sequoiadb" +
+      " -w sequoiadb" +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --type csv" +
+      " --fields a";
+   testRunCommand( command );
 
-   checkFileContent( csvfile, csvContent ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+   checkFileContent( csvfile, csvContent );
+
+   cmd.run( "rm -rf " + csvfile );
 }

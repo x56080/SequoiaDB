@@ -5,54 +5,54 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clnum = 100 ;
-var clnames = [] ;
-var doc = { a: 1 } ;
-var csvContent = "a\n1\n" ;
+var csname = COMMCSNAME;
+var clnum = 100;
+var clnames = [];
+var doc = { a: 1 };
+var csvContent = "a\n1\n";
 
-main() ;
+main();
 
-function main()
+function main ()
 {
-   for( var i = 0;i < clnum;i++ )
+   for( var i = 0; i < clnum; i++ )
    {
-      var clname = COMMCLNAME + "_sdbexprt13530_" + i ;
-      var cl = commCreateCL( db, csname, clname, 0 ) ;
-      cl.insert( doc ) ;
-      clnames.push( clname ) ;
+      var clname = COMMCLNAME + "_sdbexprt13530_" + i;
+      var cl = commCreateCL( db, csname, clname, 0 );
+      cl.insert( doc );
+      clnames.push( clname );
    }
-  
-   testExprtCsv() ;
-   
-   for( var i = 0;i < clnames.length;i++ )
+
+   testExprtCsv();
+
+   for( var i = 0; i < clnames.length; i++ )
    {
-      commDropCL( db, csname, clnames[i] ) ;
+      commDropCL( db, csname, clnames[i] );
    }
 }
 
-function testExprtCsv()
+function testExprtCsv ()
 {
-   var csvDir = workDir + "13530/" ;
-   commMakeDir( "localhost", csvDir ) ;
-   
+   var csvDir = workDir + "13530/";
+   commMakeDir( "localhost", csvDir );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME + 
-                 " --cscl " + csname + 
-                 " --dir " + csvDir +
-                 " --type csv" ;
-   for( var i = 0;i < clnames.length;i++ )
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " --cscl " + csname +
+      " --dir " + csvDir +
+      " --type csv";
+   for( var i = 0; i < clnames.length; i++ )
    {
-      command += " --fields " + csname + "." + clnames[i] + ":a" ;
+      command += " --fields " + csname + "." + clnames[i] + ":a";
    }
-   testRunCommand( command ) ;
-   
-   for( var i = 0;i < clnames.length;i++ )
+   testRunCommand( command );
+
+   for( var i = 0; i < clnames.length; i++ )
    {
-      var filename = csvDir + csname + "." + clnames[i] + ".csv" ;
-      checkFileContent( filename, csvContent ) ;
+      var filename = csvDir + csname + "." + clnames[i] + ".csv";
+      checkFileContent( filename, csvContent );
    }
-   
-   cmd.run( "rm -rf " + csvDir ) ;
+
+   cmd.run( "rm -rf " + csvDir );
 }

@@ -5,115 +5,119 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_matches8107" ;
+      var clName = COMMCLNAME + "_matches8107";
       var cl = readyCL( clName );
-   	
+
       var rawData = insertRecs( cl );
-      
+
       var findRecsArray = findRecs( cl );
       checkResult( findRecsArray, rawData );
-   
+
       cleanCL( clName );
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl )
+function insertRecs ( cl )
 {
-   println("\n---Begin to insert records.");
-   
-	var rawData  = [ { a:0, int: -2147483648, 
-                        double: -1.7E+308, 
-                        null:   null, 
-                        string: "test", 
-                        bool:   true, 
-                        subObj: {"0":{c:"test"}}, 
-                        array:  [2, {c:"test"}], 
-                        long:   {"$numberLong":"-9223372036854775808"}, 
-                        decimal:{"$decimal":"111.001"}, 
-                        oid:    {"$oid": "123abcd00ef12358902300ef"}, 
-                        regex:  {"$regex": "^rg", "$options": "i"}, 
-                        binary: {"$binary": "aGVsbG8gd29ybGQ=", "$type": "1"}, 
-                        date:   {"$date": "2038-01-18"}, 
-                        timestamp: {"$timestamp": "2038-01-18-23.59.59.999999"}, 
-                        tmp1: [1, 2], 
-                        tmp2: [{a:1}, {b:2}], 
-                        str: "dhafj", 
-                        tmp3: 0 }, 
-                    { a:1, int: 2147483647, 
-                        double: 7, 
-                        null:   1.7E+308, 
-                        string: "hello", 
-                        bool:   false, 
-                        subObj: {b:{c:"hello"}}, 
-                        array:  [2, 3, {c:"hello"}], 
-                        long:   {"$numberLong":"9223372036854775807"}, 
-                        decimal:{"$decimal":"222.002"}, 
-                        oid:    {"$regex": "^rg", "$options": "i"}, 
-                        regex:  {"$oid": "123abcd00ef1235890230099"}, 
-                        binary: {"$binary": "aGVsbG8gd27ybGQ=", "$type": "2"}, 
-                        date:   {"$date": "1999-01-18"}, 
-                        timestamp: {"$timestamp": "1999-01-18-23.59.59.999999"}, 
-                        tmp1: [3, 4, 99], 
-                        tmp2: [99, {a:3}, {b:4}], 
-                        str: "test", 
-                        tmp3: 3 } ];
+   println( "\n---Begin to insert records." );
+
+   var rawData = [{
+      a: 0, int: -2147483648,
+      double: -1.7E+308,
+      null: null,
+      string: "test",
+      bool: true,
+      subObj: { "0": { c: "test" } },
+      array: [2, { c: "test" }],
+      long: { "$numberLong": "-9223372036854775808" },
+      decimal: { "$decimal": "111.001" },
+      oid: { "$oid": "123abcd00ef12358902300ef" },
+      regex: { "$regex": "^rg", "$options": "i" },
+      binary: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" },
+      date: { "$date": "2038-01-18" },
+      timestamp: { "$timestamp": "2038-01-18-23.59.59.999999" },
+      tmp1: [1, 2],
+      tmp2: [{ a: 1 }, { b: 2 }],
+      str: "dhafj",
+      tmp3: 0
+   },
+   {
+      a: 1, int: 2147483647,
+      double: 7,
+      null: 1.7E+308,
+      string: "hello",
+      bool: false,
+      subObj: { b: { c: "hello" } },
+      array: [2, 3, { c: "hello" }],
+      long: { "$numberLong": "9223372036854775807" },
+      decimal: { "$decimal": "222.002" },
+      oid: { "$regex": "^rg", "$options": "i" },
+      regex: { "$oid": "123abcd00ef1235890230099" },
+      binary: { "$binary": "aGVsbG8gd27ybGQ=", "$type": "2" },
+      date: { "$date": "1999-01-18" },
+      timestamp: { "$timestamp": "1999-01-18-23.59.59.999999" },
+      tmp1: [3, 4, 99],
+      tmp2: [99, { a: 3 }, { b: 4 }],
+      str: "test",
+      tmp3: 3
+   }];
    cl.insert( rawData );
-   
+
    return rawData;
 }
 
-function findRecs( cl )
+function findRecs ( cl )
 {
-   println("\n---Begin to find records.");
-   
-   var tmpCond = [{a:    {$ne:1}}, 
-                     {int:  {$et:-2147483648}}, 
-                     {null: {$isnull:1}}, 
-                     {bool: {$in:[true, ""]}}, 
-                     {string: {$nin:["hello", 999]}}, 
-                     {double: {$mod:[2, 0]}}, 
-                     {array: {$all:[2, {c:"test"}]}}, 
-                     {$and: [{a:{$exists:1}}, {oid:{"$oid":"123abcd00ef12358902300ef"}}]}, 
-                     {$or:  [{date:{"$date":"2038-01-18"}}, {timestamp:{"$timestamp": "2038-01-18-23.59.59.999999"}}]}, 
-                     {$not: [{long:{"$numberLong":"9223372036854775807"}}, {decimal:{"$decimal":"222.002"}}]}, 
-                     {regex:  {$type:1,$et:11}}, 
-                     {subObj: {$elemMatch:{"0":{c:"test"}}}}, 
-                     {str:{$regex:'dh.*fj',$options:'i'}} , 
-                     {"tmp1.$1":2}, 
-                     {tmp2:{$size:1,$et:2}}, 
-                     {tmp3:{$field:"a"}} ];
+   println( "\n---Begin to find records." );
+
+   var tmpCond = [{ a: { $ne: 1 } },
+   { int: { $et: -2147483648 } },
+   { null: { $isnull: 1 } },
+   { bool: { $in: [true, ""] } },
+   { string: { $nin: ["hello", 999] } },
+   { double: { $mod: [2, 0] } },
+   { array: { $all: [2, { c: "test" }] } },
+   { $and: [{ a: { $exists: 1 } }, { oid: { "$oid": "123abcd00ef12358902300ef" } }] },
+   { $or: [{ date: { "$date": "2038-01-18" } }, { timestamp: { "$timestamp": "2038-01-18-23.59.59.999999" } }] },
+   { $not: [{ long: { "$numberLong": "9223372036854775807" } }, { decimal: { "$decimal": "222.002" } }] },
+   { regex: { $type: 1, $et: 11 } },
+   { subObj: { $elemMatch: { "0": { c: "test" } } } },
+   { str: { $regex: 'dh.*fj', $options: 'i' } },
+   { "tmp1.$1": 2 },
+   { tmp2: { $size: 1, $et: 2 } },
+   { tmp3: { $field: "a" } }];
    var rmNum1 = parseInt( Math.random() * tmpCond.length );
    var rmNum2 = parseInt( Math.random() * tmpCond.length );
-   var cond = {$not:[ tmpCond[rmNum1], tmpCond[rmNum2] ]};
-   println("---randomCond: "+ JSON.stringify( cond ) );
-   var rc = cl.find( cond, {_id:{$include:0}} ).sort({a:1});
+   var cond = { $not: [tmpCond[rmNum1], tmpCond[rmNum2]] };
+   println( "---randomCond: " + JSON.stringify( cond ) );
+   var rc = cl.find( cond, { _id: { $include: 0 } } ).sort( { a: 1 } );
    var findRecsArray = [];
    while( tmpRecs = rc.next() )
    {
       findRecsArray.push( tmpRecs.toObj() );
    }
    //println(JSON.stringify(findRecsArray));
-   return findRecsArray ;
+   return findRecsArray;
 }
 
-function checkResult( findRecsArray, rawData )
+function checkResult ( findRecsArray, rawData )
 {
-   println("\n---Begin to check result.");
-   
-   var expLen = 1; 
+   println( "\n---Begin to check result." );
+
+   var expLen = 1;
    if( findRecsArray.length !== expLen )   //return size after find by type
    {
-      throw buildException("checkResult", null, "[compare number]", 
-                          "[recsNum:"+ expLen +"]",
-                          "[recsNum:"+ findRecsArray.length +"]");
+      throw buildException( "checkResult", null, "[compare number]",
+         "[recsNum:" + expLen + "]",
+         "[recsNum:" + findRecsArray.length + "]" );
    }
    var actRecs = JSON.stringify( findRecsArray[0] );
    var extRecs = JSON.stringify( rawData[1] );
@@ -121,8 +125,8 @@ function checkResult( findRecsArray, rawData )
    //println(JSON.stringify( rawData[1] ) );
    if( actRecs !== extRecs )
    {
-      throw buildException("checkResult", null, "[compare records]", 
-                        '["extRecs": '+ extRecs +']',
-                        '["actRecs": '+ actRecs +']');
+      throw buildException( "checkResult", null, "[compare records]",
+         '["extRecs": ' + extRecs + ']',
+         '["actRecs": ' + actRecs + ']' );
    }
 }

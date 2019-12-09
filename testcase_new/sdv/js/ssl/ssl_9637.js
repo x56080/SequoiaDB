@@ -5,65 +5,65 @@
 ****************************************************************************/
 var clName = CHANGEDPREFIX + "_9637";
 
-function main( dbs )
+function main ( dbs )
 {
    // drop collection in the beginning
-   commDropCL( dbs, csName, clName, true, true, "drop collection in the beginning" ) ;
+   commDropCL( dbs, csName, clName, true, true, "drop collection in the beginning" );
 
    // create cs /cl
    var dbCL = commCreateCL( dbs, csName, clName, 0, true, true );
-   
+
    //insert data 
-   dbCL.insert({"_id":1,"a":"test","b":2});
+   dbCL.insert( { "_id": 1, "a": "test", "b": 2 } );
    //find data and check the insert result
    var expRecs = '[{"_id":1,"a":"test","b":2}]';
-   checkCLData( dbCL ,expRecs);
-   
+   checkCLData( dbCL, expRecs );
+
    //update the data
    try
    {
-      dbCL.update( {$inc:{b:2}}, {a:"test"}) ;
+      dbCL.update( { $inc: { b: 2 } }, { a: "test" } );
    }
-   catch ( e )
+   catch( e )
    {
-      println( "failed to update record, rc= " + e ) ;
-      throw e ;
+      println( "failed to update record, rc= " + e );
+      throw e;
    }
    //check the data result
    var expRecUpdate = '[{"_id":1,"a":"test","b":4}]';
-   checkCLData( dbCL,expRecUpdate);
+   checkCLData( dbCL, expRecUpdate );
 
    //remove the data
    try
    {
-      dbCL.remove() ;
+      dbCL.remove();
    }
-   catch ( e )
+   catch( e )
    {
-      println( "failed to remove record, rc= " + e ) ;
-      throw e ;
+      println( "failed to remove record, rc= " + e );
+      throw e;
    }
    //check the remove result
-   checkRemoveData(dbCL);
+   checkRemoveData( dbCL );
    //dropCS
-   commDropCS( dbs, csName, false, "seqDB-9636: dropCS failed");
+   commDropCS( dbs, csName, false, "seqDB-9636: dropCS failed" );
 }
 
 try
 {
-   main( dbs ) ;
-   dbs.close() ;
+   main( dbs );
+   dbs.close();
 }
-catch ( e )
+catch( e )
 {
-   throw e ;
+   throw e;
 }
 
-function checkRemoveData(dbcl)
+function checkRemoveData ( dbcl )
 {
    var num = dbcl.find().count();
-   if ( 0 !== Number(num) )
+   if( 0 !== Number( num ) )
    {
-      throw buildException("checkRemoveData()", e);
+      throw buildException( "checkRemoveData()", e );
    }
 }

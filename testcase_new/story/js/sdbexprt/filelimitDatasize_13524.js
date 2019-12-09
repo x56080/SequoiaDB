@@ -6,130 +6,130 @@
 * @author      : chensiqin 
 *
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13524" ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13524";
 
-main() ;
+main();
 
-function main()
+function main ()
 {
-   commDropCL( db, csname, clname ) ;
-   var cl = commCreateCL( db, csname, clname, 0 ) ;   
-   var exportDir = workDir + "13524/" ;
-   var kb = 4 ;
-   
+   commDropCL( db, csname, clname );
+   var cl = commCreateCL( db, csname, clname, 0 );
+   var exportDir = workDir + "13524/";
+   var kb = 4;
+
    //指定文件大小=数据量大小 
-   testFilelimit13524(cl, kb, "44K", "json", exportDir);
+   testFilelimit13524( cl, kb, "44K", "json", exportDir );
    cl.truncate();
    //指定文件大小<数据量大小json
-   testFilelimit13525(cl, kb, "2K", "json", exportDir);
+   testFilelimit13525( cl, kb, "2K", "json", exportDir );
    cl.truncate();
-   
-   //指定文件大小<数据量大小csv
-   testFilelimit13537(cl, kb, "2K", "csv", exportDir);
 
-   commDropCL( db, csname, clname ) ;
+   //指定文件大小<数据量大小csv
+   testFilelimit13537( cl, kb, "2K", "csv", exportDir );
+
+   commDropCL( db, csname, clname );
 }
 
 //指定文件大小=数据量大小
-function testFilelimit13524(cl, kb, filelimit, fileType, exportDir)
+function testFilelimit13524 ( cl, kb, filelimit, fileType, exportDir )
 {
-   var expSize = 44*1024 ;
-   insertDocs( cl, 4 ) ; 
-   testExprtWithLimit(filelimit, fileType, exportDir)
+   var expSize = 44 * 1024;
+   insertDocs( cl, 4 );
+   testExprtWithLimit( filelimit, fileType, exportDir )
    //校验导出后文件是否正确
-   checkExprtfileSize(exportDir, fileType, expSize);
-   testImportWithLimit(filelimit, fileType, exportDir);
+   checkExprtfileSize( exportDir, fileType, expSize );
+   testImportWithLimit( filelimit, fileType, exportDir );
    checkCl( cl, kb );
 }
 
 //指定文件大小<数据量大小 json
-function testFilelimit13525(cl, kb, filelimit, fileType, exportDir)
+function testFilelimit13525 ( cl, kb, filelimit, fileType, exportDir )
 {
-   var expSize = 2*1024 ;
-   insertDocs( cl, 4 ) ; 
-   testExprtWithLimit(filelimit, fileType, exportDir)
+   var expSize = 2 * 1024;
+   insertDocs( cl, 4 );
+   testExprtWithLimit( filelimit, fileType, exportDir )
    //校验导出后文件是否正确
-   checkExprtfileSize(exportDir, fileType, expSize);
-   testImportWithLimit(filelimit, fileType, exportDir);
+   checkExprtfileSize( exportDir, fileType, expSize );
+   testImportWithLimit( filelimit, fileType, exportDir );
    checkCl( cl, kb );
 }
 
 //指定文件大小<数据量大小 csv
-function testFilelimit13537(cl, kb, filelimit, fileType, exportDir)
+function testFilelimit13537 ( cl, kb, filelimit, fileType, exportDir )
 {
-   var expSize = 2*1024 ;
-   insertDocs( cl, 4 ) ; 
-   testExprtWithLimit(filelimit, fileType, exportDir)
+   var expSize = 2 * 1024;
+   insertDocs( cl, 4 );
+   testExprtWithLimit( filelimit, fileType, exportDir )
    //校验导出后文件是否正确
-   checkExprtfileSize(exportDir, fileType, expSize);
-   testImportWithLimit(filelimit, fileType, exportDir);
+   checkExprtfileSize( exportDir, fileType, expSize );
+   testImportWithLimit( filelimit, fileType, exportDir );
    checkCl( cl, kb );
 }
 
-function insertDocs( cl, kb )
+function insertDocs ( cl, kb )
 {
-   var bytes = kb*1024 ;//4*1024=4K  4096条记录  一条记录等于11个字节
+   var bytes = kb * 1024;//4*1024=4K  4096条记录  一条记录等于11个字节
    var doc = [];
-   for( var i = 1;i < bytes; i++ )
+   for( var i = 1; i < bytes; i++ )
    {
-      doc.push({ a: 1 })
+      doc.push( { a: 1 } )
    }
    cl.insert( doc );
 }
 
-function testExprtWithLimit(filelimit, fileType, exportDir)
+function testExprtWithLimit ( filelimit, fileType, exportDir )
 {
-   commMakeDir( "localhost", exportDir ) ;
-   var exportfile = exportDir + "sdbexprt13524."+fileType ;
-   cmd.run( "rm -rf " + exportfile ) ;
-   
+   commMakeDir( "localhost", exportDir );
+   var exportfile = exportDir + "sdbexprt13524." + fileType;
+   cmd.run( "rm -rf " + exportfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME + 
-                 " -c " + csname + 
-                 " -l " + clname +
-                 " --file " + exportfile + 
-                 " --filelimit " + filelimit +
-                 " --type " + fileType +
-                 " --fields a" ;
-                 
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + exportfile +
+      " --filelimit " + filelimit +
+      " --type " + fileType +
+      " --fields a";
+
    //println(command);
-   testRunCommand( command ) ;
-   
+   testRunCommand( command );
+
 }
 
-function testImportWithLimit(filelimit, fileType, exportDir)
+function testImportWithLimit ( filelimit, fileType, exportDir )
 {
    command = installPath + "bin/sdbimprt" +
-             " -s " + COORDHOSTNAME +
-             " -p " + COORDSVCNAME +
-             " -c " + csname +
-             " -l " + clname +
-             " --file " + exportDir +
-             " --type " + fileType +
-             " --fields='a int'";  
-   testRunCommand( command ) ;
-   
-   cmd.run( "rm -rf " + exportDir ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + exportDir +
+      " --type " + fileType +
+      " --fields='a int'";
+   testRunCommand( command );
+
+   cmd.run( "rm -rf " + exportDir );
 }
 
-function checkCl( cl, kb )
+function checkCl ( cl, kb )
 {
-   if( parseInt( cl.find({a:1}).count() ) !== 2*(kb*1024-1) )
+   if( parseInt( cl.find( { a: 1 } ).count() ) !== 2 * ( kb * 1024 - 1 ) )
    {
-      throw buildException( "testFileLimit", null, "check import cl count", 
-            2*(kb*1024-1), cl.find({a:1}).count() ) ;   
+      throw buildException( "testFileLimit", null, "check import cl count",
+         2 * ( kb * 1024 - 1 ), cl.find( { a: 1 } ).count() );
    }
 }
 
-function checkExprtfileSize(exportDir, fileType, expSize)
+function checkExprtfileSize ( exportDir, fileType, expSize )
 {
-   var file = exportDir + "sdbexprt13524." + fileType ;
-   var actSize = parseInt( File.stat( file ).toObj()["size"] ) ;
+   var file = exportDir + "sdbexprt13524." + fileType;
+   var actSize = parseInt( File.stat( file ).toObj()["size"] );
    if( actSize > expSize )
    {
       throw buildException( "testExprtImprtJson", null, "check file size",
-            expSize, actSize ) ;
+         expSize, actSize );
    }
 }

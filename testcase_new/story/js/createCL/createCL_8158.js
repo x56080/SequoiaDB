@@ -1,17 +1,17 @@
 //creat cl
 //innomal case1
 
-TESTCLNAME = CHANGEDPREFIX+"bar" ;
+TESTCLNAME = CHANGEDPREFIX + "bar";
 try
 {
    commDropCL( db, COMMCSNAME, TESTCLNAME, true, true, "drop CL in the beginning" );
 }
-catch(e)
+catch( e )
 {
-   if ( e != -34)
+   if( e != -34 )
    {
-      println( "unexpected err happened when clear cs:" + e ) ;
-      throw e ;
+      println( "unexpected err happened when clear cs:" + e );
+      throw e;
    }
 }
 
@@ -19,25 +19,25 @@ try
 {
    var varCS = commCreateCS( db, COMMCSNAME, true, "failed to create CS" );
 }
-catch ( e )
+catch( e )
 {
-   println("failed to create cs,rc="+ e );
-   throw e ;
+   println( "failed to create cs,rc=" + e );
+   throw e;
 }
 
-var res = false ;
+var res = false;
 try
 {
-   varCS.createCL("$"+TESTCLNAME);
+   varCS.createCL( "$" + TESTCLNAME );
 }
 catch( e )
 {
-   if ( e == -6)
+   if( e == -6 )
    {
-      res = true ;
+      res = true;
    }
 }
-if ( !res )
+if( !res )
 {
    throw -1;
 }
@@ -46,7 +46,7 @@ try
 {
    commDropCL( db, COMMCSNAME, TESTCLNAME, true, true, "drop CL in the end" );
 }
-catch (e)
+catch( e )
 {
-   throw e ;
+   throw e;
 }

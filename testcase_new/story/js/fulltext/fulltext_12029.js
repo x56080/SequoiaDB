@@ -2,81 +2,81 @@
 @Description :   seqDB-12029:更新记录，使记录中的索引字段存在/不存在
 @Modify list :   2018-10-08  xiaoni Zhao  Init
 ******************************************************************************/
-function main()
+function main ()
 {
-    
+
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ) ;
-      return ;
+      println( "Run mode is standalone" );
+      return;
    }
-    
+
    var esOperator = new ESOperator();
    var dbOperator = new DBOperator();
    var clName = COMMCLNAME + "_ES_12029";
    var queryCond = '{ "query" : { "match_all" : {} }, "size" : "20" }';
-   var findCond = {"":{"$Text":{"query":{"match_all":{}}}}};
-   var selectorCond = { a : "", b : "" };
+   var findCond = { "": { "$Text": { "query": { "match_all": {} } } } };
+   var selectorCond = { a: "", b: "" };
    var textIndexName = "a_12029";
-   
+
    commDropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
-   
-   commCreateIndex( dbcl, textIndexName, { a : "text", b : "text" } );
-   
+
+   commCreateIndex( dbcl, textIndexName, { a: "text", b: "text" } );
+
    insertData( dbcl );
-   
+
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 3 );
-   
+
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
    var expectResult = esOperator.findFromES( esIndexNames[0], queryCond ).sort( compare( 'a', compare( 'b' ) ) );
-   var actResult = dbOperator.findFromCL( dbcl, findCond, selectorCond ).sort( compare( 'a',  compare( 'b' ) ) );
+   var actResult = dbOperator.findFromCL( dbcl, findCond, selectorCond ).sort( compare( 'a', compare( 'b' ) ) );
    checkResult( expectResult, actResult );
-   
+
    updateData( dbcl );
-   dbcl.insert({a : "new", b : "new"});
-   
+   dbcl.insert( { a: "new", b: "new" } );
+
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 4 );
-   
-   expectResult = new Array( { "a" : "a", "b" : "b" },
-                             { "a" : "a"},
-							 { "a" : "a2", "b" : "b2" },
-                             {"a" : "new", "b" : "new" });
+
+   expectResult = new Array( { "a": "a", "b": "b" },
+      { "a": "a" },
+      { "a": "a2", "b": "b2" },
+      { "a": "new", "b": "new" } );
    actResult = esOperator.findFromES( esIndexNames[0], queryCond ).sort( compare( 'a', compare( 'b' ) ) );
    checkResult( expectResult, actResult );
-   
+
    commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
 
-function insertData( dbcl )
+function insertData ( dbcl )
 {
-   dbcl.insert( { _id : 1, a : "a1", b : "b1" } );
-   dbcl.insert( { _id : 2 } );
-   dbcl.insert( { _id : 3, a : "a3", b : "b3" } );
-   dbcl.insert( { _id : 4, a : "a4", b : "b4" } );
+   dbcl.insert( { _id: 1, a: "a1", b: "b1" } );
+   dbcl.insert( { _id: 2 } );
+   dbcl.insert( { _id: 3, a: "a3", b: "b3" } );
+   dbcl.insert( { _id: 4, a: "a4", b: "b4" } );
 }
 
-function updateData( dbcl )
+function updateData ( dbcl )
 {
-   dbcl.update( { $unset : { a : "", b : "" } }, { _id : 1 } );
-   dbcl.update( { $set : { a : "a2", b : "b2" } }, { _id : 2} );
-   dbcl.update( { $set : { a : "a", b : "b" } }, { _id : 3 } );
-   dbcl.update( { $replace : { a : "a" } }, { _id : 4 } );  
+   dbcl.update( { $unset: { a: "", b: "" } }, { _id: 1 } );
+   dbcl.update( { $set: { a: "a2", b: "b2" } }, { _id: 2 } );
+   dbcl.update( { $set: { a: "a", b: "b" } }, { _id: 3 } );
+   dbcl.update( { $replace: { a: "a" } }, { _id: 4 } );
 }
 
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 ;

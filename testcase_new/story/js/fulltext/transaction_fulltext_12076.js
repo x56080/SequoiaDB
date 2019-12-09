@@ -4,93 +4,95 @@
               2018-10-26  YinZhen  Create
 ****************************************************************************/
 
-function main()
+function main ()
 {
-   if(commIsStandalone( db )){
-      println("Deploy is standalone");
+   if( commIsStandalone( db ) )
+   {
+      println( "Deploy is standalone" );
       return;
    }
 
    var clName = COMMCLNAME + "_ES_12076";
    var csName = "testCS_ES_12076";
    commDropCS( db, csName );
-   
+
    //创建全文索引及普通索引，索引字段相同
    var dbcl = commCreateCL( db, csName, clName );
-   commCreateIndex( dbcl, "fullIndex", {content : "text"});
-   commCreateIndex( dbcl, "commIndex", {content : 1});
-   
+   commCreateIndex( dbcl, "fullIndex", { content: "text" } );
+   commCreateIndex( dbcl, "commIndex", { content: 1 } );
+
    //insert
    db.transBegin();
    var records = new Array();
-   for (var i = 0; i < 10 ; i++){
-      var record = {content : "a" + i, age : i + 10};
-      records.push(record);
+   for( var i = 0; i < 10; i++ )
+   {
+      var record = { content: "a" + i, age: i + 10 };
+      records.push( record );
    }
-   dbcl.insert(records);
+   dbcl.insert( records );
    db.transCommit();
-   
-   checkFullSyncToES(csName, clName, "fullIndex", 10);
-   checkConsistency(csName, clName);
-   
+
+   checkFullSyncToES( csName, clName, "fullIndex", 10 );
+   checkConsistency( csName, clName );
+
    var dbOperator = new DBOperator();
-   var expResult = dbOperator.findFromCL(dbcl, {"" : {$Text : {"query" : {"match_all" : {}}}}}, {content : ""});
+   var expResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { content: "" } );
    var esOperator = new ESOperator();
-   var esIndexNames = dbOperator.getESIndexNames(csName, clName, "fullIndex");
+   var esIndexNames = dbOperator.getESIndexNames( csName, clName, "fullIndex" );
    var esIndexName = esIndexNames[0];
    var queryCond = '{"query" : {"exists" : {"field" : "content"}}}';
-   var actResult = esOperator.findFromES(esIndexName, queryCond);
-   
-   actResult.sort(compare("content"));
-   expResult.sort(compare("content"));
-   print("actResult: " + JSON.stringify(actResult) + " \nexpResult: " + JSON.stringify(expResult));
-   checkResult(expResult, actResult);
-   println("===insert success===");
-   
+   var actResult = esOperator.findFromES( esIndexName, queryCond );
+
+   actResult.sort( compare( "content" ) );
+   expResult.sort( compare( "content" ) );
+   print( "actResult: " + JSON.stringify( actResult ) + " \nexpResult: " + JSON.stringify( expResult ) );
+   checkResult( expResult, actResult );
+   println( "===insert success===" );
+
    //update
    db.transBegin();
-   dbcl.update({$set : {content : "i can not do it"}}, {content : "a2"});
+   dbcl.update( { $set: { content: "i can not do it" } }, { content: "a2" } );
    db.transCommit();
-   
-   checkFullSyncToES(csName, clName, "fullIndex", 10);
-   checkConsistency(csName, clName);
-   var expResult = dbOperator.findFromCL(dbcl, {"" : {$Text : {"query" : {"match_all" : {}}}}}, {content : ""});
-   var actResult = esOperator.findFromES(esIndexName, queryCond);
-   
-   actResult.sort(compare("content"));
-   expResult.sort(compare("content"));
-   checkResult(expResult, actResult);
-   println("===update success===");
-   
+
+   checkFullSyncToES( csName, clName, "fullIndex", 10 );
+   checkConsistency( csName, clName );
+   var expResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { content: "" } );
+   var actResult = esOperator.findFromES( esIndexName, queryCond );
+
+   actResult.sort( compare( "content" ) );
+   expResult.sort( compare( "content" ) );
+   checkResult( expResult, actResult );
+   println( "===update success===" );
+
    //delete
    db.transBegin();
-   dbcl.remove({content : "a3"});
+   dbcl.remove( { content: "a3" } );
    db.transCommit();
-   
-   checkFullSyncToES(csName, clName, "fullIndex", 9);
-   checkConsistency(csName, clName);
-   var expResult = dbOperator.findFromCL(dbcl, {"" : {$Text : {"query" : {"match_all" : {}}}}}, {content : ""});
-   var actResult = esOperator.findFromES(esIndexName, queryCond);
-   
-   actResult.sort(compare("content"));
-   expResult.sort(compare("content"));
-   checkResult(expResult, actResult);
-   println("===delete success===");
-   
+
+   checkFullSyncToES( csName, clName, "fullIndex", 9 );
+   checkConsistency( csName, clName );
+   var expResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { content: "" } );
+   var actResult = esOperator.findFromES( esIndexName, queryCond );
+
+   actResult.sort( compare( "content" ) );
+   expResult.sort( compare( "content" ) );
+   checkResult( expResult, actResult );
+   println( "===delete success===" );
+
    //truncate
    db.transBegin();
    dbcl.truncate();
    db.transCommit();
-   
-   checkFullSyncToES(csName, clName, "fullIndex", 0);
-   checkConsistency(csName, clName);
-   var expResult = dbOperator.findFromCL(dbcl, {"" : {$Text : {"query" : {"match_all" : {}}}}}, {content : ""});
-   var actResult = esOperator.findFromES(esIndexName, queryCond);
-   
-   actResult.sort(compare("content"));
-   expResult.sort(compare("content"));
-   checkResult(expResult, actResult);
-   println("===truncate success===");
+
+   checkFullSyncToES( csName, clName, "fullIndex", 0 );
+   checkConsistency( csName, clName );
+   var expResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { content: "" } );
+   var actResult = esOperator.findFromES( esIndexName, queryCond );
+
+   actResult.sort( compare( "content" ) );
+   expResult.sort( compare( "content" ) );
+   checkResult( expResult, actResult );
+   println( "===truncate success===" );
 
    commDropCS( db, csName );
 }
@@ -99,11 +101,11 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

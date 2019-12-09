@@ -4,25 +4,26 @@
 @modify list:
             	2017-11-29 XiaoNi Huang init
 ****************************************************/
-var csName=COMMCSNAME;
-var clName=COMMCLNAME + "12648";
+var csName = COMMCSNAME;
+var clName = COMMCLNAME + "12648";
 
-function insertRecs(){
+function insertRecs ()
+{
 	try
 	{
-		varCL.insert({a:1, b:1});
-	}catch(e)
+		varCL.insert( { a: 1, b: 1 } );
+	} catch( e )
 	{
-		println("fail to insert records in begin");
+		println( "fail to insert records in begin" );
 		throw e;
 	}
 }
 
-function updateAndCheck()
+function updateAndCheck ()
 {
-	var word="update";
+	var word = "update";
 	tryCatch(
-		["cmd="+word,"name="+csName+'.'+clName,'updator={$inc:{"a":1,"b":1}}','flag=SDB_QUERY_KEEP_SHARDINGKEY_IN_UPDATE'],
+		["cmd=" + word, "name=" + csName + '.' + clName, 'updator={$inc:{"a":1,"b":1}}', 'flag=SDB_QUERY_KEEP_SHARDINGKEY_IN_UPDATE'],
 		[-178],
 		"updateAndCheck: fail to run rest command: " + word );
 	/******check count is 1**********//*

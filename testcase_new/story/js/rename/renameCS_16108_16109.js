@@ -1,102 +1,102 @@
 /* *****************************************************************************
 @discretion: rename cs
-             seqDB-16108 csÔÚdomainÖÐ²¢ÇÐ·Öµ½¶à¸ö×é£¬ÐÞ¸ÄcsÃû
-             seqDB-16109 csÔÚdomianÖÐ£¬ÐÞ¸ÄcsºóÖ´ÐÐÓò²Ù×÷
-@author£º2018-10-13 chensiqin  Init
+             seqDB-16108 csï¿½ï¿½domainï¿½Ð²ï¿½ï¿½Ð·Öµï¿½ï¿½ï¿½ï¿½ï¿½é£¬ï¿½Þ¸ï¿½csï¿½ï¿½
+             seqDB-16109 csï¿½ï¿½domianï¿½Ð£ï¿½ï¿½Þ¸ï¿½csï¿½ï¿½Ö´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+@authorï¿½ï¿½2018-10-13 chensiqin  Init
 ***************************************************************************** */
 
-main(db);
+main( db );
 
-function main(db)
+function main ( db )
 {
-   if (commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      return ;
+      return;
    }
-   if (commGetGroupsNum(db) < 2)
+   if( commGetGroupsNum( db ) < 2 )
    {
-      return ;
+      return;
    }
    var domainName = "domain16108";
-   var csName1 = CHANGEDPREFIX+"_rename16108_1";
-   var csName2 = CHANGEDPREFIX+"_rename16108_2";
-   var csName3 = CHANGEDPREFIX+"_rename16108_3";
-   var clName = CHANGEDPREFIX+"rename16108";
-   
-   //´´½¨cs cl
+   var csName1 = CHANGEDPREFIX + "_rename16108_1";
+   var csName2 = CHANGEDPREFIX + "_rename16108_2";
+   var csName3 = CHANGEDPREFIX + "_rename16108_3";
+   var clName = CHANGEDPREFIX + "rename16108";
+
+   //ï¿½ï¿½ï¿½ï¿½cs cl
    commDropCS( db, csName1, true, "ignoreNotExist is true" );
    commDropCS( db, csName2, true, "ignoreNotExist is true" );
    commDropCS( db, csName3, true, "ignoreNotExist is true" );
-   commDropDomain( db, domainName);
-   
-   var groups = commGetGroups(db);
+   commDropDomain( db, domainName );
+
+   var groups = commGetGroups( db );
    var groupName1 = groups[0][0].GroupName;
    var groupName2 = groups[1][0].GroupName;
-   var domain = commCreateDomain( db, domainName, [ groupName1, groupName2 ], { AutoSplit: true });
-   var varCS = commCreateCS( db, csName1, true, "create CS", {Domain:domainName} );
+   var domain = commCreateDomain( db, domainName, [groupName1, groupName2], { AutoSplit: true } );
+   var varCS = commCreateCS( db, csName1, true, "create CS", { Domain: domainName } );
    var varCL = commCreateCLByOption( db, csName1, clName, {}, true, false, "create cl in the beginning" )
-   insertData(varCL, 100);
-   
-   //ÐÞ¸ÄcsÃû³Æ£¬¿ìÕÕ¼ì²é
+   insertData( varCL, 100 );
+
+   //ï¿½Þ¸ï¿½csï¿½ï¿½ï¿½Æ£ï¿½ï¿½ï¿½ï¿½Õ¼ï¿½ï¿½
    testRenameCS16108( db, csName1, csName2 );
    testRenameCS16109( db, domain, csName2, csName3, clName );
    afterClear( db, domainName, csName3 );
 }
 
-function testRenameCS16108( db, csName1, csName2 )
+function testRenameCS16108 ( db, csName1, csName2 )
 {
    var oldName = csName1;
    var newName = csName2;
    db.renameCS( oldName, newName );
-   checkRenameCSResult(oldName, newName, 1);
+   checkRenameCSResult( oldName, newName, 1 );
 }
 /*
-  ÐÞ¸ÄcsÃû£¬²é¿´domain.listCollectionSpaces() 3¡¢½«csÒÆ³ýÓò 4¡¢¼ì²é½á¹û 
+  ï¿½Þ¸ï¿½csï¿½ï¿½ï¿½ï¿½ï¿½é¿´domain.listCollectionSpaces() 3ï¿½ï¿½ï¿½ï¿½csï¿½Æ³ï¿½ï¿½ï¿½ 4ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
 */
-function testRenameCS16109( db, domain, csName2, csName3, clName )
+function testRenameCS16109 ( db, domain, csName2, csName3, clName )
 {
    var oldName = csName2;
    var newName = csName3;
    db.renameCS( oldName, newName );
    var csList = domain.listCollectionSpaces().toArray();
-   var cs = eval('('+csList[0]+')') ;
-   if (cs["Name"] !== csName3) {
-      throw buildException("check domain.listCollectionSpaces() fail", "fail", "check", "success", "fail"); 
+   var cs = eval( '(' + csList[0] + ')' );
+   if( cs["Name"] !== csName3 )
+   {
+      throw buildException( "check domain.listCollectionSpaces() fail", "fail", "check", "success", "fail" );
    }
-   checkDatas( csName3, clName);
+   checkDatas( csName3, clName );
 }
 
-function checkDatas( csName3, clName)
-{   
+function checkDatas ( csName3, clName )
+{
    try
    {
       //check the record nums      
       var dbcl = db.getCS( csName3 ).getCL( clName );
-      var count = dbcl.count();      
-      if( count != 100  )
+      var count = dbcl.count();
+      if( count != 100 )
       {
-         throw buildException("check datas", null, "check the new cl record nums",
-                           100, count);
-      }   
-      
+         throw buildException( "check datas", null, "check the new cl record nums",
+            100, count );
+      }
+
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException("checkDatas", e)
-   }  
+      throw buildException( "checkDatas", e )
+   }
 }
 
-function afterClear( db, domainName, csName3 )
+function afterClear ( db, domainName, csName3 )
 {
    commDropCS( db, csName3, true, "ignoreNotExist is true" );
    try 
    {
-      commDropDomain( db, domainName);
+      commDropDomain( db, domainName );
    }
    catch( e )
    {
-      throw buildException("dropDomain fail", e, "drop", "success", e); 
+      throw buildException( "dropDomain fail", e, "drop", "success", e );
    }
 }
 
- 

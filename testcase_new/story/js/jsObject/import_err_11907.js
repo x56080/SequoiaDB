@@ -5,64 +5,64 @@
 *@author      : Liang XueWang 
 *******************************************************************/
 // test import importOnce not exist file
-var notExistFile = WORKDIR + "/notExist_11907.js" ;
+var notExistFile = WORKDIR + "/notExist_11907.js";
 
 try
 {
-    import( notExistFile ) ;
-    throw 0 ;
+    import( notExistFile );
+    throw 0;
 }
 catch( e )
 {
     if( e !== -4 )
     {
         throw buildException( null, null,
-              "import not exist file " + notExistFile, -4, e ) ;
+            "import not exist file " + notExistFile, -4, e );
     }
 }
 
 try
 {
-    importOnce( notExistFile ) ;
-    throw 0 ;
+    importOnce( notExistFile );
+    throw 0;
 }
 catch( e )
 {
     if( e !== -4 )
     {
         throw buildException( null, null,
-              "importOnce not exist file " + notExistFile, -4, e ) ;
+            "importOnce not exist file " + notExistFile, -4, e );
     }
 }
 
 // test import importOnce not js file( sdblobtool file )
-var installPath = commGetInstallPath() ;
-var sdblobtoolFile = installPath + "/bin/sdblobtool" ;
+var installPath = commGetInstallPath();
+var sdblobtoolFile = installPath + "/bin/sdblobtool";
 
 try
 {
-    importOnce( sdblobtoolFile ) ;
-    throw 0 ;
+    importOnce( sdblobtoolFile );
+    throw 0;
 }
 catch( e )
 {
     if( e !== -152 )
     {
         throw buildException( null, null,
-              "importOnce sdblobtool file " + sdblobtoolFile, -152, e ) ;
+            "importOnce sdblobtool file " + sdblobtoolFile, -152, e );
     }
 }
 
 try
 {
-    import( sdblobtoolFile ) ;
-    throw 0 ;
+    import( sdblobtoolFile );
+    throw 0;
 }
 catch( e )
 {
     if( e !== -152 )
     {
         throw buildException( null, null,
-              "import sdblobtool file " + sdblobtoolFile, -152, e ) ;
+            "import sdblobtool file " + sdblobtoolFile, -152, e );
     }
 }

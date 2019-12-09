@@ -5,131 +5,131 @@
 *               覆盖测试用例8802/8803
 ******************************************************************************/
 
-function main( db )
+function main ( db )
 {
-   initPath() ;
-   
+   initPath();
+
    // 检验是否存在sdblobtool工具
    try
    {
-      checkLobtool() ;
+      checkLobtool();
    }
    catch( e )
    {
-      if(e == 127)
-         return ;
-      throw e ;
+      if( e == 127 )
+         return;
+      throw e;
    }
-   
+
    if( commIsStandalone( db ) )     // 独立模式下不能创建用户，直接跳过
-      return ;
-   
+      return;
+
    // 新建用户和连接
-   var user = "sdbadmin" ;
-   var passwd = "sdbadmin" ;
-   db.createUsr( user, passwd ) ;
-   db = new Sdb( hostName, coordPort, user, passwd ) ;
-   
-   var expFullCL = COMMCSNAME + "." + COMMCLNAME ;       // 导出（源）集合 COMMCSNAME = CHANGEDPREFIX + "_cs" , COMMCLNAME = CHANGEDPREFIX + "_cl"
-   var filename = CHANGEDPREFIX + "_testimport.file" ;	// CHANGEDPREFIX = "local_test" 文件名	
-   var exportFile = LocalPath + "/" + filename ;         // 导出文件，将该文件进行导入
-   var impCLNAME = COMMCLNAME + "_new" ;                 // 导入（目标）集合名
-   var impFullCL = COMMCSNAME + "." + impCLNAME ;        // 导入（目标）集合
-   
+   var user = "sdbadmin";
+   var passwd = "sdbadmin";
+   db.createUsr( user, passwd );
+   db = new Sdb( hostName, coordPort, user, passwd );
+
+   var expFullCL = COMMCSNAME + "." + COMMCLNAME;       // 导出（源）集合 COMMCSNAME = CHANGEDPREFIX + "_cs" , COMMCLNAME = CHANGEDPREFIX + "_cl"
+   var filename = CHANGEDPREFIX + "_testimport.file";	// CHANGEDPREFIX = "local_test" 文件名	
+   var exportFile = LocalPath + "/" + filename;         // 导出文件，将该文件进行导入
+   var impCLNAME = COMMCLNAME + "_new";                 // 导入（目标）集合名
+   var impFullCL = COMMCSNAME + "." + impCLNAME;        // 导入（目标）集合
+
    // sdblobtool选项参数
-   var Args = {} ;
-   Args[ "hostname" ] = COORDHOSTNAME ;       //  'localhost'
-   Args[ "svcname" ] = COORDSVCNAME ;         //  11810
-   Args[ "usrname" ] = user ;            
-   Args[ "passwd" ] = passwd ;            
-   Args[ "operation" ] = "import" ;        
-   Args[ "collection" ] = impFullCL ;       
-   Args[ "file" ] = exportFile ;   
-   Args[ "prefer" ] = "A" ;   
-   Args[ "ssl" ] = false ;                    // 使用SSL连接，如果不使用SSL连接，shell命令中不应加入该选项参数
-   Args[ "ignorefe" ] = true ;                // 大对象已经存在于集合中，忽略
-   Args[ "dsthost" ] = COORDHOSTNAME ;  
-   Args[ "dstservice" ] = COORDSVCNAME ;   
-   Args[ "dstusrname" ] = user ;           
-   Args[ "dstpasswd" ] = passwd ;           
-   Args[ "dstcollection" ] = impFullCL ; 
-   
-   
-    // 首先创建一个包含大对象的导出（源）集合COMMCLNAME，和导入（目标）集合impCLNAME
-   var lobfile = toolMakeLobfile() ;
-   var expCl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, true, "create CL to export lob" ) ;
-   var lobNum = 1 ;
-   toolPutLobs( expCl, lobfile, lobNum ) ;
-   cmd.run( "rm -rf " + lobfile ) ;
-   var impCl = commCreateCL( db, COMMCSNAME, impCLNAME, 0, true, true, true, "create CL to import lob" ) ;
-   
+   var Args = {};
+   Args["hostname"] = COORDHOSTNAME;       //  'localhost'
+   Args["svcname"] = COORDSVCNAME;         //  11810
+   Args["usrname"] = user;
+   Args["passwd"] = passwd;
+   Args["operation"] = "import";
+   Args["collection"] = impFullCL;
+   Args["file"] = exportFile;
+   Args["prefer"] = "A";
+   Args["ssl"] = false;                    // 使用SSL连接，如果不使用SSL连接，shell命令中不应加入该选项参数
+   Args["ignorefe"] = true;                // 大对象已经存在于集合中，忽略
+   Args["dsthost"] = COORDHOSTNAME;
+   Args["dstservice"] = COORDSVCNAME;
+   Args["dstusrname"] = user;
+   Args["dstpasswd"] = passwd;
+   Args["dstcollection"] = impFullCL;
+
+
+   // 首先创建一个包含大对象的导出（源）集合COMMCLNAME，和导入（目标）集合impCLNAME
+   var lobfile = toolMakeLobfile();
+   var expCl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, true, "create CL to export lob" );
+   var lobNum = 1;
+   toolPutLobs( expCl, lobfile, lobNum );
+   cmd.run( "rm -rf " + lobfile );
+   var impCl = commCreateCL( db, COMMCSNAME, impCLNAME, 0, true, true, true, "create CL to import lob" );
+
    try
    {
       // 将COMMCLNAME中的大对象导出到文件
-      Args[ "operation" ] = "export" ;
-      Args[ "collection" ] = expFullCL ;
+      Args["operation"] = "export";
+      Args["collection"] = expFullCL;
       try
       {
-         toolExport( Args ) ;
+         toolExport( Args );
       }
       catch( e )
       {
-         println( ">fail to export. rc = " + e ) ;
-         throw e ;   
+         println( ">fail to export. rc = " + e );
+         throw e;
       }
-      
-      Args[ "operation" ] = "import" ;
-      Args[ "collection" ] = impFullCL ;
+
+      Args["operation"] = "import";
+      Args["collection"] = impFullCL;
       try
       {
-         toolImport( Args ) ;
+         toolImport( Args );
       }
       catch( e )
       {
-         println( ">fail to import. rc = " + e ) ;
-         throw e ;
+         println( ">fail to import. rc = " + e );
+         throw e;
       }
-      
-      Args[ "operation" ] = "migration" ;
-      Args[ "collection" ] = expFullCL ;
-      Args[ "dstcollection" ] = impFullCL ;
+
+      Args["operation"] = "migration";
+      Args["collection"] = expFullCL;
+      Args["dstcollection"] = impFullCL;
       try
-      { 
-         toolMigration( Args ) ;
+      {
+         toolMigration( Args );
       }
       catch( e )
-        {
-         println( ">fail to migrate. rc = " + e ) ;
-         throw e ;
+      {
+         println( ">fail to migrate. rc = " + e );
+         throw e;
       }
-      
-      println( ">success to test sdblobtool with legal user.\n\n") ;
+
+      println( ">success to test sdblobtool with legal user.\n\n" );
    }
    catch( e )
    {
-      println( ">fail to test sdblobtool with legal user. rc = " + e + "\n\n") ;
-      throw e ;
+      println( ">fail to test sdblobtool with legal user. rc = " + e + "\n\n" );
+      throw e;
    }
    finally
    {
-      cmd.run( "rm -rf " + exportFile ) ;
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "clean collection in the end" ) ;
-      commDropCL( db, COMMCSNAME, impCLNAME, true, true, "clean collection in the end" ) ;
-      db.dropUsr( user, passwd ) ;
-   }  
+      cmd.run( "rm -rf " + exportFile );
+      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "clean collection in the end" );
+      commDropCL( db, COMMCSNAME, impCLNAME, true, true, "clean collection in the end" );
+      db.dropUsr( user, passwd );
+   }
 }
 
 // Test
 try
 {
-   main( db ) ;
-   cmd.run( "rm -rf sdblobtool.log" ) ;
+   main( db );
+   cmd.run( "rm -rf sdblobtool.log" );
 }
 catch( e )
 {
-   cmd.run( "mkdir -p /tmp/lobtool" ) ;
-   cmd.run( "mv sdblobtool.log /tmp/lobtool/legalUsr.log" ) ;
-   throw e ;
+   cmd.run( "mkdir -p /tmp/lobtool" );
+   cmd.run( "mv sdblobtool.log /tmp/lobtool/legalUsr.log" );
+   throw e;
 }
 finally
 {

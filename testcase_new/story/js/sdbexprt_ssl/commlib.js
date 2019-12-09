@@ -3,11 +3,11 @@
 * @author      :  Liang XueWang
 *                
 *******************************************************************************/
-var cmd = new Cmd() ;
-var installPath = adaptPath( commGetInstallPath() ) ;
-commMakeDir( "localhost", WORKDIR ) ;
-var workDir = adaptPath( WORKDIR ) ;
-println( File.stat( workDir ) ) ;
+var cmd = new Cmd();
+var installPath = adaptPath( commGetInstallPath() );
+commMakeDir( "localhost", WORKDIR );
+var workDir = adaptPath( WORKDIR );
+println( File.stat( workDir ) );
 
 /*******************************************************************
 * @Description : check path has / in the end or not
@@ -15,11 +15,11 @@ println( File.stat( workDir ) ) ;
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function adaptPath( path )
+function adaptPath ( path )
 {
-   if( path.lastIndexOf( '/' ) !== path.length-1 )
-      path += '/' ;
-   return path ;
+   if( path.lastIndexOf( '/' ) !== path.length - 1 )
+      path += '/';
+   return path;
 }
 
 /*******************************************************************
@@ -27,13 +27,13 @@ function adaptPath( path )
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function isLocal( hostname )
+function isLocal ( hostname )
 {
-   if( hostname === "localhost" ) 
-      return true ;
+   if( hostname === "localhost" )
+      return true;
    if( hostname === cmd.run( "hostname" ).split( "\n" )[0] )
-      return true ;
-   return false ;
+      return true;
+   return false;
 }
 
 /*******************************************************************
@@ -42,22 +42,22 @@ function isLocal( hostname )
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function getGroups()
+function getGroups ()
 {
-   var groups = [] ;
+   var groups = [];
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone, no groups" ) ;
-      return groups ;
+      println( "Run mode is standalone, no groups" );
+      return groups;
    }
-   var cursor = db.listReplicaGroups() ;
-   var obj ;
+   var cursor = db.listReplicaGroups();
+   var obj;
    while( obj = cursor.next() )
    {
-      var groupName = obj.toObj()["GroupName"] ;
-      groups.push( groupName ) ;
+      var groupName = obj.toObj()["GroupName"];
+      groups.push( groupName );
    }
-   return groups ;
+   return groups;
 }
 
 /*******************************************************************
@@ -66,24 +66,24 @@ function getGroups()
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function getGroupNodes( groupName )
+function getGroupNodes ( groupName )
 {
-   var nodes = [] ;
+   var nodes = [];
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone, no group " + groupName ) ;
-      return nodes ;
+      println( "Run mode is standalone, no group " + groupName );
+      return nodes;
    }
-   var rg = db.getRG( groupName ) ;
-   var obj = rg.getDetail().next().toObj() ;
-   var groupArr = obj["Group"] ;
-   for( var i = 0;i < groupArr.length;i++ )
+   var rg = db.getRG( groupName );
+   var obj = rg.getDetail().next().toObj();
+   var groupArr = obj["Group"];
+   for( var i = 0; i < groupArr.length; i++ )
    {
-      var hostname = groupArr[i]["HostName"] ;
-      var svcname = groupArr[i]["Service"][0]["Name"] ;
-      nodes.push( hostname + ":" + svcname ) ;
+      var hostname = groupArr[i]["HostName"];
+      var svcname = groupArr[i]["Service"][0]["Name"];
+      nodes.push( hostname + ":" + svcname );
    }
-   return nodes ;
+   return nodes;
 }
 
 /*******************************************************************
@@ -91,11 +91,11 @@ function getGroupNodes( groupName )
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function getRandomInt( m, n )
+function getRandomInt ( m, n )
 {
-   var range = n - m ;
-   var ret = m + parseInt( Math.random() * range ) ;
-   return ret ;
+   var range = n - m;
+   var ret = m + parseInt( Math.random() * range );
+   return ret;
 }
 
 /*******************************************************************
@@ -103,20 +103,20 @@ function getRandomInt( m, n )
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function insertKBDocs( cl, kb )
+function insertKBDocs ( cl, kb )
 {
-   var docs = [] ;
-   
-   for( var i = 0;i < parseInt(kb);i++ )
+   var docs = [];
+
+   for( var i = 0; i < parseInt( kb ); i++ )
    {
-      var doc = {} ;
-      doc["key"] = makeString( 1024, 'x' ) ;
-      doc["cnt"] = i+1 ;
-      docs.push( doc ) ;
-      if( docs.length % 10000 === 0 || i === parseInt(kb)-1 )
+      var doc = {};
+      doc["key"] = makeString( 1024, 'x' );
+      doc["cnt"] = i + 1;
+      docs.push( doc );
+      if( docs.length % 10000 === 0 || i === parseInt( kb ) - 1 )
       {
-         cl.insert( docs ) ;
-         docs = [] ;
+         cl.insert( docs );
+         docs = [];
       }
    }
 }
@@ -126,24 +126,24 @@ function insertKBDocs( cl, kb )
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function testRunCommand( command, errno )
+function testRunCommand ( command, errno )
 {
    try
    {
-      cmd.run( command ) ;
-      if( errno !== undefined ) throw 0 ;
+      cmd.run( command );
+      if( errno !== undefined ) throw 0;
    }
    catch( e )
    {
       if( errno === undefined )
       {
          throw buildException( "testRunCommand", e,
-               "run command:\n" + command, 0, e ) ;
+            "run command:\n" + command, 0, e );
       }
       else if( e !== errno )
       {
          throw buildException( "testRunCommand", e,
-               "run command:\n" + command, errno, e ) ;
+            "run command:\n" + command, errno, e );
       }
    }
 }
@@ -153,25 +153,25 @@ function testRunCommand( command, errno )
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function checkFileContent( filename, expContent )
+function checkFileContent ( filename, expContent )
 {
    try
    {
-      var size = parseInt( File.stat( filename ).toObj().size ) ;
-      var file = new File( filename ) ;
-      var actContent = file.read( size ) ;
-      file.close() ;
+      var size = parseInt( File.stat( filename ).toObj().size );
+      var file = new File( filename );
+      var actContent = file.read( size );
+      file.close();
    }
    catch( e )
    {
       throw buildException( "checkFileContent", null,
-            "read " + filename, 0, e ) ;
+         "read " + filename, 0, e );
    }
    if( actContent !== expContent )
    {
       throw buildException( "checkFileContent", null,
-            "check " + filename + " content", 
-            expContent.slice( 0, 100 ), actContent.slice( 0, 100 ) ) ;
+         "check " + filename + " content",
+         expContent.slice( 0, 100 ), actContent.slice( 0, 100 ) );
    }
 }
 
@@ -180,15 +180,15 @@ function checkFileContent( filename, expContent )
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function getRecords( cursor )
+function getRecords ( cursor )
 {
-   var recs = [] ;
-   var obj ;
+   var recs = [];
+   var obj;
    while( obj = cursor.next() )
    {
-      recs.push( JSON.stringify( obj.toObj() ) ) ;
+      recs.push( JSON.stringify( obj.toObj() ) );
    }
-   return recs ;
+   return recs;
 }
 
 /*******************************************************************
@@ -196,20 +196,20 @@ function getRecords( cursor )
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function checkRecords( expRecs, actRecs )
+function checkRecords ( expRecs, actRecs )
 {
    if( expRecs.length !== actRecs.length )
    {
       throw buildException( "checkRecords", null, "check rec count",
-            expRecs.length, actRecs.length ) ;
+         expRecs.length, actRecs.length );
    }
-   for( var i = 0;i < expRecs.length;i++ )
+   for( var i = 0; i < expRecs.length; i++ )
    {
       if( expRecs[i] !== actRecs[i] )
       {
          throw buildException( "checkRecords", null, "check record " + i,
-               JSON.stringify(expRecs[i]).slice( 0, 100 ), 
-               JSON.stringify(actRecs[i]).slice( 0, 100 ) ) ;   
+            JSON.stringify( expRecs[i] ).slice( 0, 100 ),
+            JSON.stringify( actRecs[i] ).slice( 0, 100 ) );
       }
    }
 }
@@ -219,13 +219,13 @@ function checkRecords( expRecs, actRecs )
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function checkFileExist( filename, exist )
+function checkFileExist ( filename, exist )
 {
-   var res = File.exist( filename ) ;
+   var res = File.exist( filename );
    if( res !== exist )
    {
       throw buildException( "checkFileExist", null,
-            "check " + filename, exist, res ) ;
+         "check " + filename, exist, res );
    }
 }
 
@@ -234,9 +234,9 @@ function checkFileExist( filename, exist )
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function getCurrentUser()
+function getCurrentUser ()
 {
-   return System.getCurrentUser().toObj()["user"] ;
+   return System.getCurrentUser().toObj()["user"];
 }
 
 /*******************************************************************
@@ -244,8 +244,8 @@ function getCurrentUser()
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function makeString( len, ch )
+function makeString ( len, ch )
 {
-   var arr = new Array( len+1 ) ;
-   return arr.join( ch ) ;
+   var arr = new Array( len + 1 );
+   return arr.join( ch );
 }

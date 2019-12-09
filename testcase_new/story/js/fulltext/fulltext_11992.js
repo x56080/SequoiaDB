@@ -3,80 +3,83 @@
 @Modify list :
               2018-11-21  YinZhen  Create
 ****************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db )){
-      println("Deploy is standalone");
+   if( commIsStandalone( db ) )
+   {
+      println( "Deploy is standalone" );
       return;
    }
-   
+
    var groups = commGetGroups( db );
-   if(groups.length < 2 ){
-      println("Deploy one group");
+   if( groups.length < 2 )
+   {
+      println( "Deploy one group" );
       return;
    }
 
    var clName = COMMCLNAME + "_ES_11992";
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {Group : groups[0][0]["GroupName"]} );
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
+   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groups[0][0]["GroupName"] } );
    var textIndexName = "fullIndex_11992";
-   commCreateIndex( dbcl, textIndexName, {b : "text"});
-   
+   commCreateIndex( dbcl, textIndexName, { b: "text" } );
+
    //插入大量包含全文索引字段的数据
    var records = new Array();
-   for (var i = 0; i < 8000 ; i++){
-      var record = {a : "a" + i, b : "b" + i};
-      records.push(record);
+   for( var i = 0; i < 8000; i++ )
+   {
+      var record = { a: "a" + i, b: "b" + i };
+      records.push( record );
    }
-   dbcl.insert(records);
-  
-   checkFullSyncToES(COMMCSNAME, clName, textIndexName, 8000);
-   
+   dbcl.insert( records );
+
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 8000 );
+
    //alter为hash切分表，切分键覆盖：非全文索引字段
-   dbcl.alter({ShardingType : "hash", ShardingKey : {a : 1}})
-   
-   checkFullSyncToES(COMMCSNAME, clName, textIndexName, 8000);
+   dbcl.alter( { ShardingType: "hash", ShardingKey: { a: 1 } } )
+
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 8000 );
    var esOperator = new ESOperator();
    var dbOperator = new DBOperator();
-   var expResult = dbOperator.findFromCL (dbcl, {"" : {$Text : {"query" : {"match_all" : {}}}}}, {b : ""});
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, textIndexName);
+   var expResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { b: "" } );
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
    var esIndexName = esIndexNames[0];
-   var actResult = esOperator.findFromES (esIndexName, '{"query" : {"match_all" : {}}, "size" : 10000}');
-   expResult.sort(compare("b"));
-   actResult.sort(compare("b"));
-   checkResult(expResult, actResult);
-   
+   var actResult = esOperator.findFromES( esIndexName, '{"query" : {"match_all" : {}}, "size" : 10000}' );
+   expResult.sort( compare( "b" ) );
+   actResult.sort( compare( "b" ) );
+   checkResult( expResult, actResult );
+
    //alter为hash切分表，切分键覆盖：全文索引字段
-   dbcl.dropIndex(textIndexName);
-   checkIndexNotExistInES(esIndexNames);
-   
-   commCreateIndex( dbcl, textIndexName, {a : "text"});
-   checkFullSyncToES(COMMCSNAME, clName, textIndexName, 8000);
-   var expResult = dbOperator.findFromCL (dbcl, {"" : {$Text : {"query" : {"match_all" : {}}}}}, {a : ""});
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, textIndexName);
+   dbcl.dropIndex( textIndexName );
+   checkIndexNotExistInES( esIndexNames );
+
+   commCreateIndex( dbcl, textIndexName, { a: "text" } );
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 8000 );
+   var expResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { a: "" } );
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
    var esIndexName = esIndexNames[0];
-   var actResult = esOperator.findFromES (esIndexName, '{"query" : {"match_all" : {}}, "size" : 10000}');
-   expResult.sort(compare("a"));
-   actResult.sort(compare("a"));
-   checkResult(expResult, actResult);
-   
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
+   var actResult = esOperator.findFromES( esIndexName, '{"query" : {"match_all" : {}}, "size" : 10000}' );
+   expResult.sort( compare( "a" ) );
+   actResult.sort( compare( "a" ) );
+   checkResult( expResult, actResult );
+
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
 
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 

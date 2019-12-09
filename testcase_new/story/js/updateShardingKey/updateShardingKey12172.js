@@ -7,23 +7,24 @@
 var csName = CHANGEDPREFIX + "_cs_12172";
 var clName = CHANGEDPREFIX + "_cl_12172";
 
-function main() {
+function main ()
+{
 
-	commDropCS( db, csName, true, "Failed to drop CS.");    
-	commCreateCS( db, csName, false, "Failed to create CS.");  
-	var mycl=db.getCS(csName).createCL(clName);
+	commDropCS( db, csName, true, "Failed to drop CS." );
+	commCreateCS( db, csName, false, "Failed to create CS." );
+	var mycl = db.getCS( csName ).createCL( clName );
 	//insert data 	
-	var docs=[{a:1}];
-	insertData(mycl, docs);
+	var docs = [{ a: 1 }];
+	insertData( mycl, docs );
 
 	//updateData
-	mycl.find().update({$set:{a:"test"}},true,{KeepShardingKey:true}).toString();
+	mycl.find().update( { $set: { a: "test" } }, true, { KeepShardingKey: true } ).toString();
 	//check the update result
-	var expRecs =[{"a":"test"}];
-	checkResult( mycl, null, {"_id":{"$include":0}},expRecs);
+	var expRecs = [{ "a": "test" }];
+	checkResult( mycl, null, { "_id": { "$include": 0 } }, expRecs );
 
 	//drop collectionspace in clean
-	commDropCS( db, csName, false, "Failed to drop CS.");
+	commDropCS( db, csName, false, "Failed to drop CS." );
 }
 
 main();

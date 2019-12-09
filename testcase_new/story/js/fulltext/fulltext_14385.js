@@ -4,66 +4,66 @@
 *@createdate:  2018.10.26
 *@testlinkCase: seqDB-14385
 **************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone(db))  {   return ;   }  
+   if( commIsStandalone( db ) ) { return; }
 
    //create CL
    var clName = COMMCLNAME + "_ES_14385";
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   commDropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
-   
-   var textIndexName = "textIndex_14385";   
-   dbcl.createIndex(textIndexName, {"a" : "text"});
-   
+
+   var textIndexName = "textIndex_14385";
+   dbcl.createIndex( textIndexName, { "a": "text" } );
+
    // insert
    var objs = new Array();
-   for(var i = 0; i < 20000; i++)
+   for( var i = 0; i < 20000; i++ )
    {
-      objs.push({a: "test_14385 " + i, b :  i });
+      objs.push( { a: "test_14385 " + i, b: i } );
    }
-   dbcl.insert(objs);
+   dbcl.insert( objs );
 
-   checkFullSyncToES(COMMCSNAME, clName, textIndexName, 20000);
-   
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 20000 );
+
    // match 0 record
-   var findNoneConf = {"$and": [{"b": {"$lt" : 0}}, {"":{"$Text":{"query":{"match":{"a" : "test_14385"}}}}}]}; 
-   var actResult = dbOpr.findFromCL(dbcl, findNoneConf);
+   var findNoneConf = { "$and": [{ "b": { "$lt": 0 } }, { "": { "$Text": { "query": { "match": { "a": "test_14385" } } } } }] };
+   var actResult = dbOpr.findFromCL( dbcl, findNoneConf );
    var expResult = [];
-   checkResult(expResult, actResult);
-   println("---match 0 record---");
+   checkResult( expResult, actResult );
+   println( "---match 0 record---" );
 
    // match some records
-   var findSomeConf = {"$and": [{"b": {"$gte" : 10000}}, {"":{"$Text":{"query":{"match":{"a" : "test_14385"}}}}}]};
-   var actResult = dbOpr.findFromCL(dbcl, findSomeConf, {'a' : ''}, { _id : 1 });
-   var expResult = dbOpr.findFromCL(dbcl, {"b": {"$gte" : 10000}}, {'a' : ''}, { _id : 1 });
-   checkResult(expResult, actResult);
-   println("---match some records---");
-   
+   var findSomeConf = { "$and": [{ "b": { "$gte": 10000 } }, { "": { "$Text": { "query": { "match": { "a": "test_14385" } } } } }] };
+   var actResult = dbOpr.findFromCL( dbcl, findSomeConf, { 'a': '' }, { _id: 1 } );
+   var expResult = dbOpr.findFromCL( dbcl, { "b": { "$gte": 10000 } }, { 'a': '' }, { _id: 1 } );
+   checkResult( expResult, actResult );
+   println( "---match some records---" );
+
    // match all records
-   var findAllConf = {"$and": [{"b": {"$gte" : 0}}, {"":{"$Text":{"query":{"match":{"a" : "test_14385 2"}}}}}]};
-   var actResult = dbOpr.findFromCL(dbcl, findAllConf, {'a' : ''}, { _id : 1 });
-   var expResult = dbOpr.findFromCL(dbcl, null, {'a' : ''}, { _id : 1 });
-   checkResult(expResult, actResult); 
-   println("---match all records---");
- 
+   var findAllConf = { "$and": [{ "b": { "$gte": 0 } }, { "": { "$Text": { "query": { "match": { "a": "test_14385 2" } } } } }] };
+   var actResult = dbOpr.findFromCL( dbcl, findAllConf, { 'a': '' }, { _id: 1 } );
+   var expResult = dbOpr.findFromCL( dbcl, null, { 'a': '' }, { _id: 1 } );
+   checkResult( expResult, actResult );
+   println( "---match all records---" );
+
    var dbOperator = new DBOperator();
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, textIndexName);
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
+   commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);   
+   checkIndexNotExistInES( esIndexNames );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 ;

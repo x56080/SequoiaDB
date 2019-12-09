@@ -3,49 +3,52 @@
 @Modify list :
               2018-10-25  YinZhen  Create
 ****************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db )){
-      println("Deploy is standalone");
+   if( commIsStandalone( db ) )
+   {
+      println( "Deploy is standalone" );
       return;
    }
 
    var clName = COMMCLNAME + "_ES_11984";
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
-   var dbcl = commCreateCL(db, COMMCSNAME, clName, 0);
-   
-   var a = new Array(1024*1024*16 - 5*1024).join("a");
-   dbcl.insert({a : a});
-   dbcl.createIndex( "a_11984", {a : "text"});
-   
-   checkFullSyncToES(COMMCSNAME, clName, "a_11984", 1);
-   
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+
+   var a = new Array( 1024 * 1024 * 16 - 5 * 1024 ).join( "a" );
+   dbcl.insert( { a: a } );
+   dbcl.createIndex( "a_11984", { a: "text" } );
+
+   checkFullSyncToES( COMMCSNAME, clName, "a_11984", 1 );
+
    var dbOperator = new DBOperator();
-   var actResult = dbOperator.findFromCL( dbcl, {"" : {$Text : {"query" : {"match_all" : {}}}}}, {a : ""});
-   var expResult = dbOperator.findFromCL( dbcl, null, {a : ""});
-     
-   if (expResult.length != 1){
-      throw new Error("expect record num: 1,actual record num: " + expResult.length);
+   var actResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { a: "" } );
+   var expResult = dbOperator.findFromCL( dbcl, null, { a: "" } );
+
+   if( expResult.length != 1 )
+   {
+      throw new Error( "expect record num: 1,actual record num: " + expResult.length );
    }
-   if (expResult[0]["a"] != actResult[0]["a"]){
-      throw new Error("expect record: " + expResult[0]["a"] + ",actual record: " + actResult[0]["a"]);
+   if( expResult[0]["a"] != actResult[0]["a"] )
+   {
+      throw new Error( "expect record: " + expResult[0]["a"] + ",actual record: " + actResult[0]["a"] );
    }
-   
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, "a_11984");
-   commDropCL(db, COMMCSNAME, clName, true, true);
+
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "a_11984" );
+   commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

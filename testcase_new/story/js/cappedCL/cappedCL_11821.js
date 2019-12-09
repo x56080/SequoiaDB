@@ -7,7 +7,7 @@
 
 main()
 
-function main()
+function main ()
 {
    var csName1 = COMMCAPPEDCSNAME + "_11821_CS1";
    var csName2 = COMMCAPPEDCSNAME + "_11821_CS2";
@@ -15,7 +15,7 @@ function main()
    var csName4 = COMMCAPPEDCSNAME + "_11821_CS4";
    var csName5 = COMMCAPPEDCSNAME + "_11821_CS5";
    var csName6 = COMMCAPPEDCSNAME + "_11821_CS6";
-   
+
    //clean cs before test
    commDropCS( db, csName1, true, "drop CS in the end" );
    commDropCS( db, csName2, true, "drop CS in the end" );
@@ -23,43 +23,44 @@ function main()
    commDropCS( db, csName4, true, "drop CS in the end" );
    commDropCS( db, csName5, true, "drop CS in the end" );
    commDropCS( db, csName6, true, "drop CS in the end" );
-   
+
    //check cappedCS options
-   println("---check cs options---")
-   
+   println( "---check cs options---" )
+
    //check Capped : true
-   var options1 = { Capped : true };
+   var options1 = { Capped: true };
    checkCreateCSOptions( csName1, options1, true );
-   
+
    //check Capped : false
-   var options2 = { Capped : false };
+   var options2 = { Capped: false };
    checkCreateCSOptions( csName2, options2, true );
-   
+
    //check Capped : "",集群下会报-6错误，单机不会报错
-   var options3 = { Capped : "" };
+   var options3 = { Capped: "" };
    checkCreateCSOptions( csName3, options3, true );
-   
+
    //check Capped : "abc"
-   var options4 = { Capped : "abc" };
+   var options4 = { Capped: "abc" };
    checkCreateCSOptions( csName4, options4, true );
-   
+
    //check options = ""
    var options5 = {};
    checkCreateCSOptions( csName5, options5, true );
-     
+
    //check Caped,集群下会报-6错误，单机不会报错
-   var options6 = { Caped : true };
+   var options6 = { Caped: true };
    checkCreateCSOptions( csName6, options6, true );
-   
-   println("---end test---");
+
+   println( "---end test---" );
 }
 
-function checkCreateCSOptions( csName, options, result )
+function checkCreateCSOptions ( csName, options, result )
 {
    try
    {
       db.createCS( csName, options );
-      if( result !== true ){
+      if( result !== true )
+      {
          throw "ERR_CREATE_CAPPEDCS"
       }
       commDropCS( db, csName, true, "drop CS in the end" );
@@ -68,7 +69,7 @@ function checkCreateCSOptions( csName, options, result )
    {
       if( e !== -6 )
       {
-         throw buildException("checkCreateCSOptions()",e,"create cappedCS", "-6",csName+":"+e);
+         throw buildException( "checkCreateCSOptions()", e, "create cappedCS", "-6", csName + ":" + e );
       }
    }
 }

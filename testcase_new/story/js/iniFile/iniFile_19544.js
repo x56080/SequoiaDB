@@ -7,52 +7,52 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 
-function main()
+function main ()
 {
-    var filePath = WORKDIR + "/ini19544/";
-    var fileName = "file19544";
-    var fileFullPath = filePath + fileName;
-    makeIniFile(filePath, fileName);
-    
-    var section = "mysql";
-    
-    var key = "mysql";
-    var value = "sequoiasql-mysql";
-    
-    var itemComment = "This comment is intended to illustrate the purpose of the item";
-    
-    var content = "; test item comment\n" +
-                  key + "=" + value + "\n" +
-                  "; test section comment\n" +                 
-                  "[" + section + "]\n" +
-                  key + "=" + value + "\n" +
-                  "; test last comment";
-                  
-    initFile(fileFullPath, content);
-    
-    var iniFile = new IniFile(fileFullPath);
-    
-    //设置注释
-    iniFile.setComment(section, key, itemComment);
-    iniFile.setComment(key, itemComment);
-    iniFile.save();  
-    
-    var checkFile = new IniFile(fileFullPath);
-    var checkComment1 = checkFile.getComment(key);
-    compareValue(itemComment, checkComment1);
-    var checkComment2 = checkFile.getComment(section, key);
-    compareValue(itemComment, checkComment2);
-    var checkComment3 = checkFile.getSectionComment(section);
-    compareValue("test section comment", checkComment3);
-    
-    deleteIniFile(filePath);
+   var filePath = WORKDIR + "/ini19544/";
+   var fileName = "file19544";
+   var fileFullPath = filePath + fileName;
+   makeIniFile( filePath, fileName );
+
+   var section = "mysql";
+
+   var key = "mysql";
+   var value = "sequoiasql-mysql";
+
+   var itemComment = "This comment is intended to illustrate the purpose of the item";
+
+   var content = "; test item comment\n" +
+      key + "=" + value + "\n" +
+      "; test section comment\n" +
+      "[" + section + "]\n" +
+      key + "=" + value + "\n" +
+      "; test last comment";
+
+   initFile( fileFullPath, content );
+
+   var iniFile = new IniFile( fileFullPath );
+
+   //设置注释
+   iniFile.setComment( section, key, itemComment );
+   iniFile.setComment( key, itemComment );
+   iniFile.save();
+
+   var checkFile = new IniFile( fileFullPath );
+   var checkComment1 = checkFile.getComment( key );
+   compareValue( itemComment, checkComment1 );
+   var checkComment2 = checkFile.getComment( section, key );
+   compareValue( itemComment, checkComment2 );
+   var checkComment3 = checkFile.getSectionComment( section );
+   compareValue( "test section comment", checkComment3 );
+
+   deleteIniFile( filePath );
 }

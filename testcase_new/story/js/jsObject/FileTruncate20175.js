@@ -7,119 +7,119 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 
-function main()
+function main ()
 {
    var loaclFilePath = WORKDIR + "/localFile20175/";
    var remoteFilePath = WORKDIR + "/remoteFile20175/";
    var fileName = "file20175";
    var fileSize = 1024;
    var content = "";
-   for(var i = 0; i < fileSize; i++)
+   for( var i = 0; i < fileSize; i++ )
    {
       var content = content + "a";
    }
-   
-   var localFile1 = createFile(loaclFilePath, fileName + "_1", content, true);
-   localFile1.truncate(fileSize);
+
+   var localFile1 = createFile( loaclFilePath, fileName + "_1", content, true );
+   localFile1.truncate( fileSize );
    localFile1.close();
-   checkTruncateResult(loaclFilePath, fileName + "_1", content, true);
-   
-   var localFile2 = createFile(loaclFilePath, fileName + "_2", content, true);
-   localFile2.truncate(fileSize / 2);
+   checkTruncateResult( loaclFilePath, fileName + "_1", content, true );
+
+   var localFile2 = createFile( loaclFilePath, fileName + "_2", content, true );
+   localFile2.truncate( fileSize / 2 );
    localFile2.close();
-   checkTruncateResult(loaclFilePath, fileName + "_2", content.substr(0, fileSize / 2), true);
-   
-   var localFile3 = createFile(loaclFilePath, fileName + "_3", content, true);
-   localFile3.truncate(fileSize * 2);
+   checkTruncateResult( loaclFilePath, fileName + "_2", content.substr( 0, fileSize / 2 ), true );
+
+   var localFile3 = createFile( loaclFilePath, fileName + "_3", content, true );
+   localFile3.truncate( fileSize * 2 );
    localFile3.close();
-   checkTruncateResult(loaclFilePath, fileName + "_3", content, true);
-   
-   var localFile4 = createFile(loaclFilePath, fileName + "_4", content, true);
-   localFile4.truncate(0);
+   checkTruncateResult( loaclFilePath, fileName + "_3", content, true );
+
+   var localFile4 = createFile( loaclFilePath, fileName + "_4", content, true );
+   localFile4.truncate( 0 );
    localFile4.close();
-   checkTruncateResult(loaclFilePath, fileName + "_4", null, true);
-   
-   var localFile5 = createFile(loaclFilePath, fileName + "_5", content, true);
+   checkTruncateResult( loaclFilePath, fileName + "_4", null, true );
+
+   var localFile5 = createFile( loaclFilePath, fileName + "_5", content, true );
    localFile5.truncate();
    localFile5.close();
-   checkTruncateResult(loaclFilePath, fileName + "_5", null, true);
-   
-   var remoteFile1 = createFile(remoteFilePath, fileName + "_1", content, false);
-   remoteFile1.truncate(fileSize);
+   checkTruncateResult( loaclFilePath, fileName + "_5", null, true );
+
+   var remoteFile1 = createFile( remoteFilePath, fileName + "_1", content, false );
+   remoteFile1.truncate( fileSize );
    remoteFile1.close();
-   checkTruncateResult(remoteFilePath, fileName + "_1", content, false);
-   
-   var remoteFile2 = createFile(remoteFilePath, fileName + "_2", content, false);
-   remoteFile2.truncate(fileSize / 2);
+   checkTruncateResult( remoteFilePath, fileName + "_1", content, false );
+
+   var remoteFile2 = createFile( remoteFilePath, fileName + "_2", content, false );
+   remoteFile2.truncate( fileSize / 2 );
    remoteFile2.close();
-   checkTruncateResult(remoteFilePath, fileName + "_2", content.substr(0, fileSize / 2), false);
-   
-   var remoteFile3 = createFile(remoteFilePath, fileName + "_3", content, false);
-   remoteFile3.truncate(fileSize * 2);
+   checkTruncateResult( remoteFilePath, fileName + "_2", content.substr( 0, fileSize / 2 ), false );
+
+   var remoteFile3 = createFile( remoteFilePath, fileName + "_3", content, false );
+   remoteFile3.truncate( fileSize * 2 );
    remoteFile3.close();
-   checkTruncateResult(remoteFilePath, fileName + "_3", content, false);
-   
-   var remoteFile4 = createFile(remoteFilePath, fileName + "_4", content, false);
-   remoteFile4.truncate(0);
+   checkTruncateResult( remoteFilePath, fileName + "_3", content, false );
+
+   var remoteFile4 = createFile( remoteFilePath, fileName + "_4", content, false );
+   remoteFile4.truncate( 0 );
    remoteFile4.close();
-   checkTruncateResult(remoteFilePath, fileName + "_4", null, false);
-   
-   var remoteFile5 = createFile(remoteFilePath, fileName + "_5", content, false);
+   checkTruncateResult( remoteFilePath, fileName + "_4", null, false );
+
+   var remoteFile5 = createFile( remoteFilePath, fileName + "_5", content, false );
    remoteFile5.truncate();
    remoteFile5.close();
-   checkTruncateResult(remoteFilePath, fileName + "_5", null, false);
-   
-   removeFile(loaclFilePath, true);
-   removeFile(remoteFilePath, false);
+   checkTruncateResult( remoteFilePath, fileName + "_5", null, false );
+
+   removeFile( loaclFilePath, true );
+   removeFile( remoteFilePath, false );
 }
 
-function createFile(filePath, fileName, content, isLocal)
+function createFile ( filePath, fileName, content, isLocal )
 {
-   
-   if(isLocal)
+
+   if( isLocal )
    {
-      File.mkdir(filePath);
-      var file = new File(filePath + fileName);
+      File.mkdir( filePath );
+      var file = new File( filePath + fileName );
    }
    else
    {
-      var remote = new Remote(COORDHOSTNAME, CMSVCNAME);
-      remote.getFile().mkdir(filePath);
-      var file = remote.getFile(filePath + fileName);
+      var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
+      remote.getFile().mkdir( filePath );
+      var file = remote.getFile( filePath + fileName );
    }
-   
-   file.write(content);
+
+   file.write( content );
    return file;
 }
 
-function checkTruncateResult(filePath, fileName, expContent, isLocal)
+function checkTruncateResult ( filePath, fileName, expContent, isLocal )
 {
-   if(isLocal)
+   if( isLocal )
    {
-      var file = new File(filePath + fileName);
+      var file = new File( filePath + fileName );
    }
    else
    {
-      var remote = new Remote(COORDHOSTNAME, CMSVCNAME);
-      var file = remote.getFile(filePath + fileName);
+      var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
+      var file = remote.getFile( filePath + fileName );
    }
-   
-   if(expContent != null)
+
+   if( expContent != null )
    {
       var actStr = file.read();
       file.close();
-      if(actStr != expContent)
+      if( actStr != expContent )
       {
-         throw new Error("check file content error, \nexp: " + expContent + ", \nact: " + actStr);
+         throw new Error( "check file content error, \nexp: " + expContent + ", \nact: " + actStr );
       }
    }
    else
@@ -129,11 +129,11 @@ function checkTruncateResult(filePath, fileName, expContent, isLocal)
          file.read();
          throw "ERROR_READ_FILE";
       }
-      catch(e)
+      catch( e )
       {
-         if(e != -9)
+         if( e != -9 )
          {
-            throw new Error("read null file, exp: -9, act: " + e);
+            throw new Error( "read null file, exp: -9, act: " + e );
          }
       }
       finally
@@ -141,18 +141,18 @@ function checkTruncateResult(filePath, fileName, expContent, isLocal)
          file.close();
       }
    }
-   
+
 }
 
-function removeFile(filePath, isLocal)
+function removeFile ( filePath, isLocal )
 {
-   if(isLocal)
+   if( isLocal )
    {
-      File.remove(filePath);
+      File.remove( filePath );
    }
    else
    {
-      var remote = new Remote(COORDHOSTNAME, CMSVCNAME);
-      remote.getFile().remove(filePath);
+      var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
+      remote.getFile().remove( filePath );
    }
 }

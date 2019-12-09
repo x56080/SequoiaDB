@@ -1,50 +1,50 @@
 /* *****************************************************************************
 @discretion: setSessionAttr(),set instatceid is same as the other node subscript
-@author£º2018-1-24 wuyan  Init
+@authorï¿½ï¿½2018-1-24 wuyan  Init
 ***************************************************************************** */
-import ("../sessionAccess/commlib.js");
+import( "../sessionAccess/commlib.js" );
 main();
 
-function main()
-{	  
-	try
-	{	  
-      var clName = CHANGEDPREFIX + "_sessionAcess14085";      
-      var db = new Sdb(COORDHOSTNAME, COORDSVCNAME ) ; 
-      
+function main ()
+{
+   try
+   {
+      var clName = CHANGEDPREFIX + "_sessionAcess14085";
+      var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+
       //create group and node
       var groupName = "group14085";
       var nodeList = [];
-      var instanceidList = [ 2, 0, 0 ]; 
-      nodeList = createRGAndNode(db, groupName, instanceidList);  
-         
+      var instanceidList = [2, 0, 0];
+      nodeList = createRGAndNode( db, groupName, instanceidList );
+
       //create cl ,then insert data  
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {ReplSize:0,Group:groupName});  
-      insertData( dbcl);
-      
+      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
+      insertData( dbcl );
+
       //set one node instanceid is 2,the same as the nodesubscript is 2
-      println("---begin to set instanceid ");       
-      var instanceid = 2; 
-      var accessCount = {}; 
-      var expSvcNameList = getSvcNameList(db,groupName);           
-      var expAccessNode = [expSvcNameList[0], expSvcNameList[ instanceid -1 ]] ;       
-      for(  var i = 0; i < 20; i++ ) 
+      println( "---begin to set instanceid " );
+      var instanceid = 2;
+      var accessCount = {};
+      var expSvcNameList = getSvcNameList( db, groupName );
+      var expAccessNode = [expSvcNameList[0], expSvcNameList[instanceid - 1]];
+      for( var i = 0; i < 20; i++ ) 
       {
-         db.setSessionAttr( { PreferedInstance: instanceid } ) ; 
-         var actAccessNode = getAccessNode( dbcl);
+         db.setSessionAttr( { PreferedInstance: instanceid } );
+         var actAccessNode = getAccessNode( dbcl );
          checkAcessNodeResult( actAccessNode, expAccessNode );
-         storageNodeAccessCount(actAccessNode, accessCount) ; 
-      } 
-      checkRandomAccessResult( expAccessNode, accessCount);         
-      println("---end to set instanceid ");
+         storageNodeAccessCount( actAccessNode, accessCount );
+      }
+      checkRandomAccessResult( expAccessNode, accessCount );
+      println( "---end to set instanceid " );
    }
    catch( e )
    {
-      println("catch e : " + e);
-      //½«ÐÂ½¨×éÈÕÖ¾±¸·Ýµ½/tmp/ci/rsrvnodelogÄ¿Â¼ÏÂ
+      println( "catch e : " + e );
+      //ï¿½ï¿½ï¿½Â½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½Ýµï¿½/tmp/ci/rsrvnodelogÄ¿Â¼ï¿½ï¿½
       var backupDir = "/tmp/ci/rsrvnodelog/14085";
-      File.mkdir(backupDir);
-      for(var i = 0 ; i < nodeList.length ; i++)
+      File.mkdir( backupDir );
+      for( var i = 0; i < nodeList.length; i++ )
       {
          File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
       }
@@ -54,8 +54,8 @@ function main()
    {
       if( db != null )
       {
-         commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" ) ;
-         db.removeRG(groupName);
+         commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" );
+         db.removeRG( groupName );
          db.close()
       }
    }

@@ -5,37 +5,37 @@
 ****************************************************/
 main();
 
-function main()
-{	
+function main ()
+{
 	try
-	{  
-		var cl = readyCL({ReplSize:0});
-		
+	{
+		var cl = readyCL( { ReplSize: 0 } );
+
 		//generate a lob file
-      var fileName = CHANGEDPREFIX + "_lobtest.file";
-      var fileSize = "10M";
-      var srcMd5 = create1File( fileName, fileSize );//md5sum of source file
-      
-      //put lob and check
-      var lobNum = 1;
-	   var lobIdArr = putSomeLobs( cl, fileName, lobNum );
-	   var expLobArr = lobIdArr;
-	   checkLob( cl, expLobArr, srcMd5 );
-	   
-	   //delete lob and check
-	   deleteSomeLobs( cl, lobIdArr );
-	   var expLobArr = [];
-      checkLob( cl, expLobArr, "" );
-				
+		var fileName = CHANGEDPREFIX + "_lobtest.file";
+		var fileSize = "10M";
+		var srcMd5 = create1File( fileName, fileSize );//md5sum of source file
+
+		//put lob and check
+		var lobNum = 1;
+		var lobIdArr = putSomeLobs( cl, fileName, lobNum );
+		var expLobArr = lobIdArr;
+		checkLob( cl, expLobArr, srcMd5 );
+
+		//delete lob and check
+		deleteSomeLobs( cl, lobIdArr );
+		var expLobArr = [];
+		checkLob( cl, expLobArr, "" );
+
 		clean();
 	}
-	catch(e)
+	catch( e )
 	{
 		throw e;
 	}
 	finally
 	{
-	   var cmd = new Cmd();
-	   cmd.run( "rm -rf *" + CHANGEDPREFIX + "*.file" );
+		var cmd = new Cmd();
+		cmd.run( "rm -rf *" + CHANGEDPREFIX + "*.file" );
 	}
 }

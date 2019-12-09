@@ -6,42 +6,42 @@
 *******************************************************************************/
 main();
 
-function main()
-{	  
-	try
-	{	
+function main ()
+{
+   try
+   {
       var csName = COMMCSNAME;
       var clName = COMMCLNAME;
-      
+
       //insert records > 128M
-      var cl = new Collection( csName, clName, {ReplSize:0} );
+      var cl = new Collection( csName, clName, { ReplSize: 0 } );
       cl.create();
       cl.insert( 1000, "string", ['a', 'b', 'c'] );
-      
+
       //cursor not close
       var rc = db.getCS( csName ).getCL( clName ).find();
       rc.next();
-      
+
       var hasDataContext = checkContext();
-      
+
       //drop cs
       if( hasDataContext === true )
       {
          dropcsDiffSession( csName );
-         dropcsSameSession( csName );                          
+         dropcsSameSession( csName );
       }
-      
+
    }
    catch( e )
    {
-      throw e ;
+      throw e;
    }
 }
 
-function checkContext()
+function checkContext ()
 {
    println( "---begin to check context is exits or not" );
-   
+
    var sp = db.snapshot( SDB_SNAP_CONTEXTS_CURRENT );
    var hasDataContext = false;
    while( sp.next() && hasDataContext === false )
@@ -50,30 +50,30 @@ function checkContext()
       for( var i in ct )
       {
          var contextType = ct[i].Type;
-         if( contextType == "DATA") 
+         if( contextType == "DATA" ) 
          {
             hasDataContext = true;
             break;
          }
       }
    }
-   println( "-----'DATA' Context = "+ hasDataContext );
-   
+   println( "-----'DATA' Context = " + hasDataContext );
+
    return hasDataContext;
 }
 
-function dropcsSameSession( csName )
+function dropcsSameSession ( csName )
 {
    println( "---begin to drop cs in the same session" );
    db.dropCS( csName );
-   
-   println( "---begin to get cs" );  
+
+   println( "---begin to get cs" );
    try
-   {  
+   {
       db.getCS( csName );
       throw "did not throw error, expect throw -34";
    }
-   catch(e)
+   catch( e )
    {
       if( e !== -34 )
       {
@@ -82,23 +82,23 @@ function dropcsSameSession( csName )
    }
 }
 
-function dropcsDiffSession( csName )
+function dropcsDiffSession ( csName )
 {
-   println( "---begin to drop cs in another session" );       
+   println( "---begin to drop cs in another session" );
    try
-   {   
+   {
       dbAnother = new Sdb( COORDHOSTNAME, COORDSVCNAME );
       dbAnother.dropCS( csName );
       throw "did not throw error, expect throw -147";
    }
-   catch(e)
+   catch( e )
    {
       if( e !== -147 )
       {
          throw e;
       }
    }
-   
-   println( "---begin to get cs" );  
+
+   println( "---begin to get cs" );
    db.getCS( csName );
 }

@@ -3,38 +3,38 @@
 *@Modify list :
 *              2015-10-10 huangxiaoni
 *******************************************************************************/
-function dropDM( domainName, ignoreNotExist, message )
+function dropDM ( domainName, ignoreNotExist, message )
 {
-   if ( ignoreNotExist == undefined ) 
+   if( ignoreNotExist == undefined ) 
    {
-	   ignoreNotExist = true ; 
+      ignoreNotExist = true;
    }
-   if ( message == undefined ) 
-   { 
-	   message = "" ; 
+   if( message == undefined ) 
+   {
+      message = "";
    }
-	 
+
    try
    {
       var dm = db.getDomain( domainName );
       var rc = dm.listCollectionSpaces();
       while( rc.next() )                                                                                         
-      {                                                                            
+      {
          var csInDomain = rc.current().toObj().Name;
-         db.dropCS( csInDomain );                        
+         db.dropCS( csInDomain );
       }
-      
+
       db.dropDomain( domainName );
    }
-   catch ( e )
+   catch( e )
    {
-      if ( e != -214 || !ignoreNotExist )
+      if( e != -214 || !ignoreNotExist )
       {
-         throw buildException("dropDM", e, "[dropDomain:"+ domainName +"]", 
-                              "e:-214", "[e:"+ e +"]");
+         throw buildException( "dropDM", e, "[dropDomain:" + domainName + "]",
+            "e:-214", "[e:" + e + "]" );
       }
    }
-} 
+}
 
 /* ****************************************************
 @description: get dataRG Info
@@ -42,13 +42,13 @@ function dropDM( domainName, ignoreNotExist, message )
    [nameStr] "GroupName","HostName","svcname"
 @return: groupArray
 **************************************************** */
-function getDataGroupsName()
-{  
-   var tmpArray = commGetGroups( db ); 
+function getDataGroupsName ()
+{
+   var tmpArray = commGetGroups( db );
    var groupNameArray = new Array;
-   for( i = 0 ; i < tmpArray.length; i++ )
+   for( i = 0; i < tmpArray.length; i++ )
    {
       groupNameArray.push( tmpArray[i][0].GroupName );
-   } 
-   return groupNameArray ;
+   }
+   return groupNameArray;
 }

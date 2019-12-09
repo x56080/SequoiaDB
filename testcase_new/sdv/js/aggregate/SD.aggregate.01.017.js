@@ -4,64 +4,64 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_aggre"
-      
+      var clName = COMMCLNAME + "_aggre"
+
       var cl = readyCL();
-   	
+
       insertRecs( cl );
       var rc = aggreOper( cl );
       checkResult( rc );
-   
+
       cleanCL();
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl )
+function insertRecs ( cl )
 {
-   println("\n---Begin to insert records.");
-   
-   cl.insert({no:1,score:80});
+   println( "\n---Begin to insert records." );
+
+   cl.insert( { no: 1, score: 80 } );
 }
 
-function aggreOper( cl )
-{  
-   println("\n---Begin to aggregate records.");
-   
-   var rc = cl.aggregate( {$project:{name:1}} );
-   
-   return rc ;
+function aggreOper ( cl )
+{
+   println( "\n---Begin to aggregate records." );
+
+   var rc = cl.aggregate( { $project: { name: 1 } } );
+
+   return rc;
 }
 
-function checkResult( rc )
-{  
-   println("\n---Begin to check result.");
-   
+function checkResult ( rc )
+{
+   println( "\n---Begin to check result." );
+
    //compare the returned records
    var name = rc.current().toObj()["name"];
    var no = rc.current().toObj()["no"];
    //expect results:{name:null}
-   var expName = null ;
-   var expNo = undefined ;
+   var expName = null;
+   var expNo = undefined;
    if( name !== expName || no !== expNo )
    {
-      throw buildException("checkResult", null, "[compare the records]", 
-                           "[name:"+ expName +",no:"+ expNo +"]", 
-                           "[name:"+ name +",no:"+ no +"]");
+      throw buildException( "checkResult", null, "[compare the records]",
+         "[name:" + expName + ",no:" + expNo + "]",
+         "[name:" + name + ",no:" + no + "]" );
    }
-   
+
    //compare the number of records
-   var nextRecs = rc.next() ;
+   var nextRecs = rc.next();
    if( nextRecs !== undefined )
    {
-      throw buildException("checkResult", null, "[compare the number of records]", 
-                           "[nextRecs:undefined]", "[nextRecs:"+ nextRecs +"]")
+      throw buildException( "checkResult", null, "[compare the number of records]",
+         "[nextRecs:undefined]", "[nextRecs:" + nextRecs + "]" )
    }
 }

@@ -5,71 +5,87 @@
 @Modify list :
                2014-5-21  xiaojun Hu  Init
 ****************************************************************************/
-function main( db )
+function main ( db )
 {
    // drop collection in the beginning
-   commDropCL( db, csName, clName, true, true, "drop collection in the beginning" ) ;
+   commDropCL( db, csName, clName, true, true, "drop collection in the beginning" );
 
    // create collection
-   var idxCL = commCreateCL( db, csName, clName, -1, true, true, false, "create collection" ) ;
+   var idxCL = commCreateCL( db, csName, clName, -1, true, true, false, "create collection" );
 
    // insert data to SDB
    try
    {
-      idxCL.insert({no:001,name:"A",age:2,array1:[{"array2":[{"array3":[{"array4":["array5",
-                    "temp4"]},"temp3"]},"temp2"]},"temp1"]}) ;
-      var i = 0 ;
+      idxCL.insert( {
+         no: 001, name: "A", age: 2, array1: [{
+            "array2": [{
+               "array3": [{
+                  "array4": ["array5",
+                     "temp4"]
+               }, "temp3"]
+            }, "temp2"]
+         }, "temp1"]
+      } );
+      var i = 0;
       do
       {
-         var count = idxCL.count({no:001,name:"A",age:2,array1:[{"array2":[{"array3":[{"array4":["array5",
-                                  "temp4"]},"temp3"]},"temp2"]},"temp1"]}) ;
-         ++i ;
-      }while( i < 10 )
-      if ( 1 != count)
+         var count = idxCL.count( {
+            no: 001, name: "A", age: 2, array1: [{
+               "array2": [{
+                  "array3": [{
+                     "array4": ["array5",
+                        "temp4"]
+                  }, "temp3"]
+               }, "temp2"]
+            }, "temp1"]
+         } );
+         ++i;
+      } while( i < 10 )
+      if( 1 != count )
       {
-         println( "Wrong number of record :"+count ) ;
-         throw "ErrNumRecord" ;
+         println( "Wrong number of record :" + count );
+         throw "ErrNumRecord";
       }
    }
-   catch ( e )
+   catch( e )
    {
-      println( "Failed to insert date after create index : "+e ) ;
-      throw e ;
+      println( "Failed to insert date after create index : " + e );
+      throw e;
    }
 
    // create index
-   createIndex( idxCL, "arrLay5Index", {"array1.array2.array3.array4":1}, true, true ) ;
+   createIndex( idxCL, "arrLay5Index", { "array1.array2.array3.array4": 1 }, true, true );
 
    // inspect index
    try
    {
-      inspecIndex( idxCL, "arrLay5Index", "array1.array2.array3.array4", 1, true, true ) ;
+      inspecIndex( idxCL, "arrLay5Index", "array1.array2.array3.array4", 1, true, true );
    }
-   catch ( e )
+   catch( e )
    {
-      if ( "ErrIdxName" != e )
+      if( "ErrIdxName" != e )
       {
-         throw e ;
+         throw e;
       }
    }
 
    //test find by index 
-   checkExplain( idxCL, {"array1.array2.array3.array4":"temp4"} );
-   
+   checkExplain( idxCL, { "array1.array2.array3.array4": "temp4" } );
+
    //check the result of find  
-   checkResult(idxCL,{array1:[{"array2":[{"array3":[{"array4":["array5","temp4"]},"temp3"]},"temp2"]},"temp1"]});
-   
+   checkResult( idxCL, { array1: [{ "array2": [{ "array3": [{ "array4": ["array5", "temp4"] }, "temp3"] }, "temp2"] }, "temp1"] } );
+
    // drop collection in clean
    //commDropCL( db, csName, clName, false, false,
-              // "drop colleciton in the end" );
+   // "drop colleciton in the end" );
 }
 
 try
 {
-   main( db ) ;
-   db.close() ;
+   main( db );
+   db.close();
 }
-catch ( e )
+catch( e )
 {
-   throw e ;
+   throw e;
 }

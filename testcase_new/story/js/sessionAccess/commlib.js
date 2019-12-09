@@ -3,29 +3,29 @@
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function insertData( dbcl, insertNum)
+function insertData ( dbcl, insertNum )
 {
-   if( undefined == this.number ){ this.number = 5000 ; }
+   if( undefined == this.number ) { this.number = 5000; }
    try
    {
       var docs = [];
       for( var i = 0; i < number; ++i )
-      {      
+      {
          var no = i;
          var a = i;
-         var user = "test"+i;
-         var phone = 13700000000+i;
-         var time = new Date().getTime(); 
-         var doc = {no:no, a:a,customerName:user, phone:phone, openDate:time};      
+         var user = "test" + i;
+         var phone = 13700000000 + i;
+         var time = new Date().getTime();
+         var doc = { no: no, a: a, customerName: user, phone: phone, openDate: time };
          //data example: {"no":5, customerName:"test5", "phone":13700000005, "openDate":1402990912105
-         
+
          docs.push( doc );
-      }	
-      dbcl.insert( docs );       
+      }
+      dbcl.insert( docs );
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException("insertData()",e,"insert", "insert success","insert fail");
+      throw buildException( "insertData()", e, "insert", "insert success", "insert fail" );
    }
 }
 
@@ -34,16 +34,16 @@ function insertData( dbcl, insertNum)
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function getAccessNode(dbcl)
+function getAccessNode ( dbcl )
 {
-   var actAccessNode = "";  
-   var rc = dbcl.find().explain();  
+   var actAccessNode = "";
+   var rc = dbcl.find().explain();
    while( rc.next() )
-   {      
+   {
       var atcObj = rc.current().toObj();
       var actAccessNode = atcObj.NodeName;
-   } 
-   return actAccessNode;  
+   }
+   return actAccessNode;
 }
 
 /************************************
@@ -51,27 +51,27 @@ function getAccessNode(dbcl)
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function getAllAccessNode(dbcl)
+function getAllAccessNode ( dbcl )
 {
    try
    {
-      var actAccessNode = {};  
-      var rc = dbcl.find().explain();  
+      var actAccessNode = {};
+      var rc = dbcl.find().explain();
       while( rc.next() )
-      {      
+      {
          var atcObj = rc.current().toObj();
          var accessNode = atcObj.NodeName;
          var groupName = atcObj.GroupName;
-         actAccessNode[groupName] = accessNode ;
-      } 
+         actAccessNode[groupName] = accessNode;
+      }
    }
-   catch(e)
-   {       
-      throw buildException("getAllAccessNode()",e,"", "success","getNode fail,e="+e);
+   catch( e )
+   {
+      throw buildException( "getAllAccessNode()", e, "", "success", "getNode fail,e=" + e );
    }
-   
-   
-   return actAccessNode;  
+
+
+   return actAccessNode;
 }
 
 /************************************
@@ -79,25 +79,25 @@ function getAllAccessNode(dbcl)
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function checkAcessNodeResult( queryNode, expNodeName )
+function checkAcessNodeResult ( queryNode, expNodeName )
 {
-     
-   if ( typeof(expNodeName) == "object")
-   {     
-      var inArryFlag =  isInArray(expNodeName, queryNode);      
-      if( ! inArryFlag )
-         throw buildException( "check AccessNode(object)", "", "get 'NodeName'", expNodeName, queryNode);     
-   }        
-   
-   else if ( typeof(expNodeName) == "string")
+
+   if( typeof ( expNodeName ) == "object" )
+   {
+      var inArryFlag = isInArray( expNodeName, queryNode );
+      if( !inArryFlag )
+         throw buildException( "check AccessNode(object)", "", "get 'NodeName'", expNodeName, queryNode );
+   }
+
+   else if( typeof ( expNodeName ) == "string" )
    {
       if( queryNode !== expNodeName )
-            throw buildException( "check AccessNode(string)", "", "get 'NodeName'", expNodeName, queryNode );     
+         throw buildException( "check AccessNode(string)", "", "get 'NodeName'", expNodeName, queryNode );
    }
    else
    {
-      throw buildException("checkAcessNodeResult()", "invalid parameter " ); 
-   }  
+      throw buildException( "checkAcessNodeResult()", "invalid parameter " );
+   }
 }
 
 /************************************
@@ -105,11 +105,11 @@ function checkAcessNodeResult( queryNode, expNodeName )
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function checkAllAcessNode( dbcl, queryNode, expNodeName )
-{ 
-   if( !queryNode.sort().toString() == expNodeName.sort().toString() )   
-            throw buildException( "check AllAccessNode", "", "get 'NodeName'", 
-                  expNodeName.toString(), queryNode.toString() );       
+function checkAllAcessNode ( dbcl, queryNode, expNodeName )
+{
+   if( !queryNode.sort().toString() == expNodeName.sort().toString() )
+      throw buildException( "check AllAccessNode", "", "get 'NodeName'",
+         expNodeName.toString(), queryNode.toString() );
 }
 
 /************************************
@@ -117,11 +117,11 @@ function checkAllAcessNode( dbcl, queryNode, expNodeName )
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function isInArray(arry, checkValue)
+function isInArray ( arry, checkValue )
 {
-   for( var i = 0; i < arry.length; i++)
+   for( var i = 0; i < arry.length; i++ )
    {
-      if ( arry[i] == checkValue )
+      if( arry[i] == checkValue )
       {
          return true;
       }
@@ -134,21 +134,21 @@ function isInArray(arry, checkValue)
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function getSessionAndCheckResult(db, expSessionInfo)
+function getSessionAndCheckResult ( db, expSessionInfo )
 {
-   var getSessionInfo = db.getSessionAttr().toObj();  
-  
-   if( JSON.stringify(getSessionInfo.PreferedInstance) !== JSON.stringify(expSessionInfo.PreferedInstance) )
-         throw buildException( "check AccessInfo", "", "get 'PreferedInstance'", expSessionInfo.PreferedInstance, getSessionInfo.PreferedInstance );     
-   
+   var getSessionInfo = db.getSessionAttr().toObj();
+
+   if( JSON.stringify( getSessionInfo.PreferedInstance ) !== JSON.stringify( expSessionInfo.PreferedInstance ) )
+      throw buildException( "check AccessInfo", "", "get 'PreferedInstance'", expSessionInfo.PreferedInstance, getSessionInfo.PreferedInstance );
+
    if( getSessionInfo.PreferedInstanceMode !== expSessionInfo.PreferedInstanceMode )
-         throw buildException( "check AccessInfo", "", "get 'PreferedInstanceMode'", 
-                               expSessionInfo.PreferedInstanceMode, getSessionInfo.PreferedInstanceMode );     
-   
+      throw buildException( "check AccessInfo", "", "get 'PreferedInstanceMode'",
+         expSessionInfo.PreferedInstanceMode, getSessionInfo.PreferedInstanceMode );
+
    if( getSessionInfo.Timeout !== expSessionInfo.Timeout )
-         throw buildException( "check AccessInfo", "", "get 'Timeout'", 
-         expSessionInfo.Timeout, getSessionInfo.Timeout );     
-   
+      throw buildException( "check AccessInfo", "", "get 'Timeout'",
+         expSessionInfo.Timeout, getSessionInfo.Timeout );
+
 }
 
 /************************************
@@ -156,17 +156,17 @@ function getSessionAndCheckResult(db, expSessionInfo)
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function getSvcNameList(db,groupName)
-{   
-   var groupInfo = db.getRG(groupName).getDetail().current().toObj().Group;  
+function getSvcNameList ( db, groupName )
+{
+   var groupInfo = db.getRG( groupName ).getDetail().current().toObj().Group;
    var svcNameList = [];
-   
+
    for( var i in groupInfo )
    {
       var nodeInfo = groupInfo[i].HostName + ":" + groupInfo[i].Service[0].Name;
       svcNameList.push( nodeInfo );
-   }  
-   
+   }
+
    return svcNameList;
 }
 
@@ -175,43 +175,43 @@ function getSvcNameList(db,groupName)
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function createRGAndNode(db, groupName, instanceidList, nodeNum)
+function createRGAndNode ( db, groupName, instanceidList, nodeNum )
 {
-   if ( typeof(nodeNum) == "undefined" ) { nodeNum = 3 ; }
-   if ( typeof(instanceidList) == "undefined" ) { instanceidList = [0,0,0] ; }
-   
+   if( typeof ( nodeNum ) == "undefined" ) { nodeNum = 3; }
+   if( typeof ( instanceidList ) == "undefined" ) { instanceidList = [0, 0, 0]; }
+
    try
    {
-      var rg = db.createRG(groupName);
+      var rg = db.createRG( groupName );
       var nodeHostName = db.listReplicaGroups().current().toObj().Group[0].HostName;
       var nodeList = [];
       var failedCount = 0;
-      for( var i = 0; i < nodeNum; i++)
+      for( var i = 0; i < nodeNum; i++ )
       {
-         var nodeService = parseInt( RSRVPORTBEGIN ) + 10 * ( i + failedCount ) ;
-         var nodePath = RSRVNODEDIR + "data/" + nodeService ;
+         var nodeService = parseInt( RSRVPORTBEGIN ) + 10 * ( i + failedCount );
+         var nodePath = RSRVNODEDIR + "data/" + nodeService;
          var checkSucc = false;
          var times = 0;
          var maxRetryTimes = 10;
-         
+
          //first create node is master node 
-         if (i == 0)
+         if( i == 0 )
          {
-            var config = { instanceid : instanceidList[i], weight:100,diaglevel:5 };
-         } 
+            var config = { instanceid: instanceidList[i], weight: 100, diaglevel: 5 };
+         }
          else
          {
-            var config = { instanceid : instanceidList[i],diaglevel:5};  
+            var config = { instanceid: instanceidList[i], diaglevel: 5 };
          }
-         
+
          do
          {
             try
             {
-               rg.createNode(nodeHostName, nodeService, nodePath, config);
+               rg.createNode( nodeHostName, nodeService, nodePath, config );
                checkSucc = true;
-               var logSourcePath = nodeHostName+":"+CMSVCNAME+"@"+nodePath+"/diaglog/sdbdiag.log";
-               nodeList.push({"hostname": nodeHostName, "svcname": nodeService, "logSourcePath" : logSourcePath});
+               var logSourcePath = nodeHostName + ":" + CMSVCNAME + "@" + nodePath + "/diaglog/sdbdiag.log";
+               nodeList.push( { "hostname": nodeHostName, "svcname": nodeService, "logSourcePath": logSourcePath } );
             }
             catch( e )
             {
@@ -229,19 +229,19 @@ function createRGAndNode(db, groupName, instanceidList, nodeNum)
                times++;
             }
          }
-         while(!checkSucc && times < maxRetryTimes);
+         while( !checkSucc && times < maxRetryTimes );
       }
-      println("start data group..");
+      println( "start data group.." );
       rg.start();
-      
+
       //waiting for the success of the vote
       checkMasterExist( groupName );
-      
+
       return nodeList;
    }
-   catch(e)
-   {       
-      throw buildException("createRGAndNode()",e,"", "create success","createRGAndNode fail,e="+e);
+   catch( e )
+   {
+      throw buildException( "createRGAndNode()", e, "", "create success", "createRGAndNode fail,e=" + e );
    }
 }
 
@@ -250,58 +250,58 @@ function createRGAndNode(db, groupName, instanceidList, nodeNum)
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function createSecondRGAndNode(db, groupName, instanceidList, nodeNum)
+function createSecondRGAndNode ( db, groupName, instanceidList, nodeNum )
 {
-   if ( typeof(nodeNum) == "undefined" ) { nodeNum = 3 ; }
-   if ( typeof(instanceidList) == "undefined" ) { instanceidList = [0,0,0] ; }
-   
+   if( typeof ( nodeNum ) == "undefined" ) { nodeNum = 3; }
+   if( typeof ( instanceidList ) == "undefined" ) { instanceidList = [0, 0, 0]; }
+
    try
    {
-      var rg = db.createRG(groupName);      
+      var rg = db.createRG( groupName );
       var nodeHostName = db.listReplicaGroups().current().toObj().Group[0].HostName;
-      for( var i = 0; i < nodeNum; i++)
-      {         
-         var nodeService = parseInt(RSRVPORTBEGIN) + 100 + i *10;         
-         var nodePath = RSRVNODEDIR + nodeService; 
+      for( var i = 0; i < nodeNum; i++ )
+      {
+         var nodeService = parseInt( RSRVPORTBEGIN ) + 100 + i * 10;
+         var nodePath = RSRVNODEDIR + nodeService;
          //first create node is master node 
-         if (i == 0)
+         if( i == 0 )
          {
-            var config = { instanceid : instanceidList[i], weight:100,diaglevel:5 };
-         } 
+            var config = { instanceid: instanceidList[i], weight: 100, diaglevel: 5 };
+         }
          else
          {
-            var config = { instanceid : instanceidList[i],diaglevel:5};  
+            var config = { instanceid: instanceidList[i], diaglevel: 5 };
          }
-                
-         rg.createNode(nodeHostName, nodeService, nodePath, config);         
+
+         rg.createNode( nodeHostName, nodeService, nodePath, config );
       }
       rg.start();
       //waiting for the success of the vote
       checkMasterExist( groupName );
    }
-   catch(e)
-   {       
-      throw buildException("createSecondRGAndNode()",e,"", "create success","createRGAndNode fail,e="+e);
+   catch( e )
+   {
+      throw buildException( "createSecondRGAndNode()", e, "", "create success", "createRGAndNode fail,e=" + e );
    }
 }
 
-function checkMasterExist( groupName )
+function checkMasterExist ( groupName )
 {
    try
-   {   
-      var sleepInteval=10;
-      var sleepDuration=0;
-      var maxSleepDuration=60000; 
-      var rc = db.exec("select IsPrimary,NodeName from $SNAPSHOT_SYSTEM where GroupName='" + groupName + "' and IsPrimary=true ");
-      var num = rc.size();  
+   {
+      var sleepInteval = 10;
+      var sleepDuration = 0;
+      var maxSleepDuration = 60000;
+      var rc = db.exec( "select IsPrimary,NodeName from $SNAPSHOT_SYSTEM where GroupName='" + groupName + "' and IsPrimary=true " );
+      var num = rc.size();
       while( num != 1 && sleepDuration < maxSleepDuration )
       {
-            sleep( sleepInteval );
-            sleepDuration += sleepInteval;   
-            var rc = db.exec("select IsPrimary,NodeName from $SNAPSHOT_SYSTEM where GroupName='" + groupName + "' and IsPrimary=true ");
-            var num = rc.size(); 
-      }           
-   } 
+         sleep( sleepInteval );
+         sleepDuration += sleepInteval;
+         var rc = db.exec( "select IsPrimary,NodeName from $SNAPSHOT_SYSTEM where GroupName='" + groupName + "' and IsPrimary=true " );
+         var num = rc.size();
+      }
+   }
    catch( e )
    {
       throw e;
@@ -314,25 +314,25 @@ function checkMasterExist( groupName )
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function checkRandomAccessResult( expAccessNode, accessCount)
+function checkRandomAccessResult ( expAccessNode, accessCount )
 {
-   var statSvcNameNum = Object.getOwnPropertyNames(accessCount).length;
+   var statSvcNameNum = Object.getOwnPropertyNames( accessCount ).length;
    if( expAccessNode.length !== statSvcNameNum )
    {
-      throw buildException( "check random AccessNode", "", "get accesscount", 
-                                                expAccessNode.length, statSvcNameNum);
-   }   
+      throw buildException( "check random AccessNode", "", "get accesscount",
+         expAccessNode.length, statSvcNameNum );
+   }
 }
 
-function storageNodeAccessCount(svcName, accessCount)
+function storageNodeAccessCount ( svcName, accessCount )
 {
-   if ( accessCount[svcName] == undefined )
+   if( accessCount[svcName] == undefined )
    {
-      accessCount[svcName] = 1;            
+      accessCount[svcName] = 1;
    }
    else
    {
-       accessCount[svcName]++;      
+      accessCount[svcName]++;
    }
 }
 
@@ -341,33 +341,33 @@ function storageNodeAccessCount(svcName, accessCount)
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-function checkAccessNodeIsPrimary( accessNode, groupName, isPrimary )
-{   
+function checkAccessNodeIsPrimary ( accessNode, groupName, isPrimary )
+{
    try
    {
-      var isPrimaryFlag = new Sdb(accessNode).snapshot(7).current().toObj().IsPrimary;
+      var isPrimaryFlag = new Sdb( accessNode ).snapshot( 7 ).current().toObj().IsPrimary;
       if( isPrimaryFlag !== isPrimary )
       {
-         throw buildException("checkAccessNodeIsPrimary", null, accessNode+" isPriamry status",
-									isPrimary, isPrimaryFlag);
+         throw buildException( "checkAccessNodeIsPrimary", null, accessNode + " isPriamry status",
+            isPrimary, isPrimaryFlag );
       }
    }
-   catch(e)
+   catch( e )
    {
       throw e;
-   }  
+   }
 }
 
-function splitCL(dbcl, srcGroupName, dstGroupName)
+function splitCL ( dbcl, srcGroupName, dstGroupName )
 {
    try
    {
       var percent = 50;
       dbcl.split( srcGroupName, dstGroupName, percent );
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException("splitcl", null, "split fail!",
-									srcGroupName, dstGroupName+"  e:"+e);
-   } 
+      throw buildException( "splitcl", null, "split fail!",
+         srcGroupName, dstGroupName + "  e:" + e );
+   }
 }

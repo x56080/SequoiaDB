@@ -7,37 +7,37 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if(e.constructor === Error)
+   if( e.constructor === Error )
    {
-      println(e.stack);
+      println( e.stack );
    }
    throw e;
 }
 
-function main()
+function main ()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("Deploy is standalone");
+      println( "Deploy is standalone" );
       return;
    }
-   
-   var groups = commGetGroups(db);
+
+   var groups = commGetGroups( db );
    var hostName = groups[0][1].HostName;
    var svcname = groups[0][1].svcname;
    var nodeName = hostName + ":" + svcname;
-   
+
    changeConf( nodeName );
-   var nodeAddresses = [{"hostName": hostName, "svcName": svcname}];
+   var nodeAddresses = [{ "hostName": hostName, "svcName": svcname }];
    stopNodes( nodeAddresses );
    startNodes( nodeAddresses )
 
-   var expResult = [{"transactionon": "FALSE"}];
-   var option = new SdbSnapshotOption().cond( { NodeName:nodeName }, {transaction: ""} ).options( { "mode": "run", "expand": false } );
+   var expResult = [{ "transactionon": "FALSE" }];
+   var option = new SdbSnapshotOption().cond( { NodeName: nodeName }, { transaction: "" } ).options( { "mode": "run", "expand": false } );
    checkResult( option, expResult );
-   
+
    try
    {
       db.deleteConf( { transactionon: 1 }, { 'NodeName': nodeName } );
@@ -46,55 +46,55 @@ function main()
    {
       if( e !== -264 )
       {
-         throw new Error(e);
+         throw new Error( e );
       }
-   }   
-   
-   expResult = [{"transactionon": "FALSE"}];
-   option = new SdbSnapshotOption().cond( { NodeName:nodeName }, {transaction: ""} ).options( { "mode": "run", "expand": false } );
+   }
+
+   expResult = [{ "transactionon": "FALSE" }];
+   option = new SdbSnapshotOption().cond( { NodeName: nodeName }, { transaction: "" } ).options( { "mode": "run", "expand": false } );
    checkResult( option, expResult );
-   
+
    expResult = [{}];
-   option = new SdbSnapshotOption().cond( { NodeName:nodeName }, {transaction: ""} ).options( { "mode": "local", "expand": false } );
+   option = new SdbSnapshotOption().cond( { NodeName: nodeName }, { transaction: "" } ).options( { "mode": "local", "expand": false } );
    checkResult( option, expResult );
 }
 
-function changeConf( nodeName )
+function changeConf ( nodeName )
 {
    try
    {
-      db.updateConf({transactionon: false},{ NodeName: nodeName });
+      db.updateConf( { transactionon: false }, { NodeName: nodeName } );
    }
-   catch(e)
+   catch( e )
    {
-      if(e !== -264)
+      if( e !== -264 )
       {
-         throw new Error(e);
+         throw new Error( e );
       }
    }
 }
 
-function checkResult( option, expResult )
+function checkResult ( option, expResult )
 {
    try
    {
-      var actResult = []; 
+      var actResult = [];
       var cursor = db.snapshot( SDB_SNAP_CONFIGS, option );
       while( cursor.next() )
       {
-         actResult.push({"transactionon": cursor.current().toObj().transactionon});
+         actResult.push( { "transactionon": cursor.current().toObj().transactionon } );
       }
-      if(actResult.length !== expResult.length)
+      if( actResult.length !== expResult.length )
       {
          throw "expectCount is " + actResult.length + ", but actCount is " + expResult.length;
       }
-      if(JSON.stringify(actResult) !== JSON.stringify(expResult))
+      if( JSON.stringify( actResult ) !== JSON.stringify( expResult ) )
       {
-         throw "expectResult is " + JSON.stringify(expResult) + ", but actResult is " + JSON.stringify(actResult);
+         throw "expectResult is " + JSON.stringify( expResult ) + ", but actResult is " + JSON.stringify( actResult );
       }
    }
-   catch(e)
+   catch( e )
    {
-      throw new Error(e);
+      throw new Error( e );
    }
 }

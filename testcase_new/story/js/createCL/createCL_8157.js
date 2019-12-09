@@ -1,18 +1,18 @@
 // create cl.
 // normal case.
 
-TESTCLNAME = CHANGEDPREFIX+"bar";
+TESTCLNAME = CHANGEDPREFIX + "bar";
 
 try
 {
    commDropCL( db, COMMCSNAME, TESTCLNAME, true, true, "drop CL in the beginning" );
 }
-catch (e)
+catch( e )
 {
-   if ( e != -34)
+   if( e != -34 )
    {
-      println( "unexpected err happened when clear cs:" + e ) ;
-      throw e ;
+      println( "unexpected err happened when clear cs:" + e );
+      throw e;
    }
 }
 
@@ -20,49 +20,49 @@ try
 {
    var varCS = commCreateCS( db, COMMCSNAME, true, "failed to create CS" );
 }
-catch ( e )
+catch( e )
 {
    println( "failed to get cs, rc= " + e );
-   throw e ;
+   throw e;
 }
 
 try
 {
-   var varCL = varCS.createCL( TESTCLNAME,{Compressed:true}) ;
+   var varCL = varCS.createCL( TESTCLNAME, { Compressed: true } );
 }
-catch ( e )
+catch( e )
 {
    println( "failed to create cl, rc= " + e );
-   throw e ;
+   throw e;
 }
 
 try
 {
-   var rc = varCS.getCL( TESTCLNAME ) ;
+   var rc = varCS.getCL( TESTCLNAME );
 }
-catch ( e )
+catch( e )
 {
    println( "failed to get cl, rc= " + e );
-   throw e ;
+   throw e;
 }
 
 try
 {
-   varCL.insert({a:1}) ;
+   varCL.insert( { a: 1 } );
 }
-catch ( e )
+catch( e )
 {
    println( "failed to insert record to cl, rc= " + e );
-   throw e ;
+   throw e;
 }
 
 try
 {
    commDropCL( db, COMMCSNAME, TESTCLNAME, false, false, "drop CL in the end" );
 }
-catch (e)
+catch( e )
 {
-   println( "unexpected err happened when clear cs:" + e ) ;
-   throw e ;
+   println( "unexpected err happened when clear cs:" + e );
+   throw e;
 }
 

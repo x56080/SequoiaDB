@@ -3,88 +3,88 @@
 *@Author     :  2019-8-6  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18935_csv_int";
    var csvFile = tmpFileDir + clName + ".csv";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( csvFile );
-   
+
    println( "\n---specify data type int32 to import csv file." );
    var fields = "a int, b int";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 80 );
-   var cond = {"b": {"$type": 2, "$et": "int32"}, "$or": [{"a": {"$gte": 40}}, {"a": {"$lt": 29}}]};
+   var cond = { "b": { "$type": 2, "$et": "int32" }, "$or": [{ "a": { "$gte": 40 } }, { "a": { "$lt": 29 } }] };
    var expResult = getExpResult();
    checkCLData( cl, 69, expResult, cond );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "10";
    var right = "01000000000000000000";
-   for(var i=0; i<20; i++)
+   for( var i = 0; i < 20; i++ )
    {
-      left = "0" + left; 
+      left = "0" + left;
       file.write( i + ", " + left + "." + right + "\n" );
    }
-   
+
    left = "01";
    right = "00000000000000000010";
-   for(var i=20; i<40; i++)
+   for( var i = 20; i < 40; i++ )
    {
-      left = left + "0"; 
+      left = left + "0";
       file.write( i + ", " + left + "." + right + "\n" );
-   } 
-   
+   }
+
    left = "00000000000000000010";
    right = "01";
-   for(var i=40; i<60; i++)
+   for( var i = 40; i < 60; i++ )
    {
-      right = right + "0"; 
+      right = right + "0";
       file.write( i + ", " + left + "." + right + "\n" );
-   }    
-   
+   }
+
    left = "010000000000000000000";
    right = "10";
-   for(var i=60; i<80; i++)
+   for( var i = 60; i < 80; i++ )
    {
-      right = right + "0"; 
+      right = right + "0";
       file.write( i + ", " + left + "." + right + "\n" );
-   } 
-   
+   }
+
    file.close();
 }
 
-function getExpResult()
+function getExpResult ()
 {
-   var expResult = []; 
+   var expResult = [];
    var left = "10";
-   for(var i=0; i<20; i++)
+   for( var i = 0; i < 20; i++ )
    {
       expResult.push( { a: i, b: parseInt( left ) } );
    }
    //当浮点数的整数位有效数字大于int32的最大值,导入后的数据显示为其他值，因此不校验i>=9导入后的结果
    left = "1";
-   for(var i=20; i<29; i++)
+   for( var i = 20; i < 29; i++ )
    {
-      left = left + "0"; 
-      expResult.push({ a: i, b: parseInt( left ) });
-   } 
+      left = left + "0";
+      expResult.push( { a: i, b: parseInt( left ) } );
+   }
    left = "10";
-   for(var i=40; i<60; i++)
+   for( var i = 40; i < 60; i++ )
    {
-      expResult.push({ a: i, b: parseInt( left ) });
-   } 
+      expResult.push( { a: i, b: parseInt( left ) } );
+   }
    //当浮点数的整数部分大于int64的最大值时，指定int32导入集合，显示为0
    left = "0";
-   for(var i=60; i<80; i++)
+   for( var i = 60; i < 80; i++ )
    {
-      expResult.push({ a: i, b: parseInt( left ) });
-   }    
-   return JSON.stringify(expResult);
+      expResult.push( { a: i, b: parseInt( left ) } );
+   }
+   return JSON.stringify( expResult );
 }

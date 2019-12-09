@@ -3,60 +3,67 @@
 @Modify list :
               2018-10-25  YinZhen  Create
 ****************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db )){
-      println("Deploy is standalone");
+   if( commIsStandalone( db ) )
+   {
+      println( "Deploy is standalone" );
       return;
    }
 
    var clName = COMMCLNAME + "_ES_11985";
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
-   var dbcl = commCreateCL(db, COMMCSNAME, clName, 0);
-   
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+
    //创建索引名已存在的全文索引
    var indexName = "a_11985";
-   dbcl.createIndex( indexName, {about : 1});
+   dbcl.createIndex( indexName, { about: 1 } );
    commCheckIndex( dbcl, indexName, true );
-   try{
-      dbcl.createIndex( indexName, {content:"text"});
-      throw new Error("CREATEINDEXERR");
+   try
+   {
+      dbcl.createIndex( indexName, { content: "text" } );
+      throw new Error( "CREATEINDEXERR" );
    }
-   catch( e ){
-      if( e != -46){
-         throw new Error("create duplicate index success");
+   catch( e )
+   {
+      if( e != -46 )
+      {
+         throw new Error( "create duplicate index success" );
       }
    }
-   
+
    //在已存在全文索引定义的集合中，再次创建全文索引
-   dbcl.createIndex( "b_11985", {content:"text"});
+   dbcl.createIndex( "b_11985", { content: "text" } );
    commCheckIndex( dbcl, "b_11985", true );
-   try{
-      dbcl.createIndex( "c_11985", {content:"text"});
-      throw new Error("CREATEINDEXERR") ;
+   try
+   {
+      dbcl.createIndex( "c_11985", { content: "text" } );
+      throw new Error( "CREATEINDEXERR" );
    }
-   catch( e ){
-      if( e != -42){
-         throw new Error("create index on same field success");
+   catch( e )
+   {
+      if( e != -42 )
+      {
+         throw new Error( "create index on same field success" );
       }
    }
-   
+
    var dbOperator = new DBOperator();
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, "b_11985");
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "b_11985" );
+   commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(esIndexNames);
+   checkIndexNotExistInES( esIndexNames );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

@@ -3,113 +3,113 @@
 @Modify list :
               2019-2-21  Zhao Xiaoni  Create
 ****************************************************************************/
-function main()
+function main ()
 {
    var coordNodes = getCoordNodeNames();
    var coordNum = coordNodes.length;
-   if(commIsStandalone( db ) || coordNum !== 3)
+   if( commIsStandalone( db ) || coordNum !== 3 )
    {
-      println("Deploy is standalone or coord num !=3");
-	   return;
+      println( "Deploy is standalone or coord num !=3" );
+      return;
    }
-   var sortField=0;
+   var sortField = 0;
    var increment = 1;
    var currentValue = 1
    var cacheSize = 1000;
    var acquireSize = 11;
-   var clName = COMMCLNAME + "_17890";   
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
-   var dbcl = commCreateCLByOption(db, COMMCSNAME, clName, {AutoIncrement:{Field:"a.b.c", AcquireSize:acquireSize, CacheSize:cacheSize}});
-   commCreateIndex(dbcl, "index", {"a.b.c" : 1}, true, true);
-   
+   var clName = COMMCLNAME + "_17890";
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
+   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a.b.c", AcquireSize: acquireSize, CacheSize: cacheSize } } );
+   commCreateIndex( dbcl, "index", { "a.b.c": 1 }, true, true );
+
    var expR = [];
    var cl = new Array();
    var coord = new Array();
-   for(var k=0; k<coordNum; k++ )
+   for( var k = 0; k < coordNum; k++ )
    {
-      coord[k] = new Sdb(coordNodes[k]);
-      println("coord:" + coord[k]);
-      cl[k] = coord[k].getCS(COMMCSNAME).getCL(clName);
+      coord[k] = new Sdb( coordNodes[k] );
+      println( "coord:" + coord[k] );
+      cl[k] = coord[k].getCS( COMMCSNAME ).getCL( clName );
       //连接所有coord插入部分记录,coord缓存分别为[1,11],[12,22],[23,33]
       var doc = [];
-      for(var i=0; i<3; i++)
+      for( var i = 0; i < 3; i++ )
       {
-         doc.push({h:sortField});
-         expR.push({h:sortField, a : {b : {c : currentValue + Math.ceil(3/acquireSize)*acquireSize*increment*k + increment*i}}});
+         doc.push( { h: sortField } );
+         expR.push( { h: sortField, a: { b: { c: currentValue + Math.ceil( 3 / acquireSize ) * acquireSize * increment * k + increment * i } } } );
          sortField++;
       }
-      cl[k].insert(doc);
+      cl[k].insert( doc );
    }
-   println("---prepare insert success");
-   
+   println( "---prepare insert success" );
+
    //coordB指定自增字段值插入记录，插入值落在当前coord缓存范围，大于nextValue
    var insertValue = 18;
-   var record = {a : {b : {c : insertValue}},h:sortField};
-   cl[1].insert(record);
-   expR.push(record);
+   var record = { a: { b: { c: insertValue } }, h: sortField };
+   cl[1].insert( record );
+   expR.push( record );
    sortField++;
-   println("---insert set autoIncrement>nextValue success");
-   
+   println( "---insert set autoIncrement>nextValue success" );
+
    //coordA再次插入，不指定自增字段
-   cl[0].insert({h:sortField});
-   expR.push({h:sortField, a : {b : {c : 4}}});
+   cl[0].insert( { h: sortField } );
+   expR.push( { h: sortField, a: { b: { c: 4 } } } );
    sortField++;
-   println("---coordA insert success");
-   
+   println( "---coordA insert success" );
+
    //coordB再次插入，不指定自增字段
-   cl[1].insert({h:sortField});
-   expR.push({h:sortField, a : {b : {c : insertValue + increment}}});
+   cl[1].insert( { h: sortField } );
+   expR.push( { h: sortField, a: { b: { c: insertValue + increment } } } );
    sortField++;
-   println("---coordB insert success");
-   
+   println( "---coordB insert success" );
+
    //coordC再次插入，不指定自增字段
-   cl[2].insert({h:sortField});
-   expR.push({h:sortField, a : {b : {c : 26}}});
+   cl[2].insert( { h: sortField } );
+   expR.push( { h: sortField, a: { b: { c: 26 } } } );
    sortField++;
-   println("---coordC insert success");
-   
+   println( "---coordC insert success" );
+
    //coordB指定自增字段值插入记录，插入值落在当前coord缓存范围，小于nextValue
    var insertValue = 16;
-   var record = {a : {b : {c : insertValue}},h:sortField};
-   cl[1].insert(record);
-   expR.push(record);
+   var record = { a: { b: { c: insertValue } }, h: sortField };
+   cl[1].insert( record );
+   expR.push( record );
    sortField++;
-   println("---insert set autoIncrement<nextValue success");
-   
+   println( "---insert set autoIncrement<nextValue success" );
+
    //coordA再次插入，不指定自增字段
-   cl[0].insert({h:sortField});
-   expR.push({h:sortField, a : {b : {c : 5}}});
+   cl[0].insert( { h: sortField } );
+   expR.push( { h: sortField, a: { b: { c: 5 } } } );
    sortField++;
-   println("---coordA insert success");
-   
+   println( "---coordA insert success" );
+
    //coordB再次插入，不指定自增字段
-   cl[1].insert({h:sortField});
-   expR.push({h:sortField, a : {b : {c : 20}}});
+   cl[1].insert( { h: sortField } );
+   expR.push( { h: sortField, a: { b: { c: 20 } } } );
    sortField++;
-   println("---coordB insert success");
-   
+   println( "---coordB insert success" );
+
    //coordC再次插入，不指定自增字段
-   cl[2].insert({h:sortField});
-   expR.push({h:sortField, a : {b : {c : 27}}});
+   cl[2].insert( { h: sortField } );
+   expR.push( { h: sortField, a: { b: { c: 27 } } } );
    sortField++;
-   println("---coordC insert success");
-   
-   var actR = dbcl.find().sort({h:1});
-   checkRec(actR, expR);
-   println("---check insert success");
-   
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   println( "---coordC insert success" );
+
+   var actR = dbcl.find().sort( { h: 1 } );
+   checkRec( actR, expR );
+   println( "---check insert success" );
+
+   commDropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

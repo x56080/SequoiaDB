@@ -24,54 +24,54 @@ catch( e )
 }
 ;
 
-function main()
+function main ()
 {
    var cl = commCreateCL( db, COMMCSNAME, clName );
-   
+
    cl.insert( { a: 1 } );
    cl.insert( { a: 2 } );
-   
+
    cursorArrayAccess( cl );
    queryIndex( cl );
    queryArrayAccess( cl );
    queryFlags( cl );
    queryClose( cl );
    queryMeta( cl );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function cursorArrayAccess( cl )
+function cursorArrayAccess ( cl )
 {
    try
    {
       var cursor = cl.find().sort( { a: 1 } );
-      
+
       var a1 = JSON.parse( cursor.arrayAccess( 0 ) )["a"];
       var a2 = JSON.parse( cursor.arrayAccess( 1 ) )["a"];
       if( a1 !== 1 || a2 !== 2 )
       {
          throw "expect: 1 2, actual: " + a1 + " " + a2;
       }
-      
-      var illegalIdx = [ 'b', -1, 1.2, 2 ];
-      for( var i = 0; i < illegalIdx.length; i++)
+
+      var illegalIdx = ['b', -1, 1.2, 2];
+      for( var i = 0; i < illegalIdx.length; i++ )
       {
          if( cursor.arrayAccess( illegalIdx[i] ) !== undefined )
          {
             throw "check arrayAccess with idx " + illegalIdx[i];
          }
       }
-      
+
    }
    catch( e )
    {
       throw new Error( e );
    }
-   
+
 }
 
-function queryIndex( cl )
+function queryIndex ( cl )
 {
    try
    {
@@ -81,26 +81,26 @@ function queryIndex( cl )
       {
          throw "expect: 1 2, actual: " + a1 + " " + a2;
       }
-      
-      var illegalIdx = [ 'b', -1, 1.2, 2 ];
-      for( var i = 0; i < illegalIdx.length; i++)
+
+      var illegalIdx = ['b', -1, 1.2, 2];
+      for( var i = 0; i < illegalIdx.length; i++ )
       {
-         if( cl.find().sort( { a: 1 } )[ illegalIdx[i] ] !== undefined )
+         if( cl.find().sort( { a: 1 } )[illegalIdx[i]] !== undefined )
          {
             throw "check queryIndex with idx " + illegalIdx[i];
          }
       }
-      
+
    }
    catch( e )
    {
       throw new Error( e );
-      
+
    }
-   
+
 }
 
-function queryArrayAccess( cl )
+function queryArrayAccess ( cl )
 {
    try
    {
@@ -110,25 +110,25 @@ function queryArrayAccess( cl )
       {
          throw "expect: 1 2, actual: " + a1 + " " + a2;
       }
-      
-      var illegalIdx = [ 'b', -1, 1.2, 2 ];
-      for( var i = 0; i < illegalIdx.length; i++)
+
+      var illegalIdx = ['b', -1, 1.2, 2];
+      for( var i = 0; i < illegalIdx.length; i++ )
       {
          if( cl.find().sort( { a: 1 } ).arrayAccess( illegalIdx[i] ) !== undefined )
          {
             throw "check queryArrayAccess with idx " + illegalIdx[i];
          }
       }
-      
+
    }
    catch( e )
    {
       throw new Error( e );
    }
-   
+
 }
 
-function queryFlags( cl )
+function queryFlags ( cl )
 {
    try
    {
@@ -148,7 +148,7 @@ function queryFlags( cl )
    }
 }
 
-function queryClose( cl )
+function queryClose ( cl )
 {
    try
    {
@@ -160,7 +160,7 @@ function queryClose( cl )
    }
 }
 
-function queryMeta( cl )
+function queryMeta ( cl )
 {
    try
    {
@@ -169,11 +169,11 @@ function queryMeta( cl )
       {
          throw "expect is tbscan, actual is: " + scanType;
       }
-      
+
    }
    catch( e )
    {
       throw new Error( e );
    }
-   
+
 }

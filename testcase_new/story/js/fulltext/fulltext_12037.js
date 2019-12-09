@@ -3,63 +3,66 @@
 @Modify list :
               2018-9-29  YinZhen  Create
 ****************************************************************************/
-function main(){
-   
-   if(commIsStandalone( db )){
-      println("Deploy is standalone");
-	  return;
+function main ()
+{
+
+   if( commIsStandalone( db ) )
+   {
+      println( "Deploy is standalone" );
+      return;
    };
-   
-   var clName = COMMCLNAME + "_ES_12037";      
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
+
+   var clName = COMMCLNAME + "_ES_12037";
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
    //创建全文索引，并插入包含全文索引字段的记录 
-   var dbcl = commCreateCL(db, COMMCSNAME, clName, 0);
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
    var textIndexName = "textIndexName_ES_12037";
-   commCreateIndex(dbcl, textIndexName, {content : "text"});
+   commCreateIndex( dbcl, textIndexName, { content: "text" } );
    var dataGenerator = new commDataGenerator();
-   var records = dataGenerator.getRecords(20, "string", ["about", "content"]);
-   dbcl.insert(records);
-   
-   checkFullSyncToES(COMMCSNAME, clName, textIndexName, 20);
-   
+   var records = dataGenerator.getRecords( 20, "string", ["about", "content"] );
+   dbcl.insert( records );
+
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, 20 );
+
    //在全文索引字段上执行普通查询，查询时全文索引字段用于：条件、选择、排序，检查结果 
    var dbOperator = new DBOperator();
-   var actRecords = dbOperator.findFromCL(dbcl, {content : {$exists : 1}}, {content : ""}, {content : 1}, null);
-   
+   var actRecords = dbOperator.findFromCL( dbcl, { content: { $exists: 1 } }, { content: "" }, { content: 1 }, null );
+
    var expRecords = new Array();
-   for (var i in records){
+   for( var i in records )
+   {
       var obj = new Object();
       obj.content = records[i].content;
-      expRecords.push(obj);
+      expRecords.push( obj );
    }
-   expRecords.sort(compare("content"));
-   
+   expRecords.sort( compare( "content" ) );
+
    //在原集合上执行查询，查询结果正确
    checkRecords( expRecords, actRecords );
-   
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, textIndexName);
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   checkIndexNotExistInES(esIndexNames);
+
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   checkIndexNotExistInES( esIndexNames );
 }
 
-function checkRecords( expRecords, actRecords )
+function checkRecords ( expRecords, actRecords )
 {
-   expRecords.sort(compare("content"));
-   actRecords.sort(compare("content"));
-   checkResult(expRecords, actRecords)
+   expRecords.sort( compare( "content" ) );
+   actRecords.sort( compare( "content" ) );
+   checkResult( expRecords, actRecords )
 }
 
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 ;

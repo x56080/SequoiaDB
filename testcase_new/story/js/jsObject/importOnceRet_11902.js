@@ -5,41 +5,41 @@
 *@author      : Liang XueWang 
 ******************************************************************************/
 // create js file without ret and with ret
-createWithoutRetFile() ;
-createWithRetFile() ;
+createWithoutRetFile();
+createWithRetFile();
 
 // importOnce js file without ret
-var ret = importOnce( withoutRetFile ) ;
-if( typeof( ret ) !== "undefined" )
+var ret = importOnce( withoutRetFile );
+if( typeof ( ret ) !== "undefined" )
 {
     throw buildException( null, null, "import js file with no ret",
-                          "undefined", typeof(ret) ) ;
+        "undefined", typeof ( ret ) );
 }
-var sum = add( 1, 2 ) ;
+var sum = add( 1, 2 );
 if( sum !== 3 )
 {
-    throw buildException( null, null, "test use func", 3, sum ) ;
+    throw buildException( null, null, "test use func", 3, sum );
 }
 
 // importOnce js file with ret
-var ret = importOnce( withRetFile ) ;
+var ret = importOnce( withRetFile );
 if( ret !== 6 )
 {
     throw buildException( null, null, "import js file with ret, check ret",
-                          6, ret ) ;
+        6, ret );
 }
 if( tmp !== 100 )
 {
     throw buildException( null, null, "import js file with ret, check variable",
-                          100, tmp ) ;
+        100, tmp );
 }
-var pro = mul( 10, 20 ) ;
+var pro = mul( 10, 20 );
 if( pro !== 200 )
 {
     throw buildException( null, null, "import js file with ret, check func",
-                          200, pro ) ;
+        200, pro );
 }
 
 // remove js file without ret and with ret    
-removeFile( withoutRetFile ) ;
-removeFile( withRetFile ) ;
+removeFile( withoutRetFile );
+removeFile( withRetFile );

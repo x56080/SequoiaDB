@@ -9,77 +9,77 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack);  
+      println( e.stack );
    }
    throw e;
 }
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ) ;
-      return ;
+      println( "Run mode is standalone" );
+      return;
    }
-   var groupName = commGetGroups(db);
-   if(groupName.length < 2)
+   var groupName = commGetGroups( db );
+   if( groupName.length < 2 )
    {
-      println( "group num less 2" ) ;
-      return ;
+      println( "group num less 2" );
+      return;
    }
-   
+
    var clName = "alter8189";
    var srcGroup = groupName[0][0]["GroupName"];
    var tarGroup = groupName[1][0]["GroupName"];
-   commDropCL( db, COMMCSNAME, clName ) ;
-   
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName, {ShardingKey: {id: 1}, ShardingType: "hash", Group: srcGroup} );
+   commDropCL( db, COMMCSNAME, clName );
+
+   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { id: 1 }, ShardingType: "hash", Group: srcGroup } );
    var data = [];
-   for(var i = 0; i < 1000; i++)
+   for( var i = 0; i < 1000; i++ )
    {
-      data.push({"id": i, "text": "test alter " + i});
+      data.push( { "id": i, "text": "test alter " + i } );
    }
-   cl.insert(data);
-   cl.split(srcGroup, tarGroup, 50);
-   
+   cl.insert( data );
+   cl.split( srcGroup, tarGroup, 50 );
+
    //alters shardingType
    try
    {
-      cl.alter({ShardingType: "hash"});
+      cl.alter( { ShardingType: "hash" } );
       throw "ERR_ALTER_CL";
    }
-   catch(e)
+   catch( e )
    {
-      if(e !== -32)
+      if( e !== -32 )
       {
-         throw new Error("alter split cl shardingType, \nexp: -32, \nbut found: " + e);
+         throw new Error( "alter split cl shardingType, \nexp: -32, \nbut found: " + e );
       }
    }
-   
+
    try
    {
-      cl.alter({ShardingType: "range"});
+      cl.alter( { ShardingType: "range" } );
       throw "ERR_ALTER_CL";
    }
-   catch(e)
+   catch( e )
    {
-      if(e !== -32)
+      if( e !== -32 )
       {
-         throw new Error("alter split cl shardingType, \nexp: -32, \nbut found: " + e);
+         throw new Error( "alter split cl shardingType, \nexp: -32, \nbut found: " + e );
       }
    }
-   
+
    var num = cl.count();
-   if(num != 1000)
+   if( num != 1000 )
    {
-      throw new Error("check recordNum, \nexpect: 1000, \nbut found: " + num);
+      throw new Error( "check recordNum, \nexpect: 1000, \nbut found: " + num );
    }
-   
+
    //clean test-env
-   commDropCL( db, COMMCSNAME, clName ) ;
+   commDropCL( db, COMMCSNAME, clName );
 }
 

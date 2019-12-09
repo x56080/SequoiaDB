@@ -3,89 +3,89 @@
 @Modify list :
               2018-10-19  zhaoyu  Create
 ****************************************************************************/
-function main()
+function main ()
 {
    var dataGroupNames = getDataGroupNames();
-   println("dataGroupNames:" + dataGroupNames);
-   if(commIsStandalone( db ) || dataGroupNames.length <2)
+   println( "dataGroupNames:" + dataGroupNames );
+   if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println("Deploy is standalone or only one group");
-	  return;
+      println( "Deploy is standalone or only one group" );
+      return;
    }
-   
+
    var maincsName = COMMCSNAME + "_maincs_15951";
    var mainclName = COMMCLNAME + "_maincl_15951";
-   
+
    var subcsName = COMMCSNAME + "_subcs_15951";
    var subclName1 = COMMCLNAME + "_subcl_15951_1";
    var subclName2 = COMMCLNAME + "_subcl_15951_2";
    var subclName3 = COMMCLNAME + "_subcl_15951_3";
-   
+
    var mainclFullName = maincsName + "." + mainclName;
    var subclFullName1 = maincsName + "." + subclName1;
    var subclFullName2 = subcsName + "." + subclName2;
    var subclFullName3 = subcsName + "." + subclName3;
-   
+
    var maincl;
    var subcl1;
    var subcl2;
    var subcl3;
    var fieldName = "a";
 
-   commDropCS( db, subcsName);
-   commDropCS( db, maincsName);
-   
+   commDropCS( db, subcsName );
+   commDropCS( db, maincsName );
+
    var cacheSize = 10;
    var acquireSize = 1;
-   var mainclOption = {IsMainCL: true, ShardingKey: {"a": 1}, ShardingType: "range", AutoIncrement:{Field:fieldName, CacheSize:cacheSize, AcquireSize:acquireSize}};
-   maincl = commCreateCLByOption( db, maincsName, mainclName, mainclOption);
-   
-   var subclOption1 = {ShardingKey: {"a0": 1}, ShardingType: "range", Group: dataGroupNames[0]};
-   subcl1 = commCreateCLByOption( db, maincsName, subclName1, subclOption1);
-   var subclOption2 = {ShardingKey: {"a0": 1}, ShardingType: "hash", Group: dataGroupNames[0]};
-   subcl2 = commCreateCLByOption( db, subcsName, subclName2, subclOption2);
-   var subclOption3 = {Group:dataGroupNames[0]};
-   subcl3 = commCreateCLByOption( db, subcsName, subclName3, subclOption3);
-   
-   subcl1.split( dataGroupNames[0], dataGroupNames[1], {a0:1000}, {a0:2000} );
+   var mainclOption = { IsMainCL: true, ShardingKey: { "a": 1 }, ShardingType: "range", AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize } };
+   maincl = commCreateCLByOption( db, maincsName, mainclName, mainclOption );
+
+   var subclOption1 = { ShardingKey: { "a0": 1 }, ShardingType: "range", Group: dataGroupNames[0] };
+   subcl1 = commCreateCLByOption( db, maincsName, subclName1, subclOption1 );
+   var subclOption2 = { ShardingKey: { "a0": 1 }, ShardingType: "hash", Group: dataGroupNames[0] };
+   subcl2 = commCreateCLByOption( db, subcsName, subclName2, subclOption2 );
+   var subclOption3 = { Group: dataGroupNames[0] };
+   subcl3 = commCreateCLByOption( db, subcsName, subclName3, subclOption3 );
+
+   subcl1.split( dataGroupNames[0], dataGroupNames[1], { a0: 1000 }, { a0: 2000 } );
    subcl2.split( dataGroupNames[0], dataGroupNames[1], 50 );
-   
-   maincl.attachCL( subclFullName1, {LowBound: {a:1}, UpBound:{a:2001}} );
-   maincl.attachCL( subclFullName2, {LowBound: {a:2001}, UpBound:{a:4001}} );
-   maincl.attachCL( subclFullName3, {LowBound: {a:4001}, UpBound:{a:6001}} );
-   
-   var mainclID = getCLID(maincsName, mainclName);
+
+   maincl.attachCL( subclFullName1, { LowBound: { a: 1 }, UpBound: { a: 2001 } } );
+   maincl.attachCL( subclFullName2, { LowBound: { a: 2001 }, UpBound: { a: 4001 } } );
+   maincl.attachCL( subclFullName3, { LowBound: { a: 4001 }, UpBound: { a: 6001 } } );
+
+   var mainclID = getCLID( maincsName, mainclName );
    var mainclSequenceName = "SYS_" + mainclID + "_" + fieldName + "_SEQ";
-   var expIncrementArr = [{Field:fieldName, SequenceName:mainclSequenceName}];
-   checkAutoIncrementonCL(maincsName, mainclName, expIncrementArr);
-   
-   var expSequenceObj = {CacheSize:cacheSize, AcquireSize:acquireSize};
-   checkSequence(mainclSequenceName, expSequenceObj);
-   
+   var expIncrementArr = [{ Field: fieldName, SequenceName: mainclSequenceName }];
+   checkAutoIncrementonCL( maincsName, mainclName, expIncrementArr );
+
+   var expSequenceObj = { CacheSize: cacheSize, AcquireSize: acquireSize };
+   checkSequence( mainclSequenceName, expSequenceObj );
+
    var doc = [];
    var expR = [];
-   for(var i=1; i<6001; i++)
+   for( var i = 1; i < 6001; i++ )
    {
-      doc.push({a0:i});
-      expR.push({a:i,a0:i});
+      doc.push( { a0: i } );
+      expR.push( { a: i, a0: i } );
    }
-   maincl.insert(doc);
-   var actR = maincl.find().sort({a0:1});
-   checkRec(actR, expR);
-   println("---check insert into maincl success");
-   
-   commDropCS( db, subcsName);
-   commDropCS( db, maincsName);
+   maincl.insert( doc );
+   var actR = maincl.find().sort( { a0: 1 } );
+   checkRec( actR, expR );
+   println( "---check insert into maincl success" );
+
+   commDropCS( db, subcsName );
+   commDropCS( db, maincsName );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

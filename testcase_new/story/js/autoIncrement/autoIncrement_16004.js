@@ -3,113 +3,113 @@
 @Modify list :
               2018-10-25  zhaoyu  Create
 ****************************************************************************/
-var sortField=0;
-function main()
+var sortField = 0;
+function main ()
 {
    var coordNodes = getCoordNodeNames();
    var coordNum = coordNodes.length;
-   if(commIsStandalone( db ) || coordNum !==3)
+   if( commIsStandalone( db ) || coordNum !== 3 )
    {
-      println("Deploy is standalone or coord num !=3");
-	  return;
+      println( "Deploy is standalone or coord num !=3" );
+      return;
    };
-   
-   var clName = COMMCLNAME + "_16004";   
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
+
+   var clName = COMMCLNAME + "_16004";
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
    var increment = 13;
    var acquireSize = 11;
    var cacheSize = 33;
    var minValue = -1333;
    var maxValue = 13001;
    var fieldName = "id";
-   var dbcl = commCreateCLByOption(db, COMMCSNAME, clName, {AutoIncrement:{Field:fieldName, CacheSize:cacheSize, AcquireSize:acquireSize, Increment:increment, MinValue:minValue, MaxValue:maxValue}});
-   
+   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment, MinValue: minValue, MaxValue: maxValue } } );
+
    var expR = [];
-   for(var i=0; i<1001; i++)
+   for( var i = 0; i < 1001; i++ )
    {
-      dbcl.insert({a:sortField});
-      expR.push({a:sortField, id:1 + increment *i});
+      dbcl.insert( { a: sortField } );
+      expR.push( { a: sortField, id: 1 + increment * i } );
       sortField++;
    }
-   
-   var actR = dbcl.find().sort({a:1});
-   checkRec(actR, expR);
-   println("---check insert when set Increment>0 success");
-   
-   for(var k=0; k<coordNum; k++ )
+
+   var actR = dbcl.find().sort( { a: 1 } );
+   checkRec( actR, expR );
+   println( "---check insert when set Increment>0 success" );
+
+   for( var k = 0; k < coordNum; k++ )
    {
-      var coord = new Sdb(coordNodes[k]);
-      println("coord:" + coord);
-      var cl = coord.getCS(COMMCSNAME).getCL(clName);
+      var coord = new Sdb( coordNodes[k] );
+      println( "coord:" + coord );
+      var cl = coord.getCS( COMMCSNAME ).getCL( clName );
       try
       {
-         cl.insert({a:"insert"});
+         cl.insert( { a: "insert" } );
          throw "NEED_INSERT_ERROR";
-      }catch(e)
+      } catch( e )
       {
-         if(-325 !== e)
-         { 
-            throw new Error(e);
+         if( -325 !== e )
+         {
+            throw new Error( e );
          }
       }
       coord.close();
    }
-   var actR = dbcl.find().sort({a:1});
-   checkRec(actR, expR);
-   println("---check insert when Sequence is exceeded success");
-   
-   dbcl.dropAutoIncrement(fieldName);
+   var actR = dbcl.find().sort( { a: 1 } );
+   checkRec( actR, expR );
+   println( "---check insert when Sequence is exceeded success" );
+
+   dbcl.dropAutoIncrement( fieldName );
    var increment = -13;
    var acquireSize = 11;
    var cacheSize = 33;
    var minValue = -13001;
    var maxValue = 0;
-   dbcl.createAutoIncrement({Field: fieldName, CacheSize:cacheSize, AcquireSize:acquireSize, Increment:increment, MinValue:minValue, MaxValue:maxValue});
-   for(var i=0; i<1001; i++)
+   dbcl.createAutoIncrement( { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment, MinValue: minValue, MaxValue: maxValue } );
+   for( var i = 0; i < 1001; i++ )
    {
-      dbcl.insert({a:sortField});
-      expR.push({a:sortField, id:-1 + increment *i});
+      dbcl.insert( { a: sortField } );
+      expR.push( { a: sortField, id: -1 + increment * i } );
       sortField++;
    }
-   
-   var actR = dbcl.find().sort({a:1});
-   checkRec(actR, expR);
-   println("---check insert when set Increment<0 success");
-   
-   for(var k=0; k<coordNum; k++ )
+
+   var actR = dbcl.find().sort( { a: 1 } );
+   checkRec( actR, expR );
+   println( "---check insert when set Increment<0 success" );
+
+   for( var k = 0; k < coordNum; k++ )
    {
-      var coord = new Sdb(coordNodes[k]);
-      println("coord:" + coord);
-      var cl = coord.getCS(COMMCSNAME).getCL(clName);
+      var coord = new Sdb( coordNodes[k] );
+      println( "coord:" + coord );
+      var cl = coord.getCS( COMMCSNAME ).getCL( clName );
       try
       {
-         cl.insert({a:"insert"});
-         throw new Error("NEED_INSERT_ERROR");
-      }catch(e)
+         cl.insert( { a: "insert" } );
+         throw new Error( "NEED_INSERT_ERROR" );
+      } catch( e )
       {
-         if(-325 !== e)
-         { 
-            throw new Error(e);
+         if( -325 !== e )
+         {
+            throw new Error( e );
          }
       }
       coord.close();
    }
-   var actR = dbcl.find().sort({a:1});
-   checkRec(actR, expR);
-   println("---check insert when Sequence is exceeded success");
-   
-   commDropCL(db, COMMCSNAME, clName, true, true);
+   var actR = dbcl.find().sort( { a: 1 } );
+   checkRec( actR, expR );
+   println( "---check insert when Sequence is exceeded success" );
+
+   commDropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

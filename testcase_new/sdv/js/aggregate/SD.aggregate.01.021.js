@@ -4,48 +4,48 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_aggre"
-      
+      var clName = COMMCLNAME + "_aggre"
+
       var cl = readyCL();
-   	
+
       insertRecs( cl );
       aggreOper( cl );  //aggregate and check result
-   
+
       cleanCL();
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl )
+function insertRecs ( cl )
 {
-   println("\n---Begin to insert records.");
-   
-   cl.insert({no:1,score:80});
+   println( "\n---Begin to insert records." );
+
+   cl.insert( { no: 1, score: 80 } );
 }
 
-function aggreOper( cl )
-{  
-   println("\n---Begin to aggregate records.");
-   
+function aggreOper ( cl )
+{
+   println( "\n---Begin to aggregate records." );
+
    try
    {
-      cl.aggregate( {$group:{no:"$no"}} );
+      cl.aggregate( { $group: { no: "$no" } } );
    }
    catch( e )
    {
       //check result  //e:-6
-      var expectE = -6 ;
+      var expectE = -6;
       if( e !== expectE )
       {
-         throw buildException("checkResult", e, '{$project:{no:"test"}}', 
-                              "[e:"+ expectE +"]", "[e:"+ e +"]");
+         throw buildException( "checkResult", e, '{$project:{no:"test"}}',
+            "[e:" + expectE + "]", "[e:" + e + "]" );
       }
    }
 }

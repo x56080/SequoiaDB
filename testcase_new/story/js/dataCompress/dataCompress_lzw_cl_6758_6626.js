@@ -17,79 +17,79 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var noCSName  = COMMCSNAME+"_no" ;
-      var lzwCSName = COMMCSNAME+"_lzw" ; 
-      var noCLName  = COMMCLNAME+"_no" ;   //no compressed
-      var lzwCLName = COMMCLNAME+"_lzw" ;  //CompressionType:"lzw"
-      var rgName = getDataGroupsName()[0]; 
-      var insertRecsNum = 800000 ;
-      var checkRecsNum = 3 ; //get random 3 records
+      var noCSName = COMMCSNAME + "_no";
+      var lzwCSName = COMMCSNAME + "_lzw";
+      var noCLName = COMMCLNAME + "_no";   //no compressed
+      var lzwCLName = COMMCLNAME + "_lzw";  //CompressionType:"lzw"
+      var rgName = getDataGroupsName()[0];
+      var insertRecsNum = 800000;
+      var checkRecsNum = 3; //get random 3 records
 
-      println("\n---Begin to drop CS in the pre-condition.");
-      commDropCS( db, noCSName, true, "Failed to drop CS["+ noCSName +"].");
-      commDropCS( db, lzwCSName, true, "Failed to drop CS["+ lzwCSName +"].");
-      
-      println("\n---Begin to create CS.");
-      commCreateCS( db, noCSName, false, "Failed to create CS["+ noCSName +"].");
-      commCreateCS( db, lzwCSName, false, "Failed to create CS["+ lzwCSName +"].");
-      
-      var noCL  = createCL( noCSName, noCLName, rgName, false );
+      println( "\n---Begin to drop CS in the pre-condition." );
+      commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
+      commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
+
+      println( "\n---Begin to create CS." );
+      commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
+      commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
+
+      var noCL = createCL( noCSName, noCLName, rgName, false );
       var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
-      
+
       insertRecs( noCL, noCSName, noCLName, insertRecsNum );
       insertRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
-      
+
       checkAttributeOfCL( noCSName, noCLName, false );
       checkAttributeOfCL( lzwCSName, lzwCLName, true, "lzw" );
-      checkRecs( lzwCL, insertRecsNum, checkRecsNum ); 
+      checkRecs( lzwCL, insertRecsNum, checkRecsNum );
       checkNodeCnt( lzwCSName, lzwCLName, rgName, insertRecsNum );
       checkCompressedRate( noCSName, lzwCSName );
-      
-      println("\n---Begin to drop cs in the end-condition.");
-      commDropCS( db, noCSName,  false, "Failed to drop CS["+ noCSName +"].");
-      commDropCS( db, lzwCSName, false, "Failed to drop CS["+ lzwCSName +"].");
+
+      println( "\n---Begin to drop cs in the end-condition." );
+      commDropCS( db, noCSName, false, "Failed to drop CS[" + noCSName + "]." );
+      commDropCS( db, lzwCSName, false, "Failed to drop CS[" + lzwCSName + "]." );
    }
    catch( e )
    {
-      throw e ;
+      throw e;
    }
 }
 
-function insertRecs( cl, csName, clName, insertRecsNum )
+function insertRecs ( cl, csName, clName, insertRecsNum )
 {
-   println("\n---Begin to insert records, CL["+ csName +"."+ clName +"], "+"insertRecsNum: "+ insertRecsNum);
-   
+   println( "\n---Begin to insert records, CL[" + csName + "." + clName + "], " + "insertRecsNum: " + insertRecsNum );
+
    for( k = 0; k < insertRecsNum; k += 50000 )
    {
       var doc = [];
-      for( i = 0+k; i < 50000+k; i++ )
+      for( i = 0 + k; i < 50000 + k; i++ )
       {
-         doc.push( {atest:i,btest:i,ctest:"test"+i,dtest:"abcdefg890abcdefg890abcdefg890"} )
+         doc.push( { atest: i, btest: i, ctest: "test" + i, dtest: "abcdefg890abcdefg890abcdefg890" } )
       };
-      cl.insert(doc);
+      cl.insert( doc );
    }
 }
 
-function checkRecs( cl, insertRecsNum, checkRecsNum )
+function checkRecs ( cl, insertRecsNum, checkRecsNum )
 {
-   println("\n---Begin to check Records. checkRecsNum: "+ checkRecsNum );
-   
+   println( "\n---Begin to check Records. checkRecsNum: " + checkRecsNum );
+
    //get random records, compare the records
-   println('   recs: {atest:i,btest:i,ctest:"test"+i,dtest:"abcdefg890abcdefg890abcdefg890"}');
+   println( '   recs: {atest:i,btest:i,ctest:"test"+i,dtest:"abcdefg890abcdefg890abcdefg890"}' );
    for( j = 0; j < checkRecsNum; j++ )
    {
-      var i = parseInt( Math.random() * insertRecsNum ); 
-      println("   random i: "+ i );
-      var recsCnt = cl.find( {atest:i,btest:i,ctest:"test"+i,dtest:"abcdefg890abcdefg890abcdefg890"} ).count();
-      var expctCnt = 1 ;
-      if( parseInt(recsCnt) !== expctCnt )
+      var i = parseInt( Math.random() * insertRecsNum );
+      println( "   random i: " + i );
+      var recsCnt = cl.find( { atest: i, btest: i, ctest: "test" + i, dtest: "abcdefg890abcdefg890abcdefg890" } ).count();
+      var expctCnt = 1;
+      if( parseInt( recsCnt ) !== expctCnt )
       {
-         throw buildException("Failed to check Records.", null, "[checkRecords]", 
-                  "recsCnt: "+ expctCnt, "recsCnt: "+ parseInt(recsCnt) ); 
+         throw buildException( "Failed to check Records.", null, "[checkRecords]",
+            "recsCnt: " + expctCnt, "recsCnt: " + parseInt( recsCnt ) );
       }
    }
 }

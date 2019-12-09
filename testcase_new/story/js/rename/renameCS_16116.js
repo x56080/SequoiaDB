@@ -1,103 +1,103 @@
 /* *****************************************************************************
 @discretion: rename cs
-             seqDB-16116 Ö÷×Ó±íÔÚ¶à¸öÊý¾Ý×éÉÏ£¬ÐÞ¸ÄcsÃû 
-@author£º2018-10-13 chensiqin  Init
+             seqDB-16116 ï¿½ï¿½ï¿½Ó±ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï£ï¿½ï¿½Þ¸ï¿½csï¿½ï¿½ 
+@authorï¿½ï¿½2018-10-13 chensiqin  Init
 ***************************************************************************** */
 /*
- 1¡¢´´½¨Ö÷×Ó±íÔÚ¶à¸öcsÉÏ£¬·Ö±ð¿¼ÂÇÁ½ÖÖ³¡¾°£º
-       a.¶à¸ö×Ó±ícl·Ö²¼ÔÚ²»Í¬×éÉÏ
- 2¡¢ÐÞ¸ÄcsÃû£¬Ö´ÐÐÊý¾Ý²Ù×÷£¨Èç£º²åÈë£©¡¢LOB²Ù×÷¡¢Ë÷Òý²Ù×÷µÈ 
- 3¡¢¼ì²écs¡¢cl¿ìÕÕ£¬Êý¾ÝÎÄ¼þ¡¢Ë÷ÒýÎÄ¼þ¡¢LOBÎÄ¼þ¡¢LOBÔªÊý¾ÝÎÄ¼þ
+ 1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó±ï¿½ï¿½Ú¶ï¿½ï¿½csï¿½Ï£ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö³ï¿½ï¿½ï¿½ï¿½ï¿½
+       a.ï¿½ï¿½ï¿½ï¿½Ó±ï¿½clï¿½Ö²ï¿½ï¿½Ú²ï¿½Í¬ï¿½ï¿½ï¿½ï¿½
+ 2ï¿½ï¿½ï¿½Þ¸ï¿½csï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½ï¿½ï¿½Ý²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ç£ºï¿½ï¿½ï¿½ë£©ï¿½ï¿½LOBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+ 3ï¿½ï¿½ï¿½ï¿½ï¿½csï¿½ï¿½clï¿½ï¿½ï¿½Õ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½LOBï¿½Ä¼ï¿½ï¿½ï¿½LOBÔªï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
 */
-main(db);
-function main(db)
+main( db );
+function main ( db )
 {
-   if (commGetGroupsNum(db) < 2)
+   if( commGetGroupsNum( db ) < 2 )
    {
-      return ;
+      return;
    }
-   var csName1 = CHANGEDPREFIX+"_maincs16116_1";
-   var mainClName = CHANGEDPREFIX+"maincl16116_1";
-   
-   var csName3 = CHANGEDPREFIX+"_subcs16116_1";
-   var csName4 = CHANGEDPREFIX+"_subcs16116_2";
-   var clName1 = CHANGEDPREFIX+"subcl16116_1";
-   var clName2 = CHANGEDPREFIX+"subcl16116_2";
-   var groups = commGetGroups(db);
+   var csName1 = CHANGEDPREFIX + "_maincs16116_1";
+   var mainClName = CHANGEDPREFIX + "maincl16116_1";
+
+   var csName3 = CHANGEDPREFIX + "_subcs16116_1";
+   var csName4 = CHANGEDPREFIX + "_subcs16116_2";
+   var clName1 = CHANGEDPREFIX + "subcl16116_1";
+   var clName2 = CHANGEDPREFIX + "subcl16116_2";
+   var groups = commGetGroups( db );
    var groupName1 = groups[0][0].GroupName;
    var groupName2 = groups[1][0].GroupName;
-   
-   commDropCS( db, csName1, true, "drop CS "+csName1 );
-   commDropCS( db, csName3, true, "drop CS "+csName3 );
-   commDropCS( db, csName4, true, "drop CS "+csName4 );
-   
+
+   commDropCS( db, csName1, true, "drop CS " + csName1 );
+   commDropCS( db, csName3, true, "drop CS " + csName3 );
+   commDropCS( db, csName4, true, "drop CS " + csName4 );
+
    var varCS = commCreateCS( db, csName1, true, "create CS" );
    var varCL = commCreateCLByOption( db, csName1, mainClName, { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" }, true, false, "create main cl in the beginning" );
 
-   //×Ó±í1
+   //ï¿½Ó±ï¿½1
    var subCS = commCreateCS( db, csName3, true, "create CS1" );
-   var subcl1 = commCreateCLByOption( db, csName3, clName1, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: groupName1}, true, false, "create sub cl1 in the beginning" );
+   var subcl1 = commCreateCLByOption( db, csName3, clName1, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: groupName1 }, true, false, "create sub cl1 in the beginning" );
 
-   //×Ó±í2
-   var subcl2 = commCreateCLByOption( db, csName3, clName2, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: groupName2}, true, false, "create sub cl2 in the beginning" );
+   //ï¿½Ó±ï¿½2
+   var subcl2 = commCreateCLByOption( db, csName3, clName2, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: groupName2 }, true, false, "create sub cl2 in the beginning" );
 
-   //¹ÒÔØ
-   attachCL(varCL, csName3+"."+clName1, { LowBound: { a: 0 }, UpBound: { a: 1000 } }  );
-   attachCL(varCL, csName3+"."+clName2, { LowBound: { a: 1000 }, UpBound: { a: 3000 } });
+   //ï¿½ï¿½ï¿½ï¿½
+   attachCL( varCL, csName3 + "." + clName1, { LowBound: { a: 0 }, UpBound: { a: 1000 } } );
+   attachCL( varCL, csName3 + "." + clName2, { LowBound: { a: 1000 }, UpBound: { a: 3000 } } );
 
-   //ÐÞ¸Ä×Ó±ícs name
+   //ï¿½Þ¸ï¿½ï¿½Ó±ï¿½cs name
    try
    {
       db.renameCS( csName3, csName4 );
    }
    catch( e )
    {
-      throw buildException("renameCS( csName3, csName4 ) fail", e, "rename", "success", e); 
+      throw buildException( "renameCS( csName3, csName4 ) fail", e, "rename", "success", e );
    }
-   
+
    var recordNums = 2000;
    insertData( varCL, recordNums );
    varCL.createIndex( "index16116", { no: 1 }, false );
    //check
-   checkRenameCSResult(csName3, csName4, 2);
-   var cs = db.getCS(csName1);
-   var varCL = cs.getCL(mainClName);
-   checkDatas( csName1, mainClName, recordNums);
-   
-   commDropCS( db, csName1, true, "drop CS "+csName1 );
-   commDropCS( db, csName3, true, "drop CS "+csName3 );
-   commDropCS( db, csName4, true, "drop CS "+csName4 );
-   
+   checkRenameCSResult( csName3, csName4, 2 );
+   var cs = db.getCS( csName1 );
+   var varCL = cs.getCL( mainClName );
+   checkDatas( csName1, mainClName, recordNums );
+
+   commDropCS( db, csName1, true, "drop CS " + csName1 );
+   commDropCS( db, csName3, true, "drop CS " + csName3 );
+   commDropCS( db, csName4, true, "drop CS " + csName4 );
+
 }
 
-function attachCL( dbcl, subCLName, range )
+function attachCL ( dbcl, subCLName, range )
 {
    try
    {
-      dbcl.attachCL( subCLName, range ) ;
-      println( "--attach cl success" ) ;
+      dbcl.attachCL( subCLName, range );
+      println( "--attach cl success" );
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException("attachCL()", e, "attach cl", "attach cl success","attach cl fail");
+      throw buildException( "attachCL()", e, "attach cl", "attach cl success", "attach cl fail" );
    }
 }
 
-function checkDatas( csName, newCLName, expRecordNums)
-{   
+function checkDatas ( csName, newCLName, expRecordNums )
+{
    try
    {
       //check the record nums      
       var dbcl = db.getCS( csName ).getCL( newCLName );
-      var count = dbcl.count();      
-      if( count != expRecordNums  )
+      var count = dbcl.count();
+      if( count != expRecordNums )
       {
-         throw buildException("check datas", null, "check the new cl record nums",
-                           expRecordNums, count);
-      } 
+         throw buildException( "check datas", null, "check the new cl record nums",
+            expRecordNums, count );
+      }
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException("checkDatas", e)
-   }  
+      throw buildException( "checkDatas", e )
+   }
 }

@@ -7,33 +7,33 @@
 // 测试remote关闭后执行操作
 RemoteTest.prototype.testClose = function()
 {
-   this.testInit() ;
-   var system = this.remote.getSystem() ;
-   this.remote.close() ;
-   
+   this.testInit();
+   var system = this.remote.getSystem();
+   this.remote.close();
+
    try
    {
-      system.type() ;
-      throw "system call type after remote close should be failed" ;
+      system.type();
+      throw "system call type after remote close should be failed";
    }
    catch( e )
    {
       if( e !== -15 )
       {
-         throw buildException( "testClose", e, 
-               "system call type after remote close " + this, -15, e ) ;
+         throw buildException( "testClose", e,
+            "system call type after remote close " + this, -15, e );
       }
    }
 }
 
-function main()
+function main ()
 {
    // 获取远程主机
-   var remotehost = toolGetRemotehost() ;
-   
+   var remotehost = toolGetRemotehost();
+
    // 测试remote关闭后执行操作
-   var rt = new RemoteTest( remotehost, CMSVCNAME ) ;
-   rt.testClose() ;
+   var rt = new RemoteTest( remotehost, CMSVCNAME );
+   rt.testClose();
 }
 
 main()

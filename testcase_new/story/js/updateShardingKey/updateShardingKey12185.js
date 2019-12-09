@@ -7,46 +7,47 @@
 var csName = CHANGEDPREFIX + "_cs_12185";
 var clName = CHANGEDPREFIX + "_cl_12185";
 
-function main() {
+function main ()
+{
 	if( true == commIsStandalone( db ) )
 	{
 		println( "run mode is standalone" );
 		return;
 	}
 
-	var allGroupName = getGroupName(db,true);         
+	var allGroupName = getGroupName( db, true );
 	if( 1 === allGroupName.length )
 	{
-		println("--least two groups");
-		return ;
-	}  
+		println( "--least two groups" );
+		return;
+	}
 
-	commDropCS( db, csName, true, "Failed to drop CS.");    
-	commCreateCS( db, csName, false, "Failed to create CS.");  
-	var mycl=createCL( csName, clName, {"a":1} );
+	commDropCS( db, csName, true, "Failed to drop CS." );
+	commCreateCS( db, csName, false, "Failed to create CS." );
+	var mycl = createCL( csName, clName, { "a": 1 } );
 	//insert data 	
-	var docs=[{a:[["b","c"]]}];
-	insertData(mycl, docs);
+	var docs = [{ a: [["b", "c"]] }];
+	insertData( mycl, docs );
 
 	//updateData
-	mycl.update({$set:{"a":["b"]}},{},{},{KeepShardingKey:true});
-	checkResult( mycl, null, null,[{a:["b"]}]);
+	mycl.update( { $set: { "a": ["b"] } }, {}, {}, { KeepShardingKey: true } );
+	checkResult( mycl, null, null, [{ a: ["b"] }] );
 
-	mycl.update({$set:{"a":[["b","c"]]}},{},{},{KeepShardingKey:true});
-	checkResult( mycl, null, null,[{a:[["b","c"]]}]);
+	mycl.update( { $set: { "a": [["b", "c"]] } }, {}, {}, { KeepShardingKey: true } );
+	checkResult( mycl, null, null, [{ a: [["b", "c"]] }] );
 
 	mycl.remove();
-	mycl.upsert({$set:{"a":["b"]}},{},{},{},{KeepShardingKey:true});
-	checkResult( mycl, null, null,[{a:["b"]}]);
+	mycl.upsert( { $set: { "a": ["b"] } }, {}, {}, {}, { KeepShardingKey: true } );
+	checkResult( mycl, null, null, [{ a: ["b"] }] );
 
-	mycl.upsert({$set:{"a":[["b","c"]]}},{},{},{},{KeepShardingKey:true});
-	checkResult( mycl, null, null,[{a:[["b","c"]]}]);
+	mycl.upsert( { $set: { "a": [["b", "c"]] } }, {}, {}, {}, { KeepShardingKey: true } );
+	checkResult( mycl, null, null, [{ a: [["b", "c"]] }] );
 
 	//check the update result
 	var expRecs = docs;
 
 	//drop collectionspace in clean
-	commDropCS( db, csName, false, "Failed to drop CS.");
+	commDropCS( db, csName, false, "Failed to drop CS." );
 }
 
 //main();

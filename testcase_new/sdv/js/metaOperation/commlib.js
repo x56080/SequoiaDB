@@ -4,37 +4,37 @@
 @parameter
 	maxNum:the max number of data groups returned
 ***************************************************************************** */
-function metaOprGetDataGroups( db, maxNum )
+function metaOprGetDataGroups ( db, maxNum )
 {
-   if ( commIsStandalone( db ) )
-   {
-      return new Array() ;
-   }
-   var myArray = new Array() ;   
-   var tmpInfo;
-   try
-   {
-   	tmpInfo = db.list(SDB_LIST_GROUPS).toArray();
-   }
-   catch( e )
-   {
-   	throw buildException("metaOpr commlib.js",e,"metaOprGetDataGroups",
-   	                     "list(SDB_LIST_GROUPS) sucess","list(SDB_LIST_GROUPS) fail");
-   }
-   for ( var i=0; i<tmpInfo.length; i++ )
-   {
-   	var tmpObj = eval( "(" + tmpInfo[i] + ")" );
-   	if( tmpObj.Role !== 0 )
-   	{
-   		continue;
-   	}
-   	myArray.push(tmpObj.GroupName);
-   	if ( myArray.length >= maxNum )
-   	{
-   		break;
-   	}
-   }
-   return myArray;
+	if( commIsStandalone( db ) )
+	{
+		return new Array();
+	}
+	var myArray = new Array();
+	var tmpInfo;
+	try
+	{
+		tmpInfo = db.list( SDB_LIST_GROUPS ).toArray();
+	}
+	catch( e )
+	{
+		throw buildException( "metaOpr commlib.js", e, "metaOprGetDataGroups",
+			"list(SDB_LIST_GROUPS) sucess", "list(SDB_LIST_GROUPS) fail" );
+	}
+	for( var i = 0; i < tmpInfo.length; i++ )
+	{
+		var tmpObj = eval( "(" + tmpInfo[i] + ")" );
+		if( tmpObj.Role !== 0 )
+		{
+			continue;
+		}
+		myArray.push( tmpObj.GroupName );
+		if( myArray.length >= maxNum )
+		{
+			break;
+		}
+	}
+	return myArray;
 }
 
 /* *****************************************************************************
@@ -45,25 +45,25 @@ function metaOprGetDataGroups( db, maxNum )
    ignoreExisted: default = true, value: true/false
    message: user define message, default:""
 ***************************************************************************** */
-function metaOprDropDomain( db, dmName, ignoreNotExist, message )
+function metaOprDropDomain ( db, dmName, ignoreNotExist, message )
 {
-   if ( ignoreNotExist == undefined ) { ignoreNotExist = true ; }
-   if ( message == undefined ) { message = "" ; }
-   try
-   {
-      db.dropDomain( dmName ) ;
-   }
-   catch( e )
-   {
-      if ( e === -214 && ignoreNotExist )
-      {
-         // think right
-      }
-      else
-      {
-      	throw buildException("metaOpr commlib.js",e,message,"dropDomain sucessfully","dropDomain fail");
-      }
-   }
+	if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
+	if( message == undefined ) { message = ""; }
+	try
+	{
+		db.dropDomain( dmName );
+	}
+	catch( e )
+	{
+		if( e === -214 && ignoreNotExist )
+		{
+			// think right
+		}
+		else
+		{
+			throw buildException( "metaOpr commlib.js", e, message, "dropDomain sucessfully", "dropDomain fail" );
+		}
+	}
 }
 /* *****************************************************************************
 @discription: check if domain exists using listXXX methods
@@ -71,37 +71,37 @@ function metaOprDropDomain( db, dmName, ignoreNotExist, message )
 @parameter
 	expectDomain:the domain to be checked
 ***************************************************************************** */
-function metaOprCheckListDomains( db, expectDomain )
+function metaOprCheckListDomains ( db, expectDomain )
 {
 	var tmpInfo;
-   try
-   {
-   	tmpInfo = db.listDomains().toArray();
-   }
-   catch( e )
-   {
-   	throw buildException("metaOpr commlib.js",e,"metaOprCheckListDomains","listDomains() sucessfully","listDomains() fail");
-   }
-   var flag = 0;
-   for ( var i=0; i<tmpInfo.length; i++ )
-   {
-   	var tmpObj = eval( "(" + tmpInfo[i] + ")" );
-   	if( tmpObj.Name === expectDomain )
-   	{
-   		flag = 1;
-   		break;
-   	}
-   }
-   try
-   {
-	   if ( flag === 0 )
-	   {
-	   	throw buildException( "metaOpr commlib.js", -1, "metaCheckListDomains", 
-	   	                "expectDomain "+expectDomain+" exist", 
-	   	                "expectDomain "+expectDomain+" doesn't exist");
-	   }
+	try
+	{
+		tmpInfo = db.listDomains().toArray();
 	}
-	catch ( e )
+	catch( e )
+	{
+		throw buildException( "metaOpr commlib.js", e, "metaOprCheckListDomains", "listDomains() sucessfully", "listDomains() fail" );
+	}
+	var flag = 0;
+	for( var i = 0; i < tmpInfo.length; i++ )
+	{
+		var tmpObj = eval( "(" + tmpInfo[i] + ")" );
+		if( tmpObj.Name === expectDomain )
+		{
+			flag = 1;
+			break;
+		}
+	}
+	try
+	{
+		if( flag === 0 )
+		{
+			throw buildException( "metaOpr commlib.js", -1, "metaCheckListDomains",
+				"expectDomain " + expectDomain + " exist",
+				"expectDomain " + expectDomain + " doesn't exist" );
+		}
+	}
+	catch( e )
 	{
 		throw e;
 	}
@@ -113,32 +113,32 @@ function metaOprCheckListDomains( db, expectDomain )
 	expectCS:the cs to be checked
 	expectCL:the cl to be checked
 ***************************************************************************** */
-function metaOprCheckListCLs( db, expectCS, expectCL )
+function metaOprCheckListCLs ( db, expectCS, expectCL )
 {
 	var tmpInfo = db.listCollections().toArray();
-   var flag = 0;
-   for ( var i=0; i<tmpInfo.length; i++ )
-   {
-   	var tmpObj = eval( "(" + tmpInfo[i] + ")" );
-   	if( tmpObj.Name === expectCS+"."+expectCL )
-   	{
-   		flag = 1;
-   		break;
-   	}
-   }
-   try
-   {
-      if ( flag === 0 )
-      {
-         throw buildException( "metaOpr commlib.js", -1, "metaCheckListCLs", 
-   	                "expectCL "+expectCS+"."+expectCL+" exist", 
-   	                "expectCL "+expectCS+"."+expectCL+" doesn't exist");
-      }
-   }
-   catch (e)
-   {
-      throw e;
-   }
+	var flag = 0;
+	for( var i = 0; i < tmpInfo.length; i++ )
+	{
+		var tmpObj = eval( "(" + tmpInfo[i] + ")" );
+		if( tmpObj.Name === expectCS + "." + expectCL )
+		{
+			flag = 1;
+			break;
+		}
+	}
+	try
+	{
+		if( flag === 0 )
+		{
+			throw buildException( "metaOpr commlib.js", -1, "metaCheckListCLs",
+				"expectCL " + expectCS + "." + expectCL + " exist",
+				"expectCL " + expectCS + "." + expectCL + " doesn't exist" );
+		}
+	}
+	catch( e )
+	{
+		throw e;
+	}
 }
 /* *****************************************************************************
 @discription: create domain
@@ -149,23 +149,23 @@ function metaOprCheckListCLs( db, expectCS, expectCL )
    ignoreExisted: default = false, value: true/false
    message: user define message, default:""
 ***************************************************************************** */
-function metaOprCreateDomain( db, dmName, dataGroups, ignoreExist, message )
+function metaOprCreateDomain ( db, dmName, dataGroups, ignoreExist, message )
 {
-	if ( ignoreExist == undefined ) { ignoreExist = false ; }
-	if ( message == undefined ) { message = "" ; }
-   try
+	if( ignoreExist == undefined ) { ignoreExist = false; }
+	if( message == undefined ) { message = ""; }
+	try
 	{
 		db.createDomain( domainName, dataGroups );
 	}
-	catch ( e )
+	catch( e )
 	{
-		if ( e === -215 && ignoreExist )
+		if( e === -215 && ignoreExist )
 		{
 			//right situation, so do nothing
 		}
 		else
 		{
-			throw buildException("metaOpr commlib.js",e,"metaOprCreateDomain","createDomain successfully","createDomain fail");
+			throw buildException( "metaOpr commlib.js", e, "metaOprCreateDomain", "createDomain successfully", "createDomain fail" );
 		}
 	}
 }
@@ -177,24 +177,24 @@ function metaOprCreateDomain( db, dmName, dataGroups, ignoreExist, message )
 	ignoreNotExist:default = false, value: true/false
 	message: user define message, default:""
 ***************************************************************************** */
-function metaOprCheckGetDomain( db, expectDomain, ignoreNotExist, message )
+function metaOprCheckGetDomain ( db, expectDomain, ignoreNotExist, message )
 {
-	if ( ignoreNotExist == undefined ) { ignoreNotExist = false ; }
-	if ( message == undefined ) { message = "" ; }
+	if( ignoreNotExist == undefined ) { ignoreNotExist = false; }
+	if( message == undefined ) { message = ""; }
 	try
 	{
-		db.getDomain(expectDomain);
+		db.getDomain( expectDomain );
 	}
-	catch ( e )
+	catch( e )
 	{
-		if ( e===-214 && ignoreNotExist )
+		if( e === -214 && ignoreNotExist )
 		{
 			//right situation, so do nothing
 		}
 		else
 		{
-			throw buildException("metaOpr commlib.js",e,"metaOprCheckGetDomain","getDomain successfully","getDomain fail");
-	   }
+			throw buildException( "metaOpr commlib.js", e, "metaOprCheckGetDomain", "getDomain successfully", "getDomain fail" );
+		}
 	}
 }
 /* *****************************************************************************
@@ -205,23 +205,23 @@ function metaOprCheckGetDomain( db, expectDomain, ignoreNotExist, message )
 	ignoreNotExist:default = false, value: true/false
 	message: user define message, default:""
 ***************************************************************************** */
-function metaOprCheckGetCS( db, expectCS, ignoreNotExist, message )
+function metaOprCheckGetCS ( db, expectCS, ignoreNotExist, message )
 {
-	if ( ignoreNotExist == undefined ) { ignoreNotExist = false ; }
-	if ( message == undefined ) { message = "" ; }
+	if( ignoreNotExist == undefined ) { ignoreNotExist = false; }
+	if( message == undefined ) { message = ""; }
 	try
 	{
-		db.getCS(expectCS);
+		db.getCS( expectCS );
 	}
-	catch ( e )
+	catch( e )
 	{
-		if ( e===-34 && ignoreNotExist )
+		if( e === -34 && ignoreNotExist )
 		{
 			//right situation, so do nothing
 		}
 		else
 		{
-			throw buildException("metaOpr commlib.js",e,"metaOprCheckGetCS","getCS successfully","getCS fail");
+			throw buildException( "metaOpr commlib.js", e, "metaOprCheckGetCS", "getCS successfully", "getCS fail" );
 		}
 	}
 }
@@ -234,32 +234,32 @@ function metaOprCheckGetCS( db, expectCS, ignoreNotExist, message )
 	ignoreNotExist:default = false, value: true/false
 	message: user define message, default:""
 ***************************************************************************** */
-function metaOprCheckGetCL( db, expectCS, expectCL, ignoreNotExist, message )
+function metaOprCheckGetCL ( db, expectCS, expectCL, ignoreNotExist, message )
 {
-	if ( ignoreNotExist == undefined ) { ignoreNotExist = false ; }
-	if ( message == undefined ) { message = "" ; }
+	if( ignoreNotExist == undefined ) { ignoreNotExist = false; }
+	if( message == undefined ) { message = ""; }
 	var tmpCS;
 	try
 	{
-		tmpCS = db.getCS(expectCS);
+		tmpCS = db.getCS( expectCS );
 	}
-	catch ( e )
+	catch( e )
 	{
-		throw buildException("metaOpr commlib.js",e,"metaOprCheckGetCL","getCS successfully","getCS fail");
+		throw buildException( "metaOpr commlib.js", e, "metaOprCheckGetCL", "getCS successfully", "getCS fail" );
 	}
 	try
 	{
-		tmpCS.getCL(expectCL);
+		tmpCS.getCL( expectCL );
 	}
-	catch ( e )
+	catch( e )
 	{
-		if ( e===-23 && ignoreNotExist )
+		if( e === -23 && ignoreNotExist )
 		{
 			//right situation, so do nothing
 		}
 		else
 		{
-			throw buildException("metaOpr commlib.js",e,"metaOprCheckGetCL","getCL successfully","getCL fail");
-	   }
+			throw buildException( "metaOpr commlib.js", e, "metaOprCheckGetCL", "getCL successfully", "getCL fail" );
+		}
 	}
 }

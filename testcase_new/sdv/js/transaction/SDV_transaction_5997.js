@@ -1,44 +1,44 @@
 /* *****************************************************************************
-@discretion: Ö÷×Ó±íÖ´ÐÐÊÂÎñ²Ù×÷£¬Ìá½»ÊÂÎñ
-@author£º2015-11-18 wuyan  Init
+@discretion: ï¿½ï¿½ï¿½Ó±ï¿½Ö´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á½»ï¿½ï¿½ï¿½ï¿½
+@authorï¿½ï¿½2015-11-18 wuyan  Init
 ***************************************************************************** */
 main();
-function main()
-{		
-	try
-	{
-	   var csName  = CHANGEDPREFIX + "_cs5997" ; 
-	   	   
-	   if (commIsStandalone(db))
+function main ()
+{
+   try
+   {
+      var csName = CHANGEDPREFIX + "_cs5997";
+
+      if( commIsStandalone( db ) )
       {
-         println( "skip standalone!" ) ; 
+         println( "skip standalone!" );
          return;
       }
       if( !commIsTransEnabled( db ) )
       {
-         println( "transaction is disabled" ) ;  
-         return; 
+         println( "transaction is disabled" );
+         return;
       }
-      if( commGetGroupsNum(db) < 2 )
-      {  
-	      println("This testcase needs at least 2 groups to split sub cl!");
-		   return;
-	   }
-	   	     
-	   var cl = createCL(csName);
-	   
-      var dataNum = 1000; 
-      var insert = new insertData( cl, dataNum ); 
-       //update data,then commmit transaction
+      if( commGetGroupsNum( db ) < 2 )
+      {
+         println( "This testcase needs at least 2 groups to split sub cl!" );
+         return;
+      }
+
+      var cl = createCL( csName );
+
+      var dataNum = 1000;
+      var insert = new insertData( cl, dataNum );
+      //update data,then commmit transaction
       var update = new updateData( cl );
-      var remove = new removeData( cl ); 
-      execTransaction( beginTrans, insert, update );      
+      var remove = new removeData( cl );
+      execTransaction( beginTrans, insert, update );
       checkResult( cl, true, update );
-      execTransaction( remove, commitTrans); 
-      checkResult( cl, true, remove );  
-                
+      execTransaction( remove, commitTrans );
+      checkResult( cl, true, remove );
+
       //@ clean end
-		commDropCS( db, csName, false, "drop CS in the beginning" );
+      commDropCS( db, csName, false, "drop CS in the beginning" );
    }
    catch( e )
    {
@@ -46,35 +46,39 @@ function main()
    }
    finally
    {
-      if ( undefined !== db )
+      if( undefined !== db )
       {
          db.close();
       }
    }
-} 
+}
 
 
-function createCL(csName)
+function createCL ( csName )
 {
-    try
-	{
-      var mainCLName = CHANGEDPREFIX + "_mcl5997" ;
-      var subCLName  = CHANGEDPREFIX + "_scl5997" ;
-        
+   try
+   {
+      var mainCLName = CHANGEDPREFIX + "_mcl5997";
+      var subCLName = CHANGEDPREFIX + "_scl5997";
+
       var cs = commCreateCS( db, csName, true, "create cs in the beginning" );
-      var mainCL = cs.createCL( mainCLName, { ShardingKey:{ no:1 }, ShardingType:"range", ReplSize:0, 
-                              Compressed:true, IsMainCL:true } ) ; 
-     
-      var subCL = cs.createCL( subCLName, { ShardingKey:{ no:1 }, ShardingType: "hash", ReplSize:0,
-                              Compressed:true} ) ;
-      var options = { LowBound: {"no":0}, UpBound: {"no":1000} } ; 
-      mainCL.attachCL( csName+"."+subCLName, options );     
+      var mainCL = cs.createCL( mainCLName, {
+         ShardingKey: { no: 1 }, ShardingType: "range", ReplSize: 0,
+         Compressed: true, IsMainCL: true
+      } );
+
+      var subCL = cs.createCL( subCLName, {
+         ShardingKey: { no: 1 }, ShardingType: "hash", ReplSize: 0,
+         Compressed: true
+      } );
+      var options = { LowBound: { "no": 0 }, UpBound: { "no": 1000 } };
+      mainCL.attachCL( csName + "." + subCLName, options );
       return mainCL;
-    }
+   }
    catch( e )
    {
       throw e;
-   }    
+   }
 }
 
 

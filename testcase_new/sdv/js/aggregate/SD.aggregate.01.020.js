@@ -4,58 +4,58 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_aggre"
-      
+      var clName = COMMCLNAME + "_aggre"
+
       var cl = readyCL();
-   	
+
       insertRecs( cl );
       var rc = aggreOper( cl );
       checkResult( rc );
-   
+
       cleanCL();
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl )
+function insertRecs ( cl )
 {
-   println("\n---Begin to insert records.");
-   
-   cl.insert({no:1,score:80});
+   println( "\n---Begin to insert records." );
+
+   cl.insert( { no: 1, score: 80 } );
 }
 
-function aggreOper( cl )
-{  
-   println("\n---Begin to aggregate records.");
-   
-   var rc = cl.aggregate( {$skip:2} );
+function aggreOper ( cl )
+{
+   println( "\n---Begin to aggregate records." );
 
-   return rc ;
+   var rc = cl.aggregate( { $skip: 2 } );
+
+   return rc;
 }
 
-function checkResult( rc )
-{  
-   println("\n---Begin to check result.");
-   
+function checkResult ( rc )
+{
+   println( "\n---Begin to check result." );
+
    try
    {
       crtRecs = rc.current();
    }
-   catch (e)
+   catch( e )
    {
-      var expectE = -29 ;  //-29: End of collection
+      var expectE = -29;  //-29: End of collection
       if( e !== expectE )
       {
-         throw buildException("checkResult", null, "[compare the records]", 
-                           "[e:"+ expectE +"]", "[e:"+ e +"]");
+         throw buildException( "checkResult", null, "[compare the records]",
+            "[e:" + expectE + "]", "[e:" + e + "]" );
       }
    }
-   
+
 }

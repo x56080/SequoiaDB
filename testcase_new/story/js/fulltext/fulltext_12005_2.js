@@ -1,66 +1,66 @@
 /************************************
-*@Description: create fullText index 16 keys£¬insert/update/delete
+*@Description: create fullText index 16 keysï¿½ï¿½insert/update/delete
 *@author:      zhaoyu
 *@createdate:  2018.10.11
 **************************************/
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
       println( "Deploy mode is standalone!" );
       return;
    }
-   
+
    var clName = COMMCLNAME + "_ES_12005_2";
    var clFullName = COMMCSNAME + "." + clName
    var indexName = "a_12005";
-   var doc = [{No:1,a1:"text",a2:"text",a3:"text",a4:"text",a5:"text",a6:"text",a7:"text",a8:"text",a9:"text",a10:"text",a11:"text",a12:"text",a13:"text",a14:"text",a15:"text",a16:"text"}];
-   
-   commDropCL( db, COMMCSNAME, clName);
-   var dbcl = commCreateCL( db, COMMCSNAME, clName);
-   
-   dbcl.insert(doc);
-   commCreateIndex( dbcl, indexName, {a1:"text",a2:"text",a3:"text",a4:"text",a5:"text",a6:"text",a7:"text",a8:"text",a9:"text",a10:"text",a11:"text",a12:"text",a13:"text",a14:"text",a15:"text",a16:"text"});
-   dbcl.insert(doc);
-   
+   var doc = [{ No: 1, a1: "text", a2: "text", a3: "text", a4: "text", a5: "text", a6: "text", a7: "text", a8: "text", a9: "text", a10: "text", a11: "text", a12: "text", a13: "text", a14: "text", a15: "text", a16: "text" }];
+
+   commDropCL( db, COMMCSNAME, clName );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
+
+   dbcl.insert( doc );
+   commCreateIndex( dbcl, indexName, { a1: "text", a2: "text", a3: "text", a4: "text", a5: "text", a6: "text", a7: "text", a8: "text", a9: "text", a10: "text", a11: "text", a12: "text", a13: "text", a14: "text", a15: "text", a16: "text" } );
+   dbcl.insert( doc );
+
    var dbOperator = new DBOperator();
-   checkFullSyncToES(COMMCSNAME, clName, indexName, 2);
-   
-   var expectRecords = dbOperator.findFromCL(dbcl);
-   var actRecords = dbOperator.findFromCL(dbcl, {"":{"$Text":{query:{match_all:{}}}}});
-   checkResult(expectRecords, actRecords);
-   println("---check insert success---");
-   
-   dbcl.update({$set:{a1:"update"}},{a1:{$exists:1}});
-   dbcl.insert({a1:"update",a2:"update",a3:"update",a4:"update"});
-   checkFullSyncToES(COMMCSNAME, clName, indexName, 3);
-   var actRecords = dbOperator.findFromCL(dbcl, {"":{"$Text":{query:{match:{a1:"update"}}}}});
-   var expectRecords = dbOperator.findFromCL(dbcl, {a1:"update"});
-   checkResult(expectRecords, actRecords);
-   println("---check update success---");
-   
+   checkFullSyncToES( COMMCSNAME, clName, indexName, 2 );
+
+   var expectRecords = dbOperator.findFromCL( dbcl );
+   var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } } );
+   checkResult( expectRecords, actRecords );
+   println( "---check insert success---" );
+
+   dbcl.update( { $set: { a1: "update" } }, { a1: { $exists: 1 } } );
+   dbcl.insert( { a1: "update", a2: "update", a3: "update", a4: "update" } );
+   checkFullSyncToES( COMMCSNAME, clName, indexName, 3 );
+   var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match: { a1: "update" } } } } } );
+   var expectRecords = dbOperator.findFromCL( dbcl, { a1: "update" } );
+   checkResult( expectRecords, actRecords );
+   println( "---check update success---" );
+
    dbcl.remove();
-   checkFullSyncToES(COMMCSNAME, clName, indexName, 0);
-   var expectRecords = dbOperator.findFromCL(dbcl);
-   var actRecords = dbOperator.findFromCL(dbcl, {"":{"$Text":{query:{match_all:{}}}}});
-   checkResult(expectRecords, actRecords);
-   println("---check remove success---");
-   
+   checkFullSyncToES( COMMCSNAME, clName, indexName, 0 );
+   var expectRecords = dbOperator.findFromCL( dbcl );
+   var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } } );
+   checkResult( expectRecords, actRecords );
+   println( "---check remove success---" );
+
    //SEQUOIADBMAINSTREAM-3983 
-   var esIndexNames = dbOperator.getESIndexNames(COMMCSNAME, clName, indexName);
-   commDropCL( db, COMMCSNAME, clName);
-   checkIndexNotExistInES(esIndexNames);
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
+   commDropCL( db, COMMCSNAME, clName );
+   checkIndexNotExistInES( esIndexNames );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 ;

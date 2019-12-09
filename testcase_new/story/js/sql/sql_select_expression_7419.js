@@ -16,204 +16,206 @@
 @modify list:
       2015-5-13 ShanShan Hu added  2016-3-16 XiaoNi Huang modify
 ****************************************************/
-csName = COMMCSNAME ;
-clName = CHANGEDPREFIX+"_bar" ; 
+csName = COMMCSNAME;
+clName = CHANGEDPREFIX + "_bar";
 
-println("------Begin to ready cl.");
+println( "------Begin to ready cl." );
 try
 {
-// db.execUpdate("create collection "+csName+"."+clName);
-	commDropCL(db,csName,clName,true,true,"drop cl in begin");
-	var opt={ReplSize:0};
-	var varCL=commCreateCLByOption(db,csName,clName,opt,true,false,"create cl in begin");
+   // db.execUpdate("create collection "+csName+"."+clName);
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   var opt = { ReplSize: 0 };
+   var varCL = commCreateCLByOption( db, csName, clName, opt, true, false, "create cl in begin" );
 }
 catch( e )
 {
-   println("Failed to drop/create cl in the begin.");
-	throw e ;
+   println( "Failed to drop/create cl in the begin." );
+   throw e;
 }
 
-println("------Begin to insert into records.");
-for ( var i = 0 ; i<20 ; i++){
-   try{
-      db.execUpdate("insert into "+csName+"."+clName+" (name,age) values (\"Tom\","+i+")");
-   }
-   catch(e)
+println( "------Begin to insert into records." );
+for( var i = 0; i < 20; i++ )
+{
+   try
    {
-	   println("Failed to insert records.");
-      throw e ;
+      db.execUpdate( "insert into " + csName + "." + clName + " (name,age) values (\"Tom\"," + i + ")" );
+   }
+   catch( e )
+   {
+      println( "Failed to insert records." );
+      throw e;
    }
 }
 
-println("------Begin to select * from "+ csName +"."+ clName);
+println( "------Begin to select * from " + csName + "." + clName );
 var rc;
 try
 {
-	rc = db.exec("select * from "+csName+"."+clName);
+   rc = db.exec( "select * from " + csName + "." + clName );
 }
-	catch ( e )
+catch( e )
 {
-   println( "Failed to exec select." ) ;
-   throw e ;
+   println( "Failed to exec select." );
+   throw e;
 }
-if ( 20 != rc.size() )
+if( 20 != rc.size() )
 {
-   throw "Failed to check results." ;
+   throw "Failed to check results.";
 }
 
-println("------Begin to select age from "+ csName +"."+ clName);
+println( "------Begin to select age from " + csName + "." + clName );
 var rc;
 try
 {
-	rc = db.exec("select age from "+csName+"."+clName);
+   rc = db.exec( "select age from " + csName + "." + clName );
 }
-catch ( e )
+catch( e )
 {
-   println( "Failed to exec select." ) ;
-   throw e ;
+   println( "Failed to exec select." );
+   throw e;
 }
-if ( 20 != rc.size() )
+if( 20 != rc.size() )
 {
-   throw "Failed to check results." ;
+   throw "Failed to check results.";
 }
 
-println("------Begin to select * from "+ csName +"."+ clName +"where age>10");
+println( "------Begin to select * from " + csName + "." + clName + "where age>10" );
 var rc;
 try
 {
-	rc = db.exec("select * from "+csName+"."+clName+" where age>10");
+   rc = db.exec( "select * from " + csName + "." + clName + " where age>10" );
 }
-	catch ( e )
+catch( e )
 {
-   println( "Failed to exec select." ) ;
-   throw e ;
+   println( "Failed to exec select." );
+   throw e;
 }
-if ( 9 != rc.size() )
+if( 9 != rc.size() )
 {
-   throw "Failed to check results." ;
+   throw "Failed to check results.";
 }
 
-println("------Begin to select _id,age from "+ csName +"."+ clName +"where age<10");
-var rc ;
+println( "------Begin to select _id,age from " + csName + "." + clName + "where age<10" );
+var rc;
 try
 {
-	rc = db.exec("select _id,age from "+csName+"."+clName+" where age<10");
+   rc = db.exec( "select _id,age from " + csName + "." + clName + " where age<10" );
 }
-	catch ( e )
+catch( e )
 {
-   println( "Failed to exec select." ) ;
-   throw e ;
+   println( "Failed to exec select." );
+   throw e;
 }
-if ( 10 != rc.size() )
+if( 10 != rc.size() )
 {
-   throw "Failed to check results." ;
+   throw "Failed to check results.";
 }
 
-println("------Begin to select name,age from "+ csName +"."+ clName +"where age=10");
-var rc ;
+println( "------Begin to select name,age from " + csName + "." + clName + "where age=10" );
+var rc;
 try
 {
-	rc = db.exec("select name,age from "+csName+"."+clName+" where age=10");
+   rc = db.exec( "select name,age from " + csName + "." + clName + " where age=10" );
 }
-	catch ( e )
+catch( e )
 {
-   println( "Failed to exec select." ) ;
-   throw e ;
+   println( "Failed to exec select." );
+   throw e;
 }
 
-if ( 1 != rc.size() )
+if( 1 != rc.size() )
 {
-   throw "Failed to check results." ;
+   throw "Failed to check results.";
 }
 
-println("------Begin to select name,age from "+ csName +"."+ clName +"where age>=10");
-var rc ;
+println( "------Begin to select name,age from " + csName + "." + clName + "where age>=10" );
+var rc;
 try
 {
-	rc = db.exec("select name,age from "+csName+"."+clName+" where age>=10");
+   rc = db.exec( "select name,age from " + csName + "." + clName + " where age>=10" );
 }
-	catch ( e )
+catch( e )
 {
-   println( "Failed to exec select." ) ;
-   throw e ;
+   println( "Failed to exec select." );
+   throw e;
 }
-if ( 10 != rc.size() )
+if( 10 != rc.size() )
 {
-   throw "Failed to check results." ;
+   throw "Failed to check results.";
 }
 
-println("------Begin to select name,age from "+ csName +"."+ clName +"where age<=10");
-var rc ;
+println( "------Begin to select name,age from " + csName + "." + clName + "where age<=10" );
+var rc;
 try
 {
-	rc = db.exec("select name,age from "+csName+"."+clName+" where age<=10");
+   rc = db.exec( "select name,age from " + csName + "." + clName + " where age<=10" );
 }
-	catch ( e )
+catch( e )
 {
-   println( "Failed to exec select." ) ;
-   throw e ;
+   println( "Failed to exec select." );
+   throw e;
 }
-if ( 11 != rc.size() )
+if( 11 != rc.size() )
 {
-   throw "Failed to check results." ;
+   throw "Failed to check results.";
 }
 
-println("------Begin to select * from "+ csName +"."+ clName +"where name=\"Tom\" and age<>5");
-var rc ;
+println( "------Begin to select * from " + csName + "." + clName + "where name=\"Tom\" and age<>5" );
+var rc;
 try
 {
-	rc = db.exec("select * from "+csName+"."+clName+" where name=\"Tom\" and age<>5");
+   rc = db.exec( "select * from " + csName + "." + clName + " where name=\"Tom\" and age<>5" );
 }
-	catch ( e )
+catch( e )
 {
-   println( "Failed to exec select." ) ;
-   throw e ;
+   println( "Failed to exec select." );
+   throw e;
 }
-if ( 19 != rc.size() )
+if( 19 != rc.size() )
 {
-   throw "Failed to check results." ;
+   throw "Failed to check results.";
 }
 
-println("------Begin to select * from "+ csName +"."+ clName +"where age>10 and age<15 order by age desc");
-var rc ;
+println( "------Begin to select * from " + csName + "." + clName + "where age>10 and age<15 order by age desc" );
+var rc;
 try
 {
-	rc = db.exec("select * from "+csName+"."+clName+" where age>10 and age<15 order by age desc");
+   rc = db.exec( "select * from " + csName + "." + clName + " where age>10 and age<15 order by age desc" );
 }
-	catch ( e )
+catch( e )
 {
-   println( "Failed to exec select." ) ;
-   throw e ;
+   println( "Failed to exec select." );
+   throw e;
 }
-if ( 4 != rc.size() )
+if( 4 != rc.size() )
 {
-   throw "Failed to check results." ;
+   throw "Failed to check results.";
 }
 
-println("------Begin to select * from "+ csName +"."+ clName +"where age<5 or age>15 order by age asc");
-var rc ;
+println( "------Begin to select * from " + csName + "." + clName + "where age<5 or age>15 order by age asc" );
+var rc;
 try
 {
-	rc = db.exec("select * from "+csName+"."+clName+" where age<5 or age>15 order by age asc");
+   rc = db.exec( "select * from " + csName + "." + clName + " where age<5 or age>15 order by age asc" );
 }
-	catch ( e )
+catch( e )
 {
-   println( "Failed to exec select." ) ;
-   throw e ;
+   println( "Failed to exec select." );
+   throw e;
 }
 
-if ( 9 != rc.size() )
+if( 9 != rc.size() )
 {
-   throw "Failed to check results." ;
+   throw "Failed to check results.";
 }
 
-println("------Begin to drop cl in the end.");
+println( "------Begin to drop cl in the end." );
 try
 {
-   db.execUpdate( "drop collection "+csName+"."+clName ) ;
+   db.execUpdate( "drop collection " + csName + "." + clName );
 }
-catch (e)
+catch( e )
 {
-   println( "Failed to drop cl in the end." ) ;
-   throw e ;
+   println( "Failed to drop cl in the end." );
+   throw e;
 }

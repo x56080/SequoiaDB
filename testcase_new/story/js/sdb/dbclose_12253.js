@@ -1,37 +1,37 @@
 /******************************************************************************
 *@Description : test db operation after close
-*               TestLink : seqDB-12253 µ÷ÓÃcloseºóÖ´ÐÐ²Ù×÷
+*               TestLink : seqDB-12253 ï¿½ï¿½ï¿½ï¿½closeï¿½ï¿½Ö´ï¿½Ð²ï¿½ï¿½ï¿½
 *@auhor       : Liang XueWang
 ******************************************************************************/
-function main()
+function main ()
 {
-   var db = new Sdb( COORDHOSTNAME , COORDSVCNAME ); 
-   db.close(); 
-   
-   try
-   {
-      db.traceResume(); 
-      throw "NEED_ERROR"; 
-   }
-   catch( e )
-   {
-      if( e === 0 )
-      {
-         throw new Error( e ); 
-      }
-   }
+    var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+    db.close();
+
+    try
+    {
+        db.traceResume();
+        throw "NEED_ERROR";
+    }
+    catch( e )
+    {
+        if( e === 0 )
+        {
+            throw new Error( e );
+        }
+    }
 }
 
 try
 {
-   //SEQUOIADBMAINSTREAM-5230
-   //main(); 
+    //SEQUOIADBMAINSTREAM-5230
+    //main() ;
 }
 catch( e )
 {
-   if( e.constructor === Error )
-   {
-      println( e.stack ); 
-   }
-   throw e; 
+    if( e.constructor === Error )
+    {
+        println( e.stack );
+    }
+    throw e;
 }

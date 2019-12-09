@@ -8,61 +8,61 @@
 // 测试创建节点时端口号为边界值及边界值以内( 0, 65536 )
 OmaTest.prototype.testSvcnameBoundary = function()
 {
-   this.testInit() ;
-   var ErrorSvcname = [ 0, 65536, "0", "65536" ] ;
-   var CorrSvcname = [ 1, 65535, "1", "65535" ] ;
-   for( var i = 0;i < ErrorSvcname.length;i++ )
+   this.testInit();
+   var ErrorSvcname = [0, 65536, "0", "65536"];
+   var CorrSvcname = [1, 65535, "1", "65535"];
+   for( var i = 0; i < ErrorSvcname.length; i++ )
    {
       try
       {
-         var svcname = ErrorSvcname[i] ;
-         var dbpath = RSRVNODEDIR + svcname ;
-         this.oma.createData( svcname, dbpath ) ;
-         throw 0 ;
+         var svcname = ErrorSvcname[i];
+         var dbpath = RSRVNODEDIR + svcname;
+         this.oma.createData( svcname, dbpath );
+         throw 0;
       }
       catch( e )
       {
          if( e !== -6 )
          {
-            println( "svcname " + svcname + " dbpath " + dbpath ) ;
-            throw buildException( "testSvcnameBoundary", -6, 
-                                  "create data " + this, -6, e ) ;
+            println( "svcname " + svcname + " dbpath " + dbpath );
+            throw buildException( "testSvcnameBoundary", -6,
+               "create data " + this, -6, e );
          }
       }
    }
-   for( var i = 0;i < CorrSvcname.length;i++ )
+   for( var i = 0; i < CorrSvcname.length; i++ )
    {
       try
       {
-         var svcname = CorrSvcname[i] ;
-         var dbpath = RSRVNODEDIR + svcname ;
-         this.oma.createData( svcname, dbpath ) ;
-         this.oma.removeData( svcname ) ;
+         var svcname = CorrSvcname[i];
+         var dbpath = RSRVNODEDIR + svcname;
+         this.oma.createData( svcname, dbpath );
+         this.oma.removeData( svcname );
       }
       catch( e )
       {
-         println( "svcname " + svcname + " dbpath " + dbpath ) ;
-         throw buildException( "testSvcnameBoundary", 0, 
-                               "create data " + svcname + " " + this, 0, e ) ;
-      }   
+         println( "svcname " + svcname + " dbpath " + dbpath );
+         throw buildException( "testSvcnameBoundary", 0,
+            "create data " + svcname + " " + this, 0, e );
+      }
    }
-   this.oma.close() ;
+   this.oma.close();
 }
 
-function main()
+function main ()
 {
    // 获取本地主机和远程主机
-   var localhost = toolGetLocalhost() ;
-   var remotehost = toolGetRemotehost() ;
-   
-   var localOma = new OmaTest( localhost, CMSVCNAME ) ;
-   var remoteOma = new OmaTest( remotehost, CMSVCNAME ) ;
-   var omas = [ localOma, remoteOma ] ;
-   
-   for( var i = 0;i < omas.length;i++ )
+   var localhost = toolGetLocalhost();
+   var remotehost = toolGetRemotehost();
+
+   var localOma = new OmaTest( localhost, CMSVCNAME );
+   var remoteOma = new OmaTest( remotehost, CMSVCNAME );
+   var omas = [localOma, remoteOma];
+
+   for( var i = 0; i < omas.length; i++ )
    {
       // 测试端口号取边界值及超出边界时创建节点（0,65536）（1,65535）
-      omas[i].testSvcnameBoundary() ;
+      omas[i].testSvcnameBoundary();
    }
 }
 

@@ -2,65 +2,65 @@
 @Description :    seqDB-17727:   increment为负值，插入值大于所有缓存值 
 @Modify list :   2018-1-28    Zhao Xiaoni  Init
 ******************************************************************************/
-function main()
+function main ()
 {
    var coordNodes = getCoordNodeNames();
-   if(coordNodes.length < 3 || commIsStandalone( db ))
+   if( coordNodes.length < 3 || commIsStandalone( db ) )
    {
-      println("Deploy is standalone or coord nodes is less than 3!");
+      println( "Deploy is standalone or coord nodes is less than 3!" );
       return;
    }
-    
+
    var clName = COMMCLNAME + "_17727";
    var increment = -1;
    var acquireSize = 100;
-   
+
    commDropCL( db, COMMCSNAME, clName );
-   
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement : { Field : "id", Increment : increment, AcquireSize : acquireSize } } );
-   commCreateIndex( dbcl, "a", {id : 1}, true )
-   
+
+   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", Increment: increment, AcquireSize: acquireSize } } );
+   commCreateIndex( dbcl, "a", { id: 1 }, true )
+
    //连接所有coord插入部分记录,coord缓存分别为[-100,-1],[-200,-101],[-300,-201]
    var expRecs = [];
    var cl = new Array();
-   var coord  = new Array();
-   for(var i = 0; i < coordNodes.length; i++)
+   var coord = new Array();
+   for( var i = 0; i < coordNodes.length; i++ )
    {
-      coord[i] = new Sdb(coordNodes[i]);
-      cl[i] = coord[i].getCS(COMMCSNAME).getCL(clName);
-      cl[i].insert({a : i});
-      expRecs.push({a : i, id : - 1 + i*increment*acquireSize});
+      coord[i] = new Sdb( coordNodes[i] );
+      cl[i] = coord[i].getCS( COMMCSNAME ).getCL( clName );
+      cl[i].insert( { a: i } );
+      expRecs.push( { a: i, id: - 1 + i * increment * acquireSize } );
    }
-   
+
    //coordB指定自增字段值大于所有缓存值
-   var insertR1 = {a : 2, id : 2};
-   cl[1].insert(insertR1);
-   expRecs.push(insertR1);
-   
+   var insertR1 = { a: 2, id: 2 };
+   cl[1].insert( insertR1 );
+   expRecs.push( insertR1 );
+
    //连接所有coord插入部分记录
-   for(var i = 0; i < coordNodes.length; i++)
+   for( var i = 0; i < coordNodes.length; i++ )
    {
-      for(var j = 0; j < 5; j++)
+      for( var j = 0; j < 5; j++ )
       {
-         cl[i].insert({a : j});
-         expRecs.push({a : j, id : - 2 + j*increment + i*acquireSize*increment});
+         cl[i].insert( { a: j } );
+         expRecs.push( { a: j, id: - 2 + j * increment + i * acquireSize * increment } );
       }
    }
-   
-   var rc = dbcl.find().sort({id:1});
-   checkRec(rc, expRecs.sort(compare("id")));
-   
+
+   var rc = dbcl.find().sort( { id: 1 } );
+   checkRec( rc, expRecs.sort( compare( "id" ) ) );
+
    commDropCL( db, COMMCSNAME, clName );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

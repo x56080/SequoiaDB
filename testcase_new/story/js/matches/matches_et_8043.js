@@ -6,82 +6,82 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_matches8043" ;
-      var idx01 = CHANGEDPREFIX + "_index01" ;
-      var idx02 = CHANGEDPREFIX + "_index02" ;
-      
+      var clName = COMMCLNAME + "_matches8043";
+      var idx01 = CHANGEDPREFIX + "_index01";
+      var idx02 = CHANGEDPREFIX + "_index02";
+
       var cl = readyCL( clName );
       createIndex( cl, idx01, idx02 );
-   	
+
       insertRecs( cl );
-      
+
       var intRc = findRecs( cl, "int" );  // int/long
       var arrRc = findRecs( cl, "array" );  // array/subObj
-      
-      checkResult( intRc, arrRc, idx01, idx02  );
-   
+
+      checkResult( intRc, arrRc, idx01, idx02 );
+
       cleanCL( clName );
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function createIndex( cl, idx01, idx02 )
+function createIndex ( cl, idx01, idx02 )
 {
-   println("\n---Begin to create index.");
-   
-   cl.createIndex( idx01, {"b":1} );
-   cl.createIndex( idx02, {"b.0.c":1} );
+   println( "\n---Begin to create index." );
+
+   cl.createIndex( idx01, { "b": 1 } );
+   cl.createIndex( idx02, { "b.0.c": 1 } );
 }
 
-function insertRecs( cl )
+function insertRecs ( cl )
 {
-   println("\n---Begin to insert records.");
-   
-   cl.insert( [ {a:0, b:1}, 
-                {a:1, b:NumberLong(1)}, 
-                {a:2, b:[{"c":1}]}, 
-                {a:3, b:{"0": {"c": 1}}} ] );
+   println( "\n---Begin to insert records." );
+
+   cl.insert( [{ a: 0, b: 1 },
+   { a: 1, b: NumberLong( 1 ) },
+   { a: 2, b: [{ "c": 1 }] },
+   { a: 3, b: { "0": { "c": 1 } } }] );
 }
 
-function findRecs( cl, dataType )
+function findRecs ( cl, dataType )
 {
    if( dataType === "int" )
    {
-      println("\n---Begin to find records for dataType[int/long].");
-      var rc = cl.find( {b:{$et:1}} ).sort({a:1});
+      println( "\n---Begin to find records for dataType[int/long]." );
+      var rc = cl.find( { b: { $et: 1 } } ).sort( { a: 1 } );
    }
    else if( dataType === "array" )
    {
-      println("\n---Begin to find records for dataType[array/subObj].");
-      var rc = cl.find( {"b.0.c":{$et:1}} ).sort({a:1});
+      println( "\n---Begin to find records for dataType[array/subObj]." );
+      var rc = cl.find( { "b.0.c": { $et: 1 } } ).sort( { a: 1 } );
    }
    return rc;
 }
 
-function checkResult( intRc, arrRc, idx01, idx02 )
+function checkResult ( intRc, arrRc, idx01, idx02 )
 {
    //-----------------------check result for dataType[int/long]---------------------
    //compare scanType
-   println("\n---Begin to check index explain["+ idx01 +"].");
-   
+   println( "\n---Begin to check index explain[" + idx01 + "]." );
+
    var tmpExp = intRc.explain().current().toObj();  //incRc
    if( tmpExp["ScanType"] !== "ixscan" || tmpExp["IndexName"] !== idx01 )
    {
-      throw buildException("checkResult", null, "[compare index]", 
-                           "[ScanType:ixscan,IndexName:"+ idx01 +"]", 
-                           "[ScanType:"+ tmpExp["ScanType"] +",IndexName:"+ tmpExp["IndexName"] +"]");
+      throw buildException( "checkResult", null, "[compare index]",
+         "[ScanType:ixscan,IndexName:" + idx01 + "]",
+         "[ScanType:" + tmpExp["ScanType"] + ",IndexName:" + tmpExp["IndexName"] + "]" );
    }
-   
+
    //get results
-   println("\n---Begin to check result for dataType[int/long].");
-   
+   println( "\n---Begin to check result for dataType[int/long]." );
+
    var findRtn = new Array();
    while( tmpRecs = intRc.next() )  //incRc
    {
@@ -91,17 +91,17 @@ function checkResult( intRc, arrRc, idx01, idx02 )
    var expLen = 2;
    if( findRtn.length !== expLen )
    {
-      throw buildException("checkResult", null, "[compare number]", 
-                          "[recsNum:"+ expLen +"]",
-                          "[recsNum:"+ findRtn.length +"]");
+      throw buildException( "checkResult", null, "[compare number]",
+         "[recsNum:" + expLen + "]",
+         "[recsNum:" + findRtn.length + "]" );
    }
    //compare records
    if( findRtn[0]["b"] !== 1 || findRtn[1]["b"] !== 1 )
    {
-      println( "---The real records: \n"+ JSON.stringify( findRtn ) );
-      throw buildException("checkResult", null, "[compare records]", 
-                        "[b:"+ 1 +",b:"+ 1 +"]",
-                        "[b:"+ findRtn[0]["b"] +",b:"+ findRtn[0]["b"] +"]");
+      println( "---The real records: \n" + JSON.stringify( findRtn ) );
+      throw buildException( "checkResult", null, "[compare records]",
+         "[b:" + 1 + ",b:" + 1 + "]",
+         "[b:" + findRtn[0]["b"] + ",b:" + findRtn[0]["b"] + "]" );
    }
    /*
    //-----------------------check result for dataType[array/subObj]---------------------

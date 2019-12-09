@@ -4,68 +4,68 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_matches8045" ;
-      var indexName = CHANGEDPREFIX + "_index" ;
+      var clName = COMMCLNAME + "_matches8045";
+      var indexName = CHANGEDPREFIX + "_index";
       var cl = readyCL( clName );
       createIndex( cl, indexName );
-      
+
       insertRecs( cl );
       var rc = findRecs( cl );
       checkResult( rc, indexName );
-   
+
       cleanCL( clName );
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function createIndex( cl, indexName )
+function createIndex ( cl, indexName )
 {
-   println("\n---Begin to create index.");
-   
-   cl.createIndex( indexName, {b:1} );
+   println( "\n---Begin to create index." );
+
+   cl.createIndex( indexName, { b: 1 } );
 }
 
-function insertRecs( cl )
+function insertRecs ( cl )
 {
-   println("\n---Begin to insert records.");
-   
-   cl.insert( [ {a:0}, 
-                {a:1, b:null}, 
-                {a:2, b:""} ] );
+   println( "\n---Begin to insert records." );
+
+   cl.insert( [{ a: 0 },
+   { a: 1, b: null },
+   { a: 2, b: "" }] );
 }
 
-function findRecs( cl )
+function findRecs ( cl )
 {
-   println("\n---Begin to find records.");
-   
-   var rc = cl.find( {b:{$exists:0}} ).sort({a:1});
-   
-   return rc ;
+   println( "\n---Begin to find records." );
+
+   var rc = cl.find( { b: { $exists: 0 } } ).sort( { a: 1 } );
+
+   return rc;
 }
 
-function checkResult( rc, indexName )
+function checkResult ( rc, indexName )
 {
    //-------------------check index----------------------------
-   println("\n---Begin to check index.");
-   
+   println( "\n---Begin to check index." );
+
    var idx = rc.explain().current().toObj();
    if( idx["ScanType"] !== "ixscan" || idx["IndexName"] !== indexName )
    {
-      throw buildException("checkResult", null, "[compare index]", 
-                           "[ScanType:ixscan,IndexName:"+ indexName +"]", 
-                           "[ScanType:"+ idx["ScanType"] +",IndexName:"+ idx["IndexName"] +"]");
+      throw buildException( "checkResult", null, "[compare index]",
+         "[ScanType:ixscan,IndexName:" + indexName + "]",
+         "[ScanType:" + idx["ScanType"] + ",IndexName:" + idx["IndexName"] + "]" );
    }
-   
+
    //-------------------check records----------------------------
-   println("\n---Begin to check result.");
-   
+   println( "\n---Begin to check result." );
+
    var findRtn = new Array();
    while( tmpRecs = rc.next() ) 
    {
@@ -75,15 +75,15 @@ function checkResult( rc, indexName )
    var expLen = 1;
    if( findRtn.length !== expLen )
    {
-      throw buildException("checkResult", null, "[compare number]", 
-                          "[recsNum:"+ expLen +"]",
-                          "[recsNum:"+ findRtn.length +"]");
+      throw buildException( "checkResult", null, "[compare number]",
+         "[recsNum:" + expLen + "]",
+         "[recsNum:" + findRtn.length + "]" );
    }
    //compare records
    if( findRtn[0]["b"] !== undefined )
    {
-      throw buildException("checkResult", null, "[compare records]", 
-                          "[b:"+ undefined +"]",
-                          "[b:"+ findRtn[0]["b"] +"]");
+      throw buildException( "checkResult", null, "[compare records]",
+         "[b:" + undefined + "]",
+         "[b:" + findRtn[0]["b"] + "]" );
    }
 }

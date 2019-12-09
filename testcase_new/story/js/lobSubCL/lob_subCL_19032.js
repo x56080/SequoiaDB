@@ -5,45 +5,45 @@
 **************************************/
 try
 {
-   main(); 
+   main();
 }
 catch( e )
 {
    if( e.constructor === Error )
    {
-      println( e.stack ); 
+      println( e.stack );
    }
-   throw e; 
+   throw e;
 }
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" ); 
-      return; 
+      println( "skip standalone mode" );
+      return;
    }
-   
-   var csName = COMMCSNAME; 
-   var mainCLName = "mainCL_19032"; 
-   var subCLName = "subCL_19032"; 
-   var filePath = WORKDIR + "/lob19032/"; 
+
+   var csName = COMMCSNAME;
+   var mainCLName = "mainCL_19032";
+   var subCLName = "subCL_19032";
+   var filePath = WORKDIR + "/lob19032/";
    var fileName = "file19032"
-   var fileFullPath = filePath + fileName; 
-   var fileMD5 = makeTmpFile( filePath, fileName ); 
-   
-   commDropCL( db, csName, mainCLName ); 
-   commDropCL( db, csName, subCLName ); 
-   
-   var options = {"IsMainCL": true, "ShardingKey": {"date": 1}, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range"}; 
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl" ); 
-   commCreateCL( db, csName, subCLName ); 
-   mainCL.attachCL( csName + "." + subCLName, {"LowBound": {"date": {"$minKey": 1}}, "UpBound": {"date": {"$maxKey": 1}}} ); 
-   var lobOids = insertLob( mainCL, fileFullPath ); 
-   checkLobMD5( mainCL, lobOids, fileMD5 ); 
-   deleteLob( mainCL, lobOids ); 
-   
-   deleteTmpFile( filePath ); 
-   cleanMainCL( db, csName, mainCLName ); 
+   var fileFullPath = filePath + fileName;
+   var fileMD5 = makeTmpFile( filePath, fileName );
+
+   commDropCL( db, csName, mainCLName );
+   commDropCL( db, csName, subCLName );
+
+   var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range" };
+   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl" );
+   commCreateCL( db, csName, subCLName );
+   mainCL.attachCL( csName + "." + subCLName, { "LowBound": { "date": { "$minKey": 1 } }, "UpBound": { "date": { "$maxKey": 1 } } } );
+   var lobOids = insertLob( mainCL, fileFullPath );
+   checkLobMD5( mainCL, lobOids, fileMD5 );
+   deleteLob( mainCL, lobOids );
+
+   deleteTmpFile( filePath );
+   cleanMainCL( db, csName, mainCLName );
 }
 

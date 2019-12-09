@@ -2,33 +2,33 @@
 // normal case.
 
 // clear
-commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" ); 
+commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" );
 
 // create cs, cl
-var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true, false, 
-"create cs and cl in begin" ); 
+var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true, false,
+   "create cs and cl in begin" );
 
 try
 {
-   varCL.insert( {a:1} ); 
+   varCL.insert( { a: 1 } );
 }
 catch( e )
 {
-   println( "failed to insert record, rc= " + e ); 
-   throw e; 
+   println( "failed to insert record, rc= " + e );
+   throw e;
 }
 
 try
 {
-   varCL.upsert( {$set:{a:2}}, {a:1} ); 
+   varCL.upsert( { $set: { a: 2 } }, { a: 1 } );
 }
 catch( e )
 {
-   println( "failed to update( {$set:{a:2}}, {a:1} ) record, rc= " + e ); 
-   throw e; 
+   println( "failed to update( {$set:{a:2}}, {a:1} ) record, rc= " + e );
+   throw e;
 }
 
-checkResult( varCL, {}, [{a:2}] ); 
+checkResult( varCL, {}, [{ a: 2 }] );
 
 /*var rc; 
 try
@@ -50,12 +50,12 @@ throw -1;
 */
 try
 {
-   varCL.upsert( {$set:{a:4}}, {a:3} ); 
+   varCL.upsert( { $set: { a: 4 } }, { a: 3 } );
 }
 catch( e )
 {
-   println( "failed to insert record, rc= " + e ); 
-   throw e; 
+   println( "failed to insert record, rc= " + e );
+   throw e;
 }
 
 /*
@@ -90,18 +90,18 @@ println( varCL.find() );
 throw -1; 
 }
 */
-checkResult( varCL, {}, [{a:2}, {a:4}] ); 
+checkResult( varCL, {}, [{ a: 2 }, { a: 4 }] );
 //zhaoyu add
 try
 {
-   varCL.upsert( {$set:{a:5}}, {$or:[{b:1}]} ); 
+   varCL.upsert( { $set: { a: 5 } }, { $or: [{ b: 1 }] } );
 }
 catch( e )
 {
-   println( "failed to insert record, rc= " + e ); 
-   throw e; 
+   println( "failed to insert record, rc= " + e );
+   throw e;
 }
-checkResult( varCL, {}, [{a:2}, {a:4}, {a:5, b:1}] ); 
+checkResult( varCL, {}, [{ a: 2 }, { a: 4 }, { a: 5, b: 1 }] );
 /*
 try
 {

@@ -5,53 +5,53 @@
 ****************************************************/
 main();
 
-function main()
+function main ()
 {
-   var clName  = COMMCLNAME+"_query5282";      
+   var clName = COMMCLNAME + "_query5282";
    var cl = readyCL( clName );
-      
+
    var recordNum = 10000;
    insertRecs( cl, recordNum );
-   queryRecsAndCheckResult( cl, recordNum );  
-   
+   queryRecsAndCheckResult( cl, recordNum );
+
    cleanCL( clName );
-     
+
 }
 
-function insertRecs( cl, recordNum )
+function insertRecs ( cl, recordNum )
 {
-   println("\n---Begin to insert records.");
-   
+   println( "\n---Begin to insert records." );
+
    var docs = [];
-   for( i = 0 ; i < recordNum ; i++ )
+   for( i = 0; i < recordNum; i++ )
    {
-      var objs = { "no": i, "str": "test" + i };  
-      docs.push(objs); 
+      var objs = { "no": i, "str": "test" + i };
+      docs.push( objs );
    }
    cl.insert( docs );
 }
 
-function queryRecsAndCheckResult( cl, recordNum )
+function queryRecsAndCheckResult ( cl, recordNum )
 {
-   println("\n---Begin to exec[query.i].");
-   
+   println( "\n---Begin to exec[query.i]." );
+
    var query = cl.find();
    //访问第一条记录，下标值取0;访问最后一条记录取记录数，下标志为9999
    var serialFirst = 0;
-   var serialLast = recordNum - 1;  
+   var serialLast = recordNum - 1;
    var queryFirst = query[serialFirst];
-   var queryLast  = query[serialLast];     
-  
-   
+   var queryLast = query[serialLast];
+
+
    //查询第一条记录和最后一条记录
-   var expQueryFirst = cl.find({ "no": serialFirst }).toArray().toString();
-   var expQueryLast = cl.find({ "no": serialLast }).toArray().toString();    
-   
+   var expQueryFirst = cl.find( { "no": serialFirst } ).toArray().toString();
+   var expQueryLast = cl.find( { "no": serialLast } ).toArray().toString();
+
    if( queryFirst !== expQueryFirst || queryLast !== expQueryLast )
    {
-      throw buildException("checkResult", null, "[compare the records]", 
-                          "[expQueryFirst:"+ expQueryFirst  +", queryLast:"+ expQueryLast  +"]",
-                          "[expQueryLast:"+ expQueryLast  +", queryLast:"+ queryLast +"]");
+      throw buildException( "checkResult", null, "[compare the records]",
+         "[expQueryFirst:" + expQueryFirst + ", queryLast:" + expQueryLast + "]",
+         "[expQueryLast:" + expQueryLast + ", queryLast:" + queryLast + "]" );
    }
-   
+
 }

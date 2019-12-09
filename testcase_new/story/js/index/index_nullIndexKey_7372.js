@@ -5,45 +5,45 @@
                2014-5-20  xiaojun Hu  Modify
 ******************************************************************************/
 
-function main( db )
+function main ( db )
 {
    // drop collection in the beginning
-   commDropCL( db, csName, clName, true, true, "drop collection in the beginning" ) ;
+   commDropCL( db, csName, clName, true, true, "drop collection in the beginning" );
 
    // create collection
-   var idxCL = commCreateCL( db, csName, clName, -1, true, true, false, "create collection" ) ;
+   var idxCL = commCreateCL( db, csName, clName, -1, true, true, false, "create collection" );
 
    // insert data to SDB
-   idxCL.insert( {a:1} ) ;
+   idxCL.insert( { a: 1 } );
 
    // create index
-   createIndex( idxCL, "testindex", {}, false, false, -6 ) ;
+   createIndex( idxCL, "testindex", {}, false, false, -6 );
 
    // inspect the index
    try
    {
-      inspecIndex( idxCL, "testindex", "a", 1, false ) ;
+      inspecIndex( idxCL, "testindex", "a", 1, false );
    }
-   catch ( e )
+   catch( e )
    {
-      if ( "ErrIdxName" != e )
+      if( "ErrIdxName" != e )
       {
-         throw e ;
+         throw e;
       }
    }
 
 
    // drop collection in clean
    commDropCL( db, csName, clName, false, false,
-               "drop colleciton in the end" );
+      "drop colleciton in the end" );
 }
 
 try
 {
-   main( db ) ;
-   db.close() ;
+   main( db );
+   db.close();
 }
-catch ( e )
+catch( e )
 {
-   throw e ;
+   throw e;
 }

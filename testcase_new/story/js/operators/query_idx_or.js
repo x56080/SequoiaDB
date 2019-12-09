@@ -3,250 +3,259 @@
 @Modify list :
                2014-08-08 pusheng Ding  Init
 ******************************************************************************/
-CHANGEDPREFIX_IDX = CHANGEDPREFIX + "_idx" ;
+CHANGEDPREFIX_IDX = CHANGEDPREFIX + "_idx";
 
 try
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" ) ;
+	commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" );
 }
-catch(e)
+catch( e )
 {
-   println( "unexpected err happened when clear cs:" + e ) ;
-   throw e ;
+	println( "unexpected err happened when clear cs:" + e );
+	throw e;
 }
 
 //create CS
 try
 {
-   var varCS = commCreateCS( db, COMMCSNAME, true, "create CS in the beginning" );
+	var varCS = commCreateCS( db, COMMCSNAME, true, "create CS in the beginning" );
 }
-catch ( e )
+catch( e )
 {
-   println("failed to create cs,rc="+ e );
-   throw e ;
+	println( "failed to create cs,rc=" + e );
+	throw e;
 }
 
 //create CL
-try{
-	var varCL = varCS.createCL(COMMCLNAME,{ReplSize:0,Compressed:true});
-	println("create CL finished");
-}catch(e)
+try
+{
+	var varCL = varCS.createCL( COMMCLNAME, { ReplSize: 0, Compressed: true } );
+	println( "create CL finished" );
+} catch( e )
 {
 	//collection already exist,use it
-	if(e != -22)
+	if( e != -22 )
 	{
-		println("can't create CL:" + COMMCLNAME + " rc="+e);
+		println( "can't create CL:" + COMMCLNAME + " rc=" + e );
 		throw e;
 	}
 	else
 	{
-		varCL = varCS.getCL(COMMCLNAME);
+		varCL = varCS.getCL( COMMCLNAME );
 		varCL.remove();
-		println("use CL:" + COMMCLNAME);
+		println( "use CL:" + COMMCLNAME );
 	}
 }
 
 //insert data
-try{
-	for(i=0;i<10;i++)
-	{
-		varCL.insert({a:1*i, b:10*i});
-	}
-}catch(e)
+try
 {
-	println("insert data fail! rc="+e);
+	for( i = 0; i < 10; i++ )
+	{
+		varCL.insert( { a: 1 * i, b: 10 * i } );
+	}
+} catch( e )
+{
+	println( "insert data fail! rc=" + e );
 	throw e;
 }
-println("insert data finished");
+println( "insert data finished" );
 
 //no index
 //select * from ... where a=1 or b=10;
-try{
-	var sel = varCL.find({$or:[{a:1},{b:10}]}).sort({a:1});
-	var size=0;
-	var exprows = 1;
-  var flag=true;
-  while(sel.next())
-  {
-  	size++;
-  	if(size>exprows)
-  	{
-  		flag = false;
-  		throw 1;
-  	}
-  	var ret = sel.current();
-  	//expected result:{a:1,b:10}
-  	if(ret.toObj()['a']!=1 || ret.toObj()['b']!=10)
-  	{
-  		flag = false;
-  		throw 2;
-  	}
-  }
-  sel.close();
-  if(flag && size!=exprows)
-  {
-  	flag = false;
-  	throw 1;
-  }
-}catch(e)
+try
 {
-	if(e!=1 && e!=2)
+	var sel = varCL.find( { $or: [{ a: 1 }, { b: 10 }] } ).sort( { a: 1 } );
+	var size = 0;
+	var exprows = 1;
+	var flag = true;
+	while( sel.next() )
 	{
-		println("select data fail! rc="+e);
+		size++;
+		if( size > exprows )
+		{
+			flag = false;
+			throw 1;
+		}
+		var ret = sel.current();
+		//expected result:{a:1,b:10}
+		if( ret.toObj()['a'] != 1 || ret.toObj()['b'] != 10 )
+		{
+			flag = false;
+			throw 2;
+		}
+	}
+	sel.close();
+	if( flag && size != exprows )
+	{
+		flag = false;
+		throw 1;
+	}
+} catch( e )
+{
+	if( e != 1 && e != 2 )
+	{
+		println( "select data fail! rc=" + e );
 		throw e;
 	}
-	else if(e==1)
+	else if( e == 1 )
 	{
-		println("return rows not expected! expected:" + exprows + " return:"+ size +(size>exprows?" or more":""));
+		println( "return rows not expected! expected:" + exprows + " return:" + size + ( size > exprows ? " or more" : "" ) );
 		throw e;
 	}
-	else if(e==2)
+	else if( e == 2 )
 	{
-		println("return incorrect record! expected:{a:1,b:10} returned:" + ret);
+		println( "return incorrect record! expected:{a:1,b:10} returned:" + ret );
 		throw e;
 	}
 }
-println("select data without index finished!");
+println( "select data without index finished!" );
 
 //create index
-try{
-	varCL.createIndex(CHANGEDPREFIX_IDX,{a:1});
-	println("create index finished");
-}catch(e)
+try
+{
+	varCL.createIndex( CHANGEDPREFIX_IDX, { a: 1 } );
+	println( "create index finished" );
+} catch( e )
 {
 	//when redefine index, ignore the exception
-	if(e != -247)
+	if( e != -247 )
 	{
-		println("can't create index:" + CHANGEDPREFIX_IDX + " rc="+e);
+		println( "can't create index:" + CHANGEDPREFIX_IDX + " rc=" + e );
 		throw e;
 	}
-	println("already exist index:" + CHANGEDPREFIX_IDX);
+	println( "already exist index:" + CHANGEDPREFIX_IDX );
 }
 //select * from ... where (a>1 or a<3) and b in(20);
-try{
-	var sel = varCL.find({$or:[{a:{$gt:1}},{b:{$lt:3}}],b:{$in:[20]}}).hint({"":CHANGEDPREFIX_IDX});
-	var size=0;
-	var exprows = 1;
-  var flag=true;
-  while(sel.next())
-  {
-  	size++;
-  	if(size>exprows)
-  	{
-  		flag = false;
-  		throw 1;
-  	}
-  	var ret = sel.current();
-  	//expected result:{a:2,b:20}
-  	if(ret.toObj()['a']!=2 || ret.toObj()['b']!=20)
-  	{
-  		flag = false;
-  		throw 2;
-  	}
-  }
-  sel.close();
-  if(flag && size!=exprows)
-  {
-  	flag = false;
-  	throw 1;
-  }
-}catch(e)
+try
 {
-	if(e!=1 && e!=2)
+	var sel = varCL.find( { $or: [{ a: { $gt: 1 } }, { b: { $lt: 3 } }], b: { $in: [20] } } ).hint( { "": CHANGEDPREFIX_IDX } );
+	var size = 0;
+	var exprows = 1;
+	var flag = true;
+	while( sel.next() )
 	{
-		println("select data fail! rc="+e);
+		size++;
+		if( size > exprows )
+		{
+			flag = false;
+			throw 1;
+		}
+		var ret = sel.current();
+		//expected result:{a:2,b:20}
+		if( ret.toObj()['a'] != 2 || ret.toObj()['b'] != 20 )
+		{
+			flag = false;
+			throw 2;
+		}
+	}
+	sel.close();
+	if( flag && size != exprows )
+	{
+		flag = false;
+		throw 1;
+	}
+} catch( e )
+{
+	if( e != 1 && e != 2 )
+	{
+		println( "select data fail! rc=" + e );
 		throw e;
 	}
-	else if(e==1)
+	else if( e == 1 )
 	{
-		println("return rows not expected! expected:" + exprows + " return:"+ size +(size>exprows?" or more":""));
+		println( "return rows not expected! expected:" + exprows + " return:" + size + ( size > exprows ? " or more" : "" ) );
 		throw e;
 	}
-	else if(e==2)
+	else if( e == 2 )
 	{
-		println("return incorrect record! expected:{a:2,b:20} returned:" + ret);
+		println( "return incorrect record! expected:{a:2,b:20} returned:" + ret );
 		throw e;
 	}
 }
-println("select data with index finished!");
+println( "select data with index finished!" );
 
-try{
-	varCL.dropIndex(CHANGEDPREFIX_IDX);
-}catch(e)
+try
+{
+	varCL.dropIndex( CHANGEDPREFIX_IDX );
+} catch( e )
 {
 }
 
 //combined index
-try{
-	varCL.createIndex(CHANGEDPREFIX_IDX,{a:1,b:1});
-	println("create index finished");
-}catch(e)
+try
+{
+	varCL.createIndex( CHANGEDPREFIX_IDX, { a: 1, b: 1 } );
+	println( "create index finished" );
+} catch( e )
 {
 	//when redefine index, ignore the exception
-	if(e != -247)
+	if( e != -247 )
 	{
-		println("can't create index:" + CHANGEDPREFIX_IDX + " rc="+e);
+		println( "can't create index:" + CHANGEDPREFIX_IDX + " rc=" + e );
 		throw e;
 	}
-	println("already exist index:" + CHANGEDPREFIX_IDX);
+	println( "already exist index:" + CHANGEDPREFIX_IDX );
 }
 
 //select * from ... where a not in(1,2,3,4,5,6,7,8,9,10) or b in (10,20);
-try{
-	var sel = varCL.find({$or:[{a:{$nin:[1,2,3,4,5,6,7,8,9,10]}},{b:{$in:[10,20]}}]}).sort({a:1}).hint({"":CHANGEDPREFIX_IDX});
-	var size=0;
-	var exprows = 3;
-  var flag=true;
-  while(sel.next())
-  {
-  	size++;
-  	if(size>exprows)
-  	{
-  		flag = false;
-  		throw 1;
-  	}
-  	var ret = sel.current();
-  	//expected result:{a:0,b:0} {a:1,b:10} {a:2,b:20}
-  	if( ret.toObj()['a']!=(size-1)|| ret.toObj()['b']!=((size-1)*10) )
-  	{
-  		flag = false;
-  		throw 2;
-  	}
-  }
-  sel.close();
-  if(flag && size!=exprows)
-  {
-  	flag = false;
-  	throw 1;
-  }
-}catch(e)
+try
 {
-	if(e!=1 && e!=2)
+	var sel = varCL.find( { $or: [{ a: { $nin: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] } }, { b: { $in: [10, 20] } }] } ).sort( { a: 1 } ).hint( { "": CHANGEDPREFIX_IDX } );
+	var size = 0;
+	var exprows = 3;
+	var flag = true;
+	while( sel.next() )
 	{
-		println("select data fail! rc="+e);
+		size++;
+		if( size > exprows )
+		{
+			flag = false;
+			throw 1;
+		}
+		var ret = sel.current();
+		//expected result:{a:0,b:0} {a:1,b:10} {a:2,b:20}
+		if( ret.toObj()['a'] != ( size - 1 ) || ret.toObj()['b'] != ( ( size - 1 ) * 10 ) )
+		{
+			flag = false;
+			throw 2;
+		}
+	}
+	sel.close();
+	if( flag && size != exprows )
+	{
+		flag = false;
+		throw 1;
+	}
+} catch( e )
+{
+	if( e != 1 && e != 2 )
+	{
+		println( "select data fail! rc=" + e );
 		throw e;
 	}
-	else if(e==1)
+	else if( e == 1 )
 	{
-		println("return rows not expected! expected:" + exprows +  " return:"+ size +(size>exprows?" or more":""));
+		println( "return rows not expected! expected:" + exprows + " return:" + size + ( size > exprows ? " or more" : "" ) );
 		throw e;
 	}
-	else if(e==2)
+	else if( e == 2 )
 	{
-		println("return incorrect record!");
-		println("the incorrect record:"+ret);
+		println( "return incorrect record!" );
+		println( "the incorrect record:" + ret );
 		throw e;
 	}
 }
-println("select data with combined index finished!");
+println( "select data with combined index finished!" );
 
 //clean test-env
-try{
-	varCL.dropIndex(CHANGEDPREFIX_IDX);
-   commDropCL( db, COMMCSNAME, COMMCLNAME, false, false, "drop cl in the end" ) ;
-}catch(e)
+try
 {
-	println("clean test-evn fail! rc="+e);
+	varCL.dropIndex( CHANGEDPREFIX_IDX );
+	commDropCL( db, COMMCSNAME, COMMCLNAME, false, false, "drop cl in the end" );
+} catch( e )
+{
+	println( "clean test-evn fail! rc=" + e );
 	throw e;
 }
-println("clean test-evn succ!");
+println( "clean test-evn succ!" );

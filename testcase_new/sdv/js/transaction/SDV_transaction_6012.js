@@ -1,25 +1,25 @@
 /* *****************************************************************************
-@discretion: ´´½¨Î¨Ò»Ë÷Òý£¬²åÈëÏàÍ¬¼ÇÂ¼
-@author£º2015-11-21 wuyan  Init
+@discretion: ï¿½ï¿½ï¿½ï¿½Î¨Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¬ï¿½ï¿½Â¼
+@authorï¿½ï¿½2015-11-21 wuyan  Init
 ***************************************************************************** */
 main();
-function main()
-{		
-	try
-	{
-	   var clName = CHANGEDPREFIX + "_transaction6012";
+function main ()
+{
+   try
+   {
+      var clName = CHANGEDPREFIX + "_transaction6012";
       if( !commIsTransEnabled( db ) )
       {
-         println( "transaction is disabled" ) ; 
-         return;  
+         println( "transaction is disabled" );
+         return;
       }
 
-      var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true ) ; 
-      commCreateIndex( cl, 'testIndex', {no:1}, true, false)      
-      transOperation( cl )   
-      
+      var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true );
+      commCreateIndex( cl, 'testIndex', { no: 1 }, true, false )
+      transOperation( cl )
+
       //@ clean end
-		commDropCL( db, COMMCSNAME, clName, false, false,"drop CL in the beginning" );
+      commDropCL( db, COMMCSNAME, clName, false, false, "drop CL in the beginning" );
    }
    catch( e )
    {
@@ -27,54 +27,54 @@ function main()
    }
    finally
    {
-      if ( undefined !== db )
+      if( undefined !== db )
       {
          db.close();
       }
    }
 }
 
-function transOperation( cl )
+function transOperation ( cl )
 {
-   var dataNum = 1000; 
-   var insert = new insertData( cl, dataNum );            
+   var dataNum = 1000;
+   var insert = new insertData( cl, dataNum );
    execTransaction( beginTrans, insert );
-   checkResult( cl, true, insert ); 
-   
-    //insert  the same datas
+   checkResult( cl, true, insert );
+
+   //insert  the same datas
    try
    {
-      execTransaction(insert) ;
+      execTransaction( insert );
    }
    catch( e )   
    {
-      if ( e == "insertData.exec() unknown error expect: -38" )
+      if( e == "insertData.exec() unknown error expect: -38" )
       {
          // think right
       }
       else  
       {
-         throw buildException("execTransaction(insert)", e )
+         throw buildException( "execTransaction(insert)", e )
       }
    }
-   
+
    //commit transaction after autoRollback 
    try
    {
-      execTransaction(commitTrans) ;
+      execTransaction( commitTrans );
    }
    catch( e )
    {
-      if ( e == "commitTrans() unknown error expect: -196" )
+      if( e == "commitTrans() unknown error expect: -196" )
       {
          // think right
       }
       else
       {
-         throw buildException("execTransaction(commitTrans)", e )
+         throw buildException( "execTransaction(commitTrans)", e )
       }
    }
-      
-   checkResult( cl, false, insert ) ;  
+
+   checkResult( cl, false, insert );
 }
 

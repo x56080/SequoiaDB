@@ -8,37 +8,37 @@
 
 main();
 
-function main()
+function main ()
 {
    var normal_csName = COMMCSNAME + "_11836";
    var capped_csName = COMMCAPPEDCSNAME + "_11837";
-   
+
    var normal_clName = COMMCLNAME + "_11837";
    var capped_clName = COMMCAPPEDCLNAME + "_11836";
-   
+
    //drop CS and create cappedCS
-   println("---begin test---");
+   println( "---begin test---" );
    commDropCS( db, normal_csName, true, "drop CS in the beginning" );
    commCreateCS( db, normal_csName, false, "beginning to create CS", null );
    initCappedCS( capped_csName );
-   
+
    //normalCS create cappedCL
-   println("---normalCS create cappedCL---")
+   println( "---normalCS create cappedCL---" )
    normalCScreateCL( normal_csName, capped_clName );
-   
+
    //cappedCS create normalCL
-   println("---cappedCS create normalCL---")
+   println( "---cappedCS create normalCL---" )
    cappedCScreateCL( capped_csName, normal_clName );
-   
+
    //clean environment after test
    println( "---end the test---" );
    commDropCS( db, normal_csName, true, "drop CS in the end" );
    commDropCS( db, capped_csName, true, "drop CS in the end" );
 }
 
-function normalCScreateCL( normal_csName, capped_csName )
+function normalCScreateCL ( normal_csName, capped_csName )
 {
-   var optionObj = {Capped:true, Size:1024, Max:10000000, AutoIndexId:false};
+   var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
    try
    {
       db.getCS( normal_csName ).createCL( capped_csName, optionObj );
@@ -53,7 +53,7 @@ function normalCScreateCL( normal_csName, capped_csName )
    }
 }
 
-function cappedCScreateCL( capped_csName, normal_clName )
+function cappedCScreateCL ( capped_csName, normal_clName )
 {
    try
    {

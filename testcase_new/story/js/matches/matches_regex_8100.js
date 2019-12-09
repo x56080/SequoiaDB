@@ -4,33 +4,33 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_matches8100" ;
+      var clName = COMMCLNAME + "_matches8100";
       var cl = readyCL( clName );
-      
+
       var rawData = insertRecs( cl, rawData );
-      
+
       var findRecsArray = findRecs( cl );
       checkResult( findRecsArray, rawData );
-      
+
       cleanCL( clName );
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl, rawData )
+function insertRecs ( cl, rawData )
 {
-   println("\n---Begin to insert records.");
-   
-   var rawData = [ {a:0, str:"sequoiadb@163.com"}, 
-                   {a:1, str:"18826411857"}, 
-                   {a:2, str:" "} ];
+   println( "\n---Begin to insert records." );
+
+   var rawData = [{ a: 0, str: "sequoiadb@163.com" },
+   { a: 1, str: "18826411857" },
+   { a: 2, str: " " }];
    for( i = 0; i < rawData.length; i++ )
    {
       cl.insert( rawData[i] )
@@ -38,19 +38,19 @@ function insertRecs( cl, rawData )
    return rawData;
 }
 
-function findRecs( cl )
+function findRecs ( cl )
 {
-   println("\n---Begin to find records.");
-   
-   var cond1 = {str:{$regex:'^[_a-z0-9]+@([_a-z0-9]+\.)+[_a-z0-9]{2,3}$',$options:'i'}};
-   var cond2 = {str:{$regex:'^[1][8][0-9]{9}$',$options:'i'}};
-   var cond3 = {str:{$regex:'^[ ]+$',$options:'i'}};
+   println( "\n---Begin to find records." );
+
+   var cond1 = { str: { $regex: '^[_a-z0-9]+@([_a-z0-9]+\.)+[_a-z0-9]{2,3}$', $options: 'i' } };
+   var cond2 = { str: { $regex: '^[1][8][0-9]{9}$', $options: 'i' } };
+   var cond3 = { str: { $regex: '^[ ]+$', $options: 'i' } };
    var condArray = [cond1, cond2, cond3];
-   
+
    var findRecsArray = [];
    for( i = 0; i < condArray.length; i++ )
    {
-      var rc = cl.find( condArray[i] ).sort({a:1});
+      var rc = cl.find( condArray[i] ).sort( { a: 1 } );
       var tmpArray = [];
       while( tmpRecs = rc.next() )
       {
@@ -59,43 +59,43 @@ function findRecs( cl )
       findRecsArray.push( tmpArray );
    }
    //println(JSON.stringify(findRecsArray));
-   return findRecsArray ;
+   return findRecsArray;
 }
 
-function checkResult( findRecsArray, rawData )
+function checkResult ( findRecsArray, rawData )
 {
-   println("\n---Begin to check result.");
-   
+   println( "\n---Begin to check result." );
+
    //total results
    var expLen = 3;
    var actLen = findRecsArray.length;
    if( actLen !== expLen )
    {
-      throw buildException("checkResult", null, "[compare number]", 
-                          "[recsNum:"+ expLen +"]",
-                          "[recsNum:"+ actLen +"]");
+      throw buildException( "checkResult", null, "[compare number]",
+         "[recsNum:" + expLen + "]",
+         "[recsNum:" + actLen + "]" );
    }
-   
+
    //compare resulst for each find
-   for( i = 0; i< findRecsArray.length; i++ )
+   for( i = 0; i < findRecsArray.length; i++ )
    {
       //compare number
       var expLen = 1;
       var actLen = findRecsArray[i].length;
       if( actLen !== expLen )
       {
-         throw buildException("checkResult", null, "[compare number]", 
-                             "[recsNum:"+ expLen +"]",
-                             "[recsNum:"+ actLen +"]");
+         throw buildException( "checkResult", null, "[compare number]",
+            "[recsNum:" + expLen + "]",
+            "[recsNum:" + actLen + "]" );
       }
       //compare records
       var actB = findRecsArray[i][0]["str"];
       var expB = rawData[i]["str"];
       if( actB !== expB )
       {
-         throw buildException("checkResult", null, "[compare records]", 
-                           '["str": '+ expB +']',
-                           '["str": '+ actB +']');
+         throw buildException( "checkResult", null, "[compare records]",
+            '["str": ' + expB + ']',
+            '["str": ' + actB + ']' );
       }
    }
 }

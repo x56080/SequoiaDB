@@ -1,69 +1,69 @@
-function getRandomInt( min, max ) // [min, max)
+function getRandomInt ( min, max ) // [min, max)
 {
     var range = max - min;
     var value = min + parseInt( Math.random() * range );
     return value;
 }
 
-function getRandomString( strLen ) //string length value locate in [minLen, maxLen)
+function getRandomString ( strLen ) //string length value locate in [minLen, maxLen)
 {
     var str = "";
     for( var i = 0; i < strLen; i++ )
     {
-       var ascii = getRandomInt( 48, 127 ); // '0' -- '~'
-       var c = String.fromCharCode( ascii );
-       str += c;
+        var ascii = getRandomInt( 48, 127 ); // '0' -- '~'
+        var c = String.fromCharCode( ascii );
+        str += c;
     }
     return str;
 }
 
-function checkSortResultForLargeData(cursor, sortCond)
+function checkSortResultForLargeData ( cursor, sortCond )
 {
-    while(cursor.next())
+    while( cursor.next() )
     {
-       var expectResult = cursor.current().toObj(); // the pre one
-       if(cursor.next())
-       {
-           var actResult = cursor.current().toObj(); // the next one
-           for(var sortKey in sortCond)
-           {
-               if(expectResult[sortKey] > actResult[sortKey])  // sort result not expected
-               {
-                   throw buildException("checkSortResultForLargeData", "check result", "check result",
-                                               JSON.stringify(expectResult), JSON.stringify(actResult));
-               }
-               else if(expectResult[sortKey] < actResult[sortKey]) // compare next record
-               {
-                   break;
-               }
-           }
-       }
+        var expectResult = cursor.current().toObj(); // the pre one
+        if( cursor.next() )
+        {
+            var actResult = cursor.current().toObj(); // the next one
+            for( var sortKey in sortCond )
+            {
+                if( expectResult[sortKey] > actResult[sortKey] )  // sort result not expected
+                {
+                    throw buildException( "checkSortResultForLargeData", "check result", "check result",
+                        JSON.stringify( expectResult ), JSON.stringify( actResult ) );
+                }
+                else if( expectResult[sortKey] < actResult[sortKey] ) // compare next record
+                {
+                    break;
+                }
+            }
+        }
     }
-    println("-----check sort result success-----");
+    println( "-----check sort result success-----" );
 }
 
-function getSortType(dbcl, findConf, selectorCond, sortCond, hintCond)
+function getSortType ( dbcl, findConf, selectorCond, sortCond, hintCond )
 {
-    if ( typeof(selectorCond) == "undefined" ) { selectorCond = null; }
-    if ( typeof(findCond) == "undefined" ) { findCond = null; }
-    if ( typeof(sortCond) == "undefined" ) { sortCond = null; }
-    if ( typeof(hintCond) == "undefined" ) { hintCond = null; }
+    if( typeof ( selectorCond ) == "undefined" ) { selectorCond = null; }
+    if( typeof ( findCond ) == "undefined" ) { findCond = null; }
+    if( typeof ( sortCond ) == "undefined" ) { sortCond = null; }
+    if( typeof ( hintCond ) == "undefined" ) { hintCond = null; }
 
     var sortType = "";
-    var explains = dbcl.find(findConf, selectorCond).sort(sortCond).hint(hintCond).explain({Expand:true, Run:true});
+    var explains = dbcl.find( findConf, selectorCond ).sort( sortCond ).hint( hintCond ).explain( { Expand: true, Run: true } );
     var childOperators = explains.next().toObj().PlanPath.ChildOperators;
-    for(var i in childOperators)
+    for( var i in childOperators )
     {
-       sortType = childOperators[i]["PlanPath"]["Estimate"]["SortType"];
+        sortType = childOperators[i]["PlanPath"]["Estimate"]["SortType"];
     }
     return sortType;
 }
 
-function checkSortType(expectResult, actResult)
+function checkSortType ( expectResult, actResult )
 {
-    if(expectResult != actResult)
+    if( expectResult != actResult )
     {
-        throw buildException("checkSortType", "sort type", "check sort type",
-                                          expectResult, actResult);
+        throw buildException( "checkSortType", "sort type", "check sort type",
+            expectResult, actResult );
     }
 }

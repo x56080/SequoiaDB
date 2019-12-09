@@ -4,48 +4,48 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_matches8097" ;
+      var clName = COMMCLNAME + "_matches8097";
       var cl = readyCL( clName );
-      
-      var rawData = [ {a:"string", b:"test"}, 
-                      {a:"subobj", b:{c:{d:"test"}}} ];
+
+      var rawData = [{ a: "string", b: "test" },
+      { a: "subobj", b: { c: { d: "test" } } }];
       insertRecs( cl, rawData );
-      
-      var sizeNum = [0, 1]; 
+
+      var sizeNum = [0, 1];
       var findRecsArray = findRecs( cl, sizeNum );
       checkResult( findRecsArray, rawData );
-   
+
       cleanCL( clName );
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl, rawData )
+function insertRecs ( cl, rawData )
 {
-   println("\n---Begin to insert records.");
+   println( "\n---Begin to insert records." );
    for( i = 0; i < rawData.length; i++ )
    {
       cl.insert( rawData[i] )
    }
 }
 
-function findRecs( cl, sizeNum )
+function findRecs ( cl, sizeNum )
 {
-   println("\n---Begin to find records.");
-   
+   println( "\n---Begin to find records." );
+
    var findRecsArray = [];
    for( i = 0; i < sizeNum.length; i++ )
-   {  
-      println("---Find by matches[$size:"+ sizeNum[i] +"].");
-      
-      var rc = cl.find( {b:{$size:1, $et: sizeNum[i]}}, {_id:{$include:0}} ).sort({a:1});
+   {
+      println( "---Find by matches[$size:" + sizeNum[i] + "]." );
+
+      var rc = cl.find( { b: { $size: 1, $et: sizeNum[i] } }, { _id: { $include: 0 } } ).sort( { a: 1 } );
       var tmpArray = [];
       while( tmpRecs = rc.next() )
       {
@@ -54,30 +54,30 @@ function findRecs( cl, sizeNum )
       //println(JSON.stringify(tmpArray));
       findRecsArray.push( tmpArray );
    }
-   return findRecsArray ;
+   return findRecsArray;
 }
 
-function checkResult( findRecsArray, rawData )
+function checkResult ( findRecsArray, rawData )
 {
-   println("\n---Begin to check result.");
-   
+   println( "\n---Begin to check result." );
+
    var expLen1 = 0;
    var actLen1 = findRecsArray[0].length;
    if( actLen1 !== expLen1 )
    {
-      throw buildException("checkResult", null, "[compare number]", 
-                          "[recsNum:"+ expLen1 +"]",
-                          "[recsNum:"+ actLen1 +"]");
+      throw buildException( "checkResult", null, "[compare number]",
+         "[recsNum:" + expLen1 + "]",
+         "[recsNum:" + actLen1 + "]" );
    }
-   
+
    var expLen2 = 1;
    var actLen2 = findRecsArray[1].length;
-   var expA2 = JSON.stringify(findRecsArray[1]);
+   var expA2 = JSON.stringify( findRecsArray[1] );
    var actA2 = '[{"a":"subobj","b":{"c":{"d":"test"}}}]';
    if( actLen2 !== expLen2 || expA2 !== actA2 )
    {
-      throw buildException("checkResult", null, "[compare number]", 
-                          "[recsNum:"+ expLen2 +", a: "+ expA2 +"]",
-                          "[recsNum:"+ actLen2 +", a: "+ actA2 +"]");
+      throw buildException( "checkResult", null, "[compare number]",
+         "[recsNum:" + expLen2 + ", a: " + expA2 + "]",
+         "[recsNum:" + actLen2 + ", a: " + actA2 + "]" );
    }
 }

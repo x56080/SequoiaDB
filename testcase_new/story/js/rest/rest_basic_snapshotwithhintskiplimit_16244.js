@@ -5,48 +5,48 @@
  * @date        ：2018.10.23
  ******************************************************************************/
 main();
-function main()
+function main ()
 {
-    if( commIsStandalone( db ) )
-   {
-      println("run mode is standalone");
-      return ;
-   }
-   //get a group in cluster
-   var groupName =  getDataGroups( db )[0];
-   var nodes = getGroupNodes( db, groupName );
-   var nodeNum = nodes.length;
-   //the options of snapshot 
-   var type = "database";
-   var filter = "{RawData:true,GroupName:\"" + groupName + "\"}";
-   var selector =  "{ NodeName:" + null+ ", GroupName:" + null + "}";
-   var hint = "{$options:{expand:true}}";
-   var limit = nodeNum;
-   var skip = 1;
-   var returnnum = nodeNum - skip;
-   
-   //snapshot with hint/limit/skip
-   var actInfo = snapshot(type,filter,selector,hint,limit,skip,returnnum);
-   var expInfo = {"num":returnnum,"GroupName":groupName};
-   checkResult(expInfo,actInfo);
+	if( commIsStandalone( db ) )
+	{
+		println( "run mode is standalone" );
+		return;
+	}
+	//get a group in cluster
+	var groupName = getDataGroups( db )[0];
+	var nodes = getGroupNodes( db, groupName );
+	var nodeNum = nodes.length;
+	//the options of snapshot 
+	var type = "database";
+	var filter = "{RawData:true,GroupName:\"" + groupName + "\"}";
+	var selector = "{ NodeName:" + null + ", GroupName:" + null + "}";
+	var hint = "{$options:{expand:true}}";
+	var limit = nodeNum;
+	var skip = 1;
+	var returnnum = nodeNum - skip;
+
+	//snapshot with hint/limit/skip
+	var actInfo = snapshot( type, filter, selector, hint, limit, skip, returnnum );
+	var expInfo = { "num": returnnum, "GroupName": groupName };
+	checkResult( expInfo, actInfo );
 }
 
-function snapshot(type,filter,selector,hint,limit,skip,returnnum)
+function snapshot ( type, filter, selector, hint, limit, skip, returnnum )
 {
 	println( "\n---Begin to excute " + getFuncName() );
-	var curlPara = [ 'cmd=snapshot ' + type,
-					"filter=" +  filter,
-				     "selector=" +  selector,
-					 "hint="  +  hint,
-					 "limit=" + limit,
-					 "skip=" + skip,
-					 "returnnum=" + returnnum
-					  ];
+	var curlPara = ['cmd=snapshot ' + type,
+	"filter=" + filter,
+	"selector=" + selector,
+	"hint=" + hint,
+	"limit=" + limit,
+	"skip=" + skip,
+	"returnnum=" + returnnum
+	];
 	var expErrno = 0;
-	runCurl( curlPara);
+	runCurl( curlPara );
 	var resp = infoSplit;
-	var actErrno =JSON.parse(resp[0]).errno;
-	if(expErrno != actErrno)
+	var actErrno = JSON.parse( resp[0] ).errno;
+	if( expErrno != actErrno )
 	{
 		throw "get database by snapshot failed,info = " + infoSplit.toString();
 	}
@@ -54,69 +54,69 @@ function snapshot(type,filter,selector,hint,limit,skip,returnnum)
 	return resp;
 }
 
-function checkResult(expInfo,actInfo)
-{ 
+function checkResult ( expInfo, actInfo )
+{
 	println( "\n---Begin to excute " + getFuncName() );
 	var exp = expInfo;
-	if(exp.num != actInfo.length)
+	if( exp.num != actInfo.length )
 	{
 		throw "expNum is not equal to actNum,expInfo = " + expInfo + ",actInfo = " + actInfo;
-    }
-	for(var i = 0;i < actInfo.length;i++)
+	}
+	for( var i = 0; i < actInfo.length; i++ )
 	{
-        var act = JSON.parse(actInfo[i]);
-		if(exp.GroupName != act.GroupName)
+		var act = JSON.parse( actInfo[i] );
+		if( exp.GroupName != act.GroupName )
 		{
-			throw "exp.GroupName is not equal to act.GroupName,expInfo = " + expInfo + ",actInfo = " + actInfo;	
+			throw "exp.GroupName is not equal to act.GroupName,expInfo = " + expInfo + ",actInfo = " + actInfo;
 		}
 	}
 }
 
-function getDataGroups( db )
-{
-    println( "\n---Begin to excute " + getFuncName() );
-	var groups = [] ;
-	if( commIsStandalone( db ) )
-	{
-	return groups ;
-	}
-	var cursor = db.listReplicaGroups() ;
-	var tmpInfo ;
-	while( tmpInfo = cursor.next() )
-	{
-		var groupName = tmpInfo.toObj().GroupName ;
-		if( groupName == "SYSCoord" || groupName == "SYSCatalogGroup" )
-			continue ;
-		groups.push( groupName ) ;
-	}
-	return groups ;
-}
-
-function getGroupNodes( db, rgName )
+function getDataGroups ( db )
 {
 	println( "\n---Begin to excute " + getFuncName() );
-	var nodes = [] ;
+	var groups = [];
 	if( commIsStandalone( db ) )
 	{
-	return nodes ;
+		return groups;
 	}
-	var tmpObj = db.getRG( rgName ).getDetail().next().toObj() ;
-	var tmpGroupArray = tmpObj["Group"] ;
-	for( var i = 0;i < tmpGroupArray.length;i++ )
+	var cursor = db.listReplicaGroups();
+	var tmpInfo;
+	while( tmpInfo = cursor.next() )
 	{
-	var tmpNodeObj = tmpGroupArray[i] ;
-	var nodename = tmpNodeObj["HostName"] ;
-	for( var j = 0;j < tmpNodeObj.Service.length;j++ )
+		var groupName = tmpInfo.toObj().GroupName;
+		if( groupName == "SYSCoord" || groupName == "SYSCatalogGroup" )
+			continue;
+		groups.push( groupName );
+	}
+	return groups;
+}
+
+function getGroupNodes ( db, rgName )
+{
+	println( "\n---Begin to excute " + getFuncName() );
+	var nodes = [];
+	if( commIsStandalone( db ) )
 	{
-		var tmpSvcObj = tmpNodeObj.Service[j] ;
-		if( tmpSvcObj["Type"] == 0 )
+		return nodes;
+	}
+	var tmpObj = db.getRG( rgName ).getDetail().next().toObj();
+	var tmpGroupArray = tmpObj["Group"];
+	for( var i = 0; i < tmpGroupArray.length; i++ )
+	{
+		var tmpNodeObj = tmpGroupArray[i];
+		var nodename = tmpNodeObj["HostName"];
+		for( var j = 0; j < tmpNodeObj.Service.length; j++ )
 		{
-			nodename = tmpSvcObj["Name"] ;
-			nodes.push( nodename ) ;
-			break ;
+			var tmpSvcObj = tmpNodeObj.Service[j];
+			if( tmpSvcObj["Type"] == 0 )
+			{
+				nodename = tmpSvcObj["Name"];
+				nodes.push( nodename );
+				break;
+			}
 		}
 	}
-	}
-	return nodes ;
+	return nodes;
 }
 

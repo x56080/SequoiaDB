@@ -16,9 +16,10 @@
  4、查看指定session是否存在[指定session依然存在，2017-01-18改了代码，本来终止当前会话是可以的]
  */
 main();
-function main() {
+function main ()
+{
 
-    if (commIsStandalone(db)) return;
+    if( commIsStandalone( db ) ) return;
 
     /**
      * 初始变量值
@@ -26,47 +27,57 @@ function main() {
      */
     var catalog = [];
     var datagroup = [];
-    var SYSCatalogGroup = commGetGroups(db, true, "SYSCatalogGroup", false, true, true);
-    for (var i = 1; i < SYSCatalogGroup[0].length; i++) {
+    var SYSCatalogGroup = commGetGroups( db, true, "SYSCatalogGroup", false, true, true );
+    for( var i = 1; i < SYSCatalogGroup[0].length; i++ )
+    {
         var url = SYSCatalogGroup[0][i].HostName + ":" + SYSCatalogGroup[0][i].svcname;
-        catalog.push(url);
+        catalog.push( url );
     }
-    var DataGroup = commGetGroups(db, true, "", true, true, true);
-    for (var i = 1; i < DataGroup[0].length; i++) {
+    var DataGroup = commGetGroups( db, true, "", true, true, true );
+    for( var i = 1; i < DataGroup[0].length; i++ )
+    {
         var url = DataGroup[0][i].HostName + ":" + DataGroup[0][i].svcname;
-        datagroup.push(url);
+        datagroup.push( url );
     }
 
-    doTest(COORDHOSTNAME + ":" + COORDSVCNAME);
-    doTest(catalog[0]);
-    doTest(datagroup[0]);
+    doTest( COORDHOSTNAME + ":" + COORDSVCNAME );
+    doTest( catalog[0] );
+    doTest( datagroup[0] );
 }
 
 /**
  * 通过给定的url连接到对应的节点，执行测试用例中指定的操作步骤
  * @param  url 要连接的节点的地址，如sdbserver01:11820
  */
-function doTest(url) {
+function doTest ( url )
+{
     var oldSessionId = null;
-    try {
-        oldSessionId = db.list(3, {Global: false}).next().toObj().SessionID;
-    } catch (e) {
-        throw buildException("someoperate", e, "connection sdb and list session");
+    try
+    {
+        oldSessionId = db.list( 3, { Global: false } ).next().toObj().SessionID;
+    } catch( e )
+    {
+        throw buildException( "someoperate", e, "connection sdb and list session" );
     }
 
-    try {
-        db.forceSession(oldSessionId);
-    } catch (e) {
-        throw buildException("TODO conn.forceSession( oldSessionId ) fail", e);
+    try
+    {
+        db.forceSession( oldSessionId );
+    } catch( e )
+    {
+        throw buildException( "TODO conn.forceSession( oldSessionId ) fail", e );
     }
 
     var sessionList = null;
-    try {
-        sessionList = db.list(3, {Global: false, SessionID: oldSessionId}).toArray();
-    } catch (e) {
-        throw buildException("someoperate", e, "connection sdb and list session");
+    try
+    {
+        sessionList = db.list( 3, { Global: false, SessionID: oldSessionId } ).toArray();
+    } catch( e )
+    {
+        throw buildException( "someoperate", e, "connection sdb and list session" );
     }
-    if (sessionList.length == 0) {
-        throw buildException("the current session be forced", null);
+    if( sessionList.length == 0 )
+    {
+        throw buildException( "the current session be forced", null );
     }
 }

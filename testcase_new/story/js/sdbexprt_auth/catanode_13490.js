@@ -4,76 +4,76 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME ;
-var csvContent = "Name\n\"" + csname + "\"\n" ;
-var jsonContent = "{ \"Name\": \""+ csname + "\" }\n" ;
+var csname = COMMCSNAME;
+var csvContent = "Name\n\"" + csname + "\"\n";
+var jsonContent = "{ \"Name\": \"" + csname + "\" }\n";
 
-main() ;
+main();
 
-function main()
-{  
+function main ()
+{
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone, no cata node" ) ;
-      return ;
+      println( "Run mode is standalone, no cata node" );
+      return;
    }
-   clearAllCs( db ) ;
-   commCreateCS( db, csname ) ;
-   
-   var groupName = "SYSCatalogGroup" ;
-   var master = db.getRG( groupName ).getMaster().toString() ;
-   var host = master.split( ":" )[0] ;
-   var svc = master.split( ":" )[1] ;
-   
-   testExprtCsv( host, svc ) ;
-   testExprtJson( host, svc ) ;
+   clearAllCs( db );
+   commCreateCS( db, csname );
+
+   var groupName = "SYSCatalogGroup";
+   var master = db.getRG( groupName ).getMaster().toString();
+   var host = master.split( ":" )[0];
+   var svc = master.split( ":" )[1];
+
+   testExprtCsv( host, svc );
+   testExprtJson( host, svc );
 }
 
-function testExprtCsv( hostname, svcname )
+function testExprtCsv ( hostname, svcname )
 {
-   var csvfile = workDir + "sdbexprt13490.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   var command = installPath + "bin/sdbexprt" + 
-                 " -s " + hostname + 
-                 " -p " + svcname +  
-                 " -c SYSCAT" + 
-                 " -l SYSCOLLECTIONSPACES" + 
-                 " --file " + csvfile + 
-                 " --type csv" + 
-                 " --fields Name" ;
-   testRunCommand( command ) ;
+   var csvfile = workDir + "sdbexprt13490.csv";
+   cmd.run( "rm -rf " + csvfile );
+   var command = installPath + "bin/sdbexprt" +
+      " -s " + hostname +
+      " -p " + svcname +
+      " -c SYSCAT" +
+      " -l SYSCOLLECTIONSPACES" +
+      " --file " + csvfile +
+      " --type csv" +
+      " --fields Name";
+   testRunCommand( command );
 
-   checkFileContent( csvfile, csvContent ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+   checkFileContent( csvfile, csvContent );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtJson( hostname, svcname )
+function testExprtJson ( hostname, svcname )
 {
-   var jsonfile = workDir + "sdbexprt13490.json" ;
-   cmd.run( "rm -rf " + jsonfile ) ;
-   var command = installPath + "bin/sdbexprt" + 
-                 " -s " + hostname +
-                 " -p " + svcname +
-                 " -c SYSCAT" + 
-                 " -l SYSCOLLECTIONSPACES" + 
-                 " --type json" + 
-                 " --file " + jsonfile + 
-                 " --fields Name" ;
-   testRunCommand( command ) ;
-   
-   checkFileContent( jsonfile, jsonContent ) ;
-   
-   cmd.run( "rm -rf " + jsonfile ) ;
+   var jsonfile = workDir + "sdbexprt13490.json";
+   cmd.run( "rm -rf " + jsonfile );
+   var command = installPath + "bin/sdbexprt" +
+      " -s " + hostname +
+      " -p " + svcname +
+      " -c SYSCAT" +
+      " -l SYSCOLLECTIONSPACES" +
+      " --type json" +
+      " --file " + jsonfile +
+      " --fields Name";
+   testRunCommand( command );
+
+   checkFileContent( jsonfile, jsonContent );
+
+   cmd.run( "rm -rf " + jsonfile );
 }
 
-function clearAllCs( db )
+function clearAllCs ( db )
 {
-   var cursor = db.listCollectionSpaces() ;
-   var obj ;
+   var cursor = db.listCollectionSpaces();
+   var obj;
    while( obj = cursor.next() )
    {
-      var name = obj.toObj()["Name"] ;
-      db.dropCS( name ) ; 
+      var name = obj.toObj()["Name"];
+      db.dropCS( name );
    }
 }

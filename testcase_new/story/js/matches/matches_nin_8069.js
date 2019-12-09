@@ -5,83 +5,83 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_matches8067" ;
-      
+      var clName = COMMCLNAME + "_matches8067";
+
       var cl = readyCL( clName );
-   	
-   	var dataType = [ "int", "double", "null", "string", "bool", 
-   	                 "long", "oid", "regex", "binary", "date", "timestamp" ]; 
-   	var rawData  = [ {int:    -2147483648}, 
-   	                 {double: -1.7E+308}, 
-   	                 {null:   null}, 
-   	                 {string: "test"}, 
-   	                 {bool:   true}, 
-   	                 {long:   {"$numberLong":"-9223372036854775808"}}, 
-   	                 {oid:    {"$oid": "123abcd00ef12358902300ef"}}, 
-   	                 {regex:  {"$regex": "^rg", "$options": "i"}}, 
-   	                 {binary: {"$binary": "aGVsbG8gd29ybGQ=", "$type": "1"}}, 
-   	                 {date:   {"$date": "2038-01-18"}}, 
-   	                 {timestamp: {"$timestamp": "2038-01-18-23.59.59.999999"}}];
+
+      var dataType = ["int", "double", "null", "string", "bool",
+         "long", "oid", "regex", "binary", "date", "timestamp"];
+      var rawData = [{ int: -2147483648 },
+      { double: -1.7E+308 },
+      { null: null },
+      { string: "test" },
+      { bool: true },
+      { long: { "$numberLong": "-9223372036854775808" } },
+      { oid: { "$oid": "123abcd00ef12358902300ef" } },
+      { regex: { "$regex": "^rg", "$options": "i" } },
+      { binary: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } },
+      { date: { "$date": "2038-01-18" } },
+      { timestamp: { "$timestamp": "2038-01-18-23.59.59.999999" } }];
       insertRecs( cl, rawData, dataType );
-      
+
       var rc = findRecs( cl, rawData, dataType );
-      
+
       checkResult( rc, rawData, dataType );
-   
+
       cleanCL( clName );
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl, rawData, dataType )
+function insertRecs ( cl, rawData, dataType )
 {
-   println("\n---Begin to insert records.");
-   
+   println( "\n---Begin to insert records." );
+
    for( i = 0; i < rawData.length; i++ )
    {
-      cl.insert( {a: i, b: rawData[i][dataType[i]]} );
+      cl.insert( { a: i, b: rawData[i][dataType[i]] } );
    }
 }
 
-function findRecs( cl, rawData, dataType )
+function findRecs ( cl, rawData, dataType )
 {
-   println("\n---Begin to find records.");
-   
+   println( "\n---Begin to find records." );
+
    var tmpValue = [];
    for( i = 0; i < dataType.length; i++ )
    {
       tmpValue.push( rawData[i][dataType[i]] );
    }
-   var rc = cl.find( {b:{$nin: tmpValue }} ).sort({a:1});
-   
-   return rc ;
+   var rc = cl.find( { b: { $nin: tmpValue } } ).sort( { a: 1 } );
+
+   return rc;
 }
 
-function checkResult( rc, rawData, dataType )
+function checkResult ( rc, rawData, dataType )
 {
-   println("\n---Begin to check result.");
-   
+   println( "\n---Begin to check result." );
+
    var findRecsArray = [];
    while( tmpRecs = rc.next() )
    {
       findRecsArray.push( tmpRecs.toObj() );
    }
    //println(JSON.stringify(findRecsArray));
-   
+
    //compare number
-   var expLen = 0 ;  
+   var expLen = 0;
    if( findRecsArray.length !== expLen )
    {
-      throw buildException("checkResult", null, "[compare number]", 
-                          "[recsNum:"+ expLen +"]",
-                          "[recsNum:"+ findRecsArray.length +"]");
+      throw buildException( "checkResult", null, "[compare number]",
+         "[recsNum:" + expLen + "]",
+         "[recsNum:" + findRecsArray.length + "]" );
    }
-   
+
 }

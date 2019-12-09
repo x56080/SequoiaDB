@@ -8,30 +8,30 @@
 
 main();
 
-function main()
+function main ()
 {
    var normal_csName = COMMCSNAME + "_11840";
    var capped_csName = COMMCAPPEDCSNAME + "_11841";
-   
+
    var clName1 = COMMCLNAME + "_11840_11841";
    var clName2 = COMMCAPPEDCLNAME + "_11840_11841";
-   
+
    //drop CS and create cappedCS
-   println("---begin test---");
+   println( "---begin test---" );
    commDropCS( db, normal_csName, true, "drop CS in the beginning" );
    commCreateCS( db, normal_csName, false, "beginning to create CS", null );
    initCappedCS( capped_csName );
-   
+
    //normalCS quick cappedCS
-   println("---normalCS quick cappedCS---")
+   println( "---normalCS quick cappedCS---" )
    db.getCS( normal_csName ).createCL( clName1 );
-   db.getCS( capped_csName ).createCL( clName1, {Capped:true, Size:1024, Max:10000000, AutoIndexId:false} );
-   
+   db.getCS( capped_csName ).createCL( clName1, { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false } );
+
    //cappedCS quick normalCS
-   println("---cappedCS quick normalCS---")
-   db.getCS( capped_csName ).createCL( clName2, {Capped:true, Size:1024, Max:10000000, AutoIndexId:false} );
+   println( "---cappedCS quick normalCS---" )
+   db.getCS( capped_csName ).createCL( clName2, { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false } );
    db.getCS( normal_csName ).createCL( clName2 );
-   
+
    //clean environment after test
    println( "---end the test---" );
    commDropCS( db, normal_csName, true, "drop CS in the end" );

@@ -6,26 +6,27 @@
 
 main();
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println(" Deploy mode is standalone!");
+      println( " Deploy mode is standalone!" );
       return;
    }
 
    //splitting need two groups at least
    allGroupName = getGroupName( db );
-   if( 1 === allGroupName.length ) {
-      println("\n---one Group cannot support splitting");
-      return ;
+   if( 1 === allGroupName.length )
+   {
+      println( "\n---one Group cannot support splitting" );
+      return;
    }
 
    var csName = COMMCSNAME;
-   var mainCLName = COMMCLNAME + "_mcl" ;
+   var mainCLName = COMMCLNAME + "_mcl";
 
    // unset variable
-   commDropCL( db, csName, mainCLName, true, true,"Fail to drop CL in the beginning" ) ;
+   commDropCL( db, csName, mainCLName, true, true, "Fail to drop CL in the beginning" );
 
    // create mainCL and subCL
    db.setSessionAttr( { PreferedInstance: "M" } );
@@ -41,28 +42,28 @@ function main()
    // test bulk inserting random records
    // values of randomRecs are not all valid 
    var randomRecs = [{ MCLKEY: 100 },
-                     { MCLKEY: 0 },
-                     { MCLKEY: -998 },
-                     { MCLKEY: -1555 },
-                     { MCLKEY: -96325 },
-                     { MCLKEY: 6589 },
-                     { MCLKEY: 7000 },
-                     { MCLKEY: 20000 },
-                     { MCLKEY: 555 },
-                     { MCLKEY: 4599 } ];
+   { MCLKEY: 0 },
+   { MCLKEY: -998 },
+   { MCLKEY: -1555 },
+   { MCLKEY: -96325 },
+   { MCLKEY: 6589 },
+   { MCLKEY: 7000 },
+   { MCLKEY: 20000 },
+   { MCLKEY: 555 },
+   { MCLKEY: 4599 }];
    bulkinsertRandomRecs( mainCL, randomRecs );
 
    // test bulk inserting valid records
-   var validRecs = [ { MCLKEY: 100 },
-                     { MCLKEY: 0 },
-                     { MCLKEY: 859 },
-                     { MCLKEY: 758 },
-                     { MCLKEY: 550 },
-                     { MCLKEY: 336 },
-                     { MCLKEY: -998 },
-                     { MCLKEY: -1555 },
-                     { MCLKEY: 555 },
-                     { MCLKEY: 4599 } ];
+   var validRecs = [{ MCLKEY: 100 },
+   { MCLKEY: 0 },
+   { MCLKEY: 859 },
+   { MCLKEY: 758 },
+   { MCLKEY: 550 },
+   { MCLKEY: 336 },
+   { MCLKEY: -998 },
+   { MCLKEY: -1555 },
+   { MCLKEY: 555 },
+   { MCLKEY: 4599 }];
    bulkinsertValidRecs( mainCL, validRecs );
 
    checkResult( mainCL, validRecs );
@@ -71,26 +72,26 @@ function main()
    commDropCL( db, csName, mainCLName, true, true, "Fail to drop CL in the end" );
 }
 
-function createMainCL( csName, mainCLName )
+function createMainCL ( csName, mainCLName )
 {
-   println("\n---Begin to create MainCL.");
-   
-   var options = { ShardingKey: { MCLKEY: 1 }, ShardingType: "range", IsMainCL: true } ;
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, false, 
-                                      true, "Failed to create mainCL." );                                  
-   return mainCL ; 
+   println( "\n---Begin to create MainCL." );
+
+   var options = { ShardingKey: { MCLKEY: 1 }, ShardingType: "range", IsMainCL: true };
+   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, false,
+      true, "Failed to create mainCL." );
+   return mainCL;
 }
 
-function createSubCL( csName, subCLName )
+function createSubCL ( csName, subCLName )
 {
    println( "\n---Begin to create subCL." );
 
-   var options = { ShardingKey: { SCLKEY: 1 }, ShardingType:  "hash" };
+   var options = { ShardingKey: { SCLKEY: 1 }, ShardingType: "hash" };
    subCL = commCreateCLByOption( db, csName, subCLName, options, false, true, "Failed to create subCL." );
    return subCL;
 }
 
-function attachCL( csName, mainCL, subCLName, lowBound, upBound )
+function attachCL ( csName, mainCL, subCLName, lowBound, upBound )
 {
    println( "\n---Begin to attach subCL." );
 
@@ -105,7 +106,7 @@ function attachCL( csName, mainCL, subCLName, lowBound, upBound )
    }
 }
 
-function bulkinsertRandomRecs( mainCL, recs )
+function bulkinsertRandomRecs ( mainCL, recs )
 {
    println( "\n---Begin to bulk insert random records." );
 
@@ -119,14 +120,14 @@ function bulkinsertRandomRecs( mainCL, recs )
       var exceptE = -135;
       if( e !== exceptE )
       {
-         throw buildException( "bulkinsertRandomRecs", null, "", 
-                              "[" + exceptE + "]", 
-                              "[" + e + "]" );
+         throw buildException( "bulkinsertRandomRecs", null, "",
+            "[" + exceptE + "]",
+            "[" + e + "]" );
       }
    }
 }
 
-function bulkinsertValidRecs( mainCL, recs )
+function bulkinsertValidRecs ( mainCL, recs )
 {
    println( "\n---Begin to bulk insert valid records." );
 
@@ -136,11 +137,11 @@ function bulkinsertValidRecs( mainCL, recs )
    }
    catch( e )
    {
-      throw buildException( "bulkinsertValidRecs", null, "", "", "" + e);
+      throw buildException( "bulkinsertValidRecs", null, "", "", "" + e );
    }
 }
 
-function checkResult( mainCL, validRecs )
+function checkResult ( mainCL, validRecs )
 {
    println( "\n---Begin to check records." );
    var rc = mainCL.find().sort( { _id: 1 } );

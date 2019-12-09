@@ -19,41 +19,49 @@
  */
 
 main();
-function main() {
-    if (commIsStandalone(db)) return;
+function main ()
+{
+    if( commIsStandalone( db ) ) return;
 
     // var conn = getConn(COORDHOSTNAME + ":" + COORDSVCNAME);
     var conn = db;
 
-    var currentSession = conn.list(SDB_LIST_SESSIONS_CURRENT, {Global: false}).next().toObj();
-   
+    var currentSession = conn.list( SDB_LIST_SESSIONS_CURRENT, { Global: false } ).next().toObj();
+
     // TODO 2.a
-    try {
-        conn.forceSession(currentSession.SessionID, {Host: "testtest"});
+    try
+    {
+        conn.forceSession( currentSession.SessionID, { Host: "testtest" } );
         // throw new Error(0); 这些都先注释起来，之前因为之前许导说sessionID存在就直接force掉，忽略后面的参数不校验
-    } catch (e) {
-        println(e);
-        if (e == "Error: 0") {
-            throw buildException("TODO 2.a not validate the options {Host: \"testtest\"}", e);
-        } else {
-            println(e);
-            throw buildException("TODO 2.a conn.forceSession(currentSession.SessionID, {Host: \"testtest\"}) fail", e);
+    } catch( e )
+    {
+        println( e );
+        if( e == "Error: 0" )
+        {
+            throw buildException( "TODO 2.a not validate the options {Host: \"testtest\"}", e );
+        } else
+        {
+            println( e );
+            throw buildException( "TODO 2.a conn.forceSession(currentSession.SessionID, {Host: \"testtest\"}) fail", e );
         }
     }
 
     // TODO 2.b
-    var currentSession = conn.list(SDB_LIST_SESSIONS_CURRENT, {Global: false}).next().toObj();
-    try {
-        conn.forceSession(currentSession.SessionID, {});
-        // throw new Error(0);
-    } 
-    catch (e) 
+    var currentSession = conn.list( SDB_LIST_SESSIONS_CURRENT, { Global: false } ).next().toObj();
+    try
     {
-        if (e == "Error: 0") {
-            throw buildException("TODO 2.b not validate the options {}", e);
-        } else {
-            println(e);
-            throw buildException("TODO 2.b conn.forceSession(currentSession.SessionID, {}) fail", e);
+        conn.forceSession( currentSession.SessionID, {} );
+        // throw new Error(0);
+    }
+    catch( e ) 
+    {
+        if( e == "Error: 0" )
+        {
+            throw buildException( "TODO 2.b not validate the options {}", e );
+        } else
+        {
+            println( e );
+            throw buildException( "TODO 2.b conn.forceSession(currentSession.SessionID, {}) fail", e );
         }
     }
 
@@ -68,16 +76,17 @@ function main() {
     // // }
 
     // TODO 2.d
-    var currentSession = conn.list(SDB_LIST_SESSIONS_CURRENT, {Global: false}).next().toObj();
-    try {
-        conn.forceSession(currentSession.SessionID, {NodeID: "abcd"});
-        throw new Error(-6);
-    } 
-    catch (e)
+    var currentSession = conn.list( SDB_LIST_SESSIONS_CURRENT, { Global: false } ).next().toObj();
+    try
     {
-        if (e !== -6)
+        conn.forceSession( currentSession.SessionID, { NodeID: "abcd" } );
+        throw new Error( -6 );
+    }
+    catch( e )
+    {
+        if( e !== -6 )
         {
-            throw buildException("TODO 2.d not validate the options {NodeID: \"abcd\"}", e);
-        } 
+            throw buildException( "TODO 2.d not validate the options {NodeID: \"abcd\"}", e );
+        }
     }
 }

@@ -1,72 +1,72 @@
 /****************************************************
-@description: seqDB-4517:createCS，createCS，options:PageSize无效取值
-seqDB-4521:createCS，createCS，options:LobPageSize无效取值
+@description: seqDB-4517:createCS锟斤拷createCS锟斤拷options:PageSize锟斤拷效取值
+seqDB-4521:createCS锟斤拷createCS锟斤拷options:LobPageSize锟斤拷效取值
 @author:
 2019-6-4 wuyan init
 ****************************************************/
-main(); 
-function main()
+main();
+function main ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" ); 
-      return; 
+      println( "run mode is standalone" );
+      return;
    }
-   var csName = "cs4517"; 
-   commDropCS( db, csName, true, "clear cs in the beginning." ); 
-   
-   println( "---Begin to test testcase-4517. " ); 
-   var pageSizes = [ "", 4097, -4096 ]; 
-   var lobPageSize = 4096; 
+   var csName = "cs4517";
+   commDropCS( db, csName, true, "clear cs in the beginning." );
+
+   println( "---Begin to test testcase-4517. " );
+   var pageSizes = ["", 4097, -4096];
+   var lobPageSize = 4096;
    for( var i = 0; i < pageSizes.length; i++ )
    {
-      var pageSize = pageSizes[i]; 
-      createCSWithLobPageSize( csName, lobPageSize, pageSize ); 
+      var pageSize = pageSizes[i];
+      createCSWithLobPageSize( csName, lobPageSize, pageSize );
    }
-   
-   println( "---Begin to test testcase-4521. " ); 
-   var lobPageSizes = [ "", 1, -4096]; 
-   var pageSize = 4096; 
+
+   println( "---Begin to test testcase-4521. " );
+   var lobPageSizes = ["", 1, -4096];
+   var pageSize = 4096;
    for( var i = 0; i < lobPageSizes.length; i++ )
    {
-      var lobPageSize = lobPageSizes[i]; 
-      createCSWithLobPageSize( csName, lobPageSize, pageSize ); 
+      var lobPageSize = lobPageSizes[i];
+      createCSWithLobPageSize( csName, lobPageSize, pageSize );
    }
-   
+
 }
 
-function createCSWithLobPageSize( csName, lobPageSize, pageSize )
+function createCSWithLobPageSize ( csName, lobPageSize, pageSize )
 {
-   println( "\n---Begin to createCS with lobPageSize:" + lobPageSize + " pageSize:" + pageSize ); 
+   println( "\n---Begin to createCS with lobPageSize:" + lobPageSize + " pageSize:" + pageSize );
    //create cs; 
    try
    {
-      var options = { LobPageSize : lobPageSize, PageSize : pageSize }; 
-      db.createCS( csName, options ); 
-      throw "create cs should be fail!"; 
+      var options = { LobPageSize: lobPageSize, PageSize: pageSize };
+      db.createCS( csName, options );
+      throw "create cs should be fail!";
    }
    catch( e )
    {
       if( e !== -6 )
       {
-         throw buildException( "create cs", e ); 
+         throw buildException( "create cs", e );
       }
-      
+
    }
-   
+
    //check cs is not exist; 
    try
    {
-      db.getCS( csName ); 
+      db.getCS( csName );
       throw "get cs should be fail!"
    }
    catch( e )
    {
       if( e !== -34 )
       {
-         throw buildException( "check cs", e ); 
+         throw buildException( "check cs", e );
       }
    }
-   
+
 }
 

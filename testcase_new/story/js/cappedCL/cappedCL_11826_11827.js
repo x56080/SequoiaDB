@@ -7,80 +7,80 @@
 
 main();
 
-function main()
+function main ()
 {
    //check cl
    var clName = COMMCAPPEDCLNAME + "_11827";
-   var options = { Capped : true, Size:1024, Max:10000000, AutoIndexId:false };
+   var options = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
    var cl = createCL( COMMCAPPEDCSNAME, clName, options );
-  
+
    //test record
-   var doc = [{No:1,a:10},{No:2,a:50},{No:3,a:-1001},
-	             {No:4,a:{$decimal: "123.456"}},{No:5,a:101.02}, 
-	             {No:6,a:{$numberLong:"9223372036854775807"}},{No:7,a:{$numberLong:"-9223372036854775808"}},
-	             {No:8,a:{$date: "2017-05-01"}},{No:9,a:{$timestamp: "2017-05-01-15.32.18.000000"}},
-	             {No:10,a:{$binary:"aGVsbG8gd29ybGQ=",$type:"1"}},
-	             {No:11,a:{$regex:"^z",$options:"i"}},
-	             {No:12,a:null},	           
-	             {No:13,a:{$oid:"123abcd00ef12358902300ef"}}, 
-              {No:14,a:"abc"},
-              {No:15,a:{MinKey:1}},
-              {No:16,a:{MaxKey:1}},
-              {No:17,a:true},{No:18,a:false},
-              {No:19,a:{name:"Jack"}},
-	             {No:20,a:[1]},
-	             {No:21,a:[3]},
-	             {No:22,a:22}];
-   
+   var doc = [{ No: 1, a: 10 }, { No: 2, a: 50 }, { No: 3, a: -1001 },
+   { No: 4, a: { $decimal: "123.456" } }, { No: 5, a: 101.02 },
+   { No: 6, a: { $numberLong: "9223372036854775807" } }, { No: 7, a: { $numberLong: "-9223372036854775808" } },
+   { No: 8, a: { $date: "2017-05-01" } }, { No: 9, a: { $timestamp: "2017-05-01-15.32.18.000000" } },
+   { No: 10, a: { $binary: "aGVsbG8gd29ybGQ=", $type: "1" } },
+   { No: 11, a: { $regex: "^z", $options: "i" } },
+   { No: 12, a: null },
+   { No: 13, a: { $oid: "123abcd00ef12358902300ef" } },
+   { No: 14, a: "abc" },
+   { No: 15, a: { MinKey: 1 } },
+   { No: 16, a: { MaxKey: 1 } },
+   { No: 17, a: true }, { No: 18, a: false },
+   { No: 19, a: { name: "Jack" } },
+   { No: 20, a: [1] },
+   { No: 21, a: [3] },
+   { No: 22, a: 22 }];
+
    //get No=10 record ID
-   var middleId = getMiddleID( cl, doc, 9);
-   
+   var middleId = getMiddleID( cl, doc, 9 );
+
    //check Direction is error
-   var options = { Directi:-1, LogicalID:middleId };
+   var options = { Directi: -1, LogicalID: middleId };
    checkOption( cl, doc, options );
-   checkPopResult( cl, 12, "check Direction is error");
-   
+   checkPopResult( cl, 12, "check Direction is error" );
+
    //check LogicalID is error
-   var options = { Direction:-1, LogiID:middleId };
+   var options = { Direction: -1, LogiID: middleId };
    checkOption( cl, doc, options );
-   checkPopResult( cl, 22, "check LogicalID is error");
-   
+   checkPopResult( cl, 22, "check LogicalID is error" );
+
    //check Direction=-100
-   var options = { Direction:-100, LogicalID:middleId };
+   var options = { Direction: -100, LogicalID: middleId };
    checkOption( cl, doc, options );
-   checkPopResult( cl, 9, "check Direction=-100");
-   
+   checkPopResult( cl, 9, "check Direction=-100" );
+
    //check Direction=100
-   var options = { Direction:100, LogicalID:middleId };
+   var options = { Direction: 100, LogicalID: middleId };
    checkOption( cl, doc, options );
-   checkPopResult( cl, 12, "check Direction=100");
-   
+   checkPopResult( cl, 12, "check Direction=100" );
+
    //check Direction="abc"
-   var options = { Direction:"abc", LogicalID:middleId };
+   var options = { Direction: "abc", LogicalID: middleId };
    checkOption( cl, doc, options );
-   checkPopResult( cl, 22, "check Direction=abc");
-   
+   checkPopResult( cl, 22, "check Direction=abc" );
+
    //check no Direction,Direction will equals 1
-   var options = { LogicalID:middleId };
+   var options = { LogicalID: middleId };
    checkOption( cl, doc, options );
-   checkPopResult( cl, 12, "check no Direction");
-   
+   checkPopResult( cl, 12, "check no Direction" );
+
    //check LogicalID=LogicalID+1
-   var options = { Direction:-1, LogiID:middleId+1 };
+   var options = { Direction: -1, LogiID: middleId + 1 };
    checkOption( cl, doc, options );
-   checkPopResult( cl, 22, "check LogicalID=LogicalID+1");
-   
+   checkPopResult( cl, 22, "check LogicalID=LogicalID+1" );
+
    //check no LogicalID
-   var options = { Direction:-1 };
+   var options = { Direction: -1 };
    checkOption( cl, doc, options );
-   checkPopResult( cl, 22, "check no LogicalID");
-   
+   checkPopResult( cl, 22, "check no LogicalID" );
+
    //clean environment after test  
-   commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end");
+   commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
    println( "---end the test---" );
 }
 
-function createCL( csName, clName, options )
+function createCL ( csName, clName, options )
 {
    try
    {
@@ -88,55 +88,55 @@ function createCL( csName, clName, options )
    }
    catch( e )
    {
-      throw buildException("createCL()", e, "create cappedCL", "-6", e);
+      throw buildException( "createCL()", e, "create cappedCL", "-6", e );
    }
 }
 
-function checkOption( dbcl, doc, options )
+function checkOption ( dbcl, doc, options )
 {
    try
    {
-      dbcl.insert(doc);
-      dbcl.pop(options);
+      dbcl.insert( doc );
+      dbcl.pop( options );
    }
    catch( e )
    {
-      if(e!=-6)
+      if( e != -6 )
       {
-         throw buildException("checkOption()", e, "check options", "pop success", "pop failed,"+e ); 
+         throw buildException( "checkOption()", e, "check options", "pop success", "pop failed," + e );
       }
    }
 }
 
-function getMiddleID( dbcl, doc, num )
+function getMiddleID ( dbcl, doc, num )
 {
    try
    {
-      dbcl.insert(doc);
-      var cursor =  dbcl.find().sort({No:1}).skip(num).limit(1);
+      dbcl.insert( doc );
+      var cursor = dbcl.find().sort( { No: 1 } ).skip( num ).limit( 1 );
       var id = cursor.current().toObj()._id;
       dbcl.truncate();
       return id;
    }
    catch( e )
    {
-      throw buildException("getMiddleID()", e, "find record", "find success", "find failed, "+e );
+      throw buildException( "getMiddleID()", e, "find record", "find success", "find failed, " + e );
    }
 }
 
-function checkPopResult( dbcl, expRecordNum, msg )
+function checkPopResult ( dbcl, expRecordNum, msg )
 {
    try
    {
       var act = dbcl.count();
       if( act != expRecordNum )
       {
-         throw buildException( "checkPopResult()", null, msg+" compare record num", expRecordNum, act)
+         throw buildException( "checkPopResult()", null, msg + " compare record num", expRecordNum, act )
       }
       dbcl.truncate();
    }
    catch( e )
    {
-      throw buildException("checkPopResult()", e, "check record", "check success", "check failed, "+e );
-   } 
+      throw buildException( "checkPopResult()", e, "check record", "check success", "check failed, " + e );
+   }
 }

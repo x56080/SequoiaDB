@@ -5,39 +5,39 @@
 *@testlinkCase: seqDB-4983
 **************************************/
 main();
-function main()
+function main ()
 {
-   if(true == commIsStandalone( db ))
+   if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone");
+      println( "run mode is standalone" );
       return;
    }
-   
+
    var groupsArray = commGetGroups( db, false, "", true, true, true );
-    
+
    var csName = COMMCSNAME;
    var clName = CHANGEDPREFIX + "_cl_4983";
    var srcRGName = groupsArray[0][0].GroupName;
    var tarRGName = "";
    var hostName = groupsArray[0][1].HostName;
    var dataNum = 10000;
-   for(var i = 0; i < 123; i++)
+   for( var i = 0; i < 123; i++ )
    {
-       tarRGName += 's';
+      tarRGName += 's';
    }
    tarRGName += "4983";
-   
+
    //clean environment before test
    commDropCL( db, csName, clName, true, true, "drop CL in the beginning." );
    removeDataRG( tarRGName );
-   
-   
+
+
    try
    {
-      println("begin to create data group");
+      println( "begin to create data group" );
       var srcLogPath = createDataGroup( tarRGName, hostName );
-      
-      var optionObj = {ShardingKey:{a:1}, ShardingType:"range", ReplSize:0, Group:srcRGName};
+
+      var optionObj = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Group: srcRGName };
       var cl = commCreateCLByOption( db, csName, clName, optionObj, true, false );
 
       //insert data and split
@@ -45,21 +45,21 @@ function main()
       var condition = 0;
       var endcondition = 3000;
 
-      cl.split(srcRGName, tarRGName, {a : condition}, {a : endcondition});
-      println("begin to check");
+      cl.split( srcRGName, tarRGName, { a: condition }, { a: endcondition } );
+      println( "begin to check" );
       checkSplitResultByCount( cl, csName, clName, srcRGName, tarRGName, dataNum, 7000, 3000 );
    }
-   catch ( e )
+   catch( e )
    {
-      println("catch e : " + e);
+      println( "catch e : " + e );
       //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
       var backupDir = "/tmp/ci/rsrvnodelog/4983";
-      File.mkdir(backupDir);
+      File.mkdir( backupDir );
       File.scp( srcLogPath, backupDir + "/sdbdiag.log" );
       throw e;
    }
    finally
-   { 
+   {
       //清理环境
       commDropCL( db, csName, clName, true, true, "drop CL in the end." );
       removeDataRG( tarRGName );

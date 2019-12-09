@@ -6,81 +6,81 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
       var csName = COMMCSNAME;
-      var clName = COMMCLNAME+"_5504" ;
+      var clName = COMMCLNAME + "_5504";
       var cl = readyCL( csName, clName );
-      
-      var imprtFile = testCaseDir +"dataFile/autoToJudge.csv";
+
+      var imprtFile = testCaseDir + "dataFile/autoToJudge.csv";
       importData( csName, clName, imprtFile );
-   	
+
       checkCLData( cl );
       cleanCL( csName, clName );
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function importData( csName, clName, imprtFile )
+function importData ( csName, clName, imprtFile )
 {
-   println("\n---Begin to import data and check exec result.");
-   
+   println( "\n---Begin to import data and check exec result." );
+
    //cat import file
-   var fileInfo = cmd.run( "cat "+ imprtFile );
-   println( imprtFile +"\n" + fileInfo +"\n" );
-   
+   var fileInfo = cmd.run( "cat " + imprtFile );
+   println( imprtFile + "\n" + fileInfo + "\n" );
+
    //import operation
-   var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
-                     +' -c '+ csName +' -l '+ clName 
-                     +' --type csv --fields "num int,oriV1,type string,srcV2"'
-                     +' --file '+ imprtFile;
+   var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
+      + ' -c ' + csName + ' -l ' + clName
+      + ' --type csv --fields "num int,oriV1,type string,srcV2"'
+      + ' --file ' + imprtFile;
    println( imprtOption );
    var rc = cmd.run( imprtOption );
    println( rc );
-   
+
    //check import results
-   var rcObj = rc.split("\n");
-   var expParseRecords    = "parsed records: 18";
-   var expParseFailure    = "parse failure: 0";
+   var rcObj = rc.split( "\n" );
+   var expParseRecords = "parsed records: 18";
+   var expParseFailure = "parse failure: 0";
    var expImportedRecords = "imported records: 18";
-   var actParseRecords    = rcObj[0];
-   var actParseFailure    = rcObj[1];
+   var actParseRecords = rcObj[0];
+   var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];
-   if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords 
-    || expImportedRecords !== actImportedRecords )
+   if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords
+      || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]", 
-                        "["+ expParseRecords +", "+ expParseFailure +", "+ expImportedRecords +"]", 
-                        "["+ actParseRecords +", "+ actParseFailure +", "+ actImportedRecords +"]" );
+      throw buildException( "importData", null, "[sdbimprt results]",
+         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+         "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
 }
 
-function checkCLData( cl )
+function checkCLData ( cl )
 {
-   println("\n---Begin to check cl data.");
-   
-   var rc = cl.find({oriV1:{$field:"srcV2"}},{_id:{$include:0}}).sort({num:1});
+   println( "\n---Begin to check cl data." );
+
+   var rc = cl.find( { oriV1: { $field: "srcV2" } }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {
       recsArray.push( tmpRecs.toObj() );
    }
-   
-   var expCnt  = 18;  //skip a records: {"num":8,"type":"null","v1":null,"v2":null}
+
+   var expCnt = 18;  //skip a records: {"num":8,"type":"null","v1":null,"v2":null}
    var expRecs = '[{"num":1,"oriV1":123,"type":"int","srcV2":123},{"num":2,"oriV1":123,"type":"int","srcV2":123},{"num":3,"oriV1":123,"type":"int","srcV2":123},{"num":4,"oriV1":-123,"type":"int","srcV2":-123},{"num":5,"oriV1":123,"type":"int","srcV2":123},{"num":6,"oriV1":-123,"type":"int","srcV2":-123},{"num":7,"oriV1":2147483648,"type":"long","srcV2":2147483648},{"num":8,"oriV1":123.1,"type":"double","srcV2":123.1},{"num":9,"oriV1":0.123,"type":"double","srcV2":0.123},{"num":10,"oriV1":{"$decimal":"9223372036854775808"},"type":"decimal","srcV2":{"$decimal":"9223372036854775808"}},{"num":11,"oriV1":true,"type":"bool","srcV2":true},{"num":12,"oriV1":false,"type":"bool","srcV2":false},{"num":13,"oriV1":"123","type":"string","srcV2":"123"},{"num":14,"oriV1":"123a","type":"string","srcV2":"123a"},{"num":15,"oriV1":"true","type":"string","srcV2":"true"},{"num":16,"oriV1":"false","type":"string","srcV2":"false"},{"num":17,"oriV1":"null","type":"string","srcV2":"null"},{"num":18,"oriV1":null,"type":"null","srcV2":null}]';
-   var actCnt  = recsArray.length;
+   var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]", 
-                        "[cnt:"+ expCnt +", recs:"+ expRecs +"]", 
-                        "[cnt:"+ actCnt +", recs:"+ actRecs +"]" );
+      throw buildException( "checkCLdata", null, "[find]",
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+         "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
    //println( "cl records: "+ actRecs );
-   
+
 }

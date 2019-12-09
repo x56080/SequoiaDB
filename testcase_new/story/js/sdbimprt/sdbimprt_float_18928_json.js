@@ -3,14 +3,14 @@
 *@Author     :  2019-8-6  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18928_json";
    var jsonFile = tmpFileDir + clName + ".json";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( jsonFile );
-   
+
    println( "\n---data type double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 800 );
@@ -18,11 +18,11 @@ function main()
    checkResult( cl, "double", expResult );
    var expResult = getExpResult( "decimal" );
    checkResult( cl, "decimal", expResult );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "1";
@@ -33,16 +33,16 @@ function prepareDate( typeFile )
       for( var j = 0; j < 20; j++ )
       {
          right = "0" + right;
-         file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' ); 
+         file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' );
          file.write( '{ a: ' + left + '.' + right + ' }\n' );
       }
    }
    file.close();
 }
 
-function getExpResult( dataType )
+function getExpResult ( dataType )
 {
-   var expResult = []; 
+   var expResult = [];
    var left = "1";
    for( var i = 0; i < 20; i++ )
    {
@@ -52,18 +52,18 @@ function getExpResult( dataType )
       {
          right = "0" + right;
          var decimalDate = left + "." + right;
-         if( dataType == "decimal" && ( i+j ) < 12 )
+         if( dataType == "decimal" && ( i + j ) < 12 )
          {
-            expResult.push({ a: { "$decimal": decimalDate }});
+            expResult.push( { a: { "$decimal": decimalDate } } );
          }
-         else if( dataType == "decimal" && ( i+j ) >= 12 )
+         else if( dataType == "decimal" && ( i + j ) >= 12 )
          {
-            expResult.push({ a: { "$decimal": decimalDate }}); 
-            expResult.push({ a: { "$decimal": decimalDate }});               
+            expResult.push( { a: { "$decimal": decimalDate } } );
+            expResult.push( { a: { "$decimal": decimalDate } } );
          }
-         else if( dataType == "double" && ( i+j ) < 12 )
+         else if( dataType == "double" && ( i + j ) < 12 )
          {
-            expResult.push({ a: parseFloat( left + "." + right )});
+            expResult.push( { a: parseFloat( left + "." + right ) } );
          }
       }
    }

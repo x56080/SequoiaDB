@@ -2,40 +2,40 @@
 *@Description : common function for js object System/Oma
 *@auhor       : Liang XueWang
 ******************************************************************************/
-function OmaTest( hostName, cmSvcName, isLegalHost, isLegalSvc )
+function OmaTest ( hostName, cmSvcName, isLegalHost, isLegalSvc )
 {
    if( arguments.length === 0 )
-      this.oma = Oma ;
+      this.oma = Oma;
    if( hostName === undefined )
-      this.hostname = COORDHOSTNAME ;
+      this.hostname = COORDHOSTNAME;
    else
-      this.hostname = hostName["hostname"] ;
+      this.hostname = hostName["hostname"];
    if( cmSvcName === undefined )
-      this.svcname = CMSVCNAME ;
+      this.svcname = CMSVCNAME;
    else
-      this.svcname = cmSvcName ;
+      this.svcname = cmSvcName;
    if( isLegalHost === undefined )
-      this.islegalhost = true ;
+      this.islegalhost = true;
    else
-      this.islegalhost = isLegalHost ;
+      this.islegalhost = isLegalHost;
    if( isLegalSvc === undefined )
-      this.islegalsvc = true ;
+      this.islegalsvc = true;
    else
-      this.islegalsvc = isLegalSvc ;
+      this.islegalsvc = isLegalSvc;
    if( this.islegalhost )
    {
-      var db = new Sdb( this.hostname, COORDSVCNAME ) ;
-      this.isStandalone = commIsStandalone( db ) ;
-      db.close() ;
+      var db = new Sdb( this.hostname, COORDSVCNAME );
+      this.isStandalone = commIsStandalone( db );
+      db.close();
    }
 }
 
 OmaTest.prototype.toString = function()
 {
    if( this.oma === Oma )
-      return ( "static Oma" ) ;
+      return ( "static Oma" );
    else
-      return ( "OmaTest: hostname=" + this.hostname + " svcname=" + this.svcname ) ;
+      return ( "OmaTest: hostname=" + this.hostname + " svcname=" + this.svcname );
 }
 
 OmaTest.prototype.testInit = function() 
@@ -43,7 +43,7 @@ OmaTest.prototype.testInit = function()
    try
    {
       if( this.oma !== Oma )
-         this.oma = new Oma( this.hostname, this.svcname ) ;
+         this.oma = new Oma( this.hostname, this.svcname );
    }
    catch( e )
    {
@@ -51,41 +51,41 @@ OmaTest.prototype.testInit = function()
          ;
       else
       {
-         throw buildException( "testInit", e, "init oma " + this, "0 -15", e ) ;
+         throw buildException( "testInit", e, "init oma " + this, "0 -15", e );
       }
-   } 
+   }
 }
 
-function RemoteTest( hostName, cmSvcName, isLegalHost, isLegalSvc )
+function RemoteTest ( hostName, cmSvcName, isLegalHost, isLegalSvc )
 {
    if( hostName === undefined )
-      this.hostname = COORDHOSTNAME ;
+      this.hostname = COORDHOSTNAME;
    else
-      this.hostname = hostName["hostname"] ;
+      this.hostname = hostName["hostname"];
    if( cmSvcName === undefined )
-      this.svcname = CMSVCNAME ;
+      this.svcname = CMSVCNAME;
    else
-      this.svcname = cmSvcName ;
+      this.svcname = cmSvcName;
    if( isLegalHost === undefined )
-      this.islegalHost = true ;
+      this.islegalHost = true;
    else
-      this.islegalhost = isLegalHost ;
+      this.islegalhost = isLegalHost;
    if( isLegalSvc === undefined )
-      this.islegalsvc = true ;
+      this.islegalsvc = true;
    else
-      this.islegalsvc = isLegalSvc ;
+      this.islegalsvc = isLegalSvc;
 }
 
 RemoteTest.prototype.toString = function()
 {
-   return ( "hostname=" + this.hostname + " svcname=" + this.svcname ) ;
+   return ( "hostname=" + this.hostname + " svcname=" + this.svcname );
 }
 
 RemoteTest.prototype.testInit = function()
 {
    try
    {
-      this.remote = new Remote( this.hostname, this.svcname ) ;
+      this.remote = new Remote( this.hostname, this.svcname );
    }
    catch( e )
    {
@@ -93,107 +93,107 @@ RemoteTest.prototype.testInit = function()
          ;
       else
       {
-         throw buildException( "testInit", e, "init remote " + this, "0 -15", e ) ;
-      }   
-   } 
+         throw buildException( "testInit", e, "init remote " + this, "0 -15", e );
+      }
+   }
 }
 
-function SystemTest( hostName, cmSvcName )
+function SystemTest ( hostName, cmSvcName )
 {
    if( hostName === undefined )
-      this.hostname = COORDHOSTNAME ;
+      this.hostname = COORDHOSTNAME;
    else
-      this.hostname = hostName["hostname"] ;
+      this.hostname = hostName["hostname"];
    if( cmSvcName === undefined )
-      this.svcname = CMSVCNAME ;
+      this.svcname = CMSVCNAME;
    else
-      this.svcname = cmSvcName ;
-   this.isLocal = hostName["isLocal"] ;
-   var db = new Sdb( this.hostname, COORDSVCNAME ) ;
-   this.isStandalone = commIsStandalone( db ) ;
-   db.close() ;
+      this.svcname = cmSvcName;
+   this.isLocal = hostName["isLocal"];
+   var db = new Sdb( this.hostname, COORDSVCNAME );
+   this.isStandalone = commIsStandalone( db );
+   db.close();
 }
 
 SystemTest.prototype.toString = function()
 {
-   return ( "SystemTest: hostname=" + this.hostname + " svcname=" + this.svcname ) ;
+   return ( "SystemTest: hostname=" + this.hostname + " svcname=" + this.svcname );
 }
 
 SystemTest.prototype.init = function()
 {
    if( this.isLocal )
    {
-      this.system = System ;
-      this.cmd = new Cmd() ;
+      this.system = System;
+      this.cmd = new Cmd();
    }
    else
    {
-      this.remote = new Remote( this.hostname, this.svcname ) ;
-      this.system = this.remote.getSystem() ;
-      this.cmd = this.remote.getCmd() ;
+      this.remote = new Remote( this.hostname, this.svcname );
+      this.system = this.remote.getSystem();
+      this.cmd = this.remote.getCmd();
    }
 }
 
 SystemTest.prototype.release = function()
 {
    if( this.remote !== undefined )
-      this.remote.close() ;
+      this.remote.close();
 }
 
-function FileTest( hostName, cmSvcName, fileName )
+function FileTest ( hostName, cmSvcName, fileName )
 {
    if( hostName === undefined )
-      this.hostname = COORDHOSTNAME ;
+      this.hostname = COORDHOSTNAME;
    else
-      this.hostname = hostName["hostname"] ;   // 主机名    
+      this.hostname = hostName["hostname"];   // 主机名    
    if( cmSvcName === undefined )
-      this.svcname = CMSVCNAME ;
+      this.svcname = CMSVCNAME;
    else
-      this.svcname = cmSvcName ;   // 端口号  
-   this.filename = fileName ;      // 文件名
-   this.isLocal = hostName["isLocal"] ;
+      this.svcname = cmSvcName;   // 端口号  
+   this.filename = fileName;      // 文件名
+   this.isLocal = hostName["isLocal"];
 }
 
 FileTest.prototype.init = function()
-{  
+{
    if( this.isLocal )
    {
-      this.cmd = new Cmd() ;       // 本地cmd对象
-      this.system = System ;
+      this.cmd = new Cmd();       // 本地cmd对象
+      this.system = System;
       if( this.filename === undefined )
-         this.file = File ;                           // 本地File类类型
+         this.file = File;                           // 本地File类类型
       else
       {
          try
          {
-            this.file = new File( this.filename ) ;      // 本地file对象
+            this.file = new File( this.filename );      // 本地file对象
          }
          catch( e )
          {
-            var dirmode = toolGetDirMode( File, this.filename ) ;
+            var dirmode = toolGetDirMode( File, this.filename );
             throw buildException( "init", e, "new file " + this.filename + " " + this +
-                  " dir mode: " + dirmode, 0, e ) ;
+               " dir mode: " + dirmode, 0, e );
          }
       }
    }
    else
    {
-      this.remote = new Remote( this.hostname, this.svcname ) ;
-      this.cmd = this.remote.getCmd() ;   // 远程cmd对象
-      this.system = this.remote.getSystem() ;
+      this.remote = new Remote( this.hostname, this.svcname );
+      this.cmd = this.remote.getCmd();   // 远程cmd对象
+      this.system = this.remote.getSystem();
       if( this.filename === undefined )
-         this.file = this.remote.getFile() ;          // 远程File类类型
+         this.file = this.remote.getFile();          // 远程File类类型
       else
       {
          try
          {
-            this.file = this.remote.getFile( this.filename ) ;  // 远程file对象
+            this.file = this.remote.getFile( this.filename );  // 远程file对象
          }
          catch( e )
          {
-            var dirmode = toolGetDirMode( this.remote.getFile(), this.filename ) ;
+            var dirmode = toolGetDirMode( this.remote.getFile(), this.filename );
             throw buildException( "init", e, "new file " + this.filename + " " + this +
-                  " dir mode: " + dirmode, 0, e ) ;
+               " dir mode: " + dirmode, 0, e );
          }
       }
    }
@@ -202,97 +202,97 @@ FileTest.prototype.init = function()
 FileTest.prototype.release = function()
 {
    if( this.filename !== undefined )
-      this.cmd.run( "rm -rf " + this.filename ) ;    // 删除文件
+      this.cmd.run( "rm -rf " + this.filename );    // 删除文件
    if( this.remote !== undefined )
    {
-      this.remote.close() ;    // 断开连接
-   }  
+      this.remote.close();    // 断开连接
+   }
 }
 
 FileTest.prototype.toString = function()
 {
    return ( "FileTest: hostname=" + this.hostname + " svcname=" + this.svcname +
-            " filename=" + this.filename ) ;
+      " filename=" + this.filename );
 }
 
-function CmdTest( hostName, cmSvcName )
+function CmdTest ( hostName, cmSvcName )
 {
    if( hostName === undefined )
-      this.hostname = COORDHOSTNAME ;
+      this.hostname = COORDHOSTNAME;
    else
-      this.hostname = hostName["hostname"] ;
+      this.hostname = hostName["hostname"];
    if( cmSvcName === undefined )
-      this.svcname = CMSVCNAME ;
+      this.svcname = CMSVCNAME;
    else
-      this.svcname = cmSvcName ;
-   this.isLocal = hostName["isLocal"] ;
+      this.svcname = cmSvcName;
+   this.isLocal = hostName["isLocal"];
 }
 
 CmdTest.prototype.toString = function()
 {
-   return ( "CmdTest: hostname=" + this.hostname + " svcname=" + this.svcname ) ;
+   return ( "CmdTest: hostname=" + this.hostname + " svcname=" + this.svcname );
 }
 
 CmdTest.prototype.init = function()
 {
    if( this.isLocal )
    {
-      this.cmd = new Cmd() ;
+      this.cmd = new Cmd();
    }
    else
    {
-      this.remote = new Remote( this.hostname, this.svcname ) ;
-      this.cmd = this.remote.getCmd() ;
-   } 
+      this.remote = new Remote( this.hostname, this.svcname );
+      this.cmd = this.remote.getCmd();
+   }
 }
 
 CmdTest.prototype.release = function()
 {
    if( this.remote !== undefined )
-      this.remote.close() ;
+      this.remote.close();
 }
 
 /******************************************************************************
 *@Description : check two number is approximately equal to each other or not
 *@author      : Liang XueWang
 ******************************************************************************/
-function isApproEqual( n1, n2 )  // n1 n2 > 0
+function isApproEqual ( n1, n2 )  // n1 n2 > 0
 {
-   var max = n1 > n2 ? n1 : n2 ;
-   var min = ( max === n1 ) ? n2 : n1 ;
-   return min / max >= 0.85 || max - min <= 2 ;
+   var max = n1 > n2 ? n1 : n2;
+   var min = ( max === n1 ) ? n2 : n1;
+   return min / max >= 0.85 || max - min <= 2;
 }
 
 /******************************************************************************
 *@Description : get hosts in cluster
 *@author      : Liang XueWang            
 ******************************************************************************/
-function toolGetHosts()
+function toolGetHosts ()
 {
-   var hosts = [] ;
-   var k = 0 ;
-   
-   var db = new Sdb( COORDHOSTNAME, COORDSVCNAME ) ;
+   var hosts = [];
+   var k = 0;
+
+   var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone." ) ;
-      db.close() ;
-      return hosts ;
+      println( "Run mode is standalone." );
+      db.close();
+      return hosts;
    }
-   
-   var tmpInfo = db.listReplicaGroups().toArray() ;
-   for( var i = 0;i < tmpInfo.length;i++ )
+
+   var tmpInfo = db.listReplicaGroups().toArray();
+   for( var i = 0; i < tmpInfo.length; i++ )
    {
-      var tmpObj = JSON.parse( tmpInfo[i] ) ;
-      var tmpArr = tmpObj.Group ;
-      for( var j = 0;j < tmpArr.length;j++ )
+      var tmpObj = JSON.parse( tmpInfo[i] );
+      var tmpArr = tmpObj.Group;
+      for( var j = 0; j < tmpArr.length; j++ )
       {
          if( hosts.indexOf( tmpArr[j].HostName ) == -1 )
-            hosts[k++] = tmpArr[j].HostName ;
+            hosts[k++] = tmpArr[j].HostName;
       }
    }
-   db.close() ;
-   return hosts ;
+   db.close();
+   return hosts;
 }
 
 
@@ -301,18 +301,18 @@ function toolGetHosts()
 *               localhost means cluster local host, host of COORDHOSTNAME
 *@author      : Liang XueWang            
 ******************************************************************************/
-function toolGetLocalhost()
-{ 
+function toolGetLocalhost ()
+{
    // get local host of cluster, with COORDHOSTNAME
-   var remote = new Remote( COORDHOSTNAME, CMSVCNAME ) ;
-   var cmd = remote.getCmd() ;
-   var localhost = cmd.run( "hostname" ).split( "\n" )[0] ;
-   remote.close() ;
-   
-   var obj = {} ;
-   obj["hostname"] = localhost ;
-   obj["isLocal"] = isLocal( localhost ) ;
-   return obj ;
+   var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
+   var cmd = remote.getCmd();
+   var localhost = cmd.run( "hostname" ).split( "\n" )[0];
+   remote.close();
+
+   var obj = {};
+   obj["hostname"] = localhost;
+   obj["isLocal"] = isLocal( localhost );
+   return obj;
 }
 
 /******************************************************************************
@@ -321,69 +321,69 @@ function toolGetLocalhost()
 *               return obj
 *@author      : Liang XueWang
 ******************************************************************************/
-function toolGetRemotehost()
+function toolGetRemotehost ()
 {
-   var hosts = toolGetHosts() ;
-   var localhost = toolGetLocalhost() ;
-   var remotehost = localhost["hostname"] ;
-   for( var i = 0;i < hosts.length;i++ )
+   var hosts = toolGetHosts();
+   var localhost = toolGetLocalhost();
+   var remotehost = localhost["hostname"];
+   for( var i = 0; i < hosts.length; i++ )
    {
       if( hosts[i] !== localhost["hostname"] )
       {
-         remotehost = hosts[i] ;
-         break ;
+         remotehost = hosts[i];
+         break;
       }
    }
-   var obj = {} ;
-   obj["hostname"] = remotehost ;
-   obj["isLocal"] = false ;
-   return obj ;
+   var obj = {};
+   obj["hostname"] = remotehost;
+   obj["isLocal"] = false;
+   return obj;
 }
 
 /******************************************************************************
 *@Description : check sdbom exist or not
 *@author      : Liang XueWang            
 ******************************************************************************/
-function isOmExist( hostName, cmSvcName )
+function isOmExist ( hostName, cmSvcName )
 {
-   var oma = new Oma( hostName, cmSvcName ) ;
-   var rc ;
-   
-   var arr = oma.listNodes( { type: "om" } ).toArray() ;
+   var oma = new Oma( hostName, cmSvcName );
+   var rc;
+
+   var arr = oma.listNodes( { type: "om" } ).toArray();
    if( arr.length !== 0 )
-      rc = true ;
+      rc = true;
    else
-      rc = false ;
-   
-   oma.close() ;
-   return rc ;
+      rc = false;
+
+   oma.close();
+   return rc;
 }
 
 /******************************************************************************
 *@Description : check getOmaConfigs/getNodeConfigs result
 *@author      : Liang XueWang              
 ******************************************************************************/
-function checkResult( info, content, func )
-{ 
+function checkResult ( info, content, func )
+{
    for( var i in info )
    {
-      var found = false ;
-      for( var j = 0;j < content.length;j++ )
+      var found = false;
+      for( var j = 0; j < content.length; j++ )
       {
-         content[j] = content[j].replace( / /g,"" ) ;
+         content[j] = content[j].replace( / /g, "" );
          if( content[j][0] === "#" )
-            continue ;
-         var ind = content[j].indexOf( i ) ;
+            continue;
+         var ind = content[j].indexOf( i );
          if( ind === -1 )
-            continue ;
-         found = true ;
-         var value1 = content[j].slice( ind+i.length+1 ).toLowerCase() ;
-         var value2 = info[i].toString().toLowerCase() ;
+            continue;
+         found = true;
+         var value1 = content[j].slice( ind + i.length + 1 ).toLowerCase();
+         var value2 = info[i].toString().toLowerCase();
          if( value1 !== value2 )
-            throw buildException( "checkResult", null, func + " i=" + i, value1, value2 ) ;   
+            throw buildException( "checkResult", null, func + " i=" + i, value1, value2 );
       }
       if( found === false )
-         throw buildException( "checkResult", func + ", i=" + i ) ;   
+         throw buildException( "checkResult", func + ", i=" + i );
    }
 }
 
@@ -391,207 +391,207 @@ function checkResult( info, content, func )
 *@Description : check machine is ppc or not
 *@author      : Liang XueWang            
 ******************************************************************************/
-function isPPC( hostName, cmSvcName )
+function isPPC ( hostName, cmSvcName )
 {
-   var remote = new Remote( hostName, cmSvcName ) ;
-   var cmd = remote.getCmd() ;
-   var info ;
-   
-   info = cmd.run( "uname -m" ).split( "\n" )[0] ;
-   
-   remote.close() ;
-   return ( info.indexOf( "ppc" ) !== -1 ) ;    
+   var remote = new Remote( hostName, cmSvcName );
+   var cmd = remote.getCmd();
+   var info;
+
+   info = cmd.run( "uname -m" ).split( "\n" )[0];
+
+   remote.close();
+   return ( info.indexOf( "ppc" ) !== -1 );
 }
 
 /******************************************************************************
 *@Description : get a idle svcname
 *@author      : Liang XueWang            
 ******************************************************************************/
-function toolGetIdleSvcName( hostName, cmSvcName )
+function toolGetIdleSvcName ( hostName, cmSvcName )
 {
-   var remote = new Remote( hostName, cmSvcName ) ;
-   var cmd = remote.getCmd() ;
-     
-   var svcname ;
-   for( svcname = RSRVPORTBEGIN; svcname <= RSRVPORTEND; svcname = svcname*1 + 5 )
+   var remote = new Remote( hostName, cmSvcName );
+   var cmd = remote.getCmd();
+
+   var svcname;
+   for( svcname = RSRVPORTBEGIN; svcname <= RSRVPORTEND; svcname = svcname * 1 + 5 )
    {
       try
       {
-         cmd.run( "netstat -anp | grep " + svcname ) ;
+         cmd.run( "netstat -anp | grep " + svcname );
       }
       catch( e )
       {
          if( e === 1 )
          {
-            remote.close() ;
-            return svcname ;
+            remote.close();
+            return svcname;
          }
-         throw buildException( "toolGetIdleSvcName", e ) ;
+         throw buildException( "toolGetIdleSvcName", e );
       }
    }
-   remote.close() ;
-   return svcname ;
+   remote.close();
+   return svcname;
 }
 
 /******************************************************************************
 *@Description : get sdbcm user
 *@author      : Liang XueWang            
 ******************************************************************************/
-function toolGetSdbcmUser( hostName, cmSvcName )
+function toolGetSdbcmUser ( hostName, cmSvcName )
 {
-   var remote = new Remote( hostName, cmSvcName ) ;
-   var cmd = remote.getCmd() ;
-   var command = "ps aux | grep sdbcm | grep -E -v 'grep|sdbcmd' | awk '{print $1}'" ;
-   var user = cmd.run( command ).split( "\n" )[0] ;
-   return user ;   
+   var remote = new Remote( hostName, cmSvcName );
+   var cmd = remote.getCmd();
+   var command = "ps aux | grep sdbcm | grep -E -v 'grep|sdbcmd' | awk '{print $1}'";
+   var user = cmd.run( command ).split( "\n" )[0];
+   return user;
 }
 
 /******************************************************************************
 *@Description : get current user whoami
 *@author      : Liang XueWang            
 ******************************************************************************/
-function toolGetCurrentUser( hostName, cmSvcName )
+function toolGetCurrentUser ( hostName, cmSvcName )
 {
-   var remote = new Remote( hostName, cmSvcName ) ;
-   var cmd = remote.getCmd() ;
-   var tmp = cmd.run( "whoami" ).split( "\n" ) ;
-   var user = tmp[tmp.length-2] ;
-   return user ;
+   var remote = new Remote( hostName, cmSvcName );
+   var cmd = remote.getCmd();
+   var tmp = cmd.run( "whoami" ).split( "\n" );
+   var user = tmp[tmp.length - 2];
+   return user;
 }
 
 /******************************************************************************
 *@Description : get user and group  sdbcm.conf
 *@author      : Liang XueWang            
 ******************************************************************************/
-function toolGetCmUserGroup( hostname, svcname )
+function toolGetCmUserGroup ( hostname, svcname )
 {
-   var sdbDir = toolGetSequoiadbDir( hostname, svcname ) ;
-   var file = sdbDir[0] + "/conf/sdbcm.conf" ;
-   
-   var remote = new Remote( hostname, svcname ) ;
-   var cmd = remote.getCmd() ;
-   var command = "ls -l " + file + " | awk '{print $3,$4}'" ;
-   var tmpInfo = cmd.run( command ).split( "\n" ) ;
-   var tmp = tmpInfo[tmpInfo.length-2].split( " " ) ;
-   var result = {} ;
-   result["user"] = tmp[0] ;
-   result["group"] = tmp[1] ;
-   return result ;
+   var sdbDir = toolGetSequoiadbDir( hostname, svcname );
+   var file = sdbDir[0] + "/conf/sdbcm.conf";
+
+   var remote = new Remote( hostname, svcname );
+   var cmd = remote.getCmd();
+   var command = "ls -l " + file + " | awk '{print $3,$4}'";
+   var tmpInfo = cmd.run( command ).split( "\n" );
+   var tmp = tmpInfo[tmpInfo.length - 2].split( " " );
+   var result = {};
+   result["user"] = tmp[0];
+   result["group"] = tmp[1];
+   return result;
 }
 
 /******************************************************************************
 *@Description : check object is empty or not
 *@author      : Liang XueWang            
 ******************************************************************************/
-function isEmptyObject( obj )
+function isEmptyObject ( obj )
 {
    for( var k in obj )
-      return false ;
-   return true ;   
+      return false;
+   return true;
 }
 
 /******************************************************************************
 *@Description : get sequoiadb dir eg: /opt/sequoiadb /opt/sequoiadb/bin/..
 *@author      : Liang XueWang              
 ******************************************************************************/
-function toolGetSequoiadbDir( hostname, svcname )
+function toolGetSequoiadbDir ( hostname, svcname )
 {
-   var dir = [] ;
-   var remote = new Remote( hostname, svcname ) ;
-   var system = remote.getSystem() ;
-   var tmp = system.getEWD() ;
-   var ind = tmp.indexOf( "/bin" ) ;
-   dir[0] = tmp + "/.." ;
-   dir[1] = tmp.slice( 0, ind ) ;
-   remote.close() ;
-   
+   var dir = [];
+   var remote = new Remote( hostname, svcname );
+   var system = remote.getSystem();
+   var tmp = system.getEWD();
+   var ind = tmp.indexOf( "/bin" );
+   dir[0] = tmp + "/..";
+   dir[1] = tmp.slice( 0, ind );
+   remote.close();
+
    if( isLocal( hostname ) )
    {
-      system = System ;
-      tmp = system.getEWD() ;
-      ind = tmp.indexOf( "/bin" ) ;
-      dir[2] = tmp + "/.." ;
-      dir[3] = tmp.slice( 0, ind ) ;
+      system = System;
+      tmp = system.getEWD();
+      ind = tmp.indexOf( "/bin" );
+      dir[2] = tmp + "/..";
+      dir[3] = tmp.slice( 0, ind );
    }
-      
-   return dir ;
+
+   return dir;
 }
 
 /******************************************************************************
 *@Description : check user exist or not
 *@author      : Liang XueWang              
 ******************************************************************************/
-function isUserExist( hostname, svcname, username )
+function isUserExist ( hostname, svcname, username )
 {
-   var remote = new Remote( hostname, svcname ) ;
-   var cmd = remote.getCmd() ;
-   var exist ;
+   var remote = new Remote( hostname, svcname );
+   var cmd = remote.getCmd();
+   var exist;
    try
    {
-      cmd.run( "grep '^" + username + ":' /etc/passwd" ) ;
-      exist = true ;
+      cmd.run( "grep '^" + username + ":' /etc/passwd" );
+      exist = true;
    }
    catch( e )
    {
       if( e === 1 )
-         exist = false ;
+         exist = false;
       else
-         throw buildException( "isUserExist", e, "check " + username, "1 0", e ) ;
+         throw buildException( "isUserExist", e, "check " + username, "1 0", e );
    }
-   remote.close() ;
-   return exist ;
+   remote.close();
+   return exist;
 }
 
 /******************************************************************************
 *@Description : check group exist or not
 *@author      : Liang XueWang              
 ******************************************************************************/
-function isGroupExist( hostname, svcname, groupname )
+function isGroupExist ( hostname, svcname, groupname )
 {
-   var remote = new Remote( hostname, svcname ) ;
-   var cmd = remote.getCmd() ;
-   var exist ;
+   var remote = new Remote( hostname, svcname );
+   var cmd = remote.getCmd();
+   var exist;
    try
    {
-      cmd.run( "grep '^" + groupname + ":' /etc/group" ) ;
-      exist = true ;
+      cmd.run( "grep '^" + groupname + ":' /etc/group" );
+      exist = true;
    }
    catch( e )
    {
       if( e === 1 )
-         exist = false ;
+         exist = false;
       else
-         throw buildException( "isGroupExist", e, 
-                               "check " + groupname, "1 0", e )  ;
+         throw buildException( "isGroupExist", e,
+            "check " + groupname, "1 0", e );
    }
-   remote.close() ;
-   return exist ;
+   remote.close();
+   return exist;
 }
 
 /******************************************************************************
 *@Description : check group exist or not
 *@author      : Liang XueWang              
 ******************************************************************************/
-function toolGetDirMode( f, filename )
+function toolGetDirMode ( f, filename )
 {
-   var ind = filename.lastIndexOf( "/" ) ;
-   var dir = filename.slice( 0, ind ) ;
-   var mode = f.stat( dir ).toObj().mode ;
-   return mode ;
+   var ind = filename.lastIndexOf( "/" );
+   var dir = filename.slice( 0, ind );
+   var mode = f.stat( dir ).toObj().mode;
+   return mode;
 }
 
 /******************************************************************************
 *@Description : check host is local or not
 *@author      : Liang XueWang              
 ******************************************************************************/
-function isLocal( hostname )
+function isLocal ( hostname )
 {
-    var cmd = new Cmd() ;
-    var localhostname = cmd.run( "hostname" ).split( "\n" )[0] ;
-    if( hostname === "localhost" || hostname === localhostname )
-        return true ;
-    else
-        return false ;
+   var cmd = new Cmd();
+   var localhostname = cmd.run( "hostname" ).split( "\n" )[0];
+   if( hostname === "localhost" || hostname === localhostname )
+      return true;
+   else
+      return false;
 }
 
 /*******************************************************************
@@ -600,11 +600,11 @@ function isLocal( hostname )
 * @author      : Liang XueWang
 *
 ********************************************************************/
-function adaptPath( path )
+function adaptPath ( path )
 {
-   if( path.lastIndexOf( '/' ) !== path.length-1 )
-      path += '/' ;
-   return path ;
+   if( path.lastIndexOf( '/' ) !== path.length - 1 )
+      path += '/';
+   return path;
 }
 
 /***********************************************************
@@ -613,85 +613,86 @@ function adaptPath( path )
 ***********************************************************/
 commMakeDir( COORDHOSTNAME, WORKDIR );
 // js file without return
-var withoutRetFile       = WORKDIR + "/withoutRet_11902.js" ;
+var withoutRetFile = WORKDIR + "/withoutRet_11902.js";
 // js file with return
-var withRetFile          = WORKDIR + "/withRet_11903.js" ;
+var withRetFile = WORKDIR + "/withRet_11903.js";
 
-function createWithoutRetFile()
-{
-    try
-    {
-        var file = new File( withoutRetFile ) ;
-        file.write( "function add( a, b ) { return a + b ; }" ) ;
-        file.close() ;
-    }
-    catch( e )
-    {
-        throw buildException( "createFile", null, "create file " + withoutRetFile,
-                              0, e ) ;
-    }
-}
-function createWithRetFile()
-{
-    try
-    {
-        file = new File( withRetFile ) ;
-        file.write( "function mul( a, b ) { return a * b ; } var tmp = 100 ; mul( 1, 2 ) ;"
-                    + " mul( 2, 3 ) ;" ) ;
-        file.close() ;
-    }
-    catch( e )
-    {
-        throw buildException( "createFile", null, "create file " + withRetFile,
-                              0, e ) ;
-    }
-}
-
-function removeFile( filename )
-{
-    try
-    {
-        File.remove( filename ) ;
-    }
-    catch( e )
-    {
-        throw buildException( "removeFile", null, "remove file " + filename, 0, e ) ;
-    }
-}
-function currUser()
-{
-   var cmd = new Cmd() ;
-   var tmp = cmd.run( "whoami" ).split( "\n" ) ;
-   var user = tmp[tmp.length-2] ;
-   return user ;
-}
-
-function getCoordUser()
+function createWithoutRetFile ()
 {
    try
    {
-      var remote = new Remote( COORDHOSTNAME, CMSVCNAME ) ;
-      var system = remote.getSystem() ;
+      var file = new File( withoutRetFile );
+      file.write( "function add( a, b ) { return a + b ; }" );
+      file.close();
+   }
+   catch( e )
+   {
+      throw buildException( "createFile", null, "create file " + withoutRetFile,
+         0, e );
+   }
+}
+function createWithRetFile ()
+{
+   try
+   {
+      file = new File( withRetFile );
+      file.write( "function mul( a, b ) { return a * b ; } var tmp = 100 ; mul( 1, 2 ) ;"
+         + " mul( 2, 3 ) ;" );
+      file.close();
+   }
+   catch( e )
+   {
+      throw buildException( "createFile", null, "create file " + withRetFile,
+         0, e );
+   }
+}
+
+function removeFile ( filename )
+{
+   try
+   {
+      File.remove( filename );
+   }
+   catch( e )
+   {
+      throw buildException( "removeFile", null, "remove file " + filename, 0, e );
+   }
+}
+function currUser ()
+{
+   var cmd = new Cmd();
+   var tmp = cmd.run( "whoami" ).split( "\n" );
+   var user = tmp[tmp.length - 2];
+   return user;
+}
+
+function getCoordUser ()
+{
+   try
+   {
+      var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
+      var system = remote.getSystem();
       var cursor = system.listProcess( { detail: true },
-                                       { cmd: "sequoiadb("+COORDSVCNAME+") S" } ) ;
-      var user = cursor.next().toObj()["user"] ;
-      remote.close() ;
-      return user ;
+         { cmd: "sequoiadb(" + COORDSVCNAME + ") S" } );
+      var user = cursor.next().toObj()["user"];
+      remote.close();
+      return user;
    }
    catch( e )
    {
       throw buildException( "getCoordUser", e,
-            "get user of " + COORDHOSTNAME + ":" + COORDSVCNAME, 0, e ) ;
+         "get user of " + COORDHOSTNAME + ":" + COORDSVCNAME, 0, e );
    }
 }
-     
-function initWorkDir( cmd, remote )
+
+function initWorkDir ( cmd, remote )
 {
    // localhost
-   try {
+   try
+   {
       cmd.run( "ls " + WORKDIR );
    }
-   catch(e)
+   catch( e )
    {
       if( 2 === e )   // 2: No such file or directory
       {
@@ -711,4 +712,4 @@ function initWorkDir( cmd, remote )
       commMakeDir( COORDHOSTNAME, WORKDIR );
    }
 }
- 
+

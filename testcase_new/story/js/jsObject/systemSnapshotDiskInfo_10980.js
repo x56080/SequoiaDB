@@ -5,40 +5,40 @@
 ******************************************************************************/
 main();
 
-function main()
-{  	
-	println("\n---Begin to exec System.snapshotDiskInfo");
+function main ()
+{
+	println( "\n---Begin to exec System.snapshotDiskInfo" );
 	var rc = System.snapshotDiskInfo();
 	var disks = rc.toObj()["Disks"];
-		
+
 	// 尽可能获取挂载盘的磁盘信息（如"Filesystem": "/dev/sda2"），而不是"Filesystem": "tmpfs"
 	var diskInfo = "";
 	var fileSystem = "";
 	for( var i = 0; i < disks.length; i++ )
 	{
-	   diskInfo = disks[i];
-	   fileSystem = diskInfo["Filesystem"];
-	   if( fileSystem.indexOf('/dev/') === 0 )
-	   {
-	      break;
-	   }
+		diskInfo = disks[i];
+		fileSystem = diskInfo["Filesystem"];
+		if( fileSystem.indexOf( '/dev/' ) === 0 )
+		{
+			break;
+		}
 	}
-	
+
 	// check results
-	readSec  = diskInfo["ReadSec"];
+	readSec = diskInfo["ReadSec"];
 	writeSec = diskInfo["WriteSec"];
-	if( fileSystem.indexOf('/dev/') === 0 )
+	if( fileSystem.indexOf( '/dev/' ) === 0 )
 	{
-   	if( readSec <= 0 || writeSec <= 0 )
-   	{
-   	   throw buildException( "main", null, "", "> 0", "  " + '<= 0, \ndiskinfo: ' + JSON.stringify( diskInfo ) );
-   	}
-	}	
+		if( readSec <= 0 || writeSec <= 0 )
+		{
+			throw buildException( "main", null, "", "> 0", "  " + '<= 0, \ndiskinfo: ' + JSON.stringify( diskInfo ) );
+		}
+	}
 	else
-   {
-   	if( readSec < 0 || writeSec < 0 )
-   	{
-   	   throw buildException( "main", null, "", ">= 0", "  " + '< 0, \ndiskinfo: ' + JSON.stringify( diskInfo ) );
-   	}
-   }
+	{
+		if( readSec < 0 || writeSec < 0 )
+		{
+			throw buildException( "main", null, "", ">= 0", "  " + '< 0, \ndiskinfo: ' + JSON.stringify( diskInfo ) );
+		}
+	}
 }

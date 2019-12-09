@@ -10,21 +10,21 @@
 *@Input: cl.createIndex( "indexName", { "a.$0.b": 1 })
 *@Expectation: 创建索引失败，报-6错误【Invalid Argument】
 ********************************************************************************/
-function testNormalClIndex( db )
+function testNormalClIndex ( db )
 {
    try
    {
-      var funcName = "testNormalClIndex" ;
+      var funcName = "testNormalClIndex";
       var clName = CHANGEDPREFIX + "_idxNormalCl";
       var indexName = CHANGEDPREFIX + "_index";
       var indexDef1 = { "a.$0.b": 1 };
       var indexDef2 = { "a$b": 1 };
-      var indexDef3 = { "f.d":-1, "a.$0.b": 1 };
+      var indexDef3 = { "f.d": -1, "a.$0.b": 1 };
       commDropCL( db, COMMCSNAME, clName, true, true,
-                  "drop collection begin, " + funcName );
-      var cl = commCreateCL( db, COMMCSNAME, clName, 0, true, true,false,
-                             "failed create collection in the beginning" );
-      cl.insert({"a":[{"b":1}, {"c":2}]});
+         "drop collection begin, " + funcName );
+      var cl = commCreateCL( db, COMMCSNAME, clName, 0, true, true, false,
+         "failed create collection in the beginning" );
+      cl.insert( { "a": [{ "b": 1 }, { "c": 2 }] } );
 
       // { "a.$0.b": 1 }
       commDropIndex( cl, indexName, true );
@@ -70,7 +70,7 @@ function testNormalClIndex( db )
          if( -6 != e )
          {
             println( "failed to test create index:" +
-                     "{\"f.d\":-1,\"a.$0.b\":1}, rc = " + e );
+               "{\"f.d\":-1,\"a.$0.b\":1}, rc = " + e );
             throw e;
          }
       }
@@ -82,7 +82,7 @@ function testNormalClIndex( db )
    finally
    {
       commDropCL( db, COMMCSNAME, clName, false, false,
-                  "drop collection end, " + funcName );
+         "drop collection end, " + funcName );
    }
 }
 
@@ -91,7 +91,7 @@ function testNormalClIndex( db )
 *@Input: cl.createIndex( "indexName", { "a.$0.b": 1 })
 *@Expectation: 创建索引失败，报-6错误【Invalid Argument】
 ********************************************************************************/
-function testMainSubClIndex( db )
+function testMainSubClIndex ( db )
 {
    try
    {
@@ -100,23 +100,23 @@ function testMainSubClIndex( db )
       var subClName = CHANGEDPREFIX + "_indexSubCl";
       var indexName = CHANGEDPREFIX + "_indexMainSubCl";
       var indexDef = { "a.$0.b": 1 };
-      var optionObj = { "ShardingKey": {a:1}, "IsMainCL": true };
+      var optionObj = { "ShardingKey": { a: 1 }, "IsMainCL": true };
       commDropCL( db, COMMCSNAME, mainClName, true, true,
-                  "drop main collection begin, " + funcName );
+         "drop main collection begin, " + funcName );
       commDropCL( db, COMMCSNAME, subClName, true, true,
-                  "drop sub collection begin, " + funcName );
+         "drop sub collection begin, " + funcName );
       var cl = commCreateCLByOption( db, COMMCSNAME, mainClName, optionObj, true,
-                                     false,
-                                     "failed create collection in the beginning" );
-      commCreateCL( db, COMMCSNAME, subClName, 0, true, true,false,
-                    "failed create collection in the beginning" );
+         false,
+         "failed create collection in the beginning" );
+      commCreateCL( db, COMMCSNAME, subClName, 0, true, true, false,
+         "failed create collection in the beginning" );
       commDropIndex( cl, indexName, true );
       try
       {
-         cl.attachCL( COMMCSNAME + "." + subClName, {LowBound:{a:1}, UpBound:{a:10}} );
-         println("success to attach cl");
-         cl.insert({a:1});
-         cl.insert({a:9});
+         cl.attachCL( COMMCSNAME + "." + subClName, { LowBound: { a: 1 }, UpBound: { a: 10 } } );
+         println( "success to attach cl" );
+         cl.insert( { a: 1 } );
+         cl.insert( { a: 9 } );
          cl.createIndex( indexName, indexDef, false, true );
          throw "need throw error";
       }
@@ -136,7 +136,7 @@ function testMainSubClIndex( db )
    finally
    {
       commDropCL( db, COMMCSNAME, mainClName, false, false,
-                  "drop main collection end, " + funcName );
+         "drop main collection end, " + funcName );
       /*   drop main collection will drop sub collection when in same CS
       commDropCL( db, COMMCSNAME, subClName, false, false,
                   "drop sub collection end, " + funcName );
@@ -149,7 +149,7 @@ function testMainSubClIndex( db )
 *@Input: cl.createIndex( "indexName", { "a.$0.b": 1 })
 *@Expectation: 创建索引失败，报-6错误【Invalid Argument】
 ********************************************************************************/
-function testSplitClIndex( db )
+function testSplitClIndex ( db )
 {
    try
    {
@@ -158,14 +158,16 @@ function testSplitClIndex( db )
       var indexName = CHANGEDPREFIX + "_indexSplitCl";
       var domainName = CHANGEDPREFIX + "_domainIdxSplit";
       var indexDef = { "a.$0.b": 1 };
-      var optionObj = { "ShardingKey": {a:-1}, "ShardingType": "hash",
-                        "AutoSplit": true };
+      var optionObj = {
+         "ShardingKey": { a: -1 }, "ShardingType": "hash",
+         "AutoSplit": true
+      };
       commDropCL( db, COMMCSNAME, clName, true, true,
-                  "drop main collection begin, " + funcName );
+         "drop main collection begin, " + funcName );
       var cl = commCreateCLByOption( db, COMMCSNAME, clName, optionObj, true, false,
-                                     "failed create collection in the beginning" );
+         "failed create collection in the beginning" );
       commDropIndex( cl, indexName, true );
-      commDropDomain( db, domainName);
+      commDropDomain( db, domainName );
       try
       {
          var groups = commGetGroups( db );
@@ -174,8 +176,8 @@ function testSplitClIndex( db )
          {
             domainGroups[i] = groups[i][0].GroupName;
          }
-         println( "group: " + domainGroups);
-         commCreateDomain( db, domainName, domainGroups, {"AutoSplit": true});
+         println( "group: " + domainGroups );
+         commCreateDomain( db, domainName, domainGroups, { "AutoSplit": true } );
       }
       catch( e )
       {
@@ -185,7 +187,7 @@ function testSplitClIndex( db )
 
       try
       {
-         cl.insert({a:9});
+         cl.insert( { a: 9 } );
          cl.createIndex( indexName, indexDef, false, true );
          throw "need throw error";
       }
@@ -205,12 +207,12 @@ function testSplitClIndex( db )
    finally
    {
       commDropCL( db, COMMCSNAME, clName, false, false,
-                  "drop main collection end, " + funcName );
-      commDropDomain( db, domainName);
+         "drop main collection end, " + funcName );
+      commDropDomain( db, domainName );
    }
 }
 
-function main()
+function main ()
 {
    try
    {

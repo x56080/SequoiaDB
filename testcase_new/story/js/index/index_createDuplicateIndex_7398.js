@@ -4,49 +4,49 @@
                2016-3-16  yan Wu  init
 ******************************************************************************/
 var clName = CHANGEDPREFIX + "_duplicateIndex7398";
-function main( db )
+function main ( db )
 {
    // drop collection in the beginning
-   commDropCL( db, csName, clName, true, true, "drop collection in the beginning" ) ;
+   commDropCL( db, csName, clName, true, true, "drop collection in the beginning" );
 
    // create collection   
-   var options = {ShardingKey:{a:1,b:1}, ShardingType:"range",ReplSize:0,Compressed:true};
+   var options = { ShardingKey: { a: 1, b: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
    var idxCL = commCreateCLByOption( db, COMMCSNAME, clName, options, true, true );
 
    // create index
-   createIndex( idxCL, "testindex", {a:1}, false, false ) ;
-   
+   createIndex( idxCL, "testindex", { a: 1 }, false, false );
+
    // the index name duplicate
-   createIndex( idxCL, "testindex", {a:1}, false, false, -247) ;
-   
+   createIndex( idxCL, "testindex", { a: 1 }, false, false, -247 );
+
    // the index key duplicate
-   createIndex( idxCL, "testkey", {a:1}, false, false, -291) ;   
+   createIndex( idxCL, "testkey", { a: 1 }, false, false, -291 );
 
    // inspect the index
    try
    {
-      inspecIndex( idxCL, "testindex", "a", 1, false ) ;
+      inspecIndex( idxCL, "testindex", "a", 1, false );
    }
-   catch ( e )
+   catch( e )
    {
-      if ( "ErrIdxName" != e )
+      if( "ErrIdxName" != e )
       {
-         throw e ;
+         throw e;
       }
    }
 
    // drop collection in clean
    commDropCL( db, csName, clName, false, false,
-               "drop colleciton in the end" );
+      "drop colleciton in the end" );
 }
 
 //main entry
 try
 {
-   main( db ) ;
-   db.close() ;
+   main( db );
+   db.close();
 }
-catch ( e )
+catch( e )
 {
-   throw e ;
+   throw e;
 }

@@ -7,23 +7,23 @@ var domainName = CHANGEDPREFIX + "_domain"
 var csName = CHANGEDPREFIX + "_cs"
 
 main( db );
-function main( db )
+function main ( db )
 {
-	if (commIsStandalone(db)) return;
-	commDropCS(db, csName, true);
-	metaOprDropDomain(db, domainName, true, "Delete domain before test");
-	
+	if( commIsStandalone( db ) ) return;
+	commDropCS( db, csName, true );
+	metaOprDropDomain( db, domainName, true, "Delete domain before test" );
+
 	//create a domain that doesnot include any data groups
-	metaOprCreateDomain( db, domainName, [], false, "metaOpr.006: createDomain failed");
+	metaOprCreateDomain( db, domainName, [], false, "metaOpr.006: createDomain failed" );
 	try
 	{
-		db.createCS( csName, {Domain:domainName} );
+		db.createCS( csName, { Domain: domainName } );
 	}
-	catch ( e )
+	catch( e )
 	{
-		if ( e !== -262 )
+		if( e !== -262 )
 		{
-			println("createCS in empty domain success, which should fail");
+			println( "createCS in empty domain success, which should fail" );
 			throw e;
 		}
 	}

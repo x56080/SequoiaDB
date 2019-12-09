@@ -5,117 +5,117 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
       var csName = COMMCSNAME;
-      var clName = COMMCLNAME+"_5499" ;
+      var clName = COMMCLNAME + "_5499";
       var cl = readyCL( csName, clName );
-      
-      var imprtFile = tmpFileDir +"5499.csv";
+
+      var imprtFile = tmpFileDir + "5499.csv";
       readyData( imprtFile );
       importData( csName, clName, imprtFile );
-   	
+
       checkCLData( cl );
       cleanCL( csName, clName );
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function readyData( imprtFile )
+function readyData ( imprtFile )
 {
-   println("\n---Begin to ready data.");
-   
+   println( "\n---Begin to ready data." );
+
    var file = fileInit( imprtFile );
-   file.write( '1,D-M-Y,01-01-1900' +"\n"
-			    + '2,M-D-Y,12:31:9999' +"\n"
-			    + '3,D-Y-M,01*2014*01' );
-   var fileInfo = cmd.run( "cat "+ imprtFile );
-   println( imprtFile +"\n" + fileInfo );
+   file.write( '1,D-M-Y,01-01-1900' + "\n"
+      + '2,M-D-Y,12:31:9999' + "\n"
+      + '3,D-Y-M,01*2014*01' );
+   var fileInfo = cmd.run( "cat " + imprtFile );
+   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
-function importData( csName, clName, imprtFile )
+function importData ( csName, clName, imprtFile )
 {
-   println("\n---Begin to import data and check exec result.");
-   
-   var tmpRec = csName +"_"+ clName +"*.rec";
-   var datefmt = ["--datefmt DD-MM-YYYY", 
-                  "--datefmt MM:DD:YYYY", 
-                  "--datefmt DD*YYYY*MM"]
-   for( i=0; i<datefmt.length; i++ )
+   println( "\n---Begin to import data and check exec result." );
+
+   var tmpRec = csName + "_" + clName + "*.rec";
+   var datefmt = ["--datefmt DD-MM-YYYY",
+      "--datefmt MM:DD:YYYY",
+      "--datefmt DD*YYYY*MM"]
+   for( i = 0; i < datefmt.length; i++ )
    {
       //remove rec file
-      cmd.run( "rm -rf "+ tmpRec );
-      
+      cmd.run( "rm -rf " + tmpRec );
+
       //import operation
-      var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
-                        +' -c '+ csName +' -l '+ clName 
-                        +' --type csv --fields "num int,desc string,v1 date" '
-                        +datefmt[i]
-                        +' --file '+ imprtFile;
+      var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
+         + ' -c ' + csName + ' -l ' + clName
+         + ' --type csv --fields "num int,desc string,v1 date" '
+         + datefmt[i]
+         + ' --file ' + imprtFile;
       println( imprtOption );
       var rc = cmd.run( imprtOption );
       println( rc );
-      
+
       //check import results
-      var rcObj = rc.split("\n");
-      var expParseRecords    = "parsed records: 1";
-      var expParseFailure    = "parse failure: 2";
+      var rcObj = rc.split( "\n" );
+      var expParseRecords = "parsed records: 1";
+      var expParseFailure = "parse failure: 2";
       var expImportedRecords = "imported records: 1";
-      var actParseRecords    = rcObj[0];
-      var actParseFailure    = rcObj[1];
+      var actParseRecords = rcObj[0];
+      var actParseFailure = rcObj[1];
       var actImportedRecords = rcObj[4];
-      if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords 
-       || expImportedRecords !== actImportedRecords )
+      if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords
+         || expImportedRecords !== actImportedRecords )
       {
-         throw buildException( "importData", null, "[sdbimprt results]", 
-                           "["+ expParseRecords +", "+ expParseFailure +", "+ expImportedRecords +"]", 
-                           "["+ actParseRecords +", "+ actParseFailure +", "+ actImportedRecords +"]" );
+         throw buildException( "importData", null, "[sdbimprt results]",
+            "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+            "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
       }
-   
+
       //check failed records
-      var rec = cmd.run( "ls "+ tmpRec ).split("\n")[0];
-      var actFailedNum = cmd.run( "cat -v "+ rec ).split("\n").length - 1;
-      println( rec +"\nrecords number: "+ actFailedNum );
+      var rec = cmd.run( "ls " + tmpRec ).split( "\n" )[0];
+      var actFailedNum = cmd.run( "cat -v " + rec ).split( "\n" ).length - 1;
+      println( rec + "\nrecords number: " + actFailedNum );
       var expFailedNum = 2;
       if( expFailedNum !== actFailedNum )
       {
-         throw buildException( "checkCLdata", null, "[find]", 
-                           "[failedRecs:"+ expFailedNum +"]", 
-                           "[failedRecs:"+ actFailedNum +"]" );
+         throw buildException( "checkCLdata", null, "[find]",
+            "[failedRecs:" + expFailedNum + "]",
+            "[failedRecs:" + actFailedNum + "]" );
       }
    }
-   
+
    // clean tmpRec
    cmd.run( "rm -rf " + tmpRec );
 }
 
-function checkCLData( cl )
+function checkCLData ( cl )
 {
-   println("\n---Begin to check cl data.");
-   
-   var rc = cl.find({v1:{$type:1,$et:1,$et:9}},{_id:{$include:0}}).sort({num:1});
+   println( "\n---Begin to check cl data." );
+
+   var rc = cl.find( { v1: { $type: 1, $et: 1, $et: 9 } }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {
       recsArray.push( tmpRecs.toObj() );
    }
-   
-   var expCnt  = 3;  
+
+   var expCnt = 3;
    var expRecs = '[{"num":1,"desc":"D-M-Y","v1":{"$date":"1900-01-01"}},{"num":2,"desc":"M-D-Y","v1":{"$date":"9999-12-31"}},{"num":3,"desc":"D-Y-M","v1":{"$date":"2014-01-01"}}]';
-   var actCnt  = recsArray.length;
+   var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]", 
-                        "[cnt:"+ expCnt +", recs:"+ expRecs +"]", 
-                        "[cnt:"+ actCnt +", recs:"+ actRecs +"]" );
+      throw buildException( "checkCLdata", null, "[find]",
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+         "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
    //println( "cl records: "+ actRecs );
-   
+
 }

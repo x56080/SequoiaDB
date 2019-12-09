@@ -7,32 +7,32 @@
 
 main();
 
-function main()
+function main ()
 {
-   println("---begin test---")
+   println( "---begin test---" )
    //standalone can not split
    if( true === commIsStandalone( db ) )
    {
       println( "---run mode is standalone---" );
       return;
-   }     
+   }
    //less two groups,can not split
-   var allGroupName = commGetGroups( db, "getGroups", "", true, true, true);
+   var allGroupName = commGetGroups( db, "getGroups", "", true, true, true );
    if( 1 >= allGroupName.length )
    {
-      println("---least two groups---");
-      return ;
+      println( "---least two groups---" );
+      return;
    }
 
    //create cappedCL
-   println("---create cappedCL---")
+   println( "---create cappedCL---" )
    var clName = COMMCAPPEDCLNAME + "_11829";
    var srcGroup = allGroupName[0][0].GroupName;
    var tarGroup = allGroupName[1][0].GroupName;
-   var optionObj = { Capped:true, Size:1024, Max:10000000, AutoIndexId:false, Group:srcGroup };
+   var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false, Group: srcGroup };
    var dbcl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, optionObj, false, false, "create cappedCL" );
-   
-   println("---cappedCL split---")
+
+   println( "---cappedCL split---" )
    //hash split
    try
    {
@@ -49,7 +49,7 @@ function main()
    //range split
    try
    {
-      dbcl.split( srcGroup, tarGroup, { a: 10 },  { a: 10000 } );
+      dbcl.split( srcGroup, tarGroup, { a: 10 }, { a: 10000 } );
    }
    catch( e )
    {
@@ -70,8 +70,8 @@ function main()
          throw buildException( "cappedCL split", e, "cappedCL split", "-169", e );
       }
    }
-   
+
    //clean environment after test
-   commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end");
+   commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
    println( "---end the test---" );
 }

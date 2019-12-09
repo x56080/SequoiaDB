@@ -5,49 +5,49 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13521" ;
-var filelimits = [ "0K", "-3K" ] ;
-var filelimit ;
-var kb = 1024 ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13521";
+var filelimits = ["0K", "-3K"];
+var filelimit;
+var kb = 1024;
 
-main() ;
+main();
 
-function main()
+function main ()
 {
-   for( var i = 0;i < filelimits.length;i++ )
+   for( var i = 0; i < filelimits.length; i++ )
    {
-      filelimit = filelimits[i] ;
-      println( "test filelimit: " + filelimit ) ;
-      testFileLimit() ;
+      filelimit = filelimits[i];
+      println( "test filelimit: " + filelimit );
+      testFileLimit();
    }
 }
 
-function testFileLimit()
+function testFileLimit ()
 {
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   cl.insert( { a: 1 } ) ;
-  
-   testExprtCsv() ;
-   
-   commDropCL( db, csname, clname ) ;
+   var cl = commCreateCL( db, csname, clname, 0 );
+   cl.insert( { a: 1 } );
+
+   testExprtCsv();
+
+   commDropCL( db, csname, clname );
 }
 
-function testExprtCsv()
+function testExprtCsv ()
 {
-   var csvfile = workDir + "sdbexprt13521.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13521.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME + 
-                 " -c " + csname + 
-                 " -l " + clname +
-                 " --file " + csvfile + 
-                 " --filelimit " + filelimit +
-                 " --type csv" +
-                 " --fields a" ;
-   testRunCommand( command, 127 ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --filelimit " + filelimit +
+      " --type csv" +
+      " --fields a";
+   testRunCommand( command, 127 );
+
+   cmd.run( "rm -rf " + csvfile );
 }

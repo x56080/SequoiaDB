@@ -3,73 +3,73 @@
 *@Modify list:
 *              2015-5-8  xiaojun Hu   Init
 ******************************************************************************/
-function checkResult(real, expect)
+function checkResult ( real, expect )
 {
-   if ( typeof(real) !== "object" && typeof(expect) !== "object" )
+   if( typeof ( real ) !== "object" && typeof ( expect ) !== "object" )
    {
-      return false ;
+      return false;
    }
-   
-   for (var key in expect)
+
+   for( var key in expect )
    {
-      if ( undefined === typeof( real[key] ) )
+      if( undefined === typeof ( real[key] ) )
       {
-         return false ;
+         return false;
       }
-      
-      if ( real[key] != expect[key] )
+
+      if( real[key] != expect[key] )
       {
-         println( "<"+ key +"> expect: " + expect[key] + ", actual: " );
-         return false ;
+         println( "<" + key + "> expect: " + expect[key] + ", actual: " );
+         return false;
       }
    }
-   
-   if ( undefined !== typeof( real["Indexes"] ) && 
-        undefined !== typeof( real["TotalIndexPages"] ) )
+
+   if( undefined !== typeof ( real["Indexes"] ) &&
+      undefined !== typeof ( real["TotalIndexPages"] ) )
    {
-      return real.Indexes * 2 === real.TotalIndexPages ;
+      return real.Indexes * 2 === real.TotalIndexPages;
    }
-   
-   return true ;     
+
+   return true;
 }
 
-function getCLSnapShotInfo( db, tableName )
+function getCLSnapShotInfo ( db, tableName )
 {
-   var snapShotInfoSet = [] ;
+   var snapShotInfoSet = [];
    try
    {
-      var snpDtl = db.snapshot(4,{Name:tableName}).current().toObj().Details ;
+      var snpDtl = db.snapshot( 4, { Name: tableName } ).current().toObj().Details;
       for( var i in snpDtl )
       {
-         var dtlOneRg = snpDtl[i];         
-         if ( "" === dtlOneRg.GroupName )
+         var dtlOneRg = snpDtl[i];
+         if( "" === dtlOneRg.GroupName )
          {
-            snapShotInfoSet.push( dtlOneRg ) ;
-            println("exit ............")
-            break ; 
+            snapShotInfoSet.push( dtlOneRg );
+            println( "exit ............" )
+            break;
          }
-         
+
          var rgName = dtlOneRg.GroupName;
-         var materNode = db.getRG(rgName).getMaster();
-         
+         var materNode = db.getRG( rgName ).getMaster();
+
          var dtlAllNode = dtlOneRg.Group;
          for( var j in dtlAllNode )
          {
             var dtlOneNode = dtlAllNode[j];
             var nodeName = dtlOneNode.NodeName;
             if( nodeName == materNode )   // use '==' instand of '===', because type is diffent
-            { 
-               snapShotInfoSet.push( dtlOneNode ) ;
+            {
+               snapShotInfoSet.push( dtlOneNode );
                break;
             }
          }
-      }     
+      }
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException( "getSnapshot(4,{Name:" + tableName + "})", e ) ; 
+      throw buildException( "getSnapshot(4,{Name:" + tableName + "})", e );
    }
-   return snapShotInfoSet ;
+   return snapShotInfoSet;
 }
 
 /*******************************************************************************
@@ -82,22 +82,22 @@ function getCLSnapShotInfo( db, tableName )
 *@Return: no return
 *@modify:   TingYU 2016-06-06
 ********************************************************************************/
-function truncateVerify( db, tableName, obj )
+function truncateVerify ( db, tableName, obj )
 {
-    if ( undefined === obj )
-    {
-       var obj = {TotalRecords:0, TotalDataPages:0, TotalLobPages:0};
-    }
-    var snapShotInfoSet = getCLSnapShotInfo( db, tableName );   
-    for (var i = 0; i < snapShotInfoSet.length; ++i)
-    {  
-       var snapshotOfCLPerNode = snapShotInfoSet[i];
-       if ( !checkResult( snapshotOfCLPerNode, obj ) )
-       {
-          commPrint( snapshotOfCLPerNode ) ;
-          throw buildException( "truncateVerify", "compare error" ); 
-       } 
-    }
+   if( undefined === obj )
+   {
+      var obj = { TotalRecords: 0, TotalDataPages: 0, TotalLobPages: 0 };
+   }
+   var snapShotInfoSet = getCLSnapShotInfo( db, tableName );
+   for( var i = 0; i < snapShotInfoSet.length; ++i )
+   {
+      var snapshotOfCLPerNode = snapShotInfoSet[i];
+      if( !checkResult( snapshotOfCLPerNode, obj ) )
+      {
+         commPrint( snapshotOfCLPerNode );
+         throw buildException( "truncateVerify", "compare error" );
+      }
+   }
 }
 
 /*******************************************************************************
@@ -109,55 +109,57 @@ function truncateVerify( db, tableName, obj )
 *   record: 自己构造的记录，为json对象. 在写入进加入_id字段
 *@Return: no return
 ********************************************************************************/
-function truncateInsertRecord( cl, recordNumber, recordSize, recordPass )
+function truncateInsertRecord ( cl, recordNumber, recordSize, recordPass )
 {
    var funcName = "truncateInsertRecord";
-   if( undefined == recordNumber ){ recordNumber = 1; }
+   if( undefined == recordNumber ) { recordNumber = 1; }
    try
    {
-      if( undefined == cl ){ throw "no collection handle"; }
+      if( undefined == cl ) { throw "no collection handle"; }
       var recs = [];
-      for( var i = 0 ; i < recordNumber ; ++i )
+      for( var i = 0; i < recordNumber; ++i )
       {
          if( undefined == recordSize && undefined == recordPass )
          {
             // Integer Random
-            var integerNumber = Math.random()*( 2147483647 + 2147483648 ) - 2147483648 ;
+            var integerNumber = Math.random() * ( 2147483647 + 2147483648 ) - 2147483648;
             // String Random
             var strLength = 10;
             var source = "abcdefghijklmopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-                         "`1234567890-=~!@#$%^&*()_+{}[]\\|;':\",./<>?";
+               "`1234567890-=~!@#$%^&*()_+{}[]\\|;':\",./<>?";
             var string = "";
-            for(var j = 0; j < strLength ; j++)
+            for( var j = 0; j < strLength; j++ )
             {
-               string += source.charAt(Math.ceil(Math.random()*1000)%source.length);
+               string += source.charAt( Math.ceil( Math.random() * 1000 ) % source.length );
             }
             // Record
-            var record = { "id": i,  "integerKey": integerNumber,
-                        "longIntgerKey": 72036854775807,
-                        "floatPointKey": 1.7E+308, "stringKey": string + i ,
-                        "objectIDKey": { "$oid" : "123abcd00ef12358902300ef" },
-                        "boolKey": true, "dateKey": SdbDate(),
-                        "timestampKey": Timestamp(),
-                        "binaryKey": { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" },
-                        "regexKey":{ "$regex": "^张", "$options": "i" },
-                        "subObjKey": { "subobj" : string },
-                        "arrayKey": [ "abc", 0, 891, {"time": "number"}, string ],
-                        "nullKey": null  } ;
-            recs.push(record);                        
+            var record = {
+               "id": i, "integerKey": integerNumber,
+               "longIntgerKey": 72036854775807,
+               "floatPointKey": 1.7E+308, "stringKey": string + i,
+               "objectIDKey": { "$oid": "123abcd00ef12358902300ef" },
+               "boolKey": true, "dateKey": SdbDate(),
+               "timestampKey": Timestamp(),
+               "binaryKey": { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" },
+               "regexKey": { "$regex": "^张", "$options": "i" },
+               "subObjKey": { "subobj": string },
+               "arrayKey": ["abc", 0, 891, { "time": "number" }, string],
+               "nullKey": null
+            };
+            recs.push( record );
          }
          else
          {
-            var record = {"ID_Default": i};   // 17Byte
+            var record = { "ID_Default": i };   // 17Byte
             if( undefined == recordPass )
             {
-               var size = recordSize - 17 ;
+               var size = recordSize - 17;
                var source = "abcdefghijklmopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-                            "`1234567890-=~!@#$%^&*()_+{}[]\\|;':\",./<>?";
+                  "`1234567890-=~!@#$%^&*()_+{}[]\\|;':\",./<>?";
                var string = "";
-               for(var j = 0; j < size; j++)
+               for( var j = 0; j < size; j++ )
                {
-                  string += source.charAt(Math.ceil(Math.random()*1000)%source.length);
+                  string += source.charAt( Math.ceil( Math.random() * 1000 ) % source.length );
                }
                record["description"] = string;
             }
@@ -171,7 +173,7 @@ function truncateInsertRecord( cl, recordNumber, recordSize, recordPass )
             recs.push( record );
          }
       }
-      cl.insert( recs );      
+      cl.insert( recs );
       if( recordNumber != cl.count() && undefined == recordPass )
       {
          throw "insert error number record";
@@ -180,7 +182,7 @@ function truncateInsertRecord( cl, recordNumber, recordSize, recordPass )
    catch( e )
    {
       throw buildException( funcName, e, "cl.insert(<record>)",
-                             recordNumber, cl.count() )
+         recordNumber, cl.count() )
    }
 }
 
@@ -192,29 +194,29 @@ function truncateInsertRecord( cl, recordNumber, recordSize, recordPass )
 *   lobNumber: 写入的LOB记录的数量
 *@Return: 返回记录OID的数组.
 ********************************************************************************/
-function truncatePutLob( cl, lobSize, lobNumber )
+function truncatePutLob ( cl, lobSize, lobNumber )
 {
-   if( undefined == lobSize ){ lobSize = 1024; }
-   if( undefined == lobNumber ){ lobNumber = 1; }
+   if( undefined == lobSize ) { lobSize = 1024; }
+   if( undefined == lobNumber ) { lobNumber = 1; }
    var funcName = "truncatePutLob";
    var lobIDs = new Array();
    try
    {
-      for( var n = 0; n < lobNumber ; ++n )
+      for( var n = 0; n < lobNumber; ++n )
       {
          var fileName = "tempLobFile";
          // file
          var length = lobSize || 32; // if (lobSize == 0) length = 32;
          var source = "abcdefghijklmopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-                      "`1234567890-=~!@#$%^&*()_+{}[]\\|;':\",./<>?";
+            "`1234567890-=~!@#$%^&*()_+{}[]\\|;':\",./<>?";
          var string = "";
-         for(var i = 0; i < length; i++)
+         for( var i = 0; i < length; i++ )
          {
-            string += source.charAt(Math.ceil(Math.random()*1000)%source.length);
+            string += source.charAt( Math.ceil( Math.random() * 1000 ) % source.length );
          }
          var file = new File( fileName );
          file.write( string );
-         var lobID = cl.putLob( fileName ) ;
+         var lobID = cl.putLob( fileName );
          lobIDs.push( lobID );
          File.remove( fileName );
       }
@@ -224,7 +226,7 @@ function truncatePutLob( cl, lobSize, lobNumber )
       {
          println( listLobs );
          println( "expect lob number: " + lobNumber +
-                  ", actual: " + listLobs.length );
+            ", actual: " + listLobs.length );
          throw "error lob numbers before truncate";
       }
       return lobIDs;

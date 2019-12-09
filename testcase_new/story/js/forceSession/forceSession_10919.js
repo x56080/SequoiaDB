@@ -24,39 +24,39 @@
 
 main();
 
-function main() 
+function main () 
 {
-   if( commIsStandalone( db ) ) 
-      return ;
-   
-   var groups = getDataGroups( db ) ;
-   var groupName = groups[0] ;
-   var nodes = getGroupNodes( db, groupName ) ;
-   var nodeName = nodes[0] ;
-   var nodeID = new InfoByNodeName( nodeName ).getNodeIdByNodeName() ;
-   var hostName = nodeName.split( ":" )[0] ;
-   var svcName = nodeName.split( ":" )[1] ;
-   
-   var allNodes = [] ;
-   for( var i = 0;i < groups.length;i++ )
+   if( commIsStandalone( db ) )
+      return;
+
+   var groups = getDataGroups( db );
+   var groupName = groups[0];
+   var nodes = getGroupNodes( db, groupName );
+   var nodeName = nodes[0];
+   var nodeID = new InfoByNodeName( nodeName ).getNodeIdByNodeName();
+   var hostName = nodeName.split( ":" )[0];
+   var svcName = nodeName.split( ":" )[1];
+
+   var allNodes = [];
+   for( var i = 0; i < groups.length; i++ )
    {
-      var dataNodes = getGroupNodes( db, groups[i] ) ;
-      allNodes = allNodes.concat( dataNodes ) ;
-     }
-   var cataNodes = getGroupNodes( db, "SYSCatalogGroup" ) ;
-   allNodes = allNodes.concat( cataNodes ) ;
-   var coordNodes = getGroupNodes( db, "SYSCoord" ) ;
-   allNodes = allNodes.concat( coordNodes ) ;
+      var dataNodes = getGroupNodes( db, groups[i] );
+      allNodes = allNodes.concat( dataNodes );
+   }
+   var cataNodes = getGroupNodes( db, "SYSCatalogGroup" );
+   allNodes = allNodes.concat( cataNodes );
+   var coordNodes = getGroupNodes( db, "SYSCoord" );
+   allNodes = allNodes.concat( coordNodes );
    // println( allNodes ) ; 
 
-   
-   var dataDb = new Sdb( hostName, svcName ) ;
-   var sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
-   
+
+   var dataDb = new Sdb( hostName, svcName );
+   var sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"];
+
    // 3.a forceSession with nodeID
-   var option = { NodeID: nodeID } ;
-   testForceSession( db, dataDb, sessionID, option ) ;
-   
+   var option = { NodeID: nodeID };
+   testForceSession( db, dataDb, sessionID, option );
+
    // 3.b forceSession with hostName
    /* 
    // don't test this because it may force other session of other nodes in the same host
@@ -67,7 +67,7 @@ function main()
    ( errno === -264 ) ? testForceSession( db, dataDb, sessionID, option, errno ) 
                       : testForceSession( db, dataDb, sessionID, option ) ;
    */
-   
+
    // 3.c forceSession with svcname
    // don't test this because it may force other session of other nodes with the same svcname
    /*
@@ -78,74 +78,74 @@ function main()
    ( errno === -264 ) ? testForceSession( db, dataDb, sessionID, option, errno ) 
                       : testForceSession( db, dataDb, sessionID, option ) ;
    */
-   
+
    // 3.d forceSession with nodeID hostName
-   dataDb = new Sdb( hostName, svcName ) ;
-   sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
-   option = { NodeID: nodeID, HostName: hostName } ;
-   testForceSession( db, dataDb, sessionID, option ) ;
+   dataDb = new Sdb( hostName, svcName );
+   sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"];
+   option = { NodeID: nodeID, HostName: hostName };
+   testForceSession( db, dataDb, sessionID, option );
 
    // 3.e forceSession with nodeID hostName svcName
-   dataDb = new Sdb( hostName, svcName ) ;
-   sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"] ;
-   option = { NodeID: nodeID, HostName: hostName, svname: svcName } ;
-   testForceSession( db, dataDb, sessionID, option ) ;
+   dataDb = new Sdb( hostName, svcName );
+   sessionID = dataDb.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj()["SessionID"];
+   option = { NodeID: nodeID, HostName: hostName, svname: svcName };
+   testForceSession( db, dataDb, sessionID, option );
 }
 
-function testForceSession( db, dataDb, sessionID, option, errno )
+function testForceSession ( db, dataDb, sessionID, option, errno )
 {
    try 
    {
-      db.forceSession( sessionID, option ) ;
+      db.forceSession( sessionID, option );
       if( errno !== undefined )
-         throw 0 ;
-   } 
+         throw 0;
+   }
    catch( e ) 
    {
-      var msg = "forceSession " + sessionID + " with option " + JSON.stringify( option ) ;
+      var msg = "forceSession " + sessionID + " with option " + JSON.stringify( option );
       if( errno === undefined )
       {
-         throw buildException( "testForceSession", e, msg, 0, e ) ;
+         throw buildException( "testForceSession", e, msg, 0, e );
       }
       else if( e !== errno )
       {
-         throw buildException( "testForceSession", e, msg, errno, e ) ;
+         throw buildException( "testForceSession", e, msg, errno, e );
       }
    }
    try 
    {
-      dataDb.list( SDB_LIST_SESSIONS_CURRENT ) ;
-      throw 0 ;
-   } 
+      dataDb.list( SDB_LIST_SESSIONS_CURRENT );
+      throw 0;
+   }
    catch( e ) 
    {
       if( e !== -16 && e !== -15 )
       {
-         throw buildException( "testForceSession", e, "check session forced", "-15 -16", e ) ;
+         throw buildException( "testForceSession", e, "check session forced", "-15 -16", e );
       }
    }
 }
 
-function isGlobalSession( nodes, name, sessionID )
+function isGlobalSession ( nodes, name, sessionID )
 {
-   var res = true ;
-   for( var i = 0;i < nodes.length;i++ )
+   var res = true;
+   for( var i = 0; i < nodes.length; i++ )
    {
       if( nodes[i].indexOf( name ) !== -1 )
       {
-         var host = nodes[i].split( ":" )[0] ;
-         var svc = nodes[i].split( ":" )[1] ;
-         var tmpDb = new Sdb( host, svc ) ;
-         var arr = tmpDb.list( SDB_LIST_SESSIONS, { SessionID: sessionID } ).toArray() ;
-         tmpDb.close() ;
-         println( nodes[i] ) ;
-         println( arr ) ;
+         var host = nodes[i].split( ":" )[0];
+         var svc = nodes[i].split( ":" )[1];
+         var tmpDb = new Sdb( host, svc );
+         var arr = tmpDb.list( SDB_LIST_SESSIONS, { SessionID: sessionID } ).toArray();
+         tmpDb.close();
+         println( nodes[i] );
+         println( arr );
          if( arr.length === 0 )
          {
-            res = false ;
-            break ;
+            res = false;
+            break;
          }
       }
    }
-   return res ;
+   return res;
 }

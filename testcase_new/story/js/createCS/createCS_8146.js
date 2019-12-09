@@ -1,27 +1,27 @@
 // create cs.
 // unnormal_1 case.
-TESTCSNAMGE = CHANGEDPREFIX + "foo"; 
+TESTCSNAMGE = CHANGEDPREFIX + "foo";
 
-TESTCLNAMGE = CHANGEDPREFIX + "bar"; 
-var res = false; 
+TESTCLNAMGE = CHANGEDPREFIX + "bar";
+var res = false;
 try
 {
-   db.createCS( "SYS" + TESTCSNAMGE ); 
+   db.createCS( "SYS" + TESTCSNAMGE );
 }
 catch( e )
 {
    if( e == -6 )
    {
-      res = true; 
+      res = true;
    }
 }
 if( !res )
 {
-   throw -1; 
+   throw -1;
 }
 try
 {
-   db.dropCS( "SYS" + TESTCSNAMGE ); 
+   db.dropCS( "SYS" + TESTCSNAMGE );
 }
 catch( e )
 {

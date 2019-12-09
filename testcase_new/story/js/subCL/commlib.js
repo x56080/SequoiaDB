@@ -6,10 +6,10 @@
 ***************************************************************************** */
 
 //2015-12-19 Ting YU modify
-function getSourceGroupName_alone( csName , clName )
+function getSourceGroupName_alone ( csName, clName )
 {
    var clFullName = csName + "." + clName;
-   var clInfo = db.snapshot( 8, {Name: clFullName} );
+   var clInfo = db.snapshot( 8, { Name: clFullName } );
    while( clInfo.next() )
    {
       var clInfoObj = clInfo.current().toObj();
@@ -17,56 +17,56 @@ function getSourceGroupName_alone( csName , clName )
    }
    return GroupName;
 }
-function getOtherDataGroups( SourceGroupName )
+function getOtherDataGroups ( SourceGroupName )
 {
-	var allGroups =db.listReplicaGroups().toArray() ;
-	var RoleGroupNumbers = 0 ;
-	var Groups = [];
-	for ( var i = 0; i<allGroups.length; i++ )
-	{
-		var eval_node=eval("("+allGroups[i]+")");
-		if(eval_node["Role"]==0 && eval_node["GroupID"] >= 1000 )
-		{
-			if( eval_node["GroupName"] != SourceGroupName )
-			{
-				Groups.push( eval_node["GroupName"] );
-			}
-		}
-	}
-	return Groups;
+   var allGroups = db.listReplicaGroups().toArray();
+   var RoleGroupNumbers = 0;
+   var Groups = [];
+   for( var i = 0; i < allGroups.length; i++ )
+   {
+      var eval_node = eval( "(" + allGroups[i] + ")" );
+      if( eval_node["Role"] == 0 && eval_node["GroupID"] >= 1000 )
+      {
+         if( eval_node["GroupName"] != SourceGroupName )
+         {
+            Groups.push( eval_node["GroupName"] );
+         }
+      }
+   }
+   return Groups;
 }
 
 //2015-12-19 Ting YU modify
-function getPartition( csName ,clName )
+function getPartition ( csName, clName )
 {
    var clFullName = csName + "." + clName;
-   var clInfo = db.snapshot( 8, {Name: clFullName} );
+   var clInfo = db.snapshot( 8, { Name: clFullName } );
    while( clInfo.next() )
    {
       var clInfoObj = clInfo.current().toObj();
       var Partition = clInfoObj.Partition;
    }
-	return Partition ;
+   return Partition;
 }
-function subCL_split_hash( subcl, SourceGroupName, OtherDataGroups, Partition)
+function subCL_split_hash ( subcl, SourceGroupName, OtherDataGroups, Partition )
 {
-	var Partition_PerGroup = Partition / ( OtherDataGroups.length + 1 ) ;
-	for( var i = 0; i < OtherDataGroups.length; ++i )
-	{
-		var start_Partition = Math.round( Partition_PerGroup * i ) ;
-		var end_Partition = Math.round( Partition_PerGroup * ( i + 1 ) ) ;
-		println( start_Partition + '~~~~~~~~~~~~~~~~' + end_Partition ) ;
-		try
-		{
-			subcl.split( SourceGroupName, OtherDataGroups[i], {Partition:start_Partition}, {Partition:end_Partition} ) ;
-		}
-		catch( e )
-		{
-			println( "can't split : " + e ) ;
-			return -1
-		}
-	}
-	return 0 ;
+   var Partition_PerGroup = Partition / ( OtherDataGroups.length + 1 );
+   for( var i = 0; i < OtherDataGroups.length; ++i )
+   {
+      var start_Partition = Math.round( Partition_PerGroup * i );
+      var end_Partition = Math.round( Partition_PerGroup * ( i + 1 ) );
+      println( start_Partition + '~~~~~~~~~~~~~~~~' + end_Partition );
+      try
+      {
+         subcl.split( SourceGroupName, OtherDataGroups[i], { Partition: start_Partition }, { Partition: end_Partition } );
+      }
+      catch( e )
+      {
+         println( "can't split : " + e );
+         return -1
+      }
+   }
+   return 0;
 }
 
 /************************************
@@ -76,67 +76,76 @@ function subCL_split_hash( subcl, SourceGroupName, OtherDataGroups, Partition)
 *@author:      zhaoyu
 *@createDate:  2015.5.20
 **************************************/
-function checkRec( rc, expectRecordNum, sortOptions )
-{			
-	//get actual records to array
-	var actRecs = [];
+function checkRec ( rc, expectRecordNum, sortOptions )
+{
+   //get actual records to array
+   var actRecs = [];
    while( rc.next() )
    {
-		actRecs.push( rc.current().toObj() );
+      actRecs.push( rc.current().toObj() );
    }
    //check count
-	if( actRecs.length !== expectRecordNum )
+   if( actRecs.length !== expectRecordNum )
    {
-   	println("\nactual recs in cl= "+ JSON.stringify(actRecs));
-   	throw buildException("check count", null, "", actRecs.length, expectRecordNum);
+      println( "\nactual recs in cl= " + JSON.stringify( actRecs ) );
+      throw buildException( "check count", null, "", actRecs.length, expectRecordNum );
    }
-   
+
    //check every records every fields,expRecs as compare source
    var actRecCurrent = actRecs[0];
-   for( var i = 1; i< actRecs.length; i++ )
+   for( var i = 1; i < actRecs.length; i++ )
    {
-   	var actRecNext = actRecs[i];
-   	if(compareJSONObj(actRecCurrent, actRecNext, sortOptions) < 0)
-   	{
-   	   println("\nerror occurs in " + (parseInt(i) + 1) + "th record");
-	   	println("\ncurrent record= "+JSON.stringify(actRecs[i])+"\n\nnext record= "+JSON.stringify(actRecs[i+1]));
-	   	throw buildException("checkRec()", "rec ERROR");  
-   	}
-   	actRecCurrent = actRecNext;
+      var actRecNext = actRecs[i];
+      if( compareJSONObj( actRecCurrent, actRecNext, sortOptions ) < 0 )
+      {
+         println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record" );
+         println( "\ncurrent record= " + JSON.stringify( actRecs[i] ) + "\n\nnext record= " + JSON.stringify( actRecs[i + 1] ) );
+         throw buildException( "checkRec()", "rec ERROR" );
+      }
+      actRecCurrent = actRecNext;
    }
-   println( "--check data success" ) ;	
+   println( "--check data success" );
 }
 
 // compareJSONObj(compareObj,toCompareObj,{a:1,b:-1,c:1})
-function compareJSONObj(objA, objB, options) {
-	var optionKeys = [];
-	for (var key in options) {
-		optionKeys.push(key);
-	}
-	for (var i = 0; i < optionKeys.length; i++) {
-		var sortFlag = parseInt(eval("options."+optionKeys[i]));
-		var aValue = eval("objA."+optionKeys[i]);
-		var bValue = eval("objB."+optionKeys[i]);
-		if (aValue === undefined)  aValue = bValue - 1;
-		if (bValue === undefined)  bValue = aValue - 1;
-		if (aValue === undefined && bValue === undefined) { aValue = 0; bValue = 0; }
-		if (sortFlag === 1) {
-			//正序
-			if (aValue < bValue) {
-				return 1;
-			} else if(aValue > bValue) {
-				return -1;
-			}
-		} else {
-			//逆序
-			if (aValue > bValue) {
-				return 1;
-			} else if(aValue < bValue) {
-				return -1;
-			}			
-		}
-	}
-	return 0;
+function compareJSONObj ( objA, objB, options )
+{
+   var optionKeys = [];
+   for( var key in options )
+   {
+      optionKeys.push( key );
+   }
+   for( var i = 0; i < optionKeys.length; i++ )
+   {
+      var sortFlag = parseInt( eval( "options." + optionKeys[i] ) );
+      var aValue = eval( "objA." + optionKeys[i] );
+      var bValue = eval( "objB." + optionKeys[i] );
+      if( aValue === undefined ) aValue = bValue - 1;
+      if( bValue === undefined ) bValue = aValue - 1;
+      if( aValue === undefined && bValue === undefined ) { aValue = 0; bValue = 0; }
+      if( sortFlag === 1 )
+      {
+         //正序
+         if( aValue < bValue )
+         {
+            return 1;
+         } else if( aValue > bValue )
+         {
+            return -1;
+         }
+      } else
+      {
+         //逆序
+         if( aValue > bValue )
+         {
+            return 1;
+         } else if( aValue < bValue )
+         {
+            return -1;
+         }
+      }
+   }
+   return 0;
 }
 
 /************************************
@@ -145,41 +154,41 @@ function compareJSONObj(objA, objB, options) {
 *@author:      wuyan
 *@createdate:  2015.10.14
 **************************************/
-function getSplitGroups(csName,clName,targetGrMaxNums)
+function getSplitGroups ( csName, clName, targetGrMaxNums )
 {
-   var allGroupInfo =  getGroupName(db, true);    
-   var srcGroupName = getSrcGroup(csName, clName );
+   var allGroupInfo = getGroupName( db, true );
+   var srcGroupName = getSrcGroup( csName, clName );
    var splitGroups = new Array();
-   if( targetGrMaxNums >= allGroupInfo.length-1 ) 
+   if( targetGrMaxNums >= allGroupInfo.length - 1 ) 
    {
-      targetGrMaxNums = allGroupInfo.length-1;      
+      targetGrMaxNums = allGroupInfo.length - 1;
    }
-   var index =1;
-   
-   for( var i = 0 ; i != allGroupInfo.length ; ++i )
+   var index = 1;
+
+   for( var i = 0; i != allGroupInfo.length; ++i )
    {
       if( srcGroupName == allGroupInfo[i][0] )
       {
          splitGroups[0] = new Object();
-			splitGroups[0].GroupName = allGroupInfo[i][0];
-			splitGroups[0].HostName = allGroupInfo[i][1];
-			splitGroups[0].svcname = allGroupInfo[i][2];	
+         splitGroups[0].GroupName = allGroupInfo[i][0];
+         splitGroups[0].HostName = allGroupInfo[i][1];
+         splitGroups[0].svcname = allGroupInfo[i][2];
       }
       else 
       {
-         if (index > targetGrMaxNums)
+         if( index > targetGrMaxNums )
          {
             continue;
-         }      
+         }
          splitGroups[index] = new Object();
-			splitGroups[index].GroupName = allGroupInfo[i][0];
-			splitGroups[index].HostName = allGroupInfo[i][1];
-			splitGroups[index].svcname = allGroupInfo[i][2];			          
-         index++;                  
+         splitGroups[index].GroupName = allGroupInfo[i][0];
+         splitGroups[index].HostName = allGroupInfo[i][1];
+         splitGroups[index].svcname = allGroupInfo[i][2];
+         index++;
       }
-   }   
+   }
    return splitGroups;
-   
+
 }
 
 /************************************
@@ -189,76 +198,76 @@ function getSplitGroups(csName,clName,targetGrMaxNums)
 *@author:      wuyan
 *@createdate:  2015.10.14
 **************************************/
-function ClSplitOneTimes( csName, clName, startCondition, endCondition )
+function ClSplitOneTimes ( csName, clName, startCondition, endCondition )
 {
-	try
-	{
-	   var targetGroupNums = 1;
-      var groupsInfo = getSplitGroups(csName,clName,targetGroupNums);
-      var srcGrName = groupsInfo[0].GroupName;    
+   try
+   {
+      var targetGroupNums = 1;
+      var groupsInfo = getSplitGroups( csName, clName, targetGroupNums );
+      var srcGrName = groupsInfo[0].GroupName;
       var tarGrName = groupsInfo[1].GroupName;
-      println(csName+"."+clName+"'s target group: "+tarGrName);
-      var CL = db.getCS(csName).getCL(clName);
-      println("--begin split") 
-		if ( typeof(startCondition) === "number" ) //percentage split
-		{
-			CL.split( srcGrName, tarGrName, startCondition );
-		}
-		else if ( typeof(startCondition) === "object" && endCondition === undefined ) //range split without end condition
-		{
-			CL.split( srcGrName, tarGrName, startCondition );
-			println("startCondition="+startCondition)
-		}
-		else if ( typeof(startCondition) === "object" && typeof(endCondition) === "object" ) //range split with end condition
-		{
-			CL.split( srcGrName, tarGrName, startCondition, endCondition );
-		}	
-		println("--end split")
-	}
-	catch ( e )
-	{
-		throw e;
-	}
-	return groupsInfo;
+      println( csName + "." + clName + "'s target group: " + tarGrName );
+      var CL = db.getCS( csName ).getCL( clName );
+      println( "--begin split" )
+      if( typeof ( startCondition ) === "number" ) //percentage split
+      {
+         CL.split( srcGrName, tarGrName, startCondition );
+      }
+      else if( typeof ( startCondition ) === "object" && endCondition === undefined ) //range split without end condition
+      {
+         CL.split( srcGrName, tarGrName, startCondition );
+         println( "startCondition=" + startCondition )
+      }
+      else if( typeof ( startCondition ) === "object" && typeof ( endCondition ) === "object" ) //range split with end condition
+      {
+         CL.split( srcGrName, tarGrName, startCondition, endCondition );
+      }
+      println( "--end split" )
+   }
+   catch( e )
+   {
+      throw e;
+   }
+   return groupsInfo;
 }
 
 /************************************
 *@Description: get Group name and Service name
 *@author：wuyan 2015/10/20
 **************************************/
-function getGroupName(db, mustBePrimary)
+function getGroupName ( db, mustBePrimary )
 {
-   var RGname = null ;
+   var RGname = null;
    try
    {
       RGname = db.listReplicaGroups().toArray();
    }
-   catch (e)
+   catch( e )
    {
       throw e;
    }
    var j = 0;
    var arrGroupName = Array();
-   for (var i=1 ; i != RGname.length ; ++i )
+   for( var i = 1; i != RGname.length; ++i )
    {
-      var eRGname = eval('('+RGname[i]+')') ;   
+      var eRGname = eval( '(' + RGname[i] + ')' );
       if( 1000 <= eRGname["GroupID"] )
       {
          arrGroupName[j] = Array();
-         var primaryNodeID = eRGname["PrimaryNode"] ;
-         var groups = eRGname["Group"] ;
-         for ( var m = 0; m < groups.length; m++ )
-         {  
-            if ( true == mustBePrimary )
+         var primaryNodeID = eRGname["PrimaryNode"];
+         var groups = eRGname["Group"];
+         for( var m = 0; m < groups.length; m++ )
+         {
+            if( true == mustBePrimary )
             {
-               var nodeID = groups[m]["NodeID"] ;
-               if ( primaryNodeID != nodeID )
-                  continue ;
-            }               
-            arrGroupName[j].push(eRGname["GroupName"]) ;
-            arrGroupName[j].push(groups[m]["HostName"]) ;
-            arrGroupName[j].push(groups[m]["Service"][0]["Name"]) ;
-            break ;
+               var nodeID = groups[m]["NodeID"];
+               if( primaryNodeID != nodeID )
+                  continue;
+            }
+            arrGroupName[j].push( eRGname["GroupName"] );
+            arrGroupName[j].push( groups[m]["HostName"] );
+            arrGroupName[j].push( groups[m]["Service"][0]["Name"] );
+            break;
          }
          ++j;
       }
@@ -271,37 +280,37 @@ function getGroupName(db, mustBePrimary)
 *@author:      wuyan
 *@createdate:  2015.10.14
 **************************************/
-function getSrcGroup( csName, clName )
+function getSrcGroup ( csName, clName )
 {
    try
    {
       if( undefined == csName || undefined == clName )
       {
-         println( "cs name: " + csName + ", clName: " + clName ) ;
-         throw "cs or cl name is undefined" ;
+         println( "cs name: " + csName + ", clName: " + clName );
+         throw "cs or cl name is undefined";
       }
-      var tableName = csName + "." + clName ;
-      var cataMaster = db.getCatalogRG().getMaster().toString().split(":");
-      var catadb = new Sdb( cataMaster[0],cataMaster[1] ) ;
-      var Group = catadb.SYSCAT.SYSCOLLECTIONS.find().toArray() ;
-      var srcGroupName ;
-      for( var i = 0 ; i < Group.length ; ++i )
+      var tableName = csName + "." + clName;
+      var cataMaster = db.getCatalogRG().getMaster().toString().split( ":" );
+      var catadb = new Sdb( cataMaster[0], cataMaster[1] );
+      var Group = catadb.SYSCAT.SYSCOLLECTIONS.find().toArray();
+      var srcGroupName;
+      for( var i = 0; i < Group.length; ++i )
       {
-         var eachID = eval("("+Group[i]+")") ;
+         var eachID = eval( "(" + Group[i] + ")" );
          if( tableName == eachID["Name"] )
          {
-            srcGroupName = eachID["CataInfo"][0]["GroupName"] ;
+            srcGroupName = eachID["CataInfo"][0]["GroupName"];
             println( csName + "." + clName + "'s source group: " + srcGroupName );
-            break ;
+            break;
          }
       }
-      return srcGroupName ;
+      return srcGroupName;
    }
    catch( e )
    {
       println( "failed to get source group, cs name: " + csName +
-               ", cl name: " + clName ) ;
-      throw e ;
+         ", cl name: " + clName );
+      throw e;
    }
 }
 
@@ -310,16 +319,16 @@ function getSrcGroup( csName, clName )
 *@author:      zhaoyu
 *@createdate:  2016.11.23
 **************************************/
-function attachCL( dbcl, subCLName, range )
+function attachCL ( dbcl, subCLName, range )
 {
    try
    {
-      dbcl.attachCL( subCLName, range ) ;
-      println( "--attach cl success" ) ;
+      dbcl.attachCL( subCLName, range );
+      println( "--attach cl success" );
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException("attachCL()", e, "attach cl", "attach cl success","attach cl fail");
+      throw buildException( "attachCL()", e, "attach cl", "attach cl success", "attach cl fail" );
    }
 }
 
@@ -328,24 +337,24 @@ function attachCL( dbcl, subCLName, range )
 *@author:      zhaoyu
 *@createDate:  2016.11.23
 **************************************/
-function insertBulkData( dbcl, recordNum, recordStart, recordEnd )
+function insertBulkData ( dbcl, recordNum, recordStart, recordEnd )
 {
    try
    {
       var doc = [];
-   	for(var i=0;i<recordNum;i++)
-   	{
-         var aValue = recordStart + parseInt( Math.random() * (recordEnd-recordStart) );
-   	   var bValue = recordStart + parseInt( Math.random() * (recordEnd-recordStart) );
-   	   var cValue = recordStart + parseInt( Math.random() * (recordEnd-recordStart) );
-   	   doc.push({a:aValue,b:bValue,c:cValue}); 
-   	}
-   	dbcl.insert(doc);
-      println( "--bulk insert data success" ) ;
+      for( var i = 0; i < recordNum; i++ )
+      {
+         var aValue = recordStart + parseInt( Math.random() * ( recordEnd - recordStart ) );
+         var bValue = recordStart + parseInt( Math.random() * ( recordEnd - recordStart ) );
+         var cValue = recordStart + parseInt( Math.random() * ( recordEnd - recordStart ) );
+         doc.push( { a: aValue, b: bValue, c: cValue } );
+      }
+      dbcl.insert( doc );
+      println( "--bulk insert data success" );
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException("insertBulkData()", e, "insert", "insert data :" + JSON.stringify(doc), "insert fail");
+      throw buildException( "insertBulkData()", e, "insert", "insert data :" + JSON.stringify( doc ), "insert fail" );
    }
    return doc;
 }
@@ -354,7 +363,7 @@ function insertBulkData( dbcl, recordNum, recordStart, recordEnd )
  * @Author:       linsuqiang
  * @Date:         2016-11-30
  * **********************************************/
- function bulkinsert( mainCL, recs )
+function bulkinsert ( mainCL, recs )
 {
    try
    {
@@ -371,7 +380,7 @@ function insertBulkData( dbcl, recordNum, recordStart, recordEnd )
  * @Author:       linsuqiang
  * @Date:         2016-11-30
  * **********************************************/
-function insertValidRecs( mainCL, recs )
+function insertValidRecs ( mainCL, recs )
 {
    for( var i = 0; i < recs.length; i++ )
    {
@@ -382,7 +391,7 @@ function insertValidRecs( mainCL, recs )
       catch( e )
       {
          throw buildException( "insertValidRecs", null, "[" + ( parseInt( i ) + 1 ) + " th record: " + recs[i] + "",
-                               "", "" + e );
+            "", "" + e );
       }
    }
 }
@@ -391,7 +400,7 @@ function insertValidRecs( mainCL, recs )
  * @Author:       linsuqiang
  * @Date:         2016-11-30
  * **********************************************/
-function insertInvalidRecs( mainCL, recs )
+function insertInvalidRecs ( mainCL, recs )
 {
    for( var i = 0; i < recs.length; i++ )
    {
@@ -405,9 +414,9 @@ function insertInvalidRecs( mainCL, recs )
          var exceptE = -135;
          if( e !== exceptE )
          {
-            throw buildException( "insertInvalidRecs", null, "[" + ( parseInt( i ) + 1 ) + " th record]" + recs[i], 
-                                 "[" + exceptE + "]", 
-                                 "[" + e + "]" );
+            throw buildException( "insertInvalidRecs", null, "[" + ( parseInt( i ) + 1 ) + " th record]" + recs[i],
+               "[" + exceptE + "]",
+               "[" + e + "]" );
          }
       }
    }
@@ -419,8 +428,8 @@ function insertInvalidRecs( mainCL, recs )
 *@author:      linsuqiang
 *@createDate:  2016.12.13
 **************************************/
-function lsqCheckRec( rc, expRecs )
-{           
+function lsqCheckRec ( rc, expRecs )
+{
    //get actual records to array
    var actRecs = [];
    while( rc.next() )
@@ -430,25 +439,25 @@ function lsqCheckRec( rc, expRecs )
    //check count
    if( actRecs.length !== expRecs.length )
    {
-      println("\nactual recs in cl= "+JSON.stringify(actRecs)+"\n\nexpect recs= "+JSON.stringify(expRecs));
-      throw buildException("check count", null, "",
-                           expRecs.length, actRecs.length);
+      println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
+      throw buildException( "check count", null, "",
+         expRecs.length, actRecs.length );
    }
-   
+
    //check every records every fields,expRecs as compare source
    for( var i in expRecs )
    {
       var actRec = actRecs[i];
       var expRec = expRecs[i];
-      
-      for ( var f in expRec )
+
+      for( var f in expRec )
       {
-         if( JSON.stringify(actRec[f]) !== JSON.stringify(expRec[f]) )
+         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
          {
-            println("\nerror occurs in "+(parseInt(i)+1)+"th record, in field '"+f+"'");
-            println("\nactual record= "+JSON.stringify(actRec)+"\n\nexpect record= "+JSON.stringify(expRec));
-            println("\nactual recs in cl= "+JSON.stringify(actRecs)+"\n\nexpect recs= "+JSON.stringify(expRecs));       
-            throw buildException("lsqCheckRec()", "rec ERROR");
+            println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'" );
+            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
+            println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
+            throw buildException( "lsqCheckRec()", "rec ERROR" );
          }
       }
    }
@@ -463,41 +472,50 @@ function lsqCheckRec( rc, expRecs )
  * @author ouyangzhongnan
  */
 /**=========================================================================*/
-function compare(objA, objB) {
-    if (!isObj(objA) || !isObj(objB)) return false;
-    if (getLength(objA) != getLength(objB)) return false;
-    return compareObj(objA, objB, true);
+function compare ( objA, objB )
+{
+   if( !isObj( objA ) || !isObj( objB ) ) return false;
+   if( getLength( objA ) != getLength( objB ) ) return false;
+   return compareObj( objA, objB, true );
 }
-function isObj(object) {
-    return object && typeof (object) == 'object' && Object.prototype.toString.call(object).toLowerCase() == "[object object]";
+function isObj ( object )
+{
+   return object && typeof ( object ) == 'object' && Object.prototype.toString.call( object ).toLowerCase() == "[object object]";
 }
-function isArray(object) {
-    return object && typeof (object) == 'object' && object.constructor == Array;
+function isArray ( object )
+{
+   return object && typeof ( object ) == 'object' && object.constructor == Array;
 }
-function getLength(object) {
-    var count = 0;
-    for (var i in object) count++;
-    return count;
+function getLength ( object )
+{
+   var count = 0;
+   for( var i in object ) count++;
+   return count;
 }
-function compareObj(objA, objB, flag) {
-    for (var key in objA) {
-        if (!flag)
-            break;
-        if (!objB.hasOwnProperty(key)) { flag = false; break; }
-        if (!isArray(objA[key])) {
-            if (objB[key] != objA[key]) { flag = false; break; }
-        } else {
-            if (!isArray(objB[key])) { flag = false; break; }
-            var oA = objA[key], oB = objB[key];
-            if (oA.length != oB.length) { flag = false; break; }
-            for (var k in oA) {
-                if (!flag)
-                    break;
-                flag = compareObj(oA[k], oB[k], flag);
-            }
-        }
-    }
-    return flag;
+function compareObj ( objA, objB, flag )
+{
+   for( var key in objA )
+   {
+      if( !flag )
+         break;
+      if( !objB.hasOwnProperty( key ) ) { flag = false; break; }
+      if( !isArray( objA[key] ) )
+      {
+         if( objB[key] != objA[key] ) { flag = false; break; }
+      } else
+      {
+         if( !isArray( objB[key] ) ) { flag = false; break; }
+         var oA = objA[key], oB = objB[key];
+         if( oA.length != oB.length ) { flag = false; break; }
+         for( var k in oA )
+         {
+            if( !flag )
+               break;
+            flag = compareObj( oA[k], oB[k], flag );
+         }
+      }
+   }
+   return flag;
 }
 /*******************************
 ****准备好ShardingKey为正序的测试环境。
@@ -506,35 +524,35 @@ function compareObj(objA, objB, flag) {
 ****把子表挂载到主表
 ****同时批量插入一些数据
 *******************************/
-function prepareByPositiveSequence( mainCL_Name, subCL_Name1, subCL_Name2 )
+function prepareByPositiveSequence ( mainCL_Name, subCL_Name1, subCL_Name2 )
 {
    //获取所有的数据组
    var groupsArray = commGetGroups( db, false, "", false, true, true );
    //创建主表
-   var mainCLOption = { ShardingKey:{ "a":1 }, ShardingType:"range", IsMainCL:true };
+   var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
    var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
    //创建普通子表
    var groupName1 = groupsArray[1][0].GroupName;
    var groupName2 = groupsArray[2][0].GroupName;
-   var subClOption1 = { Group:groupName1 };
+   var subClOption1 = { Group: groupName1 };
    commCreateCLByOption( db, COMMCSNAME, subCL_Name1, subClOption1, true, true );
    //创建分区表
-   var subClOption2 = { Group:groupName2, ShardingKey:{ "b":1 }, ShardingType:"range", ReplSize:0 };
+   var subClOption2 = { Group: groupName2, ShardingKey: { "b": 1 }, ShardingType: "range", ReplSize: 0 };
    commCreateCLByOption( db, COMMCSNAME, subCL_Name2, subClOption2, true, true );
    //attach 普通的表
-   mainCL.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound:{ a:0   },UpBound:{ a:10 } } ) ;
+   mainCL.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { a: 0 }, UpBound: { a: 10 } } );
    //attach分区表
-   mainCL.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound:{ a:10 },UpBound:{ a:20} } ) ;
+   mainCL.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { a: 10 }, UpBound: { a: 20 } } );
    //对分区字表进行分区
    try
    {
       //sprilt subcl
-      db.getCS( COMMCSNAME ).getCL( subCL_Name2 ).split( groupName2, groupName1, { b:0 },{ b:50 } );
+      db.getCS( COMMCSNAME ).getCL( subCL_Name2 ).split( groupName2, groupName1, { b: 0 }, { b: 50 } );
    }
-   catch(e)
+   catch( e )
    {
       throw buildException( "prepareByPositiveSequence()", e, "split subc2", "split subc2 success",
-                           "split subc2 fail" );
+         "split subc2 fail" );
    }
    insertData( mainCL );
 }
@@ -545,40 +563,40 @@ function prepareByPositiveSequence( mainCL_Name, subCL_Name1, subCL_Name2 )
 ****把子表挂载到主表
 ****同时批量插入一些数据
 *******************************/
-function prepareByInvertedSequence( mainCL_Name, subCL_Name1, subCL_Name2 )
+function prepareByInvertedSequence ( mainCL_Name, subCL_Name1, subCL_Name2 )
 {
    //获取所有的数据组
    var groupsArray = commGetGroups( db, false, "", false, true, true );
    //创建主表
-   var mainCLOption = { ShardingKey:{ "a":-1 },ShardingType:"range",IsMainCL:true };
+   var mainCLOption = { ShardingKey: { "a": -1 }, ShardingType: "range", IsMainCL: true };
    var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
    //创建普通子表
    var groupName1 = groupsArray[1][0].GroupName;
    var groupName2 = groupsArray[2][0].GroupName;
-   var subClOption1 = {Group:groupName1};
+   var subClOption1 = { Group: groupName1 };
    commCreateCLByOption( db, COMMCSNAME, subCL_Name1, subClOption1, true, true );
    //创建分区表
-   var subClOption2 = { Group:groupName2, ShardingKey:{ "b":1 }, ShardingType:"range", ReplSize:0 };
-   commCreateCLByOption( db, COMMCSNAME, subCL_Name2, subClOption2, true, true ); 
+   var subClOption2 = { Group: groupName2, ShardingKey: { "b": 1 }, ShardingType: "range", ReplSize: 0 };
+   commCreateCLByOption( db, COMMCSNAME, subCL_Name2, subClOption2, true, true );
    //attach 普通的表
-   mainCL.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound:{a:9  }, UpBound:{a:-1} } ) ;
+   mainCL.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { a: 9 }, UpBound: { a: -1 } } );
    //attach分区表
-   mainCL.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound:{a:19}, UpBound:{a:9} } ) ;
+   mainCL.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { a: 19 }, UpBound: { a: 9 } } );
    //对分区字表进行分区
    try
    {
       //sprilt subcl
-      db.getCS( COMMCSNAME ).getCL( subCL_Name2 ).split( groupName2, groupName1, {b:0}, {b:50} );
+      db.getCS( COMMCSNAME ).getCL( subCL_Name2 ).split( groupName2, groupName1, { b: 0 }, { b: 50 } );
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException("prepareByInvertedSequence()", e, "split subc2", "split subc2 success",
-                           "split subc2 fail");
+      throw buildException( "prepareByInvertedSequence()", e, "split subc2", "split subc2 success",
+         "split subc2 fail" );
    }
    insertData( mainCL );
 }
 
-function insertData( mainCL )
+function insertData ( mainCL )
 {
    //插入数据
    var doc = [];
@@ -586,13 +604,13 @@ function insertData( mainCL )
    {
       for( var k = 0; k < 100; k++ )
       {
-         doc.push( { a:j, b:k, test:"testData"+k } );
+         doc.push( { a: j, b: k, test: "testData" + k } );
       }
    }
    try
    {
-   //批量向表插入数据
-   mainCL.insert( doc );
+      //批量向表插入数据
+      mainCL.insert( doc );
    }
    catch( e )
    {
@@ -600,11 +618,11 @@ function insertData( mainCL )
    }
 }
 
-function zxqCheckRec( realData, expectDataArray )
+function zxqCheckRec ( realData, expectDataArray )
 {
    if( realData.count() != expectDataArray.length )
    {
-      println( realData.count()+"   "+expectDataArray.length );
+      println( realData.count() + "   " + expectDataArray.length );
       println( "real count is not same as expect count" );
       throw buildException( "zxqCheckRec()", null, "check data", "check data success", "check data fail" );
    }
@@ -616,11 +634,11 @@ function zxqCheckRec( realData, expectDataArray )
       {
          current = realData.current().toObj();
          expect = expectDataArray[i];
-         if(current.a !== expect.a||current.b!==expect.b||current.test!==expect.test)
+         if( current.a !== expect.a || current.b !== expect.b || current.test !== expect.test )
          {
             println( "real data is not same as expect data" );
             throw buildException( "zxqCheckRec()", null, "check data", "check data success",
-                                 "check data fail" );
+               "check data fail" );
          }
          realData.next();
       }

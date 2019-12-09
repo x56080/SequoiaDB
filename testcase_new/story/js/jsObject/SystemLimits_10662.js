@@ -9,101 +9,101 @@
 // 测试获取limits信息
 SystemTest.prototype.testGetProcUlimitConfigs = function()
 {
-   this.init() ;
-   
-   var limits = this.system.getProcUlimitConfigs().toObj() ;
+   this.init();
+
+   var limits = this.system.getProcUlimitConfigs().toObj();
    for( var k in limits )
    {
-      var str = k.replace( /_/g, " " ) ;
+      var str = k.replace( /_/g, " " );
       if( str === "realtime priority" )
-         str = "real-time priority" ;
-      var command = "/bin/bash -c 'ulimit -a' | grep " + "'^" + str +"'" ;
-      var info = this.cmd.run( command ).split( "\n" )[0] ;
-      var limit = info.slice( 37 ) ;
+         str = "real-time priority";
+      var command = "/bin/bash -c 'ulimit -a' | grep " + "'^" + str + "'";
+      var info = this.cmd.run( command ).split( "\n" )[0];
+      var limit = info.slice( 37 );
       if( limit === "unlimited" )
-         limit = -1 ;
+         limit = -1;
       else if( info.indexOf( "kbytes" ) !== -1 )
-         limit = 1024 * limit ;
+         limit = 1024 * limit;
       else if( info.indexOf( "blocks" ) !== -1 )
-         limit = 1024 * limit ;
-      if( limits[k] !== limit*1 )
+         limit = 1024 * limit;
+      if( limits[k] !== limit * 1 )
       {
-         throw buildException( "testGetProcUlimits", null, 
-                               "get limits of " + k + this, limit, limits[k] ) ;
-      }   
+         throw buildException( "testGetProcUlimits", null,
+            "get limits of " + k + this, limit, limits[k] );
+      }
    }
-   
-   this.release() ;
+
+   this.release();
 }
 
 // 测试设置limits信息边界值
 SystemTest.prototype.testSetProcUlimitConfigs = function()
 {
-   this.init() ;
-   
-   var oldLimits = this.system.getProcUlimitConfigs().toObj() ;
-   var oldMaxMemorySize = oldLimits.max_memory_size ;
-   
-   var maxMemSize = [ 9007199254740992, -9007199254740992,
-                      "18446744073709551614", "-18446744073709551615",
-                      "18446744073709551615" ] ;
-   var errMemSize = [ "18446744073709551616", "-18446744073709551616" ] ;
-   var results = [ "9007199254740992", "18437736874454810624",
-                   "18446744073709551614", 1, -1 ] ;
-   for( var i = 0;i < maxMemSize.length;i++ )
-   {                
-      oldLimits.max_memory_size = maxMemSize[i] ;
-      this.system.setProcUlimitConfigs( oldLimits ) ;
-      var newLimits = this.system.getProcUlimitConfigs().toObj() ;
+   this.init();
+
+   var oldLimits = this.system.getProcUlimitConfigs().toObj();
+   var oldMaxMemorySize = oldLimits.max_memory_size;
+
+   var maxMemSize = [9007199254740992, -9007199254740992,
+      "18446744073709551614", "-18446744073709551615",
+      "18446744073709551615"];
+   var errMemSize = ["18446744073709551616", "-18446744073709551616"];
+   var results = ["9007199254740992", "18437736874454810624",
+      "18446744073709551614", 1, -1];
+   for( var i = 0; i < maxMemSize.length; i++ )
+   {
+      oldLimits.max_memory_size = maxMemSize[i];
+      this.system.setProcUlimitConfigs( oldLimits );
+      var newLimits = this.system.getProcUlimitConfigs().toObj();
       if( newLimits.max_memory_size !== results[i] )
       {
          throw buildException( "testSetProcUlimitConfigs", null, "set maxMemSize "
-           + maxMemSize[i] + " " + this, results[i], newLimits.max_memory_size ) ;
+            + maxMemSize[i] + " " + this, results[i], newLimits.max_memory_size );
       }
    }
-   for( var i = 0;i < errMemSize;i++ )
+   for( var i = 0; i < errMemSize; i++ )
    {
       try
       {
-         oldLimits.max_memory_size = errMemSize[i] ;
-         this.system.setProcUlimitConfigs( oldLimits ) ;
-         throw "set max_memory_size " +  errMemSize[i] + " should be failed" ;
+         oldLimits.max_memory_size = errMemSize[i];
+         this.system.setProcUlimitConfigs( oldLimits );
+         throw "set max_memory_size " + errMemSize[i] + " should be failed";
       }
       catch( e )
       {
          if( e !== -6 )
          {
             throw buildException( "testSetProcUlimitConfigs", e,
-                  "set maxMemSize " + errMemSize[i] + " " + this, -6, e ) ;
+               "set maxMemSize " + errMemSize[i] + " " + this, -6, e );
          }
       }
    }
-   
-   oldLimits.max_memory_size = oldMaxMemorySize ;   
-   this.system.setProcUlimitConfigs( oldLimits ) ;
-   
-   this.release() ;
+
+   oldLimits.max_memory_size = oldMaxMemorySize;
+   this.system.setProcUlimitConfigs( oldLimits );
+
+   this.release();
 }
 
-function main()
+function main ()
 {
    // 获取本地主机和远程主机
-   var localhost = toolGetLocalhost() ;
-   var remotehost = toolGetRemotehost() ;
-   
-   var localSystem = new SystemTest( localhost, CMSVCNAME ) ;
-   var remoteSystem = new SystemTest( remotehost, CMSVCNAME ) ;
-   var systems = [ localSystem, remoteSystem ] ;
-   
-   for( var i = 0;i < systems.length;i++ )
+   var localhost = toolGetLocalhost();
+   var remotehost = toolGetRemotehost();
+
+   var localSystem = new SystemTest( localhost, CMSVCNAME );
+   var remoteSystem = new SystemTest( remotehost, CMSVCNAME );
+   var systems = [localSystem, remoteSystem];
+
+   for( var i = 0; i < systems.length; i++ )
    {
       // 测试获取limits
-      systems[i].testGetProcUlimitConfigs() ;
-      
+      systems[i].testGetProcUlimitConfigs();
+
       // 测试设置limits
-      systems[i].testSetProcUlimitConfigs() ;
-   } 
-   
+      systems[i].testSetProcUlimitConfigs();
+   }
+
 }
-   
+
 main()

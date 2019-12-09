@@ -4,102 +4,108 @@
 *@Modify list :
 *               2014-07-17 pusheng Ding  Init
 ******************************************************************************/
-indexName = CHANGEDPREFIX+"idx" ;
-try{
-   commDropCL( db, csName, clName, true, true, "drop cl in the beginning" ) ;
-}catch( e ){}
+indexName = CHANGEDPREFIX + "idx";
+try
+{
+	commDropCL( db, csName, clName, true, true, "drop cl in the beginning" );
+} catch( e ) { }
 
 //create CL
-try{
-   var optionObj = {ReplSize:0};
-   var varCL = commCreateCLByOption( db, csName, clName, optionObj, true,
-                                     false, "create collecton 1 failed" );
-}catch(e)
+try
 {
-   println( "failed to create cl" + e );
-   throw e;
+	var optionObj = { ReplSize: 0 };
+	var varCL = commCreateCLByOption( db, csName, clName, optionObj, true,
+		false, "create collecton 1 failed" );
+} catch( e )
+{
+	println( "failed to create cl" + e );
+	throw e;
 }
 
 //create index
-try{
-	varCL.createIndex(indexName,{a:1});
-	println("create index finished");
-}catch(e)
+try
+{
+	varCL.createIndex( indexName, { a: 1 } );
+	println( "create index finished" );
+} catch( e )
 {
 	//when redefine index, ignore the exception
-	if(e != -247)
+	if( e != -247 )
 	{
-		println("can't create index:" + indexName + " rc="+e);
+		println( "can't create index:" + indexName + " rc=" + e );
 		throw e;
 	}
-	println("already exist index:" + indexName);
+	println( "already exist index:" + indexName );
 }
 
 
 //insert data
-try{
-	for(var i=0; i<2621*5; i+=5){varCL.insert({a:i});}
-}catch(e)
+try
 {
-	println("insert data fail! rc="+e);
+	for( var i = 0; i < 2621 * 5; i += 5 ) { varCL.insert( { a: i } ); }
+} catch( e )
+{
+	println( "insert data fail! rc=" + e );
 	throw e;
 }
-println("insert data finished");
+println( "insert data finished" );
 
 //select * from ... where a!=11780
-try{
-	var sel = varCL.find({a:{$ne:11780}});
-	var size=0;
-  var flag=true;
-  while(sel.next())
-  {
-  	size++;
-  	if(size>2621)
-  	{
-  		flag = false;
-  		throw 1;
-  	}
-  	var ret = sel.current();
-  	if(ret.toObj()['a']==11780)
-  	{
-  		flag = false;
-  		throw 2;
-  	}
-  }
-  sel.close();
-  if(flag && size!=2620)
-  {
-  	flag = false;
-  	throw 1;
-  }
-}catch(e)
+try
 {
-	if(e!=1 && e!=2)
+	var sel = varCL.find( { a: { $ne: 11780 } } );
+	var size = 0;
+	var flag = true;
+	while( sel.next() )
 	{
-		println("select data fail! rc="+e);
+		size++;
+		if( size > 2621 )
+		{
+			flag = false;
+			throw 1;
+		}
+		var ret = sel.current();
+		if( ret.toObj()['a'] == 11780 )
+		{
+			flag = false;
+			throw 2;
+		}
+	}
+	sel.close();
+	if( flag && size != 2620 )
+	{
+		flag = false;
+		throw 1;
+	}
+} catch( e )
+{
+	if( e != 1 && e != 2 )
+	{
+		println( "select data fail! rc=" + e );
 		throw e;
 	}
-	else if(e==1)
+	else if( e == 1 )
 	{
-		println("return rows not expected! expected:2620 return:"+ size +(size>2621?" or more":""));
+		println( "return rows not expected! expected:2620 return:" + size + ( size > 2621 ? " or more" : "" ) );
 		throw e;
 	}
-	else if(e==2)
+	else if( e == 2 )
 	{
-		println("return incorrect record! " + ret);
+		println( "return incorrect record! " + ret );
 		throw e;
 	}
 }
-println("select data finished!");
+println( "select data finished!" );
 
 //clean test-env
-try{
-   varCL.dropIndex(indexName);
-   commDropCL( db, csName, clName, false, false,
-               "drop colleciton in the end" );
-}catch(e)
+try
 {
-	println("clean test-evn fail! rc="+e);
+	varCL.dropIndex( indexName );
+	commDropCL( db, csName, clName, false, false,
+		"drop colleciton in the end" );
+} catch( e )
+{
+	println( "clean test-evn fail! rc=" + e );
 	throw e;
 }
-println("clean test-evn succ!");
+println( "clean test-evn succ!" );

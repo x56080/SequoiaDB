@@ -5,59 +5,59 @@
 ************************************************************************/
 main();
 
-function main()
-{	  
-	try
-	{	
+function main ()
+{
+   try
+   {
       var csName = COMMCSNAME;
       var clName = COMMCLNAME;
-      
+
       //insert records > 128M
-      var cl = new Collection( csName, clName, {ReplSize:0} );
+      var cl = new Collection( csName, clName, { ReplSize: 0 } );
       cl.create();
       cl.insert( 1000, "string", ['a', 'b', 'c'] );
-      var preSize = getSessionContextsSize();     
-      
+      var preSize = getSessionContextsSize();
+
       //cursor not close
-      println("---begin to query and check context");
+      println( "---begin to query and check context" );
       var cursor = db.getCS( csName ).getCL( clName ).find();
       cursor.next();
-      
+
       var hasCursorSize = getSessionContextsSize();
       if( hasCursorSize.toString() !== preSize.toString() ) 
       {
-         println("before query context !== query context")
+         println( "before query context !== query context" )
       }
       else
       {
-         println("-----before query context === query context");
+         println( "-----before query context === query context" );
       }
-      
+
       //close cursor
-      println("---begin to close cursor and check context");
+      println( "---begin to close cursor and check context" );
       cursor.close();
-      
-      var closeCursorSize = getSessionContextsSize();      
+
+      var closeCursorSize = getSessionContextsSize();
       if( closeCursorSize.toString() !== preSize.toString() ) 
       {
-         throw buildException("check context", 0,"cursor.close()", "kill context", "Not kill context");
-      }     
+         throw buildException( "check context", 0, "cursor.close()", "kill context", "Not kill context" );
+      }
    }
    catch( e )
    {
-      throw e ;
+      throw e;
    }
 }
 
-function getSessionContextsSize()
+function getSessionContextsSize ()
 {
-    var contextSize = [];
-   
-    var rc = db.snapshot(SDB_SNAP_SESSIONS_CURRENT);
-    while(rc.next())
-    {
-       var obj = rc.current().toObj();
-       contextSize.push(obj["Contexts"].length);
-    }
-    return contextSize;
+   var contextSize = [];
+
+   var rc = db.snapshot( SDB_SNAP_SESSIONS_CURRENT );
+   while( rc.next() )
+   {
+      var obj = rc.current().toObj();
+      contextSize.push( obj["Contexts"].length );
+   }
+   return contextSize;
 }

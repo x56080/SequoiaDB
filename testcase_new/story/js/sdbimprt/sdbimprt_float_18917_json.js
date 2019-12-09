@@ -3,14 +3,14 @@
 *@Author     :  2019-7-30  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18917_json";
    var jsonFile = tmpFileDir + clName + ".json";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( jsonFile );
-   
+
    println( "\n---data type int32, int64, double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 840 );
@@ -22,11 +22,11 @@ function main()
    checkResult( cl, "double", expResult );
    var expResult = getExpResult( "decimal" );
    checkResult( cl, "decimal", expResult );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "";
@@ -40,16 +40,16 @@ function prepareDate( typeFile )
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
-         file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' ); 
+         file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' );
          file.write( '{ a: ' + left + '.' + right + ' }\n' );
       }
    }
    file.close()
 }
 
-function getExpResult( dataType )
+function getExpResult ( dataType )
 {
-   var expResult = []; 
+   var expResult = [];
    if( dataType == "decimal" )
    {
       for( var i = 0; i < 20; i++ )
@@ -58,7 +58,7 @@ function getExpResult( dataType )
          for( var j = 0; j < 20; j++ )
          {
             decimalDate = decimalDate + "0";
-            expResult.push({ a: { "$decimal": decimalDate }});
+            expResult.push( { a: { "$decimal": decimalDate } } );
          }
       }
    }
@@ -66,14 +66,14 @@ function getExpResult( dataType )
    {
       for( var i = 0; i < 400; i++ )
       {
-         expResult.push({ a: 0});
+         expResult.push( { a: 0 } );
       }
    }
    else
    {
       for( var i = 0; i < 20; i++ )
       {
-         expResult.push({ a: 0});
+         expResult.push( { a: 0 } );
       }
    }
    return expResult;

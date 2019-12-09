@@ -7,21 +7,21 @@
 
 main();
 
-function main()
+function main ()
 {
    var csName = COMMCSNAME + "_11839";
-   
+
    //drop CS and create cappedCS
-   println("---begin test---");
+   println( "---begin test---" );
    commDropCS( db, csName, true, "drop CS in the beginning" );
-   
+
    //create normal CS
-   println("---create normal CS---")
+   println( "---create normal CS---" )
    commCreateCS( db, csName, false, "beginning to create CS", null );
-   
+
    //create capped CS
-   println("---create capped CS---")
-   var optionObj = { Capped:true };
+   println( "---create capped CS---" )
+   var optionObj = { Capped: true };
    try
    {
       db.createCS( csName, optionObj );
@@ -34,7 +34,7 @@ function main()
          throw buildException( "create capped CS", e, "create capped CS", "-33", e );
       }
    }
-   
+
    //clean environment after test
    commDropCS( db, csName, true, "drop CS in the end" );
    println( "---end the test---" );

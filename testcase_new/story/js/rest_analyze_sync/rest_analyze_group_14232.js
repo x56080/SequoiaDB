@@ -5,7 +5,7 @@
 2018-07-30        linsuqiang init
 ****************************************************/
 
-function insertData( cl, rec )
+function insertData ( cl, rec )
 {
    var recs = [];
    var recNum = 2000;
@@ -16,7 +16,7 @@ function insertData( cl, rec )
    cl.insert( recs );
 }
 
-function checkScanTypeByExplain( cl, cond, expScanType )
+function checkScanTypeByExplain ( cl, cond, expScanType )
 {
    var cursor = cl.find( cond ).explain( { Run: true } );
    var actScanType = cursor.next().toObj().ScanType;
@@ -27,7 +27,7 @@ function checkScanTypeByExplain( cl, cond, expScanType )
    }
 }
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) || commGetGroupsNum( db ) < 2 )
    {
@@ -35,32 +35,34 @@ function main()
       return;
    }
 
-  
+
    var csName = "analyze14232";
-   commDropCS( db, csName, true,  "fail to drop cs")
-   var options = {PageSize:4096};
+   commDropCS( db, csName, true, "fail to drop cs" )
+   var options = { PageSize: 4096 };
    var cs = commCreateCS( db, csName, true, "fail to create cl", options )
 
    var groups = commGetGroups( db );
    var analyzeGroup = groups[0][0]['GroupName'];
    var nonAnalyzeGroup = groups[1][0]['GroupName'];
    var clName = "analyze14232";
-   
-   var options = { ShardingKey: { a: 1 }, ShardingType: 'range', 
-                   Group: analyzeGroup };
+
+   var options = {
+      ShardingKey: { a: 1 }, ShardingType: 'range',
+      Group: analyzeGroup
+   };
    var cl = cs.createCL( clName, options );
    cl.split( analyzeGroup, nonAnalyzeGroup, { a: 1000 }, { a: 3000 } );
-   var str = getString(4096);
-   var analyzeRec = { a: 0, b: str}; // record on analyzeGroup
+   var str = getString( 4096 );
+   var analyzeRec = { a: 0, b: str }; // record on analyzeGroup
    insertData( cl, analyzeRec );
    var nonAnalyzeRec = { a: 2000 }; // record on nonAnalyzeGroup
    insertData( cl, nonAnalyzeRec );
 
    checkScanTypeByExplain( cl, analyzeRec, "ixscan" );
    checkScanTypeByExplain( cl, nonAnalyzeRec, "ixscan" );
-   tryCatch( ["cmd=analyze", "options={GroupName:\"" + analyzeGroup + "\"}"], 
-             [0],
-             "fail to analyze" );
+   tryCatch( ["cmd=analyze", "options={GroupName:\"" + analyzeGroup + "\"}"],
+      [0],
+      "fail to analyze" );
    checkScanTypeByExplain( cl, analyzeRec, "tbscan" );
    checkScanTypeByExplain( cl, nonAnalyzeRec, "ixscan" );
 

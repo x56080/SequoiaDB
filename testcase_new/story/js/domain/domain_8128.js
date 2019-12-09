@@ -6,85 +6,85 @@
                2014-6-18  xiaojun Hu  Init
 ******************************************************************************/
 
-function main( db )
+function main ( db )
 {
    // Inspect the run mode
-   runMode = inspectRunMode( db ) ;
+   runMode = inspectRunMode( db );
    if( "standalone" == runMode )
-      throw "RunMode_StandAlone" ;
+      throw "RunMode_StandAlone";
 
    var domNames = new Array( CHANGEDPREFIX + "DomTest1", CHANGEDPREFIX + "DomTest2",
-                             CHANGEDPREFIX + "DomTest3", CHANGEDPREFIX + "DomTest4" ) ;
+      CHANGEDPREFIX + "DomTest3", CHANGEDPREFIX + "DomTest4" );
 
    // Drop all domains, if have
-   for( var i = 0 ; i < domNames.length ; ++i )
+   for( var i = 0; i < domNames.length; ++i )
    {
-      clearDomain( db, domNames[i] ) ;
+      clearDomain( db, domNames[i] );
    }
-   println( "Clear domain in the beginning" ) ;
+   println( "Clear domain in the beginning" );
 
    // Get all data groups and create domain by specify AutoSplit
    try
    {
-      var group = new Array() ;
-      group = getGroup( db ) ;
+      var group = new Array();
+      group = getGroup( db );
       //println( "Get Groups = " + group ) ;
-      for( var i = 0 ; i < domNames.length ; ++i )
+      for( var i = 0; i < domNames.length; ++i )
       {
-         createDomain( db, domNames[i], group ) ;
+         createDomain( db, domNames[i], group );
       }
-      println( "Success to create Domain : [" + domNames + "]" ) ;
+      println( "Success to create Domain : [" + domNames + "]" );
    }
-   catch ( e )
+   catch( e )
    {
       if( -159 != e )
       {
-         println( "Failed to create domain, rc = " + e ) ;
-         throw e ;
+         println( "Failed to create domain, rc = " + e );
+         throw e;
       }
       else
-         println( "The mode is standalong, not group" ) ;
+         println( "The mode is standalong, not group" );
    }
 
    // Inspect the specify domain
-   for( var j = 0 ; j <= domNames.length ; ++j )
+   for( var j = 0; j <= domNames.length; ++j )
    {
-      var listDom = db.listDomains( { "Name" : domNames[j]}
-                                  ).current().toObj()["Name"] ;
+      var listDom = db.listDomains( { "Name": domNames[j] }
+      ).current().toObj()["Name"];
       //println( "list domain" + listDom ) ;
       if( listDom == domNames[j] )
       {
-         break ;
+         break;
       }
       else
       {
          println( "Don't have domnames, domains = [" + domNames[j] +
-                  "] ... [" + listDom + "]" ) ;
-         throw "ErrDomains" ;
+            "] ... [" + listDom + "]" );
+         throw "ErrDomains";
       }
    }
 
-   for( var i = 0 ; i < domNames.length ; ++i )
+   for( var i = 0; i < domNames.length; ++i )
    {
       // Inspect domain
-      inspectDomain( db, domNames[i] ) ;
+      inspectDomain( db, domNames[i] );
 
       // Drop domain int the end
-      clearDomain( db, domNames[i] ) ;
+      clearDomain( db, domNames[i] );
    }
    // Clear Env
-   println( "Success to drop domains = [" + domNames + "]" ) ;
+   println( "Success to drop domains = [" + domNames + "]" );
 }
 
 try
 {
    if( false == commIsStandalone( db ) )
-      main( db ) ;
+      main( db );
    else
-      println( "run mode : standalone" ) ;
-   db.close() ;
+      println( "run mode : standalone" );
+   db.close();
 }
-catch ( e )
+catch( e )
 {
-   throw e ;
+   throw e;
 }

@@ -5,75 +5,75 @@
 * @author      : Liang XueWang
 * 
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13579" ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13579";
 
-main() ;
+main();
 
-function main()
-{  
-   var docs = [ { a: 1 }, { a: 2 }, { a: 3 }, { a: 4 } ] ;
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   cl.insert( docs ) ;
-   
-   testExprtSelect1() ;  // use --select '{ a: { \\$include: 1 }'
-   testExprtSelect2() ;  // use --select '{ a: { \\$inclu: 1 } }'
-   testExprtSelect3() ;  // use --select with --fields
-   
-   commDropCL( db, csname, clname ) ;
+function main ()
+{
+   var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
+   var cl = commCreateCL( db, csname, clname, 0 );
+   cl.insert( docs );
+
+   testExprtSelect1();  // use --select '{ a: { \\$include: 1 }'
+   testExprtSelect2();  // use --select '{ a: { \\$inclu: 1 } }'
+   testExprtSelect3();  // use --select with --fields
+
+   commDropCL( db, csname, clname );
 }
 
-function testExprtSelect1()
+function testExprtSelect1 ()
 {
-   var csvfile = workDir + "sdbexprt13579.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13579.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --select '{ a: { \\$include: 1 }'" +
-                 " --type csv" ;                
-   testRunCommand( command, 127 ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --select '{ a: { \\$include: 1 }'" +
+      " --type csv";
+   testRunCommand( command, 127 );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtSelect2()
+function testExprtSelect2 ()
 {
-   var csvfile = workDir + "sdbexprt13579.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13579.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --select '{ a: { \\$inclu: 1 } }'" +
-                 " --type csv" ;                
-   testRunCommand( command, 127 ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --select '{ a: { \\$inclu: 1 } }'" +
+      " --type csv";
+   testRunCommand( command, 127 );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtSelect3()
+function testExprtSelect3 ()
 {
-   var csvfile = workDir + "sdbexprt13580.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13580.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --select '{ a: { \\$include: 1 } }'" +
-                 " --fields a" +
-                 " --type csv" ;                
-   testRunCommand( command, 127 ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --select '{ a: { \\$include: 1 } }'" +
+      " --fields a" +
+      " --type csv";
+   testRunCommand( command, 127 );
+
+   cmd.run( "rm -rf " + csvfile );
 }

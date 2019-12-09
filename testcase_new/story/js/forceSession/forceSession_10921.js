@@ -17,8 +17,9 @@
 // 备注：该用例得并行跑
 
 main();
-function main() {
-    if (commIsStandalone(db)) return;
+function main ()
+{
+    if( commIsStandalone( db ) ) return;
 
     var sessionID = null; // 要被force的session的id
     var forceBefore = null;
@@ -27,69 +28,70 @@ function main() {
     // 获取所有系统EDU类型的session，并随机从中取得一个用于force
     try 
     {
-        var sessionList = db.list(2, {
+        var sessionList = db.list( 2, {
             Global: true,
-            Status: {$ne: "Waiting"},
-            Type: {$nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"]}
-        }).toArray();
+            Status: { $ne: "Waiting" },
+            Type: { $nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"] }
+        } ).toArray();
     }
-    catch (e) 
+    catch( e ) 
     {
-        throw buildException("listSession", e, "listSession by session=2 options=" + JSON.stringify({
-                Global: true,
-                Type: {$nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"]}
-            }));
+        throw buildException( "listSession", e, "listSession by session=2 options=" + JSON.stringify( {
+            Global: true,
+            Type: { $nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"] }
+        } ) );
     }
-    var randomNum = Math.ceil(Math.random() * 10000) % sessionList.length;
-    var session = JSON.parse(sessionList[randomNum]);
+    var randomNum = Math.ceil( Math.random() * 10000 ) % sessionList.length;
+    var session = JSON.parse( sessionList[randomNum] );
     sessionID = session.SessionID;
 
     // 加 Status: {$ne:"Waiting"}, Type:{$nin:["Agent","ShardAgent","CoordAgent","ReplAgent","HTTPAgent"]} 因为通过sessionid有可能也能查到非系统EDU类型的session
     try 
     {
-        forceBefore = db.list(2, {
+        forceBefore = db.list( 2, {
             Global: true,
             SessionID: sessionID,
-            Status: {$ne: "Waiting"},
-            Type: {$nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"]}
-        }).toArray();
+            Status: { $ne: "Waiting" },
+            Type: { $nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"] }
+        } ).toArray();
     }
-    catch (e) 
+    catch( e ) 
     {
-        throw buildException("listSession", e, "forceBefore:listSession by session=2 options=" + JSON.stringify({
-                Global: true,
-                SessionID: sessionID
-            }));
+        throw buildException( "listSession", e, "forceBefore:listSession by session=2 options=" + JSON.stringify( {
+            Global: true,
+            SessionID: sessionID
+        } ) );
     }
 
 
     // force 一个系统EDU类型的session
     try 
     {
-        db.forceSession(sessionID, {Global: true});
+        db.forceSession( sessionID, { Global: true } );
     }
-    catch (e) 
+    catch( e ) 
     {
-        if (e != -264) {
-            throw buildException("forceSession", e, "forceSession by SessionID(session type is system EDU) and set options is Global=true", "forceSession success and throw exception(-264)", "forceSession throw exception and exception is not equals -264");
+        if( e != -264 )
+        {
+            throw buildException( "forceSession", e, "forceSession by SessionID(session type is system EDU) and set options is Global=true", "forceSession success and throw exception(-264)", "forceSession throw exception and exception is not equals -264" );
         }
     }
 
     // 检查forc的系统session是否都还在
     try
     {
-        forceAfter = db.list(2, {
+        forceAfter = db.list( 2, {
             Global: true,
             SessionID: sessionID,
-            Status: {$ne: "Waiting"},
-            Type: {$nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"]}
-        }).toArray();
+            Status: { $ne: "Waiting" },
+            Type: { $nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"] }
+        } ).toArray();
     }
-    catch (e) 
+    catch( e ) 
     {
-        throw buildException("listSession", e, "forceAfter:listSession by session=2 options=" + JSON.stringify({
-                Global: true,
-                SessionID: sessionID
-            }));
-    } 
+        throw buildException( "listSession", e, "forceAfter:listSession by session=2 options=" + JSON.stringify( {
+            Global: true,
+            SessionID: sessionID
+        } ) );
+    }
 }

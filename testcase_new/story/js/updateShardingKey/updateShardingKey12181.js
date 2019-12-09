@@ -12,58 +12,62 @@
 var csName = CHANGEDPREFIX + "_cs_12181";
 var clName = CHANGEDPREFIX + "_cl_12181";
 
-function main() {
-    if (true == commIsStandalone(db)) {
-        println("run mode is standalone");
+function main ()
+{
+    if( true == commIsStandalone( db ) )
+    {
+        println( "run mode is standalone" );
         return;
     }
 
-    var allGroupName = getGroupName(db, true);
-    if (1 === allGroupName.length) {
-        println("--least two groups");
+    var allGroupName = getGroupName( db, true );
+    if( 1 === allGroupName.length )
+    {
+        println( "--least two groups" );
         return;
     }
 
-    commDropCS(db, csName, true, "Failed to drop CS.");
-    commCreateCS(db, csName, false, "Failed to create CS.");
-    var mycl = createCL(csName, clName, {a: 1, b: 1, c: 1});
+    commDropCS( db, csName, true, "Failed to drop CS." );
+    commCreateCS( db, csName, false, "Failed to create CS." );
+    var mycl = createCL( csName, clName, { a: 1, b: 1, c: 1 } );
 
     //insert data
-    var docs = [{a: 1, b: 1, c: 1}];
-    insertData(mycl, docs);
+    var docs = [{ a: 1, b: 1, c: 1 }];
+    insertData( mycl, docs );
 
     var updatejson = [
-        {"a": 123},
-        {"a": 3000000000},
-        {"a": 123.456},
-        {"a": 123.456},
-        {"a": "value"},
-        {"a": "1234"},
-        {"a": "1234.123"},
-        {"a": {"$oid": "123abcd00ef12358902300ef"}},
-        {"a": true},
-        {"a": {"$date": "2012-01-01"}},
-        {"a": {"$timestamp": "2012-01-01-13.14.26.124233"}},
-        {"a": {"$binary": "aGVsbG8gd29ybGQ=", "$type": "1"}},
-        {"a": {"$regex": "^张", "$options": "i"}},
-        {"a": {"subobj": "value"}},
-        {"a": ["abc", 0, "def"]},
-        {"a": null},
-        {"a": {"$minKey": 1}},
-        {"a": {"$maxKey": 1}}
+        { "a": 123 },
+        { "a": 3000000000 },
+        { "a": 123.456 },
+        { "a": 123.456 },
+        { "a": "value" },
+        { "a": "1234" },
+        { "a": "1234.123" },
+        { "a": { "$oid": "123abcd00ef12358902300ef" } },
+        { "a": true },
+        { "a": { "$date": "2012-01-01" } },
+        { "a": { "$timestamp": "2012-01-01-13.14.26.124233" } },
+        { "a": { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } },
+        { "a": { "$regex": "^张", "$options": "i" } },
+        { "a": { "subobj": "value" } },
+        { "a": ["abc", 0, "def"] },
+        { "a": null },
+        { "a": { "$minKey": 1 } },
+        { "a": { "$maxKey": 1 } }
     ];
 
-    for (x in updatejson) {
+    for( x in updatejson )
+    {
         var tempJson = new Object();
         tempJson.a = updatejson[x];
         tempJson.b = updatejson[x];
         tempJson.c = updatejson[x];
-        mycl.update({$set: tempJson}, {}, {}, {KeepShardingKey: true});
-        checkResult(mycl, null, {"_id": {"$include": 0}}, [tempJson]);
+        mycl.update( { $set: tempJson }, {}, {}, { KeepShardingKey: true } );
+        checkResult( mycl, null, { "_id": { "$include": 0 } }, [tempJson] );
     }
 
 
     //drop collectionspace in clean
-    commDropCS(db, csName, false, "Failed to drop CS.");
+    commDropCS( db, csName, false, "Failed to drop CS." );
 }
 //main();

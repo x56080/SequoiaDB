@@ -4,5 +4,5 @@
 @Author: liuxiaoxuan
                      
 ****************************************************/
-import ( "../lib/fulltext_commlib.js" );
+import( "../lib/fulltext_commlib.js" );
 

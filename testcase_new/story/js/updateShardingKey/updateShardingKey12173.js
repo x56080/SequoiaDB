@@ -9,49 +9,50 @@ var mainCLName = CHANGEDPREFIX + "_mcl_12173";
 var subCLName1 = "subcl1";
 var subCLName2 = "subcl2";
 
-function main() {
+function main ()
+{
 	if( true == commIsStandalone( db ) )
 	{
 		println( "run mode is standalone" );
 		return;
 	}
 
-	var allGroupName = getGroupName(db,true);         
+	var allGroupName = getGroupName( db, true );
 	if( 1 === allGroupName.length )
 	{
-		println("--least two groups");
-		return ;
-	}  
+		println( "--least two groups" );
+		return;
+	}
 
-	commDropCS( db, csName, true, "Failed to drop CS.");    
-	commCreateCS( db, csName, false, "Failed to create CS.");  
+	commDropCS( db, csName, true, "Failed to drop CS." );
+	commCreateCS( db, csName, false, "Failed to create CS." );
 
-	var sk1 = {a:1}; 
-	var sk2 = {b:1}; 
+	var sk1 = { a: 1 };
+	var sk2 = { b: 1 };
 	var mainCL = createMainCL( csName, mainCLName, sk1 );
 	createCL( csName, subCLName1, sk2 );
 	createCL( csName, subCLName2, sk2 );
 
-	mainCL.attachCL( csName+"."+subCLName1, { LowBound: { "a": 0 }, UpBound: { "a": 100 } } );    
-	mainCL.attachCL( csName+"."+subCLName2, { LowBound: { "a": 100 }, UpBound: { "a": 1000 } } );    
+	mainCL.attachCL( csName + "." + subCLName1, { LowBound: { "a": 0 }, UpBound: { "a": 100 } } );
+	mainCL.attachCL( csName + "." + subCLName2, { LowBound: { "a": 100 }, UpBound: { "a": 1000 } } );
 
 	//insert data 	
-	var docs=[{a:1,b:1,c:1},{a:101,b:101,c:1}]
-	insertData(mainCL, docs);
+	var docs = [{ a: 1, b: 1, c: 1 }, { a: 101, b: 101, c: 1 }]
+	insertData( mainCL, docs );
 
 	//insert data
-	clSplit( csName, subCLName1, 50 ); 
-	clSplit( csName, subCLName2, 50 ); 
+	clSplit( csName, subCLName1, 50 );
+	clSplit( csName, subCLName2, 50 );
 
 
 	//upsertData( mainCL, upsertCondition, findCondition );
-	mainCL.update( {$set:{c:"test"}}, {},{},{},{KeepShardingKey:true});
+	mainCL.update( { $set: { c: "test" } }, {}, {}, {}, { KeepShardingKey: true } );
 
 	//check the update result
-	var expRecs = [{a:1,b:1,c:"test"},{a:101,b:101,c:"test"}];
-	checkResult( mainCL,null ,null, expRecs); 	
+	var expRecs = [{ a: 1, b: 1, c: "test" }, { a: 101, b: 101, c: "test" }];
+	checkResult( mainCL, null, null, expRecs );
 
 	//drop collectionspace in clean
-	commDropCS( db, csName, false, "Failed to drop CS.");
+	commDropCS( db, csName, false, "Failed to drop CS." );
 }
 main();

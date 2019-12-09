@@ -4,46 +4,46 @@
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
-      var clName = COMMCLNAME+"_matches8061" ;
+      var clName = COMMCLNAME + "_matches8061";
       var cl = readyCL( clName );
-   	
+
       insertRecs( cl );
       var rc = findRecs( cl, 0.6, 1 );  //find and check result
-   
+
       cleanCL( clName );
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function insertRecs( cl )
+function insertRecs ( cl )
 {
-   println("\n---Begin to insert records.");
-   cl.insert( [ {a:3} ] );
+   println( "\n---Begin to insert records." );
+   cl.insert( [{ a: 3 }] );
 }
 
-function findRecs( cl, div, rem )
+function findRecs ( cl, div, rem )
 {
-   println("\n---Begin to find records by matches[$mod].");
-   
+   println( "\n---Begin to find records by matches[$mod]." );
+
    try
    {
-      cl.find( {a:{$mod:[div, rem]}} );
+      cl.find( { a: { $mod: [div, rem] } } );
    }
    catch( e )
    {
       //check result  //e:-6
-      var expectE = -6 ;
+      var expectE = -6;
       if( e !== expectE )
       {
-         throw buildException("checkResult", e, '{$project:{no:"test"}}', 
-                             "[e:"+ expectE +"]", "[e:"+ e +"]");
+         throw buildException( "checkResult", e, '{$project:{no:"test"}}',
+            "[e:" + expectE + "]", "[e:" + e + "]" );
       }
    }
 }

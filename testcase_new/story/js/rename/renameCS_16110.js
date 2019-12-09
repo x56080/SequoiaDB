@@ -1,88 +1,89 @@
 /* *****************************************************************************
 @discretion: rename cs
-             seqDB-16110 cs²»ÔÚdomainÖÐ£¬ÐÞ¸ÄcsÃûºósetDomain
-@author£º2018-10-13 chensiqin  Init
+             seqDB-16110 csï¿½ï¿½ï¿½ï¿½domainï¿½Ð£ï¿½ï¿½Þ¸ï¿½csï¿½ï¿½ï¿½ï¿½setDomain
+@authorï¿½ï¿½2018-10-13 chensiqin  Init
 ***************************************************************************** */
 
-main(db);
+main( db );
 
-function main(db)
+function main ( db )
 {
-   if (commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      return ;
+      return;
    }
-   if (commGetGroupsNum(db) < 2)
+   if( commGetGroupsNum( db ) < 2 )
    {
-      return ;
+      return;
    }
    var domainName = "domain16110";
-   var csName1 = CHANGEDPREFIX+"_rename16110_1";
-   var csName2 = CHANGEDPREFIX+"_rename16110_2";
-   var clName = CHANGEDPREFIX+"renamecl16110";
-   
-   //´´½¨domain
-   var groups = commGetGroups(db);
+   var csName1 = CHANGEDPREFIX + "_rename16110_1";
+   var csName2 = CHANGEDPREFIX + "_rename16110_2";
+   var clName = CHANGEDPREFIX + "renamecl16110";
+
+   //ï¿½ï¿½ï¿½ï¿½domain
+   var groups = commGetGroups( db );
    var groupName1 = groups[0][0].GroupName;
    var groupName2 = groups[1][0].GroupName;
-   commDropDomain( db, domainName);
-   var domain = commCreateDomain( db, domainName, [ groupName1, groupName2 ], { AutoSplit: true });
-   
-   //´´½¨cs cl
+   commDropDomain( db, domainName );
+   var domain = commCreateDomain( db, domainName, [groupName1, groupName2], { AutoSplit: true } );
+
+   //ï¿½ï¿½ï¿½ï¿½cs cl
    commDropCS( db, csName1, true, "ignoreNotExist is true" );
    commDropCS( db, csName2, true, "ignoreNotExist is true" );
-   var varCS = commCreateCS( db, csName1, true, "create CS");
-   var varCL = commCreateCLByOption( db, csName1, clName, {Group:groupName1}, true, false, "create cl in the beginning" )
-   insertData(varCL, 100);
-   
+   var varCS = commCreateCS( db, csName1, true, "create CS" );
+   var varCL = commCreateCLByOption( db, csName1, clName, { Group: groupName1 }, true, false, "create cl in the beginning" )
+   insertData( varCL, 100 );
+
    testRenameCS16110( db, domainName, domain, csName1, csName2, clName );
    afterClear( db, domainName, csName2 )
 }
 
-function testRenameCS16110( db, domainName, domain, oldName, newName, clName )
+function testRenameCS16110 ( db, domainName, domain, oldName, newName, clName )
 {
    db.renameCS( oldName, newName );
    //check
-   checkRenameCSResult(oldName, newName, 1);
-   var cs = db.getCS(newName)
-   cs.setDomain( { Domain : domainName } )
+   checkRenameCSResult( oldName, newName, 1 );
+   var cs = db.getCS( newName )
+   cs.setDomain( { Domain: domainName } )
    var csList = domain.listCollectionSpaces().toArray();
-   var cs = eval('('+csList[0]+')') ;
-   if (cs["Name"] !== newName) {
-      throw buildException("check domain.listCollectionSpaces() fail", "fail", "check", "success", "fail"); 
+   var cs = eval( '(' + csList[0] + ')' );
+   if( cs["Name"] !== newName )
+   {
+      throw buildException( "check domain.listCollectionSpaces() fail", "fail", "check", "success", "fail" );
    }
-   checkDatas( newName, clName);
+   checkDatas( newName, clName );
 }
 
-function checkDatas( csName2, clName)
-{   
+function checkDatas ( csName2, clName )
+{
    try
    {
       //check the record nums      
       var dbcl = db.getCS( csName2 ).getCL( clName );
-      var count = dbcl.count();      
-      if( count != 100  )
+      var count = dbcl.count();
+      if( count != 100 )
       {
-         throw buildException("check datas", null, "check the new cl record nums",
-                           100, count);
-      }   
-      
+         throw buildException( "check datas", null, "check the new cl record nums",
+            100, count );
+      }
+
    }
-   catch(e)
+   catch( e )
    {
-      throw buildException("checkDatas", e)
-   }  
+      throw buildException( "checkDatas", e )
+   }
 }
 
-function afterClear( db, domainName, csName2 )
+function afterClear ( db, domainName, csName2 )
 {
    commDropCS( db, csName2, true, "ignoreNotExist is true" );
    try 
    {
-      commDropDomain( db, domainName);
+      commDropDomain( db, domainName );
    }
    catch( e )
    {
-      throw buildException("dropDomain fail", e, "drop", "success", e); 
+      throw buildException( "dropDomain fail", e, "drop", "success", e );
    }
 }

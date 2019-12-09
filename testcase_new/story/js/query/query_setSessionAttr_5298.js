@@ -5,32 +5,32 @@
 *@testlinkCase: seqDB-5298
 **************************************/
 main();
-function main()
+function main ()
 {
-   if(true == commIsStandalone( db ))
+   if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone");
+      println( "run mode is standalone" );
       return;
    }
-   
+
    //PreferedInstance字段值分别取0、256、y
-   checkInvalidArg(0);
-   checkInvalidArg(256);
-   checkInvalidArg("y");
+   checkInvalidArg( 0 );
+   checkInvalidArg( 256 );
+   checkInvalidArg( "y" );
 }
 
-function checkInvalidArg( argument )
+function checkInvalidArg ( argument )
 {
    try
    {
-      db.setSessionAttr({"PreferedInstance":argument});
+      db.setSessionAttr( { "PreferedInstance": argument } );
       throw "expect failure but succeed.";
    }
-   catch ( e )
+   catch( e )
    {
-      if( e !== -6)
+      if( e !== -6 )
       {
-         throw buildException("checkInvalidArg()", e, "argument is :" + argument, -6, e);
-      }       
+         throw buildException( "checkInvalidArg()", e, "argument is :" + argument, -6, e );
+      }
    }
 }

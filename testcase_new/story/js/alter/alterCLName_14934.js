@@ -1,30 +1,30 @@
 /* *****************************************************************************
 @discretion: test alter clname
-@author£º2018-4-16 wuyan  Init
+@authorï¿½ï¿½2018-4-16 wuyan  Init
 ***************************************************************************** */
-var clName = CHANGEDPREFIX + "_alterclName14934"; 
+var clName = CHANGEDPREFIX + "_alterclName14934";
 
-main( db ); 
-function main( db )
+main( db );
+function main ( db )
 {
    try
    {
       //clean environment before test
-      commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" ); 
-      
+      commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
+
       //create cl
-      var dbcl = commCreateCL( db, COMMCSNAME, clName ); 
-      
+      var dbcl = commCreateCL( db, COMMCSNAME, clName );
+
       //alter clName
-      alterCLName( dbcl ); 
-      
+      alterCLName( dbcl );
+
       //clean
-      commDropCL( db, COMMCSNAME, clName, true, true, 
-      "clear collection in the beginning" ); 
+      commDropCL( db, COMMCSNAME, clName, true, true,
+         "clear collection in the beginning" );
    }
    catch( e )
    {
-      throw e; 
+      throw e;
    }
    finally
    {
@@ -35,19 +35,19 @@ function main( db )
    }
 }
 
-function alterCLName( dbcl )
+function alterCLName ( dbcl )
 {
    try
    {
-      var clFullName = COMMCSNAME + "." + clName; 
-      dbcl.setAttributes( {"Name": clFullName} ); 
-      throw "need throw error"; 
+      var clFullName = COMMCSNAME + "." + clName;
+      dbcl.setAttributes( { "Name": clFullName } );
+      throw "need throw error";
    }
    catch( e )
    {
       if( e != -32 )
       {
-         throw buildException( "check alterCLName", e ); 
+         throw buildException( "check alterCLName", e );
       }
    }
 }

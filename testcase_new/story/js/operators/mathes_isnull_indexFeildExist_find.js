@@ -4,67 +4,67 @@
    2014-4-10 YiBang Ruan  Init
 ***************************************************************************** */
 
-function isnull_normal_Test( db )
+function isnull_normal_Test ( db )
 {
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-               "drop cl in the beginning");
-   var cs = commCreateCS( db, COMMCSNAME, true ) ;
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, false, true ) ;
-   cl.insert({a:null,b:1}) ;
-   cl.insert({a:1,b:2}) ;
-   
+      "drop cl in the beginning" );
+   var cs = commCreateCS( db, COMMCSNAME, true );
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, false, true );
+   cl.insert( { a: null, b: 1 } );
+   cl.insert( { a: 1, b: 2 } );
+
    //create Index
-   cl.createIndex( "ii", {a:1} ) ;
-   
-   record1 = cl.find( { a:{ $isnull:1 } } ) ;
-   record2 = cl.find( { a:{ $isnull:0 } } ) ;
-   
-   e1 = eval( "(" + record1[0] + ")" ) ;
-   e2 = eval( "(" + record2[0] + ")" ) ;
-   
+   cl.createIndex( "ii", { a: 1 } );
+
+   record1 = cl.find( { a: { $isnull: 1 } } );
+   record2 = cl.find( { a: { $isnull: 0 } } );
+
+   e1 = eval( "(" + record1[0] + ")" );
+   e2 = eval( "(" + record2[0] + ")" );
+
    // check the result of match {a:null,b:1}
    if( record1.count() != 1 )
    {
-      println( " wrong match result, record1 count = " + record1.count() ) ;
-      throw -1 ;
+      println( " wrong match result, record1 count = " + record1.count() );
+      throw -1;
    }
    else
    {
       if( e1["b"] != 1 )
       {
-         println( " wrong match result, e1[0]['b'] != 1 , it is " + e1["b"] ) ;
-         throw -1 ;
+         println( " wrong match result, e1[0]['b'] != 1 , it is " + e1["b"] );
+         throw -1;
       }
    }
-   
+
    // check the result of match {a:1,b:2}
    if( record2.count() != 1 )
    {
-      println( " wrong match result, record2 count = " + record2.count() ) ;
-      throw -1 ;
+      println( " wrong match result, record2 count = " + record2.count() );
+      throw -1;
    }
    else
    {
       if( e2["b"] != 2 )
       {
-         println( " wrong match result, e2[0]['b'] != 1 , it is " + e2["b"] ) ;
-         throw -1 ;
+         println( " wrong match result, e2[0]['b'] != 1 , it is " + e2["b"] );
+         throw -1;
       }
    }
 }
 
-function main( db )
+function main ( db )
 {
-   isnull_normal_Test( db ) ;
+   isnull_normal_Test( db );
 }
 
 try
 {
-   main( db ) ;
+   main( db );
 }
 catch( e )
 {
-   println( "isnull_normal_Test failed: " + e ) ;
-   throw e ;
+   println( "isnull_normal_Test failed: " + e );
+   throw e;
 }
 

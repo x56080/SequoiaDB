@@ -12,7 +12,8 @@
  * [main:入口函数]
  */
 main();
-function main(){
+function main ()
+{
 	var mainCl = null;
 	var subCls = [];
 	var data = [];
@@ -22,74 +23,86 @@ function main(){
 		CHANGEDPREFIX + "subcl_10477_1"
 	];
 
-   //check test environment before split
-   try {
-	   //standalone can not split
-	   if( true == commIsStandalone( db ) ) {
-         println( "run mode is standalone" );
-         return;
-      }     
-      //less two groups,can not split
-      allGroupName = getGroupName( db );       
-      if( 1 === allGroupName.length ) {
-         println("--least two groups");
-         return ;
-      }
-   } catch( e ) {
-      throw buildException( "failed init environment" ,e);
-   }
+	//check test environment before split
+	try
+	{
+		//standalone can not split
+		if( true == commIsStandalone( db ) )
+		{
+			println( "run mode is standalone" );
+			return;
+		}
+		//less two groups,can not split
+		allGroupName = getGroupName( db );
+		if( 1 === allGroupName.length )
+		{
+			println( "--least two groups" );
+			return;
+		}
+	} catch( e )
+	{
+		throw buildException( "failed init environment", e );
+	}
 
 	//drop subcl and maincl
 	commDropCL( db, COMMCSNAME, subClNames[0], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, subClNames[1], true, true, "clean sub collection" );
 	commDropCL( db, COMMCSNAME, mainClName, true, true, "clean main collection" );
-   //create maincl for range split
-   db.setSessionAttr( { PreferedInstance: "M" } );
-   var mainCLOption = { IsMainCL:true, ShardingKey:{ a:1 }, ShardingType: "range", ReplSize:0, Compressed:true };
-   mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
-   var subCLOptions = [
-   	{ ReplSize:0, Compressed:true },
-   	{ ReplSize:0, Compressed:true, ShardingKey:{a:1}, ShardingType:"hash", Partition:16 }
-   ];
-   //create subcl
-   subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[0], subCLOptions[0], true, true ) );
-   subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[1], subCLOptions[1], true, true ) );
-   //attach subcl
-   attachCL( mainCl, COMMCSNAME +"."+ subClNames[0], { LowBound:{a:0},  UpBound:{a:100} } );
-   attachCL( mainCl, COMMCSNAME +"."+ subClNames[1], { LowBound:{a:100},UpBound:{a:200} } );
+	//create maincl for range split
+	db.setSessionAttr( { PreferedInstance: "M" } );
+	var mainCLOption = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
+	mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
+	var subCLOptions = [
+		{ ReplSize: 0, Compressed: true },
+		{ ReplSize: 0, Compressed: true, ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 16 }
+	];
+	//create subcl
+	subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[0], subCLOptions[0], true, true ) );
+	subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[1], subCLOptions[1], true, true ) );
+	//attach subcl
+	attachCL( mainCl, COMMCSNAME + "." + subClNames[0], { LowBound: { a: 0 }, UpBound: { a: 100 } } );
+	attachCL( mainCl, COMMCSNAME + "." + subClNames[1], { LowBound: { a: 100 }, UpBound: { a: 200 } } );
 
-   //init data
-	try {
-		for (var i = 0; i < 200; i++) {
-			data.push( {_id:i,name:"name_"+i,a:i} );
+	//init data
+	try
+	{
+		for( var i = 0; i < 200; i++ )
+		{
+			data.push( { _id: i, name: "name_" + i, a: i } );
 		}
 		mainCl.insert( data );
 		//split cl
-		ClSplitOneTimes( COMMCSNAME, subClNames[1], 50, null ); 
-	} catch(e) {
-		throw buildException("failed to init 200 records data for mainCl", e);
+		ClSplitOneTimes( COMMCSNAME, subClNames[1], 50, null );
+	} catch( e )
+	{
+		throw buildException( "failed to init 200 records data for mainCl", e );
 	}
 
 
-	var updateCond = {a:50};	//更新条件
+	var updateCond = { a: 50 };	//更新条件
 	//更新的_id值和别的重复，要更新失败
-	try {
-		mainCl.update( {$set:{_id:51}}, updateCond );
-		var _id = mainCl.find(updateCond).next().toObj()._id;
-		throw buildException("update id test", new Error(), "update id is duplicate", "update failed", "update success");
-	} catch (e) {
-		if(e !== -38) {
-			throw buildException("update id test", new Error(), "update id is duplicate", "update failed and errorcode = -38", "update failed and errorcode != -38");
+	try
+	{
+		mainCl.update( { $set: { _id: 51 } }, updateCond );
+		var _id = mainCl.find( updateCond ).next().toObj()._id;
+		throw buildException( "update id test", new Error(), "update id is duplicate", "update failed", "update success" );
+	} catch( e )
+	{
+		if( e !== -38 )
+		{
+			throw buildException( "update id test", new Error(), "update id is duplicate", "update failed and errorcode = -38", "update failed and errorcode != -38" );
 		}
 	}
 
 	//更新的_id值和别的不重复，要更新成功，
-	try {
-		mainCl.update( {$set:{_id:251}}, updateCond );
-		var _id = mainCl.find(updateCond).next().toObj()._id;
-		if (_id !== 251) flag_1 = false;
-	} catch (e) {
- 		throw e;
+	try
+	{
+		mainCl.update( { $set: { _id: 251 } }, updateCond );
+		var _id = mainCl.find( updateCond ).next().toObj()._id;
+		if( _id !== 251 ) flag_1 = false;
+	} catch( e )
+	{
+		throw e;
 	}
 
 	//drop subcl and maincl

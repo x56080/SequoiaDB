@@ -7,91 +7,91 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME + "_sdbexprt13616" ;
-var clname = COMMCLNAME + "_sdbexprt13616_1" ;
-var clname1 = COMMCLNAME + "_sdbexprt13616_2" ;
+var csname = COMMCSNAME + "_sdbexprt13616";
+var clname = COMMCLNAME + "_sdbexprt13616_1";
+var clname1 = COMMCLNAME + "_sdbexprt13616_2";
 
-main() ;
+main();
 
-function main()
-{  
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
-   cl.insert( { a: 1, b: 1 } ) ;
-   cl1.insert( { a: 2, b: 2 } ) ;
-   
-   testExprtConf1() ;  // test export with diff cl same fields
-   testExprtConf2() ;  // test export with diff cl diff fields
-   
-   commDropCS( db, csname ) ;
+function main ()
+{
+   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl1 = commCreateCL( db, csname, clname1, 0 );
+   cl.insert( { a: 1, b: 1 } );
+   cl1.insert( { a: 2, b: 2 } );
+
+   testExprtConf1();  // test export with diff cl same fields
+   testExprtConf2();  // test export with diff cl diff fields
+
+   commDropCS( db, csname );
 }
 
-function testExprtConf1()
+function testExprtConf1 ()
 {
    // export to conf with fields cl:a
-   var conffile = workDir + "sdbexprt13616.conf" ;
-   cmd.run( "rm -rf " + conffile ) ;
+   var conffile = workDir + "sdbexprt13616.conf";
+   cmd.run( "rm -rf " + conffile );
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " --cscl " + csname +
-                 " --fields " + csname + "." + clname + ":a" +
-                 " --type csv" +
-                 " --genconf " + conffile ;
-   testRunCommand( command ) ;
-   
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " --cscl " + csname +
+      " --fields " + csname + "." + clname + ":a" +
+      " --type csv" +
+      " --genconf " + conffile;
+   testRunCommand( command );
+
    // export with conf file and fields cl1:a
-   var csvDir = workDir + "13616/" ;
-   cmd.run( "rm -rf " + csvDir ) ;
-   commMakeDir( "localhost", csvDir ) ;
+   var csvDir = workDir + "13616/";
+   cmd.run( "rm -rf " + csvDir );
+   commMakeDir( "localhost", csvDir );
    command = installPath + "bin/sdbexprt" +
-             " --dir " + csvDir +
-             " --conf " + conffile +
-             " --fields " + csname + "." + clname1 + ":a" ;
-   testRunCommand( command ) ;
-   
-   var csvfile = csvDir + csname + "." + clname + ".csv" ;
-   var content = "a\n1\n" ;
-   checkFileContent( csvfile, content ) ;
-   csvfile = csvDir + csname + "." + clname1 + ".csv" ;
-   content = "a\n2\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + conffile ) ;
-   cmd.run( "rm -rf " + csvDir ) ; 
+      " --dir " + csvDir +
+      " --conf " + conffile +
+      " --fields " + csname + "." + clname1 + ":a";
+   testRunCommand( command );
+
+   var csvfile = csvDir + csname + "." + clname + ".csv";
+   var content = "a\n1\n";
+   checkFileContent( csvfile, content );
+   csvfile = csvDir + csname + "." + clname1 + ".csv";
+   content = "a\n2\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + conffile );
+   cmd.run( "rm -rf " + csvDir );
 }
 
-function testExprtConf2()
+function testExprtConf2 ()
 {
    // export to conf with fields cl:a
-   var conffile = workDir + "sdbexprt13617.conf" ;
-   cmd.run( "rm -rf " + conffile ) ;
+   var conffile = workDir + "sdbexprt13617.conf";
+   cmd.run( "rm -rf " + conffile );
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " --cscl " + csname +
-                 " --genconf " + conffile +
-                 " --fields " + csname + "." + clname + ":a" +
-                 " --type csv" ;          
-   testRunCommand( command ) ;
-   
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " --cscl " + csname +
+      " --genconf " + conffile +
+      " --fields " + csname + "." + clname + ":a" +
+      " --type csv";
+   testRunCommand( command );
+
    // export with conf and fields cl1:b
-   var csvDir = workDir + "13617/" ;
-   cmd.run( "rm -rf " + csvDir ) ;
-   commMakeDir( "localhost", csvDir ) ;
+   var csvDir = workDir + "13617/";
+   cmd.run( "rm -rf " + csvDir );
+   commMakeDir( "localhost", csvDir );
    command = installPath + "bin/sdbexprt" +
-             " --dir " + csvDir +
-             " --conf " + conffile +
-             " --fields " + csname + "." + clname1 + ":b" ;
-   testRunCommand( command ) ;
-   
-   var csvfile = csvDir + csname + "." + clname + ".csv" ;
-   var content = "a\n1\n" ;
-   checkFileContent( csvfile, content ) ;
-   csvfile = csvDir + csname + "." + clname1 + ".csv" ;
-   content = "b\n2\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + conffile ) ;
-   cmd.run( "rm -rf " + csvDir ) ;
+      " --dir " + csvDir +
+      " --conf " + conffile +
+      " --fields " + csname + "." + clname1 + ":b";
+   testRunCommand( command );
+
+   var csvfile = csvDir + csname + "." + clname + ".csv";
+   var content = "a\n1\n";
+   checkFileContent( csvfile, content );
+   csvfile = csvDir + csname + "." + clname1 + ".csv";
+   content = "b\n2\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + conffile );
+   cmd.run( "rm -rf " + csvDir );
 }

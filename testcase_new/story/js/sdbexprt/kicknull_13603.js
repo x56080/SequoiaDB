@@ -6,65 +6,65 @@
 * @author      : Liang XueWang
 * 
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13603" ;
-var docs = [ { a: 1, b: 1 }, { a: 2, b: null } ] ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13603";
+var docs = [{ a: 1, b: 1 }, { a: 2, b: null }];
 
-main() ;
+main();
 
-function main()
-{  
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   cl.insert( docs ) ;
-   
-   testExprtKicknull1() ;    // test kicknull true
-   testExprtKicknull2() ;    // test kicknull false
-   
-   commDropCL( db, csname, clname ) ;
+function main ()
+{
+   var cl = commCreateCL( db, csname, clname, 0 );
+   cl.insert( docs );
+
+   testExprtKicknull1();    // test kicknull true
+   testExprtKicknull2();    // test kicknull false
+
+   commDropCL( db, csname, clname );
 }
 
-function testExprtKicknull1()
+function testExprtKicknull1 ()
 {
-   var csvfile = workDir + "sdbexprt13603.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13603.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --kicknull true" +
-                 " --fields a,b" +
-                 " --sort '{ _id: 1 }'" +
-                 " --type csv" ;                
-   testRunCommand( command ) ;
-   
-   var content = "a,b\n1,1\n2,\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --kicknull true" +
+      " --fields a,b" +
+      " --sort '{ _id: 1 }'" +
+      " --type csv";
+   testRunCommand( command );
+
+   var content = "a,b\n1,1\n2,\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtKicknull2()
+function testExprtKicknull2 ()
 {
-   var csvfile = workDir + "sdbexprt13603.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvfile = workDir + "sdbexprt13603.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --file " + csvfile +
-                 " --kicknull false" +
-                 " --fields a,b" +
-                 " --sort '{ _id: 1 }'" +
-                 " --type csv" ;                
-   testRunCommand( command ) ;
-   
-   var content = "a,b\n1,1\n2,null\n" ;
-   checkFileContent( csvfile, content ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --kicknull false" +
+      " --fields a,b" +
+      " --sort '{ _id: 1 }'" +
+      " --type csv";
+   testRunCommand( command );
+
+   var content = "a,b\n1,1\n2,null\n";
+   checkFileContent( csvfile, content );
+
+   cmd.run( "rm -rf " + csvfile );
 }

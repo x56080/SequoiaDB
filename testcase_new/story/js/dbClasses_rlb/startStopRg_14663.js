@@ -18,7 +18,7 @@ catch( e )
 }
 ;
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
@@ -34,30 +34,30 @@ function main()
    }
    var group1 = groups[0];
    var group2 = groups[1];
-   
+
    // stop group1 group2
    db.stopRG( group1, group2 );
-   
+
    // check stop
    checkGroupStatus( db, group1, "stop" );
    checkGroupStatus( db, group2, "stop" );
-   
+
    // start group1 group2
    db.startRG( group1, group2 );
-   
+
    // check start
    checkGroupStatus( db, group1, "start" );
    checkGroupStatus( db, group2, "start" );
-   
+
    // wait primary choosed
    waitPrimary( db, group1 );
    waitPrimary( db, group2 );
 }
 
-function checkGroupStatus( db, groupname, status )
+function checkGroupStatus ( db, groupname, status )
 {
    var nodes = commGetGroupNodes( db, groupname );
-   for( var i = 0; i < nodes.length; i++)
+   for( var i = 0; i < nodes.length; i++ )
    {
       try
       {
@@ -66,23 +66,23 @@ function checkGroupStatus( db, groupname, status )
       }
       catch( e )
       {
-         if( status === "stop" &&( e === -15 || e === -79 ) )
-         ; // when group stopped, connect throw -15 or -79, do nothing
+         if( status === "stop" && ( e === -15 || e === -79 ) )
+            ; // when group stopped, connect throw -15 or -79, do nothing
          else
          {
-            var expectErr =( status === "stop" )? -15 : 0;
+            var expectErr = ( status === "stop" ) ? -15 : 0;
             throw new Error( "check node: " + nodes[i].HostName + ":" + nodes[i].svcname + " status failed, e:" + e );
          }
       }
    }
-   
+
 }
 
-function waitPrimary( db, groupname )
+function waitPrimary ( db, groupname )
 {
    //定义最长无主时间，超过600s就抛错
    var timeOut = 60 * 10;
-   var i=0;
+   var i = 0;
    var isPrimary = false;
    do
    {
@@ -104,7 +104,7 @@ function waitPrimary( db, groupname )
          {
             throw new Error( e );
          }
-         
+
       }
    }
    while( !isPrimary );

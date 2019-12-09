@@ -8,87 +8,87 @@
 // 测试获取Oma安装文件和安装信息
 OmaTest.prototype.testOmaInstall = function()
 {
-   this.testInit() ;
-   var remote = new Remote( this.hostname, this.svcname ) ;
-   var cmd = remote.getCmd() ;
-   
+   this.testInit();
+   var remote = new Remote( this.hostname, this.svcname );
+   var cmd = remote.getCmd();
+
    // 测试getOmaInstallFile
-   var file = this.oma.getOmaInstallFile() ;
+   var file = this.oma.getOmaInstallFile();
    if( file !== "/etc/default/sequoiadb" )
    {
-      throw buildException( "testOmaInstall", null, "get oma install file " + this, 
-                            "/etc/default/sequoiadb", file ) ;
+      throw buildException( "testOmaInstall", null, "get oma install file " + this,
+         "/etc/default/sequoiadb", file );
    }
-   
+
    // 测试getOmaInstallInfo
    try
    {
-      var InstallInfo = this.oma.getOmaInstallInfo().toObj() ;
-      var InstallFileContent = cmd.run( "cat /etc/default/sequoiadb" ).split( "\n" ) ;
-      checkOmaInstallInfo( InstallInfo, InstallFileContent ) ;
+      var InstallInfo = this.oma.getOmaInstallInfo().toObj();
+      var InstallFileContent = cmd.run( "cat /etc/default/sequoiadb" ).split( "\n" );
+      checkOmaInstallInfo( InstallInfo, InstallFileContent );
    }
    catch( e )
    {
       if( e !== -4 )
       {
-         throw buildException( "testOmaInstall", e, 
-               "get oma install info " + this, 0, e ) ;
+         throw buildException( "testOmaInstall", e,
+            "get oma install info " + this, 0, e );
       }
    }
-   
 
-   this.oma.close() ;
-   remote.close() ;
+
+   this.oma.close();
+   remote.close();
 }
 
 /******************************************************************************
 *@Description : check getOmaInstallInfo
 *@author      : Liang XueWang              
 ******************************************************************************/
-function checkOmaInstallInfo( info, content )
+function checkOmaInstallInfo ( info, content )
 {
-   var keys = [ "NAME", "SDBADMIN_USER", "INSTALL_DIR", "MD5" ] ;
-   for( var i = 0;i < keys.length;i++ )
+   var keys = ["NAME", "SDBADMIN_USER", "INSTALL_DIR", "MD5"];
+   for( var i = 0; i < keys.length; i++ )
    {
-      var found = false ;
-      for( var j = 0;j < content.length;j++ )
+      var found = false;
+      for( var j = 0; j < content.length; j++ )
       {
-         content[j] = content[j].replace( / /g,"" ) ;
-         var ind = content[j].indexOf( keys[i] ) ;
+         content[j] = content[j].replace( / /g, "" );
+         var ind = content[j].indexOf( keys[i] );
          if( ind === -1 )
-            continue ;
-         found = true ;
-         var value1 = content[j].slice( ind+keys[i].length+1 ).toLowerCase() ;
-         var value2 = info[keys[i]].toString().toLowerCase() ;
+            continue;
+         found = true;
+         var value1 = content[j].slice( ind + keys[i].length + 1 ).toLowerCase();
+         var value2 = info[keys[i]].toString().toLowerCase();
          if( value1 !== value2 )
          {
-            throw buildException( "checkOmaInstallInfo", null, 
-                  "check key " + keys[i], value1, value2 ) ;
-         }   
+            throw buildException( "checkOmaInstallInfo", null,
+               "check key " + keys[i], value1, value2 );
+         }
       }
       if( found === false && info[keys[i]] !== "" )
       {
          throw buildException( "checkOmaInstallInfo", null,
-               "check key " + keys[i], "", info.keys[i]  ) ; 
-      }  
+            "check key " + keys[i], "", info.keys[i] );
+      }
    }
 }
 
-function main()
+function main ()
 {
    // 获取本地和远程主机
-   var localhost = toolGetLocalhost() ;
-   var remotehost = toolGetRemotehost() ;
-   
-   var localOma = new OmaTest( localhost, CMSVCNAME ) ;
-   var remoteOma = new OmaTest( remotehost, CMSVCNAME ) ;
-   var staticOma = new OmaTest() ;
-   
-   var omas = [ localOma, remoteOma ] ;
-   for( var i = 0;i < omas.length;i++ )
+   var localhost = toolGetLocalhost();
+   var remotehost = toolGetRemotehost();
+
+   var localOma = new OmaTest( localhost, CMSVCNAME );
+   var remoteOma = new OmaTest( remotehost, CMSVCNAME );
+   var staticOma = new OmaTest();
+
+   var omas = [localOma, remoteOma];
+   for( var i = 0; i < omas.length; i++ )
    {
       // 测试获取Oma安装文件和安装信息
-      omas[i].testOmaInstall() ;
+      omas[i].testOmaInstall();
    }
 }
 

@@ -8,26 +8,26 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
    throw e;
 }
-function main()
+function main ()
 {
    var fields = ["TaskName", "TaskID", "Time", "TotalContexts", "TotalDataRead", "TotalIndexRead", "TotalDataWrite", "TotalIndexWrite", "TotalUpdate", "TotalDelete", "TotalInsert", "TotalSelect", "TotalRead", "TotalWrite"];
    var cursor = db.snapshot( SDB_SNAP_SVCTASKS );
    while( cursor.next() )
    {
       var obj = cursor.current().toObj();
-      for(var index in fields)
+      for( var index in fields )
       {
-         if(!obj.hasOwnProperty(fields[index]))
+         if( !obj.hasOwnProperty( fields[index] ) )
          {
-            throw new Error(fields[index] + "does not exist in own properties!");
+            throw new Error( fields[index] + "does not exist in own properties!" );
          }
       }
    }

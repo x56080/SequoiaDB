@@ -4,36 +4,36 @@
 *@createdate:  2016.4.28,
 *@update:      assign the find condition (2016.7.9 by zhaoyu)
 **************************************/
-function main()
-{ 
-   //clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,"drop CL in the beginning" ) ;
-   
-   //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
-   
-   //insert decimal data
-	var doc = [{a:{$decimal:"9223372036854775807198410"}},
-	 	        {a:{$decimal:"-9223372036854775808197101"}},
-	           {a:{$decimal:"-1.7E+398"}},
-	           {a:{$decimal:"1.7E+378"}},
-	           {a:{$decimal:"-4.94065645841246544E-380"}},
-	           {a:{$decimal:"4.94065645841246544E-390"}},
-	           {a:{$decimal:"9223372036854775807198411",$precision:[1000,100]}},
-	           {a:{$decimal:"-9223372036854775808197102",$precision:[1000,100]}},
-	           {a:{$decimal:"-1.71E+398",$precision:[1000,100]}},
-	           {a:{$decimal:"1.71E+378",$precision:[1000,100]}},
-	           {a:{$decimal:"-4.964065645841246544E-380",$precision:[1000,999]}},
-	           {a:{$decimal:"4.964065645841246544E-390",$precision:[1000,999]}},
-	           {a:123}];
-	insertData(dbcl, doc);
-   
-   //create index 
-   commCreateIndex( dbcl, "aIndex", {a:1}, true )
-   
-   //find and check result
-   var expRecs = [{a:{$decimal:"9223372036854775807198410"}}];
-   checkResult( dbcl, {a:{$decimal:"9223372036854775807198410"}}, null, expRecs, {_id:1} );
-   }
+function main ()
+{
+	//clean environment before test
+	commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
+
+	//create cl
+	var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+
+	//insert decimal data
+	var doc = [{ a: { $decimal: "9223372036854775807198410" } },
+	{ a: { $decimal: "-9223372036854775808197101" } },
+	{ a: { $decimal: "-1.7E+398" } },
+	{ a: { $decimal: "1.7E+378" } },
+	{ a: { $decimal: "-4.94065645841246544E-380" } },
+	{ a: { $decimal: "4.94065645841246544E-390" } },
+	{ a: { $decimal: "9223372036854775807198411", $precision: [1000, 100] } },
+	{ a: { $decimal: "-9223372036854775808197102", $precision: [1000, 100] } },
+	{ a: { $decimal: "-1.71E+398", $precision: [1000, 100] } },
+	{ a: { $decimal: "1.71E+378", $precision: [1000, 100] } },
+	{ a: { $decimal: "-4.964065645841246544E-380", $precision: [1000, 999] } },
+	{ a: { $decimal: "4.964065645841246544E-390", $precision: [1000, 999] } },
+	{ a: 123 }];
+	insertData( dbcl, doc );
+
+	//create index 
+	commCreateIndex( dbcl, "aIndex", { a: 1 }, true )
+
+	//find and check result
+	var expRecs = [{ a: { $decimal: "9223372036854775807198410" } }];
+	checkResult( dbcl, { a: { $decimal: "9223372036854775807198410" } }, null, expRecs, { _id: 1 } );
+}
 
 main();

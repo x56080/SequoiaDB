@@ -7,7 +7,7 @@
 
 main();
 
-function main()
+function main ()
 {
    println( "\n---Start testing" );
 
@@ -19,69 +19,84 @@ function main()
 
    //splitting need two groups at least
    allGroupName = getGroupName( db );
-   if( 1 === allGroupName.length ) {
-      println("\n---one Group cannot support splitting");
-      return ;
+   if( 1 === allGroupName.length )
+   {
+      println( "\n---one Group cannot support splitting" );
+      return;
    }
 
    var csName = COMMCSNAME;
    var mainCLName = COMMCLNAME + "_mcl";
-   var mclKeyPM = [ 1, 1, 1 ]; 
+   var mclKeyPM = [1, 1, 1];
 
    // unset variable
-   commDropCL( db, csName, mainCLName, true, true,"Fail to drop CL in the beginning" ) ;
+   commDropCL( db, csName, mainCLName, true, true, "Fail to drop CL in the beginning" );
 
    // create mainCL and subCL
    db.setSessionAttr( { PreferedInstance: "M" } );
    var mainCL = createMainCL( csName, mainCLName, mclKeyPM );
    var subCLName = COMMCLNAME + "_scl";
-   var sclKeyPM = [ -1, -1, -1];
-   var lowBounds = [ 0, 100, 600 ];
-   var upBounds = [ 100, 200, 800 ];
+   var sclKeyPM = [-1, -1, -1];
+   var lowBounds = [0, 100, 600];
+   var upBounds = [100, 200, 800];
    createSubCL( csName, subCLName, sclKeyPM );
    attachCL( csName, mainCL, subCLName, lowBounds, upBounds );
    var startCondition = { Partition: 2048 };
    ClSplitOneTimes( csName, subCLName, startCondition, null );
 
    // all values below are in bound
-   var allMclKeysRecs = [ { MCLKEY_0 : 50,
-                            MCLKEY_1 : 150,
-                            MCLKEY_2 : 700 } ];
+   var allMclKeysRecs = [{
+      MCLKEY_0: 50,
+      MCLKEY_1: 150,
+      MCLKEY_2: 700
+   }];
    insertRecs( mainCL, allMclKeysRecs, true, "all mainCL keys" );
 
-   var allSclKeysRecs = [ { MCLKEY_0 : 50,
-                            MCLKEY_1 : 150,
-                            MCLKEY_2 : 700,
-                            SCLKEY_0 : 357,
-                            SCLKEY_1 : 12,
-                            SCLKEY_2 : 5637 } ];
+   var allSclKeysRecs = [{
+      MCLKEY_0: 50,
+      MCLKEY_1: 150,
+      MCLKEY_2: 700,
+      SCLKEY_0: 357,
+      SCLKEY_1: 12,
+      SCLKEY_2: 5637
+   }];
    insertRecs( mainCL, allSclKeysRecs, true, "all mainCL and subCL keys" );
 
    var partMclKeysRecs = [// a valid record
-                           { MCLKEY_0 : 50,  
-                             MCLKEY_2 : 700 },
-                           // a invalid record
-                           { MCLKEY_1 : 150, 
-                             MCLKEY_2 : 700,
-                             SCLKEY_0 : 357,
-                             SCLKEY_1 : 12, } ];
+      {
+         MCLKEY_0: 50,
+         MCLKEY_2: 700
+      },
+      // a invalid record
+      {
+         MCLKEY_1: 150,
+         MCLKEY_2: 700,
+         SCLKEY_0: 357,
+         SCLKEY_1: 12,
+      }];
    insertRecs( mainCL, partMclKeysRecs[0], true, "part of mainCL keys" );
    insertRecs( mainCL, partMclKeysRecs[1], true, "part of mainCL keys" );
 
-   var partSclKeysRecs = [ { MCLKEY_0 : 50,
-                             MCLKEY_1 : 150,
-                             MCLKEY_2 : 700,
-                             SCLKEY_0 : 357,
-                             SCLKEY_1 : 12, } ];
+   var partSclKeysRecs = [{
+      MCLKEY_0: 50,
+      MCLKEY_1: 150,
+      MCLKEY_2: 700,
+      SCLKEY_0: 357,
+      SCLKEY_1: 12,
+   }];
    insertRecs( mainCL, partSclKeysRecs, true, "all mainCL keys and part of subCL keys" );
 
-   var onlySclKeysRecs = [ { SCLKEY_0 : 357,
-                             SCLKEY_1 : 12,
-                             SCLKEY_2 : 689 } ];
+   var onlySclKeysRecs = [{
+      SCLKEY_0: 357,
+      SCLKEY_1: 12,
+      SCLKEY_2: 689
+   }];
    insertRecs( mainCL, onlySclKeysRecs, false, "only subCL keys" );
 
-   var noShardKeyRecs = [ { "llbecsd" : 100,
-                            "jasdf8ow" : 559 } ]; // the key is designed casually
+   var noShardKeyRecs = [{
+      "llbecsd": 100,
+      "jasdf8ow": 559
+   }]; // the key is designed casually
    insertRecs( mainCL, noShardKeyRecs, false, "no any sharding key" );
 
    var validRecs = [];
@@ -93,37 +108,51 @@ function main()
    println( "\n---End testing" );
 }
 
-function createMainCL( csName, mainCLName, mclKeyPM )
+function createMainCL ( csName, mainCLName, mclKeyPM )
 {
-   var options = { ShardingKey : { MCLKEY_0 : mclKeyPM[0],
-                                   MCLKEY_1 : mclKeyPM[1],
-                                   MCLKEY_2 : mclKeyPM[2] },
-                   ShardingType: "range",
-                   IsMainCL : true };
+   var options = {
+      ShardingKey: {
+         MCLKEY_0: mclKeyPM[0],
+         MCLKEY_1: mclKeyPM[1],
+         MCLKEY_2: mclKeyPM[2]
+      },
+      ShardingType: "range",
+      IsMainCL: true
+   };
 
    mainCL = commCreateCLByOption( db, csName, mainCLName, options, false, true, "Failed to create mainCL." );
    return mainCL;
 }
 
-function createSubCL( csName, subCLName, sclKeyPM )
+function createSubCL ( csName, subCLName, sclKeyPM )
 {
-   var options = { ShardingKey : { SCLKEY_0 : sclKeyPM[0],
-                                   SCLKEY_1 : sclKeyPM[1],
-                                   SCLKEY_2 : sclKeyPM[2] },
-                                   ShardingType :  "hash" };
+   var options = {
+      ShardingKey: {
+         SCLKEY_0: sclKeyPM[0],
+         SCLKEY_1: sclKeyPM[1],
+         SCLKEY_2: sclKeyPM[2]
+      },
+      ShardingType: "hash"
+   };
 
    subCL = commCreateCLByOption( db, csName, subCLName, options, false, true, "Failed to create subCL." );
    return subCL;
 }
 
-function attachCL( csName, mainCL, subCLName, lowBounds, upBounds )
+function attachCL ( csName, mainCL, subCLName, lowBounds, upBounds )
 {
-   var options = { LowBound:{ MCLKEY_0 : lowBounds[0],
-                              MCLKEY_1 : lowBounds[1],
-                              MCLKEY_2 : lowBounds[2], },
-                  UpBound:{ MCLKEY_0 : upBounds[0],
-                            MCLKEY_1 : upBounds[1],
-                            MCLKEY_2 : upBounds[2], } };
+   var options = {
+      LowBound: {
+         MCLKEY_0: lowBounds[0],
+         MCLKEY_1: lowBounds[1],
+         MCLKEY_2: lowBounds[2],
+      },
+      UpBound: {
+         MCLKEY_0: upBounds[0],
+         MCLKEY_1: upBounds[1],
+         MCLKEY_2: upBounds[2],
+      }
+   };
 
    try
    {
@@ -135,7 +164,7 @@ function attachCL( csName, mainCL, subCLName, lowBounds, upBounds )
    }
 }
 
-function insertRecs( mainCL, recs, isValid, keyMsg )
+function insertRecs ( mainCL, recs, isValid, keyMsg )
 {
    try
    {
@@ -155,7 +184,7 @@ function insertRecs( mainCL, recs, isValid, keyMsg )
    }
 }
 
-function checkResult( mainCL, validRecs )
+function checkResult ( mainCL, validRecs )
 {
    println( "\n---Begin to check records." );
    var rc = mainCL.find().sort( { _id: 1 } );

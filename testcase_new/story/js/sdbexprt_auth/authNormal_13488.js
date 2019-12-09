@@ -4,80 +4,80 @@
 *                
 * @author      : Liang XueWang 
 *******************************************************************/
-var username = "sequoiadb" ;
-var password = "sequoiadb" ;
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13488" ;
-var doc = { a: 1 } ;
-var csvContent = "a\n1\n" ;
-var jsonContent = "{ \"a\": 1 }\n" ;
+var username = "sequoiadb";
+var password = "sequoiadb";
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13488";
+var doc = { a: 1 };
+var csvContent = "a\n1\n";
+var jsonContent = "{ \"a\": 1 }\n";
 
-main() ;
+main();
 
-function main()
-{  
+function main ()
+{
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone, can't create user" ) ;
-      return ;
+      println( "Run mode is standalone, can't create user" );
+      return;
    }
    try
    {
-      db.createUsr( username, password ) ;
-      var cl = commCreateCL( db, csname, clname, 0 ) ;
-      cl.insert( doc ) ;
-      testExprtCsv() ;
-      testExprtJson() ;
-      commDropCL( db, csname, clname ) ;
+      db.createUsr( username, password );
+      var cl = commCreateCL( db, csname, clname, 0 );
+      cl.insert( doc );
+      testExprtCsv();
+      testExprtJson();
+      commDropCL( db, csname, clname );
    }
    catch( e )
    {
-      throw e ;
+      throw e;
    }
    finally
    {
-      db.dropUsr( username, password ) ;
+      db.dropUsr( username, password );
    }
 }
 
-function testExprtCsv()
+function testExprtCsv ()
 {
-   var csvfile = workDir + "sdbexprt13488.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   var command = installPath + "bin/sdbexprt" + 
-                 " -s " + COORDHOSTNAME + 
-                 " -p " + COORDSVCNAME + 
-                 " -u " + username + 
-                 " -w " + password + 
-                 " -c " + csname + 
-                 " -l " + clname + 
-                 " --file " + csvfile + 
-                 " --type csv" + 
-                 " --fields a" ;
-   testRunCommand( command ) ;
+   var csvfile = workDir + "sdbexprt13488.csv";
+   cmd.run( "rm -rf " + csvfile );
+   var command = installPath + "bin/sdbexprt" +
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -u " + username +
+      " -w " + password +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --type csv" +
+      " --fields a";
+   testRunCommand( command );
 
-   checkFileContent( csvfile, csvContent ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+   checkFileContent( csvfile, csvContent );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprtJson()
+function testExprtJson ()
 {
-   var jsonfile = workDir + "sdbexprt13488.json" ;
-   cmd.run( "rm -rf " + jsonfile ) ;
-   var command = installPath + "bin/sdbexprt" + 
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -u " + username +
-                 " -w " + password +
-                 " -c " + csname + 
-                 " -l " + clname + 
-                 " --type json" + 
-                 " --file " + jsonfile + 
-                 " --fields a" ;
-   testRunCommand( command ) ;
-   
-   checkFileContent( jsonfile, jsonContent ) ;
-   
-   cmd.run( "rm -rf " + jsonfile ) ;
+   var jsonfile = workDir + "sdbexprt13488.json";
+   cmd.run( "rm -rf " + jsonfile );
+   var command = installPath + "bin/sdbexprt" +
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -u " + username +
+      " -w " + password +
+      " -c " + csname +
+      " -l " + clname +
+      " --type json" +
+      " --file " + jsonfile +
+      " --fields a";
+   testRunCommand( command );
+
+   checkFileContent( jsonfile, jsonContent );
+
+   cmd.run( "rm -rf " + jsonfile );
 }

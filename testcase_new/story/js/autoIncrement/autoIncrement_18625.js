@@ -3,43 +3,47 @@
 @author yinzhen
 @date 2019-7-4
 ******************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("STANDALONE MODE");
+      println( "STANDALONE MODE" );
       return;
-   } 
-    
+   }
+
    var clName = COMMCLNAME + "_18625";
    commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCSNAME, clName);
-   cl.createAutoIncrement([{"Field":"studentID1"}, {"Field":"studentID2"}, {"Field":"studentID3"}, {"Field":"studentID4"}]);
-   
+   var cl = commCreateCL( db, COMMCSNAME, clName );
+   cl.createAutoIncrement( [{ "Field": "studentID1" }, { "Field": "studentID2" }, { "Field": "studentID3" }, { "Field": "studentID4" }] );
+
    // 使用内置SQL语句查询 $LIST_SEQUENCES
-   var cur = db.exec("select * from $LIST_SEQUENCES");
+   var cur = db.exec( "select * from $LIST_SEQUENCES" );
    var autoIncreNames = [];
-   while(cur.next()){
+   while( cur.next() )
+   {
       var autoIncreName = cur.current().toObj()["Name"];
-      autoIncreNames.push(autoIncreName);
+      autoIncreNames.push( autoIncreName );
    }
-   
+
    // 查看快照中自增字段信息
-   cur = db.snapshot(8, {Name:COMMCSNAME + "." + clName});
+   cur = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
    var autoIncres = cur.current().toObj()["AutoIncrement"];
    var clAutoIncreNames = [];
-   for (var i in autoIncres){
+   for( var i in autoIncres )
+   {
       var clAutoName = autoIncres[i]["SequenceName"];
-      clAutoIncreNames.push(clAutoName);
+      clAutoIncreNames.push( clAutoName );
    }
-   
-   for(var i in clAutoIncreNames){
+
+   for( var i in clAutoIncreNames )
+   {
       var tmpName = clAutoIncreNames[i];
-      if(autoIncreNames.indexOf(tmpName) == -1){
-         throw new Error("indexOf(tempName) is -1 but is " + autoIncreNames.indexOf(tmpName));
+      if( autoIncreNames.indexOf( tmpName ) == -1 )
+      {
+         throw new Error( "indexOf(tempName) is -1 but is " + autoIncreNames.indexOf( tmpName ) );
       }
    }
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
@@ -47,11 +51,11 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

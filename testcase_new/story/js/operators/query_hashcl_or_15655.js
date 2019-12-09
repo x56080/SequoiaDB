@@ -4,18 +4,18 @@
  * Date:          2018.08.21
  * Testlink:      seqDB-15655
 **************************************/
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
       println( "skip standalone environment" );
-      return ;
+      return;
    }
 
    if( 2 > commGetGroupsNum( db ) )
    {
       println( "group less than 2" );
-      return ;
+      return;
    }
 
    // get src and dest group
@@ -24,20 +24,20 @@ function main()
    var dstGroupName = groups[1][0].GroupName;
 
    var csName = COMMCSNAME;
-   commCreateCS( db, csName, true );  
+   commCreateCS( db, csName, true );
 
    var clName = "cl15655";
-   var options = {Group: srcGroupName, ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0};
+   var options = { Group: srcGroupName, ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 };
    var cl = commCreateCLByOption( db, csName, clName, options, true );
-      
+
    cl.split( srcGroupName, dstGroupName, 50 );
 
    cl.insert( { a: "I" } );
    cl.insert( { a: "K" } );
    cl.insert( { a: "Y" } );
-   var cursor = cl.find( { $or: [{ a: { $lt: "K" } }, { a: { $et: "Y" } }] }, 
-                         { _id: { $include: 0 } } )
-                         .sort( { a: 1 } );
+   var cursor = cl.find( { $or: [{ a: { $lt: "K" } }, { a: { $et: "Y" } }] },
+      { _id: { $include: 0 } } )
+      .sort( { a: 1 } );
    var expRes = [{ a: "I" }, { a: "Y" }];
    var actRes = [];
    while( cursor.next() )
@@ -50,7 +50,7 @@ function main()
    {
       throw buildException( "main", null, "query", expResStr, actResStr );
    }
-   
+
    commDropCL( db, csName, clName, false );
 }
 

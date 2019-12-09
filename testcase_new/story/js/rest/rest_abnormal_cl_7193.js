@@ -6,13 +6,15 @@
 @modify list:
             	2015-3-30 Ting YU init   2016-3-16 XiaoNi Huang init
 ****************************************************/
-var csName=COMMCSNAME;
+var csName = COMMCSNAME;
 
-function lackNameCreateCL(){
-	tryCatch(["cmd=create collection"] , [-6] , "Error occurs in "+getFuncName());
+function lackNameCreateCL ()
+{
+	tryCatch( ["cmd=create collection"], [-6], "Error occurs in " + getFuncName() );
 }
-function lackNameDropCL(){
-	tryCatch(["cmd=drop collection"] , [-6] , "Error occurs in "+getFuncName());
+function lackNameDropCL ()
+{
+	tryCatch( ["cmd=drop collection"], [-6], "Error occurs in " + getFuncName() );
 }
 
 lackNameCreateCL();

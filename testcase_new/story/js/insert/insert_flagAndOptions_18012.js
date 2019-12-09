@@ -5,34 +5,34 @@
 ******************************************************************************/
 main();
 
-function main()
-{  
-   println("\n---Begin to run test");
+function main ()
+{
+   println( "\n---Begin to run test" );
    var clName = "insertFlag_18012";
-   var idxName = "idx";   
+   var idxName = "idx";
    var cl = readyCL( clName );
-   cl.createIndex( idxName, {a:1}, true, true );
-   cl.insert( [{a:1},{a:2}] );
-   
+   cl.createIndex( idxName, { a: 1 }, true, true );
+   cl.insert( [{ a: 1 }, { a: 2 }] );
+
    // test
-   println("\n---Begin to insert, flag[SDB_INSERT_REPLACEONDUP]");
-   var recsArray = [{a:1,b:1},{a:1,b:2},{a:2,c:1},{a:3}];
+   println( "\n---Begin to insert, flag[SDB_INSERT_REPLACEONDUP]" );
+   var recsArray = [{ a: 1, b: 1 }, { a: 1, b: 2 }, { a: 2, c: 1 }, { a: 3 }];
    var rc = cl.insert( recsArray, SDB_INSERT_REPLACEONDUP );
-   var expRecs = [{"a":1,"b":2},{"a":2,"c":1},{"a":3}];
+   var expRecs = [{ "a": 1, "b": 2 }, { "a": 2, "c": 1 }, { "a": 3 }];
    checkRecords( cl, expRecs );
-   
+
    cleanCL( clName );
 }
 
-function checkRecords( cl, recs ) 
+function checkRecords ( cl, recs ) 
 {
-   var rc = cl.find( {}, {_id:{$include:0}} ).sort({a:1} );
+   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } );
    var rcRecs = new Array();
    while( tmpRecs = rc.next() )
    {
       rcRecs.push( tmpRecs.toObj() );
-   }   
-   
+   }
+
    var expRecs = JSON.stringify( recs );
    var actRecs = JSON.stringify( rcRecs );
    if( expRecs !== actRecs )

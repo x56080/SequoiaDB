@@ -10,13 +10,13 @@
    [nameStr] "GroupName","HostName","svcname"
 @return: groupArray
 **************************************************** */
-function getDataGroupsName()
-{  
-   var tmpArray = commGetGroups( db ); 
+function getDataGroupsName ()
+{
+   var tmpArray = commGetGroups( db );
    var groupNameArray = new Array;
-   for( i = 0 ; i < tmpArray.length; i++ )
+   for( i = 0; i < tmpArray.length; i++ )
    {
       groupNameArray.push( tmpArray[i][0].GroupName );
-   } 
-   return groupNameArray ;
+   }
+   return groupNameArray;
 }

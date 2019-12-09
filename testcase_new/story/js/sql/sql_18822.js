@@ -4,35 +4,39 @@
 **************************************/
 main();
 
-function main(){
+function main ()
+{
    var clName = COMMCLNAME + "_sql_18822";
-   commDropCL( db, COMMCSNAME, clName, true, true );   
+   commDropCL( db, COMMCSNAME, clName, true, true );
    var cl = commCreateCL( db, COMMCSNAME, clName );
-   
-   cl.insert( [{a:1, b:"201902"}, {a:1, b:"201902"}, 
-               {a:2, b:"201902"}, {a:2, b:"201902"},
-               {a:3, b:"201901"}, {a:3, b:"201902"}]);
-      
+
+   cl.insert( [{ a: 1, b: "201902" }, { a: 1, b: "201902" },
+   { a: 2, b: "201902" }, { a: 2, b: "201902" },
+   { a: 3, b: "201901" }, { a: 3, b: "201902" }] );
+
    var cursor = db.exec( "select * from (select min(b) as min, max(b) as max from "
       + COMMCSNAME + "." + clName + " group by a) as T where T.min <> T.max" );
    var actList = [];
-   while( cursor.next() ){
+   while( cursor.next() )
+   {
       var obj = cursor.current().toObj();
       actList.push( obj );
    }
-   
+
    // check result
-   if( actList.length !== 1 ){
-      throw buildException( "main", "RESULT ERROR", "check return result length", 
-               "{\"min\": \"201901\", \"max\": \"201902\"}", 
-               JSON.stringify( actList ) );
+   if( actList.length !== 1 )
+   {
+      throw buildException( "main", "RESULT ERROR", "check return result length",
+         "{\"min\": \"201901\", \"max\": \"201902\"}",
+         JSON.stringify( actList ) );
    }
-   var expObj = {"min":"201901", "max":"201902"};
-   if( JSON.stringify( expObj ) !== JSON.stringify( actList[0] ) ){
+   var expObj = { "min": "201901", "max": "201902" };
+   if( JSON.stringify( expObj ) !== JSON.stringify( actList[0] ) )
+   {
       throw buildException( "main", "RESULT ERROR", "check return result",
-               "{\"min\": \"201901\", \"max\": \"201902\"}", 
-               JSON.stringify( actList ) );
+         "{\"min\": \"201901\", \"max\": \"201902\"}",
+         JSON.stringify( actList ) );
    }
-   
+
    commDropCL( db, COMMCSNAME, clName, true, true );
 }

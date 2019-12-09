@@ -9,102 +9,102 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack);  
+      println( e.stack );
    }
    throw e;
 }
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ) ;
-      return ;
+      println( "Run mode is standalone" );
+      return;
    }
-   
+
    var mainCLName = "alter8190_main";
    var subCLName = "alter8190_sub";
-   
-   commDropCL( db, COMMCSNAME, mainCLName ) ;
-   commDropCL( db, COMMCSNAME, subCLName ) ;
-   
-   var maincl = commCreateCLByOption( db, COMMCSNAME, mainCLName, {IsMainCL: true, ShardingKey:{id: 1}, ShardingType: "range", ReplSize: 1} );
-   commCreateCLByOption( db, COMMCSNAME, subCLName, {ReplSize: 1} );
-   
+
+   commDropCL( db, COMMCSNAME, mainCLName );
+   commDropCL( db, COMMCSNAME, subCLName );
+
+   var maincl = commCreateCLByOption( db, COMMCSNAME, mainCLName, { IsMainCL: true, ShardingKey: { id: 1 }, ShardingType: "range", ReplSize: 1 } );
+   commCreateCLByOption( db, COMMCSNAME, subCLName, { ReplSize: 1 } );
+
    //alters shardingType
    try
    {
-      maincl.alter({ShardingType: "range"});
+      maincl.alter( { ShardingType: "range" } );
       throw "ERR_ALTER_CL";
    }
-   catch(e)
+   catch( e )
    {
-      if(e !== -32)
+      if( e !== -32 )
       {
-         throw new Error("alter main cl shardingType, \nexp: -32, \nbut found: " + e);
+         throw new Error( "alter main cl shardingType, \nexp: -32, \nbut found: " + e );
       }
    }
-   
+
    try
    {
-      maincl.alter({ShardingType: "hash"});
+      maincl.alter( { ShardingType: "hash" } );
       throw "ERR_ALTER_CL";
    }
-   catch(e)
+   catch( e )
    {
-      if(e !== -32)
+      if( e !== -32 )
       {
-         throw new Error("alter main cl shardingType, \nexp: -32, \nbut found: " + e);
+         throw new Error( "alter main cl shardingType, \nexp: -32, \nbut found: " + e );
       }
    }
-   
-   maincl.attachCL(COMMCSNAME + "." + subCLName, {LowBound: {id: MinKey()}, UpBound: {id: MaxKey()}});
+
+   maincl.attachCL( COMMCSNAME + "." + subCLName, { LowBound: { id: MinKey() }, UpBound: { id: MaxKey() } } );
    var data = [];
-   for(var i = 0; i < 1000; i++)
+   for( var i = 0; i < 1000; i++ )
    {
-      data.push({"id": i, "text": "test alter " + i});
+      data.push( { "id": i, "text": "test alter " + i } );
    }
-   maincl.insert(data);
-   
+   maincl.insert( data );
+
    //alters shardingType
    try
    {
-      maincl.alter({ShardingType: "range"});
+      maincl.alter( { ShardingType: "range" } );
       throw "ERR_ALTER_CL";
    }
-   catch(e)
+   catch( e )
    {
-      if(e !== -32)
+      if( e !== -32 )
       {
-         throw new Error("alter main cl shardingType, \nexp: -32, \nbut found: " + e);
+         throw new Error( "alter main cl shardingType, \nexp: -32, \nbut found: " + e );
       }
    }
-   
+
    try
    {
-      maincl.alter({ShardingType: "hash"});
+      maincl.alter( { ShardingType: "hash" } );
       throw "ERR_ALTER_CL";
    }
-   catch(e)
+   catch( e )
    {
-      if(e !== -32)
+      if( e !== -32 )
       {
-         throw new Error("alter main cl shardingType, \nexp: -32, \nbut found: " + e);
+         throw new Error( "alter main cl shardingType, \nexp: -32, \nbut found: " + e );
       }
    }
-   
+
    var num = maincl.count();
-   if(num != 1000)
+   if( num != 1000 )
    {
-      throw new Error("check recordNum, \nexpect: 1000, \nbut found: " + num);
+      throw new Error( "check recordNum, \nexpect: 1000, \nbut found: " + num );
    }
-   
+
    //clean test-env
-   commDropCL( db, COMMCSNAME, mainCLName ) ;
-   commDropCL( db, COMMCSNAME, subCLName ) ;
+   commDropCL( db, COMMCSNAME, mainCLName );
+   commDropCL( db, COMMCSNAME, subCLName );
 }
 

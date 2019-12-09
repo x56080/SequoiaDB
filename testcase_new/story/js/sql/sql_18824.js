@@ -4,37 +4,37 @@
 ******************************************************************************/
 main();
 
-function main()
-{        
+function main ()
+{
    var csName = COMMCSNAME;
    var clName = "cl18824";
-   
-   println("\n---Begin to create cl, and insert records.");
-   commDropCL( db, csName, clName, true, true, "Failed to drop CL in the pre-condition." ); 
-   var cl =  commCreateCL( db, csName, clName );
-   var recs = [{a:1, b:1}, {a:1,b:2}];
+
+   println( "\n---Begin to create cl, and insert records." );
+   commDropCL( db, csName, clName, true, true, "Failed to drop CL in the pre-condition." );
+   var cl = commCreateCL( db, csName, clName );
+   var recs = [{ a: 1, b: 1 }, { a: 1, b: 2 }];
    cl.insert( recs );
-   
-   println("\n---Begin to db.exec.");
-   var sql = "select T.a, T.b from "+ csName +"."+ clName +" as T where T.a = T.b";
-   println('   db.exec("' + sql +'")');
+
+   println( "\n---Begin to db.exec." );
+   var sql = "select T.a, T.b from " + csName + "." + clName + " as T where T.a = T.b";
+   println( '   db.exec("' + sql + '")' );
    var cursor = db.exec( sql );
    var recsNum = 0;
    var actRecs;
-   while ( cursor.next() )
+   while( cursor.next() )
    {
       actRecs = cursor.current().toObj();
       recsNum++;
    }
-   
-   println("\n---Begin to check results.");
-   var expRecs = {a:1,b:1};
-   if ( 1 !== recsNum || JSON.stringify( expRecs ) !== JSON.stringify( actRecs ) )
-   {      
-      throw buildException( "main", null, "[check index]", 
-               "[recsNum = 1, expRecs = " + JSON.stringify( expRecs ) + "]", 
-               "[recsNum = " + recsNum + ", actRecs = " + JSON.stringify( actRecs ) + "]" );
+
+   println( "\n---Begin to check results." );
+   var expRecs = { a: 1, b: 1 };
+   if( 1 !== recsNum || JSON.stringify( expRecs ) !== JSON.stringify( actRecs ) )
+   {
+      throw buildException( "main", null, "[check index]",
+         "[recsNum = 1, expRecs = " + JSON.stringify( expRecs ) + "]",
+         "[recsNum = " + recsNum + ", actRecs = " + JSON.stringify( actRecs ) + "]" );
    }
-      
-   commDropCL( db, csName, clName, false, false, "Failed to drop CL in the end-condition." ); 
+
+   commDropCL( db, csName, clName, false, false, "Failed to drop CL in the end-condition." );
 }

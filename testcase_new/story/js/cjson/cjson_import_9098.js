@@ -2,30 +2,30 @@
 *@Description:   seqDB-9098: 字段值末尾存在多余逗号
 *@Author:        2016-7-20  wuyan
 ************************************************************************/
-var clName = COMMCLNAME+"_9098" ;
+var clName = COMMCLNAME + "_9098";
 
 main();
-function main()
-{  
+function main ()
+{
    try
-   {     
-      var cl = readyCL( COMMCSNAME, clName ); 
-      
+   {
+      var cl = readyCL( COMMCSNAME, clName );
+
       //import datas          
-      var imprtFile = tmpFileDir +"9098.json";
+      var imprtFile = tmpFileDir + "9098.json";
       var srcDatas = "{a:[1,2,3,],b:{a:{a:1,}}}"
-      importData(COMMCSNAME, clName, imprtFile,srcDatas );
-      
+      importData( COMMCSNAME, clName, imprtFile, srcDatas );
+
       //check the import result 
-   	var expRecs = '[{"a":[1,2,3],"b":{"a":{"a":1}}}]';
-   	checkCLData( cl ,expRecs);
-      
+      var expRecs = '[{"a":[1,2,3],"b":{"a":{"a":1}}}]';
+      checkCLData( cl, expRecs );
+
       cleanCL( COMMCSNAME, clName );
       removeTmpDir();
    }
-   catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 

@@ -1,30 +1,30 @@
 //create exist collection case3
-TESTCSNAME_1 = CHANGEDPREFIX+"foo_1" ;
-TESTCSNAME_2 = CHANGEDPREFIX+"foo_2" ;
-TESTCLNAME = CHANGEDPREFIX+"bar" ;
+TESTCSNAME_1 = CHANGEDPREFIX + "foo_1";
+TESTCSNAME_2 = CHANGEDPREFIX + "foo_2";
+TESTCLNAME = CHANGEDPREFIX + "bar";
 
 try
 {
-   db.dropCS(TESTCSNAME_1);
+   db.dropCS( TESTCSNAME_1 );
 }
-catch(e)
+catch( e )
 {
-   if (e != -34)
+   if( e != -34 )
    {
-      println("unexpected err happened when clear cs:"+e);
+      println( "unexpected err happened when clear cs:" + e );
       throw e;
    }
 }
 
 try
 {
-   db.dropCS(TESTCSNAME_2);
+   db.dropCS( TESTCSNAME_2 );
 }
-catch(e)
+catch( e )
 {
-   if (e != -34)
+   if( e != -34 )
    {
-      println("unexpected err happened when clear cs:"+e);
+      println( "unexpected err happened when clear cs:" + e );
       throw e;
    }
 }
@@ -33,9 +33,9 @@ try
 {
    var varCS = commCreateCS( db, TESTCSNAME_1, false, "failed to create CS" );
 }
-catch(e)
+catch( e )
 {
-   println("failed to create cs,rc="+e);
+   println( "failed to create cs,rc=" + e );
    throw e;
 }
 
@@ -43,48 +43,48 @@ try
 {
    var varCS1 = commCreateCS( db, TESTCSNAME_2, false, "failed to create CS" );
 }
-catch(e)
+catch( e )
 {
-   println("failed to create cs,rc="+e);
+   println( "failed to create cs,rc=" + e );
    throw e;
 }
 
 try
 {
-   varCS.createCL( TESTCLNAME,{Compressed:true}) ;
+   varCS.createCL( TESTCLNAME, { Compressed: true } );
 }
-catch ( e )
+catch( e )
 {
    println( "failed to create cl, rc= " + e );
-   throw e ;
+   throw e;
 }
 
 try
 {
-   varCS1.createCL( TESTCLNAME ,{Compressed:true}) ;
+   varCS1.createCL( TESTCLNAME, { Compressed: true } );
 }
-catch ( e )
+catch( e )
 {
    println( "failed to create cl, rc= " + e );
-   throw e ;
+   throw e;
 }
 
 try
 {
    db.dropCS( TESTCSNAME_1 );
 }
-catch (e)
+catch( e )
 {
-   println( "unexpected err happened when clear cs:" + e ) ;
-   throw e ;
+   println( "unexpected err happened when clear cs:" + e );
+   throw e;
 }
 
 try
 {
    db.dropCS( TESTCSNAME_2 );
 }
-catch (e)
+catch( e )
 {
-   println( "unexpected err happened when clear cs:" + e ) ;
-   throw e ;
+   println( "unexpected err happened when clear cs:" + e );
+   throw e;
 }

@@ -1,42 +1,42 @@
 /************************************************************************
-*@Description:	seqDB-6022£ºÖ´ÐÐÊÂÎñºÍ·ÇÊÂÎñ²Ù×÷£¬»Ø¹öÊÂÎñ_SD.transaction.033
-               ÒÀ´ÎÖ´ÐÐ¿ªÆôÊÂÎñ¡¢´´½¨cscl¡¢ÔöÉ¾¸Ä¡¢»Ø¹ö
+*@Description:	seqDB-6022ï¿½ï¿½Ö´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¹ï¿½ï¿½ï¿½ï¿½ï¿½_SD.transaction.033
+               ï¿½ï¿½ï¿½ï¿½Ö´ï¿½Ð¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ñ¡¢´ï¿½ï¿½ï¿½csclï¿½ï¿½ï¿½ï¿½É¾ï¿½Ä¡ï¿½ï¿½Ø¹ï¿½
 *@Author:  		TingYU  2015/11/23
 ************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
       var csName = COMMCLNAME + "_yt6022";
       var clName = COMMCLNAME + "_yt6022";
-      
+
       if( !commIsTransEnabled( db ) )
       {
          println( "transaction is disabled" );
          return;
-      }      
-      
+      }
+
       execTransaction( beginTrans );
-      
-      var cl = createCSCL( csName, clName, {ReplSize:0} );
-           
+
+      var cl = createCSCL( csName, clName, { ReplSize: 0 } );
+
       var dataNum = 5000;
       var insert = new insertData( cl, dataNum );
-      var update = new updateData ( cl );
-      var remove = new removeData ( cl );
+      var update = new updateData( cl );
+      var remove = new removeData( cl );
       execTransaction( insert );
       checkResult( cl, true, insert );
       execTransaction( update );
       checkResult( cl, true, update );
       execTransaction( remove );
       checkResult( cl, true, remove );
-      
+
       execTransaction( rollbackTrans );
       checkResult( cl, false, insert );
-                          
-	   clean( csName );
+
+      clean( csName );
    }
    catch( e )
    {
@@ -47,20 +47,20 @@ function main()
    }
 }
 
-function createCSCL( csName, clName, option )
+function createCSCL ( csName, clName, option )
 {
-	println( "--create cs and cl" );
-	
-	commDropCS( db, csName, true, "drop cs in ready" );
-	commCreateCS( db, csName, false, "create cs  in begin" );
-   var cl = commCreateCLByOption( db, csName, clName, option, false, false, "create cl in begin" );  
-   
+   println( "--create cs and cl" );
+
+   commDropCS( db, csName, true, "drop cs in ready" );
+   commCreateCS( db, csName, false, "create cs  in begin" );
+   var cl = commCreateCLByOption( db, csName, clName, option, false, false, "create cl in begin" );
+
    return cl;
 }
 
-function clean( csName )
+function clean ( csName )
 {
-	println("--clean" );
-	
-	commDropCS( db, csName, false, "drop cs in clean" );
+   println( "--clean" );
+
+   commDropCS( db, csName, false, "drop cs in clean" );
 } 

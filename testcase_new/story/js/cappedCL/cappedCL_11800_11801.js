@@ -7,84 +7,84 @@
 
 main();
 
-function main()
+function main ()
 {
    //create cappedCL
    var clName = COMMCAPPEDCLNAME + "_11800_11801_";
-   var options = { Capped : true, Size:1024, Max:10000000, AutoIndexId:false };
+   var options = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
    var dbcl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, options, false, false, "create capped cl" )
-   
+
    //insert data 
-   var doc =  [{a:10, b:1, c:"aaa"},
-               {a:100, b:1, c:"aaa"},
-               {a:1001.02, b:1},
-               {a:{$decimal: "20170519.09"}, b:1, c:"aaa"}, 
-               {a:{$numberLong:"9223372036854775807"}, b:1, c:"aaa"},
-               {a:{$date: "2017-05-19"}, b:1},
-               {a:{$timestamp: "2017-05-19-15.32.18.000000"}, b:1, c:"aaa"},
-               {a:{$binary:"aGVsbG8gd29ybGQ=",$type:"1"}, b:1, c:"aaa"},
-               {a:{$regex:"^z",$options:"i"}, b:1},
-               {a:null, b:1, c:"aaa"},
-               {a:{$oid:"123abcd00ef12358902300ef"}, b:1, c:"aaa"}, 
-               {a:"abc", b:2},
-               {a:{ MinKey:1 }, b:2, c:"aaa"},
-               {a:{ MaxKey:1 }, b:2, c:"aaa"},
-               {a:true, b:2},
-               {a:false, b:2, c:"aaa"},
-               {a:{name:"Jack"}, b:2, c:"aaa"},
-               {a:[10,11,12], b:2},
-               {a:[102.03,103.4,104.5], b:2, c:"aaa"},
-               {a:[1001], b:2, c:"aaa"},
-               {a:["a","b","c"], b:2},
-               {a:["z"], b:2, c:"aaa"},
-               {b:1}];
+   var doc = [{ a: 10, b: 1, c: "aaa" },
+   { a: 100, b: 1, c: "aaa" },
+   { a: 1001.02, b: 1 },
+   { a: { $decimal: "20170519.09" }, b: 1, c: "aaa" },
+   { a: { $numberLong: "9223372036854775807" }, b: 1, c: "aaa" },
+   { a: { $date: "2017-05-19" }, b: 1 },
+   { a: { $timestamp: "2017-05-19-15.32.18.000000" }, b: 1, c: "aaa" },
+   { a: { $binary: "aGVsbG8gd29ybGQ=", $type: "1" }, b: 1, c: "aaa" },
+   { a: { $regex: "^z", $options: "i" }, b: 1 },
+   { a: null, b: 1, c: "aaa" },
+   { a: { $oid: "123abcd00ef12358902300ef" }, b: 1, c: "aaa" },
+   { a: "abc", b: 2 },
+   { a: { MinKey: 1 }, b: 2, c: "aaa" },
+   { a: { MaxKey: 1 }, b: 2, c: "aaa" },
+   { a: true, b: 2 },
+   { a: false, b: 2, c: "aaa" },
+   { a: { name: "Jack" }, b: 2, c: "aaa" },
+   { a: [10, 11, 12], b: 2 },
+   { a: [102.03, 103.4, 104.5], b: 2, c: "aaa" },
+   { a: [1001], b: 2, c: "aaa" },
+   { a: ["a", "b", "c"], b: 2 },
+   { a: ["z"], b: 2, c: "aaa" },
+   { b: 1 }];
    insertData( dbcl, doc );
    //check count
    checkCountResult( dbcl, {}, 23 );
-	   
-	  //$gt
-   var sortOption = {_id : 1};
-	  var gtObj = { a: { $gt: 100}};
-   var results1 = {a:1001.02, b:1};
+
+   //$gt
+   var sortOption = { _id: 1 };
+   var gtObj = { a: { $gt: 100 } };
+   var results1 = { a: 1001.02, b: 1 };
    checkFindOneResult( dbcl, gtObj, sortOption, results1 );
    checkCountResult( dbcl, gtObj, 5 );
-      
+
    //$in
-   var inObj = { a: { $in: [ 10, "z"]}};
-   var results2 = {a:10, b:1, c:"aaa"}
-   checkFindOneResult( dbcl, inObj, sortOption, results2 );						
+   var inObj = { a: { $in: [10, "z"] } };
+   var results2 = { a: 10, b: 1, c: "aaa" }
+   checkFindOneResult( dbcl, inObj, sortOption, results2 );
    checkCountResult( dbcl, inObj, 3 );
-	   
-	  //$and
-   var andObj = {$and:[{a:10},{b:1}]};
-   var results3 = {a:10, b:1, c:"aaa"};
-   checkFindOneResult( dbcl, andObj, sortOption, results3 );		
+
+   //$and
+   var andObj = { $and: [{ a: 10 }, { b: 1 }] };
+   var results3 = { a: 10, b: 1, c: "aaa" };
+   checkFindOneResult( dbcl, andObj, sortOption, results3 );
    checkCountResult( dbcl, andObj, 1 );
-      
+
    //$ne
-   var neObj = { b: { $ne: 1 }};
-   var results4 = {a:"abc", b:2};
-   checkFindOneResult( dbcl, neObj, sortOption, results4 );	
+   var neObj = { b: { $ne: 1 } };
+   var results4 = { a: "abc", b: 2 };
+   checkFindOneResult( dbcl, neObj, sortOption, results4 );
    checkCountResult( dbcl, neObj, 11 );
-     
+
    //isNull
-   var isnullObj = { c: {$isnull:1}};
-   var results5 = {a:1001.02, b:1};
-   checkFindOneResult( dbcl, isnullObj, sortOption, results5 );	
+   var isnullObj = { c: { $isnull: 1 } };
+   var results5 = { a: 1001.02, b: 1 };
+   checkFindOneResult( dbcl, isnullObj, sortOption, results5 );
    checkCountResult( dbcl, isnullObj, 8 );
-    
+
    //$exists
-   var existsObj = { c: {$exists: 1}};
-   var results6 = {a:10, b:1, c:"aaa"};
-   checkFindOneResult( dbcl, existsObj, sortOption, results6 );	         
+   var existsObj = { c: { $exists: 1 } };
+   var results6 = { a: 10, b: 1, c: "aaa" };
+   checkFindOneResult( dbcl, existsObj, sortOption, results6 );
    checkCountResult( dbcl, existsObj, 15 );
-   
+
    //clean environment after test  
-   commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end");
+   commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
    println( "---end the test---" );
 }
 
-function checkCountResult( dbcl, options, results )
+function checkCountResult ( dbcl, options, results )
 {
    try
    {
@@ -92,23 +92,23 @@ function checkCountResult( dbcl, options, results )
    }
    catch( e )
    {
-      throw buildException( "checkCountResult()", e, "count record", "count success", "count fail:"+e);
+      throw buildException( "checkCountResult()", e, "count record", "count success", "count fail:" + e );
    }
-   if( Number(exc) !== results )
+   if( Number( exc ) !== results )
    {
       throw "ERR_COUNT_NUM";
    }
 }
 
-function checkFindOneResult( dbcl, findOption, sortOption, results )
+function checkFindOneResult ( dbcl, findOption, sortOption, results )
 {
    try
    {
-      var rc = dbcl.findOne( findOption ).sort(sortOption);
+      var rc = dbcl.findOne( findOption ).sort( sortOption );
    }
    catch( e )
    {
-      throw buildException( "checkFindOneResult()", e, "find record", "find success", "find fail:"+e);
+      throw buildException( "checkFindOneResult()", e, "find record", "find success", "find fail:" + e );
    }
    var obj = rc.current().toObj();
    var id = obj._id;
@@ -118,18 +118,18 @@ function checkFindOneResult( dbcl, findOption, sortOption, results )
    }
    for( var i in obj )
    {
-      if(i == "_id")
+      if( i == "_id" )
       {
          continue;
       }
       if( JSON.stringify( obj[i] ) !== JSON.stringify( results[i] ) )
       {
-         throw buildException( "checkFindOneResult()", null, "find record", JSON.stringify( obj ), JSON.stringify( results ));
+         throw buildException( "checkFindOneResult()", null, "find record", JSON.stringify( obj ), JSON.stringify( results ) );
       }
    }
 }
 
-function insertData( dbcl, doc )
+function insertData ( dbcl, doc )
 {
    try
    {
@@ -137,7 +137,7 @@ function insertData( dbcl, doc )
    }
    catch( e )
    {
-      throw buildException( "insertData()", e, "insert record", "insert success", "insert fail:"+e);
+      throw buildException( "insertData()", e, "insert record", "insert success", "insert fail:" + e );
    }
 }
 

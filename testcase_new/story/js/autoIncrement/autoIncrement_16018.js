@@ -2,74 +2,74 @@
 @Description :   seqDB-16018:  修改coord一次获取序列值数量    
 @Modify list :   2018-10-22    xiaoni Zhao  Init
 ******************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("Deploy is standalone");
+      println( "Deploy is standalone" );
       return;
-   } 
-    
+   }
+
    var clName = COMMCLNAME + "_16018";
    var acquireSize = 510;
-   
+
    commDropCL( db, COMMCSNAME, clName );
-   
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement : { Field : "id1", AcquireSize : 10 } } );
-   
+
+   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1", AcquireSize: 10 } } );
+
    //insert records and check
    var coordNodes = getCoordNodeNames();
    var expRecs = [];
    for( var i = 0; i < coordNodes.length; i++ )
    {
-      var coord = new Sdb( coordNodes[ i ] );
+      var coord = new Sdb( coordNodes[i] );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
-      cl.insert( { "a" : i, "b" : i } );
-      expRecs.push({ "a" : i, "b" : i, "id1" : 1 + i*10});
+      cl.insert( { "a": i, "b": i } );
+      expRecs.push( { "a": i, "b": i, "id1": 1 + i * 10 } );
       coord.close();
    }
-    
-   var rc = dbcl.find().sort( { "id1" : 1 } );
+
+   var rc = dbcl.find().sort( { "id1": 1 } );
    checkRec( rc, expRecs );
-   
+
    //alter attributes and check
-   dbcl.setAttributes({ AutoIncrement : { Field : "id1", AcquireSize : acquireSize } });
-   
-   var clID = getCLID(COMMCSNAME, clName);
+   dbcl.setAttributes( { AutoIncrement: { Field: "id1", AcquireSize: acquireSize } } );
+
+   var clID = getCLID( COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_id1_SEQ";
-   var cursor = db.snapshot(SDB_SNAP_SEQUENCES, { Name : sequenceName });
-   if( cursor.current().toObj().AcquireSize !== acquireSize)
+   var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName } );
+   if( cursor.current().toObj().AcquireSize !== acquireSize )
    {
-      throw new Error("alter failed!");
+      throw new Error( "alter failed!" );
    }
-   
+
    //insert records and check 
    for( var i = 0; i < coordNodes.length; i++ )
    {
-      var coord = new Sdb( coordNodes[ i ] );
+      var coord = new Sdb( coordNodes[i] );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
-      for(var j = 0; j < 2; j++)
+      for( var j = 0; j < 2; j++ )
       {
-         cl.insert( { "a" : j, "b" : j } );
-         expRecs.push({ "a" : j, "b" : j, "id1" : 1 + coordNodes.length*10 + i*acquireSize + j });
+         cl.insert( { "a": j, "b": j } );
+         expRecs.push( { "a": j, "b": j, "id1": 1 + coordNodes.length * 10 + i * acquireSize + j } );
       }
       coord.close();
    }
-    
-   var rc = dbcl.find().sort( { "id1" : 1 } );
+
+   var rc = dbcl.find().sort( { "id1": 1 } );
    checkRec( rc, expRecs );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

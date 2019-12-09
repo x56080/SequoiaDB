@@ -4,11 +4,11 @@
 *                2016/7/14  XiaoNi Huang Init
 *******************************************************************************/
 var testCaseDir = initTestCaseDir();
-var tmpFileDir  = '/tmp/sdbimprtTest/';
-var LocalPath = null; 
+var tmpFileDir = '/tmp/sdbimprtTest/';
+var LocalPath = null;
 
-var cmd  = cmdInit();
-var installDir  = getInstallDir();   //eg:/opt/sequoiadb
+var cmd = cmdInit();
+var installDir = getInstallDir();   //eg:/opt/sequoiadb
 readyTmpDir();
 
 
@@ -16,20 +16,20 @@ readyTmpDir();
 @description: get testcase director
 @return: testcase director
 **************************************************** */
-function initTestCaseDir()
+function initTestCaseDir ()
 {
-   println("\n---Begin to get testcase director.");
-   
-   if( typeof( TESTCASEDIR ) == "undefined" ) 
-   { 
-      var testCaseDir = './testcases/hlt/js_testcases/js/sdbimprt/'; 
+   println( "\n---Begin to get testcase director." );
+
+   if( typeof ( TESTCASEDIR ) == "undefined" ) 
+   {
+      var testCaseDir = './testcases/hlt/js_testcases/js/sdbimprt/';
    }
    else
    {
       //TESTCASEDIR default: ....../testcases/hlt/js_testcases/js/sdbimprt/
-      var testCaseDir = TESTCASEDIR +'/';
+      var testCaseDir = TESTCASEDIR + '/';
    }
-   println("testCaseDir = " + testCaseDir );
+   println( "testCaseDir = " + testCaseDir );
    return testCaseDir;
 }
 
@@ -37,12 +37,12 @@ function initTestCaseDir()
 @description: get coord address
 @return: coord address,e.g: "ubuntu-200-025:11810"
 **************************************************** */
-function getCoordAdrr()
+function getCoordAdrr ()
 {
-   println("\n---Begin to get coord address.");
-   
-   var tmpInfo = db.exec("select NodeName from $SNAPSHOT_SYSTEM where GroupName='SYSCoord'")
-                   .current().toObj()["ErrNodes"];
+   println( "\n---Begin to get coord address." );
+
+   var tmpInfo = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='SYSCoord'" )
+      .current().toObj()["ErrNodes"];
    var nodeArray = [];
    for( i = 0; i < tmpInfo.length; i++ )
    {
@@ -56,30 +56,30 @@ function getCoordAdrr()
 @description: create cl
 @return: cl
 **************************************************** */
-function readyCL( csName, clName, optionObj, message )
+function readyCL ( csName, clName, optionObj, message )
 {
    if( message == undefined ) { message = ""; }
-   println("\n---Begin to create CL "+ message +".");
-   
-   if( optionObj == undefined ) { optionObj = {ReplSize:0}; }
-	
-   commDropCL( db, csName, clName, true, true, 
-                      "Failed to drop CL in the pre-condition." );
-   
-   var cl = commCreateCLByOption( db, csName, clName, optionObj, true, true, 
-                                         "Failed to create CL." )
+   println( "\n---Begin to create CL " + message + "." );
+
+   if( optionObj == undefined ) { optionObj = { ReplSize: 0 }; }
+
+   commDropCL( db, csName, clName, true, true,
+      "Failed to drop CL in the pre-condition." );
+
+   var cl = commCreateCLByOption( db, csName, clName, optionObj, true, true,
+      "Failed to create CL." )
    return cl;
 }
 
 /* ****************************************************
 @description: drop cl
 **************************************************** */
-function cleanCL( csName, clName )
+function cleanCL ( csName, clName )
 {
-   println("\n---Begin to drop CL.");
-	
+   println( "\n---Begin to drop CL." );
+
    commDropCL( db, csName, clName, false, false,
-                      "Failed to drop CL in the end-condition" );
+      "Failed to drop CL in the end-condition" );
 }
 
 /* ****************************************************
@@ -88,41 +88,41 @@ function cleanCL( csName, clName )
    [nameStr] "GroupName","HostName","svcname"
 @return: groupArray
 **************************************************** */
-function getDataGroupsName()
-{  
-   var tmpArray = commGetGroups( db ); 
+function getDataGroupsName ()
+{
+   var tmpArray = commGetGroups( db );
    var groupNameArray = new Array;
-   for( i = 0 ; i < tmpArray.length; i++ )
+   for( i = 0; i < tmpArray.length; i++ )
    {
       groupNameArray.push( tmpArray[i][0].GroupName );
-   } 
-   return groupNameArray ;
+   }
+   return groupNameArray;
 }
 
 /* ****************************************************
 @description: ready tmp director
 **************************************************** */
-function readyTmpDir()
+function readyTmpDir ()
 {
-   println("\n---Begin to ready tmpFileDir");
-   
+   println( "\n---Begin to ready tmpFileDir" );
+
    try
    {
-      cmd.run( "rm -rf "+ tmpFileDir );
+      cmd.run( "rm -rf " + tmpFileDir );
    }
    catch( e )
    {
-      println("Failed to rm tmpFileDir["+ tmpFileDir +"]");
+      println( "Failed to rm tmpFileDir[" + tmpFileDir + "]" );
       throw e;
    }
-	
+
    try
    {
-      cmd.run( "mkdir -p "+ tmpFileDir );
+      cmd.run( "mkdir -p " + tmpFileDir );
    }
    catch( e )
    {
-      println("Failed to mkdir tmpFileDir["+ tmpFileDir +"]");
+      println( "Failed to mkdir tmpFileDir[" + tmpFileDir + "]" );
       throw e;
    }
 }
@@ -131,7 +131,7 @@ function readyTmpDir()
 @description: new Cmd
 @return: cmd
 **************************************************** */
-function cmdInit()
+function cmdInit ()
 {
    try
    {
@@ -140,7 +140,7 @@ function cmdInit()
    }
    catch( e )
    {
-      println("Failed to init cmd.");
+      println( "Failed to init cmd." );
       throw e;
    }
 }
@@ -149,13 +149,13 @@ function cmdInit()
 @description: get install_dir of sequoiadb
 @return: install_dir
 **************************************************** */
-function getInstallDir()
+function getInstallDir ()
 {
    try
    {
-      var LocalPath = cmd.run( "pwd" ).split( "\n" )[0] +"/";
-      println("LocalPath = "+ LocalPath );
-      
+      var LocalPath = cmd.run( "pwd" ).split( "\n" )[0] + "/";
+      println( "LocalPath = " + LocalPath );
+
       try
       {
          //get sequoiadb, if not exists to throw
@@ -163,24 +163,24 @@ function getInstallDir()
          //get sequoiadb install_dir configurature item, if not exists to throw
          var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR"' );
          //get sequoiadb director, if not exists to throw
-         var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );     
-         var installPath = tmpDir.split( "\n" )[0] + "/";     
+         var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );
+         var installPath = tmpDir.split( "\n" )[0] + "/";
       }
       catch( e )
       {
          ///etc/default/sequoiadb is not exists 
          var installPath = LocalPath;
-         println("instatllpath = "+ installPath );        
+         println( "instatllpath = " + installPath );
       }
-      println("instatllpath = "+ installPath ); 
-        
+      println( "instatllpath = " + installPath );
+
    }
    catch( e )
    {
       println( "failed to get global variable : cmd/LocalPath/installPath" + e );
       throw e;
    }
-   
+
    return installPath;
 }
 
@@ -188,7 +188,7 @@ function getInstallDir()
 @description: new File
 @return: file
 **************************************************** */
-function fileInit( fileName )
+function fileInit ( fileName )
 {
    try
    {
@@ -197,7 +197,7 @@ function fileInit( fileName )
    }
    catch( e )
    {
-      println("Failed to init file.");
+      println( "Failed to init file." );
       throw e;
    }
 }

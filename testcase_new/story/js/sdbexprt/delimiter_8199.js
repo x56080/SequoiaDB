@@ -6,79 +6,79 @@
 * @author      : Liang XueWang
 * 
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt8199" ;
-var docs = [ { a: "a1", b: "b1", c: "c1" },
-             { a: "a2", b: "b2", c: "c2" } ] ; 
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt8199";
+var docs = [{ a: "a1", b: "b1", c: "c1" },
+{ a: "a2", b: "b2", c: "c2" }];
 
-main() ;
+main();
 
-function main()
-{  
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   
-   cl.insert( docs ) ;
-   
-   testExprt1() ;  // test export with equal delrecord delfield
-   testExprt2() ;  // test export with equal delrecord delchar
-   testExprt3() ;  // test export with equal delfield delchar
-   
-   commDropCL( db, csname, clname ) ;
+function main ()
+{
+   var cl = commCreateCL( db, csname, clname, 0 );
+
+   cl.insert( docs );
+
+   testExprt1();  // test export with equal delrecord delfield
+   testExprt2();  // test export with equal delrecord delchar
+   testExprt3();  // test export with equal delfield delchar
+
+   commDropCL( db, csname, clname );
 }
 
-function testExprt1()
+function testExprt1 ()
 {
-   var csvfile = workDir + "sdbexprt8199.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
+   var csvfile = workDir + "sdbexprt8199.csv";
+   cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --fields a,b" +
-                 " --type csv" +
-                 " --sort '{ _id: 1 }'" +
-                 " -r '\n' -a '\n'" + 
-                 " --file " + csvfile ;
-   testRunCommand( command, 127 ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ; 
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --fields a,b" +
+      " --type csv" +
+      " --sort '{ _id: 1 }'" +
+      " -r '\n' -a '\n'" +
+      " --file " + csvfile;
+   testRunCommand( command, 127 );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprt2()
+function testExprt2 ()
 {
-   var csvfile = workDir + "sdbexprt8199.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
+   var csvfile = workDir + "sdbexprt8199.csv";
+   cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --fields a,b" +
-                 " --type csv" +
-                 " --sort '{ _id: 1 }'" +
-                 " -r '\n' -e '\n'" + 
-                 " --file " + csvfile ;
-   testRunCommand( command, 127 ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --fields a,b" +
+      " --type csv" +
+      " --sort '{ _id: 1 }'" +
+      " -r '\n' -e '\n'" +
+      " --file " + csvfile;
+   testRunCommand( command, 127 );
+
+   cmd.run( "rm -rf " + csvfile );
 }
 
-function testExprt3()
+function testExprt3 ()
 {
-   var csvfile = workDir + "sdbexprt8199.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
+   var csvfile = workDir + "sdbexprt8199.csv";
+   cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME +
-                 " -c " + csname +
-                 " -l " + clname + 
-                 " --fields a,b" +
-                 " --type csv" +
-                 " --sort '{ _id: 1 }'" +
-                 " -a '\"' -e '\"'" + 
-                 " --file " + csvfile ;
-   testRunCommand( command, 127 ) ;
-   
-   cmd.run( "rm -rf " + csvfile ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --fields a,b" +
+      " --type csv" +
+      " --sort '{ _id: 1 }'" +
+      " -a '\"' -e '\"'" +
+      " --file " + csvfile;
+   testRunCommand( command, 127 );
+
+   cmd.run( "rm -rf " + csvfile );
 }

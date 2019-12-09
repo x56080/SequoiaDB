@@ -18,7 +18,7 @@ catch( e )
 }
 ;
 
-function main()
+function main ()
 {
    var number = 2147483648;
    var numberLong = NumberLong( number );

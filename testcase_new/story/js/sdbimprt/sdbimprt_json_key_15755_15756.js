@@ -1,99 +1,99 @@
 /*******************************************************************************
-*@Description:   seqDB-15755:µ¼ÈëÊ××Ö·ûÊÇË«ÒýºÅµÄkeyµÄjson¸ñÊ½Êý¾Ý¼ÇÂ¼
-*                seqDB-15756:µ¼Èë&ÃüÁîÖÐ¼ä²åÈëË«ÒýºÅµÄkeyµÄjson¸ñÊ½Êý¾Ý¼ÇÂ¼
+*@Description:   seqDB-15755:ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½Ë«ï¿½ï¿½ï¿½Åµï¿½keyï¿½ï¿½jsonï¿½ï¿½Ê½ï¿½ï¿½ï¿½Ý¼ï¿½Â¼
+*                seqDB-15756:ï¿½ï¿½ï¿½ï¿½&ï¿½ï¿½ï¿½ï¿½ï¿½Ð¼ï¿½ï¿½ï¿½ï¿½Ë«ï¿½ï¿½ï¿½Åµï¿½keyï¿½ï¿½jsonï¿½ï¿½Ê½ï¿½ï¿½ï¿½Ý¼ï¿½Â¼
 *@Author:        2018-9-6  wangkexin
 ********************************************************************************/
 main();
 
-function main()
-{  
+function main ()
+{
    try
    {
       var csName = COMMCSNAME;
-      var clName = COMMCLNAME+"_15755" ;
+      var clName = COMMCLNAME + "_15755";
       var cl = readyCL( csName, clName );
-      
-      var imprtFile = tmpFileDir +"15755.json";
+
+      var imprtFile = tmpFileDir + "15755.json";
       readyData( imprtFile );
       importData( csName, clName, imprtFile );
-   	
+
       checkCLData( cl );
       cleanCL( csName, clName );
    }
-      catch(e)
+   catch( e )
    {
-   	throw e;
+      throw e;
    }
 }
 
-function readyData( imprtFile )
+function readyData ( imprtFile )
 {
-   println("\n---Begin to ready data.");
-   
+   println( "\n---Begin to ready data." );
+
    var file = fileInit( imprtFile );
-   file.write( '{ "\\\"testa": "hello" }{"te\\\"stb":"test"}{"testc":"test"}{ "testd": { "$number\\\"Long": 9223372036854775807 } }{ "teste": { "\\\"$numberLong": 9223372036854775807 } }{ "testf": { "$numberLong": 9223372036854775807 } }');
-   var fileInfo = cmd.run( "cat "+ imprtFile );
-   println( imprtFile +"\n" + fileInfo );
+   file.write( '{ "\\\"testa": "hello" }{"te\\\"stb":"test"}{"testc":"test"}{ "testd": { "$number\\\"Long": 9223372036854775807 } }{ "teste": { "\\\"$numberLong": 9223372036854775807 } }{ "testf": { "$numberLong": 9223372036854775807 } }' );
+   var fileInfo = cmd.run( "cat " + imprtFile );
+   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
-function importData( csName, clName, imprtFile )
+function importData ( csName, clName, imprtFile )
 {
-   println("\n---Begin to import data and check exec result.");
-   
+   println( "\n---Begin to import data and check exec result." );
+
    //remove rec file
-   var tmpRec = csName +"_"+ clName +"*.rec";
-   cmd.run( "rm -rf "+ tmpRec );
-   
+   var tmpRec = csName + "_" + clName + "*.rec";
+   cmd.run( "rm -rf " + tmpRec );
+
    //import operation
-   var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
-                     +' -c '+ csName +' -l '+ clName 
-                     +' --type json '
-                     +' --file '+ imprtFile;
+   var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
+      + ' -c ' + csName + ' -l ' + clName
+      + ' --type json '
+      + ' --file ' + imprtFile;
    println( imprtOption );
    var rc = cmd.run( imprtOption );
    println( rc );
-   
+
    //check import results
-   var rcObj = rc.split("\n");
-   var expParseRecords    = "parsed records: 5";
-   var expParseFailure    = "parse failure: 1";
+   var rcObj = rc.split( "\n" );
+   var expParseRecords = "parsed records: 5";
+   var expParseFailure = "parse failure: 1";
    var expImportedRecords = "imported records: 5";
-   var actParseRecords    = rcObj[0];
-   var actParseFailure    = rcObj[1];
+   var actParseRecords = rcObj[0];
+   var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];
-   if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords 
-    || expImportedRecords !== actImportedRecords )
+   if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords
+      || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]", 
-                        "["+ expParseRecords +", "+ expParseFailure +", "+ expImportedRecords +"]", 
-                        "["+ actParseRecords +", "+ actParseFailure +", "+ actImportedRecords +"]" );
+      throw buildException( "importData", null, "[sdbimprt results]",
+         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+         "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
-    
+
    // clean tmpRec
    cmd.run( "rm -rf " + tmpRec );
 }
 
-function checkCLData( cl )
+function checkCLData ( cl )
 {
-   println("\n---Begin to check cl data.");
-   
-   var rc = cl.find({},{_id:{$include:0}});
+   println( "\n---Begin to check cl data." );
+
+   var rc = cl.find( {}, { _id: { $include: 0 } } );
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {
       recsArray.push( tmpRecs.toObj() );
    }
-   
-   var expCnt  = 5;  
+
+   var expCnt = 5;
    var expRecs = '[{"\\\"testa":"hello"},{"te\\\"stb":"test"},{"testc":"test"},{"teste":{"\\\"$numberLong":{"$numberLong":"9223372036854775807"}}},{"testf":{"$numberLong":"9223372036854775807"}}]';
-   var actCnt  = recsArray.length;
+   var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]", 
-                        "[cnt:"+ expCnt +", recs:"+ expRecs +"]", 
-                        "[cnt:"+ actCnt +", recs:"+ actRecs +"]" );
+      throw buildException( "checkCLdata", null, "[find]",
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+         "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
    //println( "cl records: "+ actRecs );
 }

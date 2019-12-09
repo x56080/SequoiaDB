@@ -3,44 +3,44 @@
 @Modify list :
               2018-10-15  zhaoyu  Create
 ****************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db ))
+   if( commIsStandalone( db ) )
    {
-      println("Deploy is standalone");
-	  return;
+      println( "Deploy is standalone" );
+      return;
    };
-   
-   var clName = COMMCLNAME + "_15936";   
-   commDropCL(db, COMMCSNAME, clName, true, true);
-   
-   var dbcl = commCreateCLByOption(db, COMMCSNAME, clName, {AutoIncrement:{Field:"id"}});
-   commCreateIndex(dbcl, "id", {id:1}, true, true);
-  
+
+   var clName = COMMCLNAME + "_15936";
+   commDropCL( db, COMMCSNAME, clName, true, true );
+
+   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id" } } );
+   commCreateIndex( dbcl, "id", { id: 1 }, true, true );
+
    var doc = [];
    var expR = [];
-   for(var i=1;i<2001;i++)
+   for( var i = 1; i < 2001; i++ )
    {
-      doc.push({a:i, b:i, c:i + "test"});
-      expR.push({a:i, b:i, c:i + "test", id:i});
+      doc.push( { a: i, b: i, c: i + "test" } );
+      expR.push( { a: i, b: i, c: i + "test", id: i } );
    }
-   dbcl.insert(doc);
-   
-   var actR = dbcl.find().sort({a:1});
-   checkRec(actR, expR);
-   println("---check insert success");
-   
-   commDropCL(db, COMMCSNAME, clName, true, true); 
+   dbcl.insert( doc );
+
+   var actR = dbcl.find().sort( { a: 1 } );
+   checkRec( actR, expR );
+   println( "---check insert success" );
+
+   commDropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }

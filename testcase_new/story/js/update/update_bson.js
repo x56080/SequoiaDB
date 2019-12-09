@@ -2,82 +2,82 @@
 // unnormal rule.
 try
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" ) ;
+   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" );
 }
-catch(e)
+catch( e )
 {
-   println( "unexpected err happened when clear cs:" + e ) ;
-   throw e ;
+   println( "unexpected err happened when clear cs:" + e );
+   throw e;
 }
 
 // prepare env
 // commCreateCL( db, csName, clName, replSize, compressed, autoCreateCS, ignoreExisted, message )
 var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, true,
-                          "Ensure env before usecase" ) ;
+   "Ensure env before usecase" );
 try
 {
-   varCL.insert({a:[1,2]}) ;
+   varCL.insert( { a: [1, 2] } );
 }
-catch ( e )
+catch( e )
 {
-   println( "failed to insert record, rc= " + e ) ;
-   throw e ;
-}
-
-try
-{
-   varCL.update({$set:{"a.c":0}}) ;
-}
-
-catch ( e )
-{
-   println( "Update {$pull:{a.0:1}} failed: " + e ) ;
+   println( "failed to insert record, rc= " + e );
    throw e;
 }
 
 try
 {
-   varCL.insert({a:{a:3}}) ;
-}
-catch ( e )
-{
-   println( "failed to insert record, rc= " + e ) ;
-   throw e ;
+   varCL.update( { $set: { "a.c": 0 } } );
 }
 
-try
+catch( e )
 {
-   varCL.update({$set:{"a.a":"b"}}) ;
-}
-
-catch ( e )
-{
-   println( "Update {$pull:{a.0:1}} failed: " + e ) ;
+   println( "Update {$pull:{a.0:1}} failed: " + e );
    throw e;
 }
 
 try
 {
-   varCL.insert({a:3}) ;
+   varCL.insert( { a: { a: 3 } } );
 }
-catch ( e )
+catch( e )
 {
-   println( "failed to insert record, rc= " + e ) ;
-   throw e ;
+   println( "failed to insert record, rc= " + e );
+   throw e;
 }
 
 try
 {
-   varCL.update({$set:{"a":0}}) ;
+   varCL.update( { $set: { "a.a": "b" } } );
 }
 
-catch ( e )
+catch( e )
 {
-   println( "Update {$pull:{a.0:1}} failed: " + e ) ;
+   println( "Update {$pull:{a.0:1}} failed: " + e );
+   throw e;
+}
+
+try
+{
+   varCL.insert( { a: 3 } );
+}
+catch( e )
+{
+   println( "failed to insert record, rc= " + e );
+   throw e;
+}
+
+try
+{
+   varCL.update( { $set: { "a": 0 } } );
+}
+
+catch( e )
+{
+   println( "Update {$pull:{a.0:1}} failed: " + e );
    throw e;
 }
 
 // clear env
 // commDropCL( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, message )
-commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "Clear env after usecase" ) ;
+commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "Clear env after usecase" );
 

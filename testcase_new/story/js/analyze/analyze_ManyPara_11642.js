@@ -4,7 +4,7 @@
 *@createdate:  2017.11.15
 *@testlinkCase:seqDB-11642
 **************************************/
-function main()
+function main ()
 {
    //独立模式及1组模式不执行该用例
    try
@@ -12,219 +12,219 @@ function main()
       //判断独立模式
       if( true == commIsStandalone( db ) )
       {
-         println( "run mode is standalone" ); 
-         return; 
+         println( "run mode is standalone" );
+         return;
       }
-      
+
       //判断1节点模式
-      var groups = new Array(); 
-      temp = commGetGroups( db ); 
+      var groups = new Array();
+      temp = commGetGroups( db );
       for( var i = 0; i < temp.length; i++ )
       {
-         groups.push( temp[i][0].GroupName ); 
+         groups.push( temp[i][0].GroupName );
       }
-      
-      var nodes = getNodesInGroups( db, groups ); 
+
+      var nodes = getNodesInGroups( db, groups );
       for( var i = 0; i < nodes.length; i++ )
       {
          if( 1 === nodes[i].length )
          {
-            println( "group exists one node" ); 
-            return; 
+            println( "group exists one node" );
+            return;
          }
       }
    }
    catch( e )
    {
-      throw e; 
+      throw e;
    }
-   
-   var clName = COMMCLNAME + "_11642"; 
-   var clFullName = COMMCSNAME + "." + clName; 
-   var insertNum = 2000; 
-   var sameValues = 9000; 
-   
-   var findConf = {a:sameValues}; 
-   var expAccessPlan1 = [{ScanType:"tbscan", IndexName:""}, 
-   {ScanType:"tbscan", IndexName:""}]; 
-   var expAccessPlan2 = [{ScanType:"ixscan", IndexName:"a"}, 
-   {ScanType:"ixscan", IndexName:"a"}]; 
-   var expAccessPlan3 = []; 
-   var expAccessPlan4 = [{ScanType:"tbscan", IndexName:""}, 
-   {ScanType:"ixscan", IndexName:"a"}]; 
-   var expAccessPlan5 = [{ScanType:"ixscan", IndexName:"a"}]; 
-   var expAccessPlan6 = [{ScanType:"tbscan", IndexName:""}]; 
-   
+
+   var clName = COMMCLNAME + "_11642";
+   var clFullName = COMMCSNAME + "." + clName;
+   var insertNum = 2000;
+   var sameValues = 9000;
+
+   var findConf = { a: sameValues };
+   var expAccessPlan1 = [{ ScanType: "tbscan", IndexName: "" },
+   { ScanType: "tbscan", IndexName: "" }];
+   var expAccessPlan2 = [{ ScanType: "ixscan", IndexName: "a" },
+   { ScanType: "ixscan", IndexName: "a" }];
+   var expAccessPlan3 = [];
+   var expAccessPlan4 = [{ ScanType: "tbscan", IndexName: "" },
+   { ScanType: "ixscan", IndexName: "a" }];
+   var expAccessPlan5 = [{ ScanType: "ixscan", IndexName: "a" }];
+   var expAccessPlan6 = [{ ScanType: "tbscan", IndexName: "" }];
+
    //清理环境
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" ); 
-   
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
+
    //创建cl
-   var dbcl = commCreateCL( db, COMMCSNAME, clName ); 
-   
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
+
    //创建索引
-   commCreateIndex( dbcl, "a", {a:1} ); 
-   
+   commCreateIndex( dbcl, "a", { a: 1 } );
+
    //插入记录
-   insertDiffDatas( dbcl, insertNum ); 
-   insertSameDatas( dbcl, insertNum, sameValues ); 
-   
+   insertDiffDatas( dbcl, insertNum );
+   insertSameDatas( dbcl, insertNum, sameValues );
+
    //获取主备节点
-   var db1 = new Sdb( db ); 
-   db1.setSessionAttr( { PreferedInstance: "m" } ); 
-   var dbclPrimary = db1.getCS( COMMCSNAME ).getCL( clName ); 
-   var db2 = new Sdb( db ); 
-   db2.setSessionAttr( { PreferedInstance: "s" } ); 
-   var dbclSlave = db2.getCS( COMMCSNAME ).getCL( clName ); 
-   
+   var db1 = new Sdb( db );
+   db1.setSessionAttr( { PreferedInstance: "m" } );
+   var dbclPrimary = db1.getCS( COMMCSNAME ).getCL( clName );
+   var db2 = new Sdb( db );
+   db2.setSessionAttr( { PreferedInstance: "s" } );
+   var dbclSlave = db2.getCS( COMMCSNAME ).getCL( clName );
+
    //收集统计信息
-   analyze( db, {Collection: COMMCSNAME + "." + clName} ); 
-   
+   analyze( db, { Collection: COMMCSNAME + "." + clName } );
+
    //检查统计信息
-   checkConsistency( db, COMMCSNAME, clName ); 
-   checkStat( db, COMMCSNAME, clName, "a", true, true ); 
-   
+   checkConsistency( db, COMMCSNAME, clName );
+   checkStat( db, COMMCSNAME, clName, "a", true, true );
+
    //执行查询
-   query( dbclPrimary, findConf, null, null, insertNum ); 
-   query( dbclSlave, findConf, null, null, insertNum ); 
-   
+   query( dbclPrimary, findConf, null, null, insertNum );
+   query( dbclSlave, findConf, null, null, insertNum );
+
    //检查访问计划快照
-   var actAccessPlan = getCommonAccessPlans( db, {Collection: clFullName} ); 
-   checkSnapShotAccessPlans( clFullName, expAccessPlan1, actAccessPlan ); 
-   
+   var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan1, actAccessPlan );
+
    //指定cl + index + group + node生成默认统计信息
-   var groupName = getSrcGroup( COMMCSNAME, clName ); 
-   var primaryNode = db.getRG( groupName ).getMaster(); 
-   var nodeId = parseInt( primaryNode.getNodeDetail().split( ":" )[0] ); 
-   println( "nodeId:" + nodeId ); 
-   analyze( db, {Mode:3, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName, NodeID: nodeId} ); 
-   
+   var groupName = getSrcGroup( COMMCSNAME, clName );
+   var primaryNode = db.getRG( groupName ).getMaster();
+   var nodeId = parseInt( primaryNode.getNodeDetail().split( ":" )[0] );
+   println( "nodeId:" + nodeId );
+   analyze( db, { Mode: 3, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName, NodeID: nodeId } );
+
    //检查统计信息
-   checkConsistency( db, COMMCSNAME, clName ); 
-   checkStat( db, COMMCSNAME, clName, "a", true, false ); 
-   
+   checkConsistency( db, COMMCSNAME, clName );
+   checkStat( db, COMMCSNAME, clName, "a", true, false );
+
    //检查访问计划快照
-   var actAccessPlan = getCommonAccessPlans( db, {Collection: clFullName} ); 
-   checkSnapShotAccessPlans( clFullName, expAccessPlan3, actAccessPlan ); 
-   
+   var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan3, actAccessPlan );
+
    //执行查询
-   query( dbclPrimary, findConf, null, null, insertNum ); 
-   query( dbclSlave, findConf, null, null, insertNum ); 
-   
+   query( dbclPrimary, findConf, null, null, insertNum );
+   query( dbclSlave, findConf, null, null, insertNum );
+
    //检查访问计划快照
-   var actAccessPlan = getCommonAccessPlans( db, {Collection: clFullName} ); 
-   checkSnapShotAccessPlans( clFullName, expAccessPlan2, actAccessPlan ); 
-   
+   var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan2, actAccessPlan );
+
    //手工修改主备节点统计信息
-   var mcvValues = [{a:8000}, {a:sameValues}, {a:9001}]; 
-   var fracs = [500, 9000, 500]; 
-   updateIndexStateInfo( db, COMMCSNAME, clName, "a", mcvValues, fracs ); 
-   
+   var mcvValues = [{ a: 8000 }, { a: sameValues }, { a: 9001 }];
+   var fracs = [500, 9000, 500];
+   updateIndexStateInfo( db, COMMCSNAME, clName, "a", mcvValues, fracs );
+
    //统计信息加载至缓存
-   analyze( db, {Mode:4, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName, NodeID: nodeId} ); 
-   
+   analyze( db, { Mode: 4, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName, NodeID: nodeId } );
+
    //检查统计信息
-   checkConsistency( db, COMMCSNAME, clName ); 
-   checkStat( db, COMMCSNAME, clName, "a", true, true ); 
-   
+   checkConsistency( db, COMMCSNAME, clName );
+   checkStat( db, COMMCSNAME, clName, "a", true, true );
+
    //检查访问计划快照
-   var actAccessPlan = getCommonAccessPlans( db, {Collection: clFullName} ); 
-   checkSnapShotAccessPlans( clFullName, expAccessPlan5, actAccessPlan ); 
-   
+   var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan5, actAccessPlan );
+
    //执行查询
-   query( dbclPrimary, findConf, null, null, insertNum ); 
-   query( dbclSlave, findConf, null, null, insertNum ); 
-   
+   query( dbclPrimary, findConf, null, null, insertNum );
+   query( dbclSlave, findConf, null, null, insertNum );
+
    //检查访问计划快照
-   var actAccessPlan = getCommonAccessPlans( db, {Collection: clFullName} ); 
-   checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan ); 
-   
+   var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan );
+
    //清空缓存
-   analyze( db, {Mode:5, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName, NodeID: nodeId} ); 
-   
+   analyze( db, { Mode: 5, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName, NodeID: nodeId } );
+
    //检查统计信息
-   checkConsistency( db, COMMCSNAME, clName ); 
-   checkStat( db, COMMCSNAME, clName, "a", true, true ); 
-   
+   checkConsistency( db, COMMCSNAME, clName );
+   checkStat( db, COMMCSNAME, clName, "a", true, true );
+
    //检查访问计划快照
-   var actAccessPlan = getCommonAccessPlans( db, {Collection: clFullName} ); 
-   checkSnapShotAccessPlans( clFullName, expAccessPlan5, actAccessPlan ); 
-   
+   var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan5, actAccessPlan );
+
    //执行查询
-   query( dbclPrimary, findConf, null, null, insertNum ); 
-   query( dbclSlave, findConf, null, null, insertNum ); 
-   
+   query( dbclPrimary, findConf, null, null, insertNum );
+   query( dbclSlave, findConf, null, null, insertNum );
+
    //检查访问计划快照
-   var actAccessPlan = getCommonAccessPlans( db, {Collection: clFullName} ); 
-   checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan ); 
-   
+   var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan );
+
    //再次更新统计信息
-   var mcvValues = [{a:8000}, {a:sameValues}, {a:9001}]; 
-   var fracs = [500, 100, 9400]; 
-   updateIndexStateInfo( db, COMMCSNAME, clName, "a", mcvValues, fracs ); 
-   
+   var mcvValues = [{ a: 8000 }, { a: sameValues }, { a: 9001 }];
+   var fracs = [500, 100, 9400];
+   updateIndexStateInfo( db, COMMCSNAME, clName, "a", mcvValues, fracs );
+
    //检查统计信息
-   checkConsistency( db, COMMCSNAME, clName ); 
-   checkStat( db, COMMCSNAME, clName, "a", true, true ); 
-   
+   checkConsistency( db, COMMCSNAME, clName );
+   checkStat( db, COMMCSNAME, clName, "a", true, true );
+
    //检查访问计划快照
-   var actAccessPlan = getCommonAccessPlans( db, {Collection: clFullName} ); 
-   checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan ); 
-   
+   var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan );
+
    //执行查询
-   query( dbclPrimary, findConf, null, null, insertNum ); 
-   query( dbclSlave, findConf, null, null, insertNum ); 
-   
+   query( dbclPrimary, findConf, null, null, insertNum );
+   query( dbclSlave, findConf, null, null, insertNum );
+
    //检查访问计划快照
-   var actAccessPlan = getCommonAccessPlans( db, {Collection: clFullName} ); 
-   checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan ); 
-   
+   var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan );
+
    //再次清空缓存
-   analyze( db, {Mode:5, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName, NodeID: nodeId} ); 
-   
+   analyze( db, { Mode: 5, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName, NodeID: nodeId } );
+
    //检查统计信息
-   checkConsistency( db, COMMCSNAME, clName ); 
-   checkStat( db, COMMCSNAME, clName, "a", true, true ); 
-   
+   checkConsistency( db, COMMCSNAME, clName );
+   checkStat( db, COMMCSNAME, clName, "a", true, true );
+
    //检查访问计划快照
-   var actAccessPlan = getCommonAccessPlans( db, {Collection: clFullName} ); 
-   checkSnapShotAccessPlans( clFullName, expAccessPlan5, actAccessPlan ); 
-   
+   var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan5, actAccessPlan );
+
    //执行查询
-   query( dbclPrimary, findConf, null, null, insertNum ); 
-   query( dbclSlave, findConf, null, null, insertNum ); 
-   
+   query( dbclPrimary, findConf, null, null, insertNum );
+   query( dbclSlave, findConf, null, null, insertNum );
+
    //检查访问计划快照
-   var actAccessPlan = getCommonAccessPlans( db, {Collection: clFullName} ); 
-   checkSnapShotAccessPlans( clFullName, expAccessPlan2, actAccessPlan ); 
-   
+   var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan2, actAccessPlan );
+
    //指定不支持的参数
-   analyzeInvalidPara( db, {CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName} ); 
-   println( "check result after analyze set cs+cl+index+ group success!" ); 
-   analyzeInvalidPara( db, {CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, Index: "a", NodeID: nodeId} ); 
-   println( "check result after analyze set cs+cl+index+node success!" ); 
-   analyzeInvalidPara( db, {CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, GroupName: groupName, NodeID: nodeId} ); 
-   println( "check result after analyze set cs+cl+group+node success!" ); 
-   
+   analyzeInvalidPara( db, { CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName } );
+   println( "check result after analyze set cs+cl+index+ group success!" );
+   analyzeInvalidPara( db, { CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, Index: "a", NodeID: nodeId } );
+   println( "check result after analyze set cs+cl+index+node success!" );
+   analyzeInvalidPara( db, { CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, GroupName: groupName, NodeID: nodeId } );
+   println( "check result after analyze set cs+cl+group+node success!" );
+
    //清理环境
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" ); 
-   db1.close(); 
-   db2.close(); 
-   
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
+   db1.close();
+   db2.close();
+
 }
 main()
 
-function analyzeInvalidPara( db, options )
+function analyzeInvalidPara ( db, options )
 {
    try
    {
-      db.analyze( options ); 
-      throw "NEED_ERR"; 
+      db.analyze( options );
+      throw "NEED_ERR";
    }
    catch( e )
    {
       if( e !== -6 )
       {
-         throw e; 
+         throw e;
       }
    }
 }

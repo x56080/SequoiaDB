@@ -6,12 +6,12 @@
 var clName = CHANGEDPREFIX + "_cl";
 
 main( db )
-function main( db )
+function main ( db )
 {
-	if (commIsStandalone(db)) return;
+	if( commIsStandalone( db ) ) return;
 	commDropCL( db, COMMCSNAME, clName );
-	
-	var objCL = commCreateCLByOption( db, COMMCSNAME, clName, {ShardingKey:{no:1},ShardingType:"range"} );
+
+	var objCL = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { no: 1 }, ShardingType: "range" } );
 	var insertNum = 10;
 	insertData( db, COMMCSNAME, clName, insertNum );
 	var srcGroup = getSrcGroup( COMMCSNAME, clName );
@@ -19,13 +19,13 @@ function main( db )
 	var tgtGroup = "non_exist_group_name";
 	try
 	{
-		objCL.split(srcGroup, tgtGroup, 50);
+		objCL.split( srcGroup, tgtGroup, 50 );
 	}
-	catch ( e )
+	catch( e )
 	{
-		if ( e !== -154 )
+		if( e !== -154 )
 		{
-			throw buildException("SD.split.02.002",e,"split","rc=-154","rc="+e);
+			throw buildException( "SD.split.02.002", e, "split", "rc=-154", "rc=" + e );
 		}
 	}
 	finally

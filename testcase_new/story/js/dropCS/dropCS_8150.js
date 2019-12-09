@@ -1,28 +1,28 @@
 //drop not exist collection
-CSPREFIX_CS = CHANGEDPREFIX + "ONWfoo"; 
+CSPREFIX_CS = CHANGEDPREFIX + "ONWfoo";
 
-CSPREFIX_CL = CHANGEDPREFIX + "bar"; 
+CSPREFIX_CL = CHANGEDPREFIX + "bar";
 try
 {
-   db.dropCS( CSPREFIX_CS ); 
+   db.dropCS( CSPREFIX_CS );
 }
 catch( e )
 {
-   
+
 }
-var res = false; 
+var res = false;
 try
 {
-   db.dropCS( CSPREFIX_CS ); 
+   db.dropCS( CSPREFIX_CS );
 }
 catch( e )
 {
    if( e == -34 )
    {
-      res = true; 
+      res = true;
    }
 }
 if( !res )
 {
-   throw -1; 
+   throw -1;
 }

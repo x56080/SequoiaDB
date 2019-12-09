@@ -4,43 +4,43 @@
 *               seqDB-13176:获取本地IP和远程IP
 *@author      : Liang XueWang
 ******************************************************************************/
-function testIP( hostname )
+function testIP ( hostname )
 {
-   var ssh = newSsh( hostname, sdbUser, sdbPasswd, sshPort ); 
-   var localIp = ssh.getLocalIP(); 
-   var expect = getLocalIPAddr(); 
+   var ssh = newSsh( hostname, sdbUser, sdbPasswd, sshPort );
+   var localIp = ssh.getLocalIP();
+   var expect = getLocalIPAddr();
    if( localIp !== expect )
    {
-      if( localIp === "127.0.0.1" && expect.slice( 0, 4 )=== "127." )
+      if( localIp === "127.0.0.1" && expect.slice( 0, 4 ) === "127." )
       {
       }
       else
       {
-         throw buildException( "testIP", null, "test local ip", 
-         expect, localIp ); 
+         throw buildException( "testIP", null, "test local ip",
+            expect, localIp );
       }
    }
-   var peerIp = ssh.getPeerIP(); 
-   expect = getIPAddr( hostname ); 
+   var peerIp = ssh.getPeerIP();
+   expect = getIPAddr( hostname );
    if( peerIp !== expect )
    {
-      throw buildException( "testIP", null, "test peer ip", 
-      expect, peerIp ); 
+      throw buildException( "testIP", null, "test peer ip",
+         expect, peerIp );
    }
-   ssh.close(); 
+   ssh.close();
 }
 
-function main()
+function main ()
 {
-   var remotehost = toolGetRemotehost(); 
-   println( "ssh hostname: " + remotehost ); 
-   
+   var remotehost = toolGetRemotehost();
+   println( "ssh hostname: " + remotehost );
+
    if( !checkSsh( remotehost, sdbUser, sdbPasswd, sshPort ) )
    {
-      return; 
+      return;
    }
-   
-   testIP( remotehost ); 
+
+   testIP( remotehost );
 }
 
 main()

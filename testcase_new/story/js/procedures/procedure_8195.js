@@ -8,22 +8,22 @@ var pcdName = COMMCLNAME + '_procedurename';
 
 main();
 
-function main()
+function main ()
 {
-   if( commIsStandalone(db) )
+   if( commIsStandalone( db ) )
    {
-      println(" Deploy mode is standalone!");
+      println( " Deploy mode is standalone!" );
       return;
-   }  
+   }
    try
-   {       
+   {
       ready();
       excuteWrongPcd();
       excuteNotExistPcd();
    }
    catch( e )
    {
-      throw e ;
+      throw e;
    }
    finally
    {
@@ -31,61 +31,61 @@ function main()
    }
 }
 
-function excuteWrongPcd()
+function excuteWrongPcd ()
 {
-   println("\n---begin to excute procedure that expect throw error"); 
-   
-   var cmd = "db.createProcedure( function " + pcdName + "(x){return db.getCS(x);} )";           
-   db.eval( cmd ); 
-   
+   println( "\n---begin to excute procedure that expect throw error" );
+
+   var cmd = "db.createProcedure( function " + pcdName + "(x){return db.getCS(x);} )";
+   db.eval( cmd );
+
    try
    {
-      var cmd = pcdName + '("' + csName + '")';   
+      var cmd = pcdName + '("' + csName + '")';
       db.eval( cmd )
       throw "did not throw error";
    }
-   catch(e)
+   catch( e )
    {
       if( e !== -34 )
       {
-         throw buildException( "excuteWrongPcd()", "", "db.eval("+cmd+")", 
-                               "throw -34", e );  
+         throw buildException( "excuteWrongPcd()", "", "db.eval(" + cmd + ")",
+            "throw -34", e );
       }
    }
 }
 
-function excuteNotExistPcd()
+function excuteNotExistPcd ()
 {
-   println("\n---begin to excute nonexistent procedure");
-          
+   println( "\n---begin to excute nonexistent procedure" );
+
    fmpRemoveProcedures( [pcdName], true );
-   
+
    try
-   {     
-      var cmd = pcdName + "()";  
+   {
+      var cmd = pcdName + "()";
       db.eval( cmd );
       throw "did not throw error";
    }
-   catch(e)
+   catch( e )
    {
       if( e !== -152 )
       {
-         throw buildException( "excuteNotExistPcd()", "", "db.eval("+cmd+")", 
-                               "throw -152", e );  
+         throw buildException( "excuteNotExistPcd()", "", "db.eval(" + cmd + ")",
+            "throw -152", e );
       }
    }
 }
 
-function ready()
+function ready ()
 {
-   println("\n---begin to remove procedures and cs in ready");
+   println( "\n---begin to remove procedures and cs in ready" );
    fmpRemoveProcedures( [pcdName], true );
-   commDropCS( db, csName, true, "drop cs["+csName+"] in ready" );
+   commDropCS( db, csName, true, "drop cs[" + csName + "] in ready" );
 }
 
-function clean()
+function clean ()
 {
-   println("\n---begin to clean environment");
+   println( "\n---begin to clean environment" );
    fmpRemoveProcedures( [pcdName], true );
-   commDropCS( db, csName, true, "drop cs["+csName+"] in clean" );
+   commDropCS( db, csName, true, "drop cs[" + csName + "] in clean" );
 }

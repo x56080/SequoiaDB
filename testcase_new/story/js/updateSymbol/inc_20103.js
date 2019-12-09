@@ -3,160 +3,160 @@
 *@author:      zhaoyu
 *@createdate:  2019.10.29
 **************************************/
-function main()
+function main ()
 {
 	var clName = COMMCLNAME + "_20103";
-	commDropCL( db, COMMCSNAME, clName, true, true,"drop CL in the beginning" ) ;
-	var cl = commCreateCLByOption( db, COMMCSNAME, clName, {StrictDataMode: true});
-	commCreateIndex( cl, "a_20103", {a:1}, false);
-	
+	commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
+	var cl = commCreateCLByOption( db, COMMCSNAME, clName, { StrictDataMode: true } );
+	commCreateIndex( cl, "a_20103", { a: 1 }, false );
+
 	//a字段为数值，Value为数值，Min为数值，Value<Min同时a+Value>=Min，更新成功，更新后a值为a+Value
-	var doc = [{id:1, a:20}];
-	cl.insert(doc);
-	cl.update({$inc:{a:{Value:30, Min:50}}});
-	var expRecs = [{id:1, a:50}]
-	checkResult( cl, null, null, expRecs, {id:1} );
+	var doc = [{ id: 1, a: 20 }];
+	cl.insert( doc );
+	cl.update( { $inc: { a: { Value: 30, Min: 50 } } } );
+	var expRecs = [{ id: 1, a: 50 }]
+	checkResult( cl, null, null, expRecs, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段为数值，Value为数值，Min为数值，Value<Min同时a+Value<Min，更新失败，报错信息返回具体失败的记录信息
-	doc = [{id:1, a:19}];
-	cl.insert(doc);
-	invalidDataUpdateCheckResult( cl, {$inc:{a:{Value:30, Min:50}}}, -318 );
-	checkResult( cl, null, null, doc, {id:1} );
+	doc = [{ id: 1, a: 19 }];
+	cl.insert( doc );
+	invalidDataUpdateCheckResult( cl, { $inc: { a: { Value: 30, Min: 50 } } }, -318 );
+	checkResult( cl, null, null, doc, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段为数值，Value为数值，Min为数值，Value>=Min同时a+Value>=Min，更新成功，更新后a值为a+Value
-	doc = [{id:1, a:20}];
-	cl.insert(doc);
-	cl.update({$inc:{a:{Value:100, Min:50}}});
-	expRecs = [{id:1, a:120}]
-	checkResult( cl, null, null, expRecs, {id:1} );
+	doc = [{ id: 1, a: 20 }];
+	cl.insert( doc );
+	cl.update( { $inc: { a: { Value: 100, Min: 50 } } } );
+	expRecs = [{ id: 1, a: 120 }]
+	checkResult( cl, null, null, expRecs, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段为数值，Value为数值，Min为数值，Value>=Min同时a+Value<Min，更新失败，报错信息返回具体失败的记录信息
-	doc = [{id:1, a:-31}];
-	cl.insert(doc);
-	invalidDataUpdateCheckResult( cl, {$inc:{a:{Value:80, Min:50}}}, -318 );
-	checkResult( cl, null, null, doc, {id:1} );
+	doc = [{ id: 1, a: -31 }];
+	cl.insert( doc );
+	invalidDataUpdateCheckResult( cl, { $inc: { a: { Value: 80, Min: 50 } } }, -318 );
+	checkResult( cl, null, null, doc, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段为数值，Value为数值，Max为数值，Value>Max同时a+Value<=Max，更新成功，更新后a值为a+Value
-	var doc = [{id:1, a:-10}];
-	cl.insert(doc);
-	cl.update({$inc:{a:{Value:60, Max:50}}});
-	var expRecs = [{id:1, a:50}]
-	checkResult( cl, null, null, expRecs, {id:1} );
+	var doc = [{ id: 1, a: -10 }];
+	cl.insert( doc );
+	cl.update( { $inc: { a: { Value: 60, Max: 50 } } } );
+	var expRecs = [{ id: 1, a: 50 }]
+	checkResult( cl, null, null, expRecs, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段为数值，Value为数值，Max为数值，Value>Max同时a+Value>Max，更新失败，报错信息返回具体失败的记录信息
-	doc = [{id:1, a:-10}];
-	cl.insert(doc);
-	invalidDataUpdateCheckResult( cl, {$inc:{a:{Value:61, Max:50}}}, -318 );
-	checkResult( cl, null, null, doc, {id:1} );
+	doc = [{ id: 1, a: -10 }];
+	cl.insert( doc );
+	invalidDataUpdateCheckResult( cl, { $inc: { a: { Value: 61, Max: 50 } } }, -318 );
+	checkResult( cl, null, null, doc, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段为数值，Value为数值，Max为数值，Value<=Max同时a+Value<=Max，更新成功，更新后a值为a+Value
-	doc = [{id:1, a:10}];
-	cl.insert(doc);
-	cl.update({$inc:{a:{Value:40, Max:50}}});
-	expRecs = [{id:1, a:50}]
-	checkResult( cl, null, null, expRecs, {id:1} );
+	doc = [{ id: 1, a: 10 }];
+	cl.insert( doc );
+	cl.update( { $inc: { a: { Value: 40, Max: 50 } } } );
+	expRecs = [{ id: 1, a: 50 }]
+	checkResult( cl, null, null, expRecs, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段为数值，Value为数值，Max为数值，Value<=Max同时a+Value>Max，更新失败，报错信息返回具体失败的记录信息
-	doc = [{id:1, a:11}];
-	cl.insert(doc);
-	invalidDataUpdateCheckResult( cl, {$inc:{a:{Value:40, Max:50}}}, -318);
-	checkResult( cl, null, null, doc, {id:1} );
+	doc = [{ id: 1, a: 11 }];
+	cl.insert( doc );
+	invalidDataUpdateCheckResult( cl, { $inc: { a: { Value: 40, Max: 50 } } }, -318 );
+	checkResult( cl, null, null, doc, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段为数值，Value为数值，Min为数值，Max为数值，Min<a+Value<Max，更新成功，更新后a值为a+Value
-	doc = [{id:1, a:10}];
-	cl.insert(doc);
-	cl.update({$inc:{a:{Value:40, Max:50, Min:40}}});
-	expRecs = [{id:1, a:50}]
-	checkResult( cl, null, null, expRecs, {id:1} );
+	doc = [{ id: 1, a: 10 }];
+	cl.insert( doc );
+	cl.update( { $inc: { a: { Value: 40, Max: 50, Min: 40 } } } );
+	expRecs = [{ id: 1, a: 50 }]
+	checkResult( cl, null, null, expRecs, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段为数值，Value为数值，Min为数值，Max为数值，a+Value<Min或者a+Value>Max，更新失败，报错信息返回具体失败的记录信息
-	doc = [{id:1, a:11}];
-	cl.insert(doc);
-	invalidDataUpdateCheckResult( cl, {$inc:{a:{Value:40, Max:50, Min: 40}}}, -318 );
-	invalidDataUpdateCheckResult( cl, {$inc:{a:{Value:28, Max:50, Min: 40}}}, -318 );
-	checkResult( cl, null, null, doc, {id:1} );
+	doc = [{ id: 1, a: 11 }];
+	cl.insert( doc );
+	invalidDataUpdateCheckResult( cl, { $inc: { a: { Value: 40, Max: 50, Min: 40 } } }, -318 );
+	invalidDataUpdateCheckResult( cl, { $inc: { a: { Value: 28, Max: 50, Min: 40 } } }, -318 );
+	checkResult( cl, null, null, doc, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段为null或者其他非数值类型，更新后a字段值无变化
-	doc = [{id:1, a:null}, {id:2, a:"a"}];
-	cl.insert(doc);
-	cl.update({$inc:{a:{Value:40, Max:50, Min:40}}});
-	checkResult( cl, null, null, doc, {id:1} );
+	doc = [{ id: 1, a: null }, { id: 2, a: "a" }];
+	cl.insert( doc );
+	cl.update( { $inc: { a: { Value: 40, Max: 50, Min: 40 } } } );
+	checkResult( cl, null, null, doc, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段不存在时，Value为数值，Min为数值，Value>=Min，更新成功，更新后a值为Value
-	doc = [{id:1, b:1}];
-	cl.insert(doc);
-	cl.update({$inc:{a:{Value:40, Min:40}}});
-	expRecs = [{id:1, a:40, b:1}]
-	checkResult( cl, null, null, expRecs, {id:1} );
+	doc = [{ id: 1, b: 1 }];
+	cl.insert( doc );
+	cl.update( { $inc: { a: { Value: 40, Min: 40 } } } );
+	expRecs = [{ id: 1, a: 40, b: 1 }]
+	checkResult( cl, null, null, expRecs, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段不存在时，Value为数值，Min为数值，Value<Min，更新失败，报错信息返回具体失败的记录信息
-	doc = [{id:1, b:1}];
-	cl.insert(doc);
-	invalidDataUpdateCheckResult( cl, {$inc:{a:{Value:39, Min: 40}}}, -318 );
-	checkResult( cl, null, null, doc, {id:1} );
+	doc = [{ id: 1, b: 1 }];
+	cl.insert( doc );
+	invalidDataUpdateCheckResult( cl, { $inc: { a: { Value: 39, Min: 40 } } }, -318 );
+	checkResult( cl, null, null, doc, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段不存在时，Value为数值，Max为数值，Value<=Max，更新成功，更新后a值为Value
-	doc = [{id:1, b:1}];
-	cl.insert(doc);
-	cl.update({$inc:{a:{Value:40, Max:40}}});
-	expRecs = [{id:1, a:40, b:1}]
-	checkResult( cl, null, null, expRecs, {id:1} );
+	doc = [{ id: 1, b: 1 }];
+	cl.insert( doc );
+	cl.update( { $inc: { a: { Value: 40, Max: 40 } } } );
+	expRecs = [{ id: 1, a: 40, b: 1 }]
+	checkResult( cl, null, null, expRecs, { id: 1 } );
 	cl.remove();
-	
+
 	//a字段不存在时，Value为数值，Max为数值，Value>Max，更新失败，报错信息返回具体失败的记录信息
-	doc = [{id:1, b:1}];
-	cl.insert(doc);
-	invalidDataUpdateCheckResult( cl, {$inc:{a:{Value:41, Max: 40}}}, -318 );
-	checkResult( cl, null, null, doc, {id:1} );
+	doc = [{ id: 1, b: 1 }];
+	cl.insert( doc );
+	invalidDataUpdateCheckResult( cl, { $inc: { a: { Value: 41, Max: 40 } } }, -318 );
+	checkResult( cl, null, null, doc, { id: 1 } );
 	cl.remove();
-	
+
 	//Min、Max指定为int、double、numberLong、decimal类型时，更新成功，更新后值正确
-	doc = [{id:1, b:1}];
-	cl.insert(doc);
-	cl.update({$inc:{a:{Value:40, Min:39.39, Max:40.4}}});
-	expRecs = [{id:1, a:40, b:1}]
-	checkResult( cl, null, null, expRecs, {id:1} );
+	doc = [{ id: 1, b: 1 }];
+	cl.insert( doc );
+	cl.update( { $inc: { a: { Value: 40, Min: 39.39, Max: 40.4 } } } );
+	expRecs = [{ id: 1, a: 40, b: 1 }]
+	checkResult( cl, null, null, expRecs, { id: 1 } );
 	cl.remove();
-	
-	doc = [{id:1, b:1}];
-	cl.insert(doc);
-	cl.update({$inc:{a:{Value:40, Min:{$numberLong:"-9223372036854775808"}, Max:{$numberLong:"9223372036854775807"}}}});
-	expRecs = [{id:1, a:40, b:1}]
-	checkResult( cl, null, null, expRecs, {id:1} );
+
+	doc = [{ id: 1, b: 1 }];
+	cl.insert( doc );
+	cl.update( { $inc: { a: { Value: 40, Min: { $numberLong: "-9223372036854775808" }, Max: { $numberLong: "9223372036854775807" } } } } );
+	expRecs = [{ id: 1, a: 40, b: 1 }]
+	checkResult( cl, null, null, expRecs, { id: 1 } );
 	cl.remove();
-	
-	doc = [{id:1, b:1}];
-	cl.insert(doc);
-	cl.update({$inc:{a:{Value:40, Min:{$decimal:"-9223372036854775809"}, Max:{$decimal:"9223372036854775808"}}}});
-	expRecs = [{id:1, a:40, b:1}]
-	checkResult( cl, null, null, expRecs, {id:1} );
+
+	doc = [{ id: 1, b: 1 }];
+	cl.insert( doc );
+	cl.update( { $inc: { a: { Value: 40, Min: { $decimal: "-9223372036854775809" }, Max: { $decimal: "9223372036854775808" } } } } );
+	expRecs = [{ id: 1, a: 40, b: 1 }]
+	checkResult( cl, null, null, expRecs, { id: 1 } );
 	cl.remove();
-	
-	commDropCL( db, COMMCSNAME, clName) ;
+
+	commDropCL( db, COMMCSNAME, clName );
 }
 
 try
 {
-   main();
+	main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
-   {
-      println(e.stack) ;  
-   }
-   throw e ;
+	if( e.constructor === Error )
+	{
+		println( e.stack );
+	}
+	throw e;
 }

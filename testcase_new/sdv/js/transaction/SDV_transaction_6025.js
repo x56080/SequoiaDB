@@ -1,15 +1,15 @@
 /************************************************************************
-*@Description:	seqDB-6025:ÊÂÎñÌá½»ºóÖ´ÐÐ»Ø¹ö_SD.transaction.036
-               ÒÀ´ÎÖ´ÐÐ¿ªÆôÊÂÎñ¡¢¸üÐÂ¡¢Ìá½»¡¢»Ø¹ö
+*@Description:	seqDB-6025:ï¿½ï¿½ï¿½ï¿½ï¿½á½»ï¿½ï¿½Ö´ï¿½Ð»Ø¹ï¿½_SD.transaction.036
+               ï¿½ï¿½ï¿½ï¿½Ö´ï¿½Ð¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ñ¡¢¸ï¿½ï¿½Â¡ï¿½ï¿½á½»ï¿½ï¿½ï¿½Ø¹ï¿½
 *@Author:  		TingYU  2015/11/24
-               wuyan 2017/1/6(ÐÞ¸ÄÖØ¸´Ö´ÐÐ»Ø¹ö²»±¨´í) 
+               wuyan 2017/1/6(ï¿½Þ¸ï¿½ï¿½Ø¸ï¿½Ö´ï¿½Ð»Ø¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½) 
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var csName = COMMCSNAME + "_yt6025";
    var clName = COMMCLNAME + "_yt6025";
-   
+
    try
    {
       if( !commIsTransEnabled( db ) )
@@ -17,36 +17,36 @@ function main()
          println( "transaction is disabled" );
          return;
       }
-      var cl = readyCL( csName, clName, {ReplSize:0} );
-      
+      var cl = readyCL( csName, clName, { ReplSize: 0 } );
+
       //begin and commit
-      var dataNum = 100; 
+      var dataNum = 100;
       var insert = new insertData( cl, dataNum );
-      var update = new updateData ( cl ); 
+      var update = new updateData( cl );
       execTransaction( insert, beginTrans, update, commitTrans );
       checkResult( cl, true, update );
-      
+
       //rollback
       try
-      {   
+      {
          execTransaction( rollbackTrans );
          //throw buildException( "rollbackTrans()", "", "excute rollback after commit",
-                               //-196, "did not throw any error" );
+         //-196, "did not throw any error" );
       }
-      catch(e)
+      catch( e )
       {
          //var expErr = "rollbackTrans() unknown error expect: " + -196;
          //if( e !== expErr )
          //{
-            throw e;
+         throw e;
          //}
       }
       checkResult( cl, true, update );
-                    
-	   clean( csName, clName );
+
+      clean( csName, clName );
    }
    catch( e )
    {
       throw e;
-   }   
+   }
 }

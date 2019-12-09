@@ -11,127 +11,127 @@
 @modify list:
       2015-5-13 ShanShan Hu added  2016-3-16 XiaoNi Huang modify
 ****************************************************/
-csName = COMMCSNAME ;
-clName = CHANGEDPREFIX+"_bar" ; 
+csName = COMMCSNAME;
+clName = CHANGEDPREFIX + "_bar";
 
-function main( db )
+function main ( db )
 {
    //transaction is enable, then continue.
-   if ( commIsTransEnabled( db ) == false )
+   if( commIsTransEnabled( db ) == false )
    {
-      println( "transaction is not enabled " ) ;
-      db.close() ;
-      return ;
+      println( "transaction is not enabled " );
+      db.close();
+      return;
    }
 
-   println("------Begin to ready cl.");
+   println( "------Begin to ready cl." );
    try
    {
-   // db.execUpdate("create collection "+csName+"."+clName);
-   	commDropCL(db,csName,clName,true,true,"drop cl in begin");
-   	var opt={ReplSize:0};
-   	var varCL=commCreateCLByOption(db,csName,clName,opt,true,false,"create cl in begin");
+      // db.execUpdate("create collection "+csName+"."+clName);
+      commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+      var opt = { ReplSize: 0 };
+      var varCL = commCreateCLByOption( db, csName, clName, opt, true, false, "create cl in begin" );
    }
    catch( e )
    {
-      println("Failed to drop/create cl in the begin.");
-   	throw e ;
+      println( "Failed to drop/create cl in the begin." );
+      throw e;
    }
-   
-   println("------Begin to insert into records.");
-   for ( var i = 0 ; i<20 ; i++)
+
+   println( "------Begin to insert into records." );
+   for( var i = 0; i < 20; i++ )
    {
       try
       {
-         db.execUpdate("insert into "+csName+"."+clName+" (age) values "+"("+i+")");
+         db.execUpdate( "insert into " + csName + "." + clName + " (age) values " + "(" + i + ")" );
       }
-      catch(e)
+      catch( e )
       {
-         println("Failed to insert records.");
-         throw e ;
+         println( "Failed to insert records." );
+         throw e;
       }
    }
 
-   println("------Begin to exec [db.transBegin()].");
+   println( "------Begin to exec [db.transBegin()]." );
    try
    {
-      db.transBegin();   
+      db.transBegin();
    }
-   catch(e)
+   catch( e )
    {
-      println("Failed to exec [db.transBegin()].");
-      throw e ;
+      println( "Failed to exec [db.transBegin()]." );
+      throw e;
    }
 
-   println("------Begin to exec [update] by SQL.]");
+   println( "------Begin to exec [update] by SQL.]" );
    try
    {
-      db.execUpdate("update "+csName+"."+clName+" set name=\"Tom\" where age=19");
+      db.execUpdate( "update " + csName + "." + clName + " set name=\"Tom\" where age=19" );
    }
-   catch(e)
+   catch( e )
    {
-     println("Failed to update the records by SQL.");
-     throw e ;   
+      println( "Failed to update the records by SQL." );
+      throw e;
    }
 
-   println("------Begin to exec [select] by SQL.]");
-   var rc ;
+   println( "------Begin to exec [select] by SQL.]" );
+   var rc;
    try
    {
-      rc = db.exec("select * from "+csName+"."+clName+" where name=\"Tom\"");
+      rc = db.exec( "select * from " + csName + "." + clName + " where name=\"Tom\"" );
    }
-   catch ( e )
+   catch( e )
    {
-      println( "Failed to select the records by SQL." ) ;
-      throw e ;
+      println( "Failed to select the records by SQL." );
+      throw e;
    }
 
-   println("------Begin to check results.]");
-   if ( 1 != rc.size() )
+   println( "------Begin to check results.]" );
+   if( 1 != rc.size() )
    {
-      throw "Failed to check results." ;
+      throw "Failed to check results.";
    }
-   
-   println("------Begin to exec [db.transRollback()].");
+
+   println( "------Begin to exec [db.transRollback()]." );
    try
    {
-      db.transRollback();   
+      db.transRollback();
    }
-   catch(e)
+   catch( e )
    {
-      println("Failed to exec [db.transRollback()].");
-      throw e ;   
+      println( "Failed to exec [db.transRollback()]." );
+      throw e;
    }
 
-   println("------Begin to exec [select] by SQL.]");
-   var rc ;
+   println( "------Begin to exec [select] by SQL.]" );
+   var rc;
    try
    {
-      rc = db.exec("select * from "+csName+"."+clName+" where name=\"Tom\"");
+      rc = db.exec( "select * from " + csName + "." + clName + " where name=\"Tom\"" );
    }
-   catch ( e )
+   catch( e )
    {
-      println( "Failed to select the records." ) ;
-      throw e ;
+      println( "Failed to select the records." );
+      throw e;
    }
 
-   println("------Begin to check results.]");
-   if ( 0 != rc.size() )
+   println( "------Begin to check results.]" );
+   if( 0 != rc.size() )
    {
-      println( " update operation execute success after the transcation rollback" ) ;
+      println( " update operation execute success after the transcation rollback" );
       throw -1;
    }
 
-   println("------Begin to drop cl in the end.");
+   println( "------Begin to drop cl in the end." );
    try
    {
-      db.execUpdate( "drop collection "+csName+"."+clName ) ;
+      db.execUpdate( "drop collection " + csName + "." + clName );
    }
-   catch (e)
+   catch( e )
    {
-      println( "Failed to drop cl in the end." ) ;
-      throw e ;
+      println( "Failed to drop cl in the end." );
+      throw e;
    }
 }
 
-main( db ) ;
+main( db );

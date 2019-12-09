@@ -8,99 +8,99 @@
 // 测试后台运行命令
 CmdTest.prototype.testStart = function()
 {
-   this.init() ;
-   
-   var pid = this.cmd.start( "sleep", "3" ) ;
-   var command = "ps aux | awk '{print $2}' | grep " + pid ;
-   var tasks = this.cmd.run( command ).split( "\n" ) ;
-   var found = false ;
-   for( var i = 0;i < tasks.length-1;i++ )
-   {
-      if( tasks[i] === "" + pid )
-      {
-         found = true ;
-         break ;
-      }
-   }
-   if( found === false )
-   {
-      throw buildException( "testStart", null, "list background task " + this, 
-                            pid, tasks ) ;
-   }
-      
-   this.release() ;
+    this.init();
+
+    var pid = this.cmd.start( "sleep", "3" );
+    var command = "ps aux | awk '{print $2}' | grep " + pid;
+    var tasks = this.cmd.run( command ).split( "\n" );
+    var found = false;
+    for( var i = 0; i < tasks.length - 1; i++ )
+    {
+        if( tasks[i] === "" + pid )
+        {
+            found = true;
+            break;
+        }
+    }
+    if( found === false )
+    {
+        throw buildException( "testStart", null, "list background task " + this,
+            pid, tasks );
+    }
+
+    this.release();
 }
 
 // 测试后台运行错误命令
 CmdTest.prototype.testStartAbnormal = function()
 {
-    this.init() ;
-    
+    this.init();
+
     try
     {
-        this.cmd.start( "led", ".", 1, 3*1000 ) ;
-        throw 0 ;
+        this.cmd.start( "led", ".", 1, 3 * 1000 );
+        throw 0;
     }
     catch( e )
     {
         if( e === 0 )
         {
-            throw buildException( "testStartAbnormal", null, 
-                  "test start not exist command led", 127, e ) ;
+            throw buildException( "testStartAbnormal", null,
+                "test start not exist command led", 127, e );
         }
     }
-    
-    this.release() ;
+
+    this.release();
 }
 
 // 测试后台运行无权限命令
 CmdTest.prototype.testStartNoPermission = function()
 {
-    this.init() ;
-    
-    var user = this.cmd.run( "whoami" ).split( "\n" )[0] ;
+    this.init();
+
+    var user = this.cmd.run( "whoami" ).split( "\n" )[0];
     if( user === "root" )
     {
-        println( "cmd user is root" ) ;
-        this.release() ;
-        return ;
+        println( "cmd user is root" );
+        this.release();
+        return;
     }
     try
     {
-        this.cmd.start( "groupadd", "liangxw", 1, 3*1000 ) ;
+        this.cmd.start( "groupadd", "liangxw", 1, 3 * 1000 );
     }
     catch( e )
     {
         println( "test start groupadd with user " + user + " " + this + "," +
-                 "catch exception " + e ) ;
+            "catch exception " + e );
     }
-    var info = this.cmd.run( "cat /etc/group" ) ;
+    var info = this.cmd.run( "cat /etc/group" );
     if( info.indexOf( "liangxw" ) !== -1 )
     {
         throw buildException( "testStartNoPermission", null,
-              "check group info " + info + " " + this, -1, info.indexOf( "liangxw" ) ) ;     
+            "check group info " + info + " " + this, -1, info.indexOf( "liangxw" ) );
     }
-    
-    this.release() ;
+
+    this.release();
 }
 
-function main()
+function main ()
 {
-   // 获取本地和远程主机
-   var localhost = toolGetLocalhost() ;
-   var remotehost = toolGetRemotehost() ;
-   
-   var localCmd = new CmdTest( localhost, CMSVCNAME ) ;
-   var remoteCmd = new CmdTest( remotehost, CMSVCNAME ) ;
-   var cmds = [ localCmd, remoteCmd ] ;
-   
-   for( var i = 0;i < cmds.length;i++ )
-   {
-      // 测试后台运行指令
-      cmds[i].testStart() ;
-      cmds[i].testStartAbnormal() ;
-      cmds[i].testStartNoPermission() ;
-   }
+    // 获取本地和远程主机
+    var localhost = toolGetLocalhost();
+    var remotehost = toolGetRemotehost();
+
+    var localCmd = new CmdTest( localhost, CMSVCNAME );
+    var remoteCmd = new CmdTest( remotehost, CMSVCNAME );
+    var cmds = [localCmd, remoteCmd];
+
+    for( var i = 0; i < cmds.length; i++ )
+    {
+        // 测试后台运行指令
+        cmds[i].testStart();
+        cmds[i].testStartAbnormal();
+        cmds[i].testStartNoPermission();
+    }
 }
 
 main()

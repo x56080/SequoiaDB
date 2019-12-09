@@ -13,27 +13,27 @@ var clArray = [];
 for( var i = 0; i < csNum; i++ )
 {
    var csName = csBaseName + "_" + i;
-   var options = {PageSize:4096};
+   var options = { PageSize: 4096 };
    commCreateCS( db, csName, true, "fail to create cl", options )
    for( var j = 0; j < clNumPerCs; j++ )
    {
       var clName = csName + "_" + j;
-      var cl = commCreateCL( db, csName, clName, 
-                             /*replSize*/1, 
-                             /*compressed*/false, 
-                             /*autoCreateCS*/false, 
-                             /*ignoreExisted*/true, 
-                             "fail to create cl" ) ;
+      var cl = commCreateCL( db, csName, clName,
+                             /*replSize*/1,
+                             /*compressed*/false,
+                             /*autoCreateCS*/false,
+                             /*ignoreExisted*/true,
+         "fail to create cl" );
       clArray.push( cl );
       insertDataWithIndex( cl );
    }
 }
 
 for( var i = 0; i < clArray.length; i++ )
-   checkScanTypeByExplain( clArray[i], "ixscan" ) ;
+   checkScanTypeByExplain( clArray[i], "ixscan" );
 tryCatch( ["cmd=analyze"], [0], "fail to analyze" );
 for( var i = 0; i < clArray.length; i++ )
-   checkScanTypeByExplain( clArray[i], "tbscan" ) ;
+   checkScanTypeByExplain( clArray[i], "tbscan" );
 
 for( var i = 0; i < csNum; i++ )
 {

@@ -4,62 +4,62 @@
               2016-8-10  wuyan  Init
 ****************************************************************************/
 var clName = CHANGEDPREFIX + "_5580";
-function main( db )
+function main ( db )
 {
    // drop collection in the beginning
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop collection in the beginning" ) ;
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop collection in the beginning" );
 
    // create collection
-   var idxCL = commCreateCLByOption(db, COMMCSNAME, clName, {AutoIndexId:false,ReplSize:0,Compressed:true}, true, true);
+   var idxCL = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIndexId: false, ReplSize: 0, Compressed: true }, true, true );
 
    // create Idindex
-   createIdIndex( idxCL, undefined, -6  ) ;
-      
+   createIdIndex( idxCL, undefined, -6 );
+
    // inspect the index
-   inspecIndex( idxCL, "$id", "_id", 1 ) ;   
+   inspecIndex( idxCL, "$id", "_id", 1 );
 
    //after create index, insert data
    try
    {
       var doc = [];
-      for( var i = 0 ; i < 100 ; ++i )
-      {      
-         doc.push({_id:i,a:"test"+i});
+      for( var i = 0; i < 100; ++i )
+      {
+         doc.push( { _id: i, a: "test" + i } );
       }
-      idxCL.insert( doc ) ;      
+      idxCL.insert( doc );
    }
-   catch ( e )
+   catch( e )
    {
-      println( "Failed to insert date after create index : "+e ) ;
-      throw e ;
+      println( "Failed to insert date after create index : " + e );
+      throw e;
    }
-   
+
    //test find by index 
-   checkExplain( idxCL, {_id:19} );
-   
+   checkExplain( idxCL, { _id: 19 } );
+
    //check the result of find  
    var expRecs = '[{"_id":96,"a":"test96"}]';
-   var rc = idxCL.find({_id:{$lt:100}}).hint({"":"$id"}).sort({_id:-1}).limit(1).skip(3);
-   checkCLData( expRecs,rc);
-   
+   var rc = idxCL.find( { _id: { $lt: 100 } } ).hint( { "": "$id" } ).sort( { _id: -1 } ).limit( 1 ).skip( 3 );
+   checkCLData( expRecs, rc );
+
    //drop idIndex
    idxCL.dropIdIndex();
    // inspect the index
-   commCheckIndex( idxCL, "$id", false ) ;
-   
+   commCheckIndex( idxCL, "$id", false );
+
 
    // drop collection in clean
    commDropCL( db, COMMCSNAME, clName, false, false,
-               "drop colleciton in the end" );
+      "drop colleciton in the end" );
 }
 
 try
 {
-   main( db ) ;
-   db.close() ;
+   main( db );
+   db.close();
 }
-catch ( e )
+catch( e )
 {
-   throw e ;
+   throw e;
 }
 

@@ -3,14 +3,14 @@
 *@Author     :  2019-7-31  zhaoxiaoni
 ************************************************************************/
 main();
-function main()
+function main ()
 {
    var clName = "cl_18919_json";
    var jsonFile = tmpFileDir + clName + ".json";
-   
+
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( jsonFile );
-   
+
    println( "\n---data type double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 800 );
@@ -18,11 +18,11 @@ function main()
    checkResult( cl, "double", expResult );
    var expResult = getExpResult( "decimal" );
    checkResult( cl, "decimal", expResult );
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }
 
-function prepareDate( typeFile )
+function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "";
@@ -33,14 +33,14 @@ function prepareDate( typeFile )
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
-         file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' ); 
+         file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' );
          file.write( '{ a: ' + left + '.' + right + ' }\n' );
       }
    }
    file.close();
 }
 
-function getExpResult( dataType )
+function getExpResult ( dataType )
 {
    var expResult = [];
    if( dataType == "decimal" )
@@ -52,7 +52,7 @@ function getExpResult( dataType )
          {
             rightR = rightR + "0";
             var decimalDate = "0.1" + rightR;
-            expResult.push({ a: { "$decimal": decimalDate }});
+            expResult.push( { a: { "$decimal": decimalDate } } );
          }
       }
    }
@@ -60,7 +60,7 @@ function getExpResult( dataType )
    {
       for( var i = 0; i < 400; i++ )
       {
-         expResult.push({ a: 0.1});
+         expResult.push( { a: 0.1 } );
       }
    }
    return expResult;

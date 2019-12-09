@@ -1,32 +1,32 @@
 /* *****************************************************************************
-@discretion: ÖØ¸´¿ªÆôÊÂÎñ,Ö´ÐÐÊÂÎñ²Ù×÷ºóÌá½»
-@author£º2015-11-17 wuyan  Init
+@discretion: ï¿½Ø¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ö´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á½»
+@authorï¿½ï¿½2015-11-17 wuyan  Init
 ***************************************************************************** */
 main();
-function main()
-{		
-	try
-	{
-	   var clName = CHANGEDPREFIX + "_transaction5991";
+function main ()
+{
+   try
+   {
+      var clName = CHANGEDPREFIX + "_transaction5991";
       if( !commIsTransEnabled( db ) )
       {
-         println( "transaction is disabled" ) ; 
-         return;  
+         println( "transaction is disabled" );
+         return;
       }
 
-      var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true ) ; 
+      var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true );
       var dataNum = 1000;
-      var insert = new insertData( cl, dataNum ); 
-      execTransaction(beginTrans,insert,beginTrans,commitTrans);
-      checkResult( cl, true, insert ); 
-        
-	   //@ clean end
-		commDropCL( db, COMMCSNAME, clName, false, false,"drop CL in the beginning" );
+      var insert = new insertData( cl, dataNum );
+      execTransaction( beginTrans, insert, beginTrans, commitTrans );
+      checkResult( cl, true, insert );
+
+      //@ clean end
+      commDropCL( db, COMMCSNAME, clName, false, false, "drop CL in the beginning" );
    }
    catch( e )
    {
       throw e;
-   }   
+   }
 }
 
 

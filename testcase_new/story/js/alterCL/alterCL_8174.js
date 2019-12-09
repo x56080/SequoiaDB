@@ -9,92 +9,92 @@ try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack);  
+      println( e.stack );
    }
    throw e;
 }
 
-function main()
+function main ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" ) ;
-      return ;
+      println( "Run mode is standalone" );
+      return;
    }
    var clName1 = "alter8174_1";
    var clName2 = "alter8174_2";
    var clName3 = "alter8174_3";
    var clName4 = "alter8174_4";
-   commDropCL( db, COMMCSNAME, clName1 ) ;
-   commDropCL( db, COMMCSNAME, clName2 ) ;
-   commDropCL( db, COMMCSNAME, clName3 ) ;
-   commDropCL( db, COMMCSNAME, clName4 ) ;
+   commDropCL( db, COMMCSNAME, clName1 );
+   commDropCL( db, COMMCSNAME, clName2 );
+   commDropCL( db, COMMCSNAME, clName3 );
+   commDropCL( db, COMMCSNAME, clName4 );
 
-   var cl1 = commCreateCL(db, COMMCSNAME, clName1);
-   var cl2 = commCreateCLByOption(db, COMMCSNAME, clName2, {ShardingKey:{id: 1}, ShardingType: "hash"});
-   var cl3 = commCreateCLByOption(db, COMMCSNAME, clName3, {ShardingKey:{id: 1}, ShardingType: "range"});
-   var cl4 = commCreateCLByOption(db, COMMCSNAME, clName4, {ShardingKey:{id: 1}, ShardingType: "range", IsMainCL: true});
-   
+   var cl1 = commCreateCL( db, COMMCSNAME, clName1 );
+   var cl2 = commCreateCLByOption( db, COMMCSNAME, clName2, { ShardingKey: { id: 1 }, ShardingType: "hash" } );
+   var cl3 = commCreateCLByOption( db, COMMCSNAME, clName3, { ShardingKey: { id: 1 }, ShardingType: "range" } );
+   var cl4 = commCreateCLByOption( db, COMMCSNAME, clName4, { ShardingKey: { id: 1 }, ShardingType: "range", IsMainCL: true } );
+
    //alter cl
    try
    {
-      cl1.alter({"IsMainCL": true});
+      cl1.alter( { "IsMainCL": true } );
       throw "ERR_ALTEL_ISMAINCL";
    }
-   catch(e)
+   catch( e )
    {
-      if(e !== -6)
+      if( e !== -6 )
       {
-         throw new Error("alter cl IsMainCL, \nexp: -6, \nact: " + e );   
+         throw new Error( "alter cl IsMainCL, \nexp: -6, \nact: " + e );
       }
    }
-   
+
    try
    {
-      cl2.alter({"IsMainCL": true});
+      cl2.alter( { "IsMainCL": true } );
       throw "ERR_ALTEL_ISMAINCL";
    }
-   catch(e)
+   catch( e )
    {
-      if(e !== -6)
+      if( e !== -6 )
       {
-         throw new Error("alter cl IsMainCL, \nexp: -6, \nact: " + e );   
+         throw new Error( "alter cl IsMainCL, \nexp: -6, \nact: " + e );
       }
    }
-   
+
    try
    {
-      cl3.alter({"IsMainCL": true});
+      cl3.alter( { "IsMainCL": true } );
       throw "ERR_ALTEL_ISMAINCL";
    }
-   catch(e)
+   catch( e )
    {
-      if(e !== -6)
+      if( e !== -6 )
       {
-         throw new Error("alter cl IsMainCL, \nexp: -6, \nact: " + e );   
+         throw new Error( "alter cl IsMainCL, \nexp: -6, \nact: " + e );
       }
    }
-   
+
    try
    {
-      cl4.alter({"IsMainCL": false});
+      cl4.alter( { "IsMainCL": false } );
       throw "ERR_ALTEL_ISMAINCL";
    }
-   catch(e)
+   catch( e )
    {
-      if(e !== -6)
+      if( e !== -6 )
       {
-         throw new Error("alter cl IsMainCL, \nexp: -6, \nact: " + e );   
+         throw new Error( "alter cl IsMainCL, \nexp: -6, \nact: " + e );
       }
    }
-   
-   commDropCL( db, COMMCSNAME, clName1 ) ;
-   commDropCL( db, COMMCSNAME, clName2 ) ;
-   commDropCL( db, COMMCSNAME, clName3 ) ;
-   commDropCL( db, COMMCSNAME, clName4 ) ;
+
+   commDropCL( db, COMMCSNAME, clName1 );
+   commDropCL( db, COMMCSNAME, clName2 );
+   commDropCL( db, COMMCSNAME, clName3 );
+   commDropCL( db, COMMCSNAME, clName4 );
 }
 

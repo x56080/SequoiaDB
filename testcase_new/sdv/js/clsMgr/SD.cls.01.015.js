@@ -3,140 +3,140 @@
 @author:      LY
 ***************************************************************************** */
 
-function deployCatalog( tmpDb, hostname )
+function deployCatalog ( tmpDb, hostname )
 {
-   if ( undefined === tmpDb ) 
-   { 
-      throw ( "the tmpDb is null, error" ) ;
+   if( undefined === tmpDb ) 
+   {
+      throw ( "the tmpDb is null, error" );
    }
-   if ( undefined === hostname ) 
-   { 
-      throw ( "the hostname is null, error" ) ;
+   if( undefined === hostname ) 
+   {
+      throw ( "the hostname is null, error" );
    }
 
    // build catalog
-   var catalog = generatePort( SPAREPORTSTOP ) ;
+   var catalog = generatePort( SPAREPORTSTOP );
    try
    {
-      tmpDb.createCataRG( hostname, catalog, SPAREPORTPATH + catalog ) ;
-      return catalog ;
+      tmpDb.createCataRG( hostname, catalog, SPAREPORTPATH + catalog );
+      return catalog;
    }
    catch( e )
    {
-      throw buildException ( 
-                              "build catalog", 
-                              e, 
-                              "db.createCataRG( " + COORDHOSTNAME + ", " + catalog + ", " + SPAREPORTPATH + catalog + " )", 
-                              "succ", 
-                              "failure"
-                           ) ;
+      throw buildException(
+         "build catalog",
+         e,
+         "db.createCataRG( " + COORDHOSTNAME + ", " + catalog + ", " + SPAREPORTPATH + catalog + " )",
+         "succ",
+         "failure"
+      );
    }
 }
 
-function deploySdb( tmpDb, hostname, port )
+function deploySdb ( tmpDb, hostname, port )
 {
-   if ( undefined === tmpDb ) 
-   { 
-      throw ( "the tmpDb is null, error" ) ;
+   if( undefined === tmpDb ) 
+   {
+      throw ( "the tmpDb is null, error" );
    }
-   if ( undefined === hostname ) 
-   { 
-      throw ( "the hostname is null, error" ) ;
+   if( undefined === hostname ) 
+   {
+      throw ( "the hostname is null, error" );
    }
-   if ( undefined === port ) 
-   { 
-      throw ( "the port is null, error" ) ;
+   if( undefined === port ) 
+   {
+      throw ( "the port is null, error" );
    }
 
    try
    {
-      var coordRG = tmpDb.createCoordRG() ;
-      coordRG.createNode( hostname, port, SPAREPORTPATH + port ) ;
-      coordRG.start() ;
+      var coordRG = tmpDb.createCoordRG();
+      coordRG.createNode( hostname, port, SPAREPORTPATH + port );
+      coordRG.start();
    }
    catch( e )
    {
-      println( "Enable coord failed: " + e ) ;
-      throw buildException ( 
-                              "build coord node", 
-                              e, 
-                              "coordRG.createNode( " + COORDHOSTNAME + ", " + port + ", " + SPAREPORTPATH + port + "); coordRG.start()", 
-                              "succ", 
-                              "failure"
-                           ) ;
+      println( "Enable coord failed: " + e );
+      throw buildException(
+         "build coord node",
+         e,
+         "coordRG.createNode( " + COORDHOSTNAME + ", " + port + ", " + SPAREPORTPATH + port + "); coordRG.start()",
+         "succ",
+         "failure"
+      );
    }
 
    // common database connection
    try
    {
-      var db = new Sdb( hostname, port ) ;
-      return db ;
+      var db = new Sdb( hostname, port );
+      return db;
    }
-   catch ( e )
+   catch( e )
    {
       println( "Connect Failed in Common Function!" );
-      buildException ( 
-                        "connect coord", 
-                        e, 
-                        "var db = new Sdb( " + hostname + ", " + port + " )", 
-                        "succ", 
-                        "failure" 
-                     ) ;
+      buildException(
+         "connect coord",
+         e,
+         "var db = new Sdb( " + hostname + ", " + port + " )",
+         "succ",
+         "failure"
+      );
    }
 }
 
-function checkResult( db )
+function checkResult ( db )
 {
    var ret = db.getCoordRG().getDetail().current()
    if( 1 !== ret.toObj()["Status"] )
    {
-      buildException ( 
-                        "check coord status", 
-                        "coord status error", 
-                        "ret = db.getCoordRG().getDetail().current().toObj()['Status'] not equal 1", 
-                        1, 
-                        ret.toObj()['Status'] 
-                     ) ;
+      buildException(
+         "check coord status",
+         "coord status error",
+         "ret = db.getCoordRG().getDetail().current().toObj()['Status'] not equal 1",
+         1,
+         ret.toObj()['Status']
+      );
    }
 }
 
-function main( db )
+function main ( db )
 {
    try
    {
       // generate temp coord port
-      var tmpCoordPort = generatePort( SPAREPORTSTART ) ;
+      var tmpCoordPort = generatePort( SPAREPORTSTART );
       // get new cluster used hostname 
-      var hostname = getHostName() ;
+      var hostname = getHostName();
       // create coord node port
-      var coord = generatePort( tmpCoordPort ) ;
+      var coord = generatePort( tmpCoordPort );
       // build temp coord and connect it
-      var tmpDb = connectSdb( COORDHOSTNAME, CMSVCNAME, tmpCoordPort, false ) ;
+      var tmpDb = connectSdb( COORDHOSTNAME, CMSVCNAME, tmpCoordPort, false );
       // create new catalog group
-      var catalog = deployCatalog( tmpDb, hostname ) ;
+      var catalog = deployCatalog( tmpDb, hostname );
       // create new coord node and connect it
-      var newDb = deploySdb( tmpDb, hostname, coord ) ;
+      var newDb = deploySdb( tmpDb, hostname, coord );
       // check the new coord group status
-      checkResult( newDb ) ;
+      checkResult( newDb );
       // clean coord after test correct
-      clean( tmpDb, hostname, coord, "", "coord_group" ) ;
+      clean( tmpDb, hostname, coord, "", "coord_group" );
       // clean catalog after test correct
-      clean( tmpDb, hostname, catalog, "", "catalog_group" ) ;
+      clean( tmpDb, hostname, catalog, "", "catalog_group" );
       // clean temp coord after test correct
-      clean( tmpDb, hostname, tmpCoordPort, "", "tmp_coord" ) ;
+      clean( tmpDb, hostname, tmpCoordPort, "", "tmp_coord" );
    }
    catch( e )
    {
-      throw e ;
+      throw e;
    }
    finally
    {
-      newDb.close() ;
-      tmpDb.close() ;
-      db.close() ;
+      newDb.close();
+      tmpDb.close();
+      db.close();
    }
 }
 
 
 // run main
-main( db ) ;
+main( db );

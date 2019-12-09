@@ -4,88 +4,88 @@
 *@author      : Liang XueWang 
 ***********************************************************************/
 // js file to test import scope
-var importScopeFile = WORKDIR + "/importScope_12206.js" ;
+var importScopeFile = WORKDIR + "/importScope_12206.js";
 // js file to test importOnce scope
-var importOnceScopeFile = WORKDIR + "/importOnceScope_12206.js" ;
+var importOnceScopeFile = WORKDIR + "/importOnceScope_12206.js";
 
-function createScopeTestFile()
+function createScopeTestFile ()
 {
     try
     {
-        var file = new File( importScopeFile ) ;
-        file.write( "function mod( a, b ) { return a % b ; } var v = 100" ) ;
-        file.close() ;
-        file = new File( importOnceScopeFile ) ;
-        file.write( "function pow( x, y ) { return Math.pow( x, y ); } var w = 10" ) ;
-        file.close() ;
+        var file = new File( importScopeFile );
+        file.write( "function mod( a, b ) { return a % b ; } var v = 100" );
+        file.close();
+        file = new File( importOnceScopeFile );
+        file.write( "function pow( x, y ) { return Math.pow( x, y ); } var w = 10" );
+        file.close();
     }
     catch( e )
     {
-        throw buildException( "createScopeTestFile", e, 
-              "create file " + importScopeFile + " " + importOnceScopeFile, 0, e ) ;
-    } 
+        throw buildException( "createScopeTestFile", e,
+            "create file " + importScopeFile + " " + importOnceScopeFile, 0, e );
+    }
 }
 
-function testImportScope()
+function testImportScope ()
 {
-    import( importScopeFile ) ;
-    var funcType = typeof( mod ) ;
-    var varType = typeof( v ) ;
+    import( importScopeFile );
+    var funcType = typeof ( mod );
+    var varType = typeof ( v );
     if( funcType !== "function" || varType !== "number" )
     {
         throw buildException( "testImportScope", null,
-              "check import func and var type", "function number", 
-              funcType + " " + varType ) ;
+            "check import func and var type", "function number",
+            funcType + " " + varType );
     }
     if( mod( 4, 3 ) !== 1 || v !== 100 )
     {
         throw buildException( "testImportScope", null,
-              "check import func and var", "1 100", mod( 4, 3 ) + " " + v ) ;
+            "check import func and var", "1 100", mod( 4, 3 ) + " " + v );
     }
 }
 
-function testImportOnceScope()
+function testImportOnceScope ()
 {
-    importOnce( importOnceScopeFile ) ;
-    var funcType = typeof( pow ) ;
-    var varType = typeof( w ) ;
+    importOnce( importOnceScopeFile );
+    var funcType = typeof ( pow );
+    var varType = typeof ( w );
     if( funcType !== "function" || varType !== "number" )
     {
         throw buildException( "testImportOnceScope", null,
-              "check importOnce func and var type", "function number", 
-              funcType + " " + varType ) ;
+            "check importOnce func and var type", "function number",
+            funcType + " " + varType );
     }
     if( pow( 2, 3 ) !== 8 || w !== 10 )
     {
         throw buildException( "testImportOnceScope", null,
-              "check importOnce func and var", "8 10", pow( 2, 3 ) + " " + w ) ;
-    }    
+            "check importOnce func and var", "8 10", pow( 2, 3 ) + " " + w );
+    }
 }
 
 // create file
-createScopeTestFile() ;
+createScopeTestFile();
 
 // test import scope inner function
-testImportScope() ;
+testImportScope();
 
 // test importOnce scope inner function
-testImportOnceScope() ;
+testImportOnceScope();
 
 // test import importOnce outer function
-if( typeof( mod ) !== "function" || typeof( v ) !== "number" ||
-    typeof( pow ) !== "function" || typeof( w ) !== "number" )
+if( typeof ( mod ) !== "function" || typeof ( v ) !== "number" ||
+    typeof ( pow ) !== "function" || typeof ( w ) !== "number" )
 {
     throw buildException( null, null, "test import importOnce scope outer function",
-          "function number function number", 
-          typeof( mod ) + " " + typeof( v ) + " " + typeof( pow ) + " " + typeof( w ) ) ;
+        "function number function number",
+        typeof ( mod ) + " " + typeof ( v ) + " " + typeof ( pow ) + " " + typeof ( w ) );
 }
 
 if( mod( 18, 7 ) !== 4 || v !== 100 || pow( 10, 2 ) !== 100 || w !== 10 )
 {
     throw buildException( null, null, "test import importOnce outer function",
-          "4 100 100 10", mod( 18, 7 ) + " " + v + " " + pow( 10, 2 ) + " " + w ) ;
+        "4 100 100 10", mod( 18, 7 ) + " " + v + " " + pow( 10, 2 ) + " " + w );
 }
 
 // remove file
-removeFile( importScopeFile ) ;
-removeFile( importOnceScopeFile ) ;
+removeFile( importScopeFile );
+removeFile( importOnceScopeFile );

@@ -4,48 +4,48 @@
 *@author:     wangwenjing
 *****************************************************************/
 
-function buildCond(obj, name)
+function buildCond ( obj, name )
 {
    var cond = {}
    cond.Name = name;
-   for (elem in obj)
+   for( elem in obj )
    {
       cond[elem] = obj[elem];
    }
-  
+
    return cond;
 }
-function main()
+function main ()
 {
    try
    {
-      var db = new Sdb(COORDHOSTNAME,COORDSVCNAME);
-      if (commIsStandalone(db))
+      var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+      if( commIsStandalone( db ) )
       {
          return;
       }
-      
-      var mgr = new groupMgr(db);
+
+      var mgr = new groupMgr( db );
       mgr.init();
-      
-      var group = mgr.getGroupByName(CATALOG_GROUPNAME);
-      var col = new collection("SYSCAT", "SYSCOLLECTIONSPACES", w.TWO);
-      
+
+      var group = mgr.getGroupByName( CATALOG_GROUPNAME );
+      var col = new collection( "SYSCAT", "SYSCOLLECTIONSPACES", w.TWO );
+
       var csName = CHANGEDPREFIX + "_csmetadata"
-      options = {PageSize:4096, LobPageSize: 524288};
-      commCreateCS(db, csName, true, "", options);
-      var cond = buildCond(options, csName);
-      assert(group.checkResult(true, group.checkDoc, col, cond), "after createCS metadata is not consistency");
-      commDropCS(db, csName);
-      assert(group.checkResult(true, group.checkDoc, col, cond), "after dropCS metadata is not consistency");
+      options = { PageSize: 4096, LobPageSize: 524288 };
+      commCreateCS( db, csName, true, "", options );
+      var cond = buildCond( options, csName );
+      assert( group.checkResult( true, group.checkDoc, col, cond ), "after createCS metadata is not consistency" );
+      commDropCS( db, csName );
+      assert( group.checkResult( true, group.checkDoc, col, cond ), "after dropCS metadata is not consistency" );
    }
-   catch(e)
+   catch( e )
    {
       throw e;
    }
    finally
-   {  
-      if (undefined !== db)
+   {
+      if( undefined !== db )
       {
          db.close();
       }

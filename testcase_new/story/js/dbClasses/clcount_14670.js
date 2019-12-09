@@ -21,38 +21,38 @@ catch( e )
 }
 ;
 
-function main()
+function main ()
 {
    var cl = commCreateCL( db, COMMCSNAME, clName );
-   
+
    cl.insert( { a: 1 } );
    cl.insert( { a: 2 } );
-   
+
    var cnt = cl.count().valueOf();
    if( cnt !== 2 )
    {
       throw new Error( "expect: 2, actual: " + cnt );
    }
-   
+
    cnt = cl.count().hint( { a: "" } );
    if( parseInt( cnt ) !== 2 )
    {
       throw new Error( "expect: 2, actual: " + cnt );
    }
-   
+
    try
    {
       var error = cl.count().hint( 1 );
-      println(error);
+      println( error );
       throw "need error";
    }
    catch( e )
    {
-      if(e !== -6)
+      if( e !== -6 )
       {
-         throw new Error(e);
+         throw new Error( e );
       }
    }
-   
+
    commDropCL( db, COMMCSNAME, clName );
 }

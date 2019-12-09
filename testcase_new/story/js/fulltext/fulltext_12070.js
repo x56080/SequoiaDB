@@ -3,79 +3,82 @@
 @Modify list :
               2018-11-27  YinZhen  Create
 ****************************************************************************/
-function main()
+function main ()
 {
-   if(commIsStandalone( db )){
-      println("Deploy is standalone");
+   if( commIsStandalone( db ) )
+   {
+      println( "Deploy is standalone" );
       return;
    }
-   
+
    var clName = COMMCLNAME + "_ES_12070";
    var csName = "main_cs_12070";
    commDropCS( db, csName );
-   var mainCL = commCreateCLByOption( db, csName, clName, {ShardingKey : {a : 1}, ShardingType : "range", IsMainCL : true});
+   var mainCL = commCreateCLByOption( db, csName, clName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true } );
    var subCLName1 = "sub1_cl_12070";
-   var subCL1 = commCreateCL(db, csName, subCLName1);
+   var subCL1 = commCreateCL( db, csName, subCLName1 );
    var csName2 = "sub2_cs_12070";
    commDropCS( db, csName2 );
    var subCLName2 = "sub2_cl_12070";
-   var subCL2 = commCreateCL(db, csName2, subCLName2);
-   mainCL.attachCL(csName + "." + subCLName1, {LowBound : {a : 0}, UpBound : {a : 4567}});
-   mainCL.attachCL(csName2 + "." + subCLName2, {LowBound : {a : 4567}, UpBound : {a : 10001}});
-   
+   var subCL2 = commCreateCL( db, csName2, subCLName2 );
+   mainCL.attachCL( csName + "." + subCLName1, { LowBound: { a: 0 }, UpBound: { a: 4567 } } );
+   mainCL.attachCL( csName2 + "." + subCLName2, { LowBound: { a: 4567 }, UpBound: { a: 10001 } } );
+
    //create idnex
-   commCreateIndex( mainCL, "fullIndex_12070", {b : "text"});
-   
+   commCreateIndex( mainCL, "fullIndex_12070", { b: "text" } );
+
    //insert records
    var records = new Array();
-   for (var i = 0; i < 10000 ; i++){
-      var record = {a : i, b : "b" + i};
-      records.push(record);
+   for( var i = 0; i < 10000; i++ )
+   {
+      var record = { a: i, b: "b" + i };
+      records.push( record );
    }
-   mainCL.insert(records);
-   checkMainCLFullSyncToES(csName, clName, "fullIndex_12070", 10000)
-   
+   mainCL.insert( records );
+   checkMainCLFullSyncToES( csName, clName, "fullIndex_12070", 10000 )
+
    //删除主表所在的集合空间
    var dbOperator = new DBOperator();
-   var subESIndexNames1 = dbOperator.getESIndexNames(csName, subCLName1, "fullIndex_12070");
-   db.dropCS(csName);
-   checkFullSyncToES(csName2, subCLName2, "fullIndex_12070", 10000 - 4567);
-   
+   var subESIndexNames1 = dbOperator.getESIndexNames( csName, subCLName1, "fullIndex_12070" );
+   db.dropCS( csName );
+   checkFullSyncToES( csName2, subCLName2, "fullIndex_12070", 10000 - 4567 );
+
    //其余子表主备节点数据一致
-   checkConsistency(csName2, subCLName2);
-   checkInspectResult(csName2, subCLName2, 5);
-   
+   checkConsistency( csName2, subCLName2 );
+   checkInspectResult( csName2, subCLName2, 5 );
+
    //check records
-   var expResult = dbOperator.findFromCL(subCL2, {"" : {$Text : {"query" : {"match_all" : {}}}}}, {b : ""});
-   var subESIndexNames2 = dbOperator.getESIndexNames(csName2, subCLName2, "fullIndex_12070");
-   
+   var expResult = dbOperator.findFromCL( subCL2, { "": { $Text: { "query": { "match_all": {} } } } }, { b: "" } );
+   var subESIndexNames2 = dbOperator.getESIndexNames( csName2, subCLName2, "fullIndex_12070" );
+
    var actResult = new Array();
    var esOperator = new ESOperator();
-   for (var i  in subESIndexNames2){
-      var esRecords = esOperator.findFromES(subESIndexNames2[i], '{"query":{"match_all":{}}, "size":10000}');
-      actResult = actResult.concat(esRecords);
+   for( var i in subESIndexNames2 )
+   {
+      var esRecords = esOperator.findFromES( subESIndexNames2[i], '{"query":{"match_all":{}}, "size":10000}' );
+      actResult = actResult.concat( esRecords );
    }
-   expResult.sort(compare("b"));
-   actResult.sort(compare("b"));
-   checkResult(expResult, actResult);
-     
+   expResult.sort( compare( "b" ) );
+   actResult.sort( compare( "b" ) );
+   checkResult( expResult, actResult );
+
    commDropCS( db, csName );
    commDropCS( db, csName2 );
    //SEQUOIADBMAINSTREAM-3983
-   checkIndexNotExistInES(subESIndexNames1);
-   checkIndexNotExistInES(subESIndexNames2);
+   checkIndexNotExistInES( subESIndexNames1 );
+   checkIndexNotExistInES( subESIndexNames2 );
 }
 
 try
 {
    main();
 }
-catch(e)
+catch( e )
 {
-   if ( e.constructor === Error )
+   if( e.constructor === Error )
    {
-      println(e.stack) ;  
+      println( e.stack );
    }
-   throw e ;
+   throw e;
 }
 

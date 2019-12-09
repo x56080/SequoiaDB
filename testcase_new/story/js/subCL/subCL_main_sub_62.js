@@ -5,51 +5,51 @@
 *@testlinkCase: seqDB-62
 **************************************/
 main();
-function main()
+function main ()
 {
     var csName = "cs62";
     var mainCL_Name = "maincl62";
     var subCL_Name = "subcl62";
     var subCLFullName = csName + "." + subCL_Name;
     var operationNum = 50;
-    
-    if(true == commIsStandalone( db ))
+
+    if( true == commIsStandalone( db ) )
     {
-      println( "run mode is standalone");
-      return;
+        println( "run mode is standalone" );
+        return;
     }
-    
+
     //创建主表
-    var mainCLOption = { ShardingKey:{"a":1}, ShardingType:"range", IsMainCL:true};
-    var maincl = commCreateCLByOption( db, csName, mainCL_Name, mainCLOption, true, true);
-    
+    var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
+    var maincl = commCreateCLByOption( db, csName, mainCL_Name, mainCLOption, true, true );
+
     //创建子表
-    var subClOption = {ShardingKey:{"b":1}, ShardingType:"hash", AutoSplit:true, ReplSize:0};
+    var subClOption = { ShardingKey: { "b": 1 }, ShardingType: "hash", AutoSplit: true, ReplSize: 0 };
     var subcl = commCreateCLByOption( db, csName, subCL_Name, subClOption, true, true );
-    
+
     //循环多次attach子表/detach子表 
-    var options = { LowBound:{ a:0 },UpBound:{ a: operationNum } };
-    for(var i = 0 ; i < operationNum ; i++)
+    var options = { LowBound: { a: 0 }, UpBound: { a: operationNum } };
+    for( var i = 0; i < operationNum; i++ )
     {
         maincl.attachCL( subCLFullName, options );
-        maincl.insert({a:i});
+        maincl.insert( { a: i } );
         maincl.detachCL( subCLFullName );
     }
-    
-    cursor = subcl.find({},{"_id":{"$include":0}});
+
+    cursor = subcl.find( {}, { "_id": { "$include": 0 } } );
     var i = 0;
     while( cursor.next() != null )
     {
-        var insert_obj = {"a": i};
+        var insert_obj = { "a": i };
         var act_obj = cursor.current().toObj();
-        if(insert_obj["a"] !== act_obj["a"])
+        if( insert_obj["a"] !== act_obj["a"] )
         {
-            throw buildException("checkResult()",null,"check collection record, cl:" + csName + "." + subCL_Name+"_"+i, insert_obj["a"], act_obj["a"]);
+            throw buildException( "checkResult()", null, "check collection record, cl:" + csName + "." + subCL_Name + "_" + i, insert_obj["a"], act_obj["a"] );
         }
         i++;
     }
     cursor.close();
-    
+
     //清除环境
-    commDropCS( db, csName, true, "drop CS in the end" );  
+    commDropCS( db, csName, true, "drop CS in the end" );
 }

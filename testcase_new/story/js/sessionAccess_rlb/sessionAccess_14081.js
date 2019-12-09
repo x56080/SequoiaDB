@@ -1,64 +1,64 @@
 /* *****************************************************************************
 @discretion: setSessionAttr(),set a instatceid
-@author£º2018-1-22 wuyan  Init
+@authorï¿½ï¿½2018-1-22 wuyan  Init
 ***************************************************************************** */
-import ("../sessionAccess/commlib.js");
+import( "../sessionAccess/commlib.js" );
 main();
-function main()
-{	  
-	try
-	{      
-      var db = new Sdb(COORDHOSTNAME, COORDSVCNAME ) ;
+function main ()
+{
+   try
+   {
+      var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
       if( true == commIsStandalone( db ) )
       {
          println( "run mode is standalone" );
          return;
-      } 
-      
+      }
+
       //create group and node  
       var groupName = "group14081";
       var nodeList = [];
-      var instanceidList = [ 0, 0, 15];      
-      nodeList = createRGAndNode(db, groupName, instanceidList); 
-      
+      var instanceidList = [0, 0, 15];
+      nodeList = createRGAndNode( db, groupName, instanceidList );
+
       //create cl and insert data
-      var clName = CHANGEDPREFIX + "_sessionAcess14081";  
-      var options = {ReplSize:0,Group:groupName};
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, options, true, true );       
-      insertData( dbcl);
-      
+      var clName = CHANGEDPREFIX + "_sessionAcess14081";
+      var options = { ReplSize: 0, Group: groupName };
+      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, options, true, true );
+      insertData( dbcl );
+
       //set session instanceid 
       var instanceid = 15;
-      db.setSessionAttr( { PreferedInstance: instanceid } )      
-      
+      db.setSessionAttr( { PreferedInstance: instanceid } )
+
       //check the query node 
-      var queryNode = getAccessNode(dbcl);
-      println("queryNode="+queryNode);
-      var expSvcNameList = getSvcNameList(db,groupName); 
+      var queryNode = getAccessNode( dbcl );
+      println( "queryNode=" + queryNode );
+      var expSvcNameList = getSvcNameList( db, groupName );
       var expNodeName = expSvcNameList[2];
-      checkAcessNodeResult( queryNode, expNodeName );       
-      
+      checkAcessNodeResult( queryNode, expNodeName );
+
       //get session and check result
-      var expSessionInfo = {PreferedInstance:15, PreferedInstanceMode:"random", "Timeout": -1}; 
-      getSessionAndCheckResult(db, expSessionInfo);
+      var expSessionInfo = { PreferedInstance: 15, PreferedInstanceMode: "random", "Timeout": -1 };
+      getSessionAndCheckResult( db, expSessionInfo );
    }
    catch( e )
    {
-      println("catch e : " + e);
-      //½«ÐÂ½¨×éÈÕÖ¾±¸·Ýµ½/tmp/ci/rsrvnodelogÄ¿Â¼ÏÂ
+      println( "catch e : " + e );
+      //ï¿½ï¿½ï¿½Â½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½Ýµï¿½/tmp/ci/rsrvnodelogÄ¿Â¼ï¿½ï¿½
       var backupDir = "/tmp/ci/rsrvnodelog/14081";
-      File.mkdir(backupDir);
-      for(var i = 0 ; i < nodeList.length ; i++)
+      File.mkdir( backupDir );
+      for( var i = 0; i < nodeList.length; i++ )
       {
          File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
       }
-      throw e ;
+      throw e;
    }
    finally
    {
-      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" ) ;
-      db.removeRG(groupName);
-      
+      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" );
+      db.removeRG( groupName );
+
       if( db != null )
       {
          db.close()

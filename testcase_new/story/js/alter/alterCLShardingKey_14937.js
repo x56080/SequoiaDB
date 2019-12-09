@@ -3,47 +3,47 @@
 test a: alter sharding key of one field by enableSharding
 test b: alter sharding key of multi field by enableSharding
 test c: alter sharding key by setAttributes
-@author£º2018-4-25 wuyan  Init
+@authorï¿½ï¿½2018-4-25 wuyan  Init
 ***************************************************************************** */
-var clName = CHANGEDPREFIX + "_alterclShardingKey_14937"; 
+var clName = CHANGEDPREFIX + "_alterclShardingKey_14937";
 
-main( db ); 
-function main( db )
+main( db );
+function main ( db )
 {
    try
    {
       if( true == commIsStandalone( db ) )
       {
-         println( "run mode is standalone" ); 
-         return; 
+         println( "run mode is standalone" );
+         return;
       }
       //clean environment before test
-      commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" ); 
-      
+      commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
+
       //create cl
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {ShardingKey:{a:1, b:1}} ); ; 
-      
+      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { a: 1, b: 1 } } );;
+
       //test a: alter sharding key of one field by enableSharding
-      var shardingKeyField = {c:1}; 
-      dbcl.enableSharding( {ShardingKey:shardingKeyField} ); 
-      checkResult( clName, shardingKeyField ); 
-      
+      var shardingKeyField = { c: 1 };
+      dbcl.enableSharding( { ShardingKey: shardingKeyField } );
+      checkResult( clName, shardingKeyField );
+
       //test b: alter sharding key of multi field by enableSharding
-      var shardingKeyField1 = {b:1, c:-1, 'test':1, 'test2':-1}; 
-      dbcl.enableSharding( {ShardingKey:shardingKeyField1} ); 
-      checkResult( clName, shardingKeyField1 ); 
-      
+      var shardingKeyField1 = { b: 1, c: -1, 'test': 1, 'test2': -1 };
+      dbcl.enableSharding( { ShardingKey: shardingKeyField1 } );
+      checkResult( clName, shardingKeyField1 );
+
       //test c: alter sharding key by setAttributes
-      var shardingKeyField2 = {b:1, c:-1, a:1}; 
-      dbcl.enableSharding( {ShardingKey:shardingKeyField2} ); 
-      checkResult( clName, shardingKeyField2 ); 
-      
+      var shardingKeyField2 = { b: 1, c: -1, a: 1 };
+      dbcl.enableSharding( { ShardingKey: shardingKeyField2 } );
+      checkResult( clName, shardingKeyField2 );
+
       //clean
-      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" ); 
+      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
    }
    catch( e )
    {
-      throw e; 
+      throw e;
    }
    finally
    {
@@ -54,14 +54,14 @@ function main( db )
    }
 }
 
-function checkResult( clName, expShardingKeyField )
+function checkResult ( clName, expShardingKeyField )
 {
-   var clFullName = COMMCSNAME + "." + clName; 
-   var cur = db.snapshot( 8, {"Name":clFullName} ); 
-   var actualShardingKeyField = cur.current().toObj()["ShardingKey"]; 
-   if( JSON.stringify( expShardingKeyField )!= JSON.stringify( actualShardingKeyField ) )
+   var clFullName = COMMCSNAME + "." + clName;
+   var cur = db.snapshot( 8, { "Name": clFullName } );
+   var actualShardingKeyField = cur.current().toObj()["ShardingKey"];
+   if( JSON.stringify( expShardingKeyField ) != JSON.stringify( actualShardingKeyField ) )
    {
-      throw buildException( "testShardingKey", "check shardingKey", "sharding is wrong", JSON.stringify( expShardingKeyField ), JSON.stringify( actualShardingKeyField ) ); 
+      throw buildException( "testShardingKey", "check shardingKey", "sharding is wrong", JSON.stringify( expShardingKeyField ), JSON.stringify( actualShardingKeyField ) );
    }
 }
 
