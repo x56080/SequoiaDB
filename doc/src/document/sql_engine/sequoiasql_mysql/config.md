@@ -138,7 +138,8 @@ mysql> CREATE TABLE employee(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
 
 | 参数名                 | 类型   | 动态生效 | 动态范围   | 默认值  | 说明 |
 | ---------------------- | ----   | -------- | ---------- | ------- | ---- |
-| max_connections        | int    | Yes | Global          | 151     | 客户端最大连接数 |
+| max_connections        | int    | Yes | Global          | 1024    | 客户端最大连接数 |
+| max_prepared_stmt_count| int    | Yes | Global          | 128000  | 最大预编译语句数 |
 | sql_mode               | set    | Yes | Global, Session | STRICT_TRANS_TABLES,<br>ERROR_FOR_DIVISION_BY_ZERO,<br>NO_AUTO_CREATE_USER,<br>NO_ENGINE_SUBSTITUTION | SQL 模式。取值意义参考[MySQL SQL 模式](https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html) |
 | character_set_server   | string | Yes | Global, Session | utf8mb4 | 默认字符集 |
 | collation_server       | string | Yes | Global, Session | utf8mb4_bin | 默认校对集 |
