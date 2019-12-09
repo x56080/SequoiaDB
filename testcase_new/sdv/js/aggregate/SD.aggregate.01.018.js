@@ -8,14 +8,14 @@ function main ()
 {
    try
    {
-      var clName = COMMCLNAME + "_aggre"
+      var clName = COMMCLNAME + "_aggre";
 
-      var cl = readyCL();
+      var cl = readyCL( clName );
 
       insertRecs( cl );
       aggreOper( cl );  //aggregate and check result
 
-      cleanCL();
+      cleanCL( clName );
    }
    catch( e )
    {
