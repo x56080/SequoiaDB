@@ -149,6 +149,7 @@
     <Compile Include="Cluster\ClusterManager15242.cs" />
     <Compile Include="Cluster\Common.cs" />
     <Compile Include="Sdb\Sdb15682.cs" />
+    <Compile Include="Sdb\TestSetSessionAttr20304.cs" />
     <Compile Include="Sdb\TestGetSnapshot15759.cs" />
     <Compile Include="Index\Index15934.cs" />
     <Compile Include="Cluster\TestReplicaGroup15935.cs" />
@@ -211,13 +212,6 @@
     <Compile Include="Index\TestIndex14548.cs" />
     <Compile Include="Aggregate\TestAggregate14549.cs" />
     <Compile Include="Aggregate\TestAggregate14550.cs" />
-    <Compile Include="Sessionaccess\SessionAccess14186.cs" />
-    <Compile Include="Sessionaccess\SessionAccess14188.cs" />
-    <Compile Include="Sessionaccess\SessionAccess14182.cs" />
-    <Compile Include="Sessionaccess\SessionAccess14183.cs" />
-    <Compile Include="Sessionaccess\SessionAccess14184.cs" />
-    <Compile Include="Sessionaccess\SessionAccess14187.cs" />
-    <Compile Include="Sessionaccess\SessionAccessUtil.cs" />
     <Compile Include="Transaction\TestTransaction14565.cs" />
     <Compile Include="Transaction\TestTransaction14566.cs" />
     <Compile Include="Transaction\TestTransaction19216.cs" />
