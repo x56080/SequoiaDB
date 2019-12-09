@@ -47,7 +47,7 @@ mysql> CREATE TABLE employee(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
    |sequoiadb_conn_addr|string|"localhost:11810"|Yes|Global|SequoiaDB 连接地址。|
    |sequoiadb_debug_log|bool|OFF|Yes|Global|是否打印debug日志。|
    |sequoiadb_error_level|enum|error|Yes|Global| 错误级别控制，为error输出错误信息，为warning输出告警信息。|
-   |sequoiadb_execute_only_in_mysql|bool|OFF|Yes|Global, Session|DDL 命令只在 MySQL 执行，不下压到 SequoiaDB 执行。|
+   |sequoiadb_execute_only_in_mysql|bool|OFF|Yes|Global, Session|DQL/DML/DDL 命令只在 MySQL 执行，不下压到 SequoiaDB 执行。|
    |sequoiadb_optimizer_options|set|"direct_count,<br>direct_delete,<br>direct_update"|Yes|Global, Session|SequoiaDB 优化选项开关，以决定是否优化计数、更新、删除操作。|
    |sequoiadb_password|string|""|Yes|Global|SequoiaDB 鉴权密码。|
    |sequoiadb_replica_size|int|1|Yes|Global|写操作需同步的副本数。取值范围为[-1, 7]。|
@@ -124,7 +124,7 @@ mysql> CREATE TABLE employee(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
 
    **sequoiadb_alter_table_overhead_threshold** 配置是更改表开销阈值。当表记录数超过这个阈值，需要全表更新的更改操作将被禁止。这个限制是防止对大表误进行了更改操作。大表的更新可能花费较多的时间。该阈值对添加 DEFAULT NULL 的列、数据类型扩容等无需更新的轻量操作不生效。如确认要对大表结构进行更改，在线上调阈值后，重新执行更改操作即可。
        
-   **sequoiadb_execute_only_in_mysql** 配置开启后，DDL 语句只在 MySQL 侧执行，即只更改 MySQL 侧表元数据信息，而不会下压到 SDB 侧同步表 DDL 操作。
+   **sequoiadb_execute_only_in_mysql** 配置开启后，DQL/DML/DDL 语句只在 MySQL 侧执行，不会下压到 SDB 执行。即 DDL 只会变更 MySQL 侧表元数据信息，而不会变更 SDB 相应表元数据；而 DQL/DML 所有查询和变更都为空操作，不会实际匹配到和变更 SDB 相应表的数据。
    
    **sequoiadb_debug_log** 配置开启后，MySQL 日志会打印 SequoiaDB 存储引擎有关 debug 信息。
    
