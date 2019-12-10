@@ -3746,7 +3746,7 @@ namespace engine
 
 #if defined (_LINUX)
    #if defined (_PPCLIN64)
-   INT32 _sptUsrSystemCommon::_etractCpuInfo( const CHAR *buf,
+   INT32 _sptUsrSystemCommon::_extractCpuInfo( const CHAR *buf,
                                               BSONObjBuilder &builder )
    {
       INT32 rc = SDB_OK ;
