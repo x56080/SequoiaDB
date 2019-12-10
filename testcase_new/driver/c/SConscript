@@ -66,7 +66,7 @@ testFiles = [
    [ "./paraVerify/lobFunc14388.cpp" ],
    [ "./paraVerify/sdbFunc14277.cpp" ],
    [ "./paraVerify/clFunc14281.cpp" ],
-   [ "./sessionAttr/instanceid14158.cpp" ], # sync
+   [ "./sessionAttr/sessionAttr14162.cpp" ], # sync
    [ "./crud/insertReplaceondup18581.cpp" ],
    [ "./auth/createUsr17941_17957.cpp" ],  # sync
    [ "./crud/query10404.cpp" ],
