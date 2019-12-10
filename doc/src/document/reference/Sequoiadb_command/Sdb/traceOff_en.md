@@ -3,7 +3,8 @@
 traceOff -  Turn off the database engine program tracking and export tracking results to binary files.
 
 ##SYNOPSIS##
-***db.traceOff()***
+
+***db.traceOff( \<dumpFile\> )***
 
 ##CATEGORY##
 
@@ -15,9 +16,13 @@ Turn off the database engine program tracking and export tracking results to bin
 
 ##PARAMETERS##
 
-| Name 		| Type 	| Description 				| Required or not 	|
-| ------ 		| ------ 	| ------ 			| ------ 	|
-| dumpFile 		| string 	| file'name of the dump; if the path of the specified file is a relative path, you must store the file in the `diagpath` directory of the corresponding node. | not 		|
+| Name        | Type   | Default | Description                  | Required or not |
+| ----------- | ------ | ------- | ---------------------------- | --------------- |
+| dumpFile    | string | ---     | file'name of the binary file | yes             |
+
+>Note：
+
+>Parameter dumpFile can be filled in as an empty string. It means to turn off the database engine program tracking and but not to export binary file. If the path of the specified file is a relative path, it will store the file in the `diagpath` directory of the corresponding node's database directory.
 
 ##RETURN VALUE##
 
