@@ -16,7 +16,7 @@ SDB_SNAP_DATABASE
 | GroupName             | 字符串 | 该逻辑节点所属的分区组名，standalone 模式下该字段为空字符串                     |
 | IsPrimary             | 布尔   | 该节点是否为主节点，standalone 模式下该字段为 false                             |
 | ServiceStatus         | 布尔   | 是否为可提供服务状态。<br>一些特殊状态，例如[全量同步](infrastructure/replication/replicate.md)会使该状态为 false |
-| Status                | 字符串 | 节点状态，有 "Normal"、"Rebuilding" 、"FullSync"、"OfflineBackup"几种状态  |
+| Status                | 字符串 | 节点状态：<br/>             1."Normal"：正常工作状态。<br/>             2."Shutdown"：正在关闭状态，表示节点正在被关闭。<br/>             3."Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步时，节点会进入该状态，重新构建数据。<br/>             4."FullSync"：[全量同步](infrastructure/replication/replicate.md#全量同步)状态。<br/>             5."OfflineBackup"：[备份恢复](database_management/backup_and_recovery/data_backup.md)状态。|
 | BeginLSN.Offset       | 长整型 | 起始 LSN 的偏移                                                                 |
 | BeginLSN.Version      | 整型   | 起始 LSN 的版本号                                                               |
 | CurrentLSN.Offset     | 长整型 | 当前 LSN 的偏移                                                                 |
