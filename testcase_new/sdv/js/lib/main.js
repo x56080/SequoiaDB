@@ -1,0 +1,188 @@
+/*******************************************************************************
+*@Description: JavaScript function main template
+*@Modify list:
+*   2019-11-12 wenjing Wang  Init
+*******************************************************************************/
+
+var testConf = {
+   skipStandAlone: false, skipOneDuplicatePerGroup: false,
+   skipOneGroup: false, clean: false, message: "", skip: false
+};
+// csName: COMMCSNAME, csOpt:{PageSize:4096}} };
+//clName:COMMCLNAME, clOpt:{AutoSplit:true} } ;
+
+testConf.clean = CLEANFORFAIL;
+var testPara = {};
+
+var oneGroup = 1;
+var nodeNum = 1;
+function checkEnv ( db, testConf )
+{
+   if( testConf.skipStandAlone && commIsStandalone( db ) )
+   {
+      throw new Error( "standalone" );
+   }
+
+   if( testConf.skipOneGroup )
+   {
+      var groups = commGetGroups( db );
+      if( groups.length === oneGroup )
+      {
+         throw new Error( "one data group" );
+      }
+   }
+
+   if( testConf.skipOneDuplicatePerGroup )
+   {
+      if( groups === undefined )
+      {
+         var groups = commGetGroups( db );
+      }
+
+      for( var i = 0; i < groups.length; ++i )
+      {
+         if( groups[i].length - 1 > nodeNum )
+         {
+            break;
+         }
+      }
+
+      if( i === groups.length )
+      {
+         throw new Error( "one duplicate per group" );
+      }
+   }
+}
+
+function createCommonCS ( db )
+{
+   return commCreateCS( db, COMMCSNAME, true );
+}
+
+function createCommonCL ( db )
+{
+   return commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
+}
+
+function createDummyCL ( db )
+{
+   return commCreateCLByOption( db, COMMCSNAME, COMMDUMMYCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
+}
+
+function createTestCS ( db, testConf )
+{
+   if( testConf.csName !== undefined )
+   {
+      if( testConf.csOpt !== undefined )
+      {
+         return commCreateCS( db, testConf.csName, true, "", testConf.csOpt );
+      }
+      else
+      {
+         return commCreateCS( db, testConf.csName, true );
+      }
+   }
+}
+
+function createTestCL ( db, testConf )
+{
+   if( testConf.clName !== undefined )
+   {
+      if( testConf.clName !== COMMCLNAME )
+      {
+         commDropCL( db, testConf.csName, testConf.clName, true, true, testConf.message );
+      }
+
+      if( testConf.clOpt !== undefined )
+      {
+         return commCreateCLByOption( db, testConf.csName, testConf.clName, testConf.clOpt, true, true );
+      }
+      else
+      {
+         return commCreateCL( db, testConf.csName, testConf.clName, 1, false, true, true );
+      }
+   }
+}
+
+function dropTestCS ( db, testConf )
+{
+   if( testConf.csName !== undefined &&
+      testConf.csName !== COMMCSNAME )
+   {
+      commDropCS( db, testConf.csName, true );
+   }
+}
+
+function dropTestCL ( db, testConf )
+{
+   if( testConf.clName !== undefined &&
+      testConf.clName !== COMMCLNAME &&
+      testConf.csName === COMMCSNAME )
+   {
+      commDropCL( db, testConf.csName, testConf.clName, true, true, testConf.message );
+   }
+}
+
+function commonSetUp ( db, testConf )
+{
+   checkEnv( db, testConf );
+   testPara.commonCS = createCommonCS( db );
+   testPara.commonCL = createCommonCL( db );
+   createDummyCL( db );
+
+   testPara.testCS = createTestCS( db, testConf );
+   testPara.testCL = createTestCL( db, testConf );
+}
+
+function commonTearDown ( db, testConf, isExecSuccess )
+{
+   if( db !== undefined )
+   {
+      if( isExecSuccess || testConf.clean )
+      {
+         dropTestCL( db, testConf );
+         dropTestCS( db, testConf );
+      }
+      db.close();
+   }
+}
+
+function main ()
+{
+   var isExecSuccess = false;
+   try
+   {
+      commonSetUp( db, testConf );
+      var numArgs = arguments.length;
+      for( var i = 0; i < numArgs; ++i )
+      {
+         if( typeof ( arguments[i] ) === "function" )
+         {
+            if( testConf.skip === false )
+            {
+               arguments[i]( testPara );
+            }
+         }
+      }
+
+      isExecSuccess = true;
+   }
+   catch( e )
+   {
+      if( e.constructor === Error )
+      {
+         if( e.message === "standalone" ||
+            e.message === "one data group" ||
+            e.message === "one duplicate per group" )
+         {
+            return;
+         }
+         println( e.stack );
+      }
+      throw e;
+   }
+   finally
+   {
+      commonTearDown( db, testConf, isExecSuccess );
+   }
+}
