@@ -64,6 +64,7 @@ namespace engine
    class oldVersionCB ;
    class dpsTransLockManager ;
    class _dpsITransLockCallback ;
+   class _dpsLogWrapper ;
 
    /*
       _dpsTransPendingKey define
@@ -326,6 +327,11 @@ namespace engine
       void     clearTransInfo() ;
 
       void     saveTransInfoFromLog( const dpsLogRecord &record ) ;
+      // rollback transaction info to expect LSN ( generally it is older than
+      // replayer's completed LSN )
+      INT32    rollbackTransInfoFromLog( _dpsLogWrapper *dpsCB,
+                                         const DPS_LSN &expectLSN ) ;
+      // rollback transaction info for a single DPS record
       BOOLEAN  rollbackTransInfoFromLog( const dpsLogRecord &record ) ;
 
       void           addBeginLsn( DPS_LSN_OFFSET beginLsn, DPS_TRANS_ID transID ) ;

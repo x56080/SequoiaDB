@@ -2935,6 +2935,18 @@ namespace engine
          if ( rcTmp )
          {
             DPS_LSN expectLSN = _replBucket.completeLSN() ;
+
+            if ( NULL != _pTransCB )
+            {
+               rcTmp = _pTransCB->rollbackTransInfoFromLog( _pDPSCB, expectLSN ) ;
+               if ( SDB_OK != rcTmp )
+               {
+                  PD_LOG( PDERROR, "Failed to rollback trans info to "
+                          "LSN [%u, %llu], rc: %d", expectLSN.version,
+                          expectLSN.offset, rcTmp ) ;
+               }
+            }
+
             rcTmp = _pDPSCB->move( expectLSN.offset, expectLSN.version ) ;
             if ( rcTmp )
             {

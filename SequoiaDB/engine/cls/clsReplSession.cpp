@@ -175,8 +175,18 @@ namespace engine
       {
          _pReplBucket->waitEmptyAndRollback() ;
 
+         INT32 rcTmp = SDB_OK ;
          DPS_LSN expectLSN = _pReplBucket->completeLSN() ;
-         INT32 rcTmp = _logger->move( expectLSN.offset, expectLSN.version ) ;
+
+         rcTmp = sdbGetTransCB()->rollbackTransInfoFromLog( _logger, expectLSN ) ;
+         if ( SDB_OK != rcTmp )
+         {
+            PD_LOG( PDERROR, "Failed to rollback trans info to "
+                    "LSN [%u, %llu], rc: %d", expectLSN.version,
+                    expectLSN.offset, rcTmp ) ;
+         }
+
+         rcTmp = _logger->move( expectLSN.offset, expectLSN.version ) ;
          if ( rcTmp )
          {
             PD_LOG( PDERROR, "Session[%s]: Failed to move lsn to "
@@ -238,8 +248,19 @@ namespace engine
    {
       if ( _pReplBucket->waitEmptyAndRollback() )
       {
+         INT32 rcTmp = SDB_OK ;
+
          DPS_LSN expectLSN = _pReplBucket->completeLSN() ;
-         INT32 rcTmp = _logger->move( expectLSN.offset, expectLSN.version ) ;
+
+         rcTmp = sdbGetTransCB()->rollbackTransInfoFromLog( _logger, expectLSN ) ;
+         if ( SDB_OK != rcTmp )
+         {
+            PD_LOG( PDERROR, "Failed to rollback trans info to "
+                    "LSN [%u, %llu], rc: %d", expectLSN.version,
+                    expectLSN.offset, rcTmp ) ;
+         }
+
+         rcTmp = _logger->move( expectLSN.offset, expectLSN.version ) ;
          if ( rcTmp )
          {
             PD_LOG( PDERROR, "Session[%s]: Failed to move lsn to "
@@ -1100,6 +1121,16 @@ namespace engine
       if ( _pReplBucket->waitEmptyAndRollback() )
       {
          DPS_LSN completeLSN = _pReplBucket->completeLSN() ;
+
+         rcTmp = sdbGetTransCB()->rollbackTransInfoFromLog( _logger,
+                                                            completeLSN ) ;
+         if ( SDB_OK != rcTmp )
+         {
+            PD_LOG( PDERROR, "Failed to rollback trans info to "
+                    "LSN [%u, %llu], rc: %d", completeLSN.version,
+                    completeLSN.offset, rcTmp ) ;
+         }
+
          rcTmp = _logger->move( completeLSN.offset, completeLSN.version ) ;
          if ( rcTmp )
          {

@@ -48,6 +48,7 @@
 #include "dpsLogRecordDef.hpp"
 #include "dpsTransLockCallback.hpp"
 #include "dpsTransVersionCtrl.hpp"
+#include "dpsLogWrapper.hpp"
 #include "pmdStartup.hpp"
 
 namespace engine
@@ -587,9 +588,69 @@ namespace engine
       clearHisTrans() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ROLLBACKTRANSINFO, "dpsTransCB::rollbackTransInfoFromLog" )
+   INT32 dpsTransCB::rollbackTransInfoFromLog( _dpsLogWrapper *dpsCB,
+                                               const DPS_LSN &expectLSN )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_ROLLBACKTRANSINFO ) ;
+
+      DPS_LSN currentLSN ;
+
+      if ( !isTransOn() ||
+           isNeedSyncTrans() ||
+           NULL == dpsCB ||
+           expectLSN.invalid() )
+      {
+         goto done ;
+      }
+
+      currentLSN.offset = dpsCB->getCurrentLsn().offset ;
+      if ( DPS_INVALID_LSN_OFFSET == currentLSN.offset )
+      {
+         goto done ;
+      }
+
+      // reverse loop LSN until meets expected LSN
+      while ( currentLSN.compareOffset( expectLSN ) >= 0 &&
+              !isNeedSyncTrans() )
+      {
+         dpsMessageBlock mb ;
+         dpsLogRecord record ;
+
+         rc = dpsCB->search( currentLSN, &mb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to search LSN [ offset: %llu ], "
+                      "rc: %d", expectLSN.offset, rc ) ;
+         record.load( mb.startPtr() ) ;
+
+         if ( !rollbackTransInfoFromLog( record ) )
+         {
+            setIsNeedSyncTrans( TRUE ) ;
+         }
+
+         currentLSN.offset = record.head()._preLsn ;
+      }
+
+      PD_LOG( PDEVENT, "Finished rollback trans info, current LSN [%llu], "
+              "expect LSN [%llu]", currentLSN.offset, expectLSN.offset ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_ROLLBACKTRANSINFO, rc ) ;
+      return rc ;
+
+   error:
+      setIsNeedSyncTrans( TRUE ) ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ROLLBACKTRANSINFOFROMLOG_REC, "dpsTransCB::rollbackTransInfoFromLog" )
    BOOLEAN dpsTransCB::rollbackTransInfoFromLog( const dpsLogRecord &record )
    {
       BOOLEAN ret = TRUE ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_ROLLBACKTRANSINFOFROMLOG_REC ) ;
+
       DPS_LSN_OFFSET lsnOffset = DPS_INVALID_LSN_OFFSET ;
       DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
       INT32 transStatus = DPS_TRANS_DOING ;
@@ -676,6 +737,8 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_ROLLBACKTRANSINFOFROMLOG_REC ) ;
+
       return ret ;
    }
 

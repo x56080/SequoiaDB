@@ -886,7 +886,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSBUCKET__DOROLLBACK ) ;
-      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
 
       CLS_COMP_MAP::reverse_iterator rit ;
 
@@ -910,18 +909,6 @@ namespace engine
             ++num ;
             clsReplayInfo &info = rit->second ;
             UINT32 unitID = info._unitID ;
-
-            /// rollback trans info
-            if ( pTransCB && pTransCB->isTransOn() &&
-                 !pTransCB->isNeedSyncTrans() )
-            {
-               dpsLogRecord record ;
-               record.load( info._pData ) ;
-               if ( !pTransCB->rollbackTransInfoFromLog( record ) )
-               {
-                  pTransCB->setIsNeedSyncTrans( TRUE ) ;
-               }
-            }
 
             // for record parallel mode, we use collection parallel mode
             // to rollback INSERT/UPDATE/DELETE
