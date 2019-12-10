@@ -1,6 +1,5 @@
 package com.sequoiadb.lzw;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -33,8 +32,6 @@ public class Sdv6665 extends SdbTestBase {
     private String clName = "cl6665";
     private List< String > dataGroupNames = null;
     private DBCollection cl = null;
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
     private String sourceGroupName;
     private String destGroupName;
     private String strRec;

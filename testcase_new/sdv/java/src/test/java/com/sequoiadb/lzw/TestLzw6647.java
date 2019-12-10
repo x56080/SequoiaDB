@@ -1,6 +1,5 @@
 package com.sequoiadb.lzw;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -32,8 +31,6 @@ public class TestLzw6647 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_6647";
     private String dataGroupName = null;
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {

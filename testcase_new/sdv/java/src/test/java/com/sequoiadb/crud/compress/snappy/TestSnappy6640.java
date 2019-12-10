@@ -1,6 +1,5 @@
 package com.sequoiadb.crud.compress.snappy;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -31,8 +30,6 @@ public class TestSnappy6640 extends SdbTestBase {
     private String srcGroup = null;
     private String dstGroup = null;
     private int recsSum = 4096;
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {

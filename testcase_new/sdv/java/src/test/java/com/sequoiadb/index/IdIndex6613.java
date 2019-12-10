@@ -1,6 +1,5 @@
 package com.sequoiadb.index;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -35,8 +34,6 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 public class IdIndex6613 extends SdbTestBase {
     private Sequoiadb sdb;
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
     private CollectionSpace cs;
     private DBCollection cl;
     private String clName = "c6613";

@@ -1,6 +1,5 @@
 package com.sequoiadb.lzw;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,8 +32,6 @@ public class TestLzw6654 extends SdbTestBase {
     private AtomicInteger id = new AtomicInteger( 0 );
     private String bigStr = LzwUtils2.getRandomString( 15 * 1024 * 1024 );
     private String smallStr = LzwUtils2.getRandomString( 512 * 1024 );
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {

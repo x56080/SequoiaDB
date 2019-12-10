@@ -1,6 +1,5 @@
 package com.sequoiadb.lzw;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 
@@ -31,8 +30,6 @@ public class Sdv6662 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl6662";
     private String dataGroupName = null;
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {

@@ -1,6 +1,5 @@
 package com.sequoiadb.crud.compress.concurrency;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,8 +31,6 @@ public class TestConcurrency6673 extends SdbTestBase {
     private String dataGroupName = null;
     private static final int CL_COUNT = 5;
     private String ranStr = CompressUtils.getRandomString( 8 * 1024 );
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {

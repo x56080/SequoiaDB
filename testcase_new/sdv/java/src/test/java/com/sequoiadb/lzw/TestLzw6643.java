@@ -1,6 +1,5 @@
 package com.sequoiadb.lzw;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -28,8 +27,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
 public class TestLzw6643 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_6643";
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {

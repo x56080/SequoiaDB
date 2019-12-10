@@ -1,6 +1,5 @@
 package com.sequoiadb.crud;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.types.ObjectId;
@@ -31,8 +30,6 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 public class createLob11606 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clNameBase = "cl";
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     private String[] sameHashOids = { "590a20e584aeebef8aff716d",
             "590a20e584aeebef8aff724c", "590a20e584aeebef8aff732b",

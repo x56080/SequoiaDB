@@ -1,6 +1,5 @@
 package com.sequoiadb.crud.compress.concurrency;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -31,8 +30,6 @@ public class TestConcurrency6672 extends SdbTestBase {
     private String clName = "cl_6672";
     private String ranStr = CompressUtils.getRandomString( 8 * 1024 );
     private String dataGroupName = null;
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {
