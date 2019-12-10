@@ -119,7 +119,6 @@ testFiles = [
    [ "./paraVerify/lobFunc14388.cpp" ],
    [ "./paraVerify/sdbFunc14277.cpp" ],
    [ "./paraVerify/clFunc14281.cpp" ],
-   [ "./sessionAttr/instanceid14158.cpp" ], # sync
    [ "./alter/alterdomain_15171.cpp" ],
    [ "./alter/altercs_15173.cpp" ],
    [ "./alter/altercl_15174.cpp" ],
