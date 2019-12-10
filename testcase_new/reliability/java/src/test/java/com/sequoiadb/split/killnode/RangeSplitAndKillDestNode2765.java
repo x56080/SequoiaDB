@@ -26,7 +26,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -54,10 +53,6 @@ public class RangeSplitAndKillDestNode2765 extends SdbTestBase {
     @BeforeClass()
     public void setUp() {
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
 
             // check the current cluster,if there is an exception to return
             // false
@@ -134,9 +129,7 @@ public class RangeSplitAndKillDestNode2765 extends SdbTestBase {
             if ( sdb != null ) {
                 sdb.close();
             }
-            System.out.println( this.getClass().getName() + " end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
+
         }
     }
 

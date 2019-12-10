@@ -24,7 +24,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -48,11 +47,6 @@ public class CRUD3160 extends SdbTestBase {
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
-
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness() ) {
                 throw new SkipException( "checkBusiness failed" );
@@ -127,10 +121,6 @@ public class CRUD3160 extends SdbTestBase {
             if ( db != null ) {
                 db.close();
             }
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
         }
     }
 

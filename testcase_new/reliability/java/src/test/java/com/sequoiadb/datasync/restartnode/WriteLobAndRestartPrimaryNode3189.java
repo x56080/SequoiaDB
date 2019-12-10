@@ -25,7 +25,6 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -52,10 +51,6 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         try {
-            System.out.println(
-                    this.getClass().getName() + ". the TestCase begin at:"
-                            + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                                    .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness() ) {
@@ -129,9 +124,7 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
             if ( sdb != null ) {
                 sdb.close();
             }
-            System.out.println( this.getClass().getName() + " end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
+
         }
     }
 

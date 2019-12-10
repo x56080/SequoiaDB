@@ -21,7 +21,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -51,10 +50,6 @@ public class DiskFullSubcl2326 extends SdbTestBase {
     @BeforeClass()
     public void setUp() {
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
             groupMgr = GroupMgr.getInstance();
             master = groupMgr.getGroupByName( "SYSCatalogGroup" ).getMaster();
             // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
@@ -193,10 +188,6 @@ public class DiskFullSubcl2326 extends SdbTestBase {
             if ( commSdb != null ) {
                 commSdb.close();
             }
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
         }
     }
 

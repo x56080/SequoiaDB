@@ -1,6 +1,5 @@
 package com.sequoiadb.metaopr.killnode;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -58,9 +57,6 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         try {
-            System.out.println( this.getClass().getName() + " begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness() ) {
@@ -124,9 +120,6 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
             if ( sdb != null ) {
                 sdb.close();
             }
-            System.out.println( this.getClass().getName() + " end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
         }
     }
 

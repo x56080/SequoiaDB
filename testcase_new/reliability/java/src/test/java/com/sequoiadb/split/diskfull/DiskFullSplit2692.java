@@ -21,7 +21,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -46,10 +45,6 @@ public class DiskFullSplit2692 extends SdbTestBase {
     @BeforeClass()
     public void setUp() {
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
             commSdb = new Sequoiadb( coordUrl, "", "" );
             groupMgr = GroupMgr.getInstance();
 
@@ -171,10 +166,7 @@ public class DiskFullSplit2692 extends SdbTestBase {
             if ( commSdb != null ) {
                 commSdb.close();
             }
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
+
         }
     }
 

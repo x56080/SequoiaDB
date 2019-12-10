@@ -18,7 +18,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
@@ -42,10 +41,6 @@ public class DropCLAndRestartPrimaryCatalog2298 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness() ) {
@@ -111,10 +106,6 @@ public class DropCLAndRestartPrimaryCatalog2298 extends SdbTestBase {
             if ( sdb != null ) {
                 sdb.close();
             }
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
         }
     }
 

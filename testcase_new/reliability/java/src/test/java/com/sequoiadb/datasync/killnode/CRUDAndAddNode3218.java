@@ -20,7 +20,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -46,14 +45,10 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
     private String clName = "cl_3218";
     private String clGroupName = null;
     private GroupWrapper clGroupWrapper = null;
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {
         try {
-            System.out.println( this.getClass().getName() + " begin at "
-                    + sdf.format( new Date() ) );
             // 检测集群是否可用
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness() ) {
@@ -130,8 +125,6 @@ public class CRUDAndAddNode3218 extends SdbTestBase {
             if ( db != null ) {
                 db.close();
             }
-            System.out.println( this.getClass().getName() + " end at "
-                    + sdf.format( new Date() ) );
         }
     }
 

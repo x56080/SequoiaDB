@@ -1,6 +1,5 @@
 package com.sequoiadb.rename.killnode;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -48,10 +47,7 @@ public class RenameCLKillMainNode16297 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
-        System.out.println( "the TestCase Name:" + this.getClass().getName()
-                + ". the TestCase begin at:"
-                + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                        .format( new Date() ) );
+
         groupMgr = GroupMgr.getInstance();
 
         // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
@@ -118,10 +114,6 @@ public class RenameCLKillMainNode16297 extends SdbTestBase {
             if ( sdb != null ) {
                 sdb.close();
             }
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
         }
     }
 

@@ -23,7 +23,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -49,10 +48,6 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         try {
-            System.out.println( this.getClass().getName() + " begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
-
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness() ) {
                 throw new SkipException( "checkBusiness failed" );
@@ -126,9 +121,6 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
             if ( sdb != null ) {
                 sdb.close();
             }
-            System.out.println( this.getClass().getName() + " end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
         }
     }
 

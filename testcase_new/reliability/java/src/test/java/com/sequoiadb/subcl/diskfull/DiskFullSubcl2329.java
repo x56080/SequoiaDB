@@ -1,6 +1,5 @@
 package com.sequoiadb.subcl.diskfull;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -52,10 +51,6 @@ public class DiskFullSubcl2329 extends SdbTestBase {
     public void setUp() {
 
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness() ) {
@@ -82,9 +77,6 @@ public class DiskFullSubcl2329 extends SdbTestBase {
         } finally {
             if ( sdb != null ) {
                 sdb.close();
-                System.out.println( this.getClass().getName() + " end at:"
-                        + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                                .format( new Date() ) );
             }
         }
     }

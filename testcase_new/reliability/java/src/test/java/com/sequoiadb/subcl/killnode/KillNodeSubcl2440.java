@@ -1,6 +1,5 @@
 package com.sequoiadb.subcl.killnode;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -54,10 +53,7 @@ public class KillNodeSubcl2440 extends SdbTestBase {
     @BeforeClass()
     public void setUp() {
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
+
             groupMgr = GroupMgr.getInstance();
 
             if ( !groupMgr.checkBusiness() ) {
@@ -118,10 +114,7 @@ public class KillNodeSubcl2440 extends SdbTestBase {
             if ( sdb != null ) {
                 sdb.close();
             }
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
+
         }
     }
 

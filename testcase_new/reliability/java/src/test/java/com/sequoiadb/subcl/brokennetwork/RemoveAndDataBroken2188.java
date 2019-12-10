@@ -1,6 +1,5 @@
 package com.sequoiadb.subcl.brokennetwork;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -52,11 +51,6 @@ public class RemoveAndDataBroken2188 extends SdbTestBase {
     public void setUp() {
 
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
-
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness() ) {
                 throw new SkipException( "checkBusiness failed" );
@@ -96,9 +90,6 @@ public class RemoveAndDataBroken2188 extends SdbTestBase {
         } finally {
             if ( sdb != null ) {
                 sdb.close();
-                System.out.println( this.getClass().getName() + " end at:"
-                        + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                                .format( new Date() ) );
             }
         }
     }

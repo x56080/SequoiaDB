@@ -1,6 +1,5 @@
 package com.sequoiadb.metaopr.noderestart;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.testng.Assert;
@@ -44,9 +43,6 @@ public class CreateCLAndRestartSlaveCatalog2295 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         try {
-            System.out.println( this.getClass().getName() + " begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
 
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness() ) {
@@ -107,9 +103,6 @@ public class CreateCLAndRestartSlaveCatalog2295 extends SdbTestBase {
             if ( sdb != null ) {
                 sdb.close();
             }
-            System.out.println( this.getClass().getName() + " end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
         }
     }
 

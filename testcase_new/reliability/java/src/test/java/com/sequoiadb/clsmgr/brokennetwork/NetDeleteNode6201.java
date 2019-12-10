@@ -1,7 +1,6 @@
 package com.sequoiadb.clsmgr.brokennetwork;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BasicBSONObject;
@@ -47,10 +46,6 @@ public class NetDeleteNode6201 extends SdbTestBase {
     public void setUp() {
 
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
             sdb = new Sequoiadb( coordUrl, "", "" );
             groupMgr = GroupMgr.getInstance();
 
@@ -147,10 +142,6 @@ public class NetDeleteNode6201 extends SdbTestBase {
     public void tearDown() {
         try {
             if ( clearFlag ) {
-                System.out.println( "the TestCase Name:"
-                        + this.getClass().getName() + ". the TestCase end at:"
-                        + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                                .format( new Date() ) );
             }
 
         } catch ( BaseException e ) {

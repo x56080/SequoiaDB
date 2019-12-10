@@ -21,7 +21,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -51,10 +50,6 @@ public class OprLobAndAddNode3228 extends SdbTestBase {
     public void setUp() {
         Sequoiadb db = null;
         try {
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase begin at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
             db = new Sequoiadb( coordUrl, "", "" );
             groupMgr = GroupMgr.getInstance();
 
@@ -139,10 +134,6 @@ public class OprLobAndAddNode3228 extends SdbTestBase {
             if ( db != null ) {
                 db.close();
             }
-            System.out.println( "the TestCase Name:" + this.getClass().getName()
-                    + ". the TestCase end at:"
-                    + new SimpleDateFormat( "YYYY-MM-dd HH:mm:ss.SSS" )
-                            .format( new Date() ) );
         }
     }
 
