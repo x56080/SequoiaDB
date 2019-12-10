@@ -63,7 +63,10 @@ namespace engine
                          _dpsLogWrapper *dpsCB,
                          BOOLEAN isRollBack ) ;
 
-   #define CLS_PARALLA_MAX_PENDING_COUNT     ( 1024 )
+   // default pending count for duplicated key issue
+   #define CLS_PARALLA_DEF_PENDING_COUNT     ( 1024 )
+   // max pending count index ( power of 2 )
+   #define CLS_PARALLA_MAX_PENDING_INDEX     ( 20 )
 
    /*
       _clsCLParallaInfo implement
@@ -74,6 +77,8 @@ namespace engine
       _lastLSN = DPS_INVALID_LSN_OFFSET ;
       _pendingLSN = DPS_INVALID_LSN_OFFSET ;
       _pendingCount = 0 ;
+      _pendingIndex = 0 ;
+      _recParallaCount = 0 ;
    }
 
    _clsCLParallaInfo::~_clsCLParallaInfo()
@@ -142,6 +147,26 @@ namespace engine
 #endif
          }
       }
+
+      if ( CLS_PARALLA_REC == parallaType )
+      {
+         // will replay in record parallel mode
+         // if the number of DPS records replayed in record parallel mode is
+         // equal to last start pending count, reduce the pending index
+         ++ _recParallaCount ;
+         if ( _pendingIndex > 0 &&
+              _recParallaCount > (UINT64)( ( CLS_PARALLA_DEF_PENDING_COUNT <<
+                                             _pendingIndex ) ) )
+         {
+            -- _pendingIndex ;
+         }
+      }
+      else
+      {
+         // will replay in collection parallel mode
+         // reset record parallel count
+         _recParallaCount = 0 ;
+      }
    }
 
    CLS_PARALLA_TYPE _clsCLParallaInfo::getLastParallaType() const
@@ -163,23 +188,28 @@ namespace engine
       if ( DPS_INVALID_LSN_OFFSET == _pendingLSN )
       {
          _pendingLSN = lsn ;
-         _pendingCount = CLS_PARALLA_MAX_PENDING_COUNT ;
+         _pendingCount = CLS_PARALLA_DEF_PENDING_COUNT << _pendingIndex ;
       }
       else if ( _pendingLSN < lsn )
       {
          // pending again
          // NOTE: might not happen during CL parallel mode
          _pendingLSN = lsn ;
-         _pendingCount += CLS_PARALLA_MAX_PENDING_COUNT ;
+         _pendingCount += CLS_PARALLA_DEF_PENDING_COUNT ;
       }
       else
       {
          // might rollbacked
-         _pendingCount += CLS_PARALLA_MAX_PENDING_COUNT ;
+         _pendingCount += CLS_PARALLA_DEF_PENDING_COUNT ;
+      }
+      if ( _pendingIndex < CLS_PARALLA_MAX_PENDING_INDEX )
+      {
+         ++ _pendingIndex ;
       }
 #if defined(_DEBUG)
-      PD_LOG( PDDEBUG, "Set collection %s pending from LSN %llu count %u",
-              _collection.c_str(), _pendingLSN, _pendingCount ) ;
+      PD_LOG( PDDEBUG, "Set collection %s pending from LSN %llu count %u "
+              "[ index %u ]", _collection.c_str(), _pendingLSN, _pendingCount,
+              _pendingIndex ) ;
 #endif
    }
 

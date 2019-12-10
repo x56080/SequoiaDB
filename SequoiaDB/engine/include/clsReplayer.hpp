@@ -103,7 +103,15 @@ namespace engine
          CLS_PARALLA_TYPE     _parallaType ;
          DPS_LSN_OFFSET       _lastLSN ;
          DPS_LSN_OFFSET       _pendingLSN ;
+         // when duplicated key issue happened in record parallel mode,
+         // should use collection parallel for at least pendingCount DPS records
          UINT32               _pendingCount ;
+         // each duplicated key issue will double the pending count
+         // pending index is a power of 2 to quick increase the start pending
+         // count
+         UINT32               _pendingIndex ;
+         // number of records to replay in record parallel mode
+         UINT64               _recParallaCount ;
 #if defined(_DEBUG)
          ossPoolString        _collection ;
 #endif
