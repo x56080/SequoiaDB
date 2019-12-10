@@ -443,7 +443,7 @@ DataSyncTestCase.prototype.setUp = function()
 
 DataSyncTestCase.prototype.tearDown = function()
 {
-   commDropCL( this.db, this.COMMCSNAME, this.clName, true, true );
+   commDropCL( this.db, this.csName, this.clName, true, true );
 }
 
 DataSyncTestCase.prototype.checkResult =
