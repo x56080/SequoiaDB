@@ -1,6 +1,5 @@
 package com.sequoiadb.crud.truncate;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -27,8 +26,6 @@ public class TestTruncate178 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String myCsName = "cs_178";
     private String clName = "cl_178";
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {

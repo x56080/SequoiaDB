@@ -1,6 +1,5 @@
 package com.sequoiadb.subcl;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -42,8 +41,6 @@ public class CrudAttachDetachTest10482 extends SdbTestBase {
     private String mainclName = "maincl_10482";
     private String[] subclNames = { "maincl_10482_subcl_0",
             "maincl_10482_subcl_1" };
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {

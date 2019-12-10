@@ -1,6 +1,5 @@
 package com.sequoiadb.decimal;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.types.BSONDecimal;
@@ -22,8 +21,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
  */
 
 public class Decimal9592 extends SdbTestBase {
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
 
     @BeforeClass
     public void setUp() {

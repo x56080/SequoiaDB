@@ -1,6 +1,5 @@
 package com.sequoiadb.metadataconsistency.cluster;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 
@@ -24,8 +23,6 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class Group10221 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
     private String rgName = "rg10221";
     private Random random = new Random();

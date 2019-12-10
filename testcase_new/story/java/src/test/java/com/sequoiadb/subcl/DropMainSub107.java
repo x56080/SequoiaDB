@@ -1,6 +1,5 @@
 package com.sequoiadb.subcl;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -41,8 +40,6 @@ public class DropMainSub107 extends SdbTestBase {
     private String cs2Name = "commCS107_2";
     private String cs3Name = "commCS107_3";
     private Sequoiadb sdb = null;
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
 
     @BeforeClass
     public void setUp() {

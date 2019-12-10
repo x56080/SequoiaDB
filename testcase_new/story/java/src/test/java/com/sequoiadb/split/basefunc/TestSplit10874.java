@@ -1,6 +1,5 @@
 package com.sequoiadb.split.basefunc;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -41,8 +40,6 @@ public class TestSplit10874 extends SdbTestBase {
     private int srcExpCnt;
     private int dstExpCnt;
     private int offSet;
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {

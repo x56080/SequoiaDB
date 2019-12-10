@@ -1,6 +1,5 @@
 package com.sequoiadb.metadataconsistency.data;
 
-import java.text.SimpleDateFormat;
 import java.util.Random;
 
 import org.testng.Assert;
@@ -22,8 +21,7 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class CS10165 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss" );
+
     private static Sequoiadb sdb = null;
     private String csName = "cs10165";
     private Random random = new Random();

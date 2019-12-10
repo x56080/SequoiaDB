@@ -1,7 +1,5 @@
 package com.sequoiadb.metadataconsistency.data;
 
-import java.text.SimpleDateFormat;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -24,8 +22,7 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class IdIndex10208 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss" );
+
     private static Sequoiadb sdb = null;
     private String csName = "cs10208";
     private String clName = "cs10208";

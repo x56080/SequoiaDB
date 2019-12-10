@@ -1,7 +1,6 @@
 package com.sequoiadb.decimal;
 
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 import org.bson.BasicBSONObject;
@@ -23,8 +22,6 @@ import com.sequoiadb.exception.BaseException;
  */
 
 public class Decimal9598 {
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
 
     @BeforeClass
     public void setUp() {

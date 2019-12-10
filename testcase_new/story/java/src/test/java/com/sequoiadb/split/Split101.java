@@ -1,6 +1,5 @@
 package com.sequoiadb.split;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -46,8 +45,6 @@ public class Split101 extends SdbTestBase {
     private int recsCnt = 1000;
     private BSONObject domainOption = new BasicBSONObject();
     private ArrayList< String > replicaGroups = new ArrayList< String >();
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
 
     @BeforeClass
     public void setUp() {

@@ -1,7 +1,5 @@
 package com.sequoiadb.metadataconsistency.data;
 
-import java.text.SimpleDateFormat;
-
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -22,8 +20,6 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class CL10203 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
     private String csName = "cs10203";
     private String clName = "cl10203";

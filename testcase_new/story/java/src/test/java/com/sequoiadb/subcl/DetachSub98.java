@@ -1,6 +1,5 @@
 package com.sequoiadb.subcl;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSONObject;
@@ -30,8 +29,6 @@ public class DetachSub98 extends SdbTestBase {
     private CollectionSpace cs;
     private String mainclName = "maincL98";
     private String subclName1 = "subcL98_1";
-    private SimpleDateFormat df = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss.SSS" );
     private DBCollection subcl1;
     private DBCollection maincl;
 

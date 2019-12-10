@@ -1,6 +1,5 @@
 package com.sequoiadb.metadataconsistency.data;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -28,8 +27,6 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class CL10178 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss" );
     private static Sequoiadb sdb = null;
     private static ArrayList< String > dataGroups = null;
     private String domainName = "dm10178";

@@ -1,6 +1,5 @@
 package com.sequoiadb.metadataconsistency.data;
 
-import java.text.SimpleDateFormat;
 import java.util.Random;
 
 import org.bson.BSONObject;
@@ -26,8 +25,7 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 
 public class SubCL10195 extends SdbTestBase {
-    private SimpleDateFormat dateFm = new SimpleDateFormat(
-            "YYYY-MM-dd HH:mm:ss" );
+
     private static Sequoiadb sdb = null;
     private String csName = "cs10195";
     private String clName = "cl10195";

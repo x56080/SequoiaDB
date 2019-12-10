@@ -1,6 +1,5 @@
 package com.sequoiadb.meta;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import org.bson.BSONObject;
@@ -39,8 +38,6 @@ public class TestDomain10170 extends SdbTestBase {
     private String dstGroup = null;
     private String outGroup = null;
     private String inexistGroup = "usadeodsdff";
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
 
     @BeforeClass
     public void setUp() {

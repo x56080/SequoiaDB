@@ -1,6 +1,5 @@
 package com.sequoiadb.numberlong;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.bson.BSON;

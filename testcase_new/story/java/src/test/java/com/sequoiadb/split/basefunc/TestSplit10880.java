@@ -41,9 +41,6 @@ public class TestSplit10880 extends SdbTestBase {
     private int srcExpCnt;
     private int dstExpCnt;
     private int offSet;
-    private SimpleDateFormat sdf = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.S" );
-
     @BeforeClass
     public void setUp() {
         try {
