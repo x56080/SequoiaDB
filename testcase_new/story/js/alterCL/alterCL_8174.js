@@ -43,52 +43,52 @@ function main ()
    try
    {
       cl1.alter( { "IsMainCL": true } );
-      throw "ERR_ALTEL_ISMAINCL";
+      throw new Error( "ERR_ALTEL_ISMAINCL" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw new Error( "alter cl IsMainCL, \nexp: -6, \nact: " + e );
+         throw e;
       }
    }
 
    try
    {
       cl2.alter( { "IsMainCL": true } );
-      throw "ERR_ALTEL_ISMAINCL";
+      throw new Error( "ERR_ALTEL_ISMAINCL" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw new Error( "alter cl IsMainCL, \nexp: -6, \nact: " + e );
+         throw e;
       }
    }
 
    try
    {
       cl3.alter( { "IsMainCL": true } );
-      throw "ERR_ALTEL_ISMAINCL";
+      throw new Error( "ERR_ALTEL_ISMAINCL" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw new Error( "alter cl IsMainCL, \nexp: -6, \nact: " + e );
+         throw e;
       }
    }
 
    try
    {
       cl4.alter( { "IsMainCL": false } );
-      throw "ERR_ALTEL_ISMAINCL";
+      throw new Error( "ERR_ALTEL_ISMAINCL" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw new Error( "alter cl IsMainCL, \nexp: -6, \nact: " + e );
+         throw e;
       }
    }
 

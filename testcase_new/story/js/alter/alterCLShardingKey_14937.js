@@ -7,7 +7,19 @@ test c: alter sharding key by setAttributes
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_alterclShardingKey_14937";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try

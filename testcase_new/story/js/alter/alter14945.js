@@ -5,7 +5,19 @@
 *@testlinkCase:seqDB-14945
 **************************************/
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
@@ -44,7 +56,7 @@ function main ()
    }
    catch( e )
    {
-      if( e !== -169 )
+      if( e.message != -169 )
       {
          throw e;
       }

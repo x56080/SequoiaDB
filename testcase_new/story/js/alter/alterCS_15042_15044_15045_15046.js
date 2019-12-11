@@ -13,7 +13,19 @@ var domainName2 = CHANGEDPREFIX + "_domain15044";
 var domainName3 = CHANGEDPREFIX + "_domain15045";
 
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -89,13 +101,13 @@ function alterDomainOfCSError ( dbcs, domainName )
    try
    {
       dbcs.setDomain( { Domain: domainName } );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -216 )
+      if( e.message != -216 )
       {
-         throw buildException( "cannot be alter domian:", e );
+         throw e;
       }
    }
 }

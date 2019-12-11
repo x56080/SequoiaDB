@@ -5,7 +5,19 @@
 *@testlinkCase:seqDB-14981, seqDB-14983, seqDB-14984
 **************************************/
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {

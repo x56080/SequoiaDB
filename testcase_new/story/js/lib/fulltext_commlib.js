@@ -4,7 +4,7 @@
 @Author: liuxiaoxuan
 @call：fullText、fulltext_rlb、fullText_sync                
 ****************************************************/
-var cmd = new Cmd();     
+var cmd = new Cmd();
 var HEADER = "'Content-Type: application/json'";
 var HTTP = "'http://" + ESHOSTNAME + ":" + ESSVCNAME;
 var esOpr = new ESOperator();
@@ -20,47 +20,47 @@ commMakeDir( "localhost", WORKDIR );
                 var esRecofindFromES( "esIndexName", querycond );
                 es.checkFullSyncToES("esIndexName", expectCount, cappedCL)
 ******************************************************************************/
-function ESOperator()
+function ESOperator ()
 {
    /*****************************************************************
    * run CURL command, to get return records from elasticsearch by rest
    *****************************************************************/
-   this.findFromES = function (esIndexName, queryCond)
+   this.findFromES = function( esIndexName, queryCond )
    {
       var records = new Array();
       // get curl command
-      var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName 
-                      + "/_search' -d '" + queryCond + "' 2>/dev/null";
+      var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName
+         + "/_search' -d '" + queryCond + "' 2>/dev/null";
 
       // to get records from ES
-      var info = cmd.run(str); 
+      var info = cmd.run( str );
       //get json
-      var json = eval("(" + info + ")");
+      var json = eval( "(" + info + ")" );
       var array = json["hits"]["hits"];
-      for(var i = 0; i < array.length; i++)
+      for( var i = 0; i < array.length; i++ )
       {
          var _id = array[i]["_id"];
-         if (_id == "SDBCOMMIT")  continue;
+         if( _id == "SDBCOMMIT" ) continue;
          var obj = array[i]["_source"];
-         records.push(obj);
+         records.push( obj );
       }
 
-      return records; 
+      return records;
    }
-	
+
    /*****************************************************************
    * run CURL command, to get count from elasticsearch by rest
    *****************************************************************/
-   this.countFromES = function (esIndexName)
+   this.countFromES = function( esIndexName )
    {
       var count = 0;
       // get curl command
       var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName + "/_count" + "' 2>/dev/null";
 
       // get count from ES
-      var info = cmd.run(str);
+      var info = cmd.run( str );
       //get json
-      var json = eval("(" + info + ")");
+      var json = eval( "(" + info + ")" );
       count = json["count"];
       return count;
    }
@@ -68,107 +68,107 @@ function ESOperator()
    /*****************************************************************
    * run CURL command, to get SDBCOMMITID from elasticsearch by rest  
    *****************************************************************/
-   this.getCommitIDFromES = function (esIndexName)
-   { 
+   this.getCommitIDFromES = function( esIndexName )
+   {
       var commitID = -1;
-	
+
       var querySdbCommitID = "{\"query\" : {\"match\" : {\"_id\": \"SDBCOMMIT\"}}}";
       // get curl command
-      var str="curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName 
-                      + "/_search' -d '" + querySdbCommitID + "' 2>/dev/null";
+      var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName
+         + "/_search' -d '" + querySdbCommitID + "' 2>/dev/null";
 
       // to get SDBCOMMITID from ES
-      var info = cmd.run(str);
+      var info = cmd.run( str );
       //get json
-      var json = eval("(" + info + ")");
+      var json = eval( "(" + info + ")" );
       var array = json["hits"]["hits"];
-      if(array.length == 1)
-      {  
+      if( array.length == 1 )
+      {
          commitID = array[0]["_source"]["_lid"];
       }
 
-      return commitID; 
+      return commitID;
    }
-   
+
    /*****************************************************************
    * run CURL command, to refresh ES after check sync 
    *****************************************************************/
-   this.refreshFromES = function (esIndexName)
+   this.refreshFromES = function( esIndexName )
    {
       // get curl command
-      var str="curl -H " + HEADER + " -XPOST " + HTTP + "/" + esIndexName 
-                      + "/_refresh' 2>/dev/null";
+      var str = "curl -H " + HEADER + " -XPOST " + HTTP + "/" + esIndexName
+         + "/_refresh' 2>/dev/null";
 
       // to refresh shards from ES
-      cmd.run(str);
-      println(esIndexName + " refresh success!");
+      cmd.run( str );
+      println( esIndexName + " refresh success!" );
 
    }
-   
+
    /*****************************************************************
    * check if index is create in elasticsearch      
    *****************************************************************/
-   this.isCreateIndexInES = function (esIndexName)
+   this.isCreateIndexInES = function( esIndexName )
    {
       // get curl command
       var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName + "' 2>/dev/null";
- 
+
       //the longest waiting time is 300s
       var isExist = false;
       var timeout = 300;
       var doTimes = 0;
-      while(doTimes < timeout)
+      while( doTimes < timeout )
       {
-         var info = cmd.run(str);
+         var info = cmd.run( str );
          //get json
-         var json = eval("(" + info + ")");
+         var json = eval( "(" + info + ")" );
          var error = json["error"];
-         if(typeof(error) == "undefined")
-         { 
-            isExist = true; 
-            break;
-         }else
+         if( typeof ( error ) == "undefined" )
          {
-            sleep(1000);
+            isExist = true;
+            break;
+         } else
+         {
+            sleep( 1000 );
             doTimes++;
          }
       }
       return isExist;
    }
-   
-   
+
+
    /*****************************************************************
    * check if index is drop in elasticsearch      
    *****************************************************************/
-   this.isDropIndexInES = function (esIndexName)
+   this.isDropIndexInES = function( esIndexName )
    {
       // get curl command
       var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName + "' 2>/dev/null";
- 
+
       //the longest waiting time is 300s
       var isExist = true;
       var timeout = 300;
       var doTimes = 0;
-      while(doTimes < timeout)
+      while( doTimes < timeout )
       {
-         var info = cmd.run(str);
+         var info = cmd.run( str );
          //get json
-         var json = eval("(" + info + ")");
+         var json = eval( "(" + info + ")" );
          var error = json["error"];
-         if(typeof(error) != "undefined")
-         { 
-            isExist = false; 
-            break;
-         }else
+         if( typeof ( error ) != "undefined" )
          {
-            sleep(1000);
+            isExist = false;
+            break;
+         } else
+         {
+            sleep( 1000 );
             doTimes++;
          }
       }
       return isExist;
    }
-   
-   	
+
+
 }
 
 /******************************************************************************
@@ -178,38 +178,38 @@ function ESOperator()
 @usage:         var db = new DBOperator();
                 var cappedCLName = db.getCappedCLName( dbcl, "textIndexName" );
 ******************************************************************************/
-function DBOperator()
+function DBOperator ()
 {
    /*****************************************************************
    * get cappedcl name 
    *****************************************************************/
-   this.getCappedCLName = function (dbcl, textIndexName)
+   this.getCappedCLName = function( dbcl, textIndexName )
    {
       var cappedCLName = "";
-      var idx = dbcl.getIndex(textIndexName);
+      var idx = dbcl.getIndex( textIndexName );
       cappedCLName = idx.toObj().ExtDataName;
       return cappedCLName;
    }
-   
-   
+
+
    /*****************************************************************
    * get cappedcl  
    *****************************************************************/
-   this.getCappedCLs = function ( csName, clName, textIndexName )
+   this.getCappedCLs = function( csName, clName, textIndexName )
    {
       var clFullName = csName + "." + clName;
       var dbcl = db.getCS( csName ).getCL( clName );
-      var cappedCLName = this.getCappedCLName( dbcl, textIndexName ); 
+      var cappedCLName = this.getCappedCLName( dbcl, textIndexName );
       var clGroups = commGetCLGroups( db, clFullName );
       // sort groupname, in order to mapping esIndexNames <-> cappedCLs
-	   clGroups = removeDuplicateItems(clGroups);
+      clGroups = removeDuplicateItems( clGroups );
       clGroups.sort();
       // get each cappedCL from each group
       var cappedCLs = new Array();
-      for (var i in clGroups)
+      for( var i in clGroups )
       {
-         var cappedCL = db.getRG(clGroups[i]).getMaster().connect().getCS(cappedCLName).getCL(cappedCLName);
-         cappedCLs.push(cappedCL);
+         var cappedCL = db.getRG( clGroups[i] ).getMaster().connect().getCS( cappedCLName ).getCL( cappedCLName );
+         cappedCLs.push( cappedCL );
       }
       return cappedCLs;
    }
@@ -219,65 +219,65 @@ function DBOperator()
    * cappedCLName: SYS_uniqueId_textIndexName  
    * esIndexName:  indexPrefix + sys_uniqueId_textIndexName_clGroupName							  
    *****************************************************************/
-   this.getESIndexNames = function (csName, clName, textIndexName)
+   this.getESIndexNames = function( csName, clName, textIndexName )
    {
       // check cappedcl name is valid
-      var dbcl = db.getCS(csName).getCL(clName);
-      var cappedCLName = this.getCappedCLName(dbcl, textIndexName);
-	
+      var dbcl = db.getCS( csName ).getCL( clName );
+      var cappedCLName = this.getCappedCLName( dbcl, textIndexName );
+
       // get es index names
       var esIndexNames = new Array();
-      var clGroupNames = commGetCLGroups(db, csName + "." + clName);
-      clGroupNames = removeDuplicateItems(clGroupNames);
+      var clGroupNames = commGetCLGroups( db, csName + "." + clName );
+      clGroupNames = removeDuplicateItems( clGroupNames );
       // sort groupname, in order to mapping esIndexNames <-> cappedCLs
       clGroupNames.sort();
-      for(var i in clGroupNames)
+      for( var i in clGroupNames )
       {
-         esIndexNames.push(FULLTEXTPREFIX.toLowerCase() + cappedCLName.toLowerCase() + "_" + clGroupNames[i]);	
+         esIndexNames.push( FULLTEXTPREFIX.toLowerCase() + cappedCLName.toLowerCase() + "_" + clGroupNames[i] );
       }
-	
+
       // if sharding cl, return all indices
       return esIndexNames;
    }
-	
+
    /*****************************************************************
    * get last _id from cappedCL, in order to compare with ES's SDBCOMMITID 
    * and ensure that records are all sync to ES
    *****************************************************************/
-   this.getLastLID = function (cappedCL)
+   this.getLastLID = function( cappedCL )
    {
       var lastLogicalID = -1;
-      var sortCond = {"_id" : 1};
-      var records = this.findFromCL(cappedCL, null, null, sortCond, null);
-      if(records.length > 0)
-      { 
-         lastLogicalID = records[records.length-1]["_id"];
-      } 
+      var sortCond = { "_id": 1 };
+      var records = this.findFromCL( cappedCL, null, null, sortCond, null );
+      if( records.length > 0 )
+      {
+         lastLogicalID = records[records.length - 1]["_id"];
+      }
 
       return lastLogicalID;
    }
-	
+
    /*****************************************************************
    * find records by options
    *****************************************************************/
-   this.findFromCL = function (dbcl, findCond, selectorCond, sortCond, hintCond, limitCond, skipCond)
+   this.findFromCL = function( dbcl, findCond, selectorCond, sortCond, hintCond, limitCond, skipCond )
    {
-      if ( typeof(selectorCond) == "undefined" ) { selectorCond = null; }
-      if ( typeof(findCond) == "undefined" ) { findCond = null; }
-      if ( typeof(sortCond) == "undefined" ) { sortCond = null; }
-      if ( typeof(hintCond) == "undefined" ) { hintCond = null; }
-      if ( typeof(limitCond) == "undefined" ) { limitCond = null; }
-      if ( typeof(skipCond) == "undefined" ) { skipCond = null; }
-  
+      if( typeof ( selectorCond ) == "undefined" ) { selectorCond = null; }
+      if( typeof ( findCond ) == "undefined" ) { findCond = null; }
+      if( typeof ( sortCond ) == "undefined" ) { sortCond = null; }
+      if( typeof ( hintCond ) == "undefined" ) { hintCond = null; }
+      if( typeof ( limitCond ) == "undefined" ) { limitCond = null; }
+      if( typeof ( skipCond ) == "undefined" ) { skipCond = null; }
+
       //find({"":{"$Text":{"query":{"match":{"a" : "test"}}}}}) 
-      var rc = dbcl.find(findCond, selectorCond).sort(sortCond).hint(hintCond).limit(limitCond).skip(skipCond);
-  
+      var rc = dbcl.find( findCond, selectorCond ).sort( sortCond ).hint( hintCond ).limit( limitCond ).skip( skipCond );
+
       var records = new Array();
       //get all records
-      while(rc.next())
+      while( rc.next() )
       {
          var record = rc.current().toObj();
-         records.push(record);		
+         records.push( record );
       }
 
       return records;
@@ -290,28 +290,28 @@ function DBOperator()
                 clName
                 expectCount
 ******************************************************************/
-function checkFullSyncToES(csName, clName, textIndexName, expectCount)
+function checkFullSyncToES ( csName, clName, textIndexName, expectCount )
 {
-   var esIndexNames = dbOpr.getESIndexNames(csName, clName, textIndexName);
-   var cappedCLs = dbOpr.getCappedCLs(csName, clName, textIndexName);
+   var esIndexNames = dbOpr.getESIndexNames( csName, clName, textIndexName );
+   var cappedCLs = dbOpr.getCappedCLs( csName, clName, textIndexName );
 
    // check indexnames sync to ES
-   for(var i in esIndexNames)
+   for( var i in esIndexNames )
    {
-      if(!esOpr.isCreateIndexInES(esIndexNames[i]))
+      if( !esOpr.isCreateIndexInES( esIndexNames[i] ) )
       {
-         throw new Error("checkFullSyncToES() index name:" + esIndexNames[i] + " not exsit");
+         throw new Error( "checkFullSyncToES() index name:" + esIndexNames[i] + " not exsit" );
       }
    }
-   
+
    // check all indices sync to ES
-   checkCountInES(esIndexNames, expectCount);
-   checkLidInES(esIndexNames, cappedCLs);
+   checkCountInES( esIndexNames, expectCount );
+   checkLidInES( esIndexNames, cappedCLs );
    // refresh ES after check sync
-   for(var i in esIndexNames)
+   for( var i in esIndexNames )
    {
-      esOpr.refreshFromES(esIndexNames[i]);
-   }   
+      esOpr.refreshFromES( esIndexNames[i] );
+   }
 }
 
 /*****************************************************************
@@ -320,158 +320,158 @@ function checkFullSyncToES(csName, clName, textIndexName, expectCount)
                 clName
                 expectCount
 ******************************************************************/
-function checkMainCLFullSyncToES(csName, mainCLName, textIndexName, expectCount)
+function checkMainCLFullSyncToES ( csName, mainCLName, textIndexName, expectCount )
 {
    var subCLNames = new Array();
-   var cursor = db.snapshot(8, {Name: csName + "." + mainCLName});
-   while(cursor.next())
+   var cursor = db.snapshot( 8, { Name: csName + "." + mainCLName } );
+   while( cursor.next() )
    {
       var cateInfos = cursor.current().toObj().CataInfo;
-      for(var i = 0; i < cateInfos.length; i++)
+      for( var i = 0; i < cateInfos.length; i++ )
       {
-         subCLNames.push(cateInfos[i]['SubCLName']);
+         subCLNames.push( cateInfos[i]['SubCLName'] );
       }
    }
 
    // get all indexs from maincl 
    var esIndexNames = new Array();
    var cappedCLs = new Array();
-   for(var i in subCLNames)
+   for( var i in subCLNames )
    {
-      var subCSName = subCLNames[i].split('.')[0];
-      var subCLName = subCLNames[i].split('.')[1];
+      var subCSName = subCLNames[i].split( '.' )[0];
+      var subCLName = subCLNames[i].split( '.' )[1];
 
-      esIndexNames = esIndexNames.concat(dbOpr.getESIndexNames(subCSName, subCLName, textIndexName));
-      cappedCLs = cappedCLs.concat(dbOpr.getCappedCLs(subCSName, subCLName, textIndexName));
+      esIndexNames = esIndexNames.concat( dbOpr.getESIndexNames( subCSName, subCLName, textIndexName ) );
+      cappedCLs = cappedCLs.concat( dbOpr.getCappedCLs( subCSName, subCLName, textIndexName ) );
    }
 
    // check full sync to ES for each subcl
-   for(var i in esIndexNames)
+   for( var i in esIndexNames )
    {
-      if(!esOpr.isCreateIndexInES(esIndexNames[i]))
+      if( !esOpr.isCreateIndexInES( esIndexNames[i] ) )
       {
-         throw new Error("checkMainCLFullSyncToES() index name " + esIndexNames[i] + " is not exsit");
+         throw new Error( "checkMainCLFullSyncToES() index name " + esIndexNames[i] + " is not exsit" );
       }
    }
 
-   checkCountInES(esIndexNames, expectCount);
-   checkLidInES(esIndexNames, cappedCLs); 
+   checkCountInES( esIndexNames, expectCount );
+   checkLidInES( esIndexNames, cappedCLs );
    // refresh ES after check sync
-   for(var i in esIndexNames)
+   for( var i in esIndexNames )
    {
-      esOpr.refreshFromES(esIndexNames[i]);
-   }   
+      esOpr.refreshFromES( esIndexNames[i] );
+   }
 }
 
-	
+
 /*****************************************************************
 @description:   check records is full sync to elasticsearch by comparing count         
 @input:         csName
                 clName
                 expectCount    
 ******************************************************************/
-function checkCountInES(esIndexNames, expectCount)
+function checkCountInES ( esIndexNames, expectCount )
 {
    //the longest waiting time is 600S
    var isSync = false;
    var timeout = 600;
    var doTimes = 0;
-  
-   while(doTimes < timeout)
+
+   while( doTimes < timeout )
    {
       // clear count every time
       var actCount = 0;
       // Add counts of all indices 
-      for(var i in esIndexNames)
+      for( var i in esIndexNames )
       {
-         actCount += (esOpr.countFromES(esIndexNames[i]) - 1);
+         actCount += ( esOpr.countFromES( esIndexNames[i] ) - 1 );
       }
       // if expect count < act count, exit
-      if(actCount == expectCount)
-      { 
+      if( actCount == expectCount )
+      {
          isSync = true;
          break;
-      }else
+      } else
       {
-         sleep(1000);
-         doTimes+=1;
+         sleep( 1000 );
+         doTimes += 1;
       }
-      
-      if(isSync)
+
+      if( isSync )
       {
          break;
       }
    }
-   
-   if(!isSync)
+
+   if( !isSync )
    {
-      throw new Error("checkCountInES() check ES sync record failed, expect record num:" + expectCount + ",actual record num:" + actCount);
+      throw new Error( "checkCountInES() check ES sync record failed, expect record num:" + expectCount + ",actual record num:" + actCount );
    }
-   
+
    return isSync;
 }
-	
+
 /*****************************************************************
 @description:   check records is sync to elasticsearch by comparing lastLogicalID and SDBCOMMITID          
 @input:         csName
                 clName 
-******************************************************************/   
-function checkLidInES(esIndexNames, cappedCLs)
+******************************************************************/
+function checkLidInES ( esIndexNames, cappedCLs )
 {
-   println("begin to check commitID in ES");
-   
+   println( "begin to check commitID in ES" );
+
    // if esIndexNames not mapping to cappedCLs, fail
-   if(esIndexNames.length !== cappedCLs.length)
+   if( esIndexNames.length !== cappedCLs.length )
    {
-      throw new Error("checkLidInES() index not sync to es:" + esIndexNames.length + ", the number of index name in db: " + cappedCLs.length);
+      throw new Error( "checkLidInES() index not sync to es:" + esIndexNames.length + ", the number of index name in db: " + cappedCLs.length );
    }
 
    //the longest waiting time is 600S
    var isSync = false;
    var timeout = 600;
    var doTimes = 0;
-   
+
    // get all lids from all groups
    var lastLogicalIDs = new Array();
-   for(var i in cappedCLs)
+   for( var i in cappedCLs )
    {
-      lastLogicalIDs.push(dbOpr.getLastLID(cappedCLs[i]));
+      lastLogicalIDs.push( dbOpr.getLastLID( cappedCLs[i] ) );
    }
-   while(doTimes < timeout)
+   while( doTimes < timeout )
    {
       // get all commitids from all esIndexNames 
       var commitIDs = new Array();
-      for(var i in esIndexNames)
+      for( var i in esIndexNames )
       {
-         commitIDs.push(esOpr.getCommitIDFromES(esIndexNames[i]));
-      } 
+         commitIDs.push( esOpr.getCommitIDFromES( esIndexNames[i] ) );
+      }
 
       // check if all indices finish sync
-      for(var i in esIndexNames)  
-      { 
-         isSync = false;  
-         if(commitIDs[i] === lastLogicalIDs[i])
+      for( var i in esIndexNames )  
+      {
+         isSync = false;
+         if( commitIDs[i] === lastLogicalIDs[i] )
          {
             isSync = true;
-         }else
+         } else
          {
-            sleep(1000);
+            sleep( 1000 );
             doTimes++;
             break;
          }
       }
-      
-      if(isSync)
+
+      if( isSync )
       {
          break;
       }
    }
-   if(!isSync)
+   if( !isSync )
    {
-      throw new Error("checkLidInES() expect lid: " + commitIDs + ",actual lid: " + lastLogicalIDs);
-      
+      throw new Error( "checkLidInES() expect lid: " + commitIDs + ",actual lid: " + lastLogicalIDs );
+
    }
-   println("check lid sync to ES success!");
+   println( "check lid sync to ES success!" );
 }
 
 /*****************************************************************
@@ -480,14 +480,14 @@ function checkLidInES(esIndexNames, cappedCLs)
                 clName
                 textIndexName
 ******************************************************************/
-function checkIndexNotExistInES(esIndexNames)
+function checkIndexNotExistInES ( esIndexNames )
 {
    // check indexnames in ES not exist
-   for(var i in esIndexNames)
+   for( var i in esIndexNames )
    {
-      if(esOpr.isDropIndexInES(esIndexNames[i]))
+      if( esOpr.isDropIndexInES( esIndexNames[i] ) )
       {
-         throw new Error("checkIndexNotExistInES() index name: " + esIndexNames[i] + "is not exists.");
+         throw new Error( "checkIndexNotExistInES() index name: " + esIndexNames[i] + "is not exists." );
       }
    }
 }
@@ -497,11 +497,11 @@ function checkIndexNotExistInES(esIndexNames)
 @input:         expectResult
                 actResult
 ******************************************************************/
-function checkResult(expectResult, actResult)
+function checkResult ( expectResult, actResult )
 {
-   if(expectResult.length !== actResult.length)
+   if( expectResult.length !== actResult.length )
    {
-      throw new Error("checkResult() check recordNum failed, expectNum: " + expectResult.length + ",actualNum: " + actResult.length);
+      throw new Error( "checkResult() check recordNum failed, expectNum: " + expectResult.length + ",actualNum: " + actResult.length );
    }
 
    // compare array  
@@ -509,31 +509,31 @@ function checkResult(expectResult, actResult)
    {
       var actRec = actResult[i];
       var expRec = expectResult[i];
-   	
-      for ( var f in expRec )
+
+      for( var f in expRec )
       {
-         if( JSON.stringify(actRec[f]) !== JSON.stringify(expRec[f]) ) 
+         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) ) 
          {
-            throw new Error("checkResult() check record failed, expect record: " + JSON.stringify(expRec) + ",actual record: " + JSON.stringify(actRec));
+            throw new Error( "checkResult() check record failed, expect record: " + JSON.stringify( expRec ) + ",actual record: " + JSON.stringify( actRec ) );
          }
       }
    }
-   
+
    for( var j in actResult )
    {
       var actRec = actResult[j];
       var expRec = expectResult[j];
-   	
-      for ( var f in actRec )
+
+      for( var f in actRec )
       {
-         if( JSON.stringify(actRec[f]) !== JSON.stringify(expRec[f]) )
+         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
          {
-            throw new Error("checkResult() check record failed, expect record: " + JSON.stringify(expRec) + ",actual record: " + JSON.stringify(actRec));
+            throw new Error( "checkResult() check record failed, expect record: " + JSON.stringify( expRec ) + ",actual record: " + JSON.stringify( actRec ) );
          }
       }
    }
-	
-   println("check results success!");
+
+   println( "check results success!" );
 }
 
 /*****************************************************************
@@ -543,21 +543,27 @@ function checkResult(expectResult, actResult)
                 o: object1's key
                 p: object2's key					 
 ******************************************************************/
-function compare(name, minor) {
-   return function (o, p) {
+function compare ( name, minor )
+{
+   return function( o, p )
+   {
       var a, b;
-      if (o && p && typeof o === 'object' && typeof p === 'object') {
+      if( o && p && typeof o === 'object' && typeof p === 'object' )
+      {
          a = o[name];
          b = p[name];
-         if (a === b) {
-            return typeof minor === 'function' ? minor(o, p) : 0;
+         if( a === b )
+         {
+            return typeof minor === 'function' ? minor( o, p ) : 0;
          }
-         if (typeof a === typeof b) {
+         if( typeof a === typeof b )
+         {
             return a < b ? -1 : 1;
          }
          return typeof a < typeof b ? -1 : 1;
-      } else {
-         throw new Error("compare() other error");
+      } else
+      {
+         throw new Error( "compare() other error" );
       }
    }
 }
@@ -567,41 +573,41 @@ function compare(name, minor) {
 @input:         csName
                 clName
 ******************************************************************/
-function checkConsistency(csName, clName)
+function checkConsistency ( csName, clName )
 {
    // check LSN consistency
-   if(csName == null) { var csName = "UNDEFINED"; }
-   if(clName == null) { var clName = "UNDEFINED"; }
+   if( csName == null ) { var csName = "UNDEFINED"; }
+   if( clName == null ) { var clName = "UNDEFINED"; }
 
    var groups = commGetCLGroups( db, csName + "." + clName );
-   
+
    //the longest waiting time is 600S
    var lsnFlag = false;
    var timeout = 600;
-   var doTimes = 0; 
-   
+   var doTimes = 0;
+
    //get primary nodes
-   var primaryNodeLSNs = getPrimaryNodeLSNs(groups);
-   
-   while(doTimes < timeout)
+   var primaryNodeLSNs = getPrimaryNodeLSNs( groups );
+
+   while( doTimes < timeout )
    {
-      lsnFlag = checkLSN(groups, primaryNodeLSNs);
-      if(lsnFlag)
+      lsnFlag = checkLSN( groups, primaryNodeLSNs );
+      if( lsnFlag )
       {
-         break; 
-      }else
+         break;
+      } else
       {
-         sleep(1000);
+         sleep( 1000 );
          doTimes++;
       }
    }
-   
-   if(!lsnFlag)
+
+   if( !lsnFlag )
    {
-      throw new Error("checkConsistency() check lsn failed on groups: " + groups);
+      throw new Error( "checkConsistency() check lsn failed on groups: " + groups );
    }
 
-   println("check consistency success!");
+   println( "check consistency success!" );
 }
 
 /*****************************************************************
@@ -609,28 +615,28 @@ function checkConsistency(csName, clName)
 @input:         groups
                 primaryNodeLSNs
 ******************************************************************/
-function checkLSN(groups, primaryNodeLSNs)
+function checkLSN ( groups, primaryNodeLSNs )
 {
-   var slaveNodeLSNs = getSlaveNodeLSNs(groups);
-    
+   var slaveNodeLSNs = getSlaveNodeLSNs( groups );
+
    //比较主备节点lsn
-   for(var i = 0; i < slaveNodeLSNs.length; ++i)
+   for( var i = 0; i < slaveNodeLSNs.length; ++i )
    {
       // 如果主节点不存在，则直接返回false
-      if(primaryNodeLSNs[i].length == 0)
+      if( primaryNodeLSNs[i].length == 0 )
       {
-          return false;
+         return false;
       }
-      
-      for(var j = 0; j < slaveNodeLSNs[i].length; ++j)
+
+      for( var j = 0; j < slaveNodeLSNs[i].length; ++j )
       {
-         if(primaryNodeLSNs[i][0] > slaveNodeLSNs[i][j])
+         if( primaryNodeLSNs[i][0] > slaveNodeLSNs[i][j] )
          {
             return false;
          }
       }
    }
-   
+
    return true;
 }
 
@@ -638,30 +644,30 @@ function checkLSN(groups, primaryNodeLSNs)
 *@Description: get lsn of primary node
 @input:        groups
 ******************************************************************/
-function getPrimaryNodeLSNs(groups)
+function getPrimaryNodeLSNs ( groups )
 {
-   
-   var datas = getNodesInGroups(groups);
-   
+
+   var datas = getNodesInGroups( groups );
+
    var LSNs = new Array();
-   for(var i = 0; i < datas.length; ++i)
+   for( var i = 0; i < datas.length; ++i )
    {
       var nodesInGroup = datas[i];
       LSNs[i] = Array();
-      for(var j = 0; j < nodesInGroup.length; ++j)
-      { 
-         var getSnapshot6 = eval( "(" + nodesInGroup[j].snapshot(6).toArray()[0] + ")" );
-         
+      for( var j = 0; j < nodesInGroup.length; ++j )
+      {
+         var getSnapshot6 = eval( "(" + nodesInGroup[j].snapshot( 6 ).toArray()[0] + ")" );
+
          var completeLSN = getSnapshot6.CompleteLSN;
          var isPrimary = getSnapshot6.IsPrimary;
-         if(isPrimary)
+         if( isPrimary )
          {
             LSNs[i][0] = completeLSN;
             break;
-         }   
+         }
       }
    }
-   
+
    return LSNs;
 }
 
@@ -669,29 +675,29 @@ function getPrimaryNodeLSNs(groups)
 *@Description: get lsn of slave node
 @input:        groups
 ******************************************************************/
-function getSlaveNodeLSNs(groups)
+function getSlaveNodeLSNs ( groups )
 {
-   var datas = getNodesInGroups(groups);
-   
+   var datas = getNodesInGroups( groups );
+
    var LSNs = new Array();
-   for(var i = 0; i < datas.length; ++i)
+   for( var i = 0; i < datas.length; ++i )
    {
       var nodesInGroup = datas[i];
       LSNs[i] = Array();
       var f = 0;
-      for(var j = 0; j < nodesInGroup.length; ++j)
-      { 
-         var getSnapshot6 = eval( "(" + nodesInGroup[j].snapshot(6).toArray()[0] + ")" );
-         
+      for( var j = 0; j < nodesInGroup.length; ++j )
+      {
+         var getSnapshot6 = eval( "(" + nodesInGroup[j].snapshot( 6 ).toArray()[0] + ")" );
+
          var completeLSN = getSnapshot6.CompleteLSN;
          var isPrimary = getSnapshot6.IsPrimary;
-         if(!isPrimary)
+         if( !isPrimary )
          {
             LSNs[i][f++] = completeLSN;
-         }   
+         }
       }
    }
-   
+
    return LSNs;
 }
 
@@ -699,31 +705,31 @@ function getSlaveNodeLSNs(groups)
 *@Description: get all nodes of all groups
 @input:        groups
 ******************************************************************/
-function getNodesInGroups(groups)
+function getNodesInGroups ( groups )
 {
    var datas = new Array();
    var hostName;
    var serviceName;
    //standalone
-   if(true === commIsStandalone(db))
+   if( true === commIsStandalone( db ) )
    {
-    datas[0] = Array();
-    datas[0][0] = db;
+      datas[0] = Array();
+      datas[0][0] = db;
    }
    else
    {
-      for (var i = 0 ; i < groups.length; ++i)
+      for( var i = 0; i < groups.length; ++i )
       {
          datas[i] = Array();
-      
-         var rg = db.getRG(groups[i]);
-         var rgDetail = eval( "(" + rg.getDetail().toArray()[0] + ")");
+
+         var rg = db.getRG( groups[i] );
+         var rgDetail = eval( "(" + rg.getDetail().toArray()[0] + ")" );
          var nodesInGroup = rgDetail.Group;
-         for(var j = 0; j < nodesInGroup.length; ++j)
+         for( var j = 0; j < nodesInGroup.length; ++j )
          {
             hostName = nodesInGroup[j].HostName;
             serviceName = nodesInGroup[j].Service[0].Name;
-            datas[i][j] = new Sdb(hostName, serviceName);                                                                                                                                 
+            datas[i][j] = new Sdb( hostName, serviceName );
          }
       }
    }
@@ -736,39 +742,41 @@ function getNodesInGroups(groups)
                 clName
                 checkTimes
 ******************************************************************************/
-function checkInspectResult(csName, clName, checkTimes)
+function checkInspectResult ( csName, clName, checkTimes )
 {
-   if ( typeof(checkTimes) == "undefined" )  {  checkTimes = 5;  }
+   if( typeof ( checkTimes ) == "undefined" ) { checkTimes = 5; }
 
-   var inspectBinFile = WORKDIR + "/" + "inspect_" + csName + "_" + clName + ".bin" ;
-   var inspectReportFile = WORKDIR + "/" + "inspect_" + csName + "_" + clName + ".bin.report" ;
-   var installPath = commGetInstallPath();   
-   var inspectCommand = installPath + "/bin/sdbinspect" + " -d " + COORDHOSTNAME + ":" + COORDSVCNAME + " -c " + csName + " -l " + clName + " -o " + inspectBinFile + " -t " + checkTimes; 
+   var inspectBinFile = WORKDIR + "/" + "inspect_" + csName + "_" + clName + ".bin";
+   var inspectReportFile = WORKDIR + "/" + "inspect_" + csName + "_" + clName + ".bin.report";
+   var installPath = commGetInstallPath();
+   var inspectCommand = installPath + "/bin/sdbinspect" + " -d " + COORDHOSTNAME + ":" + COORDSVCNAME + " -c " + csName + " -l " + clName + " -o " + inspectBinFile + " -t " + checkTimes;
    // exec sdbinspect 
-   cmd.run(inspectCommand) ;
-   var info = cmd.run("tail -n 1 " + inspectReportFile);
-   var actResult = info.split("\n")[0].split("\:")[1].trim();
+   cmd.run( inspectCommand );
+   var info = cmd.run( "tail -n 1 " + inspectReportFile );
+   var actResult = info.split( "\n" )[0].split( "\:" )[1].trim();
    var expectRusult = "exit with no records different";
    // compare result
-   if(actResult != expectRusult)
+   if( actResult != expectRusult )
    {
-      throw new Error("check consistency with csName:" + csName + ",clName:" + clName + "failed");
+      throw new Error( "check consistency with csName:" + csName + ",clName:" + clName + "failed" );
    }
    // remove report files
-   cmd.run("rm -f " + inspectBinFile);
-   cmd.run("rm -f " + inspectReportFile); 
+   cmd.run( "rm -f " + inspectBinFile );
+   cmd.run( "rm -f " + inspectReportFile );
 }
 
 /******************************************************************************
 *@Description : remove duplicate items in array
 @input:         array
 ******************************************************************************/
-function removeDuplicateItems(array)
+function removeDuplicateItems ( array )
 {
    var uniqueArray = new Array();
-   for (var i in array){
-      if (uniqueArray.indexOf(array[i]) == -1){
-         uniqueArray.push(array[i]);
+   for( var i in array )
+   {
+      if( uniqueArray.indexOf( array[i] ) == -1 )
+      {
+         uniqueArray.push( array[i] );
       }
    }
    return uniqueArray;
@@ -780,14 +788,14 @@ function removeDuplicateItems(array)
                csName
                clName
 ******************************************************************/
-function checkGroupBusiness( timeoutSecond, csName, clName )
-{ 
+function checkGroupBusiness ( timeoutSecond, csName, clName )
+{
    var groupNames = commGetCLGroups( db, csName + "." + clName );
    for( var i in groupNames )
    {
       var doTimes = 1;
       while( doTimes <= timeoutSecond )
-      {      
+      {
          if( !isSuccesscreateTestCollection( groupNames[i] ) || !isNodesNormal( groupNames[i] ) )
          {
             doTimes++;
@@ -797,20 +805,20 @@ function checkGroupBusiness( timeoutSecond, csName, clName )
          {
             break;
          }
-      } 
-   
+      }
+
       if( doTimes > timeoutSecond )
       {
-         throw new Error("check group bussiness timeout.");
+         throw new Error( "check group bussiness timeout." );
       }
    }
-   
+
    //  校验主备节点LSN
    doTimes = 1;
    while( doTimes <= timeoutSecond )
-   {      
+   {
       var primaryNodeLSNs = getPrimaryNodeLSNs( groupNames );
-      if( !checkLSN( groupNames , primaryNodeLSNs) )
+      if( !checkLSN( groupNames, primaryNodeLSNs ) )
       {
          doTimes++;
          sleep( 1000 );
@@ -820,11 +828,11 @@ function checkGroupBusiness( timeoutSecond, csName, clName )
          println( "check group bussiness success!" );
          break;
       }
-   } 
-   
+   }
+
    if( doTimes > timeoutSecond )
    {
-      throw new Error("check group business timeout.");
+      throw new Error( "check group business timeout." );
    }
 }
 
@@ -832,23 +840,23 @@ function checkGroupBusiness( timeoutSecond, csName, clName )
 *@Description: 指定数据组、强一致性创建集合
 @input:        groupName
 ******************************************************************/
-function isSuccesscreateTestCollection( groupName )
+function isSuccesscreateTestCollection ( groupName )
 {
-    var clName = "clForTestBusiness_reliability_js";
-    try
-    {
-        commDropCL( db, COMMCSNAME, clName, true, true );
-        var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { "ReplSize" : 0, "Group": groupName }, false, false );
-        return true;
-    }
-    catch ( e )
-    {
-        return false;
-    }
-    finally
-    {
-        commDropCL( db, COMMCSNAME, clName, true, true );
-    }
+   var clName = "clForTestBusiness_reliability_js";
+   try
+   {
+      commDropCL( db, COMMCSNAME, clName, true, true );
+      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { "ReplSize": 0, "Group": groupName }, false, false );
+      return true;
+   }
+   catch( e )
+   {
+      return false;
+   }
+   finally
+   {
+      commDropCL( db, COMMCSNAME, clName, true, true );
+   }
 }
 
 
@@ -857,12 +865,12 @@ function isSuccesscreateTestCollection( groupName )
 @input:        csName
                clName
 ******************************************************************/
-function checkCatalogBusiness( timeoutSecond )
+function checkCatalogBusiness ( timeoutSecond )
 {
    // 1. 首先检查所有节点是否能正常连接
    var doTimes = 1;
    while( doTimes <= timeoutSecond )
-   {      
+   {
       if( !isNodesNormal( "SYSCatalogGroup" ) )
       {
          doTimes++;
@@ -872,19 +880,19 @@ function checkCatalogBusiness( timeoutSecond )
       {
          break;
       }
-   } 
-   
+   }
+
    if( doTimes > timeoutSecond )
    {
-      throw new Error("check catalog nodes normal timeout.");
+      throw new Error( "check catalog nodes normal timeout." );
    }
-   
+
    // 2. 校验主备节点LSN
    doTimes = 1;
    while( doTimes <= timeoutSecond )
-   {      
+   {
       var primaryNodeLSNs = getPrimaryNodeLSNs( ["SYSCatalogGroup"] );
-      if( !checkLSN( ["SYSCatalogGroup"] , primaryNodeLSNs) )
+      if( !checkLSN( ["SYSCatalogGroup"], primaryNodeLSNs ) )
       {
          doTimes++;
          sleep( 1000 );
@@ -894,11 +902,11 @@ function checkCatalogBusiness( timeoutSecond )
          println( "check catalog bussiness success!" );
          break;
       }
-   } 
-   
+   }
+
    if( doTimes > timeoutSecond )
    {
-      throw new Error("check catalog business timeout.");
+      throw new Error( "check catalog business timeout." );
    }
 }
 
@@ -906,55 +914,55 @@ function checkCatalogBusiness( timeoutSecond )
 *@Description: 检查连接节点是否正常
 @input:        groupName
 ******************************************************************/
-function isNodesNormal( groupName )
+function isNodesNormal ( groupName )
 {
-    try
-    {
-       var rg = db.getRG( groupName );
-       var rgDetail = eval( "(" + rg.getDetail().toArray()[0] + ")" );
-       var nodesInGroup = rgDetail.Group;
-       for( var i = 0; i < nodesInGroup.length; ++i )
-       {
-          var hostName = nodesInGroup[i].HostName;
-          var serviceName = nodesInGroup[i].Service[0].Name;
-          new Sdb( hostName, serviceName );              
-       }
-       return true;
-    }
-    catch ( e )
-    {
-        if( -104 != e && -79 != e && -134 != e )
-        {
-            throw new Error(e);
-        }
-        return false;
-    }      
+   try
+   {
+      var rg = db.getRG( groupName );
+      var rgDetail = eval( "(" + rg.getDetail().toArray()[0] + ")" );
+      var nodesInGroup = rgDetail.Group;
+      for( var i = 0; i < nodesInGroup.length; ++i )
+      {
+         var hostName = nodesInGroup[i].HostName;
+         var serviceName = nodesInGroup[i].Service[0].Name;
+         new Sdb( hostName, serviceName );
+      }
+      return true;
+   }
+   catch( e )
+   {
+      if( -104 != e && -79 != e && -134 != e )
+      {
+         throw new Error( e );
+      }
+      return false;
+   }
 }
 
 /*****************************************************************
 *@Description: 检查数据主节点是否存在
 @input:        groupName
 ******************************************************************/
-function isMasterNodeExist( groupName )
+function isMasterNodeExist ( groupName )
 {
-    var doTimes = 1;
-    var curMaster;
-    // 最长等待10min
-    while( doTimes <= 600 )
-    {
-       try
-       {
-          curMaster = db.getRG( groupName ).getMaster();
-          break;
-       }
-       catch( e )
-       {
-          if( -71 != e && -104 != e )
-          {
-              throw new Error(e);
-          }        
-          doTimes++;
-          sleep( 1000 );
-       }
-    }
+   var doTimes = 1;
+   var curMaster;
+   // 最长等待10min
+   while( doTimes <= 600 )
+   {
+      try
+      {
+         curMaster = db.getRG( groupName ).getMaster();
+         break;
+      }
+      catch( e )
+      {
+         if( -71 != e && -104 != e )
+         {
+            throw new Error( e );
+         }
+         doTimes++;
+         sleep( 1000 );
+      }
+   }
 }

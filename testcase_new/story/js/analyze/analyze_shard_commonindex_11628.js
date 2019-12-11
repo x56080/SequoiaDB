@@ -373,4 +373,16 @@ function main ()
    db1.close();
    commDropCS( db, csName, true, "drop CS in the end" );
 }
-main(); 
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+

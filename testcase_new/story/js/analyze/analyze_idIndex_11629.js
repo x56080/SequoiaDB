@@ -130,7 +130,19 @@ function main ()
    //db2.close(); 
 
 }
-main()
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 /************************************
 *@Description: 指定_id插入不同记录, 数据页超过10页

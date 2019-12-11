@@ -5,7 +5,19 @@
 var clName1 = CHANGEDPREFIX + "_alterclShardingKey_14935a";
 var clName2 = CHANGEDPREFIX + "_alterclShardingKey_14935b";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try

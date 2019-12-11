@@ -39,11 +39,11 @@ function main ()
    try
    {
       maincl.alter( { ShardingType: "range" } );
-      throw "ERR_ALTER_CL";
+      throw new Error( "ERR_ALTER_CL" );
    }
    catch( e )
    {
-      if( e !== -32 )
+      if( e.message != -32 )
       {
          throw new Error( "alter main cl shardingType, \nexp: -32, \nbut found: " + e );
       }
@@ -52,13 +52,13 @@ function main ()
    try
    {
       maincl.alter( { ShardingType: "hash" } );
-      throw "ERR_ALTER_CL";
+      throw new Error( "ERR_ALTER_CL" );
    }
    catch( e )
    {
-      if( e !== -32 )
+      if( e.message != -32 )
       {
-         throw new Error( "alter main cl shardingType, \nexp: -32, \nbut found: " + e );
+         throw e;
       }
    }
 
@@ -74,26 +74,26 @@ function main ()
    try
    {
       maincl.alter( { ShardingType: "range" } );
-      throw "ERR_ALTER_CL";
+      throw new Error( "ERR_ALTER_CL" );
    }
    catch( e )
    {
-      if( e !== -32 )
+      if( e.message != -32 )
       {
-         throw new Error( "alter main cl shardingType, \nexp: -32, \nbut found: " + e );
+         throw e;
       }
    }
 
    try
    {
       maincl.alter( { ShardingType: "hash" } );
-      throw "ERR_ALTER_CL";
+      throw new Error( "ERR_ALTER_CL" );
    }
    catch( e )
    {
-      if( e !== -32 )
+      if( e.message != -32 )
       {
-         throw new Error( "alter main cl shardingType, \nexp: -32, \nbut found: " + e );
+         throw e;
       }
    }
 

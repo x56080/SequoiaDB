@@ -7,7 +7,19 @@ test b: alter capped
 var csName = CHANGEDPREFIX + "_cs15035";
 var clName = CHANGEDPREFIX + "_altercappedcl_15035";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -57,13 +69,13 @@ function alterCapped ( dbcl )
    try
    {
       dbcl.alter( { Capped: false } );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -32 )
+      if( e.message != -32 )
       {
-         throw buildException( "alter capped must be fail:", e );
+         throw e;
       }
    }
 }

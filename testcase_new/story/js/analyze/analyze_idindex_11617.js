@@ -117,4 +117,16 @@ function insertDatas ( dbcl, insertNum )
    }
 }
 
-main(); 
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+

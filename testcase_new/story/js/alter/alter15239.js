@@ -5,7 +5,19 @@
 *@testlinkCase:seqDB-15239
 **************************************/
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
@@ -48,13 +60,13 @@ function main ()
    try
    {
       cl.disableSharding();
-      throw "DISABLE_ERR";
+      throw new Error( "DISABLE_ERR" );
    }
    catch( e )
    {
-      if( e !== -32 )
+      if( e.message != -32 )
       {
-         throw buildException( "disableSharding", e, "disable sharding", -32, e );
+         throw e;
       }
    }
 

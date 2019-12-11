@@ -366,11 +366,11 @@ function main ()
    try
    {
       db.analyze( { Collection: mainclFullName, Index: "d" } );
-      throw "NEED_ERR";
+      throw new Error( "NEED_ERR" );
    }
    catch( e )
    {
-      if( -264 !== e )
+      if( -264 != e.message )
       {
          throw e;
       }
@@ -383,7 +383,19 @@ function main ()
    //db2.close(); 
 
 }
-main()
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function checkExplainBeforeAnalyze ()
 {

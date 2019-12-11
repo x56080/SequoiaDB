@@ -4,7 +4,19 @@
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_alterclName14934";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -41,13 +53,13 @@ function alterCLName ( dbcl )
    {
       var clFullName = COMMCSNAME + "." + clName;
       dbcl.setAttributes( { "Name": clFullName } );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -32 )
+      if( e.message != -32 )
       {
-         throw buildException( "check alterCLName", e );
+         throw e;
       }
    }
 }

@@ -4,7 +4,19 @@
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_alterclcompression_14968";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -18,7 +30,7 @@ function main ( db )
       commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
       //create cl
-      var dbcl = commCreateCL( db, COMMCSNAME, clName );
+      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { Compressed: false } );
 
       //enable compression
       dbcl.enableCompression();

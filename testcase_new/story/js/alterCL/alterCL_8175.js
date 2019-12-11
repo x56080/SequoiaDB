@@ -49,9 +49,9 @@ function main ()
    }
    catch( e )
    {
-      if( e !== -32 )
+      if( e.message != -32 )
       {
-         throw new Error( "alter main cl compress, \nexp: -32, \nbut found: " + e );
+         throw e;
       }
    }
 

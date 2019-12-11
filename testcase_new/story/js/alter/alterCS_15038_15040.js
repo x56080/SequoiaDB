@@ -6,7 +6,19 @@ test 15040: alter lobPageSize
 ***************************************************************************** */
 var csName = CHANGEDPREFIX + "_cs15038";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try

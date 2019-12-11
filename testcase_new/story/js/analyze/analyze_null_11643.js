@@ -74,4 +74,16 @@ function main ()
    //db2.close(); 
 
 }
-main()
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+

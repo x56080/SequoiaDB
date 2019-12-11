@@ -5,7 +5,19 @@
 *@testlinkCase:seqDB-14976
 **************************************/
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
@@ -39,11 +51,11 @@ function main ()
    try
    {
       cl1.remove();
-      throw "FORBID_REMOVE_ERR";
+      throw new Error( "FORBID_REMOVE_ERR" );
    }
    catch( e )
    {
-      if( e != -279 )
+      if( e.message != -279 )
       {
          throw e;
       }

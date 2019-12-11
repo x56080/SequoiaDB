@@ -5,7 +5,19 @@
 *@testlinkCase:seqDB-14991
 **************************************/
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
@@ -37,9 +49,9 @@ function main ()
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "test setAttributes", e, "value is wrong", -6, e );
+         throw e;
       }
    }
    checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "ShardingType", "hash" );

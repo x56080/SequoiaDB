@@ -46,13 +46,13 @@ function main ()
    try
    {
       cl.alter( { ShardingKey: { a: 1 }, ShardingType: "range" } );
-      throw "ERR_ALTER_CL";
+      throw new Error( "ERR_ALTER_CL" );
    }
    catch( e )
    {
-      if( e != -32 )
+      if( e.message != -32 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    //check snapshot
@@ -66,13 +66,13 @@ function main ()
    try
    {
       cl.setAttributes( { ShardingKey: { a: 1 }, ShardingType: "range" } );
-      throw "ERR_ALTER_CL";
+      throw new Error( "ERR_ALTER_CL" );
    }
    catch( e )
    {
-      if( e != -32 )
+      if( e.message != -32 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    //check snapshot

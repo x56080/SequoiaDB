@@ -5,7 +5,19 @@
 var csName = CHANGEDPREFIX + "_cs15049";
 var domainName = CHANGEDPREFIX + "_domain15049";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -61,13 +73,13 @@ function alterCSNameError ( dbcs )
    try
    {
       dbcs.alter( { Name: "testcs" } );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -32 )
+      if( e.message != -32 )
       {
-         throw buildException( "cannot be alter csname:", e );
+         throw e;
       }
    }
 }

@@ -10,7 +10,19 @@ alter() only test alter field value;
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_altercl_15034";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try

@@ -7,7 +7,19 @@ test 15041: alter lobPageSize
 var csName = CHANGEDPREFIX + "_cs15039";
 var clName = CHANGEDPREFIX + "_cs15039";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -62,14 +74,14 @@ function alterPageSizeInThePresenceCL ( dbcs )
    {
       var pageSize = 4096;
       dbcs.setAttributes( { PageSize: pageSize } );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
       //-275:There are some collections in the collection space
-      if( e != -275 )
+      if( e.message != -275 )
       {
-         throw buildException( "exist cl the cs alter pagesize must be fail:", e );
+         throw e;
       }
    }
 }
@@ -80,13 +92,13 @@ function alterLobPageSizeExistLob ( dbcs )
    {
       var lobPageSize = 8192;
       dbcs.setAttributes( { LobPageSize: lobPageSize } );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -32 )
+      if( e.message != -32 )
       {
-         throw buildException( "exist lob the cs alter lobpagesize must be fail:", e );
+         throw e;
       }
    }
 }

@@ -4,7 +4,19 @@
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_alterclpartition_14955";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -51,14 +63,13 @@ function alterParitionNoShardingKey ( dbcl )
    try
    {
       dbcl.setAttributes( { Paritition: 512 } );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "cannot be alter, fail:", e );
+         throw e;
       }
    }
 }
-

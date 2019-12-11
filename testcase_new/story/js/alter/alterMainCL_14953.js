@@ -8,7 +8,19 @@ test c: alter shardingKey, attach subcl
 var mainCLName = CHANGEDPREFIX + "_qalterMaincl_14953";
 var subCLName = CHANGEDPREFIX + "_qalterSubcl_14953";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -58,13 +70,13 @@ function alterShardingType ( dbcl )
    try
    {
       dbcl.setAttributes( { ShardingType: "hash" } );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -32 )
+      if( e.message != -32 )
       {
-         throw buildException( "cannot be alter, fail:", e );
+         throw e;
       }
    }
 }
@@ -76,11 +88,11 @@ function alterShardingKey ( dbcl )
       var options = { LowBound: { "time": { $minKey: 1 } }, UpBound: { "time": { $maxKey: 1 } } };
       dbcl.attachCL( COMMCSNAME + "." + subCLName, options );
       dbcl.setAttributes( { ShardingKey: { a: 1 } } );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -32 )
+      if( e.message != -32 )
       {
          throw buildException( "cannot be alter, fail:", e );
       }

@@ -74,7 +74,19 @@ function main ()
    //db2.close(); 
 
 }
-main()
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 /************************************
 *@Description: 插入不同记录, 数据页超过10页

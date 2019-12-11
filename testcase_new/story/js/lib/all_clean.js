@@ -5,47 +5,47 @@
 ***************************************************************************** */
 
 // RUNRESULT is input parameter
-if ( typeof( RUNRESULT ) == "undefined" )
+if( typeof ( RUNRESULT ) == "undefined" )
 {
-   RUNRESULT = 0 ;
+   RUNRESULT = 0;
 }
-var db = new Sdb( COORDHOSTNAME, COORDSVCNAME ) ;
+var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
 
-function main( db )
+function main ( db )
 {
-   sleep( 1000 ) ;
+   sleep( 1000 );
    // 1. check nodes
-   var groups = commGetGroups( db, "", "", false ) ;
-   var errNodes = commCheckBusiness( groups, true ) ;
-   if ( errNodes.length == 0 )
+   var groups = commGetGroups( db, "", "", false );
+   var errNodes = commCheckBusiness( groups, true );
+   if( errNodes.length == 0 )
    {
    }
    else
    {
-      println( "Has " + errNodes.length + " nodes in fault after all test-cases: " ) ;
-      commPrint( errNodes ) ;
+      println( "Has " + errNodes.length + " nodes in fault after all test-cases: " );
+      commPrint( errNodes );
    }
 
-   if ( 0 != RUNRESULT )
+   if( 0 != RUNRESULT )
    {
       // not clean
-      return ;
+      return;
    }
-   
+
    // 2. drop CHANGEDPREFIX's all collection space
-   var cols = commGetCSCL( db, CHANGEDPREFIX ) ;
-   for ( var i = 0; i < cols.length; ++i )
+   var cols = commGetCSCL( db, CHANGEDPREFIX );
+   for( var i = 0; i < cols.length; ++i )
    {
       try
       {
-         commDropCS( db, cols[i].cs, true, " after all test-cases" ) ;
+         commDropCS( db, cols[i].cs, true, " after all test-cases" );
       }
       catch( e )
       {
-         println( "Drop " + cols[i].cs + " failed after all test-cases: " + e ) ;
+         println( "Drop " + cols[i].cs + " failed after all test-cases: " + e );
       }
    }
-   
+
    //3. drop capped cs
    commDropCS( db, COMMCAPPEDCSNAME, true, "" )
 
@@ -53,9 +53,9 @@ function main( db )
 
 try
 {
-   main( db ) ;
+   main( db );
 }
 catch( e )
 {
-   println( "After all test-cases environment clean failed: " + e ) ;
+   println( "After all test-cases environment clean failed: " + e );
 }

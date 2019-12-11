@@ -98,13 +98,14 @@ function commIsStandalone ( db )
    }
    catch( e )
    {
-      if( e == -159 )
+
+      if( commCompareErrorCode( e, -159 ) )
       {
          return true;
       }
       else
       {
-         throw new Error( "execute listReplicaGroups happen error , e =" + e );
+         throw e;
       }
    }
 }
@@ -134,9 +135,10 @@ function commCreateCS ( db, csName, ignoreExisted, message, options )
    }
    catch( e )
    {
-      if( e != -33 || !ignoreExisted )
+
+      if( !commCompareErrorCode( e, -33 ) || !ignoreExisted )
       {
-         throw new Error( "commCreateCS[" + funcCommCreateCSTimes + "] Create collection space[" + csName + "] failed: " + e + ", message: " + message );
+         commThrowError( e, "commCreateCS[" + funcCommCreateCSTimes + "] Create collection space[" + csName + "] failed: " + e + ", message: " + message );
       }
    }
    // get collection space object
@@ -146,7 +148,7 @@ function commCreateCS ( db, csName, ignoreExisted, message, options )
    }
    catch( e )
    {
-      throw new Error( "commCreateCS[" + funcCommCreateCSTimes + "] Get existed collection space[" + csName + "] failed: " + e + ",message: " + message );
+      commThrowError( e, "commCreateCS[" + funcCommCreateCSTimes + "] Get existed collection space[" + csName + "] failed: " + e + ",message: " + message );
    }
 }
 
@@ -180,9 +182,9 @@ function commCreateCL ( db, csName, clName, replSize, compressed, autoCreateCS, 
    }
    catch( e )
    {
-      if( e != -22 || !ignoreExisted )
+      if( !commCompareErrorCode( e, -22 ) || !ignoreExisted )
       {
-         throw new Error( "commCreateCL[" + funcCommCreateCLTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
+         commThrowError( e, "commCreateCL[" + funcCommCreateCLTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message )
       }
    }
    //get collection
@@ -192,7 +194,7 @@ function commCreateCL ( db, csName, clName, replSize, compressed, autoCreateCS, 
    }
    catch( e )
    {
-      throw new Error( "commCreateCL[" + funcCommCreateCLTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
+      commThrowError( e, "commCreateCL[" + funcCommCreateCLTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
    }
 
 }
@@ -232,7 +234,7 @@ function commCreateCLByOption ( db, csName, clName, optionObj, autoCreateCS, ign
       }
       catch( e )
       {
-         throw new Error( "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] get collection space[" + csName + "] failed: " + e );
+         commThrowError( e, "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] get collection space[" + csName + "] failed: " + e );
       }
    }
 
@@ -242,11 +244,12 @@ function commCreateCLByOption ( db, csName, clName, optionObj, autoCreateCS, ign
    }
    catch( e )
    {
-      if( e != -22 || !ignoreExisted )
+      if( !commCompareErrorCode( e, -22 ) || !ignoreExisted )
       {
-         throw new Error( "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
+         commThrowError( e, "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
       }
    }
+
    //get collection
    try
    {
@@ -254,7 +257,7 @@ function commCreateCLByOption ( db, csName, clName, optionObj, autoCreateCS, ign
    }
    catch( e )
    {
-      throw new Error( "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
+      commThrowError( e, "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
    }
 }
 
@@ -277,13 +280,13 @@ function commDropCS ( db, csName, ignoreNotExist, message )
    }
    catch( e )
    {
-      if( e == -34 && ignoreNotExist )
+      if( commCompareErrorCode( e, -34 ) && ignoreNotExist )
       {
          // think right
       }
       else
       {
-         throw new Error( "commDropCS[" + funcCommDropCSTimes + "] Drop collection space[" + csName + "] failed: " + e + ",message: " + message );
+         commThrowError( e, "commDropCS[" + funcCommDropCSTimes + "] Drop collection space[" + csName + "] failed: " + e + ",message: " + message )
       }
    }
 }
@@ -309,13 +312,13 @@ function commDropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, me
    }
    catch( e )
    {
-      if( ( e == -34 && ignoreCSNotExist ) || ( e == -23 && ignoreCLNotExist ) )
+      if( ( commCompareErrorCode( e, -34 ) && ignoreCSNotExist ) || ( commCompareErrorCode( e, -23 ) && ignoreCLNotExist ) )
       {
          // think right
       }
       else
       {
-         throw new Error( "commDropCL[" + funcCommDropCLTimes + "] Drop collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
+         commThrowError( e, "commDropCL[" + funcCommDropCLTimes + "] Drop collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message )
       }
    }
 }
@@ -345,13 +348,14 @@ function commCreateIndex ( cl, name, indexDef, isUnique, ignoreExist )
    catch( e )
    {
       println( "commCreateIndex: create index[" + name + "] failed: " + e );
-      if( ignoreExist && ( e == -46 || e == -247 ) )
+      if( ignoreExist && ( commCompareErrorCode( e, -46 ) || commCompareErrorCode( e, -247 ) ) )
       {
          // ok
       }
       else
       {
-         throw new Error( "commCreateIndex: create index[" + name + "] failed: " + e );
+         commThrowError( e, "commCreateIndex: create index[" + name + "] failed: " + e )
+
       }
    }
 }
@@ -366,13 +370,13 @@ function commDropIndex ( cl, name, ignoreNotExist )
    }
    catch( e )
    {
-      if( ignoreNotExist && e == -47 )
+      if( ignoreNotExist && commCompareErrorCode( e, -47 ) )
       {
          // ok
       }
       else
       {
-         throw new Error( "commDropIndex: drop index[" + name + "] failed: " + e );
+         commThrowError( e, "commDropIndex: drop index[" + name + "] failed: " + e );
       }
    }
 }
@@ -429,7 +433,7 @@ function commCheckIndex ( cl, name, exist, timeout )
       }
       catch( e )
       {
-         throw new Error( "commCheckIndex: get index[" + name + "] failed: " + e );
+         commThrowError( e, "commCheckIndex: get index[" + name + "] failed: " + e );
       }
    }
 }
@@ -456,7 +460,7 @@ function commIsTransEnabled ( db )
    catch( e )
    {
       commDropCS( db, COMMTMPCS, true, "drop CS in transation temp" )
-      if( e == -253 )
+      if( commCompareErrorCode( e, -253 ) )
       {
       }
       else
@@ -625,7 +629,7 @@ function commGetCLGroups ( db, clName )
    }
    catch( e )
    {
-      throw new Error( "commGetCLGroups: snapshot collection space failed: " + e );
+      commThrowError( e, "commGetCLGroups: snapshot collection space failed: " + e );
    }
 
    while( cursor.next() )
@@ -712,7 +716,7 @@ function commGetGroups ( db, print, filter, exceptCata, exceptCoord, exceptSpare
    }
    catch( e )
    {
-      if( e == -159 )
+      if( commCompareErrorCode( e, -159 ) )
       {
          return tmpArray;
       }
@@ -720,7 +724,7 @@ function commGetGroups ( db, print, filter, exceptCata, exceptCoord, exceptSpare
       {
          if( true == print )
             println( "commGetGroups failed: " + e );
-         throw new Error( "commGetGroups failed: " + e );
+         commThrowError( e, "commGetGroups failed: " + e );
       }
    }
    var tmpInfo = commCursor2Array( tmpInfoCur, "GroupName", filter );
@@ -806,7 +810,7 @@ function commGetGroupsNum ( db, print, filter, exceptCata, exceptCoord, exceptSp
    }
    catch( e )
    {
-      if( e == -159 )
+      if( commCompareErrorCode( e, -159 ) )
       {
          return num;
       }
@@ -814,7 +818,7 @@ function commGetGroupsNum ( db, print, filter, exceptCata, exceptCoord, exceptSp
       {
          if( true == print )
             println( "commGetGroups failed: " + e );
-         throw new Error( "commGetGroups failed: " + e );
+         commThrowError( e, "commGetGroups failed: " + e );
       }
    }
    var tmpInfo = commCursor2Array( tmpInfoCur, "GroupName", filter );
@@ -1359,7 +1363,7 @@ function commGetInstallPath ()
       }
       catch( e )
       {
-         if( 2 == e )
+         if( commCompareErrorCode( e, 2 ) )
          {
             var local = cmd.run( "pwd" ).split( "\n" );
             var LocalPath = local[0];
@@ -1379,12 +1383,12 @@ function commGetInstallPath ()
                throw new Error( "Don'tGetLocalPath" );
          }
          else
-            throw new Error( e );
+            commThrowError( e, "Don'tGetLocalPath" );
       }
    }
    catch( e )
    {
-      throw new Error( "failed to get install path[common]: " + e );
+      commThrowError( e, "failed to get install path[common]: " + e );
    }
    return InstallPath;
 }
@@ -1478,7 +1482,7 @@ function commCompareResults ( cursor, expRecs, exceptId )
    }
    catch( e )
    {
-      throw new Error( e );
+      commThrowError( e );
    }
    finally
    {
@@ -1605,7 +1609,7 @@ function commGetSnapshot ( db, snapshotType, condObj, selObj, sortObj, skipNum, 
    }
    catch( e )
    {
-      throw new Error( e );
+      commThrowError( e );
    }
    finally
    {
@@ -1636,7 +1640,7 @@ function commCursor2Array ( cursor, fieldName, filter )
          var obj = cursor.current().toObj();
          if( fieldName !== undefined && filter !== undefined )
          {
-            if ( obj[fieldName] !== undefined && obj[fieldName].indexOf( filter ) !== -1 )
+            if( obj[fieldName] !== undefined && obj[fieldName].indexOf( filter ) !== -1 )
             {
                tmpArray.push( obj );
             }
@@ -1649,7 +1653,7 @@ function commCursor2Array ( cursor, fieldName, filter )
    }
    catch( e )
    {
-      throw new Error( e );
+      commThrowError( e );
    }
    finally
    {
@@ -1958,7 +1962,7 @@ function commMakeDir ( host, dir )
    }
    catch( e )
    {
-      throw new Error( "commMakeDir make dir " + dir + " in " + host + " error: " + e );
+      commThrowError( e, "commMakeDir make dir " + dir + " in " + host + " error: " + e )
    }
 }
 
@@ -1976,11 +1980,12 @@ function commCreateDomain ( db, domainName, groupNames, options, ignoreExisted, 
    try
    {
       return db.createDomain( domainName, groupNames, options );
-   } catch( e )
+   }
+   catch( e )
    {
-      if( e !== -215 || !ignoreExisted )
+      if( !commCompareErrorCode( e, -215 ) || !ignoreExisted )
       {
-         throw new Error( "commCreateDomain, create domain: " + domainName + " failed: " + e + outmessage );
+         commThrowError( e, "commCreateDomain, create domain: " + domainName + " failed: " + e + outmessage );
       }
    }
 
@@ -1990,10 +1995,8 @@ function commCreateDomain ( db, domainName, groupNames, options, ignoreExisted, 
    }
    catch( e )
    {
-      throw new Error( "commCreateDomain, get domain: " + domainName + " failed: " + e + outmessage );
+      commThrowError( e, "commCreateDomain, get domain: " + domainName + " failed: " + e + outmessage )
    }
-
-
 }
 
 /* *****************************************************************************
@@ -2018,12 +2021,11 @@ function commDropDomain ( db, domainName, ignoreNotExist, message )
       db.dropDomain( domainName );
    } catch( e )
    {
-      if( e !== -214 || !ignoreNotExist )
+      if( !commCompareErrorCode( e, -214 ) || !ignoreNotExist )
       {
-         throw new Error( "commDropDomain, drop domain: " + domainName + " failed: " + e + outmessage );
+         commThrowError( e, "commDropDomain, drop domain: " + domainName + " failed: " + e + outmessage )
       }
    }
-
 }
 
 /* *****************************************************************************
@@ -2041,9 +2043,9 @@ function commCreateProcedure ( db, code, ignoreExisted, message )
       db.createProcedure( code );
    } catch( e )
    {
-      if( e !== -38 || !ignoreExisted )
+      if( !commCompareErrorCode( e, -38 ) || !ignoreExisted )
       {
-         throw new Error( "commCreateProcedure, create procedure: " + code + " failed: " + e + outmessage );
+         commThrowError( e, "commCreateProcedure, create procedure: " + code + " failed: " + e + outmessage );
       }
    }
 }
@@ -2063,12 +2065,11 @@ function commRemoveProcedure ( db, functionName, ignoreNotExist, message )
       db.removeProcedure( functionName );
    } catch( e )
    {
-      if( e !== -233 || !ignoreNotExist )
+      if( !commCompareErrorCode( e, -233 ) || !ignoreNotExist )
       {
-         throw new Error( "commRemoveProcedure, remove procedure: " + functionName + " failed: " + e + outmessage );
+         commThrowError( e, "commRemoveProcedure, remove procedure: " + functionName + " failed: " + e + outmessage );
       }
    }
-
 }
 
 /* *****************************************************************************
@@ -2087,9 +2088,9 @@ function commCreateUsr ( db, userName, password, options, ignoreExisted, message
       db.createUsr( userName, password, options );
    } catch( e )
    {
-      if( e !== -295 || !ignoreExisted )
+      if( !commCompareErrorCode( e, -295 ) || !ignoreExisted )
       {
-         throw new Error( "commCreateUsr, create userName: " + userName + " failed: " + e + outmessage );
+         commThrowError( e, "commCreateUsr, create userName: " + userName + " failed: " + e + outmessage );
       }
    }
 }
@@ -2109,9 +2110,9 @@ function commDropUsr ( db, userName, password, ignoreNotExist, message )
       db.dropUsr( userName, password );
    } catch( e )
    {
-      if( e !== -300 || !ignoreNotExist )
+      if( !commCompareErrorCode( e, -300 ) || !ignoreNotExist )
       {
-         throw new Error( "commDropUsr, drop userName: " + userName + " failed: " + e + outmessage );
+         commThrowError( e, "commDropUsr, drop userName: " + userName + " failed: " + e + outmessage );
       }
    }
 
@@ -2124,8 +2125,39 @@ try
 }
 catch( e )
 {
-   throw buildException( null, null,
-      "connect sdb " + COORDHOSTNAME + ":" + COORDSVCNAME, 0, e );
+   commThrowError( e, "connect sdb " + COORDHOSTNAME + ":" + COORDSVCNAME );
+}
+
+function commCompareErrorCode ( e, code )
+{
+   if( e.constructor === Error )
+   {
+      var errorCode = e.message;
+      return errorCode == code;
+   }
+   else
+   {
+      return e == code;
+   }
+}
+
+function commThrowError ( e, msg )
+{
+   if( e.constructor === Error )
+   {
+      throw e;
+   }
+   else
+   {
+      if( msg === undefined )
+      {
+         throw new Error( e );
+      }
+      else
+      {
+         throw new Error( msg );
+      }
+   }
 }
 
 commCreateCLByOption( db, COMMCSNAME, COMMDUMMYCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );

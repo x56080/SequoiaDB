@@ -7,7 +7,19 @@ test b: cl exists records
 var clName1 = CHANGEDPREFIX + "_alterclcompression_14971a";
 var clName2 = CHANGEDPREFIX + "_alterclcompression_14971b";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try

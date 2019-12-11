@@ -4,7 +4,19 @@
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_alterclShardingKey_14939";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -48,14 +60,14 @@ function checkShardIndex ( dbcl )
    try
    {
       dbcl.getIndex( "$shard" );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
       //-47:Index name does not exist
-      if( e != -47 )
+      if( e.message != -47 )
       {
-         throw buildException( "shard include should be remove, fail:", e );
+         throw e;
       }
    }
 }

@@ -81,11 +81,11 @@ function main ()
    try
    {
       db.analyze( { Mode: 4, Collection: COMMCSNAME + "." + clName } );
-      throw "NEED_ERR";
+      throw new Error( "NEED_ERR" );
    }
    catch( e )
    {
-      if( e !== -264 && e !== -47 )
+      if( e.message != -264 && e.message != -47 )
       {
          throw e;
       }
@@ -117,11 +117,11 @@ function main ()
    try
    {
       db.analyze( { Mode: 4, Collection: COMMCSNAME + "." + clName } );
-      throw "NEED_ERR";
+      throw new Error( "NEED_ERR" );
    }
    catch( e )
    {
-      if( e !== -264 && e !== -47 )
+      if( e.message != -264 && e.message != -47 )
       {
          throw e;
       }
@@ -168,7 +168,19 @@ function main ()
    //db2.close(); 
 
 }
-main()
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 /************************************
 *@Description: 手工修改索引统计表

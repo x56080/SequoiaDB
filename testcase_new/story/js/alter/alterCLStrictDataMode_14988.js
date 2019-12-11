@@ -4,7 +4,19 @@
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_alterclstrictDataMode_14988";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -58,13 +70,13 @@ function numoverflowError ( dbcl )
    try
    {
       var rc = dbcl.find( {}, { "no": { "$abs": 1 } } ).next();
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -318 )
+      if( e.message != -318 )
       {
-         throw buildException( "numoverflow should be fail:", e );
+         throw e;
       }
    }
 }

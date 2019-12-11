@@ -5,7 +5,19 @@
 var clName1 = CHANGEDPREFIX + "_alterclShardingKey_14936a";
 var clName2 = CHANGEDPREFIX + "_alterclShardingKey_14936b";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -53,13 +65,13 @@ function noParitionCLAlter ( dbcl )
    {
       var shardingKeyField = { a: 1, b: 1 };
       dbcl.setAttributes( { ShardingKey: shardingKeyField } );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -177 )
+      if( e.message != -177 )
       {
-         throw buildException( "unique index must include all shardingKey field, fail:", e );
+         throw e;
       }
    }
 }

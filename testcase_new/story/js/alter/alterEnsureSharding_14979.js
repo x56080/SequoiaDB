@@ -6,7 +6,19 @@ test b: add ensureShardingIndex and ShardingKey
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_altercl_14979";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -54,13 +66,13 @@ function alterEnsureShardingNoShardingKey ( dbcl )
    try
    {
       dbcl.setAttributes( ( { EnsureShardingIndex: true } ) );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -245 )
+      if( e.message != -245 )
       {
-         throw buildException( "no shardingKey alter should be fail:", e );
+         throw e;
       }
    }
 }

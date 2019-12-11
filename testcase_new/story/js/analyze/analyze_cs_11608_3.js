@@ -61,11 +61,11 @@ function main ()
    try
    {
       db.analyze( { CollectionSpace: csName } );
-      throw "NEED_ERR";
+      throw new Error( "NEED_ERR" );
    }
    catch( e )
    {
-      if( e !== -34 )
+      if( e.message != -34 )
       {
          throw e;
       }
@@ -75,14 +75,26 @@ function main ()
    try
    {
       db.analyze( { CollectionSpace: "SYSSTAT" } );
-      throw "NEED_ERR";
+      throw new Error( "NEED_ERR" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
          throw e;
       }
    }
 }
-main()
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+

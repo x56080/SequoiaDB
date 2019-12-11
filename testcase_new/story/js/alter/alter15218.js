@@ -5,7 +5,19 @@
 *@testlinkCase:seqDB-15218
 **************************************/
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
@@ -56,9 +68,9 @@ function main ()
    }
    catch( e )
    {
-      if( e !== -32 )
+      if( e.message != -32 )
       {
-         throw buildException( "IgnoreException is false", e, "alter attributes", -32, e );
+         throw e;
       }
    }
    checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "ShardingKey", { b: 1 } );

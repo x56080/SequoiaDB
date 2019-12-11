@@ -50,13 +50,13 @@ function main ()
    try
    {
       cl.alter( { ShardingType: "hash" } );
-      throw "ERR_ALTER_CL";
+      throw new Error( "ERR_ALTER_CL" );
    }
    catch( e )
    {
-      if( e !== -32 )
+      if( e.message != -32 )
       {
-         throw new Error( "alter split cl shardingType, \nexp: -32, \nbut found: " + e );
+         throw e;
       }
    }
 
@@ -67,9 +67,9 @@ function main ()
    }
    catch( e )
    {
-      if( e !== -32 )
+      if( e.message != -32 )
       {
-         throw new Error( "alter split cl shardingType, \nexp: -32, \nbut found: " + e );
+         throw e;
       }
    }
 

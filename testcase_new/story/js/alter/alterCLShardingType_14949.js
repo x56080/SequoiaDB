@@ -6,7 +6,19 @@ test b: alter shardingType from hash to range
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_alterclShardingType_14949";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -68,7 +80,6 @@ function checkResult ( clName, fieldName, expFieldValue )
          throw buildException( "test fieldvalue", "check field", "value is wrong", expFieldValue, actualFieldValue );
       }
    }
-
 }
 
 

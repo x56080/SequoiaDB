@@ -4,7 +4,19 @@
 ***************************************************************************** */
 var clName = CHANGEDPREFIX + "_alterclautosplit_14960";
 
-main( db );
+try
+{
+   main( db );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ( db )
 {
    try
@@ -51,13 +63,13 @@ function alterAutoSplitNoShardingKey ( dbcl )
    try
    {
       dbcl.setAttributes( { AutoSplit: true } );
-      throw "need throw error";
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( e != -245 )
+      if( e.message != -245 )
       {
-         throw buildException( "cannot be alter, fail:", e );
+         throw e;
       }
    }
 }

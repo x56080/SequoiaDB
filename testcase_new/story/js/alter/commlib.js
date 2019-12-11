@@ -4,6 +4,8 @@
 2018-4-25  wuyan  Init
 *******************************************************************************/
 
+import( "../lib/basic_operation/Sequoiadb.js" );
+
 //inspect the alter field is success or not.
 function checkAlterResult ( clName, fieldName, expFieldValue, csName )
 {
@@ -153,11 +155,11 @@ function clSetAttributes ( cl, options )
    try
    {
       cl.setAttributes( options );
-      throw "ALTER_SHOULD_ERR";
+      throw new Error( "ALTER_SHOULD_ERR" );
    }
    catch( e )
    {
-      if( e !== -32 )
+      if( e.message != -32 )
       {
          throw e;
       }

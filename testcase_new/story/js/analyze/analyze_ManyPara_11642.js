@@ -211,18 +211,30 @@ function main ()
    db2.close();
 
 }
-main()
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function analyzeInvalidPara ( db, options )
 {
    try
    {
       db.analyze( options );
-      throw "NEED_ERR";
+      throw new Error( "NEED_ERR" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
          throw e;
       }

@@ -5,7 +5,19 @@
 *@testlinkCase:seqDB-14959
 **************************************/
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
@@ -43,11 +55,11 @@ function alterIsMainCL ( cl, alterOption )
    try
    {
       cl.setAttributes( alterOption );
-      throw "ALTER_SHOULD_ERR";
+      throw new Error( "ALTER_SHOULD_ERR" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
          throw e;
       }

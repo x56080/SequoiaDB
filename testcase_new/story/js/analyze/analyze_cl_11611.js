@@ -337,14 +337,26 @@ function checkAnalyzeInvalidResult ( options, expectErrCode )
    try
    {
       db.analyze( options );
-      throw "NEED ANALYZE FAILED";
+      throw new Error( "NEED ANALYZE FAILED" );
    }
    catch( e )
    {
-      if( expectErrCode !== e )
+      if( expectErrCode != e.message )
       {
-         throw buildException( "check analyze", "check", "check analyze", expectErrCode, e );
+         throw e;
       }
    }
 }
-main(); 
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+

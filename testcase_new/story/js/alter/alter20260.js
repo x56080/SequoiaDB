@@ -46,13 +46,13 @@ function main ()
    try
    {
       cl.alter( { AutoSplit: false } );
-      throw "ERR_ALTER_CL";
+      throw new Error( "ERR_ALTER_CL" );
    }
    catch( e )
    {
-      if( e != -32 )
+      if( e.message != -32 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true );
@@ -60,13 +60,13 @@ function main ()
    try
    {
       cl.setAttributes( { AutoSplit: false } );
-      throw "ERR_ALTER_CL";
+      throw new Error( "ERR_ALTER_CL" );
    }
    catch( e )
    {
-      if( e != -32 )
+      if( e.message != -32 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true );

@@ -5,7 +5,19 @@
 *@testlinkCase:seqDB-14982
 **************************************/
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
@@ -60,13 +72,12 @@ function checkAlterResult ( cl, onlyCatch307 )
       try
       {
          cl.insert( arr );
-
       }
       catch( e )
       {
-         if( e !== -307 || !onlyCatch307 )
+         if( e.message != -307 || !onlyCatch307 )
          {
-            throw buildException( "checkAlterResult", e, "catch error", "success", e );
+            throw e;
          }
       }
 

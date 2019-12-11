@@ -126,15 +126,27 @@ function checkAnalyze ( options )
    try
    {
       db.analyze( options );
-      throw "NEED ANALYZE FAILED";
+      throw new Error( "NEED ANALYZE FAILED" );
    }
    catch( e )
    {
-      if( -6 !== e )
+      if( -6 != e.message )
       {
-         throw buildException( "check analyze", e, "analyze", "success", "fail" );
+         throw e;
       }
    }
 }
 
-main(); 
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
