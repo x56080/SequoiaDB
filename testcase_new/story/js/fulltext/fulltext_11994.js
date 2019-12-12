@@ -33,9 +33,9 @@ function main ()
    }
    catch( e )
    {
-      if( e != -47 )
+      if( e.message != -47 )
       {
-         throw new Error( "drop not exist index success" );
+         throw e;
       }
    }
    commCheckIndex( dbcl, indexName, false );

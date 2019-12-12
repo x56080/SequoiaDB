@@ -35,9 +35,9 @@ function main ()
    }
    catch( e )
    {
-      if( -6 !== e )  
+      if( -6 != e.message )  
       {
-         throw new Error( e );
+         throw e;
       }
    }
 

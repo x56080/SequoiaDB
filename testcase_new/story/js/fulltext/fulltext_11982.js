@@ -26,9 +26,9 @@ function main ()
    }
    catch( e )
    {
-      if( e != -42 )
+      if( e.message != -42 )
       {
-         throw new Error( "expect error: -42, actual error: " + e );
+         throw e;
       }
    }
 

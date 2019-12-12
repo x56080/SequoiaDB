@@ -31,9 +31,9 @@ function main ()
       throw new Error( "NEED_SORT_ERR" );
    } catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
 

@@ -67,9 +67,9 @@ function main ()
    }
    catch( e )
    {
-      if( -10 != e )
+      if( -10 != e.message )
       {
-         throw new Error( e );
+         throw e;
       }
    }
 

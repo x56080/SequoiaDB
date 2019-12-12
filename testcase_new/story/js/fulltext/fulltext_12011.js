@@ -33,9 +33,9 @@ function createIndexOnId ( dbcl, textIndexName )
       throw new Error( 'create text index on _id should fail!' );
    } catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
 }
@@ -48,9 +48,9 @@ function createIndexContainId ( dbcl, textIndexName )
       throw new Error( 'create text index include _id should fail!' );
    } catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
 }

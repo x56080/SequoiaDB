@@ -35,9 +35,9 @@ function main ()
       throw new Error( "NEED_INSERT_ERR" );
    } catch( e )
    {
-      if( e !== -24 )
+      if( e.message != -24 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
 

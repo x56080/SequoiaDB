@@ -392,4 +392,52 @@ function Collection ( cl )
             throw new Error( e );
          }
       }
+
+   this.upsert =
+      function( rule, cond, hint, setOnInsert, options )
+      {
+         if( cond === undefined ) { cond = {}; }
+         if( hint === undefined ) { hint = {}; }
+         if( setOnInsert === undefined ) { setOnInsert = {}; }
+         if( options === undefined ) { options = {}; }
+         try
+         {
+            var obj = cl.upsert( rule, cond, hint, setOnInsert, options );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return obj;
+      }
+
+   this.createIdIndex =
+      function( sortBufferSize )
+      {
+         if( sortBufferSize === undefined ) { sortBufferSize = null; }
+         try
+         {
+            cl.createIdIndex( sortBufferSize );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+      }
+
+   this.findOne =
+      function( cond, sel )
+      {
+         if( cond === undefined ) { cond = null; }
+         if( sel === undefined ) { sel = null; }
+         try
+         {
+            var query = cl.findOne( cond, sel );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return new Query( query );
+      }
 }

@@ -27,9 +27,9 @@ function main ()
    }
    catch( e )
    {
-      if( e != -46 )
+      if( e.message != -46 )
       {
-         throw new Error( "create duplicate index success" );
+         throw e;
       }
    }
 
@@ -43,9 +43,9 @@ function main ()
    }
    catch( e )
    {
-      if( e != -42 )
+      if( e.message != -42 )
       {
-         throw new Error( "create index on same field success" );
+         throw e;
       }
    }
 

@@ -71,9 +71,9 @@ function createCLIdIndex ( dbcl )
    }
    catch( e )
    {
-      if( e != -38 )
+      if( e.message != -38 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
 }

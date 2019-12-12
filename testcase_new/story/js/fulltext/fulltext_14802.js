@@ -25,7 +25,7 @@ function main ()
       throw new Error( "NEED_FIND_ERR" );
    } catch( e )
    {
-      if( e !== -52 )
+      if( e.message != -52 )
       {
          throw new Error( e );
       }

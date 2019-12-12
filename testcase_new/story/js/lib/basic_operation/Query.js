@@ -145,4 +145,34 @@ function Query ( query )
          }
          return this;
       }
+
+   this.update =
+      function( rule, returnNew, options )
+      {
+         if( returnNew === undefined ) { returnNew = false; }
+         if( options === undefined ) { options = {} }
+         try
+         {
+            query = query.update( rule, returnNew, options );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return this;
+      }
+
+   this.remove =
+      function()
+      {
+         try
+         {
+            query = query.remove();
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return this;
+      }
 }

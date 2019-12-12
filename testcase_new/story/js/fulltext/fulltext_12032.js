@@ -64,9 +64,9 @@ function removeRecords ( dbcl )
    }
    catch( e )
    {
-      if( e != "-279" )
+      if( e.message != -279 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
 }

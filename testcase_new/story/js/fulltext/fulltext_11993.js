@@ -25,9 +25,9 @@ function main ()
    }
    catch( e )
    {
-      if( e != -6 )
+      if( e.message != -6 )
       {
-         throw new Error( "create illegal index success" );
+         throw e;
       }
    }
    commCheckIndex( dbcl, indexName, false );
@@ -40,9 +40,9 @@ function main ()
    }
    catch( e )
    {
-      if( e != -6 )
+      if( e.message != -6 )
       {
-         throw new Error( "create illegal composite index success" );
+         throw e;
       }
    }
    commCheckIndex( dbcl, indexName, false );

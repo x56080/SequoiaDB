@@ -31,9 +31,9 @@ function main ()
    }
    catch( e )
    {
-      if( e != -42 )
+      if( e.message != -42 )
       {
-         throw new Error( "create more than 64 indexes" );
+         throw e;
       }
    }
    commCheckIndex( dbcl, "fullIndex_11983", false );

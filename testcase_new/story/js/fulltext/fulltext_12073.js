@@ -106,9 +106,9 @@ function checkAllResult ( dbcl, esOperator, cappedCL )
    }
    catch( e )
    {
-      if( e != -23 )
+      if( e.message != -23 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    try
@@ -117,9 +117,9 @@ function checkAllResult ( dbcl, esOperator, cappedCL )
    }
    catch( e )
    {
-      if( e != -23 )
+      if( e.message != -23 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    sleep( 1000 );

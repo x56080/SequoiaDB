@@ -39,9 +39,9 @@ function main ()
       dbcl.update( { $set: { a: "a", b: "bb" } }, null, null, { KeepShardingKey: true } );
    } catch( e )
    {
-      if( e !== -178 )
+      if( e.message != -178 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    dbcl.insert( { a: "new" } );
