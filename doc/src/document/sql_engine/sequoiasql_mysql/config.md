@@ -33,7 +33,24 @@ mysql> CREATE TABLE employee(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
     -> COMMENT='sequoiadb:{ auto_partition: false }';
 ```
 
+示例3：在 SequoiaDB 上创建压缩类型为'lzw'的表，通过alter table修改表压缩类型为'snappy'。
 
+```lang-sql
+mysql> CREATE TABLE employee2(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
+    -> ENGINE=sequoiadb 
+    -> COMMENT="sequoiadb:{ auto_partition: true, table_options:{CompressionType : 'lzw'} }";
+Query OK, 0 rows affected (0.10 sec)
+
+mysql> alter table employee2 COMMENT="alter table of compress type,sequoiadb:{ auto_partition: true,
+    -> table_options:{CompressionType : 'snappy'} }";
+Query OK, 0 rows affected (0.15 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+``` 
+   > **Note:** 
+   >
+   >alter table 支持修改表备注（COMMENT）中的自定义注释，以及更改或追加 table_options 中的配置项，不支持修改 auto_partition。
+
+    
 ## 引擎配置
 + **配置项列表**
 

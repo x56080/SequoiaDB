@@ -9,7 +9,7 @@
 
 4. 复合唯一索引仅支持所有字段null值重复，不允许部分字段null值重复，例如：允许出现(null,null)和(null,null)重复值，但不允许出现(1,null)和(1,null)重复值；
 
-5. 建表时默认创建SequoiaDB分区表。如在分区表建立新的唯一索引，必须包含其分区键（分区键依次优先选择主键和唯一键）。如需更改创建分区表配置见[配置说明](sql_engine/sequoiasql_mysql/connection.md#配置说明)；
+5. 建表时默认创建SequoiaDB分区表。如在分区表建立新的唯一索引，必须包含其分区键（分区键依次优先选择主键和唯一键）。如需更改创建分区表配置见[配置说明](sql_engine/sequoiasql_mysql/config.md#引擎配置)；
 
 6. 不支持在BINARY、VARBINARY、TINYBLOB、BLOB、MEDIUMBLOB、LONGBLOB、JSON类型的字段上创建索引；
 
