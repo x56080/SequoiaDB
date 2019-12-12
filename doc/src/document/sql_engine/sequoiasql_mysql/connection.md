@@ -11,7 +11,7 @@
       $cd /opt/sequoiasql/mysql
       ```
 
-      2.修改 SequoiaDB 连接地址。修改过程中需要提供该数据库实例 root 用户的密码。
+      2.修改 SequoiaDB 连接地址。修改过程中需要提供该数据库实例 root 用户的密码，若未设置 root 用户的密码，在提示密码时直接回车即可。
 
       ```lang-bash
       $ bin/sdb_sql_ctl chconf myinst --sdb-conn-addr=sdbserver1:11810,sdbserver2:11810
