@@ -3,31 +3,35 @@
 seqDB-7527::shell_输入js格式，查询显示
 *@Modify List : 2016-3-28  Ting YU  Init
 *******************************************************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME;
+   var clName = COMMCLNAME + "_7526";
 
-      var clObj = new Collection( csName, clName, { ReplSize: 0 } );
-      var cl = clObj.create();
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
 
-      testStrictFormat( cl );
-      testJSFormat( cl );
+   testStrictFormat( cl );
+   testJSFormat( cl );
 
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName );
 }
 
 function testStrictFormat ( cl )
 {
-   println( '---begin to check strict format: {$numberLong:"2147483647"}' );
    cl.remove();
 
    var val = 2147483647;
@@ -36,9 +40,8 @@ function testStrictFormat ( cl )
 
    var rc = cl.find();
    var expRec = { a: 2147483647 };
-   checkRec( rc, [expRec] );
+   commCompareResults( rc, [expRec] );
 
-   println( '---begin to check strict format: {$numberLong:"9007199254740992"}' );
    cl.remove();
 
    var val = 9007199254740992;
@@ -47,12 +50,11 @@ function testStrictFormat ( cl )
 
    var rc = cl.find();
    var expRec = rec;
-   checkRec( rc, [expRec] );
+   commCompareResults( rc, [expRec] );
 }
 
 function testJSFormat ( cl )
 {
-   println( '---begin to check JS format: NumberLong( "-2147483647" )' );
    cl.remove();
 
    var val = -2147483647;
@@ -61,13 +63,13 @@ function testJSFormat ( cl )
 
    var rc = cl.find();
    var expRec = { a: val };
-   checkRec( rc, [expRec] );
+   commCompareResults( rc, [expRec] );
 
-   println( '---begin to check JS format: NumberLong( -2147483647 )' );
    cl.remove();
 
    var val = -2147483648;
    var rec = { a: NumberLong( val ) };
    var expRec = { a: val };
    cl.insert( rec );
+   commCompareResults( rc, [expRec] );
 }

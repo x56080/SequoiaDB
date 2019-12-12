@@ -2,120 +2,22 @@
 @Description : common functions
 @Modify list : 2016-3-28  Ting YU  Init
 *******************************************************************************/
-function Collection ( csName, clName, opt )
-{
-   this.csName = csName;
-   this.clName = clName;
 
-   this.create =
-      function()
-      {
-         println( "---begin to create cl = " + csName + '.' + clName );
-         commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-         this.cl = commCreateCLByOption( db, csName, clName, opt, true, false, "create cl in begin" );
-         return this.cl;
-      }
-
-   this.getSelf =
-      function()
-      {
-         return this.cl;
-      }
-
-   this.istRandomRecs =
-      function( recNum, dataTypes, fieldNames )
-      {
-         println( "---begin to insert" );
-         var rd = new commDataGenerator();
-         var recs = rd.getRecords( recNum, dataTypes, fieldNames );
-         db.getCS( csName ).getCL( clName ).insert( recs );
-      }
-
-   this.istRecs =
-      function( recs )
-      {
-         println( "---begin to insert" );
-         db.getCS( csName ).getCL( clName ).insert( recs );
-      }
-
-   this.getGroups =
-      function()
-      {
-         println( "---begin to get groups of cl" );
-         var clFullName = csName + '.' + clName;
-         return commGetCLGroups( db, clFullName );
-      }
-
-   this.createIndex =
-      function( indexName, indexDef, isUnique, enforced )
-      {
-         if( isUnique === undefined ) { isUnique = false; }
-         if( enforced === undefined ) { enforced = false; }
-         println( "---begin to create index" );
-         db.getCS( csName ).getCL( clName ).createIndex( indexName, indexDef, isUnique, enforced );
-      }
-
-}
-
-function select2RG ()
-{
-   var dataRGInfo = commGetGroups( db );
-   var rgsName = {};
-   rgsName.srcRG = dataRGInfo[0][0]["GroupName"]; //source group
-   rgsName.tgtRG = dataRGInfo[1][0]["GroupName"]; //target group
-
-   return rgsName;
-}
-
-function checkRec ( rc, expRecs )
-{
-   //get actual records to array
-   var actRecs = [];
-   while( rc.next() )
-   {
-      actRecs.push( rc.current().toObj() );
-   }
-
-   //check count
-   if( actRecs.length !== expRecs.length )
-   {
-      println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
-      throw buildException( "check count", null, "",
-         expRecs.length, actRecs.length );
-   }
-
-   //check every records every fields
-   for( var i in expRecs )
-   {
-      var actRec = actRecs[i];
-      var expRec = expRecs[i];
-      for( var f in expRec )
-      {
-         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
-         {
-            println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'" );
-            println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
-            throw buildException( "checkRec()", "rec ERROR" );
-         }
-      }
-   }
-}
+import( "../lib/basic_operation/Sequoiadb.js" );
 
 function checkExplain ( rc, expIdxName )
 {
    var plan = rc.explain().current().toObj();
    var expScanType = "ixscan";
-   if( expIdxName == "" ) { expScanType = "tbscan"; }
+   if( expIdxName === undefined ) { expScanType = "tbscan"; }
 
    if( plan.ScanType !== expScanType )
    {
-      throw buildException( "checkExplain()", null, "query.explain().ScanType",
-         expScanType, plan.ScanType );
+      throw new Error( "plan.ScanType: " + plan.ScanType + "\nexpScanType: " + expScanType );
    }
    if( plan.IndexName !== expIdxName )
    {
-      throw buildException( "checkExplain()", null, "query.explain().IndexName",
-         expIdxName, plan.IndexName );
+      throw new Error( "plan.IndexName: " + plan.IndexName + "\nexpIdxName: " + expIdxName );
    }
 }
 

@@ -2,30 +2,35 @@
 *@Description : 7528:shell_使用strict格式运算
 *@Modify List : 2016-3-28  Ting YU  Init
 *******************************************************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME;
+   var clName = COMMCLNAME + "_7528";
 
-      var clObj = new Collection( csName, clName, { ReplSize: 0 } );
-      var cl = clObj.create();
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
 
-      testEqual( cl );
-      testArithmetic( cl );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   testEqual( cl );
+   testArithmetic( cl );
+
+   commDropCL( db, COMMCSNAME, clName );
 }
 
 function testEqual ( cl )
 {
-   println( '---begin to test equal' );
    cl.remove();
 
    var val = 9007199254740992; //2^53
@@ -35,25 +40,14 @@ function testEqual ( cl )
    var rc = cl.find();
    var queryVal = rc.current().toObj().a;
 
-   if( queryVal == val )
+   if( queryVal != val )
    {
-      //ok
-   }
-   else
-   {
-      throw buildException( "check value", "", "compare " + val + " with " + JSON.stringify( queryVal ),
-         "equal", "not equal" );
+      throw new Error( "val: " + val + "\nqueryVal: " + JSON.stringify( queryVal ) );
    }
 
-   println( '---begin to test not equal' );
-   if( queryVal != ( val - 1 ) )
+   if( queryVal == ( val - 1 ) )
    {
-      //ok
-   }
-   else
-   {
-      throw buildException( "check value", "", "compare " + ( val - 1 ) + " with " + JSON.stringify( queryVal ),
-         "not equal", "equal" );
+      throw new Error( "val-1: " + ( val - 1 ) + "\nqueryVal: " + JSON.stringify( queryVal ) );
    }
 }
 
@@ -65,32 +59,24 @@ function testArithmetic ( cl )
    cl.insert( { a: { $numberLong: val.toString() } } );
    var queryVal = cl.find().current().toObj().a;
 
-   println( "---begin to test add '+' divide '/' operation" );
    var actVal = ( queryVal + 1 ) / 2;
    var expVal = ( val + 1 ) / 2;
    if( actVal !== expVal )
-      throw buildException( "check value", "", "( " + JSON.stringify( actVal ) + " + 1 )/ 2",
-         "equal to " + expVal, "not equal" );
+      throw new Error( "actVal: " + actVal + "\nexpVal: " + expVal );
 
-   println( "---begin to test subtract '-' multiply '*' operation" );
    var actVal = ( queryVal - 9007199254740990 ) * 2;
    var expVal = ( val - 9007199254740990 ) * 2;
    if( actVal !== expVal )
-      throw buildException( "check value", "", "( " + JSON.stringify( actVal ) + " - 9007199254740990 )* 2",
-         "equal to " + expVal, "not equal" );
+      throw new Error( "actVal: " + actVal + "\nexpVal: " + expVal );
 
-   println( "---begin to test mod '%' operation" );
    var actVal = queryVal % 2;
    var expVal = val % 2;
    if( actVal !== expVal )
-      throw buildException( "check value", "", "( " + JSON.stringify( actVal ) + "% 2",
-         "equal to " + expVal, "not equal" );
+      throw new Error( "actVal: " + actVal + "\nexpVal: " + expVal );
 
-   println( "---begin to test abs '||' operation" );
    var actVal = Math.abs( queryVal * -0.5 );
    var expVal = Math.abs( val * -0.5 );
    if( actVal !== expVal )
-      throw buildException( "check value", "", "Math.abs( " + JSON.stringify( actVal ) + " * -0.5 )",
-         "equal to " + expVal, "not equal" );
+      throw new Error( "actVal: " + actVal + "\nexpVal: " + expVal );
 }
 
