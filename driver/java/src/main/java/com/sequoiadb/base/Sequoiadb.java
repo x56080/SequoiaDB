@@ -77,6 +77,11 @@ public class Sequoiadb implements Closeable {
     private final static String DEFAULT_HOST = "127.0.0.1";
     private final static int DEFAULT_PORT = 11810;
 
+    private final static int DEFAULT_BUFF_LENGTH = 512;
+    private ByteBuffer requestBuffer = null;
+    private ByteBuffer responseBuffer = null;
+
+
     /**
      * specified the package size of the collections in current collection space to be 4K
      */
@@ -2447,20 +2452,17 @@ public class Sequoiadb implements Closeable {
     }
 
     private ByteBuffer receiveSdbResponse() {
-        byte[] bytes;
         try {
             byte[] lengthBytes = connection.receive(4);
             int length = ByteBuffer.wrap(lengthBytes).order(byteOrder).getInt();
-
-            bytes = new byte[length];
-            System.arraycopy(lengthBytes, 0, bytes, 0, lengthBytes.length);
-            connection.receive(bytes, 4, length - 4);
-        } catch (Exception e) {
+            resetResponseBuffer(length);
+            System.arraycopy(lengthBytes, 0, responseBuffer.array(), 0, lengthBytes.length);
+            connection.receive(responseBuffer.array(), 4, length - 4);
+        }catch (Exception e){
             connection.close();
             throw new BaseException(SDBError.SDB_NETWORK, "Failed to receive message.", e);
         }
-        ByteBuffer buffer = ByteBuffer.wrap(bytes).order(byteOrder);
-        return buffer;
+        return responseBuffer;
     }
 
     private void validateResponse(SdbRequest request, SdbResponse response) {
@@ -2470,12 +2472,50 @@ public class Sequoiadb implements Closeable {
         }
     }
 
+    private void resetRequestBuff(int len) {
+        requestBuffer = resetBuff(requestBuffer, len);
+    }
+
+    private void resetResponseBuffer(int len) {
+        responseBuffer = resetBuff(responseBuffer, len);
+    }
+
+    private ByteBuffer resetBuff(ByteBuffer buff, int len) {
+        if (buff == null) {
+            buff = ByteBuffer.allocate(len);
+            buff.order(byteOrder);
+        }else if(buff.capacity() < len) {
+            buff = ByteBuffer.allocate(len);
+            buff.order(byteOrder);
+        }else if(buff.capacity() > len) {
+            buff.clear();
+            buff.limit(len);
+        }else {
+            buff.clear();
+        }
+        return buff;
+    }
+
+    protected void narrowBuff(){
+        narrowRequestBuff();
+        narrowRespondBuff();
+    }
+
+    protected void narrowRequestBuff(){
+        requestBuffer = ByteBuffer.allocate(DEFAULT_BUFF_LENGTH);
+        requestBuffer.order(byteOrder);
+    }
+
+    protected void narrowRespondBuff(){
+        responseBuffer = ByteBuffer.allocate(DEFAULT_BUFF_LENGTH);
+        responseBuffer.order(byteOrder);
+    }
+
     private ByteBuffer encodeRequest(Request request) {
-        ByteBuffer buffer = ByteBuffer.allocate(request.length());
-        buffer.order(byteOrder);
+        resetRequestBuff(request.length());
         request.setRequestId(getNextRequestId());
-        request.encode(buffer);
-        return buffer;
+        request.encode(requestBuffer);
+        return requestBuffer;
     }
 
     private void sendRequest(Request request) {

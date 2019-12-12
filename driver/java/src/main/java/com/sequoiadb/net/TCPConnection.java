@@ -222,7 +222,7 @@ public class TCPConnection implements IConnection {
             throw new BaseException(SDBError.SDB_SYS, remoteAddressInfo + ", byteBuffer is null");
         }
         if (buffer.hasArray()) {
-            send(buffer.array());
+            send(buffer.array(), 0, buffer.limit());
         } else {
             throw new BaseException(SDBError.SDB_SYS, remoteAddressInfo + ", byteBuffer has no array");
         }
