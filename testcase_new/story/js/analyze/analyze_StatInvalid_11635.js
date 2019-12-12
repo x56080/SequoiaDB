@@ -210,7 +210,7 @@ function updateIndexStateInfo ( db, csName, clName, indexName, rule )
    {
       try
       {
-         var rec = dataDB[i].SYSSTAT.SYSINDEXSTAT.find().toArray();
+         var rec = dataDB[i].getCS("SYSSTAT").getCL("SYSINDEXSTAT").find().toArray();
 
          if( 0 < rec.length )
          {
@@ -220,7 +220,7 @@ function updateIndexStateInfo ( db, csName, clName, indexName, rule )
                { "Index": indexName }]
             };
 
-            dataDB[i].SYSSTAT.SYSINDEXSTAT.upsert( rule, matcher );
+            dataDB[i].getCS("SYSSTAT").getCL("SYSINDEXSTAT").upsert( rule, matcher );
          }
       }
       catch( e )

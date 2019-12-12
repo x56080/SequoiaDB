@@ -266,7 +266,7 @@ function checkStat ( db, csName, clName, indexName, clExistStat, indexExistStat,
       {
          var clStatFlag = false;
          //检查cl统计表信息
-         var clStats = nodesInGroup[j].SYSSTAT.SYSCOLLECTIONSTAT.find().toArray();
+         var clStats = nodesInGroup[j].getCS("SYSSTAT").getCL("SYSCOLLECTIONSTAT").find().toArray();
 
          //需要检查cl统计表信息时，统计表信息不能为空
          if( clExistStat === true && clStats.length < 1 )
@@ -298,7 +298,7 @@ function checkStat ( db, csName, clName, indexName, clExistStat, indexExistStat,
 
          //检查索引统计表信息
          var indexStatFlag = false;
-         var indexStats = nodesInGroup[j].SYSSTAT.SYSINDEXSTAT.find().toArray();
+         var indexStats = nodesInGroup[j].getCS("SYSSTAT").getCL("SYSINDEXSTAT").find().toArray();
 
          //需要检查索引统计表信息时，统计表信息不能为空
          if( indexExistStat === true && indexStats.length < 1 )
@@ -678,10 +678,10 @@ function updateIndexStateInfo ( db, csName, clName, indexName, mcvValues, fracs 
       {
          try
          {
-            var rec = nodesInGroup[j].SYSSTAT.SYSINDEXSTAT.find().toArray();
+            var rec = nodesInGroup[j].getCS("SYSSTAT").getCL("SYSINDEXSTAT").find().toArray();
             var rule = { "$set": { "MCV": { "Values": mcvValues, "Frac": fracs } } };
             var matcher = { "CollectionSpace": csName, "Collection": clName, "Index": indexName };
-            nodesInGroup[j].SYSSTAT.SYSINDEXSTAT.upsert( rule, matcher );
+            nodesInGroup[j].getCS("SYSSTAT").getCL("SYSINDEXSTAT").upsert( rule, matcher );
          }
          catch( e )
          {
@@ -1060,7 +1060,7 @@ function checkStats ( db, csName, clNames, indexName, clExistStat, indexExistSta
       for( var j = 0; j < nodesInGroup.length; j++ )
       {
          //检查cl统计表信息
-         var clStats = nodesInGroup[j].SYSSTAT.SYSCOLLECTIONSTAT.find().toArray();
+         var clStats = nodesInGroup[j].getCS("SYSSTAT").getCL("SYSCOLLECTIONSTAT").find().toArray();
 
          //需要检查cl统计表信息时，统计表信息不能为空
          if( clExistStat === true && clStats.length < 1 )
@@ -1096,7 +1096,7 @@ function checkStats ( db, csName, clNames, indexName, clExistStat, indexExistSta
          }
 
          //检查索引统计表信息
-         var indexStats = nodesInGroup[j].SYSSTAT.SYSINDEXSTAT.find().toArray();
+         var indexStats = nodesInGroup[j].getCS("SYSSTAT").getCL("SYSINDEXSTAT").find().toArray();
 
          //需要检查索引统计表信息时，统计表信息不能为空
          if( indexExistStat === true && indexStats.length < 1 )

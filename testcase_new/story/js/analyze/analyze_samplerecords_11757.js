@@ -97,7 +97,7 @@ function checkInfoState ( csName, clName, expResult )
          {
             //check collection state
             var matcher = { "CollectionSpace": csName, "Collection": clName };
-            var actResult = nodesInGroup[j].SYSSTAT.SYSCOLLECTIONSTAT.find( matcher );
+            var actResult = nodesInGroup[j].getCS("SYSSTAT").getCL("SYSCOLLECTIONSTAT").find( matcher );
 
             if( 0 < actResult.length )
             {
@@ -115,7 +115,7 @@ function checkInfoState ( csName, clName, expResult )
             }
 
             //check index state
-            actResult = nodesInGroup[j].SYSSTAT.SYSINDEXSTAT.find( matcher );
+            actResult = nodesInGroup[j].getCS("SYSSTAT").getCL("SYSINDEXSTAT").find( matcher );
             if( 0 < actResult.length )
             {
                var expSampleNum = expResult["SampleRecords"];
