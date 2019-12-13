@@ -1,0 +1,53 @@
+/* *****************************************************************************
+@discretion:  seqDB-20174:单独指定HostName、ServiceName，重新选主
+@author：2018-11-04 zhao xiaoni
+***************************************************************************** */
+import ("../lib/main.js")
+
+testConf.skipStandAlone = true;
+
+main( test );
+
+function test( testPara )
+{
+   var groups = getGroupsWithNodeNum( 3 );
+   if( groups.length === 0 )
+   {
+      return;
+   }
+   var group = groups[0];
+   var groupName = group[0].GroupName;
+   var primaryPos = group[0].PrimaryPos;
+   var slaveNode1Pos = primaryPos === 1 ? primaryPos + 1 : 1;
+   var slaveNode2Pos = primaryPos === group.length -1 ? primaryPos - 1 : group.length -1;
+   var slaveNode1 = group[ slaveNode1Pos ];
+   var slaveNode2 = group[ slaveNode2Pos ];
+   var masterNode = group[ primaryPos ];
+
+   waitSync( masterNode, slaveNode1 );
+
+   //指定HostName执行选主
+   var hostName = slaveNode1.HostName;
+   println("start to reelect node with hostName " + hostName + " to primary node");
+   db.getRG(groupName).reelect({Seconds: 60, HostName: hostName});
+
+   var masterNodeHostName = db.getRG(groupName).getMaster().getHostName();
+   if( masterNodeHostName != hostName )
+   {
+      throw new Error( "Reelect failed!" );
+   }
+
+   waitSync( slaveNode1, slaveNode2 );
+
+   //指定ServiceName执行选主
+   svcName = slaveNode2.svcname;
+   println("start to reelect node with svcName " + svcName + " to primary node");
+   db.getRG(groupName).reelect({Seconds: 60, ServiceName: svcName});
+
+   var masterNodeSvcName = db.getRG(groupName).getMaster().getServiceName();
+   if( masterNodeSvcName != svcName )
+   {
+      throw new Error( "Reelect failed!" );
+   } 
+}
+

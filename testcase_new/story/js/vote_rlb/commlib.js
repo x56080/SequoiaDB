@@ -1,157 +1,228 @@
-/******************************************************************************
-@Description : Test the vote the primary library.
-@Modify list :
-               2014-6-12  xiaojun Hu  Init
-******************************************************************************/
-
-var csName = COMMCSNAME;
-var clName = COMMCLNAME;
-
-// Stop the primary node by using 'node.stop' in Group
-function stopNode ( db, groupName, primHost, primNode )
+function getGroupsWithNodeNum( nodesNum )
 {
-   try
+   var groups = [];
+   var commGroups = commGetGroups( db );
+   for( var i = 0; i < commGroups.length; i++ )
    {
-      var rg = db.getRG( groupName );
-      var node = rg.getNode( primHost, primNode );
-      node.stop();   // stop node
-      println( "Success to stop Node : [ " + primHost +
-         " : " + primNode + " ]" );
-   }
-   catch( e )
-   {
-      println( "Failed to stop the primary node = [ " + primHost + primNode +
-         " ], rc = " + e );
-      throw e;
-   }
-}
-
-
-// Start primary ndoe by using 'node.start' in Group
-function startNode ( db, groupName, primHost, primNode )
-{
-   try
-   {
-      var rg = db.getRG( groupName );
-      var node = rg.getNode( primHost, primNode );
-      node.start();   // start node
-      println( "Success to start Node : [ " + primHost +
-         " : " + primNode + " ]" );
-   }
-   catch( e )
-   {
-      println( "Failed to start the primary node, rc = " + e );
-      throw e;
-   }
-}
-
-// Get primary node after stopping
-function getPrimNode ( db, groupName )
-{
-   try
-   {
-      /*var group = commGetGroups( db ) ;
-      var rgSize = group.length ;
-      for( var i = 0 ; i < rgSize ; ++i )
+      var group = commGroups[i];
+      if( group.length >= (nodesNum + 1) )
       {
-         var getRG = group[i][0].GroupName ;
-         //println( "get group = " + getRG + " " + groupName ) ;
-         if( groupName == getRG )
+         groups.push( group );
+      }
+   }
+   return groups;
+}
+
+function getPrimaryNode( groupName )
+{
+   try
+   {
+      var cursor = db.getRG( groupName ).getDetail();
+      var primaryNode = cursor.current().toObj().PrimaryNode;
+      return primaryNode;
+   }
+   catch( e )
+   {
+      throw new Error( e );
+   }
+}
+
+function notExistPrimaryNode( groupName )
+{
+   var timeOut = 600;
+   var doTimes = 0;
+   var period = 0;
+   while( doTimes < timeOut )
+   {
+      var primaryNode = getPrimaryNode( groupName );
+      if( primaryNode !== undefined )
+      {
+         sleep(1000);
+         doTimes++;
+      } 
+      else
+      { 
+         if( period > 3 )
          {
-            var primNode = group[i][0].PrimaryNode ;
-            break ;
+            break;
          }
-      }*/
-
-      var nodeName = db.getRG( groupName ).getMaster();
-
-      var nodeDb = new Sdb( nodeName );
-      return nodeDb.snapshot( 6 ).next().toObj().IsPrimary;
-   }
-   catch( e )
-   {
-      if( -71 != e && -79 != e && -15 != e && -155 != e )
-      {
-         println( "Failed to get primary node, rc = " + e );
-         throw e;
-      }
-      return false;
-   }
-}
-
-// Inspect the group have primary or not
-function havePrimInGroup ( db, groupName )
-{
-   try
-   {
-      var domname = groupName + "_inspectPrimary_" + clName;
-      var csname = clName + "_cs_" + groupName;
-      var clname = clName + "_cl_" + groupName;
-      // Drop CS in the beginning
-      try
-      {
-         db.dropCS( csname );
-      }
-      catch( e )
-      {
-         if( -34 != e )
+         else
          {
-            //println( "Failed to drop CS in the beginning, rc = " + e ) ;
-            throw e;
-         }
+            sleep(3000);
+            period++;
+         }  
       }
-      // Drop Domain in the beginning
-      commDropDomain( db, domname );
-      commCreateDomain( db, domname, [groupName] );
-      var cs = db.createCS( csname, { "Domain": domname } );
-      var cl = cs.createCL( clname );
-      cl.insert( { "testPrim": "CannotInsertData" } );
-      throw "Cannot createCL success";
    }
-   catch( e )
+   if( doTimes >= timeOut )
    {
-      if( -104 != e && -79 != e && -71 != e )
+      throw new Error( groupName + " has primary node " + primaryNode );
+   }
+} 
+
+function existPrimaryNode( groupName )
+{
+   var timeOut = 600;
+   var doTimes = 0; 
+   while( doTimes < timeOut )
+   {  
+      var primaryNode = getPrimaryNode( groupName );
+      if( primaryNode === undefined )
+      {  
+         sleep(1000);
+         doTimes++;
+      } 
+      else
       {
-         throw e;
+         sleep( 3000 );  
+         break;
       }
-      //else
-      //println( "Don't have primary in group : [ " + groupName + " ]"  ) ;
+   }
+
+   if( doTimes >= timeOut )
+   {  
+      throw new Error( groupName + " does't have primary node" );
+   }
+   else
+   {  
+      return primaryNode;
    }
 }
 
-function clearGroup ( db, groupName )
+function getMajorityNodeIndexes( group )
+{
+   var count = group.length/2;
+   var nodeIndexes = [];
+   for(var i = 0; i < count; i++)
+   {  
+      var num = Math.floor( Math.random() * (group.length - 1) + 1 );
+      while( nodeIndexes.indexOf( num ) !== -1 )
+      {
+         num = Math.floor( Math.random() * (group.length - 1) + 1 );
+      }
+      nodeIndexes.push( num );
+   }
+   return nodeIndexes;
+}
+
+function getMinorityNodeIndexes( group )
+{
+   var nodeIndexes = [];
+   var count = group.length/2 - 1;
+   for(var i = 0; i < count; i++)
+   {
+      var num = Math.floor( Math.random() * (group.length - 1) + 1 );
+      while( nodeIndexes.indexOf( num ) !== -1 )
+      {
+         num = Math.floor( Math.random() * (group.length - 1) + 1 );
+      }
+      nodeIndexes.push( num );
+   }
+   return nodeIndexes;
+}
+
+function createGroupAndNode( db, rgName, hostName, nodesNum)
 {
    try
    {
-      var domname = groupName + "_inspectPrimary_" + clName;
-      var csname = clName + "_cs_" + groupName;
-      var clname = clName + "_cl_" + groupName;
-
-      try
+      var rg = db.createRG( rgName ) ;
+      var failedCount = 0;
+      for( var i = 0;i < nodesNum;i++ )
       {
-         db.dropCS( csname );
+         var svc = parseInt( RSRVPORTBEGIN ) + 10 * ( i + failedCount ) ;
+         var dbPath = RSRVNODEDIR + "data/" + svc ;
+         var checkSucc = false;
+         var times = 0;
+         var maxRetryTimes = 10;
+         do
+         {
+            try
+            {
+               rg.createNode( hostName, svc, dbPath, {diaglevel:5} ) ;
+               println( "create node: " + hostName + ":" + svc + " dbpath: " + dbPath ) ;
+               checkSucc = true;
+            }
+            catch( e )
+            {
+               //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
+               if( e == -145 || e == -290 )
+               {
+                  svc = svc + 10;
+                  dbPath = RSRVNODEDIR + "data/" + svc;
+                  failedCount++;
+               }
+               else
+               {
+                  throw "create node failed!  port = " + svc + " dataPath = " + dbPath + " errorCode: " + e;
+               }
+               times++;
+            }
+         }
+         while(!checkSucc && times < maxRetryTimes);
       }
-      catch( e )
-      {
-         println( "Failed to drop CS in the end, rc = " + e );
-         throw e;
-      }
-      try
-      {
-         db.dropDomain( domname );
-      }
-      catch( e )
-      {
-         println( "Failed to drop domain in the end, rc = " + e );
-         throw e;
-      }
+      println( "start group" ) ;
+      rg.start() ;
    }
-   catch( e )
+   catch(e)
    {
-      if( -104 != e && -79 != e && -71 != e )
-      {
-         println( "Failed to clear the group, rc = " + e );
-         throw e;
-      }
+      throw new Error(e);
    }
 }
+
+function getLSN( node )
+{
+   try
+   {
+      var db = new Sdb( node.HostName, node.svcname );
+      var cursor = db.snapshot( SDB_SNAP_DATABASE );
+      var completeLSN = cursor.current().toObj()["CompleteLSN"];
+      return completeLSN;
+   }
+   catch(e)
+   {
+      throw new Error(e);
+   }
+   finally
+   {
+      if( db !== null )
+      {
+         db.close();
+      }
+   }
+} 
+
+function waitSync(masterNode, slaveNode)
+{
+   var doTimes = 0;
+   var timeout = 300;
+   var isSync = false;
+   while( doTimes < timeout )
+   {
+      var masterNodeLSN = getLSN( masterNode );
+      var slaveNodeLSN = getLSN( slaveNode );
+      if( masterNodeLSN > slaveNodeLSN )
+      {
+         sleep(1000);
+         doTimes++;
+      }
+      else
+      {
+         isSync = true;
+         break;
+      }
+   }
+   if( !isSync )
+   {
+      throw new Error( "wait sync failed!" );
+   }
+}
+ 
+function checkReelect( groupName, hostName, svcName)
+{
+   var masterNode = db.getRG(groupName).getMaster();
+   var masterNodeHostName = masterNode.getHostName();
+   var masterNodeSvcName = masterNode.getServiceName();
+   if( masterNodeHostName != hostName || masterNodeSvcName != svcName )
+   {
+      throw new Error( "Reelect failed!" );
+   }
+}                             

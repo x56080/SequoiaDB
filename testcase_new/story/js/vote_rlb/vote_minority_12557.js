@@ -1,81 +1,53 @@
 /******************************************************************************
-@Description : Test stop minority node in data group and then start it.
-@Modify list :
-               2014-6-12  xiaojun Hu  Init
+@Description : seqDB-12257:停止组中的少数节点，组中仍旧有主
+@Modify list : 2014-6-12  xiaojun Hu  Init
+               2019-11-26  Zhao xiaoni Modified
 ******************************************************************************/
+import("../lib/main.js")
 
-function main ( db )
+testConf.skipStandAlone = true;
+
+main( test );
+
+function test( testPara )
 {
-   // Get Primary node related infomation
-   var group = commGetGroups( db );
-   var rgSize = group.length;
-   println( " Group Size : " + rgSize );
-   for( var i = 0; i < rgSize; ++i )
+   var groups = getGroupsWithNodeNum( 3 );
+   if( groups.length === 0 )
    {
-      var nodeSize = group[i].length;
-      var getRG = group[i][0].GroupName;         // GroupName
-      var primNode = group[i][0].PrimaryNode;    // PrimaryNode
-      var result = true;
-      // If the nodes less than 3, nodes cannot be stop
-      if( 3 < nodeSize )
+      return;
+   }
+   var group = groups[0];
+   var groupName = group[0].GroupName ;
+   var primaryNode = group[0].PrimaryNode;
+   var nodeIndexes = getMinorityNodeIndexes( group );
+
+   try
+   {
+      for(var i = 0; i < nodeIndexes.length; i++)
       {
-         for( var j = 1; j < Math.floor( nodeSize / 2 ); ++j )    //many groups,begin 1 not 0
+         var svcName = group[nodeIndexes[i]].svcname ;
+         var hostName = group[nodeIndexes[i]].HostName ;
+         var nodeID = group[nodeIndexes[i]].NodeID;
+         if( nodeID === primaryNode )
          {
-            var node = group[i][j].svcname;    // svcname
-            var nodeHost = group[i][j].HostName;    // HostName
-
-            // Stop primary node
-            stopNode( db, getRG, nodeHost, node );
+            var isContainPrimaryNode = true;
          }
-         // Inspect the new primary node ant the olde primary node
-         var count = 0;
-         var totalTimeLen = 60;
-         do
-         {
-            sleep( 1000 );
-            ++count;
-            var newPrimNode = getPrimNode( db, getRG );
-            //println( "node ID" + newPrimNode + " = " + primNode ) ;
-            if( totalTimeLen < count )
-            {
-               result = false;
-            }
-            //println( "count : " + count ) ;
-         } while( false == newPrimNode );
-
-         for( var j = 1; j < Math.floor( nodeSize / 2 ); ++j )    //many groups,begin 1 not 0
-         {
-            var node = group[i][j].svcname;    // svcname
-            var nodeHost = group[i][j].HostName;    // HostName
-
-            // Start primary node in the end
-            startNode( db, getRG, nodeHost, node );
-         }
-
-         if( !result )
-         {
-            println( "Don't change the primary node, node = " + primNode );
-            throw "ErrVotePrimary";
-         }
+         db.getRG( groupName ).getNode(hostName, svcName).stop();
       }
-      else
+   
+      var primaryNodeID = existPrimaryNode( groupName );   
+      if( isContainPrimaryNode && primaryNodeID === primaryNode )
       {
-         println( "The nodes less than 3 in group : " + getRG +
-            ", cannot be stop." );
+         throw new Error( "Primary node id is " + primaryNodeID + "after stop the primary node" );
       }
+      else if( !isContainPrimaryNode && primaryNodeID !== primaryNode)
+      {
+         throw new Error( "Primary node id changed from " + primaryNode + " to " + primaryNodeID );
+      }
+   }
+   finally
+   {
+      db.getRG( groupName ).start();
    }
 }
 
-// Main Running
-try
-{
-   var mode = commIsStandalone( db );
-   if( false == mode )
-      main( db );
-   else
-      println( "Run Mode is : Standalone" );
-}
-catch( e )
-{
-   throw e;
-}

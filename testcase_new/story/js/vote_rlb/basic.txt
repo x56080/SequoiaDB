@@ -1,2 +1,0 @@
-vote_primery.js
-vote_primery_majority.js

@@ -2,189 +2,87 @@
 @discretion: seqDB-20014:修改组内其中一个节点的权重为100，重新选主
 @author：2018-11-06 zhaoxiaoni
 ***************************************************************************** */
-try
+import ("../lib/main.js");
+
+testConf.skipStandAlone = true;
+
+main( test );
+
+function test( testPara )
 {
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
+   var nodesNum = 2;
+   var groupName = "rg_20014";
+   var hostName = commGetGroups( db )[0][1].HostName;
+   createGroupAndNode( db, groupName, hostName, nodesNum);
+
+   var clName = "cl_20014";
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groupName });
+   
+   var data = [];
+   for(var i = 0; i < 10000; i++)
    {
-      println( e.stack );
+      data.push({a:i});
    }
-   throw e;
+   cl.insert( data );
+
+   var masterNode = {};
+   var node = db.getRG( groupName ).getMaster();
+   masterNode.HostName = hostName;
+   masterNode.svcname = node.getServiceName();
+   var slaveNode = addNode( groupName, hostName );
+   waitSync( masterNode, slaveNode );
+
+   //节点创建成功启动后会有两个心跳窗口时间（一个心跳窗口时间是7s）的静默期，此时不会接受选主消息，因此这里停14s再执行选主
+   sleep(14000);
+
+   db.getRG( groupName ).reelect({ Seconds: 60 });
+   checkReelect( groupName, slaveNode.HostName, slaveNode.svcname );
+
+   db.getRG( groupName ).reelect({ Seconds: 60 });//由于内部实现影子权重的作用，再次reelect将切换主节点
+  
+   commDropCL( db, COMMCSNAME, clName, false, false );
+   db.removeRG( groupName );
 }
 
-function main ()
+function addNode( groupName, hostName )
 {
-   if( commIsStandalone( db ) )
-   {
-      println( "run mode is standalone" );
-      return;
-   }
-
    try
    {
-      var groupName = "rg_20014";
-      var nodesNum = 3;
-      var isGroupCreated = createGroupAndNode( db, groupName, nodesNum );
-
-      var csName = "cs_20014";
-      var clName = "cl_20014";
-      var cl = db.createCS( csName ).createCL( clName, { Group: groupName } );
-      var data = [];
-      for( var i = 0; i < 10000; i++ )
-      {
-         data.push( { a: i } );
-      }
-      cl.insert( data );
-
-      var dataNodeAttr = addNode( groupName );
-      var hostName = dataNodeAttr["hostName"];
-      var svcName = dataNodeAttr["svcName"];
-      var dbPath = dataNodeAttr["dbPath"];
-
-      println( "wait sycn start" );
-      waitSync( hostName, groupName, svcName );
-
-      //节点创建成功启动后会有两个心跳窗口时间（一个心跳窗口时间是7s）的静默期，此时不会接受选主消息，因此这里停14s再执行选主
-      sleep( 14000 );
-
-      db.getRG( groupName ).reelect( { Seconds: 60 } );
-      checkReelect( groupName, hostName, svcName );
-
-      db.getRG( groupName ).reelect( { Seconds: 60 } );//由于内部实现影子权重的作用，再次reelect将切换主节点
-   }
-   catch( e )
-   {
-      throw new Error( e );
-   }
-   finally
-   {
-      if( isGroupCreated )
-      {
-         db.dropCS( csName );
-         db.removeRG( groupName );
-      }
-   }
-}
-
-function addNode ( groupName )
-{
-   var dataNodeAttr = {};
-   dataNodeAttr.hostName = System.getHostName();
-   dataNodeAttr.config = { weight: 100, diaglevel: 5 };
-   var doTimes = 0;
-   var checkSucc = false;
-   var maxRetryTimes = 10;
-   while( !checkSucc && doTimes < maxRetryTimes )
-   {
-      dataNodeAttr.svcName = parseInt( RSRVPORTBEGIN ) + 10 * ( 3 + doTimes );
-      dataNodeAttr.dbPath = RSRVNODEDIR + "data/" + dataNodeAttr.svcName;
-      try
-      {
-         println( "add node: " + dataNodeAttr.hostName + ":" + dataNodeAttr.svcName + ", dbpath: " + dataNodeAttr.dbPath );
-         db.getRG( groupName ).createNode( dataNodeAttr.hostName, dataNodeAttr.svcName, dataNodeAttr.dbPath, dataNodeAttr.config );
-         checkSucc = true;
-      }
-      catch( e )
-      {
-         if( e == -145 || e == -290 )
-         {
-            doTimes++;
-         }
-      }
-   }
-   db.getRG( groupName ).start();
-
-   return dataNodeAttr;
-}
-
-function checkReelect ( groupName, hostName, svcName )
-{
-   println( "start check reelect" );
-   var masterNode = db.getRG( groupName ).getMaster();
-   var masterNodeHostName = masterNode.getHostName();
-   var masterNodeSvcName = masterNode.getServiceName();
-   if( masterNodeHostName != hostName || masterNodeSvcName != svcName )
-   {
-      throw new Error( "Reelect failed!" );
-   }
-   println( "check reelect finished" );
-}
-
-function getLSN ( db )
-{
-   var cursor = db.snapshot( SDB_SNAP_DATABASE );
-   var completeLSN = cursor.current().toObj()["CompleteLSN"];
-   return completeLSN;
-}
-
-function waitSync ( hostName, groupName, svcName )
-{
-   var masterNode = db.getRG( groupName ).getMaster().connect();
-   var newNode = new Sdb( hostName, svcName );
-   var doTimes = 0;
-   var timeout = 300;
-   while( doTimes < timeout )
-   {
-      var masterNodeLSN = getLSN( masterNode );
-      var newNodeLSN = getLSN( newNode );
-      if( masterNodeLSN <= newNodeLSN )
-      {
-         sleep( 1000 );
-         doTimes++;
-      }
-      else
-      {
-         break;
-      }
-      println( "masterNodeLSN:" + masterNodeLSN );
-      println( "newNodeLSN:" + newNodeLSN );
-   }
-   println( "wait sync finished" );
-}
-
-function createGroupAndNode ( db, rgName, nodesNum )
-{
-   var rg = db.createRG( rgName );
-   var isGroupCreated = true;
-   var host = System.getHostName();
-   var failedCount = 0;
-   for( var i = 0; i < nodesNum; i++ )
-   {
-      var svc = parseInt( RSRVPORTBEGIN ) + 10 * ( i + failedCount );
-      var dbPath = RSRVNODEDIR + "data/" + svc;
+      var dataNodeAttr = {};
+      dataNodeAttr.HostName = hostName;
+      dataNodeAttr.config = {weight: 100, diaglevel: 5};
+      var doTimes = 0;
       var checkSucc = false;
-      var times = 0;
       var maxRetryTimes = 10;
-      do
+      while( !checkSucc && doTimes < maxRetryTimes )
       {
+         dataNodeAttr.svcname = parseInt( RSRVPORTBEGIN ) + 10*(2 + doTimes );
+         dataNodeAttr.dbPath = RSRVNODEDIR + "data/" + dataNodeAttr.svcname; 
          try
          {
-            rg.createNode( host, svc, dbPath, { diaglevel: 5 } );
-            println( "create node: " + host + ":" + svc + " dbpath: " + dbPath );
+            println("add node: " + dataNodeAttr.HostName + ":" + dataNodeAttr.svcname + ", dbpath: " + dataNodeAttr.dbPath );
+            db.getRG(groupName).createNode(dataNodeAttr.HostName, dataNodeAttr.svcname, dataNodeAttr.dbPath, dataNodeAttr.config);
             checkSucc = true;
          }
-         catch( e )
+         catch(e)
          {
-            //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
             if( e == -145 || e == -290 )
             {
-               svc = svc + 10;
-               dbPath = RSRVNODEDIR + "data/" + svc;
-               failedCount++;
+               doTimes++;
             }
             else
             {
-               throw "create node failed!  port = " + svc + " dataPath = " + dbPath + " errorCode: " + e;
+               throw e;
             }
-            times++;
          }
       }
-      while( !checkSucc && times < maxRetryTimes );
+      db.getRG(groupName).start();
    }
-   println( "start group" );
-   rg.start();
-   return isGroupCreated;
+   catch(e)
+   {
+      throw new Error(e);
+   }
+   return dataNodeAttr;
 }
+
