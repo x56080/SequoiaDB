@@ -15,7 +15,7 @@ function main ()
     }
     catch( e )
     {
-        if( e === 0 )
+        if( e !== -64 && e !== -6 )
         {
             throw new Error( e );
         }
@@ -24,8 +24,7 @@ function main ()
 
 try
 {
-    //SEQUOIADBMAINSTREAM-5230
-    //main() ;
+    main() ;
 }
 catch( e )
 {
