@@ -1,7 +1,5 @@
 package com.sequoiadb.subcl.diskfull;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -67,13 +65,22 @@ public class DiskFullSubcl2329 extends SdbTestBase {
     }
 
     @AfterClass
-    public void tearDown() {
+    public void tearDown() throws InterruptedException {
         try {
             if ( clearFlag ) {
-                sdb.dropCollectionSpace( csName );
+                for ( int i = 0; i < 30; i++ ) {
+                    try {
+                        sdb.dropCollectionSpace( csName );
+                        break;
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() == -147 && i < 29 ) {
+                            Thread.sleep( 1000 );
+                        } else {
+                            throw e;
+                        }
+                    }
+                }
             }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
             if ( sdb != null ) {
                 sdb.close();
@@ -173,8 +180,7 @@ public class DiskFullSubcl2329 extends SdbTestBase {
 
     public void checkDetachResult() {
         int lastMainCLNo = ( lastDetachedMainCL > 0 )
-                ? ( lastDetachedMainCL - 1 )
-                : 0;
+                ? ( lastDetachedMainCL - 1 ) : 0;
         int lastSubCLNo = ( lastDetachSubCL > 0 ) ? ( lastDetachSubCL - 1 ) : 0;
         DBCollection mainCL = cs
                 .getCollection( mainCLName + "_" + lastMainCLNo );

@@ -1,5 +1,13 @@
 package com.sequoiadb.subcl.diskfull;
 
+import org.bson.BSONObject;
+import org.bson.util.JSON;
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -14,15 +22,6 @@ import com.sequoiadb.fault.DiskFull;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.bson.BSONObject;
-import org.bson.util.JSON;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.Date;
 
 /**
  * @FileName:SEQDB-2332 在主表做基本操作时dataRG备节点所在服务器磁盘满
@@ -63,8 +62,8 @@ public class DiskFullSubcl2332 extends SdbTestBase {
             mainCL = commCS.createCollection( mainClName, ( BSONObject ) JSON
                     .parse( "{ShardingKey:{'sk':1},ShardingType:'range',IsMainCL:true}" ) );
             subCL = commCS.createCollection( subClName,
-                    ( BSONObject ) JSON.parse(
-                            "{ShardingKey:{sk:1},ShardingType:'range',Group:'"
+                    ( BSONObject ) JSON
+                            .parse( "{ShardingKey:{sk:1},ShardingType:'range',Group:'"
                                     + subClGroupName + "'}" ) );
             mainCL.attachCollection( subCL.getFullName(), ( BSONObject ) JSON
                     .parse( "{LowBound:{sk:0},UpBound:{sk:10000}}" ) );
@@ -119,8 +118,8 @@ public class DiskFullSubcl2332 extends SdbTestBase {
         int count = 0;
         while ( cursor.hasNext() ) {
             BSONObject obj = cursor.getNext();
-            Assert.assertEquals( obj, ( BSONObject ) JSON
-                    .parse( "{sk:" + count + ",pad:'" + padStr + "'}" ) );
+            Assert.assertEquals( obj,
+                    JSON.parse( "{sk:" + count + ",pad:'" + padStr + "'}" ) );
             count++;
         }
 
@@ -128,13 +127,22 @@ public class DiskFullSubcl2332 extends SdbTestBase {
     }
 
     @AfterClass
-    public void tearDown() {
+    public void tearDown() throws InterruptedException {
         try {
             if ( clearFlag ) {
-                commSdb.dropCollectionSpace( csName );
+                for ( int i = 0; i < 30; i++ ) {
+                    try {
+                        commSdb.dropCollectionSpace( csName );
+                        break;
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() == -147 && i < 29 ) {
+                            Thread.sleep( 1000 );
+                        } else {
+                            throw e;
+                        }
+                    }
+                }
             }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
         } finally {
             if ( commSdb != null ) {
                 commSdb.close();
