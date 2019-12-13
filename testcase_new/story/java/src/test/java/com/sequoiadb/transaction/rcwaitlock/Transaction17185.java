@@ -44,6 +44,9 @@ public class Transaction17185 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
     }
 
     @AfterClass
@@ -78,11 +81,6 @@ public class Transaction17185 extends SdbTestBase {
             cl = sdb.getCollectionSpace( csName ).createCollection( clName );
             cl.createIndex( "textIndex17185", indexKey, false, false );
             insertData();
-
-            // 开启并发事务
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
             // 事务1插入记录
             InsertThread insertThread = new InsertThread();

@@ -48,6 +48,11 @@ public class Transaction18045 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db5 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
     }
 
     @AfterClass
@@ -96,11 +101,6 @@ public class Transaction18045 extends SdbTestBase {
             insertData();
 
             // 开启并发事务
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db5 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );

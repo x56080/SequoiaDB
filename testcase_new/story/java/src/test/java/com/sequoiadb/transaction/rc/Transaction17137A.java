@@ -41,6 +41,8 @@ public class Transaction17137A extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         expDataList = prepareData( recordNum );
         rs1 = expDataList.subList( 0, recordNum / 2 );
@@ -51,8 +53,6 @@ public class Transaction17137A extends SdbTestBase {
 
     @Test
     public void test() {
-        sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         sdb1.beginTransaction();
         sdb2.beginTransaction();

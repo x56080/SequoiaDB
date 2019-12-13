@@ -39,18 +39,12 @@ public class Transaction16303 extends SdbTestBase {
     public void setUp() {
         String coordAddr = SdbTestBase.coordUrl;
         commCSName = SdbTestBase.csName;
-        try {
-            sdb = new Sequoiadb( coordAddr, "", "" );
-            sdb2 = new Sequoiadb( coordAddr, "", "" );
-            cs = sdb.getCollectionSpace( commCSName );
-            cl = cs.createCollection( clName,
-                    new BasicBSONObject( "ReplSize", 0 ) );
-            insertData();
-        } catch ( BaseException e ) {
-            Assert.fail(
-                    "Sequoiadb driver TestTransaction16303 setUp error, error description:"
-                            + e.getMessage() );
-        }
+        sdb = new Sequoiadb( coordAddr, "", "" );
+        sdb2 = new Sequoiadb( coordAddr, "", "" );
+        cs = sdb.getCollectionSpace( commCSName );
+        cl = cs.createCollection( clName,
+                new BasicBSONObject( "ReplSize", 0 ) );
+        insertData();
     }
 
     @Test

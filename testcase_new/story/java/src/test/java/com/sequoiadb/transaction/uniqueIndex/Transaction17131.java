@@ -40,6 +40,7 @@ public class Transaction17131 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         expDataList = new ArrayList< BSONObject >();
         cl.createIndex( "a", "{a:1}", true, false );
@@ -64,7 +65,6 @@ public class Transaction17131 extends SdbTestBase {
 
     @Test
     public void test1() {
-        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
 
         sdb.beginTransaction();

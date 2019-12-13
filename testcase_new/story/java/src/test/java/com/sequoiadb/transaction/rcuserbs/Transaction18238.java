@@ -46,6 +46,11 @@ public class Transaction18238 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb5 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a: 1}", false, false );
         expDataList = new ArrayList< BSONObject >();
@@ -55,12 +60,6 @@ public class Transaction18238 extends SdbTestBase {
 
     @Test
     public void test() {
-
-        sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb5 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );

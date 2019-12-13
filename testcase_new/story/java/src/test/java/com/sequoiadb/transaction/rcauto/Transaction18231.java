@@ -38,6 +38,7 @@ public class Transaction18231 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -64,7 +65,6 @@ public class Transaction18231 extends SdbTestBase {
 
     @Test
     public void test() {
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
 

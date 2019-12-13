@@ -52,6 +52,10 @@ public class Transaction17765F extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         insertR1 = ( BSONObject ) JSON
                 .parse( "{_id:'insertID17765F_1',a:3,b:3}" );
@@ -119,10 +123,6 @@ public class Transaction17765F extends SdbTestBase {
             List< BSONObject > expPositiveReadList3,
             List< BSONObject > expReverseReadList3 ) {
         try {
-            sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            sdb3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            sdb4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = sdb3.getCollectionSpace( csName ).getCollection( clName );

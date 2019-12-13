@@ -109,7 +109,10 @@ public class Transaction18212B extends SdbTestBase {
                 cl.update( "{$and:[{a:{$gte:5000}},{a:{$lt:15000}}]}",
                         "{$inc:{a:10}}", "{}'':'idx18212'" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -190 );
+                if ( e.getErrorCode() != -190 && e.getErrorCode() != -23
+                        && e.getErrorCode() != -34 ) {
+                    throw e;
+                }
             } finally {
                 db.commit();
                 db.close();

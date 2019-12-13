@@ -50,6 +50,10 @@ public class Transaction17770A extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         insertR1 = ( BSONObject ) JSON
                 .parse( "{_id:'insertID17770A_1',a:1,b:1}" );
@@ -72,10 +76,6 @@ public class Transaction17770A extends SdbTestBase {
     public void test( String indexKey,
             List< BSONObject > expPositiveReadList ) {
         try {
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
             // 开启4个并发事务
             db1.beginTransaction();

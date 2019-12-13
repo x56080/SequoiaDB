@@ -35,6 +35,9 @@ public class Transaction18423 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         DBCollection cl = sdb.getCollectionSpace( csName )
                 .createCollection( clName );
         cl.createIndex( idxName, "{a:1}", false, false );
@@ -66,9 +69,6 @@ public class Transaction18423 extends SdbTestBase {
 
     @Test
     public void test() {
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
         DBCollection cl2 = db2.getCollectionSpace( csName )

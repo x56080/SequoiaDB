@@ -92,6 +92,11 @@ public class Transaction18211B extends SdbTestBase {
                         "{'':'idx18211'}" );
                 cl.update( "{$and:[{a:{$gte:5000}},{a:{$lt:15000}}]}",
                         "{$inc:{a:10}}", "{}'':'idx18211'" );
+            } catch ( BaseException e ) {
+                // 集合已被删除,未开始做事务操作
+                if ( e.getErrorCode() != -23 ) {
+                    throw e;
+                }
             } finally {
                 db.commit();
                 db.close();
