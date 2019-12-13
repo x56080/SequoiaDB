@@ -4,49 +4,50 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9105";
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   try
-   {
-      var cl = readyCL( COMMCSNAME, clName );
+   var cl = readyCL( COMMCSNAME, clName );
 
-      //import datas          
-      var imprtFile = tmpFileDir + "9105.json";
-      var srcDatas = "{time:Timestamp('2015-06-05-16.10.33.000000')}\n{'time':Timestamp(1433492413, 0)}"
-      importData( COMMCSNAME, clName, imprtFile, srcDatas );
+   //import datas          
+   var imprtFile = tmpFileDir + "9105.json";
+   var srcDatas = "{time:Timestamp('2015-06-05-16.10.33.000000')}\n{'time':Timestamp(1433492413, 0)}"
+   importData( COMMCSNAME, clName, imprtFile, srcDatas );
 
-      //check the import result 
-      var expRecs = '[{"time":{"$timestamp":"2015-06-05-16.10.33.000000"}},{"time":{"$timestamp":"2015-06-05-16.20.13.000000"}}]';
-      checkCLData( cl, expRecs );
+   //check the import result 
+   var expRecs = '[{"time":{"$timestamp":"2015-06-05-16.10.33.000000"}},{"time":{"$timestamp":"2015-06-05-16.20.13.000000"}}]';
+   checkCLData( cl, expRecs );
 
-      //import the data of {time:Timestamp()}
-      var imprtFile1 = tmpFileDir + "9105a.json";
-      var srcDatas1 = "{testtime:Timestamp()}"
-      importData( COMMCSNAME, clName, imprtFile1, srcDatas1 );
-      checkCLTimeData( cl );
+   //import the data of {time:Timestamp()}
+   var imprtFile1 = tmpFileDir + "9105a.json";
+   var srcDatas1 = "{testtime:Timestamp()}"
+   importData( COMMCSNAME, clName, imprtFile1, srcDatas1 );
+   checkCLTimeData( cl );
 
-      cleanCL( COMMCSNAME, clName );
-      removeTmpDir();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName );
+   removeTmpDir();
 }
 
 function checkCLTimeData ( cl )
 {
-   println( "\n---Begin to check cl data." );
-
    var actCnt = cl.find( { testtime: { $exists: 1 } } ).count();
    var expCnt = 1;
 
    if( Number( actCnt ) !== Number( expCnt ) )
    {
-      throw buildException( "checkCLTimeData", null, "[find]",
-         "[recs:" + expCnt + "]",
-         "[recs:" + actCnt + "]" );
+      throw new Error( "actCnt: " + actCnt + "\nexpCnt: " + expCnt );
    }
 
 }

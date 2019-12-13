@@ -3,32 +3,37 @@
 *@Author:        2017-1-5  wuyan
 ************************************************************************/
 var clName = COMMCLNAME + "_10913";
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   try
-   {
-      var cl = readyCL( COMMCSNAME, clName );
-      cmd.run( 'rm -rf ./sdbimport.log' );
+   var cl = readyCL( COMMCSNAME, clName );
+   cmd.run( 'rm -rf ./sdbimport.log' );
 
-      //-------------test a：--------------------------
-      //import datas          
-      var imprtFile = tmpFileDir + "10913.json";
-      var srcDatas = "{a:9223372036854775808}\n{b:-9223372036854775809}\n"
-         + "{c:9223372036854775807}\n{d:-9223372036854775808}"
-      importData( COMMCSNAME, clName, imprtFile, srcDatas );
+   //-------------test a：--------------------------
+   //import datas          
+   var imprtFile = tmpFileDir + "10913.json";
+   var srcDatas = "{a:9223372036854775808}\n{b:-9223372036854775809}\n"
+      + "{c:9223372036854775807}\n{d:-9223372036854775808}"
+   importData( COMMCSNAME, clName, imprtFile, srcDatas );
 
-      //check the import result 
-      var expRecs = '[{"a":{"$decimal":"9223372036854775808"}},{"b":{"$decimal":"-9223372036854775809"}},'
-         + '{"c":{"$numberLong":"9223372036854775807"}},{"d":{"$numberLong":"-9223372036854775808"}}]';
-      checkCLData( cl, expRecs );
+   //check the import result 
+   var expRecs = '[{"a":{"$decimal":"9223372036854775808"}},{"b":{"$decimal":"-9223372036854775809"}},'
+      + '{"c":{"$numberLong":"9223372036854775807"}},{"d":{"$numberLong":"-9223372036854775808"}}]';
+   checkCLData( cl, expRecs );
 
-      cleanCL( COMMCSNAME, clName );
-      removeTmpDir();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName );
+   removeTmpDir();
 }
 

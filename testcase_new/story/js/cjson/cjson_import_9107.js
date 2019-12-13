@@ -4,49 +4,50 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9107";
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   try
-   {
-      var cl = readyCL( COMMCSNAME, clName );
+   var cl = readyCL( COMMCSNAME, clName );
 
-      //import datas          
-      var imprtFile = tmpFileDir + "9107.json";
-      var srcDatas = "{date1:SdbDate('2015-06-05')}\n{date2:SdbDate(804334924130)}"
-      importData( COMMCSNAME, clName, imprtFile, srcDatas );
+   //import datas          
+   var imprtFile = tmpFileDir + "9107.json";
+   var srcDatas = "{date1:SdbDate('2015-06-05')}\n{date2:SdbDate(804334924130)}"
+   importData( COMMCSNAME, clName, imprtFile, srcDatas );
 
-      //check the import result 
-      var expRecs = '[{"date1":{"$date":"2015-06-05"}},{"date2":{"$date":"1995-06-28"}}]';
-      checkCLData( cl, expRecs );
+   //check the import result 
+   var expRecs = '[{"date1":{"$date":"2015-06-05"}},{"date2":{"$date":"1995-06-28"}}]';
+   checkCLData( cl, expRecs );
 
-      //import the data of {date:SdbDate()}
-      var imprtFile1 = tmpFileDir + "9107a.json";
-      var srcDatas1 = "{testdate:SdbDate()}"
-      importData( COMMCSNAME, clName, imprtFile1, srcDatas1 );
-      checkCLDateData( cl );
+   //import the data of {date:SdbDate()}
+   var imprtFile1 = tmpFileDir + "9107a.json";
+   var srcDatas1 = "{testdate:SdbDate()}"
+   importData( COMMCSNAME, clName, imprtFile1, srcDatas1 );
+   checkCLDateData( cl );
 
-      cleanCL( COMMCSNAME, clName );
-      removeTmpDir();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName );
+   removeTmpDir();
 }
 
 function checkCLDateData ( cl )
 {
-   println( "\n---Begin to check cl data." );
-
    var actCnt = cl.find( { testdate: { $exists: 1 } } ).count();
    var expCnt = 1;
 
    if( Number( actCnt ) !== Number( expCnt ) )
    {
-      throw buildException( "checkCLDateData", null, "[find]",
-         "[recs:" + expCnt + "]",
-         "[recs:" + actCnt + "]" );
+      throw new Error( "actCnt: " + actCnt + "\nexpCnt: " + expCnt );
    }
 
 }

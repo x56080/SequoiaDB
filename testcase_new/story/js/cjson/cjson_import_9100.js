@@ -4,34 +4,37 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9100";
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   try
-   {
-      var cl = readyCL( COMMCSNAME, clName );
+   var cl = readyCL( COMMCSNAME, clName );
 
-      //import datas          
-      var imprtFile = tmpFileDir + "9100.json";
-      var srcDatas = "{_id:ObjectId('55713f7953e6769804000001')}\n{_id:ObjectId()}"
-      importData( COMMCSNAME, clName, imprtFile, srcDatas );
+   //import datas          
+   var imprtFile = tmpFileDir + "9100.json";
+   var srcDatas = "{_id:ObjectId('55713f7953e6769804000001')}\n{_id:ObjectId()}"
+   importData( COMMCSNAME, clName, imprtFile, srcDatas );
 
-      //check the import result    	
-      checkCLDatas( cl );
+   //check the import result    	
+   checkCLDatas( cl );
 
-      cleanCL( COMMCSNAME, clName );
-      removeTmpDir();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName );
+   removeTmpDir();
 }
 
 function checkCLDatas ( cl, expRecs )
 {
-   println( "\n---Begin to check cl data." );
-
    var actIdCnt = cl.find( { "_id": { "$oid": "55713f7953e6769804000001" } } ).count();
 
    var rc = cl.find();
@@ -41,18 +44,13 @@ function checkCLDatas ( cl, expRecs )
 
    if( actIdCnt != extIdCnt )
    {
-      println( "cl records: " + rc );
-      throw buildException( "checkCLdatas()", null, "[countId]",
-         "[recs:" + extIdCnt + "]",
-         "[recs:" + actIdCnt + "]" );
+      throw new Error( "actIdCnt: " + actIdCnt + "\nextIdCnt: " + extIdCnt );
    }
 
 
    if( actCnt != expCnt )
    {
-      throw buildException( "checkCLdatas()", null, "[count]",
-         "[recs:" + expCnt + "]",
-         "[recs:" + actCnt + "]" );
+      throw new Error( "actCnt: " + actCnt + "\nexpCnt: " + expCnt );
    }
 }
 

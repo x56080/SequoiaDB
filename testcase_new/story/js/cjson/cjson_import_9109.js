@@ -4,28 +4,33 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9109";
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   try
-   {
-      var cl = readyCL( COMMCSNAME, clName );
+   var cl = readyCL( COMMCSNAME, clName );
 
-      //import datas          
-      var imprtFile = tmpFileDir + "9109.json";
-      var srcDatas = "{reg:Regex('^W', 'i')}\n{reg1:Regex('^张', 'i')}"
-      importData( COMMCSNAME, clName, imprtFile, srcDatas );
+   //import datas          
+   var imprtFile = tmpFileDir + "9109.json";
+   var srcDatas = "{reg:Regex('^W', 'i')}\n{reg1:Regex('^张', 'i')}"
+   importData( COMMCSNAME, clName, imprtFile, srcDatas );
 
-      //check the import result 
-      var expRecs = '[{"reg":{"$regex":"^W","$options":"i"}},{"reg1":{"$regex":"^张","$options":"i"}}]';
-      checkCLData( cl, expRecs );
+   //check the import result 
+   var expRecs = '[{"reg":{"$regex":"^W","$options":"i"}},{"reg1":{"$regex":"^张","$options":"i"}}]';
+   checkCLData( cl, expRecs );
 
-      cleanCL( COMMCSNAME, clName );
-      removeTmpDir();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName );
+   removeTmpDir();
 }
 

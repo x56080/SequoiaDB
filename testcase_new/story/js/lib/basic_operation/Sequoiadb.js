@@ -1,6 +1,8 @@
 import( "./Collection.js" );
 import( "./CollectionSpace.js" );
+import( "./Command.js" );
 import( "./Cursor.js" );
+import( "./FileObj.js" );
 import( "./Node.js" );
 import( "./Query.js" );
 import( "./ReplicaGroup.js" );
@@ -25,20 +27,27 @@ var db = new Sequoiadb( COORDHOSTNAME, COORDSVCNAME );
 ***************************************************************************** */
 function Sequoiadb ( hostname, svcname, username, password )
 {
-   if( username === undefined && password === undefined )
+   try
    {
-      if( svcname === undefined )
+      if( username === undefined && password === undefined )
       {
-         var db = new Sdb( hostname );
+         if( svcname === undefined )
+         {
+            var db = new Sdb( hostname );
+         }
+         else
+         {
+            var db = new Sdb( hostname, svcname );
+         }
       }
       else
       {
-         var db = new Sdb( hostname, svcname );
+         var db = new Sdb( hostname, svcname, username, password );
       }
    }
-   else
+   catch( e )
    {
-      var db = new Sdb( hostname, svcname, username, password );
+      throw new Error( e );
    }
 
    this.createCS =

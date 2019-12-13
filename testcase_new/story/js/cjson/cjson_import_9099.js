@@ -4,38 +4,43 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9099";
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   try
-   {
-      var cl = readyCL( COMMCSNAME, clName );
-      cmd.run( 'rm -rf ./sdbimport.log' );
+   var cl = readyCL( COMMCSNAME, clName );
+   cmd.run( 'rm -rf ./sdbimport.log' );
 
-      //import datas          
-      var imprtFile = tmpFileDir + "9099.json";
-      var srcDatas = "{a:[1,2,,4],b:{test:{d:1,,c:2}}}"
-      var rcInfos = importData( COMMCSNAME, clName, imprtFile, srcDatas );
+   //import datas          
+   var imprtFile = tmpFileDir + "9099.json";
+   var srcDatas = "{a:[1,2,,4],b:{test:{d:1,,c:2}}}"
+   var rcInfos = importData( COMMCSNAME, clName, imprtFile, srcDatas );
 
-      //check the Return Infos of the import datas
-      var parseFail = 1;
-      var importRes = 0;
-      checkImportReturn( rcInfos, parseFail, importRes );
+   //check the Return Infos of the import datas
+   var parseFail = 1;
+   var importRes = 0;
+   checkImportReturn( rcInfos, parseFail, importRes );
 
-      //check sdbimport.log 
-      var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "Syntax Error: extra \',\'"';
-      var expLogInfo = 'Syntax Error: extra \',\'';
-      checkSdbimportLog( matchInfos, expLogInfo );
+   //check sdbimport.log 
+   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "Syntax Error: extra \',\'"';
+   var expLogInfo = 'Syntax Error: extra \',\'';
+   checkSdbimportLog( matchInfos, expLogInfo );
 
-      cleanCL( COMMCSNAME, clName );
-      cmd.run( 'rm -rf ./*.rec' );
-      removeTmpDir();
+   commDropCL( db, COMMCSNAME, clName );
+   cmd.run( 'rm -rf ./*.rec' );
+   removeTmpDir();
 
-   }
-   catch( e )
-   {
-      throw e;
-   }
 }
 
 

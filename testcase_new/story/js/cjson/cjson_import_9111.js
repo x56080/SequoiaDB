@@ -4,28 +4,33 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9111";
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   try
-   {
-      var cl = readyCL( COMMCSNAME, clName );
+   var cl = readyCL( COMMCSNAME, clName );
 
-      //import datas          
-      var imprtFile = tmpFileDir + "9109.json";
-      var srcDatas = "{bin:BinData('aGVsbG8gd29ybGQ=', '1' )}"
-      importData( COMMCSNAME, clName, imprtFile, srcDatas );
+   //import datas          
+   var imprtFile = tmpFileDir + "9109.json";
+   var srcDatas = "{bin:BinData('aGVsbG8gd29ybGQ=', '1' )}"
+   importData( COMMCSNAME, clName, imprtFile, srcDatas );
 
-      //check the import result 
-      var expRecs = '[{"bin":{"$binary":"aGVsbG8gd29ybGQ=","$type":"1"}}]';
-      checkCLData( cl, expRecs );
+   //check the import result 
+   var expRecs = '[{"bin":{"$binary":"aGVsbG8gd29ybGQ=","$type":"1"}}]';
+   checkCLData( cl, expRecs );
 
-      cleanCL( COMMCSNAME, clName );
-      removeTmpDir();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName );
+   removeTmpDir();
 }
 

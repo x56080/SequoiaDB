@@ -6,28 +6,33 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9117";
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   try
-   {
-      var cl = readyCL( COMMCSNAME, clName );
+   var cl = readyCL( COMMCSNAME, clName );
 
-      //import datas          
-      var imprtFile = tmpFileDir + "9117.json";
-      var srcDatas = "{number:NumberLong(100)}\n{number:NumberLong('100')}}"
-      importData( COMMCSNAME, clName, imprtFile, srcDatas );
+   //import datas          
+   var imprtFile = tmpFileDir + "9117.json";
+   var srcDatas = "{number:NumberLong(100)}\n{number:NumberLong('100')}}"
+   importData( COMMCSNAME, clName, imprtFile, srcDatas );
 
-      //check the import result 
-      var expRecs = '[{"number":100},{"number":100}]';
-      checkCLData( cl, expRecs );
+   //check the import result 
+   var expRecs = '[{"number":100},{"number":100}]';
+   checkCLData( cl, expRecs );
 
-      cleanCL( COMMCSNAME, clName );
-      removeTmpDir();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName );
+   removeTmpDir();
 }
 

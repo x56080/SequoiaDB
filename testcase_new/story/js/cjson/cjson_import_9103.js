@@ -4,49 +4,48 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9103";
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
 function main ()
 {
-   try
-   {
-      var cl = readyCL( COMMCSNAME, clName );
-      cmd.run( 'rm -rf ./sdbimport.log' );
+   var cl = readyCL( COMMCSNAME, clName );
+   cmd.run( 'rm -rf ./sdbimport.log' );
 
-      //import datas          
-      var imprtFile = tmpFileDir + "9103.json";
-      var srcDatas = "{_id:ObjectId('55713f7953e6769804')}\n{_id:ObjectId('55713f7953e67698040000012')}"
-      var rcInfos = importData( COMMCSNAME, clName, imprtFile, srcDatas );
+   //import datas          
+   var imprtFile = tmpFileDir + "9103.json";
+   var srcDatas = "{_id:ObjectId('55713f7953e6769804')}\n{_id:ObjectId('55713f7953e67698040000012')}"
+   var rcInfos = importData( COMMCSNAME, clName, imprtFile, srcDatas );
 
-      //check the import result 
-      var expRecs = '[{"_id":{"$oid":"00000055713f7953e6769804"}}]';
-      checkClOidData( cl, expRecs );
+   //check the import result 
+   var expRecs = '[{"_id":{"$oid":"00000055713f7953e6769804"}}]';
+   checkClOidData( cl, expRecs );
 
-      var parseFail = 1;
-      var importRes = 1;
-      checkImportReturn( rcInfos, parseFail, importRes );
+   var parseFail = 1;
+   var importRes = 1;
+   checkImportReturn( rcInfos, parseFail, importRes );
 
-      //check sdbimport.log 
-      var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "argument ObjectId must be a string of length 24"';
-      var expLogInfo = 'argument ObjectId must be a string of length 24';
-      checkSdbimportLog( matchInfos, expLogInfo );
+   //check sdbimport.log 
+   var matchInfos = 'find ./ -name "sdbimport.log" |xargs grep "argument ObjectId must be a string of length 24"';
+   var expLogInfo = 'argument ObjectId must be a string of length 24';
+   checkSdbimportLog( matchInfos, expLogInfo );
 
-
-
-      cleanCL( COMMCSNAME, clName );
-      cmd.run( 'rm -rf ./*.rec' );
-      removeTmpDir();
-
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName );
+   cmd.run( 'rm -rf ./*.rec' );
+   removeTmpDir();
 }
 
 function checkClOidData ( cl, expRecs )
 {
-   println( "\n---Begin to check cl data." );
-
    var rc = cl.find();
 
    var recsArray = [];
@@ -58,9 +57,6 @@ function checkClOidData ( cl, expRecs )
    var actRecs = JSON.stringify( recsArray );
    if( actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[recs:" + expRecs + "]",
-         "[recs:" + actRecs + "]" );
+      throw new Error( "actRecs: " + actRecs + "\nexpRecs: " + expRecs );
    }
-   println( "cl records: " + actRecs );
 }

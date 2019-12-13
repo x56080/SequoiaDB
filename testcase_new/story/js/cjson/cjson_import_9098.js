@@ -4,29 +4,34 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9098";
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   try
-   {
-      var cl = readyCL( COMMCSNAME, clName );
+   var cl = readyCL( COMMCSNAME, clName );
 
-      //import datas          
-      var imprtFile = tmpFileDir + "9098.json";
-      var srcDatas = "{a:[1,2,3,],b:{a:{a:1,}}}"
-      importData( COMMCSNAME, clName, imprtFile, srcDatas );
+   //import datas          
+   var imprtFile = tmpFileDir + "9098.json";
+   var srcDatas = "{a:[1,2,3,],b:{a:{a:1,}}}"
+   importData( COMMCSNAME, clName, imprtFile, srcDatas );
 
-      //check the import result 
-      var expRecs = '[{"a":[1,2,3],"b":{"a":{"a":1}}}]';
-      checkCLData( cl, expRecs );
+   //check the import result 
+   var expRecs = '[{"a":[1,2,3],"b":{"a":{"a":1}}}]';
+   checkCLData( cl, expRecs );
 
-      cleanCL( COMMCSNAME, clName );
-      removeTmpDir();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName );
+   removeTmpDir();
 }
 
 
