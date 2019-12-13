@@ -133,14 +133,23 @@ public class DiskFullSubcl2332 extends SdbTestBase {
     }
 
     @AfterClass
-    public void tearDown() {
+    public void tearDown() throws InterruptedException {
         try {
             groupMgr.close();
             if ( clearFlag ) {
-                commSdb.dropCollectionSpace( csName );
+                for ( int i = 0; i < 30; i++ ) {
+                    try {
+                        commSdb.dropCollectionSpace( csName );
+                        break;
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() == -147 && i < 29 ) {
+                            Thread.sleep( 1000 );
+                        } else {
+                            throw e;
+                        }
+                    }
+                }
             }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
         } finally {
             if ( commSdb != null ) {
                 commSdb.disconnect();
