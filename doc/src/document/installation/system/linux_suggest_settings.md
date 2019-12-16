@@ -12,6 +12,7 @@
      *              soft       fsize           unlimited
      *              soft         rss           unlimited
      *              soft          as           unlimited
+     *	            soft      nofile	       65535
      ```
 
         - **参数说明：**
@@ -25,12 +26,15 @@
          **rss**：数据库进程所允许的最大 resident set 大小；
 
          **as**：数据库进程所允许最大虚拟内存寻址空间限制；
+         
+         **nofile**：数据库进程所允许打开的最大文件数；
 
    2. 在配置文件 /etc/security/limits.d/90-nproc.conf 中设置：
 
      ```
      #<domain>      <type>    <item>     <value>
      *              soft       nproc      unlimited
+     *              hard       nproc      unlimited
      ```
 
         - **参数说明：**
@@ -172,11 +176,23 @@
      ```lang-bash
      $ source /etc/rc.local
      ```
-  3. 检查是否成功关闭transparent_hugepage。分别执行如下两条命令，输出结果中都有 “[never]” 则表示成功关闭了transparent_hugepage，如果是 “never” 并且有 “[always]” 或者 “[madvise]” 则关闭失败：
-
+  3. 检查是否成功关闭transparent_hugepage。分别执行如下两条命令：
+    
      ```lang-bash
+     $ # 若关闭成功，显示效果如下：
      $ cat /sys/kernel/mm/transparent_hugepage/enabled
+       always madvise [never]
      $ cat /sys/kernel/mm/transparent_hugepage/defrag
+       always madvise [never]
+
+
+
+     $ # 若关闭失败，显示效果如下：
+     $ cat /sys/kernel/mm/transparent_hugepage/enabled
+       [always] madvise never
+     $ cat /sys/kernel/mm/transparent_hugepage/defrag
+       [always] madvise never
+
      ```
 
 - **NUMA的影响**
