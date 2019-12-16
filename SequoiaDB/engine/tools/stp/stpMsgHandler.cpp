@@ -178,7 +178,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNETMSGHANDLER_ONSENDMSG, "_stpNetMsgHandler::onSendMsg" )
    void _stpNetMsgHandler::onSendMsg( const NET_HANDLE &handle,
-                                      MsgRouteID id,
+                                      const MsgRouteID &id,
                                       MsgHeader *header )
    {
       PD_TRACE_ENTRY( SDB__STPNETMSGHANDLER_ONSENDMSG ) ;
@@ -213,7 +213,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNETMSGHANDLER_ONRECEIVEMSG, "_stpNetMsgHandler::onReceiveMsg" )
    void _stpNetMsgHandler::onReceiveMsg( const NET_HANDLE &handle,
-                                         MsgRouteID id,
+                                         const MsgRouteID &id,
                                          MsgHeader *header )
    {
       PD_TRACE_ENTRY( SDB__STPNETMSGHANDLER_ONRECEIVEMSG ) ;
