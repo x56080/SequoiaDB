@@ -1,13 +1,13 @@
 ##语法##
-***db.stopRG( \<name\> )***
+***db.stopRG( \<name1\>，[name2]，... )***
 
 停止指定的分区组。停止后将不能执行创建节点等相关操作。这个方法等价于[rg.stop()](reference/Sequoiadb_command/SdbReplicaGroup/stop.md)。
 
 ##参数描述##
 
-| 参数名 | 参数类型 | 描述 			| 是否必填 	 |
-| ------ | ------ 	| ------ 		| ------	 |
-| name 	 | string 	| 分区组的名称 	| 是 		 |
+| 参数名             | 参数类型 | 描述 			| 是否必填 	 |
+| ------             | ------ 	| ------ 		| ------	 |
+| name1，name2... 	 | string 	| 分区组的名称 	| 是 		 |
 
 **Note:**
 

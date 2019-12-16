@@ -1,13 +1,13 @@
 ##语法##
-***db.startRG( \<name\> )***
+***db.startRG( \<name1\>，[name2]，... )***
 
 启动指定的分区组。分区组启动后才能在分区组上创建节点。这个方法等价于[rg.start()](reference/Sequoiadb_command/SdbReplicaGroup/start.md)。
 
 ##参数描述##
 
-| 参数名 | 参数类型 | 描述 			| 是否必填 	 |
-| ------ | ------ 	| ------ 		| ------	 |
-| name 	 | string 	| 分区组的名称 	| 是 		 |
+| 参数名             | 参数类型 | 描述 			| 是否必填 	 |
+| ------             | ------ 	| ------ 		| ------	 |
+| name1，name2... 	 | string 	| 分区组的名称 	| 是 		 |
 
 **Note:**
 
