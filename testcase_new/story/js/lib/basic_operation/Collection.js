@@ -440,4 +440,18 @@ function Collection ( cl )
          }
          return new Query( query );
       }
+
+   this.aggregate =
+      function( subOp )
+      {
+         try
+         {
+            var query = cl.aggregate( subOp );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return new Query( query );
+      }
 }

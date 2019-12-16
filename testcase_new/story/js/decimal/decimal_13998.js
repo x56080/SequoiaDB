@@ -3,7 +3,19 @@
 *               seqDB-13998:水平分区表插入特殊decimal值           
 *@author      : Liang XueWang 
 ******************************************************************************/
-main();
+
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
 
 function main ()
 {
@@ -20,30 +32,31 @@ function main ()
    }
 
    // test range split cl
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-   var option = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0 };
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, option, true, true );
+   var clName = COMMCLNAME + "_13998";
+   commDropCL( db, COMMCSNAME, clName );
+   var option = { ShardingKey: { a: 1 }, ShardingType: "range" };
+   var cl = commCreateCL( db, COMMCSNAME, clName, option );
 
    var docs = [{ a: { $decimal: "MAX" } },
    { a: { $decimal: "MIN" } },
    { a: { $decimal: "NaN" } }];
-   insertData( cl, docs );
+   cl.insert( docs );
 
    var startCond = { a: 10 };
-   var splitGrpInfo = ClSplitOneTimes( COMMCSNAME, COMMCLNAME, startCond );
+   var splitGrpInfo = ClSplitOneTimes( COMMCSNAME, clName, startCond );
    var expRecs = [[{ a: { $decimal: "MIN" } }, { a: { $decimal: "NaN" } }],
    [{ a: { $decimal: "MAX" } }]];
-   checkRangeClSplitResult( db, COMMCLNAME, splitGrpInfo, {}, {}, expRecs, { _id: 1 } );
+   checkRangeClSplitResult( db, clName, splitGrpInfo, {}, {}, expRecs, { _id: 1 } );
 
    // test hash split cl
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL after test range split" );
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL after test range split" );
    option = { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 };
-   cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, option, true, true );
+   cl = commCreateCL( db, COMMCSNAME, clName, option, true, true );
 
-
-   insertData( cl, docs );
-
-   splitGrpInfo = ClSplitOneTimes( COMMCSNAME, COMMCLNAME, 0.5 );
+   cl.insert( docs );
+   splitGrpInfo = ClSplitOneTimes( COMMCSNAME, clName, 0.5 );
    var expRecsNum = 3;
-   checkHashClSplitResult( db, COMMCLNAME, splitGrpInfo, {}, {}, expRecsNum, { _id: 1 } );
+   checkHashClSplitResult( db, clName, splitGrpInfo, {}, {}, expRecsNum, { _id: 1 } );
+
+   commDropCL( db, COMMCSNAME, clName );
 }

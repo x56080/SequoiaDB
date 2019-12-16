@@ -5,11 +5,12 @@
 **************************************/
 function main ()
 {
+   var clName = COMMCLNAME + "_7775";
    //clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
+   commDropCL( db, COMMCSNAME, clName );
 
    //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //insert data
    var doc = [{ a: { $decimal: "-5.94E-400" } },
@@ -18,7 +19,7 @@ function main ()
    { a: { $decimal: "-1.99E+700" } },
    { a: { $decimal: "2.99E+600" } },
    { a: { $decimal: "1589.64", $precision: [10, 2] } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //multiply 0,check result            	 
    var expRecsMulZero = [{ a: { $decimal: "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" } },
@@ -94,6 +95,18 @@ function main ()
 
    //multiply invalid data,check result
    InvalidArgCheck( dbcl, {}, { a: { $multiply: "abc" } }, -6 );
+   commDropCL( db, COMMCSNAME, clName );
 }
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}

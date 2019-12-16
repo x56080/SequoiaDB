@@ -4,6 +4,7 @@ import( "./Command.js" );
 import( "./Cursor.js" );
 import( "./FileObj.js" );
 import( "./Node.js" );
+import( "./NumberDecimalObj.js" );
 import( "./Query.js" );
 import( "./ReplicaGroup.js" );
 
@@ -374,5 +375,19 @@ function Sequoiadb ( hostname, svcname, username, password )
             throw new Error( e );
          }
          return new ReplicaGroup( rg );
+      }
+
+   this.exec =
+      function( selectSql )
+      {
+         try
+         {
+            var cursor = db.exec( selectSql );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return new Cursor( cursor );
       }
 }

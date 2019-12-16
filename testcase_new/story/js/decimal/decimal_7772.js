@@ -5,11 +5,12 @@
 **************************************/
 function main ()
 {
+   var clName = COMMCLNAME + "_7772";
    //clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
+   commDropCL( db, COMMCSNAME, clName );
 
    //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //insert decimal data
    var doc = [{ a: { $decimal: "-9223372036854775808456", $precision: [1000, 2] } },
@@ -22,7 +23,7 @@ function main ()
    { a: { $decimal: "NAN" } },
    { a: { $decimal: "-INF" } },
    { a: { $decimal: "INF" } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //check result
    var expRecs0 = [{ a: { $decimal: "-456.00" } },
@@ -75,6 +76,18 @@ function main ()
 
    //mod 0,check result
    InvalidArgCheck( dbcl, {}, { a: { $mod: { $decimal: "0" } } }, -6 );
+   commDropCL( db, COMMCSNAME, clName );
 }
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}

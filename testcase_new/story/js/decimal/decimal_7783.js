@@ -8,34 +8,28 @@
 **************************************/
 function main ()
 {
+   var clName = COMMCLNAME + "_7783";
    //part1:split condition is int type,and insert decimal data;
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
+   commDropCL( db, COMMCSNAME, clName );
 
    //check test environment before split
-   try
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
    {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups,can not split
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "--least two groups" );
-         return;
-      }
+      println( "run mode is standalone" );
+      return;
    }
-   catch( e )
+   //less two groups,can not split
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
    {
-      throw e;
+      println( "--least two groups" );
+      return;
    }
 
    //create cl for range split
-   var ClOption = { ShardingKey: { "age": 1 }, ShardingType: "range", ReplSize: 0 };
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
+   var ClOption = { ShardingKey: { "age": 1 }, ShardingType: "range" };
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, ClOption, true, true );
 
    //insert decimal data befor split;
    var doc = [{ age: { $decimal: "123" } },
@@ -70,12 +64,12 @@ function main ()
    { age: false },
    { age: { name: "zhang" } },
    { age: [1, 2, 3] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //split cl
    startCondition = { age: 10 };
    endCondition = { age: 10000 };
-   splitGrInfo = ClSplitOneTimes( COMMCSNAME, COMMCLNAME, startCondition, endCondition );
+   splitGrInfo = ClSplitOneTimes( COMMCSNAME, clName, startCondition, endCondition );
 
    //check decimal data in src group and des group 
    expRecs = [[{ "age": "123" },
@@ -110,7 +104,7 @@ function main ()
    { "age": { "$decimal": "123.5687" } },
    { age: { "$decimal": "10" } },
    { "age": { "$decimal": "9999" } }]];
-   checkRangeClSplitResult( db, COMMCLNAME, splitGrInfo, null, null, expRecs, { _id: 1 } );
+   checkRangeClSplitResult( db, clName, splitGrInfo, null, null, expRecs, { _id: 1 } );
 
    //insert decimal data after split
    doc1 = [{ age: { $decimal: "1000" } },
@@ -130,7 +124,7 @@ function main ()
    { age: true },
    { age: false },
    { age: { name: "zhang" } }];
-   insertData( dbcl, doc1 );
+   dbcl.insert( doc1 );
 
    //check decimal data in src group and des group
    expRecs1 = [[{ "age": "123" },
@@ -182,14 +176,14 @@ function main ()
    { age: { $decimal: "1000" } },
    { age: { $decimal: "1000.00000", $precision: [10, 5] } },
    { age: 1000 }]];
-   checkRangeClSplitResult( db, COMMCLNAME, splitGrInfo, null, null, expRecs1, { _id: 1 } );
+   checkRangeClSplitResult( db, clName, splitGrInfo, null, null, expRecs1, { _id: 1 } );
 
    //part2:split condition is decimal type,and insert decimal data;
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
    //create cl for range split
    var ClOption = { ShardingKey: { "age": 1 }, ShardingType: "range" };
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, ClOption, true, true );
 
    //insert decimal data befor split;
    var doc = [{ age: { $decimal: "123" } },
@@ -224,12 +218,12 @@ function main ()
    { age: false },
    { age: { name: "zhang" } },
    { age: [1, 2, 3] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //split cl
    startCondition = { age: { $decimal: "10" } };
    endCondition = { age: { $decimal: "10000", $precision: [7, 2] } };
-   splitGrInfo = ClSplitOneTimes( COMMCSNAME, COMMCLNAME, startCondition, endCondition );
+   splitGrInfo = ClSplitOneTimes( COMMCSNAME, clName, startCondition, endCondition );
 
    //check decimal data in src group and des group 
    expRecs = [[{ "age": "123" },
@@ -264,7 +258,7 @@ function main ()
    { "age": { "$decimal": "123.5687" } },
    { age: { "$decimal": "10" } },
    { "age": { "$decimal": "9999" } }]];
-   checkRangeClSplitResult( db, COMMCLNAME, splitGrInfo, null, null, expRecs, { _id: 1 } );
+   checkRangeClSplitResult( db, clName, splitGrInfo, null, null, expRecs, { _id: 1 } );
 
    //insert decimal data after split
    doc1 = [{ age: { $decimal: "1000" } },
@@ -284,7 +278,7 @@ function main ()
    { age: true },
    { age: false },
    { age: { name: "zhang" } }];
-   insertData( dbcl, doc1 );
+   dbcl.insert( doc1 );
 
    //check decimal data in src group and des group
    expRecs1 = [[{ "age": "123" },
@@ -336,6 +330,19 @@ function main ()
    { age: { $decimal: "1000" } },
    { age: { $decimal: "1000.00000", $precision: [10, 5] } },
    { age: 1000 }]];
-   checkRangeClSplitResult( db, COMMCLNAME, splitGrInfo, null, null, expRecs1, { _id: 1 } );
+   checkRangeClSplitResult( db, clName, splitGrInfo, null, null, expRecs1, { _id: 1 } );
+   commDropCL( db, COMMCSNAME, clName );
 }
-main();
+
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}

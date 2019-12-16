@@ -3,17 +3,30 @@
 *               seqDB-13997:使用内置sql对特殊decimal值做数学运算           
 *@author      : Liang XueWang 
 ******************************************************************************/
-main();
+
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
 
 function main ()
 {
+   var clName = COMMCLNAME + "_13997";
    var docs = [{ a: { $decimal: "MAX" } },
    { a: { $decimal: "MIN" } },
    { a: { $decimal: "NaN" } }];
 
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
-   insertData( cl, docs );
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
+   cl.insert( docs );
 
    var operators = ["+", "-", "*", "/", "%"];
    var expRecs = [{ a: { $decimal: "NaN" } },
@@ -22,8 +35,8 @@ function main ()
    for( var i = 0; i < operators.length; i++ )
    {
       var op = operators[i];
-      println( "test " + op );
-      var sql = "select a" + op + "2 from " + COMMCSNAME + "." + COMMCLNAME;
+      var sql = "select a" + op + "2 from " + COMMCSNAME + "." + clName;
       checkSqlResult( db, sql, expRecs );
    }
+   commDropCL( db, COMMCSNAME, clName );
 }

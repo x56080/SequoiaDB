@@ -4,63 +4,72 @@
 *               seqDB-13996:使用聚集符查询特殊decimal值           
 *@author      : Liang XueWang 
 ******************************************************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
+   var clName = COMMCLNAME + "_13996";
    var docs = [{ a: { $decimal: "MAX" } },
    { a: { $decimal: "MIN" } },
    { a: { $decimal: "NaN" } }];
 
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
-   insertData( cl, docs );
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
+   cl.insert( docs );
 
-   println( "test $sort" );
-   var cursor = aggregate( cl, { $sort: { a: 1 } } );
+   var cursor = cl.aggregate( { $sort: { a: 1 } } );
    var expRecs = [{ a: { $decimal: "MIN" } },
    { a: { $decimal: "NaN" } },
    { a: { $decimal: "MAX" } }];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
 
    // insert MAX MIN NAN to diff group to test $addtoset
-   deleteData( cl );
+   cl.remove();
    docs = [{ gid: 3, a: { $decimal: "MAX" } },
    { gid: 2, a: { $decimal: "NaN" } },
    { gid: 1, a: { $decimal: "MIN" } }];
-   insertData( cl, docs );
+   cl.insert( docs );
 
-   println( "test $addtoset" );
-   cursor = aggregate( cl, { $group: { _id: "$gid", b: { $addtoset: "$a" } } } );
+   cursor = cl.aggregate( { $group: { _id: "$gid", b: { $addtoset: "$a" } } } );
    expRecs = [{ b: [{ $decimal: "MIN" }] },
    { b: [{ $decimal: "NaN" }] },
    { b: [{ $decimal: "MAX" }] }];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
 
    // insert MAX MIN NAN to same group to test $max $min $avg $sum
-   deleteData( cl );
+   cl.remove();
    docs = [{ gid: 1, a: { $decimal: "MAX" } },
    { gid: 1, a: { $decimal: "NaN" } },
    { gid: 1, a: { $decimal: "MIN" } }];
-   insertData( cl, docs );
+   cl.insert( docs );
 
-   println( "test $max" );
-   cursor = aggregate( cl, { $group: { _id: "$gid", b: { $max: "$a" } } } );
+   cursor = cl.aggregate( { $group: { _id: "$gid", b: { $max: "$a" } } } );
    expRecs = [{ b: { $decimal: "MAX" } }];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
 
-   println( "test $min" );
-   cursor = aggregate( cl, { $group: { _id: "$gid", b: { $min: "$a" } } } );
+   cursor = cl.aggregate( { $group: { _id: "$gid", b: { $min: "$a" } } } );
    expRecs = [{ b: { $decimal: "MIN" } }];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
 
-   println( "test $avg" );
-   cursor = aggregate( cl, { $group: { _id: "$gid", b: { $avg: "$a" } } } );
+   cursor = cl.aggregate( { $group: { _id: "$gid", b: { $avg: "$a" } } } );
    expRecs = [{ b: { $decimal: "NaN" } }];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
 
-   println( "test $sum" );
-   cursor = aggregate( cl, { $group: { _id: "$gid", b: { $sum: "$a" } } } );
+   cursor = cl.aggregate( { $group: { _id: "$gid", b: { $sum: "$a" } } } );
    expRecs = [{ b: { $decimal: "NaN" } }];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
+
+   commDropCL( db, COMMCSNAME, clName );
 }

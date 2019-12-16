@@ -3,33 +3,47 @@
 *               seqDB-14000:创建decimal字段索引后插入特殊decimal值         
 *@author      : Liang XueWang 
 ******************************************************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
+   var clName = COMMCLNAME + "_14000";
+   commDropCL( db, COMMCSNAME, clName );
 
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
    commCreateIndex( cl, "aIndex", { a: 1 }, true );
 
    var docs = [{ a: { $decimal: "MAX" } },
    { a: { $decimal: "MIN" } },
    { a: { $decimal: "NaN" } }];
-   insertData( cl, docs );
+   cl.insert( docs );
 
    for( var i = 0; i < docs.length; i++ )
    {
-      var cursor = findData( cl, docs[i] );
+      var cursor = cl.find( docs[i] );
       var expRecs = [docs[i]];
-      checkRec( cursor, expRecs );
+      commCompareResults( cursor, expRecs );
    }
 
    for( var i = 0; i < docs.length; i++ )
    {
-      var cursor = findData( cl, docs[i] );
+      var cursor = cl.find( docs[i] );
       var expRes = { ScanType: "ixscan", IndexName: "aIndex" };
       checkExplain( cursor, expRes );
    }
+   commDropCL( db, COMMCSNAME, clName );
 }
 
 function checkExplain ( cursor, expRes )
@@ -39,8 +53,7 @@ function checkExplain ( cursor, expRes )
    {
       if( expRes[k] !== actRes[k] )
       {
-         throw buildException( "checkExplain", null, "check explain info",
-            expRes[k], actRes[k] );
+         throw new Error( "expRes: " + expRes + "\nactRes: " + actRes );
       }
    }
 }

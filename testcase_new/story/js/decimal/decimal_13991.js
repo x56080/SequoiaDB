@@ -3,10 +3,23 @@
 *               seqDB-13991:插入特殊decimal值              
 *@author      : Liang XueWang 
 ******************************************************************************/
-main();
+
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
 
 function main ()
 {
+   var clName = COMMCLNAME + "_13991";
    var docs = [{ a: { $decimal: "MAX" } },
    { a: { $decimal: "INF" } },
    { a: { $decimal: "MAX", $precision: [1000, 999] } }, // MAX
@@ -15,9 +28,9 @@ function main ()
    { a: { $decimal: "MIN", $precision: [1000, 100] } }, // MIN
    { a: { $decimal: "NaN" } }];
 
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
-   insertData( cl, docs );
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
+   cl.insert( docs );
 
    var maxRecs = [docs[0], docs[0], docs[0]];
    var minRecs = [docs[3], docs[3], docs[3]];
@@ -25,12 +38,14 @@ function main ()
 
    for( var i = 0; i < docs.length; i++ )
    {
-      var cursor = findData( cl, docs[i] );
+      var cursor = cl.find( docs[i] );
       if( i < 3 )
-         checkRec( cursor, maxRecs );
+         commCompareResults( cursor, maxRecs );
       else if( i < 6 )
-         checkRec( cursor, minRecs );
+         commCompareResults( cursor, minRecs );
       else
-         checkRec( cursor, nanRecs );
+         commCompareResults( cursor, nanRecs );
    }
+
+   commDropCL( db, COMMCSNAME, clName );
 }

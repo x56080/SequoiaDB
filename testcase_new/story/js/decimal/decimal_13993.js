@@ -5,78 +5,80 @@
 *               seqDB-13993:使用匹配符查询特殊decimal值           
 *@author      : Liang XueWang 
 ******************************************************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
+   var clName = COMMCLNAME + "_13993";
    var docs = [{ a: { $decimal: "MAX" } },
    { a: { $decimal: "MIN" } },
    { a: { $decimal: "NaN" } }];
 
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
-   insertData( cl, docs );
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
+   cl.insert( docs );
 
-   println( "test $gt" );
-   var cursor = findData( cl, { a: { $gt: 0 } } );
+   var cursor = cl.find( { a: { $gt: 0 } } );
    var expRecs = [docs[0]];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
 
-   println( "test $gte" );
-   cursor = findData( cl, { a: { $gte: 0 } } );
+   cursor = cl.find( { a: { $gte: 0 } } );
    expRecs = [docs[0]];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
 
    // test $lt NaN < 0 ?
-   println( "test $lt" );
-   cursor = sortFindData( cl, { a: { $lt: 0 } }, {}, { _id: 1 } );
+   cursor = cl.find( { a: { $lt: 0 } } ).sort( { _id: 1 } );
    expRecs = [docs[1], docs[2]];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
 
    // test $lte NaN < 0 ?
-   println( "test $lte" );
-   cursor = sortFindData( cl, { a: { $lte: 0 } }, {}, { _id: 1 } );
+   cursor = cl.find( { a: { $lte: 0 } } ).sort( { _id: 1 } );
    expRecs = [docs[1], docs[2]];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
 
-   println( "test $et" );
    for( var i = 0; i < docs.length; i++ )
    {
-      cursor = findData( cl, { a: { $et: docs[i].a } } );
+      cursor = cl.find( { a: { $et: docs[i].a } } );
       expRecs = [docs[i]];
-      checkRec( cursor, expRecs );
+      commCompareResults( cursor, expRecs );
    }
 
-   println( "test $ne" );
    for( var i = 0; i < docs.length; i++ )
    {
-      cursor = sortFindData( cl, { a: { $ne: docs[i].a } }, {}, { _id: 1 } );
+      cursor = cl.find( { a: { $ne: docs[i].a } } ).sort( { _id: 1 } );
       var idx1 = ( i + 1 ) % docs.length;
       var idx2 = ( i + 2 ) % docs.length;
       var minIdx = ( idx1 > idx2 ) ? idx2 : idx1;
       var maxIdx = idx1 + idx2 - minIdx;
       expRecs = [docs[minIdx], docs[maxIdx]];
-      checkRec( cursor, expRecs );
+      commCompareResults( cursor, expRecs );
    }
 
-   println( "test $mod" );
-   cursor = findData( cl, { a: { $mod: [5, 3] } } );
+   cursor = cl.find( { a: { $mod: [5, 3] } } );
    expRecs = [];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
 
-   println( "test $type" );
-   cursor = sortFindData( cl, { a: { $type: 1, $et: 100 } }, {}, { _id: 1 } );
+   cursor = cl.find( { a: { $type: 1, $et: 100 } } ).sort( { _id: 1 } );
    expRecs = [docs[0], docs[1], docs[2]];
-   checkRec( cursor, expRecs );
+   commCompareResults( cursor, expRecs );
 
-   println( "test $elemMatch" );
    testElemMatch( cl );
-
-   println( "test $1" );
    testIdentifier( cl );
-
-   println( "test $field" );
    testField( cl );
+
+   commDropCL( db, COMMCSNAME, clName );
 }
 
 function testElemMatch ( cl )
@@ -84,14 +86,14 @@ function testElemMatch ( cl )
    var docs = [{ b: { no: { $decimal: "MAX" } } },
    { b: { no: { $decimal: "MIN" } } },
    { b: { no: { $decimal: "NaN" } } }];
-   insertData( cl, docs );
+   cl.insert( docs );
    for( var i = 0; i < docs.length; i++ )
    {
-      var cursor = findData( cl, { b: { $elemMatch: { no: docs[i].b.no } } } );
+      var cursor = cl.find( { b: { $elemMatch: { no: docs[i].b.no } } } );
       var expRecs = [docs[i]];
-      checkRec( cursor, expRecs );
+      commCompareResults( cursor, expRecs );
    }
-   deleteData( cl, { b: { $exists: 1 } } );
+   cl.remove( { b: { $exists: 1 } } );
 }
 
 function testIdentifier ( cl )
@@ -99,14 +101,14 @@ function testIdentifier ( cl )
    var docs = [{ b: [{ $decimal: "MAX" }] },
    { b: [{ $decimal: "MIN" }] },
    { b: [{ $decimal: "NaN" }] }];
-   insertData( cl, docs );
+   cl.insert( docs );
    for( var i = 0; i < docs.length; i++ )
    {
-      var cursor = findData( cl, { "b.$1": docs[i]["b"][0] } );
+      var cursor = cl.find( { "b.$1": docs[i]["b"][0] } );
       var expRecs = [docs[i]];
-      checkRec( cursor, expRecs );
+      commCompareResults( cursor, expRecs );
    }
-   deleteData( cl, { b: { $exists: 1 } } );
+   cl.remove( { b: { $exists: 1 } } );
 }
 
 function testField ( cl )
@@ -117,9 +119,9 @@ function testField ( cl )
    { b1: { $decimal: "MAX" }, b2: { $decimal: "MIN" } },
    { b1: { $decimal: "MAX" }, b2: { $decimal: "NaN" } },
    { b1: { $decimal: "MIN" }, b2: { $decimal: "NaN" } }];
-   insertData( cl, docs );
-   var cursor = sortFindData( cl, { b1: { $field: "b2" } }, {}, { _id: 1 } );
+   cl.insert( docs );
+   var cursor = cl.find( { b1: { $field: "b2" } } ).sort( { _id: 1 } );
    var expRecs = [docs[0], docs[1], docs[2]];
-   checkRec( cursor, expRecs );
-   deleteData( cl, { b1: { $exists: 1 } } );
+   commCompareResults( cursor, expRecs );
+   cl.remove( { b1: { $exists: 1 } } );
 }

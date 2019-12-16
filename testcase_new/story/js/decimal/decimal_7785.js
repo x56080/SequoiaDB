@@ -10,56 +10,49 @@ function main ()
    //part1:attach bound is int type,and insert decimal data;
 
    //clean environment before test
-   var mainCSName = COMMCSNAME + "mcs"
-   var mainCLName = COMMCLNAME + "_mcl";
-   commDropCL( db, mainCSName, mainCLName, true, true, "drop CL in the beginning" );
+   var mainCSName = COMMCSNAME + "_7785mcs"
+   var mainCLName = COMMCLNAME + "_7785mcl";
+   commDropCL( db, mainCSName, mainCLName );
 
-   var subCSName = COMMCSNAME + "_scs";
-   var subCLName1 = COMMCLNAME + "_scl1";
-   commDropCL( db, subCSName, subCLName1, true, true, "drop CL in the beginning" );
+   var subCSName = COMMCSNAME + "_7785scs";
+   var subCLName1 = COMMCLNAME + "_7785scl1";
+   commDropCL( db, subCSName, subCLName1 );
 
-   var subCLName2 = COMMCLNAME + "_scl2";
-   commDropCL( db, subCSName, subCLName2, true, true, "drop CL in the beginning" );
+   var subCLName2 = COMMCLNAME + "_7785scl2";
+   commDropCL( db, subCSName, subCLName2 );
 
    //check test environment before split
-   try
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
    {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups,can not split
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "--least two groups" );
-         return;
-      }
+      println( "run mode is standalone" );
+      return;
    }
-   catch( e )
+   //less two groups,can not split
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
    {
-      throw e;
+      println( "--least two groups" );
+      return;
    }
 
    //create main cl 
-   var mainCLOption = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0 };
-   var dbcl = commCreateCL( db, mainCSName, mainCLName, mainCLOption, true, true );
+   var mainCLOption = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" };
+   var dbcl = commCreateCL( db, mainCSName, mainCLName, mainCLOption );
 
    //create two sub cl
-   var subCLOption1 = { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 8, ReplSize: 0 };
-   var dbsubcl_1 = commCreateCL( db, subCSName, subCLName1, subCLOption1, true, true );
+   var subCLOption1 = { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 8 };
+   var dbsubcl_1 = commCreateCL( db, subCSName, subCLName1, subCLOption1 );
 
-   var subCLOption2 = { ShardingKey: { b: 1 }, ShardingType: "range", ReplSize: 0 };
-   var dbsubcl_2 = commCreateCL( db, subCSName, subCLName2, subCLOption2, true, true );
+   var subCLOption2 = { ShardingKey: { b: 1 }, ShardingType: "range" };
+   var dbsubcl_2 = commCreateCL( db, subCSName, subCLName2, subCLOption2 );
 
    //attach cl bound use int type
    attachOption1 = { LowBound: { a: -2147483648 }, UpBound: { a: 0 } };
-   attachCL( dbcl, subCSName + "." + subCLName1, attachOption1 );
+   dbcl.attachCL( subCSName + "." + subCLName1, attachOption1 );
 
    attachOption2 = { LowBound: { a: 0 }, UpBound: { a: 2147483647 } };
-   attachCL( dbcl, subCSName + "." + subCLName2, attachOption2 );
+   dbcl.attachCL( subCSName + "." + subCLName2, attachOption2 );
 
    //insert decimal data in bound ;
    var validDoc = [{ a: -2147483648 },
@@ -68,7 +61,7 @@ function main ()
    { a: { $decimal: "-2147483648" } },
    { a: { $decimal: "0" } },
    { a: { $decimal: "2147483646", $precision: [100, 2] } }];
-   insertData( dbcl, validDoc );
+   dbcl.insert( validDoc );
 
    //check decimal data in sub cl_1
    expRecs1 = [{ a: -2147483648 },
@@ -92,15 +85,15 @@ function main ()
    //part2:attach bound is decimal type,and insert decimal data;
 
    //detach two sub cl
-   detachCL( dbcl, subCSName + "." + subCLName1 );
-   detachCL( dbcl, subCSName + "." + subCLName2 );
+   dbcl.detachCL( subCSName + "." + subCLName1 );
+   dbcl.detachCL( subCSName + "." + subCLName2 );
 
    //attach cl bound use decimal type 
    attachDecimalOption1 = { LowBound: { a: { $decimal: "-9223372036854775808", $precision: [100, 2] } }, UpBound: { a: 0 } };
-   attachCL( dbcl, subCSName + "." + subCLName1, attachDecimalOption1 );
+   dbcl.attachCL( subCSName + "." + subCLName1, attachDecimalOption1 );
 
    attachDecimalOption2 = { LowBound: { a: { $decimal: "0", $precision: [100, 2] } }, UpBound: { a: { $decimal: "9223372036854775807" } } };
-   attachCL( dbcl, subCSName + "." + subCLName2, attachDecimalOption2 );
+   dbcl.attachCL( subCSName + "." + subCLName2, attachDecimalOption2 );
 
    //insert decimal data in bound ;
    var validDecimalDoc = [{ a: -2147483648 },
@@ -111,7 +104,7 @@ function main ()
    { a: { $decimal: "9223372036854775806" } },
    { a: { $decimal: "-4.7E-360" } },
    { a: { $decimal: "5.7E-400" } }];
-   insertData( dbcl, validDecimalDoc );
+   dbcl.insert( validDecimalDoc );
 
    //check decimal data in sub cl_1
    expDecimalRecs1 = [{ a: -2147483648 },
@@ -137,6 +130,19 @@ function main ()
    var invalidDecimalDoc = [{ age: { $decimal: "1.79E+400" } },
    { age: { $decimal: "-1.79E+500", $precision: [1000, 10] } }];
    invalidDataInsertCheckResult( dbcl, invalidDecimalDoc, -135 );
+   commDropCS( db, mainCSName );
+   commDropCS( db, subCSName );
 }
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}

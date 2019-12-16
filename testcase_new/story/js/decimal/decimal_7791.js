@@ -5,16 +5,17 @@
 **************************************/
 function main ()
 {
+   var clName = COMMCLNAME + "_7791";
    //clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
+   commDropCL( db, COMMCSNAME, clName );
 
    //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //insert data
    var doc = [{ a: { $decimal: "9223372036854775807198410", $precision: [1000, 2] } },
    { a: { $decimal: "2", $precision: [1, 0] } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //valid argument check
    var expRecs = [{ a: { $decimal: "9223372036854775807198410.00", $precision: [1000, 2] } },
@@ -37,7 +38,18 @@ function main ()
 
    var invalidDoc5 = { a: { $decimal: "2", $precision: [3.2, 2] } };
    invalidDataInsertCheckResult( dbcl, invalidDoc5, -6 );
-
+   commDropCL( db, COMMCSNAME, clName );
 }
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}

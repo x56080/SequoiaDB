@@ -5,11 +5,12 @@
 **************************************/
 function main ()
 {
+   var clName = COMMCLNAME + "_7748";
    //clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
+   commDropCL( db, COMMCSNAME, clName );
 
    //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //insert data
    var doc = [{ a: { $decimal: "9223372036854775807198410" } },
@@ -24,22 +25,29 @@ function main ()
    { a: { $decimal: "1.71E+378", $precision: [1000, 100] } },
    { a: { $decimal: "-4.964065645841246544E-380", $precision: [1000, 999] } },
    { a: { $decimal: "4.964065645841246544E-390", $precision: [1000, 999] } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //delete data
-   deleteData( dbcl );
+   dbcl.remove();
 
    //check result
    var recordNum = dbcl.count();
    if( 0 !== parseInt( recordNum ) )
    {
-      println( "remove decimal data failure!\nthe acture recordNum is:" + recordNum + ",and the expect recordNum is 0!" );
-      throw "check result failed.";
+      throw new Error( "parseInt( recordNum ): " + parseInt( recordNum ) );
    }
-   else
-   {
-      println( "check date ok!" );
-   }
+   commDropCL( db, COMMCSNAME, clName );
 }
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}

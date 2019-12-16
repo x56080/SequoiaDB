@@ -5,11 +5,12 @@
 **************************************/
 function main ()
 {
+   var clName = COMMCLNAME + "_7776";
    //clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
+   commDropCL( db, COMMCSNAME, clName );
 
    //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //insert data for test
    var doc = [{ a: { $decimal: "92233720368547758071983" } },
@@ -20,7 +21,7 @@ function main ()
    { a: { $decimal: "922337203685477580719837895", $precision: [30, 2] } },
    { a: { $decimal: "-922337203685477580754308", $precision: [30, 3] } },
    { a: 1589 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    // divide positive int data,check result
    var expRecsDivPosInt = [{ a: { $decimal: "0.10337394593251813219" } },
@@ -91,6 +92,18 @@ function main ()
    //divide invalid data,check result
    InvalidArgCheck( dbcl, {}, { a: { $divide: { $decimal: "0" } } }, -6 );
    InvalidArgCheck( dbcl, {}, { a: { $divide: "abc" } }, -6 );
+   commDropCL( db, COMMCSNAME, clName );
 }
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}

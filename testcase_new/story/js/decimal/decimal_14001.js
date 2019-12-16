@@ -3,19 +3,32 @@
 *               seqDB-14001:特殊decimal值参数校验         
 *@author      : Liang XueWang 
 ******************************************************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
+   var clName = COMMCLNAME + "_14001";
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
 
    var legalDocs = [{ a: { $decimal: "mAx" } },
    { a: { $decimal: "MiN" } },
    { a: { $decimal: "-Inf" } },
    { a: { $decimal: "iNF" } },
    { a: { $decimal: "nan" } }];
-   insertData( cl, legalDocs );
+   cl.insert( legalDocs );
 
    var illegalDocs = [{ a: { $decimal: "MAX1" } },
    { a: { $decimal: "1Max" } },
@@ -32,14 +45,15 @@ function main ()
       try
       {
          cl.insert( illegalDocs[i] );
-         throw 0;
+         throw new Error( "need throw error" );
       }
       catch( e )
       {
-         if( e !== -6 )
+         if( e.message != -6 )
          {
-            throw buildException( "main", e, "insert illegal decimal i=" + i, -6, e );
+            throw e;
          }
       }
    }
+   commDropCL( db, COMMCSNAME, clName );
 }

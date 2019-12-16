@@ -3,25 +3,39 @@
 *               seqDB-13992:删除特殊decimal值             
 *@author      : Liang XueWang 
 ******************************************************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 
 function main ()
 {
+   var clName = COMMCLNAME + "_13992";
    var docs = [{ a: { $decimal: "MAX" } },
    { a: { $decimal: "MIN" } },
    { a: { $decimal: "NaN" } }];
 
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
-   insertData( cl, docs );
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
+   cl.insert( docs );
 
    for( var i = 0; i < docs.length; i++ )
    {
-      deleteData( cl, docs[i] );
+      cl.remove( docs[i] );
       var docNum = cl.count( docs[i] );
       if( parseInt( docNum ) !== 0 )
       {
-         throw buildException( "main", null, "check doc num", 0, docNum );
+         throw new Error( "parseInt( docNum ): " + parseInt( docNum ) );
       }
    }
+   commDropCL( db, COMMCSNAME, clName );
 }
