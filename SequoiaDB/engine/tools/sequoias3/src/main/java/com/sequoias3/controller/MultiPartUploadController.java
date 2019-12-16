@@ -325,6 +325,7 @@ public class MultiPartUploadController {
     private CompleteMultipartUpload getCompleteMap(HttpServletRequest httpServletRequest)
             throws S3ServerException{
         int ONCE_READ_BYTES  = 1024;
+        CompleteMultipartUpload completeMultipartUpload = null;
         try {
             ServletInputStream inputStream = httpServletRequest.getInputStream();
             StringBuilder stringBuilder = new StringBuilder();
@@ -337,16 +338,17 @@ public class MultiPartUploadController {
             String content = stringBuilder.toString();
             if (content.length() > 0) {
                 ObjectMapper objectMapper = new XmlMapper();
-                CompleteMultipartUpload completeMultipartUpload = objectMapper.readValue(content, CompleteMultipartUpload.class);
-                if (completeMultipartUpload == null
-                        || completeMultipartUpload.getPart() == null){
-                    throw new S3ServerException(S3Error.MALFORMED_XML,
-                            "completeMultipartUpload is empty. not found part list.");
-                }
-                return completeMultipartUpload;
-            }else {
-                return null;
+                completeMultipartUpload = objectMapper.readValue(content, CompleteMultipartUpload.class);
             }
+            if (completeMultipartUpload == null){
+                throw new S3ServerException(S3Error.MALFORMED_XML,
+                        "completeMultipartUpload is null.");
+            }
+            if (completeMultipartUpload.getPart() == null){
+                throw new S3ServerException(S3Error.MALFORMED_XML,
+                        "completeMultipartUpload is empty. not found part list.");
+            }
+            return completeMultipartUpload;
         }catch (Exception e){
             throw new S3ServerException(S3Error.MALFORMED_XML, "get completeMultipartUpload failed", e);
         }
