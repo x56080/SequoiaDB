@@ -1324,7 +1324,6 @@ namespace engine
       pmdEDUCB   *eduCB      = pmdGetThreadEDUCB() ;
       CHAR        clName[30] = {0} ;
       DPS_TRANS_ID maxGlobTransID  = 0 ;
-      UINT64      lowTran    = 0 ;
       SINT32      curPos     = (position == DMS_META_RBS_CL) ? DMS_FIRST_RBS_CL :
                                                  ( position + 1 ) ;
       SINT32      begin      = curPos ;
@@ -1353,7 +1352,6 @@ namespace engine
          DMS_BUILD_RBS_CL_NAME( clName, curPos ) ;
 
          // retrieve system lowtran
-         lowTran = sdbGetTransCB()->getLowTran() ;
 
          // acquire mbLock before work on this CL, since we will try
          // to drop it, let's take X directly
@@ -1371,12 +1369,11 @@ namespace engine
          PD_LOG ( PDDEBUG,
                   "Got maxGlobTransID and lowTran (%d, %d), curPos=%d",
                    DPS_TRANS_GET_SN(maxGlobTransID),
-                   DPS_TRANS_GET_SN(lowTran), curPos ) ;
+                   DPS_TRANS_GET_SN(sdbGetTransCB()->getLowTran()), curPos ) ;
 #endif
          // do GC when lowTran is invalid, meaning no running transaction
          // or the cl max transID is older than lowtran
-         if ( sdbGetTransCB()->transIDLessThan( maxGlobTransID, lowTran ) ||
-              ( DPS_INVALID_TRANS_ID == lowTran ) )
+         if ( sdbGetTransCB()->isVersionExpired( maxGlobTransID ) )
          {
 
             rc = _su->data()->dropCollection( clName, eduCB, dpsCB,
