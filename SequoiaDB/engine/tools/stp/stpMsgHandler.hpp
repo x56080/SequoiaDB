@@ -72,11 +72,11 @@ namespace engine
 
       // handle event on sending message ( via UDP )
       virtual void onSendMsg( const NET_HANDLE &handle,
-                              MsgRouteID id,
+                              const MsgRouteID &id,
                               MsgHeader *header ) ;
       // handle event on receiving message ( via UDP )
       virtual void onReceiveMsg( const NET_HANDLE &handle,
-                                 MsgRouteID id,
+                                 const MsgRouteID &id,
                                  MsgHeader *header ) ;
 
    public:
