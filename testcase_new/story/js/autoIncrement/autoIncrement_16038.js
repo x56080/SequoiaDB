@@ -14,7 +14,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    dbcl.createAutoIncrement( [{ Field: "a" },
    { Field: "a1", MinValue: { "$numberLong": "-9223372036854775809" } },

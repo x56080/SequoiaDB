@@ -14,7 +14,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //create autoIncrement
    dbcl.createAutoIncrement( [{ Field: "a1" },

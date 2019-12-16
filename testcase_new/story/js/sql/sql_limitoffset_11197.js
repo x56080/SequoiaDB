@@ -13,8 +13,8 @@ function main ()
     var clName1 = "11197_CL_T1";
     var clName2 = "11197_CL_T2";
 
-    var cl_1 = commCreateCL( db, csName, clName1, null, null, true, false, "create cl in the begin" );
-    var cl_2 = commCreateCL( db, csName, clName2, null, null, true, false, "create cl in the begin" );
+    var cl_1 = commCreateCL( db, csName, clName1, {}, true, false, "create cl in the begin" );
+    var cl_2 = commCreateCL( db, csName, clName2, {}, true, false, "create cl in the begin" );
 
     cl_1.insert( { _id: 1, a: 1, b: "test1", c: "c1" } );
     cl_1.insert( { _id: 2, a: 2, b: "test2", c: "c2" } );

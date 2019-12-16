@@ -16,7 +16,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true );
 
    //创建集合并创建全文索引并创建其他字段为唯一索引
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var textIndexName = "textIndexName_ES_15769";
    commCreateIndex( dbcl, textIndexName, { about: "text", content: "text" } );
    commCreateIndex( dbcl, "nameIndex", { name: 1 }, true );

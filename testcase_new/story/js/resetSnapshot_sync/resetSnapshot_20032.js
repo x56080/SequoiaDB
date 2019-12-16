@@ -33,7 +33,7 @@ function main ()
 
    commDropCL( db, csName, clName );
    var groupName = commGetGroups( db )[0][0].GroupName;
-   var cl = commCreateCLByOption( db, csName, clName, { Group: groupName, ReplSize: replSize } );
+   var cl = commCreateCL( db, csName, clName, { Group: groupName, ReplSize: replSize } );
    commCreateIndex( cl, indexName, indexDef, true );
 
    for( var i = 0; i < 100; i++ )

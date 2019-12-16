@@ -22,7 +22,7 @@ function main ( db )
 
    var csName = "resetSnapshot14445";
    var clName = "resetSnapshot14445";
-   var cl = commCreateCLByOption( db, csName, clName, /*option*/{},
+   var cl = commCreateCL( db, csName, clName, /*option*/{},
          /*autoCreateCS*/true, /*ignoreExisted*/true );
    insertData( cl );
 

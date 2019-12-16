@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_15936";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id" } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id" } } );
    commCreateIndex( dbcl, "id", { id: 1 }, true, true );
 
    var doc = [];

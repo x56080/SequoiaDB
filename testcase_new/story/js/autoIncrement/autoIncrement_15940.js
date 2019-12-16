@@ -15,7 +15,7 @@ function main ()
    var clName = COMMCLNAME + "_15940";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", AcquireSize: 10 } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", AcquireSize: 10 } } );
 
    var coordNodes = getCoordNodeNames();
    var coordNum = coordNodes.length;

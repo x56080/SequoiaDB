@@ -66,7 +66,7 @@ function main ()
       commDropCL( db, COMMCSNAME, clName, true, true,
          "failed to drop cl in the begnning" );
 
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
          "failed to create collection in the beginning" );
 
       cl.createIndex( "indexA", { a: 1 } );

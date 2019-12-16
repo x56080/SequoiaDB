@@ -35,10 +35,10 @@ function main ()
    {
       db1 = new Sdb( hostname1, svcname1 );
       var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
-      var maincl = commCreateCLByOption( db1, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
+      var maincl = commCreateCL( db1, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
 
       var subClOption = { ShardingKey: { "b": 1 }, ShardingType: "hash", AutoSplit: true, ReplSize: 0 };
-      var subcl = commCreateCLByOption( db1, COMMCSNAME, subCL_Name, subClOption, true, true );
+      var subcl = commCreateCL( db1, COMMCSNAME, subCL_Name, subClOption, true, true );
 
       //挂载子表
       var options = { LowBound: { a: 1 }, UpBound: { a: 100 } };

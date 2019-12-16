@@ -18,7 +18,7 @@ function main ( db )
       throw "NotEnoughGroup";
    }
    // Create CS and CL
-   commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, {
+   commCreateCL( db, COMMCSNAME, COMMCLNAME, {
       ShardingKey: { "No": -1 },
       ShardingType: "hash", Partition: 1024,
       ReplSize: 0

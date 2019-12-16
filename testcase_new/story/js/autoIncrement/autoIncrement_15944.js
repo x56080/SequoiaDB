@@ -15,7 +15,7 @@ function main ()
    var clName = COMMCLNAME + "_15944";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, {
       AutoIncrement: [{ Field: "id1", AcquireSize: 10 },
       { Field: "id2", AcquireSize: 1, Increment: -1, CacheSize: 10, AcquireSize: 1 }]
    } );

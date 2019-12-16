@@ -35,10 +35,10 @@ function main ()
 
    //创建主子表
    var mainCLOption = { ShardingKey: { "a": 1 }, ReplSize: 0, IsMainCL: true };
-   var maincl = commCreateCLByOption( db, maincsName, mainCL_Name, mainCLOption, true, true );
+   var maincl = commCreateCL( db, maincsName, mainCL_Name, mainCLOption, true, true );
 
    var subClOption = { ShardingKey: { "b": 1 }, Group: dataRGName };
-   var subcl = commCreateCLByOption( db, subcsName, subCL_Name, subClOption, true, true );
+   var subcl = commCreateCL( db, subcsName, subCL_Name, subClOption, true, true );
 
    //attach子表
    var options = { LowBound: { a: 0 }, UpBound: { a: 10 } };

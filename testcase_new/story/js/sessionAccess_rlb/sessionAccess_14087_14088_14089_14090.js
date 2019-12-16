@@ -29,7 +29,7 @@ function main ()
 
       //create cl ,then insert data 
       var clName = CHANGEDPREFIX + "_sessionAcess14087";
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
       insertData( dbcl );
 
       //set multiple instanceid ,set the preferedInstanceMode is ordered

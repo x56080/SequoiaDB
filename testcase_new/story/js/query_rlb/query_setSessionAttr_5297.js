@@ -32,7 +32,7 @@ function main ()
       println( "begin to create data group" );
       var nodes = createDataGroups( rgName, hostName, instanceidArr, logSourcePaths );
       var optionObj = { Group: rgName, ReplSize: 0 };
-      var cl = commCreateCLByOption( db, csName, clName, optionObj, true, false );
+      var cl = commCreateCL( db, csName, clName, optionObj, true, false );
 
       insertData( cl, dataNum );
       //PreferedInstance字段值分别取1、7、M

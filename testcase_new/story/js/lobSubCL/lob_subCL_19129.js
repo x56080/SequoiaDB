@@ -32,7 +32,7 @@ function main ()
    var clName = "cl19129";
    var filePath = WORKDIR + "/CLLob19129/";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { "ShardingKey": { "date": 1 }, "ShardingType": "hash" } );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { "ShardingKey": { "date": 1 }, "ShardingType": "hash" } );
    splitSubCL( COMMCSNAME, clName );
 
    //put lob

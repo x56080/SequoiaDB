@@ -32,7 +32,7 @@ function main ()
    var svc = nodes[0].split( ":" )[1];
 
    var option = { Group: groupName, ReplSize: 0 };
-   var cl = commCreateCLByOption( db, csname, clname, option );
+   var cl = commCreateCL( db, csname, clname, option );
    cl.insert( doc );
 
    testExprtCsv( host, svc );

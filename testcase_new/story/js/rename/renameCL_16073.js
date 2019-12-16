@@ -12,7 +12,7 @@ function main ( db )
 
    commDropCS( db, csName, true, "drop CS " + csName );
    var cs = commCreateCS( db, csName, true, "create CS1" );
-   var varCL = commCreateCLByOption( db, csName, clName, {}, true, false, "create cl in the beginning" );
+   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in the beginning" );
    try
    {
       var recordNums = 100;

@@ -12,7 +12,7 @@ function main ()
     var csName = COMMCSNAME;
     var clName = "cl11073";
 
-    var cl = commCreateCL( db, csName, clName, null, null, true, false, "create cl in the begin" );
+    var cl = commCreateCL( db, csName, clName, {}, true, false, "create cl in the begin" );
 
     cl.insert( { _id: 1, a: [] } );
     cl.insert( { _id: 2, a: Regex( "W", "i" ) } );

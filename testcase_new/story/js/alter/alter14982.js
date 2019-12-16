@@ -35,7 +35,7 @@ function main ()
    commCreateCS( db, csName, false, "", csOption );
 
    var clOption = { Capped: true, Size: 96, Max: 100000, AutoIndexId: false, OverWrite: false };
-   var cl = commCreateCLByOption( db, csName, clName, clOption, true, true );
+   var cl = commCreateCL( db, csName, clName, clOption, true, true );
 
    //alter capped cl attribute
    println( "---test alter Size---" );

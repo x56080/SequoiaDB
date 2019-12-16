@@ -45,7 +45,7 @@ backupTestCase11673.prototype.createShardingCL =
       var csOpt = { Domain: this.domainName, LobPageSize: 4096 };
       commCreateCS( this.db, this.csName, false, "create cs in begin", csOpt );
       var clOpt = { ShardingType: 'hash', ShardingKey: { no: 1 }, ReplSize: -1 }
-      this.cl = commCreateCLByOption( this.db, this.csName, this.clName, clOpt, true, false,
+      this.cl = commCreateCL( this.db, this.csName, this.clName, clOpt, true, false,
          "Create collection in the beginning" );
    }
 
@@ -90,7 +90,7 @@ backupTestCase11673.prototype.execTest =
 
       for( var i = 0; i < 1000; ++i )
       {
-         commCreateCL( this.db, this.csName, this.clName + "_" + i, -1, true, true, false,
+         commCreateCL( this.db, this.csName, this.clName + "_" + i, {ReplSize: -1}, true, false,
             "Create collection for backup" );
       }
 

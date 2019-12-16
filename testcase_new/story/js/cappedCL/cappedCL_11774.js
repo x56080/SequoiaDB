@@ -8,7 +8,7 @@ function main ()
 {
 	var clName = COMMCAPPEDCLNAME + "_11774";
 	var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
-	var dbcl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
+	var dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
 
 	//insert datas , _id locate in the ending
 	var data = { a: 1, _id: 0 };
@@ -56,7 +56,7 @@ function main ()
 
 	//drop cl and createCL again
 	commDropCL( db, COMMCAPPEDCSNAME, clName, 'drop CL' );
-	dbcl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
+	dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
 
 	//insert again  
 	insertDatas( dbcl, doc );

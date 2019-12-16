@@ -13,7 +13,7 @@ function main ()
 {
    var docs = [{ a: 1, b: 1 }, { a: 1, b: 2 },
    { a: 3 }, { a: 2 }, { a: 4 }];
-   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl = commCreateCL( db, csname, clname );
    cl.insert( docs );
 
    testExprtSort1();    // test sort with { a: 1, b: 1 }

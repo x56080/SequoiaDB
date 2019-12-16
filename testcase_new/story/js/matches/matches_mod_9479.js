@@ -18,7 +18,7 @@ function main ()
 
       println( "---create collection space and collection in the beginning" );
       //create cs and cl      
-      commCreateCL( db, csName, clName, 0, true, true, false, "create cs and cl" );
+      commCreateCL( db, csName, clName, {}, true, false, "create cs and cl" );
 
       println( "---begin to insert long/int/ records" );
       var cl = db.getCS( csName ).getCL( clName );

@@ -32,7 +32,7 @@ function main ( db )
    commDropCS( db, csName1, true, "ignoreNotExist is true" );
    commDropCS( db, csName2, true, "ignoreNotExist is true" );
    var varCS = commCreateCS( db, csName1, true, "create CS" );
-   var varCL = commCreateCLByOption( db, csName1, clName, { Group: groupName1 }, true, false, "create cl in the beginning" )
+   var varCL = commCreateCL( db, csName1, clName, { Group: groupName1 }, true, false, "create cl in the beginning" )
    insertData( varCL, 100 );
 
    testRenameCS16110( db, domainName, domain, csName1, csName2, clName );

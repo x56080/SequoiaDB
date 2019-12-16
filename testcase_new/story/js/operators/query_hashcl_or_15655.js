@@ -28,7 +28,7 @@ function main ()
 
    var clName = "cl15655";
    var options = { Group: srcGroupName, ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 };
-   var cl = commCreateCLByOption( db, csName, clName, options, true );
+   var cl = commCreateCL( db, csName, clName, options, true );
 
    cl.split( srcGroupName, dstGroupName, 50 );
 

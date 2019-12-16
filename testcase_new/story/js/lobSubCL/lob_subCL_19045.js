@@ -43,9 +43,9 @@ function main ()
    commDropCL( db, csName, subCLName );
 
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range" };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl" );
+   var mainCL = commCreateCL( db, csName, mainCLName, options, true, false, "create main cl" );
    var clOptions = { "ShardingKey": { "a": 1 }, ShardingType: "hash", Group: sourceGroup };
-   var subCL = commCreateCLByOption( db, csName, subCLName, clOptions, true, false, "create sub cl" );
+   var subCL = commCreateCL( db, csName, subCLName, clOptions, true, false, "create sub cl" );
 
    mainCL.attachCL( csName + "." + subCLName, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190831" } } );
    var lobOids1 = insertLob( mainCL, fileFullPath, "YYYYMMDD", 5, 10, 1, "20190801" );

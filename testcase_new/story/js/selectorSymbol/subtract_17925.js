@@ -9,7 +9,7 @@ function main ()
    var clName = "selector_subtract_17925";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var doc = [{ no: 1, test: { c: 2147483648, d: -1145.934 } },
    { no: 2, test: { a: { no: { num: { "$numberLong": "92233720368547758" } } }, b: { no: { $decimal: "-12.345" } } } }];
    insertData( dbcl, doc );

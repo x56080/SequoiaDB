@@ -16,7 +16,7 @@ function main ()
    //create cl
    var clName = COMMCLNAME + "12977";
    var clOption = { AutoIndexId: false };
-   var dbcl = commCreateCLByOption( db, csName, clName, clOption, true );
+   var dbcl = commCreateCL( db, csName, clName, clOption, true );
 
    var clFullName = csName + "." + clName;
 

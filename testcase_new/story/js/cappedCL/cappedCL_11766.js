@@ -29,7 +29,7 @@ function main ()
    for( var i = 0; i < 3; i++ )
    {
       var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
-      commCreateCLByOption( db, csName1, clName + i, optionObj, false, false, "create cappedCL" );
+      commCreateCL( db, csName1, clName + i, optionObj, false, false, "create cappedCL" );
    }
 
    //create replSize cappedCL
@@ -37,7 +37,7 @@ function main ()
    {
       var replSize = i - 1;
       var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false, ReplSize: replSize };
-      commCreateCLByOption( db, csName2, clName + i, optionObj, false, false, "create cappedCL" );
+      commCreateCL( db, csName2, clName + i, optionObj, false, false, "create cappedCL" );
    }
 
    //insert data

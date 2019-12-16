@@ -846,7 +846,7 @@ function isSuccesscreateTestCollection ( groupName )
    try
    {
       commDropCL( db, COMMCSNAME, clName, true, true );
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { "ReplSize": 0, "Group": groupName }, false, false );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { "ReplSize": 0, "Group": groupName }, false, false );
       return true;
    }
    catch( e )

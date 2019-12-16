@@ -15,8 +15,8 @@ main();
 
 function main ()
 {
-   var cl = commCreateCL( db, csname, clname, 0 );
-   var cl1 = commCreateCL( db, csname, clname1, 0 );
+   var cl = commCreateCL( db, csname, clname );
+   var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( { a: 1, b: 1 } );
    cl1.insert( { a: 2, b: 2 } );
 

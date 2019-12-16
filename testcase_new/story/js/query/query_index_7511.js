@@ -3,7 +3,7 @@
 commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" );
 
 // create cs, cl
-var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true, false, "create cs and cl in begin" );
+var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false, "create cs and cl in begin" );
 
 try
 {

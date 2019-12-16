@@ -13,7 +13,7 @@ function main ( db )
 
    lobGenerateFile( testFile );
    // create collection
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true, true,
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true,
       "create collection" );
    // put Lob
    var oid = lobPutLob( cl, testFile, putNum ); //Array

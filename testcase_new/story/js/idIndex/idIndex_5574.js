@@ -21,9 +21,9 @@ function main ( db )
 
       // create collection
       var options = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true, IsMainCL: true }
-      var mainCL = commCreateCLByOption( db, COMMCSNAME, clName, options, true, true );
-      var subCL1 = commCreateCLByOption( db, COMMCSNAME, "subCL1", { ShardingKey: { a: 1 }, ShardingType: "hash", AutoIndexId: false, ReplSize: 0, Compressed: true }, true, true );
-      var subCL2 = commCreateCLByOption( db, COMMCSNAME, "subCL2", { ShardingKey: { a: 1 }, ShardingType: "hash", AutoIndexId: false, ReplSize: 0, Compressed: true }, true, true );
+      var mainCL = commCreateCL( db, COMMCSNAME, clName, options, true, true );
+      var subCL1 = commCreateCL( db, COMMCSNAME, "subCL1", { ShardingKey: { a: 1 }, ShardingType: "hash", AutoIndexId: false, ReplSize: 0, Compressed: true }, true, true );
+      var subCL2 = commCreateCL( db, COMMCSNAME, "subCL2", { ShardingKey: { a: 1 }, ShardingType: "hash", AutoIndexId: false, ReplSize: 0, Compressed: true }, true, true );
 
       mainCL.attachCL( COMMCSNAME + ".subCL1", { LowBound: { a: 0 }, UpBound: { a: 100 } } );
       mainCL.attachCL( COMMCSNAME + ".subCL2", { LowBound: { a: 100 }, UpBound: { a: 200 } } );

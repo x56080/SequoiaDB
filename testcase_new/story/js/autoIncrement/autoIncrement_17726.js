@@ -21,7 +21,7 @@ function main ()
    var clName = COMMCLNAME + "_17726";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", AcquireSize: acquireSize, CacheSize: cacheSize, Cycled: false, MaxValue: maxValue, Increment: increment, MinValue: minValue } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", AcquireSize: acquireSize, CacheSize: cacheSize, Cycled: false, MaxValue: maxValue, Increment: increment, MinValue: minValue } } );
    commCreateIndex( dbcl, "id", { id: 1 }, true, true );
 
    //alter currentValue为minValue,会清空所有coord上的缓存

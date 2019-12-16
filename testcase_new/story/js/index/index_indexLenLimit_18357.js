@@ -11,7 +11,7 @@ function main ()
     var clName = CHANGEDPREFIX + "_indexcl18357";
     commDropCL( db, csName, clName, true, true, "clear cl in the beginning" );
 
-    var cl = commCreateCL( db, csName, clName, 0, true, true );
+    var cl = commCreateCL( db, csName, clName );
     var single_index128 = "";
     var composite_index128 = "";
     var single_index1023 = "";

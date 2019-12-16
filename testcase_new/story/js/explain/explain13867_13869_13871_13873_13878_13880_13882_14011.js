@@ -28,7 +28,7 @@ function main ()
    var configPath = "./config.txt";
    var clName = COMMCLNAME + "13867";
    commDropCL( db, COMMCSNAME, clName, true );
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { a: 1 }, AutoSplit: true } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { a: 1 }, AutoSplit: true } );
 
    var doc = [];
    for( var i = 0; i < 30000; i++ )

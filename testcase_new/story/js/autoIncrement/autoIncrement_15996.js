@@ -21,7 +21,7 @@ function main ()
    createCL( clName, "a.aa.aaa" );
 
    //create same layer field
-   commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: [{ Field: "a.aa" }, { Field: "a.bb" }] } );
+   commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: [{ Field: "a.aa" }, { Field: "a.bb" }] } );
 
    var clID = getCLID( COMMCSNAME, clName );
    var sequenceNames = ["SYS_" + clID + "_a.aa_SEQ", "SYS_" + clID + "_a.bb_SEQ"];

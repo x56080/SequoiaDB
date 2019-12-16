@@ -11,7 +11,7 @@ function main ()
 {
    //create normal CL
    var clName = COMMCLNAME + "_11838";
-   dbcl = commCreateCL( db, COMMCSNAME, clName, null, null, true, false, "create normal CL" );
+   dbcl = commCreateCL( db, COMMCSNAME, clName, {}, true, false, "create normal CL" );
 
    //insert data
    normalCLinsertData( dbcl );

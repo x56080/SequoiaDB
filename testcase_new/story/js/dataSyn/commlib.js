@@ -438,7 +438,7 @@ DataSyncTestCase.prototype.setUp = function()
 {
    commDropCL( this.db, this.csName, this.clName, true, true );
    var options = { Compressed: true };
-   this.dbcl = commCreateCLByOption( this.db, this.csName, this.clName, options );
+   this.dbcl = commCreateCL( this.db, this.csName, this.clName, options );
 }
 
 DataSyncTestCase.prototype.tearDown = function()

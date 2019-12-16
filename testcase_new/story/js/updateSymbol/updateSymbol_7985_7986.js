@@ -9,7 +9,7 @@ function main ()
 	commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 
 	//create cl
-	var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+	var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
 	//insert numberic data,array with 3 layer and common object  
 	var doc1 = [{ a: -2147483640, c: -2147483640, e: { name: { firstName: "han", lastName: "meimei" } }, f: { name: { firstNumber: { $decimal: "1" }, lastNumber: { $numberLong: "2" } } } },

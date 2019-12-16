@@ -38,7 +38,7 @@ function main ()
    var clName = CHANGEDPREFIX + "_14972";
 
    var options = { ShardingType: 'hash', ShardingKey: { a: 1 }, Compressed: true, CompressionType: 'lzw' };
-   var cl = commCreateCLByOption( db, csName, clName, options, true, false, "create CL in the begin" );
+   var cl = commCreateCL( db, csName, clName, options, true, false, "create CL in the begin" );
 
    println( "---cl setAttributes CompressionType---" );
    cl.setAttributes( { CompressionType: 'snappy' } );

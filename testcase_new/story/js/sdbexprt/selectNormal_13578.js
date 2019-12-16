@@ -24,8 +24,8 @@ function main ()
 function testExprtSelect1 ()
 {
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
-   var cl = commCreateCL( db, csname, clname, 0 );
-   var cl1 = commCreateCL( db, csname, clname1, 0 );
+   var cl = commCreateCL( db, csname, clname );
+   var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( docs );
 
    var csvfile = workDir + "sdbexprt13578.csv";
@@ -71,8 +71,8 @@ function testExprtSelect2 ()
 {
    var docs = [{ a: 1, b: 1 }, { a: 2, b: 2 },
    { a: 3, b: 3 }, { a: 4, b: 4 }];
-   var cl = commCreateCL( db, csname, clname, 0 );
-   var cl1 = commCreateCL( db, csname, clname1, 0 );
+   var cl = commCreateCL( db, csname, clname );
+   var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( docs );
 
    var csvfile = workDir + "sdbexprt13578.csv";
@@ -118,8 +118,8 @@ function testExprtSelect3 ()
 {
    var docs = [{ a: 1, b: 1 }, { a: 2, b: 2 },
    { a: 3 }, { a: 4 }];
-   var cl = commCreateCL( db, csname, clname, 0 );
-   var cl1 = commCreateCL( db, csname, clname1, 0 );
+   var cl = commCreateCL( db, csname, clname );
+   var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( docs );
 
    var csvfile = workDir + "sdbexprt13578.csv";
@@ -169,8 +169,8 @@ function testExprtSelect4 ()
       { "name": "lfm", "age": 19 },
       { "name": "dyy", "age": 18 }]
    }];
-   var cl = commCreateCL( db, csname, clname, 0 );
-   var cl1 = commCreateCL( db, csname, clname1, 0 );
+   var cl = commCreateCL( db, csname, clname );
+   var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( docs );
 
    var csvfile = workDir + "sdbexprt13578.csv";

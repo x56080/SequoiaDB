@@ -11,7 +11,7 @@ function main ( db )
 
    // create collection   
    var options = { ShardingKey: { a: 1, b: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
-   var idxCL = commCreateCLByOption( db, COMMCSNAME, clName, options, true, true );
+   var idxCL = commCreateCL( db, COMMCSNAME, clName, options, true, true );
 
    // create index
    createIndex( idxCL, "testindex", { a: 1 }, false, false );

@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_11984";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    var a = new Array( 1024 * 1024 * 16 - 5 * 1024 ).join( "a" );
    dbcl.insert( { a: a } );

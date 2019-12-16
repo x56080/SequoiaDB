@@ -16,7 +16,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true );
 
    //创建集合，并创建普通索引及全文索引 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var textIndexName = "textIndexName_ES_12073";
    commCreateIndex( dbcl, textIndexName, { content: "text" } );
    commCreateIndex( dbcl, "commIndex_12073", { content: 1 } );

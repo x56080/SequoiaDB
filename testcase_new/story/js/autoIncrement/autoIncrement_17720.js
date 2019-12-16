@@ -20,7 +20,7 @@ function main ()
    var clName = COMMCLNAME + "_17720";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", AcquireSize: acquireSize, CacheSize: cacheSize, Cycled: true } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", AcquireSize: acquireSize, CacheSize: cacheSize, Cycled: true } } );
    commCreateIndex( dbcl, "id", { id: 1 }, true, true );
 
    var expR = [];

@@ -67,9 +67,9 @@ function init ()
 	//create maincl and subcl
 	db.setSessionAttr( { PreferedInstance: "M" } );
 	var mainCLOption = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
-	mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
-	subCls.push( commCreateCL( db, COMMCSNAME, subClNames[0], 0 ) );
-	subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[1], { ReplSize: 0, Compressed: true, ShardingKey: { a: 1 }, ShardingType: "range" }, true, true ) );
+	mainCl = commCreateCL( db, COMMCSNAME, mainClName, mainCLOption, true, true );
+	subCls.push( commCreateCL( db, COMMCSNAME, subClNames[0] ) );
+	subCls.push( commCreateCL( db, COMMCSNAME, subClNames[1], { ReplSize: 0, Compressed: true, ShardingKey: { a: 1 }, ShardingType: "range" }, true, true ) );
 	//attach subcl
 	attachCL( mainCl, COMMCSNAME + "." + subClNames[0], { LowBound: { a: 0 }, UpBound: { a: 100 } } );
 	attachCL( mainCl, COMMCSNAME + "." + subClNames[1], { LowBound: { a: 100 }, UpBound: { a: 200 } } );

@@ -56,7 +56,7 @@ function main ()
 	//create maincl for range split
 	db.setSessionAttr( { PreferedInstance: "M" } );
 	var mainCLOption = { IsMainCL: true, ShardingKey: { a: 1, b: -1, c: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
-	mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
+	mainCl = commCreateCL( db, COMMCSNAME, mainClName, mainCLOption, true, true );
 	var subCLOptions = [
 		{ ReplSize: 0, Compressed: true },
 		{ ReplSize: 0, Compressed: true, ShardingKey: { a: 1, b: 1 }, ShardingType: "hash", Partition: 16 },
@@ -65,10 +65,10 @@ function main ()
 	];
 
 	//create subcl
-	commCreateCLByOption( db, COMMCSNAME, subClNames[0], subCLOptions[0], true, true );
-	commCreateCLByOption( db, COMMCSNAME, subClNames[1], subCLOptions[1], true, true );
-	commCreateCLByOption( db, COMMCSNAME, subClNames[2], subCLOptions[2], true, true );
-	commCreateCLByOption( db, COMMCSNAME, subClNames[3], subCLOptions[3], true, true );
+	commCreateCL( db, COMMCSNAME, subClNames[0], subCLOptions[0], true, true );
+	commCreateCL( db, COMMCSNAME, subClNames[1], subCLOptions[1], true, true );
+	commCreateCL( db, COMMCSNAME, subClNames[2], subCLOptions[2], true, true );
+	commCreateCL( db, COMMCSNAME, subClNames[3], subCLOptions[3], true, true );
 
 	//attach subcl
 	attachCL( mainCl, COMMCSNAME + "." + subClNames[0], { LowBound: { a: 0, b: 400, c: 0 }, UpBound: { a: 100, b: 300, c: 100 } } );

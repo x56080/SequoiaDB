@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_11993";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //创建索引类型非法的全文索引
    var indexName = "a_11993";

@@ -15,7 +15,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1", AcquireSize: acquireSize } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1", AcquireSize: acquireSize } } );
 
    //insert records and check
    var coordNodes = getCoordNodeNames();

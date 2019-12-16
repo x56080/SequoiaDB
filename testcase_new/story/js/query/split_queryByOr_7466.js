@@ -19,7 +19,7 @@ function main ()
    var destGroupName = groups[1][0].GroupName;
    var clName = COMMCLNAME + "_7466";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning." );
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { b: 1 }, ShardingType: 'range', ReplSize: 0, Group: srcGroupName }, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { b: 1 }, ShardingType: 'range', ReplSize: 0, Group: srcGroupName }, true );
 
    //insert data
    var docs = [];

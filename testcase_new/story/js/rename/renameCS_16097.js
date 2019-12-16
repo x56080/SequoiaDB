@@ -31,9 +31,9 @@ function main ()
 
    println( "---create main sub cl---" );
    var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
-   var cl = commCreateCLByOption( db, oldcsName, clName, { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true, IsMainCL: true }, false, false, "create CL in the begin" );
-   var subcl1 = commCreateCLByOption( db, oldcsName, subclName1, { ShardingKey: { no: 1 }, ShardingType: "range" }, false, false, "create CL in the begin" );
-   var subcl2 = commCreateCLByOption( db, oldcsName, subclName2, { ShardingKey: { no: 1 }, ShardingType: "hash" }, false, false, "create CL in the begin" );
+   var cl = commCreateCL( db, oldcsName, clName, { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true, IsMainCL: true }, false, false, "create CL in the begin" );
+   var subcl1 = commCreateCL( db, oldcsName, subclName1, { ShardingKey: { no: 1 }, ShardingType: "range" }, false, false, "create CL in the begin" );
+   var subcl2 = commCreateCL( db, oldcsName, subclName2, { ShardingKey: { no: 1 }, ShardingType: "hash" }, false, false, "create CL in the begin" );
    cl.attachCL( oldcsName + "." + subclName1, { LowBound: { a: 0 }, UpBound: { a: 1000 } } );
    cl.attachCL( oldcsName + "." + subclName2, { LowBound: { a: 1000 }, UpBound: { a: 2000 } } );
 

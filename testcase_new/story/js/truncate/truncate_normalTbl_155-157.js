@@ -9,7 +9,7 @@ function main ()
     var clName = "truncate_155";
     var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
     commDropCL( db, COMMCSNAME, clName, true, true, "drop collection begin" );
-    var cl = commCreateCL( db, COMMCSNAME, clName, 0, true, true, false,
+    var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
         "create collection begin" );
     var tableName = COMMCSNAME + "." + clName;
 
@@ -49,9 +49,9 @@ function testTruncateCompareRemveDelete ( db )
 
     commDropCL( db, COMMCSNAME, clName1, true, true, "drop collection1 begin" );
     commDropCL( db, COMMCSNAME, clName2, true, true, "drop collection2 begin" );
-    var cl1 = commCreateCL( db, COMMCSNAME, clName1, 0, true, true, false,
+    var cl1 = commCreateCL( db, COMMCSNAME, clName1, {}, true, false,
         "create collection1 begin" );
-    var cl2 = commCreateCL( db, COMMCSNAME, clName2, 0, true, true, false,
+    var cl2 = commCreateCL( db, COMMCSNAME, clName2, {}, true, false,
         "create collection2 begin" );
     truncateVerify( db, tableName1 );
     truncateVerify( db, tableName2 );

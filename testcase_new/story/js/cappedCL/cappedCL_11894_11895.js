@@ -21,8 +21,8 @@ function main ()
 
    var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
    var clName = COMMCAPPEDCLNAME + "_11894_11895";
-   commCreateCLByOption( db, csName1, clName, clOption, true, true );
-   commCreateCLByOption( db, csName2, clName, clOption, true, true );
+   commCreateCL( db, csName1, clName, clOption, true, true );
+   commCreateCL( db, csName2, clName, clOption, true, true );
 
    // check list 5
    var expectResult = [csName1, csName2];

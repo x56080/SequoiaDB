@@ -33,7 +33,7 @@ function main ( db )
 
       //create cl
       var dbcl1 = commCreateCL( db, COMMCSNAME, clName1 );
-      var dbcl2 = commCreateCLByOption( db, COMMCSNAME, clName2, { ShardingKey: { a: 1 } } );;
+      var dbcl2 = commCreateCL( db, COMMCSNAME, clName2, { ShardingKey: { a: 1 } } );;
 
       //test a :add cl1 shardingKey, unique index no include all shardingKey all fields
       noParitionCLAlter( dbcl1 )

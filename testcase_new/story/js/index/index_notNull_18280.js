@@ -24,7 +24,7 @@ function main ()
    /************************* test1, main cl[ NotNull:true ], sub cl[ NotNull:false ] *******************/
    println( "\n---Test1, main cl[ NotNull:true ], sub cl[ NotNull:false ]." );
    println( "   Create main cl, and create index." );
-   var mCL = commCreateCLByOption( db, COMMCSNAME, mclName, { ShardingKey: { a: 1 }, IsMainCL: true }, true, true );
+   var mCL = commCreateCL( db, COMMCSNAME, mclName, { ShardingKey: { a: 1 }, IsMainCL: true }, true, true );
    mCL.createIndex( mIdxName, { b: 1 }, { NotNull: true } );
    // check index of main cl 
    try 
@@ -40,7 +40,7 @@ function main ()
    }
 
    println( "   Create sub cl, and create index." );
-   var sCL = commCreateCLByOption( db, COMMCSNAME, sclName, { ShardingKey: { a: 1 } }, true, true );
+   var sCL = commCreateCL( db, COMMCSNAME, sclName, { ShardingKey: { a: 1 } }, true, true );
    sCL.createIndex( sIdxName, { b: 1 }, { NotNull: false } );
 
    println( "   Attach sub cl." );
@@ -64,11 +64,11 @@ function main ()
    /************************* test2, main cl[ NotNull:false ], sub cl[ NotNull:true ] *******************/
    println( "\n---Test2, main cl[ NotNull:false ], sub cl[ NotNull:true ]." );
    println( "   Create main cl, and create index." );
-   var mCL = commCreateCLByOption( db, COMMCSNAME, mclName, { ShardingKey: { a: 1 }, IsMainCL: true }, true, true );
+   var mCL = commCreateCL( db, COMMCSNAME, mclName, { ShardingKey: { a: 1 }, IsMainCL: true }, true, true );
    mCL.createIndex( mIdxName, { b: 1 }, { NotNull: false } );
 
    println( "   Create sub cl, and create index." );
-   var sCL = commCreateCLByOption( db, COMMCSNAME, sclName, { ShardingKey: { a: 1 } }, true, true );
+   var sCL = commCreateCL( db, COMMCSNAME, sclName, { ShardingKey: { a: 1 } }, true, true );
    sCL.createIndex( sIdxName, { b: 1 }, { NotNull: true } );
 
    println( "   Attach sub cl." );

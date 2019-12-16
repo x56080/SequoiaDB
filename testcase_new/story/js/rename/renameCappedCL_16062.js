@@ -17,7 +17,7 @@ function main ( db )
       var options = { Capped: true };
       var dbcs = commCreateCS( db, csName, false, "create cappedCS", options );
       var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
-      commCreateCLByOption( db, csName, clName, optionObj, false, false, "create cappedCL" );
+      commCreateCL( db, csName, clName, optionObj, false, false, "create cappedCL" );
 
       println( "--begin to rename cappedCL and check result." );
       dbcs.renameCL( clName, newCLName );

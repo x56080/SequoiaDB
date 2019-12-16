@@ -32,8 +32,8 @@ function main ()
    commDropCL( db, COMMCSNAME, mainCLName );
    commDropCL( db, COMMCSNAME, subCLName );
 
-   var maincl = commCreateCLByOption( db, COMMCSNAME, mainCLName, { IsMainCL: true, ShardingKey: { id: 1 }, ShardingType: "range", ReplSize: 1 } );
-   commCreateCLByOption( db, COMMCSNAME, subCLName, { ReplSize: 1 } );
+   var maincl = commCreateCL( db, COMMCSNAME, mainCLName, { IsMainCL: true, ShardingKey: { id: 1 }, ShardingType: "range", ReplSize: 1 } );
+   commCreateCL( db, COMMCSNAME, subCLName, { ReplSize: 1 } );
    maincl.attachCL( COMMCSNAME + "." + subCLName, { LowBound: { id: MinKey() }, UpBound: { id: MaxKey() } } );
 
    //alters replsize

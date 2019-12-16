@@ -17,7 +17,7 @@ function ready ()
 {
 	commDropCL( db, csName, clName, true, true, "drop cl in begin" );
 	var opt = { ReplSize: 0 };
-	varCL = commCreateCLByOption( db, csName, clName, opt, true, false, "create cl in begin" );
+	varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
 	var index = { age: 1 };
 	commCreateIndex( varCL, "ageIndex", index, false, false );
 }

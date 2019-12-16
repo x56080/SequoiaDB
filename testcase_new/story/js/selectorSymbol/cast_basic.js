@@ -22,7 +22,7 @@ function main ()
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 
    //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
    //insert data 
    var doc = [{ id: 1, a: -2147483648, b: -2147483648, c: -2147483648, d: -2147483648, e: -2147483648, f: -2147483648, g: -2147483648, h: -2147483648, i: -2147483648, k: -2147483648.48, l: -2147483648, m: -2147483648 },

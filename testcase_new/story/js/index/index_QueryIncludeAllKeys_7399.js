@@ -10,7 +10,7 @@ function main ( db )
    commDropCL( db, csName, clName, true, true, "drop collection in the beginning" );
 
    // create collection
-   var idxCL = commCreateCL( db, csName, clName, -1, true, true, false, "create collection" );
+   var idxCL = commCreateCL( db, csName, clName, {}, true, false, "create collection" );
 
    // insert data to SDB
    idxCL.insert( { no: 001, name: "A", score: [60, 70, 80], coutry: { china: { guangdong: "guanzhou" } }, age: 15, major: ["English", "Chinese", "Physics"], "class": { grade: "NO.1" } } );

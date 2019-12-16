@@ -36,29 +36,29 @@ function main ()
 
    //create CLs
    var clName1 = COMMCLNAME + "11607_1";
-   var dbCommCL1 = commCreateCLByOption( db, csName1, clName1 );
-   var dbCommCL2 = commCreateCLByOption( db, csName2, clName1 );
+   var dbCommCL1 = commCreateCL( db, csName1, clName1 );
+   var dbCommCL2 = commCreateCL( db, csName2, clName1 );
 
    var clOption2 = { ShardingKey: { a: 1 }, ShardingType: "hash" };
    var clName2 = COMMCLNAME + "11607_2";
-   var dbHashCL1 = commCreateCLByOption( db, csName1, clName2, clOption2, true );
-   var dbHashCL2 = commCreateCLByOption( db, csName2, clName2, clOption2, true );
+   var dbHashCL1 = commCreateCL( db, csName1, clName2, clOption2, true );
+   var dbHashCL2 = commCreateCL( db, csName2, clName2, clOption2, true );
 
    var clOption3 = { ShardingKey: { a: 1 }, ShardingType: "range" };
    var clName3 = COMMCLNAME + "11607_3";
-   var dbRangCL1 = commCreateCLByOption( db, csName1, clName3, clOption3, true );
-   var dbRangCL2 = commCreateCLByOption( db, csName2, clName3, clOption3, true );
+   var dbRangCL1 = commCreateCL( db, csName1, clName3, clOption3, true );
+   var dbRangCL2 = commCreateCL( db, csName2, clName3, clOption3, true );
 
    //create maincl 
    var mainclName = "testmaincl11607";
    var mainclOption = { IsMainCL: true, ShardingKey: { "a": 1 } };
-   var maincl = commCreateCLByOption( db, maincsName, mainclName, mainclOption );
+   var maincl = commCreateCL( db, maincsName, mainclName, mainclOption );
 
    //create subcl
    var subclName = "subcl11607";
    var subclGroupName = allGroups[0][0].GroupName;
    var sbuclOption = { Group: subclGroupName };
-   var subcl = commCreateCLByOption( db, maincsName, subclName, sbuclOption );
+   var subcl = commCreateCL( db, maincsName, subclName, sbuclOption );
 
    var clFullName11 = csName1 + "." + clName1;
    var clFullName12 = csName1 + "." + clName2;

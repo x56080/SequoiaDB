@@ -9,7 +9,7 @@ function main ()
    var clName = "selector_divide_17927";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var doc = [{ no: 1, test: { c: 2147483648, d: { "$numberLong": "9223372036854775807" } } },
    { no: 2, test: { a: { no: { num: 1.2e+300 } }, b: { no: { $decimal: "-12.300" } } } }];
    insertData( dbcl, doc );

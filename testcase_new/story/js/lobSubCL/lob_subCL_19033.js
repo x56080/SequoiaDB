@@ -36,7 +36,7 @@ function main ()
    commDropCL( db, csName, subCLName );
 
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range" };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl" );
+   var mainCL = commCreateCL( db, csName, mainCLName, options, true, false, "create main cl" );
    var subCL = commCreateCL( db, csName, subCLName );
    var lobOids1 = insertLob( subCL, fileFullPath, "YYYYMMDD", 5, 10, 1, "20190801" );
    var lobOids2 = insertLob( subCL, fileFullPath, "YYYYMMDD", 5, 10, 1, "20190901" );

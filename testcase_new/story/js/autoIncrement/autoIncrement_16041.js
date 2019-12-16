@@ -14,7 +14,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a0" } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a0" } } );
 
    var expRecs = [];
    for( var i = 0; i < 2; i++ )

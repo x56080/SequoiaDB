@@ -16,7 +16,7 @@ function main ( db )
    }
    var srcRG = groups[0][0]["GroupName"];
    var dstRG = groups[1][0]["GroupName"];
-   var cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, {
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {
       ShardingKey: { "No": -1 },
       ShardingType: "range", Partition: 1024,
       ReplSize: 0, IsMainCL: true

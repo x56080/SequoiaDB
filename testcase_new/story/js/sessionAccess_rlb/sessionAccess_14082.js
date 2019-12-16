@@ -38,7 +38,7 @@ function main ()
 
       //create cl ,then insert data 
       var clName = CHANGEDPREFIX + "_sessionAcess14082";
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
       insertData( dbcl );
       //test sessionAttr is M on coord
       var coordUrl = new Sdb( nodeHostName, nodeService );

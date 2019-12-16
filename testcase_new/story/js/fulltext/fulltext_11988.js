@@ -21,7 +21,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_11988";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingType: "hash", ShardingKey: { a: 1 }, AutoSplit: true } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "hash", ShardingKey: { a: 1 }, AutoSplit: true } );
 
    //插入数据，数据分布覆盖：1个组、多个组上
    var records = new Array();

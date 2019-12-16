@@ -21,7 +21,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_12014";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingType: "range", ShardingKey: { a: 1 }, Group: groups[0][0]["GroupName"] } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "range", ShardingKey: { a: 1 }, Group: groups[0][0]["GroupName"] } );
    dbcl.split( groups[0][0]["GroupName"], groups[1][0]["GroupName"], { a: "a1000" }, { a: "a6000" } );
 
    //分区键覆盖：单分区键，索引字段覆盖：非分区键
@@ -125,7 +125,7 @@ function main ()
    //分区键覆盖：多分区键，索引字段覆盖：非分区键
    //插入包含全文索引字段的记录
    commDropCL( db, COMMCSNAME, clName, true, true );
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingType: "range", ShardingKey: { a: 1, c: 1 }, Group: groups[0][0]["GroupName"] } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "range", ShardingKey: { a: 1, c: 1 }, Group: groups[0][0]["GroupName"] } );
    dbcl.split( groups[0][0]["GroupName"], groups[1][0]["GroupName"], { a: "a1000" }, { a: "a6000" } );
 
    commCreateIndex( dbcl, "fullIndex_12014", { b: "text" } );

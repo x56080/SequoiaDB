@@ -32,7 +32,7 @@ function main ()
    var filePath = WORKDIR + "/CLLob19117/";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
    var options = { ShardingKey: { date: 1 }, ShardingType: "hash", AutoSplit: true };
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName, options );
+   var cl = commCreateCL( db, COMMCSNAME, clName, options );
 
    //put lob
    var lobSizes = [1024, 10, 36, 1024 * 10, 1024 * 15, 1024 * 20, 3, 1, 10, 0];

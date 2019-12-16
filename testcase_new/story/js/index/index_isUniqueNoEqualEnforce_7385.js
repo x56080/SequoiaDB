@@ -92,7 +92,7 @@ function main ()
       var indexName2 = CHANGEDPREFIX + "_indexName2";
       commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
          "drop collection begin" );
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
          "failed create collection in the beginning" );
       cl.insert( { a: 3 } );
       cl.insert( { a: -5 } );

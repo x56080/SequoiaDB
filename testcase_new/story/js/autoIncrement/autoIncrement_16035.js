@@ -14,7 +14,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1" } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1" } } );
 
    //illegal Field value
    var fields = [null, { Field: "$id2" }, { Field: " id3" }, { Field: 5 }];

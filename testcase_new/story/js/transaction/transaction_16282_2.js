@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_16282_2";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { a: 1 } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { a: 1 } } );
    dbcl.insert( { a: 1 } );
 
    dbcl.createAutoIncrement( { Field: "id" } );

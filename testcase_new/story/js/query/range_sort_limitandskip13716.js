@@ -25,7 +25,7 @@ function main ()
     commDropCL( db, csName, clName, false, true, "drop cl in the beginning." );
 
     var clOpt = { ShardingKey: { a: 1 }, ShardingType: 'range', ReplSize: 0 };
-    var rangeCL = commCreateCLByOption( db, csName, clName, clOpt );
+    var rangeCL = commCreateCL( db, csName, clName, clOpt );
     var insetRecs = loadDataAndCreateIndex( rangeCL, rownums );
     println( "insert data finished!" );
 

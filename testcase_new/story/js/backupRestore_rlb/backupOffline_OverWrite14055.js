@@ -10,7 +10,7 @@ function main ( db )
    var path = "";
    var clName = COMMCLNAME + "_cl14055";
    commDropCL( db, csName, clName, true, true, "Drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, -1, true, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, clName, {ReplSize: -1}, true, false,
       "Create collection in the beginning" );
    bakInsertData( cl );
    bakRemoveBackups( db, CHANGEDPREFIX, true );

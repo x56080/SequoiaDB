@@ -70,7 +70,7 @@ function main ( db )
       var recordNum = 100;
       var nestLayer = 31;
       var totalLayer = 31;
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
          "create colleciton in the begnning" );
       // gen
       var nestRecord1 = genNestedObject( nestLayer, totalLayer, "obj" )

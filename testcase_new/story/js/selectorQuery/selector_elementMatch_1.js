@@ -17,7 +17,7 @@ function main ( db )
       { name: "lucy", age: 20 },
       { name: "alex", age: 18 },
       { name: "shanven", age: 18 }];
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
          "create colleciton in the begnning" );
       // auto generate data
       selAutoGenData( cl, recordNum, addRecord );

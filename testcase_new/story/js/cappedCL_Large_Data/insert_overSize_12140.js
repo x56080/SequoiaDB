@@ -14,7 +14,7 @@ function main ()
 
    var clName = COMMCLNAME + "_12140";
    var clOption = { Capped: true, Size: 32, AutoIndexId: false, OverWrite: true };
-   var dbcl = commCreateCLByOption( db, csName, clName, clOption, true, true );
+   var dbcl = commCreateCL( db, csName, clName, clOption, true, true );
 
    //获取主备节点
    var db1 = new Sdb( db );

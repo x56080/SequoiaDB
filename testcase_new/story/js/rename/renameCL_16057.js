@@ -12,7 +12,7 @@ function main ( db )
       var newCLName = CHANGEDPREFIX + "_newcl16057";
       commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
       commDropCL( db, COMMCSNAME, newCLName, true, true, "clear collection in the beginning" );
-      var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
       println( "---begin to insert data and create index" );
       var recordNums = 2000;

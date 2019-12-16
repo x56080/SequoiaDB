@@ -41,11 +41,11 @@ function createCLAndAttachCL ( mainCSName, mainCLName, subCLName1, subCLName2, p
       "ShardingKey": { "ID_Default": 1 }, "ShardingType": "range",
       "ReplSize": 0, "IsMainCL": true
    };
-   var mainCL = commCreateCLByOption( db, mainCSName, mainCLName, clOption, true,
+   var mainCL = commCreateCL( db, mainCSName, mainCLName, clOption, true,
       true, false, "create collection begin" );
-   commCreateCL( db, mainCSName, subCLName1, 0, true, true,
+   commCreateCL( db, mainCSName, subCLName1, {}, true,
       false, "create sub CL1 begin" );
-   commCreateCL( db, mainCSName, subCLName2, 0, true, true,
+   commCreateCL( db, mainCSName, subCLName2, {}, true,
       false, "create sub CL2 begin" );
    mainCL.attachCL( mainCSName + "." + subCLName1, { "LowBound": { "ID_Default": 0 }, "UpBound": { "ID_Default": 3 } } );
    mainCL.attachCL( mainCSName + "." + subCLName2, { "LowBound": { "ID_Default": 3 }, "UpBound": { "ID_Default": 5 } } );

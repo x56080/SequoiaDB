@@ -9,7 +9,7 @@ function main ()
    var clName = "selector_upper_17936";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var doc = [{ no: 1, test: { c: "AdaEEcds123#$%Ad ddddd", d: "aggaag~!@abcds123aga " } },
    { no: 2, test: { a: { no: { str: "adg3344dgAECcvdgasfgdf" } }, b: { str: "testadAAgsdasdg#$$sdga" } } }];
    insertData( dbcl, doc );

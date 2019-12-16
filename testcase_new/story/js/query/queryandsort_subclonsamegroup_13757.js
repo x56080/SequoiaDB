@@ -21,14 +21,14 @@ function setUp ( db )
       subopt.a = 1;
       opt.Group = groups[i][0].GroupName;
       opt.ReplSize = 0;
-      var subcl1 = commCreateCLByOption( db, COMMCSNAME, subcl1, opt, ture );
-      var subcl2 = commCreateCLByOption( db, COMMCSNAME, subcl1, opt, ture );
+      var subcl1 = commCreateCL( db, COMMCSNAME, subcl1, opt, ture );
+      var subcl2 = commCreateCL( db, COMMCSNAME, subcl1, opt, ture );
 
       opt.IsMainCL = true;
       opt.ShardingType = "range";
       opt.ShardingKey = subopt;
 
-      var maincl = commCreateCLByOption( db, COMMCSNAME, maincl, opt, ture );
+      var maincl = commCreateCL( db, COMMCSNAME, maincl, opt, ture );
 
       maincl.attachCL( COMMCSNAME + '.' + subcl1, { LowBound: { a: 0 }, UpBound: { a: 5 } } )
       maincl.attachCL( COMMCSNAME + '.' + subcl2, { LowBound: { a: 5 }, UpBound: { a: 10 } } )

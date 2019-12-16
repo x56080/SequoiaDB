@@ -49,7 +49,7 @@ function main ()
    var cl_1 = commCreateCL( db, csName, clName1 );
 
    var optionObj = { Group: group1 };
-   var cl_2 = commCreateCLByOption( db, csName, clName2, optionObj );
+   var cl_2 = commCreateCL( db, csName, clName2, optionObj );
 
    //test a: ִ��setAttributes����shardingKey��AutoSplit������AutoSplitΪtrue
    var shardingKey = { a: 1 };

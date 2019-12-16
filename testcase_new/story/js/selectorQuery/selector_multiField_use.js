@@ -66,7 +66,7 @@ function main ( db )
    try
    {
       var recordNum = 100;
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
          "create colleciton in the begnning" );
       // auto generate data
       autoGenData( cl, recordNum );

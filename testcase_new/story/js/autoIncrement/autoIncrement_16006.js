@@ -15,7 +15,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: field } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: field } } );
 
    dbcl.insert( { a: 1 } );
 
@@ -36,7 +36,7 @@ function main ()
    }
 
    //create CL again
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: field } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: field } } );
 
    //check autoIncrement and sequence
    var clID = getCLID( COMMCSNAME, clName );

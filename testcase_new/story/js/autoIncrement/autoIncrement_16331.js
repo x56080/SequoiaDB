@@ -26,7 +26,7 @@ function main ()
       }
    }
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a1", Increment: 2 } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a1", Increment: 2 } } );
 
    try
    {

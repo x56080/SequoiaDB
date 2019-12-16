@@ -30,9 +30,9 @@ function main ()
    // create cs and cl, attach cl
    println( "\n---Begin to create cl, and attach cl." );
    var mclOpt = { "ShardingKey": { a: 1 }, "IsMainCL": true };
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, mclName, mclOpt, true, false );
-   commCreateCL( db, scsName1, sclName1, 0, true, true, true );
-   commCreateCL( db, scsName2, sclName2, 0, true, true, true );
+   var mainCL = commCreateCL( db, COMMCSNAME, mclName, mclOpt, true, false );
+   commCreateCL( db, scsName1, sclName1 );
+   commCreateCL( db, scsName2, sclName2 );
    mainCL.attachCL( scsName1 + "." + sclName1, { LowBound: { a: 0 }, UpBound: { a: 100 } } );
    mainCL.attachCL( scsName2 + "." + sclName2, { LowBound: { a: 100 }, UpBound: { a: 200 } } );
 

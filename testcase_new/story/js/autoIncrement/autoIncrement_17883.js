@@ -18,7 +18,7 @@ function main ()
    var increment = -1;
    var acquireSize = 100;
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a.b.c", Increment: increment, AcquireSize: acquireSize } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a.b.c", Increment: increment, AcquireSize: acquireSize } } );
    dbcl.createIndex( "index", { "a.b.c": 1 }, true );
 
    //连接所有coord插入部分记录,coord缓存分别为[-100,-1],[-200,-101],[-300,-201]

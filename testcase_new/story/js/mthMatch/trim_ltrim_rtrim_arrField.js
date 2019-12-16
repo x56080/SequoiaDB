@@ -12,7 +12,7 @@ function main ()
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 
    //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
    //insert data 
    var doc = [{ No: 1, name: [" \t\r\nZha Ng\ts\ra\nn \t\r\n"], major: [" \t\r\nCh \t\n\rinese \t\n\r"] },

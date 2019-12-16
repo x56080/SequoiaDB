@@ -17,7 +17,7 @@ function main ()
    var fieldName2 = "id2";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: [{ Field: fieldName1 }, { Field: fieldName2 }] } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: [{ Field: fieldName1 }, { Field: fieldName2 }] } );
 
    var coordNodes = getCoordNodeNames();
    var coordNum = coordNodes.length;

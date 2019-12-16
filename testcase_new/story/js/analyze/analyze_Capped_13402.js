@@ -25,7 +25,7 @@ function main ()
    commCreateCS( db, csName, false, "create capped cs", csOptions );
 
    var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
-   var dbcl = commCreateCLByOption( db, csName, clName, clOption );
+   var dbcl = commCreateCL( db, csName, clName, clOption );
 
    //插入记录
    insertDiffDatas( dbcl, insertNum );

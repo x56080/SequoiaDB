@@ -24,7 +24,7 @@ function main ()
       //create cl and insert data
       var clName = CHANGEDPREFIX + "_sessionAcess14081";
       var options = { ReplSize: 0, Group: groupName };
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, options, true, true );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, options, true, true );
       insertData( dbcl );
 
       //set session instanceid 

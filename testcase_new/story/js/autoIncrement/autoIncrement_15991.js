@@ -15,7 +15,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1" } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1" } } );
 
    var clID = getCLID( COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";

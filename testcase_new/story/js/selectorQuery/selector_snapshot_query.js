@@ -46,7 +46,7 @@ function main ( db )
 
       /*【Test Point 3】 collection and collectionspace snapshot:*
        * SDB_SNAP_COLLECTIONS/SDB_SNAP_COLLECTIONSPACES*/
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
          "create colleciton in the begnning" );
       var condObj = "{\"Name\": \"" + COMMCSNAME + "." + COMMCLNAME + "\"}";
       condObj = JSON.parse( condObj );

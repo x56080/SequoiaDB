@@ -16,7 +16,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true );
 
    //在同一字段上创建全文索引及普通索引，并插入包含索引字段的记录 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var textIndexName = "textIndexName_ES_12040";
    commCreateIndex( dbcl, textIndexName, { content: "text", about: "text" } );
    commCreateIndex( dbcl, "commIndex", { content: 1 } );

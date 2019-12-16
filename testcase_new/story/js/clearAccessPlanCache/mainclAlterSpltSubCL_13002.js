@@ -84,11 +84,11 @@ function main ()
 
    //创建主表cl
    var mainclOption = { IsMainCL: true, ShardingKey: { "a": 1 }, ShardingType: "range" };
-   maincl = commCreateCLByOption( db, maincsName, mainclName, mainclOption );
+   maincl = commCreateCL( db, maincsName, mainclName, mainclOption );
 
    //创建子表cl
    var subclOption1 = { Group: srcGroupName };
-   commCreateCLByOption( db, subcsName1, subclName1, subclOption1 );
+   commCreateCL( db, subcsName1, subclName1, subclOption1 );
 
    //attach cl
    maincl.attachCL( subclFullName1, { LowBound: { a: 0 }, UpBound: { a: 4000 } } );

@@ -29,11 +29,11 @@ function main ()
     opt.ShardingType = "range";
     opt.ShardingKey = { a: 1 };
     //subcl1:{a:[0-49999]}, subcl2:{a:[50000-99999]}
-    var subcl1 = commCreateCLByOption( db, COMMCSNAME, subclName1, opt, true );
-    var subcl2 = commCreateCLByOption( db, COMMCSNAME, subclName2, opt, true );
+    var subcl1 = commCreateCL( db, COMMCSNAME, subclName1, opt, true );
+    var subcl2 = commCreateCL( db, COMMCSNAME, subclName2, opt, true );
 
     opt.IsMainCL = true;
-    var maincl = commCreateCLByOption( db, COMMCSNAME, mainclName, opt, true );
+    var maincl = commCreateCL( db, COMMCSNAME, mainclName, opt, true );
     maincl.attachCL( COMMCSNAME + '.' + subclName1, { LowBound: { a: 0 }, UpBound: { a: 50000 } } )
     maincl.attachCL( COMMCSNAME + '.' + subclName2, { LowBound: { a: 50000 }, UpBound: { a: 100000 } } )
 

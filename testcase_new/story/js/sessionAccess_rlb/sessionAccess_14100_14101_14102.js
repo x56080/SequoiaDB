@@ -30,7 +30,7 @@ function main ()
       var expSvcNameList2 = getSvcNameList( db, groupName2 );
 
       //create cl ,then insert data  
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { no: 1 }, ReplSize: 0, Group: groupName1 } );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { no: 1 }, ReplSize: 0, Group: groupName1 } );
       //insertData( dbcl);
       splitCL( dbcl, groupName1, groupName2 );
 

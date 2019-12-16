@@ -19,8 +19,8 @@ try
    commDropCL( db, csName, clName1, true, true, "drop cl in begin" );
    commDropCL( db, csName, clName2, true, true, "drop cl in begin" );
    var opt = { ReplSize: 0 };
-   var cl_pro = commCreateCLByOption( db, csName, clName1, opt, true, false, "create cl in begin" );
-   var cl_name = commCreateCLByOption( db, csName, clName2, opt, true, false, "create cl in begin" );
+   var cl_pro = commCreateCL( db, csName, clName1, opt, true, false, "create cl in begin" );
+   var cl_name = commCreateCL( db, csName, clName2, opt, true, false, "create cl in begin" );
 }
 catch( e )
 {

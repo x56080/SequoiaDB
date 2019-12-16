@@ -30,8 +30,8 @@ function main ()
 
    //创建2个cl在同一个数据组上
    var CLOption = { Group: groupName };
-   var dbcl1 = commCreateCLByOption( db, csName, clName1, CLOption );
-   var dbcl2 = commCreateCLByOption( db, csName, clName2, CLOption );
+   var dbcl1 = commCreateCL( db, csName, clName1, CLOption );
+   var dbcl2 = commCreateCL( db, csName, clName2, CLOption );
 
    //创建索引
    commCreateIndex( dbcl1, "a", { a: 1 } );
@@ -106,7 +106,7 @@ function main ()
    checkSnapShotAccessPlans( clFullName2, expAccessPlan, actAccessPlan );
 
    //再次创建cl、创建索引、插入相同数据
-   var dbcl1 = commCreateCLByOption( db, csName, clName1, CLOption );
+   var dbcl1 = commCreateCL( db, csName, clName1, CLOption );
    commCreateIndex( dbcl1, "a", { a: 1 } );
 
    insertDiffDatas( dbcl1, insertNum );

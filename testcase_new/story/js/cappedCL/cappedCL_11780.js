@@ -18,7 +18,7 @@ function main ()
 
    //create cappedCL
    var optionObj = { Capped: true, Size: 128, Max: 10000000, AutoIndexId: false };
-   var cl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, optionObj, false, false, "create cappedCL" );
+   var cl = commCreateCL( db, COMMCAPPEDCSNAME, clName, optionObj, false, false, "create cappedCL" );
 
    //create 15M lob.file
    lobGenerateFile( testFile, 100000 );

@@ -15,7 +15,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_17979";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    // 插入数据
    var records = new Array();

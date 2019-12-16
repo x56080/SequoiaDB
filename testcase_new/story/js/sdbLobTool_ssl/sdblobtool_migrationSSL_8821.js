@@ -47,7 +47,7 @@ function main ( db )
    {
       // 创建包含大对象的源集合
       var lobfile = toolMakeLobfile();
-      var srcCl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false, "create source collection" );
+      var srcCl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false, "create source collection" );
       var lobNum = 1;
       var OID = toolPutLobs( srcCl, lobfile, lobNum );
 
@@ -56,7 +56,7 @@ function main ( db )
       var wMd5 = wMd5sum[0];
 
       // 创建导入集合并将大对象导入
-      var dstCl = commCreateCL( db, COMMCSNAME, dstClName, 0, true, true, false, "create destination collection" );
+      var dstCl = commCreateCL( db, COMMCSNAME, dstClName, {}, true, false, "create destination collection" );
       toolMigration( Args );
 
       // 检验迁移大对象的条数是否正确

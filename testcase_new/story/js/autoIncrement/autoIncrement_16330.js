@@ -14,7 +14,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a1" } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a1" } } );
 
    var options = [{ Field: "a2", MaxValue: 2000, MinValue: 3000 },
    { Field: "a3", MaxValue: 2000, MinValue: 2000 },

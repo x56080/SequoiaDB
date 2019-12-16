@@ -24,7 +24,7 @@ function main ()
    var maxValue = 13001;
    var cycled = true;
    var fieldName = "id";
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment, MinValue: minValue, MaxValue: maxValue, Cycled: cycled } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment, MinValue: minValue, MaxValue: maxValue, Cycled: cycled } } );
 
    var expR = [];
    for( var i = 0; i < 1001; i++ )

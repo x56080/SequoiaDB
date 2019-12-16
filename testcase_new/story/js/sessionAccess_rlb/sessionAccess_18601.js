@@ -26,7 +26,7 @@ function main ()
 
       //create cl ,then insert data 
       var clName = CHANGEDPREFIX + "_cl18601";
-      var dbcl = commCreateCLByOption( db, csName, clName, { ReplSize: 0, Group: groupName } );
+      var dbcl = commCreateCL( db, csName, clName, { ReplSize: 0, Group: groupName } );
       insertData( dbcl );
 
       println( "---begin to set and query instanceid is " + instanceidList[1] + " and " + instanceidList[2] );

@@ -35,8 +35,8 @@ function main ()
 
    //创建2个cl在同一个数据组上
    var CLOption = { Group: groupName };
-   var dbcl1 = commCreateCLByOption( db, csName1, clName, CLOption );
-   var dbcl2 = commCreateCLByOption( db, csName2, clName, CLOption );
+   var dbcl1 = commCreateCL( db, csName1, clName, CLOption );
+   var dbcl2 = commCreateCL( db, csName2, clName, CLOption );
 
    //创建索引
    commCreateIndex( dbcl1, "a", { a: 1 } );
@@ -113,7 +113,7 @@ function main ()
 
    //再次创建cs、cl、创建索引、插入相同数据
    commCreateCS( db, csName1 );
-   var dbcl1 = commCreateCLByOption( db, csName1, clName, CLOption );
+   var dbcl1 = commCreateCL( db, csName1, clName, CLOption );
    commCreateIndex( dbcl1, "a", { a: 1 } );
 
    insertDiffDatas( dbcl1, insertNum );

@@ -12,7 +12,7 @@ function main ()
     var csName = COMMCSNAME;
     var clName = "cl13705";
 
-    var cl = commCreateCL( db, csName, clName, null, null, true, false, "create cl in the begin" );
+    var cl = commCreateCL( db, csName, clName, {}, true, false, "create cl in the begin" );
 
     //正常timestamp类型数据、边界值、非法值
     //Timestamp类型能表示的时间范围为1902-01-01 00:00:00.000000至2037-12-31 23:59:59.999999

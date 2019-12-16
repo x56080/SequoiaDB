@@ -22,7 +22,7 @@ function main ()
 
    var dataGroupNames = getDataGroupNames();
    var groupName = dataGroupNames[0];
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { Compressed: false, Group: groupName } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Compressed: false, Group: groupName } );
 
    var nodeNames = [];
    var masterNode = db.getRG( groupName ).getMaster();

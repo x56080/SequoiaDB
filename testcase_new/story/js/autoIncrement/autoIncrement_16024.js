@@ -18,7 +18,7 @@ function main ()
 
    var increment = 12;
    var acquireSize = 11;
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, AcquireSize: acquireSize } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, AcquireSize: acquireSize } } );
 
    var coordNodes = getCoordNodeNames();
    var coordNum = coordNodes.length;

@@ -10,7 +10,7 @@ function main ()
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 
    //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
    //insert data 
    var doc = [{ No: 1, name: { firstName: "zhang", lastName: "san" }, age: 18, addr: ["guangdong", "shenzhen1", "xiasha1", "yuehubuilding5", 1710] },

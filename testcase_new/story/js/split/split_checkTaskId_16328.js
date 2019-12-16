@@ -18,7 +18,7 @@ function main ( db )
       commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
       var options = { ShardingKey: { No: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
 
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, options, true, true );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, options, true, true );
       var recordNums = 30000;
       insertData( db, COMMCSNAME, clName, recordNums );
 

@@ -38,7 +38,7 @@ function main ()
    var tarGroup = groupName[1][0]["GroupName"];
    commDropCL( db, COMMCSNAME, clName );
 
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { id: 1 }, ShardingType: "hash", Group: srcGroup, ReplSize: 1 } );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { id: 1 }, ShardingType: "hash", Group: srcGroup, ReplSize: 1 } );
 
    //alters replsize
    cl.alter( { ReplSize: 2 } );

@@ -12,7 +12,7 @@ function main ()
    //create cappedCL
    var clName = COMMCAPPEDCLNAME + "_11763";
    var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
-   commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, optionObj, false, true );
+   commCreateCL( db, COMMCAPPEDCSNAME, clName, optionObj, false, true );
 
    //check cappedCL
    if( true === commIsStandalone( db ) )

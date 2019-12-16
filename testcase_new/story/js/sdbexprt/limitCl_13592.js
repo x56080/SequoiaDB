@@ -34,7 +34,7 @@ function testExprtLimit1 ()
       docs.push( { a: i } );
    }
    var clname = COMMCLNAME + "_sdbexprt13592";
-   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl = commCreateCL( db, csname, clname );
    cl.insert( docs );
 
    var csvfile = workDir + "sdbexprt13592.csv";
@@ -68,7 +68,7 @@ function testExprtLimit2 ()
    }
    var clname = COMMCLNAME + "_sdbexprt13593";
    var option = { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 };
-   var cl = commCreateCLByOption( db, csname, clname, option );
+   var cl = commCreateCL( db, csname, clname, option );
    cl.insert( docs );
 
    var csvfile = workDir + "sdbexprt13593.csv";
@@ -100,12 +100,12 @@ function testExprtLimit3 ()
       ShardingType: "range", ShardingKey: { a: 1 },
       IsMainCL: true, ReplSize: 0
    };
-   var cl = commCreateCLByOption( db, csname, mainClName, option );
+   var cl = commCreateCL( db, csname, mainClName, option );
    var subClName1 = COMMCLNAME + "_sdbexprtSub13593_1";
    option = { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 };
-   commCreateCLByOption( db, csname, subClName1, option );
+   commCreateCL( db, csname, subClName1, option );
    var subClName2 = COMMCLNAME + "_sdbexprtSub13593_2";
-   commCreateCLByOption( db, csname, subClName2, option );
+   commCreateCL( db, csname, subClName2, option );
    cl.attachCL( csname + "." + subClName1, { LowBound: { a: 0 }, UpBound: { a: 10 } } );
    cl.attachCL( csname + "." + subClName2, { LowBound: { a: 10 }, UpBound: { a: 20 } } );
 

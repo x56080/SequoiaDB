@@ -37,14 +37,14 @@ function main ()
    commDropCS( db, maincsName );
 
    var mainclOption = { IsMainCL: true, ShardingKey: { "a1": 1 }, ShardingType: "range" };
-   maincl = commCreateCLByOption( db, maincsName, mainclName, mainclOption );
+   maincl = commCreateCL( db, maincsName, mainclName, mainclOption );
 
    var subclOption1 = { ShardingKey: { "a0": 1 }, ShardingType: "range", Group: dataGroupNames[0] };
-   subcl1 = commCreateCLByOption( db, maincsName, subclName1, subclOption1 );
+   subcl1 = commCreateCL( db, maincsName, subclName1, subclOption1 );
    var subclOption2 = { ShardingKey: { "a0": 1 }, ShardingType: "hash", Group: dataGroupNames[0] };
-   subcl2 = commCreateCLByOption( db, subcsName, subclName2, subclOption2 );
+   subcl2 = commCreateCL( db, subcsName, subclName2, subclOption2 );
    var subclOption3 = {};
-   subcl3 = commCreateCLByOption( db, subcsName, subclName3, subclOption3 );
+   subcl3 = commCreateCL( db, subcsName, subclName3, subclOption3 );
 
    subcl1.split( dataGroupNames[0], dataGroupNames[1], { a0: 10 }, { a0: 20 } );
    subcl2.split( dataGroupNames[0], dataGroupNames[1], 50 );

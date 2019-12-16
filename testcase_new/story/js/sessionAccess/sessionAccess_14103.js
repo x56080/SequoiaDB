@@ -13,7 +13,7 @@ function main ()
       var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
       var groups = commGetGroups( db );
       var clGroupName = groups[0][0]["GroupName"];
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, Group: clGroupName }, true, true );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: clGroupName }, true, true );
 
       println( "---begin to set instanceid " );
       db.setSessionAttr( { PreferedInstance: "S" } )

@@ -27,15 +27,15 @@ function main ( db )
       ShardingKey: { no: 1 }, ShardingType: "range", ReplSize: 0,
       Compressed: true, IsMainCL: true
    };
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, CHANGEDPREFIX, clOptionObj,
+   var mainCL = commCreateCL( db, COMMCSNAME, CHANGEDPREFIX, clOptionObj,
       true, false, "create main collection" );
-   var subCL1 = commCreateCL( db, COMMCSNAME, SUBCLNAME1, -1, true, true, false,
+   var subCL1 = commCreateCL( db, COMMCSNAME, SUBCLNAME1, {}, true, false,
       "create sub collection 1" );
-   var subCL2 = commCreateCL( db, COMMCSNAME, SUBCLNAME2, -1, true, true, false,
+   var subCL2 = commCreateCL( db, COMMCSNAME, SUBCLNAME2, {}, true, false,
       "create sub collection 2" );
-   var subCL3 = commCreateCL( db, COMMCSNAME, SUBCLNAME3, -1, true, true, false,
+   var subCL3 = commCreateCL( db, COMMCSNAME, SUBCLNAME3, {}, true, false,
       "create sub collection 3" );
-   var subCL4 = commCreateCL( db, COMMCSNAME, SUBCLNAME4, -1, true, true, false,
+   var subCL4 = commCreateCL( db, COMMCSNAME, SUBCLNAME4, {}, true, false,
       "create sub collection 4" );
    println( "create main collection and sub collection successful" );
    mainCL.attachCL( COMMCSNAME + "." + SUBCLNAME1, {

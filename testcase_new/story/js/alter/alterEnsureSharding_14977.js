@@ -34,8 +34,8 @@ function main ( db )
       commDropCL( db, COMMCSNAME, clName2, true, true, "drop CL in the beginning" );
 
       //create cl
-      var dbcl1 = commCreateCLByOption( db, COMMCSNAME, clName1, { ShardingKey: { a: 1 }, ShardingType: "range" } );
-      var dbcl2 = commCreateCLByOption( db, COMMCSNAME, clName2, { ShardingKey: { a: 1 }, ShardingType: "range" } );;
+      var dbcl1 = commCreateCL( db, COMMCSNAME, clName1, { ShardingKey: { a: 1 }, ShardingType: "range" } );
+      var dbcl2 = commCreateCL( db, COMMCSNAME, clName2, { ShardingKey: { a: 1 }, ShardingType: "range" } );;
 
       //test a: alter ensureShardingIndexfrom true to false, no alter shardingKey
       println( "---test a:alter ensureShardingIndex from true to false, no alter shardingKey" );

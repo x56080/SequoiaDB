@@ -30,7 +30,7 @@ function main ()
 
    var options = { ShardingKey: { a: 1 }, ShardingType: "range", Group: srcGrName };
    var dbcs = db.createCS( csName );
-   var dbcl = commCreateCLByOption( db, csName, clName, options, false );
+   var dbcl = commCreateCL( db, csName, clName, options, false );
    var insertNum = 40000;
    insertData( dbcl, insertNum );
    dbcl.splitAsync( srcGrName, tarGrName, { a: 1 }, { a: 40000 } );

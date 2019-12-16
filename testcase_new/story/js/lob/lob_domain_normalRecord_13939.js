@@ -33,7 +33,7 @@ function main ( db )
          "ShardingKey": { "no": 1 }, "ShardingType": "hash", "ReplSize": 0,
          "Partition": partitionNum, "Compressed": true
       };
-      var cl = commCreateCLByOption( db, DOMCSNAME, COMMCLNAME, optionObj, true,
+      var cl = commCreateCL( db, DOMCSNAME, COMMCLNAME, optionObj, true,
          true, "create collection for hash split" );
       lobInsertDoc( cl, putNum );
       println( "success to put normal record data" );

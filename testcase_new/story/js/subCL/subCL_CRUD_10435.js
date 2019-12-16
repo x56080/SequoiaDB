@@ -120,7 +120,7 @@ function createMainCL ( csName, mainCLName, mclKeyPM )
       IsMainCL: true
    };
 
-   mainCL = commCreateCLByOption( db, csName, mainCLName, options, false, true, "Failed to create mainCL." );
+   mainCL = commCreateCL( db, csName, mainCLName, options, false, true, "Failed to create mainCL." );
    return mainCL;
 }
 
@@ -135,7 +135,7 @@ function createSubCL ( csName, subCLName, sclKeyPM )
       ShardingType: "hash"
    };
 
-   subCL = commCreateCLByOption( db, csName, subCLName, options, false, true, "Failed to create subCL." );
+   subCL = commCreateCL( db, csName, subCLName, options, false, true, "Failed to create subCL." );
    return subCL;
 }
 

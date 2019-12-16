@@ -13,7 +13,7 @@ function main ( db )
       var fileName = CHANGEDPREFIX + "_lobtest16052.file";
       commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
       commDropCL( db, COMMCSNAME, newCLName, true, true, "clear collection in the beginning" );
-      var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
       //insert records and lob 
       var recordNums = 2000;

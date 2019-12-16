@@ -38,7 +38,7 @@ function main ( db )
    // Create collection space and collection
    commCreateCS( db, csName, false, "create CS specify domain",
       { "Domain": domName } );
-   commCreateCLByOption( db, csName, clName, {
+   commCreateCL( db, csName, clName, {
       ShardingKey: { "No": -1 },
       ShardingType: "hash", Partition: 1024,
       ReplSize: 0

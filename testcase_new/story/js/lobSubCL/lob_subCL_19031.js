@@ -32,7 +32,7 @@ function main ()
    commDropCL( db, csName, subCLName );
 
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": "YYYYMM", "ShardingType": "range" };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl" );
+   var mainCL = commCreateCL( db, csName, mainCLName, options, true, false, "create main cl" );
    commCreateCL( db, csName, subCLName );
 
    try

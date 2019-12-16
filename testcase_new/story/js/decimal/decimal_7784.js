@@ -34,7 +34,7 @@ function main ()
 
    //create cl for hash split
    var ClOption = { ShardingKey: { "age": 1 }, ShardingType: "hash", ReplSize: 0 };
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
 
    //insert decimal data befor split;
    var doc = [{ age: { $decimal: "123" } },

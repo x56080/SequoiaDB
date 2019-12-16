@@ -12,7 +12,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
    //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //create index
    commCreateIndex( dbcl, "a", { a: 1 } );

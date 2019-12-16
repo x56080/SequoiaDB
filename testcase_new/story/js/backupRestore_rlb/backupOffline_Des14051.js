@@ -11,7 +11,7 @@ function main ( db )
    // Clear the collection space in the beginning
    commDropCL( db, COMMCSNAME, clName, true, true,
       "clean collection space in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, -1, true, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, clName, {ReplSize: -1}, true, false,
       "create collection in the beginning" );
    // Insert data to SDB
    bakInsertData( cl );

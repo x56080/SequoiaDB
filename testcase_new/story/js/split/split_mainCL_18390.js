@@ -32,10 +32,10 @@ function main ()
    var tarGrName = groupsInfo[1][0];
 
    var options = { ShardingKey: { No: 1 }, ShardingType: "range", Partition: 1024, ReplSize: 0, Group: srcGrName, IsMainCL: true };
-   var maincl = commCreateCLByOption( db, csName, mainClName, options, false );
+   var maincl = commCreateCL( db, csName, mainClName, options, false );
 
    var options2 = { ShardingKey: { b: 1 }, ShardingType: "hash" };
-   var subcl = commCreateCLByOption( db, csName, subClName, options2, false );
+   var subcl = commCreateCL( db, csName, subClName, options2, false );
 
    maincl.attachCL( csName + "." + subClName, { LowBound: { No: 0 }, UpBound: { No: 200 } } );
    insertData( db, csName, mainClName, 100 );

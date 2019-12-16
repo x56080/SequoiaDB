@@ -34,7 +34,7 @@ function main ()
     println( "autosplit srcGrName :" + srcGrName_a + " , tarGrName : " + tarGrName_b );
     commCreateCS( db, csName, false, "", { Domain: domainName } );
     var options = { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 };
-    var cl = commCreateCLByOption( db, csName, clName, options, false );
+    var cl = commCreateCL( db, csName, clName, options, false );
     insertData( db, csName, clName, 100 );
 
     println( "--start split" );

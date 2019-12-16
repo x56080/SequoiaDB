@@ -15,7 +15,7 @@ if( false == commIsStandalone( db ) )
    try
    {
       var optionObj = { ReplSize: 0, Compressed: true };
-      var cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, optionObj, true,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, optionObj, true,
          false, "create collecton 1 failed" );
    }
    catch( e )

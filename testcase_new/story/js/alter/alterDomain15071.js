@@ -45,7 +45,7 @@ function main ()
    var domain = commCreateDomain( db, domainName, [group1], { AutoSplit: false } );
    db.createCS( csName, { Domain: domainName } )
    var clOption = { ShardingKey: { a: 1 }, ShardingType: 'hash' };
-   var cl = commCreateCLByOption( db, csName, clName, clOption, true, true );
+   var cl = commCreateCL( db, csName, clName, clOption, true, true );
 
    for( i = 0; i < 5000; i++ )
    {

@@ -21,7 +21,7 @@ function testSplitJsonOne ( db )
       };
       commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
          "drop cl begin" )
-      var cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, splitCLOption, true,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, splitCLOption, true,
          true, false, "create collection begin" );
       var fullName = COMMCSNAME + "." + COMMCLNAME;
       var dstGroup;

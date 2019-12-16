@@ -27,7 +27,7 @@ function main ()
 
    //name 覆盖1字节有效字符
    var optionObj = { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 0, Compressed: true, CompressionType: "lzw", AutoSplit: true };
-   var cl1 = commCreateCLByOption( db, csName, clNames[0], optionObj, true );
+   var cl1 = commCreateCL( db, csName, clNames[0], optionObj, true );
 
    checkResult( clNames[0], "ShardingKey", { a: 1 } );
    checkResult( clNames[0], "ShardingType", "hash" );
@@ -40,7 +40,7 @@ function main ()
 
    //name 覆盖127字节有效字符
    var optionObj = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: -1, Group: groupName };
-   var cl2 = commCreateCLByOption( db, csName, clNames[1], optionObj, true );
+   var cl2 = commCreateCL( db, csName, clNames[1], optionObj, true );
 
    checkResult( clNames[1], "ShardingKey", { a: 1 } );
    checkResult( clNames[1], "ShardingType", "range" );
@@ -50,7 +50,7 @@ function main ()
 
    //检测 IsMainCL  覆盖边界值
    var optionObj = { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true };
-   var cl3 = commCreateCLByOption( db, csName, clNames2[0], optionObj, true );
+   var cl3 = commCreateCL( db, csName, clNames2[0], optionObj, true );
 
    checkResult( clNames2[0], "ShardingKey", { a: 1 } );
    checkResult( clNames2[0], "ShardingType", "range" );
@@ -60,7 +60,7 @@ function main ()
    checkCLByInsertData( cl3 );
 
    var optionObj = { ShardingKey: { a: 1 }, IsMainCL: true };
-   var cl4 = commCreateCLByOption( db, csName, clNames2[1], optionObj, true );
+   var cl4 = commCreateCL( db, csName, clNames2[1], optionObj, true );
 
    checkResult( clNames2[1], "ShardingKey", { a: 1 } );
    checkResult( clNames2[1], "IsMainCL", true );

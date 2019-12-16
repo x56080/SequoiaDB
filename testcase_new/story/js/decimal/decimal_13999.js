@@ -29,10 +29,10 @@ function main ()
    commDropCL( db, csName, subClName2, true, true, "drop CL in the beginning" );
 
    var option = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0 };
-   var mainCl = commCreateCLByOption( db, csName, mainClName, option, true, true );
+   var mainCl = commCreateCL( db, csName, mainClName, option, true, true );
    option = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0 };
-   var subCl1 = commCreateCLByOption( db, csName, subClName1, option, true, true );
-   var subCl2 = commCreateCLByOption( db, csName, subClName2, option, true, true );
+   var subCl1 = commCreateCL( db, csName, subClName1, option, true, true );
+   var subCl2 = commCreateCL( db, csName, subClName2, option, true, true );
    var attachOption = { LowBound: { a: { $decimal: "MIN" } }, UpBound: { a: { $decimal: "0" } } };
    attachCL( mainCl, csName + "." + subClName1, attachOption );
    attachOption = { LowBound: { a: { $decimal: "0" } }, UpBound: { a: { $decimal: "MAX" } } };

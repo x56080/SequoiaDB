@@ -21,11 +21,11 @@ function main ()
 
     //创建主表
     var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
-    var maincl = commCreateCLByOption( db, csName, mainCL_Name, mainCLOption, true, true );
+    var maincl = commCreateCL( db, csName, mainCL_Name, mainCLOption, true, true );
 
     //创建子表
     var subClOption = { ShardingKey: { "b": 1 }, ShardingType: "hash", AutoSplit: true, ReplSize: 0 };
-    var subcl = commCreateCLByOption( db, csName, subCL_Name, subClOption, true, true );
+    var subcl = commCreateCL( db, csName, subCL_Name, subClOption, true, true );
 
     //循环多次attach子表/detach子表 
     var options = { LowBound: { a: 0 }, UpBound: { a: operationNum } };

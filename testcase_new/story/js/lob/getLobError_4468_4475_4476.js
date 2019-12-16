@@ -11,7 +11,7 @@ function main ( db )
       var clName = "testLob4468";
       commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
 
-      var cl = commCreateCL( db, COMMCSNAME, clName, 0, true, true, false, "create collection" );
+      var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false, "create collection" );
       var lobFilePath = WORKDIR + "/testlob4468";
       lobGenerateFile( lobFilePath );
       var lobOid = cl.putLob( lobFilePath );

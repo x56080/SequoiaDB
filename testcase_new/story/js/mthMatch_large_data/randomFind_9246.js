@@ -16,7 +16,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
    //create main-sub cl for index scan
-   var dbcl_IndexScan = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl_IndexScan = commCreateCL( db, COMMCSNAME, clName );
    println( "createCL success" );
 
    //insert random numberical data

@@ -16,10 +16,10 @@ function main ()
    commDropCL( db, COMMCSNAME, clName1, true, true );
    commDropCL( db, COMMCSNAME, clName2, true, true );
 
-   var dbcl1 = commCreateCLByOption( db, COMMCSNAME, clName1, { AutoIncrement: { Field: "id" } } );
+   var dbcl1 = commCreateCL( db, COMMCSNAME, clName1, { AutoIncrement: { Field: "id" } } );
 
    db.transBegin();
-   var dbcl2 = commCreateCLByOption( db, COMMCSNAME, clName2, { AutoIncrement: { Field: "id" } } );
+   var dbcl2 = commCreateCL( db, COMMCSNAME, clName2, { AutoIncrement: { Field: "id" } } );
    var doc = [];
    var expR = [];
    for( var i = 0; i < 100; i++ )

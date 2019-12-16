@@ -14,7 +14,7 @@ function main ()
    //创建主子表，并在主表中创建全文索引 2.通过主表插入部分数据，数据分布在各子表中
    var mainclName = COMMCLNAME + "_ES_12072";
    commDropCL( db, COMMCSNAME, mainclName, true, true );
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, mainclName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true } );
+   var mainCL = commCreateCL( db, COMMCSNAME, mainclName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true } );
    var subCLName1 = COMMCLNAME + "slave1_cl_12072";
    commDropCL( db, COMMCSNAME, subCLName1, true, true );
    var subCL1 = commCreateCL( db, COMMCSNAME, subCLName1 );

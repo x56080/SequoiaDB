@@ -16,7 +16,7 @@ function main ()
    var docs = [{ a: 1, b: "a" }, { a: 3, b: "b" }, { a: 2 },
    { a: 4 }, { a: 7, b: "c" }, { a: 4, b: "d" },
    { a: 10 }, { a: 11, b: "k" }, { a: 15 }];
-   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl = commCreateCL( db, csname, clname );
    cl.insert( docs );
 
    testExprt();

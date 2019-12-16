@@ -26,16 +26,16 @@ function main ()
    commDropCL( db, csName, mainclName, true, true, "drop main cl in the beginning" );
 
    var options = { ShardingKey: { a: 1 }, ReplSize: 0, IsMainCL: true };
-   var mainCL = commCreateCLByOption( db, csName, mainclName, options, true, false, "create main cl." );
+   var mainCL = commCreateCL( db, csName, mainclName, options, true, false, "create main cl." );
 
    var suboptions1 = { ShardingKey: { b: 1 }, ShardingType: "hash", Partition: 4096 };
-   commCreateCLByOption( db, csName, subCLName1, suboptions1, true, false, "create sub cl 1." );
+   commCreateCL( db, csName, subCLName1, suboptions1, true, false, "create sub cl 1." );
 
    var suboptions2 = { ReplSize: 2 };
-   commCreateCLByOption( db, csName, subCLName2, suboptions2, true, false, "create sub cl 2." );
+   commCreateCL( db, csName, subCLName2, suboptions2, true, false, "create sub cl 2." );
 
    var suboptions3 = { Compressed: true };
-   commCreateCLByOption( db, csName, subCLName3, suboptions3, true, false, "create sub cl 3." );
+   commCreateCL( db, csName, subCLName3, suboptions3, true, false, "create sub cl 3." );
 
    mainCL.attachCL( csName + "." + subCLName1, { LowBound: { a: -10000 }, UpBound: { a: 0 } } );
    mainCL.attachCL( csName + "." + subCLName2, { LowBound: { a: 0 }, UpBound: { a: 6000 } } );

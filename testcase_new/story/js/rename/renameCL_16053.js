@@ -10,7 +10,7 @@ function main ( db )
    {
       //create cl 
       var clName = CHANGEDPREFIX + "_renamecl16053";
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0 }, true, true );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0 }, true, true );
 
       //rename cl   
       try

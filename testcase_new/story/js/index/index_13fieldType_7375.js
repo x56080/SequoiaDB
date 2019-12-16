@@ -11,7 +11,7 @@ function main ( db )
       "drop collection in the beginning" );
 
    // create collection
-   var idxCL = commCreateCL( db, csName, clName, -1, true, true, false,
+   var idxCL = commCreateCL( db, csName, clName, {}, true, false,
       "create collection" );
 
    // insert data to SDB

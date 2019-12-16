@@ -22,7 +22,7 @@ function main ()
    var procedureName = CHANGEDPREFIX + "_pro_16107";
 
    var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
-   var cl = commCreateCLByOption( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
+   var cl = commCreateCL( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
 
    var str = "db.createProcedure(function " + procedureName + "(){var cl = db.getCS('" + oldcsName + "').getCL('" + clName + "'); " +
       "cl.insert({'no':10086, 'customerName':'testTrans', 'phone':13700010086, 'openDate':1402990912105}) })";

@@ -17,7 +17,7 @@ function main ()
    var autoIncrementArray = new Array( { Field: "id1", Increment: 2 },
       { Field: "id2", Increment: 4 },
       { Field: "id3", Increment: 1 } );
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: autoIncrementArray } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: autoIncrementArray } );
 
    //check autoIncrement 
    var clID = getCLID( COMMCSNAME, clName );

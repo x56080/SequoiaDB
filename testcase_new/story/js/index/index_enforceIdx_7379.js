@@ -11,7 +11,7 @@ function main ( db )
    commDropCL( db, csName, clName, true, true, "drop collection in the beginning" );
 
    // create collection
-   var idxCL = commCreateCL( db, csName, clName, -1, true, true, false, "create collection" );
+   var idxCL = commCreateCL( db, csName, clName, {}, true, false, "create collection" );
 
    // create index
    createIndex( idxCL, "noIndex", { no: 1 }, true, true );

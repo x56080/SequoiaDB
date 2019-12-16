@@ -18,7 +18,7 @@ function main ()
    //create cappedCL
    var clName = COMMCAPPEDCLNAME + "12803_12804";
    var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
-   var dbcl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
+   var dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
 
    //check alter cappedCL 
    println( "---begin check alter cappedCL---" )

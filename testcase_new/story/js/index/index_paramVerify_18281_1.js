@@ -11,7 +11,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName, true, true,
       "Failed to drop CL in the pre-condition." );
-   var cl = commCreateCL( db, COMMCSNAME, clName, -1, true, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
       "Failed to create CL." );
 
    /**************************** test1, field name lowercase ***************************/

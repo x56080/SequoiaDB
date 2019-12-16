@@ -26,7 +26,7 @@ function main ()
    commDropCS( db, csName );
 
    var dbcs = db.createCS( csName, { Domain: domainName } );
-   var dbcl = commCreateCLByOption( db, csName, clName, { ShardingType: "hash", ShardingKey: { a: 1 }, AutoSplit: true } );
+   var dbcl = commCreateCL( db, csName, clName, { ShardingType: "hash", ShardingKey: { a: 1 }, AutoSplit: true } );
 
    //索引字段覆盖：非分区键
    //插入包含全文索引字段的记录

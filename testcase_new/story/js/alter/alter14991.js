@@ -32,7 +32,7 @@ function main ()
    var clName = CHANGEDPREFIX + "_14991";
 
    var options = { ShardingType: 'hash', ShardingKey: { a: 1 }, Compressed: true };
-   var cl = commCreateCLByOption( db, csName, clName, options, true, false, "create CL in the begin" );
+   var cl = commCreateCL( db, csName, clName, options, true, false, "create CL in the begin" );
 
 
    println( "---test setAttributes 2---" );

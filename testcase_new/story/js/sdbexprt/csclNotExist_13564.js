@@ -10,7 +10,7 @@ main();
 
 function main ()
 {
-   commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+   commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
    testExprtNotExistCs();
    testExprtNotExistCl();

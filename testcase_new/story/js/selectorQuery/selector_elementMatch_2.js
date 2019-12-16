@@ -20,7 +20,7 @@ function main ( db )
       //var addRecord2 = {"nest1":{"nest2":{"nest3":{"nest4":"element match query"}}}} ;
       var addRecord2 = { "nestObj": "element match query" };
       var addRecord3 = [{ "nestArr1": [{ "nestArr2": [{ "nestArr3": ["abc", 158, "elementMatch", "中文"] }] }] }];
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
          "create colleciton in the begnning" );
       // auto generate data
       selAutoGenData( cl, recordNum, addRecord1, addRecord2, addRecord3 );

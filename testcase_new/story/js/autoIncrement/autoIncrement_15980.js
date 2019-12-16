@@ -15,7 +15,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: [{ Field: fields[0] }, { Field: fields[1] }] } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: [{ Field: fields[0] }, { Field: fields[1] }] } );
 
    var coordNodes = getCoordNodeNames();
    var expRecs = [];

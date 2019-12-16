@@ -167,14 +167,14 @@ function createMainCL ( csName, mainCLName )
       ShardingType: "range",
       IsMainCL: true
    };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, false, true, "Failed to create mainCL." );
+   var mainCL = commCreateCL( db, csName, mainCLName, options, false, true, "Failed to create mainCL." );
    return mainCL;
 }
 
 function createSubCL ( csName, subCLName )
 {
    var options = { ShardingKey: { SCLKEY: 1 }, ShardingType: "hash" };
-   subCL = commCreateCLByOption( db, csName, subCLName, options, false, true, "Failed to create subCL" );
+   subCL = commCreateCL( db, csName, subCLName, options, false, true, "Failed to create subCL" );
    return subCL;
 }
 

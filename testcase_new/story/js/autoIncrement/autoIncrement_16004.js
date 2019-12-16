@@ -23,7 +23,7 @@ function main ()
    var minValue = -1333;
    var maxValue = 13001;
    var fieldName = "id";
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment, MinValue: minValue, MaxValue: maxValue } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment, MinValue: minValue, MaxValue: maxValue } } );
 
    var expR = [];
    for( var i = 0; i < 1001; i++ )

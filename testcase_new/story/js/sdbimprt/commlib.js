@@ -47,7 +47,7 @@ function readyCL ( csName, clName, optionObj, message )
    commDropCL( db, csName, clName, true, true,
       "Failed to drop CL in the pre-condition." );
 
-   var cl = commCreateCLByOption( db, csName, clName, optionObj, true, true,
+   var cl = commCreateCL( db, csName, clName, optionObj, true, true,
       "Failed to create CL." )
    return cl;
 }

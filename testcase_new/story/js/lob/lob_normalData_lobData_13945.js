@@ -14,7 +14,7 @@ function main ( db )
    var originMd5 = getMd5ForFile( testFile );
 
    // create collection
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true, true,
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true,
       "create collection" );
    // put normal data and put lob
    try

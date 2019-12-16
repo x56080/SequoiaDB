@@ -22,7 +22,7 @@ function main ()
       for( var j = 0; j < clnum; j++ )
       {
          var clname = COMMCLNAME + "_sdbexprt13568_" + j;
-         var cl = commCreateCL( db, csname, clname, 0 );
+         var cl = commCreateCL( db, csname, clname );
          cl.insert( doc );
          if( i == 0 )
             clnames.push( clname );

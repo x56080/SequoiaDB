@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_15939";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", AcquireSize: 1 } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", AcquireSize: 1 } } );
 
    var doc = [{ id: -2147483648, a: "int" },
    { a: "numberLong", id: { $numberLong: "9223372036854775807" } },

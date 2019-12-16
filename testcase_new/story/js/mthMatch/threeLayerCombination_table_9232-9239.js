@@ -33,7 +33,7 @@ function main ()
 
    //create cl for hash split
    var ClOption = { ShardingKey: { "_id": 1 }, ShardingType: "hash", ReplSize: 0 };
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
 
    //split cl
    startCondition = { Partition: 2014 };

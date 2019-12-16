@@ -36,7 +36,7 @@ function main ()
    commDropCS( db, subCSName );
 
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range" };
-   var mainCL = commCreateCLByOption( db, mainCSName, mainCLName, options, true, false, "create main cl" );
+   var mainCL = commCreateCL( db, mainCSName, mainCLName, options, true, false, "create main cl" );
    commCreateCL( db, subCSName, subCLName );
 
    mainCL.attachCL( subCSName + "." + subCLName, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190831" } } );

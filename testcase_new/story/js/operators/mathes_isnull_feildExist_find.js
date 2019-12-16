@@ -9,7 +9,7 @@ function isnull_normal_Test ( db )
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
       "drop cl in the beginning" );
    var cs = commCreateCS( db, COMMCSNAME, true );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, false, true );
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, false, true );
    cl.insert( { a: null, b: 1 } );
    cl.insert( { a: 1, b: 2 } );
    record1 = cl.find( { a: { $isnull: 1 } } );

@@ -10,7 +10,7 @@ function main ( db )
    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection in the beginning" );
 
    // create collection
-   var idxCL = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, Compressed: true }, true, true );
+   var idxCL = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Compressed: true }, true, true );
 
    //drop idIndex
    idxCL.dropIdIndex();

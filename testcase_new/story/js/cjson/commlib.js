@@ -31,7 +31,7 @@ function readyCL ( csName, clName, optionObj )
 
    if( optionObj == undefined ) { optionObj = {}; }
    commDropCL( db, csName, clName );
-   var cl = commCreateCLByOption( db, csName, clName, optionObj );
+   var cl = commCreateCL( db, csName, clName, optionObj );
    return cl;
 }
 

@@ -34,8 +34,8 @@ function main ( db )
       commDropCL( db, COMMCSNAME, clName2, true, true, "drop CL in the beginning" );
 
       //create cl
-      var dbcl1 = commCreateCLByOption( db, COMMCSNAME, clName1, { Compressed: true, CompressionType: "snappy" } );
-      var dbcl2 = commCreateCLByOption( db, COMMCSNAME, clName2, { Compressed: true, CompressionType: "snappy" } );
+      var dbcl1 = commCreateCL( db, COMMCSNAME, clName1, { Compressed: true, CompressionType: "snappy" } );
+      var dbcl2 = commCreateCL( db, COMMCSNAME, clName2, { Compressed: true, CompressionType: "snappy" } );
 
       //test a: cl no records, alter compressiontype is lzw
       dbcl1.setAttributes( { CompressionType: "lzw" } );

@@ -35,7 +35,7 @@ function main ()
 
    //create cl for range split
    var ClOption = { ShardingKey: { "age": 1 }, ShardingType: "range", ReplSize: 0 };
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
 
    //insert decimal data befor split;
    var doc = [{ age: { $decimal: "123" } },
@@ -189,7 +189,7 @@ function main ()
 
    //create cl for range split
    var ClOption = { ShardingKey: { "age": 1 }, ShardingType: "range" };
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
 
    //insert decimal data befor split;
    var doc = [{ age: { $decimal: "123" } },

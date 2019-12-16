@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_11994";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //删除存在的全文索引，删除成功
    var indexName = "a_11994";

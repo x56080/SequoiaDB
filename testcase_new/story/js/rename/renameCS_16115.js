@@ -26,7 +26,7 @@ function main ( db )
    commDropCS( db, csName1, true, "ignoreNotExist is true" );
    commDropCS( db, csName2, true, "ignoreNotExist is true" );
    var varCS1 = commCreateCS( db, csName1, true, "create CS" );
-   var varCL = commCreateCLByOption( db, csName1, clName1, { ShardingKey: { a: 1 }, ShardingType: "hash", Group: groupName1 }, true, false, "create cl in the beginning" );
+   var varCL = commCreateCL( db, csName1, clName1, { ShardingKey: { a: 1 }, ShardingType: "hash", Group: groupName1 }, true, false, "create cl in the beginning" );
    var recordNums = 2000;
    insertData( varCL, recordNums );
    varCL.split( groupName1, groupName2, 50 );

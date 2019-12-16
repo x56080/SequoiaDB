@@ -14,7 +14,7 @@ function main ( db )
       var recordNum = 100;
       var addRecord1 = { "nest1": { "nest2": { "nest3": ["a", "b"] } } };
       var addRecord2 = [{ "nest1": [{ "nest2": [{ "nest3": ["a", "b"] }] }] }];
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
          "create colleciton in the begnning" );
       // auto generate data
       selAutoGenData( cl, recordNum, addRecord1, addRecord2 );

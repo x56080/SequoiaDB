@@ -15,7 +15,7 @@ function main ()
 
    var clOption = { Capped: true, Size: 1, AutoIndexId: false };
    var clName = COMMCAPPEDCLNAME + "12436";
-   var dbcl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
+   var dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
 
    // connect master node, delete capped cl
    var groupNames = commGetCLGroups( db, COMMCAPPEDCSNAME + "." + clName );

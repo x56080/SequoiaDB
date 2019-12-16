@@ -33,8 +33,8 @@ function main ()
    var clName = CHANGEDPREFIX + "_14959";
 
    var options = { IsMainCL: true, ShardingType: 'range', ShardingKey: { a: 1 } };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create CL in the begin" );
-   var cl = commCreateCL( db, csName, clName, 1, false, true, false, "create CL in the begin" );
+   var mainCL = commCreateCL( db, csName, mainCLName, options, true, false, "create CL in the begin" );
+   var cl = commCreateCL( db, csName, clName, {}, true, false, "create CL in the begin" );
 
    //修改IsMainCL值
    println( "---test alter IsMainCL---" );

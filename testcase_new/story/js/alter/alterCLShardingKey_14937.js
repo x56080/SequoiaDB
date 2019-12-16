@@ -33,7 +33,7 @@ function main ( db )
       commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
       //create cl
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { a: 1, b: 1 } } );;
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { a: 1, b: 1 } } );;
 
       //test a: alter sharding key of one field by enableSharding
       var shardingKeyField = { c: 1 };

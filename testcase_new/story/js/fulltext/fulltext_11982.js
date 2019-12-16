@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_11985";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //在已存在全文索引定义的集合中，再次创建全文索引
    dbcl.createIndex( "a_11982", { content: "text" } );

@@ -18,8 +18,8 @@ function main ()
    commDropCL( db, COMMCSNAME, mainClName );
    commDropCL( db, COMMCSNAME, subClName );
 
-   var mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, { IsMainCL: true, ShardingKey: { a: 1 } } );
-   var subCl = commCreateCLByOption( db, COMMCSNAME, subClName, { ShardingKey: { a: 1 } } );
+   var mainCl = commCreateCL( db, COMMCSNAME, mainClName, { IsMainCL: true, ShardingKey: { a: 1 } } );
+   var subCl = commCreateCL( db, COMMCSNAME, subClName, { ShardingKey: { a: 1 } } );
    var fullName = COMMCSNAME + "." + subClName;
    mainCl.attachCL( fullName, { LowBound: { a: 0 }, UpBound: { a: 1000 } } );
 

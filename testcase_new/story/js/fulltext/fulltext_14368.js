@@ -18,11 +18,11 @@ function main ()
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var dbcl1 = commCreateCL( db, csName, clName );
-   var dbcl2 = commCreateCLByOption( db, csName, clName + "_2", { ShardingKey: { content: 1 }, ShardingType: "hash" } )
-   var dbcl3 = commCreateCLByOption( db, csName, clName + "_3", { ShardingKey: { content: 1 }, ShardingType: "range" } )
+   var dbcl2 = commCreateCL( db, csName, clName + "_2", { ShardingKey: { content: 1 }, ShardingType: "hash" } )
+   var dbcl3 = commCreateCL( db, csName, clName + "_3", { ShardingKey: { content: 1 }, ShardingType: "range" } )
    var subCL1 = commCreateCL( db, csName, clName + "_4_1" );
    var subCL2 = commCreateCL( db, csName, clName + "_4_2" );
-   var mainCL = commCreateCLByOption( db, csName, clName + "_4", { ShardingKey: { content: 1 }, ShardingType: "range", IsMainCL: true } )
+   var mainCL = commCreateCL( db, csName, clName + "_4", { ShardingKey: { content: 1 }, ShardingType: "range", IsMainCL: true } )
    mainCL.attachCL( csName + "." + clName + "_4_1", { LowBound: { content: "a" }, UpBound: { content: "f" } } );
    mainCL.attachCL( csName + "." + clName + "_4_2", { LowBound: { content: "x" }, UpBound: { content: "z" } } );
 

@@ -14,7 +14,7 @@ function main ( db )
       var idxDef = { "GroupID": -1, "PrimaryNode": 1, "Version": 1 };
       var addRecord1 = { "nest1": { "nest2": { "nest3": "when nest test, use $include" } } };
       var addRecord2 = { "array0": [{ "array1": [{ "array2": ["a", "b", "c", "d", "e", "f", "g", "h", "i"] }] }] };
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
          "create colleciton in the begnning" );
       // auto generate data and create Index
       commCreateIndex( cl, idxName, idxDef );

@@ -20,7 +20,7 @@ function main ()
 
    var dataGroupNames = getDataGroupNames();
    var groupName = dataGroupNames[0];
-   var dbcl = commCreateCLByOption( db, csName, clName, { Capped: true, Size: 1024, Compressed: false, Group: groupName } );
+   var dbcl = commCreateCL( db, csName, clName, { Capped: true, Size: 1024, Compressed: false, Group: groupName } );
 
    var masterNode = db.getRG( groupName ).getMaster();
    var hostName = masterNode.getHostName();

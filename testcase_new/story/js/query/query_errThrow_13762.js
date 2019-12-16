@@ -10,7 +10,7 @@ function main ( db )
 {
    try
    {
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, true,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true,
          "create collection in the beginning" );
       // insert record
       cl.insert( { a: 1 } );

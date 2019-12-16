@@ -15,7 +15,7 @@ function main ()
    var lobName = CHANGEDPREFIX + "_16096_lob";
 
    var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
-   var cl = commCreateCLByOption( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
+   var cl = commCreateCL( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
 
    println( "---create index---" );
    cl.createIndex( "index16096", { age: 1 }, false );

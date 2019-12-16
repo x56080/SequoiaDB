@@ -67,7 +67,7 @@ function main ()
 function createMainCLAndAttachCL ( csName, mainCLName, clName, subCLNum, beginBound, scope )
 {
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range" };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl" );
+   var mainCL = commCreateCL( db, csName, mainCLName, options, true, false, "create main cl" );
 
    var options = { ShardingKey: { _id: 1 }, ShardingType: "hash", Compressed: true };
    for( var i = 0; i < subCLNum; i++ )
@@ -79,7 +79,7 @@ function createMainCLAndAttachCL ( csName, mainCLName, clName, subCLNum, beginBo
       }
       else
       {
-         commCreateCLByOption( db, csName, subCLName, options );
+         commCreateCL( db, csName, subCLName, options );
       }
       var lowBound = { "date": ( parseInt( beginBound ) + i * scope ) + '' };
       var upBound = { "date": ( parseInt( beginBound ) + ( i + 1 ) * scope ) + '' };

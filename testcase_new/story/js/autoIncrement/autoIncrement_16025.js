@@ -24,7 +24,7 @@ function main ()
    var cacheSize = 20;
    var acquireSize = 11;
    var increment = 10;
-   var dbcl = commCreateCLByOption( db, csName, clName, {
+   var dbcl = commCreateCL( db, csName, clName, {
       ShardingKey: { id: 1 },
       AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment }
    } );

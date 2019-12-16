@@ -21,8 +21,8 @@ function testWithIdCsv ()
 {
    var clname = COMMCLNAME + "_sdbexprt13544";
    var clname1 = COMMCLNAME + "_sdbimprt13544";
-   var cl = commCreateCL( db, csname, clname, 0 );
-   var cl1 = commCreateCL( db, csname, clname1, 0 );
+   var cl = commCreateCL( db, csname, clname );
+   var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( { _id: 1, a: 1 } );
    cl.insert( { _id: 2, a: 2, b: 1 } );
    cl.insert( { _id: 3, a: 3, b: 2, c: 1 } );
@@ -72,8 +72,8 @@ function testWithIdJson ()
 {
    var clname = COMMCLNAME + "_sdbexprt13543";
    var clname1 = COMMCLNAME + "_sdbimprt13543";
-   var cl = commCreateCL( db, csname, clname, 0 );
-   var cl1 = commCreateCL( db, csname, clname1, 0 );
+   var cl = commCreateCL( db, csname, clname );
+   var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( { _id: 1, a: 1 } );
    cl.insert( { _id: 2, a: 2, b: 1 } );
    cl.insert( { _id: 3, a: 3, b: 2, c: 1 } );

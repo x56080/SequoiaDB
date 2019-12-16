@@ -234,7 +234,7 @@ function test_OnOrdinaryTbl ( db )
 {
    try
    {
-      var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true );
+      var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true );
 
       // 普通表上测试sort({a:1|-1}).limit(1)
       test_FindForAscending( cl, 10, 0, 1 );
@@ -269,7 +269,7 @@ function test_OnHorizontalTbl ( db )
 {
    try
    {
-      var cl = commCreateCLByOption( db, COMMCSNAME, clName, buildOption( "a", false, 0 ), true );
+      var cl = commCreateCL( db, COMMCSNAME, clName, buildOption( "a", false, 0 ), true );
       var groupsnum = splitTable( db, cl, clName, "a" );
       var totalnumber = 5 * groupsnum;
       // 水平分区表上测试sort({a:1|-1}).limit(1)
@@ -316,10 +316,10 @@ function test_onVerticalTbl ( db )
    {
       var subclName1 = "cl13756_subcl1";
       var subclName2 = "cl13756_subcl2";
-      var mainCL = commCreateCLByOption( db, COMMCSNAME, clName, buildOption( "a", true, 0 ), true );
-      var subcl1 = commCreateCLByOption( db, COMMCSNAME, subclName1, buildOption( "a", false, 0 ), true );
+      var mainCL = commCreateCL( db, COMMCSNAME, clName, buildOption( "a", true, 0 ), true );
+      var subcl1 = commCreateCL( db, COMMCSNAME, subclName1, buildOption( "a", false, 0 ), true );
       var groupsnum = splitTable( db, subcl1, subclName1, "a" );
-      var subcl2 = commCreateCLByOption( db, COMMCSNAME, subclName2, buildOption( "a", false, 0 ), true );
+      var subcl2 = commCreateCL( db, COMMCSNAME, subclName2, buildOption( "a", false, 0 ), true );
       var totalnumber = 5 * groupsnum * 2;
       splitTable( db, subcl2, subclName2, "a", 5 * groupsnum );
       mainCL.attachCL( COMMCSNAME + "." + subclName1, { LowBound: { a: 0 }, UpBound: { a: totalnumber / 2 } } );

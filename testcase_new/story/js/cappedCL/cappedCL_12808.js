@@ -14,7 +14,7 @@ function main ()
 
 	var clName = COMMCAPPEDCLNAME + "12808";
 	var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
-	var dbcl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, clOption, true, true );
+	var dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, clOption, true, true );
 
 	//get primary node
 	var dataGroup = commGetCLGroups( db, COMMCAPPEDCSNAME + "." + clName );

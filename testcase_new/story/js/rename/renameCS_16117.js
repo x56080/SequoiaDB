@@ -25,9 +25,9 @@ function main ( db )
    commDropCS( db, csName1, true, "drop CS " + csName1 );
    commDropCS( db, csName2, true, "drop CS " + csName2 );
    var cs = commCreateCS( db, csName1, true, "create CS1" );
-   var cl1 = commCreateCLByOption( db, csName1, clName1, {}, true, false, "create cl in the beginning" );
-   var cl2 = commCreateCLByOption( db, csName1, clName2, {}, true, false, "create cl in the beginning" );
-   var cl3 = commCreateCLByOption( db, csName1, clName3, {}, true, false, "create cl in the beginning" );
+   var cl1 = commCreateCL( db, csName1, clName1, {}, true, false, "create cl in the beginning" );
+   var cl2 = commCreateCL( db, csName1, clName2, {}, true, false, "create cl in the beginning" );
+   var cl3 = commCreateCL( db, csName1, clName3, {}, true, false, "create cl in the beginning" );
 
    commCreateIndex( cl1, indexName1, { a: 1 }, false, false );
    commCreateIndex( cl1, indexName2, { b: 1 }, false, false );

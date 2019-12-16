@@ -20,7 +20,7 @@ function main ()
    {
       var csname = COMMCSNAME + "_sdbexprt13562_" + i;
       var clname = COMMCLNAME + "_sdbexprt13562_" + i;
-      var cl = commCreateCL( db, csname, clname, 0 );
+      var cl = commCreateCL( db, csname, clname );
       cl.insert( doc );
       clnames.push( clname );
       csnames.push( csname );

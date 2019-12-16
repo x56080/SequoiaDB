@@ -23,7 +23,7 @@ function main ()
    //clean before
    commDropCL( db, COMMCSNAME, clName, true, true, "drop the CL before!" );
 
-   var varCL = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { a: 1 }, ShardingType: "hash", AutoIndexId: false, ReplSize: 2, Compressed: true, CompressionType: "lzw" }, true, false, "create CL" );
+   var varCL = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { a: 1 }, ShardingType: "hash", AutoIndexId: false, ReplSize: 2, Compressed: true, CompressionType: "lzw" }, true, false, "create CL" );
 
    //check id index not existed
    checkIdIndex( clName, false );

@@ -43,11 +43,11 @@ function main ()
    //create maincl for range split
    db.setSessionAttr( { PreferedInstance: "M" } );
    var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
 
    //create subcl
-   commCreateCL( db, COMMCSNAME, subCL_Name1, 0 );
-   commCreateCL( db, COMMCSNAME, subCL_Name2, 0 );
+   commCreateCL( db, COMMCSNAME, subCL_Name1 );
+   commCreateCL( db, COMMCSNAME, subCL_Name2 );
 
    //attach subcl
    attachCL( dbcl, COMMCSNAME + "." + subCL_Name1, { LowBound: { a: 1 }, UpBound: { a: 100 } } );

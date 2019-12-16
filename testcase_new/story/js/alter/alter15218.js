@@ -37,7 +37,7 @@ function main ()
    var csName = COMMCSNAME;
    var clName = CHANGEDPREFIX + "_15218";
 
-   var cl = commCreateCL( db, csName, clName, 1, false, true, false, "create CL in the begin" );
+   var cl = commCreateCL( db, csName, clName, {}, true, false, "create CL in the begin" );
 
    for( i = 0; i < 5000; i++ )
    {

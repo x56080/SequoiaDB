@@ -15,7 +15,7 @@ function main ()
    var clName = COMMCLNAME + "_12139";
    var insertNum = 10000;
    var clOption = { Capped: true, Size: 1024, Max: insertNum, AutoIndexId: false, OverWrite: true };
-   var dbcl = commCreateCLByOption( db, csName, clName, clOption, true, true );
+   var dbcl = commCreateCL( db, csName, clName, clOption, true, true );
 
    db.setSessionAttr( { PreferedInstance: "M" } );
 

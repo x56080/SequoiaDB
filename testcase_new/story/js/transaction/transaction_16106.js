@@ -30,8 +30,8 @@ function main ()
    commDropCS( db, csName2 );
    var cs1 = commCreateCS( db, csName1, false, "create cs1 in begine", "" );
    var cs2 = commCreateCS( db, csName2, false, "create cs1 in begine", "" );
-   var cl1 = commCreateCLByOption( db, csName1, clName1, {}, false, false, "create cl1 in the begin" );
-   var cl2 = commCreateCLByOption( db, csName2, clName2, {}, false, false, "create cl1 in the begin" );
+   var cl1 = commCreateCL( db, csName1, clName1, {}, false, false, "create cl1 in the begin" );
+   var cl2 = commCreateCL( db, csName2, clName2, {}, false, false, "create cl1 in the begin" );
 
    println( '---trans begin---' );
    db.transBegin();

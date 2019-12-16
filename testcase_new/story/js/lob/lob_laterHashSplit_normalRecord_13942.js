@@ -25,7 +25,7 @@ function main ( db )
       "ShardingKey": { "no": 1 }, "ShardingType": "hash", "ReplSize": 0,
       "Partition": partitionNum, "Compressed": true
    };
-   var cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, optionObj, true,
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, optionObj, true,
       true, "create collection for hash split" );
    // put normal data and lob data
    try

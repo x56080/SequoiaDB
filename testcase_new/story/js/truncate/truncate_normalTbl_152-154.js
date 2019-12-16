@@ -9,7 +9,7 @@ function main ()
 {
    var clName = "truncate152";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection begin" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, 0, true, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
       "create collection begin" );
    var tableName = COMMCSNAME + "." + clName;
 

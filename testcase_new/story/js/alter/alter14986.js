@@ -31,7 +31,7 @@ function main ()
    var clName = CHANGEDPREFIX + "_14986";
 
    var options = { ReplSize: 0 };
-   var cl = commCreateCLByOption( db, csName, clName, options, true, false, "create CL in the begin" );
+   var cl = commCreateCL( db, csName, clName, options, true, false, "create CL in the begin" );
 
    //这个地方写测试步骤
    println( "---test alter ReplSize---" );

@@ -19,7 +19,7 @@ function testTruncateNormalCLMultiIndexKey ( db )
    var verJsonObj = { "TotalIndexPages": 4 };
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop cl begin" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, 0, true, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
       "create collection begin" );
    commDropIndex( cl, indexName, true )
 
@@ -78,13 +78,13 @@ function testTruncateMixtureCLMultiIndex ( db )
    }
    commCreateDomain( db, domainName, domainRGs, { AutoSplit: true } );
 
-   var mainCL = commCreateCLByOption( db, mainCS, COMMCLNAME, mainCLOption, true,
+   var mainCL = commCreateCL( db, mainCS, COMMCLNAME, mainCLOption, true,
       true, false, "create collection begin" );
    commCreateCS( db, subCS1, false, "create sub cs1", { "Domain": domainName } );
-   var subCL1 = commCreateCLByOption( db, subCS1, COMMCLNAME, subCLOption, true,
+   var subCL1 = commCreateCL( db, subCS1, COMMCLNAME, subCLOption, true,
       true, false, "create collection begin" );
    commCreateCS( db, subCS2, false, "create sub cs2", { "Domain": domainName } );
-   var subCL2 = commCreateCLByOption( db, subCS2, COMMCLNAME, subCLOption, true,
+   var subCL2 = commCreateCL( db, subCS2, COMMCLNAME, subCLOption, true,
       true, false, "create collection begin" );
    var subTable1 = subCS1 + "." + COMMCLNAME;
    var subTable2 = subCS2 + "." + COMMCLNAME;

@@ -18,7 +18,7 @@ function main ()
    for( var i = 0; i < num; i++ )
    {
       var clname = COMMCLNAME + "_sdbexprt13534_" + i;
-      var cl = commCreateCL( db, csname, clname, 0 );
+      var cl = commCreateCL( db, csname, clname );
       cl.insert( doc );
       clnames.push( clname );
    }

@@ -19,7 +19,7 @@ function main ()
       var clName = CHANGEDPREFIX + "_sessionAcess14114";
       commCreateCS( sdb, csName, false, "Failed to create CS." );
       var options = { ReplSize: 0 };
-      var dbcl = commCreateCLByOption( sdb, csName, clName, options, true, true );
+      var dbcl = commCreateCL( sdb, csName, clName, options, true, true );
       buckInsertData( dbcl, 80000 );
 
       println( "---begin to test query timeout " );

@@ -34,8 +34,8 @@ function main ( db )
       commDropCL( db, COMMCSNAME, mainCLName, true, true, "drop CL in the beginning" );
 
       //create subcl
-      var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCLName, { ShardingKey: { a: 1 }, IsMainCL: true } );
-      var subcl = commCreateCLByOption( db, COMMCSNAME, subCLName, { ShardingKey: { b: 1 }, ShardingType: "range" } );
+      var mainCL = commCreateCL( db, COMMCSNAME, mainCLName, { ShardingKey: { a: 1 }, IsMainCL: true } );
+      var subcl = commCreateCL( db, COMMCSNAME, subCLName, { ShardingKey: { b: 1 }, ShardingType: "range" } );
 
       //test a: alter shardingType
       alterShardingType( mainCL );

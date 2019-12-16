@@ -19,7 +19,7 @@ function main ( db )
    var groups = commGetGroups( db );
    var groupName1 = groups[0][0].GroupName;
    var groupName2 = groups[1][0].GroupName;
-   var varCL = commCreateCLByOption( db, csName, clName, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: groupName1 }, true, false, "create cl in the beginning" );
+   var varCL = commCreateCL( db, csName, clName, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: groupName1 }, true, false, "create cl in the beginning" );
    var recordNums = 2000;
    insertData( varCL, recordNums );
    varCL.split( groupName1, groupName2, 50 );

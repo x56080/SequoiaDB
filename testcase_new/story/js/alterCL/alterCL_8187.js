@@ -43,10 +43,10 @@ function main ()
    commDropCL( db, COMMCSNAME, subCLName2 );
    commDropCL( db, COMMCSNAME, subCLName3 );
 
-   var maincl = commCreateCLByOption( db, COMMCSNAME, mainCLName, { IsMainCL: true, ShardingKey: { id: 1 }, ShardingType: "range" } );
-   var subcl1 = commCreateCLByOption( db, COMMCSNAME, subCLName1, { ShardingKey: { id: 1 }, ShardingType: 'hash', Group: srcGroup } );
-   var subcl2 = commCreateCLByOption( db, COMMCSNAME, subCLName2, { Group: srcGroup } );
-   var subcl3 = commCreateCLByOption( db, COMMCSNAME, subCLName3, { Group: srcGroup } );
+   var maincl = commCreateCL( db, COMMCSNAME, mainCLName, { IsMainCL: true, ShardingKey: { id: 1 }, ShardingType: "range" } );
+   var subcl1 = commCreateCL( db, COMMCSNAME, subCLName1, { ShardingKey: { id: 1 }, ShardingType: 'hash', Group: srcGroup } );
+   var subcl2 = commCreateCL( db, COMMCSNAME, subCLName2, { Group: srcGroup } );
+   var subcl3 = commCreateCL( db, COMMCSNAME, subCLName3, { Group: srcGroup } );
    maincl.attachCL( COMMCSNAME + "." + subCLName1, { LowBound: { id: 0 }, UpBound: { id: 300 } } );
    maincl.attachCL( COMMCSNAME + "." + subCLName2, { LowBound: { id: 300 }, UpBound: { id: 700 } } );
    maincl.attachCL( COMMCSNAME + "." + subCLName3, { LowBound: { id: 700 }, UpBound: { id: 1100 } } );

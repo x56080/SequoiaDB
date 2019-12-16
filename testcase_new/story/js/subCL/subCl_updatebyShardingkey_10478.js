@@ -48,9 +48,9 @@ function main ()
 	db.setSessionAttr( { PreferedInstance: "M" } );
 	var mainCLOption = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
 	var subCLOption = { ShardingKey: { b: 1 }, ShardingType: "hash", ReplSize: 0, Compressed: true, Partition: 16 };
-	mainCl = commCreateCLByOption( db, COMMCSNAME, mainClName, mainCLOption, true, true );
-	subCls.push( commCreateCL( db, COMMCSNAME, subClNames[0], 0 ) );
-	subCls.push( commCreateCLByOption( db, COMMCSNAME, subClNames[1], subCLOption, true, true ) );
+	mainCl = commCreateCL( db, COMMCSNAME, mainClName, mainCLOption, true, true );
+	subCls.push( commCreateCL( db, COMMCSNAME, subClNames[0]) );
+	subCls.push( commCreateCL( db, COMMCSNAME, subClNames[1], subCLOption, true, true ) );
 	ClSplitOneTimes( COMMCSNAME, subClNames[1], { Partition: 8 }, null );
 	attachCL( mainCl, COMMCSNAME + "." + subClNames[0], { LowBound: { a: 0 }, UpBound: { a: 10 } } );
 	attachCL( mainCl, COMMCSNAME + "." + subClNames[1], { LowBound: { a: 10 }, UpBound: { a: 20 } } );

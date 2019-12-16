@@ -20,7 +20,7 @@ function main ()
    var coordB = new Sdb( coordNodes[1] );
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, {
       AutoIncrement: {
          Field: "id", Increment: increment,
          CacheSize: 500, AcquireSize: acquireSize, MinValue: minValue

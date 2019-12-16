@@ -45,14 +45,14 @@ function main ()
 
    //create main cl 
    var mainCLOption = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0 };
-   var dbcl = commCreateCLByOption( db, mainCSName, mainCLName, mainCLOption, true, true );
+   var dbcl = commCreateCL( db, mainCSName, mainCLName, mainCLOption, true, true );
 
    //create two sub cl
    var subCLOption1 = { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 8, ReplSize: 0 };
-   var dbsubcl_1 = commCreateCLByOption( db, subCSName, subCLName1, subCLOption1, true, true );
+   var dbsubcl_1 = commCreateCL( db, subCSName, subCLName1, subCLOption1, true, true );
 
    var subCLOption2 = { ShardingKey: { b: 1 }, ShardingType: "range", ReplSize: 0 };
-   var dbsubcl_2 = commCreateCLByOption( db, subCSName, subCLName2, subCLOption2, true, true );
+   var dbsubcl_2 = commCreateCL( db, subCSName, subCLName2, subCLOption2, true, true );
 
    //attach cl bound use int type
    attachOption1 = { LowBound: { a: -2147483648 }, UpBound: { a: 0 } };

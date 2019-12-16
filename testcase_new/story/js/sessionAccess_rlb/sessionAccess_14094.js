@@ -29,7 +29,7 @@ function main ()
       nodeList = createRGAndNode( db, groupName, instanceidList, nodeNum );
 
       //create cl ,then insert data
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
       insertData( dbcl );
 
       //test a: set multiple instanceid and ["M"]/["m"]

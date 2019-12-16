@@ -45,7 +45,7 @@ function createCL ( csName, clName, rgName, compressed, compreType )
       var options = { Group: rgName, ReplSize: 0, Compressed: true, CompressionType: compreType };
    }
 
-   var cl = commCreateCLByOption( db, csName, clName, options, true,
+   var cl = commCreateCL( db, csName, clName, options, true,
       true, "Failed to create CL[" + csName + "," + clName + "]." );
 
    return cl;

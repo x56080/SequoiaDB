@@ -15,7 +15,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 
    //create autoIncrement Generated "default"
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1" } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1" } } );
 
    //create autoIncrement Generated "always"
    dbcl.createAutoIncrement( { Field: "id2", Generated: "always" } );

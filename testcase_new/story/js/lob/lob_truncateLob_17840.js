@@ -10,7 +10,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true );
 
    //create collection
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //truncateLob oid string checked
    try

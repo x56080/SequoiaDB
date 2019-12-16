@@ -14,7 +14,7 @@ function main ()
 
    var clName = COMMCLNAME + "_11791";
    var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
-   var dbcl = commCreateCLByOption( db, csName, clName, clOption, true, true );
+   var dbcl = commCreateCL( db, csName, clName, clOption, true, true );
 
    //插入定长记录刚好占用一个块大小
    var recordNum = 33;

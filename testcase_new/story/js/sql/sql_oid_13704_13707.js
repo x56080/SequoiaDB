@@ -13,7 +13,7 @@ function main ()
    var clName = CHANGEDPREFIX + "_13704_CL";
 
    commDropCS( db, csName, true, "drop cs in the begin" );
-   var cl = commCreateCL( db, csName, clName, null, null, true, false, "create cl in the begin" );
+   var cl = commCreateCL( db, csName, clName, {}, true, false, "create cl in the begin" );
 
    println( "---begin test---" );
    isnotnullSQL( cl, csName, clName );

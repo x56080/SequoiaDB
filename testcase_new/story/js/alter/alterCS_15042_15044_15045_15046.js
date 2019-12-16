@@ -53,7 +53,7 @@ function main ( db )
       commCreateDomain( db, domainName2, groupNames );
       commCreateDomain( db, domainName3, [groupNames[1]] );
       var dbcs = commCreateCS( db, csName, false, "create CS" );
-      var dbcl = commCreateCLByOption( db, csName, clName, { Group: groupNames[0] } );
+      var dbcl = commCreateCL( db, csName, clName, { Group: groupNames[0] } );
 
       //testcase15042:add domain to cs
       println( "---add domain to cs " );

@@ -13,7 +13,7 @@ main();
 function main ()
 {
    commDropCL( db, csname, clname );
-   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl = commCreateCL( db, csname, clname );
    testExprt20125_1( cl );
    testExprt20125_2( cl );
    testExprt20125_3( cl );

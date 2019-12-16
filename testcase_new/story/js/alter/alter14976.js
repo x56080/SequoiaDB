@@ -33,10 +33,10 @@ function main ()
    var clName2 = CHANGEDPREFIX + "_14976_2";
 
    var options1 = { AutoIndexId: true };
-   var cl1 = commCreateCLByOption( db, csName, clName1, options1, true, false, "create CL in the begin" );
+   var cl1 = commCreateCL( db, csName, clName1, options1, true, false, "create CL in the begin" );
 
    var options2 = { AutoIndexId: false };
-   var cl2 = commCreateCLByOption( db, csName, clName2, options2, true, false, "create CL in the begin" );
+   var cl2 = commCreateCL( db, csName, clName2, options2, true, false, "create CL in the begin" );
 
    for( i = 0; i < 5000; i++ )
    {

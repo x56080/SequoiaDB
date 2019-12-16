@@ -13,7 +13,7 @@ function main ()
 
    commDropCL( db, csName, clName, true, true, "drop cl in the beginning" );
    var options = { ReplSize: 0 };
-   var varCL = commCreateCLByOption( db, csName, clName, options, true, false, "create cl." );
+   var varCL = commCreateCL( db, csName, clName, options, true, false, "create cl." );
 
    //insert data
    var records = [];

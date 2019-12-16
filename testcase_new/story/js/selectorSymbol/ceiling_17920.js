@@ -9,7 +9,7 @@ function main ()
    var clName = "selector_ceiling_17920";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var doc = [{ no: 1, test: { c: -0.34, d: 1.934 } },
    { no: 2, test: { a: { no: 0.12345 }, b: { no: { $decimal: "12.345" } } } }];
    insertData( dbcl, doc );

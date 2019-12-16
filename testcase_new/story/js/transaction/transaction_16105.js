@@ -28,7 +28,7 @@ function main ()
    commDropCS( db, oldcsName );
    commDropCS( db, newcsName );
    var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
-   var cl = commCreateCLByOption( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
+   var cl = commCreateCL( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
 
    db.transBegin();
    cl.insert( { "no": 10086, customerName: "testTrans", "phone": 13700010086, "openDate": 1402990912105 } );

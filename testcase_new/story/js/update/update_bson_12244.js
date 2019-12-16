@@ -12,7 +12,7 @@ catch( e )
 
 // prepare env
 // commCreateCL( db, csName, clName, replSize, compressed, autoCreateCS, ignoreExisted, message )
-var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, true,
+var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true,
    "Ensure env before usecase" );
 try
 {

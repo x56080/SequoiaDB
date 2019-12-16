@@ -27,7 +27,7 @@ function main ( db )
          }]
       }];
       var addRecord4 = { "nest1": { "nest2": { "nest3": ["nest4", 123, "element match query"] } } };
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
          "create colleciton in the begnning" );
       // auto generate data
       selAutoGenData( cl, recordNum, addRecord1, addRecord2, addRecord3, addRecord4 );

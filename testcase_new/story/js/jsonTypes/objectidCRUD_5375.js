@@ -6,7 +6,7 @@
 
 function main ( db )
 {
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, true, "create CL in the begining..." );
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true, "create CL in the begining..." );
 
    // 以ObjectId函数的方式插入数据
    cl.insert( { id: ObjectId( "55713f7953e6769804000001" ) } );

@@ -12,7 +12,7 @@ function main ()
    //create cappedCL
    var clName = COMMCAPPEDCLNAME + "11831";
    var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
-   var cl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, optionObj, false, false, "create cappedCL" );
+   var cl = commCreateCL( db, COMMCAPPEDCSNAME, clName, optionObj, false, false, "create cappedCL" );
 
    //insertData
    var doc = buildData();

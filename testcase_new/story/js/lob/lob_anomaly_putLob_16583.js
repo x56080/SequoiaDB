@@ -14,7 +14,7 @@ function main ( db )
    var testFile = CHANGEDPREFIX + "_lobTest16583.file";
    lobGenerateFile( testFile );
 
-   var cl = commCreateCL( db, COMMCSNAME, clName, -1, true, true, true, "create collection" );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true, "create collection" );
 
    println( "begin to put lob with incorrect oid" )
    // put lob with incorrect oid

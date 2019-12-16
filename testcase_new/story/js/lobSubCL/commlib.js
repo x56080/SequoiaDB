@@ -46,12 +46,12 @@ function createMainCLAndAttachCL ( db, csName, mainCLName, clName, shardingForma
    if( scope == undefined ) { scope = 5; }
 
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": shardingFormat, "ShardingType": "range" };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl" );
+   var mainCL = commCreateCL( db, csName, mainCLName, options, true, false, "create main cl" );
 
    for( var i = 0; i < subCLNum; i++ )
    {
       var subCLName = clName + "_" + i;
-      commCreateCLByOption( db, csName, subCLName, { "ShardingKey": { "date": 1 }, "ShardingType": "hash", "AutoSplit": true } );
+      commCreateCL( db, csName, subCLName, { "ShardingKey": { "date": 1 }, "ShardingType": "hash", "AutoSplit": true } );
       var lowBound = { "date": ( parseInt( beginBound ) + i * scope ) + '' };
       var upBound = { "date": ( parseInt( beginBound ) + ( i + 1 ) * scope ) + '' };
       mainCL.attachCL( csName + "." + subCLName, { "LowBound": lowBound, "UpBound": upBound } );

@@ -31,7 +31,7 @@ function main ( db )
       }
    }
    var cs = commCreateCS( db, csName, true, "create CS1" );
-   var varCL = commCreateCLByOption( db, csName, clName, {}, true, false, "create cl in the beginning" );
+   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in the beginning" );
 
    var recordNums = 100;
    insertData( varCL, recordNums );
@@ -59,7 +59,7 @@ function main ( db )
       }
    }
    //3.�½�clָ��Ϊ�ɵ�cl���������¼���ٴ�ִ�д洢���̲�ѯ
-   commCreateCLByOption( db, csName, clName, {}, true, false, "create cl in the beginning" );
+   commCreateCL( db, csName, clName, {}, true, false, "create cl in the beginning" );
    insertData( varCL, 50 );
    ret = db.eval( 'test16072("' + csName + '", "' + clName + '")' );
 

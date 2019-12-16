@@ -32,7 +32,7 @@ function main ()
 
    //create cl, ShardingKey is age
    var ClOption = { ShardingKey: { "age": 1 }, ShardingType: "range", ReplSize: 0 };
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, ClOption, true, true );
 
    //insert data
    var doc1 = [{ age: 1 }, { age: 2 }];

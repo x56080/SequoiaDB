@@ -51,17 +51,17 @@ function main ()
          Generated: generated
       }
    };
-   maincl = commCreateCLByOption( db, maincsName, mainclName, mainclOption );
+   maincl = commCreateCL( db, maincsName, mainclName, mainclOption );
 
    var subclFieldName1 = "id2";
    var subclOption1 = { ShardingKey: { "a0": 1 }, ShardingType: "range", Group: dataGroupNames[0], AutoIncrement: { Field: subclFieldName1 } };
-   subcl1 = commCreateCLByOption( db, maincsName, subclName1, subclOption1 );
+   subcl1 = commCreateCL( db, maincsName, subclName1, subclOption1 );
    var subclFieldName2 = "id3";
    var subclOption2 = { ShardingKey: { "a0": 1 }, ShardingType: "hash", Group: dataGroupNames[0], AutoIncrement: { Field: subclFieldName2 } };
-   subcl2 = commCreateCLByOption( db, subcsName, subclName2, subclOption2 );
+   subcl2 = commCreateCL( db, subcsName, subclName2, subclOption2 );
    var subclFieldName3 = "id3";
    var subclOption3 = { AutoIncrement: { Field: subclFieldName3 } };
-   subcl3 = commCreateCLByOption( db, subcsName, subclName3, subclOption3 );
+   subcl3 = commCreateCL( db, subcsName, subclName3, subclOption3 );
 
    subcl1.split( dataGroupNames[0], dataGroupNames[1], { a0: 10 }, { a0: 20 } );
    subcl2.split( dataGroupNames[0], dataGroupNames[1], 50 );

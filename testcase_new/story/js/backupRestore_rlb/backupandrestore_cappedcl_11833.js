@@ -17,7 +17,7 @@ function main ()
    commDropCS( db, csName, true, "drop CS in the beginning" );
    commCreateCS( db, csName, true, "", { Capped: true } );
    var options = { Capped: true, Size: 1, Max: 100, AutoIndexId: false };
-   var dbcl = commCreateCLByOption( db, csName, clName, options, false, false, "create cappedCL" );
+   var dbcl = commCreateCL( db, csName, clName, options, false, false, "create cappedCL" );
 
    var groupNames = commGetCLGroups( db, csName + "." + clName );
    var backupName = CHANGEDPREFIX + "_backup11833";

@@ -33,7 +33,7 @@ function main ()
    commDropCL( db, COMMCSNAME, mainCLName, true );
    commDropCL( db, COMMCSNAME, subCLName1, true );
    commDropCL( db, COMMCSNAME, subCLName2, true );
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, mainCLName, { ShardingType: "range", ShardingKey: { a: 1 }, IsMainCL: true } );
+   var dbcl = commCreateCL( db, COMMCSNAME, mainCLName, { ShardingType: "range", ShardingKey: { a: 1 }, IsMainCL: true } );
    commCreateCL( db, COMMCSNAME, subCLName1 );
    commCreateCL( db, COMMCSNAME, subCLName2 );
    dbcl.attachCL( COMMCSNAME + "." + subCLName1, { LowBound: { a: 0 }, UpBound: { a: 10000 } } );

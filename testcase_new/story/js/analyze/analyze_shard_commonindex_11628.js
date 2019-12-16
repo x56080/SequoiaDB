@@ -26,7 +26,7 @@ function main ()
    //create cl
    var clOption = { ShardingKey: { a: 1 }, ShardingType: "hash" };
    var clName = COMMCLNAME + "11628";
-   var dbcl = commCreateCLByOption( db, csName, clName, clOption, true );
+   var dbcl = commCreateCL( db, csName, clName, clOption, true );
 
    //get master/slave datanode
    var db1 = new Sdb( db );

@@ -36,7 +36,7 @@ function main ()
     {
         db1 = new Sdb( hostname1, svcname1 );
         var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
-        var maincl = commCreateCLByOption( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
+        var maincl = commCreateCL( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
         createAndAttachSubCL( db1, COMMCSNAME, subCL_Name, maincl, subCL_num );
 
         insertData( maincl );
@@ -75,7 +75,7 @@ function createAndAttachSubCL ( db, csName, subclName, mainCL, clNum )
     for( var i = 0; i < clNum; i++ )
     {
         var subClOption = { ShardingKey: { "b": 1 }, ShardingType: "hash", AutoSplit: true, ReplSize: 0 };
-        commCreateCLByOption( db, csName, subclName + "_" + i, subClOption, true, true );
+        commCreateCL( db, csName, subclName + "_" + i, subClOption, true, true );
 
         var options = { LowBound: { a: lowBound }, UpBound: { a: parseInt( lowBound ) + 10 } };
         mainCL.attachCL( csName + "." + subclName + "_" + i, options );

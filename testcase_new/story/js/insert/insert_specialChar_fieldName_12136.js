@@ -14,7 +14,7 @@ function main ( db )
    commDropCL( db, csName, clName, true, true, "drop collection in begin" );
 
    // create cl
-   var varCL = commCreateCL( db, csName, clName, -1, false, true, false,
+   var varCL = commCreateCL( db, csName, clName, {}, true, false,
       "create collection in begin" );
    // special character put in array
    var specialStr = "~ ` ! @ # $ % ^ * ( ) - _ = + { } [ ] | \\ : ; \" < > ? / . $";

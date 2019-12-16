@@ -7,7 +7,7 @@ function main ()
 {
 	var clName = COMMCLNAME + "_20102";
 	commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
-	var cl = commCreateCLByOption( db, COMMCSNAME, clName, { StrictDataMode: true } );
+	var cl = commCreateCL( db, COMMCSNAME, clName, { StrictDataMode: true } );
 	commCreateIndex( cl, "a_20102", { a: 1 }, false );
 
 	//a字段为数值/null/非数值类型/不存在，Value为数值，Default为数值

@@ -22,7 +22,7 @@ function testNormalClIndex ( db )
       var indexDef3 = { "f.d": -1, "a.$0.b": 1 };
       commDropCL( db, COMMCSNAME, clName, true, true,
          "drop collection begin, " + funcName );
-      var cl = commCreateCL( db, COMMCSNAME, clName, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
          "failed create collection in the beginning" );
       cl.insert( { "a": [{ "b": 1 }, { "c": 2 }] } );
 
@@ -105,10 +105,10 @@ function testMainSubClIndex ( db )
          "drop main collection begin, " + funcName );
       commDropCL( db, COMMCSNAME, subClName, true, true,
          "drop sub collection begin, " + funcName );
-      var cl = commCreateCLByOption( db, COMMCSNAME, mainClName, optionObj, true,
+      var cl = commCreateCL( db, COMMCSNAME, mainClName, optionObj, true,
          false,
          "failed create collection in the beginning" );
-      commCreateCL( db, COMMCSNAME, subClName, 0, true, true, false,
+      commCreateCL( db, COMMCSNAME, subClName, {}, true, false,
          "failed create collection in the beginning" );
       commDropIndex( cl, indexName, true );
       try
@@ -164,7 +164,7 @@ function testSplitClIndex ( db )
       };
       commDropCL( db, COMMCSNAME, clName, true, true,
          "drop main collection begin, " + funcName );
-      var cl = commCreateCLByOption( db, COMMCSNAME, clName, optionObj, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, clName, optionObj, true, false,
          "failed create collection in the beginning" );
       commDropIndex( cl, indexName, true );
       commDropDomain( db, domainName );

@@ -8,7 +8,7 @@ function main ()
 {
    var clName = COMMCAPPEDCLNAME + "_11790";
    var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
-   var dbcl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
+   var dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
 
    var recordNum = 10;
    var string = "a";

@@ -44,7 +44,7 @@ function main ( db )
    {
       commCreateCS( db, csName, false, "create CS specify domain",
          { "Domain": domName } );
-      commCreateCL( db, csName, clName, -1, true, false, false,
+      commCreateCL( db, csName, clName, {}, false, false,
          "create collection in domain" );
    }
    catch( e )

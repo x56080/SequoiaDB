@@ -15,7 +15,7 @@ function main ( db )
       "clear collection in the beginning" );
 
    // create cl
-   var cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, {
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {
       ShardingKey: { "No": -1 },
       ShardingType: "hash", Partition: 1024,
       ReplSize: 0

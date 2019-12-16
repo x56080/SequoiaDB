@@ -28,7 +28,7 @@ function main ()
 
    var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
    var options = { ShardingType: "hash", ShardingKey: { a: 1 }, Group: sourceGroup }
-   var cl = commCreateCLByOption( db, oldcsName, clName, options, false, false, "create cl in the begin" );
+   var cl = commCreateCL( db, oldcsName, clName, options, false, false, "create cl in the begin" );
 
    //insert 1000 data, split 50 to target group
    insertData( cl, 1000 );

@@ -640,14 +640,14 @@ backupTestCase.prototype.init =
 
          this.db = new Sdb( hostName, svcName );
          var opt = { Group: this.group.GroupName, ReplSize: -1 }
-         this.cl = commCreateCLByOption( this.sdb, this.csName, this.clName, opt, true, false,
+         this.cl = commCreateCL( this.sdb, this.csName, this.clName, opt, true, false,
             "Create collection in the beginning" );
          this.cmd = getCmdByHostName( this.localCmd, hostName );
       }
       else
       {
          println( " running in standalone " );
-         this.cl = commCreateCL( this.sdb, this.csName, this.clName, -1, true, true, false,
+         this.cl = commCreateCL( this.sdb, this.csName, this.clName, {ReplSize: -1}, true, false,
             "Create collection in the beginning" );
          this.cmd = getCmdByHostName( this.localCmd, COORDHOSTNAME );
       }

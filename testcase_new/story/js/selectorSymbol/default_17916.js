@@ -9,7 +9,7 @@ function main ()
    var clName = "selector_default_17916";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var doc = [{ no: 1, test: true },
    { no: 2, test: { no: { "numberLong": "9223372036854775807" } } },
    { no: 3, test: { a: { name: "lily", age: 29 }, b: { name: "zhangsan", age: 30 } } }];

@@ -9,7 +9,7 @@ function main ()
 	commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 
 	//1.inc int data
-	var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+	var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
 	//insert decimal data 
 	var doc1 = [{ a: { $decimal: "-92233720368547758081024" } },

@@ -36,7 +36,7 @@ function main ()
    commDropCL( db, csName, clName, true, true, "drop cl in the beginning" );
 
    var options = { ShardingKey: { a: 1 }, ShardingType: 'hash', ReplSize: 0 };
-   var hashCL = commCreateCLByOption( db, csName, clName, options, true, false, "create hash cl." );
+   var hashCL = commCreateCL( db, csName, clName, options, true, false, "create hash cl." );
    var sn1 = db.snapshot( 8, { Name: csName + "." + clName } );
    var sourceGroup = sn1.current().toObj()['CataInfo'][0]['GroupName'];
    println( "createCL " + clName + " at ReplicaGroup:" + sourceGroup + " finished" );

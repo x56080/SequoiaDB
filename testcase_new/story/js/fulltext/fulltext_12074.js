@@ -22,7 +22,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true );
 
    //创建切分集合，并创建普通索引及全文索引
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingType: "hash", ShardingKey: { a: 1 } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "hash", ShardingKey: { a: 1 } } );
    commCreateIndex( dbcl, "fullIndex_12074", { a: "text" } );
    commCreateIndex( dbcl, "commIndex_12074", { b: 1 } );
 

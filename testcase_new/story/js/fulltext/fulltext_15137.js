@@ -26,9 +26,9 @@ function main ()
    commDropCL( db, COMMCSNAME, subCLName1, true, true );
    commDropCL( db, COMMCSNAME, subCLName2, true, true );
 
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCLName, { ShardingKey: { a: 1 }, IsMainCL: true } );
+   var mainCL = commCreateCL( db, COMMCSNAME, mainCLName, { ShardingKey: { a: 1 }, IsMainCL: true } );
    var subCL1 = commCreateCL( db, COMMCSNAME, subCLName1 );
-   var subCL2 = commCreateCLByOption( db, COMMCSNAME, subCLName2, { ShardingKey: { b: 1 }, Group: groups[0][0]["GroupName"] } );
+   var subCL2 = commCreateCL( db, COMMCSNAME, subCLName2, { ShardingKey: { b: 1 }, Group: groups[0][0]["GroupName"] } );
    subCL2.split( groups[0][0]["GroupName"], groups[1][0]["GroupName"], 50 );
 
    // attach cl

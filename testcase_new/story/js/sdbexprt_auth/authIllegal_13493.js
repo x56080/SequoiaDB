@@ -22,7 +22,7 @@ function main ()
    try
    {
       db.createUsr( username, password );
-      var cl = commCreateCL( db, csname, clname, 0, false );
+      var cl = commCreateCL( db, csname, clname );
       cl.insert( doc );
       testExprtWrongUser();
       testExprtWrongPass();

@@ -47,7 +47,7 @@ function main ( db )
    {
       // 创建包含大对象的导出集合
       var lobfile = toolMakeLobfile();
-      var expCl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false, "create CL to export lob" );
+      var expCl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false, "create CL to export lob" );
       var lobNum = 1;
       var OID = toolPutLobs( expCl, lobfile, lobNum );
 
@@ -60,7 +60,7 @@ function main ( db )
 
 
       // 创建导入集合并将大对象导入
-      var impCl = commCreateCL( db, COMMCSNAME, impClName, 0, true, true, false, "create CL to import lob" );
+      var impCl = commCreateCL( db, COMMCSNAME, impClName, {}, true, false, "create CL to import lob" );
       Args["operation"] = "import";
       Args["collection"] = impFullCL;
       toolImport( Args );

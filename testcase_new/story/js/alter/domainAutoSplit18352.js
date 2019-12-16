@@ -49,11 +49,11 @@ function main ()
 
    var subOption1 = { a: 1 };
    var optionObj1 = { ShardingKey: subOption1, Group: group1 };
-   var cl_1 = commCreateCLByOption( db, csName, clName1, optionObj1 );
+   var cl_1 = commCreateCL( db, csName, clName1, optionObj1 );
 
    var subOption2 = { a: 1 };
    var optionObj2 = { ShardingKey: subOption2 };
-   var cl_2 = commCreateCLByOption( db, csName, clName2, optionObj2 );
+   var cl_2 = commCreateCL( db, csName, clName2, optionObj2 );
 
    //test a: �޸�shardingKey���ԣ���alter�޸�shardingKeyΪ{b��1}
    var shardingKey = { b: 1 };

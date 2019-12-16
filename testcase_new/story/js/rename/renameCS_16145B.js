@@ -30,11 +30,11 @@ function main ()
    var subCS = commCreateCS( db, subCSName, false, "create cs in begine", "" );
    var mainOptions = { ShardingType: 'range', ShardingKey: { a: 1 }, IsMainCL: true };
    var subOptions = { ShardingType: 'hash', ShardingKey: { a: 1 } };
-   var mainCL = commCreateCLByOption( db, oldcsName, mainCLName, mainOptions, false, false, "create MainCL in the begin" );
-   var subCL = commCreateCLByOption( db, subCSName, subCLName1, subOptions, false, false, "create SubCL in the begin" );
-   var subCL = commCreateCLByOption( db, subCSName, subCLName2, {}, false, false, "create SubCL in the begin" );
+   var mainCL = commCreateCL( db, oldcsName, mainCLName, mainOptions, false, false, "create MainCL in the begin" );
+   var subCL = commCreateCL( db, subCSName, subCLName1, subOptions, false, false, "create SubCL in the begin" );
+   var subCL = commCreateCL( db, subCSName, subCLName2, {}, false, false, "create SubCL in the begin" );
    //create mainCS defaultCL to check cs snapshot result
-   var defaultCL = commCreateCLByOption( db, oldcsName, mainCLName + "_defaultCL", {}, false, false, "create MainCL in the begin" );
+   var defaultCL = commCreateCL( db, oldcsName, mainCLName + "_defaultCL", {}, false, false, "create MainCL in the begin" );
 
    mainCL.attachCL( subCSName + "." + subCLName1, { LowBound: { a: 0 }, UpBound: { a: 500 } } );
    mainCL.attachCL( subCSName + "." + subCLName2, { LowBound: { a: 500 }, UpBound: { a: 1000 } } );

@@ -17,7 +17,7 @@ function main ( db )
    commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
 
    lobGenerateFile( testFile );
-   var cl = commCreateCL( db, COMMCSNAME, clName, -1, true, true, true, "create collection" );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true, "create collection" );
    var md5Arr = cmd.run( "md5sum " + testFile ).split( " " );
    var md5 = md5Arr[0];
 

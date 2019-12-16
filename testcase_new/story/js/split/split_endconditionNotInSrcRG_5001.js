@@ -30,7 +30,7 @@ function main ()
    var tarGrName = groupsInfo[1][0];
 
    var options = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Group: srcGrName };
-   var cl = commCreateCLByOption( db, csName, clName, options, false );
+   var cl = commCreateCL( db, csName, clName, options, false );
    insertData( db, csName, clName, 100 );
 
    println( "--start split, srcGrName :" + srcGrName + " , tarGrName : " + tarGrName );

@@ -15,7 +15,7 @@ function main ()
    var clName2 = CHANGEDPREFIX + "_16101_cl2";
 
    var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
-   var cl = commCreateCLByOption( db, oldcsName, clName1, {}, false, false, "create CL in the begin" );
+   var cl = commCreateCL( db, oldcsName, clName1, {}, false, false, "create CL in the begin" );
 
    println( "---insert 1000 record to cl1---" );
    //insert 1000 data

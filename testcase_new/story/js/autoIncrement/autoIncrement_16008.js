@@ -19,7 +19,7 @@ function main ()
    commDropDomain( db, domainName );
 
    commCreateDomain( db, domainName, [dataGroupNames[0]] );
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, {
       Group: dataGroupNames[0], ShardingKey: { a: 1 },
       ShardingType: "range", AutoIncrement: {
          Field: field, Increment: 2,

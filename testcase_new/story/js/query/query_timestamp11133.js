@@ -10,7 +10,7 @@ function main ()
     var clName = "cl11133";
 
     var clOpt = { ReplSize: 0, ShardingKey: { a: 1 }, ShardingType: "hash" };
-    var cl = commCreateCLByOption( db, csName, clName, clOpt );
+    var cl = commCreateCL( db, csName, clName, clOpt );
 
     //test several sets of data
     var obj1 = { "a": { "$timestamp": "1984-02-29-13.14.26.124233" } };

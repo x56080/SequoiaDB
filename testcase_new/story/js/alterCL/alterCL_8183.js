@@ -37,7 +37,7 @@ function main ()
    var tarGroup = groupName[1][0]["GroupName"];
    commDropCL( db, COMMCSNAME, clName );
 
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: srcGroup } );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: srcGroup } );
 
    var data = [];
    for( var i = 0; i < 1000; i++ )

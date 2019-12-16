@@ -31,7 +31,7 @@ function main ()
    var clName = CHANGEDPREFIX + "_14956";
 
    var options = { ShardingType: 'hash', ShardingKey: { a: 1 } };
-   var cl = commCreateCLByOption( db, csName, clName, options, true, false, "create CL in the begin" );
+   var cl = commCreateCL( db, csName, clName, options, true, false, "create CL in the begin" );
 
    println( "---test alter Partition---" );
    cl.setAttributes( { Partition: 8192 } );

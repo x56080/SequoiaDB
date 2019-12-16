@@ -35,9 +35,9 @@ function main ()
    commDropCL( db, COMMCSNAME, clName4 );
 
    var cl1 = commCreateCL( db, COMMCSNAME, clName1 );
-   var cl2 = commCreateCLByOption( db, COMMCSNAME, clName2, { ShardingKey: { id: 1 }, ShardingType: "hash" } );
-   var cl3 = commCreateCLByOption( db, COMMCSNAME, clName3, { ShardingKey: { id: 1 }, ShardingType: "range" } );
-   var cl4 = commCreateCLByOption( db, COMMCSNAME, clName4, { ShardingKey: { id: 1 }, ShardingType: "range", IsMainCL: true } );
+   var cl2 = commCreateCL( db, COMMCSNAME, clName2, { ShardingKey: { id: 1 }, ShardingType: "hash" } );
+   var cl3 = commCreateCL( db, COMMCSNAME, clName3, { ShardingKey: { id: 1 }, ShardingType: "range" } );
+   var cl4 = commCreateCL( db, COMMCSNAME, clName4, { ShardingKey: { id: 1 }, ShardingType: "range", IsMainCL: true } );
 
    //alter cl
    try

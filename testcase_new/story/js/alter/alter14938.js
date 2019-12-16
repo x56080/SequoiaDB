@@ -33,8 +33,8 @@ function main ()
    var clName = CHANGEDPREFIX + "_14938_attach";
 
    var options = { IsMainCL: true, ShardingType: 'range', ShardingKey: { a: 1 } };
-   var mainCL = commCreateCLByOption( db, csName, mainName, options, true, false, "create mainCL in the begin" );
-   commCreateCL( db, csName, clName, null, null, true, false, "create cl1 in the begin" );
+   var mainCL = commCreateCL( db, csName, mainName, options, true, false, "create mainCL in the begin" );
+   commCreateCL( db, csName, clName, {}, true, false, "create cl1 in the begin" );
 
    //主表未挂载子表
    println( "---mainCL not attach cl---" );

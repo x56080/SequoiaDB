@@ -22,7 +22,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true );
 
    //创建range分区表，并创建全文索引
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingType: "range", ShardingKey: { a: 1 }, Group: groups[0][0]["GroupName"] } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "range", ShardingKey: { a: 1 }, Group: groups[0][0]["GroupName"] } );
    commCreateIndex( dbcl, "fullIndex_15132", { a: "text" } );
 
    //插入包含全文索引字段的记录

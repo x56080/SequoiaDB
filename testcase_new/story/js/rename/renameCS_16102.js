@@ -14,7 +14,7 @@ function main ()
    var clName = CHANGEDPREFIX + "_16102_cl";
 
    var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
-   var cl = commCreateCLByOption( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
+   var cl = commCreateCL( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
 
    cl.createIndex( "aIndex", { a: 1 }, true );
    cl.createIndex( "noIndex", { no: 1 }, false );

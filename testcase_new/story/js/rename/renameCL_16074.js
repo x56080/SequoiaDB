@@ -21,7 +21,7 @@ function main ( db )
    var cs = commCreateCS( db, csName, true, "create CS1" );
    for( var i = 1; i <= 4096; i++ )
    {
-      commCreateCLByOption( db, csName, oldClPerfix + i, {}, true, false, "create cl in the beginning" );
+      commCreateCL( db, csName, oldClPerfix + i, {}, true, false, "create cl in the beginning" );
    }
    //�޸Ĳ���cl
    for( var i = 1; i <= 100; i++ )

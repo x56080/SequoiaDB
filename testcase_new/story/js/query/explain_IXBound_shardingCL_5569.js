@@ -38,7 +38,7 @@ function createCL ( clName )
 
    commDropCL( db, COMMCSNAME, clName, true, true, "Failed to drop CL in the begin." );
    var options = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0 };
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName, options, false,
+   var cl = commCreateCL( db, COMMCSNAME, clName, options, false,
       true, "Failed to create cl." );
    return cl;
 }

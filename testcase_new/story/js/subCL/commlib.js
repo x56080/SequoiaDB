@@ -530,15 +530,15 @@ function prepareByPositiveSequence ( mainCL_Name, subCL_Name1, subCL_Name2 )
    var groupsArray = commGetGroups( db, false, "", false, true, true );
    //创建主表
    var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
+   var mainCL = commCreateCL( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
    //创建普通子表
    var groupName1 = groupsArray[1][0].GroupName;
    var groupName2 = groupsArray[2][0].GroupName;
    var subClOption1 = { Group: groupName1 };
-   commCreateCLByOption( db, COMMCSNAME, subCL_Name1, subClOption1, true, true );
+   commCreateCL( db, COMMCSNAME, subCL_Name1, subClOption1, true, true );
    //创建分区表
    var subClOption2 = { Group: groupName2, ShardingKey: { "b": 1 }, ShardingType: "range", ReplSize: 0 };
-   commCreateCLByOption( db, COMMCSNAME, subCL_Name2, subClOption2, true, true );
+   commCreateCL( db, COMMCSNAME, subCL_Name2, subClOption2, true, true );
    //attach 普通的表
    mainCL.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { a: 0 }, UpBound: { a: 10 } } );
    //attach分区表
@@ -569,15 +569,15 @@ function prepareByInvertedSequence ( mainCL_Name, subCL_Name1, subCL_Name2 )
    var groupsArray = commGetGroups( db, false, "", false, true, true );
    //创建主表
    var mainCLOption = { ShardingKey: { "a": -1 }, ShardingType: "range", IsMainCL: true };
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
+   var mainCL = commCreateCL( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
    //创建普通子表
    var groupName1 = groupsArray[1][0].GroupName;
    var groupName2 = groupsArray[2][0].GroupName;
    var subClOption1 = { Group: groupName1 };
-   commCreateCLByOption( db, COMMCSNAME, subCL_Name1, subClOption1, true, true );
+   commCreateCL( db, COMMCSNAME, subCL_Name1, subClOption1, true, true );
    //创建分区表
    var subClOption2 = { Group: groupName2, ShardingKey: { "b": 1 }, ShardingType: "range", ReplSize: 0 };
-   commCreateCLByOption( db, COMMCSNAME, subCL_Name2, subClOption2, true, true );
+   commCreateCL( db, COMMCSNAME, subCL_Name2, subClOption2, true, true );
    //attach 普通的表
    mainCL.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { a: 9 }, UpBound: { a: -1 } } );
    //attach分区表

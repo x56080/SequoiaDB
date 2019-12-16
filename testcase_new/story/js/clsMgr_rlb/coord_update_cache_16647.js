@@ -41,7 +41,7 @@ function main ()
         db1 = new Sdb( hostname1, svcname1 );
         var dataRGName = createDataGroups( db1, hostname1 );
         var options = { Group: dataRGName };
-        var cl1 = commCreateCLByOption( db, COMMCSNAME, clName, options, true, true );
+        var cl1 = commCreateCL( db, COMMCSNAME, clName, options, true, true );
 
         db2 = new Sdb( hostname2, svcname2 );
         var cl2 = db2.getCS( COMMCSNAME ).getCL( clName );
@@ -51,7 +51,7 @@ function main ()
         db1.getCS( COMMCSNAME ).dropCL( clName );
         db1.removeRG( dataRGName );
         var newOptions = { Group: originalDataRGName };
-        commCreateCLByOption( db, COMMCSNAME, clName, newOptions, true, true );
+        commCreateCL( db, COMMCSNAME, clName, newOptions, true, true );
 
         var obj = { a: 2 };
         cl2.insert( obj );

@@ -49,7 +49,7 @@ function lackInDelete ()
 
 commDropCL( db, csName, clName, true, true, "drop cl in begin" );
 var opt = { ReplSize: 0 };
-var varCL = commCreateCLByOption( db, csName, clName, opt, true, false, "create cl in begin" );
+var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
 
 lackInInsert();
 lackInUpdate();

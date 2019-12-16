@@ -26,7 +26,7 @@ function main ()
       }
    }
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a2" } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a2" } } );
 
    var clID = getCLID( COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_a2_SEQ";

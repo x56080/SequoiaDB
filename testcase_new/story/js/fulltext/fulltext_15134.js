@@ -20,7 +20,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_15134";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingType: "hash", ShardingKey: { a: 1 }, Group: groups[0][0]["GroupName"] } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "hash", ShardingKey: { a: 1 }, Group: groups[0][0]["GroupName"] } );
    commCreateIndex( dbcl, "fullIndex_15134", { a: "text" } );
 
    dbcl.split( groups[0][0]["GroupName"], groups[1][0]["GroupName"], { Partion: 1 }, { Partion: 2048 } );

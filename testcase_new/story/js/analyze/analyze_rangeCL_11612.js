@@ -39,7 +39,7 @@ function main ()
 
    //创建切分表
    var clOption = { ShardingKey: { "a": 1 }, ShardingType: "range" };
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, clOption );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, clOption );
 
    //执行切分
    var groups = ClSplitOneTimes( COMMCSNAME, clName, { a: 2000 }, { a: 4000 } );

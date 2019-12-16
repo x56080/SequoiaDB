@@ -11,7 +11,7 @@ function main ()
     var clName = CHANGEDPREFIX + "_cl18656";
     commDropCL( db, csName, clName, true, true, "clear cl in the beginning" );
 
-    var cl = commCreateCL( db, csName, clName, 0, true, true );
+    var cl = commCreateCL( db, csName, clName );
     insertRecords( cl );
     updateRecords( cl );
     checkRecords( cl );

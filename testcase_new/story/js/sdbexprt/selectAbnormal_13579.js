@@ -13,7 +13,7 @@ main();
 function main ()
 {
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
-   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl = commCreateCL( db, csname, clname );
    cl.insert( docs );
 
    testExprtSelect1();  // use --select '{ a: { \\$include: 1 }'

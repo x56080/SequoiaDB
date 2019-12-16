@@ -25,7 +25,7 @@ function main ()
     commDropCL( db, csName, clName, false, true, "drop cl in the beginning." );
 
     var clOpt = { ShardingKey: { a: 1 }, ShardingType: 'hash', ReplSize: 0 };
-    var hashCL = commCreateCLByOption( db, csName, clName, clOpt );
+    var hashCL = commCreateCL( db, csName, clName, clOpt );
     getTwoGroupSplit( db, csName, clName, 50 );
 
     var insetRecs = loadDataAndCreateIndex( hashCL, rownums );

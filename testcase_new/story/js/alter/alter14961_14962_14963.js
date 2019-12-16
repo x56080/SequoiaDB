@@ -40,10 +40,10 @@ function main ()
    var clName2 = CHANGEDPREFIX + "_14961_2";
 
    var options = { ShardingType: 'hash', ShardingKey: { a: 1 }, AutoSplit: false };
-   var cl1 = commCreateCLByOption( db, csName, clName1, options, true, false, "create CL in the begin" );
+   var cl1 = commCreateCL( db, csName, clName1, options, true, false, "create CL in the begin" );
 
    var options2 = { ShardingType: 'hash', ShardingKey: { a: 1 }, AutoSplit: false };
-   var cl2 = commCreateCLByOption( db, csName, clName2, options2, true, false, "create CL in the begin" );
+   var cl2 = commCreateCL( db, csName, clName2, options2, true, false, "create CL in the begin" );
    for( i = 0; i < 5000; i++ )
    {
       cl2.insert( { a: i, b: "sequoiadh test hash cl1 alter option" } );

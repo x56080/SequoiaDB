@@ -90,15 +90,15 @@ function main ()
 
    //创建主表cl
    var mainclOption = { IsMainCL: true, ShardingKey: { "a": 1 }, ShardingType: "range" };
-   maincl = commCreateCLByOption( db, maincsName, mainclName, mainclOption );
+   maincl = commCreateCL( db, maincsName, mainclName, mainclOption );
 
    //创建子表cl
    var subclOption1 = { ShardingKey: { "a0": 1 }, ShardingType: "range", Group: srcGroupName };
-   commCreateCLByOption( db, maincsName, subclName1, subclOption1 );
+   commCreateCL( db, maincsName, subclName1, subclOption1 );
    var subclOption2 = { ShardingKey: { "a0": 1 }, ShardingType: "hash", Group: srcGroupName };
-   commCreateCLByOption( db, maincsName, subclName2, subclOption2 );
-   commCreateCLByOption( db, subcsName1, subclName3, subclOption1 );
-   commCreateCLByOption( db, subcsName1, subclName4, subclOption2 );
+   commCreateCL( db, maincsName, subclName2, subclOption2 );
+   commCreateCL( db, subcsName1, subclName3, subclOption1 );
+   commCreateCL( db, subcsName1, subclName4, subclOption2 );
 
    //子表切分
    split( maincsName, subclName1, srcGroupName, desGroupName, { a0: 2000 }, { a0: 4000 } );

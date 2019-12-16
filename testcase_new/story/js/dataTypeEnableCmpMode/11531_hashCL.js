@@ -39,7 +39,7 @@ function main ()
 
    //create cl for hash split
    var ClOption = { ShardingKey: { "a": 1 }, ShardingType: "hash", ReplSize: 0 };
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, ClOption, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, ClOption, true, true );
 
    var hintConf = [{ "": null }, { "": "$shard" }];
    var sortConf = { _id: 1 };

@@ -39,7 +39,7 @@ function main ()
 
    commCreateDomain( db, domainName, [groupNames[0], groupNames[1]] );
    var cs = commCreateCS( db, csName, false, "create CS" );
-   commCreateCLByOption( db, csName, clName, { Group: groupNames[0] } );
+   commCreateCL( db, csName, clName, { Group: groupNames[0] } );
 
    cs.alter( { Domain: domainName } );
    checkAlterCSResult( csName, "Domain", domainName );

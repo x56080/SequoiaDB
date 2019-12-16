@@ -39,16 +39,16 @@ function main ()
    //create maincl for range split
    db.setSessionAttr( { PreferedInstance: "M" } );
    var mainCLOption = { ShardingKey: { "a": -1 }, ShardingType: "range", IsMainCL: true };
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
 
    //create subcl
    var subClOption1 = { ShardingKey: { "b": 1 }, ShardingType: "range", ReplSize: 0 };
-   commCreateCLByOption( db, COMMCSNAME, subCL_Name1, subClOption1, true, true );
+   commCreateCL( db, COMMCSNAME, subCL_Name1, subClOption1, true, true );
 
    var subClOption2 = { ShardingKey: { "b": -1 }, ShardingType: "hash", ReplSize: 0 };
-   commCreateCLByOption( db, COMMCSNAME, subCL_Name2, subClOption2, true, true );
+   commCreateCL( db, COMMCSNAME, subCL_Name2, subClOption2, true, true );
 
-   commCreateCL( db, COMMCSNAME, subCL_Name3, 0 );
+   commCreateCL( db, COMMCSNAME, subCL_Name3 );
 
    //split cl
    startCondition1 = { b: 0 };

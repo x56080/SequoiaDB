@@ -14,7 +14,7 @@ function main ( db )
 
       var options = { PageSize: 4096 };
       db.createCS( csName, options );
-      var dbcl = commCreateCL( db, csName, clName, 0, true, false );
+      var dbcl = commCreateCL( db, csName, clName );
       dbcl.createIndex( "idxa", { 'stra': -1 }, true );
 
       var maxLen = 1011;

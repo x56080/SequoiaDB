@@ -40,7 +40,7 @@ function main ()
    commDropCS( db, subName3 );
 
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range" };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl1" );
+   var mainCL = commCreateCL( db, csName, mainCLName, options, true, false, "create main cl1" );
 
    commCreateCS( db, subName1, false, "", { LobPageSize: 4096 } );
    commCreateCL( db, subName1, subName1 );

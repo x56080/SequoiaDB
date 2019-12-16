@@ -17,7 +17,7 @@ function main ()
 
    //create cl
    var options = { ShardingKey: { no: 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 0, Compressed: true };
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, options, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, options, true, true );
 
    //insert data 	
    var doc = [{ no: "testno", a: 1, test: [3.4e+10, 34] },

@@ -9,7 +9,7 @@ function main ( db )
    var clName = "testLob4465";
    commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
 
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false, "create collection" );
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false, "create collection" );
 
    //test case:4465
    deleteLobWithOidNotExist( cl );

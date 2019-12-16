@@ -50,7 +50,7 @@ function createCLAndPutLob ( srcGroup, csName, clName, pageSize )
       "ReplSize": 0, "Group": srcGroup
    };
 
-   var cl = commCreateCLByOption( db, csName, clName, clOption, true,
+   var cl = commCreateCL( db, csName, clName, clOption, true,
       true, false, "create collection begin" );
 
    var lobNum = 4;

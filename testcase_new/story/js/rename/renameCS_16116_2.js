@@ -33,14 +33,14 @@ function main ( db )
    commDropCS( db, csName4, true, "drop CS " + csName4 );
 
    var varCS = commCreateCS( db, csName1, true, "create CS" );
-   var varCL = commCreateCLByOption( db, csName1, mainClName, { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" }, true, false, "create main cl in the beginning" );
+   var varCL = commCreateCL( db, csName1, mainClName, { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" }, true, false, "create main cl in the beginning" );
 
    //�ӱ�1
    var subCS = commCreateCS( db, csName3, true, "create CS1" );
-   var subcl1 = commCreateCLByOption( db, csName3, clName1, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: groupName1 }, true, false, "create sub cl1 in the beginning" );
+   var subcl1 = commCreateCL( db, csName3, clName1, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: groupName1 }, true, false, "create sub cl1 in the beginning" );
 
    //�ӱ�2
-   var subcl2 = commCreateCLByOption( db, csName3, clName2, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: groupName2 }, true, false, "create sub cl2 in the beginning" );
+   var subcl2 = commCreateCL( db, csName3, clName2, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: groupName2 }, true, false, "create sub cl2 in the beginning" );
 
    //����
    attachCL( varCL, csName3 + "." + clName1, { LowBound: { a: 0 }, UpBound: { a: 1000 } } );

@@ -41,8 +41,8 @@ function main ( db )
       commDropCL( db, COMMCSNAME, clName2, true, true, "drop CL in the beginning" );
 
       //create cl
-      var dbcl1 = commCreateCLByOption( db, COMMCSNAME, clName1, { Group: sourceGroup } );
-      var dbcl2 = commCreateCLByOption( db, COMMCSNAME, clName2, { Group: sourceGroup } );
+      var dbcl1 = commCreateCL( db, COMMCSNAME, clName1, { Group: sourceGroup } );
+      var dbcl2 = commCreateCL( db, COMMCSNAME, clName2, { Group: sourceGroup } );
 
       //preset data
       var data = [];

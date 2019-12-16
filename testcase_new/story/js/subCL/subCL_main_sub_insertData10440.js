@@ -35,9 +35,9 @@ function main ()
 
    //create maincl 
    println( "\n---Begin to create cl." );
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, mclName, { ShardingKey: { "a": 1 }, IsMainCL: true }, true, true );
-   commCreateCLByOption( db, COMMCSNAME, sclName1, { Group: groupName1 }, true, true );
-   commCreateCLByOption( db, COMMCSNAME, sclName2, { Group: groupName2 }, true, true );
+   var mainCL = commCreateCL( db, COMMCSNAME, mclName, { ShardingKey: { "a": 1 }, IsMainCL: true }, true, true );
+   commCreateCL( db, COMMCSNAME, sclName1, { Group: groupName1 }, true, true );
+   commCreateCL( db, COMMCSNAME, sclName2, { Group: groupName2 }, true, true );
    //attach subcl
    println( "\n---Begin to attach cl." );
    mainCL.attachCL( COMMCSNAME + "." + sclName1, { LowBound: { a: 0 }, UpBound: { a: 100 } } );

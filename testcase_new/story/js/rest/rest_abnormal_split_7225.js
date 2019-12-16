@@ -93,7 +93,7 @@ try
 	{
 		commDropCL( db, csName, clName, true, true, "drop cl in begin" );
 		var opt = { ShardingKey: { age: 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 0 };
-		var varCL = commCreateCLByOption( db, csName, clName, opt, true, false, "create cl in begin" );
+		var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
 		getSourceTargetGroup();
 		lackSplitquery();
 		commDropCL( db, csName, clName, false, false, "drop cl in clean" );

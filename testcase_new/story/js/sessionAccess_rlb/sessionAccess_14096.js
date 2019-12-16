@@ -26,7 +26,7 @@ function main ()
       var expSvcNameList = getSvcNameList( db, groupName );
 
       //create cl ,then insert data  
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
       insertData( dbcl );
 
       //set instanceid is 8,the query node is slave node

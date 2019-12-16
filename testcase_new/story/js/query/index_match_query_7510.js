@@ -9,7 +9,7 @@
 function main ()
 {
    var insertNum = 10;
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
       "create collection in the beginning" );
    // insert data
    idxAutoGenData( cl, insertNum );

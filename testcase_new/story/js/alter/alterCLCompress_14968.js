@@ -30,7 +30,7 @@ function main ( db )
       commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
       //create cl
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { Compressed: false } );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { Compressed: false } );
 
       //enable compression
       dbcl.enableCompression();

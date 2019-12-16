@@ -22,7 +22,7 @@ function main ( db )
       "ShardingKey": { "no": 1 }, "ShardingType": "range", "ReplSize": 0,
       "Compressed": true
    };
-   var cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, optionObj, true,
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, optionObj, true,
       true, "create collection for hash split" );
    // do range split collection before put data
    try

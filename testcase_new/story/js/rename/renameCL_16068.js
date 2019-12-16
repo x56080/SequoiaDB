@@ -13,7 +13,7 @@ function main ( db )
       var fileName = CHANGEDPREFIX + "_lobtest16068.file";
       commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
       commDropCL( db, COMMCSNAME, newCLName, true, true, "clear collection in the beginning" );
-      commCreateCL( db, COMMCSNAME, clName, 0 );
+      commCreateCL( db, COMMCSNAME, clName );
 
       println( "---begin to rename cl" );
       db.getCS( COMMCSNAME ).renameCL( clName, newCLName );

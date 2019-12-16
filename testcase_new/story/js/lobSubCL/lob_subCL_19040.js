@@ -44,13 +44,13 @@ function main ()
 
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range" };
    commCreateCS( db, mainName1, false, "", { LobPageSize: 4096 } );
-   var mainCL1 = commCreateCLByOption( db, mainName1, mainName1, options, true, false, "create main cl1" );
+   var mainCL1 = commCreateCL( db, mainName1, mainName1, options, true, false, "create main cl1" );
 
    commCreateCS( db, mainName2, false, "", { LobPageSize: 16384 } );
-   var mainCL2 = commCreateCLByOption( db, mainName2, mainName2, options, true, false, "create main cl2" );
+   var mainCL2 = commCreateCL( db, mainName2, mainName2, options, true, false, "create main cl2" );
 
    commCreateCS( db, mainName3, false, "", { LobPageSize: 262144 } );
-   var mainCL3 = commCreateCLByOption( db, mainName3, mainName3, options, true, false, "create main cl3" );
+   var mainCL3 = commCreateCL( db, mainName3, mainName3, options, true, false, "create main cl3" );
 
    commCreateCL( db, csName, subCLName1 );
    commCreateCL( db, csName, subCLName2 );

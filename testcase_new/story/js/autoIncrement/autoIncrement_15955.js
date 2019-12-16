@@ -17,7 +17,7 @@ function main ()
    var cacheSize = 10;
    var acquireSize = 1;
    var fieldName = "id.a.b.c";
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize } } );
 
    var clID = getCLID( COMMCSNAME, clName );
    var mainclSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";

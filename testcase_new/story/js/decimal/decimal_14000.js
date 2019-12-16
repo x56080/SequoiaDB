@@ -9,7 +9,7 @@ function main ()
 {
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
    commCreateIndex( cl, "aIndex", { a: 1 }, true );
 
    var docs = [{ a: { $decimal: "MAX" } },

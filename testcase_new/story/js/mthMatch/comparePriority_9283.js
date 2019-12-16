@@ -14,7 +14,7 @@ function main ()
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 
    //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
    //insert data 
    var doc = [{ No: 1, a: { a1: { a2: 1, a3: 2 } } }, { No: 2, a: { a1: { a2: 1, b3: 2 } } }, { No: 3, c: { c1: { a2: 1, a3: 2 } } }, { No: 4, a: { a1: { a2: { a3: { a4: { a2: 1, a3: 2 } } }, b1: { b2: { b3: { b5: 1, b6: 2 }, b4: { b7: 1, b8: 2 } }, c1: { c2: 1, c3: 2 } } } } },

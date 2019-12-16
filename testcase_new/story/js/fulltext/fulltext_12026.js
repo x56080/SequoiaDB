@@ -18,7 +18,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIndexId: false } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIndexId: false } );
 
    commCreateIndex( dbcl, textIndexName, { a: "text", b: "text" } );
 

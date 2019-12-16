@@ -42,7 +42,7 @@ function main ()
    csOption = { Domain: domainName }
    commCreateCS( db, csName, false, "", csOption );
    var clOption = { ShardingKey: { "a": 1 }, ShardingType: "hash" };
-   var dbcl = commCreateCLByOption( db, csName, clName, clOption );
+   var dbcl = commCreateCL( db, csName, clName, clOption );
 
    //获取切分表的组信息
    var groups = commGetCLGroups( db, csName + "." + clName );

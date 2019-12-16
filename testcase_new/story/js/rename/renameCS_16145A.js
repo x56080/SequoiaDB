@@ -27,9 +27,9 @@ function main ()
    var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
    var mainOptions = { ShardingType: 'range', ShardingKey: { a: 1 }, IsMainCL: true };
    var subOptions = { ShardingType: 'hash', ShardingKey: { a: 1 } };
-   var mainCL = commCreateCLByOption( db, oldcsName, mainCLName, mainOptions, false, false, "create MainCL in the begin" );
-   var subCL = commCreateCLByOption( db, oldcsName, subCLName1, subOptions, false, false, "create SubCL in the begin" );
-   var subCL = commCreateCLByOption( db, oldcsName, subCLName2, {}, false, false, "create SubCL in the begin" );
+   var mainCL = commCreateCL( db, oldcsName, mainCLName, mainOptions, false, false, "create MainCL in the begin" );
+   var subCL = commCreateCL( db, oldcsName, subCLName1, subOptions, false, false, "create SubCL in the begin" );
+   var subCL = commCreateCL( db, oldcsName, subCLName2, {}, false, false, "create SubCL in the begin" );
 
    mainCL.attachCL( oldcsName + "." + subCLName1, { LowBound: { a: 0 }, UpBound: { a: 500 } } );
    mainCL.attachCL( oldcsName + "." + subCLName2, { LowBound: { a: 500 }, UpBound: { a: 1000 } } );

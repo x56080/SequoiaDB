@@ -16,7 +16,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true );
 
    //创建全文索引 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var fullIndex = "fullIndex_ES_12030";
    commCreateIndex( dbcl, fullIndex, { about: "text", content: "text" } );
 

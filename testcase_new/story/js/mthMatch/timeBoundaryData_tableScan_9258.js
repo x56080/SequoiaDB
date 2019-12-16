@@ -11,7 +11,7 @@ function main ()
 	commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 
 	//create cl
-	var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+	var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
 	//insert data 
 	var doc = [{ No: 1, a: { $date: "1900-01-01" } }, { No: 2, a: { $date: "1900-01-02" } },

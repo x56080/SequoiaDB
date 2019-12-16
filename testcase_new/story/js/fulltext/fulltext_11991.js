@@ -21,7 +21,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_11991";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groups[0][0]["GroupName"] } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groups[0][0]["GroupName"] } );
    var textIndexName = "fullIndex_11991";
    commCreateIndex( dbcl, textIndexName, { b: "text" } );
 
@@ -59,7 +59,7 @@ function main ()
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groups[0][0]["GroupName"] } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groups[0][0]["GroupName"] } );
    commCreateIndex( dbcl, textIndexName, { b: "text" } );
 
    //插入大量包含全文索引字段的数据

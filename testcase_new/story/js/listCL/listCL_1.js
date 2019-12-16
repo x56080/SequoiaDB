@@ -16,7 +16,7 @@ catch( e )
 try
 {
    var optionObj = { ReplSize: 0, Compressed: true };
-   var varCL = commCreateCLByOption( db, COMMCSNAME, LISTCLNAME_1, optionObj, true,
+   var varCL = commCreateCL( db, COMMCSNAME, LISTCLNAME_1, optionObj, true,
       false, "create collecton 1 failed" );
 }
 catch( e )
@@ -28,7 +28,7 @@ catch( e )
 try
 {
    var optionObj = { ReplSize: 0, Compressed: true };
-   var varCL1 = commCreateCLByOption( db, COMMCSNAME, LISTCLNAME_2, optionObj, true,
+   var varCL1 = commCreateCL( db, COMMCSNAME, LISTCLNAME_2, optionObj, true,
       false, "create collecton 1 failed" );
 }
 catch( e )

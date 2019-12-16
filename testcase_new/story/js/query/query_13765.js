@@ -6,7 +6,7 @@
 *******************************************************************************/
 function main ( db )
 {
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
       "create collection in the beginning" );
    //insert data
    var queryNum = 0;

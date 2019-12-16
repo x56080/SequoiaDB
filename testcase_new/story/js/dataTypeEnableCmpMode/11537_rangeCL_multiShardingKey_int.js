@@ -39,7 +39,7 @@ function main ()
    }
 
    var ClOption = { ShardingKey: { "a": 1, "b": 1, "c": 1 }, ShardingType: "range", ReplSize: 0 };
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, ClOption, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, ClOption, true, true );
 
    var hintConf = [{ "": null }, { "": "$shard" }];
    var sortConf = { _id: 1 };

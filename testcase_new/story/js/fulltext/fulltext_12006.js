@@ -16,7 +16,7 @@ function main ()
    var indexName = "a_12006";
 
    commDropCL( db, COMMCSNAME, clName );
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIndexId: false } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIndexId: false } );
    commCreateIndex( dbcl, indexName, { a: "text" } );
    dbcl.insert( { _id: 1, a: "text1" } );
    dbcl.insert( { _id: 1, a: "text2" } );

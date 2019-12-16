@@ -33,10 +33,10 @@ function main ()
    // create cs and cl, attach cl
    println( "\n---Begin to create cl, and attach cl." );
    var mclOpt = { "ShardingKey": { a: 1 }, "IsMainCL": true };
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, mclName, mclOpt, true, false );
+   var mainCL = commCreateCL( db, COMMCSNAME, mclName, mclOpt, true, false );
 
    var sOpt = { ShardingKey: { a: 1 }, ShardingType: "range", Group: srcRG };
-   var subCL = commCreateCLByOption( db, COMMCSNAME, sclName, sOpt, true, true );
+   var subCL = commCreateCL( db, COMMCSNAME, sclName, sOpt, true, true );
 
    mainCL.attachCL( COMMCSNAME + "." + sclName, { LowBound: { a: 0 }, UpBound: { a: 100 } } );
 

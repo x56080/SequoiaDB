@@ -16,8 +16,8 @@ function main ( db )
       var newCLName = CHANGEDPREFIX + "_newcl16054";
       commDropCL( db, COMMCSNAME, newCLName, true, true, "clear collection in the beginning" );
       commDropCL( db, COMMCSNAME, clName1, true, true, "clear collection in the beginning" );
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName1, { ReplSize: 0 }, true, true );
-      commCreateCL( db, COMMCSNAME, newCLName, 0 );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName1, { ReplSize: 0 }, true, true );
+      commCreateCL( db, COMMCSNAME, newCLName );
 
       //test case-16054: the old cl is not exist
       println( "---begin to test case 16064" );

@@ -15,7 +15,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_14373";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //插入多条全文索引字段重复的记录
    var records = new Array();

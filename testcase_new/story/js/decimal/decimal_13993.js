@@ -14,7 +14,7 @@ function main ()
    { a: { $decimal: "NaN" } }];
 
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
    insertData( cl, docs );
 
    println( "test $gt" );

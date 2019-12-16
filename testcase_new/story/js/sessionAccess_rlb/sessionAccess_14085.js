@@ -19,7 +19,7 @@ function main ()
       nodeList = createRGAndNode( db, groupName, instanceidList );
 
       //create cl ,then insert data  
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
       insertData( dbcl );
 
       //set one node instanceid is 2,the same as the nodesubscript is 2

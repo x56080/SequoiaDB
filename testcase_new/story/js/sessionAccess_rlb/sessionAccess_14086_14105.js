@@ -38,7 +38,7 @@ function main ()
       node.start();
 
       //create cl ,then insert data       
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
       insertData( dbcl );
 
       //qurey node and check the access node

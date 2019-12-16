@@ -22,7 +22,7 @@ function main ()
    var minValue = -2147483647;
    var maxValue = 2147483647;
    var startValue = 0;
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, MinValue: minValue, MaxValue: maxValue, StartValue: startValue } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, MinValue: minValue, MaxValue: maxValue, StartValue: startValue } } );
 
    var clID = getCLID( COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";

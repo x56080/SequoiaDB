@@ -33,11 +33,11 @@ function main ()
 
    var clOption1 = { Group: groupName1 };
    var clName1 = COMMCLNAME + "11620_1";
-   var dbcl1 = commCreateCLByOption( db, csName, clName1, clOption1, true );
+   var dbcl1 = commCreateCL( db, csName, clName1, clOption1, true );
 
    var clOption2 = { Group: groupName2 };
    var clName2 = COMMCLNAME + "11620_2";
-   var dbcl2 = commCreateCLByOption( db, csName, clName2, clOption2, true );
+   var dbcl2 = commCreateCL( db, csName, clName2, clOption2, true );
 
    var clFullName1 = csName + "." + clName1;
    var clFullName2 = csName + "." + clName2;

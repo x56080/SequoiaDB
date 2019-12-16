@@ -9,7 +9,7 @@ function main ( db )
    var testFile = CHANGEDPREFIX + "lobTest.file";
    //lobGenerateFile( testFile ); // auto file
    // create collection
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true, true,
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true,
       "create collection" );
    // put lob with no lob file[Test_Point_1]
    try

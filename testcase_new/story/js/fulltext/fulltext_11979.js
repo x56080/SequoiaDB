@@ -26,7 +26,7 @@ function main ()
       throw buildException( "commGetGroups()", "commGetGroups", "can not get groups ", "success", "fail" );
    }
    //指定集合的replSize、group、AutoIndexId、压缩为非默认值
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, Group: arrayGroup[0], AutoIndexId: false, Compressed: true, CompressionType: "lzw" } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: arrayGroup[0], AutoIndexId: false, Compressed: true, CompressionType: "lzw" } );
 
    var textIndexName = "a_11979";
    commCreateIndex( dbcl, textIndexName, { content: "text" } );

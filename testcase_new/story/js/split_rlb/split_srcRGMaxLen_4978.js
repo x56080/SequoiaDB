@@ -38,7 +38,7 @@ function main ()
       var srcLogPath = createDataGroup( srcRGName, hostName );
 
       var optionObj = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Group: srcRGName };
-      var cl = commCreateCLByOption( db, csName, clName, optionObj, true, false );
+      var cl = commCreateCL( db, csName, clName, optionObj, true, false );
 
       //insert data and split
       insertData( cl, dataNum );

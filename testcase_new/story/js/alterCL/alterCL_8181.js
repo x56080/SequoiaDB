@@ -29,7 +29,7 @@ function main ()
    var clName = "alter8181";
    commDropCL( db, COMMCSNAME, clName );
 
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 1 } );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 1 } );
 
    //alters replsize
    cl.alter( { ReplSize: 2 } );

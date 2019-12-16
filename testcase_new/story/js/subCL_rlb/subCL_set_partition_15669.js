@@ -51,7 +51,7 @@ function main ()
 
         println( "start to create main cl." );
         var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
-        var dbcl = commCreateCLByOption( db, csName, mainCL_Name, mainCLOption, true, true );
+        var dbcl = commCreateCL( db, csName, mainCL_Name, mainCLOption, true, true );
 
         println( "start to create sub cl." );
         var subClOption = { ShardingKey: { "b": 1 }, ShardingType: "hash", AutoSplit: true, Partition: 8, ReplSize: 0 };

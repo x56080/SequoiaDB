@@ -87,6 +87,7 @@ assert = function( b, msg )
 
 /* *****************************************************************************
 @discription: check database mode is standalone
+              判断集群是否是独立模式
 @author: Jianhui Xu
 ***************************************************************************** */
 function commIsStandalone ( db ) 
@@ -112,9 +113,10 @@ function commIsStandalone ( db )
 
 /* *****************************************************************************
 @discription: create collection space
+              创建并返回cs对象
 @author: Jianhui Xu
 @parameter
-   ignoreExisted: default = false, value: true/false
+   ignoreExisted: default = false, value: true/false, cs已存在则直接返回getCS
    message: user define message, default:""
    options: create CS specify options, default:"";[by  xiaojun Hu ]
            exp : {"Domain":"domName"}
@@ -153,63 +155,17 @@ function commCreateCS ( db, csName, ignoreExisted, message, options )
 }
 
 /* *****************************************************************************
-@discription: create collection
-@author: Jianhui Xu
-@parameter
-   replSize: default = 0
-   compressed: default = true, value: true/false
-   autoCreateCS: default = true, value: true/false
-   ignoreExisted: default = false, value: true/false
-   message: default = "", value: user defined message string
-***************************************************************************** */
-function commCreateCL ( db, csName, clName, replSize, compressed, autoCreateCS, ignoreExisted, message )
-{
-   ++funcCommCreateCLTimes;
-   if( replSize == undefined || replSize < 0 ) { replSize = 0; }
-   if( compressed == undefined ) { compressed = true; }
-   if( autoCreateCS == undefined ) { autoCreateCS = true; }
-   if( ignoreExisted == undefined ) { ignoreExisted = false; }
-   if( message == undefined ) { message = ""; }
-
-   if( autoCreateCS )
-   {
-      commCreateCS( db, csName, true, "commCreateCL auto to create collection space" );
-   }
-
-   try
-   {
-      return db.getCS( csName ).createCL( clName, { "ReplSize": replSize, "Compressed": compressed } );
-   }
-   catch( e )
-   {
-      if( !commCompareErrorCode( e, -22 ) || !ignoreExisted )
-      {
-         commThrowError( e, "commCreateCL[" + funcCommCreateCLTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message )
-      }
-   }
-   //get collection
-   try
-   {
-      return db.getCS( csName ).getCL( clName );
-   }
-   catch( e )
-   {
-      commThrowError( e, "commCreateCL[" + funcCommCreateCLTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
-   }
-
-}
-
-/* *****************************************************************************
 @discription: create collection by user option
+              创建并返回cl对象
 @author: Jianhui Xu
 @parameter
    optionObj: option object, default {}
    compressed: default = true, value: true/false
-   autoCreateCS: default = true, value: true/false
-   ignoreExisted: default = false, value: true/false
+   autoCreateCS: default = true, value: true/false, 自动创建cs
+   ignoreExisted: default = false, value: true/false, cl已存在则直接返回getCL
    message: default = "", value: user defined message string
 ***************************************************************************** */
-function commCreateCLByOption ( db, csName, clName, optionObj, autoCreateCS, ignoreExisted, message )
+function commCreateCL ( db, csName, clName, optionObj, autoCreateCS, ignoreExisted, message )
 {
    ++funcCommCreateCLOptTimes;
    if( optionObj == undefined ) { optionObj = {}; }
@@ -219,12 +175,12 @@ function commCreateCLByOption ( db, csName, clName, optionObj, autoCreateCS, ign
 
    if( typeof ( optionObj ) != "object" )
    {
-      throw new Error( "commCreateCLByOption: optionObj is not object" );
+      throw new Error( "commCreateCL: optionObj is not object" );
    }
    var csObj;
    if( autoCreateCS )
    {
-      csObj = commCreateCS( db, csName, true, "commCreateCLByOption auto to create collection space" );
+      csObj = commCreateCS( db, csName, true, "commCreateCL auto to create collection space" );
    }
    else
    {
@@ -234,7 +190,7 @@ function commCreateCLByOption ( db, csName, clName, optionObj, autoCreateCS, ign
       }
       catch( e )
       {
-         commThrowError( e, "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] get collection space[" + csName + "] failed: " + e );
+         commThrowError( e, "commCreateCL[" + funcCommCreateCLOptTimes + "] get collection space[" + csName + "] failed: " + e );
       }
    }
 
@@ -246,7 +202,7 @@ function commCreateCLByOption ( db, csName, clName, optionObj, autoCreateCS, ign
    {
       if( !commCompareErrorCode( e, -22 ) || !ignoreExisted )
       {
-         commThrowError( e, "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
+         commThrowError( e, "commCreateCL[" + funcCommCreateCLOptTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
       }
    }
 
@@ -257,15 +213,16 @@ function commCreateCLByOption ( db, csName, clName, optionObj, autoCreateCS, ign
    }
    catch( e )
    {
-      commThrowError( e, "commCreateCLByOption[" + funcCommCreateCLOptTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
+      commThrowError( e, "commCreateCL[" + funcCommCreateCLOptTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
    }
 }
 
 /* *****************************************************************************
 @discription: drop collection space
+              删除集合空间
 @author: Jianhui Xu
 @parameter
-   ignoreNotExist: default = true, value: true/false
+   ignoreNotExist: default = true, value: true/false, 忽略不存在错误
    message: default = ""
 ***************************************************************************** */
 function commDropCS ( db, csName, ignoreNotExist, message )
@@ -293,10 +250,11 @@ function commDropCS ( db, csName, ignoreNotExist, message )
 
 /* *****************************************************************************
 @discription: drop collection
+              删除集合
 @author: Jianhui Xu
 @parameter
-   ignoreCSNotExist: default = true, value: true/false
-   ignoreCLNotExist: default = true, value: true/false
+   ignoreCSNotExist: default = true, value: true/false, 忽略集合空间不存在错误
+   ignoreCLNotExist: default = true, value: true/false, 忽略集合不存在错误
    message: default = ""
 ***************************************************************************** */
 function commDropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, message )
@@ -325,11 +283,12 @@ function commDropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, me
 
 /* *****************************************************************************
 @discription: create index
+              创建索引
 @author: Jianhui Xu
 @parameter
    indexDef: index define object
    isUnique: true/false, default is false
-   ignoreExist: default is false
+   ignoreExist: default is false, 忽略索引已存在错误
 ***************************************************************************** */
 function commCreateIndex ( cl, name, indexDef, isUnique, ignoreExist )
 {
@@ -436,40 +395,6 @@ function commCheckIndex ( cl, name, exist, timeout )
          commThrowError( e, "commCheckIndex: get index[" + name + "] failed: " + e );
       }
    }
-}
-
-/* *****************************************************************************
-@discription: check whether enable transaction function
-@author: Jianhui Xu
-***************************************************************************** */
-function commIsTransEnabled ( db )
-{
-   var isTrans = false;
-   var COMMTMPCS = COMMCSNAME + "_tmp";
-   var COMMTMPCL = COMMCLNAME + "_tmp";
-   var tmpCL = commCreateCL( db, COMMTMPCS, COMMTMPCL, 1, false, true, true, "Judge transaction create collection" );
-   try
-   {
-      db.transBegin();
-      //tmpCL.update( {$unset:{a:1}}, {a:{$exists:0}} ) ; // do nothing
-      tmpCL.remove();   // if transaction don't turn on, will throw error: -253
-      isTrans = true;
-      db.transCommit();
-      commDropCS( db, COMMTMPCS, false, "drop CS in transation temp" )
-   }
-   catch( e )
-   {
-      commDropCS( db, COMMTMPCS, true, "drop CS in transation temp" )
-      if( commCompareErrorCode( e, -253 ) )
-      {
-      }
-      else
-      {
-         println( "execute transBegin happen error, e = " + e );
-      }
-   }
-   // clear when all use cases finished
-   return isTrans;
 }
 
 /* *****************************************************************************
@@ -602,6 +527,7 @@ function commPrint ( obj, deep )
 
 /* ******************************************************************************
 @description : get collection groups
+               获取几何空间所属的group名，返回已去重的groupName数组
 @author : xiaojun Hu
 @parameter:
    clname: collection name, such as : "foo.bar"
@@ -650,6 +576,7 @@ function commGetCLGroups ( db, clName )
 
 /* *****************************************************************************
 @discription: get collection space groups
+              获取集合空间所属的group名，返回groupName数组
 @author: Jianhui Xu
 @parameter:
    csname: collection space name
@@ -688,6 +615,7 @@ function commGetCSGroups ( db, csname )
 
 /* *****************************************************************************
 @discription: get all groups
+              获取所有group的详细信息，默认只获取数据组
 @author: Jianhui Xu
 @parameter:
    filter: group name filter
@@ -788,6 +716,7 @@ function commGetGroups ( db, print, filter, exceptCata, exceptCoord, exceptSpare
 
 /* *****************************************************************************
 @discription: get the number of groups
+               获取集群所有group个数，默认只获取数据组
 @author: Jianhua Li
 @parameter:
    filter: group name filter
@@ -846,6 +775,7 @@ function commGetGroupsNum ( db, print, filter, exceptCata, exceptCoord, exceptSp
 
 /* *****************************************************************************
 @discription: get data groups name
+              获取所有数据组名
 @author: luweikang
 @return integer
 ***************************************************************************** */
@@ -862,6 +792,7 @@ function commGetDataGroupNames ( db )
 
 /* ****************************************************************************
 @discription: get all node from specified group
+              获取指定数据组的所有节点
 @author: luweikang
 @parameter: 
    groupName: group name
@@ -1091,6 +1022,7 @@ function commGetDomains ( db, filter )
 
 /* *****************************************************************************
 @discription: check nodes function
+              检查节点是否可以连接，返回连接失败的节点
 @author: Jianhui Xu
 @return array[] ex:
         [0] {"HostName":"XXXX", "dbpath":"XXXX", "svcname":"XXXX", "NodeID":XXXX}
@@ -1120,6 +1052,44 @@ function commCheckNodes ( groups )
 
 /* *****************************************************************************
 @discription: check business right function
+              检查集群状态，返回故障的节点
+@author: Jianhui Xu
+@return array[][] ex:
+        [0]
+           [0] {"GroupName":"XXXX", "GroupID":XXXX, "PrimaryNode":XXXX, "ConnCheck":t/f, "PrimaryCheck":t/f, "LSNCheck":t/f, "ServiceCheck":t/f, "DiskCheck":t/f }
+           [1] {"HostName":"XXXX", "svcname":"XXXX", "NodeID":XXXX, "Connect":t/f, "IsPrimay":t/f, "LSN":XXXX, "ServiceStatus":t/f, "FreeSpace":XXXX }
+           [N] ...
+        [N]
+           ...
+***************************************************************************** */
+function commCheckBusinessStatus ( db, groups, checkLSN, diskThreshold, timeout )
+{
+   if( groups == undefined ) { groups = commGetGroups ( db, false, "", false ); }
+   if( checkLSN == undefined ) { checkLSN = true; }
+   if( timeout == undefined ){ timeout = 120 }
+   
+   for( var i = 0; i < timeout; i++ )
+   {
+      var tmpArr = commCheckBusiness( groups, checkLSN, diskThreshold );
+      if( tmpArr.length == 0 )
+      {
+         break;
+      }
+      else if( i < ( timeout - 1 ) )
+      {
+         sleep( 1000 );
+      }
+      else
+      {
+         throw new Error( "check the cluster state timeout, check failed nodes: " 
+                              + JSON.stringify( tmpArr ) );
+      }
+   }
+}
+
+/* *****************************************************************************
+@discription: check business right function
+              检查集群状态，返回故障的节点
 @author: Jianhui Xu
 @return array[][] ex:
         [0]
@@ -1551,6 +1521,10 @@ function commCompareObject ( expObj, actObj )
    }
    if( isDirectCompare( actObj ) )
    {
+      if( typeof( actObj ) === "number" && isNaN( actObj ) )
+      {
+         return isNaN( expObj );
+      }
       return expObj === actObj;
    }
    else
@@ -2160,4 +2134,4 @@ function commThrowError ( e, msg )
    }
 }
 
-commCreateCLByOption( db, COMMCSNAME, COMMDUMMYCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
+commCreateCL( db, COMMCSNAME, COMMDUMMYCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );

@@ -16,7 +16,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true );
 
    //创建集合并创建全文索引(AutoIndexId为false)
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, AutoIndexId: false } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, AutoIndexId: false } );
    var textIndexName = "textIndexName_ES_15765";
    commCreateIndex( dbcl, textIndexName, { about: "text", content: "text" } );
 

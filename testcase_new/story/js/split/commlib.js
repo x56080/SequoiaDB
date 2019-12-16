@@ -581,7 +581,7 @@ function getSrcGroup ( csName, clName )
 function createSplitCl ( clName, shardingKey, shardingType )
 {
    var options = { ShardingKey: shardingKey, ShardingType: shardingType, ReplSize: 0, Compressed: true };
-   var varCL = commCreateCLByOption( db, COMMCSNAME, clName, options, true, true );
+   var varCL = commCreateCL( db, COMMCSNAME, clName, options, true, true );
    return varCL;
 }
 

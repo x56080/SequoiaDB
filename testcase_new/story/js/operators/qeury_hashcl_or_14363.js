@@ -30,7 +30,7 @@ function main ()
    //create cl
    var hashCLName = COMMCLNAME + "14363";
    var options = { Group: srcGroupName, ShardingKey: { a: 1, b: 1, c: 1 }, ShardingType: "hash", ReplSize: 0 };
-   var hashCL = commCreateCLByOption( db, csName, hashCLName, options, true );
+   var hashCL = commCreateCL( db, csName, hashCLName, options, true );
 
    //split class
    hashCL.split( srcGroupName, destGroupName, 50 )

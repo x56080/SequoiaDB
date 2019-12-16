@@ -30,7 +30,7 @@ function main ()
    //check cappedCL alter
    println( "---check cappedCL alter---" )
    var options = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
-   var dbcl = commCreateCLByOption( db, COMMCAPPEDCSNAME, clName3, options, false, false, "create capped cl" );
+   var dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName3, options, false, false, "create capped cl" );
    var alterOption1 = { ShardingKey: { a: 1 }, ShardingType: "hash" };
    checkCappedAlter( dbcl, alterOption1 );
    var alterOption2 = { ShardingKey: { a: 1 }, ShardingType: "range" };

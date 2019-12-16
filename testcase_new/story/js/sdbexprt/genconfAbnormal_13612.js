@@ -13,7 +13,7 @@ main();
 function main ()
 {
    var docs = [{ a: 1, b: 1 }];
-   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl = commCreateCL( db, csname, clname );
    cl.insert( docs );
 
    testExprtGenconf1();  // test export with not exist conf file

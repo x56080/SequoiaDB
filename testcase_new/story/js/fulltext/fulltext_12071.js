@@ -15,7 +15,7 @@ function main ()
    commDropCL( db, COMMCSNAME, mainclName, true, true );
 
    //主表及子表在相同和不同的集合空间上
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, mainclName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true } );
+   var mainCL = commCreateCL( db, COMMCSNAME, mainclName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true } );
    var subCLName1 = COMMCLNAME + "sub1_cl_12071";
    commDropCL( db, COMMCSNAME, subCLName1, true, true );
    var subCL1 = commCreateCL( db, COMMCSNAME, subCLName1 );

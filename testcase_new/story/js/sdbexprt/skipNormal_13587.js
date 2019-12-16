@@ -14,7 +14,7 @@ main();
 function main ()
 {
    var docs = [{ a: 1 }, { a: 3 }, { a: 2 }, { a: 4 }];
-   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl = commCreateCL( db, csname, clname );
    cl.insert( docs );
 
    testExprtSkip1();    // test skip 0

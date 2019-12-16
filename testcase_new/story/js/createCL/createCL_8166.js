@@ -288,7 +288,7 @@ function createCLwithVerticalpartitiontable ( db, csname, clname )
       opt.IsMainCL = true;
       opt.ShardingKey = subopt;
 
-      var cl = commCreateCLByOption( db, csname, clname, opt, true );
+      var cl = commCreateCL( db, csname, clname, opt, true );
       //var cl = cs.createCL(clname, {IsMainCL:true,ShardingKey:{date:1}});
       var subclname1 = CHANGEDPREFIX + "t01";
       var subclname2 = CHANGEDPREFIX + "t02";

@@ -14,7 +14,7 @@ function main ( db )
    {
       var recordNum = 1;
       var addRecord = { "nest1": { "nest2": { "nest3": "when nest test, use $defalut" } } };
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
          "create colleciton in the begnning" );
       // auto generate data
       selAutoGenData( cl, recordNum, addRecord );

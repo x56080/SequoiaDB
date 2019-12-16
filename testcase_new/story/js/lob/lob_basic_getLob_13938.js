@@ -19,7 +19,7 @@ function main ( db )
    lobGenerateFile( testFile ); // auto file
    // cmd.run( "cat " + testFile ); 
    // create collection
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, -1, true, true, true,
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true,
       "create collection in the beginning" );
    var md5Arr = cmd.run( "md5sum " + testFile ).split( " " );
    var md5 = md5Arr[0];

@@ -18,7 +18,7 @@ function main ( db )
       var options = { Capped: true };
       var dbcs = commCreateCS( db, csName, false, "create cappedCS", options );
       var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
-      var dbcl = commCreateCLByOption( db, csName, cLName, optionObj, false, false, "create cappedCL" );
+      var dbcl = commCreateCL( db, csName, cLName, optionObj, false, false, "create cappedCL" );
 
       println( "---begin to rename cappedCS and check result." );
       var recordNums = 2000;
@@ -76,7 +76,7 @@ function createCappedCLAndCheckResult ( cappedCSName, cappedCLName )
       //create cappedcl,the cl name is the same as the deleted name    
       var dbcs = db.getCS( cappedCSName );
       var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
-      var dbcl = commCreateCLByOption( db, cappedCSName, cappedCLName, optionObj, false, false, "create cappedCL" );
+      var dbcl = commCreateCL( db, cappedCSName, cappedCLName, optionObj, false, false, "create cappedCL" );
 
       var count = dbcl.count();
       if( Number( count ) !== 0 )

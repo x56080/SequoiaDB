@@ -59,20 +59,11 @@ collection.prototype.create =
          // Drop collection in the beginning
          this.drop();
          // Create Collection and auto specify CollectionSpaces
-         if( options === undefined )
-         {
-            this.cl = commCreateCL( this.db, this.csName, this.clName, -1, true, true,
-               false );
-         }
-         else
-         {
-            this.cl = commCreateCLByOption( this.db, this.csName, this.clName, options, true,
-               true );
-         }
+         this.cl = commCreateCL( this.db, this.csName, this.clName, options);
       }
       catch( e )
       {
-         throw buildException( "collection.createCL", 0, "db.createCL( " + this.csName + "." + this.clName + " )", 0, e );
+         throw new Error( "db.createCL( " + this.csName + "." + this.clName + " ) failed: " + e );
       }
    }
 

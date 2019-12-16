@@ -16,7 +16,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: dataGroupNames[0], ShardingKey: { a: 1 }, ShardingType: "range" } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: dataGroupNames[0], ShardingKey: { a: 1 }, ShardingType: "range" } );
 
    dbcl.insert( { a: 1 } );
 

@@ -21,7 +21,7 @@ function main ()
       var clGroupName = groups[0][0]["GroupName"];
 
       var clName = CHANGEDPREFIX + "_sessionAcess14083";
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 0, Group: clGroupName }, true, true );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: clGroupName }, true, true );
       insertData( dbcl );
 
       println( "---begin to set multiple non-existen instanceid " );

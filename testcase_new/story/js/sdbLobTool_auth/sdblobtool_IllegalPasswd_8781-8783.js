@@ -57,11 +57,11 @@ function main ( db )
 
    // 首先创建一个包含大对象的导出（源）集合COMMCLNAME，和导入（目标）集合impCLNAME
    var lobfile = toolMakeLobfile();
-   var expCl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, true, "create CL to export lob" );
+   var expCl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true, "create CL to export lob" );
    var lobNum = 1;
    toolPutLobs( expCl, lobfile, lobNum );
    cmd.run( "rm -rf " + lobfile );
-   var impCl = commCreateCL( db, COMMCSNAME, impCLNAME, 0, true, true, true, "create CL to import lob" );
+   var impCl = commCreateCL( db, COMMCSNAME, impCLNAME, {}, true, true, "create CL to import lob" );
 
    var errpasswd = "sequoiadb";
    Args["passwd"] = errpasswd;

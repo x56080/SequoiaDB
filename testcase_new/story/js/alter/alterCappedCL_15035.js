@@ -34,7 +34,7 @@ function main ( db )
 
       //create cappedCS
       commCreateCS( db, csName, false, "beginning to create cappedCS", { Capped: true } );
-      var dbcl = commCreateCLByOption( db, csName, clName, { Capped: true, Size: 1024, Max: 10000, AutoIndexId: false } );
+      var dbcl = commCreateCL( db, csName, clName, { Capped: true, Size: 1024, Max: 10000, AutoIndexId: false } );
 
       //test a :alter size/max/overWrite
       println( "---alter capped cl size/max/overWrite" );

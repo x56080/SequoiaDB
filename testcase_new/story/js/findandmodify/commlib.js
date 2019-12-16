@@ -157,7 +157,7 @@ function setUp ( replsize, createmode )
       // 指定ReplSize为0，同时不设置setSessionAttr就能够测试到副本有无被modify
       if( createMode.ordinary == createmode )
       {
-         commCreateCL( db, COMMCSNAME, clName, replsize, false, true, true );
+         commCreateCL( db, COMMCSNAME, clName, {ReplSize: replsize}, true, true );
       }
       else
       {
@@ -166,7 +166,7 @@ function setUp ( replsize, createmode )
          {
             ismaincl = true;
          }
-         var curcl = commCreateCLByOption( db, COMMCSNAME, clName, buildoption( ismaincl ), true );
+         var curcl = commCreateCL( db, COMMCSNAME, clName, buildoption( ismaincl ), true );
          if( false == ismaincl )
          {
             splittable( db, curcl );
@@ -300,7 +300,7 @@ function init ( db, maincl, isneedsplit, groupname )
       {
          var subclname = clName + "sub";
          subclname = subclname + i;
-         var subcl = commCreateCLByOption( db, COMMCSNAME, subclname, buildoption( ismaincl, groupname ), true );
+         var subcl = commCreateCL( db, COMMCSNAME, subclname, buildoption( ismaincl, groupname ), true );
          var fullname = COMMCSNAME + "." + subclname;
          maincl.attachCL( fullname, { LowBound: { date: start + ( i * 100 ) }, UpBound: { date: start + ( ( i + 1 ) * 100 ) } } );
 

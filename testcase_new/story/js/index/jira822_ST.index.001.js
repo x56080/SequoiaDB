@@ -44,7 +44,7 @@ function readyCL ( csName, clName, option )
 	println( "\n---begin to create cl" );
 
 	commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-	cl = commCreateCLByOption( db, csName, clName, option, true, false, "create cl in begin" );
+	cl = commCreateCL( db, csName, clName, option, true, false, "create cl in begin" );
 
 	return cl;
 }

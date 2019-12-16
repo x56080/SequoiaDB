@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_11985";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //创建索引名已存在的全文索引
    var indexName = "a_11985";

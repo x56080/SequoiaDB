@@ -17,7 +17,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    dbcl.createAutoIncrement( { Field: field, CacheSize: cacheSize, AcquireSize: acquireSize } );
 

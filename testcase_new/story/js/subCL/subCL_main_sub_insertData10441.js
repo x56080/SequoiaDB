@@ -45,13 +45,13 @@ function main ()
    var groupsArray = commGetGroups( db, false, "", false, true, true );
    //创建主表
    var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
-   var mainCL = commCreateCLByOption( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
+   var mainCL = commCreateCL( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
    //创建普通子表
    var groupName = groupsArray[1][0].GroupName;
    var subClOption1 = { Group: groupName };
-   commCreateCLByOption( db, COMMCSNAME, subCL_Name1, subClOption1, true, true );
+   commCreateCL( db, COMMCSNAME, subCL_Name1, subClOption1, true, true );
    var subClOption2 = { Group: groupName };
-   commCreateCLByOption( db, COMMCSNAME, subCL_Name2, subClOption2, true, true );
+   commCreateCL( db, COMMCSNAME, subCL_Name2, subClOption2, true, true );
    try
    {
       //attach 普通的表

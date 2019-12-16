@@ -25,7 +25,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
    //create CL
-   var varCL = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { a: 1 }, ShardingType: "range" }, true, false, "create CL" );
+   var varCL = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { a: 1 }, ShardingType: "range" }, true, false, "create CL" );
 
    //insert data
    for( var i = 1; i <= 50; i++ )

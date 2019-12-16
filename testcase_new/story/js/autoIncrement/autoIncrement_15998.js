@@ -21,7 +21,7 @@ function main ()
    var fieldName = "id";
    var minValue = { $numberLong: "-9223372036854775808" };
    var maxValue = -1;
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize } } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize } } );
 
    var clID = getCLID( COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";

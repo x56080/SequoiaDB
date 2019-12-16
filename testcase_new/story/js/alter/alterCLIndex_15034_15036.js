@@ -36,7 +36,7 @@ function main ( db )
       commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
       //create cl
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { a: 1 }, AutoIndexId: false, EnsureShardingIndex: false } );
+      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { a: 1 }, AutoIndexId: false, EnsureShardingIndex: false } );
 
       //alter cl
       println( "---alter ensureShardingIndex/AutoIndex/replSize/strictDatMode" );

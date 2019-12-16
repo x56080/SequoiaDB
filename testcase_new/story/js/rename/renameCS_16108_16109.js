@@ -34,7 +34,7 @@ function main ( db )
    var groupName2 = groups[1][0].GroupName;
    var domain = commCreateDomain( db, domainName, [groupName1, groupName2], { AutoSplit: true } );
    var varCS = commCreateCS( db, csName1, true, "create CS", { Domain: domainName } );
-   var varCL = commCreateCLByOption( db, csName1, clName, {}, true, false, "create cl in the beginning" )
+   var varCL = commCreateCL( db, csName1, clName, {}, true, false, "create cl in the beginning" )
    insertData( varCL, 100 );
 
    //�޸�cs���ƣ����ռ��

@@ -378,7 +378,7 @@ function createMainCL ( csName, mainCLName, shardingKey )
    println( "---begin to create MainCL." );
 
    var options = { ShardingKey: shardingKey, IsMainCL: true, ReplSize: 0 };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, false,
+   var mainCL = commCreateCL( db, csName, mainCLName, options, false,
       true, "Failed to create mainCL." );
    return mainCL;
 }
@@ -389,7 +389,7 @@ function createCL ( csName, clName, shardingKey, shardingType )
    println( "---begin to create cl:" + csName + "." + clName );
 
    var options = { ShardingKey: shardingKey, ShardingType: shardingType, ReplSize: 0, Compressed: true };
-   var dbcl = commCreateCLByOption( db, csName, clName, options, true,
+   var dbcl = commCreateCL( db, csName, clName, options, true,
       true, "Failed to create cl." );
    return dbcl;
 }

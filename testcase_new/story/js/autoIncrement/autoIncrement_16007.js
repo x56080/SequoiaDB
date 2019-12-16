@@ -15,7 +15,7 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, {
       Group: dataGroupNames[0], ShardingKey: { a: 1 },
       ShardingType: "range", AutoIncrement: {
          Field: "id1", Increment: 2,

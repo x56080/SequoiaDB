@@ -21,7 +21,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_11992";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groups[0][0]["GroupName"] } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groups[0][0]["GroupName"] } );
    var textIndexName = "fullIndex_11992";
    commCreateIndex( dbcl, textIndexName, { b: "text" } );
 

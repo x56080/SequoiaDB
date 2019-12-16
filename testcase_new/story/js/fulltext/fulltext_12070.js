@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_12070";
    var csName = "main_cs_12070";
    commDropCS( db, csName );
-   var mainCL = commCreateCLByOption( db, csName, clName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true } );
+   var mainCL = commCreateCL( db, csName, clName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true } );
    var subCLName1 = "sub1_cl_12070";
    var subCL1 = commCreateCL( db, csName, subCLName1 );
    var csName2 = "sub2_cs_12070";

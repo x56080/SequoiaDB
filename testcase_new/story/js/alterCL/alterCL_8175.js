@@ -33,10 +33,10 @@ function main ()
    commDropCL( db, COMMCSNAME, clName3 );
    commDropCL( db, COMMCSNAME, clName4 );
 
-   var cl1 = commCreateCLByOption( db, COMMCSNAME, clName1, { Compressed: false } );
-   var cl2 = commCreateCLByOption( db, COMMCSNAME, clName2, { ShardingKey: { id: 1 }, ShardingType: "hash", Compressed: false } );
-   var cl3 = commCreateCLByOption( db, COMMCSNAME, clName3, { ShardingKey: { id: 1 }, ShardingType: "range", Compressed: false } );
-   var cl4 = commCreateCLByOption( db, COMMCSNAME, clName4, { ShardingKey: { id: 1 }, ShardingType: "range", IsMainCL: true, Compressed: false } );
+   var cl1 = commCreateCL( db, COMMCSNAME, clName1, { Compressed: false } );
+   var cl2 = commCreateCL( db, COMMCSNAME, clName2, { ShardingKey: { id: 1 }, ShardingType: "hash", Compressed: false } );
+   var cl3 = commCreateCL( db, COMMCSNAME, clName3, { ShardingKey: { id: 1 }, ShardingType: "range", Compressed: false } );
+   var cl4 = commCreateCL( db, COMMCSNAME, clName4, { ShardingKey: { id: 1 }, ShardingType: "range", IsMainCL: true, Compressed: false } );
 
    cl1.alter( { "Compressed": true } );
    cl2.alter( { "Compressed": true } );

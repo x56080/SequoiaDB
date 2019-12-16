@@ -25,10 +25,10 @@ function main ()
         db1 = new Sdb( COORDHOSTNAME, COORDSVCNAME );
 
         var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
-        var maincl = commCreateCLByOption( db1, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
+        var maincl = commCreateCL( db1, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
 
         var subClOption = { ShardingKey: { "b": 1 }, ShardingType: "hash", AutoSplit: true, ReplSize: 0 };
-        commCreateCLByOption( db1, COMMCSNAME, subCL_Name, subClOption, true, true );
+        commCreateCL( db1, COMMCSNAME, subCL_Name, subClOption, true, true );
 
         var options = { LowBound: { a: 1 }, UpBound: { a: 100 } };
         maincl.attachCL( COMMCSNAME + "." + subCL_Name, options );

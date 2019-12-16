@@ -18,7 +18,7 @@ function main ()
     commRemoveProcedure( db, "insert19435" );
     commRemoveProcedure( db, "delete19435" );
 
-    var cl = commCreateCL( db, csName, clName, 0 );
+    var cl = commCreateCL( db, csName, clName );
 
     db.createProcedure( function insert19435 () { db.getCS( "cs19435" ).getCL( "cl19435" ).insert( { a: NumberDecimal( "100.04", [5, 2] ) } ); } );
     db.eval( "insert19435()" );

@@ -16,7 +16,7 @@ function main ()
 
    var autoIncrements = getAutoIncrements();
 
-   var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { AutoIncrement: autoIncrements } );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: autoIncrements } );
 
    //check autoIncrement and sequence
    var sequenceNames = getSequenceNames( COMMCSNAME, clName, autoIncrements );

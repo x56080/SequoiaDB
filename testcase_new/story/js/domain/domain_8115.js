@@ -55,14 +55,14 @@ function main ( db )
    {
       commCreateCS( db, csName, false, "create CS specify domain",
          { "Domain": domName } );
-      commCreateCLByOption( db, csName, rangeCL, {
+      commCreateCL( db, csName, rangeCL, {
          ShardingKey: { "No": -1 },
          ShardingType: "range", Partition: 1024,
          ReplSize: 0
       },
          false, false, "create collection in domain" );
       // Comman CL
-      commCreateCLByOption( db, csName, commonCL, {
+      commCreateCL( db, csName, commonCL, {
          ShardingKey: { "No": -1 },
          ReplSize: 0
       },

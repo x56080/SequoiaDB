@@ -8,7 +8,7 @@
 function main ( db )
 {
    var insertNum = 100;
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
       "failed to create collection in the beignning" );
    // insert data
    idxAutoGenData( cl, insertNum );

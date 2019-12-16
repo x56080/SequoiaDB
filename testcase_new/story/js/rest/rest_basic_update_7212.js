@@ -106,7 +106,7 @@ function updateAndCheck ()
 
 commDropCL( db, csName, clName, true, true, "drop cl in begin" );
 var opt = { ReplSize: 0 };
-var varCL = commCreateCLByOption( db, csName, clName, opt, true, false, "create cl in begin" );
+var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
 insertRecs();
 updateAndCheck();
 commDropCL( db, csName, clName, false, false, "drop cl in clean" );

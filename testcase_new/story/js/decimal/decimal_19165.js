@@ -9,7 +9,7 @@ function main ()
 {
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0 );
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
    var docs = [{ a: NumberDecimal( "9223372036854775807198410" ) },
    { a: NumberDecimal( "-9223372036854775808197101" ) },

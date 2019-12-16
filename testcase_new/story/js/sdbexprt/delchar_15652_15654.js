@@ -14,8 +14,8 @@ function main ()
   var clname1 = COMMCLNAME + "_sdbimprt15652";
   var doc = { a: 1, b: "exprtTest" };
 
-  var cl = commCreateCL( db, COMMCSNAME, clname, 0 );
-  var cl1 = commCreateCL( db, COMMCSNAME, clname1, 0 );
+  var cl = commCreateCL( db, COMMCSNAME, clname );
+  var cl1 = commCreateCL( db, COMMCSNAME, clname1 );
   cl.insert( doc );
 
   //JSON文件

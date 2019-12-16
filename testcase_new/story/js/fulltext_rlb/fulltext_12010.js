@@ -12,7 +12,7 @@ function main ()
     var clName = COMMCLNAME + "_ES_12010";
     commDropCL( db, COMMCSNAME, clName, true, true );
 
-    var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, { ReplSize: 7 } );
+    var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 7 } );
 
     // 创建全文索引，插入数据
     var textIndexName = "textIndex_12010";

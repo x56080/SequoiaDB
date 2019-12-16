@@ -46,10 +46,10 @@ function main ()
    commDropCL( db, csName, subCLName2 );
 
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range" };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, true, false, "create main cl" );
+   var mainCL = commCreateCL( db, csName, mainCLName, options, true, false, "create main cl" );
    commCreateCL( db, csName, subCLName1 );
    var clOptions = { "ShardingKey": { "a": 1 }, ShardingType: "hash", Group: targetGroup };
-   var subcl2 = commCreateCLByOption( db, csName, subCLName2, clOptions, true, false, "create sub cl2" );
+   var subcl2 = commCreateCL( db, csName, subCLName2, clOptions, true, false, "create sub cl2" );
    subcl2.split( targetGroup, sourceGroup, 50 );
 
    mainCL.attachCL( csName + "." + subCLName1, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190805" } } );

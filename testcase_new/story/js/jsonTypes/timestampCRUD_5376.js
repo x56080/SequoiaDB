@@ -6,7 +6,7 @@
 
 function main ( db )
 {
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, true, "create CL in the begining..." );
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true, "create CL in the begining..." );
 
    // 以Timestamp函数的方式插入数据
    cl.insert( { time: Timestamp( "2015-06-05-16.10.33.000000" ) } );

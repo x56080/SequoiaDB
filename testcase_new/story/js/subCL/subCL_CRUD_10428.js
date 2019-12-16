@@ -36,7 +36,7 @@ function createMainCL ( csName, mainCLName )
    println( "\n---Begin to create MainCL." );
 
    var options = { ShardingKey: { a: 1 }, IsMainCL: true };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, false,
+   var mainCL = commCreateCL( db, csName, mainCLName, options, false,
       true, "Failed to create mainCL." );
    return mainCL;
 }

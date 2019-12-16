@@ -49,8 +49,8 @@ function main ()
 
    var subOption = { a: 1 };
    var optionObj = { ShardingKey: subOption };
-   var cl_1 = commCreateCLByOption( db, csName, clName1, optionObj );
-   var cl_2 = commCreateCLByOption( db, csName, clName2, optionObj );
+   var cl_1 = commCreateCL( db, csName, clName1, optionObj );
+   var cl_2 = commCreateCL( db, csName, clName2, optionObj );
 
    //�޸�domain���ԣ�domain�������飬��������group2
    db.getDomain( domainName ).alter( { Groups: [group1, group2] } );

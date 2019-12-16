@@ -14,9 +14,9 @@ function main ()
     var clName2 = "11061_bar2";
     var clName3 = "11061_bar3";
 
-    var cl1 = commCreateCL( db, csName, clName1, null, null, true, false, "create cl1 in the begin" );
-    var cl2 = commCreateCL( db, csName, clName2, null, null, true, false, "create cl2 in the begin" );
-    var cl3 = commCreateCL( db, csName, clName3, null, null, true, false, "create cl3 in the begin" );
+    var cl1 = commCreateCL( db, csName, clName1, {}, true, false, "create cl1 in the begin" );
+    var cl2 = commCreateCL( db, csName, clName2, {}, true, false, "create cl2 in the begin" );
+    var cl3 = commCreateCL( db, csName, clName3, {}, true, false, "create cl3 in the begin" );
 
     cl1.insert( { a: 0 } );
     cl1.insert( { a: 1 } );

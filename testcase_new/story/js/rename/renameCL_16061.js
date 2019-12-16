@@ -68,11 +68,11 @@ function createCLAndSplitCL ( maincsName, mainCLName, subcsName, subCLName1, sub
 
    var shardingKey = { no: 1 };
    var clOptions1 = { ShardingKey: { no: 1 }, ShardingType: "range", ReplSize: 0, Group: groupName1 };
-   commCreateCLByOption( db, maincsName, subCLName1, clOptions1, false, true, "Failed to create cl." );
+   commCreateCL( db, maincsName, subCLName1, clOptions1, false, true, "Failed to create cl." );
    var clOptions2 = { ShardingKey: { no: 1 }, ShardingType: "hash", ReplSize: 0, Group: groupName2 };
-   commCreateCLByOption( db, subcsName, subCLName2, clOptions2, false, true, "Failed to create cl." );
+   commCreateCL( db, subcsName, subCLName2, clOptions2, false, true, "Failed to create cl." );
    var clOptions3 = { ShardingKey: { no: 1 }, ShardingType: "hash", ReplSize: 0, Group: groupName1 };
-   var dbcl = commCreateCLByOption( db, maincsName, subCLName3, clOptions3, true, true, "Failed to create cl." );
+   var dbcl = commCreateCL( db, maincsName, subCLName3, clOptions3, true, true, "Failed to create cl." );
 
    var options1 = { LowBound: { "a": 0 }, UpBound: { "a": 1000 } };
    dbmaincl.attachCL( maincsName + "." + subCLName1, options1 );

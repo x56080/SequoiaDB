@@ -28,7 +28,7 @@ function main ( db )
       commCreateCS( db, csName, false, "create CS specify domain" );
 
       // Create Collection
-      commCreateCL( db, csName, clName, -1, true, false, false,
+      commCreateCL( db, csName, clName, {}, false, false,
          "create collection in domain" );
 
       // Create index
@@ -69,7 +69,7 @@ function main ( db )
    {
       commCreateCS( db, csname, false, "create CS specify domain",
          { "Domain": domName } );
-      commCreateCL( db, csname, clname, -1, true, false, false,
+      commCreateCL( db, csname, clname, {}, false, false,
          "create collection in domain" );
       println( "Create CS and CL over" );
 
