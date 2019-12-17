@@ -693,7 +693,7 @@ namespace engine
          setTransTimeout( timeout, FALSE ) ;
       }
 
-      if ( DPS_INVALID_TRANS_ID == getExecutor()->getTransID() )
+      if ( getExecutor()->getTransID().isInvalid() )
       {
          if ( !OSS_BIT_TEST( _transConfMask, TRANS_CONF_MASK_ISOLATION ) )
          {

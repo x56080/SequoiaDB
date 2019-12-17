@@ -52,6 +52,7 @@
 #include "dmsTransLockCallback.hpp"
 #include "dmsLightJob.hpp"
 #include "utilInsertResult.hpp"
+#include "dpsUtil.hpp"
 
 using namespace bson ;
 
@@ -3039,7 +3040,7 @@ namespace engine
 
       if ( !isTransSupport() )
       {
-         transID = DPS_INVALID_TRANS_ID ;
+         transID.reset() ;
          preTransLsn = DPS_INVALID_LSN_OFFSET ;
          relatedLsn = DPS_INVALID_LSN_OFFSET ;
       }
@@ -3048,7 +3049,8 @@ namespace engine
       {
          dpsTransExecutor *pTransExe = cb->getTransExecutor() ;
          /// when is rollback, and the rid is found
-         if ( DPS_INVALID_TRANS_ID != transID && cb->isInTransRollback() &&
+         if ( transID.isValid() &&
+              cb->isInTransRollback() &&
               pTransExe->getRecord( relatedLsn, foundRID, TRUE ) )
          {
             markInsert = TRUE ;
@@ -3426,7 +3428,7 @@ namespace engine
    done:
       // release the lock immediately if it is not transaction-operation,
       // the transaction-operation's lock will release in rollback or commit
-      if ( isTransLocked && ( transID == DPS_INVALID_TRANS_ID || rc ) )
+      if ( isTransLocked && ( transID.isInvalid() || rc ) )
       {
          pTransCB->transLockRelease( cb, _logicalCSID, context->mbID(),
                                      &foundRID, &callback ) ;
@@ -3521,7 +3523,7 @@ namespace engine
 
       if ( !isTransSupport() )
       {
-         transID = DPS_INVALID_TRANS_ID ;
+         transID.reset() ;
          preLsn = DPS_INVALID_LSN_OFFSET ;
          relatedLSN = DPS_INVALID_LSN_OFFSET ;
       }
@@ -3556,7 +3558,7 @@ namespace engine
          // when in transaction(not rollback), we should not immediately
          // delete the record, otherwise TB scan won't be able to find
          // this record even if the current transaction has not committed.
-         if ( DPS_INVALID_TRANS_ID != transID && !cb->isInTransRollback() )
+         if ( transID.isValid() && !cb->isInTransRollback() )
          {
             inTrans = TRUE ;
          }
@@ -3715,10 +3717,11 @@ namespace engine
                lowTran = pTransCB->getLowTran() ;
             }
             PD_LOG( PDDEBUG, "Truely delete record(%d, %d),  "
-                    "lowtran(%llu), recordtransid(%llu), pTransCB(%x)",
+                    "lowtran(%s), recordtransid(%s), pTransCB(%x)",
                     recordID._extent, recordID._offset, 
-                    DPS_TRANS_GET_SN(lowTran), 
-                    pRecord->getGlobTransID(), pTransCB ) ;
+                    dpsTransIDToString( lowTran ).c_str(),
+                    dpsTransIDToString( pRecord->getGlobTransID() ).c_str(),
+                    pTransCB ) ;
 #endif
             rc = _extentRemoveRecord( context, extRW, recordRW, cb,
                                       !isDeleting ) ;
@@ -3892,7 +3895,7 @@ namespace engine
 
       if ( !isTransSupport() )
       {
-         transID = DPS_INVALID_TRANS_ID ;
+         transID.reset() ;
          preTransLsn = DPS_INVALID_LSN_OFFSET ;
          relatedLSN = DPS_INVALID_LSN_OFFSET ;
       }

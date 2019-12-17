@@ -648,7 +648,12 @@ namespace engine
             msgReq.header.opCode = MSG_BS_TRANS_BEGIN_REQ ;
             msgReq.header.routeID.value = 0 ;
             msgReq.header.TID = cb->getTID() ;
-            msgReq.transID = DPS_TRANS_GET_ID( cb->getTransID() ) ;
+            // for backward compatibility, transID field is global serial
+            // number
+            // NOTE: node ID of transaction ID is in routeID of message header
+            msgReq.transID = (UINT64)( cb->getTransID().getGlobSN() ) ;
+            // TODO: time error of logical time for global transaction
+            msgReq.transTimeError = 0 ;
             ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
 
             rc = coordBuildPacketMsg( pSession,pSub, &msgReq.header ) ;

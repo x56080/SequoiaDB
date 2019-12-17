@@ -5176,7 +5176,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATTRANSEND ) ;
 
-      if ( DPS_INVALID_TRANS_ID != cb->getTransID() )
+      if ( cb->getTransID().isValid() )
       {
          if ( SDB_OK == result ||
               SDB_DMS_EOC == result )

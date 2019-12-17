@@ -391,7 +391,7 @@ namespace engine
          SDB_ASSERT( _mapTransNodes.empty(), "Trans node is not empty" ) ;
 
          dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
-         DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
+         DPS_TRANS_ID transID ;
 
          if ( !pTransCB->isTransOn() )
          {
@@ -402,7 +402,7 @@ namespace engine
             /// alloc trans id
             transID = pTransCB->allocTransID( isAutoCommit ) ;
             /// clear first op
-            DPS_TRANS_CLEAR_FIRSTOP( transID ) ;
+            transID.clearFirstOp() ;
 
             /// set trans id
             cb->setTransID( transID ) ;
@@ -421,7 +421,7 @@ namespace engine
 
    void _coordSessionPropSite::endTrans( _pmdEDUCB *cb )
    {
-      cb->setTransID( DPS_INVALID_TRANS_ID ) ;
+      cb->resetTransID() ;
       _mapTransNodes.clear() ;
       _writeTransNodeNum = 0 ;
    }

@@ -74,7 +74,7 @@ namespace engine
       pmdKRCB *krcb = pmdGetKRCB() ;
       dpsTransCB *pTransCB = krcb->getTransCB() ;
 
-      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID transID ;
       TRANS_MAP *pTransMap = pTransCB->getTransMap() ;
       TRANS_MAP tmpTransMap ;
       TRANS_MAP::iterator it ;
@@ -239,7 +239,10 @@ namespace engine
       const UINT32 maxRetryTimes = 3 ;
       UINT32 retryTimes = 0 ;
 
-      checkMsg.transID = transID ;
+      // for backward compatibility, transID field is global serial number
+      checkMsg.transID = transID.getGlobSN() ;
+      // node ID of transaction ID
+      checkMsg.transIDNodeID = transID.getNodeID() ;
 
       while( retryTimes++ < maxRetryTimes )
       {
@@ -355,7 +358,7 @@ namespace engine
       _dpsMessageBlock mb ;
       lsn.offset = curLsn ;
 
-      DPS_TRANS_ID recordTransID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID recordTransID ;
       DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET firstLsn = DPS_INVALID_LSN_OFFSET ;
       UINT8 attr = 0 ;
@@ -449,7 +452,7 @@ namespace engine
       // NOTE: actually it is empty
       cb->getTransExecutor()->commitMBStats() ;
 
-      cb->setTransID( DPS_INVALID_TRANS_ID ) ;
+      cb->resetTransID() ;
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
       // clear all lsn mapping
       cb->getTransExecutor()->clearRecordMap() ;

@@ -438,9 +438,9 @@ namespace engine
 
       // it is transaction operations
       if ( info.isTransEnabled() && cb &&
-           DPS_INVALID_TRANS_ID != cb->getTransID() )
+           cb->getTransID().isValid() )
       {
-         UINT64 transID = cb->getTransID() ;
+         DPS_TRANS_ID transID = cb->getTransID() ;
          dpsTransCB * transCB = sdbGetTransCB() ;
          cb->setCurTransLsn( info.getMergeBlock().record().head()._lsn ) ;
 

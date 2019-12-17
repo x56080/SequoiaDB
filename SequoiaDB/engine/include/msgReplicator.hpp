@@ -545,8 +545,12 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    {
       public:
          _MsgHeader header ;
+         // global serial number of transaction ID of V1
          UINT64     transID ;
-         UINT32     reserved[8] ;
+         // node ID of transaction ID
+         UINT16     transIDNodeID ;
+         // reserved space ( NOTE: align to 4 bytes )
+         UINT32     reserved[ 7 ] ;
 
          _MsgClsTransCheckReq()
          {
@@ -556,6 +560,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
             header.TID = 0 ;
             header.requestID = 0 ;
             transID = 0 ;
+            transIDNodeID = 0 ;
             ossMemset( reserved, 0, sizeof( reserved ) ) ;
          }
    } ;

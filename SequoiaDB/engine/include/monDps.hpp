@@ -270,7 +270,7 @@ namespace engine
 
          void clear()
          {
-            _transID = DPS_INVALID_TRANS_ID ;
+            _transID.reset() ;
             _curTransLsn = DPS_INVALID_LSN_OFFSET ;
             _eduID = 0 ;
             _relatedNID = 0 ;

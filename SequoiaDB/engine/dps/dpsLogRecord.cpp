@@ -1122,15 +1122,15 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s(%d)"OSS_NEWLINE,
                                  "ROLLBACK", LOG_TYPE_TS_ROLLBACK ) ;
-             if ( !itrTransID.valid() )
-             {
+            if ( !itrTransID.valid() )
+            {
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "*ERROR* : %s"OSS_NEWLINE,
                                     "Failed to find transid in record" ) ;
-                PD_LOG( PDERROR, "Failed to find transid in record" ) ;
-                goto done ;
-             }
-             break ;
+               PD_LOG( PDERROR, "Failed to find transid in record" ) ;
+               goto done ;
+            }
+            break ;
          }
          case LOG_TYPE_LOB_WRITE :
          {
@@ -1582,17 +1582,27 @@ namespace engine
 
          if ( itrTransID.valid() )
          {
-            CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-            CHAR tmpAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-            DPS_TRANS_ID transID = *((DPS_TRANS_ID *)itrTransID.value()) ;
+            DPS_TRANS_ID transID ;
+            if ( SDB_OK == dpsGetTransIDFromRecord( *this, transID ) )
+            {
+               CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+               CHAR tmpAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
-            len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " TransID : %s"OSS_NEWLINE
-                                 " IDAttr  : %s"OSS_NEWLINE,
-                                 dpsTransIDToString( transID, tmpID,
-                                                     DPS_TRANS_STR_LEN ),
-                                 dpsTransIDAttrToString( transID, tmpAttr,
-                                                         DPS_TRANS_STR_LEN ) ) ;
+               len += ossSnprintf(
+                     outBuf + len, outSize - len,
+                     " TransID : %s"OSS_NEWLINE
+                     " IDAttr  : %s"OSS_NEWLINE,
+                     dpsTransIDToString( transID, tmpID,
+                                         DPS_TRANS_STR_LEN ),
+                     dpsTransIDAttrToString( transID, tmpAttr,
+                                             DPS_TRANS_STR_LEN ) ) ;
+            }
+            else
+            {
+               len += ossSnprintf ( outBuf + len, outSize - len,
+                                    "*ERROR* : %s"OSS_NEWLINE,
+                                    "Invalid transaction ID record" ) ;
+            }
          }
          if ( itrTransLsn.valid() )
          {

@@ -301,7 +301,12 @@ namespace engine
          msgReq.header.opCode = MSG_BS_TRANS_BEGIN_REQ ;
          msgReq.header.routeID.value = 0 ;
          msgReq.header.TID = cb->getTID() ;
-         msgReq.transID = DPS_TRANS_GET_ID( cb->getTransID() ) ;
+         // for backward compatibility, transID field is global serial
+         // number
+         // NOTE: node ID of transaction ID is in routeID of message header
+         msgReq.transID = (UINT64)( cb->getTransID().getGlobSN() ) ;
+         // TODO: time error of logical time for global transaction
+         msgReq.transTimeError = 0 ;
          ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
 
          iterGroup = groupLst.begin() ;
@@ -801,8 +806,8 @@ namespace engine
 
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
-                          "TransactionID: 0x%016x(%llu)",
-                          curTransID, curTransID ) ;
+                          "TransactionID: %s",
+                          dpsTransIDToString( curTransID ).c_str() ) ;
 
       rc = _coord2PhaseCommit::execute( pMsg, cb, contextID, buf ) ;
       if ( rc )
@@ -929,9 +934,8 @@ namespace engine
 
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
-                          "TransactionID: 0x%016x(%llu)",
-                          cb->getTransID(),
-                          cb->getTransID() ) ;
+                          "TransactionID: %s",
+                          dpsTransIDToString( cb->getTransID() ).c_str() ) ;
 
       rc = _coordTransOperator::rollback( cb ) ;
       if ( rc )

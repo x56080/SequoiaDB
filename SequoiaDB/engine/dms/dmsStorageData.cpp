@@ -44,6 +44,7 @@
 #include "pmd.hpp"
 #include "mthModifier.hpp"
 #include "dpsOp2Record.hpp"
+#include "dpsUtil.hpp"
 
 namespace engine
 {
@@ -329,10 +330,10 @@ namespace engine
             pRecord->setGlobTransID( cb->getTransID() ) ;
             // FIXME: remove 
 #ifdef _DEBUG
-            PD_LOG ( PDDEBUG, "set record(%d, %d) transid(%llu) ",
+            PD_LOG ( PDDEBUG, "set record(%d, %d) transid(%s) ",
                      recordRW.getRecordID()._extent, 
                      recordRW.getRecordID()._offset,
-                     DPS_TRANS_GET_SN(cb->getTransID()) ) ;
+                     dpsTransIDToString( cb->getTransID() ).c_str() ) ;
 #endif
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
 
@@ -853,10 +854,10 @@ namespace engine
       pRecord->resetAttr() ;
       // setup global transaction id
       // FIXME: to be removed
-      PD_LOG ( PDDEBUG, "set record(%d, %d) transID: %llu", 
+      PD_LOG ( PDDEBUG, "set record(%d, %d) transID: %s",
                recordRW.getRecordID()._extent,
                recordRW.getRecordID()._offset,
-               DPS_TRANS_GET_SN(cb->getTransID()) ) ;
+               dpsTransIDToString( cb->getTransID() ).c_str() ) ;
       pRecord->setGlobTransID( cb->getTransID() ) ;
 
       // and then need to check if we need to split deleted record

@@ -131,7 +131,7 @@ namespace engine
       _pendingStartFrom = 0 ;
 
       _transWaitTimeout = 0 ;
-      _transWaitID = DPS_INVALID_TRANS_ID ;
+      _transWaitID.reset() ;
 
       PD_TRACE_EXIT ( SDB__CLSSDSESS__CLSSHDSESS ) ;
    }
@@ -223,8 +223,8 @@ namespace engine
 
       if ( curTime.time - _lastRecvTime.time > SHD_SESSION_TIMEOUT &&
            _pEDUCB->contextNum() == 0 &&
-           ( _pEDUCB->getTransID() == DPS_INVALID_TRANS_ID ||
-           !(sdbGetReplCB()->primaryIsMe())))
+           ( _pEDUCB->getTransID().isInvalid() ||
+           !( sdbGetReplCB()->primaryIsMe() ) ) )
       {
          // will be release
          ret = TRUE ;
@@ -267,7 +267,7 @@ namespace engine
       else
       {
          _transWaitTimeout = 0 ;
-         _transWaitID = DPS_INVALID_TRANS_ID ;
+         _transWaitID.reset() ;
       }
    }
 
@@ -453,7 +453,7 @@ namespace engine
          clsGTSAgent *pGTSAgent = _pShdMgr->getGTSAgent() ;
          DPS_TRANS_STATUS status = DPS_TRANS_UNKNOWN ;
 
-         DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
+         DPS_TRANS_ID transID ;
          DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
          DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
          UINT8 attr = 0 ;
@@ -2540,10 +2540,16 @@ namespace engine
 
       /// Old trans begin msg is only a MsgHeader
       if ( msg->messageLength > (INT32)sizeof( MsgHeader ) &&
-           DPS_INVALID_TRANS_ID != pTransBegin->transID &&
-           0 != DPS_TRANS_GET_NODEID( pTransBegin->transID ) )
+           // only serial number for backward compatibilty
+           DPS_INVALID_TRANSID_SN != pTransBegin->transID &&
+           // check node ID component
+           DPS_INVALID_TRANSID_NODEID !=
+                 pTransBegin->header.routeID.columns.nodeID )
       {
-         rc = rtnTransBegin( _pEDUCB, FALSE, pTransBegin->transID ) ;
+         DPS_TRANS_ID transID ;
+         transID.setSN( pTransBegin->transID ) ;
+         transID.setNodeID( pTransBegin->header.routeID.columns.nodeID ) ;
+         rc = rtnTransBegin( _pEDUCB, FALSE, transID ) ;
       }
       else
       {
@@ -2571,7 +2577,7 @@ namespace engine
       {
          return SDB_CLS_NOT_PRIMARY ;
       }
-      if ( _pEDUCB->getTransID() == DPS_INVALID_TRANS_ID )
+      if ( _pEDUCB->getTransID().isInvalid() )
       {
          return SDB_DPS_TRANS_NO_TRANS ;
       }
@@ -2624,7 +2630,7 @@ namespace engine
          rc = SDB_CLS_NOT_PRIMARY ;
          goto error ;
       }
-      if ( _pEDUCB->getTransID() == DPS_INVALID_TRANS_ID )
+      if ( _pEDUCB->getTransID().isInvalid() )
       {
          rc = SDB_DPS_TRANS_NO_TRANS ;
          goto error ;

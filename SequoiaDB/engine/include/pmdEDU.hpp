@@ -174,13 +174,17 @@ namespace engine
          virtual UINT64    getEndLsn() const { return _endLsn ; }
          virtual UINT32    getLsnCount () const { return _lsnNumber ; }
          virtual BOOLEAN   isDoRollback () const { return _doRollback ; }
-         virtual UINT64    getTransID () const { return _curTransID ; }
+         virtual const DPS_TRANS_ID &getTransID () const { return _curTransID ; }
          virtual UINT64    getCurTransLsn () const { return _curTransLSN ; }
 
          virtual void      resetLsn() ;
          virtual void      insertLsn( UINT64 lsn,
                                       BOOLEAN isRollback = FALSE ) ;
-         virtual void      setTransID( UINT64 transID ) ;
+         // reset transaction ID to invalid transaction ID
+         // means no transaction
+         virtual void      resetTransID() ;
+         // set transaction ID with specified transaction ID
+         virtual void      setTransID( const DPS_TRANS_ID &transID ) ;
          virtual void      setCurTransLsn( UINT64 lsn ) ;
 
          /*

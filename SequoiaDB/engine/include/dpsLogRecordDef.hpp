@@ -48,12 +48,21 @@ namespace engine
       DPS_LOG_PUBLIC_INVALID = 0,
       DPS_LOG_PUBLIC_BEGIN = 200,
       DPS_LOG_PUBLIC_FULLNAME = 201,         // cl full name
+
+      // transaction ID
+      // V0: whole transaction ID
+      // V1: serial number with global transaction tag
       DPS_LOG_PUBLIC_TRANSID = 202,
       DPS_LOG_PUBLIC_PRETRANS = 203,
       DPS_LOG_PUBLIC_RELATED_TRANS = 204,    // only for rollback trans,
                                              // mapping to really trans lsn
       DPS_LOG_PUBLIC_FIRSTTRANS = 205,
-      DPS_LOG_PUBLIC_TIME = 206
+      DPS_LOG_PUBLIC_TIME = 206,
+
+      // node ID component for transaction ID of V1
+      DPS_LOG_PUBLIC_TRANSID_NODEID = 207,
+      // time error of logical time for global transaction
+      DPS_LOG_PUBLIC_TRANS_TIME_ERROR = 208
    } ;
 
 /// number in public can not be used in definition !

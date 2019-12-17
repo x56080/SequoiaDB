@@ -260,20 +260,20 @@ namespace engine
       dpsTransEvent* getEventHandler() ;
 
       /*
-      *TransactionID:
+       * TransactionID:
       +---------------+-----------+-----------+
-      | nodeID(16bit) | TAG(8bit) | SN(40bit) |
+      | nodeID(16bit) | TAG(8bit) | SN(56bit) |
       +---------------+-----------+-----------+
       */
       DPS_TRANS_ID allocTransID( BOOLEAN isAutoCommit = FALSE ) ;
-      DPS_TRANS_ID getRollbackID( DPS_TRANS_ID transID ) ;
-      DPS_TRANS_ID getTransID( DPS_TRANS_ID rollbackID ) ;
+      DPS_TRANS_ID getRollbackID( const DPS_TRANS_ID &transID ) ;
+      DPS_TRANS_ID getTransID( const DPS_TRANS_ID &rollbackID ) ;
 
       DPS_TRANS_ID getLowTran( ) ;
 
       // FIXME: guoming to implement
-      BOOLEAN isVersionVisible( DPS_TRANS_ID recTransID, 
-                                DPS_TRANS_ID transID ) 
+      BOOLEAN isVersionVisible( const DPS_TRANS_ID &recTransID,
+                                const DPS_TRANS_ID &transID )
       {
          // Simple implementation: if record transID is older than
          // transactionID, this record is visible to the transaction
@@ -291,12 +291,12 @@ namespace engine
 
       oldVersionCB * getOldVCB () { return _oldVCB ; }
 
-      BOOLEAN isRollback( DPS_TRANS_ID transID ) ;
-      BOOLEAN isFirstOp( DPS_TRANS_ID transID ) ;
+      BOOLEAN isRollback( const DPS_TRANS_ID &transID ) ;
+      BOOLEAN isFirstOp( const DPS_TRANS_ID &transID ) ;
       void    clearFirstOpTag( DPS_TRANS_ID &transID ) ;
 
       // check transaction if rollback pending
-      BOOLEAN isRBPending( DPS_TRANS_ID transID ) ;
+      BOOLEAN isRBPending( const DPS_TRANS_ID &transID ) ;
       // check if has rollback pending transactions
       BOOLEAN hasRBPendingTrans() ;
 
@@ -305,11 +305,11 @@ namespace engine
       BOOLEAN isDoRollback() const { return _doRollback ; }
       INT32   waitRollback( UINT64 millicSec = -1 ) ;
 
-      void addTransInfo( DPS_TRANS_ID transID,
+      void addTransInfo( const DPS_TRANS_ID &transID,
                          DPS_LSN_OFFSET lsnOffset,
                          INT32 status ) ;
       // NOTE: log rollback means rollbacked by consulting or replay failure
-      void updateTransInfo( DPS_TRANS_ID transID,
+      void updateTransInfo( const DPS_TRANS_ID &transID,
                             DPS_LSN_OFFSET lsnOffset,
                             INT32 status ) ;
       void updateTransInfo( dpsTransBackInfo &transInfo,
@@ -320,21 +320,22 @@ namespace engine
       void updateTransStatus( DPS_TRANS_ID transID,
                               INT32 status ) ;
 
-      BOOLEAN  addTransCB( DPS_TRANS_ID transID, _pmdEDUCB *eduCB ) ;
-      void     delTransCB( DPS_TRANS_ID transID ) ;
+      BOOLEAN  addTransCB( const DPS_TRANS_ID &transID, _pmdEDUCB *eduCB ) ;
+      void     delTransCB( const DPS_TRANS_ID &transID ) ;
       void     dumpTransEDUList( TRANS_EDU_LIST  &eduList ) ;
       UINT32   getTransCBSize() ;
       void     termAllTrans() ;
       TRANS_MAP *getTransMap() ;
       void     cloneTransMap( TRANS_MAP &result ) ;
 
-      void     addHisTrans( DPS_TRANS_ID transID,
+      void     addHisTrans( const DPS_TRANS_ID &transID,
                             INT32 status,
                             DPS_LSN_OFFSET lsn ) ;
-      void     delHisTrans( DPS_TRANS_ID transID ) ;
+      void     delHisTrans( const DPS_TRANS_ID &transID ) ;
       void     clearHisTrans() ;
       void     clearOutDateHisTrans( DPS_LSN_OFFSET lsn ) ;
-      INT32    checkTransStatus( DPS_TRANS_ID transID, DPS_LSN_OFFSET & lsn ) ;
+      INT32    checkTransStatus( const DPS_TRANS_ID &transID,
+                                 DPS_LSN_OFFSET & lsn ) ;
 
       void     clearTransInfo() ;
 
@@ -346,15 +347,17 @@ namespace engine
       // rollback transaction info for a single DPS record
       BOOLEAN  rollbackTransInfoFromLog( const dpsLogRecord &record ) ;
 
-      void           addBeginLsn( DPS_LSN_OFFSET beginLsn, DPS_TRANS_ID transID ) ;
-      void           delBeginLsn( DPS_TRANS_ID transID ) ;
-      DPS_LSN_OFFSET getBeginLsn( DPS_TRANS_ID transID ) ;
+      void           addBeginLsn( DPS_LSN_OFFSET beginLsn,
+                                  const DPS_TRANS_ID &transID ) ;
+      void           delBeginLsn( const DPS_TRANS_ID &transID ) ;
+      DPS_LSN_OFFSET getBeginLsn( const DPS_TRANS_ID &transID ) ;
       DPS_LSN_OFFSET getOldestBeginLsn() ;
 
-      BOOLEAN  isVersionExpired( DPS_TRANS_ID transID ) ;
+      BOOLEAN  isVersionExpired( const DPS_TRANS_ID &transID ) ;
       // FIXME: we can remove this once we modified isVersionVisible and
       // getLowTran
-      BOOLEAN  transIDGreaterThan( DPS_TRANS_ID tidL, DPS_TRANS_ID tidR ) ;
+      BOOLEAN  transIDGreaterThan( const DPS_TRANS_ID &tidL,
+                                   const DPS_TRANS_ID &tidR ) ;
 
       BOOLEAN  isNeedSyncTrans() ;
       void     setIsNeedSyncTrans( BOOLEAN isNeed ) ;
@@ -501,7 +504,7 @@ namespace engine
       void   printCounters() ;
 
    private:
-      DPS_TRANS_ID      _TransIDH16 ;
+      DPS_TRANSID_NODEID _TransIDH16 ;
       ossAtomic64       _TransIDL48Cur ;
 
       monSpinXLatch     _MapMutex ;

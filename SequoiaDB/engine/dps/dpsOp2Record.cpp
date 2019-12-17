@@ -67,6 +67,42 @@ namespace engine
       goto done ;
    }
 
+   // warning: any valud can not be value-passed
+   // push transaction ID into record
+   static INT32 dpsPushTransID( const DPS_TRANS_ID &transID,
+                                dpsLogRecord &record )
+   {
+      INT32 rc = SDB_OK ;
+
+      // must use pointer here
+      const DPS_TRANSID_NODEID *transIDNodeID = transID.getNodeIDPtr() ;
+      const DPS_TRANSID_SN *transIDSN = transID.getSNPtr() ;
+
+      // node ID component of transaction ID of V2
+      rc = record.push( DPS_LOG_PUBLIC_TRANSID_NODEID,
+                        sizeof( DPS_TRANSID_NODEID ),
+                        (const CHAR *)( transIDNodeID ) ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      // serial number component of transaction ID of V1
+      rc = record.push( DPS_LOG_PUBLIC_TRANSID,
+                        sizeof( DPS_TRANSID_SN ),
+                        (const CHAR *)( transIDSN ) ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /// warning: any value can not be value-passed.
    static INT32 dpsPushTran( const DPS_TRANS_ID &transID,
                              const DPS_LSN_OFFSET &preTransLsn,
@@ -74,10 +110,12 @@ namespace engine
                              dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
-      if ( DPS_INVALID_TRANS_ID != transID )
+
+      // check if transaction ID is valid
+      if ( transID.isValid() )
       {
-         rc = record.push( DPS_LOG_PUBLIC_TRANSID,
-                           sizeof( transID ), (CHAR *)(&transID)) ;
+         // push transaction ID
+         rc = dpsPushTransID( transID, record ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -1527,18 +1565,12 @@ namespace engine
          goto error ;
       }
 
+      rc = dpsGetTransIDFromRecord( record, transID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get transaction ID from record, "
+                   "rc: %d", rc ) ;
+
       {
-         dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-         if ( !itr.valid() )
-         {
-            PD_LOG( PDERROR, "Failed to find tag transid in record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         transID = *((DPS_TRANS_ID *)itr.value()) ;
-
-         itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
+         dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
          if ( itr.valid() )
          {
             preTransLsn = *(DPS_LSN_OFFSET*)itr.value() ;
@@ -1641,9 +1673,8 @@ namespace engine
       dpsLogRecordHeader &header = record.head() ;
       header._type = LOG_TYPE_TS_COMMIT ;
 
-      rc = record.push( DPS_LOG_PUBLIC_TRANSID,
-                        sizeof( transID),
-                        (CHAR *)(&transID)) ;
+      // push transaction ID
+      rc = dpsPushTransID( transID, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push transid to record, rc: %d", rc ) ;
@@ -2910,7 +2941,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to load record, rc: %d", rc ) ;
 
       rc = dpsGetTransIDFromRecord( record, transID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get transaction ID, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDDEBUG, "Failed to get transaction ID, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DPS_GETTRANSIDFROMEREC, rc ) ;
@@ -2928,17 +2959,48 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DPS_GETTRANSIDFROMEREC_REC ) ;
 
-      transID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANSID_NODEID transIDNodeID = DPS_INVALID_TRANSID_NODEID ;
+      DPS_TRANSID_SN transIDSN = DPS_INVALID_TRANSID_SN ;
+
+      // transaction ID of V0 doesn't have node ID component, we need to
+      // test the existence of DPS_LOG_PUBLIC_TRANSID_NODEID tag to find
+      // out version of transaction ID
 
       dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-      if ( itr.valid() )
+      if ( !itr.valid() )
       {
-         transID = *( (DPS_TRANS_ID *)itr.value() ) ;
+         PD_LOG( PDERROR, "Failed to find tag transaction ID in record" ) ;
+         rc = SDB_SYS ;
+         goto error ;
       }
 
-      PD_TRACE_EXITRC( SDB__DPS_GETTRANSIDFROMEREC_REC, rc ) ;
+      transIDSN = *( (DPS_TRANSID_SN *)itr.value() ) ;
 
+      itr = record.find( DPS_LOG_PUBLIC_TRANSID_NODEID ) ;
+      if ( !itr.valid() )
+      {
+         // has no node ID tag, it is a transaction ID of V0
+         // which only uses DPS_LOG_PUBLIC_TRANSID tag
+         // convert to V1
+         PD_LOG( PDDEBUG, "There is no tag transaction node ID in record "
+                 "[offset: %llu, ver: %u]", record.head()._lsn,
+                 record.head()._version ) ;
+         transID.convertFromV0( transIDSN ) ;
+      }
+      else
+      {
+         // has node ID tag, it is a transaction ID of V1
+         transIDNodeID = *( (DPS_TRANSID_NODEID *)itr.value() ) ;
+         transID.setNodeID( transIDNodeID ) ;
+         transID.setSN( transIDSN ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_GETTRANSIDFROMEREC_REC, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
    }
 
 }

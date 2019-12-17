@@ -43,6 +43,7 @@
 #include "oss.hpp"
 #include "msg.h"
 #include "msgDef.h"
+#include "dpsTransID.hpp"
 #include <string>
 
 namespace engine
@@ -454,14 +455,14 @@ namespace engine
          virtual UINT32    getLsnCount () const = 0 ;
          virtual BOOLEAN   isDoRollback () const = 0 ;
 
-         virtual UINT64    getTransID () const = 0 ;
+         virtual const DPS_TRANS_ID &getTransID () const = 0 ;
          virtual UINT64    getCurTransLsn () const = 0 ;
          /// for write
          virtual void      resetLsn() = 0 ;
          virtual void      insertLsn( UINT64 lsn,
                                       BOOLEAN isRollback = FALSE ) = 0 ;
 
-         virtual void      setTransID( UINT64 transID ) = 0 ;
+         virtual void      setTransID( const DPS_TRANS_ID &transID ) = 0 ;
          virtual void      setCurTransLsn( UINT64 lsn ) = 0 ;
 
          /*

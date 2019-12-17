@@ -130,7 +130,7 @@ namespace engine
       preIdxTreeNodeKey( const BSONObj* key,
                          const dmsRecordID &rid,
                          const Ordering *order,
-                         const DPS_TRANS_ID &transID = DPS_INVALID_TRANS_ID ) ;
+                         const DPS_TRANS_ID &transID = DPS_TRANS_ID() ) ;
 
       // copy constructor
       preIdxTreeNodeKey( const preIdxTreeNodeKey &key ) ;
@@ -193,16 +193,13 @@ namespace engine
                }
                else if ( _rid._offset == right._rid._offset ) 
                {
-                  if ( DPS_INVALID_TRANS_ID != right._transID &&
-                       DPS_INVALID_TRANS_ID != _transID )
+                  if ( right._transID.isValid() && _transID.isValid() )
                   {
-               
                      // evaluate transID if both have valid transID
                      // FIXME: do you have proper interface without dpsTransCB 
                      // ?????
                      //rv = transIDLessThan( _transID, right._transID ) ;
-                     rv = ( DPS_TRANS_GET_SN(_transID) < 
-                            DPS_TRANS_GET_SN(right._transID) ) ;
+                     rv = _transID.getGlobSN() < right._transID.getGlobSN() ;
                   }
                   // if either side has INVALID_TRANS_ID, we treat two key
                   // equal, which we will return false
@@ -218,15 +215,13 @@ namespace engine
          if ( 0 == woCompare( right ) && _rid == right._rid )
          {
             // evaluate transID if both nodes has valid transID
-            if ( ( DPS_INVALID_TRANS_ID == _transID ) ||
-                 ( DPS_INVALID_TRANS_ID == right._transID ) )
+            if ( _transID.isInvalid() || right._transID.isInvalid() )
             {
                rv = true ;
             }
             else
             {
-               rv = ( DPS_TRANS_GET_SN(_transID) ==
-                      DPS_TRANS_GET_SN(right._transID) ) ;
+               rv = ( _transID == right._transID ) ;
             }
          }
          return rv ;
@@ -374,8 +369,8 @@ namespace engine
       INDEX_TREE_CPOS   find( const preIdxTreeNodeKey &key ) const ;
       INDEX_TREE_CPOS   find ( const BSONObj *key,
                                const dmsRecordID &rid,
-                               const DPS_TRANS_ID &transID = 
-                                                DPS_INVALID_TRANS_ID ) const ;
+                               const DPS_TRANS_ID &transID = DPS_TRANS_ID()
+                                                                     ) const ;
       BOOLEAN           isPosValid( INDEX_TREE_CPOS pos ) const ;
 
       void              resetPos( INDEX_TREE_CPOS &pos ) const ;
@@ -421,8 +416,7 @@ namespace engine
                               const dmsRecordID &rid,
                               oldVersionContainer *oldVer,
                               BOOLEAN hasLock,
-                              const DPS_TRANS_ID &transID
-                                       = DPS_INVALID_TRANS_ID ) ;
+                              const DPS_TRANS_ID &transID = DPS_TRANS_ID() ) ;
 
       void lockX()
       {
@@ -477,7 +471,7 @@ namespace engine
                      const dmsRecordID &rid,
                      const preIdxTreeNodeValue &value,
                      BOOLEAN hasLock = FALSE,
-                     const DPS_TRANS_ID &transID = DPS_INVALID_TRANS_ID ) ;
+                     const DPS_TRANS_ID &transID = DPS_TRANS_ID() ) ;
 
       // delete a node
       UINT32 remove( const preIdxTreeNodeKey &keyNode,
@@ -493,7 +487,7 @@ namespace engine
                         BOOLEAN hasLock = FALSE ) ;
 
       void  clear( BOOLEAN hasLock = FALSE ) ;
-      void  gc( UINT64 lowTran ) ;
+      void  gc( DPS_TRANSID_SN lowTran ) ;
 
       BSONObj     _buildPredObj( const BSONObj &prevKey,
                                  INT32 keepFieldsNum,
@@ -506,7 +500,7 @@ namespace engine
    private:
       BOOLEAN              _isValid ;
       SINT32               _idxLID ; // index logic id
-      UINT64               _lastGCTime ; // The lowTran used for last gc
+      DPS_TRANSID_SN       _lastGCTime ; // The lowTran used for last gc
       // Latching protocal
       // 1. preIdxTree latch must be held in X to insert/delete node in the tree
       //    oldVersionCB(_oldVersionCBLatch) need to be held in S before

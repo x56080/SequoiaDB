@@ -48,6 +48,7 @@
 #include "dmsScanner.hpp"
 #include "dmsStorageDataCommon.hpp"
 #include "dmsStorageDataCapped.hpp"
+#include "dpsUtil.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
@@ -940,11 +941,16 @@ namespace engine
          builder.append( FIELD_NAME_RBS_RECORD_KEY,
                          BSON_ARRAY( (SINT32)csid <<
                                      (SINT32)cl ) ) ;
-         // has to cast to long long
+         // has to cast to INT64
          builder.append( FIELD_NAME_RBS_RECORD_LSN_OFFSET,
-                         (long long)lsn ) ;
-         builder.append( FIELD_NAME_RBS_RECORD_TRANSID,
-                         (long long)recordTransID ) ;
+                         (INT64)lsn ) ;
+
+         // append transaction ID as BSON sub-object
+         rc = dpsTransIDToBSON( recordTransID, builder,
+                                FIELD_NAME_RBS_RECORD_TRANSID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build transaction ID into BSON "
+                      "format, rc: %d", rc ) ;
+
          builder.append( FIELD_NAME_RBS_PRERECORD_CL,
                          _rbsRecordBkt.getOffset( bkt )._clID ) ;
          builder.append( FIELD_NAME_RBS_PRERECORD_OFFSET,
@@ -1040,9 +1046,9 @@ namespace engine
       dmsRBSRecordKey key( csid, clid, lsn ) ;
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
-               "Transaction (%llu) tries to find a proper version from RBS, "
+               "Transaction (%s) tries to find a proper version from RBS, "
                "csid(%d), clid(%d), record rid(%d, %d)",
-               DPS_TRANS_GET_SN(transid),
+               dpsTransIDToString( transid ).c_str(),
                csid, clid, rid._extent, rid._offset ) ;
 #endif
       found = FALSE ;
@@ -1110,12 +1116,13 @@ namespace engine
                BSONObj  obj(record.data()) ;
                PD_LOG ( PDDEBUG,
                         "Read record(%s) from %s at location %ld(%d, %d), "
-                        "record rid(%d, %d), transid(%llu)",
+                        "record rid(%d, %d), transid(%s)",
                         obj.toString().c_str(), clName,
                         position._logicalID,
                         extID, offset,
                         rid._extent, rid._offset,
-                        DPS_TRANS_GET_SN(rbsRecord->getGlobTransID()) ) ;
+                        dpsTransIDToString(
+                                    rbsRecord->getGlobTransID() ).c_str() ) ;
             }
 #endif
             _su->data()->releaseMBContext( context ) ;
@@ -1173,9 +1180,9 @@ namespace engine
 
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
-               "Transaction (%llu) tries to find a proper version from RBS, "
+               "Transaction (%s) tries to find a proper version from RBS, "
                "csid(%d), clid(%d), record lsn(%llu)",
-               DPS_TRANS_GET_SN(transid),
+               dpsTransIDToString( transid ).c_str(),
                csid, clid, lsn ) ;
 #endif
       found = FALSE ;
@@ -1252,8 +1259,17 @@ namespace engine
             eleKey = cappedRecord.getField( FIELD_NAME_RBS_RECORD_KEY ) ;
             vector< BSONElement > vecKey = eleKey.Array() ;
 
-            recordTransID = eleTransID.numberLong();
             recordLSNOffset = eleLsnOffset.numberLong();
+
+            // parse transaction ID
+            PD_CHECK( Object == eleTransID.type(), SDB_SYS, error, PDERROR,
+                      "Failed to parse transaction ID from record, field [%s] "
+                      "should be an object", FIELD_NAME_RBS_RECORD_TRANSID ) ;
+            rc = dpsTransIDFromBSON( eleTransID.embeddedObject(),
+                                     recordTransID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse transaction ID, rc: %d",
+                         rc ) ;
+
             // 4. setup return data for qualified version
             if ( ( vecKey[0].numberInt() == csid ) &&
                  ( vecKey[1].numberInt() == clid ) &&
@@ -1266,8 +1282,8 @@ namespace engine
                found = TRUE ;
                recordData.setData( ele.value(), ele.valuesize() )  ;
 #ifdef _DEBUG
-               PD_LOG ( PDDEBUG, "Found version(%llu) at position(%d, %ld)",
-                        recordTransID,
+               PD_LOG ( PDDEBUG, "Found version(%s) at position(%d, %ld)",
+                        dpsTransIDToString( recordTransID ).c_str(),
                         position._clID,
                         position._logicalID ) ;
 #endif
@@ -1328,7 +1344,7 @@ namespace engine
       SDB_DPSCB  *dpsCB      = NULL ;
       pmdEDUCB   *eduCB      = pmdGetThreadEDUCB() ;
       CHAR        clName[30] = {0} ;
-      DPS_TRANS_ID maxGlobTransID  = 0 ;
+      DPS_TRANS_ID maxGlobTransID ;
       SINT32      curPos     = (position == DMS_META_RBS_CL) ? DMS_FIRST_RBS_CL :
                                                  ( position + 1 ) ;
       SINT32      begin      = curPos ;
@@ -1368,13 +1384,14 @@ namespace engine
          }
 
          // retrieve maxGlobTransID of current CL
-         maxGlobTransID = pContext->mbStat()->getMaxGlobTransID() ;
+         maxGlobTransID.resetSN( pContext->mbStat()->getMaxGlobTransID() ) ;
 
 #ifdef _DEBUG
          PD_LOG ( PDDEBUG,
-                  "Got maxGlobTransID and lowTran (%d, %d), curPos=%d",
-                   DPS_TRANS_GET_SN(maxGlobTransID),
-                   DPS_TRANS_GET_SN(sdbGetTransCB()->getLowTran()), curPos ) ;
+                  "Got maxGlobTransID and lowTran (%s, %s), curPos=%d",
+                   dpsTransIDToString( maxGlobTransID ).c_str(),
+                   dpsTransIDToString( sdbGetTransCB()->getLowTran() ).c_str(),
+                   curPos ) ;
 #endif
          // Do GC when the cl max transID is older than lowtran
          // TODO: we may want to do GC when lowTran is invalid, meaning no 

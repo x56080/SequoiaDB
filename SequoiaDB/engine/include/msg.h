@@ -756,18 +756,26 @@ typedef struct _MsgAuthDelUsr MsgAuthDelUsr ;
 typedef struct _MsgOpTransBegin
 {
    MsgHeader header ;
+   // serial number component in transaction ID of V1
+   // NOTE: node ID is in MsgHeader
    UINT64    transID ;
-   CHAR      reserved[8] ;
+   // time error of logical time for global transaction
+   UINT32    transTimeError ;
+   // TODO: fields to do logical time adjustment
+   // reserved new fields in minor version upgrade
+   CHAR      reserved[ 8 ] ;
 } MsgOpTransBegin;
 
 typedef struct _MsgOpTransCommit
 {
    MsgHeader header;
+   // TODO: fields to do logical time adjustment
 } MsgOpTransCommit;
 
 typedef struct _MsgOpTransCommitPre
 {
-   MsgHeader header;
+   MsgHeader header ;
+   // TODO: fields to do logical time adjustment
    UINT32    nodeNum ;
    UINT64    nodes[0] ;
 } MsgOpTransCommitPre;

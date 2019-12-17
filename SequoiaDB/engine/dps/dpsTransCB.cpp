@@ -44,6 +44,7 @@
 #include "pmd.hpp"
 #include "pmdDef.hpp"
 #include "dpsLogRecord.hpp"
+#include "dpsOp2Record.hpp"
 #include "dpsMessageBlock.hpp"
 #include "dpsLogRecordDef.hpp"
 #include "dpsTransLockCallback.hpp"
@@ -51,6 +52,7 @@
 #include "dpsLogWrapper.hpp"
 #include "pmdStartup.hpp"
 #include "rtnCB.hpp"
+#include "dpsUtil.hpp"
 
 namespace engine
 {
@@ -65,7 +67,7 @@ namespace engine
     _reservedRBSpace( 0 ) ,
     _reservedSpace( 0 )
    {
-      _TransIDH16          = 0;
+      _TransIDH16          = DPS_INVALID_TRANSID_NODEID ;
       _isOn                = FALSE ;
       _doRollback          = FALSE ;
       _isNeedSyncTrans     = TRUE ;
@@ -229,17 +231,22 @@ namespace engine
 
    DPS_TRANS_ID dpsTransCB::allocTransID( BOOLEAN isAutoCommit )
    {
-      DPS_TRANS_ID temp = 0 ;
+      DPS_TRANS_ID temp ;
+
+      temp.setNodeID( _TransIDH16 ) ;
 
       do {
-         temp = DPS_TRANS_GET_SN ( _TransIDL48Cur.inc() ) ;
-      } while( 0 == temp ) ;
+         temp.resetSN( _TransIDL48Cur.inc() ) ;
+      }  while( 0 == temp.getRawSN() ) ;
 
-      temp = temp | _TransIDH16 | DPS_TRANSID_FIRSTOP_BIT ;
+      // after allocate transaction ID, will be the first operation of
+      // transaction
+      temp.setFirstOp() ;
 
       if ( isAutoCommit )
       {
-         DPS_TRANS_SET_AUTOCOMMIT( temp ) ;
+         // set auto commit tag
+         temp.setAutoCommit() ;
       }
 
 #if defined ( _DEBUG )
@@ -269,7 +276,7 @@ namespace engine
 
    void dpsTransCB::onRegistered( const MsgRouteID &nodeID )
    {
-      _TransIDH16 = (DPS_TRANS_ID)nodeID.columns.nodeID << 48 ;
+      _TransIDH16 = (DPS_TRANSID_NODEID)( nodeID.columns.nodeID ) ;
    }
 
    void dpsTransCB::onPrimaryChange( BOOLEAN primary,
@@ -309,14 +316,14 @@ namespace engine
       return _pEventHandler ;
    }
 
-   DPS_TRANS_ID dpsTransCB::getRollbackID( DPS_TRANS_ID transID )
+   DPS_TRANS_ID dpsTransCB::getRollbackID( const DPS_TRANS_ID &transID )
    {
-      return transID | DPS_TRANSID_ROLLBACKTAG_BIT ;
+      return transID.getRollbackTransID() ;
    }
 
-   DPS_TRANS_ID dpsTransCB::getTransID( DPS_TRANS_ID rollbackID )
+   DPS_TRANS_ID dpsTransCB::getTransID( const DPS_TRANS_ID &rollbackID )
    {
-      return DPS_TRANS_GET_ID( rollbackID ) ;
+      return rollbackID.getOrigTransID() ;
    }
 
    //TODO:  guoming implement
@@ -324,62 +331,38 @@ namespace engine
    // head of _TransMap and _hisTransStatus
    DPS_TRANS_ID dpsTransCB::getLowTran( )
    {
-      BOOLEAN      valid    = FALSE ;
-      DPS_TRANS_ID actBegin = DPS_TRANSID_SN_BIT ;
-      DPS_TRANS_ID hisBegin = DPS_TRANSID_SN_BIT ;
+      DPS_TRANS_ID lowTran ;
 
-      TRANS_MAP::iterator         ita ;
-      TRANS_ID_2_STATUS::iterator ith ;
+      TRANS_CB_MAP::iterator iterCB ;
 
-      // FIXME: since history map is not cleaned up until the log files are
-      // cycled (see how clearOutDateHisTrans() is called), our lowtran won't
-      // be moved up fast enough. In distributed transaction work, we will 
-      // either have each node exchange its low tran or we have a place for 
-      // every node to periodically report their lowtran. For now, we ingore
-      // the history map, which means we have to limit in one group. 
-      // Guoming to improve.
-      // get from history map
-      _hisMutex.get() ;
-      ith = _hisTransStatus.begin() ;
-      if ( ith != _hisTransStatus.end() )
-      {
-         hisBegin = ith->first ;
-         valid = TRUE ;
-      }
-      _hisMutex.release() ;
+      // get from trans-CB map ( trans-CB map saves trannsactions between
+      // rtnTransBegin and rtnTransCommit / rtnTransRollback )
+      // TODO: consider acquire global low tran and time error
+      _CBMapMutex.get() ;
 
-      // get from live map
-      _MapMutex.get() ;
-      ita = _TransMap.begin() ;
-      if ( ita != _TransMap.end() )
+      iterCB = _cbMap.begin() ;
+      if ( iterCB != _cbMap.end() )
       {
-         actBegin = ita->first ;
-         valid = TRUE ;
+         lowTran = iterCB->first ;
       }
-      _MapMutex.release() ;
-      
-      // return invalid trans id if we didn't find any
-      if ( valid )
-      {
-         return transIDGreaterThan(actBegin, hisBegin) ? hisBegin : actBegin ; 
-      }
-      else
-      {
-         return DPS_INVALID_TRANS_ID ;
-      }
+
+      _CBMapMutex.release() ;
+
+      return lowTran ;
    }
 
    // check if the version(represented by transaction ID) is expired. 
    // Expired means it's older than system lowtran
-   BOOLEAN dpsTransCB::isVersionExpired( DPS_TRANS_ID transID ) 
+   BOOLEAN dpsTransCB::isVersionExpired( const DPS_TRANS_ID &transID )
    {
-      return ( DPS_TRANS_GET_SN(transID) < DPS_TRANS_GET_SN( getLowTran() ) ) ;
+      return transID.getGlobSN() < getLowTran().getGlobSN() ;
    }
 
    // FIXME: Guomin to implement the proper one
-   BOOLEAN dpsTransCB::transIDGreaterThan( DPS_TRANS_ID tidL, DPS_TRANS_ID tidR ) 
+   BOOLEAN dpsTransCB::transIDGreaterThan( const DPS_TRANS_ID &tidL,
+                                           const DPS_TRANS_ID &tidR )
    {
-      return ( DPS_TRANS_GET_SN(tidL) > DPS_TRANS_GET_SN(tidR) ) ; 
+      return tidL.getGlobSN() > tidR.getGlobSN() ;
    }
 
    BOOLEAN dpsTransCB::isHolding( _pmdEDUCB *eduCB, 
@@ -402,28 +385,24 @@ namespace engine
       return found ;
    }
 
-   BOOLEAN dpsTransCB::isRollback( DPS_TRANS_ID transID )
+   BOOLEAN dpsTransCB::isRollback( const DPS_TRANS_ID &transID )
    {
-      if ( transID & DPS_TRANSID_ROLLBACKTAG_BIT )
-      {
-         return TRUE;
-      }
-      return FALSE;
+      return transID.isRollback() ;
    }
 
-   BOOLEAN dpsTransCB::isFirstOp( DPS_TRANS_ID transID )
+   BOOLEAN dpsTransCB::isFirstOp( const DPS_TRANS_ID &transID )
    {
-      return DPS_TRANS_IS_FIRSTOP( transID ) ? TRUE : FALSE ;
+      return transID.isFirstOp() ;
    }
 
    void dpsTransCB::clearFirstOpTag( DPS_TRANS_ID &transID )
    {
-      DPS_TRANS_CLEAR_FIRSTOP( transID ) ;
+      transID.clearFirstOp() ;
    }
 
-   BOOLEAN dpsTransCB::isRBPending( DPS_TRANS_ID transID )
+   BOOLEAN dpsTransCB::isRBPending( const DPS_TRANS_ID &transID )
    {
-      return DPS_TRANS_IS_RBPENDING( transID ) ? TRUE : FALSE ;
+      return transID.isRBPending() ;
    }
 
    BOOLEAN dpsTransCB::hasRBPendingTrans()
@@ -482,23 +461,23 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SVTRANSINFO, "dpsTransCB::updateTransInfo" )
-   void dpsTransCB::updateTransInfo( DPS_TRANS_ID transID,
+   void dpsTransCB::updateTransInfo( const DPS_TRANS_ID &transID,
                                      DPS_LSN_OFFSET lsnOffset,
                                      INT32 status )
    {
       PD_TRACE_ENTRY ( SDB_DPSTRANSCB_SVTRANSINFO ) ;
 
-      if ( DPS_INVALID_TRANS_ID != transID &&
+      if ( transID.isValid() &&
            !sdbGetDPSCB()->isInRestore() )
       {
          DPS_LSN_OFFSET lastLsn = DPS_INVALID_LSN_OFFSET ;
          BOOLEAN rbPending = isRBPending( transID ) ;
-         transID = getTransID( transID ) ;
+         DPS_TRANS_ID origID = getTransID( transID ) ;
          TRANS_MAP::iterator it ;
 
          ossScopedLock _lock( &_MapMutex ) ;
 
-         it = _TransMap.find( transID ) ;
+         it = _TransMap.find( origID ) ;
 
          if ( DPS_INVALID_LSN_OFFSET == lsnOffset )
          {
@@ -510,8 +489,8 @@ namespace engine
                {
                   // just check the tag, current pending LSN may not reset
                   // ( it should be reset by the tag )
-                  PD_LOG( PDWARNING, "Transaction [%llu] is still rollback "
-                          "pending", transID ) ;
+                  PD_LOG( PDWARNING, "Transaction [%s] is still rollback "
+                          "pending", dpsTransIDToString( origID ).c_str() ) ;
                   SDB_ASSERT( FALSE, "transaction is rollback pending" ) ;
                }
                _TransMap.erase( it ) ;
@@ -526,14 +505,14 @@ namespace engine
             else
             {
                SDB_ASSERT( !rbPending, "should not be rollback pending" ) ;
-               _TransMap[ transID ] = dpsTransBackInfo( lsnOffset, status ) ;
+               _TransMap[ origID ] = dpsTransBackInfo( lsnOffset, status ) ;
             }
          }
 
          /// add to his trans
          if ( DPS_INVALID_LSN_OFFSET != lastLsn )
          {
-            addHisTrans( transID, status, lastLsn ) ;
+            addHisTrans( origID, status, lastLsn ) ;
          }
       }
 
@@ -542,7 +521,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ADDTRANSINFO, "dpsTransCB::addTransInfo" )
-   void dpsTransCB::addTransInfo( DPS_TRANS_ID transID,
+   void dpsTransCB::addTransInfo( const DPS_TRANS_ID &transID,
                                   DPS_LSN_OFFSET lsnOffset,
                                   INT32 status )
    {
@@ -551,16 +530,16 @@ namespace engine
       TRANS_MAP::iterator it ;
 
       BOOLEAN rbPending = isRBPending( transID ) ;
-      transID = getTransID( transID ) ;
+      DPS_TRANS_ID origID = getTransID( transID ) ;
 
       ossScopedLock _lock( &_MapMutex ) ;
 
-      it = _TransMap.find( transID ) ;
+      it = _TransMap.find( origID ) ;
       if ( it == _TransMap.end() )
       {
          SDB_ASSERT( !rbPending, "should not be rollback pending" ) ;
          // it is means transaction is synchronous by log if transID is exist
-         _TransMap[ transID ] = dpsTransBackInfo( lsnOffset, status ) ;
+         _TransMap[ origID ] = dpsTransBackInfo( lsnOffset, status ) ;
       }
       else
       {
@@ -624,29 +603,30 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ADDTRANSCB, "dpsTransCB::addTransCB" )
-   BOOLEAN dpsTransCB::addTransCB( DPS_TRANS_ID transID, _pmdEDUCB *eduCB )
+   BOOLEAN dpsTransCB::addTransCB( const DPS_TRANS_ID &transID,
+                                   _pmdEDUCB *eduCB )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_ADDTRANSCB ) ;
       BOOLEAN hasInsert = FALSE ;
       {
-         transID = getTransID( transID ) ;
+         DPS_TRANS_ID origID = getTransID( transID ) ;
          ossScopedLock _lock( &_CBMapMutex ) ;
-         hasInsert = _cbMap.insert( std::make_pair( transID, eduCB ) ).second ;
+         hasInsert = _cbMap.insert( std::make_pair( origID, eduCB ) ).second ;
       }
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_ADDTRANSCB ) ;
       return hasInsert ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_DELTRANSCB, "dpsTransCB::delTransCB" )
-   void dpsTransCB::delTransCB( DPS_TRANS_ID transID )
+   void dpsTransCB::delTransCB( const DPS_TRANS_ID &transID )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_DELTRANSCB ) ;
 
       TRANS_CB_MAP::iterator it ;
-      transID = getTransID( transID ) ;
+      DPS_TRANS_ID origID = getTransID( transID ) ;
 
       ossScopedLock _lock( &_CBMapMutex ) ;
-      it = _cbMap.find( transID ) ;
+      it = _cbMap.find( origID ) ;
       if ( it != _cbMap.end() )
       {
          _cbMap.erase( it ) ;
@@ -761,18 +741,20 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_ROLLBACKTRANSINFOFROMLOG_REC ) ;
 
       DPS_LSN_OFFSET lsnOffset = DPS_INVALID_LSN_OFFSET ;
-      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID transID ;
       INT32 transStatus = DPS_TRANS_DOING ;
-      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-      if ( !itr.valid() )
+
+      if ( SDB_OK != dpsGetTransIDFromRecord( record, transID ) )
       {
+         // Failed to get transaction ID from record
+         // ( maybe it is not in transaction )
          goto done ;
       }
 
-      transID = *( (DPS_TRANS_ID*)itr.value() ) ;
-      if ( transID != DPS_INVALID_TRANS_ID )
+      if ( transID.isValid() )
       {
-         itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
+         // transaction ID is valid
+         dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
          if ( !itr.valid() )
          {
             lsnOffset = DPS_INVALID_LSN_OFFSET ;
@@ -857,20 +839,23 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_SAVETRANSINFOFROMLOG ) ;
 
       DPS_LSN_OFFSET lsnOffset = DPS_INVALID_LSN_OFFSET;
-      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID;
+      DPS_TRANS_ID transID ;
       INT32 transStatus = DPS_TRANS_DOING ;
-      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-      if ( !itr.valid() )
+
+      if ( SDB_OK != dpsGetTransIDFromRecord( record, transID ) )
       {
+         // Failed to get transaction ID from record
+         // ( maybe it is not in transaction )
          goto done ;
       }
-      transID = *( (DPS_TRANS_ID *)itr.value() ) ;
-      if ( transID != DPS_INVALID_TRANS_ID )
+
+      if ( transID.isValid() )
       {
          if ( isRollback( transID ) )
          {
             transStatus = DPS_TRANS_ROLLBACK ;
-            itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
+            dpsLogRecord::iterator itr =
+                                    record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
             if ( !itr.valid() )
             {
                lsnOffset = DPS_INVALID_LSN_OFFSET ;
@@ -882,7 +867,7 @@ namespace engine
          }
          else if ( LOG_TYPE_TS_COMMIT == record.head()._type )
          {
-            itr = record.find( DPS_LOG_TSCOMMIT_ATTR ) ;
+            dpsLogRecord::iterator itr = record.find( DPS_LOG_TSCOMMIT_ATTR ) ;
             if ( !itr.valid() ||
                  DPS_TS_COMMIT_ATTR_PRE != *(UINT8*)itr.value() )
             {
@@ -916,29 +901,29 @@ namespace engine
       return ;
    }
 
-   void dpsTransCB::addHisTrans( DPS_TRANS_ID transID,
+   void dpsTransCB::addHisTrans( const DPS_TRANS_ID &transID,
                                  INT32 status,
                                  DPS_LSN_OFFSET lsn )
    {
       /// when status is DPS_TRANS_COMMIT and
       /// auto transaction don't need add to history list
       if ( DPS_TRANS_COMMIT != status &&
-           !DPS_TRANS_IS_AUTOCOMMIT( transID ) )
+           !transID.isAutoCommit() )
       {
-         transID = DPS_TRANS_GET_ID( transID ) ;
+         DPS_TRANS_ID origID = transID.getOrigTransID() ;
 
          ossScopedLock lock( &_hisMutex ) ;
-         _hisTransStatus[ transID ] = dpsHisTransStatus( status, lsn ) ;
-         _hisLsnTrans[ lsn ] = transID ;
+         _hisTransStatus[ origID ] = dpsHisTransStatus( status, lsn ) ;
+         _hisLsnTrans[ lsn ] = origID ;
       }
    }
 
-   void dpsTransCB::delHisTrans( DPS_TRANS_ID transID )
+   void dpsTransCB::delHisTrans( const DPS_TRANS_ID &transID )
    {
-      transID = DPS_TRANS_GET_ID( transID ) ;
+      DPS_TRANS_ID origID = transID.getOrigTransID() ;
 
       ossScopedLock lock( &_hisMutex ) ;
-      TRANS_ID_2_STATUS::iterator it = _hisTransStatus.find( transID ) ;
+      TRANS_ID_2_STATUS::iterator it = _hisTransStatus.find( origID ) ;
       if ( it != _hisTransStatus.end() )
       {
          _hisLsnTrans.erase( it->second._lsn ) ;
@@ -976,17 +961,19 @@ namespace engine
       }
    }
 
-   INT32 dpsTransCB::checkTransStatus( DPS_TRANS_ID transID,
+   INT32 dpsTransCB::checkTransStatus( const DPS_TRANS_ID &transID,
                                        DPS_LSN_OFFSET & lsn )
    {
       /// first check in-line trans, then check history trans
       INT32 transStatus = DPS_TRANS_UNKNOWN ;
-      transID = DPS_TRANS_GET_ID( transID ) ;
+      // should use origin transaction ID
+      DPS_TRANS_ID origID = transID.getOrigTransID() ;
+
       lsn = DPS_INVALID_LSN_OFFSET ;
 
       {
          ossScopedLock _lock( &_MapMutex ) ;
-         TRANS_MAP::iterator it = _TransMap.find( transID ) ;
+         TRANS_MAP::iterator it = _TransMap.find( origID ) ;
          if ( it != _TransMap.end() )
          {
             transStatus = it->second._status ;
@@ -997,7 +984,7 @@ namespace engine
 
       {
          ossScopedLock lock( &_hisMutex ) ;
-         TRANS_ID_2_STATUS::iterator it = _hisTransStatus.find( transID ) ;
+         TRANS_ID_2_STATUS::iterator it = _hisTransStatus.find( origID ) ;
          if ( it != _hisTransStatus.end() )
          {
             transStatus = it->second._status ;
@@ -1010,35 +997,36 @@ namespace engine
       return transStatus ;
    }
 
-   void dpsTransCB::addBeginLsn( DPS_LSN_OFFSET beginLsn, DPS_TRANS_ID transID )
+   void dpsTransCB::addBeginLsn( DPS_LSN_OFFSET beginLsn,
+                                 const DPS_TRANS_ID &transID )
    {
       SDB_ASSERT( beginLsn != DPS_INVALID_LSN_OFFSET, "invalid begin-lsn" ) ;
-      SDB_ASSERT( transID != DPS_INVALID_TRANS_ID, "invalid transaction-ID" ) ;
-      transID = getTransID( transID );
-      ossScopedLock _lock( &_lsnMapMutex );
-      _beginLsnIdMap[ beginLsn ] = transID;
-      _idBeginLsnMap[ transID ] = beginLsn;
+      SDB_ASSERT( transID.isValid(), "invalid transaction-ID" ) ;
+      DPS_TRANS_ID origID = getTransID( transID );
+      ossScopedLock _lock( &_lsnMapMutex ) ;
+      _beginLsnIdMap[ beginLsn ] = origID ;
+      _idBeginLsnMap[ origID ] = beginLsn ;
    }
 
-   void dpsTransCB::delBeginLsn( DPS_TRANS_ID transID )
+   void dpsTransCB::delBeginLsn( const DPS_TRANS_ID &transID )
    {
-      transID = getTransID( transID );
+      DPS_TRANS_ID origID = getTransID( transID );
       ossScopedLock _lock( &_lsnMapMutex );
       DPS_LSN_OFFSET beginLsn;
-      TRANS_ID_LSN_MAP::iterator iter = _idBeginLsnMap.find( transID ) ;
+      TRANS_ID_LSN_MAP::iterator iter = _idBeginLsnMap.find( origID ) ;
       if ( iter != _idBeginLsnMap.end() )
       {
          beginLsn = iter->second;
          _beginLsnIdMap.erase( beginLsn );
-         _idBeginLsnMap.erase( transID );
+         _idBeginLsnMap.erase( origID );
       }
    }
 
-   DPS_LSN_OFFSET dpsTransCB::getBeginLsn( DPS_TRANS_ID transID )
+   DPS_LSN_OFFSET dpsTransCB::getBeginLsn( const DPS_TRANS_ID &transID )
    {
-      transID = getTransID( transID ) ;
+      DPS_TRANS_ID origID = getTransID( transID ) ;
       ossScopedLock _lock( &_lsnMapMutex ) ;
-      TRANS_ID_LSN_MAP::iterator iter = _idBeginLsnMap.find( transID ) ;
+      TRANS_ID_LSN_MAP::iterator iter = _idBeginLsnMap.find( origID ) ;
       if ( iter != _idBeginLsnMap.end() )
       {
          return iter->second ;

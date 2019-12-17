@@ -205,20 +205,20 @@ namespace engine
    public:
       _dmsRBSRecord()
       : _recordKey(),
+        _globTransID(),
         _preOffset()
       {
-         _globTransID = DPS_INVALID_TRANS_ID ;
          _head._flag_and_size = 0 ;
       }
 
       // Note that since we added two more fileds here before the data,
       // any methods accessing data must be implemented for this class
-      void setGlobTransID( DPS_TRANS_ID transid )
+      void setGlobTransID( const DPS_TRANS_ID &transid )
       {
-         this->_globTransID = DPS_TRANS_GET_SN(transid);
+         this->_globTransID = transid.getOrigTransID() ;
       }
 
-      DPS_TRANS_ID getGlobTransID() const
+      const DPS_TRANS_ID &getGlobTransID() const
       {
          return this->_globTransID ;
       }

@@ -54,7 +54,7 @@
 #include "pmdCB.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
-
+#include "dpsUtil.hpp"
 
 using namespace bson ;
 
@@ -360,7 +360,7 @@ namespace engine
          _selectForUpdate = FALSE ;
       }
       /// When not in transaction
-      else if ( DPS_INVALID_TRANS_ID == cb->getTransID() )
+      else if ( cb->getTransID().isInvalid() )
       {
          /// When not use trans lock
          if ( !pExe->useTransLock() )
@@ -709,10 +709,10 @@ namespace engine
          else
          {
             recordID = _curRID ;
-            // if MVCC is enabled, RR transaction tried acquiring S lock 
+            // if MVCC is enabled, RR transaction tried acquiring S lock
             // (meaning in transaction and not RU),  check record version
             // and decide if we should use older version in RBS
-            if ( pmdGetOptionCB()->mvccOn() && 
+            if ( pmdGetOptionCB()->mvccOn() &&
                  _curRecordPtr->hasGlobTransID() &&
                  ( _transIsolation == TRANS_ISOLATION_RR ) &&
                  ( _recordLock < DPS_TRANSLOCK_U ) )
@@ -721,21 +721,23 @@ namespace engine
                // FIXME: to be removed
 #ifdef  _DEBUG
                PD_LOG( PDDEBUG, "compare record version for "
-                    "rid(%d, %d), transid(%llu) vs recordTransid(%llu),"
-                    "lsn(%llu) skipDelete(%d) ",
-                     _curRID._extent, _curRID._offset, 
-                     DPS_TRANS_GET_SN(transID),
-                     _curRecordPtr->getGlobTransID(), lsn, skipDelete ) ;
+                       "rid(%d, %d), transid(%s) vs recordTransid(%s),"
+                       "lsn(%llu) skipDelete(%d) ",
+                       _curRID._extent, _curRID._offset,
+                       dpsTransIDToString( transID ).c_str(),
+                       dpsTransIDToString(
+                                   _curRecordPtr->getGlobTransID() ).c_str(),
+                       lsn, skipDelete ) ;
 #endif
-               // if the current version is NOT visible to the transaction, 
-               // try to read the proper version from RBS 
+               // if the current version is NOT visible to the transaction,
+               // try to read the proper version from RBS
                if ( !sdbGetTransCB()->isVersionVisible(
                     _curRecordPtr->getGlobTransID(), transID ) )
                {
                   BOOLEAN found = FALSE ;
                   // FIXME: remove one after Shangde's review
                   rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
-                         ->getRecord1( _pSu->logicalID(),  // use cappedCL fetch 
+                         ->getRecord1( _pSu->logicalID(),  // use cappedCL fetch
                          //->getRecord( _pSu->logicalID(), // use my own
                                       _context->mbID(),
                                       lsn,
@@ -749,11 +751,11 @@ namespace engine
                   {
 
 #ifdef  _DEBUG
-                     PD_LOG( PDDEBUG, 
+                     PD_LOG( PDDEBUG,
                              "Finished reading record from RBS: found=%d, "
-                             "rid(%d, %d), transid(%llu), lsn(%llu)",
-                             found, _curRID._extent, _curRID._offset, transID,
-                             lsn ) ;
+                             "rid(%d, %d), transid(%s), lsn(%llu)",
+                             found, _curRID._extent, _curRID._offset,
+                             dpsTransIDToString( transID ).c_str(), lsn ) ;
 #endif
                      if ( found )
                      {
@@ -1671,7 +1673,7 @@ namespace engine
          _selectForUpdate = FALSE ;
       }
       /// When not in transaction
-      else if ( DPS_INVALID_TRANS_ID == cb->getTransID() )
+      else if ( cb->getTransID().isInvalid() )
       {
          /// When not use trans lock
          if ( !pExe->useTransLock() )
@@ -1853,7 +1855,7 @@ namespace engine
       dmsRecordID    waitUnlockRID ;
       BOOLEAN        ignoredLock     = FALSE ;
       BOOLEAN        skipDelete      = FALSE ;
-      DPS_TRANS_ID   transID         = DPS_TRANS_GET_SN( cb->getTransID() ) ;
+      DPS_TRANS_ID   transID         = cb->getTransID().getOrigTransID() ;
 
       PD_TRACE_ENTRY ( SDB__DMSIXSECSCAN_ADVANCE );
 
@@ -2217,9 +2219,11 @@ namespace engine
             // FIXME: to be removed
 #ifdef  _DEBUG
             PD_LOG( PDDEBUG, "compare record version for"
-                    "rid(%d, %d), transid(%llu) vs recordTransid(%llu)",
-                     _curRID._extent, _curRID._offset, transID,
-                     _curRecordPtr->getGlobTransID() ) ;
+                    "rid(%d, %d), transid(%s) vs recordTransid(%s)",
+                     _curRID._extent, _curRID._offset,
+                     dpsTransIDToString( transID ).c_str(),
+                     dpsTransIDToString(
+                                 _curRecordPtr->getGlobTransID() ).c_str() ) ;
 #endif
             // if the current version is NOT visible to the transaction, 
             // try to read the proper version from RBS 
@@ -2242,10 +2246,12 @@ namespace engine
                else if ( found )
                {
                   PD_LOG( PDDEBUG, "Found old record from RBS,"
-                          "rid(%d, %d), transid(%llu)<recordTransid(%llu),"
+                          "rid(%d, %d), transid(%s)<recordTransid(%s),"
                           "lsn(%llu)",
-                          _curRID._extent, _curRID._offset, transID,
-                          _curRecordPtr->getGlobTransID(),
+                          _curRID._extent, _curRID._offset,
+                          dpsTransIDToString( transID ).c_str(),
+                          dpsTransIDToString(
+                                _curRecordPtr->getGlobTransID() ).c_str(),
                           lsn ) ;
                   recordDataSet = TRUE ;
                }
@@ -2253,9 +2259,11 @@ namespace engine
                {
                   PD_LOG( PDDEBUG,
                           "Didn't found old record from RBS, rid(%d, %d), "
-                          "transid(%llu)<recordTransid(%llu), lsn(%llu)",
-                          _curRID._extent, _curRID._offset, transID,
-                          _curRecordPtr->getGlobTransID(),
+                          "transid(%s)<recordTransid(%s), lsn(%llu)",
+                          _curRID._extent, _curRID._offset,
+                          dpsTransIDToString( transID ).c_str(),
+                          dpsTransIDToString(
+                                _curRecordPtr->getGlobTransID() ).c_str(),
                           lsn ) ;
                   // Didn't find proper version of record, the record
                   // is not visible to the transaction, skip

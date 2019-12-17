@@ -48,6 +48,7 @@
 #include "dmsCB.hpp"
 #include "dmsStorageUnit.hpp"
 #include "pmd.hpp"
+#include "dpsUtil.hpp"
 
 using namespace bson ;
 
@@ -509,7 +510,7 @@ namespace engine
 
    DPS_TRANS_ID dmsTransLockCallback::getRecordTransID() 
    {
-      DPS_TRANS_ID rv = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID rv ;
       if ( _oldVer )
       {
          rv = _oldVer->getRecordTransID() ;
@@ -519,10 +520,10 @@ namespace engine
 
    DPS_TRANS_ID dmsTransLockCallback::getOwnerTransID() 
    {
-      DPS_TRANS_ID rv = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID rv ;
       if ( _oldVer )
       {
-         rv = DPS_TRANS_GET_SN(_oldVer->getOwnerTransID()) ;
+         rv = _oldVer->getOwnerTransID().getOrigTransID() ;
       }
       return rv ;
    }
@@ -574,7 +575,7 @@ namespace engine
       clearStatus() ;
 
       /// not in transaction
-      if ( DPS_INVALID_TRANS_ID == transID ||
+      if ( transID.isInvalid() ||
            _eduCB->isInTransRollback() )
       {
          notTransOrRollback = TRUE ;
@@ -826,7 +827,7 @@ namespace engine
                                                      UINT32 ownerTID )
    {
       INT32        rc      = SDB_OK ;
-      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID transID ;
       // TODO: add/fix the assertion
       SDB_ASSERT( TRUE, 
                   "RecordLock is not held " ) ;
@@ -838,10 +839,10 @@ namespace engine
 /*
         // FIXME: remove
 #ifdef _DEBUG
-      PD_LOG( PDDEBUG, "saving old record :rid(%d, %d), transd(%llu),"
+      PD_LOG( PDDEBUG, "saving old record :rid(%d, %d), transid(%s),"
               " _oldVer(%x) ",
               rid._extent, rid._offset, 
-              DPS_TRANS_GET_SN(transID), _oldVer ) ;
+              dpsTransIDToString( transID ).c_str(), _oldVer ) ;
 #endif
       // if mvcc is on, and the TransactionID is different, we will first store
       // current old version (off _oldVer) to RBS; then store current disk 
@@ -854,9 +855,9 @@ namespace engine
 #ifdef _DEBUG
          // FIXME: remove after stable
          PD_LOG( PDDEBUG, "removing in memory old record :"
-                 "rid(%d, %d), tid(%llu), obj(%s)",
+                 "rid(%d, %d), tid(%s), obj(%s)",
                  rid._extent, rid._offset, 
-                 DPS_TRANS_GET_SN(transID), 
+                 dpsTransIDToString( transID ).c_str(),
                  _oldVer->getRecordObj().toString().c_str() ) ;
 #endif
          // delete the current record so that newer olderversion
@@ -880,12 +881,12 @@ namespace engine
         // FIXME: remove
 #ifdef _DEBUG
       PD_LOG( PDDEBUG, "saving old record to memory and RBS:"
-                 "rid(%d, %d), ownertransid(%llu), "
-                 "recordTransID(%llu), lsn(%llu)",
-                 rid._extent, rid._offset, 
-                 DPS_TRANS_GET_SN(transID),
-                 DPS_TRANS_GET_SN(pRecord->getGlobTransID()),
-                 lsn ) ;
+              "rid(%d, %d), ownertransid(%s), "
+              "recordTransID(%s), lsn(%llu)",
+              rid._extent, rid._offset, 
+              dpsTransIDToString( transID ).c_str(),
+              dpsTransIDToString( pRecord->getGlobTransID() ).c_str(),
+              lsn ) ;
 #endif
 
             // 1. get to overflow record if needed
@@ -917,10 +918,10 @@ namespace engine
                if ( rc )
                {
                   PD_LOG( PDERROR, 
-                          "Failed to save to RBS  :rid(%d, %d), tid(%llu), "
+                          "Failed to save to RBS  :rid(%d, %d), tid(%s), "
                           "obj(%s), lsn(%llu)",
                           rid._extent, rid._offset, 
-                          DPS_TRANS_GET_SN(transID), 
+                          dpsTransIDToString( transID ).c_str(),
                           _oldVer->getRecordObj().toString().c_str(),
                           lsn ) ;
                   goto error ;
@@ -1273,8 +1274,8 @@ namespace engine
       }
 // FIXME:  remove
          PD_LOG ( PDDEBUG, 
-                  "Trans(%llu) on delete index(%d) with rid(%d, %d), older(%x) ",
-                  this->getOwnerTransID(), 
+                  "Trans(%s) on delete index(%d) with rid(%d, %d), older(%x) ",
+                  dpsTransIDToString( getOwnerTransID() ).c_str(),
                   indexCB->getLogicalID(),
                   rid._extent, rid._offset, _oldVer ) ;
 

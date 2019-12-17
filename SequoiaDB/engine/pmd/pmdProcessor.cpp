@@ -1144,10 +1144,10 @@ namespace engine
       if ( eduCB()->isTransaction() )
       {
          // add last op info
-         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
-                             "TransactionID: 0x%016x(%llu)",
-                             eduCB()->getTransID(),
-                             eduCB()->getTransID() ) ;
+         MON_SAVE_OP_DETAIL(
+               eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
+               "TransactionID: %s",
+               dpsTransIDToString( eduCB()->getTransID() ).c_str() ) ;
 
          rc = rtnTransCommit( eduCB(), dpsCB ) ;
       }
@@ -1162,10 +1162,10 @@ namespace engine
       if ( eduCB()->isTransaction() )
       {
          // add last op info
-         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
-                             "TransactionID: 0x%016x(%llu)",
-                             eduCB()->getTransID(),
-                             eduCB()->getTransID() ) ;
+         MON_SAVE_OP_DETAIL(
+               eduCB()->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
+               "TransactionID: %s",
+               dpsTransIDToString( eduCB()->getTransID() ).c_str() ) ;
 
          rc = rtnTransRollback( eduCB(), dpsCB ) ;
       }
@@ -1615,7 +1615,7 @@ namespace engine
    void _pmdDataProcessor::_onDetach()
    {
       // rollback transaction
-      if ( DPS_INVALID_TRANS_ID != eduCB()->getTransID() )
+      if ( eduCB()->getTransID().isValid() )
       {
          INT32 rc = doRollback() ;
          if ( rc )
