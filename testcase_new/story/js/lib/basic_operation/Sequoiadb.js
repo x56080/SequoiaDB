@@ -390,4 +390,17 @@ function Sequoiadb ( hostname, svcname, username, password )
          }
          return new Cursor( cursor );
       }
+
+   this.setSessionAttr =
+      function( options )
+      {
+         try
+         {
+            db.setSessionAttr( options );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+      }
 }

@@ -1064,10 +1064,10 @@ function commCheckNodes ( groups )
 ***************************************************************************** */
 function commCheckBusinessStatus ( db, groups, checkLSN, diskThreshold, timeout )
 {
-   if( groups == undefined ) { groups = commGetGroups ( db, false, "", false ); }
+   if( groups == undefined ) { groups = commGetGroups( db, false, "", false ); }
    if( checkLSN == undefined ) { checkLSN = true; }
-   if( timeout == undefined ){ timeout = 120 }
-   
+   if( timeout == undefined ) { timeout = 120 }
+
    for( var i = 0; i < timeout; i++ )
    {
       var tmpArr = commCheckBusiness( groups, checkLSN, diskThreshold );
@@ -1081,8 +1081,8 @@ function commCheckBusinessStatus ( db, groups, checkLSN, diskThreshold, timeout 
       }
       else
       {
-         throw new Error( "check the cluster state timeout, check failed nodes: " 
-                              + JSON.stringify( tmpArr ) );
+         throw new Error( "check the cluster state timeout, check failed nodes: "
+            + JSON.stringify( tmpArr ) );
       }
    }
 }
@@ -1521,7 +1521,7 @@ function commCompareObject ( expObj, actObj )
    }
    if( isDirectCompare( actObj ) )
    {
-      if( typeof( actObj ) === "number" && isNaN( actObj ) )
+      if( typeof ( actObj ) === "number" && isNaN( actObj ) )
       {
          return isNaN( expObj );
       }
