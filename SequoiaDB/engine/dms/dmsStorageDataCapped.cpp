@@ -1166,8 +1166,9 @@ namespace engine
 #ifdef _DEBUG
          PD_LOG( PDDEBUG, 
                  "insert record (recordsize=%d, Bson obj size=%d) to capped cl"
-                 "which logicalid(%lld), rid(%d, %d)", 
+                 "which flag(%x) logicalid(%lld), rid(%d, %d)", 
                  recordSize, recordData.len(), *lidPtr,
+                 pRecord->getFlag(),
                  recordRW.getRecordID()._extent, 
                  recordRW.getRecordID()._offset ) ;
 #endif
