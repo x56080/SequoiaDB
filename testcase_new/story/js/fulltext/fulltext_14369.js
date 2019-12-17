@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_14369";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName, 0 );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //索引名长度为1时，全文索引创建成功
    var indexName = "a_14369";

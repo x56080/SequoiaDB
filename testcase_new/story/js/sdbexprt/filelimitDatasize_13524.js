@@ -14,7 +14,7 @@ main();
 function main ()
 {
    commDropCL( db, csname, clname );
-   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl = commCreateCL( db, csname, clname );
    var exportDir = workDir + "13524/";
    var kb = 4;
 

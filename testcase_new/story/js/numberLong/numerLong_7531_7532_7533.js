@@ -40,11 +40,11 @@ function main ()
    //create main cl
    commDropCS( db, csName );
    var clOpt = { IsMainCL: true, ShardingKey: { mk: 1 }, ShardingType: "range" };
-   var maincl = commCreateCLByOption( db, csName, mainclName, clOpt );
+   var maincl = commCreateCL( db, csName, mainclName, clOpt );
 
    //create sub cl( splited )
    var opt = { ShardingKey: { sk: 1 }, ShardingType: "range", Group: groups.srcRG };
-   commCreateCLByOption( db, csName, subclName, opt );
+   commCreateCL( db, csName, subclName, opt );
 
    istNumberRecs( csName, subclName );
    splitByLong( csName, subclName, groups.srcRG, groups.tgtRG );

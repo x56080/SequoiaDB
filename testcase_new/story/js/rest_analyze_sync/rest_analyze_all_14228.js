@@ -18,12 +18,7 @@ for( var i = 0; i < csNum; i++ )
    for( var j = 0; j < clNumPerCs; j++ )
    {
       var clName = csName + "_" + j;
-      var cl = commCreateCL( db, csName, clName,
-                             /*replSize*/1,
-                             /*compressed*/false,
-                             /*autoCreateCS*/false,
-                             /*ignoreExisted*/true,
-         "fail to create cl" );
+      var cl = commCreateCL( db, csName, clName );
       clArray.push( cl );
       insertDataWithIndex( cl );
    }
