@@ -169,12 +169,13 @@ public class BucketServiceImpl implements BucketService {
             int transTimeout = connectionA.getTransTimeOut();
             transaction.begin(connectionA);
             try {
-                Bucket deleteBucket = bucketDao.queryBucketForUpdate(connectionA, deleteName);
-                if (deleteBucket == null){
+                bucket = bucketDao.queryBucketForUpdate(connectionA, deleteName);
+                if (bucket == null){
                     throw new S3ServerException(S3Error.BUCKET_NOT_EXIST,
                             "The specified bucket does not exist. bucket name = "+bucketName);
                 }
-                bucketDao.updateBucketDelimiter(connectionA, deleteName, deleteBucket);
+                // update nothing, only for x lock of the bucket
+                bucketDao.updateBucketDelimiter(connectionA, deleteName, bucket);
 
                 connectionA.setTransTimeOut(10);
                 if (!objectService.isEmptyBucket(connectionA, bucket, region)){
