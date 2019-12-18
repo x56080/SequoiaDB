@@ -2250,16 +2250,23 @@ public class DBCollection {
                 if (!isOldLobServer) {
                     throw e;
                 }
-
                 savedError = e;
             }
 
-            if (!isEmptyObj(matcher) || !isEmptyObj(selector) || !isEmptyObj(orderBy)
-                    || 0 != skipRows || -1 != returnRows) {
-                // re-check remote server is old or not
+            // when we come here, we got rc == -6. there are two cases:
+            // case 1: having invalid paraments.
+            // case 2: the remote engine is older than v3.2.4.
+
+            // case 1: test having invalid paraments or not
+            // only when we have input paraments, we need to do this test.
+            if (!isEmptyObj(matcher) || !isEmptyObj(selector) || !isEmptyObj(orderBy) || !isEmptyObj(hint)
+                    || skipRows != 0 || returnRows != -1) {
                 try {
                     isOldLobServer = false;
-                    DBCursor tmpCursor = _listLobs(null, null, null, newHint, 0, -1);
+                    BSONObject tmpHint = new BasicBSONObject();
+                    tmpHint.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
+                    // make sure no input paraments can affect this test
+                    DBCursor tmpCursor = _listLobs(null, null, null, tmpHint, 0, -1);
                     tmpCursor.close();
                     throw savedError;
                 } catch (BaseException e) {
@@ -2268,15 +2275,15 @@ public class DBCollection {
                     }
                 }
             }
-
-            // deal with old version server. clName is in the query field
+            // case 2:
+            // when we come here, the remote engine must be an old engine.
             DBCursor cursor = _listLobs(newHint, null, null, null, 0, -1);
             sequoiadb.setIsOldVersionLobServer(true);
             return cursor;
+        } else {
+            // deal with old version engine. clName is in the query field
+            return _listLobs(newHint, null, null, null, 0, -1);
         }
-
-        // deal with old version server. clName is in the query field
-        return _listLobs(newHint, null, null, null, 0, -1);
     }
 
     private DBCursor _listLobs(BSONObject matcher, BSONObject selector, BSONObject orderBy,
@@ -2330,6 +2337,9 @@ public class DBCollection {
         }
 
         BSONObject o = r.getNext();
+        if (o == null) {
+            throw new BaseException(SDBError.SDB_SYS, "expect a return obj to get oid, but got null");
+        }
         return (ObjectId) o.get(DBLobImpl.FIELD_NAME_LOB_OID);
     }
 

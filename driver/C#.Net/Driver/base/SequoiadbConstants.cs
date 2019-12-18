@@ -288,6 +288,7 @@ namespace SequoiaDB
         MSG_BS_LOB_CLOSE_REQ = 8006, MSG_BS_LOB_CLOSE_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_CLOSE_REQ)),
         MSG_BS_LOB_LOCK_REQ = 8007, MSG_BS_LOB_LOCK_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_LOCK_REQ)),
         MSG_BS_LOB_TRUNCATE_REQ = 8008, MSG_BS_LOB_TRUNCATE_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_TRUNCATE_REQ)),
+        MSG_BS_LOB_CREATELOBID_REQ = 8009, MSG_BS_LOB_CREATELOBID_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_CREATELOBID_REQ)),
         MSG_NULL                  = 9999
     };
 

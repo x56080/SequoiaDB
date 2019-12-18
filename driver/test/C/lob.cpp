@@ -252,6 +252,8 @@ TEST(lob,lob_createLob_test)
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbOpenLob(cl, &oid, SDB_LOB_READ, &lob1);
    ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbCloseLob(&lob1);
+   ASSERT_EQ( SDB_OK, rc ) ;
 
    // case 2, oid is NULL 
    //rc = sdbCreateLob(cl, NULL, &lob2);
@@ -266,6 +268,8 @@ TEST(lob,lob_createLob_test)
    rc = sdbCloseLob(&lob2);
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbOpenLob(cl, &lob_oid, SDB_LOB_READ, &lob2);
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbCloseLob(&lob2);
    ASSERT_EQ( SDB_OK, rc ) ;
 
 
@@ -283,6 +287,8 @@ TEST(lob,lob_createLob_test)
 
    rc = sdbOpenLob(cl, &oid, SDB_LOB_READ, &lob3);
    ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbCloseLob(&lob3);
+   ASSERT_EQ( SDB_OK, rc ) ;
 
 
    // case 4, use sdbCreateLobID to gen oid 
@@ -299,7 +305,8 @@ TEST(lob,lob_createLob_test)
    rc = sdbOpenLob(cl, &oid, SDB_LOB_READ, &lob4);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-
+   rc = sdbCloseLob(&lob4);
+   ASSERT_EQ( SDB_OK, rc ) ;
 
    // display had create Lob
    rc = sdbListLobs(cl, &cursor);
@@ -307,6 +314,7 @@ TEST(lob,lob_createLob_test)
    
    printf("#######display had create Lob########\n");
    displayRecord( &cursor ) ;
+   sdbReleaseCursor( cursor ) ;
 
    rc = sdbDropCollectionSpace( db, COLLECTION_SPACE_NAME);
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -351,11 +359,12 @@ TEST(lob,lob_listLobs_test)
    rc = sdbListLobs(cl, &cursor);
    ASSERT_EQ( SDB_OK, rc ) ;
    displayRecord( &cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
 
    rc = sdbListLobPieces(cl, &lobPiecesCursor);
    ASSERT_EQ( SDB_OK, rc ) ;
    displayRecord( &lobPiecesCursor ) ;
-
+   sdbReleaseCursor ( lobPiecesCursor ) ;
 
    bson_init( &condition );
    bson_init( &selected );
@@ -373,19 +382,24 @@ TEST(lob,lob_listLobs_test)
    rc = sdbListLobs1(cl, &condition, &selected, &orderBy, &hint, numToSkip, numToReturn, &cursor);
    ASSERT_EQ( SDB_OK, rc ) ;
    displayRecord( &cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
 
 
    rc = sdbListLobPieces1(cl, &condition, &selected, &orderBy, &hint, numToSkip, numToReturn, &lobPiecesCursor);
    ASSERT_EQ( SDB_OK, rc ) ;
-   displayRecord( &lobPiecesCursor ) ;
 
+   bson_destroy( &condition ) ;
+   bson_destroy( &selected ) ;
+   bson_destroy( &orderBy ) ;
+   bson_destroy( &hint ) ;
+
+   displayRecord( &lobPiecesCursor ) ;
+   sdbReleaseCursor ( lobPiecesCursor ) ;
 
    rc = sdbDropCollectionSpace( db, COLLECTION_SPACE_NAME);
    ASSERT_EQ( SDB_OK, rc ) ;
    // disconnect the connection
    sdbDisconnect ( db ) ;
-   sdbReleaseCursor ( cursor ) ;
-   sdbReleaseCursor ( lobPiecesCursor ) ;
    //release the local variables
    sdbReleaseCollection ( cl ) ;
    sdbReleaseConnection ( db ) ;
@@ -497,13 +511,15 @@ TEST(lob,lob_primaryAndSubLob_test)
    bson_append_bson( &attach_options, "LowBound", &LowBound);
    bson_append_bson( &attach_options, "UpBound", &UpBound);
 
-   bson_finish( &attach_options) ;
+   bson_finish( &attach_options ) ;
 
    // attach subBCL
    rc = sdbAttachCollection( primaryCL, SUB_B_COLLECTION_FULL_NAME, &attach_options);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   
+   bson_destroy( &attach_options ) ;
+   bson_destroy( &LowBound );
+   bson_destroy( &UpBound );
 
    CHAR * pTimeStamp = "2019-07-23-18.04.07";
 
@@ -591,6 +607,7 @@ TEST(lob,lob_primaryAndSubLob_test)
    rc = sdbListLobs(primaryCL, &cur);
    ASSERT_EQ( SDB_OK, rc ) ;
    displayRecord( &cur ) ;
+   sdbReleaseCursor ( cur ) ;
 
    printf("#####sdbRemoveLob in primaryCL #####\n");
    rc = sdbRemoveLob(primaryCL, &oidB);
@@ -604,6 +621,7 @@ TEST(lob,lob_primaryAndSubLob_test)
    rc = sdbListLobs(primaryCL, &cur);
    ASSERT_EQ( SDB_OK, rc ) ;
    displayRecord( &cur ) ;
+   sdbReleaseCursor ( cur ) ;
 
 
    bson_destroy( &options);
@@ -613,10 +631,10 @@ TEST(lob,lob_primaryAndSubLob_test)
    // disconnect the connection
    sdbDisconnect ( db ) ;
    //release the local variables
-   sdbReleaseCursor ( cur ) ;
    sdbReleaseCollection ( primaryCL) ;
    sdbReleaseCollection ( subACL ) ;
    sdbReleaseCollection ( subBCL ) ;
+   sdbReleaseCS( cs ) ;
    sdbReleaseConnection ( db ) ;
 
 }

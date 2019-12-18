@@ -120,7 +120,7 @@ class DBLobImpl implements DBLob {
         }
 
         if (mode == SDB_LOB_READ || mode == SDB_LOB_WRITE) {
-            if (null == id) {
+            if (id == null) {
                 throw new BaseException(SDBError.SDB_INVALIDARG,
                         "id must be specify" + " in mode:" + mode);
             }
@@ -130,15 +130,19 @@ class DBLobImpl implements DBLob {
         _currentOffset = 0;
         _id = id;
 
+        // going to read and write lob
         if (_mode != SDB_LOB_CREATEONLY) {
             _open();
             _isOpened = true;
             return;
         }
 
+        // when _sdb tell us clearly that the remote engine is old(older than v3.2.4),
+        // we just need to create lob by the original way which we need to make
+        // sure _id is not empty.
         if (_sdb.getIsOldVersionLobServer()) {
-            // deal with old version server. oid is generated in client
-            if (null == _id) {
+            // deal with old version server. oid should be generated in client.
+            if (_id == null) {
                 _id = ObjectId.get();
             }
 
@@ -147,6 +151,10 @@ class DBLobImpl implements DBLob {
             return;
         }
 
+        // however, when we come here, we still do not know whether the remote engine
+        // is old or not. we assume it is new, so we won't force _id must has value,
+        // for the new engine will create one when _id is null(while the old engine will not,
+        // and when _id is null, the old engine will return -6).
         try {
             _isOldVersionLobServer = false;
             _open();
@@ -158,9 +166,11 @@ class DBLobImpl implements DBLob {
             }
         }
 
-        // deal with old version server. oid is generated in client
+        // when we come here, we must had got an -6 error from the engine for
+        // not offering _id. so, _id must be null. and the remote engine must
+        // be an old engine, in this case, oid should be generated in client
+        // for the old engine.
         _id = ObjectId.get();
-
         _open();
         _sdb.setIsOldVersionLobServer(true);
         _isOpened = true;
@@ -169,7 +179,7 @@ class DBLobImpl implements DBLob {
     private void _open() throws BaseException {
         BSONObject openLob = new BasicBSONObject();
         openLob.put(SdbConstants.FIELD_COLLECTION, _cl.getFullName());
-        if (null != _id) {
+        if (_id != null) {
             openLob.put(FIELD_NAME_LOB_OID, _id);
         }
         openLob.put(FIELD_NAME_LOB_OPEN_MODE, _mode);
@@ -178,7 +188,7 @@ class DBLobImpl implements DBLob {
 
         LobOpenRequest request = new LobOpenRequest(openLob, flags);
         LobOpenResponse response = _sdb.requestAndResponse(request, LobOpenResponse.class);
-        if (response.getFlag() == SDBError.SDB_INVALIDARG.getErrorCode() && null == _id
+        if (response.getFlag() == SDBError.SDB_INVALIDARG.getErrorCode() && _id == null
                 && _mode == SDB_LOB_CREATEONLY) {
             _isOldVersionLobServer = true;
         }
@@ -186,7 +196,7 @@ class DBLobImpl implements DBLob {
         _sdb.throwIfError(response, openLob);
 
         BSONObject obj = response.getMetaInfo();
-        if (null == _id && obj.containsField(FIELD_NAME_LOB_OID) && _mode == SDB_LOB_CREATEONLY) {
+        if (_id == null && obj.containsField(FIELD_NAME_LOB_OID) && _mode == SDB_LOB_CREATEONLY) {
             _id = (ObjectId) obj.get(FIELD_NAME_LOB_OID);
         }
         _lobSize = (Long) obj.get(FIELD_NAME_LOB_SIZE);

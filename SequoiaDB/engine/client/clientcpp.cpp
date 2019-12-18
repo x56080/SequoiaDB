@@ -2812,6 +2812,12 @@ do                                                            \
          goto error ;
       }
 
+      // If user does not offer oid, we won't create one here.
+      // Because, we don't known whether the engine is new or old( 
+      // when the engine is older than v3.2.4, it's an old engine 
+      // which is not support sub cl for lob).
+      // When oid is null, the old engine will return -6, but the
+      // new engine will create one by using the new rule.
       if ( NULL != oid )
       {
          oidObj = *oid ;
@@ -3194,13 +3200,15 @@ do                                                            \
          if ( SDB_INVALIDARG == rc )
          {
             if ( !condition.isEmpty() || !selected.isEmpty()
-                 || !orderBy.isEmpty() || 0 != numToSkip || -1 != numToReturn )
+                 || !orderBy.isEmpty() || !hint.isEmpty() 
+                 || 0 != numToSkip || -1 != numToReturn )
             {
                // recheck remote server is old or not
                _sdbCursor *tmpCursor = NULL ;
+               BSONObj tmpHint = BSON( FIELD_NAME_COLLECTION << _collectionFullName ) ;
                // run command with new version format(But without condition etc.)
                rc = _runCmdOfLob( CMD_ADMIN_PREFIX CMD_NAME_LIST_LOBS, NULL,
-                                  NULL, NULL, &newHint, 0, -1, &tmpCursor ) ;
+                                  NULL, NULL, &tmpHint, 0, -1, &tmpCursor ) ;
                if ( SDB_OK == rc )
                {
                   //Now we are sure that remote server is new version.
@@ -3382,6 +3390,11 @@ do                                                            \
             rc = SDB_DRIVER_BSON_ERROR ;
             goto error ;
          }
+      }
+      else 
+      {
+         rc = SDB_SYS ;
+         goto error ;
       }
    done:
       if ( locked )

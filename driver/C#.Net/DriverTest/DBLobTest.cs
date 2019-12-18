@@ -1258,6 +1258,79 @@ namespace DriverTest
         }
 
         [TestMethod()]
+        public void testListLob()
+        {
+            BsonDocument mather = new BsonDocument();
+            BsonDocument selector = new BsonDocument();
+            selector.Add("Oid", "");
+            selector.Add("CreateTime", "");
+            BsonDocument orderBy = new BsonDocument();
+            BsonDocument hint = new BsonDocument();
+            DBCursor cursor = cl.ListLobs(mather, selector, orderBy, hint, 0, -1);
+            BsonDocument record = null;
+            while ((record = cursor.Next()) != null)
+            {
+                Console.WriteLine("lob is: " + record.ToString());
+            }
+
+            String str = "1234567890";
+            byte[] output = new byte[10];
+            ObjectId oid_old = ObjectId.GenerateNewId();
+            DateTime dt = new DateTime(2019, 1, 1);
+            ObjectId oid_with_dt = cl.CreateLobID(dt);
+            ObjectId oid_no_dt = cl.CreateLobID();
+
+            Console.WriteLine("oid_old is: " + oid_old.ToString());
+            Console.WriteLine("oid_with_dt is: " + oid_with_dt.ToString());
+            Console.WriteLine("oid_no_dt is: " + oid_no_dt.ToString());
+
+            DBLob lob_old = cl.CreateLob(oid_old);
+            DBLob lob_with_dt = cl.CreateLob(oid_with_dt);
+            DBLob lob_no_dt = cl.CreateLob(oid_no_dt);
+
+
+            lob_old.Close();
+            lob_with_dt.Close();
+            lob_no_dt.Close();
+
+            cursor = cl.ListLobs(mather, selector, orderBy, hint, 0, -1);
+            record = null;
+            while ((record = cursor.Next()) != null)
+            {
+                Console.WriteLine("lob is: " + record.ToString());
+            }
+
+            lob_with_dt = cl.OpenLob(oid_with_dt, DBLob.SDB_LOB_WRITE);
+            lob_with_dt.Write(System.Text.Encoding.Default.GetBytes(str));
+            lob_with_dt.Close();
+            // truncate
+            cl.TruncateLob(oid_with_dt, 5);
+            // check
+            lob_with_dt = cl.OpenLob(oid_with_dt);
+            lob_with_dt.Read(output);
+            lob_with_dt.Close();
+            for (int i = 0; i < 10; i++)
+            {
+                Console.WriteLine("output[{0}] is: {1}", i, output[i]);
+            }
+            for (int i = 0; i < 10; i++)
+            {
+                if (i < 5)
+                {
+                    Assert.AreEqual((int)'0' + i + 1, output[i]);
+                }
+                else
+                {
+                    Assert.AreEqual(0, output[i]);
+                }
+            }
+            long lobSize = lob_with_dt.GetSize();
+            Assert.AreEqual(5, lobSize);
+
+
+        }
+
+        [TestMethod()]
         //[Ignore]
         public void LobAbnormalTest()
         {
@@ -1266,6 +1339,8 @@ namespace DriverTest
             //ObjectId id = null;
             //cl.OpenLob(id);
         }
+
+
 
     }
 }

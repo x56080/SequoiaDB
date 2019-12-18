@@ -332,8 +332,8 @@ TEST( lob, lobWriteZeroSizeAndRead )
    rc = cl.createLob( lob ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-// kill context
-   rc = db.closeAllCursors() ;
+   // kill context
+   //rc = db.closeAllCursors() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // write
@@ -1133,7 +1133,7 @@ TEST( lob, use_lob_after_close_contexts )
    lobSize += 10 ;
 
    // kill all the context
-   //rc = db.closeAllCursors() ;
+   rc = db.closeAllCursors() ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
    // write lob

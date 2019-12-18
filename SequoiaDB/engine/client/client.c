@@ -10142,67 +10142,59 @@ SDB_EXPORT INT32 sdbCreateLobID1( sdbCollectionHandle cHandle,
 {
    INT32 rc                        = SDB_OK ;
    SINT64 contextID                = -1 ;
-   const CHAR *body                = NULL ;
-   bson_type bType                 = BSON_EOO ;
-   bson obj ;
-   bson dataInfo ;
-   bson OidObj ;
-   bson_iterator bsonItr ;
-   sdbConnectionStruct *connection = NULL ;
+   const MsgOpReply *reply         = NULL ;
    sdbCollectionStruct *cs         = (sdbCollectionStruct*)cHandle ;
+   bson dataInfo ;
+   bson oidObj ;
 
-   bson_init( &obj ) ;
    bson_init( &dataInfo ) ;
+   bson_init( &oidObj ) ;
+
+   // check arguments
    HANDLE_CHECK( cHandle, cs, SDB_HANDLE_TYPE_COLLECTION ) ;
-   connection = (sdbConnectionStruct*)(cs->_connection) ;
-   
-   if ( !cs->_collectionFullName[0] || NULL == connection )
+   if ( !cs->_collectionFullName[0] )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-
-   
-   if ( NULL !=  pTimeStamp )
+   // prepare meta info
+   if ( NULL != pTimeStamp )
    {
-      rc = bson_append_string( &obj, FIELD_NAME_LOB_CREATETIME, pTimeStamp ) ;
+      rc = bson_append_string( &dataInfo, FIELD_NAME_LOB_CREATETIME, pTimeStamp ) ;
       if ( SDB_OK != rc)
       {
+         rc = SDB_DRIVER_BSON_ERROR ;
          goto error;
       }
    }
-   bson_finish( &obj );
-   bson_finish( &dataInfo );
-   // build msg 
-   
-   if ( NULL != obj.data){
-      bson_init_finished_data ( &dataInfo, obj.data ) ;
+   rc = bson_finish( &dataInfo );
+   if ( SDB_OK != rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      goto error ;
    }
+   // build\send\recv msg
    rc = clientBuildCreateLobIDMsg( &cs->_pSendBuffer, &cs->_sendBufferSize,
-                               &dataInfo, 0, 1, 0, cs->_endianConvert ) ;
+                                   &dataInfo, 0, 1, 0, cs->_endianConvert ) ;
 
    if ( SDB_OK != rc)
    {  
       goto error;
    }
-
    rc = _sendAndRecv( cs->_connection, cs->_sock, 
                 (MsgHeader*)cs->_pSendBuffer,
                 (MsgHeader**)&cs->_pReceiveBuffer, 
                 &cs->_receiveBufferSize,
                 TRUE, cs->_endianConvert);
-
    if ( SDB_OK != rc)
    {
       goto error;
    }
-
    // extract revc message
-  
    rc = _extract( cs->_connection,
-            (MsgHeader*)cs->_pReceiveBuffer,
-            cs->_receiveBufferSize,
-            &contextID, cs->_endianConvert ) ;
+                  (MsgHeader*)cs->_pReceiveBuffer,
+                  cs->_receiveBufferSize,
+                  &contextID, cs->_endianConvert ) ;
    if ( SDB_OK != rc)
    {
       goto error;
@@ -10210,36 +10202,39 @@ SDB_EXPORT INT32 sdbCreateLobID1( sdbCollectionHandle cHandle,
    // check the return header
    CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
                         cs->_connection ) ;
-
    // get oid 
-   body = cs->_pReceiveBuffer + sizeof( MsgOpReply ) ;
-
-   bson_init( &OidObj ) ;
-   bson_finish( &OidObj );
-   if ( BSON_OK != bson_init_finished_data( &OidObj, body ) )
+   reply = ( const MsgOpReply * )( cs->_pReceiveBuffer ) ;
+   if ( reply->numReturned > 0 &&
+        (UINT32)reply->header.messageLength >
+        ossRoundUpToMultipleX( sizeof(MsgOpReply), 4 ) )
    {
-      rc = SDB_SYS ;
-      goto error ;
-   }
-   bType = bson_find( &bsonItr, &OidObj, FIELD_NAME_LOB_OID) ;
-   if ( BSON_OID == bType )
-   {
-      *oid =  *(bson_iterator_oid( &bsonItr )) ;
+      bson_iterator bsonItr ;
+      bson_type bType = BSON_EOO ;
+      const CHAR *body = cs->_pReceiveBuffer + sizeof( MsgOpReply ) ;
+      bson_init_finished_data( &oidObj, body ) ;
+      bType = bson_find( &bsonItr, &oidObj, FIELD_NAME_LOB_OID ) ;
+      if ( BSON_OID == bType )
+      {
+         *oid =  *(bson_iterator_oid( &bsonItr )) ;
+      }
+      else
+      {   
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
    }
    else
-   {   
+   {
       rc = SDB_SYS ;
       goto error ;
    }
    
    done:
-      bson_destroy( &obj ) ;
-	  bson_destroy( &dataInfo ) ;
-      bson_destroy( &OidObj ) ;
+      bson_destroy( &dataInfo ) ;
+      bson_destroy( &oidObj ) ;
       return rc ;
    error:
-      goto done ;   
-
+      goto done ;
 }
 
 SDB_EXPORT INT32 sdbGetLobId( sdbLobHandle lobHandle,
@@ -10249,8 +10244,12 @@ SDB_EXPORT INT32 sdbGetLobId( sdbLobHandle lobHandle,
    sdbLobStruct *lob = ( sdbLobStruct * )lobHandle ;
 
    HANDLE_CHECK( lobHandle, lob, SDB_HANDLE_TYPE_LOB ) ;
-   ossMemcpy( oid, lob->_oid, 12 ); 
-   
+   if ( NULL == oid )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   ossMemcpy( oid, lob->_oid, 12 );
    done:
       return rc ;
    error:
@@ -11684,13 +11683,25 @@ SDB_EXPORT INT32 sdbListLobs1( sdbCollectionHandle cHandle,
        if ( SDB_INVALIDARG == rc )
        {
           // check params are correct
-          if ( !bson_is_empty(condition) || !bson_is_empty(selected) || !bson_is_empty(orderBy)
-                     || 0 != numToSkip || -1 != numToReturn) 
+          if ( !bson_is_empty(condition) || !bson_is_empty(selected) 
+            || !bson_is_empty(orderBy) || !bson_is_empty(hint) 
+            || 0 != numToSkip || -1 != numToReturn) 
           {
              // recheck remote server is old or not
+             bson tmpHint ;
              sdbCursorHandle tmpCursor = 0 ;
+             bson_init( &tmpHint ) ;
+             bson_append_string( &tmpHint, FIELD_NAME_COLLECTION, cs->_collectionFullName ) ;
+             rc = bson_finish( &tmpHint ) ;
+             if ( SDB_OK != rc )
+             {
+                bson_destroy( &tmpHint ) ;
+                rc = SDB_DRIVER_BSON_ERROR ;
+                goto error ;
+             }
              rc = _sdbRunCmdOfLob( cHandle, CMD_ADMIN_PREFIX CMD_NAME_LIST_LOBS,
-                         NULL,NULL, NULL, &newHint, 0, -1, &tmpCursor ) ;
+                         NULL,NULL, NULL, &tmpHint, 0, -1, &tmpCursor ) ;
+             bson_destroy( &tmpHint ) ;
              if ( SDB_OK == rc )
              {
                 //Now we are sure that remote server is new version.
@@ -11698,7 +11709,7 @@ SDB_EXPORT INT32 sdbListLobs1( sdbCollectionHandle cHandle,
                 sdbReleaseCursor( tmpCursor ) ;
                 rc = SDB_INVALIDARG ;
                 goto error ;
-              }
+             }
           }
           if ( SDB_INVALIDARG == rc )
           {

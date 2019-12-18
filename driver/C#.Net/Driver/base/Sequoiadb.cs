@@ -43,6 +43,17 @@ namespace SequoiaDB
         private static long cacheInterval = 300 * 1000;
         //private static readonly Logger logger = new Logger("Sequoiadb");
         private BsonDocument attributeCache = new BsonDocument();
+        private Boolean isOldVersionLobServer = false;
+
+        internal void SetIsOldVersionLobServer(Boolean isOldVersionLobServer)
+        {
+            this.isOldVersionLobServer = isOldVersionLobServer;
+        }
+
+        internal Boolean GetIsOldVersionLobServer()
+        {
+            return isOldVersionLobServer;
+        }
 
         internal void UpsertCache(String name)
         {
