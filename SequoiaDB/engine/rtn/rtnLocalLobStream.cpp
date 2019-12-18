@@ -123,6 +123,18 @@ namespace engine
       rc = _getAccessPrivilege( getFullName(), getOID(), mode() ) ;
       if ( SDB_OK != rc )
       {
+         if ( SDB_LOB_IS_IN_USE == rc && SDB_LOB_MODE_CREATEONLY == mode() )
+         {
+            _dmsLobMeta meta ;
+            INT32 rcTmp = rtnGetLobMetaData( getFullName(), getOID(), cb,
+                                             meta, _su, _mbContext ) ;
+            if ( SDB_OK == rcTmp && meta.isDone() )
+            {
+                // try to create an exist lob, return SDB_FE
+                rc = SDB_FE ;
+            }
+         }
+
          PD_LOG( PDERROR, "Failed to get lob privilege:%d", rc ) ;
          goto error ;
       }
