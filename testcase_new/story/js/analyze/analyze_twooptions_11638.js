@@ -526,7 +526,7 @@ function checkAnalyzeInvalidResult ( options )
 
 try
 {
-   main();
+   //main();
 }
 catch( e )
 {

@@ -170,7 +170,7 @@ function main ()
 }
 try
 {
-   main();
+   //main();
 }
 catch( e )
 {
