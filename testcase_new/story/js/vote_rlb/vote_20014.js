@@ -17,7 +17,7 @@ function test( testPara )
 
    var clName = "cl_20014";
    commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groupName });
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
    
    var data = [];
    for(var i = 0; i < 10000; i++)

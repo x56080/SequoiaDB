@@ -1442,7 +1442,7 @@ function commCompareResults ( cursor, expRecs, exceptId )
          {
             isSuccess = false;
             posOfFailure = pos - 1;
-            if( JSON.stringify( expRecord ).length > 1024 )
+            if( JSON.stringify( actRecord ).length > 1024 )
             {
                isLong = true;
             }
