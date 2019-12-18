@@ -12,12 +12,6 @@ function main ()
       var csName = COMMCLNAME + "_yt6022";
       var clName = COMMCLNAME + "_yt6022";
 
-      if( !commIsTransEnabled( db ) )
-      {
-         println( "transaction is disabled" );
-         return;
-      }
-
       execTransaction( beginTrans );
 
       var cl = createCSCL( csName, clName, { ReplSize: 0 } );
@@ -53,7 +47,7 @@ function createCSCL ( csName, clName, option )
 
    commDropCS( db, csName, true, "drop cs in ready" );
    commCreateCS( db, csName, false, "create cs  in begin" );
-   var cl = commCreateCLByOption( db, csName, clName, option, false, false, "create cl in begin" );
+   var cl = commCreateCL( db, csName, clName, option, false, false, "create cl in begin" );
 
    return cl;
 }

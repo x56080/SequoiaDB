@@ -15,7 +15,7 @@ function main ( dbs )
       commDropCL( dbs, csName, clName, true, true, "drop collection in the beginning" );
 
       // create cs /cl
-      var dbCL = commCreateCL( dbs, csName, clName, 0, true, true );
+      var dbCL = commCreateCL( dbs, csName, clName, {}, true, true );
 
       //import datas          
       var imprtFile = "/tmp/" + CHANGEDPREFIX + "_9640.json";

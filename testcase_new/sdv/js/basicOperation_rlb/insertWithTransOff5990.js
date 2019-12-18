@@ -57,3 +57,33 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
 }
+
+function commIsTransEnabled ( db )
+{
+   var isTrans = false;
+   var COMMTMPCS = COMMCSNAME + "_tmp";
+   var COMMTMPCL = COMMCLNAME + "_tmp";
+   var tmpCL = commCreateCL( db, COMMTMPCS, COMMTMPCL, {}, true, true, "Judge transaction create collection" );
+   try
+   {
+      db.transBegin();
+      //tmpCL.update( {$unset:{a:1}}, {a:{$exists:0}} ) ; // do nothing
+      tmpCL.remove();   // if transaction don't turn on, will throw error: -253
+      isTrans = true;
+      db.transCommit();
+      commDropCS( db, COMMTMPCS, false, "drop CS in transation temp" )
+   }
+   catch( e )
+   {
+      commDropCS( db, COMMTMPCS, true, "drop CS in transation temp" )
+      if( commCompareErrorCode( e, -253 ) )
+      {
+      }
+      else
+      {
+         println( "execute transBegin happen error, e = " + e );
+      }
+   }
+   // clear when all use cases finished
+   return isTrans;
+}

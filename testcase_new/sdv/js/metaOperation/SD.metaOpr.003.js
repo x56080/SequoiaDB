@@ -26,7 +26,7 @@ function main ( db )
 	//begin test
 	createDomainByOption( db, domainName, myDataGroups, { AutoSplit: true } );
 	commCreateCS( db, csName, false, "", { Domain: domainName } );
-	commCreateCLByOption( db, csName, clName, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 0 } );
+	commCreateCL( db, csName, clName, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 0 } );
 
 	//check test result 
 	checkTestResult( db, domainName, csName, clName, myDataGroups );

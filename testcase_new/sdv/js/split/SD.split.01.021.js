@@ -12,7 +12,7 @@ function main ( db )
 
    commDropCL( db, COMMCSNAME, clName );
 
-   var objCL = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { no: 1, no2: 1 }, ShardingType: "range" } );
+   var objCL = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { no: 1, no2: 1 }, ShardingType: "range" } );
 
    //prepare 3 groups:the first one is source gorup,the other 2 are target groups
    var tarGroupNum = 2;

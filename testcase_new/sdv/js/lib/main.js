@@ -61,12 +61,12 @@ function createCommonCS ( db )
 
 function createCommonCL ( db )
 {
-   return commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
+   return commCreateCL( db, COMMCSNAME, COMMCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
 }
 
 function createDummyCL ( db )
 {
-   return commCreateCLByOption( db, COMMCSNAME, COMMDUMMYCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
+   return commCreateCL( db, COMMCSNAME, COMMDUMMYCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
 }
 
 function createTestCS ( db, testConf )
@@ -95,11 +95,11 @@ function createTestCL ( db, testConf )
 
       if( testConf.clOpt !== undefined )
       {
-         return commCreateCLByOption( db, testConf.csName, testConf.clName, testConf.clOpt, true, true );
+         return commCreateCL( db, testConf.csName, testConf.clName, testConf.clOpt, true, true );
       }
       else
       {
-         return commCreateCL( db, testConf.csName, testConf.clName, 1, false, true, true );
+         return commCreateCL( db, testConf.csName, testConf.clName );
       }
    }
 }

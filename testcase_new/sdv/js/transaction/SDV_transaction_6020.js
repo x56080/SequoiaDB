@@ -6,13 +6,8 @@ main();
 function main ()
 {
    var clName = CHANGEDPREFIX + "_transaction6020";
-   if( !commIsTransEnabled( db ) )
-   {
-      println( "transaction is disabled" );
-      return;
-   }
 
-   var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true );
    //commit transaction not exec beginTrans 
    try
    {

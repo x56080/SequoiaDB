@@ -65,7 +65,7 @@ function checkResult ( db )
    try
    {
       //build collection
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, 0, true, true, false, "create collection in the beginning" );
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false, "create collection in the beginning" );
       // insert data and check result
       insertAndCheck( cl, 10000, "check collection records in the end, error" );
       // clear collection after test correct

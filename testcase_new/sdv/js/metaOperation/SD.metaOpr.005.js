@@ -28,7 +28,7 @@ function main ( db )
 	metaOprCreateDomain( db, domainName, myDataGroups );
 	commCreateCS( db, csName, false, "", { Domain: domainName } );
 	//commCreateCL( db, csName, clName );
-	commCreateCLByOption( db, csName, clName, { ReplSize: 0 } );
+	commCreateCL( db, csName, clName, { ReplSize: 0 } );
 
 	//alter cl and split it
 	var splitGroups = alterCL( db, csName, clName, myDataGroups );

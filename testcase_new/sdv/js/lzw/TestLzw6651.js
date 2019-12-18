@@ -31,7 +31,7 @@ function createCL ( csName, clName )
    var groupNameArray = getDataGroupsName();
    var clGroupName = groupNameArray[0];
    var options = { Compressed: true, CompressionType: "lzw", Group: clGroupName };
-   var cl = commCreateCLByOption( db, csName, clName, options, false,
+   var cl = commCreateCL( db, csName, clName, options, false,
       true, "Failed to create CL." );
    return cl;
 }

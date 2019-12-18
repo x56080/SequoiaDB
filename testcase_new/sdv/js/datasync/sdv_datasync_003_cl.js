@@ -22,7 +22,7 @@ function main ()
 
       var clName = COMMCLNAME + "_clmetadata";
       options = { ShardingType: 'hash', ShardingKey: { a: 1 }, EnsureShardingIndex: false };
-      commCreateCLByOption( db, COMMCSNAME, clName, options, true );
+      commCreateCL( db, COMMCSNAME, clName, options, true );
       var cond = buildCond( options, clName );
       assert( group.checkResult( true, group.checkDoc, col, cond ),
          "after createCS metadata is not consistency" );

@@ -12,7 +12,7 @@ function main ( db )
 	commDropCL( db, COMMCSNAME, clName );
 
 	//create a collection and don't insert any records
-	var objCL = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { no: 1 }, ShardingType: "range" } );
+	var objCL = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { no: 1 }, ShardingType: "range" } );
 	var srcGroup = getSrcGroup( COMMCSNAME, clName );
 	var tgtGroup = getOneTargetGroup( db, srcGroup );
 

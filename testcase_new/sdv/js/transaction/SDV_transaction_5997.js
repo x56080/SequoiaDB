@@ -14,11 +14,6 @@ function main ()
          println( "skip standalone!" );
          return;
       }
-      if( !commIsTransEnabled( db ) )
-      {
-         println( "transaction is disabled" );
-         return;
-      }
       if( commGetGroupsNum( db ) < 2 )
       {
          println( "This testcase needs at least 2 groups to split sub cl!" );

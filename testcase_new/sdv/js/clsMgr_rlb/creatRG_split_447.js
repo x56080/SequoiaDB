@@ -32,7 +32,7 @@ function main ()
 
    println( "\n---Begin to createCL and insert records" );
    var options = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0 };
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName, options, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, options, true, true );
    var srcRg = commGetCLGroups( db, COMMCSNAME + "." + clName )[0];
 
    var docs = readyDocs( recordsNum );

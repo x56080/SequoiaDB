@@ -105,7 +105,7 @@ collection.prototype.create =
       println( "groupName" + this.groupName );
       var option = { ReplSize: this.replSize, Group: this.groupName };
       println( "createCL's option:" + JSON.stringify( option ) );
-      this.cl = commCreateCLByOption( db, this.csName, this.clName, option, true, true );
+      this.cl = commCreateCL( db, this.csName, this.clName, option, true, true );
    }
 
 collection.prototype.getSelf =

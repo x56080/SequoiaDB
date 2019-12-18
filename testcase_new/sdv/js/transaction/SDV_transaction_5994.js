@@ -9,12 +9,8 @@ function main ()
    try
    {
       var clName = CHANGEDPREFIX + "_transaction5994";
-      if( !commIsTransEnabled( db ) )
-      {
-         println( "transaction is disabled" );
-      }
 
-      var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true );
+      var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true );
       var dataNum = 1000;
       var insert = new insertData( cl, dataNum );
       //update data,then commmit transaction

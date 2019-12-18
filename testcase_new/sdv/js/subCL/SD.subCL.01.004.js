@@ -51,7 +51,7 @@ function createMainCL ( csName, mainCLName )
 
    commDropCL( db, csName, mainCLName, true, true, "drop main cl in begin" );
    var option = { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true };
-   var cl = commCreateCLByOption( db, csName, mainCLName, option, true, false,
+   var cl = commCreateCL( db, csName, mainCLName, option, true, false,
       "create mian cl in begin" );
    return cl;
 }
@@ -73,7 +73,7 @@ function createSubCL ( csName, subCLName, groupsOfSplit )
    commDropCL( db, csName, subCLName, true, true, "drop main cl in begin" );
 
    var option = { ShardingKey: { b: 1 }, ShardingType: "range", Group: groupsOfSplit.sourceRG };
-   var cl = commCreateCLByOption( db, csName, subCLName, option,
+   var cl = commCreateCL( db, csName, subCLName, option,
       true, false, "create sub cl in begin" );
 
    cl.split( groupsOfSplit.sourceRG, groupsOfSplit.targetRG, { b: 50 }, { b: MaxKey() } );

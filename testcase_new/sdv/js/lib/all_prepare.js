@@ -10,7 +10,7 @@ function createDummyCollection ( db )
 {
    if( commIsStandalone( db ) )
    {
-      commCreateCL( db, COMMCSNAME, COMMDUMMYCLNAME, 0, false, true, true, "Create dummy collection" );
+      commCreateCL( db, COMMCSNAME, COMMDUMMYCLNAME, {}, true, true, "Create dummy collection" );
    }
    else
    {
@@ -20,7 +20,7 @@ function createDummyCollection ( db )
          throw "No group found";
       }
       var sourceGroup = dataGroups[0][0]["GroupName"];
-      var cl = commCreateCLByOption( db, COMMCSNAME, COMMDUMMYCLNAME,
+      var cl = commCreateCL( db, COMMCSNAME, COMMDUMMYCLNAME,
          { Group: sourceGroup, ShardingKey: { a: 1 }, ShardingType: 'hash', Partition: 4096 },
          true, true, "Create dummy collection" );
       for( var i = 1; i < dataGroups.length; ++i )

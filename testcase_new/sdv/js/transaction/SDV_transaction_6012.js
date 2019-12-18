@@ -8,13 +8,8 @@ function main ()
    try
    {
       var clName = CHANGEDPREFIX + "_transaction6012";
-      if( !commIsTransEnabled( db ) )
-      {
-         println( "transaction is disabled" );
-         return;
-      }
 
-      var cl = commCreateCL( db, COMMCSNAME, clName, 0, false, true, true );
+      var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true );
       commCreateIndex( cl, 'testIndex', { no: 1 }, true, false )
       transOperation( cl )
 

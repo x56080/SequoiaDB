@@ -58,7 +58,7 @@ function splitAndCheck ( db, originalGroup, newGroup, node )
    try
    {
       //build collection
-      var cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, { ShardingKey: { "no": 1 }, ShardingType: "range", ReplSize: 0, Compressed: true, Group: originalGroup }, false, true, "create collection in the beginning of split" );
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, { ShardingKey: { "no": 1 }, ShardingType: "range", ReplSize: 0, Compressed: true, Group: originalGroup }, false, true, "create collection in the beginning of split" );
       // insert data and check result
       insertAndCheck( cl, 10000, true, true, "check collection records in the end, error" );
       // split data from original data group to creatting data group

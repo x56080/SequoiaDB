@@ -8,7 +8,7 @@ var clName = CHANGEDPREFIX + "_hashsplitcl01001";
 function createSplitCl ( csName, clName )
 {
    var options = { ShardingKey: { no: 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 0, Compressed: true };
-   var varCL = commCreateCLByOption( db, csName, clName, options, true, true );
+   var varCL = commCreateCL( db, csName, clName, options, true, true );
    return varCL;
 }
 

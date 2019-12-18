@@ -49,7 +49,7 @@ function createMainCL ( csName, mainCLName )
    println( "\n---Begin to create mainCL." );
 
    var options = { ShardingKey: { a: 1 }, IsMainCL: true };
-   var mainCL = commCreateCLByOption( db, csName, mainCLName, options, false,
+   var mainCL = commCreateCL( db, csName, mainCLName, options, false,
       true, "Failed to create mainCL." );
    return mainCL;
 }
@@ -62,7 +62,7 @@ function createSubCL ( csName, subCLName )
       ShardingKey: { a: 1 }, ShardingType: "range",
       ReplSize: 0, Compressed: true
    };
-   var subCL = commCreateCLByOption( db, csName, subCLName, options, false,
+   var subCL = commCreateCL( db, csName, subCLName, options, false,
       true, "Failed to create subCL." );
    return subCL;
 }

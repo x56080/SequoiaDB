@@ -133,12 +133,12 @@ function main ()
 function readyCL ( db, csName, mainCL_Name, subCL_Name )
 {
     var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
-    var maincl = commCreateCLByOption( db, csName, mainCL_Name, mainCLOption, true, true );
+    var maincl = commCreateCL( db, csName, mainCL_Name, mainCLOption, true, true );
 
     var subClOption = { ShardingKey: { "b": 1 }, ShardingType: "hash", AutoSplit: true, ReplSize: 0 };
     for( var i = 0; i < subCL_Name.length; i++ )
     {
-        commCreateCLByOption( db, csName, subCL_Name[i], subClOption, true, true );
+        commCreateCL( db, csName, subCL_Name[i], subClOption, true, true );
         var options = { LowBound: { a: i * 1000 }, UpBound: { a: i * 1000 + 1000 } };
         maincl.attachCL( csName + "." + subCL_Name[i], options );
     }

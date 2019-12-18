@@ -11,7 +11,7 @@ function main ( dbs )
 	commDropCL( dbs, csName, clName, true, true, "drop collection in the beginning" );
 
 	// create cs /cl
-	var idxCL = commCreateCL( dbs, csName, clName, 0, true, true );
+	var idxCL = commCreateCL( dbs, csName, clName, {}, true, true );
 	//check test result
 	CheckGetCL( dbs, csName, clName );
 	checkInsert( dbs, csName, clName );

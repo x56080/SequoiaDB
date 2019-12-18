@@ -14,7 +14,7 @@ function main ( db )
 	try
 	{
 		//build collection
-		var cl = commCreateCL( tmpDb, COMMCSNAME, COMMCLNAME, 0, true, true, false, "create collection in the beginning" );
+		var cl = commCreateCL( tmpDb, COMMCSNAME, COMMCLNAME, {}, true, false, "create collection in the beginning" );
 		// insert data and check result
 		insertAndCheck( cl, 10000, "check collection records in the end, error" );
 		// clear collection in the end when its correct

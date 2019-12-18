@@ -77,8 +77,8 @@ function readyCL ( csName, mainclName, subclName )
    var mainOpt = { ShardingKey: { mainSk: 1 }, ShardingType: "range", IsMainCL: true, ReplSize: 0 };
    var subOpt = { ReplSize: 0 };
    var maincl =
-      commCreateCLByOption( db, csName, mainclName, mainOpt, true, false, "create mian cl in begin" );
-   commCreateCLByOption( db, csName, subclName, subOpt, true, false, "create sub cl in begin" );
+      commCreateCL( db, csName, mainclName, mainOpt, true, false, "create mian cl in begin" );
+   commCreateCL( db, csName, subclName, subOpt, true, false, "create sub cl in begin" );
 
    println( "--attach cl" );
 

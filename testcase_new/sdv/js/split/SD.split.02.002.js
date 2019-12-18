@@ -11,7 +11,7 @@ function main ( db )
 	if( commIsStandalone( db ) ) return;
 	commDropCL( db, COMMCSNAME, clName );
 
-	var objCL = commCreateCLByOption( db, COMMCSNAME, clName, { ShardingKey: { no: 1 }, ShardingType: "range" } );
+	var objCL = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { no: 1 }, ShardingType: "range" } );
 	var insertNum = 10;
 	insertData( db, COMMCSNAME, clName, insertNum );
 	var srcGroup = getSrcGroup( COMMCSNAME, clName );

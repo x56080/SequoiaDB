@@ -12,11 +12,6 @@ function main ()
 
    try
    {
-      if( !commIsTransEnabled( db ) )
-      {
-         println( "transaction is disabled" );
-         return;
-      }
       if( commIsStandalone( db ) )
       {
          println( " Deploy mode is standalone!" );
@@ -65,7 +60,7 @@ function createMaincl ( csName, mainclName )
 
    var option = { ShardingKey: { mainSk: 1 }, ShardingType: "range", IsMainCL: true };
    commDropCL( db, csName, mainclName, true, true, "drop main cl in begin" );
-   var cl = commCreateCLByOption( db, csName, mainclName, option, true, false, "create mian cl in begin" );
+   var cl = commCreateCL( db, csName, mainclName, option, true, false, "create mian cl in begin" );
    return cl;
 }
 
@@ -75,7 +70,7 @@ function createSubcl ( csName, subclName, groupsOfSplit )
 
    commDropCL( db, csName, subclName, true, true, "drop sub cl in begin" );
    var option = { ReplSize: 0, ShardingKey: { no: 1 }, ShardingType: "range", Group: groupsOfSplit.srcRG };
-   var cl = commCreateCLByOption( db, csName, subclName, option, true, false, "create sub cl in begin" );
+   var cl = commCreateCL( db, csName, subclName, option, true, false, "create sub cl in begin" );
    cl.split( groupsOfSplit.srcRG, groupsOfSplit.tgtRG, { no: 500 }, { no: MaxKey() } );
 }
 

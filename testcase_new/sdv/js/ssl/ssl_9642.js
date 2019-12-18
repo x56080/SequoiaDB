@@ -13,8 +13,8 @@ function main ( dbs )
    try
    {
       // create cs /cl
-      var dbCL = commCreateCL( dbs, csName, clName, 0, true, true );
-      var dbCL = commCreateCL( dbs, csName, clName1, 0, true, false );
+      var dbCL = commCreateCL( dbs, csName, clName, {}, true, true );
+      var dbCL = commCreateCL( dbs, csName, clName1, {}, true, false );
 
       //put lob
       var lobFile = MakeLobfile();

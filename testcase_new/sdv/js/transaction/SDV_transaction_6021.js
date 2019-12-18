@@ -11,11 +11,6 @@ function main ()
       var csName = COMMCSNAME + "_yt6021";
       var clName = COMMCLNAME + "_yt6021";
 
-      if( !commIsTransEnabled( db ) )
-      {
-         println( "transaction is disabled" );
-         return;
-      }
       var cl = readyCL( csName, clName, { ReplSize: 0 } );
 
       var dataNum = 100;

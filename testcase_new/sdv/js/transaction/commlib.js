@@ -253,7 +253,7 @@ function readyCL ( csName, clName, option )
    println( "--ready cl" );
 
    commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   var cl = commCreateCLByOption( db, csName, clName, option, true, false, "create cl in begin" );
+   var cl = commCreateCL( db, csName, clName, option, true, false, "create cl in begin" );
 
    return cl;
 }

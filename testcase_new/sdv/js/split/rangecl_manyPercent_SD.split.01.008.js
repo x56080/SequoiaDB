@@ -7,7 +7,7 @@ var clName = CHANGEDPREFIX + "_rangesplitcl008";
 function createSplitCl ( csName, clName )
 {
    var options = { ShardingKey: { no: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
-   var varCL = commCreateCLByOption( db, csName, clName, options, true, true );
+   var varCL = commCreateCL( db, csName, clName, options, true, true );
    return varCL;
 }
 

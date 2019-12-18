@@ -15,7 +15,7 @@ function main ( dbs )
       commDropCL( dbs, csName, clName, true, true, "drop collection in the beginning" );
 
       // create cs /cl
-      var dbCL = commCreateCL( dbs, csName, clName, 0, true, true );
+      var dbCL = commCreateCL( dbs, csName, clName, {}, true, true );
 
       //export datas
       var exprtFile = "/tmp/" + CHANGEDPREFIX + "_9641.json";

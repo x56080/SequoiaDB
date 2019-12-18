@@ -73,7 +73,7 @@ function createMainCL ( mainCSName, mainCLName, domainName )
    commCreateCS( db, mainCSName, false, "create main cs", { "Domain": domainName } );
 
    var option = { ShardingKey: { a: 1, b: 1 }, ShardingType: "range", IsMainCL: true };
-   var cl = commCreateCLByOption( db, mainCSName, mainCLName, option, true, false,
+   var cl = commCreateCL( db, mainCSName, mainCLName, option, true, false,
       "create mian cl" );
    return cl;
 }
@@ -86,7 +86,7 @@ function createSubCL ( subCSName, subCLName, domainName )
    commCreateCS( db, subCSName, false, "create main cs", { "Domain": domainName } );
 
    var option = { ShardingKey: { c: 1, d: 1 }, ShardingType: "hash" };
-   var cl = commCreateCLByOption( db, subCSName, subCLName, option,
+   var cl = commCreateCL( db, subCSName, subCLName, option,
       true, false, "create mian cl" );
    return cl;
 }

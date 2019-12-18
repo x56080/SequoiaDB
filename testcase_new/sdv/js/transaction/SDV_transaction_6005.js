@@ -37,7 +37,7 @@ function main ()
 
 function splitCl ( csName, clName, allGroupInfo )
 {
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName,
+   var cl = commCreateCL( db, COMMCSNAME, clName,
       { ShardingKey: { no: 1 }, ShardingType: "range" }, true, true );
 
    var CLName = csName + "." + clName

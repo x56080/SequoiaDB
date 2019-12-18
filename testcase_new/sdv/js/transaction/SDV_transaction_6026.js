@@ -12,11 +12,6 @@ function main ()
 
    try
    {
-      if( !commIsTransEnabled( db ) )
-      {
-         println( "transaction is disabled" );
-         return;
-      }
       var cl = readyCL( csName, clName, { ReplSize: 0 } );
 
       //insert

@@ -64,7 +64,7 @@ function checkResult ( db, hostname, group, node )
    try
    {
       //build collection
-      var cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, { Group: group, ReplSize: 0 }, true, false, "create collection" );
+      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, { Group: group, ReplSize: 0 }, true, false, "create collection" );
       // insert data and check result
       insertAndCheck( cl, 10, "check collection records in the end, error" );
       var groups = commGetGroups( db, "", group );

@@ -58,7 +58,7 @@ function main ( db )
             try
             {
                //build collection
-               var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groupName }, false, true, "create collection" );
+               var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName }, false, true, "create collection" );
                // insert data and check result
                insertAndCheck( cl, 10000, "check collection records in the end, error" );
                // clean collection after test correct
