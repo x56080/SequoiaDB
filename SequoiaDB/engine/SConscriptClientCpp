@@ -11,6 +11,7 @@ Import("release")
 Import("debugBuild")
 
 
+
 # release or debug build
 release_build = release
 debug_build = debugBuild
@@ -53,6 +54,7 @@ clientCPPLibFiles = [
       "oss/ossMem.cpp",
       "oss/ossSocket.cpp",
       "oss/ossPrimitiveFileOp.cpp",
+      "oss/ossVer.cpp",
       "pd/pdErr.cpp",
       "pd/pd.cpp",
       "client/bson/numbers.c",
@@ -139,6 +141,9 @@ clientCppEnv.Install( '#/client/include/', "include/pd.hpp")
 clientCppEnv.Install( '#/client/include/', "include/pdErr.hpp")
 clientCppEnv.Install( '#/client/include/', "include/ossAtomic.hpp")
 clientCppEnv.Install( '#/client/include/', "include/ossAtomicBase.hpp")
+clientCppEnv.Install( '#/client/include/', "include/ossVer.h")
+clientCppEnv.Install( '#/client/include/', "include/ossVer.hpp")
+clientCppEnv.Install( '#/client/include/', "include/ossVer_Autogen.h")
 
 clientCppEnv.Install( '#/client/include/', "include/core.hpp" )
 clientCppEnv.Install( '#/client/include/', "include/ossFeat.hpp" )
