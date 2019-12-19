@@ -614,8 +614,20 @@ public class ObjectServiceImpl implements ObjectService {
             ListObjectsResult listObjectsResult = new ListObjectsResult(bucketName, maxKeys,
                     encodingType, prefix, startAfter, delimiter, continueToken);
 
-            if (maxKeys == 0){
+            if (maxKeys == 0) {
                 return listObjectsResult;
+            }
+
+            if (delimiter != null && delimiter.length() == 0) {
+                delimiter = null;
+            }
+
+            if (prefix != null && prefix.length() == 0) {
+                prefix = null;
+            }
+
+            if (startAfter != null && startAfter.length() == 0){
+                startAfter = null;
             }
 
             String metaCsName = regionDao.getMetaCurCSName(region);
@@ -738,8 +750,16 @@ public class ObjectServiceImpl implements ObjectService {
             ListObjectsResultV1 listObjectsResult = new ListObjectsResultV1(bucketName, maxKeys,
                     encodingType, prefix, startAfter, delimiter);
 
-            if (maxKeys == 0){
+            if (maxKeys == 0) {
                 return listObjectsResult;
+            }
+
+            if (delimiter != null && delimiter.length() == 0) {
+                delimiter = null;
+            }
+
+            if (prefix != null && prefix.length() == 0) {
+                prefix = null;
             }
 
             String metaCsName = regionDao.getMetaCurCSName(region);
@@ -834,8 +854,16 @@ public class ObjectServiceImpl implements ObjectService {
             ListVersionsResult listVersionsResult = new ListVersionsResult(bucketName, maxKeys,
                     encodingType, prefix, delimiter, keyMarker, versionIdMarker);
 
-            if (maxKeys == 0){
+            if (maxKeys == 0) {
                 return listVersionsResult;
+            }
+
+            if (delimiter != null && delimiter.length() == 0) {
+                delimiter = null;
+            }
+
+            if (prefix != null && prefix.length() == 0) {
+                prefix = null;
             }
 
             String metaCsName    = regionDao.getMetaCurCSName(region);

@@ -1,5 +1,6 @@
 package com.sequoias3.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.sequoias3.core.ObjectMeta;
 import com.sequoias3.exception.S3Error;
@@ -11,6 +12,7 @@ import java.net.URLEncoder;
 
 import static com.sequoias3.utils.DataFormatUtils.formatDate;
 
+@JsonInclude(value = JsonInclude.Include.NON_NULL)
 public class Content {
     @JsonProperty("Key")
     private String key;

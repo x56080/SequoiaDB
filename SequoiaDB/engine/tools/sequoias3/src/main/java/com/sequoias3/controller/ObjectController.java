@@ -291,14 +291,6 @@ public class ObjectController {
                 }
             }
 
-            if (delimiter != null && delimiter.length() == 0) {
-                delimiter = null;
-            }
-
-            if (prefix != null && prefix.length() == 0) {
-                prefix = null;
-            }
-
             ListObjectsResult result = objectService.listObjects(operator.getUserId(),
                     bucketName, prefix, delimiter, startAfter,
                     maxKeys, continueToken, encodingType, fetchOwner);
@@ -335,14 +327,6 @@ public class ObjectController {
                 if (!encodingType.equals(RestParamDefine.ENCODING_TYPE_URL)) {
                     throw new S3ServerException(S3Error.OBJECT_INVALID_ENCODING_TYPE, "encoding type must be url");
                 }
-            }
-
-            if (delimiter != null && delimiter.length() == 0) {
-                delimiter = null;
-            }
-
-            if (prefix != null && prefix.length() == 0) {
-                prefix = null;
             }
 
             ListObjectsResultV1 result = objectService.listObjectsV1(operator.getUserId(),
@@ -382,14 +366,6 @@ public class ObjectController {
                 if (!encodingType.equals(RestParamDefine.ENCODING_TYPE_URL)) {
                     throw new S3ServerException(S3Error.OBJECT_INVALID_ENCODING_TYPE, "encoding type must be url");
                 }
-            }
-
-            if (delimiter != null && delimiter.length() == 0) {
-                delimiter = null;
-            }
-
-            if (prefix != null && prefix.length() == 0) {
-                prefix = null;
             }
 
             ListVersionsResult result = objectService.listVersions(operator.getUserId(),

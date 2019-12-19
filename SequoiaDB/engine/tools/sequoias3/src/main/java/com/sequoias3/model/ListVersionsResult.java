@@ -1,5 +1,6 @@
 package com.sequoias3.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
@@ -11,6 +12,7 @@ import java.net.URLEncoder;
 import java.util.LinkedHashSet;
 
 @JacksonXmlRootElement(localName = "ListVersionsResult")
+@JsonInclude(value = JsonInclude.Include.NON_NULL)
 public class ListVersionsResult {
     @JsonProperty("Name")
     private String name;
