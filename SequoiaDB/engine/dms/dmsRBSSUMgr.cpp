@@ -1334,7 +1334,7 @@ namespace engine
       // recycle the CL by dropping it.
       while ( TRUE )
       {
-         // Note: Is it safe to do dirty read here? I "think" it's ok because
+         // FIXME:  is it safe to do dirty read here? I "think" it's ok because
          // the appendRecord guy could move _cur to next, the worst case here
          // is we stopped a little early
          if ( curPos == _currentCollection )
@@ -1370,9 +1370,8 @@ namespace engine
                    DPS_TRANS_GET_SN(maxGlobTransID),
                    DPS_TRANS_GET_SN(sdbGetTransCB()->getLowTran()), curPos ) ;
 #endif
-         // Do GC when the cl max transID is older than lowtran
-         // TODO: we may want to do GC when lowTran is invalid, meaning no 
-         // running transaction
+         // do GC when lowTran is invalid, meaning no running transaction
+         // or the cl max transID is older than lowtran
          if ( sdbGetTransCB()->isVersionExpired( maxGlobTransID ) )
          {
 
