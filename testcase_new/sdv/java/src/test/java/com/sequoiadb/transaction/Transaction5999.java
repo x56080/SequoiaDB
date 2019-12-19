@@ -30,6 +30,8 @@ public class Transaction5999 extends SdbTestBase {
     private Sequoiadb db1 = null;
     private Sequoiadb db2 = null;
     private DBCollection cl = null;
+    // 事务提交或者回滚时需要等备节点同步，用例并发执行，设置为5分钟超时
+    private int timeOut = 5 * 60;
     private BSONObject del_matcher = new BasicBSONObject();
 
     @BeforeClass
@@ -42,7 +44,7 @@ public class Transaction5999 extends SdbTestBase {
 
     @Test
     private void test() throws Exception {
-        ThreadExecutor threadExec = new ThreadExecutor();
+        ThreadExecutor threadExec = new ThreadExecutor( timeOut );
         UpdateThread updateThread = new UpdateThread();
         DeleteThread deleteThread = new DeleteThread();
 
