@@ -421,12 +421,12 @@ namespace engine
          setHasGlobTransID() ;
       }
 
-      void setLSN ( const DPS_LSN &lsn )
+      void setLSN ( const DPS_LSN lsn )
       {
          _lsn = lsn ;
       }
 
-      void setGlobTransID ( const DPS_TRANS_ID &globtransid )
+      void setGlobTransID ( const DPS_TRANS_ID globtransid )
       {
          _globTransID = DPS_TRANS_GET_SN(globtransid) ;
          setHasGlobTransID() ;
@@ -630,8 +630,7 @@ namespace engine
 
       void resetAttr()
       {
-         // Capped record has no lsn and transID fields
-         return ((dmsRecord_v0*)this)->resetAttr() ;
+         return ((dmsRecord*)this)->resetAttr() ;
       }
 
       void setData( const dmsRecordData &data )
@@ -680,8 +679,9 @@ namespace engine
       }                 _head ;
       dmsOffset         _myOffset ;
       dmsRecordID       _next ;
-      DPS_LSN           _lsn ;          // the position of the lsn/GTID is same
-      DPS_TRANS_ID      _globTransID ;  // as v1 record. So once a record is 
+      // FIXME: Enable this in main once we switch default record to V1
+      DPS_TRANS_ID      _globTransID ;  // the position of the GTID is same
+                                        // as v1 record. So once a record is 
                                         // deleted under new release, it's 
                                         // automatically converted to v1 type
 
@@ -733,6 +733,7 @@ namespace engine
       {
          setFlag( DMS_RECORD_FLAG_DELETED ) ;
       }
+//#if 0    // FIXME:enable this in main later
       void setHasGlobTransID()
       {
          _head._recordHead[ 0 ] |= DMS_RECORD_FLAG_HASGLOBTRANSID ;
@@ -742,11 +743,7 @@ namespace engine
          setHasGlobTransID() ;
          _globTransID = DPS_INVALID_TRANS_ID ;
       }
-      void resetLSN ( )
-      {
-         _lsn.reset() ;
-      }
-
+//#endif
    } ;
    typedef _dmsDeletedRecord dmsDeletedRecord ;
    #define DMS_DELETEDRECORD_METADATA_SZ  sizeof(dmsDeletedRecord)
