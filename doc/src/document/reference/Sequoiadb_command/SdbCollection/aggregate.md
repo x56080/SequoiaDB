@@ -3,7 +3,7 @@
 aggregate - 计算集合中数据的聚合值。
 
 ##语法##
-**db.collectionspace.collection.aggregate( \<subOp\>... )**
+**db.collectionspace.collection.aggregate( \<subOp1\>，[subOp2]，... )**
 
 ##类别##
 
@@ -15,14 +15,9 @@ aggregate() 方法与 [find()](reference/Sequoiadb_command/SdbCollection/find.md
 
 ##参数##
 
-* [`subOp`](reference/operator/aggregate_operator/overview.md) ( *Object*， *必填* )
+* `subOp`( *Object*， *必填* )
 
-    subOp 表示子操作，在 aggregate() 方法中可以填写 1~N 个子操作。
-
-	**Note:**
-
-	* aggregate() 方法可以有任意多个子操作，每个子操作是一个 Object 对象，
-      子操作之间用逗号隔开。注意各子操作的参数名的语法规则。
+    subOp1，subOp2... 表示包含[聚集符] (reference/operator/aggregate_operator/overview.md)的子操作，在 aggregate() 方法中可以填写 1~N 个子操作。每个子操作是一个包含聚集符的 Object 对象，子操作之间用逗号隔开。注意各子操作的参数名的语法规则。
 
 ##返回值##
 
@@ -36,7 +31,7 @@ aggregate() 方法与 [find()](reference/Sequoiadb_command/SdbCollection/find.md
 
 | 错误码 | 错误类型 | 描述 | 解决方法 |
 | ------ | ------ | --- | ------ |
-| | | |
+| -6 | SDB_INVALIDARG | 参数错误 | 查看参数是否填写正确。|
 
 当异常抛出时，可以通过[getLastError()](reference/Sequoiadb_command/Global/getLastError.md)获取[错误码](reference/Sequoiadb_error_code.md)，
 或通过[getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md)获取错误信息。

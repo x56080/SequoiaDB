@@ -4,11 +4,11 @@
 .hy
 .SH NAME
 .PP
-aggregate \- retrieve the documents from the collection in the SequoiaDB
+aggregate \- Retrieve the documents from the collection in the SequoiaDB
 and return a cursor.
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.collectionspace.collection.aggregate(<subOp>...)\f[]\f[]
+\f[B]\f[I]db.collectionspace.collection.aggregate(<subOp1>,[subOp2],...)\f[]\f[]
 .SH CATEGORY
 .PP
 Collection
@@ -28,9 +28,8 @@ method.
 .P
 .PD
 aggregate() method has only one parameter subOp, which represents 1~N
-sub\-operations,each sub\-operation is a json object, separated by
-commas sub\-operation.
-Aggregation framework supports the following Sub\-operation parameters:
+sub\-operations, each sub\-operation is a json object containing an aggregator, separated by
+commas sub\-operation. Aggregation framework supports the following Sub\-operation parameters:
 .IP \[bu] 2
 \f[C]$project\f[]
 .PD 0
@@ -108,6 +107,8 @@ On error, exception will be thrown.
 \f[C]aggregate()\f[] usually return the follow exception:
 .IP \[bu] 2
 SDB_OOM (\-2): Unable to allocate memory for creating collection.
+.IP \[bu] 2
+SDB_INVALIDARG (\-6): Invalid Argument.
 .IP \[bu] 2
 SDB_NOSPC (\-11): Out of space.
 .IP \[bu] 2
