@@ -1365,7 +1365,7 @@ namespace engine
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Has transID  : %s"OSS_NEWLINE,
+                           "       Has transID/lsn : %s"OSS_NEWLINE,
                            OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_HASGLOBTRANSID ) ?
                            "True":"False" ) ;
 
@@ -1392,11 +1392,14 @@ namespace engine
          goto exit ;
       }
 
-      // Dump transaction ID for dmsRecord_v0
+      // Dump lsn and transaction ID for dmsRecord_v1
       if ( OSS_BIT_TEST( flag, DMS_RECORD_FLAG_HASGLOBTRANSID ) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "       Trans ID     : 0x%08x (%d)"OSS_NEWLINE,
+                              "       LSN offset   : 0x%08x (%llu)"OSS_NEWLINE,
+                              record->_lsnOffset, record->_lsnOffset ) ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              "       Trans ID     : 0x%08x (%llu)"OSS_NEWLINE,
                               record->_globTransID, record->_globTransID ) ;
       }
 
@@ -1482,6 +1485,10 @@ namespace engine
                               utilCompressType2String( record->getCompressType() ) ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len,
+                           "       Has transID/lsn : %s"OSS_NEWLINE,
+                           OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_HASGLOBTRANSID ) ?
+                           "True":"False" ) ;
+      len += ossSnprintf ( outBuf + len, outSize - len,
                            "       Record Size   : %u"OSS_NEWLINE,
                            record->getSize() ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
@@ -1490,6 +1497,17 @@ namespace engine
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "       LogicalID     : %lld"OSS_NEWLINE,
                            record->getLogicalID() ) ;
+
+      // Dump transaction ID for dmsRecord_v1
+      if ( OSS_BIT_TEST( flag, DMS_RECORD_FLAG_HASGLOBTRANSID ) )
+      {
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              "       LSN offset   : 0x%08x (%llu)"OSS_NEWLINE,
+                              record->_lsnOffset, record->_lsnOffset ) ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              "       Trans ID     : 0x%08x (%llu)"OSS_NEWLINE,
+                              record->_globTransID, record->_globTransID ) ;
+      }
 
       try
       {

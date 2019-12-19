@@ -363,7 +363,7 @@ namespace engine
             context->mbStat()->_totalOrgDataLen += newRecordData.orgLen() ;
             goto done ;
          }
-         // over-flow recrod
+         // allocate over-flow recrod
          else
          {
             dmsRecordID foundDeletedID ;
@@ -410,6 +410,8 @@ namespace engine
                PD_LOG ( PDERROR, "Failed to append record due to %d", rc ) ;
                goto error ;
             }
+            // set the create LSN to the ovf record create lsn
+            pNewRecord->setLSNOffset( pRecord->getLSNOffset() ) ;
             // set remote record as overflowed to
             pNewRecord->setOvt() ;
             pRecord->setOvf() ;

@@ -671,8 +671,8 @@ namespace engine
                // before the lowtran check
                if ( !pmdGetOptionCB()->mvccOn()   || 
                     !_curRecordPtr->hasGlobTransID() ||
-                   _pTransCB->transIDLessThan( _curRecordPtr->getGlobTransID(),
-                                           _pTransCB->getLowTran() ) ) 
+                   _pTransCB->isVersionExpired( _curRecordPtr->
+                                                getGlobTransID() ) )
                {
                   INT32 rc1 = _pSu->deleteRecord( _context, _curRID,
                                                   0, cb, NULL, NULL,
@@ -717,28 +717,29 @@ namespace engine
                  ( _transIsolation == TRANS_ISOLATION_RR ) &&
                  ( _recordLock < DPS_TRANSLOCK_U ) )
             {
+               DPS_LSN_OFFSET lsn   = _curRecordPtr->getLSNOffset() ;
                // FIXME: to be removed
 #ifdef  _DEBUG
                PD_LOG( PDDEBUG, "compare record version for "
-                    "rid(%d, %d), transid(%llu) vs recordTransid(%llu)"
-                    " skipDelete(%d) ",
+                    "rid(%d, %d), transid(%llu) vs recordTransid(%llu),"
+                    "lsn(%llu) skipDelete(%d) ",
                      _curRID._extent, _curRID._offset, 
                      DPS_TRANS_GET_SN(transID),
-                     _curRecordPtr->getGlobTransID(), skipDelete ) ;
+                     _curRecordPtr->getGlobTransID(), lsn, skipDelete ) ;
 #endif
                // if the current version is NOT visible to the transaction, 
                // try to read the proper version from RBS 
                if ( !sdbGetTransCB()->isVersionVisible(
                     _curRecordPtr->getGlobTransID(), transID ) )
                {
-                  BOOLEAN      found   = FALSE ;
-
+                  BOOLEAN found = FALSE ;
                   // FIXME: remove one after Shangde's review
                   rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
                          ->getRecord1( _pSu->logicalID(),  // use cappedCL fetch 
                          //->getRecord( _pSu->logicalID(), // use my own
                                       _context->mbID(),
-                                      _curRID, transID, found, recordData ) ;
+                                      lsn,
+                                      transID, found, recordData ) ;
                   if ( SDB_OK != rc )
                   {
                      PD_LOG( PDERROR, "Failed to read from RBS, rc: %d", rc ) ;
@@ -748,9 +749,11 @@ namespace engine
                   {
 
 #ifdef  _DEBUG
-                     PD_LOG( PDDEBUG, "Finished reading record from RBS: "
-                             "found=%d, rid(%d, %d), transid(%llu)",
-                             found, _curRID._extent, _curRID._offset, transID ) ;
+                     PD_LOG( PDDEBUG, 
+                             "Finished reading record from RBS: found=%d, "
+                             "rid(%d, %d), transid(%llu), lsn(%llu)",
+                             found, _curRID._extent, _curRID._offset, transID,
+                             lsn ) ;
 #endif
                      if ( found )
                      {
@@ -2166,9 +2169,8 @@ namespace engine
                if ( !pmdGetOptionCB()->mvccOn() ||
                     !_curRecordPtr->hasGlobTransID() ||
                     ( TRUE  && 
-                      _pTransCB->transIDLessThan( 
-                                      _curRecordPtr->getGlobTransID(),
-                                      _pTransCB->getLowTran() ) ) )
+                      _pTransCB->isVersionExpired( 
+                                      _curRecordPtr->getGlobTransID() ) ) )
                {
                   INT32 rc1 = _pSu->deleteRecord( _context, _curRID, 0,
                                                   cb, NULL, NULL,
@@ -2224,12 +2226,14 @@ namespace engine
             if ( !_pTransCB->isVersionVisible(
                  _curRecordPtr->getGlobTransID(), transID ) ) 
             {
-               BOOLEAN      found   = FALSE ;
+               BOOLEAN        found = FALSE ;
+               DPS_LSN_OFFSET lsn   = _curRecordPtr->getLSNOffset() ;
 
                rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
                       ->getRecord1( _pSu->logicalID(),
-                                   _context->mbID(),
-                                   _curRID, transID, found, recordData ) ;
+                                    _context->mbID(),
+                                    lsn,
+                                    transID, found, recordData ) ;
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDERROR, "Failed to getRecord from RBS, rc: %d",
@@ -2238,17 +2242,21 @@ namespace engine
                else if ( found )
                {
                   PD_LOG( PDDEBUG, "Found old record from RBS,"
-                          "rid(%d, %d), transid(%llu)<recordTransid(%llu)",
+                          "rid(%d, %d), transid(%llu)<recordTransid(%llu),"
+                          "lsn(%llu)",
                           _curRID._extent, _curRID._offset, transID,
-                          _curRecordPtr->getGlobTransID() ) ;
+                          _curRecordPtr->getGlobTransID(),
+                          lsn ) ;
                   recordDataSet = TRUE ;
                }
                else
                {
-                  PD_LOG( PDDEBUG, "Didn't found old record from RBS,"
-                          "rid(%d, %d), transid(%llu)<recordTransid(%llu)",
+                  PD_LOG( PDDEBUG,
+                          "Didn't found old record from RBS, rid(%d, %d), "
+                          "transid(%llu)<recordTransid(%llu), lsn(%llu)",
                           _curRID._extent, _curRID._offset, transID,
-                          _curRecordPtr->getGlobTransID() ) ;
+                          _curRecordPtr->getGlobTransID(),
+                          lsn ) ;
                   // Didn't find proper version of record, the record
                   // is not visible to the transaction, skip
                   if ( _hasLockedRecord )

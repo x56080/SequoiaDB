@@ -720,7 +720,7 @@ namespace engine
    error:
       goto done ;
    }
-
+#if 0
    // write rbs record to the location specified
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__WRITERECTOLOCATION, "_dmsRBSSUMgr::_writeRecToLocation" )
    SINT32 _dmsRBSSUMgr::_writeRecToLocation( dmsRBSOffset         location,
@@ -755,7 +755,7 @@ namespace engine
       // Write out the record to RBS and update the offsetm, all has to be
       // done within the bkt lock. Otherwise reader could get a stale or
       // partial record
-      _rbsRecordBkt[bkt].lock();
+      _rbsRecordBkt.lock( bkt );
 
       {
          const dmsRecordID recordID( extID, offset ) ;
@@ -767,7 +767,7 @@ namespace engine
          rbsRecord->setRecordKey( csid, clid, rid ) ;
          rbsRecord->setGlobTransID( recordTransID ) ;
          // Update record with the previous offset
-         rbsRecord->setPreOffset( _rbsRecordBkt[bkt].getOffset() ) ;
+         rbsRecord->setPreOffset( _rbsRecordBkt.getOffset( bkt ) ) ;
          // copy the data
          rbsRecord->setData( recordData ) ;
          // set up the deleting attribute
@@ -789,10 +789,10 @@ namespace engine
       }
 
       // Update bucket to point to the new record
-      _rbsRecordBkt[bkt].setOffset( location );
+      _rbsRecordBkt.setOffset( location, bkt );
 
       // unlock the bucket
-      _rbsRecordBkt[bkt].release() ;
+      _rbsRecordBkt.release( bkt ) ;
       context->mbUnlock( ) ;
 
       PD_LOG ( PDDEBUG,
@@ -893,7 +893,7 @@ namespace engine
    error:
       goto done ;
    }
-
+#endif
    // Input Parm:
    //    recordTransID:  Record version, (last creation/update trans ID)
    //    ownerTransID: transaction to put the record to in memory old version
@@ -906,7 +906,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_APPENDRECORD1, "_dmsRBSSUMgr::appendRecord" )
    SINT32 _dmsRBSSUMgr::appendRecord ( dmsStorageUnitID      csid,
                                        UINT16                clid,
-                                       dmsRecordID           rid,
+                                       DPS_LSN_OFFSET        lsn,
                                        DPS_TRANS_ID          recordTransID,
                                        DPS_TRANS_ID          ownerTransID,
                                        const BSONObj        &data )
@@ -918,7 +918,7 @@ namespace engine
       dmsMBContext *clContext    = NULL ;
       CHAR          clName[30]   = {0} ;
       pmdEDUCB     *eduCB        = pmdGetThreadEDUCB() ;
-      UINT32        bkt          = _hash( csid, clid, rid );
+      UINT32        bkt          = _hash( csid, clid, lsn );
       BSONObjBuilder builder ;
       BSONObj       record ;
       utilInsertResult insertResult ;
@@ -933,23 +933,23 @@ namespace engine
 
       // Under hash bkt latch, build BSON record to include following:
       // recordKey, transID, preOffset and original recordData
-      _rbsRecordBkt[bkt].lock();
+      _rbsRecordBkt.lock( bkt );
       bktLatched = TRUE ;
 
       try
       {
          builder.append( FIELD_NAME_RBS_RECORD_KEY,
                          BSON_ARRAY( (SINT32)csid <<
-                                     (SINT32)cl   <<
-                                     rid._extent  <<
-                                     rid._offset ) ) ;
+                                     (SINT32)cl ) ) ;
          // has to cast to long long
+         builder.append( FIELD_NAME_RBS_RECORD_LSN_OFFSET,
+                         (long long)lsn ) ;
          builder.append( FIELD_NAME_RBS_RECORD_TRANSID,
                          (long long)recordTransID ) ;
          builder.append( FIELD_NAME_RBS_PRERECORD_CL,
-                         _rbsRecordBkt[bkt].getOffset()._clID ) ;
+                         _rbsRecordBkt.getOffset( bkt )._clID ) ;
          builder.append( FIELD_NAME_RBS_PRERECORD_OFFSET,
-                         _rbsRecordBkt[bkt].getOffset()._logicalID ) ;
+                         _rbsRecordBkt.getOffset( bkt )._logicalID ) ;
          builder.append( FIELD_NAME_RBS_RECORD_DATA, data ) ;
          record = builder.done() ;
          recSize = record.objsize() + DMS_RECORD_CAP_METADATA_SZ ;
@@ -966,6 +966,8 @@ namespace engine
          }
          clLocked = TRUE ;
 
+
+         // FIXME: pass in dpscb to write LR
          // insert the record to RBS
          rc = _su->insertRecord ( clName, record, eduCB, NULL,
                                   TRUE, TRUE, clContext, -1, &insertResult ) ;
@@ -996,10 +998,10 @@ namespace engine
          insertResult.getInsertLoc( ext, offset ) ;
          sd->_extLidAndOffset2RecLid( ext, offset, location._logicalID ) ;
          location._clID = _currentCollection ;
-         _rbsRecordBkt[bkt].setOffset( location ) ;
+         _rbsRecordBkt.setOffset( location, bkt ) ;
       }
       // unlock the bucket
-      _rbsRecordBkt[bkt].release() ;
+      _rbsRecordBkt.release( bkt ) ;
       bktLatched  = FALSE ;
 
    done:
@@ -1008,7 +1010,7 @@ namespace engine
    error:
       if ( bktLatched )
       {
-         _rbsRecordBkt[bkt].release() ;
+         _rbsRecordBkt.release( bkt ) ;
       }
       if ( clLocked )
       {
@@ -1016,19 +1018,19 @@ namespace engine
       }
       goto done ;
    }
-
+/*
    // Given a transactionID and beginning of a record chain, find a visiable record
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_GETRECORD, "_dmsRBSSUMgr::getRecord" )
    SINT32 _dmsRBSSUMgr::getRecord ( dmsStorageUnitID  csid,
                                     UINT16            clid,
-                                    dmsRecordID       rid,
+                                    DPS_LSN          &lsn,
                                     DPS_TRANS_ID      transid,
                                     BOOLEAN          &found,
                                     dmsRecordData    &record )
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_GETRECORD );
       SINT32        rc         = SDB_OK ;
-      UINT32        bkt        = _hash( csid, clid, rid );
+      UINT32        bkt        = _hash( csid, clid, lsn );
       dmsMBContext *context    = NULL ;
       dmsRecordRW   recordRW ;
       dmsRBSOffset  position ;
@@ -1036,7 +1038,7 @@ namespace engine
       dmsStorageDataCapped *sd = (dmsStorageDataCapped*)_su->data();
       dmsExtentID   extID      = DMS_INVALID_EXTENT ;
       dmsOffset     offset     = DMS_INVALID_OFFSET;
-      dmsRBSRecordKey key( csid, clid, rid ) ;
+      dmsRBSRecordKey key( csid, clid, lsn ) ;
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
                "Transaction (%llu) tries to find a proper version from RBS, "
@@ -1047,8 +1049,8 @@ namespace engine
       found = FALSE ;
       // 1. From the hash table, find the position
       // lock the bucket
-      _rbsRecordBkt[bkt].lock();
-      position = _rbsRecordBkt[bkt].getOffset();
+      _rbsRecordBkt.lock( bkt );
+      position = _rbsRecordBkt.getOffset( bkt );
 
       // When is it safe to release the latch? do we allow anybody else to
       // insert/free the position while  we got a position and are still
@@ -1057,7 +1059,7 @@ namespace engine
       // in X and reader already went through the lock request but failed
       // thus decided to use a version of old record, AND the version is
       // already stored in RBS AND hasn't been recycled yet.
-      _rbsRecordBkt[bkt].release() ;
+      _rbsRecordBkt.release( bkt ) ;
 
       do
       {
@@ -1147,20 +1149,20 @@ namespace engine
    error:
       goto done ;
    }
-
+*/
    // Given a transactionID and beginning of a record chain, find a visiable record
    // This method uses _fetch method from cappedCL
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_GETRECORD1, "_dmsRBSSUMgr::getRecord1" )
    SINT32 _dmsRBSSUMgr::getRecord1 ( dmsStorageUnitID  csid,
                                      UINT16            clid,
-                                     dmsRecordID       rid,
+                                     DPS_LSN_OFFSET    &lsn,
                                      DPS_TRANS_ID      transid,
                                      BOOLEAN          &found,
                                      dmsRecordData    &recordData )
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_GETRECORD1 );
       SINT32        rc         = SDB_OK ;
-      UINT32        bkt        = _hash( csid, clid, rid );
+      UINT32        bkt        = _hash( csid, clid, lsn );
       dmsMBContext *context    = NULL ;
       pmdEDUCB     *eduCB      = pmdGetThreadEDUCB() ;
       dmsRecordRW   recordRW ;
@@ -1169,20 +1171,19 @@ namespace engine
       dmsStorageDataCapped *sd = (dmsStorageDataCapped*)_su->data();
       dmsExtentID   extID      = DMS_INVALID_EXTENT ;
       dmsOffset     offset     = DMS_INVALID_OFFSET;
-      dmsRBSRecordKey key( csid, clid, rid ) ;
 
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
                "Transaction (%llu) tries to find a proper version from RBS, "
-               "csid(%d), clid(%d), record rid(%d, %d)",
+               "csid(%d), clid(%d), record lsn(%llu)",
                DPS_TRANS_GET_SN(transid),
-               csid, clid, rid._extent, rid._offset ) ;
+               csid, clid, lsn ) ;
 #endif
       found = FALSE ;
       // 1. From the hash table, find the position
       // lock the bucket
-      _rbsRecordBkt[bkt].lock();
-      position = _rbsRecordBkt[bkt].getOffset();
+      _rbsRecordBkt.lock( bkt );
+      position = _rbsRecordBkt.getOffset( bkt );
 
       // When is it safe to release the latch? do we allow anybody else to
       // insert/free the position while  we got a position and are still
@@ -1191,7 +1192,7 @@ namespace engine
       // in X and reader already went through the lock request but failed
       // thus decided to use a version of old record, AND the version is
       // already stored in RBS AND hasn't been recycled yet.
-      _rbsRecordBkt[bkt].release() ;
+      _rbsRecordBkt.release( bkt ) ;
 
       do
       {
@@ -1216,7 +1217,9 @@ namespace engine
             BSONObj       cappedRecord ;
             //dmsRecordData cappedRecordData ;
             DPS_TRANS_ID  recordTransID ;
+            DPS_LSN_OFFSET recordLSNOffset ;
             BSONElement   eleTransID;
+            BSONElement   eleLsnOffset;
             BSONElement   eleKey;
 
             DMS_BUILD_RBS_CL_NAME( clName, position._clID ) ;
@@ -1236,7 +1239,8 @@ namespace engine
             rc = sd->fetch( context, recordID, cappedRecord, eduCB, FALSE ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to fetch record,rid(%d, %d), rc=%d",
+               PD_LOG ( PDERROR, 
+                        "Failed to fetch rbsrecord,rid(%d, %d), rc=%d",
                         extID, offset, rc ) ;
                goto error ;
             }
@@ -1244,15 +1248,17 @@ namespace engine
             // 3. parse the dataRecord to figure out record key and visiability
             //cappedRecord = BSONObj( cappedRecordData.data() ) ;
             eleTransID = cappedRecord.getField(FIELD_NAME_RBS_RECORD_TRANSID) ;
+            eleLsnOffset = 
+                     cappedRecord.getField(FIELD_NAME_RBS_RECORD_LSN_OFFSET) ;
             eleKey = cappedRecord.getField( FIELD_NAME_RBS_RECORD_KEY ) ;
             vector< BSONElement > vecKey = eleKey.Array() ;
 
             recordTransID = eleTransID.numberLong();
+            recordLSNOffset = eleLsnOffset.numberLong();
             // 4. setup return data for qualified version
             if ( ( vecKey[0].numberInt() == csid ) &&
                  ( vecKey[1].numberInt() == clid ) &&
-                 ( vecKey[2].numberInt() == rid._extent ) &&
-                 ( vecKey[3].numberInt() == rid._offset ) &&
+                 ( recordLSNOffset == lsn ) &&
                  sdbGetTransCB()->isVersionVisible( recordTransID,
                                                     transid) )
             {
@@ -1324,7 +1330,6 @@ namespace engine
       pmdEDUCB   *eduCB      = pmdGetThreadEDUCB() ;
       CHAR        clName[30] = {0} ;
       DPS_TRANS_ID maxGlobTransID  = 0 ;
-      UINT64      lowTran    = 0 ;
       SINT32      curPos     = (position == DMS_META_RBS_CL) ? DMS_FIRST_RBS_CL :
                                                  ( position + 1 ) ;
       SINT32      begin      = curPos ;
@@ -1336,7 +1341,7 @@ namespace engine
       // recycle the CL by dropping it.
       while ( TRUE )
       {
-         // FIXME:  is it safe to do dirty read here? I "think" it's ok because
+         // Note: Is it safe to do dirty read here? I "think" it's ok because
          // the appendRecord guy could move _cur to next, the worst case here
          // is we stopped a little early
          if ( curPos == _currentCollection )
@@ -1353,7 +1358,6 @@ namespace engine
          DMS_BUILD_RBS_CL_NAME( clName, curPos ) ;
 
          // retrieve system lowtran
-         lowTran = sdbGetTransCB()->getLowTran() ;
 
          // acquire mbLock before work on this CL, since we will try
          // to drop it, let's take X directly
@@ -1371,12 +1375,12 @@ namespace engine
          PD_LOG ( PDDEBUG,
                   "Got maxGlobTransID and lowTran (%d, %d), curPos=%d",
                    DPS_TRANS_GET_SN(maxGlobTransID),
-                   DPS_TRANS_GET_SN(lowTran), curPos ) ;
+                   DPS_TRANS_GET_SN(sdbGetTransCB()->getLowTran()), curPos ) ;
 #endif
-         // do GC when lowTran is invalid, meaning no running transaction
-         // or the cl max transID is older than lowtran
-         if ( sdbGetTransCB()->transIDLessThan( maxGlobTransID, lowTran ) ||
-              ( DPS_INVALID_TRANS_ID == lowTran ) )
+         // Do GC when the cl max transID is older than lowtran
+         // TODO: we may want to do GC when lowTran is invalid, meaning no 
+         // running transaction
+         if ( sdbGetTransCB()->isVersionExpired( maxGlobTransID ) )
          {
 
             rc = _su->data()->dropCollection( clName, eduCB, dpsCB,

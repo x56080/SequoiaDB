@@ -1941,6 +1941,7 @@ namespace engine
       ///        release due to rollback. But it won't hurt much
       ///        if we just write it out. There could be an identical
       ///        version in RBS, waste one disk read in the future
+/*
       if ( pmdGetOptionCB()->mvccOn()  && this->hasRecord() )
       {
          // FIXME, decide on the API during review
@@ -1968,7 +1969,7 @@ namespace engine
 #endif
 
       }
-
+*/
       /// 2. release the tree node if mvcc is not turned on
       itSet = _oldIdx.begin() ;
       while( itSet != _oldIdx.end() )
@@ -2027,7 +2028,7 @@ namespace engine
       _ownerTID = 0 ;
       _ownerTransID = DPS_INVALID_TRANS_ID ;
       _recordTransID = DPS_INVALID_TRANS_ID ;
-   done:
+
       return ;
    }
 

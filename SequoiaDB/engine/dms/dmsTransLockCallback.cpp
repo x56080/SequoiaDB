@@ -847,6 +847,7 @@ namespace engine
       // get the owner transaction id
       transID = _eduCB->getTransID() ;
 
+/*
         // FIXME: remove
 #ifdef _DEBUG
       PD_LOG( PDDEBUG, "saving old record :rid(%d, %d), transd(%llu),"
@@ -875,7 +876,7 @@ namespace engine
          // in releaseRecord, we can simply call it and handle everything
          _oldVer->releaseRecord() ;
       }
-
+*/
       // if the oldRecord does not exist, we will create one
       if ( _oldVer && _oldVer->isRecordEmpty() )
       {
@@ -887,14 +888,16 @@ namespace engine
          else
          {
             const dmsRecord *pRecord= pRecordRW->readPtr( 0 ) ;
+            DPS_LSN_OFFSET lsn = pRecord->getLSNOffset() ;
         // FIXME: remove
 #ifdef _DEBUG
-      PD_LOG( PDDEBUG, "saving old record to memory:"
-                 "rid(%d, %d), ownertransid(%llu) "
-                 "recordTransID(%llu)",
+      PD_LOG( PDDEBUG, "saving old record to memory and RBS:"
+                 "rid(%d, %d), ownertransid(%llu), "
+                 "recordTransID(%llu), lsn(%llu)",
                  rid._extent, rid._offset, 
                  DPS_TRANS_GET_SN(transID),
-                 DPS_TRANS_GET_SN(pRecord->getGlobTransID()) ) ;
+                 DPS_TRANS_GET_SN(pRecord->getGlobTransID()),
+                 lsn ) ;
 #endif
 
             // 1. get to overflow record if needed
@@ -913,6 +916,28 @@ namespace engine
                goto error ;
             }
 
+            // 3. write version to RBS at the same if mvccon
+            if ( pmdGetOptionCB()->mvccOn() )
+            {
+               rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
+                      ->appendRecord( _oldVer->getCSID(), 
+                                      _oldVer->getCLID(),
+                                      lsn, 
+                                      pRecord->getGlobTransID(),
+                                      transID,
+                                      obj ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, 
+                          "Failed to save to RBS  :rid(%d, %d), tid(%llu), "
+                          "obj(%s), lsn(%llu)",
+                          rid._extent, rid._offset, 
+                          DPS_TRANS_GET_SN(transID), 
+                          _oldVer->getRecordObj().toString().c_str(),
+                          lsn ) ;
+                  goto error ;
+               }
+            }
          }
          // 3. hang the old version container to the linked list
          if ( !_unitPtr.get() )
