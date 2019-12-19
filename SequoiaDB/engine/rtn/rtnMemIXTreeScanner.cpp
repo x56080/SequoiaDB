@@ -314,7 +314,6 @@ namespace engine
 
       INT32 rc             = SDB_OK ;
       monAppCB * pMonAppCB = _cb ? _cb->getMonAppCB() : NULL ;
-      DPS_TRANS_ID lowTran = DPS_INVALID_TRANS_ID ;
 
    begin:
       // first time run, _curIndexPos was set to invalid, we need to
@@ -468,18 +467,16 @@ namespace engine
                // can skip it
 
 
-               lowTran = _pTransCB->getLowTran() ;
-               if ( _pTransCB->transIDLessThan( nodeKey.getNodeTransID(),
-                                                lowTran ) )
+               if ( _pTransCB->isVersionExpired( nodeKey.getNodeTransID() ) )
                {
                   // FIXME: remove from set
 #ifdef _DEBUG
                   PD_LOG( PDDEBUG,
                           "Skipping rid(%d, %d) in memory tree due to "
-                          "lowtran (%llu), node transid(%llu)",
+                          "lowtran(%llu), node transid(%llu)",
                           nodeKey.getRID()._extent,
                           nodeKey.getRID()._offset, 
-                          DPS_TRANS_GET_SN(lowTran),
+                          DPS_TRANS_GET_SN( _pTransCB->getLowTran() ),
                           nodeKey.getNodeTransID() ) ;
 #endif
                   _savedRID.reset() ;

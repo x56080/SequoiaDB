@@ -361,7 +361,7 @@ namespace engine
       // return invalid trans id if we didn't find any
       if ( valid )
       {
-         return transIDLessThan(actBegin, hisBegin) ? actBegin : hisBegin ; 
+         return transIDGreaterThan(actBegin, hisBegin) ? hisBegin : actBegin ; 
       }
       else
       {
@@ -369,10 +369,11 @@ namespace engine
       }
    }
 
-   // FIXME: Guomin to implement the proper one
-   BOOLEAN dpsTransCB::transIDLessThan( DPS_TRANS_ID tidL, DPS_TRANS_ID tidR ) 
+   // check if the version(represented by transaction ID) is expired. 
+   // Expired means it's older than system lowtran
+   BOOLEAN dpsTransCB::isVersionExpired( DPS_TRANS_ID transID ) 
    {
-      return ( DPS_TRANS_GET_SN(tidL) < DPS_TRANS_GET_SN(tidR) ) ; 
+      return ( DPS_TRANS_GET_SN(transID) < DPS_TRANS_GET_SN( getLowTran() ) ) ;
    }
 
    // FIXME: Guomin to implement the proper one

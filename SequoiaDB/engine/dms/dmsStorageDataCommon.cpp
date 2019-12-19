@@ -3006,32 +3006,34 @@ namespace engine
    {
       INT32 rc                      = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD ) ;
-      UINT32 dmsRecordSize          = 0 ;
+      UINT32         dmsRecordSize  = 0 ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
-      BSONObj insertObj             = record ;
-      BOOLEAN hasInsert             = FALSE ;
-      dpsTransCB *pTransCB          = pmdGetKRCB()->getTransCB() ;
-      UINT32 logRecSize             = 0 ;
-      monAppCB * pMonAppCB          = cb ? cb->getMonAppCB() : NULL ;
-      dpsMergeInfo info ;
-      dpsLogRecord &logRecord       = info.getMergeBlock().record() ;
-      SDB_DPSCB *dropDps            = NULL ;
+      BSONObj        insertObj      = record ;
+      BOOLEAN        hasInsert      = FALSE ;
+      dpsTransCB    *pTransCB       = pmdGetKRCB()->getTransCB() ;
+      UINT32         logRecSize     = 0 ;
+      monAppCB      *pMonAppCB      = cb ? cb->getMonAppCB() : NULL ;
+      dpsMergeInfo   info ;
+      dpsLogRecord  &logRecord      = info.getMergeBlock().record() ;
+      SDB_DPSCB     *dropDps        = NULL ;
       // trans related
-      DPS_TRANS_ID transID          = cb->getTransID() ;
+      DPS_TRANS_ID   transID        = cb->getTransID() ;
       DPS_LSN_OFFSET preTransLsn    = cb->getCurTransLsn() ;
       DPS_LSN_OFFSET relatedLsn     = cb->getRelatedTransLSN() ;
-      BOOLEAN  isTransLocked        = FALSE ;
+      BOOLEAN        isTransLocked  = FALSE ;
       // delete record related
-      dmsRecordID foundRID ;
-      dmsRecordData recordData ;
-      dmsExtRW extRW ;
-      dmsRecordRW recordRW ;
-      const dmsExtent *pExtent      = NULL ;
-      BOOLEAN newMem                = FALSE ;
-      CHAR *pMergedData             = NULL ;
-      _dmsCompressorEntry *compressorEntry = &_compressorEntry[context->mbID()] ;
-      UINT32 textIdxNum             = 0 ;
-      IDmsExtDataHandler * handler  = NULL ;
+      dmsRecordID          foundRID ;
+      dmsRecordData        recordData ;
+      dmsExtRW             extRW ;
+      dmsRecordRW          recordRW ;
+      dmsRecord           *pRecord  = NULL ;
+      const dmsExtent     *pExtent  = NULL ;
+      BOOLEAN              newMem   = FALSE ;
+      CHAR                *pMergedData = NULL ;
+      _dmsCompressorEntry *compressorEntry =
+                                    &_compressorEntry[context->mbID()] ;
+      UINT32               textIdxNum  = 0 ;
+      IDmsExtDataHandler  *handler  = NULL ;
       BOOLEAN markInsert            = FALSE ;
       dmsTransLockCallback callback( pTransCB, cb ) ;
 
@@ -3050,7 +3052,7 @@ namespace engine
               pTransExe->getRecord( relatedLsn, foundRID, TRUE ) )
          {
             markInsert = TRUE ;
-            const dmsRecord *pRecord = NULL ;
+            const dmsRecord *pcRecord = NULL ;
 
             rc = context->mbLock( EXCLUSIVE ) ;
             PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d",
@@ -3059,8 +3061,8 @@ namespace engine
             recordRW = record2RW( foundRID, context->mbID() ) ;
 
             /// 1. check status
-            pRecord = recordRW.readPtr<dmsRecord>() ;
-            if ( !pRecord->isDeleting() )
+            pcRecord = recordRW.readPtr<dmsRecord>() ;
+            if ( !pcRecord->isDeleting() )
             {
                SDB_ASSERT( FALSE, "Record is not deleting" ) ;
                markInsert = FALSE ;
@@ -3243,7 +3245,6 @@ namespace engine
 
          if ( markInsert )
          {
-            dmsRecord *pRecord = NULL ;
             extRW = extent2RW( foundRID._extent, context->mbID() ) ;
             dmsExtent *pWRExtent = extRW.writePtr< dmsExtent >() ;
             pExtent = pWRExtent ;
@@ -3260,9 +3261,9 @@ namespace engine
 
             // We don't need to handle migration in this code path because
             // markInsert is for rollback purpose. The record version should
-            // be up to date. But let's assert it
-            SDB_ASSERT( pRecord->hasGlobTransID(), "Record is down level version" ) ;
-            
+            // be up to date or this is a cappedCL record. But let's assert it
+            SDB_ASSERT( pRecord->hasGlobTransID(),
+                        "Record is down level version during rollback" ) ;
 
             ++( pWRExtent->_recCount ) ;
             _increaseMBStat( context->mb()->_clUniqueID,
@@ -3405,6 +3406,10 @@ namespace engine
          PD_RC_CHECK ( rc, PDERROR, "Failed to insert record into log, "
                        "rc: %d", rc ) ;
          dropDps = dpscb ;
+
+         // after writen log record, put the lsn back into record
+         pRecord = recordRW.writePtr( dmsRecordSize ) ;
+         pRecord->setLSNOffset( logRecord.head()._lsn ) ;
       }
       else if ( cb->getLsnCount() > 0 )
       {

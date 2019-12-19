@@ -99,6 +99,7 @@ namespace engine
       }
    } ;
 
+#if 0
    // Rollback segment record key, used for hash and match
    class dmsRBSRecordKey
    {
@@ -106,37 +107,37 @@ namespace engine
       // original record CSID, CLID and rid.
       dmsStorageUnitID  _csID ; 
       UINT16            _clID ;
-      dmsRecordID       _rid ; 
+      DPS_LSN           _lsn ; 
 
    public:
       dmsRBSRecordKey()
       {
          _csID = DMS_INVALID_SUID ;
          _clID = DMS_INVALID_CLID ;
-         _rid.reset() ;  
+         _lsn.reset() ;  
       }
 
       dmsRBSRecordKey( dmsStorageUnitID  csid,
                        UINT16            clid,
-                       dmsRecordID       rid)
+                       DPS_LSN           lsn )
       {
          _csID = csid ;
          _clID = clid ;
-         _rid  = rid ;  
+         _lsn  = lsn ;  
       }
 
-      BOOLEAN  operator==(const dmsRBSRecordKey&rhs) const
+      BOOLEAN  operator==(const dmsRBSRecordKey &rhs) const
       {
          return ( ( _csID == rhs._csID ) && 
                   ( _clID == rhs._clID ) &&
-                  ( _rid == rhs._rid ) ) ;
+                  ( _lsn == rhs._lsn ) ) ;
       }
 
-      BOOLEAN  operator!=(const dmsRBSRecordKey&rhs) const
+      BOOLEAN  operator!=(const dmsRBSRecordKey &rhs) const
       {
          return ( ( _csID != rhs._csID ) ||
                   ( _clID != rhs._clID ) ||
-                  ( _rid != rhs._rid ) ) ;
+                  ( _lsn != rhs._lsn ) ) ;
       }
       dmsRBSRecordKey&  operator=(const dmsRBSRecordKey &rhs)
       {
@@ -160,7 +161,7 @@ namespace engine
             }
             else if ( _clID == rhs._clID )
             {
-               rv = (_rid < rhs._rid) ;
+               rv = (_lsn < rhs._lsn) ;
             }
          }
          return rv ;
@@ -361,36 +362,40 @@ namespace engine
       }
    } ;
    typedef _dmsRBSRecord dmsRBSRecord ;
+#endif
 
-   class _dmsRBSHashValue
+   class _dmsRBSHashBkt
    {
    private:
-      dmsRBSOffset   _offset ;  // offset on disk
-      ossSpinXLatch  _latch ;   // latch to protect the bucket
+      // we may have different implementation of how to store and access
+      // the old versions. Eventually, we may want to cache the newest 
+      // old "version" in memory, which could be hanging off the record
+      // lock. 
+      // Full size is 32k* (40+12)B = 1.6MB
+      dmsRBSOffset   _offset[ DMS_RBS_HASH_BKT_SLOTS ] ;  // offset on disk
+      ossSpinXLatch  _latch[ DMS_RBS_HASH_BKT_SLOTS ] ;   // latch to protect the bucket
 
    public: 
-      _dmsRBSHashValue()
-      : _offset() ,
-        _latch()
+      _dmsRBSHashBkt()
       {
       }
 
-      void   lock()
+      void   lock( UINT32 bkt )
       {
-         _latch.get() ;
+         _latch[bkt].get() ;
       }
-      void   release()
+      void   release( UINT32 bkt )
       {
-         _latch.release() ;
+         _latch[bkt].release() ;
       }
-      void   setOffset( dmsRBSOffset & o ) 
+      void   setOffset( dmsRBSOffset & o, UINT32 bkt ) 
       {
-         _offset = o ;
+         _offset[bkt] = o ;
       }
 
-      dmsRBSOffset & getOffset ()
+      dmsRBSOffset & getOffset ( UINT32 bkt )
       {
-         return _offset ;
+         return _offset[bkt] ;
       }
    } ;
 
@@ -412,12 +417,7 @@ namespace engine
       CHAR _metaCLName[30] ;
 
       // The hash bucket to point to the head of the record. 
-      // we may have different implementation of how to store and access
-      // the old versions. Eventually, we may want to cache the newest 
-      // old "version" in memory, which could be hanging off the record
-      // lock. but in first round, we will simply store everything on disk.
-      // Full size is 32k* (40+12)B = 1.6MB
-      _dmsRBSHashValue    _rbsRecordBkt[ DMS_RBS_HASH_BKT_SLOTS ] ;
+      _dmsRBSHashBkt    _rbsRecordBkt ;
  
    public :
       _dmsRBSSUMgr ( _SDB_DMSCB *dmsCB ) ;
@@ -430,34 +430,34 @@ namespace engine
       SINT32 release ( _dmsMBContext *&context ) ;
 
       SINT32 reserve ( _dmsMBContext **ppContext, UINT64 eduID ) ;
-
+/*
       SINT32 appendRecord ( dmsStorageUnitID  csid,
                             UINT16            clid,
                             dmsRecordID       rid,
                             DPS_TRANS_ID      recordTransid,
                             DPS_TRANS_ID      ownerTransid,
                             const dmsRecord  *record) ; 
-
+*/
       SINT32 appendRecord ( dmsStorageUnitID  csid,
                             UINT16            clid,
-                            dmsRecordID       rid,
+                            DPS_LSN_OFFSET    lsn,
                             DPS_TRANS_ID      recordTransid,
                             DPS_TRANS_ID      ownerTransid,
                             const BSONObj     &obj );
-
+/*
       SINT32 getRecord ( dmsStorageUnitID  csid,
                          UINT16            clid,
                          dmsRecordID       rid,
                          DPS_TRANS_ID      transid,
                          BOOLEAN          &found,
                          dmsRecordData    &record ) ; 
-
+*/
       SINT32 getRecord1 ( dmsStorageUnitID  csid,
-                         UINT16            clid,
-                         dmsRecordID       rid,
-                         DPS_TRANS_ID      transid,
-                         BOOLEAN          &found,
-                         dmsRecordData    &record ) ; 
+                          UINT16            clid,
+                          DPS_LSN_OFFSET    &lsn,
+                          DPS_TRANS_ID      transid,
+                          BOOLEAN          &found,
+                          dmsRecordData    &record ) ; 
       void gcRBS ( ) ;
 
    private:
@@ -485,7 +485,7 @@ namespace engine
       // based on csId, clID and rid to hash to a bucket
       OSS_INLINE UINT32 _hash ( dmsStorageUnitID  _csID ,
                                 UINT16            _clID ,
-                                dmsRecordID       _rid ) ;
+                                DPS_LSN_OFFSET   &_lsn ) ;
 
       SINT32 _gcRBS ( UINT16 &position ) ;
 
@@ -498,7 +498,7 @@ namespace engine
                                    pmdEDUCB     *eduCB,
                                    dmsMBContext *metaContext,
                                    dmsMBContext *&clContext ) ;
-
+/*
       SINT32 _writeRecToLocation( dmsRBSOffset         location,
                                   dmsStorageUnitID     csid,
                                   UINT16               clid,
@@ -508,7 +508,7 @@ namespace engine
                                   UINT32               recSize,
                                   pmdEDUCB            *eduCB,
                                   dmsMBContext        *context ) ;
-
+*/
       SINT32 _gcRBS ( SINT32 &position ) ;
 
    } ;
@@ -516,12 +516,16 @@ namespace engine
 
    OSS_INLINE UINT32 _dmsRBSSUMgr::_hash ( dmsStorageUnitID  _csID ,
                                            UINT16            _clID ,
-                                           dmsRecordID       _rid ) 
+                                           DPS_LSN_OFFSET   &_lsn ) 
    {
       UINT64 b = 0 ;
+      // Use 12 bits out of 32 for CSID ( cover 4096 CSs ),
+      // Use 8 bits out of 16 for CLID ( cover 256 CLs),
+      // Use 44 bits out 64 for lsn offset ( which can cover years
+      // of logs for busy system )
       b |= (UINT64)(_csID & 0xFFF) << 52 ;
-      b |= (UINT64)(_rid._extent & 0xFFFFFF) << 28 ;
-      b |= (_rid._offset & 0xFFFFFFF) ;
+      b |= (UINT64)(_clID & 0xFF) << 44 ;
+      b |= (_lsn & 0xFFFFFFFFFFF) ;
 
       // ossHash use DJB Hash ( Daniel J. Bernstein ) algorithm :
       //   h(i) = h(i-1) * 33 + str[i]

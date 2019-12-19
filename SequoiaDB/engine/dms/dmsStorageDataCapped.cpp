@@ -1131,11 +1131,13 @@ namespace engine
                                                      pmdEDUCB *cb,
                                                      BOOLEAN isInsert )
    {
-      INT32 rc = SDB_OK ;
+      INT32            rc          = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__EXTENTINSERTRECORD ) ;
-      dmsCappedRecord *pRecord = NULL ;
-      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
-      dmsExtentInfo *workExtInfo = getWorkExtInfo( context->mbID() ) ;
+      dmsCappedRecord *pRecord     = NULL ;
+      monAppCB        *pMonAppCB   = cb ? cb->getMonAppCB() : NULL ;
+      dmsExtentInfo   *workExtInfo = getWorkExtInfo( context->mbID() ) ;   
+      DPS_TRANS_ID     transID     = cb ? cb->getTransID() : 
+                                          DPS_INVALID_TRANS_ID ;
 
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
@@ -1154,6 +1156,14 @@ namespace engine
       pRecord->resetAttr() ;
       pRecord->setSize( recordSize ) ;
       pRecord->setRecordNo( workExtInfo->currentRecNo() + 1 ) ;
+      // setup global transaction id
+      // FIXME: to be removed
+      PD_LOG ( PDDEBUG, "set cappedrecord(%d, %d) transID: %llu",
+               recordRW.getRecordID()._extent,
+               recordRW.getRecordID()._offset,
+               DPS_TRANS_GET_SN(transID) ) ;
+      pRecord->setGlobTransID( transID ) ;
+
       {
          // Force set the logical id in the record. Logical id is always at the
          // beginning of the record.
@@ -1165,11 +1175,17 @@ namespace engine
       // FIXME: remove
 #ifdef _DEBUG
          PD_LOG( PDDEBUG, 
-                 "insert record (recordsize=%d, Bson obj size=%d) to capped cl"
-                 "which logicalid(%lld), rid(%d, %d)", 
-                 recordSize, recordData.len(), *lidPtr,
+                 "insert record (recordsize=%d, Bson obj size=%d) to capped cl,"
+                 "with flag(%d) logicalid(%lld), rid(%d, %d), "
+                 "recsize(%d),reclogicID(%lld), recTransID(%llu), recLSN(%llu)",
+                 recordSize, recordData.len(), (*lidPtr), 
+                 pRecord->getFlag(),
                  recordRW.getRecordID()._extent, 
-                 recordRW.getRecordID()._offset ) ;
+                 recordRW.getRecordID()._offset,
+                 pRecord->getSize(),
+                 pRecord->getLogicalID(),
+                 pRecord->getGlobTransID(),
+                 pRecord->getLSNOffset() ) ;
 #endif
       }
 

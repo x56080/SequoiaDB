@@ -45,6 +45,7 @@
 #include "ossUtil.hpp"
 #include "utilCompressor.hpp"
 #include "dpsDef.hpp"
+#include "dpsLogDef.hpp"
 
 namespace engine
 {
@@ -168,7 +169,7 @@ namespace engine
    #define DMS_RECORD_FLAG_DELETED           0x04
    // 4~7 bit for ATTR
    #define DMS_RECORD_FLAG_COMPRESSED        0x10
-   // Indicate this record has global transaction ID, introduced in v1
+   // Indicate this record has global transaction ID and lsn, introduced in v1
    #define DMS_RECORD_FLAG_HASGLOBTRANSID    0x20
    // some one wait X-lock, the last one who get X-lock will delete the record
    #define DMS_RECORD_FLAG_DELETING          0x80
@@ -373,7 +374,8 @@ namespace engine
    class _dmsRecord_v1 : public _dmsRecord_v0
    {
    public :
-     DPS_TRANS_ID  _globTransID ;  // global transaction ID
+     DPS_LSN_OFFSET _lsnOffset ;    // record creation lsn
+     DPS_TRANS_ID   _globTransID ;  // global transaction ID
 
       /*
          Follow _globTransID is:
@@ -398,6 +400,11 @@ namespace engine
          setHasGlobTransID() ;
       }
 
+      DPS_LSN_OFFSET getLSNOffset() const
+      {
+         return _lsnOffset ;
+      }
+
       DPS_TRANS_ID getGlobTransID() const
       {
          return _globTransID ;
@@ -414,7 +421,14 @@ namespace engine
          setHasGlobTransID() ;
       }
 
-      void setGlobTransID ( const DPS_TRANS_ID globtransid )
+      void setLSNOffset ( const DPS_LSN_OFFSET &lsnOffset )
+      {
+         SDB_ASSERT( (this->hasGlobTransID()), 
+                     "This is not a V1 record" ) ;
+         _lsnOffset = lsnOffset ;
+      }
+
+      void setGlobTransID ( const DPS_TRANS_ID &globtransid )
       {
          _globTransID = DPS_TRANS_GET_SN(globtransid) ;
          setHasGlobTransID() ;
@@ -426,7 +440,8 @@ namespace engine
          SDB_ASSERT( !(this->hasGlobTransID()), 
                      "This is not a V0 record" ) ;
          // Only migrate if has enough space for the extra 8 byte
-         if ( ((dmsRecord_v0 *) this)->getSize() - 8 > 
+         if ( ((dmsRecord_v0 *) this)->getSize() - sizeof(DPS_LSN_OFFSET) -
+                                sizeof(DPS_TRANS_ID) > 
               ((dmsRecord_v0 *) this)->getDataLength() )
          {
 
@@ -569,6 +584,9 @@ namespace engine
       // an record within the capped CS
       INT64       _logicalID ;
 
+      DPS_LSN_OFFSET _lsnOffset ;  // record creation lsn offset
+      DPS_TRANS_ID  _globTransID ; // global transaction ID updated the record
+                                   // it's the same trans created cappedRecord
    public:
       CHAR getFlag() const
       {
@@ -617,6 +635,7 @@ namespace engine
 
       void resetAttr()
       {
+         // Capped record has no lsn and transID fields
          return ((dmsRecord*)this)->resetAttr() ;
       }
 
@@ -649,6 +668,29 @@ namespace engine
       {
          return ((const dmsRecord*)this)->getState() ;
       }
+
+      DPS_TRANS_ID getGlobTransID() const
+      {
+         return _globTransID ;
+      }
+
+      void setGlobTransID ( const DPS_TRANS_ID &globtransid )
+      {
+         _globTransID = DPS_TRANS_GET_SN(globtransid) ;
+         ((dmsRecord*)this)->setHasGlobTransID() ;
+      }
+
+      DPS_LSN_OFFSET getLSNOffset() const
+      {
+         return _lsnOffset ;
+      }
+
+      void setLSNOffset ( const DPS_LSN_OFFSET &lsnOffset )
+      {
+         SDB_ASSERT( ( ((dmsRecord*)this)->hasGlobTransID() ), 
+                     "This is not a V1 record" ) ;
+         _lsnOffset = lsnOffset ;
+      }
    } ;
    typedef _dmsCappedRecord dmsCappedRecord ;
 
@@ -666,9 +708,8 @@ namespace engine
       }                 _head ;
       dmsOffset         _myOffset ;
       dmsRecordID       _next ;
-      // FIXME: Enable this in main once we switch default record to V1
-      DPS_TRANS_ID      _globTransID ;  // the position of the GTID is same
-                                        // as v1 record. So once a record is 
+      DPS_LSN_OFFSET    _lsnOffset ;    // the position of the lsn/GTID is same
+      DPS_TRANS_ID      _globTransID ;  // as v1 record. So once a record is 
                                         // deleted under new release, it's 
                                         // automatically converted to v1 type
 
@@ -720,7 +761,6 @@ namespace engine
       {
          setFlag( DMS_RECORD_FLAG_DELETED ) ;
       }
-//#if 0    // FIXME:enable this in main later
       void setHasGlobTransID()
       {
          _head._recordHead[ 0 ] |= DMS_RECORD_FLAG_HASGLOBTRANSID ;
@@ -730,7 +770,11 @@ namespace engine
          setHasGlobTransID() ;
          _globTransID = DPS_INVALID_TRANS_ID ;
       }
-//#endif
+      void resetLSNOffset ( )
+      {
+         _lsnOffset = DPS_INVALID_LSN_OFFSET ;
+      }
+
    } ;
    typedef _dmsDeletedRecord dmsDeletedRecord ;
    #define DMS_DELETEDRECORD_METADATA_SZ  sizeof(dmsDeletedRecord)
