@@ -193,7 +193,17 @@ namespace engine
          }
          else if ( SDB_OK != _retCode )
          {
-            detail = BSON( SPT_ERR << _strOut ) ;
+            if ( _strOut.empty() )
+            {
+               stringstream ss ;
+               ss << "Run command(\"" << _command << "\") return code is "
+                  << _retCode ;
+               detail = BSON( SPT_ERR << ss.str() ) ;
+            }
+            else
+            {
+               detail = BSON( SPT_ERR << _strOut ) ;
+            }
             rc = _retCode ;
             goto error ;
          }
