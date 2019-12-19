@@ -671,8 +671,8 @@ namespace engine
                // before the lowtran check
                if ( !pmdGetOptionCB()->mvccOn()   || 
                     !_curRecordPtr->hasGlobTransID() ||
-                   _pTransCB->isVersionExpired( _curRecordPtr->
-                                                getGlobTransID() ) )
+                   _pTransCB->transIDLessThan( _curRecordPtr->getGlobTransID(),
+                                           _pTransCB->getLowTran() ) ) 
                {
                   INT32 rc1 = _pSu->deleteRecord( _context, _curRID,
                                                   0, cb, NULL, NULL,
@@ -2166,8 +2166,9 @@ namespace engine
                if ( !pmdGetOptionCB()->mvccOn() ||
                     !_curRecordPtr->hasGlobTransID() ||
                     ( TRUE  && 
-                      _pTransCB->isVersionExpired( 
-                                      _curRecordPtr->getGlobTransID() ) ) )
+                      _pTransCB->transIDLessThan( 
+                                      _curRecordPtr->getGlobTransID(),
+                                      _pTransCB->getLowTran() ) ) )
                {
                   INT32 rc1 = _pSu->deleteRecord( _context, _curRID, 0,
                                                   cb, NULL, NULL,

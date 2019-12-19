@@ -45,7 +45,6 @@
 #include "ossUtil.hpp"
 #include "utilCompressor.hpp"
 #include "dpsDef.hpp"
-#include "dpsLogDef.hpp"
 
 namespace engine
 {
@@ -169,7 +168,7 @@ namespace engine
    #define DMS_RECORD_FLAG_DELETED           0x04
    // 4~7 bit for ATTR
    #define DMS_RECORD_FLAG_COMPRESSED        0x10
-   // Indicate this record has global transaction ID and lsn, introduced in v1
+   // Indicate this record has global transaction ID, introduced in v1
    #define DMS_RECORD_FLAG_HASGLOBTRANSID    0x20
    // some one wait X-lock, the last one who get X-lock will delete the record
    #define DMS_RECORD_FLAG_DELETING          0x80
@@ -374,7 +373,6 @@ namespace engine
    class _dmsRecord_v1 : public _dmsRecord_v0
    {
    public :
-     DPS_LSN       _lsn ;    // record creation lsn
      DPS_TRANS_ID  _globTransID ;  // global transaction ID
 
       /*
@@ -400,11 +398,6 @@ namespace engine
          setHasGlobTransID() ;
       }
 
-      DPS_LSN getLSN() const
-      {
-         return _lsn ;
-      }
-
       DPS_TRANS_ID getGlobTransID() const
       {
          return _globTransID ;
@@ -421,11 +414,6 @@ namespace engine
          setHasGlobTransID() ;
       }
 
-      void setLSN ( const DPS_LSN lsn )
-      {
-         _lsn = lsn ;
-      }
-
       void setGlobTransID ( const DPS_TRANS_ID globtransid )
       {
          _globTransID = DPS_TRANS_GET_SN(globtransid) ;
@@ -438,8 +426,7 @@ namespace engine
          SDB_ASSERT( !(this->hasGlobTransID()), 
                      "This is not a V0 record" ) ;
          // Only migrate if has enough space for the extra 8 byte
-         if ( ((dmsRecord_v0 *) this)->getSize() - sizeof(DPS_LSN) -
-                                sizeof(DPS_TRANS_ID) > 
+         if ( ((dmsRecord_v0 *) this)->getSize() - 8 > 
               ((dmsRecord_v0 *) this)->getDataLength() )
          {
 
