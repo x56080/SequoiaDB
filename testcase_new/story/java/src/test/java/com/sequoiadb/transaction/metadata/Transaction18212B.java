@@ -110,7 +110,8 @@ public class Transaction18212B extends SdbTestBase {
                         "{$inc:{a:10}}", "{}'':'idx18212'" );
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -190 && e.getErrorCode() != -23
-                        && e.getErrorCode() != -34 ) {
+                        && e.getErrorCode() != -34
+                        && e.getErrorCode() != -248 ) {
                     throw e;
                 }
             } finally {
