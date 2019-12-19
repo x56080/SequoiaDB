@@ -78,20 +78,22 @@ public class Transaction17828 extends SdbTestBase {
         sdb2.beginTransaction();
         sdb3.beginTransaction();
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( sdb2 );
+        String transactionID3 = TransUtils.getTransactionID( sdb3 );
+
         // 2 trans1 insert record R2
         cl1.insert( data2 );
 
         // 3 trans2 delete r1 and r2
         DeleteThread deleteThread = new DeleteThread();
         deleteThread.start();
-        Assert.assertTrue( deleteThread
-                .matchBlockingMethod( cl2.getClass().getName(), "delete" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         // 4 trans3 read
         QueryThread queryThread = new QueryThread();
         queryThread.start();
-        Assert.assertTrue( queryThread
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 5 no trans read
         expDataList.clear();
@@ -110,8 +112,7 @@ public class Transaction17828 extends SdbTestBase {
         sdb1.commit();
         Assert.assertTrue( deleteThread.isSuccess(),
                 deleteThread.getErrorMsg() );
-        Assert.assertFalse( deleteThread
-                .matchBlockingMethod( cl2.getClass().getName(), "delete" ) );
+        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         // no trans read
         Assert.assertEquals( cl.getCount(
@@ -132,8 +133,7 @@ public class Transaction17828 extends SdbTestBase {
         // 8 read after trans2 commit
         sdb2.commit();
         Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
-        Assert.assertFalse( queryThread
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         Assert.assertEquals( cl.getCount(
                 new BasicBSONObject( "a", new BasicBSONObject( "$isnull", 0 ) ),

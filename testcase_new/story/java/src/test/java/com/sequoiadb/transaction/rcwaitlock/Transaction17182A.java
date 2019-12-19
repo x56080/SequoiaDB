@@ -87,6 +87,10 @@ public class Transaction17182A extends SdbTestBase {
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( db2 );
+        String transactionID3 = TransUtils.getTransactionID( db3 );
+
         // 事务1 select for update读记录走索引扫描
         DBCursor recordsCursor = cl1.query( "{a:{$exists:1}}", null, null,
                 "{'':'textIndex17182'}", DBQuery.FLG_QUERY_FOR_UPDATE );
@@ -96,14 +100,12 @@ public class Transaction17182A extends SdbTestBase {
         // 事务2 select for update读记录走表扫描阻塞
         CL2Query cl2Thread = new CL2Query( null, "{'':null}" );
         cl2Thread.start();
-        Assert.assertTrue( cl2Thread
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         // 事务3更新记录阻塞
         CL3Update cl3Update = new CL3Update();
         cl3Update.start();
-        Assert.assertTrue( cl3Update
-                .matchBlockingMethod( cl3.getClass().getName(), "update" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 提交事务1
         db1.commit();
@@ -116,8 +118,7 @@ public class Transaction17182A extends SdbTestBase {
         } catch ( InterruptedException e ) {
             Assert.fail( e.getMessage() );
         }
-        Assert.assertTrue( cl3Update
-                .matchBlockingMethod( cl3.getClass().getName(), "update" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 非事务表扫描
         recordsCursor = cl.query( null, null, null, "{'':null}" );

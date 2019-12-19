@@ -106,14 +106,16 @@ public class Transaction17778 extends SdbTestBase {
         sdb2.beginTransaction();
         sdb3.beginTransaction();
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( sdb2 );
+
         // 2 trans1 insert record
         cl1.update( new BasicBSONObject( "a", 1 ), modifier3, null );
 
         // 3 trans2 update
         UpdateThread updateThread = new UpdateThread();
         updateThread.start();
-        Assert.assertTrue( updateThread
-                .matchBlockingMethod( cl2.getClass().getName(), "update" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         // 4 trans1 read
         expDataList.add( data2 );
@@ -154,8 +156,7 @@ public class Transaction17778 extends SdbTestBase {
         sdb1.commit();
         Assert.assertTrue( updateThread.isSuccess(),
                 updateThread.getErrorMsg() );
-        Assert.assertFalse( updateThread
-                .matchBlockingMethod( cl2.getClass().getName(), "update" ) );
+        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         expDataList.clear();
         expDataList.add( data4 );

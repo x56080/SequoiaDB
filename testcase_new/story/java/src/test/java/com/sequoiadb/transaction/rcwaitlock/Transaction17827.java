@@ -95,20 +95,22 @@ public class Transaction17827 extends SdbTestBase {
         sdb2.beginTransaction();
         sdb3.beginTransaction();
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( sdb2 );
+        String transactionID3 = TransUtils.getTransactionID( sdb3 );
+
         // 2 trans1 insert record R2
         cl1.insert( data2 );
 
         // 3 trans2 update R1 and R2 to R3 and R4
         UpdateThread updateThread = new UpdateThread();
         updateThread.start();
-        Assert.assertTrue( updateThread
-                .matchBlockingMethod( cl2.getClass().getName(), "update" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         // 4 trans3 read
         QueryThread queryThread = new QueryThread();
         queryThread.start();
-        Assert.assertTrue( queryThread
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 5 no trans read
         expDataList.clear();
@@ -128,8 +130,7 @@ public class Transaction17827 extends SdbTestBase {
         sdb1.commit();
         Assert.assertTrue( updateThread.isSuccess(),
                 updateThread.getErrorMsg() );
-        Assert.assertFalse( updateThread
-                .matchBlockingMethod( cl2.getClass().getName(), "update" ) );
+        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         expDataList.clear();
         expDataList.add( data3 );
@@ -158,8 +159,7 @@ public class Transaction17827 extends SdbTestBase {
         // 8 read after trans2 commit
         sdb2.commit();
         Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
-        Assert.assertFalse( queryThread
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         recordCur = cl.query( null, null, "{a:1}", "{'': null}" );
         actDataList = TransUtils.getReadActList( recordCur );

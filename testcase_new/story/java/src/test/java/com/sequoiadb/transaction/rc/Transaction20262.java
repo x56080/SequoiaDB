@@ -69,6 +69,9 @@ public class Transaction20262 extends SdbTestBase {
         db1.beginTransaction();
         db2.beginTransaction();
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( db2 );
+
         // 事务1指定_id字段更新记录R1为R2；事务2指定_id字段更新记录R1为R3。
         cl1.update( "{_id:1}", "{$set:{a:2}}", "" );
         List< BSONObject > expList = new ArrayList<>();
@@ -76,8 +79,7 @@ public class Transaction20262 extends SdbTestBase {
         TransUtils.queryAndCheck( cl1, "{_id:1}", expList );
         Trans2Update th2 = new Trans2Update();
         th2.start();
-        Assert.assertTrue( th2.matchBlockingMethod(
-                DBCollection.class.getName(), "update" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         // 事务1指定_id删除记录R2，然后回滚；事务2提交。
         cl1.delete( "{_id:1}" );

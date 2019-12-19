@@ -44,7 +44,7 @@ public class Transaction17158B extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         // 开启事务1
         db1.beginTransaction();
 
@@ -62,14 +62,14 @@ public class Transaction17158B extends SdbTestBase {
         // 事务2表扫描记录
         Read read1 = new Read( "{'':null}" );
         read1.start();
-        Assert.assertTrue( read1.matchBlockingMethod( DBCursor.class.getName(),
-                "hasNext" ) );
 
         // 事务2索引扫描记录
         Read read2 = new Read( "{'':'a'}" );
         read2.start();
-        Assert.assertTrue( read2.matchBlockingMethod( DBCursor.class.getName(),
-                "hasNext" ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read1.getTransactionID() ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read2.getTransactionID() ) );
 
         // 非事务表扫描记录
         cursor = cl.query( null, null, "{a:1}", "{'':null}" );
@@ -116,6 +116,9 @@ public class Transaction17158B extends SdbTestBase {
 
             // 开启并发事务2
             db2.beginTransaction();
+
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( db2 );
 
             try {
                 cursor = cl2.query( null, null, "{a:1}", hint );

@@ -71,6 +71,7 @@ public class Transaction18428 extends SdbTestBase {
 
         // 开启事务1，select for update R1
         db1.beginTransaction();
+        String transactionID1 = TransUtils.getTransactionID( db1 );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
         DBCursor cursor = cl1.query( "{a:1}", "", "", "{'':'" + idxName + "'}",
                 DBQuery.FLG_QUERY_FOR_UPDATE );
@@ -90,8 +91,7 @@ public class Transaction18428 extends SdbTestBase {
         // 事务1删除记录R1
         CL1Delete th1 = new CL1Delete();
         th1.start();
-        Assert.assertTrue( th1.matchBlockingMethod(
-                DBCollection.class.getName(), "delete" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID1 ) );
 
         // 提交事务2，检查结果
         db2.commit();

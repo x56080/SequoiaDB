@@ -133,14 +133,17 @@ public class Transaction17821 extends SdbTestBase {
             sdb2.beginTransaction();
             sdb3.beginTransaction();
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( sdb2 );
+
             // 事务1插入记录
             cl1.insert( insertR2 );
 
             // 事务2更新记录R1为R3，R2为R4
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue( updateThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "update" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 事务1记录读，正序查询
             expDataList.clear();

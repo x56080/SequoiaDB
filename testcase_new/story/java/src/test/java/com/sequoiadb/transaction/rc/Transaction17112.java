@@ -95,6 +95,9 @@ public class Transaction17112 extends SdbTestBase {
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID3 = TransUtils.getTransactionID( db3 );
+
             // 事务1 select for update读记录走表扫描
             DBCursor recordsCursor = cl1.query( null, null, null, "{'':null}",
                     DBQuery.FLG_QUERY_FOR_UPDATE );
@@ -137,8 +140,8 @@ public class Transaction17112 extends SdbTestBase {
             // 事务3更新记录阻塞
             CL3Update cl3Update = new CL3Update();
             cl3Update.start();
-            Assert.assertTrue( cl3Update.matchBlockingMethod(
-                    cl3.getClass().getName(), "update" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
             // 提交事务1
             db1.commit();

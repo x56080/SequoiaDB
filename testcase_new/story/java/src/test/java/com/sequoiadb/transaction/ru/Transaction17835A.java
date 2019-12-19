@@ -109,14 +109,16 @@ public class Transaction17835A extends SdbTestBase {
         sdb2.beginTransaction();
         sdb3.beginTransaction();
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( sdb2 );
+
         // 2 trans1 update record
         cl1.update( new BasicBSONObject( "a", 1 ), modifier3, null );
 
         // 3 trans2 update
         UpdateThread updateThread = new UpdateThread();
         updateThread.start();
-        Assert.assertTrue( updateThread
-                .matchBlockingMethod( cl2.getClass().getName(), "update" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         expDataList.add( data2 );
         expDataList.add( data3 );

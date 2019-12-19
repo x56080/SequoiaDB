@@ -107,6 +107,11 @@ public class Transaction17756B extends SdbTestBase {
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
             cl4 = db4.getCollectionSpace( csName ).getCollection( clName );
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( db2 );
+            String transactionID3 = TransUtils.getTransactionID( db3 );
+            String transactionID4 = TransUtils.getTransactionID( db4 );
+
             // 插入记录R1
             ArrayList< BSONObject > insertR1s = TransUtils
                     .insertRandomDatas( cl, startId, stopId );
@@ -118,22 +123,22 @@ public class Transaction17756B extends SdbTestBase {
             // 事务2匹配R2更新为R3
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue( updateThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "update" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 事务3读
             TransactionQueryThread tableScanThread1 = new TransactionQueryThread(
                     cl3, "{a:1}" );
             tableScanThread1.start();
-            Assert.assertTrue( tableScanThread1.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
             // 事务4逆序读
             TransactionQueryThread tableScanThread2 = new TransactionQueryThread(
                     cl4, "{a: -1}" );
             tableScanThread2.start();
-            Assert.assertTrue( tableScanThread2.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID4 ) );
 
             // 非事务读
             ArrayList< BSONObject > updateR1s = TransUtils.getIncDatas( startId,

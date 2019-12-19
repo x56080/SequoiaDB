@@ -56,10 +56,13 @@ public class Transaction18047 extends SdbTestBase {
             cl1.delete( null, "{'':'a'}" );
 
             db2.beginTransaction();
+
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( db2 );
             Operation operation2 = new Operation( cl2 );
             operation2.start();
-            Assert.assertTrue( operation2.matchBlockingMethod(
-                    cl2.getClass().getName(), "delete" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             db1.rollback();
             if ( !operation2.isSuccess() ) {

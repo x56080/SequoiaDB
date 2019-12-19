@@ -91,10 +91,13 @@ public class Transaction18418A extends SdbTestBase {
 
         // 开启事务3，删除记录R1
         db3.beginTransaction();
+
+        // 判断事务阻塞需先获取事务id
+        String transactionID3 = TransUtils.getTransactionID( db3 );
+
         CL3Delete th3 = new CL3Delete();
         th3.start();
-        Assert.assertTrue( th3.matchBlockingMethod(
-                DBCollection.class.getName(), "delete" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 待事务3等锁超时后，提交事务2
         Assert.assertFalse(

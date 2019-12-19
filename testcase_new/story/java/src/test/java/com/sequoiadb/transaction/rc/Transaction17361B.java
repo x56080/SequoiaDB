@@ -104,14 +104,17 @@ public class Transaction17361B extends SdbTestBase {
             sdb2.beginTransaction();
             sdb3.beginTransaction();
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( sdb2 );
+
             // 事务1插入记录R2，R2>R1
             cl1.insert( insertR2 );
 
             // 事务2删除R1及R2
             DeleteThread deleteThread = new DeleteThread();
             deleteThread.start();
-            Assert.assertTrue( deleteThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "delete" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 事务1正序记录读
             expDataList.clear();

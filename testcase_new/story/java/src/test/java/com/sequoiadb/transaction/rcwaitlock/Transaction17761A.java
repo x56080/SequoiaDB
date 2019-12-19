@@ -136,6 +136,11 @@ public class Transaction17761A extends SdbTestBase {
             sdb3.beginTransaction();
             sdb4.beginTransaction();
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( sdb2 );
+            String transactionID3 = TransUtils.getTransactionID( sdb3 );
+            String transactionID4 = TransUtils.getTransactionID( sdb4 );
+
             // 插入记录
             cl.insert( insertR1 );
             cl.createIndex( "a", indexKey, false, false );
@@ -146,20 +151,20 @@ public class Transaction17761A extends SdbTestBase {
             // 事务2更新记录R1及R2
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue( updateThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "update" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 事务3索引读,正序
             QueryThread queryThread1 = new QueryThread( cl3, "{a:1}" );
             queryThread1.start();
-            Assert.assertTrue( queryThread1.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
             // 事务4索引读,逆序
             QueryThread queryThread2 = new QueryThread( cl4, "{a:-1}" );
             queryThread2.start();
-            Assert.assertTrue( queryThread2.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID4 ) );
 
             // 非事务记录读，正序
             recordCur = cl.query( null, null, "{a:1}", "{'': null}" );
@@ -189,10 +194,10 @@ public class Transaction17761A extends SdbTestBase {
             sdb1.commit();
             Assert.assertTrue( updateThread.isSuccess(),
                     updateThread.getErrorMsg() );
-            Assert.assertTrue( queryThread1.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
-            Assert.assertTrue( queryThread2.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID4 ) );
 
             // 非事务记录读，正序
             recordCur = cl.query( null, null, "{a:1}", "{'': null}" );

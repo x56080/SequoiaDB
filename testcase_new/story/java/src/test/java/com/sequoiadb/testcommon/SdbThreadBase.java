@@ -10,6 +10,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.transaction.TransUtils;
+
 public abstract class SdbThreadBase implements Runnable {
     private List< Throwable > exceptionList = Collections
             .synchronizedList( new ArrayList< Throwable >() );
@@ -84,6 +87,29 @@ public abstract class SdbThreadBase implements Runnable {
         synchronized ( syncRes ) {
             syncRes.notifyAll();
         }
+    }
+
+    private String transacationID;
+
+    public void setTransactionID( Sequoiadb db ) {
+        assert thread != null;
+        this.transacationID = TransUtils.getTransactionID( db );
+        synchronized ( syncRes ) {
+            syncRes.notifyAll();
+        }
+    }
+
+    public String getTransactionID() throws InterruptedException {
+        /*
+         * if ( thread == null || this.transacationID != null ) { return
+         * this.transacationID; }
+         */
+        while ( this.transacationID == null ) {
+            synchronized ( syncRes ) {
+                syncRes.wait( 10 );
+            }
+        }
+        return transacationID;
     }
 
     // 返回结果集
@@ -256,7 +282,7 @@ public abstract class SdbThreadBase implements Runnable {
         };
 
         base.start();
-        base.matchBlockingMethod( base.getClass().getName(), "exec" );
+        // base.matchBlockingMethod( base.getClass().getName(), "exec" );
 
         try {
             Thread.sleep( 10000 );
@@ -264,7 +290,7 @@ public abstract class SdbThreadBase implements Runnable {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        base.matchBlockingMethod( base.getClass().getName(), "exec" );
+        // base.matchBlockingMethod( base.getClass().getName(), "exec" );
 
     }
 }

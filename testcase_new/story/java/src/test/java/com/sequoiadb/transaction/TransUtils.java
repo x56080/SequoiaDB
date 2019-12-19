@@ -28,7 +28,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  *
  */
 
-public class TransUtils {
+public class TransUtils extends SdbTestBase {
 
     public static final int FLG_INSERT_CONTONDUP = 0x00000001;
     /**
@@ -637,6 +637,47 @@ public class TransUtils {
         } while ( true );
 
         return isConsistency;
+    }
+
+    // 获取事务ID
+    public static String getTransactionID( Sequoiadb db ) {
+        // 在已开启事务的会话上，执行一个无关的查询，以获取当前会话上的事务id
+        DBCollection cl = db.getCollectionSpace( csName )
+                .getCollection( reservedCL );
+        DBCursor cursor = cl.query();
+        while ( cursor.hasNext() ) {
+            cursor.getNext();
+        }
+        cursor.close();
+        String transactionID = ( String ) db
+                .getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT, "",
+                        "{TransactionID:''}", "" )
+                .getCurrent().get( "TransactionID" );
+        return transactionID;
+    }
+
+    // 判断是否是否在等锁
+    public static boolean isTransWaitLock( Sequoiadb db,
+            String transactionID ) {
+        // 避免线程未启动
+        try {
+            Thread.sleep( 500 );
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+        }
+        boolean isTransWaitLock = false;
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS,
+                "{TransactionID:'" + transactionID + "'}", "{WaitLock:\"\"}",
+                "" );
+        while ( cursor.hasNext() ) {
+            BSONObject waitLock = ( BSONObject ) cursor.getNext()
+                    .get( "WaitLock" );
+            if ( !waitLock.isEmpty() ) {
+                isTransWaitLock = true;
+            }
+        }
+        cursor.close();
+        return isTransWaitLock;
     }
 }
 

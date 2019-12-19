@@ -82,10 +82,11 @@ public class Transaction18409A extends SdbTestBase {
 
         // 开启事务2，select for update R1
         db2.beginTransaction();
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( db2 );
         CL2Query th2 = new CL2Query();
         th2.start();
-        Assert.assertTrue( th2.matchBlockingMethod( DBCursor.class.getName(),
-                "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         // 开启事务3，查询记录R1
         db3.beginTransaction();

@@ -75,6 +75,9 @@ public class Transaction17186 extends SdbTestBase {
         db1.beginTransaction();
         db2.beginTransaction();
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( db2 );
+
         // 事务1更新记录
         cl1.update( "{a:1}", "{$set:{a:10}}", "{'':null}" );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:10, b:1}" );
@@ -94,8 +97,7 @@ public class Transaction17186 extends SdbTestBase {
         // 事务2读记录走表扫描阻塞
         CL2Query cl2Thread = new CL2Query( null, "{'':null}" );
         cl2Thread.start();
-        Assert.assertTrue( cl2Thread
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         // 提交事务1
         db1.commit();

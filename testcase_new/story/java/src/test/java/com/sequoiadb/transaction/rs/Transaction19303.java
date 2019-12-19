@@ -93,6 +93,9 @@ public class Transaction19303 extends SdbTestBase {
             cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( db2 );
+
             // 事务1查询R1
             TransUtils.queryAndCheck( cl1, hint, expList );
 
@@ -109,7 +112,8 @@ public class Transaction19303 extends SdbTestBase {
             // 事务2升级s锁为x锁，阻塞等锁
             Cl2Update cl2Update = new Cl2Update( hint );
             cl2Update.start();
-            cl2Update.matchBlockingMethod( cl2.getClass().getName(), "update" );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 事务1 u锁升级为x锁，升级失败，事务回滚
             try {

@@ -94,7 +94,6 @@ public class Transaction17220 extends SdbTestBase {
         try {
             cl.createIndex( "a", indexKey, false, false );
 
-
             // 开启3个并发事务
             db1.beginTransaction();
             db2.beginTransaction();
@@ -102,6 +101,9 @@ public class Transaction17220 extends SdbTestBase {
             cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
+
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( db2 );
 
             // 插入记录R1
             TransUtils.insertRandomDatas( cl, startId, stopId );
@@ -114,8 +116,8 @@ public class Transaction17220 extends SdbTestBase {
             // 事务2匹配R1删除
             DeleteThread deleteThread = new DeleteThread();
             deleteThread.start();
-            Assert.assertTrue( deleteThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "delete" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 事务1记录读
             ArrayList< BSONObject > updateR1s = TransUtils.getIncDatas( startId,

@@ -12,7 +12,6 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
@@ -30,6 +29,7 @@ public class Transaction18643 extends SdbTestBase {
     private Sequoiadb sdb;
     private Sequoiadb db1;
     private Sequoiadb db2;
+    private Sequoiadb db3;
     private String hashCLName = "cl18643_hash";
     private String hintTbScan = "{'':null}";
     private String hintIxScan = "{'':'idx18643'}";
@@ -41,6 +41,7 @@ public class Transaction18643 extends SdbTestBase {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -65,6 +66,10 @@ public class Transaction18643 extends SdbTestBase {
             db2.commit();
             db2.close();
         }
+        if ( db3 != null ) {
+            db3.commit();
+            db3.close();
+        }
         if ( sdb != null ) {
             CollectionSpace cs = sdb.getCollectionSpace( csName );
             cs.dropCollection( hashCLName );
@@ -73,28 +78,32 @@ public class Transaction18643 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         // 开启两个并发事务
         db1.beginTransaction();
         db2.beginTransaction();
+        db3.beginTransaction();
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( hashCLName );
         DBCollection cl2 = db2.getCollectionSpace( csName )
                 .getCollection( hashCLName );
-
+        DBCollection cl3 = db3.getCollectionSpace( csName )
+                .getCollection( hashCLName );
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( db2 );
+        String transactionID3 = TransUtils.getTransactionID( db3 );
         // 事务1批量删除记录后为R2s
         cl1.delete( null, hintIxScan );
 
         // 事务2表扫描/索引扫描记录
-        CL2Query th2_1 = new CL2Query( hintTbScan, expList );
+        Query th2_1 = new Query( cl2, hintTbScan, expList );
         th2_1.start();
-        Assert.assertTrue( th2_1.matchBlockingMethod( DBCursor.class.getName(),
-                "hasNext" ) );
 
-        CL2Query th2_2 = new CL2Query( hintIxScan, expList );
+        Query th2_2 = new Query( cl3, hintIxScan, expList );
         th2_2.start();
-        Assert.assertTrue( th2_2.matchBlockingMethod( DBCursor.class.getName(),
-                "hasNext" ) );
+
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 非事务表扫描/索引扫描记录
         TransUtils.queryAndCheck( cl, "{a:1}", hintTbScan,
@@ -118,31 +127,24 @@ public class Transaction18643 extends SdbTestBase {
 
         // 事务2提交
         db2.commit();
+        db3.commit();
     }
 
-    private class CL2Query extends SdbThreadBase {
+    private class Query extends SdbThreadBase {
         private String hint;
         private List< BSONObject > expList;
+        private DBCollection cl;
 
-        private CL2Query( String hint, List< BSONObject > expList ) {
+        private Query( DBCollection cl, String hint,
+                List< BSONObject > expList ) {
+            this.cl = cl;
             this.hint = hint;
             this.expList = expList;
         }
 
         @Override
         public void exec() throws Exception {
-            Sequoiadb db2 = null;
-            try {
-                db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-                db2.beginTransaction();
-                DBCollection cl2 = db2.getCollectionSpace( csName )
-                        .getCollection( hashCLName );
-                TransUtils.queryAndCheck( cl2, "{a:1}", hint, expList );
-                db2.commit();
-            } finally {
-                db2.rollback();
-                db2.close();
-            }
+            TransUtils.queryAndCheck( cl, "{a:1}", hint, expList );
         }
     }
 }

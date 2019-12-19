@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
@@ -43,7 +42,6 @@ public class Transaction18046 extends SdbTestBase {
     private DBCollection cl3 = null;
     private DBCollection cl4 = null;
     private DBCollection cl5 = null;
-    private CountDownLatch latch = null;
     private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeClass
@@ -97,7 +95,6 @@ public class Transaction18046 extends SdbTestBase {
     @Test(dataProvider = "index")
     public void test( String indexKey ) {
         try {
-            latch = new CountDownLatch( 5 );
             cl = sdb.getCollectionSpace( csName ).createCollection( clName );
             cl.createIndex( "textIndex18046", indexKey, false, false );
             expList = TransUtils.getCompositeRecords( 0, 8000, 0, 10 );
@@ -148,45 +145,17 @@ public class Transaction18046 extends SdbTestBase {
             // 提交插入事务
             Assert.assertTrue( insertThread.isSuccess(),
                     insertThread.getErrorMsg() );
+
             db1.commit();
-
-            int doTimes = 0;
-            while ( true ) {
-                doTimes++;
-                boolean update = updateThread.matchBlockingMethod(
-                        DBCollection.class.getName(), "update" );
-                boolean delete = deleteThread.matchBlockingMethod(
-                        DBCollection.class.getName(), "delete" );
-                boolean updateFlag = false;
-                boolean deleteFlag = false;
-                if ( !update ) {
-                    if ( updateThread.isSuccess() ) {
-                        db2.commit();
-                        updateFlag = true;
-                    }
-                }
-                if ( !delete ) {
-                    if ( deleteThread.isSuccess() ) {
-                        db3.commit();
-                        deleteFlag = true;
-                    }
-                }
-                if ( updateFlag && deleteFlag ) {
-                    break;
-                }
-                try {
-                    Thread.sleep( 1000 );
-                } catch ( InterruptedException e ) {
-                    e.printStackTrace();
-                }
-                Assert.assertNotEquals( doTimes, 120 );
-            }
-
-            // 提交事务
             Assert.assertTrue( updateThread.isSuccess(),
                     updateThread.getErrorMsg() );
+
+            db2.commit();
             Assert.assertTrue( deleteThread.isSuccess(),
                     deleteThread.getErrorMsg() );
+
+            // 提交事务
+            db3.commit();
 
             // 非事务表扫描
             List< BSONObject > tbScanActList = TransUtils.queryToBSONList( cl,
@@ -203,10 +172,8 @@ public class Transaction18046 extends SdbTestBase {
                     "", "{a:1, b:-1, _id:1}", "{'':'textIndex18046'}" );
             Assert.assertEquals( tbScanActList, ixScanActList );
 
-            latch.await();
-        } catch ( BaseException | InterruptedException e ) {
-            e.printStackTrace();
-            Assert.fail( e.getMessage() );
+        } catch ( BaseException e ) {
+            throw e;
         } finally {
             db1.commit();
             db2.commit();
@@ -215,6 +182,7 @@ public class Transaction18046 extends SdbTestBase {
             db5.commit();
             CollectionSpace cs = sdb.getCollectionSpace( csName );
             cs.dropCollection( clName );
+
         }
     }
 
@@ -245,8 +213,6 @@ public class Transaction18046 extends SdbTestBase {
             } catch ( Exception e ) {
                 e.printStackTrace();
                 throw e;
-            } finally {
-                latch.countDown();
             }
         }
     }
@@ -260,9 +226,10 @@ public class Transaction18046 extends SdbTestBase {
                 cl2.update( "{$and:[{b:{$gt:39000}},{b:{$lt:49001}}]}",
                         "{$inc:{a:10, b:10}}", "{'':'textIndex18046'}" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -13 );
-            } finally {
-                latch.countDown();
+                if ( e.getErrorCode() != -13 ) {
+                    e.printStackTrace();
+                    throw e;
+                }
             }
         }
     }
@@ -276,9 +243,10 @@ public class Transaction18046 extends SdbTestBase {
                 cl3.delete( "{$and:[{b:{$gt:36000}},{b:{$lt:46001}}]}",
                         "{'':'textIndex18046'}" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -13 );
-            } finally {
-                latch.countDown();
+                if ( e.getErrorCode() != -13 ) {
+                    e.printStackTrace();
+                    throw e;
+                }
             }
         }
     }
@@ -311,7 +279,6 @@ public class Transaction18046 extends SdbTestBase {
                             + "}},{b:{$in:" + Arrays.toString( randArray )
                             + "}}]}",
                     null, "{a:1, b:1}", hint, expList );
-            latch.countDown();
         }
     }
 }

@@ -71,6 +71,7 @@ public class Transaction18429 extends SdbTestBase {
 
         // 开启事务1，查询R1
         db1.beginTransaction();
+        String transactionID1 = TransUtils.getTransactionID( db1 );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
         DBCursor cursor = cl1.query( "{a:1}", "", "",
                 "{'':'" + idxName + "'}" );
@@ -91,8 +92,7 @@ public class Transaction18429 extends SdbTestBase {
         // 事务1更新记录R1为R2
         CL1Update th1 = new CL1Update();
         th1.start();
-        Assert.assertTrue( th1.matchBlockingMethod(
-                DBCollection.class.getName(), "update" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID1 ) );
 
         // 回滚事务2，检查结果
         db2.rollback();

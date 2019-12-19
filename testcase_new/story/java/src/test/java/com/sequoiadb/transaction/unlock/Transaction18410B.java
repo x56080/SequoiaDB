@@ -79,19 +79,20 @@ public class Transaction18410B extends SdbTestBase {
 
         // 开启事务2，查询记录R1
         db2.beginTransaction();
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( db2 );
         CL2Query th2 = new CL2Query();
         th2.start();
-        Assert.assertTrue( th2.matchBlockingMethod( DBCursor.class.getName(),
-                "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         Thread.sleep( TransUtils.delayTime );
 
         // 开启事务3，删除记录R1
         db3.beginTransaction();
+        String transactionID3 = TransUtils.getTransactionID( db3 );
         CL3Delete th3 = new CL3Delete();
         th3.start();
-        Assert.assertTrue( th3.matchBlockingMethod(
-                DBCollection.class.getName(), "delete" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 待事务2等锁超时后，提交事务1，事务3删除记录R1成功，提交所有事务，再次开启事务，执行查询，检查结果
         Assert.assertFalse(

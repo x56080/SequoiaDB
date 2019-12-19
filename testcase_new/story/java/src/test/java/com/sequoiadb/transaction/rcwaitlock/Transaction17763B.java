@@ -79,20 +79,22 @@ public class Transaction17763B extends SdbTestBase {
         sdb2.beginTransaction();
         sdb3.beginTransaction();
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( sdb2 );
+        String transactionID3 = TransUtils.getTransactionID( sdb3 );
+
         // 2 trans1 query.update
         cl1.insert( data2 );
 
         // 3 trans2 delete r1 and r2
         DeleteThread deleteThread = new DeleteThread();
         deleteThread.start();
-        Assert.assertTrue( deleteThread
-                .matchBlockingMethod( cl2.getClass().getName(), "delete" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         // 4 trans3 read
         QueryThread queryThread = new QueryThread();
         queryThread.start();
-        Assert.assertTrue( queryThread
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 5 no trans read
         expDataList.clear();

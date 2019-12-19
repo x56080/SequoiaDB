@@ -54,7 +54,7 @@ public class Transaction17825B extends SdbTestBase {
                 .parse( "{_id:'insertID17825B_1',a:1,b:1,c:1}" );
         insertR2 = ( BSONObject ) JSON
                 .parse( "{_id:'insertID17825B_2',a:2,b:2,c:2}" );
-        
+
         db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
@@ -92,14 +92,17 @@ public class Transaction17825B extends SdbTestBase {
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( db2 );
+
             // 事务1删除记录R1
             cl1.delete( "{a:1}", hintTbScan );
 
             // 事务2匹配R1、R2删除
             DeleteThread deleteThread = new DeleteThread();
             deleteThread.start();
-            Assert.assertTrue( deleteThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "delete" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 事务1正序记录读
             expList.clear();

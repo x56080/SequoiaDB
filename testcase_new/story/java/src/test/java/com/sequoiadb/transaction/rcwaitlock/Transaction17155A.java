@@ -17,7 +17,6 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
@@ -28,124 +27,150 @@ public class Transaction17155A extends SdbTestBase {
     private String clName = "cl_17155A";
     private Sequoiadb sdb = null;
     private Sequoiadb db1 = null;
+    private Sequoiadb db2 = null;
+    private Sequoiadb db3 = null;
+    private Sequoiadb db4 = null;
+    private Sequoiadb db5 = null;
     private DBCollection cl = null;
     private DBCollection cl1 = null;
-    private DBCursor cursor = null;
-    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private DBCollection cl2 = null;
+    private DBCollection cl3 = null;
+    private DBCollection cl4 = null;
+    private DBCollection cl5 = null;
+    private List< BSONObject > expList1 = new ArrayList< BSONObject >();
+    private List< BSONObject > expList2 = new ArrayList< BSONObject >();
 
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db5 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+        cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
+        cl4 = db4.getCollectionSpace( csName ).getCollection( clName );
+        cl5 = db5.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         BSONObject insertR1 = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
         cl.insert( insertR1 );
+        expList1.add( insertR1 );
 
-        // 开启事务1
+        // 开启事务1及事务2
         db1.beginTransaction();
+        db2.beginTransaction();
+        db3.beginTransaction();
+        db4.beginTransaction();
+        db5.beginTransaction();
+
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( db2 );
+        String transactionID3 = TransUtils.getTransactionID( db3 );
+        String transactionID4 = TransUtils.getTransactionID( db4 );
+        String transactionID5 = TransUtils.getTransactionID( db5 );
 
         // 事务1更新索引字段的值
-        BSONObject updateR1 = ( BSONObject ) JSON.parse( "{_id:1, a:2, b:1}" );
         cl1.update( null, "{$set:{a:2}}", "{'':'a'}" );
-        expList.add( updateR1 );
+        BSONObject updateR1 = ( BSONObject ) JSON.parse( "{_id:1, a:2, b:1}" );
+        expList2.add( updateR1 );
 
-        // 事务2表扫描记录
-        Read read1 = new Read( "{'':null}" );
+        // 事务匹配条件使用更新后值
+        Query read1 = new Query( cl2, "{a:2}", "{'':null}",
+                new ArrayList< BSONObject >() );
         read1.start();
-        Assert.assertTrue( read1.matchBlockingMethod( DBCursor.class.getName(),
-                "hasNext" ) );
-
-        // 事务2索引扫描记录
-        Read read2 = new Read( "{'':'a'}" );
+        Query read2 = new Query( cl3, "{a:2}", "{'':'a'}",
+                new ArrayList< BSONObject >() );
         read2.start();
-        Assert.assertTrue( read2.matchBlockingMethod( DBCursor.class.getName(),
-                "hasNext" ) );
 
-        // 非事务表扫描记录
-        cursor = cl.query( null, null, null, "{'':null}" );
-        Assert.assertEquals( TransUtils.getReadActList( cursor ), expList );
+        // 事务匹配条件使用更新前值
+        Query read3 = new Query( cl4, "{a:1}", "{'':null}", expList1 );
+        read3.start();
+        Query read4 = new Query( cl5, "{a:1}", "{'':'a'}", expList1 );
+        read4.start();
 
-        // 非事务索引扫描记录
-        cursor = cl.query( null, null, null, "{'':'a'}" );
-        Assert.assertEquals( TransUtils.getReadActList( cursor ), expList );
+        // 非事务表扫描/索引扫描记录
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expList2 );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expList2 );
 
-        expList.clear();
-        expList.add( insertR1 );
+        // 回滚事务1
         db1.rollback();
 
-        // 校验阻塞线程返回的记录
-        if ( !read1.isSuccess() || !read2.isSuccess() ) {
-            Assert.fail( read1.getErrorMsg() + read2.getErrorMsg() );
-        }
-        try {
-            Assert.assertEquals( read1.getExecResult(), expList );
-            Assert.assertEquals( read2.getExecResult(), expList );
-        } catch ( Exception e ) {
-            Assert.fail( e.getMessage() );
-        }
+        // 查询线程判断返回成功，且不再等锁
+        Assert.assertTrue( read1.isSuccess(), read1.getErrorMsg() );
+        Assert.assertTrue( read2.isSuccess(), read2.getErrorMsg() );
 
-        cursor.close();
+        Assert.assertTrue( read3.isSuccess(), read3.getErrorMsg() );
+        Assert.assertTrue( read4.isSuccess(), read4.getErrorMsg() );
+
+        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID4 ) );
+        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID5 ) );
+
+        // 再次事务中查询
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList1 );
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}", expList1 );
+
+        // 非事务查询
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expList1 );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expList1 );
+
+        // 提交所有事务
+        db2.commit();
+        db3.commit();
+        db4.commit();
+        db5.commit();
     }
 
-    private class Read extends SdbThreadBase {
-        private Sequoiadb db = null;
-        private Sequoiadb db2 = null;
-        private DBCollection cl = null;
-        private DBCollection cl2 = null;
-        private String hint = null;
-        private DBCursor cursor = null;
+    private class Query extends SdbThreadBase {
+        private String hint;
+        private List< BSONObject > expList;
+        private DBCollection cl;
+        private String findConf;
 
-        public Read( String hint ) {
+        private Query( DBCollection cl, String findConf, String hint,
+                List< BSONObject > expList ) {
+            this.cl = cl;
+            this.findConf = findConf;
             this.hint = hint;
+            this.expList = expList;
         }
 
         @Override
         public void exec() throws Exception {
-            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            cl = db.getCollectionSpace( csName ).getCollection( clName );
-            cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
-
-            // 开启并发事务2
-            db2.beginTransaction();
-
-            try {
-                cursor = cl2.query( null, null, "{_id:1}", hint );
-                List< BSONObject > records = TransUtils
-                        .getReadActList( cursor );
-                setExecResult( records );
-
-                // 事务2扫描记录
-                cursor = cl2.query( null, null, "{_id:1}", hint );
-                Assert.assertEquals( TransUtils.getReadActList( cursor ),
-                        expList );
-
-                // 非事务扫描记录
-                cursor = cl.query( null, null, "{_id:1}", hint );
-                Assert.assertEquals( TransUtils.getReadActList( cursor ),
-                        expList );
-
-                db2.rollback();
-            } finally {
-                db2.rollback();
-                cursor.close();
-                db2.close();
-                db.close();
-            }
+            TransUtils.queryAndCheck( cl, findConf, "", "{a:1}", hint,
+                    expList );
         }
     }
 
     @AfterClass
     public void tearDown() {
         db1.commit();
+        db2.commit();
+        db3.commit();
+        db4.commit();
+        db5.commit();
         if ( !db1.isClosed() ) {
             db1.close();
+        }
+        if ( !db2.isClosed() ) {
+            db2.close();
+        }
+        if ( !db3.isClosed() ) {
+            db3.close();
+        }
+        if ( !db4.isClosed() ) {
+            db4.close();
+        }
+        if ( !db5.isClosed() ) {
+            db5.close();
         }
         CollectionSpace cs = sdb.getCollectionSpace( csName );
         if ( cs.isCollectionExist( clName ) ) {

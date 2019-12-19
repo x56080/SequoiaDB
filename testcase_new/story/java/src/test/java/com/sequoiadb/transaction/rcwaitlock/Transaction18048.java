@@ -37,7 +37,7 @@ public class Transaction18048 extends SdbTestBase {
     }
 
     @Test(dataProvider = "provider_18048", invocationCount = 5)
-    public void test( String clName ) {
+    public void test( String clName ) throws InterruptedException {
         Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         Sequoiadb db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         try {
@@ -54,23 +54,17 @@ public class Transaction18048 extends SdbTestBase {
 
             Read read1 = new Read( clName, "{'':null}" );
             read1.start();
-            Assert.assertTrue( read1.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    read1.getTransactionID() ) );
 
             Read read2 = new Read( clName, "{'':'a'}" );
             read2.start();
-            Assert.assertTrue( read2.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    read2.getTransactionID() ) );
 
             db1.rollback();
             if ( !read1.isSuccess() || !read2.isSuccess() ) {
                 Assert.fail( read1.getErrorMsg() + read2.getErrorMsg() );
-            }
-            try {
-                Assert.assertEquals( read1.getExecResult(), insertR1s );
-                Assert.assertEquals( read2.getExecResult(), insertR1s );
-            } catch ( Exception e ) {
-                Assert.fail( e.getMessage() );
             }
 
         } finally {
@@ -107,10 +101,13 @@ public class Transaction18048 extends SdbTestBase {
                 db.beginTransaction();
                 cl = db.getCollectionSpace( csName ).getCollection( clName );
 
+                // 判断事务阻塞需先获取事务id
+                setTransactionID( db );
+
                 cursor = cl.query( null, null, "{a : 1}", hint );
                 List< BSONObject > records = TransUtils
                         .getReadActList( cursor );
-                setExecResult( records );
+                Assert.assertEquals( records, insertR1s );
                 db.rollback();
             } finally {
                 db.commit();

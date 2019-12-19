@@ -128,10 +128,10 @@ public class Transaction17185 extends SdbTestBase {
             Assert.assertTrue( reverseThread.isSuccess(),
                     reverseThread.getErrorMsg() );
 
-            Assert.assertTrue( positiveThread2.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
-            Assert.assertTrue( reverseThread2.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    ( String ) positiveThread2.getExecResult() ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    ( String ) reverseThread2.getExecResult() ) );
 
             db1.commit();
             db2.commit();
@@ -234,6 +234,7 @@ public class Transaction17185 extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             db3.beginTransaction();
+
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
             cl3.delete( "{$and:[{a:{$gt:10000}},{a:{$lt:20001}}]}",
                     "{'':'textIndex17185'}" );
@@ -296,6 +297,10 @@ public class Transaction17185 extends SdbTestBase {
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                 db.beginTransaction();
+                // 判断事务阻塞需先获取事务id
+                String transactionID2 = TransUtils.getTransactionID( db );
+                setExecResult( transactionID2 );
+
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 DBCursor cursor = cl.query(

@@ -88,6 +88,10 @@ public class Transaction17771B extends SdbTestBase {
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( db2 );
+        String transactionID3 = TransUtils.getTransactionID( db3 );
+
         // 插入记录R1、R2，R1<R2
         BSONObject insertR1 = ( BSONObject ) JSON.parse( "{_id:1,a:1,b:1}" );
         cl.insert( insertR1 );
@@ -100,15 +104,13 @@ public class Transaction17771B extends SdbTestBase {
         // 事务2匹配R1、R2更新为R3、R4,R1<R3<R2
         UpdateThread updateThread = new UpdateThread();
         updateThread.start();
-        Assert.assertTrue( updateThread
-                .matchBlockingMethod( cl2.getClass().getName(), "update" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         // 事务3记录读
         TransactionQueryThread tableScanThread1 = new TransactionQueryThread(
                 cl3 );
         tableScanThread1.start();
-        Assert.assertTrue( tableScanThread1
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 非事务读
         expList.add( insertR2 );
@@ -121,8 +123,7 @@ public class Transaction17771B extends SdbTestBase {
         db1.commit();
         Assert.assertTrue( updateThread.isSuccess(),
                 updateThread.getErrorMsg() );
-        Assert.assertTrue( tableScanThread1
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 非事务记录读
         expList.clear();

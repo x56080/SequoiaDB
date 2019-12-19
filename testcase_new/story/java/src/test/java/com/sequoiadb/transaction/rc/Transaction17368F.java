@@ -100,14 +100,17 @@ public class Transaction17368F extends SdbTestBase {
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( db2 );
+
             // 事务1删除记录R1
             cl1.delete( "{a:3}", hintIxScan );
 
             // 事务2匹配记录R1、R2更新为R3、R4,R1<R2<R3
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue( updateThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "update" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 事务1正序记录读
             expList.clear();

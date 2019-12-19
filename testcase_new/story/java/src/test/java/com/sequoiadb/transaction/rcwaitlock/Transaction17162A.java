@@ -75,6 +75,9 @@ public class Transaction17162A extends SdbTestBase {
         db1.beginTransaction();
         db2.beginTransaction();
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( db2 );
+
         // 事务1删除记录，并插入相同的记录
         cl1.delete( "", "{'':'textIndex17162'}" );
         BSONObject record = ( BSONObject ) JSON.parse( "{a:1, b:1}" );
@@ -84,8 +87,7 @@ public class Transaction17162A extends SdbTestBase {
         // 事务2读记录走表扫描阻塞
         CL2Query cl2Thread = new CL2Query( null, "{'':null}" );
         cl2Thread.start();
-        Assert.assertTrue( cl2Thread
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         // 非事务表扫描
         DBCursor recordsCursor = cl.query( null, null, null, "{'':null}" );

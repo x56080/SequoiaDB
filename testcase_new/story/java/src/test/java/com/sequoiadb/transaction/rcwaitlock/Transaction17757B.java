@@ -97,6 +97,10 @@ public class Transaction17757B extends SdbTestBase {
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( db2 );
+            String transactionID3 = TransUtils.getTransactionID( db3 );
+
             // 插入记录R1
             TransUtils.insertRandomDatas( cl, startId, stopId );
 
@@ -107,8 +111,8 @@ public class Transaction17757B extends SdbTestBase {
             // 事务2匹配R1删除
             DeleteThread deleteThread = new DeleteThread();
             deleteThread.start();
-            Assert.assertTrue( deleteThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "delete" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 事务3读
             // 该查询不进行正序索引 逆序查询,反之亦然.原因是因为正序索引进行更新操作时是正向扫描记录,加锁顺序是1 2 3
@@ -116,8 +120,8 @@ public class Transaction17757B extends SdbTestBase {
             TransactionQueryThread tableScanThread1 = new TransactionQueryThread(
                     cl3, orderBy );
             tableScanThread1.start();
-            Assert.assertTrue( tableScanThread1.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
             // 非事务读
             ArrayList< BSONObject > updateR1s = TransUtils.getIncDatas( startId,
@@ -135,8 +139,8 @@ public class Transaction17757B extends SdbTestBase {
             db1.rollback();
             Assert.assertTrue( deleteThread.isSuccess(),
                     deleteThread.getErrorMsg() );
-            Assert.assertTrue( tableScanThread1.matchBlockingMethod(
-                    DBCursor.class.getName(), "hasNext" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
             // 非事务读
             expList.clear();

@@ -89,6 +89,9 @@ public class Transaction17179A extends SdbTestBase {
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID3 = TransUtils.getTransactionID( db3 );
+
         // 集合中已存在记录R1
         TransUtils.insertDatas( cl, startId, stopId, insertValue );
 
@@ -103,8 +106,7 @@ public class Transaction17179A extends SdbTestBase {
         TransactionQueryThread tableScanThread1 = new TransactionQueryThread(
                 cl3 );
         tableScanThread1.start();
-        Assert.assertTrue( tableScanThread1
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 非事务读
         expList.addAll( insertR2s );
@@ -115,8 +117,7 @@ public class Transaction17179A extends SdbTestBase {
 
         // 提交事务1
         db1.commit();
-        Assert.assertTrue( tableScanThread1
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 非事务读
         cursor = cl.query( null, null, "{_id:1}", hint );

@@ -73,6 +73,10 @@ public class Transaction18237 extends SdbTestBase {
         sdb4.beginTransaction();
         sdb5.beginTransaction();
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID4 = TransUtils.getTransactionID( sdb4 );
+        String transactionID5 = TransUtils.getTransactionID( sdb5 );
+
         // 1 trans1 query
         expDataList.clear();
         expDataList.add( ( BSONObject ) JSON.parse( "{'_id': 1, 'a': 1}" ) );
@@ -103,13 +107,11 @@ public class Transaction18237 extends SdbTestBase {
         // trans 4 query
         QueryThread queryThread1 = new QueryThread( cl4, "{'': null}" );
         queryThread1.start();
-        Assert.assertTrue( queryThread1
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID4 ) );
 
         QueryThread queryThread2 = new QueryThread( cl5, "{'': 'a'}" );
         queryThread2.start();
-        Assert.assertTrue( queryThread2
-                .matchBlockingMethod( DBCursor.class.getName(), "hasNext" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID5 ) );
 
         // no trans read
         expDataList.clear();

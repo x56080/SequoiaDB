@@ -114,6 +114,8 @@ public class Transaction17095 extends SdbTestBase {
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( db2 );
             // 2 事务1插入记录R1
             ArrayList< BSONObject > insertR1s = TransUtils
                     .insertRandomDatas( cl1, startId, stopId );
@@ -121,8 +123,8 @@ public class Transaction17095 extends SdbTestBase {
             // 3 事务2匹配记录R1删除
             DeleteThread deleteThread = new DeleteThread();
             deleteThread.start();
-            Assert.assertTrue( deleteThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "delete" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 4 事务1记录读
             expList.addAll( insertR1s );

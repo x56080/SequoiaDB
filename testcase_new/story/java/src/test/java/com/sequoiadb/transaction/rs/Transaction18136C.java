@@ -89,6 +89,9 @@ public class Transaction18136C extends SdbTestBase {
             db2.beginTransaction();
             db3.beginTransaction();
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID3 = TransUtils.getTransactionID( db3 );
+
             // 事务1读记录走表扫描
             expList.clear();
             expList.add( R1 );
@@ -114,8 +117,8 @@ public class Transaction18136C extends SdbTestBase {
             // 事务3更新记录
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue( updateThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "update" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
             // 提交事务1和事务2
             db1.rollback();

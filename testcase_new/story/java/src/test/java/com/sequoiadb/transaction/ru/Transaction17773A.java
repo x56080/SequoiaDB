@@ -118,6 +118,9 @@ public class Transaction17773A extends SdbTestBase {
             sdb2.beginTransaction();
             sdb3.beginTransaction();
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( sdb2 );
+
             // 插入记录R1
             cl.createIndex( "a", indexKey, false, false );
             cl.insert( insertR1 );
@@ -128,8 +131,8 @@ public class Transaction17773A extends SdbTestBase {
             // 事务2更新记录R1为R3，R2为R4
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue( updateThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "update" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 事务1记录读，正序
             recordCur = cl1.query( null, null, "{a:1}", "{'': null}" );
@@ -207,8 +210,8 @@ public class Transaction17773A extends SdbTestBase {
             sdb1.commit();
             Assert.assertTrue( updateThread.isSuccess(),
                     updateThread.getErrorMsg() );
-            Assert.assertFalse( updateThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "update" ) );
+            Assert.assertFalse(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 非事务记录读，正序
             expDataList.clear();

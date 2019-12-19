@@ -24,6 +24,7 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Optional;
 import org.testng.annotations.Parameters;
 
+import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
@@ -45,6 +46,7 @@ public class SdbTestBase {
     public static String esHostName;
     public static String esServiceName;
     public static String cappedCSName;
+    public static String reservedCL = "java_dummy";
 
     private static final String TRANSACTIONON = "transactionon";
     private static final String TRANSISOLATION = "transisolation";
@@ -209,8 +211,9 @@ public class SdbTestBase {
             if ( sequoiadb.isCollectionSpaceExist( csName ) ) {
                 sequoiadb.dropCollectionSpace( csName );
             }
-            sequoiadb.createCollectionSpace( csName );
-
+            CollectionSpace cs = sequoiadb.createCollectionSpace( csName );
+            cs.createCollection( reservedCL, ( BSONObject ) JSON
+                    .parse( "{ShardingKey:{_id:1},AutoSplit:true}" ) );
             // add capped cs;
             if ( sequoiadb.isCollectionSpaceExist( cappedCSName ) ) {
                 sequoiadb.dropCollectionSpace( cappedCSName );

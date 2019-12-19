@@ -19,6 +19,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @FileName:Transaction16304 test query() with QUERY_FLG_FOR_UPDATE
@@ -59,6 +60,9 @@ public class Transaction16304 extends SdbTestBase {
         cl1 = sdb.getCollectionSpace( commCSName ).getCollection( clName );
         cl2 = sdb2.getCollectionSpace( commCSName ).getCollection( clName );
 
+        // 判断事务阻塞需先获取事务id
+        String transactionID2 = TransUtils.getTransactionID( sdb2 );
+
         BSONObject obj = cl1.queryOne( null, null, null, null,
                 DBQuery.FLG_QUERY_FOR_UPDATE );
         BSONObject expobj = new BasicBSONObject();
@@ -68,8 +72,7 @@ public class Transaction16304 extends SdbTestBase {
 
         CL2Update cl2Update = new CL2Update();
         cl2Update.start();
-        Assert.assertTrue( cl2Update
-                .matchBlockingMethod( cl2.getClass().getName(), "update" ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         sdb.commit();
         Assert.assertTrue( cl2Update.isSuccess(), cl2Update.getErrorMsg() );

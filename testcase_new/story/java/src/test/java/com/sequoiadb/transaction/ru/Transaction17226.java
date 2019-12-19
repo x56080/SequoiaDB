@@ -100,6 +100,9 @@ public class Transaction17226 extends SdbTestBase {
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
+            // 判断事务阻塞需先获取事务id
+            String transactionID2 = TransUtils.getTransactionID( db2 );
+
             // 插入记录R1
             TransUtils.insertRandomDatas( cl, startId, stopId );
 
@@ -111,8 +114,8 @@ public class Transaction17226 extends SdbTestBase {
             // 事务2匹配R1更新为R2
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue( updateThread.matchBlockingMethod(
-                    cl2.getClass().getName(), "update" ) );
+            Assert.assertTrue(
+                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 事务1记录读
             hint = "{\"\":null}";
