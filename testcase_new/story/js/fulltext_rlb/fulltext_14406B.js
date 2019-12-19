@@ -7,86 +7,86 @@
 
 function main ()
 {
-    if( commIsStandalone( db ) ) { return; }
+   if( commIsStandalone( db ) ) { return; }
 
-    var clName = COMMCLNAME + "_ES_14406B";
-    commDropCL( db, COMMCSNAME, clName, true, true );
+   var clName = COMMCLNAME + "_ES_14406B";
+   commDropCL( db, COMMCSNAME, clName, true, true );
 
-    var dbcl = commCreateCL( db, COMMCSNAME, clName );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
-    // 创建全文索引，插入数据
-    var textIndexName = "textIndex_14406B";
-    dbcl.createIndex( textIndexName, { "a": "text" } );
-    var objs = new Array();
-    for( var i = 0; i < 20000; i++ )
-    {
-        objs.push( { a: "test_14406B " + i, b: i } );
-    }
-    dbcl.insert( objs );
+   // 创建全文索引，插入数据
+   var textIndexName = "textIndex_14406B";
+   dbcl.createIndex( textIndexName, { "a": "text" } );
+   var objs = new Array();
+   for( var i = 0; i < 20000; i++ )
+   {
+      objs.push( { a: "test_14406B " + i, b: i } );
+   }
+   dbcl.insert( objs );
 
-    // 异常停止数据主节点
-    var groups = commGetCLGroups( db, COMMCSNAME + "." + clName );
-    var preMaster = db.getRG( groups[0] ).getMaster();
-    var preMasterNodeName = preMaster.getHostName() + ":" + preMaster.getServiceName();
-    var remote = new Remote( preMaster.getHostName(), CMSVCNAME );
-    var cmd = remote.getCmd();
+   // 异常停止数据主节点
+   var groups = commGetCLGroups( db, COMMCSNAME + "." + clName );
+   var preMaster = db.getRG( groups[0] ).getMaster();
+   var preMasterNodeName = preMaster.getHostName() + ":" + preMaster.getServiceName();
+   var remote = new Remote( preMaster.getHostName(), CMSVCNAME );
+   var cmd = remote.getCmd();
 
-    var doTimes = 1;
-    for( ; doTimes <= 50; doTimes++ )
-    {
-        cmd.run( "ps -ef | grep sequoiadb | grep -v grep | grep " + preMaster.getServiceName() + " | awk '{print $2}' | xargs kill -9" );
-        // 等待2min，检查数据组所有节点LSN是否一致
-        checkGroupBusiness( 120, COMMCSNAME, clName );
-        var curMaster = db.getRG( groups[0] ).getMaster();
-        var curMasterNodeName = curMaster.getHostName() + ":" + curMaster.getServiceName();
-        println( "kill times: " + doTimes + "\ncurMasterNodeName: " + curMasterNodeName + "\npreMasterNodeName: " + preMasterNodeName );
-        // 当新主非原主节点，则退出
-        if( preMasterNodeName != curMasterNodeName ) 
-        {
-            break;
-        }
-        sleep( 1000 );
-    }
+   var doTimes = 1;
+   for( ; doTimes <= 50; doTimes++ )
+   {
+      cmd.run( "ps -ef | grep sequoiadb | grep -v grep | grep " + preMaster.getServiceName() + " | awk '{print $2}' | xargs kill -9" );
+      // 等待2min，检查数据组所有节点LSN是否一致
+      checkGroupBusiness( 120, COMMCSNAME, clName );
+      var curMaster = db.getRG( groups[0] ).getMaster();
+      var curMasterNodeName = curMaster.getHostName() + ":" + curMaster.getServiceName();
+      println( "kill times: " + doTimes + "\ncurMasterNodeName: " + curMasterNodeName + "\npreMasterNodeName: " + preMasterNodeName );
+      // 当新主非原主节点，则退出
+      if( preMasterNodeName != curMasterNodeName ) 
+      {
+         break;
+      }
+      sleep( 1000 );
+   }
 
-    // 重新选主后没有切回原主，则抛异常
-    if( doTimes > 50 )
-    {
-        throw buildException( "changePrimary", null, "change primary", preSlaveNodeName, curMasterNodeName );
-    }
+   // 重新选主后没有切回原主，则抛异常
+   if( doTimes > 50 )
+   {
+      throw buildException( "changePrimary", null, "change primary", preSlaveNodeName, curMasterNodeName );
+   }
 
-    // 执行增删改
-    dbcl.insert( [{ a: 'test_14406B 20001', b: 20001 }, { a: 'test_14406B 20002', b: 20002 }, { a: 'test_14406B 20003', b: 20003 }] );
-    dbcl.update( { $set: { a: "test_14406B update" } }, { a: "test_14406B 10001" } );
-    dbcl.remove( { a: "test_14406B 10002" } );
+   // 执行增删改
+   dbcl.insert( [{ a: 'test_14406B 20001', b: 20001 }, { a: 'test_14406B 20002', b: 20002 }, { a: 'test_14406B 20003', b: 20003 }] );
+   dbcl.update( { $set: { a: "test_14406B update" } }, { a: "test_14406B 10001" } );
+   dbcl.remove( { a: "test_14406B 10002" } );
 
-    // 检查数据同步
-    checkFullSyncToES( COMMCSNAME, clName, textIndexName, dbcl.count() );
-    checkConsistency( COMMCSNAME, clName );
+   // 检查数据同步
+   checkFullSyncToES( COMMCSNAME, clName, textIndexName, dbcl.count() );
+   checkConsistency( COMMCSNAME, clName );
 
-    // 全文检索
-    var findConf = { "$not": [{ "b": { "$gte": 10000 } }, { "": { "$Text": { "query": { "match": { "a": "test_14406B" } } } } }] };
-    var actResult = dbOpr.findFromCL( dbcl, findConf, { 'a': '' } );
-    var expResult = dbOpr.findFromCL( dbcl, { "b": { "$lt": 10000 } }, { 'a': '' } );
-    actResult.sort( compare( "a" ) );
-    expResult.sort( compare( "a" ) );
-    checkResult( expResult, actResult );
-    println( "---check result success---" );
+   // 全文检索
+   var findConf = { "$not": [{ "b": { "$gte": 10000 } }, { "": { "$Text": { "query": { "match": { "a": "test_14406B" } } } } }] };
+   var actResult = dbOpr.findFromCL( dbcl, findConf, { 'a': '' } );
+   var expResult = dbOpr.findFromCL( dbcl, { "b": { "$lt": 10000 } }, { 'a': '' } );
+   actResult.sort( compare( "a" ) );
+   expResult.sort( compare( "a" ) );
+   checkResult( expResult, actResult );
+   println( "---check result success---" );
 
-    var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
-    commDropCL( db, COMMCSNAME, clName, true, true );
-    //SEQUOIADBMAINSTREAM-3983
-    checkIndexNotExistInES( esIndexNames );
+   var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   //SEQUOIADBMAINSTREAM-3983
+   checkIndexNotExistInES( esIndexNames );
 }
 try
 {
-    main();
+   main();
 }
 catch( e )
 {
-    if( e.constructor === Error )
-    {
-        println( e.stack );
-    }
-    throw e;
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
 }
 ;

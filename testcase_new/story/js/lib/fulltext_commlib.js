@@ -965,4 +965,8 @@ function isMasterNodeExist ( groupName )
          sleep( 1000 );
       }
    }
+   if( doTimes > 600 )
+   {
+      throw new Error( "Check group has master node timeout" );
+   }
 }
