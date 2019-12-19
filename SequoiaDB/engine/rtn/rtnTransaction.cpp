@@ -68,6 +68,16 @@ namespace engine
          rc = SDB_DPS_TRANS_DIABLED ;
          goto error;
       }
+
+      if ( TRANS_ISOLATION_RR == cb->getTransExecutor()->getTransIsolation() &&
+           !engine::pmdGetKRCB()->getOptionCB()->mvccOn() )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to begin transaction, RR isolation is "
+                     "only supported when mvccon is true" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
       if ( transID.isInvalid() )
       {
          DPS_TRANS_ID tempID ;
