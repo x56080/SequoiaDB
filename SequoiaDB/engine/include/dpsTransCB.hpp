@@ -351,9 +351,7 @@ namespace engine
       DPS_LSN_OFFSET getBeginLsn( DPS_TRANS_ID transID ) ;
       DPS_LSN_OFFSET getOldestBeginLsn() ;
 
-      BOOLEAN  isVersionExpired( DPS_TRANS_ID transID ) ;
-      // FIXME: we can remove this once we modified isVersionVisible and
-      // getLowTran
+      BOOLEAN  transIDLessThan( DPS_TRANS_ID tidL, DPS_TRANS_ID tidR ) ;
       BOOLEAN  transIDGreaterThan( DPS_TRANS_ID tidL, DPS_TRANS_ID tidR ) ;
 
       BOOLEAN  isNeedSyncTrans() ;
