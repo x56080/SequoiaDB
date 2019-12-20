@@ -25,13 +25,13 @@ import com.sequoiadb.transaction.TransUtils;
  * @date 2019-6-12
  *
  */
-@Test(groups = { "rc" })
-public class Transaction18413A extends SdbTestBase {
+@Test(groups = { "rc", "rs" })
+public class Transaction18413B extends SdbTestBase {
     private Sequoiadb sdb;
     private Sequoiadb db1;
     private Sequoiadb db2;
     private Sequoiadb db3;
-    private String clName = "cl18413a";
+    private String clName = "cl18413b";
     private String idxName = "textIndex18413";
 
     @BeforeClass
@@ -69,11 +69,10 @@ public class Transaction18413A extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void test() throws InterruptedException {
         DBCollection cl1 = db1.getCollectionSpace( csName )
-                .getCollection( clName );
-        DBCollection cl3 = db3.getCollectionSpace( csName )
                 .getCollection( clName );
 
         // 开启事务1，select for update R1
@@ -94,17 +93,24 @@ public class Transaction18413A extends SdbTestBase {
         th2.start();
         Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
+        Thread.sleep( TransUtils.delayTime );
+
         // 开启事务3，查询记录R1
         db3.beginTransaction();
-        cursor = cl3.query( "{a:1}", "", "", "{'':'" + idxName + "'}" );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertTrue(
-                actList.size() == 1 && record.equals( actList.get( 0 ) ),
-                "actList: " + actList );
+        String transactionID3 = TransUtils.getTransactionID( db3 );
+        CL3Query th3 = new CL3Query();
+        th3.start();
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
+        // 待事务2等锁超时后，事务3返回R1
         Assert.assertFalse(
                 th2.isSuccess() || ( int ) th2.getExecResult() != -13,
                 th2.getErrorMsg() );
+        Assert.assertTrue( th3.isSuccess(), th3.getErrorMsg() );
+        actList = ( List< BSONObject > ) th3.getExecResult();
+        Assert.assertTrue(
+                actList.size() == 1 && record.equals( actList.get( 0 ) ),
+                "actList: " + actList );
         db1.commit();
         db2.commit();
         db3.commit();
@@ -121,6 +127,18 @@ public class Transaction18413A extends SdbTestBase {
                 setExecResult( e.getErrorCode() );
                 throw e;
             }
+        }
+    }
+
+    private class CL3Query extends SdbThreadBase {
+        @Override
+        public void exec() throws Exception {
+            DBCollection cl3 = db3.getCollectionSpace( csName )
+                    .getCollection( clName );
+            DBCursor cursor = cl3.query( "{a:1}", "", "",
+                    "{'':'" + idxName + "'}" );
+            List< BSONObject > actList = TransUtils.getReadActList( cursor );
+            setExecResult( actList );
         }
     }
 }
