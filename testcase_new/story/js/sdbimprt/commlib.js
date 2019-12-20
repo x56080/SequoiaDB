@@ -131,39 +131,26 @@ function cmdInit()
 @return: install_dir
 **************************************************** */
 function getInstallDir()
-{
-   try
+{      
+   var localPath = cmd.run( "pwd" ).split( "\n" )[0] + "/";
+   println( "localPath   = " + localPath );
+   var installPath = '';
+
+   // 先取当前目录下的 bin/sdbimprt，不存在时，再取安装目录下的 bin/sdbimprt
+   var tmpDir = cmd.run( 'find ./bin/sdbimprt' ).split('\n')[0];
+   if ( tmpDir.indexOf('sdbimprt') !== -1 )
    {
-      var localPath = cmd.run( "pwd" ).split( "\n" )[0] +"/";
-      println("localPath   = "+ localPath );
-      
-      try
-      {
-         //get sequoiadb, if not exists to throw
-         var tmpDir = cmd.run( 'find /etc/default/sequoiadb' );
-         //get sequoiadb install_dir configurature item, if not exists to throw
-         var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR"' );
-         //get sequoiadb director, if not exists to throw
-         var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );     
-         var installPath = tmpDir.split( "\n" )[0] + "/";     
-      }
-      catch( e )
-      {
-         ///etc/default/sequoiadb is not exists 
-         var installPath = localPath;
-         println("instatllpath = "+ installPath );        
-      }
-      println("instatllpath = "+ installPath ); 
-        
+      installPath = localPath;
    }
-   catch( e )
+   else
    {
-      println( "failed to get global variable : cmd/localPath/installPath" + e );
-      throw e;
+      installPath = commGetInstallPath() + "/";
    }
-   
+
+   println( "instatllpath = " + installPath );
    return installPath;
 }
+
 
 /* ****************************************************
 @description: new File
