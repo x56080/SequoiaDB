@@ -10,6 +10,7 @@ isSdbReplayEnable();
 var cmd = initCmd();
 var localPath = null;
 var installDir = getInstallDir();
+println( "toolDir   = " + installDir + 'bin/sdbreplay/' );
 
 var tmpFileDir = WORKDIR + '/sdbreplay/';
 println( "tmpFileDir   = " + tmpFileDir );
@@ -275,33 +276,23 @@ function getTestCaseDir ()
 
 /* ****************************************************
 @description: get install_dir of sequoiadb
+   sdbreplay因为要指定 - path replicalog目录，且用例本身是通过new remote().getCmd()在sequoiadb节点所在远程机器执行的
+   所以获取远程机器sequoiadb安装目录下的bin/sdbreplay即可。
 @return: install_dir
 **************************************************** */
 function getInstallDir ()
-{
+{   
+   var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
+   var rtCmd = remote.getCmd();
    try
-   {
-      var localPath = cmd.run( "pwd" ).split( "\n" )[0] + "/";
-      println( "localPath    = " + localPath );
-
-      try
-      {
-         //get sequoiadb, if not exists to throw
-         var tmpDir = cmd.run( 'find /etc/default/sequoiadb' );
-         //get sequoiadb install_dir configurature item, if not exists to throw
-         var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR"' );
-         //get sequoiadb director, if not exists to throw
-         var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );
-         var installPath = tmpDir.split( "\n" )[0] + "/";
-      }
-      catch( e )
-      {
-         ///etc/default/sequoiadb is not exists 
-         var installPath = localPath;
-         println( "instatllpath = " + installPath );
-      }
-      println( "instatllpath = " + installPath );
-
+   {      
+      //get sequoiadb, if not exists to throw
+      var tmpDir = rtCmd.run( 'find /etc/default/sequoiadb' );
+      //get sequoiadb install_dir configurature item, if not exists to throw
+      var tmpDir = rtCmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR"' );
+      //get sequoiadb director, if not exists to throw
+      var tmpDir = rtCmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );
+      var installPath = tmpDir.split( "\n" )[0] + "/";
    }
    catch( e )
    {
