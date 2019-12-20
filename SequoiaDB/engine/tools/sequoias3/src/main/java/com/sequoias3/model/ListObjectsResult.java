@@ -22,7 +22,7 @@ public class ListObjectsResult {
     private String startAfter;
 
     @JsonProperty("KeyCount")
-    private int    keyCount;
+    private int    keyCount = 0;
 
     @JsonProperty("MaxKeys")
     private int    maxKeys;

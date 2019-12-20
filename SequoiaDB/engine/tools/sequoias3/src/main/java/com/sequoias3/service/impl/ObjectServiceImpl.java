@@ -614,6 +614,10 @@ public class ObjectServiceImpl implements ObjectService {
             ListObjectsResult listObjectsResult = new ListObjectsResult(bucketName, maxKeys,
                     encodingType, prefix, startAfter, delimiter, continueToken);
 
+            if (maxKeys == 0){
+                return listObjectsResult;
+            }
+
             String metaCsName = regionDao.getMetaCurCSName(region);
             String metaClName = regionDao.getMetaCurCLName(region);
 
@@ -734,6 +738,10 @@ public class ObjectServiceImpl implements ObjectService {
             ListObjectsResultV1 listObjectsResult = new ListObjectsResultV1(bucketName, maxKeys,
                     encodingType, prefix, startAfter, delimiter);
 
+            if (maxKeys == 0){
+                return listObjectsResult;
+            }
+
             String metaCsName = regionDao.getMetaCurCSName(region);
             String metaClName = regionDao.getMetaCurCLName(region);
 
@@ -825,6 +833,10 @@ public class ObjectServiceImpl implements ObjectService {
             }
             ListVersionsResult listVersionsResult = new ListVersionsResult(bucketName, maxKeys,
                     encodingType, prefix, delimiter, keyMarker, versionIdMarker);
+
+            if (maxKeys == 0){
+                return listVersionsResult;
+            }
 
             String metaCsName    = regionDao.getMetaCurCSName(region);
             String metaClName    = regionDao.getMetaCurCLName(region);
