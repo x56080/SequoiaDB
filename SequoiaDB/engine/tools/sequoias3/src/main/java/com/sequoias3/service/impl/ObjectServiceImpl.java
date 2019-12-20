@@ -1639,12 +1639,17 @@ public class ObjectServiceImpl implements ObjectService {
     }
 
     private String trimQuotes(String str){
-        if (str == null || str.length() <= 32){
+        if (str == null){
             return str;
         }
 
+        str = str.trim();
         if (str.startsWith("\"")){
-            return str.substring(1, str.length() - 1);
+            str = str.substring(1);
+        }
+
+        if (str.endsWith("\"")){
+            str = str.substring(0, str.length() - 1);
         }
 
         return str;
@@ -1984,7 +1989,8 @@ public class ObjectServiceImpl implements ObjectService {
 
         Object matchEtag = headers.get(RestParamDefine.GetObjectReqHeader.REQ_IF_MATCH);
         if (null != matchEtag){
-            if (!matchEtag.toString().equals(eTag)){
+            String matchEtagString = trimQuotes(matchEtag.toString());
+            if (!matchEtagString.equals(eTag)){
                 throw new S3ServerException(S3Error.OBJECT_IF_MATCH_FAILED,
                         "if-match failed: if-match value:" + matchEtag.toString() +
                                 ", current object eTag:" + eTag);
@@ -1995,7 +2001,8 @@ public class ObjectServiceImpl implements ObjectService {
 
         Object noneMatchEtag = headers.get(RestParamDefine.GetObjectReqHeader.REQ_IF_NONE_MATCH);
         if (null != noneMatchEtag){
-            if (noneMatchEtag.toString().equals(eTag)){
+            String noneMatchEtagString = trimQuotes(noneMatchEtag.toString());
+            if (noneMatchEtagString.equals(eTag)){
                 throw new S3ServerException(S3Error.OBJECT_IF_NONE_MATCH_FAILED,
                         "if-none-match failed: if-none-match value:" + noneMatchEtag.toString() +
                                 ", current object eTag:" + eTag);

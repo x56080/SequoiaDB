@@ -22,16 +22,18 @@ public class ObjectUri {
         }catch (UnsupportedEncodingException e){
             throw new S3ServerException(S3Error.OBJECT_COPY_INVALID_SOURCE, "Invalid source. source url = " + uri);
         }
-        int beginBucket = decodeUri.indexOf(RestParamDefine.REST_DELIMITER, 0);
-        if (beginBucket == -1) {
-            throw new S3ServerException(S3Error.OBJECT_COPY_INVALID_SOURCE, "Invalid source. source url = " + uri);
+        int beginBucket;
+        if (decodeUri.startsWith(RestParamDefine.REST_DELIMITER)){
+            beginBucket = 1;
+        } else {
+            beginBucket = 0;
         }
-        int beginObject = decodeUri.indexOf(RestParamDefine.REST_DELIMITER, 1);
+        int beginObject = decodeUri.indexOf(RestParamDefine.REST_DELIMITER, beginBucket);
         if (beginObject == -1) {
             throw new S3ServerException(S3Error.OBJECT_COPY_INVALID_SOURCE, "Invalid source. source url = " + uri);
         }
 
-        this.bucketName = decodeUri.substring(1, beginObject);
+        this.bucketName = decodeUri.substring(beginBucket, beginObject);
         if (this.bucketName.length() == 0){
             throw new S3ServerException(S3Error.OBJECT_COPY_INVALID_SOURCE, "Invalid source. source url = " + uri);
         }
