@@ -2568,17 +2568,16 @@ namespace engine
          {
             BSONObjBuilder builder ;
             rc = _rewriteMatcherForLob( ele.embeddedObject(), builder ) ;
-            PD_RC_CHECK( rc, PDWARNING, "Failed to _rewriteMatcherForLob(%s)",
-                         ele.toString().c_str(), rc ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to rewrite lob matcher(%s),"
+                         "rc=%d", ele.toString().c_str(), rc ) ;
             arrayBuilder.append( builder.obj() ) ;
          }
          else if ( Array == ele.type() )
          {
-            //TODO: linyoubin check
             BSONArrayBuilder subArrayBuilder ;
             rc = _rewriteMatcherForLob( ele.embeddedObject(), subArrayBuilder ) ;
-            PD_RC_CHECK( rc, PDWARNING, "Failed to _rewriteMatcherForLob(%s)",
-                         ele.toString().c_str(), rc ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to rewrite lob matcher(%s),"
+                         "rc=%d", ele.toString().c_str(), rc ) ;
             arrayBuilder.append( subArrayBuilder.arr() ) ;
          }
          else
