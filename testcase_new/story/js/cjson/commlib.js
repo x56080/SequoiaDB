@@ -91,35 +91,23 @@ function cmdInit()
 ******************************************************************************/
 function initPath()
 {
+   var local = cmd.run( "pwd" ).split( "\n" );   //获得当前目录,cmd.run()方法返回结果会在后面加入一空行
+   LocalPath = local[0];
+   //println("LocalPath="+LocalPath);
    try
    {
-      var local = cmd.run( "pwd" ).split( "\n" ) ;   //获得当前目录,cmd.run()方法返回结果会在后面加入一空行
-      LocalPath = local[0] ;
-      //println("LocalPath="+LocalPath);
-      try
-      {
-         // 命令返回结果为 INSTALL_DIR=/opt/sequoiadb(默认安装目录)
-        // var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );       
-         //var installPath = tmpDir.split( "\n" )[0] +"/";
-         var tmpDir = cmd.run( 'find /etc/default/sequoiadb' );
-         var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR"' );
-         var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );     
-         var installPath = tmpDir.split( "\n" )[0] +"/";     
-      }
-      catch( e )
-      {
-         //找不到安装目录返回当前目录 
-         installPath = LocalPath + "/";
-          println("catch erro in try");        
-      }
-      
-          
+      // 命令返回结果为 INSTALL_DIR=/opt/sequoiadb(默认安装目录)
+      // var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );       
+      //var installPath = tmpDir.split( "\n" )[0] +"/";
+      var tmpDir = cmd.run( 'find /etc/default/sequoiadb' );
+      var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR"' );
+      var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );
+      var installPath = tmpDir.split( "\n" )[0] + "/";
    }
    catch( e )
    {
-      println("instatllpath="+installPath); 
-      println( "failed to get global variable : cmd/LocalPath/installPath" + e ) ;
-      throw e ;
+      //找不到安装目录返回当前目录 
+      installPath = LocalPath + "/";
    }
    return installPath;
 }
