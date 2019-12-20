@@ -60,24 +60,22 @@ function cmdInit ()
 ******************************************************************************/
 function initPath ()
 {
-   var local = cmd.run( "pwd" ).split( "\n" );   //获得当前目录,cmd.run()方法返回结果会在后面加入一空行
-   LocalPath = local[0];
-   //println("LocalPath="+LocalPath);
-   try
+   var localPath = cmd.run( "pwd" ).split( "\n" )[0] + "/";
+   println( "localPath   = " + localPath );
+   var installPath = '';
+   
+   // 先取当前目录下的 bin/sdbimprt，不存在时，再取安装目录下的 bin/sdbimprt
+   var tmpDir = cmd.run( 'find ./bin/sdbimprt' ).split('\n')[0];
+   if ( tmpDir.indexOf('sdbimprt') !== -1 ) 
    {
-      // 命令返回结果为 INSTALL_DIR=/opt/sequoiadb(默认安装目录)
-      // var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );       
-      //var installPath = tmpDir.split( "\n" )[0] +"/";
-      var tmpDir = cmd.run( 'find /etc/default/sequoiadb' );
-      var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR"' );
-      var tmpDir = cmd.run( 'find /etc/default/sequoiadb | xargs grep "INSTALL_DIR" |cut -d "=" -f 2' );
-      var installPath = tmpDir.split( "\n" )[0] + "/";
-   }
-   catch( e )
+      installPath = localPath;
+   }  
+   else
    {
-      //找不到安装目录返回当前目录 
-      installPath = LocalPath + "/";
-   }
+      installPath = commGetInstallPath() + "/";
+   }  
+        
+   println( "instatllpath = " + installPath );
    return installPath;
 }
 
