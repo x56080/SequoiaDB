@@ -73,7 +73,7 @@ public class Fulltext15852 extends FullTestBase {
                 INSERT_RECS_NUM ) );
     }
 
-    @Test(enabled = false) // jira-4475
+    @Test
     private void test() throws Exception {
         ThreadExecutor es = new ThreadExecutor( FullTextUtils.THREAD_TIMEOUT );
         es.addWorker( new ThreadInsert() );
