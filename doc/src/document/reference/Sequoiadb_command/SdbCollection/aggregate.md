@@ -1,5 +1,5 @@
 ##语法##
-***db.collectionspace.collection.aggregate\( \<subOp\>... \)***
+***db.collectionspace.collection.aggregate\( \<subOp1\>，[subOp2]，... \)***
 
 aggregate() 方法与 [find()](reference/Sequoiadb_command/SdbCollection/find.md)方法功能比较接近，也是从 SequoiaDB 的集合中检索文档记录，并返回游标。
 
@@ -7,11 +7,11 @@ aggregate() 方法与 [find()](reference/Sequoiadb_command/SdbCollection/find.md
 
 | 参数名 | 参数类型  | 描述   | 是否必填 |
 | ------ | ------    | ------ | ------   |
-| [subOp](reference/operator/aggregate_operator/overview.md)  | json 对象 | subOp 表示子操作，在 aggregate() 方法中可以填写 1~N 个子操作。| 是 |
+| subOp1,subOp2...  | json 对象 | 表示包含[聚集符] (reference/operator/aggregate_operator/overview.md)的子操作，在 aggregate() 方法中可以填写 1~N 个子操作。| 是 |
 
 > **Note:**
 >
-> * aggregate() 方法可以有任意多个子操作，每个子操作是一个 JSON 对象，子操作之间用逗号隔开。注意各子操作的参数名的语法规则。
+> * aggregate() 方法可以有任意多个子操作，每个子操作是一个包含聚集符的 JSON 对象，子操作之间用逗号隔开。注意各子操作的参数名的语法规则。
 
 ##返回值##
 

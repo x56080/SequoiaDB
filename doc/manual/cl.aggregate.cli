@@ -7,7 +7,7 @@
 .SH "NAME"
 
 .sp 2
-aggregate - retrieve the documents from the collection in the
+aggregate - Retrieve the documents from the collection in the
 SequoiaDB and return a cursor.
 .SH "SYNOPSIS"
 
@@ -16,7 +16,7 @@ SequoiaDB and return a cursor.
 .sp 2
 
 .sp 2
-db.collectionspace.collection.aggregate(\fB<subOp>...\fR)
+db.collectionspace.collection.aggregate(\fB<subOp1>,[subOp2],...\fR)
 .SH "CATEGORY"
 
 .sp 2
@@ -36,9 +36,10 @@ in the SequoiaDB and return a cursor.
        aggregate() method.
 .sp 2
        aggregate() method has only one parameter subOp, which
-       represents 1~N sub-operations,each sub-operation is a json
-       object, separated by commas sub-operation. Aggregation
-       framework supports the following Sub-operation parameters:
+       represents 1~N sub-operations, each sub-operation is a json
+       object containing an aggregator, separated by commas 
+       sub-operation. Aggregation framework supports the following
+       Sub-operation parameters:
 .sp 2
 
 .sp 2
