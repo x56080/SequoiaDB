@@ -24,6 +24,13 @@ SDB_SNAP_CATALOG
 | AttributeDesc       | 字符串 | 集合属性描述                 |
 | CompressionType     | 整型   | 压缩算法类型                 |
 | CompressionTypeDesc | 字符串 | 压缩算法类型描述             |
+| Partition           | 整型   | hash 分区的个数              |
+| InternalV           | 整型   | hash 算法版本号 ( 内部使用 ) |
+| AutoSplit           | 布尔   | 集合是否开启自动切分功能     |
+| IsMainCL            | 布尔   | 集合是否为垂直分区中的主表   |
+| MainCLName          | 字符串 | 集合在垂直分区中所关联的主表名 |
+| CataInfo.ID         | 整型   | 子表 ID                      |
+| CataInfo.SubCLName  | 字符串 | 子表名                       |
 | CataInfo.GroupID    | 整型   | 分区组 ID                    |
 | CataInfo.GroupName  | 字符串 | 分区组名                     |
 | CataInfo.LowBound   | 对象   | 数据分区区间的上限           |
@@ -61,9 +68,12 @@ SDB_SNAP_CATALOG
     "age": 1
   },
   "EnsureShardingIndex": true,
-  "ShardingType": "range",
+  "ShardingType": "hash",
+  "Partition": 4096,
+  "InternalV": 3,
   "CataInfo": [
     {
+      "ID": 0,
       "GroupID": 1000,
       "GroupName": "group1",
       "LowBound": {
@@ -78,5 +88,6 @@ SDB_SNAP_CATALOG
       }
     }
   ]
+  "AutoSplit": ture,
 }
 ```
