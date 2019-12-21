@@ -3,51 +3,62 @@
 * @author      :  Liang XueWang
 *                
 *******************************************************************************/
-var cmd = new Cmd() ;
-var installPath = adaptPath( commGetInstallPath() ) ;
-var workDir = adaptPath( WORKDIR + "/testExport" ) ;
-makeDir(workDir);
-/*******************************************************************
-* @Description : make dir
-*                
-* @author      : Liang XueWang
-*
-********************************************************************/
-function makeDir( dir )
+var cmd = new Cmd();
+var installPath = getInstallDir();
+var tmpFileDir = WORKDIR + "/sdbexprt/";
+var workDir = readyTmpDir();
+
+
+/* ***************************************************
+@description : 获取bin/sdbexprt所在目录
+@author: XiaoNi Huang 2019-12-19
+**************************************************** */
+function getInstallDir ()
 {
-   println("\n---Begin to ready tmpFileDir");   
+   var localDir = cmd.run( "pwd" ).split( "\n" )[0] + "/";
+   println( "localDir   = " + localDir );
+   var installDir = '';
+
+   // 先取当前目录下的 bin/sdbimprt，不存在时，再取安装目录下的 bin/sdbimprt
    try
    {
-      cmd.run( "rm -rf "+ dir );
+      cmd.run( 'find ./bin/sdbexprt' ).split( '\n' )[0];
+      installDir = localDir;
    }
-   catch( e )
+   catch( e ) 
    {
-      println("Failed to rm tmpFileDir["+ dir +"]");
-      throw e;
+      installDir = commGetInstallPath() + "/";
    }
-   try
-   {
-      cmd.run( "mkdir -p "+ dir );
-   }
-   catch( e )
-   {
-      println("Failed to mkdir tmpFileDir["+ dir +"]");
-      throw e;
-   } 
+
+   println( "instatllpath = " + installDir );
+   return installDir;
 }
 
-
-/*******************************************************************
-* @Description : check path has / in the end or not
-*                add / if not
-* @author      : Liang XueWang
-*
-********************************************************************/
-function adaptPath( path )
+/* ****************************************************
+@description: ready tmp director
+@author: XiaoNi Huang 2019-12-19
+**************************************************** */
+function readyTmpDir ()
 {
-   if( path.lastIndexOf( '/' ) !== path.length-1 )
-      path += '/' ;
-   return path ;
+   try
+   {
+      cmd.run( "rm -rf " + tmpFileDir );
+   }
+   catch( e )
+   {
+      println( "Failed to rm tmpFileDir[" + tmpFileDir + "]" );
+      throw e;
+   }
+
+   try
+   {
+      cmd.run( "mkdir -p " + tmpFileDir );
+   }
+   catch( e )
+   {
+      println( "Failed to mkdir tmpFileDir[" + tmpFileDir + "]" );
+      throw e;
+   }
 }
 
 /*******************************************************************
