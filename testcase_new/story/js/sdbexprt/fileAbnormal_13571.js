@@ -56,7 +56,7 @@ function testExprtNoPerm ()
 
    var csvDir = workDir + "13572/";
    var csvfile = csvDir + "sdbexprt13571.csv";
-   commMakeDir( "localhost", csvDir );
+   cmd.run( "mkdir -p " + csvDir );
    File.chmod( csvDir, 0000 );
 
    var command = installPath + "bin/sdbexprt" +

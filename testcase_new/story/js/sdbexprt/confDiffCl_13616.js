@@ -43,7 +43,7 @@ function testExprtConf1 ()
    // export with conf file and fields cl1:a
    var csvDir = workDir + "13616/";
    cmd.run( "rm -rf " + csvDir );
-   commMakeDir( "localhost", csvDir );
+   cmd.run( "mkdir -p " + csvDir );
    command = installPath + "bin/sdbexprt" +
       " --dir " + csvDir +
       " --conf " + conffile +
@@ -78,7 +78,7 @@ function testExprtConf2 ()
    // export with conf and fields cl1:b
    var csvDir = workDir + "13617/";
    cmd.run( "rm -rf " + csvDir );
-   commMakeDir( "localhost", csvDir );
+   cmd.run( "mkdir -p " + csvDir );
    command = installPath + "bin/sdbexprt" +
       " --dir " + csvDir +
       " --conf " + conffile +

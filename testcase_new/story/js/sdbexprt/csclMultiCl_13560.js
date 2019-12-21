@@ -39,7 +39,7 @@ function main ()
 function testExprtCsv ()
 {
    var csvDir = workDir + "13561/";
-   commMakeDir( "localhost", csvDir );
+   cmd.run( "mkdir -p " + csvDir );
 
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -71,7 +71,7 @@ function testExprtCsv ()
 function testExprtJson ()
 {
    var jsonDir = workDir + "13560/";
-   commMakeDir( "localhost", jsonDir );
+   cmd.run( "mkdir -p " + jsonDir );
 
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +

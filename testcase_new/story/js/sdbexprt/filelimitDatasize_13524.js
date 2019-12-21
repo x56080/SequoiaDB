@@ -80,7 +80,7 @@ function insertDocs ( cl, kb )
 
 function testExprtWithLimit ( filelimit, fileType, exportDir )
 {
-   commMakeDir( "localhost", exportDir );
+   cmd.run( "mkdir -p " + exportDir );
    var exportfile = exportDir + "sdbexprt13524." + fileType;
    cmd.run( "rm -rf " + exportfile );
 

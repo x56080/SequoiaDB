@@ -47,7 +47,7 @@ function testExprtNoPerm ()
    }
 
    var csvDir = workDir + "13575/";
-   commMakeDir( "localhost", csvDir );
+   cmd.run( "mkdir -p " + csvDir );
    File.chmod( csvDir, 0000 );
 
    var command = installPath + "bin/sdbexprt" +
@@ -96,7 +96,7 @@ function testExprtNoDir ()
 function testExprtExisted1 ()
 {
    var csvDir = workDir + "13577/";
-   commMakeDir( "localhost", csvDir );
+   cmd.run( "mkdir -p " + csvDir );
    var csvfile = csvDir + csnames[0] + "." + clnames[0] + ".csv";
    var file = new File( csvfile );
    file.write( "abcdefghijk" );
@@ -127,7 +127,7 @@ function testExprtExisted1 ()
 function testExprtExisted2 ()
 {
    var csvDir = workDir + "13577/";
-   commMakeDir( "localhost", csvDir );
+   cmd.run( "mkdir -p " + csvDir );
    var csvfile = csvDir + csnames[0] + "." + clnames[0] + ".csv";
    var file = new File( csvfile );
    file.write( "abcdefghijk" );

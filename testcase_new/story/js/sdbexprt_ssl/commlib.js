@@ -4,22 +4,61 @@
 *                
 *******************************************************************************/
 var cmd = new Cmd();
-var installPath = adaptPath( commGetInstallPath() );
-commMakeDir( "localhost", WORKDIR );
-var workDir = adaptPath( WORKDIR );
-println( File.stat( workDir ) );
+var installPath = getInstallDir();
+var tmpFileDir = WORKDIR + "/sdbexprt/";
+var workDir = readyTmpDir();
 
-/*******************************************************************
-* @Description : check path has / in the end or not
-*                add / if not
-* @author      : Liang XueWang
-*
-********************************************************************/
-function adaptPath ( path )
+
+/* ***************************************************
+@description : 获取bin/sdbexprt所在目录
+@author: XiaoNi Huang 2019-12-19
+**************************************************** */
+function getInstallDir ()
 {
-   if( path.lastIndexOf( '/' ) !== path.length - 1 )
-      path += '/';
-   return path;
+   var localDir = cmd.run( "pwd" ).split( "\n" )[0] + "/";
+   println( "localDir   = " + localDir );
+   var installDir = '';
+
+   // 先取当前目录下的 bin/sdbimprt，不存在时，再取安装目录下的 bin/sdbimprt
+   try
+   {
+      cmd.run( 'find ./bin/sdbexprt' ).split( '\n' )[0];
+      installDir = localDir;
+   }
+   catch( e ) 
+   {
+      installDir = commGetInstallPath() + "/";
+   }
+
+   println( "instatllpath = " + installDir );
+   return installDir;
+}
+
+/* ****************************************************
+@description: ready tmp director
+@author: XiaoNi Huang 2019-12-19
+**************************************************** */
+function readyTmpDir ()
+{
+   try
+   {
+      cmd.run( "rm -rf " + tmpFileDir );
+   }
+   catch( e )
+   {
+      println( "Failed to rm tmpFileDir[" + tmpFileDir + "]" );
+      throw e;
+   }
+
+   try
+   {
+      cmd.run( "mkdir -p " + tmpFileDir );
+   }
+   catch( e )
+   {
+      println( "Failed to mkdir tmpFileDir[" + tmpFileDir + "]" );
+      throw e;
+   }
 }
 
 /*******************************************************************
@@ -171,7 +210,7 @@ function checkFileContent ( filename, expContent )
    {
       throw buildException( "checkFileContent", null,
          "check " + filename + " content",
-         expContent.slice( 0, 100 ), actContent.slice( 0, 100 ) );
+         expContent.slice( 0, 1024 ), actContent.slice( 0, 1024 ) );
    }
 }
 
@@ -208,8 +247,8 @@ function checkRecords ( expRecs, actRecs )
       if( expRecs[i] !== actRecs[i] )
       {
          throw buildException( "checkRecords", null, "check record " + i,
-            JSON.stringify( expRecs[i] ).slice( 0, 100 ),
-            JSON.stringify( actRecs[i] ).slice( 0, 100 ) );
+            JSON.stringify( expRecs[i] ).slice( 0, 1024 ),
+            JSON.stringify( actRecs[i] ).slice( 0, 1024 ) );
       }
    }
 }
@@ -248,4 +287,15 @@ function makeString ( len, ch )
 {
    var arr = new Array( len + 1 );
    return arr.join( ch );
+}
+
+/*******************************************************************
+* @Description : remove rec file if needed
+* @author      : Liang XueWang
+*
+********************************************************************/
+function rmRecFile ( csname, clname )
+{
+   var files = csname + "_" + clname + "_*.rec";
+   cmd.run( "rm -rf ./" + files );
 }
