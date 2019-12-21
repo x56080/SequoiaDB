@@ -5137,6 +5137,10 @@ namespace engine
       while( pos < msg->messageLength )
       {
          pTmpMsg = ( MsgHeader* )( ( CHAR*)msg + pos ) ;
+
+         // copy route ID
+         pTmpMsg->routeID.value = msg->routeID.value ;
+
          opCode = pTmpMsg->opCode ;
 
          rc = _onOPMsg( handle, pTmpMsg ) ;
