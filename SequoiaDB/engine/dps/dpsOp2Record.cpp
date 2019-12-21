@@ -2969,7 +2969,7 @@ namespace engine
       dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
       if ( !itr.valid() )
       {
-         PD_LOG( PDERROR, "Failed to find tag transaction ID in record" ) ;
+         PD_LOG( PDDEBUG, "Failed to find tag transaction ID in record" ) ;
          rc = SDB_SYS ;
          goto error ;
       }

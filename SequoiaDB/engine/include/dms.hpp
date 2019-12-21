@@ -143,8 +143,9 @@ namespace engine
 #define SDB_DMSRBS_NAME            "SYSRBS"
 #define SDB_DMSRBS_FULLNAME        "SYSRBS.SYSRBS"
 #define DMS_RBS_NAME_PATTERN       "%s%04d"
-#define DMS_MAX_RBS_CL             DMS_MME_SLOTS
-#define DMS_FIRST_RBS_CL           1
+// Range of RBS CL is 0000-4095, with 0000 for meta
+#define DMS_MAX_RBS_CL             DMS_MME_SLOTS 
+#define DMS_FIRST_RBS_CL           1 
 #define DMS_META_RBS_CL            0
 
 #define DMS_INDEX_SORT_BUFFER_MIN_SIZE     32
@@ -156,6 +157,7 @@ namespace engine
    // Default size of Rollback Segment collection 
    #define DMS_DFT_RBSCL_SIZE          ( 16 * 1024 )
 #else
+   // default extent size is 32MB
    #define DMS_CAP_EXTENT_SZ           (32 * 1024 * 1024)
    #define DMS_MAX_CL_SIZE_ALIGN_SIZE  ( 32 * 1024 * 1024 )
    // Default size of Rollback Segment collection is 128MB each.
