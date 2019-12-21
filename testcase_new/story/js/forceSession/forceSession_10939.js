@@ -4,8 +4,6 @@
  * @Date: 2019-12-20
  **************************************/
 //若后续跑此用例出现杀错会话，可删除此用例，因为options不能精确匹配sessionID
-import ("../lib/main.js")
-
 testConf.skipStandAlone = true;
 
 main( test );

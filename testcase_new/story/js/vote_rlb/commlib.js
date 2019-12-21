@@ -1,3 +1,5 @@
+import ("../lib/main.js");
+
 function getGroupsWithNodeNum( nodesNum )
 {
    var groups = [];

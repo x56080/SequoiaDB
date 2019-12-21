@@ -3,8 +3,6 @@
 *               seqDB-10923:options参数非法校验
 *@author      : Zhao xiaoni 
 ***********************************************************************/
-import ("../lib/main.js")
-
 testConf.skipStandAlone = true;
 
 main( test );

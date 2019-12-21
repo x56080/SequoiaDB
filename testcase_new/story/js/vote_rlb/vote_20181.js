@@ -2,14 +2,12 @@
 @discretion: seqDB-20181:指定其他组的备节点ID/本组故障的备节点ID，重新选主
 @author：2018-11-04 zhao xiaoni
 ***************************************************************************** */
-import ("../lib/main.js")
-
 testConf.skipStandAlone = true;
 testConf.skipOneGroup = true;
 
 main( test );
 
-function test( testPara )
+function test()
 {
    var groups = getGroupsWithNodeNum( 3 ); 
    if( groups.length === 0 )

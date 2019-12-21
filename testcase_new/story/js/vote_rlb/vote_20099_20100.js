@@ -3,13 +3,11 @@
              seqDB-20100:指定HostName和ServiceName，重新选主
 @author：2018-10-26 zhao xiaoni
 ***************************************************************************** */
-import ("../lib/main.js")
-     
 testConf.skipStandAlone = true;
 
 main( test );
 
-function test( testPara )
+function test()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )

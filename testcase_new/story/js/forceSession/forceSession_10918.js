@@ -3,8 +3,6 @@
  * @author:Zhao xiaoni 
  * @Date: 2019-12-20
  **************************************/
-import ("../lib/main.js")
-
 testConf.skipStandAlone = true;
 
 main( test );

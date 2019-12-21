@@ -3,13 +3,11 @@
 @Modify list : 2014-6-12  xiaojun Hu  Init
                2019-11-26  Zhao xiaoni Modified
 ******************************************************************************/
-import("../lib/main.js")
-
 testConf.skipStandAlone = true;
 
 main( test );
 
-function test( testPara )
+function test()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )

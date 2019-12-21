@@ -2,13 +2,11 @@
 @discretion:  seqDB-20174:单独指定HostName、ServiceName，重新选主
 @author：2018-11-04 zhao xiaoni
 ***************************************************************************** */
-import ("../lib/main.js")
-
 testConf.skipStandAlone = true;
 
 main( test );
 
-function test( testPara )
+function test()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )

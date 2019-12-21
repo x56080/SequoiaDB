@@ -2,13 +2,11 @@
 @discretion: seqDB-20200:同时指定NodeID、HostName和ServiceName，重新选主
 @author：2018-11-04 zhao xiaoni
 ***************************************************************************** */
-import ("../lib/main.js")
-
 testConf.skipStandAlone = true;
  
 main( test );
 
-function test( testPara )
+function test()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )

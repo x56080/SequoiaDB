@@ -2,13 +2,11 @@
 @discretion: seqDB-20014:修改组内其中一个节点的权重为100，重新选主
 @author：2018-11-06 zhaoxiaoni
 ***************************************************************************** */
-import ("../lib/main.js");
-
 testConf.skipStandAlone = true;
 
 main( test );
 
-function test( testPara )
+function test()
 {
    var nodesNum = 2;
    var groupName = "rg_20014";

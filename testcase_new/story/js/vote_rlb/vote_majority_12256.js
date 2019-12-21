@@ -2,13 +2,11 @@
 @Description : Test stop majority node in data group and then start it.
 @Modify list : 2014-6-12  xiaojun Hu  Init
 ******************************************************************************/
-import("../lib/main.js")
-
 testConf.skipStandAlone = true;
 
 main( test );
 
-function test( testPara )
+function test()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )
