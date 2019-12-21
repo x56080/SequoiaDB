@@ -108,8 +108,10 @@ backupTestCase11736.prototype.tearDown =
    function()
    {
       bakRemoveBackups( this.db, CHANGEDPREFIX, true );
-      commDropCS( this.db, this.csName, true, "dropCS in the end" )
+      commDropCS( this.db, this.csName, true, "dropCS in the end" );
+      commDropCS( this.db, backupTestCase11736.prototype.csName, true, "finally: dropCS in the end" );
       commDropDomain( this.db, this.domainName );
+      db.removeRG( backupandrestoreGroup );
    }
 
 function main ( db )
@@ -144,11 +146,6 @@ function main ( db )
          File.scp( this.logSourcePaths[i], backupDir + "/sdbdiag" + i + ".log" );
       }
       throw e;
-   }
-   finally
-   {
-      commDropCS( this.db, backupTestCase11736.prototype.csName, true, "finally: dropCS in the end" );
-      db.removeRG( backupandrestoreGroup );
    }
 }
 
