@@ -63,18 +63,18 @@ function initPath ()
    var localPath = cmd.run( "pwd" ).split( "\n" )[0] + "/";
    println( "localPath   = " + localPath );
    var installPath = '';
-   
+
    // 先取当前目录下的 bin/sdbimprt，不存在时，再取安装目录下的 bin/sdbimprt
-   var tmpDir = cmd.run( 'find ./bin/sdbimprt' ).split('\n')[0];
-   if ( tmpDir.indexOf('sdbimprt') !== -1 ) 
+   try
    {
+      cmd.run( 'find ./bin/sdbimprt' ).split( '\n' )[0];
       installPath = localPath;
-   }  
-   else
+   }
+   catch( e ) 
    {
       installPath = commGetInstallPath() + "/";
-   }  
-        
+   }
+
    println( "instatllpath = " + installPath );
    return installPath;
 }
