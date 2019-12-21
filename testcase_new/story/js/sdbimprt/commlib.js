@@ -131,22 +131,22 @@ function cmdInit ()
 @return: install_dir
 **************************************************** */
 function getInstallDir ()
-{   
+{
    var localPath = cmd.run( "pwd" ).split( "\n" )[0] + "/";
    println( "localPath   = " + localPath );
    var installPath = '';
-   
-   // ¿¿¿¿¿¿¿¿ bin/sdbimprt¿¿¿¿¿¿¿¿¿¿¿¿¿¿ bin/sdbimprt
-   var tmpDir = cmd.run( 'find ./bin/sdbimprt' ).split('\n')[0];
-   if ( tmpDir.indexOf('sdbimprt') !== -1 ) 
+
+   // å…ˆå–å½“å‰ç›®å½•ä¸‹çš„ bin/sdbimprtï¼Œä¸å­˜åœ¨æ—¶ï¼Œå†å–å®‰è£…ç›®å½•ä¸‹çš„ bin/sdbimprt
+   try
    {
+      cmd.run( 'find ./bin/sdbimprt' ).split( '\n' )[0];
       installPath = localPath;
-   }  
-   else
+   }
+   catch( e ) 
    {
       installPath = commGetInstallPath() + "/";
-   }  
-        
+   }
+
    println( "instatllpath = " + installPath );
    return installPath;
 }
