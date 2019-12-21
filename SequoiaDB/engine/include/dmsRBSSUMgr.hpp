@@ -47,6 +47,7 @@
 #include "dmsSysSUMgr.hpp"
 #include "dmsRecord.hpp"
 #include "dmsStorageDataCommon.hpp"
+#include "dmsStorageDataCapped.hpp"
 #include "dpsDef.hpp"
 
 using namespace std ;
@@ -60,6 +61,16 @@ namespace engine
                ossSnprintf ( clName, sizeof(clName),       \
                              DMS_RBS_NAME_PATTERN,         \
                              SDB_DMSRBS_NAME, cl )
+
+   #define DMS_RBS_FLUSH_OPTION_MASK         ( (UINT16)0x0F )
+   #define DMS_RBS_FLUSH_OPTION_COLLECTIONS  ( (UINT16)0x01 )
+   #define DMS_RBS_FLUSH_OPTION_HASHBKT      ( (UINT16)0x02 )
+   
+   // total number of meta record SYSRBS0000 has
+   // currently has 2:
+   // first holds _currentCollection and _lastFreeCollection
+   // second holds the whole in memory bucket
+   #define DMS_RBS_NUM_META_RECORDS    2
 
    // record offset within RBS
    class dmsRBSOffset
@@ -374,10 +385,13 @@ namespace engine
       // Full size is 32k* (40+12)B = 1.6MB
       dmsRBSOffset   _offset[ DMS_RBS_HASH_BKT_SLOTS ] ;  // offset on disk
       ossSpinXLatch  _latch[ DMS_RBS_HASH_BKT_SLOTS ] ;   // latch to protect the bucket
+      SINT64         _recordLogicalID ; // the logicalID of meta record which
+                                        // stores hashbkt on disk
 
    public: 
       _dmsRBSHashBkt()
       {
+         _recordLogicalID = DMS_INVALID_REC_LOGICALID ;
       }
 
       void   lock( UINT32 bkt )
@@ -388,25 +402,44 @@ namespace engine
       {
          _latch[bkt].release() ;
       }
+
       void   setOffset( dmsRBSOffset & o, UINT32 bkt ) 
       {
          _offset[bkt] = o ;
       }
-
       dmsRBSOffset & getOffset ( UINT32 bkt )
       {
          return _offset[bkt] ;
+      }
+
+      void setLogicalID( SINT64 id )
+      {
+         _recordLogicalID = id ;
+      }
+      SINT64 getLogicalID()
+      {
+         return _recordLogicalID ;
+      }
+
+      CHAR * getObj()
+      {
+         return (CHAR *)_offset ;
+      }
+
+      SINT32 getObjSize()
+      {
+         return sizeof(_offset) ;
       }
    } ;
 
    class _dmsRBSSUMgr : public _dmsSysSUMgr
    {
    private :
-      // TODO: need latch to protect these two values. The are basically
-      // in memory version of the meta record stored in SYSRBS0000. it's for
-      // quick look up of current value so we can directly use the collection.
 
       // The collection currently in use and the previously freed collecion
+      // These are basically in memory version of the meta record stored
+      // in SYSRBS0000. it's for quick look up of current value so we 
+      // can directly use the collection.
       // They are protected by metaCL's mbLatch
       UINT16  _currentCollection ;
       UINT16  _lastFreeCollection ;
@@ -425,11 +458,19 @@ namespace engine
       // this function verify whether RBS collection space exist. If it
       // is not exist then create one. And then reset all temp collections
       SINT32 init() ;
-      void   fini() ;
+      SINT32 fini() ;
 
       SINT32 release ( _dmsMBContext *&context ) ;
 
       SINT32 reserve ( _dmsMBContext **ppContext, UINT64 eduID ) ;
+
+      SINT32 loadMeta () ;
+      SINT32 loadHashBkt( dmsMBContext *context ) ;
+      SINT32 flushMeta( UINT16        curCL,
+                        UINT16        lastFreeCL,
+                        SDB_DPSCB    *dpsCB,
+                        UINT16        flushOption,
+                        dmsMBContext *context = NULL ) ;
 /*
       SINT32 appendRecord ( dmsStorageUnitID  csid,
                             UINT16            clid,
@@ -466,8 +507,12 @@ namespace engine
                         UINT16 &lastFreeCL, 
                         dmsMBContext *context  ) ;
 
+      SINT32 _initRBSCS( pmdEDUCB *eduCB, SDB_DPSCB * dpsCB ) ;
+
       // release a collection
       SINT32 _release ( ) ;
+
+      SINT32 _rebuildHashBktFromCL( dmsMBContext *context ) ;
 
       // insert the meta record during create
       SINT32 _insertMeta ( UINT16 curCL, 
@@ -475,27 +520,20 @@ namespace engine
                            dmsMBContext *context,
                            SDB_DPSCB * dpsCB ) ;
 
-      // Update the meta record, usually after swtiching RBSCLs
-      SINT32 _updateMeta () ;
-      SINT32 _updateMeta ( UINT16        curCL, 
-                           UINT16        lastFreeCL,
-                           dmsMBContext *context,
-                           SDB_DPSCB    *dpsCB = NULL ) ;
-
       // based on csId, clID and rid to hash to a bucket
       OSS_INLINE UINT32 _hash ( dmsStorageUnitID  _csID ,
                                 UINT16            _clID ,
                                 DPS_LSN_OFFSET   &_lsn ) ;
 
-      SINT32 _gcRBS ( UINT16 &position ) ;
-
       SINT32 _prepareRBSCLForRecord( UINT32        recordSize,
                                      pmdEDUCB     *eduCB,
+                                     SDB_DPSCB    *dpsCB,
                                      dmsMBContext *& clContext ) ;
 
       SINT32 _allocRBSRecordSpace( UINT32        size,
                                    dmsRBSOffset &newOffset,
                                    pmdEDUCB     *eduCB,
+                                   SDB_DPSCB    *dpsCB,
                                    dmsMBContext *metaContext,
                                    dmsMBContext *&clContext ) ;
 /*
@@ -509,7 +547,7 @@ namespace engine
                                   pmdEDUCB            *eduCB,
                                   dmsMBContext        *context ) ;
 */
-      SINT32 _gcRBS ( SINT32 &position ) ;
+      SINT32 _gcRBS ( UINT16 &position, SDB_DPSCB *dpsCB ) ;
 
    } ;
    typedef class _dmsRBSSUMgr dmsRBSSUMgr ;

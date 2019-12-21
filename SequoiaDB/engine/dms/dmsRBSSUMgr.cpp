@@ -49,6 +49,7 @@
 #include "dmsStorageDataCommon.hpp"
 #include "dmsStorageDataCapped.hpp"
 #include "dpsUtil.hpp"
+#include "ossMem.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
@@ -78,11 +79,19 @@ namespace engine
       SINT32            rc    = SDB_OK ;
       dmsStorageUnitID  suID  = DMS_INVALID_CS ;
       pmdEDUCB         *eduCB = pmdGetThreadEDUCB() ;
+      // we explicitly set dpsCB to NULL during init phase because we are 
+      // going to assume that the SYSRBS and SYSRBS0000 exist. Every nodes 
+      // with mvccon enabled must have both. So we will simply create them
+      // during db start if they are not there. For newly started node, we
+      // will also create SYSRBS0001 by default, which all done by this init
+      // function. By using NULL dpsCB here, we will not generate LRs. During
+      // runtime, we will generate LRs for creating SYSRBSxxxx and update of 
+      // the meta pages (see updateMeta for details). 
+      // If decision is changed, we can set to pmdGetKRCB()->getDPSCB()
+      SDB_DPSCB        *dpsCB = NULL ;
 
       SDB_ASSERT ( _dmsCB, "dmsCB can't be NULL" ) ;
 
-      CHAR clName[30] = {0} ;
-      UINT16 collectionID = DMS_INVALID_MBID ;
 
       // exclusive lock temp cb. this function should be called during process
       // initialization, so it shouldn't be called in parallel by agents
@@ -112,11 +121,11 @@ namespace engine
          // Rollback Segment not exist, create one
          PD_LOG ( PDDEBUG, "Creating RBS cs %s.", SDB_DMSRBS_NAME ) ;
 
-         rc = rtnCreateCollectionSpaceCommand ( SDB_DMSRBS_NAME, NULL, _dmsCB,
-                                             NULL, UTIL_UNIQUEID_NULL,
-                                             pageSize,
-                                             DMS_DO_NOT_CREATE_LOB,
-                                             DMS_STORAGE_CAPPED, TRUE ) ;
+         rc = rtnCreateCollectionSpaceCommand( SDB_DMSRBS_NAME, NULL, _dmsCB,
+                                               dpsCB, UTIL_UNIQUEID_NULL,
+                                               pageSize,
+                                               DMS_DO_NOT_CREATE_LOB,
+                                               DMS_STORAGE_CAPPED, TRUE ) ;
 
          if ( rc )
          {
@@ -135,88 +144,41 @@ namespace engine
          }
 
          // now create the first RBSCL, but need to build the options first
-         try
+         rc = _initRBSCS( eduCB, dpsCB ) ;
+         if ( rc )
          {
-            BSONObj  extOptions ;
-            BSONObjBuilder builder ;
-            // we don't want to create any LRs for RBS related changes, each
-            // nodes handle its own business regarding to RBS.
-            // If decision is changed, we can set to pmdGetKRCB()->getDPSCB()
-            SDB_DPSCB  *dpsCB     = NULL ;
-
-            UINT32 logicalID      = DMS_INVALID_CLID ;
-
-            DMS_BUILD_RBS_CL_NAME( clName, DMS_META_RBS_CL ) ;
-
-            builder.append( FIELD_NAME_SIZE, DMS_CAP_EXTENT_SZ ) ;
-            builder.append( FIELD_NAME_MAX, 0 ) ;
-            builder.appendBool( FIELD_NAME_OVERWRITE, FALSE ) ;
-            extOptions = builder.done() ;
-
-            // Add the collection for meta data
-            rc = _su->data()->addCollection ( clName, &collectionID,
-                                              UTIL_UNIQUEID_NULL,
-                                              DMS_MB_ATTR_CAPPED |
-                                              DMS_MB_ATTR_NOIDINDEX,
-                                              eduCB, dpsCB, 0, TRUE,
-                                              UTIL_COMPRESSOR_INVALID,
-                                              &logicalID,
-                                              &extOptions ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to add RBS meta collection %s, rc: %d",
-                        clName, rc ) ;
-               goto error ;
-            }
-            PD_LOG ( PDDEBUG, "Created RBS collection %d successfully.",
-                     logicalID );
-
-            builder.append( FIELD_NAME_SIZE, DMS_DFT_RBSCL_SIZE ) ;
-            builder.append( FIELD_NAME_MAX, 0 ) ;
-            builder.appendBool( FIELD_NAME_OVERWRITE, FALSE ) ;
-            extOptions = builder.done() ;
-
-            // add the first collection for RBS
-            DMS_BUILD_RBS_CL_NAME( clName, DMS_FIRST_RBS_CL ) ;
-            rc = _su->data()->addCollection ( clName, &collectionID,
-                                              UTIL_UNIQUEID_NULL,
-                                              DMS_MB_ATTR_CAPPED |
-                                              DMS_MB_ATTR_NOIDINDEX,
-                                              eduCB, dpsCB, 0, TRUE,
-                                              UTIL_COMPRESSOR_INVALID,
-                                              &logicalID,
-                                              &extOptions ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to add RBS collection %s, rc: %d",
-                        clName, rc ) ;
-               goto error ;
-            }
-            // setup the curCL
-            _currentCollection = DMS_FIRST_RBS_CL;
-            PD_LOG ( PDDEBUG, "Created RBS collection %s(%d) successfully.",
-                     clName, logicalID );
-
-            // first meta record, 1 as the curcl and 0 as the last free cl
-            rc = _insertMeta( DMS_FIRST_RBS_CL, DMS_META_RBS_CL, NULL, NULL ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to insert RBS meta record, rc: %d",
-                        rc ) ;
-               goto error ;
-            }
-         }
-         catch( std::exception &e )
-         {
-            rc = SDB_SYS ;
-            PD_LOG( PDERROR, "Occur exception when creating RBSCL: %s",
-                    e.what() ) ;
+            PD_LOG( PDERROR, "Failed to create initial RBS CLs: %d",
+                    rc ) ;
             goto error ;
          }
 
       }
       else if ( SDB_OK == rc )
       {
+         // verify SYSRBS0000 exist, otherwise recreate one.  It's possible
+         // previous init was able to create the CS but for whatever reason
+         // failed to create CL. We will simply creat it here
+         CHAR clLongName[100];
+         ossSnprintf ( clLongName, sizeof(clLongName), 
+                       DMS_RBS_NAME_PATTERN,
+                       SDB_DMSRBS_FULLNAME, DMS_META_RBS_CL ) ;
+         rc = rtnFindCollection( clLongName, _dmsCB ) ;
+         if ( SDB_DMS_NOTEXIST == rc )
+         {
+#ifdef _DEBUG
+            PD_LOG ( PDDEBUG, "Creating RBS CLs in %s. ",
+                  _metaCLName ) ;
+#endif
+            rc = _initRBSCS( eduCB, dpsCB ) ;
+         }
+
+         if ( SDB_OK != rc )
+         {
+            PD_LOG ( PDERROR, "Failed to find or recreate RBS meta, rc: %d",
+                     rc ) ;
+            goto error ;
+         }
+
          rc = _dmsCB->nameToSUAndLock ( SDB_DMSRBS_NAME, suID, &_su ) ;
          if ( SDB_OK != rc )
          {
@@ -224,19 +186,18 @@ namespace engine
                      rc ) ;
             goto error ;
          }
+
 #ifdef _DEBUG
-         PD_LOG ( PDDEBUG, "Updating RBS cs %s.", SDB_DMSRBS_NAME ) ;
+         PD_LOG ( PDDEBUG, "loading up RBS in memory structures from %s.",
+                  _metaCLName ) ;
 #endif
          // RBS CS already exist during start up.
          // based on previously saved value, setup in memory counter
-         rc = _updateMeta();
+         rc = loadMeta();
          if ( SDB_OK != rc )
          {
-            // FIXME: if last time CS was successful created, but CL creation
-            // failed, we will not be able to start forever,
-            // we should handle it(drop or clean up??)
-            PD_LOG ( PDERROR, "Failed to update RBS meta, rc: %d",
-                     rc ) ;
+            PD_LOG ( PDERROR, "Failed to load meta records from %s, rc: %d",
+                     _metaCLName, rc ) ;
             goto error ;
          }
       }
@@ -258,13 +219,122 @@ namespace engine
       goto done ;
    }
 
-   void  _dmsRBSSUMgr::fini()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_FINI, "_dmsRBSSUMgr::_fini" )
+   SINT32  _dmsRBSSUMgr::fini()
    {
-      // TODO: write out the in-memory RBS hash table to disk file
-      //       before destroying all in memory structure.
-      //       similarly, we need to read this on disk file and re-construct
-      //       the hash table in memory during startup
-      return ;
+      SINT32              rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_FINI );
+      // Write out the in-memory RBS hash table to meta data records
+      // before destroying all in memory structure.
+      // They are loaded into hashbucket during init (see loadMeta)
+      SDB_DPSCB    *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      rc = flushMeta( DMS_MAX_RBS_CL, DMS_MAX_RBS_CL, dpsCB,
+                      DMS_RBS_FLUSH_OPTION_HASHBKT ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Flush of RBS in memory meta record failed, rc=%d",
+                   rc ) ;
+   done :
+      return rc ;
+   error :
+      // assert on any failure
+      SDB_ASSERT( FALSE, "RBSMgr fini failed" ) ;
+      
+      goto done ;
+   }
+
+   // Create meta CL and first CL for SYSRBS
+   // Caller must hold collectionspace lock
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__INITRBSCS, "_dmsRBSSUMgr::_initRBSCS" )
+   SINT32 _dmsRBSSUMgr::_initRBSCS( pmdEDUCB *eduCB, SDB_DPSCB *dpsCB ) 
+   {
+      SINT32              rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__INITRBSCS );
+      CHAR     clName[30] = {0} ;
+      UINT16   collectionID = DMS_INVALID_CLID ;
+
+      try
+      {
+         BSONObj        extOptions ;
+         BSONObjBuilder builder ;
+         UINT32         logicalID      = DMS_INVALID_CLID ;
+
+         builder.append( FIELD_NAME_SIZE, DMS_CAP_EXTENT_SZ ) ;
+         builder.append( FIELD_NAME_MAX, 0 ) ;
+         builder.appendBool( FIELD_NAME_OVERWRITE, FALSE ) ;
+         extOptions = builder.done() ;
+
+         // Add the collection for meta data
+         rc = _su->data()->addCollection ( _metaCLName,
+                                           &collectionID,
+                                           UTIL_UNIQUEID_NULL,
+                                           DMS_MB_ATTR_CAPPED |
+                                           DMS_MB_ATTR_NOIDINDEX,
+                                           eduCB, dpsCB, 0, TRUE,
+                                           UTIL_COMPRESSOR_INVALID,
+                                           &logicalID,
+                                           &extOptions ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to add RBS meta collection %s, rc: %d",
+                     clName, rc ) ;
+            goto error ;
+         }
+         PD_LOG ( PDDEBUG, "Created RBS collection %d successfully.",
+                  logicalID );
+
+         builder.append( FIELD_NAME_SIZE, _maxCollectionSize ) ;
+         builder.append( FIELD_NAME_MAX, 0 ) ;
+         builder.appendBool( FIELD_NAME_OVERWRITE, FALSE ) ;
+         extOptions = builder.done() ;
+
+         // add the first collection for RBS
+         DMS_BUILD_RBS_CL_NAME( clName, DMS_FIRST_RBS_CL ) ;
+         rc = _su->data()->addCollection ( clName, &collectionID,
+                                           UTIL_UNIQUEID_NULL,
+                                           DMS_MB_ATTR_CAPPED |
+                                           DMS_MB_ATTR_NOIDINDEX,
+                                           eduCB, dpsCB, 0, TRUE,
+                                           UTIL_COMPRESSOR_INVALID,
+                                           &logicalID,
+                                           &extOptions ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to add RBS collection %s, rc: %d",
+                     clName, rc ) ;
+            goto error ;
+         }
+         // setup the curCL
+         _currentCollection = DMS_FIRST_RBS_CL;
+         PD_LOG ( PDDEBUG, "Created RBS collection %s(%d) successfully.",
+                  clName, logicalID );
+
+         // first meta record, 1 as the curcl and 0 as the last free cl
+         // we don't write LR for this initial setup for the same reason
+         // mentioned above
+         rc = _insertMeta( DMS_FIRST_RBS_CL, DMS_META_RBS_CL,
+                           NULL, dpsCB ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to insert RBS meta record, rc: %d",
+                     rc ) ;
+            goto error ;
+         }
+
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception when creating RBSCL: %s",
+                 e.what() ) ;
+         goto error ;
+      }
+
+      
+   done :
+      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__INITRBSCS, rc );
+      return rc ;
+   error :
+      goto done ;
    }
 
    // mbLatch of metaCL must be held in X or context is NULL which means
@@ -273,7 +343,8 @@ namespace engine
    // no update interface for CAPPED CL, it's caller's responsibility to
    // pop the existing record before inserting the new one during update.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__INSERTMETA, "_dmsRBSSUMgr::_insertMeta" )
-   SINT32 _dmsRBSSUMgr::_insertMeta ( UINT16 curCL, UINT16 lastFree,
+   SINT32 _dmsRBSSUMgr::_insertMeta ( UINT16 curCL, 
+                                      UINT16 lastFree,
                                       dmsMBContext *context,
                                       SDB_DPSCB    *dpsCB )
    {
@@ -349,6 +420,7 @@ namespace engine
                              *(UINT32*)recordDataPtr,
                              UTIL_COMPRESSOR_INVALID, TRUE ) ;
 
+         try
          {
             BSONObj obj ( recordData.data() ) ;
             curCL = obj.getField ( FIELD_NAME_CUR_RBS_CL ).numberInt() ;
@@ -360,7 +432,14 @@ namespace engine
                      curCL, lastFreeCL ) ;
 #endif
          }
-
+         catch( std::exception &e )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Occur exception when retrieving RBS meta: %s",
+                    e.what() ) ;
+            goto error ;
+ 
+         }
       }
       else  // failed on advance
       {
@@ -373,6 +452,7 @@ namespace engine
             PD_LOG ( PDWARNING,
                      "No RBS meta record, insert one with default value" ) ;
             // first meta record, 1 as the curcl and 0 as the last free cl
+            // this basically reset RBS, no need to log
             rc = _insertMeta( DMS_FIRST_RBS_CL, DMS_META_RBS_CL, context, NULL ) ;
             if ( rc )
             {
@@ -397,29 +477,138 @@ namespace engine
       goto done ;
    }
 
-   // Function to find out current CL, and setup the in memory value
-   // Caller must guarantee exclusive access
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__UPDATEMETA, "_dmsRBSSUMgr::_updateMeta" )
-   SINT32 _dmsRBSSUMgr::_updateMeta ( )
+   // Go through each records in the RBSCL and update hash bucket entries
+   // Caller should hold the metaCL latch exclusively
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__REBUILDHASHBKTFROMCL, "_dmsRBSSUMgr::_rebuildHashBktFromCL" )
+   SINT32 _dmsRBSSUMgr::_rebuildHashBktFromCL( dmsMBContext *context )
    {
-      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__UPDATEMETA );
+      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__REBUILDHASHBKTFROMCL );
+      SINT32        rc         = SDB_OK ;
+      pmdEDUCB     *eduCB      = pmdGetThreadEDUCB() ;
+      _mthRecordGenerator generator ;
+      dmsRecordID   recordID ;
+      ossValuePtr   recordDataPtr = 0 ;
+      dmsRecordData recordData ;
+      BSONElement   eleLsnOffset;
+      BSONElement   eleKey;
+      DPS_LSN_OFFSET recordLSNOffset ;
+      UINT32         bkt ;
+      dmsRBSOffset   newOffset ;
+      _dmsStorageDataCapped *sd = (_dmsStorageDataCapped*)_su->data() ;
+
+      dmsTBScanner tbScanner( _su->data(), context, NULL,
+                              DMS_ACCESS_TYPE_QUERY, -1 ) ;
+
+      newOffset._clID = context->mbID() ;
+
+      do
+      {
+
+         rc = tbScanner.advance( recordID, generator, eduCB ) ;
+         if ( SDB_OK == rc )
+         {
+            // retrieve the data
+            generator.getDataPtr( recordDataPtr ) ;
+
+            recordData.setData( (const CHAR*)recordDataPtr,
+                                *(UINT32*)recordDataPtr,
+                                UTIL_COMPRESSOR_INVALID, TRUE ) ;
+
+            try
+            {
+               BSONObj obj ( recordData.data() ) ;
+               eleLsnOffset =
+                     obj.getField(FIELD_NAME_RBS_RECORD_LSN_OFFSET) ;
+               eleKey = obj.getField( FIELD_NAME_RBS_RECORD_KEY ) ;
+               vector< BSONElement > vecKey = eleKey.Array() ;
+
+               recordLSNOffset = eleLsnOffset.numberLong();
+               bkt = _hash( vecKey[0].numberInt(),
+                            vecKey[1].numberInt(), 
+                            recordLSNOffset ) ;
+
+               sd->_extLidAndOffset2RecLid( recordID._extent, 
+                                            recordID._offset, 
+                                            newOffset._logicalID );
+               // update hashbucket here
+               _rbsRecordBkt.lock( bkt );
+               _rbsRecordBkt.setOffset( newOffset, bkt );
+               _rbsRecordBkt.release( bkt ) ;
+
+#ifdef _DEBUG
+               PD_LOG ( PDDEBUG,
+                        "Retrieved RBS record for bkt(%d), rid(%d, %d), "
+                        "logicalID(%llu), lsn(%llu)",
+                        bkt, recordID._extent, recordID._offset,
+                        newOffset._logicalID, recordLSNOffset ) ;
+#endif
+            }
+            catch( std::exception &e )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Occur exception when retrieving RBS meta: %s",
+                       e.what() ) ;
+               goto error ;
+
+            }
+
+
+         }
+         else  // failed on advance
+         {
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+            else
+            {
+               PD_LOG ( PDERROR,
+                        "Failed to retrieved RBS record, rid(%d, %d), rc=%d",
+                        recordID._extent, recordID._offset, rc ) ;
+               goto error ;
+            }
+         }
+      } while(TRUE) ;
+#ifdef _DEBUG
+      PD_LOG ( PDDEBUG,
+               "Finished updating hashbucket using RBSCL(%d). rc=%d",
+               context->mbID(), rc ) ;
+#endif
+
+   done:
+      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__REBUILDHASHBKTFROMCL, rc );
+      return rc ;
+
+   error:
+      goto done ;
+   }
+   
+   // Function to find out current CL, and load them into memory 
+   // Exclusive latch is taken in this function
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_LOADMETA, "_dmsRBSSUMgr::loadMeta" )
+   SINT32 _dmsRBSSUMgr::loadMeta ( )
+   {
+      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_LOADMETA );
       SINT32      rc         = SDB_OK ;
       UINT16      curCL      = DMS_FIRST_RBS_CL ;
       UINT16      lastFreeCL = 0 ;
-      BOOLEAN     mbLocked   = FALSE ;
+      BOOLEAN     mbLatched  = FALSE ;
+      dmsMBContext *metaContext  = NULL ;
       dmsMBContext *context  = NULL ;
+      CHAR        clName[30] ;
 
       // take mbLock here, and pass down the context
-      rc = _su->data()->getMBContext( &context, _metaCLName, EXCLUSIVE ) ;
+      rc = _su->data()->getMBContext( &metaContext, _metaCLName, EXCLUSIVE ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get RBS mbLock, rc: %d",
                   rc ) ;
          goto error ;
       }
-      mbLocked = TRUE ;
+      mbLatched = TRUE ;
 
-      rc  = _getMeta( curCL, lastFreeCL, context ) ;
+      rc  = _getMeta( curCL, lastFreeCL, metaContext ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get RBS meta record, rc: %d",
@@ -427,27 +616,332 @@ namespace engine
          goto error ;
       }
 
-      // TODO:  do we want to run a gc here?? but we need to guarantee
-      // that we can retrieve a useful lowtran from DPS before we decide
-      // to do so.
-
       // Update _currentCollection and _lastFreeCollection
       _currentCollection = curCL ;
       _lastFreeCollection = lastFreeCL ;
       PD_LOG ( PDDEBUG, "Successfully set up meta: curCL=%d, lastFreeCL=%d",
                curCL, lastFreeCL ) ;
 
-   done:
-      if ( mbLocked )
+      // read the rest of meta records and load up the in memory bucket
+      rc = loadHashBkt( metaContext ) ;
+      if ( rc )
       {
-         _su->data()->releaseMBContext( context ) ;
+         PD_LOG ( PDERROR, "Failed to load RBS hash bucket, rc: %d",
+                  rc ) ;
+         goto error ;
       }
-      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__UPDATEMETA, rc );
+
+      // TODO: we may want to scan the curCL to update the hash bucket with
+      // records which might have not be reflected in the meta record on disk
+      DMS_BUILD_RBS_CL_NAME( clName, curCL ) ;
+      rc = _su->data()->getMBContext( &context, clName, SHARED ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get mbLatch for %s, rc=%d",
+                  clName, rc ) ;
+         goto error ;
+      }
+
+      PD_LOG ( PDDEBUG, "Updating hash bucket with %s", clName ) ;
+
+      rc = _rebuildHashBktFromCL( context ) ;
+      _su->data()->releaseMBContext( context ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, 
+                  "Failed to rebuild RBS hash bucket using %s, rc: %d",
+                  clName, rc ) ;
+         goto error ;
+      }
+
+   done:
+      if ( mbLatched )
+      {
+         _su->data()->releaseMBContext( metaContext ) ;
+      }
+      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_LOADMETA, rc );
       return rc ;
    error:
       goto done ;
    }
 
+   // Based on the option passed in, we may update records in SYSRBS.SYSRBS000:
+   // - Provided curCL and lastFreeCL, update the first meta data 
+   // - Flush hash bucket to second meta data record (could be divided to 
+   //   multiple records in the future)
+   // If context is passed in, the caller should already hold mbLatch of 
+   // SYSRBS000 for concurrency control.
+   // Otherwise, mbLatch is taken exclusively in the function. Note that 
+   // caller can set any one or both value to DMS_MAX_RBS_CL so we will pick
+   // the in memory value to flush to disk.
+   // Keep in mind that if lush curCL and lastFreeCL, we will flush hash bucket
+   // as well. In the future, we may want to implement update interface for 
+   // cappedCL, by which time we can update record inplace
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_FLUSHMETA, "_dmsRBSSUMgr::flushMeta" )
+   SINT32 _dmsRBSSUMgr::flushMeta( UINT16        curCL,
+                                   UINT16        lastFreeCL,
+                                   SDB_DPSCB    *dpsCB,
+                                   UINT16        flushOption,
+                                   dmsMBContext *context )
+   {
+      SINT32         rc          = SDB_OK;
+      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_FLUSHMETA );
+      dmsMBContext  *metaContext = NULL ;
+      BOOLEAN        mbLocked    = FALSE ;
+      pmdEDUCB      *eduCB       = pmdGetThreadEDUCB() ;
+      INT64          logicalID   = 0 ; 
+      _dmsStorageDataCapped *sd  = (_dmsStorageDataCapped*)_su->data();
+      utilInsertResult insertResult ;
+
+      if ( NULL == context )
+      {
+         rc = sd->getMBContext( &metaContext, _metaCLName, EXCLUSIVE ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to get meta mbLock, rc: %d",
+                     rc ) ;
+            goto error ;
+         }
+         mbLocked = TRUE ;
+
+         // When caller(like GC or fini) invoke the function without mbLatch,
+         // it meant to flush out the most update to date value to disk.
+         // We must recheck/set under latch so we don't overwrite most 
+         // updated in memory one. 
+         if ( DMS_MAX_RBS_CL == curCL )
+         {
+            curCL = _currentCollection ;
+         }
+         if ( DMS_MAX_RBS_CL == lastFreeCL )
+         {
+            lastFreeCL = _lastFreeCollection ;
+         }
+      }
+      else
+      {
+         metaContext = context ;
+      }
+
+      // if flush curCL and lastFreeCL, we will pop and flush both.
+      if ( DMS_RBS_FLUSH_OPTION_MASK & DMS_RBS_FLUSH_OPTION_COLLECTIONS )
+      {
+         // pop all record for now
+         rc = sd->popRecord( metaContext, logicalID, 
+                             eduCB, dpsCB, -1 ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to pop RBS meta record, rc: %d",
+                     rc ) ;
+            goto error ;
+         }
+
+         // insert the first record with new value
+         rc = _insertMeta( curCL, lastFreeCL,
+                           metaContext, dpsCB ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR,
+                     "Failed to insert back RBS meta record orig(%d, %d), "
+                     "new(%d, %d) rc: %d",
+                     _currentCollection, _lastFreeCollection, 
+                     curCL, lastFreeCL, rc ) ;
+            goto error ;
+         }
+         _currentCollection = curCL;
+         _lastFreeCollection = lastFreeCL ;
+      }
+      else if ( DMS_RBS_FLUSH_OPTION_HASHBKT == 
+                (DMS_RBS_FLUSH_OPTION_MASK & DMS_RBS_FLUSH_OPTION_HASHBKT) )
+      {
+         // we will only flush the in memory bkt, keep first record untouched
+         // as we should have maintained it through flushMeta() all the time.
+         // Only pop the record holding hash bucket already
+         logicalID = _rbsRecordBkt.getLogicalID() ;
+         if ( DMS_INVALID_REC_LOGICALID != logicalID )
+         {
+            rc = _su->data()->popRecord( metaContext, logicalID, 
+                                         eduCB, dpsCB, -1 ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to pop RBS meta record, rc: %d",
+                        rc ) ;
+               goto error ;
+            }
+         }
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Invalid flush option: %d",
+                 flushOption ) ;
+         
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      // now build record for hashbkt and insert
+      try
+      {
+         BSONObj        record ;
+         BSONObjBuilder builder ;
+
+         builder.appendBinData( FIELD_NAME_RBS_HASH_BKT, 
+                                _rbsRecordBkt.getObjSize(), 
+                                BinDataGeneral, 
+                                _rbsRecordBkt.getObj() ) ;
+         record = builder.obj() ;
+
+         PD_LOG ( PDDEBUG, 
+                  "flush out hashbucket, size=%d, bsonojbsize=%d",
+                  _rbsRecordBkt.getObjSize(), record.objsize() ) ;
+
+         // insert the meta record
+         rc = _su->insertRecord( _metaCLName, record, eduCB,
+                                 dpsCB, TRUE, TRUE, metaContext,
+                                 -1, &insertResult ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to flush RBS hash bucket, rc: %d",
+                     rc ) ;
+            goto error ;
+         }
+
+         // convert physical address to logical localtion
+         {
+            SINT32      ext, offset ;
+            INT64       location = DMS_INVALID_REC_LOGICALID ;
+            const dmsExtent *extent = NULL ;
+            dmsExtRW    extRW ;
+            insertResult.getInsertLoc( ext, offset ) ;
+
+            extRW = sd->extent2RW( ext, metaContext->mbID() ) ;
+            extRW.setNothrow( TRUE ) ;
+            extent = extRW.readPtr<dmsExtent>() ;
+ 
+            sd->_extLidAndOffset2RecLid( extent->_logicID, offset, 
+                                         location ) ;
+
+            PD_LOG ( PDDEBUG, 
+                     "flushed hash bucket to record(%d, %d), extlid=%d, "
+                     "logicID=%llu",
+                     ext, offset, extent->_logicID, location) ;
+
+            // update the logicalID
+            _rbsRecordBkt.setLogicalID(location) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, 
+                 "Occur exception in flushing hash bucket: %s",
+                 e.what() ) ;
+         rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      if ( mbLocked )
+      {
+         metaContext->mbUnlock() ;
+      }
+
+      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_FLUSHMETA, rc );
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // read record from SYSRBS0000 and load into memory hash bucket
+   // caller must hold metaMBLatch in X
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_LOADHASHBKT, "_dmsRBSSUMgr::loadHashBkt" )
+   SINT32 _dmsRBSSUMgr::loadHashBkt( dmsMBContext *metaContext ) 
+   {
+      SINT32         rc          = SDB_OK;
+      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_LOADHASHBKT );
+      pmdEDUCB      *eduCB       = pmdGetThreadEDUCB() ;
+      INT64          location    = DMS_INVALID_OFFSET;
+      _dmsStorageDataCapped *sd  = (_dmsStorageDataCapped*)_su->data();
+      
+      // only load if number of meta record on disk is vallid and we haven't
+      // load before
+      if ( DMS_RBS_NUM_META_RECORDS == metaContext->mbStat()->_totalRecords &&
+           (DMS_INVALID_OFFSET == _rbsRecordBkt.getLogicalID()) )
+      {
+         // FIXME: this is a shortcut because we only has 2 record, that's
+         // why we can use the _lastRecordOffset. Otherwise we have to get
+         // use firstRecordOffset+recordsize
+         dmsExtentID   extID      = DMS_INVALID_EXTENT ;
+         dmsOffset     offset     = DMS_INVALID_OFFSET;
+
+         dmsExtentInfo *extInfo = 
+                         sd->getWorkExtInfo( metaContext->mbID() ) ;
+         extID = extInfo->_id ;
+         offset = extInfo->_lastRecordOffset ;
+         sd->_extLidAndOffset2RecLid( extInfo->_extLogicID, 
+                                      offset, location ) ;
+
+         {
+            dmsRecordID   recordID( extID, offset ) ;
+            BSONObj       cappedRecord ;
+            BSONElement   bktEle ;
+            const CHAR*   binData ;
+            INT32         dataLen = 0 ;
+
+            // FIXME remove
+            PD_LOG( PDDEBUG,
+                 "loading RBS hash bucket from metarecord logicalid %llu,"
+                 "rid(%d, %d)",
+                 location, extID, offset ) ;
+
+            rc = sd->fetch( metaContext, recordID, cappedRecord, eduCB, FALSE ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, 
+                        "Failed to fetch rbs meta record at %llu, rc=%d",
+                        location, rc ) ;
+               goto error ;
+            }
+
+            bktEle = cappedRecord.getField( FIELD_NAME_RBS_HASH_BKT );
+            // TODO:  Once stable, change following two assert to PD_CHECK
+            SDB_ASSERT( BinData == bktEle.type(),
+                        "Hash bkt data type not match" ) ;
+            binData = bktEle.binData( dataLen ) ;
+            if ( dataLen != _rbsRecordBkt.getObjSize() )
+            {
+               PD_LOG( PDERROR,
+                       "hashbkt size(%d) does not real len from meta "
+                       "record(%d)",
+                       _rbsRecordBkt.getObjSize(), dataLen ) ;
+               SDB_ASSERT( FALSE,
+                          "hashbkt size does not match meta record" ) ;
+            }
+
+            ossMemcpy( _rbsRecordBkt.getObj(), binData,
+                       _rbsRecordBkt.getObjSize() ) ;
+         }
+
+         // update 
+         _rbsRecordBkt.setLogicalID(location) ;
+      }
+      else
+      {
+         // either first fresh init time, which means we never created record
+         // for the hash bucket, or bucket was loaded
+         PD_LOG( PDDEBUG,
+                 "RBS hash bucket was not loaded, number of metarecord=%d,"
+                 "in memory logicalID %llu",
+                 metaContext->mbStat()->_totalRecords,
+                 _rbsRecordBkt.getLogicalID() ) ;
+      }
+   done:
+      
+      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_LOADHASHBKT, rc );
+      return rc ;
+   error:
+      goto done ;
+   }
+
+/*
    // Provided curCL and lastFreeCL, update the meta data record in SYSRBS.SYSRBS000
    // The caller should already hold mbLock of SYSRBS000 for concurrency control
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__UPDATEMETA1, "_dmsRBSSUMgr::_updateMeta" )
@@ -456,8 +950,8 @@ namespace engine
                                       dmsMBContext *context,
                                       SDB_DPSCB    *dpsCB )
    {
-      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__UPDATEMETA1 );
       SINT32      rc         = SDB_OK;
+      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__UPDATEMETA1 );
       pmdEDUCB   *eduCB      = pmdGetThreadEDUCB() ;
       INT64       logicalID  = 0 ; // we only has 1 record
 
@@ -494,7 +988,7 @@ namespace engine
    error:
       goto done ;
    }
-
+*/
    // Find the current RBS CL and make sure it has enough space to append
    // a record with specified size. If the current one run out of space,
    // this function will automatically move to next CL.
@@ -505,6 +999,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD, "_dmsRBSSUMgr::_prepareRBSCLForRecord" )
    SINT32 _dmsRBSSUMgr::_prepareRBSCLForRecord( UINT32          recordSize,
                                                 pmdEDUCB     *  eduCB,
+                                                SDB_DPSCB    *  dpsCB,
                                                 dmsMBContext *& clContext )
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD);
@@ -514,10 +1009,6 @@ namespace engine
       BOOLEAN      mbLocked     = FALSE ;
       BOOLEAN      metaMBLocked = FALSE ;
       dmsMBContext *metaContext = NULL ;
-      // explicitly assign NULL to dpsCB because we don't want to replay
-      // the addCollection log record. If decision is changed, we can
-      // set it to pmdGetKRCB()->getDPSCB()
-      SDB_DPSCB    *dpsCB       = NULL ;
       _dmsStorageDataCapped *sd = (_dmsStorageDataCapped*)_su->data();
 
       // TODO: need protection to lookup _currentCollection
@@ -584,7 +1075,7 @@ namespace engine
          // create next CL
          try
          {
-            builder.append( FIELD_NAME_SIZE, DMS_DFT_RBSCL_SIZE ) ;
+            builder.append( FIELD_NAME_SIZE, _maxCollectionSize ) ;
             builder.append( FIELD_NAME_MAX, 0 ) ;
             builder.appendBool( FIELD_NAME_OVERWRITE, FALSE ) ;
             extOptions = builder.done() ;
@@ -617,9 +1108,12 @@ namespace engine
             goto error ;
          }
 
-         // move to next CL
-         rc = _updateMeta( _currentCollection, _lastFreeCollection,
-                           metaContext, dpsCB );
+         // move to next CL, flush out meta records  so that replica node
+         // can replay this update to its side. We will flush hashbkt
+         // to keep the hashbkt as closely updated as the cur/last.
+         rc = flushMeta( _currentCollection, _lastFreeCollection, dpsCB,
+                         DMS_RBS_FLUSH_OPTION_COLLECTIONS, 
+                         metaContext ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR,
@@ -669,6 +1163,7 @@ namespace engine
    SINT32 _dmsRBSSUMgr::_allocRBSRecordSpace( UINT32        size,
                                               dmsRBSOffset &newOffset,
                                               pmdEDUCB     *eduCB,
+                                              SDB_DPSCB    *dpsCB,
                                               dmsMBContext *metaContext,
                                               dmsMBContext *&clContext )
    {
@@ -680,7 +1175,7 @@ namespace engine
       BOOLEAN       mbLocked   = FALSE ;
 
       // mblatch will be held after this call
-      rc = _prepareRBSCLForRecord( size, eduCB, clContext ) ;
+      rc = _prepareRBSCLForRecord( size, eduCB, dpsCB, clContext ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR,
@@ -918,10 +1413,13 @@ namespace engine
       dmsMBContext *clContext    = NULL ;
       CHAR          clName[30]   = {0} ;
       pmdEDUCB     *eduCB        = pmdGetThreadEDUCB() ;
+      // setup dpsCB so that the replica can replay the addCollection 
+      // log record. 
+      SDB_DPSCB    *dpsCB = pmdGetKRCB()->getDPSCB() ;
       UINT32        bkt          = _hash( csid, clid, lsn );
       BSONObjBuilder builder ;
-      BSONObj       record ;
       utilInsertResult insertResult ;
+      BSONObj       record ;
       BOOLEAN       bktLatched   = FALSE ;
       BOOLEAN       clLocked     = FALSE ;
       UINT32        recSize ;
@@ -962,7 +1460,7 @@ namespace engine
 
          // move to proper RBS CL which has enough space, on OK return,
          // the cl is locked in X
-         rc = _prepareRBSCLForRecord( recSize, eduCB, clContext ) ;
+         rc = _prepareRBSCLForRecord( recSize, eduCB, dpsCB, clContext ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to prepare RBSCL for record, rc: %d",
@@ -972,9 +1470,8 @@ namespace engine
          clLocked = TRUE ;
 
 
-         // FIXME: pass in dpscb to write LR
          // insert the record to RBS
-         rc = _su->insertRecord ( clName, record, eduCB, NULL,
+         rc = _su->insertRecord ( clName, record, eduCB, dpsCB,
                                   TRUE, TRUE, clContext, -1, &insertResult ) ;
          if ( rc )
          {
@@ -1001,6 +1498,7 @@ namespace engine
          dmsRBSOffset location ;
          SINT32       ext, offset ;
          insertResult.getInsertLoc( ext, offset ) ;
+         // FIXME:  is this ext correct? should it be extlid from extent
          sd->_extLidAndOffset2RecLid( ext, offset, location._logicalID ) ;
          location._clID = _currentCollection ;
          _rbsRecordBkt.setOffset( location, bkt ) ;
@@ -1157,7 +1655,7 @@ namespace engine
    }
 */
    // Given a transactionID and beginning of a record chain, find a visiable record
-   // This method uses _fetch method from cappedCL
+   // This method uses fetch method from cappedCL
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_GETRECORD1, "_dmsRBSSUMgr::getRecord1" )
    SINT32 _dmsRBSSUMgr::getRecord1 ( dmsStorageUnitID  csid,
                                      UINT16            clid,
@@ -1337,11 +1835,10 @@ namespace engine
    // Note that the caller should hold mbLock of SYSRBS000
    // position could be stale.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__GCRBS, "_dmsRBSSUMgr::_gcRBS" )
-   SINT32 _dmsRBSSUMgr::_gcRBS ( UINT16 &position )
+   SINT32 _dmsRBSSUMgr::_gcRBS ( UINT16 &position, SDB_DPSCB *dpsCB )
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__GCRBS );
       SINT32      rc         = SDB_OK ;
-      SDB_DPSCB  *dpsCB      = NULL ;
       pmdEDUCB   *eduCB      = pmdGetThreadEDUCB() ;
       CHAR        clName[30] = {0} ;
       DPS_TRANS_ID maxGlobTransID ;
@@ -1410,13 +1907,24 @@ namespace engine
                goto error ;
             }
 
-            // FIXME: what's the protection?? Since this is the only
-            // thread modifying lastFree, is it safe to treat the UINT32
+            // Note that we update _lastFreeCollection without protection.
+            // It's ok to do so because this is the only thread modifying
+            // or use lastFreeCollection. is it safe to treat the UINT32
             // assignement as atomic operation
             _lastFreeCollection = curPos ;
 
             PD_LOG ( PDDEBUG, "Successfully recycled %s. ",
                      clName ) ;
+
+            rc = flushMeta( DMS_MAX_RBS_CL, _lastFreeCollection, dpsCB,
+                            DMS_RBS_FLUSH_OPTION_COLLECTIONS ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR,
+                        "Failed to flush meta record in gc, rc: %d",
+                        rc ) ;
+               goto error ;
+            }
          }
          else
          {
@@ -1458,7 +1966,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_GCRBS );
       SINT32      rc         = SDB_OK ;
-      SDB_DPSCB  *dpsCB      = NULL ;
+      SDB_DPSCB  *dpsCB      = pmdGetKRCB()->getDPSCB() ;
       CHAR        clName[30] = {0} ;
       dmsMBContext *pContext = NULL ;
 
@@ -1495,7 +2003,7 @@ namespace engine
       PD_LOG( PDDEBUG, "RBS GC begin with %s ", clName ) ;
 
       // try the best to gc as much as possible
-      rc = _gcRBS( _lastFreeCollection ) ;
+      rc = _gcRBS( _lastFreeCollection, dpsCB ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to run GC, clName=%s, meta=(%d, %d) rc: %d",
@@ -1506,13 +2014,14 @@ namespace engine
       // take mbLock and update the meta record
       pContext->mbLock( EXCLUSIVE ) ;
 
-      // update with latest value
-      rc = _updateMeta( _currentCollection, _lastFreeCollection,
-                        pContext, dpsCB ) ;
+      // flush hashbucket 
+      rc = flushMeta( _currentCollection, _lastFreeCollection, dpsCB,
+                      DMS_RBS_FLUSH_OPTION_HASHBKT,
+                      pContext ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to update meta with (%d, %d) rc: %d",
-                   _currentCollection, _lastFreeCollection, rc ) ;
+         PD_LOG ( PDERROR, "Failed to flush hashbkt after gc, rc: %d",
+                  rc ) ;
          goto error ;
       }
 
