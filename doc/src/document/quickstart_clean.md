@@ -6,14 +6,14 @@
 
 + 清理过程需要使用操作系统 root 用户权限
 
-+ 请确保清理脚本unset.sh具有可执行权限
++ 请确保清理脚本clean.sh具有可执行权限
 
 ###清理步骤###
 
 - 运行清理脚本，通过询问用户的方式清除当前主机上 setup.sh 安装的所有 SequoiaDB、MySQL 实例组件以及 PostgreSQL 实例组件和数据
 
   ```lang-bash
-  # ./unset.sh
+  # ./clean.sh
   ```
 
 - 程序提示是否清除安装路径下的 SequoiaDB，默认是清理，输入N不清理
