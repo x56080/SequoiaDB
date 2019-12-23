@@ -50,7 +50,7 @@ function testExprtFilter1 ( cl, cl1 )
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -96,7 +96,7 @@ function testExprtFilter2 ( cl, cl1 )
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -142,7 +142,7 @@ function testExprtFilter3 ( cl, cl1 )
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -188,7 +188,7 @@ function testExprtFilter4 ( cl, cl1 )
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -235,7 +235,7 @@ function testExprtFilter5 ( cl, cl1 )
    { name: ["Tom", "John"] }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -281,7 +281,7 @@ function testExprtFilter6 ( cl, cl1 )
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -327,7 +327,7 @@ function testExprtFilter7 ( cl, cl1 )
    var docs = [{ a: 1 }, { a: 2, b: 2 }, { a: 3 }, { a: 4, b: 4 }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -374,7 +374,7 @@ function testExprtFilter8 ( cl, cl1 )
    { info: [{ name: "Jack", phone: "5678" }] }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -426,7 +426,7 @@ function testExprtFilter9 ( cl, cl1 )
    { a: [1, 4, 5] }, { a: [1, 2, 4] }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -477,7 +477,7 @@ function testExprtFilter10 ( cl, cl1 )
    var docs = [{ a: "abandon" }, { a: "Alice" }, { a: "beyond" }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -524,7 +524,7 @@ function testExprtFilter11 ( cl, cl1 )
    { a: 4, b: 3 }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -570,7 +570,7 @@ function testExprtFilter12 ( cl, cl1 )
    var docs = [{ a: [1, 2, 3] }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -615,7 +615,7 @@ function testExprtFilter13 ( cl, cl1 )
    var docs = [{ a: [1, 2, 4, 7, 9] }];
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13581.csv";
+   var csvfile = tmpFileDir + "sdbexprt13581.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

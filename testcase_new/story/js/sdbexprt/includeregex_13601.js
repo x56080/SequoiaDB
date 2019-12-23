@@ -53,7 +53,7 @@ function main ()
 
 function testExprtRegex1 ()
 {
-   var csvfile = workDir + "sdbexprt13601.csv";
+   var csvfile = tmpFileDir + "sdbexprt13601.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -91,7 +91,7 @@ function testExprtRegex1 ()
 
 function testExprtRegex2 ()
 {
-   var csvfile = workDir + "sdbexprt13602.csv";
+   var csvfile = tmpFileDir + "sdbexprt13602.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

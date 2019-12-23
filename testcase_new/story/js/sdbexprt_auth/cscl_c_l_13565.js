@@ -36,7 +36,7 @@ function main ()
 
 function testExprtNoCsCl ()
 {
-   var csvDir = workDir + "13565/";
+   var csvDir = tmpFileDir + "13565/";
    commMakeDir( "localhost", csvDir );
 
    var command = installPath + "bin/sdbexprt" +
@@ -58,7 +58,7 @@ function testExprtNoCsCl ()
 
 function testExprtCsCl ()
 {
-   var csvfile = workDir + "sdbexprt13566.csv";
+   var csvfile = tmpFileDir + "sdbexprt13566.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

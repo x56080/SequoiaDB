@@ -26,7 +26,7 @@ function main ()
 
 function testExprtGenconf1 ()
 {
-   var conffile = workDir + "sdbexprt13610.conf";
+   var conffile = tmpFileDir + "sdbexprt13610.conf";
    cmd.run( "rm -rf " + conffile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -58,7 +58,7 @@ function testExprtGenconf1 ()
       "fields = " + csname + "." + clname + ":a,b\n";
    checkFileContent( conffile, content );
 
-   var csvfile = workDir + "sdbexprt13610.csv";
+   var csvfile = tmpFileDir + "sdbexprt13610.csv";
    cmd.run( "rm -rf " + csvfile );
    command = installPath + "bin/sdbexprt" +
       " --file " + csvfile +
@@ -73,7 +73,7 @@ function testExprtGenconf1 ()
 
 function testExprtGenconf2 ()
 {
-   var conffile = workDir + "sdbexprt13611.conf";
+   var conffile = tmpFileDir + "sdbexprt13611.conf";
    cmd.run( "rm -rf " + conffile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -104,7 +104,7 @@ function testExprtGenconf2 ()
       "clname = " + clname + "\n";
    checkFileContent( conffile, content );
 
-   var csvfile = workDir + "sdbexprt13611.csv";
+   var csvfile = tmpFileDir + "sdbexprt13611.csv";
    cmd.run( "rm -rf " + csvfile );
    command = installPath + "bin/sdbexprt" +
       " --file " + csvfile +

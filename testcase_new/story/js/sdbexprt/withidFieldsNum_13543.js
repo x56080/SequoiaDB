@@ -27,7 +27,7 @@ function testWithIdCsv ()
    cl.insert( { _id: 2, a: 2, b: 1 } );
    cl.insert( { _id: 3, a: 3, b: 2, c: 1 } );
 
-   var csvfile = workDir + "sdbexprt13544.csv";
+   var csvfile = tmpFileDir + "sdbexprt13544.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -78,7 +78,7 @@ function testWithIdJson ()
    cl.insert( { _id: 2, a: 2, b: 1 } );
    cl.insert( { _id: 3, a: 3, b: 2, c: 1 } );
 
-   var jsonfile = workDir + "sdbexprt13543.json";
+   var jsonfile = tmpFileDir + "sdbexprt13543.json";
    cmd.run( "rm -rf " + jsonfile );
 
    var command = installPath + "bin/sdbexprt" +

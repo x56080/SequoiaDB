@@ -23,7 +23,7 @@ function main ()
 
 function testExprtSort ()
 {
-   var csvfile = workDir + "sdbexprt13586.csv";
+   var csvfile = tmpFileDir + "sdbexprt13586.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

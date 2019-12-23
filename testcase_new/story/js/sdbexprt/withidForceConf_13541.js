@@ -21,7 +21,7 @@ function testWithId ()
    var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( { _id: 1, a: 1 } );
 
-   var conffile = workDir + "sdbexprt13541.conf";
+   var conffile = tmpFileDir + "sdbexprt13541.conf";
    cmd.run( "rm -rf " + conffile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -35,7 +35,7 @@ function testWithId ()
       " --force true";
    testRunCommand( command );
 
-   var csvfile = workDir + "sdbexprt13541.csv";
+   var csvfile = tmpFileDir + "sdbexprt13541.csv";
    cmd.run( "rm -rf " + csvfile );
    command = installPath + "bin/sdbexprt" +
       " --conf " + conffile +

@@ -21,7 +21,7 @@ function main ()
 
 function testExprtIllegalHost ()
 {
-   var csvfile = workDir + "sdbexprt13491.csv";
+   var csvfile = tmpFileDir + "sdbexprt13491.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s abcde" +
@@ -38,7 +38,7 @@ function testExprtIllegalHost ()
 
 function testExprtUnusedPort ()
 {
-   var jsonfile = workDir + "sdbexprt13491.json";
+   var jsonfile = tmpFileDir + "sdbexprt13491.json";
    cmd.run( "rm -rf " + jsonfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +

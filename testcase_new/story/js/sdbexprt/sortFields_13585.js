@@ -26,7 +26,7 @@ function main ()
 
 function testExprtSort1 ()
 {
-   var csvfile = workDir + "sdbexprt13585.csv";
+   var csvfile = tmpFileDir + "sdbexprt13585.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -48,7 +48,7 @@ function testExprtSort1 ()
 
 function testExprtSort2 ()
 {
-   var csvfile = workDir + "sdbexprt13585.csv";
+   var csvfile = tmpFileDir + "sdbexprt13585.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -70,7 +70,7 @@ function testExprtSort2 ()
 
 function testExprtSort3 ()
 {
-   var csvfile = workDir + "sdbexprt13585.csv";
+   var csvfile = tmpFileDir + "sdbexprt13585.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -92,7 +92,7 @@ function testExprtSort3 ()
 
 function testExprtSort4 ()
 {
-   var csvfile = workDir + "sdbexprt13585.csv";
+   var csvfile = tmpFileDir + "sdbexprt13585.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

@@ -25,7 +25,7 @@ function main ()
 
 function testExprtKicknull1 ()
 {
-   var csvfile = workDir + "sdbexprt13603.csv";
+   var csvfile = tmpFileDir + "sdbexprt13603.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -48,7 +48,7 @@ function testExprtKicknull1 ()
 
 function testExprtKicknull2 ()
 {
-   var csvfile = workDir + "sdbexprt13603.csv";
+   var csvfile = tmpFileDir + "sdbexprt13603.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

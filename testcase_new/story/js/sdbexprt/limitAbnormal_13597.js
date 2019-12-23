@@ -23,7 +23,7 @@ function main ()
 
 function testExprtLimit ()
 {
-   var csvfile = workDir + "sdbexprt13597.csv";
+   var csvfile = tmpFileDir + "sdbexprt13597.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

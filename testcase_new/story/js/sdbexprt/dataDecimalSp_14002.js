@@ -80,7 +80,7 @@ function main ()
 
 function testExprtImprtCsv1 ()
 {
-   var csvfile = workDir + "sdbexprt14002_decimal.csv";
+   var csvfile = tmpFileDir + "sdbexprt14002_decimal.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -110,7 +110,7 @@ function testExprtImprtCsv1 ()
 
 function testExprtImprtCsv2 ()
 {
-   var csvfile = workDir + "sdbexprt14002_decimal.csv";
+   var csvfile = tmpFileDir + "sdbexprt14002_decimal.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -141,7 +141,7 @@ function testExprtImprtCsv2 ()
 
 function testExprtImprtCsv3 ()
 {
-   var csvfile = workDir + "sdbexprt14002_decimal.csv";
+   var csvfile = tmpFileDir + "sdbexprt14002_decimal.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -172,7 +172,7 @@ function testExprtImprtCsv3 ()
 
 function testExprtImprtJson ()
 {
-   var jsonfile = workDir + "sdbexprt14002_decimal.json";
+   var jsonfile = tmpFileDir + "sdbexprt14002_decimal.json";
    cmd.run( "rm -rf " + jsonfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +

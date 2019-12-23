@@ -59,7 +59,7 @@ function main ()
 
 function testExprtBinary1 ()
 {
-   var csvfile = workDir + "sdbexprt13599.csv";
+   var csvfile = tmpFileDir + "sdbexprt13599.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -99,7 +99,7 @@ function testExprtBinary1 ()
 
 function testExprtBinary2 ()
 {
-   var csvfile = workDir + "sdbexprt13600.csv";
+   var csvfile = tmpFileDir + "sdbexprt13600.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

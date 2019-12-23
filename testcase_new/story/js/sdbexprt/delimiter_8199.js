@@ -28,7 +28,7 @@ function main ()
 
 function testExprt1 ()
 {
-   var csvfile = workDir + "sdbexprt8199.csv";
+   var csvfile = tmpFileDir + "sdbexprt8199.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -47,7 +47,7 @@ function testExprt1 ()
 
 function testExprt2 ()
 {
-   var csvfile = workDir + "sdbexprt8199.csv";
+   var csvfile = tmpFileDir + "sdbexprt8199.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -66,7 +66,7 @@ function testExprt2 ()
 
 function testExprt3 ()
 {
-   var csvfile = workDir + "sdbexprt8199.csv";
+   var csvfile = tmpFileDir + "sdbexprt8199.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +

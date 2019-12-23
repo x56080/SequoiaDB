@@ -15,7 +15,7 @@ function main ()
 {
    commDropCL( db, csname, clname );
    var cl = commCreateCL( db, csname, clname );
-   var exportDir = workDir + "13524/";
+   var exportDir = tmpFileDir + "13524/";
    var kb = 4;
 
    //指定文件大小=数据量大小 

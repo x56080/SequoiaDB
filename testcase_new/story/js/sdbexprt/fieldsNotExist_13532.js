@@ -50,7 +50,7 @@ function main ()
 
 function testExprtImprtCsv ()
 {
-   var csvfile = workDir + "sdbexprt13532.csv";
+   var csvfile = tmpFileDir + "sdbexprt13532.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -83,7 +83,7 @@ function testExprtImprtCsv ()
 
 function testExprtImprtJson ()
 {
-   var jsonfile = workDir + "sdbexprt13532.json";
+   var jsonfile = tmpFileDir + "sdbexprt13532.json";
    cmd.run( "rm -rf " + jsonfile );
 
    var command = installPath + "bin/sdbexprt" +

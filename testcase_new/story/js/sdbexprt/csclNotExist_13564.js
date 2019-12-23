@@ -20,7 +20,7 @@ function main ()
 
 function testExprtNotExistCs ()
 {
-   var csvfile = workDir + "sdbexprt13564.csv";
+   var csvfile = tmpFileDir + "sdbexprt13564.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -47,7 +47,7 @@ function testExprtNotExistCs ()
 
 function testExprtNotExistCl ()
 {
-   var jsonfile = workDir + "sdbexprt13564.json";
+   var jsonfile = tmpFileDir + "sdbexprt13564.json";
    cmd.run( "rm -rf " + jsonfile );
 
    var command = installPath + "bin/sdbexprt" +

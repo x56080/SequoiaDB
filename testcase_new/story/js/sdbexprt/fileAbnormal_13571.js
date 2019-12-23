@@ -28,7 +28,7 @@ function main ()
 
 function testExprtNoPath ()
 {
-   var csvDir = workDir + "13571/";
+   var csvDir = tmpFileDir + "13571/";
    var csvfile = csvDir + "sdbexprt13571.csv";
    cmd.run( "rm -rf " + csvDir );
 
@@ -54,7 +54,7 @@ function testExprtNoPerm ()
       return;
    }
 
-   var csvDir = workDir + "13572/";
+   var csvDir = tmpFileDir + "13572/";
    var csvfile = csvDir + "sdbexprt13571.csv";
    cmd.run( "mkdir -p " + csvDir );
    File.chmod( csvDir, 0000 );
@@ -74,7 +74,7 @@ function testExprtNoPerm ()
 
 function testExprtExisted1 ()
 {
-   var csvfile = workDir + "sdbexprt13573.csv";
+   var csvfile = tmpFileDir + "sdbexprt13573.csv";
    cmd.run( "rm -rf " + csvfile );
    var file = new File( csvfile );
    file.write( "abcde" );
@@ -98,7 +98,7 @@ function testExprtExisted1 ()
 
 function testExprtExisted2 ()
 {
-   var csvfile = workDir + "sdbexprt13573.csv";
+   var csvfile = tmpFileDir + "sdbexprt13573.csv";
    cmd.run( "rm -rf " + csvfile );
    var file = new File( csvfile );
    file.write( "abcde" );

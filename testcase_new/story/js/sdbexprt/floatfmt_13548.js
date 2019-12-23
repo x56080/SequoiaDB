@@ -81,7 +81,7 @@ function testFloatFmtCsv ( floatfmt, content )
    var cl = commCreateCL( db, csname, clname );
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13548.csv";
+   var csvfile = tmpFileDir + "sdbexprt13548.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -109,7 +109,7 @@ function testFloatFmtJson ( floatfmt, content )
    var cl = commCreateCL( db, csname, clname );
    cl.insert( docs );
 
-   var jsonfile = workDir + "sdbexprt13548.json";
+   var jsonfile = tmpFileDir + "sdbexprt13548.json";
    cmd.run( "rm -rf " + jsonfile );
 
    var command = installPath + "bin/sdbexprt" +

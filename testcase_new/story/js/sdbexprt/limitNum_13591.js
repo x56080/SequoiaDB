@@ -26,7 +26,7 @@ function main ()
 
 function testExprtLimit1 ()
 {
-   var csvfile = workDir + "sdbexprt13591.csv";
+   var csvfile = tmpFileDir + "sdbexprt13591.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -49,7 +49,7 @@ function testExprtLimit1 ()
 
 function testExprtLimit2 ()
 {
-   var csvfile = workDir + "sdbexprt13595.csv";
+   var csvfile = tmpFileDir + "sdbexprt13595.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -71,7 +71,7 @@ function testExprtLimit2 ()
 
 function testExprtLimit3 ()
 {
-   var csvfile = workDir + "sdbexprt13596.csv";
+   var csvfile = tmpFileDir + "sdbexprt13596.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

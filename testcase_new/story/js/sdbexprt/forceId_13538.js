@@ -26,7 +26,7 @@ function testForceWithId ()
    var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( { _id: 1, a: 1 } );
 
-   var csvfile = workDir + "sdbexprt13538.csv";
+   var csvfile = tmpFileDir + "sdbexprt13538.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -72,7 +72,7 @@ function testForceWithoutId ()
    var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( { _id: 1, a: 1 } );
 
-   var csvfile = workDir + "sdbexprt13539.csv";
+   var csvfile = tmpFileDir + "sdbexprt13539.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -118,7 +118,7 @@ function testForceWithFields ()
    var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( { _id: 1, a: 1 } );
 
-   var csvfile = workDir + "sdbexprt13540.csv";
+   var csvfile = tmpFileDir + "sdbexprt13540.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

@@ -37,7 +37,7 @@ function testExprtLimit1 ()
    var cl = commCreateCL( db, csname, clname );
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13592.csv";
+   var csvfile = tmpFileDir + "sdbexprt13592.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -71,7 +71,7 @@ function testExprtLimit2 ()
    var cl = commCreateCL( db, csname, clname, option );
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13593.csv";
+   var csvfile = tmpFileDir + "sdbexprt13593.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -114,7 +114,7 @@ function testExprtLimit3 ()
 
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13592.csv";
+   var csvfile = tmpFileDir + "sdbexprt13592.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

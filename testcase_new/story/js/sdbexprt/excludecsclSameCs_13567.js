@@ -32,7 +32,7 @@ function main ()
 
 function testExcludeCsCl ()
 {
-   var csvDir = workDir + "13567/";
+   var csvDir = tmpFileDir + "13567/";
    cmd.run( "mkdir -p " + csvDir );
 
    var command = installPath + "bin/sdbexprt" +

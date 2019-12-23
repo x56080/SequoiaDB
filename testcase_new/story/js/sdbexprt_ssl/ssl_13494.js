@@ -21,7 +21,7 @@ function main ()
 
 function testExprtSSL ()
 {
-   var csvfile = workDir + "sdbexprt13494.csv";
+   var csvfile = tmpFileDir + "sdbexprt13494.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +

@@ -69,7 +69,7 @@ function main ()
 
 function testExprtDelcharJson ( asc, clname )
 {
-  var jsonfile = workDir + "sdbexprt15652.json";
+  var jsonfile = tmpFileDir + "sdbexprt15652.json";
   cmd.run( "rm -rf " + jsonfile );
   println( "json ascii for delchar is: " + asc );
   var command = installPath + "bin/sdbexprt" +
@@ -86,7 +86,7 @@ function testExprtDelcharJson ( asc, clname )
 
 function testExprtDelcharCsv ( asc, clname )
 {
-  var csvfile = workDir + "sdbexprt15652.csv";
+  var csvfile = tmpFileDir + "sdbexprt15652.csv";
   cmd.run( "rm -rf " + csvfile );
   println( "csv ascii for delchar is: " + asc );
   var command = installPath + "bin/sdbexprt" +
@@ -104,7 +104,7 @@ function testExprtDelcharCsv ( asc, clname )
 //通过导入cl后的数据与原数据进行对比验证
 function checkResultByImprtJson ( asc1, clname1, cl1 )
 {
-  var jsonfile = workDir + "sdbexprt15652.json";
+  var jsonfile = tmpFileDir + "sdbexprt15652.json";
   //导入json格式文件到cl1上
   command = installPath + "bin/sdbimprt" +
     " -s " + COORDHOSTNAME +
@@ -130,7 +130,7 @@ function checkResultByImprtJson ( asc1, clname1, cl1 )
 
 function checkResultByImprtCsv ( asc1, clname1, cl1 )
 {
-  var csvfile = workDir + "sdbexprt15652.csv";
+  var csvfile = tmpFileDir + "sdbexprt15652.csv";
   //导入csv格式文件到cl1上
   command = installPath + "bin/sdbimprt" +
     " -s " + COORDHOSTNAME +

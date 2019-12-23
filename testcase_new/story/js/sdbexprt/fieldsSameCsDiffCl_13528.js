@@ -32,7 +32,7 @@ function main ()
 
 function testExprtCsv ()
 {
-   var csvDir = workDir + "13528/";
+   var csvDir = tmpFileDir + "13528/";
    cmd.run( "mkdir -p " + csvDir );
 
    var command = installPath + "bin/sdbexprt" +

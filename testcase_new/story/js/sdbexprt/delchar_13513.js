@@ -29,7 +29,7 @@ function main ()
 
 function testExprtImprt ()
 {
-   var csvfile = workDir + "sdbexprt13513.csv";
+   var csvfile = tmpFileDir + "sdbexprt13513.csv";
    cmd.run( "rm -rf " + csvfile );
    var asc = "0x12";
    println( "ascii for delchar is: " + asc );

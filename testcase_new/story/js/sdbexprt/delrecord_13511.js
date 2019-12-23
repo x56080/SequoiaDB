@@ -39,7 +39,7 @@ function main ()
 
 function testExprtImprtJson ()
 {
-   var jsonfile = workDir + "sdbexprt13511.json";
+   var jsonfile = tmpFileDir + "sdbexprt13511.json";
    cmd.run( "rm -rf " + jsonfile );
    var randNum = getRandomInt( 0, 128 );
    // avoid '"' and ','
@@ -74,7 +74,7 @@ function testExprtImprtJson ()
 
 function testExprtImprtCsv ()
 {
-   var csvfile = workDir + "sdbexprt13512.csv";
+   var csvfile = tmpFileDir + "sdbexprt13512.csv";
    cmd.run( "rm -rf " + csvfile );
    var asc = "0xab";
    println( "ascii for delrecord is: " + asc );

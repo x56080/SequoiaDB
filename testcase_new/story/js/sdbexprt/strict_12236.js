@@ -48,7 +48,7 @@ function main ()
 
 function testExprtStrict1 ()
 {
-   var jsonfile = workDir + "sdbexprt12236.json";
+   var jsonfile = tmpFileDir + "sdbexprt12236.json";
    cmd.run( "rm -rf " + jsonfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -83,7 +83,7 @@ function testExprtStrict1 ()
 
 function testExprtStrict2 ()
 {
-   var jsonfile = workDir + "sdbexprt12236.json";
+   var jsonfile = tmpFileDir + "sdbexprt12236.json";
    cmd.run( "rm -rf " + jsonfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +

@@ -25,13 +25,13 @@ function main ()
 
 function testExprtReplace1 ()
 {
-   var csvfile = workDir + "sdbexprt13989.csv";
+   var csvfile = tmpFileDir + "sdbexprt13989.csv";
    cmd.run( "rm -rf " + csvfile );
    var file = new File( csvfile );
    file.write( "abcde" );
    file.close();
 
-   var confFile = workDir + "sdbexprt13989.conf";
+   var confFile = tmpFileDir + "sdbexprt13989.conf";
    cmd.run( "rm -rf " + confFile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -58,13 +58,13 @@ function testExprtReplace1 ()
 
 function testExprtReplace2 ()
 {
-   var csvfile = workDir + "sdbexprt13989.csv";
+   var csvfile = tmpFileDir + "sdbexprt13989.csv";
    cmd.run( "rm -rf " + csvfile );
    var file = new File( csvfile );
    file.write( "abcde" );
    file.close();
 
-   var confFile = workDir + "sdbexprt13989.conf";
+   var confFile = tmpFileDir + "sdbexprt13989.conf";
    cmd.run( "rm -rf " + confFile );
 
    var command = installPath + "bin/sdbexprt" +

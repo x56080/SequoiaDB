@@ -28,7 +28,7 @@ function testExprtSelect1 ()
    var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13578.csv";
+   var csvfile = tmpFileDir + "sdbexprt13578.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -75,7 +75,7 @@ function testExprtSelect2 ()
    var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13578.csv";
+   var csvfile = tmpFileDir + "sdbexprt13578.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -122,7 +122,7 @@ function testExprtSelect3 ()
    var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13578.csv";
+   var csvfile = tmpFileDir + "sdbexprt13578.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -173,7 +173,7 @@ function testExprtSelect4 ()
    var cl1 = commCreateCL( db, csname, clname1 );
    cl.insert( docs );
 
-   var csvfile = workDir + "sdbexprt13578.csv";
+   var csvfile = tmpFileDir + "sdbexprt13578.csv";
    cmd.run( "rm -rf " + csvfile );
 
    var command = installPath + "bin/sdbexprt" +

@@ -33,7 +33,7 @@ function main ()
 
 function testExprtCsv ()
 {
-   var csvDir = workDir + "sdbexprt13534/";
+   var csvDir = tmpFileDir + "sdbexprt13534/";
    cmd.run( "rm -rf " + csvDir );
    cmd.run( "mkdir -p " + csvDir );
 

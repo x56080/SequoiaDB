@@ -29,7 +29,7 @@ function main ()
 function testExprtArg1 ()
 {
    // export to csv with json option strict
-   var csvfile = workDir + "sdbexprt13498.csv";
+   var csvfile = tmpFileDir + "sdbexprt13498.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -50,7 +50,7 @@ function testExprtArg1 ()
 function testExprtArg2 ()
 {
    // export to csv with nonsupport arg test
-   var csvfile = workDir + "sdbexprt13499.csv";
+   var csvfile = tmpFileDir + "sdbexprt13499.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -69,7 +69,7 @@ function testExprtArg2 ()
 function testExprtArg3 ()
 {
    // export to csv without essentail arg fields
-   var csvfile = workDir + "sdbexprt13500.csv";
+   var csvfile = tmpFileDir + "sdbexprt13500.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +

@@ -24,11 +24,11 @@ function main ()
 
 function testExprtGenconf1 ()
 {
-   var conffile = workDir + "sdbexprt13612.conf";
+   var conffile = tmpFileDir + "sdbexprt13612.conf";
    cmd.run( "rm -rf " + conffile );
 
    // export with not exist conf file
-   var csvfile = workDir + "sdbexprt13612.csv";
+   var csvfile = tmpFileDir + "sdbexprt13612.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " --file " + csvfile +
@@ -48,7 +48,7 @@ function testExprtGenconf2 ()
       return;
    }
 
-   var conffile = workDir + "sdbexprt13613.conf";
+   var conffile = tmpFileDir + "sdbexprt13613.conf";
    cmd.run( "rm -rf " + conffile );
 
    var command = installPath + "bin/sdbexprt" +
@@ -62,7 +62,7 @@ function testExprtGenconf2 ()
    testRunCommand( command );
    File.chmod( conffile, 0000 );
 
-   var csvfile = workDir + "sdbexprt13613.csv";
+   var csvfile = tmpFileDir + "sdbexprt13613.csv";
    cmd.run( "rm -rf " + csvfile );
    command = installPath + "bin/sdbexprt" +
       " --file " + csvfile +

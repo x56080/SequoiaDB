@@ -40,7 +40,7 @@ function main ()
 
 function testExprtWrongUser ()
 {
-   var csvfile = workDir + "sdbexprt13493.csv";
+   var csvfile = tmpFileDir + "sdbexprt13493.csv";
    cmd.run( "rm -rf " + csvfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -59,7 +59,7 @@ function testExprtWrongUser ()
 
 function testExprtWrongPass ()
 {
-   var jsonfile = workDir + "sdbexprt13493.json";
+   var jsonfile = tmpFileDir + "sdbexprt13493.json";
    cmd.run( "rm -rf " + jsonfile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +

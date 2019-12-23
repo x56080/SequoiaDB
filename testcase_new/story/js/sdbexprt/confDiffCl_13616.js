@@ -29,7 +29,7 @@ function main ()
 function testExprtConf1 ()
 {
    // export to conf with fields cl:a
-   var conffile = workDir + "sdbexprt13616.conf";
+   var conffile = tmpFileDir + "sdbexprt13616.conf";
    cmd.run( "rm -rf " + conffile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -41,7 +41,7 @@ function testExprtConf1 ()
    testRunCommand( command );
 
    // export with conf file and fields cl1:a
-   var csvDir = workDir + "13616/";
+   var csvDir = tmpFileDir + "13616/";
    cmd.run( "rm -rf " + csvDir );
    cmd.run( "mkdir -p " + csvDir );
    command = installPath + "bin/sdbexprt" +
@@ -64,7 +64,7 @@ function testExprtConf1 ()
 function testExprtConf2 ()
 {
    // export to conf with fields cl:a
-   var conffile = workDir + "sdbexprt13617.conf";
+   var conffile = tmpFileDir + "sdbexprt13617.conf";
    cmd.run( "rm -rf " + conffile );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
@@ -76,7 +76,7 @@ function testExprtConf2 ()
    testRunCommand( command );
 
    // export with conf and fields cl1:b
-   var csvDir = workDir + "13617/";
+   var csvDir = tmpFileDir + "13617/";
    cmd.run( "rm -rf " + csvDir );
    cmd.run( "mkdir -p " + csvDir );
    command = installPath + "bin/sdbexprt" +
