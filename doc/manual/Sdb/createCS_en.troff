@@ -48,9 +48,9 @@ Create a collection space in a database instance.
 .sp 2
 \fBNote: \fR
 .sp 2
-   *  The parameter "name" should not be a null string. It should
-   not contain "." or "$". The length of it should not be greater
-   than 127B.
+   *  The parameter "name" can not be null or an empty string. It can
+   not contain "." and can not begin with "SYS" or "$". The length 
+   of it can not be greater than 127B.
 .sp 2
    *  Collection space names should be unique to each other in a
    database instance.

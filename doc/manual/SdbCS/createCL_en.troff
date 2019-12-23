@@ -160,9 +160,9 @@ Format: \f[C]LobShardingKeyFormat:"YYYYMMDD"|"YYYYMM"|"YYYY"\f[]
 .PP
 \f[B]Note:\f[]
 .IP \[bu] 2
-The parameter \f[C]name\f[] can not be an empty string, and can not include "."
-or "$"; The length of it should not be greater than 127B, or exception will
-occur.
+The parameter "name" can not be null or an empty string. It can not contain "."
+and can not begin with "SYS" or "$". The length of it can not be greater 
+than 127B, or exception will occur.
 .IP \[bu] 2
 The parameter \f[C]options\f[] haves one or more fields, please use comma(,) to
 separate.

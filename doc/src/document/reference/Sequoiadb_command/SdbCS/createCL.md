@@ -101,23 +101,23 @@ Collection Space
     
         格式：`LobShardingKeyFormat:"YYYYMMDD"|"YYYYMM"|"YYYY"`
 
-    **注意：**
+    **Note:**
 
-    * 参数 `name` 的值不能是空串、含点（.）或者美元符号（$），并且长度不能超过127B，否则操作失败。
+> * 集合名限制请参考[限制] (reference/Sequoiadb_limitation.md)。
 
-    * 当参数 `options` 内设置了多个参数时，需用英文半角的逗号","将各参数的取值隔开。
+> * 当参数 `options` 内设置了多个参数时，需用英文半角的逗号","将各参数的取值隔开。
 
-    * 在[创建集合空间](reference/Sequoiadb_command/Sdb/createCS.md)时，可以指定所属的[数据域](infrastructure/domain.md)。创建集合时，使用 Group 参数，指定的复制组必须在域内；不使用 Group 参数，集合将被创建在域的任意一个复制组上。
+> * 在[创建集合空间](reference/Sequoiadb_command/Sdb/createCS.md)时，可以指定所属的[数据域](infrastructure/domain.md)。创建集合时，使用 Group 参数，指定的复制组必须在域内；不使用 Group 参数，集合将被创建在域的任意一个复制组上。
 
-    * 创建集合的 AutoSplit 参数比数据域的 AutoSplit 属性优先级更高。
+> * 创建集合的 AutoSplit 参数比数据域的 AutoSplit 属性优先级更高。
 
-    * AutoSplit 不能与 Group 参数同时使用。
+> * AutoSplit 不能与 Group 参数同时使用。
 
-    * AutoSplit 必须配合散列分区使用。
+> * AutoSplit 必须配合散列分区使用。
     
-    * 压缩算法选择策略：snappy 压缩算法是以单条记录为单位进行压缩，记录内部的数据重复度直接影响到压缩率。因此，当记录内部数据重复度较高，如每条记录的字段名、字段值相似，使用 snappy 算法可获得良好的压缩性能。如果记录内部数据重复度很低，但记录间具有更高的相似性，如不同记录之间有相同的字段名，相近的字段值等，则使用 lzw 算法更优。
+> * 压缩算法选择策略：snappy 压缩算法是以单条记录为单位进行压缩，记录内部的数据重复度直接影响到压缩率。因此，当记录内部数据重复度较高，如每条记录的字段名、字段值相似，使用 snappy 算法可获得良好的压缩性能。如果记录内部数据重复度很低，但记录间具有更高的相似性，如不同记录之间有相同的字段名，相近的字段值等，则使用 lzw 算法更优。
     
-    * LobShardingKeyFormat 只能在主表中使用，同时要求切分键只能有一个切分字段。
+> * LobShardingKeyFormat 只能在主表中使用，同时要求切分键只能有一个切分字段。
 
 ##返回值##
 
