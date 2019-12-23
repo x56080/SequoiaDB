@@ -140,7 +140,10 @@ public class Transaction18212A extends SdbTestBase {
                         db.commit();
                         break;
                     } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(), -190 );
+                        if ( e.getErrorCode() != -190
+                                && e.getErrorCode() != -147 ) {
+                            throw e;
+                        }
                     }
                 }
             } finally {

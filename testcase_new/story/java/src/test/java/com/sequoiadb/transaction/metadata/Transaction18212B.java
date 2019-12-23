@@ -138,7 +138,10 @@ public class Transaction18212B extends SdbTestBase {
                         db.dropCollectionSpace( csName );
                         break;
                     } catch ( BaseException e ) {
-                        Assert.assertEquals( e.getErrorCode(), -190 );
+                        if ( e.getErrorCode() != -190
+                                && e.getErrorCode() != -147 ) {
+                            throw e;
+                        }
                     }
                 }
             } finally {
