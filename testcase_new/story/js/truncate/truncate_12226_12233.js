@@ -9,11 +9,12 @@
 *@Input: collection.truncate()
 *@Expectation: truncate清除数据, 并且清除数据页
 ********************************************************************************/
+
 function testTruncateNormalCLMultiIndexKey ( db )
 {
    var funcName = "testTruncateNormalCLMultiIndexKey";
 
-   var clName = CHANGEDPREFIX + "_normal_cl_index12226";
+   var clName = COMMCLNAME + "_12226";
    var indexName = CHANGEDPREFIX + "_truncate_normal_index";
    var recordNum = 3000;
    var verJsonObj = { "TotalIndexPages": 4 };
@@ -23,19 +24,14 @@ function testTruncateNormalCLMultiIndexKey ( db )
       "create collection begin" );
    commDropIndex( cl, indexName, true )
 
-
    var tableName = COMMCSNAME + "." + clName;
    truncateVerify( db, tableName );
    // insert record: { id: 1, stringKey:-1, integerKey:1 }
    cl.createIndex( indexName, { id: 1, stringKey: -1, integerKey: 1 } );
    truncateInsertRecord( cl, recordNum );
-
    cl.truncate();
-
    truncateVerify( db, tableName, verJsonObj );
-
    commDropCL( db, COMMCSNAME, clName, false, false, "drop cl end" );
-
 }
 
 /*******************************************************************************
@@ -51,12 +47,10 @@ function testTruncateMixtureCLMultiIndex ( db )
    var subCS1 = CHANGEDPREFIX + "_mixtureCL_largeThanPage_subCL1_12233";
    var subCS2 = CHANGEDPREFIX + "_mixtureCL_largeThanPage_subCL2_12233";
    var mainCLOption = {
-      "ShardingKey": { "id": 1 }, "ShardingType": "range",
-      "ReplSize": 0, "IsMainCL": true
+      "ShardingKey": { "id": 1 }, "ShardingType": "range", "IsMainCL": true
    };
    var subCLOption = {
-      "ShardingKey": { "id": 1 }, "ShardingType": "hash",
-      "ReplSize": 0
+      "ShardingKey": { "id": 1 }, "ShardingType": "hash"
    };
    var recordNum = 4000;
    var domainName = CHANGEDPREFIX + "_mixture_domain";
@@ -78,14 +72,11 @@ function testTruncateMixtureCLMultiIndex ( db )
    }
    commCreateDomain( db, domainName, domainRGs, { AutoSplit: true } );
 
-   var mainCL = commCreateCL( db, mainCS, COMMCLNAME, mainCLOption, true,
-      true, false, "create collection begin" );
+   var mainCL = commCreateCL( db, mainCS, COMMCLNAME, mainCLOption, true, true, false, "create collection begin" );
    commCreateCS( db, subCS1, false, "create sub cs1", { "Domain": domainName } );
-   var subCL1 = commCreateCL( db, subCS1, COMMCLNAME, subCLOption, true,
-      true, false, "create collection begin" );
+   var subCL1 = commCreateCL( db, subCS1, COMMCLNAME, subCLOption, true, true, false, "create collection begin" );
    commCreateCS( db, subCS2, false, "create sub cs2", { "Domain": domainName } );
-   var subCL2 = commCreateCL( db, subCS2, COMMCLNAME, subCLOption, true,
-      true, false, "create collection begin" );
+   var subCL2 = commCreateCL( db, subCS2, COMMCLNAME, subCLOption, true, true, false, "create collection begin" );
    var subTable1 = subCS1 + "." + COMMCLNAME;
    var subTable2 = subCS2 + "." + COMMCLNAME;
 
@@ -115,10 +106,7 @@ function testTruncateMixtureCLMultiIndex ( db )
 
 function main ()
 {
-   println( "\n---begin to test <testTruncateNormalCLIndex>" );
    testTruncateNormalCLMultiIndexKey( db )
-
-
    if( true == commIsStandalone( db ) )
    {
       println( "Mode is standalone!" );
@@ -129,10 +117,20 @@ function main ()
    }
    else
    {
-      println( "\n---begin to test <testTruncateMixtureCLIndex>" );
       testTruncateMixtureCLMultiIndex( db )
    }
-
 }
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+

@@ -74,4 +74,32 @@ function Cursor ( cursor )
          }
          return array;
       }
+
+   this.valueOf =
+      function()
+      {
+         try
+         {
+            var value = cursor.valueOf();
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return value;
+      }
+
+   this.toString =
+      function()
+      {
+         try
+         {
+            var str = cursor.toString();
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return str;
+      }
 }

@@ -5,7 +5,19 @@
 *              2019-05-27 wuyan        modify
 ******************************************************************************/
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    if( commIsStandalone( db ) )
@@ -35,18 +47,13 @@ function main ()
 
 function createCLAndAttachCL ( mainCSName, mainCLName, subCLName1, subCLName2, pageSize )
 {
-   println( "---create maincl/subcl1/subcl2, than attach cl." )
    commCreateCS( db, mainCSName, true, "", { PageSize: pageSize } );
    var clOption = {
-      "ShardingKey": { "ID_Default": 1 }, "ShardingType": "range",
-      "ReplSize": 0, "IsMainCL": true
+      "ShardingKey": { "ID_Default": 1 }, "ShardingType": "range", "IsMainCL": true
    };
-   var mainCL = commCreateCL( db, mainCSName, mainCLName, clOption, true,
-      true, false, "create collection begin" );
-   commCreateCL( db, mainCSName, subCLName1, {}, true,
-      false, "create sub CL1 begin" );
-   commCreateCL( db, mainCSName, subCLName2, {}, true,
-      false, "create sub CL2 begin" );
+   var mainCL = commCreateCL( db, mainCSName, mainCLName, clOption, true, true, false, "create collection begin" );
+   commCreateCL( db, mainCSName, subCLName1, {}, true, false, "create sub CL1 begin" );
+   commCreateCL( db, mainCSName, subCLName2, {}, true, false, "create sub CL2 begin" );
    mainCL.attachCL( mainCSName + "." + subCLName1, { "LowBound": { "ID_Default": 0 }, "UpBound": { "ID_Default": 3 } } );
    mainCL.attachCL( mainCSName + "." + subCLName2, { "LowBound": { "ID_Default": 3 }, "UpBound": { "ID_Default": 5 } } );
    return mainCL;
@@ -54,7 +61,6 @@ function createCLAndAttachCL ( mainCSName, mainCLName, subCLName1, subCLName2, p
 
 function insertDataAndCheckDataNum ( mainCL, mainCSName, subCLName1, subCLName2, recordNum, recordSize )
 {
-   println( "---begin to insert data." )
    truncateInsertRecord( mainCL, recordNum, recordSize );
    var subCL1 = db.getCS( mainCSName ).getCL( subCLName1 );
    var subCL2 = db.getCS( mainCSName ).getCL( subCLName2 );
@@ -66,16 +72,13 @@ function insertDataAndCheckDataNum ( mainCL, mainCSName, subCLName1, subCLName2,
    if( Number( recordNum ) !== Number( AllCount ) || Number( expCount1 ) !== Number( count1 )
       || Number( expCount2 ) !== Number( count2 ) )
    {
-      throw buildException( "insertDateAndCheckDateNum", "count error!", "count",
-         recordNum, "allCount:" + AllCount + "\n count1:"
-         + count1 + "\n count2:" + count2 );
+      throw new Error( "recordNum: " + recordNum + "\nAllCount: " + AllCount + "\nexpCount1: " + expCount1 + "\ncount1: " + count1 + "\nexpCount2: " + expCount2 + "\ncount2: " + count2 );
    }
 
 }
 
 function truncateAndCheckResult ( mainCL, subCLFullName1, subCLFullName2 )
 {
-   println( "---begin to truncate." );
    mainCL.truncate();
    truncateVerify( db, subCLFullName1 );
    truncateVerify( db, subCLFullName2 );
@@ -84,10 +87,8 @@ function truncateAndCheckResult ( mainCL, subCLFullName1, subCLFullName2 )
    var count = mainCL.count();
    if( Number( expCount ) !== Number( count ) )
    {
-      throw buildException( "truncateAndCheckResult", "truncate error!", "count",
-         expCount, count );
+      throw new Error( "expCount: " + expCount + "\ncount: " + count );
    }
-
 }
 
 

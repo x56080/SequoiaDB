@@ -4,7 +4,20 @@
 *              2015-5-8  xiaojun Hu   Init
 *              2019-05-27 wuyan        modify
 ******************************************************************************/
-main();
+
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    var csName = CHANGEDPREFIX + "_largeThanPageCS163";
@@ -14,19 +27,13 @@ function main ()
    var pageSize = 4096;
    var cl = createCLAndInsertData( csName, clName, pageSize )
    truncateAndCheckResult( cl, csName, clName )
-
    commDropCS( db, csName, true, "drop cs end" );
 }
 
-
-
 function createCLAndInsertData ( csName, clName, pageSize )
 {
-   println( "---begin to create cl, than insert records" );
-
    var clOption = {
-      "ShardingKey": { "ID_Default": 1 }, "ShardingType": "hash",
-      "ReplSize": 0
+      "ShardingKey": { "ID_Default": 1 }, "ShardingType": "hash"
    };
 
    var cl = commCreateCL( db, csName, clName, clOption, true,
@@ -42,13 +49,11 @@ function createCLAndInsertData ( csName, clName, pageSize )
    // the TotalLobPages is 4, TotalDataPages is 3
    var verJsonObj = { "TotalLobPages": 4, "TotalDataPages": 3 };
    truncateVerify( db, csName + "." + clName, verJsonObj );
-
    return cl;
 }
 
 function truncateAndCheckResult ( cl, csName, clName )
 {
-   println( "---begin to truncate,than check result" )
    cl.truncate();
    //after truncate ,the TotalLobPages is 0
    truncateVerify( db, csName + "." + clName );
@@ -58,7 +63,6 @@ function truncateAndCheckResult ( cl, csName, clName )
    var actRecordCount = cl.count();
    if( Number( expCount ) !== Number( actLobCount ) || Number( expCount ) !== Number( actRecordCount ) )
    {
-      throw buildException( "truncateAndCheckResult", "truncate error!", "count",
-         expCount, "lobNum:" + actLobCount + "\n recordCount:" + actRecordCount );
+      throw new Error( "expCount: " + expCount + "\nactLobCount: " + actLobCount + "\nexpCount: " + expCount + "\nactRecordCount: " + actRecordCount );
    }
 }
