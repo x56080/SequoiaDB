@@ -119,9 +119,9 @@ namespace fs = boost::filesystem ;
        ( COMMANDS_STRING(OPTION_DUMPLOB, ",b"), boost::program_options::value<string>(), "dump lob (true/false)" ) \
        ( COMMANDS_STRING(OPTION_PAGESTART, ",s"), boost::program_options::value<SINT32>(), "starting page number" ) \
        ( COMMANDS_STRING(OPTION_NUMPAGE, ",n"), boost::program_options::value<SINT32>(), "number of pages" ) \
-       ( COMMANDS_STRING(OPTION_SHOW_CONTENT, ",p"), boost::program_options::value<string>(), "display data/index content(true/false)" ) \
-       ( OPTION_ONLY_META, boost::program_options::value<string>(), "inspect only meta(Header, SME, MME), true/false" ) \
-       ( OPTION_JUDGE_BALANCE, boost::program_options::value<string>(), "open lob buckets balance judgement" ) \
+       ( COMMANDS_STRING(OPTION_SHOW_CONTENT, ",p"), boost::program_options::value<string>(), "display data/index content (true/false)" ) \
+       ( OPTION_ONLY_META, boost::program_options::value<string>(), "inspect only meta(Header, SME, MME) (true/false)" ) \
+       ( OPTION_JUDGE_BALANCE, boost::program_options::value<string>(), "Enable lob bucket balance analysis (true/false). The default is false. It's effective when the action parameter is inspect" ) \
        ( OPTION_FORCE, "force dump all invalid mb, delete list and index list and so on" )
 
 //hidden options
