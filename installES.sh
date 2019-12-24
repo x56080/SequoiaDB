@@ -16,21 +16,21 @@ function installES()
    local installES=$1
    if [ "$installES" == "true" ]; then
       clearES
-      exec_cmd "cp /mnt/soft/elasticsearch-6.2.2.tar.gz $runtest_path"
-      exec_cmd "tar -zxf $runtest_path/elasticsearch-6.2.2.tar.gz -C $runtest_path"
+      exec_cmd "cp /mnt/soft/elastic/elasticsearch-6.8.5.tar.gz $runtest_path"
+      exec_cmd "tar -zxf $runtest_path/elasticsearch-6.8.5.tar.gz -C $runtest_path"
       local cur_user=`whoami`
       local cur_group=`groups | awk '{print $1}'`
       
       if [ "$cur_user" != "root" ];then
-         exec_cmd "chown $cur_user:$cur_group $runtest_path/elasticsearch-6.2.2 -R"
+         exec_cmd "chown $cur_user:$cur_group $runtest_path/elasticsearch-6.8.5 -R"
          `ulimit -n 131072`
          `ulimit -v 655360`
-         exec_cmd "$runtest_path/elasticsearch-6.2.2/bin/elasticsearch -d"
+         exec_cmd "$runtest_path/elasticsearch-6.8.5/bin/elasticsearch -d"
       else
-         exec_cmd "chown sdbadmin:sdbadmin_group $runtest_path/elasticsearch-6.2.2 -R"
+         exec_cmd "chown sdbadmin:sdbadmin_group $runtest_path/elasticsearch-6.8.5 -R"
          exec_cmd "su sdbadmin -c 'ulimit -n 131072'"
          exec_cmd "su sdbadmin -c 'ulimit -v 655360'"
-         exec_cmd "su sdbadmin -c '$runtest_path/elasticsearch-6.2.2/bin/elasticsearch -d'"
+         exec_cmd "su sdbadmin -c '$runtest_path/elasticsearch-6.8.5/bin/elasticsearch -d'"
       fi
    else
       echo "not install es"
@@ -78,7 +78,7 @@ function clearAdpter()
 function clearES()
 {
    `ps -ef | grep elasticsearch |grep -v grep | awk '{print $2}' |  xargs kill -9`
-   exec_cmd "rm -rf $runtest_path/elasticsearch-6.2.2"
+   exec_cmd "rm -rf $runtest_path/elasticsearch-6.8.5"
 }
 
 # print help information
