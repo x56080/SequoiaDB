@@ -55,7 +55,7 @@ createCL() 方法的定义格式包含 name 和 options 两个参数。name 的�
 > * ReplSize 是 int 类型，设置写入数据节点的个数，默认为1，当 ReplSize 等于0时，表示写入需要等待所有副本都完成才返回；当 ReplSize 等于-1时，副本写入个数根据活跃副本数变化而变化；手动指定副本写入个数时，不能超出当前组内节点个数。
 > * Compressed 为 boolean 类型，为 “true” 时，表示集合中的数据压缩存储，“false” 时表示正常存储数据。开启压缩时，还可通过 CompressionType 指定压缩类型，当前可支持的压缩类型有snappy及lzw。不显式指定C ompressionType 时默认使用 snappy 压缩。snappy 速度较快，而lzw压缩效果较好。
 > * 当 options 内设置了多个参数时，用逗号（,）隔开。
-> * name 的值不能是空串，含点（.）或者美元符号（$），并且长度不能超过127B，否则操作失败。
+> * 集合名限制请参考[限制] (reference/Sequoiadb_limitation.md)。
 > * 在[创建集合空间](reference/Sequoiadb_command/Sdb/createCS.md)时，可以指定所属的[数据域](infrastructure/domain.md)。创建集合时，使用 Group 参数，指定的复制组必须在域内；不使用 Group 参数，集合将被创建在域的任意一个复制组上。
 > * 创建集合的 AutoSplit 参数比数据域的 AutoSplit 属性优先级更高。
 > * AutoSplit 不能与 Group 参数同时使用。

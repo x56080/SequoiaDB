@@ -147,9 +147,9 @@ should belong to one and only one collection.
    *  when the \fIoptions\fR have one or more params,please use
    comma(,) to separate.
 .sp 2
-   *  The value of "name" should not be null string, "." or "$".
-   The length of it should not be greater than 127B, or exception
-   will occur.
+   *  The value of "name" can not be null or an empty string. It can 
+   not contain "." and can not begin with "SYS" or "$". The length of 
+   it can not be greater than 127B, or exception will occur.
 .sp 2
    *  When creating collection space, user can specify "Domain".
    When creating collection, using "Group" parameter, the specified

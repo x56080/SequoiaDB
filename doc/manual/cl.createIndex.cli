@@ -81,8 +81,9 @@ Create an index for the collection to accelerate query.
    *  There should not be any exactly same records in the fields
    that are specified by the unique index in a collection.
 .sp 2
-   *  Index name should not be null string. It should not contain
-   "." or "$". The length of it should be no more than 127B.
+   *  Index name can not be null or an empty string. It can not contain
+   "." and can not begin with "$". The length of it can not be 
+   greater than 1023B.
 .SH "Examples"
 
 .sp 2
