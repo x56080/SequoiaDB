@@ -1,14 +1,12 @@
 package com.sequoias3.region;
 
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 
-@JacksonXmlRootElement(localName = "RegionConfiguration")
-public class Region {
+@JacksonXmlRootElement(localName = "RegionConfiguration") public class Region {
     public static final String REGION_NAME = "Name";
     public static final String REGION_CREATERTIME = "CreateTime";
     public static final String DATA_CS_SHARDINGTYPE = "DataCSShardingType";
@@ -28,43 +26,32 @@ public class Region {
     // public static final String META_HIS_CS_LOCATION = "MetaHisCSLocation";
     // public static final String META_HIS_CL_LOCATION = "MetaHisCLLocation";
 
-    @JsonProperty(REGION_NAME)
-    private String name;
+    @JsonProperty(REGION_NAME) private String name;
 
-    @JsonIgnore
-    private long createTime;
+    @JsonIgnore private long createTime;
 
-    @JsonProperty(DATA_CS_SHARDINGTYPE)
-    private String dataCSShardingType;
+    @JsonProperty(DATA_CS_SHARDINGTYPE) private String dataCSShardingType;
 
-    @JsonProperty(DATA_CL_SHARDINGTYPE)
-    private String dataCLShardingType;
+    @JsonProperty(DATA_CL_SHARDINGTYPE) private String dataCLShardingType;
 
-    @JsonProperty(DATA_DOMAIN)
-    private String dataDomain;
+    @JsonProperty(DATA_DOMAIN) private String dataDomain;
 
-    @JsonProperty(DATA_LOBPAGESIZE)
-    private String dataLobPageSize;
+    @JsonProperty(DATA_LOBPAGESIZE) private String dataLobPageSize;
 
-    @JsonProperty(DATA_REPLSIZE)
-    private String dataReplSize;
+    @JsonProperty(DATA_REPLSIZE) private String dataReplSize;
 
-    @JsonProperty(META_DOMAIN)
-    private String metaDomain;
+    @JsonProperty(META_DOMAIN) private String metaDomain;
 
-    @JsonProperty(DATA_LOCATION)
-    private String dataLocation;
+    @JsonProperty(DATA_LOCATION) private String dataLocation;
 
-    @JsonProperty(META_LOCATION)
-    private String metaLocation;
+    @JsonProperty(META_LOCATION) private String metaLocation;
 
-    @JsonProperty(META_HIS_LOCATION)
-    private String metaHisLocation;
+    @JsonProperty(META_HIS_LOCATION) private String metaHisLocation;
 
     public Region() {
     }
 
-    public Region(Region region) {
+    public Region( Region region ) {
         this.name = region.getName();
         this.createTime = region.getCreateTime();
         this.dataCSShardingType = region.getDataCSShardingType();
@@ -78,7 +65,7 @@ public class Region {
         this.metaHisLocation = region.getMetaHisLocation();
     }
 
-    public Region withName(String name) {
+    public Region withName( String name ) {
         this.name = name;
         return this;
     }
@@ -87,15 +74,15 @@ public class Region {
         return name;
     }
 
-    public void setCreateTime(long createTime) {
-        this.createTime = createTime;
-    }
-
     public long getCreateTime() {
         return createTime;
     }
 
-    public Region withDataCSShardingType(String dataCSShardingType) {
+    public void setCreateTime( long createTime ) {
+        this.createTime = createTime;
+    }
+
+    public Region withDataCSShardingType( String dataCSShardingType ) {
         this.dataCSShardingType = dataCSShardingType;
         return this;
     }
@@ -104,7 +91,7 @@ public class Region {
         return dataCSShardingType;
     }
 
-    public Region withDataCLShardingType(String dataCLShardingType) {
+    public Region withDataCLShardingType( String dataCLShardingType ) {
         this.dataCLShardingType = dataCLShardingType;
         return this;
     }
@@ -113,7 +100,7 @@ public class Region {
         return dataCLShardingType;
     }
 
-    public Region withDataDomain(String dataDomain) {
+    public Region withDataDomain( String dataDomain ) {
         this.dataDomain = dataDomain;
         return this;
     }
@@ -122,7 +109,7 @@ public class Region {
         return dataDomain;
     }
 
-    public Region withDataLobPageSize(String dataLobPageSize) {
+    public Region withDataLobPageSize( String dataLobPageSize ) {
         this.dataLobPageSize = dataLobPageSize;
         return this;
     }
@@ -131,7 +118,7 @@ public class Region {
         return dataLobPageSize;
     }
 
-    public Region withDataReplSize(String dataReplSize) {
+    public Region withDataReplSize( String dataReplSize ) {
         this.dataReplSize = dataReplSize;
         return this;
     }
@@ -140,7 +127,7 @@ public class Region {
         return dataReplSize;
     }
 
-    public Region withMetaDomain(String metaDomain) {
+    public Region withMetaDomain( String metaDomain ) {
         this.metaDomain = metaDomain;
         return this;
     }
@@ -149,7 +136,7 @@ public class Region {
         return metaDomain;
     }
 
-    public Region withDataLocation(String dataLocation) {
+    public Region withDataLocation( String dataLocation ) {
         this.dataLocation = dataLocation;
         return this;
     }
@@ -158,7 +145,7 @@ public class Region {
         return dataLocation;
     }
 
-    public Region withMetaLocation(String metaLocation) {
+    public Region withMetaLocation( String metaLocation ) {
         this.metaLocation = metaLocation;
         return this;
     }
@@ -167,7 +154,7 @@ public class Region {
         return metaLocation;
     }
 
-    public Region withMetaHisLocation(String metaHisLocation) {
+    public Region withMetaHisLocation( String metaHisLocation ) {
         this.metaHisLocation = metaHisLocation;
         return this;
     }
@@ -178,32 +165,37 @@ public class Region {
 
     public BSONObject toBson() {
         BSONObject newRegion = new BasicBSONObject();
-        newRegion.put(Region.REGION_NAME, this.name);
-        newRegion.put(Region.REGION_CREATERTIME, this.createTime);
-        newRegion.put(Region.DATA_CS_SHARDINGTYPE, this.dataCSShardingType);
-        newRegion.put(Region.DATA_CL_SHARDINGTYPE, this.dataCLShardingType);
-        newRegion.put(Region.DATA_DOMAIN, this.dataDomain);
-        newRegion.put(Region.DATA_LOBPAGESIZE, this.dataLobPageSize);
-        newRegion.put(Region.DATA_REPLSIZE, this.dataReplSize);
-        newRegion.put(Region.META_DOMAIN, this.metaDomain);
-        newRegion.put(Region.DATA_LOCATION, this.dataLocation);
-        newRegion.put(Region.META_LOCATION, this.metaLocation);
-        newRegion.put(Region.META_HIS_LOCATION, this.metaHisLocation);
+        newRegion.put( Region.REGION_NAME, this.name );
+        newRegion.put( Region.REGION_CREATERTIME, this.createTime );
+        newRegion.put( Region.DATA_CS_SHARDINGTYPE, this.dataCSShardingType );
+        newRegion.put( Region.DATA_CL_SHARDINGTYPE, this.dataCLShardingType );
+        newRegion.put( Region.DATA_DOMAIN, this.dataDomain );
+        newRegion.put( Region.DATA_LOBPAGESIZE, this.dataLobPageSize );
+        newRegion.put( Region.DATA_REPLSIZE, this.dataReplSize );
+        newRegion.put( Region.META_DOMAIN, this.metaDomain );
+        newRegion.put( Region.DATA_LOCATION, this.dataLocation );
+        newRegion.put( Region.META_LOCATION, this.metaLocation );
+        newRegion.put( Region.META_HIS_LOCATION, this.metaHisLocation );
         return newRegion;
     }
 
     public String toString() {
         StringBuffer buffer = new StringBuffer();
-        buffer.append("[" + Region.REGION_NAME + "=" + this.name);
-        buffer.append("," + Region.DATA_CS_SHARDINGTYPE + "=" + this.dataCSShardingType);
-        buffer.append("," + Region.DATA_CL_SHARDINGTYPE + "=" + this.dataCLShardingType);
-        buffer.append("," + Region.DATA_DOMAIN + "=" + this.dataDomain);
-        buffer.append("," + Region.DATA_LOBPAGESIZE + "=" + this.dataLobPageSize);
-        buffer.append("," + Region.DATA_REPLSIZE + "=" + this.dataReplSize);
-        buffer.append("," + Region.META_DOMAIN + "=" + this.metaDomain);
-        buffer.append("," + Region.DATA_LOCATION + "=" + this.dataLocation);
-        buffer.append("," + Region.META_LOCATION + "=" + this.metaLocation);
-        buffer.append("," + Region.META_HIS_LOCATION + "=" + this.metaHisLocation + "]");
+        buffer.append( "[" + Region.REGION_NAME + "=" + this.name );
+        buffer.append( "," + Region.DATA_CS_SHARDINGTYPE + "="
+                + this.dataCSShardingType );
+        buffer.append( "," + Region.DATA_CL_SHARDINGTYPE + "="
+                + this.dataCLShardingType );
+        buffer.append( "," + Region.DATA_DOMAIN + "=" + this.dataDomain );
+        buffer.append(
+                "," + Region.DATA_LOBPAGESIZE + "=" + this.dataLobPageSize );
+        buffer.append( "," + Region.DATA_REPLSIZE + "=" + this.dataReplSize );
+        buffer.append( "," + Region.META_DOMAIN + "=" + this.metaDomain );
+        buffer.append( "," + Region.DATA_LOCATION + "=" + this.dataLocation );
+        buffer.append( "," + Region.META_LOCATION + "=" + this.metaLocation );
+        buffer.append(
+                "," + Region.META_HIS_LOCATION + "=" + this.metaHisLocation
+                        + "]" );
         return buffer.toString();
     }
 }

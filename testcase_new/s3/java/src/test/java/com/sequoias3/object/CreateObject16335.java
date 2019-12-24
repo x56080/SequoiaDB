@@ -1,14 +1,5 @@
 package com.sequoias3.object;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Date;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -17,6 +8,14 @@ import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
 
 /**
  * @Description seqDB-16335: create object
@@ -34,58 +33,69 @@ public class CreateObject16335 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
 
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
         s3Client = CommLib.buildS3Client();
     }
 
     @Test
     public void testCreateObject() throws Exception {
         Date beforeDate = new Date();
-        PutObjectResult result = s3Client.putObject(S3TestBase.bucketName, keyName, new File(filePath));
+        PutObjectResult result = s3Client
+                .putObject( S3TestBase.bucketName, keyName,
+                        new File( filePath ) );
 
-        checkObjectAttributeInfo(result, beforeDate);
-        checkPutObjectResult(S3TestBase.bucketName);
+        checkObjectAttributeInfo( result, beforeDate );
+        checkPutObjectResult( S3TestBase.bucketName );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                s3Client.deleteObject(S3TestBase.bucketName, keyName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                s3Client.deleteObject( S3TestBase.bucketName, keyName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
         }
     }
 
-    private void checkPutObjectResult(String bucketName) throws Exception {
+    private void checkPutObjectResult( String bucketName ) throws Exception {
         // down file
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, keyName);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
-    private void checkObjectAttributeInfo(PutObjectResult objAttrInfo, Date beforeDate) throws IOException {
+    private void checkObjectAttributeInfo( PutObjectResult objAttrInfo,
+            Date beforeDate ) throws IOException {
         Date afterDate = new Date();
-        String expMd5 = TestTools.getMD5(filePath);
-        Assert.assertEquals(objAttrInfo.getETag(), expMd5);
+        String expMd5 = TestTools.getMD5( filePath );
+        Assert.assertEquals( objAttrInfo.getETag(), expMd5 );
 
         // check the attributeInfo of get object
-        GetObjectMetadataRequest request = new GetObjectMetadataRequest(S3TestBase.bucketName, keyName);
-        ObjectMetadata result = s3Client.getObjectMetadata(request);
+        GetObjectMetadataRequest request = new GetObjectMetadataRequest(
+                S3TestBase.bucketName, keyName );
+        ObjectMetadata result = s3Client.getObjectMetadata( request );
         Date modifiedDate = result.getLastModified();
-        Assert.assertEquals(result.getETag(), expMd5);
-        Assert.assertEquals(result.getContentLength(), fileSize);
+        Assert.assertEquals( result.getETag(), expMd5 );
+        Assert.assertEquals( result.getContentLength(), fileSize );
         // modifiedDate range is [ beforeDate, afterDate]
-        Assert.assertFalse(modifiedDate.before(beforeDate), "modifiedDate must not be less than beforeDate,"
-                + "modifiedDate:" + modifiedDate + " beforeDate:" + beforeDate);
-        Assert.assertFalse(modifiedDate.after(afterDate), "modifiedDate must not be greater than afterDate,"
-                + "modifiedDate:" + modifiedDate + " afterDate:" + afterDate);
+        Assert.assertFalse( modifiedDate.before( beforeDate ),
+                "modifiedDate must not be less than beforeDate,"
+                        + "modifiedDate:" + modifiedDate + " beforeDate:"
+                        + beforeDate );
+        Assert.assertFalse( modifiedDate.after( afterDate ),
+                "modifiedDate must not be greater than afterDate,"
+                        + "modifiedDate:" + modifiedDate + " afterDate:"
+                        + afterDate );
     }
 }

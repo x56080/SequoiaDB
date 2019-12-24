@@ -29,19 +29,22 @@ import java.util.UUID;
 public class ListVersionsByVersionId17052 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket17052";
-    private String[] objectNames = { "17052::123", "17052::345", "17052::567", "17052::9AB", "17052::CDE" };
+    private String[] objectNames = { "17052::123", "17052::345", "17052::567",
+            "17052::9AB", "17052::CDE" };
     private AmazonS3 s3Client = null;
     private int versionNum = 3;
 
     @BeforeClass
     private void setUp() throws IOException {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
-        for (String objectName : objectNames) {
-            for (int i = 0; i < versionNum; i++) {
-                s3Client.putObject(bucketName, objectName, "" + UUID.randomUUID());
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
+        for ( String objectName : objectNames ) {
+            for ( int i = 0; i < versionNum; i++ ) {
+                s3Client.putObject( bucketName, objectName,
+                        "" + UUID.randomUUID() );
             }
         }
     }
@@ -49,32 +52,36 @@ public class ListVersionsByVersionId17052 extends S3TestBase {
     @Test
     private void test() throws Exception {
         int index = 0;
-        String keyMarker = objectNames[index];
+        String keyMarker = objectNames[ index ];
         String versionIdMarker = "null";
 
-        VersionListing vsList = s3Client.listVersions(new ListVersionsRequest().withBucketName(bucketName)
-                .withKeyMarker(keyMarker).withVersionIdMarker(versionIdMarker));
+        VersionListing vsList = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName )
+                        .withKeyMarker( keyMarker )
+                        .withVersionIdMarker( versionIdMarker ) );
 
         // expected results
         MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
-        for (int i = index + 1; i < objectNames.length; i++) {
-            for (int j = versionNum - 1; j >= 0; j--) {
-                expMap.add(objectNames[i], String.valueOf(j));
+        for ( int i = index + 1; i < objectNames.length; i++ ) {
+            for ( int j = versionNum - 1; j >= 0; j-- ) {
+                expMap.add( objectNames[ i ], String.valueOf( j ) );
             }
         }
-        Assert.assertFalse(vsList.isTruncated(), "vsList.isTruncated() must be false");
-        ObjectUtils.checkListVSResults(vsList, new ArrayList<String>(), expMap);
+        Assert.assertFalse( vsList.isTruncated(),
+                "vsList.isTruncated() must be false" );
+        ObjectUtils
+                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }

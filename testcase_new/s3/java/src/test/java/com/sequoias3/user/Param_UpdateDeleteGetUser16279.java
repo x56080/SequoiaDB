@@ -23,28 +23,30 @@ public class Param_UpdateDeleteGetUser16279 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(username, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != (HttpStatus.NOT_FOUND)) {
+            UserUtils.deleteUser( username, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != ( HttpStatus.NOT_FOUND ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
-        UserUtils.createUser(username, UserCommDefind.normal, UserUtils.accessKeyId);
+        UserUtils.createUser( username, UserCommDefind.normal,
+                UserUtils.accessKeyId );
     }
 
     @Test
     private void testGetUser() {
         try {
             // create
-            UserUtils.getUser(username, "123456");
-            Assert.fail("exp fail but act success");
-        } catch (HttpClientErrorException e) {
+            UserUtils.getUser( username, "123456" );
+            Assert.fail( "exp fail but act success" );
+        } catch ( HttpClientErrorException e ) {
             String errorMsg = e.getResponseBodyAsString();
-            org.json.JSONObject json = XML.toJSONObject(errorMsg);
-            if (!json.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                    .contains("InvalidAccessKeyId")) {
-                Assert.fail(e.getMessage());
+            org.json.JSONObject json = XML.toJSONObject( errorMsg );
+            if ( !json.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "InvalidAccessKeyId" ) ) {
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -53,15 +55,16 @@ public class Param_UpdateDeleteGetUser16279 extends S3TestBase {
     private void testUpdateUser() {
         try {
             // create
-            UserUtils.updateUser(username, "1" + UserUtils.accessKeyId);
-            Assert.fail("exp fail but act success");
-        } catch (HttpClientErrorException e) {
+            UserUtils.updateUser( username, "1" + UserUtils.accessKeyId );
+            Assert.fail( "exp fail but act success" );
+        } catch ( HttpClientErrorException e ) {
             String errorMsg = e.getResponseBodyAsString();
-            org.json.JSONObject json = XML.toJSONObject(errorMsg);
-            if (!json.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                    .contains("InvalidAccessKeyId")) {
+            org.json.JSONObject json = XML.toJSONObject( errorMsg );
+            if ( !json.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "InvalidAccessKeyId" ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -70,21 +73,22 @@ public class Param_UpdateDeleteGetUser16279 extends S3TestBase {
     private void testDeleteUser() {
         try {
             // create
-            UserUtils.deleteUser(username, UserUtils.accessKeyId + "1");
-            Assert.fail("exp fail but act success");
-        } catch (HttpClientErrorException e) {
+            UserUtils.deleteUser( username, UserUtils.accessKeyId + "1" );
+            Assert.fail( "exp fail but act success" );
+        } catch ( HttpClientErrorException e ) {
             String errorMsg = e.getResponseBodyAsString();
-            org.json.JSONObject json = XML.toJSONObject(errorMsg);
-            if (!json.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                    .contains("InvalidAccessKeyId")) {
+            org.json.JSONObject json = XML.toJSONObject( errorMsg );
+            if ( !json.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "InvalidAccessKeyId" ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
     }
 
     @AfterClass
     private void tearDown() {
-        UserUtils.deleteUser(username, UserUtils.accessKeyId, true);
+        UserUtils.deleteUser( username, UserUtils.accessKeyId, true );
     }
 }

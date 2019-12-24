@@ -1,13 +1,5 @@
 package com.sequoias3.object.concurrent;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
@@ -18,6 +10,13 @@ import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * @Description seqDB-19346:不同桶并发复制相同目标对象
@@ -39,40 +38,45 @@ public class CopyObject19346 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath1 = localPath + File.separator + "localFile_" + fileSize + "_1.txt";
-        filePath2 = localPath + File.separator + "localFile_" + fileSize + "_2.txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath1, fileSize);
-        TestTools.LocalFile.createFile(filePath2, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath1 =
+                localPath + File.separator + "localFile_" + fileSize + "_1.txt";
+        filePath2 =
+                localPath + File.separator + "localFile_" + fileSize + "_2.txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath1, fileSize );
+        TestTools.LocalFile.createFile( filePath2, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, srcBucketName);
-        CommLib.clearBucket(s3Client, dstBucketName);
-        s3Client.createBucket(srcBucketName);
-        s3Client.createBucket(dstBucketName);
+        CommLib.clearBucket( s3Client, srcBucketName );
+        CommLib.clearBucket( s3Client, dstBucketName );
+        s3Client.createBucket( srcBucketName );
+        s3Client.createBucket( dstBucketName );
 
-        s3Client.putObject(srcBucketName, srcKeyNameA, new File(filePath1));
-        s3Client.putObject(srcBucketName, srcKeyNameB, new File(filePath2));
+        s3Client.putObject( srcBucketName, srcKeyNameA, new File( filePath1 ) );
+        s3Client.putObject( srcBucketName, srcKeyNameB, new File( filePath2 ) );
     }
 
     @Test
     private void test() throws Exception {
         ThreadExecutor threadExec = new ThreadExecutor();
-        threadExec.addWorker(new ThreadCopyObject(srcKeyNameA, dstKeyNameC));
-        threadExec.addWorker(new ThreadCopyObject(srcKeyNameB, dstKeyNameC));
+        threadExec
+                .addWorker( new ThreadCopyObject( srcKeyNameA, dstKeyNameC ) );
+        threadExec
+                .addWorker( new ThreadCopyObject( srcKeyNameB, dstKeyNameC ) );
         threadExec.run();
 
         try {
             // multi-thread concurrency may have result 1
-            checkObjectAttribute(dstKeyNameC, filePath1);
-            checkObjectContent(dstKeyNameC, filePath1);
-        } catch (AssertionError e) {
+            checkObjectAttribute( dstKeyNameC, filePath1 );
+            checkObjectContent( dstKeyNameC, filePath1 );
+        } catch ( AssertionError e ) {
             // or result 2
-            if (e.getMessage().contains("but found")) {
-                checkObjectAttribute(dstKeyNameC, filePath2);
-                checkObjectContent(dstKeyNameC, filePath2);
+            if ( e.getMessage().contains( "but found" ) ) {
+                checkObjectAttribute( dstKeyNameC, filePath2 );
+                checkObjectContent( dstKeyNameC, filePath2 );
             }
         }
 
@@ -82,21 +86,40 @@ public class CopyObject19346 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, srcBucketName);
-                CommLib.clearBucket(s3Client, dstBucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, srcBucketName );
+                CommLib.clearBucket( s3Client, dstBucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
         }
     }
 
+    private void checkObjectContent( String keyName, String filePath )
+            throws Exception {
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, dstBucketName, keyName );
+        Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
+    }
+
+    private void checkObjectAttribute( String keyName, String filePath )
+            throws IOException {
+        GetObjectMetadataRequest request = new GetObjectMetadataRequest(
+                dstBucketName, keyName );
+        ObjectMetadata objMetadata = s3Client.getObjectMetadata( request );
+        String expMd5 = TestTools.getMD5( filePath );
+        Assert.assertEquals( objMetadata.getETag(), expMd5 );
+        Assert.assertEquals( objMetadata.getContentLength(), fileSize );
+        Assert.assertEquals( objMetadata.getVersionId(), "null",
+                "the keyName=" + keyName );
+    }
+
     private class ThreadCopyObject {
         private String srcKeyName;
         private String dstKeyName;
 
-        private ThreadCopyObject(String srcKeyName, String dstKeyName) {
+        private ThreadCopyObject( String srcKeyName, String dstKeyName ) {
             this.srcKeyName = srcKeyName;
             this.dstKeyName = dstKeyName;
         }
@@ -106,27 +129,14 @@ public class CopyObject19346 extends S3TestBase {
             AmazonS3 s3 = null;
             try {
                 s3 = CommLib.buildS3Client();
-                CopyObjectRequest request = new CopyObjectRequest(srcBucketName, srcKeyName, dstBucketName, dstKeyName);
-                s3.copyObject(request);
+                CopyObjectRequest request = new CopyObjectRequest(
+                        srcBucketName, srcKeyName, dstBucketName, dstKeyName );
+                s3.copyObject( request );
             } finally {
-                if (s3 != null) {
+                if ( s3 != null ) {
                     s3.shutdown();
                 }
             }
         }
-    }
-
-    private void checkObjectContent(String keyName, String filePath) throws Exception {
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, dstBucketName, keyName);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
-    }
-
-    private void checkObjectAttribute(String keyName, String filePath) throws IOException {
-        GetObjectMetadataRequest request = new GetObjectMetadataRequest(dstBucketName, keyName);
-        ObjectMetadata objMetadata = s3Client.getObjectMetadata(request);
-        String expMd5 = TestTools.getMD5(filePath);
-        Assert.assertEquals(objMetadata.getETag(), expMd5);
-        Assert.assertEquals(objMetadata.getContentLength(), fileSize);
-        Assert.assertEquals(objMetadata.getVersionId(), "null", "the keyName=" + keyName);
     }
 }

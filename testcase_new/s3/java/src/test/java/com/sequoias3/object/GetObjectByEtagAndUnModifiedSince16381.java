@@ -1,7 +1,10 @@
 package com.sequoias3.object;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.s3.model.S3Object;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
@@ -13,7 +16,10 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Random;
 
 /**
  * @Description: seqDB-16381 :: 指定ifMatch和ifUnModifiedSince条件获取对象，不匹配ifMatch
@@ -36,51 +42,58 @@ public class GetObjectByEtagAndUnModifiedSince16381 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
         String filePath = null;
-        for (int i = 0; i < fileNum; i++) {
-            filePath = localPath + File.separator + "localFile_" + (fileSize + i) + ".txt";
-            TestTools.LocalFile.createFile(filePath, fileSize + i);
-            filePathList.add(filePath);
+        for ( int i = 0; i < fileNum; i++ ) {
+            filePath =
+                    localPath + File.separator + "localFile_" + ( fileSize + i )
+                            + ".txt";
+            TestTools.LocalFile.createFile( filePath, fileSize + i );
+            filePathList.add( filePath );
         }
         bucketName = S3TestBase.enableVerBucketName;
         s3Client = CommLib.buildS3Client();
-        ObjectUtils.deleteObjectAllVersions(s3Client, bucketName, objectName);
+        ObjectUtils.deleteObjectAllVersions( s3Client, bucketName, objectName );
     }
 
     @Test
     private void test() throws Exception {
         // create multiple versions object in the bucket
-        for (int i = 0; i < fileNum; i++) {
-            objectVSList.add(
-                    s3Client.putObject(new PutObjectRequest(bucketName, objectName, new File(filePathList.get(i)))));
+        for ( int i = 0; i < fileNum; i++ ) {
+            objectVSList.add( s3Client.putObject(
+                    new PutObjectRequest( bucketName, objectName,
+                            new File( filePathList.get( i ) ) ) ) );
         }
 
         // get history eTag
         Random random = new Random();
-        int histIndex = random.nextInt(fileNum - 1);
-        String histETag = objectVSList.get(histIndex).getETag();
+        int histIndex = random.nextInt( fileNum - 1 );
+        String histETag = objectVSList.get( histIndex ).getETag();
 
         // get object by eTag and unmodified
         // the object has not been modified since now+one_month
-        cal.set(Calendar.MONTH, cal.get(Calendar.MONTH) + 1);
-        S3Object currObject = s3Client.getObject(new GetObjectRequest(bucketName, objectName)
-                .withMatchingETagConstraint(histETag).withUnmodifiedSinceConstraint(cal.getTime()));
-        Assert.assertNull(currObject);
+        cal.set( Calendar.MONTH, cal.get( Calendar.MONTH ) + 1 );
+        S3Object currObject = s3Client.getObject(
+                new GetObjectRequest( bucketName, objectName )
+                        .withMatchingETagConstraint( histETag )
+                        .withUnmodifiedSinceConstraint( cal.getTime() ) );
+        Assert.assertNull( currObject );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                ObjectUtils.deleteObjectAllVersions(s3Client, bucketName, objectName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                ObjectUtils.deleteObjectAllVersions( s3Client, bucketName,
+                        objectName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }

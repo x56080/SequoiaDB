@@ -25,11 +25,11 @@ public class DeleteSelf16262 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(name, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+            UserUtils.deleteUser( name, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -37,25 +37,28 @@ public class DeleteSelf16262 extends S3TestBase {
     @Test
     private void test() {
         // create user
-        JSONObject userJSON = UserUtils.createUser(name, UserCommDefind.admin, UserUtils.accessKeyId);
+        JSONObject userJSON = UserUtils.createUser( name, UserCommDefind.admin,
+                UserUtils.accessKeyId );
 
         // get the accessKeyID from userJSON
-        JSONObject json = userJSON.getJSONObject(UserCommDefind.accessKeys);
-        accessKeyID = json.getString(UserCommDefind.accessKeyID);
+        JSONObject json = userJSON.getJSONObject( UserCommDefind.accessKeys );
+        accessKeyID = json.getString( UserCommDefind.accessKeyID );
 
         // delete user
-        UserUtils.deleteUser(name, accessKeyID);
+        UserUtils.deleteUser( name, accessKeyID );
 
         // check
         try {
-            UserUtils.getUser(name, UserUtils.accessKeyId);
-            Assert.fail("exp fail but act success");
-        } catch (HttpClientErrorException e) {
+            UserUtils.getUser( name, UserUtils.accessKeyId );
+            Assert.fail( "exp fail but act success" );
+        } catch ( HttpClientErrorException e ) {
             String errorMsg = e.getResponseBodyAsString();
-            JSONObject json1 = XML.toJSONObject(errorMsg);
-            if (!json1.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode).contains("NoSuchUser")) {
+            JSONObject json1 = XML.toJSONObject( errorMsg );
+            if ( !json1.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "NoSuchUser" ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
     }

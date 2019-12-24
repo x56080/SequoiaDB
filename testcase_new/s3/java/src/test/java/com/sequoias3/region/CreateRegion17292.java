@@ -1,13 +1,12 @@
 package com.sequoias3.region;
 
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
 
 /**
  * @Description seqDB-17292: create Region and specify incomplete configuartion
@@ -25,9 +24,9 @@ public class CreateRegion17292 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        RegionUtils.createCSAndCL(csNames[0], dataclNames);
-        RegionUtils.createCSAndCL(csNames[1], metaclNames);
-        RegionUtils.clearRegion(regionName);
+        RegionUtils.createCSAndCL( csNames[ 0 ], dataclNames );
+        RegionUtils.createCSAndCL( csNames[ 1 ], metaclNames );
+        RegionUtils.clearRegion( regionName );
     }
 
     @Test
@@ -36,23 +35,25 @@ public class CreateRegion17292 extends S3TestBase {
             Region region = new Region();
             String metaLocation = "metaCS17291.metaCL17291";
             String dataLocation = "dataCS17291.dataCL17291";
-            region.withMetaLocation(metaLocation).withDataLocation(dataLocation).withName(regionName);
-            RegionUtils.putRegion(region);
-            Assert.fail("put region must be fail!");
-        } catch (AmazonS3Exception e) {
+            region.withMetaLocation( metaLocation )
+                    .withDataLocation( dataLocation ).withName( regionName );
+            RegionUtils.putRegion( region );
+            Assert.fail( "put region must be fail!" );
+        } catch ( AmazonS3Exception e ) {
             // return 400:InvalidLocation
-            Assert.assertEquals(e.getStatusCode(), 400);
-            Assert.assertEquals(e.getErrorCode(), "InvalidLocation");
+            Assert.assertEquals( e.getStatusCode(), 400 );
+            Assert.assertEquals( e.getErrorCode(), "InvalidLocation" );
         }
 
-        Assert.assertFalse(RegionUtils.headRegion(regionName), "region should be not exist!");
+        Assert.assertFalse( RegionUtils.headRegion( regionName ),
+                "region should be not exist!" );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
-        if (runSuccess) {
-            RegionUtils.dropCS(csNames);
+        if ( runSuccess ) {
+            RegionUtils.dropCS( csNames );
         }
     }
 }

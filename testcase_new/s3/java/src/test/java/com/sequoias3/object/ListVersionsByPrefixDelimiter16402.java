@@ -31,7 +31,8 @@ import java.util.List;
 public class ListVersionsByPrefixDelimiter16402 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket16402";
-    private String[] objectNames = { "dir-16402", "dir16401B.png/", "16401.xml", "16401A.txt", "dirsub/16401B.doc" };
+    private String[] objectNames = { "dir-16402", "dir16401B.png/", "16401.xml",
+            "16401A.txt", "dirsub/16401B.doc" };
     private AmazonS3 s3Client = null;
     private int fileSize = 3;
     private int versionNum = 2;
@@ -40,21 +41,27 @@ public class ListVersionsByPrefixDelimiter16402 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        for (int i = 0; i < versionNum; i++) {
-            String filePath = localPath + File.separator + "localFile_" + (fileSize + i) + ".txt";
-            TestTools.LocalFile.createFile(filePath, fileSize + i);
-            filePathList.add(filePath);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        for ( int i = 0; i < versionNum; i++ ) {
+            String filePath =
+                    localPath + File.separator + "localFile_" + ( fileSize + i )
+                            + ".txt";
+            TestTools.LocalFile.createFile( filePath, fileSize + i );
+            filePathList.add( filePath );
         }
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
-        for (String objectName : objectNames) {
-            for (int i = 0; i < versionNum; i++) {
-                s3Client.putObject(new PutObjectRequest(bucketName, objectName, new File(filePathList.get(i))));
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
+        for ( String objectName : objectNames ) {
+            for ( int i = 0; i < versionNum; i++ ) {
+                s3Client.putObject(
+                        new PutObjectRequest( bucketName, objectName,
+                                new File( filePathList.get( i ) ) ) );
             }
         }
     }
@@ -64,31 +71,35 @@ public class ListVersionsByPrefixDelimiter16402 extends S3TestBase {
         String prefix = "dir";
         String delimiter = "//";
         VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName(bucketName).withDelimiter(delimiter).withPrefix(prefix));
+                new ListVersionsRequest().withBucketName( bucketName )
+                        .withDelimiter( delimiter ).withPrefix( prefix ) );
         // expected results
-        List<String> expCommPrefixes = ObjectUtils.getCommPrefixes(objectNames, prefix, delimiter);
-        List<String> versionKeys = ObjectUtils.getKeys(objectNames, prefix, delimiter);
+        List<String> expCommPrefixes = ObjectUtils
+                .getCommPrefixes( objectNames, prefix, delimiter );
+        List<String> versionKeys = ObjectUtils
+                .getKeys( objectNames, prefix, delimiter );
         MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
-        for (String key : versionKeys) {
-            for (int i = versionNum - 1; i >= 0; i--) {
-                expMap.add(key, String.valueOf(i));
+        for ( String key : versionKeys ) {
+            for ( int i = versionNum - 1; i >= 0; i-- ) {
+                expMap.add( key, String.valueOf( i ) );
             }
         }
         // check
-        Assert.assertEquals(vsList.isTruncated(), false, "vsList.isTruncated() must be false");
-        ObjectUtils.checkListVSResults(vsList, expCommPrefixes, expMap);
+        Assert.assertEquals( vsList.isTruncated(), false,
+                "vsList.isTruncated() must be false" );
+        ObjectUtils.checkListVSResults( vsList, expCommPrefixes, expMap );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }

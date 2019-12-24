@@ -29,20 +29,22 @@ import java.util.UUID;
 public class ListVersionsByPrefixKeyVersionId16398 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket16398";
-    private String[] objectNames = { "dir16398&dir16398A&dir16398AB", "dir16398&subdir16398A", "dir16398A",
-            "dir16398B" };
+    private String[] objectNames = { "dir16398&dir16398A&dir16398AB",
+            "dir16398&subdir16398A", "dir16398A", "dir16398B" };
     private AmazonS3 s3Client = null;
     private int versionNum = 3;
 
     @BeforeClass
     private void setUp() throws IOException {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
-        for (String objectName : objectNames) {
-            for (int i = 0; i < versionNum; i++) {
-                s3Client.putObject(bucketName, objectName, "" + UUID.randomUUID());
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
+        for ( String objectName : objectNames ) {
+            for ( int i = 0; i < versionNum; i++ ) {
+                s3Client.putObject( bucketName, objectName,
+                        "" + UUID.randomUUID() );
             }
         }
     }
@@ -52,42 +54,49 @@ public class ListVersionsByPrefixKeyVersionId16398 extends S3TestBase {
         String prefix = "dir";
         // keyMarker does not exist
         String keyMarker = "air16398C";
-        String versionIdMarker = String.valueOf(versionNum - 1);
+        String versionIdMarker = String.valueOf( versionNum - 1 );
         // list by prefix/keyMarker/versionIdMarker
-        VersionListing vsList = s3Client.listVersions(new ListVersionsRequest().withBucketName(bucketName)
-                .withPrefix(prefix).withKeyMarker(keyMarker).withVersionIdMarker(versionIdMarker));
+        VersionListing vsList = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName )
+                        .withPrefix( prefix ).withKeyMarker( keyMarker )
+                        .withVersionIdMarker( versionIdMarker ) );
 
         // expected results
         MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
-        for (String objectName : objectNames) {
-            for (int i = versionNum - 1; i >= 0; i--) {
-                expMap.add(objectName, String.valueOf(i));
+        for ( String objectName : objectNames ) {
+            for ( int i = versionNum - 1; i >= 0; i-- ) {
+                expMap.add( objectName, String.valueOf( i ) );
             }
         }
         // check
-        Assert.assertEquals(vsList.isTruncated(), false, "vsList.isTruncated() must be false");
-        ObjectUtils.checkListVSResults(vsList, new ArrayList<String>(), expMap);
+        Assert.assertEquals( vsList.isTruncated(), false,
+                "vsList.isTruncated() must be false" );
+        ObjectUtils
+                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
 
         String prefix1 = "air";
         // keyMarker does not exist
         String keyMarker1 = "dir16398/dir16398A/dir16398AB";
-        String versionIdMarker1 = String.valueOf(versionNum - 1);
+        String versionIdMarker1 = String.valueOf( versionNum - 1 );
         // list by prefix/keyMarker/versionIdMarker
-        VersionListing vsList1 = s3Client.listVersions(new ListVersionsRequest().withBucketName(bucketName)
-                .withPrefix(prefix1).withKeyMarker(keyMarker1).withVersionIdMarker(versionIdMarker1));
+        VersionListing vsList1 = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName )
+                        .withPrefix( prefix1 ).withKeyMarker( keyMarker1 )
+                        .withVersionIdMarker( versionIdMarker1 ) );
         // check
-        ObjectUtils.checkListVSResults(vsList1, new ArrayList<String>(), new LinkedMultiValueMap<String, String>());
+        ObjectUtils.checkListVSResults( vsList1, new ArrayList<String>(),
+                new LinkedMultiValueMap<String, String>() );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }

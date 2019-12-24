@@ -1,13 +1,5 @@
 package com.sequoias3.object.concurrent;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
@@ -18,6 +10,13 @@ import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * @Description seqDB-19352:并发复制对象和删除源对象
@@ -37,39 +36,44 @@ public class CopyObject19352 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        s3Client.putObject(bucketName, srcKeyName, new File(filePath));
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        s3Client.putObject( bucketName, srcKeyName, new File( filePath ) );
     }
 
     @Test
     public void testCopyObject() throws Exception {
 
         ThreadExecutor threadExec = new ThreadExecutor();
-        CopyObject copyObject = new CopyObject(destKeyName);
-        DeleteObject deleteObject = new DeleteObject(srcKeyName);
-        threadExec.addWorker(copyObject);
-        threadExec.addWorker(deleteObject);
+        CopyObject copyObject = new CopyObject( destKeyName );
+        DeleteObject deleteObject = new DeleteObject( srcKeyName );
+        threadExec.addWorker( copyObject );
+        threadExec.addWorker( deleteObject );
         threadExec.run();
         int deleteObjectErrCode = deleteObject.getRetCode();
         int copyObjectErrCode = copyObject.getRetCode();
-        if (copyObjectErrCode == 0) {
+        if ( copyObjectErrCode == 0 ) {
             // delete object success,copy object success.
-            Assert.assertEquals(deleteObjectErrCode, 0);
-            checkObjectContent(destKeyName);
-            Assert.assertFalse(s3Client.doesObjectExist(bucketName, srcKeyName));
+            Assert.assertEquals( deleteObjectErrCode, 0 );
+            checkObjectContent( destKeyName );
+            Assert.assertFalse(
+                    s3Client.doesObjectExist( bucketName, srcKeyName ) );
         } else {
             // delete object success,copy object fail,the errorCode:404(NoSuchKey)
-            Assert.assertEquals(copyObjectErrCode, 404);
-            Assert.assertFalse(s3Client.doesObjectExist(bucketName, srcKeyName));
-            Assert.assertFalse(s3Client.doesObjectExist(bucketName, destKeyName));
+            Assert.assertEquals( copyObjectErrCode, 404 );
+            Assert.assertFalse(
+                    s3Client.doesObjectExist( bucketName, srcKeyName ) );
+            Assert.assertFalse(
+                    s3Client.doesObjectExist( bucketName, destKeyName ) );
         }
 
         runSuccess = true;
@@ -78,20 +82,26 @@ public class CopyObject19352 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
         }
     }
 
+    private void checkObjectContent( String destKeyName ) throws Exception {
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, destKeyName );
+        Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
+    }
+
     private class CopyObject extends ResultStore {
         private AmazonS3 s3Client1 = CommLib.buildS3Client();
         private String destKeyName;
 
-        private CopyObject(String destKeyName) {
+        private CopyObject( String destKeyName ) {
             this.destKeyName = destKeyName;
 
         }
@@ -99,18 +109,19 @@ public class CopyObject19352 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void copyObject() throws Exception {
             try {
-                CopyObjectRequest request = new CopyObjectRequest(bucketName, srcKeyName, bucketName, destKeyName);
-                s3Client1.copyObject(request);
-            } catch (AmazonS3Exception e) {
+                CopyObjectRequest request = new CopyObjectRequest( bucketName,
+                        srcKeyName, bucketName, destKeyName );
+                s3Client1.copyObject( request );
+            } catch ( AmazonS3Exception e ) {
                 int statusCode = e.getStatusCode();
-                saveResult(statusCode, e);
+                saveResult( statusCode, e );
                 // 404:NoSuchKey
                 String errCode = e.getErrorCode();
-                if (!errCode.equals("NoSuchKey")) {
+                if ( !errCode.equals( "NoSuchKey" ) ) {
                     throw e;
                 }
             } finally {
-                if (s3Client1 != null) {
+                if ( s3Client1 != null ) {
                     s3Client1.shutdown();
                 }
             }
@@ -121,7 +132,7 @@ public class CopyObject19352 extends S3TestBase {
         private AmazonS3 s3Client2 = CommLib.buildS3Client();
         private String keyName;
 
-        private DeleteObject(String keyName) {
+        private DeleteObject( String keyName ) {
             this.keyName = keyName;
 
         }
@@ -129,21 +140,16 @@ public class CopyObject19352 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void deleteObject() throws Exception {
             try {
-                s3Client2.deleteObject(bucketName, keyName);
-            } catch (AmazonS3Exception e) {
+                s3Client2.deleteObject( bucketName, keyName );
+            } catch ( AmazonS3Exception e ) {
                 int statusCode = e.getStatusCode();
-                saveResult(statusCode, e);
+                saveResult( statusCode, e );
             } finally {
-                if (s3Client2 != null) {
+                if ( s3Client2 != null ) {
                     s3Client2.shutdown();
                 }
             }
         }
-    }
-
-    private void checkObjectContent(String destKeyName) throws Exception {
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, destKeyName);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
     }
 
 }

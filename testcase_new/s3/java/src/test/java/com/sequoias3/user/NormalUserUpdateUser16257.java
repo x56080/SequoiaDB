@@ -28,27 +28,27 @@ public class NormalUserUpdateUser16257 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            UserUtils.deleteUser(adminUserName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+            UserUtils.deleteUser( adminUserName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            UserUtils.deleteUser(normalUserName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+            UserUtils.deleteUser( normalUserName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -56,80 +56,98 @@ public class NormalUserUpdateUser16257 extends S3TestBase {
     @Test
     public void test() throws JSONException {
         // create user
-        JSONObject testUser = UserUtils.createUser(userName, UserCommDefind.normal, UserUtils.accessKeyId);
-        JSONObject adminUser = UserUtils.createUser(adminUserName, UserCommDefind.admin, UserUtils.accessKeyId);
-        JSONObject normalUser = UserUtils.createUser(normalUserName, UserCommDefind.normal, UserUtils.accessKeyId);
+        JSONObject testUser = UserUtils
+                .createUser( userName, UserCommDefind.normal,
+                        UserUtils.accessKeyId );
+        JSONObject adminUser = UserUtils
+                .createUser( adminUserName, UserCommDefind.admin,
+                        UserUtils.accessKeyId );
+        JSONObject normalUser = UserUtils
+                .createUser( normalUserName, UserCommDefind.normal,
+                        UserUtils.accessKeyId );
 
-        JSONObject actJSON = testUser.getJSONObject(UserCommDefind.accessKeys);
-        String accessKeyID = actJSON.getString(UserCommDefind.accessKeyID);
+        JSONObject actJSON = testUser
+                .getJSONObject( UserCommDefind.accessKeys );
+        String accessKeyID = actJSON.getString( UserCommDefind.accessKeyID );
 
         // update user
         try {
-            UserUtils.updateUser(userName, accessKeyID);
-            Assert.fail("Self updating should fail!");
-        } catch (HttpClientErrorException e) {
-            JSONObject json = XML.toJSONObject(e.getResponseBodyAsString());
-            if (!json.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                    .contains("AccessDenied")) {
+            UserUtils.updateUser( userName, accessKeyID );
+            Assert.fail( "Self updating should fail!" );
+        } catch ( HttpClientErrorException e ) {
+            JSONObject json = XML.toJSONObject( e.getResponseBodyAsString() );
+            if ( !json.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "AccessDenied" ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
-        JSONObject expUser = UserUtils.getUser(userName, UserUtils.accessKeyId);
-        checkResult(testUser, expUser);
+        JSONObject expUser = UserUtils
+                .getUser( userName, UserUtils.accessKeyId );
+        checkResult( testUser, expUser );
         // update admin user
         try {
-            UserUtils.updateUser(adminUserName, accessKeyID);
-            Assert.fail("update admin user should be failed!");
-        } catch (HttpClientErrorException e) {
-            JSONObject json = XML.toJSONObject(e.getResponseBodyAsString());
-            if (!json.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                    .contains("AccessDenied")) {
+            UserUtils.updateUser( adminUserName, accessKeyID );
+            Assert.fail( "update admin user should be failed!" );
+        } catch ( HttpClientErrorException e ) {
+            JSONObject json = XML.toJSONObject( e.getResponseBodyAsString() );
+            if ( !json.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "AccessDenied" ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
-        JSONObject expAdminUser = UserUtils.getUser(adminUserName, UserUtils.accessKeyId);
-        checkResult(adminUser, expAdminUser);
+        JSONObject expAdminUser = UserUtils
+                .getUser( adminUserName, UserUtils.accessKeyId );
+        checkResult( adminUser, expAdminUser );
 
         // update normal user
         try {
-            UserUtils.updateUser(normalUserName, accessKeyID);
-            Assert.fail("update normal user should be failed!");
-        } catch (HttpClientErrorException e) {
-            JSONObject json = XML.toJSONObject(e.getResponseBodyAsString());
-            if (!json.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                    .contains("AccessDenied")) {
+            UserUtils.updateUser( normalUserName, accessKeyID );
+            Assert.fail( "update normal user should be failed!" );
+        } catch ( HttpClientErrorException e ) {
+            JSONObject json = XML.toJSONObject( e.getResponseBodyAsString() );
+            if ( !json.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "AccessDenied" ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
-        JSONObject expNormalUser = UserUtils.getUser(normalUserName, UserUtils.accessKeyId);
-        checkResult(normalUser, expNormalUser);
+        JSONObject expNormalUser = UserUtils
+                .getUser( normalUserName, UserUtils.accessKeyId );
+        checkResult( normalUser, expNormalUser );
 
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
-        if (runSuccess) {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
-            UserUtils.deleteUser(adminUserName, UserUtils.accessKeyId, true);
-            UserUtils.deleteUser(normalUserName, UserUtils.accessKeyId, true);
+        if ( runSuccess ) {
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
+            UserUtils.deleteUser( adminUserName, UserUtils.accessKeyId, true );
+            UserUtils.deleteUser( normalUserName, UserUtils.accessKeyId, true );
         }
     }
 
-    private void checkResult(JSONObject craeteUser, JSONObject updateUser) {
-        JSONObject createJSON = craeteUser.getJSONObject(UserCommDefind.accessKeys);
-        String accessKeyIdOld = createJSON.getString(UserCommDefind.accessKeyID);
-        String secretAccessKeyOld = createJSON.getString(UserCommDefind.secretAccessKey);
+    private void checkResult( JSONObject craeteUser, JSONObject updateUser ) {
+        JSONObject createJSON = craeteUser
+                .getJSONObject( UserCommDefind.accessKeys );
+        String accessKeyIdOld = createJSON
+                .getString( UserCommDefind.accessKeyID );
+        String secretAccessKeyOld = createJSON
+                .getString( UserCommDefind.secretAccessKey );
 
-        JSONObject updateJSON = updateUser.getJSONObject(UserCommDefind.accessKeys);
-        String accessKeyID = updateJSON.getString(UserCommDefind.accessKeyID);
-        String secretAccessKey = updateJSON.getString(UserCommDefind.secretAccessKey);
+        JSONObject updateJSON = updateUser
+                .getJSONObject( UserCommDefind.accessKeys );
+        String accessKeyID = updateJSON.getString( UserCommDefind.accessKeyID );
+        String secretAccessKey = updateJSON
+                .getString( UserCommDefind.secretAccessKey );
 
         // check accessKeyID and secretAccessKey was updated failed.
-        Assert.assertEquals(accessKeyIdOld, accessKeyID);
-        Assert.assertEquals(secretAccessKeyOld, secretAccessKey);
+        Assert.assertEquals( accessKeyIdOld, accessKeyID );
+        Assert.assertEquals( secretAccessKeyOld, secretAccessKey );
     }
 }

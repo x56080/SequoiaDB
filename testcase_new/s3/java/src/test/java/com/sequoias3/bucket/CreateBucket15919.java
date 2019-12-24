@@ -18,42 +18,43 @@ import java.util.List;
 /**
  * test content: concurrent delete bucket and sequoiadb abnormal testlink-case:
  * seqDB-15919
- * 
+ *
  * @author wangkexin
  * @Date 2018.10.17
  * @version 1.00
  */
 public class CreateBucket15919 extends S3TestBase {
+    private final int defaultNums = 100;
     private boolean runSuccess = false;
     private String userName = "user15919";
     private String bucketName = "bucket15919";
     private String roleName = "normal";
-    private final int defaultNums = 100;
     private AmazonS3 s3Client = null;
     private String[] acessKeys = null;
 
     @BeforeClass
     private void setUp() throws Exception {
-        CommLib.clearUser(userName);
-        acessKeys = UserUtils.createUser(userName, roleName);
-        s3Client = CommLib.buildS3Client(acessKeys[0], acessKeys[1]);
+        CommLib.clearUser( userName );
+        acessKeys = UserUtils.createUser( userName, roleName );
+        s3Client = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
         createBuckets();
     }
 
     @Test
     private void testDeleteBucket() throws Exception {
-        List<DeleteBucketThread> deleteBuckets = new ArrayList<>(20);
-        for (int i = 0; i < defaultNums; i++) {
+        List<DeleteBucketThread> deleteBuckets = new ArrayList<>( 20 );
+        for ( int i = 0; i < defaultNums; i++ ) {
             String subBucketName = bucketName + "." + i;
-            deleteBuckets.add(new DeleteBucketThread(subBucketName));
+            deleteBuckets.add( new DeleteBucketThread( subBucketName ) );
         }
 
-        for (DeleteBucketThread deleteBucket : deleteBuckets) {
+        for ( DeleteBucketThread deleteBucket : deleteBuckets ) {
             deleteBucket.start();
         }
 
-        for (DeleteBucketThread deleteBucket : deleteBuckets) {
-            Assert.assertTrue(deleteBucket.isSuccess(), deleteBucket.getErrorMsg());
+        for ( DeleteBucketThread deleteBucket : deleteBuckets ) {
+            Assert.assertTrue( deleteBucket.isSuccess(),
+                    deleteBucket.getErrorMsg() );
         }
         runSuccess = true;
     }
@@ -61,44 +62,45 @@ public class CreateBucket15919 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                UserUtils.deleteUser(userName);
+            if ( runSuccess ) {
+                UserUtils.deleteUser( userName );
             }
-        } catch (BaseException e) {
-            Assert.fail("clean up failed:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( "clean up failed:" + e.getMessage() );
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
+        }
+    }
+
+    private void createBuckets() {
+        for ( int i = 0; i < defaultNums; i++ ) {
+            String subBucketName = bucketName + "." + i;
+            s3Client.createBucket( subBucketName );
         }
     }
 
     private class DeleteBucketThread extends S3ThreadBase {
         String bucketName;
 
-        public DeleteBucketThread(String bucketName) {
+        public DeleteBucketThread( String bucketName ) {
             this.bucketName = bucketName;
         }
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib.buildS3Client(acessKeys[0], acessKeys[1]);
+            AmazonS3 s3Client = CommLib
+                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
             try {
-                s3Client.deleteBucket(bucketName);
-            } catch (AmazonS3Exception e) {
-                Assert.assertEquals(e.getErrorCode(), "NoSuchBucket");
+                s3Client.deleteBucket( bucketName );
+            } catch ( AmazonS3Exception e ) {
+                Assert.assertEquals( e.getErrorCode(), "NoSuchBucket" );
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }
-        }
-    }
-
-    private void createBuckets() {
-        for (int i = 0; i < defaultNums; i++) {
-            String subBucketName = bucketName + "." + i;
-            s3Client.createBucket(subBucketName);
         }
     }
 }

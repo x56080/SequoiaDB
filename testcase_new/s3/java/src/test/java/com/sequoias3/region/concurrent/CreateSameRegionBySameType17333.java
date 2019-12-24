@@ -23,35 +23,38 @@ public class CreateSameRegionBySameType17333 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        RegionUtils.clearRegion(regionName);
+        RegionUtils.clearRegion( regionName );
     }
 
     @Test(threadPoolSize = 2, invocationCount = 2)
     private void test() throws Exception {
         // create region
-        Region region = new Region().withDataCSShardingType(this.dataCSShardingType)
-                .withDataCLShardingType(this.dataCLShardingType).withName(regionName);
-        RegionUtils.putRegion(region);
+        Region region = new Region()
+                .withDataCSShardingType( this.dataCSShardingType )
+                .withDataCLShardingType( this.dataCLShardingType )
+                .withName( regionName );
+        RegionUtils.putRegion( region );
 
         // get region
-        GetRegionResult result = RegionUtils.getRegion(regionName);
-        Assert.assertEquals(result.getBuckets().size(), 0, result.getBuckets().toString());
+        GetRegionResult result = RegionUtils.getRegion( regionName );
+        Assert.assertEquals( result.getBuckets().size(), 0,
+                result.getBuckets().toString() );
         Region actRegion = result.getRegion();
-        Assert.assertEquals(actRegion.getDataCSShardingType(), "year");
-        Assert.assertEquals(actRegion.getDataCLShardingType(), "year");
-        Assert.assertEquals(actRegion.getName(), regionName);
-        Assert.assertEquals(actRegion.getDataLocation(), "");
-        Assert.assertEquals(actRegion.getMetaLocation(), "");
-        Assert.assertEquals(actRegion.getMetaHisLocation(), "");
-        Assert.assertEquals(actRegion.getMetaDomain(), "");
-        Assert.assertEquals(actRegion.getDataDomain(), "");
+        Assert.assertEquals( actRegion.getDataCSShardingType(), "year" );
+        Assert.assertEquals( actRegion.getDataCLShardingType(), "year" );
+        Assert.assertEquals( actRegion.getName(), regionName );
+        Assert.assertEquals( actRegion.getDataLocation(), "" );
+        Assert.assertEquals( actRegion.getMetaLocation(), "" );
+        Assert.assertEquals( actRegion.getMetaHisLocation(), "" );
+        Assert.assertEquals( actRegion.getMetaDomain(), "" );
+        Assert.assertEquals( actRegion.getDataDomain(), "" );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
-        if (runSuccess) {
-            RegionUtils.deleteRegion(regionName);
+        if ( runSuccess ) {
+            RegionUtils.deleteRegion( regionName );
         }
     }
 }

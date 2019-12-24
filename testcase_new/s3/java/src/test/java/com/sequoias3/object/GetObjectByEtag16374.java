@@ -39,14 +39,17 @@ public class GetObjectByEtag16374 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
         String filePath = null;
-        for (int i = 0; i < fileNum; i++) {
-            filePath = localPath + File.separator + "localFile_" + (fileSize + i) + ".txt";
-            TestTools.LocalFile.createFile(filePath, fileSize + i);
-            filePathList.add(filePath);
+        for ( int i = 0; i < fileNum; i++ ) {
+            filePath =
+                    localPath + File.separator + "localFile_" + ( fileSize + i )
+                            + ".txt";
+            TestTools.LocalFile.createFile( filePath, fileSize + i );
+            filePathList.add( filePath );
         }
         bucketName = S3TestBase.enableVerBucketName;
         s3Client = CommLib.buildS3Client();
@@ -55,31 +58,35 @@ public class GetObjectByEtag16374 extends S3TestBase {
     @Test
     private void test() throws Exception {
         // create multiple versions object in the bucket
-        for (int i = 0; i < fileNum; i++) {
-            objectVSList.add(
-                    s3Client.putObject(new PutObjectRequest(bucketName, objectName, new File(filePathList.get(i)))));
+        for ( int i = 0; i < fileNum; i++ ) {
+            objectVSList.add( s3Client.putObject(
+                    new PutObjectRequest( bucketName, objectName,
+                            new File( filePathList.get( i ) ) ) ) );
         }
 
         // get history version eTag
-        String histETag = objectVSList.get(fileNum - 2).getETag();
-        String currETag = objectVSList.get(fileNum - 1).getETag();
+        String histETag = objectVSList.get( fileNum - 2 ).getETag();
+        String currETag = objectVSList.get( fileNum - 1 ).getETag();
 
         // get object by eTag
-        S3Object object = s3Client.getObject(new GetObjectRequest(bucketName, objectName)
-                .withMatchingETagConstraint(histETag).withNonmatchingETagConstraint(currETag));
-        Assert.assertNull(object);
+        S3Object object = s3Client.getObject(
+                new GetObjectRequest( bucketName, objectName )
+                        .withMatchingETagConstraint( histETag )
+                        .withNonmatchingETagConstraint( currETag ) );
+        Assert.assertNull( object );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                ObjectUtils.deleteObjectAllVersions(s3Client, bucketName, objectName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                ObjectUtils.deleteObjectAllVersions( s3Client, bucketName,
+                        objectName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }

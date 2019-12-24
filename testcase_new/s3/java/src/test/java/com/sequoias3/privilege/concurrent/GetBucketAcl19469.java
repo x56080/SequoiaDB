@@ -1,11 +1,5 @@
 package com.sequoias3.privilege.concurrent;
 
-import java.io.IOException;
-
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
 import com.amazonaws.services.s3.model.Grant;
@@ -15,6 +9,11 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.PrivilegeUtils;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
 
 /**
  * @Description seqDB-19469:并发查询桶acl
@@ -36,25 +35,27 @@ public class GetBucketAcl19469 extends S3TestBase {
     private void setUp() throws IOException {
         adminS3 = CommLib.buildS3Client();
         ownerId = adminS3.getS3AccountOwner().getId();
-        CommLib.clearBucket(adminS3, bucketNameA);
-        CommLib.clearBucket(adminS3, bucketNameB);
+        CommLib.clearBucket( adminS3, bucketNameA );
+        CommLib.clearBucket( adminS3, bucketNameB );
 
-        adminS3.createBucket(bucketNameA);
-        grantA = new Grant(new CanonicalGrantee(ownerId), Permission.Read);
-        PrivilegeUtils.setBucketAclByBody(adminS3, bucketNameA, grantA);
+        adminS3.createBucket( bucketNameA );
+        grantA = new Grant( new CanonicalGrantee( ownerId ), Permission.Read );
+        PrivilegeUtils.setBucketAclByBody( adminS3, bucketNameA, grantA );
 
-        adminS3.createBucket(bucketNameB);
-        grantB = new Grant(new CanonicalGrantee(ownerId), Permission.Write);
-        PrivilegeUtils.setBucketAclByBody(adminS3, bucketNameB, grantB);
+        adminS3.createBucket( bucketNameB );
+        grantB = new Grant( new CanonicalGrantee( ownerId ), Permission.Write );
+        PrivilegeUtils.setBucketAclByBody( adminS3, bucketNameB, grantB );
     }
 
     @Test
     private void test() throws Exception {
         // get bucket acl and check results in the thread
         ThreadExecutor threadExec = new ThreadExecutor();
-        for (int i = 0; i < threadNum; i++) {
-            threadExec.addWorker(new ThreadGetBucketAcl(bucketNameA, grantA));
-            threadExec.addWorker(new ThreadGetBucketAcl(bucketNameB, grantB));
+        for ( int i = 0; i < threadNum; i++ ) {
+            threadExec
+                    .addWorker( new ThreadGetBucketAcl( bucketNameA, grantA ) );
+            threadExec
+                    .addWorker( new ThreadGetBucketAcl( bucketNameB, grantB ) );
         }
         threadExec.run();
         runSuccess = true;
@@ -63,9 +64,9 @@ public class GetBucketAcl19469 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(adminS3, bucketNameA);
-                CommLib.clearBucket(adminS3, bucketNameB);
+            if ( runSuccess ) {
+                CommLib.clearBucket( adminS3, bucketNameA );
+                CommLib.clearBucket( adminS3, bucketNameB );
             }
         } finally {
             adminS3.shutdown();
@@ -76,7 +77,7 @@ public class GetBucketAcl19469 extends S3TestBase {
         private String bucket;
         private Grant expGrant;
 
-        public ThreadGetBucketAcl(String bucket, Grant expGrant) {
+        public ThreadGetBucketAcl( String bucket, Grant expGrant ) {
             this.bucket = bucket;
             this.expGrant = expGrant;
         }
@@ -86,9 +87,9 @@ public class GetBucketAcl19469 extends S3TestBase {
             AmazonS3 s3 = null;
             try {
                 s3 = CommLib.buildS3Client();
-                PrivilegeUtils.checkSetBucketAclResult(s3, bucket, expGrant);
+                PrivilegeUtils.checkSetBucketAclResult( s3, bucket, expGrant );
             } finally {
-                if (s3 != null) {
+                if ( s3 != null ) {
                     s3.shutdown();
                 }
             }

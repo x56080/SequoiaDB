@@ -1,19 +1,18 @@
 package com.sequoias3.region.concurrent;
 
 import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.sequoias3.region.Region;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.S3ThreadBase;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.sequoias3.region.Region;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.S3ThreadBase;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
-
 /**
  * test content: 并发删除区域 testlink-case: seqDB-17337
- * 
+ *
  * @author wangkexin
  * @Date 2019.01.29
  * @version 1.00
@@ -24,18 +23,18 @@ public class DeleteSameRegion17337 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        RegionUtils.clearRegion(regionName);
+        RegionUtils.clearRegion( regionName );
         Region region = new Region();
-        region.withName(regionName);
-        RegionUtils.putRegion(region);
+        region.withName( regionName );
+        RegionUtils.putRegion( region );
     }
 
     @Test
     public void testDeleteRegion() throws Exception {
         DeleteRegionThread deleteRegionThread = new DeleteRegionThread();
-        deleteRegionThread.start(100);
-        Assert.assertTrue(deleteRegionThread.isSuccess());
-        Assert.assertFalse(RegionUtils.headRegion(regionName));
+        deleteRegionThread.start( 100 );
+        Assert.assertTrue( deleteRegionThread.isSuccess() );
+        Assert.assertFalse( RegionUtils.headRegion( regionName ) );
     }
 
     @AfterClass
@@ -46,9 +45,9 @@ public class DeleteSameRegion17337 extends S3TestBase {
         @Override
         public void exec() throws Exception {
             try {
-                RegionUtils.deleteRegion(regionName);
-            } catch (AmazonS3Exception e) {
-                if (e.getStatusCode() != 404) {
+                RegionUtils.deleteRegion( regionName );
+            } catch ( AmazonS3Exception e ) {
+                if ( e.getStatusCode() != 404 ) {
                     throw e;
                 }
             }

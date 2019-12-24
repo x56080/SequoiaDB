@@ -27,34 +27,36 @@ public class DeleteBucket15916 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        CommLib.clearUser(userName);
-        String[] acessKeys = UserUtils.createUser(userName, roleName);
-        s3Client = CommLib.buildS3Client(acessKeys[0], acessKeys[1]);
+        CommLib.clearUser( userName );
+        String[] acessKeys = UserUtils.createUser( userName, roleName );
+        s3Client = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
 
-        s3Client.createBucket(new CreateBucketRequest(bucketName));
-        s3Client.putObject(bucketName, key, "testdeletebucket");
+        s3Client.createBucket( new CreateBucketRequest( bucketName ) );
+        s3Client.putObject( bucketName, key, "testdeletebucket" );
     }
 
     @SuppressWarnings("deprecation")
     @Test
     public void testCreateBucket() throws Exception {
         try {
-            s3Client.deleteBucket(bucketName);
-            Assert.fail("delete bucket must be fail !");
-        } catch (AmazonS3Exception e) {
-            Assert.assertEquals(e.getErrorCode(), "BucketNotEmpty");
+            s3Client.deleteBucket( bucketName );
+            Assert.fail( "delete bucket must be fail !" );
+        } catch ( AmazonS3Exception e ) {
+            Assert.assertEquals( e.getErrorCode(), "BucketNotEmpty" );
         }
 
-        Assert.assertTrue(s3Client.doesBucketExist(bucketName), "the bucket is exist!");
-        Assert.assertTrue(s3Client.doesObjectExist(bucketName, key), "the object is exist!");
+        Assert.assertTrue( s3Client.doesBucketExist( bucketName ),
+                "the bucket is exist!" );
+        Assert.assertTrue( s3Client.doesObjectExist( bucketName, key ),
+                "the object is exist!" );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                UserUtils.deleteUser(userName);
+            if ( runSuccess ) {
+                UserUtils.deleteUser( userName );
             }
         } finally {
             s3Client.shutdown();

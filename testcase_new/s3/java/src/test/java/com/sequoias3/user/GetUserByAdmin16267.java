@@ -25,20 +25,20 @@ public class GetUserByAdmin16267 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(userName1, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != (HttpStatus.NOT_FOUND)) {
+            UserUtils.deleteUser( userName1, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != ( HttpStatus.NOT_FOUND ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
 
         try {
-            UserUtils.deleteUser(userName2, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != (HttpStatus.NOT_FOUND)) {
+            UserUtils.deleteUser( userName2, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != ( HttpStatus.NOT_FOUND ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -46,33 +46,42 @@ public class GetUserByAdmin16267 extends S3TestBase {
     @Test
     private void test() {
         // create user
-        JSONObject expUser1 = UserUtils.createUser(userName1, UserCommDefind.admin, UserUtils.accessKeyId);
-        JSONObject expUser2 = UserUtils.createUser(userName2, UserCommDefind.normal, UserUtils.accessKeyId);
+        JSONObject expUser1 = UserUtils
+                .createUser( userName1, UserCommDefind.admin,
+                        UserUtils.accessKeyId );
+        JSONObject expUser2 = UserUtils
+                .createUser( userName2, UserCommDefind.normal,
+                        UserUtils.accessKeyId );
 
         // get user
-        JSONObject actUser1 = UserUtils.getUser(userName1, UserUtils.accessKeyId);
-        JSONObject actUser2 = UserUtils.getUser(userName2, UserUtils.accessKeyId);
+        JSONObject actUser1 = UserUtils
+                .getUser( userName1, UserUtils.accessKeyId );
+        JSONObject actUser2 = UserUtils
+                .getUser( userName2, UserUtils.accessKeyId );
 
         // check
-        checkResult(actUser1, expUser1);
-        checkResult(actUser2, expUser2);
+        checkResult( actUser1, expUser1 );
+        checkResult( actUser2, expUser2 );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
-        if (runSuccess) {
-            UserUtils.deleteUser(userName1, UserUtils.accessKeyId, true);
-            UserUtils.deleteUser(userName2, UserUtils.accessKeyId, true);
+        if ( runSuccess ) {
+            UserUtils.deleteUser( userName1, UserUtils.accessKeyId, true );
+            UserUtils.deleteUser( userName2, UserUtils.accessKeyId, true );
         }
     }
 
-    private void checkResult(JSONObject actUser, JSONObject expUser) {
-        JSONObject actJSON = actUser.getJSONObject(UserCommDefind.accessKeys);
-        JSONObject expJSON = expUser.getJSONObject(UserCommDefind.accessKeys);
-        Assert.assertEquals(actJSON.getString(UserCommDefind.accessKeyID),
-                expJSON.getString(UserCommDefind.accessKeyID), "actJSON = " + actJSON + ",expJSON = " + expJSON);
-        Assert.assertEquals(actJSON.getString(UserCommDefind.secretAccessKey),
-                expJSON.getString(UserCommDefind.secretAccessKey), "actJSON = " + actJSON + ",expJSON = " + expJSON);
+    private void checkResult( JSONObject actUser, JSONObject expUser ) {
+        JSONObject actJSON = actUser.getJSONObject( UserCommDefind.accessKeys );
+        JSONObject expJSON = expUser.getJSONObject( UserCommDefind.accessKeys );
+        Assert.assertEquals( actJSON.getString( UserCommDefind.accessKeyID ),
+                expJSON.getString( UserCommDefind.accessKeyID ),
+                "actJSON = " + actJSON + ",expJSON = " + expJSON );
+        Assert.assertEquals(
+                actJSON.getString( UserCommDefind.secretAccessKey ),
+                expJSON.getString( UserCommDefind.secretAccessKey ),
+                "actJSON = " + actJSON + ",expJSON = " + expJSON );
     }
 }

@@ -4,17 +4,14 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-@JacksonXmlRootElement(localName = "DelimiterConfiguration")
-public class DelimiterConfiguration {
-    @JsonProperty("Delimiter")
-    private String delimiter;
-    @JsonIgnore
-    private String status;
+@JacksonXmlRootElement(localName = "DelimiterConfiguration") public class DelimiterConfiguration {
+    @JsonProperty("Delimiter") private String delimiter;
+    @JsonIgnore private String status;
 
     public DelimiterConfiguration() {
     }
 
-    public DelimiterConfiguration(String delimiter, String status) {
+    public DelimiterConfiguration( String delimiter, String status ) {
         this.delimiter = delimiter;
         this.status = status;
     }
@@ -23,15 +20,15 @@ public class DelimiterConfiguration {
         return delimiter;
     }
 
-    public void setDelimiter(String delimiter) {
+    public void setDelimiter( String delimiter ) {
         this.delimiter = delimiter;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
     public String getStatus() {
         return status;
+    }
+
+    public void setStatus( String status ) {
+        this.status = status;
     }
 }

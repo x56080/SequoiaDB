@@ -1,14 +1,5 @@
 package com.sequoias3.delimiter;
 
-import java.io.File;
-import java.util.Date;
-import java.util.List;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ListObjectsV2Request;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
@@ -19,10 +10,18 @@ import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.DelimiterUtils;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.util.Date;
+import java.util.List;
 
 /**
  * test content: 设置分隔符，增加同名对象 testlink-case: seqDB-18100
- * 
+ *
  * @author wangkexin
  * @Date 2019.04.13
  * @version 1.00
@@ -42,70 +41,79 @@ public class CreateObject18100 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath1 = localPath + File.separator + "localFile_" + oldFileSize + ".txt";
-        filePath2 = localPath + File.separator + "localFile_" + newFileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath1 = localPath + File.separator + "localFile_" + oldFileSize
+                + ".txt";
+        filePath2 = localPath + File.separator + "localFile_" + newFileSize
+                + ".txt";
 
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath1, oldFileSize);
-        TestTools.LocalFile.createFile(filePath2, newFileSize);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath1, oldFileSize );
+        TestTools.LocalFile.createFile( filePath2, newFileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
     }
 
     @Test
     private void testCreateObject() throws Exception {
         // 将分隔符设置为// （默认为'/'）
-        DelimiterUtils.putBucketDelimiter(bucketName, delimiter);
-        DelimiterUtils.checkCurrentDelimiteInfo(bucketName, delimiter);
+        DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
+        DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
 
         // 重复上传同名对象，检查对象LastModified时间在 【第一次上传时间，第二次上传完成后时间】范围内
-        s3Client.putObject(bucketName, keyName, new File(filePath1));
-        S3Object obj = s3Client.getObject(bucketName, keyName);
+        s3Client.putObject( bucketName, keyName, new File( filePath1 ) );
+        S3Object obj = s3Client.getObject( bucketName, keyName );
         Date dataLowBound = obj.getObjectMetadata().getLastModified();
 
-        s3Client.putObject(bucketName, keyName, new File(filePath2));
+        s3Client.putObject( bucketName, keyName, new File( filePath2 ) );
         Date dataUpBound = new Date();
-        checkResult(filePath2, dataLowBound, dataUpBound);
+        checkResult( filePath2, dataLowBound, dataUpBound );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
     }
 
-    private void checkResult(String filePath, Date expDateLowBound, Date expDateUpBound) throws Exception {
-        S3Object obj = s3Client.getObject(bucketName, keyName);
+    private void checkResult( String filePath, Date expDateLowBound,
+            Date expDateUpBound ) throws Exception {
+        S3Object obj = s3Client.getObject( bucketName, keyName );
         ObjectMetadata metadata = obj.getObjectMetadata();
         Date actCreateDate = metadata.getLastModified();
-        if (actCreateDate.before(expDateLowBound) || actCreateDate.after(expDateUpBound)) {
-            Assert.fail("create time is different! the actCreateDate is : " + actCreateDate.toString()
-                    + ",the expDate is in :[ " + expDateLowBound.toString() + " ~ " + expDateUpBound.toString() + " ]");
+        if ( actCreateDate.before( expDateLowBound ) || actCreateDate
+                .after( expDateUpBound ) ) {
+            Assert.fail( "create time is different! the actCreateDate is : "
+                    + actCreateDate.toString() + ",the expDate is in :[ "
+                    + expDateLowBound.toString() + " ~ " + expDateUpBound
+                    .toString() + " ]" );
         }
 
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, keyName);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
-        Assert.assertEquals(obj.getKey(), keyName);
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
+        Assert.assertEquals( obj.getKey(), keyName );
         // 通过携带delimiter查询对象列表的对外映射场景检测目录表是否生成新目录，对象元数据表和目录表中数据通过连接db手工校验
-        ListObjectsV2Request request = new ListObjectsV2Request().withBucketName(bucketName).withEncodingType("url");
-        request.withDelimiter(delimiter);
-        ListObjectsV2Result result = s3Client.listObjectsV2(request);
+        ListObjectsV2Request request = new ListObjectsV2Request()
+                .withBucketName( bucketName ).withEncodingType( "url" );
+        request.withDelimiter( delimiter );
+        ListObjectsV2Result result = s3Client.listObjectsV2( request );
         List<String> commonPrefixes = result.getCommonPrefixes();
-        Assert.assertEquals(commonPrefixes.size(), 1);
-        Assert.assertEquals(commonPrefixes.get(0), expCommPerfix);
-        Assert.assertEquals(result.getObjectSummaries().size(), 0);
+        Assert.assertEquals( commonPrefixes.size(), 1 );
+        Assert.assertEquals( commonPrefixes.get( 0 ), expCommPerfix );
+        Assert.assertEquals( result.getObjectSummaries().size(), 0 );
     }
 }

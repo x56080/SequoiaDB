@@ -40,85 +40,104 @@ public class UpdateRegion17305 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        filePath = localPath + File.separator + "localFile_" + (fileSize) + ".txt";
-        updatePath = localPath + File.separator + "localFile_" + (fileSize + 1024) + ".txt";
-        TestTools.LocalFile.createFile(filePath, fileSize);
-        TestTools.LocalFile.createFile(updatePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        filePath = localPath + File.separator + "localFile_" + ( fileSize )
+                + ".txt";
+        updatePath =
+                localPath + File.separator + "localFile_" + ( fileSize + 1024 )
+                        + ".txt";
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        TestTools.LocalFile.createFile( updatePath, fileSize );
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        RegionUtils.clearRegion(regionName);
+        CommLib.clearBucket( s3Client, bucketName );
+        RegionUtils.clearRegion( regionName );
     }
 
     @Test
     private void test() throws Exception {
         // create region
         Region region = new Region();
-        region.withDataCSShardingType(dataCSShardingType).withDataCLShardingType(dataCLShardingType)
-                .withName(regionName);
-        RegionUtils.putRegion(region);
+        region.withDataCSShardingType( dataCSShardingType )
+                .withDataCLShardingType( dataCLShardingType )
+                .withName( regionName );
+        RegionUtils.putRegion( region );
 
         // create bucket and object
-        s3Client.createBucket(new CreateBucketRequest(bucketName, regionName));
-        s3Client.putObject(bucketName, objectName, new File(filePath));
+        s3Client.createBucket(
+                new CreateBucketRequest( bucketName, regionName ) );
+        s3Client.putObject( bucketName, objectName, new File( filePath ) );
 
         // change DataCLShardingType:month to year
-        region.withDataCSShardingType(dataCSShardingType).withDataCLShardingType(upDataCLShardingType)
-                .withName(regionName);
-        RegionUtils.putRegion(region);
-        GetRegionResult result = RegionUtils.getRegion(regionName);
-        checkGetRegionResult(result, region);
+        region.withDataCSShardingType( dataCSShardingType )
+                .withDataCLShardingType( upDataCLShardingType )
+                .withName( regionName );
+        RegionUtils.putRegion( region );
+        GetRegionResult result = RegionUtils.getRegion( regionName );
+        checkGetRegionResult( result, region );
 
         // create object again
-        s3Client.putObject(bucketName, objectName, new File(updatePath));
+        s3Client.putObject( bucketName, objectName, new File( updatePath ) );
 
         // get cs and cl
         Date date = Calendar.getInstance().getTime();
-        String csName = RegionUtils.getDataCSName(regionName, dataCSShardingType, date) + "_1";
-        String clName1 = RegionUtils.getDataCLName(dataCLShardingType, date);
-        String clName2 = RegionUtils.getDataCLName(upDataCLShardingType, date);
+        String csName = RegionUtils
+                .getDataCSName( regionName, dataCSShardingType, date ) + "_1";
+        String clName1 = RegionUtils.getDataCLName( dataCLShardingType, date );
+        String clName2 = RegionUtils
+                .getDataCLName( upDataCLShardingType, date );
 
         // count the number of record
-        int count1 = RegionUtils.getRecordNum(csName, clName1);
-        int count2 = RegionUtils.getRecordNum(csName, clName2);
-        Assert.assertEquals(count1, 0, "csName1 = " + csName + ",clName1 = " + clName1 + ",objectName = " + objectName);
-        Assert.assertEquals(count2, 1, "csName2 = " + csName + ",clName1 = " + clName2 + ",objectName = " + objectName);
+        int count1 = RegionUtils.getRecordNum( csName, clName1 );
+        int count2 = RegionUtils.getRecordNum( csName, clName2 );
+        Assert.assertEquals( count1, 0,
+                "csName1 = " + csName + ",clName1 = " + clName1
+                        + ",objectName = " + objectName );
+        Assert.assertEquals( count2, 1,
+                "csName2 = " + csName + ",clName1 = " + clName2
+                        + ",objectName = " + objectName );
 
         // get object for check
-        S3Object s3Object = s3Client.getObject(bucketName, objectName);
-        checkObjectMetaAndData(s3Object, updatePath);
+        S3Object s3Object = s3Client.getObject( bucketName, objectName );
+        checkObjectMetaAndData( s3Object, updatePath );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                RegionUtils.deleteRegion(regionName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                RegionUtils.deleteRegion( regionName );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
     }
 
-    private void checkObjectMetaAndData(S3Object object, String filePath) throws Exception {
+    private void checkObjectMetaAndData( S3Object object, String filePath )
+            throws Exception {
         ObjectMetadata metadata = object.getObjectMetadata();
-        Assert.assertEquals(metadata.getVersionId(), "null");
-        Assert.assertEquals(metadata.getETag(), TestTools.getMD5(filePath));
-        String downloadPath = TestTools.LocalFile.initDownloadPath(localPath, TestTools.getMethodName(),
-                Thread.currentThread().getId());
-        ObjectUtils.inputStream2File(object.getObjectContent(), downloadPath);
-        Assert.assertEquals(TestTools.getMD5(downloadPath), TestTools.getMD5(filePath), "filePath = " + filePath);
+        Assert.assertEquals( metadata.getVersionId(), "null" );
+        Assert.assertEquals( metadata.getETag(), TestTools.getMD5( filePath ) );
+        String downloadPath = TestTools.LocalFile
+                .initDownloadPath( localPath, TestTools.getMethodName(),
+                        Thread.currentThread().getId() );
+        ObjectUtils.inputStream2File( object.getObjectContent(), downloadPath );
+        Assert.assertEquals( TestTools.getMD5( downloadPath ),
+                TestTools.getMD5( filePath ), "filePath = " + filePath );
     }
 
-    private void checkGetRegionResult(GetRegionResult result, Region expRegion) {
+    private void checkGetRegionResult( GetRegionResult result,
+            Region expRegion ) {
         Region actRegion = result.getRegion();
-        Assert.assertEquals(actRegion.getDataCSShardingType(), expRegion.getDataCLShardingType());
-        Assert.assertEquals(actRegion.getDataCLShardingType(), expRegion.getDataCLShardingType());
+        Assert.assertEquals( actRegion.getDataCSShardingType(),
+                expRegion.getDataCLShardingType() );
+        Assert.assertEquals( actRegion.getDataCLShardingType(),
+                expRegion.getDataCLShardingType() );
     }
 }

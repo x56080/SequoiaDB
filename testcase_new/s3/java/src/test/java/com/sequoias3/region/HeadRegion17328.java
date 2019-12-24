@@ -15,63 +15,66 @@ import java.util.Date;
 
 /**
  * test content: Head查询区域信息 testlink-case: seqDB-17328
- * 
+ *
  * @author wangkexin
  * @Date 2019.01.25
  * @version 1.00
  */
 
 public class HeadRegion17328 extends S3TestBase {
-    private String regionName = "Beijing17328";
-    private String bucketName = "bucket17328";
     private static Sequoiadb sdb = null;
-    private AmazonS3 s3Client = null;
     String dataCSName = null;
     String metaCSName = null;
+    private String regionName = "Beijing17328";
+    private String bucketName = "bucket17328";
+    private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
 
     @BeforeClass
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        sdb = new Sequoiadb(S3TestBase.coordUrl, "", "");
+        sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" );
 
-        dataCSName = RegionUtils.getDataCSName(regionName.toLowerCase(), "year", new Date()) + "_1";
-        metaCSName =  RegionUtils.getMetaCSName(regionName.toLowerCase());
+        dataCSName = RegionUtils
+                .getDataCSName( regionName.toLowerCase(), "year", new Date() )
+                + "_1";
+        metaCSName = RegionUtils.getMetaCSName( regionName.toLowerCase() );
 
-        if (sdb.isCollectionSpaceExist(dataCSName)) {
-            sdb.dropCollectionSpace(dataCSName);
+        if ( sdb.isCollectionSpaceExist( dataCSName ) ) {
+            sdb.dropCollectionSpace( dataCSName );
         }
-        if (sdb.isCollectionSpaceExist(metaCSName)) {
-            sdb.dropCollectionSpace(metaCSName);
+        if ( sdb.isCollectionSpaceExist( metaCSName ) ) {
+            sdb.dropCollectionSpace( metaCSName );
         }
 
-        CommLib.clearBucket(s3Client, bucketName);
-        RegionUtils.clearRegion(regionName);
+        CommLib.clearBucket( s3Client, bucketName );
+        RegionUtils.clearRegion( regionName );
 
         // create region
         Region region = new Region();
-        region.withName(regionName);
-        RegionUtils.putRegion(region);
+        region.withName( regionName );
+        RegionUtils.putRegion( region );
 
-        s3Client.createBucket(new CreateBucketRequest(bucketName, regionName.toLowerCase()));
-        s3Client.putObject(bucketName, "key17328", "content17328");
+        s3Client.createBucket( new CreateBucketRequest( bucketName,
+                regionName.toLowerCase() ) );
+        s3Client.putObject( bucketName, "key17328", "content17328" );
     }
 
     @Test
     public void testCreateRegion() throws Exception {
-        Assert.assertTrue(RegionUtils.headRegion(regionName));
-        CommLib.clearBucket(s3Client, bucketName);
-        sdb.dropCollectionSpace(dataCSName);
-        sdb.dropCollectionSpace(metaCSName);
+        Assert.assertTrue( RegionUtils.headRegion( regionName ) );
+        CommLib.clearBucket( s3Client, bucketName );
+        sdb.dropCollectionSpace( dataCSName );
+        sdb.dropCollectionSpace( metaCSName );
 
-        RegionUtils.deleteRegion(regionName);
-        Assert.assertFalse(RegionUtils.headRegion(regionName));
+        RegionUtils.deleteRegion( regionName );
+        Assert.assertFalse( RegionUtils.headRegion( regionName ) );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
-        if (runSuccess) {
+        if ( runSuccess ) {
             sdb.close();
         }
     }

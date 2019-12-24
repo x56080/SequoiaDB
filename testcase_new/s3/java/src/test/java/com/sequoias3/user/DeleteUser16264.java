@@ -26,19 +26,19 @@ public class DeleteUser16264 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(name, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+            UserUtils.deleteUser( name, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            UserUtils.deleteUser(deleteUserName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+            UserUtils.deleteUser( deleteUserName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -46,26 +46,29 @@ public class DeleteUser16264 extends S3TestBase {
     @Test
     private void test() {
         // create user
-        JSONObject userJSON = UserUtils.createUser(name, UserCommDefind.normal, UserUtils.accessKeyId);
+        JSONObject userJSON = UserUtils.createUser( name, UserCommDefind.normal,
+                UserUtils.accessKeyId );
 
         // get the accessKeyID and secretAccessKey from userJSON
-        JSONObject json = userJSON.getJSONObject(UserCommDefind.accessKeys);
-        String accessKeyID = json.getString(UserCommDefind.accessKeyID);
+        JSONObject json = userJSON.getJSONObject( UserCommDefind.accessKeys );
+        String accessKeyID = json.getString( UserCommDefind.accessKeyID );
 
         // create user to be deleted
-        UserUtils.createUser(deleteUserName, UserCommDefind.normal, UserUtils.accessKeyId);
+        UserUtils.createUser( deleteUserName, UserCommDefind.normal,
+                UserUtils.accessKeyId );
 
         // delete user
         try {
-            UserUtils.deleteUser(deleteUserName, accessKeyID);
-            Assert.fail("exp fail but found success");
-        } catch (HttpClientErrorException e) {
+            UserUtils.deleteUser( deleteUserName, accessKeyID );
+            Assert.fail( "exp fail but found success" );
+        } catch ( HttpClientErrorException e ) {
             String errorMsg = e.getResponseBodyAsString();
-            org.json.JSONObject json1 = XML.toJSONObject(errorMsg);
-            if (!json1.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                    .contains("AccessDenied")) {
+            org.json.JSONObject json1 = XML.toJSONObject( errorMsg );
+            if ( !json1.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "AccessDenied" ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
         runSuccess = true;
@@ -73,9 +76,9 @@ public class DeleteUser16264 extends S3TestBase {
 
     @AfterClass
     private void tearDown() {
-        if (runSuccess) {
-            UserUtils.deleteUser(name, UserUtils.accessKeyId, true);
-            UserUtils.deleteUser(deleteUserName, UserUtils.accessKeyId, true);
+        if ( runSuccess ) {
+            UserUtils.deleteUser( name, UserUtils.accessKeyId, true );
+            UserUtils.deleteUser( deleteUserName, UserUtils.accessKeyId, true );
         }
     }
 }

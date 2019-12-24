@@ -12,7 +12,7 @@ import java.util.List;
 
 /**
  * test content: 获取空区域信息 testlink-case: seqDB-17321
- * 
+ *
  * @author wangkexin
  * @Date 2019.01.24
  * @version 1.00
@@ -24,27 +24,27 @@ public class GetRegionMessage17321 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        RegionUtils.clearRegion(regionName);
+        RegionUtils.clearRegion( regionName );
     }
 
     @Test
     public void testGetRegionMessage() throws Exception {
         // create region
         Region region = new Region();
-        region.withName(regionName);
-        RegionUtils.putRegion(region);
+        region.withName( regionName );
+        RegionUtils.putRegion( region );
 
-        GetRegionResult result = RegionUtils.getRegion(regionName);
+        GetRegionResult result = RegionUtils.getRegion( regionName );
         List<Bucket> bucketList = result.getBuckets();
-        Assert.assertEquals(bucketList.size(), 0);
+        Assert.assertEquals( bucketList.size(), 0 );
 
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
-        if (runSuccess) {
-            RegionUtils.deleteRegion(regionName);
+        if ( runSuccess ) {
+            RegionUtils.deleteRegion( regionName );
         }
     }
 }

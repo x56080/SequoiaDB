@@ -29,52 +29,53 @@ public class CreateBucket15904 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        CommLib.clearUser(userName);
-        String[] acessKeys = UserUtils.createUser(userName, roleName);
-        s3Client = CommLib.buildS3Client(acessKeys[0], acessKeys[1]);
-        CommLib.clearBucket(s3Client, bucketName);
+        CommLib.clearUser( userName );
+        String[] acessKeys = UserUtils.createUser( userName, roleName );
+        s3Client = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+        CommLib.clearBucket( s3Client, bucketName );
     }
 
     @Test
     public void testCreateBucket() throws Exception {
-        s3Client.createBucket(new CreateBucketRequest(bucketName));
+        s3Client.createBucket( new CreateBucketRequest( bucketName ) );
 
         // create buckets of the same name fail
         try {
-            s3Client.createBucket(new CreateBucketRequest(bucketName));
-            Assert.fail("create bucket with same name should fail!");
-        } catch (AmazonS3Exception e) {
-            Assert.assertEquals(e.getErrorCode(), "BucketAlreadyOwnedByYou");
+            s3Client.createBucket( new CreateBucketRequest( bucketName ) );
+            Assert.fail( "create bucket with same name should fail!" );
+        } catch ( AmazonS3Exception e ) {
+            Assert.assertEquals( e.getErrorCode(), "BucketAlreadyOwnedByYou" );
         }
 
         int bucketNum = 1;
-        checkCreateBucketResult(s3Client, bucketName, bucketNum);
+        checkCreateBucketResult( s3Client, bucketName, bucketNum );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                s3Client.deleteBucket(bucketName);
-                UserUtils.deleteUser(userName);
+            if ( runSuccess ) {
+                s3Client.deleteBucket( bucketName );
+                UserUtils.deleteUser( userName );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
     }
 
-    private void checkCreateBucketResult(AmazonS3 s3Client, String bucketName, int bucketNums) {
+    private void checkCreateBucketResult( AmazonS3 s3Client, String bucketName,
+            int bucketNums ) {
         // check bucket nums
         List<Bucket> buckets = s3Client.listBuckets();
-        Assert.assertEquals(buckets.size(), bucketNums);
-        Bucket bucket = buckets.get(0);
+        Assert.assertEquals( buckets.size(), bucketNums );
+        Bucket bucket = buckets.get( 0 );
         String actOwner = bucket.getOwner().getDisplayName();
         String actBucketName = bucket.getName();
-        Assert.assertEquals(actBucketName, bucketName);
-        Assert.assertEquals(actOwner, userName);
+        Assert.assertEquals( actBucketName, bucketName );
+        Assert.assertEquals( actOwner, userName );
     }
 
 }

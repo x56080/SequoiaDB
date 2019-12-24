@@ -1,7 +1,14 @@
 package com.sequoias3.object;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.BucketVersioningConfiguration;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.util.DateUtils;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
@@ -14,7 +21,10 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Random;
 
 /**
  * @author fanyu
@@ -35,82 +45,94 @@ public class GetObjectByRespParam16363 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
         String filePath = null;
-        for (int i = 0; i < fileNum; i++) {
-            filePath = localPath + File.separator + "localFile_" + (fileSize + i) + ".txt";
-            TestTools.LocalFile.createFile(filePath, fileSize + i);
-            filePathList.add(filePath);
+        for ( int i = 0; i < fileNum; i++ ) {
+            filePath =
+                    localPath + File.separator + "localFile_" + ( fileSize + i )
+                            + ".txt";
+            TestTools.LocalFile.createFile( filePath, fileSize + i );
+            filePathList.add( filePath );
         }
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
     }
 
     @Test
     private void test() throws Exception {
-        for (int i = 0; i < fileNum; i++) {
-            objectVSList.add(
-                    s3Client.putObject(new PutObjectRequest(bucketName, objectName, new File(filePathList.get(i)))));
+        for ( int i = 0; i < fileNum; i++ ) {
+            objectVSList.add( s3Client.putObject(
+                    new PutObjectRequest( bucketName, objectName,
+                            new File( filePathList.get( i ) ) ) ) );
         }
 
         // random version
         Random random = new Random();
-        int randomIndex = random.nextInt(fileNum);
-        String randomVersionId = objectVSList.get(randomIndex).getMetadata().getVersionId();
+        int randomIndex = random.nextInt( fileNum );
+        String randomVersionId = objectVSList.get( randomIndex ).getMetadata()
+                .getVersionId();
 
         Date date = new Date();
-        String dateStr = DateUtils.formatRFC822Date(date);
-        S3Object object = getObjectByVersion(bucketName, objectName, randomVersionId, dateStr);
+        String dateStr = DateUtils.formatRFC822Date( date );
+        S3Object object = getObjectByVersion( bucketName, objectName,
+                randomVersionId, dateStr );
 
         // check
         ObjectMetadata objectMetadata = object.getObjectMetadata();
-        Assert.assertEquals(objectMetadata.getCacheControl(), "CacheControl");
-        Assert.assertEquals(objectMetadata.getContentEncoding(), "UTF-8");
-        Assert.assertEquals(objectMetadata.getContentLanguage(), "English");
-        Assert.assertEquals(objectMetadata.getContentDisposition(), "Disposition");
-        Assert.assertEquals(objectMetadata.getContentType(), "text/plain");
-        Assert.assertEquals(DateUtils.formatRFC822Date(object.getObjectMetadata().getHttpExpiresDate()), dateStr);
-        String tmpPath = TestTools.LocalFile.initDownloadPath(localPath, TestTools.getMethodName(),
-                Thread.currentThread().getId());
+        Assert.assertEquals( objectMetadata.getCacheControl(), "CacheControl" );
+        Assert.assertEquals( objectMetadata.getContentEncoding(), "UTF-8" );
+        Assert.assertEquals( objectMetadata.getContentLanguage(), "English" );
+        Assert.assertEquals( objectMetadata.getContentDisposition(),
+                "Disposition" );
+        Assert.assertEquals( objectMetadata.getContentType(), "text/plain" );
+        Assert.assertEquals( DateUtils.formatRFC822Date(
+                object.getObjectMetadata().getHttpExpiresDate() ), dateStr );
+        String tmpPath = TestTools.LocalFile
+                .initDownloadPath( localPath, TestTools.getMethodName(),
+                        Thread.currentThread().getId() );
         S3ObjectInputStream s3ObjectInputStream = null;
         try {
             s3ObjectInputStream = object.getObjectContent();
-            ObjectUtils.inputStream2File(object.getObjectContent(), tmpPath);
+            ObjectUtils.inputStream2File( object.getObjectContent(), tmpPath );
         } finally {
-            if (s3ObjectInputStream != null) {
+            if ( s3ObjectInputStream != null ) {
                 s3ObjectInputStream.close();
             }
         }
-        Assert.assertEquals(TestTools.getMD5(tmpPath), TestTools.getMD5(filePathList.get(randomIndex)));
+        Assert.assertEquals( TestTools.getMD5( tmpPath ),
+                TestTools.getMD5( filePathList.get( randomIndex ) ) );
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            CommLib.clearBucket(s3Client, bucketName);
-            TestTools.LocalFile.removeFile(localPath);
+            CommLib.clearBucket( s3Client, bucketName );
+            TestTools.LocalFile.removeFile( localPath );
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
     }
 
-    private S3Object getObjectByVersion(String bucketName, String key, String versionId, String date) {
-        GetObjectRequest request = new GetObjectRequest(bucketName, key);
+    private S3Object getObjectByVersion( String bucketName, String key,
+            String versionId, String date ) {
+        GetObjectRequest request = new GetObjectRequest( bucketName, key );
         ResponseHeaderOverrides overrideHeaders = new ResponseHeaderOverrides();
-        overrideHeaders.setCacheControl("CacheControl");
-        overrideHeaders.setContentDisposition("Disposition");
-        overrideHeaders.setContentEncoding("UTF-8");
-        overrideHeaders.setContentLanguage("English");
-        overrideHeaders.setContentType("text/plain");
-        overrideHeaders.setExpires(date);
-        request.withResponseHeaders(overrideHeaders);
-        request.withVersionId(versionId);
-        return s3Client.getObject(request);
+        overrideHeaders.setCacheControl( "CacheControl" );
+        overrideHeaders.setContentDisposition( "Disposition" );
+        overrideHeaders.setContentEncoding( "UTF-8" );
+        overrideHeaders.setContentLanguage( "English" );
+        overrideHeaders.setContentType( "text/plain" );
+        overrideHeaders.setExpires( date );
+        request.withResponseHeaders( overrideHeaders );
+        request.withVersionId( versionId );
+        return s3Client.getObject( request );
     }
 }

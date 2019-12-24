@@ -1,17 +1,16 @@
 package com.sequoias3.privilege;
 
-import java.io.IOException;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
 
 /**
  * @Description seqDB-19449:桶不存在，配置和获取桶acl
@@ -32,20 +31,20 @@ public class SetBucketAcl19449 extends S3TestBase {
     @Test
     private void test_setBucketAcl() throws Exception {
         try {
-            adminS3.setBucketAcl(bucketName, CannedAccessControlList.Private);
-            Assert.fail("expect fail, but actual success.");
-        } catch (AmazonS3Exception e) {
-            Assert.assertEquals(e.getErrorCode(), "NoSuchBucket");
+            adminS3.setBucketAcl( bucketName, CannedAccessControlList.Private );
+            Assert.fail( "expect fail, but actual success." );
+        } catch ( AmazonS3Exception e ) {
+            Assert.assertEquals( e.getErrorCode(), "NoSuchBucket" );
         }
     }
 
     @Test
     private void test_getBucketAcl() throws Exception {
         try {
-            adminS3.getBucketAcl(bucketName);
-            Assert.fail("expect fail, but actual success.");
-        } catch (AmazonS3Exception e) {
-            Assert.assertEquals(e.getErrorCode(), "NoSuchBucket");
+            adminS3.getBucketAcl( bucketName );
+            Assert.fail( "expect fail, but actual success." );
+        } catch ( AmazonS3Exception e ) {
+            Assert.assertEquals( e.getErrorCode(), "NoSuchBucket" );
         }
     }
 

@@ -1,14 +1,5 @@
 package com.sequoias3.delimiter.concurrent;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -17,6 +8,14 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.DelimiterUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @Description seqDB-18194: concurrent update delimiter and delete objects,the
@@ -37,13 +36,13 @@ public class UpdateDelimiterAndDeleteOjbects18194 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
 
-        for (int i = 0; i < objectNums; i++) {
+        for ( int i = 0; i < objectNums; i++ ) {
             String subKeyName = keyName + "_" + i + delimiter + "test.png";
-            s3Client.putObject(bucketName, subKeyName, keyName + "_" + i);
-            keyList.add(subKeyName);
+            s3Client.putObject( bucketName, subKeyName, keyName + "_" + i );
+            keyList.add( subKeyName );
         }
     }
 
@@ -52,11 +51,11 @@ public class UpdateDelimiterAndDeleteOjbects18194 extends S3TestBase {
         ThreadExecutor threadExec = new ThreadExecutor();
         UpdateDelimiter updateDelimiter = new UpdateDelimiter();
 
-        for (String subKeyName : keyList) {
-            threadExec.addWorker(new DeleteObject(subKeyName));
+        for ( String subKeyName : keyList ) {
+            threadExec.addWorker( new DeleteObject( subKeyName ) );
         }
 
-        threadExec.addWorker(updateDelimiter);
+        threadExec.addWorker( updateDelimiter );
         threadExec.run();
 
         // check delete object result
@@ -67,52 +66,54 @@ public class UpdateDelimiterAndDeleteOjbects18194 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
             }
         } finally {
             s3Client.shutdown();
         }
     }
 
+    private void checkDeleteObjectResult() {
+        ListObjectsV2Result result = s3Client.listObjectsV2( bucketName );
+        List<S3ObjectSummary> objects = result.getObjectSummaries();
+
+        int expObjectNum = 0;
+        Assert.assertEquals( objects.size(), expObjectNum );
+    }
+
     private class UpdateDelimiter {
         @ExecuteOrder(step = 1)
         private void updateDelimiter() {
-            DelimiterUtils.putBucketDelimiter(bucketName, delimiter);
+            DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
 
         }
 
         @ExecuteOrder(step = 2)
         private void checkResult() throws Exception {
-            DelimiterUtils.checkCurrentDelimiteInfo(bucketName, delimiter);
+            DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
         }
     }
 
     private class DeleteObject {
         private String keyName;
 
-        private DeleteObject(String keyName) {
+        private DeleteObject( String keyName ) {
             this.keyName = keyName;
         }
 
         @ExecuteOrder(step = 1)
         private void deleteObject() {
-            s3Client.deleteObject(bucketName, keyName);
+            s3Client.deleteObject( bucketName, keyName );
         }
 
         @ExecuteOrder(step = 2)
         private void checkResult() {
             // check the currentVersion object is not exist.
-            boolean isExistObject = s3Client.doesObjectExist(bucketName, keyName);
-            Assert.assertFalse(isExistObject, "the object should not exist! key=" + keyName);
+            boolean isExistObject = s3Client
+                    .doesObjectExist( bucketName, keyName );
+            Assert.assertFalse( isExistObject,
+                    "the object should not exist! key=" + keyName );
         }
-    }
-
-    private void checkDeleteObjectResult() {
-        ListObjectsV2Result result = s3Client.listObjectsV2(bucketName);
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
-
-        int expObjectNum = 0;
-        Assert.assertEquals(objects.size(), expObjectNum);
     }
 }

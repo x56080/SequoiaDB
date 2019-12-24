@@ -1,13 +1,5 @@
 package com.sequoias3.object.concurrent;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
@@ -18,6 +10,13 @@ import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * @Description seqDB-19354:并发复制对象和删除目标桶
@@ -39,18 +38,20 @@ public class CopyObject19354 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, srcBucketName);
-        CommLib.clearBucket(s3Client, destBucketName);
-        s3Client.createBucket(srcBucketName);
-        s3Client.createBucket(destBucketName);
-        s3Client.putObject(srcBucketName, srcKeyName, new File(filePath));
+        CommLib.clearBucket( s3Client, srcBucketName );
+        CommLib.clearBucket( s3Client, destBucketName );
+        s3Client.createBucket( srcBucketName );
+        s3Client.createBucket( destBucketName );
+        s3Client.putObject( srcBucketName, srcKeyName, new File( filePath ) );
     }
 
     @SuppressWarnings("deprecation")
@@ -58,21 +59,21 @@ public class CopyObject19354 extends S3TestBase {
     public void testCopyObject() throws Exception {
 
         ThreadExecutor threadExec = new ThreadExecutor();
-        CopyObject copyObject = new CopyObject(destKeyName);
-        DeleteBucket deleteBucket = new DeleteBucket(destBucketName);
-        threadExec.addWorker(copyObject);
-        threadExec.addWorker(deleteBucket);
+        CopyObject copyObject = new CopyObject( destKeyName );
+        DeleteBucket deleteBucket = new DeleteBucket( destBucketName );
+        threadExec.addWorker( copyObject );
+        threadExec.addWorker( deleteBucket );
         threadExec.run();
         int deleteBucketErrCode = deleteBucket.getRetCode();
         int copyObjectErrCode = copyObject.getRetCode();
-        if (copyObjectErrCode == 0) {
+        if ( copyObjectErrCode == 0 ) {
             // copy object success.delete bucket fail,the errorcode 409(BucketNotEmpty)
-            Assert.assertEquals(deleteBucketErrCode, 409);
-            checkObjectContent(destBucketName, destKeyName);
+            Assert.assertEquals( deleteBucketErrCode, 409 );
+            checkObjectContent( destBucketName, destKeyName );
         } else {
             // delete bucket success,copy object fail,the errorCode:404(NoSuchBucket)
-            Assert.assertEquals(copyObjectErrCode, 404);
-            Assert.assertFalse(s3Client.doesBucketExist(destBucketName));
+            Assert.assertEquals( copyObjectErrCode, 404 );
+            Assert.assertFalse( s3Client.doesBucketExist( destBucketName ) );
         }
 
         runSuccess = true;
@@ -81,21 +82,28 @@ public class CopyObject19354 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, srcBucketName);
-                CommLib.clearBucket(s3Client, destBucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, srcBucketName );
+                CommLib.clearBucket( s3Client, destBucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
         }
     }
 
+    private void checkObjectContent( String bucketName, String keyName )
+            throws Exception {
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
+    }
+
     private class CopyObject extends ResultStore {
         private AmazonS3 s3Client1 = CommLib.buildS3Client();
         private String destKeyName;
 
-        private CopyObject(String destKeyName) {
+        private CopyObject( String destKeyName ) {
             this.destKeyName = destKeyName;
 
         }
@@ -103,19 +111,20 @@ public class CopyObject19354 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void copyObject() throws Exception {
             try {
-                CopyObjectRequest request = new CopyObjectRequest(srcBucketName, srcKeyName, destBucketName,
-                        destKeyName);
-                s3Client1.copyObject(request);
-            } catch (AmazonS3Exception e) {
+                CopyObjectRequest request = new CopyObjectRequest(
+                        srcBucketName, srcKeyName, destBucketName,
+                        destKeyName );
+                s3Client1.copyObject( request );
+            } catch ( AmazonS3Exception e ) {
                 int statusCode = e.getStatusCode();
-                saveResult(statusCode, e);
+                saveResult( statusCode, e );
                 // 404:NoSuchBucket
                 String errCode = e.getErrorCode();
-                if (!errCode.equals("NoSuchBucket")) {
+                if ( !errCode.equals( "NoSuchBucket" ) ) {
                     throw e;
                 }
             } finally {
-                if (s3Client1 != null) {
+                if ( s3Client1 != null ) {
                     s3Client1.shutdown();
                 }
             }
@@ -126,7 +135,7 @@ public class CopyObject19354 extends S3TestBase {
         private AmazonS3 s3Client2 = CommLib.buildS3Client();
         private String bucketName;
 
-        private DeleteBucket(String bucketName) {
+        private DeleteBucket( String bucketName ) {
             this.bucketName = bucketName;
 
         }
@@ -134,24 +143,19 @@ public class CopyObject19354 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void deleteBucket() throws Exception {
             // random waiting time is less than 100ms.run randomly to different concurrency results.
-            int random = (int) (Math.random() * 100);
-            Thread.sleep(random);
+            int random = ( int ) ( Math.random() * 100 );
+            Thread.sleep( random );
             try {
-                s3Client2.deleteBucket(bucketName);
-            } catch (AmazonS3Exception e) {
+                s3Client2.deleteBucket( bucketName );
+            } catch ( AmazonS3Exception e ) {
                 int statusCode = e.getStatusCode();
-                saveResult(statusCode, e);
+                saveResult( statusCode, e );
             } finally {
-                if (s3Client2 != null) {
+                if ( s3Client2 != null ) {
                     s3Client2.shutdown();
                 }
             }
         }
-    }
-
-    private void checkObjectContent(String bucketName, String keyName) throws Exception {
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, keyName);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
     }
 
 }

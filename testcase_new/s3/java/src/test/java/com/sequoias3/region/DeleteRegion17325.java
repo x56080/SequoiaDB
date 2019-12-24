@@ -31,54 +31,63 @@ public class DeleteRegion17325 extends S3TestBase {
     @BeforeClass
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        RegionUtils.clearRegion(regionName);
+        CommLib.clearBucket( s3Client, bucketName );
+        RegionUtils.clearRegion( regionName );
     }
 
     @Test
     private void test() throws Exception {
         // create region
         Region region = new Region();
-        region.withDataCSShardingType("month").withDataCLShardingType("month").withName(regionName);
-        RegionUtils.putRegion(region);
+        region.withDataCSShardingType( "month" )
+                .withDataCLShardingType( "month" ).withName( regionName );
+        RegionUtils.putRegion( region );
 
         // create bucket and object
-        s3Client.createBucket(new CreateBucketRequest(bucketName, regionName));
-        s3Client.putObject(bucketName, objectName, String.valueOf(UUID.randomUUID()));
+        s3Client.createBucket(
+                new CreateBucketRequest( bucketName, regionName ) );
+        s3Client.putObject( bucketName, objectName,
+                String.valueOf( UUID.randomUUID() ) );
 
         // delete region
         try {
-            RegionUtils.deleteRegion(regionName);
-            Assert.fail("exp delete region failed,regionName = " + regionName);
-        } catch (AmazonS3Exception e) {
-            if (e.getStatusCode() != 409 && !e.getErrorCode().contains("RegionNotEmpty")) {
+            RegionUtils.deleteRegion( regionName );
+            Assert.fail(
+                    "exp delete region failed,regionName = " + regionName );
+        } catch ( AmazonS3Exception e ) {
+            if ( e.getStatusCode() != 409 && !e.getErrorCode()
+                    .contains( "RegionNotEmpty" ) ) {
                 throw e;
             }
         }
 
         // head region to make sure the region:regionName has not been deleted
-        Assert.assertTrue(RegionUtils.headRegion(regionName), region.toString());
+        Assert.assertTrue( RegionUtils.headRegion( regionName ),
+                region.toString() );
 
         // check cs.cl has not been deleted
         Date date = Calendar.getInstance().getTime();
-        String csName =  RegionUtils.getDataCSName(regionName, "month", date) + "_1";
-        String clName = RegionUtils.getDataCLName("month", date);
-        Assert.assertTrue(RegionUtils.clInCS(csName, clName), "csName = " + csName + ",clName = " + clName);
+        String csName =
+                RegionUtils.getDataCSName( regionName, "month", date ) + "_1";
+        String clName = RegionUtils.getDataCLName( "month", date );
+        Assert.assertTrue( RegionUtils.clInCS( csName, clName ),
+                "csName = " + csName + ",clName = " + clName );
         // DataCL must have a lob
-        Assert.assertEquals(RegionUtils.getRecordNum(csName, clName), 1,
-                "csNmae = " + csName + "clName = " + clName + ",objectName = " + objectName);
+        Assert.assertEquals( RegionUtils.getRecordNum( csName, clName ), 1,
+                "csNmae = " + csName + "clName = " + clName + ",objectName = "
+                        + objectName );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                RegionUtils.deleteRegion(regionName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                RegionUtils.deleteRegion( regionName );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }

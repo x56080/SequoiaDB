@@ -31,7 +31,8 @@ public class ListVersionsByPrefixDelimiterIDKey16405 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket16405";
     // please sort in an ascending order by objectName
-    private String[] objectNames = { "air116405", "b16405/A.png", "test16405.doc" };
+    private String[] objectNames = { "air116405", "b16405/A.png",
+            "test16405.doc" };
     private AmazonS3 s3Client = null;
     private int fileSize = 3;
     private int versionNum = 3;
@@ -40,21 +41,27 @@ public class ListVersionsByPrefixDelimiterIDKey16405 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        for (int i = 0; i < versionNum; i++) {
-            String filePath = localPath + File.separator + "localFile_" + (fileSize + i) + ".txt";
-            TestTools.LocalFile.createFile(filePath, fileSize + i);
-            filePathList.add(filePath);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        for ( int i = 0; i < versionNum; i++ ) {
+            String filePath =
+                    localPath + File.separator + "localFile_" + ( fileSize + i )
+                            + ".txt";
+            TestTools.LocalFile.createFile( filePath, fileSize + i );
+            filePathList.add( filePath );
         }
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
-        for (String objectName : objectNames) {
-            for (int i = 0; i < versionNum; i++) {
-                s3Client.putObject(new PutObjectRequest(bucketName, objectName, new File(filePathList.get(i))));
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
+        for ( String objectName : objectNames ) {
+            for ( int i = 0; i < versionNum; i++ ) {
+                s3Client.putObject(
+                        new PutObjectRequest( bucketName, objectName,
+                                new File( filePathList.get( i ) ) ) );
             }
         }
     }
@@ -63,27 +70,30 @@ public class ListVersionsByPrefixDelimiterIDKey16405 extends S3TestBase {
     private void test() throws Exception {
         String prefix = "dir";
         String delimiter = "/";
-        String keyMarker = objectNames[0];
+        String keyMarker = objectNames[ 0 ];
         String versionIdMarker = "3";
 
         // list versions by prefix/delimiter/currentversionId/key
-        VersionListing vsList = s3Client
-                .listVersions(new ListVersionsRequest().withBucketName(bucketName).withDelimiter(delimiter)
-                        .withPrefix(prefix).withKeyMarker(keyMarker).withVersionIdMarker(versionIdMarker));
+        VersionListing vsList = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName )
+                        .withDelimiter( delimiter ).withPrefix( prefix )
+                        .withKeyMarker( keyMarker )
+                        .withVersionIdMarker( versionIdMarker ) );
         // check results
-        ObjectUtils.checkListVSResults(vsList, new ArrayList<String>(), new LinkedMultiValueMap<String, String>());
+        ObjectUtils.checkListVSResults( vsList, new ArrayList<String>(),
+                new LinkedMultiValueMap<String, String>() );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }

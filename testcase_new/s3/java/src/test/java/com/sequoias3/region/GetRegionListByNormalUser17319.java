@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * test content: 非管理员用户获取区域列表信息 testlink-case: seqDB-17319
- * 
+ *
  * @author wangkexin
  * @Date 2019.01.24
  * @version 1.00
@@ -28,28 +28,28 @@ public class GetRegionListByNormalUser17319 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        CommLib.clearUser(userName);
-        accessKeys = UserUtils.createUser(userName, roleName);
-        CommLib.buildS3Client(accessKeys[0], accessKeys[1]);
-        RegionUtils.clearRegion(regionName);
+        CommLib.clearUser( userName );
+        accessKeys = UserUtils.createUser( userName, roleName );
+        CommLib.buildS3Client( accessKeys[ 0 ], accessKeys[ 1 ] );
+        RegionUtils.clearRegion( regionName );
     }
 
     @Test
     public void testCreateRegion() throws Exception {
         Region region = new Region();
-        region.withName(regionName);
-        RegionUtils.putRegion(region);
+        region.withName( regionName );
+        RegionUtils.putRegion( region );
 
-        List<String> regions = RegionUtils.listRegions(accessKeys[0]);
-        Assert.assertTrue(regions.contains(regionName.toLowerCase()));
+        List<String> regions = RegionUtils.listRegions( accessKeys[ 0 ] );
+        Assert.assertTrue( regions.contains( regionName.toLowerCase() ) );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
-        if (runSuccess) {
-            RegionUtils.deleteRegion(regionName);
-            UserUtils.deleteUser(userName);
+        if ( runSuccess ) {
+            RegionUtils.deleteRegion( regionName );
+            UserUtils.deleteUser( userName );
         }
     }
 }

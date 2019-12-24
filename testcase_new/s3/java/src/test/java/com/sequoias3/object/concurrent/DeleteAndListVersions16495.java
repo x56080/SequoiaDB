@@ -35,35 +35,40 @@ public class DeleteAndListVersions16495 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
     }
 
     @Test
     public void testCreateBucket() throws Exception {
-        List<DeleteObjectThread> deleteObjectThreads = new ArrayList<>(objectNums);
+        List<DeleteObjectThread> deleteObjectThreads = new ArrayList<>(
+                objectNums );
         ListObjectThread listObjectThread = new ListObjectThread();
-        for (int i = 0; i < objectNums; i++) {
+        for ( int i = 0; i < objectNums; i++ ) {
             String key = keyName + "_" + i;
-            s3Client.putObject(bucketName, key, new File(filePath));
-            deleteObjectThreads.add(new DeleteObjectThread(key));
+            s3Client.putObject( bucketName, key, new File( filePath ) );
+            deleteObjectThreads.add( new DeleteObjectThread( key ) );
         }
-        for (DeleteObjectThread deleteObjectThread : deleteObjectThreads) {
+        for ( DeleteObjectThread deleteObjectThread : deleteObjectThreads ) {
             deleteObjectThread.start();
         }
         listObjectThread.start();
 
-        for (DeleteObjectThread deleteObjectThread : deleteObjectThreads) {
-            Assert.assertTrue(deleteObjectThread.isSuccess(), deleteObjectThread.getErrorMsg());
+        for ( DeleteObjectThread deleteObjectThread : deleteObjectThreads ) {
+            Assert.assertTrue( deleteObjectThread.isSuccess(),
+                    deleteObjectThread.getErrorMsg() );
         }
-        Assert.assertTrue(listObjectThread.isSuccess(), listObjectThread.getErrorMsg());
+        Assert.assertTrue( listObjectThread.isSuccess(),
+                listObjectThread.getErrorMsg() );
 
         listObjectsAndCheckResult();
         runSuccess = true;
@@ -72,21 +77,30 @@ public class DeleteAndListVersions16495 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
     }
 
+    private void listObjectsAndCheckResult() throws IOException {
+        VersionListing versionList = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName ) );
+        // object has been deleted.the nums is 0
+        Assert.assertEquals( versionList.getVersionSummaries().size(), 0 );
+        Assert.assertFalse( versionList.isTruncated(),
+                "list is empty and has no objects!" );
+    }
+
     private class DeleteObjectThread extends S3ThreadBase {
         private String keyName;
 
-        public DeleteObjectThread(String keyName) {
+        public DeleteObjectThread( String keyName ) {
             this.keyName = keyName;
         }
 
@@ -94,9 +108,9 @@ public class DeleteAndListVersions16495 extends S3TestBase {
         public void exec() throws Exception {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
-                s3Client.deleteObject(bucketName, keyName);
+                s3Client.deleteObject( bucketName, keyName );
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }
@@ -108,19 +122,13 @@ public class DeleteAndListVersions16495 extends S3TestBase {
         public void exec() throws Exception {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
-                s3Client.listVersions(new ListVersionsRequest().withBucketName(bucketName));
+                s3Client.listVersions( new ListVersionsRequest()
+                        .withBucketName( bucketName ) );
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }
         }
-    }
-
-    private void listObjectsAndCheckResult() throws IOException {
-        VersionListing versionList = s3Client.listVersions(new ListVersionsRequest().withBucketName(bucketName));
-        // object has been deleted.the nums is 0
-        Assert.assertEquals(versionList.getVersionSummaries().size(), 0);
-        Assert.assertFalse(versionList.isTruncated(), "list is empty and has no objects!");
     }
 }

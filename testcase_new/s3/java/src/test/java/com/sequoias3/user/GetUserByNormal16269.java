@@ -25,9 +25,9 @@ public class GetUserByNormal16269 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != (HttpStatus.NOT_FOUND)) {
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != ( HttpStatus.NOT_FOUND ) ) {
                 throw e;
             }
         }
@@ -36,18 +36,22 @@ public class GetUserByNormal16269 extends S3TestBase {
     @Test
     private void test() {
         // create user
-        JSONObject userJSON = UserUtils.createUser(userName, UserCommDefind.normal, UserUtils.accessKeyId);
-        String accessKeyId = userJSON.getJSONObject(UserCommDefind.accessKeys).getString(UserCommDefind.accessKeyID);
+        JSONObject userJSON = UserUtils
+                .createUser( userName, UserCommDefind.normal,
+                        UserUtils.accessKeyId );
+        String accessKeyId = userJSON.getJSONObject( UserCommDefind.accessKeys )
+                .getString( UserCommDefind.accessKeyID );
 
         try {
             // get user
-            UserUtils.getUser(userName, accessKeyId);
-            Assert.fail("exp success but act success");
-        } catch (HttpClientErrorException e) {
+            UserUtils.getUser( userName, accessKeyId );
+            Assert.fail( "exp success but act success" );
+        } catch ( HttpClientErrorException e ) {
             String errorMsg = e.getResponseBodyAsString();
-            JSONObject json1 = XML.toJSONObject(errorMsg);
-            if (!json1.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                    .contains("AccessDenied")) {
+            JSONObject json1 = XML.toJSONObject( errorMsg );
+            if ( !json1.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "AccessDenied" ) ) {
                 throw e;
             }
         }
@@ -56,8 +60,8 @@ public class GetUserByNormal16269 extends S3TestBase {
 
     @AfterClass
     private void tearDown() {
-        if (runSuccess) {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
+        if ( runSuccess ) {
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
         }
     }
 }

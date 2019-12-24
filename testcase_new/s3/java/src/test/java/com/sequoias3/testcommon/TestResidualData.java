@@ -30,12 +30,14 @@ public class TestResidualData extends S3TestBase {
     @BeforeClass
     private void setUp() throws InterruptedException, IOException {
         // 打印残留信息前等待一分钟（s3后台清理频率为1次/分钟）
-        Thread.sleep(60 * 1024);
-        db = new Sequoiadb(S3TestBase.coordUrl, "", "");
-        residualdataFilePath = S3TestBase.workDir + File.separator + "residualdata.log";
-        residualDirDataFilePath = S3TestBase.workDir + File.separator + "residualDirData.log";
-        TestTools.LocalFile.createFile(residualdataFilePath);
-        TestTools.LocalFile.createFile(residualDirDataFilePath);
+        Thread.sleep( 60 * 1024 );
+        db = new Sequoiadb( S3TestBase.coordUrl, "", "" );
+        residualdataFilePath =
+                S3TestBase.workDir + File.separator + "residualdata.log";
+        residualDirDataFilePath =
+                S3TestBase.workDir + File.separator + "residualDirData.log";
+        TestTools.LocalFile.createFile( residualdataFilePath );
+        TestTools.LocalFile.createFile( residualDirDataFilePath );
     }
 
     @Test
@@ -46,173 +48,208 @@ public class TestResidualData extends S3TestBase {
 
         csNames = db.getCollectionSpaceNames();
         //get s3 tables
-        for (String csName : csNames) {
-            if (csName.startsWith("S3_")) {
-                if (csName.contains("Meta")) {
-                    s3CSNames.add(csName);
+        for ( String csName : csNames ) {
+            if ( csName.startsWith( "S3_" ) ) {
+                if ( csName.contains( "Meta" ) ) {
+                    s3CSNames.add( csName );
                 } else {
-                    s3DataCSNames.add(csName);
+                    s3DataCSNames.add( csName );
                 }
             }
         }
 
         // residual meta data and lod  write to local file
-        for (String csName : s3CSNames) {
-            CollectionSpace cs = db.getCollectionSpace(csName);
+        for ( String csName : s3CSNames ) {
+            CollectionSpace cs = db.getCollectionSpace( csName );
             List<DBCollection> clList = new ArrayList<DBCollection>();
             List<String> clNameList = cs.getCollectionNames();
-            for (String csclName : clNameList) {
-                String clname = csclName.substring(cs.getName().length() + 1);
+            for ( String csclName : clNameList ) {
+                String clname = csclName.substring( cs.getName().length() + 1 );
                 // S3_SYS_Meta.S3_IDGenerator为ID生成表，属于s3内部表，不需要打印和校验，S3_SYS_Meta.S3_ObjectDir目录表单独校验打印
-                if (!clname.equals("S3_IDGenerator") && !clname.equals("S3_ObjectDir")) {
-                    clList.add(cs.getCollection(clname));
+                if ( !clname.equals( "S3_IDGenerator" ) && !clname
+                        .equals( "S3_ObjectDir" ) ) {
+                    clList.add( cs.getCollection( clname ) );
                 }
             }
-            residualMetaDataWriteToLocalFile(cs, clList);
-            residualObjectDirDataWriteToLocalFile(cs);
+            residualMetaDataWriteToLocalFile( cs, clList );
+            residualObjectDirDataWriteToLocalFile( cs );
         }
 
         // residual meta dir  write to local file
-        for (String csName : s3DataCSNames) {
-            CollectionSpace cs = db.getCollectionSpace(csName);
+        for ( String csName : s3DataCSNames ) {
+            CollectionSpace cs = db.getCollectionSpace( csName );
             List<DBCollection> clList = new ArrayList<DBCollection>();
             List<String> clNameList = cs.getCollectionNames();
-            for (String csclName : clNameList) {
-                String clname = csclName.substring(cs.getName().length() + 1);
-                clList.add(cs.getCollection(clname));
+            for ( String csclName : clNameList ) {
+                String clname = csclName.substring( cs.getName().length() + 1 );
+                clList.add( cs.getCollection( clname ) );
             }
-            residualDataWriteToLocalFile(cs, clList);
+            residualDataWriteToLocalFile( cs, clList );
         }
         //scp to s3 host
         residualFileScpToS3Host();
     }
 
-    private void residualMetaDataWriteToLocalFile(CollectionSpace cs, List<DBCollection> clList) throws IOException {
+    private void residualMetaDataWriteToLocalFile( CollectionSpace cs,
+            List<DBCollection> clList ) throws IOException {
         DBCursor cursor = null;
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy");
+        SimpleDateFormat sdf = new SimpleDateFormat( "yyyy" );
         Date date = new Date();
-        String s3SysDataRegionSpaceName = "S3_SYS_Data_" + sdf.format(date) + "_1";
-        FileOutputStream fileOutputStream = new FileOutputStream(new File(residualdataFilePath), true);
+        String s3SysDataRegionSpaceName =
+                "S3_SYS_Data_" + sdf.format( date ) + "_1";
+        FileOutputStream fileOutputStream = new FileOutputStream(
+                new File( residualdataFilePath ), true );
         try {
-            for (DBCollection cl : clList) {
+            for ( DBCollection cl : clList ) {
                 cursor = cl.query();
-                String head = "===============begin print " + cs.getName() + "." + cl.getName() +
-                        " data============\n";
-                fileOutputStream.write(head.getBytes());
-                while (cursor.hasNext()) {
-                    if (cursor.getNext().containsField("Name")) {
-                        if (!cursor.getCurrent().get("Name").equals(S3TestBase.s3UserName)
-                                && !cursor.getCurrent().get("Name").equals(S3TestBase.bucketName)
-                                && !cursor.getCurrent().get("Name").equals(S3TestBase.enableVerBucketName)
-                                && !cursor.getCurrent().get("Name").equals(s3SysDataRegionSpaceName)) {
-                            fileOutputStream.write((cursor.getCurrent().toString() + "\n").getBytes());
+                String head =
+                        "===============begin print " + cs.getName() + "." + cl
+                                .getName() + " data============\n";
+                fileOutputStream.write( head.getBytes() );
+                while ( cursor.hasNext() ) {
+                    if ( cursor.getNext().containsField( "Name" ) ) {
+                        if ( !cursor.getCurrent().get( "Name" )
+                                .equals( S3TestBase.s3UserName ) && !cursor
+                                .getCurrent().get( "Name" )
+                                .equals( S3TestBase.bucketName ) && !cursor
+                                .getCurrent().get( "Name" )
+                                .equals( S3TestBase.enableVerBucketName )
+                                && !cursor.getCurrent().get( "Name" )
+                                .equals( s3SysDataRegionSpaceName ) ) {
+                            fileOutputStream
+                                    .write( ( cursor.getCurrent().toString()
+                                            + "\n" ).getBytes() );
                             errorCount++;
-                        } else if (cursor.getCurrent().get("Name").equals(S3TestBase.bucketName)) {
-                            bucketId = cursor.getCurrent().get("ID").toString();
-                        } else if (cursor.getCurrent().get("Name").equals(S3TestBase.enableVerBucketName)) {
-                            enabledBucketId = cursor.getCurrent().get("ID").toString();
+                        } else if ( cursor.getCurrent().get( "Name" )
+                                .equals( S3TestBase.bucketName ) ) {
+                            bucketId = cursor.getCurrent().get( "ID" )
+                                    .toString();
+                        } else if ( cursor.getCurrent().get( "Name" )
+                                .equals( S3TestBase.enableVerBucketName ) ) {
+                            enabledBucketId = cursor.getCurrent().get( "ID" )
+                                    .toString();
                         }
                     } else {
-                        fileOutputStream.write((cursor.getCurrent().toString() + "\n").getBytes());
+                        fileOutputStream.write( ( cursor.getCurrent().toString()
+                                + "\n" ).getBytes() );
                         errorCount++;
                     }
                 }
-                String tail = "===============end print " + cs.getName() + "." + cl.getName() + " data==============\n";
-                fileOutputStream.write(tail.getBytes());
+                String tail =
+                        "===============end print " + cs.getName() + "." + cl
+                                .getName() + " data==============\n";
+                fileOutputStream.write( tail.getBytes() );
             }
         } finally {
-            if (cursor != null) {
+            if ( cursor != null ) {
                 cursor.close();
             }
-            if (fileOutputStream != null) {
+            if ( fileOutputStream != null ) {
                 fileOutputStream.close();
             }
         }
     }
 
-    private void residualDataWriteToLocalFile(CollectionSpace cs, List<DBCollection> clList) throws IOException {
+    private void residualDataWriteToLocalFile( CollectionSpace cs,
+            List<DBCollection> clList ) throws IOException {
         DBCursor cursor = null;
-        FileOutputStream fileOutputStream = new FileOutputStream(new File(residualdataFilePath), true);
+        FileOutputStream fileOutputStream = new FileOutputStream(
+                new File( residualdataFilePath ), true );
         try {
-            for (DBCollection cl : clList) {
-                String head = "\n===============begin print " + cs.getName() + "." + cl.getName()
-                        + " data============\n";
-                fileOutputStream.write(head.getBytes());
+            for ( DBCollection cl : clList ) {
+                String head =
+                        "\n===============begin print " + cs.getName() + "."
+                                + cl.getName() + " data============\n";
+                fileOutputStream.write( head.getBytes() );
                 cursor = cl.listLobs();
-                if (cursor.hasNext()) {
-                    while (cursor.hasNext()) {
-                        fileOutputStream.write((cursor.getNext().toString() + "\n").getBytes());
+                if ( cursor.hasNext() ) {
+                    while ( cursor.hasNext() ) {
+                        fileOutputStream
+                                .write( ( cursor.getNext().toString() + "\n" )
+                                        .getBytes() );
                         errorCount++;
                     }
                 }
-                String tail = "===============end print " + cs.getName() + "." + cl.getName() + " data==============\n";
-                fileOutputStream.write(tail.getBytes());
+                String tail =
+                        "===============end print " + cs.getName() + "." + cl
+                                .getName() + " data==============\n";
+                fileOutputStream.write( tail.getBytes() );
             }
-        } catch (BaseException e) {
-            Assert.assertEquals(e.getErrorCode(), SDBError.SDB_DMS_NOTEXIST.getErrorCode(),
-                    "getCollection ObjectDataList failed");
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(),
+                    SDBError.SDB_DMS_NOTEXIST.getErrorCode(),
+                    "getCollection ObjectDataList failed" );
         } finally {
-            if (cursor != null) {
+            if ( cursor != null ) {
                 cursor.close();
             }
-            if(fileOutputStream != null){
+            if ( fileOutputStream != null ) {
                 fileOutputStream.close();
             }
         }
     }
 
-    private void  residualObjectDirDataWriteToLocalFile(CollectionSpace cs) throws IOException {
-        DBCollection cl = cs.getCollection("S3_ObjectDir");
+    private void residualObjectDirDataWriteToLocalFile( CollectionSpace cs )
+            throws IOException {
+        DBCollection cl = cs.getCollection( "S3_ObjectDir" );
         DBCursor cursor = null;
-        FileOutputStream fileOutputStream = new FileOutputStream(new File(residualDirDataFilePath),true);
+        FileOutputStream fileOutputStream = new FileOutputStream(
+                new File( residualDirDataFilePath ), true );
         try {
-            String head = "===============begin print " + cs.getName() + "." + cl.getName() + " data============\n";
-            fileOutputStream.write(head.getBytes());
+            String head =
+                    "===============begin print " + cs.getName() + "." + cl
+                            .getName() + " data============\n";
+            fileOutputStream.write( head.getBytes() );
             cursor = cl.query();
-            if (cursor.hasNext()) {
-                while (cursor.hasNext()) {
-                    if (!cursor.getNext().get("BucketId").equals(bucketId)
-                            && !cursor.getCurrent().get("BucketId").equals(enabledBucketId)) {
-                        fileOutputStream.write((cursor.getCurrent().toString() + "\n").getBytes());
+            if ( cursor.hasNext() ) {
+                while ( cursor.hasNext() ) {
+                    if ( !cursor.getNext().get( "BucketId" ).equals( bucketId )
+                            && !cursor.getCurrent().get( "BucketId" )
+                            .equals( enabledBucketId ) ) {
+                        fileOutputStream.write( ( cursor.getCurrent().toString()
+                                + "\n" ).getBytes() );
                         errorCount++;
                     }
                 }
             }
-            String tail = "===============end print " + cs.getName() + "." + cl.getName() + " data==============\n";
-            fileOutputStream.write(tail.getBytes());
+            String tail = "===============end print " + cs.getName() + "." + cl
+                    .getName() + " data==============\n";
+            fileOutputStream.write( tail.getBytes() );
         } finally {
-            if (cursor != null) {
+            if ( cursor != null ) {
                 cursor.close();
             }
-            if(fileOutputStream != null){
+            if ( fileOutputStream != null ) {
                 fileOutputStream.close();
             }
         }
     }
 
     private void residualFileScpToS3Host() throws Exception {
-        if (errorCount != 0) {
-            String remotPath = S3TestBase.installPath +  "/tools/sequoias3/log";
-            copyLocalFileToRemote(residualdataFilePath, remotPath);
-            copyLocalFileToRemote(residualDirDataFilePath, remotPath);
-            throw new Exception("There is data residue problem");
+        if ( errorCount != 0 ) {
+            String remotPath = S3TestBase.installPath + "/tools/sequoias3/log";
+            copyLocalFileToRemote( residualdataFilePath, remotPath );
+            copyLocalFileToRemote( residualDirDataFilePath, remotPath );
+            throw new Exception( "There is data residue problem" );
         }
     }
 
-    private void copyLocalFileToRemote(String localFilePath, String remotePath) throws Exception {
+    private void copyLocalFileToRemote( String localFilePath,
+            String remotePath ) throws Exception {
         Ssh ssh = null;
         try {
-            ssh = new Ssh(s3HostName, remoteuser, remotepasswd);
-            ssh.scpTo(localFilePath, remotePath);
-            if (ssh.getExitStatus() != 0) {
-                throw new Exception("exec ssh.scpTo(" + localFilePath + ", " + remotePath + "); failed, stout= "
-                        + ssh.getStdout());
+            ssh = new Ssh( s3HostName, remoteuser, remotepasswd );
+            ssh.scpTo( localFilePath, remotePath );
+            if ( ssh.getExitStatus() != 0 ) {
+                throw new Exception(
+                        "exec ssh.scpTo(" + localFilePath + ", " + remotePath
+                                + "); failed, stout= " + ssh.getStdout() );
             }
-        } catch (Exception e) {
+        } catch ( Exception e ) {
             e.printStackTrace();
-            Assert.fail("write " + remotePath + " info failed");
+            Assert.fail( "write " + remotePath + " info failed" );
         } finally {
-            if (ssh != null) {
+            if ( ssh != null ) {
                 ssh.disconnect();
             }
         }
@@ -221,9 +258,9 @@ public class TestResidualData extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         //delete local file
-        TestTools.LocalFile.removeFile(residualdataFilePath);
-        TestTools.LocalFile.removeFile(residualDirDataFilePath);
-        if (db != null) {
+        TestTools.LocalFile.removeFile( residualdataFilePath );
+        TestTools.LocalFile.removeFile( residualDirDataFilePath );
+        if ( db != null ) {
             db.close();
         }
     }

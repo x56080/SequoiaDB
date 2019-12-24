@@ -1,16 +1,5 @@
 package com.sequoias3.partupload.concurrent;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -24,6 +13,16 @@ import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
 import com.sequoias3.testcommon.s3utils.PartUploadUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @Description seqDB-18772: upload multiple parts concurrently,the length of the parts is the same
@@ -41,41 +40,48 @@ public class UploadPartAndCompleteMultipartUpload18772 extends S3TestBase {
     private int fileSize = 1024 * 1024 * 100;
     private int partSize = 1024 * 1024 * 20;
     private String uploadId = null;
-    private List<PartETag> partEtags = Collections.synchronizedList(new ArrayList<PartETag>());
+    private List<PartETag> partEtags = Collections
+            .synchronizedList( new ArrayList<PartETag>() );
     private boolean isCompleteMultipartUploadOK = false;
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
         s3Client = CommLib.buildS3Client();
     }
 
     @Test
     public void uploadParts() throws Exception {
-        File file = new File(filePath);
-        uploadId = PartUploadUtils.initPartUpload(s3Client, S3TestBase.bucketName, keyName);
+        File file = new File( filePath );
+        uploadId = PartUploadUtils
+                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
 
         ThreadExecutor threadExec = new ThreadExecutor();
         int partNums = fileSize / partSize;
-        for (int i = 0; i < partNums; i++) {
+        for ( int i = 0; i < partNums; i++ ) {
             int partNum = i + 1;
-            threadExec.addWorker(new PartUpload(partNum, partSize, file, uploadId));
+            threadExec.addWorker(
+                    new PartUpload( partNum, partSize, file, uploadId ) );
         }
 
-        threadExec.addWorker(new CompletePartUpload(uploadId));
+        threadExec.addWorker( new CompletePartUpload( uploadId ) );
         threadExec.run();
 
-        if (isCompleteMultipartUploadOK) {
+        if ( isCompleteMultipartUploadOK ) {
             // get the upload object to check content by md5
-            String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, keyName);
-            Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
+            String downfileMd5 = ObjectUtils
+                    .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+            Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         } else {
             // check the upload part info
-            PartUploadUtils.listPartsAndCheckPartNumbers(s3Client, S3TestBase.bucketName, keyName, partEtags, uploadId);
+            PartUploadUtils.listPartsAndCheckPartNumbers( s3Client,
+                    S3TestBase.bucketName, keyName, partEtags, uploadId );
         }
 
         runSuccess = true;
@@ -84,12 +90,12 @@ public class UploadPartAndCompleteMultipartUpload18772 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(S3TestBase.bucketName, keyName,
-                        uploadId);
-                s3Client.abortMultipartUpload(request);
-                s3Client.deleteObject(S3TestBase.bucketName, keyName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(
+                        S3TestBase.bucketName, keyName, uploadId );
+                s3Client.abortMultipartUpload( request );
+                s3Client.deleteObject( S3TestBase.bucketName, keyName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
@@ -103,7 +109,8 @@ public class UploadPartAndCompleteMultipartUpload18772 extends S3TestBase {
         private String uploadId;
         private AmazonS3 s3Client1 = CommLib.buildS3Client();
 
-        private PartUpload(int partNum, int partSize, File file, String uploadId) {
+        private PartUpload( int partNum, int partSize, File file,
+                String uploadId ) {
             this.partNum = partNum;
             this.partSize = partSize;
             this.file = file;
@@ -113,14 +120,17 @@ public class UploadPartAndCompleteMultipartUpload18772 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void partUpload() {
             try {
-                int filePosition = (partNum - 1) * partSize;
-                UploadPartRequest partRequest = new UploadPartRequest().withFile(file).withFileOffset(filePosition)
-                        .withPartNumber(partNum).withPartSize(partSize).withBucketName(S3TestBase.bucketName)
-                        .withKey(keyName).withUploadId(uploadId);
-                UploadPartResult uploadPartResult = s3Client1.uploadPart(partRequest);
-                partEtags.add(uploadPartResult.getPartETag());
+                int filePosition = ( partNum - 1 ) * partSize;
+                UploadPartRequest partRequest = new UploadPartRequest()
+                        .withFile( file ).withFileOffset( filePosition )
+                        .withPartNumber( partNum ).withPartSize( partSize )
+                        .withBucketName( S3TestBase.bucketName )
+                        .withKey( keyName ).withUploadId( uploadId );
+                UploadPartResult uploadPartResult = s3Client1
+                        .uploadPart( partRequest );
+                partEtags.add( uploadPartResult.getPartETag() );
             } finally {
-                if (s3Client1 != null) {
+                if ( s3Client1 != null ) {
                     s3Client1.shutdown();
                 }
             }
@@ -131,23 +141,24 @@ public class UploadPartAndCompleteMultipartUpload18772 extends S3TestBase {
         private String uploadId;
         private AmazonS3 s3Client2 = CommLib.buildS3Client();
 
-        private CompletePartUpload(String uploadId) {
+        private CompletePartUpload( String uploadId ) {
             this.uploadId = uploadId;
         }
 
         @ExecuteOrder(step = 1)
         private void completeMultipartUpload() {
             try {
-                PartUploadUtils.completeMultipartUpload(s3Client, S3TestBase.bucketName, keyName, uploadId, partEtags);
+                PartUploadUtils.completeMultipartUpload( s3Client,
+                        S3TestBase.bucketName, keyName, uploadId, partEtags );
                 isCompleteMultipartUploadOK = true;
-            } catch (AmazonS3Exception e) {
+            } catch ( AmazonS3Exception e ) {
                 int errCode = e.getStatusCode();
                 // 400: InvalidPart
-                if (errCode != 400) {
+                if ( errCode != 400 ) {
                     throw e;
                 }
             } finally {
-                if (s3Client2 != null) {
+                if ( s3Client2 != null ) {
                     s3Client2.shutdown();
                 }
             }

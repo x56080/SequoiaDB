@@ -1,17 +1,16 @@
 package com.sequoias3.delimiter;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.DelimiterUtils;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @Description seqDB-18093: get default delimiter.
@@ -29,27 +28,29 @@ public class UpdateDelimiter18093 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
+        CommLib.clearBucket( s3Client, bucketName );
 
-        s3Client.createBucket(bucketName);
-        s3Client.putObject(bucketName, keyName, "context18093");
+        s3Client.createBucket( bucketName );
+        s3Client.putObject( bucketName, keyName, "context18093" );
     }
 
     @Test
     public void testUpdateDelimiter() throws Exception {
-        DelimiterUtils.checkCurrentDelimiteInfo(bucketName, delimiter);
+        DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
         List<String> expCommprefixList = new ArrayList<>();
-        expCommprefixList.add("/");
+        expCommprefixList.add( "/" );
         List<String> expContentList = new ArrayList<>();
-        DelimiterUtils.listObjectsWithDelimiter(s3Client, bucketName, delimiter, expCommprefixList, expContentList);
+        DelimiterUtils
+                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
+                        expCommprefixList, expContentList );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
             }
         } finally {
             s3Client.shutdown();

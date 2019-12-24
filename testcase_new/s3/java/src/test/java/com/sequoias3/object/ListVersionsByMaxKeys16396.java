@@ -33,8 +33,8 @@ public class ListVersionsByMaxKeys16396 extends S3TestBase {
     private boolean runSuccess3 = false;
     private boolean runSuccess4 = false;
     private String bucketName = "bucket16396";
-    private String[] objectNames = { "dir16396%dir16396A%dir16396AB", "dir16396%subdir16396A", "dir16396A",
-            "dir16396B" };
+    private String[] objectNames = { "dir16396%dir16396A%dir16396AB",
+            "dir16396%subdir16396A", "dir16396A", "dir16396B" };
     private AmazonS3 s3Client = null;
     private int fileSize = 3;
     private File localPath = null;
@@ -42,91 +42,107 @@ public class ListVersionsByMaxKeys16396 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.createFile( filePath, fileSize );
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
-        for (String objectName : objectNames) {
-            s3Client.putObject(new PutObjectRequest(bucketName, objectName, new File(filePath)));
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
+        for ( String objectName : objectNames ) {
+            s3Client.putObject( new PutObjectRequest( bucketName, objectName,
+                    new File( filePath ) ) );
         }
     }
 
     @Test
     private void testMaxKeysLtRecords() throws Exception {
         int maxKeys = 1;
-        VersionListing vsList = s3Client
-                .listVersions(new ListVersionsRequest().withBucketName(bucketName).withMaxResults(maxKeys));
+        VersionListing vsList = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName )
+                        .withMaxResults( maxKeys ) );
         // expected results
         MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
-        expMap.add(objectNames[0], String.valueOf(0));
+        expMap.add( objectNames[ 0 ], String.valueOf( 0 ) );
         // check
-        Assert.assertEquals(vsList.isTruncated(), true, "vsList.isTruncated() must be true");
-        ObjectUtils.checkListVSResults(vsList, new ArrayList<String>(), expMap);
+        Assert.assertEquals( vsList.isTruncated(), true,
+                "vsList.isTruncated() must be true" );
+        ObjectUtils
+                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
         runSuccess1 = true;
     }
 
     @Test
     private void testMaxKeysGtRecords() throws Exception {
         int maxKeys = 5;
-        VersionListing vsList = s3Client
-                .listVersions(new ListVersionsRequest().withBucketName(bucketName).withMaxResults(maxKeys));
+        VersionListing vsList = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName )
+                        .withMaxResults( maxKeys ) );
         // expected results
         MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
-        for (int i = 0; i < objectNames.length; i++) {
-            expMap.add(objectNames[i], String.valueOf(0));
+        for ( int i = 0; i < objectNames.length; i++ ) {
+            expMap.add( objectNames[ i ], String.valueOf( 0 ) );
         }
         // check
-        Assert.assertEquals(vsList.isTruncated(), false, "vsList.isTruncated() must be false");
-        ObjectUtils.checkListVSResults(vsList, new ArrayList<String>(), expMap);
+        Assert.assertEquals( vsList.isTruncated(), false,
+                "vsList.isTruncated() must be false" );
+        ObjectUtils
+                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
         runSuccess2 = true;
     }
 
     @Test
     private void testMaxKeysEqRecords() throws Exception {
         int maxKeys = 4;
-        VersionListing vsList = s3Client
-                .listVersions(new ListVersionsRequest().withBucketName(bucketName).withMaxResults(maxKeys));
+        VersionListing vsList = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName )
+                        .withMaxResults( maxKeys ) );
         // expected results
         MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
-        for (int i = 0; i < objectNames.length; i++) {
-            expMap.add(objectNames[i], String.valueOf(0));
+        for ( int i = 0; i < objectNames.length; i++ ) {
+            expMap.add( objectNames[ i ], String.valueOf( 0 ) );
         }
         // check
-        Assert.assertEquals(vsList.isTruncated(), false, "vsList.isTruncated() must be false");
-        ObjectUtils.checkListVSResults(vsList, new ArrayList<String>(), expMap);
+        Assert.assertEquals( vsList.isTruncated(), false,
+                "vsList.isTruncated() must be false" );
+        ObjectUtils
+                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
         runSuccess3 = true;
     }
 
     @Test
     private void testMaxKeysEqMiddle() throws Exception {
         int maxKeys = 3;
-        VersionListing vsList = s3Client
-                .listVersions(new ListVersionsRequest().withBucketName(bucketName).withMaxResults(maxKeys));
+        VersionListing vsList = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName )
+                        .withMaxResults( maxKeys ) );
         // expected results
         MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
-        for (int i = 0; i < maxKeys; i++) {
-            expMap.add(objectNames[i], String.valueOf(0));
+        for ( int i = 0; i < maxKeys; i++ ) {
+            expMap.add( objectNames[ i ], String.valueOf( 0 ) );
         }
         // check
-        Assert.assertEquals(vsList.isTruncated(), true, "vsList.isTruncated() must be false");
-        ObjectUtils.checkListVSResults(vsList, new ArrayList<String>(), expMap);
+        Assert.assertEquals( vsList.isTruncated(), true,
+                "vsList.isTruncated() must be false" );
+        ObjectUtils
+                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
         runSuccess4 = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess1 && runSuccess2 && runSuccess3 && runSuccess4) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess1 && runSuccess2 && runSuccess3 && runSuccess4 ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }

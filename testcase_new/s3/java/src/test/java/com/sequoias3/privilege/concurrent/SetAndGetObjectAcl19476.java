@@ -1,16 +1,5 @@
 package com.sequoias3.privilege.concurrent;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
@@ -24,6 +13,16 @@ import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.PrivilegeUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @Description seqDB-19476: 并发配置和获取对象acl
@@ -43,30 +42,36 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
 
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
-        file = new File(filePath);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        file = new File( filePath );
 
         s3Client = CommLib.buildS3Client();
         ownerId = s3Client.getS3AccountOwner().getId();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(new CreateBucketRequest(bucketName));
-        s3Client.putObject(bucketName, keyName, file);
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( new CreateBucketRequest( bucketName ) );
+        s3Client.putObject( bucketName, keyName, file );
     }
 
     @Test
     private void testSetObjectAcl() throws Exception {
-        Grant[] defaultGrant = { new Grant(new CanonicalGrantee(ownerId), Permission.FullControl) };
-        Grant[] expGrant = { new Grant(new CanonicalGrantee(ownerId), Permission.ReadAcp),
-                new Grant(GroupGrantee.AuthenticatedUsers, Permission.Write) };
+        Grant[] defaultGrant = { new Grant( new CanonicalGrantee( ownerId ),
+                Permission.FullControl ) };
+        Grant[] expGrant = { new Grant( new CanonicalGrantee( ownerId ),
+                Permission.ReadAcp ),
+                new Grant( GroupGrantee.AuthenticatedUsers,
+                        Permission.Write ) };
 
         ThreadExecutor threadExec = new ThreadExecutor();
-        threadExec.addWorker(new ThreadSetObjectAcl(expGrant));
-        threadExec.addWorker(new ThreadGetObjectAcl(defaultGrant, expGrant));
+        threadExec.addWorker( new ThreadSetObjectAcl( expGrant ) );
+        threadExec
+                .addWorker( new ThreadGetObjectAcl( defaultGrant, expGrant ) );
         threadExec.run();
         runSuccess = true;
 
@@ -75,9 +80,9 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
@@ -88,16 +93,17 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
         private AmazonS3 s3 = CommLib.buildS3Client();
         private Grant[] grant;
 
-        public ThreadSetObjectAcl(Grant[] grant) {
+        public ThreadSetObjectAcl( Grant[] grant ) {
             this.grant = grant;
         }
 
         @ExecuteOrder(step = 1)
         private void setObjectAcl() {
             try {
-                PrivilegeUtils.setObjectAclByBody(s3, bucketName, keyName, grant);
+                PrivilegeUtils
+                        .setObjectAclByBody( s3, bucketName, keyName, grant );
             } finally {
-                if (s3 != null) {
+                if ( s3 != null ) {
                     s3.shutdown();
                 }
             }
@@ -110,7 +116,7 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
         private Grant[] expGrant;
         private List<Grant> expGrantsList;
 
-        public ThreadGetObjectAcl(Grant[] defaultGrant, Grant[] expGrant) {
+        public ThreadGetObjectAcl( Grant[] defaultGrant, Grant[] expGrant ) {
             this.defaultGrant = defaultGrant;
             this.expGrant = expGrant;
         }
@@ -118,32 +124,41 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void getObjectAcl() {
             try {
-                AccessControlList result = s3.getObjectAcl(bucketName, keyName);
+                AccessControlList result = s3
+                        .getObjectAcl( bucketName, keyName );
                 List<Grant> actGrantsList = result.getGrantsAsList();
-                if (actGrantsList.size() == defaultGrant.length) {
-                    expGrantsList = new ArrayList<>(Arrays.asList(defaultGrant));
-                } else if (actGrantsList.size() == expGrant.length) {
-                    expGrantsList = new ArrayList<>(Arrays.asList(expGrant));
+                if ( actGrantsList.size() == defaultGrant.length ) {
+                    expGrantsList = new ArrayList<>(
+                            Arrays.asList( defaultGrant ) );
+                } else if ( actGrantsList.size() == expGrant.length ) {
+                    expGrantsList = new ArrayList<>(
+                            Arrays.asList( expGrant ) );
                 } else {
-                    Assert.fail("act object acl size is wrong : " + actGrantsList.toString());
+                    Assert.fail(
+                            "act object acl size is wrong : " + actGrantsList
+                                    .toString() );
                 }
-                checkGrantList(actGrantsList, expGrantsList);
+                checkGrantList( actGrantsList, expGrantsList );
             } finally {
-                if (s3 != null) {
+                if ( s3 != null ) {
                     s3.shutdown();
                 }
             }
         }
 
-        private void checkGrantList(List<Grant> actGrantsList, List<Grant> expGrantsList) {
+        private void checkGrantList( List<Grant> actGrantsList,
+                List<Grant> expGrantsList ) {
             boolean isEqual = false;
-            if (actGrantsList.size() == expGrantsList.size() && actGrantsList.containsAll(expGrantsList)
-                    && expGrantsList.containsAll(actGrantsList)) {
+            if ( actGrantsList.size() == expGrantsList.size() && actGrantsList
+                    .containsAll( expGrantsList ) && expGrantsList
+                    .containsAll( actGrantsList ) ) {
                 isEqual = true;
             }
-            if (!isEqual) {
-                Assert.fail("object acl is wrong! exp grants = " + expGrantsList.toString() + ", act grants = "
-                        + actGrantsList.toString());
+            if ( !isEqual ) {
+                Assert.fail(
+                        "object acl is wrong! exp grants = " + expGrantsList
+                                .toString() + ", act grants = " + actGrantsList
+                                .toString() );
             }
         }
     }

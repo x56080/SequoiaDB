@@ -24,7 +24,7 @@ import java.util.List;
 
 /**
  * test content: 并发更新区域和使用区域 testlink-case: seqDB-17335
- * 
+ *
  * @author wangkexin
  * @Date 2019.01.29
  * @version 1.00
@@ -43,40 +43,46 @@ public class UpdateAndUseRegion17335 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        RegionUtils.clearRegion(regionName);
+        CommLib.clearBucket( s3Client, bucketName );
+        RegionUtils.clearRegion( regionName );
         Region region = new Region();
-        region.withName(regionName);
-        RegionUtils.putRegion(region);
-        s3Client.createBucket(new CreateBucketRequest(bucketName, regionName.toLowerCase()));
+        region.withName( regionName );
+        RegionUtils.putRegion( region );
+        s3Client.createBucket( new CreateBucketRequest( bucketName,
+                regionName.toLowerCase() ) );
     }
 
     @Test
     public void testCreateRegion() throws Exception {
         UpdateRegionThread updateRegion = new UpdateRegionThread();
-        List<CreateAndGetObjectThread> createAndGetObjs = new ArrayList<>(objectNums);
+        List<CreateAndGetObjectThread> createAndGetObjs = new ArrayList<>(
+                objectNums );
 
-        for (int i = 0; i < objectNums; i++) {
+        for ( int i = 0; i < objectNums; i++ ) {
             String key = keyName + "_" + i;
-            createAndGetObjs.add(new CreateAndGetObjectThread(key));
+            createAndGetObjs.add( new CreateAndGetObjectThread( key ) );
         }
-        for (CreateAndGetObjectThread createAndGetObjThread : createAndGetObjs) {
+        for ( CreateAndGetObjectThread createAndGetObjThread : createAndGetObjs ) {
             createAndGetObjThread.start();
         }
         updateRegion.start();
 
-        for (CreateAndGetObjectThread createAndGetObjThread : createAndGetObjs) {
-            Assert.assertTrue(createAndGetObjThread.isSuccess(), createAndGetObjThread.getErrorMsg());
+        for ( CreateAndGetObjectThread createAndGetObjThread : createAndGetObjs ) {
+            Assert.assertTrue( createAndGetObjThread.isSuccess(),
+                    createAndGetObjThread.getErrorMsg() );
         }
 
-        Assert.assertTrue(updateRegion.isSuccess(), updateRegion.getErrorMsg());
+        Assert.assertTrue( updateRegion.isSuccess(),
+                updateRegion.getErrorMsg() );
 
         checkUpdate();
         runSuccess = true;
@@ -85,31 +91,57 @@ public class UpdateAndUseRegion17335 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                RegionUtils.deleteRegion(regionName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                RegionUtils.deleteRegion( regionName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
+    }
+
+    private void checkResult( AmazonS3 s3Client, String keyName )
+            throws Exception {
+        GetObjectRequest request = new GetObjectRequest( bucketName, keyName );
+        S3Object object = s3Client.getObject( request );
+        Assert.assertEquals( object.getKey(), keyName );
+
+        S3ObjectInputStream s3is = object.getObjectContent();
+        String downloadPath = TestTools.LocalFile
+                .initDownloadPath( localPath, TestTools.getMethodName(),
+                        Thread.currentThread().getId() );
+        ObjectUtils.inputStream2File( s3is, downloadPath );
+        s3is.close();
+        String downfileMd5 = TestTools.getMD5( downloadPath );
+        Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
+    }
+
+    private void checkUpdate() throws Exception {
+        GetRegionResult result = RegionUtils.getRegion( regionName );
+        String actBucketName = result.getBuckets().get( 0 ).getName();
+        Assert.assertEquals( actBucketName, bucketName );
+        Region region = result.getRegion();
+        Assert.assertEquals( region.getDataCSShardingType(), "quarter" );
+        Assert.assertEquals( region.getDataCLShardingType(), "month" );
     }
 
     private class UpdateRegionThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
             Region region = new Region();
-            region.withName(regionName).withDataCSShardingType("quarter").withDataCLShardingType("month");
-            RegionUtils.putRegion(region);
+            region.withName( regionName ).withDataCSShardingType( "quarter" )
+                    .withDataCLShardingType( "month" );
+            RegionUtils.putRegion( region );
         }
     }
 
     private class CreateAndGetObjectThread extends S3ThreadBase {
         private String keyName;
 
-        public CreateAndGetObjectThread(String keyName) {
+        public CreateAndGetObjectThread( String keyName ) {
             this.keyName = keyName;
         }
 
@@ -117,36 +149,13 @@ public class UpdateAndUseRegion17335 extends S3TestBase {
         public void exec() throws Exception {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
-                s3Client.putObject(bucketName, keyName, new File(filePath));
-                checkResult(s3Client, keyName);
+                s3Client.putObject( bucketName, keyName, new File( filePath ) );
+                checkResult( s3Client, keyName );
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }
         }
-    }
-
-    private void checkResult(AmazonS3 s3Client, String keyName) throws Exception {
-        GetObjectRequest request = new GetObjectRequest(bucketName, keyName);
-        S3Object object = s3Client.getObject(request);
-        Assert.assertEquals(object.getKey(), keyName);
-
-        S3ObjectInputStream s3is = object.getObjectContent();
-        String downloadPath = TestTools.LocalFile.initDownloadPath(localPath, TestTools.getMethodName(),
-                Thread.currentThread().getId());
-        ObjectUtils.inputStream2File(s3is, downloadPath);
-        s3is.close();
-        String downfileMd5 = TestTools.getMD5(downloadPath);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
-    }
-
-    private void checkUpdate() throws Exception {
-        GetRegionResult result = RegionUtils.getRegion(regionName);
-        String actBucketName = result.getBuckets().get(0).getName();
-        Assert.assertEquals(actBucketName, bucketName);
-        Region region = result.getRegion();
-        Assert.assertEquals(region.getDataCSShardingType(), "quarter");
-        Assert.assertEquals(region.getDataCLShardingType(), "month");
     }
 }

@@ -38,13 +38,16 @@ public class ListVersionsByKeyVersionId16412 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
-        for (String objectName : objectNames) {
-            for (int j = 0; j < versionNum; j++) {
-                PutObjectResult object = s3Client.putObject(bucketName, objectName, "" + UUID.randomUUID());
-                objectList.add(object);
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
+        for ( String objectName : objectNames ) {
+            for ( int j = 0; j < versionNum; j++ ) {
+                PutObjectResult object = s3Client
+                        .putObject( bucketName, objectName,
+                                "" + UUID.randomUUID() );
+                objectList.add( object );
             }
         }
     }
@@ -52,38 +55,47 @@ public class ListVersionsByKeyVersionId16412 extends S3TestBase {
     @Test
     private void test() throws Exception {
         // keyMarker >= maxKeyMarker
-        String keyMarker = objectNames[objectNames.length - 1];
+        String keyMarker = objectNames[ objectNames.length - 1 ];
         int versionIdMarker = 0;
-        VersionListing vsList = s3Client.listVersions(new ListVersionsRequest().withBucketName(bucketName)
-                .withKeyMarker(keyMarker).withVersionIdMarker(String.valueOf(versionIdMarker)));
+        VersionListing vsList = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName )
+                        .withKeyMarker( keyMarker ).withVersionIdMarker(
+                        String.valueOf( versionIdMarker ) ) );
         // check
-        Assert.assertEquals(vsList.isTruncated(), false, "vsList.isTruncated() must be false");
-        ObjectUtils.checkListVSResults(vsList, new ArrayList<String>(), new LinkedMultiValueMap<String, String>());
+        Assert.assertEquals( vsList.isTruncated(), false,
+                "vsList.isTruncated() must be false" );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList<String>(),
+                new LinkedMultiValueMap<String, String>() );
 
         // keyMarker < maxKeyMarker
-        String keyMarker1 = objectNames[objectNames.length - 2];
+        String keyMarker1 = objectNames[ objectNames.length - 2 ];
         int versionIdMarker1 = 0;
-        VersionListing vsList1 = s3Client.listVersions(new ListVersionsRequest().withBucketName(bucketName)
-                .withKeyMarker(keyMarker1).withVersionIdMarker(String.valueOf(versionIdMarker1)));
+        VersionListing vsList1 = s3Client.listVersions(
+                new ListVersionsRequest().withBucketName( bucketName )
+                        .withKeyMarker( keyMarker1 ).withVersionIdMarker(
+                        String.valueOf( versionIdMarker1 ) ) );
         // expected results
         MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
-        for (int i = versionNum - 1; i >= 0; i--) {
-            expMap.add(objectNames[objectNames.length - 1], String.valueOf(i));
+        for ( int i = versionNum - 1; i >= 0; i-- ) {
+            expMap.add( objectNames[ objectNames.length - 1 ],
+                    String.valueOf( i ) );
         }
         // check
-        Assert.assertEquals(vsList1.isTruncated(), false, "vsList.isTruncated() must be false");
-        ObjectUtils.checkListVSResults(vsList1, new ArrayList<String>(), expMap);
+        Assert.assertEquals( vsList1.isTruncated(), false,
+                "vsList.isTruncated() must be false" );
+        ObjectUtils
+                .checkListVSResults( vsList1, new ArrayList<String>(), expMap );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }

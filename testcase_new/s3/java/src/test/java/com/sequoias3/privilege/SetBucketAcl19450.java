@@ -1,13 +1,5 @@
 package com.sequoias3.privilege;
 
-import java.io.IOException;
-
-import org.bson.BasicBSONObject;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -25,6 +17,13 @@ import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.PrivilegeUtils;
 import com.sequoias3.testcommon.s3utils.UserUtils;
 import com.sequoias3.user.UserCommDefind;
+import org.bson.BasicBSONObject;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
 
 /**
  * @Description seqDB-19450:无桶访问权限的用户配置桶acl
@@ -44,31 +43,32 @@ public class SetBucketAcl19450 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException {
         adminS3 = CommLib.buildS3Client();
-        CommLib.clearBucket(adminS3, bucketName);
-        CommLib.clearUser(userName);
-        String[] acessKeys = UserUtils.createUser(userName, userType);
-        userS3 = CommLib.buildS3Client(acessKeys[0], acessKeys[1]);
+        CommLib.clearBucket( adminS3, bucketName );
+        CommLib.clearUser( userName );
+        String[] acessKeys = UserUtils.createUser( userName, userType );
+        userS3 = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
     }
 
     @Test
     private void test() throws Exception {
-        adminS3.createBucket(new CreateBucketRequest(bucketName));
-        AccessControlList adminAcl = adminS3.getBucketAcl(bucketName);
+        adminS3.createBucket( new CreateBucketRequest( bucketName ) );
+        AccessControlList adminAcl = adminS3.getBucketAcl( bucketName );
         // check owner
         Owner adminOwner = adminS3.getS3AccountOwner();
-        Assert.assertEquals(adminAcl.getOwner(), adminOwner);
+        Assert.assertEquals( adminAcl.getOwner(), adminOwner );
         // check grant
-        Grant grant = new Grant(new CanonicalGrantee(adminOwner.getId()), Permission.FullControl);
-        PrivilegeUtils.checkSetBucketAclResult(adminS3, bucketName, grant);
+        Grant grant = new Grant( new CanonicalGrantee( adminOwner.getId() ),
+                Permission.FullControl );
+        PrivilegeUtils.checkSetBucketAclResult( adminS3, bucketName, grant );
         // check isPrivate from sdb
         checkIsPrivate();
 
         // not bucket owner set bucket's acl
         try {
-            userS3.setBucketAcl(bucketName, CannedAccessControlList.Private);
-            Assert.fail("expect fail but success.");
-        } catch (AmazonS3Exception e) {
-            Assert.assertEquals(e.getErrorCode(), "AccessDenied");
+            userS3.setBucketAcl( bucketName, CannedAccessControlList.Private );
+            Assert.fail( "expect fail but success." );
+        } catch ( AmazonS3Exception e ) {
+            Assert.assertEquals( e.getErrorCode(), "AccessDenied" );
         }
 
         runSuccess = true;
@@ -77,9 +77,9 @@ public class SetBucketAcl19450 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(adminS3, bucketName);
-                CommLib.clearUser(userName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( adminS3, bucketName );
+                CommLib.clearUser( userName );
             }
         } finally {
             adminS3.shutdown();
@@ -88,11 +88,14 @@ public class SetBucketAcl19450 extends S3TestBase {
     }
 
     private void checkIsPrivate() {
-        try (Sequoiadb sdb = new Sequoiadb(coordUrl, "", "")) {
-            DBCollection cl = sdb.getCollectionSpace("S3_SYS_Meta").getCollection("S3_Bucket");
-            DBCursor cursor = cl.query(new BasicBSONObject("Name", bucketName), null, null, null);
-            boolean IsPrivate = (boolean) cursor.getNext().get("IsPrivate");
-            Assert.assertTrue(IsPrivate);
+        try ( Sequoiadb sdb = new Sequoiadb( coordUrl, "", "" ) ) {
+            DBCollection cl = sdb.getCollectionSpace( "S3_SYS_Meta" )
+                    .getCollection( "S3_Bucket" );
+            DBCursor cursor = cl
+                    .query( new BasicBSONObject( "Name", bucketName ), null,
+                            null, null );
+            boolean IsPrivate = ( boolean ) cursor.getNext().get( "IsPrivate" );
+            Assert.assertTrue( IsPrivate );
             cursor.close();
         }
     }

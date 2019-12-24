@@ -28,19 +28,19 @@ public class GetObjectByInexistenceBucket16368 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
+        CommLib.clearBucket( s3Client, bucketName );
     }
 
     @Test
     private void test() throws Exception {
-        s3Client.createBucket(bucketName);
-        s3Client.putObject(bucketName, objectName, "1234");
+        s3Client.createBucket( bucketName );
+        s3Client.putObject( bucketName, objectName, "1234" );
         try {
-            s3Client.getObject(inexistbucketName, objectName);
-            Assert.fail("exp fail but act success");
-        } catch (AmazonS3Exception e) {
-            if (e.getStatusCode() != 404) {
-                Assert.fail(e.getMessage());
+            s3Client.getObject( inexistbucketName, objectName );
+            Assert.fail( "exp fail but act success" );
+        } catch ( AmazonS3Exception e ) {
+            if ( e.getStatusCode() != 404 ) {
+                Assert.fail( e.getMessage() );
             }
         }
         runSuccess = true;
@@ -49,11 +49,11 @@ public class GetObjectByInexistenceBucket16368 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }

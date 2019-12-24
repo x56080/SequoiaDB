@@ -1,17 +1,16 @@
 package com.sequoias3.object;
 
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 /**
  * test content: 空桶删除对象
- * 
+ *
  * @author wangkexin
  * @Date 2018.11.28
  * @version 1.00
@@ -26,20 +25,20 @@ public class DeleteObject16457 extends S3TestBase {
     @BeforeClass
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        s3Client.createBucket(new CreateBucketRequest(bucketName));
+        s3Client.createBucket( new CreateBucketRequest( bucketName ) );
     }
 
     @Test
     public void testGetObjectList() throws Exception {
         // delete object in empty bucket
-        s3Client.deleteObject(bucketName, keyName);
+        s3Client.deleteObject( bucketName, keyName );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
-        if (runSuccess) {
-            s3Client.deleteBucket(bucketName);
+        if ( runSuccess ) {
+            s3Client.deleteBucket( bucketName );
         }
     }
 }

@@ -34,17 +34,17 @@ public class CreateAdminUser16250 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != (HttpStatus.NOT_FOUND)) {
-                Assert.fail(e.getMessage());
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != ( HttpStatus.NOT_FOUND ) ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != (HttpStatus.NOT_FOUND)) {
-                Assert.fail(e.getMessage());
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != ( HttpStatus.NOT_FOUND ) ) {
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -52,9 +52,11 @@ public class CreateAdminUser16250 extends S3TestBase {
     @Test
     private void test() throws JSONException {
         // create user
-        JSONObject actUser = UserUtils.createUser(userName, UserCommDefind.admin, UserUtils.accessKeyId);
+        JSONObject actUser = UserUtils
+                .createUser( userName, UserCommDefind.admin,
+                        UserUtils.accessKeyId );
         // CRUD user for check
-        checkByCRUDUser(actUser);
+        checkByCRUDUser( actUser );
         // create bucket for check
         checkByCreateBucket();
         runSuccess = true;
@@ -62,86 +64,95 @@ public class CreateAdminUser16250 extends S3TestBase {
 
     @AfterClass
     private void tearDown() {
-        if (runSuccess) {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
+        if ( runSuccess ) {
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
         }
     }
 
-    private void checkByCRUDUser(JSONObject admin) {
+    private void checkByCRUDUser( JSONObject admin ) {
         // get the accessKeyID and secretAccessKey from admin
-        JSONObject adminJSON = admin.getJSONObject(UserCommDefind.accessKeys);
-        accessKeyID = adminJSON.getString(UserCommDefind.accessKeyID);
-        secretAccessKey = adminJSON.getString(UserCommDefind.secretAccessKey);
+        JSONObject adminJSON = admin.getJSONObject( UserCommDefind.accessKeys );
+        accessKeyID = adminJSON.getString( UserCommDefind.accessKeyID );
+        secretAccessKey = adminJSON.getString( UserCommDefind.secretAccessKey );
 
         String username = userName + "_16250";
-        JSONObject actJSON = createAndCheck(username, accessKeyID);
-        updateAndCheck(username, actJSON, accessKeyID);
-        deleteAndCheck(username, accessKeyID);
+        JSONObject actJSON = createAndCheck( username, accessKeyID );
+        updateAndCheck( username, actJSON, accessKeyID );
+        deleteAndCheck( username, accessKeyID );
     }
 
     private void checkByCreateBucket() {
         // check the user is active
         AmazonS3 s3Client = null;
         try {
-            s3Client = CommLib.buildS3Client(accessKeyID, secretAccessKey);
+            s3Client = CommLib.buildS3Client( accessKeyID, secretAccessKey );
             // create bucket
-            s3Client.createBucket(bucketName.toLowerCase());
+            s3Client.createBucket( bucketName.toLowerCase() );
             // check
             List<Bucket> buckets = s3Client.listBuckets();
-            Assert.assertEquals(buckets.size(), 1, " only one bucket");
-            Bucket expbucket = buckets.get(0);
+            Assert.assertEquals( buckets.size(), 1, " only one bucket" );
+            Bucket expbucket = buckets.get( 0 );
             String actOwner = expbucket.getOwner().getDisplayName();
             String actBucketName = expbucket.getName();
-            Assert.assertEquals(actBucketName, bucketName.toLowerCase());
-            Assert.assertEquals(actOwner, userName.toLowerCase());
+            Assert.assertEquals( actBucketName, bucketName.toLowerCase() );
+            Assert.assertEquals( actOwner, userName.toLowerCase() );
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
     }
 
-    private JSONObject createAndCheck(String username, String accessKeyID) {
+    private JSONObject createAndCheck( String username, String accessKeyID ) {
         // craete user
-        JSONObject actUser = UserUtils.createUser(username, UserCommDefind.normal, accessKeyID);
-        JSONObject actJSON = actUser.getJSONObject(UserCommDefind.accessKeys);
+        JSONObject actUser = UserUtils
+                .createUser( username, UserCommDefind.normal, accessKeyID );
+        JSONObject actJSON = actUser.getJSONObject( UserCommDefind.accessKeys );
         // get user
-        JSONObject expUser = UserUtils.getUser(username, accessKeyID);
-        JSONObject expJSON = expUser.getJSONObject(UserCommDefind.accessKeys);
+        JSONObject expUser = UserUtils.getUser( username, accessKeyID );
+        JSONObject expJSON = expUser.getJSONObject( UserCommDefind.accessKeys );
         // check
-        Assert.assertEquals(actJSON.getString(UserCommDefind.accessKeyID),
-                expJSON.getString(UserCommDefind.accessKeyID),
-                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON.toString());
-        Assert.assertEquals(actJSON.getString(UserCommDefind.secretAccessKey),
-                expJSON.getString(UserCommDefind.secretAccessKey),
-                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON.toString());
+        Assert.assertEquals( actJSON.getString( UserCommDefind.accessKeyID ),
+                expJSON.getString( UserCommDefind.accessKeyID ),
+                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON
+                        .toString() );
+        Assert.assertEquals(
+                actJSON.getString( UserCommDefind.secretAccessKey ),
+                expJSON.getString( UserCommDefind.secretAccessKey ),
+                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON
+                        .toString() );
         return actJSON;
     }
 
-    private void updateAndCheck(String username, JSONObject actJSON, String accessKeyID) {
+    private void updateAndCheck( String username, JSONObject actJSON,
+            String accessKeyID ) {
         // update user
-        JSONObject updateUser = UserUtils.updateUser(username, accessKeyID);
-        JSONObject upadteJSON = updateUser.getJSONObject(UserCommDefind.accessKeys);
+        JSONObject updateUser = UserUtils.updateUser( username, accessKeyID );
+        JSONObject upadteJSON = updateUser
+                .getJSONObject( UserCommDefind.accessKeys );
         // check the user was updated
-        Assert.assertNotEquals(actJSON.getString(UserCommDefind.accessKeyID),
-                upadteJSON.getString(UserCommDefind.accessKeyID));
-        Assert.assertNotEquals(actJSON.getString(UserCommDefind.secretAccessKey),
-                upadteJSON.getString(UserCommDefind.secretAccessKey));
+        Assert.assertNotEquals( actJSON.getString( UserCommDefind.accessKeyID ),
+                upadteJSON.getString( UserCommDefind.accessKeyID ) );
+        Assert.assertNotEquals(
+                actJSON.getString( UserCommDefind.secretAccessKey ),
+                upadteJSON.getString( UserCommDefind.secretAccessKey ) );
 
     }
 
-    private void deleteAndCheck(String username, String accessKeyID) {
+    private void deleteAndCheck( String username, String accessKeyID ) {
         // delete user
-        UserUtils.deleteUser(username, accessKeyID);
+        UserUtils.deleteUser( username, accessKeyID );
         // check user was deleted
         try {
-            UserUtils.getUser(username, UserUtils.accessKeyId);
-            Assert.fail("exp fail but act success");
-        } catch (HttpClientErrorException e) {
+            UserUtils.getUser( username, UserUtils.accessKeyId );
+            Assert.fail( "exp fail but act success" );
+        } catch ( HttpClientErrorException e ) {
             String errorMsg = e.getResponseBodyAsString();
-            JSONObject json1 = XML.toJSONObject(errorMsg);
-            if (!json1.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode).contains("NoSuchUser")) {
-                Assert.fail(e.getMessage());
+            JSONObject json1 = XML.toJSONObject( errorMsg );
+            if ( !json1.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "NoSuchUser" ) ) {
+                Assert.fail( e.getMessage() );
             }
         }
     }

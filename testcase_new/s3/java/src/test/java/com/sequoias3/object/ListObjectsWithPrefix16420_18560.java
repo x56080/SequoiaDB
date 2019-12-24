@@ -1,16 +1,5 @@
 package com.sequoias3.object;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ListObjectsV2Request;
@@ -20,6 +9,16 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @Description seqDB-16420: To get a list by listObjectV2 within a
@@ -42,96 +41,102 @@ public class ListObjectsWithPrefix16420_18560 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
 
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
     }
 
     @Test
     public void testCreateObject() throws Exception {
         List<String> keyList = putObjects();
-        listObjectsAndCheckResult(keyList);
-        listObjectV1AndCheckResult(keyList);
+        listObjectsAndCheckResult( keyList );
+        listObjectV1AndCheckResult( keyList );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
         }
     }
 
-    private void listObjectsAndCheckResult(List<String> keyList) throws IOException {
+    private void listObjectsAndCheckResult( List<String> keyList )
+            throws IOException {
         List<String> queryKeyList = new ArrayList<>();
-        ListObjectsV2Request request = new ListObjectsV2Request().withBucketName(bucketName).withEncodingType("url");
-        request.withPrefix(prefix);
-        ListObjectsV2Result result = s3Client.listObjectsV2(request);
+        ListObjectsV2Request request = new ListObjectsV2Request()
+                .withBucketName( bucketName ).withEncodingType( "url" );
+        request.withPrefix( prefix );
+        ListObjectsV2Result result = s3Client.listObjectsV2( request );
         List<S3ObjectSummary> objects = result.getObjectSummaries();
-        Assert.assertEquals(objects.size(), matchObjectNums);
-        for (S3ObjectSummary os : objects) {
+        Assert.assertEquals( objects.size(), matchObjectNums );
+        for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             String etag = os.getETag();
             long size = os.getSize();
-            queryKeyList.add(key);
+            queryKeyList.add( key );
             // check the etag and size
-            Assert.assertEquals(etag, TestTools.getMD5(filePath));
-            Assert.assertEquals(size, fileSize);
+            Assert.assertEquals( etag, TestTools.getMD5( filePath ) );
+            Assert.assertEquals( size, fileSize );
         }
 
         // check the keyName
-        Assert.assertEquals(queryKeyList, keyList);
+        Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private void listObjectV1AndCheckResult(List<String> keyList) throws IOException {
+    private void listObjectV1AndCheckResult( List<String> keyList )
+            throws IOException {
         List<String> queryKeyList = new ArrayList<>();
-        ListObjectsRequest request = new ListObjectsRequest().withBucketName(bucketName);
-        request.withPrefix(prefix);
-        ObjectListing result = s3Client.listObjects(request);
-        Assert.assertEquals(prefix, result.getPrefix());
+        ListObjectsRequest request = new ListObjectsRequest()
+                .withBucketName( bucketName );
+        request.withPrefix( prefix );
+        ObjectListing result = s3Client.listObjects( request );
+        Assert.assertEquals( prefix, result.getPrefix() );
 
         List<S3ObjectSummary> objects = result.getObjectSummaries();
-        Assert.assertEquals(objects.size(), matchObjectNums);
-        for (S3ObjectSummary os : objects) {
+        Assert.assertEquals( objects.size(), matchObjectNums );
+        for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             String etag = os.getETag();
             long size = os.getSize();
-            queryKeyList.add(key);
+            queryKeyList.add( key );
 
             // check the etag and size
-            Assert.assertEquals(etag, TestTools.getMD5(filePath));
-            Assert.assertEquals(size, fileSize);
+            Assert.assertEquals( etag, TestTools.getMD5( filePath ) );
+            Assert.assertEquals( size, fileSize );
         }
 
         // check the keyName
-        Assert.assertEquals(queryKeyList, keyList);
+        Assert.assertEquals( queryKeyList, keyList );
     }
 
     private List<String> putObjects() {
         List<String> matchKeyList = new ArrayList<>();
         int objectNums = 50;
         String keyName;
-        for (int i = 0; i < objectNums; i++) {
-            if (i < matchObjectNums) {
-                keyName = prefix + "_" + i + TestTools.getRandomString(i);
-                matchKeyList.add(keyName);
+        for ( int i = 0; i < objectNums; i++ ) {
+            if ( i < matchObjectNums ) {
+                keyName = prefix + "_" + i + TestTools.getRandomString( i );
+                matchKeyList.add( keyName );
             } else {
-                keyName = key + "_" + i + TestTools.getRandomString(i);
+                keyName = key + "_" + i + TestTools.getRandomString( i );
             }
-            s3Client.putObject(bucketName, keyName, new File(filePath));
+            s3Client.putObject( bucketName, keyName, new File( filePath ) );
         }
-        Collections.sort(matchKeyList);
+        Collections.sort( matchKeyList );
         return matchKeyList;
     }
 }

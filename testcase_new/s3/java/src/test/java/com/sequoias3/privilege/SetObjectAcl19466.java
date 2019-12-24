@@ -1,13 +1,5 @@
 package com.sequoias3.privilege;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
@@ -22,6 +14,13 @@ import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
 import com.sequoias3.testcommon.s3utils.PrivilegeUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * @Description seqDB-19466:指定versionId配置对象acl
@@ -41,40 +40,46 @@ public class SetObjectAcl19466 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
 
         adminS3 = CommLib.buildS3Client();
-        CommLib.clearBucket(adminS3, bucketName);
+        CommLib.clearBucket( adminS3, bucketName );
     }
 
     @Test
     private void test() throws Exception {
         // adminS3 create bucket and multi put object
-        adminS3.createBucket(new CreateBucketRequest(bucketName));
-        CommLib.setBucketVersioning(adminS3, bucketName, "Enabled");
-        adminS3.putObject(bucketName, keyName, fileContentA);
-        adminS3.putObject(bucketName, keyName, fileContentB);
+        adminS3.createBucket( new CreateBucketRequest( bucketName ) );
+        CommLib.setBucketVersioning( adminS3, bucketName, "Enabled" );
+        adminS3.putObject( bucketName, keyName, fileContentA );
+        adminS3.putObject( bucketName, keyName, fileContentB );
 
         // set object acl, current version
         String objCurVer = "1";
-        adminS3.setObjectAcl(bucketName, keyName, objCurVer, CannedAccessControlList.AuthenticatedRead);
+        adminS3.setObjectAcl( bucketName, keyName, objCurVer,
+                CannedAccessControlList.AuthenticatedRead );
         // check results
-        Grant[] expGrants1 = {
-                new Grant(new CanonicalGrantee(adminS3.getS3AccountOwner().getId()), Permission.FullControl),
-                new Grant(GroupGrantee.AuthenticatedUsers, Permission.Read) };
-        checkObjectAcl(objCurVer, expGrants1);
-        checkObjectContent(adminS3, keyName, objCurVer, fileContentB);
+        Grant[] expGrants1 = { new Grant(
+                new CanonicalGrantee( adminS3.getS3AccountOwner().getId() ),
+                Permission.FullControl ),
+                new Grant( GroupGrantee.AuthenticatedUsers, Permission.Read ) };
+        checkObjectAcl( objCurVer, expGrants1 );
+        checkObjectContent( adminS3, keyName, objCurVer, fileContentB );
 
         // set object acl, current version
         String objHisVer = "0";
-        adminS3.setObjectAcl(bucketName, keyName, objHisVer, CannedAccessControlList.PublicReadWrite);
+        adminS3.setObjectAcl( bucketName, keyName, objHisVer,
+                CannedAccessControlList.PublicReadWrite );
         // check results
-        Grant[] expGrants2 = {
-                new Grant(new CanonicalGrantee(adminS3.getS3AccountOwner().getId()), Permission.FullControl),
-                new Grant(GroupGrantee.AllUsers, Permission.Read), new Grant(GroupGrantee.AllUsers, Permission.Write) };
-        checkObjectAcl(objHisVer, expGrants2);
-        checkObjectContent(adminS3, keyName, objHisVer, fileContentA);
+        Grant[] expGrants2 = { new Grant(
+                new CanonicalGrantee( adminS3.getS3AccountOwner().getId() ),
+                Permission.FullControl ),
+                new Grant( GroupGrantee.AllUsers, Permission.Read ),
+                new Grant( GroupGrantee.AllUsers, Permission.Write ) };
+        checkObjectAcl( objHisVer, expGrants2 );
+        checkObjectContent( adminS3, keyName, objHisVer, fileContentA );
 
         runSuccess = true;
     }
@@ -82,27 +87,32 @@ public class SetObjectAcl19466 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(adminS3, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( adminS3, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             adminS3.shutdown();
         }
     }
 
-    private void checkObjectAcl(String objectVersion, Grant[] grants) {
+    private void checkObjectAcl( String objectVersion, Grant[] grants ) {
         // check owner
         Owner owner = adminS3.getS3AccountOwner();
-        AccessControlList acl = adminS3.getObjectAcl(bucketName, keyName, objectVersion);
-        Assert.assertEquals(acl.getOwner(), owner);
+        AccessControlList acl = adminS3
+                .getObjectAcl( bucketName, keyName, objectVersion );
+        Assert.assertEquals( acl.getOwner(), owner );
         // check grant
-        PrivilegeUtils.checkSetObjectAclResult(adminS3, bucketName, keyName, objectVersion, grants);
+        PrivilegeUtils.checkSetObjectAclResult( adminS3, bucketName, keyName,
+                objectVersion, grants );
     }
 
-    private void checkObjectContent(AmazonS3 authUserS3, String keyName, String objectVersion, String expFileContent)
-            throws Exception {
-        String downfileMd5 = ObjectUtils.getMd5OfObject(authUserS3, localPath, bucketName, keyName, objectVersion);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(expFileContent.getBytes()));
+    private void checkObjectContent( AmazonS3 authUserS3, String keyName,
+            String objectVersion, String expFileContent ) throws Exception {
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( authUserS3, localPath, bucketName, keyName,
+                        objectVersion );
+        Assert.assertEquals( downfileMd5,
+                TestTools.getMD5( expFileContent.getBytes() ) );
     }
 }

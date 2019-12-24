@@ -26,25 +26,31 @@ public class GetRegion17323 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        CommLib.clearUser(username);
-        RegionUtils.clearRegion(regionName);
-        JSONObject user = UserUtils.createUser(username, UserCommDefind.normal, UserUtils.accessKeyId);
-        accessKeyID = user.getJSONObject(UserCommDefind.accessKeys).getString(UserCommDefind.accessKeyID);
+        CommLib.clearUser( username );
+        RegionUtils.clearRegion( regionName );
+        JSONObject user = UserUtils.createUser( username, UserCommDefind.normal,
+                UserUtils.accessKeyId );
+        accessKeyID = user.getJSONObject( UserCommDefind.accessKeys )
+                .getString( UserCommDefind.accessKeyID );
     }
 
     @Test
     private void test() throws Exception {
         // create region
         Region region = new Region();
-        region.withDataCSShardingType("month").withDataCLShardingType("month").withName(regionName);
-        RegionUtils.putRegion(region);
+        region.withDataCSShardingType( "month" )
+                .withDataCLShardingType( "month" ).withName( regionName );
+        RegionUtils.putRegion( region );
 
         // get region by normal user
         try {
-            RegionUtils.getRegion(regionName, accessKeyID);
-            Assert.fail("exp fail but act success," + "regionName = " + regionName + ",username = " + username);
-        } catch (AmazonS3Exception e) {
-            if (e.getStatusCode() != 403 && !e.getErrorCode().contains("AccessDenied")) {
+            RegionUtils.getRegion( regionName, accessKeyID );
+            Assert.fail(
+                    "exp fail but act success," + "regionName = " + regionName
+                            + ",username = " + username );
+        } catch ( AmazonS3Exception e ) {
+            if ( e.getStatusCode() != 403 && !e.getErrorCode()
+                    .contains( "AccessDenied" ) ) {
                 throw e;
             }
         }
@@ -53,9 +59,9 @@ public class GetRegion17323 extends S3TestBase {
 
     @AfterClass
     private void tearDown() throws Exception {
-        if (runSuccess) {
-            RegionUtils.deleteRegion(regionName);
-            CommLib.clearUser(username);
+        if ( runSuccess ) {
+            RegionUtils.deleteRegion( regionName );
+            CommLib.clearUser( username );
         }
     }
 }

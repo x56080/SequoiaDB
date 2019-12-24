@@ -35,12 +35,13 @@ public class CreateUser16270 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        for (int i = 0; i < num; i++) {
+        for ( int i = 0; i < num; i++ ) {
             try {
-                UserUtils.deleteUser(userName + "." + i, UserUtils.accessKeyId, true);
-            } catch (HttpClientErrorException e) {
-                if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
-                    Assert.fail(e.getMessage());
+                UserUtils.deleteUser( userName + "." + i, UserUtils.accessKeyId,
+                        true );
+            } catch ( HttpClientErrorException e ) {
+                if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
+                    Assert.fail( e.getMessage() );
                 }
             }
         }
@@ -49,30 +50,51 @@ public class CreateUser16270 extends S3TestBase {
     @Test
     public void testCreateBucket() throws Exception {
         List<CreateUser> threads = new ArrayList<CreateUser>();
-        for (int i = 0; i < num; i++) {
-            threads.add(new CreateUser(userName + "." + i, UserCommDefind.normal, UserUtils.accessKeyId));
+        for ( int i = 0; i < num; i++ ) {
+            threads.add(
+                    new CreateUser( userName + "." + i, UserCommDefind.normal,
+                            UserUtils.accessKeyId ) );
         }
 
-        for (int i = 0; i < num; i++) {
-            threads.get(i).start();
+        for ( int i = 0; i < num; i++ ) {
+            threads.get( i ).start();
         }
 
-        for (int i = 0; i < num; i++) {
-            Assert.assertTrue(threads.get(i).isSuccess(), threads.get(i).getErrorMsg());
+        for ( int i = 0; i < num; i++ ) {
+            Assert.assertTrue( threads.get( i ).isSuccess(),
+                    threads.get( i ).getErrorMsg() );
         }
 
         // check result
-        for (JSONObject userJSON : userList) {
-            createBuckets(userJSON);
+        for ( JSONObject userJSON : userList ) {
+            createBuckets( userJSON );
         }
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
-        if (runSuccess) {
-            for (int i = 0; i < num; i++) {
-                UserUtils.deleteUser(userName + "." + i, UserUtils.accessKeyId, true);
+        if ( runSuccess ) {
+            for ( int i = 0; i < num; i++ ) {
+                UserUtils.deleteUser( userName + "." + i, UserUtils.accessKeyId,
+                        true );
+            }
+        }
+    }
+
+    private void createBuckets( JSONObject userJSON ) {
+        JSONObject json1 = userJSON.getJSONObject( UserCommDefind.accessKeys );
+        String accessKeyID = json1.getString( UserCommDefind.accessKeyID );
+        String secretAccessKey = json1
+                .getString( UserCommDefind.secretAccessKey );
+        AmazonS3 s3Client = null;
+        try {
+            s3Client = CommLib.buildS3Client( accessKeyID, secretAccessKey );
+            // create bucket
+            s3Client.createBucket( bucketName + "-" + UUID.randomUUID() );
+        } finally {
+            if ( s3Client != null ) {
+                s3Client.shutdown();
             }
         }
     }
@@ -82,7 +104,7 @@ public class CreateUser16270 extends S3TestBase {
         private String type;
         private String accessKeyID;
 
-        public CreateUser(String username, String type, String accessKeyID) {
+        public CreateUser( String username, String type, String accessKeyID ) {
             this.username = username;
             this.type = type;
             this.accessKeyID = accessKeyID;
@@ -91,27 +113,12 @@ public class CreateUser16270 extends S3TestBase {
         @Override
         public void exec() {
             try {
-                JSONObject userJSON = UserUtils.createUser(username, type, accessKeyID);
-                userList.add(userJSON);
-            } catch (Exception e) {
+                JSONObject userJSON = UserUtils
+                        .createUser( username, type, accessKeyID );
+                userList.add( userJSON );
+            } catch ( Exception e ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
-            }
-        }
-    }
-
-    private void createBuckets(JSONObject userJSON) {
-        JSONObject json1 = userJSON.getJSONObject(UserCommDefind.accessKeys);
-        String accessKeyID = json1.getString(UserCommDefind.accessKeyID);
-        String secretAccessKey = json1.getString(UserCommDefind.secretAccessKey);
-        AmazonS3 s3Client = null;
-        try {
-            s3Client = CommLib.buildS3Client(accessKeyID, secretAccessKey);
-            // create bucket
-            s3Client.createBucket(bucketName + "-" + UUID.randomUUID());
-        } finally {
-            if (s3Client != null) {
-                s3Client.shutdown();
+                Assert.fail( e.getMessage() );
             }
         }
     }

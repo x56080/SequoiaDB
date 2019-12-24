@@ -1,15 +1,5 @@
 package com.sequoias3.object;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
@@ -19,6 +9,15 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @Description seqDB-19315:桶内复制对象，源对象名和目标对象名相同
@@ -38,36 +37,39 @@ public class CopyObject19315 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
 
         Map<String, String> srcMeta = new HashMap<>();
-        srcMeta.put("tag1", "srcobject123");
+        srcMeta.put( "tag1", "srcobject123" );
         ObjectMetadata metaData = new ObjectMetadata();
-        metaData.setUserMetadata(srcMeta);
-        PutObjectRequest request = new PutObjectRequest(bucketName, keyName, new File(filePath));
-        request.withMetadata(metaData);
-        s3Client.putObject(request);
+        metaData.setUserMetadata( srcMeta );
+        PutObjectRequest request = new PutObjectRequest( bucketName, keyName,
+                new File( filePath ) );
+        request.withMetadata( metaData );
+        s3Client.putObject( request );
 
     }
 
     @Test
     public void testCopyObject() throws Exception {
         // test a: no set metadataDirective
-        copyObjectWithMetaFail("");
+        copyObjectWithMetaFail( "" );
 
         // test b:setMetadataDirective is COPY
-        copyObjectWithMetaFail("COPY");
+        copyObjectWithMetaFail( "COPY" );
 
         // test c:setMetadataDirective is REPLACE
-        copyObjectWithMetaSuccess("REPLACE");
+        copyObjectWithMetaSuccess( "REPLACE" );
 
         runSuccess = true;
     }
@@ -75,53 +77,61 @@ public class CopyObject19315 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
         }
     }
 
-    private void copyObjectWithMetaFail(String metadataDirective) {
+    private void copyObjectWithMetaFail( String metadataDirective ) {
         try {
-            CopyObjectRequest request = new CopyObjectRequest(bucketName, keyName, bucketName, keyName);
-            if (!metadataDirective.equals("")) {
-                request.setMetadataDirective(metadataDirective);
+            CopyObjectRequest request = new CopyObjectRequest( bucketName,
+                    keyName, bucketName, keyName );
+            if ( !metadataDirective.equals( "" ) ) {
+                request.setMetadataDirective( metadataDirective );
             }
-            s3Client.copyObject(request);
-            Assert.fail("copyObject must be fail ! metadataDirective:" + metadataDirective);
-        } catch (AmazonS3Exception e) {
-            Assert.assertEquals(e.getErrorCode(), "InvalidRequest", e.getStatusCode() + e.getErrorMessage());
+            s3Client.copyObject( request );
+            Assert.fail( "copyObject must be fail ! metadataDirective:"
+                    + metadataDirective );
+        } catch ( AmazonS3Exception e ) {
+            Assert.assertEquals( e.getErrorCode(), "InvalidRequest",
+                    e.getStatusCode() + e.getErrorMessage() );
         }
     }
 
-    private void copyObjectWithMetaSuccess(String metadataDirective) throws IOException {
+    private void copyObjectWithMetaSuccess( String metadataDirective )
+            throws IOException {
         Map<String, String> objectMeta = new HashMap<>();
-        objectMeta.put("tag1", "testa");
-        objectMeta.put("tag2", "testa2");
+        objectMeta.put( "tag1", "testa" );
+        objectMeta.put( "tag2", "testa2" );
         ObjectMetadata metaData = new ObjectMetadata();
-        metaData.setUserMetadata(objectMeta);
+        metaData.setUserMetadata( objectMeta );
 
-        CopyObjectRequest request = new CopyObjectRequest(bucketName, keyName, bucketName, keyName);
-        request.setMetadataDirective(metadataDirective);
-        request.withNewObjectMetadata(metaData);
-        s3Client.copyObject(request);
+        CopyObjectRequest request = new CopyObjectRequest( bucketName, keyName,
+                bucketName, keyName );
+        request.setMetadataDirective( metadataDirective );
+        request.withNewObjectMetadata( metaData );
+        s3Client.copyObject( request );
 
         // check the attributeInfo of get object
-        GetObjectMetadataRequest mRequest = new GetObjectMetadataRequest(bucketName, keyName);
-        ObjectMetadata result = s3Client.getObjectMetadata(mRequest);
-        Assert.assertEquals(result.getETag(), TestTools.getMD5(filePath));
-        Assert.assertEquals(result.getContentLength(), fileSize);
+        GetObjectMetadataRequest mRequest = new GetObjectMetadataRequest(
+                bucketName, keyName );
+        ObjectMetadata result = s3Client.getObjectMetadata( mRequest );
+        Assert.assertEquals( result.getETag(), TestTools.getMD5( filePath ) );
+        Assert.assertEquals( result.getContentLength(), fileSize );
 
         Map<String, String> actMeta = result.getUserMetadata();
-        Assert.assertEquals(actMeta.size(), objectMeta.size(),
-                "expMeta is : " + objectMeta.toString() + "actMeta is : " + actMeta.toString());
-        for (Map.Entry<String, String> entry : objectMeta.entrySet()) {
+        Assert.assertEquals( actMeta.size(), objectMeta.size(),
+                "expMeta is : " + objectMeta.toString() + "actMeta is : "
+                        + actMeta.toString() );
+        for ( Map.Entry<String, String> entry : objectMeta.entrySet() ) {
             Object key = entry.getKey();
-            Assert.assertEquals(actMeta.get(key), objectMeta.get(key),
-                    "actMeta = " + actMeta.toString() + ",expMeta = " + objectMeta.toString());
+            Assert.assertEquals( actMeta.get( key ), objectMeta.get( key ),
+                    "actMeta = " + actMeta.toString() + ",expMeta = "
+                            + objectMeta.toString() );
         }
     }
 }

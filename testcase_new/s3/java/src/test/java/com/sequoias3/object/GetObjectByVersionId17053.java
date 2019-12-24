@@ -1,7 +1,11 @@
 package com.sequoias3.object;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.BucketVersioningConfiguration;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
@@ -37,63 +41,77 @@ public class GetObjectByVersionId17053 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
         String filePath = null;
-        for (int i = 0; i < versionNum; i++) {
-            filePath = localPath + File.separator + "localFile_" + (fileSize + i) + ".txt";
-            TestTools.LocalFile.createFile(filePath, fileSize + i);
-            filePathList.add(filePath);
+        for ( int i = 0; i < versionNum; i++ ) {
+            filePath =
+                    localPath + File.separator + "localFile_" + ( fileSize + i )
+                            + ".txt";
+            TestTools.LocalFile.createFile( filePath, fileSize + i );
+            filePathList.add( filePath );
         }
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
-        objectVSList.add(s3Client.putObject(bucketName, objectName, new File(filePathList.get(0))));
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.SUSPENDED);
-        objectVSList.add(s3Client.putObject(bucketName, objectName, new File(filePathList.get(1))));
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
-        objectVSList.add(s3Client.putObject(bucketName, objectName, new File(filePathList.get(2))));
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
+        objectVSList.add( s3Client.putObject( bucketName, objectName,
+                new File( filePathList.get( 0 ) ) ) );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.SUSPENDED );
+        objectVSList.add( s3Client.putObject( bucketName, objectName,
+                new File( filePathList.get( 1 ) ) ) );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
+        objectVSList.add( s3Client.putObject( bucketName, objectName,
+                new File( filePathList.get( 2 ) ) ) );
     }
 
     @Test
     private void test() throws Exception {
         int index = 1;
-        String versionId = objectVSList.get(index).getVersionId();
-        S3Object obj = s3Client.getObject(new GetObjectRequest(bucketName, objectName, versionId));
+        String versionId = objectVSList.get( index ).getVersionId();
+        S3Object obj = s3Client.getObject(
+                new GetObjectRequest( bucketName, objectName, versionId ) );
 
         // check the Etag and the md5 of object content
-        String path = filePathList.get(index);
-        checkResult(obj, path);
+        String path = filePathList.get( index );
+        checkResult( obj, path );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
     }
 
-    private void checkResult(S3Object object, String filePath) throws Exception {
-        Assert.assertEquals(object.getObjectMetadata().getETag(), TestTools.getMD5(filePath));
+    private void checkResult( S3Object object, String filePath )
+            throws Exception {
+        Assert.assertEquals( object.getObjectMetadata().getETag(),
+                TestTools.getMD5( filePath ) );
         S3ObjectInputStream s3ObjectInputStream = null;
         try {
             s3ObjectInputStream = object.getObjectContent();
-            String downloadPath = TestTools.LocalFile.initDownloadPath(localPath, TestTools.getMethodName(),
-                    Thread.currentThread().getId());
-            ObjectUtils.inputStream2File(s3ObjectInputStream, downloadPath);
-            Assert.assertEquals(TestTools.getMD5(downloadPath), TestTools.getMD5(filePath));
+            String downloadPath = TestTools.LocalFile
+                    .initDownloadPath( localPath, TestTools.getMethodName(),
+                            Thread.currentThread().getId() );
+            ObjectUtils.inputStream2File( s3ObjectInputStream, downloadPath );
+            Assert.assertEquals( TestTools.getMD5( downloadPath ),
+                    TestTools.getMD5( filePath ) );
         } finally {
-            if (s3ObjectInputStream != null) {
+            if ( s3ObjectInputStream != null ) {
                 s3ObjectInputStream.close();
             }
         }

@@ -1,18 +1,17 @@
 package com.sequoias3.head;
 
-import java.io.IOException;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.UserUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
 
 /**
  * @Description seqDB-16675: head object by the other user
@@ -32,26 +31,27 @@ public class HeadObject16675 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        CommLib.clearUser(userName1);
-        CommLib.clearUser(userName2);
-        String[] acessKeys1 = UserUtils.createUser(userName1, roleName);
-        String[] acessKeys2 = UserUtils.createUser(userName2, roleName);
-        s3Client1 = CommLib.buildS3Client(acessKeys1[0], acessKeys1[1]);
-        s3Client2 = CommLib.buildS3Client(acessKeys2[0], acessKeys2[1]);
-        s3Client2.createBucket(bucketName);
+        CommLib.clearUser( userName1 );
+        CommLib.clearUser( userName2 );
+        String[] acessKeys1 = UserUtils.createUser( userName1, roleName );
+        String[] acessKeys2 = UserUtils.createUser( userName2, roleName );
+        s3Client1 = CommLib.buildS3Client( acessKeys1[ 0 ], acessKeys1[ 1 ] );
+        s3Client2 = CommLib.buildS3Client( acessKeys2[ 0 ], acessKeys2[ 1 ] );
+        s3Client2.createBucket( bucketName );
     }
 
     @Test
     public void testHeadBucket() throws IOException {
-        s3Client2.putObject(bucketName, key, "testbucketObject16675!");
-        GetObjectMetadataRequest request = new GetObjectMetadataRequest(bucketName, key);
+        s3Client2.putObject( bucketName, key, "testbucketObject16675!" );
+        GetObjectMetadataRequest request = new GetObjectMetadataRequest(
+                bucketName, key );
 
         try {
-            s3Client1.getObjectMetadata(request);
-            Assert.fail("head object must be fail!");
-        } catch (AmazonS3Exception e) {
+            s3Client1.getObjectMetadata( request );
+            Assert.fail( "head object must be fail!" );
+        } catch ( AmazonS3Exception e ) {
             // return 403 Forbidden
-            Assert.assertEquals(e.getStatusCode(), 403);
+            Assert.assertEquals( e.getStatusCode(), 403 );
         }
         runSuccess = true;
     }
@@ -59,9 +59,9 @@ public class HeadObject16675 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                UserUtils.deleteUser(userName1);
-                UserUtils.deleteUser(userName2);
+            if ( runSuccess ) {
+                UserUtils.deleteUser( userName1 );
+                UserUtils.deleteUser( userName2 );
             }
         } finally {
             s3Client1.shutdown();

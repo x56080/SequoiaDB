@@ -1,17 +1,16 @@
 package com.sequoias3.head;
 
-import java.io.IOException;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
 
 /**
  * @Description seqDB-16676: head object and specify the bucket does not exist.
@@ -28,18 +27,20 @@ public class HeadObject16676 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException {
         s3Client = CommLib.buildS3Client();
-        s3Client.putObject(S3TestBase.bucketName, key, "testbucketObject16676!");
+        s3Client.putObject( S3TestBase.bucketName, key,
+                "testbucketObject16676!" );
     }
 
     @Test
     public void testCreateBucket() {
-        GetObjectMetadataRequest request = new GetObjectMetadataRequest(bucketName, key);
+        GetObjectMetadataRequest request = new GetObjectMetadataRequest(
+                bucketName, key );
         try {
-            s3Client.getObjectMetadata(request);
-            Assert.fail("head object must be fail!");
-        } catch (AmazonS3Exception e) {
+            s3Client.getObjectMetadata( request );
+            Assert.fail( "head object must be fail!" );
+        } catch ( AmazonS3Exception e ) {
             // return 404 Not found
-            Assert.assertEquals(e.getStatusCode(), 404);
+            Assert.assertEquals( e.getStatusCode(), 404 );
         }
         runSuccess = true;
     }
@@ -47,8 +48,8 @@ public class HeadObject16676 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                s3Client.deleteObject(S3TestBase.bucketName, key);
+            if ( runSuccess ) {
+                s3Client.deleteObject( S3TestBase.bucketName, key );
             }
         } finally {
             s3Client.shutdown();

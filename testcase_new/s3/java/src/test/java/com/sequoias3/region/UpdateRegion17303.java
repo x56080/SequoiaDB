@@ -16,43 +16,50 @@ import org.testng.annotations.Test;
 public class UpdateRegion17303 extends S3TestBase {
     private String regionName = "region17303";
     private String csName = "cs17303";
-    private String[] clNames = { "dataCL17303A", "metaCL17303A", "metaHisCL17303A" };
+    private String[] clNames = { "dataCL17303A", "metaCL17303A",
+            "metaHisCL17303A" };
     private boolean runSuccess = false;
 
     @BeforeClass
     private void setUp() throws Exception {
-        RegionUtils.createCSAndCL(csName, clNames);
-        RegionUtils.clearRegion(regionName);
+        RegionUtils.createCSAndCL( csName, clNames );
+        RegionUtils.clearRegion( regionName );
     }
 
     @Test
     private void test() throws Exception {
         // create region
         Region region = new Region();
-        region.withDataLocation(csName + "." + clNames[0]).withMetaLocation(csName + "." + clNames[1])
-                .withMetaHisLocation(csName + "." + clNames[2]).withName(regionName);
-        RegionUtils.putRegion(region);
+        region.withDataLocation( csName + "." + clNames[ 0 ] )
+                .withMetaLocation( csName + "." + clNames[ 1 ] )
+                .withMetaHisLocation( csName + "." + clNames[ 2 ] )
+                .withName( regionName );
+        RegionUtils.putRegion( region );
         // put region again
-        RegionUtils.putRegion(region);
+        RegionUtils.putRegion( region );
         // check region info
-        GetRegionResult regionResult = RegionUtils.getRegion(regionName);
-        checkGetRegionResult(regionResult, region);
+        GetRegionResult regionResult = RegionUtils.getRegion( regionName );
+        checkGetRegionResult( regionResult, region );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
-        if (runSuccess) {
-            RegionUtils.dropCS(new String[] { csName });
-            RegionUtils.deleteRegion(regionName);
+        if ( runSuccess ) {
+            RegionUtils.dropCS( new String[] { csName } );
+            RegionUtils.deleteRegion( regionName );
         }
     }
 
-    private void checkGetRegionResult(GetRegionResult result, Region expRegion) {
+    private void checkGetRegionResult( GetRegionResult result,
+            Region expRegion ) {
         Region actRegion = result.getRegion();
-        Assert.assertEquals(actRegion.getDataLocation(), expRegion.getDataLocation());
-        Assert.assertEquals(actRegion.getMetaLocation(), expRegion.getMetaLocation());
-        Assert.assertEquals(actRegion.getMetaHisLocation(), expRegion.getMetaHisLocation());
-        Assert.assertEquals(result.getBuckets().size(), 0);
+        Assert.assertEquals( actRegion.getDataLocation(),
+                expRegion.getDataLocation() );
+        Assert.assertEquals( actRegion.getMetaLocation(),
+                expRegion.getMetaLocation() );
+        Assert.assertEquals( actRegion.getMetaHisLocation(),
+                expRegion.getMetaHisLocation() );
+        Assert.assertEquals( result.getBuckets().size(), 0 );
     }
 }

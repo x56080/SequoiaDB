@@ -39,19 +39,23 @@ public class UpdateAndGetSameObject16514 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath = localPath + File.separator + "localFile_" + updateSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
-        TestTools.LocalFile.createFile(updatePath, updateSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        updatePath =
+                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        TestTools.LocalFile.createFile( updatePath, updateSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.SUSPENDED);
-        s3Client.putObject(bucketName, keyName, new File(filePath));
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.SUSPENDED );
+        s3Client.putObject( bucketName, keyName, new File( filePath ) );
     }
 
     @Test
@@ -61,20 +65,24 @@ public class UpdateAndGetSameObject16514 extends S3TestBase {
         updateObjectThread.start();
         getObjectThread.start();
 
-        if (updateObjectThread.isSuccess()) {
+        if ( updateObjectThread.isSuccess() ) {
 
-            if (getObjectThread.isSuccess()) {
-                checkGetObject(bucketName, keyName);
+            if ( getObjectThread.isSuccess() ) {
+                checkGetObject( bucketName, keyName );
             } else {
-                AmazonS3Exception e = (AmazonS3Exception) (getObjectThread.getExceptions().get(0));
-                if (!e.getErrorCode().equals("NoSuchKey")) {
-                    Assert.fail("getObject fail:" + getObjectThread.getErrorMsg() + "  e:" + e.getErrorCode());
+                AmazonS3Exception e = ( AmazonS3Exception ) ( getObjectThread
+                        .getExceptions().get( 0 ) );
+                if ( !e.getErrorCode().equals( "NoSuchKey" ) ) {
+                    Assert.fail(
+                            "getObject fail:" + getObjectThread.getErrorMsg()
+                                    + "  e:" + e.getErrorCode() );
                 }
             }
-            checkUpdateObjectResult(bucketName, keyName);
+            checkUpdateObjectResult( bucketName, keyName );
         } else {
-            Assert.fail("Unexpected results! updateObjectError:" + updateObjectThread.getErrorMsg() + "getObjectError:"
-                    + getObjectThread.getErrorMsg());
+            Assert.fail( "Unexpected results! updateObjectError:"
+                    + updateObjectThread.getErrorMsg() + "getObjectError:"
+                    + getObjectThread.getErrorMsg() );
         }
 
         runSuccess = true;
@@ -83,15 +91,32 @@ public class UpdateAndGetSameObject16514 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
+    }
+
+    private void checkGetObject( String bucketName, String key )
+            throws Exception {
+        // check get object result from md5
+        if ( objectLength == fileSize ) {
+            Assert.assertEquals( getObjectMd5, TestTools.getMD5( filePath ) );
+        } else {
+            Assert.assertEquals( getObjectMd5, TestTools.getMD5( updatePath ) );
+        }
+    }
+
+    private void checkUpdateObjectResult( String bucketName, String key )
+            throws Exception {
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
     }
 
     private class UpdateObjectThread extends S3ThreadBase {
@@ -99,9 +124,10 @@ public class UpdateAndGetSameObject16514 extends S3TestBase {
         public void exec() throws Exception {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
-                s3Client.putObject(bucketName, keyName, new File(updatePath));
+                s3Client.putObject( bucketName, keyName,
+                        new File( updatePath ) );
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }
@@ -113,34 +139,21 @@ public class UpdateAndGetSameObject16514 extends S3TestBase {
         public void exec() throws Exception {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
-                S3Object object = s3Client.getObject(bucketName, keyName);
+                S3Object object = s3Client.getObject( bucketName, keyName );
                 objectLength = object.getObjectMetadata().getContentLength();
                 S3ObjectInputStream s3is = object.getObjectContent();
-                String downloadPath = TestTools.LocalFile.initDownloadPath(localPath, TestTools.getMethodName(),
-                        Thread.currentThread().getId());
-                ObjectUtils.inputStream2File(s3is, downloadPath);
+                String downloadPath = TestTools.LocalFile
+                        .initDownloadPath( localPath, TestTools.getMethodName(),
+                                Thread.currentThread().getId() );
+                ObjectUtils.inputStream2File( s3is, downloadPath );
                 s3is.close();
-                getObjectMd5 = TestTools.getMD5(downloadPath);
+                getObjectMd5 = TestTools.getMD5( downloadPath );
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }
         }
-    }
-
-    private void checkGetObject(String bucketName, String key) throws Exception {
-        // check get object result from md5
-        if (objectLength == fileSize) {
-            Assert.assertEquals(getObjectMd5, TestTools.getMD5(filePath));
-        } else {
-            Assert.assertEquals(getObjectMd5, TestTools.getMD5(updatePath));
-        }
-    }
-
-    private void checkUpdateObjectResult(String bucketName, String key) throws Exception {
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, key);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(updatePath));
     }
 
 }

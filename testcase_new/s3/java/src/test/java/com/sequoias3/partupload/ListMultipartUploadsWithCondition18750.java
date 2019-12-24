@@ -1,20 +1,19 @@
 package com.sequoias3.partupload;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.PartUploadUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @Description seqDB-18750: lists in-progress multipart uploads by
@@ -37,28 +36,31 @@ public class ListMultipartUploadsWithCondition18750 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, "Enabled");
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
     }
 
     @Test
     public void uploadParts() {
         MultiValueMap<String, String> expUpload = initPartUpload();
         // list multipartUploads and check list info.
-        ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(bucketName).withDelimiter(delimiter)
-                .withPrefix(prefix);
-        MultipartUploadListing result = s3Client.listMultipartUploads(request);
+        ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
+                bucketName ).withDelimiter( delimiter ).withPrefix( prefix );
+        MultipartUploadListing result = s3Client
+                .listMultipartUploads( request );
         List<String> expCommonPrefixes = new ArrayList<>();
-        PartUploadUtils.checkListMultipartUploadsResults(result, expCommonPrefixes, expUpload);
+        PartUploadUtils
+                .checkListMultipartUploadsResults( result, expCommonPrefixes,
+                        expUpload );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
             }
         } finally {
             s3Client.shutdown();
@@ -67,19 +69,23 @@ public class ListMultipartUploadsWithCondition18750 extends S3TestBase {
 
     private MultiValueMap<String, String> initPartUpload() {
         MultiValueMap<String, String> expUpload = new LinkedMultiValueMap<String, String>();
-        for (int i = 0; i < objectNum; i++) {
-            if (i % 10 == 0) {
+        for ( int i = 0; i < objectNum; i++ ) {
+            if ( i % 10 == 0 ) {
                 // keyName misMatch prefix and matching delimiter
                 String subKeyName = "test" + i + delimiter + baseKeyName;
-                PartUploadUtils.initPartUpload(s3Client, bucketName, subKeyName);
-                PartUploadUtils.initPartUpload(s3Client, bucketName, subKeyName);
+                PartUploadUtils
+                        .initPartUpload( s3Client, bucketName, subKeyName );
+                PartUploadUtils
+                        .initPartUpload( s3Client, bucketName, subKeyName );
             } else {
                 // keyName matching prefix and mismatch delimter
                 String subKeyName = prefix + i + "_" + baseKeyName;
-                String uploadId1 = PartUploadUtils.initPartUpload(s3Client, bucketName, subKeyName);
-                String uploadId2 = PartUploadUtils.initPartUpload(s3Client, bucketName, subKeyName);
-                expUpload.add(subKeyName, uploadId1);
-                expUpload.add(subKeyName, uploadId2);
+                String uploadId1 = PartUploadUtils
+                        .initPartUpload( s3Client, bucketName, subKeyName );
+                String uploadId2 = PartUploadUtils
+                        .initPartUpload( s3Client, bucketName, subKeyName );
+                expUpload.add( subKeyName, uploadId1 );
+                expUpload.add( subKeyName, uploadId2 );
             }
         }
         return expUpload;

@@ -31,19 +31,21 @@ public class DeleteAndUpdateUser16273 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        for (int i = 0; i < num; i++) {
+        for ( int i = 0; i < num; i++ ) {
             try {
-                nameList.add(userName + "." + i);
-                UserUtils.deleteUser(userName + "." + i, UserUtils.accessKeyId, true);
-            } catch (HttpClientErrorException e) {
-                if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
-                    Assert.fail(e.getMessage());
+                nameList.add( userName + "." + i );
+                UserUtils.deleteUser( userName + "." + i, UserUtils.accessKeyId,
+                        true );
+            } catch ( HttpClientErrorException e ) {
+                if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
+                    Assert.fail( e.getMessage() );
                 }
             }
         }
 
-        for (int i = 0; i < num; i++) {
-            UserUtils.createUser(nameList.get(i), UserCommDefind.normal, UserUtils.accessKeyId);
+        for ( int i = 0; i < num; i++ ) {
+            UserUtils.createUser( nameList.get( i ), UserCommDefind.normal,
+                    UserUtils.accessKeyId );
         }
     }
 
@@ -53,8 +55,8 @@ public class DeleteAndUpdateUser16273 extends S3TestBase {
         UpdateUser uTread = new UpdateUser();
         dThread.start();
         uTread.start();
-        Assert.assertTrue(dThread.isSuccess(), dThread.getErrorMsg());
-        Assert.assertTrue(uTread.isSuccess(), uTread.getErrorMsg());
+        Assert.assertTrue( dThread.isSuccess(), dThread.getErrorMsg() );
+        Assert.assertTrue( uTread.isSuccess(), uTread.getErrorMsg() );
 
         // check
         checkResult();
@@ -64,11 +66,29 @@ public class DeleteAndUpdateUser16273 extends S3TestBase {
     private void tearDown() throws Exception {
     }
 
+    private void checkResult() {
+        for ( int i = 0; i < num; i++ ) {
+            try {
+                UserUtils.getUser( nameList.get( i ), UserUtils.accessKeyId );
+                Assert.fail( "exp fail but act success" );
+            } catch ( HttpClientErrorException e ) {
+                String errorMsg = e.getResponseBodyAsString();
+                org.json.JSONObject json1 = XML.toJSONObject( errorMsg );
+                if ( !json1.getJSONObject( UserCommDefind.error )
+                        .getString( UserCommDefind.errorCode )
+                        .contains( "NoSuchUser" ) ) {
+                    Assert.fail( e.getMessage() );
+                }
+            }
+        }
+    }
+
     public class DeleteUser extends S3ThreadBase {
         @Override
         public void exec() {
-            for (int i = 0; i < num; i++) {
-                UserUtils.deleteUser(nameList.get(i), UserUtils.accessKeyId, true);
+            for ( int i = 0; i < num; i++ ) {
+                UserUtils.deleteUser( nameList.get( i ), UserUtils.accessKeyId,
+                        true );
             }
         }
     }
@@ -77,32 +97,18 @@ public class DeleteAndUpdateUser16273 extends S3TestBase {
         @Override
         public void exec() {
             try {
-                for (int i = num - 1; i >= 0; i--) {
-                    UserUtils.updateUser(nameList.get(i), UserUtils.accessKeyId);
+                for ( int i = num - 1; i >= 0; i-- ) {
+                    UserUtils.updateUser( nameList.get( i ),
+                            UserUtils.accessKeyId );
                 }
-            } catch (HttpClientErrorException e) {
+            } catch ( HttpClientErrorException e ) {
                 String errorMsg = e.getResponseBodyAsString();
-                org.json.JSONObject json1 = XML.toJSONObject(errorMsg);
-                if (!json1.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                        .contains("NoSuchUser")) {
+                org.json.JSONObject json1 = XML.toJSONObject( errorMsg );
+                if ( !json1.getJSONObject( UserCommDefind.error )
+                        .getString( UserCommDefind.errorCode )
+                        .contains( "NoSuchUser" ) ) {
                     e.printStackTrace();
-                    Assert.fail(e.getMessage());
-                }
-            }
-        }
-    }
-
-    private void checkResult() {
-        for (int i = 0; i < num; i++) {
-            try {
-                UserUtils.getUser(nameList.get(i), UserUtils.accessKeyId);
-                Assert.fail("exp fail but act success");
-            } catch (HttpClientErrorException e) {
-                String errorMsg = e.getResponseBodyAsString();
-                org.json.JSONObject json1 = XML.toJSONObject(errorMsg);
-                if (!json1.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                        .contains("NoSuchUser")) {
-                    Assert.fail(e.getMessage());
+                    Assert.fail( e.getMessage() );
                 }
             }
         }

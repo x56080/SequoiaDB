@@ -1,19 +1,18 @@
 package com.sequoias3.delimiter;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.DelimiterUtils;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @Description seqDB-18077: current delimiter is the delimiter2, than update
@@ -36,34 +35,38 @@ public class UpdateDelimiter18077 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, "Enabled");
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
 
         // add a deleteTag key
-        s3Client.deleteObject(bucketName, deleteTagkeyName);
-        s3Client.putObject(bucketName, keyName, new File(filePath));
+        s3Client.deleteObject( bucketName, deleteTagkeyName );
+        s3Client.putObject( bucketName, keyName, new File( filePath ) );
     }
 
     @Test
     public void testUpdateDelimiter() throws Exception {
-        DelimiterUtils.putBucketDelimiter(bucketName, curDelimiter);
+        DelimiterUtils.putBucketDelimiter( bucketName, curDelimiter );
 
-        DelimiterUtils.updateDelimiterSuccessAgain(bucketName, newDelimiter);
-        DelimiterUtils.checkCurrentDelimiteInfo(bucketName, newDelimiter);
+        DelimiterUtils.updateDelimiterSuccessAgain( bucketName, newDelimiter );
+        DelimiterUtils.checkCurrentDelimiteInfo( bucketName, newDelimiter );
 
         List<String> expCommprefixList = new ArrayList<>();
-        expCommprefixList.add("aa%delete?");
-        expCommprefixList.add("aa?");
+        expCommprefixList.add( "aa%delete?" );
+        expCommprefixList.add( "aa?" );
         List<String> expContentList = new ArrayList<>();
-        DelimiterUtils.listObjectsWithDelimiter(s3Client, bucketName, newDelimiter, expCommprefixList, expContentList);
+        DelimiterUtils
+                .listObjectsWithDelimiter( s3Client, bucketName, newDelimiter,
+                        expCommprefixList, expContentList );
 
         runSuccess = true;
     }
@@ -71,9 +74,9 @@ public class UpdateDelimiter18077 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();

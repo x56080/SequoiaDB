@@ -38,20 +38,24 @@ public class GetObjectByNoOwner16367 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.createFile( filePath, fileSize );
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, BucketVersioningConfiguration.ENABLED);
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName,
+                BucketVersioningConfiguration.ENABLED );
     }
 
     @Test
     private void test() throws Exception {
-        s3Client.putObject(new PutObjectRequest(bucketName, objectName, new File(filePath)));
+        s3Client.putObject( new PutObjectRequest( bucketName, objectName,
+                new File( filePath ) ) );
         createUser();
         getObjectByNoOwner();
         runSuccess = true;
@@ -60,13 +64,13 @@ public class GetObjectByNoOwner16367 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                UserUtils.deleteUser(username, UserUtils.accessKeyId, true);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                UserUtils.deleteUser( username, UserUtils.accessKeyId, true );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
@@ -76,24 +80,25 @@ public class GetObjectByNoOwner16367 extends S3TestBase {
         // get object by no owner
         AmazonS3 s3 = null;
         try {
-            s3 = CommLib.buildS3Client(accessKeyID, secretAccessKey);
-            s3.getObject(bucketName, objectName);
-            Assert.fail("exp fail but act success");
-        } catch (AmazonS3Exception e) {
-            if (e.getStatusCode() != 403) {
-                Assert.fail(e.getMessage());
+            s3 = CommLib.buildS3Client( accessKeyID, secretAccessKey );
+            s3.getObject( bucketName, objectName );
+            Assert.fail( "exp fail but act success" );
+        } catch ( AmazonS3Exception e ) {
+            if ( e.getStatusCode() != 403 ) {
+                Assert.fail( e.getMessage() );
             }
         } finally {
-            if (s3 != null) {
+            if ( s3 != null ) {
                 s3.shutdown();
             }
         }
     }
 
     private void createUser() {
-        JSONObject user = UserUtils.createUser(username, UserCommDefind.admin, UserUtils.accessKeyId);
-        JSONObject userJSON = user.getJSONObject(UserCommDefind.accessKeys);
-        accessKeyID = userJSON.getString(UserCommDefind.accessKeyID);
-        secretAccessKey = userJSON.getString(UserCommDefind.secretAccessKey);
+        JSONObject user = UserUtils.createUser( username, UserCommDefind.admin,
+                UserUtils.accessKeyId );
+        JSONObject userJSON = user.getJSONObject( UserCommDefind.accessKeys );
+        accessKeyID = userJSON.getString( UserCommDefind.accessKeyID );
+        secretAccessKey = userJSON.getString( UserCommDefind.secretAccessKey );
     }
 }

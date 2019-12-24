@@ -31,22 +31,24 @@ public class CreateRegion17296 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        RegionUtils.clearRegion(regionName);
+        CommLib.clearBucket( s3Client, bucketName );
+        RegionUtils.clearRegion( regionName );
     }
 
     @Test
     public void testRegion() throws Exception {
         Region region = new Region();
-        region.withName(regionName);
-        RegionUtils.putRegion(region);
+        region.withName( regionName );
+        RegionUtils.putRegion( region );
 
         // get region and check region info
         checkRegion();
@@ -59,10 +61,10 @@ public class CreateRegion17296 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                RegionUtils.deleteRegion(regionName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                RegionUtils.deleteRegion( regionName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
@@ -70,24 +72,25 @@ public class CreateRegion17296 extends S3TestBase {
     }
 
     private void checkRegion() throws Exception {
-        GetRegionResult result = RegionUtils.getRegion(regionName);
+        GetRegionResult result = RegionUtils.getRegion( regionName );
         Region regionInfo = result.getRegion();
         // get the region infor to take the default value.
-        Assert.assertEquals(regionInfo.getDataCLShardingType(), "quarter");
-        Assert.assertEquals(regionInfo.getDataCSShardingType(), "year");
-        Assert.assertEquals(regionInfo.getMetaDomain(), "");
-        Assert.assertEquals(regionInfo.getDataDomain(), "");
-        Assert.assertEquals(regionInfo.getMetaLocation(), "");
-        Assert.assertEquals(regionInfo.getMetaHisLocation(), "");
-        Assert.assertEquals(regionInfo.getDataLocation(), "");
+        Assert.assertEquals( regionInfo.getDataCLShardingType(), "quarter" );
+        Assert.assertEquals( regionInfo.getDataCSShardingType(), "year" );
+        Assert.assertEquals( regionInfo.getMetaDomain(), "" );
+        Assert.assertEquals( regionInfo.getDataDomain(), "" );
+        Assert.assertEquals( regionInfo.getMetaLocation(), "" );
+        Assert.assertEquals( regionInfo.getMetaHisLocation(), "" );
+        Assert.assertEquals( regionInfo.getDataLocation(), "" );
     }
 
     @SuppressWarnings("deprecation")
     private void createObjectAndCheckResult() throws Exception {
-        s3Client.createBucket(bucketName, regionName);
-        s3Client.putObject(bucketName, key, new File(filePath));
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, key);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
+        s3Client.createBucket( bucketName, regionName );
+        s3Client.putObject( bucketName, key, new File( filePath ) );
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
 }

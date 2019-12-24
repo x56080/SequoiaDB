@@ -26,17 +26,18 @@ public class DeleteAdminUser16260 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(adminName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
-                Assert.fail(e.getMessage());
+            UserUtils.deleteUser( adminName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            UserUtils.deleteUser(deleteAdminName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
-                Assert.fail(e.getMessage());
+            UserUtils
+                    .deleteUser( deleteAdminName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -44,40 +45,47 @@ public class DeleteAdminUser16260 extends S3TestBase {
     @Test
     private void test() {
         // create user
-        JSONObject adminUserJSON = UserUtils.createUser(adminName, UserCommDefind.admin, UserUtils.accessKeyId);
+        JSONObject adminUserJSON = UserUtils
+                .createUser( adminName, UserCommDefind.admin,
+                        UserUtils.accessKeyId );
 
         // get the accessKeyID and secretAccessKey from userJSON
-        JSONObject jsonAdmin = adminUserJSON.getJSONObject(UserCommDefind.accessKeys);
-        String accessKeyIDAdmin = jsonAdmin.getString(UserCommDefind.accessKeyID);
+        JSONObject jsonAdmin = adminUserJSON
+                .getJSONObject( UserCommDefind.accessKeys );
+        String accessKeyIDAdmin = jsonAdmin
+                .getString( UserCommDefind.accessKeyID );
 
         // admin user create admin user
-        UserUtils.createUser(deleteAdminName, UserCommDefind.admin, accessKeyIDAdmin);
+        UserUtils.createUser( deleteAdminName, UserCommDefind.admin,
+                accessKeyIDAdmin );
 
         // delete admin user
-        UserUtils.deleteUser(deleteAdminName, accessKeyIDAdmin);
+        UserUtils.deleteUser( deleteAdminName, accessKeyIDAdmin );
 
         // check: admin user does not exist;
-        checkDeletedAdminUser(deleteAdminName, accessKeyIDAdmin);
+        checkDeletedAdminUser( deleteAdminName, accessKeyIDAdmin );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
-        if (runSuccess) {
-            UserUtils.deleteUser(adminName, UserUtils.accessKeyId, true);
+        if ( runSuccess ) {
+            UserUtils.deleteUser( adminName, UserUtils.accessKeyId, true );
         }
     }
 
-    private void checkDeletedAdminUser(String name, String accessKeyID) {
+    private void checkDeletedAdminUser( String name, String accessKeyID ) {
         try {
-            UserUtils.getUser(name, accessKeyID);
-            Assert.fail("exp fail but act success");
-        } catch (HttpClientErrorException e) {
+            UserUtils.getUser( name, accessKeyID );
+            Assert.fail( "exp fail but act success" );
+        } catch ( HttpClientErrorException e ) {
             String errorMsg = e.getResponseBodyAsString();
-            org.json.JSONObject json1 = XML.toJSONObject(errorMsg);
-            if (!json1.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode).contains("NoSuchUser")) {
+            org.json.JSONObject json1 = XML.toJSONObject( errorMsg );
+            if ( !json1.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "NoSuchUser" ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
     }

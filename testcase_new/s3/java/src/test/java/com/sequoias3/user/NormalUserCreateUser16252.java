@@ -30,11 +30,11 @@ public class NormalUserCreateUser16252 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -42,9 +42,11 @@ public class NormalUserCreateUser16252 extends S3TestBase {
     @Test
     public void test() throws JSONException {
         // create user
-        JSONObject actUser = UserUtils.createUser(userName, UserCommDefind.normal, UserUtils.accessKeyId);
+        JSONObject actUser = UserUtils
+                .createUser( userName, UserCommDefind.normal,
+                        UserUtils.accessKeyId );
         // check create user result
-        checkUser(actUser);
+        checkUser( actUser );
         // create bucket for check
         checkByCreateUser();
         runSuccess = true;
@@ -52,50 +54,59 @@ public class NormalUserCreateUser16252 extends S3TestBase {
 
     @AfterClass
     private void tearDown() {
-        if (runSuccess) {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
+        if ( runSuccess ) {
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
         }
     }
 
-    private void checkUser(JSONObject actUser) {
+    private void checkUser( JSONObject actUser ) {
         // get user
-        JSONObject expUser = UserUtils.getUser(userName, UserUtils.accessKeyId);
+        JSONObject expUser = UserUtils
+                .getUser( userName, UserUtils.accessKeyId );
 
-        JSONObject actJSON = actUser.getJSONObject(UserCommDefind.accessKeys);
-        JSONObject expJSON = expUser.getJSONObject(UserCommDefind.accessKeys);
+        JSONObject actJSON = actUser.getJSONObject( UserCommDefind.accessKeys );
+        JSONObject expJSON = expUser.getJSONObject( UserCommDefind.accessKeys );
 
         // check
-        accessKeyID = actJSON.getString(UserCommDefind.accessKeyID);
-        secretAccessKey = actJSON.getString(UserCommDefind.secretAccessKey);
-        Assert.assertEquals(accessKeyID, expJSON.getString(UserCommDefind.accessKeyID),
-                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON.toString());
-        Assert.assertEquals(secretAccessKey, expJSON.getString(UserCommDefind.secretAccessKey),
-                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON.toString());
+        accessKeyID = actJSON.getString( UserCommDefind.accessKeyID );
+        secretAccessKey = actJSON.getString( UserCommDefind.secretAccessKey );
+        Assert.assertEquals( accessKeyID,
+                expJSON.getString( UserCommDefind.accessKeyID ),
+                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON
+                        .toString() );
+        Assert.assertEquals( secretAccessKey,
+                expJSON.getString( UserCommDefind.secretAccessKey ),
+                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON
+                        .toString() );
     }
 
     private void checkByCreateUser() {
         // create normal user
         try {
-            UserUtils.createUser(normalUserName, UserCommDefind.normal, accessKeyID);
-            Assert.fail("create normal user should fail!");
-        } catch (HttpClientErrorException e) {
+            UserUtils.createUser( normalUserName, UserCommDefind.normal,
+                    accessKeyID );
+            Assert.fail( "create normal user should fail!" );
+        } catch ( HttpClientErrorException e ) {
             String errMsg = e.getResponseBodyAsString();
-            JSONObject json = XML.toJSONObject(errMsg);
-            if (!json.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                    .contains("AccessDenied")) {
-                Assert.fail(e.getMessage());
+            JSONObject json = XML.toJSONObject( errMsg );
+            if ( !json.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "AccessDenied" ) ) {
+                Assert.fail( e.getMessage() );
             }
         }
         // create admin user
         try {
-            UserUtils.createUser(adminUserName, UserCommDefind.admin, accessKeyID);
-            Assert.fail("create admin user should fail!");
-        } catch (HttpClientErrorException e) {
+            UserUtils.createUser( adminUserName, UserCommDefind.admin,
+                    accessKeyID );
+            Assert.fail( "create admin user should fail!" );
+        } catch ( HttpClientErrorException e ) {
             String errMsg = e.getResponseBodyAsString();
-            JSONObject json = XML.toJSONObject(errMsg);
-            if (!json.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                    .contains("AccessDenied")) {
-                Assert.fail(e.getMessage());
+            JSONObject json = XML.toJSONObject( errMsg );
+            if ( !json.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "AccessDenied" ) ) {
+                Assert.fail( e.getMessage() );
             }
         }
     }

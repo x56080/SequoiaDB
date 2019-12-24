@@ -15,16 +15,17 @@ import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
 import com.sequoias3.testcommon.s3utils.PrivilegeUtils;
 import com.sequoias3.testcommon.s3utils.UserUtils;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @Description seqDB-19445: 桶禁用版本控制，配置桶acl，被授权人包含多种用户
@@ -32,7 +33,7 @@ import org.testng.annotations.Test;
  * @Date 2019.09.20
  */
 public class SetBucketAcl19445 extends S3TestBase {
-    private AtomicInteger actSuccessTests = new AtomicInteger(0);
+    private AtomicInteger actSuccessTests = new AtomicInteger( 0 );
     private int expRunSuccessNum = 2;
     private String bucketName = "bucket19445";
     private String keyName = "key19445";
@@ -64,44 +65,52 @@ public class SetBucketAcl19445 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException {
         // create a user
-        CommLib.clearUser(userName);
-        acessKeys = UserUtils.createUser(userName, roleName);
-        userS3Client = CommLib.buildS3Client(acessKeys[0], acessKeys[1]);
+        CommLib.clearUser( userName );
+        acessKeys = UserUtils.createUser( userName, roleName );
+        userS3Client = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
         userId = userS3Client.getS3AccountOwner().getId();
 
         ownerS3Client = CommLib.buildS3Client();
         ownerId = ownerS3Client.getS3AccountOwner().getId();
-        CommLib.clearBucket(ownerS3Client, bucketName);
-        ownerS3Client.createBucket(new CreateBucketRequest(bucketName));
-        CommLib.setBucketVersioning(ownerS3Client, bucketName, BucketVersioningConfiguration.SUSPENDED);
+        CommLib.clearBucket( ownerS3Client, bucketName );
+        ownerS3Client.createBucket( new CreateBucketRequest( bucketName ) );
+        CommLib.setBucketVersioning( ownerS3Client, bucketName,
+                BucketVersioningConfiguration.SUSPENDED );
     }
 
     @Test(dataProvider = "methodProvider")
-    private void testSetBucketAcl(String methodOfSetBucketAcl) throws Exception {
+    private void testSetBucketAcl( String methodOfSetBucketAcl )
+            throws Exception {
         List<Grant> expGrantList = new ArrayList<>();
         // grantee include: id:ownerId , non-owner Id, perdefined group,
         // emailAddress
-        Grantee[] grantees = { new CanonicalGrantee(ownerId), new CanonicalGrantee(userId), GroupGrantee.AllUsers,
+        Grantee[] grantees = { new CanonicalGrantee( ownerId ),
+                new CanonicalGrantee( userId ), GroupGrantee.AllUsers,
                 GroupGrantee.AuthenticatedUsers, GroupGrantee.LogDelivery,
-                new EmailAddressGrantee("test19445 email address " + methodOfSetBucketAcl) };
-        for (Grantee grantee : grantees) {
-            for (Permission permission : Permission.values()) {
-                Grant grant = new Grant(grantee, permission);
-                expGrantList.add(grant);
+                new EmailAddressGrantee(
+                        "test19445 email address " + methodOfSetBucketAcl ) };
+        for ( Grantee grantee : grantees ) {
+            for ( Permission permission : Permission.values() ) {
+                Grant grant = new Grant( grantee, permission );
+                expGrantList.add( grant );
             }
         }
-        Grant[] expGrant = expGrantList.toArray(new Grant[expGrantList.size()]);
+        Grant[] expGrant = expGrantList
+                .toArray( new Grant[ expGrantList.size() ] );
 
-        switch (methodOfSetBucketAcl) {
+        switch ( methodOfSetBucketAcl ) {
         case "setByRequestHeader":
-            PrivilegeUtils.setBucketAclByHeader(s3AccessKeyId, bucketName, expGrant);
+            PrivilegeUtils.setBucketAclByHeader( s3AccessKeyId, bucketName,
+                    expGrant );
             break;
         case "setByRequestBody":
-            PrivilegeUtils.setBucketAclByBody(ownerS3Client, bucketName, expGrant);
+            PrivilegeUtils
+                    .setBucketAclByBody( ownerS3Client, bucketName, expGrant );
             break;
         }
 
-        PrivilegeUtils.checkSetBucketAclResult(ownerS3Client, bucketName, expGrant);
+        PrivilegeUtils
+                .checkSetBucketAclResult( ownerS3Client, bucketName, expGrant );
         putObjectByOtherUser();
         getObjectByOtherUser();
 
@@ -111,10 +120,10 @@ public class SetBucketAcl19445 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (actSuccessTests.get() == expRunSuccessNum) {
-                CommLib.clearBucket(ownerS3Client, bucketName);
-                CommLib.clearUser(userName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( actSuccessTests.get() == expRunSuccessNum ) {
+                CommLib.clearBucket( ownerS3Client, bucketName );
+                CommLib.clearUser( userName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             ownerS3Client.shutdown();
@@ -123,24 +132,28 @@ public class SetBucketAcl19445 extends S3TestBase {
     }
 
     private void getObjectByOtherUser() throws Exception {
-        String expMd5 = TestTools.getMD5(newFilePath);
-        String downloadMd5 = ObjectUtils.getMd5OfObject(userS3Client, localPath, bucketName, keyName);
-        Assert.assertEquals(downloadMd5, expMd5);
+        String expMd5 = TestTools.getMD5( newFilePath );
+        String downloadMd5 = ObjectUtils
+                .getMd5OfObject( userS3Client, localPath, bucketName, keyName );
+        Assert.assertEquals( downloadMd5, expMd5 );
     }
 
     private void putObjectByOtherUser() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        oldFilePath = localPath + File.separator + "localFile_" + oldFileSize + ".txt";
-        newFilePath = localPath + File.separator + "localFile_" + newFileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        oldFilePath = localPath + File.separator + "localFile_" + oldFileSize
+                + ".txt";
+        newFilePath = localPath + File.separator + "localFile_" + newFileSize
+                + ".txt";
 
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(oldFilePath, oldFileSize);
-        TestTools.LocalFile.createFile(newFilePath, newFileSize);
-        oldFile = new File(oldFilePath);
-        newFile = new File(newFilePath);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( oldFilePath, oldFileSize );
+        TestTools.LocalFile.createFile( newFilePath, newFileSize );
+        oldFile = new File( oldFilePath );
+        newFile = new File( newFilePath );
 
-        userS3Client.putObject(bucketName, keyName, oldFile);
-        userS3Client.putObject(bucketName, keyName, newFile);
+        userS3Client.putObject( bucketName, keyName, oldFile );
+        userS3Client.putObject( bucketName, keyName, newFile );
     }
 }

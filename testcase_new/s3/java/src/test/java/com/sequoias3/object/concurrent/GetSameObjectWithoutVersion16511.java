@@ -1,14 +1,5 @@
 package com.sequoias3.object.concurrent;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
@@ -20,10 +11,18 @@ import com.sequoias3.testcommon.S3ThreadBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
 import com.sequoias3.testcommon.s3utils.UserUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * test content: 禁用版本控制，并发获取不同版本的同一对象 testlink-case: seqDB-16511
- * 
+ *
  * @author wangkexin
  * @Date 2019.01.04
  * @version 1.00
@@ -47,52 +46,61 @@ public class GetSameObjectWithoutVersion16511 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePathV1 = localPath + File.separator + "localFile_" + fileSizeV1 + ".txt";
-        filePathV2 = localPath + File.separator + "localFile_" + fileSizeV2 + ".txt";
-        filePathV3 = localPath + File.separator + "localFile_" + fileSizeV3 + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePathV1, fileSizeV1);
-        TestTools.LocalFile.createFile(filePathV2, fileSizeV2);
-        TestTools.LocalFile.createFile(filePathV3, fileSizeV3);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePathV1 =
+                localPath + File.separator + "localFile_" + fileSizeV1 + ".txt";
+        filePathV2 =
+                localPath + File.separator + "localFile_" + fileSizeV2 + ".txt";
+        filePathV3 =
+                localPath + File.separator + "localFile_" + fileSizeV3 + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePathV1, fileSizeV1 );
+        TestTools.LocalFile.createFile( filePathV2, fileSizeV2 );
+        TestTools.LocalFile.createFile( filePathV3, fileSizeV3 );
 
-        CommLib.clearUser(userName);
-        acessKeys = UserUtils.createUser(userName, roleName);
-        s3Client = CommLib.buildS3Client(acessKeys[0], acessKeys[1]);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, "Enabled");
+        CommLib.clearUser( userName );
+        acessKeys = UserUtils.createUser( userName, roleName );
+        s3Client = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
 
         // put three versions of the object
-        s3Client.putObject(bucketName, keyName, new File(filePathV1));
-        String downfileMd5V1 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, keyName);
-        etagList.add(downfileMd5V1);
+        s3Client.putObject( bucketName, keyName, new File( filePathV1 ) );
+        String downfileMd5V1 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        etagList.add( downfileMd5V1 );
 
-        s3Client.putObject(bucketName, keyName, new File(filePathV2));
-        String downfileMd5V2 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, keyName);
-        etagList.add(downfileMd5V2);
+        s3Client.putObject( bucketName, keyName, new File( filePathV2 ) );
+        String downfileMd5V2 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        etagList.add( downfileMd5V2 );
 
-        s3Client.putObject(bucketName, keyName, new File(filePathV3));
-        String downfileMd5V3 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, keyName);
-        etagList.add(downfileMd5V3);
+        s3Client.putObject( bucketName, keyName, new File( filePathV3 ) );
+        String downfileMd5V3 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        etagList.add( downfileMd5V3 );
 
-        CommLib.setBucketVersioning(s3Client, bucketName, "Suspended");
+        CommLib.setBucketVersioning( s3Client, bucketName, "Suspended" );
     }
 
     @Test
     public void testGetObject() throws Exception {
         // Getting different versions of objects
         List<GetDifferentObjectThread> getDiffVerObjects = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            getDiffVerObjects.add(new GetDifferentObjectThread(String.valueOf(i)));
+        for ( int i = 0; i < 3; i++ ) {
+            getDiffVerObjects
+                    .add( new GetDifferentObjectThread( String.valueOf( i ) ) );
         }
 
-        for (GetDifferentObjectThread getDiffVerObject : getDiffVerObjects) {
+        for ( GetDifferentObjectThread getDiffVerObject : getDiffVerObjects ) {
             getDiffVerObject.start();
         }
 
-        for (GetDifferentObjectThread getDiffVerObject : getDiffVerObjects) {
-            Assert.assertTrue(getDiffVerObject.isSuccess(), getDiffVerObject.getErrorMsg());
+        for ( GetDifferentObjectThread getDiffVerObject : getDiffVerObjects ) {
+            Assert.assertTrue( getDiffVerObject.isSuccess(),
+                    getDiffVerObject.getErrorMsg() );
         }
 
         runSuccess = true;
@@ -101,14 +109,14 @@ public class GetSameObjectWithoutVersion16511 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                UserUtils.deleteUser(userName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                UserUtils.deleteUser( userName );
+                TestTools.LocalFile.removeFile( localPath );
             }
-        } catch (BaseException e) {
-            Assert.fail("clean up failed:" + e.getMessage());
+        } catch ( BaseException e ) {
+            Assert.fail( "clean up failed:" + e.getMessage() );
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
@@ -117,25 +125,32 @@ public class GetSameObjectWithoutVersion16511 extends S3TestBase {
     private class GetDifferentObjectThread extends S3ThreadBase {
         String versionid;
 
-        public GetDifferentObjectThread(String versionid) {
+        public GetDifferentObjectThread( String versionid ) {
             this.versionid = versionid;
         }
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib.buildS3Client(acessKeys[0], acessKeys[1]);
+            AmazonS3 s3Client = CommLib
+                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
             try {
-                S3Object object = s3Client.getObject(new GetObjectRequest(bucketName, keyName, versionid));
+                S3Object object = s3Client.getObject(
+                        new GetObjectRequest( bucketName, keyName,
+                                versionid ) );
                 S3ObjectInputStream s3is = object.getObjectContent();
-                String downloadPath = TestTools.LocalFile.initDownloadPath(localPath, TestTools.getMethodName(),
-                        Thread.currentThread().getId());
-                ObjectUtils.inputStream2File(s3is, downloadPath);
+                String downloadPath = TestTools.LocalFile
+                        .initDownloadPath( localPath, TestTools.getMethodName(),
+                                Thread.currentThread().getId() );
+                ObjectUtils.inputStream2File( s3is, downloadPath );
                 s3is.close();
-                String getObjectMd5 = TestTools.getMD5(downloadPath);
-                Assert.assertEquals(getObjectMd5, etagList.get(Integer.parseInt(versionid)), "md5 is wrong!");
-                Assert.assertEquals(object.getObjectMetadata().getVersionId(), versionid);
+                String getObjectMd5 = TestTools.getMD5( downloadPath );
+                Assert.assertEquals( getObjectMd5,
+                        etagList.get( Integer.parseInt( versionid ) ),
+                        "md5 is wrong!" );
+                Assert.assertEquals( object.getObjectMetadata().getVersionId(),
+                        versionid );
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }

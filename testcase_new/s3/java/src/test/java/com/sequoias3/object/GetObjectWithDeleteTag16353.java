@@ -1,17 +1,16 @@
 package com.sequoias3.object;
 
-import java.io.IOException;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
 
 /**
  * @Description seqDB-16353: get the object of delete tag
@@ -31,12 +30,12 @@ public class GetObjectWithDeleteTag16353 extends S3TestBase {
 
     @Test
     public void testGetObject() throws Exception {
-        s3Client.deleteObject(S3TestBase.enableVerBucketName, key);
+        s3Client.deleteObject( S3TestBase.enableVerBucketName, key );
         try {
-            s3Client.getObject(bucketName, key);
-            Assert.fail("get delete tag object must be fail!");
-        } catch (AmazonS3Exception e) {
-            Assert.assertEquals(e.getErrorCode(), "NoSuchKey");
+            s3Client.getObject( bucketName, key );
+            Assert.fail( "get delete tag object must be fail!" );
+        } catch ( AmazonS3Exception e ) {
+            Assert.assertEquals( e.getErrorCode(), "NoSuchKey" );
         }
         runSuccess = true;
     }
@@ -44,8 +43,9 @@ public class GetObjectWithDeleteTag16353 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                ObjectUtils.deleteObjectAllVersions(s3Client, S3TestBase.enableVerBucketName, key);
+            if ( runSuccess ) {
+                ObjectUtils.deleteObjectAllVersions( s3Client,
+                        S3TestBase.enableVerBucketName, key );
             }
         } finally {
             s3Client.shutdown();

@@ -24,10 +24,10 @@ public class CreateExistUser16253 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(username, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
-                Assert.fail(e.getMessage());
+            UserUtils.deleteUser( username, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -35,17 +35,20 @@ public class CreateExistUser16253 extends S3TestBase {
     @Test
     private void test() {
         // create user
-        UserUtils.createUser(username, UserCommDefind.admin, UserUtils.accessKeyId);
+        UserUtils.createUser( username, UserCommDefind.admin,
+                UserUtils.accessKeyId );
         // create user again
         try {
-            UserUtils.createUser(username, UserCommDefind.admin, UserUtils.accessKeyId);
-            Assert.fail("exp fail but act success");
-        } catch (HttpClientErrorException e) {
+            UserUtils.createUser( username, UserCommDefind.admin,
+                    UserUtils.accessKeyId );
+            Assert.fail( "exp fail but act success" );
+        } catch ( HttpClientErrorException e ) {
             String errorMsg = e.getResponseBodyAsString();
-            org.json.JSONObject json = XML.toJSONObject(errorMsg);
-            if (!json.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode)
-                    .contains("UserAlreadyExists")) {
-                Assert.fail(e.getMessage());
+            org.json.JSONObject json = XML.toJSONObject( errorMsg );
+            if ( !json.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "UserAlreadyExists" ) ) {
+                Assert.fail( e.getMessage() );
             }
         }
         runSuccess = true;
@@ -53,8 +56,8 @@ public class CreateExistUser16253 extends S3TestBase {
 
     @AfterClass
     private void tearDown() {
-        if (runSuccess) {
-            UserUtils.deleteUser(username, UserUtils.accessKeyId, true);
+        if ( runSuccess ) {
+            UserUtils.deleteUser( username, UserUtils.accessKeyId, true );
         }
     }
 }

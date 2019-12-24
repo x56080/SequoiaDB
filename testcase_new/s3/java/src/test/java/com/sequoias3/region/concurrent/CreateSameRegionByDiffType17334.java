@@ -32,40 +32,43 @@ public class CreateSameRegionByDiffType17334 extends S3TestBase {
     @BeforeClass
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        RegionUtils.clearRegion(regionName);
-        Region region = new Region().withDataCSShardingType("year").withDataCLShardingType("month")
-                .withName(regionName);
-        RegionUtils.putRegion(region);
+        RegionUtils.clearRegion( regionName );
+        Region region = new Region().withDataCSShardingType( "year" )
+                .withDataCLShardingType( "month" ).withName( regionName );
+        RegionUtils.putRegion( region );
     }
 
     @Test
     private void test() throws Exception {
-        CreateRegion cThread = new CreateRegion("month", "quarter");
-        cThread.start(10);
-        Assert.assertEquals(cThread.isSuccess(), true, cThread.getErrorMsg());
+        CreateRegion cThread = new CreateRegion( "month", "quarter" );
+        cThread.start( 10 );
+        Assert.assertEquals( cThread.isSuccess(), true, cThread.getErrorMsg() );
         // get region
-        GetRegionResult result = RegionUtils.getRegion(regionName);
+        GetRegionResult result = RegionUtils.getRegion( regionName );
         // check region sharding type
         Region region = result.getRegion();
-        Assert.assertEquals(region.getDataCSShardingType(), "month");
-        Assert.assertEquals(region.getDataCLShardingType(), "quarter");
+        Assert.assertEquals( region.getDataCSShardingType(), "month" );
+        Assert.assertEquals( region.getDataCLShardingType(), "quarter" );
         // craete bucket for check
-        s3Client.createBucket(new CreateBucketRequest(bucketName, regionName));
+        s3Client.createBucket(
+                new CreateBucketRequest( bucketName, regionName ) );
         // create object for check
-        s3Client.putObject(bucketName, objectName, String.valueOf(UUID.randomUUID()));
+        s3Client.putObject( bucketName, objectName,
+                String.valueOf( UUID.randomUUID() ) );
         // get object for check
-        S3Object s3Object = s3Client.getObject(bucketName, objectName);
-        Assert.assertEquals(s3Object.getBucketName(), bucketName);
-        Assert.assertEquals(s3Object.getKey(), objectName);
-        Assert.assertEquals(s3Object.getObjectMetadata().getVersionId(), "null");
+        S3Object s3Object = s3Client.getObject( bucketName, objectName );
+        Assert.assertEquals( s3Object.getBucketName(), bucketName );
+        Assert.assertEquals( s3Object.getKey(), objectName );
+        Assert.assertEquals( s3Object.getObjectMetadata().getVersionId(),
+                "null" );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
-        if (runSuccess) {
-            CommLib.clearBucket(s3Client, bucketName);
-            RegionUtils.deleteRegion(regionName);
+        if ( runSuccess ) {
+            CommLib.clearBucket( s3Client, bucketName );
+            RegionUtils.deleteRegion( regionName );
         }
     }
 
@@ -73,16 +76,19 @@ public class CreateSameRegionByDiffType17334 extends S3TestBase {
         private String dataCSShardingType;
         private String dataCLShardingType;
 
-        public CreateRegion(String dataCSShardingType, String dataCLShardingType) {
+        public CreateRegion( String dataCSShardingType,
+                String dataCLShardingType ) {
             this.dataCSShardingType = dataCSShardingType;
             this.dataCLShardingType = dataCLShardingType;
         }
 
         @Override
         public void exec() throws Exception {
-            Region region = new Region().withDataCSShardingType(this.dataCSShardingType)
-                    .withDataCLShardingType(this.dataCLShardingType).withName(regionName);
-            RegionUtils.putRegion(region);
+            Region region = new Region()
+                    .withDataCSShardingType( this.dataCSShardingType )
+                    .withDataCLShardingType( this.dataCLShardingType )
+                    .withName( regionName );
+            RegionUtils.putRegion( region );
         }
     }
 }

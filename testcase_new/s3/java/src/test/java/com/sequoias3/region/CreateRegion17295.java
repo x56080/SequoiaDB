@@ -36,32 +36,34 @@ public class CreateRegion17295 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        RegionUtils.createCSAndCL(csNames[0], metaclNames);
-        RegionUtils.createCSAndCL(csNames[1], dataclNames);
+        RegionUtils.createCSAndCL( csNames[ 0 ], metaclNames );
+        RegionUtils.createCSAndCL( csNames[ 1 ], dataclNames );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        RegionUtils.clearRegion(regionName);
+        CommLib.clearBucket( s3Client, bucketName );
+        RegionUtils.clearRegion( regionName );
     }
 
     @Test
     public void testRegion() throws Exception {
         Region region = new Region();
-        String metaLocation = csNames[0] + "." + metaclNames[0];
-        String metaHisLocation = csNames[0] + "." + metaclNames[1];
-        String dataLocation = csNames[1] + "." + dataclNames[0];
-        region.withMetaLocation(metaLocation).withDataLocation(dataLocation).withMetaHisLocation(metaHisLocation)
-                .withName(regionName);
-        RegionUtils.putRegion(region);
+        String metaLocation = csNames[ 0 ] + "." + metaclNames[ 0 ];
+        String metaHisLocation = csNames[ 0 ] + "." + metaclNames[ 1 ];
+        String dataLocation = csNames[ 1 ] + "." + dataclNames[ 0 ];
+        region.withMetaLocation( metaLocation ).withDataLocation( dataLocation )
+                .withMetaHisLocation( metaHisLocation ).withName( regionName );
+        RegionUtils.putRegion( region );
 
         // get region and check region info
-        checkRegion(metaLocation, metaHisLocation, dataLocation);
+        checkRegion( metaLocation, metaHisLocation, dataLocation );
 
         // check auto create Index
         String metaIndexKey = "{ \"BucketId\" : 1 , \"Key\" : 1 }";
         String metaHisIndexKey = "{ \"BucketId\" : 1 , \"Key\" : 1 , \"VersionId\" : 1 }";
-        checkIndex(csNames[0], metaclNames[0], "BucketId_Key", metaIndexKey);
-        checkIndex(csNames[0], metaclNames[1], "BucketId_Key_VersionId", metaHisIndexKey);
+        checkIndex( csNames[ 0 ], metaclNames[ 0 ], "BucketId_Key",
+                metaIndexKey );
+        checkIndex( csNames[ 0 ], metaclNames[ 1 ], "BucketId_Key_VersionId",
+                metaHisIndexKey );
 
         // create object on region
         createObjectAndCheckResult();
@@ -71,62 +73,71 @@ public class CreateRegion17295 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                RegionUtils.deleteRegion(regionName);
-                RegionUtils.dropCS(csNames);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                RegionUtils.deleteRegion( regionName );
+                RegionUtils.dropCS( csNames );
             }
         } finally {
             s3Client.shutdown();
         }
     }
 
-    private void checkRegion(String metaLocation, String metaHisLocation, String dataLocation) throws Exception {
-        GetRegionResult result = RegionUtils.getRegion(regionName);
+    private void checkRegion( String metaLocation, String metaHisLocation,
+            String dataLocation ) throws Exception {
+        GetRegionResult result = RegionUtils.getRegion( regionName );
         Region regionInfo = result.getRegion();
-        Assert.assertEquals(regionInfo.getMetaLocation(), metaLocation);
-        Assert.assertEquals(regionInfo.getMetaHisLocation(), metaHisLocation);
-        Assert.assertEquals(regionInfo.getDataLocation(), dataLocation);
+        Assert.assertEquals( regionInfo.getMetaLocation(), metaLocation );
+        Assert.assertEquals( regionInfo.getMetaHisLocation(), metaHisLocation );
+        Assert.assertEquals( regionInfo.getDataLocation(), dataLocation );
     }
 
     @SuppressWarnings("deprecation")
     private void createObjectAndCheckResult() throws Exception {
-        s3Client.createBucket(bucketName, regionName);
-        CommLib.setBucketVersioning(s3Client, bucketName, "Enabled");
-        for (int i = 0; i < 10; i++) {
+        s3Client.createBucket( bucketName, regionName );
+        CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
+        for ( int i = 0; i < 10; i++ ) {
             String context = "testcreatekeyonregion17295" + "_test" + i;
-            s3Client.putObject(bucketName, key, context);
+            s3Client.putObject( bucketName, key, context );
             String version = i + "";
-            File localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-            String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, key, version);
-            Assert.assertEquals(downfileMd5, TestTools.getMD5(context.getBytes()));
-            TestTools.LocalFile.removeFile(localPath);
+            File localPath = new File(
+                    S3TestBase.workDir + File.separator + TestTools
+                            .getClassName() );
+            String downfileMd5 = ObjectUtils
+                    .getMd5OfObject( s3Client, localPath, bucketName, key,
+                            version );
+            Assert.assertEquals( downfileMd5,
+                    TestTools.getMD5( context.getBytes() ) );
+            TestTools.LocalFile.removeFile( localPath );
         }
     }
 
-    private void checkIndex(String csName, String clName, String indexName, String indexKey) {
-        try (Sequoiadb sdb = new Sequoiadb(S3TestBase.coordUrl, "", "")) {
-            DBCollection cl = sdb.getCollectionSpace(csName).getCollection(clName);
-            Assert.assertTrue(cl.isIndexExist(indexName));
+    private void checkIndex( String csName, String clName, String indexName,
+            String indexKey ) {
+        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ) ) {
+            DBCollection cl = sdb.getCollectionSpace( csName )
+                    .getCollection( clName );
+            Assert.assertTrue( cl.isIndexExist( indexName ) );
             DBCursor cur = cl.getIndexes();
 
             int autoCreateIndexNum = 0;
-            while (cur.hasNext()) {
+            while ( cur.hasNext() ) {
                 BSONObject obj = cur.getNext();
-                BSONObject indexInfo = (BSONObject) obj.get("IndexDef");
-                String name = (String) indexInfo.get("name");
-                if (name.equals(indexName)) {
-                    String actIndexKey = indexInfo.get("key").toString();
-                    boolean isUnique = (boolean) indexInfo.get("unique");
-                    boolean isEnforced = (boolean) indexInfo.get("enforced");
-                    Assert.assertEquals(actIndexKey, indexKey);
-                    Assert.assertTrue(isUnique);
-                    Assert.assertTrue(isEnforced);
+                BSONObject indexInfo = ( BSONObject ) obj.get( "IndexDef" );
+                String name = ( String ) indexInfo.get( "name" );
+                if ( name.equals( indexName ) ) {
+                    String actIndexKey = indexInfo.get( "key" ).toString();
+                    boolean isUnique = ( boolean ) indexInfo.get( "unique" );
+                    boolean isEnforced = ( boolean ) indexInfo
+                            .get( "enforced" );
+                    Assert.assertEquals( actIndexKey, indexKey );
+                    Assert.assertTrue( isUnique );
+                    Assert.assertTrue( isEnforced );
                     autoCreateIndexNum++;
                 }
             }
             // auto create one unique index.
-            Assert.assertEquals(autoCreateIndexNum, 1);
+            Assert.assertEquals( autoCreateIndexNum, 1 );
         }
     }
 

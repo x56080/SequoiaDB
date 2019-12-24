@@ -1,17 +1,5 @@
 package com.sequoias3.privilege.concurrent;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
@@ -26,6 +14,17 @@ import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.PrivilegeUtils;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 /**
  * @Description seqDB-19475: 并发配置桶acl和对象acl
@@ -47,18 +46,20 @@ public class SetBucketAclAndSetObjectAcl19475 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
 
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
-        file = new File(filePath);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        file = new File( filePath );
 
         s3Client = CommLib.buildS3Client();
         ownerId = s3Client.getS3AccountOwner().getId();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(new CreateBucketRequest(bucketName));
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( new CreateBucketRequest( bucketName ) );
         prepareGranteeList();
 
     }
@@ -67,32 +68,37 @@ public class SetBucketAclAndSetObjectAcl19475 extends S3TestBase {
     private void test() throws Exception {
         ThreadExecutor threadExec = new ThreadExecutor();
 
-        Grant bucketGrant = new Grant(GroupGrantee.AllUsers, Permission.WriteAcp);
-        threadExec.addWorker(new ThreadSetBucketAcl(bucketGrant));
+        Grant bucketGrant = new Grant( GroupGrantee.AllUsers,
+                Permission.WriteAcp );
+        threadExec.addWorker( new ThreadSetBucketAcl( bucketGrant ) );
 
         Map<String, Grant> grants = new HashMap<String, Grant>();
         Random random = new Random();
-        for (int i = 0; i < threadNum; i++) {
+        for ( int i = 0; i < threadNum; i++ ) {
             String keyName = keyName_base + "_" + i;
-            s3Client.putObject(bucketName, keyName, file);
+            s3Client.putObject( bucketName, keyName, file );
 
-            int randomGranteeIndex = random.nextInt(granteeList.size());
-            int randomPermissionIndex = random.nextInt(Permission.values().length);
-            Permission permission = Permission.values()[randomPermissionIndex];
-            Grantee grantee = granteeList.get(randomGranteeIndex);
-            Grant grant = new Grant(grantee, permission);
+            int randomGranteeIndex = random.nextInt( granteeList.size() );
+            int randomPermissionIndex = random
+                    .nextInt( Permission.values().length );
+            Permission permission = Permission
+                    .values()[ randomPermissionIndex ];
+            Grantee grantee = granteeList.get( randomGranteeIndex );
+            Grant grant = new Grant( grantee, permission );
 
-            threadExec.addWorker(new ThreadSetObjectAcl(keyName, grant));
+            threadExec.addWorker( new ThreadSetObjectAcl( keyName, grant ) );
 
-            grants.put(keyName, grant);
+            grants.put( keyName, grant );
         }
         threadExec.run();
 
         // check bucket acl
-        PrivilegeUtils.checkSetBucketAclResult(s3Client, bucketName, bucketGrant);
+        PrivilegeUtils
+                .checkSetBucketAclResult( s3Client, bucketName, bucketGrant );
         // check object acl
-        for (Map.Entry<String, Grant> entry : grants.entrySet()) {
-            PrivilegeUtils.checkSetObjectAclResult(s3Client, bucketName, entry.getKey(), entry.getValue());
+        for ( Map.Entry<String, Grant> entry : grants.entrySet() ) {
+            PrivilegeUtils.checkSetObjectAclResult( s3Client, bucketName,
+                    entry.getKey(), entry.getValue() );
         }
         runSuccess = true;
     }
@@ -100,20 +106,29 @@ public class SetBucketAclAndSetObjectAcl19475 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
         }
     }
 
+    private void prepareGranteeList() {
+        // granteeList : include owner id, uri(predefined group) and emailAdress
+        granteeList.add( new CanonicalGrantee( ownerId ) );
+        granteeList.add( GroupGrantee.AllUsers );
+        granteeList.add( GroupGrantee.AuthenticatedUsers );
+        granteeList.add( GroupGrantee.LogDelivery );
+        granteeList.add( new EmailAddressGrantee( "test email adress 19475" ) );
+    }
+
     private class ThreadSetBucketAcl {
         private AmazonS3 s3;
         private Grant grant;
 
-        public ThreadSetBucketAcl(Grant grant) {
+        public ThreadSetBucketAcl( Grant grant ) {
             s3 = CommLib.buildS3Client();
             this.grant = grant;
         }
@@ -121,9 +136,9 @@ public class SetBucketAclAndSetObjectAcl19475 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void setObjectAcl() {
             try {
-                PrivilegeUtils.setBucketAclByBody(s3, bucketName, grant);
+                PrivilegeUtils.setBucketAclByBody( s3, bucketName, grant );
             } finally {
-                if (s3 != null) {
+                if ( s3 != null ) {
                     s3.shutdown();
                 }
             }
@@ -135,7 +150,7 @@ public class SetBucketAclAndSetObjectAcl19475 extends S3TestBase {
         private String keyName;
         private Grant grant;
 
-        public ThreadSetObjectAcl(String keyName, Grant grant) {
+        public ThreadSetObjectAcl( String keyName, Grant grant ) {
             s3 = CommLib.buildS3Client();
             this.keyName = keyName;
             this.grant = grant;
@@ -144,21 +159,13 @@ public class SetBucketAclAndSetObjectAcl19475 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void setObjectAcl() {
             try {
-                PrivilegeUtils.setObjectAclByBody(s3, bucketName, keyName, grant);
+                PrivilegeUtils
+                        .setObjectAclByBody( s3, bucketName, keyName, grant );
             } finally {
-                if (s3 != null) {
+                if ( s3 != null ) {
                     s3.shutdown();
                 }
             }
         }
-    }
-
-    private void prepareGranteeList() {
-        // granteeList : include owner id, uri(predefined group) and emailAdress
-        granteeList.add(new CanonicalGrantee(ownerId));
-        granteeList.add(GroupGrantee.AllUsers);
-        granteeList.add(GroupGrantee.AuthenticatedUsers);
-        granteeList.add(GroupGrantee.LogDelivery);
-        granteeList.add(new EmailAddressGrantee("test email adress 19475"));
     }
 }

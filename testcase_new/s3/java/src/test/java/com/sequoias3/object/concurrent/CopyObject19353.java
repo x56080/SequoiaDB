@@ -1,15 +1,5 @@
 package com.sequoias3.object.concurrent;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.sequoiadb.threadexecutor.ResultStore;
@@ -20,6 +10,15 @@ import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.DelimiterUtils;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @Description seqDB-19353:并发复制对象和更新桶分隔符
@@ -43,36 +42,41 @@ public class CopyObject19353 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        s3Client.putObject(bucketName, srcKeyName, new File(filePath));
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        s3Client.putObject( bucketName, srcKeyName, new File( filePath ) );
     }
 
     @Test
     public void testCopyObject() throws Exception {
         ThreadExecutor threadExec = new ThreadExecutor();
-        for (int i = 0; i < copyObjectNums; i++) {
-            String subDestKeyName = destKeyName + "_" + i + delimiter + "test.png";
-            threadExec.addWorker(new CopyObject(subDestKeyName));
-            matchKeyList.add(destKeyName + "_" + i + delimiter);
+        for ( int i = 0; i < copyObjectNums; i++ ) {
+            String subDestKeyName =
+                    destKeyName + "_" + i + delimiter + "test.png";
+            threadExec.addWorker( new CopyObject( subDestKeyName ) );
+            matchKeyList.add( destKeyName + "_" + i + delimiter );
         }
 
         UpdateDelimiter updateDelimiter = new UpdateDelimiter();
-        threadExec.addWorker(updateDelimiter);
+        threadExec.addWorker( updateDelimiter );
         threadExec.run();
 
         // check the dir of object availability
         List<String> expContentList = new ArrayList<>();
         // srcKeyName no match dellimiter
-        expContentList.add(srcKeyName);
-        DelimiterUtils.listObjectsWithDelimiter(s3Client, bucketName, delimiter, matchKeyList, expContentList);
+        expContentList.add( srcKeyName );
+        DelimiterUtils
+                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
+                        matchKeyList, expContentList );
 
         runSuccess = true;
     }
@@ -80,9 +84,9 @@ public class CopyObject19353 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
@@ -93,7 +97,7 @@ public class CopyObject19353 extends S3TestBase {
         private AmazonS3 s3Client1 = CommLib.buildS3Client();
         private String destKeyName;
 
-        private CopyObject(String destKeyName) {
+        private CopyObject( String destKeyName ) {
             this.destKeyName = destKeyName;
 
         }
@@ -101,18 +105,22 @@ public class CopyObject19353 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void copyObject() throws Exception {
 
-            CopyObjectRequest request = new CopyObjectRequest(bucketName, srcKeyName, bucketName, destKeyName);
-            s3Client1.copyObject(request);
+            CopyObjectRequest request = new CopyObjectRequest( bucketName,
+                    srcKeyName, bucketName, destKeyName );
+            s3Client1.copyObject( request );
 
         }
 
         @ExecuteOrder(step = 2)
         private void checkObjectContent() throws Exception {
             try {
-                String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client1, localPath, bucketName, destKeyName);
-                Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
+                String downfileMd5 = ObjectUtils
+                        .getMd5OfObject( s3Client1, localPath, bucketName,
+                                destKeyName );
+                Assert.assertEquals( downfileMd5,
+                        TestTools.getMD5( filePath ) );
             } finally {
-                if (s3Client1 != null) {
+                if ( s3Client1 != null ) {
                     s3Client1.shutdown();
                 }
             }
@@ -122,12 +130,12 @@ public class CopyObject19353 extends S3TestBase {
     private class UpdateDelimiter {
         @ExecuteOrder(step = 1)
         private void updateDelimiter() {
-            DelimiterUtils.putBucketDelimiter(bucketName, delimiter);
+            DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
         }
 
         @ExecuteOrder(step = 2)
         private void checkUpdateReslut() throws Exception {
-            DelimiterUtils.checkCurrentDelimiteInfo(bucketName, delimiter);
+            DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
         }
     }
 }

@@ -1,11 +1,5 @@
 package com.sequoias3.privilege;
 
-import java.io.IOException;
-
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
@@ -16,6 +10,11 @@ import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.PrivilegeUtils;
 import com.sequoias3.testcommon.s3utils.UserUtils;
 import com.sequoias3.user.UserCommDefind;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
 
 /**
  * @Description seqDB-19447:为相同用户多次赋予桶访问权限
@@ -35,10 +34,10 @@ public class SetBucketAcl19447 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException {
         adminS3 = CommLib.buildS3Client();
-        CommLib.clearBucket(adminS3, bucketName);
-        CommLib.clearUser(userName);
-        String[] acessKeys = UserUtils.createUser(userName, userType);
-        userS3 = CommLib.buildS3Client(acessKeys[0], acessKeys[1]);
+        CommLib.clearBucket( adminS3, bucketName );
+        CommLib.clearUser( userName );
+        String[] acessKeys = UserUtils.createUser( userName, userType );
+        userS3 = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
     }
 
     /*
@@ -46,13 +45,13 @@ public class SetBucketAcl19447 extends S3TestBase {
      */
     @Test
     private void test() throws Exception {
-        adminS3.createBucket(new CreateBucketRequest(bucketName));
+        adminS3.createBucket( new CreateBucketRequest( bucketName ) );
         // set bucket acl
-        setBucketAclAndCheckResults(Permission.FullControl);
+        setBucketAclAndCheckResults( Permission.FullControl );
         // set bucket acl again, same Permission
-        setBucketAclAndCheckResults(Permission.FullControl);
+        setBucketAclAndCheckResults( Permission.FullControl );
         // set bucket acl again, different Permission
-        setBucketAclAndCheckResults(Permission.Read);
+        setBucketAclAndCheckResults( Permission.Read );
 
         runSuccess = true;
     }
@@ -60,9 +59,9 @@ public class SetBucketAcl19447 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(adminS3, bucketName);
-                CommLib.clearUser(userName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( adminS3, bucketName );
+                CommLib.clearUser( userName );
             }
         } finally {
             adminS3.shutdown();
@@ -70,11 +69,13 @@ public class SetBucketAcl19447 extends S3TestBase {
         }
     }
 
-    private void setBucketAclAndCheckResults(Permission permission) {
+    private void setBucketAclAndCheckResults( Permission permission ) {
         // adminS3 set bucket acl, authorized to userS3
-        Grant grant = new Grant(new CanonicalGrantee(userS3.getS3AccountOwner().getId()), permission);
-        PrivilegeUtils.setBucketAclByBody(adminS3, bucketName, grant);
+        Grant grant = new Grant(
+                new CanonicalGrantee( userS3.getS3AccountOwner().getId() ),
+                permission );
+        PrivilegeUtils.setBucketAclByBody( adminS3, bucketName, grant );
         // userS3 get bucket acl and check results
-        PrivilegeUtils.checkSetBucketAclResult(userS3, bucketName, grant);
+        PrivilegeUtils.checkSetBucketAclResult( userS3, bucketName, grant );
     }
 }

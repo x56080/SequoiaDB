@@ -23,11 +23,11 @@ public class GetInexistenceUser16268 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != (HttpStatus.NOT_FOUND)) {
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != ( HttpStatus.NOT_FOUND ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -35,13 +35,15 @@ public class GetInexistenceUser16268 extends S3TestBase {
     @Test
     private void test() {
         try {
-            UserUtils.getUser(userName, UserUtils.accessKeyId);
-            Assert.fail("exp fail but act success");
-        } catch (HttpClientErrorException e) {
+            UserUtils.getUser( userName, UserUtils.accessKeyId );
+            Assert.fail( "exp fail but act success" );
+        } catch ( HttpClientErrorException e ) {
             String errorMsg = e.getResponseBodyAsString();
-            org.json.JSONObject json = XML.toJSONObject(errorMsg);
-            if (!json.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode).contains("NoSuchUser")) {
-                Assert.fail(e.getMessage());
+            org.json.JSONObject json = XML.toJSONObject( errorMsg );
+            if ( !json.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "NoSuchUser" ) ) {
+                Assert.fail( e.getMessage() );
             }
         }
     }

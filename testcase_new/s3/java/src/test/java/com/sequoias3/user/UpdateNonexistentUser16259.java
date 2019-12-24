@@ -27,19 +27,19 @@ public class UpdateNonexistentUser16259 extends S3TestBase {
     @BeforeClass
     private void setUp() {
         try {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
         try {
-            UserUtils.deleteUser(updateUsername, UserUtils.accessKeyId, true);
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+            UserUtils.deleteUser( updateUsername, UserUtils.accessKeyId, true );
+        } catch ( HttpClientErrorException e ) {
+            if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
     }
@@ -47,17 +47,20 @@ public class UpdateNonexistentUser16259 extends S3TestBase {
     @Test
     public void test() throws JSONException {
         // create an admin user
-        UserUtils.createUser(userName, UserCommDefind.admin, UserUtils.accessKeyId);
+        UserUtils.createUser( userName, UserCommDefind.admin,
+                UserUtils.accessKeyId );
 
         // there is no such user here.
         try {
-            UserUtils.updateUser(updateUsername, UserUtils.accessKeyId);
-            Assert.fail("update user should be failed!");
-        } catch (HttpClientErrorException e) {
-            JSONObject json = XML.toJSONObject(e.getResponseBodyAsString());
-            if (!json.getJSONObject(UserCommDefind.error).getString(UserCommDefind.errorCode).contains("NoSuchUser")) {
+            UserUtils.updateUser( updateUsername, UserUtils.accessKeyId );
+            Assert.fail( "update user should be failed!" );
+        } catch ( HttpClientErrorException e ) {
+            JSONObject json = XML.toJSONObject( e.getResponseBodyAsString() );
+            if ( !json.getJSONObject( UserCommDefind.error )
+                    .getString( UserCommDefind.errorCode )
+                    .contains( "NoSuchUser" ) ) {
                 e.printStackTrace();
-                Assert.fail(e.getMessage());
+                Assert.fail( e.getMessage() );
             }
         }
         runSuccess = true;
@@ -65,8 +68,8 @@ public class UpdateNonexistentUser16259 extends S3TestBase {
 
     @AfterClass
     private void tearDown() {
-        if (runSuccess) {
-            UserUtils.deleteUser(userName, UserUtils.accessKeyId, true);
+        if ( runSuccess ) {
+            UserUtils.deleteUser( userName, UserUtils.accessKeyId, true );
         }
     }
 }

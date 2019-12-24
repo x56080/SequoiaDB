@@ -32,36 +32,36 @@ public class DeleteBucket15917 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        CommLib.clearUser(userName1);
-        CommLib.clearUser(userName2);
-        String[] acessKeys1 = UserUtils.createUser(userName1, roleName);
-        String[] acessKeys2 = UserUtils.createUser(userName2, roleName);
-        s3Client1 = CommLib.buildS3Client(acessKeys1[0], acessKeys1[1]);
-        s3Client2 = CommLib.buildS3Client(acessKeys2[0], acessKeys2[1]);
+        CommLib.clearUser( userName1 );
+        CommLib.clearUser( userName2 );
+        String[] acessKeys1 = UserUtils.createUser( userName1, roleName );
+        String[] acessKeys2 = UserUtils.createUser( userName2, roleName );
+        s3Client1 = CommLib.buildS3Client( acessKeys1[ 0 ], acessKeys1[ 1 ] );
+        s3Client2 = CommLib.buildS3Client( acessKeys2[ 0 ], acessKeys2[ 1 ] );
 
-        s3Client1.createBucket(new CreateBucketRequest(bucketName1));
-        s3Client2.createBucket(new CreateBucketRequest(bucketName2));
+        s3Client1.createBucket( new CreateBucketRequest( bucketName1 ) );
+        s3Client2.createBucket( new CreateBucketRequest( bucketName2 ) );
     }
 
     @Test
     public void testCreateBucket() throws Exception {
         try {
-            s3Client1.deleteBucket(bucketName2);
-            Assert.fail("delete bucket must be fail !");
-        } catch (AmazonS3Exception e) {
-            Assert.assertEquals(e.getErrorCode(), "AccessDenied");
+            s3Client1.deleteBucket( bucketName2 );
+            Assert.fail( "delete bucket must be fail !" );
+        } catch ( AmazonS3Exception e ) {
+            Assert.assertEquals( e.getErrorCode(), "AccessDenied" );
         }
 
-        checkResult(s3Client2, bucketName2, userName2);
+        checkResult( s3Client2, bucketName2, userName2 );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                UserUtils.deleteUser(userName1);
-                UserUtils.deleteUser(userName2);
+            if ( runSuccess ) {
+                UserUtils.deleteUser( userName1 );
+                UserUtils.deleteUser( userName2 );
             }
         } finally {
             s3Client1.shutdown();
@@ -69,15 +69,16 @@ public class DeleteBucket15917 extends S3TestBase {
         }
     }
 
-    private void checkResult(AmazonS3 s3Client, String bucketName, String userName) {
+    private void checkResult( AmazonS3 s3Client, String bucketName,
+            String userName ) {
         // create one bucket,check the bucket name and owner name
         List<Bucket> buckets = s3Client.listBuckets();
-        Assert.assertEquals(buckets.size(), 1, " only one bucket");
-        Bucket bucket = buckets.get(0);
+        Assert.assertEquals( buckets.size(), 1, " only one bucket" );
+        Bucket bucket = buckets.get( 0 );
         String actOwner = bucket.getOwner().getDisplayName();
         String actBucketName = bucket.getName();
-        Assert.assertEquals(actBucketName, bucketName);
-        Assert.assertEquals(actOwner, userName);
+        Assert.assertEquals( actBucketName, bucketName );
+        Assert.assertEquals( actOwner, userName );
     }
 
 }

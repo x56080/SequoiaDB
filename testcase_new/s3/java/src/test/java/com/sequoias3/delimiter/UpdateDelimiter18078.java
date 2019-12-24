@@ -38,37 +38,41 @@ public class UpdateDelimiter18078 extends S3TestBase {
     @SuppressWarnings("deprecation")
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        RegionUtils.clearRegion(regionName);
+        CommLib.clearBucket( s3Client, bucketName );
+        RegionUtils.clearRegion( regionName );
 
         Region region = new Region();
-        region.withName(regionName);
-        RegionUtils.putRegion(region);
-        s3Client.createBucket(bucketName, regionName);
-        CommLib.setBucketVersioning(s3Client, bucketName, "Enabled");
+        region.withName( regionName );
+        RegionUtils.putRegion( region );
+        s3Client.createBucket( bucketName, regionName );
+        CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
 
         // add a deleteTag key
-        s3Client.deleteObject(bucketName, deleteTagkeyName);
-        s3Client.putObject(bucketName, keyName, new File(filePath));
+        s3Client.deleteObject( bucketName, deleteTagkeyName );
+        s3Client.putObject( bucketName, keyName, new File( filePath ) );
     }
 
     @Test
     public void testUpdateDelimiter() throws Exception {
-        DelimiterUtils.putBucketDelimiter(bucketName, delimiter);
+        DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
 
-        DelimiterUtils.checkCurrentDelimiteInfo(bucketName, delimiter);
+        DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
         List<String> expCommprefixList = new ArrayList<>();
-        expCommprefixList.add("aa%test");
-        expCommprefixList.add("aa%delete/aa%/test");
+        expCommprefixList.add( "aa%test" );
+        expCommprefixList.add( "aa%delete/aa%/test" );
         List<String> expContentList = new ArrayList<>();
-        DelimiterUtils.listObjectsWithDelimiter(s3Client, bucketName, delimiter, expCommprefixList, expContentList);
+        DelimiterUtils
+                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
+                        expCommprefixList, expContentList );
 
         runSuccess = true;
     }
@@ -76,10 +80,10 @@ public class UpdateDelimiter18078 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                RegionUtils.deleteRegion(regionName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                RegionUtils.deleteRegion( regionName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();

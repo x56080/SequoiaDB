@@ -24,58 +24,70 @@ import java.util.UUID;
  * @version:1.0
  */
 public class CreateRegionByDefaultAndDefine18346 extends S3TestBase {
+    String dataCSShardingType = "quarter";
+    String dataCLShardingType = "month";
     private String regionName = "region18346";
     private String bucketName = "bucket18346";
     private String objectName = "object18346";
     private AmazonS3 s3Client = null;
-    String dataCSShardingType = "quarter";
-    String dataCLShardingType = "month";
 
     @BeforeClass
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        RegionUtils.clearRegion(regionName);
+        RegionUtils.clearRegion( regionName );
     }
 
     @DataProvider(name = "data-provier")
     private Object[][] dataProvier() {
-        Region defineRegion = new Region().withDataCSShardingType(dataCSShardingType)
-                .withDataCLShardingType(dataCLShardingType).withName(regionName);
+        Region defineRegion = new Region()
+                .withDataCSShardingType( dataCSShardingType )
+                .withDataCLShardingType( dataCLShardingType )
+                .withName( regionName );
         return new Object[][] {
                 // dataCSShardingType and dataCLShardingType does not set
-                { new Region().withName(regionName), defineRegion },
+                { new Region().withName( regionName ), defineRegion },
                 // dataCLShardingType does not set
-                { new Region().withName(regionName).withDataCSShardingType(dataCSShardingType), defineRegion },
+                { new Region().withName( regionName ).withDataCSShardingType(
+                        dataCSShardingType ), defineRegion },
                 // dataCSShardingType does not set
-                { new Region().withName(regionName).withDataCLShardingType(dataCLShardingType), defineRegion } };
+                { new Region().withName( regionName ).withDataCLShardingType(
+                        dataCLShardingType ), defineRegion } };
     }
 
     @Test(dataProvider = "data-provier")
-    private void test(Region defaultRegion, Region defineRegion) throws Exception {
-        CreateRegion cThread1 = new CreateRegion(defaultRegion);
-        CreateRegion cThread2 = new CreateRegion(defineRegion);
+    private void test( Region defaultRegion, Region defineRegion )
+            throws Exception {
+        CreateRegion cThread1 = new CreateRegion( defaultRegion );
+        CreateRegion cThread2 = new CreateRegion( defineRegion );
         cThread1.start();
         cThread2.start();
-        Assert.assertEquals(cThread1.isSuccess(), true, cThread1.getErrorMsg());
-        Assert.assertEquals(cThread2.isSuccess(), true, cThread2.getErrorMsg());
+        Assert.assertEquals( cThread1.isSuccess(), true,
+                cThread1.getErrorMsg() );
+        Assert.assertEquals( cThread2.isSuccess(), true,
+                cThread2.getErrorMsg() );
 
         // get region
-        GetRegionResult result = RegionUtils.getRegion(regionName);
-        Assert.assertEquals(result.getRegion().getDataCSShardingType(), dataCSShardingType, result.toString());
-        Assert.assertEquals(result.getRegion().getDataCLShardingType(), dataCLShardingType, result.toString());
+        GetRegionResult result = RegionUtils.getRegion( regionName );
+        Assert.assertEquals( result.getRegion().getDataCSShardingType(),
+                dataCSShardingType, result.toString() );
+        Assert.assertEquals( result.getRegion().getDataCLShardingType(),
+                dataCLShardingType, result.toString() );
 
         // craete bucket for check
-        s3Client.createBucket(new CreateBucketRequest(bucketName, regionName));
+        s3Client.createBucket(
+                new CreateBucketRequest( bucketName, regionName ) );
         // create object for check
-        s3Client.putObject(bucketName, objectName, String.valueOf(UUID.randomUUID()));
+        s3Client.putObject( bucketName, objectName,
+                String.valueOf( UUID.randomUUID() ) );
         // get object for check
-        S3Object s3Object = s3Client.getObject(bucketName, objectName);
-        Assert.assertEquals(s3Object.getBucketName(), bucketName);
-        Assert.assertEquals(s3Object.getKey(), objectName);
-        Assert.assertEquals(s3Object.getObjectMetadata().getVersionId(), "null");
+        S3Object s3Object = s3Client.getObject( bucketName, objectName );
+        Assert.assertEquals( s3Object.getBucketName(), bucketName );
+        Assert.assertEquals( s3Object.getKey(), objectName );
+        Assert.assertEquals( s3Object.getObjectMetadata().getVersionId(),
+                "null" );
         // clean
-        CommLib.clearBucket(s3Client, bucketName);
-        RegionUtils.deleteRegion(regionName);
+        CommLib.clearBucket( s3Client, bucketName );
+        RegionUtils.deleteRegion( regionName );
     }
 
     @AfterClass
@@ -86,13 +98,13 @@ public class CreateRegionByDefaultAndDefine18346 extends S3TestBase {
     private class CreateRegion extends S3ThreadBase {
         private Region region;
 
-        public CreateRegion(Region region) {
+        public CreateRegion( Region region ) {
             this.region = region;
         }
 
         @Override
         public void exec() throws Exception {
-            RegionUtils.putRegion(region);
+            RegionUtils.putRegion( region );
         }
     }
 }

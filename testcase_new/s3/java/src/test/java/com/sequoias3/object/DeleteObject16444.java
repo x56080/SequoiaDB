@@ -1,18 +1,17 @@
 package com.sequoias3.object;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * @Description seqDB-16444: enabling bucket versioning , delete object on the
@@ -33,50 +32,60 @@ public class DeleteObject16444 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath = localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        updatePath =
+                localPath + File.separator + "localFile_" + updateSize + ".txt";
 
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
-        TestTools.LocalFile.createFile(updatePath, updateSize);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        TestTools.LocalFile.createFile( updatePath, updateSize );
         s3Client = CommLib.buildS3Client();
-        ObjectUtils.deleteObjectAllVersions(s3Client, S3TestBase.enableVerBucketName, key);
+        ObjectUtils.deleteObjectAllVersions( s3Client,
+                S3TestBase.enableVerBucketName, key );
     }
 
     @Test
     public void testDeleteObject() throws Exception {
-        s3Client.putObject(S3TestBase.enableVerBucketName, key, new File(filePath));
-        s3Client.putObject(S3TestBase.enableVerBucketName, key, new File(updatePath));
-        s3Client.deleteObject(S3TestBase.enableVerBucketName, key);
-        checkDeleteObjectResult(S3TestBase.enableVerBucketName, key);
+        s3Client.putObject( S3TestBase.enableVerBucketName, key,
+                new File( filePath ) );
+        s3Client.putObject( S3TestBase.enableVerBucketName, key,
+                new File( updatePath ) );
+        s3Client.deleteObject( S3TestBase.enableVerBucketName, key );
+        checkDeleteObjectResult( S3TestBase.enableVerBucketName, key );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                ObjectUtils.deleteObjectAllVersions(s3Client, S3TestBase.enableVerBucketName, key);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                ObjectUtils.deleteObjectAllVersions( s3Client,
+                        S3TestBase.enableVerBucketName, key );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
         }
     }
 
-    private void checkDeleteObjectResult(String bucketName, String key) throws Exception {
+    private void checkDeleteObjectResult( String bucketName, String key )
+            throws Exception {
         // current version object has been deleted
-        boolean isExistObject = s3Client.doesObjectExist(bucketName, key);
-        Assert.assertFalse(isExistObject, "the object should not exist!");
+        boolean isExistObject = s3Client.doesObjectExist( bucketName, key );
+        Assert.assertFalse( isExistObject, "the object should not exist!" );
 
         // deleted object has been a history version object,the versionId is "1"
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, key, "1");
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(updatePath));
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, key, "1" );
+        Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
 
         // check the oldest version object,the version is "0"
-        String downOldfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, key, "0");
-        Assert.assertEquals(downOldfileMd5, TestTools.getMD5(filePath));
+        String downOldfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, key, "0" );
+        Assert.assertEquals( downOldfileMd5, TestTools.getMD5( filePath ) );
     }
 }

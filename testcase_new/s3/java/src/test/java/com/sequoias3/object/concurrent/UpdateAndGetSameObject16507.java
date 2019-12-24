@@ -36,17 +36,22 @@ public class UpdateAndGetSameObject16507 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath = localPath + File.separator + "localFile_" + updateSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
-        TestTools.LocalFile.createFile(updatePath, updateSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        updatePath =
+                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
+        TestTools.LocalFile.createFile( updatePath, updateSize );
 
         s3Client = CommLib.buildS3Client();
-        ObjectUtils.deleteObjectAllVersions(s3Client, S3TestBase.enableVerBucketName, keyName);
-        s3Client.putObject(S3TestBase.enableVerBucketName, keyName, new File(filePath));
+        ObjectUtils.deleteObjectAllVersions( s3Client,
+                S3TestBase.enableVerBucketName, keyName );
+        s3Client.putObject( S3TestBase.enableVerBucketName, keyName,
+                new File( filePath ) );
     }
 
     @Test
@@ -56,19 +61,23 @@ public class UpdateAndGetSameObject16507 extends S3TestBase {
         updateObjectThread.start();
         getObjectThread.start();
 
-        if (updateObjectThread.isSuccess()) {
-            if (getObjectThread.isSuccess()) {
-                checkGetObject(S3TestBase.enableVerBucketName, keyName);
+        if ( updateObjectThread.isSuccess() ) {
+            if ( getObjectThread.isSuccess() ) {
+                checkGetObject( S3TestBase.enableVerBucketName, keyName );
             } else {
-                AmazonS3Exception e = (AmazonS3Exception) (getObjectThread.getExceptions().get(0));
-                if (!e.getErrorCode().equals("NoSuchKey")) {
-                    Assert.fail("getObject fail:" + getObjectThread.getErrorMsg() + "  e:" + e.getErrorCode());
+                AmazonS3Exception e = ( AmazonS3Exception ) ( getObjectThread
+                        .getExceptions().get( 0 ) );
+                if ( !e.getErrorCode().equals( "NoSuchKey" ) ) {
+                    Assert.fail(
+                            "getObject fail:" + getObjectThread.getErrorMsg()
+                                    + "  e:" + e.getErrorCode() );
                 }
             }
-            checkUpdateObjectResult(S3TestBase.enableVerBucketName, keyName);
+            checkUpdateObjectResult( S3TestBase.enableVerBucketName, keyName );
         } else {
-            Assert.fail("Unexpected results! updateObjectError:" + updateObjectThread.getErrorMsg() + "getObjectError:"
-                    + getObjectThread.getErrorMsg());
+            Assert.fail( "Unexpected results! updateObjectError:"
+                    + updateObjectThread.getErrorMsg() + "getObjectError:"
+                    + getObjectThread.getErrorMsg() );
         }
 
         runSuccess = true;
@@ -77,15 +86,41 @@ public class UpdateAndGetSameObject16507 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                ObjectUtils.deleteObjectAllVersions(s3Client, S3TestBase.enableVerBucketName, keyName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                ObjectUtils.deleteObjectAllVersions( s3Client,
+                        S3TestBase.enableVerBucketName, keyName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
+    }
+
+    private void checkGetObject( String bucketName, String key )
+            throws Exception {
+        ObjectMetadata metadata = object.getObjectMetadata();
+        String versionId = metadata.getVersionId();
+        String curVersionId = "1";
+        if ( versionId.equals( curVersionId ) ) {
+            String downfileMd5 = ObjectUtils
+                    .getMd5OfObject( s3Client, localPath, bucketName, key,
+                            versionId );
+            Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
+        } else {
+            String downfileMd5 = ObjectUtils
+                    .getMd5OfObject( s3Client, localPath, bucketName, key,
+                            versionId );
+            Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
+        }
+    }
+
+    private void checkUpdateObjectResult( String bucketName, String key )
+            throws Exception {
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
     }
 
     private class UpdateObjectThread extends S3ThreadBase {
@@ -93,9 +128,10 @@ public class UpdateAndGetSameObject16507 extends S3TestBase {
         public void exec() throws Exception {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
-                s3Client.putObject(S3TestBase.enableVerBucketName, keyName, new File(updatePath));
+                s3Client.putObject( S3TestBase.enableVerBucketName, keyName,
+                        new File( updatePath ) );
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }
@@ -107,31 +143,14 @@ public class UpdateAndGetSameObject16507 extends S3TestBase {
         public void exec() throws Exception {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
-                object = s3Client.getObject(S3TestBase.enableVerBucketName, keyName);
+                object = s3Client
+                        .getObject( S3TestBase.enableVerBucketName, keyName );
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }
         }
-    }
-
-    private void checkGetObject(String bucketName, String key) throws Exception {
-        ObjectMetadata metadata = object.getObjectMetadata();
-        String versionId = metadata.getVersionId();
-        String curVersionId = "1";
-        if (versionId.equals(curVersionId)) {
-            String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, key, versionId);
-            Assert.assertEquals(downfileMd5, TestTools.getMD5(updatePath));
-        } else {
-            String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, key, versionId);
-            Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
-        }
-    }
-
-    private void checkUpdateObjectResult(String bucketName, String key) throws Exception {
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, key);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(updatePath));
     }
 
 }

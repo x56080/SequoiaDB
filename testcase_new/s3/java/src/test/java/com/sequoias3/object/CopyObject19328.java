@@ -1,19 +1,18 @@
 package com.sequoias3.object;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * @Description seqDB-19328:复制对象指定versionId，匹配if-Match条件
@@ -33,32 +32,36 @@ public class CopyObject19328 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, "Enabled");
-        s3Client.putObject(bucketName, srcKeyName, new File(filePath));
-        s3Client.putObject(bucketName, srcKeyName, "currentVersionOfSrcObject.");
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
+        s3Client.putObject( bucketName, srcKeyName, new File( filePath ) );
+        s3Client.putObject( bucketName, srcKeyName,
+                "currentVersionOfSrcObject." );
     }
 
     @Test
     public void testCopyObject() throws Exception {
         String hisVersionId = "0";
-        String hisVersionETag = TestTools.getMD5(filePath);
-        CopyObjectRequest request = new CopyObjectRequest(bucketName, srcKeyName, hisVersionId, bucketName,
-                destKeyName);
-        request.withMatchingETagConstraint(hisVersionETag);
-        s3Client.copyObject(request);
+        String hisVersionETag = TestTools.getMD5( filePath );
+        CopyObjectRequest request = new CopyObjectRequest( bucketName,
+                srcKeyName, hisVersionId, bucketName, destKeyName );
+        request.withMatchingETagConstraint( hisVersionETag );
+        s3Client.copyObject( request );
 
         // check the content of destObject
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, destKeyName);
-        Assert.assertEquals(downfileMd5, hisVersionETag);
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, destKeyName );
+        Assert.assertEquals( downfileMd5, hisVersionETag );
 
         runSuccess = true;
     }
@@ -66,9 +69,9 @@ public class CopyObject19328 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();

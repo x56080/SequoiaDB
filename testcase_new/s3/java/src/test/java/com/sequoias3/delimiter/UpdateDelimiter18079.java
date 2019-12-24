@@ -1,17 +1,16 @@
 package com.sequoias3.delimiter;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.DelimiterUtils;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @Description seqDB-18079: the object name include old delimiter, than update
@@ -33,33 +32,35 @@ public class UpdateDelimiter18079 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, "Enabled");
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
 
-        for (int i = 0; i < keyNums; i++) {
+        for ( int i = 0; i < keyNums; i++ ) {
             String subKeyName = keyName + "_" + i + "_test.png";
-            s3Client.putObject(bucketName, subKeyName, "context18079" + i);
-            expContentList.add(subKeyName);
+            s3Client.putObject( bucketName, subKeyName, "context18079" + i );
+            expContentList.add( subKeyName );
         }
     }
 
     @Test
     public void testUpdateDelimiter() throws Exception {
-        DelimiterUtils.putBucketDelimiter(bucketName, delimiter);
+        DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
 
-        DelimiterUtils.checkCurrentDelimiteInfo(bucketName, delimiter);
+        DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
 
         List<String> expCommprefixList = new ArrayList<>();
-        DelimiterUtils.listObjectsWithDelimiter(s3Client, bucketName, delimiter, expCommprefixList, expContentList);
+        DelimiterUtils
+                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
+                        expCommprefixList, expContentList );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
             }
         } finally {
             s3Client.shutdown();

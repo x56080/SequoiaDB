@@ -1,14 +1,5 @@
 package com.sequoias3.region.concurrent;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.List;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.sequoias3.region.Region;
 import com.sequoias3.testcommon.CommLib;
@@ -16,6 +7,14 @@ import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @Description seqDB-17330: concurrent create Region and specify the same cs
@@ -39,33 +38,36 @@ public class CreateRegionWithSameConf17330 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
 
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
-        RegionUtils.createCSAndCL(csNames[0], metaclNames);
-        RegionUtils.createCSAndCL(csNames[1], dataclNames);
+        RegionUtils.createCSAndCL( csNames[ 0 ], metaclNames );
+        RegionUtils.createCSAndCL( csNames[ 1 ], dataclNames );
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        RegionUtils.clearRegion(regionName);
+        CommLib.clearBucket( s3Client, bucketName );
+        RegionUtils.clearRegion( regionName );
     }
 
     @Test(threadPoolSize = 100)
     public void testRegion() throws Exception {
         Region region = new Region();
-        String metaLocation = csNames[0] + "." + metaclNames[0];
-        String metaHisLocation = csNames[0] + "." + metaclNames[1];
-        String dataLocation = csNames[1] + "." + dataclNames[0];
-        region.withMetaLocation(metaLocation).withDataLocation(dataLocation).withMetaHisLocation(metaHisLocation)
-                .withName(regionName);
-        RegionUtils.putRegion(region);
+        String metaLocation = csNames[ 0 ] + "." + metaclNames[ 0 ];
+        String metaHisLocation = csNames[ 0 ] + "." + metaclNames[ 1 ];
+        String dataLocation = csNames[ 1 ] + "." + dataclNames[ 0 ];
+        region.withMetaLocation( metaLocation ).withDataLocation( dataLocation )
+                .withMetaHisLocation( metaHisLocation ).withName( regionName );
+        RegionUtils.putRegion( region );
 
         // get region and check region info
-        RegionUtils.checkRegionWithLocation(regionName, metaLocation, metaHisLocation, dataLocation);
+        RegionUtils.checkRegionWithLocation( regionName, metaLocation,
+                metaHisLocation, dataLocation );
 
         runSuccess = true;
     }
@@ -73,9 +75,9 @@ public class CreateRegionWithSameConf17330 extends S3TestBase {
     @Test(dependsOnMethods = "testRegion")
     public void checkResult() throws Exception {
         List<String> listRegions = RegionUtils.listRegions();
-        int count = Collections.frequency(listRegions, regionName);
+        int count = Collections.frequency( listRegions, regionName );
         // finally only create 1 region
-        Assert.assertEquals(count, 1);
+        Assert.assertEquals( count, 1 );
 
         // create object on region
         createObjectAndCheckResult();
@@ -84,11 +86,11 @@ public class CreateRegionWithSameConf17330 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
-                RegionUtils.deleteRegion(regionName);
-                RegionUtils.dropCS(csNames);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                RegionUtils.deleteRegion( regionName );
+                RegionUtils.dropCS( csNames );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();
@@ -97,10 +99,11 @@ public class CreateRegionWithSameConf17330 extends S3TestBase {
 
     @SuppressWarnings("deprecation")
     private void createObjectAndCheckResult() throws Exception {
-        s3Client.createBucket(bucketName, regionName);
-        s3Client.putObject(bucketName, key, new File(filePath));
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, key);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
+        s3Client.createBucket( bucketName, regionName );
+        s3Client.putObject( bucketName, key, new File( filePath ) );
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
 }

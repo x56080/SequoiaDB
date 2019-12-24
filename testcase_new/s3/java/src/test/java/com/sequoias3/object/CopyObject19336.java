@@ -1,14 +1,5 @@
 package com.sequoias3.object;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Date;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
@@ -18,9 +9,17 @@ import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
 import com.sequoias3.testcommon.s3utils.UserUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
 
 /**
- * 
+ *
  * @Description seqDB-19336:指定ifUnModifiedSince和ifModifiedSince条件匹配源对象复制
  * @author wuyan
  * @Date 2019.09.19
@@ -43,23 +42,30 @@ public class CopyObject19336 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        hisVersionFilePath = localPath + File.separator + "localFile_" + fileSize1 + ".txt";
-        curVersionFilePath = localPath + File.separator + "localFile_" + fileSize1 + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(hisVersionFilePath, fileSize1);
-        TestTools.LocalFile.createFile(curVersionFilePath, fileSize2);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        hisVersionFilePath =
+                localPath + File.separator + "localFile_" + fileSize1 + ".txt";
+        curVersionFilePath =
+                localPath + File.separator + "localFile_" + fileSize1 + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( hisVersionFilePath, fileSize1 );
+        TestTools.LocalFile.createFile( curVersionFilePath, fileSize2 );
 
-        CommLib.clearUser(userName);
-        String[] acessKeys = UserUtils.createUser(userName, roleName);
-        s3Client = CommLib.buildS3Client(acessKeys[0], acessKeys[1]);
-        s3Client.createBucket(bucketName);
-        CommLib.setBucketVersioning(s3Client, bucketName, "Enabled");
-        s3Client.putObject(bucketName, srcKeyName, new File(hisVersionFilePath));
-        s3Client.putObject(bucketName, srcKeyName, new File(curVersionFilePath));
-        GetObjectMetadataRequest metadataRequest = new GetObjectMetadataRequest(bucketName, srcKeyName);
-        ObjectMetadata objMetadata = s3Client.getObjectMetadata(metadataRequest);
+        CommLib.clearUser( userName );
+        String[] acessKeys = UserUtils.createUser( userName, roleName );
+        s3Client = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+        s3Client.createBucket( bucketName );
+        CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
+        s3Client.putObject( bucketName, srcKeyName,
+                new File( hisVersionFilePath ) );
+        s3Client.putObject( bucketName, srcKeyName,
+                new File( curVersionFilePath ) );
+        GetObjectMetadataRequest metadataRequest = new GetObjectMetadataRequest(
+                bucketName, srcKeyName );
+        ObjectMetadata objMetadata = s3Client
+                .getObjectMetadata( metadataRequest );
         Date lastModifiedDate = objMetadata.getLastModified();
         lastModifiedTime = lastModifiedDate.getTime();
     }
@@ -68,29 +74,33 @@ public class CopyObject19336 extends S3TestBase {
     public void testCopyObject() throws Exception {
         // set date 2 minutes early at the lastModified time
         long beforeTimestamp = lastModifiedTime - 2 * 60 * 1000l;
-        Date beforeDate = new Date(beforeTimestamp);
+        Date beforeDate = new Date( beforeTimestamp );
 
         // set date 2 minutes later than lastModified time
         long afterTimestamp = lastModifiedTime + 2 * 60 * 1000l;
-        Date afterDate = new Date(afterTimestamp);
+        Date afterDate = new Date( afterTimestamp );
 
         // copyObject
-        CopyObjectRequest request = new CopyObjectRequest(bucketName, srcKeyName, bucketName, destKeyName);
-        request.withUnmodifiedSinceConstraint(afterDate).withModifiedSinceConstraint(beforeDate);
-        s3Client.copyObject(request);
+        CopyObjectRequest request = new CopyObjectRequest( bucketName,
+                srcKeyName, bucketName, destKeyName );
+        request.withUnmodifiedSinceConstraint( afterDate )
+                .withModifiedSinceConstraint( beforeDate );
+        s3Client.copyObject( request );
 
         // check the content of destObject
-        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, destKeyName);
-        Assert.assertEquals(downfileMd5, TestTools.getMD5(curVersionFilePath));
+        String downfileMd5 = ObjectUtils
+                .getMd5OfObject( s3Client, localPath, bucketName, destKeyName );
+        Assert.assertEquals( downfileMd5,
+                TestTools.getMD5( curVersionFilePath ) );
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                UserUtils.deleteUser(userName);
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                UserUtils.deleteUser( userName );
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
             s3Client.shutdown();

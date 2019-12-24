@@ -32,15 +32,18 @@ public class DeleteAndGetSameObject16492 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
-        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
-        TestTools.LocalFile.removeFile(localPath);
-        TestTools.LocalFile.createDir(localPath.toString());
-        TestTools.LocalFile.createFile(filePath, fileSize);
+        localPath = new File( S3TestBase.workDir + File.separator + TestTools
+                .getClassName() );
+        filePath =
+                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile( localPath );
+        TestTools.LocalFile.createDir( localPath.toString() );
+        TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
-        ObjectUtils.clearOneObject(s3Client, S3TestBase.bucketName, keyName);
-        s3Client.putObject(S3TestBase.bucketName, keyName, new File(filePath));
+        ObjectUtils.clearOneObject( s3Client, S3TestBase.bucketName, keyName );
+        s3Client.putObject( S3TestBase.bucketName, keyName,
+                new File( filePath ) );
     }
 
     @Test
@@ -50,17 +53,21 @@ public class DeleteAndGetSameObject16492 extends S3TestBase {
         deleteObjectThread.start();
         getObjectThread.start();
 
-        if (deleteObjectThread.isSuccess()) {
-            if (!getObjectThread.isSuccess()) {
-                AmazonS3Exception e = (AmazonS3Exception) (getObjectThread.getExceptions().get(0));
-                if (!e.getErrorCode().equals("NoSuchKey")) {
-                    Assert.fail("getObject fail:" + getObjectThread.getErrorMsg() + "  e:" + e.getErrorCode());
+        if ( deleteObjectThread.isSuccess() ) {
+            if ( !getObjectThread.isSuccess() ) {
+                AmazonS3Exception e = ( AmazonS3Exception ) ( getObjectThread
+                        .getExceptions().get( 0 ) );
+                if ( !e.getErrorCode().equals( "NoSuchKey" ) ) {
+                    Assert.fail(
+                            "getObject fail:" + getObjectThread.getErrorMsg()
+                                    + "  e:" + e.getErrorCode() );
                 }
             }
-            checkDeleteObjectResult(S3TestBase.bucketName, keyName);
+            checkDeleteObjectResult( S3TestBase.bucketName, keyName );
         } else {
-            Assert.fail("Unexpected results! deleteObjectError:" + deleteObjectThread.getErrorMsg() + "getObjectError:"
-                    + getObjectThread.getErrorMsg());
+            Assert.fail( "Unexpected results! deleteObjectError:"
+                    + deleteObjectThread.getErrorMsg() + "getObjectError:"
+                    + getObjectThread.getErrorMsg() );
         }
 
         runSuccess = true;
@@ -69,14 +76,20 @@ public class DeleteAndGetSameObject16492 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if (runSuccess) {
-                TestTools.LocalFile.removeFile(localPath);
+            if ( runSuccess ) {
+                TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
-            if (s3Client != null) {
+            if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
+    }
+
+    private void checkDeleteObjectResult( String bucketName, String key )
+            throws Exception {
+        boolean isExistObject = s3Client.doesObjectExist( bucketName, key );
+        Assert.assertFalse( isExistObject, "the object must be deleted!" );
     }
 
     private class DeleteObjectThread extends S3ThreadBase {
@@ -84,9 +97,9 @@ public class DeleteAndGetSameObject16492 extends S3TestBase {
         public void exec() throws Exception {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
-                s3Client.deleteObject(S3TestBase.bucketName, keyName);
+                s3Client.deleteObject( S3TestBase.bucketName, keyName );
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }
@@ -98,23 +111,22 @@ public class DeleteAndGetSameObject16492 extends S3TestBase {
         public void exec() throws Exception {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
-                S3Object object = s3Client.getObject(S3TestBase.bucketName, keyName);
+                S3Object object = s3Client
+                        .getObject( S3TestBase.bucketName, keyName );
                 ObjectMetadata metadata = object.getObjectMetadata();
                 String etag = metadata.getETag();
-                Assert.assertEquals(etag, TestTools.getMD5(filePath));
-                String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, keyName);
-                Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
+                Assert.assertEquals( etag, TestTools.getMD5( filePath ) );
+                String downfileMd5 = ObjectUtils
+                        .getMd5OfObject( s3Client, localPath, bucketName,
+                                keyName );
+                Assert.assertEquals( downfileMd5,
+                        TestTools.getMD5( filePath ) );
             } finally {
-                if (s3Client != null) {
+                if ( s3Client != null ) {
                     s3Client.shutdown();
                 }
             }
         }
-    }
-
-    private void checkDeleteObjectResult(String bucketName, String key) throws Exception {
-        boolean isExistObject = s3Client.doesObjectExist(bucketName, key);
-        Assert.assertFalse(isExistObject, "the object must be deleted!");
     }
 
 }

@@ -1,17 +1,16 @@
 package com.sequoias3.delimiter;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.DelimiterUtils;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @Description seqDB-18081: current delimiter is delimiter2, delimiter1 is
@@ -31,21 +30,23 @@ public class UpdateDelimiter18081 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket(s3Client, bucketName);
-        s3Client.createBucket(bucketName);
-        s3Client.putObject(bucketName, keyName, "updatedelimite18081");
+        CommLib.clearBucket( s3Client, bucketName );
+        s3Client.createBucket( bucketName );
+        s3Client.putObject( bucketName, keyName, "updatedelimite18081" );
     }
 
     @Test
     public void testUpdateDelimiter() throws Exception {
-        DelimiterUtils.putBucketDelimiter(bucketName, curDelimiter);
-        DelimiterUtils.updateDelimiterSuccessAgain(bucketName, newDelimiter);
-        DelimiterUtils.checkCurrentDelimiteInfo(bucketName, newDelimiter);
+        DelimiterUtils.putBucketDelimiter( bucketName, curDelimiter );
+        DelimiterUtils.updateDelimiterSuccessAgain( bucketName, newDelimiter );
+        DelimiterUtils.checkCurrentDelimiteInfo( bucketName, newDelimiter );
 
         List<String> expCommprefixList = new ArrayList<>();
-        expCommprefixList.add("aa?%bb?c");
+        expCommprefixList.add( "aa?%bb?c" );
         List<String> expContentList = new ArrayList<>();
-        DelimiterUtils.listObjectsWithDelimiter(s3Client, bucketName, newDelimiter, expCommprefixList, expContentList);
+        DelimiterUtils
+                .listObjectsWithDelimiter( s3Client, bucketName, newDelimiter,
+                        expCommprefixList, expContentList );
 
         runSuccess = true;
     }
@@ -53,8 +54,8 @@ public class UpdateDelimiter18081 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if (runSuccess) {
-                CommLib.clearBucket(s3Client, bucketName);
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
             }
         } finally {
             s3Client.shutdown();
