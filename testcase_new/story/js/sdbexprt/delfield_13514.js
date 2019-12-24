@@ -32,7 +32,7 @@ function main()
 
 function testExprtImprt()
 {
-   var csvfile = workDir + "sdbexprt13514.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13514.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    var asc = getRandomInt( 0, 128 ) ;
    println( "ascii for delfield is: " + asc ) ;

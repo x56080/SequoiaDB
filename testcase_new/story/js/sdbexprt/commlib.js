@@ -6,7 +6,7 @@
 var cmd = new Cmd();
 var installPath = getInstallDir();
 var tmpFileDir = WORKDIR + "/sdbexprt/";
-var workDir = readyTmpDir();
+readyTmpDir();
 
 
 /* ***************************************************

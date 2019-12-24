@@ -48,7 +48,7 @@ function testExprtFilter1()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -96,7 +96,7 @@ function testExprtFilter2()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -144,7 +144,7 @@ function testExprtFilter3()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -192,7 +192,7 @@ function testExprtFilter4()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -241,7 +241,7 @@ function testExprtFilter5()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -289,7 +289,7 @@ function testExprtFilter6()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -337,7 +337,7 @@ function testExprtFilter7()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -386,7 +386,7 @@ function testExprtFilter8()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -440,7 +440,7 @@ function testExprtFilter9()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -493,7 +493,7 @@ function testExprtFilter10()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -542,7 +542,7 @@ function testExprtFilter11()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -590,7 +590,7 @@ function testExprtFilter12()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
@@ -637,7 +637,7 @@ function testExprtFilter13()
    var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
    cl.insert( docs ) ;
    
-   var csvfile = workDir + "sdbexprt13581.csv" ;
+   var csvfile = tmpFileDir + "sdbexprt13581.csv" ;
    cmd.run( "rm -rf " + csvfile ) ;
    
    var command = installPath + "bin/sdbexprt" +
