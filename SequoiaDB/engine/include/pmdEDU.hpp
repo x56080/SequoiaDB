@@ -377,6 +377,16 @@ namespace engine
          _monApplCB.setCRUDCB( NULL ) ;
       }
 
+      monCRUDCB * saveMonCRUDCB ( )
+      {
+         return _monApplCB.getCRUDCB() ;
+      }
+
+      void restoreMonCRUDCB ( monCRUDCB * monCRUDCB )
+      {
+         _monApplCB.setCRUDCB( monCRUDCB ) ;
+      }
+
    #if defined ( SDB_ENGINE ) || defined ( SDB_STP )
       ossEvent & getEvent () { return _event ; }
       void     setOrgReplSize( INT16 replSize ) { _orgReplSize = replSize ; }

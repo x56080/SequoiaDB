@@ -1603,6 +1603,7 @@ namespace engine
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
+      monCRUDCB  * savedMonCRUDCB  = NULL ;
       PD_TRACE_ENTRY ( SDB__DMSSU_INSERTRECORD ) ;
       if ( NULL == context )
       {
@@ -1614,8 +1615,11 @@ namespace engine
          getContext = TRUE ;
       }
 
+      // there are cases where caller like rtnUpdate might invoke insertRecord,
+      // we must save the crudCB, otherwise the counters will be lost
       if ( NULL != cb )
       {
+         savedMonCRUDCB = cb->saveMonCRUDCB() ;
          cb->registerMonCRUDCB( &( context->mbStat()->_crudCB ) ) ;
       }
 
@@ -1630,6 +1634,7 @@ namespace engine
       if ( NULL != cb )
       {
          cb->unregisterMonCRUDCB() ;
+         cb->restoreMonCRUDCB( savedMonCRUDCB ) ;
       }
       if ( getContext && context )
       {

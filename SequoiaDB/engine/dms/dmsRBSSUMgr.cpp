@@ -219,7 +219,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_FINI, "_dmsRBSSUMgr::_fini" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_FINI, "_dmsRBSSUMgr::fini" )
    SINT32  _dmsRBSSUMgr::fini()
    {
       SINT32              rc = SDB_OK;
@@ -234,6 +234,7 @@ namespace engine
                    "Flush of RBS in memory meta record failed, rc=%d",
                    rc ) ;
    done :
+      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_FINI, rc );
       return rc ;
    error :
       // assert on any failure
