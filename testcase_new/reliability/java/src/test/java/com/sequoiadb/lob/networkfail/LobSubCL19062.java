@@ -1,7 +1,6 @@
 package com.sequoiadb.lob.networkfail;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -87,10 +86,10 @@ public class LobSubCL19062 extends SdbTestBase {
         Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 
         String match = "Name\\\\:" + csName + "\\\\.";
-        CommLib.waitContextClose( sdb, match, 300, true );
+        CommLib.waitContextClose( sdb, match, 300, false );
 
         redoAttachCL();
-        List< ObjectId > lobIds = new ArrayList< ObjectId >();
+        List< ObjectId > lobIds = new ArrayList< >();
         // 插入lob时有可能其他连接会刷新catalogInfo，重试一次插入
         lobIds.addAll( LobUtil.createAndWriteLob( mainCL, lobBuff, "YYYYMMDD",
                 25, 1, "20190101" ) );
