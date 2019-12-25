@@ -1163,11 +1163,6 @@ namespace engine
       pRecord->setSize( recordSize ) ;
       pRecord->setRecordNo( workExtInfo->currentRecNo() + 1 ) ;
       // setup global transaction id
-      // FIXME: to be removed
-      PD_LOG ( PDDEBUG, "set cappedrecord(%d, %d) transID: %s",
-               recordRW.getRecordID()._extent,
-               recordRW.getRecordID()._offset,
-               dpsTransIDToString( transID ).c_str() ) ;
       pRecord->setGlobTransID( transID ) ;
 
       {

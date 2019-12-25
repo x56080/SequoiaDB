@@ -848,36 +848,6 @@ namespace engine
       // get the owner transaction id
       transID = _eduCB->getTransID() ;
 
-/*
-        // FIXME: remove
-#ifdef _DEBUG
-      PD_LOG( PDDEBUG, "saving old record :rid(%d, %d), transid(%s),"
-              " _oldVer(%x) ",
-              rid._extent, rid._offset, 
-              dpsTransIDToString( transID ).c_str(), _oldVer ) ;
-#endif
-      // if mvcc is on, and the TransactionID is different, we will first store
-      // current old version (off _oldVer) to RBS; then store current disk 
-      // version to memory(_oldVer)
-      // if the _oldVer has the same owner transID, we can skip because we 
-      // only need to do it once per transaction
-      if ( pmdGetOptionCB()->mvccOn() && _oldVer && _oldVer->hasRecord() 
-           && _oldVer->getOwnerTransID() != transID )
-      {
-#ifdef _DEBUG
-         // FIXME: remove after stable
-         PD_LOG( PDDEBUG, "removing in memory old record :"
-                 "rid(%d, %d), tid(%s), obj(%s)",
-                 rid._extent, rid._offset, 
-                 dpsTransIDToString( transID ).c_str(),
-                 _oldVer->getRecordObj().toString().c_str() ) ;
-#endif
-         // delete the current record so that newer olderversion
-         // is put in memory below.  Since we already did appendRecord
-         // in releaseRecord, we can simply call it and handle everything
-         _oldVer->releaseRecord() ;
-      }
-*/
       // if the oldRecord does not exist, we will create one
       if ( _oldVer && _oldVer->isRecordEmpty() )
       {
