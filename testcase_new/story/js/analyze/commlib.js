@@ -4,7 +4,7 @@
 *@createDate:  2017.11.8
 **************************************/
 
-import( "../lib/basic_operation/Sequoiadb.js" );
+import( "../lib/basic_operation/sequoiadb.js" );
 
 function insertDiffDatas ( dbcl, insertNum )
 {

@@ -1,5 +1,5 @@
 ﻿
-import( "../lib/basic_operation/Sequoiadb.js" );
+import( "../lib/basic_operation/sequoiadb.js" );
 
 /************************************
 *@Description: aggregate data and check result

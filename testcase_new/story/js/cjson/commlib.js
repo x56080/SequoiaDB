@@ -4,7 +4,7 @@
 *                2016/7/28  wu yan Init
 *******************************************************************************/
 
-import( "../lib/basic_operation/Sequoiadb.js" );
+import( "../lib/basic_operation/sequoiadb.js" );
 
 try
 {

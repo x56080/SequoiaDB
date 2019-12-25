@@ -1,12 +1,12 @@
-import( "./Collection.js" );
-import( "./CollectionSpace.js" );
-import( "./Command.js" );
-import( "./Cursor.js" );
-import( "./FileObj.js" );
-import( "./Node.js" );
-import( "./NumberDecimalObj.js" );
-import( "./Query.js" );
-import( "./ReplicaGroup.js" );
+import( "./collection.js" );
+import( "./collectionSpace.js" );
+import( "./command.js" );
+import( "./cursor.js" );
+import( "./fileObj.js" );
+import( "./node.js" );
+import( "./numberDecimalObj.js" );
+import( "./query.js" );
+import( "./replicaGroup.js" );
 
 if( COORDHOSTNAME == undefined ) { var COORDHOSTNAME = "localhost"; }
 if( COORDSVCNAME == undefined ) { var COORDSVCNAME = 11810; }
