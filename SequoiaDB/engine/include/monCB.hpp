@@ -830,6 +830,8 @@ namespace engine
       void saveLastOpDetail( const CHAR *format, ... ) ;
       void formatLastOpDetail( const rtnQueryOptions &options ) ;
 
+      OSS_INLINE monCRUDCB * getCRUDCB()  { return _mbCRUDCB ; }
+
       OSS_INLINE void setCRUDCB ( monCRUDCB * crudCB )
       {
          _mbCRUDCB = crudCB ;
