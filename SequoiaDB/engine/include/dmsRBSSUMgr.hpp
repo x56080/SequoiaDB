@@ -471,34 +471,20 @@ namespace engine
                         SDB_DPSCB    *dpsCB,
                         UINT16        flushOption,
                         dmsMBContext *context = NULL ) ;
-/*
-      SINT32 appendRecord ( dmsStorageUnitID  csid,
-                            UINT16            clid,
-                            dmsRecordID       rid,
-                            DPS_TRANS_ID      recordTransid,
-                            DPS_TRANS_ID      ownerTransid,
-                            const dmsRecord  *record) ; 
-*/
+
       SINT32 appendRecord ( dmsStorageUnitID  csid,
                             UINT16            clid,
                             DPS_LSN_OFFSET    lsn,
                             DPS_TRANS_ID      recordTransid,
                             DPS_TRANS_ID      ownerTransid,
                             const BSONObj     &obj );
-/*
+
       SINT32 getRecord ( dmsStorageUnitID  csid,
                          UINT16            clid,
-                         dmsRecordID       rid,
+                         DPS_LSN_OFFSET    &lsn,
                          DPS_TRANS_ID      transid,
                          BOOLEAN          &found,
                          dmsRecordData    &record ) ; 
-*/
-      SINT32 getRecord1 ( dmsStorageUnitID  csid,
-                          UINT16            clid,
-                          DPS_LSN_OFFSET    &lsn,
-                          DPS_TRANS_ID      transid,
-                          BOOLEAN          &found,
-                          dmsRecordData    &record ) ; 
       void gcRBS ( ) ;
 
    private:

@@ -737,8 +737,7 @@ namespace engine
                   BOOLEAN found = FALSE ;
                   // FIXME: remove one after Shangde's review
                   rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
-                         ->getRecord1( _pSu->logicalID(),  // use cappedCL fetch
-                         //->getRecord( _pSu->logicalID(), // use my own
+                         ->getRecord( _pSu->logicalID(),  // use cappedCL fetch
                                       _context->mbID(),
                                       lsn,
                                       transID, found, recordData ) ;
@@ -2234,10 +2233,10 @@ namespace engine
                DPS_LSN_OFFSET lsn   = _curRecordPtr->getLSNOffset() ;
 
                rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
-                      ->getRecord1( _pSu->logicalID(),
-                                    _context->mbID(),
-                                    lsn,
-                                    transID, found, recordData ) ;
+                      ->getRecord( _pSu->logicalID(),
+                                   _context->mbID(),
+                                   lsn,
+                                   transID, found, recordData ) ;
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDERROR, "Failed to getRecord from RBS, rc: %d",

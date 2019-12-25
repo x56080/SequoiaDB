@@ -289,8 +289,6 @@ namespace engine
 
          // call migrateFromV0 to handle in-flight migration if needed
          // we don't have versioning. instead, we check for attribute
-         // FIXME: need to fix the migration logic to support/handle OVF
-         // also need to handle compression case
          if ( !(pRecord->hasGlobTransID()) )
          {
             PD_LOG ( PDDEBUG, "In-flight migration of record during update object(%s) ",
@@ -528,8 +526,6 @@ namespace engine
 
                // once the extent is valid, let's check the record is deleted
                // and got sufficient size for us
-               // FIXME: we may want to remove the assertion or the check 
-               // when we are certain on the behavior
                SDB_ASSERT( pRead->isDeleted(), 
                            "Record on delete list is not delete" ) ;
                if( pRead->isDeleted() && pRead->getSize() >= requiredSize )

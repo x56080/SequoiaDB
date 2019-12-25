@@ -104,9 +104,7 @@ namespace engine
                                    pmdGetOptionCB()->getLobPath(),
                                    pmdGetOptionCB()->getLobMetaPath(),
                                    NULL, _dmsCB, FALSE ) ;
-      // FIXME: working one but will generate warning message. To be removed
-      //rc = rtnCollectionSpaceLock( SDB_DMSRBS_NAME, _dmsCB, TRUE,
-      //                             &_su, suID ) ;
+      // FIXME: remove
       PD_LOG ( PDDEBUG, "load RBS cs %s with rc:%d", SDB_DMSRBS_NAME, rc ) ;
 
       if ( SDB_DMS_CS_NOTEXIST == rc )
@@ -1216,180 +1214,7 @@ namespace engine
    error:
       goto done ;
    }
-#if 0
-   // write rbs record to the location specified
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__WRITERECTOLOCATION, "_dmsRBSSUMgr::_writeRecToLocation" )
-   SINT32 _dmsRBSSUMgr::_writeRecToLocation( dmsRBSOffset         location,
-                                             dmsStorageUnitID     csid,
-                                             UINT16               clid,
-                                             dmsRecordID          rid,
-                                             DPS_TRANS_ID         recordTransID,
-                                             const dmsRecord     *record,
-                                             UINT32               recSize,
-                                             pmdEDUCB            *eduCB,
-                                             dmsMBContext        *context )
-   {
-      PD_TRACE_ENTRY( SDB__DMSRBSSUMGR__WRITERECTOLOCATION ) ;
-      INT32                  rc        = SDB_OK ;
-      dmsRecordRW            recordRW ;
-      _dmsStorageDataCapped *sd        = (_dmsStorageDataCapped*)_su->data();
-      _dmsRBSRecord         *rbsRecord = NULL ;
-      dmsExtentID            extID     = DMS_INVALID_EXTENT ;
-      dmsOffset              offset    = DMS_INVALID_OFFSET;
-      UINT32                 bkt       = _hash( csid, clid, rid );
-      dmsRecordData          recordData;
-      recordData.setData( record->getData(), record->getDataLength(),
-                          UTIL_COMPRESSOR_INVALID, TRUE ) ;
 
-      // IO under mblock in S mode
-      context->mbLock( SHARED ) ;
-
-      dmsExtentInfo* workExtInfo = sd->getWorkExtInfo( context->mbID() ) ;
-
-      sd->_recLid2ExtLidAndOffset( location._logicalID, extID, offset ) ;
-
-      // Write out the record to RBS and update the offsetm, all has to be
-      // done within the bkt lock. Otherwise reader could get a stale or
-      // partial record
-      _rbsRecordBkt.lock( bkt );
-
-      {
-         const dmsRecordID recordID( extID, offset ) ;
-
-         recordRW = sd->record2RW( recordID, context->mbID() ) ;
-         recordRW.setNothrow( TRUE ) ;
-         rbsRecord = recordRW.writePtr<_dmsRBSRecord>( recSize ) ;
-
-         rbsRecord->setRecordKey( csid, clid, rid ) ;
-         rbsRecord->setGlobTransID( recordTransID ) ;
-         // Update record with the previous offset
-         rbsRecord->setPreOffset( _rbsRecordBkt.getOffset( bkt ) ) ;
-         // copy the data
-         rbsRecord->setData( recordData ) ;
-         // set up the deleting attribute
-         if( record->isDeleting() )
-         {
-            rbsRecord->setDeleting() ;
-         }
-
-         // TODO:  consider monitor related change here like:
-         //DMS_MON_OP_COUNT_INC, _updateStatInfo
-         sd->_updateStatInfo( context, rbsRecord->size(),
-                          recordData ) ;
-         if ( 1 == workExtInfo->_recCount )
-         {
-            dmsExtRW extRW = sd->extent2RW( extID, context->mbID() ) ;
-            dmsExtent *extent = extRW.writePtr<dmsExtent>() ;
-            extent->_firstRecordOffset = workExtInfo->_firstRecordOffset ;
-         }
-      }
-
-      // Update bucket to point to the new record
-      _rbsRecordBkt.setOffset( location, bkt );
-
-      // unlock the bucket
-      _rbsRecordBkt.release( bkt ) ;
-      context->mbUnlock( ) ;
-
-      PD_LOG ( PDDEBUG,
-               "Successfully wrote record(%d, %d) to RBS%04d at location %lld(%d, %d)",
-               rid._extent, rid._offset, context->mbID(),
-               location._logicalID, extID, offset ) ;
-
-      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__WRITERECTOLOCATION, rc );
-      return rc ;
-
-   }
-
-   // Input Parm:
-   //    recordTransID:  Record version, (last creation/update trans ID)
-   //    ownerTransID: transaction to put the record to in memory old version
-   //                  container and now to RBS
-   // Append a record to the end of the RBS, internally we will
-   // 1. based on CSID+RID, hash and find the proper bucket, lock the bucket
-   // 2. find correct collection, reserve space,
-   // 3. append the record to the destinated collection with given offset.
-   // 4. update bucket with the offset, unlock bucket
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_APPENDRECORD, "_dmsRBSSUMgr::appendRecord" )
-   SINT32 _dmsRBSSUMgr::appendRecord ( dmsStorageUnitID      csid,
-                                       UINT16                clid,
-                                       dmsRecordID           rid,
-                                       DPS_TRANS_ID          recordTransID,
-                                       DPS_TRANS_ID          ownerTransID,
-                                       const dmsRecord      *record )
-   {
-      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_APPENDRECORD );
-      SINT32        rc          = SDB_OK ;
-      dmsRBSOffset  newOffset ;
-      //dmsRBSRecord *rbsRecord ;
-      dmsMBContext *metaContext  = NULL ;
-      dmsMBContext *clContext  = NULL ;
-      BOOLEAN       mbLocked     = FALSE ;
-      pmdEDUCB     *eduCB        = pmdGetThreadEDUCB() ;
-      UINT32        recSize      = record->getDataLength()
-                                   + DMS_RECORD_RBS_METADATA_SZ;
-      recSize = ossAlignX( recSize, 4 ) ;
-
-      // create meta context and take mbLock here
-      // FIXME: for better concurrency, it's better to take S
-      rc = _su->data()->getMBContext( &metaContext, _metaCLName,
-                                      EXCLUSIVE ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get RBS mbLock, rc: %d",
-                  rc ) ;
-         goto error ;
-      }
-      mbLocked = TRUE ;
-
-      // allocate the space in RBS
-      rc = _allocRBSRecordSpace( recSize, newOffset,
-                                 eduCB, metaContext, clContext ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR,
-                  "Failed to allocate space in RBS (size=%d), rc: %d",
-                  recSize, rc ) ;
-         goto error ;
-      }
-      SDB_ASSERT( clContext && !clContext->isMBLock( ), "mbLock must not be held ") ;
-
-      metaContext->mbUnlock() ;
-      mbLocked = FALSE ;
-
-      // compare and update RBS's maxTransID to ownerTransID under mblock
-      clContext->mbStat()->updateGlobTransIDWithComp( ownerTransID ) ;
-
-      // write rbsrecord to RBS.  NEED something like recordRW
-      // need to do this before update the offset in bucket, otherwise
-      // someone else could read wrong data
-      rc = _writeRecToLocation( newOffset, csid, clid, rid, recordTransID,
-                                record, recSize, eduCB, clContext ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR,
-                  "Failed to write record to RBS at location %d, rc: %d",
-                  newOffset._logicalID, rc ) ;
-         goto error ;
-      }
-
-   done:
-
-      if ( mbLocked )
-      {
-         _su->data()->releaseMBContext( metaContext ) ;
-      }
-      if ( clContext )
-      {
-         _su->data()->releaseMBContext( clContext ) ;
-      }
-
-      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_APPENDRECORD, rc );
-      return  rc ;
-   error:
-      goto done ;
-   }
-#endif
    // Input Parm:
    //    recordTransID:  Record version, (last creation/update trans ID)
    //    ownerTransID: transaction to put the record to in memory old version
@@ -1522,150 +1347,18 @@ namespace engine
       }
       goto done ;
    }
-/*
+
    // Given a transactionID and beginning of a record chain, find a visiable record
+   // This method uses fetch method from cappedCL
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_GETRECORD, "_dmsRBSSUMgr::getRecord" )
    SINT32 _dmsRBSSUMgr::getRecord ( dmsStorageUnitID  csid,
                                     UINT16            clid,
-                                    DPS_LSN          &lsn,
+                                    DPS_LSN_OFFSET    &lsn,
                                     DPS_TRANS_ID      transid,
                                     BOOLEAN          &found,
-                                    dmsRecordData    &record )
+                                    dmsRecordData    &recordData )
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_GETRECORD );
-      SINT32        rc         = SDB_OK ;
-      UINT32        bkt        = _hash( csid, clid, lsn );
-      dmsMBContext *context    = NULL ;
-      dmsRecordRW   recordRW ;
-      dmsRBSOffset  position ;
-      CHAR          clName[30] = {0} ;
-      dmsStorageDataCapped *sd = (dmsStorageDataCapped*)_su->data();
-      dmsExtentID   extID      = DMS_INVALID_EXTENT ;
-      dmsOffset     offset     = DMS_INVALID_OFFSET;
-      dmsRBSRecordKey key( csid, clid, lsn ) ;
-#ifdef _DEBUG
-      PD_LOG ( PDDEBUG,
-               "Transaction (%s) tries to find a proper version from RBS, "
-               "csid(%d), clid(%d), record rid(%d, %d)",
-               dpsTransIDToString( transid ).c_str(),
-               csid, clid, rid._extent, rid._offset ) ;
-#endif
-      found = FALSE ;
-      // 1. From the hash table, find the position
-      // lock the bucket
-      _rbsRecordBkt.lock( bkt );
-      position = _rbsRecordBkt.getOffset( bkt );
-
-      // When is it safe to release the latch? do we allow anybody else to
-      // insert/free the position while  we got a position and are still
-      // using it.
-      // I "think" it should be ok as long as insert guy holds recordLock
-      // in X and reader already went through the lock request but failed
-      // thus decided to use a version of old record, AND the version is
-      // already stored in RBS AND hasn't been recycled yet.
-      _rbsRecordBkt.release( bkt ) ;
-
-      do
-      {
-         // finish if the hasbucket entry is invalid
-         if ( !position.isValid() )
-         {
-#ifdef _DEBUG
-            PD_LOG ( PDDEBUG, "no more older version found" ) ;
-#endif
-            goto done ;
-         }
-
-         // calculate extID and offset from logicalID
-         sd->_recLid2ExtLidAndOffset( position._logicalID, extID, offset ) ;
-
-         // 2. read record from the position
-         dmsRecordID   recordID( extID, offset ) ;
-         const dmsRBSRecord *rbsRecord  = NULL ;
-
-         DMS_BUILD_RBS_CL_NAME( clName, position._clID ) ;
-         rc = _su->data()->getMBContext( &context, clName, SHARED ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get mbLatch, rc=%d", rc ) ;
-            goto error ;
-         }
-
-         recordRW = sd->record2RW( recordID, position._clID ) ;
-
-         rbsRecord = recordRW.readPtr<dmsRBSRecord>() ;
-
-         // check if the record match based on key and version
-         // also check the status of the record
-         if ( key == rbsRecord->getRecordKey() &&
-              sdbGetTransCB()->isVersionVisible(
-                    rbsRecord->getGlobTransID(), transid ) &&
-              !rbsRecord->isDeleting() )
-         {
-            found = TRUE ;
-            record.setData( rbsRecord->getData(),
-                            rbsRecord->getDataLength(),
-                            UTIL_COMPRESSOR_INVALID, TRUE ) ;
-
-            SDB_ASSERT( !rbsRecord->isCompressed(),
-                        "currently do not support compression in RBS") ;
-
-#ifdef _DEBUG
-            {
-               BSONObj  obj(record.data()) ;
-               PD_LOG ( PDDEBUG,
-                        "Read record(%s) from %s at location %ld(%d, %d), "
-                        "record rid(%d, %d), transid(%s)",
-                        obj.toString().c_str(), clName,
-                        position._logicalID,
-                        extID, offset,
-                        rid._extent, rid._offset,
-                        dpsTransIDToString(
-                                    rbsRecord->getGlobTransID() ).c_str() ) ;
-            }
-#endif
-            _su->data()->releaseMBContext( context ) ;
-            break ;
-         }
-
-         // setup next position, release mblatch and continue
-         position = rbsRecord->getPreOffset() ;
-         _su->data()->releaseMBContext( context ) ;
-#ifdef _DEBUG
-         PD_LOG ( PDDEBUG, "Moving to next position(%d, %ld)",
-                  position._clID,
-                  position._logicalID ) ;
-#endif
-         continue ;
-
-      } while ( true );
-
-
-      // 3. FIXME: update monitor counter for RBS
-      // DMS_MON_OP_COUNT_INC( pMonAppCB, MON_RBS_DATA_READ, 1 ) ;
-
-      if ( rc )
-      {
-         goto error ;
-      }
-   done:
-      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_GETRECORD, rc );
-      return  rc ;
-   error:
-      goto done ;
-   }
-*/
-   // Given a transactionID and beginning of a record chain, find a visiable record
-   // This method uses fetch method from cappedCL
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_GETRECORD1, "_dmsRBSSUMgr::getRecord1" )
-   SINT32 _dmsRBSSUMgr::getRecord1 ( dmsStorageUnitID  csid,
-                                     UINT16            clid,
-                                     DPS_LSN_OFFSET    &lsn,
-                                     DPS_TRANS_ID      transid,
-                                     BOOLEAN          &found,
-                                     dmsRecordData    &recordData )
-   {
-      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_GETRECORD1 );
       SINT32        rc         = SDB_OK ;
       UINT32        bkt        = _hash( csid, clid, lsn );
       dmsMBContext *context    = NULL ;
@@ -1824,7 +1517,7 @@ namespace engine
          goto error ;
       }
    done:
-      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_GETRECORD1, rc );
+      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_GETRECORD, rc );
       return  rc ;
    error:
       _su->data()->releaseMBContext( context ) ;
@@ -1971,8 +1664,6 @@ namespace engine
       CHAR        clName[30] = {0} ;
       dmsMBContext *pContext = NULL ;
 
-      // FIXME, we could start from _lastFreeCollection instead, save a read
-      // but need to use proper latch protection
       // acquire SYSRBS000 mbLock in S to look up first
       if( SDB_OK != _su->data()->getMBContext( &pContext,
                                                _metaCLName, SHARED ) )
