@@ -412,12 +412,12 @@ function Collection ( cl )
       }
 
    this.createIdIndex =
-      function( sortBufferSize )
+      function( options )
       {
-         if( sortBufferSize === undefined ) { sortBufferSize = null; }
+         if( options === undefined ) { options = {}; }
          try
          {
-            cl.createIdIndex( sortBufferSize );
+            cl.createIdIndex( options );
          }
          catch( e )
          {
