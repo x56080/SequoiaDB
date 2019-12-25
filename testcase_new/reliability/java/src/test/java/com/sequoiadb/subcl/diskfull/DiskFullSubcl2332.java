@@ -62,8 +62,8 @@ public class DiskFullSubcl2332 extends SdbTestBase {
             mainCL = commCS.createCollection( mainClName, ( BSONObject ) JSON
                     .parse( "{ShardingKey:{'sk':1},ShardingType:'range',IsMainCL:true}" ) );
             subCL = commCS.createCollection( subClName,
-                    ( BSONObject ) JSON
-                            .parse( "{ShardingKey:{sk:1},ShardingType:'range',Group:'"
+                    ( BSONObject ) JSON.parse(
+                            "{ShardingKey:{sk:1},ShardingType:'range',Group:'"
                                     + subClGroupName + "'}" ) );
             mainCL.attachCollection( subCL.getFullName(), ( BSONObject ) JSON
                     .parse( "{LowBound:{sk:0},UpBound:{sk:10000}}" ) );

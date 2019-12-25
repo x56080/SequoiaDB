@@ -53,47 +53,49 @@ public class LobSubCL19068 extends SdbTestBase {
         groupMgr = GroupMgr.getInstance();
 
         // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
-        if (!groupMgr.checkBusinessWithLSN(120)) {
-            throw new SkipException("checkBusinessWithLSN return false");
+        if ( !groupMgr.checkBusinessWithLSN( 120 ) ) {
+            throw new SkipException( "checkBusinessWithLSN return false" );
         }
-        groupName1 = groupMgr.getAllDataGroupName().get(0);
-        groupName2 = groupMgr.getAllDataGroupName().get(1);
+        groupName1 = groupMgr.getAllDataGroupName().get( 0 );
+        groupName2 = groupMgr.getAllDataGroupName().get( 1 );
 
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        if (sdb.isCollectionSpaceExist(csName)) {
-            sdb.dropCollectionSpace(csName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
         }
         mainCL = createMainCLAndAttachCL();
-        lobBuff = LobUtil.getRandomBytes(writeLobSize);
+        lobBuff = LobUtil.getRandomBytes( writeLobSize );
 
-        safeCoordUrl = CommLib.getSafeCoordUrl(groupMgr.getGroupByName(groupName1).getMaster().hostName());
+        safeCoordUrl = CommLib.getSafeCoordUrl(
+                groupMgr.getGroupByName( groupName1 ).getMaster().hostName() );
     }
 
     @Test
     public void test() throws ReliabilityException {
-        GroupWrapper dataGroup = groupMgr.getGroupByName(groupName1);
+        GroupWrapper dataGroup = groupMgr.getGroupByName( groupName1 );
         NodeWrapper dataMaster = dataGroup.getMaster();
 
         // 建立并行任务
-        FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(dataMaster.hostName(), 0, 10);
-        TaskMgr mgr = new TaskMgr(faultTask);
+        FaultMakeTask faultTask = BrokenNetwork
+                .getFaultMakeTask( dataMaster.hostName(), 0, 10 );
+        TaskMgr mgr = new TaskMgr( faultTask );
 
         PutLob puLobTask = new PutLob();
-        mgr.addTask(puLobTask);
+        mgr.addTask( puLobTask );
         mgr.execute();
 
-        Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(120));
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 
         String match = "Name\\\\:" + csName + "\\\\.";
-        CommLib.waitContextClose(sdb, match, 300, true);
+        CommLib.waitContextClose( sdb, match, 300, true );
 
-        List<ObjectId> lobIds2 = LobUtil.createAndWriteLob(mainCL, lobBuff);
-        LobUtil.checkLobMD5(mainCL, lobIds2, lobBuff);
-        for (ObjectId lobId : lobIds2) {
-            mainCL.removeLob(lobId);
+        List< ObjectId > lobIds2 = LobUtil.createAndWriteLob( mainCL, lobBuff );
+        LobUtil.checkLobMD5( mainCL, lobIds2, lobBuff );
+        for ( ObjectId lobId : lobIds2 ) {
+            mainCL.removeLob( lobId );
         }
-        checkRemoveLobResult(lobIds2);
+        checkRemoveLobResult( lobIds2 );
 
         sdb.sync();
     }
@@ -101,9 +103,9 @@ public class LobSubCL19068 extends SdbTestBase {
     @AfterClass
     public void tearDown() throws Exception {
         try {
-            sdb.dropCollectionSpace(csName);
+            sdb.dropCollectionSpace( csName );
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -113,47 +115,51 @@ public class LobSubCL19068 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(safeCoordUrl, "", "")) {
-                DBCollection mainCL = db.getCollectionSpace(csName).getCollection(mainCLName);
-                LobUtil.createAndWriteLob(mainCL, lobBuff);
-            } catch (BaseException e) {
+            try ( Sequoiadb db = new Sequoiadb( safeCoordUrl, "", "" )) {
+                DBCollection mainCL = db.getCollectionSpace( csName )
+                        .getCollection( mainCLName );
+                LobUtil.createAndWriteLob( mainCL, lobBuff );
+            } catch ( BaseException e ) {
                 e.printStackTrace();
             }
         }
     }
 
     private DBCollection createMainCLAndAttachCL() {
-        CollectionSpace cs = sdb.createCollectionSpace(csName);
+        CollectionSpace cs = sdb.createCollectionSpace( csName );
         BSONObject options = new BasicBSONObject();
-        options.put("IsMainCL", true);
-        options.put("ShardingKey", new BasicBSONObject("date", 1));
-        options.put("ShardingType", "range");
-        options.put("LobShardingKeyFormat", "YYYYMMDD");
-        DBCollection mainCL = cs.createCollection(mainCLName, options);
+        options.put( "IsMainCL", true );
+        options.put( "ShardingKey", new BasicBSONObject( "date", 1 ) );
+        options.put( "ShardingType", "range" );
+        options.put( "LobShardingKeyFormat", "YYYYMMDD" );
+        DBCollection mainCL = cs.createCollection( mainCLName, options );
 
-        cs.createCollection(subCLName + "_1", new BasicBSONObject("Group", groupName1));
-        cs.createCollection(subCLName + "_2", new BasicBSONObject("Group", groupName2));
+        cs.createCollection( subCLName + "_1",
+                new BasicBSONObject( "Group", groupName1 ) );
+        cs.createCollection( subCLName + "_2",
+                new BasicBSONObject( "Group", groupName2 ) );
 
         BSONObject bound1 = new BasicBSONObject();
-        bound1.put("LowBound", new BasicBSONObject("date", new MinKey()));
-        bound1.put("UpBound", new BasicBSONObject("date", "20000101"));
-        mainCL.attachCollection(csName + "." + subCLName + "_1", bound1);
+        bound1.put( "LowBound", new BasicBSONObject( "date", new MinKey() ) );
+        bound1.put( "UpBound", new BasicBSONObject( "date", "20000101" ) );
+        mainCL.attachCollection( csName + "." + subCLName + "_1", bound1 );
 
         BSONObject bound2 = new BasicBSONObject();
-        bound2.put("LowBound", new BasicBSONObject("date", "20000101"));
-        bound2.put("UpBound", new BasicBSONObject("date", new MaxKey()));
-        mainCL.attachCollection(csName + "." + subCLName + "_2", bound2);
+        bound2.put( "LowBound", new BasicBSONObject( "date", "20000101" ) );
+        bound2.put( "UpBound", new BasicBSONObject( "date", new MaxKey() ) );
+        mainCL.attachCollection( csName + "." + subCLName + "_2", bound2 );
 
         return mainCL;
     }
 
-    private void checkRemoveLobResult(List<ObjectId> lobIds) {
-        for (ObjectId lobId : lobIds) {
+    private void checkRemoveLobResult( List< ObjectId > lobIds ) {
+        for ( ObjectId lobId : lobIds ) {
             try {
-                mainCL.openLob(lobId);
-                Assert.fail("the lob: " + lobId + " has been deleted and the read should fail");
-            } catch (BaseException e) {
-                if (e.getErrorCode() != -4) {
+                mainCL.openLob( lobId );
+                Assert.fail( "the lob: " + lobId
+                        + " has been deleted and the read should fail" );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -4 ) {
                     throw e;
                 }
             }

@@ -180,7 +180,8 @@ public class DiskFullSubcl2329 extends SdbTestBase {
 
     public void checkDetachResult() {
         int lastMainCLNo = ( lastDetachedMainCL > 0 )
-                ? ( lastDetachedMainCL - 1 ) : 0;
+                ? ( lastDetachedMainCL - 1 )
+                : 0;
         int lastSubCLNo = ( lastDetachSubCL > 0 ) ? ( lastDetachSubCL - 1 ) : 0;
         DBCollection mainCL = cs
                 .getCollection( mainCLName + "_" + lastMainCLNo );

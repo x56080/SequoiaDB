@@ -862,11 +862,11 @@ public class CommLib {
                 }
                 snapshots.close();
 
-                DBCursor cur = dataConn
-                        .getSnapshot( Sequoiadb.SDB_SNAP_CONTEXTS,
-                                "{'Contexts': {'$elemMatch': {'Description': {'$regex': '"
-                                        + match + "'}}}}",
-                                "{'SessionID': 1}", null );
+                DBCursor cur = dataConn.getSnapshot(
+                        Sequoiadb.SDB_SNAP_CONTEXTS,
+                        "{'Contexts': {'$elemMatch': {'Description': {'$regex': '"
+                                + match + "'}}}}",
+                        "{'SessionID': 1}", null );
                 while ( cur.hasNext() ) {
                     long sessionId = ( long ) cur.getNext().get( "SessionID" );
                     try {

@@ -34,8 +34,8 @@ import com.sequoiadb.task.TaskMgr;
  */
 public class RenameClNetworkfailNode16771B extends SdbTestBase {
 
-    private List<String> oldCLNameList = new ArrayList<>();
-    private List<String> newCLNameList = new ArrayList<>();
+    private List< String > oldCLNameList = new ArrayList<>();
+    private List< String > newCLNameList = new ArrayList<>();
     private String csName = "cs16771B";
     private String oldCLName = "oldCL_16771B";
     private String newCLName = "newCL_16771B";
@@ -51,72 +51,79 @@ public class RenameClNetworkfailNode16771B extends SdbTestBase {
         groupMgr = GroupMgr.getInstance();
 
         // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
-        if (!groupMgr.checkBusinessWithLSN(20)) {
-            throw new SkipException("checkBusinessWithLSN return false");
+        if ( !groupMgr.checkBusinessWithLSN( 20 ) ) {
+            throw new SkipException( "checkBusinessWithLSN return false" );
         }
-        groupName = groupMgr.getAllDataGroupName().get(0);
+        groupName = groupMgr.getAllDataGroupName().get( 0 );
 
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        CollectionSpace cs = sdb.createCollectionSpace(csName);
-        for (int i = 0; i < clNum; i++) {
-            cs.createCollection(oldCLName + i, new BasicBSONObject("Group", groupName));
-            oldCLNameList.add(oldCLName + i);
-            newCLNameList.add(newCLName + i);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        CollectionSpace cs = sdb.createCollectionSpace( csName );
+        for ( int i = 0; i < clNum; i++ ) {
+            cs.createCollection( oldCLName + i,
+                    new BasicBSONObject( "Group", groupName ) );
+            oldCLNameList.add( oldCLName + i );
+            newCLNameList.add( newCLName + i );
         }
         sdb.sync();
-        safeCoordUrl = CommLib.getSafeCoordUrl(groupMgr.getGroupByName(groupName).getMaster().hostName());
+        safeCoordUrl = CommLib.getSafeCoordUrl(
+                groupMgr.getGroupByName( groupName ).getMaster().hostName() );
     }
 
     @Test
     public void test() throws ReliabilityException, InterruptedException {
-        GroupWrapper dataGroup = groupMgr.getGroupByName(groupName);
+        GroupWrapper dataGroup = groupMgr.getGroupByName( groupName );
         NodeWrapper dataMaster = dataGroup.getMaster();
         // 建立并行任务
-        FaultMakeTask faultTask = BrokenNetwork.getFaultMakeTask(dataMaster.hostName(), 0, 10);
-        TaskMgr mgr = new TaskMgr(faultTask);
+        FaultMakeTask faultTask = BrokenNetwork
+                .getFaultMakeTask( dataMaster.hostName(), 0, 10 );
+        TaskMgr mgr = new TaskMgr( faultTask );
         Rename renameTask = new Rename();
-        mgr.addTask(renameTask);
+        mgr.addTask( renameTask );
         mgr.execute();
 
-        Assert.assertTrue(mgr.isAllSuccess(), mgr.getErrorMsg());
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(120));
+        Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 
         String match = "\\\"OldName\\\": \\\"" + oldCLName;
-        CommLib.waitContextClose(sdb, match, 300, false);
-        CollectionSpace cs = sdb.getCollectionSpace(csName);
-        for (int i = 0; i < oldCLNameList.size(); i++) {
-            if (completeTimes <= i + 1) {
+        CommLib.waitContextClose( sdb, match, 300, false );
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        for ( int i = 0; i < oldCLNameList.size(); i++ ) {
+            if ( completeTimes <= i + 1 ) {
                 try {
-                    cs.renameCollection(oldCLNameList.get(i), newCLNameList.get(i));
-                } catch (BaseException e) {
-                    if (e.getErrorCode() != -23) {
+                    cs.renameCollection( oldCLNameList.get( i ),
+                            newCLNameList.get( i ) );
+                } catch ( BaseException e ) {
+                    if ( e.getErrorCode() != -23 ) {
                         throw e;
                     }
-                    DBCollection cl = cs.getCollection(newCLNameList.get(i));
-                    cl.insert("{'a' : 1}");
+                    DBCollection cl = cs
+                            .getCollection( newCLNameList.get( i ) );
+                    cl.insert( "{'a' : 1}" );
                     cl.truncate();
                 }
             }
-            RenameUtils.checkRenameCLResult(sdb, csName, oldCLNameList.get(i), newCLNameList.get(i));
+            RenameUtils.checkRenameCLResult( sdb, csName,
+                    oldCLNameList.get( i ), newCLNameList.get( i ) );
 
             // 插入数据
-            DBCollection cl = sdb.getCollectionSpace(csName).getCollection(newCLNameList.get(i));
-            RenameUtils.insertData(cl, 1000);
+            DBCollection cl = sdb.getCollectionSpace( csName )
+                    .getCollection( newCLNameList.get( i ) );
+            RenameUtils.insertData( cl, 1000 );
             long actNum = cl.getCount();
-            Assert.assertEquals(actNum, 1000, "check record num");
+            Assert.assertEquals( actNum, 1000, "check record num" );
         }
 
-        Assert.assertTrue(groupMgr.checkBusinessWithLSN(120));
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (sdb.isCollectionSpaceExist(csName)) {
-                sdb.dropCollectionSpace(csName);
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
             }
         } finally {
-            if (sdb != null && !sdb.isClosed()) {
+            if ( sdb != null && !sdb.isClosed() ) {
                 sdb.close();
             }
         }
@@ -126,15 +133,17 @@ public class RenameClNetworkfailNode16771B extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            try (Sequoiadb db = new Sequoiadb(safeCoordUrl, "", "")) {
-                CollectionSpace cs = db.getCollectionSpace(csName);
-                for (int i = 0; i < oldCLNameList.size(); i++) {
-                    cs.renameCollection(oldCLNameList.get(i), newCLNameList.get(i));
+            try ( Sequoiadb db = new Sequoiadb( safeCoordUrl, "", "" )) {
+                CollectionSpace cs = db.getCollectionSpace( csName );
+                for ( int i = 0; i < oldCLNameList.size(); i++ ) {
+                    cs.renameCollection( oldCLNameList.get( i ),
+                            newCLNameList.get( i ) );
                     completeTimes++;
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 int actErrCode = e.getErrorCode();
-                if (actErrCode != -134 && actErrCode != -15 && actErrCode != -116) {
+                if ( actErrCode != -134 && actErrCode != -15
+                        && actErrCode != -116 ) {
                     throw e;
                 }
             }

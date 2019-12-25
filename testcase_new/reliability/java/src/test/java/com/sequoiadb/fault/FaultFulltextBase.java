@@ -115,7 +115,8 @@ public class FaultFulltextBase extends Fault {
     }
 
     /**
-     * 继承FaultFulltextBase需要实现该方法，在restore()之前给cmdArgs赋值，可以调用setRestoreArgs()方法，至少有一个参数且必须是进程名
+     * 继承FaultFulltextBase需要实现该方法，在restore()之前给cmdArgs赋值，可以调用setRestoreArgs()方法，
+     * 至少有一个参数且必须是进程名
      * 
      * @exem cmdArgs = setRestoreArgs(progName, cmdDir, sdbseadapterDir,
      *       svcName);
