@@ -305,7 +305,7 @@ public:
 
    // set global-transaction tag
    // NOTE: global-transaction tag could not be cleared
-   OSS_INLINE void setGlobTrans( BOOLEAN isGlobTrans )
+   OSS_INLINE void setGlobTrans()
    {
       _setTag( DPS_TRANSID_GLOBTRANS_BIT ) ;
    }

@@ -399,13 +399,28 @@ namespace engine
          }
          else
          {
+            stpLogicalTimeUS beginTime ;
+
             /// alloc trans id
-            transID = pTransCB->allocTransID( isAutoCommit ) ;
-            /// clear first op
+            rc = pTransCB->allocTransID( isAutoCommit,
+                                         cb->isGlobTransOn(),
+                                         transID,
+                                         beginTime ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to allocate transaction ID, "
+                         "rc: %d", rc ) ;
+
+            /// clear first op tag ( do not care on COORD )
             transID.clearFirstOp() ;
 
-            /// set trans id
-            cb->setTransID( transID ) ;
+            if ( transID.isGlobTrans() )
+            {
+               cb->setGlobTrans( transID, beginTime ) ;
+            }
+            else
+            {
+               /// set trans id
+               cb->setTransID( transID ) ;
+            }
 
             _mapTransNodes.clear() ;
             _writeTransNodeNum = 0 ;
@@ -416,7 +431,11 @@ namespace engine
          }
       }
 
+   done:
       return rc ;
+
+   error:
+      goto done ;
    }
 
    void _coordSessionPropSite::endTrans( _pmdEDUCB *cb )

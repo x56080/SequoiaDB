@@ -108,6 +108,7 @@ namespace engine
    #define TRANS_CONF_MASK_AUTOCOMMIT        0x00000010
    #define TRANS_CONF_MASK_AUTOROLLBACK      0x00000020
    #define TRANS_CONF_MASK_RCCOUNT           0x00000040
+   #define TRANS_CONF_MASK_GLOBTRANSON       0x00000080
 
    /*
       _dpsTransEvent define

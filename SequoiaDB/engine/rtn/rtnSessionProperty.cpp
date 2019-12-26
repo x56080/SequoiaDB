@@ -908,6 +908,14 @@ namespace engine
                                        TRUE ) ;
 
          }
+         else if ( 0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_TRANS_GLOBTRANSON ) )
+         {
+            PD_CHECK( field.isBoolean(), SDB_INVALIDARG, error,
+                      PDERROR, "Field[%s] is not boolean",
+                      FIELD_NAME_TRANS_GLOBTRANSON ) ;
+            transConf.setGlobTransOn( field.boolean() ? TRUE : FALSE, TRUE ) ;
+         }
          else if ( 0 == ossStrcasecmp( field.fieldName(), FIELD_NAME_SOURCE ) )
          {
             PD_CHECK( String == field.type(), SDB_INVALIDARG, error,

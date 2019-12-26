@@ -305,8 +305,9 @@ namespace engine
          // number
          // NOTE: node ID of transaction ID is in routeID of message header
          msgReq.transID = (UINT64)( cb->getTransID().getGlobSN() ) ;
-         // TODO: time error of logical time for global transaction
-         msgReq.transTimeError = 0 ;
+         // time error of logical time for global transaction
+         msgReq.transTimeError =
+                     (UINT32)( cb->getTransBeginTime().getTimeError() ) ;
          ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
 
          iterGroup = groupLst.begin() ;
@@ -709,6 +710,27 @@ namespace engine
       pCommitPreMsg->header.routeID.value = MSG_INVALID_ROUTEID ;
       pCommitPreMsg->header.requestID = 0 ;
       pCommitPreMsg->header.TID = cb->getTID() ;
+
+      if ( cb->isGlobTrans() )
+      {
+         // global transaction requires commit time
+         stpLogicalTimeUS time ;
+         rc = sdbGetTransCB()->getGlobTransTime( time ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get logical time of "
+                      "transaction commit, rc: %d", rc ) ;
+
+         cb->setTransPreCommitTime( time ) ;
+
+         pCommitPreMsg->preCommitTime = time.getTime() ;
+         pCommitPreMsg->preCommitTimeError = time.getTimeError() ;
+      }
+      else
+      {
+         pCommitPreMsg->preCommitTime = 0LL ;
+         pCommitPreMsg->preCommitTimeError = 0 ;
+      }
+
+      /// build node info
       pCommitPreMsg->nodeNum = writeTransNodes ;
 
       /// set node id

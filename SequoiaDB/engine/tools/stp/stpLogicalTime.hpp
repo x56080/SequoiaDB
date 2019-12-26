@@ -651,6 +651,13 @@ namespace engine
          return _time ;
       }
 
+      // reset time
+      OSS_INLINE void reset()
+      {
+         _time.reset() ;
+         _timeError = 0 ;
+      }
+
    protected:
       // time in high precision time ( nanoseconds )
       tpHPTime _time ;
@@ -751,6 +758,13 @@ namespace engine
       OSS_INLINE UINT64 getTime() const
       {
          return _time ;
+      }
+
+      // reset time
+      OSS_INLINE void reset()
+      {
+         _time = 0 ;
+         _timeError = 0 ;
       }
 
    protected:

@@ -579,7 +579,8 @@ namespace engine
          OSS_INLINE UINT32 transTimeout () const { return _transTimeout; }
          OSS_INLINE INT32 transIsolation () const { return _transIsolation; }
          OSS_INLINE BOOLEAN transLockwait () const { return _transLockwait; }
-         OSS_INLINE BOOLEAN mvccOn () const { return _mvccOn; }
+         OSS_INLINE BOOLEAN mvccOn () const { return _mvccOn ; }
+         OSS_INLINE BOOLEAN globTransOn () const { return _globTransOn ; }
          OSS_INLINE BOOLEAN transAutoCommit() const { return _transAutoCommit ; }
          OSS_INLINE BOOLEAN transAutoRollback() const { return _transAutoRollback ; }
          OSS_INLINE BOOLEAN transUseRBS() const { return _transUseRBS ; }
@@ -793,6 +794,7 @@ namespace engine
          UINT32      _monGroupMask ;
          UINT32      _monHistEvent ;
          BOOLEAN     _mvccOn ;
+         BOOLEAN     _globTransOn ;
 
 #ifdef SDB_ENTERPRISE
 

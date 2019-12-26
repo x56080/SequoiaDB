@@ -529,9 +529,14 @@ namespace engine
 
    INT32 rtnTransBegin( _pmdEDUCB *cb,
                         BOOLEAN isAutoCommit = FALSE,
-                        DPS_TRANS_ID specID = DPS_TRANS_ID() ) ;
-   INT32 rtnTransPreCommit( _pmdEDUCB *cb, UINT32 nodeNum,
-                            const UINT64 *pNodes, INT16 w,
+                        BOOLEAN isGlobTrans = FALSE,
+                        const DPS_TRANS_ID &specID = DPS_TRANS_ID(),
+                        const stpLogicalTimeUS &specBeginTime = stpLogicalTimeUS() ) ;
+   INT32 rtnTransPreCommit( _pmdEDUCB *cb,
+                            UINT32 nodeNum,
+                            const UINT64 *pNodes,
+                            const stpLogicalTimeUS &preCommitTime,
+                            INT16 w,
                             SDB_DPSCB *dpsCB ) ;
    INT32 rtnTransCommit( _pmdEDUCB *cb, SDB_DPSCB *dpsCB );
    INT32 rtnTransRollback( _pmdEDUCB * cb, SDB_DPSCB *dpsCB );

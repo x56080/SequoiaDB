@@ -52,6 +52,7 @@
 #include "ossEvent.hpp"
 #include "ossMemPool.hpp"
 #include "monLatch.hpp"
+#include "stpLogicalTime.hpp"
 #include "../bson/bson.hpp"
 
 using namespace bson ;
@@ -194,6 +195,9 @@ namespace engine
       // during rollback pending
       ossPoolSet< DPS_LSN_OFFSET >  _curNonPendingLSN ;
 
+      stpLogicalTimeUS              _beginTime ;
+      stpLogicalTimeUS              _commitTime ;
+
       _dpsTransBackInfo( DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET,
                          INT32 status = DPS_TRANS_DOING )
       {
@@ -217,12 +221,26 @@ namespace engine
    {
       INT32             _status ;
       DPS_LSN_OFFSET    _lsn ;
+      stpLogicalTimeUS  _beginTime ;
+      stpLogicalTimeUS  _commitTime ;
 
-      _dpsHisTransStatus( INT32 status = DPS_TRANS_COMMIT,
-                          DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET )
+      _dpsHisTransStatus()
+      : _status( DPS_TRANS_COMMIT ),
+        _lsn( DPS_INVALID_LSN_OFFSET ),
+        _beginTime(),
+        _commitTime()
       {
-         _status = status ;
-         _lsn = lsn ;
+      }
+
+      _dpsHisTransStatus( INT32 status,
+                          DPS_LSN_OFFSET lsn,
+                          const stpLogicalTimeUS &beginTime,
+                          const stpLogicalTimeUS &commitTime )
+      : _status( status ),
+        _lsn( lsn ),
+        _beginTime( beginTime ),
+        _commitTime( commitTime )
+      {
       }
    } ;
    typedef _dpsHisTransStatus dpsHisTransStatus ;
@@ -259,28 +277,95 @@ namespace engine
       void           setEventHandler( dpsTransEvent *pEventHandler ) ;
       dpsTransEvent* getEventHandler() ;
 
-      /*
-       * TransactionID:
-      +---------------+-----------+-----------+
-      | nodeID(16bit) | TAG(8bit) | SN(56bit) |
-      +---------------+-----------+-----------+
-      */
-      DPS_TRANS_ID allocTransID( BOOLEAN isAutoCommit = FALSE ) ;
+      // allocate new transaction ID
+      // input:
+      //    - isAutoCommit: indicate a auto-commit transaction
+      //    - isGlobTrans: indicate a global transaction
+      // output:
+      //    - transID: transaction ID allocated
+      //    - beginTime: logical time to begin transaction
+      // return:
+      //    - SDB_OK: succeed
+      //    - SDB_GLOB_TRANS_NOT_AVAILABLE: global transaction is not enabled
+      //    - STP_NOT_AVAILABLE: STP is not available for global transaction
+      // NOTE: TransactionID:
+      //       +---------------+-----------+-----------+
+      //       | nodeID(16bit) | TAG(8bit) | SN(56bit) |
+      //       +---------------+-----------+-----------+
+      INT32 allocTransID( BOOLEAN isAutoCommit,
+                          BOOLEAN isGlobTrans,
+                          DPS_TRANS_ID &transID,
+                          stpLogicalTimeUS &beginTime ) ;
+
+      // check visibility of given record against given transaction ID
+      // input:
+      //    - recTransID: transaction ID for given record
+      //                  indicates which transaction created or modified the
+      //                  record
+      //    - transID: current transaction ID of the transaction to visit
+      //               the record
+      //    - transBeginTime: logical time to begin current transaction
+      //    - transIsolation: isolation level to check visibility
+      //                      currently only RR is supported
+      // return:
+      //    - TRUE: current transaction could visit given record
+      //    - FALSE: current transaction could not visit given record
+      BOOLEAN isVersionVisible(
+                  const DPS_TRANS_ID &recTransID,
+                  const DPS_TRANS_ID &transID,
+                  const stpLogicalTimeUS &transBeginTime,
+                  TRANS_ISOLATION_LEVEL transIsolation = TRANS_ISOLATION_RR ) ;
+
+      // check expired of given transaction ID against lowTran
+      // input:
+      //    - transID: transaction ID to check
+      // return:
+      //    - TRUE: transaction is expired ( could be cleared )
+      //    - FALSE: transaction is not expired ( could not be cleared )
+      BOOLEAN isVersionExpired( const DPS_TRANS_ID &transID ) ;
+
+      // get transaction ID of the earliest running transaction ID ( lowTran )
+      // of whole cluster
+      // input:
+      //    - updateCache: whether to update cache of lowTran
+      //                   need query from remote
+      // return:
+      //    - transaction ID of lowTran of whole cluster
+      DPS_TRANS_ID getGlobLowTran( BOOLEAN updateCache ) ;
+
+      // get transaction ID of the earliest running global transaction ID
+      // ( lowTran ) in this node
+      // input:
+      //    - globTransOnly: only get lowTran for global transactions
+      // return:
+      //    - transaction ID of lowTran of this node
+      DPS_TRANS_ID getNodeLowTran() ;
+
+      // get logical time from STP
+      // output:
+      //    - time: time from STP
+      // return:
+      //    - SDB_OK: succeed to get time
+      //    - STP_NOT_AVAILABLE: STP is not available for global transaction
+      //    - SDB_TIMEOUT: failed to get time in given timeout
+      INT32 getGlobTransTime( stpLogicalTimeUS &time ) ;
+
+      // get global transaction information
+      // input:
+      //    - transID: transaction ID
+      // output:
+      //    - status: status of transaction
+      //    - beginTime: begin logical time of transaction
+      //    - commitTime: commit time of transaction
+      // return:
+      //    - SDB_OK: succeed to get transaction information
+      void getGlobTransInfo( const DPS_TRANS_ID &transID,
+                             DPS_TRANS_STATUS &status,
+                             stpLogicalTimeUS &beginTime,
+                             stpLogicalTimeUS &commitTime ) ;
+
       DPS_TRANS_ID getRollbackID( const DPS_TRANS_ID &transID ) ;
       DPS_TRANS_ID getTransID( const DPS_TRANS_ID &rollbackID ) ;
-
-      DPS_TRANS_ID getLowTran( ) ;
-
-      // FIXME: guoming to implement
-      BOOLEAN isVersionVisible( const DPS_TRANS_ID &recTransID,
-                                const DPS_TRANS_ID &transID )
-      {
-         // Simple implementation: if record transID is older than
-         // transactionID, this record is visible to the transaction
-         // Note that when it's equal, means the record is generated in
-         // the same transaction, which is visiable
-         return !transIDGreaterThan( recTransID, transID ) ;
-      }
 
       // Check if EDU hold certain lock and return the holding mode
       BOOLEAN isHolding( _pmdEDUCB *eduCB,
@@ -311,7 +396,8 @@ namespace engine
       // NOTE: log rollback means rollbacked by consulting or replay failure
       void updateTransInfo( const DPS_TRANS_ID &transID,
                             DPS_LSN_OFFSET lsnOffset,
-                            INT32 status ) ;
+                            INT32 status,
+                            const stpLogicalTimeUS &time ) ;
       void updateTransInfo( dpsTransBackInfo &transInfo,
                             INT32 status,
                             DPS_LSN_OFFSET lsn,
@@ -330,7 +416,9 @@ namespace engine
 
       void     addHisTrans( const DPS_TRANS_ID &transID,
                             INT32 status,
-                            DPS_LSN_OFFSET lsn ) ;
+                            DPS_LSN_OFFSET lsn,
+                            const stpLogicalTimeUS &beginTime,
+                            const stpLogicalTimeUS &commitTime ) ;
       void     delHisTrans( const DPS_TRANS_ID &transID ) ;
       void     clearHisTrans() ;
       void     clearOutDateHisTrans( DPS_LSN_OFFSET lsn ) ;
@@ -352,12 +440,6 @@ namespace engine
       void           delBeginLsn( const DPS_TRANS_ID &transID ) ;
       DPS_LSN_OFFSET getBeginLsn( const DPS_TRANS_ID &transID ) ;
       DPS_LSN_OFFSET getOldestBeginLsn() ;
-
-      BOOLEAN  isVersionExpired( const DPS_TRANS_ID &transID ) ;
-      // FIXME: we can remove this once we modified isVersionVisible and
-      // getLowTran
-      BOOLEAN  transIDGreaterThan( const DPS_TRANS_ID &tidL,
-                                   const DPS_TRANS_ID &tidR ) ;
 
       BOOLEAN  isNeedSyncTrans() ;
       void     setIsNeedSyncTrans( BOOLEAN isNeed ) ;
@@ -413,6 +495,7 @@ namespace engine
                                 _dpsITransLockCallback * callback = NULL ) ;
 
       BOOLEAN isTransOn() const ;
+      BOOLEAN isGlobTransOn() const ;
 
       // test if the lock can be got.
       // test record-S-lock: also test the space-IS-lock and collection-IS-lock
@@ -514,6 +597,7 @@ namespace engine
       TRANS_CB_MAP      _cbMap ;
 
       BOOLEAN           _isOn ;
+      BOOLEAN           _isGlobTransOn ;
       BOOLEAN           _doRollback ;
       ossEvent          _rollbackEvent ;
 

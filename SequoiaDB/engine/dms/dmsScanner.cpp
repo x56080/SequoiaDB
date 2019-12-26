@@ -732,7 +732,8 @@ namespace engine
                // if the current version is NOT visible to the transaction,
                // try to read the proper version from RBS
                if ( !sdbGetTransCB()->isVersionVisible(
-                    _curRecordPtr->getGlobTransID(), transID ) )
+                    _curRecordPtr->getGlobTransID(), transID,
+                    cb->getTransBeginTime() ) )
                {
                   BOOLEAN found = FALSE ;
                   // FIXME: remove one after Shangde's review
@@ -2227,7 +2228,8 @@ namespace engine
             // if the current version is NOT visible to the transaction, 
             // try to read the proper version from RBS 
             if ( !_pTransCB->isVersionVisible(
-                 _curRecordPtr->getGlobTransID(), transID ) ) 
+                 _curRecordPtr->getGlobTransID(), transID,
+                 cb->getTransBeginTime() ) )
             {
                BOOLEAN        found = FALSE ;
                DPS_LSN_OFFSET lsn   = _curRecordPtr->getLSNOffset() ;

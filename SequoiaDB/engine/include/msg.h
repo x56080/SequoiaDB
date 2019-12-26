@@ -769,13 +769,13 @@ typedef struct _MsgOpTransBegin
 typedef struct _MsgOpTransCommit
 {
    MsgHeader header;
-   // TODO: fields to do logical time adjustment
 } MsgOpTransCommit;
 
 typedef struct _MsgOpTransCommitPre
 {
    MsgHeader header ;
-   // TODO: fields to do logical time adjustment
+   UINT64    preCommitTime ;
+   UINT32    preCommitTimeError ;
    UINT32    nodeNum ;
    UINT64    nodes[0] ;
 } MsgOpTransCommitPre;

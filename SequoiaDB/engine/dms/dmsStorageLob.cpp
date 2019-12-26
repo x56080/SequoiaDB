@@ -559,9 +559,6 @@ namespace engine
       _dmsLobDataMapBlk *blk = NULL ;
       dpsMergeInfo info ;
       dpsLogRecord &logRecord = info.getMergeBlock().record() ;
-      DPS_TRANS_ID transID ;
-      DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
-      DPS_LSN_OFFSET relatedLsn = DPS_INVALID_LSN_OFFSET ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       CHAR *oldData = NULL ;
       UINT32 oldLen = 0 ;
@@ -569,6 +566,9 @@ namespace engine
       UINT32 newestMask = 0 ;
       UINT32 orgBlkLen = 0 ;
       UINT32 pageSize = _data.pageSize() ;
+
+      // LOB not support transaction yet
+      dpsRecordTransInfo transInfo ;
 
       if ( DMS_LOB_INVALID_PAGEID == pageID )
       {
@@ -683,9 +683,7 @@ namespace engine
                               oldData,
                               pageSize,
                               pageID,
-                              transID,
-                              preTransLsn,
-                              relatedLsn,
+                              transInfo,
                               logRecord ) ;
          if ( SDB_OK != rc )
          {
@@ -874,11 +872,11 @@ namespace engine
       dpsMergeInfo info ;
       dpsLogRecord &logRecord = info.getMergeBlock().record() ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
-      DPS_TRANS_ID transID ;
-      DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
-      DPS_LSN_OFFSET relatedLsn = DPS_INVALID_LSN_OFFSET ;
       UINT32 pageSize = _data.pageSize() ;
       BOOLEAN locked = FALSE ;
+
+      // LOB not support transaction yet
+      dpsRecordTransInfo transInfo ;
 
       if ( _needDelayOpen )
       {
@@ -900,9 +898,7 @@ namespace engine
                               record._data,
                               pageSize,
                               page,
-                              transID,
-                              preTransLsn,
-                              relatedLsn,
+                              transInfo,
                               logRecord ) ;
          if ( SDB_OK != rc )
          {
@@ -1236,9 +1232,6 @@ namespace engine
       dpsMergeInfo info ;
       dpsLogRecord &logRecord = info.getMergeBlock().record() ;
       UINT32 resevedLength = 0 ;
-      DPS_TRANS_ID transID ;
-      DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
-      DPS_LSN_OFFSET relatedLsn = DPS_INVALID_LSN_OFFSET ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       CHAR *oldData = NULL ;
       UINT32 oldLen = 0 ;
@@ -1252,6 +1245,9 @@ namespace engine
       UINT64 endLSN = 0 ;
       UINT32 pageSize = _data.pageSize() ;
       ossSpinSLatch *pLatch = NULL ;
+
+      // LOB not support transaction yet
+      dpsRecordTransInfo transInfo ;
 
       if ( _needDelayOpen )
       {
@@ -1277,9 +1273,7 @@ namespace engine
                                oldData,
                                pageSize,
                                page,
-                               transID,
-                               preTransLsn,
-                               relatedLsn,
+                               transInfo,
                                logRecord ) ;
          if ( SDB_OK != rc )
          {
@@ -1421,9 +1415,7 @@ namespace engine
                                oldData,
                                pageSize,
                                page,
-                               transID,
-                               preTransLsn,
-                               relatedLsn,
+                               transInfo,
                                logRecord ) ;
          if ( SDB_OK != rc )
          {

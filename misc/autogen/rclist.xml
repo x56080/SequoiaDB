@@ -2826,5 +2826,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_GLOB_TRANS_NOT_AVAILABLE</name>
+         <description>
+            <en>Global transaction is not available</en>
+            <cn>全局事务不可用</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

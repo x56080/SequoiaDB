@@ -623,7 +623,7 @@ namespace engine
             }
             else
             {
-               rc = rtnTransBegin( eduCB ) ;
+               rc = rtnTransBegin( eduCB, FALSE, eduCB->isGlobTransOn() ) ;
             }
          }
       }

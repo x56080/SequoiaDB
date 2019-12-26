@@ -250,7 +250,7 @@ namespace engine
             rc = _checkTransOperator( dpsValid, TRUE ) ;
             if ( SDB_OK == rc )
             {
-               rc = rtnTransBegin( eduCB, TRUE ) ;
+               rc = rtnTransBegin( eduCB, TRUE, eduCB->isGlobTransOn() ) ;
             }
             else
             {

@@ -2297,6 +2297,21 @@ namespace engine
          builder.appendBool( FIELD_NAME_IS_ROLLBACK,
                              pTransCB->isRollback( _curTransInfo._transID ) ?
                              TRUE : FALSE ) ;
+
+         if ( _curTransInfo._transID.isGlobTrans() )
+         {
+            // append begin time
+            BSONObjBuilder beginTimeBuilder(
+                           builder.subobjStart( FIELD_NAME_TRANS_BEGIN_TIME ) ) ;
+            beginTimeBuilder.append(
+                  STP_FIELD_NAME_TIMESTAMP,
+                  (INT64)( _curTransInfo._transBeginTime.getTime() ) ) ;
+            beginTimeBuilder.append(
+                  STP_FIELD_NAME_TIME_ERROR,
+                  (INT32)( _curTransInfo._transBeginTime.getTimeError() ) ) ;
+            beginTimeBuilder.doneFast() ;
+         }
+
          builder.append( FIELD_NAME_TRANS_LSN_CUR,
                          (INT64)_curTransInfo._curTransLsn ) ;
 

@@ -1884,6 +1884,7 @@ done:
       _traceBufSz          = TRACE_DFT_BUFFER_SIZE ;
       _transactionOn       = TRUE ;
       _mvccOn              = FALSE ;
+      _globTransOn         = FALSE ;
       _transIsolation      = DPS_TRANS_ISOLATION_DFT ;
       _transLockwait       = DPS_TRANS_LOCKWAIT_DFT ;
       _transAutoCommit     = DPS_TRANS_AUTOCOMMIT_DFT ;
@@ -2203,6 +2204,11 @@ done:
       // --mvccOn
       rdxBooleanS( pEX, PMD_OPTION_MVCCON, _mvccOn, FALSE,
                    PMD_CFG_CHANGE_REBOOT, FALSE ) ;
+
+      // --globtranson
+      rdxBooleanS( pEX, PMD_OPTION_GLOBTRANSON, _globTransOn, FALSE,
+                   PMD_CFG_CHANGE_REBOOT, FALSE ) ;
+
       // --transactiontimeout
       rdxUInt( pEX, PMD_OPTION_TRANSTIMEOUT, _transTimeout, FALSE,
                PMD_CFG_CHANGE_RUN, DPS_TRANS_DFT_TIMEOUT, FALSE ) ;
@@ -2525,6 +2531,14 @@ done:
          std::cerr << PMD_OPTION_MVCCON << " value error, use default"
                    << endl ;
          _mvccOn = FALSE ;
+      }
+
+      // globtranson check, requires transactionon
+      if ( !_transactionOn && _globTransOn )
+      {
+         std::cerr << PMD_OPTION_GLOBTRANSON << " value error, use default"
+                   << endl ;
+         _globTransOn = FALSE ;
       }
 
       // audit mask check

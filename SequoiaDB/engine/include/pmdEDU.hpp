@@ -55,6 +55,7 @@
 #include "utilMemListPool.hpp"
 #include "ossMemPool.hpp"
 #include "monClass.hpp"
+#include "stpLogicalTime.hpp"
 
 #if defined ( SDB_ENGINE )
 #include "dpsLogDef.hpp"
@@ -187,6 +188,22 @@ namespace engine
          virtual void      setTransID( const DPS_TRANS_ID &transID ) ;
          virtual void      setCurTransLsn( UINT64 lsn ) ;
 
+         OSS_INLINE const stpLogicalTimeUS &getTransBeginTime() const
+         {
+            return _transBeginTime ;
+         }
+
+         OSS_INLINE const stpLogicalTimeUS &getTransPreCommitTime() const
+         {
+            return _transPreCommitTime ;
+         }
+
+         OSS_INLINE void setTransPreCommitTime(
+                                    const stpLogicalTimeUS &preCommitTime )
+         {
+            _transPreCommitTime = preCommitTime ;
+         }
+
          /*
             Context Related
          */
@@ -201,6 +218,10 @@ namespace engine
          BOOLEAN           isTransRBPending() const ;
          void              setTransRBPending() ;
          void              clearTransRBPending() ;
+
+         // set eduCB is handling global transaction
+         void              setGlobTrans( const DPS_TRANS_ID &transID,
+                                         const stpLogicalTimeUS &beginTime ) ;
 
          void              setBlock( EDU_BLOCK_TYPE type,
                                      const CHAR *pBlockDesp ) ;
@@ -409,6 +430,10 @@ namespace engine
       BOOLEAN  isTransRS () const ;
       BOOLEAN  isTransRR () const ;
       BOOLEAN  isAutoCommitTrans() const ;
+      // check if global transaction is acquired
+      BOOLEAN  isGlobTransOn() const ;
+      // check if current transaction is global transaction
+      BOOLEAN  isGlobTrans() const ;
       void     startTransRollback() { _isDoTransRollback = TRUE ; }
       void     stopTransRollback() { _isDoTransRollback = FALSE ; }
       BOOLEAN  isInTransRollback() const { return _isDoTransRollback ; }
@@ -546,6 +571,10 @@ namespace engine
       UINT64                  _processEventCount ;
 
       DPS_TRANS_ID            _curTransID ;
+      // logical time of transaction begin
+      stpLogicalTimeUS        _transBeginTime ;
+      // logical time of transaction pre-commit
+      stpLogicalTimeUS        _transPreCommitTime ;
       DPS_LSN_OFFSET          _curTransLSN ;
       UINT64                  _transWritingID ;
 

@@ -84,7 +84,8 @@ namespace engine
          BOOLEAN              useRollbackSegment() const ;
          BOOLEAN              isTransAutoCommit() const ;
          BOOLEAN              isTransAutoRollback() const ;
-         BOOLEAN              isTransRCCount () const ;
+         BOOLEAN              isTransRCCount() const ;
+         BOOLEAN              isGlobTransOn() const ;
 
          UINT32               getTransConfMask() const ;
          UINT32               getTransConfVer() const ;
@@ -103,6 +104,8 @@ namespace engine
                                                     BOOLEAN enableMask = TRUE ) ;
          void                 setTransRCCount ( BOOLEAN rcCount,
                                                 BOOLEAN enableMask = TRUE ) ;
+         void                 setGlobTransOn( BOOLEAN globTransOn,
+                                              BOOLEAN enableMask = TRUE ) ;
 
          void                 reset() ;
          void                 resetConfMask() ;
@@ -125,8 +128,10 @@ namespace engine
          BOOLEAN                 _transAutoCommit ;
          // when transaction operator failed, wether rollback auto
          BOOLEAN                 _transAutoRollback ;
-
+         // whether to use RC isolation to process count()
          BOOLEAN                 _transRCCount ;
+         // if transaction is a global transaction
+         BOOLEAN                 _globTransOn ;
 
          UINT32                  _transConfMask ;
          UINT32                  _transConfVer ;
@@ -388,7 +393,8 @@ namespace engine
                                              BOOLEAN autoCommit,
                                              BOOLEAN autoRollback,
                                              BOOLEAN useRBS,
-                                             BOOLEAN rcCount ) ;
+                                             BOOLEAN rcCount,
+                                             BOOLEAN globTrans ) ;
 
          BOOLEAN              updateTransConf( INT32 isolation,
                                                UINT32 timeout,
@@ -396,7 +402,8 @@ namespace engine
                                                BOOLEAN autoCommit,
                                                BOOLEAN autoRollback,
                                                BOOLEAN useRBS,
-                                               BOOLEAN rcCount ) ;
+                                               BOOLEAN rcCount,
+                                               BOOLEAN globTrans ) ;
 
          void     addReservedSpace( const UINT64 len ) ;
 

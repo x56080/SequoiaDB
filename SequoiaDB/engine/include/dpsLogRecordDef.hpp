@@ -57,12 +57,16 @@ namespace engine
       DPS_LOG_PUBLIC_RELATED_TRANS = 204,    // only for rollback trans,
                                              // mapping to really trans lsn
       DPS_LOG_PUBLIC_FIRSTTRANS = 205,
+      // real time of record ( related to --logtimeon option )
       DPS_LOG_PUBLIC_TIME = 206,
 
+      // global transaction components
       // node ID component for transaction ID of V1
       DPS_LOG_PUBLIC_TRANSID_NODEID = 207,
-      // time error of logical time for global transaction
-      DPS_LOG_PUBLIC_TRANS_TIME_ERROR = 208
+      // time component of logical time for global transaction
+      DPS_LOG_PUBLIC_TRANS_TIME = 208,
+      // time error component of logical time for global transaction
+      DPS_LOG_PUBLIC_TRANS_TIME_ERROR = 209
    } ;
 
 /// number in public can not be used in definition !

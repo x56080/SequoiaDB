@@ -2546,17 +2546,20 @@ namespace engine
 
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
-      DPS_TRANS_ID transID = eduCB->getTransID() ;
-      DPS_LSN_OFFSET preTransLSN = eduCB->getCurTransLsn() ;
-      DPS_LSN_OFFSET relatedTransLSN = eduCB->getRelatedTransLSN() ;
+      dpsRecordTransInfo transInfo( eduCB->getTransID(),
+                                    eduCB->getCurTransLsn(),
+                                    eduCB->getRelatedTransLSN(),
+                                    eduCB->getTransBeginTime(),
+                                    eduCB->getTransPreCommitTime() ) ;
 
-      PD_CHECK( DPS_INVALID_LSN_OFFSET == preTransLSN, SDB_SYS, error, PDERROR,
+      PD_CHECK( DPS_INVALID_LSN_OFFSET == transInfo._preTransLSN,
+                SDB_SYS, error, PDERROR,
                 "Failed to log transaction rollback for transaction [%s], "
                 "preTransLSN is not empty [%llu]",
-                dpsTransIDToString( transID ).c_str(), preTransLSN ) ;
+                dpsTransIDToString( transInfo._transID ).c_str(),
+                transInfo._preTransLSN ) ;
 
-      rc = dpsTransRollback2Record( transID, preTransLSN, relatedTransLSN,
-                                    record ) ;
+      rc = dpsTransRollback2Record( transInfo, record ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to transform record into "
                    "transaction rollback record, rc: %d", rc ) ;
 

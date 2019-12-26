@@ -260,7 +260,7 @@ namespace engine
                    "Failed to get field [%s], field should be a long value",
                    FIELD_NAME_TRANSACTION_ID_SN ) ;
 
-         transID.resetSN( (DPS_TRANSID_SN)( element.numberLong() ) ) ;
+         transID.setSN( (DPS_TRANSID_SN)( element.numberLong() ) ) ;
       }
       catch ( exception &e )
       {

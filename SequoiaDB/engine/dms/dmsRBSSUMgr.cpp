@@ -1467,7 +1467,8 @@ namespace engine
                  ( vecKey[1].numberInt() == clid ) &&
                  ( recordLSNOffset == lsn ) &&
                  sdbGetTransCB()->isVersionVisible( recordTransID,
-                                                    transid) )
+                                                    transid,
+                                                    eduCB->getTransBeginTime() ) )
             {
                BSONElement ele =
                     cappedRecord.getField(FIELD_NAME_RBS_RECORD_DATA) ;
@@ -1581,7 +1582,8 @@ namespace engine
          PD_LOG ( PDDEBUG,
                   "Got maxGlobTransID and lowTran (%s, %s), curPos=%d",
                    dpsTransIDToString( maxGlobTransID ).c_str(),
-                   dpsTransIDToString( sdbGetTransCB()->getLowTran() ).c_str(),
+                   dpsTransIDToString(
+                         sdbGetTransCB()->getGlobLowTran( FALSE ) ).c_str(),
                    curPos ) ;
 #endif
          // Do GC when the cl max transID is older than lowtran
