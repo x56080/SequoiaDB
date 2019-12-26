@@ -48,6 +48,9 @@ namespace engine
    // max count to retry to get logical time
    #define STP_AGENT_MAX_RETRY ( 2 )
 
+   // sleep time ( 100ms ) for retry getting logical time
+   #define STP_AGENT_RETRY_SLEEP ( 100 )
+
    /*
       _stpAgent implement
     */
@@ -105,14 +108,46 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_GETLOGICALTIMENS, "_stpAgent::getLogicalTimeNS" )
-   INT32 _stpAgent::getLogicalTimeNS( stpLogicalTimeNS &time )
+   INT32 _stpAgent::getLogicalTimeNS( stpLogicalTimeNS &time, INT32 timeout )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPAGENT_GETLOGICALTIMENS ) ;
 
-      // get logical time
-      rc = _getLogicalTimeNS( time ) ;
+      INT32 totalTimeout = 0 ;
+
+      while ( TRUE )
+      {
+         // get logical time
+         rc = _getLogicalTimeNS( time ) ;
+         if ( SDB_OK == rc )
+         {
+            // get time is OK, break loop
+            break ;
+         }
+         else if ( timeout > 0 && totalTimeout > timeout )
+         {
+            // check timeout
+            // NOTE: timeout < 0 means never timeout
+            rc = SDB_TIMEOUT ;
+            break ;
+         }
+         else if ( 0 == timeout )
+         {
+            // timeout is 0, means try once
+            break ;
+         }
+         else if ( _recheckAvailable( rc ) )
+         {
+            // we could retry, sleep and continue loop
+            ossSleep( STP_AGENT_RETRY_SLEEP ) ;
+            totalTimeout += STP_AGENT_RETRY_SLEEP ;
+            continue ;
+         }
+         // we could not retry, break loop
+         break ;
+      }
+
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
    done:
@@ -124,15 +159,19 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_GETLOGICALTIMEUS, "_stpAgent::getLogicalTimeUS" )
-   INT32 _stpAgent::getLogicalTimeUS( stpLogicalTimeUS &time )
+   INT32 _stpAgent::getLogicalTimeUS( stpLogicalTimeUS &time, INT32 timeout )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPAGENT_GETLOGICALTIMEUS ) ;
 
+      stpLogicalTimeNS timeNS ;
+
       // get logical time
-      rc = _getLogicalTimeUS( time ) ;
+      rc = getLogicalTimeNS( timeNS, timeout ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
+
+      time = timeNS ;
 
    done:
       PD_TRACE_EXITRC( SDB__STPAGENT_GETLOGICALTIMEUS, rc ) ;
@@ -140,6 +179,16 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   INT32 _stpAgent::tryGetLogicalTimeNS( stpLogicalTimeNS &time )
+   {
+      return getLogicalTimeNS( time, 0 ) ;
+   }
+
+   INT32 _stpAgent::tryGetLogicalTimeUS( stpLogicalTimeUS &time )
+   {
+      return getLogicalTimeUS( time, 0 ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_CHECKAVAILABLE, "_stpAgent::checkAvailable" )
@@ -367,34 +416,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__GETLOGICALTIMEUS, "_stpAgent::_getLogicalTimeUS" )
-   INT32 _stpAgent::_getLogicalTimeUS( stpLogicalTimeUS &time )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPAGENT__GETLOGICALTIMEUS ) ;
-
-      ossScopedRWLock lock( &_metaMutex, SHARED ) ;
-
-      // check available
-      PD_CHECK( _available, STP_NOT_AVAILABLE, error, PDERROR,
-                "Failed to get logical time, STP is not available" ) ;
-      // check meta data
-      PD_CHECK( NULL != getMetaData(), STP_NOT_AVAILABLE, error, PDERROR,
-                "Failed to get logical time, meta data is not available" ) ;
-
-      // get logical time from meta data
-      rc = getMetaData()->getLogicalTimeUS( time, TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPAGENT__GETLOGICALTIMEUS, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__ATTACHSHMBUFFER, "_stpAgent::_attachSHMBuffer" )
    INT32 _stpAgent::_attachSHMBuffer( const CHAR *shmKey )
    {
@@ -460,6 +481,46 @@ namespace engine
       PD_TRACE_EXITRC( SDB__STPAGENT__RELEASESHMBUFFER, rc ) ;
 
       return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__RECHECKAVAILABLE, "_stpAgent::_recheckAvailable" )
+   BOOLEAN _stpAgent::_recheckAvailable( INT32 rc )
+   {
+      BOOLEAN canRetry = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENT__RECHECKAVAILABLE ) ;
+
+      switch ( rc )
+      {
+         case STP_NOT_AVAILABLE :
+         case STP_SYNC_FAILED :
+         {
+            // it is not synchronized or not available
+            // in these cases, STP might not started, so check available
+            if ( SDB_OK == checkAvailable() )
+            {
+               // it is available now, go retry
+               canRetry = TRUE ;
+            }
+            break ;
+         }
+         case STP_TIME_AHEAD_AFTER_SYNC :
+         case STP_SYNC_BUSY :
+         {
+            // time of STP is ahead of global or it is busy synchronizing
+            canRetry = TRUE ;
+            break ;
+         }
+         default :
+         {
+            // do noting
+            break ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__STPAGENT__RECHECKAVAILABLE ) ;
+
+      return canRetry ;
    }
 
 }

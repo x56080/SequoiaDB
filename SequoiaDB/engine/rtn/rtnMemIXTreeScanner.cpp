@@ -478,9 +478,9 @@ namespace engine
                           nodeKey.getRID()._extent,
                           nodeKey.getRID()._offset,
                           dpsTransIDToString(
-                                      _pTransCB->getLowTran() ).c_str(),
+                                _pTransCB->getGlobLowTran( FALSE ) ).c_str(),
                           dpsTransIDToString(
-                                      nodeKey.getNodeTransID() ).c_str() ) ;
+                                nodeKey.getNodeTransID() ).c_str() ) ;
 #endif
                   _savedRID.reset() ;
                   goto begin ;

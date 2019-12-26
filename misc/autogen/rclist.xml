@@ -2827,10 +2827,10 @@
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_353</name> <!-- SDB_GLOB_TRANS_NOT_AVAILABLE -->
+         <name>SDB_GLOB_TRANS_NOT_AVAILABLE</name>
          <description>
-            <en>Reserved</en> <!-- Global transaction is not available -->
-            <cn>保留</cn> <!-- 全局事务不可用 -->
+            <en>Global transaction is not available</en>
+            <cn>全局事务不可用</cn>
          </description>
       </code>
 

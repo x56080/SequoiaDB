@@ -73,10 +73,15 @@ namespace engine
          return _available ;
       }
 
-      // get logical time in nanosecond
-      INT32 getLogicalTimeNS( stpLogicalTimeNS &time ) ;
-      // get logical time in microseconds
-      INT32 getLogicalTimeUS( stpLogicalTimeUS &time ) ;
+      // get logical time in nanosecond in given timeout
+      INT32 getLogicalTimeNS( stpLogicalTimeNS &time, INT32 timeout = -1 ) ;
+      // try to get logical time in microseconds in given timeout
+      INT32 getLogicalTimeUS( stpLogicalTimeUS &time, INT32 timeout = -1 ) ;
+      // try to get logical time in nanosecond
+      INT32 tryGetLogicalTimeNS( stpLogicalTimeNS &time ) ;
+      // try to get logical time in microseconds
+      INT32 tryGetLogicalTimeUS( stpLogicalTimeUS &time ) ;
+
       // check if STP is available
       INT32 checkAvailable() ;
 
@@ -93,13 +98,13 @@ namespace engine
       INT32 _releaseMetaData() ;
       // get logical time in nanoseconds
       INT32 _getLogicalTimeNS( stpLogicalTimeNS &time ) ;
-      // get logical time in microseconds
-      INT32 _getLogicalTimeUS( stpLogicalTimeUS &time ) ;
 
       // attach shared memory buffer
       INT32 _attachSHMBuffer( const CHAR *shmKey ) ;
       // release shared memory buffer
       INT32 _releaseSHMBuffer() ;
+      // re-check if we could retry to get logical time
+      BOOLEAN _recheckAvailable( INT32 rc ) ;
 
    protected:
       // PID of STP

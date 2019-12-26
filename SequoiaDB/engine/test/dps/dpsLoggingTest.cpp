@@ -109,11 +109,10 @@ TEST(logWrapperTest, recordInsert_1)
 
    dpsMergeInfo mergeInfo ;
    dpsLogRecord &record = mergeInfo.getMergeBlock().record() ;
-   DPS_TRANS_ID transID ;
+   dpsRecordTransInfo transInfo ;
    rc = dpsInsert2Record( name.c_str(),
-                          obj, transID,
-                          DPS_INVALID_LSN_OFFSET,
-                          DPS_INVALID_LSN_OFFSET,
+                          obj,
+                          transInfo,
                           record ) ;
    ASSERT_TRUE( SDB_OK == rc ) ;
 

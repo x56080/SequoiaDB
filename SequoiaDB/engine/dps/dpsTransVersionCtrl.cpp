@@ -1471,7 +1471,7 @@ namespace engine
       {
          releaseS() ;
          // get current lowtran for each tree
-         lowTran = sdbGetTransCB()->getLowTran() ;
+         lowTran = sdbGetTransCB()->getGlobLowTran( FALSE ) ;
          // handle one tree
          treePtr = it->second ;
 

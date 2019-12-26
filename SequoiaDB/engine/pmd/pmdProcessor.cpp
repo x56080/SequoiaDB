@@ -481,7 +481,7 @@ namespace engine
             rc = _checkTransOperator( checkDps, TRUE ) ;
             if ( SDB_OK == rc )
             {
-               rc = rtnTransBegin( eduCB(), TRUE ) ;
+               rc = rtnTransBegin( eduCB(), TRUE, eduCB()->isGlobTransOn() ) ;
             }
             else
             {
@@ -995,7 +995,7 @@ namespace engine
 
    INT32 _pmdDataProcessor::_beginTrans( BOOLEAN isAutoCommit )
    {
-      return rtnTransBegin( eduCB(), isAutoCommit ) ;
+      return rtnTransBegin( eduCB(), isAutoCommit, eduCB()->isGlobTransOn() ) ;
    }
 
    INT32 _pmdDataProcessor::_onGetMoreReqMsg( MsgHeader * msg,
@@ -1131,7 +1131,7 @@ namespace engine
          }
          else
          {
-            rc = rtnTransBegin( eduCB() ) ;
+            rc = rtnTransBegin( eduCB(), FALSE, eduCB()->isGlobTransOn() ) ;
          }
       }
       return rc ;

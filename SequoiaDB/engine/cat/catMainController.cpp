@@ -101,6 +101,8 @@ namespace engine
       _pEDUCB->getTransExecutor()->setUseRollbackSemgent( FALSE, TRUE ) ;
       /// we don't need to use RC count on catalog ( since only one thread )
       _pEDUCB->getTransExecutor()->setTransRCCount( FALSE, TRUE ) ;
+      /// we don't need global transaction on catalog
+      _pEDUCB->getTransExecutor()->setGlobTransOn( FALSE, TRUE ) ;
 
       if ( _pCatCB )
       {

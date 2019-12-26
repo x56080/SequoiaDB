@@ -3069,9 +3069,11 @@ namespace engine
       dpsLogRecord  &logRecord      = info.getMergeBlock().record() ;
       SDB_DPSCB     *dropDps        = NULL ;
       // trans related
-      DPS_TRANS_ID   transID        = cb->getTransID() ;
-      DPS_LSN_OFFSET preTransLsn    = cb->getCurTransLsn() ;
-      DPS_LSN_OFFSET relatedLsn     = cb->getRelatedTransLSN() ;
+      dpsRecordTransInfo transInfo( cb->getTransID(),
+                                    cb->getCurTransLsn(),
+                                    cb->getRelatedTransLSN(),
+                                    cb->getTransBeginTime(),
+                                    cb->getTransPreCommitTime() ) ;
       BOOLEAN        isTransLocked  = FALSE ;
       // delete record related
       dmsRecordID          foundRID ;
@@ -3093,18 +3095,16 @@ namespace engine
 
       if ( !isTransSupport() )
       {
-         transID.reset() ;
-         preTransLsn = DPS_INVALID_LSN_OFFSET ;
-         relatedLsn = DPS_INVALID_LSN_OFFSET ;
+         transInfo.reset() ;
       }
 
       try
       {
          dpsTransExecutor *pTransExe = cb->getTransExecutor() ;
          /// when is rollback, and the rid is found
-         if ( transID.isValid() &&
+         if ( transInfo._transID.isValid() &&
               cb->isInTransRollback() &&
-              pTransExe->getRecord( relatedLsn, foundRID, TRUE ) )
+              pTransExe->getRecord( transInfo._relatedLSN, foundRID, TRUE ) )
          {
             markInsert = TRUE ;
             const dmsRecord *pcRecord = NULL ;
@@ -3233,8 +3233,7 @@ namespace engine
                          sizeof(fullName) ) ;
 
             // reserved log-size
-            rc = dpsInsert2Record( fullName, insertObj, transID,
-                                   preTransLsn, relatedLsn, logRecord ) ;
+            rc = dpsInsert2Record( fullName, insertObj, transInfo, logRecord ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
             logRecSize = ossAlign4( logRecord.alignedLen() ) ;
@@ -3454,7 +3453,7 @@ namespace engine
    done:
       // release the lock immediately if it is not transaction-operation,
       // the transaction-operation's lock will release in rollback or commit
-      if ( isTransLocked && ( transID.isInvalid() || rc ) )
+      if ( isTransLocked && ( transInfo._transID.isInvalid() || rc ) )
       {
          pTransCB->transLockRelease( cb, _logicalCSID, context->mbID(),
                                      &foundRID, &callback ) ;
@@ -3527,9 +3526,11 @@ namespace engine
       dpsMergeInfo info ;
       dpsLogRecord &record          = info.getMergeBlock().record() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
-      DPS_TRANS_ID transID          = cb->getTransID() ;
-      DPS_LSN_OFFSET preLsn         = cb->getCurTransLsn() ;
-      DPS_LSN_OFFSET relatedLSN     = cb->getRelatedTransLSN() ;
+      dpsRecordTransInfo transInfo( cb->getTransID(),
+                                    cb->getCurTransLsn(),
+                                    cb->getRelatedTransLSN(),
+                                    cb->getTransBeginTime(),
+                                    cb->getTransPreCommitTime() ) ;
       dmsExtRW extRW ;
       dmsRecordRW recordRW ;
       dmsExtent *pExtent            = NULL ;
@@ -3563,9 +3564,7 @@ namespace engine
 
       if ( !isTransSupport() )
       {
-         transID.reset() ;
-         preLsn = DPS_INVALID_LSN_OFFSET ;
-         relatedLSN = DPS_INVALID_LSN_OFFSET ;
+         transInfo.reset() ;
       }
 
       try
@@ -3598,7 +3597,7 @@ namespace engine
          // when in transaction(not rollback), we should not immediately
          // delete the record, otherwise TB scan won't be able to find
          // this record even if the current transaction has not committed.
-         if ( transID.isValid() && !cb->isInTransRollback() )
+         if ( transInfo._transID.isValid() && !cb->isInTransRollback() )
          {
             inTrans = TRUE ;
          }
@@ -3699,8 +3698,7 @@ namespace engine
                                sizeof(fullName) ) ;
 
                   // reserved log-size
-                  rc = dpsDelete2Record( fullName, delObject, transID,
-                                         preLsn, relatedLSN,
+                  rc = dpsDelete2Record( fullName, delObject, transInfo,
                                          record ) ;
 
                   if ( SDB_OK != rc )
@@ -3776,7 +3774,7 @@ namespace engine
             DPS_TRANS_ID lowTran ;
             if ( pTransCB )
             {
-               lowTran = pTransCB->getLowTran() ;
+               lowTran = pTransCB->getGlobLowTran( FALSE ) ;
             }
             PD_LOG( PDDEBUG, "Truely delete record(%d, %d),  "
                     "lowtran(%s), recordtransid(%s), pTransCB(%x)",
@@ -3812,7 +3810,7 @@ namespace engine
 
             if( pRecord->hasGlobTransID() )
             {
-               pRecord->setGlobTransID( transID ) ;
+               pRecord->setGlobTransID( transInfo._transID ) ;
             }
             else
             {
@@ -3936,9 +3934,12 @@ namespace engine
       UINT32          *pWriteMod   = NULL ;
       dpsTransCB      *pTransCB    = pmdGetKRCB()->getTransCB() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
-      DPS_TRANS_ID     transID     = cb->getTransID() ;
-      DPS_LSN_OFFSET   preTransLsn = cb->getCurTransLsn() ;
-      DPS_LSN_OFFSET   relatedLSN  = cb->getRelatedTransLSN() ;
+
+      dpsRecordTransInfo transInfo( cb->getTransID(),
+                                    cb->getCurTransLsn(),
+                                    cb->getRelatedTransLSN(),
+                                    cb->getTransBeginTime(),
+                                    cb->getTransPreCommitTime() ) ;
 
       dmsExtRW         extRW ;
       dmsRecordRW      recordRW ;
@@ -3962,9 +3963,7 @@ namespace engine
 
       if ( !isTransSupport() )
       {
-         transID.reset() ;
-         preTransLsn = DPS_INVALID_LSN_OFFSET ;
-         relatedLSN = DPS_INVALID_LSN_OFFSET ;
+         transInfo.reset() ;
       }
 
       try
@@ -4104,8 +4103,7 @@ namespace engine
                rc = dpsUpdate2Record( fullName,
                                       oldMatch, oldChg, newMatch, newChg,
                                       oldShardingKey, newShardingKey,
-                                      transID, preTransLsn, relatedLSN,
-                                      pWriteMod, record ) ;
+                                      transInfo, pWriteMod, record ) ;
 
                if ( SDB_OK != rc )
                {

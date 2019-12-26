@@ -653,8 +653,9 @@ namespace engine
             // number
             // NOTE: node ID of transaction ID is in routeID of message header
             msgReq.transID = (UINT64)( cb->getTransID().getGlobSN() ) ;
-            // TODO: time error of logical time for global transaction
-            msgReq.transTimeError = 0 ;
+            // time error of logical time for global transaction
+            msgReq.transTimeError =
+                        (UINT32)( cb->getTransBeginTime().getTimeError() ) ;
             ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
 
             rc = coordBuildPacketMsg( pSession,pSub, &msgReq.header ) ;

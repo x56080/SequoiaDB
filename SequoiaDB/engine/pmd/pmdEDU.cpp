@@ -772,6 +772,8 @@ namespace engine
    {
       DPS_TRANS_ID transID ;
       setTransID( transID ) ;
+      _transBeginTime.reset() ;
+      _transPreCommitTime.reset() ;
    }
 
    void _pmdEDUCB::setTransID( const DPS_TRANS_ID &transID )
@@ -909,6 +911,16 @@ namespace engine
       _curTransID.clearRBPending() ;
    }
 
+   void _pmdEDUCB::setGlobTrans( const DPS_TRANS_ID &transID,
+                                 const stpLogicalTimeUS &beginTime )
+   {
+      setTransID( transID ) ;
+      if ( _curTransID.isGlobTrans() )
+      {
+         _transBeginTime = beginTime ;
+      }
+   }
+
    void _pmdEDUCB::contextCopy( _pmdEDUCB::SET_CONTEXT &contextList )
    {
       ossScopedLock _lock ( &_mutex, SHARED ) ;
@@ -937,7 +949,8 @@ namespace engine
                                        optCB->transAutoCommit(),
                                        optCB->transAutoRollback(),
                                        optCB->transUseRBS(),
-                                       optCB->transRCCount() ) ;
+                                       optCB->transRCCount(),
+                                       optCB->globTransOn() ) ;
       }
       else
       {
@@ -965,7 +978,8 @@ namespace engine
                                               optCB->transAutoCommit(),
                                               optCB->transAutoRollback(),
                                               optCB->transUseRBS(),
-                                              optCB->transRCCount() ) )
+                                              optCB->transRCCount(),
+                                              optCB->globTransOn() ) )
          {
             _confChangeID = optCB->getChangeID() ;
          }
@@ -1101,6 +1115,8 @@ namespace engine
    void _pmdEDUCB::clearTransInfo()
    {
       _curTransID.reset() ;
+      _transBeginTime.reset() ;
+      _transPreCommitTime.reset() ;
 
       _relatedTransLSN = DPS_INVALID_LSN_OFFSET ;
       _curTransLSN = DPS_INVALID_LSN_OFFSET ;
@@ -1148,10 +1164,22 @@ namespace engine
       return _curTransID.isAutoCommit() ;
    }
 
+   BOOLEAN _pmdEDUCB::isGlobTransOn() const
+   {
+      return _transExecutor.isGlobTransOn() ;
+   }
+
+   BOOLEAN _pmdEDUCB::isGlobTrans() const
+   {
+      return _curTransID.isGlobTrans() ;
+   }
+
    void _pmdEDUCB::dumpTransInfo( monTransInfo &transInfo )
    {
       transInfo._eduID        = _eduID ;
       transInfo._transID      = _curTransID ;
+      transInfo._transBeginTime = _transBeginTime ;
+      transInfo._transPreCommitTime = _transPreCommitTime ;
       transInfo._curTransLsn  = _curTransLSN ;
 
       {

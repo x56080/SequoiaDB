@@ -43,6 +43,7 @@
 #include "dpsDef.hpp"
 #include "dpsTransLockDef.hpp"
 #include "msgDef.hpp"
+#include "stpLogicalTime.hpp"
 #include <vector>
 
 using namespace bson ;
@@ -254,6 +255,8 @@ namespace engine
    {
       public:
          DPS_TRANS_ID         _transID ;
+         stpLogicalTimeUS     _transBeginTime ;
+         stpLogicalTimeUS     _transPreCommitTime ;
          DPS_LSN_OFFSET       _curTransLsn ;
          UINT64               _eduID ;
          UINT64               _relatedNID ;
@@ -271,6 +274,8 @@ namespace engine
          void clear()
          {
             _transID.reset() ;
+            _transBeginTime.reset() ;
+            _transPreCommitTime.reset() ;
             _curTransLsn = DPS_INVALID_LSN_OFFSET ;
             _eduID = 0 ;
             _relatedNID = 0 ;

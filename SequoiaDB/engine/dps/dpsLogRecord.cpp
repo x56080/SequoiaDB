@@ -1583,6 +1583,8 @@ namespace engine
          if ( itrTransID.valid() )
          {
             DPS_TRANS_ID transID ;
+            stpLogicalTimeUS transTime ;
+
             if ( SDB_OK == dpsGetTransIDFromRecord( *this, transID ) )
             {
                CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
@@ -1602,6 +1604,18 @@ namespace engine
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "*ERROR* : %s"OSS_NEWLINE,
                                     "Invalid transaction ID record" ) ;
+            }
+
+            // check if record has logical time for transaction
+            if ( SDB_OK == dpsGetTransTimeFromRecord( *this,
+                                                      transID,
+                                                      transTime ) )
+            {
+               len += ossSnprintf( outBuf + len, outSize - len,
+                                   " TransTime : %llu"OSS_NEWLINE
+                                   " TransTimeError : %u"OSS_NEWLINE,
+                                   transTime.getTime(),
+                                   transTime.getTimeError() ) ;
             }
          }
          if ( itrTransLsn.valid() )

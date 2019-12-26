@@ -2454,7 +2454,7 @@ namespace engine
       /// trans context
       if ( pContext->isTransContext() && !eduCB()->isTransaction() )
       {
-         rc = rtnTransBegin( eduCB(), TRUE ) ;
+         rc = rtnTransBegin( eduCB(), TRUE, eduCB()->isGlobTransOn() ) ;
          if ( rc )
          {
             goto error ;
@@ -2578,20 +2578,31 @@ namespace engine
 
       /// Old trans begin msg is only a MsgHeader
       if ( msg->messageLength > (INT32)sizeof( MsgHeader ) &&
-           // only serial number for backward compatibilty
+           // only serial number for backward compatibility
            DPS_INVALID_TRANSID_SN != pTransBegin->transID &&
            // check node ID component
            DPS_INVALID_TRANSID_NODEID !=
                  pTransBegin->header.routeID.columns.nodeID )
       {
          DPS_TRANS_ID transID ;
+         stpLogicalTimeUS beginTime ;
+
          transID.setSN( pTransBegin->transID ) ;
          transID.setNodeID( pTransBegin->header.routeID.columns.nodeID ) ;
-         rc = rtnTransBegin( _pEDUCB, FALSE, transID ) ;
+
+         // if transaction is global, get transaction begin time
+         if ( transID.isGlobTrans() )
+         {
+            beginTime.setTime( (UINT64)( transID.getRawSN() ) ) ;
+            beginTime.setTimeError( pTransBegin->transTimeError ) ;
+         }
+
+         rc = rtnTransBegin( _pEDUCB, transID.isAutoCommit(),
+                             transID.isGlobTrans(), transID, beginTime ) ;
       }
       else
       {
-         rc = rtnTransBegin( _pEDUCB ) ;
+         rc = rtnTransBegin( _pEDUCB, FALSE, _pEDUCB->isGlobTransOn() ) ;
       }
 
       if ( SDB_OK == rc )
@@ -2660,6 +2671,9 @@ namespace engine
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
       MsgOpTransCommitPre *pCommitPreMsg = ( MsgOpTransCommitPre* )msg ;
 
+      stpLogicalTimeUS preCommitTime( pCommitPreMsg->preCommitTime,
+                                      pCommitPreMsg->preCommitTimeError ) ;
+
       INT16 replSize = optCB->transReplSize() ;
       INT16 w = 0 ;
 
@@ -2690,8 +2704,12 @@ namespace engine
          goto error ;
       }
 
-      rc = rtnTransPreCommit( _pEDUCB, pCommitPreMsg->nodeNum,
-                              pCommitPreMsg->nodes, w, _pDpsCB ) ;
+      rc = rtnTransPreCommit( _pEDUCB,
+                              pCommitPreMsg->nodeNum,
+                              pCommitPreMsg->nodes,
+                              preCommitTime,
+                              w,
+                              _pDpsCB ) ;
       if ( rc )
       {
          goto error ;
@@ -2714,7 +2732,7 @@ namespace engine
             rc = _checkPrimaryStatus() ;
             if ( SDB_OK == rc )
             {
-               rc = rtnTransBegin( _pEDUCB, TRUE ) ;
+               rc = rtnTransBegin( _pEDUCB, TRUE, _pEDUCB->isGlobTransOn() ) ;
             }
          }
          else

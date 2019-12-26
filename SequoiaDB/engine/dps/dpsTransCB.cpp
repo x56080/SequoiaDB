@@ -71,6 +71,7 @@ namespace engine
    {
       _TransIDH16          = DPS_INVALID_TRANSID_NODEID ;
       _isOn                = FALSE ;
+      _isGlobTransOn       = FALSE ;
       _doRollback          = FALSE ;
       _isNeedSyncTrans     = TRUE ;
       _logFileTotalSize    = 0 ;
@@ -105,6 +106,7 @@ namespace engine
       DPS_LSN_OFFSET startLsnOffset = DPS_INVALID_LSN_OFFSET ;
 
       _isOn = pmdGetOptionCB()->transactionOn() ;
+      _isGlobTransOn = pmdGetOptionCB()->globTransOn() ;
       _rollbackEvent.signal() ;
 
       // register event handle
@@ -231,49 +233,255 @@ namespace engine
    {
    }
 
-   DPS_TRANS_ID dpsTransCB::allocTransID( BOOLEAN isAutoCommit )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ALLOCTRANSID, "dpsTransCB::allocTransID" )
+   INT32 dpsTransCB::allocTransID( BOOLEAN isAutoCommit,
+                                   BOOLEAN isGlobTrans,
+                                   DPS_TRANS_ID &transID,
+                                   stpLogicalTimeUS &beginTime )
    {
-      DPS_TRANS_ID temp ;
+      INT32 rc = SDB_OK ;
 
-      temp.setNodeID( _TransIDH16 ) ;
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_ALLOCTRANSID ) ;
 
-      do {
-         temp.resetSN( _TransIDL48Cur.inc() ) ;
-      }  while( 0 == temp.getRawSN() ) ;
+      DPS_TRANS_ID newTransID ;
+
+      if ( isGlobTrans )
+      {
+         // global transaction by global logical time
+         stpLogicalTimeUS time ;
+         rc = getGlobTransTime( time ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get logical time of "
+                      "transaction begin, rc: %d", rc ) ;
+
+         // set serial number
+         newTransID.resetSN( time.getTime() ) ;
+         newTransID.setGlobTrans() ;
+
+         // set begin time
+         beginTime = time ;
+      }
+      else
+      {
+         // allocate serial number by atomic for non-global transaction
+         do {
+            newTransID.resetSN( _TransIDL48Cur.inc() ) ;
+         }  while ( 0 == newTransID.getRawSN() ) ;
+      }
+
+      // set node ID
+      newTransID.setNodeID( _TransIDH16 ) ;
 
       // after allocate transaction ID, will be the first operation of
       // transaction
-      temp.setFirstOp() ;
+      newTransID.setFirstOp() ;
 
       if ( isAutoCommit )
       {
          // set auto commit tag
-         temp.setAutoCommit() ;
+         newTransID.setAutoCommit() ;
       }
 
-#if defined ( _DEBUG )
+      // copy new transaction ID to output
+      transID = newTransID ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_ALLOCTRANSID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ISVERSIONVISIBLE, "dpsTransCB::isVersionVisible" )
+   BOOLEAN dpsTransCB::isVersionVisible( const DPS_TRANS_ID &recTransID,
+                                         const DPS_TRANS_ID &transID,
+                                         const stpLogicalTimeUS &transBeginTime,
+                                         TRANS_ISOLATION_LEVEL transIsolation )
+   {
+      BOOLEAN visible = FALSE ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_ISVERSIONVISIBLE ) ;
+
+      if ( TRANS_ISOLATION_RR != transIsolation )
       {
-         // test for logical time
-         // TODO: replace transID with logical time for global transactions
-         stpLogicalTimeUS time ;
-         stpAgent *agent = sdbGetRTNCB()->getSTPAgent() ;
-         if ( NULL != agent )
+         // not RR isolation, always visible
+         // NOTE: in this phase, transaction must be lock acquired
+         visible = TRUE ;
+      }
+      else if ( !recTransID.isGlobTrans() ||
+                !transID.isGlobTrans() )
+      {
+         // non-global transactions are always visible for each other
+         // NOTE: in this phase, transaction must be lock acquired
+         visible = TRUE ;
+      }
+      else if ( recTransID.getOrigTransID() == transID.getOrigTransID() )
+      {
+         // the same transaction
+         visible = TRUE ;
+      }
+      else if ( recTransID.getGlobSN() < transID.getGlobSN() )
+      {
+         DPS_TRANS_STATUS status ;
+         stpLogicalTimeUS recBeginTime ;
+         stpLogicalTimeUS recCommitTime ;
+
+         getGlobTransInfo( recTransID, status, recBeginTime, recCommitTime ) ;
+
+         if ( DPS_TRANS_WAIT_COMMIT == status ||
+              DPS_TRANS_COMMIT == status )
          {
-            INT32 rc = agent->getLogicalTimeUS( time ) ;
-            if ( SDB_OK == rc )
+            // the transaction of record is committed, check with commit time
+            // if current transaction started after record's transaction had
+            // been committed, record is visible to current transaction
+            // TODO: add time error in consideration
+            if ( transBeginTime.getTime() > recCommitTime.getTime() )
             {
-               PD_LOG( PDDEBUG, "Got logical time [%llu] with timeError [%u]",
-                       time.getTime(), time.getTimeError() ) ;
-            }
-            else
-            {
-               PD_LOG( PDDEBUG, "Failed to get logical time, rc: %d", rc ) ;
+               visible = TRUE ;
             }
          }
       }
-#endif
 
-      return temp ;
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_ISVERSIONVISIBLE ) ;
+
+      return visible ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ISVERSIONEXPIRED, "dpsTransCB::isVersionExpired" )
+   BOOLEAN dpsTransCB::isVersionExpired( const DPS_TRANS_ID &transID )
+   {
+      BOOLEAN expired = FALSE ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_ISVERSIONEXPIRED ) ;
+
+      // check if the version(represented by transaction ID) is expired.
+      // Expired means it's older than system lowtran
+      expired = transID.getGlobSN() < getGlobLowTran( FALSE ).getGlobSN() ;
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_ISVERSIONEXPIRED ) ;
+
+      return expired ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBLOWTRAN, "dpsTransCB::getGlobLowTran" )
+   DPS_TRANS_ID dpsTransCB::getGlobLowTran( BOOLEAN updateCache )
+   {
+      DPS_TRANS_ID lowTran ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBLOWTRAN ) ;
+
+      // TODO: get from all cluster nodes
+      lowTran = getNodeLowTran() ;
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_GETGLOBLOWTRAN ) ;
+
+      return lowTran ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETNODELOWTRAN, "dpsTransCB::getNodeLowTran" )
+   DPS_TRANS_ID dpsTransCB::getNodeLowTran()
+   {
+      DPS_TRANS_ID lowTran ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETNODELOWTRAN ) ;
+
+      DPS_TRANS_ID minGlobTran ;
+
+      // NOTE: cbMap contains transactions between rtnTransBegin and
+      //       rtnTransCommit / rtnTransRollback
+      _CBMapMutex.get() ;
+
+      // we only care global transactions in this case
+      minGlobTran.setGlobTrans() ;
+
+      // get first transaction
+      TRANS_CB_MAP::iterator iterCB = _cbMap.upper_bound( minGlobTran ) ;
+      if ( iterCB != _cbMap.end() )
+      {
+         lowTran = iterCB->first ;
+      }
+
+      _CBMapMutex.release() ;
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_GETNODELOWTRAN ) ;
+
+      return lowTran ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBTRANSTIME, "dpsTransCB::getGlobTransTime" )
+   INT32 dpsTransCB::getGlobTransTime( stpLogicalTimeUS &time )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBTRANSTIME ) ;
+
+      stpAgent *agent = sdbGetRTNCB()->getSTPAgent() ;
+      PD_CHECK( NULL != agent, SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
+                "Failed to allocate transaction ID for global transaction, "
+                "STP agent is not available" ) ;
+
+      // try to get time in 1 second
+      rc = agent->getLogicalTimeUS( time, OSS_ONE_SEC ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETGLOBTRANSTIME, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBTRANSINFO, "dpsTransCB::getGlobTransInfo" )
+   void dpsTransCB::getGlobTransInfo( const DPS_TRANS_ID &transID,
+                                      DPS_TRANS_STATUS &status,
+                                      stpLogicalTimeUS &beginTime,
+                                      stpLogicalTimeUS &commitTime )
+   {
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBTRANSINFO ) ;
+
+      DPS_TRANS_ID origID = transID.getOrigTransID() ;
+      BOOLEAN found = FALSE ;
+
+      // try to get from running transaction map
+      _MapMutex.get() ;
+
+      TRANS_MAP::iterator iterTrans = _TransMap.find( origID ) ;
+      if ( iterTrans != _TransMap.end() )
+      {
+         status = (DPS_TRANS_STATUS)( iterTrans->second._status ) ;
+         beginTime = iterTrans->second._beginTime ;
+         commitTime = iterTrans->second._commitTime ;
+         found = TRUE ;
+      }
+
+      _MapMutex.release() ;
+
+      if ( !found )
+      {
+         // try to get from history transaction map
+         _hisMutex.get() ;
+
+         TRANS_ID_2_STATUS::iterator iterHis = _hisTransStatus.find( origID ) ;
+         if ( iterHis != _hisTransStatus.end() )
+         {
+            status = (DPS_TRANS_STATUS)( iterHis->second._status ) ;
+            beginTime = iterHis->second._beginTime ;
+            commitTime = iterHis->second._commitTime ;
+            found = TRUE ;
+         }
+
+         _hisMutex.release() ;
+      }
+
+      // not found, just report UNKNOWN
+      if ( !found )
+      {
+         status = DPS_TRANS_UNKNOWN ;
+      }
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_GETGLOBTRANSINFO ) ;
    }
 
    void dpsTransCB::onRegistered( const MsgRouteID &nodeID )
@@ -326,45 +534,6 @@ namespace engine
    DPS_TRANS_ID dpsTransCB::getTransID( const DPS_TRANS_ID &rollbackID )
    {
       return rollbackID.getOrigTransID() ;
-   }
-
-   //TODO:  guoming implement
-   // In order to find the system lowTran, we just need to use the smaller 
-   // head of _TransMap and _hisTransStatus
-   DPS_TRANS_ID dpsTransCB::getLowTran( )
-   {
-      DPS_TRANS_ID lowTran ;
-
-      TRANS_CB_MAP::iterator iterCB ;
-
-      // get from trans-CB map ( trans-CB map saves trannsactions between
-      // rtnTransBegin and rtnTransCommit / rtnTransRollback )
-      // TODO: consider acquire global low tran and time error
-      _CBMapMutex.get() ;
-
-      iterCB = _cbMap.begin() ;
-      if ( iterCB != _cbMap.end() )
-      {
-         lowTran = iterCB->first ;
-      }
-
-      _CBMapMutex.release() ;
-
-      return lowTran ;
-   }
-
-   // check if the version(represented by transaction ID) is expired. 
-   // Expired means it's older than system lowtran
-   BOOLEAN dpsTransCB::isVersionExpired( const DPS_TRANS_ID &transID )
-   {
-      return transID.getGlobSN() < getLowTran().getGlobSN() ;
-   }
-
-   // FIXME: Guomin to implement the proper one
-   BOOLEAN dpsTransCB::transIDGreaterThan( const DPS_TRANS_ID &tidL,
-                                           const DPS_TRANS_ID &tidR )
-   {
-      return tidL.getGlobSN() > tidR.getGlobSN() ;
    }
 
    BOOLEAN dpsTransCB::isHolding( _pmdEDUCB *eduCB, 
@@ -465,7 +634,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SVTRANSINFO, "dpsTransCB::updateTransInfo" )
    void dpsTransCB::updateTransInfo( const DPS_TRANS_ID &transID,
                                      DPS_LSN_OFFSET lsnOffset,
-                                     INT32 status )
+                                     INT32 status,
+                                     const stpLogicalTimeUS &time )
    {
       PD_TRACE_ENTRY ( SDB_DPSTRANSCB_SVTRANSINFO ) ;
 
@@ -475,6 +645,7 @@ namespace engine
          DPS_LSN_OFFSET lastLsn = DPS_INVALID_LSN_OFFSET ;
          BOOLEAN rbPending = isRBPending( transID ) ;
          DPS_TRANS_ID origID = getTransID( transID ) ;
+         stpLogicalTimeUS beginTime, commitTime ;
          TRANS_MAP::iterator it ;
 
          ossScopedLock _lock( &_MapMutex ) ;
@@ -484,9 +655,22 @@ namespace engine
          if ( DPS_INVALID_LSN_OFFSET == lsnOffset )
          {
             // invalid-lsn means the transaction is complete
+            // need be moved to history map
             if ( it != _TransMap.end() )
             {
                lastLsn = it->second._lsn ;
+               beginTime = it->second._beginTime ;
+               if ( transID.isAutoCommit() )
+               {
+                  // auto-commit doesn't have pre-commit
+                  commitTime = time ;
+               }
+               else
+               {
+                  // must have pre-commit, commit time had saved
+                  commitTime = it->second._commitTime ;
+               }
+
                if ( rbPending )
                {
                   // just check the tag, current pending LSN may not reset
@@ -503,18 +687,28 @@ namespace engine
             if ( it != _TransMap.end() )
             {
                updateTransInfo( it->second, status, lsnOffset, rbPending ) ;
+
+               if ( DPS_TRANS_WAIT_COMMIT == status &&
+                    transID.isGlobTrans() )
+               {
+                  it->second._commitTime = time ;
+               }
             }
             else
             {
                SDB_ASSERT( !rbPending, "should not be rollback pending" ) ;
                _TransMap[ origID ] = dpsTransBackInfo( lsnOffset, status ) ;
+               if ( transID.isFirstOp() && transID.isGlobTrans() )
+               {
+                  _TransMap[ origID ]._beginTime = time ;
+               }
             }
          }
 
          /// add to his trans
          if ( DPS_INVALID_LSN_OFFSET != lastLsn )
          {
-            addHisTrans( origID, status, lastLsn ) ;
+            addHisTrans( origID, status, lastLsn, beginTime, commitTime ) ;
          }
       }
 
@@ -763,6 +957,7 @@ namespace engine
       DPS_LSN_OFFSET lsnOffset = DPS_INVALID_LSN_OFFSET ;
       DPS_TRANS_ID transID ;
       INT32 transStatus = DPS_TRANS_DOING ;
+      stpLogicalTimeUS transTime ;
 
       if ( SDB_OK != dpsGetTransIDFromRecord( record, transID ) )
       {
@@ -844,7 +1039,7 @@ namespace engine
             lsnOffset = relatedLsn ;
          }
 
-         updateTransInfo( transID, lsnOffset, transStatus ) ;
+         updateTransInfo( transID, lsnOffset, transStatus, transTime ) ;
       }
 
    done:
@@ -861,6 +1056,7 @@ namespace engine
       DPS_LSN_OFFSET lsnOffset = DPS_INVALID_LSN_OFFSET;
       DPS_TRANS_ID transID ;
       INT32 transStatus = DPS_TRANS_DOING ;
+      stpLogicalTimeUS transTime ;
 
       if ( SDB_OK != dpsGetTransIDFromRecord( record, transID ) )
       {
@@ -899,6 +1095,13 @@ namespace engine
                lsnOffset = record.head()._lsn ;
                transStatus = DPS_TRANS_WAIT_COMMIT ;
             }
+
+            if ( transID.isGlobTrans() &&
+                 ( DPS_TRANS_WAIT_COMMIT == transStatus ||
+                   transID.isAutoCommit() ) )
+            {
+               dpsGetTransTimeFromRecord( record, transID, transTime ) ;
+            }
          }
          else
          {
@@ -906,6 +1109,11 @@ namespace engine
             if ( isFirstOp( transID ) )
             {
                addBeginLsn( lsnOffset, transID ) ;
+
+               if ( transID.isGlobTrans() )
+               {
+                  dpsGetTransTimeFromRecord( record, transID, transTime ) ;
+               }
             }
          }
 
@@ -913,7 +1121,7 @@ namespace engine
          {
             delBeginLsn( transID ) ;
          }
-         updateTransInfo( transID, lsnOffset, transStatus ) ;
+         updateTransInfo( transID, lsnOffset, transStatus, transTime ) ;
       }
 
    done:
@@ -923,17 +1131,20 @@ namespace engine
 
    void dpsTransCB::addHisTrans( const DPS_TRANS_ID &transID,
                                  INT32 status,
-                                 DPS_LSN_OFFSET lsn )
+                                 DPS_LSN_OFFSET lsn,
+                                 const stpLogicalTimeUS &beginTime,
+                                 const stpLogicalTimeUS &commitTime )
    {
-      /// when status is DPS_TRANS_COMMIT and
-      /// auto transaction don't need add to history list
-      if ( DPS_TRANS_COMMIT != status &&
-           !transID.isAutoCommit() )
+      /// non-global auto-commit transaction don't need add to history list
+      if ( !transID.isAutoCommit() || transID.isGlobTrans() )
       {
          DPS_TRANS_ID origID = transID.getOrigTransID() ;
 
          ossScopedLock lock( &_hisMutex ) ;
-         _hisTransStatus[ origID ] = dpsHisTransStatus( status, lsn ) ;
+         _hisTransStatus[ origID ] = dpsHisTransStatus( status,
+                                                        lsn,
+                                                        beginTime,
+                                                        commitTime ) ;
          _hisLsnTrans[ lsn ] = origID ;
       }
    }
@@ -1314,6 +1525,11 @@ namespace engine
    BOOLEAN dpsTransCB::isTransOn() const
    {
       return _isOn ;
+   }
+
+   BOOLEAN dpsTransCB::isGlobTransOn() const
+   {
+      return _isGlobTransOn ;
    }
 
    INT32 dpsTransCB::transLockTestS( _pmdEDUCB *eduCB, UINT32 logicCSID,

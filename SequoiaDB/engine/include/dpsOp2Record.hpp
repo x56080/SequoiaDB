@@ -42,20 +42,71 @@
 #include "dpsLogRecord.hpp"
 #include "../bson/bson.h"
 #include "dmsLobDef.hpp"
+#include "stpLogicalTime.hpp"
 #include "utilCompressor.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
+   /*
+      dpsRecordTransInfo define
+    */
+   typedef struct _dpsRecordTransInfo
+   {
+      _dpsRecordTransInfo()
+      : _transID(),
+        _preTransLSN( DPS_INVALID_LSN_OFFSET ),
+        _relatedLSN( DPS_INVALID_LSN_OFFSET ),
+        _beginTime( 0LL ),
+        _beginTimeError( 0 ),
+        _preCommitTime( 0LL ),
+        _preCommitTimeError( 0 )
+      {
+      }
+
+      _dpsRecordTransInfo( const DPS_TRANS_ID &transID,
+                           const DPS_LSN_OFFSET &preTransLSN,
+                           const DPS_LSN_OFFSET &relatedLSN,
+                           const stpLogicalTimeUS &beginTime,
+                           const stpLogicalTimeUS &preCommitTime )
+      : _transID( transID ),
+        _preTransLSN( preTransLSN ),
+        _relatedLSN( relatedLSN ),
+        _beginTime( beginTime.getTime() ),
+        _beginTimeError( beginTime.getTimeError() ),
+        _preCommitTime( preCommitTime.getTime() ),
+        _preCommitTimeError( preCommitTime.getTimeError() )
+      {
+      }
+
+      void reset()
+      {
+         _transID.reset() ;
+         _preTransLSN = DPS_INVALID_LSN_OFFSET ;
+         _relatedLSN = DPS_INVALID_LSN_OFFSET ;
+         _beginTime = 0LL ;
+         _beginTimeError = 0 ;
+         _preCommitTime = 0LL ;
+         _preCommitTimeError = 0 ;
+      }
+
+      DPS_TRANS_ID      _transID ;
+      DPS_LSN_OFFSET    _preTransLSN ;
+      DPS_LSN_OFFSET    _relatedLSN ;
+      // DPS record use values, split logical time into POD
+      UINT64            _beginTime ;
+      UINT32            _beginTimeError ;
+      UINT64            _preCommitTime ;
+      UINT32            _preCommitTimeError ;
+   } dpsRecordTransInfo ;
+
    /// warning: any value can not be value-passed. and, the value's life scope
    /// must be held until dpsLogRecord really copied
    /// (the copy behavior is in _dmsStorageDataCommon::_logDPS)
    INT32 dpsInsert2Record( const CHAR *fullName,
                            const BSONObj &obj,
-                           const DPS_TRANS_ID &transID,
-                           const DPS_LSN_OFFSET &preTransLsn,
-                           const DPS_LSN_OFFSET &relatedLSN,
+                           const dpsRecordTransInfo &transInfo,
                            dpsLogRecord &record ) ;
 
    INT32 dpsRecord2Insert( const CHAR *logRecord,
@@ -70,9 +121,7 @@ namespace engine
                            const BSONObj &newObj,
                            const BSONObj &oldShardingKey,
                            const BSONObj &newShardingKey,
-                           const DPS_TRANS_ID &transID,
-                           const DPS_LSN_OFFSET &preTransLsn,
-                           const DPS_LSN_OFFSET &relatedLSN,
+                           const dpsRecordTransInfo &transInfo,
                            const UINT32 *writeMod,
                            dpsLogRecord &record ) ;
 
@@ -89,9 +138,7 @@ namespace engine
 
    INT32 dpsDelete2Record( const CHAR *fullName,
                            const BSONObj &oldObj,
-                           const DPS_TRANS_ID &transID,
-                           const DPS_LSN_OFFSET &preTransLsn,
-                           const DPS_LSN_OFFSET &relatedLSN,
+                           const dpsRecordTransInfo &transInfo,
                            dpsLogRecord &record ) ;
 
    INT32 dpsRecord2Delete( const CHAR *logRecord,
@@ -192,8 +239,7 @@ namespace engine
 
    const CHAR*  dpsTSCommitAttr2String ( UINT8 attr ) ;
 
-   INT32 dpsTransCommit2Record( const DPS_TRANS_ID &transID,
-                                const DPS_LSN_OFFSET &preTransLsn,
+   INT32 dpsTransCommit2Record( const dpsRecordTransInfo &transInfo,
                                 const DPS_LSN_OFFSET &firstTransLsn,
                                 const UINT8  &attr,
                                 const UINT32 *pNodeNum,
@@ -209,9 +255,7 @@ namespace engine
                                 const UINT64 **ppNodes
                                 ) ;
 
-   INT32 dpsTransRollback2Record( const DPS_TRANS_ID &transID,
-                                  const DPS_LSN_OFFSET &preTransLSN,
-                                  const DPS_LSN_OFFSET &relatedLSN,
+   INT32 dpsTransRollback2Record( const dpsRecordTransInfo &transInfo,
                                   dpsLogRecord &record ) ;
 
    INT32 dpsInvalidCata2Record( const UINT8 &type,
@@ -233,9 +277,7 @@ namespace engine
                          const CHAR *data,
                          const UINT32 &pageSize,
                          const DMS_LOB_PAGEID &pageID,
-                         const DPS_TRANS_ID &transID,
-                         const DPS_LSN_OFFSET &preTransLsn,
-                         const DPS_LSN_OFFSET &relatedLSN,
+                         const dpsRecordTransInfo &transInfo,
                          dpsLogRecord &record ) ;
 
    INT32 dpsRecord2LobW( const CHAR *raw,
@@ -260,9 +302,7 @@ namespace engine
                           const CHAR *oldData,
                           const UINT32 &pageSize,
                           const DMS_LOB_PAGEID &pageID,
-                          const DPS_TRANS_ID &transID,
-                          const DPS_LSN_OFFSET &preTransLsn,
-                          const DPS_LSN_OFFSET &relatedLSN,
+                          const dpsRecordTransInfo &transInfo,
                           dpsLogRecord &record ) ;
 
    INT32 dpsRecord2LobU( const CHAR *raw,
@@ -287,9 +327,7 @@ namespace engine
                           const CHAR *data,
                           const UINT32 &pageSize,
                           const DMS_LOB_PAGEID &page,
-                          const DPS_TRANS_ID &transID,
-                          const DPS_LSN_OFFSET &preTransLsn,
-                          const DPS_LSN_OFFSET &relatedLSN,
+                          const dpsRecordTransInfo &transInfo,
                           dpsLogRecord &record ) ;
 
    INT32 dpsRecord2LobRm( const CHAR *raw,
@@ -334,6 +372,11 @@ namespace engine
                                   DPS_TRANS_ID &transID ) ;
    INT32 dpsGetTransIDFromRecord( const dpsLogRecord &record,
                                   DPS_TRANS_ID &transID ) ;
+
+   // get logical time from record
+   INT32 dpsGetTransTimeFromRecord( const dpsLogRecord &record,
+                                    const DPS_TRANS_ID &transID,
+                                    stpLogicalTimeUS &time ) ;
 
 }
 
