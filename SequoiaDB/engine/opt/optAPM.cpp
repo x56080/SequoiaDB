@@ -834,9 +834,9 @@ namespace engine
 
          SDB_ASSERT( activity.isEmpty(), "Activity is not empty" ) ;
 
-         pPlan->setActivityID( activityID ) ;
          activity.setPlan( pPlan, _accessTimestamp.inc() ) ;
          activity.incPeriodAccessCount() ;
+         pPlan->setActivityID( activityID ) ;
 
          result = TRUE ;
       }
