@@ -47,44 +47,55 @@ namespace engine
 {
 
    // name of STP program
-   #define STP_NAME                    "stp"
+   #define STP_NAME                 "stp"
    // name of stpstart program
-   #define STPSTART_NAME               "stpstart"
+   #define STPSTART_NAME            "stpstart"
    // name of stpstop program
    #define STPSTOP_NAME                "stpstop"
 
 #if defined (_LINUX)
    // name of executable file of STP
-   #define STP_EXE_FILE_NAME           STP_NAME
+   #define STP_EXE_FILE_NAME        STP_NAME
    // name of executable file of stpstart
-   #define STPSTART_EXE_FILE_NAME      STPSTART_NAME
+   #define STPSTART_EXE_FILE_NAME   STPSTART_NAME
    // name of executable file of stpstop
-   #define STPSTOP_EXE_FILE_NAME       STPSTOP_NAME
+   #define STPSTOP_EXE_FILE_NAME    STPSTOP_NAME
 #elif defined (_WINDOWS)
    // name of executable file of STP
-   #define STP_EXE_FILE_NAME           STP_NAME".exe"
+   #define STP_EXE_FILE_NAME        STP_NAME".exe"
    // name of executable file of stpstart
-   #define STPSTART_EXE_FILE_NAME      STPSTART_NAME".exe"
+   #define STPSTART_EXE_FILE_NAME   STPSTART_NAME".exe"
    // name of executable file of stpstop
-   #define STPSTOP_EXE_FILE_NAME       STPSTOP_NAME".exe"
+   #define STPSTOP_EXE_FILE_NAME    STPSTOP_NAME".exe"
 #endif
 
+   // directory structure
+   // |- conf
+   //     |- stp
+   //         |- stp.conf
+   //         |- stp.log
+   //         |- stp.pid
+   //         |- stp.meta
+
+   // name of stp directory
+   #define STP_DIR_NAME             STP_NAME
    // name configure file of STP
-   #define STP_CFG_FILE_NAME           STP_NAME".conf"
+   #define STP_CFG_FILE_NAME        STP_NAME".conf"
    // name of diagnostic log file of STP
-   #define STP_DIAGLOG_FILE_NAME       STP_NAME".log"
+   #define STP_DIAGLOG_FILE_NAME    STP_NAME".log"
    // name of PID file of STP
-   #define STP_PID_FILE_NAME           STP_NAME".pid"
+   #define STP_PID_FILE_NAME        STP_NAME".pid"
    // name of meta file of STP ( store meta LSN )
-   #define STP_META_FILE_NAME          STP_NAME".meta"
+   #define STP_META_FILE_NAME       STP_NAME".meta"
 
    // user and password for STP service sessions
-   #define STP_USER                    "STP_ADMIN"
-   #define STP_USERPASSWD              "STP_ADMIN_PASSWD"
+   #define STP_USER                 "STP_ADMIN"
+   #define STP_USERPASSWD           "STP_ADMIN_PASSWD"
 
-   // shared the same path as sdbcm
-   #define STP_ROOT_PATH               SDB_CM_ROOT_PATH
-   #define STP_LOG_PATH                SDBCM_LOG_PATH
+   // append "stp" to "conf" which is the conf path of sdbcm
+   #define STP_ROOT_PATH            SDB_CM_ROOT_PATH STP_DIR_NAME OSS_FILE_SEP
+   // log path is the same as root path
+   #define STP_LOG_PATH             STP_ROOT_PATH
 
    // names of STP options
    // server list

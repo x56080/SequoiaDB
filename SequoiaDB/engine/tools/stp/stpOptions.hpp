@@ -70,10 +70,10 @@ namespace engine
          return _cfgFileName ;
       }
 
-      // get path to config file
-      OSS_INLINE const CHAR *getLocalCfgPath() const
+      // get path to stp files
+      OSS_INLINE const CHAR *getStpPath() const
       {
-         return _localCfgPath ;
+         return _stpPath ;
       }
 
       // set service name
@@ -223,9 +223,9 @@ namespace engine
 
    protected:
       // name of config file ( with full path )
-      CHAR _cfgFileName[ OSS_MAX_PATHSIZE + 1 ] ;
-      // path name of config file
-      CHAR _localCfgPath[ OSS_MAX_PATHSIZE + 1 ] ;
+      CHAR           _cfgFileName[ OSS_MAX_PATHSIZE + 1 ] ;
+      // path name of stp directory
+      CHAR           _stpPath[ OSS_MAX_PATHSIZE + 1 ] ;
 
       // service name ( port )
       CHAR           _serviceName[ OSS_MAX_SERVICENAME + 1 ] ;

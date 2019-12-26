@@ -770,10 +770,18 @@ namespace engine
          case SDB_TYPE_STP :
          {
             const CHAR *rootPath = sdbGetOMAgentOptions()->getCfgPath() ;
-            rc = utilBuildFullPath( rootPath, STP_CFG_FILE_NAME,
-                                    OSS_MAX_PATHSIZE, cfgFile ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to build STP config path for "
+            CHAR cfgPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+
+            // append "stp" to "conf" path
+            rc = utilBuildFullPath( rootPath, STP_DIR_NAME, OSS_MAX_PATHSIZE,
+                                    cfgPath ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build STP path from "
                          "root path %s, rc: %d", rootPath, rc ) ;
+
+            rc = utilBuildFullPath( cfgPath, STP_CFG_FILE_NAME,
+                                    OSS_MAX_PATHSIZE, cfgFile ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build STP config path from "
+                         "STP path %s, rc: %d", cfgPath, rc ) ;
             break ;
          }
          default :
@@ -1193,8 +1201,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       const CHAR *configPath = sdbGetOMAgentOptions()->getCfgPath() ;
-      CHAR cfgFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      CHAR metaFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      CHAR stpPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       string serviceName ;
       BOOLEAN hasLock = FALSE ;
 
@@ -1213,38 +1220,26 @@ namespace engine
       lockBucket( serviceName ) ;
       hasLock = TRUE ;
 
-      rc = _getCfgFile( serviceName.c_str(), SDB_TYPE_STP, cfgFileName,
-                        OSS_MAX_PATHSIZE, TRUE, FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get config file name for "
+      rc = _getCfgPath( serviceName.c_str(), SDB_TYPE_STP, stpPath,
+                        OSS_MAX_PATHSIZE, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get STP path for "
                    "STP node [%s], rc: %d", serviceName.c_str(), rc ) ;
-
-      rc = utilBuildFullPath( configPath, STP_META_FILE_NAME,
-                              OSS_MAX_PATHSIZE, metaFileName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build STP meta path for "
-                   "root path %s, rc: %d", configPath, rc ) ;
 
       // first to stop the node
       rc = stopStpNode( serviceName.c_str(), NODE_START_CLIENT, FALSE, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to stop STP node [%s] before remove, "
                    "rc: %d", rc ) ;
 
-      // remove config file
-      rc = ossDelete( cfgFileName ) ;
+      // remove STP path
+      rc = ossDelete( stpPath ) ;
       if ( SDB_OK != rc && SDB_FNE != rc )
       {
-         PD_LOG( PDERROR, "Failed to remove conf file: %s, rc: %d",
-                 cfgFileName, rc ) ;
+         PD_LOG( PDERROR, "Failed to remove STP path: %s, rc: %d",
+                 stpPath, rc ) ;
          goto error ;
       }
 
-      // remove meta file
-      rc = ossDelete( metaFileName ) ;
-      if ( SDB_OK != rc && SDB_FNE != rc )
-      {
-         PD_LOG( PDERROR, "Failed to remove meta file: %s, rc: %d",
-                 metaFileName, rc ) ;
-         goto error ;
-      }
+      rc = SDB_OK ;
 
       // remove from process info
       delNodeProcessInfo( serviceName ) ;
@@ -1435,14 +1430,21 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       const CHAR *rootPath = sdbGetOMAgentOptions()->getCfgPath() ;
+      CHAR cfgPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR cfgFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
       omaNodePathGuard nodeGuard ;
 
-      rc = utilBuildFullPath( rootPath, STP_CFG_FILE_NAME, OSS_MAX_PATHSIZE,
-                              cfgFileName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build STP config path for root "
+      // append "stp" to "conf" path
+      rc = utilBuildFullPath( rootPath, STP_DIR_NAME, OSS_MAX_PATHSIZE,
+                              cfgPath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build STP path from root "
                    "path %s, rc: %d", rootPath, rc ) ;
+
+      rc = utilBuildFullPath( cfgPath, STP_CFG_FILE_NAME, OSS_MAX_PATHSIZE,
+                              cfgFileName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build STP config path from STP "
+                   "path %s, rc: %d", cfgPath, rc ) ;
 
       nodeGuard.initStp( svcname.c_str(), cfgFileName ) ;
       rc = addNodeGuard( nodeGuard ) ;
@@ -2332,10 +2334,14 @@ namespace engine
          }
          case SDB_TYPE_STP :
          {
-            // use the same path as omagent
             const CHAR *tmpConfigPath = sdbGetOMAgentOptions()->getCfgPath() ;
-            ossStrncpy( configPath, tmpConfigPath, pathSize ) ;
-            configPath[ pathSize ] = '\0' ;
+
+            // append "stp" to "conf" path
+            rc = utilBuildFullPath( tmpConfigPath, STP_DIR_NAME,
+                                    pathSize, configPath ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build STP path from "
+                         "root path %s, rc: %d", tmpConfigPath, rc ) ;
+
             break ;
          }
          default:
