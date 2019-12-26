@@ -2,6 +2,7 @@ package com.sequoiadb.split;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -91,14 +92,13 @@ public class Split10536 extends SdbTestBase {
 
             // 删除id索引
             db = new Sequoiadb( coordUrl, "", "" );
+            cl = db.getCollectionSpace( csName ).getCollection( clName );
             for ( int i = 0; i < 50; i++ ) {
                 DBCursor cursor = db.listTasks(
                         ( BSONObject ) JSON.parse(
                                 "{Name:\"" + csName + "." + clName + "\"}" ),
                         null, null, null );
                 if ( cursor.hasNext() ) {
-                    cl = db.getCollectionSpace( csName )
-                            .getCollection( clName );
                     try {
                         cl.dropIdIndex();
                         Assert.fail( "dropIdIndex_succeed_ERROR" );
