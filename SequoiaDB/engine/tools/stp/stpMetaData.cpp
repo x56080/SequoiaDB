@@ -142,10 +142,10 @@ namespace engine
       {
          // if synchronize check is needed, need check if current meta data
          // is expired ( not synchronized for a synchronize interval period )
-         tpHPTime syncHWTime = _syncHWTime ;
+         stpHPTime syncHWTime = _syncHWTime ;
          UINT64 syncLimit = STP_SEC_TO_NANOSEC( _syncInterval +
                                                 STP_MIN_SYNC_INTERVAL ) ;
-         tpHPTime curHWTime( STP_SAMPLE_TIME_MONOTONIC ) ;
+         stpHPTime curHWTime( STP_SAMPLE_TIME_MONOTONIC ) ;
          // check if current hardware time is larger than synchronized hardware
          // time, if not, means the time is pushed forward because it is ahead
          // of source after synchronization, and should to be valid after

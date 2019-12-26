@@ -166,7 +166,7 @@ namespace engine
                   "opcode of message is invalid" ) ;
 
       // set the receive time on receiving synchronize time request
-      tpHPTime receiveTime = getMetaData()->getLTValue() ;
+      stpHPTime receiveTime = getMetaData()->getLTValue() ;
       request->receiveTimeSec = receiveTime.getSecond() ;
       request->receiveTimeNanoSec = receiveTime.getNanoSecond() ;
 
@@ -187,7 +187,7 @@ namespace engine
                   "opcode of message is invalid" ) ;
 
       // set the send time on sending synchronize time response
-      tpHPTime sendTime = getMetaData()->getLTValue() ;
+      stpHPTime sendTime = getMetaData()->getLTValue() ;
       response->rspSendTimeSec = sendTime.getSecond() ;
       response->rspSendTimeNanoSec = sendTime.getNanoSecond() ;
 

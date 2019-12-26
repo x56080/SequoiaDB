@@ -78,22 +78,22 @@ namespace engine
          return _requestID ;
       }
 
-      OSS_INLINE const tpHPTime &getReqSendTime() const
+      OSS_INLINE const stpHPTime &getReqSendTime() const
       {
          return _reqSendTime ;
       }
 
-      OSS_INLINE const tpHPTime &getReqReceiveTime() const
+      OSS_INLINE const stpHPTime &getReqReceiveTime() const
       {
          return _reqReceiveTime ;
       }
 
-      OSS_INLINE const tpHPTime &getRspSendTime() const
+      OSS_INLINE const stpHPTime &getRspSendTime() const
       {
          return _rspSendTime ;
       }
 
-      OSS_INLINE const tpHPTime &getRspReceiveTime() const
+      OSS_INLINE const stpHPTime &getRspReceiveTime() const
       {
          return _rspReceiveTime ;
       }
@@ -143,13 +143,13 @@ namespace engine
       // request ID for time synchronize request
       UINT64   _requestID ;
       // send time of time synchronize request ( T1 in synchronize client )
-      tpHPTime _reqSendTime ;
+      stpHPTime _reqSendTime ;
       // receive time of time synchronize request ( T2 in synchronize source )
-      tpHPTime _reqReceiveTime ;
+      stpHPTime _reqReceiveTime ;
       // send time of time synchronize response ( T3 in synchronize source )
-      tpHPTime _rspSendTime ;
+      stpHPTime _rspSendTime ;
       // receive time of time synchronize response ( T4 in synchronize client )
-      tpHPTime _rspReceiveTime ;
+      stpHPTime _rspReceiveTime ;
       // time error in nanoseconds of request ( from synchronize client )
       UINT32   _reqTimeError ;
       // time error in nanoseconds of response ( from synchronize source )
