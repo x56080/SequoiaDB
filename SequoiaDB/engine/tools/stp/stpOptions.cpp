@@ -89,7 +89,7 @@ namespace engine
      _role( STP_ROLE_STANDALONE )
    {
       _cfgFileName[ 0 ] = '\0' ;
-      _localCfgPath[ 0 ] = '\0' ;
+      _stpPath[ 0 ] = '\0' ;
       _serverListString[ 0 ] = '\0' ;
       ossSnprintf( _roleString, PMD_MAX_SHORT_STR_LEN, STP_ROLE_NAME_CLIENT ) ;
       ossSnprintf( _serviceName, OSS_MAX_SERVICENAME, "%d", _port ) ;
@@ -126,7 +126,7 @@ namespace engine
          // if config path is given, check if exists
          if ( NULL == ossGetRealPath(
                      vmCommand[ PMD_OPTION_CONFPATH ].as<string>().c_str(),
-                     _localCfgPath, OSS_MAX_PATHSIZE ) )
+                     _stpPath, OSS_MAX_PATHSIZE ) )
          {
             cerr << "ERROR: Failed to get real path for " <<
                     vmCommand[ PMD_OPTION_CONFPATH ].as<string>().c_str() <<
@@ -144,7 +144,7 @@ namespace engine
 
          // build 'conf' file path
          rc = utilBuildFullPath( rootPath, STP_ROOT_PATH, OSS_MAX_PATHSIZE,
-                                 _localCfgPath ) ;
+                                 _stpPath ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build local path for root "
                       "path %s, rc: %d", rootPath, rc ) ;
       }
@@ -156,7 +156,7 @@ namespace engine
       }
 
       // build stp config file path
-      rc = utilBuildFullPath( _localCfgPath, STP_CFG_FILE_NAME,
+      rc = utilBuildFullPath( _stpPath, STP_CFG_FILE_NAME,
                               OSS_MAX_PATHSIZE, _cfgFileName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build config path for root "
                    "path %s, rc: %d", rootPath, rc ) ;
@@ -352,11 +352,10 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       // make sure directory exist
-      rc = ossMkdir( getLocalCfgPath() ) ;
+      rc = ossMkdir( _stpPath ) ;
       if ( rc && SDB_FE != rc )
       {
-         PD_LOG( PDERROR, "Failed to create dir: %s, rc: %d",
-                 getLocalCfgPath(), rc ) ;
+         PD_LOG( PDERROR, "Failed to create dir: %s, rc: %d", _stpPath, rc ) ;
          goto error ;
       }
       rc = SDB_OK ;

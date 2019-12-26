@@ -567,14 +567,21 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      CHAR cfgPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR cfgFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       po::options_description desc( "Command options" ) ;
       po::variables_map vm ;
 
-      rc = utilBuildFullPath( cfgRootDir, STP_CFG_FILE_NAME,
-                              OSS_MAX_PATHSIZE, cfgFileName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build STP config path for root "
+      // append "stp" to "conf" path
+      rc = utilBuildFullPath( cfgRootDir, STP_DIR_NAME, OSS_MAX_PATHSIZE,
+                              cfgPath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build STP path from root "
                    "path %s, rc: %d", cfgRootDir, rc ) ;
+
+      rc = utilBuildFullPath( cfgPath, STP_CFG_FILE_NAME,
+                              OSS_MAX_PATHSIZE, cfgFileName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build STP config path from STP "
+                   "path %s, rc: %d", cfgPath, rc ) ;
 
       // read port from config file
       PMD_ADD_PARAM_OPTIONS_BEGIN( desc )

@@ -221,7 +221,7 @@ namespace engine
       {
          // for server and standalone role, try read meta file
          // initialize meta file
-         rc = _store.initialize( _options->getLocalCfgPath() ) ;
+         rc = _store.initialize( _options->getStpPath() ) ;
          if ( SDB_FNE == rc )
          {
             // meta file is not found
