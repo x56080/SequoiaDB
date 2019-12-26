@@ -84,22 +84,22 @@ namespace engine
          _syncInterval = syncInterval ;
       }
 
-      OSS_INLINE const tpHPTime &getBaseHardwareTime() const
+      OSS_INLINE const stpHPTime &getBaseHardwareTime() const
       {
          return _baseHWTime ;
       }
 
-      OSS_INLINE void setBaseHardwareTime( const tpHPTime &baseHardwareTime )
+      OSS_INLINE void setBaseHardwareTime( const stpHPTime &baseHardwareTime )
       {
          _baseHWTime = baseHardwareTime ;
       }
 
-      OSS_INLINE const tpHPTime &getBaseRealTime() const
+      OSS_INLINE const stpHPTime &getBaseRealTime() const
       {
          return _baseRealTime ;
       }
 
-      OSS_INLINE void setBaseRealTime( const tpHPTime &baseRealTime )
+      OSS_INLINE void setBaseRealTime( const stpHPTime &baseRealTime )
       {
          _baseRealTime = baseRealTime ;
       }
@@ -159,7 +159,7 @@ namespace engine
    public:
       // get logical time value in high precision format
       // only time without time error
-      OSS_INLINE tpHPTime getLTValue() const
+      OSS_INLINE stpHPTime getLTValue() const
       {
          return _getLTValue() ;
       }
@@ -208,16 +208,16 @@ namespace engine
 
    protected:
       // get current logical time ( without time error )
-      OSS_INLINE tpHPTime _getLTValue() const
+      OSS_INLINE stpHPTime _getLTValue() const
       {
-         tpHPTime curHWTime ;
+         stpHPTime curHWTime ;
          curHWTime.sampleMonotonic() ;
          return _getLTValue( curHWTime ) ;
       }
 
       // get logical time with given current hardware time
       // ( without time error )
-      OSS_INLINE tpHPTime _getLTValue( const tpHPTime &curHWTime ) const
+      OSS_INLINE stpHPTime _getLTValue( const stpHPTime &curHWTime ) const
       {
          // logical time = ( current HW time -
          //                  base HW time +
@@ -226,7 +226,7 @@ namespace engine
          // NOTE: HW ( hardware time ) is monotonic time from machine
          //       slew rate is to adjust speeds of CPU ticks between different
          //       machines
-         tpHPTime result = curHWTime - _baseHWTime + _baseRealTime ;
+         stpHPTime result = curHWTime - _baseHWTime + _baseRealTime ;
          result.scale( _slewRate ) ;
          result.adjust( _offset ) ;
          return result ;
@@ -243,12 +243,12 @@ namespace engine
       //       [ _syncHWTime, _syncHWTime + syncInterval ], the logical time is
       //       available for STP agent, otherwise, it is not available, STP
       //       agent should wait or retry
-      tpHPTime    _syncHWTime ;
+      stpHPTime    _syncHWTime ;
       // logical time components, measured in nanosecond
       // based hardware time
-      tpHPTime    _baseHWTime ;
+      stpHPTime    _baseHWTime ;
       // based real time ( makes the logical time around the real time )
-      tpHPTime    _baseRealTime ;
+      stpHPTime    _baseRealTime ;
       // offset to synchronize source
       INT64       _offset ;
       // slew rate between CPU ticks of synchronize source and client

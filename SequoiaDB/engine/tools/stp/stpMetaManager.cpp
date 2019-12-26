@@ -229,7 +229,7 @@ namespace engine
                     _store.getMetaFileName() ) ;
 
             // initialize meta data with real time
-            tpHPTime curHWTime( STP_SAMPLE_TIME_REAL ) ;
+            stpHPTime curHWTime( STP_SAMPLE_TIME_REAL ) ;
             metaData->initialize( curHWTime.toMicroSecond(), syncInterval ) ;
 
             // initialize meta LSN with default version
@@ -246,7 +246,7 @@ namespace engine
       else
       {
          // for client role, initialize meta data with real time
-         tpHPTime curHWTime( STP_SAMPLE_TIME_REAL ) ;
+         stpHPTime curHWTime( STP_SAMPLE_TIME_REAL ) ;
          metaData->initialize( curHWTime.toMicroSecond(), syncInterval ) ;
       }
 
@@ -315,7 +315,7 @@ namespace engine
          UINT64 metaTime = getMetaData()->getLTValueUS() ;
 
          // get current real time
-         tpHPTime curHWTime( STP_SAMPLE_TIME_REAL ) ;
+         stpHPTime curHWTime( STP_SAMPLE_TIME_REAL ) ;
          UINT64 curTime = curHWTime.toMicroSecond() ;
 
          UINT64 metaLSNTime = 0LL ;

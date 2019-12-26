@@ -65,7 +65,7 @@ namespace engine
       _stpHPTime define
     */
    class _stpHPTime ;
-   typedef class _stpHPTime tpHPTime ;
+   typedef class _stpHPTime stpHPTime ;
 
    // _stpHPTime represents for high precision time in nanoseconds
    class _stpHPTime : public utilPooledObject
@@ -92,7 +92,7 @@ namespace engine
       {
       }
 
-      _stpHPTime( const tpHPTime &time )
+      _stpHPTime( const stpHPTime &time )
       : _second( time._second ),
         _nanoSecond( time._nanoSecond )
       {
@@ -104,7 +104,7 @@ namespace engine
 
    public:
       // operators
-      OSS_INLINE tpHPTime &operator =( const tpHPTime &time )
+      OSS_INLINE stpHPTime &operator =( const stpHPTime &time )
       {
          _second = time._second ;
          _nanoSecond = time._nanoSecond ;
@@ -113,43 +113,43 @@ namespace engine
       }
 
       // plus two high precision time
-      friend tpHPTime operator +( const tpHPTime &lhs, const tpHPTime &rhs ) ;
+      friend stpHPTime operator +( const stpHPTime &lhs, const stpHPTime &rhs ) ;
       // subtract two high precision time
-      friend tpHPTime operator -( const tpHPTime &lhs, const tpHPTime &rhs ) ;
+      friend stpHPTime operator -( const stpHPTime &lhs, const stpHPTime &rhs ) ;
       // plus high precision time with nanoseconds
-      friend tpHPTime operator +( const tpHPTime &lhs, UINT64 rhs ) ;
+      friend stpHPTime operator +( const stpHPTime &lhs, UINT64 rhs ) ;
       // subtract high precision time with nanoseconds
-      friend tpHPTime operator -( const tpHPTime &lhs, UINT64 rhs ) ;
+      friend stpHPTime operator -( const stpHPTime &lhs, UINT64 rhs ) ;
 
-      OSS_INLINE BOOLEAN operator ==( const tpHPTime &time ) const
+      OSS_INLINE BOOLEAN operator ==( const stpHPTime &time ) const
       {
          return ( _second == time._second &&
                   _nanoSecond == time._nanoSecond ) ;
       }
 
-      OSS_INLINE BOOLEAN operator !=( const tpHPTime &time ) const
+      OSS_INLINE BOOLEAN operator !=( const stpHPTime &time ) const
       {
          return !( operator ==( time ) ) ;
       }
 
-      OSS_INLINE BOOLEAN operator <( const tpHPTime &time ) const
+      OSS_INLINE BOOLEAN operator <( const stpHPTime &time ) const
       {
          return ( _second < time._second ||
                   ( _second == time._second &&
                     _nanoSecond < time._nanoSecond ) ) ;
       }
 
-      OSS_INLINE BOOLEAN operator >( const tpHPTime &time ) const
+      OSS_INLINE BOOLEAN operator >( const stpHPTime &time ) const
       {
          return time.operator <( *this ) ;
       }
 
-      OSS_INLINE BOOLEAN operator <=( const tpHPTime &time ) const
+      OSS_INLINE BOOLEAN operator <=( const stpHPTime &time ) const
       {
          return !( operator >( time ) ) ;
       }
 
-      OSS_INLINE BOOLEAN operator >=( const tpHPTime &time ) const
+      OSS_INLINE BOOLEAN operator >=( const stpHPTime &time ) const
       {
          return !( operator <( time ) ) ;
       }
@@ -413,7 +413,7 @@ namespace engine
       }
 
       // get diff by nanoseonds
-      OSS_INLINE INT64 diff( const tpHPTime &time ) const
+      OSS_INLINE INT64 diff( const stpHPTime &time ) const
       {
          INT64 result = 0LL ;
 
@@ -421,13 +421,13 @@ namespace engine
          if ( operator >( time ) )
          {
             // given time is smaller
-            tpHPTime tempTime = ( *this ) - time ;
+            stpHPTime tempTime = ( *this ) - time ;
             result = tempTime._toNanoSecond() ;
          }
          else
          {
             // given time is larger
-            tpHPTime tempTime = time - ( *this ) ;
+            stpHPTime tempTime = time - ( *this ) ;
             result = -1 * (INT64)( tempTime._toNanoSecond() ) ;
          }
 
@@ -457,9 +457,9 @@ namespace engine
 
    // operators of high precision time
    // plus two high precision time
-   OSS_INLINE tpHPTime operator +( const tpHPTime &lhs, const tpHPTime &rhs )
+   OSS_INLINE stpHPTime operator +( const stpHPTime &lhs, const stpHPTime &rhs )
    {
-      tpHPTime result ;
+      stpHPTime result ;
 
       result._second = lhs._second + rhs._second ;
       result._nanoSecond = lhs._nanoSecond + rhs._nanoSecond ;
@@ -469,9 +469,9 @@ namespace engine
    }
 
    // subtract two high precision time
-   OSS_INLINE tpHPTime operator -( const tpHPTime &lhs, const tpHPTime &rhs )
+   OSS_INLINE stpHPTime operator -( const stpHPTime &lhs, const stpHPTime &rhs )
    {
-      tpHPTime result ;
+      stpHPTime result ;
 
       if ( lhs > rhs )
       {
@@ -495,17 +495,17 @@ namespace engine
    }
 
    // plus high precision time with nanoseconds
-   OSS_INLINE tpHPTime operator +( const tpHPTime &lhs, UINT64 rhs )
+   OSS_INLINE stpHPTime operator +( const stpHPTime &lhs, UINT64 rhs )
    {
-      tpHPTime result = lhs ;
+      stpHPTime result = lhs ;
       result.adjust( (INT64)rhs ) ;
       return result ;
    }
 
    // subtract high precision time with nanoseconds
-   OSS_INLINE tpHPTime operator -( const tpHPTime &lhs, UINT64 rhs )
+   OSS_INLINE stpHPTime operator -( const stpHPTime &lhs, UINT64 rhs )
    {
-      tpHPTime result = lhs ;
+      stpHPTime result = lhs ;
       result.adjust( (INT64)( -1 * rhs ) ) ;
       return result ;
    }
@@ -596,7 +596,7 @@ namespace engine
       {
       }
 
-      _stpLogicalTimeNS( const tpHPTime &time, UINT32 timeError )
+      _stpLogicalTimeNS( const stpHPTime &time, UINT32 timeError )
       : stpLogicalTimeBase( timeError ),
         _time( time )
       {
@@ -644,13 +644,13 @@ namespace engine
 
    public:
       // set time in high precision time
-      OSS_INLINE void setTime( const tpHPTime &time )
+      OSS_INLINE void setTime( const stpHPTime &time )
       {
          _time = time ;
       }
 
       // get time in high precision time
-      OSS_INLINE const tpHPTime &getTime() const
+      OSS_INLINE const stpHPTime &getTime() const
       {
          return _time ;
       }
@@ -664,7 +664,7 @@ namespace engine
 
    protected:
       // time in high precision time ( nanoseconds )
-      tpHPTime _time ;
+      stpHPTime _time ;
    } ;
 
    /*
