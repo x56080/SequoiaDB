@@ -1,5 +1,16 @@
 package com.sequoias3.object;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -13,16 +24,6 @@ import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.ObjectUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * @Description seqDB-19439:复制对象过程中S3节点异常
@@ -128,6 +129,7 @@ public class CopyObjectAndRestartS319439 extends S3TestBase {
                     throw new Exception( dstKeyName, e );
                 }
             } catch ( SdkClientException e ) {
+                copyFailDstKeyNames.add( dstKeyName );
                 if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
                     throw e;
