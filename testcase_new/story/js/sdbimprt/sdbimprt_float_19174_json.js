@@ -39,7 +39,7 @@ function initImportFile_testPoint ( importFile )
    println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var tmpNum = 400;
-   var recordsNum = tmpNum * 3 + 1;
+   var recordsNum = tmpNum * 3 ;
 
    // 0, b value e.g: "0." / "00."......
    var str = "";
@@ -65,9 +65,6 @@ function initImportFile_testPoint ( importFile )
       str += "{a:" + i + ",b:" + bVal + "}\n";
       bVal += "0";
    }
-
-   // 1201, b value e.g: "."
-   str += "{a:" + ( tmpNum * 3 ) + ",b:.}\n";
 
    file.write( str );
    file.close();

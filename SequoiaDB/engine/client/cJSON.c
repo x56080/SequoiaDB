@@ -1742,7 +1742,7 @@ error:
    goto done ;
 }
 
-static const CHAR* parseNumber( const CHAR *pStr,
+static const CHAR *parseNumber( const CHAR *pStr,
                                 INT32 *pValInt,
                                 FLOAT64 *pValDouble,
                                 INT64 *pValLong,
@@ -1751,33 +1751,42 @@ static const CHAR* parseNumber( const CHAR *pStr,
 {
    INT32 rc = SDB_OK ;
    INT32 tmpType = 0 ;
+   const CHAR *result = NULL ;
    utilNumberVal tmpValue ;
 
    rc = utilStrToNumber( pStr, -1, &tmpType, &tmpValue, pLen ) ;
-   if ( SDB_OK == rc )
+   if ( rc )
    {
-      if( tmpType == 0 )
-      {
-         *pNumType = CJSON_INT32 ;
-         *pValInt = tmpValue.intVal ;
-      }
-      else if( tmpType == 1 )
-      {
-         *pNumType = CJSON_INT64 ;
-         *pValLong = tmpValue.longVal ;
-      }
-      else if( tmpType == 2 )
-      {
-         *pNumType = CJSON_DOUBLE ;
-         *pValDouble = tmpValue.doubleVal ;
-      }
-      else if( tmpType == 3 )
-      {
-         *pNumType = CJSON_DECIMAL ;
-      }
+      goto error ;
    }
 
-   return pStr + *pLen ;
+   if( tmpType == 0 )
+   {
+      *pNumType = CJSON_INT32 ;
+      *pValInt = tmpValue.intVal ;
+   }
+   else if( tmpType == 1 )
+   {
+      *pNumType = CJSON_INT64 ;
+      *pValLong = tmpValue.longVal ;
+   }
+   else if( tmpType == 2 )
+   {
+      *pNumType = CJSON_DOUBLE ;
+      *pValDouble = tmpValue.doubleVal ;
+   }
+   else if( tmpType == 3 )
+   {
+      *pNumType = CJSON_DECIMAL ;
+   }
+
+   result = pStr + *pLen ;
+
+done:
+   return result ;
+error:
+   result = NULL ;
+   goto done ;
 }
 
 /* parse dollar command */
@@ -2006,6 +2015,11 @@ static const CHAR* parseArgImpl( const CHAR *pStr,
       // <number>
       valType = CJSON_NUMBER ;
       pStr = parseNumber( pStr, &valInt, &valDouble, &valInt64, &valType, &length ) ;
+      if( NULL == pStr )
+      {
+         CJSON_PRINTF_LOG( "The argument is an invalid number" ) ;
+         goto error ;
+      }
       pStr = skip( pStr ) ;
       if( *pStr != CHAR_COMMA && *pStr != CHAR_RIGHT_ROUND_BRACKET )
       {
@@ -2404,7 +2418,7 @@ SDB_EXPORT BOOLEAN cJsonParseNumber( const CHAR *pStr,
                        pValLong,
                        pNumType,
                        &len ) ;
-   if( pTmp - pStr != length )
+   if( NULL == pTmp || pTmp - pStr != length )
    {
       goto error ;
    }
