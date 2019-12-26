@@ -403,4 +403,18 @@ function Sequoiadb ( hostname, svcname, username, password )
             throw new Error( e );
          }
       }
+
+   this.updateConf =
+      function( config, options )
+      {
+         if( options === undefined ) { options = {}; }
+         try
+         {
+            db.updateConf( config, options );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+      }
 }

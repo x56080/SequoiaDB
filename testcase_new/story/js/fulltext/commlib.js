@@ -5,4 +5,3 @@
                      
 ****************************************************/
 import( "../lib/fulltext_commlib.js" );
-import( "../lib/basic_operation/sequoiadb.js" );

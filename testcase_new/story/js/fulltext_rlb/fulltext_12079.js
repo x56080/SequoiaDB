@@ -38,9 +38,9 @@ function main ()
    }
    catch( e )
    {
-      if( e != -105 && e != -252 )
+      if( e.message != -105 && e.message != -252 )
       {
-         throw buildException( "insert()", e, "insert", "-105 or -252", e );
+         throw e;
       }
    }
    finally
@@ -58,8 +58,7 @@ function main ()
    var expectCount = dbcl.count();
    if( parseInt( actCount ) != parseInt( expectCount ) )
    {
-      println( "expect count: " + parseInt( expectCount ) + ", actual count: " + parseInt( actCount ) );
-      throw "check count fail";
+      throw new Error( "expect count: " + parseInt( expectCount ) + ", actual count: " + parseInt( actCount ) );
    }
 
    var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
@@ -79,4 +78,3 @@ catch( e )
    }
    throw e;
 }
-;

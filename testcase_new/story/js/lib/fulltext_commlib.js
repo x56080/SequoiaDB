@@ -4,13 +4,27 @@
 @Author: liuxiaoxuan
 @call：fullText、fulltext_rlb、fullText_sync                
 ****************************************************/
-var cmd = new Cmd();
-var HEADER = "'Content-Type: application/json'";
-var HTTP = "'http://" + ESHOSTNAME + ":" + ESSVCNAME;
-var esOpr = new ESOperator();
-var dbOpr = new DBOperator();
-// create WORKDIR in local host
-commMakeDir( "localhost", WORKDIR );
+
+import( "../lib/basic_operation/sequoiadb.js" );
+
+try
+{
+   var cmd = new Command();
+   var HEADER = "'Content-Type: application/json'";
+   var HTTP = "'http://" + ESHOSTNAME + ":" + ESSVCNAME;
+   var esOpr = new ESOperator();
+   var dbOpr = new DBOperator();
+   // create WORKDIR in local host
+   commMakeDir( "localhost", WORKDIR );
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
 
 /******************************************************************************
 *@Description : do some operations related to ES, such as:
@@ -29,9 +43,7 @@ function ESOperator ()
    {
       var records = new Array();
       // get curl command
-      var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName
-         + "/_search' -d '" + queryCond + "' 2>/dev/null";
-
+      var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName + "/_search' -d '" + queryCond + "' 2>/dev/null";
       // to get records from ES
       var info = cmd.run( str );
       //get json
@@ -44,7 +56,6 @@ function ESOperator ()
          var obj = array[i]["_source"];
          records.push( obj );
       }
-
       return records;
    }
 
@@ -74,8 +85,7 @@ function ESOperator ()
 
       var querySdbCommitID = "{\"query\" : {\"match\" : {\"_id\": \"SDBCOMMIT\"}}}";
       // get curl command
-      var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName
-         + "/_search' -d '" + querySdbCommitID + "' 2>/dev/null";
+      var str = "curl -H " + HEADER + " -XGET " + HTTP + "/" + esIndexName + "/_search' -d '" + querySdbCommitID + "' 2>/dev/null";
 
       // to get SDBCOMMITID from ES
       var info = cmd.run( str );
@@ -86,7 +96,6 @@ function ESOperator ()
       {
          commitID = array[0]["_source"]["_lid"];
       }
-
       return commitID;
    }
 
@@ -96,13 +105,11 @@ function ESOperator ()
    this.refreshFromES = function( esIndexName )
    {
       // get curl command
-      var str = "curl -H " + HEADER + " -XPOST " + HTTP + "/" + esIndexName
-         + "/_refresh' 2>/dev/null";
+      var str = "curl -H " + HEADER + " -XPOST " + HTTP + "/" + esIndexName + "/_refresh' 2>/dev/null";
 
       // to refresh shards from ES
       cmd.run( str );
       println( esIndexName + " refresh success!" );
-
    }
 
    /*****************************************************************
@@ -127,7 +134,8 @@ function ESOperator ()
          {
             isExist = true;
             break;
-         } else
+         }
+         else
          {
             sleep( 1000 );
             doTimes++;
@@ -135,7 +143,6 @@ function ESOperator ()
       }
       return isExist;
    }
-
 
    /*****************************************************************
    * check if index is drop in elasticsearch      
@@ -159,7 +166,8 @@ function ESOperator ()
          {
             isExist = false;
             break;
-         } else
+         }
+         else
          {
             sleep( 1000 );
             doTimes++;
@@ -167,8 +175,6 @@ function ESOperator ()
       }
       return isExist;
    }
-
-
 }
 
 /******************************************************************************
@@ -931,7 +937,7 @@ function isNodesNormal ( groupName )
    }
    catch( e )
    {
-      if( -104 != e && -79 != e && -134 != e )
+      if( -104 != e.message && -79 != e.message && -134 != e.message )
       {
          throw new Error( e );
       }
@@ -957,7 +963,7 @@ function isMasterNodeExist ( groupName )
       }
       catch( e )
       {
-         if( -71 != e && -104 != e )
+         if( -71 != e.message && -104 != e.message )
          {
             throw new Error( e );
          }
