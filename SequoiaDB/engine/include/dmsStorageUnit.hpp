@@ -213,6 +213,12 @@ namespace engine
                                        pmdEDUCB *cb,
                                        SDB_DPSCB *dpsCB ) ;
 
+         virtual INT32 onRebuildIndex ( UINT32 mask,
+                                        const dmsEventCLItem &clItem,
+                                        const dmsEventIdxItem &idxItem,
+                                        pmdEDUCB *cb,
+                                        SDB_DPSCB *dpsCB ) ;
+
          virtual INT32 onDropIndex ( UINT32 mask,
                                      const dmsEventCLItem &clItem,
                                      const dmsEventIdxItem &idxItem,

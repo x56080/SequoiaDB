@@ -1185,6 +1185,18 @@ namespace engine
       context->mb()->_numIndexes ++ ;
       context->mb()->_indexHWCount++ ;
 
+      // create index callback
+      if ( _pDataSu->_pEventHolder )
+      {
+         dmsEventCLItem clItem( context->mb()->_collectionName,
+                                context->mbID(),
+                                context->clLID() ) ;
+         dmsEventIdxItem idxItem ( indexName, indexLID, index ) ;
+         _pDataSu->_pEventHolder->onCreateIndex( DMS_EVENT_MASK_ALL,
+                                                 clItem, idxItem,
+                                                 cb, dpscb ) ;
+      }
+
       // Note:
       // The mb lock will be released after dps log is written. The collection
       // and index are out of protection. So the collection as well the index
@@ -1252,16 +1264,18 @@ namespace engine
                         DMS_MB_ATTR_NOIDINDEX ) ;
       }
 
+      // rebuild index callback
       if ( _pDataSu->_pEventHolder )
       {
          dmsEventCLItem clItem( context->mb()->_collectionName,
                                 context->mbID(),
                                 context->clLID() ) ;
          dmsEventIdxItem idxItem ( indexName, indexLID, index ) ;
-         _pDataSu->_pEventHolder->onCreateIndex( DMS_EVENT_MASK_ALL,
-                                                 clItem, idxItem,
-                                                 cb, dpscb ) ;
+         _pDataSu->_pEventHolder->onRebuildIndex( DMS_EVENT_MASK_ALL,
+                                                  clItem, idxItem,
+                                                  cb, dpscb ) ;
       }
+
    done :
       if ( 0 != logRecSize )
       {
@@ -1439,6 +1453,17 @@ namespace engine
                              "failed[%d]", rc ) ;
             goto error_after_create ;
          }
+
+         // create index callback
+         if ( _pDataSu->_pEventHolder )
+         {
+            dmsEventCLItem clItem( context->mb()->_collectionName,
+                                   context->mbID(),
+                                   context->clLID() ) ;
+            dmsEventIdxItem idxItem ( indexName, indexLID, index ) ;
+            _pDataSu->_pEventHolder->onCreateIndex( DMS_EVENT_MASK_ALL, clItem,
+                                                    idxItem, cb, dpscb ) ;
+         }
       }
 
       if ( dpscb )
@@ -1481,14 +1506,15 @@ namespace engine
          }
       }
 
+      // rebuild index callback
       if ( _pDataSu->_pEventHolder )
       {
          dmsEventCLItem clItem( context->mb()->_collectionName,
                                 context->mbID(),
                                 context->clLID() ) ;
          dmsEventIdxItem idxItem ( indexName, indexLID, index ) ;
-         _pDataSu->_pEventHolder->onCreateIndex( DMS_EVENT_MASK_ALL, clItem,
-                                                 idxItem, cb, dpscb ) ;
+         _pDataSu->_pEventHolder->onRebuildIndex( DMS_EVENT_MASK_ALL, clItem,
+                                                  idxItem, cb, dpscb ) ;
       }
 
    done :

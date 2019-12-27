@@ -1545,17 +1545,17 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONCRTIDX, "_optAccessPlanManager::onCreateIndex" )
-   INT32 _optAccessPlanManager::onCreateIndex ( IDmsEventHolder *pEventHolder,
-                                                IDmsSUCacheHolder *pCacheHolder,
-                                                const dmsEventCLItem &clItem,
-                                                const dmsEventIdxItem &idxItem,
-                                                pmdEDUCB *cb,
-                                                SDB_DPSCB *dpsCB )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM_ONREBUILDIDX, "_optAccessPlanManager::onRebuildIndex" )
+   INT32 _optAccessPlanManager::onRebuildIndex ( IDmsEventHolder *pEventHolder,
+                                                 IDmsSUCacheHolder *pCacheHolder,
+                                                 const dmsEventCLItem &clItem,
+                                                 const dmsEventIdxItem &idxItem,
+                                                 pmdEDUCB *cb,
+                                                 SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB_OPTAPM_ONCRTIDX ) ;
+      PD_TRACE_ENTRY( SDB_OPTAPM_ONREBUILDIDX ) ;
 
       SDB_ASSERT( pEventHolder, "Event holder is invalid" ) ;
 
@@ -1564,7 +1564,7 @@ namespace engine
          _invalidCLPlans( pCacheHolder, clItem._mbID, clItem._clLID ) ;
       }
 
-      PD_TRACE_EXITRC( SDB_OPTAPM_ONCRTIDX, rc ) ;
+      PD_TRACE_EXITRC( SDB_OPTAPM_ONREBUILDIDX, rc ) ;
 
       return rc ;
    }

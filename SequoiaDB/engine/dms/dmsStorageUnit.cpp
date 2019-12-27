@@ -498,6 +498,48 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONREBUILDIDX, "_dmsEventHolder::onRebuildIndex" )
+   INT32 _dmsEventHolder::onRebuildIndex ( UINT32 mask,
+                                           const dmsEventCLItem &clItem,
+                                           const dmsEventIdxItem &idxItem,
+                                           pmdEDUCB *cb,
+                                           SDB_DPSCB *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONREBUILDIDX ) ;
+
+      // Event could not be handled in main thread
+      if ( !cb || cb->getType() == EDU_TYPE_MAIN )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      for ( HANDLER_LIST::iterator iter = _handlers.begin() ;
+            iter != _handlers.end() ;
+            ++ iter )
+      {
+         _IDmsEventHandler *pHandler = (*iter) ;
+         if ( pHandler && ( pHandler->getMask() & mask ) )
+         {
+            INT32 tmprc = pHandler->onRebuildIndex( this, _pCacheHolder,
+                                                    clItem, idxItem, cb,
+                                                    dpsCB ) ;
+            if ( SDB_OK != tmprc )
+            {
+               rc = tmprc ;
+            }
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONREBUILDIDX, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONDROPIDX, "_dmsEventHolder::onDropIndex" )
    INT32 _dmsEventHolder::onDropIndex ( UINT32 mask,
                                         const dmsEventCLItem &clItem,

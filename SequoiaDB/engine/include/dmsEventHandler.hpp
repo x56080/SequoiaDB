@@ -232,6 +232,16 @@ namespace engine
             return SDB_OK ;
          }
 
+         OSS_INLINE virtual INT32 onRebuildIndex ( IDmsEventHolder *pEventHolder,
+                                                   IDmsSUCacheHolder *pCacheHolder,
+                                                   const dmsEventCLItem &clItem,
+                                                   const dmsEventIdxItem &idxItem,
+                                                   pmdEDUCB *cb,
+                                                   SDB_DPSCB *dpsCB )
+         {
+            return SDB_OK ;
+         }
+
          OSS_INLINE virtual INT32 onDropIndex ( IDmsEventHolder *pEventHolder,
                                                 IDmsSUCacheHolder *pCacheHolder,
                                                 const dmsEventCLItem &clItem,
@@ -348,6 +358,12 @@ namespace engine
                                        const dmsEventIdxItem &idxItem,
                                        pmdEDUCB *cb,
                                        SDB_DPSCB *dpsCB ) = 0 ;
+
+         virtual INT32 onRebuildIndex ( UINT32 mask,
+                                        const dmsEventCLItem &clItem,
+                                        const dmsEventIdxItem &idxItem,
+                                        pmdEDUCB *cb,
+                                        SDB_DPSCB *dpsCB ) = 0 ;
 
          virtual INT32 onDropIndex ( UINT32 mask,
                                      const dmsEventCLItem &clItem,

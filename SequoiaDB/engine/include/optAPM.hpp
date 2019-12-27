@@ -441,12 +441,12 @@ namespace engine
                                   pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) ;
 
-         virtual INT32 onCreateIndex ( IDmsEventHolder *pEventHolder,
-                                       IDmsSUCacheHolder *pCacheHolder,
-                                       const dmsEventCLItem &clItem,
-                                       const dmsEventIdxItem &idxItem,
-                                       pmdEDUCB *cb,
-                                       SDB_DPSCB *dpsCB ) ;
+         virtual INT32 onRebuildIndex ( IDmsEventHolder *pEventHolder,
+                                        IDmsSUCacheHolder *pCacheHolder,
+                                        const dmsEventCLItem &clItem,
+                                        const dmsEventIdxItem &idxItem,
+                                        pmdEDUCB *cb,
+                                        SDB_DPSCB *dpsCB ) ;
 
          virtual INT32 onDropIndex ( IDmsEventHolder *pEventHolder,
                                      IDmsSUCacheHolder *pCacheHolder,
