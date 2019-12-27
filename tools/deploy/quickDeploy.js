@@ -108,13 +108,17 @@ var MYSQL_INSTALL_PATH     = mysqlPath ;
 var PG_INSTALL_PATH        = pgPath ;
 var TMP_COORD_INSTALL_PATH = "" ;
 
-var FIELD_SEQUOIADB_CATA_CONF  = "SEQUOIADB_CATA_CONF" ;
-var FIELD_SEQUOIADB_COORD_CONF = "SEQUOIADB_COORD_CONF" ;
-var FIELD_SEQUOIADB_DATA_CONF  = "SEQUOIADB_DATA_CONF" ;
-var FIELD_MYSQL_INSTALL_PATH   = "MYSQL_INSTALL_PATH" ;
-var FIELD_MYSQL_INSTANCE_CONF  = "MYSQL_INSTANCE_CONF" ;
-var FIELD_PG_INSTALL_PATH      = "PG_INSTALL_PATH" ;
-var FIELD_PG_INSTANCE_CONF     = "PG_INSTANCE_CONF" ;
+const DB_DATA_ROLE         = "data" ;
+const DB_COORD_ROLE        = "coord" ;
+const DB_CATA_ROLE         = "catalog" ;
+
+const FIELD_SEQUOIADB_CATA_CONF  = "SEQUOIADB_CATA_CONF" ;
+const FIELD_SEQUOIADB_COORD_CONF = "SEQUOIADB_COORD_CONF" ;
+const FIELD_SEQUOIADB_DATA_CONF  = "SEQUOIADB_DATA_CONF" ;
+const FIELD_MYSQL_INSTALL_PATH   = "MYSQL_INSTALL_PATH" ;
+const FIELD_MYSQL_INSTANCE_CONF  = "MYSQL_INSTANCE_CONF" ;
+const FIELD_PG_INSTALL_PATH      = "PG_INSTALL_PATH" ;
+const FIELD_PG_INSTANCE_CONF     = "PG_INSTANCE_CONF" ;
 
 // run!
 main() ;
@@ -261,15 +265,23 @@ function getSqlInstallInfo( dbType, ignoreNotInstall, installPath )
       var systemFileFullName = bsonArr.next().toObj().pathname ;
 
       infoObj = iniFile2Obj( systemFileFullName ) ;
+
       if ( installPath != "" && infoObj.INSTALL_DIR == installPath )
       {
          foundOut = true ;
          break ;
       }
    }
+
    if ( installPath != "" && !foundOut )
    {
       println( "There is not "+dbTypeStr+" installation in "+installPath+"!" ) ;
+      throw "ERROR" ;
+   }
+
+   if ( infoObj.INSTALL_DIR[0] != '/' )
+   {
+      println( "Invalid INSTALL_DIR in file[" + systemFileFullName + "]" ) ;
       throw "ERROR" ;
    }
 
@@ -328,7 +340,139 @@ function getSequoiadbInstallInfo( hostName )
       }
    }
 
+   if ( installInfo.INSTALL_DIR[0] != '/' )
+   {
+      println( "Invalid INSTALL_DIR in file[/etc/default/sequoiadb]" ) ;
+      throw "ERROR" ;
+   }
+
    return installInfo ;
+}
+
+/**
+ * Check the legality of each field in the mysql and postgresql configuration file
+ *
+ * The inspection rules for each field are as follows:
+ * [ instanceName, port, installPath, coordAddr ]
+ * instanceName can't be empty
+ * port can't be empty and the range of the port must be between 0 and 65535
+ * installPath must start with "[installpath]" or '/'
+ * coordAddr can't be empty
+ *
+ * @param  confFile      the name of conf file( mysql.conf or postgresql.conf )
+ * @param  instanceConf  mysql conf or pg conf
+ * @param  line          number of rows for instanceConf in the conf file
+ * @return jsonObj       mysql conf or pg conf
+ *
+ * mysql conf
+ *
+ * [ myinst,3306,/opt/sequoiasql/mysql/database/3306,u-fjiab:11810 ],
+ *
+ * or pg conf
+ *
+ * [ myinst,5432,/opt/sequoiasql/postgresql/database/5432,u-fjiab:11810 ],
+ *
+ */
+function checkSqlConf( confFile, instanceConf, line )
+{
+   var len          = instanceConf.length ;
+   var instanceName = instanceConf[0] ;
+   var port         = instanceConf[1] ;
+   var databaseDir  = instanceConf[2] ;
+   var coordAddr    = instanceConf[3] ;
+
+   // check instanceName
+   if ( "" == instanceName )
+   {
+      println( "Invalid configure file[" + confFile + "], line[" + line +
+               "]: wrong instanceName" ) ;
+      throw "ERROR" ;
+   }
+
+   // check port
+   if ( "undefined" == typeof( port ) )
+   {
+      println( "Invalid configure file[" + confFile + "], line[" + line +
+               "]: empty port" ) ;
+      throw "ERROR" ;
+   }
+   else if ( "" == port )
+   {
+      println( "Invalid configure file[" + confFile + "], line[" + line +
+               "]: wrong port" ) ;
+      throw "ERROR" ;
+   }
+   else
+   {
+      var tmpPort = Number( port ) ;
+      if ( isNaN( tmpPort ) ||
+           ( !isNaN( tmpPort ) && ( tmpPort < 0 || tmpPort > 65535 ) ) )
+      {
+         println( "Invalid configure file[" + confFile + "], line[" + line +
+                  "]: wrong port" ) ; ;
+         throw "ERROR" ;
+      }
+   }
+
+   // check databaseDir
+   if ( "undefined" == typeof( databaseDir ) )
+   {
+      println( "Invalid configure file[" + confFile + "], line[" + line +
+               "]: empty databaseDir" ) ;
+      throw "ERROR" ;
+   }
+   else if ( "" == databaseDir )
+   {
+      println( "Invalid configure file[" + confFile + "], line[" + line +
+               "]: wrong databaseDir" ) ; ;
+      throw "ERROR" ;
+   }
+   else
+   {
+      var databaseDirSplit = databaseDir.split( ']' ) ;
+      if ( "[installPath" != databaseDirSplit[0] &&
+           '/' != databaseDirSplit[0][0] )
+      {
+         println( "Invalid configure file[" + confFile + "], line[" + line +
+                  "]: wrong databaseDir" ) ; ;
+         throw "ERROR" ;
+      }
+   }
+
+   // check coordAddr
+   if ( "undefined" == typeof( coordAddr ) )
+   {
+      println( "Invalid configure file[" + confFile + "], line[" + line +
+               "]: empty coordAddr" ) ;
+      throw "ERROR" ;
+   }
+   else if ( "" == coordAddr )
+   {
+      println( "Invalid configure file[" + confFile + "], line[" + line +
+               "]: wrong coordAddr" ) ; ;
+      throw "ERROR" ;
+   }
+
+   if ( len == 4 )
+   {
+      instanceConf[3] = checkAndFormatCoordAddr( coordAddr, confFile ) ;
+   }
+   else if ( len > 4 )
+   {
+      coordAddr = "" ;
+      for ( var i = 3; i < len ; i++ )
+      {
+         coordAddr += instanceConf[i] ;
+         if ( i != ( len - 1 ) )
+         {
+            coordAddr += "," ;
+         }
+      }
+      instanceConf[3] = checkAndFormatCoordAddr( coordAddr, confFile ) ;
+      instanceConf.splice( 4, len - 4 ) ;
+   }
+
+   return instanceConf ;
 }
 
 function getSqlConf( dbType, installedPath )
@@ -379,6 +523,7 @@ function getSqlConf( dbType, installedPath )
 
    // loop each line
    var allConf = [] ;
+   var iLine = 1 ;
    while( true )
    {
       var aLine ;
@@ -402,43 +547,23 @@ function getSqlConf( dbType, installedPath )
 
       // split line
       var instanceConf = aLine.split( "," ) ;
-      var len = instanceConf.length ;
-      if ( len < 4 )
-      {
-         println( "Invalid configure file[" + confFile + "]!" ) ;
-         throw "ERROR" ;
-      }
-      else if ( len == 4 )
-      {
-         var coordAddr = instanceConf[3] ;
-         instanceConf[3] = checkAndFormatCoordAddr( coordAddr, confFile ) ;
-      }
-      else if ( len > 4 )
-      {
-         var coordAddr = "" ;
-         for ( var i = 3; i < len ; i++ )
-         {
-            coordAddr += instanceConf[i] ;
-            if ( i != ( len - 1 ) )
-            {
-               coordAddr += "," ;
-            }
-         }
-         instanceConf[3] = checkAndFormatCoordAddr( coordAddr, confFile ) ;
-         instanceConf.splice( 4, len - 4 ) ;
-      }
+      var instanceConfChecked ;
+
+      instanceConfChecked = checkSqlConf( confFile, instanceConf, iLine,
+                                          installedPath ) ;
+      iLine++ ;
 
       // replace installed path
-      instanceConf[2] = instanceConf[2].replace( /\[installPath\]/g,
-                                                 installedPath ) ;
+      instanceConfChecked[2] = instanceConfChecked[2].replace( /\[installPath\]/g,
+                                                               installedPath ) ;
 
       // set coord address
-      if ( instanceConf[3] == "-" )
+      if ( instanceConfChecked[3] == "-" )
       {
-         instanceConf[3] = getACoordAddr() ;
+         instanceConfChecked[3] = getACoordAddr() ;
       }
 
-      allConf.push( instanceConf ) ;
+      allConf.push( instanceConfChecked ) ;
    }
 
    return allConf ;
@@ -545,6 +670,119 @@ function getACoordAddr()
    return coordAddr ;
 }
 
+/**
+ * Check the legality of each field in the sequoiadb configuration file
+ *
+ * The inspection rules for each field are as follows:
+ * [ role, groupName, hostName, serviceName, dbPath ]
+ * role can't be empty and must be "data" or "coord" or "catalog"
+ * groupName can't be empty
+ * hostName can't br empty
+ * serviceName can't be empty
+ * the range of serviceName must be between 0 and 65535
+ * dbPath must start with "[installpath]" or '/'
+ *
+ * @param  aNodeConf   sequoiadb node configuration
+ * @param  line        number of rows for aNodeConf in the conf file
+ * @return null
+ *
+ */
+function checkSequoiadbConf( aNodeConf, line )
+{
+   var dbRole      = aNodeConf[0] ;
+   var groupName   = aNodeConf[1] ;
+   var hostname    = aNodeConf[2] ;
+   var serviceName = aNodeConf[3] ;
+   var dbPath      = aNodeConf[4] ;
+
+   // check dbRole
+   if ( DB_CATA_ROLE != dbRole && DB_COORD_ROLE != dbRole &&
+        DB_DATA_ROLE != dbRole )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+               "]: wrong role" ) ;
+      throw "ERROR" ;
+   }
+
+   // check groupName
+   if ( "undefined" == typeof( groupName ) )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+               "]: empty groupName" ) ;
+      throw "ERROR" ;
+   }
+   else if ( "" == groupName )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+               "]: wrong groupName" ) ;
+      throw "ERROR" ;
+   }
+
+   // check hostname
+   if ( "undefined" == typeof( hostname ) )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+               "]: empty hostName" ) ;
+      throw "ERROR" ;
+   }
+   else if ( "" == hostname )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+               "]: wrong hostName" ) ;
+      throw "ERROR" ;
+   }
+
+   // check serviceName
+   if ( "undefined" == typeof( serviceName ) )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+               "]: empty serviceName" ) ;
+      throw "ERROR" ;
+   }
+   else if ( "" == serviceName )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+               "]: wrong serviceName" ) ;
+      throw "ERROR" ;
+   }
+   else
+   {
+      var tmpServiceName = Number( serviceName ) ;
+      if ( isNaN( tmpServiceName ) ||
+           ( !isNaN( tmpServiceName ) &&
+             ( tmpServiceName < 0 || tmpServiceName > 65535 ) ) )
+      {
+         println( "Invalid configure file[sequoiadb.conf], line[" + line +
+                  "]: wrong serviceName" ) ;
+         throw "ERROR" ;
+      }
+   }
+
+   // check dbPath
+   if ( "undefined" == typeof( dbPath ) )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+               "]: empty dbPath" ) ;
+      throw "ERROR" ;
+   }
+   else if ( "" == dbPath )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+               "]: wrong dbPath" ) ;
+      throw "ERROR" ;
+   }
+   else
+   {
+      var dbPathSplit = dbPath.split( ']' ) ;
+      if ( "[installPath" != dbPathSplit[0] && '/' != dbPathSplit[0][0] )
+      {
+         println( "Invalid configure file[sequoiadb.conf], line[" + line +
+                  "]: wrong dbPath" ) ;
+         throw "ERROR" ;
+      }
+   }
+}
+
 function getSequoiadbConf( replaceInstallPath )
 {
    if ( typeof( replaceInstallPath ) === "undefined" )
@@ -567,6 +805,7 @@ function getSequoiadbConf( replaceInstallPath )
 
    // loop each line
    var nodesConf = [] ;
+   var iLine = 1 ;
    while( true )
    {
       var aLine ;
@@ -589,11 +828,8 @@ function getSequoiadbConf( replaceInstallPath )
       if ( aLine.substr( 0,1 ) == "#" ) continue ;   // this line is a note
 
       var aNode = aLine.split( "," ) ;
-      if ( aNode.length != 5 )
-      {
-         println( "Invalid configure file!" ) ;
-         throw "ERROR" ;
-      }
+      checkSequoiadbConf( aNode, iLine ) ;
+      iLine++ ;
 
       // replace 'localhost' to real hostname
       aNode[2] = aNode[2].replace( /localhost/g, MY_HOSTNAME ) ;
@@ -1245,7 +1481,8 @@ function checkNodeConf( nodesConf )
  *   ]
  *   "SEQUOIADB_CATA_CONF" :
  *   [
- *      [ catalog,SYSCatalogGroup,localhost,11800,/opt/sequoiadb/database/catalog/11800 ],
+ *      [ catalog,SYSCatalogGroup,localhost,11800,
+ *        /opt/sequoiadb/database/catalog/11800 ],
  *      ...
  *   ]
  * }
@@ -1329,8 +1566,8 @@ function checkSequoiadb()
  *   "MYSQL_INSTALL_PATH":  "/opt/sequoiasql/mysql",
  *   "MYSQL_INSTANCE_CONF":
  *   [
- *      [ myinst1,3306,/opt/sequoiasql/mysql/database/3306,u1604-fangjiabin:11810 ],
- *      [ myinst2,3307,/opt/sequoiasql/mysql/database/3307,u1604-fangjiabin:11810 ],
+ *      [ myinst1,3306,/opt/sequoiasql/mysql/database/3306,u-fjiab:11810 ],
+ *      [ myinst2,3307,/opt/sequoiasql/mysql/database/3307,u-fjiab:11810 ],
  *      ...
  *   ]
  * }
@@ -1385,8 +1622,8 @@ function checkMysql()
  *   "PG_INSTALL_PATH":  "/opt/sequoiasql/postgresql",
  *   "PG_INSTANCE_CONF":
  *   [
- *      [ myinst1,5432,/opt/sequoiasql/postgresql/database/5432,u1604-fangjiabin:11810 ],
- *      [ myinst2,5433,/opt/sequoiasql/postgresql/database/5433,u1604-fangjiabin:11810 ],
+ *      [ myinst1,5432,/opt/sequoiasql/postgresql/database/5432,u-fjiab:11810 ],
+ *      [ myinst2,5433,/opt/sequoiasql/postgresql/database/5433,u-fjiab:11810 ],
  *      ...
  *   ]
  * }
@@ -1495,7 +1732,8 @@ function deployMysql( mysqlInfo )
          var file = new File( databaseDir + "/auto.cnf" ) ;
          var content = file.read() ;
          content = content.replace( /sequoiadb_conn_addr=(.*)/g, coordSetting ) ;
-         content = content.replace( /#sequoiadb_conn_addr/g, "sequoiadb_conn_addr" ) ;
+         content = content.replace( /#sequoiadb_conn_addr/g,
+                                    "sequoiadb_conn_addr" ) ;
          if ( content.indexOf( "sequoiadb_conn_addr=" ) == -1 )
          {
             content = content.replace( /\[mysqld\]/g,
