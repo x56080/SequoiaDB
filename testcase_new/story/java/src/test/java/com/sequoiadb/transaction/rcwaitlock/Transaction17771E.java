@@ -78,7 +78,7 @@ public class Transaction17771E extends SdbTestBase {
     }
 
     @SuppressWarnings("unchecked")
-    @Test(enabled = false)
+    @Test
     public void test() {
 
         // 开启3个并发事务
@@ -147,6 +147,7 @@ public class Transaction17771E extends SdbTestBase {
                 tableScanThread1.getErrorMsg() );
 
         // 校验事务3读返回的记录
+        expList.clear();
         try {
             actList = ( ArrayList< BSONObject > ) tableScanThread1
                     .getExecResult();
@@ -159,6 +160,7 @@ public class Transaction17771E extends SdbTestBase {
         }
 
         // 非事务记录读
+        expList.add( updateR2 );
         cursor = cl.query( null, null, "{_id:1}", hint );
         actList = TransUtils.getReadActList( cursor );
         Assert.assertEquals( actList, expList );
