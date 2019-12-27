@@ -405,6 +405,7 @@ namespace engine
             /// alloc trans id
             rc = pTransCB->allocTransID( isAutoCommit,
                                          cb->isGlobTransOn(),
+                                         cb->getTransTimeout(),
                                          transID,
                                          beginTime ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to allocate transaction ID, "

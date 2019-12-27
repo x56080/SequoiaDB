@@ -2454,6 +2454,8 @@ namespace engine
       /// trans context
       if ( pContext->isTransContext() && !eduCB()->isTransaction() )
       {
+         // NOTE: auto-commit global transaction will generate
+         //       logical begin time automatically, no need to pass
          rc = rtnTransBegin( eduCB(), TRUE, eduCB()->isGlobTransOn() ) ;
          if ( rc )
          {
@@ -2602,7 +2604,9 @@ namespace engine
       }
       else
       {
-         rc = rtnTransBegin( _pEDUCB, FALSE, _pEDUCB->isGlobTransOn() ) ;
+         // old transaction message, auto-commit and global transaction is not
+         // supported
+         rc = rtnTransBegin( _pEDUCB, FALSE, FALSE ) ;
       }
 
       if ( SDB_OK == rc )
@@ -2732,6 +2736,8 @@ namespace engine
             rc = _checkPrimaryStatus() ;
             if ( SDB_OK == rc )
             {
+               // NOTE: auto-commit global transaction will generate
+               //       logical begin time automatically, no need to pass
                rc = rtnTransBegin( _pEDUCB, TRUE, _pEDUCB->isGlobTransOn() ) ;
             }
          }

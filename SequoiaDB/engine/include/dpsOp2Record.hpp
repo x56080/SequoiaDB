@@ -373,7 +373,9 @@ namespace engine
    INT32 dpsGetTransIDFromRecord( const dpsLogRecord &record,
                                   DPS_TRANS_ID &transID ) ;
 
-   // get logical time from record
+   // get transaction logical time from record
+   // NOTE: logical times related to a transactions are transaction begin
+   //       time and transaction pre-commit time
    INT32 dpsGetTransTimeFromRecord( const dpsLogRecord &record,
                                     const DPS_TRANS_ID &transID,
                                     stpLogicalTimeUS &time ) ;

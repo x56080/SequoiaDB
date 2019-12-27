@@ -74,8 +74,12 @@ namespace engine
       }
 
       // get logical time in nanosecond in given timeout
+      // NOTE: `timeout` is -1 means never timeout
+      //       `timeout` is 0 means only try once
       INT32 getLogicalTimeNS( stpLogicalTimeNS &time, INT32 timeout = -1 ) ;
       // try to get logical time in microseconds in given timeout
+      // NOTE: `timeout` is -1 means never timeout
+      //       `timeout` is 0 means only try once
       INT32 getLogicalTimeUS( stpLogicalTimeUS &time, INT32 timeout = -1 ) ;
       // try to get logical time in nanosecond
       INT32 tryGetLogicalTimeNS( stpLogicalTimeNS &time ) ;

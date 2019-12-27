@@ -1169,6 +1169,11 @@ namespace engine
       return _transExecutor.isGlobTransOn() ;
    }
 
+   UINT32 _pmdEDUCB::getTransTimeout() const
+   {
+      return _transExecutor.getTransTimeout() ;
+   }
+
    BOOLEAN _pmdEDUCB::isGlobTrans() const
    {
       return _curTransID.isGlobTrans() ;

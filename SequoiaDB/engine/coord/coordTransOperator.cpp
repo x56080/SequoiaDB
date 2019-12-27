@@ -720,7 +720,8 @@ namespace engine
       {
          // global transaction requires commit time
          stpLogicalTimeUS time ;
-         rc = sdbGetTransCB()->getGlobTransTime( time ) ;
+         rc = sdbGetTransCB()->getGlobTransTime( time,
+                                                 cb->getTransTimeout() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get logical time of "
                       "transaction commit, rc: %d", rc ) ;
 
