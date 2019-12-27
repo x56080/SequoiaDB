@@ -36,7 +36,7 @@
 
 namespace engine
 {
-   #define OM_SVCNAME_STEP                (5)
+   #define OM_SVCNAME_STEP                (10)
    #define OM_SDB_PORT_NUM                (6)
    #define OM_INT32_MAXVALUE_STR          "2147483647"
 
@@ -706,7 +706,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _getServiceName( *host, serviceName ) ;
+      rc = _getServiceName( *host, role, serviceName ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to get service port" ) ;
@@ -765,10 +765,13 @@ namespace engine
       goto done ;
    }
 
-   INT32 OmSdbConfigBuilder::_getServiceName( const OmHost& host, string& serviceName )
+   INT32 OmSdbConfigBuilder::_getServiceName( const OmHost& host,
+                                              const string& role,
+                                              string& serviceName )
    {
       INT32 rc = SDB_OK ;
-      INT32 startPort = ossAtoi( _defaultServicePort.c_str() ) ;
+      INT32 defaultPort = ossAtoi( _defaultServicePort.c_str() ) ;
+      INT32 startPort   = defaultPort ;
 
       if ( host.getHostName() == _localHostName )
       {
@@ -781,6 +784,11 @@ namespace engine
          {
             startPort += OM_SVCNAME_STEP ;
          }
+      }
+
+      if( OM_NODE_ROLE_COORD != role && startPort == defaultPort )
+      {
+         startPort += OM_SVCNAME_STEP ;
       }
 
       bool ok = false ;

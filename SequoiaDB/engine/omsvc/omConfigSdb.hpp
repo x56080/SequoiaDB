@@ -136,7 +136,8 @@ namespace engine
    protected:
       void  _setLocal() ;
       OmConfProperties& _getConfProperties() { return _properties ; }
-      INT32 _getServiceName( const OmHost& host, string& serviceName ) ;
+      INT32 _getServiceName( const OmHost& host, const string& role,
+                             string& serviceName ) ;
       INT32 _getDBPath( OmHost& host, const string& diskPath,
                         const string& businessType, const string& role,
                         const string& serviceName, string& dbPath ) ;
