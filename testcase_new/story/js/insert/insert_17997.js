@@ -3,12 +3,23 @@
 *               seqDB-17997:insert，原有基本功能验证 
 *@Author      : 2019-3-13  XiaoNi Huang
 ******************************************************************************/
-main();
+
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
 
 function main ()
 {
-   println( "\n---Begin to run test" );
-   var clName = "insertFlag_17997";
+   var clName = COMMCLNAME + "_17997";
    var idxName = "idx";
    var cl = readyCL( clName );
    cl.createIndex( idxName, { a: 1, b: 1 }, true, true );
@@ -18,12 +29,11 @@ function main ()
    insertSetFlag_ReturnOid( cl );
    insertSetFlag_ContOnDup( cl );
 
-   cleanCL( clName );
+   commDropCL( db, COMMCSNAME, clName );
 }
 
 function insertNotSetFlag ( cl )
 {
-   println( "\n---Begin to insert docs, not set flag" );
    // index key not conflict
    var recs = [{ "a": 1 }, { "a": 2 }];
    cl.insert( recs );
@@ -32,11 +42,11 @@ function insertNotSetFlag ( cl )
    try
    {
       cl.insert( { a: 1, c: 1 } );
-      throw "expect fail, but actual succ."
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( -38 !== e )
+      if( -38 != e.message )
       {
          throw e;
       }
@@ -49,7 +59,6 @@ function insertNotSetFlag ( cl )
 
 function insertSetFlag_ReturnOid ( cl )
 {
-   println( "\n---Begin to insert docs, set flag[SDB_INSERT_RETURN_ID]/options[ReturnOID]" );
    cl.insert( { a: 1, b: 1 } );
 
    // index key not conflict
@@ -68,18 +77,18 @@ function insertSetFlag_ReturnOid ( cl )
    var rc = cl.insert( { a: 1, b: 4 }, { ReturnOID: false } );
    if( null != rc && rc.toObj()["_id"] != null )
    {
-      throw buildException( "checkReturnOid", null, "", "not return oid", "  " + "return oid" );
+      throw new Error( "rc: " + rc );
    }
 
    // index key conflict
    try
    {
       var rc = cl.insert( { a: 1, b: 1, c: 1 }, SDB_INSERT_RETURN_ID );
-      throw "expect fail, but actual succ."
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( -38 != e )
+      if( -38 != e.message )
       {
          throw e;
       }
@@ -93,7 +102,6 @@ function insertSetFlag_ReturnOid ( cl )
 
 function insertSetFlag_ContOnDup ( cl )
 {
-   println( "\n---Begin to insert docs, set flag[SDB_INSERT_CONTONDUP]/options[ContOnDup]" );
    // index key not conflict
    cl.insert( [{ a: 1, b: 1 }] );
 
@@ -107,11 +115,11 @@ function insertSetFlag_ContOnDup ( cl )
    try
    {
       cl.insert( [{ a: 1, b: 1, c: 3 }, { a: 4 }], { ContOnDup: false } );
-      throw "expect fail, but actual succ."
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( -38 !== e )
+      if( -38 != e.message )
       {
          throw e;
       }
@@ -129,11 +137,11 @@ function insertSetFlag_ContOnDup ( cl )
    try
    {
       cl.insert( { a: 1, b: 1, c: 7 }, { ContOnDup: false } );
-      throw "expect fail, but actual succ."
+      throw new Error( "need throw error" );
    }
    catch( e )
    {
-      if( -38 !== e )
+      if( -38 != e.message )
       {
          throw e;
       }
@@ -145,19 +153,3 @@ function insertSetFlag_ContOnDup ( cl )
    cl.remove();
 }
 
-function checkRecords ( cl, recs ) 
-{
-   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } );
-   var rcRecs = new Array();
-   while( tmpRecs = rc.next() )
-   {
-      rcRecs.push( tmpRecs.toObj() );
-   }
-
-   var expRecs = JSON.stringify( recs );
-   var actRecs = JSON.stringify( rcRecs );
-   if( expRecs !== actRecs )
-   {
-      throw buildException( "checkResult", null, "", expRecs, "  " + actRecs );
-   }
-}

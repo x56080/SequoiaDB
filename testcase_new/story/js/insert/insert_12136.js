@@ -6,21 +6,16 @@
 ***************************************************************************** */
 
 var csName = COMMCSNAME;
-var clName = COMMCLNAME;
+var clName = COMMCLNAME + "_12136";
 
 function main ( db )
 {
-   // drop cl
-   commDropCL( db, csName, clName, true, true, "drop collection in begin" );
+   var varCL = readyCL( clName );
 
-   // create cl
-   var varCL = commCreateCL( db, csName, clName, {}, true, false,
-      "create collection in begin" );
    // special character put in array
    var specialStr = "~ ` ! @ # $ % ^ * ( ) - _ = + { } [ ] | \\ : ; \" < > ? / . $";
    var specialChar = new Array();
    specialChar = specialStr.split( " " );
-   //println( specialChar ) ;
 
    // get the collection
    var cs = db.getCS( csName );
@@ -39,7 +34,7 @@ function main ( db )
    }
 
    // clean - drop cl
-   commDropCS( db, csName, "drop CS in the end" )
+   commDropCL( db, csName, clName, false, false, "Failed to drop CL in the end-condition" );
 }
 
 // main entry
@@ -50,6 +45,10 @@ try
 }
 catch( e )
 {
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
    throw e;
 }
 
@@ -69,8 +68,7 @@ function insertInspectStr ( cl, spekey, mode )
          spekey == "" || spekey == undefined ||
          mode == "" || mode == undefined )
       {
-         println( "Wrong argument." );
-         throw "ErrArg";
+         throw new Error( "cl: " + cl + "\nspekey: " + spekey + "\nmode: " + mode );
       }
       var insertStr = "{'" + spekey + "key" + spekey + "field':'SpecialCharacterValue'}";
       var evalInsertStr = eval( "(" + insertStr + ")" );
@@ -81,18 +79,15 @@ function insertInspectStr ( cl, spekey, mode )
          var query = cl.find( evalInsertStr ).count();
          if( 1 != query && "$" != spekey && "." != spekey )
          {
-            println( "Failed to inspect the data , special char = " + spekey );
-            throw "ErrSpeChar";
+            throw new Error( "query: " + query + "\nspekey: " + spekey );
          }
       }
    }
    catch( e )
    {
-      if( -6 != e )
+      if( -6 != e.message )
       {
-         println( "Failed to insert special character." + e );
          throw e;
       }
    }
 }
-

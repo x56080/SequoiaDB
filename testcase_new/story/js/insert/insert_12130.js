@@ -1,18 +1,29 @@
 /******************************************************************************
-*@Description : seqDB-12130:����string��array���ͼ�¼����¼���Ƚϴ�                    
+*@Description : seqDB-12130:string和array类型记录（记录长度较大）                   
 *@Author      : 2019-5-29  wuyan modify
 ******************************************************************************/
-main();
+
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   var clName = "insert12130";
+   var clName = COMMCLNAME + "_12130";
    var cl = readyCL( clName );
-
    var expRecords = insertRecords( cl );
    var actRecords = cl.find();
-   checkRec( actRecords, expRecords );
-
-   cleanCL( clName );
+   commCompareResults( actRecords, expRecords );
+   commDropCL( db, COMMCSNAME, clName );
 }
 
 function getRandomString ( len ) 
@@ -30,10 +41,8 @@ function getRandomString ( len )
 
 function insertRecords ( cl )
 {
-   println( "---begin to insert records." );
    var strLength = 3000;
    var str1 = getRandomString( strLength );
-
    var str2 = "{name:\"qiu\",balance:1.2}";
    for( var i = 0; i < 1000; ++i )
    {
@@ -44,10 +53,5 @@ function insertRecords ( cl )
    var doc = [];
    doc.push( objs );
    cl.insert( doc );
-
    return doc;
 }
-
-
-
-

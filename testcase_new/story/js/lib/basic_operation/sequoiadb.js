@@ -1,3 +1,4 @@
+import( "./cLCountObj.js" );
 import( "./collection.js" );
 import( "./collectionSpace.js" );
 import( "./command.js" );
@@ -5,6 +6,7 @@ import( "./cursor.js" );
 import( "./fileObj.js" );
 import( "./node.js" );
 import( "./numberDecimalObj.js" );
+import( "./objectIdObj.js" );
 import( "./query.js" );
 import( "./replicaGroup.js" );
 

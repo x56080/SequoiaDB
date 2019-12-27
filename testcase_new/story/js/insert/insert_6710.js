@@ -1,11 +1,23 @@
 /******************************************************************************
-*@Description : seqDB-6710:����binary����$type�Ƿ�                  
+*@Description : seqDB-6710:插入binary类型$type非法_ST.basicOperate.insert.03.001
 *@Author      : 2019-5-29  wuyan modify
 ******************************************************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   var clName = "insert6710";
+   var clName = COMMCLNAME + "_6710";
    var cl = readyCL( clName );
 
    //test $type is 256
@@ -13,23 +25,22 @@ function main ()
    //test $type is -1  
    insertWithTypeErrorB( cl );
 
-   cleanCL( clName );
+   commDropCL( db, COMMCSNAME, clName );
 }
 
 function insertWithTypeErrorA ( cl )
 {
-   println( "---begin to insert binary with $type:256." );
    try
    {
       var binary = { "$binary": "aGVsbG8gd29ybGQ=", "$type": "256" };
       cl.insert( { binary: binary } );
-      throw "insert should be fail!";
+      throw new Error( "need throw error" );
    }
    catch( e )   
    {
-      if( -6 !== e )
+      if( -6 != e.message )
       {
-         throw buildException( "insertRecords", e );
+         throw e;
       }
    }
 
@@ -37,27 +48,19 @@ function insertWithTypeErrorA ( cl )
    var count = cl.count();
    if( Number( expCount ) !== Number( count ) )
    {
-      throw buildException( "insertRecords", "count value error", "count()", expCount, count );
+      throw new Error( "expCount: " + expCount + "\ncount: " + count );
    }
 }
 
 function insertWithTypeErrorB ( cl )
 {
-   println( "---begin to insert binary with $type:-1." );
    var binary = { "$binary": "aGVsbG8gd29ybGQ=", "$type": "-1" };
    cl.insert( { binary: binary } );
 
-   //С����Сֵʱ���Զ�����Ϊ���ֵ255
    var expBinaryValue = { "$binary": "aGVsbG8gd29ybGQ=", "$type": "255" };
    var expRecords = [];
    expRecords.push( { binary: expBinaryValue } );
 
    var actRecords = cl.find( {}, { "_id": { "$include": 0 } } );
-   checkRec( actRecords, expRecords );
+   commCompareResults( actRecords, expRecords, false );
 }
-
-
-
-
-
-

@@ -1,25 +1,36 @@
 /******************************************************************************
-*@Description : seqDB-11086:_id�� �ֶ����������ʽ����'$'��ͷ������'.';�ֶ���Ϊ��                   
+*@Description : seqDB-4950:字段名不满足格式_ST.basicOperate.insert.02.006
 *@Author      : 2019-5-29  wuyan modify
 ******************************************************************************/
-main();
+
+// SEQUOIADBMAINSTREAM-1172
+try
+{
+   // main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   var clName = "insert11086";
+   var clName = COMMCLNAME + "_4950";
    var cl = readyCL( clName );
-
    insertRecordsWithIllegalFieldName( cl );
    var actRecords = cl.find();
    var expRecords = [];
-   checkRec( actRecords, expRecords );
-
-   cleanCL( clName );
+   commCompareResults( actRecords, expRecords, false );
+   commDropCL( db, COMMCSNAME, clName );
 }
 
 function insertRecordsWithIllegalFieldName ( cl )
 {
-   println( "---begin to insert." );
-   var illegalFieldName = ["$a", "a.b"];
+   var illegalFieldName = ["$a", "a.b", ""];
    for( var i = 0; i < illegalFieldName.length; i++ )
    {
       try
@@ -27,23 +38,15 @@ function insertRecordsWithIllegalFieldName ( cl )
          var fieldName = illegalFieldName[i];
          var obj = {};
          obj[fieldName] = "test" + i;
-         cl.insert( { "_id": obj } );
-         throw "insert should be fail!";
+         cl.insert( obj );
+         throw new Error( "need throw error" );
       }
       catch( e )   
       {
-         if( -6 !== e )
+         if( -6 != e.message )
          {
-            throw buildException( "insertRecords", e );
+            throw e;
          }
       }
-
    }
-
 }
-
-
-
-
-
-

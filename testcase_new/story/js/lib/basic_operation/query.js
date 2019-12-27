@@ -59,7 +59,7 @@ function Query ( query )
          {
             throw new Error( e );
          }
-         return count;
+         return new CLCountObj( count );
       }
 
    this.explain =
