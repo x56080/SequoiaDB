@@ -4,7 +4,7 @@
 *   2014-3-4 wenjing wang  Init
 *******************************************************************************/
 
-import( "../lib/basic_operation/Sequoiadb.js" );
+import( "../lib/basic_operation/sequoiadb.js" );
 
 var dataGroupNum = 0;
 
