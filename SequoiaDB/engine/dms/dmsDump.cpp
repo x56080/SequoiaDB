@@ -2049,6 +2049,9 @@ UINT32 _dmsDump::dumpDmsLobDataMapBlk(dmsLobDataMapBlk *blk, CHAR * outBuf,
 
       tag = blk->isNormal()? "DMS_LOB_PAGE_NORMAL":"DMS_LOB_PAGE_REMOVED";
       len += ossSnprintf(outBuf + len, outSize - len, " Status         :%s (%u)"OSS_NEWLINE,tag, blk->_status);
+
+      tag = blk->isNew()? "DMS_LOB_PAGE_NEW":"DMS_LOB_PAGE_OLD";
+      len += ossSnprintf(outBuf + len, outSize - len, " New Flag       :%s (%u)"OSS_NEWLINE,tag, blk->_newFlag);
    }
 
    len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;

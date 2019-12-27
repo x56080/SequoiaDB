@@ -1100,7 +1100,7 @@ namespace engine
 
          rc = rtnRemoveLobPiece( _getRealCLName(),
                                  _oid, *itr, cb,
-                                 _w, _dpsCB, _su, _mbContext ) ;
+                                 _w, _dpsCB, _su, _mbContext, TRUE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to remove piece[%d] of lob, rc:%d",

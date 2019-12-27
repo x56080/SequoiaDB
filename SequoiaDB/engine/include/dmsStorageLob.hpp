@@ -133,7 +133,8 @@ namespace engine
       INT32 remove( const dmsLobRecord &record,
                     dmsMBContext *mbContext,
                     _pmdEDUCB *cb,
-                    SDB_DPSCB *dpscb ) ;
+                    SDB_DPSCB *dpscb,
+                    BOOLEAN onlyRemoveNewPage = FALSE ) ;
 
       /// user should make sure that the length of
       ///  buf is enough

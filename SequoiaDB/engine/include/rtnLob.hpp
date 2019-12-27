@@ -182,7 +182,8 @@ namespace engine
                             SINT16 w,
                             SDB_DPSCB *dpsCB,
                             dmsStorageUnit *su = NULL,
-                            dmsMBContext *mbContext = NULL ) ;
+                            dmsMBContext *mbContext = NULL,
+                            BOOLEAN onlyRemoveNewPiece = FALSE ) ;
 
    INT32 rtnQueryAndInvalidateLob( const CHAR *fullName,
                                    const bson::OID &oid,

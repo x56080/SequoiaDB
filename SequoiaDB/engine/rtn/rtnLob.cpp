@@ -1032,7 +1032,8 @@ namespace engine
                             SINT16 w,
                             SDB_DPSCB *dpsCB,
                             dmsStorageUnit *su,
-                            dmsMBContext *mbContext )
+                            dmsMBContext *mbContext,
+                            BOOLEAN onlyRemoveNewPiece )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNREMOVELOBPIECE ) ;
@@ -1048,7 +1049,7 @@ namespace engine
 
       record.set( &oid, sequence, 0, 0, NULL ) ;
       rc = lobEnv.getSU()->lob()->remove( record, lobEnv.getMBContext(), cb,
-                                          dpsCB ) ;
+                                          dpsCB, onlyRemoveNewPiece ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to remove lob[%s],"

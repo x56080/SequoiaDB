@@ -734,6 +734,11 @@ namespace engine
          blk->_dataLen = record._dataLen + record._offset ;
       }
 
+      if ( blk->isNew() )
+      {
+         blk->setOld() ;
+      }
+
       if ( NULL != dpscb )
       {
          SDB_ASSERT( NULL != _dmsData, "can not be null" ) ;
@@ -1168,6 +1173,7 @@ namespace engine
       /// must first set clLogiclID
       blk->_clLogicalID = context->clLID() ;
       blk->_mbID = context->mbID() ;
+      blk->_newFlag = DMS_LOB_PAGE_FLAG_NEW ;
 
       ossMemset( blk->_pad1, 0, sizeof( blk->_pad1 ) ) ;
       ossMemset( blk->_pad2, 0, sizeof( blk->_pad2 ) ) ;
@@ -1218,7 +1224,8 @@ namespace engine
    INT32 _dmsStorageLob::remove( const dmsLobRecord &record,
                                  dmsMBContext *mbContext,
                                  pmdEDUCB *cb,
-                                 SDB_DPSCB *dpscb )
+                                 SDB_DPSCB *dpscb,
+                                 BOOLEAN onlyRemoveNewPage )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_REMOVE ) ;
@@ -1344,6 +1351,14 @@ namespace engine
          PD_LOG( PDERROR, "Get extent[%d] address failed", page ) ;
          rc = SDB_SYS ;
          goto error ;
+      }
+
+      if ( onlyRemoveNewPage )
+      {
+         if ( !blk->isNew() )
+         {
+            goto done ;
+         }
       }
 
       /// When dpscb is NULL, not to alloc the page when page is

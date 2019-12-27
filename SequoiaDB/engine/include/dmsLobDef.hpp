@@ -46,7 +46,7 @@
 
 namespace engine
 {
-   #define DMS_LOB_OID_LEN                   12 
+   #define DMS_LOB_OID_LEN                   12
    #define DMS_LOB_INVALID_PAGEID            DMS_INVALID_EXTENT
 
    typedef SINT32 DMS_LOB_PAGEID ;
@@ -231,6 +231,8 @@ namespace engine
 
    #define DMS_LOB_PAGE_NORMAL               ( 0 )
    #define DMS_LOB_PAGE_REMOVED              ( 1 )
+   #define DMS_LOB_PAGE_FLAG_NEW             ( 1 )
+   #define DMS_LOB_PAGE_FLAG_OLD             ( 0 )
 
    /*
       _dmsLobDataMapBlk define
@@ -246,7 +248,8 @@ namespace engine
       UINT32         _clLogicalID ;
       UINT16         _mbID ;
       BYTE           _status ;
-      CHAR           _pad2[25];  /// sizeof( _dmsLobDataMapBlk ) == 64B
+      BYTE           _newFlag ;
+      CHAR           _pad2[24];  /// sizeof( _dmsLobDataMapBlk ) == 64B
 
       _dmsLobDataMapBlk()
       {
@@ -266,6 +269,7 @@ namespace engine
          _clLogicalID = DMS_INVALID_CLID ;
          _mbID = DMS_INVALID_MBID ;
          _status = DMS_LOB_PAGE_REMOVED ;
+         _newFlag = DMS_LOB_PAGE_FLAG_NEW ;
       }
 
       BOOLEAN isUndefined() const
@@ -289,8 +293,15 @@ namespace engine
       {
          return _status == DMS_LOB_PAGE_REMOVED ? TRUE : FALSE ;
       }
+
       void setNormal() { _status = DMS_LOB_PAGE_NORMAL ; }
       void setRemoved() { _status = DMS_LOB_PAGE_REMOVED ; }
+
+      BOOLEAN isNew() const
+      {
+         return _newFlag == DMS_LOB_PAGE_FLAG_NEW ? TRUE : FALSE ;
+      }
+      void setOld() { _newFlag = DMS_LOB_PAGE_FLAG_OLD ;}
 
       BOOLEAN equals( const BYTE *oid, UINT32 sequence ) const
       {
