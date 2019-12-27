@@ -123,7 +123,8 @@ namespace engine
       INT32 _buildStandalone() ;
       INT32 _buildCluster() ;
       INT32 _createNode( const string& role, const string& groupName ) ;
-      INT32 _getServiceName( const OmHost& host, string& serviceName ) ;
+      INT32 _getServiceName( const OmHost& host, const string& role,
+                             string& serviceName ) ;
       INT32 _getDBPath( OmHost& host, const string& diskPath,
                            const string& businessType, const string& role,
                            const string& serviceName, string& dbPath ) ;
