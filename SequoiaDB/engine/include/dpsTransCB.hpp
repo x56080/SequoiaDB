@@ -219,9 +219,13 @@ namespace engine
    */
    struct _dpsHisTransStatus
    {
+      // status of transaction
       INT32             _status ;
+      // last LSN of transaction
       DPS_LSN_OFFSET    _lsn ;
+      // logical time of transaction begin
       stpLogicalTimeUS  _beginTime ;
+      // logical time of transaction pre-commit
       stpLogicalTimeUS  _commitTime ;
 
       _dpsHisTransStatus()
@@ -281,6 +285,8 @@ namespace engine
       // input:
       //    - isAutoCommit: indicate a auto-commit transaction
       //    - isGlobTrans: indicate a global transaction
+      //    - timeout: timeout ( in millisecond ) to get a global
+      //               transaction ID
       // output:
       //    - transID: transaction ID allocated
       //    - beginTime: logical time to begin transaction
@@ -294,6 +300,7 @@ namespace engine
       //       +---------------+-----------+-----------+
       INT32 allocTransID( BOOLEAN isAutoCommit,
                           BOOLEAN isGlobTrans,
+                          UINT32 timeout,
                           DPS_TRANS_ID &transID,
                           stpLogicalTimeUS &beginTime ) ;
 
@@ -328,15 +335,15 @@ namespace engine
       // of whole cluster
       // input:
       //    - updateCache: whether to update cache of lowTran
-      //                   need query from remote
       // return:
       //    - transaction ID of lowTran of whole cluster
+      // NOTE: if not update cache, it will be a slightly older lowTran
+      //       if update cache, it will query from remote to get the earliest
+      //       lowTran among all nodes in the cluster
       DPS_TRANS_ID getGlobLowTran( BOOLEAN updateCache ) ;
 
       // get transaction ID of the earliest running global transaction ID
       // ( lowTran ) in this node
-      // input:
-      //    - globTransOnly: only get lowTran for global transactions
       // return:
       //    - transaction ID of lowTran of this node
       DPS_TRANS_ID getNodeLowTran() ;
@@ -344,11 +351,14 @@ namespace engine
       // get logical time from STP
       // output:
       //    - time: time from STP
+      //    - timeout: timeout to get logical time
+      //               0 means try once, -1 means never timeout
       // return:
       //    - SDB_OK: succeed to get time
       //    - STP_NOT_AVAILABLE: STP is not available for global transaction
       //    - SDB_TIMEOUT: failed to get time in given timeout
-      INT32 getGlobTransTime( stpLogicalTimeUS &time ) ;
+      INT32 getGlobTransTime( stpLogicalTimeUS &time,
+                              INT32 timeout = OSS_ONE_SEC ) ;
 
       // get global transaction information
       // input:
@@ -357,15 +367,50 @@ namespace engine
       //    - status: status of transaction
       //    - beginTime: begin logical time of transaction
       //    - commitTime: commit time of transaction
-      // return:
-      //    - SDB_OK: succeed to get transaction information
+      // NOTE: if transaction ID is not found, return UNKNOWN status
       void getGlobTransInfo( const DPS_TRANS_ID &transID,
                              DPS_TRANS_STATUS &status,
                              stpLogicalTimeUS &beginTime,
                              stpLogicalTimeUS &commitTime ) ;
 
+      // check if global transaction is valid to start
+      // NOTE: transaction should be started after this node becomes primary
+      // input:
+      //    - transID: transaction ID to be checked
+      //    - beginTime: begin logical time of transaction
+      // return :
+      //    - SDB_OK: global transaction is OK to start
+      //    - SDB_GLOB_TRANS_NOT_AVAILABLE: global transaction is not available
+      INT32 checkGlobTrans( const DPS_TRANS_ID &transID,
+                            const stpLogicalTimeUS &beginTime ) ;
+
       DPS_TRANS_ID getRollbackID( const DPS_TRANS_ID &transID ) ;
       DPS_TRANS_ID getTransID( const DPS_TRANS_ID &rollbackID ) ;
+
+      // get primary active time
+      OSS_INLINE UINT64 getPrimaryActiveTime()
+      {
+         return _primaryActiveTime.fetch() ;
+      }
+
+      // reset primary active time
+      OSS_INLINE void resetPrimaryActiveTime()
+      {
+         _primaryActiveTime.swap( 0LL ) ;
+      }
+
+      // check if primary active time is valid
+      OSS_INLINE BOOLEAN isPrimaryActived()
+      {
+         return _primaryActiveTime.compare( 0LL ) ;
+      }
+
+      // set primary active time
+      void setPrimaryActiveTime() ;
+
+      // check primary active time
+      // it not set, try to set primary active time
+      void checkPrimaryActiveTime() ;
 
       // Check if EDU hold certain lock and return the holding mode
       BOOLEAN isHolding( _pmdEDUCB *eduCB,
@@ -394,10 +439,29 @@ namespace engine
                          DPS_LSN_OFFSET lsnOffset,
                          INT32 status ) ;
       // NOTE: log rollback means rollbacked by consulting or replay failure
+      // find transaction info from transMap and update with given transaction
+      // ID
+      // input:
+      //    - transID: transaction ID
+      //    - lsnOffset: last LSN offset of transaction
+      //    - status: status of transaction
+      //    - transTime: begin time or commit time of transaction
+      // WARNING: this should be only called in callback of DPS logger
+      //          these inputs should be only parsed from DPS record
+      //          the DPS record could be replayed or rollbacked multiple
+      //          times, so we only keep the latest status after any replay or
+      //          rollback
       void updateTransInfo( const DPS_TRANS_ID &transID,
                             DPS_LSN_OFFSET lsnOffset,
                             INT32 status,
-                            const stpLogicalTimeUS &time ) ;
+                            const stpLogicalTimeUS &transTime ) ;
+      // update transaction info with given transaction ID
+      // output:
+      //    - transInfo: transaction info to be updated
+      // input:
+      //    - status: status of transaction
+      //    - lsn: last LSN offset of transaction
+      //    - rbPending: indicates if transaction is rollback pending
       void updateTransInfo( dpsTransBackInfo &transInfo,
                             INT32 status,
                             DPS_LSN_OFFSET lsn,
@@ -635,6 +699,10 @@ namespace engine
                                        // version of record and index key value
 
       dpsTransEvent        *_pEventHandler ;
+
+      // minimum logical time to accept global transactions
+      // NOTE: set to logical time of this node to become primary
+      ossAtomic64          _primaryActiveTime ;
 
    } ;
 

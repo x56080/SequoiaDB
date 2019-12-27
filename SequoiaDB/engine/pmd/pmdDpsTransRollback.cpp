@@ -87,6 +87,9 @@ namespace engine
                pTransCB->clearOutDateHisTrans( pDpsCB->getStartLsn().offset ) ;
             }
          }
+
+         // check global transaction active time
+         pTransCB->checkPrimaryActiveTime() ;
       }
       rc = SDB_OK ;
       return rc ;

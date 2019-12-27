@@ -767,6 +767,12 @@ namespace engine
          _timeError = 0 ;
       }
 
+      OSS_INLINE BOOLEAN isValid()
+      {
+         return ( 0 != _time &&
+                  0 != _timeError ) ;
+      }
+
    protected:
       // time in microseconds
       UINT64 _time ;

@@ -2534,7 +2534,7 @@
       </reloadable>
       <default>false</default>
       <detail>
-         <en>1. It specifies whether support global transaction or not.<fig></fig>
+         <en>1. It specifies whether global transaction is supported or not.<fig></fig>
              2. If it is not specifed, the default value is false.<fig></fig>
              3. Only takes effect when transactionon is true.<fig></fig>
              4. Global transaction required STP support and MVCC support in DATA nodes</en>

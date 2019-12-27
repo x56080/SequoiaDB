@@ -64,6 +64,9 @@ namespace engine
       SDB_ASSERT( cb, "cb can't be null" ) ;
       INT32         rc          = SDB_OK ;
       DPS_TRANS_ID  transID     = cb->getTransID() ;
+      BOOLEAN       mvccOn      = pmdGetKRCB()->getOptionCB()->mvccOn() ;
+      BOOLEAN       globTransOn = ( cb->isGlobTransOn() &&
+                                    sdbGetTransCB()->isGlobTransOn() ) ;
 
       // transaction should be on
       if ( !sdbGetTransCB()->isTransOn() )
@@ -74,36 +77,64 @@ namespace engine
 
       // check global transaction
       // if global transaction is required, but global transaction on session
-      // or node is not enabled, report error
+      // or node is not enabled, report error, also global transaction requires
+      // MVCC
       if ( ( isGlobTrans ||
-             ( specID.isValid() && specID.isGlobTrans() ) ) &&
-           ( !cb->isGlobTransOn() ||
-             !sdbGetTransCB()->isGlobTransOn() ) )
+             ( specID.isValid() && specID.isGlobTrans() ) ) )
       {
-         PD_LOG_MSG( PDERROR, "Failed to begin global transaction, global "
-                     "transaction support ( globtranson ) is not enabled" ) ;
-         rc = SDB_GLOB_TRANS_NOT_AVAILABLE ;
-         goto error ;
+         if ( !mvccOn )
+         {
+            PD_LOG_MSG( PDERROR, "Failed to begin global transaction, which is "
+                        "only supported when mvccon is true" ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         if ( !globTransOn )
+         {
+            PD_LOG_MSG( PDERROR, "Failed to begin global transaction, global "
+                        "transaction support ( globtranson ) is not enabled" ) ;
+            rc = SDB_GLOB_TRANS_NOT_AVAILABLE ;
+            goto error ;
+         }
       }
 
-      // RR isolation requires MVCC is on
-      if ( TRANS_ISOLATION_RR == cb->getTransExecutor()->getTransIsolation() &&
-           !pmdGetKRCB()->getOptionCB()->mvccOn() )
+      // RR isolation requires MVCC is on and global transaction is on
+      if ( TRANS_ISOLATION_RR == cb->getTransExecutor()->getTransIsolation() )
       {
-         PD_LOG_MSG( PDERROR, "Failed to begin transaction, RR isolation is "
-                     "only supported when mvccon is true" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         if ( !mvccOn )
+         {
+            PD_LOG_MSG( PDERROR, "Failed to begin transaction, RR isolation is "
+                        "only supported when mvccon is true" ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         if ( !globTransOn )
+         {
+            PD_LOG_MSG( PDERROR, "Failed to begin transaction, RR isolation is "
+                        "only supported when global transaction is enabled" ) ;
+            rc = SDB_GLOB_TRANS_NOT_AVAILABLE ;
+            goto error ;
+         }
       }
 
       // check if current EDU is already handling transaction
       // if not, we could start a transaction with current EDU
+      // if EDU is already in transaction, just ignore new one
       if ( transID.isInvalid() )
       {
          DPS_TRANS_ID tempID ;
          stpLogicalTimeUS beginTime ;
          if ( specID.isValid() )
          {
+            // if specified transaction ID is global, we need to check
+            // against primary active time
+            if ( specID.isGlobTrans() )
+            {
+               rc = sdbGetTransCB()->checkGlobTrans( specID, specBeginTime ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check global transaction "
+                            "%s, rc: %d", dpsTransIDToString( specID ).c_str(),
+                            rc ) ;
+            }
             // transaction ID is given, use given time as begin time
             // and set first operator tag
             tempID = specID ;
@@ -115,6 +146,7 @@ namespace engine
             // transaction ID is not given, allocate a new one
             rc = sdbGetTransCB()->allocTransID( isAutoCommit,
                                                 isGlobTrans,
+                                                cb->getTransTimeout(),
                                                 tempID,
                                                 beginTime ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to allocate transaction ID, "
@@ -164,25 +196,20 @@ namespace engine
                             SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
-      DPS_TRANS_ID curTransID ;
-      DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
       UINT8 attr = DPS_TS_COMMIT_ATTR_PRE ;
 
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
-      curTransID = cb->getTransID() ;
-      preTransLsn = cb->getCurTransLsn() ;
-
-      dpsRecordTransInfo transInfo( curTransID,
-                                    preTransLsn,
+      dpsRecordTransInfo transInfo( cb->getTransID(),
+                                    cb->getCurTransLsn(),
                                     DPS_INVALID_LSN_OFFSET,
                                     cb->getTransBeginTime(),
                                     preCommitTime ) ;
 
-      if ( curTransID.isInvalid() ||
-            DPS_INVALID_LSN_OFFSET == preTransLsn )
+      if ( transInfo._transID.isInvalid() ||
+           DPS_INVALID_LSN_OFFSET == transInfo._preTransLSN )
       {
          goto done ;
       }
@@ -192,13 +219,13 @@ namespace engine
          goto done ;
       }
 
-      firstTransLsn = sdbGetTransCB()->getBeginLsn( curTransID ) ;
+      firstTransLsn = sdbGetTransCB()->getBeginLsn( transInfo._transID ) ;
       SDB_ASSERT( firstTransLsn != DPS_INVALID_LSN_OFFSET,
                   "First transaction lsn can't be invalid" ) ;
 
       PD_LOG( PDINFO, "Execute pre-commit(ID:%s, LastLsn=%llu)",
-              dpsTransIDToString( curTransID ).c_str(),
-              preTransLsn ) ;
+              dpsTransIDToString( transInfo._transID ).c_str(),
+              transInfo._preTransLSN ) ;
 
       rc = dpsTransCommit2Record( transInfo, firstTransLsn,
                                   attr, &nodeNum, pNodes, record ) ;
@@ -242,23 +269,18 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT8 attr = 0 ;
 
-      DPS_TRANS_ID curTransID ;
-      DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
-      curTransID = cb->getTransID() ;
-      preTransLsn = cb->getCurTransLsn() ;
-
-      dpsRecordTransInfo transInfo( curTransID,
-                                    preTransLsn,
+      dpsRecordTransInfo transInfo( cb->getTransID(),
+                                    cb->getCurTransLsn(),
                                     DPS_INVALID_LSN_OFFSET,
                                     cb->getTransBeginTime(),
                                     cb->getTransPreCommitTime() ) ;
 
-      if ( curTransID.isInvalid() ||
-            DPS_INVALID_LSN_OFFSET == preTransLsn )
+      if ( transInfo._transID.isInvalid() ||
+           DPS_INVALID_LSN_OFFSET == transInfo._preTransLSN )
       {
          cb->setTransStatus( DPS_TRANS_COMMIT ) ;
 
@@ -266,7 +288,7 @@ namespace engine
          // NOTE: actually it is empty
          cb->getTransExecutor()->commitMBStats() ;
 
-         sdbGetTransCB()->delTransCB( curTransID ) ;
+         sdbGetTransCB()->delTransCB( transInfo._transID ) ;
          cb->resetTransID() ;
          // release all transactions lock
          sdbGetTransCB()->transLockReleaseAll( cb ) ;
@@ -289,7 +311,8 @@ namespace engine
       {
          // auto-commit global transaction needs pre-commit time
          stpLogicalTimeUS preCommitTime ;
-         rc = sdbGetTransCB()->getGlobTransTime( preCommitTime ) ;
+         rc = sdbGetTransCB()->getGlobTransTime(
+                           preCommitTime, (INT32)( cb->getTransTimeout() ) ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
                       "pre-commit time of transaction %s, rc: %d",
                       dpsTransIDToString( transInfo._transID ).c_str(), rc ) ;
@@ -297,13 +320,13 @@ namespace engine
          transInfo._preCommitTimeError = preCommitTime.getTimeError() ;
       }
 
-      firstTransLsn = sdbGetTransCB()->getBeginLsn( curTransID ) ;
+      firstTransLsn = sdbGetTransCB()->getBeginLsn( transInfo._transID ) ;
       SDB_ASSERT( firstTransLsn != DPS_INVALID_LSN_OFFSET,
                   "First transaction lsn can't be invalid" ) ;
 
       PD_LOG( PDINFO, "Execute commit(ID:%s, LastLsn=%llu)",
-              dpsTransIDToString( curTransID ).c_str(),
-              preTransLsn ) ;
+              dpsTransIDToString( transInfo._transID ).c_str(),
+              transInfo._preTransLSN ) ;
 
       rc = dpsTransCommit2Record( transInfo, firstTransLsn,
                                   attr, NULL, NULL, record ) ;
@@ -327,7 +350,7 @@ namespace engine
       // the mbstat can be protected by TX locks
       cb->getTransExecutor()->commitMBStats() ;
 
-      sdbGetTransCB()->delTransCB( curTransID ) ;
+      sdbGetTransCB()->delTransCB( transInfo._transID ) ;
       cb->resetTransID() ;
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
       // clear all lsn mapping

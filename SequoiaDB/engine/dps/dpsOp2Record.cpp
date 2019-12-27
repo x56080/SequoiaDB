@@ -3015,7 +3015,7 @@ namespace engine
       dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
       if ( !itr.valid() )
       {
-         PD_LOG( PDERROR, "Failed to find tag transaction ID in record" ) ;
+         PD_LOG( PDDEBUG, "Failed to find tag transaction ID in record" ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -3058,21 +3058,32 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DPS_GETTRANSTIMEFROMEREC ) ;
 
+      // no transaction time for non-global transactions
       if ( !transID.isGlobTrans() )
       {
-         rc = SDB_SYS ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
 
+      // for global transactions, there is two logical time for transaction
+      // - transaction begin time: which is in record of first operator of
+      //   transaction
+      // - transaction pre-commit time: which is in record of transaction
+      //   commit
       if ( LOG_TYPE_TS_COMMIT == record.head()._type )
       {
          // pre-commit or auto-commit DPS record of global transaction has
          // commit time of transaction
+
          // get time component
          dpsLogRecord::iterator itr =
-               record.find( DPS_LOG_PUBLIC_TRANS_TIME ) ;
+                                 record.find( DPS_LOG_PUBLIC_TRANS_TIME ) ;
          if ( !itr.valid() )
          {
+            // print debug log, it might have no commit time for commit record
+            // ( in second commit phase )
+            PD_LOG( PDDEBUG, "Failed to get transaction time for commit "
+                    "record" ) ;
             rc = SDB_SYS ;
             goto error ;
          }
@@ -3082,6 +3093,8 @@ namespace engine
          itr = record.find( DPS_LOG_PUBLIC_TRANS_TIME_ERROR ) ;
          if ( !itr.valid() )
          {
+            PD_LOG( PDERROR, "Failed to get transaction time error for "
+                    "commit record" ) ;
             rc = SDB_SYS ;
             goto error ;
          }
@@ -3096,6 +3109,8 @@ namespace engine
                      record.find( DPS_LOG_PUBLIC_TRANS_TIME_ERROR ) ;
          if ( !itr.valid() )
          {
+            PD_LOG( PDERROR, "Failed to get transaction time error for "
+                    "first operator record" ) ;
             rc = SDB_SYS ;
             goto error ;
          }

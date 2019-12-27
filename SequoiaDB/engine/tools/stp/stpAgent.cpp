@@ -141,7 +141,10 @@ namespace engine
          {
             // we could retry, sleep and continue loop
             ossSleep( STP_AGENT_RETRY_SLEEP ) ;
-            totalTimeout += STP_AGENT_RETRY_SLEEP ;
+            if ( timeout > 0 )
+            {
+               totalTimeout += STP_AGENT_RETRY_SLEEP ;
+            }
             continue ;
          }
          // we could not retry, break loop

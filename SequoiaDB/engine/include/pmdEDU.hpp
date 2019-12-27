@@ -432,6 +432,8 @@ namespace engine
       BOOLEAN  isAutoCommitTrans() const ;
       // check if global transaction is acquired
       BOOLEAN  isGlobTransOn() const ;
+      // get transaction timeout
+      UINT32   getTransTimeout() const ;
       // check if current transaction is global transaction
       BOOLEAN  isGlobTrans() const ;
       void     startTransRollback() { _isDoTransRollback = TRUE ; }

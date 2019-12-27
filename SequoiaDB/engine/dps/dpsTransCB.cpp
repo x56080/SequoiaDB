@@ -65,7 +65,8 @@ namespace engine
     _hisMutex( MON_LATCH_DPSTRANSCB_HISMUTEX ),
     _maxFileSizeMutex( MON_LATCH_DPSTRANSCB_MAXFILESIZEMUTEX ),
     _reservedRBSpace( 0 ) ,
-    _reservedSpace( 0 )
+    _reservedSpace( 0 ),
+    _primaryActiveTime( 0LL )
    {
       _TransIDH16          = DPS_INVALID_TRANSID_NODEID ;
       _isOn                = FALSE ;
@@ -234,6 +235,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ALLOCTRANSID, "dpsTransCB::allocTransID" )
    INT32 dpsTransCB::allocTransID( BOOLEAN isAutoCommit,
                                    BOOLEAN isGlobTrans,
+                                   UINT32 timeout,
                                    DPS_TRANS_ID &transID,
                                    stpLogicalTimeUS &beginTime )
    {
@@ -246,17 +248,17 @@ namespace engine
       if ( isGlobTrans )
       {
          // global transaction by global logical time
-         stpLogicalTimeUS time ;
-         rc = getGlobTransTime( time ) ;
+         stpLogicalTimeUS transTime ;
+         rc = getGlobTransTime( transTime, (INT32)timeout ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get logical time of "
                       "transaction begin, rc: %d", rc ) ;
 
          // set serial number
-         newTransID.resetSN( time.getTime() ) ;
+         newTransID.resetSN( transTime.getTime() ) ;
          newTransID.setGlobTrans() ;
 
          // set begin time
-         beginTime = time ;
+         beginTime = transTime ;
       }
       else
       {
@@ -338,6 +340,18 @@ namespace engine
                visible = TRUE ;
             }
          }
+         else if ( DPS_TRANS_UNKNOWN == status )
+         {
+            // if status is unknown, means transaction of record is before
+            // lowTran, and status has been cleared
+            visible = TRUE ;
+         }
+         else if ( DPS_TRANS_ROLLBACK == status )
+         {
+            // if rollbacked, record is actually restored previous version
+            // which must contain a value older than current transaction
+            visible = TRUE ;
+         }
       }
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB_ISVERSIONVISIBLE ) ;
@@ -354,7 +368,10 @@ namespace engine
 
       // check if the version(represented by transaction ID) is expired.
       // Expired means it's older than system lowtran
-      expired = transID.getGlobSN() < getGlobLowTran( FALSE ).getGlobSN() ;
+      // NOTE: add consideration of maximum time error due to network delay etc
+      expired = ( transID.getGlobSN() <
+                     ( getGlobLowTran( FALSE ).getGlobSN() -
+                       STP_MAX_TIME_ERROR_US ) ) ;
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB_ISVERSIONEXPIRED ) ;
 
@@ -407,7 +424,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBTRANSTIME, "dpsTransCB::getGlobTransTime" )
-   INT32 dpsTransCB::getGlobTransTime( stpLogicalTimeUS &time )
+   INT32 dpsTransCB::getGlobTransTime( stpLogicalTimeUS &time,
+                                       INT32 timeout )
    {
       INT32 rc = SDB_OK ;
 
@@ -418,8 +436,10 @@ namespace engine
                 "Failed to allocate transaction ID for global transaction, "
                 "STP agent is not available" ) ;
 
-      // try to get time in 1 second
-      rc = agent->getLogicalTimeUS( time, OSS_ONE_SEC ) ;
+      // try to get time in timeout
+      // NOTE: it might be failed if STP is busy with synchronization
+      //       we could retry within a given timeout
+      rc = agent->getLogicalTimeUS( time, timeout ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, "
                    "rc: %d", rc ) ;
 
@@ -482,6 +502,136 @@ namespace engine
       PD_TRACE_EXIT( SDB_DPSTRANSCB_GETGLOBTRANSINFO ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_CHECKGLOBTRANS, "dpsTransCB::checkGlobTrans" )
+   INT32 dpsTransCB::checkGlobTrans( const DPS_TRANS_ID &transID,
+                                     const stpLogicalTimeUS &beginTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_CHECKGLOBTRANS ) ;
+
+      UINT64 activeTime = 0LL ;
+
+      // only check with global transaction
+      if ( !transID.isGlobTrans() )
+      {
+         goto done ;
+      }
+
+      // get primary active time
+      activeTime = getPrimaryActiveTime() ;
+      if ( 0LL == activeTime )
+      {
+         // have a chance to retry if not set
+         checkPrimaryActiveTime() ;
+         activeTime = getPrimaryActiveTime() ;
+      }
+      // check if primary active time is valid
+      PD_CHECK( 0LL != activeTime, SDB_GLOB_TRANS_NOT_AVAILABLE, error,
+                PDERROR, "Failed to get primary active time" ) ;
+
+      // check transaction begin time against active time
+      PD_CHECK( activeTime <= beginTime.getTime(),
+                SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
+                "Failed to check global transaction [%s], it is started "
+                "on [%llu] which is before global transaction is activated "
+                "in this node [%llu]", dpsTransIDToString( transID ).c_str(),
+                beginTime.getTime(), activeTime ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_CHECKGLOBTRANS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SETPRIMARYACTIVETIME, "dpsTransCB::setPrimaryActiveTime" )
+   void dpsTransCB::setPrimaryActiveTime()
+   {
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_SETPRIMARYACTIVETIME ) ;
+
+      INT32 rc = SDB_OK ;
+
+      stpLogicalTimeUS activeTime ;
+
+      // if I am not primary, or global transaction is not enabled,
+      // we don't need to set primary active time
+      if ( !pmdIsPrimary() ||
+           !isGlobTransOn() )
+      {
+         goto done ;
+      }
+
+      // try get global transaction time
+      rc = getGlobTransTime( activeTime, 0 ) ;
+      if ( SDB_OK == rc )
+      {
+         // set primary active time
+         // NOTE: add max time error for network delay etc
+         _primaryActiveTime.swap( activeTime.getTime() +
+                                  STP_MAX_TIME_ERROR_US ) ;
+
+         PD_LOG( PDEVENT, "Set primary active time: [%llu]",
+                 activeTime.getTime() ) ;
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Failed to get logical time for primary active "
+                 "time, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_SETPRIMARYACTIVETIME ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_CHECKPRIMARYACTIVETIME, "dpsTransCB::checkPrimaryActiveTime" )
+   void dpsTransCB::checkPrimaryActiveTime()
+   {
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_CHECKPRIMARYACTIVETIME ) ;
+
+      INT32 rc = SDB_OK ;
+
+      stpLogicalTimeUS activeTime ;
+
+      // if I am not primary, or global transaction is not enabled,
+      // we dont't need to check and set primary active time
+      if ( !pmdIsPrimary() ||
+           !isGlobTransOn() )
+      {
+         goto done ;
+      }
+
+      // if primary active time has already set,
+      // no need to checking
+      if ( isPrimaryActived() )
+      {
+         goto done ;
+      }
+
+      // try get a global time
+      rc = getGlobTransTime( activeTime, 0 ) ;
+      if ( SDB_OK == rc )
+      {
+         // try set primary active time
+         // NOTE: add max time error for network delay etc
+         if ( _primaryActiveTime.compareAndSwap(
+                     0LL, ( activeTime.getTime() + STP_MAX_TIME_ERROR_US ) ) )
+         {
+            PD_LOG( PDEVENT, "Set primary active time: [%llu]",
+                    activeTime.getTime() ) ;
+         }
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Failed to get logical time for primary active "
+                 "time, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_CHECKPRIMARYACTIVETIME ) ;
+   }
+
    void dpsTransCB::onRegistered( const MsgRouteID &nodeID )
    {
       _TransIDH16 = (DPS_TRANSID_NODEID)( nodeID.columns.nodeID ) ;
@@ -501,6 +651,10 @@ namespace engine
          else
          {
             startRollbackTask() ;
+
+            // now is primary, ready to accept global transaction
+            // need set the active time
+            setPrimaryActiveTime() ;
          }
       }
       // change to secondary, stop trans rollback
@@ -510,6 +664,11 @@ namespace engine
          {
             stopRollbackTask() ;
             termAllTrans() ;
+         }
+         else
+         {
+            // change to secondary, reset primary active time
+            resetPrimaryActiveTime() ;
          }
       }
    }
@@ -633,10 +792,12 @@ namespace engine
    void dpsTransCB::updateTransInfo( const DPS_TRANS_ID &transID,
                                      DPS_LSN_OFFSET lsnOffset,
                                      INT32 status,
-                                     const stpLogicalTimeUS &time )
+                                     const stpLogicalTimeUS &transTime )
    {
       PD_TRACE_ENTRY ( SDB_DPSTRANSCB_SVTRANSINFO ) ;
 
+      // we don't update transaction info in restore phase, it will be done
+      // by initialization of dpsTransCB after restore
       if ( transID.isValid() &&
            !sdbGetDPSCB()->isInRestore() )
       {
@@ -661,7 +822,7 @@ namespace engine
                if ( transID.isAutoCommit() )
                {
                   // auto-commit doesn't have pre-commit
-                  commitTime = time ;
+                  commitTime = transTime ;
                }
                else
                {
@@ -689,21 +850,26 @@ namespace engine
                if ( DPS_TRANS_WAIT_COMMIT == status &&
                     transID.isGlobTrans() )
                {
-                  it->second._commitTime = time ;
+                  it->second._commitTime = transTime ;
                }
             }
             else
             {
                SDB_ASSERT( !rbPending, "should not be rollback pending" ) ;
                _TransMap[ origID ] = dpsTransBackInfo( lsnOffset, status ) ;
+
+               // the begin time is only valid for first operator of
+               // transaction
                if ( transID.isFirstOp() && transID.isGlobTrans() )
                {
-                  _TransMap[ origID ]._beginTime = time ;
+                  _TransMap[ origID ]._beginTime = transTime ;
                }
             }
          }
 
          /// add to his trans
+         /// if we found last LSN, means the transaction is finished,
+         /// add this transaction into history
          if ( DPS_INVALID_LSN_OFFSET != lastLsn )
          {
             addHisTrans( origID, status, lastLsn, beginTime, commitTime ) ;
@@ -1116,6 +1282,8 @@ namespace engine
                                  const stpLogicalTimeUS &commitTime )
    {
       /// non-global auto-commit transaction don't need add to history list
+      /// NOTE: we added committed and rollbacked transactions into history
+      /// TODO: we need to clear with lowTran
       if ( !transID.isAutoCommit() || transID.isGlobTrans() )
       {
          DPS_TRANS_ID origID = transID.getOrigTransID() ;
