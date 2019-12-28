@@ -1160,6 +1160,19 @@ namespace engine
 
    restBase::~restBase()
    {
+      if( _headerBuf )
+      {
+         _releaseBuff( _headerBuf ) ;
+
+         _headerBuf = NULL ;
+      }
+
+      if( _bodyBuf )
+      {
+         _releaseBuff( _bodyBuf ) ;
+
+         _bodyBuf = NULL ;
+      }
    }
 
    /* read */

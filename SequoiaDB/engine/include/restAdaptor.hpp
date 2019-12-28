@@ -167,6 +167,10 @@ namespace engine
                                 INT32 number = 0,
                                 BOOLEAN isObjBuffer = TRUE ) ;
 
+   private:
+      restBase( const restBase & ) ;
+      restBase &operator=( const restBase & ) ;
+
    protected:
       INT32 _malloc( INT32 size, CHAR **buffer ) ;
 
