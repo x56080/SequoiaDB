@@ -5,7 +5,7 @@
 
    <groupId>com.sequoiadb</groupId>
    <artifactId>sequoiadb-testcase-base</artifactId>
-   <version>3.0.2</version>
+   <version>3.2</version>
    <packaging>pom</packaging>
 
    <properties>

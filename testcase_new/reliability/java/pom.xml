@@ -5,11 +5,11 @@
    <parent>
       <groupId>com.sequoiadb</groupId>
       <artifactId>sequoiadb-testcase-base</artifactId>
-      <version>3.0.2</version>
+      <version>3.2</version>
       <relativePath>../../testcase-base/pom.xml</relativePath>
    </parent>
     
-   <artifactId>sequoiadb-testcases-reliability-java</artifactId>
+   <artifactId>sequoiadb-testcase-reliability-java</artifactId>
    <packaging>jar</packaging>
   
    <properties>
@@ -17,9 +17,9 @@
        <jackson-dataformat-xml.version>2.9.9</jackson-dataformat-xml.version>
        <aws-java-sdk-s3.version>1.11.343</aws-java-sdk-s3.version>
        <json.version>20171018</json.version>
-	</properties>
+   </properties>
 
-  <dependencies>
+   <dependencies>
       <dependency>
          <groupId>com.jcraft</groupId>
          <artifactId>jsch</artifactId>
@@ -45,7 +45,7 @@
           <artifactId>jackson-dataformat-xml</artifactId>
           <version>${jackson-dataformat-xml.version}</version>
       </dependency>
-  </dependencies>
+   </dependencies>
 
    <build>
       <plugins>
