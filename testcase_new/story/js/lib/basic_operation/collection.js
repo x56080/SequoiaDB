@@ -454,4 +454,17 @@ function Collection ( cl )
          }
          return new Query( query );
       }
+
+   this.dropIdIndex =
+      function()
+      {
+         try
+         {
+            cl.dropIdIndex();
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+      }
 }
