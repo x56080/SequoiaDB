@@ -2378,6 +2378,10 @@ public class ObjectServiceImpl implements ObjectService {
 
         //final bytes
         if (range.getStart() == -1){
+            if (range.getEnd() == 0){
+                throw new S3ServerException(S3Error.OBJECT_RANGE_NOT_SATISFIABLE,
+                        " range is invalid,range=-0 ");
+            }
             if(range.getEnd() < contentLength) {
                 range.setStart(contentLength - range.getEnd());
                 range.setEnd(contentLength-1);

@@ -102,6 +102,7 @@ public class RestUtils {
         try {
             return new Range(rangeHeader);
         }catch (S3ServerException e){
+            logger.error("get range fail. range:{}", rangeHeader);
             return null;
         }
     }
