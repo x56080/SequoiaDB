@@ -860,6 +860,12 @@ namespace engine
          {
             const dmsRecord *pRecord= pRecordRW->readPtr( 0 ) ;
             DPS_LSN_OFFSET lsn = pRecord->getLSNOffset() ;
+            // TODO: for record from V0, we do not have LSN on page header.
+            // and we haven't done inflight migration yet. 
+            // we must either force export/import all the records during
+            // migration OR only support mvcc in newly created record(CS/CL)
+            // OR use same method to generate a create LSN for hash purpose.
+
         // FIXME: remove
 #ifdef _DEBUG
       PD_LOG( PDDEBUG, "saving old record to memory and RBS:"
