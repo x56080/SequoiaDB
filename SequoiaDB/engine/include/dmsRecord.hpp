@@ -448,6 +448,8 @@ namespace engine
             ossMemmove( (CHAR*)this + DMS_RECORD_V1_METADATA_SZ, 
                         (CHAR*)this + DMS_RECORD_V0_METADATA_SZ, 
                         ((dmsRecord_v0 *) this)->getDataLength() ) ;
+            // TODO:  generate createLSN using _oid for newly migrated record
+
             setHasGlobTransID() ;
          }
          

@@ -3417,6 +3417,8 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_DATA,
                                                    cb->isDoRollback() ) ;
+         pRecord = recordRW.writePtr( dmsRecordSize ) ;
+         pRecord->setLSNOffset( cb->getEndLsn() ) ;
       }
 
       if ( handler )

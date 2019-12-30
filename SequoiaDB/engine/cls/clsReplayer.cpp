@@ -774,19 +774,22 @@ namespace engine
       DPS_TRANS_ID transID ;
       BOOLEAN startedRollback = FALSE ;
 
+      // check transaction rollback
+      dpsGetTransIDFromRecord( (CHAR *)recordHeader, transID ) ;
+
       if ( !_dpsCB )
       {
+         // retrieve transID from record and put in eduCB, remember to
+         // reset the transID before exit
          eduCB->insertLsn( recordHeader->_lsn ) ;
+         if ( transID.isValid())
+         {
+            eduCB->setTransID( transID ) ;
+         }
       }
 
-      // check transaction rollback
-      rc = dpsGetTransIDFromRecord( (CHAR *)recordHeader,
-                                    transID ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
+      // check if a rollback DPS log, if so, mark rollback status
+      // so duplicated key of non-id index could be ignored
       if ( transID.isValid() &&
            transCB->isRollback( transID ) )
       {
@@ -1535,6 +1538,7 @@ namespace engine
          eduCB->stopTransRollback() ;
       }
       eduCB->resetLsn() ;
+      eduCB->resetTransID() ;
       if ( SDB_OK != rc )
       {
          ftReportErr( rc ) ;
