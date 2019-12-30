@@ -790,7 +790,7 @@
                "cn": "数据库配置",
                "en": "Database Configuration"
             },
-               {
+            {
                "id": 1432191411,
                "dir": "Special_configuration_modify",
                "cn": "特殊配置项修改",
@@ -818,13 +818,13 @@
                     "id": 1432191415,
                     "file": "lobpath_modify",
                     "cn": "大对象数据文件",
-                    "en": "lobpath_modify"                                       
+                    "en": "lobpath_modify"
                   },
                   {
                     "id": 1432191416,
                     "file": "lobmetapath_modify",
                     "cn": "大对象元数据文件",
-                    "en": "lobmetapath_modify"                                      
+                    "en": "lobmetapath_modify"
                   },
                   {
                     "id": 1432190652,
@@ -837,9 +837,9 @@
             {
                "id": 1432190651,
                "file": "EDU",
-               "cn": "引擎调度工具",
+               "cn": "引擎调度单元",
                "en": "EDU"
-            },           
+            },
             {
                "id": 1432190653,
                "dir": "tools",
