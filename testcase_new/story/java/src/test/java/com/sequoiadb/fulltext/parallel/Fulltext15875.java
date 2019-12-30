@@ -50,6 +50,7 @@ public class Fulltext15875 extends FullTestBase {
         FullTextDBUtils.insertData( cl, RECS_NUM );
     }
 
+    // SEQUOIADBMAINSTREAM-4558
     @Test(enabled = false) // jira-4558
     private void test() throws Exception {
         ThreadExecutor es = new ThreadExecutor( FullTextUtils.THREAD_TIMEOUT );

@@ -1,7 +1,5 @@
 package com.sequoiadb.crud.numoverflow;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -100,6 +98,7 @@ public class UpsertAsInc12616 extends SdbTestBase {
     private CollectionSpace cs = null;
     private static DBCollection cl = null;
 
+    // SEQUOIADBMAINSTREAM-3206
     @BeforeClass(enabled = false)
     public void setUp() {
         try {
@@ -118,6 +117,7 @@ public class UpsertAsInc12616 extends SdbTestBase {
         NumOverflowUtils.insert( cl, records );
     }
 
+    // SEQUOIADBMAINSTREAM-3206
     // @Test(dataProvider = "operData")
     public void testUpsert( int setInsertValue, String updateName,
             Object matcherValue, Object incValue, String[] expRecords,
@@ -139,7 +139,6 @@ public class UpsertAsInc12616 extends SdbTestBase {
                             updateName, expTypeToSdb, isVerifyTypeToJava,
                             typeToJava );
                 } catch ( Exception e ) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -150,6 +149,7 @@ public class UpsertAsInc12616 extends SdbTestBase {
         }
     }
 
+    // SEQUOIADBMAINSTREAM-3206
     @Test(enabled = false, dataProvider = "operData1")
     public void testUpsert1( int setInsertValue, String matcher,
             String updateName, Object incValue, String[] expRecords ) {
@@ -168,6 +168,7 @@ public class UpsertAsInc12616 extends SdbTestBase {
         }
     }
 
+    // SEQUOIADBMAINSTREAM-3206
     @AfterClass(enabled = false)
     public void tearDown() {
         try {
@@ -183,5 +184,4 @@ public class UpsertAsInc12616 extends SdbTestBase {
             }
         }
     }
-
 }

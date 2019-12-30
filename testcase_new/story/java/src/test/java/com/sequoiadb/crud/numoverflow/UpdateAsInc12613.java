@@ -1,7 +1,5 @@
 package com.sequoiadb.crud.numoverflow;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -65,6 +63,7 @@ public class UpdateAsInc12613 extends SdbTestBase {
     private CollectionSpace cs = null;
     private static DBCollection cl = null;
 
+    // SEQUOIADBMAINSTREAM-3206
     @BeforeClass(enabled = false)
     public void setUp() {
         try {
@@ -85,6 +84,7 @@ public class UpdateAsInc12613 extends SdbTestBase {
         NumOverflowUtils.insert( cl, records );
     }
 
+    // SEQUOIADBMAINSTREAM-3206
     @Test(enabled = false, dataProvider = "operData")
     public void testUpdateShardingKey( int matcherValue, String updateName,
             Object incValue, String[] expRecords, String expTypeToSdb,
@@ -102,7 +102,6 @@ public class UpdateAsInc12613 extends SdbTestBase {
                             updateName, expTypeToSdb, isVerifyTypeToJava,
                             typeToJava );
                 } catch ( Exception e ) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -113,6 +112,7 @@ public class UpdateAsInc12613 extends SdbTestBase {
         }
     }
 
+    // SEQUOIADBMAINSTREAM-3206
     @AfterClass(enabled = false)
     public void tearDown() {
         try {

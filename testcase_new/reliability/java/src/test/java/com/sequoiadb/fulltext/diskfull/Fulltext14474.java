@@ -77,6 +77,7 @@ public class Fulltext14474 extends SdbTestBase {
     }
 
     // SEQUOIADBMAINSTREAM-4806
+    // SEQUOIADBMAINSTREAM-4325
     @Test(enabled = false)
     public void test() throws Exception {
         GroupWrapper dataGroup = groupMgr.getGroupByName( groupName );
