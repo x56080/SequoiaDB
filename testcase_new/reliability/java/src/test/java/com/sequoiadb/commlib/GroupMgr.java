@@ -6,16 +6,6 @@
  */
 package com.sequoiadb.commlib;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.ReliabilityException;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.bson.util.JSON;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,9 +14,20 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.util.JSON;
+
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.ReliabilityException;
+
 public class GroupMgr {
-    private Map< String, GroupWrapper > name2group = new HashMap< String, GroupWrapper >();
-    private Map< Integer, GroupWrapper > id2group = new HashMap< Integer, GroupWrapper >();
+    private Map< String, GroupWrapper > name2group = new HashMap<>();
+    private Map< Integer, GroupWrapper > id2group = new HashMap<>();
     private static GroupMgr mgr = new GroupMgr();
     private Sequoiadb sdb = null;
 
@@ -107,7 +108,7 @@ public class GroupMgr {
         } catch ( ReliabilityException e ) {
             e.printStackTrace();
         }
-        List< GroupWrapper > dataGroups = new ArrayList< GroupWrapper >();
+        List< GroupWrapper > dataGroups = new ArrayList<>();
         for ( Entry< String, GroupWrapper > entry : name2group.entrySet() ) {
             if ( !entry.getKey().equals( "SYSSpare" )
                     && !entry.getKey().equals( "SYSCatalogGroup" )
@@ -126,7 +127,7 @@ public class GroupMgr {
             e.printStackTrace();
             return null;
         }
-        List< String > names = new ArrayList< String >();
+        List< String > names = new ArrayList<>();
         for ( Entry< String, GroupWrapper > entry : name2group.entrySet() ) {
             if ( !entry.getKey().equals( "SYSSpare" )
                     && !entry.getKey().equals( "SYSCatalogGroup" )
@@ -144,8 +145,8 @@ public class GroupMgr {
             e.printStackTrace();
             return null;
         }
-        List< String > hosts = new ArrayList< String >();
-        Set< String > origHosts = new HashSet< String >();
+        List< String > hosts = new ArrayList<>();
+        Set< String > origHosts = new HashSet<>();
         for ( Entry< String, GroupWrapper > entry : name2group.entrySet() ) {
             Set< String > hostsPerGroup = entry.getValue().getAllHosts();
             origHosts.addAll( hostsPerGroup );
@@ -439,8 +440,37 @@ public class GroupMgr {
                     * 1000 ) {
                 printAndThrowAllException = true;
             }
+            Sequoiadb db = null;
             try {
-                ret = checkBusinessWithLSN( printAndThrowAllException, true );
+                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                DBCursor snapCur = db.getSnapshot( Sequoiadb.SDB_SNAP_HEALTH,
+                        "", "", "" );
+                while ( snapCur.hasNext() ) {
+                    BasicBSONObject nodeInfo = ( BasicBSONObject ) snapCur
+                            .getNext();
+                    if ( nodeInfo.containsField( "ErrNodes" ) ) {
+                        ret = false;
+                        break;
+                    }
+                }
+                snapCur.close();
+            } catch ( BaseException e ) {
+                if ( printAndThrowAllException ) {
+                    throw e;
+                } else {
+                    e.printStackTrace();
+                    ret = false;
+                }
+            } finally {
+                if ( db != null ) {
+                    db.close();
+                }
+            }
+            try {
+                if ( ret ) {
+                    ret = checkBusinessWithLSN( printAndThrowAllException,
+                            true );
+                }
             } catch ( ReliabilityException e ) {
                 if ( printAndThrowAllException ) {
                     throw e;
