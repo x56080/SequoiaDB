@@ -1,28 +1,36 @@
 ﻿/******************************************************************************
 *@Description : seqDB-13658:scp命令结束后，File.scp内部显示调用close关闭File对象 
+*               预期执行成功，执行失败可能报"~bash: ./sdblist: Text file busy"
 *@Author      : 2019-3-19  XiaoNi Huang
 ******************************************************************************/
 main();
 
 function main ()
 {
-	println( "\n---Begin to run test" );
-	var installDir = toolGetSequoiadbDir( COORDHOSTNAME, CMSVCNAME );
-	var srcFile = installDir[0] + '/bin/sdblist';
-	var dstFile = WORKDIR + '/sdblist';
-	var cmd = new Cmd();
+   println( "\n---Begin to run test" );
+   var installDir = toolGetSequoiadbDir( COORDHOSTNAME, CMSVCNAME );
+   var tmpPath = WORKDIR + '/jsObject/13658/';
+   var dstFile = tmpPath + '/sdb';
+   var cmd = new Cmd();
+   cmd.run( "mkdir -p " + tmpPath );
 
-	//TODO:这里似乎没有覆盖远程文件
-	println( "\n---Begin to exec File.scp" );
-	// expect success, if it fails, it will throw "~bash: ./sdblist: Text file busy"
-	File.scp( srcFile, dstFile );
-	// check results
-	var rc = cmd.run( dstFile + " -t all" );
-	var rcObj = rc.split( '\n' );
-	var actRcCode1 = rcObj[0].indexOf( "sequoiadb(" );
-	var actRcCode2 = rcObj[0].indexOf( "sdb" );
-	if( actRcCode1 !== 0 && actRcCode2 !== 0 )
-	{
-		throw buildException( "main", null, "", "0", "  " + actRcCode1 && actRcCode2 );
-	}
+   // TODO 后续优化用例需要考虑本地没有装sequoiadb的情况，这个后面优化用例时统一在公共方法考虑吧，此用例暂不处理
+   var localFile = installDir[0] + '/bin/sdb';
+   var remoteFile = COORDHOSTNAME + ":" + CMSVCNAME + "@" + installDir[0] + '/bin/sdb';
+   var scrFiles = [localFile, remoteFile];
+   for( var i = 0; i < scrFiles.length; i++ )
+   {
+      println( "\n---Begin to exec File.scp " + i );
+      var srcFile = scrFiles[i];
+      File.scp( srcFile, dstFile );
+
+      // check results
+      var rc = cmd.run( dstFile + " -v" );
+      var actRcCode = rc.indexOf( "SequoiaDB" );
+      if( actRcCode !== 0 )
+      {
+         throw new Error( "expRcCode = 0, actRcCode = " + actRcCode );
+      }
+      cmd.run( "rm " + dstFile );
+   }
 }
