@@ -8,55 +8,83 @@
 ****************************************************************/
 
 // check parameter
-if ( typeof( host ) === "undefined" )
+if( typeof ( host ) === "undefined" )
 {
-   var host = "localhost" ;
+   var host = "localhost";
 }
 else if( host.constructor !== String )
 {
-   throw "Invalid param[host], should be String" ;
+   throw "Invalid param[host], should be String";
 }
 
 // set global variable
-var HOST              = host ;
-var COORD_SVC         = 11810 ;
+var HOST = host;
+var COORD_SVC = 11810;
 
 // run!
-main() ;
+main();
 
-function main()
+function main ()
 {
-   if ( HOST !== "" )
+   if( HOST !== "" )
    {
-      checkSequoiadb() ;
+      checkSequoiadb();
    }
    else
    {
-      println("Do not check sdb, because of host: " + HOST) ;
+      println( "Do not check sdb, because of host: " + HOST );
    }
 }
 
-function checkSequoiadb()
+function checkSequoiadb ()
 {
-   while( true )
+   var checkTimes = 0;
+   while( checkTimes++ < 300 )
    {
-      sleep( 1000 ) ;
+      sleep( 1000 );
       try
       {
-         var db = new Sdb(HOST + ":" + COORD_SVC) ;
+         var db = new Sdb( HOST + ":" + COORD_SVC );
+         try
+         {
+            db.createCS( "testcs_check_sdb" );
+         }
+         catch( e )
+         {
+            if( e != -33 )
+            {
+               throw e;
+            }
+         }
+         try
+         {
+            db.testcs_check_sdb.createCL( "testcl_check_sdb", { ShardingKey: { a: 1 }, ShardingType: "hash", AutoSplit: true, ReplSize: 0 } );
+         }
+         catch( e )
+         {
+            if( e != -22 )
+            {
+               throw e;
+            }
+         }
+         insertList = [];
+         for( var i = 0; i < 1000; i++ )
+         {
+            insertList.push( { "a": i, b: i } );
+         }
+         db.testcs_check_sdb.testcl_check_sdb.insert( insertList );
+         db.dropCS( "testcs_check_sdb" );
       }
       catch( e )
       {
-         if ( e != -79 && e != -15 && e != -104 )
-         {
-            throw "ERROR from new Sdb " + e ;
-         }
-         else
-         {
-            continue ;
-         }
+         println( "Check SDB deploy ok throw: " + e );
+         continue;
       }
-      break ;
+      break;
    }
-   println( HOST + " Check Sdb ok" ) ;
+   if( checkTimes == 301 )
+   {
+      throw HOST + ":" + COORD_SVC + " Check Sdb fail";
+   }
+   println( HOST + ":" + COORD_SVC + " Check Sdb ok" );
 }
