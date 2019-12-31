@@ -438,7 +438,7 @@
       ]
    };
 
-   window.SdbSacManagerConf.NetwordEchart = {
+   window.SdbSacManagerConf.NetworkEchart = {
       title: {
          show: true,
          text: '网络',
@@ -495,7 +495,7 @@
       ]
    } ;
    
-   window.SdbSacManagerConf.NetwordOutEchart = {
+   window.SdbSacManagerConf.NetworkOutEchart = {
       title: {
          show: true,
          text: 'TXByts',
@@ -552,7 +552,7 @@
       ]
    } ;
 
-   window.SdbSacManagerConf.NetwordInEchart = {
+   window.SdbSacManagerConf.NetworkInEchart = {
       title: {
          show: true,
          text: 'RXBytes',
@@ -703,7 +703,7 @@
       ]
    } ;
 
-   window.SdbSacManagerConf.NetwordIOEchart = {
+   window.SdbSacManagerConf.NetworkIOEchart = {
       title: {
          show: true,
          text: '网络流量',

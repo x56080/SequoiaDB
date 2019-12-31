@@ -40,7 +40,7 @@
       $scope.charts['Storage']['options']['title']['text'] = $scope.autoLanguage( '磁盘利用率' ) ;
 
       $scope.charts['network'] = {} ;
-      $scope.charts['network']['options'] = window.SdbSacManagerConf.NetwordIOEchart ;
+      $scope.charts['network']['options'] = window.SdbSacManagerConf.NetworkIOEchart ;
       $scope.charts['network']['options']['title']['text'] = $scope.autoLanguage( '网络流量' ) ;
 
       $scope.charts['memory'] = {} ;

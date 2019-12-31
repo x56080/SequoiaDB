@@ -193,7 +193,7 @@
       $scope.Charts['Disk']['options']['title']['text'] = $scope.autoLanguage( '磁盘利用率' ) ;
 
       $scope.Charts['Network'] = {} ;
-      $scope.Charts['Network']['options'] = window.SdbSacManagerConf.NetwordIOEchart ;
+      $scope.Charts['Network']['options'] = window.SdbSacManagerConf.NetworkIOEchart ;
       $scope.Charts['Network']['options']['title']['text'] = $scope.autoLanguage( '网络流量' ) ;
 
       $scope.Charts['Memory'] = {} ;

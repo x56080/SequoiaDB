@@ -67,8 +67,8 @@
                                  'RXPackets': rxPackets,
                                  'TXBytes':   sizeConvert( txBytes ),
                                  'TXPackets': txPackets,
-                                 'RXChart': { 'options': window.SdbSacManagerConf.NetwordInEchart },
-                                 'TXChart': { 'options': window.SdbSacManagerConf.NetwordOutEchart }
+                                 'RXChart': { 'options': window.SdbSacManagerConf.NetworkInEchart },
+                                 'TXChart': { 'options': window.SdbSacManagerConf.NetworkOutEchart }
                               } ) ;
                               netList[index2]['TXChart']['value'] = [ [ 0, 0, true, false ] ] ;
                               netList[index2]['RXChart']['value'] = [ [ 0, 0, true, false ] ] ;
