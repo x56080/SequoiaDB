@@ -1209,12 +1209,15 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__LOGDPS1, "_dmsStorageDataCommon::_logDPS" )
-   INT32 _dmsStorageDataCommon::_logDPS( SDB_DPSCB *dpsCB, dpsMergeInfo &info,
-                                         pmdEDUCB *cb, dmsMBContext *context,
-                                         dmsExtentID extLID,
-                                         BOOLEAN needUnLock,
-                                         DMS_FILE_TYPE type,
-                                         UINT32 *clLID )
+   INT32 _dmsStorageDataCommon::_logDPS( SDB_DPSCB     *dpsCB,
+                                         dpsMergeInfo  &info,
+                                         pmdEDUCB      *cb,
+                                         dmsMBContext  *context,
+                                         dmsExtentID    extLID,
+                                         BOOLEAN        needUnLock,
+                                         DMS_FILE_TYPE  type,
+                                         dmsRecord     *pRecord,
+                                         UINT32        *clLID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON__LOGDPS1 ) ;
@@ -1230,6 +1233,13 @@ namespace engine
       }
       lsn = info.getMergeBlock().record().head()._lsn ;
       context->mbStat()->updateLastLSN( lsn, type ) ;
+
+      // Before latch is released, put the lsn back into record as the 
+      // life lsn of the record
+      if ( NULL != pRecord )
+      {
+         pRecord->setLSNOffset( lsn ) ;
+      }
 
       // release lock
       if ( needUnLock )
@@ -2678,7 +2688,7 @@ namespace engine
                                fullName, rc, "RecordNum:%llu, LobNum:%llu",
                                oldRecords, oldLobs ) ;
          rc = _logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT,
-                       TRUE, DMS_FILE_ALL, &oldCLID ) ;
+                       TRUE, DMS_FILE_ALL, NULL, &oldCLID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert CLTrunc record to log, "
                       "rc: %d", rc ) ;
       }
@@ -3418,6 +3428,7 @@ namespace engine
 
       if ( dpscb )
       {
+         pRecord = recordRW.writePtr( dmsRecordSize ) ;
          PD_AUDIT_OP_WITHNAME( AUDIT_INSERT, "INSERT", AUDIT_OBJ_CL,
                                fullName, rc, "%s",
                                insertObj.toString().c_str() ) ;
@@ -3429,14 +3440,10 @@ namespace engine
          }
          rc = _logDPS( dpscb, info, cb, context,
                        pExtent->_logicID, canUnLock,
-                       DMS_FILE_DATA ) ;
+                       DMS_FILE_DATA, pRecord ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to insert record into log, "
                        "rc: %d", rc ) ;
          dropDps = dpscb ;
-
-         // after writen log record, put the lsn back into record
-         pRecord = recordRW.writePtr( dmsRecordSize ) ;
-         pRecord->setLSNOffset( logRecord.head()._lsn ) ;
       }
       else if ( cb->getLsnCount() > 0 )
       {

@@ -1122,10 +1122,15 @@ namespace engine
                                  BOOLEAN add2LoadList = FALSE,
                                  dmsExtentID *allocExtID = NULL ) ;
 
-         INT32 _logDPS( SDB_DPSCB *dpsCB, dpsMergeInfo &info,
-                        _pmdEDUCB *cb, dmsMBContext *context,
-                        dmsExtentID extLID, BOOLEAN needUnLock,
-                        DMS_FILE_TYPE type, UINT32 *clLID = NULL ) ;
+         INT32 _logDPS( SDB_DPSCB     *dpsCB, 
+                        dpsMergeInfo  &info,
+                        _pmdEDUCB     *cb,
+                        dmsMBContext  *context,
+                        dmsExtentID    extLID, 
+                        BOOLEAN        needUnLock,
+                        DMS_FILE_TYPE  type,
+                        dmsRecord     *pRecord = NULL,
+                        UINT32        *clLID = NULL ) ;
 
          INT32 _freeExtent ( dmsExtentID extentID, INT32 collectionID ) ;
          INT32 _freeExtent ( dmsMBContext *context, dmsExtentID extentID ) ;

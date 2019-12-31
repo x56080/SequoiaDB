@@ -678,6 +678,7 @@ namespace engine
       } // end of case 1
 
       // Handle case 2 mentioned above
+      // S/X lock successful
       // X record lock request from a transaction need to prepare to set
       // up old copy if the copy is not already there
       else if ( SDB_OK == irc )
@@ -707,7 +708,8 @@ namespace engine
             goto done ;
          }
 
-         /// when pExtData->_data is 0, should create oldver
+         // when pExtData->_data is 0, should create oldver if scan came 
+         // from disk
          if ( 0 == pExtData->_data )
          {
             if ( DPS_TRANSLOCK_X == requestLockMode &&
@@ -715,6 +717,16 @@ namespace engine
                  !notTransOrRollback )
             {
                dmsRecordID rid( lockId.extentID(), lockId.offset() ) ;
+               // skip the record if from memory tree
+               if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
+                    SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() )
+               {
+                  _skipRecord = TRUE ;
+                  /// remove the duplicate rid
+                  _pScanner->removeDuplicatRID( rid ) ;
+                  goto done ;
+               }
+
                _oldVer = SDB_OSS_NEW oldVersionContainer( rid, _csID, _clID,
                                                           _csLID, _clLID ) ;
                if ( !_oldVer )
@@ -840,9 +852,6 @@ namespace engine
    {
       INT32        rc      = SDB_OK ;
       DPS_TRANS_ID transID ;
-      // TODO: add/fix the assertion
-      SDB_ASSERT( TRUE, 
-                  "RecordLock is not held " ) ;
       SDB_ASSERT( _eduCB && pRecordRW,
                   "eduCB or recordRW is not properly setup " ) ;
       // get the owner transaction id
@@ -859,6 +868,7 @@ namespace engine
          else
          {
             const dmsRecord *pRecord= pRecordRW->readPtr( 0 ) ;
+#ifdef _DEBUG
             DPS_LSN_OFFSET lsn = pRecord->getLSNOffset() ;
             // TODO: for record from V0, we do not have LSN on page header.
             // and we haven't done inflight migration yet. 
@@ -867,7 +877,6 @@ namespace engine
             // OR use same method to generate a create LSN for hash purpose.
 
         // FIXME: remove
-#ifdef _DEBUG
       PD_LOG( PDDEBUG, "saving old record to memory and RBS:"
               "rid(%d, %d), ownertransid(%s), "
               "recordTransID(%s), lsn(%llu)",
@@ -899,7 +908,7 @@ namespace engine
                rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
                       ->appendRecord( _oldVer->getCSID(), 
                                       _oldVer->getCLID(),
-                                      lsn, 
+                                      rid,
                                       pRecord->getGlobTransID(),
                                       transID,
                                       obj ) ;
@@ -907,11 +916,10 @@ namespace engine
                {
                   PD_LOG( PDERROR, 
                           "Failed to save to RBS  :rid(%d, %d), tid(%s), "
-                          "obj(%s), lsn(%llu)",
+                          "obj(%s)",
                           rid._extent, rid._offset, 
                           dpsTransIDToString( transID ).c_str(),
-                          _oldVer->getRecordObj().toString().c_str(),
-                          lsn ) ;
+                          _oldVer->getRecordObj().toString().c_str() ) ;
                   goto error ;
                }
             }
