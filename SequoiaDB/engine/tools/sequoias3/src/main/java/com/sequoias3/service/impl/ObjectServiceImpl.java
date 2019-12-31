@@ -1363,7 +1363,7 @@ public class ObjectServiceImpl implements ObjectService {
                 cleanRedundencyLob(dataCsName, dataClName, newDataLob.getLobId());
             }
             if (mutexLock){
-                uploadStatusDao.deleteUploadId(uploadId);
+                cleanUploadStatus(uploadId);
             }
             throw e;
         }
@@ -1373,7 +1373,7 @@ public class ObjectServiceImpl implements ObjectService {
                 cleanRedundencyLob(dataCsName, dataClName, newDataLob.getLobId());
             }
             if (mutexLock){
-                uploadStatusDao.deleteUploadId(uploadId);
+                cleanUploadStatus(uploadId);
             }
             throw new S3ServerException(S3Error.PART_COMPLETE_MULTIPART_UPLOAD_FAILED,
                     "complete upload failed. bucket:"+bucketName+", uploadId:"+uploadId, e);
@@ -2150,6 +2150,14 @@ public class ObjectServiceImpl implements ObjectService {
             logger.error("cleanRedundencyLob failed. csName:" + csName +
                     ", clName:" + clName +
                     ", lobId:" + lobId.toString());
+        }
+    }
+
+    private void cleanUploadStatus(long uploadId){
+        try {
+            uploadStatusDao.deleteUploadId(uploadId);
+        }catch (Exception e1){
+            logger.error("deleteUploadId failed.", e1);
         }
     }
 

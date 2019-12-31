@@ -49,8 +49,8 @@ public class SequoiadbDataDao implements DataDao {
             throws S3ServerException {
         Sequoiadb sdb = null;
         try {
-            sdb               = sdbDatasourceWrapper.getSequoiadb();
-            DBLob       dbLob = createLobWithCsCl(sdb, csName, clName, region);
+            sdb   = sdbDatasourceWrapper.getSequoiadb();
+            DBLob dbLob = createLobWithCsCl(sdb, csName, clName, region);
 
             MessageDigest MD5 = MessageDigest.getInstance("MD5");
 
@@ -87,7 +87,6 @@ public class SequoiadbDataDao implements DataDao {
         } catch (BaseException e){
             throw e;
         }catch (Exception e) {
-            logger.error("create lob failed");
             throw e;
         } finally {
             sdbDatasourceWrapper.releaseSequoiadb(sdb);
@@ -168,7 +167,6 @@ public class SequoiadbDataDao implements DataDao {
         } catch (BaseException e){
             throw e;
         }catch (Exception e) {
-            logger.error("insert lob failed");
             throw e;
         } finally {
             sdbDatasourceWrapper.releaseSequoiadb(sdb);
@@ -343,14 +341,11 @@ public class SequoiadbDataDao implements DataDao {
             }
             //close lob
             closeLob(sourceDBLob);
-            closeLob(destDBLob);
+            destDBLob.close();
             return result;
-        } catch (S3ServerException e) {
-            throw e;
         } catch (BaseException e){
             throw e;
-        }catch (Exception e) {
-            logger.error("create lob failed");
+        } catch (Exception e) {
             throw e;
         } finally {
             sdbDatasourceWrapper.releaseSequoiadb(sdb);
