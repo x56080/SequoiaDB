@@ -374,7 +374,11 @@ namespace engine
    class _dmsRecord_v1 : public _dmsRecord_v0
    {
    public :
-     DPS_LSN_OFFSET _lsnOffset ;    // record creation lsn
+     DPS_LSN_OFFSET _lsnOffset ;    // record creation lsn. We can use this to
+                                    // uniquely identify a record cross the
+                                    // nodes. It is set during insertRecord.
+                                    // However, we are not using it yet. 
+                                    // Keep it for debug and future expension.
      DPS_TRANS_ID   _globTransID ;  // global transaction ID
 
       /*
@@ -586,7 +590,11 @@ namespace engine
       // an record within the capped CS
       INT64       _logicalID ;
 
-      DPS_LSN_OFFSET _lsnOffset ;  // record creation lsn offset
+      DPS_LSN_OFFSET _lsnOffset ;  // record creation lsn offset. We can use 
+                                   // it to uniquely identify a record cross 
+                                   // nodes. It is set during insertRecord.
+                                   // However, we are not using it yet. 
+                                   // Keep it for debug and future expension.
       DPS_TRANS_ID  _globTransID ; // global transaction ID updated the record
                                    // it's the same trans created cappedRecord
    public:

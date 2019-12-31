@@ -222,9 +222,13 @@ namespace engine
    {
       SINT32              rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_FINI );
+      // TODO: this code is currently disabled as we decided to 
+      // fail all earlier global transactions after change over primary.
+      // We can enable below code once we decide to lift the restriction.
       // Write out the in-memory RBS hash table to meta data records
       // before destroying all in memory structure.
       // They are loaded into hashbucket during init (see loadMeta)
+#if 0
       SDB_DPSCB    *dpsCB = pmdGetKRCB()->getDPSCB() ;
       rc = flushMeta( DMS_MAX_RBS_CL, DMS_MAX_RBS_CL, dpsCB,
                       DMS_RBS_FLUSH_OPTION_HASHBKT ) ;
@@ -232,13 +236,16 @@ namespace engine
                    "Flush of RBS in memory meta record failed, rc=%d",
                    rc ) ;
    done :
+#endif
       PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_FINI, rc );
       return rc ;
+#if 0
    error :
       // assert on any failure
       SDB_ASSERT( FALSE, "RBSMgr fini failed" ) ;
       
       goto done ;
+#endif
    }
 
    // Create meta CL and first CL for SYSRBS
@@ -594,8 +601,8 @@ namespace engine
       UINT16      lastFreeCL = 0 ;
       BOOLEAN     mbLatched  = FALSE ;
       dmsMBContext *metaContext  = NULL ;
-      dmsMBContext *context  = NULL ;
-      CHAR        clName[30] ;
+      //dmsMBContext *context  = NULL ;
+      //CHAR        clName[30] ;
 
       // take mbLock here, and pass down the context
       rc = _su->data()->getMBContext( &metaContext, _metaCLName, EXCLUSIVE ) ;
@@ -621,6 +628,10 @@ namespace engine
       PD_LOG ( PDDEBUG, "Successfully set up meta: curCL=%d, lastFreeCL=%d",
                curCL, lastFreeCL ) ;
 
+      // TODO: this code is currently disabled as we decided to 
+      // fail all earlier global transactions after change over primary.
+      // We can enable below code once we decide to lift the restriction.
+#if 0
       // read the rest of meta records and load up the in memory bucket
       rc = loadHashBkt( metaContext ) ;
       if ( rc )
@@ -652,7 +663,7 @@ namespace engine
                   clName, rc ) ;
          goto error ;
       }
-
+#endif
    done:
       if ( mbLatched )
       {
@@ -749,6 +760,10 @@ namespace engine
          _currentCollection = curCL;
          _lastFreeCollection = lastFreeCL ;
       }
+      // TODO: this code is currently disabled as we decided to 
+      // fail all earlier global transactions after change over primary.
+      // We can enable below code once we decide to lift the restriction.
+#if 0
       else if ( DMS_RBS_FLUSH_OPTION_HASHBKT == 
                 (DMS_RBS_FLUSH_OPTION_MASK & DMS_RBS_FLUSH_OPTION_HASHBKT) )
       {
@@ -768,6 +783,7 @@ namespace engine
             }
          }
       }
+#endif
       else
       {
          PD_LOG( PDERROR, "Invalid flush option: %d",
@@ -777,6 +793,10 @@ namespace engine
          goto error ;
       }
 
+      // TODO: this code is currently disabled as we decided to 
+      // fail all earlier global transactions after change over primary.
+      // We can enable below code once we decide to lift the restriction.
+#if 0
       // now build record for hashbkt and insert
       try
       {
@@ -836,7 +856,7 @@ namespace engine
          rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
          goto error ;
       }
-
+#endif
    done:
       if ( mbLocked )
       {
@@ -940,54 +960,6 @@ namespace engine
       goto done ;
    }
 
-/*
-   // Provided curCL and lastFreeCL, update the meta data record in SYSRBS.SYSRBS000
-   // The caller should already hold mbLock of SYSRBS000 for concurrency control
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__UPDATEMETA1, "_dmsRBSSUMgr::_updateMeta" )
-   SINT32 _dmsRBSSUMgr::_updateMeta ( UINT16        curCL,
-                                      UINT16        lastFreeCL,
-                                      dmsMBContext *context,
-                                      SDB_DPSCB    *dpsCB )
-   {
-      SINT32      rc         = SDB_OK;
-      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__UPDATEMETA1 );
-      pmdEDUCB   *eduCB      = pmdGetThreadEDUCB() ;
-      INT64       logicalID  = 0 ; // we only has 1 record
-
-      SDB_ASSERT( context && context->isMBLock( EXCLUSIVE ), "mbLock must be held in X") ;
-
-      // This is cap cs, we can only pop+insert instead of update
-      rc = _su->data()->popRecord( context, logicalID, eduCB, dpsCB, -1 ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to pop RBS meta record, rc: %d",
-                  rc ) ;
-         goto error ;
-      }
-
-      // insert the record with new value
-      rc = _insertMeta( curCL, lastFreeCL, context, dpsCB ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR,
-                  "Failed to insert back RBS meta record (%d, %d), rc: %d",
-                  curCL, lastFreeCL, rc ) ;
-         goto error ;
-      }
-
-      // Update _currentCollection and _lastFreeCollection under mblock
-      _currentCollection = curCL ;
-      _lastFreeCollection = lastFreeCL ;
-
-      PD_LOG ( PDDEBUG, "Update RBS meta record (%d, %d) successfully",
-               curCL, lastFreeCL ) ;
-   done:
-      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__UPDATEMETA1, rc );
-      return rc ;
-   error:
-      goto done ;
-   }
-*/
    // Find the current RBS CL and make sure it has enough space to append
    // a record with specified size. If the current one run out of space,
    // this function will automatically move to next CL.
@@ -1219,6 +1191,11 @@ namespace engine
    //    recordTransID:  Record version, (last creation/update trans ID)
    //    ownerTransID: transaction to put the record to in memory old version
    //                  container and now to RBS
+   // Note that we currently use RID for hashing because we will fail already
+   // started transaction thus each primary node use it's own method for 
+   // hashing at run time. If we ever support newly voted primary to continue
+   // servicing running transaction, we need something unique (liek lsn) across
+   // node.
    // Append a record to the end of the RBS using insertRecord interface:
    // 1. based on CSID+RID, hash and find the proper bucket, lock the bucket
    // 2. build proper record
@@ -1227,7 +1204,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_APPENDRECORD1, "_dmsRBSSUMgr::appendRecord" )
    SINT32 _dmsRBSSUMgr::appendRecord ( dmsStorageUnitID      csid,
                                        UINT16                clid,
-                                       DPS_LSN_OFFSET        lsn,
+                                    // DPS_LSN_OFFSET        lsn,
+                                       const dmsRecordID    &rid,
                                        DPS_TRANS_ID          recordTransID,
                                        DPS_TRANS_ID          ownerTransID,
                                        const BSONObj        &data )
@@ -1239,10 +1217,13 @@ namespace engine
       dmsMBContext *clContext    = NULL ;
       CHAR          clName[30]   = {0} ;
       pmdEDUCB     *eduCB        = pmdGetThreadEDUCB() ;
-      // setup dpsCB so that the replica can replay the addCollection 
-      // log record. 
-      SDB_DPSCB    *dpsCB = pmdGetKRCB()->getDPSCB() ;
-      UINT32        bkt          = _hash( csid, clid, lsn );
+      // TODO: setup dpsCB so that the replica can replay the addCollection
+      // log record. This is currently disabled as we decided to fail the 
+      // transaction after failover to new primary node. If we decide to
+      // life this restriction, we will setup the proper dpsCB
+      //SDB_DPSCB    *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      SDB_DPSCB    *dpsCB = NULL ;
+      UINT32        bkt          = _hash( csid, clid, rid );
       BSONObjBuilder builder ;
       utilInsertResult insertResult ;
       BSONObj       record ;
@@ -1251,8 +1232,6 @@ namespace engine
       UINT32        recSize ;
       // type conversion for following use
       SINT32        cl           = clid ;
-      //dmsRBSRecordKey recKey( csid, clid, rid ) ;
-      // use array of 4 int to store on disk
       _dmsStorageDataCapped *sd = (_dmsStorageDataCapped*)_su->data();
 
       // Under hash bkt latch, build BSON record to include following:
@@ -1262,13 +1241,18 @@ namespace engine
 
       try
       {
+         // use array of 4 int to store on disk
          builder.append( FIELD_NAME_RBS_RECORD_KEY,
                          BSON_ARRAY( (SINT32)csid <<
-                                     (SINT32)cl ) ) ;
+                                     (SINT32)cl   <<
+                                     rid._extent  <<
+                                     rid._offset ) ) ;
+
          // has to cast to INT64
+#if 0
          builder.append( FIELD_NAME_RBS_RECORD_LSN_OFFSET,
                          (INT64)lsn ) ;
-
+#endif
          // append transaction ID as BSON sub-object
          rc = dpsTransIDToBSON( recordTransID, builder,
                                 FIELD_NAME_RBS_RECORD_TRANSID ) ;
@@ -1353,14 +1337,15 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_GETRECORD, "_dmsRBSSUMgr::getRecord" )
    SINT32 _dmsRBSSUMgr::getRecord ( dmsStorageUnitID  csid,
                                     UINT16            clid,
-                                    DPS_LSN_OFFSET    &lsn,
+                                 // DPS_LSN_OFFSET    &lsn,
+                                    dmsRecordID      &rid,
                                     DPS_TRANS_ID      transid,
                                     BOOLEAN          &found,
                                     dmsRecordData    &recordData )
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_GETRECORD );
       SINT32        rc         = SDB_OK ;
-      UINT32        bkt        = _hash( csid, clid, lsn );
+      UINT32        bkt        = _hash( csid, clid, rid );
       dmsMBContext *context    = NULL ;
       pmdEDUCB     *eduCB      = pmdGetThreadEDUCB() ;
       dmsRecordRW   recordRW ;
@@ -1373,9 +1358,9 @@ namespace engine
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
                "Transaction (%s) tries to find a proper version from RBS, "
-               "csid(%d), clid(%d), record lsn(%llu)",
+               "csid(%d), clid(%d), record rid(%d, %d)",
                dpsTransIDToString( transid ).c_str(),
-               csid, clid, lsn ) ;
+               csid, clid, rid._extent, rid._offset ) ;
 #endif
       found = FALSE ;
       // 1. From the hash table, find the position
@@ -1413,11 +1398,10 @@ namespace engine
             // 2. read record from the position
             dmsRecordID   recordID( extID, offset ) ;
             BSONObj       cappedRecord ;
-            //dmsRecordData cappedRecordData ;
             DPS_TRANS_ID  recordTransID ;
-            DPS_LSN_OFFSET recordLSNOffset ;
+            //DPS_LSN_OFFSET recordLSNOffset ;
             BSONElement   eleTransID;
-            BSONElement   eleLsnOffset;
+            //BSONElement   eleLsnOffset;
             BSONElement   eleKey;
 
             DMS_BUILD_RBS_CL_NAME( clName, position._clID ) ;
@@ -1446,12 +1430,13 @@ namespace engine
             // 3. parse the dataRecord to figure out record key and visiability
             //cappedRecord = BSONObj( cappedRecordData.data() ) ;
             eleTransID = cappedRecord.getField(FIELD_NAME_RBS_RECORD_TRANSID) ;
+#if 0
             eleLsnOffset = 
                      cappedRecord.getField(FIELD_NAME_RBS_RECORD_LSN_OFFSET) ;
+            recordLSNOffset = eleLsnOffset.numberLong();
+#endif
             eleKey = cappedRecord.getField( FIELD_NAME_RBS_RECORD_KEY ) ;
             vector< BSONElement > vecKey = eleKey.Array() ;
-
-            recordLSNOffset = eleLsnOffset.numberLong();
 
             // parse transaction ID
             PD_CHECK( Object == eleTransID.type(), SDB_SYS, error, PDERROR,
@@ -1465,7 +1450,9 @@ namespace engine
             // 4. setup return data for qualified version
             if ( ( vecKey[0].numberInt() == csid ) &&
                  ( vecKey[1].numberInt() == clid ) &&
-                 ( recordLSNOffset == lsn ) &&
+                 ( vecKey[2].numberInt() == rid._extent ) &&
+                 ( vecKey[3].numberInt() == rid._offset ) &&
+              // ( recordLSNOffset == lsn ) &&
                  sdbGetTransCB()->isVersionVisible( recordTransID,
                                                     transid,
                                                     eduCB->getTransBeginTime() ) )
@@ -1705,6 +1692,10 @@ namespace engine
          goto error ;
       }
 
+      // TODO: this code is currently disabled as we decided to 
+      // fail all earlier global transactions after change over primary.
+      // We can enable below code once we decide to lift the restriction.
+#if 0
       // take mbLock and update the meta record
       pContext->mbLock( EXCLUSIVE ) ;
 
@@ -1718,7 +1709,7 @@ namespace engine
                   rc ) ;
          goto error ;
       }
-
+#endif 
    done:
       if ( pContext )
       {

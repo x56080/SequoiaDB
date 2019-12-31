@@ -740,7 +740,7 @@ namespace engine
                   rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
                          ->getRecord( _pSu->logicalID(),  // use cappedCL fetch
                                       _context->mbID(),
-                                      lsn,
+                                      _curRID,
                                       transID, found, recordData ) ;
                   if ( SDB_OK != rc )
                   {
@@ -2238,7 +2238,7 @@ namespace engine
                rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
                       ->getRecord( _pSu->logicalID(),
                                    _context->mbID(),
-                                   lsn,
+                                   _curRID,
                                    transID, found, recordData ) ;
                if ( SDB_OK != rc )
                {
