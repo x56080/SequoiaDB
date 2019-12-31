@@ -47,9 +47,9 @@ function main ()
    var queryCond = '{"query" : {"exists" : {"field" : "about"}}, "size" : 20}';
    var actESRecords = esOperator.findFromES( esIndexNames[0], queryCond );
 
-   if( count != 8 )
+   if( count > 8 )
    {
-      throw new Error( "expect record num: 8, actual record num: " + count );
+      throw new Error( "expect record less than num: 8, actual record num: " + count );
    }
 
    checkRecords( actESRecords, actCLRecords );
