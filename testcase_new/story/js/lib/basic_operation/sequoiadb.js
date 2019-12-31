@@ -419,4 +419,21 @@ function Sequoiadb ( hostname, svcname, username, password )
             throw new Error( e );
          }
       }
+
+   this.list =
+      function( listType, cond, sel, sort )
+      {
+         if( cond === undefined ) { cond = {}; }
+         if( sel === undefined ) { sel = {}; }
+         if( sort === undefined ) { sort = {}; }
+         try
+         {
+            var cursor = db.list( listType, cond, sel, sort );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return new Cursor( cursor );
+      }
 }
