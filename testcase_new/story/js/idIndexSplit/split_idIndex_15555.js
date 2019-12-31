@@ -5,13 +5,8 @@
 ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipOneGroup = true;
-var groupNames = commGetDataGroupNames( db );
-var srcGroupName = groupNames[0];
-var dstGroupName = groupNames[1];
-
-testConf.csName = COMMCSNAME;
 testConf.clName = CHANGEDPREFIX + "_split15555";
-testConf.clOpt = { "ShardingKey": { "a": 1 }, "ShardingType": "hash", "Group": srcGroupName, "AutoIndexId": false };
+testConf.clOpt = { "ShardingKey": { "a": 1 }, "ShardingType": "hash", "AutoIndexId": false };
 
 main( test );
 function test ( arg )

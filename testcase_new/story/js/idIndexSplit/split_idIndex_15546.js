@@ -5,24 +5,17 @@
 ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipOneGroup = true;
-var groupNames = commGetDataGroupNames( db );
-var srcGroupName = groupNames[0];
-var dstGroupName = groupNames[1];
-
-var dmName = CHANGEDPREFIX + "_split15546";
-commDropDomain( db, dmName, true );
-commCreateDomain( db, dmName, groupNames, {}, false );
-
+testConf.DomainUseGroupNum = 2;
 testConf.csName = CHANGEDPREFIX + "_split15546";
-testConf.csOpt = { "Domain": dmName };
+testConf.csOpt = { "Domain": CHANGEDPREFIX + "_split15546" };
 testConf.clName = "cl";
 testConf.clOpt = { "ShardingKey": { "a": 1 }, "ShardingType": "hash", "AutoIndexId": false };
-var recsNum = 100;
 
 main( test );
 function test ( arg )
 {
    var cl = arg.testCL;
+   var recsNum = 100;
 
    // insert
    var docs = [];
@@ -50,9 +43,6 @@ function test ( arg )
    cl.createIdIndex();
    cl.setAttributes( { "AutoSplit": true } );
    checkCLAttr( cl );
-
-   // clean
-   commDropDomain( db, dmName, false, "drop cs in the end" );
 }
 
 function checkCLAttr ( cl )

@@ -34,3 +34,19 @@ function checkSplitResults ( csName, clName, expGroupNames, expTotalRecsNum )
       throw new Error( "expTotalRecsNum = " + expTotalRecsNum + ", actTotalRecsNum = " + actTotalRecsNum );
    }
 }
+
+/* ***************************************************
+@Description : get dstGroupName for split
+@Modify list : XiaoNi Huang 2019-12-31
+*************************************************** */
+function getDstGroupName ( srcGroupName )
+{
+   var groupNames = commGetDataGroupNames( db );
+   for( var i = 0; i < groupNames.length; i++ )
+   {
+      if( groupNames[i] !== srcGroupName )
+      {
+         return groupNames[i];
+      }
+   }
+}
