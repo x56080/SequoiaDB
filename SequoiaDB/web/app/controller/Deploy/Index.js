@@ -831,6 +831,7 @@
                      "name": 'SdbUser',
                      "webName": $scope.autoLanguage( '用户名' ),
                      "type": "string",
+                     "desc": $scope.autoLanguage( '用户名和密码需要与安装 SequoiaDB 的用户名和密码一致' ),
                      "required": true,
                      "value": 'sdbadmin',
                      "valid": {
@@ -842,6 +843,7 @@
                      "name": 'SdbPasswd',
                      "webName": $scope.autoLanguage( '密码' ),
                      "type": "string",
+                     "desc": $scope.autoLanguage( '用户名和密码需要与安装 SequoiaDB 的用户名和密码一致' ),
                      "required": true,
                      "value": 'sdbadmin',
                      "valid": {
@@ -1070,8 +1072,9 @@
                      "name": 'SdbUser',
                      "webName": $scope.autoLanguage( '用户名' ),
                      "type": "string",
+                     "desc": $scope.autoLanguage( '用户名和密码需要与安装 SequoiaDB 的用户名和密码一致' ),
                      "required": true,
-                        "value": 'sdbadmin',
+                     "value": 'sdbadmin',
                      "valid": {
                         'min': 1,
                         'max': 1024
@@ -1081,6 +1084,7 @@
                      "name": 'SdbPasswd',
                      "webName": $scope.autoLanguage( '密码' ),
                      "type": "string",
+                     "desc": $scope.autoLanguage( '用户名和密码需要与安装 SequoiaDB 的用户名和密码一致' ),
                      "required": true,
                      "value": 'sdbadmin',
                      "valid": {

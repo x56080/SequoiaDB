@@ -800,6 +800,7 @@
    "硬件配置": "Hardware Configuration",
    "用户": "Owner",
    "用户名": "User",
+   "用户名和密码需要与安装 SequoiaDB 的用户名和密码一致": "The username and password need to be the same as the username and password for SequoiaDB installation",
    "用户组": "User Group",
    "用于快速搜索集合空间和集合，例：foo.bar。": "Used to quickly search the collection space and the collection, for example: foo.bar.",
    "用于快速搜索数据表": "Used to quickly search the database and the table.",
