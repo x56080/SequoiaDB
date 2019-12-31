@@ -1966,6 +1966,15 @@ namespace engine
          goto error ;
       }
 
+      // re-check cs is empty or not in lock
+      if ( onlyEmpty && 0 != pCSCB->_su->data()->getCollectionNum() )
+      {
+         // it is not empty after phase 1, cancel deleting
+         _delCollectionSpaceP1Cancel( pName, cb, dpsCB ) ;
+         rc = SDB_DMS_CS_NOT_EMPTY ;
+         goto error ;
+      }
+
       // drop phase 2
       rc = _delCollectionSpaceP2( pName, cb, dpsCB, removeFile ) ;
       if ( rc )
