@@ -4,7 +4,6 @@
 *               2016-06-22   XueWang Liang  Init
 *               覆盖测试用例8787/8788/8789/8790/8791/8792/8793
 ******************************************************************************/
-import("../lib/lobtool_commlib.js");
 import("../lib/lobtool_export_import.js");
 function buildFile(filename, content) {
    try {

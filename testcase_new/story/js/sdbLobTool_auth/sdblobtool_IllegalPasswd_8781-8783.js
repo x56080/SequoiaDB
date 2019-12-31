@@ -4,7 +4,6 @@
 *               2016-06-22   XueWang Liang  Init
 *               覆盖测试用例8781/8782/8783
 ******************************************************************************/
-import("../lib/lobtool_commlib.js");
 import("../lib/lobtool_export_import.js");
 
 var testPara = { user: "sdbadmin", passwd: "sdbadmin" };

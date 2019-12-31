@@ -4,7 +4,6 @@
 *               2016-06-24   XueWang Liang  Init
 *               覆盖测试用例8812/8813/8814/8815/8816/8817
 *******************************************************************************/
-import("../lib/lobtool_commlib.js");
 import("../lib/lobtool_export_import.js");
 LobToolTest.prototype.test = function () {
    // sdblobtool 迁移的选项参数

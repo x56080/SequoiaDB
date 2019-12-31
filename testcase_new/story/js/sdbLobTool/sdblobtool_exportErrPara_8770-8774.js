@@ -4,7 +4,6 @@
 *               2016-06-20   XueWang Liang  Init
 *               覆盖测试用例8770/8771/8772/8773/8774
 ******************************************************************************/
-import("../lib/lobtool_commlib.js");
 import("../lib/lobtool_export_import.js");
 
 LobToolTest.prototype.test = function () {

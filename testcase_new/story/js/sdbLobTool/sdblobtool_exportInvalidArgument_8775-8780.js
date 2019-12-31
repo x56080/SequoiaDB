@@ -4,7 +4,6 @@
 *               2016-06-20   XueWang Liang  Init
 *               覆盖测试用例8775/8776/8777/8778/8779/8780
 *******************************************************************************/
-import("../lib/lobtool_commlib.js");
 import("../lib/lobtool_export_import.js");
 LobToolTest.prototype.test = function () {
    var parameters = [{ operator: "", clname: this.conf.expFullCL, file: this.conf.exportFile },

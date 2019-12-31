@@ -1,4 +1,4 @@
-
+import("lobtool_commlib.js");
 LobToolTest.prototype.setUp = function (paras) {
     if (paras === undefined || paras.user === undefined) {
         var user = "";
