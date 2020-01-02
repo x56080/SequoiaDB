@@ -42,4 +42,4 @@
 
 >  **Note:**
 >
->  更多同步日志的内容请参考 [同步日志](database_management/Special_configuration_modify/log_synchronization.md)
+>  更多同步日志的内容请参考 [同步日志](database_management/database_configuration/special_configuration_modify/log_synchronization.md)

@@ -18,7 +18,7 @@ sequoiadb_config_zh-CN.xml
 sdb.conf.catalog
 sdb.conf.coord
 sdb.conf.data
-runtime_configuration.md
+configuration_parameters.md
 Sequoiadb_error_code.md
 SDBError.java
 errcode.py

@@ -13,7 +13,7 @@
 | host    | string | 指定节点的主机名。 | 是 |
 | service | int/string | 节点端口号。   | 是 |
 | dbpath  | string | 1. 数据文件路径，用于存放节点数据文件，请确保数据管理员（安装时创建，默认为sdbadmin）用户有写权限； <br> 2. 如果配置路径不以“/”开头，数据文件存放路径将是数据库管理员用户（默认为sdbadmin）的主目录（默认为/home/sequoiadb）+ 配置的路径。 | 是 |
-| config  | Json 对象 |  节点配置信息，如配置日志大小，是否打开事务等，具体可参考[数据库配置](database_management/runtime_configuration.md)。 | 否 |
+| config  | Json 对象 |  节点配置信息，如配置日志大小，是否打开事务等，具体可参考[数据库配置](database_management/database_configuration/configuration_parameters.md)。 | 否 |
 
 > **Note:**  
 > rg.createNode() 方法的定义格式有四个参数：host，service，dbpath，config，如上表所示，host，dbpath 为字符串类型，Service 类型支持 int 或 string ，必填；最后一个是 Json 对象，选填。  

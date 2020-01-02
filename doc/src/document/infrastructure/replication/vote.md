@@ -14,4 +14,4 @@
 
 >  **Note:**
 >
->  可以通过配置 SequoiaDB 的 weight 参数调整节点在分区组中选举的权重，请参考 [数据库配置](database_management/runtime_configuration.md)。
+>  可以通过配置 SequoiaDB 的 weight 参数调整节点在分区组中选举的权重，请参考 [数据库配置](database_management/database_configuration/configuration_parameters.md)。

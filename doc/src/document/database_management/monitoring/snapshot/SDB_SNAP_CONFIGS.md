@@ -10,7 +10,7 @@ SDB_SNAP_CONFIGS
 
 ###字段信息###
 
-字段信息详见[数据库配置](database_management/runtime_configuration.md)一节。
+字段信息详见[数据库配置](database_management/database_configuration/configuration_parameters.md)一节。
 
 ##快照参数##
 

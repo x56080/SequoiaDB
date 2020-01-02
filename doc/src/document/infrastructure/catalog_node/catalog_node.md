@@ -57,7 +57,7 @@
 
   - **dbpath** ：数据文件路径，用于存放编目数据文件，请确保数据管理员（安装时创建，默认为sdbadmin）用户有写权限。如果配置路径不以“/”开头，数据文件存放路径将是数据库管理员用户(默认为sdbadmin)的主目录(默认为/home/sequoiadb) + 配置的路径；
 
-  - **config** ：该参数为可选参数，用于配置更多细节参数，格式必须为 json格式，参数参见[数据库配置](database_management/runtime_configuration.md)一节；如需要配置日志大小参数｛logfilesz:64｝。
+  - **config** ：该参数为可选参数，用于配置更多细节参数，格式必须为 json格式，参数参见[数据库配置](database_management/database_configuration/configuration_parameters.md)一节；如需要配置日志大小参数｛logfilesz:64｝。
 
 >   **Note:**
 >

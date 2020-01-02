@@ -42,7 +42,7 @@
 
    **dbpath**：数据文件路径，用于存放数据节点的数据文件，请确保数据管理员（安装时创建，默认为sdbadmin）用户有写权限；
 
-   **config**：该参数为可选参数，用于配置更多细节参数，格式必须为 json 格式，参数参见[数据库配置](database_management/runtime_configuration.md)一节；如需要配置日志大小参数｛logfilesz:64｝。
+   **config**：该参数为可选参数，用于配置更多细节参数，格式必须为 json 格式，参数参见[数据库配置](database_management/database_configuration/configuration_parameters.md)一节；如需要配置日志大小参数｛logfilesz:64｝。
 
    >   **Note:**
    >

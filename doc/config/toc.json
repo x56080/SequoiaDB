@@ -785,61 +785,69 @@
                "en": "Database service"
             },
             {
-               "id": 1432190643,
-               "file": "runtime_configuration",
-               "cn": "数据库配置",
-               "en": "Database Configuration"
-            },
-            {
-               "id": 1432191411,
-               "dir": "Special_configuration_modify",
-               "cn": "特殊配置项修改",
-               "en": "Special configuration modify",
-               "contents": [
-                  {
-                    "id": 1432191412,
-                    "file": "overview",
-                    "cn": "概述",
-                    "en": "overview"
-                  },
-                  {
-                    "id": 1432191413,
-                    "file": "dbpath_modify",
-                    "cn": "数据文件",
-                    "en": "dbpath_modify"
-                  },
-                  {
-                    "id": 1432191414,
-                    "file": "indexpath_modify",
-                    "cn": "索引文件",
-                    "en": "indexpath_modify"
-                  },
-                  {
-                    "id": 1432191415,
-                    "file": "lobpath_modify",
-                    "cn": "大对象数据文件",
-                    "en": "lobpath_modify"
-                  },
-                  {
-                    "id": 1432191416,
-                    "file": "lobmetapath_modify",
-                    "cn": "大对象元数据文件",
-                    "en": "lobmetapath_modify"
-                  },
-                  {
-                    "id": 1432190652,
-                    "file": "log_synchronization",
-                    "cn": "同步日志",
-                    "en": "Log Synchronization"
-                  }
-                ]
-            },
-            {
                "id": 1432190651,
                "file": "EDU",
                "cn": "引擎调度单元",
                "en": "EDU"
             },
+            {
+              "id": 1577931587,
+              "dir": "database_configuration",
+              "cn": "数据库配置",
+              "en": "Database Configuration",
+              "contents": [
+                {
+                  "id": 1432190643,
+                  "file": "configuration_parameters",
+                  "cn": "配置项参数",
+                  "en": "Configuration Parameters"
+                },
+                {
+                  "id": 1432191411,
+                  "dir": "special_configuration_modify",
+                  "cn": "特殊配置项修改",
+                  "en": "Special Configuration Modify",
+                  "contents": [
+                      {
+                        "id": 1432191412,
+                        "file": "overview",
+                        "cn": "概述",
+                        "en": "overview"
+                      },
+                      {
+                        "id": 1432191413,
+                        "file": "dbpath_modify",
+                        "cn": "数据文件",
+                        "en": "dbpath_modify"
+                      },
+                      {
+                        "id": 1432191414,
+                        "file": "indexpath_modify",
+                        "cn": "索引文件",
+                        "en": "indexpath_modify"
+                      },
+                      {
+                        "id": 1432191415,
+                        "file": "lobpath_modify",
+                        "cn": "大对象数据文件",
+                        "en": "lobpath_modify"
+                      },
+                      {
+                        "id": 1432191416,
+                        "file": "lobmetapath_modify",
+                        "cn": "大对象元数据文件",
+                        "en": "lobmetapath_modify"
+                      },
+                      {
+                        "id": 1432190652,
+                        "file": "log_synchronization",
+                        "cn": "同步日志",
+                        "en": "Log Synchronization"
+                      }
+                    ]
+                }
+              ]
+            },          
             {
                "id": 1432190653,
                "dir": "tools",

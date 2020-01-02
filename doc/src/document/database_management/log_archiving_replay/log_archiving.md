@@ -1,5 +1,5 @@
 
-在复制组内，节点会将写操作记录到[同步日志](database_management/Special_configuration_modify/log_synchronization.md)中。备节点通过同步日志实现与主节点的数据同步。同步日志循环使用磁盘上的日志文件，新产生的日志会覆盖旧的日志。因此，同步日志只能保存最近的部分日志。
+在复制组内，节点会将写操作记录到[同步日志](database_management/database_configuration/special_configuration_modify/log_synchronization.md)中。备节点通过同步日志实现与主节点的数据同步。同步日志循环使用磁盘上的日志文件，新产生的日志会覆盖旧的日志。因此，同步日志只能保存最近的部分日志。
 
 通过开启日志归档，可以持续归档数据节点的同步日志，归档日志不会被覆盖，并且可以通过重放工具在其它集群或节点重新执行。因此可以通过日志归档和重放来实现不同集群间的数据同步。
 
