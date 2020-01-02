@@ -39,12 +39,16 @@ function checkSplitResults ( csName, clName, expGroupNames, expTotalRecsNum )
 @Description : get dstGroupName for split
 @Modify list : XiaoNi Huang 2019-12-31
 *************************************************** */
-function getDstGroupName ( srcGroupName )
+function getDstGroupName ( exceptGroupName )
 {
+   if( exceptGroupName === undefined )
+   {
+      throw new Error( "missing parameter exceptGroupName." );
+   }
    var groupNames = commGetDataGroupNames( db );
    for( var i = 0; i < groupNames.length; i++ )
    {
-      if( groupNames[i] !== srcGroupName )
+      if( groupNames[i] !== exceptGroupName )
       {
          return groupNames[i];
       }

@@ -12,7 +12,7 @@ main( test );
 function test ( arg )
 {
    var srcGroupName = commGetCLGroups( db, COMMCSNAME + "." + testConf.clName )[0];
-   var dstGroupName = getDstGroupName();
+   var dstGroupName = getDstGroupName( srcGroupName );
    var recsNum = 100;
    var cl = arg.testCL;
 
