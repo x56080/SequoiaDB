@@ -84,15 +84,16 @@ namespace engine
       _pmdEDUCB implement
    */
    _pmdEDUCB::_pmdEDUCB( _pmdEDUMgr *mgr, INT32 type )
+   :_dumpTransCount( 0 )
 #if defined ( SDB_ENGINE )
-   :_transExecutor( this, pmdGetKRCB()->getMonMgr() )
+   , _transExecutor( this, pmdGetKRCB()->getMonMgr() )
 #endif // SDB_ENGINE
+
    {
       _eduMgr           = mgr ;
       _eduID            = PMD_INVALID_EDUID ;
       _tid              = 0 ;
       _status           = PMD_EDU_UNKNOW ;
-      _dumpTransCount     = 0 ;
       _eduType          = type ;
       _isLocked         = FALSE ;
       _ctrlFlag         = 0 ;
@@ -178,7 +179,7 @@ namespace engine
       _userName = "" ;
       _passWord = "" ;
       _isLocked = FALSE ;
-      _dumpTransCount = 0 ;
+      _dumpTransCount.swap( 0 ) ;
 
       _ctrlFlag = 0 ;
       _isInterruptSelf = FALSE ;

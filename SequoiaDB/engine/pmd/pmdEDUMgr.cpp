@@ -372,14 +372,13 @@ namespace engine
             goto error ;
          }
 
-         if ( cb->getDumpTransCount() > 0 )
+         if ( !cb->checkAndSwapDumpTransCount( 0, 1 ) )
          {
             // other snapshot_trans is running
             isNeedWaitDumpCount = TRUE ;
             continue ;
          }
 
-         cb->incDumpTransCount() ;
          cb->dumpTransInfo( transInfo ) ;
          *executor = cb->getTransExecutor() ;
          break ;
@@ -408,11 +407,13 @@ namespace engine
       }
 
       cb = it->second ;
-      SDB_ASSERT( cb->getDumpTransCount() == 1, "must be 1" ) ;
-      if ( cb->getDumpTransCount() > 0 )
+      if ( cb->checkAndSwapDumpTransCount( 1, 0 ) )
       {
-         cb->decDumpTransCount() ;
          _dumpCountEvent.signalAll() ;
+      }
+      else
+      {
+         SDB_ASSERT( FALSE, "dump trans count must be 1" ) ;
       }
 
    done:
