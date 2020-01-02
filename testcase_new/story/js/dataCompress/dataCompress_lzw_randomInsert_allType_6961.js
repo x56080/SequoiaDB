@@ -17,47 +17,40 @@ main();
 
 function main ()
 {
-   try
-   {
-      var noCSName = COMMCSNAME + "_no";
-      var lzwCSName = COMMCSNAME + "_lzw";
-      var noCLName = COMMCLNAME + "_no";
-      var lzwCLName = COMMCLNAME + "_lzw";
-      var rgName = getDataGroupsName()[0];
-      var dtNumber = 80000;  //records number of single data type
-      var checkRecsNum = 2; //get random 3 records
+   var noCSName = COMMCSNAME + "_no";
+   var lzwCSName = COMMCSNAME + "_lzw";
+   var noCLName = COMMCLNAME + "_no";
+   var lzwCLName = COMMCLNAME + "_lzw";
+   var rgName = getDataGroupsName()[0];
+   var dtNumber = 80000;  //records number of single data type
+   var checkRecsNum = 2; //get random 3 records
 
-      println( "\n---Begin to drop CS in the pre-condition." );
-      commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
-      commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
+   println( "\n---Begin to drop CS in the pre-condition." );
+   commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
+   commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
 
-      println( "\n---Begin to create CS." );
-      commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
-      commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
+   println( "\n---Begin to create CS." );
+   commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
+   commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
 
-      var noCL = createCL( noCSName, noCLName, rgName, false );
-      var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
+   var noCL = createCL( noCSName, noCLName, rgName, false );
+   var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
 
-      var tmpTypes = ["int", "long", "float", "OID", "bool", "date", "timestamp",
-         "binary", "regex", "object", "array", "null", "string"];
-      var dataTypes = getRdmType( tmpTypes );    //random data type
-      var dataValues = getRdmValue( dataTypes );  //random value
-      insertRecs( noCL, noCSName, noCLName, dtNumber, dataTypes, dataValues );
-      insertRecs( lzwCL, lzwCSName, lzwCLName, dtNumber, dataTypes, dataValues );
+   var tmpTypes = ["int", "long", "float", "OID", "bool", "date", "timestamp",
+      "binary", "regex", "object", "array", "null", "string"];
+   var dataTypes = getRdmType( tmpTypes );    //random data type
+   var dataValues = getRdmValue( dataTypes );  //random value
+   insertRecs( noCL, noCSName, noCLName, dtNumber, dataTypes, dataValues );
+   insertRecs( lzwCL, lzwCSName, lzwCLName, dtNumber, dataTypes, dataValues );
 
-      var totalNum = dtNumber * dataTypes.length;
-      checkRecs( lzwCL, dtNumber, checkRecsNum, dataTypes, dataValues );
-      checkNodeCnt( lzwCSName, lzwCLName, rgName, totalNum );
-      checkCompressedRate( noCSName, lzwCSName );
+   var totalNum = dtNumber * dataTypes.length;
+   checkRecs( lzwCL, dtNumber, checkRecsNum, dataTypes, dataValues );
+   checkNodeCnt( lzwCSName, lzwCLName, rgName, totalNum );
+   checkCompressedRate( noCSName, lzwCSName );
 
-      println( "\n---Begin to drop cs in the end-condition." );
-      commDropCS( db, noCSName, false, "Failed to drop CS[" + noCSName + "]." );
-      commDropCS( db, lzwCSName, false, "Failed to drop CS[" + lzwCSName + "]." );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   println( "\n---Begin to drop cs in the end-condition." );
+   clearCS( db, noCSName );
+   clearCS( db, lzwCSName );
 }
 
 function getRdmType ( tmpTypes )

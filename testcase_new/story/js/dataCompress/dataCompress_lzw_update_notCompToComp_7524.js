@@ -17,46 +17,39 @@ main();
 
 function main ()
 {
-   try
-   {
-      var noCSName = COMMCSNAME + "_no";
-      var lzwCSName = COMMCSNAME + "_lzw";
-      var noCLName = COMMCLNAME + "_no";
-      var lzwCLName = COMMCLNAME + "_lzw";
-      var rgName = getDataGroupsName()[0];
-      var number1 = 700000;
-      var insertRecsNum = 800000;
-      var checkRecsNum = 3; //get random 3 records
+   var noCSName = COMMCSNAME + "_no";
+   var lzwCSName = COMMCSNAME + "_lzw";
+   var noCLName = COMMCLNAME + "_no";
+   var lzwCLName = COMMCLNAME + "_lzw";
+   var rgName = getDataGroupsName()[0];
+   var number1 = 700000;
+   var insertRecsNum = 800000;
+   var checkRecsNum = 3; //get random 3 records
 
-      println( "\n---Begin to drop CS in the pre-condition." );
-      commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
-      commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
+   println( "\n---Begin to drop CS in the pre-condition." );
+   commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
+   commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
 
-      println( "\n---Begin to create CS." );
-      commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
-      commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
+   println( "\n---Begin to create CS." );
+   commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
+   commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
 
-      var noCL = createCL( noCSName, noCLName, rgName, false );
-      var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
+   var noCL = createCL( noCSName, noCLName, rgName, false );
+   var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
 
-      insertRecs( noCL, noCSName, noCLName, number1, insertRecsNum );
-      insertRecs( lzwCL, lzwCSName, lzwCLName, number1, insertRecsNum );
+   insertRecs( noCL, noCSName, noCLName, number1, insertRecsNum );
+   insertRecs( lzwCL, lzwCSName, lzwCLName, number1, insertRecsNum );
 
-      findAndUpdateRecs( noCL, noCSName, noCLName, insertRecsNum );
-      findAndUpdateRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
+   findAndUpdateRecs( noCL, noCSName, noCLName, insertRecsNum );
+   findAndUpdateRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
 
-      checkRecs( lzwCL, number1, insertRecsNum, checkRecsNum );
-      checkNodeCnt( lzwCSName, lzwCLName, rgName, insertRecsNum );
-      checkCompressedRate( noCSName, lzwCSName );
+   checkRecs( lzwCL, number1, insertRecsNum, checkRecsNum );
+   checkNodeCnt( lzwCSName, lzwCLName, rgName, insertRecsNum );
+   checkCompressedRate( noCSName, lzwCSName );
 
-      println( "\n---Begin to drop cs in the end-condition." );
-      commDropCS( db, noCSName, false, "Failed to drop CS[" + noCSName + "]." );
-      commDropCS( db, lzwCSName, false, "Failed to drop CS[" + lzwCSName + "]." );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   println( "\n---Begin to drop cs in the end-condition." );
+   clearCS( db, noCSName );
+   clearCS( db, lzwCSName );
 }
 
 function insertRecs ( cl, csName, clName, number1, insertRecsNum )

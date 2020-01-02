@@ -17,61 +17,54 @@ main();
 
 function main ()
 {
-   try
+   if( commIsStandalone( db ) )
    {
-      if( commIsStandalone( db ) )
-      {
-         println( " Deploy mode is standalone!" );
-         return;
-      }
-      if( commGetGroupsNum( db ) < 2 )
-      {
-         println( "This testcase needs at least 2 groups to split!" );
-         return;
-      }
-
-      db.setSessionAttr( { PreferedInstance: "M" } );
-
-      var noCSName = COMMCSNAME + "_no";
-      var lzwCSName = COMMCSNAME + "_lzw";
-      var noCLName = COMMCLNAME + "_no";
-      var lzwCLName = COMMCLNAME + "_lzw";
-      var rgName = getDataGroupsName()[0];
-      var rgName2 = getDataGroupsName()[1];
-      var insertRecsNum = 800000;
-      var checkRecsNum = 3; //get random 3 records
-
-      println( "\n---Begin to drop CS in the pre-condition." );
-      commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
-      commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
-
-      println( "\n---Begin to create CS." );
-      commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
-      commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
-
-      var noCL = createCL( noCSName, noCLName, rgName, false );
-      var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
-      alterCL( noCL, noCSName, noCLName );
-      alterCL( lzwCL, lzwCSName, lzwCLName );
-
-      insertRecs( noCL, noCSName, noCLName, insertRecsNum );
-      insertRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
-
-      splitRecs( noCL, noCSName, noCLName, rgName, rgName2 );
-      splitRecs( lzwCL, lzwCSName, lzwCLName, rgName, rgName2 );
-
-      //checkAttributeOfCL( lzwCSName, lzwCLName, true, "lzw" );
-      checkRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum, checkRecsNum, rgName, rgName2 );
-      checkCompressedRate( noCSName, lzwCSName );
-
-      println( "\n---Begin to drop cs in the end-condition." );
-      commDropCS( db, noCSName, false, "Failed to drop CS[" + noCSName + "]." );
-      commDropCS( db, lzwCSName, false, "Failed to drop CS[" + lzwCSName + "]." );
+      println( " Deploy mode is standalone!" );
+      return;
    }
-   catch( e )
+   if( commGetGroupsNum( db ) < 2 )
    {
-      throw e;
+      println( "This testcase needs at least 2 groups to split!" );
+      return;
    }
+
+   db.setSessionAttr( { PreferedInstance: "M" } );
+
+   var noCSName = COMMCSNAME + "_no";
+   var lzwCSName = COMMCSNAME + "_lzw";
+   var noCLName = COMMCLNAME + "_no";
+   var lzwCLName = COMMCLNAME + "_lzw";
+   var rgName = getDataGroupsName()[0];
+   var rgName2 = getDataGroupsName()[1];
+   var insertRecsNum = 800000;
+   var checkRecsNum = 3; //get random 3 records
+
+   println( "\n---Begin to drop CS in the pre-condition." );
+   commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
+   commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
+
+   println( "\n---Begin to create CS." );
+   commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
+   commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
+
+   var noCL = createCL( noCSName, noCLName, rgName, false );
+   var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
+   alterCL( noCL, noCSName, noCLName );
+   alterCL( lzwCL, lzwCSName, lzwCLName );
+
+   insertRecs( noCL, noCSName, noCLName, insertRecsNum );
+   insertRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
+
+   splitRecs( noCL, noCSName, noCLName, rgName, rgName2 );
+   splitRecs( lzwCL, lzwCSName, lzwCLName, rgName, rgName2 );
+
+   //checkAttributeOfCL( lzwCSName, lzwCLName, true, "lzw" );
+   checkRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum, checkRecsNum, rgName, rgName2 );
+   checkCompressedRate( noCSName, lzwCSName );
+
+   println( "\n---Begin to drop cs in the end-condition." );
+   clearCS( db, noCSName );
+   clearCS( db, lzwCSName );
 }
 
 function alterCL ( cl, csName, clName )

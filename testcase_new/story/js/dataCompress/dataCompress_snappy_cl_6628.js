@@ -13,39 +13,32 @@ main();
 
 function main ()
 {
-   try
-   {
-      var csName = COMMCSNAME + "_snappy";
-      var clName = COMMCLNAME + "_snappy";
-      var rgName = getDataGroupsName()[0];
-      var insertRecsNum = 20000;
-      var checkRecsNum = 1; //get random 3 records
+   var csName = COMMCSNAME + "_snappy";
+   var clName = COMMCLNAME + "_snappy";
+   var rgName = getDataGroupsName()[0];
+   var insertRecsNum = 20000;
+   var checkRecsNum = 1; //get random 3 records
 
-      println( "\n---Begin to drop CS in the pre-condition." );
-      commDropCS( db, csName, true, "Failed to drop CS[" + csName + "]." );
+   println( "\n---Begin to drop CS in the pre-condition." );
+   commDropCS( db, csName, true, "Failed to drop CS[" + csName + "]." );
 
-      println( "\n---Begin to create CS." );
-      commCreateCS( db, csName, false, "Failed to create CS[" + csName + "]." );
+   println( "\n---Begin to create CS." );
+   commCreateCS( db, csName, false, "Failed to create CS[" + csName + "]." );
 
-      var cl = createCL( csName, clName, rgName, true, "snappy" );
-      checkAttributeOfCL( csName, clName, true, "snappy" );
+   var cl = createCL( csName, clName, rgName, true, "snappy" );
+   checkAttributeOfCL( csName, clName, true, "snappy" );
 
-      insertRecs( cl, csName, clName, insertRecsNum );
-      checkRecs( cl, insertRecsNum, checkRecsNum, "insert" );
+   insertRecs( cl, csName, clName, insertRecsNum );
+   checkRecs( cl, insertRecsNum, checkRecsNum, "insert" );
 
-      updateRecs( cl, csName, clName );
-      checkRecs( cl, insertRecsNum, checkRecsNum, "update" );
+   updateRecs( cl, csName, clName );
+   checkRecs( cl, insertRecsNum, checkRecsNum, "update" );
 
-      findAndRemoveRecs( cl, csName, clName );
-      checkRecs( cl, insertRecsNum, checkRecsNum, "findAndRemove" );
+   findAndRemoveRecs( cl, csName, clName );
+   checkRecs( cl, insertRecsNum, checkRecsNum, "findAndRemove" );
 
-      println( "\n---Begin to drop cs in the end-condition." );
-      commDropCS( db, csName, false, "Failed to drop CS[" + csName + "]." );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   println( "\n---Begin to drop cs in the end-condition." );
+   clearCS( db, csName );
 }
 
 function insertRecs ( cl, csName, clName, insertRecsNum )

@@ -164,3 +164,36 @@ function checkCompressedRate ( noCSName, lzwCSName, expectRate )
          "compRate <= " + expectRate + ", ", "compRate = " + compRate );
    }
 }
+
+/* ****************************************************
+@description: 用例结束时删除集合空间有可能遇到压缩线程在检查数据，
+              会导致删除集合空间报-147，重试删除
+@parameter:
+            name of CS
+@author:    luweikang 
+**************************************************** */
+function clearCS( db, csName )
+{
+   var times = 0;
+   do
+   {
+      try
+      {
+         db.dropCS( csName );
+         break;
+      }
+      catch( e )
+      {
+         if( e === -147 && times < 60 )
+         {
+            times++;
+            sleep( 1000 );
+         }
+         else
+         {
+            throw e;
+         }
+      }   
+   }
+   while( true )
+}

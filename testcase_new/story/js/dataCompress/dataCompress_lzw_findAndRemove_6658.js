@@ -15,37 +15,30 @@ main();
 
 function main ()
 {
-   try
-   {
-      var lzwCSName = COMMCSNAME + "_lzw";
-      var lzwCLName = COMMCLNAME + "_lzw";
-      var rgName = getDataGroupsName()[0];
-      var insertRecsNum = 800000;
-      var remainNum = 200000; //remaining records after removed
-      var checkRecsNum = 3; //get random 3 records
+   var lzwCSName = COMMCSNAME + "_lzw";
+   var lzwCLName = COMMCLNAME + "_lzw";
+   var rgName = getDataGroupsName()[0];
+   var insertRecsNum = 800000;
+   var remainNum = 200000; //remaining records after removed
+   var checkRecsNum = 3; //get random 3 records
 
-      println( "\n---Begin to drop CS in the pre-condition." );
-      commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
+   println( "\n---Begin to drop CS in the pre-condition." );
+   commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
 
-      println( "\n---Begin to create CS." );
-      commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
+   println( "\n---Begin to create CS." );
+   commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
 
-      var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
+   var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
 
-      insertRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
+   insertRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
 
-      findAndRemoveRecs( lzwCL, lzwCSName, lzwCLName );
+   findAndRemoveRecs( lzwCL, lzwCSName, lzwCLName );
 
-      checkRecs( lzwCL, insertRecsNum, checkRecsNum );
-      checkNodeCnt( lzwCSName, lzwCLName, rgName, remainNum );
+   checkRecs( lzwCL, insertRecsNum, checkRecsNum );
+   checkNodeCnt( lzwCSName, lzwCLName, rgName, remainNum );
 
-      println( "\n---Begin to drop cs in the end-condition." );
-      commDropCS( db, lzwCSName, false, "Failed to drop CS[" + lzwCSName + "]." );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   println( "\n---Begin to drop cs in the end-condition." );
+   clearCS( db, lzwCSName );
 }
 
 function insertRecs ( cl, csName, clName, insertRecsNum )
