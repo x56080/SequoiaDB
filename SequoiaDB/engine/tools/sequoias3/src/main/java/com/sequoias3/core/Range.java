@@ -16,8 +16,12 @@ public class Range {
         }
         String substring = range.substring(beginIndex+RestParamDefine.REST_RANGE_START.length(), range.length());
 
-        if (substring.indexOf(RestParamDefine.REST_HYPHEN) == -1){
-            throw new S3ServerException(S3Error.OBJECT_INVALID_RANGE, "range  is invalid"+range);
+        int firstHyphen = substring.indexOf(RestParamDefine.REST_HYPHEN);
+        if (firstHyphen == -1){
+            throw new S3ServerException(S3Error.OBJECT_INVALID_RANGE, "range  is invalid. range:"+range);
+        }
+        if (substring.indexOf(RestParamDefine.REST_HYPHEN, firstHyphen + 1) != -1){
+            throw new S3ServerException(S3Error.OBJECT_INVALID_RANGE, "range  is invalid. range:"+range);
         }
 
         String[] numbers = substring.split(RestParamDefine.REST_HYPHEN);
