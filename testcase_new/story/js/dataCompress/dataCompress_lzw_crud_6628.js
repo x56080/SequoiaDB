@@ -27,8 +27,8 @@ function main ()
       println( "\n---Begin to create CS." );
       commCreateCS( db, csName, false, "Failed to create CS[" + csName + "]." );
 
-      var cl = createCL( csName, clName, rgName, true, "snappy" );
-      checkAttributeOfCL( csName, clName, true, "snappy" );
+      var cl = createCL( csName, clName, rgName, true, "lzw" );
+      checkAttributeOfCL( csName, clName, true, "lzw" );
 
       insertRecs( cl, csName, clName, insertRecsNum );
       checkRecs( cl, insertRecsNum, checkRecsNum, "insert" );
