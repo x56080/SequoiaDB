@@ -7,12 +7,14 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class DataFormatUtils {
     public static final String DATA_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
     public static String formatDate(long time){
         SimpleDateFormat sdf = new SimpleDateFormat(DATA_PATTERN);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
         return sdf.format(new Date(time));
     }
 
