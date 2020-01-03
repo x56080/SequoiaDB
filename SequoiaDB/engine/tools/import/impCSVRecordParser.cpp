@@ -2215,7 +2215,7 @@ namespace import
    static INT32 _stringToDecimal(const CHAR* data, INT32 length,
                                  const CHAR* strDel, INT32 strDelLen,
                                  const CHAR* fieldDel, INT32 fieldDelLen,
-                                 const CSVFieldOpt& opt,
+                                 CSV_TYPE& type, const CSVFieldOpt& opt,
                                  bson_decimal& value, INT32& valueLength,
                                  BOOLEAN& fieldEnd)
    {
@@ -2274,8 +2274,8 @@ namespace import
       _skipSpace(&str, len);
       if (0 == len)
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         type = CSV_TYPE_NULL ;
+         goto done ;
       }
 
       // find out decimal in string
@@ -3793,7 +3793,7 @@ namespace import
          break;
       case CSV_TYPE_DECIMAL:
          rc = _stringToDecimal(data, length, strDel, strDelLen,
-                               fieldDel, fieldDelLen,
+                               fieldDel, fieldDelLen, type,
                                opt, fieldValue.decimalVal,
                                valueLength, fieldEnd);
          break;
