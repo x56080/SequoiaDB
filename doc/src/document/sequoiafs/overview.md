@@ -5,6 +5,6 @@ SequoiaFS文件系统是基于FUSE在Linux系统下实现的一套文件系统�
 ![](sequoiafs/model.png)
      
 ##SequoiaFS支持的fuselib库版本##
-FUSE library version:2.8.6  
-fusermount version:2.8.6  
+FUSE library version: 2.8.6及以上版本
+fusermount version: 2.8.6及以上版本  
   
