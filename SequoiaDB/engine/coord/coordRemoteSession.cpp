@@ -401,6 +401,7 @@ namespace engine
          {
             stpLogicalTimeUS beginTime ;
 
+         retry:
             /// alloc trans id
             rc = pTransCB->allocTransID( isAutoCommit,
                                          cb->isGlobTransOn(),
@@ -423,6 +424,18 @@ namespace engine
                cb->setTransID( transID ) ;
             }
 
+            // check if has duplicated transaction ID
+            if ( transID.isGlobTrans() &&
+                 !sdbGetTransCB()->addTransCB( transID, cb ) )
+            {
+               // for global transaction, we could retry to get a new logical
+               // time
+               cb->resetTransID() ;
+               PD_LOG( PDWARNING, "Transaction(%s) is already exist",
+                       dpsTransIDToString( transID ).c_str() ) ;
+               goto retry ;
+            }
+
             _mapTransNodes.clear() ;
             _writeTransNodeNum = 0 ;
 
@@ -441,6 +454,10 @@ namespace engine
 
    void _coordSessionPropSite::endTrans( _pmdEDUCB *cb )
    {
+      if ( cb->isGlobTrans() )
+      {
+         sdbGetTransCB()->delTransCB( cb->getTransID() ) ;
+      }
       cb->resetTransID() ;
       _mapTransNodes.clear() ;
       _writeTransNodeNum = 0 ;
