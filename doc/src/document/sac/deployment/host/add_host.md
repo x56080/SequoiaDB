@@ -21,11 +21,19 @@
 
    ![扫描主机](sac/deployment/host/add_host_2.png)
 
-3. **用户名** 必须是 root，安装需要 root 权限，如果系统禁止 root 登录，需要手工去开启；输入 root 密码。
+3. **用户名** 必须是 root，安装需要 root 权限，输入 root 密码。
 
    > **Note:**  
-   > Ubuntu 的 root 账号默认是被禁用的，需要手工开启。  
-   > Ubuntu 开启 root，执行命令 ```sudo passwd root```，按照提示输入 root 密码。
+   > 设置 Linux 系统 root 密码：
+
+   > 1. 执行 ```sudo passwd root```
+   > 2. 根据提示输入 root 密码
+
+   > SSH 允许 root 使用密码登陆：
+
+   > 1. 修改 ```/etc/ssh/sshd_config```
+   > 2. 找到配置项 ```PermitRootLogin``` 和 ```PasswordAuthentication```，把值都改成 ```yes```
+   > 3. 重启 SSH 服务， ```service sshd restart```
 
 4. **SSH 端口** 根据实际端口修改（默认22），代理端口默认11790。
 
