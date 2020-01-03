@@ -33,6 +33,8 @@ public final class Helper {
 
     public static final int ALIGN_SIZE = 4;
 
+    public static final String ENCODING_TYPE =  "UTF-8";
+
     public static String md5(String str) {
         MessageDigest md5;
         try {
@@ -41,10 +43,11 @@ public final class Helper {
             throw new BaseException(SDBError.SDB_SYS, e);
         }
 
-        char[] charArray = str.toCharArray();
-        byte[] byteArray = new byte[charArray.length];
-        for (int i = 0; i < charArray.length; i++) {
-            byteArray[i] = (byte) charArray[i];
+        byte[] byteArray;
+        try {
+            byteArray = str.getBytes(ENCODING_TYPE);
+        }catch (UnsupportedEncodingException e){
+            throw new BaseException(SDBError.SDB_INVALIDARG, e);
         }
 
         byte[] md5Bytes = md5.digest(byteArray);
