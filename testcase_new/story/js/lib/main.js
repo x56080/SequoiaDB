@@ -6,10 +6,13 @@
 
 var testConf = {
    skipStandAlone: false, skipOneDuplicatePerGroup: false,
-   skipOneGroup: false, clean: false, message: "", skip: false
+   skipOneGroup: false, clean: false, message: "", skip: false,
+   useSrcGroup: false, useDstGroup: false
 };
 // e.g. testConf.csName = COMMCSNAME, testConf.csOpt = {PageSize:4096}} };
 // e.g. testConf.clName:COMMCLNAME, testConf.clOpt:{AutoSplit:true} } ;
+// e.g. testConf.useSrcGroup:true  返回源组，一般用于创建CL时指定组；设置true后在测试方法中获取源组，如test( arg ){ arg.srcGroupName ...}
+// e.g. testConf.useDstGroup:true  返回目标组，一般用于切分；设置为true返回除源组外的所有组，在测试方法中获取源组，如test( arg ){ arg.dstGroupNames ...}
 
 testConf.clean = CLEANFORFAIL;
 var testPara = {};
@@ -90,6 +93,48 @@ function buildDomainContainGroups ()
    return dmGroupNames;
 }
 
+var dataGroupNames = [];
+function getAllDataGroupName ()
+{
+   if( dataGroupNames.length !== 0 )
+   {
+      return dataGroupNames;
+   }
+
+   for( var i = 0; i < testPara.groups.length; ++i )
+   {
+      var groupName = testPara.groups[i][0].GroupName;
+      if( groupName !== CATALOG_GROUPNAME && groupName !== COORD_GROUPNAME
+         && groupName !== SPARE_GROUPNAME )
+      {
+         dataGroupNames.push( groupName );
+      }
+   }
+
+   return dataGroupNames;
+}
+
+function getSrcGroupName ()
+{
+   var dataGroupNames = getAllDataGroupName();
+   var pos = Math.floor( Math.random() * dataGroupNames.length );
+   return dataGroupNames[pos];
+}
+
+function getDstGroupName ( srcGroupName )
+{
+   var groupNames = [];
+   var dataGroupNames = getAllDataGroupName();
+   for( var i = 0; i < dataGroupNames.length; ++i )
+   {
+      if( dataGroupNames[i] !== srcGroupName )
+      {
+         groupNames.push( dataGroupNames[i] );
+      }
+   }
+   return groupNames;
+}
+
 function createTestCS ( db, testConf )
 {
    if( testConf.csName !== undefined )
@@ -125,6 +170,16 @@ function createTestCL ( db, testConf )
 
       if( testConf.clOpt !== undefined )
       {
+         if( testConf.useSrcGroup )
+         {
+            testPara.srcGroupName = getSrcGroupName();
+            testConf.clOpt.Group = testPara.srcGroupName;
+         }
+
+         if( testConf.useDstGroup )
+         {
+            testPara.dstGroupNames = getDstGroupName( testPara.srcGroupName );
+         }
          return commCreateCL( db, testConf.csName, testConf.clName, testConf.clOpt, true, true );
       }
       else
