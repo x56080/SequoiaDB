@@ -1062,14 +1062,14 @@ function commCheckNodes ( groups )
         [N]
            ...
 ***************************************************************************** */
-function commCheckBusinessStatus ( db, groups, checkLSN, diskThreshold, timeout )
+function commCheckBusinessStatus ( db, timeout, checkLSN, diskThreshold )
 {
-   if( groups == undefined ) { groups = commGetGroups ( db, false, "", false ); }
    if( checkLSN == undefined ) { checkLSN = true; }
-   if( timeout == undefined ){ timeout = 120 }
-   
+   if( timeout == undefined ) { timeout = 120 }
+
    for( var i = 0; i < timeout; i++ )
    {
+      var groups = commGetGroups( db, false, "", false );
       var tmpArr = commCheckBusiness( groups, checkLSN, diskThreshold );
       if( tmpArr.length == 0 )
       {
@@ -1081,8 +1081,8 @@ function commCheckBusinessStatus ( db, groups, checkLSN, diskThreshold, timeout 
       }
       else
       {
-         throw new Error( "check the cluster state timeout, check failed nodes: " 
-                              + JSON.stringify( tmpArr ) );
+         throw new Error( "check the cluster state timeout, check failed nodes: "
+            + JSON.stringify( tmpArr ) );
       }
    }
 }
@@ -1521,9 +1521,13 @@ function commCompareObject ( expObj, actObj )
    }
    if( isDirectCompare( actObj ) )
    {
-      if( typeof( actObj ) === "number" && isNaN( actObj ) )
+      if( typeof ( actObj ) === "number" && isNaN( actObj ) )
       {
-         return isNaN( expObj );
+         if( typeof ( actObj ) === "number" )
+         {
+            return isNaN( expObj );
+         }
+         return false;
       }
       return expObj === actObj;
    }
@@ -1635,6 +1639,120 @@ function commCursor2Array ( cursor, fieldName, filter )
    }
 
    return tmpArray;
+}
+
+/* *******************************************************************
+@Description: check node data consistency
+@author: luweikang
+******************************************************************* */
+function commInspectData( db, group, csName, clName, loop )
+{
+   var coord = " -d " + db.toString();
+   var installDir = commGetInstallPath();
+   var romdom = Math.floor( ( Math.random() * 10000 ) );
+   var reportPath = WORKDIR + "/inspect_" + romdom;
+   var output = " -o " + reportPath;
+   ( group === undefined || group === "" ) ? group = "" : group = " -g " + group;
+   ( csName === undefined || csName === "" ) ? csName = "" : csName = " -c " + csName;
+   ( clName === undefined || clName === "" ) ? clName = "" : clName = " -l " + clName;
+   ( loop === undefined ) ? loop = "" : loop = " -t " + loop;
+   
+   var inspect = installDir + "/bin/sdbinspect" + coord + group + csName + clName + output + loop;
+   println( inspect );
+   
+   try
+   {
+      var cmd = new Cmd();
+      var result = cmd.run( inspect );   
+   }
+   catch( e )
+   {
+      throw new Error( e );
+   }
+   
+   var tmpArr = result.split("\n");
+   if( tmpArr[ tmpArr.length - 3 ] !== "Reason for exit : exit with no records different" )
+   {
+      throw new Error( "report path: " + reportPath + "\n" + result );
+   }
+   cmd.run( "rm -rf " + reportPath + "*" );
+}
+
+/* *******************************************************************
+@Description: create group and start
+              db: connection handle, can't be standalone                
+              rgName: group name
+              nodesNum: node num, node svc like 26000 26010 ....
+@return       logSourcePaths: log paths to be backed up
+@author: luweikang
+******************************************************************* */
+function commCreateRG( db, rgName, nodeNum, hostname )
+{
+   if( hostname === undefined )
+   { 
+      var nodeList = commGetSnapshot( db, SDB_SNAP_SYSTEM, {Role: "coord", RawData: true} );
+      hostname = nodeList[0].HostName;
+   }
+   
+   try
+   {
+      var rg = db.createRG( rgName );   
+   }
+   catch( e )
+   {
+      throw new Error( e );
+   }
+   
+   var maxRetryTimes = 100;
+   var logSourcePaths = [];
+   for( var i = 0; i < nodeNum; i++ )
+   {
+      var failedCount = 0;
+      var svc = parseInt( RSRVPORTBEGIN ) + 10 * ( i + failedCount );
+      var dbPath = RSRVNODEDIR + "data/" + svc;
+      do
+      {
+         try
+         {
+            new Remote( hostname ).getCmd().run( "lsof -i:" + svc );
+            svc = svc + 10;
+            dbPath = RSRVNODEDIR + "data/" + svc;
+            failedCount++;
+            continue;
+         }
+         catch( e )
+         { 
+            if( e !== 1 )
+            {
+               throw new Error( "lsof check port error: " + e ); 
+            }
+         }
+         try
+         {
+            rg.createNode( hostname, svc, dbPath, { diaglevel: 5 } );
+            println( "create node: " + hostname + ":" + svc + " dbpath: " + dbPath );
+            logSourcePaths.push( hostname + ":" + CMSVCNAME + "@" + dbPath + "/diaglog/sdbdiag.log" );
+            break;
+         }
+         catch( e )
+         {
+            //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
+            if( commCompareErrorCode( e, -145 ) || commCompareErrorCode( e, -290 ) )
+            {
+               svc = svc + 10;
+               dbPath = RSRVNODEDIR + "data/" + svc;
+               failedCount++;
+            }
+            else
+            {
+               throw new Error( "create node failed!  port = " + svc + " dataPath = " + dbPath + " errorCode: " + e );
+            }
+         }
+      }
+      while( failedCount < maxRetryTimes );
+   }
+   rg.start();
+   return logSourcePaths;
 }
 
 /**********************************************************************
