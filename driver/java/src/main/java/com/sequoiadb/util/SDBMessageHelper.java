@@ -77,6 +77,8 @@ public class SDBMessageHelper {
 
     private final static Byte BTYE_FILL = 0;
 
+    public static final String ENCODING_TYPE =  "UTF-8";
+
     public static byte[] buildSysInfoRequest() {
         ByteBuffer buf = ByteBuffer.allocate(MESSAGE_SYSINFOREQUEST_LENGTH);
         buf.putInt(SequoiadbConstants.MSG_SYSTEM_INFO_LENGTH);
@@ -1186,11 +1188,12 @@ public class SDBMessageHelper {
         } catch (Exception e) {
             return "";
         }
-        char[] charArray = inStr.toCharArray();
-        byte[] byteArray = new byte[charArray.length];
 
-        for (int i = 0; i < charArray.length; i++) {
-            byteArray[i] = (byte) charArray[i];
+        byte[] byteArray;
+        try {
+            byteArray = inStr.getBytes(ENCODING_TYPE);
+        }catch (UnsupportedEncodingException e){
+            throw new BaseException(SDBError.SDB_INVALIDARG, e);
         }
 
         byte[] md5Bytes = md5.digest(byteArray);
