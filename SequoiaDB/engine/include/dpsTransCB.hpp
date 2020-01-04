@@ -402,7 +402,7 @@ namespace engine
       // check if primary active time is valid
       OSS_INLINE BOOLEAN isPrimaryActived()
       {
-         return _primaryActiveTime.compare( 0LL ) ;
+         return !( _primaryActiveTime.compare( 0LL ) ) ;
       }
 
       // set primary active time

@@ -609,8 +609,10 @@ namespace engine
          goto done ;
       }
 
-      // try get a global time
-      rc = getGlobTransTime( activeTime, 0 ) ;
+      // try to get a global time in a short period
+      // NOTE: if STP is unavailable temporarily, timeout > 0
+      //       will trigger STP checking
+      rc = getGlobTransTime( activeTime, 100 ) ;
       if ( SDB_OK == rc )
       {
          // try set primary active time
