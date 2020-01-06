@@ -327,7 +327,11 @@ namespace engine
 #else
          // get time by clock
          struct timespec ts ;
+#if defined (CLOCK_MONOTONIC_RAW)
          if ( 0 == clock_gettime( CLOCK_MONOTONIC_RAW, &ts ) )
+#else
+         if ( 0 == clock_gettime( CLOCK_MONOTONIC, &ts ) )
+#endif
          {
             _second = (UINT64)( ts.tv_sec ) ;
             _nanoSecond = (UINT64)( ts.tv_nsec ) ;
