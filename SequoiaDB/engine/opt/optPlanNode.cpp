@@ -1869,8 +1869,7 @@ namespace engine
 
          RTN_PREDICATE_MAP::iterator iterPred = predicates.find( pFieldName ) ;
 
-         if ( iterPred == predicates.end() ||
-              iterPred->second.isEmpty() )
+         if ( iterPred == predicates.end() )
          {
             // The key is not included in the predicates
             // Cover all values in this key

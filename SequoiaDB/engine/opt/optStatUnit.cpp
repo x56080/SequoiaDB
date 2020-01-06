@@ -702,8 +702,7 @@ namespace engine
             BSONElement beKey = iterKey.next() ;
             const CHAR *pFieldName = beKey.fieldName() ;
             RTN_PREDICATE_MAP::iterator iterPred = predicates.find( pFieldName ) ;
-            if ( iterPred == predicates.end() ||
-                 iterPred->second.isEmpty() )
+            if ( iterPred == predicates.end() )
             {
                predicateList.push_back( NULL ) ;
             }
@@ -1308,8 +1307,7 @@ namespace engine
          {
             BSONElement beKey = iterKey.next() ;
             RTN_PREDICATE_MAP::iterator iterPred = predicates.find( beKey.fieldName() ) ;
-            if ( iterPred == predicates.end() ||
-                 iterPred->second.isEmpty() )
+            if ( iterPred == predicates.end() )
             {
                if ( 0 == matchedCount )
                {
