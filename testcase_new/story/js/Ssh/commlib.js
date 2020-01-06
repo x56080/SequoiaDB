@@ -1,42 +1,55 @@
+import( "../lib/main.js" )
+
 /******************************************************************************
-*@Description : common function for js object Ssh
+*@Description : common parameters
 *@auhor       : Liang XueWang
 ******************************************************************************/
+var user = "sdbadmin";
+var password = "sdbadmin";
+var port = 22;
 
-var sdbUser = "sdbadmin";
-var sdbPasswd = "sdbadmin";
-var sshPort = 22;
+/******************************************************************************
+*@Description : get remote 
+*@author      : Zhao xiaoni
+******************************************************************************/
+function getRemote( hostName)
+{  
+   var remote = new Remote( hostName, CMSVCNAME );
+   return remote;
+}
+
+/******************************************************************************
+*@Description : get remote cmd
+*@author      : Zhao xiaoni
+******************************************************************************/
+function getRemoteCmd( hostName )
+{  
+   var remote = getRemote( hostName );
+   var cmd = remote.getCmd();
+   return cmd;
+}
 
 /******************************************************************************
 *@Description : get hosts in cluster
 *@author      : Liang XueWang
 ******************************************************************************/
-function toolGetHosts ()
+function getHostNames()
 {
-   var hosts = [];
-   var k = 0;
-
-   var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-   if( commIsStandalone( db ) )
+   var hostNames = [];
+   var cursor = db.listReplicaGroups();
+   while( cursor.next() )
    {
-      println( "Run mode is standalone." );
-      db.close();
-      return hosts;
-   }
-
-   var tmpInfo = db.listReplicaGroups().toArray();
-   for( var i = 0; i < tmpInfo.length; i++ )
-   {
-      var tmpObj = JSON.parse( tmpInfo[i] );
-      var tmpArr = tmpObj.Group;
-      for( var j = 0; j < tmpArr.length; j++ )
+      var group = cursor.current().toObj().Group;
+      for( var i = 0; i < group.length; i++ )
       {
-         if( hosts.indexOf( tmpArr[j].HostName ) == -1 )
-            hosts[k++] = tmpArr[j].HostName;
+         var hostName = group[i].HostName;
+         if( hostNames.indexOf( hostName ) == -1 )
+         {   
+            hostNames.push( hostName );
+         }      
       }
    }
-   db.close();
-   return hosts;
+   return hostNames;
 }
 
 /******************************************************************************
@@ -44,254 +57,122 @@ function toolGetHosts ()
 *               localhost means cluster local host, host of COORDHOSTNAME
 *@author      : Liang XueWang
 ******************************************************************************/
-function toolGetLocalhost ()
+function getLocalHostName( )
 {
-   // get local host of cluster, with COORDHOSTNAME
-   var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
-   var cmd = remote.getCmd();
-   var localhost = cmd.run( "hostname" ).split( "\n" )[0];
-   remote.close();
-
-   return localhost;
+   var cmd = getRemoteCmd( COORDHOSTNAME );
+   var hostName = cmd.run( "hostname" ).split( "\n" )[0];
+   return hostName;
 }
 
 /******************************************************************************
-*@Description : get a remote hostname in cluster
-*               if cluster has no remote host, return localhost
+*@Description : get remote hostname
 *@author      : Liang XueWang
 ******************************************************************************/
-function toolGetRemotehost ()
+function getRemoteHostName()
 {
-   var hosts = toolGetHosts();
-   var localhost = toolGetLocalhost();
-   var remotehost = localhost;
-   for( var i = 0; i < hosts.length; i++ )
+   var hostNames = getHostNames();
+   var localHostName = getLocalHostName();
+   var remoteHostName = localHostName;
+   for( var i = 0; i < hostNames.length; i++ )
    {
-      if( hosts[i] !== localhost )
+      if( hostNames[i] !== localHostName )
       {
-         remotehost = hosts[i];
+         remoteHostName = hostNames[i];
          break;
       }
    }
-
-   return remotehost;
-}
-
-/******************************************************************************
-*@Description : check ssh with user passwd port in host
-*@author      : Liang XueWang
-******************************************************************************/
-function checkSsh ( hostname, user, passwd, port )
-{
-   try
-   {
-      var ssh = newSsh( hostname, user, passwd, port );
-      ssh.close();
-      return true;
-   }
-   catch( e )
-   {
-      println( "ssh with " + user + " " + passwd + " " + port +
-         " failed, e = " + e );
-      return false;
-   }
+   return remoteHostName;
 }
 
 /******************************************************************************
 *@Description : check cm user
 *@author      : Liang XueWang
 ******************************************************************************/
-function checkCmUser ( hostname, user )
+function checkCmUser ( hostName, user )
 {
-   try
+   var remote = new Remote( hostName, CMSVCNAME );
+   var actual = remote.getSystem().getCurrentUser().toObj().user;
+   remote.close();
+   if( user !== actual )
    {
-      var remote = new Remote( hostname, CMSVCNAME );
-      var system = remote.getSystem();
-      var actual = system.getCurrentUser().toObj().user;
-      remote.close();
-      if( user !== actual )
-      {
-         println( "cm user is " + actual + ", not " + user );
-         return false;
-      }
-      return true;
+      return false;
    }
-   catch( e )
-   {
-      throw buildException( "checkCmUser", e, "check cm user " + hostname, 0, e );
-   }
+   return true;
+}
+
+/******************************************************************************
+*@Description : clean up local file
+*@author      : Zhao xiaoni
+******************************************************************************/
+function cleanLocalFile( fileName )
+{
+   var cmd = new Cmd();
+   cmd.run( "rm -rf " + fileName );
+}
+
+/******************************************************************************
+*@Description : clean up remote file
+*@author      : Zhao xiaoni
+******************************************************************************/
+function cleanRemoteFile( remoteHostName, remoteSvcName, fileName )
+{
+   cmd = getRemoteCmd( remoteHostName, remoteSvcName );
+   cmd.run( "rm -rf " + fileName );
 }
 
 /******************************************************************************
 *@Description : get ip address of hostname
 *@author      : Liang XueWang
 ******************************************************************************/
-function getIPAddr ( hostname )
-{
-   try
-   {
-      var cmd = new Cmd();
-      var command = "cat /etc/hosts | grep " + hostname + " | awk '{print $1}'";
-      var ip = cmd.run( command ).split( "\n" )[0];
-      return ip;
-   }
-   catch( e )
-   {
-      throw buildException( "getIPAddr", e,
-         "get ip address of " + hostname, 0, e );
-   }
-}
-
-/******************************************************************************
-*@Description : get ip address of local host
-*@author      : Liang XueWang
-******************************************************************************/
-function getLocalIPAddr ()
-{
-   try
-   {
-      var cmd = new Cmd();
-      var localhost = cmd.run( "hostname" ).split( "\n" )[0];
-      var command = "cat /etc/hosts | grep " + localhost + " | awk '{print $1}'";
-      var ip = cmd.run( command ).split( "\n" )[0];
-      return ip;
-   }
-   catch( e )
-   {
-      throw buildException( "getLocalIPAddr", e, "get ip of " + localhost, 0, e );
-   }
-}
-
-/******************************************************************************
-*@Description : force remove local file
-*@author      : Liang XueWang
-******************************************************************************/
-function rmLocalFile ( filename )
-{
-   try
-   {
-      var cmd = new Cmd();
-      cmd.run( "rm -rf " + filename );
-   }
-   catch( e )
-   {
-      throw buildException( "rmLocalFile", e, "force rm file " + filename, 0, e );
-   }
-}
-
-/******************************************************************************
-*@Description : force remove remote file
-*@author      : Liang XueWang
-******************************************************************************/
-function rmRemoteFile ( hostname, filename )
-{
-   try
-   {
-      var remote = new Remote( hostname, CMSVCNAME );
-      var cmd = remote.getCmd();
-      cmd.run( "rm -rf " + filename );
-      remote.close();
-   }
-   catch( e )
-   {
-      throw buildException( "rmRemoteFile", e,
-         "force rm file " + filename + " " + hostname, 0, e );
-   }
+function getIPAddr( hostName )
+{  
+   var cmd = getRemoteCmd( hostName );
+   var command = "cat /etc/hosts | grep " + hostName + " | awk '{print $1}'";
+   var ip = cmd.run( command ).split( "\n" )[0];
+   return ip;
 }
 
 /******************************************************************************
 *@Description : check remote file mode and content
 *@author      : Liang XueWang
 ******************************************************************************/
-function checkRemoteFile ( hostname, filename, mode, content )
+function checkRemoteFile ( hostName, fileName, mode, content )
 {
-   var remote = new Remote( hostname, CMSVCNAME );
-   var file = remote.getFile( filename );
-   var actual = file.stat( filename ).toObj().mode;
+   var remote = getRemote( hostName, CMSVCNAME ); 
+   var file = remote.getFile( fileName );
+
+   var actual = file.stat( fileName ).toObj().mode;
    if( mode !== actual )
    {
-      throw buildException( "checkRemoteFile", null, "check file mode: " + filename +
-         " " + hostname, mode, actual );
+      throw new Error( "mode: " + mode + ", actual: " + actual );
    }
+
    actual = file.read().split( "\n" )[0];
    if( content !== actual )
    {
-      throw buildException( "checkRemoteFile", null, "check file content: " + filename +
-         " " + hostname, content, actual );
+      throw new Error( "content: " + content + ", actual: " + actual );
    }
-   file.close();
-   remote.close();
-}
 
+   file.close();
+}
 /******************************************************************************
 *@Description : check local file mode and content
 *@author      : Liang XueWang
 ******************************************************************************/
-function checkLocalFile ( filename, mode, content )
+function checkLocalFile ( fileName, mode, content )
 {
-   var file = new File( filename );
-   var actual = file.stat( filename ).toObj().mode;
+   var file = new File( fileName );
+   var actual = file.stat( fileName ).toObj().mode;
+
    if( actual !== mode )
    {
-      throw buildException( "checkLocalFile", null, "check file mode: " + filename,
-         mode, actual );
+      throw new Error( "mode: " + mode + ", actual: " + actual );
    }
+  
    actual = file.read().split( "\n" )[0];
    if( actual !== content )
    {
-      throw buildException( "checkLocalFile", null, "check file content: " + filename,
-         content, actual );
+      throw new Error( "content: " + content + ", actual: " + actual );
    }
    file.close();
-}
-
-
-/******************************************************************************
-*@Description : ssh at least three times
-*@author      : luweikang
-******************************************************************************/
-function newSsh ( hostname, sdbUser, sdbPasswd, sshPort, error )
-{
-   var sshSuccess = false;
-   for( var i = 0; i < 3; i++ )
-   {
-
-      try
-      {
-         if( hostname == undefined )
-         {
-            var ssh = new Ssh();
-         }
-         else if( sdbUser == undefined )
-         {
-            var ssh = new Ssh( hostname );
-         }
-         else if( sdbPasswd == undefined )
-         {
-            var ssh = new Ssh( hostname, sdbUser );
-         }
-         else if( sshPort == undefined )
-         {
-            var ssh = new Ssh( hostname, sdbUser, sdbPasswd );
-         }
-         else
-         {
-            var ssh = new Ssh( hostname, sdbUser, sdbPasswd, sshPort );
-         }
-         sshSuccess = true;
-         break;
-      }
-      catch( e )
-      {
-         if( e == error )
-         {
-            throw e;
-         }
-      }
-   }
-   if( sshSuccess === false )
-   {
-      throw buildException( "newSsh()", null, "three retries failed", "ssh success", "ssh failed" );
-   }
-   return ssh;
 }
