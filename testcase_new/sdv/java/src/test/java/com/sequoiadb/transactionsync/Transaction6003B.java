@@ -17,7 +17,7 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
  * @description seqDB-6003:配置事务锁超时时间值合法校验_SD.transaction.014(
- *              由于设置事务锁等待超时时间值为3600s时间较长不适合将用例放到CI,故这里只测试设置为5s，看参数是否生效)
+ *              由于设置事务锁等待超时时间值为3600s时间较长不适合将用例放到CI,故这里只测试设置为30s，看参数是否生效)
  * @author wangkexin
  * @date 2019.04.08
  * @review
@@ -29,6 +29,9 @@ public class Transaction6003B extends SdbTestBase {
     private Sequoiadb db2 = null;
     private DBCollection cl = null;
     private long timeoutMillis = 0;
+    private int transTimeout = 30;
+    private int transDefaultTimeout = 60;
+    private int tolerance = 5;
 
     @BeforeClass
     private void setup() {
@@ -41,10 +44,10 @@ public class Transaction6003B extends SdbTestBase {
     public void test() throws Exception {
         BSONObject configs = new BasicBSONObject();
         BSONObject options = new BasicBSONObject();
-        configs.put( "transactiontimeout", 5 );
+        configs.put( "transactiontimeout", transTimeout );
         options.put( "Global", true );
         sdb.updateConfig( configs, options );
-        checkConfig( options, 5 );
+        checkConfig( options, transTimeout );
 
         ThreadExecutor es = new ThreadExecutor();
         es.addWorker( new TransInsert6003B() );
@@ -59,7 +62,7 @@ public class Transaction6003B extends SdbTestBase {
         try {
             BSONObject configs = new BasicBSONObject();
             BSONObject options = new BasicBSONObject();
-            configs.put( "transactiontimeout", 60 );
+            configs.put( "transactiontimeout", transDefaultTimeout );
             options.put( "Global", true );
             sdb.updateConfig( configs, options );
 
@@ -146,8 +149,9 @@ public class Transaction6003B extends SdbTestBase {
         while ( cursor.hasNext() ) {
             Assert.assertEquals( cursor.getNext().get( "a" ).toString(), "1" );
         }
-        if ( timeoutMillis < 5 * 1000 || timeoutMillis > 6 * 1000 ) {
-            Assert.fail( "when transactiontimeout is 5(s), the actual time is "
+        if ( timeoutMillis < ( transTimeout - tolerance ) * 1000
+                || timeoutMillis > ( transTimeout + tolerance ) * 1000 ) {
+            Assert.fail( "when transactiontimeout is 30(s), the actual time is "
                     + timeoutMillis + "(ms)." );
         }
     }
