@@ -24,7 +24,7 @@ function main ()
    println( "--insert data success!" );
 
    //检查id
-   var recordHead = 57;
+   var recordHead = 81;
    var expectIDs = [];
    for( var i = 0; i < recordNum; i++ )
    {

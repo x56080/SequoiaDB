@@ -24,7 +24,7 @@ function main ()
 	var limitConf = 3;
 	var skipConf = 39997;
 
-	var expectIDs1 = [2048, 1024, 0];
+	var expectIDs1 = [2096, 1048, 0];
 	var sortConf1 = { _id: -1 };
 
 	var expectIDs2 = [getOneLogicalID( stringLength, 39997 ),
@@ -55,7 +55,7 @@ function main ()
 	var limitConf = 3;
 	var skipConf = 99997;
 
-	var expectIDs1 = [2048, 1024, 0];
+	var expectIDs1 = [2096, 1048, 0];
 	var sortConf1 = { _id: -1 };
 
 	var expectIDs2 = [getOneLogicalID( stringLength, 99997 ),
@@ -66,7 +66,7 @@ function main ()
 	//checkLogicalID( dbcl, null, null, sortConf1, limitConf, skipConf, expectIDs1);
 	checkLogicalID( dbcl, null, null, sortConf2, limitConf, skipConf, expectIDs2 );
 
-	commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
+	//commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
 }
 
 function getOneLogicalID ( stringLength, skipNum )
@@ -75,7 +75,7 @@ function getOneLogicalID ( stringLength, skipNum )
 	var blockCounts = 1;
 	var block_max_32 = 33554396;
 
-	var recordLength = stringLength + 55;
+	var recordLength = stringLength + 79;
 	if( recordLength % 4 !== 0 )
 	{
 		recordLength = recordLength - recordLength % 4 + 4;

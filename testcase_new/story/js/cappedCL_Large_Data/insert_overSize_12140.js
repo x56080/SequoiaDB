@@ -24,14 +24,14 @@ function main ()
    db2.setSessionAttr( { PreferedInstance: "s" } );
    var dbclSlave = db2.getCS( csName ).getCL( clName );
 
-   var insertNum = 32767;
+   var insertNum = 32017;
    var firstBlockRecordNum = 0;
    var expectLogicalID = 0;
    var min = 0;
    var max = insertNum;
    var repeatNum = 10;
    var stringLength = 969;
-   var recordHead = 55;
+   var recordHead = 79;
    var overturn = 0;
    var expIDs = [];
    var expectNum = 0;

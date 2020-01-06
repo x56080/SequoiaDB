@@ -30,13 +30,13 @@ function main ()
    // put Lob
    //32M>lob
    putLob( cl, testFile, 2, 2, oids );
-   insertData( cl, 10, 1080 );
+   insertData( cl, 10, 1296 );
    //32M<lob<96M
    putLob( cl, testFile, 4, 6, oids );
-   insertData( cl, 10, 2280 );
+   insertData( cl, 10, 2736 );
    //128M<lob
    putLob( cl, testFile, 4, 10, oids );
-   insertData( cl, 10, 3480 );
+   insertData( cl, 10, 4176 );
 
    // get lob
    getLob( cl, getTestFile, oids, testFile, md5, cmd );

@@ -19,8 +19,8 @@ function main ()
 
 	//check find and count
 	var expectResult = [{ "_id": 0, "a": 1 },
-	{ "_id": 56, "a": 1 },
-	{ "_id": 112, "a": 1 }];
+	{ "_id": 80, "a": 1 },
+	{ "_id": 160, "a": 1 }];
 	var sortConf = { _id: 1 };
 	checkRecords( dbcl, null, null, sortConf, null, null, expectResult );
 
@@ -50,7 +50,7 @@ function main ()
 	var expectIDs = [];
 	for( var i = 0; i < expectCount; i++ )
 	{
-		expectIDs.push( i * 56 );
+		expectIDs.push( i * 80 );
 	}
 	checkLogicalID( dbcl, null, null, sortConf, null, null, expectIDs );
 
