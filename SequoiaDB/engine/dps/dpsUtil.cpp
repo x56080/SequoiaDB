@@ -85,7 +85,7 @@ namespace engine
    {
       SDB_ASSERT( pBuff && bufSize > 0, "Invalid input" ) ;
 
-      ossSnprintf( pBuff, bufSize, "0x%04x%010x",
+      ossSnprintf( pBuff, bufSize, "0x%04x%010llx",
                    DPS_TRANS_GET_NODEID( transID ),
                    DPS_TRANS_GET_SN( transID ) ) ;
 
