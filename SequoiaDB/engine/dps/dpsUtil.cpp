@@ -92,7 +92,7 @@ namespace engine
    {
       SDB_ASSERT( pBuff && bufSize > 0, "Invalid input" ) ;
 
-      ossSnprintf( pBuff, bufSize, "0x%04x%014x%s",
+      ossSnprintf( pBuff, bufSize, "0x%04x%014llx%s",
                    transID.getNodeID(),
                    transID.getRawSN(),
                    transID.isGlobTrans() ? "(Global)" : "" ) ;
