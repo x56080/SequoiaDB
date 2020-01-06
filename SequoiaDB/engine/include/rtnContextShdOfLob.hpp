@@ -175,7 +175,6 @@ namespace engine
       _dmsStorageUnit*     _su ;
       _dmsMBContext*       _mbContext ;
       _SDB_DMSCB*          _dmsCB ;
-      BOOLEAN              _writeDMS ;
       BOOLEAN              _hasLobPrivilege ;
       BOOLEAN              _reopened ;
       BOOLEAN              _isMetaWrote ; // used in CREATEONLY mode

@@ -62,7 +62,6 @@ namespace engine
     _su( NULL ),
     _mbContext( NULL ),
     _dmsCB( NULL ),
-    _writeDMS( FALSE ),
     _hasLobPrivilege( FALSE ),
     _reopened( FALSE ),
     _isMetaWrote( FALSE )
@@ -122,6 +121,7 @@ namespace engine
       _dmsCB = sdbGetDMSCB() ;
       const CHAR *clName = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      BOOLEAN writeDMS = FALSE ;
 
       rc = _parseOpenArgs( lob ) ;
       if ( SDB_OK != rc )
@@ -140,7 +140,7 @@ namespace engine
             PD_LOG( PDERROR, "database is not writable, rc = %d", rc ) ;
             goto error ;
          }
-         _writeDMS = TRUE ;
+         writeDMS = TRUE ;
       }
 
       rc = rtnResolveCollectionNameAndLock( _getRealCLName(),
@@ -203,14 +203,12 @@ namespace engine
          PD_LOG( PDEVENT, "Reopened main shard" ) ;
       }
 
+   done:
       /// write down
-      if ( _writeDMS )
+      if ( writeDMS )
       {
          _dmsCB->writeDown( cb ) ;
-         _writeDMS = FALSE ;
       }
-
-   done:
       PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB_OPEN, rc ) ;
       return rc ;
    error:
@@ -282,6 +280,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN accessInfoLocked = FALSE ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTSHDOFLOB_UPDATE ) ;
+      BOOLEAN writeDMS = FALSE ;
+
+      rc = _dmsCB->writable( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable[%d]", rc ) ;
+      writeDMS = TRUE ;
 
       if ( DMS_LOB_META_SEQUENCE == sequence &&
            SDB_LOB_MODE_WRITE == _mode &&
@@ -405,6 +408,11 @@ namespace engine
       if ( accessInfoLocked )
       {
          _accessInfo->unlock() ;
+      }
+
+      if ( writeDMS )
+      {
+         _dmsCB->writeDown( cb ) ;
       }
       PD_TRACE_EXITRC( SDB__RTNCONTEXTSHDOFLOB_UPDATE, rc ) ;
       return rc ;
@@ -1072,11 +1080,6 @@ namespace engine
       {
          _dmsCB->suUnlock( _su->CSID() ) ;
          _su = NULL ;
-      }
-      if ( _writeDMS )
-      {
-         _dmsCB->writeDown( cb ) ;
-         _writeDMS = FALSE ;
       }
 
       PD_TRACE_EXIT( SDB__RTNCONTEXTSHDOFLOB_CLOSE ) ;
