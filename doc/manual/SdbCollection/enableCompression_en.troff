@@ -4,17 +4,20 @@
 .hy
 .SH NAME
 .PP
-enableCompression \- Modify the collection properties to enable compression.
+enableCompression \- Enable the compression function of the collection 
+or modify the compression algorithm of the collection.
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.collectionspace.collection.enableCompression(<options>)\f[]\f[]
+\f[B]\f[I]db.collectionspace.collection.enableCompression([options])\f[]\f[]
 .SH CATEGORY
 .PP
 Collection
 .SH "DESCRIPTION"
 
 .sp 2
-Modify the collection properties to enable compression.
+ Enable the compression function of the collection or modify the
+ compression algorithm of the collection.
+
 .sp 2
 \fBoptions (Json Object)\fR
 .br

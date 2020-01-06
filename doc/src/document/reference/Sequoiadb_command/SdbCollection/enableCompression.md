@@ -1,10 +1,10 @@
 ##名称##
 
-enableCompression - 修改集合的属性开启压缩功能。
+enableCompression - 开启集合的压缩功能或者修改集合的压缩算法。
 
 ##语法##
 
-**db.collectionspace.collection.enableCompression(\<options\>)**
+**db.collectionspace.collection.enableCompression([options])**
 
 ##类别##
 
@@ -12,24 +12,21 @@ Collection
 
 ##描述##
 
-修改集合的属性开启压缩功能。
+开启集合的压缩功能或者修改集合的压缩算法。
 
 ##参数##
 
-* `options` ( *Object*， *必填* )
+* `options` ( *Object*， *选填* )
 
     通过`options`参数可以修改集合属性：
 
-    1. `CompressionType` ( *String* )：集合的压缩算法，"lzw" 或者 "snappy"。
+    1. `CompressionType` ( *String* )：集合的压缩算法类型，默认为 lzw 算法。其可选取值如下：
 
-        * "lzw"：使用 lzw 算法压缩。（默认值）
+        * "lzw"：使用 lzw 算法压缩。
         * "snappy"：使用 snappy 算法压缩。
 
         格式：`CompressionType : "lzw" | "snappy" `
 
->  **Note:**
->
->  不显式设置 `CompressionType` 将默认把压缩算法修改为 "lzw"
 
 ##返回值##
 
