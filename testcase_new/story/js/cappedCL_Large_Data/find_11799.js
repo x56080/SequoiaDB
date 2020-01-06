@@ -83,7 +83,7 @@ function test ()
    checkLogicalID( dbcl, existsObj, null, { _id: 1 }, null, null, expLogicalIDs );
 
    //$or
-   var orObj = { $or: [{ _id: { $lt: 56 } }, { a: { $gt: 100000 } }] }
+   var orObj = { $or: [{ _id: { $lt: 80 } }, { a: { $gt: 100000 } }] }
    var results = allResults.slice( 0, 1 ).concat( allResults.slice( 100101 ) );
    var expectIDs = expLogicalIDs.slice( 0, 1 ).concat( expLogicalIDs.slice( 100101 ) );
    checkQueryResult( dbcl, orObj, null, { _id: 1 }, results );
@@ -108,7 +108,7 @@ function getExpectLogicalIDs ( stringLength, recordNums )
 {
    var expLogicalIDs = [];
 
-   var recordLength = stringLength + 55;
+   var recordLength = stringLength + 79;
    if( recordLength % 4 !== 0 )
    {
       recordLength = recordLength + ( 4 - recordLength % 4 );

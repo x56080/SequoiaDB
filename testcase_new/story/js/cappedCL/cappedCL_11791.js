@@ -24,7 +24,7 @@ function test ()
    var insertRecords = insertFixedLengthDatas( dbcl, recordNum, recordLength, string );
 
    //检查id
-   var recordHead = 57;
+   var recordHead = 81;
    var expectIDs = [];
    for( var i = 0; i < recordNum; i++ )
    {
