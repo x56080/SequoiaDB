@@ -523,7 +523,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_RESETVALUE, "preIdxTree::resetValue" )
    void preIdxTree::resetValue( const preIdxTreeNodeKey &keyNode,
-                                BOOLEAN hasLock )
+                                DPS_TRANSID_SN           ownerTransID,
+                                BOOLEAN                  hasLock )
    {
       PD_TRACE_ENTRY( SDB_PREIDXTREE_RESETVALUE ) ;
 
@@ -552,7 +553,8 @@ namespace engine
 #ifdef _DEBUG
       if ( 1 != numChanged )
       {
-         if ( _isValid )
+         // this node could be GCed
+         if ( _isValid && ( ownerTransID > _lastGCTime ) )
          {
             PD_LOG( PDWARNING,
                     "Find %d records in index tree(%d) with key[%s].\n",
@@ -930,9 +932,9 @@ namespace engine
             {
                INDEX_TREE_POS temp = pos ;
 #ifdef _DEBUG
-               PD_LOG ( PDDEBUG, "Remove node(%s) from ixtree(%d),lowTran(%llu)",
+               PD_LOG ( PDDEBUG, "Remove node(%s) from ixtree(%d),lowTran(%s)",
                         pos->first.toString().c_str(), _idxLID, 
-                        lowTran );
+                        dpsTransIDToString(lowTran).c_str() );
 #endif   
                pos++ ;
                _tree.erase(temp) ;
@@ -1480,10 +1482,11 @@ namespace engine
          if ( treePtr.get() )
          {
 #ifdef _DEBUG  // FIXME remove after stable
-            PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, lowtran(%llu)",
+            PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, lowtran(%s)",
                     it->first.toString().c_str(),
                     treePtr->getKeyPattern().toString().c_str(),
-                    lowTran.getGlobSN() ) ;
+                    dpsTransIDToString(lowTran).c_str() ) ;
+                    //lowTran.getGlobSN() ) ;
             treePtr->printTree( FALSE ) ;
 #endif
             // NOTE: we need global transaction tag with SN
@@ -2018,6 +2021,7 @@ namespace engine
 #endif
                // reset the tree node value if mvcc is on
                pTree->resetValue( keyNode,
+                                  getOwnerTransID().getGlobSN(),
                                   idxLID == tmpObj.getIdxLID() ?
                                         hasLock : FALSE ) ;
             }

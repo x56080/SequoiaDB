@@ -484,7 +484,8 @@ namespace engine
                      BOOLEAN hasLock = FALSE ) ;
 
       void  resetValue( const preIdxTreeNodeKey &keyNode,
-                        BOOLEAN hasLock = FALSE ) ;
+                        DPS_TRANSID_SN           ownerTransID,
+                        BOOLEAN                  hasLock = FALSE ) ;
 
       void  clear( BOOLEAN hasLock = FALSE ) ;
       void  gc( DPS_TRANSID_SN lowTran ) ;
