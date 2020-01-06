@@ -976,27 +976,44 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD);
       SINT32       rc           = SDB_OK ;
       CHAR         clName[30]   = {0} ;
+      UINT16       clID         = DMS_INVALID_CLID ;
       CHAR         mclName[30]  = {0} ;
       BOOLEAN      mbLocked     = FALSE ;
-      BOOLEAN      metaMBLocked = FALSE ;
       dmsMBContext *metaContext = NULL ;
       _dmsStorageDataCapped *sd = (_dmsStorageDataCapped*)_su->data();
 
-      // TODO: need protection to lookup _currentCollection
+   begin:
+      // need protection to lookup _currentCollection
+      if ( NULL == metaContext )
+      {
+         rc = _su->data()->getMBContext( &metaContext, _metaCLName, SHARED ) ;
+      }
+      else
+      {
+         rc = metaContext->mbLock( SHARED ) ;
+      }
+      
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to lock RBS meta collection %s, rc: %d",
+                  mclName, rc ) ;
+         goto error ;
+      }
 
       // latch and lookup curCL for space first
       DMS_BUILD_RBS_CL_NAME( clName, _currentCollection ) ;
+      metaContext->mbUnlock() ;
 
       rc = _su->data()->getMBContext( &clContext, clName, EXCLUSIVE ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to get curCL mbLock, rc: %d",
-                  rc ) ;
+         PD_LOG ( PDERROR, "Failed to get curCL(%s) mbLock, rc: %d",
+                  clName, rc ) ;
          goto error ;
       }
       mbLocked = TRUE ;
 
-      //if( !sd->spaceEnough( clContext, recordSize ) )
+      clID = clContext->mbID() ;
       if( !sd->clDataSpaceEnough( clContext, recordSize ) )
       {
          // current CL does NOT have enough space, create the new CL
@@ -1010,7 +1027,7 @@ namespace engine
             const dmsMBStatInfo *mbStatInfo =
                                    sd->getMBStatInfo( clContext->mbID() ) ;
             PD_LOG ( PDINFO,
-                  "Out of space in %s, allocating next one. recordsize(%d),"
+                  "Out of space in %s, allocating next RBSCL. recordsize(%d),"
                   "clfreespace(%d), clTotalPages(%d), cltotalrecord(%d),"
                   "cl max(%lld), squareroot(%d)",
                   clName, recordSize,
@@ -1025,6 +1042,24 @@ namespace engine
          _su->data()->releaseMBContext( clContext ) ;
          mbLocked = FALSE ;
 
+         // take metaCL mbLatch in X so that no one read stale data
+         rc = metaContext->mbLock( EXCLUSIVE ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to lock RBS meta collection %s, rc: %d",
+                     mclName, rc ) ;
+            goto error ;
+         }
+
+         // It's possible that another thread has already moved up the
+         // _curCollection, we should just go back and retry
+         if ( _currentCollection != clID )
+         {
+            // build clName under latch protection
+            metaContext->mbUnlock() ;
+            goto begin ;
+         }
+
          // create next cl
          _currentCollection++ ;
          // if reached max, wrap to first one.
@@ -1032,16 +1067,6 @@ namespace engine
          {
             _currentCollection = DMS_FIRST_RBS_CL ;
          }
-
-         // take metaCL mbLatch in X so that no one read stale data
-         rc = _su->data()->getMBContext( &metaContext, _metaCLName, EXCLUSIVE ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to lock RBS meta collection %s, rc: %d",
-                     mclName, rc ) ;
-            goto error ;
-         }
-         metaMBLocked = TRUE ;
 
          // create next CL
          try
@@ -1066,6 +1091,8 @@ namespace engine
             {
                PD_LOG ( PDERROR, "Failed to add RBS collection %s, rc: %d",
                         clName, rc ) ;
+               // reset _currentCollection back to original one
+               _currentCollection-- ;
                goto error ;
             }
             PD_LOG ( PDDEBUG, "Successfully created RBS collection %s, logicalID= %d",
@@ -1093,7 +1120,6 @@ namespace engine
             goto error ;
          }
          metaContext->mbUnlock() ;
-         metaMBLocked = FALSE ;
 
          dmsStartAsyncRBSGC() ;
 
@@ -1109,17 +1135,14 @@ namespace engine
       } // end of spaceEnough
 
    done:
+      _su->data()->releaseMBContext( metaContext ) ;
       PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD, rc );
       return rc ;
 
    error:
-      if ( metaMBLocked )
-      {
-         metaContext->mbUnlock() ;
-      }
       if ( mbLocked )
       {
-         clContext->mbUnlock() ;
+         _su->data()->releaseMBContext( clContext ) ;
       }
       goto done ;
    }
@@ -1268,6 +1291,7 @@ namespace engine
          recSize = record.objsize() + DMS_RECORD_CAP_METADATA_SZ ;
          recSize = ossAlignX( recSize, 4 ) ;
 
+      retry:
          // move to proper RBS CL which has enough space, on OK return,
          // the cl is locked in X
          rc = _prepareRBSCLForRecord( recSize, eduCB, dpsCB, clContext ) ;
@@ -1285,6 +1309,17 @@ namespace engine
                                   TRUE, TRUE, clContext, -1, &insertResult ) ;
          if ( rc )
          {
+            // there could be timing hole that the cl we want to use was
+            if ( SDB_OSS_UP_TO_LIMIT == rc )
+            {
+               PD_LOG ( PDDEBUG,
+                        "Failed to insert into RBS(%d), going to retry. rc: %d",
+                        clContext->mbID(), rc ) ;
+               _su->data()->releaseMBContext( clContext ) ;
+               clLocked = FALSE ;
+               goto retry ;
+            }
+
             PD_LOG ( PDERROR, "Failed to insert into RBS, rc: %d",
                      rc ) ;
             goto error ;
@@ -1526,7 +1561,9 @@ namespace engine
       DPS_TRANS_ID maxGlobTransID ;
       SINT32      curPos     = (position == DMS_META_RBS_CL) ? DMS_FIRST_RBS_CL :
                                                  ( position + 1 ) ;
-      SINT32      begin      = curPos ;
+#ifdef _DEBUG
+      SINT32      beginPos   = curPos ;
+#endif
       BOOLEAN     changed    = FALSE ;
       dmsMBContext *pContext = NULL ;
 
@@ -1544,7 +1581,7 @@ namespace engine
             PD_LOG ( PDDEBUG,
                      "Finished all RBS except the currently using one,"
                      " start(%d), end(%d)",
-                     begin, curPos) ;
+                     beginPos, curPos) ;
 #endif
             break ;
          }

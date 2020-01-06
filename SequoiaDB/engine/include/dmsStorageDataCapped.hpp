@@ -481,9 +481,9 @@ namespace engine
       const dmsMBStatInfo *mbStatInfo = getMBStatInfo( context->mbID() ) ;
       SDB_ASSERT( mbStatInfo, "mbStatInfo should not be NULL" ) ;
       // enough data space or has room to grow
-      return ( ( (UINT64)mbStatInfo->_totalDataFreeSpace >= newSize ) ||
-               ( spaceEnough( context, newSize ) &&
-                 !_numExceedLimit(context, 1 ) ) ) ;
+      return ( ( (UINT64)mbStatInfo->_totalDataFreeSpace >= newSize ) &&
+               spaceEnough( context, newSize )                        &&
+               !_numExceedLimit(context, 1 ) ) ;
    }
 
    OSS_INLINE BOOLEAN _dmsStorageDataCapped::_numExceedLimit( dmsMBContext *context,
