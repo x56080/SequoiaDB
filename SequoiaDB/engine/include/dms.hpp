@@ -155,13 +155,13 @@ namespace engine
    #define DMS_CAP_EXTENT_SZ           (8 *  1024)
    #define DMS_MAX_CL_SIZE_ALIGN_SIZE  ( 8 * 1024 )
    // Default size of Rollback Segment collection 
-   #define DMS_DFT_RBSCL_SIZE          ( 16 * 1024 )
+   #define DMS_DFT_RBSCL_SIZE          ( 2 * DMS_CAP_EXTENT_SZ )
 #else
    // default extent size is 32MB
    #define DMS_CAP_EXTENT_SZ           (32 * 1024 * 1024)
    #define DMS_MAX_CL_SIZE_ALIGN_SIZE  ( 32 * 1024 * 1024 )
    // Default size of Rollback Segment collection is 128MB each.
-   #define DMS_DFT_RBSCL_SIZE          ( 128 * 1024 * 1024 )
+   #define DMS_DFT_RBSCL_SIZE          ( 4 * DMS_CAP_EXTENT_SZ )
 #endif
 
 #define DMS_CAP_EXTENT_BODY_SZ      ( DMS_CAP_EXTENT_SZ - DMS_EXTENT_METADATA_SZ )

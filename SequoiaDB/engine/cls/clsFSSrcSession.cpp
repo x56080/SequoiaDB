@@ -2150,6 +2150,14 @@ namespace engine
          MON_CL_LIST::const_iterator itrCL = clList.begin() ;
          while( itrCL != clList.end() )
          {
+            // Skip RBSCL
+            if ( 0 == ossStrncmp( itrCL->_name, 
+                                  SDB_DMSRBS_NAME, sizeof(SDB_DMSRBS_NAME) ) )
+            {
+               clList.erase( itrCL++ ) ;
+               continue ;
+            }
+
             curLen = b.bb().len() ;
             curReserved = b.bb().getReserveBytes() ;
 
@@ -2184,6 +2192,14 @@ namespace engine
          MAP_SU_STATUS::iterator itValid = validCLs.begin() ;
          while( itValid != validCLs.end() )
          {
+            // Skip RBSCL
+            if ( 0 == ossStrncmp( itValid->second._clName, 
+                                  SDB_DMSRBS_NAME, sizeof(SDB_DMSRBS_NAME) ) )
+            {
+               validCLs.erase( itValid++ ) ;
+               continue ;
+            }
+
             curLen = b.bb().len() ;
             curReserved = b.bb().getReserveBytes() ;
 

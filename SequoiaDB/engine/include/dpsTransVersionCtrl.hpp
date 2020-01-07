@@ -447,7 +447,7 @@ namespace engine
       {
          return _latch.try_get_shared() ;
       }
- 
+
       BOOLEAN empty() const
       {
          return _tree.empty() ;
@@ -510,11 +510,9 @@ namespace engine
       //    latch, reverse order is OK. Keep in mind we store the _lrbHdrIdx
       //    in the tree so that we have direct access to lrbHdr without need
       //    to go through lrbhash bkt.
-
       ossSpinSLatch       _latch ;  // latch for concurrency control, 
                                     // adding/removing node need latch in X
                                     // find/travers need latch in S
-
       INDEX_BINARY_TREE    _tree ;  // tree to hold all old index key value
       clsCataOrder         *_order ;// wrap class to hold the shared ordering
       BSONObj              _keyPattern ;
