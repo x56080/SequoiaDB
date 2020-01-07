@@ -2,7 +2,7 @@
 *@Description : seqDB-13179:使用ssh推送拉取文件
 *@author      : Liang XueWang
 ******************************************************************************/
-import( "../lib/main.js" )
+testConf.skipStandAlone = true;
 
 main( test );
 

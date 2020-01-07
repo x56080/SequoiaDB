@@ -2,6 +2,8 @@
 *@Description : seqDB-13181: 使用ssh推送拉取文件，源文件不存在
 *@author      : Liang XueWang
 ******************************************************************************/
+testConf.skipStandAlone = true;
+
 main( test );
 
 function test()

@@ -2,6 +2,8 @@
 *dcription: seqDB-13182:使用ssh推送拉取文件，源文件无权限
 *@author: Liang XueWang
 ******************************************************************************/
+testConf.skipStandAlone = true;
+
 main( test );
 
 function test()

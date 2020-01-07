@@ -2,6 +2,8 @@
 *@Description : seqDB-13190:使用ssh推送拉取文件，目标文件已存在（有权限）
 *@author      : Liang XueWang
 ******************************************************************************/
+testConf.skipStandAlone = true;
+
 main( test );
 
 function test()

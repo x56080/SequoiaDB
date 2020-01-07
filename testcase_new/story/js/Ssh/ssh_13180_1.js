@@ -2,6 +2,8 @@
 *@Description: seqDB-13180: 使用ssh推送拉取文件，指定文件权限
 *@author: Liang XueWang
 ******************************************************************************/
+testConf.skipStandAlone = true;
+
 main( test );
 
 function test()
