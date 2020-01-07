@@ -545,11 +545,6 @@ namespace engine
          pos->second.reset() ;
       }
 
-      if ( !hasLock )
-      {
-         unlockX() ;
-      }
-
 #ifdef _DEBUG
       if ( 1 != numChanged )
       {
@@ -557,9 +552,11 @@ namespace engine
          if ( _isValid && ( ownerTransID > _lastGCTime ) )
          {
             PD_LOG( PDWARNING,
-                    "Find %d records in index tree(%d) with key[%s].\n",
+                    "Find %d records in index tree(%d) with key[%s], "
+                    "ownerTransID(%llu), _lastGCTime(%llu).\n",
                     numChanged, _idxLID,
-                    keyNode.toString().c_str() ) ;
+                    keyNode.toString().c_str(), 
+                    ownerTransID, _lastGCTime ) ;
             printTree() ;
             SDB_ASSERT( ( 1 == numChanged ),
                         "Change record number must be 1" ) ;
@@ -572,6 +569,11 @@ namespace engine
                  pos->second.toString().c_str() ) ;
       }
 #endif
+
+      if ( !hasLock )
+      {
+         unlockX() ;
+      }
 
       PD_TRACE_EXIT( SDB_PREIDXTREE_RESETVALUE ) ;
       return ;
@@ -911,8 +913,8 @@ namespace engine
       INDEX_TREE_POS pos ;
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
-               "gc memixtree(%d) to lowTran %llu)",
-               _idxLID, lowTran );
+               "gc memixtree(%d) to lowTran %llu), lastGCtime(%llu)",
+               _idxLID, lowTran, _lastGCTime );
 #endif
 
       lockX(); 
@@ -932,9 +934,9 @@ namespace engine
             {
                INDEX_TREE_POS temp = pos ;
 #ifdef _DEBUG
-               PD_LOG ( PDDEBUG, "Remove node(%s) from ixtree(%d),lowTran(%s)",
+               PD_LOG ( PDDEBUG, "Remove node(%s) from ixtree(%d),lowTran(%llu)",
                         pos->first.toString().c_str(), _idxLID, 
-                        dpsTransIDToString(lowTran).c_str() );
+                        lowTran );
 #endif   
                pos++ ;
                _tree.erase(temp) ;

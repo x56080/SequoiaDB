@@ -107,52 +107,16 @@ namespace engine
       // FIXME: remove
       PD_LOG ( PDDEBUG, "load RBS cs %s with rc:%d", SDB_DMSRBS_NAME, rc ) ;
 
-      if ( SDB_DMS_CS_NOTEXIST == rc )
+      if ( SDB_OK == rc )
       {
-         UINT32 pageSize ;
-
-#if SMALL_CAP
-         pageSize = DMS_PAGE_SIZE4K ;
-#else
-         pageSize = DMS_PAGE_SIZE_MAX ;
-#endif
-         // Rollback Segment not exist, create one
-         PD_LOG ( PDDEBUG, "Creating RBS cs %s.", SDB_DMSRBS_NAME ) ;
-
-         rc = rtnCreateCollectionSpaceCommand( SDB_DMSRBS_NAME, NULL, _dmsCB,
-                                               dpsCB, UTIL_UNIQUEID_NULL,
-                                               pageSize,
-                                               DMS_DO_NOT_CREATE_LOB,
-                                               DMS_STORAGE_CAPPED, TRUE ) ;
-
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to create RBS collectionspace, rc: %d",
-                  rc ) ;
-            goto error ;
-         }
-
-         rc = rtnCollectionSpaceLock ( SDB_DMSRBS_NAME, _dmsCB, TRUE,
-                                       &_su, suID ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get collection space and lock for %s, "
-                     "rc: %d", SDB_DMSTEMP_NAME, rc ) ;
-            goto error ;
-         }
-
-         // now create the first RBSCL, but need to build the options first
-         rc = _initRBSCS( eduCB, dpsCB ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to create initial RBS CLs: %d",
-                    rc ) ;
-            goto error ;
-         }
-
-      }
-      else if ( SDB_OK == rc )
-      {
+#if 0
+         // Disable the logic to load existing RBS. The current design decision
+         // is to force existing transactions to fail if they access a newly 
+         // promoted primary node. Based on this decision, we will not sync 
+         // RBSCLs, which means we can always reinitialize the RBS during 
+         // start. This will greatly simplify the logic on edge case.
+         // However, if we change the decision in the future, we can re-enable
+         // the following code to load existing RBSs.
          // verify SYSRBS0000 exist, otherwise recreate one.  It's possible
          // previous init was able to create the CS but for whatever reason
          // failed to create CL. We will simply creat it here
@@ -198,12 +162,68 @@ namespace engine
                      _metaCLName, rc ) ;
             goto error ;
          }
+#endif
+         // Drop existing RBSCS
+         rc = rtnDelCollectionSpaceCommand( SDB_DMSRBS_NAME, NULL, _dmsCB,
+                                            dpsCB, TRUE, TRUE ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, 
+                     "Failed to cleanup previous RBS collectionspace, rc: %d",
+                     rc ) ;
+            goto error ;
+         }
       }
-      else
+      else if ( SDB_DMS_CS_NOTEXIST != rc )
       {
          PD_LOG ( PDERROR, "Failed to load RBS CS, rc: %d",
                   rc ) ;
          goto error ;
+      }
+
+      // Create RBSCS and CL
+      {
+         UINT32 pageSize ;
+
+#if SMALL_CAP
+         pageSize = DMS_PAGE_SIZE4K ;
+#else
+         pageSize = DMS_PAGE_SIZE_MAX ;
+#endif
+         // Rollback Segment not exist, create one
+         PD_LOG ( PDDEBUG, "Creating RBS cs %s.", SDB_DMSRBS_NAME ) ;
+
+         rc = rtnCreateCollectionSpaceCommand( SDB_DMSRBS_NAME, NULL, _dmsCB,
+                                               dpsCB, UTIL_UNIQUEID_NULL,
+                                               pageSize,
+                                               DMS_DO_NOT_CREATE_LOB,
+                                               DMS_STORAGE_CAPPED, TRUE ) ;
+
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to create RBS collectionspace, rc: %d",
+                  rc ) ;
+            goto error ;
+         }
+
+         rc = rtnCollectionSpaceLock ( SDB_DMSRBS_NAME, _dmsCB, TRUE,
+                                       &_su, suID ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to get collection space and lock for %s, "
+                     "rc: %d", SDB_DMSTEMP_NAME, rc ) ;
+            goto error ;
+         }
+
+         // now create the first RBSCL, but need to build the options first
+         rc = _initRBSCS( eduCB, dpsCB ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to create initial RBS CLs: %d",
+                    rc ) ;
+            goto error ;
+         }
+
       }
 
    done :
@@ -977,7 +997,6 @@ namespace engine
       SINT32       rc           = SDB_OK ;
       CHAR         clName[30]   = {0} ;
       UINT16       clID         = DMS_INVALID_CLID ;
-      CHAR         mclName[30]  = {0} ;
       BOOLEAN      mbLocked     = FALSE ;
       dmsMBContext *metaContext = NULL ;
       _dmsStorageDataCapped *sd = (_dmsStorageDataCapped*)_su->data();
@@ -996,7 +1015,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to lock RBS meta collection %s, rc: %d",
-                  mclName, rc ) ;
+                  _metaCLName, rc ) ;
          goto error ;
       }
 
@@ -1014,7 +1033,8 @@ namespace engine
       mbLocked = TRUE ;
 
       clID = clContext->mbID() ;
-      if( !sd->clDataSpaceEnough( clContext, recordSize ) )
+      //if( !sd->clDataSpaceEnough( clContext, recordSize ) )
+      if( !sd->spaceEnough( clContext, recordSize ) )
       {
          // current CL does NOT have enough space, create the new CL
          BSONObjBuilder builder ;
@@ -1047,7 +1067,7 @@ namespace engine
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to lock RBS meta collection %s, rc: %d",
-                     mclName, rc ) ;
+                     _metaCLName, rc ) ;
             goto error ;
          }
 
@@ -1055,19 +1075,14 @@ namespace engine
          // _curCollection, we should just go back and retry
          if ( _currentCollection != clID )
          {
-            // build clName under latch protection
+            PD_LOG ( PDDEBUG, 
+                     "CurrentCollection(%d) changed from %d, retry.",
+                     _currentCollection, clID, rc ) ;
             metaContext->mbUnlock() ;
             goto begin ;
          }
 
-         // create next cl
-         _currentCollection++ ;
-         // if reached max, wrap to first one.
-         if ( _currentCollection >= DMS_MAX_RBS_CL )
-         {
-            _currentCollection = DMS_FIRST_RBS_CL ;
-         }
-
+         clID++ ;
          // create next CL
          try
          {
@@ -1077,7 +1092,7 @@ namespace engine
             extOptions = builder.done() ;
 
             // add the first collection for RBS
-            DMS_BUILD_RBS_CL_NAME( clName, _currentCollection ) ;
+            DMS_BUILD_RBS_CL_NAME( clName, clID ) ;
 
             rc = _su->data()->addCollection ( clName, &collectionID,
                                               UTIL_UNIQUEID_NULL,
@@ -1092,7 +1107,6 @@ namespace engine
                PD_LOG ( PDERROR, "Failed to add RBS collection %s, rc: %d",
                         clName, rc ) ;
                // reset _currentCollection back to original one
-               _currentCollection-- ;
                goto error ;
             }
             PD_LOG ( PDDEBUG, "Successfully created RBS collection %s, logicalID= %d",
@@ -1109,7 +1123,7 @@ namespace engine
          // move to next CL, flush out meta records  so that replica node
          // can replay this update to its side. We will flush hashbkt
          // to keep the hashbkt as closely updated as the cur/last.
-         rc = flushMeta( _currentCollection, _lastFreeCollection, dpsCB,
+         rc = flushMeta( clID, _lastFreeCollection, dpsCB,
                          DMS_RBS_FLUSH_OPTION_COLLECTIONS, 
                          metaContext ) ;
          if ( rc )
@@ -1119,11 +1133,18 @@ namespace engine
                      clName, _currentCollection, _lastFreeCollection, rc ) ;
             goto error ;
          }
+         _currentCollection = clID ;
+         // if reached max, wrap to first one.
+         if ( _currentCollection >= DMS_MAX_RBS_CL )
+         {
+            _currentCollection = DMS_FIRST_RBS_CL ;
+         }
+
          metaContext->mbUnlock() ;
 
          dmsStartAsyncRBSGC() ;
 
-         DMS_BUILD_RBS_CL_NAME( clName, _currentCollection ) ;
+         DMS_BUILD_RBS_CL_NAME( clName, clID ) ;
          // get curCL context and take mbLock here
          rc = _su->data()->getMBContext( &clContext, clName, EXCLUSIVE ) ;
          if ( rc )

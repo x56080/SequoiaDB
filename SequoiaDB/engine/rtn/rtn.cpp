@@ -1672,9 +1672,8 @@ namespace engine
       rtnScannerFactory    f ;
       // choose merge scanner if in transaction
 
-      //IXScannerType scanType = cb->isTransaction() ? SCANNER_TYPE_MERGE : 
-      //                                               SCANNER_TYPE_DISK ;
-      IXScannerType scanType = SCANNER_TYPE_DISK ;
+      IXScannerType scanType = cb->isTransaction() ? SCANNER_TYPE_MERGE : 
+                                                     SCANNER_TYPE_DISK ;
 
       // delete and update should also use scanner properly
       _rtnIXScanner * scanner     = NULL ;
