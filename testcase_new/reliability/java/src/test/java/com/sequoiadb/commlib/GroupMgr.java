@@ -435,6 +435,7 @@ public class GroupMgr {
         long timestamp = System.currentTimeMillis();
         boolean ret = true;
         do {
+            ret = true;
             boolean printAndThrowAllException = false;
             if ( System.currentTimeMillis() - timestamp > timeOutSecond
                     * 1000 ) {
