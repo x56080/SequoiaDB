@@ -23,7 +23,7 @@
         <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
     </listeners>
       
-    <test name="split" enabled="true" parallel="classes">
+    <test name="split"  parallel="classes" thread-count="5">
         <packages>
             <package name="com.sequoiadb.split" />
             <package name="com.sequoiadb.meta" />

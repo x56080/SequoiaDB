@@ -108,7 +108,7 @@
                   <generatexml filename="${xmlfile}"/>
                </else>
             </if>
-            <execsynctest xmlfile="${xmlfile}" reportdir="${reportdir}"/>
+            <execsynctest xmlfile="${xmlfile}" reportdir="${reportdir}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" />
          </case>
          <case value="RELIABILITYTEST">
             <delete file="${casedir}/proxyxml.xml"/>
@@ -150,7 +150,7 @@
                   </for>
                </else>
             </if>
-            <execreliabilitytest xmlfile="${xmlfile}" serialnumber="${serial_number}"/>
+            <execreliabilitytest xmlfile="${xmlfile}" serialnumber="${serial_number}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}"/>
          </case>
          <default>
             <delete file="${casedir}/proxyxml.xml"/>
@@ -164,7 +164,7 @@
                   <generatexml filename="${xmlfile}"/>
                </else>
             </if>
-            <execnormalandlargedatatest xmlfile="${xmlfile}"/>
+            <execnormalandlargedatatest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}"/>
          </default>
       </switch>
 
@@ -178,13 +178,11 @@
    <macrodef name="execreliabilitytest">
       <attribute name="xmlfile"/>
       <attribute name="serialnumber"/>
+      <attribute name="hostname"/>
+      <attribute name="svcname"/>
+      <attribute name="sdbdriver"/>
+      <attribute name="sdbdriverdir"/>
       <sequential>
-         <path id="testcasecalsspath">
-            <pathelement path="${casedir}/build" /> 
-            <fileset dir="${casedir}/lib" includes="**/*.jar"/>                  
-         </path>
-         <taskdef resource="testngtasks" classpath="${casedir}/lib/testng-6.10.1-SNAPSHOT.jar"/>
-         
          <!--serialnumber=2: only install and deploy once release db,the testng will exec twice, the first report will not be collected to WORKSPACE, so report_detect_dir is not the same-->
          <var name="report_detect_dir" value="${WORKSPACE}/report"/>
          <if>
@@ -220,9 +218,11 @@
                      <equals arg1="${error_num}" arg2="0"/>
                   </and>
                   <then>
-                     <testng outputDir="${tmp_report_dir}" classpathref="testcasecalsspath">
-                        <xmlfileset dir="${casedir}" includes="@{xmlname}"/>
-                     </testng>
+                     <var name="cmd" value="mvn surefire-report:report -DxmlFileName=@{xmlname} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname} -DSCRIPTDIR=${CI_WORK_DIR}/testcase/reliability/java/script"/>
+                     <echo message="cmd : ${cmd} in dir ${casedir}"/>
+                     <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true">
+                        <arg line="${cmd}" />
+                     </exec>
                   </then>
                </if>
             </sequential>
@@ -232,31 +232,33 @@
    
    <macrodef name="execnormalandlargedatatest">
       <attribute name="xmlfile"/>
+      <attribute name="hostname"/>
+      <attribute name="svcname"/>
+      <attribute name="sdbdriver"/>
+      <attribute name="sdbdriverdir"/>
       <sequential>
-         <path id="testcasecalsspath">
-            <pathelement path="${casedir}/build" /> 
-            <fileset dir="${casedir}/lib" includes="**/*.jar"/>                  
-         </path>
-         <taskdef resource="testngtasks" classpath="${casedir}/lib/testng-6.10.1-SNAPSHOT.jar"/>
-         <testng outputDir="${tmp_report_dir}" classpathref="testcasecalsspath">
-            <xmlfileset dir="${casedir}" includes="@{xmlfile}"/>
-         </testng>
+         <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlfile} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname}"/>
+         <echo message="cmd : mvn ${cmd} in dir ${casedir}"/>
+         <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true">
+            <arg line="${cmd}" />
+         </exec>
+
       </sequential>
    </macrodef>
    
    <macrodef name="execsynctest">
       <attribute name="xmlfile"/>
       <attribute name="reportdir"/>
+      <attribute name="hostname"/>
+      <attribute name="svcname"/>
+      <attribute name="sdbdriver"/>
+      <attribute name="sdbdriverdir"/>
       <sequential>
-         <path id="testcasecalsspath">
-            <pathelement path="${casedir}/build" /> 
-            <fileset dir="${casedir}/lib" includes="**/*.jar"/>                  
-         </path>
-         <taskdef resource="testngtasks" classpath="${casedir}/lib/testng-6.10.1-SNAPSHOT.jar"/>
-         <testng outputDir="${tmp_report_dir}" classpathref="testcasecalsspath" failureProperty="rc">
-            <xmlfileset dir="${testcase_dir}" includes="@{xmlfile}"/>
-         </testng>
-      
+         <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlfile} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname} "/>
+         <echo message="cmd : ${cmd} in dir ${casedir}"/>
+         <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true" >
+            <arg line="${cmd}" />
+         </exec>
       </sequential>
    </macrodef>
 
