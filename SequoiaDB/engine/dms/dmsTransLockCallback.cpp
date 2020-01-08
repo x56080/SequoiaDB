@@ -761,8 +761,7 @@ namespace engine
             {
                if( _oldVer->isRecordDeleted() )
                {
-                  BOOLEAN hasLock = -1 != _latchedIdxMode ? TRUE : FALSE ;
-                  _oldVer->releaseRecord( _latchedIdxLid, hasLock ) ;
+                  _oldVer->releaseRecord( this ) ;
 
                   PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
                           lockId.toString().c_str() ) ;

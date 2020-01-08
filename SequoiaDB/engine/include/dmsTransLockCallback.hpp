@@ -90,6 +90,15 @@ namespace engine
       BOOLEAN  hasError() const { return SDB_OK != _result ? TRUE : FALSE ; }
       BOOLEAN  isUseOldVersion() const { return _useOldVersion ; }
 
+      BOOLEAN  idxTreeLatched ( SINT32 lid )
+      {
+         return ( lid == _latchedIdxLid ) ;
+      }
+      INT32 idxTreeLatchMode () const
+      {
+         return _latchedIdxMode ;
+      }
+
       const dmsTransRecordInfo*  getTransRecordInfo() const ;
 
       DPS_TRANS_ID getRecordTransID() ;
@@ -230,7 +239,6 @@ namespace engine
                                      const dmsRecordID &rid,
                                      const BSONObj &obj,
                                      UINT32 ownerTID ) ;
-
    private:
       dpsTransCB           *_transCB ;    // use it to access global old copy tree
       pmdEDUCB             *_eduCB ;
