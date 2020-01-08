@@ -62,6 +62,7 @@ namespace engine
    class dpsTransLRBHeader ;
    class oldVersionContainer ;
    class _dmsRBSSUMgr ;
+   class dmsTransLockCallback ;
 
    // globIdxID uniquely define an index globally
    class globIdxID : public SDBObject
@@ -861,8 +862,7 @@ namespace engine
                                        const BSONObj &obj,
                                        UINT32 ownnerTID,
                                        DPS_TRANS_ID recordTransID ) ;
-      void                 releaseRecord( INT32 idxLID = -1,
-                                          BOOLEAN hasLock = FALSE ) ;
+      void                 releaseRecord( dmsTransLockCallback* callback = NULL ) ;
       BOOLEAN              tryReleaseRecord( INT32 idxLID = -1,
                                              BOOLEAN hasLock = FALSE ) ;
 

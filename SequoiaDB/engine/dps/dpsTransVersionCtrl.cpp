@@ -45,6 +45,7 @@
 #include "dpsTrace.hpp"
 #include "dmsRBSSUMgr.hpp"
 #include "dpsTransCB.hpp"
+#include "dmsTransLockCallback.hpp"
 #include "ixmExtent.hpp" // for _keyCmp
 #include "dpsUtil.hpp"
 
@@ -1935,7 +1936,7 @@ namespace engine
    }
 
    // free up all the storage for this old version record
-   void oldVersionContainer::releaseRecord( INT32 idxLID, BOOLEAN hasLock )
+   void oldVersionContainer::releaseRecord( dmsTransLockCallback* callback )
    {
       preIdxTree *pTree = NULL ;
       idxObjSet::iterator itSet ;
@@ -1986,37 +1987,43 @@ namespace engine
          itMap = _oldIdxLid.find( tmpObj.getIdxLID() ) ;
          if ( itMap == _oldIdxLid.end() )
          {
-            SDB_ASSERT( FALSE, "Index[%u] can't found in index set" ) ;
+            SDB_ASSERT( FALSE, "Index can't found in index set" ) ;
          }
          else
          {
+            BOOLEAN treeLatchHeld = FALSE ;
             pTree = (itMap->second).get() ;
             preIdxTreeNodeKey keyNode( &(tmpObj.getKeyObj()),
                                        _rid, 
                                        pTree->getOrdering(),
                                        _ownerTransID ) ;
 
+            if ( callback && callback->idxTreeLatched(pTree->getLID()) )
+            {
+                SDB_ASSERT( (EXCLUSIVE == callback->idxTreeLatchMode()),
+                            "Index tree must be held exclusively" ) ;
+                treeLatchHeld = TRUE ;
+            }
+
             // remove the index from mem tree if mvcc is off 
             if ( !pmdGetOptionCB()->mvccOn() )
             {
 #ifdef _DEBUG   // FIXME: to be removed
-         PD_LOG( PDDEBUG, "Removing index from mem tree: "
+         PD_LOG( PDDEBUG, "Removing index from mem tree, latchHeld(%d): "
                  "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
-                  _rid._extent, _rid._offset,
+                  treeLatchHeld, _rid._extent, _rid._offset,
                   dpsTransIDToString( _ownerTransID ).c_str(),
                   dpsTransIDToString( _recordTransID ).c_str(),
                   this->getRecordObj().toString().c_str() ) ;
 #endif
-               // pTree->remove( &(tmpObj.getKeyObj()), _rid, FALSE ) ;
-               pTree->remove( keyNode, this,
-                              idxLID == tmpObj.getIdxLID() ? hasLock : FALSE ) ;
+               pTree->remove( keyNode, this, treeLatchHeld ) ;
             }
             else
             {
 #ifdef _DEBUG   // FIXME: to be removed
-         PD_LOG( PDDEBUG, "Resetting index in mem tree: "
+         PD_LOG( PDDEBUG, "Resetting index in mem tree, latchHeld(%d): "
                  "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
-                  _rid._extent, _rid._offset,
+                  treeLatchHeld, _rid._extent, _rid._offset,
                   dpsTransIDToString( _ownerTransID ).c_str(),
                   dpsTransIDToString( _recordTransID ).c_str(),
                   this->getRecordObj().toString().c_str() ) ;
@@ -2024,8 +2031,7 @@ namespace engine
                // reset the tree node value if mvcc is on
                pTree->resetValue( keyNode,
                                   getOwnerTransID().getGlobSN(),
-                                  idxLID == tmpObj.getIdxLID() ?
-                                        hasLock : FALSE ) ;
+                                  treeLatchHeld ) ;
             }
          }
          ++itSet ;
