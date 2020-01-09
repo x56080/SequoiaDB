@@ -68,6 +68,7 @@ Records: 0  Duplicates: 0  Warnings: 0
    |sequoiadb_optimizer_options|set|"direct_count,<br>direct_delete,<br>direct_update"|Yes|Global, Session|SequoiaDB 优化选项开关，以决定是否优化计数、更新、删除操作。|
    |sequoiadb_password|string|""|Yes|Global|SequoiaDB 鉴权密码。|
    |sequoiadb_replica_size|int|1|Yes|Global|写操作需同步的副本数。取值范围为[-1, 7]。|
+   |sequoiadb_rollback_on_timeout|bool|OFF|Yes|Global, Session|记录锁超时是否中断并回滚整个事务。|
    |sequoiadb_selector_pushdown_threshold|unsigned int|30|Yes|Global, Session|查询字段下压触发阈值，取值范围[0, 100]，单位：%。|
    |sequoiadb_use_autocommit|bool|ON|Yes|Global|是否启用自动提交模式(已弃用)。|
    |sequoiadb_use_bulk_insert|bool|ON|Yes|Global|是否启用批量插入。|
@@ -146,6 +147,8 @@ Records: 0  Duplicates: 0  Warnings: 0
    **sequoiadb_debug_log** 配置开启后，MySQL 日志会打印 SequoiaDB 存储引擎有关 debug 信息。
    
    **sequoiadb_error_level** 错误级别控制参数。该参数可选的配置项有error（默认值）和warning，用于控制连接器的某些特定错误返回给客户端的方式（报错还是警告）。在sql语句执行出错时，当该参数配置为error时，连接器直接返回错误信息给客户端；当参数配置为warning时，连接器给客户端返回警告信息，用户想要查看详细的错误信息，可根据warning进行查询。注意：该参数并不适用于连接器所有的错误，其适用的错误仅限于：update ignore更新分区键错误。
+
+   **sequoiadb_rollback_on_timeout** 用于配置记录锁超时是否中断并回滚整个事务，默认为关闭（OFF），开启后，遇到记录锁超时错误后会中断并且回滚整个事务，否则只会回滚最后一条 SQL 语句。
 
    **sequoiadb_use_transaction** 用于配置事务功能。默认为 ON。在业务无需事务功能时，可以将它设成 OFF，从而节省不必要的开销。
    
