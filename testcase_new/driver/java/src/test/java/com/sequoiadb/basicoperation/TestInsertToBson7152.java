@@ -7,10 +7,10 @@ import java.util.regex.Pattern;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
 //import org.bson.types.Binary;
 import org.bson.types.BSONDecimal;
 import org.bson.types.BSONTimestamp;
+import org.bson.types.BasicBSONList;
 import org.bson.types.ObjectId;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -78,7 +78,7 @@ public class TestInsertToBson7152 extends SdbTestBase {
             BSONObject subObj = new BasicBSONObject();
             BSONObject arr = new BasicBSONList();
             ObjectId id = new ObjectId( "53bb5667c5d061d6f579d0bb" );
-            Pattern regex = Pattern.compile( "^2001",
+            Pattern regex = Pattern.compile( "dh.*fj",
                     Pattern.CASE_INSENSITIVE );
             BSONObject regex1 = new BasicBSONObject();
             BSONObject numberlong = new BasicBSONObject();
@@ -156,8 +156,11 @@ public class TestInsertToBson7152 extends SdbTestBase {
                  */
             }
             tmpCursor.close();
-            Assert.assertEquals( actRecs, obj,
-                    "check datas are unequal\n" + "actDatas: " + actRecs );
+            Assert.assertEquals( actRecs.toString(), obj.toString(),
+                    "check datas are unequal\n" + "actDatas: " + actRecs
+                            + "\nexpected: " + obj + " \n"
+                            + obj.get( "binary" ).getClass().getName() + " \n"
+                            + actRecs.get( "binary" ).getClass().getName() );
             System.out.println( "---insert BsonTypeDatas is ok" );
         } catch ( BaseException e ) {
             Assert.assertTrue( false,
@@ -212,7 +215,7 @@ public class TestInsertToBson7152 extends SdbTestBase {
                 cs.dropCollection( clName );
             }
             sdb.disconnect();
-            System.out.println( "---" + this.getClass().getName() + " end at "
+            System.out.println( this.getClass().getName() + " end at "
                     + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss:S" )
                             .format( new Date() ) );
         } catch ( BaseException e ) {
