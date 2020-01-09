@@ -30,13 +30,13 @@ function main ()
    // put Lob
    //32M>lob
    putLob( cl, testFile, 2, 2, oids );
-   insertData( cl, 10, 1296 );
+   insertData( cl, 10, 1260 );
    //32M<lob<96M
    putLob( cl, testFile, 4, 6, oids );
-   insertData( cl, 10, 2736 );
+   insertData( cl, 10, 2660 );
    //128M<lob
    putLob( cl, testFile, 4, 10, oids );
-   insertData( cl, 10, 4176 );
+   insertData( cl, 10, 4060 );
 
    // get lob
    getLob( cl, getTestFile, oids, testFile, md5, cmd );
@@ -88,7 +88,7 @@ function insertData ( cl, insertNum, expID )
    var id = cursor.current().toObj()._id;
    if( expID !== id )
    {
-      throw buildExecption( "insertData()", e, "check record id", expID, id );
+      throw new Error( "insertData()" + "check record id" + expID + ", " + id );
    }
 }
 

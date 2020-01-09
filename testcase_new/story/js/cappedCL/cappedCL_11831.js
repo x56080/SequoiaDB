@@ -170,7 +170,7 @@ function insertData ( cl )
       {
          var cursor = cl.find().sort( { _id: 1 } ).skip( i ).limit( 1 );
          var actId = cursor.current().toObj()._id;
-         var expId = i * 84;
+         var expId = i * 80;
          if( actId !== expId )
          {
             throw buildException( "insertData()", e, "check record id", expId, actId );
