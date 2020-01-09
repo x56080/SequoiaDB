@@ -66,7 +66,7 @@
      vm.dirty_background_ratio = 40
      vm.dirty_expire_centisecs = 3000
      vm.vfs_cache_pressure = 200
-     vm.min_free_kbytes = <物理内存大小的8%，单位KB。最大不超过1GB。>
+     vm.min_free_kbytes = < 物理内存大小的 8%，单位 KB (kbytes)。最大不超过 1GB (即 1048576KB)。>
      vm.overcommit_memory = 2
      vm.overcommit_ratio = 85
      ```
