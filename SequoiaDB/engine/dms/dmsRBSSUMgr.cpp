@@ -92,7 +92,6 @@ namespace engine
 
       SDB_ASSERT ( _dmsCB, "dmsCB can't be NULL" ) ;
 
-
       // exclusive lock temp cb. this function should be called during process
       // initialization, so it shouldn't be called in parallel by agents
       DMSSYSSUMGR_XLOCK() ;

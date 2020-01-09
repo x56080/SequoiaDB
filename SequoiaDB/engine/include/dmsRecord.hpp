@@ -174,12 +174,13 @@ namespace engine
    // some one wait X-lock, the last one who get X-lock will delete the record
    #define DMS_RECORD_FLAG_DELETING          0x80
 
+   // V0 meta size is 16B
    #define DMS_RECORD_V0_METADATA_SZ   sizeof(_dmsRecord_v0)
+   // V1 meta size is 36B
    #define DMS_RECORD_V1_METADATA_SZ   sizeof(_dmsRecord_v1)
    #define DMS_RECORD_RBS_METADATA_SZ   sizeof(_dmsRBSRecord)
    #define DMS_RECORD_CAP_METADATA_SZ   sizeof(_dmsCappedRecord)
 
-   // FIXME: before final deliver, we should set to V0 in main
    #define DMS_RECORD_METADATA_SZ DMS_RECORD_V1_METADATA_SZ
    // based on current record version to decide the record metadata size
    #define DMS_RECORD_VERSIONED_METADATA_SZ               \
@@ -189,6 +190,8 @@ namespace engine
    /*
       _dmsRecord defined
    */
+#pragma pack(1)
+
    class _dmsRecord_v0 : public SDBObject
    {
    public:
@@ -368,19 +371,23 @@ namespace engine
       */
       OSS_INLINE void  setData( const dmsRecordData &data ) ;
    } ;
+#pragma pack()
+
    typedef _dmsRecord_v0 dmsRecord_v0 ;
    
-
+#pragma pack(1)
+   // dmsRecord after V3.4 will contain create lsnOffset and globTransID
+   // to support MVCC.
    class _dmsRecord_v1 : public _dmsRecord_v0
    {
    public :
-     DPS_LSN_OFFSET _lsnOffset ;    // record creation lsn. We can use this to
+      DPS_LSN_OFFSET _lsnOffset ;   // record creation lsn. We can use this to
                                     // uniquely identify a record cross the
                                     // nodes. It is set during insertRecord.
                                     // However, we are not using it yet. 
                                     // Keep it for debug and future expension.
-     DPS_TRANS_ID   _globTransID ;  // global transaction ID
-
+      DPS_TRANS_ID   _globTransID ; // global transaction ID
+      CHAR           _pad[2]      ; // force 4B alignment with pragma pack
       /*
          Follow _globTransID is:
             if overflow, is overflow rid(8bytes)
@@ -443,9 +450,9 @@ namespace engine
       {
          SDB_ASSERT( !(this->hasGlobTransID()), 
                      "This is not a V0 record" ) ;
-         // Only migrate if has enough space for the extra 8 byte
-         if ( ((dmsRecord_v0 *) this)->getSize() - sizeof(DPS_LSN_OFFSET) -
-                                sizeof(DPS_TRANS_ID) > 
+         // Only migrate if has enough space for the extra size difference
+         if ( ((dmsRecord_v0 *) this)->getSize() - 
+              (DMS_RECORD_V1_METADATA_SZ - DMS_RECORD_V0_METADATA_SZ)  > 
               ((dmsRecord_v0 *) this)->getDataLength() )
          {
 
@@ -461,6 +468,8 @@ namespace engine
       }
    
    };
+#pragma pack()
+
    typedef _dmsRecord_v1 dmsRecord_v1 ;
 
    // current version is v1 which has GlobTransID for MVCC purpose
@@ -568,6 +577,7 @@ namespace engine
          }                                                              \
       } while ( FALSE )
 
+#pragma pack(1)
    // Capped collectionr record header.
    class _dmsCappedRecord : public SDBObject
    {
@@ -595,8 +605,10 @@ namespace engine
                                    // nodes. It is set during insertRecord.
                                    // However, we are not using it yet. 
                                    // Keep it for debug and future expension.
-      DPS_TRANS_ID  _globTransID ; // global transaction ID updated the record
-                                   // it's the same trans created cappedRecord
+      DPS_TRANS_ID  _globTransID ; // global transaction ID updated the 
+                                   // record it's the same trans created
+                                   // cappedRecord
+      CHAR          _pad[2]      ; // force 4B alignment with pragma pack
    public:
       CHAR getFlag() const
       {
@@ -702,9 +714,11 @@ namespace engine
          _lsnOffset = lsnOffset ;
       }
    } ;
+#pragma pack()
    typedef _dmsCappedRecord dmsCappedRecord ;
 
 
+#pragma pack(1)
    /*
       _dmsDeletedRecord defined
    */
@@ -718,10 +732,12 @@ namespace engine
       }                 _head ;
       dmsOffset         _myOffset ;
       dmsRecordID       _next ;
-      DPS_LSN_OFFSET    _lsnOffset ;    // the position of the lsn/GTID is same
-      DPS_TRANS_ID      _globTransID ;  // as v1 record. So once a record is 
-                                        // deleted under new release, it's 
-                                        // automatically converted to v1 type
+      // the position of the lsn/GTID is same as v1 record. So once a record 
+      // is deleted under new release, it's automatically converted to
+      // v1 type
+      DPS_LSN_OFFSET    _lsnOffset ;
+      DPS_TRANS_ID      _globTransID ;
+      CHAR              _pad[2] ; // force 4B alignment with pragma pack
 
       /*
          Get Functions
@@ -786,6 +802,7 @@ namespace engine
       }
 
    } ;
+#pragma pack()
    typedef _dmsDeletedRecord dmsDeletedRecord ;
    #define DMS_DELETEDRECORD_METADATA_SZ  sizeof(dmsDeletedRecord)
 
