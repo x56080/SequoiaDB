@@ -1402,7 +1402,7 @@ namespace engine
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       Trans ID     : %s"OSS_NEWLINE,
                               dpsTransIDToString(
-                                          record->_globTransID ).c_str() ) ;
+                                   record->_globTransID ).c_str() ) ;
       }
 
       nextRecord = record->_nextOffset ;
@@ -1509,7 +1509,7 @@ namespace engine
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       Trans ID     : %s"OSS_NEWLINE,
                               dpsTransIDToString(
-                                          record->_globTransID ).c_str() ) ;
+                                   record->_globTransID ).c_str() ) ;
       }
 
       try
