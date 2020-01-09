@@ -3630,6 +3630,11 @@ namespace engine
             try
             {
                delObject = BSONObj( recordData.data() ) ;
+               // need to create own bson buffer as migration would move the obj
+               if ( !pRecord->hasGlobTransID() )
+               {
+                  delObject = delObject.getOwned() ;
+               }
 
                textIdxNum = context->mbStat()->_textIdxNum ;
                if ( textIdxNum > 0 )
@@ -3760,10 +3765,13 @@ namespace engine
             }
             else
             {
-               PD_LOG ( PDDEBUG, 
+               // FIXME:  handle this case by allocate overflow record
+               PD_LOG ( PDERROR, 
                         "In-flight migration of record failed during delet"
                         " object(%s) because out of space in the record on disk",
                         recordRW.toString().c_str() ) ;
+               SDB_ASSERT( FALSE, 
+                           "Need to call update to allocate overflow for delete" ) ;
             }
 
             // need to dec count
