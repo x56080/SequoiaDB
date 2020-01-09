@@ -1,7 +1,5 @@
 /* *****************************************************************************
 @discretion: 14097:setSessionAttr(),set instanceid for two groups
-             14098:setSessionAttr(),set instanceid for one group,query for two groups
-             14099:setSessionAttr(),set instanceid is not exist,query for two groups
 @author£º2018-1-29 wuyan  Init
 ***************************************************************************** */
 var groupName1 = "group14097a";   
@@ -40,10 +38,7 @@ function main()
       testSessionAccess14097(db,dbcl, expSvcNameList1, expSvcNameList2);
       
       //set instanceid for one group,the query for two group
-      testSessionAccess14098(db, dbcl, expSvcNameList1,expSvcNameList2);
-        
-      //set instanceid is not exist,the query for two group
-      testSessionAccess14099(db, dbcl, expSvcNameList1,expSvcNameList2); 
+      testSessionAccess14098(db, dbcl, expSvcNameList1);
    }
    catch( e )
    {
@@ -97,7 +92,7 @@ function testSessionAccess14097(db,dbcl, expSvcNameList1, expSvcNameList2)
    
 }
 
-function testSessionAccess14098(db, dbcl, expSvcNameList1,expSvcNameList2)
+function testSessionAccess14098(db, dbcl, expSvcNameList1)
 {
    try
 	{
@@ -111,11 +106,7 @@ function testSessionAccess14098(db, dbcl, expSvcNameList1,expSvcNameList2)
          var queryNode = getAllAccessNode( dbcl);     
          var queryNode1 = queryNode[groupName1];         
          checkAcessNodeResult( queryNode1, expSvcNameList1[0]);
-         //check the second queryNode for group14097b,random selection node for groupb
-         var queryNode2 = queryNode[groupName2];            
-         storageNodeAccessCount(queryNode2, accessCount) ; 
       } 
-      checkRandomAccessResult( expSvcNameList2, accessCount);       
       println("---end to test testcase14098 "); 
    }
    catch( e )
@@ -124,32 +115,3 @@ function testSessionAccess14098(db, dbcl, expSvcNameList1,expSvcNameList2)
    }   
 }
 
-function testSessionAccess14099(db, dbcl, expSvcNameList1, expSvcNameList2)
-{
-   try
-	{
-	   println("---begin to test testcase14099 ");  
-      var queryInstanceid = [155,244];
-      var accessCount1 = {};  
-      var accessCount2 = {};
-      for(  var i = 0; i < 20; i++ ) 
-      {
-         db.setSessionAttr( { PreferedInstance: queryInstanceid} ) ;  
-         //check the fisrt queryNode for group14097a,random selection node for groupb
-         var queryNode = getAllAccessNode( dbcl);     
-         var queryNode1 = queryNode[groupName1];
-         storageNodeAccessCount(queryNode1, accessCount1) ;
-         //check the second queryNode for group14097b,random selection node for groupb
-         var queryNode2 = queryNode[groupName2];         
-         storageNodeAccessCount(queryNode2, accessCount2) ; 
-      } 
-      checkRandomAccessResult( expSvcNameList1, accessCount1);  
-      checkRandomAccessResult( expSvcNameList2, accessCount2);         
-      println("---end to test testcase14099 "); 
-   }
-   catch( e )
-   {
-      throw buildException( "testSessionAccess14099 fail", e);     
-   }      
-   
-}
