@@ -4,6 +4,19 @@
 *@createdate:  2017.11.13
 *@testlinkCase:seqDB-11621
 **************************************/
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    //独立模式及1节点模式不执行该用例
@@ -125,10 +138,10 @@ function main ()
    try
    {
       db.analyze( { NodeID: nodeId } );
-      throw "NEED_AN_ERR";
+      throw new Error( "NEED_AN_ERR" );
    } catch( e )
    {
-      if( e !== -264 )
+      if( e.message !== "-264" )
       {
          throw e;
       }
@@ -180,10 +193,10 @@ function main ()
    try
    {
       db.analyze( { NodeID: 2233 } );
-      throw "NEED_AN_ERR";
+      throw new Error( "NEED_AN_ERR" );
    } catch( e )
    {
-      if( e !== -155 )
+      if( e.message !== "-155" )
       {
          throw e;
       }
@@ -194,6 +207,4 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
    db1.close();
    db2.close();
-
 }
-main()

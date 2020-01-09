@@ -95,6 +95,34 @@ function Sequoiadb ( hostname, svcname, username, password )
          return new CollectionSpace( cs );
       }
 
+   this.listCollectionSpaces =
+      function()
+      {
+         try
+         {
+            var cursor = db.listCollectionSpaces();
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return new Cursor( cursor );
+      }
+
+   this.listCollections =
+      function()
+      {
+         try
+         {
+            var cursor = db.listCollections();
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return new Cursor( cursor );
+      }
+
    this.transBegin =
       function()
       {
@@ -299,6 +327,33 @@ function Sequoiadb ( hostname, svcname, username, password )
          try
          {
             db.dropDomain( name );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+      }
+
+   this.createRG =
+      function( name )
+      {
+         try
+         {
+            var rg = db.createRG( name );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return new ReplicaGroup( rg );
+      }
+
+   this.removeRG =
+      function( name )
+      {
+         try
+         {
+            db.removeRG( name );
          }
          catch( e )
          {

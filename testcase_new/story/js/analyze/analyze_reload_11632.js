@@ -1,8 +1,7 @@
 /************************************
-*@Description:  指定cs将统计信息重新加载至缓存再清空
+*@Description: seqDB-11632:指定普通cs将统计信息重新加载至缓存再清空
 *@author:      liuxiaoxuan
 *@createdate:  2017.11.13
-*@testlinkCase: seqDB-11632
 **************************************/
 function main ()
 {
@@ -268,9 +267,10 @@ function main ()
    db1.close();
    commDropCS( db, csName, true, "drop CS in the end" );
 }
+
 try
 {
-   //main();
+   main();
 }
 catch( e )
 {
@@ -280,4 +280,3 @@ catch( e )
    }
    throw e;
 }
-

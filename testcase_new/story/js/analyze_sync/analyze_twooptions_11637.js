@@ -4,6 +4,19 @@
 *@createdate:  2017.11.11
 *@testlinkCase: seqDB-11637
 **************************************/
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    if( commIsStandalone( db ) )
@@ -475,14 +488,13 @@ function checkAnalyzeInvalidResult ( options )
    try
    {
       db.analyze( options );
-      throw "NEED ANALYZE FAILED";
+      throw new Error( "NEED ANALYZE FAILED" );
    }
    catch( e )
    {
-      if( -6 !== e )
+      if( "-6" !== e.message )
       {
-         throw buildException( "check analyze", e, "analyze", "analyze success", e );
+         throw e;
       }
    }
 }
-main();

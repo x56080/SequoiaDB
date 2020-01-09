@@ -4,6 +4,19 @@
 *@createdate:  2017.11.13
 *@testlinkCase:seqDB-11630
 **************************************/
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    //get all groups
@@ -242,6 +255,4 @@ function main ()
    commDropCS( db, csName2 );
    db1.close();
    //db2.close();
-
 }
-main()

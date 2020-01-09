@@ -1,8 +1,7 @@
 /************************************
-*@Description:  指定2个参数组合生成默认统计信息并手工修改再清空
+*@Description: seqDB-11638:指定2个参数组合生成默认统计信息并手工修改再清空
 *@author:      liuxiaoxuan
 *@createdate:  2017.11.13
-*@testlinkCase: seqDB-11638
 **************************************/
 function main ()
 {
@@ -526,7 +525,7 @@ function checkAnalyzeInvalidResult ( options )
 
 try
 {
-   //main();
+   main();
 }
 catch( e )
 {
@@ -536,4 +535,3 @@ catch( e )
    }
    throw e;
 }
-

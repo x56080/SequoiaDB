@@ -1,8 +1,7 @@
 /************************************
-*@Description:  指定唯一索引生成默认统计信息并手工修改统计信息再清空
+*@Description: seqDB-11627:指定唯一索引生成默认统计信息并手工修改统计信息再清空
 *@author:      liuxiaoxuan
 *@createdate:  2017.11.13
-*@testlinkCase: seqDB-11627
 **************************************/
 function main ()
 {
@@ -254,6 +253,7 @@ function main ()
    db1.close();
    commDropCS( db, csName, true, "drop CS in the end" );
 }
+
 try
 {
    main();
@@ -266,4 +266,3 @@ catch( e )
    }
    throw e;
 }
-

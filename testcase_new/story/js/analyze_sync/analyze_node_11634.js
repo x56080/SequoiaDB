@@ -4,6 +4,19 @@
 *@createdate:  2017.11.15
 *@testlinkCase:seqDB-11634
 **************************************/
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    //独立模式及1节点模式不执行该用例
@@ -204,6 +217,4 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
    db1.close();
    db2.close();
-
 }
-main()

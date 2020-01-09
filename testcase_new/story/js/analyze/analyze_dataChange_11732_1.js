@@ -1,8 +1,7 @@
 ﻿/************************************
-*@Description: 数据有变化时执行统计
+*@Description: seqDB-11732:数据有变化时执行统计
 *@author:      zhaoyu
 *@createdate:  2017.11.15
-*@testlinkCase:seqDB-11732
 **************************************/
 function main ()
 {
@@ -168,9 +167,10 @@ function main ()
    //db2.close(); 
 
 }
+
 try
 {
-   //main();
+   main();
 }
 catch( e )
 {
@@ -180,4 +180,3 @@ catch( e )
    }
    throw e;
 }
-

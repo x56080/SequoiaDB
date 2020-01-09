@@ -4,6 +4,19 @@
 *@createdate:  2017.11.9
 *@testlinkCase:seqDB-11406
 **************************************/
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    var clName = COMMCLNAME + "_11406";
@@ -94,6 +107,4 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
    db1.close();
    //db2.close();
-
 }
-main()

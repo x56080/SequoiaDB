@@ -4,6 +4,19 @@
 *@createdate:  2017.11.15
 *@testlinkCase:seqDB-11732
 **************************************/
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    try
@@ -138,6 +151,4 @@ function main ()
    commDropCS( db, csName );
    db1.close();
    //db2.close();
-
 }
-main()

@@ -1,15 +1,23 @@
-/************************************
- * *@Description: 节点重启后，dropIndex检查统计信息 
- * *@author:      luweikang
- * *@createdate:  2019.06.01
- * *@testlinkCase:seqDB-18385
- * **************************************/
-import( "../analyze_sync/commlib.js" );
+/****************************************
+ *@description : seqDB-18385:节点重启后，dropIndex检查统计信息 
+ *@author :      luweikang 2019.06.01
+ ****************************************/
 var csName = "cs18385";
 var groupName = "group18385";
 var svcName = "";
 
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
 
 function main ()
 {

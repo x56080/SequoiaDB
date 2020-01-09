@@ -4,6 +4,19 @@
 *@createdate:  2017.11.15
 *@testlinkCase:seqDB-11640
 **************************************/
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    //独立模式及1组模式不执行该用例
@@ -439,17 +452,16 @@ function main ()
    db2.close();
 
 }
-main()
 
 function analyzeInvalidPara ( db, options )
 {
    try
    {
       db.analyze( options );
-      throw "NEED_ERR";
+      throw new Error( "NEED_ERR" );
    } catch( e )
    {
-      if( e !== -6 )
+      if( e.message !== "-6" )
       {
          throw e;
       }

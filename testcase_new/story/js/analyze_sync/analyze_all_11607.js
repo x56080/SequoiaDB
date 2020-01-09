@@ -4,6 +4,19 @@
 *@createdate:  2017.11.10
 *@testlinkCase: seqDB-11607
 **************************************/
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    if( commIsStandalone( db ) )
@@ -700,4 +713,3 @@ function main ()
    commDropCS( db, csName2, true, "drop CS in the end" );
    commDropCS( db, maincsName, true, "drop CS in the end" );
 }
-main();

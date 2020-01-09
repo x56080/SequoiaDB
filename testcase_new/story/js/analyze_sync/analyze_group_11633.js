@@ -4,6 +4,19 @@
 *@createdate:  2017.11.14
 *@testlinkCase:seqDB-11633
 **************************************/
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    try
@@ -164,4 +177,3 @@ function main ()
    db1.close();
    //db2.close();
 }
-main()

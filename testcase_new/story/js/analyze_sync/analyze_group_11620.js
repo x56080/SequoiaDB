@@ -4,6 +4,19 @@
 *@createdate:  2017.11.10
 *@testlinkCase: seqDB-11620
 **************************************/
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    if( commIsStandalone( db ) )
@@ -259,15 +272,16 @@ function checkAnalyzeInvalidGroup ( options )
    try
    {
       db.analyze( options );
-      throw "NEED ANALYZE FAILED";
+      throw new Error( "NEED ANALYZE FAILED" );
    }
    catch( e )
    {
-      if( -264 !== e && -154 !== e )
+      if( "-264" !== e.message && "-154" !== e.message )
       {
-         throw buildException( "check analyze", e, "check analyze", "success", "fail" );
+         throw e;
       }
    }
+   println( "checkAnalyzeInvalidGroup success." );
 }
 
 function checkAnalyzeCataGroup ( options )
@@ -298,13 +312,12 @@ function checkAnalyzeCataGroup ( options )
 
       if( count > 0 )
       {
-         throw 'CHECK CATAGROUP FAIL';
+         throw new Error( 'CHECK CATAGROUP FAIL' );
       }
 
    }
    catch( e )
    {
-      throw buildException( "check analyze", e, "check analyze", "success", "fail" );
+      throw e;
    }
 }
-main();

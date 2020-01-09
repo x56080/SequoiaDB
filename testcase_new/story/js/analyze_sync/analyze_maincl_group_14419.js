@@ -30,6 +30,18 @@ var db2;
 var dbclPrimary;
 var dbclSlave;
 
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
 
 function main ()
 {
@@ -324,8 +336,6 @@ function main ()
    //db2.close();
 
 }
-main()
-
 
 function checkExplainAnalyzeSetMode3 ()
 {
