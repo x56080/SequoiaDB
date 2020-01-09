@@ -46,7 +46,7 @@ function repeatedInsertAndPopLastRecord ( dbcl, repeatedTimes, minLength, maxLen
          checkRecords( dbcl, null, null, null, null, null, recs );
       }
 
-      var recordLength = stringLength + 79;
+      var recordLength = stringLength + 75;
       if( recordLength % 4 !== 0 )
       {
          recordLength = recordLength + ( 4 - recordLength % 4 );

@@ -538,8 +538,6 @@ namespace engine
 
                // once the extent is valid, let's check the record is deleted
                // and got sufficient size for us
-               SDB_ASSERT( pRead->isDeleted(), 
-                           "Record on delete list is not delete" ) ;
                if( pRead->isDeleted() && pRead->getSize() >= requiredSize )
                {
                   if ( !isTransSupport() ||
