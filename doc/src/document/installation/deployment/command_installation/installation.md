@@ -18,7 +18,7 @@
 > - 请确保所有主机都设置了主机名，并且都设置了主机名/IP地址映射关系
 > - 请确保所有主机两两之间可通过主机名建立网络连接（如 ssh 主机名）
 
-1. 参照[Linux环境推荐配置][installation/system/linux_suggest_settings]调整 Linux 系统的环境配置
+1. 参照[Linux环境推荐配置] (installation/system/linux_suggest_settings)调整 Linux 系统的环境配置
 
 2. 以root 用户登陆目标主机，解压 SequoiaDB 巨杉数据库产品包，并为解压得到的 `sequoiadb-3.2-linux_x86_64-installer.run` 安装包赋可执行权限
 
@@ -147,10 +147,24 @@
     安装程序已经完成安装 SequoiaDB Server 于你的电脑中.
     ```
 
-14. 切换到 sdbadmin 用户，进行安装检查。使用如下命令如能正常查到 SequoiaDB 的版本信息，说明 SequoiaDB 安装成功。
+14. 使用如下命令查看 SequoiaDB 的安装信息。其中 SDBADMIN_USER 表示 SequoiaDB 相关进程所属用户的用户名，INSTALL_DIR 表示 SequoiaDB 的安装目录。
 
     ```
-    $ sequoiadb  --version
+    # cat /etc/default/sequoiadb
+    NAME=sdbcm
+    SDBADMIN_USER=sdbadmin
+    INSTALL_DIR=/opt/sequoiadb
+    ```
+15. 切换到 SDBADMIN_USER 指定的用户。
+
+    ```
+    # su - sdbadmin
+    ```
+16. 进入 SequoiaDB 安装目录，使用如下命令进行安装检查，如能正常查到 SequoiaDB 的版本信息，说明 SequoiaDB 安装成功。
+
+    ```
+    $ cd /opt/sequoiadb
+    $ ./bin/sequoiadb  --version
     SequoiaDB shell version: 3.2
     Release: 37126
     2018-10-14-13.15.29
