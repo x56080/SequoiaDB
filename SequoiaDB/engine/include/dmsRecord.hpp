@@ -446,14 +446,15 @@ namespace engine
       }
 
       // inflight migration from a v0 record
-      void migrateFromV0( )
+      void migrateFromV0( BOOLEAN moveData = TRUE )
       {
          UINT32 oldsize = ((dmsRecord_v0 *) this)->getSize() ;
          SDB_ASSERT( !(this->hasGlobTransID()), 
                      "This is not a V0 record" ) ;
          // Only migrate if has enough space for the extra size difference
-         if ( oldsize - DMS_RECORD_V1_METADATA_SZ >
-              ((dmsRecord_v0 *) this)->getDataLength() )
+         if ( moveData  &&
+              ( oldsize - DMS_RECORD_V1_METADATA_SZ >
+                ((dmsRecord_v0 *) this)->getDataLength() ) )
          {
 
             ossMemmove( (CHAR*)this + DMS_RECORD_V1_METADATA_SZ, 
@@ -463,8 +464,16 @@ namespace engine
 
             setHasGlobTransID() ;
             // update record size
-            setSize( oldsize +
-                     (DMS_RECORD_V1_METADATA_SZ - DMS_RECORD_V0_METADATA_SZ) ) ;
+        //    setSize( oldsize +
+        //             (DMS_RECORD_V1_METADATA_SZ - DMS_RECORD_V0_METADATA_SZ) ) ;
+         }
+         else if ( !moveData )
+         {
+            // there should be at least enough space for new header plus 8B for
+            // overflow rid
+            SDB_ASSERT( ( oldsize > ( DMS_RECORD_V1_METADATA_SZ + 8 ) ),
+                        " Not sufficient space for V1 record header. " ) ;
+            setHasGlobTransID() ;
          }
          
          return ;
