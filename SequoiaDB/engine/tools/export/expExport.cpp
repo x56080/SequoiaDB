@@ -427,30 +427,50 @@ namespace exprt
    {
       INT32 rc = SDB_OK ;
       const expOptions &options = _options ;
-      
-   #ifdef SDB_SSL
-      if ( options.useSSL() )
+      const vector<Host> &hosts = _options.hosts() ;
+      vector<Host>::const_iterator it ;
+
+      for ( it = hosts.begin(); it != hosts.end(); ++it )
       {
-         rc = sdbSecureConnect( options.hostName().c_str(), 
-                                options.svcName().c_str(),
-                                options.user().c_str(),
-                                options.password().c_str(),
-                                &hConn ) ;
-      }
-      else
-   #endif
-      {
-         rc = sdbConnect( options.hostName().c_str(), options.svcName().c_str(),
-                          options.user().c_str(), options.password().c_str(),
-                          &hConn ) ;
+         const Host& host = *it ;
+
+      #ifdef SDB_SSL
+         if ( options.useSSL() )
+         {
+            rc = sdbSecureConnect( host.hostname.c_str(), host.svcname.c_str(),
+                                   options.user().c_str(),
+                                   options.password().c_str(),
+                                   &hConn ) ;
+         }
+         else
+      #endif
+         {
+            rc = sdbConnect( host.hostname.c_str(), host.svcname.c_str(),
+                             options.user().c_str(), options.password().c_str(),
+                             &hConn ) ;
+         }
+
+         if( rc )
+         {
+            continue ;
+         }
+
+         break ;
       }
 
-      if ( SDB_OK != rc )
+      if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to connect database %s:%s, rc = %d",
-                  options.hostName().c_str(), options.svcName().c_str(), rc ) ;
+         for ( it = hosts.begin(); it != hosts.end(); ++it )
+         {
+            const Host& host = *it;
+
+            PD_LOG ( PDERROR, "Failed to connect database %s:%s, rc = %d",
+                     host.hostname.c_str(), host.svcname.c_str(), rc ) ;
+         }
+
          goto error ;
       }
+
    done:
       return rc ;
    error:

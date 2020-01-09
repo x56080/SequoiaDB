@@ -35,6 +35,7 @@
 //#include "core.hpp"
 #include "oss.hpp"
 #include "expCL.hpp"
+#include "expHosts.hpp"
 #include <boost/program_options.hpp>
 #include <string>
 #include <vector>
@@ -73,6 +74,7 @@ namespace exprt
 
       inline const string &hostName()     const { return _hostName ; }
       inline const string &svcName()      const { return _svcName ; }
+      inline const string &hostsString()  const { return _hostsString ; }
       inline const string &user()         const { return _user ; }
       inline const string &password()     const { return _password ; }
       inline const string &cipher()       const { return _cipherfile ; }
@@ -112,6 +114,11 @@ namespace exprt
          return _fields ;
       }
 
+      inline const vector<Host> &hosts() const
+      {
+         return _hosts ;
+      }
+
    private :
       INT32    _parseConf( const CHAR *confFileName ) ;
       BOOLEAN  _cmdHas( const CHAR *option ) const ;
@@ -138,6 +145,8 @@ namespace exprt
       /* general */
       string               _hostName ;
       string               _svcName ;
+      string               _hostsString ;
+      vector<Host>         _hosts;
       string               _user ;
       string               _password ;
       string               _token ;

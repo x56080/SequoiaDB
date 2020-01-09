@@ -40,8 +40,7 @@ function testExprtGenconf1 ()
       " --type csv";
    testRunCommand( command );
 
-   var content = "hostname = " + COORDHOSTNAME + "\n" +
-      "svcname = " + COORDSVCNAME + "\n" +
+   var content = "hosts = " + COORDHOSTNAME + ":" + COORDSVCNAME + "\n" +
       "user = \n" +
       "type = csv\n" +
       "ssl = false\n" +
@@ -87,8 +86,7 @@ function testExprtGenconf2 ()
       " --type csv";
    testRunCommand( command );
 
-   var content = "hostname = " + COORDHOSTNAME + "\n" +
-      "svcname = " + COORDSVCNAME + "\n" +
+   var content = "hosts = " + COORDHOSTNAME + ":" + COORDSVCNAME + "\n" +
       "user = \n" +
       "type = csv\n" +
       "ssl = false\n" +

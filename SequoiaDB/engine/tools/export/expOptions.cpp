@@ -51,6 +51,7 @@ namespace exprt
    #define OPTION_VERSION           "version"
    #define OPTION_HOSTNAME          "hostname"
    #define OPTION_SVCNAME           "svcname"
+   #define OPTION_HOSTS             "hosts"
    #define OPTION_USER              "user"
    #define OPTION_PASSWORD          "password"
    #define OPTION_DELRECORD         "delrecord"
@@ -105,6 +106,7 @@ namespace exprt
    #define EXPLAIN_VERSION          "version"
    #define EXPLAIN_HOSTNAME         "host name, default: localhost"
    #define EXPLAIN_SVCNAME          "service name, default: 11810"
+   #define EXPLAIN_HOSTS            "host addresses(hostname:svcname), separated by ',', such as 'localhost:11810,localhost:11910', default: 'localhost:11810'"
    #define EXPLAIN_USER             "username"
    #define EXPLAIN_PASSWORD         "password"
    #define EXPLAIN_CIPHER           "input password using a cipherfile"
@@ -160,6 +162,7 @@ namespace exprt
 
    #define DEFAULT_HOSTNAME         "localhost"
    #define DEFAULT_SVCNAME          "11810"
+   #define DEFAULT_HOST             "localhost:11810"
    #define DEFAULT_CIPHERFILE       "passwd"
    #define DEFAULT_DELCHAR_CHAR     "\""
    #define DEFAULT_DELFIELD_CHAR    ","
@@ -175,6 +178,7 @@ namespace exprt
       ( OPTION_VERSION,                /* no arg */      EXPLAIN_VERSION ) \
       ( OPTION_HOSTNAME",s",           _TYPE(string),    EXPLAIN_HOSTNAME ) \
       ( OPTION_SVCNAME",p",            _TYPE(string),    EXPLAIN_SVCNAME ) \
+      ( OPTION_HOSTS,                  _TYPE(string),    EXPLAIN_HOSTS ) \
       ( OPTION_USER",u",               _TYPE(string),    EXPLAIN_USER ) \
       ( OPTION_PASSWORD",w", _IMPLICIT_TYPE(string, ""), EXPLAIN_PASSWORD ) \
       ( OPTION_CIPHER,                 _TYPE(bool),      EXPLAIN_CIPHER ) \
@@ -326,6 +330,7 @@ namespace exprt
                               _confParsed    (FALSE),
                               _hostName      (DEFAULT_HOSTNAME),
                               _svcName       (DEFAULT_SVCNAME),
+                              _hostsString   (DEFAULT_HOST),
                               _cipherfile    (DEFAULT_CIPHERFILE),
                               _delRecord     ("\n"),
                               _typeName      (formatNames[FORMAT_CSV]),
@@ -404,9 +409,26 @@ namespace exprt
       INT32 rc = SDB_OK ;
       string writeBuf ;
 
+      {
+         vector<Host>::const_iterator it ;
+
+         _hostsString = "" ;
+
+         for ( it = _hosts.begin(); it != _hosts.end(); ++it )
+         {
+            const Host& host = *it ;
+
+            if( it != _hosts.begin() )
+            {
+               _hostsString += "," ;
+            }
+
+            _hostsString += host.hostname + ":" + host.svcname ;
+         }
+      }
+
       // general options
-      WRITE_STR_OPTION( writeBuf, OPTION_HOSTNAME, _hostName, TRUE ) ;
-      WRITE_STR_OPTION( writeBuf, OPTION_SVCNAME, _svcName , TRUE ) ;
+      WRITE_STR_OPTION( writeBuf, OPTION_HOSTS, _hostsString, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_USER, _user, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_TYPE, _typeName, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_FILELIMIT, _fileLimit, _has(OPTION_FILELIMIT));
@@ -548,7 +570,7 @@ namespace exprt
          EXP_CSV_OPTIONS
          EXP_CONF_OPTIONS ;
 
-      rc = utilReadConfigureFile( fileName,_confDesc, _confVm ) ;
+      rc = utilReadConfigureFile( fileName, _confDesc, _confVm ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to Read conf file , rc = %d", rc ) ;
@@ -1163,18 +1185,51 @@ namespace exprt
    {
       INT32 rc = SDB_OK ;
 
+      if ( _has( OPTION_HOSTS ) )
+      {
+         _hostsString = _get<string>( OPTION_HOSTS ) ;
+      }
+
       if ( _has(OPTION_HOSTNAME) )
       {
          _hostName = _get<string>(OPTION_HOSTNAME) ;
       }
+
       if ( _has(OPTION_SVCNAME) )
       {
          _svcName = _get<string>(OPTION_SVCNAME) ;
       }
+
+      // add hostname & svcname to hostsString,
+      // so we can process them in one time
+      if ( _has( OPTION_HOSTNAME ) || _has( OPTION_SVCNAME ) )
+      {
+         // it's ok if there are duplicate hostsString, it'll be processed.
+         if ( _has( OPTION_HOSTS ) )
+         {
+            _hostsString += "," + _hostName + ":" + _svcName ;
+         }
+         else
+         {
+            _hostsString = _hostName + ":" + _svcName ;
+         }
+      }
+
+      rc = Hosts::parse( _hostsString, _hosts ) ;
+      if ( rc )
+      {
+         std::cerr << "invalid host"  << std::endl;
+         PD_LOG( PDERROR, "invalid host, hosts=%s", _hostsString.c_str() ) ;
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      Hosts::removeDuplicate( _hosts ) ;
+
       if ( _has(OPTION_CIPHERFILE) )
       {
          _cipherfile = _get<string>(OPTION_CIPHERFILE) ;
       }
+
       if ( _has(OPTION_TOKEN) )
       {
          _token = _get<string>(OPTION_TOKEN) ;

@@ -47,7 +47,8 @@ exportFiles = [
       "tools/export/expUtil.cpp",
       "tools/export/expCL.cpp",
       "tools/export/expExport.cpp",
-      "tools/export/expOutput.cpp"
+      "tools/export/expOutput.cpp",
+      "tools/export/expHosts.cpp"
       ]
 
 clsFiles = [

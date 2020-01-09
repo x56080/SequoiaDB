@@ -56,6 +56,7 @@ CHAR *utilDecodeBson::_trimLeft( CHAR *pCursor, INT32 &size )
       {
       case UTIL_DE_STR_TABLE:
       case UTIL_DE_STR_SPACE:
+      case UTIL_DE_STR_LF:
          ++pCursor ;
          --tempSize ;
          break ;
@@ -78,6 +79,7 @@ CHAR *utilDecodeBson::_trimRight ( CHAR *pCursor, INT32 &size )
       {
       case UTIL_DE_STR_TABLE:
       case UTIL_DE_STR_SPACE:
+      case UTIL_DE_STR_LF:
          --tempSize ;
          break ;
       case 0:
@@ -330,7 +332,6 @@ error:
 INT32 utilDecodeBson::parseFields( CHAR *pFields, INT32 size )
 {
    INT32   rc         = SDB_OK ;
-   INT32   tempRc     = SDB_OK ;
    INT32   fieldSize  = 0 ;
    BOOLEAN isString   = FALSE;
    CHAR   *pCursor    = pFields ;
@@ -344,6 +345,7 @@ INT32 utilDecodeBson::parseFields( CHAR *pFields, INT32 size )
          {
             fieldSize = pCursor - leftField ;
             leftField = _trim( leftField, fieldSize ) ;
+
             if ( fieldSize == 0 )
             {
                rc = SDB_INVALIDARG ;
@@ -357,6 +359,7 @@ INT32 utilDecodeBson::parseFields( CHAR *pFields, INT32 size )
                   rc = SDB_INVALIDARG ;
                   goto error ;
                }
+
                leftField[ fieldSize ] = 0 ;
                rc = _parseSubField( leftField, NULL ) ;
                if ( rc )
@@ -369,8 +372,8 @@ INT32 utilDecodeBson::parseFields( CHAR *pFields, INT32 size )
          else
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG ( PDERROR, "field format error, only one side of \
-the field appears \", rc = %d", rc ) ;
+            PD_LOG ( PDERROR, "Field format error, only one side of "
+                              "the field appears \", rc = %d", rc ) ;
             goto error ;
          }
          break ;
@@ -382,54 +385,44 @@ the field appears \", rc = %d", rc ) ;
          ++pCursor ;
          isString = !isString ;
       }
-      else if ( !isString &&
-                ( UTIL_DE_STR_COMMA == *pCursor || UTIL_DE_STR_LF == *pCursor ) )
+      else if ( !isString && UTIL_DE_STR_COMMA == *pCursor )
       {
          fieldSize = pCursor - leftField ;
          leftField = _trim( leftField, fieldSize ) ;
-         if ( UTIL_DE_STR_LF == *pCursor )
+
+         if ( 0 == fieldSize )
          {
-            tempRc = SDB_UTIL_CSV_FIELD_END ;
+            rc = SDB_INVALIDARG ;
+            PD_LOG ( PDERROR, "Invalid field, rc=%d", rc ) ;
+            goto error ;
          }
-         if ( fieldSize == 0 )
+
+         rc = _filterString( &leftField, fieldSize ) ;
+         if ( rc )
          {
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         else
+         leftField[ fieldSize ] = 0 ;
+         rc = _parseSubField( leftField, NULL ) ;
+         if ( rc )
          {
-            rc = _filterString( &leftField, fieldSize ) ;
-            if ( rc )
-            {
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            leftField[ fieldSize ] = 0 ;
-            rc = _parseSubField( leftField, NULL ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to call _parseSubField", rc ) ;
-               goto error ;
-            }
+            PD_LOG ( PDERROR, "Failed to call _parseSubField", rc ) ;
+            goto error ;
          }
 
-         if ( tempRc == SDB_UTIL_CSV_FIELD_END )
-         {
-            break ;
-         }
-         else
-         {
-            --size ;
-            ++pCursor ;
-            leftField = pCursor ;
-         }
+         --size ;
+         ++pCursor ;
+         leftField = pCursor ;
       }
       else
       {
          --size ;
          ++pCursor ;
       }
-   }while ( TRUE ) ;
+
+   } while ( TRUE ) ;
+
 done:
    return rc ;
 error:
