@@ -413,8 +413,6 @@ namespace engine
             pNewRecord->setLSNOffset( pRecord->getLSNOffset() ) ;
             // set remote record as overflowed to
             pNewRecord->setOvt() ;
-            pRecord->setOvf() ;
-            pRecord->setOvfRID( foundDeletedID ) ;
             if ( ovfRID.isValid() )
             {
                // overflowed record removal is done here, and it will mark the
@@ -428,8 +426,11 @@ namespace engine
                PD_LOG ( PDDEBUG, 
                         "In-flight migration of record during update object(%s) ",
                         recordRW.toString().c_str() ) ;
-               pRecord->migrateFromV0() ;
+               // No need to move data for OVF record
+               pRecord->migrateFromV0( FALSE ) ;
             }
+            pRecord->setOvf() ;
+            pRecord->setOvfRID( foundDeletedID ) ;
  
             /// sub the remove data info
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
