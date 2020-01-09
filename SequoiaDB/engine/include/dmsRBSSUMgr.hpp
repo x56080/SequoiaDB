@@ -209,7 +209,7 @@ namespace engine
 
       SINT32 appendRecord ( dmsStorageUnitID  csid,
                             UINT16            clid,
-                         // DPS_LSN_OFFSET    lsn,
+                            DPS_LSN_OFFSET    lsn,
                             const dmsRecordID &rid,
                             DPS_TRANS_ID      recordTransid,
                             DPS_TRANS_ID      ownerTransid,
@@ -217,7 +217,7 @@ namespace engine
 
       SINT32 getRecord ( dmsStorageUnitID  csid,
                          UINT16            clid,
-                      // DPS_LSN_OFFSET    &lsn,
+                         DPS_LSN_OFFSET    &lsn,
                          dmsRecordID      &rid,
                          DPS_TRANS_ID      transid,
                          BOOLEAN          &found,
