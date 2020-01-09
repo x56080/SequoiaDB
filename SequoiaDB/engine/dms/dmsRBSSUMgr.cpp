@@ -1248,7 +1248,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_APPENDRECORD1, "_dmsRBSSUMgr::appendRecord" )
    SINT32 _dmsRBSSUMgr::appendRecord ( dmsStorageUnitID      csid,
                                        UINT16                clid,
-                                    // DPS_LSN_OFFSET        lsn,
+                                       DPS_LSN_OFFSET        lsn,
                                        const dmsRecordID    &rid,
                                        DPS_TRANS_ID          recordTransID,
                                        DPS_TRANS_ID          ownerTransID,
@@ -1293,10 +1293,9 @@ namespace engine
                                      rid._offset ) ) ;
 
          // has to cast to INT64
-#if 0
          builder.append( FIELD_NAME_RBS_RECORD_LSN_OFFSET,
                          (INT64)lsn ) ;
-#endif
+
          // append transaction ID as BSON sub-object
          rc = dpsTransIDToBSON( recordTransID, builder,
                                 FIELD_NAME_RBS_RECORD_TRANSID ) ;
@@ -1393,7 +1392,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_GETRECORD, "_dmsRBSSUMgr::getRecord" )
    SINT32 _dmsRBSSUMgr::getRecord ( dmsStorageUnitID  csid,
                                     UINT16            clid,
-                                 // DPS_LSN_OFFSET    &lsn,
+                                    DPS_LSN_OFFSET    &lsn,
                                     dmsRecordID      &rid,
                                     DPS_TRANS_ID      transid,
                                     BOOLEAN          &found,
@@ -1455,9 +1454,9 @@ namespace engine
             dmsRecordID   recordID( extID, offset ) ;
             BSONObj       cappedRecord ;
             DPS_TRANS_ID  recordTransID ;
-            //DPS_LSN_OFFSET recordLSNOffset ;
+            DPS_LSN_OFFSET recordLSNOffset ;
             BSONElement   eleTransID;
-            //BSONElement   eleLsnOffset;
+            BSONElement   eleLsnOffset;
             BSONElement   eleKey;
 
             DMS_BUILD_RBS_CL_NAME( clName, position._clID ) ;
@@ -1486,11 +1485,11 @@ namespace engine
             // 3. parse the dataRecord to figure out record key and visiability
             //cappedRecord = BSONObj( cappedRecordData.data() ) ;
             eleTransID = cappedRecord.getField(FIELD_NAME_RBS_RECORD_TRANSID) ;
-#if 0
+
             eleLsnOffset = 
                      cappedRecord.getField(FIELD_NAME_RBS_RECORD_LSN_OFFSET) ;
             recordLSNOffset = eleLsnOffset.numberLong();
-#endif
+
             eleKey = cappedRecord.getField( FIELD_NAME_RBS_RECORD_KEY ) ;
             vector< BSONElement > vecKey = eleKey.Array() ;
 
@@ -1504,11 +1503,12 @@ namespace engine
                          rc ) ;
 
             // 4. setup return data for qualified version
+            // use lsn to determin the life of the record
             if ( ( vecKey[0].numberInt() == csid ) &&
                  ( vecKey[1].numberInt() == clid ) &&
                  ( vecKey[2].numberInt() == rid._extent ) &&
                  ( vecKey[3].numberInt() == rid._offset ) &&
-              // ( recordLSNOffset == lsn ) &&
+                 ( recordLSNOffset == lsn ) &&
                  sdbGetTransCB()->isVersionVisible( recordTransID,
                                                     transid,
                                                     eduCB->getTransBeginTime() ) )

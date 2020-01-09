@@ -907,6 +907,7 @@ namespace engine
                rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
                       ->appendRecord( _oldVer->getCSID(), 
                                       _oldVer->getCLID(),
+                                      lsn,
                                       rid,
                                       pRecord->getGlobTransID(),
                                       transID,
