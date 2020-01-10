@@ -170,9 +170,15 @@ public class PutLobAndKillMasterData19055 extends SdbTestBase {
                 rlob.close();
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() == -4 ) {
-                    DBLob wlob = dbcl.createLob( lobId );
-                    wlob.write( lobBuff );
-                    wlob.close();
+                    try {
+                        DBLob wlob = dbcl.createLob( lobId );
+                        wlob.write( lobBuff );
+                        wlob.close();
+                    } catch ( BaseException e1 ) {
+                        if ( e1.getErrorCode() != -297 ) {
+                            throw e1;
+                        }
+                    }
                 } else {
                     Assert.fail( "write lob fail! loboid is " + lobId );
                 }
