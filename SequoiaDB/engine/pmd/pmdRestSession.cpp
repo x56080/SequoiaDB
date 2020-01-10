@@ -871,6 +871,12 @@ namespace engine
          { CMD_NAME_ALTER_COLLECTION,
                                  &RestToMSGTransfer::_convertAlterCollection },
 
+         { SDB_ALTER_CL_CRT_AUTOINC_FLD,
+                              &RestToMSGTransfer::_convertCreateAutoIncrement },
+
+         { SDB_ALTER_CL_DROP_AUTOINC_FLD,
+                              &RestToMSGTransfer::_convertDropAutoIncrement },
+
          { CMD_NAME_GET_COUNT,   &RestToMSGTransfer::_convertGetCount },
 
          { CMD_NAME_LIST_GROUPS, &RestToMSGTransfer::_convertListGroups },
@@ -1906,6 +1912,135 @@ namespace engine
       rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &query,
                              NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
+   INT32 RestToMSGTransfer::_convertCreateAutoIncrement( restAdaptor *pAdaptor,
+                                                         restRequest &request,
+                                                         MsgHeader **msg )
+   {
+      INT32 rc              = SDB_OK ;
+      INT32 buffSize        = 0 ;
+      CHAR *pBuff           = NULL ;
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION ;
+      string optionStr ;
+      string collectionName ;
+      BSONObj options ;
+      BSONObj args ;
+      BSONObj query ;
+
+      collectionName = request.getQuery( FIELD_NAME_NAME ) ;
+      if ( collectionName.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get collection's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      optionStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
+      if ( optionStr.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get create autoIncrement's %s failed",
+                     FIELD_NAME_OPTIONS ) ;
+         goto error ;
+      }
+
+      rc = fromjson( optionStr.c_str(), args, 0 ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
+                     FIELD_NAME_OPTIONS, optionStr.c_str() ) ;
+         goto error ;
+      }
+
+      options = BSON( FIELD_NAME_NAME << SDB_ALTER_CL_CRT_AUTOINC_FLD <<
+                      FIELD_NAME_ARGS << args ) ;
+
+      query = BSON( FIELD_NAME_ALTER_TYPE << SDB_CATALOG_CL <<
+                    FIELD_NAME_VERSION << SDB_ALTER_VERSION <<
+                    FIELD_NAME_NAME << collectionName <<
+                    FIELD_NAME_ALTER << options ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &query, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertDropAutoIncrement( restAdaptor *pAdaptor,
+                                                       restRequest &request,
+                                                       MsgHeader **msg )
+   {
+      INT32 rc              = SDB_OK ;
+      INT32 buffSize        = 0 ;
+      CHAR *pBuff           = NULL ;
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION ;
+      string optionStr ;
+      string collectionName ;
+      BSONObj options ;
+      BSONObj args ;
+      BSONObj query ;
+
+      collectionName = request.getQuery( FIELD_NAME_NAME ) ;
+      if ( collectionName.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get collection's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      optionStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
+      if ( optionStr.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get drop autoIncrement's %s failed",
+                     FIELD_NAME_OPTIONS ) ;
+         goto error ;
+      }
+
+      rc = fromjson( optionStr.c_str(), args, 0 ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
+                     FIELD_NAME_OPTIONS, optionStr.c_str() ) ;
+         goto error ;
+      }
+
+      options = BSON( FIELD_NAME_NAME << SDB_ALTER_CL_DROP_AUTOINC_FLD <<
+                      FIELD_NAME_ARGS << args ) ;
+
+      query = BSON( FIELD_NAME_ALTER_TYPE << SDB_CATALOG_CL <<
+                    FIELD_NAME_VERSION << SDB_ALTER_VERSION <<
+                    FIELD_NAME_NAME << collectionName <<
+                    FIELD_NAME_ALTER << options ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &query, NULL, NULL, NULL ) ;
+      if ( rc )
       {
          PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
                      pCommand, rc ) ;

@@ -161,6 +161,28 @@
 | 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }] |
 | 说明     |                                          |                                                                                   |
 
+##创建自增字段##
+
+|     | 说明 | 例子 |
+|-----|------|------|
+| 请求头   | 同通用请求头 |        |
+| 请求内容 | cmd: create autoincrement<br>name: 集合的全称（集合空间.集合）<br>options: 属性 | 1. 创建一个自增字段：cmd=create autoincrement&name=foo.bar&options={AutoIncrement:{Field:"id"}}<br>2. 创建多个自增字段：cmd=create autoincrement&name=foo.bar&options={AutoIncrement:[{Field:"id"},{Field:"times"}]} |
+| 说明     |              |        |
+| 响应头   | 同通用响应头 |        |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }] |
+| 说明     |              |        |
+
+##删除自增字段##
+
+|     | 说明 | 例子 |
+|-----|------|------|
+| 请求头   | 同通用请求头 |        |
+| 请求内容 | cmd: drop autoincrement<br>name: 集合的全称（集合空间.集合）<br>options: 属性 | 1. 删除一个自增字段：cmd=drop autoincrement&name=foo.bar&options={Field:"id"}<br>2. 删除多个自增字段：cmd=drop autoincrement&name=foo.bar&options={Field:["id","times"]} |
+| 说明     |              |        |
+| 响应头   | 同通用响应头 |        |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }] |
+| 说明     |              |        |
+
 ##表分区##
 
 |          | 说明                                     | 例子                                                       |  

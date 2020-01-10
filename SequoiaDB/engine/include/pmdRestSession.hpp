@@ -326,6 +326,15 @@ namespace engine
          INT32       _convertAlterCollection( restAdaptor *pAdaptor,
                                               restRequest &request,
                                               MsgHeader **msg ) ;
+
+         INT32       _convertCreateAutoIncrement( restAdaptor *pAdaptor,
+                                                  restRequest &request,
+                                                  MsgHeader **msg ) ;
+
+         INT32       _convertDropAutoIncrement( restAdaptor *pAdaptor,
+                                                restRequest &request,
+                                                MsgHeader **msg ) ;
+
          INT32       _convertGetCount( restAdaptor *pAdaptor,
                                        restRequest &request,
                                        MsgHeader **msg ) ;
