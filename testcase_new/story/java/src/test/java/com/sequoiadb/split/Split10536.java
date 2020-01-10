@@ -77,7 +77,8 @@ public class Split10536 extends SdbTestBase {
         cl.bulkInsert( tmp, 0 );
     }
 
-    @Test
+    //SEQUOIADBMAINSTREAM-5357
+    @Test(enabled=false)
     public void test() {
         Sequoiadb db = null;
         Split splitThread = null;
