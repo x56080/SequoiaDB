@@ -138,6 +138,7 @@ namespace engine
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       dmsExtentID idxExtent = DMS_INVALID_EXTENT ;
 
+      // set not exist in first
       hasExist = FALSE ;
 
       rc = rtnResolveCollectionNameAndLock ( pCLName, dmsCB,
@@ -163,6 +164,11 @@ namespace engine
       if ( SDB_OK == rc )
       {
          hasExist = TRUE ;
+      }
+      else if ( SDB_IXM_NOTEXIST == rc )
+      {
+         // report not exist, and ignore error
+         rc = SDB_OK ;
       }
 
    done:
