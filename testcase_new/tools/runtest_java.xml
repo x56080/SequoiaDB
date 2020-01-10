@@ -72,6 +72,9 @@
          <case value="CONFIGURETEST">
             <var name="srcxmlfile" value="configure.xml"/>
          </case>
+         <case value="MVCCTEST">
+            <var name="srcxmlfile" value="configure.xml"/>
+         </case>
          <case value="SMOKETEST">
             <var name="srcxmlfile" value="smoke.xml"/>
          </case>
