@@ -31,7 +31,7 @@ function test ()
    var minLength = 1;
    var maxLength = 16 * 1024;
    var expIDs = [];
-   var recordHead = 79;
+   var recordHead = 75;
    var expID = 0;
    var nextExpID = 0;
    //var preExpID = 0;

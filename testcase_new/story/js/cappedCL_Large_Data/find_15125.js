@@ -70,28 +70,28 @@ function test ()
    }
 
    //$gt、$lt
-   var gtObj = { _id: { $gt: 0, $lt: 8000 } };
+   var gtObj = { _id: { $gt: 0, $lt: 7600 } };
    checkQueryResult( dbcl, gtObj, null, { _id: 1 }, allResults.slice( 1, 100 ) )
    checkLogicalID( dbcl, gtObj, null, { _id: 1 }, null, null, expLogicalIDs.slice( 1, 100 ) );
 
    //$gte、$lte
-   var gteObj = { _id: { $gte: 0, $lte: 8000 } };
+   var gteObj = { _id: { $gte: 0, $lte: 7600 } };
    checkQueryResult( dbcl, gteObj, null, { _id: 1 }, allResults.slice( 0, 101 ) )
    checkLogicalID( dbcl, gteObj, null, { _id: 1 }, null, null, expLogicalIDs.slice( 0, 101 ) );
 
    //$et
-   var etObj = { _id: { $et: 80 } }
+   var etObj = { _id: { $et: 76 } }
    checkQueryResult( dbcl, etObj, null, { _id: 1 }, [{ "a": 1 }] );
    checkLogicalID( dbcl, etObj, null, { _id: 1 }, null, null, expLogicalIDs.slice( 1, 2 ) );
 
    //$$in
    var neinObj = { "$and": [{ "_id": { "$ne": 0 } }, { "income": { "$lt": 10000 } }] }
-   var inObj = { _id: { $in: [0, 80] } }
+   var inObj = { _id: { $in: [0, 76] } }
    checkQueryResult( dbcl, inObj, null, { _id: 1 }, allResults.slice( 0, 2 ) );
    checkLogicalID( dbcl, inObj, null, { _id: 1 }, null, null, expLogicalIDs.slice( 0, 2 ) );
 
    //$ne、$nin
-   var neinObj = { "$and": [{ "_id": { "$ne": 0 } }, { _id: { $nin: [80, 160] } }] };
+   var neinObj = { "$and": [{ "_id": { "$ne": 0 } }, { _id: { $nin: [76, 152] } }] };
    checkQueryResult( dbcl, neinObj, null, { _id: 1 }, allResults.slice( 3 ) );
    checkLogicalID( dbcl, neinObj, null, { _id: 1 }, null, null, expLogicalIDs.slice( 3 ) );
 
@@ -123,7 +123,7 @@ function getExpectLogicalIDs ( stringLength, recordNums )
 {
    var expLogicalIDs = [];
 
-   var recordLength = stringLength + 79;
+   var recordLength = stringLength + 75;
    if( recordLength % 4 !== 0 )
    {
       recordLength = recordLength + ( 4 - recordLength % 4 );

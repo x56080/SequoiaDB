@@ -8,7 +8,7 @@
 var minLength = 1;
 var maxLength = 16 * 1024;
 var range = maxLength - minLength;
-var recordHead = 79;
+var recordHead = 75;
 
 //预期结果定义
 var expIDs = [];

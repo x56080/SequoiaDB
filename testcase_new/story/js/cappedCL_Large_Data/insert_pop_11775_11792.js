@@ -31,9 +31,9 @@ function test ()
    for( var i = 0; i < repeatNum; i++ )
    {
       //插入1个块的记录
-      insertNum = 32017;
+      insertNum = 32140;
       stringLength = 969;
-      var recordHead = 79;
+      var recordHead = 75;
       var expectRecords = insertFixedLengthDatas( dbcl, insertNum, stringLength, "a" );
    }
 
@@ -49,7 +49,7 @@ function test ()
       }
 
       //跨块时，加上块尾的空隙
-      var expID = expID + 580;
+      var expID = expID + 236;
    }
 
    //检查主备节点一致
@@ -81,7 +81,7 @@ function test ()
       }
 
       //跨块时，加上块尾的空隙
-      var expID = expID + 580;
+      var expID = expID + 236;
    }
 
    //检查主备节点一致
@@ -113,7 +113,7 @@ function test ()
       }
 
       //跨块时，加上块尾的空隙
-      var expID = expID + 580;
+      var expID = expID + 236;
    }
 
    //检查主备节点一致
@@ -145,7 +145,7 @@ function test ()
       }
 
       //跨块时，加上块尾的空隙
-      var expID = expID + 580;
+      var expID = expID + 236;
    }
 
    //检查主备节点一致
@@ -156,7 +156,7 @@ function test ()
    checkLogicalID( dbclSlave, null, null, { _id: 1 }, -1, 0, expIDs );
 
    //检查记录数
-   expectCount = expectCount - 32017;
+   expectCount = expectCount - 32140;
    checkCount( dbcl, null, expectCount );
 
    //正向pop 3个块
@@ -176,7 +176,7 @@ function test ()
       }
 
       //跨块时，加上块尾的空隙
-      var expID = expID + 580;
+      var expID = expID + 236;
    }
 
    //检查主备节点一致
