@@ -132,12 +132,12 @@ function main ()
    insertSameDatas( maincl, insertNums, sameValues );
 
    //create index
-   commCreateIndex( dbCommCL1, "a", { a: 1 }, false );
-   commCreateIndex( dbCommCL2, "a", { a: 1 }, false );
-   commCreateIndex( dbHashCL1, "b", { b: 1 }, false );
-   commCreateIndex( dbHashCL2, "b", { b: 1 }, false );
-   commCreateIndex( dbRangCL1, "b", { b: 1 }, false );
-   commCreateIndex( dbRangCL2, "b", { b: 1 }, false );
+   commCreateIndex( dbCommCL1, "a", { a: 1 } );
+   commCreateIndex( dbCommCL2, "a", { a: 1 } );
+   commCreateIndex( dbHashCL1, "b", { b: 1 } );
+   commCreateIndex( dbHashCL2, "b", { b: 1 } );
+   commCreateIndex( dbRangCL1, "b", { b: 1 } );
+   commCreateIndex( dbRangCL2, "b", { b: 1 } );
    commCreateIndex( maincl, "a", { a: 1 } );
    commCreateIndex( maincl, "b", { b: 1 } );
 

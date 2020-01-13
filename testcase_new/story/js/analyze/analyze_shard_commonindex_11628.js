@@ -44,7 +44,7 @@ function main ()
    insertSameDatas( dbcl, insertNums, sameValues );
 
    //create index
-   commCreateIndex( dbcl, "b", { b: 1 }, false );
+   commCreateIndex( dbcl, "b", { b: 1 } );
 
    //split cl
    var groups = ClSplitOneTimes( csName, clName, 50 );

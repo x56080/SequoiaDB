@@ -62,7 +62,7 @@ function main ( db )
    //drop idIndex
    mainCL.dropIdIndex();
    // inspect the index
-   commCheckIndex( mainCL, "$id", false );
+   commCheckIndexConsistency( mainCL, "$id", false );
 
 
    // drop collection in clean   

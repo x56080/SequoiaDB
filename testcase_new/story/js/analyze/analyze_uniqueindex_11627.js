@@ -28,8 +28,7 @@ function main ()
    insertDiffDatas( dbcl, insertNums );
 
    //create unique index
-   var isUnique = true;
-   commCreateIndex( dbcl, "a", { a: 1 }, isUnique );
+   commCreateIndex( dbcl, "a", { a: 1 }, { Unique: true } );
 
    //analyze
    var cl_full_name = csName + "." + clName;

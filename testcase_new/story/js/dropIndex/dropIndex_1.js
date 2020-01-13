@@ -47,7 +47,7 @@ catch( e )
    throw e;
 }
 
-commCheckIndex( varCL, "testindex", false );
+commCheckIndexConsistency( varCL, "testindex", false );
 
 try
 {

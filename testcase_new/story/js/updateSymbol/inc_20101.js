@@ -8,7 +8,7 @@ function main ()
 	var clName = COMMCLNAME + "_20101";
 	commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 	var cl = commCreateCL( db, COMMCSNAME, clName, { StrictDataMode: true } );
-	commCreateIndex( cl, "a_20101", { a: 1 }, false );
+	commCreateIndex( cl, "a_20101", { a: 1 } );
 	var doc = [{ id: 1, a: 1 }, { id: 2, a: null }, { id: 3, a: "a" }, { id: 4, b: 1 }];
 	cl.insert( doc );
 

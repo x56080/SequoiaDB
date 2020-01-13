@@ -30,7 +30,7 @@ function main ()
    dbcl.insert( doc );
 
    //create index 
-   commCreateIndex( dbcl, "aIndex", { a: 1 }, true )
+   commCreateIndex( dbcl, "aIndex", { a: 1 }, { Unique: true } );
 
    //find and check result
    var expRecs = [{ a: { $decimal: "9223372036854775807198410" } }];

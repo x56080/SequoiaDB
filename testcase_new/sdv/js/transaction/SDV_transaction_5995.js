@@ -12,7 +12,7 @@ function main ()
 
       beginTrans();
       var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true );
-      commCreateIndex( cl, "testIndex", { no: 1 }, true, true );
+      commCreateIndex( cl, "testIndex", { no: 1 }, { Unique: true }, true );
       var dataNum = 1000;
       var insert = new insertData( cl, dataNum );
       var update = new updateData( cl );

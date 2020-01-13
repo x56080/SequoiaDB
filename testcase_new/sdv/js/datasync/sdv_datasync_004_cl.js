@@ -24,8 +24,10 @@ function main ()
       cl.create( db, group.name );
       cl.bulkInsert( 10 );
       var needSleep = isNeedSleep( cl.replSize );
-      assert( group.checkResult( needSleep, group.checkDoc, cl, {} ),
-         "collection is not exist in all group node" );
+      if( !group.checkResult( needSleep, group.checkDoc, cl, {} ) )
+      {
+         throw new Error( "collection is not exist in all group node" );
+      }
    }
    catch( e )
    {

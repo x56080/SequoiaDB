@@ -24,7 +24,7 @@ function main ()
          AcquireSize: acquireSize, Cycled: true
       }
    } );
-   commCreateIndex( dbcl, "a", { id: 1 }, true );
+   commCreateIndex( dbcl, "a", { id: 1 }, { Unique: true } );
 
    //连接所有coord插入部分记录,coord缓存分别为[-200,-1],[-400,-201],[-600,-401]
    var expRecs = [];

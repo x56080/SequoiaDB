@@ -36,7 +36,7 @@ function main ()
          throw e;
       }
    }
-   commCheckIndex( dbcl, "fullIndex_11983", false );
+   commCheckIndexConsistency( dbcl, "fullIndex_11983", false );
 
    var indexes = dbcl.listIndexes();
    var arrayIndexes = new Array();

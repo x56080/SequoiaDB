@@ -35,32 +35,68 @@ function main ( db )
    var notExistID = 999999; // is nearly impossible to be such many sessions
    createStatisInfo( dataDB, csName, clName );
    db.resetSnapshot( { Type: "sessions", SessionID: notExistID } );
-   assert( !isSessionSnapClean( dataDB ), "session snap shouldn't be reset(notExistID)" );
-   assert( !isDatabaseSnapClean( dataDB ), "database snap shouldn't be reset(notExistID)" );
+   if( isSessionSnapClean( dataDB ) )
+   {
+       throw new Error( "session snap shouldn't be reset(notExistID)" );
+   }
+   if( isDatabaseSnapClean( dataDB ) )
+   {
+      throw new Error( "database snap shouldn't be reset(notExistID)" );
+   }
 
    var currID = getCurrentID( dataDB );
    createStatisInfo( dataDB, csName, clName );
    db.resetSnapshot( { Type: "sessions", SessionID: currID } );
-   assert( isSessionSnapClean( dataDB ), "session snap should be reset(validID)" );
-   assert( !isDatabaseSnapClean( dataDB ), "database snap shouldn't be reset(validID)" );
+   if( !isSessionSnapClean( dataDB ) )
+   {
+      throw new Error( "session snap should be reset(validID)" );
+   }
+   if( isDatabaseSnapClean( dataDB ) )
+   {
+      throw new Error( "database snap shouldn't be reset(validID)" );
+   }
    var dbTime2 = getResetSnapTime( dataDB, SDB_SNAP_DATABASE );
    var ssTime2 = getResetSnapTime( dataDB, SDB_SNAP_SESSIONS_CURRENT );
-   assert( dbTime1 === dbTime2 );
-   assert( ssTime1 < ssTime2 );
+   if( dbTime1 !== dbTime2 )
+   {
+      throw new Error( "database time1 equal database time2." );
+   }
+   if( ssTime1 >= ssTime2 )
+   {
+      throw new Error( "session time2 more than session time1." );
+   }
 
    createStatisInfo( dataDB, csName, clName );
    db.resetSnapshot( { Type: "database", NodeSelect: "secondary" } );
-   assert( !isSessionSnapClean( dataDB ), "session snap shouldn't be reset(notSelected)" );
-   assert( !isDatabaseSnapClean( dataDB ), "database snap shouldn't be reset(notSelected)" );
+   if( isSessionSnapClean( dataDB ) )
+   {
+      throw new Error( "session snap shouldn't be reset(notSelected)" );
+   }
+   if( isDatabaseSnapClean( dataDB ) )
+   {
+      throw new Error( "database snap shouldn't be reset(notSelected)" );
+   }
 
    createStatisInfo( dataDB, csName, clName );
    db.resetSnapshot( { Type: "database", NodeSelect: "primary" } );
-   assert( !isSessionSnapClean( dataDB ), "session snap shouldn't be reset(selected)" );
-   assert( isDatabaseSnapClean( dataDB ), "database snap should be reset(selected)" );
+   if( isSessionSnapClean( dataDB ) )
+   {
+      throw new Error( "session snap shouldn't be reset(selected)" );
+   }
+   if( !isDatabaseSnapClean( dataDB ) )
+   {
+      throw new Error( "database snap should be reset(selected)" );
+   }
    var dbTime3 = getResetSnapTime( dataDB, SDB_SNAP_DATABASE );
    var ssTime3 = getResetSnapTime( dataDB, SDB_SNAP_SESSIONS_CURRENT );
-   assert( dbTime2 < dbTime3 );
-   assert( ssTime2 === ssTime3 );
+   if( dbTime2 >= dbTime3 )
+   {
+      throw new Error( "session time3 more than session time2." );
+   }
+   if( ssTime2 !== ssTime3 )
+   {
+      throw new Error( "database time2 equal database time3." );
+   }
 
    dataDB.close();
    commDropCS( db, csName );

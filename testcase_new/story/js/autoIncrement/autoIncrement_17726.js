@@ -22,7 +22,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", AcquireSize: acquireSize, CacheSize: cacheSize, Cycled: false, MaxValue: maxValue, Increment: increment, MinValue: minValue } } );
-   commCreateIndex( dbcl, "id", { id: 1 }, true, true );
+   commCreateIndex( dbcl, "id", { id: 1 }, { Unique: true }, true );
 
    //alter currentValue为minValue,会清空所有coord上的缓存
    dbcl.setAttributes( { AutoIncrement: { Field: "id", CurrentValue: minValue } } );

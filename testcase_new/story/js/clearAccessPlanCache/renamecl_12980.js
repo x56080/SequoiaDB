@@ -32,8 +32,8 @@ function main ()
    var clFullName2 = csName + "." + clName2;
 
    //create indexs
-   commCreateIndex( dbcl1, "a", { a: 1 }, false );
-   commCreateIndex( dbcl2, "b", { b: 1 }, false );
+   commCreateIndex( dbcl1, "a", { a: 1 } );
+   commCreateIndex( dbcl2, "b", { b: 1 } );
 
    //insert datas
    var insertNums = 3000;
@@ -213,7 +213,7 @@ function main ()
    var dbclSlave1 = db1.getCS( csName ).getCL( clName1 );
 
    //create index
-   commCreateIndex( dbcl, "a", { a: 1 }, false );
+   commCreateIndex( dbcl, "a", { a: 1 } );
 
    //insert datas
    var insertNums = 3000;

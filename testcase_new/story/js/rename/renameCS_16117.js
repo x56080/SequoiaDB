@@ -29,12 +29,12 @@ function main ( db )
    var cl2 = commCreateCL( db, csName1, clName2, {}, true, false, "create cl in the beginning" );
    var cl3 = commCreateCL( db, csName1, clName3, {}, true, false, "create cl in the beginning" );
 
-   commCreateIndex( cl1, indexName1, { a: 1 }, false, false );
-   commCreateIndex( cl1, indexName2, { b: 1 }, false, false );
-   commCreateIndex( cl2, indexName1, { a: 1 }, false, false );
-   commCreateIndex( cl2, indexName2, { b: 1 }, false, false );
-   commCreateIndex( cl3, indexName1, { a: 1 }, false, false );
-   commCreateIndex( cl3, indexName2, { b: 1 }, false, false );
+   commCreateIndex( cl1, indexName1, { a: 1 } );
+   commCreateIndex( cl1, indexName2, { b: 1 } );
+   commCreateIndex( cl2, indexName1, { a: 1 } );
+   commCreateIndex( cl2, indexName2, { b: 1 } );
+   commCreateIndex( cl3, indexName1, { a: 1 } );
+   commCreateIndex( cl3, indexName2, { b: 1 } );
    try
    {
       db.renameCS( csName1, csName2 );
@@ -53,9 +53,9 @@ function main ( db )
    cl1.dropIndex( indexName2 );
    cl2.dropIndex( indexName2 );
    cl3.dropIndex( indexName2 );
-   commCreateIndex( cl1, indexName3, { c: 1 }, false, false );
-   commCreateIndex( cl2, indexName3, { c: 1 }, false, false );
-   commCreateIndex( cl3, indexName3, { c: 1 }, false, false );
+   commCreateIndex( cl1, indexName3, { c: 1 } );
+   commCreateIndex( cl2, indexName3, { c: 1 } );
+   commCreateIndex( cl3, indexName3, { c: 1 } );
    checkClIndex( cl1, indexName1, indexName3 );
    checkClIndex( cl2, indexName1, indexName3 );
    checkClIndex( cl3, indexName1, indexName3 );

@@ -20,7 +20,7 @@ function main ()
    insertDiffDatas( dbcl, insertNums );
 
    //create index
-   commCreateIndex( dbcl, "a", { a: 1 }, false );
+   commCreateIndex( dbcl, "a", { a: 1 } );
 
    //check invalid analyze
    var options = [{ Mode: 6 },

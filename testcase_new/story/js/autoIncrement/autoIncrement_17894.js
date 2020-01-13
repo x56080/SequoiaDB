@@ -18,7 +18,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "x.y.z", Increment: increment, AcquireSize: acquireSize } } );
-   commCreateIndex( dbcl, "index", { "x.y.z": 1 }, true )
+   commCreateIndex( dbcl, "index", { "x.y.z": 1 }, { Unique: true } )
 
    //连接所有coord插入部分记录,coord缓存分别为[-100,-1],[-200,-101],[-300,-201]
    var expRecs = [];

@@ -60,7 +60,7 @@ function splitCl ( csName, clName, allGroupInfo )
       }
    }
 
-   commCreateIndex( cl, 'idxtest', { no: -1 }, true, false )
+   commCreateIndex( cl, 'idxtest', { no: -1 }, { Unique: true }, false )
    return cl;
    println( "--end split" )
 }

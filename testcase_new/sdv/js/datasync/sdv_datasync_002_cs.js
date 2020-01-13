@@ -35,9 +35,15 @@ function main ()
       options = { PageSize: 4096, LobPageSize: 524288 };
       commCreateCS( db, csName, true, "", options );
       var cond = buildCond( options, csName );
-      assert( group.checkResult( true, group.checkDoc, col, cond ), "after createCS metadata is not consistency" );
+      if( !group.checkResult( true, group.checkDoc, col, cond ) )
+      {
+          throw new Error( "after createCS metadata is not consistency" );  
+      }
       commDropCS( db, csName );
-      assert( group.checkResult( true, group.checkDoc, col, cond ), "after dropCS metadata is not consistency" );
+      if( !group.checkResult( true, group.checkDoc, col, cond ) )
+      {
+         throw new Error( "after dropCS metadata is not consistency" );
+      }
    }
    catch( e )
    {

@@ -18,7 +18,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", Increment: increment, AcquireSize: acquireSize } } );
-   commCreateIndex( dbcl, "a", { id: 1 }, true )
+   commCreateIndex( dbcl, "a", { id: 1 }, { Unique: true } )
 
    var expRecs = [];
    var cl = new Array();

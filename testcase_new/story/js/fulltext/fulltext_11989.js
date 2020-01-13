@@ -35,7 +35,7 @@ function main ()
 
    //数据分布覆盖：1个组，索引字段覆盖：非分区键
    commCreateIndex( dbcl, "fullIndex1_11989", { b: "text" } );
-   commCheckIndex( dbcl, "fullIndex1_11989", true );
+   commCheckIndexConsistency( dbcl, "fullIndex1_11989", true );
    checkFullSyncToES( COMMCSNAME, clName, "fullIndex1_11989", 60 );
 
    var dbOperator = new DBOperator();
@@ -55,7 +55,7 @@ function main ()
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex1_11989" );
    commDropIndex( dbcl, "fullIndex1_11989" );
-   commCheckIndex( dbcl, "fullIndex1_11989", false );
+   commCheckIndexConsistency( dbcl, "fullIndex1_11989", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
    checkInspectResult( COMMCSNAME, clName, 5 );
@@ -63,7 +63,7 @@ function main ()
 
    //数据分布覆盖：1个组，索引字段覆盖：分区键
    commCreateIndex( dbcl, "fullIndex2_11989", { a: "text" } );
-   commCheckIndex( dbcl, "fullIndex2_11989", true );
+   commCheckIndexConsistency( dbcl, "fullIndex2_11989", true );
    checkFullSyncToES( COMMCSNAME, clName, "fullIndex2_11989", 60 );
 
    var cappedCL = dbOperator.getCappedCLs( COMMCSNAME, clName, "fullIndex2_11989" );
@@ -82,7 +82,7 @@ function main ()
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex2_11989" );
    commDropIndex( dbcl, "fullIndex2_11989" );
-   commCheckIndex( dbcl, "fullIndex2_11989", false );
+   commCheckIndexConsistency( dbcl, "fullIndex2_11989", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
    checkInspectResult( COMMCSNAME, clName, 5 );
@@ -98,7 +98,7 @@ function main ()
 
    //数据分布覆盖：多个组，索引字段覆盖：非分区键
    commCreateIndex( dbcl, "fullIndex3_11989", { b: "text" } );
-   commCheckIndex( dbcl, "fullIndex3_11989", true );
+   commCheckIndexConsistency( dbcl, "fullIndex3_11989", true );
    checkFullSyncToES( COMMCSNAME, clName, "fullIndex3_11989", 100 );
 
    var cappedCL = dbOperator.getCappedCLs( COMMCSNAME, clName, "fullIndex3_11989" );
@@ -117,7 +117,7 @@ function main ()
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex3_11989" );
    commDropIndex( dbcl, "fullIndex3_11989" );
-   commCheckIndex( dbcl, "fullIndex3_11989", false );
+   commCheckIndexConsistency( dbcl, "fullIndex3_11989", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
    checkInspectResult( COMMCSNAME, clName, 5 );
@@ -125,7 +125,7 @@ function main ()
 
    //数据分布覆盖：多个组，索引字段覆盖：分区键
    commCreateIndex( dbcl, "fullIndex4_11989", { a: "text" } );
-   commCheckIndex( dbcl, "fullIndex4_11989", true );
+   commCheckIndexConsistency( dbcl, "fullIndex4_11989", true );
 
    checkFullSyncToES( COMMCSNAME, clName, "fullIndex4_11989", 100 );
 
@@ -145,7 +145,7 @@ function main ()
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex4_11989" );
    commDropIndex( dbcl, "fullIndex4_11989" );
-   commCheckIndex( dbcl, "fullIndex4_11989", false );
+   commCheckIndexConsistency( dbcl, "fullIndex4_11989", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
    checkInspectResult( COMMCSNAME, clName, 5 );

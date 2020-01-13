@@ -12,9 +12,9 @@ function main ()
 	{
 		var cl = readyCL( { ReplSize: 0 } );
 		var idxName1 = 'aIdx';
-		commCreateIndex( cl, idxName1, { a: -1 }, false, false );
+		commCreateIndex( cl, idxName1, { a: -1 } );
 		var idxName2 = 'bcIdx';
-		commCreateIndex( cl, idxName2, { b: 1, c: -1 }, true, false );
+		commCreateIndex( cl, idxName2, { b: 1, c: -1 } );
 
 		var expRecs = [];
 

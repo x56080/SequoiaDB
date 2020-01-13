@@ -24,7 +24,7 @@ function main ()
          AcquireSize: acquireSize, Cycled: true
       }
    } );
-   commCreateIndex( dbcl, "a", { id: 1 }, true );
+   commCreateIndex( dbcl, "a", { id: 1 }, { Unique: true } );
 
    var expRecs = [];
    var cl = new Array();

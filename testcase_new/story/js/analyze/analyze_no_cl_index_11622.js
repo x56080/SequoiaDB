@@ -33,7 +33,7 @@ function main ()
    //   var dbclSlave = db1.getCS( csName ).getCL( clName ); 
 
    //create index
-   commCreateIndex( dbcl, "a", { a: 1 }, false );
+   commCreateIndex( dbcl, "a", { a: 1 } );
 
    //insert datas
    var insertNums = 3000;

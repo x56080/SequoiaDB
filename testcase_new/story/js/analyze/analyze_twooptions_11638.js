@@ -66,7 +66,7 @@ function main ()
    insertSameDatas( dbcl, insertNums, sameValues );
 
    //create index
-   commCreateIndex( dbcl, "a", { a: 1 }, false );
+   commCreateIndex( dbcl, "a", { a: 1 } );
 
    //analyze
    var cl_full_name = csName + "." + clName;

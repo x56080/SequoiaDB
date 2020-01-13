@@ -26,10 +26,14 @@ function main ()
       cl.create( db, group.name );
       var pageSize = 64 * 1024;
       cl.insert( pageSize );
-      assert( group.checkConsistency( cl ), "data is not consistency" );
-      assert( group.checkResult( false, group.checkDoc, cl, { id: 1 } ),
-         "data is not consistency" )
-
+      if( !group.checkConsistency( cl ) )
+      {
+         throw new Error( "data is not consistency" ); 
+      }
+      if( !group.checkResult( false, group.checkDoc, cl, { id: 1 } ) )
+      {
+         throw new Error( "data is not consistency" );
+      }
    }
    catch( e )
    {

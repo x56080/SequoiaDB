@@ -31,7 +31,7 @@ function main ()
    //索引字段覆盖：非分区键
    //插入包含全文索引字段的记录
    commCreateIndex( dbcl, "fullIndex_12013", { b: "text" } );
-   commCheckIndex( dbcl, "fullIndex_12013", true );
+   commCheckIndexConsistency( dbcl, "fullIndex_12013", true );
    var records = new Array();
    for( var i = 0; i < 10000; i++ )
    {
@@ -73,7 +73,7 @@ function main ()
 
    var esIndexNames = dbOperator.getESIndexNames( csName, clName, "fullIndex_12013" );
    commDropIndex( dbcl, "fullIndex_12013" );
-   commCheckIndex( dbcl, "fullIndex_12013", false );
+   commCheckIndexConsistency( dbcl, "fullIndex_12013", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( csName, clName );
    checkInspectResult( csName, clName, 5 );
@@ -83,7 +83,7 @@ function main ()
    //索引字段覆盖：分区键
    //插入包含全文索引字段的记录
    commCreateIndex( dbcl, "fullIndex_12013", { a: "text" } );
-   commCheckIndex( dbcl, "fullIndex_12013", true );
+   commCheckIndexConsistency( dbcl, "fullIndex_12013", true );
 
    dbcl.insert( { a: "about" } );
    checkFullSyncToES( csName, clName, "fullIndex_12013", 10001 );
@@ -119,7 +119,7 @@ function main ()
 
    var esIndexNames = dbOperator.getESIndexNames( csName, clName, "fullIndex_12013" );
    commDropIndex( dbcl, "fullIndex_12013" );
-   commCheckIndex( dbcl, "fullIndex_12013", false );
+   commCheckIndexConsistency( dbcl, "fullIndex_12013", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( csName, clName );
    checkInspectResult( csName, clName, 5 );

@@ -34,7 +34,7 @@ function main ()
    insertSameDatas( dbcl, insertNums, sameValues );
 
    //create index
-   commCreateIndex( dbcl, "a", { a: 1 }, false );
+   commCreateIndex( dbcl, "a", { a: 1 } );
 
    //check before analyze success
    checkConsistency( db, csName, clName );

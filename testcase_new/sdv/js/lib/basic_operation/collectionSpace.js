@@ -112,4 +112,18 @@ function CollectionSpace ( cs )
             throw new Error( e );
          }
       }
+      
+   this.toString =
+      function()
+      {
+         try
+         {
+            var str = cs.toString();
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return str;
+      }
 }

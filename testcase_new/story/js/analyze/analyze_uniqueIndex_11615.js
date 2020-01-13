@@ -17,7 +17,7 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //创建索引
-   commCreateIndex( dbcl, "a", { a: 1 }, true, true );
+   commCreateIndex( dbcl, "a", { a: 1 }, { Unique: true }, true );
 
    //插入记录
    insertDiffDatas( dbcl, insertNum );

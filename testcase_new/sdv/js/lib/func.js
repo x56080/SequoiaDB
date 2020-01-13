@@ -18,8 +18,6 @@ if( typeof ( COORDSVCNAME ) == "undefined" ) { COORDSVCNAME = "50000"; }
 if( typeof ( CATASVCNAME ) == "undefined" ) { CATASVCNAME = "11800"; }
 //协调节点主机名
 if( typeof ( COORDHOSTNAME ) == "undefined" ) { COORDHOSTNAME = 'localhost'; }
-if( typeof ( UUID ) == "undefined" ) { UUID = 1; }
-if( typeof ( UUNAME ) == "undefined" ) { UUNAME = "ID" + UUID + "NAME"; }
 //用例预留端口最小值
 if( typeof ( RSRVPORTBEGIN ) == "undefined" ) { RSRVPORTBEGIN = '26000'; }
 //用例预留端口最大值
@@ -60,30 +58,6 @@ var funcCommCreateCLTimes = 0;
 var funcCommCreateCLOptTimes = 0;
 var funcCommDropCLTimes = 0;
 // end control variable
-
-doassert = function( msg )
-{
-   // eval if msg is a function
-   if( typeof ( msg ) == "function" )
-      msg = msg();
-
-   if( typeof ( msg ) == "string" && msg.indexOf( "assert" ) == 0 )
-      print( msg );
-   else
-      print( "assert: " + msg );
-
-   var ex = Error( msg );
-   print( ex.stack );
-   throw ex;
-}
-
-assert = function( b, msg )
-{
-   if( assert._debug && msg ) print( "in assert for: " + msg );
-   if( b )
-      return;
-   doassert( msg == undefined ? "assert failed" : "assert failed : " + msg );
-}
 
 /* *****************************************************************************
 @discription: check database mode is standalone
@@ -287,22 +261,26 @@ function commDropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, me
 @author: Jianhui Xu
 @parameter
    indexDef: index define object
-   isUnique: true/false, default is false
+   options: index options
    ignoreExist: default is false, 忽略索引已存在错误
 ***************************************************************************** */
-function commCreateIndex ( cl, name, indexDef, isUnique, ignoreExist )
+function commCreateIndex ( cl, name, indexDef, options, ignoreExist )
 {
-   if( isUnique == undefined ) { isUnique = false; }
+   if( options == undefined ) { options = {}; }
    if( ignoreExist == undefined ) { ignoreExist = false; }
 
    if( typeof ( indexDef ) != "object" )
    {
       throw new Error( "commCreateIndex: indexDef is not object" );
    }
+   if( typeof ( options ) != "object" )
+   {
+      throw new Error( "commCreateIndex: optionsk is not object" );
+   }
 
    try
    {
-      cl.createIndex( name, indexDef, isUnique );
+      cl.createIndex( name, indexDef, options );
    }
    catch( e )
    {
@@ -313,8 +291,7 @@ function commCreateIndex ( cl, name, indexDef, isUnique, ignoreExist )
       }
       else
       {
-         commThrowError( e, "commCreateIndex: create index[" + name + "] failed: " + e )
-
+         commThrowError( e, "commCreateIndex: create index[" + name + "] failed: " + e );
       }
    }
 }
@@ -341,59 +318,73 @@ function commDropIndex ( cl, name, ignoreNotExist )
 }
 
 /* *****************************************************************************
-@discription: check index
+@discription: check index consistency
 @author: Jianhui Xu
 @parameter
    exist: true/false, if true check index exist, else check index not exist, default is true
-   timeout: default 10 secs
+   timeout: default 30 secs
 ***************************************************************************** */
-function commCheckIndex ( cl, name, exist, timeout )
+function commCheckIndexConsistency ( cl, name, exist, timeout )
 {
    if( exist == undefined ) { exist = true; }
-   if( timeout == undefined ) { timeout = 10; }
+   if( timeout == undefined ) { timeout = 30; }
+   
+   var arr1 = cl.toString().split( ":" );
+   var host = arr1[0];
+   var str1 = arr1[1];
+   var arr2 = str1.split( "." );
+   var svc = arr2[0];
+   var csName = arr2[1];
+   var clName = arr2[2];
+   var sdb = new Sdb( host, svc );
+   var clGroups = commGetCLGroups( sdb, csName + "." + clName );
+   var nodes = [];
+   for( var i = 0; i < clGroups.length; i++ )
+   {
+      nodes = nodes.concat( commGetGroupNodes( sdb, clGroups[i] ) );
+   }
+   sdb.close();
 
    var timecount = 0;
    while( true )
    {
-      try
+      for( var j = 0; j < nodes.length; j++ )
       {
          try
          {
-            var tmpInfo = cl.getIndex( name );
+            var nodeConn = new Sdb( nodes[j].HostName, nodes[j].svcname );
+            var tmpInfo = nodeConn.getCS( csName ).getCL( clName ).getIndex( name );
+            nodeConn.close();
          }
          catch( e )
          {
             tmpInfo = undefined;
+            break;
          }
-         //var tmpInfo = cl.getIndex( name ) ;
-         if( ( exist && tmpInfo == undefined ) ||
-            ( !exist && tmpInfo != undefined ) )
-         {
-            if( timecount < timeout )
-            {
-               ++timecount;
-               sleep( 1000 );
-               continue;
-            }
-            throw new Error( "commCheckIndex: check index[" + name + "] time out" );
-         }
-
          if( tmpInfo != undefined )
          {
             var tmpObj = tmpInfo.toObj();
             if( tmpObj.IndexDef.name != name )
             {
-               println( "commCheckIndex: get index name[" + tmpObj.IndexDef.name + "] is not the same with name[" + name + "]" );
+               println( "commCheckIndexConsistency: get index name[" + tmpObj.IndexDef.name + "] is not the same with name[" + name + "]" );
                println( tmpInfo );
                throw new Error( "check name error" );
             }
          }
-         break;
       }
-      catch( e )
+      //var tmpInfo = cl.getIndex( name ) ;
+      if( ( exist && tmpInfo == undefined ) ||
+         ( !exist && tmpInfo != undefined ) )
       {
-         commThrowError( e, "commCheckIndex: get index[" + name + "] failed: " + e );
+         if( timecount < timeout )
+         {
+            ++timecount;
+            sleep( 1000 );
+            continue;
+         }
+         throw new Error( "commCheckIndexConsistency: check index[" + name + "] time out" );
       }
+      break;
    }
 }
 
@@ -1683,7 +1674,9 @@ function commInspectData( db, group, csName, clName, loop )
               db: connection handle, can't be standalone                
               rgName: group name
               nodesNum: node num, node svc like 26000 26010 ....
-@return       logSourcePaths: log paths to be backed up
+@return       nodeInfos : hostname, svcname, log paths to be backed up
+               array[]:
+                  [{hostname: "xxx", svcname: "xxx", logpath: "xxx"}]
 @author: luweikang
 ******************************************************************* */
 function commCreateRG( db, rgName, nodeNum, hostname )
@@ -1704,7 +1697,7 @@ function commCreateRG( db, rgName, nodeNum, hostname )
    }
    
    var maxRetryTimes = 100;
-   var logSourcePaths = [];
+   var nodeInfos = [];
    for( var i = 0; i < nodeNum; i++ )
    {
       var failedCount = 0;
@@ -1731,7 +1724,8 @@ function commCreateRG( db, rgName, nodeNum, hostname )
          {
             rg.createNode( hostname, svc, dbPath, { diaglevel: 5 } );
             println( "create node: " + hostname + ":" + svc + " dbpath: " + dbPath );
-            logSourcePaths.push( hostname + ":" + CMSVCNAME + "@" + dbPath + "/diaglog/sdbdiag.log" );
+            var nodeInfo = { "hostname": hostname, "svcname": svc, "logpath": hostname + ":" + CMSVCNAME + "@" + dbPath + "/diaglog/sdbdiag.log" };
+            nodeInfos.push( nodeInfo );
             break;
          }
          catch( e )
@@ -1752,7 +1746,7 @@ function commCreateRG( db, rgName, nodeNum, hostname )
       while( failedCount < maxRetryTimes );
    }
    rg.start();
-   return logSourcePaths;
+   return nodeInfos;
 }
 
 /**********************************************************************

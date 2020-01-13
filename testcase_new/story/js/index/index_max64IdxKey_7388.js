@@ -65,7 +65,7 @@ function main ( db )
    for( i = 1; i <= 63; ++i )
    {
       var idxName = "noIndex" + i;
-      commCheckIndex( idxCL, idxName, true );
+      commCheckIndexConsistency( idxCL, idxName, true );
    }
 
    //create the index and geater than 64 error

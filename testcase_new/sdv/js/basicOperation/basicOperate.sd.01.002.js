@@ -11,7 +11,7 @@ function main ()
 	{
 		var cl = readyCL( { ReplSize: 0, Compressed: true } );
 		var idxName = 'aIdx';
-		commCreateIndex( cl, idxName, { a: 1 }, false, false );
+		commCreateIndex( cl, idxName, { a: 1 } );
 
 		var expRecs = [];
 		insertRecs( cl, expRecs );

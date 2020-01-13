@@ -53,7 +53,7 @@ function main ()
    insertSameDatas( dbcl, insertNums, sameValues );
 
    //create index
-   commCreateIndex( dbcl, "a", { a: 1 }, false );
+   commCreateIndex( dbcl, "a", { a: 1 } );
 
    //get Group and Node info
    var groupName = commGetCLGroups( db, csName + "." + clName );

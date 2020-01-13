@@ -34,9 +34,18 @@ function main ()
       var group = mgr.getGroupByName( CATALOG_GROUPNAME );
       var node = createNodeOfCataGroup( group );
 
-      assert( group.checkResult( true, group.checkLSN ), "the LSN is not consistent" );
-      assert( group.checkResult( true, group.checkCS ), "system collection space is not consistent" );
-      assert( group.checkResult( true, group.checkCL ), "system collection is not consistent" );
+      if( !group.checkResult( true, group.checkLSN ) )
+      {
+         throw new Error( "the LSN is not consistent" ); 
+      }
+      if( !group.checkResult( true, group.checkCS ) )
+      {
+        throw new Error( "system collection space is not consistent"); 
+      }
+      if( !group.checkResult( true, group.checkCL ) )
+      {
+        throw new Error( "system collection is not consistent" ); 
+      }
    }
    catch( e )
    {

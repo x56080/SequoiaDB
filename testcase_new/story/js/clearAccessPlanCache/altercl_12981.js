@@ -60,8 +60,8 @@ function main ()
    var dbclSlave2 = db1.getCS( csName ).getCL( clName2 );
 
    //create index
-   commCreateIndex( dbcl1, "b", { b: 1 }, false );
-   commCreateIndex( dbcl2, "c", { c: 1 }, false );
+   commCreateIndex( dbcl1, "b", { b: 1 } );
+   commCreateIndex( dbcl2, "c", { c: 1 } );
 
    //insert data
    var insertNums = 5000;

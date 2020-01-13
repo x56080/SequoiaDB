@@ -18,7 +18,7 @@ function main ()
 
    //在已存在全文索引定义的集合中，再次创建全文索引
    dbcl.createIndex( "a_11982", { content: "text" } );
-   commCheckIndex( dbcl, "a_11982", true );
+   commCheckIndexConsistency( dbcl, "a_11982", true );
    try
    {
       dbcl.createIndex( "b_11982", { about: "text" } );

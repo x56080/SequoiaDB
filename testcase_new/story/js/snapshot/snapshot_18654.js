@@ -30,7 +30,7 @@ function main ()
    var serviceName = masterNode.getServiceName();
    nodeNames.push( hostName + ":" + serviceName );
 
-   commCreateIndex( dbcl, "ab", { a: 1, b: 1 }, false );
+   commCreateIndex( dbcl, "ab", { a: 1, b: 1 } );
    var doc = [];
    for( var i = 0; i < 1000; i++ )
    {

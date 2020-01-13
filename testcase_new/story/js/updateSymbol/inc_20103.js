@@ -8,7 +8,7 @@ function main ()
 	var clName = COMMCLNAME + "_20103";
 	commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 	var cl = commCreateCL( db, COMMCSNAME, clName, { StrictDataMode: true } );
-	commCreateIndex( cl, "a_20103", { a: 1 }, false );
+	commCreateIndex( cl, "a_20103", { a: 1 } );
 
 	//a字段为数值，Value为数值，Min为数值，Value<Min同时a+Value>=Min，更新成功，更新后a值为a+Value
 	var doc = [{ id: 1, a: 20 }];

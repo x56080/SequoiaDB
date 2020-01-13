@@ -17,8 +17,14 @@ function main ()
 
       var group = mgr.getGroupByName( CATALOG_GROUPNAME );
 
-      assert( group.checkResult( true, group.checkCS ), "system collection space is not consistency" );
-      assert( group.checkResult( true, group.checkCL ), "system collection is not consistency" );
+      if( !group.checkResult( true, group.checkCS ) )
+      {
+         throw new Error( "system collection space is not consistency" );
+      }
+      if( !group.checkResult( true, group.checkCL )
+      {
+         throw new Error( "system collection is not consistency" );
+      }
    }
    catch( e )
    {

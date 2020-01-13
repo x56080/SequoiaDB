@@ -21,7 +21,7 @@ function main ()
    var insertNums = 150;
    insertDiffDatas( dbcl, insertNums );
 
-   commCreateIndex( dbcl, "a", { a: 1 }, false );
+   commCreateIndex( dbcl, "a", { a: 1 } );
 
    //analyze with SampleNum
    var options = { CollectionSpace: csName, SampleNum: 200 };

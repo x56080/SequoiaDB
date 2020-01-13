@@ -467,4 +467,10 @@ function Collection ( cl )
             throw new Error( e );
          }
       }
+   
+   this.toString =
+      function()
+      {
+         return cl.toString();
+      }
 }

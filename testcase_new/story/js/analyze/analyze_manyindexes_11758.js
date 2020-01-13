@@ -25,8 +25,8 @@ function main ()
    insertSameDatas( dbcl, insertNums, sameValues );
 
    //create index
-   commCreateIndex( dbcl, "a", { a: 1 }, false );
-   commCreateIndex( dbcl, "ab", { a: 1, b: 1 }, false );
+   commCreateIndex( dbcl, "a", { a: 1 } );
+   commCreateIndex( dbcl, "ab", { a: 1, b: 1 } );
 
    //get master/slave datanode
    var db1 = new Sdb( db );

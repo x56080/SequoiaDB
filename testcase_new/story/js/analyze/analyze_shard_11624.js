@@ -46,8 +46,8 @@ function main ()
    //   var dbclSlave1 = db1.getCS( csName ).getCL( clName1 ); 
    //   var dbclSlave2 = db1.getCS( csName ).getCL( clName2 ); 
 
-   commCreateIndex( dbcl1, "b", { b: 1 }, false )
-   commCreateIndex( dbcl2, "b", { b: -1 }, false )
+   commCreateIndex( dbcl1, "b", { b: 1 } );
+   commCreateIndex( dbcl2, "b", { b: -1 } );
 
    //insert datas
    var insertNums = 10000;

@@ -24,8 +24,8 @@ function main ()
     // create Index
     var idxName = "noIndex13760";
     var indexDef = { "a": 1 };
-    commCreateIndex( cl, idxName, indexDef, false, false );
-    commCheckIndex( cl, idxName, true );
+    commCreateIndex( cl, idxName, indexDef );
+    commCheckIndexConsistency( cl, idxName, true );
     println( "create index successful" );
 
     // query by using sort and skip function. and create index

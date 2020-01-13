@@ -395,15 +395,7 @@ function Sequoiadb ( hostname, svcname, username, password )
    this.toString =
       function()
       {
-         try
-         {
-            var str = db.toString();
-         }
-         catch( e )
-         {
-            throw new Error( e );
-         }
-         return str;
+         return db.toString();
       }
 
    this.analyze =

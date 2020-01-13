@@ -10,7 +10,7 @@ function main ()
       var clName = CHANGEDPREFIX + "_transaction6012";
 
       var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true );
-      commCreateIndex( cl, 'testIndex', { no: 1 }, true, false )
+      commCreateIndex( cl, 'testIndex', { no: 1 }, { Unique: true }, false )
       transOperation( cl )
 
       //@ clean end

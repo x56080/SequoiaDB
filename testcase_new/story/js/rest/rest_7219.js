@@ -15,7 +15,7 @@ function ready ()
    commDropCL( db, csName, clName, true, true, "drop cl in begin" );
    varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
    var index = { age: 1 };
-   commCreateIndex( varCL, "ageIndex", index, false, false );
+   commCreateIndex( varCL, "ageIndex", index );
 }
 
 function lackName ()

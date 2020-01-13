@@ -24,7 +24,7 @@ function main ()
          AcquireSize: acquireSize, MaxValue: maxValue
       }
    } );
-   commCreateIndex( dbcl, "a", { id: 1 }, true );
+   commCreateIndex( dbcl, "a", { id: 1 }, { Unique: true } );
 
    dbcl.setAttributes( { AutoIncrement: { Field: "id", CurrentValue: maxValue } } );
 

@@ -18,8 +18,8 @@ function main ()
    // create Index
    var idxName = "noIndex";
    var indexDef = { "no": 1, "no1": 1, "no2": -1, "no3": 1 };
-   commCreateIndex( cl, idxName, indexDef, false, false );
-   commCheckIndex( cl, idxName, true );
+   commCreateIndex( cl, idxName, indexDef );
+   commCheckIndexConsistency( cl, idxName, true );
    println( "create index successful" );
 
    // query data

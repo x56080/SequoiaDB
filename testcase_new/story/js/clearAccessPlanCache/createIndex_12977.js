@@ -108,7 +108,7 @@ function main ()
    println( "check result after create id index!" );
 
    //create common index
-   commCreateIndex( dbcl, "a", { a: 1 }, false );
+   commCreateIndex( dbcl, "a", { a: 1 } );
 
    //检查主备同步
    checkConsistency( db, csName, clName );

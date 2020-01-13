@@ -56,8 +56,8 @@ function main ()
    insertSameDatas( dbcl2, insertNums, sameValues );
 
    //create index
-   commCreateIndex( dbcl1, "b", { b: 1 }, false );
-   commCreateIndex( dbcl2, "b", { b: 1 }, false );
+   commCreateIndex( dbcl1, "b", { b: 1 } );
+   commCreateIndex( dbcl2, "b", { b: 1 } );
 
    //split cl
    ClSplitOneTimes( csName, clName1, 50 );

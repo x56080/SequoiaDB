@@ -31,7 +31,10 @@ function main ()
 
       cl.putLob( "/tmp/2m" );
 
-      assert( group.checkConsistency( cl ), "data is not consistency" );
+      if( !group.checkConsistency( cl ) )
+      {
+         throw new Error( "data is not consistency" ); 
+      }
    }
    catch( e )
    {

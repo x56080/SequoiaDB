@@ -26,11 +26,15 @@ function main ()
       cl.bulkInsert( 10 );
       cl.createIndex( 'idxa', { a: 1 } );
       var needSleep = isNeedSleep( cl.replSize );
-      assert( group.checkResult( needSleep, group.checkExplain, cl, { a: 1 } ),
-         "collection's explain is not consistency in all group node" );
+      if( !group.checkResult( needSleep, group.checkExplain, cl, { a: 1 } ) )
+      {
+         throw new Error( "collection's explain is not consistency in all group node" );
+      }
       cl.dropIndex( 'idxa' );
-      assert( group.checkResult( needSleep, group.checkExplain, cl, { a: 1 } ),
-         "collection's explain is not consistency in all group node" );
+      if( !group.checkResult( needSleep, group.checkExplain, cl, { a: 1 } ) )
+      {
+         throw new Error( "collection's explain is not consistency in all group node" );
+      }
    }
    catch( e )
    {

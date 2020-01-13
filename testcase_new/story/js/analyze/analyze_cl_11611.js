@@ -56,9 +56,9 @@ function main ()
    //   var dbclSlave5 = db1.getCS( csName ).getCL( clName5 ); 
 
    //create index
-   commCreateIndex( dbcl3, "a", { a: 1 }, false );
-   commCreateIndex( dbcl4, "a", { a: 1 }, false );
-   commCreateIndex( dbcl5, "a", { a: 1 }, false );
+   commCreateIndex( dbcl3, "a", { a: 1 } );
+   commCreateIndex( dbcl4, "a", { a: 1 } );
+   commCreateIndex( dbcl5, "a", { a: 1 } );
 
    //insert datas
    var insertNums = 3000;

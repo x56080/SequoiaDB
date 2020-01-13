@@ -24,11 +24,15 @@ function main ()
       options = { ShardingType: 'hash', ShardingKey: { a: 1 }, EnsureShardingIndex: false };
       commCreateCL( db, COMMCSNAME, clName, options, true );
       var cond = buildCond( options, clName );
-      assert( group.checkResult( true, group.checkDoc, col, cond ),
-         "after createCS metadata is not consistency" );
+      if( !group.checkResult( true, group.checkDoc, col, cond ) )
+      {
+         throw new Error( "after createCS metadata is not consistency" );
+      }
       commDropCL( db, COMMCSNAME, clName );
-      assert( group.checkResult( true, group.checkDoc, col, cond ),
-         "after createCS metadata is not consistency" );
+      if( !group.checkResult( true, group.checkDoc, col, cond ) )
+      {
+         throw new Error( "after createCS metadata is not consistency" );
+      }
    }
    catch( e )
    {

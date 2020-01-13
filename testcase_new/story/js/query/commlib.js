@@ -378,7 +378,6 @@ function queryGetPrimaryNode ( db, clName )
    }
    catch( e )
    {
-      assert( false );
       println( "failed to get primary node, rc = " + e );
       throw e;
    }

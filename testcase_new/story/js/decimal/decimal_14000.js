@@ -23,7 +23,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 
    var cl = commCreateCL( db, COMMCSNAME, clName );
-   commCreateIndex( cl, "aIndex", { a: 1 }, true );
+   commCreateIndex( cl, "aIndex", { a: 1 }, { Unique: true } );
 
    var docs = [{ a: { $decimal: "MAX" } },
    { a: { $decimal: "MIN" } },

@@ -33,8 +33,8 @@ function main ()
    var clFullName1 = csName + "." + clName1;
    var clFullName2 = csName + "." + clName2;
 
-   commCreateIndex( dbcl1, "a", { a: 1 }, false );
-   commCreateIndex( dbcl2, "b", { b: 1 }, false );
+   commCreateIndex( dbcl1, "a", { a: 1 } );
+   commCreateIndex( dbcl2, "b", { b: 1 } );
 
    var insertNums = 3000;
    var sameValues = 9000;
