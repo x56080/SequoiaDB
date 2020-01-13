@@ -324,6 +324,14 @@ namespace engine
    } ;
 
    /*
+      EDU INFO TYPE DEFINE
+   */
+   enum EDU_INFO_TYPE
+   {
+      EDU_INFO_ERROR                   = 1   //Error
+   } ;
+
+   /*
       sdbLockItem define
    */
    struct sdbLockItem
@@ -400,6 +408,10 @@ namespace engine
             Resource Info
          */
          virtual sdbLockItem* getLockItem( SDB_LOCK_TYPE lockType ) = 0 ;
+         virtual INT32        appendInfo( EDU_INFO_TYPE type, const CHAR * format, ...) = 0 ;
+         virtual INT32        printInfo ( EDU_INFO_TYPE type, const CHAR *format, ... ) = 0 ;
+         virtual const CHAR*  getInfo ( EDU_INFO_TYPE type ) = 0 ;
+         virtual void         resetInfo ( EDU_INFO_TYPE type ) = 0 ;
 
          /*
             Buffer Manager

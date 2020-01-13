@@ -175,6 +175,24 @@ namespace engine
          pDetail = cb->getInfo( EDU_INFO_ERROR ) ;
       }
 
+      if ( ( !pDetail || !*pDetail ) && pFailedNodes )
+      {
+         ROUTE_RC_MAP::iterator iter = pFailedNodes->begin() ;
+         while( iter != pFailedNodes->end() )
+         {
+            if ( flag == iter->second._rc &&
+                 !iter->second._obj.isEmpty() )
+            {
+               pDetail = iter->second._obj.getStringField( OP_ERR_DETAIL ) ;
+               if ( *pDetail )
+               {
+                  break ;
+               }
+            }
+            ++iter ;
+         }
+      }
+
       try
       {
          builder.append( OP_ERRNOFIELD, flag ) ;

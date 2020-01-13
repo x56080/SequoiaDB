@@ -89,14 +89,6 @@ namespace engine
    #define EDU_CTRL_DISCONNECTED       0x02
    #define EDU_CTRL_FORCED             0x04
 
-   /*
-      EDU INFO TYPE DEFINE
-   */
-   enum EDU_INFO_TYPE
-   {
-      EDU_INFO_ERROR                   = 1   //Error
-   } ;
-
    class _pmdEDUMgr ;
 
    /*
@@ -120,7 +112,7 @@ namespace engine
          /*
             Session Related
          */
-         virtual ISession* getSession() { return _pSession ; }
+         virtual ISession*    getSession() { return _pSession ; }
          virtual IRemoteSite* getRemoteSite() { return _pRemoteSite ; }
 
          /*
@@ -145,6 +137,11 @@ namespace engine
          virtual sdbLockItem* getLockItem( SDB_LOCK_TYPE lockType ) ;
          void                 assertLocks() ;
          void                 resetLocks() ;
+
+         virtual INT32        appendInfo( EDU_INFO_TYPE type, const CHAR * format, ...) ;
+         virtual INT32        printInfo ( EDU_INFO_TYPE type, const CHAR *format, ... ) ;
+         virtual const CHAR*  getInfo ( EDU_INFO_TYPE type ) ;
+         virtual void         resetInfo ( EDU_INFO_TYPE type ) ;
 
          /*
             Buffer Manager
@@ -208,15 +205,6 @@ namespace engine
       void        clear() ;
       string      toString() const ;
 
-      // *** must under the protection of _pmdEDUMgr._latch ****
-      BOOLEAN checkAndSwapDumpTransCount( INT32 checkValue, INT32 newValue )
-      {
-         return _dumpTransCount.compareAndSwap( checkValue, newValue ) ;
-      }
-
-      INT32 getDumpTransCount() { return _dumpTransCount.fetch() ; }
-      // *******************************************************
-
       EDU_STATUS  getStatus () const { return _status ; }
       INT32       getType () const { return _eduType ; }
       BOOLEAN     isLocked() const { return _isLocked ; }
@@ -250,11 +238,6 @@ namespace engine
       INT32       getInterruptRC() const ;
 
       void        updateTransConf() ;
-
-      INT32       appendInfo( EDU_INFO_TYPE type, const CHAR * format, ...) ;
-      INT32       printInfo ( EDU_INFO_TYPE type, const CHAR *format, ... ) ;
-      const CHAR* getInfo ( EDU_INFO_TYPE type ) ;
-      void        resetInfo ( EDU_INFO_TYPE type ) ;
 
       void        setUserInfo( const string &userName,
                                const string &password ) ;
@@ -453,6 +436,16 @@ namespace engine
       void        initMonAppCB() ;
 
       void        initTransConf() ;
+
+      /*
+         Only for pmdEDUMgr call, and must under pmdEDUMgr::_latch protected
+      */
+      BOOLEAN checkAndSwapDumpTransCount( INT32 checkValue, INT32 newValue )
+      {
+         return _dumpTransCount.compareAndSwap( checkValue, newValue ) ;
+      }
+
+      INT32 getDumpTransCount() { return _dumpTransCount.fetch() ; }
 
    private :
       _pmdEDUMgr     *_eduMgr ;
