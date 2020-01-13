@@ -2,7 +2,7 @@
 
 编目节点为一种逻辑节点，其中保存了数据库的元数据信息，而不保存其他用户数据。
 
-编目节点属于编目节点组（请参考 [分区组](infrastructure/replication/overview.md)）。
+编目节点属于编目分区组（请参考 [分区组](infrastructure/replication/overview.md)）。
 
 编目节点中包含4个集合空间：
 
@@ -63,7 +63,7 @@
 >
 >   编目节点上的事务选项 **transactionon** 自动开启（为了保证事务日志，编目节点上的日志文件个数 **logfilenum** 需要设置为大于 5）
 >
->   更详细的创建编目节点组，请参考 [Sdb.createCataRG\(\)](reference/Sequoiadb_command/Sdb/createCataRG.md)
+>   创建编目分区组，请参考 [Sdb.createCataRG()](reference/Sequoiadb_command/Sdb/createCataRG.md)
 
 ###编目分区组中新增节点###
 
@@ -82,7 +82,7 @@
 
    >   **Note:**
    >
-   >   在 Sdb Shell 中也可以使用 (Sdb.getRG\(\))[reference/Sequoiadb_command/Sdb/getRG.md] 以 "SYSCatalogGroup" 为分区组组名获取编目节点组。
+   >   在 Sdb Shell 中也可以使用 [Sdb.getCatalogRG()](reference/Sequoiadb_command/Sdb/getCatalogRG.md) 获取编目分区组。
 
 2. 创建一个新的编目节点：
 
@@ -102,7 +102,7 @@
 
 >   **Note:**
 >
->   如何创建编目节点组和部署编目节点可以详细请参考 [集群模式](installation/deployment/command_installation/cluster.md)
+>   部署编目节点，请参考 [集群模式](installation/deployment/command_installation/cluster.md)
 
 ###查看编目节点###
 
