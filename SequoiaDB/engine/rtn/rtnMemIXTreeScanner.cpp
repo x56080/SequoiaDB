@@ -478,7 +478,7 @@ namespace engine
                           nodeKey.getRID()._extent,
                           nodeKey.getRID()._offset,
                           dpsTransIDToString(
-                                _pTransCB->getGlobLowTran( FALSE ) ).c_str(),
+                                _pTransCB->getGlobLowTran() ).c_str(),
                           dpsTransIDToString(
                                 nodeKey.getNodeTransID() ).c_str() ) ;
 #endif
