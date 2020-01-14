@@ -102,7 +102,8 @@ public class Fulltext12119 extends FullTestBase {
                     cursor = cl.query( matcher, null, null, null );
                     Assert.fail( "query should fail" );
                 } catch ( BaseException e ) {
-                    if ( -6 != e.getErrorCode() && -52 != e.getErrorCode() ) {
+                    if ( -6 != e.getErrorCode() && -52 != e.getErrorCode() 
+                            && -10 != e.getErrorCode() ) {
                         throw e;
                     }
                 } finally {

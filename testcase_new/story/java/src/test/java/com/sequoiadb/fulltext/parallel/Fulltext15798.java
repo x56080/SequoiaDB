@@ -148,7 +148,7 @@ public class Fulltext15798 extends FullTestBase {
                 cl.query( "{'':{'$Text':{'query':{'match_all':{}}}}}", "{}",
                         "{}", "{'':'" + fullIdxName + "'}" );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -321 ) {
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -10 ) {
                     throw e;
                 }
             } finally {

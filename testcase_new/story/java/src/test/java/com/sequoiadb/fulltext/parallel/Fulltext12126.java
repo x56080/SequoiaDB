@@ -164,8 +164,8 @@ public class Fulltext12126 extends FullTestBase {
                         cl.query( "{'':{'$Text':{query:{match_all:{}}}}}",
                                 "{a:1,c:1}", null, null );
                     } catch ( BaseException e ) {
-                        if ( e.getErrorCode() != -6
-                                && e.getErrorCode() != -52 ) {
+                        if ( e.getErrorCode() != -6 && e.getErrorCode() != -52
+                                && e.getErrorCode() != -10 ) {
                             Assert.fail( e.getMessage() );
                         }
                     }

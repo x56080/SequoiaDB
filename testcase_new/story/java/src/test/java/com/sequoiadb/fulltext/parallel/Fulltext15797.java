@@ -192,7 +192,8 @@ public class Fulltext15797 extends FullTestBase {
                 // 集合正在被删除报-248
                 // 全文索引在ES端还没创建时报-6、-52
                 if ( e.getErrorCode() != -23 && e.getErrorCode() != -248
-                        && e.getErrorCode() != -6 && e.getErrorCode() != -52 ) {
+                        && e.getErrorCode() != -6 && e.getErrorCode() != -52
+                        && e.getErrorCode() != -10 ) {
                     e.printStackTrace();
                     Assert.fail( e.getMessage() );
                 }

@@ -85,7 +85,9 @@ public class Fulltext15835 extends FullTestBase {
             }
             Assert.fail( "use not exist fulltext search should be failed!" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(), -52, e.getMessage() );
+            if ( e.getErrorCode() != -52 && e.getErrorCode() != -10 ) { 
+                throw e;
+            } 
         } finally {
             if ( cur != null ) {
                 cur.close();

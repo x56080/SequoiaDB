@@ -225,8 +225,8 @@ public class Fulltext15872 extends FullTestBase {
                         cl.query( "{'':{'$Text':{query:{match_all:{}}}}}",
                                 "{a:1,c:1}", null, null );
                     } catch ( BaseException e ) {
-                        if ( e.getErrorCode() != -6
-                                && e.getErrorCode() != -52 ) {
+                        if ( e.getErrorCode() != -6 && e.getErrorCode() != -52
+                                && e.getErrorCode() != -10 ) {
                             e.printStackTrace();
                             Assert.fail( e.getMessage() );
                         }
@@ -404,7 +404,8 @@ public class Fulltext15872 extends FullTestBase {
                 System.out.println( this.getClass().getName().toString()
                         + " stop at:" + df.format( new Date() ) );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -6 && e.getErrorCode() != -52 ) {
+                if ( e.getErrorCode() != -6 && e.getErrorCode() != -52
+                        && e.getErrorCode() != -10 ) {
                     e.printStackTrace();
                     Assert.fail( e.getMessage() );
                 }
