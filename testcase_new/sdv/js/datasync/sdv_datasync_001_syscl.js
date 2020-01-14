@@ -21,7 +21,7 @@ function main ()
       {
          throw new Error( "system collection space is not consistency" );
       }
-      if( !group.checkResult( true, group.checkCL )
+      if( !group.checkResult( true, group.checkCL ) )
       {
          throw new Error( "system collection is not consistency" );
       }

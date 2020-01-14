@@ -328,7 +328,13 @@ function commCheckIndexConsistency ( cl, name, exist, timeout )
 {
    if( exist == undefined ) { exist = true; }
    if( timeout == undefined ) { timeout = 30; }
-   var nodes = commGetCLNodes( cl );
+   
+   //cl.toString = hostname:svc.csName.clName
+   var parts = cl.toString().split( ":" );
+   var infoArr = parts[1].split( "." );
+   var csName = infoArr[1];
+   var clName = infoArr[2];
+   var nodes = commGetCLNodes( db, csName, clName );
    
    var timecount = 0;
    while( true )
@@ -553,21 +559,26 @@ function commGetCLGroups ( db, clName )
 /******************************************************************************
 @description : get collection nodes
                获取集合所在的节点
-@author : xiaojun Hu
+@author : luweikang
 @parameter:
-   cl: cl connection
+   csName: cs name
+   clName: cl name 
 @return array[] ex:
    array[0] {"HostName": "XXXX", "svcname": "XXXX"}
    array[1] {"HostName": "XXXX", "svcname": "XXXX"}
    ...
 ******************************************************************************/
-function commGetCLNodes( cl )
+function commGetCLNodes( db, csName, clName )
 {
-   //cl.toString = hostname:svc.csName.clName
-   var arr1 = cl.toString().split( ":" );
-   var arr2 = arr1[1].split( "." );
-   var csName = arr2[1];
-   var clName = arr2[2];
+   if( typeof ( csName ) != "string" || csName.length == 0 )
+   {
+      throw new Error( "commGetCLGroups: Invalid csName parameter or clName is empty" );
+   }
+   if( typeof ( clName ) != "string" || clName.length == 0 )
+   {
+      throw new Error( "commGetCLGroups: Invalid clName parameter or clName is empty" );
+   }
+   
    var clGroups = commGetCLGroups( db, csName + "." + clName );
    var nodes = [];
    for( var i = 0; i < clGroups.length; i++ )

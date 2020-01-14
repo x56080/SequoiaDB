@@ -329,22 +329,13 @@ function commCheckIndexConsistency ( cl, name, exist, timeout )
    if( exist == undefined ) { exist = true; }
    if( timeout == undefined ) { timeout = 30; }
    
+   //cl.toString = hostname:svc.csName.clName
    var arr1 = cl.toString().split( ":" );
-   var host = arr1[0];
-   var str1 = arr1[1];
-   var arr2 = str1.split( "." );
-   var svc = arr2[0];
+   var arr2 = arr1[1].split( "." );
    var csName = arr2[1];
    var clName = arr2[2];
-   var sdb = new Sdb( host, svc );
-   var clGroups = commGetCLGroups( sdb, csName + "." + clName );
-   var nodes = [];
-   for( var i = 0; i < clGroups.length; i++ )
-   {
-      nodes = nodes.concat( commGetGroupNodes( sdb, clGroups[i] ) );
-   }
-   sdb.close();
-
+   var nodes = commGetCLNodes( db, csName, clName );
+   
    var timecount = 0;
    while( true )
    {
@@ -518,7 +509,7 @@ function commPrint ( obj, deep )
 
 /* ******************************************************************************
 @description : get collection groups
-               获取几何空间所属的group名，返回已去重的groupName数组
+               获取集合所属的group名，返回已去重的groupName数组
 @author : xiaojun Hu
 @parameter:
    clname: collection name, such as : "foo.bar"
@@ -563,6 +554,29 @@ function commGetCLGroups ( db, clName )
    }
 
    return tmpArray;
+}
+
+/******************************************************************************
+@description : get collection nodes
+               获取集合所在的节点
+@author : luweikang
+@parameter:
+   csName: cs name
+   clName: cl name 
+@return array[] ex:
+   array[0] {"HostName": "XXXX", "svcname": "XXXX"}
+   array[1] {"HostName": "XXXX", "svcname": "XXXX"}
+   ...
+******************************************************************************/
+function commGetCLNodes( db, csName, clName )
+{
+   var clGroups = commGetCLGroups( db, csName + "." + clName );
+   var nodes = [];
+   for( var i = 0; i < clGroups.length; i++ )
+   {
+      nodes = nodes.concat( commGetGroupNodes( db, clGroups[i] ) );
+   }
+   return nodes;
 }
 
 /* *****************************************************************************
