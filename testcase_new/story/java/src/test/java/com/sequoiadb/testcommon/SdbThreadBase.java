@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.transaction.TransUtils;
 
 public abstract class SdbThreadBase implements Runnable {
@@ -100,16 +101,27 @@ public abstract class SdbThreadBase implements Runnable {
     }
 
     public String getTransactionID() throws InterruptedException {
+
         /*
          * if ( thread == null || this.transacationID != null ) { return
          * this.transacationID; }
          */
+
+        final int getTransactionIDTimeOut = 60000;
+        int time = 0;
         while ( this.transacationID == null ) {
             synchronized ( syncRes ) {
-                syncRes.wait( 10 );
+                if ( time < getTransactionIDTimeOut ) {
+                    syncRes.wait( 10 );
+                    time += 10;
+                } else {
+                    throw new BaseException( -999, "get transacationID Error" );
+                }
+
             }
         }
         return transacationID;
+
     }
 
     // 返回结果集
