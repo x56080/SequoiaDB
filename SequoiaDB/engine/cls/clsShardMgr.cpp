@@ -899,7 +899,24 @@ namespace engine
 
    INT32 _clsShardMgr::active ()
    {
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+
+      // only start GTS lowTran job for DATA node
+      // NOTE: CATALOG has cls module as well
+      if ( SDB_ROLE_DATA == pmdGetDBRole() )
+      {
+         EDUID eduID = 0 ;
+
+         rc = rtnStartGTSLowTranJob( _pGTSAgent, &eduID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to start GTS lowTran job, "
+                      "rc: %d", rc ) ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _clsShardMgr::deactive ()
@@ -1021,7 +1038,9 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_SYNCSND, "_clsShardMgr::syncSend" )
    INT32 _clsShardMgr::syncSend( MsgHeader * msg, UINT32 groupID,
                                  BOOLEAN primary, MsgHeader **ppRecvMsg,
-                                 INT64 millisec )
+                                 INT64 millisec,
+                                 const CHAR *buffer,
+                                 UINT32 bufferSize )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_SYNCSND ) ;
       INT32 rc = SDB_OK ;
@@ -1100,14 +1119,42 @@ namespace engine
 
             // send msg, if we can connect to the node but failed to send
             // let's skip and retry
-            rc = tmpSocket.send( (const CHAR *)msg, msg->messageLength,
-                                 sentLen, millisec ) ;
-            if ( rc )
+            if ( NULL != buffer && bufferSize > 0 )
             {
-               PD_LOG( PDWARNING, "Send messge to %s:%d failed, rc:%d",
-                       tmpInfo._host.c_str(), port, rc ) ;
-               tmpInfo._result = rc ;
-               continue ;
+               // send with buffer
+               rc = tmpSocket.send( (const CHAR *)msg,
+                                    msg->messageLength - bufferSize,
+                                    sentLen,
+                                    millisec ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDWARNING, "Send message to %s:%d failed, rc: %d",
+                          tmpInfo._host.c_str(), port, rc ) ;
+                  tmpInfo._result = rc ;
+                  continue ;
+               }
+
+               rc = tmpSocket.send( buffer, bufferSize, sentLen, millisec ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDWARNING, "Send message buffer to %s:%d failed, "
+                          "rc: %d", tmpInfo._host.c_str(), port, rc ) ;
+                  tmpInfo._result = rc ;
+                  continue ;
+               }
+            }
+            else
+            {
+               // send message only
+               rc = tmpSocket.send( (const CHAR *)msg, msg->messageLength,
+                                    sentLen, millisec ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDWARNING, "Send message to %s:%d failed, rc: %d",
+                          tmpInfo._host.c_str(), port, rc ) ;
+                  tmpInfo._result = rc ;
+                  continue ;
+               }
             }
 
             // recieve msg, do not loop and retry

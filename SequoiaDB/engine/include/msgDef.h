@@ -527,6 +527,8 @@
 #define FIELD_NAME_TRANS_AUTOROLLBACK        "TransAutoRollback"
 #define FIELD_NAME_TRANS_RCCOUNT             "TransRCCount"
 #define FIELD_NAME_TRANS_GLOBTRANSON         "GlobTransOn"
+#define FIELD_NAME_TRANS_LOWTRAN             "LowTran"
+#define FIELD_NAME_TRANS_GLOBLOWTRAN         "GlobLowTran"
 #define FIELD_NAME_LAST_GENERATE_ID          "LastGenerateID"
 #define FIELD_NAME_INSERT_NUM                "InsertedNum"
 #define FIELD_NAME_DUPLICATE_NUM             "DuplicatedNum"

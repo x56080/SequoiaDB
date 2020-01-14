@@ -48,6 +48,7 @@
 #include "rtn.hpp"
 #include "coordOmProxy.hpp"
 #include "coordSequenceAgent.hpp"
+#include "coordGTSAgent.hpp"
 #include "../bson/bson.h"
 #include "utilArray.hpp"
 
@@ -91,6 +92,7 @@ namespace engine
       _pOmProxy = NULL ;
       _pOmStrategyAgent = NULL ;
       _pSequenceAgent = NULL ;
+      _pGTSAgent = NULL ;
    }
 
    _coordResource::~_coordResource()
@@ -188,6 +190,15 @@ namespace engine
          goto error ;
       }
 
+      // initialize GTS agent
+      _pGTSAgent = SDB_OSS_NEW coordGTSAgent() ;
+      PD_CHECK( NULL != _pGTSAgent, SDB_OOM, error, PDERROR,
+                "Failed to alloc GTS agent" ) ;
+
+      rc = _pGTSAgent->init( this ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize GTS agent, "
+                   "rc: %d", rc ) ;
+
    done:
       if ( pCataGroup )
       {
@@ -225,6 +236,31 @@ namespace engine
          SDB_OSS_DEL _pSequenceAgent ;
          _pSequenceAgent = NULL ;
       }
+
+      if ( _pGTSAgent )
+      {
+         _pGTSAgent->fini() ;
+         SDB_OSS_DEL _pGTSAgent ;
+         _pGTSAgent = NULL ;
+      }
+   }
+
+   INT32 _coordResource::active()
+   {
+      INT32 rc = SDB_OK ;
+
+      EDUID eduID = 0 ;
+
+      // start GTS lowTran job
+      rc = rtnStartGTSLowTranJob( _pGTSAgent, &eduID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to start GTS lowTran job, rc: %d",
+                   rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    _netRouteAgent* _coordResource::getRouteAgent()

@@ -867,8 +867,8 @@ namespace engine
          else
          {
             const dmsRecord *pRecord= pRecordRW->readPtr( 0 ) ;
-#ifdef _DEBUG
             DPS_LSN_OFFSET lsn = pRecord->getLSNOffset() ;
+#ifdef _DEBUG
             // TODO: for record from V0, we do not have LSN on page header.
             // and we haven't done inflight migration yet. 
             // we must either force export/import all the records during

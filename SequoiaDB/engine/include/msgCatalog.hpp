@@ -246,6 +246,19 @@ namespace engine
    typedef MsgOpQuery MsgCatQueryTaskReq ;
    typedef MsgOpReply MsgCatQueryTaskRes ;
 
+   /*
+      _MsgGTSLowTranReq define
+    */
+   // | header | BSON { LowTran : ... } |
+   typedef MsgHeader MsgGTSLowTranReq ;
+
+   /*
+      _MsgGTSLowTranRsp
+    */
+   // | reply | BSON { GlobLowTran : ... } |
+   // TODO: append arbiter groups for transaction visibility
+   typedef MsgOpReply MsgGTSLowTranRsp ;
+
 }
 #pragma pack()
 

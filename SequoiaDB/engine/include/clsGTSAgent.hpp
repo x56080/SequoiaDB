@@ -44,6 +44,7 @@
 #include "ossMemPool.hpp"
 #include "dpsTransDef.hpp"
 #include "sdbInterface.hpp"
+#include "rtnGTSAgent.hpp"
 
 namespace engine
 {
@@ -51,14 +52,19 @@ namespace engine
    /*
       _clsGTSAgent define
    */
-   class _clsGTSAgent : public SDBObject, public _dpsTransEvent
+   class _clsGTSAgent : public SDBObject,
+                        public _dpsTransEvent,
+                        public rtnGTSAgent
    {
       public:
          _clsGTSAgent( _clsShardMgr *pShardMgr ) ;
-         ~_clsGTSAgent() ;
+         virtual ~_clsGTSAgent() ;
 
       public:
          virtual INT32  onRollbackAll() ;
+
+         // update global lowTran
+         virtual INT32  updateGlobLowTran() ;
 
       public:
 

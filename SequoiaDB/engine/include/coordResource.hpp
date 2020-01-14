@@ -52,6 +52,7 @@ namespace engine
    class _netRouteAgent ;
    class _IOmProxy ;
    class _coordSequenceAgent ;
+   class _coordGTSAgent ;
 
    /*
       _coordResource define
@@ -88,6 +89,8 @@ namespace engine
          INT32       init( _netRouteAgent *pAgent,
                            pmdOptionsCB *pOptionsCB ) ;
          void        fini() ;
+
+         INT32       active() ;
 
          void        invalidateCataInfo() ;
          void        invalidateGroupInfo( UINT64 identify = 0 ) ;
@@ -281,6 +284,7 @@ namespace engine
          _coordOmStrategyAgent            *_pOmStrategyAgent ;
 
          _coordSequenceAgent              *_pSequenceAgent ;
+         _coordGTSAgent                   *_pGTSAgent ;
    } ;
    typedef _coordResource coordResource ;
 

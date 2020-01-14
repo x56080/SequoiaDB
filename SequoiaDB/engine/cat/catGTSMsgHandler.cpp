@@ -275,6 +275,9 @@ namespace engine
       case MSG_GTS_SEQUENCE_ALTER_REQ:
          rc = _processSequenceAlterMsg( msg, eduCB ) ;
          break ;
+      case MSG_GTS_LOWTRAN_REQ :
+         rc = _processLowTranReq( msg, buf, eduCB ) ;
+         break ;
       default:
          rc = SDB_UNKNOWN_MESSAGE ;
          PD_LOG( PDERROR, "Receive unknown msg[opCode:(%d)%d, len: %d, "
@@ -685,5 +688,99 @@ namespace engine
    error:
       goto done ;
    }
-}
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER__PROCESSLOWTRANREQ, "_catGTSMsgHandler::_processLowTranReq" )
+   INT32 _catGTSMsgHandler::_processLowTranReq( MsgHeader *message,
+                                                rtnContextBuf &replyBuffer,
+                                                pmdEDUCB *eduCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_GTS_MSG_HANDLER__PROCESSLOWTRANREQ ) ;
+
+      MsgGTSLowTranReq *request = NULL ;
+      catGlobTransManager *globTransMgr = _gtsMgr->getGlobTransMgr() ;
+      MsgRouteID routeID ;
+      DPS_TRANSID_SN nodeLowTran = DPS_INVALID_TRANSID_SN ;
+      DPS_TRANSID_SN globLowTran = DPS_INVALID_TRANSID_SN ;
+      BSONObj requestObject, responseObject ;
+
+      SDB_ASSERT( NULL != message, "message is invalid" ) ;
+      SDB_ASSERT( MSG_GTS_LOWTRAN_REQ == message->opCode,
+                  "should be lowTran request" ) ;
+
+      // check primary
+      // NOTE: we don't write data, so no need to check read-only
+      rc = primaryCheck() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check primary, service deactive "
+                   "but received GTS request, rc: %d", rc ) ;
+
+      // convert to lowTran request
+      request = (MsgGTSLowTranReq *)message ;
+      PD_CHECK( request->messageLength >
+                         (INT32)( sizeof( MsgGTSLowTranReq ) ) +
+                         requestObject.objsize(),
+                SDB_SYS, error, PDERROR,
+                "Failed to extract lowTran request, "
+                "message length [%d] is unexpected",
+                request->messageLength ) ;
+
+      // extract route ID from message
+      // NOTE: we use local service for node lowTran
+      routeID.value = message->routeID.value ;
+      routeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
+
+      // parse node lowTran
+      try
+      {
+         requestObject = BSONObj( (CHAR *)request +
+                                  sizeof( MsgGTSLowTranReq ) ) ;
+         BSONElement element =
+                        requestObject.getField( FIELD_NAME_TRANS_LOWTRAN ) ;
+         PD_CHECK( EOO != element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should not be empty",
+                   FIELD_NAME_TRANS_LOWTRAN ) ;
+         PD_CHECK( NumberLong == element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should be long type",
+                   FIELD_NAME_TRANS_LOWTRAN ) ;
+         nodeLowTran = (DPS_TRANSID_SN)( element.numberLong() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse request object, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      // update global lowTran
+      rc = globTransMgr->updateGlobLowTran( routeID,
+                                            nodeLowTran,
+                                            globLowTran ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update global lowTran, "
+                   "rc: %d", rc ) ;
+
+      try
+      {
+         responseObject = BSON( FIELD_NAME_TRANS_GLOBLOWTRAN <<
+                                (INT64)globLowTran ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build reply, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      replyBuffer = rtnContextBuf( responseObject ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_GTS_MSG_HANDLER__PROCESSLOWTRANREQ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+}

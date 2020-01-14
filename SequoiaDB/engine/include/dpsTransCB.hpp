@@ -333,20 +333,49 @@ namespace engine
 
       // get transaction ID of the earliest running transaction ID ( lowTran )
       // of whole cluster
-      // input:
-      //    - updateCache: whether to update cache of lowTran
       // return:
       //    - transaction ID of lowTran of whole cluster
+      // NOTE: this call gets global lowTran in cache ( won't update with
+      //       CATALOG
+      DPS_TRANS_ID getGlobLowTran() ;
+
+      // update global lowTran to CATALOG, and get back latest global lowTran
+      // input:
+      //    - timeout: timeout to get response from CATALOG
+      // output:
+      //    - globLowTran: global lowTran from CATALOG
+      // return:
+      //    - SDB_OK: succeed to get global lowTran
+      //    - SDB_TIMEOUT: failed to get global lowTran in timeout
       // NOTE: if not update cache, it will be a slightly older lowTran
       //       if update cache, it will query from remote to get the earliest
       //       lowTran among all nodes in the cluster
-      DPS_TRANS_ID getGlobLowTran( BOOLEAN updateCache ) ;
+      INT32 syncUpdateGlobLowTran( DPS_TRANS_ID &globLowTran,
+                                   INT64 timeout = -1 ) ;
+
+      // set transaction ID of the global earliest running transaction ID
+      // ( global lowTran )
+      // input :
+      //    - globLowTran: global low transaction ID
+      // NOTE:
+      // - the lowTran will be updated in monotonic
+      // - it is atomic, so no need to acquire locks
+      void setGlobLowTran( const DPS_TRANSID_SN &globLowTran ) ;
 
       // get transaction ID of the earliest running global transaction ID
       // ( lowTran ) in this node
       // return:
       //    - transaction ID of lowTran of this node
-      DPS_TRANS_ID getNodeLowTran() ;
+      DPS_TRANS_ID getLocalLowTran() ;
+
+      // get expired lowTran
+      // return:
+      //    - lowTran which is safely expired
+      //    - DPS_INVALID_TRANSID_SN for invalid value
+      // NOTE: expired transaction SN is calculated from global lowTran minus
+      //       a max time error ( which is a safe value for clear expired
+      //       transaction objects, old version, etc )
+      DPS_TRANSID_SN getExpiredLowTran() ;
 
       // get logical time from STP
       // output:
@@ -411,6 +440,16 @@ namespace engine
       // check primary active time
       // it not set, try to set primary active time
       void checkPrimaryActiveTime() ;
+
+      OSS_INLINE ossEvent *getUpdateLowTranEvent()
+      {
+         return &( _updateLowTranEvent ) ;
+      }
+
+      OSS_INLINE ossEvent *getWaitLowTranEvent()
+      {
+         return &( _waitLowTranEvent ) ;
+      }
 
       // Check if EDU hold certain lock and return the holding mode
       BOOLEAN isHolding( _pmdEDUCB *eduCB,
@@ -675,10 +714,10 @@ namespace engine
       DPS_TRANSID_NODEID _TransIDH16 ;
       ossAtomic64       _TransIDL48Cur ;
 
-      monSpinXLatch     _MapMutex ;
+      monSpinSLatch     _MapMutex ;
       TRANS_MAP         _TransMap ;
 
-      monSpinXLatch     _CBMapMutex ;
+      monSpinSLatch     _CBMapMutex ;
       TRANS_CB_MAP      _cbMap ;
 
       BOOLEAN           _isOn ;
@@ -690,7 +729,7 @@ namespace engine
       TRANS_LSN_ID_MAP  _beginLsnIdMap ;
       TRANS_ID_LSN_MAP  _idBeginLsnMap ;
 
-      monSpinXLatch     _hisMutex ;
+      monSpinSLatch     _hisMutex ;
       TRANS_ID_2_STATUS _hisTransStatus ;
       TRANS_LSN_ID_MAP  _hisLsnTrans ;
 
@@ -729,6 +768,21 @@ namespace engine
       // minimum logical time to accept global transactions
       // NOTE: set to logical time of this node to become primary
       ossAtomic64          _primaryActiveTime ;
+
+      // global lowTran ( only save timestamp SN and global tag )
+      ossAtomic64          _globLowTran ;
+
+      // archived lowTran from cb map
+      // NOTE:
+      // - cb map might be cleared, so keep an archived value for lowTran
+      // - archived lowTran is the largest finished transaction ID
+      // - if cb map is empty, archived lowTran will be the local lowTran
+      ossAtomic64          _archivedLowTran ;
+
+      // update event to notify lowTran job to update global lowTran
+      ossEvent             _updateLowTranEvent ;
+      // wait event to wait lowTran to finish global lowTran update
+      ossEvent             _waitLowTranEvent ;
    } ;
 
    /*

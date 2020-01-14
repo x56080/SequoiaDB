@@ -290,6 +290,7 @@ enum MSG_TYPE
    MSG_CAT_DC_END                      = 3399,
 
    MSG_GTS_BEGIN                       = 3400,
+   // sequence support
    MSG_GTS_SEQUENCE_ACQUIRE_REQ        = 3401,
    MSG_GTS_SEQUENCE_ACQUIRE_RSP        = MAKE_REPLY_TYPE(MSG_GTS_SEQUENCE_ACQUIRE_REQ),
    MSG_GTS_SEQUENCE_CREATE_REQ         = 3402,
@@ -298,6 +299,9 @@ enum MSG_TYPE
    MSG_GTS_SEQUENCE_DROP_RSP           = MAKE_REPLY_TYPE(MSG_GTS_SEQUENCE_DROP_REQ),
    MSG_GTS_SEQUENCE_ALTER_REQ          = 3404,
    MSG_GTS_SEQUENCE_ALTER_RSP          = MAKE_REPLY_TYPE(MSG_GTS_SEQUENCE_ALTER_REQ),
+   // global transaction support
+   MSG_GTS_LOWTRAN_REQ                 = 3405,
+   MSG_GTS_LOWTRAN_RSP                 = MAKE_REPLY_TYPE( MSG_GTS_LOWTRAN_REQ ),
    MSG_GTS_END                         = 3499,
 
    MSG_CAT_END                         = 3999,
