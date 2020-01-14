@@ -1,12 +1,14 @@
 package com.sequoias3.region;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
-@JacksonXmlRootElement(localName = "RegionConfiguration") public class Region {
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
+
+@JacksonXmlRootElement(localName = "RegionConfiguration")
+public class Region {
     public static final String REGION_NAME = "Name";
     public static final String REGION_CREATERTIME = "CreateTime";
     public static final String DATA_CS_SHARDINGTYPE = "DataCSShardingType";
@@ -18,35 +20,43 @@ import org.bson.BasicBSONObject;
     public static final String DATA_LOCATION = "DataLocation";
     public static final String META_LOCATION = "MetaLocation";
     public static final String META_HIS_LOCATION = "MetaHisLocation";
+    public static final String DATA_CS_RANGE = "DataCSRange";
 
-    // public static final String DATA_CS_LOCATION = "DataCSLocation";
-    // public static final String DATA_CL_LOCATION = "DataCLLocation";
-    // public static final String META_CS_LOCATION = "MetaCSLocation";
-    // public static final String META_CL_LOCATION = "MetaCLLocation";
-    // public static final String META_HIS_CS_LOCATION = "MetaHisCSLocation";
-    // public static final String META_HIS_CL_LOCATION = "MetaHisCLLocation";
+    @JsonProperty(REGION_NAME)
+    private String name;
 
-    @JsonProperty(REGION_NAME) private String name;
+    @JsonIgnore
+    private long createTime;
 
-    @JsonIgnore private long createTime;
+    @JsonProperty(DATA_CS_SHARDINGTYPE)
+    private String dataCSShardingType;
 
-    @JsonProperty(DATA_CS_SHARDINGTYPE) private String dataCSShardingType;
+    @JsonProperty(DATA_CL_SHARDINGTYPE)
+    private String dataCLShardingType;
 
-    @JsonProperty(DATA_CL_SHARDINGTYPE) private String dataCLShardingType;
+    @JsonProperty(DATA_DOMAIN)
+    private String dataDomain;
 
-    @JsonProperty(DATA_DOMAIN) private String dataDomain;
+    @JsonProperty(DATA_LOBPAGESIZE)
+    private String dataLobPageSize;
 
-    @JsonProperty(DATA_LOBPAGESIZE) private String dataLobPageSize;
+    @JsonProperty(DATA_REPLSIZE)
+    private String dataReplSize;
 
-    @JsonProperty(DATA_REPLSIZE) private String dataReplSize;
+    @JsonProperty(META_DOMAIN)
+    private String metaDomain;
 
-    @JsonProperty(META_DOMAIN) private String metaDomain;
+    @JsonProperty(DATA_LOCATION)
+    private String dataLocation;
 
-    @JsonProperty(DATA_LOCATION) private String dataLocation;
+    @JsonProperty(META_LOCATION)
+    private String metaLocation;
 
-    @JsonProperty(META_LOCATION) private String metaLocation;
+    @JsonProperty(META_HIS_LOCATION)
+    private String metaHisLocation;
 
-    @JsonProperty(META_HIS_LOCATION) private String metaHisLocation;
+    @JsonProperty(DATA_CS_RANGE)
+    private Integer dataCSRange;
 
     public Region() {
     }
@@ -63,6 +73,7 @@ import org.bson.BasicBSONObject;
         this.dataLocation = region.getDataLocation();
         this.metaLocation = region.getMetaLocation();
         this.metaHisLocation = region.getMetaHisLocation();
+        this.dataCSRange = region.getDataCSRange();
     }
 
     public Region withName( String name ) {
@@ -163,6 +174,14 @@ import org.bson.BasicBSONObject;
         return metaHisLocation;
     }
 
+    public Integer getDataCSRange() {
+        return dataCSRange;
+    }
+
+    public void withDataCSRange( Integer dataCSRange ) {
+        this.dataCSRange = dataCSRange;
+    }
+
     public BSONObject toBson() {
         BSONObject newRegion = new BasicBSONObject();
         newRegion.put( Region.REGION_NAME, this.name );
@@ -176,26 +195,28 @@ import org.bson.BasicBSONObject;
         newRegion.put( Region.DATA_LOCATION, this.dataLocation );
         newRegion.put( Region.META_LOCATION, this.metaLocation );
         newRegion.put( Region.META_HIS_LOCATION, this.metaHisLocation );
+        newRegion.put( Region.DATA_CS_RANGE, this.dataCSRange );
         return newRegion;
     }
 
     public String toString() {
         StringBuffer buffer = new StringBuffer();
         buffer.append( "[" + Region.REGION_NAME + "=" + this.name );
-        buffer.append( "," + Region.DATA_CS_SHARDINGTYPE + "="
-                + this.dataCSShardingType );
-        buffer.append( "," + Region.DATA_CL_SHARDINGTYPE + "="
-                + this.dataCLShardingType );
+        buffer.append( "," + Region.DATA_CS_SHARDINGTYPE + "=" +
+                this.dataCSShardingType );
+        buffer.append( "," + Region.DATA_CL_SHARDINGTYPE + "=" +
+                this.dataCLShardingType );
         buffer.append( "," + Region.DATA_DOMAIN + "=" + this.dataDomain );
         buffer.append(
                 "," + Region.DATA_LOBPAGESIZE + "=" + this.dataLobPageSize );
         buffer.append( "," + Region.DATA_REPLSIZE + "=" + this.dataReplSize );
         buffer.append( "," + Region.META_DOMAIN + "=" + this.metaDomain );
         buffer.append( "," + Region.DATA_LOCATION + "=" + this.dataLocation );
+        buffer.append( "," + Region.DATA_CS_RANGE + "=" + this.dataCSRange );
         buffer.append( "," + Region.META_LOCATION + "=" + this.metaLocation );
         buffer.append(
-                "," + Region.META_HIS_LOCATION + "=" + this.metaHisLocation
-                        + "]" );
+                "," + Region.META_HIS_LOCATION + "=" + this.metaHisLocation +
+                        "]" );
         return buffer.toString();
     }
 }

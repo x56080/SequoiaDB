@@ -1,8 +1,10 @@
 package com.sequoias3.testcommon;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.services.s3.model.CreateBucketRequest;
+import java.io.File;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.AfterTest;
@@ -11,10 +13,9 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Optional;
 import org.testng.annotations.Parameters;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.Bucket;
+import com.amazonaws.services.s3.model.CreateBucketRequest;
 
 public class S3TestBase {
     public static final String PARTLISTINUSEOFF = "partlistinuseoff";
@@ -22,11 +23,13 @@ public class S3TestBase {
     public static final String CONTEXTLIFECYCLECONF = "contextlifecycleconf";
     public static final String AUTHORIZATIONOFF = "authorizationoff";
     public static final String ALLOWREPUTON = "allowreputon";
+    public static final String DATACSRANGE = "datacsrange";
     private static final String PARTLISTINUSE = "sdbs3.multipartupload.partlistinuse";
     private static final String PARTSIZELIMIT = "sdbs3.multipartupload.partsizelimit";
     private static final String CONTEXTLIFECYCLE = "sdbs3.context.lifecycle";
     private static final String AUTHORIZATION = "sdbs3.authorization.check";
     private static final String ALLOWREPUT = "sdbs3.bucket.allowreput";
+    private static final String CSRANGE = "sdbs3.sequoiadb.data.csRange";
     private static final Map<String, Map<String, String>> group2Conf = new HashMap<String, Map<String, String>>();
     protected static String coordUrl;
     protected static String hostName;
@@ -73,6 +76,10 @@ public class S3TestBase {
         Map<String, String> allowReputMap = new HashMap<>();
         allowReputMap.put( ALLOWREPUT, "true" );
         group2Conf.put( ALLOWREPUTON, allowReputMap );
+
+        Map<String,String> csRangeMap = new HashMap<>();
+        csRangeMap.put(CSRANGE,"10");
+        group2Conf.put( DATACSRANGE, csRangeMap );
     }
 
     public static synchronized void setRunGroup( List<String> testGroups ) {

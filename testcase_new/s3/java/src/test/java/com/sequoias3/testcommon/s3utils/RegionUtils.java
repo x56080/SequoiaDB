@@ -1,16 +1,10 @@
 package com.sequoias3.testcommon.s3utils;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.util.DateUtils;
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoias3.region.GetRegionResult;
-import com.sequoias3.region.Region;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.TestRest;
-import com.sequoias3.user.UserCommDefind;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -24,10 +18,17 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.testng.Assert;
 import org.testng.SkipException;
 
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.Bucket;
+import com.amazonaws.util.DateUtils;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoias3.region.GetRegionResult;
+import com.sequoias3.region.Region;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.TestRest;
+import com.sequoias3.user.UserCommDefind;
 
 public class RegionUtils extends S3TestBase {
     private static MediaType type = MediaType
@@ -43,11 +44,10 @@ public class RegionUtils extends S3TestBase {
     public static void putRegion( Region region, String accessKeyId )
             throws Exception {
         TestRest rest = new TestRest( type );
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         try {
-            resp = rest.setApi(
-                    "/region/?Action=CreateRegion&RegionName=" + region
-                            .getName() )
+            resp = rest.setApi( "/region/?Action=CreateRegion&RegionName=" +
+                    region.getName() )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + accessKeyId + "/" )
                     .setRequestBody( region )
@@ -76,7 +76,7 @@ public class RegionUtils extends S3TestBase {
     public static boolean deleteRegion( String regionName, String accessKeyId )
             throws Exception {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         boolean isDelete = false;
         try {
             resp = rest.setApi(
@@ -102,7 +102,7 @@ public class RegionUtils extends S3TestBase {
     public static GetRegionResult getRegion( String regionName,
             String accessKeyId ) throws Exception {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         GetRegionResult result;
         try {
             resp = rest.setApi(
@@ -126,7 +126,7 @@ public class RegionUtils extends S3TestBase {
     public static boolean headRegion( String regionName, String accessKeyId )
             throws Exception {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         boolean doesExist = false;
         try {
             resp = rest.setApi(
@@ -146,15 +146,15 @@ public class RegionUtils extends S3TestBase {
         return doesExist;
     }
 
-    public static List<String> listRegions() throws Exception {
+    public static List< String > listRegions() throws Exception {
         return listRegions( S3TestBase.s3AccessKeyId );
     }
 
-    public static List<String> listRegions( String accessKeyId )
+    public static List< String > listRegions( String accessKeyId )
             throws Exception {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
-        List<String> listResult;
+        ResponseEntity< ? > resp;
+        List< String > listResult;
         try {
             resp = rest.setApi( "/region/?Action=ListRegions" )
                     .setRequestHeaders( UserCommDefind.authorization,
@@ -201,8 +201,9 @@ public class RegionUtils extends S3TestBase {
         region.withMetaLocation( subjsonBody.getString( "MetaLocation" ) );
         region.withMetaHisLocation(
                 subjsonBody.getString( "MetaHisLocation" ) );
+        region.withDataCSRange( subjsonBody.getInt( "DataCSRange" ) );
         GetRegionResult result = new GetRegionResult( region );
-        List<Bucket> buckets = new ArrayList<>();
+        List< Bucket > buckets = new ArrayList<>();
         Object objects = subjsonBody.get( "Buckets" );
         if ( objects instanceof JSONObject ) {
             JSONObject jsonObject = ( JSONObject ) objects;
@@ -274,8 +275,8 @@ public class RegionUtils extends S3TestBase {
 
     public static String getDataCSName( String regionName, String shardType,
             Date currTime ) {
-        return pregix + regionName + "_DataCS_" + getCsClPostfix( shardType,
-                currTime );
+        return pregix + regionName + "_DataCS_" +
+                getCsClPostfix( shardType, currTime );
     }
 
     public static String getMetaCSName( String regionName ) {
@@ -337,7 +338,7 @@ public class RegionUtils extends S3TestBase {
         try {
             sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" );
             if ( !sdb.isDomainExist( domainName ) ) {
-                List<String> groupList = sdb.getReplicaGroupNames();
+                List< String > groupList = sdb.getReplicaGroupNames();
                 groupList.remove( "SYSCatalogGroup" );
                 groupList.remove( "SYSCoord" );
                 groupList.remove( "SYSSpare" );
@@ -345,16 +346,14 @@ public class RegionUtils extends S3TestBase {
                 BSONObject groups = new BasicBSONList();
                 if ( groupList.size() < 1 ) {
                     throw new SkipException(
-                            "At least one group is required!!! please check env" );
+                            "At least one group is required!!! please check " +
+                                    "env" );
                 }
                 for ( int i = 0; i < groupList.size(); i++ ) {
                     groups.put( String.valueOf( i ), groupList.get( i ) );
                 }
                 option.put( "Groups", groups );
                 sdb.createDomain( domainName, option );
-                if ( !sdb.isDomainExist( domainName ) ) {
-                    sdb.createDomain( domainName, option );
-                }
             }
         } finally {
             if ( null != sdb ) {
@@ -377,6 +376,30 @@ public class RegionUtils extends S3TestBase {
                 sdb.dropCollectionSpace( csName );
             }
         }
+    }
+
+    public static List< String > listCS( String prefix ) {
+        List< String > list = new ArrayList<>();
+        Sequoiadb sdb = null;
+        DBCursor cursor = null;
+        try {
+            sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" );
+            cursor = sdb.listCollectionSpaces();
+            while ( cursor.hasNext() ) {
+                BasicBSONObject bson = ( BasicBSONObject ) cursor.getNext();
+                if ( bson.getString( "Name" ).startsWith( prefix ) ) {
+                    list.add( bson.getString( "Name" ) );
+                }
+            }
+        } finally {
+            if ( cursor != null ) {
+                cursor.close();
+            }
+            if ( sdb != null ) {
+                sdb.close();
+            }
+        }
+        return list;
     }
 
     public static int getRecordNum( String csName, String clName ) {
