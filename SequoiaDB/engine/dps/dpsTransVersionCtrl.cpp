@@ -181,7 +181,7 @@ namespace engine
    preIdxTree::preIdxTree( const SINT32 idxID, const ixmIndexCB *indexCB )
    {
       _isValid = TRUE ;
-      _lastGCTime = DPS_INVALID_TRANSID_SN ;
+      _lastLowTranID = DPS_INVALID_TRANSID_SN ;
       _idxLID = idxID ;
       _keyPattern = indexCB->keyPattern().getOwned() ;
       _order = SDB_OSS_NEW clsCataOrder( Ordering::make( _keyPattern ) ) ;
@@ -192,7 +192,7 @@ namespace engine
    {
       _idxLID = intree._idxLID ;
       _keyPattern = intree._keyPattern ;
-      _lastGCTime = intree._lastGCTime ;
+      _lastLowTranID = intree._lastLowTranID ;
       _tree = intree._tree ;
       _isValid = intree._isValid ;
       _order = SDB_OSS_NEW clsCataOrder( Ordering::make( _keyPattern ) ) ;
@@ -909,19 +909,22 @@ namespace engine
    }
 
    // run garbage collection on a tree, erase all nodes older than lowtran
-   void preIdxTree::gc( DPS_TRANSID_SN lowTran )
+   DPS_TRANSID_SN preIdxTree::gc( DPS_TRANSID_SN lowTran )
    {
       INDEX_TREE_POS pos ;
+
+      // Lowest transID in the tree
+      DPS_TRANSID_SN idxTreeLowTran = DPS_MAX_TRANSID_SN ;
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
                "gc memixtree(%d) to lowTran %llu), lastGCtime(%llu)",
                _idxLID, lowTran, _lastGCTime );
 #endif
 
-      lockX(); 
+      lockX();
 
       // Only gc if lowtran moved up
-      if ( lowTran > _lastGCTime )
+      if ( lowTran > _lastLowTranID )
       {
          pos = _tree.begin() ;
 
@@ -936,20 +939,42 @@ namespace engine
                INDEX_TREE_POS temp = pos ;
 #ifdef _DEBUG
                PD_LOG ( PDDEBUG, "Remove node(%s) from ixtree(%d),lowTran(%llu)",
-                        pos->first.toString().c_str(), _idxLID, 
+                        pos->first.toString().c_str(), _idxLID,
                         lowTran );
-#endif   
+#endif
                pos++ ;
                _tree.erase(temp) ;
             }
             else
             {
+               // Node's transID is greater than lowTran, now lets compute
+               // the lowest transID above lowTran for this tree
+               if ( idxTreeLowTran >
+                    pos->first.getNodeTransID().getGlobSN() )
+               {
+                  idxTreeLowTran = pos->first.getNodeTransID().getGlobSN() ;
+               }
+
                pos++ ;
             }
          }
-         _lastGCTime = lowTran ;
+
+         // All the nodes are older than lowTran
+         if ( idxTreeLowTran == DPS_MAX_TRANSID_SN )
+         {
+            idxTreeLowTran = lowTran ;
+         }
+         _lastLowTranID = idxTreeLowTran ;
       }
+
+      if ( idxTreeLowTran == DPS_MAX_TRANSID_SN )
+      {
+         idxTreeLowTran = _lastLowTranID ;
+      }
+
       unlockX() ;
+
+      return idxTreeLowTran ;
    }
 
    void preIdxTree::printTree( BOOLEAN detailed ) const
@@ -966,7 +991,7 @@ namespace engine
          {
             ss << "==> Index tree[Key: " << _keyPattern.toString()
                << ", LID:" << _idxLID
-               << ", lastGCTime:" << _lastGCTime
+               << ", lastLowTranID:" << _lastLowTranID
                << ", Size:" << _tree.size()
                << " nodes:" << std::endl ;
             // only print each node if asked for detailed info
@@ -1257,6 +1282,7 @@ namespace engine
       oldVersionCB implement
    */
    oldVersionCB::oldVersionCB()
+      : _minTransIDSN( DPS_INVALID_TRANSID_SN )
    {
    }
 
@@ -1466,7 +1492,7 @@ namespace engine
       preIdxTreePtr treePtr ;
       IDXID_TO_TREE_MAP_IT it ;
       DPS_TRANSID_SN  expiredLowTran ;
-
+      DPS_TRANSID_SN  minTreeLowTran = DPS_MAX_TRANSID_SN ;
       latchS() ;
 
       it = _idxTrees.begin() ;
@@ -1485,6 +1511,7 @@ namespace engine
          if ( treePtr.get() &&
               DPS_INVALID_TRANSID_SN != expiredLowTran )
          {
+            DPS_TRANSID_SN treeLowTran ;
 #ifdef _DEBUG  // FIXME remove after stable
             PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, lowtran[%llu(0x%llX)]",
                     it->first.toString().c_str(),
@@ -1494,7 +1521,12 @@ namespace engine
             treePtr->printTree( FALSE ) ;
 #endif
             // NOTE: we need global transaction tag with SN
-            treePtr->gc( expiredLowTran ) ;
+            treeLowTran = treePtr->gc( expiredLowTran )
+
+            if ( treeLowTran < minTreeLowTran )
+            {
+               minTreeLowTran = treeLowTran ;
+            }
 #ifdef _DEBUG
             treePtr->printTree( FALSE ) ;
 #endif
@@ -1503,6 +1535,10 @@ namespace engine
          ++it ;
       }
 
+      if ( minTreeLowTran != DPS_MAX_TRANSID_SN )
+      {
+         updateMinLowTranSN( minTreeLowTran ) ;
+      }
       releaseS() ;
    }
 

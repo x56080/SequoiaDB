@@ -40,6 +40,7 @@
 #define DPS_TRANS_ID_HPP_
 
 #include "ossTypes.h"
+#include "ossAtomic.hpp"
 #include "ossUtil.h"
 
 // node ID of transaction ID
@@ -48,6 +49,8 @@ typedef UINT16 DPS_TRANSID_NODEID ;
 // serial number of transaction ID
 typedef UINT64 DPS_TRANSID_SN ;
 
+typedef ossAtomic64 DPS_TRANSID_SN_ATOMIC ;
+
 // invalid node ID component of transaction ID
 #define DPS_INVALID_TRANSID_NODEID  ( 0 )
 // invalid serial number component of transaction ID
@@ -55,6 +58,7 @@ typedef UINT64 DPS_TRANSID_SN ;
 // max serial number component of transaction ID
 #define DPS_MAX_TRANSID_SN          ( 0xFFFFFFFFFFFFFFFFLL )
 
+#define DPS_MAX_TRANSID_SN      ( OSS_UINT64_MAX )
 /*
    tags in transaction ID
  */

@@ -42,6 +42,7 @@
 
 #include "ossTypes.h"
 #include "dpsTransID.hpp"
+#include "ossAtomic.hpp"
 
 #if defined (_WINDOWS)
 #define DPS_INVALID_LSN_OFFSET   0xFFFFFFFFFFFFFFFFLL

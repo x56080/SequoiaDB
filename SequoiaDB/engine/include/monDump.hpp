@@ -116,6 +116,8 @@ namespace engine
 
    INT32 monDBDumpLogInfo( BSONObjBuilder &ob );
 
+   INT32 monDBDumpRBSInfo( BSONObjBuilder &ob );
+
    INT32 monDumpLastOpInfo( BSONObjBuilder &ob, const monAppCB &moncb ) ;
 
    void  monDumpSvcTaskInfo( BSONObjBuilder &ob,

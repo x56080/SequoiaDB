@@ -61,7 +61,8 @@ namespace fs = boost::filesystem ;
 namespace engine
 {
 
-   _dmsRBSSUMgr::_dmsRBSSUMgr ( SDB_DMSCB *dmsCB ) : _dmsSysSUMgr( dmsCB )
+   _dmsRBSSUMgr::_dmsRBSSUMgr ( SDB_DMSCB *dmsCB )
+      : _dmsSysSUMgr( dmsCB ), _numActiveGC( 0 )
    {
       DMS_BUILD_RBS_CL_NAME( _metaCLName, DMS_META_RBS_CL ) ;
 
@@ -1787,6 +1788,7 @@ namespace engine
 
    _dmsRBSGCJob::~_dmsRBSGCJob()
    {
+      _rbsSUMgr->decActiveGC() ;
    }
 
    const CHAR* _dmsRBSGCJob::name() const
@@ -1798,6 +1800,7 @@ namespace engine
                              UTIL_LJOB_DO_RESULT &result,
                              UINT64 &sleepTime )
    {
+      _rbsSUMgr->incActiveGC() ;
       _rbsSUMgr->gcRBS() ;
       result = UTIL_LJOB_DO_FINISH ;
       return SDB_OK ;
