@@ -86,7 +86,7 @@ namespace engine
          _clID = DMS_INVALID_CLID ;
          _logicalID = -1 ;
       }
- 
+
       BOOLEAN  operator==(const dmsRBSOffset &rhs) const
       {
          return ((_clID == rhs._clID) && (_logicalID == rhs._logicalID) ) ;
@@ -103,7 +103,7 @@ namespace engine
       {
          BOOLEAN rv = TRUE ;
          if ( _clID == DMS_INVALID_CLID || _logicalID == -1 )
-         { 
+         {
             rv = FALSE ;
          }
          return rv ;
@@ -182,11 +182,13 @@ namespace engine
       // The max size of each collection
       UINT32  _maxCollectionSize ;
 
+      // Number of active GC thread
+      ossAtomic32  _numActiveGC ;
+
       CHAR _metaCLName[30] ;
 
       // The hash bucket to point to the head of the record. 
       _dmsRBSHashBkt    _rbsRecordBkt ;
- 
    public :
       _dmsRBSSUMgr ( _SDB_DMSCB *dmsCB ) ;
 
@@ -224,10 +226,14 @@ namespace engine
                          dmsRecordData    &record ) ; 
       void gcRBS ( ) ;
 
+      void incActiveGC() { _numActiveGC.inc() ; }
+      void decActiveGC() { _numActiveGC.dec() ; }
+      UINT32 getNumActiveGC() { return _numActiveGC.fetch() ; }
+
    private:
 
-      SINT32 _getMeta ( UINT16 &curCL, 
-                        UINT16 &lastFreeCL, 
+      SINT32 _getMeta ( UINT16 &curCL,
+                        UINT16 &lastFreeCL,
                         dmsMBContext *context  ) ;
 
       SINT32 _initRBSCS( pmdEDUCB *eduCB, SDB_DPSCB * dpsCB ) ;
@@ -238,7 +244,7 @@ namespace engine
       SINT32 _rebuildHashBktFromCL( dmsMBContext *context ) ;
 
       // insert the meta record during create
-      SINT32 _insertMeta ( UINT16 curCL, 
+      SINT32 _insertMeta ( UINT16 curCL,
                            UINT16 lastFreeCL,
                            dmsMBContext *context,
                            SDB_DPSCB * dpsCB ) ;
@@ -305,7 +311,7 @@ namespace engine
       // bitwise multiplication x << 5 + x it equivalent to x * 33,
       // where the magic 5 comes. However, there is no adequate
       // explaination on why 33 is choosed as multiplier
-      return ( ossHash( (CHAR*)&( b ), (sizeof( b )), 5 ) ) % 
+      return ( ossHash( (CHAR*)&( b ), (sizeof( b )), 5 ) ) %
                DMS_RBS_HASH_BKT_SLOTS ;
    }
 

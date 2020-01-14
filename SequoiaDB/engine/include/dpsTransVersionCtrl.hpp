@@ -44,6 +44,7 @@
 #include "ixm.hpp"
 #include "ossLatch.hpp"
 #include "dmsRecord.hpp"
+#include "dpsTransID.hpp"
 #include "utilPooledObject.hpp"
 #include "utilPooledAutoPtr.hpp"
 #include "clsCatalogAgent.hpp"
@@ -489,7 +490,7 @@ namespace engine
                         BOOLEAN                  hasLock = FALSE ) ;
 
       void  clear( BOOLEAN hasLock = FALSE ) ;
-      void  gc( DPS_TRANSID_SN lowTran ) ;
+      DPS_TRANSID_SN gc( DPS_TRANSID_SN lowTran ) ;
 
       BSONObj     _buildPredObj( const BSONObj &prevKey,
                                  INT32 keepFieldsNum,
@@ -502,7 +503,7 @@ namespace engine
    private:
       BOOLEAN              _isValid ;
       SINT32               _idxLID ; // index logic id
-      DPS_TRANSID_SN       _lastGCTime ; // The lowTran used for last gc
+      DPS_TRANSID_SN       _lastLowTranID ; // The lowTran in the tree from last GC
       // Latching protocal
       // 1. preIdxTree latch must be held in X to insert/delete node in the tree
       //    oldVersionCB(_oldVersionCBLatch) need to be held in S before
@@ -747,6 +748,15 @@ namespace engine
       void              clearOldVersionUnitByCS( UINT32 csID,
                                                  BOOLEAN hasLock = FALSE ) ;
 
+      void              updateMinLowTranSN( DPS_TRANSID_SN lowTran )
+      {
+         _minTransIDSN.swapGreaterThan( lowTran ) ;
+      }
+
+      DPS_TRANSID_SN      getMinLowTranSN( )
+      {
+         return _minTransIDSN.fetch() ;
+      }
    // private attributes
    private:
       // latch to protect the fields. Should hold it in X to initialize and 
@@ -755,6 +765,7 @@ namespace engine
       IDXID_TO_TREE_MAP   _idxTrees ;     // in memory trees holding older 
                                           // version of indexes
       MAP_OLDVERION_UNIT  _mapOldVersionUnit ;
+      DPS_TRANSID_SN_ATOMIC _minTransIDSN ;   // The smallest transID among all trees
    } ;
 
    /*

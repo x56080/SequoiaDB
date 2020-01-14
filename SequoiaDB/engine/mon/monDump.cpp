@@ -239,6 +239,7 @@ namespace engine
             DPS_LSN currentLSN ;
             DPS_LSN committed ;
             DPS_LSN expectLSN ;
+            DPS_TRANS_ID lowTranID ;
             if ( dpscb )
             {
                dpscb->getLsnWindow( beginLSN, currentLSN, &expectLSN, &committed ) ;
@@ -251,7 +252,6 @@ namespace engine
             subBegin.append( FIELD_NAME_LSN_OFFSET, (INT64)beginLSN.offset ) ;
             subBegin.append( FIELD_NAME_LSN_VERSION, beginLSN.version ) ;
             subBegin.done() ;
-
             BSONObjBuilder subCur( ob.subobjStart( FIELD_NAME_CURRENT_LSN ) ) ;
             subCur.append( FIELD_NAME_LSN_OFFSET, (INT64)currentLSN.offset ) ;
             subCur.append( FIELD_NAME_LSN_VERSION, currentLSN.version ) ;
@@ -261,6 +261,23 @@ namespace engine
             subCommit.append( FIELD_NAME_LSN_OFFSET, (INT64)committed.offset ) ;
             subCommit.append( FIELD_NAME_LSN_VERSION, committed.version ) ;
             subCommit.done() ;
+
+            lowTranID = transCB->getGlobLowTran( FALSE ) ;
+
+            /// SNPRINTF will truncate the last char, so need + 2
+            CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;
+
+            ossSnprintf( szTmp, sizeof(szTmp)-1, "%llu", lowTranID.getGlobSN() ) ;
+
+            BSONObjBuilder subLowTran( ob.subobjStart( FIELD_NAME_LOW_TRANS_LSN ) ) ;
+            subLowTran.append( FIELD_NAME_LOW_TRANSID_SN, szTmp ) ;
+            subLowTran.append( FIELD_NAME_LOW_TRANSID_NODEID, lowTranID.getNodeID() ) ;
+            subLowTran.done() ;
+
+
+            ossSnprintf( szTmp, sizeof(szTmp)-1, "%llu", transCB->getOldVCB()->
+                                                         getMinLowTranSN() ) ;
+            ob.append( FIELD_NAME_IDX_TREE_LOW_TRAN, szTmp ) ;
 
             /// complete lsn and queue size
             DPS_LSN completeLSN ;
@@ -1474,6 +1491,29 @@ namespace engine
       }
    done:
       PD_TRACE_EXITRC ( SDB_MONDBDUMPLOGINFO, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 monDBDumpRBSInfo( BSONObjBuilder &ob )
+   {
+      INT32 rc = SDB_OK ;
+      if ( pmdGetOptionCB()->mvccOn() )
+      {
+         dmsRBSSUMgr *rbsMgr = pmdGetKRCB()->getDMSCB()->getRBSSUMgr() ;
+         try
+         {
+            ob.append( FIELD_NAME_NUM_ACTIVE_RBS_GC, rbsMgr->getNumActiveGC() ) ;
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+   done:
       return rc ;
    error:
       goto done ;
@@ -3439,6 +3479,7 @@ namespace engine
 
          monDBDump ( ob, mondbcb, factor, userTime, sysTime ) ;
          monDBDumpLogInfo( ob ) ;
+         monDBDumpRBSInfo( ob ) ;
          monDBDumpProcMemInfo( ob ) ;
          monDBDumpStorageInfo( ob ) ;
          monDBDumpNetInfo( ob ) ;
