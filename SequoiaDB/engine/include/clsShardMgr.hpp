@@ -294,7 +294,9 @@ namespace engine
                                BOOLEAN canUpCataGrp = TRUE ) ;
          INT32  syncSend( MsgHeader * msg, UINT32 groupID, BOOLEAN primary,
                           MsgHeader **ppRecvMsg,
-                          INT64 millisec = CLS_SHARD_TIMEOUT ) ;
+                          INT64 millisec = CLS_SHARD_TIMEOUT,
+                          const CHAR *buffer = NULL,
+                          UINT32 bufferSize = 0 ) ;
          INT32  updatePrimary ( const NodeID & id , BOOLEAN primary ) ;
          INT32  updateCatGroup ( INT64 millsec = 0 ) ;
          INT32  updatePrimaryByReply( MsgHeader *pMsg,

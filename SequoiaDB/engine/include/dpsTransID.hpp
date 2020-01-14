@@ -52,6 +52,8 @@ typedef UINT64 DPS_TRANSID_SN ;
 #define DPS_INVALID_TRANSID_NODEID  ( 0 )
 // invalid serial number component of transaction ID
 #define DPS_INVALID_TRANSID_SN      ( 0LL )
+// max serial number component of transaction ID
+#define DPS_MAX_TRANSID_SN          ( 0xFFFFFFFFFFFFFFFFLL )
 
 /*
    tags in transaction ID
@@ -421,5 +423,20 @@ typedef class _dpsTransID_v1 DPS_TRANS_ID_V1 ;
  */
 // transaction ID, currently we are using version 1
 typedef DPS_TRANS_ID_V1 DPS_TRANS_ID ;
+
+// set, get and clear global transaction SN
+// NOTE: to process lowTran with UINT64 ( DPS_TRANSID_SN ) is more convenient
+//       than transID
+#define DPS_SET_TRANSID_SN_GLOBAL( x ) \
+      OSS_BIT_SET( x, ( (DPS_TRANSID_SN)( DPS_TRANSID_GLOBTRANS_BIT ) <<  \
+                        DPS_TRANSID_TAG_SHIFT_BITS_V1 ) )
+
+#define DPS_TEST_TRANSID_SN_GLOBAL( x ) \
+      OSS_BIT_TET( x, ( (DPS_TRANSID_SN)( DPS_TRANSID_GLOBTRANS_BIT ) <<  \
+                        DPS_TRANSID_TAG_SHIFT_BITS_V1 ) )
+
+#define DPS_CLEAR_TRANSID_SN_GLOBAL( x ) \
+      OSS_BIT_CLEAR( x, ( (DPS_TRANSID_SN)( DPS_TRANSID_GLOBTRANS_BIT ) <<  \
+                          DPS_TRANSID_TAG_SHIFT_BITS_V1 ) )
 
 #endif // DPS_TRANS_ID_HPP_

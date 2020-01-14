@@ -619,6 +619,9 @@ retry :
       pmdSetNodeID( _selfNodeID ) ;
       pmdGetKRCB()->callRegisterEventHandler( _selfNodeID ) ;
 
+      rc = _resource.active() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to active resource, rc: %d", rc ) ;
+
    done:
       PD_TRACE_EXITRC ( SDB__COORDCB__ONCATREGRES, rc );
       return rc ;

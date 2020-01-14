@@ -249,6 +249,9 @@ namespace engine
 
       _pCatCB->activeGroup( _groupID ) ;
 
+      // callback on active (create) group
+      _pCatCB->onGroupChange() ;
+
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXACTIVEGRP_EXECUTE_INT, rc ) ;
       return rc ;
@@ -536,6 +539,9 @@ namespace engine
                    "Failed to remove info of group [%s] from collection [%s], "
                    "rc: %d",
                    _targetName.c_str(), CAT_NODE_INFO_COLLECTION, rc ) ;
+
+      // callback on remove group
+      _pCatCB->onGroupChange() ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXRMGRP_EXECUTE_INT, rc ) ;
@@ -863,6 +869,9 @@ namespace engine
                     "Failed to create node [%s] on group [%s], rc: %d",
                     _targetName.c_str(), _nodeName.c_str(), rc ) ;
 
+      // callback on create node
+      _pCatCB->onGroupChange() ;
+
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXCREATENODE_EXECUTE_INT, rc ) ;
       return rc ;
@@ -885,6 +894,9 @@ namespace engine
       PD_RC_CHECK ( rc, PDWARNING,
                     "Failed to rollback create node [%s] on group [%s], rc: %d",
                     _targetName.c_str(), _nodeName.c_str(), rc ) ;
+
+      // callback on remove node
+      _pCatCB->onGroupChange() ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXCREATENODE_ROLLBACK_INT, rc ) ;
@@ -1228,6 +1240,9 @@ namespace engine
 
       // release node
       _pCatCB->releaseNodeID( _nodeID ) ;
+
+      // callback on remove node
+      _pCatCB->onGroupChange() ;
 
       if ( _needDeactive )
       {

@@ -1465,7 +1465,7 @@ namespace engine
    {
       preIdxTreePtr treePtr ;
       IDXID_TO_TREE_MAP_IT it ;
-      DPS_TRANS_ID  lowTran ;
+      DPS_TRANSID_SN  expiredLowTran ;
 
       latchS() ;
 
@@ -1476,24 +1476,25 @@ namespace engine
       {
          releaseS() ;
          // get current lowtran for each tree
-         lowTran = sdbGetTransCB()->getGlobLowTran( FALSE ) ;
+         expiredLowTran = sdbGetTransCB()->getExpiredLowTran() ;
          // handle one tree
          treePtr = it->second ;
 
          // TODO: may add optimization to check if the tree is changed
          // after last gc
-         if ( treePtr.get() )
+         if ( treePtr.get() &&
+              DPS_INVALID_TRANSID_SN != expiredLowTran )
          {
 #ifdef _DEBUG  // FIXME remove after stable
-            PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, lowtran(%s)",
+            PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, lowtran[%llu(0x%llX)]",
                     it->first.toString().c_str(),
                     treePtr->getKeyPattern().toString().c_str(),
-                    dpsTransIDToString(lowTran).c_str() ) ;
+                    expiredLowTran, expiredLowTran ) ;
                     //lowTran.getGlobSN() ) ;
             treePtr->printTree( FALSE ) ;
 #endif
             // NOTE: we need global transaction tag with SN
-            treePtr->gc( lowTran.getGlobSN() ) ;
+            treePtr->gc( expiredLowTran ) ;
 #ifdef _DEBUG
             treePtr->printTree( FALSE ) ;
 #endif

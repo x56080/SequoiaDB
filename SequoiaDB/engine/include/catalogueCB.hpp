@@ -184,6 +184,9 @@ namespace engine
          void fillErrReply ( const MsgOpReply *pReply, MsgOpReply *pErrReply,
                              INT32 rc ) ;
 
+         // callback on create group, remove group, create node or remove node
+         void     onGroupChange() ;
+
       private:
          _netRouteAgent       *_pNetWork ;
          _MsgRouteID          _routeID ;

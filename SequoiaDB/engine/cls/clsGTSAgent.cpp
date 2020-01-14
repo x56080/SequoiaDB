@@ -47,6 +47,7 @@
 #include "dms.hpp"
 #include "dpsLogRecordDef.hpp"
 #include "dpsUtil.hpp"
+#include "clsTrace.hpp"
 #include "../bson/bson.h"
 
 using namespace bson ;
@@ -68,26 +69,29 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_ONROLLBACKALL, "_clsGTSAgent::onRollbackAll" )
    INT32 _clsGTSAgent::onRollbackAll()
    {
       INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_ONROLLBACKALL ) ;
+
       pmdKRCB *krcb = pmdGetKRCB() ;
-      dpsTransCB *pTransCB = krcb->getTransCB() ;
 
       DPS_TRANS_ID transID ;
-      TRANS_MAP *pTransMap = pTransCB->getTransMap() ;
+      TRANS_MAP *pTransMap = _transCB->getTransMap() ;
       TRANS_MAP tmpTransMap ;
       TRANS_MAP::iterator it ;
       BOOLEAN isStoped = FALSE ;
 
       while ( TRUE )
       {
-         UINT32 transCBSize = pTransCB->getTransCBSize() ;
+         UINT32 transCBSize = _transCB->getTransCBSize() ;
          if ( transCBSize == 0 )
          {
             break ;
          }
-         if ( !pTransCB->isDoRollback() )
+         if ( !_transCB->isDoRollback() )
          {
             isStoped = TRUE ;
             goto done ;
@@ -98,7 +102,7 @@ namespace engine
       }
 
       // to avoid erase iterator and insert in the same map
-      pTransCB->cloneTransMap( tmpTransMap ) ;
+      _transCB->cloneTransMap( tmpTransMap ) ;
 
       // check doing transactions, update to doing interrupted
       it = tmpTransMap.begin() ;
@@ -142,7 +146,7 @@ namespace engine
                   continue ;
                }
             }
-            else if ( !pTransCB->isDoRollback() )
+            else if ( !_transCB->isDoRollback() )
             {
                isStoped = TRUE ;
                break ;
@@ -152,9 +156,12 @@ namespace engine
       }
 
    done :
-      return isStoped ? SDB_CLS_NOT_PRIMARY : SDB_OK;
+      rc = isStoped ? SDB_CLS_NOT_PRIMARY : SDB_OK ;
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_ONROLLBACKALL, rc ) ;
+      return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_CHKTRANSSTATUS, "_clsGTSAgent::checkTransStatus" )
    INT32 _clsGTSAgent::checkTransStatus( DPS_TRANS_ID transID,
                                          UINT32 nodeNum,
                                          const UINT64 *pNodes,
@@ -162,6 +169,9 @@ namespace engine
                                          DPS_TRANS_STATUS &status )
    {
       INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_CHKTRANSSTATUS ) ;
+
       MsgRouteID nodeID ;
 
       BOOLEAN hasCommit = FALSE ;
@@ -221,18 +231,23 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_CHKTRANSSTATUS, rc ) ;
       return rc ;
    error:
       status = DPS_TRANS_UNKNOWN ;
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT__CHKTRANSSTATUS, "_clsGTSAgent::_checkTransStatus" )
    INT32 _clsGTSAgent::_checkTransStatus( DPS_TRANS_ID transID,
                                           UINT32 group,
                                           IExecutor *cb,
                                           DPS_TRANS_STATUS &status )
    {
       INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT__CHKTRANSSTATUS ) ;
+
       MsgClsTransCheckReq checkMsg ;
       MsgHeader *pRecvMsg = NULL ;
       MsgOpReply *pReply = NULL ;
@@ -340,16 +355,21 @@ namespace engine
       {
          SDB_OSS_FREE( ( CHAR* )pRecvMsg ) ;
       }
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT__CHKTRANSSTATUS, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT__SYNCCHKTRANSSTATUS, "_clsGTSAgent::_syncCheckTransStatus" )
    INT32 _clsGTSAgent::_syncCheckTransStatus( DPS_TRANS_ID transID,
                                               DPS_LSN_OFFSET curLsn,
                                               DPS_TRANS_STATUS &status )
    {
       INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT__SYNCCHKTRANSSTATUS ) ;
+
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       SDB_DPSCB *pDpsCB = pmdGetKRCB()->getDPSCB() ;
@@ -400,16 +420,21 @@ namespace engine
       } while( pTransCB->isDoRollback() ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT__SYNCCHKTRANSSTATUS, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT__COMMITTRANS, "_clsGTSAgent::_commitTrans" )
    INT32 _clsGTSAgent::_commitTrans( DPS_TRANS_ID transID,
                                      DPS_LSN_OFFSET lastLsn,
                                      DPS_LSN_OFFSET &curLsn )
    {
       INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT__COMMITTRANS ) ;
+
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       SDB_DPSCB *pDpsCB = pmdGetKRCB()->getDPSCB() ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
@@ -466,7 +491,148 @@ namespace engine
       pTransCB->releaseRBLogSpace( cb ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT__COMMITTRANS, rc ) ;
       return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_UPDATEGLOBLOWTRAN, "_clsGTSAgent::updateGlobLowTran" )
+   INT32 _clsGTSAgent::updateGlobLowTran()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_UPDATEGLOBLOWTRAN ) ;
+
+      MsgGTSLowTranReq request ;
+      MsgHeader *receiveMessage = NULL ;
+
+      DPS_TRANSID_SN nodeLowTran = DPS_INVALID_TRANSID_SN ;
+      BSONObj requestObject ;
+
+      const UINT32 maxRetryTimes = 3 ;
+      UINT32 retryTimes = 0 ;
+
+      // only COORD and DATA need report
+      // NOTE: here is DATA node
+      if ( SDB_ROLE_DATA != pmdGetDBRole() )
+      {
+         goto done ;
+      }
+
+      // get local lowTran
+      rc = _getLocalLowTran( nodeLowTran ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get local lowTran, rc: %d", rc ) ;
+
+      // fill lowTran request
+      rc = _fillLowTranRequest( &request, nodeLowTran, requestObject ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to fill lowTran request, rc: %d", rc ) ;
+
+      while( ( retryTimes ++ ) < maxRetryTimes )
+      {
+         MsgOpReply *reply = NULL ;
+
+         /// try to send message to CATALOG primary first
+         rc = _pShardMgr->syncSend( (MsgHeader *)( &request ),
+                                    CATALOG_GROUPID,
+                                    TRUE,
+                                    &receiveMessage,
+                                    CLS_SHARD_TIMEOUT,
+                                    requestObject.objdata(),
+                                    (UINT32)( requestObject.objsize() ) ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to send lowTran to primary catalog, "
+                    "rc: %d", rc ) ;
+            // failed to send message to primary CATALOG, just send to any
+            // CATALOG, it will report new primary if it is not
+            rc = _pShardMgr->syncSend( (MsgHeader *)( &request ),
+                                       CATALOG_GROUPID,
+                                       FALSE,
+                                       &receiveMessage,
+                                       CLS_SHARD_TIMEOUT,
+                                       requestObject.objdata(),
+                                       (UINT32)( requestObject.objsize() ) ) ;
+            if ( SDB_OK != rc )
+            {
+               // still failed, just return error, no need to retry
+               PD_LOG( PDWARNING, "Failed to send lowTran to any catalog, "
+                       "rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+
+         SDB_ASSERT( NULL != receiveMessage, "receive message is invalid" ) ;
+         SDB_ASSERT( MSG_GTS_LOWTRAN_RSP == receiveMessage->opCode,
+                     "receive message is not global lowTran response" ) ;
+
+         /// extract reply
+         reply = (MsgOpReply *)receiveMessage ;
+         rc = reply->flags ;
+         SDB_ASSERT( reply->contextID == -1, "Context id must be -1" ) ;
+
+         if ( SDB_CLS_NOT_PRIMARY == rc )
+         {
+            // failed to send message to primary CATALOG, update the primary
+            // and retry
+            INT32 rcTmp = SDB_OK ;
+            rcTmp = _pShardMgr->updatePrimaryByReply( receiveMessage,
+                                                      CATALOG_GROUPID ) ;
+
+            if ( SDB_NET_CANNOT_CONNECT == rcTmp )
+            {
+               /// the catalog nodes are crashed, sleep some seconds
+               PD_LOG( PDWARNING, "Group(%d) primary node is crashed "
+                       "but other nodes not aware, sleep %d seconds",
+                       CATALOG_GROUPID, NET_NODE_FAULTUP_MIN_TIME ) ;
+               ossSleep( NET_NODE_FAULTUP_MIN_TIME * OSS_ONE_SEC ) ;
+            }
+
+            if ( SDB_OK != rcTmp )
+            {
+               // failed to update primary, update the whole CATALOG group
+               _pShardMgr->updateCatGroup( CLS_SHARD_TIMEOUT ) ;
+            }
+
+            // go retry
+            SDB_OSS_FREE( (CHAR *)receiveMessage ) ;
+            receiveMessage = NULL ;
+            continue ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            // could not retry for other errors, just report and quit
+            PD_LOG( PDERROR, "Failed to get global transaction ID, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+         else
+         {
+            // extract global lowTran from response, and update
+            MsgGTSLowTranRsp *response = (MsgGTSLowTranRsp *)receiveMessage ;
+            DPS_TRANSID_SN globLowTran = DPS_INVALID_TRANSID_SN ;
+
+            rc = _parseLowTranResponse( response, globLowTran ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse lowTran response, "
+                         "rc: %d", rc ) ;
+
+            _setGlobLowTran( (DPS_TRANSID_SN)( globLowTran ) ) ;
+
+            // quit
+            break ;
+         }
+
+         SDB_ASSERT( FALSE, "Should not go here" ) ;
+      }
+
+   done:
+      if ( NULL != receiveMessage )
+      {
+         SDB_OSS_FREE( (CHAR *)receiveMessage ) ;
+      }
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_UPDATEGLOBLOWTRAN, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }

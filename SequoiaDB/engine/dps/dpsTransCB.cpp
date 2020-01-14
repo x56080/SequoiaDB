@@ -66,7 +66,9 @@ namespace engine
     _maxFileSizeMutex( MON_LATCH_DPSTRANSCB_MAXFILESIZEMUTEX ),
     _reservedRBSpace( 0 ) ,
     _reservedSpace( 0 ),
-    _primaryActiveTime( 0LL )
+    _primaryActiveTime( 0LL ),
+    _globLowTran( DPS_INVALID_TRANSID_SN ),
+    _archivedLowTran( DPS_INVALID_TRANSID_SN )
    {
       _TransIDH16          = DPS_INVALID_TRANSID_NODEID ;
       _isOn                = FALSE ;
@@ -366,12 +368,17 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_ISVERSIONEXPIRED ) ;
 
-      // check if the version(represented by transaction ID) is expired.
-      // Expired means it's older than system lowtran
-      // NOTE: add consideration of maximum time error due to network delay etc
-      expired = ( transID.getGlobSN() <
-                     ( getGlobLowTran( FALSE ).getGlobSN() -
-                       STP_MAX_TIME_ERROR_US ) ) ;
+      DPS_TRANSID_SN expiredLowTran = getExpiredLowTran() ;
+
+      // NOTE: if expired lowTran is invalid, means the global lowTrans had
+      //       not been calculated yet, so any version is not expired at this
+      //       time
+      if ( DPS_INVALID_TRANSID_SN != expiredLowTran )
+      {
+         // check if the version(represented by transaction ID) is expired.
+         // Expired means it's older than system lowtran
+         expired = ( transID.getGlobSN() < expiredLowTran ) ;
+      }
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB_ISVERSIONEXPIRED ) ;
 
@@ -379,32 +386,108 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBLOWTRAN, "dpsTransCB::getGlobLowTran" )
-   DPS_TRANS_ID dpsTransCB::getGlobLowTran( BOOLEAN updateCache )
+   DPS_TRANS_ID dpsTransCB::getGlobLowTran()
    {
       DPS_TRANS_ID lowTran ;
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBLOWTRAN ) ;
 
-      // TODO: get from all cluster nodes
-      lowTran = getNodeLowTran() ;
+      // get global low transaction ID
+      DPS_TRANSID_SN globTransID = (DPS_TRANSID_SN)( _globLowTran.fetch() ) ;
+      if ( DPS_INVALID_TRANSID_SN != globTransID )
+      {
+         lowTran.setNodeID( _TransIDH16 ) ;
+         lowTran.setSN( globTransID ) ;
+      }
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB_GETGLOBLOWTRAN ) ;
 
       return lowTran ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETNODELOWTRAN, "dpsTransCB::getNodeLowTran" )
-   DPS_TRANS_ID dpsTransCB::getNodeLowTran()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SYNCUPDATEGLOBLOWTRAN, "dpsTransCB::syncUpdateGlobLowTran" )
+   INT32 dpsTransCB::syncUpdateGlobLowTran( DPS_TRANS_ID &globalLowTran,
+                                            INT64 timeout )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_SYNCUPDATEGLOBLOWTRAN ) ;
+
+      INT32 tmpRC = SDB_OK ;
+
+      // reset wait event
+      _waitLowTranEvent.reset() ;
+
+      // signal lowTran job to update
+      _updateLowTranEvent.signal() ;
+
+      // lowTran is not critical, old lowTran will be OK for most cases
+      // so just wait for one second
+      rc = _waitLowTranEvent.wait( OSS_ONE_SEC, &tmpRC ) ;
+      if ( SDB_OK != tmpRC )
+      {
+         rc = tmpRC ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to wait for lowTran event, rc: %d",
+                   rc ) ;
+
+      globalLowTran = getGlobLowTran() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_SYNCUPDATEGLOBLOWTRAN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SETGLOBLOWTRAN, "dpsTransCB::setGlobLowTran" )
+   void dpsTransCB::setGlobLowTran( const DPS_TRANSID_SN &globLowTran )
+   {
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_SETGLOBLOWTRAN ) ;
+
+      // for below 2 cases, we won't update global lowTran cache to keep
+      // global lowTran in monotonic
+      // - invalid value of transaction SN means global lowTran has not been
+      //   calculated by catalog ( some node had not reported )
+      // - max value of transaction SN means no global transaction in the
+      //   cluster currently
+      if ( DPS_INVALID_TRANSID_SN != globLowTran &&
+           DPS_MAX_TRANSID_SN != globLowTran )
+      {
+         DPS_TRANSID_SN tempLowTran = DPS_INVALID_TRANSID_SN ;
+
+         _globLowTran.swapGreaterThan( (UINT64)globLowTran ) ;
+
+         tempLowTran = _globLowTran.fetch() ;
+         PD_LOG( PDDEBUG, "Set global lowTran [%llu(0x%llX)]",
+                 tempLowTran, tempLowTran ) ;
+      }
+#if defined (_DEBUG)
+      else
+      {
+         DPS_TRANSID_SN tempLowTran = _globLowTran.fetch() ;
+         PD_LOG( PDDEBUG, "Got ignored global lowTran [%llu(0x%llX)], "
+                 "current global lowTran [%llu(0x%llX)]",
+                 globLowTran, globLowTran, tempLowTran, tempLowTran ) ;
+      }
+#endif
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_SETGLOBLOWTRAN ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETLOCALLOWTRAN, "dpsTransCB::getLocalLowTran" )
+   DPS_TRANS_ID dpsTransCB::getLocalLowTran()
    {
       DPS_TRANS_ID lowTran ;
 
-      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETNODELOWTRAN ) ;
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETLOCALLOWTRAN ) ;
 
       DPS_TRANS_ID minGlobTran ;
 
       // NOTE: cbMap contains transactions between rtnTransBegin and
       //       rtnTransCommit / rtnTransRollback
-      _CBMapMutex.get() ;
+      ossScopedLock _lock( &_CBMapMutex, SHARED ) ;
 
       // we only care global transactions in this case
       minGlobTran.setGlobTrans() ;
@@ -416,11 +499,44 @@ namespace engine
          lowTran = iterCB->first ;
       }
 
-      _CBMapMutex.release() ;
+      // failed to get lowTran from cb map, check archived lowTran
+      if ( lowTran.isInvalid() )
+      {
+         DPS_TRANSID_SN archivedLowTran = _archivedLowTran.fetch() ;
+         if ( DPS_INVALID_TRANSID_SN != archivedLowTran )
+         {
+            lowTran.setNodeID( _TransIDH16 ) ;
+            lowTran.setSN( archivedLowTran ) ;
+         }
+      }
 
-      PD_TRACE_EXIT( SDB_DPSTRANSCB_GETNODELOWTRAN ) ;
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_GETLOCALLOWTRAN ) ;
 
       return lowTran ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETEXPIREDLOWTRAN, "dpsTransCB::getExpiredLowTran" )
+   DPS_TRANSID_SN dpsTransCB::getExpiredLowTran()
+   {
+      DPS_TRANSID_SN expiredTransSN = DPS_INVALID_TRANSID_SN ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETEXPIREDLOWTRAN ) ;
+
+      DPS_TRANSID_SN minTransSN = (DPS_TRANSID_SN)STP_MAX_TIME_ERROR_US ;
+      DPS_SET_TRANSID_SN_GLOBAL( minTransSN ) ;
+
+      expiredTransSN = _globLowTran.fetch() ;
+
+      // NOTE: add consideration of maximum time error due to network delay etc
+      if ( DPS_INVALID_TRANSID_SN != expiredTransSN &&
+           expiredTransSN > minTransSN )
+      {
+         expiredTransSN -= (DPS_TRANSID_SN)STP_MAX_TIME_ERROR_US ;
+      }
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_GETEXPIREDLOWTRAN ) ;
+
+      return expiredTransSN ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBTRANSTIME, "dpsTransCB::getGlobTransTime" )
@@ -463,7 +579,7 @@ namespace engine
       BOOLEAN found = FALSE ;
 
       // try to get from running transaction map
-      _MapMutex.get() ;
+      _MapMutex.get_shared() ;
 
       TRANS_MAP::iterator iterTrans = _TransMap.find( origID ) ;
       if ( iterTrans != _TransMap.end() )
@@ -474,12 +590,12 @@ namespace engine
          found = TRUE ;
       }
 
-      _MapMutex.release() ;
+      _MapMutex.release_shared() ;
 
       if ( !found )
       {
          // try to get from history transaction map
-         _hisMutex.get() ;
+         _hisMutex.get_shared() ;
 
          TRANS_ID_2_STATUS::iterator iterHis = _hisTransStatus.find( origID ) ;
          if ( iterHis != _hisTransStatus.end() )
@@ -490,7 +606,7 @@ namespace engine
             found = TRUE ;
          }
 
-         _hisMutex.release() ;
+         _hisMutex.release_shared() ;
       }
 
       // not found, just report UNKNOWN
@@ -737,7 +853,7 @@ namespace engine
 
    BOOLEAN dpsTransCB::hasRBPendingTrans()
    {
-      ossScopedLock _lock( &_MapMutex ) ;
+      ossScopedLock _lock( &_MapMutex, SHARED ) ;
       for ( TRANS_MAP::iterator iter = _TransMap.begin() ;
             iter != _TransMap.end() ;
             ++ iter )
@@ -809,7 +925,7 @@ namespace engine
          stpLogicalTimeUS beginTime, commitTime ;
          TRANS_MAP::iterator it ;
 
-         ossScopedLock _lock( &_MapMutex ) ;
+         ossScopedLock _lock( &_MapMutex, EXCLUSIVE ) ;
 
          it = _TransMap.find( origID ) ;
 
@@ -894,7 +1010,7 @@ namespace engine
       BOOLEAN rbPending = isRBPending( transID ) ;
       DPS_TRANS_ID origID = getTransID( transID ) ;
 
-      ossScopedLock _lock( &_MapMutex ) ;
+      ossScopedLock _lock( &_MapMutex, EXCLUSIVE ) ;
 
       it = _TransMap.find( origID ) ;
       if ( it == _TransMap.end() )
@@ -972,7 +1088,7 @@ namespace engine
       BOOLEAN hasInsert = FALSE ;
       {
          DPS_TRANS_ID origID = getTransID( transID ) ;
-         ossScopedLock _lock( &_CBMapMutex ) ;
+         ossScopedLock _lock( &_CBMapMutex, EXCLUSIVE ) ;
          hasInsert = _cbMap.insert( std::make_pair( origID, eduCB ) ).second ;
       }
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_ADDTRANSCB ) ;
@@ -987,11 +1103,17 @@ namespace engine
       TRANS_CB_MAP::iterator it ;
       DPS_TRANS_ID origID = getTransID( transID ) ;
 
-      ossScopedLock _lock( &_CBMapMutex ) ;
+      ossScopedLock _lock( &_CBMapMutex, EXCLUSIVE ) ;
       it = _cbMap.find( origID ) ;
       if ( it != _cbMap.end() )
       {
          _cbMap.erase( it ) ;
+      }
+
+      // update archived lowTran
+      if ( transID.isGlobTrans() )
+      {
+         _archivedLowTran.swapGreaterThan( (UINT64)( transID.getGlobSN() ) ) ;
       }
 
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_DELTRANSCB ) ;
@@ -999,7 +1121,7 @@ namespace engine
 
    void dpsTransCB::dumpTransEDUList( TRANS_EDU_LIST & eduList )
    {
-      ossScopedLock _lock( &_CBMapMutex ) ;
+      ossScopedLock _lock( &_CBMapMutex, SHARED ) ;
       TRANS_CB_MAP::iterator iter = _cbMap.begin() ;
       while( iter != _cbMap.end() )
       {
@@ -1025,7 +1147,7 @@ namespace engine
 
    UINT32 dpsTransCB::getTransCBSize ()
    {
-      ossScopedLock _lock( &_CBMapMutex ) ;
+      ossScopedLock _lock( &_CBMapMutex, SHARED ) ;
       return _cbMap.size() ;
    }
 
@@ -1290,7 +1412,7 @@ namespace engine
       {
          DPS_TRANS_ID origID = transID.getOrigTransID() ;
 
-         ossScopedLock lock( &_hisMutex ) ;
+         ossScopedLock lock( &_hisMutex, EXCLUSIVE ) ;
          _hisTransStatus[ origID ] = dpsHisTransStatus( status,
                                                         lsn,
                                                         beginTime,
@@ -1303,7 +1425,7 @@ namespace engine
    {
       DPS_TRANS_ID origID = transID.getOrigTransID() ;
 
-      ossScopedLock lock( &_hisMutex ) ;
+      ossScopedLock lock( &_hisMutex, EXCLUSIVE ) ;
       TRANS_ID_2_STATUS::iterator it = _hisTransStatus.find( origID ) ;
       if ( it != _hisTransStatus.end() )
       {
@@ -1314,7 +1436,7 @@ namespace engine
 
    void dpsTransCB::clearHisTrans()
    {
-      ossScopedLock lock( &_hisMutex ) ;
+      ossScopedLock lock( &_hisMutex, EXCLUSIVE ) ;
 
       _hisLsnTrans.clear() ;
       _hisTransStatus.clear() ;
@@ -1323,15 +1445,21 @@ namespace engine
    void dpsTransCB::clearOutDateHisTrans( DPS_LSN_OFFSET lsn )
    {
       TRANS_LSN_ID_MAP::iterator it ;
+      DPS_TRANSID_SN expiredLowTran = getExpiredLowTran() ;
 
       if ( DPS_INVALID_LSN_OFFSET != lsn )
       {
-         ossScopedLock lock( &_hisMutex ) ;
+         ossScopedLock lock( &_hisMutex, EXCLUSIVE ) ;
 
          it = _hisLsnTrans.begin() ;
          while( it != _hisLsnTrans.end() )
          {
-            if ( it->first < lsn )
+            // history is expired in below cases
+            // - DPS LSN is expired
+            // - global transaction is older than expired global lowTran
+            if ( it->first < lsn ||
+                 ( it->second.isGlobTrans() &&
+                   it->second.getGlobSN() < expiredLowTran ) )
             {
                _hisTransStatus.erase( it->second ) ;
                _hisLsnTrans.erase( it++ ) ;
@@ -1353,7 +1481,7 @@ namespace engine
       lsn = DPS_INVALID_LSN_OFFSET ;
 
       {
-         ossScopedLock _lock( &_MapMutex ) ;
+         ossScopedLock _lock( &_MapMutex, SHARED ) ;
          TRANS_MAP::iterator it = _TransMap.find( origID ) ;
          if ( it != _TransMap.end() )
          {
@@ -1364,7 +1492,7 @@ namespace engine
       }
 
       {
-         ossScopedLock lock( &_hisMutex ) ;
+         ossScopedLock lock( &_hisMutex, SHARED ) ;
          TRANS_ID_2_STATUS::iterator it = _hisTransStatus.find( origID ) ;
          if ( it != _hisTransStatus.end() )
          {
@@ -1471,7 +1599,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TERMALLTRANS ) ;
 
-      ossScopedLock _lock( &_CBMapMutex );
+      ossScopedLock _lock( &_CBMapMutex, SHARED );
       for ( TRANS_CB_MAP::iterator iterMap = _cbMap.begin() ;
             iterMap != _cbMap.end() ;
             ++ iterMap )

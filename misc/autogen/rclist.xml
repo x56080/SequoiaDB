@@ -2834,5 +2834,12 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_GLOB_LOWTRAN_UNKNOWN</name>
+         <description>
+            <en>Global LowTran is unknown</en>
+            <cn>全局事务最早正在执行的事务 ID 未知</cn>
+         </description>
+      </code>
    </codelist>
 </rclist>

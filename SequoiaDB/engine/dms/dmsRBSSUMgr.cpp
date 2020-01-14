@@ -1627,7 +1627,7 @@ namespace engine
                   "Got maxGlobTransID and lowTran (%s, %s), curPos=%d",
                    dpsTransIDToString( maxGlobTransID ).c_str(),
                    dpsTransIDToString(
-                         sdbGetTransCB()->getGlobLowTran( FALSE ) ).c_str(),
+                         sdbGetTransCB()->getGlobLowTran() ).c_str(),
                    curPos ) ;
 #endif
          // Do GC when the cl max transID is older than lowtran

@@ -40,6 +40,7 @@
 #include "msg.h"
 #include "catGTSMsgHandler.hpp"
 #include "catSequenceManager.hpp"
+#include "catGlobTransManager.hpp"
 
 namespace engine
 {
@@ -74,6 +75,11 @@ namespace engine
          return &_seqMgr ;
       }
 
+      OSS_INLINE catGlobTransManager *getGlobTransMgr()
+      {
+         return &_globTransMgr ;
+      }
+
    private:
       INT32 _ensureMetadata() ;
       INT32 _createSysIndex ( const CHAR* clFullName,
@@ -88,6 +94,7 @@ namespace engine
       sdbCatalogueCB*      _catCB ;
       _catGTSMsgHandler    _msgHandler ;
       _catSequenceManager  _seqMgr ;
+      catGlobTransManager  _globTransMgr ;
    } ;
    typedef _catGTSManager catGTSManager ;
 }

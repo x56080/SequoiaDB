@@ -81,6 +81,8 @@ namespace engine
       // cls adapter jobs
       RTN_JOB_CLS_ADAPTER_TEXT_INDEX = 29,
 
+      RTN_JOB_GTS_LOWTRAN        = 30,
+
       RTN_JOB_MAX
    } ;
 

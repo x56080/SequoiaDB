@@ -291,7 +291,8 @@ rtnFiles = [
       "rtn/rtnLobLockSectionMgr.cpp",
       "rtn/rtnLocalTaskMgr.cpp",
       "rtn/rtnLocalTaskFactory.cpp",
-      "rtn/rtnLocalTask.cpp"
+      "rtn/rtnLocalTask.cpp",
+      "rtn/rtnGTSAgent.cpp"
       ]
 
 msgFiles = [
@@ -549,7 +550,8 @@ catFiles = [
       "cat/catGTSMsgHandler.cpp",
       "cat/catGTSMsgJob.cpp",
       "cat/catSequence.cpp",
-      "cat/catSequenceManager.cpp"
+      "cat/catSequenceManager.cpp",
+      "cat/catGlobTransManager.cpp"
       ]
 
 coordFiles = [
@@ -601,7 +603,8 @@ coordFiles = [
       "coord/coordOmCache.cpp",
       "coord/coordOmStrategyJob.cpp",
       "coord/coordSequenceAgent.cpp",
-      "coord/coordCommandSequence.cpp"
+      "coord/coordCommandSequence.cpp",
+      "coord/coordGTSAgent.cpp"
       ]
 
 aggrFiles = [

@@ -3726,7 +3726,7 @@ namespace engine
             DPS_TRANS_ID lowTran ;
             if ( pTransCB )
             {
-               lowTran = pTransCB->getGlobLowTran( FALSE ) ;
+               lowTran = pTransCB->getGlobLowTran() ;
             }
             PD_LOG( PDDEBUG, "Truely delete record(%d, %d),  "
                     "lowtran(%s), recordtransid(%s), pTransCB(%x)",

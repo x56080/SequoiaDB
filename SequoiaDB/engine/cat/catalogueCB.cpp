@@ -1156,6 +1156,12 @@ namespace engine
       pErrReply->startFrom = pReply->startFrom ;
    }
 
+   void sdbCatalogueCB::onGroupChange()
+   {
+      // set lowTran map expired
+      _catGTSMgr.getGlobTransMgr()->setLowTranMapExpired() ;
+   }
+
    /*
       get global catalogue cb
    */
