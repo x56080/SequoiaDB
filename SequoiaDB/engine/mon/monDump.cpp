@@ -287,7 +287,7 @@ namespace engine
             subCommit.append( FIELD_NAME_LSN_VERSION, committed.version ) ;
             subCommit.done() ;
 
-            lowTranID = transCB->getGlobLowTran( FALSE ) ;
+            lowTranID = transCB->getGlobLowTran() ;
 
             /// SNPRINTF will truncate the last char, so need + 2
             CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;

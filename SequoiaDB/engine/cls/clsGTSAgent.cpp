@@ -76,8 +76,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSGTSAGENT_ONROLLBACKALL ) ;
 
-      pmdKRCB *krcb = pmdGetKRCB() ;
-
       DPS_TRANS_ID transID ;
       TRANS_MAP *pTransMap = _transCB->getTransMap() ;
       TRANS_MAP tmpTransMap ;

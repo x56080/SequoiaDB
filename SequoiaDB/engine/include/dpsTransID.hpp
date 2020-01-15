@@ -56,9 +56,7 @@ typedef ossAtomic64 DPS_TRANSID_SN_ATOMIC ;
 // invalid serial number component of transaction ID
 #define DPS_INVALID_TRANSID_SN      ( 0LL )
 // max serial number component of transaction ID
-#define DPS_MAX_TRANSID_SN          ( 0xFFFFFFFFFFFFFFFFLL )
-
-#define DPS_MAX_TRANSID_SN      ( OSS_UINT64_MAX )
+#define DPS_MAX_TRANSID_SN          ( OSS_UINT64_MAX )
 /*
    tags in transaction ID
  */
@@ -120,10 +118,10 @@ typedef DPS_TRANSID_SN DPS_TRANS_ID_V0 ;
 
 // _dpsTransID defines the structure of transaction ID ( V1 )
 //
-// | node ID | tags                |                |
-// |         |        | serial number ( SN )        |
-// |         |        | global tag | LTime / raw SN |
-// | 16 bits | 7 bits | 1 bit      | 56 bits        |
+// | tags                |                | node ID |
+// |        | serial number ( SN )        |         |
+// |        | global tag | LTime / raw SN |         |
+// | 7 bits | 1 bit      | 56 bits        | 16 bits |
 
 // NOTE:
 // - serial number ( must with the global tag ) is used to compare visibility
