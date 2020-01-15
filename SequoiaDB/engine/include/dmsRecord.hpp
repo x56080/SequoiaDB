@@ -381,11 +381,13 @@ namespace engine
    class _dmsRecord_v1 : public _dmsRecord_v0
    {
    public :
+/*
       DPS_LSN_OFFSET _lsnOffset ;   // record creation lsn. We can use this to
                                     // uniquely identify a record cross the
                                     // nodes. It is set during insertRecord.
                                     // However, we are not using it yet. 
                                     // Keep it for debug and future expension.
+*/
       DPS_TRANS_ID   _globTransID ; // global transaction ID
       CHAR           _pad[2]      ; // force 4B alignment with pragma pack
       /*
@@ -410,12 +412,12 @@ namespace engine
          // invalid if the update/insert is done when transaction is not ON
          setHasGlobTransID() ;
       }
-
+/*
       DPS_LSN_OFFSET getLSNOffset() const
       {
          return _lsnOffset ;
       }
-
+*/
       DPS_TRANS_ID getGlobTransID() const
       {
          return _globTransID ;
@@ -431,14 +433,14 @@ namespace engine
          _globTransID.reset() ;
          setHasGlobTransID() ;
       }
-
+/*
       void setLSNOffset ( const DPS_LSN_OFFSET &lsnOffset )
       {
          SDB_ASSERT( (this->hasGlobTransID()), 
                      "This is not a V1 record" ) ;
          _lsnOffset = lsnOffset ;
       }
-
+*/
       void setGlobTransID ( const DPS_TRANS_ID &globtransid )
       {
          _globTransID = globtransid.getOrigTransID() ;
@@ -460,12 +462,8 @@ namespace engine
             ossMemmove( (CHAR*)this + DMS_RECORD_V1_METADATA_SZ, 
                         (CHAR*)this + DMS_RECORD_V0_METADATA_SZ, 
                         ((dmsRecord_v0 *) this)->getDataLength() ) ;
-            // TODO:  generate createLSN using _oid for newly migrated record
-
-            setHasGlobTransID() ;
-            // update record size
-        //    setSize( oldsize +
-        //             (DMS_RECORD_V1_METADATA_SZ - DMS_RECORD_V0_METADATA_SZ) ) ;
+            // set globTransID flag and initialize the value
+            resetGlobTransID() ;
          }
          else if ( !moveData )
          {
@@ -473,7 +471,8 @@ namespace engine
             // overflow rid
             SDB_ASSERT( ( oldsize > ( DMS_RECORD_V1_METADATA_SZ + 8 ) ),
                         " Not sufficient space for V1 record header. " ) ;
-            setHasGlobTransID() ;
+            // set globTransID flag and initialize the value
+            resetGlobTransID() ;
          }
          
          return ;
@@ -611,12 +610,13 @@ namespace engine
       // similar to LR LSN, logical ID is an strictly incremental offset of
       // an record within the capped CS
       INT64       _logicalID ;
-
+/*
       DPS_LSN_OFFSET _lsnOffset ;  // record creation lsn offset. We can use 
                                    // it to uniquely identify a record cross 
                                    // nodes. It is set during insertRecord.
                                    // However, we are not using it yet. 
                                    // Keep it for debug and future expension.
+*/
       DPS_TRANS_ID  _globTransID ; // global transaction ID updated the 
                                    // record it's the same trans created
                                    // cappedRecord
@@ -713,7 +713,7 @@ namespace engine
          _globTransID = globtransid.getOrigTransID() ;
          ((dmsRecord*)this)->setHasGlobTransID() ;
       }
-
+/*
       DPS_LSN_OFFSET getLSNOffset() const
       {
          return _lsnOffset ;
@@ -725,6 +725,7 @@ namespace engine
                      "This is not a V1 record" ) ;
          _lsnOffset = lsnOffset ;
       }
+*/
    } ;
 #pragma pack()
    typedef _dmsCappedRecord dmsCappedRecord ;
@@ -747,7 +748,7 @@ namespace engine
       // the position of the lsn/GTID is same as v1 record. So once a record 
       // is deleted under new release, it's automatically converted to
       // v1 type
-      DPS_LSN_OFFSET    _lsnOffset ;
+//      DPS_LSN_OFFSET    _lsnOffset ;
       DPS_TRANS_ID      _globTransID ;
       CHAR              _pad[2] ; // force 4B alignment with pragma pack
 
@@ -791,13 +792,17 @@ namespace engine
       {
          _next = rid ;
       }
-      void setFlag( CHAR flag )
+      BYTE getAttr() const
       {
-         _head._recordHead[ 0 ] = flag ;
+         return (BYTE)(getFlag() & 0xF0) ;
+      }
+      void  setState( BYTE state )
+      {
+         _head._recordHead[ 0 ] = (CHAR)((state&0x0F)|getAttr()) ;
       }
       void setDeleted()
       {
-         setFlag( DMS_RECORD_FLAG_DELETED ) ;
+         setState( DMS_RECORD_FLAG_DELETED ) ;
       }
       void setHasGlobTransID()
       {
@@ -808,11 +813,12 @@ namespace engine
          setHasGlobTransID() ;
          _globTransID.reset() ;
       }
+/*
       void resetLSNOffset ( )
       {
          _lsnOffset = DPS_INVALID_LSN_OFFSET ;
       }
-
+*/
    } ;
 #pragma pack()
    typedef _dmsDeletedRecord dmsDeletedRecord ;

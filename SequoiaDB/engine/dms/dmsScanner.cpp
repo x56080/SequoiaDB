@@ -717,17 +717,19 @@ namespace engine
                  ( _transIsolation == TRANS_ISOLATION_RR ) &&
                  ( _recordLock < DPS_TRANSLOCK_U ) )
             {
-               DPS_LSN_OFFSET lsn   = _curRecordPtr->getLSNOffset() ;
+               //DPS_LSN_OFFSET lsn   = _curRecordPtr->getLSNOffset() ;
                // FIXME: to be removed
 #ifdef  _DEBUG
                PD_LOG( PDDEBUG, "compare record version for "
                        "rid(%d, %d), transid(%s) vs recordTransid(%s),"
-                       "lsn(%llu) skipDelete(%d) ",
+                       //"lsn(%llu)"
+                       "clLID(%d) skipDelete(%d) ",
                        _curRID._extent, _curRID._offset,
                        dpsTransIDToString( transID ).c_str(),
                        dpsTransIDToString(
                                    _curRecordPtr->getGlobTransID() ).c_str(),
-                       lsn, skipDelete ) ;
+                       //lsn, 
+                       _context->clLID(), skipDelete ) ;
 #endif
                // if the current version is NOT visible to the transaction,
                // try to read the proper version from RBS
@@ -740,7 +742,8 @@ namespace engine
                   rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
                          ->getRecord( _pSu->logicalID(),  // use cappedCL fetch
                                       _context->mbID(),
-                                      lsn,
+                                      //lsn,
+                                      _context->clLID(),
                                       _curRID,
                                       transID, found, recordData ) ;
                   if ( SDB_OK != rc )
@@ -754,9 +757,9 @@ namespace engine
 #ifdef  _DEBUG
                      PD_LOG( PDDEBUG,
                              "Finished reading record from RBS: found=%d, "
-                             "rid(%d, %d), transid(%s), lsn(%llu)",
+                             "rid(%d, %d), transid(%s)",//, lsn(%llu)",
                              found, _curRID._extent, _curRID._offset,
-                             dpsTransIDToString( transID ).c_str(), lsn ) ;
+                             dpsTransIDToString( transID ).c_str() ) ;//, lsn ) ;
 #endif
                      if ( found )
                      {
@@ -2206,7 +2209,9 @@ namespace engine
             skipDelete = TRUE ;
          }
 
-         SDB_ASSERT( !_curRecordPtr->isDeleted(),
+         // we might come to a deleted record through index scan because index
+         // is async, we will use version to decide visiability. 
+         SDB_ASSERT( pmdGetOptionCB()->mvccOn() || !_curRecordPtr->isDeleted(),
                     "record can't be deleted" ) ;
 
          recordID = _curRID ;
@@ -2234,12 +2239,13 @@ namespace engine
                  cb->getTransBeginTime() ) )
             {
                BOOLEAN        found = FALSE ;
-               DPS_LSN_OFFSET lsn   = _curRecordPtr->getLSNOffset() ;
+               //DPS_LSN_OFFSET lsn   = _curRecordPtr->getLSNOffset() ;
 
                rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
                       ->getRecord( _pSu->logicalID(),
                                    _context->mbID(),
-                                   lsn,
+                                   //lsn,
+                                   _context->clLID(),
                                    _curRID,
                                    transID, found, recordData ) ;
                if ( SDB_OK != rc )
@@ -2251,24 +2257,26 @@ namespace engine
                {
                   PD_LOG( PDDEBUG, "Found old record from RBS,"
                           "rid(%d, %d), transid(%s)<recordTransid(%s),"
-                          "lsn(%llu)",
+                          //"lsn(%llu),"
+                          " clLID(%d)",
                           _curRID._extent, _curRID._offset,
                           dpsTransIDToString( transID ).c_str(),
                           dpsTransIDToString(
                                 _curRecordPtr->getGlobTransID() ).c_str(),
-                          lsn ) ;
+                          //lsn, 
+                          _context->clLID() ) ;
                   recordDataSet = TRUE ;
                }
                else
                {
                   PD_LOG( PDDEBUG,
                           "Didn't found old record from RBS, rid(%d, %d), "
-                          "transid(%s)<recordTransid(%s), lsn(%llu)",
+                          "transid(%s)<recTransid(%s), cllid(%d)",
                           _curRID._extent, _curRID._offset,
                           dpsTransIDToString( transID ).c_str(),
                           dpsTransIDToString(
                                 _curRecordPtr->getGlobTransID() ).c_str(),
-                          lsn ) ;
+                          _context->clLID() ) ;
                   // Didn't find proper version of record, the record
                   // is not visible to the transaction, skip
                   if ( _hasLockedRecord )
@@ -2283,7 +2291,7 @@ namespace engine
                   continue ;
                }
             }
-            else if ( skipDelete )
+            else if ( skipDelete || _curRecordPtr->isDeleted() )
             {
                // although it's visiable, but it's deleting, we need to skip
                // we should not continue looking for older version in
@@ -2300,7 +2308,7 @@ namespace engine
             }
 
          }
-         else if ( skipDelete )
+         else if ( skipDelete || _curRecordPtr->isDeleted() )
          {
             // handle the case when we did not or do not need to find 
             // older version in RBS for this deleting record

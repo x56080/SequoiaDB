@@ -845,9 +845,10 @@ namespace engine
    // Description
    // Dependency: Caller must hold the recordlock and mbLcok
    INT32 dmsTransLockCallback::saveOldVersionRecord( const _dmsRecordRW *pRecordRW,
-                                                     const dmsRecordID &rid,
-                                                     const BSONObj &obj,
-                                                     UINT32 ownerTID )
+                                                     const dmsRecordID  &rid,
+                                                     const UINT32        clLID,
+                                                     const BSONObj      &obj,
+                                                     const UINT32        ownerTID )
    {
       INT32        rc      = SDB_OK ;
       DPS_TRANS_ID transID ;
@@ -867,7 +868,7 @@ namespace engine
          else
          {
             const dmsRecord *pRecord= pRecordRW->readPtr( 0 ) ;
-            DPS_LSN_OFFSET lsn = pRecord->getLSNOffset() ;
+            //DPS_LSN_OFFSET lsn = pRecord->getLSNOffset() ;
 #ifdef _DEBUG
             // TODO: for record from V0, we do not have LSN on page header.
             // and we haven't done inflight migration yet. 
@@ -878,11 +879,10 @@ namespace engine
         // FIXME: remove
       PD_LOG( PDDEBUG, "saving old record to memory and RBS:"
               "rid(%d, %d), ownertransid(%s), "
-              "recordTransID(%s), lsn(%llu)",
+              "recordTransID(%s)",
               rid._extent, rid._offset, 
               dpsTransIDToString( transID ).c_str(),
-              dpsTransIDToString( pRecord->getGlobTransID() ).c_str(),
-              lsn ) ;
+              dpsTransIDToString( pRecord->getGlobTransID() ).c_str() ) ;
 #endif
 
             // 1. get to overflow record if needed
@@ -904,12 +904,14 @@ namespace engine
             // 3. write version to RBS at the same if mvccon
             if ( pmdGetOptionCB()->mvccOn() )
             {
+               DPS_TRANS_ID recTransID = pRecord->getGlobTransID() ;
                rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
                       ->appendRecord( _oldVer->getCSID(), 
                                       _oldVer->getCLID(),
-                                      lsn,
+                                      clLID,
+                                      //lsn,
                                       rid,
-                                      pRecord->getGlobTransID(),
+                                      recTransID,
                                       transID,
                                       obj ) ;
                if ( rc )
@@ -1061,7 +1063,8 @@ namespace engine
                                                _pmdEDUCB* cb )
    {
       INT32 rc = SDB_OK ;
-      rc = saveOldVersionRecord( pRecordRW, rid, object, cb->getTID() ) ;
+      rc = saveOldVersionRecord( pRecordRW, rid, context->clLID(),
+                                 object, cb->getTID() ) ;
       if ( SDB_OK == rc && markDeleting && _oldVer )
       {
          _oldVer->setDiskDeleting() ;
@@ -1076,7 +1079,8 @@ namespace engine
                                                const _dmsRecordRW *pRecordRW,
                                                _pmdEDUCB *cb )
    {
-      return saveOldVersionRecord( pRecordRW, rid, orignalObj, cb->getTID() ) ;
+      return saveOldVersionRecord( pRecordRW, rid, context->clLID(),
+                                   orignalObj, cb->getTID() ) ;
    }
 
    INT32 dmsTransLockCallback::onInsertIndex( _dmsMBContext *context,

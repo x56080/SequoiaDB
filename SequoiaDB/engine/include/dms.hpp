@@ -145,8 +145,7 @@ namespace engine
 #define DMS_RBS_NAME_PATTERN       "%s%04d"
 // Range of RBS CL is 0000-4095, with 0000 for meta
 #define DMS_MAX_RBS_CL             DMS_MME_SLOTS 
-#define DMS_FIRST_RBS_CL           1 
-#define DMS_META_RBS_CL            0
+#define DMS_FIRST_RBS_CL           0 
 
 #define DMS_INDEX_SORT_BUFFER_MIN_SIZE     32
 

@@ -1233,14 +1233,14 @@ namespace engine
       }
       lsn = info.getMergeBlock().record().head()._lsn ;
       context->mbStat()->updateLastLSN( lsn, type ) ;
-
+/*
       // Before latch is released, put the lsn back into record as the 
       // life lsn of the record
       if ( NULL != pRecord )
       {
          pRecord->setLSNOffset( lsn ) ;
       }
-
+*/
       // release lock
       if ( needUnLock )
       {
@@ -3451,7 +3451,7 @@ namespace engine
                                                    DMS_FILE_DATA,
                                                    cb->isDoRollback() ) ;
          pRecord = recordRW.writePtr( dmsRecordSize ) ;
-         pRecord->setLSNOffset( cb->getEndLsn() ) ;
+         //pRecord->setLSNOffset( cb->getEndLsn() ) ;
       }
 
       if ( handler )
@@ -3509,8 +3509,8 @@ namespace engine
    //    Based on the passed in record ID, delete a single record, write
    //    corresponding log records and delete related indexes.
    // Input:
-   //    RCDoDelete:  in RC isolation level, we can only delete the record
-   //                 if caller knows that transaction has committed.
+   //    pInfo:
+   //   
    // Dependency:
    //    Record lock should be held in X. MBlatch should be held.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_DELETERECORD, "_dmsStorageDataCommon::deleteRecord" )
@@ -3790,9 +3790,11 @@ namespace engine
             {
                lowTran = pTransCB->getGlobLowTran() ;
             }
-            PD_LOG( PDDEBUG, "Truely delete record(%d, %d),  "
-                    "lowtran(%s), recordtransid(%s), pTransCB(%x)",
-                    recordID._extent, recordID._offset, 
+            PD_LOG( PDDEBUG, "Truely delete record(%d, %d), isDeleting(%d),flag(%x)  "
+                    "hastransid(%d),lowtran(%s), recordtransid(%s), pTransCB(%x)",
+                    recordID._extent, recordID._offset, isDeleting, 
+                    pRecord->getFlag(),
+                    pRecord->hasGlobTransID(),
                     dpsTransIDToString( lowTran ).c_str(),
                     dpsTransIDToString( pRecord->getGlobTransID() ).c_str(),
                     pTransCB ) ;
@@ -3802,8 +3804,27 @@ namespace engine
 
             PD_RC_CHECK( rc, PDERROR, "Extent remove record failed, "
                          "rc: %d", rc ) ;
+
+            // delete also need to set the transID
+            if( !pRecord->hasGlobTransID() )
+            {
+               // migrate to V1 record header before we can set transID
+               PD_LOG ( PDDEBUG, 
+                        "In-flight migration of record during delet object(%s) ",
+                        recordRW.toString().c_str() ) ;
+               pRecord->migrateFromV0() ;
+            }
+
+            if( pRecord->hasGlobTransID() )
+            {
+               pRecord->setGlobTransID( transInfo._transID ) ;
+            }
+
             if ( ovfRID.isValid() )
             {
+               SDB_ASSERT( pRecord->hasGlobTransID(), 
+                           "Delete could not in flight migrate OVF record" ) ;
+
                dmsRecordRW ovfRW = record2RW( ovfRID, context->mbID() ) ;
                _extentRemoveRecord( context, extRW, ovfRW, cb, FALSE ) ;
             }
