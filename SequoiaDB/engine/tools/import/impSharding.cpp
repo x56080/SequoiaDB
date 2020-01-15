@@ -270,6 +270,14 @@ namespace import
          goto error;
       }
 
+      if ( !_options->enableSharding() ||
+           _options->batchSize() <= 1 )
+      {
+         // no need to do anything
+         _inited = TRUE ;
+         goto done ;
+      }
+
       rc = _sharding.init(_options->hosts(),
                           _options->user(),
                           _options->password(),
@@ -285,13 +293,11 @@ namespace import
       SDB_ASSERT(_sharding.getGroupNum() >= 0,
                  "groupNum must be greater than or equals 0");
 
-      if (_sharding.getGroupNum() <= 1 ||
-          !_options->enableSharding() ||
-          _options->batchSize() <= 1)
+      if ( _sharding.getGroupNum() <= 1 )
       {
          // no need to do anything
-         _inited = TRUE;
-         goto done;
+         _inited = TRUE ;
+         goto done ;
       }
 
       _worker = SDB_OSS_NEW Worker(_shardingRoutine, this);
