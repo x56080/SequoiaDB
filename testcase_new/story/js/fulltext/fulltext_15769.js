@@ -19,7 +19,7 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var textIndexName = "textIndexName_ES_15769";
    commCreateIndex( dbcl, textIndexName, { about: "text", content: "text" } );
-   commCreateIndex( dbcl, "nameIndex", { name: 1 }, true );
+   commCreateIndex( dbcl, "nameIndex", { name: 1 }, { Unique: true } );
 
    //插入两条包含全文索引和唯一索引字段的记录
    var records = new Array();

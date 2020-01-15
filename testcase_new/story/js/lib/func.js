@@ -275,7 +275,7 @@ function commCreateIndex ( cl, name, indexDef, options, ignoreExist )
    }
    if( typeof ( options ) != "object" )
    {
-      throw new Error( "commCreateIndex: optionsk is not object" );
+      throw new Error( "commCreateIndex: options is not object" );
    }
 
    try
@@ -577,6 +577,11 @@ function commGetCLNodes( db, csName, clName )
    if( typeof ( clName ) != "string" || clName.length == 0 )
    {
       throw new Error( "commGetCLGroups: Invalid clName parameter or clName is empty" );
+   }
+   
+   if( commIsStandalone( db ) )
+   {
+      return [ { "HostName": COORDHOSTNAME, "svcname": COORDSVCNAME } ];
    }
    
    var clGroups = commGetCLGroups( db, csName + "." + clName );

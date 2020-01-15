@@ -19,7 +19,7 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var textIndexName = "textIndexName_ES_15766";
    commCreateIndex( dbcl, textIndexName, { about: "text", content: "text" } );
-   commCreateIndex( dbcl, "contentIndex", { content: 1 }, true );
+   commCreateIndex( dbcl, "contentIndex", { content: 1 }, { Unique: true } );
 
    //插入包含全文索引字段的记录 
    var records = new Array();

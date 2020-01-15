@@ -62,14 +62,13 @@ function main ( db )
    //drop idIndex
    mainCL.dropIdIndex();
    // inspect the index
-   commCheckIndexConsistency( mainCL, "$id", false );
-
+   commCheckIndexConsistency( subCL1, "$id", false );
+   commCheckIndexConsistency( subCL2, "$id", false );
 
    // drop collection in clean   
    commDropCL( db, COMMCSNAME, "subCL1", false, false, "drop colleciton in the end" );
    commDropCL( db, COMMCSNAME, "subCL2", false, false, "drop colleciton in the end" );
    commDropCL( db, COMMCSNAME, clName, false, false, "drop colleciton in the end" );
-
 }
 
 try
