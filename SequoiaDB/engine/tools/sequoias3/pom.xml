@@ -22,7 +22,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.7</java.version>
-        <sequoiadb-driver.version>3.0.1</sequoiadb-driver.version>
+        <sequoiadb-driver.version>3.2.1</sequoiadb-driver.version>
         <commons-codec.version>1.6</commons-codec.version>
         <httpclient.version>4.5.5</httpclient.version>
     </properties>
