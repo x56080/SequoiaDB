@@ -550,14 +550,14 @@ namespace engine
       if ( 1 != numChanged )
       {
          // this node could be GCed
-         if ( _isValid && ( ownerTransID > _lastGCTime ) )
+         if ( _isValid && ( ownerTransID > _lastLowTranID ) )
          {
             PD_LOG( PDWARNING,
                     "Find %d records in index tree(%d) with key[%s], "
-                    "ownerTransID(%llu), _lastGCTime(%llu).\n",
+                    "ownerTransID(%llu), _lastLowTranID(%llu).\n",
                     numChanged, _idxLID,
-                    keyNode.toString().c_str(), 
-                    ownerTransID, _lastGCTime ) ;
+                    keyNode.toString().c_str(),
+                    ownerTransID, _lastLowTranID ) ;
             printTree() ;
             SDB_ASSERT( ( 1 == numChanged ),
                         "Change record number must be 1" ) ;
@@ -918,7 +918,7 @@ namespace engine
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
                "gc memixtree(%d) to lowTran %llu), lastGCtime(%llu)",
-               _idxLID, lowTran, _lastGCTime );
+               _idxLID, lowTran, _lastLowTranID );
 #endif
 
       lockX();
@@ -1521,7 +1521,7 @@ namespace engine
             treePtr->printTree( FALSE ) ;
 #endif
             // NOTE: we need global transaction tag with SN
-            treeLowTran = treePtr->gc( expiredLowTran )
+            treeLowTran = treePtr->gc( expiredLowTran ) ;
 
             if ( treeLowTran < minTreeLowTran )
             {

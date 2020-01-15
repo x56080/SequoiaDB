@@ -295,9 +295,9 @@ namespace engine
       //    - SDB_GLOB_TRANS_NOT_AVAILABLE: global transaction is not enabled
       //    - STP_NOT_AVAILABLE: STP is not available for global transaction
       // NOTE: TransactionID:
-      //       +---------------+-----------+-----------+
-      //       | nodeID(16bit) | TAG(8bit) | SN(56bit) |
-      //       +---------------+-----------+-----------+
+      //       +-----------+-----------+---------------+
+      //       | TAG(8bit) | SN(56bit) | nodeID(16bit) |
+      //       +-----------+-----------+---------------+
       INT32 allocTransID( BOOLEAN isAutoCommit,
                           BOOLEAN isGlobTrans,
                           UINT32 timeout,
