@@ -56,7 +56,7 @@ function main()
    
    if(JSON.stringify(r1) != JSON.stringify(record.toObj()))
    {
-      throw buildException( "", "", "check ru read record", JSON.stringify(r1), JSON.stringify(record.toObj()) ) ;
+      throw new Error( "r1: " + JSON.stringify(r1) + ", record: " + JSON.stringify(record.toObj()) ) ;
    }
    
    //事务中更改事务配置
@@ -69,7 +69,7 @@ function main()
    
    if(JSON.stringify(r1) != JSON.stringify(record.toObj()))
    {
-      throw buildException( "", "", "check ru read record", JSON.stringify(r1), JSON.stringify(record.toObj()) ) ;
+      throw new Error( "r1: " + JSON.stringify(r1) + ", record: " + JSON.stringify(record.toObj()) ) ;
    }
    
    db1.transCommit();
@@ -82,7 +82,7 @@ function main()
    var cursor = cl2.find({"a": 2});
    if(cursor.next())
    {
-      throw buildException( "", "", "check rc read record", "no record", cursor.current().toString() ) ;
+      throw new Error( "record: " + cursor.current().toString() ) ;
    }
    cursor.close();
    
@@ -94,10 +94,8 @@ function main()
    db2.transCommit();
    if(JSON.stringify(r2) != JSON.stringify(record.toObj()))
    {
-      throw buildException( "", "", "check rc read record", JSON.stringify(r2), JSON.stringify(record.toObj()) ) ;
+      throw new Error( "r2: " + JSON.stringify(r2) + ", record: " + JSON.stringify(record.toObj()) ) ;
    }
    
-   
    db.getCS(csName).dropCL(clName);
-   
 }
