@@ -93,9 +93,6 @@ function checkCsvFileLocal ( rtCmd, clName, expDataArr, groupName )
       }
    }
    var cmd = "diff -w " + expCsvFilePath + " " + actCsvFilePath;
-   var diff = rtCmd.run( cmd );
-   if( diff != "" )
-   {
-      throw diff;
-   }
+   //diff比较不一致会直接抛错
+   rtCmd.run( cmd );
 }
