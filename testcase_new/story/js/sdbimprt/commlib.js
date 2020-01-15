@@ -3,7 +3,8 @@
 *@Modify list :
 *                2016/7/14  XiaoNi Huang Init
 *******************************************************************************/
-println();
+import("../lib/main.js");
+
 var testCaseDir = initTestCaseDir();
 var tmpFileDir = WORKDIR + "/sdbimprt/";
 println( "tmpFileDir  = " + tmpFileDir );
