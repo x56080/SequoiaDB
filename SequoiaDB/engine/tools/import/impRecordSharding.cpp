@@ -55,23 +55,132 @@ namespace import
                               BOOLEAN useSSL)
    {
       INT32 rc = SDB_OK;
-      sdbConnectionHandle conn = SDB_INVALID_HANDLE;
-      sdbCursorHandle cursor = SDB_INVALID_HANDLE;
-      bson cataObj;
       INT32 cataCount = 0;
 
       SDB_ASSERT(!_inited, "alreay inited");
 
-      _hosts = &hosts;
-      _user = user;
-      _password = password;
-      _csname = csname;
-      _clname = clname;
-      _useSSL = useSSL;
-      bson_init(&cataObj);
+      _hosts    = &hosts ;
+      _user     = user ;
+      _password = password ;
+      _csname   = csname ;
+      _clname   = clname ;
+      _useSSL   = useSSL ;
+      _collectionName = _csname + "." + _clname ;
 
-      for (vector<Host>::const_iterator it = hosts.begin();
-           it != hosts.end(); it++)
+      //get collection info
+      rc = _getCatalogInfo( FALSE, cataCount ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to get catalog info, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      // no catalog info
+      if ( 0 == cataCount )
+      {
+         _inited = TRUE ;
+         goto done ;
+      }
+
+      rc = _cataAgent.getCataInfo( _collectionName, _cataInfo ) ;
+      if (SDB_OK != rc)
+      {
+         PD_LOG( PDERROR, "failed to get catalog info, rc=%d", rc ) ;
+         goto error;
+      }
+
+      _isMainCL = _cataInfo.isMainCL();
+
+      if ( _isMainCL )
+      {
+         INT32 subGroupNum = 0 ;
+         vector<string> subCLList ;
+
+         //get sub collection info
+         rc = _getCatalogInfo( TRUE, cataCount ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "failed to get catalog info, rc=%d", rc ) ;
+            goto error ;
+         }
+
+         rc = _cataInfo.getSubCLList(subCLList);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get group by record, rc=%d", rc);
+            goto error;
+         }
+
+         for (vector<string>::iterator it = subCLList.begin();
+              it != subCLList.end(); it++)
+         {
+            CataInfo cataInfo;
+            rc = _cataAgent.getCataInfo(*it, cataInfo);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to get catalog info, rc=%d", rc);
+               goto error;
+            }
+
+            subGroupNum += cataInfo.getGroupNum();
+            _subCataInfo[*it] = cataInfo;
+         }
+
+         _groupNum = subGroupNum;
+      }
+      else
+      {
+         _groupNum = _cataInfo.getGroupNum();
+      }
+
+      _inited = TRUE;
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 RecordSharding::_getCatalogInfo( BOOLEAN getSubCL, INT32 &cataCount )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pField = NULL ;
+      sdbConnectionHandle conn = SDB_INVALID_HANDLE ;
+      sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
+      bson cataObj ;
+      bson condition ;
+
+      bson_init( &cataObj ) ;
+      bson_init( &condition ) ;
+
+      if( getSubCL )
+      {
+         pField = FIELD_NAME_MAINCLNAME ;
+      }
+      else
+      {
+         pField = FIELD_NAME_NAME ;
+      }
+
+      if( BSON_ERROR == bson_append_string( &condition, pField,
+                                            _collectionName.c_str() ) )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG( PDERROR, "failed to build catalog condition bson, rc=%d",
+                 rc ) ;
+         goto error ;
+      }
+
+      if( BSON_ERROR == bson_finish( &condition ) )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG( PDERROR, "failed to build catalog condition bson, rc=%d",
+                 rc ) ;
+         goto error;
+      }
+
+      for ( vector<Host>::const_iterator it = _hosts->begin();
+            it != _hosts->end(); ++it )
       {
          const Host& host = *it;
 
@@ -108,7 +217,8 @@ namespace import
             continue;
          }
 
-         rc = sdbGetSnapshot(conn, SDB_SNAP_CATALOG, NULL, NULL, NULL, &cursor);
+         rc = sdbGetSnapshot( conn, SDB_SNAP_CATALOG, &condition,
+                              NULL, NULL, &cursor ) ;
          if (SDB_OK != rc)
          {
             if (SDB_INVALID_HANDLE != cursor)
@@ -137,109 +247,55 @@ namespace import
          break;
       }
 
-      if (SDB_INVALID_HANDLE == cursor)
+      if ( SDB_INVALID_HANDLE == cursor )
       {
-         rc = SDB_OK;
-         PD_LOG(PDWARNING, "failed to get coordinator group");
-         goto done;
+         rc = SDB_OK ;
+         PD_LOG( PDWARNING, "failed to get coordinator group" ) ;
+         goto done ;
       }
 
       for(;;)
       {
-         rc = sdbNext(cursor, &cataObj);
-         if (SDB_OK != rc)
+         rc = sdbNext( cursor, &cataObj ) ;
+         if ( SDB_OK != rc )
          {
-            if (SDB_DMS_EOC == rc)
+            if ( SDB_DMS_EOC == rc )
             {
-               rc = SDB_OK;
-               break;
+               rc = SDB_OK ;
+               break ;
             }
 
-            PD_LOG(PDERROR, "failed to get cataObj from cursor, rc=%d", rc);
-            goto error;
+            PD_LOG( PDERROR, "failed to get cataObj from cursor, rc=%d", rc ) ;
+            goto error ;
          }
 
-         rc = _cataAgent.updateCatalog(bson_data(&cataObj));
-         if (SDB_OK != rc)
+         rc = _cataAgent.updateCatalog( bson_data( &cataObj ) ) ;
+         if ( SDB_OK != rc )
          {
-            PD_LOG(PDERROR, "failed to update catalog agent, rc=%d", rc);
-            goto error;
+            PD_LOG( PDERROR, "failed to update catalog agent, rc=%d", rc ) ;
+            goto error ;
          }
 
-         cataCount++;
+         ++cataCount ;
       }
-
-      // no catalog info
-      if (0 == cataCount)
-      {
-         _inited = TRUE;
-         goto done;
-      }
-
-      _collectionName = _csname + "." + _clname;
-
-      rc = _cataAgent.getCataInfo(_collectionName, _cataInfo);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get catalog info, rc=%d", rc);
-         goto error;
-      }
-
-      _isMainCL = _cataInfo.isMainCL();
-
-      if (_cataInfo.isMainCL())
-      {
-         vector<string> subCLList;
-         INT32 subGroupNum = 0;
-
-         rc = _cataInfo.getSubCLList(subCLList);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get group by record, rc=%d", rc);
-            goto error;
-         }
-
-         for (vector<string>::iterator it = subCLList.begin();
-              it != subCLList.end(); it++)
-         {
-            CataInfo cataInfo;
-            rc = _cataAgent.getCataInfo(*it, cataInfo);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to get catalog info, rc=%d", rc);
-               goto error;
-            }
-
-            subGroupNum += cataInfo.getGroupNum();
-            _subCataInfo[*it] = cataInfo;
-         }
-
-         _groupNum = subGroupNum;
-      }
-      else
-      {
-         _groupNum = _cataInfo.getGroupNum();
-      }
-
-      _inited = TRUE;
 
    done:
-      bson_destroy(&cataObj);
-      if (SDB_INVALID_HANDLE != cursor)
+      bson_destroy( &cataObj ) ;
+      if ( SDB_INVALID_HANDLE != cursor )
       {
-         sdbCloseCursor(cursor);
-         sdbReleaseCursor(cursor);
-         cursor = SDB_INVALID_HANDLE;
+         sdbCloseCursor( cursor ) ;
+         sdbReleaseCursor( cursor ) ;
+         cursor = SDB_INVALID_HANDLE ;
       }
-      if (SDB_INVALID_HANDLE != conn)
+      if ( SDB_INVALID_HANDLE != conn )
       {
-         sdbDisconnect(conn);
-         sdbReleaseConnection(conn);
-         conn = SDB_INVALID_HANDLE;
+         sdbDisconnect( conn ) ;
+         sdbReleaseConnection( conn ) ;
+         conn = SDB_INVALID_HANDLE ;
       }
-      return rc;
+      return rc ;
    error:
-      goto done;
+      goto done ;
    }
 
    INT32 RecordSharding::getGroupByRecord(bson* record,

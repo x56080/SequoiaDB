@@ -60,6 +60,9 @@ namespace import
       INT32 getGroupByRecord(bson* record, string& collection, UINT32& groupId);
 
    private:
+      INT32 _getCatalogInfo( BOOLEAN getSubCL, INT32 &cataCount ) ;
+
+   private:
       const vector<Host>*     _hosts;
       string                  _user;
       string                  _password;
