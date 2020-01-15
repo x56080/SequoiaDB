@@ -1,23 +1,9 @@
 package com.sequoias3.config;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.util.DateUtils;
-import com.sequoias3.region.GetRegionResult;
-import com.sequoias3.region.Region;
-import com.sequoias3.testcommon.CommLib;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.TestRest;
-import com.sequoias3.testcommon.TestTools;
-import com.sequoias3.testcommon.s3utils.DelimiterUtils;
-import com.sequoias3.testcommon.s3utils.ObjectUtils;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
-import com.sequoias3.testcommon.s3utils.UserUtils;
-import com.sequoias3.user.UserCommDefind;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.XML;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +13,22 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.sequoias3.testcommon.CommLib;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.TestRest;
+import com.sequoias3.testcommon.TestTools;
+import com.sequoias3.testcommon.s3utils.DelimiterUtils;
+import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
+import com.sequoias3.testcommon.s3utils.bean.ListRegionResult;
+import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import com.sequoias3.testcommon.s3utils.bean.Region;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
+import com.sequoias3.testcommon.s3utils.UserUtils;
+import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
 
 /**
  * test content: 开启鉴权，执行区域管理操作 testlink-case: seqDB-18590
@@ -168,7 +167,8 @@ public class CreateRegion18590 extends S3TestBase {
                 .withDataDomain( domainNames[ 0 ] )
                 .withMetaDomain( domainNames[ 1 ] ).withName( regionName2 )
                 .withDataLocation( "" ).withMetaHisLocation( "" )
-                .withMetaLocation( "" );
+                .withMetaLocation( "" ).withDataLobPageSize( "262144" )
+                .withDataReplSize( "-1" );
 
         Region region = result.getRegion();
         Assert.assertEquals( region.toString(), expRegion.toString(),
@@ -268,75 +268,26 @@ public class CreateRegion18590 extends S3TestBase {
     private List<String> listRegions( String authorization ) throws Exception {
         TestRest rest = new TestRest();
         ResponseEntity<?> resp;
-        List<String> listResult;
         try {
             resp = rest.setApi( "/region/?Action=ListRegions" )
                     .setRequestHeaders( UserCommDefind.authorization,
                             authorization ).setRequestMethod( HttpMethod.POST )
                     .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
-            JSONObject jsonBody = XML.toJSONObject( xmlBody );
-            JSONObject regions = jsonBody
-                    .getJSONObject( "ListAllRegionsResult" );
-            Object object = regions.get( "Region" );
-            listResult = new ArrayList<>();
-            if ( object instanceof JSONArray ) {
-                JSONArray array = ( JSONArray ) object;
-                for ( int i = 0; i < array.length(); i++ ) {
-                    listResult.add( array.getString( i ) );
-                }
-            } else {
-                listResult.add( object.toString() );
-            }
+            XmlMapper xmlMapper = new XmlMapper();
+            xmlMapper.setSerializationInclusion( JsonInclude.Include.NON_NULL );
+            return xmlMapper.readValue( xmlBody, ListRegionResult.class )
+                    .getRegions();
         } catch ( HttpClientErrorException e ) {
             throw DelimiterUtils.httpToAmazon( e );
         }
-        return listResult;
     }
 
-    private GetRegionResult stringToObject( String xmlBody ) {
-        JSONObject jsonBody = XML.toJSONObject( xmlBody );
-        JSONObject subjsonBody = jsonBody
-                .getJSONObject( "RegionConfiguration" );
-        Region region = new Region();
-        region.withName( subjsonBody.getString( "Name" ) );
-        region.withDataCSShardingType(
-                subjsonBody.getString( "DataCSShardingType" ) );
-        region.withDataCLShardingType(
-                subjsonBody.getString( "DataCLShardingType" ) );
-        region.withDataDomain( subjsonBody.getString( "DataDomain" ) );
-        region.withMetaDomain( subjsonBody.getString( "MetaDomain" ) );
-        region.withDataLocation( subjsonBody.getString( "DataLocation" ) );
-        region.withMetaLocation( subjsonBody.getString( "MetaLocation" ) );
-        region.withMetaHisLocation(
-                subjsonBody.getString( "MetaHisLocation" ) );
-        GetRegionResult result = new GetRegionResult( region );
-        List<Bucket> buckets = new ArrayList<>();
-        Object objects = subjsonBody.get( "Buckets" );
-        if ( objects instanceof JSONObject ) {
-            JSONObject jsonObject = ( JSONObject ) objects;
-            Object jsonObjectBucket = jsonObject.get( "Bucket" );
-            if ( jsonObjectBucket instanceof JSONArray ) {
-                JSONArray jsonArray = ( JSONArray ) jsonObjectBucket;
-                for ( int i = 0; i < jsonArray.length(); i++ ) {
-                    Bucket bucket = new Bucket();
-                    JSONObject subjsonObject = jsonArray.getJSONObject( i );
-                    bucket.setName( subjsonObject.getString( "Name" ) );
-                    bucket.setCreationDate( DateUtils.parseISO8601Date(
-                            subjsonObject.getString( "CreationDate" ) ) );
-                    buckets.add( bucket );
-                }
-            } else {
-                JSONObject json = ( JSONObject ) jsonObjectBucket;
-                Bucket bucket = new Bucket();
-                bucket.setName( json.getString( "Name" ) );
-                bucket.setCreationDate( DateUtils
-                        .parseISO8601Date( json.getString( "CreationDate" ) ) );
-                buckets.add( bucket );
-            }
-        }
-        result.setBuckets( buckets );
-        return result;
+    private GetRegionResult stringToObject( String xmlBody )
+            throws IOException {
+        XmlMapper xmlMapper = new XmlMapper();
+        xmlMapper.setSerializationInclusion( JsonInclude.Include.NON_NULL );
+        return xmlMapper.readValue( xmlBody, GetRegionResult.class );
     }
 
     private AmazonS3Exception httpToAmazonHead( HttpClientErrorException e ) {

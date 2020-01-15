@@ -9,7 +9,7 @@ import com.sequoias3.testcommon.TestRest;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.DelimiterUtils;
 import com.sequoias3.testcommon.s3utils.UserUtils;
-import com.sequoias3.user.UserCommDefind;
+import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
 import org.json.JSONObject;
 import org.json.XML;
 import org.springframework.http.HttpMethod;

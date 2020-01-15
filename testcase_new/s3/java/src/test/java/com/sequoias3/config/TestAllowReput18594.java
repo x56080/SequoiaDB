@@ -1,16 +1,17 @@
 package com.sequoias3.config;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.sequoias3.region.Region;
-import com.sequoias3.testcommon.CommLib;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
-import com.sequoias3.testcommon.s3utils.UserUtils;
-import com.sequoias3.user.UserCommDefind;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.amazonaws.services.s3.AmazonS3;
+import com.sequoias3.testcommon.CommLib;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
+import com.sequoias3.testcommon.s3utils.UserUtils;
+import com.sequoias3.testcommon.s3utils.bean.Region;
+import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
 
 /**
  * test content: 配置允许重复创建桶，创建相同桶 testlink-case: seqDB-18594

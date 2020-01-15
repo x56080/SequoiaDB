@@ -1,11 +1,8 @@
 package com.sequoias3.config;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.TestRest;
-import com.sequoias3.testcommon.s3utils.DelimiterUtils;
-import com.sequoias3.testcommon.s3utils.UserUtils;
-import com.sequoias3.user.UserCommDefind;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -15,8 +12,12 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.TestRest;
+import com.sequoias3.testcommon.s3utils.DelimiterUtils;
+import com.sequoias3.testcommon.s3utils.UserUtils;
+import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
 
 /**
  * test content: 开启鉴权，authorization头部非法格式校验testlink-case: seqDB-18591

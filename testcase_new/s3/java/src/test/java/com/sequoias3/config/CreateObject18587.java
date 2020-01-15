@@ -1,16 +1,13 @@
 package com.sequoias3.config;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.sequoias3.delimiter.DelimiterConfiguration;
-import com.sequoias3.testcommon.CommLib;
-import com.sequoias3.testcommon.RestClient;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.TestRest;
-import com.sequoias3.testcommon.TestTools;
-import com.sequoias3.testcommon.s3utils.DelimiterUtils;
-import com.sequoias3.testcommon.s3utils.ObjectUtils;
-import com.sequoias3.testcommon.s3utils.UserUtils;
-import com.sequoias3.user.UserCommDefind;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
@@ -32,13 +29,17 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.amazonaws.services.s3.AmazonS3;
+import com.sequoias3.testcommon.CommLib;
+import com.sequoias3.testcommon.RestClient;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.TestRest;
+import com.sequoias3.testcommon.TestTools;
+import com.sequoias3.testcommon.s3utils.DelimiterUtils;
+import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import com.sequoias3.testcommon.s3utils.UserUtils;
+import com.sequoias3.testcommon.s3utils.bean.DelimiterConfiguration;
+import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
 
 /**
  * test content: 开启鉴权，执行对象管理操作 testlink-case: seqDB-18587

@@ -1,12 +1,14 @@
 package com.sequoias3.region;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
+import com.sequoias3.testcommon.s3utils.bean.Region;
 
 /**
  * @Description seqDB-17311: create Region and specify all config.

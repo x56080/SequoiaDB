@@ -2,6 +2,7 @@ package com.sequoias3.region;
 
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.s3utils.bean.Region;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;

@@ -1,19 +1,22 @@
 package com.sequoias3.region;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.sequoias3.testcommon.CommLib;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.TestTools;
-import com.sequoias3.testcommon.s3utils.ObjectUtils;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
+import java.io.File;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.amazonaws.services.s3.AmazonS3;
+import com.sequoias3.testcommon.CommLib;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.TestTools;
+import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
+import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
+import com.sequoias3.testcommon.s3utils.bean.Region;
 
 /**
  * @Description seqDB-17298: create Region and specify set DataCSShardingType.

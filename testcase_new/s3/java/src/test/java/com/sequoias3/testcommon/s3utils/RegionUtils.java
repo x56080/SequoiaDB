@@ -1,5 +1,6 @@
 package com.sequoias3.testcommon.s3utils;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -8,7 +9,6 @@ import java.util.List;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.XML;
 import org.springframework.http.HttpMethod;
@@ -19,16 +19,17 @@ import org.testng.Assert;
 import org.testng.SkipException;
 
 import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.util.DateUtils;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoias3.region.GetRegionResult;
-import com.sequoias3.region.Region;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestRest;
-import com.sequoias3.user.UserCommDefind;
+import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
+import com.sequoias3.testcommon.s3utils.bean.ListRegionResult;
+import com.sequoias3.testcommon.s3utils.bean.Region;
+import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
 
 public class RegionUtils extends S3TestBase {
     private static MediaType type = MediaType
@@ -154,7 +155,6 @@ public class RegionUtils extends S3TestBase {
             throws Exception {
         TestRest rest = new TestRest();
         ResponseEntity< ? > resp;
-        List< String > listResult;
         try {
             resp = rest.setApi( "/region/?Action=ListRegions" )
                     .setRequestHeaders( UserCommDefind.authorization,
@@ -162,74 +162,20 @@ public class RegionUtils extends S3TestBase {
                     .setRequestMethod( HttpMethod.POST )
                     .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
-            JSONObject jsonBody = XML.toJSONObject( xmlBody );
-            JSONObject regions = jsonBody
-                    .getJSONObject( "ListAllRegionsResult" );
-            Object object = regions.get( "Region" );
-            listResult = new ArrayList<>();
-            if ( object instanceof JSONArray ) {
-                JSONArray array = ( JSONArray ) object;
-                for ( int i = 0; i < array.length(); i++ ) {
-                    listResult.add( array.getString( i ) );
-                }
-            } else {
-                listResult.add( object.toString() );
-            }
+            XmlMapper xmlMapper = new XmlMapper();
+            xmlMapper.setSerializationInclusion( JsonInclude.Include.NON_NULL );
+            return xmlMapper.readValue( xmlBody, ListRegionResult.class )
+                    .getRegions();
         } catch ( HttpClientErrorException e ) {
             throw httpToAmazon( e );
         }
-        return listResult;
     }
 
-    private static GetRegionResult stringToObject( String xmlBody ) {
-        JSONObject jsonBody = XML.toJSONObject( xmlBody );
-        JSONObject subjsonBody = jsonBody
-                .getJSONObject( "RegionConfiguration" );
-        Region region = new Region();
-        region.withName( String.valueOf( subjsonBody.get( "Name" ) ) );
-        region.withDataCSShardingType(
-                subjsonBody.getString( "DataCSShardingType" ) );
-        region.withDataCLShardingType(
-                subjsonBody.getString( "DataCLShardingType" ) );
-        region.withDataDomain( subjsonBody.getString( "DataDomain" ) );
-        region.withDataLobPageSize(
-                String.valueOf( subjsonBody.get( "DataLobPageSize" ) ) );
-        region.withDataReplSize(
-                String.valueOf( subjsonBody.get( "DataReplSize" ) ) );
-        region.withMetaDomain( subjsonBody.getString( "MetaDomain" ) );
-        region.withDataLocation( subjsonBody.getString( "DataLocation" ) );
-        region.withMetaLocation( subjsonBody.getString( "MetaLocation" ) );
-        region.withMetaHisLocation(
-                subjsonBody.getString( "MetaHisLocation" ) );
-        region.withDataCSRange( subjsonBody.getInt( "DataCSRange" ) );
-        GetRegionResult result = new GetRegionResult( region );
-        List< Bucket > buckets = new ArrayList<>();
-        Object objects = subjsonBody.get( "Buckets" );
-        if ( objects instanceof JSONObject ) {
-            JSONObject jsonObject = ( JSONObject ) objects;
-            Object jsonObjectBucket = jsonObject.get( "Bucket" );
-            if ( jsonObjectBucket instanceof JSONArray ) {
-                JSONArray jsonArray = ( JSONArray ) jsonObjectBucket;
-                for ( int i = 0; i < jsonArray.length(); i++ ) {
-                    Bucket bucket = new Bucket();
-                    JSONObject subjsonObject = jsonArray.getJSONObject( i );
-                    bucket.setName(
-                            String.valueOf( subjsonObject.get( "Name" ) ) );
-                    bucket.setCreationDate( DateUtils.parseISO8601Date(
-                            subjsonObject.getString( "CreationDate" ) ) );
-                    buckets.add( bucket );
-                }
-            } else {
-                JSONObject json = ( JSONObject ) jsonObjectBucket;
-                Bucket bucket = new Bucket();
-                bucket.setName( String.valueOf( json.get( "Name" ) ) );
-                bucket.setCreationDate( DateUtils
-                        .parseISO8601Date( json.getString( "CreationDate" ) ) );
-                buckets.add( bucket );
-            }
-        }
-        result.setBuckets( buckets );
-        return result;
+    private static GetRegionResult stringToObject( String xmlBody )
+            throws IOException {
+        XmlMapper xmlMapper = new XmlMapper();
+        xmlMapper.setSerializationInclusion( JsonInclude.Include.NON_NULL );
+        return xmlMapper.readValue( xmlBody, GetRegionResult.class );
     }
 
     public static AmazonS3Exception httpToAmazon( HttpClientErrorException e ) {

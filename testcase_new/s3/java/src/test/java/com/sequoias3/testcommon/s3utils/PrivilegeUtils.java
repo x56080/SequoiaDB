@@ -7,7 +7,7 @@ import com.amazonaws.services.s3.model.Grant;
 import com.amazonaws.services.s3.model.SetObjectAclRequest;
 import com.sequoias3.testcommon.RestClient;
 import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.user.UserCommDefind;
+import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
 import org.apache.http.client.methods.HttpPut;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;

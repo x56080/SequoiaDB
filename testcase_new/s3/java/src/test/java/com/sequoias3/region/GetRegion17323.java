@@ -1,16 +1,18 @@
 package com.sequoias3.region;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.sequoias3.testcommon.CommLib;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
-import com.sequoias3.testcommon.s3utils.UserUtils;
-import com.sequoias3.user.UserCommDefind;
 import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.sequoias3.testcommon.CommLib;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.s3utils.bean.Region;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
+import com.sequoias3.testcommon.s3utils.UserUtils;
+import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
 
 /**
  * @Description: seqDB-17323 :: 非管理员用户获取区域信息

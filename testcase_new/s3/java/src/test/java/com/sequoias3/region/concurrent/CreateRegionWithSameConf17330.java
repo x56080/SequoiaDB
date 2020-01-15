@@ -1,20 +1,21 @@
 package com.sequoias3.region.concurrent;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.sequoias3.region.Region;
-import com.sequoias3.testcommon.CommLib;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.TestTools;
-import com.sequoias3.testcommon.s3utils.ObjectUtils;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
+
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.List;
+import com.amazonaws.services.s3.AmazonS3;
+import com.sequoias3.testcommon.CommLib;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.TestTools;
+import com.sequoias3.testcommon.s3utils.ObjectUtils;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
+import com.sequoias3.testcommon.s3utils.bean.Region;
 
 /**
  * @Description seqDB-17330: concurrent create Region and specify the same cs

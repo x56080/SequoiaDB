@@ -2,6 +2,8 @@ package com.sequoias3.user;
 
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.UserUtils;
+import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
+
 import org.json.JSONObject;
 import org.json.XML;
 import org.springframework.web.client.HttpClientErrorException;

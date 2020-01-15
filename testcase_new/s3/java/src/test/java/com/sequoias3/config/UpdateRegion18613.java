@@ -1,14 +1,15 @@
 package com.sequoias3.config;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.sequoias3.region.GetRegionResult;
-import com.sequoias3.region.Region;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
+import com.sequoias3.testcommon.s3utils.bean.Region;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
 
 /**
  * test content: 更新指定模式区域配置DataLobPageSize和DataReplSize testlink-case:

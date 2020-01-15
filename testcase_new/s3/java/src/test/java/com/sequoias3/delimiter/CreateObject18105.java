@@ -1,7 +1,7 @@
 package com.sequoias3.delimiter;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.sequoias3.region.Region;
+import com.sequoias3.testcommon.s3utils.bean.Region;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;

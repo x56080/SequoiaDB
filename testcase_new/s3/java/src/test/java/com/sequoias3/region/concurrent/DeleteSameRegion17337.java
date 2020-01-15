@@ -1,7 +1,7 @@
 package com.sequoias3.region.concurrent;
 
 import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.sequoias3.region.Region;
+import com.sequoias3.testcommon.s3utils.bean.Region;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.S3ThreadBase;
 import com.sequoias3.testcommon.s3utils.RegionUtils;

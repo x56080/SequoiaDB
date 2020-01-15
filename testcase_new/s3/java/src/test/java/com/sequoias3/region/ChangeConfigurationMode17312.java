@@ -1,13 +1,15 @@
 package com.sequoias3.region;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.s3utils.bean.Region;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
 
 /**
  * test content: 创建和更新区域配置方式不同 testlink-case: seqDB-17312

@@ -5,6 +5,8 @@ import com.amazonaws.services.s3.model.Bucket;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.UserUtils;
+import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.XML;
