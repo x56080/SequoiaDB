@@ -231,9 +231,10 @@ namespace engine
    private:
 
       INT32    saveOldVersionRecord( const _dmsRecordRW *pRecordRW,
-                                     const dmsRecordID &rid,
-                                     const BSONObj &obj,
-                                     UINT32 ownerTID ) ;
+                                     const dmsRecordID  &rid,
+                                     const UINT32        clLID,
+                                     const BSONObj      &obj,
+                                     const UINT32        ownerTID ) ;
 
       INT32    saveOldVersionRecordToRBS( const _dmsRecordRW *pRecordRW,
                                      const dmsRecordID &rid,

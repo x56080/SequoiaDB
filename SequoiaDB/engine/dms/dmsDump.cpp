@@ -1396,9 +1396,11 @@ namespace engine
       // Dump lsn and transaction ID for dmsRecord_v1
       if ( OSS_BIT_TEST( flag, DMS_RECORD_FLAG_HASGLOBTRANSID ) )
       {
+/*
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       LSN offset   : 0x%08x (%llu)"OSS_NEWLINE,
                               record->_lsnOffset, record->_lsnOffset ) ;
+*/
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       Trans ID     : %s"OSS_NEWLINE,
                               dpsTransIDToString(
@@ -1503,9 +1505,11 @@ namespace engine
       // Dump transaction ID for dmsRecord_v1
       if ( OSS_BIT_TEST( flag, DMS_RECORD_FLAG_HASGLOBTRANSID ) )
       {
+/*
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       LSN offset   : 0x%08x (%llu)"OSS_NEWLINE,
                               record->_lsnOffset, record->_lsnOffset ) ;
+*/
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "       Trans ID     : %s"OSS_NEWLINE,
                               dpsTransIDToString(

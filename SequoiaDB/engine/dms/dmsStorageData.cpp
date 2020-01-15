@@ -314,6 +314,18 @@ namespace engine
                         recordRW.toString().c_str() ) ;
                pOvfRecord->migrateFromV0() ;
             }
+
+            if ( !(pRecord->hasGlobTransID()) )
+            {
+               // FIXME: need to figure out solution on this. Otherwise we
+               // have to always force read of the OVT record to determin
+               // if a record can be used
+               PD_LOG ( PDERROR, 
+                        "Update could not in-flight migrate on OVF record(%s)",
+                        recordRW.toString().c_str() ) ;
+               SDB_ASSERT ( FALSE, 
+                            "Update failed to migrate existing OVF record." ) ;
+            }
          }
 
          // if the current space is big enough for the whole record,
@@ -408,7 +420,7 @@ namespace engine
                goto error ;
             }
             // set the create LSN to the ovf record create lsn
-            pNewRecord->setLSNOffset( pRecord->getLSNOffset() ) ;
+           // pNewRecord->setLSNOffset( pRecord->getLSNOffset() ) ;
             // set remote record as overflowed to
             pNewRecord->setOvt() ;
             if ( ovfRID.isValid() )

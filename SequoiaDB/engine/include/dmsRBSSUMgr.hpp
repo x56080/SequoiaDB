@@ -62,16 +62,6 @@ namespace engine
                              DMS_RBS_NAME_PATTERN,         \
                              SDB_DMSRBS_NAME, cl )
 
-   #define DMS_RBS_FLUSH_OPTION_MASK         ( (UINT16)0x0F )
-   #define DMS_RBS_FLUSH_OPTION_COLLECTIONS  ( (UINT16)0x01 )
-   #define DMS_RBS_FLUSH_OPTION_HASHBKT      ( (UINT16)0x02 )
-   
-   // total number of meta record SYSRBS0000 has
-   // currently has 2:
-   // first holds _currentCollection and _lastFreeCollection
-   // second holds the whole in memory bucket
-   #define DMS_RBS_NUM_META_RECORDS    2
-
    // record offset within RBS
    class dmsRBSOffset
    {
@@ -172,23 +162,26 @@ namespace engine
    private :
 
       // The collection currently in use and the previously freed collecion
-      // These are basically in memory version of the meta record stored
-      // in SYSRBS0000. it's for quick look up of current value so we 
-      // can directly use the collection.
-      // They are protected by metaCL's mbLatch
-      UINT16  _currentCollection ;
-      UINT16  _lastFreeCollection ;
+      // They are protected by _latch. Protocol as following:
+      //    Read of the two fields require _latch in S;
+      //    Update of them require X. 
+      //    Creation/drop on new RBSCL require the latch in X so that there
+      //    is only one guy creating new RBSCL or drop expired CLs.
+      UINT16          _currentCollection ;
+      UINT16          _lastFreeCollection ;
+      _ossSpinSLatch  _latch ;
 
       // The max size of each collection
-      UINT32  _maxCollectionSize ;
+      UINT32          _maxCollectionSize ;
 
       // Number of active GC thread
-      ossAtomic32  _numActiveGC ;
+      ossAtomic32     _numActiveGC ;
 
-      CHAR _metaCLName[30] ;
+      CHAR            _metaCLName[30] ;
 
       // The hash bucket to point to the head of the record. 
-      _dmsRBSHashBkt    _rbsRecordBkt ;
+      _dmsRBSHashBkt  _rbsRecordBkt ;
+ 
    public :
       _dmsRBSSUMgr ( _SDB_DMSCB *dmsCB ) ;
 
@@ -197,31 +190,21 @@ namespace engine
       SINT32 init() ;
       SINT32 fini() ;
 
-      SINT32 release ( _dmsMBContext *&context ) ;
-
-      SINT32 reserve ( _dmsMBContext **ppContext, UINT64 eduID ) ;
-
-      SINT32 loadMeta () ;
-      SINT32 loadHashBkt( dmsMBContext *context ) ;
-      SINT32 flushMeta( UINT16        curCL,
-                        UINT16        lastFreeCL,
-                        SDB_DPSCB    *dpsCB,
-                        UINT16        flushOption,
-                        dmsMBContext *context = NULL ) ;
-
-      SINT32 appendRecord ( dmsStorageUnitID  csid,
-                            UINT16            clid,
-                            DPS_LSN_OFFSET    lsn,
+      SINT32 appendRecord ( dmsStorageUnitID   csid,
+                            UINT16             clid,
+                            //DPS_LSN_OFFSET    lsn,
+                            UINT32             clLID,
                             const dmsRecordID &rid,
-                            DPS_TRANS_ID      recordTransid,
-                            DPS_TRANS_ID      ownerTransid,
+                            DPS_TRANS_ID      &recordTransid,
+                            DPS_TRANS_ID      &ownerTransid,
                             const BSONObj     &obj );
 
       SINT32 getRecord ( dmsStorageUnitID  csid,
                          UINT16            clid,
-                         DPS_LSN_OFFSET    &lsn,
+                         //DPS_LSN_OFFSET    &lsn,
+                         UINT32            clLID,
                          dmsRecordID      &rid,
-                         DPS_TRANS_ID      transid,
+                         DPS_TRANS_ID     &transid,
                          BOOLEAN          &found,
                          dmsRecordData    &record ) ; 
       void gcRBS ( ) ;
@@ -232,22 +215,15 @@ namespace engine
 
    private:
 
-      SINT32 _getMeta ( UINT16 &curCL,
-                        UINT16 &lastFreeCL,
-                        dmsMBContext *context  ) ;
-
       SINT32 _initRBSCS( pmdEDUCB *eduCB, SDB_DPSCB * dpsCB ) ;
 
-      // release a collection
-      SINT32 _release ( ) ;
+      void  _latchX() { _latch.get() ; }
 
-      SINT32 _rebuildHashBktFromCL( dmsMBContext *context ) ;
+      void  _releaseX() { _latch.release() ; }
 
-      // insert the meta record during create
-      SINT32 _insertMeta ( UINT16 curCL,
-                           UINT16 lastFreeCL,
-                           dmsMBContext *context,
-                           SDB_DPSCB * dpsCB ) ;
+      void  _latchS() { _latch.get_shared() ; }
+
+      void  _releaseS() { _latch.release_shared() ; }
 
       // based on csId, clID and rid to hash to a bucket
       OSS_INLINE UINT32 _hash ( dmsStorageUnitID   _csID ,

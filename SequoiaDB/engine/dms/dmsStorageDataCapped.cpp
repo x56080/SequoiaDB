@@ -1178,15 +1178,16 @@ namespace engine
          PD_LOG( PDDEBUG, 
                  "insert record (recordsize=%d, Bson obj size=%d) to capped cl,"
                  "with flag(%d) logicalid(%lld), rid(%d, %d), "
-                 "recsize(%d),reclogicID(%lld), recTransID(%s), recLSN(%llu)",
+                 "recsize(%d),reclogicID(%lld), recTransID(%s)",
+                 //"recLSN(%llu)",
                  recordSize, recordData.len(), (*lidPtr), 
                  pRecord->getFlag(),
                  recordRW.getRecordID()._extent, 
                  recordRW.getRecordID()._offset,
                  pRecord->getSize(),
                  pRecord->getLogicalID(),
-                 dpsTransIDToString( pRecord->getGlobTransID() ).c_str(),
-                 pRecord->getLSNOffset() ) ;
+                 dpsTransIDToString( pRecord->getGlobTransID() ).c_str() );
+                 //pRecord->getLSNOffset() ) ;
 #endif
       }
 
