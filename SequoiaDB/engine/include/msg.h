@@ -784,7 +784,6 @@ typedef struct _MsgOpTransCommitPre
 {
    MsgHeader header ;
    UINT64    preCommitTime ;
-   UINT32    preCommitTimeError ;
    UINT32    nodeNum ;
    UINT64    nodes[0] ;
 } MsgOpTransCommitPre;

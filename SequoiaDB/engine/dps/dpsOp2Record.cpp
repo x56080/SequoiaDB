@@ -104,38 +104,6 @@ namespace engine
    }
 
    /// warning: any value can not be value-passed.
-   static INT32 dpsPushTransTime( const UINT64 &transTime,
-                                  const UINT32 &transTimeError,
-                                  dpsLogRecord &record )
-   {
-      INT32 rc = SDB_OK ;
-
-      // add time component
-      rc = record.push( DPS_LOG_PUBLIC_TRANS_TIME,
-                        sizeof( transTime ),
-                        (const CHAR *)( &transTime ) ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-      // add time error component
-      rc = record.push( DPS_LOG_PUBLIC_TRANS_TIME_ERROR,
-                        sizeof( transTimeError ),
-                        (const CHAR *)( &transTimeError ) ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   /// warning: any value can not be value-passed.
    static INT32 dpsPushTran( const dpsRecordTransInfo &transInfo,
                              dpsLogRecord &record )
    {
@@ -1781,9 +1749,12 @@ namespace engine
            ( DPS_TS_COMMIT_ATTR_PRE == attr ||
              transInfo._transID.isAutoCommit() ) )
       {
-         rc = dpsPushTransTime( transInfo._preCommitTime,
-                                transInfo._preCommitTimeError,
-                                record ) ;
+         // add time component
+         // NOTE: time error for pre-commit, ( will reuse time error of
+         //       transaction begin time
+         rc = record.push( DPS_LOG_PUBLIC_TRANS_TIME,
+                           sizeof( transInfo._preCommitTime ),
+                           (const CHAR *)( &( transInfo._preCommitTime ) ) ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -3070,6 +3041,8 @@ namespace engine
       //   transaction
       // - transaction pre-commit time: which is in record of transaction
       //   commit
+      // NOTE: no time error for pre-commit record, which will reuse time error
+      //       of transaction begin time
       if ( LOG_TYPE_TS_COMMIT == record.head()._type )
       {
          // pre-commit or auto-commit DPS record of global transaction has
@@ -3088,17 +3061,6 @@ namespace engine
             goto error ;
          }
          time.setTime( *( (UINT64 *)( itr.value() ) ) ) ;
-
-         // get time error component
-         itr = record.find( DPS_LOG_PUBLIC_TRANS_TIME_ERROR ) ;
-         if ( !itr.valid() )
-         {
-            PD_LOG( PDERROR, "Failed to get transaction time error for "
-                    "commit record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         time.setTimeError( *( (UINT32 *)( itr.value() ) ) ) ;
       }
       else if ( transID.isFirstOp() )
       {
@@ -3115,7 +3077,7 @@ namespace engine
             goto error ;
          }
          // transaction time is compacted in transID
-         time.setTime( (UINT64)( transID.getRawSN() ) ) ;
+         time.setTime( transID.getLogicalTime() ) ;
          time.setTimeError( *( (UINT32 *)( itr.value() ) ) ) ;
       }
 

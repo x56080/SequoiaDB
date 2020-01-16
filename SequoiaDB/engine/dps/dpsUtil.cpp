@@ -94,7 +94,7 @@ namespace engine
 
       ossSnprintf( pBuff, bufSize, "0x%04x%014llx%s",
                    transID.getNodeID(),
-                   transID.getRawSN(),
+                   transID.getGlobSN(),
                    transID.isGlobTrans() ? "(Global)" : "" ) ;
 
       return pBuff ;

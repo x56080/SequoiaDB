@@ -58,7 +58,7 @@ namespace engine
 {
 
    dpsTransCB::dpsTransCB()
-   :_TransIDL48Cur( 1 ) ,
+   :_TransIDL56Cur( 1 ) ,
     _MapMutex( MON_LATCH_DPSTRANSCB_MAPMUTEX ),
     _CBMapMutex( MON_LATCH_DPSTRANSCB_CBMAPMUTEX ),
     _lsnMapMutex( MON_LATCH_DPSTRANSCB_LSNMAPMUTEX ),
@@ -70,7 +70,8 @@ namespace engine
     _errCount( 0LL ),
     _primaryActiveTime( 0LL )
     _globLowTran( DPS_INVALID_TRANSID_SN ),
-    _archivedLowTran( DPS_INVALID_TRANSID_SN )
+    _archivedLowTran( DPS_INVALID_TRANSID_SN ),
+    _numTransIDConflict( 0LL )
    {
       _TransIDH16          = DPS_INVALID_TRANSID_NODEID ;
       _isOn                = FALSE ;
@@ -120,7 +121,7 @@ namespace engine
       // isolation level (TRANS_ISOLATION_RC)
       if( _isOn )
       {
-         _TransIDL48Cur.init( ossRand() ) ;
+         _TransIDL56Cur.init( ossRand() ) ;
 
          // create trans lock manager
          _transLockMgr = SDB_OSS_NEW dpsTransLockManager( LOCKMGR_TRANS_LOCK ) ;
@@ -198,6 +199,8 @@ namespace engine
 
    INT32 dpsTransCB::deactive ()
    {
+      PD_LOG( PDEVENT, "Counts of transID conflicts [%llu]",
+              _numTransIDConflict ) ;
       return SDB_OK ;
    }
 
@@ -268,8 +271,8 @@ namespace engine
       {
          // allocate serial number by atomic for non-global transaction
          do {
-            newTransID.resetSN( _TransIDL48Cur.inc() ) ;
-         }  while ( 0 == newTransID.getRawSN() ) ;
+            newTransID.resetSN( _TransIDL56Cur.inc() ) ;
+         }  while ( 0 == newTransID.getSN() ) ;
       }
 
       // set node ID
@@ -971,6 +974,9 @@ namespace engine
                     transID.isGlobTrans() )
                {
                   it->second._commitTime = transTime ;
+                  // use begin time error as pre-commit time error
+                  it->second._commitTime.setTimeError(
+                        it->second._beginTime.getTimeError() ) ;
                }
             }
             else

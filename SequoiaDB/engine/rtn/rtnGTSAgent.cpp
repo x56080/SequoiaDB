@@ -47,10 +47,10 @@ using namespace bson ;
 namespace engine
 {
 
-   // update lowTran for each 30 seconds
+   // update lowTran for each 10 seconds
    // NOTE: so global lowTran from different nodes should be updated in at
-   //       lease 60 seconds in 2 rounds
-   #define RTN_LOWTRAN_WAIT_SEC ( 30 )
+   //       lease 2 rounds
+   #define RTN_LOWTRAN_WAIT_SEC ( 10 )
 
    /*
       _rtnGTSAgent implement

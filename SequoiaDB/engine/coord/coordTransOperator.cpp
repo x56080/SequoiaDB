@@ -728,12 +728,10 @@ namespace engine
          cb->setTransPreCommitTime( time ) ;
 
          pCommitPreMsg->preCommitTime = time.getTime() ;
-         pCommitPreMsg->preCommitTimeError = time.getTimeError() ;
       }
       else
       {
          pCommitPreMsg->preCommitTime = 0LL ;
-         pCommitPreMsg->preCommitTimeError = 0 ;
       }
 
       /// build node info

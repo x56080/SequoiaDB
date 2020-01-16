@@ -202,7 +202,10 @@ namespace engine
          OSS_INLINE void setTransPreCommitTime(
                                     const stpLogicalTimeUS &preCommitTime )
          {
+            // no time error for pre-commit time, will reuse time error of
+            // transaction begin time
             _transPreCommitTime = preCommitTime ;
+            _transPreCommitTime.setTimeError( _transBeginTime.getTimeError() ) ;
          }
 
          /*
