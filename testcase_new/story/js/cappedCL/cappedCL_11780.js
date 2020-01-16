@@ -28,14 +28,20 @@ function test ()
 
    // put Lob
    //32M>lob
+   var recordLength = 65;
+   var recordSize = recordLength + recordHeader;
+   if ( recordSize % 4 != 0 )
+   {
+      recordSize = recordSize + ( 4 - recordSize % 4 ); 
+   }
    putLob( cl, testFile, 2, 2, oids );
-   insertData( cl, 10, 1260 );
+   insertData( cl, 10, recordSize * 9 );
    //32M<lob<96M
    putLob( cl, testFile, 4, 6, oids );
-   insertData( cl, 10, 2660 );
+   insertData( cl, 10, recordSize * 19 );
    //128M<lob
    putLob( cl, testFile, 4, 10, oids );
-   insertData( cl, 10, 4060 );
+   insertData( cl, 10, recordSize * 29 );
 
    // get lob
    getLob( cl, getTestFile, oids, testFile, md5, cmd );

@@ -6,6 +6,8 @@ import( "../lib/main.js" );
 *@author:      zhaoyu
 *@createDate:  2017.7.18
 **************************************/
+// the header size of each record
+var recordHeader = 67;
 function checkCount ( dbcl, findConf, expectCount )
 {
    var actualCount = dbcl.count( findConf );
