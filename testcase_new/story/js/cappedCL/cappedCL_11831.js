@@ -163,6 +163,13 @@ function insertData ( cl )
    { a: "jdwji" },
    { a: "qwieu" },
    { a: "niwew" }];
+
+   var recordSize = recordHeader + 5 ;
+   if ( recordSize % 4 != 0 ) 
+   {   
+      recordSize = recordSize + ( 4 - recordSize % 4 );
+   }   
+
    try
    {
       cl.insert( doc1 );
@@ -170,7 +177,7 @@ function insertData ( cl )
       {
          var cursor = cl.find().sort( { _id: 1 } ).skip( i ).limit( 1 );
          var actId = cursor.current().toObj()._id;
-         var expId = i * 80;
+         var expId = i * recordSize;
          if( actId !== expId )
          {
             throw buildException( "insertData()", e, "check record id", expId, actId );

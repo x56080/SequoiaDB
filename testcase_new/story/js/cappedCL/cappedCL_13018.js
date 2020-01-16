@@ -24,7 +24,7 @@ function main ()
 	var limitConf = 3;
 	var skipConf = 39997;
 
-	var expectIDs1 = [2088, 1044, 0];
+	var expectIDs1 = [getOneLogicalID( stringLength, 1 ), getOneLogicalID( stringLength, 0 ), 0];
 	var sortConf1 = { _id: -1 };
 
 	var expectIDs2 = [getOneLogicalID( stringLength, 39997 ),
@@ -55,7 +55,7 @@ function main ()
 	var limitConf = 3;
 	var skipConf = 99997;
 
-	var expectIDs1 = [2088, 1044, 0];
+    var expectIDs1 = [getOneLogicalID( stringLength, 1 ), getOneLogicalID( stringLength, 0 ), 0];
 	var sortConf1 = { _id: -1 };
 
 	var expectIDs2 = [getOneLogicalID( stringLength, 99997 ),
@@ -75,7 +75,7 @@ function getOneLogicalID ( stringLength, skipNum )
 	var blockCounts = 1;
 	var block_max_32 = 33554396;
 
-	var recordLength = stringLength + 75;
+	var recordLength = stringLength + recordHeader;
 	if( recordLength % 4 !== 0 )
 	{
 		recordLength = recordLength - recordLength % 4 + 4;

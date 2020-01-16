@@ -24,18 +24,25 @@ function main ()
    db2.setSessionAttr( { PreferedInstance: "s" } );
    var dbclSlave = db2.getCS( csName ).getCL( clName );
 
-   var insertNum = 32140;
    var firstBlockRecordNum = 0;
    var expectLogicalID = 0;
    var min = 0;
-   var max = insertNum;
    var repeatNum = 10;
    var stringLength = 969;
-   var recordHead = 75;
    var overturn = 0;
    var expIDs = [];
    var expectNum = 0;
    var expID = 0;
+
+   //获取装满一个块的记录数量
+   var recordSize = stringLength + recordHeader;
+   if ( recordSize % 4 != 0 ) 
+   {   
+      recordSize = recordSize + ( 4 - recordSize % 4 );
+   }                      
+   var insertNum = Math.floor( 33554396 / recordSize );
+   var max = insertNum;
+
    for( var j = 0; j < repeatNum; j++ )
    {
       //插入刚好Size记录
@@ -47,7 +54,7 @@ function main ()
       for( var i = 0; i < max; i++ )
       {
          expIDs.push( expID );
-         expID = expID + stringLength + recordHead;
+         expID = expID + recordSize;
       }
 
       //检查主备节点一致
@@ -107,7 +114,7 @@ function main ()
          for( var i = 0; i < insertNum; i++ )
          {
             expIDs.push( expID );
-            expID = expID + stringLength + recordHead;
+            expID = expID + recordSize;
          }
 
          //检查主备节点一致
