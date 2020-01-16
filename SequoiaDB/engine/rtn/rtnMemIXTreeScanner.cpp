@@ -467,8 +467,11 @@ namespace engine
                // with lowtran. If the node transID is older than lowtran, we
                // can skip it
 
-
-               if ( _pTransCB->isVersionExpired( nodeKey.getNodeTransID() ) )
+               // skip the node if expired (older than lowtran) OR
+               // isolation level is below RR and value is reset
+               if ( _pTransCB->isVersionExpired( nodeKey.getNodeTransID() ) ||
+                    ( (_transIsolation < TRANS_ISOLATION_RR) && 
+                      ( !_curIndexPos->second.isValid()) ) )
                {
                   // FIXME: remove from set
 #ifdef _DEBUG

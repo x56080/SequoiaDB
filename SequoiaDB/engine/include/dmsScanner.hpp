@@ -92,6 +92,8 @@ namespace engine
 
          BOOLEAN needWaitForLock() const { return _waitLock ; }
 
+      protected: 
+         INT32  getTransIsolation() { return _transIsolation ; }
       public:
          virtual INT32 advance ( dmsRecordID &recordID,
                                  _mthRecordGenerator &generator,
