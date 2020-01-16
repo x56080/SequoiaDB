@@ -109,6 +109,7 @@ namespace engine
       _cb = cb ;
       _isReadonly = TRUE ;
       _eof = FALSE ;
+      _transIsolation = cb->getTransExecutor()->getTransIsolation() ;
 
       /// set shared info pointer
       _pInfo = &_sharedInfo ;

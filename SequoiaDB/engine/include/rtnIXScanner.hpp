@@ -184,6 +184,7 @@ namespace engine
       _dmsStorageUnit         *_su ;
       _pmdEDUCB               *_cb ;
       rtnScannerSharedInfo    *_pInfo ;
+      INT32                   _transIsolation ;
 
       INT32                   _direction ;
       dmsExtentID             _indexLID ;

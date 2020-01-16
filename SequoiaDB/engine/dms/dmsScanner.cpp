@@ -650,15 +650,9 @@ namespace engine
 
          if ( _curRecordPtr->isDeleting() )
          {
-            INT8  holdMode = DPS_TRANSLOCK_MAX ;
-            // retrieve the lock hold mode
-            _pTransCB->isHolding( cb, holdMode, _pSu->logicalID(),
-                                  _context->mbID(), &_curRID ) ;
- 
-            // if lock mode is X or lock is held in X(this request could be S),
+            // if lock mode is X which implies mbLatch mode is also X,
             // we should simply skip without looking into RBS
-            if ( ( DPS_TRANSLOCK_X == _recordLock ) || 
-                 ( DPS_TRANSLOCK_X == holdMode) ) 
+            if ( DPS_TRANSLOCK_X == _recordLock )
             {
                // under MVCC, we should not delete a record if it's above 
                // lowtran, otherwise query won't be able to find the RID and 
@@ -2132,15 +2126,9 @@ namespace engine
          // Handle the record being deleted
          if ( _curRecordPtr->isDeleting() )
          {
-            INT8  holdMode = DPS_TRANSLOCK_MAX ;
-            // retrieve the lock hold mode
-            _pTransCB->isHolding( cb, holdMode, _pSu->logicalID(),
-                                  _context->mbID(), &_curRID ) ;
-
-            // if lock mode is X or lock is held in X(this request could be S),
+            // if lock mode is X which also implies mbLatch locked in X,
             // we should simply skip without looking into RBS
-            if ( ( DPS_TRANSLOCK_X == _recordLock ) ||
-                 ( DPS_TRANSLOCK_X == holdMode) )
+            if ( DPS_TRANSLOCK_X == _recordLock )
             {
                // under MVCC, we should not delete a record if it's above 
                // lowtran, otherwise query won't be able to find the RID and 
