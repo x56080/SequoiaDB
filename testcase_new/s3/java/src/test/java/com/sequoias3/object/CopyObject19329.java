@@ -1,5 +1,15 @@
 package com.sequoias3.object;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
@@ -10,14 +20,6 @@ import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
 
 /**
  * @Description seqDB-19329:复制对象指定ifNoneMatch条件
@@ -25,7 +27,7 @@ import java.io.IOException;
  * @Date 2019.09.17
  */
 public class CopyObject19329 extends S3TestBase {
-    private int runSuccessNum = 0;
+    private AtomicInteger runSuccessNum = new AtomicInteger( 0 );
     private int expRunSuccessNum = 3;
     private AmazonS3 s3Client = null;
     private String bucketName = "bucket19329";
@@ -86,7 +88,7 @@ public class CopyObject19329 extends S3TestBase {
         String expDstObjVer = "0";
         checkObjectAttribute( dstKeyName, expDstObjVer, srcHisVerETag );
         checkObjectContent( dstKeyName, filePath1 );
-        runSuccessNum++;
+        runSuccessNum.getAndIncrement();
     }
 
     // b.appoint eTag is history version eTag
@@ -100,7 +102,7 @@ public class CopyObject19329 extends S3TestBase {
         String expDstObjVer = "0";
         checkObjectAttribute( dstKeyName, expDstObjVer, srcCurVerETag );
         checkObjectContent( dstKeyName, filePath2 );
-        runSuccessNum++;
+        runSuccessNum.getAndIncrement();
     }
 
     // c.appoint eTag is current version eTag
@@ -113,18 +115,18 @@ public class CopyObject19329 extends S3TestBase {
             s3Client.copyObject( request );
             Assert.fail( "expect fail, but actual success." );
         } catch ( AmazonS3Exception e ) {
-            Assert.assertEquals( e.getErrorCode(), "304 " );
+            Assert.assertEquals( e.getStatusCode(), 304 );
         }
         Assert.assertFalse(
                 s3Client.doesObjectExist( bucketName, dstKeyName ) );
 
-        runSuccessNum++;
+        runSuccessNum.getAndIncrement();
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if ( runSuccessNum == expRunSuccessNum ) {
+            if ( runSuccessNum.get() == expRunSuccessNum ) {
                 CommLib.clearBucket( s3Client, bucketName );
                 TestTools.LocalFile.removeFile( localPath );
             }
