@@ -169,6 +169,8 @@ namespace engine
             goto error ;
          }
 
+         // Memset hash bucket
+         _rbsRecordBkt.reset() ;
       }
 
    done :
@@ -228,10 +230,12 @@ namespace engine
          }
          // setup the curCL
          _currentCollection = DMS_FIRST_RBS_CL;
+         _lastFreeCollection = DMS_MAX_RBS_CL ;
+
          PD_LOG ( PDDEBUG, "Created RBS collection %s(%d) successfully.",
                   clName, logicalID );
-
       }
+
       catch( std::exception &e )
       {
          rc = SDB_SYS ;
