@@ -2557,7 +2557,7 @@ namespace engine
          // if transaction is global, get transaction begin time
          if ( transID.isGlobTrans() )
          {
-            beginTime.setTime( (UINT64)( transID.getRawSN() ) ) ;
+            beginTime.setTime( transID.getLogicalTime() ) ;
             beginTime.setTimeError( pTransBegin->transTimeError ) ;
          }
 
@@ -2637,8 +2637,7 @@ namespace engine
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
       MsgOpTransCommitPre *pCommitPreMsg = ( MsgOpTransCommitPre* )msg ;
 
-      stpLogicalTimeUS preCommitTime( pCommitPreMsg->preCommitTime,
-                                      pCommitPreMsg->preCommitTimeError ) ;
+      stpLogicalTimeUS preCommitTime( pCommitPreMsg->preCommitTime, 0 ) ;
 
       INT16 replSize = optCB->transReplSize() ;
       INT16 w = 0 ;

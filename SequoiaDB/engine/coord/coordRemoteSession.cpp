@@ -426,13 +426,12 @@ namespace engine
 
             // check if has duplicated transaction ID
             if ( transID.isGlobTrans() &&
-                 !sdbGetTransCB()->addTransCB( transID, cb ) )
+                 !pTransCB->addTransCB( transID, cb ) )
             {
                // for global transaction, we could retry to get a new logical
                // time
+               pTransCB->incTransIDConflict() ;
                cb->resetTransID() ;
-               PD_LOG( PDWARNING, "Transaction(%s) is already exist",
-                       dpsTransIDToString( transID ).c_str() ) ;
                goto retry ;
             }
 

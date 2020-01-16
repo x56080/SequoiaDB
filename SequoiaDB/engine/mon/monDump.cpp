@@ -2333,7 +2333,7 @@ namespace engine
                              DPS_TRANS_STR_LEN ) ;
          builder.append( FIELD_NAME_TRANSACTION_ID, strTransID ) ;
          builder.append( FIELD_NAME_TRANSACTION_ID_SN,
-                         (INT64)_curTransInfo._transID.getRawSN() ) ;
+                         (INT64)_curTransInfo._transID.getGlobSN() ) ;
          builder.appendBool( FIELD_NAME_IS_ROLLBACK,
                              pTransCB->isRollback( _curTransInfo._transID ) ?
                              TRUE : FALSE ) ;

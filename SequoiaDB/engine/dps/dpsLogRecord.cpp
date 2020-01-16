@@ -1607,15 +1607,32 @@ namespace engine
             }
 
             // check if record has logical time for transaction
-            if ( SDB_OK == dpsGetTransTimeFromRecord( *this,
-                                                      transID,
-                                                      transTime ) )
+            if ( transID.isGlobTrans() )
             {
-               len += ossSnprintf( outBuf + len, outSize - len,
-                                   " TransTime : %llu"OSS_NEWLINE
-                                   " TransTimeError : %u"OSS_NEWLINE,
-                                   transTime.getTime(),
-                                   transTime.getTimeError() ) ;
+               // only first operator, pre-commit record, and commit record
+               // for auto-commit transaction would have logical time
+               // components
+               if ( transID.isFirstOp() &&
+                    SDB_OK == dpsGetTransTimeFromRecord( *this,
+                                                         transID,
+                                                         transTime ) )
+               {
+                  len += ossSnprintf( outBuf + len, outSize - len,
+                                      " TransTime : %llu"OSS_NEWLINE
+                                      " TransTimeError : %u"OSS_NEWLINE,
+                                      transTime.getTime(),
+                                      transTime.getTimeError() ) ;
+               }
+               else if ( LOG_TYPE_TS_COMMIT == _head._type &&
+                         SDB_OK == dpsGetTransTimeFromRecord( *this,
+                                                              transID,
+                                                              transTime ) )
+               {
+                  // no time error for pre-commit record
+                  len += ossSnprintf( outBuf + len, outSize - len,
+                                      " TransTime : %llu"OSS_NEWLINE,
+                                      transTime.getTime() ) ;
+               }
             }
          }
          if ( itrTransLsn.valid() )

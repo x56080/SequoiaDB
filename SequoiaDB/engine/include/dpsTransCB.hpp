@@ -451,6 +451,12 @@ namespace engine
          return &( _waitLowTranEvent ) ;
       }
 
+      // increase count of transaction ID allocation conflict
+      OSS_INLINE void incTransIDConflict()
+      {
+         ++ _numTransIDConflict ;
+      }
+
       // Check if EDU hold certain lock and return the holding mode
       BOOLEAN isHolding( _pmdEDUCB *eduCB,
                          INT8   & owningLockMode, 
@@ -690,8 +696,10 @@ namespace engine
       void   printCounters() ;
 
    private:
+      // node ID of transaction
       DPS_TRANSID_NODEID _TransIDH16 ;
-      ossAtomic64       _TransIDL48Cur ;
+      // atomic to generate 56 bit SN for non global transactions
+      ossAtomic64       _TransIDL56Cur ;
 
       monSpinSLatch     _MapMutex ;
       TRANS_MAP         _TransMap ;
@@ -757,6 +765,12 @@ namespace engine
       ossEvent             _updateLowTranEvent ;
       // wait event to wait lowTran to finish global lowTran update
       ossEvent             _waitLowTranEvent ;
+
+      // record conflict counts of allocate transaction ID
+      // NOTE:
+      // - increase when generated the same transaction ID by STP
+      // - no need to be atomic, just a value for statistics
+      UINT64               _numTransIDConflict ;
    } ;
 
    /*

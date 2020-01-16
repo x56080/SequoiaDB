@@ -351,9 +351,10 @@ public:
       return ( _sn & DPS_TRANSID_GLOB_SN_BIT_V1 ) ;
    }
 
-   // get raw serial number
+   // get global logical time of transaction ( begin time )
    // NOTE: without any tags, which is the logical time ( in microseconds )
-   OSS_INLINE DPS_TRANSID_SN getRawSN() const
+   // WARNING: for non-global transaction, this is only a monotonic value
+   OSS_INLINE UINT64 getLogicalTime() const
    {
       return ( _sn & DPS_TRANSID_RAW_SN_BIT_V1 ) ;
    }

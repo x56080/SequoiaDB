@@ -60,8 +60,7 @@ namespace engine
         _relatedLSN( DPS_INVALID_LSN_OFFSET ),
         _beginTime( 0LL ),
         _beginTimeError( 0 ),
-        _preCommitTime( 0LL ),
-        _preCommitTimeError( 0 )
+        _preCommitTime( 0LL )
       {
       }
 
@@ -75,8 +74,7 @@ namespace engine
         _relatedLSN( relatedLSN ),
         _beginTime( beginTime.getTime() ),
         _beginTimeError( beginTime.getTimeError() ),
-        _preCommitTime( preCommitTime.getTime() ),
-        _preCommitTimeError( preCommitTime.getTimeError() )
+        _preCommitTime( preCommitTime.getTime() )
       {
       }
 
@@ -88,7 +86,6 @@ namespace engine
          _beginTime = 0LL ;
          _beginTimeError = 0 ;
          _preCommitTime = 0LL ;
-         _preCommitTimeError = 0 ;
       }
 
       DPS_TRANS_ID      _transID ;
@@ -97,8 +94,9 @@ namespace engine
       // DPS record use values, split logical time into POD
       UINT64            _beginTime ;
       UINT32            _beginTimeError ;
+      // NOTE: no time error of pre-commit time ( will reuse time error of
+      //       transaction begin time
       UINT64            _preCommitTime ;
-      UINT32            _preCommitTimeError ;
    } dpsRecordTransInfo ;
 
    /// warning: any value can not be value-passed. and, the value's life scope
