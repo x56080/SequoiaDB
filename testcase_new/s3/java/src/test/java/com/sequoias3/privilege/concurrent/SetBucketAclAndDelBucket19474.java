@@ -1,5 +1,11 @@
 package com.sequoias3.privilege.concurrent;
 
+import java.io.IOException;
+
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
@@ -12,11 +18,6 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.PrivilegeUtils;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.IOException;
 
 /**
  * @Description seqDB-19474: 并发配置桶acl和删除桶
@@ -24,15 +25,19 @@ import java.io.IOException;
  * @Date 2019.09.24
  */
 public class SetBucketAclAndDelBucket19474 extends S3TestBase {
-    private String bucketName = "bucket19474";
+    private int bucketNum = 20;
+    private String bucketNameBase = "bucket19474-";
     private AmazonS3 s3Client = null;
     private String ownerId;
 
     @BeforeClass
     private void setUp() throws IOException {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket( s3Client, bucketName );
-        s3Client.createBucket( new CreateBucketRequest( bucketName ) );
+        for ( int i = 0; i < bucketNum; i++ ) {
+            CommLib.clearBucket( s3Client, bucketNameBase + i );
+            s3Client.createBucket( new CreateBucketRequest( bucketNameBase + i
+            ) );
+        }
         ownerId = s3Client.getS3AccountOwner().getId();
     }
 
@@ -43,8 +48,12 @@ public class SetBucketAclAndDelBucket19474 extends S3TestBase {
                 new Grant( GroupGrantee.AllUsers, Permission.Read ) };
 
         ThreadExecutor threadExec = new ThreadExecutor();
-        threadExec.addWorker( new ThreadSetBucketAcl( expGrant ) );
-        threadExec.addWorker( new ThreadDeleteBucket() );
+        for ( int i = 0; i < bucketNum; i++ ) {
+            threadExec.addWorker( new ThreadSetBucketAcl( expGrant,
+                    bucketNameBase + i ) );
+            threadExec
+                    .addWorker( new ThreadDeleteBucket( bucketNameBase + i ) );
+        }
         threadExec.run();
     }
 
@@ -56,9 +65,11 @@ public class SetBucketAclAndDelBucket19474 extends S3TestBase {
     private class ThreadSetBucketAcl {
         private AmazonS3 s3 = CommLib.buildS3Client();
         private Grant[] grant;
+        private String bucketName;
 
-        public ThreadSetBucketAcl( Grant[] grant ) {
+        public ThreadSetBucketAcl( Grant[] grant, String bucketName ) {
             this.grant = grant;
+            this.bucketName = bucketName;
         }
 
         @ExecuteOrder(step = 1)
@@ -79,6 +90,11 @@ public class SetBucketAclAndDelBucket19474 extends S3TestBase {
 
     private class ThreadDeleteBucket {
         private AmazonS3 s3 = CommLib.buildS3Client();
+        private String bucketName;
+
+        public ThreadDeleteBucket( String bucketName ) {
+            this.bucketName = bucketName;
+        }
 
         @ExecuteOrder(step = 1)
         private void deleteBucket() throws InterruptedException {
