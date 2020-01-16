@@ -110,13 +110,10 @@ namespace engine
       // Full size is 32k* (40+12)B = 1.6MB
       dmsRBSOffset   _offset[ DMS_RBS_HASH_BKT_SLOTS ] ;  // offset on disk
       ossSpinXLatch  _latch[ DMS_RBS_HASH_BKT_SLOTS ] ;   // latch to protect the bucket
-      SINT64         _recordLogicalID ; // the logicalID of meta record which
-                                        // stores hashbkt on disk
 
    public: 
       _dmsRBSHashBkt()
       {
-         _recordLogicalID = DMS_INVALID_REC_LOGICALID ;
       }
 
       void   lock( UINT32 bkt )
@@ -137,15 +134,6 @@ namespace engine
          return _offset[bkt] ;
       }
 
-      void setLogicalID( SINT64 id )
-      {
-         _recordLogicalID = id ;
-      }
-      SINT64 getLogicalID()
-      {
-         return _recordLogicalID ;
-      }
-
       CHAR * getObj()
       {
          return (CHAR *)_offset ;
@@ -154,6 +142,11 @@ namespace engine
       SINT32 getObjSize()
       {
          return sizeof(_offset) ;
+      }
+
+      void reset()
+      {
+         ossMemset( _offset, 0, sizeof(_offset) ) ;
       }
    } ;
 

@@ -36,6 +36,7 @@
 
 #include "pmdEDU.hpp"
 #include "rtn.hpp"
+#include "dmsRBSSUMgr.hpp"
 #include "ossUtil.h"
 #include "dpsTransCB.hpp"
 
@@ -68,6 +69,12 @@ namespace engine
                if ( pTransCB->getEventHandler() )
                {
                   rc = pTransCB->getEventHandler()->onRollbackAll() ;
+               } 
+
+               // re-initialize RBS before node start service
+               if ( pmdGetOptionCB()->mvccOn() )
+               {
+                  pmdGetKRCB()->getDMSCB()->getRBSSUMgr()->init() ;
                }
 
                if ( SDB_OK == rc )
