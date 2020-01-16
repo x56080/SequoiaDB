@@ -353,6 +353,12 @@ namespace engine
       _waitLock = pExe->isTransWaitLock() ;
       _useRollbackSegment = pExe->useRollbackSegment() ;
 
+      // mvccon will overwrite transuserbs
+      if ( pmdGetOptionCB()->mvccOn() )
+      {
+         _useRollbackSegment = TRUE ; 
+      }
+
       /// When not support trans
       if ( !_pSu->isTransSupport() )
       {
@@ -1663,6 +1669,12 @@ namespace engine
       _transIsolation = pExe->getTransIsolation() ;
       _waitLock = pExe->isTransWaitLock() ;
       _useRollbackSegment = pExe->useRollbackSegment() ;
+
+      // mvccon will overwrite transuserbs
+      if ( pmdGetOptionCB()->mvccOn() )
+      {
+         _useRollbackSegment = TRUE ;
+      }
 
       /// when not support transaction
       if ( !_pSu->isTransSupport() )

@@ -861,8 +861,10 @@ namespace engine
       if ( _oldVer && _oldVer->isRecordEmpty() )
       {
          /// when not use rollback segment
-         if ( !_eduCB->getTransExecutor()->useRollbackSegment() )
+         if ( ( !_eduCB->getTransExecutor()->useRollbackSegment() ) &&
+              ( ! pmdGetOptionCB()->mvccOn() ) )
          {
+            // mvccon will overwrite transuserbs
             _oldVer->setRecordDummy( ownerTID ) ;
          }
          else
