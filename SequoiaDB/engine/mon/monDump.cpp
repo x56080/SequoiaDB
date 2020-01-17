@@ -299,10 +299,10 @@ namespace engine
             subLowTran.append( FIELD_NAME_LOW_TRANSID_NODEID, lowTranID.getNodeID() ) ;
             subLowTran.done() ;
 
-
             ossSnprintf( szTmp, sizeof(szTmp)-1, "%llu", transCB->getOldVCB()->
                                                          getMinLowTranSN() ) ;
             ob.append( FIELD_NAME_IDX_TREE_LOW_TRAN, szTmp ) ;
+
 
             /// complete lsn and queue size
             DPS_LSN completeLSN ;
@@ -1546,6 +1546,10 @@ namespace engine
          try
          {
             ob.append( FIELD_NAME_NUM_ACTIVE_RBS_GC, rbsMgr->getNumActiveGC() ) ;
+            ob.append( FIELD_NAME_TOTAL_RBS_SIZE,
+                       (INT64)(rbsMgr->getNumTotalCL()) * (rbsMgr->getCLSize()) ) ;
+            ob.append( FIELD_NAME_FREE_RBS_SIZE,
+                       (INT64)(rbsMgr->getNumFreeCL()) * (rbsMgr->getCLSize()) ) ;
          }
          catch ( std::exception &e )
          {

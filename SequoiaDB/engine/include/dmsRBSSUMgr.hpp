@@ -214,6 +214,19 @@ namespace engine
       void incActiveGC() { _numActiveGC.inc() ; }
       void decActiveGC() { _numActiveGC.dec() ; }
       UINT32 getNumActiveGC() { return _numActiveGC.fetch() ; }
+      UINT32 getCLSize() { return DMS_DFT_RBSCL_SIZE ; }
+      UINT32 getNumTotalCL() { return DMS_MAX_RBS_CL ; }
+      UINT32 getNumFreeCL()
+      {
+         if ( _lastFreeCollection > _currentCollection )
+         {
+            return (_lastFreeCollection - _currentCollection) ;
+         }
+         else
+         {
+            return getNumTotalCL() - _currentCollection + _lastFreeCollection  ;
+         }
+      }
 
    private:
 

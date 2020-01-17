@@ -544,6 +544,8 @@
 #define FIELD_NAME_CUR_RBS_CL                "CurRBSCL"
 #define FIELD_NAME_LAST_FREE_RBS_CL          "LastFreeRBSCL"
 #define FIELD_NAME_NUM_ACTIVE_RBS_GC         "NumActiveRBSGC"
+#define FIELD_NAME_TOTAL_RBS_SIZE            "TotalRBSSize"
+#define FIELD_NAME_FREE_RBS_SIZE             "FreeRBSSize"
 #define FIELD_NAME_RBS_RECORD_KEY            "RBSRECORDKEY"
 #define FIELD_NAME_RBS_RECORD_DATA           "RBSRECORDDATA"
 #define FIELD_NAME_RBS_RECORD_TRANSID        "RBSRECORDTRANSID"
