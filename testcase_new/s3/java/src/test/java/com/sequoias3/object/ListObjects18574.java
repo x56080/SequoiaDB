@@ -1,5 +1,14 @@
 package com.sequoias3.object;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -8,14 +17,6 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.DelimiterUtils;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * @Description seqDB-18574: To get a list by listObjectV1.specify
@@ -36,7 +37,8 @@ public class ListObjects18574 extends S3TestBase {
             "dir1/test/aa9_18574", "fdir1/test10?_18574",
             "testdir1?11.txt_18574" };
     private AmazonS3 s3Client = null;
-    private boolean runSuccess = false;
+    private boolean runSuccess1 = false;
+    private boolean runSuccess2 = false;
 
     @BeforeClass
     private void setUp() {
@@ -59,13 +61,29 @@ public class ListObjects18574 extends S3TestBase {
         // test b: match nums > maxkeys
         int maxKeysB = 2;
         listObjectsAndCheckResult( prefix, delimiter, maxKeysB );
-        runSuccess = true;
+        runSuccess1 = true;
+    }
+
+    @Test
+    public void testMaxKeyZero() throws Exception {
+        // test c: maxKey = 0
+        int maxKey = 0;
+        ListObjectsRequest request = new ListObjectsRequest()
+                .withBucketName( bucketName )
+                .withPrefix( prefix ).withDelimiter( delimiter )
+                .withMaxKeys( maxKey );
+        ObjectListing result = s3Client.listObjects( request );
+        Assert.assertEquals( result.isTruncated(), false,
+                "result.isTruncated() must be false" );
+        Assert.assertEquals( result.getCommonPrefixes().size(), 0 );
+        Assert.assertEquals( result.getObjectSummaries().size(), 0 );
+        runSuccess2 = true;
     }
 
     @AfterClass
     private void tearDown() {
         try {
-            if ( runSuccess ) {
+            if ( runSuccess1 && runSuccess2 ) {
                 CommLib.deleteAllObjectVersions( s3Client, bucketName );
                 s3Client.deleteBucket( bucketName );
             }
