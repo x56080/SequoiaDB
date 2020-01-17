@@ -85,11 +85,11 @@ public class LobSubCL19062 extends SdbTestBase {
         Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
         Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 
-        String match = "Name\\\\:" + csName + "\\\\.";
+        String match = "Name\\\\\": \\\\\"" + csName + ".";
         CommLib.waitContextClose( sdb, match, 300, false );
 
         redoAttachCL();
-        List< ObjectId > lobIds = new ArrayList< >();
+        List< ObjectId > lobIds = new ArrayList<>();
         // 插入lob时有可能其他连接会刷新catalogInfo，重试一次插入
         lobIds.addAll( LobUtil.createAndWriteLob( mainCL, lobBuff, "YYYYMMDD",
                 25, 1, "20190101" ) );
