@@ -702,18 +702,16 @@ namespace engine
       catGlobTransManager *globTransMgr = _gtsMgr->getGlobTransMgr() ;
       MsgRouteID routeID ;
       DPS_TRANSID_SN nodeLowTran = DPS_INVALID_TRANSID_SN ;
+      BOOLEAN transOn = FALSE ;
+      BOOLEAN globTransOn = FALSE ;
+      BOOLEAN mvccOn = FALSE ;
+      BOOLEAN stpAvailable = FALSE ;
       DPS_TRANSID_SN globLowTran = DPS_INVALID_TRANSID_SN ;
       BSONObj requestObject, responseObject ;
 
       SDB_ASSERT( NULL != message, "message is invalid" ) ;
       SDB_ASSERT( MSG_GTS_LOWTRAN_REQ == message->opCode,
                   "should be lowTran request" ) ;
-
-      // check primary
-      // NOTE: we don't write data, so no need to check read-only
-      rc = primaryCheck() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check primary, service deactive "
-                   "but received GTS request, rc: %d", rc ) ;
 
       // convert to lowTran request
       request = (MsgGTSLowTranReq *)message ;
@@ -735,15 +733,10 @@ namespace engine
       {
          requestObject = BSONObj( (CHAR *)request +
                                   sizeof( MsgGTSLowTranReq ) ) ;
-         BSONElement element =
-                        requestObject.getField( FIELD_NAME_TRANS_LOWTRAN ) ;
-         PD_CHECK( EOO != element.type(), SDB_SYS, error, PDERROR,
-                   "Failed to get field [%s], it should not be empty",
-                   FIELD_NAME_TRANS_LOWTRAN ) ;
-         PD_CHECK( NumberLong == element.type(), SDB_SYS, error, PDERROR,
-                   "Failed to get field [%s], it should be long type",
-                   FIELD_NAME_TRANS_LOWTRAN ) ;
-         nodeLowTran = (DPS_TRANSID_SN)( element.numberLong() ) ;
+         rc = _parseLowTranReq( requestObject, nodeLowTran, transOn,
+                                globTransOn, mvccOn, stpAvailable ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse lowTran request, "
+                      "rc: %d", rc ) ;
       }
       catch ( exception &e )
       {
@@ -756,9 +749,97 @@ namespace engine
       // update global lowTran
       rc = globTransMgr->updateGlobLowTran( routeID,
                                             nodeLowTran,
+                                            transOn,
+                                            globTransOn,
+                                            mvccOn,
+                                            stpAvailable,
                                             globLowTran ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update global lowTran, "
                    "rc: %d", rc ) ;
+
+      // build response BSON object
+      rc = _buildLowTranRsp( responseObject, globLowTran ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build lowTran response, rc: %d",
+                   rc ) ;
+
+      // push response object to context buffer
+      replyBuffer = rtnContextBuf( responseObject ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_GTS_MSG_HANDLER__PROCESSLOWTRANREQ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER__PARSELOWTRANREQ, "_catGTSMsgHandler::_parseLowTranReq" )
+   INT32 _catGTSMsgHandler::_parseLowTranReq( const BSONObj &requestObject,
+                                              DPS_TRANSID_SN &nodeLowTran,
+                                              BOOLEAN &transOn,
+                                              BOOLEAN &globTransOn,
+                                              BOOLEAN &mvccOn,
+                                              BOOLEAN &stpAvailable )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_GTS_MSG_HANDLER__PARSELOWTRANREQ ) ;
+
+      try
+      {
+         BSONElement element ;
+
+         // parse lowTran field
+         element = requestObject.getField( FIELD_NAME_TRANS_LOWTRAN ) ;
+         PD_CHECK( EOO != element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should not be empty",
+                   FIELD_NAME_TRANS_LOWTRAN ) ;
+         PD_CHECK( NumberLong == element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should be long type",
+                   FIELD_NAME_TRANS_LOWTRAN ) ;
+         nodeLowTran = (DPS_TRANSID_SN)( element.numberLong() ) ;
+
+         // get transaction configs of node
+         // NOTE: not critical fields, no need to return error
+         // --transactionon
+         element = requestObject.getField( PMD_OPTION_TRANSACTIONON ) ;
+         transOn = element.booleanSafe() ;
+
+         // --globtranson
+         element = requestObject.getField( PMD_OPTION_GLOBTRANSON ) ;
+         globTransOn = element.booleanSafe() ;
+
+         // --mvccon
+         element = requestObject.getField( PMD_OPTION_MVCCON ) ;
+         mvccOn = element.booleanSafe() ;
+
+         // STP available
+         element = requestObject.getField( FIELD_NAME_STP_AVAILABLE ) ;
+         stpAvailable = element.booleanSafe() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse request object, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_GTS_MSG_HANDLER__PARSELOWTRANREQ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER__BUILDLOWTRANRSP, "_catGTSMsgHandler::_buildLowTranRsp" )
+   INT32 _catGTSMsgHandler::_buildLowTranRsp( BSONObj &responseObject,
+                                              DPS_TRANSID_SN globLowTran )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_GTS_MSG_HANDLER__BUILDLOWTRANRSP ) ;
 
       try
       {
@@ -767,16 +848,14 @@ namespace engine
       }
       catch ( exception &e )
       {
-         PD_LOG( PDERROR, "Failed to build reply, error: %s",
+         PD_LOG( PDERROR, "Failed to build response object, error: %s",
                  e.what() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
-      replyBuffer = rtnContextBuf( responseObject ) ;
-
    done:
-      PD_TRACE_EXITRC( SDB_GTS_MSG_HANDLER__PROCESSLOWTRANREQ, rc ) ;
+      PD_TRACE_EXITRC( SDB_GTS_MSG_HANDLER__BUILDLOWTRANRSP, rc ) ;
       return rc ;
 
    error:

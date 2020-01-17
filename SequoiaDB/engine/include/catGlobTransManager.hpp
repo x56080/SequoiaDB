@@ -52,8 +52,71 @@ namespace engine
 {
 
    /*
+      _catLowTranRecord define
+    */
+   // _catLowTranRecord holds a lowTran record for a COORD or DATA node
+   class _catLowTranRecord : public utilPooledObject
+   {
+   public:
+      // constructor and destructor
+      _catLowTranRecord() ;
+      _catLowTranRecord( const _catLowTranRecord &record ) ;
+      ~_catLowTranRecord() ;
+
+      _catLowTranRecord &operator =( const _catLowTranRecord &record ) ;
+
+   public:
+      // initialize transaction node
+      // input:
+      //    - routeID: route ID of node
+      // NOTE: only COORD and DATA nodes are needed
+      void initNode( const MsgRouteID &routeID ) ;
+
+      // update node lowTran
+      // input:
+      //    - nodeLowTran: node LowTran reported by node
+      //    - transOn: indicate whether transaction feature is enabled on node
+      //    - globTransOn: indicate whether global transaction feature is
+      //                   enabled on node
+      //    - mvccOn: indicate whether MVCC feature is enabled on node
+      //    - stpAvailable: indicate whether STP is available on node
+      // NOTE: global transaction support requires transOn, mvccOn and
+      //       globTransOn must be TRUE
+      void updateLowTran( DPS_TRANSID_SN nodeLowTran,
+                          BOOLEAN transOn,
+                          BOOLEAN globTransOn,
+                          BOOLEAN mvccOn,
+                          BOOLEAN stpAvailable ) ;
+
+      // get node lowTran
+      // output:
+      //    node lowTran last reported of this node
+      //    DPS_INVALID_TRANSID_SN: means this node had not reported yet
+      //    DPS_MAX_TRANSID_SN: means global transaction support is not enabled
+      //                        in this node, or this node had been kicked out
+      // NOTE: if node had not reported for 2 minutes, it will be kicked out
+      //       from lowTran calculation ( consider it is down or disconnected )
+      DPS_TRANSID_SN getLowTran() ;
+
+   protected:
+      SDB_ROLE       _role ;
+      MsgRouteID     _routeID ;
+      DPS_TRANSID_SN _nodeLowTran ;
+      BOOLEAN        _globTransEnabled ;
+      BOOLEAN        _transOn ;
+      BOOLEAN        _globTransOn ;
+      BOOLEAN        _mvccOn ;
+      BOOLEAN        _stpAvailable ;
+      UINT64         _updateTick ;
+   } ;
+
+   typedef class _catLowTranRecord catLowTranRecord ;
+
+   /*
       _catGlobTransManager define
     */
+   // _catGlobTransManager collects lowTran from COORD and DATA nodes,
+   // and calculate global lowTran
    class _catGlobTransManager : public utilPooledObject
    {
    public:
@@ -69,6 +132,9 @@ namespace engine
          _lowTranMapLoaded = FALSE ;
       }
 
+      // clear lowTran
+      void clearGlobLowTran() ;
+
       // get global lowTran
       DPS_TRANSID_SN getGlobLowTran() ;
 
@@ -76,16 +142,26 @@ namespace engine
       // after update, will re-calculate global lowTran
       INT32 updateGlobLowTran( const MsgRouteID &nodeRID,
                                DPS_TRANSID_SN nodeLowTran,
+                               BOOLEAN transOn,
+                               BOOLEAN globTransOn,
+                               BOOLEAN mvccOn,
+                               BOOLEAN stpAvailable,
                                DPS_TRANSID_SN &globLowTran ) ;
 
    protected:
-      typedef ossPoolMap< UINT64, DPS_TRANSID_SN > GTS_LOWTRAN_MAP ;
-      typedef ossPoolSet< UINT64 > GTS_NODE_SET ;
+      typedef ossPoolMap< MsgRouteID,
+                          catLowTranRecord,
+                          MsgRouteIDComp > GTS_LOWTRAN_MAP ;
+      typedef ossPoolSet< MsgRouteID, MsgRouteIDComp > GTS_NODE_SET ;
 
       // update lowTran of specified node
       // WARNING: should be accessed under _lowTranMutex
       INT32 _updateNodeLowTran( const MsgRouteID &nodeRID,
-                                DPS_TRANSID_SN nodeLowTran ) ;
+                                DPS_TRANSID_SN nodeLowTran,
+                                BOOLEAN transOn,
+                                BOOLEAN globTransOn,
+                                BOOLEAN mvccOn,
+                                BOOLEAN stpAvailable ) ;
 
       // calculate global lowTran
       // WARNING: should be accessed under _lowTranMutex

@@ -153,6 +153,14 @@ namespace engine
          }
       }
 
+      // if global transaction is not enabled, set global lowTran to maximum
+      // value, which means all local transaction objects will be expired
+      // once the transaction is finished
+      if ( !_isGlobTransOn )
+      {
+         _globLowTran.init( DPS_MAX_TRANSID_SN ) ;
+      }
+
       // if enabled dps
       if ( pmdGetKRCB()->isCBValue( SDB_CB_DPS ) &&
            !pmdGetKRCB()->isRestore() )
@@ -630,6 +638,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_CHECKGLOBTRANS ) ;
 
       UINT64 activeTime = 0LL ;
+      DPS_TRANS_ID globLowTran = getGlobLowTran() ;
 
       // only check with global transaction
       if ( !transID.isGlobTrans() )
@@ -656,6 +665,18 @@ namespace engine
                 "on [%llu] which is before global transaction is activated "
                 "in this node [%llu]", dpsTransIDToString( transID ).c_str(),
                 beginTime.getTime(), activeTime ) ;
+
+      // check global lowTran, make sure it is after global lowTran
+      // NOTE: If the node to start transaction doesn't report lowTran for a
+      //       while, it might be kicked out from global lowTran calculation.
+      //       But if it can still send transaction requests to other nodes,
+      //       we need to reject those requests
+      PD_CHECK( globLowTran.getLogicalTime() <= beginTime.getTime(),
+                SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
+                "Failed to check global transaction  [%s], it had been passed "
+                "by global lowTran [%llu(0x%llX)]",
+                dpsTransIDToString( transID ).c_str(),
+                globLowTran.getGlobSN(), globLowTran.getGlobSN() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSCB_CHECKGLOBTRANS, rc ) ;
