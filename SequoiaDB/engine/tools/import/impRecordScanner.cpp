@@ -95,7 +95,7 @@ namespace import
                                  INT32& recordLength)
    {
       const CHAR* recDel = _recordDelimiter.c_str();
-      const INT32 recDelLen = _recordDelimiter.length();   
+      const INT32 recDelLen = _recordDelimiter.length();
       INT32 len = length;
       CHAR* str = (CHAR*)data;
       INT32 rc = SDB_EOF;
@@ -200,70 +200,93 @@ namespace import
    INT32 RecordScanner::_scanJSON(const CHAR* data, INT32 length, BOOLEAN final,
                                   INT32& recordLength)
    {
-      INT32 len = length;
-      CHAR* str = (CHAR*)data;
-      INT32 stringType = SCANNER_QUOTES_NONE ;
-      BOOLEAN hasJson = FALSE;
-      INT32 level = 0;
       INT32 rc = SDB_EOF;
+      INT32 level = 0;
+      INT32 len   = length;
+      INT32 stringType = SCANNER_QUOTES_NONE ;
+      INT32 recDelLen  = _recordDelimiter.length();
+      BOOLEAN hasJson  = FALSE;
+      CHAR* str = (CHAR*)data;
+      const CHAR* recDel = _recordDelimiter.c_str();
 
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
 
-      while (len > 0)
+      // no need to consider string
+      if (_linePriority || _stringDelimiter.empty())
       {
-         switch (*str)
+         while(len > 0)
          {
-         case '{':
-            if( stringType == SCANNER_QUOTES_NONE )
+            if (_startWith(str, len, recDel, recDelLen))
             {
-               level++;
-               hasJson = TRUE;
+               recordLength = length - len;
+               *str = '\0';
+               rc = SDB_OK;
+               break;
             }
-            break;
-         case '}':
-            if( stringType == SCANNER_QUOTES_NONE )
+
+            len--;
+            str++;
+         }
+      }
+      // should consider string
+      else
+      {
+         while (len > 0)
+         {
+            switch (*str)
             {
-               level--;
+            case '{':
+               if( stringType == SCANNER_QUOTES_NONE )
+               {
+                  level++;
+                  hasJson = TRUE;
+               }
+               break;
+            case '}':
+               if( stringType == SCANNER_QUOTES_NONE )
+               {
+                  level--;
+               }
+               break;
+            case '\'':
+               if( stringType == SCANNER_QUOTES_NONE )
+               {
+                  stringType = SCANNER_QUOTES ;
+               }
+               else if( stringType == SCANNER_QUOTES )
+               {
+                  stringType = SCANNER_QUOTES_NONE ;
+               }
+               break ;
+            case '\"':
+               if( stringType == SCANNER_QUOTES_NONE )
+               {
+                  stringType = SCANNER_QUOTES_DOUBLE ;
+               }
+               else if( stringType == SCANNER_QUOTES_DOUBLE )
+               {
+                  stringType = SCANNER_QUOTES_NONE ;
+               }
+               break;
+            case '\\':
+               // escape char, so skip one more char
+               str++;
+               len--;
+               break;
+            default:
+               break;
             }
-            break;
-         case '\'':
-            if( stringType == SCANNER_QUOTES_NONE )
-            {
-               stringType = SCANNER_QUOTES ;
-            }
-            else if( stringType == SCANNER_QUOTES )
-            {
-               stringType = SCANNER_QUOTES_NONE ;
-            }
-            break ;
-         case '\"':
-            if( stringType == SCANNER_QUOTES_NONE )
-            {
-               stringType = SCANNER_QUOTES_DOUBLE ;
-            }
-            else if( stringType == SCANNER_QUOTES_DOUBLE )
-            {
-               stringType = SCANNER_QUOTES_NONE ;
-            }
-            break;
-         case '\\':
-            // escape char, so skip one more char
+
             str++;
             len--;
-            break;
-         default:
-            break;
-         }
 
-         str++;
-         len--;
-
-         // json is closed
-         if (hasJson && level == 0)
-         {
-            rc = SDB_OK;
-            break;
+            // json is closed
+            if (hasJson && level == 0)
+            {
+               rc = SDB_OK;
+               break;
+            }
          }
       }
 

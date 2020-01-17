@@ -112,7 +112,7 @@ namespace import
    #define IMP_EXPLAIN_HEADERLINE       "for csv input, whether the first line defines field name. if --fields is defined, the first line will be ignored if this options is true"
    #define IMP_EXPLAIN_SPARSE           "for csv input, whether to add missing field, default: true"
    #define IMP_EXPLAIN_EXTRA            "for csv input, whether to add missing value, default: false"
-   #define IMP_EXPLAIN_LINEPRIORITY     "reverse the priority for record and character delimiter, default: true"
+   #define IMP_EXPLAIN_LINEPRIORITY     "reverse the priority for record and character delimiter (arg: [auto|true|false]), default: auto"
    #define IMP_EXPLAIN_ERRORSTOP        "whether stop by hitting error, default: false"
    #define IMP_EXPLAIN_FORCE            "force to insert the records that are not in utf-8 format, default: false"
    #define IMP_EXPLAIN_SSL              "use SSL connection (arg: [true|false], e.g. --ssl true), default: false"
@@ -148,6 +148,8 @@ namespace import
    #define IMP_STR_TRIM_RIGHT "right"
    #define IMP_STR_TRIM_LEFT  "left"
    #define IMP_STR_TRIM_BOTH  "both"
+
+   #define IMP_STR_LINEPRIORITY_AUTO   "auto"
 
    #define IMP_STR_TRIM_TYPE_EQ(str, type) \
       ((sizeof(type) - 1) == str.length() && ossStrncasecmp(str.c_str(), type, str.length()) == 0)
@@ -657,7 +659,35 @@ namespace import
       if (has(IMP_OPTION_LINEPRIORITY))
       {
          string linePriority = get<string>(IMP_OPTION_LINEPRIORITY);
-         ossStrToBoolean(linePriority.c_str(), &_linePriority);
+
+         if( 0 == ossStrncasecmp( linePriority.c_str(),
+                                  IMP_STR_LINEPRIORITY_AUTO,
+                                  linePriority.length() ) )
+         {
+            if( FORMAT_CSV == _inputFormat )
+            {
+               _linePriority = TRUE ;
+            }
+            else if( FORMAT_JSON == _linePriority )
+            {
+               _linePriority = FALSE ;
+            }
+         }
+         else
+         {
+            ossStrToBoolean(linePriority.c_str(), &_linePriority);
+         }
+      }
+      else
+      {
+         if( FORMAT_CSV == _inputFormat )
+         {
+            _linePriority = TRUE ;
+         }
+         else if( FORMAT_JSON == _linePriority )
+         {
+            _linePriority = FALSE ;
+         }
       }
 
       if (has(IMP_OPTION_ERRORSTOP))
