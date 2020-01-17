@@ -548,11 +548,9 @@ public class FullTextUtils {
         Sequoiadb db = cl.getSequoiadb();
         String csName = cl.getCSName();
         String clName = cl.getName();
-        boolean isConsistency = false;
 
         List< String > groupNames = FullTextDBUtils.getCLGroups( cl );
         for ( String groupName : groupNames ) {
-            isConsistency = false;
             List< String > nodeNames = CommLib.getNodeAddress( db, groupName );
             ReplicaGroup rg = db.getReplicaGroup( groupName );
             Sequoiadb masterNode = rg.getMaster().connect();
@@ -567,12 +565,13 @@ public class FullTextUtils {
                     DBCollection nodeCL = nodeConn.getCollectionSpace( csName )
                             .getCollection( clName );
                     if ( nodeCL.isIndexExist( indexName ) ) {
-                        throw new Exception( cl.getFullName()
+                        System.out.println( cl.getFullName()
                                 + " the index info is different, masterNode: "
                                 + masterNode.getNodeName()
                                 + " not exists indexName: " + indexName
                                 + ", but slaveNode: " + nodeName
                                 + " exists indexName: " + indexName );
+                        return false;
                     }
                 }
             } else {
@@ -585,28 +584,28 @@ public class FullTextUtils {
                     DBCollection nodeCL = nodeConn.getCollectionSpace( csName )
                             .getCollection( clName );
                     if ( !nodeCL.isIndexExist( indexName ) ) {
-                        throw new Exception( cl.getFullName()
+                        System.out.println( cl.getFullName()
                                 + " the index info is different, masterNode: "
                                 + masterNode.getNodeName()
                                 + " exists indexName: " + indexName
                                 + ", but slaveNode: " + nodeName
                                 + " not exists indexName: " + indexName );
+                        return false;
                     }
                     BSONObject checkIndexInfo = nodeCL
                             .getIndexInfo( indexName );
                     if ( !indexInfo.equals( checkIndexInfo ) ) {
-                        throw new Exception( cl.getFullName()
+                        System.out.println( cl.getFullName()
                                 + " the index info is different, masterNode "
                                 + masterNode.getNodeName() + ": " + indexInfo
                                 + ", " + nodeName + ": " + checkIndexInfo );
+                        return false;
                     }
                 }
             }
-
-            isConsistency = true;
         }
 
-        return isConsistency;
+        return true;
     }
 
     /**
@@ -620,7 +619,6 @@ public class FullTextUtils {
      */
     public static boolean isCLDataConsistency( DBCollection cl )
             throws Exception {
-        boolean isConsistency = false;
         Sequoiadb db = cl.getSequoiadb();
         List< String > groupNames = FullTextDBUtils.getCLGroups( cl );
 
@@ -631,14 +629,14 @@ public class FullTextUtils {
                 nodes.add(
                         db.getReplicaGroup( groupName ).getNode( nodeName ) );
             }
-            isConsistency = isConsistency( db, groupName, cl.getCSName(),
-                    cl.getName() );
-            if ( !isConsistency ) {
-                throw new Exception( cl.getCSName()
+            if ( !isConsistency( db, groupName, cl.getCSName(),
+                                   cl.getName() ) ) {
+                System.out.println( cl.getCSName()
                         + " is not consistency in the " + groupName );
+                return false;
             }
         }
-        return isConsistency;
+        return true;
     }
 
     /**
@@ -653,19 +651,17 @@ public class FullTextUtils {
      */
     public static boolean isCappedCLDataConsistency( DBCollection cl,
             String textIndexName ) throws Exception {
-        boolean isConsistency = false;
         Sequoiadb db = cl.getSequoiadb();
         String cappedName = FullTextDBUtils.getCappedName( cl, textIndexName );
         List< String > groupNames = FullTextDBUtils.getCLGroups( cl );
 
         for ( String groupName : groupNames ) {
-            isConsistency = isConsistency( db, groupName, cappedName,
-                    cappedName );
-            if ( !isConsistency ) {
-                break;
+            if ( !isConsistency( db, groupName, cappedName,
+                                   cappedName ) ) {
+                return false;
             }
         }
-        return isConsistency;
+        return true;
     }
 
     /**
@@ -679,7 +675,6 @@ public class FullTextUtils {
     public static boolean isCLConsistency( DBCollection cl ) throws Exception {
 
         Sequoiadb db = cl.getSequoiadb();
-        boolean isConsistency = false;
 
         List< String > groupNames = FullTextDBUtils.getCLGroups( cl );
         for ( String groupName : groupNames ) {
@@ -698,8 +693,9 @@ public class FullTextUtils {
                         completeLSN = ( long ) snapshot.get( "CompleteLSN" );
                     }
                 } else {
-                    throw new Exception( masterNode.getNodeName()
+                    System.out.println( masterNode.getNodeName()
                             + " can't not find system snapshot" );
+                    return false;
                 }
                 cursor.close();
 
@@ -707,7 +703,7 @@ public class FullTextUtils {
                     if ( masterNode.getNodeName().equals( nodeName ) ) {
                         continue;
                     }
-                    isConsistency = false;
+                    boolean isConsistency = false;
                     try ( Sequoiadb nodeConn = rg.getNode( nodeName )
                             .connect()) {
                         DBCursor cur = null;
@@ -738,19 +734,20 @@ public class FullTextUtils {
                             }
                         }
                         if ( !isConsistency ) {
-                            throw new Exception( "Group [" + groupName
+                            System.out.println( "Group [" + groupName
                                     + "] node system snapshot is not the same, masterNode "
                                     + masterNode.getNodeName()
                                     + " CompleteLSN: " + completeLSN + ", "
                                     + nodeName + " CompleteLSN: "
                                     + checkCompleteLSN );
+                            return false;
                         }
                     }
                 }
             }
         }
 
-        return isConsistency;
+        return true;
     }
 
     /**

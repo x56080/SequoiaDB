@@ -64,7 +64,6 @@ public class Fulltext15825 extends FullTestBase {
         Assert.assertTrue( FullTextUtils.isIndexDeleted( sdb, esIndexName,
                 cappedCLName ) );
         Assert.assertTrue( FullTextUtils.isCLDataConsistency( cl ) );
-        FullTextUtils.isCLDataConsistency( cl );
     }
 
     @Override

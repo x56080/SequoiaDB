@@ -32,12 +32,35 @@ public class FullTextDBUtils {
      * @Date 2018-11-15
      */
     public static String getCappedName( DBCollection cl, String indexName ) {
+        //先校验主备节点均存在索引，超时检测时长为 5mins
+        int timeout = 300;
+        while ( timeout > 0 ) {
+            try {
+                if ( !FullTextUtils.isIndexConsistency( cl, indexName ) ) {
+                    timeout--;
+                    try {
+                        Thread.sleep( 1000 );
+                    } catch ( InterruptedException e ) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    break;
+                }
+            } catch (Exception e) {
+                throw new BaseException( -1000, "get capped name failed" );
+            }
+        }
+        if ( timeout <= 0 ) {
+            throw new BaseException( -47, "check indexName: " + indexName + " consistency from cl: " + cl.getFullName() + " timeout" );
+        }          
+
+        // 获取索引信息
         BSONObject indexInfos = cl.getIndexInfo( indexName );
 
         if ( indexInfos != null && indexInfos.containsField( "ExtDataName" ) ) {
             return ( String ) indexInfos.get( "ExtDataName" );
         } else {
-            throw new BaseException( -52, "no such index: " + indexName );
+            throw new BaseException( -52, "no such index: " + indexName + " from cl: " + cl.getFullName() );
         }
     }
 
