@@ -53,12 +53,113 @@ using namespace bson ;
 
 namespace engine
 {
+   // if node had not reported for 2 minutes, it will be kicked out
+   // from lowTran calculation ( consider it is down or disconnected )
+   #define CAT_LOWTRAN_TIMEOUT   ( 2 * 60 * OSS_ONE_SEC )
+
+   /*
+      _catLowTranRecord implement
+    */
+   _catLowTranRecord::_catLowTranRecord()
+   : _role( SDB_ROLE_DATA ),
+     _nodeLowTran( DPS_INVALID_TRANSID_SN ),
+     _globTransEnabled( FALSE ),
+     _transOn( FALSE ),
+     _globTransOn( FALSE ),
+     _mvccOn( FALSE ),
+     _stpAvailable( FALSE ),
+     _updateTick( 0LL )
+   {
+      _routeID.value = MSG_INVALID_ROUTEID ;
+   }
+
+   _catLowTranRecord::_catLowTranRecord( const _catLowTranRecord &record )
+   : _role( record._role ),
+     _nodeLowTran( record._nodeLowTran ),
+     _globTransEnabled( record._globTransEnabled ),
+     _transOn( record._transOn ),
+     _globTransOn( record._globTransOn ),
+     _mvccOn( record._mvccOn ),
+     _stpAvailable( record._stpAvailable ),
+     _updateTick( record._updateTick )
+   {
+      _routeID.value = record._routeID.value ;
+   }
+
+   _catLowTranRecord::~_catLowTranRecord()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBLOWTRANRECORD_INITNODE, "_catLowTranRecord::initNode" )
+   void _catLowTranRecord::initNode( const MsgRouteID &routeID )
+   {
+      PD_TRACE_ENTRY( SDB__CATGLOBLOWTRANRECORD_INITNODE ) ;
+
+      // NOTE: only COORD and DATA nodes are needed
+      _role = ( COORD_GROUPID == routeID.columns.groupID ) ?
+              SDB_ROLE_COORD :
+              SDB_ROLE_DATA ;
+
+      _routeID.value = routeID.value ;
+      _updateTick = pmdGetDBTick() ;
+
+      PD_TRACE_EXIT( SDB__CATGLOBLOWTRANRECORD_INITNODE ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBLOWTRANRECORD_UPDATELOWTRAN, "_catLowTranRecord::updateLowTran" )
+   void _catLowTranRecord::updateLowTran( DPS_TRANSID_SN nodeLowTran,
+                                          BOOLEAN transOn,
+                                          BOOLEAN globTransOn,
+                                          BOOLEAN mvccOn,
+                                          BOOLEAN stpAvailable )
+   {
+      PD_TRACE_ENTRY( SDB__CATGLOBLOWTRANRECORD_UPDATELOWTRAN ) ;
+
+      _nodeLowTran = nodeLowTran ;
+      _transOn = transOn ;
+      _globTransOn = globTransOn ;
+      _mvccOn = mvccOn ;
+      _stpAvailable = stpAvailable ;
+      _updateTick = pmdGetDBTick() ;
+
+      PD_TRACE_EXIT( SDB__CATGLOBLOWTRANRECORD_UPDATELOWTRAN ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBLOWTRANRECORD_GETLOWTRAN, "_catLowTranRecord::getLowTran" )
+   DPS_TRANSID_SN _catLowTranRecord::getLowTran()
+   {
+      DPS_TRANSID_SN nodeLowTran = DPS_INVALID_TRANSID_SN ;
+
+      PD_TRACE_ENTRY( SDB__CATGLOBLOWTRANRECORD_GETLOWTRAN ) ;
+
+      UINT64 updatePassed = pmdGetTickSpanTime( _updateTick ) ;
+
+      if ( updatePassed > CAT_LOWTRAN_TIMEOUT )
+      {
+         // if this node had not reported for a while, kick it out from
+         // global lowTran calculation, return it's lowTran as max value
+         // which is not counted in global lowTran calculation
+         PD_LOG( PDDEBUG, "Node %s had not been reported lowTran "
+                 "for %llu ms, kick it out",
+                 routeID2String( _routeID ).c_str(), updatePassed ) ;
+         nodeLowTran = DPS_MAX_TRANSID_SN ;
+      }
+      else
+      {
+         // if this node is normal, fetch node lowTran directly
+         nodeLowTran = _nodeLowTran ;
+      }
+
+      PD_TRACE_EXIT( SDB__CATGLOBLOWTRANRECORD_GETLOWTRAN ) ;
+
+      return nodeLowTran ;
+   }
 
    /*
       _catGlobTransManager implement
     */
    _catGlobTransManager::_catGlobTransManager()
-   : _globLowTran( (UINT64)( DPS_MAX_TRANSID_SN ) ),
+   : _globLowTran( DPS_INVALID_TRANSID_SN ),
      _lowTranMapLoaded( FALSE )
    {
    }
@@ -67,15 +168,42 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBTRANSMANAGER_CLEARGLOBLOWTRAN, "_catGlobTransManager::clearGlobLowTran" )
+   void _catGlobTransManager::clearGlobLowTran()
+   {
+      PD_TRACE_ENTRY( SDB__CATGLOBTRANSMANAGER_CLEARGLOBLOWTRAN ) ;
+
+      ossScopedRWLock lock( &_lowTranMutex, EXCLUSIVE ) ;
+
+      _globLowTran = DPS_INVALID_TRANSID_SN ;
+      _lowTranMapLoaded = FALSE ;
+      _lowTranMap.clear() ;
+
+      PD_TRACE_EXIT( SDB__CATGLOBTRANSMANAGER_CLEARGLOBLOWTRAN ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBTRANSMANAGER_GETGLOBLOWTRAN, "_catGlobTransManager::getGlobLowTran" )
    DPS_TRANSID_SN _catGlobTransManager::getGlobLowTran()
    {
+      DPS_TRANSID_SN globLowTran = DPS_INVALID_TRANSID_SN ;
+
+      PD_TRACE_ENTRY( SDB__CATGLOBTRANSMANAGER_GETGLOBLOWTRAN ) ;
+
       ossScopedRWLock lock( &_lowTranMutex, SHARED ) ;
-      return _globLowTran ;
+      globLowTran = _globLowTran ;
+
+      PD_TRACE_EXIT( SDB__CATGLOBTRANSMANAGER_GETGLOBLOWTRAN ) ;
+
+      return globLowTran ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBTRANSMANAGER_UPDATEGLOBLOWTRAN, "_catGlobTransManager::updateGlobLowTran" )
    INT32 _catGlobTransManager::updateGlobLowTran( const MsgRouteID &nodeRID,
                                                   DPS_TRANSID_SN nodeLowTran,
+                                                  BOOLEAN transOn,
+                                                  BOOLEAN globTransOn,
+                                                  BOOLEAN mvccOn,
+                                                  BOOLEAN stpAvailable,
                                                   DPS_TRANSID_SN &globLowTran )
    {
       INT32 rc = SDB_OK ;
@@ -85,8 +213,15 @@ namespace engine
       globLowTran = DPS_MAX_TRANSID_SN ;
       GTS_NODE_SET transNodes ;
 
-      PD_LOG( PDINFO, "Got node lowTran [%llu(0x%llX)] from route ID %s",
-              nodeLowTran, nodeLowTran, routeID2String( nodeRID ).c_str() ) ;
+      PD_LOG( PDINFO, "Got node lowTran [%llu(0x%llX)] "
+              "transOn [%s] globTransOn [%s] mvccOn [%s] stpAvailable [%s] "
+              "from route ID %s",
+              nodeLowTran, nodeLowTran,
+              transOn ? "TRUE" : "FALSE",
+              globTransOn ? "TRUE" : "FALSE",
+              mvccOn ? "TRUE" : "FALSE",
+              stpAvailable ? "TRUE" : "FALSE",
+              routeID2String( nodeRID ).c_str() ) ;
 
       ossScopedRWLock lock( &_lowTranMutex, EXCLUSIVE ) ;
 
@@ -109,7 +244,12 @@ namespace engine
       }
 
       // update lowTran of specified node
-      rc = _updateNodeLowTran( nodeRID, nodeLowTran ) ;
+      rc = _updateNodeLowTran( nodeRID,
+                               nodeLowTran,
+                               transOn,
+                               globTransOn,
+                               mvccOn,
+                               stpAvailable ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update lowTran for node %s, "
                    "rc: %d", routeID2String( nodeRID ).c_str(), rc ) ;
 
@@ -118,8 +258,12 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to calculate global lowTran, "
                    "rc: %d", rc ) ;
 
-      // update global lowTran
-      _globLowTran = globLowTran ;
+      if ( DPS_INVALID_TRANSID_SN != globLowTran &&
+           DPS_MAX_TRANSID_SN != globLowTran )
+      {
+         // update valid global lowTran
+         _globLowTran = globLowTran ;
+      }
 
       PD_LOG( PDEVENT, "Update global lowTran to [%llu(0x%llX)]",
               globLowTran, globLowTran ) ;
@@ -134,24 +278,29 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBTRANSMANAGER__UPDATENODELOWTRAN, "_catGlobTransManager::_updateNodeLowTran" )
    INT32 _catGlobTransManager::_updateNodeLowTran( const MsgRouteID &nodeRID,
-                                                   DPS_TRANSID_SN nodeLowTran )
+                                                   DPS_TRANSID_SN nodeLowTran,
+                                                   BOOLEAN transOn,
+                                                   BOOLEAN globTransOn,
+                                                   BOOLEAN mvccOn,
+                                                   BOOLEAN stpAvailable )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__CATGLOBTRANSMANAGER__UPDATENODELOWTRAN ) ;
 
-      try
-      {
-         // replace with specified node route ID
-         _lowTranMap[ nodeRID.value ] = nodeLowTran ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to update low transaction for node %s, "
-                 "error: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
+      // find node
+      GTS_LOWTRAN_MAP::iterator iter = _lowTranMap.find( nodeRID ) ;
+      PD_CHECK( iter != _lowTranMap.end(),
+                SDBCM_NODE_NOTEXISTED, error, PDERROR,
+                "Failed to find node %s to update lowTran",
+                routeID2String( nodeRID ).c_str() ) ;
+
+      // update node
+      iter->second.updateLowTran( nodeLowTran,
+                                  transOn,
+                                  globTransOn,
+                                  mvccOn,
+                                  stpAvailable ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CATGLOBTRANSMANAGER__UPDATENODELOWTRAN, rc ) ;
@@ -174,7 +323,7 @@ namespace engine
             iter != _lowTranMap.end() ;
             ++ iter )
       {
-         DPS_TRANSID_SN nodeLowTran = iter->second ;
+         DPS_TRANSID_SN nodeLowTran = iter->second.getLowTran() ;
 
          // if node lowTran is invalid, it means the node had not report
          // lowTran yet
@@ -300,7 +449,7 @@ namespace engine
                      routeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
 
                      // insert to transaction node list
-                     transNodes.insert( routeID.value ) ;
+                     transNodes.insert( routeID ) ;
                   }
                }
             }
@@ -362,14 +511,16 @@ namespace engine
                nodeIter != transNodes.end() ;
                ++ nodeIter )
          {
-            UINT64 routeIDValue = ( *nodeIter ) ;
-            lowTranIter = _lowTranMap.find( routeIDValue ) ;
+            const MsgRouteID &routeID = *nodeIter ;
+            lowTranIter = _lowTranMap.find( routeID ) ;
             if ( _lowTranMap.end() == lowTranIter )
             {
                // node is not found in lowTran map, it is newly added,
                // add to transMap, and mark it's lowTran invalid
                // ( means lowTran has not been reported yet )
-               _lowTranMap[ routeIDValue ] = DPS_INVALID_TRANSID_SN ;
+               catLowTranRecord record ;
+               record.initNode( routeID ) ;
+               _lowTranMap.insert( make_pair( routeID, record ) ) ;
             }
          }
       }

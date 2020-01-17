@@ -1024,6 +1024,9 @@ namespace engine
 
          if ( primary )
          {
+            // switch to primary, clear global lowTran
+            _catGTSMgr.getGlobTransMgr()->clearGlobLowTran() ;
+
             _isActived = TRUE ;
             _catStartClearTaskJob( CLS_TASK_SEQUENCE ) ;
             _catStartCleanupExpiredTaskJob() ;

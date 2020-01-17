@@ -40,6 +40,8 @@
 #include "pmd.hpp"
 #include "pd.hpp"
 #include "rtnTrace.hpp"
+#include "pmdOptions.hpp"
+#include "rtnCB.hpp"
 #include "../bson/bson.hpp"
 
 using namespace bson ;
@@ -123,11 +125,21 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNGTSAGENT__FILLLOWTRANREQUEST ) ;
 
+      BOOLEAN transOn = pmdGetOptionCB()->transactionOn() ;
+      BOOLEAN globTransOn = pmdGetOptionCB()->globTransOn() ;
+      BOOLEAN mvccOn = pmdGetOptionCB()->mvccOn() ;
+      BOOLEAN stpAvailable = sdbGetRTNCB()->getSTPAgent()->isAvailble() ;
+
       // build request object
       try
       {
-         requestObject = BSON( FIELD_NAME_TRANS_LOWTRAN <<
-                               (INT64)nodeLowTran ) ;
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_TRANS_LOWTRAN, (INT64)nodeLowTran ) ;
+         builder.appendBool( PMD_OPTION_TRANSACTIONON, transOn ) ;
+         builder.appendBool( PMD_OPTION_GLOBTRANSON, globTransOn ) ;
+         builder.appendBool( PMD_OPTION_MVCCON, mvccOn ) ;
+         builder.appendBool( FIELD_NAME_STP_AVAILABLE, stpAvailable ) ;
+         requestObject = builder.obj() ;
       }
       catch ( exception &e )
       {
@@ -142,6 +154,7 @@ namespace engine
                                requestObject.objsize() ;
       request->opCode = MSG_GTS_LOWTRAN_REQ ;
       request->TID = 0 ;
+      // set route ID of this node
       request->routeID.value = pmdGetNodeID().value ;
       request->requestID = 0LL ;
 

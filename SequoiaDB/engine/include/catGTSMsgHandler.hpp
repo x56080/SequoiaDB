@@ -40,6 +40,7 @@
 #include "ossLatch.hpp"
 #include "netDef.hpp"
 #include "msg.h"
+#include "dpsTransID.hpp"
 #include "rtnContextBuff.hpp"
 
 namespace engine
@@ -90,6 +91,15 @@ namespace engine
       INT32 _processLowTranReq( MsgHeader *message,
                                 rtnContextBuf &replyBuffer,
                                 _pmdEDUCB *eduCB ) ;
+      INT32 _parseLowTranReq( const BSONObj &requestObject,
+                              DPS_TRANSID_SN &nodeLowTran,
+                              BOOLEAN &transOn,
+                              BOOLEAN &globTransOn,
+                              BOOLEAN &mvccOn,
+                              BOOLEAN &stpAvailable ) ;
+
+      INT32 _buildLowTranRsp( BSONObj &responseObject,
+                              DPS_TRANSID_SN globLowTran ) ;
 
    private:
       _catGTSManager*         _gtsMgr ;
