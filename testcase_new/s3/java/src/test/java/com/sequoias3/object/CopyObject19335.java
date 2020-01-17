@@ -1,5 +1,14 @@
 package com.sequoias3.object;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
@@ -8,14 +17,6 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Date;
 
 /**
  * @Description seqDB-19335:指定ifNoneMatch和ifUnModifiedSince条件复制对象，
@@ -78,7 +79,7 @@ public class CopyObject19335 extends S3TestBase {
             s3Client.copyObject( request );
             Assert.fail( "expect fail, but actual success." );
         } catch ( AmazonS3Exception e ) {
-            Assert.assertEquals( e.getErrorCode(), "304 " );
+            Assert.assertEquals( e.getErrorCode(), "304 Not Modified" );
         }
 
         // check results
