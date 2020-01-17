@@ -239,7 +239,7 @@ namespace engine
                                    SDB_DPSCB    *dpsCB,
                                    dmsMBContext *metaContext,
                                    dmsMBContext *&clContext ) ;
-      SINT32 _gcRBS ( UINT16 &position, SDB_DPSCB *dpsCB ) ;
+      SINT32 _gcRBS ( UINT16 position, SDB_DPSCB *dpsCB ) ;
 
    } ;
    typedef class _dmsRBSSUMgr dmsRBSSUMgr ;

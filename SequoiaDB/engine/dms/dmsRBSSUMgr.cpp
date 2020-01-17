@@ -268,9 +268,13 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD);
       SINT32       rc           = SDB_OK ;
       CHAR         clName[30]   = {0} ;
-      UINT16       clID         = DMS_INVALID_CLID ;
       BOOLEAN      mbLocked     = FALSE ;
       _dmsStorageDataCapped *sd = (_dmsStorageDataCapped*)_su->data();
+
+      // candidate collection to save RBS record
+      UINT16       tempCurCL    = DMS_MAX_RBS_CL ;
+
+      SDB_ASSERT( NULL == clContext, "mbContext should be NULL" ) ;
 
    begin:
       // latch and lookup curCL for space first
@@ -289,7 +293,7 @@ namespace engine
 
       // Has to get clID from context as the _curCL could change outside
       // of latch protection
-      clID = clContext->mbID() ;
+      tempCurCL = _currentCollection ;
       //if( !sd->clDataSpaceEnough( clContext, recordSize ) )
       if( !sd->spaceEnough( clContext, recordSize ) )
       {
@@ -323,20 +327,20 @@ namespace engine
          _latchX() ;
          // It's possible that another thread has already moved up the
          // _curCollection, we should just go back and retry
-         if ( _currentCollection != clID )
+         if ( _currentCollection != tempCurCL )
          {
             PD_LOG ( PDDEBUG, 
                      "CurrentCollection(%d) changed from %d, retry.",
-                     _currentCollection, clID, rc ) ;
+                     _currentCollection, tempCurCL, rc ) ;
             _releaseX() ;
             goto begin ;
          }
 
-         clID++ ;
+         tempCurCL++ ;
          // if reached max, wrap to first one.
-         if ( clID >= DMS_MAX_RBS_CL )
+         if ( tempCurCL >= DMS_MAX_RBS_CL )
          {
-            clID = DMS_FIRST_RBS_CL ;
+            tempCurCL = DMS_FIRST_RBS_CL ;
          }
 
          // create next CL
@@ -348,7 +352,7 @@ namespace engine
             extOptions = builder.done() ;
 
             // add the collection for RBS
-            DMS_BUILD_RBS_CL_NAME( clName, clID ) ;
+            DMS_BUILD_RBS_CL_NAME( clName, tempCurCL ) ;
 
             rc = _su->data()->addCollection ( clName, &collectionID,
                                               UTIL_UNIQUEID_NULL,
@@ -378,7 +382,7 @@ namespace engine
          }
 
          // update curCL under the latch, but after everything succeeded
-         _currentCollection = clID ;
+         _currentCollection = tempCurCL ;
 
          _releaseX() ;
 
@@ -828,7 +832,7 @@ namespace engine
    // Note that the caller should hold mbLock of SYSRBS000
    // position could be stale.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__GCRBS, "_dmsRBSSUMgr::_gcRBS" )
-   SINT32 _dmsRBSSUMgr::_gcRBS ( UINT16 &position, SDB_DPSCB *dpsCB )
+   SINT32 _dmsRBSSUMgr::_gcRBS ( UINT16 position, SDB_DPSCB *dpsCB )
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__GCRBS );
       SINT32      rc         = SDB_OK ;
@@ -839,7 +843,6 @@ namespace engine
 #ifdef _DEBUG
       SINT32      beginPos   = curPos ;
 #endif
-      BOOLEAN     changed    = FALSE ;
       dmsMBContext *pContext = NULL ;
       BOOLEAN     latched    = FALSE ;
 
@@ -850,6 +853,13 @@ namespace engine
       {
          _latchX() ;
          latched = TRUE ;
+
+         // handle the logic to flip to 1
+         if ( curPos >= DMS_MAX_RBS_CL )
+         {
+            curPos = DMS_FIRST_RBS_CL ;
+         }
+
          if ( curPos == _currentCollection )
          {
 #ifdef _DEBUG
@@ -867,8 +877,8 @@ namespace engine
 
          // acquire mbLock before work on this CL, since we will try
          // to drop it, let's take X directly
-         if( SDB_OK != _su->data()->getMBContext( &pContext,
-                                         clName, EXCLUSIVE ) )
+         if ( SDB_OK != _su->data()->getMBContext( &pContext, clName, -1 ) ||
+              SDB_OK != pContext->mbTryLock( EXCLUSIVE ) )
          {
             // early break if someone is still using this cl
             break ;
@@ -916,18 +926,19 @@ namespace engine
          }
          _releaseX() ;
          latched = FALSE ;
-         changed = TRUE ;
          curPos++ ;
-         // handle the logic to flip to 1
-         if ( curPos >= DMS_MAX_RBS_CL )
-         {
-            curPos = DMS_FIRST_RBS_CL ;
-         }
       } // end of while
+
+      if ( latched )
+      {
+         _releaseX() ;
+         latched = FALSE ;
+      }
 
 #ifdef _DEBUG
       PD_LOG( PDDEBUG, "RBS GC on index trees." ) ;
 #endif
+
       // clean up in memory index tree nodes
       sdbGetTransCB()->getOldVCB()->gcIdxTrees( ) ;
 
@@ -935,10 +946,6 @@ namespace engine
       if ( latched )
       {
          _releaseX() ;
-      }
-      if ( changed )
-      {
-         position = curPos ;
       }
 
       PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__GCRBS, rc );
@@ -955,26 +962,13 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_GCRBS );
       SINT32      rc         = SDB_OK ;
       SDB_DPSCB  *dpsCB      = pmdGetKRCB()->getDPSCB() ;
-      CHAR        clName[30] = {0} ;
-
-      // need to deal with concurrency with runtime:
-      // writer could create CL and modify/increase curCL, GC will try to drop
-      // CL and modify lastFreeCL. we must make sure update is not lost.
-      // For better concurrency, we will take the latch in S to get
-      // starting lastFreeCL. After GC, we will take latch in X to do the
-      // update, but need to refresh curCL
-      _latchS() ;
-      DMS_BUILD_RBS_CL_NAME( clName, _lastFreeCollection ) ;
-      _releaseS() ;
-
-      PD_LOG( PDDEBUG, "RBS GC begin with %s ", clName ) ;
 
       // try the best to gc as much as possible
       rc = _gcRBS( _lastFreeCollection, dpsCB ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to run GC, clName=%s, meta=(%d, %d) rc: %d",
-                  clName, _currentCollection, _lastFreeCollection, rc ) ;
+         PD_LOG ( PDERROR, "Failed to run GC, meta=(%d, %d) rc: %d",
+                  _currentCollection, _lastFreeCollection, rc ) ;
          goto error ;
       }
 
