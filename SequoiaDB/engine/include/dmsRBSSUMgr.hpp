@@ -98,6 +98,12 @@ namespace engine
          }
          return rv ;
       }
+
+      OSS_INLINE void reset()
+      {
+         _clID = DMS_INVALID_CLID ;
+         _logicalID = -1 ;
+      }
    } ;
 
    class _dmsRBSHashBkt
@@ -146,7 +152,10 @@ namespace engine
 
       void reset()
       {
-         ossMemset( _offset, 0, sizeof(_offset) ) ;
+         for ( UINT32 i = 0 ; i < DMS_RBS_HASH_BKT_SLOTS ; ++ i )
+         {
+            _offset[ i ].reset() ;
+         }
       }
    } ;
 
