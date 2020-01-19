@@ -847,14 +847,8 @@ public class TransUtils extends SdbTestBase {
             cl.createIndex( idxName, idxKey, true, false );
             Assert.fail( "CREATE IDX SHOULD THROW ERR" );
         } catch ( BaseException e ) {
-            if ( "rcuserbs".equals( SdbTestBase.testGroup ) ) {
-                if ( -334 != e.getErrorCode() ) {
-                    throw e;
-                }
-            } else {
-                if ( -38 != e.getErrorCode() ) {
-                    throw e;
-                }
+            if ( -38 != e.getErrorCode() ) {
+                throw e;
             }
         }
     }
