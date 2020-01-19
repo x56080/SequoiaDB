@@ -7,7 +7,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONDecimal;
@@ -37,7 +36,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * 2、向cl中插入数据，其中分区键字段数据类型包含sequoiadb支持的所有数据类型
  * （long、int、double、decimal、string、OID、bool、date、timestamp、binary、正则表达式、对象、数组、空、minKey、maxKey）
  * 3、执行split，设置范围切分条件
- * （切分键字段要分别覆盖所有的数据类型，如db.cs.cl.split("group1","group2",{a:int类型数据})）
+ * （切分键字段要分别覆盖所有的数据类型，如db.cs.cl.split("group1","group2",{a:int类型数据 })）
  * 4、查看数据切分结果（分别连接coord、源组data、目标组data查询
  * 
  * @author chensiqin
@@ -74,246 +73,247 @@ public class TestSplit10894 extends SdbTestBase {
 
     @DataProvider(name = "providerMethod")
     public Object[][] providerMethod() {
-        String all = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, { \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
+        String all = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
         // long
-        BSONObject startCondition1 = ( BSONObject ) JSON.parse( "{type:123}" );
-        String srcRe1 = "[{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe1 = "[{ \"_id\" : 1 , \"type\" : 123}, { \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+        BSONObject startCondition1 = ( BSONObject ) JSON.parse( "{type:123 }" );
+        String srcRe1 = "[{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe1 = "[{ \"_id\" : 1 , \"type\" : 123 }, { \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // int
-        BSONObject startCondition2 = ( BSONObject ) JSON.parse( "{type:456}" );
-        String srcRe2 = "[{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, { \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe2 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, { \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+        BSONObject startCondition2 = ( BSONObject ) JSON.parse( "{type:456 }" );
+        String srcRe2 = "[{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe2 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, { \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // double
         BSONObject startCondition3 = ( BSONObject ) JSON
-                .parse( "{type:123.456}" );
-        String srcRe3 = "[{ \"_id\" : 2 , \"type\" : 456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe3 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+                .parse( "{type:123.456 }" );
+        String srcRe3 = "[{ \"_id\" : 2 , \"type\" : 456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe3 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         BSONObject startCondition4 = ( BSONObject ) JSON.parse(
-                "{type:{\"$decimal\":\"12345.06789123456789012345100\"}}" );
-        String srcRe4 = "[{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe4 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+                "{type:{\"$decimal\":\"12345.06789123456789012345100\" } }" );
+        String srcRe4 = "[{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe4 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // String
         BSONObject startCondition5 = ( BSONObject ) JSON
-                .parse( "{type:\"zhangsan\"}" );
-        String srcRe5 = "[{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe5 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+                .parse( "{type:\"zhangsan\" }" );
+        String srcRe5 = "[{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe5 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // OID
         BSONObject startCondition6 = ( BSONObject ) JSON
-                .parse( "{type:{\"$oid\":\"15713f7953e6769804000001\"}}" );
-        String srcRe6 = "[{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe6 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, { \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+                .parse( "{type:{\"$oid\":\"15713f7953e6769804000001\" } }" );
+        String srcRe6 = "[{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe6 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // bool
-        BSONObject startCondition7 = ( BSONObject ) JSON.parse( "{type:true}" );
-        String srcRe7 = "[{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe7 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, { \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+        BSONObject startCondition7 = ( BSONObject ) JSON
+                .parse( "{type:true }" );
+        String srcRe7 = "[{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe7 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // date
         BSONObject startCondition8 = ( BSONObject ) JSON
-                .parse( "{type:{\"$date\":\"2016-12-12\"}}" );
-        String srcRe8 = "[{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe8 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, { \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+                .parse( "{type:{\"$date\":\"2016-12-12\" } }" );
+        String srcRe8 = "[{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe8 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // timstamp
         BSONObject startCondition9 = ( BSONObject ) JSON.parse(
-                "{type:{\"$timestamp\":\"2014-07-01-12.30.30.124232\"}}" );
-        String srcRe9 = "[{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe9 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, { \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+                "{type:{\"$timestamp\":\"2014-07-01-12.30.30.124232\" } }" );
+        String srcRe9 = "[{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe9 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // binary
         BSONObject startCondition10 = ( BSONObject ) JSON
-                .parse( "{type:{\"$binary\":\"aGVsbG8gd29ybGQ=\"}}" );
-        String srcRe10 = "[{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe10 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, { \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+                .parse( "{type:{\"$binary\":\"aGVsbG8gd29ybGQ=\" } }" );
+        String srcRe10 = "[{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe10 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // 正则
         BSONObject startCondition11 = ( BSONObject ) JSON
-                .parse( "{type:{\"$regex\":\"^2001\",\"$options\":\"i\"}}" );
-        String srcRe11 = "[{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe11 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, { \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+                .parse( "{type:{\"$regex\":\"^2001\",\"$options\":\"i\" } }" );
+        String srcRe11 = "[{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe11 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // 对象
         BSONObject startCondition12 = ( BSONObject ) JSON
-                .parse( "{type:{\"a\":1}}" );
-        String srcRe12 = "[{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe12 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, { \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+                .parse( "{type:{\"a\":1 } }" );
+        String srcRe12 = "[{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe12 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // 数组
         BSONObject startCondition13 = ( BSONObject ) JSON
-                .parse( "{\"type\" : [ 0]}" );
-        String srcRe13 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe13 = "[{ \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+                .parse( "{\"type\" : [ 0 ] }" );
+        String srcRe13 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe13 = "[{ \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // 空
         BSONObject startCondition14 = ( BSONObject ) JSON
-                .parse( "{\"type\" :  null}" );
-        String srcRe14 = "[{ \"_id\" : 1 , \"type\" : 123}, "
-                + "{ \"_id\" : 2 , \"type\" : 456}, { \"_id\" : 3 , \"type\" : 123.456}, "
-                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\"}}, "
-                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\"}, "
-                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\"}}, "
-                + "{ \"_id\" : 7 , \"type\" : true}, "
-                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\"}}, "
-                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232}}, "
-                + "{ \"_id\" : 10 , \"type\" : <Binary Data>}, "
-                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\"}}, "
-                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1}}, { \"_id\" : 13 , \"type\" : [ 0]}, "
-                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1}}]";
-        String destRe14 = "[{ \"_id\" : 14 , \"type\" :  null }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1}}]";
+                .parse( "{\"type\" :  null }" );
+        String srcRe14 = "[{ \"_id\" : 1 , \"type\" : 123 }, "
+                + "{ \"_id\" : 2 , \"type\" : 456 }, { \"_id\" : 3 , \"type\" : 123.456 }, "
+                + "{ \"_id\" : 4 , \"type\" : { \"$decimal\" : \"12345.06789123456789012345100\" } }, "
+                + "{ \"_id\" : 5 , \"type\" : \"zhangsan\" }, "
+                + "{ \"_id\" : 6 , \"type\" : { \"$oid\" : \"15713f7953e6769804000001\" } }, "
+                + "{ \"_id\" : 7 , \"type\" : true }, "
+                + "{ \"_id\" : 8 , \"type\" : { \"$date\" : \"2016-12-12\" } }, "
+                + "{ \"_id\" : 9 , \"type\" : { \"$ts\" : 1404189030 , \"$inc\" : 124232 } }, "
+                + "{ \"_id\" : 10 , \"type\" : { \"$binary\" : \"aGVsbG8gd29ybGQ=\" , \"$type\" : \"0\" } }, "
+                + "{ \"_id\" : 11 , \"type\" : { \"$regex\" : \"^2001\" , \"$options\" : \"i\" } }, "
+                + "{ \"_id\" : 12 , \"type\" : { \"a\" : 1 } }, { \"_id\" : 13 , \"type\" : [ 0 ] }, "
+                + "{ \"_id\" : 16 , \"type\" : { \"$maxKey\" : 1 } }]";
+        String destRe14 = "[{ \"_id\" : 14 , \"type\" :  null  }, { \"_id\" : 15 , \"type\" : { \"$minKey\" : 1 } }]";
         // minkey
         // BSONObject startCondition15 = (BSONObject) JSON.parse("{\"type\" : {
-        // \"$maxKey\" : 1}}");
+        // \"$maxKey\" : 1 } }");
         return new Object[][] { { startCondition1, srcRe1, destRe1, all },
                 { startCondition2, srcRe2, destRe2, all },
                 { startCondition3, srcRe3, destRe3, all },
@@ -330,16 +330,16 @@ public class TestSplit10894 extends SdbTestBase {
                 { startCondition14, srcRe14, destRe14, all } };
     }
 
-    @Test(dataProvider = "providerMethod", enabled = false)
+    @Test(dataProvider = "providerMethod")
     public void test( BSONObject startCondition1, String srcRe1, String destRe1,
             String all ) {
         try {
             // 得到数据组
             List< String > rgNames = SplitUtils2.getDataRgNames( this.sdb );
             BSONObject option = new BasicBSONObject();
-            option = ( BSONObject ) JSON.parse( "{ShardingKey:{type:-1},"
+            option = ( BSONObject ) JSON.parse( "{ShardingKey:{type:-1 },"
                     + "ShardingType:\"range\",Group:\"" + rgNames.get( 0 )
-                    + "\"}" );
+                    + "\" }" );
             // 创建cl
             this.cl = SplitUtils2.createCL( this.cs, this.clName, option );
             insertData();
@@ -361,7 +361,7 @@ public class TestSplit10894 extends SdbTestBase {
         try {
             // 连接coord节点验证数据是否正确
             List< BSONObject > actual = new ArrayList< BSONObject >();
-            DBCursor cursor = this.cl.query( null, null, "{\"_id\":1}", null );
+            DBCursor cursor = this.cl.query( null, null, "{\"_id\":1 }", null );
             while ( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();
                 actual.add( obj );
@@ -384,7 +384,7 @@ public class TestSplit10894 extends SdbTestBase {
             CollectionSpace cs1 = dataDb
                     .getCollectionSpace( SdbTestBase.csName );
             DBCollection dbcl = cs1.getCollection( this.clName );
-            DBCursor cursor = dbcl.query( null, null, "{\"_id\":1}", null );
+            DBCursor cursor = dbcl.query( null, null, "{\"_id\":1 }", null );
             List< BSONObject > actual = new ArrayList< BSONObject >();
             while ( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();
@@ -411,7 +411,7 @@ public class TestSplit10894 extends SdbTestBase {
             CollectionSpace cs1 = dataDb
                     .getCollectionSpace( SdbTestBase.csName );
             DBCollection dbcl = cs1.getCollection( this.clName );
-            DBCursor cursor = dbcl.query( null, null, "{\"_id\":1}", null );
+            DBCursor cursor = dbcl.query( null, null, "{\"_id\":1 }", null );
             List< BSONObject > actual = new ArrayList< BSONObject >();
             while ( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();

@@ -28,7 +28,7 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @Date 2019.1.3
  * @version 1.00
  */
-public class CreateUniqueIndexsAndDataOpr17004b extends SdbTestBase {
+public class UniqueIndexReplSyncOptimize17004b extends SdbTestBase {
 
     private String clName1 = "dataConsistency17004_b1";
     private String clName2 = "dataConsistency17004_b2";

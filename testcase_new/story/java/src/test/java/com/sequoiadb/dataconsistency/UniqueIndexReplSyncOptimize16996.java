@@ -28,7 +28,7 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @Date 2019.1.2
  * @version 1.00
  */
-public class CreateUniqueIndexsAndUpdate16996 extends SdbTestBase {
+public class UniqueIndexReplSyncOptimize16996 extends SdbTestBase {
     @DataProvider(name = "dataProvider", parallel = true)
     public Object[][] generateData() {
         return new Object[][] {
@@ -42,8 +42,7 @@ public class CreateUniqueIndexsAndUpdate16996 extends SdbTestBase {
     private String csName = "cs_16996";
     private String groupName = "";
 
-    // environmental Resource problems on CI,the cases set unabled.
-    @BeforeClass(enabled = false)
+    @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {
@@ -57,41 +56,50 @@ public class CreateUniqueIndexsAndUpdate16996 extends SdbTestBase {
         sdb.createCollectionSpace( csName );
     }
 
+    // TODO 该用例测试点貌似没有意义，待确认用例是否要删除。经讨论暂时屏蔽，后续待跟用例责任人确认后处理。
     @Test(dataProvider = "dataProvider", enabled = false)
     public void test( String clName ) {
-        Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        String options = "{ShardingKey:{no:1},ReplSize:1,Group:'" + groupName
-                + "'}";
-        CollectionSpace cs = sdb.getCollectionSpace( csName );
-        DBCollection dbcl = DataConsistencyUtil.createCL( cs, clName, options );
-        createUnquieIndexes( cs, clName );
-        ArrayList< BSONObject > expRecords = DataConsistencyUtil
-                .insertDatas( dbcl, 100000 );
+        Sequoiadb db = null;
+        try {
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            String options = "{ShardingKey:{no:1},ReplSize:1,Group:'"
+                    + groupName + "'}";
+            CollectionSpace cs = db.getCollectionSpace( csName );
+            DBCollection dbcl = DataConsistencyUtil.createCL( cs, clName,
+                    options );
+            createUnquieIndexes( cs, clName );
+            ArrayList< BSONObject > expRecords = DataConsistencyUtil
+                    .insertDatas( dbcl, 20000 );
 
-        List< UpdateThread > UpdateThreads = new ArrayList<>( 10 );
-        int beginNo = 0;
-        int endNo = 10000;
-        for ( int i = 0; i < 10; i++ ) {
-            UpdateThreads.add( new UpdateThread( beginNo, endNo, clName ) );
-            beginNo = endNo;
-            endNo = beginNo + 10000;
-        }
-        for ( UpdateThread updateThread : UpdateThreads ) {
-            updateThread.start();
-        }
-        for ( UpdateThread updateThread : UpdateThreads ) {
-            Assert.assertTrue( updateThread.isSuccess(),
-                    updateThread.getErrorMsg() );
-        }
+            List< UpdateThread > UpdateThreads = new ArrayList<>( 10 );
+            int beginNo = 0;
+            int endNo = 10000;
+            for ( int i = 0; i < 10; i++ ) {
+                UpdateThreads.add( new UpdateThread( beginNo, endNo, clName ) );
+                beginNo = endNo;
+                endNo = beginNo + 10000;
+            }
+            for ( UpdateThread updateThread : UpdateThreads ) {
+                updateThread.start();
+            }
+            for ( UpdateThread updateThread : UpdateThreads ) {
+                Assert.assertTrue( updateThread.isSuccess(),
+                        updateThread.getErrorMsg() );
+            }
 
-        updateExpDatas( expRecords );
-        DataConsistencyUtil.checkDataContent( dbcl, expRecords );
-        String matcherCount = "{'str':'testupdate_idfield16996'}";
-        DataConsistencyUtil.checkDataConsistency( sdb, groupName, csName,
-                clName, expRecords, matcherCount );
+            updateExpDatas( expRecords );
+            DataConsistencyUtil.checkDataContent( dbcl, expRecords );
+            String matcherCount = "{'str':'testupdate_idfield16996'}";
+            DataConsistencyUtil.checkDataConsistency( db, groupName, csName,
+                    clName, expRecords, matcherCount );
+        } finally {
+            if ( db != null ) {
+                db.disconnect();
+            }
+        }
     }
 
-    @AfterClass(enabled = false)
+    @AfterClass
     public void tearDown() {
         try {
             sdb.dropCollectionSpace( csName );

@@ -19,22 +19,21 @@ import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
- * @FileName CreateUniqueIndexsAndUpdate16994.java
- * @content create multiple unique Indexes, concurrent execution of update
+ * @FileName CreateUniqueIndexsAndUpdate17000.java
+ * @content create multiple unique Indexes, concurrent execution of delete
  *          operations, than check dataConsistency.
- * @testlink seqDB-16994
+ * @testlink seqDB-17000
  * @author wuyan
  * @Date 2019.1.2
  * @version 1.00
  */
-public class CreateUniqueIndexsAndUpdate16994 extends SdbTestBase {
+public class UniqueIndexReplSyncOptimize17000 extends SdbTestBase {
 
-    private String clName = "dataConsistency16994";
+    private String clName = "dataConsistency17000";
     private Sequoiadb sdb = null;
     private String groupName = "";
     private CollectionSpace cs = null;
     private DBCollection dbcl = null;
-    private ArrayList< BSONObject > expRecords = null;
 
     @BeforeClass
     public void setUp() {
@@ -55,33 +54,33 @@ public class CreateUniqueIndexsAndUpdate16994 extends SdbTestBase {
         dbcl.createIndex( "teste", "{ftest:1,no:-1}", true, false );
         dbcl.createIndex( "testf", "{ftest:-1,no:1}", true, false );
         dbcl.createIndex( "testg", "{str:-1,order:1,no:-1}", true, false );
-        expRecords = DataConsistencyUtil.insertDatas( dbcl, 200000 );
+        // insert 2W records.
+        DataConsistencyUtil.insertDatas( dbcl, 200000 );
     }
 
     @Test
     public void test() {
-        // update 2w records per batch
-        List< UpdateThread > UpdateThreads = new ArrayList<>( 10 );
+        // delete 2W records per batch.
+        List< DeleteThread > deleteThreads = new ArrayList<>( 10 );
         int beginNo = 0;
         int endNo = 20000;
         for ( int i = 0; i < 10; i++ ) {
-            UpdateThreads.add( new UpdateThread( beginNo, endNo ) );
+            deleteThreads.add( new DeleteThread( beginNo, endNo ) );
             beginNo = endNo;
             endNo = beginNo + 20000;
         }
-        for ( UpdateThread updateThread : UpdateThreads ) {
-            updateThread.start();
+        for ( DeleteThread deleteThread : deleteThreads ) {
+            deleteThread.start();
         }
-        for ( UpdateThread updateThread : UpdateThreads ) {
-            Assert.assertTrue( updateThread.isSuccess(),
-                    updateThread.getErrorMsg() );
+        for ( DeleteThread deleteThread : deleteThreads ) {
+            Assert.assertTrue( deleteThread.isSuccess(),
+                    deleteThread.getErrorMsg() );
         }
 
-        updateExpDatas();
+        ArrayList< BSONObject > expRecords = new ArrayList<>();
         DataConsistencyUtil.checkDataContent( dbcl, expRecords );
-        String matcherCount = "{'str':'testdataconsitency_16994'}";
         DataConsistencyUtil.checkDataConsistency( sdb, groupName,
-                SdbTestBase.csName, clName, expRecords, matcherCount );
+                SdbTestBase.csName, clName, expRecords );
     }
 
     @AfterClass
@@ -97,11 +96,11 @@ public class CreateUniqueIndexsAndUpdate16994 extends SdbTestBase {
         }
     }
 
-    public class UpdateThread extends SdbThreadBase {
+    public class DeleteThread extends SdbThreadBase {
         private int beginNo;
         private int endNo;
 
-        public UpdateThread( int beginNo, int endNo ) {
+        public DeleteThread( int beginNo, int endNo ) {
             this.beginNo = beginNo;
             this.endNo = endNo;
         }
@@ -113,21 +112,13 @@ public class CreateUniqueIndexsAndUpdate16994 extends SdbTestBase {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                 DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
                         .getCollection( clName );
-                String updateValue = "testdataconsitency_16994";
-                String modifier = "{ $set: { 'str': '" + updateValue + "'} }";
                 String matcher = "{ '$and': [ { 'inta': { '$gte': " + beginNo
                         + "} }," + " { 'inta': { '$lt': " + endNo + " } } ] }";
-                dbcl.update( matcher, modifier, "" );
+                dbcl.delete( matcher );
             } finally {
                 db.disconnect();
             }
         }
     }
 
-    // update the same range of elements in the expected list.
-    private void updateExpDatas() {
-        for ( BSONObject object : expRecords ) {
-            object.put( "str", "testdataconsitency_16994" );
-        }
-    }
 }

@@ -19,17 +19,17 @@ import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
- * @FileName CreateUniqueIndexsAndUpdate17040.java
+ * @FileName CreateUniqueIndexsAndUpdate16994.java
  * @content create multiple unique Indexes, concurrent execution of update
- *          "_id", than check dataConsistency.
- * @testlink seqDB-17040
+ *          operations, than check dataConsistency.
+ * @testlink seqDB-16994
  * @author wuyan
  * @Date 2019.1.2
  * @version 1.00
  */
-public class CreateUniqueIndexsAndUpdate17040 extends SdbTestBase {
+public class UniqueIndexReplSyncOptimize16994 extends SdbTestBase {
 
-    private String clName = "dataConsistency17040";
+    private String clName = "dataConsistency16994";
     private Sequoiadb sdb = null;
     private String groupName = "";
     private CollectionSpace cs = null;
@@ -60,6 +60,7 @@ public class CreateUniqueIndexsAndUpdate17040 extends SdbTestBase {
 
     @Test
     public void test() {
+        // update 2w records per batch
         List< UpdateThread > UpdateThreads = new ArrayList<>( 10 );
         int beginNo = 0;
         int endNo = 20000;
@@ -78,7 +79,7 @@ public class CreateUniqueIndexsAndUpdate17040 extends SdbTestBase {
 
         updateExpDatas();
         DataConsistencyUtil.checkDataContent( dbcl, expRecords );
-        String matcherCount = "{'str':'testupdate_idfield17040'}";
+        String matcherCount = "{'str':'testdataconsitency_16994'}";
         DataConsistencyUtil.checkDataConsistency( sdb, groupName,
                 SdbTestBase.csName, clName, expRecords, matcherCount );
     }
@@ -86,7 +87,10 @@ public class CreateUniqueIndexsAndUpdate17040 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            cs.dropCollection( clName );
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
+            }
+
         } finally {
             if ( sdb != null )
                 sdb.disconnect();
@@ -109,13 +113,11 @@ public class CreateUniqueIndexsAndUpdate17040 extends SdbTestBase {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                 DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
                         .getCollection( clName );
-                for ( int i = beginNo; i < endNo; i++ ) {
-                    String idValue = "test_id_" + i;
-                    String modifier = "{ $set: { '_id': '" + idValue
-                            + "','str':'testupdate_idfield17040'} }";
-                    String matcher = "{ 'no': " + i + "}";
-                    dbcl.update( matcher, modifier, "" );
-                }
+                String updateValue = "testdataconsitency_16994";
+                String modifier = "{ $set: { 'str': '" + updateValue + "'} }";
+                String matcher = "{ '$and': [ { 'inta': { '$gte': " + beginNo
+                        + "} }," + " { 'inta': { '$lt': " + endNo + " } } ] }";
+                dbcl.update( matcher, modifier, "" );
             } finally {
                 db.disconnect();
             }
@@ -124,11 +126,8 @@ public class CreateUniqueIndexsAndUpdate17040 extends SdbTestBase {
 
     // update the same range of elements in the expected list.
     private void updateExpDatas() {
-        int count = 0;
         for ( BSONObject object : expRecords ) {
-            object.put( "_id", "test_id_" + count );
-            object.put( "str", "testupdate_idfield17040" );
-            count++;
+            object.put( "str", "testdataconsitency_16994" );
         }
     }
 }
