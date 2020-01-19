@@ -42,7 +42,7 @@ public class UniqueIndexReplSyncOptimize16996 extends SdbTestBase {
     private String csName = "cs_16996";
     private String groupName = "";
 
-    @BeforeClass(enabled = false)
+    @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {
@@ -59,39 +59,42 @@ public class UniqueIndexReplSyncOptimize16996 extends SdbTestBase {
         sdb.createCollectionSpace( csName );
     }
 
+    // TODO 该用例测试点貌似没有意义，待确认用例是否要删除。经讨论暂时屏蔽，后续待跟用例责任人确认后处理。
     @Test(dataProvider = "dataProvider", enabled = false)
     public void test( String clName ) throws Exception {
-        Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        String options = "{Group:'" + groupName + "'}";
-        CollectionSpace cs = sdb.getCollectionSpace( csName );
-        DBCollection dbcl = DataConsistencyUtil.createCL( cs, clName, options );
-        DataConsistencyUtil.createUnquieIndexes( cs, clName );
-        ArrayList< BSONObject > expRecords = DataConsistencyUtil
-                .insertDatas( dbcl, 100000, 0 );
+        try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            String options = "{Group:'" + groupName + "'}";
+            CollectionSpace cs = db.getCollectionSpace( csName );
+            DBCollection dbcl = DataConsistencyUtil.createCL( cs, clName,
+                    options );
+            DataConsistencyUtil.createUnquieIndexes( cs, clName );
+            ArrayList< BSONObject > expRecords = DataConsistencyUtil
+                    .insertDatas( dbcl, 20000, 0 );
 
-        List< UpdateThread > UpdateThreads = new ArrayList<>( 10 );
-        int beginNo = 0;
-        int endNo = 10000;
-        for ( int i = 0; i < 10; i++ ) {
-            UpdateThreads.add( new UpdateThread( beginNo, endNo, clName ) );
-            beginNo = endNo;
-            endNo = beginNo + 10000;
-        }
-        for ( UpdateThread updateThread : UpdateThreads ) {
-            updateThread.start();
-        }
-        for ( UpdateThread updateThread : UpdateThreads ) {
-            Assert.assertTrue( updateThread.isSuccess(),
-                    updateThread.getErrorMsg() );
-        }
+            List< UpdateThread > UpdateThreads = new ArrayList<>( 10 );
+            int beginNo = 0;
+            int endNo = 10000;
+            for ( int i = 0; i < 10; i++ ) {
+                UpdateThreads.add( new UpdateThread( beginNo, endNo, clName ) );
+                beginNo = endNo;
+                endNo = beginNo + 10000;
+            }
+            for ( UpdateThread updateThread : UpdateThreads ) {
+                updateThread.start();
+            }
+            for ( UpdateThread updateThread : UpdateThreads ) {
+                Assert.assertTrue( updateThread.isSuccess(),
+                        updateThread.getErrorMsg() );
+            }
 
-        updateExpDatas( expRecords );
-        String matcherCount = "{'str':'testupdate_idfield16996'}";
-        DataConsistencyUtil.checkDataConsistency( sdb, csName, clName,
-                expRecords, matcherCount );
+            updateExpDatas( expRecords );
+            String matcherCount = "{'str':'testupdate_idfield16996'}";
+            DataConsistencyUtil.checkDataConsistency( db, csName, clName,
+                    expRecords, matcherCount );
+        }
     }
 
-    @AfterClass(enabled = false)
+    @AfterClass
     public void tearDown() {
         try {
             sdb.dropCollectionSpace( csName );

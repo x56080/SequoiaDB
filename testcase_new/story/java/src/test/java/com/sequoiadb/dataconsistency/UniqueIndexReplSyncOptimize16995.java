@@ -42,8 +42,7 @@ public class UniqueIndexReplSyncOptimize16995 extends SdbTestBase {
     private String csName = "cs_16995";
     private String groupName = "";
 
-    // environmental Resource problems on CI,the cases set unabled.
-    @BeforeClass(enabled = false)
+    @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {
@@ -54,17 +53,19 @@ public class UniqueIndexReplSyncOptimize16995 extends SdbTestBase {
         if ( DataConsistencyUtil.isOneNodeInGroup( sdb, groupName ) ) {
             throw new SkipException( "one node in group skip testcase" );
         }
+
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );
         }
         sdb.createCollectionSpace( csName );
     }
 
+    // TODO 该用例测试点貌似没有意义，待确认用例是否要删除。经讨论暂时屏蔽，后续待跟用例责任人确认后处理。
     @Test(dataProvider = "dataProvider", enabled = false)
     public void test( String clName ) throws Exception {
         try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
             String options = "{Group:'" + groupName + "'}";
-            CollectionSpace cs = sdb.getCollectionSpace( csName );
+            CollectionSpace cs = db.getCollectionSpace( csName );
             DBCollection dbcl = DataConsistencyUtil.createCL( cs, clName,
                     options );
             DataConsistencyUtil.createUnquieIndexes( cs, clName );
@@ -96,13 +97,13 @@ public class UniqueIndexReplSyncOptimize16995 extends SdbTestBase {
             }
 
             updateExpDatas( expRecords, beginInsertNums );
-            DataConsistencyUtil.checkDataConsistency( sdb, csName, clName,
+            DataConsistencyUtil.checkDataConsistency( db, csName, clName,
                     expRecords, "" );
         }
 
     }
 
-    @AfterClass(enabled = false)
+    @AfterClass
     public void tearDown() {
         try {
             sdb.dropCollectionSpace( csName );

@@ -1,7 +1,6 @@
 package com.sequoiadb.basicoperation;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -11,7 +10,6 @@ import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
@@ -39,6 +37,7 @@ public class TestUpdateShardingKey12628 extends SdbTestBase {
     private CollectionSpace cs = null;
     private DBCollection cl;
 
+    // 不支持更新分区键
     @BeforeClass(enabled = false)
     public void setUp() {
         try {
