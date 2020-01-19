@@ -88,7 +88,7 @@ pmdFiles = [
 # pmd multiple thread model files.
 pmdMTFiles = [
       "pmd/pmdMemPool.cpp",
-      "pmd/pmdLightLobMgr.cpp",
+      "pmd/pmdLightJobMgr.cpp",
       "pmd/pmdSyncMgr.cpp",
       "pmd/pmd.cpp",
       "pmd/pmdEDU.cpp",
@@ -97,6 +97,7 @@ pmdMTFiles = [
       "mon/monCB.cpp",
       "mon/monMgr.cpp",
       "mon/monClass.cpp",
+      "mon/monLatch.cpp",
       "pmd/pmdAsyncSessionAgent.cpp",
       "pmd/pmdInnerClient.cpp",
       "pmd/pmdAsyncHandler.cpp",
