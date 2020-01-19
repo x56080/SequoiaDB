@@ -1,5 +1,13 @@
 package com.sequoias3.object.concurrent;
 
+import java.io.File;
+import java.io.IOException;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
@@ -10,13 +18,6 @@ import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
 
 /**
  * @Description seqDB-19352:并发复制对象和删除源对象
@@ -69,7 +70,9 @@ public class CopyObject19352 extends S3TestBase {
                     s3Client.doesObjectExist( bucketName, srcKeyName ) );
         } else {
             // delete object success,copy object fail,the errorCode:404(NoSuchKey)
-            Assert.assertEquals( copyObjectErrCode, 404 );
+            //or the errorCode:200(源对象在copy过程中被删除，有可能报200错误)
+            Assert.assertTrue( copyObjectErrCode == 404 || copyObjectErrCode
+                    == 200 );
             Assert.assertFalse(
                     s3Client.doesObjectExist( bucketName, srcKeyName ) );
             Assert.assertFalse(
