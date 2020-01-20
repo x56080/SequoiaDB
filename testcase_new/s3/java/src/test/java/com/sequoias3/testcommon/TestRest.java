@@ -1,5 +1,7 @@
 package com.sequoias3.testcommon;
 
+import java.io.InputStream;
+
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -13,17 +15,15 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.InputStream;
-
 public class TestRest extends S3TestBase {
     private static RestTemplate rest;
 
     static {
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
-        factory.setConnectionRequestTimeout( 10000 );
-        factory.setConnectTimeout( 60000 );
+        factory.setConnectionRequestTimeout( 30*1000 );
+        factory.setConnectTimeout( 60*1000 );
         factory.setBufferRequestBody( false );
-        factory.setReadTimeout( 180000 );
+        factory.setReadTimeout( 180*1000 );
         rest = new RestTemplate( factory );
     }
 
