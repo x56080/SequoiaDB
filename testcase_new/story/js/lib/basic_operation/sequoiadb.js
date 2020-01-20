@@ -53,6 +53,8 @@ function Sequoiadb ( hostname, svcname, username, password )
       throw new Error( e );
    }
 
+   
+
    this.createCS =
       function( name, options )
       {
@@ -460,6 +462,33 @@ function Sequoiadb ( hostname, svcname, username, password )
          try
          {
             db.updateConf( config, options );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+      }
+
+   this.deleteConf = 
+      function( config, options )
+      {
+         if( options === undefined ) { options = {}; }
+         try
+         {
+            db.deleteConf( config, options );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+      }
+
+   this.invalidateCache = 
+      function()
+      {
+         try
+         {
+            db.invalidateCache();
          }
          catch( e )
          {

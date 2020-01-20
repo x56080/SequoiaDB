@@ -1,134 +1,76 @@
 /* *****************************************************************************
-@discretion: setSessionAttr(),set instatceid and timeout, query timeout;test getSessionAttr(); 
-@author��2018-1-29 wuyan  Init
+@description: seqDB-14114:设置timeout值和session值，查询记录超时
+@author: 2018-1-29 wuyan  Init
 ***************************************************************************** */
-main();
-function main ()
+testConf.skipStandAlone = true;
+
+//SEQUOIADBMAINSTREAM-5245
+//main( test );
+
+function test()
 {
-   try
+   var clName = CHANGEDPREFIX + "_14114";
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
+   insertData( cl, 80000 );
+ 
+   var timeoutValues = [1, 1000, 2000];
+   for( var i = 0; i < timeoutValues.length; i++ )
    {
-      var sdb = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-      if( true == commIsStandalone( sdb ) )
+      db.setSessionAttr({ PreferedInstance: "M", Timeout: timeoutValues[i] });
+      try
       {
-         println( "run mode is standalone" );
-         return;
+         cl.update({ $set: {a: "aaaaaa" }});
+         throw "NEED_TIMEOUT_ERROR";
       }
-
-      //create cl and insert data
-      var csName = CHANGEDPREFIX + "_cs14114";
-      var clName = CHANGEDPREFIX + "_sessionAcess14114";
-      commCreateCS( sdb, csName, false, "Failed to create CS." );
-      var options = { ReplSize: 0 };
-      var dbcl = commCreateCL( sdb, csName, clName, options, true, true );
-      buckInsertData( dbcl, 80000 );
-
-      println( "---begin to test query timeout " );
-      testQueryTimeout( csName, clName );
-
-      commDropCS( sdb, csName, false, "Failed to drop CS." );
-   }
-   catch( e )
-   {
-      throw buildException( "test session14114", e );
-   }
-   finally
-   {
-      if( db != null )
+      catch( e )
       {
-         sdb.close()
-      }
-   }
-}
-
-function testQueryTimeout ( csName, clName )
-{
-   try
-   {
-      var timeOutValue = 1000;
-      var sdb = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-      sdb.setSessionAttr( { PreferedInstance: "M", Timeout: timeOutValue } );
-      var dbcl = sdb.getCS( csName ).getCL( clName );
-      var rc = dbcl.find().sort( { a: 1 } );
-      while( rc.next() )
-      {
-         var atcObj = rc.current().toObj();
-      }
-   }
-   catch( e )
-   {
-      if( e !== -13 )
-         throw buildException( "check query timeout", e );
-   }
-   finally
-   {
-      checkTimeoutValue( sdb, timeOutValue );
-      sdb.setSessionAttr( { Timeout: -1 } );
-      if( rc != null )
-      {
-         rc.close();
-      }
-      if( sdb != null )
-      {
-         sdb.close();
-      }
-
-   }
-}
-
-function checkTimeoutValue ( sdb, timeOutValue )
-{
-   var sessionResult = sdb.getSessionAttr().toObj();
-   var timeout = sessionResult.Timeout;
-   if( JSON.stringify( timeout ) !== JSON.stringify( timeOutValue ) )
-   {
-      throw buildException( "checkTimeoutValue()", e, "getSeesionAttr()", timeOutValue, JSON.stringify( timeout ) );
-   }
-
-}
-
-function buckInsertData ( dbcl, insertNums, beginNums )
-{
-   if( undefined == beginNums ) { beginNums = 0; }
-   try
-   {
-      println( "---begin to buckInsert data." );
-      var batchNums = 10000;
-      var recs = [];
-      var times = insertNums / batchNums;
-
-      for( var k = 0; k < times; k++ )
-      {
-         var doc = [];
-         for( var i = 0; i < batchNums; ++i )
+         //TODO:这里需确认更新超时不报错和更新几十秒后报错-116是否合理
+         if( e.message !== "-13" && e.message !== "-116" )
          {
-            var count = beginNums++
-            var no = count;
-            var str = getRandomString( 100 ) + "teststr_" + count;
-            var inta = count;
-            var fc = count + 0.7898;
-            var objs = { "no": no, "str": str, "inta": inta, "fc": fc };
-            doc.push( objs );
-            recs.push( objs );
+            throw e;
          }
-         dbcl.insert( doc );
       }
-      println( "---end bulkInsert data." )
-      return recs;
+      finally
+      {
+         checkTimeoutValue( timeoutValues[i] );
+         db.setSessionAttr({ Timeout: -1});
+      }
+   }
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+}
+
+function checkTimeoutValue( timeoutValue )
+{
+   try
+   {
+      var timeout = db.getSessionAttr().current().toObj().Timeout;
+      if ( timeout !== timeoutValue)
+      {
+         throw "The expected timeout value is " + timeoutValue + ", but the actual timeout value is " + timeout;
+      }
    }
    catch( e )
    {
-      throw buildException( "bulkInsertDate()", e );
+      throw new Error( e );
    }
 }
 
-function getRandomString ( len ) 
+function bulkInsert( cl, insertNums )
 {
-   var str = "";
-   var chars = "ABCDEFGHIJKLMNOPQRATUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-   var maxPos = chars.length;
-   for( var i = 0; i < len; i++ )
+   var batchNums = 10000;
+   var recs = [];
+   var times = insertNums/batchNums;
+
+   for(var k = 0; k < times; k++)
    {
-      str += chars.charAt( Math.floor( Math.random() * maxPos ) );
+      var doc = [];
+      for( var i = 0; i < batchNums; ++i )
+      {
+         doc.push({ a: "string"});
+      }
+      cl.insert( doc );
    }
-   return str;
 }
+

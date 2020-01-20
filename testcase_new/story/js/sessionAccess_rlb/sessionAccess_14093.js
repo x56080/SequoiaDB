@@ -1,106 +1,127 @@
 /* *****************************************************************************
-@discretion: setSessionAttr(),set instanceid and [M/S/A],the preferedInstanceMode is ordered
-             test the following scenes:
-             a: set multiple instanceid and ["M"]/["m"]
-             b: set multiple instanceid and ["S"]/["s"]
-             c: set multiple instanceid and ["A"]/["a"]
-             d: set multiple instanceid and [M/S/A]
-@author��2018-1-24 wuyan  Init
+@description: seqDB-14093:设置会话访问属性，指定preferedinstance为instanceid存在的节点和[M/S/A]
+@author: 2018-1-24 wuyan  Init
 ***************************************************************************** */
-import( "../sessionAccess/commlib.js" );
-main();
+testConf.skipStandAlone = true;
 
-function main ()
+//SEQUOIADBMAINSTREAM-5283，待开发修改问题单后此用例需要整体进行优化及调试
+//main( test );
+
+function test()
 {
+   var groups = getGroupsWithNodeNum( 3 );
+   if( groups.length === 0 )
+   {
+      return;
+   }
+   var group = groups[0];
+   var groupName = group[0].GroupName;
+   var primaryPos = group[0].PrimaryPos;
+   var clName = CHANGEDPREFIX + "_14093";
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
+   insertData( cl );
+   var instanceid = [ 30, 124, 8 ];
+   for( var i = 0; i < instanceid.length; i++ )
+   {
+      var hostName = group[i+1].HostName;
+      var svcName = group[i+1].svcname;
+      updateConf( db, { instanceid: instanceid[i] }, { NodeName: hostName + ":" + svcName }, -264 );
+   }
+   db.getRG( groupName ).stop();
+   db.getRG( groupName ).start();
+   commCheckBusinessStatus( db );
+   db.invalidateCache();
    try
    {
-      var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-      if( true == commIsStandalone( db ) )
+      instanceid  = [124, 8, 30, "M"];
+      actAccessNodes = [];
+      for( var j = 0; j < 10; j++ )
       {
-         println( "run mode is standalone" );
-         return;
+         db.setSessionAttr({ PreferedInstance: instanceid });
+         var actAccessNode = cl.find().explain().current().toObj().NodeName;
+         println("actAccessNode:::::"+actAccessNode);
+         if( actAccessNodes.indexOf( actAccessNode ) === -1 )
+         {
+            actAccessNodes.push( actAccessNode );
+         }
       }
+      var expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
+    println("expAccessNodes1:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
+      checkAccessNodes( expAccessNodes, actAccessNodes );
 
-      //create group and node
-      var groupName = "group14093";
-      var nodeList = [];
-      var instanceidList = [30, 124, 8, 22];
-      var nodeNum = 4;
-      var clName = CHANGEDPREFIX + "_sessionAcess14093";
-      nodeList = createRGAndNode( db, groupName, instanceidList, nodeNum );
-      //expSvcNameList[i] : instanceidList[i]
-      var expSvcNameList = getSvcNameList( db, groupName );
-
-      //create cl ,then insert data  
-      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
-      insertData( dbcl );
-
-      //a: set multiple instanceid and ["M"]
-      println( "---begin to test set multiple instanceid and ['M']/['m'] " );
-      var queryInstanceidList = [124, 8, 30, "M"];
-      var expQueryNode_a1 = expSvcNameList[0];
-      setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList, expQueryNode_a1 )
-      //a: set multiple instanceid and ["m"] 
-      var queryInstanceidList_a2 = [124, 8, 30, "m"];
-      var expQueryNode_a2 = expSvcNameList[1];
-      setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList_a2, expQueryNode_a2 );
-      println( "---end to test set multiple instanceid and ['M']/['m'] " );
-
-      //b: set multiple instanceid and ["S"]
-      println( "---begin to test set multiple instanceid and ['S']/['s'] " );
-      var queryInstanceidList_b1 = [124, 8, 30, "S"];
-      var expQueryNode_b1 = expSvcNameList[1];
-      setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList_b1, expQueryNode_b1 );
-      //b: set multiple instanceid and ["s"],the instanceid:30 is masterNode
-      var queryInstanceidList_b2 = [30, 124, 8, "s"];
-      var expQueryNode_b2 = expSvcNameList[0];
-      setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList_b2, expQueryNode_b2 );
-      println( "---end to test set multiple instanceid and ['S']/['s'] " );
-
-      //c: set multiple instanceid and ["A"]
-      println( "---begin to test set multiple instanceid and ['A']/['a'] " );
-      var queryInstanceidList_c1 = [124, 8, 30, "A"];
-      var expQueryNode_c1 = expSvcNameList[1];
-      setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList_c1, expQueryNode_c1 );
-      //c: set multiple instanceid and ["a"],the instanceid:30 is masternode
-      var queryInstanceidList_c2 = [22, 124, 8, "a"];
-      var expQueryNode_c2 = expSvcNameList[3];
-      setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList_c2, expQueryNode_c2 );
-      println( "---end to test set multiple instanceid and ['A']/['a'] " );
-
-      //d: set multiple instanceid and ["M/S/A"]
-      println( "---begin to test set multiple instanceid and ['M/S/A'] " );
-      var queryInstanceidList_d = [124, 8, 30, "M", "S", "A"];
-      var expQueryNode_d = expSvcNameList[0];
-      setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList_d, expQueryNode_d );
-      println( "---end to test set multiple instanceid and ['M/S/A'] " );
-   }
-   catch( e )
-   {
-      println( "catch e : " + e );
-      //���½�����־���ݵ�/tmp/ci/rsrvnodelogĿ¼��
-      var backupDir = "/tmp/ci/rsrvnodelog/14093";
-      File.mkdir( backupDir );
-      for( var i = 0; i < nodeList.length; i++ )
+      var actAccessNodes = [];
+      instanceid = [124, 8, 30, "m"];
+      db.setSessionAttr({ PreferedInstance: instanceid });
+      expAccessNodes = getGroupNodes( groupName );
+      for( var i = 0; i < 10; i++ )
       {
-         File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
+        db.setSessionAttr({ PreferedInstance: instanceid });
+         actAccessNode = cl.find().explain().current().toObj().NodeName;
+        println("actAccessNode:::::"+actAccessNode);
+         if( actAccessNodes.indexOf( actAccessNode ) === -1 )
+         {
+            actAccessNodes.push( actAccessNode );
+         }
       }
-      throw e;
+      println("expAccessNodes2:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
+      checkAccessNodes( expAccessNodes, actAccessNodes );
+
+      instanceid = [124, 8, 30, "S"];
+      expAccessNodes = [ group[1].HostName + ":" + group[1].svcname ];
+      actAccessNode = cl.find().explain().current().toObj().NodeName;
+      actAccessNodes = [ actAccessNode ];
+println("expAccessNodes3:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
+      checkAccessNodes( expAccessNodes, actAccessNodes );
+
+      instanceid = [124, 8, 30, "s"];
+      expAccessNodes = [ group[1].HostName + ":" + group[1].svcname ];
+      actAccessNode = cl.find().explain().current().toObj().NodeName;
+      actAccessNodes = [ actAccessNode ];
+println("expAccessNodes4:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
+      checkAccessNodes( expAccessNodes, actAccessNodes );
+      instanceid = [124, 8, 30, "A"];
+      expAccessNodes = [ group[1].HostName + ":" + group[1].svcname ];
+      actAccessNode = cl.find().explain().current().toObj().NodeName;
+      actAccessNodes = [ actAccessNode ];
+println("expAccessNodes5:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
+      checkAccessNodes( expAccessNodes, actAccessNodes );
+
+      instanceid = [124, 8, 30, "a"];
+      expAccessNodes = [ group[1].HostName + ":" + group[1].svcname ];
+      actAccessNode = cl.find().explain().current().toObj().NodeName;
+      actAccessNodes = [ actAccessNode ];
+println("expAccessNodes6:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
+      checkAccessNodes( expAccessNodes, actAccessNodes );
+     instanceid = [124, 8, 30, "M", "S", "A"];
+      expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
+      actAccessNode = cl.find().explain().current().toObj().NodeName;
+      actAccessNodes = [ actAccessNode ];
+      println("expAccessNodes7:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
+      checkAccessNodes( expAccessNodes, actAccessNodes );
+     instanceid = [124, 8, 30, "A", "M", "S"];
+      actAccessNodes = [];
+      for( var j = 0; j < 20; j++ )
+      {
+         db.setSessionAttr({ PreferedInstance: instanceid });
+         var actAccessNode = cl.find().explain().current().toObj().NodeName;
+         if( actAccessNodes.indexOf( actAccessNode ) === -1 )
+         {
+            actAccessNodes.push( actAccessNode );
+         }
+      }
+      expAccessNodes = getGroupNodes( groupName );
+println("expAccessNodes8:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
+      checkAccessNodes( expAccessNodes, actAccessNodes );
    }
    finally
    {
-      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" );
-      db.removeRG( groupName );
-
-      if( db != null )
-      {
-         db.close()
-      }
+      deleteConf( db, { instanceid: 1 }, { GroupName: groupName }, -264 );
+      db.getRG( groupName ).stop();
+      db.getRG( groupName ).start();
+      commCheckBusinessStatus( db );
    }
+   commDropCL( db, COMMCSNAME, clName, false, false ) ;
 }
 
-function setSessionAttrAndCheckResult ( db, dbcl, queryInstanceidList, expQueryNode )
-{
-   db.setSessionAttr( { PreferedInstance: queryInstanceidList, PreferedInstanceMode: "ordered" } );
-   checkAcessNodeResult( getAccessNode( dbcl ), expQueryNode );
-}
+

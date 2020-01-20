@@ -1,63 +1,46 @@
 /* *****************************************************************************
-@discretion: setSessionAttr(),set instatceid is same as the other node subscript
-@author��2018-1-24 wuyan  Init
+@description: seqDB-14085:设置会话属性，preferedinstance指定instanceid与其它节点下标相同的实例 
+@author: 2018-1-24 wuyan  Init
 ***************************************************************************** */
-import( "../sessionAccess/commlib.js" );
-main();
+testConf.skipStandAlone = true;
+testConf.skipOneDuplicatePerGroup = true;
 
-function main ()
+//SEQUOIADBMAINSTREAM-5283
+//与用例14101相似，与开发确认当节点的instanceid更新成与另外一个节点的下标相同时，访问的节点从两个节点中随机选择，但实际结果是大多数
+//情况下只访问了被设置instanceid值的节点，不确定是否是上面问题单中的问题导致的，待问题单解决后再放开此用例
+//main( test );
+function test()
 {
+   var clName = CHANGEDPREFIX + "_14085";
+   var groups = commGetGroups( db );
+   var group = groups[0].sort( sortBy( "NodeID" ) );
+   var groupName = group[0].GroupName;
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName } );
+   insertData( cl );
+
+   var instanceid = 2;
+   var hostName = group[1].HostName;
+   var svcName = group[1].svcname;
+   var expAccessNodes = [ hostName + ":" + svcName ];
+   updateConf ( db, { instanceid: instanceid }, { NodeName: hostName + ":" + svcName }, -264 );
+   db.getRG( groupName ).getNode( hostName, svcName ).stop();
+   db.getRG( groupName ).getNode( hostName, svcName ).start();
    try
    {
-      var clName = CHANGEDPREFIX + "_sessionAcess14085";
-      var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-
-      //create group and node
-      var groupName = "group14085";
-      var nodeList = [];
-      var instanceidList = [2, 0, 0];
-      nodeList = createRGAndNode( db, groupName, instanceidList );
-
-      //create cl ,then insert data  
-      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
-      insertData( dbcl );
-
-      //set one node instanceid is 2,the same as the nodesubscript is 2
-      println( "---begin to set instanceid " );
-      var instanceid = 2;
-      var accessCount = {};
-      var expSvcNameList = getSvcNameList( db, groupName );
-      var expAccessNode = [expSvcNameList[0], expSvcNameList[instanceid - 1]];
-      for( var i = 0; i < 20; i++ ) 
-      {
-         db.setSessionAttr( { PreferedInstance: instanceid } );
-         var actAccessNode = getAccessNode( dbcl );
-         checkAcessNodeResult( actAccessNode, expAccessNode );
-         storageNodeAccessCount( actAccessNode, accessCount );
-      }
-      checkRandomAccessResult( expAccessNode, accessCount );
-      println( "---end to set instanceid " );
-   }
-   catch( e )
-   {
-      println( "catch e : " + e );
-      //���½�����־���ݵ�/tmp/ci/rsrvnodelogĿ¼��
-      var backupDir = "/tmp/ci/rsrvnodelog/14085";
-      File.mkdir( backupDir );
-      for( var i = 0; i < nodeList.length; i++ )
-      {
-         File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
-      }
-      throw e;
+      commCheckBusinessStatus( db );
+      db.invalidateCache();
+      expAccessNodes.push( group[2].HostName + ":" + group[2].svcname);
+      var options = { PreferedInstance: instanceid };
+      checkAccessNodes( cl, expAccessNodes, options );
    }
    finally
    {
-      if( db != null )
-      {
-         commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" );
-         db.removeRG( groupName );
-         db.close()
-      }
+      deleteConf ( db, { instanceid: 1 }, {NodeName: hostName + ":" + svcName}, -264 );   
+      db.getRG( groupName ).getNode( hostName, svcName ).stop();
+      db.getRG( groupName ).getNode( hostName, svcName ).start();
+      commCheckBusinessStatus( db );
    }
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 

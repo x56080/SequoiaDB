@@ -1,5 +1,5 @@
 /* *****************************************************************************
-@description: seqDB-14096:设置会话访问属性，指定preferedinstance包含【8/9/10】
+@description: seqDB-14102:设置会话访问属性，指定preferedinstance值instanceid所在节点为主/备，同时指定S/M 
 @author: 2018-1-24 wuyan  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
@@ -15,17 +15,22 @@ function test()
    }
    var group = groups[0];
    var groupName = group[0].GroupName;
-   var clName = CHANGEDPREFIX + "_14096";
-   commDropCL( db, COMMCSNAME, clName ) ;
+   var primaryPos = group[0].PrimaryPos;
+   var clName = CHANGEDPREFIX + "_14102";
+
+   commDropCL( db, COMMCSNAME, clName );
    var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
    insertData( cl );
-   var instanceid = [8, 9, 10];
+
+   var instanceid = [30, 31]
+   var slavePos1 = primaryPos === 1 ? 2 : 1;
+   var slavePos2 = primaryPos === 3 ? 2 : 3;
+   var position = [ primaryPos, slavePos1 ];
    for( var i = 0; i < instanceid.length; i++ )
    {
-      var hostName = group[i+1].HostName;
-      var svcName = group[i+1].svcname;
-      var nodeName = hostName + ":" + svcName;
-      updateConf( db, { instanceid: instanceid[i] }, { NodeName: nodeName }, -264 );
+      var hostName = group[ position[i] ].HostName;
+      var svcName = group[ position[i] ].svcname;
+      updateConf( db, { instanceid: instanceid[i] }, { NodeName: hostName + ":" + svcName }, -264 );
    }
    db.getRG( groupName ).stop();
    db.getRG( groupName ).start();
@@ -33,25 +38,22 @@ function test()
    {
       commCheckBusinessStatus( db );
       db.invalidateCache();
-      var options = { PreferedInstance: 8 };
-      var expAccessNodes = [ group[1].HostName + ":" + group[1].svcname ];
+  
+      var options = { PreferedInstance: [30, "S"] };
+      var expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
       checkAccessNodes( cl, expAccessNodes, options );
-
-      options = { PreferedInstance: 9 };
-      var expAccessNodes = [ group[2].HostName + ":" + group[2].svcname ];
+  
+      options = { PreferedInstance: [31, "M"] };
+      var expAccessNodes = [ group[ slavePos1 ].HostName + ":" + group[ slavePos1 ].svcname ];
       checkAccessNodes( cl, expAccessNodes, options );
-
-      options = { PreferedInstance: 10 };
-      var expAccessNodes = [ group[3].HostName + ":" + group[3].svcname ];
-      checkAccessNodes( cl, expAccessNodes, options );
-
       commDropCL( db, COMMCSNAME, clName, false, false ) ;
    }
    finally
    {
-      deleteConf( db, { instanceid: 1 }, { groupName: groupName }, -264 );
+      deleteConf( db, { instanceid: 1 }, { GroupName: groupName }, -264 );
       db.getRG( groupName ).stop();
       db.getRG( groupName ).start();
       commCheckBusinessStatus( db );
    }
 }
+

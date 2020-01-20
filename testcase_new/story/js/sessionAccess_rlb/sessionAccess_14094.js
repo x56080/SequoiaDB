@@ -1,123 +1,60 @@
 /* *****************************************************************************
-@discretion: setSessionAttr(),set instanceid and [M/S/A],the instanceid does not exist
-             test the following scenes:
-             a: set multiple instanceid and ["M"]/["m"]
-             b: set multiple instanceid and ["S"]/["s"]
-             c: set multiple instanceid and ["A"]/["a"]
-             d: set multiple instanceid and [M/S/A]
-@author��2018-1-24 wuyan  Init
+@description: seqDB-14094:设置会话访问属性，指定preferedinstance值instanceid不存在对应节点和[S/M/A]
+@author: 2018-1-24 wuyan  Init
 ***************************************************************************** */
-import( "../sessionAccess/commlib.js" );
-main();
-function main ()
+testConf.skipStandAlone = true;
+
+main( test );
+
+function test()
 {
-   try
+   var groups = getGroupsWithNodeNum( 3 );
+   if( groups.length === 0 )
    {
-      var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-
-      //create group and node
-      var groupName = "group14094";
-      var nodeList = [];
-      var instanceidList = [30, 124, 8, 22];
-      var nodeNum = 4;
-      var clName = CHANGEDPREFIX + "_sessionAcess14094";
-      nodeList = createRGAndNode( db, groupName, instanceidList, nodeNum );
-
-      //create cl ,then insert data
-      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: groupName } );
-      insertData( dbcl );
-
-      //test a: set multiple instanceid and ["M"]/["m"]
-      setSessionIsInstanceAndMm( db, dbcl, groupName );
-
-      //test b: set multiple instanceid and ["S"]
-      setSessionIsInstanceAndSs( db, dbcl, groupName );
-
-      //test c: set multiple instanceid and ["A"]
-
-      setSessionIsInstanceAndAa( db, dbcl, groupName );
-
-      //test d: set multiple instanceid and ["M/S/A"]
-      setSessionIsInstanceAndMSA( db, dbcl, groupName );
+      return;
    }
-   catch( e )
-   {
-      println( "catch e : " + e );
-      //���½�����־���ݵ�/tmp/ci/rsrvnodelogĿ¼��
-      var backupDir = "/tmp/ci/rsrvnodelog/14094";
-      File.mkdir( backupDir );
-      for( var i = 0; i < nodeList.length; i++ )
-      {
-         File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
-      }
-      throw e;
-   }
-   finally
-   {
-      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" );
-      db.removeRG( groupName );
+   var group = groups[0];
+   var groupName = group[0].GroupName;
+   var primaryPos = group[0].PrimaryPos;
+   var clName = CHANGEDPREFIX + "_14094";
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
+   insertData( cl );
+   var options = { PreferedInstance: [11, 224, 38, "M"] };
+   var expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
+   checkAccessNodes( cl, expAccessNodes, options );
 
-      if( db != null )
+   options = { PreferedInstance: [11, 224, 38, "m"] };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [11, 224, 38, "S"] };
+   expAccessNodes = [];
+   for( var i = 1; i < group.length; i++ )
+   {
+      if( i !== primaryPos )
       {
-         db.close()
+         expAccessNodes.push( group[i]["HostName"] + ":" + group[i]["svcname"]);
       }
    }
-}
+   checkAccessNodes( cl, expAccessNodes, options );
 
-function setSessionIsInstanceAndMm ( db, dbcl, groupName )
-{
-   println( "---begin to test set multiple instanceid and ['M']/['m'] " );
-   var queryInstanceidList = [1, 224, 38, "M"];
-   setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList, groupName, true );
-   //a: set multiple instanceid and ["m"] 
-   var queryInstanceidList_a2 = [1, 224, 38, "m"];
-   setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList_a2, groupName, true );
-   println( "---end to test set multiple instanceid and ['M']/['m'] " );
-}
+   options = { PreferedInstance: [11, 224, 38, "s"] };
+   checkAccessNodes( cl, expAccessNodes, options );
 
-function setSessionIsInstanceAndSs ( db, dbcl, groupName )
-{
-   println( "---begin to test set multiple instanceid and ['S']/['s'] " );
-   var queryInstanceidList_b1 = [1, 224, 38, "S"];
-   setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList_b1, groupName, false );
-   //b: set multiple instanceid and ["s"]
-   var queryInstanceidList_b2 = [1, 224, 38, "s"];
-   setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList_b2, groupName, false );
-   println( "---end to test set multiple instanceid and ['S']/['s'] " );
-}
+   options = { PreferedInstance: [11, 224, 38, "A"] };
+   expAccessNodes = getGroupNodes( groupName );
+   checkAccessNodes( cl, expAccessNodes, options );
 
-function setSessionIsInstanceAndAa ( db, dbcl, groupName )
-{
-   println( "---begin to test set multiple instanceid and ['A']/['a'] " );
-   var expSvcNameList = getSvcNameList( db, groupName );
-   var queryInstanceidList_c1 = [1, 224, 38, "A"];
-   db.setSessionAttr( { PreferedInstance: queryInstanceidList_c1 } );
-   var queryNode_c1 = getAccessNode( dbcl );
-   checkAcessNodeResult( queryNode_c1, expSvcNameList );
-   //c: set multiple instanceid and ["a"],the instanceid:30 is masternode
-   var queryInstanceidList_c2 = [1, 224, 38, "a"];
-   db.setSessionAttr( { PreferedInstance: queryInstanceidList_c2 } );
-   var queryNode_c2 = getAccessNode( dbcl );
-   checkAcessNodeResult( queryNode_c2, expSvcNameList );
-   println( "---end to test set multiple instanceid and ['A']/['a'] " );
-}
+   options = { PreferedInstance: [11, 224, 38, "a"] };
+   checkAccessNodes( cl, expAccessNodes, options );
 
-function setSessionIsInstanceAndMSA ( db, dbcl, groupName )
-{
-   println( "---begin to test set multiple instanceid and ['M/S/A'] " );
-   var queryInstanceidList_d = [1, 224, 38, "M", "S", "A"];
-   setSessionAttrAndCheckResult( db, dbcl, queryInstanceidList_d, groupName, true );
-   println( "---end to test set multiple instanceid and ['M/S/A'] " );
-}
+   options = { PreferedInstance: [11, 224, 30, "A", "M", "S"] };
+   checkAccessNodes( cl, expAccessNodes, options );
 
-function setSessionAttrAndCheckResult ( db, dbcl, queryInstanceidList, groupName, isPrimary )
-{
-   db.setSessionAttr( { PreferedInstance: queryInstanceidList } );
-   var queryNode = getAccessNode( dbcl );
-   checkAccessNodeIsPrimary( queryNode, groupName, isPrimary );
+   options = { PreferedInstance: [11, 224, 38, "M", "S", "A"] };
+   expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   commDropCL( db, COMMCSNAME, clName, false, false ) ;
 }
+                                                                            

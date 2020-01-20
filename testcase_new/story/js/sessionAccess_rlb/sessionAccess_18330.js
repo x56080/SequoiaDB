@@ -1,85 +1,71 @@
 /* *****************************************************************************
-@discretion: setSessionAttr(),set preferedStrict = true, assign node select when the node stop.
+@description: seqDB-18330:设置会话访问属性，单值指定preferedinstance存在的同时设置PreferedStrict 
 @author：2019-6-20 luweikang  Init
 ***************************************************************************** */
-import( "../sessionAccess/commlib.js" );
-main();
+testConf.skipStandAlone = true;
 
-function main ()
+main( test );
+
+function test()
 {
-   var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-   if( true == commIsStandalone( db ) )
+   var groups = getGroupsWithNodeNum( 3 );
+   if( groups.length === 0 )
    {
-      println( "run mode is standalone" );
       return;
    }
+   var group = groups[0];
+   var groupName = group[0].GroupName;
+   var primaryPos = group[0].PrimaryPos;
+   var clName = CHANGEDPREFIX + "_cl18330";
 
+   commDropCL( db, COMMCSNAME, clName ) ;
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });  
+   insertData( cl );
+  
+   var instanceid = [ 9, 8, 10 ];   
+   for( var i = 0; i < instanceid.length; i++ )
+   {
+      var hostName = group[i+1].HostName;
+      var svcName = group[i+1].svcname;
+      updateConf( db, { instanceid: instanceid[i] }, { NodeName: hostName + ":" + svcName }, -264 );
+   }
+   db.getRG( groupName ).stop();
+   db.getRG( groupName ).start();
+   commCheckBusinessStatus( db ); 
+   db.invalidateCache();
+
+   var options = { PreferedInstance: instanceid[0], PreferedStrict: true };
+   db.setSessionAttr( options );
+   db.getRG( groupName ).getNode( group[1].HostName, group[1].svcname ).stop();
    try
    {
-      //create group and node
-      var csName = CHANGEDPREFIX + "_cs18330";
-      var groupName = "group18330";
-      var instanceidList = [9, 8, 10];
-      var nodeNum = 3;
-      var nodeList = createRGAndNode( db, groupName, instanceidList, nodeNum );
-      var expSvcNameList = getSvcNameList( db, groupName );
-
-      //create cl ,then insert data
-      var clName = CHANGEDPREFIX + "_cl18330";
-      var dbcl = commCreateCL( db, csName, clName, { ReplSize: 0, Group: groupName } );
-      insertData( dbcl );
-
-      println( "---begin to set and query instanceid is " + instanceidList[1] );
-      db.setSessionAttr( { PreferedInstance: instanceidList[1], PreferedStrict: true } );
-      setSessionAttrAndCheckResult( dbcl, expSvcNameList[1] );
-
-      //stop node and select record
-      var rg = db.getRG( groupName );
-      try
-      {
-         println( "begin to stop node: " + expSvcNameList[1] );
-         rg.getNode( nodeList[1].hostname, nodeList[1].svcname ).stop();
-         dbcl.find().explain();
-         throw "FIND_SHOULD_FAIL";
-      }
-      catch( e )
-      {
-         if( e != -250 )
-         {
-            throw e;
-         }
-      }
-      db.setSessionAttr( { PreferedStrict: false } );
-      dbcl.find().explain();
-
-      //restart the node and select record
-      println( "restart the node: " + expSvcNameList[1] );
-      rg.getNode( nodeList[1].hostname, nodeList[1].svcname ).start();
-      db.setSessionAttr( { PreferedStrict: true } );
-      setSessionAttrAndCheckResult( dbcl, expSvcNameList[1] );
+      cl.find().explain();
+      throw "FIND_SHOULD_FAIL";
    }
-   catch( e )
+   catch(e)
    {
-      println( "catch e : " + e );
-      //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
-      var backupDir = "/tmp/ci/rsrvnodelog/18330";
-      File.mkdir( backupDir );
-      for( var i = 0; i < nodeList.length; i++ )
+      if( e.message !== "-250" )
       {
-         File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
+         throw e;
       }
-      throw e;
    }
-   finally
-   {
-      rg.start();
-      commDropCS( db, csName, true );
-      db.removeRG( groupName );
-   }
+  
+   options = { PreferedInstance: instanceid[0], PreferedStrict: false };
+   db.setSessionAttr( options );
+   cl.find().explain();
+      
+   db.getRG( groupName ).getNode( group[1].HostName, group[1].svcname ).start();
+   commCheckBusinessStatus( db );
+   
+   options = { PreferedInstance: instanceid[0], PreferedStrict: true };
+   var expAccessNodes = [ group[1].HostName + ":" + group[1].svcname ];
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   deleteConf( db, { instanceid: 1 }, { GroupName: groupName }, -264 );
+   db.getRG( groupName ).stop();
+   db.getRG( groupName ).start();
+   commCheckBusinessStatus( db );
+
+   commDropCL( db, COMMCSNAME, clName, false, false ) ;
 }
 
-function setSessionAttrAndCheckResult ( dbcl, expQueryNode )
-{
-   var queryNode = getAccessNode( dbcl );
-   checkAcessNodeResult( queryNode, expQueryNode );
-}

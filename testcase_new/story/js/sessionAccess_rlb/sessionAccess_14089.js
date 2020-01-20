@@ -1,6 +1,6 @@
 /* *****************************************************************************
-@description: seqDB-14081:设置会话访问属性，单值指定preferedinstance存在的实例 
-@author: 2018-1-22 wuyan  Init
+@description:  seqDB-14089: 设置会话访问属性，多值指定preferedinstance值instanceid部分存在，preferedinstanceMode覆盖不同值 
+@author: 2018-1-24 wuyan  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
 
@@ -8,40 +8,42 @@ main( test );
 
 function test()
 {
-   var clName = CHANGEDPREFIX + "_14081";
+   var clName = CHANGEDPREFIX + "_14089";
    var groups = commGetGroups( db );
    var group = groups[0];
    var groupName = group[0].GroupName;
    commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName } );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
    insertData( cl );
 
+   var instanceid = [29, 255];
    var hostName = group[1].HostName;
    var svcName = group[1].svcname;
-   var instanceid = 4;
-   updateConf( db, { instanceid: instanceid }, { NodeName: hostName + ":" + svcName }, -264 );
+   updateConf( db, { instanceid: instanceid[1] }, { NodeName: hostName + ":" + svcName }, -264 );
    db.getRG( groupName ).getNode( hostName, svcName ).stop();
    db.getRG( groupName ).getNode( hostName, svcName ).start();
+
    try
    {
       commCheckBusinessStatus( db );
-      db.invalidateCache();
-      var options = { PreferedInstance: instanceid };
+      db.invalidateCache(); 
+
+      //设置preferedinstancemode为random
+      var options = { PreferedInstance: instanceid, PreferedInstanceMode: "random" };
       var expAccessNodes = [ hostName + ":" + svcName ];
       checkAccessNodes( cl, expAccessNodes, options );
-      
-      updateConf( db, { instanceid: 11 }, { NodeName: hostName + ":" + svcName }, -264 );
-      db.getRG( groupName ).getNode( hostName, svcName ).stop();
-      db.getRG( groupName ).getNode( hostName, svcName ).start();
-      commCheckBusinessStatus( db );
-      db.invalidateCache();
 
-      options = { PreferedInstance:  [11] };
+      //不设置preferedinstancemode
+      options = { PreferedInstance: instanceid };
+      checkAccessNodes( cl, expAccessNodes, options );
+
+      //设置preferedinstancemode为ordered
+      options = { PreferedInstance: instanceid, PreferedInstanceMode: "ordered" };
       checkAccessNodes( cl, expAccessNodes, options );
    }
    finally
    {
-      deleteConf ( db, { instanceid: 1 }, {NodeName: hostName + ":" + svcName }, -264 );
+      deleteConf( db, { instanceid: 1 }, { NodeName: hostName + ":" + svcName }, -264 );
       db.getRG( groupName ).getNode( hostName, svcName ).stop();
       db.getRG( groupName ).getNode( hostName, svcName ).start();
       commCheckBusinessStatus( db );

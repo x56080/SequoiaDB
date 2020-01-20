@@ -1,40 +1,28 @@
 /* *****************************************************************************
-@discretion: setSessionAttr(),set instatceid for group slave node,than query after insert data
-@author��2018-1-29 wuyan  Init
+@description: seqDB-14103: 设置会话属性指定实例为备节点对应instanceid，写入数据后再查询 
+@author: 2018-1-29 wuyan  Init
 ***************************************************************************** */
+testConf.skipStandAlone = true;
 
-main();
+main( test );
 
-function main ()
+function test()
 {
-   try
-   {
-      var clName = CHANGEDPREFIX + "_sessionAcess14103";
-      var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-      var groups = commGetGroups( db );
-      var clGroupName = groups[0][0]["GroupName"];
-      var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, Group: clGroupName }, true, true );
+   var clName = CHANGEDPREFIX + "_14103";
+   var groupName = commGetGroups( db )[0][0]["GroupName"] ;
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName }, true, true );
 
-      println( "---begin to set instanceid " );
-      db.setSessionAttr( { PreferedInstance: "S" } )
-      insertData( dbcl );
-      var queryNode = getAccessNode( dbcl );
-      checkAccessNodeIsPrimary( queryNode, clGroupName, true );
-      println( "---end to set instanceid " );
+   db.setSessionAttr( { PreferedInstance: "S" } )
+   insertData( cl );
 
-      commDropCL( db, COMMCSNAME, clName, true, true,
-         "clear collection in the beginning" );
-   }
-   catch( e )
+   var master = db.getRG( groupName ).getMaster();
+   var expAccessNode = master.getHostName() + ":" + master.getServiceName();
+   var actAccessNode = cl.find().explain().current().toObj().NodeName;
+   if( actAccessNode !== expAccessNode )
    {
-      throw e;
+      throw new Error( "The expected result is " + expAccessNode + ", but the actual result is " + actAccessNode );
    }
-   finally
-   {
-      if( db != null )
-      {
-         db.close()
-      }
-   }
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
-
