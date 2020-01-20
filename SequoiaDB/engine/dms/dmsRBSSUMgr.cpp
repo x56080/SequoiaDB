@@ -884,7 +884,8 @@ namespace engine
          }
 
          // retrieve maxGlobTransID of current CL
-         maxGlobTransID.resetSN( pContext->mbStat()->getMaxGlobTransID() ) ;
+         // NOTE: set with global transaction tag
+         maxGlobTransID.setSN( pContext->mbStat()->getMaxGlobTransID() ) ;
 
 #ifdef _DEBUG
          PD_LOG ( PDDEBUG,
