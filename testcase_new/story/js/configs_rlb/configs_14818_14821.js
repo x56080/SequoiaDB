@@ -43,15 +43,24 @@ function test()
    fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
    checkResult( config, fileInfo );
 
+   //删除配置参数值，将配置恢复为默认值
+   deleteConf( db, config, options );
+
+   config = getRandomRunConfig( "defaultVal" );
+   snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
+   checkResult( config, snapshotInfo );
+   fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
+   checkResult( config, fileInfo, true );
+
    //当前值为其他值，修改参数值为无效值
-   var config = getRandomRunConfig( "invalidVal" );
-   var options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() };
+   config = getRandomRunConfig( "invalidVal" );
+   options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() };
    updateConf( db, config, options, -264 );
 
    config = getRandomRunConfig( "defaultVal" );
-   var snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
+   snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
    checkResult( config, snapshotInfo );
-   var fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
+   fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
    checkResult( config, fileInfo, true );
 
    db.removeRG( groupName );
