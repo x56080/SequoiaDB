@@ -339,7 +339,7 @@ public:
    }
 
    // reset serial number with given serial number
-   // NOTE: will clear all tags
+   // WARNING: will clear all tags
    OSS_INLINE void resetSN( DPS_TRANSID_SN sn )
    {
       _sn = ( sn & DPS_TRANSID_RAW_SN_BIT_V1 ) ;
