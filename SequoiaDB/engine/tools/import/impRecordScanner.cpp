@@ -213,20 +213,20 @@ namespace import
       SDB_ASSERT(length > 0, "length must be greater than 0");
 
       // no need to consider string
-      if (_linePriority || _stringDelimiter.empty())
+      if ( _linePriority )
       {
          while(len > 0)
          {
-            if (_startWith(str, len, recDel, recDelLen))
+            if ( _startWith(str, len, recDel, recDelLen ) )
             {
-               recordLength = length - len;
-               *str = '\0';
-               rc = SDB_OK;
-               break;
+               recordLength = length - len ;
+               *str = '\0' ;
+               rc = SDB_OK ;
+               break ;
             }
 
-            len--;
-            str++;
+            len-- ;
+            str++ ;
          }
       }
       // should consider string
