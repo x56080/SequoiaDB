@@ -1533,7 +1533,8 @@ namespace engine
             {
                /// do nothing
             }
-            else if ( oldVer->isRecordDummy() )
+            else if ( oldVer->isRecordDummy() ||
+                      ( ! cb->getTransExecutor()->useRollbackSegment() ) )
             {
                if ( indexCB->unique() )
                {
