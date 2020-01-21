@@ -1,146 +1,62 @@
-﻿/******************************************************************************
-*@Description: test split collection
-*@Modify list:
-*              2015-5-28  xiaojun Hu   changed
-******************************************************************************/
-
-/*******************************************************************************
-*@Description: 测试切分数据到不同的组上去
-*@Input: collection.split()
-*@Expectation: 切分成功，数据切分正确
+﻿/*******************************************************************************
+*@description : seqDB-7468:json格式插入数据后切分到不同分区组中
+*@author : 2015-5-28  XiaoJun Hu init; 2020-1-14 XiaoNi Huang modify
 ********************************************************************************/
-function testSplitJsonOne ( db )
+try
 {
-   var funcName = "testSplitJsonOne";
-   try
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
    {
-      println( "" );
-      var splitCLOption = {
-         ShardingKey: { name: 1 }, ShardingType: "range",
-         ReplSize: 0, Compressed: true
-      };
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-         "drop cl begin" )
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, splitCLOption, true,
-         true, false, "create collection begin" );
-      var fullName = COMMCSNAME + "." + COMMCLNAME;
-      var dstGroup;
-
-      var json_in = [{ no: 0, first: "James", last: "Queeen" },
-      { no: 1, first: "James", last: "Band" },
-      { no: 2, first: "Queeen", last: "Queeen" },
-      { no: 3, first: "Queeen", last: "Band" },
-      { no: 4, first: "Band", last: "Queeen" }];
-      var srcGroup = commGetCLGroups( db, fullName );
-      var groups = commGetGroups( db );
-      if( groups.length < 2 )
-      {
-         println( "only have " + groups.length +
-            " group, expect at least 2 groups" );
-         return;
-      }
-
-      // insert data
-      for( var j = 0; j < json_in.length; ++j )
-      {
-         cl.insert( { name: json_in[j] } );
-      }
-
-      var json_cnt = 1;
-      // split group
-      for( var i = 0; i < groups.length; ++i )
-      {
-         if( srcGroup[0] == groups[i][0]["GroupName"] )
-         {
-            // when get source group, go next loop
-            continue;
-         }
-         dstGroup = groups[i][0]["GroupName"];
-         if( 2 == groups.length )
-         {
-            println( "source group: " + srcGroup[0] + ", destnation group: " +
-               dstGroup + ", split key:{name:{first:'James',last:'Band'}}" );
-            cl.split( srcGroup[0], dstGroup, { name: json_in[0] },
-               { name: json_in[1] } );
-
-
-            // verify data
-            var rg = db.getRG( dstGroup );
-            var db_prim = new Sdb( rg.getMaster() );
-            var findRet = eval( "db_prim ." + fullName + ".find()" );
-            var findRetObj = eval( "(" + findRet.toArray() + ")" );
-            var expectVal = JSON.stringify( json_in[0] );
-            var actualVal = JSON.stringify( findRetObj["name"] );
-            if( expectVal != actualVal )
-            {
-               println( 'expect: {"name":' + expectVal + "}" );
-               println( 'actual: {"name":' + actualVal + "}" );
-               throw "split wrong";
-            }
-         }
-         else
-         {
-            println( "source group: " + srcGroup[0] + ", destnation group: " +
-               dstGroup + ". split key: {\"name\":" +
-               JSON.stringify( json_in[json_cnt] ) + "}" );
-            cl.split( srcGroup[0], dstGroup, { name: json_in[json_cnt] },
-               { name: json_in[json_cnt + 1] } );
-            // verify data
-            var rg = db.getRG( dstGroup );
-            var db_prim = new Sdb( rg.getMaster() );
-            var findRet = eval( "db_prim ." + fullName + ".find()" );
-            var findRetObj = eval( "(" + findRet.toArray() + ")" );
-            var expectVal = JSON.stringify( json_in[json_cnt] );
-            var actualVal = JSON.stringify( findRetObj["name"] );
-            if( expectVal != actualVal )
-            {
-               println( 'expect: {"name":' + expectVal + "}" );
-               println( 'actual: {"name":' + actualVal + "}" );
-               throw "split wrong";
-            }
-
-            if( json_cnt < json_in.length - 1 )
-            {
-               json_cnt++;
-            }
-            else
-            {
-               // max split 4 groups
-               break;
-            }
-         }
-      }
+      println( e.stack );
    }
-   catch( e )
-   {
-      throw buildException( funcName, e );
-
-   }
-   finally
-   {
-      commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
-         "drop cl end" )
-   }
+   throw e;
 }
 
 function main ()
 {
-   var funcName = "main";
-   try
+   if( true == commIsStandalone( db ) )
    {
-      var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      testSplitJsonOne( db )
-      println( "\n Test <testSplitJsonOne> Over" );
+      println( "---Is standalone." );
+      return;
    }
-   catch( e )
-   {
-      throw e;
-   }
-}
 
-main();
+   if( commGetGroupsNum( db ) < 2 )
+   {
+      println( "---Least two groups" );
+      return;
+   }
+
+   var groupNames = commGetDataGroupNames( db );
+   var srcGroupName = groupNames[0];
+   var dstGroupName = groupNames[1];
+   var clName = CHANGEDPREFIX + "_split_7468";
+   var recsNum = 1000;
+
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in the begin" )
+   var options = { "ShardingKey": { "obj": 1 }, "ShardingType": "range", "Group": srcGroupName };
+   var cl = commCreateCL( db, COMMCSNAME, clName, options );
+
+   // insert
+   var docs = [];
+   for( var i = 0; i < recsNum; i++ )
+   {
+      var doc = { "a": i, "obj": { "a": i, "b": "test" + i } }
+      docs.push( doc );
+   }
+   cl.insert( docs );
+
+   // split
+   cl.split( srcGroupName, dstGroupName, docs[recsNum / 2], docs[recsNum] );
+
+   // check result
+   var sort = { a: 1 };
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( sort );
+   commCompareResults( cursor, docs );
+   checkResultsInGroup( srcGroupName, COMMCSNAME, clName, docs.slice( 0, recsNum / 2 ), sort );
+   checkResultsInGroup( dstGroupName, COMMCSNAME, clName, docs.slice( recsNum / 2, recsNum ), sort );
+
+   commDropCL( db, COMMCSNAME, clName, false, false, "drop cl in the end" )
+}

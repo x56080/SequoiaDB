@@ -1,74 +1,52 @@
-/* *****************************************************************************
-@discretion: cl asynchronous split , check the task id
-@author：2018-11-06 wangkexin
-***************************************************************************** */
-
-main( db );
-function main ( db )
+/******************************************************************************
+@description seqDB-16328:检测异步切分任务建立后返回的任务ID
+@author 2018-11-06 wangkexin init; 2020-01-13 huangxiaoni modify
+******************************************************************************/
+try
 {
-   try
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
    {
-      if( commGetGroupsNum( db ) < 2 )
-      {
-         println( "--least two groups" );
-         return;
-      }
-
-      var clName = CHANGEDPREFIX + "_checktaskidcl16328";
-      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
-      var options = { ShardingKey: { No: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
-
-      var dbcl = commCreateCL( db, COMMCSNAME, clName, options, true, true );
-      var recordNums = 30000;
-      insertData( db, COMMCSNAME, clName, recordNums );
-
-      var targetGroupNums = 2;
-      var groupsInfo = getSplitGroups( COMMCSNAME, clName, targetGroupNums );
-      var taskId = splitCL( COMMCSNAME, clName, groupsInfo );
-
-      println( "---Begin to check result " );
-      checkTaskId( taskId );
-
-      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the ending" );
+      println( e.stack );
    }
-   catch( e )
-   {
-      throw e;
-   }
+   throw e;
 }
 
-function splitCL ( csName, clName, groupsInfo )
+function main ()
 {
-   try
+   if( true == commIsStandalone( db ) )
    {
-      println( "---Begin to splitAsync" );
-      var dbcl = db.getCS( csName ).getCL( clName );
-      var percent = 90;
-      var srcGroupName = groupsInfo[0].GroupName;
-      var dstGroupName = groupsInfo[1].GroupName;
-      var taskId = dbcl.splitAsync( srcGroupName, dstGroupName, percent );
-      return taskId;
+      println( "---Is standalone." );
+      return;
    }
-   catch( e )
-   {
-      throw buildException( "splitAsync datas", e )
-   }
-}
 
-function checkTaskId ( taskId )
-{
-   try
+   if( commGetGroupsNum( db ) < 2 )
    {
-      println( "---Begin to check the task id" );
-      var resultArr = db.listTasks( { "TaskID": taskId } ).toArray();
-      if( resultArr.length !== 1 )
-      {
-         throw buildException( "check listTasks()", null, "check the task id",
-            taskId, "not exist" );
-      }
+      println( "---Least two groups" );
+      return;
    }
-   catch( e )
+
+   var groupNames = commGetDataGroupNames( db );
+   var srcGroupName = groupNames[0];
+   var dstGroupName = groupNames[1];
+   var clName = CHANGEDPREFIX + "_split_16328";
+   var recordNums = 30000;
+
+   commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
+   var options = { "ShardingKey": { "No": 1 }, "ShardingType": "range", "Group": srcGroupName };
+   var cl = commCreateCL( db, COMMCSNAME, clName, options );
+
+   insertData( cl, recordNums );
+   var taskId = cl.splitAsync( srcGroupName, dstGroupName, 90 );
+   // check taskId
+   var tasks = db.listTasks( { "TaskID": taskId } ).toArray();
+   if( tasks.length !== 1 )
    {
-      throw buildException( "check task id", e )
+      throw new Error( "check taskId fail, exist the taskId " + taskId + ", but listTasks not exist the taskId." );
    }
+
+   commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the ending" );
 }

@@ -1,58 +1,64 @@
 ﻿/************************************
-*@Description：percent超过边界值_ST.split.01.012
-*@author：2019-5-30 wangkexin
-*@testlinkCase: seqDB-4989
+*@description ：seqDB-4989:percent超过边界值
+*@author ：2019-5-30 wangkexin
 **************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   var csName = COMMCSNAME;
-   var clName = CHANGEDPREFIX + "_cl_4989";
-
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
+      println( "---Is standalone." );
       return;
    }
 
-   //less two groups to split
-   var allGroupName = getGroupName2( db, true );
-   if( 2 > allGroupName.length )
+   if( commGetGroupsNum( db ) < 2 )
    {
-      println( "--least two groups" );
+      println( "---Least two groups" );
       return;
    }
-   //clean environment before test
+
+   var groupNames = commGetDataGroupNames( db );
+   var srcGroupName = groupNames[0];
+   var dstGroupName = groupNames[1];
+   var csName = COMMCSNAME;
+   var clName = CHANGEDPREFIX + "_split_4989";
+
    commDropCL( db, csName, clName, true, true, "drop CL in the beginning." );
+   var options = { ShardingKey: { a: 1 }, ShardingType: "hash", Group: srcGroupName };
+   var cl = commCreateCL( db, csName, clName, options );
+   insertData( cl, 100 );
 
-   var groupsInfo = getGroupName2( db, true );
-   var srcGrName = groupsInfo[0][0];
-   var tarGrName = groupsInfo[1][0];
-
-   var options = { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0, Group: srcGrName };
-   var cl = commCreateCL( db, csName, clName, options, false );
-   insertData( db, csName, clName, 100 );
-
-   println( "--start split, srcGrName :" + srcGrName + " , tarGrName : " + tarGrName );
-   checkPercentOutOfBound( cl, srcGrName, tarGrName, -0.001 );
-   checkPercentOutOfBound( cl, srcGrName, tarGrName, 0 );
-   checkPercentOutOfBound( cl, srcGrName, tarGrName, 100.001 );
+   checkPercentOutOfBound( cl, srcGroupName, dstGroupName, -0.001 );
+   checkPercentOutOfBound( cl, srcGroupName, dstGroupName, 0 );
+   checkPercentOutOfBound( cl, srcGroupName, dstGroupName, 100.001 );
 
    commDropCL( db, csName, clName, true, true, "drop CL in the end." );
 }
 
-function checkPercentOutOfBound ( cl, srcGrName, tarGrName, percent )
+function checkPercentOutOfBound ( cl, srcGroupName, dstGroupName, percent )
 {
    try
    {
-      cl.split( srcGrName, tarGrName, percent )
-      throw "expect fail but succeed, percent = " + percent;
+      cl.split( srcGroupName, dstGroupName, percent )
+      throw new Error( "expect fail but succeed, percent = " + percent );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message !== "-6" )
       {
-         throw buildException( "split()", e, "", '-6', e );
+         throw e;
       }
    }
 }

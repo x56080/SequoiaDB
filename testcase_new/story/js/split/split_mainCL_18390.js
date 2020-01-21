@@ -1,58 +1,65 @@
 ﻿/************************************
-*@Description：主表执行切分 
-*@author：2019-6-6 wangkexin
-*@testlinkCase: seqDB-18390
+*@description：seqDB-18390:主表执行切分 
+*@author ：2019-6-6 wangkexin init; 2020-01-13 huangxiaoni modify
 **************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   var csName = COMMCSNAME;
-   var mainClName = CHANGEDPREFIX + "_maincl_18390";
-   var subClName = CHANGEDPREFIX + "_subcl_18390";
-
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
+      println( "---Is standalone." );
       return;
    }
 
-   //less two groups to split
-   var allGroupName = getGroupName2( db, true );
-   if( 2 > allGroupName.length )
+   if( commGetGroupsNum( db ) < 2 )
    {
-      println( "--least two groups" );
+      println( "---Least two groups" );
       return;
    }
-   //clean environment before test
-   commDropCL( db, csName, mainClName, true, true, "drop maincl in the beginning." );
-   commDropCL( db, csName, subClName, true, true, "drop subcl in the beginning." );
 
-   var groupsInfo = getGroupName2( db, true );
-   var srcGrName = groupsInfo[0][0];
-   var tarGrName = groupsInfo[1][0];
+   var groupNames = commGetDataGroupNames( db );
+   var srcGroupName = groupNames[0];
+   var dstGroupName = groupNames[1];
+   var mCLName = CHANGEDPREFIX + "_split_m18390";
+   var sCLName = CHANGEDPREFIX + "_split_s18390";
 
-   var options = { ShardingKey: { No: 1 }, ShardingType: "range", Partition: 1024, ReplSize: 0, Group: srcGrName, IsMainCL: true };
-   var maincl = commCreateCL( db, csName, mainClName, options, false );
+   // ready main-sub cl
+   commDropCL( db, COMMCSNAME, mCLName, true, true, "drop maincl in the beginning." );
+   commDropCL( db, COMMCSNAME, sCLName, true, true, "drop subcl in the beginning." );
 
-   var options2 = { ShardingKey: { b: 1 }, ShardingType: "hash" };
-   var subcl = commCreateCL( db, csName, subClName, options2, false );
+   var options = { ShardingKey: { a: 1 }, ShardingType: "range", Group: srcGroupName, IsMainCL: true };
+   var mcl = commCreateCL( db, COMMCSNAME, mCLName, options );
 
-   maincl.attachCL( csName + "." + subClName, { LowBound: { No: 0 }, UpBound: { No: 200 } } );
-   insertData( db, csName, mainClName, 100 );
+   var options = { ShardingKey: { b: 1 }, ShardingType: "hash" };
+   commCreateCL( db, COMMCSNAME, sCLName, options );
 
-   println( "--start split, srcGrName :" + srcGrName + " , tarGrName : " + tarGrName );
+   mcl.attachCL( COMMCSNAME + "." + sCLName, { LowBound: { a: 0 }, UpBound: { a: 200 } } );
+
+   // split
    try
    {
-      maincl.split( srcGrName, tarGrName, 50 );
-      throw "expect failure but succeed.";
+      mcl.split( srcGroupName, dstGroupName, 50 );
+      throw new Error( "expect failure but succeed." );
    }
    catch( e )
    {
-      if( e !== -246 )
+      if( e.message !== "-246" )
       {
-         throw buildException( "main()", e, "split main cl", -246, e );
+         throw e;
       }
    }
 
-   commDropCL( db, csName, mainClName, true, true, "drop CL in the end." );
+   commDropCL( db, COMMCSNAME, mCLName, true, true, "drop CL in the end." );
 }

@@ -1,64 +1,67 @@
 ﻿/************************************
-*@Description：清理range表切分任务时创建同名hash分区表 
-*@author：2019-7-20 wuyan
-*@testlinkCase: seqDB-18894
+*@description ：seqDB-18894:清理range表切分任务时创建同名hash分区表 
+*@author ：2019-7-20 wuyan
 **************************************/
-main();
-function main ()
+try
 {
-   var csName = "splitcs_18894";
-   var clName = "splitcl_18894";
-
-   if( true == commIsStandalone( db ) )
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
    {
-      println( "run mode is standalone" );
-      return;
+      println( e.stack );
    }
-
-   var allGroupName = getGroupName2( db, true );
-   if( 2 > allGroupName.length )
-   {
-      println( "--least two groups" );
-      return;
-   }
-
-   commDropCS( db, csName, true, true, "drop CS in the beginning." );;
-
-   var groupsInfo = getGroupName2( db, true );
-   var srcGrName = groupsInfo[0][0];
-   var tarGrName = groupsInfo[1][0];
-
-   var options = { ShardingKey: { a: 1 }, ShardingType: "range", Group: srcGrName };
-   var dbcs = db.createCS( csName );
-   var dbcl = commCreateCL( db, csName, clName, options, false );
-   var insertNum = 40000;
-   insertData( dbcl, insertNum );
-   dbcl.splitAsync( srcGrName, tarGrName, { a: 1 }, { a: 40000 } );
-
-   println( "---begin to drop cl and create new cl." )
-   dbcs.dropCL( clName );
-   var dbcl1 = dbcs.createCL( clName, { ShardingKey: { a: 1 }, ShardingType: "hash", Group: tarGrName } );
-   dbcl1.insert( { a: 1 } );
-
-   commDropCS( db, csName, true, true, "drop CS in the end." );
+   throw e;
 }
 
-function insertData ( dbcl, insertNums )
+function main ()
 {
-   println( "---begin to insert datas." );
-   var batchNums = 10000;
-   var times = insertNums / batchNums;
-   for( var k = 0; k < times; k++ )
+   if( true == commIsStandalone( db ) )
    {
-      var doc = [];
-      for( var i = 0; i < batchNums; ++i )
-      {
-         var no = i;
-         var a = i;
-         var test = "test" + i;
-         var objs = { "a": a, "no": no, "test": test };
-         doc.push( objs );
-      }
-      dbcl.insert( doc );
+      println( "---Is standalone." );
+      return;
    }
+
+   if( commGetGroupsNum( db ) < 2 )
+   {
+      println( "---Least two groups" );
+      return;
+   }
+
+   var groupNames = commGetDataGroupNames( db );
+   var srcGroupName = groupNames[0];
+   var dstGroupName = groupNames[1];
+   var csName = CHANGEDPREFIX + "_split_18894";
+   var clName = "cl";
+   var recsNum = 40000;
+
+   // create cs/cl
+   commDropCS( db, csName, true, true, "drop CS in the beginning." );
+   var cs = db.createCS( csName );
+   var cl = cs.createCL( clName, { ShardingKey: { a: 1 }, ShardingType: "range", Group: srcGroupName } );
+
+   // insert
+   var docs = [];
+   for( var i = 0; i < recsNum; ++i )
+   {
+      var doc = { "a": i, "b": "test" + i };
+      docs.push( doc );
+   }
+   cl.insert( docs );
+
+   // split
+   cl.splitAsync( srcGroupName, dstGroupName, { a: 1 }, { a: 40000 } );
+
+   // drop cl, then create cl again
+   cs.dropCL( clName );
+   var cl2 = cs.createCL( clName, { ShardingKey: { a: 1 }, ShardingType: "hash", Group: dstGroupName } );
+
+   // check result
+   var docs2 = [{ a: 1 }];
+   cl2.insert( docs2 );
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } );
+   commCompareResults( cursor, docs2 );
+
+   commDropCS( db, csName, true, true, "drop CS in the end." );
 }

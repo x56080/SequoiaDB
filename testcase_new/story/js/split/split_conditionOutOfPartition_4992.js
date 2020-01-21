@@ -1,56 +1,71 @@
 ﻿/************************************
-*@Description： hash范围切分设置condition条件值超出partition范围_ST.split.01.015
-*@author：2019-5-30 wangkexin
-*@testlinkCase: seqDB-4992
+*@description ： seqDB-4992:hash范围切分设置condition条件值超出partition范围
+*@author ：2019-5-30 wangkexin init; 2020-01-13 huangxiaoni modify
 **************************************/
-main();
-function main ()
+try
 {
-   var csName = COMMCSNAME;
-   var clName = CHANGEDPREFIX + "_cl_4992";
-
-   if( true == commIsStandalone( db ) )
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
    {
-      println( "run mode is standalone" );
-      return;
+      println( e.stack );
    }
-
-   //less two groups to split
-   var allGroupName = getGroupName2( db, true );
-   if( 2 > allGroupName.length )
-   {
-      println( "--least two groups" );
-      return;
-   }
-   //clean environment before test
-   commDropCL( db, csName, clName, true, true, "drop CL in the beginning." );
-
-   var groupsInfo = getGroupName2( db, true );
-   var srcGrName = groupsInfo[0][0];
-   var tarGrName = groupsInfo[1][0];
-
-   var options = { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 0, Group: srcGrName };
-   var cl = commCreateCL( db, csName, clName, options, false );
-   insertData( db, csName, clName, 100 );
-
-   println( "--start split, srcGrName :" + srcGrName + " , tarGrName : " + tarGrName );
-   checkConditionOutOfPartition( cl, srcGrName, tarGrName, 1025 );
-
-   commDropCL( db, csName, clName, true, true, "drop CL in the end." );
+   throw e;
 }
 
-function checkConditionOutOfPartition ( cl, srcGrName, tarGrName, condition )
+function main ()
 {
+   if( true == commIsStandalone( db ) )
+   {
+      println( "---Is standalone." );
+      return;
+   }
+
+   if( commGetGroupsNum( db ) < 2 )
+   {
+      println( "---Least two groups" );
+      return;
+   }
+
+   var groupNames = commGetDataGroupNames( db );
+   var srcGroupName = groupNames[0];
+   var dstGroupName = groupNames[1];
+   var clName = CHANGEDPREFIX + "_split_4992";
+
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning." );
+   var options = { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: srcGroupName };
+   var cl = commCreateCL( db, COMMCSNAME, clName, options );
+   insertData( cl, 100 );
+
+   var condition = { "Partition": 1024 };
    try
    {
-      cl.split( srcGrName, tarGrName, condition )
-      throw "expect fail but succeed, condition = " + condition;
+      cl.split( srcGroupName, dstGroupName, condition );
+      throw new Error( "expect fail but succeed, inavalid condition = " + JSON.stringify( condition ) );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message !== "-6" )
       {
-         throw buildException( "split()", e, "", '-6', e );
+         throw e;
       }
    }
+
+   var condition = { "Partition": -1 };
+   try
+   {
+      cl.split( srcGroupName, dstGroupName, condition );
+      throw new Error( "expect fail but succeed, inavalid condition = " + JSON.stringify( condition ) );
+   }
+   catch( e )
+   {
+      if( e.message !== "-6" )
+      {
+         throw e;
+      }
+   }
+
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end." );
 }

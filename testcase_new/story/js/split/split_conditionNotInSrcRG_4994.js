@@ -1,69 +1,73 @@
 ﻿/************************************
-*@Description：range分区组进行范围切分，其中condition字段值不在源分区组内_ST.split.01.017
-*@author：2019-5-30 wangkexin
-*@testlinkCase: seqDB-4994
+*@description ：seqDB-4994:range分区组进行范围切分，其中condition字段值不在源分区组内
+*@author ：2019-5-30 wangkexin init; 2020-01-13 huangxiaoni modify
 **************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
-   var csName = COMMCSNAME;
-   var clName = CHANGEDPREFIX + "_cl_4994";
-
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
+      println( "---Is standalone." );
       return;
    }
 
-   //less two groups to split
-   var allGroupName = getGroupName2( db, true );
-   if( 2 > allGroupName.length )
+   if( commGetGroupsNum( db ) < 2 )
    {
-      println( "--least two groups" );
+      println( "---Least two groups" );
       return;
    }
-   //clean environment before test
-   commDropCL( db, csName, clName, true, true, "drop CL in the beginning." );
 
-   var groupsInfo = getGroupName2( db, true );
-   var srcGrName = groupsInfo[0][0];
-   var tarGrName = groupsInfo[1][0];
+   var groupNames = commGetDataGroupNames( db );
+   var srcGroupName = groupNames[0];
+   var dstGroupName = groupNames[1];
+   var clName = CHANGEDPREFIX + "_split_4994";
 
-   var options = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Group: srcGrName };
-   var cl = commCreateCL( db, csName, clName, options, false );
-   insertData( db, csName, clName, 100 );
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning." );
+   var options = { ShardingKey: { a: 1 }, ShardingType: "range", Group: srcGroupName };
+   var cl = commCreateCL( db, COMMCSNAME, clName, options );
+   insertData( cl, 100 );
 
-   println( "--start split, srcGrName :" + srcGrName + " , tarGrName : " + tarGrName );
-   //test a : condition 为null
+   //test a : condition为null
    var condition = null;
    try
    {
-      cl.split( srcGrName, tarGrName, condition )
-      throw "expect fail but succeed, condition = " + condition;
+      cl.split( srcGroupName, dstGroupName, condition )
+      throw new Error( "expect fail but succeed, condition = " + condition );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message !== "-6" )
       {
-         throw buildException( "split()", e, "", '-6', e );
+         throw e;
       }
    }
 
-   //test b : condition 为空串
+   //test b : condition为空串
    condition = '';
    try
    {
-      cl.split( srcGrName, tarGrName, condition )
-      throw "expect fail but succeed, condition = " + condition;
+      cl.split( srcGroupName, dstGroupName, condition )
+      throw new Error( "expect fail but succeed, condition = " + condition );
    }
    catch( e )
    {
-      //-259 : SDB_OUT_OF_BOUND
-      if( e !== -259 )
+      if( e.message !== "-259" )
       {
-         throw buildException( "split()", e, "", '-259', e );
+         throw e;
       }
    }
 
-   commDropCL( db, csName, clName, true, true, "drop CL in the end." );
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end." );
 }

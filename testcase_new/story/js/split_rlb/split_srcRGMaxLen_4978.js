@@ -1,67 +1,87 @@
 /************************************
-*@Description: 源分区组名取最大长度值进行数据切分_ST.split.01.001
-*@author:      wangkexin
-*@createDate:  2019.5.30
-*@testlinkCase: seqDB-4978
+*@description: seqDB-4978:源分区组名取最大长度值进行数据切分_ST.split.01.001
+*@author :  2019-5-30 wangkexin init; 2020-1-14 huangxiaoni modify
 **************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
+
 function main ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
+      println( "---Is standalone." );
       return;
    }
 
-   var groupsArray = commGetGroups( db, false, "", true, true, true );
+   if( commGetGroupsNum( db ) < 2 )
+   {
+      println( "---Least two groups" );
+      return;
+   }
 
-   var csName = COMMCSNAME;
-   var clName = CHANGEDPREFIX + "_cl_4978";
-   var srcRGName = "";
-   var tarRGName = groupsArray[0][0].GroupName;
-   var hostName = groupsArray[0][1].HostName;
-   var dataNum = 10000;
+   var groupNames = commGetGroups( db, false, "", true, true, true );
+   // 源组，最大长度分区组名
+   var srcGroupName = "";
    for( var i = 0; i < 123; i++ )
    {
-      srcRGName += 's';
+      srcGroupName += 's';
    }
-   srcRGName += "4978";
+   srcGroupName += "4978";
+   // 目标组
+   var dstGroupName = groupNames[0][0].GroupName;
+   var hostName = groupNames[0][1].HostName;
 
-   //clean environment before test
-   commDropCL( db, csName, clName, true, true, "drop CL in the beginning." );
-   removeDataRG( srcRGName );
+   var clName = CHANGEDPREFIX + "_split_4978";
+   var recsNum = 3000;
 
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning." );
+   removeRG( srcGroupName );
 
    try
    {
-      println( "begin to create data group" );
-      var srcLogPath = createDataGroup( srcRGName, hostName );
+      var nodeNum = 1;
+      var srcRGLogPath = commCreateRG( db, srcGroupName, nodeNum, hostName );
+      try
+      {
+         var option = { ShardingKey: { a: 1 }, ShardingType: "range", Group: srcGroupName };
+         var cl = commCreateCL( db, COMMCSNAME, clName, option, true, false );
 
-      var optionObj = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0, Group: srcRGName };
-      var cl = commCreateCL( db, csName, clName, optionObj, true, false );
+         var docs = new Array();
+         for( var i = 0; i < recsNum; i++ )
+         {
+            var doc = { a: i };
+            docs.push( doc );
+         }
+         cl.insert( docs );
+         checkResultsInGroup( srcGroupName, COMMCSNAME, clName, docs, { a: 1 } );
 
-      //insert data and split
-      insertData( cl, dataNum );
-      var condition = 0;
-      var endcondition = 3000;
-
-      cl.split( srcRGName, tarRGName, { a: condition }, { a: endcondition } );
-      println( "begin to check" );
-      checkSplitResultByCount( cl, csName, clName, srcRGName, tarRGName, dataNum, 7000, 3000 );
-   }
-   catch( e )
-   {
-      println( "catch e : " + e );
-      //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
-      var backupDir = "/tmp/ci/rsrvnodelog/4978";
-      File.mkdir( backupDir );
-      File.scp( srcLogPath, backupDir + "/sdbdiag.log" );
-      throw e;
+         cl.split( srcGroupName, dstGroupName, { a: 0 }, { a: recsNum } );
+         checkResultsInGroup( srcGroupName, COMMCSNAME, clName, [] );
+         checkResultsInGroup( dstGroupName, COMMCSNAME, clName, docs, { a: 1 } );
+      }
+      catch( e )
+      {
+         //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
+         var backupDir = "/tmp/ci/rsrvnodelog/split_rlb_4978";
+         File.mkdir( backupDir );
+         File.scp( srcRGLogPath, backupDir + "/sdbdiag.log" );
+         throw e;
+      }
    }
    finally
    {
       //清理环境
-      commDropCL( db, csName, clName, true, true, "drop CL in the end." );
-      removeDataRG( srcRGName );
+      commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end." );
+      removeRG( srcGroupName );
    }
 }

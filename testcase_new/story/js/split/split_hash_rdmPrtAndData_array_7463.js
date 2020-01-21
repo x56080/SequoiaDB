@@ -1,10 +1,22 @@
 /******************************************************************************
 @Description : seqDB-7463: hash自动切分，分区键为不同数据类型，验证数据分布规则
                            type: array
+                           数据量随机，cl partition随机，数据随机，数组层数随机
 @Author :
    2019-8-23   XiaoNi Huang  init
 *******************************************************************************/
-main();
+try
+{
+   main();
+}
+catch( e )
+{
+   if( e.constructor === Error )
+   {
+      println( e.stack );
+   }
+   throw e;
+}
 
 function main ()
 {
@@ -21,178 +33,43 @@ function main ()
    }
 
    var suffix = "_array_7463";
-   var dmName = "dm" + suffix;
-   var csName = "cs" + suffix;
-   var clName = "cl" + suffix;
+   var dmName = CHANGEDPREFIX + "_dm" + suffix;
+   var csName = CHANGEDPREFIX + "_cs" + suffix;
+   var clName = CHANGEDPREFIX + "_cl" + suffix;
    var groups = commGetGroups( db, false, "", false, true, true );
    var groupNames = [groups[1][0].GroupName, groups[2][0].GroupName];
    var cl;
    var recordsNum = getRandomInt( 1000, 3000 );
-   println( "\nrecords number = " + recordsNum );
 
    commDropCS( db, csName, true, "drop cs in the begin" );
    commDropDomain( db, dmName, true, "drop domain in the end." );
 
-   // random partition
-   var partition = getRandomPartition();
    // create domain / cs / cl
-   println( "\n---Begin to create domain & cs & cl, groups[ " + groupNames + " ]." );
    db.createDomain( dmName, groupNames, { "AutoSplit": true } );
    var cs = db.createCS( csName, { "Domain": dmName } );
+   var partition = getRandomPartition();
    cl = cs.createCL( clName, { "ShardingType": "hash", "ShardingKey": { b: 1 }, "Partition": partition } );
 
    // insert
    var recordsArr = readyRdmRecs( recordsNum );
-   println( "\n---Begin to insert records." );
    cl.insert( recordsArr );
 
    // check results
-   checkRecs( cl, recordsArr );
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( { a: 1 } );
+   commCompareResults( cursor, recordsArr );
    checkHashDistribution( groupNames, csName, clName, recordsNum );
 
-   println( "\n---Begin to drop domain & cs." );
    commDropCS( db, csName, false, "drop cs in the end." );
    commDropDomain( db, dmName, false, "drop domain in the end." );
 }
 
-function checkRecs ( cl, expRecsArr )
-{
-   println( "\n---Begin to check records." );
-   // check total count
-   var cnt = Number( cl.count() );
-   if( expRecsArr.length !== cnt )
-   {
-      throw buildException( "checkRecs", null, "[check number]", expRecsArr.length, cnt );
-   }
-
-   // check records
-   var actRecsArr = [];
-   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( { a: 1 } );
-   while( recs = cursor.next() )
-   {
-      actRecsArr.push( recs.toObj() );
-   }
-
-   if( JSON.stringify( expRecsArr ) !== JSON.stringify( actRecsArr ) )
-   {
-      throw buildException( "checkRecs", null, "[check records]",
-         JSON.stringify( expRecsArr ),
-         JSON.stringify( actRecsArr ) );
-   }
-}
-
-function checkHashDistribution ( groupNames, csName, clName, expRecsNum )
-{
-   println( "\n---Begin to check hash distribution." );
-   var rgDB1 = null;
-   var rgDB2 = null;
-   try 
-   {
-      rgDB1 = db.getRG( groupNames[0] ).getMaster().connect();
-      rgDB2 = db.getRG( groupNames[1] ).getMaster().connect();
-      var cnt1 = Number( rgDB1.getCS( csName ).getCL( clName ).count() );
-      var cnt2 = Number( rgDB2.getCS( csName ).getCL( clName ).count() );
-
-      // check total count on all groups
-      var totalCnt = cnt1 + cnt2;
-      if( expRecsNum !== totalCnt )
-      {
-         throw buildException( "checkHashDistribution", null, "[cl.count]", expRecsNum, totalCnt );
-      }
-
-      // check hash distribution, expect difference value is 0.3 of the total number of records
-      var expDiffVal = expRecsNum * 0.3;
-      var expRgRecsCnt = expRecsNum / groupNames;
-      var actDiffVal1 = Math.abs( expRgRecsCnt - cnt1 );
-      var actDiffVal2 = Math.abs( expRgRecsCnt - cnt2 );
-      if( expDiffVal < actDiffVal1 || expDiffVal < actDiffVal2 )
-      {
-         throw buildException( "checkHashDistribution", null, "[hash distribution]",
-            "[expDiffVal: " + expDiffVal + "]",
-            "[actDiffVal1 : " + actDiffVal1 + ", actDiffVal2: " + "actDiffVal2" + "]" );
-      }
-   }
-   finally 
-   {
-      if( rgDB1 !== null ) rgDB1.close();
-      if( rgDB2 !== null ) rgDB2.close();
-   }
-}
-
 function readyRdmRecs ( recordsNum ) 
 {
-   println( "\n---Begin to ready random records." );
    var recordsArr = [];
    for( var i = 0; i < recordsNum; i++ )
    {
       var arr = getRandomArr();
       recordsArr.push( { "a": i, "b": arr } );
    }
-   println( "sample records: " + JSON.stringify( recordsArr[0] ) );
    return recordsArr;
-}
-
-function getRandomArr ()
-{
-   var arrNestNum = getRandomInt( 1, 20 );
-
-   // get obj, e.g: {f20:[ tmpValArr ]}
-   var str = "大写ABCDEFGHIJKLMNOPQRSTUVWXYZ小写abcdefghijklmnopqrstuvwxyz数字0123456789中文";
-   var tmpArrStr = [getRandomInt( -2147483648, 2147483647 ),
-   '"' + str.substring( 0, getRandomInt( 0, str.length - 1 ) ) + '"',
-   JSON.stringify( { "subobj": "test" } )];
-   var tmpFieldName = "t" + ( arrNestNum - 1 );
-   var objStr = "{" + tmpFieldName + ": [" + tmpArrStr + "]}";
-   //println("objStr = " + objStr );
-
-   // get an array of random nested layers
-   var prefixStr = "";
-   var suffixStr = "";
-   for( var i = 0; i < arrNestNum - 1; i++ ) 
-   {
-      var fieldName = "t" + i;
-      // e.g: "{a1: [{a2: [{a3: [..."
-      var str1 = "{ " + fieldName + ": [";
-      prefixStr += str1;
-      // e.g: "}] }] }]..."
-      var str2 = " ]}";
-      suffixStr += str2;
-   }
-   // e.g: "{a1:[ {a2:[ {a3:[ {...} ]} ]} ]}"
-   var arrVal = prefixStr + objStr + suffixStr;
-   // to json
-   var arrJson = JSON.parse( arrVal );
-   //println("arrJson = " + JSON.stringify( arrJson ));
-
-   var arr = [arrJson];
-   return arr;
-}
-
-function getRandomNum ( min, max )
-{
-   // decimal digits up to 15 digits, exceeding the value is inaccurate
-   // get -x
-   var rdmVal1 = ( Math.random() * min ).toFixed( 15 );
-   // get +x
-   var rdmVal2 = ( Math.random() * max ).toFixed( 15 );
-   var rdmValArr = [rdmVal1, rdmVal2];
-   // get -x or +x
-   var tmpNum = Math.floor( Math.random() * rdmValArr.length );
-   var rdmVal = rdmValArr[tmpNum];
-   //println( rdmVal );
-   return rdmVal;
-}
-
-function getRandomInt ( min, max )
-{
-   var rdmVal = min + Math.round( Math.random() * ( max - min ), max );
-   return rdmVal;
-}
-
-function getRandomPartition ()
-{
-   var baseNum = 2;
-   var powNum = getRandomInt( 3, 20 ); // [2^3, 2^20]
-   var rdmPow = Math.pow( baseNum, powNum );
-   return rdmPow;
 }
