@@ -425,13 +425,13 @@ namespace engine
       // reset primary active time
       OSS_INLINE void resetPrimaryActiveTime()
       {
-         _primaryActiveTime.swap( 0LL ) ;
+         _primaryActiveTime.swap( DPS_INVALID_TRANS_TIME ) ;
       }
 
       // check if primary active time is valid
       OSS_INLINE BOOLEAN isPrimaryActived()
       {
-         return !( _primaryActiveTime.compare( 0LL ) ) ;
+         return !( _primaryActiveTime.compare( DPS_INVALID_TRANS_TIME ) ) ;
       }
 
       // set primary active time
@@ -605,6 +605,9 @@ namespace engine
 
       BOOLEAN isTransOn() const ;
       BOOLEAN isGlobTransOn() const ;
+      BOOLEAN isMVCCOn() const ;
+      // RR requires --transactionon, --globtranson and --mvccon
+      BOOLEAN isRRSupported() const ;
 
       // test if the lock can be got.
       // test record-S-lock: also test the space-IS-lock and collection-IS-lock
@@ -730,6 +733,7 @@ namespace engine
 
       BOOLEAN           _isOn ;
       BOOLEAN           _isGlobTransOn ;
+      BOOLEAN           _isMVCCOn ;
       BOOLEAN           _doRollback ;
       ossEvent          _rollbackEvent ;
 

@@ -318,6 +318,9 @@ namespace engine
 
          BOOLEAN  _needProcessGlobalIndex( _pmdEDUCB *cb ) ;
 
+         INT32    _preCreateIndex( const BSONObj &indexDef,
+                                   BSONObj &indexMeta ) ;
+
       private:
          virtual UINT64 _dataOffset() ;
          virtual const CHAR* _getEyeCatcher() const ;

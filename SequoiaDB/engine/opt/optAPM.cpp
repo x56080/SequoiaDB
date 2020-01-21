@@ -46,6 +46,7 @@
 #include "optTrace.hpp"
 #include "pmd.hpp"
 #include "optPlanClearJob.hpp"
+#include "dpsUtil.hpp"
 
 namespace engine
 {
@@ -1788,7 +1789,8 @@ namespace engine
       // Construct the plan key, but needn't to get owned at this stage
       optAccessPlanKey planKey( options, cacheLevel ) ;
 
-      optAccessPlanHelper planHelper( cacheLevel, getPlanConfig(),
+      optAccessPlanHelper planHelper( pmdGetThreadEDUCB(),
+                                      cacheLevel, getPlanConfig(),
                                       getMatchConfig(), keepSearchPaths ) ;
       BOOLEAN needCache = ( isInitialized() &&
                             cacheLevel > OPT_PLAN_NOCACHE &&
@@ -1847,6 +1849,21 @@ namespace engine
                pPlan->release() ;
                pPlan = NULL ;
             }
+            else if ( SDB_OK != planHelper.checkGlobTrans( planKey,
+                                                           su,
+                                                           mbContext,
+                                                           pPlan ) )
+            {
+               // failed to check with global transaction ( global transaction
+               // was started before index rebuild (creation) finished,
+               // which index is used by fetched plan )
+               PD_LOG( PDWARNING, "Failed to check global transaction for "
+                       "plan [%s]", pPlan->toString().c_str() ) ;
+
+               // just release plan
+               pPlan->release() ;
+               pPlan = NULL ;
+            }
          }
       }
 
@@ -1858,7 +1875,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to create access plan, rc: %d",
                       rc ) ;
 
-         planRuntime.setPlan( pPlan, this, TRUE ) ;
+         planRuntime.setPlan( pPlan, this, TRUE, planHelper.hasNonGTIndex() ) ;
          pPlan = NULL ;
       }
       else
@@ -1888,7 +1905,7 @@ namespace engine
          }
          else
          {
-            planRuntime.setPlan( pPlan, this, FALSE ) ;
+            planRuntime.setPlan( pPlan, this, FALSE, FALSE ) ;
          }
       }
 
@@ -1940,7 +1957,8 @@ namespace engine
          planKey.setCLFullName( options.getMainCLName() ) ;
          planKey.setMainCLName( NULL ) ;
 
-         optAccessPlanHelper planHelper( cacheLevel, getPlanConfig(),
+         optAccessPlanHelper planHelper( pmdGetThreadEDUCB(),
+                                         cacheLevel, getPlanConfig(),
                                          getMatchConfig(), FALSE ) ;
 
          rc = _prepareAccessPlanKey( NULL, NULL, planKey, planHelper,
@@ -1997,10 +2015,14 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Failed to create main-collection "
                             "query, rc: %d", rc ) ;
 
-               _cacheAccessPlan( mainPlan ) ;
-
-               // Use the sub-collection plan for the this time
-               mainPlan->release() ;
+               if ( NULL != mainPlan )
+               {
+                  // cache main-collection plan
+                  _cacheAccessPlan( mainPlan ) ;
+                  // release main-collection plan, since we will use the
+                  // sub-collection plan for the this time
+                  mainPlan->release() ;
+               }
             }
             else
             {
@@ -2015,7 +2037,8 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Failed to create access plan, rc: %d",
                             rc ) ;
 
-               planRuntime.setPlan( generalPlan, this, TRUE ) ;
+               planRuntime.setPlan( generalPlan, this, TRUE,
+                                    planHelper.hasNonGTIndex() ) ;
                generalPlan = NULL ;
             }
          }
@@ -2052,7 +2075,7 @@ namespace engine
             else
             {
                // Set the plan
-               planRuntime.setPlan( pPlan, this, FALSE ) ;
+               planRuntime.setPlan( pPlan, this, FALSE, FALSE ) ;
             }
          }
       }
@@ -2201,7 +2224,7 @@ namespace engine
       (*ppPlan) = pPlan ;
 
       // Cache the plan
-      if ( needCache && isInitialized() )
+      if ( needCache && isInitialized() && planHelper.validForCache() )
       {
          _cacheAccessPlan( pPlan ) ;
       }
@@ -2321,7 +2344,14 @@ namespace engine
       tempPlan = dynamic_cast<optGeneralAccessPlan *>( planRuntime.getPlan() ) ;
       SDB_ASSERT( tempPlan, "subPlan is invalid " ) ;
 
-      if ( plan->validateParameterized( *tempPlan, parameters ) )
+      if ( planRuntime.hasNonGTIndex() )
+      {
+         // plan is generated with non global transaction index, should not
+         // be used to parameter validation
+
+         // do nothing
+      }
+      else if ( plan->validateParameterized( *tempPlan, parameters ) )
       {
          // Do nothing
       }
@@ -2406,6 +2436,18 @@ namespace engine
                    "sub-collection with query [ %s ], rc: %d",
                    subOptions.toString().c_str(), rc ) ;
 
+      if ( planRuntime.hasNonGTIndex() )
+      {
+         // plan is generated with non global transaction index, should not
+         // be used to sub-collection validation
+
+         // release main-collection plan
+         mainPlan->release() ;
+         mainPlan = NULL ;
+
+         goto done ;
+      }
+
       // Bind the sub-collection plan
       subPlan = dynamic_cast<optGeneralAccessPlan *>( planRuntime.getPlan() ) ;
       SDB_ASSERT( subPlan, "subPlan is invalid " ) ;
@@ -2482,7 +2524,14 @@ namespace engine
       subPlan = dynamic_cast<optGeneralAccessPlan *>( planRuntime.getPlan() ) ;
       SDB_ASSERT( subPlan, "subPlan is invalid " ) ;
 
-      if ( !mainPlan->validateSubCLPlan( subPlan, parameters ) )
+      if ( planRuntime.hasNonGTIndex() )
+      {
+         // plan is generated with non global transaction index, should not
+         // be used to sub-collection validation
+
+         // do nothing
+      }
+      else if ( !mainPlan->validateSubCLPlan( subPlan, parameters ) )
       {
          // The sub-collection is not validate for the main-collection
          // plan, mark the collection invalidate for main-collection plans
@@ -2519,21 +2568,26 @@ namespace engine
       dmsCachedPlanMgr *pCachedPlanMgr = su->getCachedPlanMgr() ;
       dmsExtentID indexExtID = DMS_INVALID_EXTENT ;
       dmsExtentID indexLID = DMS_INVALID_EXTENT ;
+      BOOLEAN needInvalid = FALSE ;
 
       // The sub-collection is parameterized validated, we need
       // to verify if it has the index specified by main-colleciton
       // plan, etc
-      rc = mainPlan->validateSubCL( su, mbContext, indexExtID, indexLID ) ;
+      rc = mainPlan->validateSubCL( su, mbContext, subOptions, planHelper,
+                                    indexExtID, indexLID, needInvalid ) ;
       if ( SDB_OK != rc )
       {
-         // Failed to validate sub-collection, generate a general plan
-         // for sub-collection ( e.g. missing index )
-         rc = mainPlan->markMainCLInvalid( pCachedPlanMgr,
-                                           mbContext,
-                                           TRUE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to mark sub-collection "
-                      "invalidated to reuse main-collection plan, "
-                      "rc: %d", rc ) ;
+         if ( needInvalid )
+         {
+            // Failed to validate sub-collection, generate a general plan
+            // for sub-collection ( e.g. missing index )
+            rc = mainPlan->markMainCLInvalid( pCachedPlanMgr,
+                                              mbContext,
+                                              TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to mark sub-collection "
+                         "invalidated to reuse main-collection plan, "
+                         "rc: %d", rc ) ;
+         }
 
          // Create a general plan for sub-collection
          rc = _getCLAccessPlan( subOptions, FALSE, su, mbContext, planRuntime ) ;

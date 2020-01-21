@@ -1517,7 +1517,8 @@ namespace engine
      _idxReadRecords( 0 ),
      _idxReadPages( 0 ),
      _ixFromStat( FALSE ),
-     _ixStatTime( 0 )
+     _ixStatTime( 0 ),
+     _ixRebuildTime( DPS_INVALID_TRANS_TIME )
    {
    }
 
@@ -1538,7 +1539,8 @@ namespace engine
      _idxReadRecords( 0 ),
      _idxReadPages( 0 ),
      _ixFromStat( FALSE ),
-     _ixStatTime( 0 )
+     _ixStatTime( 0 ),
+     _ixRebuildTime( DPS_INVALID_TRANS_TIME )
    {
       if ( indexCB.isInitialized() )
       {
@@ -1546,6 +1548,7 @@ namespace engine
          _indexExtID = indexCB.getExtentID() ;
          _indexLID = indexCB.getLogicalID() ;
          _keyPattern = indexCB.keyPattern().getOwned() ;
+         _ixRebuildTime.init( indexCB.getRebuildTime() ) ;
       }
    }
 
@@ -1566,7 +1569,8 @@ namespace engine
      _idxReadPages( node._idxReadPages ),
      _ixFromStat( node._ixFromStat ),
      _ixStatTime( node._ixStatTime ),
-     _runtimeIXBound( node._runtimeIXBound )
+     _runtimeIXBound( node._runtimeIXBound ),
+     _ixRebuildTime( DPS_INVALID_TRANS_TIME )
    {
       if ( node._pIndexName.len() > 0 )
       {
@@ -1574,6 +1578,7 @@ namespace engine
          _indexExtID = node._indexExtID ;
          _indexLID = node._indexLID ;
          _keyPattern = node._keyPattern.getOwned() ;
+         _ixRebuildTime.init( node._ixRebuildTime.peek() ) ;
       }
 
       if ( NULL != context )

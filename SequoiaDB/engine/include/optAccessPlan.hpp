@@ -329,6 +329,18 @@ namespace engine
             return FALSE ;
          }
 
+         // get index rebuild time
+         OSS_INLINE virtual UINT64 getIxRebuildTime()
+         {
+            return _scanPath.getIxRebuildTime() ;
+         }
+
+         // set index rebuild time
+         virtual void setIxRebuildTime( UINT64 rebuildTime )
+         {
+            _scanPath.setIxRebuildTime( rebuildTime ) ;
+         }
+
       protected :
          OSS_INLINE virtual INT32 _toBSONInternal ( BSONObjBuilder &builder ) const
          {
@@ -441,6 +453,7 @@ namespace engine
                                      optScanPath &ixScanPath ) ;
 
          INT32 _estimateIxScanPlan ( dmsStorageUnit *su,
+                                     dmsMBContext *mbContext,
                                      optCollectionStat *collectionStat,
                                      optAccessPlanHelper &planHelper,
                                      dmsExtentID indexCBExtent,
@@ -466,9 +479,9 @@ namespace engine
                                 const optAccessPlanHelper & planHelper ) ;
 
       protected :
-         dmsCachedPlanMgr *_cachedPlanMgr ;
-         BOOLEAN _autoHint ;
-         optScanPathList * _searchPaths ;
+         dmsCachedPlanMgr *   _cachedPlanMgr ;
+         BOOLEAN              _autoHint ;
+         optScanPathList *    _searchPaths ;
    } ;
 
    typedef class _optGeneralAccessPlan optGeneralAccessPlan ;
@@ -599,8 +612,11 @@ namespace engine
 
          INT32 validateSubCL ( dmsStorageUnit *su,
                                dmsMBContext *mbContext,
+                               const rtnQueryOptions &options,
+                               optAccessPlanHelper &planHelper,
                                dmsExtentID &indexExtID,
-                               dmsExtentID &indexLID ) ;
+                               dmsExtentID &indexLID,
+                               BOOLEAN &needInvalid ) ;
 
          BOOLEAN checkSavedSubCL ( const CHAR * subCLName,
                                    const BSONObj & parameters ) ;

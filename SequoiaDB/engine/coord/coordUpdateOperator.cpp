@@ -185,6 +185,7 @@ namespace engine
          }
 
          options.setUpdator( boUpdator ) ;
+         options.setWriteOp( TRUE ) ;
 
          // add last op info
          MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg->opCode, options ) ;

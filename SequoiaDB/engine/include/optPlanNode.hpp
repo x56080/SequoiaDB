@@ -539,6 +539,17 @@ namespace engine
             return _clFromStat ;
          }
 
+         OSS_INLINE virtual UINT64 getIxRebuildTime()
+         {
+            // for tbscan, always available
+            return DPS_MIN_TRANS_TIME ;
+         }
+
+         OSS_INLINE virtual void setIxRebuildTime( UINT64 rebuildTime )
+         {
+            // do nothing
+         }
+
       protected :
          void _preEvaluate ( const rtnQueryOptions & queryOptions,
                              optAccessPlanHelper & planHelper,
@@ -830,6 +841,24 @@ namespace engine
             return _ixFromStat ;
          }
 
+         OSS_INLINE virtual UINT64 getIxRebuildTime()
+         {
+            return _ixRebuildTime.fetch() ;
+         }
+
+         OSS_INLINE virtual void setIxRebuildTime( UINT64 rebuildTime )
+         {
+            if ( DPS_INVALID_TRANS_TIME != rebuildTime &&
+                 DPS_MAX_TRANS_TIME != rebuildTime )
+            {
+               if ( !_ixRebuildTime.compareAndSwap( DPS_MAX_TRANS_TIME,
+                                                    rebuildTime ) )
+               {
+                  _ixRebuildTime.swapLesserThan( rebuildTime ) ;
+               }
+            }
+         }
+
       public :
          void preEvaluate ( const rtnQueryOptions & queryOptions,
                             optAccessPlanHelper & planHelper,
@@ -924,6 +953,8 @@ namespace engine
          UINT64            _ixStatTime ;
 
          BSONObj           _runtimeIXBound ;
+
+         ossAtomic64       _ixRebuildTime ;
    } ;
 
    /*

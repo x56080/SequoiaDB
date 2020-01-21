@@ -43,10 +43,19 @@
 #include "oss.hpp"
 #include "ossUtil.hpp"
 #include "optCommon.hpp"
+#include "dmsStorageUnit.hpp"
 #include "mthMatchRuntime.hpp"
+#include "pmdEDU.hpp"
 
 namespace engine
 {
+
+   // pre-declare of access plan class
+   class _optAccessPlan ;
+
+   // set of index
+   typedef ossPoolSet< bson::OID > OPT_INDEX_SET ;
+
    /*
       _optAccessPlanConfig define
     */
@@ -131,7 +140,8 @@ namespace engine
                                 public _mthMatchConfigHolder
    {
       public :
-         _optAccessPlanHelper ( OPT_PLAN_CACHE_LEVEL cacheLevel,
+         _optAccessPlanHelper ( pmdEDUCB *eduCB,
+                                OPT_PLAN_CACHE_LEVEL cacheLevel,
                                 const optAccessPlanConfig &planConfig,
                                 const mthNodeConfig &mthConfig,
                                 BOOLEAN keepSearchPaths ) ;
@@ -139,6 +149,11 @@ namespace engine
          virtual ~_optAccessPlanHelper () ;
 
          void clear () ;
+
+         OSS_INLINE pmdEDUCB *getEDUCB()
+         {
+            return _eduCB ;
+         }
 
          OSS_INLINE BSONObj getQuery ()
          {
@@ -202,10 +217,53 @@ namespace engine
             return _keepSearchPaths ;
          }
 
+         // check if index is available for global transaction
+         // NOTE:
+         // - if global transaction is started before index rebuild (creation)
+         //   finished, this index is not available for this transaction
+         // - will return SDB_DMS_INVALID_INDEXCB for unavailable index
+         // - storage unit, meta-block context and index control block
+         //   should be valid
+         INT32 checkGlobTrans( const rtnQueryOptions &options,
+                               dmsStorageUnit *su,
+                               dmsMBContext *mbContext,
+                               ixmIndexCB &indexCB ) ;
+
+         // check if index used by plan is available for global transaction
+         // NOTE:
+         // - if global transaction is started before index rebuild (creation)
+         //   finished, this index is not available for this transaction
+         // - will return SDB_DMS_INVALID_INDEXCB for unavailable index
+         // - storage unit, meta-block context and plan should be valid
+         INT32 checkGlobTrans( const rtnQueryOptions &options,
+                               dmsStorageUnit *su,
+                               dmsMBContext *mbContext,
+                               _optAccessPlan *plan ) ;
+
+         // try to update rebuild time for indexes without rebuild time
+         // NOTE:
+         // - after setting rebuild time, index could be used for global
+         //   transaction stated after rebuild time ( not this time, but for
+         //   later global transactions )
+         // - storage unit, meta-block context should be valid
+         INT32 updateIxRebuildTime( dmsStorageUnit *su,
+                                    dmsMBContext *mbContext ) ;
+
+         OSS_INLINE BOOLEAN hasNonGTIndex() const
+         {
+            return _hasNonGTIndex ;
+         }
+
+         OSS_INLINE BOOLEAN validForCache() const
+         {
+            return !isKeepSearchPaths() && !hasNonGTIndex() ;
+         }
+
       protected :
          void _evalEstimation ( optCollectionStat *pCollectionStat ) ;
 
       protected :
+         pmdEDUCB *           _eduCB ;
          BSONObj              _query ;
          OPT_PLAN_CACHE_LEVEL _cacheLevel ;
          mthMatchNormalizer   _normalizer ;
@@ -223,7 +281,15 @@ namespace engine
          // The CPU cost of the matcher
          UINT32            _estCPUCost ;
 
+         // keep search paths for explain "Search" option
          BOOLEAN           _keepSearchPaths ;
+
+         // has index created behind current transaction
+         BOOLEAN           _hasNonGTIndex ;
+
+         // indexes need to set rebuild time which are invalid for global
+         // transactions
+         OPT_INDEX_SET     _invalidGTIndexes ;
    } ;
 
    typedef class _optAccessPlanHelper optAccessPlanHelper ;

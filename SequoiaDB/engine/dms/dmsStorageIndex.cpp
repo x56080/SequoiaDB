@@ -47,6 +47,7 @@
 #include "dmsCompress.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
+#include "dpsTransID.hpp"
 #include "dmsIndexBuilder.hpp"
 #include "dmsTransLockCallback.hpp"
 
@@ -562,6 +563,85 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__PRECRTIDX, "_dmsStorageIndex::_preCreateIndex" )
+   INT32 _dmsStorageIndex::_preCreateIndex( const BSONObj &indexDef,
+                                            BSONObj &indexMeta )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__PRECRTIDX ) ;
+
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      UINT64 createTimeUS = DPS_INVALID_TRANS_TIME ;
+      UINT64 rebuildTimeUS = DPS_INVALID_TRANS_TIME ;
+      stpLogicalTimeUS createTime ;
+
+      // get start value
+      if ( !transCB->isRRSupported() )
+      {
+         // global transaction is not enabled
+         // just set to minimum value ( 0 )
+         createTimeUS = DPS_MIN_TRANS_TIME ;
+         rebuildTimeUS = DPS_MIN_TRANS_TIME ;
+      }
+      else if ( SDB_OK == transCB->getGlobTransTime( createTime,
+                                                     OSS_ONE_SEC ) )
+      {
+         createTimeUS = createTime.getTime() ;
+         rebuildTimeUS = DPS_MAX_TRANS_TIME ;
+      }
+      else
+      {
+         createTimeUS = DPS_MAX_TRANS_TIME ;
+         rebuildTimeUS = DPS_MAX_TRANS_TIME ;
+      }
+
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONObjIterator iter( indexDef ) ;
+
+         // for secondary nodes to do full synchronize, the original index
+         // definition may already contains create time and rebuild time,
+         // we should replace with times from secondary nodes
+         while ( iter.more() )
+         {
+            BSONElement element = iter.next() ;
+            if ( 0 != ossStrcmp( element.fieldName(),
+                                 IXM_FIELD_NAME_CREATETIME ) &&
+                 0 != ossStrcmp( element.fieldName(),
+                                 IXM_FIELD_NAME_REBUILDTIME ) )
+            {
+               builder.append( element ) ;
+            }
+         }
+
+         // append create time
+         builder.append( IXM_FIELD_NAME_CREATETIME,
+                         (INT64)createTimeUS ) ;
+
+         // append preset rebuild time
+         builder.append( IXM_FIELD_NAME_REBUILDTIME,
+                         (INT64)rebuildTimeUS ) ;
+
+         indexMeta = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to update index definite, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX__PRECRTIDX, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _dmsStorageIndex::createIndex( dmsMBContext *context,
                                         const BSONObj &index,
                                         pmdEDUCB * cb,
@@ -576,6 +656,8 @@ namespace engine
       dmsExtentID rootExtentID     = DMS_INVALID_EXTENT ;
       BOOLEAN ready                = FALSE ;
       UINT16 indexType             = 0 ;
+
+      BSONObj indexMeta ;
 
       if ( !ixmIndexCB::validateKey ( index, isSys ) )
       {
@@ -592,6 +674,10 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
+      rc = _preCreateIndex( index, indexMeta ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to prepare create index, rc: %d",
+                   rc ) ;
 
       // let's first reserve extent
       rc = reserveExtent ( context->mbID(), metaExtentID, context ) ;
@@ -621,13 +707,13 @@ namespace engine
 
       if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexType ) )
       {
-         rc = _createTextIdx( context, index, metaExtentID,
+         rc = _createTextIdx( context, indexMeta, metaExtentID,
                               rootExtentID, cb, dpscb ) ;
          PD_RC_CHECK( rc, PDERROR, "Create text index failed, rc: %d", rc ) ;
       }
       else
       {
-         rc = _createIndex( context, index, metaExtentID, rootExtentID,
+         rc = _createIndex( context, indexMeta, metaExtentID, rootExtentID,
                             indexType, cb, dpscb, isSys, sortBufferSize,
                             pResult, forceTransCallback ) ;
          PD_RC_CHECK (rc, PDERROR, "Create index failed, rc: %d", rc ) ;

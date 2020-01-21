@@ -52,6 +52,10 @@
 #define DPS_MERGE_BLOCK_MAX_DATA    20
 #define DPS_INVALID_LSN_VERSION     0
 
+#define DPS_INVALID_TRANS_TIME   ( DPS_INVALID_TRANSID_SN )
+#define DPS_MIN_TRANS_TIME       ( 0LL )
+#define DPS_MAX_TRANS_TIME       ( DPS_MAX_TRANSID_SN )
+
 #define DPS_DEFAULT_PAGE_SIZE    ( 64 * 1024 )
 #define DPS_LOG_HEAD_LEN         ( 64 * 1024 )
 

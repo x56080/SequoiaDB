@@ -703,6 +703,14 @@ namespace engine
 
             fieldCount++ ;
          }
+         if ( obj.hasField( IXM_FIELD_NAME_CREATETIME ) )
+         {
+            fieldCount ++ ;
+         }
+         if ( obj.hasField( IXM_FIELD_NAME_REBUILDTIME ) )
+         {
+            fieldCount ++ ;
+         }
 //         return fieldCount == obj.nFields() ;
          // make sure no other fields, unless it is a geo index.
          if ( fieldCount != obj.nFields() )
@@ -845,12 +853,34 @@ namespace engine
 
       // Extend the index definition. Only append new element.
       INT32 extendDef( const BSONElement &ele ) ;
+      // update definition
+      INT32 updateDef( const BSONElement &ele ) ;
 
       // INT32 appendDef() ;
       const CHAR *getExtDataName() const
       {
          return _infoObj.getStringField( FIELD_NAME_EXT_DATA_NAME ) ;
       }
+
+   public:
+      // functions to handle create and rebuild times
+
+      // NOTE:
+      // - create time of index is global logical time when the index
+      //   starts to create ( add meta into collection )
+      // - rebuild time of index is global logical time when the index
+      //   finishes to rebuild ( scan all data to build the index )
+      // - rebuild time is used to check against global transactions,
+      //   if global transaction started before rebuild time of index, some
+      //   keys of old version might be missing for this transaction, so this
+      //   transaction should not use this index
+
+      // get create time from index CB
+      UINT64 getCreateTime() const ;
+      // get rebuild time from index CB
+      UINT64 getRebuildTime() const ;
+      // update rebuild time in index CB
+      INT32 updateRebuildTime( UINT64 rebuildTime ) ;
    } ;
    typedef class _ixmIndexCB ixmIndexCB ;
 
