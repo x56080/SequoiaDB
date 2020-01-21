@@ -186,7 +186,9 @@ namespace engine
       vector<rtnStartStopKey> _startStopKeys ;
       rtnPredicate ( )
       {
-         rtnPredicate ( BSONObj().firstElement(), FALSE ) ;
+         /// Constructor can't call Constructor directly. If do this, just a
+         /// temp object. So, must use placement new
+         new (this) rtnPredicate ( BSONObj().firstElement(), FALSE ) ;
       }
       rtnPredicate ( const BSONElement &e, BOOLEAN isNot ) ;
       ~rtnPredicate ()
