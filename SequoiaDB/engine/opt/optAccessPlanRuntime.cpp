@@ -222,6 +222,7 @@ namespace engine
      _apm( NULL ),
      _hasQueryActivity( FALSE ),
      _isNewPlan( FALSE ),
+     _hasNonGTIndex( TRUE ),
      _ownedPlanInfo( FALSE ),
      _clScanInfo( NULL )
    {
@@ -239,6 +240,7 @@ namespace engine
       deleteCLScanInfo() ;
       releasePlan() ;
       _isNewPlan = FALSE ;
+      _hasNonGTIndex = FALSE ;
       _hasQueryActivity = FALSE ;
       _apm = NULL ;
    }
@@ -253,7 +255,8 @@ namespace engine
       {
          // The plan is reused, increase the reference count
          plan->incRefCount() ;
-         setPlan( plan, planRuntime->_apm, FALSE ) ;
+         setPlan( plan, planRuntime->_apm, FALSE,
+                  planRuntime->hasNonGTIndex() ) ;
 
          // Set match runtime and query info
          setMatchRuntime( planRuntime->getMatchRuntime() ) ;

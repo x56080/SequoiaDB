@@ -86,6 +86,11 @@ namespace engine
       void  setOprHandler( IDmsOprHandler *pOprHander ) ;
       void  setWriteResult( utilWriteResult *pResult ) ;
 
+      // set rebuild time of index
+      // WARNING: must have exclusive lock for mbContext
+      static INT32 updateRebuildTime( _dmsMBContext* mbContext,
+                                      ixmIndexCB &indexCB ) ;
+
    protected:
       virtual INT32 _build() = 0 ;
       virtual INT32 _onInit() ;

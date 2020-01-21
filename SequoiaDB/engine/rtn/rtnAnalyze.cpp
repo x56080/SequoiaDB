@@ -42,6 +42,7 @@
 #include "pmd.hpp"
 #include "pmdCB.hpp"
 #include "dmsStorageUnit.hpp"
+#include "dmsIndexBuilder.hpp"
 #include "dpsOp2Record.hpp"
 #include "rtnInternalSorting.hpp"
 #include "pdTrace.hpp"
@@ -1749,6 +1750,13 @@ namespace engine
 
          // Clear cached plans based on old statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN, clItem ) ;
+      }
+
+      // now we got exclusive lock of meta-block context, we could
+      // try to update index rebuild time if needed
+      if ( DPS_MAX_TRANS_TIME == indexCB->getRebuildTime() )
+      {
+         dmsIndexBuilder::updateRebuildTime( mbContext, *indexCB ) ;
       }
 
    done :

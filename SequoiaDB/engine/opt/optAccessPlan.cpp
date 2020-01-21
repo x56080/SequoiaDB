@@ -44,6 +44,7 @@
 #include "ixm.hpp"
 #include "optAPM.hpp"
 #include "optStatUnit.hpp"
+#include "dpsUtil.hpp"
 #include "pdTrace.hpp"
 #include "optTrace.hpp"
 #include "pmd.hpp"
@@ -301,8 +302,8 @@ namespace engine
                    "collection [%s], index [%s], rc: %d", _key.getCLFullName(),
                    pIndexName, rc ) ;
 
-      rc = _estimateIxScanPlan( su, collectionStat, planHelper, indexCBExtent,
-                                priority, ixScanPath ) ;
+      rc = _estimateIxScanPlan( su, mbContext, collectionStat, planHelper,
+                                indexCBExtent, priority, ixScanPath ) ;
       if ( rc )
       {
          if ( SDB_OPTION_NOT_SUPPORT != rc )
@@ -344,8 +345,8 @@ namespace engine
                    "collection [%s], index [%s], rc: %d", _key.getCLFullName(),
                    indexOID.toString().c_str(), rc ) ;
 
-      rc = _estimateIxScanPlan( su, collectionStat, planHelper, indexCBExtent,
-                                priority, ixScanPath ) ;
+      rc = _estimateIxScanPlan( su, mbContext, collectionStat, planHelper,
+                                indexCBExtent, priority, ixScanPath ) ;
       if ( rc )
       {
          if ( SDB_OPTION_NOT_SUPPORT != rc )
@@ -366,6 +367,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTGENACPLAN__ESTIXPLAN, "_optGeneralAccessPlan::_estimateIxScanPlan" )
    INT32 _optGeneralAccessPlan::_estimateIxScanPlan ( dmsStorageUnit *su,
+                                                      dmsMBContext *mbContext,
                                                       optCollectionStat *collectionStat,
                                                       optAccessPlanHelper &planHelper,
                                                       dmsExtentID indexCBExtent,
@@ -395,6 +397,13 @@ namespace engine
          rc = SDB_OPTION_NOT_SUPPORT ;
          goto error ;
       }
+
+      // check with global transaction
+      // if global transaction started before creation of this index, should
+      // skip this index
+      rc = planHelper.checkGlobTrans( _key, su, mbContext, indexCB ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to check index scan for "
+                   "global transaction, rc: %d", rc ) ;
 
       try
       {
@@ -772,8 +781,9 @@ namespace engine
                continue ;
             }
 
-            rc = _estimateIxScanPlan( su, &collectionStat, planHelper,
-                                      indexCBExtent, priority, ixScanPath ) ;
+            rc = _estimateIxScanPlan( su, mbContext, &collectionStat,
+                                      planHelper, indexCBExtent, priority,
+                                      ixScanPath ) ;
             if ( SDB_OK != rc )
             {
                // Continue to evaluate the rest of indexes
@@ -1067,6 +1077,16 @@ namespace engine
       }
 
       PD_LOG( PDDEBUG, "Optimizer: Use plan %s", toString().c_str() ) ;
+
+      if ( mbLocked )
+      {
+         mbContext->mbUnlock() ;
+         mbLocked = FALSE ;
+      }
+
+      // set rebuild time of indexes ( which is not activated for global
+      // transactions ) found in optimize phase
+      planHelper.updateIxRebuildTime( su, mbContext ) ;
 
       rc = SDB_OK ;
 
@@ -1483,8 +1503,11 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTMAINCLACPLAN_VALIDSUBCL_SU, "_optMainCLAccessPlan::validateSubCL" )
    INT32 _optMainCLAccessPlan::validateSubCL ( dmsStorageUnit *su,
                                                dmsMBContext *mbContext,
+                                               const rtnQueryOptions &options,
+                                               optAccessPlanHelper &planHelper,
                                                dmsExtentID &indexExtID,
-                                               dmsExtentID &indexLID )
+                                               dmsExtentID &indexLID,
+                                               BOOLEAN &needInvalid )
    {
       INT32 rc = SDB_OK ;
 
@@ -1494,6 +1517,7 @@ namespace engine
 
       indexExtID = DMS_INVALID_EXTENT ;
       indexLID = DMS_INVALID_EXTENT ;
+      needInvalid = TRUE ;
 
       if ( IXSCAN == getScanType() )
       {
@@ -1526,9 +1550,20 @@ namespace engine
                goto error ;
             }
 
+            rc = planHelper.checkGlobTrans( options, su, mbContext, indexCB ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Failed to check index scan for "
+                       "global transaction, rc: %d", rc ) ;
+               needInvalid = FALSE ;
+               goto error ;
+            }
+
             indexLID = indexCB.getLogicalID() ;
          }
       }
+
+      needInvalid = FALSE ;
 
    done :
       if ( mbLocked )

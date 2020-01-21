@@ -610,7 +610,10 @@
 #define IXM_FIELD_NAME_SCAN_EXTLID           "ScanExtentLID"
 #define IXM_FIELD_NAME_SORT_BUFFER_SIZE      "SortBufferSize"
 #define IXM_FIELD_NAME_NOTNULL               "NotNull"
-
+// global logical time to create index ( add meta data to collection )
+#define IXM_FIELD_NAME_CREATETIME            "CreateTime"
+// global logical time to finish rebuild index ( scan all data to build index )
+#define IXM_FIELD_NAME_REBUILDTIME           "RebuildTime"
 
 #define CMD_ADMIN_PREFIX                     "$"
 #define CMD_NAME_BACKUP_OFFLINE              "backup offline"

@@ -122,7 +122,8 @@ namespace engine
    _rtnQueryOptions::_rtnQueryOptions ()
    : _rtnReturnOptions(),
      _fullName( NULL ),
-     _mainCLName( NULL )
+     _mainCLName( NULL ),
+     _writeOp( FALSE )
    {
    }
 
@@ -139,7 +140,8 @@ namespace engine
      _orderBy( orderBy ),
      _hint( hint ),
      _fullName( fullName ),
-     _mainCLName( NULL )
+     _mainCLName( NULL ),
+     _writeOp( FALSE )
    {
    }
 
@@ -156,7 +158,8 @@ namespace engine
      _orderBy( orderBy ),
      _hint( hint ),
      _fullName( fullName ),
-     _mainCLName( NULL )
+     _mainCLName( NULL ),
+     _writeOp( FALSE )
    {
    }
 
@@ -166,7 +169,8 @@ namespace engine
      _orderBy( o._orderBy ),
      _hint( o._hint ),
      _fullName( o._fullName ),
-     _mainCLName( o._mainCLName )
+     _mainCLName( o._mainCLName ),
+     _writeOp( o._writeOp )
    {
    }
 
@@ -268,6 +272,7 @@ namespace engine
       _fullNameBuf.clear() ;
       _mainCLName = o._mainCLName ;
       _mainCLNameBuf.clear() ;
+      _writeOp = o._writeOp ;
 
       return *this ;
    }

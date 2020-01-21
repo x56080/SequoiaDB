@@ -1002,6 +1002,21 @@ namespace engine
             {
                ob.append( IXM_2DRANGE_FIELD, range ) ;
             }
+
+            // append create time
+            e = indexObj.getField( IXM_FIELD_NAME_CREATETIME ) ;
+            UINT64 createTime = e.isNumber() ?
+                                e.numberLong() :
+                                DPS_INVALID_TRANS_TIME ;
+            ob.append( IXM_FIELD_NAME_CREATETIME, (INT64)createTime ) ;
+
+            // append rebuild time
+            e = indexObj.getField( IXM_FIELD_NAME_REBUILDTIME ) ;
+            UINT64 rebuildTime = e.isNumber() ?
+                                 e.numberLong() :
+                                 DPS_INVALID_TRANS_TIME ;
+            ob.append( IXM_FIELD_NAME_REBUILDTIME, (INT64)rebuildTime ) ;
+
             ob.done () ;
 
             flagDesp = ixmGetIndexFlagDesp(indexItem._indexFlag) ;
@@ -3979,6 +3994,21 @@ namespace engine
          {
             sub.append( IXM_2DRANGE_FIELD, range ) ;
          }
+
+         // append create time
+         e = indexObj.getField( IXM_FIELD_NAME_CREATETIME ) ;
+         UINT64 createTime = e.isNumber() ?
+                             e.numberLong() :
+                             DPS_INVALID_TRANS_TIME ;
+         sub.append( IXM_FIELD_NAME_CREATETIME, (INT64)createTime ) ;
+
+         // append rebuild time
+         e = indexObj.getField( IXM_FIELD_NAME_REBUILDTIME ) ;
+         UINT64 rebuildTime = e.isNumber() ?
+                              e.numberLong() :
+                              DPS_INVALID_TRANS_TIME ;
+         sub.append( IXM_FIELD_NAME_REBUILDTIME, (INT64)rebuildTime ) ;
+
          sub.done () ;
 
          const CHAR *pFlagDesp = ixmGetIndexFlagDesp( indexItem._indexFlag ) ;

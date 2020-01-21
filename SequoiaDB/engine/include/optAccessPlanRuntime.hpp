@@ -204,11 +204,13 @@ namespace engine
 
          OSS_INLINE void setPlan ( optAccessPlan *plan,
                                    optAccessPlanManager *apm,
-                                   BOOLEAN isNewPlan )
+                                   BOOLEAN isNewPlan,
+                                   BOOLEAN hasNonGTIndex )
          {
             _plan = plan ;
             _apm = apm ;
             _isNewPlan = isNewPlan ;
+            _hasNonGTIndex = hasNonGTIndex ;
          }
 
          INT32 bindParamPlan ( optAccessPlanHelper &planHelper,
@@ -234,6 +236,11 @@ namespace engine
          OSS_INLINE BOOLEAN isNewPlan () const
          {
             return _isNewPlan ;
+         }
+
+         OSS_INLINE BOOLEAN hasNonGTIndex() const
+         {
+            return _hasNonGTIndex ;
          }
 
          OSS_INLINE const optCLScanInfo * getCLScanInfo () const
@@ -345,6 +352,11 @@ namespace engine
 
          // Mark the plan is new created or got from cache
          BOOLEAN                 _isNewPlan ;
+
+         // Mark the plan is created with non global transaction indexes
+         // NOTE: non global transaction index is index without rebuild time
+         //       or create behind current transaction
+         BOOLEAN                 _hasNonGTIndex ;
 
          // Used for main CL plan, bind sub-collection and index
          BOOLEAN                 _ownedPlanInfo ;

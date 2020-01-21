@@ -88,6 +88,7 @@ namespace engine
       // matcher, selector, order, hint, collection, skip, limit, flag
       rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                0, -1, flags ) ;
+      options.setWriteOp( TRUE ) ;
       rc = rtnDelete( options, cb, dmsCB, dpsCB, w, pResult ) ;
       PD_TRACE_EXITRC( SDB_RTNDEL2, rc ) ;
       return rc ;
@@ -361,6 +362,7 @@ namespace engine
          // matcher, selector, order, hint, collection, skip, limit, flag
          rtnQueryOptions options( dummy, dummy, dummy, hint, pCollectionName,
                                   0, -1, 0 ) ;
+         options.setWriteOp( TRUE ) ;
          rc = sdbGetRTNCB()->getAPM()->getTempAccessPlan( options, su,
                                                           mbContext,
                                                           planRuntime ) ;

@@ -86,6 +86,67 @@ namespace engine
       _pResult = pResult ;
    }
 
+   INT32 _dmsIndexBuilder::updateRebuildTime( dmsMBContext *mbContext,
+                                              ixmIndexCB &indexCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      UINT64 rebuildTime = DPS_MIN_TRANS_TIME ;
+      UINT64 currentRebuildTime = DPS_INVALID_TRANS_TIME ;
+
+      SDB_ASSERT( NULL != mbContext, "meta-block context is invalid" ) ;
+      SDB_ASSERT( mbContext->isMBLock( EXCLUSIVE ),
+                  "meta-context block must be locked in exclusive" ) ;
+
+      PD_CHECK( NULL != mbContext, SDB_SYS, error, PDERROR,
+                "Failed to set rebuild time for index, meta-block context "
+                "is invalid" ) ;
+      PD_CHECK( mbContext->isMBLock( EXCLUSIVE ), SDB_SYS, error, PDERROR,
+                "Failed to set rebuild time for index, meta-block context "
+                "is not locked in exclusive" ) ;
+
+      currentRebuildTime = indexCB.getRebuildTime() ;
+
+      // only RR requires index rebuild time
+      // otherwise, set to invalid value, so all transaction could get access
+      // to this index
+      if ( transCB->isRRSupported() &&
+           DPS_MAX_TRANS_TIME == currentRebuildTime )
+      {
+         stpLogicalTimeUS logicalTime ;
+         if ( SDB_OK == transCB->getGlobTransTime( logicalTime, OSS_ONE_SEC ) )
+         {
+            rebuildTime = logicalTime.getTime() ;
+         }
+         else
+         {
+            // failed to get logical time, set to max value, and later
+            // transactions could try to set rebuild time
+            rebuildTime = DPS_MAX_TRANS_TIME ;
+         }
+      }
+
+      // only update when rebuild time is changed to valid value
+      // NOTE: could update to minimum value if RR is not enabled anymore
+      if ( DPS_MAX_TRANS_TIME == currentRebuildTime &&
+           DPS_MAX_TRANS_TIME != rebuildTime )
+      {
+         rc = indexCB.updateRebuildTime( rebuildTime ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to update rebuild time for index, "
+                      "rc: %d", rc ) ;
+
+         PD_LOG( PDDEBUG, "Update rebuild time [%llu] for index %s",
+                 rebuildTime, indexCB.getName() ) ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _dmsIndexBuilder::_init()
    {
       INT32 rc = SDB_OK ;
@@ -189,6 +250,15 @@ namespace engine
          /// fast( when unlock the context and scan the data, because the
          /// scanExtLID always is -1, so when scan finished, the new instor
          /// will not insert to the index )
+
+         // since the collection is empty, index rebuild is finished here
+         // so set the rebuild time
+         if ( sdbGetTransCB()->isRRSupported() )
+         {
+            // try to set rebuild logical time if global transaction enabled
+            updateRebuildTime( _mbContext, *_indexCB ) ;
+         }
+
          _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
          _indexCB->scanExtLID ( DMS_INVALID_EXTENT ) ;
          rc = SDB_DMS_EOC ;
@@ -205,8 +275,23 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( SDB_OK == ( rc = _checkIndexAfterLock( SHARED ) ) )
+      dpsTransCB *transCB = sdbGetTransCB() ;
+
+      // if in global transaction, we need to update rebuild time in index
+      // definition, so we need a exclusive lock
+      // if not in global transaction, other threads will be excluded by
+      // NORMAL flag, so we only need a shared lock
+      INT32 lockType = transCB->isRRSupported() ? EXCLUSIVE : SHARED ;
+
+      if ( SDB_OK == ( rc = _checkIndexAfterLock( lockType ) ) )
       {
+         if ( transCB->isRRSupported() )
+         {
+            // try to set rebuild logical time if global transaction enabled
+            updateRebuildTime( _mbContext, *_indexCB ) ;
+         }
+
+         // set index normal to be used
          _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
          _indexCB->scanExtLID ( DMS_INVALID_EXTENT ) ;
          _mbContext->mbUnlock() ;

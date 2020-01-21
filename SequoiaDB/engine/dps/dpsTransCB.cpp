@@ -66,7 +66,7 @@ namespace engine
     _maxFileSizeMutex( MON_LATCH_DPSTRANSCB_MAXFILESIZEMUTEX ),
     _reservedRBSpace( 0 ) ,
     _reservedSpace( 0 ),
-    _primaryActiveTime( 0LL ),
+    _primaryActiveTime( DPS_INVALID_TRANS_TIME ),
     _globLowTran( DPS_INVALID_TRANSID_SN ),
     _archivedLowTran( DPS_INVALID_TRANSID_SN ),
     _numTransIDConflict( 0LL )
@@ -74,6 +74,7 @@ namespace engine
       _TransIDH16          = DPS_INVALID_TRANSID_NODEID ;
       _isOn                = FALSE ;
       _isGlobTransOn       = FALSE ;
+      _isMVCCOn            = FALSE ;
       _doRollback          = FALSE ;
       _isNeedSyncTrans     = TRUE ;
       _logFileTotalSize    = 0 ;
@@ -109,6 +110,7 @@ namespace engine
 
       _isOn = pmdGetOptionCB()->transactionOn() ;
       _isGlobTransOn = pmdGetOptionCB()->globTransOn() ;
+      _isMVCCOn = pmdGetOptionCB()->mvccOn() ;
       _rollbackEvent.signal() ;
 
       // register event handle
@@ -648,15 +650,16 @@ namespace engine
 
       // get primary active time
       activeTime = getPrimaryActiveTime() ;
-      if ( 0LL == activeTime )
+      if ( DPS_INVALID_TRANS_TIME == activeTime )
       {
          // have a chance to retry if not set
          checkPrimaryActiveTime() ;
          activeTime = getPrimaryActiveTime() ;
       }
       // check if primary active time is valid
-      PD_CHECK( 0LL != activeTime, SDB_GLOB_TRANS_NOT_AVAILABLE, error,
-                PDERROR, "Failed to get primary active time" ) ;
+      PD_CHECK( DPS_INVALID_TRANS_TIME != activeTime,
+                SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
+                "Failed to get primary active time, it is invalid" ) ;
 
       // check transaction begin time against active time
       PD_CHECK( activeTime <= beginTime.getTime(),
@@ -758,7 +761,8 @@ namespace engine
          // try set primary active time
          // NOTE: add max time error for network delay etc
          if ( _primaryActiveTime.compareAndSwap(
-                     0LL, ( activeTime.getTime() + STP_MAX_TIME_ERROR_US ) ) )
+                     DPS_INVALID_TRANS_TIME,
+                     ( activeTime.getTime() + STP_MAX_TIME_ERROR_US ) ) )
          {
             PD_LOG( PDEVENT, "Set primary active time: [%llu]",
                     activeTime.getTime() ) ;
@@ -1835,6 +1839,16 @@ namespace engine
    BOOLEAN dpsTransCB::isGlobTransOn() const
    {
       return _isGlobTransOn ;
+   }
+
+   BOOLEAN dpsTransCB::isMVCCOn() const
+   {
+      return _isMVCCOn ;
+   }
+
+   BOOLEAN dpsTransCB::isRRSupported() const
+   {
+      return ( _isOn && _isGlobTransOn && _isMVCCOn ) ;
    }
 
    INT32 dpsTransCB::transLockTestS( _pmdEDUCB *eduCB, UINT32 logicCSID,

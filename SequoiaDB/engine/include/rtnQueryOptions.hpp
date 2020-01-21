@@ -374,6 +374,16 @@ namespace engine
                    !testFlag( FLG_QUERY_MODIFY ) ;
          }
 
+         OSS_INLINE BOOLEAN isWriteOp() const
+         {
+            return _writeOp || testFlag( FLG_QUERY_PREPARE_MORE ) ;
+         }
+
+         OSS_INLINE void setWriteOp( BOOLEAN writeOp )
+         {
+            _writeOp = writeOp ;
+         }
+
       public :
          BSONObj        _query ;
          BSONObj        _orderBy ;
@@ -382,6 +392,7 @@ namespace engine
          ossPoolString  _fullNameBuf ;
          const CHAR *   _mainCLName ;
          ossPoolString  _mainCLNameBuf ;
+         BOOLEAN        _writeOp ;
    } ;
 
    typedef class _rtnQueryOptions rtnQueryOptions ;

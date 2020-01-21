@@ -1716,6 +1716,7 @@ namespace engine
                                   0, -1, flags ) ;
          options.setMainCLName( mainCLName ) ;
          options.setUpdator( updator ) ;
+         options.setWriteOp( TRUE ) ;
 
          // add last op info
          MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg->opCode, options ) ;
@@ -1936,6 +1937,7 @@ namespace engine
          rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                   0, -1, flags ) ;
          options.setMainCLName( mainCLName ) ;
+         options.setWriteOp( TRUE ) ;
 
          // add last op info
          MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg->opCode, options ) ;

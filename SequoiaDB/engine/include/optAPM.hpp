@@ -541,6 +541,7 @@ namespace engine
                                  optAccessPlanRuntime &planRuntime,
                                  optAccessPlanHelper &planHelper ) ;
 
+
          // Helpers for _IDmsEventHandler
          void _invalidSUPlans ( IDmsSUCacheHolder *pCacheHolder ) ;
 

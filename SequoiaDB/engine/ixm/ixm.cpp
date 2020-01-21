@@ -458,6 +458,147 @@ namespace engine
       goto done ;
    }
 
+   // WANRING: should not use to update key definition of index
+   INT32 _ixmIndexCB::updateDef( const BSONElement &newElement )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BOOLEAN updated = FALSE ;
+         BSONObjBuilder builder ;
+         BSONObj newDef ;
+         dmsExtRW extRW ;
+         ixmIndexCBExtent *extent = NULL ;
+
+         BSONObjIterator iter( _infoObj ) ;
+         while ( iter.more() )
+         {
+            BSONElement element = iter.next() ;
+            if ( 0 == ossStrcmp( element.fieldName(),
+                                 newElement.fieldName() ) )
+            {
+               builder.append( newElement ) ;
+               updated = TRUE ;
+            }
+            else
+            {
+               builder.append( element ) ;
+            }
+         }
+
+         if ( !updated )
+         {
+            builder.append( newElement ) ;
+         }
+
+         newDef = builder.obj() ;
+
+         extRW = _pIndexSu->extent2RW( _extentID, _extent->_mbID ) ;
+         extent = extRW.writePtr<ixmIndexCBExtent>( 0, (UINT32)_pageSize ) ;
+
+         ossMemcpy( ( (CHAR *)extent ) + IXM_INDEX_CB_EXTENT_METADATA_SIZE,
+                    newDef.objdata(), (size_t)( newDef.objsize() ) ) ;
+
+         _infoObj = BSONObj( ( (const CHAR *)_extent ) +
+                             IXM_INDEX_CB_EXTENT_METADATA_SIZE ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to update index definition, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   UINT64 _ixmIndexCB::getCreateTime() const
+   {
+      // get create time from index CB
+
+      // index CB should be initialized
+      SDB_ASSERT ( _isInitialized, "index must be initialized" ) ;
+
+      UINT64 createTime = 0LL ;
+
+      // get create time from BSON
+      try
+      {
+         BSONElement element = _infoObj.getField( IXM_FIELD_NAME_CREATETIME ) ;
+         if ( NumberLong == element.type() )
+         {
+            createTime = element.numberLong() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG ( PDERROR, "Failed to get [%s] of index, error: %s",
+                  IXM_FIELD_NAME_CREATETIME, e.what() ) ;
+      }
+
+      return createTime ;
+   }
+
+   UINT64 _ixmIndexCB::getRebuildTime() const
+   {
+      // get rebuild time from index CB
+
+      // index CB should be initialized
+      SDB_ASSERT ( _isInitialized, "index must be initialized" ) ;
+
+      UINT64 rebuildTime = 0LL ;
+
+      // get rebuild time from BSON
+      try
+      {
+         BSONElement element = _infoObj.getField( IXM_FIELD_NAME_REBUILDTIME ) ;
+         if ( NumberLong == element.type() )
+         {
+            rebuildTime = element.numberLong() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG ( PDERROR, "Failed to get [%s] of index, error: %s",
+                  IXM_FIELD_NAME_REBUILDTIME, e.what() ) ;
+      }
+
+      return rebuildTime ;
+   }
+
+   INT32 _ixmIndexCB::updateRebuildTime( UINT64 rebuildTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObj rebuildObject = BSON( IXM_FIELD_NAME_REBUILDTIME <<
+                                       (INT64)rebuildTime ) ;
+         rc = updateDef( rebuildObject.firstElement() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update definition of index, "
+                      "rc: %d", rc ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to update rebuild time of index, error: %s",
+                 e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       Local static variable define
    */

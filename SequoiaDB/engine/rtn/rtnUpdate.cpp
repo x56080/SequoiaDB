@@ -89,6 +89,7 @@ namespace engine
       // matcher, selector, order, hint, collection, skip, limit, flag
       rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                0, -1, flags ) ;
+      options.setWriteOp( TRUE ) ;
       rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, w, pResult,
                       shardingKey, logWriteMod ) ;
       PD_TRACE_EXITRC( SDB_RTNUPDATE2, rc ) ;
