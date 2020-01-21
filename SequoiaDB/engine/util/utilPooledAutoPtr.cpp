@@ -61,15 +61,15 @@ namespace engine
          /// create ref
          if ( ALLOC_OSS == _allocType )
          {
-            _pRef = ( INT32* )SDB_OSS_MALLOC( sizeof( INT32 ) ) ;
+            _pRef = ( INT64* )SDB_OSS_MALLOC( sizeof( INT64 ) ) ;
          }
          else if ( ALLOC_POOL == _allocType )
          {
-            _pRef = ( INT32* )SDB_POOL_ALLOC( sizeof( INT32 ) ) ;
+            _pRef = ( INT64* )SDB_POOL_ALLOC( sizeof( INT64 ) ) ;
          }
          else
          {
-            _pRef = ( INT32* )SDB_THREAD_ALLOC( sizeof( INT32 ) ) ;
+            _pRef = ( INT64* )SDB_THREAD_ALLOC( sizeof( INT64 ) ) ;
          }
 
          if ( !_pRef )
@@ -89,7 +89,7 @@ namespace engine
       _allocType = rhs._allocType ;
       if ( _ptr )
       {
-         INT32 orgRef = ossFetchAndIncrement32( _pRef ) ;
+         INT64 orgRef = ossFetchAndIncrement64( _pRef ) ;
          SDB_ASSERT( orgRef >= 0, "Ref is invlaid" ) ;
          SDB_UNUSED( orgRef ) ;
       }
@@ -108,7 +108,7 @@ namespace engine
       _allocType = rhs._allocType ;
       if ( _pRef )
       {
-         INT32 orgRef = ossFetchAndIncrement32( _pRef ) ;
+         INT64 orgRef = ossFetchAndIncrement64( _pRef ) ;
          SDB_ASSERT( orgRef >= 0, "Ref is invlaid" ) ;
          SDB_UNUSED( orgRef ) ;
       }
@@ -123,7 +123,7 @@ namespace engine
       _utilPooledAutoPtr recordPtr ;
       if ( size > 0 )
       {
-         UINT32 realSZ = size + sizeof( INT32 ) ;
+         UINT32 realSZ = size + sizeof( INT64 ) ;
          CHAR *ptr = NULL ;
 
          if ( ALLOC_OSS == type )
@@ -141,9 +141,9 @@ namespace engine
 
          if ( ptr )
          {
-            *(INT32*)ptr = 1 ;
-            recordPtr._pRef = (INT32*)ptr ;
-            recordPtr._ptr = ptr + sizeof( INT32 ) ;
+            *(INT64*)ptr = 1 ;
+            recordPtr._pRef = (INT64*)ptr ;
+            recordPtr._ptr = ptr + sizeof( INT64 ) ;
             recordPtr._allocType = type ;
          }
       }
@@ -166,15 +166,15 @@ namespace engine
          /// create ref
          if ( ALLOC_OSS == type )
          {
-            recordPtr._pRef = ( INT32* )SDB_OSS_MALLOC( sizeof( INT32 ) ) ;
+            recordPtr._pRef = ( INT64* )SDB_OSS_MALLOC( sizeof( INT64 ) ) ;
          }
          else if ( ALLOC_POOL == type )
          {
-            recordPtr._pRef = ( INT32* )SDB_POOL_ALLOC( sizeof( INT32 ) ) ;
+            recordPtr._pRef = ( INT64* )SDB_POOL_ALLOC( sizeof( INT64 ) ) ;
          }
          else
          {
-            recordPtr._pRef = ( INT32* )SDB_THREAD_ALLOC( sizeof( INT32 ) ) ;
+            recordPtr._pRef = ( INT64* )SDB_THREAD_ALLOC( sizeof( INT64 ) ) ;
          }
 
          if ( recordPtr._pRef )
@@ -197,7 +197,7 @@ namespace engine
       return _ptr ;
    }
 
-   INT32 _utilPooledAutoPtr::refCount() const
+   INT64 _utilPooledAutoPtr::refCount() const
    {
       return _pRef ? *_pRef : 0 ;
    }
@@ -206,11 +206,11 @@ namespace engine
    {
       if ( _pRef )
       {
-         INT32 orgRef = ossFetchAndDecrement32( _pRef ) ;
+         INT64 orgRef = ossFetchAndDecrement64( _pRef ) ;
          SDB_ASSERT( orgRef >= 1, "Ref is invlaid" ) ;
          if ( 1 == orgRef )
          {
-            if ( _ptr - sizeof( INT32 ) == ( CHAR* )_pRef )
+            if ( _ptr - sizeof( INT64 ) == ( CHAR* )_pRef )
             {
                _ptr = NULL ;
             }
