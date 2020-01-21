@@ -55,18 +55,18 @@ public class UniqueIndexReplSyncOptimize17040 extends SdbTestBase {
         dbcl.createIndex( "teste", "{ftest:1,no:-1}", true, false );
         dbcl.createIndex( "testf", "{ftest:-1,no:1}", true, false );
         dbcl.createIndex( "testg", "{str:-1,order:1,no:-1}", true, false );
-        expRecords = DataConsistencyUtil.insertDatas( dbcl, 200000 );
+        expRecords = DataConsistencyUtil.insertDatas( dbcl, 50000 );
     }
 
     @Test
     public void test() {
         List< UpdateThread > UpdateThreads = new ArrayList<>( 10 );
         int beginNo = 0;
-        int endNo = 20000;
+        int endNo = 5000;
         for ( int i = 0; i < 10; i++ ) {
             UpdateThreads.add( new UpdateThread( beginNo, endNo ) );
             beginNo = endNo;
-            endNo = beginNo + 20000;
+            endNo = beginNo + 5000;
         }
         for ( UpdateThread updateThread : UpdateThreads ) {
             updateThread.start();

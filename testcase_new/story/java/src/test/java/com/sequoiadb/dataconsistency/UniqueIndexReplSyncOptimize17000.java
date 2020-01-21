@@ -55,7 +55,7 @@ public class UniqueIndexReplSyncOptimize17000 extends SdbTestBase {
         dbcl.createIndex( "testf", "{ftest:-1,no:1}", true, false );
         dbcl.createIndex( "testg", "{str:-1,order:1,no:-1}", true, false );
         // insert 2W records.
-        DataConsistencyUtil.insertDatas( dbcl, 200000 );
+        DataConsistencyUtil.insertDatas( dbcl, 50000 );
     }
 
     @Test
@@ -63,11 +63,11 @@ public class UniqueIndexReplSyncOptimize17000 extends SdbTestBase {
         // delete 2W records per batch.
         List< DeleteThread > deleteThreads = new ArrayList<>( 10 );
         int beginNo = 0;
-        int endNo = 20000;
+        int endNo = 5000;
         for ( int i = 0; i < 10; i++ ) {
             deleteThreads.add( new DeleteThread( beginNo, endNo ) );
             beginNo = endNo;
-            endNo = beginNo + 20000;
+            endNo = beginNo + 5000;
         }
         for ( DeleteThread deleteThread : deleteThreads ) {
             deleteThread.start();

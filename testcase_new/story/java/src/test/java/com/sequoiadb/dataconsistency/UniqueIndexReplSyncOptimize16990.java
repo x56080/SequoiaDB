@@ -34,9 +34,9 @@ public class UniqueIndexReplSyncOptimize16990 extends SdbTestBase {
     private CollectionSpace cs = null;
     private DBCollection dbcl = null;
     private ArrayList< BSONObject > insertRecords = null;
-    private int insertNums = 50000;
-    private int updateNums = 20000;
-    private int deleteNums = 20000;
+    private int insertNums = 10000;
+    private int updateNums = 5000;
+    private int deleteNums = 5000;
 
     @BeforeClass
     public void setUp() {
@@ -126,7 +126,7 @@ public class UniqueIndexReplSyncOptimize16990 extends SdbTestBase {
                         .getCollection( clName );
                 // insert 2W records again from 5W.
                 ArrayList< BSONObject > curInsertRecords = DataConsistencyUtil
-                        .insertDatas( dbcl, 20000, 50000 );
+                        .insertDatas( dbcl, 5000, 10000 );
                 insertRecords.addAll( curInsertRecords );
             } finally {
                 db.disconnect();
@@ -156,10 +156,10 @@ public class UniqueIndexReplSyncOptimize16990 extends SdbTestBase {
         for ( BSONObject object : insertRecords ) {
             int value = ( int ) object.get( "no" );
             // update the same elements in the expected list.
-            if ( value >= 30000 && value < 50000 ) {
+            if ( value >= 5000 && value < 10000 ) {
                 object.put( "str", "testdataconsistency16990" );
             }
-            if ( value >= 0 && value < 20000 ) {
+            if ( value >= 0 && value < 5000 ) {
                 deleteRecords.add( object );
 
             }
