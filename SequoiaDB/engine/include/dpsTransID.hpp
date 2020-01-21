@@ -218,14 +218,19 @@ public:
 
    OSS_INLINE BOOLEAN isValid() const
    {
-      return ( DPS_INVALID_TRANSID_NODEID != _nodeID &&
-               DPS_INVALID_TRANSID_SN != _sn ) ;
+      // for unregister CATALOG, there is no node ID, but it still support
+      // transactions, so no need to check node ID
+      // but for global transaction, node ID is required
+      // NOTE: transCB of COORD and DATA is activated after register to
+      //       CATALOG, so they must have node ID
+      return ( DPS_INVALID_TRANSID_SN != _sn &&
+               ( !isGlobTrans() ||
+                 DPS_INVALID_TRANSID_NODEID != _nodeID ) ) ;
    }
 
    OSS_INLINE BOOLEAN isInvalid() const
    {
-      return ( DPS_INVALID_TRANSID_NODEID == _nodeID ||
-               DPS_INVALID_TRANSID_SN == _sn ) ;
+      return !isValid() ;
    }
 
    // get node ID component
