@@ -1402,6 +1402,7 @@ namespace engine
          if ( pred.isEmpty() )
          {
             rtnPredicate emptyPred ;
+            emptyPred._startStopKeys.clear() ;
             emptyPred._startStopKeys.push_back( s_emptyStartStopKey ) ;
             _predicates.push_back( emptyPred ) ;
             break ;
