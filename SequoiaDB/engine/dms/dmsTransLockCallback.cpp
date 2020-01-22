@@ -437,7 +437,6 @@ namespace engine
       _csID       = DMS_INVALID_SUID ;
       _clID       = DMS_INVALID_MBID ;
       _latchedIdxLid = DMS_INVALID_EXTENT ;
-      _latchedIdxMode = -1 ;
       _pScanner      = NULL ;
 
       clearStatus() ;
@@ -459,7 +458,6 @@ namespace engine
       _csID       = DMS_INVALID_SUID ;
       _clID       = DMS_INVALID_MBID ;
       _latchedIdxLid = DMS_INVALID_EXTENT ;
-      _latchedIdxMode = -1 ;
       _pScanner      = NULL ;
 
       clearStatus() ;
@@ -491,7 +489,6 @@ namespace engine
    void dmsTransLockCallback::setIXScanner( _rtnIXScanner *pScanner )
    {
       _latchedIdxLid = pScanner->getIdxLID() ;
-      _latchedIdxMode = pScanner->getLockModeByType( SCANNER_TYPE_MEM_TREE ) ;
       _pScanner = pScanner ;
    }
 
@@ -982,7 +979,7 @@ namespace engine
          }
 
          if ( _latchedIdxLid != indexCB->getLogicalID() ||
-              -1 == _latchedIdxMode )
+              -1 == idxTreeLatchMode() )
          {
             treePtr->lockS() ;
             locked = TRUE ;
@@ -1226,16 +1223,16 @@ namespace engine
          goto done ;
       }
 
-      if ( _latchedIdxLid == gid._idxLID && _latchedIdxMode != -1 )
+      if ( _latchedIdxLid == gid._idxLID && idxTreeLatchMode() != -1 )
       {
-         if ( EXCLUSIVE == _latchedIdxMode )
+         if ( EXCLUSIVE == idxTreeLatchMode() )
          {
             hasLocked = TRUE ;
          }
          else
          {
             PD_LOG( PDERROR, "Lock mode(%d) is not EXCLUSIVE(%d)",
-                    _latchedIdxMode, EXCLUSIVE ) ;
+                    idxTreeLatchMode(), EXCLUSIVE ) ;
             SDB_ASSERT( FALSE, "Lock mode is invalid" ) ;
             rc = SDB_SYS ;
             goto error ;
@@ -1722,6 +1719,18 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   INT32 dmsTransLockCallback::idxTreeLatchMode () const
+   {
+      if ( _pScanner )
+      {
+         return _pScanner->getLockModeByType( SCANNER_TYPE_MEM_TREE ) ;
+      }
+      else
+      {
+         return -1 ;
+      }
    }
 
 }

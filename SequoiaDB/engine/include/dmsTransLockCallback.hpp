@@ -94,10 +94,7 @@ namespace engine
       {
          return ( lid == _latchedIdxLid ) ;
       }
-      INT32 idxTreeLatchMode () const
-      {
-         return _latchedIdxMode ;
-      }
+      INT32 idxTreeLatchMode () const ;
 
       const dmsTransRecordInfo*  getTransRecordInfo() const ;
 
@@ -262,7 +259,6 @@ namespace engine
       INT32                _csID ;
       UINT16               _clID ;
       SINT32               _latchedIdxLid ; // which we are holding a latch on
-      INT32                _latchedIdxMode ;
       _rtnIXScanner       *_pScanner ;
       oldVersionUnitPtr    _unitPtr ;
 
