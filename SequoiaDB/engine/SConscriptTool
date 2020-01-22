@@ -55,8 +55,7 @@ clsFiles = [
       "cls/clsCatalogAgent.cpp",
       "cls/clsAutoIncItem.cpp",
       "cls/clsCatalogMatcher.cpp",
-      "cls/clsCatalogPredicate.cpp",
-      "cls/clsCataHashMatcher.cpp"
+      "cls/clsCatalogPredicate.cpp"
       ]
 
 ixmFiles = [
