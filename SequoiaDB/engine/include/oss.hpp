@@ -148,6 +148,28 @@ public :
    {
       SDB_OSS_FREE(p) ;
    }
+
+   // placement new
+   void * operator new ( size_t size, void* p ) throw ( const char * )
+   {
+      if ( !p ) throw "allocation failure" ;
+      return p;
+   }
+
+   void * operator new[] ( size_t size, void* p ) throw ( const char * )
+   {
+      if ( !p ) throw "allocation failure" ;
+      return p;
+   }
+
+   // placement delete (no-op)
+   void operator delete ( void* p , void* p2) throw ()
+   {
+   }
+
+   void operator delete[] ( void* p, void* p2 ) throw ()
+   {
+   }
 } ;
 typedef class SDBObject SDBObject ;
 
