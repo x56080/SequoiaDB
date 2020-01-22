@@ -96,14 +96,32 @@ namespace import
    {
       INT32 rc = SDB_OK;
 
+      engine::CLS_SUBCL_LIST tmpList ;
+      engine::CLS_SUBCL_LIST_IT itList ;
       SDB_ASSERT(NULL != _cataSet, "must be inited");
       SDB_ASSERT(isMainCL(), "must be MainCL");
 
-      rc = _cataSet->getSubCLList(list);
+      rc = _cataSet->getSubCLList( tmpList );
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get subCL, rc=%d", rc);
          goto error;
+      }
+
+      try
+      {
+         itList = tmpList.begin() ;
+         while( itList != tmpList.end() )
+         {
+            list.push_back( *itList ) ;
+            ++itList ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
       }
 
    done:

@@ -302,8 +302,8 @@ namespace engine
       /// sharding key
       if ( _cataPtr->isMainCL() )
       {
-         vector< string > subCLLst ;
-         vector< string >::iterator iterCL ;
+         CLS_SUBCL_LIST subCLLst ;
+         CLS_SUBCL_LIST_IT iterCL ;
          BSONObj subUpdator = newUpdator ;
 
          rc = _cataPtr->getMatchSubCLs( matcher, subCLLst ) ;
@@ -440,8 +440,8 @@ namespace engine
       /// sharding key
       if ( _cataPtr->isMainCL() )
       {
-         vector< string > subCLLst ;
-         vector< string >::iterator iterCL ;
+         CLS_SUBCL_LIST subCLLst ;
+         CLS_SUBCL_LIST_IT iterCL ;
 
          rc = _cataPtr->getMatchSubCLs( matcher, subCLLst ) ;
          if ( SDB_CAT_NO_MATCH_CATALOG == rc )

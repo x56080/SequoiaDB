@@ -3238,8 +3238,8 @@ namespace engine
 
          if ( cataSet.isMainCL() )
          {
-            std::vector< std::string > subCLLst;
-            std::vector< std::string >::iterator iterSubCL;
+            CLS_SUBCL_LIST subCLLst ;
+            CLS_SUBCL_LIST_IT iterSubCL ;
             rc = cataSet.getSubCLList( subCLLst );
             PD_RC_CHECK( rc, PDWARNING,
                          "Failed to get sub-collection list of collection [%s], "
@@ -3402,8 +3402,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATMIANCLRENAME ) ;
 
-      std::vector< std::string > subCLLst ;
-      std::vector< std::string >::iterator iterSubCL ;
+      CLS_SUBCL_LIST subCLLst ;
+      CLS_SUBCL_LIST_IT iterSubCL ;
 
       rc = mainclCata.getSubCLList( subCLLst );
       PD_RC_CHECK( rc, PDERROR,
@@ -3976,7 +3976,7 @@ namespace engine
 
       BSONObj mainCLObj ;
       clsCatalogSet mainCLSet( mainCLName.c_str() ) ;
-      vector<string> subCLLst ;
+      CLS_SUBCL_LIST subCLLst ;
       CHAR szCSName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
       CHAR szCLName[ DMS_COLLECTION_NAME_SZ + 1 ] = {0} ;
 
@@ -4000,7 +4000,7 @@ namespace engine
                    "Failed to get sub-collection list of main-collection(%s)",
                    mainCLName.c_str() ) ;
 
-      for ( vector<string>::iterator iter = subCLLst.begin() ;
+      for ( CLS_SUBCL_LIST_IT iter = subCLLst.begin() ;
             iter != subCLLst.end() ;
             ++ iter )
       {

@@ -26,6 +26,7 @@
 #include "pmdEDU.hpp"
 #include "pmdEDUMgr.hpp"
 #include "ossAtomic.hpp"
+#include "ossEvent.hpp"
 
 #include <stdio.h>
 #include <string>
@@ -58,9 +59,9 @@ TEST(clsTest, clsHeap_1)
       ASSERT_TRUE(session.endLsn == j) ;
       ASSERT_TRUE(SDB_OK == heap.pop(session)) ;
       ASSERT_TRUE(session.endLsn == j);
-      cout << session.endLsn << endl ;
    }
    ASSERT_TRUE( 0 == heap.dataSize() ) ;
+
    /// push 0 - 9
    for ( UINT32 j = 0; j < num; j++ )
    {
@@ -68,7 +69,7 @@ TEST(clsTest, clsHeap_1)
       ASSERT_TRUE(SDB_OK == heap.push(session));
    }
    ASSERT_TRUE( num == heap.dataSize() ) ;
-   cout << endl ;
+
    /// pop 0 - 9
    for ( UINT32 j = 0; j < num; j++ )
    {
@@ -76,7 +77,6 @@ TEST(clsTest, clsHeap_1)
       ASSERT_TRUE(session.endLsn == j) ;
       ASSERT_TRUE(SDB_OK == heap.pop(session)) ;
       ASSERT_TRUE(session.endLsn == j);
-      cout << session.endLsn << endl ;
    }
    ASSERT_TRUE( 0 == heap.dataSize() ) ;
 }
@@ -128,9 +128,7 @@ void fun( _clsSyncManager *sync, _clsSyncSession session, UINT32 w,
 {
    ASSERT_TRUE( SDB_OK == sync->sync( session, w) ) ;
    complete->inc() ;
-   cout << "multi w complete" << endl ;
 }
-
 
 TEST(clsTest, clsSyncManager_1)
 {
@@ -145,10 +143,14 @@ TEST(clsTest, clsSyncManager_1)
    info.local = id ;
    ++id.columns.nodeID ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
    ++id.columns.nodeID ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
    ++id.columns.nodeID ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
    _clsSyncManager sync( &agent, &info ) ;
    sync.updateNotifyList( TRUE ) ;
    ossAtomic32 complete( 0 ) ;
@@ -161,7 +163,6 @@ TEST(clsTest, clsSyncManager_1)
    UINT32 w = 3 ;
    boost::thread t( fun, &sync, session, w, &complete ) ;
    /// ensure that w is registered. sleep one sec.
-   ossSleepsecs(2) ;
    DPS_LSN lsn ;
    lsn.version = 1 ;
    lsn.offset = 11 ;
@@ -173,7 +174,6 @@ TEST(clsTest, clsSyncManager_1)
    t.join() ;
    ASSERT_TRUE( 1 == complete.peek() ) ;
 }
-
 
 TEST(clsTest, clsSyncManager_2)
 {
@@ -190,8 +190,11 @@ TEST(clsTest, clsSyncManager_2)
    info.local = id ;
    ++id.columns.nodeID ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
    ++id.columns.nodeID ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
+
    _clsSyncManager sync( &agent, &info ) ;
    sync.updateNotifyList( TRUE ) ;
    ossAtomic32 complete( 0 ) ;
@@ -206,9 +209,9 @@ TEST(clsTest, clsSyncManager_2)
    }
 
    /// w [0, 9]
+   // cout << "construct write(lsn from 0 to 9, w:2)" << endl ;
    for ( UINT32 i = 0; i < num; i++ )
    {
-      cout << "construct w" << endl ;
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       session.eduCB = eduCBs[i] ;
@@ -217,13 +220,11 @@ TEST(clsTest, clsSyncManager_2)
       boost::thread *t = new boost::thread( fun, &sync, session, w,
                                             &complete ) ;
       ts[i] = t ;
-      ossSleepsecs(1) ;
    }
 
-   cout << "waiting..." << endl ;
-   ossSleepsecs(2) ;
    /// require must > wait.
    /// require [1, 10]
+   // cout << "construct complete" << endl ;
    for ( UINT32 i = 1; i < num + 1; i++ )
    {
       id.columns.nodeID = 3 ;
@@ -255,14 +256,17 @@ TEST(clsTest, clsSyncManager_3)
    info.local = id ;
    ++id.columns.nodeID ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
    ++id.columns.nodeID ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
    _clsSyncManager sync( &agent, &info ) ;
    sync.updateNotifyList( TRUE ) ;
    ossAtomic32 complete( 0 ) ;
    _pmdEDUMgr mgr ;
    pmdEDUCB *eduCBs[num] ;
    boost::thread *ts[num] ;
+
    for ( UINT32 i = 0; i < num; i++ )
    {
       eduCBs[i] = NULL ;
@@ -270,9 +274,9 @@ TEST(clsTest, clsSyncManager_3)
    }
 
    /// w = 2
+   // cout << "construct write(lsn 0,2,4,6,8 w:2)" << endl ;
    for ( UINT32 i = 0; i < num; i++, i++ )
    {
-      cout << "construct w" << endl ;
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       session.eduCB = eduCBs[i] ;
@@ -281,15 +285,14 @@ TEST(clsTest, clsSyncManager_3)
       boost::thread *t = new boost::thread( fun, &sync, session,
                                             w, &complete ) ;
       ts[i] = t ;
-      ossSleepsecs(1) ;
    }
 
    ASSERT_TRUE( 0 == complete.peek() ) ;
 
+   // cout << "construct write(lsn 1,3,5,7,9 w:3)" << endl ;
    /// w = 3
    for ( UINT32 i = 1; i < num; i++, i++ )
    {
-      cout << "construct w" << endl ;
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       session.eduCB = eduCBs[i] ;
@@ -298,12 +301,9 @@ TEST(clsTest, clsSyncManager_3)
       boost::thread *t = new boost::thread( fun, &sync, session, w,
                                             &complete ) ;
       ts[i] = t ;
-      ossSleepsecs(1) ;
    }
 
-   cout << "waiting..." << endl ;
-   ossSleepsecs(2) ;
-
+   // cout << "construct complete" << endl ;
    for ( UINT32 i = 2; i < num + 1; i++, i++ )
    {
       id.columns.nodeID = 3 ;
@@ -311,19 +311,20 @@ TEST(clsTest, clsSyncManager_3)
       lsn.version = 1 ;
       lsn.offset = i;
       sync.complete( id, lsn, 1 ) ;
-      ASSERT_TRUE( i - 2 == complete.peek() ) ;
+      ts[i-2]->join() ;
+      ASSERT_TRUE( i - 1 == complete.peek() ) ;
+
       id.columns.nodeID++ ;
       sync.complete( id, lsn, 1 ) ;
-      ts[i-2]->join() ;
       ts[i-1]->join() ;
       ASSERT_TRUE( i == complete.peek() ) ;
+
       delete ts[i-2] ;
       delete ts[i-1] ;
       delete eduCBs[i-2] ;
       delete eduCBs[i-1] ;
    }
 }
-
 
 TEST(clsTest, clsSyncManager_4)
 {
@@ -339,8 +340,10 @@ TEST(clsTest, clsSyncManager_4)
    info.local = id ;
    ++id.columns.nodeID ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
    ++id.columns.nodeID ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
    _clsSyncManager sync( &agent, &info ) ;
    sync.updateNotifyList( TRUE ) ;
    ossAtomic32 complete( 0 ) ;
@@ -354,9 +357,9 @@ TEST(clsTest, clsSyncManager_4)
       ts[i] = NULL ;
    }
 
+   // cout << "construct write( lsn from 0 to 9, w:3 )" << endl ;
    for ( UINT32 i = 0; i < num; i++ )
    {
-      cout << "construct w" << endl ;
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       session.eduCB = eduCBs[i] ;
@@ -365,12 +368,9 @@ TEST(clsTest, clsSyncManager_4)
       boost::thread *t = new boost::thread( fun, &sync, session, w,
                                             &complete ) ;
       ts[i] = t ;
-      ossSleepsecs(1) ;
    }
 
-   cout << "waiting..." << endl ;
-   ossSleepsecs(2) ;
-
+   // cout << "construct complete( node 3 )" << endl ;
    /// only one node complete.
    for ( UINT32 i = 1; i < num + 1; i++ )
    {
@@ -383,6 +383,7 @@ TEST(clsTest, clsSyncManager_4)
 
    ASSERT_TRUE( 0 == complete.peek() ) ;
 
+   // cout << "construct complete( node 4 )" << endl ;
    for ( UINT32 i = 1; i < num + 1; i++ )
    {
       id.columns.nodeID = 4 ;
@@ -395,15 +396,15 @@ TEST(clsTest, clsSyncManager_4)
       delete ts[i-1] ;
       delete eduCBs[i-1] ;
    }
-
 }
 
 void fun2( _clsSyncManager *sync, _clsSyncSession session, UINT32 w,
-           ossAtomic32 *complete )
+           ossAtomic32 *complete,
+           ossEvent *pEvent )
 {
-   ASSERT_TRUE( SDB_CLS_NODE_NOT_ENOUGH == sync->sync( session, w) ) ;
+   pEvent->signal() ;
+   ASSERT_TRUE( SDB_CLS_WAIT_SYNC_FAILED == sync->sync( session, w) ) ;
    complete->inc() ;
-   cout << "multi w complete" << endl ;
 }
 
 TEST(clsTest, clsSyncManager_5)
@@ -420,8 +421,10 @@ TEST(clsTest, clsSyncManager_5)
    info.local = id ;
    ++id.columns.nodeID ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
    ++id.columns.nodeID ;
    info.info.insert( std::make_pair( id.value, status ) ) ;
+   info.alives.insert( std::make_pair( id.value, &(info.info[id.value]) ) ) ;
    _clsSyncManager sync( &agent, &info ) ;
    sync.updateNotifyList( TRUE ) ;
    ossAtomic32 complete( 0 ) ;
@@ -435,24 +438,25 @@ TEST(clsTest, clsSyncManager_5)
       ts[i] = NULL ;
    }
 
+   ossEvent event ;
+   // cout << "construct write( lsn from 0 to 9, w:3 )" << endl ;
    for ( UINT32 i = 0; i < num; i++ )
    {
-      cout << "construct w" << endl ;
       eduCBs[i] = new pmdEDUCB( &mgr, EDU_TYPE_AGENT ) ;
       _clsSyncSession session ;
       session.eduCB = eduCBs[i] ;
       session.endLsn = i ;
       UINT32 w = 3 ;
+      event.reset() ;
       boost::thread *t = new boost::thread( fun2, &sync, session, w,
-                                            &complete ) ;
+                                            &complete, &event ) ;
+      event.wait() ;
       ts[i] = t ;
-      ossSleepsecs(1) ;
    }
 
-   cout << "waiting..." << endl ;
-   ossSleepsecs(2) ;
-
+   // cout << "cut to 0" << endl ;
    sync.cut( 0 ) ;
+
    for ( UINT32 i = 0; i < num; i++ )
    {
       ts[i]->join() ;

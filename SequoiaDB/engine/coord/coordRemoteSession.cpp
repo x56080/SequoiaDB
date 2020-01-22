@@ -1252,8 +1252,8 @@ namespace engine
       else
       {
          // main-collection
-         vector< string > subCLLst ;
-         vector< string >::iterator iterCL ;
+         CLS_SUBCL_LIST subCLLst ;
+         CLS_SUBCL_LIST_IT iterCL ;
 
       retry:
          rc = _cataPtr->findLobSubCLNamesByMatcher( pQuery, subCLLst ) ;
@@ -1371,8 +1371,8 @@ namespace engine
       else
       {
          // main-collection
-         vector< string > subCLLst ;
-         vector< string >::iterator iterCL ;
+         CLS_SUBCL_LIST subCLLst ;
+         CLS_SUBCL_LIST_IT iterCL ;
 
       retry:
          if ( NULL == pQuery || pQuery->isEmpty() )

@@ -1122,7 +1122,7 @@ namespace engine
       BOOLEAN isMainCL        = FALSE;
       UINT32 groupCount       = 0 ;
       BSONObj shardingKey ;
-      vector< string > subCLList ;
+      CLS_SUBCL_LIST subCLList ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
       UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
       BSONObj extOptions ;
@@ -1177,7 +1177,7 @@ namespace engine
 
       if ( isMainCL )
       {
-         vector< string >::iterator iter = subCLList.begin() ;
+         CLS_SUBCL_LIST_IT iter = subCLList.begin() ;
          while ( iter != subCLList.end() )
          {
             rc = _createCLByCatalog( (*iter).c_str(), clFullName, FALSE ) ;
@@ -2946,7 +2946,7 @@ namespace engine
                                          INT16 w )
    {
       INT32 rc = SDB_OK ;
-      std::vector< std::string > strSubCLList ;
+      CLS_SUBCL_LIST strSubCLList ;
       BSONObj boNewMatcher ;
       BOOLEAN includeShardingOrder = FALSE ;
       SINT64 tmpContextID = -1 ;
@@ -2975,7 +2975,14 @@ namespace engine
          if ( rc )
          {
             /// can't optimize
-            includeShardingOrder = FALSE ;
+            if ( SDB_CLS_NO_CATALOG_INFO == rc || SDB_SYS == rc )
+            {
+               includeShardingOrder = FALSE ;
+            }
+            else
+            {
+               goto error ;
+            }
          }
       }
 
@@ -3049,14 +3056,12 @@ namespace engine
    }
 
    INT32 _clsShdSession::_sortSubCLListByBound( const CHAR *pCollectionName,
-                                                std::vector<std::string> &strSubCLList )
+                                                CLS_SUBCL_LIST &strSubCLList )
    {
       INT32 rc = SDB_OK ;
-      std::vector< std::string > strSubCLListTmp ;
+      ossPoolSet<string> setNameFilter ;
+      CLS_SUBCL_LIST strSubCLListTmp ;
       _clsCatalogSet *pCataSet = NULL ;
-      std::vector< std::string >::iterator itTmp ;
-      std::vector< std::string >::iterator it ;
-      BOOLEAN bFind = FALSE ;
 
       _pCatAgent->lock_r () ;
       pCataSet = _pCatAgent->collectionSet( pCollectionName ) ;
@@ -3064,52 +3069,60 @@ namespace engine
       {
          _pCatAgent->release_r () ;
          rc = SDB_CLS_NO_CATALOG_INFO ;
-         PD_LOG( PDERROR, "can not find collection:%s", pCollectionName ) ;
+         PD_LOG( PDWARNING, "Can't find collection(%s)'s catalog information",
+                 pCollectionName ) ;
          goto error ;
       }
       pCataSet->getSubCLList( strSubCLListTmp, SUBCL_SORT_BY_BOUND ) ;
       _pCatAgent->release_r () ;
 
-      itTmp = strSubCLListTmp.begin();
-      while( itTmp != strSubCLListTmp.end() )
+      if ( rc )
       {
-         bFind = FALSE ;
-         it = strSubCLList.begin() ;
+         PD_LOG( PDERROR, "Get sub collection list failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         CLS_SUBCL_LIST_IT it = strSubCLList.begin() ;
          while( it != strSubCLList.end() )
          {
-            if ( *itTmp == *it )
+            setNameFilter.insert( *it ) ;
+            ++it ;
+         }
+
+         ossPoolSet<string>::iterator itSet ;
+         strSubCLList.clear() ;
+         it = strSubCLListTmp.begin() ;
+         while( it != strSubCLListTmp.end() )
+         {
+            itSet = setNameFilter.find( *it ) ;
+            /// Found
+            if ( itSet != setNameFilter.end() )
             {
-               strSubCLList.erase( it ) ;
-               bFind = TRUE ;
-               break ;
+               strSubCLList.push_back( *it ) ;
+               setNameFilter.erase( itSet ) ;
             }
             ++it ;
          }
 
-         if ( !bFind )
+         /// has some sub cl not found
+         if ( !setNameFilter.empty() )
          {
-            itTmp = strSubCLListTmp.erase( itTmp ) ;
-         }
-         else
-         {
-            ++itTmp ;
-         }
-      }
-
-      /// has some sub cl not found
-      if ( strSubCLList.size() > 0 )
-      {
-         rc = SDB_SYS ;
-         itTmp = strSubCLListTmp.begin() ;
-         while( itTmp != strSubCLListTmp.end() )
-         {
-            strSubCLList.push_back( *itTmp ) ;
-            ++itTmp ;
+            rc = SDB_SYS ;
+            itSet = setNameFilter.begin() ;
+            while( itSet != setNameFilter.end() )
+            {
+               strSubCLList.push_back( *itSet ) ;
+               ++itSet ;
+            }
          }
       }
-      else
+      catch( std::exception &e )
       {
-         strSubCLList = strSubCLListTmp ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
       }
 
    done:
@@ -3121,7 +3134,7 @@ namespace engine
    INT32 _clsShdSession::_getSubCLList( const BSONObj &matcher,
                                         const CHAR *pCollectionName,
                                         BSONObj &boNewMatcher,
-                                        vector< string > &strSubCLList )
+                                        CLS_SUBCL_LIST &strSubCLList )
    {
       INT32 rc = SDB_OK;
 
@@ -3180,13 +3193,13 @@ namespace engine
    }
 
    INT32 _clsShdSession::_getSubCLList( const CHAR *pCollectionName,
-                                        vector< string > &subCLList )
+                                        CLS_SUBCL_LIST &subCLList )
    {
       INT32 rc = SDB_OK ;
       const CHAR *pSubCLName = NULL ;
-      vector< string > strSubCLListTmp ;
+      CLS_SUBCL_LIST strSubCLListTmp ;
       clsCatalogSet *pCataSet = NULL ;
-      vector< string >::iterator iter ;
+      CLS_SUBCL_LIST_IT iter ;
 
       _pCatAgent->lock_r () ;
       pCataSet = _pCatAgent->collectionSet( pCollectionName ) ;
@@ -3266,8 +3279,8 @@ namespace engine
       INT32 rc = SDB_OK;
       BSONObj boNewMatcher;
       const CHAR *pSubCLName = NULL ;
-      vector< string > strSubCLList ;
-      vector< string >::iterator iterSubCLSet ;
+      CLS_SUBCL_LIST strSubCLList ;
+      CLS_SUBCL_LIST_IT iterSubCLSet ;
 
       rc = _getSubCLList( options.getQuery(), options.getCLFullName(),
                           boNewMatcher, strSubCLList ) ;
@@ -3336,8 +3349,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       const CHAR *pSubCLName = NULL ;
       BSONObj boNewMatcher ;
-      vector< string > strSubCLList ;
-      vector< string >::iterator iterSubCLSet ;
+      CLS_SUBCL_LIST strSubCLList ;
+      CLS_SUBCL_LIST_IT iterSubCLSet ;
 
       rc = _getSubCLList( options.getQuery(), options.getCLFullName(),
                           boNewMatcher, strSubCLList ) ;
@@ -3502,8 +3515,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       const CHAR *pSubCLName = NULL ;
-      vector< string > strSubCLList ;
-      vector< string >::iterator iterSubCLSet ;
+      CLS_SUBCL_LIST strSubCLList ;
+      CLS_SUBCL_LIST_IT iterSubCLSet ;
       BSONObj boNewMatcher ;
       rtnContextMainCL *pContextMainCL = NULL ;
       BSONObj boMatcher ;
@@ -3678,8 +3691,8 @@ namespace engine
       BSONObj boNewMatcher ;
       BSONObj boIndex ;
       BSONObj boHint ;
-      vector< string > strSubCLList ;
-      vector< string >::iterator iter ;
+      CLS_SUBCL_LIST strSubCLList ;
+      CLS_SUBCL_LIST_IT iter ;
       INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ;
       BOOLEAN lockDms = FALSE ;
       utilWriteResult wrResult ;
@@ -3806,8 +3819,8 @@ namespace engine
       BSONObj boMatcher ;
       BSONObj boNewMatcher ;
       BSONObj boIndex ;
-      vector< string > strSubCLList ;
-      vector< string >::iterator iter ;
+      CLS_SUBCL_LIST strSubCLList ;
+      CLS_SUBCL_LIST_IT iter ;
       BSONElement ele;
       BOOLEAN isExist = FALSE ;
       BOOLEAN lockDms = FALSE ;
@@ -3902,7 +3915,7 @@ namespace engine
                                       SINT64 &contextID )
    {
       INT32 rc = SDB_OK ;
-      vector< string > subCLLst ;
+      CLS_SUBCL_LIST subCLLst ;
       contextID = -1 ;
       rtnContextDelMainCL *delContext = NULL ;
 
@@ -4713,8 +4726,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       const CHAR *pSubCLName = NULL ;
-      vector< string > subCLs ;
-      vector< string >::iterator itr ;
+      CLS_SUBCL_LIST subCLs ;
+      CLS_SUBCL_LIST_IT itr ;
       BOOLEAN lockDms = FALSE ;
 
       // we need to check dms writable when invalidate cata/plan/statistics
@@ -4819,12 +4832,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       const CHAR *pSubCLName = NULL ;
-      vector< string > subCLs ;
+      CLS_SUBCL_LIST subCLs ;
       SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
       rc = _getSubCLList( fullName, subCLs ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s]: Get sub collection list "
                    "failed, rc: %d", sessionName(), rc ) ;
-      for ( vector< string >::iterator itr =  subCLs.begin();
+      for ( CLS_SUBCL_LIST_IT itr =  subCLs.begin();
             itr != subCLs.end();
             ++itr )
       {
@@ -4851,7 +4864,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       utilWriteResult wrResult ;
-      vector< string > subCLs ;
+      CLS_SUBCL_LIST subCLs ;
       const _rtnAlterCollection *alterCommand = ( const _rtnAlterCollection * )command ;
 
       const rtnAlterJob * alterJob = alterCommand->getAlterJob() ;
@@ -4863,7 +4876,7 @@ namespace engine
 
       BSONObj matcher = alterJob->getJobObject() ;
       BSONObj newMatcher ;
-      vector< string > subCLList ;
+      CLS_SUBCL_LIST subCLList ;
 
       BOOLEAN lockDms = FALSE ;
 
@@ -4882,7 +4895,7 @@ namespace engine
             ++ iterTask )
       {
          const rtnAlterTask * task = ( *iterTask ) ;
-         vector< string >::iterator iterCL ;
+         CLS_SUBCL_LIST_IT iterCL ;
 
          if ( !task->testFlags( RTN_ALTER_TASK_FLAG_MAINCLALLOW ) )
          {
@@ -4968,8 +4981,8 @@ namespace engine
       SDB_ASSERT( command->type() == CMD_ANALYZE, "command is invalid" ) ;
 
       const CHAR *pMainCLName = command->collectionFullName() ;
-      vector< string > strSubCLList ;
-      vector< string >::iterator iterSubCL ;
+      CLS_SUBCL_LIST strSubCLList ;
+      CLS_SUBCL_LIST_IT iterSubCL ;
       BOOLEAN foundIndex = FALSE ;
 
       _rtnAnalyze *pAnalyzeCmd = (_rtnAnalyze *)command ;
@@ -5065,8 +5078,8 @@ namespace engine
                   "command is invalid" ) ;
 
       const CHAR * mainCLName = command->collectionFullName() ;
-      vector< string > strSubCLList ;
-      vector< string >::iterator iterSubCL ;
+      CLS_SUBCL_LIST strSubCLList ;
+      CLS_SUBCL_LIST_IT iterSubCL ;
 
       rc = _getSubCLList( mainCLName, strSubCLList ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list of "

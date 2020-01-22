@@ -180,6 +180,8 @@ typedef ossPoolVector<UINT32>             VEC_UINT32 ;
 typedef ossPoolVector<INT32>              VEC_INT32 ;
 typedef ossPoolVector<INT64>              VEC_INT64 ;
 typedef ossPoolVector<BOOLEAN>            VEC_BOOLEAN ;
+typedef ossPoolVector<std::string>        VEC_STRING ;
+typedef ossPoolVector<ossPoolString>      VEC_POOLSTR ;
 
 #endif
 

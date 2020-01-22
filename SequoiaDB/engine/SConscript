@@ -445,7 +445,6 @@ clsFiles = [
       "cls/clsCatalogMatcher.cpp",
       "cls/clsCatalogPredicate.cpp",
       "cls/clsReplBucket.cpp",
-      "cls/clsCataHashMatcher.cpp",
       "cls/clsCommand.cpp",
       "cls/clsReelection.cpp",
       "cls/clsDCMgr.cpp",
@@ -744,9 +743,10 @@ clientTestFiles = [
 #netTestFiles = [
 #      "test/net/netTest.cpp"
 #      ]
-#clsTestFiles = [
-#      "test/cls/clsTest.cpp"
-#      ]
+clsTestFiles = [
+      "test/cls/clsTest.cpp",
+      "test/cls/clsCataAgentTest.cpp"
+      ]
 #catalogueTestFiles = [
 #      "test/catalogTest/catalogTestMainController.cpp"
 #      ]
@@ -865,7 +865,7 @@ env.StaticLibrary('omsvc', omsvcFiles)
 #dpsgtest = env.Object ( 'dpsgtest', gtestMainFile )
 #nettest = env.Object ( 'nettest', gtestMainFile )
 #cataloguetest = env.Object('cataloguetest', gtestMainFile)
-#clstest = env.Object('clstest', gtestMainFile)
+clstest = env.Object('clstest', gtestMainFile)
 sqltest2 = env.Object('sqltest2', gtestMainFile)
 #sqltest3 = env.Object('sqltest3', gtestMainFile)
 #spdtest = env.Object('spdtest', gtestMainFile)
@@ -960,9 +960,9 @@ if hasTestcase:
 #   snappyTest = env.Program("snappyTest", [snappyTestFiles],
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth","aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
-#   clsTest = env.Program("clsTest", [ clsTestFiles, clstest],
-#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-#          _LIBDEPS='$_LIBDEPS_OBJS' )
+   clsTest = env.Program("clsTest", [ clsTestFiles, clstest],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
    sqlTest2 = env.Program("sqlTest2", [ sqlTest2Files, sqltest2],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","sql","auth", "aggr", "spd", "omsvc"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1020,7 +1020,7 @@ if hasTestcase:
 #   env.Install( '#/tests', restadaptorTest )
 #   env.Install( '#/tests', npipeServerTest )
 #   env.Install( '#/tests', npipeClientTest )
-#   env.Install( '#/tests', clsTest )
+   env.Install( '#/tests', clsTest )
    env.Install( '#/tests', construct )
    env.Install( '#/tests', sqlTest2 )
 #   env.Install( '#/tests', montest )

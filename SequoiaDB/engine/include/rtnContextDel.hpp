@@ -155,7 +155,7 @@ namespace engine
       virtual BOOLEAN          isWrite() const { return TRUE ; }
 
       INT32 open( const CHAR *pCollectionName,
-                  vector< string > &subCLList,
+                  CLS_SUBCL_LIST &subCLList,
                   _pmdEDUCB *cb,
                   INT16 w ) ;
 

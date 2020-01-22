@@ -174,8 +174,8 @@ namespace engine
       clsCB *pClsCB = sdbGetClsCB() ;
       shardCB *pShdMgr = pClsCB->getShardCB() ;
       clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
-      vector< string > subCLs ;
-      vector< string >::iterator it ;
+      CLS_SUBCL_LIST subCLs ;
+      CLS_SUBCL_LIST_IT it ;
       ossPoolSet< string > mainCLs ;
       ossPoolSet< string >::iterator mainIter ;
 
@@ -473,7 +473,7 @@ namespace engine
       CHAR mainCL[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { '\0' } ;
 
       _pCatAgent->lock_w () ;
-      _pCatAgent->clear ( _collectionName, mainCL ) ;
+      _pCatAgent->clear ( _collectionName, mainCL, sizeof( mainCL ) ) ;
       _pCatAgent->release_w () ;
       pClsCB->invalidateCata( _collectionName ) ;
 
@@ -652,12 +652,12 @@ namespace engine
    }
 
    INT32 _rtnContextDelMainCL::open( const CHAR *pCollectionName,
-                                     vector< string > &subCLList,
+                                     CLS_SUBCL_LIST &subCLList,
                                      _pmdEDUCB *cb,
                                      INT16 w )
    {
       INT32 rc = SDB_OK ;
-      vector< string >::iterator iter ;
+      CLS_SUBCL_LIST_IT iter ;
       rtnContextDelCL *delContext   = NULL ;
       SINT64 contextID              = -1 ;
 
@@ -916,8 +916,8 @@ namespace engine
       SDB_RTNCB *pRtnCB = sdbGetRTNCB() ;
       clsCB *pClsCB = sdbGetClsCB() ;
       shardCB *pShdMgr = pClsCB->getShardCB() ;
-      vector< string > subCLs ;
-      vector< string >::iterator it ;
+      CLS_SUBCL_LIST subCLs ;
+      CLS_SUBCL_LIST_IT it ;
       ossPoolSet< string > mainCLs ;
       ossPoolSet< string >::iterator mainIter ;
 
@@ -1239,7 +1239,7 @@ namespace engine
       }
 
       _pCatAgent->lock_w () ;
-      _pCatAgent->clear( _clFullName, mainCL ) ;
+      _pCatAgent->clear( _clFullName, mainCL, sizeof( mainCL ) ) ;
       _pCatAgent->release_w () ;
       pClsCB->invalidateCata( _clFullName ) ;
 

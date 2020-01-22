@@ -108,11 +108,11 @@ namespace engine
       public:
          UINT32    getID() const { return _ID ; }
          UINT32    getGroupID () const ;
-         BSONObj&  getLowBound () ;
-         BSONObj&  getUpBound () ;
+         const BSONObj&  getLowBound () const ;
+         const BSONObj&  getUpBound () const ;
 
-         clsCataItemKey getLowBoundKey ( const Ordering* ordering ) ;
-         clsCataItemKey getUpBoundKey ( const Ordering* ordering ) ;
+         clsCataItemKey getLowBoundKey ( const Ordering* ordering ) const ;
+         clsCataItemKey getUpBoundKey ( const Ordering* ordering ) const ;
 
          INT32    updateItem ( const BSONObj &obj,
                                BOOLEAN isSharding,
@@ -164,6 +164,10 @@ namespace engine
 
    class _clsShardingKeySite ;
 
+
+   typedef ossPoolVector<string>       CLS_SUBCL_LIST ;
+   typedef CLS_SUBCL_LIST::iterator    CLS_SUBCL_LIST_IT ;
+
    /*
       _clsCatalogSet define
    */
@@ -184,6 +188,8 @@ namespace engine
 
          void setSKSite( _clsShardingKeySite *pSite ) { _pSite = pSite ; }
 
+         const MAP_CAT_ITEM*  getCataItem() const { return &_mapItems ; }
+
       public:
          INT32             getVersion () const ;
          UINT32            getW () const ;
@@ -194,8 +200,13 @@ namespace engine
          const string&     nameStr() const ;
          utilCLUniqueID    clUniqueID () const ;
          VEC_GROUP_ID      *getAllGroupID () ;
-         UINT32            getAllGroupID ( VEC_GROUP_ID &vecGroup ) const ;
+         /*
+            >= 0, the number of the group count
+            < 0, error code
+         */
+         INT32             getAllGroupID ( VEC_GROUP_ID &vecGroup ) const ;
          UINT32            groupCount () const ;
+         BOOLEAN           isInGroup( UINT32 groupID ) const ;
          const Ordering*   getOrdering () const ;
          const BSONObj&    getShardingKey () const  ;
          BSONObj           OwnedShardingKey () const ;
@@ -219,7 +230,7 @@ namespace engine
          INT32             findLobSubCLName( const _utilLobID &lobID,
                                              string &subCLName ) ;
          INT32             findSubCLNames( const BSONObj &matcher,
-                                           vector< string > &subCLList,
+                                           CLS_SUBCL_LIST &subCLList,
                                            CLS_SUBCL_SORT_TYPE sortType =
                                            SUBCL_SORT_BY_ID );
 
@@ -246,10 +257,11 @@ namespace engine
          UINT32            getItemNum() const ;
          POSITION          getFirstItem() ;
          clsCatalogItem*   getNextItem( POSITION &pos ) ;
+         const clsCatalogItem*   getLastItem() const { return _lastItem ; }
          UINT32            getAttribute() const { return _attribute ; }
 
          BOOLEAN           isMainCL() const ;
-         INT32             getSubCLList( vector< string > &subCLLst,
+         INT32             getSubCLList( CLS_SUBCL_LIST &subCLLst,
                                          CLS_SUBCL_SORT_TYPE sortType =
                                          SUBCL_SORT_BY_ID ) ;
          BOOLEAN           isContainSubCL( const string &subCLName ) const ;
@@ -283,19 +295,21 @@ namespace engine
          INT32 getLobShardingKeyFormat() ;
 
          INT32 findLobSubCLNamesByMatcher( const BSONObj *matcher,
-                                           vector<string> &subCLList ) ;
+                                           CLS_SUBCL_LIST &subCLList,
+                                           CLS_SUBCL_SORT_TYPE sortType =
+                                           SUBCL_SORT_BY_ID ) ;
       protected:
          _clsCatalogSet    *next () ;
          INT32             next ( _clsCatalogSet * next ) ;
 
-         void              _addGroupID ( UINT32 groupID ) ;
+         INT32             _addGroupID ( UINT32 groupID ) ;
          void              _clear () ;
          void              _deduplicate () ;
-         BOOLEAN           _isObjAllMaxKey ( BSONObj &obj ) ;
+         BOOLEAN           _isObjAllMaxKey ( const BSONObj &obj ) ;
          INT32             _findItem( const clsCataItemKey &findKey,
                                       clsCatalogItem *& item ) ;
          INT32             _hash( const BSONObj &key ) ;
-         void              _addSubClName( UINT32 id,
+         INT32             _addSubClName( UINT32 id,
                                           const std::string &strClName );
 
       private:
@@ -316,13 +330,13 @@ namespace engine
 
          INT32             _removeItem( clsCatalogItem *item ) ;
          INT32             _addItem( clsCatalogItem *item ) ;
-         void              _remakeGroupIDs() ;
+         INT32             _remakeGroupIDs() ;
          INT32             _parseLobKeyFormat( const CHAR *formatStr ) ;
          BOOLEAN           _checkLobBound( const BSONObj &boundObj,
                                            BSONObj &lobBoundObj ) ;
-         INT32             _findLobSubCLNamesByMatcher(
-                                                  const BSONObj &matcher,
-                                                  vector<string> &subCLList ) ;
+         INT32             _findLobSubCLNamesByMatcher( const BSONObj &matcher,
+                                                        CLS_SUBCL_LIST &subCLList,
+                                                        CLS_SUBCL_SORT_TYPE sortType ) ;
          INT32             _rewriteMatcherForLob( const BSONObj &matcher,
                                              BSONArrayBuilder &arrayBuilder ) ;
          INT32             _rewriteMatcherForLob( const BSONObj &matcher,
@@ -395,7 +409,7 @@ namespace engine
          INT32   collectionVersion ( const CHAR* name ) ;
          INT32   collectionW ( const CHAR* name ) ;
          INT32   collectionInfo ( const CHAR* name , INT32 &version, UINT32 &w ) ;
-         void    getAllNames( std::vector<string> &names ) ;
+         INT32   getAllNames( std::vector<string> &names ) ;
 
          clsCatalogSet* collectionSet ( const CHAR* name,
                                         utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ) ;
@@ -405,9 +419,10 @@ namespace engine
                                  _clsCatalogSet **ppSet = NULL ) ;
 
          INT32   clear ( const CHAR* name,
-                         CHAR* mainCL = NULL ) ;
+                         CHAR* mainCLBuf = NULL,
+                         UINT32 bufSize = 0 ) ;
          INT32   clearBySpaceName ( const CHAR* csName,
-                                    vector< string > *pSubCLs = NULL,
+                                    CLS_SUBCL_LIST *pSubCLs = NULL,
                                     ossPoolSet< string > * pMainCLs = NULL ) ;
          /// caller need to hold the write lock
          INT32   clearAll () ;
@@ -567,7 +582,15 @@ namespace engine
          ~_clsNodeMgrAgent () ;
       public:
          INT32       groupCount () ;
+         /*
+            >= 0 : The groups size
+            <  0 : error code
+         */
          INT32       getGroupsID( VEC_UINT32 &groups ) ;
+         /*
+            >= 0 : The groups size
+            <  0 : error code
+         */
          INT32       getGroupsName( vector< string > &groups ) ;
 
          INT32       groupVersion ( UINT32 id ) ;

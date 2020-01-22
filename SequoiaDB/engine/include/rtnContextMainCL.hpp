@@ -111,7 +111,7 @@ namespace engine
                   INT64 numToSkip ) ;
 
       INT32 open( const rtnQueryOptions &options,
-                  const std::vector<string> &subs,
+                  const CLS_SUBCL_LIST &subs,
                   BOOLEAN shardSort,
                   _pmdEDUCB *cb ) ;
 
@@ -156,7 +156,7 @@ namespace engine
                              INT64 &contextID ) ;
 
       INT32 _initArgs( const _rtnQueryOptions &options,
-                       const std::vector<string> &subs,
+                       const CLS_SUBCL_LIST &subs,
                        BOOLEAN shardSort ) ;
 
    private:
@@ -185,7 +185,7 @@ namespace engine
          _dmsStorageUnit* getSU () { return NULL ; }
 
          INT32 open ( const rtnQueryOptions & options,
-                      const std::vector<string> & subs,
+                      const CLS_SUBCL_LIST & subs,
                       BOOLEAN shardSort,
                       pmdEDUCB * cb ) ;
 
@@ -229,7 +229,7 @@ namespace engine
          }
 
       protected :
-         std::vector< std::string > _subCollections ;
+         CLS_SUBCL_LIST             _subCollections ;
          std::set< std::string >    _subCollectionFilter ;
          BOOLEAN                    _shardSort ;
          optExplainMergePath        _explainMergePath ;

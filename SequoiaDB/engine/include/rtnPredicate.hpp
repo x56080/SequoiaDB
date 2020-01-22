@@ -388,19 +388,15 @@ namespace engine
 
       VEC_OBJ_DATA _objData ;
 
-      // this is used when creating new bsonobject in the class
-      BSONObj addObj ( const BSONObj &o )
-      {
-         _objData.push_back(o) ;
-         return o ;
-      }
       void finishOperation ( const RTN_SSKEY_LIST &newkeys,
                              const rtnPredicate &other ) ;
    public:
       RTN_SSKEY_LIST _startStopKeys ;
       rtnPredicate ( )
       {
-         rtnPredicate ( BSONObj().firstElement(), 0, FALSE, TRUE ) ;
+         /// Constructor can't call Constructor directly. If do this, just a
+         /// temp object. So, must use placement new
+         new (this) rtnPredicate ( BSONObj().firstElement(), 0, FALSE, TRUE ) ;
       }
       rtnPredicate ( const BSONElement &e, INT32 opType, BOOLEAN isNot,
                      BOOLEAN mixCmp,
@@ -413,13 +409,16 @@ namespace engine
       }
 
       // intersection operation for two keysets
-      const rtnPredicate &operator&= (rtnPredicate &right) ;
+      const rtnPredicate &operator&= ( rtnPredicate &right ) ;
       // union operation for two keysets
-      const rtnPredicate &operator|= (const rtnPredicate &right) ;
+      const rtnPredicate &operator|= ( const rtnPredicate &right ) ;
       // exclude operation for two keysets
-      const rtnPredicate &operator-= (const rtnPredicate &right) ;
-      const rtnPredicate &operator= (const rtnPredicate &right) ;
+      const rtnPredicate &operator-= ( const rtnPredicate &right ) ;
+      const rtnPredicate &operator= ( const rtnPredicate &right ) ;
 
+      /*
+         Exception: throw std::bad_alloc exception when failure
+      */
       void reverse ( rtnPredicate &result ) const ;
 
       BOOLEAN isInit() const { return _isInitialized ; }
@@ -508,7 +507,7 @@ namespace engine
                  _startStopKeys[0]._startKey._bound == minKey.firstElement() &&
                  _startStopKeys[0]._stopKey._bound == maxKey.firstElement() ;
       }
-      string toString() const ;
+      ossPoolString toString() const ;
 
       OSS_INLINE BOOLEAN isEvaluated () const
       {
@@ -538,8 +537,9 @@ namespace engine
          return _savedCPUCost ;
       }
 
-      BOOLEAN bindParameters ( rtnParamList &parameters,
-                               BOOLEAN markDone = TRUE ) ;
+      INT32 bindParameters ( rtnParamList &parameters,
+                             BOOLEAN &hasBind,
+                             BOOLEAN markDone = TRUE ) ;
 
    protected :
       // Helper functions for create predicate
@@ -561,6 +561,20 @@ namespace engine
       INT32 _initTypeRange ( BSONType type, BOOLEAN forCmp ) ;
       INT32 _initMinRange ( BOOLEAN startIncluded ) ;
 
+   private:
+      /*
+         this is used when creating new bsonobject in the class
+         Exception: throw std::bad_alloc when alloc failed
+      */
+      BSONObj addObj ( const BSONObj &o )
+      {
+         _objData.push_back( o ) ;
+         return o ;
+      }
+
+      /*
+         Exception: throw std::bad_alloc when alloc failed
+      */
       void _bindValueSet ( const RTN_ELEMENT_SET * valueSet )
       {
          SDB_ASSERT( NULL != valueSet, "value set is invalid" ) ;
@@ -571,6 +585,7 @@ namespace engine
             _startStopKeys.push_back( rtnStartStopKey( *iterSet ) ) ;
          }
       }
+
    } ;
 
    typedef ossPoolVector< rtnPredicate >                     RTN_PREDICATE_LIST ;
@@ -603,9 +618,14 @@ namespace engine
          _paramPredicates.clear() ;
       }
 
-      string toString() const ;
-
-      BSONObj toBson() const ;
+      /*
+         Exception: will throw std::bad_alloc exception
+      */
+      ossPoolString  toString() const ;
+      /*
+         Exception: will throw std::bad_alloc exception
+      */
+      BSONObj        toBson() const ;
 
    private:
       RTN_PREDICATE_MAP       _predicates ;
@@ -661,6 +681,11 @@ namespace engine
          string toString() const ;
          BSONObj getBound() const ;
 
+         const RTN_PREDICATE_LIST* getPredicateList() const
+         {
+            return &_predicates ;
+         }
+
          OSS_INLINE INT32 getDirection() const
          {
             return _direction ;
@@ -682,11 +707,11 @@ namespace engine
          }
 
       protected :
-         void _addPredicate ( const BSONElement &e,
-                              INT32 direction,
-                              const rtnPredicate &pred ) ;
+         INT32 _addPredicate ( const BSONElement &e,
+                               INT32 direction,
+                               const rtnPredicate &pred ) ;
 
-         void _addEmptyPredicate () ;
+         INT32 _addEmptyPredicate () ;
 
          INT32 matchingLowElement ( const BSONElement &e, INT32 i,
                                     BOOLEAN direction,

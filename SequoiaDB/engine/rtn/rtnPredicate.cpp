@@ -874,9 +874,9 @@ namespace engine
       BOOLEAN extended = FALSE ;
       BOOLEAN multilineOK = FALSE ;
       string r = "";
-      stringstream ss;
+      stringstream ss ;
 
-      if (purePrefix)
+      if ( purePrefix )
       {
          *purePrefix = FALSE;
       }
@@ -917,7 +917,7 @@ namespace engine
          case 's':
             continue;
          default:
-            goto done ; // cant use index
+            goto done ; // can't use index
          }
       }
 
@@ -1206,7 +1206,7 @@ namespace engine
    }
    // exclude operation for two keysets
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPRED_OPMINUSEQ, "rtnPredicate::operator-=" )
-   const rtnPredicate &rtnPredicate::operator-=(const rtnPredicate &right)
+   const rtnPredicate &rtnPredicate::operator-= ( const rtnPredicate &right )
    {
       PD_TRACE_ENTRY ( SDB_RTNPRED_OPMINUSEQ ) ;
       RTN_SSKEY_LIST newKeySet ;
@@ -1468,7 +1468,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPRED_TOSTRING, "rtnPredicate::toString" )
-   string rtnPredicate::toString() const
+   ossPoolString rtnPredicate::toString() const
    {
       PD_TRACE_ENTRY ( SDB_RTNPRED_TOSTRING ) ;
       StringBuilder buf ;
@@ -1481,16 +1481,18 @@ namespace engine
       }
       buf << " }" ;
       PD_TRACE_EXIT ( SDB_RTNPRED_TOSTRING ) ;
-      return buf.str() ;
+      return buf.poolStr() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPRED_BINDPARAM, "rtnPredicate::bindParameters" )
-   BOOLEAN rtnPredicate::bindParameters ( rtnParamList &parameters,
-                                          BOOLEAN markDone )
+   INT32 rtnPredicate::bindParameters ( rtnParamList &parameters,
+                                        BOOLEAN &hasBind,
+                                        BOOLEAN markDone )
    {
-      BOOLEAN res = FALSE ;
-
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNPRED_BINDPARAM ) ;
+
+      hasBind = FALSE ;
 
       if ( _paramIndex >= 0 )
       {
@@ -1499,7 +1501,16 @@ namespace engine
          {
             // Bind for value set
             _startStopKeys.clear() ;
-            _bindValueSet( valueSet ) ;
+            try
+            {
+               _bindValueSet( valueSet ) ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               rc = SDB_OOM ;
+               goto error ;
+            }
          }
          else
          {
@@ -1535,12 +1546,14 @@ namespace engine
          {
             parameters.setDoneByPred( _paramIndex ) ;
          }
-         res = TRUE ;
+         hasBind = TRUE ;
       }
 
-      PD_TRACE_EXIT( SDB_RTNPRED_BINDPARAM ) ;
-
-      return res ;
+   done:
+      PD_TRACE_EXITRC( SDB_RTNPRED_BINDPARAM, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITIN, "rtnPredicate::_initIN" )
@@ -1563,59 +1576,68 @@ namespace engine
          RTN_PREDICATE_LIST regexes ;
          BSONObjIterator i ( e.embeddedObject() ) ;
 
-         // if e is an empty array. just add it to vals.(this will be add to
-         // the _startStopKeys
-         if ( !i.more() )
+         try
          {
-            valSet.insert( e ) ;
-         }
-         // for each element in the array
-         while ( i.more() )
-         {
-            BSONElement ie = i.next() ;
-
-            // make sure we don't have embedded object with ELEM_MATCH operation
-            if ( ie.type() == Object &&
-                 ie.embeddedObject().firstElement().getGtLtOp() ==
-                       BSONObj::opELEM_MATCH )
+            // if e is an empty array. just add it to vals.(this will be add to
+            // the _startStopKeys
+            if ( !i.more() )
             {
-               rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "$eleMatch is not allowed within $in" ) ;
-               goto done ;
+               valSet.insert( e ) ;
+            }
+            // for each element in the array
+            while ( i.more() )
+            {
+               BSONElement ie = i.next() ;
+
+               // make sure we don't have embedded object with ELEM_MATCH operation
+               if ( ie.type() == Object &&
+                    ie.embeddedObject().firstElement().getGtLtOp() ==
+                          BSONObj::opELEM_MATCH )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "$eleMatch is not allowed within $in" ) ;
+                  goto done ;
+               }
+
+               // for regular expression match, let's create a new rtnPredicate
+               if ( expandRegex &&
+                    ( ie.type() == RegEx ||
+                      ( e.type() == Object &&
+                        !e.embeddedObject()[ "$regex" ].eoo() ) ) )
+               {
+                  regexes.push_back ( rtnPredicate ( ie, BSONObj::opREGEX, FALSE,
+                                                     mixCmp ) ) ;
+                  PD_CHECK( regexes.back().isInit(),
+                            SDB_INVALIDARG, error, PDERROR,
+                            "Failed to create regex predicate" ) ;
+               }
+
+               valSet.insert( ie ) ;
             }
 
-            // for regular expression match, let's create a new rtnPredicate
-            if ( expandRegex &&
-                 ( ie.type() == RegEx ||
-                   ( e.type() == Object &&
-                     !e.embeddedObject()[ "$regex" ].eoo() ) ) )
+            // after going through all elements, let's push all in $in into
+            // start/stopkey list
+            for ( RTN_ELEMENT_SET::iterator iterSet = valSet.begin() ;
+                  iterSet != valSet.end() ;
+                  ++ iterSet )
             {
-               regexes.push_back ( rtnPredicate ( ie, BSONObj::opREGEX, FALSE,
-                                                  mixCmp ) ) ;
-               PD_CHECK( regexes.back().isInit(),
-                         SDB_INVALIDARG, error, PDERROR,
-                         "Failed to create regex predicate" ) ;
+               // we don't need to set parameterized flag, it will rebuild
+               // during binding phase
+               _startStopKeys.push_back( rtnStartStopKey( *iterSet ) ) ;
             }
 
-            valSet.insert( ie ) ;
+            // and then union with regular expression
+            for ( RTN_PREDICATE_LIST::const_iterator i = regexes.begin();
+                  i!=regexes.end(); i++ )
+            {
+               *this |= *i ;
+            }
          }
-
-         // after going through all elements, let's push all in $in into
-         // start/stopkey list
-         for ( RTN_ELEMENT_SET::iterator iterSet = valSet.begin() ;
-               iterSet != valSet.end() ;
-               ++ iterSet )
+         catch( std::exception &e )
          {
-            // we don't need to set parameterized flag, it will rebuild
-            // during binding phase
-            _startStopKeys.push_back( rtnStartStopKey( *iterSet ) ) ;
-         }
-
-         // and then union with regular expression
-         for ( RTN_PREDICATE_LIST::const_iterator i = regexes.begin();
-               i!=regexes.end(); i++ )
-         {
-            *this |= *i ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+            goto error ;
          }
       }
 
@@ -1643,26 +1665,35 @@ namespace engine
 
       if ( !isNot )
       {
-         // let's try to generate regex string if it's simple
-         string r = simpleRegex( e ) ;
+         try
+         {
+            // let's try to generate regex string if it's simple
+            string r = simpleRegex( e ) ;
 
-         if ( r.size() )
-         {
-            // yes we can have a simple regex
-            _startStopKeys.push_back( rtnStartStopKey() ) ;
-            rtnStartStopKey &keyPair = _startStopKeys.back() ;
-            keyPair._startKey._bound = addObj( BSON( "" << r ) ).firstElement() ;
-            keyPair._startKey._inclusive = TRUE ;
-            keyPair._stopKey._bound =
-                  addObj( BSON( "" << simpleRegexEnd( r ) ) ).firstElement() ;
-            keyPair._stopKey._inclusive = FALSE ;
-            keyPair._majorType = String ;
+            if ( r.size() )
+            {
+               // yes we can have a simple regex
+               _startStopKeys.push_back( rtnStartStopKey() ) ;
+               rtnStartStopKey &keyPair = _startStopKeys.back() ;
+               keyPair._startKey._bound = addObj( BSON( "" << r ) ).firstElement() ;
+               keyPair._startKey._inclusive = TRUE ;
+               keyPair._stopKey._bound =
+                     addObj( BSON( "" << simpleRegexEnd( r ) ) ).firstElement() ;
+               keyPair._stopKey._inclusive = FALSE ;
+               keyPair._majorType = String ;
+            }
+            else
+            {
+               // RegEx is restricted to String and Symbol
+               // Note: String and Symbol are the same canonical types currently
+               _initTypeRange( String, TRUE ) ;
+            }
          }
-         else
+         catch( std::exception &e )
          {
-            // RegEx is restricted to String and Symbol
-            // Note: String and Symbol are the same canonical types currently
-            _initTypeRange( String, TRUE ) ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+            goto error ;
          }
       }
 
@@ -1694,17 +1725,24 @@ namespace engine
       }
       else
       {
-         _startStopKeys.push_back ( rtnStartStopKey( e ) ) ;
-         if ( -1 != _paramIndex )
+         try
          {
-            rtnStartStopKey &keyPair = _startStopKeys.back() ;
-            keyPair._startKey._parameterized = TRUE ;
-            keyPair._stopKey._parameterized = TRUE ;
+            _startStopKeys.push_back ( rtnStartStopKey( e ) ) ;
+            if ( -1 != _paramIndex )
+            {
+               rtnStartStopKey &keyPair = _startStopKeys.back() ;
+               keyPair._startKey._parameterized = TRUE ;
+               keyPair._stopKey._parameterized = TRUE ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
          }
       }
 
       PD_TRACE_EXITRC( SDB__RTNPRED__INITET, rc ) ;
-
       return rc ;
    }
 
@@ -1791,20 +1829,28 @@ namespace engine
             startInclusive = ( startKey.canonicalType() == e.canonicalType() ) ;
          }
 
-         _startStopKeys.push_back( rtnStartStopKey() ) ;
-         rtnStartStopKey &keyPair = _startStopKeys.back() ;
-
-         keyPair._startKey._bound = startKey ;
-         keyPair._startKey._inclusive = startInclusive ;
-
-         keyPair._stopKey._bound = e ;
-         keyPair._stopKey._inclusive = inclusive ;
-
-         keyPair._majorType = e.type() ;
-
-         if ( -1 != _paramIndex )
+         try
          {
-            keyPair._stopKey._parameterized = TRUE ;
+            _startStopKeys.push_back( rtnStartStopKey() ) ;
+            rtnStartStopKey &keyPair = _startStopKeys.back() ;
+
+            keyPair._startKey._bound = startKey ;
+            keyPair._startKey._inclusive = startInclusive ;
+
+            keyPair._stopKey._bound = e ;
+            keyPair._stopKey._inclusive = inclusive ;
+
+            keyPair._majorType = e.type() ;
+
+            if ( -1 != _paramIndex )
+            {
+               keyPair._stopKey._parameterized = TRUE ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
          }
       }
 
@@ -1845,39 +1891,47 @@ namespace engine
             minRangeAdded = TRUE ;
          }
 
-         _startStopKeys.push_back( rtnStartStopKey() ) ;
-         rtnStartStopKey &keyPair = _startStopKeys.back() ;
-
-         if ( minRangeAdded )
+         try
          {
-            // Then we start from $undefined
-            keyPair._startKey._bound = staticUndefined.firstElement() ;
-            keyPair._startKey._inclusive = FALSE ;
+            _startStopKeys.push_back( rtnStartStopKey() ) ;
+            rtnStartStopKey &keyPair = _startStopKeys.back() ;
+
+            if ( minRangeAdded )
+            {
+               // Then we start from $undefined
+               keyPair._startKey._bound = staticUndefined.firstElement() ;
+               keyPair._startKey._inclusive = FALSE ;
+            }
+            else
+            {
+               keyPair._startKey._bound = e ;
+               keyPair._startKey._inclusive = inclusive ;
+            }
+
+            BSONElement stopKey =
+                  rtnKeyGetMaxForCmp( e.type(), mixCmp ).firstElement() ;
+            // 1. If it is mixCmp, stop key is $maxKey which should be included
+            // 2. If it is $gt:$minKey or $gte:$minKey, stop key is also $maxKey
+            //    which should be included
+            // 3. If the stop key is not the same canonical type as given key,
+            //    it should not be included, otherwise it should be included
+            BOOLEAN stopInclusive =
+                  ( ( mixCmp || e.type() == MinKey ) ? TRUE :
+                    ( stopKey.canonicalType() == e.canonicalType() ) ) ;
+            keyPair._stopKey._bound = stopKey ;
+            keyPair._stopKey._inclusive = stopInclusive ;
+
+            keyPair._majorType = e.type() ;
+
+            if ( -1 != _paramIndex )
+            {
+               keyPair._startKey._parameterized = TRUE ;
+            }
          }
-         else
+         catch( std::exception &e )
          {
-            keyPair._startKey._bound = e ;
-            keyPair._startKey._inclusive = inclusive ;
-         }
-
-         BSONElement stopKey =
-               rtnKeyGetMaxForCmp( e.type(), mixCmp ).firstElement() ;
-         // 1. If it is mixCmp, stop key is $maxKey which should be included
-         // 2. If it is $gt:$minKey or $gte:$minKey, stop key is also $maxKey
-         //    which should be included
-         // 3. If the stop key is not the same canonical type as given key,
-         //    it should not be included, otherwise it should be included
-         BOOLEAN stopInclusive =
-               ( ( mixCmp || e.type() == MinKey ) ? TRUE :
-                 ( stopKey.canonicalType() == e.canonicalType() ) ) ;
-         keyPair._stopKey._bound = stopKey ;
-         keyPair._stopKey._inclusive = stopInclusive ;
-
-         keyPair._majorType = e.type() ;
-
-         if ( -1 != _paramIndex )
-         {
-            keyPair._startKey._parameterized = TRUE ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
          }
       }
 
@@ -1906,8 +1960,20 @@ namespace engine
             if ( x.type() == Object &&
                  x.embeddedObject().firstElement().getGtLtOp() ==
                  BSONObj::opELEM_MATCH )
+            {
                continue ;
-            _startStopKeys.push_back( rtnStartStopKey( x ) ) ;
+            }
+
+            try
+            {
+               _startStopKeys.push_back( rtnStartStopKey( x ) ) ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               rc = SDB_OOM ;
+               goto error ;
+            }
             break ;
          }
       }
@@ -1915,7 +1981,6 @@ namespace engine
    done :
       PD_TRACE_EXITRC( SDB__RTNPRED__INITALL, rc ) ;
       return rc ;
-
    error :
       goto done ;
    }
@@ -1934,7 +1999,6 @@ namespace engine
       }
 
       PD_TRACE_EXITRC( SDB__RTNPRED__INITMOD, rc ) ;
-
       return rc ;
    }
 
@@ -1954,13 +2018,20 @@ namespace engine
 
       if ( !existsSpec )
       {
-         // [ $undefined, $undefined ]
-         _startStopKeys.push_back (
-               rtnStartStopKey( staticUndefined.firstElement() ) ) ;
+         try
+         {
+            // [ $undefined, $undefined ]
+            _startStopKeys.push_back (
+                  rtnStartStopKey( staticUndefined.firstElement() ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+         }
       }
 
       PD_TRACE_EXITRC( SDB__RTNPRED__INITEXISTS, rc ) ;
-
       return rc ;
    }
 
@@ -1980,17 +2051,24 @@ namespace engine
 
       if ( !existsSpec )
       {
-         // [ $undefined, $undefined ]
-         _startStopKeys.push_back (
-               rtnStartStopKey( staticUndefined.firstElement() ) ) ;
+         try
+         {
+            // [ $undefined, $undefined ]
+            _startStopKeys.push_back (
+                  rtnStartStopKey( staticUndefined.firstElement() ) ) ;
 
-         // [ null, null ]
-         _startStopKeys.push_back (
-               rtnStartStopKey( staticNull.firstElement() ) ) ;
+            // [ null, null ]
+            _startStopKeys.push_back (
+                  rtnStartStopKey( staticNull.firstElement() ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+         }
       }
 
       PD_TRACE_EXITRC( SDB__RTNPRED__INITISNULL, rc ) ;
-
       return rc ;
    }
 
@@ -2001,17 +2079,24 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNPRED__INITFULLRANGE ) ;
 
-      _startStopKeys.push_back ( rtnStartStopKey() ) ;
-      rtnStartStopKey &keyPair = _startStopKeys.back() ;
+      try
+      {
+         _startStopKeys.push_back ( rtnStartStopKey() ) ;
+         rtnStartStopKey &keyPair = _startStopKeys.back() ;
 
-      keyPair._startKey._bound = minKey.firstElement() ;
-      keyPair._startKey._inclusive = TRUE ;
+         keyPair._startKey._bound = minKey.firstElement() ;
+         keyPair._startKey._inclusive = TRUE ;
 
-      keyPair._stopKey._bound = maxKey.firstElement() ;
-      keyPair._stopKey._inclusive = TRUE ;
+         keyPair._stopKey._bound = maxKey.firstElement() ;
+         keyPair._stopKey._inclusive = TRUE ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+      }
 
       PD_TRACE_EXITRC( SDB__RTNPRED__INITFULLRANGE, rc ) ;
-
       return rc ;
    }
 
@@ -2022,29 +2107,36 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNPRED__INITTYPERANGE ) ;
 
-      _startStopKeys.push_back ( rtnStartStopKey() ) ;
-      rtnStartStopKey &keyPair = _startStopKeys.back() ;
+      try
+      {
+         _startStopKeys.push_back ( rtnStartStopKey() ) ;
+         rtnStartStopKey &keyPair = _startStopKeys.back() ;
 
-      BSONElement startKey = forCmp ?
-                             rtnKeyGetMinForCmp( type, FALSE ).firstElement() :
-                             rtnKeyGetMinType( type ).firstElement() ;
-      BOOLEAN startInclusive =
-            ( getBSONCanonicalType( type ) == startKey.canonicalType() ) ;
-      keyPair._startKey._bound = startKey ;
-      keyPair._startKey._inclusive = startInclusive ;
+         BSONElement startKey = forCmp ?
+                                rtnKeyGetMinForCmp( type, FALSE ).firstElement() :
+                                rtnKeyGetMinType( type ).firstElement() ;
+         BOOLEAN startInclusive =
+               ( getBSONCanonicalType( type ) == startKey.canonicalType() ) ;
+         keyPair._startKey._bound = startKey ;
+         keyPair._startKey._inclusive = startInclusive ;
 
-      BSONElement stopKey = forCmp ?
-                            rtnKeyGetMaxForCmp( type, FALSE ).firstElement() :
-                            rtnKeyGetMaxType( type ).firstElement() ;
-      BOOLEAN stopInclusive =
-            ( getBSONCanonicalType( type ) == stopKey.canonicalType() ) ;
-      keyPair._stopKey._bound = stopKey ;
-      keyPair._stopKey._inclusive = stopInclusive ;
+         BSONElement stopKey = forCmp ?
+                               rtnKeyGetMaxForCmp( type, FALSE ).firstElement() :
+                               rtnKeyGetMaxType( type ).firstElement() ;
+         BOOLEAN stopInclusive =
+               ( getBSONCanonicalType( type ) == stopKey.canonicalType() ) ;
+         keyPair._stopKey._bound = stopKey ;
+         keyPair._stopKey._inclusive = stopInclusive ;
 
-      keyPair._majorType = type ;
+         keyPair._majorType = type ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+      }
 
       PD_TRACE_EXITRC( SDB__RTNPRED__INITTYPERANGE, rc ) ;
-
       return rc ;
    }
 
@@ -2055,21 +2147,28 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNPRED__INITMINRANGE ) ;
 
-      _startStopKeys.push_back ( rtnStartStopKey() ) ;
-      rtnStartStopKey &keyPair = _startStopKeys.back() ;
+      try
+      {
+         _startStopKeys.push_back ( rtnStartStopKey() ) ;
+         rtnStartStopKey &keyPair = _startStopKeys.back() ;
 
-      keyPair._startKey._bound = minKey.firstElement() ;
-      keyPair._startKey._inclusive = startIncluded ;
+         keyPair._startKey._bound = minKey.firstElement() ;
+         keyPair._startKey._inclusive = startIncluded ;
 
-      keyPair._stopKey._bound = staticUndefined.firstElement() ;
-      keyPair._stopKey._inclusive = FALSE ;
+         keyPair._stopKey._bound = staticUndefined.firstElement() ;
+         keyPair._stopKey._inclusive = FALSE ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+      }
 
       PD_TRACE_EXITRC( SDB__RTNPRED__INITMINRANGE, rc ) ;
-
       return rc ;
    }
 
-   string _rtnPredicateSet::toString() const
+   ossPoolString _rtnPredicateSet::toString() const
    {
       StringBuilder buf ;
       buf << "[ " ;
@@ -2080,7 +2179,7 @@ namespace engine
          ++it ;
       }
       buf << " ]" ;
-      return buf.str() ;
+      return buf.poolStr() ;
    }
 
    BSONObj _rtnPredicateSet::toBson() const
@@ -2190,31 +2289,39 @@ namespace engine
                 "Failed to init predicate %s: %s", fieldName,
                 e.toString().c_str()) ;
 
-      ret = _predicates.insert( make_pair( fieldName, pred ) ) ;
-      if ( !(ret.second) )
+      try
       {
-         ret.first->second &= pred ;
-      }
+         ret = _predicates.insert( make_pair( fieldName, pred ) ) ;
+         if ( !(ret.second) )
+         {
+            ret.first->second &= pred ;
+         }
 
-      if ( addToParam )
+         if ( addToParam )
+         {
+            RTN_PARAM_PREDICATE_MAP::iterator iter ;
+            iter = _paramPredicates.find( fieldName ) ;
+            if ( iter == _paramPredicates.end() )
+            {
+               RTN_PREDICATE_LIST &predList = _paramPredicates[ fieldName ] ;
+               predList.push_back( pred ) ;
+            }
+            else
+            {
+               iter->second.push_back( pred ) ;
+            }
+         }
+      }
+      catch( std::exception &e )
       {
-         RTN_PARAM_PREDICATE_MAP::iterator iter = _paramPredicates.find( fieldName ) ;
-         if ( iter == _paramPredicates.end() )
-         {
-            RTN_PREDICATE_LIST predList ;
-            predList.push_back( pred ) ;
-            _paramPredicates.insert( make_pair( fieldName, predList ) ) ;
-         }
-         else
-         {
-            iter->second.push_back( pred ) ;
-         }
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
       }
 
    done :
       PD_TRACE_EXITRC( SDB__RTNPREDSET_ADDPARAMPRED, rc ) ;
       return rc ;
-
    error :
       goto done ;
    }
@@ -2257,26 +2364,49 @@ namespace engine
       _keyPattern = keyPattern ;
 
       addedLevel = 0 ;
-
       BSONObjIterator i( _keyPattern ) ;
+
+      /// make sure space
+      try
+      {
+         _predicates.reserve( keyPattern.nFields() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
       while ( i.more() )
       {
          BSONElement e = i.next() ;
          const rtnPredicate &pred = predSet.predicate ( e.fieldName() ) ;
          if ( pred.isEmpty() )
          {
-            _addEmptyPredicate() ;
+            rc = _addEmptyPredicate() ;
+            if ( rc )
+            {
+               goto error ;
+            }
             break ;
          }
-         _addPredicate( e, direction, pred ) ;
+         rc = _addPredicate( e, direction, pred ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
          addedLevel ++ ;
       }
 
       _fixedPredList = TRUE ;
       _initialized = TRUE ;
 
+   done:
       PD_TRACE_EXITRC( SDB__RTNPREDLIST_INIT, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_INIT_PARAM, "_rtnPredicateList::initialize" )
@@ -2298,8 +2428,20 @@ namespace engine
       // Set direction and key pattern first
       _direction = direction > 0 ? 1 : -1 ;
       _keyPattern = keyPattern ;
-
       BSONObjIterator i( _keyPattern ) ;
+
+      /// make sure space
+      try
+      {
+         _predicates.reserve( keyPattern.nFields() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
       while ( i.more() )
       {
          BSONElement e = i.next() ;
@@ -2307,7 +2449,11 @@ namespace engine
                                  predSet.paramPredicate( e.fieldName() ) ;
          if ( predicates.empty() )
          {
-            _addEmptyPredicate() ;
+            rc = _addEmptyPredicate() ;
+            if ( rc )
+            {
+               goto error ;
+            }
             continue ;
          }
          else
@@ -2320,20 +2466,35 @@ namespace engine
             BOOLEAN containNonParamPred = FALSE ;
             BOOLEAN nonParamPredEmpty = FALSE ;
             BOOLEAN paramPredEmpty = FALSE ;
+            BOOLEAN hasBind = FALSE ;
 
             RTN_PREDICATE_LIST paramList ;
             RTN_PREDICATE_LIST::const_iterator iter = predicates.begin () ;
             if ( iter != predicates.end() )
             {
                pred = (*iter) ;
-               if ( !pred.bindParameters( parameters ) )
+               rc = pred.bindParameters( parameters, hasBind ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+               if ( !hasBind )
                {
                   nonParamPred = pred ;
                   containNonParamPred = TRUE ;
                }
                else
                {
-                  paramList.push_back( pred ) ;
+                  try
+                  {
+                     paramList.push_back( pred ) ;
+                  }
+                  catch( std::exception &e )
+                  {
+                     PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+                     rc = SDB_OOM ;
+                     goto error ;
+                  }
                }
                ++ iter ;
                for ( ;
@@ -2341,7 +2502,12 @@ namespace engine
                      ++ iter )
                {
                   rtnPredicate currentPred = (*iter) ;
-                  if ( !currentPred.bindParameters( parameters ) )
+                  rc = currentPred.bindParameters( parameters, hasBind ) ;
+                  if ( rc )
+                  {
+                     goto error ;
+                  }
+                  if ( !hasBind )
                   {
                      // Merge non-parameterized predicates
                      if ( containNonParamPred )
@@ -2362,7 +2528,16 @@ namespace engine
                   {
                      // The predicate is parameterized, save for the future
                      // queries
-                     paramList.push_back( currentPred ) ;
+                     try
+                     {
+                        paramList.push_back( currentPred ) ;
+                     }
+                     catch( std::exception &e )
+                     {
+                        PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+                        rc = SDB_OOM ;
+                        goto error ;
+                     }
                   }
 
                   // Stop merging predicates when it is already empty
@@ -2376,30 +2551,39 @@ namespace engine
                   }
                }
 
-               if ( containNonParamPred )
+               try
                {
-                  if ( nonParamPredEmpty )
+                  if ( containNonParamPred )
                   {
-                     // Non-parameterized predicates are already empty
-                     // No need to consider parameterized predicates
-                     paramList.clear() ;
-                     paramList.push_back( nonParamPred ) ;
-                  }
-                  else
-                  {
-                     if ( !paramList.empty() )
+                     if ( nonParamPredEmpty )
                      {
-                        containParamPred = TRUE ;
+                        // Non-parameterized predicates are already empty
+                        // No need to consider parameterized predicates
+                        paramList.clear() ;
+                        paramList.push_back( nonParamPred ) ;
                      }
-                     paramList.push_back( nonParamPred ) ;
+                     else
+                     {
+                        if ( !paramList.empty() )
+                        {
+                           containParamPred = TRUE ;
+                        }
+                        paramList.push_back( nonParamPred ) ;
+                     }
                   }
-               }
-               else if ( !paramList.empty() )
-               {
-                  containParamPred = TRUE ;
-               }
+                  else if ( !paramList.empty() )
+                  {
+                     containParamPred = TRUE ;
+                  }
 
-               paramPredList.push_back( paramList ) ;
+                  paramPredList.push_back( paramList ) ;
+               }
+               catch( std::exception &e )
+               {
+                  PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+                  rc = SDB_OOM ;
+                  goto error ;
+               }
             }
 
             if ( needAddPred && pred.isEmpty() )
@@ -2408,7 +2592,11 @@ namespace engine
                // No need for generate predicate list, but still need to
                // generate parameterized predicate list if the empty predicate
                // is not generated by non-parameterized predicates
-               _addEmptyPredicate() ;
+               rc = _addEmptyPredicate() ;
+               if ( rc )
+               {
+                  goto error ;
+               }
                needAddPred = FALSE ;
                if ( nonParamPredEmpty )
                {
@@ -2417,7 +2605,11 @@ namespace engine
             }
             else if ( needAddPred )
             {
-               _addPredicate( e, direction, pred ) ;
+               rc = _addPredicate( e, direction, pred ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
             }
          }
       }
@@ -2430,8 +2622,11 @@ namespace engine
       }
       _initialized = TRUE ;
 
+   done:
       PD_TRACE_EXITRC( SDB__RTNPREDLIST_INIT_PARAM, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_INIT_PARAMLIST, "_rtnPredicateList::initialize" )
@@ -2450,29 +2645,55 @@ namespace engine
 
       RTN_PARAM_PREDICATE_LIST::const_iterator iter = paramPredList.begin() ;
       BSONObjIterator i( _keyPattern ) ;
+
+      /// make sure space
+      try
+      {
+         _predicates.reserve( keyPattern.nFields() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
       while ( i.more() )
       {
          BSONElement e = i.next() ;
          if ( iter == paramPredList.end() )
          {
-            _addEmptyPredicate() ;
+            rc = _addEmptyPredicate() ;
+            if ( rc )
+            {
+               goto error ;
+            }
             break ;
          }
          else
          {
             rtnPredicate pred ;
+            BOOLEAN hasBind = FALSE ;
 
             RTN_PREDICATE_LIST::const_iterator predIter = iter->begin () ;
             if ( predIter != iter->end() )
             {
                // Build the predicates with parameters
                pred = (*predIter) ;
-               pred.bindParameters( parameters ) ;
+               rc = pred.bindParameters( parameters, hasBind ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
                ++ predIter ;
                for ( ; predIter != iter->end() ; ++ predIter )
                {
                   rtnPredicate currentPred = (*predIter) ;
-                  currentPred.bindParameters( parameters ) ;
+                  rc = currentPred.bindParameters( parameters, hasBind ) ;
+                  if ( rc )
+                  {
+                     goto error ;
+                  }
                   pred &= currentPred ;
                   if ( pred.isEmpty() )
                   {
@@ -2485,12 +2706,20 @@ namespace engine
 
             if ( pred.isEmpty() )
             {
-               _addEmptyPredicate() ;
+               rc = _addEmptyPredicate() ;
+               if ( rc )
+               {
+                  goto error ;
+               }
                break ;
             }
             else
             {
-               _addPredicate( e, direction, pred ) ;
+               rc = _addPredicate( e, direction, pred ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
             }
          }
          ++ iter ;
@@ -2498,17 +2727,21 @@ namespace engine
 
       _initialized = TRUE ;
 
+   done:
       PD_TRACE_EXITRC( SDB__RTNPREDLIST_INIT_PARAMLIST, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST__ADDPRED, "_rtnPredicateList::_addPredicate" )
-   void _rtnPredicateList::_addPredicate ( const BSONElement &e,
-                                           INT32 direction,
-                                           const rtnPredicate &pred )
+   INT32 _rtnPredicateList::_addPredicate ( const BSONElement &e,
+                                            INT32 direction,
+                                            const rtnPredicate &pred )
    {
       PD_TRACE_ENTRY( SDB__RTNPREDLIST__ADDPRED ) ;
 
+      INT32 rc = SDB_OK ;
       // num is the number defined in index {c1:1}
       INT32 num = (INT32)e.number() ;
 
@@ -2521,36 +2754,57 @@ namespace engine
       // if index is defined as backward and direction is backward, then we
       // scan forward
       BOOLEAN forward = ((num>=0?1:-1)*(direction>=0?1:-1)>0) ;
-      if ( forward )
+
+      try
       {
-         _predicates.push_back ( pred ) ;
+         if ( forward )
+         {
+            _predicates.push_back ( pred ) ;
+         }
+         else
+         {
+            // if we want to scan backward, we need to reverse the predicate
+            // i.e. startKey to stopKey, stopKey to startKey
+            // first we push an empty predicate into list, then reverse the
+            // existing predicate to replace it
+            _predicates.push_back ( rtnPredicate () ) ;
+            pred.reverse ( _predicates.back() ) ;
+         }
       }
-      else
+      catch( std::exception &e )
       {
-         // if we want to scan backward, we need to reverse the predicate
-         // i.e. startKey to stopKey, stopKey to startKey
-         // first we push an empty predicate into list, then reverse the
-         // existing predicate to replace it
-         _predicates.push_back ( rtnPredicate () ) ;
-         pred.reverse ( _predicates.back() ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
       }
 
-      PD_TRACE_EXIT( SDB__RTNPREDLIST__ADDPRED ) ;
+      PD_TRACE_EXITRC( SDB__RTNPREDLIST__ADDPRED, rc ) ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST__ADDEMPPRED, "_rtnPredicateList::_addEmptyPredicate" )
-   void _rtnPredicateList::_addEmptyPredicate ()
+   INT32 _rtnPredicateList::_addEmptyPredicate ()
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNPREDLIST__ADDEMPPRED ) ;
 
       static rtnStartStopKey s_emptyStartStopKey( 0 ) ;
 
-      rtnPredicate emptyPred ;
-      emptyPred._startStopKeys.push_back( s_emptyStartStopKey ) ;
+      try
+      {
+         rtnPredicate emptyPred ;
+         emptyPred._startStopKeys.clear() ;
+         emptyPred._startStopKeys.push_back( s_emptyStartStopKey ) ;
 
-      _predicates.push_back( emptyPred ) ;
+         _predicates.push_back( emptyPred ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+      }
 
-      PD_TRACE_EXIT( SDB__RTNPREDLIST__ADDEMPPRED ) ;
+      PD_TRACE_EXITRC( SDB__RTNPREDLIST__ADDEMPPRED, rc ) ;
+      return rc ;
    }
 
    // get the start key of first start/stopkey in each predicate column

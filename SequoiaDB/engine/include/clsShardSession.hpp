@@ -293,13 +293,13 @@ namespace engine
          INT32 _getSubCLList( const BSONObj &matcher,
                               const CHAR *pCollectionName,
                               BSONObj &boNewMatcher,
-                              vector< string > &strSubCLList ) ;
+                              CLS_SUBCL_LIST &strSubCLList ) ;
 
          INT32 _getSubCLList( const CHAR *pCollectionName,
-                              vector< string > &subCLList ) ;
+                              CLS_SUBCL_LIST &subCLList ) ;
 
          INT32 _sortSubCLListByBound( const CHAR *pCollectionName,
-                                      std::vector< std::string > &strSubCLList ) ;
+                                      CLS_SUBCL_LIST &strSubCLList ) ;
 
          INT32 _truncateMainCL( const CHAR *fullName ) ;
 

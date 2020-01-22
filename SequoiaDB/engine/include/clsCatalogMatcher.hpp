@@ -43,10 +43,10 @@
 #include "../bson/bsonobj.h"
 #include "clsCatalogPredicate.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
-   class clsCatalogPredicateTree ;
-   class _clsCatalogItem ;
 
    /*
       clsCatalogMatcher define
@@ -54,35 +54,41 @@ namespace engine
    class clsCatalogMatcher : public SDBObject
    {
    public:
-      clsCatalogMatcher( const bson::BSONObj &shardingKey );
+      clsCatalogMatcher( const BSONObj &shardingKey,
+                         BOOLEAN isHashShard ) ;
 
-      INT32 loadPattern( const bson::BSONObj &matcher );
+      INT32 loadPattern( const BSONObj &matcher ) ;
 
-      INT32 matches( _clsCatalogItem* pCatalogItem,
-                     BOOLEAN &result );
+      INT32 calc( const _clsCatalogSet *pSet,
+                  CLS_SET_CATAITEM &setItem ) ;
 
-      BOOLEAN isUniverse() ;
+      BOOLEAN isUniverse() const ;
+      BOOLEAN isNull() const ;
 
    private:
-      INT32 parseAnObj( const bson::BSONObj &matcher,
+      INT32 parseAnObj( const BSONObj &matcher,
+                        clsCatalogPredicateTree &predicateSet ) ;
+
+      INT32 parseCmpOp( const BSONElement &beField,
                         clsCatalogPredicateTree &predicateSet );
 
-      INT32 parseCmpOp( const bson::BSONElement &beField,
-                        clsCatalogPredicateTree &predicateSet );
+      INT32 parseOpObj( const BSONElement &beField,
+                        clsCatalogPredicateTree & predicateSet ) ;
 
-      INT32 parseOpObj( const BSONElement & beField,
-                        clsCatalogPredicateTree & predicateSet );
-
-      INT32 parseLogicOp( const bson::BSONElement &beField,
+      INT32 parseLogicOp( const BSONElement &beField,
                           clsCatalogPredicateTree &predicateSet ) ;
-      BOOLEAN isOpObj( const bson::BSONObj obj ) ;
 
-      BOOLEAN _isExistUnreconigzeOp( const bson::BSONObj obj ) ;
+      BOOLEAN isOpObj( const BSONObj &obj ) const ;
+
+      BOOLEAN _isExistUnreconigzeOp( const BSONObj &obj ) const ;
+      BOOLEAN _isHashExistUnreconigzeOp( const BSONObj &obj ) const ;
+      BOOLEAN _isRangeExistUnreconigzeOp( const BSONObj &obj ) const ;
 
    private:
-      clsCatalogPredicateTree    _predicateSet;
-      bson::BSONObj              _shardingKey;
-      bson::BSONObj              _matcher;
+      BOOLEAN                    _isHashShard ;
+      clsCatalogPredicateTree    _predicateSet ;
+      BSONObj                    _shardingKey ;
+      BSONObj                    _matcher ;
    } ;
 
 }

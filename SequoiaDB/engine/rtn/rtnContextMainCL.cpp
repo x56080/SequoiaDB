@@ -225,7 +225,7 @@ namespace engine
    }
 
    INT32 _rtnContextMainCL::open( const rtnQueryOptions &options,
-                                  const std::vector<string> &subs,
+                                  const CLS_SUBCL_LIST &subs,
                                   BOOLEAN shardSort,
                                   pmdEDUCB *cb )
    {
@@ -373,7 +373,7 @@ namespace engine
    }
 
    INT32 _rtnContextMainCL::_initArgs( const _rtnQueryOptions &options,
-                                       const std::vector<string> &subs,
+                                       const CLS_SUBCL_LIST &subs,
                                        BOOLEAN shardSort )
    {
       INT32 rc = SDB_OK ;
@@ -407,7 +407,7 @@ namespace engine
          }
       }
 
-      for ( std::vector<string>::const_iterator itr = subs.begin() ;
+      for ( CLS_SUBCL_LIST::const_iterator itr = subs.begin() ;
             itr != subs.end() ;
             ++itr )
       {
@@ -795,7 +795,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXMAINCLEXP_OPEN, "_rtnContextMainCLExplain::open" )
    INT32 _rtnContextMainCLExplain::open ( const rtnQueryOptions & options,
-                                          const std::vector<string> & subCollections,
+                                          const CLS_SUBCL_LIST & subCollections,
                                           BOOLEAN shardSort,
                                           pmdEDUCB * cb )
    {

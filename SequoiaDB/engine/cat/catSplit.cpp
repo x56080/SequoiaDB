@@ -42,26 +42,6 @@ using namespace bson ;
 namespace engine
 {
 
-   static BOOLEAN _isGroupInCataSet( UINT32 groupID, clsCatalogSet &cataSet )
-   {
-      BOOLEAN findGroup = FALSE ;
-
-      VEC_GROUP_ID vecGroups ;
-      cataSet.getAllGroupID( vecGroups ) ;
-      VEC_GROUP_ID::iterator itVec = vecGroups.begin() ;
-      while ( itVec != vecGroups.end() )
-      {
-         if ( *itVec == groupID )
-         {
-            findGroup = TRUE ;
-            break ;
-         }
-         ++itVec ;
-      }
-
-      return findGroup ;
-   }
-
    static INT32 _checkRangeSplitKey( const BSONObj &splitKey,
                                      clsCatalogSet &cataSet,
                                      BOOLEAN allowEmpty )
@@ -339,7 +319,7 @@ namespace engine
                    srcName.c_str(), rc ) ;
 
       // check the collection is in source id
-      PD_CHECK( _isGroupInCataSet( srcGroupID, cataSet ),
+      PD_CHECK( cataSet.isInGroup( srcGroupID ),
                 SDB_CL_NOT_EXIST_ON_GROUP, error, PDWARNING,
                 "The collection [%s] does not exist on source group [%s]",
                 cataSet.name(), srcName.c_str() ) ;

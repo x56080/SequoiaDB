@@ -99,7 +99,7 @@ namespace engine
    typedef boost::shared_ptr<CoordGroupInfo>          CoordGroupInfoPtr;
    typedef ossPoolMap< UINT32, CoordGroupInfoPtr>     CoordGroupMap;
    typedef std::vector< CoordGroupInfoPtr >           GROUP_VEC ;
-   typedef std::vector<std::string>                   CoordSubCLlist;
+   typedef CLS_SUBCL_LIST                             CoordSubCLlist;
    typedef ossPoolMap< UINT32, CoordSubCLlist>        CoordGroupSubCLMap;
 
    /*
@@ -313,7 +313,7 @@ namespace engine
       }
 
       INT32 findLobSubCLNamesByMatcher( const BSONObj *matcher,
-                                        vector<string> &subCLList )
+                                        CLS_SUBCL_LIST &subCLList )
       {
          return _catlogSet.findLobSubCLNamesByMatcher( matcher, subCLList ) ;
       }

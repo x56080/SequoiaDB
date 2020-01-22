@@ -42,22 +42,27 @@
 #include "utilPooledObject.hpp"
 #include "ossMemPool.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
-   class clsCatalogPredicateTree;
-   class _clsCatalogItem;
+   class clsCatalogPredicateTree ;
+   class _clsCatalogSet ;
+   class _clsCatalogItem ;
 
-   typedef ossPoolVector< clsCatalogPredicateTree * >    VEC_CLSCATAPREDICATESET ;
+   typedef ossPoolVector< clsCatalogPredicateTree * > VEC_CLSCATAPREDICATESET ;
+   typedef ossPoolSet< const _clsCatalogItem* >       CLS_SET_CATAITEM ;
 
    /*
       _CLS_CATA_LOGIC_TYPE define
    */
-   typedef enum _CLS_CATA_LOGIC_TYPE
+   enum _CLS_CATA_LOGIC_TYPE
    {
       CLS_CATA_LOGIC_INVALID        = 0,
       CLS_CATA_LOGIC_AND            = 1,
       CLS_CATA_LOGIC_OR,
-   }CLS_CATA_LOGIC_TYPE ;
+   } ;
+   typedef _CLS_CATA_LOGIC_TYPE CLS_CATA_LOGIC_TYPE ;
 
    /*
       clsCatalogPredicateTree define
@@ -65,40 +70,74 @@ namespace engine
    class clsCatalogPredicateTree : public utilPooledObject
    {
    public:
-      clsCatalogPredicateTree( bson::BSONObj shardingKey ) ;
+      clsCatalogPredicateTree( const BSONObj &shardingKey,
+                               BOOLEAN isHashShard ) ;
       ~clsCatalogPredicateTree() ;
 
-      void upgradeToUniverse() ;
-      BOOLEAN isUniverse() ;
-      CLS_CATA_LOGIC_TYPE getLogicType() ;
-      void setLogicType( CLS_CATA_LOGIC_TYPE type ) ;
-      void addChild( clsCatalogPredicateTree *pChild ) ;
-      INT32 addPredicate( const CHAR *pFieldName, bson::BSONElement beField,
-                          INT32 opType );
-      void adjustByShardingKey() ;
-      void clear() ;
-      INT32 matches( _clsCatalogItem * pCatalogItem, BOOLEAN & result ) ;
+      void  upgradeToUniverse() ;
+      void  upgradeToNull() ;
+      void  setLogicType( CLS_CATA_LOGIC_TYPE type ) ;
 
-      string toString() const ;
+      BOOLEAN              isUniverse() const ;
+      BOOLEAN              isNull() const { return _isNull ; }
+      CLS_CATA_LOGIC_TYPE  getLogicType() const ;
+
+      INT32 addChild( clsCatalogPredicateTree *pChild ) ;
+      INT32 addPredicate( const CHAR *pFieldName,
+                          const BSONElement &beField,
+                          INT32 opType ) ;
+
+      INT32 done() ;
+
+      INT32 calc( const _clsCatalogSet *pSet,
+                  CLS_SET_CATAITEM &setItem ) ;
+
+      ossPoolString toString() const ;
 
    protected:
-      /// compareLU <= 0, compare lowbound and stop key
-      /// compareLR >=0, compare upbound and start key
-      INT32 _matches( bson::BSONObjIterator itrSK,
-                      bson::BSONObjIterator itrLB,
-                      bson::BSONObjIterator itrUB,
-                      BOOLEAN & result,
-                      BOOLEAN isCloseInterval,
-                      INT32 compareLU ) ;
+      INT32 _pushPredset( rtnPredicateSet &predset ) ;
+      void  _doneCheckUniverse() ;
+      void  _doneCheckNull() ;
+      void  _clearChildren() ;
+      void  _clear() ;
+      INT32 _done() ;
+
+      BOOLEAN _calcNext( VEC_INT32 &vecCur ) const ;
+
+      INT32 _calc( const _clsCatalogSet *pSet,
+                   VEC_INT32 &vecCur,
+                   CLS_SET_CATAITEM &setItem ) ;
+
+      INT32 _buildStartObj( VEC_INT32 &vecCur,
+                            BSONObj &obj,
+                            BOOLEAN &isEqual ) ;
+
+      void  _mergeAnd( CLS_SET_CATAITEM &setItem,
+                       const CLS_SET_CATAITEM &mergeItem ) ;
+
+      INT32 _mergeOr( CLS_SET_CATAITEM &setItem,
+                      const CLS_SET_CATAITEM &mergeItem ) ;
+
+      INT32 _compareStartWithBound( VEC_INT32 &vecCur,
+                                    const BSONObj &bound,
+                                    const Ordering *pOrder ) ;
+
+      INT32 _compareStopWithBound( VEC_INT32 &vecCur,
+                                   const BSONObj &bound,
+                                   const Ordering *pOrder ) ;
 
    private:
       // forbid copy constructor
-      clsCatalogPredicateTree( clsCatalogPredicateTree &right ){}
+      clsCatalogPredicateTree( const clsCatalogPredicateTree &right ) {}
+
    private:
       VEC_CLSCATAPREDICATESET       _children ;
       rtnPredicateSet               _predicateSet ;
+      rtnPredicateList              _predicateLst ;
       CLS_CATA_LOGIC_TYPE           _logicType ;
-      bson::BSONObj                 _shardingKey ;
+      BSONObj                       _shardingKey ;
+      BOOLEAN                       _isNull ;
+      BOOLEAN                       _isHashShard ;
 
    } ;
 

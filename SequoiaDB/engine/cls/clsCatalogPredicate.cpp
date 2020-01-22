@@ -43,72 +43,169 @@
 #include "pdTrace.hpp"
 
 using namespace bson;
+
 namespace engine
 {
-   clsCatalogPredicateTree::clsCatalogPredicateTree( BSONObj shardingKey ) :
-   _logicType( CLS_CATA_LOGIC_INVALID ),
-   _shardingKey( shardingKey )
+   /*
+      clsCatalogPredicateTree implement
+   */
+   clsCatalogPredicateTree::clsCatalogPredicateTree( const BSONObj &shardingKey,
+                                                     BOOLEAN isHashShard )
+  :_logicType( CLS_CATA_LOGIC_INVALID ),
+   _shardingKey( shardingKey ),
+   _isNull( FALSE ),
+   _isHashShard( isHashShard )
    {
    }
 
    clsCatalogPredicateTree::~clsCatalogPredicateTree()
    {
-      clear() ;
+      _clear() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE_ADDCHILD, "clsCatalogPredicateTree::addChild" )
-   void clsCatalogPredicateTree::addChild( clsCatalogPredicateTree * pChild )
+   INT32 clsCatalogPredicateTree::addChild( clsCatalogPredicateTree *pChild )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE_ADDCHILD ) ;
-      SDB_ASSERT ( pChild, "pchild can't be null" ) ;
-      pChild->adjustByShardingKey() ;
+      SDB_ASSERT ( pChild, "pChild can't be NULL" ) ;
 
-      if ( FALSE == pChild->isUniverse() )
+      pChild->_doneCheckNull() ;
+
+      if ( pChild->isNull() )
       {
-         _children.push_back( pChild ) ;
+         if ( CLS_CATA_LOGIC_AND == _logicType )
+         {
+            upgradeToNull() ;
+         }
+         /// ignore $or
+         SDB_OSS_DEL pChild ;
+      }
+      else if ( pChild->isUniverse() )
+      {
+         if ( CLS_CATA_LOGIC_AND != _logicType )
+         {
+            upgradeToUniverse() ;
+         }
+         /// ignore $and
+         SDB_OSS_DEL pChild ;
+      }
+      else
+      {
+         try
+         {
+            _children.push_back( pChild ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSCATAPREDICATETREE_ADDCHILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void clsCatalogPredicateTree::_doneCheckNull()
+   {
+      if ( _predicateSet.getSize() > 0 )
+      {
+         const RTN_PREDICATE_MAP &mapPred = _predicateSet.predicates() ;
+         RTN_PREDICATE_MAP::const_iterator cit = mapPred.begin() ;
+         while( cit != mapPred.end() )
+         {
+            if ( cit->second.isEmpty() )
+            {
+               upgradeToNull() ;
+               break ;
+            }
+            ++cit ;
+         }
+      }
+   }
+
+   void clsCatalogPredicateTree::_doneCheckUniverse()
+   {
+      const RTN_PREDICATE_MAP &mapPredicate = _predicateSet.predicates() ;
+
+      if ( isNull() || mapPredicate.empty() )
+      {
          goto done ;
       }
 
-      // if the child is universe set and the logic type is "$or",
-      // then upgrade to universe set
-      if ( CLS_CATA_LOGIC_OR == _logicType )
+      if ( _isHashShard )
       {
-         upgradeToUniverse() ;
+         BSONObjIterator itr( _shardingKey ) ;
+         while ( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( mapPredicate.find( e.fieldName() ) == mapPredicate.end() )
+            {
+               /// not found
+               _predicateSet.clear() ;
+               break ;
+            }
+         }
       }
-      SDB_OSS_DEL( pChild ) ;
+      else
+      {
+         const CHAR *pName = _shardingKey.firstElementFieldName() ;
+         if ( pName && pName[0] &&
+              mapPredicate.find( pName ) == mapPredicate.end() )
+         {
+            _predicateSet.clear() ;
+         }
+      }
 
    done:
-      PD_TRACE_EXIT ( SDB_CLSCATAPREDICATETREE_ADDCHILD );
       return ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE_CLEAR, "clsCatalogPredicateTree::clear" )
-   void clsCatalogPredicateTree::clear()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE__CLEAR, "clsCatalogPredicateTree::_clear" )
+   void clsCatalogPredicateTree::_clear()
    {
-      PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE_CLEAR ) ;
-      // clear the children
-      clsCatalogPredicateTree *pTmp = NULL ;
-      while ( !_children.empty() )
-      {
-         pTmp = _children.back() ;
-         _children.pop_back() ;
-         SDB_OSS_DEL( pTmp ) ;
-      }
+      PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE__CLEAR ) ;
+
+      _clearChildren() ;
 
       // clear the predicateSet
       _predicateSet.clear() ;
+      _isNull = FALSE ;
 
-      PD_TRACE_EXIT ( SDB_CLSCATAPREDICATETREE_CLEAR );
+      PD_TRACE_EXIT ( SDB_CLSCATAPREDICATETREE__CLEAR ) ;
+   }
+
+   void clsCatalogPredicateTree::_clearChildren()
+   {
+      /// clear child
+      VEC_CLSCATAPREDICATESET::iterator it = _children.begin() ;
+      while ( it != _children.end() )
+      {
+         SDB_OSS_DEL ( *it ) ;
+         ++it ;
+      }
+      _children.clear() ;
    }
 
    void clsCatalogPredicateTree::upgradeToUniverse()
    {
-      clear() ;
+      _clear() ;
+   }
+
+   void clsCatalogPredicateTree::upgradeToNull()
+   {
+      _isNull = TRUE ;
+      _clearChildren() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE_ADDPREDICATE, "clsCatalogPredicateTree::addPredicate" )
    INT32 clsCatalogPredicateTree::addPredicate( const CHAR *pFieldName,
-                                                BSONElement beField,
+                                                const BSONElement &beField,
                                                 INT32 opType )
    {
       INT32 rc = SDB_OK ;
@@ -116,82 +213,166 @@ namespace engine
 
       // We don't know the setting of enableMixCmp in data groups, we need a
       // larger range to cover all cases, so use mix-compare mode
-      rc = _predicateSet.addPredicate( pFieldName, beField, opType, FALSE, TRUE ) ;
+      rc = _predicateSet.addPredicate( pFieldName, beField, opType,
+                                       FALSE, TRUE ) ;
 
       PD_TRACE_EXITRC ( SDB_CLSCATAPREDICATETREE_ADDPREDICATE, rc ) ;
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE_ADJUSTBYSHARDINGKEY, "clsCatalogPredicateTree::adjustByShardingKey" )
-   void clsCatalogPredicateTree::adjustByShardingKey()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE__PUSHPREDSET, "clsCatalogPredicateTree::_pushPredset" )
+   INT32 clsCatalogPredicateTree::_pushPredset( rtnPredicateSet &predset )
    {
-      PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE_ADJUSTBYSHARDINGKEY ) ;
-      try
-      {
-         const CHAR *pFirstKeyName = _shardingKey.firstElementFieldName() ;
-         const RTN_PREDICATE_MAP &mapPredicate = _predicateSet.predicates() ;
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE__PUSHPREDSET ) ;
 
-         if ( _logicType != CLS_CATA_LOGIC_AND ||
-              mapPredicate.size() == 0 ||
-              _children.size() != 0 )
+      if ( CLS_CATA_LOGIC_AND == _logicType )
+      {
+         if ( isNull() )
          {
+            /// When is null, do nothing
             goto done ;
          }
-         if ( 0 == pFirstKeyName[0] )
+
+         try
          {
-            goto done;
+            RTN_PREDICATE_MAP &mapPred = _predicateSet.predicates() ;
+            RTN_PREDICATE_MAP &mapPredPush = predset.predicates() ;
+            RTN_PREDICATE_MAP::iterator itPred = mapPredPush.begin() ;
+
+            while ( itPred != mapPredPush.end() )
+            {
+               rtnPredicate &pred = mapPred[ itPred->first ] ;
+               pred &= itPred->second ;
+               ++itPred ;
+
+               if ( pred.isEmpty() )
+               {
+                  upgradeToNull() ;
+                  goto done ;
+               }
+            }
+
+            if ( _children.empty() )
+            {
+               /// Only the last level and predicate can check universe
+               _doneCheckUniverse() ;
+            }
          }
-         if ( mapPredicate.find( pFirstKeyName ) != mapPredicate.end() )
+         catch( std::exception &e )
          {
-            goto done ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+            goto error ;
          }
-         _predicateSet.clear() ;
+
+         if ( !_children.empty() )
+         {
+            BOOLEAN isAllUniverse = TRUE ;
+            /// push to child
+            VEC_CLSCATAPREDICATESET::iterator it = _children.begin() ;
+            while( it != _children.end() )
+            {
+               rc = (*it)->_pushPredset( _predicateSet ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+               if ( (*it)->isNull() )
+               {
+                  upgradeToNull() ;
+                  goto done ;
+               }
+               else if ( isAllUniverse && !(*it)->isUniverse() )
+               {
+                  isAllUniverse = FALSE ;
+               }
+               ++it ;
+            }
+            /// clear self pred
+            _predicateSet.clear() ;
+
+            if ( isAllUniverse )
+            {
+               upgradeToUniverse() ;
+            }
+         }
       }
-      catch ( std::exception &e )
+      else if ( CLS_CATA_LOGIC_OR == _logicType && !_children.empty() )
       {
-         PD_LOG( PDERROR, "Failed to adjust the obj occured unexpected "
-                 "error:%s", e.what() ) ;
+         BOOLEAN isAllNull = TRUE ;
+         /// push to child
+         VEC_CLSCATAPREDICATESET::iterator it = _children.begin() ;
+         while( it != _children.end() )
+         {
+            rc = (*it)->_pushPredset( predset ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            if ( (*it)->isUniverse() )
+            {
+               upgradeToUniverse() ;
+               goto done ;
+            }
+            else if ( isAllNull && !(*it)->isNull() )
+            {
+               isAllNull = FALSE ;
+            }
+            ++it ;
+         }
+
+         if ( isAllNull )
+         {
+            upgradeToNull() ;
+         }
       }
 
-   done :
-      PD_TRACE_EXIT ( SDB_CLSCATAPREDICATETREE_ADJUSTBYSHARDINGKEY );
-      return ;
+   done:
+      PD_TRACE_EXITRC ( SDB_CLSCATAPREDICATETREE__PUSHPREDSET, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE_ISUNIVERSE, "clsCatalogPredicateTree::isUniverse" )
-   BOOLEAN clsCatalogPredicateTree::isUniverse()
+   BOOLEAN clsCatalogPredicateTree::isUniverse() const
    {
       PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE_ISUNIVERSE ) ;
-      BOOLEAN result = TRUE;
-      if ( _children.size() != 0 )
+      BOOLEAN result = TRUE ;
+
+      if ( _isNull )
       {
-         result = FALSE;
-         goto done;
+         result = FALSE ;
       }
-      if ( _predicateSet.predicates().size() != 0 )
+      else if ( _children.size() != 0 )
       {
-         result = FALSE;
-         goto done;
+         result = FALSE ;
       }
-   done:
+      else if ( _predicateSet.predicates().size() != 0 )
+      {
+         result = FALSE ;
+      }
+
       PD_TRACE_EXIT ( SDB_CLSCATAPREDICATETREE_ISUNIVERSE );
-      return result;
+      return result ;
    }
 
    void clsCatalogPredicateTree::setLogicType( CLS_CATA_LOGIC_TYPE type )
    {
-      _logicType = type;
+      _logicType = type ;
    }
 
-   CLS_CATA_LOGIC_TYPE clsCatalogPredicateTree::getLogicType()
+   CLS_CATA_LOGIC_TYPE clsCatalogPredicateTree::getLogicType() const
    {
-      return _logicType;
+      return _logicType ;
    }
 
-   string clsCatalogPredicateTree::toString() const
+   ossPoolString clsCatalogPredicateTree::toString() const
    {
       StringBuilder buf ;
-      buf << "[ " ;
+      buf << "{ " ;
+
       if ( CLS_CATA_LOGIC_INVALID == _logicType )
       {
          buf << "$invalid: " ;
@@ -209,386 +390,524 @@ namespace engine
          buf << _logicType << ": " ;
       }
 
-      // predicate
-      if ( _predicateSet.predicates().size() > 0 )
+      if ( isNull() )
       {
-         buf << _predicateSet.toString() ;
+         buf << "Null" ;
+      }
+      else if ( isUniverse() )
+      {
+         buf << "Universe" ;
+      }
+      else
+      {
+         // predicate
+         if ( _predicateSet.predicates().size() > 0 )
+         {
+            buf << _predicateSet.toString() ;
+         }
+
+         // sub
+         for ( UINT32 i = 0 ; i < _children.size() ; ++i )
+         {
+            buf << _children[ i ]->toString() ;
+         }
       }
 
-      // sub
-      for ( UINT32 i = 0 ; i < _children.size() ; ++i )
-      {
-         buf << _children[ i ]->toString() ;
-      }
-
-      buf << " ]" ;
-      return buf.str() ;
+      buf << " }" ;
+      return buf.poolStr() ;
    }
 
-   INT32 clsCatalogPredicateTree::_matches ( BSONObjIterator itrSK,
-                                             BSONObjIterator itrLB,
-                                             BSONObjIterator itrUB,
-                                             BOOLEAN &result,
-                                             BOOLEAN isCloseInterval,
-                                             INT32 compareLU )
+   INT32 clsCatalogPredicateTree::done()
    {
       INT32 rc = SDB_OK ;
-      UINT32 ssKeyPos = 0 ;
-      INT32 rsCmp = 0 ;
-      INT32 director = 1 ;
-      BSONElement lowBound ;
-      BSONElement upBound ;
-      BSONElement beShardingKey ;
-      const RTN_PREDICATE_MAP &predicates = _predicateSet.predicates() ;
-      RTN_PREDICATE_MAP::const_iterator itr ;
 
-      if ( !itrSK.more() )
+      _doneCheckNull() ;
+
+      /// push predicate
       {
-         result = isCloseInterval ? TRUE : FALSE ;
-         goto done ;
-      }
-
-      SDB_ASSERT( itrLB.more() && itrUB.more(), "Invalid catalog bound" ) ;
-
-      beShardingKey = itrSK.next() ;
-      director = beShardingKey.numberInt() > 0 ? 1 : -1 ;
-      ssKeyPos = 0 ;
-
-      lowBound = itrLB.next() ;
-      upBound = itrUB.next() ;
-
-      itr = predicates.find( beShardingKey.fieldName() ) ;
-      if ( itr == predicates.end() )
-      {
-         result = TRUE ;
-         goto done ;
-      }
-
-   retry:
-      if ( ssKeyPos >= itr->second._startStopKeys.size() )
-      {
-         result = FALSE ;
-         goto done ;
-      }
-
-      {
-         const rtnStartStopKey &matcherBound =
-            itr->second._startStopKeys[ ssKeyPos ] ;
-         const rtnKeyBoundary *pStartKey = NULL ;
-         const rtnKeyBoundary *pStopKey = NULL ;
-
-         if ( director > 0 )
+         rtnPredicateSet tmpPredset ;
+         rc = _pushPredset( tmpPredset ) ;
+         if ( rc )
          {
-            pStartKey = &(matcherBound._startKey) ;
-            pStopKey = &(matcherBound._stopKey) ;
+            goto error ;
          }
-         else
-         {
-            pStartKey = &(matcherBound._stopKey) ;
-            pStopKey = &(matcherBound._startKey) ;
-         }
-
-         if ( compareLU <= 0 )
-         {
-            // compare low bound
-            rsCmp = rtnKeyCompare( lowBound, pStopKey->_bound ) ;
-            rsCmp *= director ;
-            if ( rsCmp > 0 || ( rsCmp == 0 && !pStopKey->_inclusive ) )
-            {
-               // low bound > stop key, goto next start stop key
-               ++ssKeyPos ;
-               goto retry ;
-            }
-            else if ( rsCmp == 0 )
-            {
-               rc = _matches( itrSK, itrLB, itrUB, result, TRUE, -1 ) ;
-               if ( compareLU < 0 )
-               {
-                  goto done ;
-               }
-            }
-         }
-
-         if ( 0 <= compareLU )
-         {
-            // compare up bound
-            rsCmp = rtnKeyCompare( upBound, pStartKey->_bound ) ;
-            rsCmp *= director ;
-            if ( rsCmp < 0 || ( rsCmp == 0 && !pStartKey->_inclusive ) )
-            {
-               // up bound < start key, goto next start stop key
-               ++ssKeyPos ;
-               goto retry ;
-            }
-            else if ( rsCmp == 0 )
-            {
-               rc = _matches( itrSK, itrLB, itrUB, result, isCloseInterval, 1 ) ;
-               goto done ;
-            }
-         }
-      }
-
-      // in the range
-      result = TRUE ;
-
-   done:
-      return rc ;
-   }
-
-   INT32 clsCatalogPredicateTree::matches( _clsCatalogItem * pCatalogItem,
-                                           BOOLEAN & result )
-   {
-      INT32 rc = SDB_OK ;
-      BOOLEAN rsTmp = TRUE ;
-
-      if ( isUniverse() )
-      {
-         goto done ;
-      }
-
-      try
-      {
-         BSONObjIterator itrSK( _shardingKey ) ;
-         BSONObjIterator itrLB( pCatalogItem->getLowBound() ) ;
-         BSONObjIterator itrUB( pCatalogItem->getUpBound() ) ;
-
-         rc = _matches( itrSK, itrLB, itrUB, rsTmp, pCatalogItem->isLast(), 0 ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to match catalog item, rc: %d",
-                      rc ) ;
-
-         if ( ( rsTmp && CLS_CATA_LOGIC_OR == _logicType ) ||
-              ( !rsTmp && CLS_CATA_LOGIC_AND == _logicType ) )
+      
+         if ( isNull() || isUniverse() )
          {
             goto done ;
          }
       }
-      catch( std::exception &e )
+
+      rc = _done() ;
+      if ( rc )
       {
-         PD_LOG( PDERROR, "Occur exception on match catalog item: %s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
          goto error ;
       }
 
-      for ( UINT32 i = 0 ; i < _children.size(); i++ )
-      {
-         rc = _children[i]->matches( pCatalogItem, rsTmp ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to match the catalog item(rc=%d)",
-                      rc );
-         if ( ( !rsTmp && CLS_CATA_LOGIC_AND == _logicType ) ||
-              ( rsTmp && CLS_CATA_LOGIC_OR == _logicType ) )
-         {
-            break ;
-         }
-      }
    done:
-      result = rsTmp ;
       return rc ;
    error:
       goto done ;
    }
 
-/*
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE_MATCHES, "clsCatalogPredicateTree::matches" )
-   INT32 clsCatalogPredicateTree::matches( _clsCatalogItem * pCatalogItem,
-                                           BOOLEAN & result )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE__DONE, "clsCatalogPredicateTree::_done" )
+   INT32 clsCatalogPredicateTree::_done()
    {
       INT32 rc = SDB_OK ;
-      BOOLEAN rsTmp = TRUE ;
+      PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE__DONE ) ;
 
-      // PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE_MATCHES ) ;
-      const RTN_PREDICATE_MAP &predicates = _predicateSet.predicates() ;
-      if ( isUniverse() )
+      /// gen predicate list
+      if ( _predicateSet.getSize() > 0 )
       {
-         goto done ;
-      }
-      if ( predicates.size() > 0 )
-      {
-         try
+         SDB_ASSERT( _children.empty(), "Children must be empty" ) ;
+
+         UINT32 addedLevel = 0 ;
+         rc = _predicateLst.initialize( _predicateSet, _shardingKey,
+                                        1, addedLevel ) ;
+         if ( rc )
          {
-            BSONObjIterator iterSK( _shardingKey );
-            BSONObjIterator iterLB( pCatalogItem->getLowBound() );
-            BSONObjIterator iterUB( pCatalogItem->getUpBound() );
-            while ( iterSK.more() )
-            {
-               BSONElement beShardingKey = iterSK.next() ;
-               SDB_ASSERT ( beShardingKey.isNumber(),
-                            "Invalid sharding-key!" ) ;
-               RTN_PREDICATE_MAP::const_iterator iterMap =
-                                 predicates.find( beShardingKey.fieldName() );
-               if ( predicates.end() == iterMap )
-               {
-                  rsTmp = TRUE ;
-                  goto check_children ;
-               }
-
-               // the size of _startStopKeys must be "0" or "1":
-               // "0": it is means the matcher is empty set.
-               // "1": it is normal set include universe set.
-               // other: it is $ne
-               if ( iterMap->second._startStopKeys.size() != 1 )
-               {
-                  rsTmp = TRUE ;
-                  goto check_children ;
-               }
-
-               rtnStartStopKey matcherBound = iterMap->second._startStopKeys[0];
-               BSONElement lowBound ;
-               BSONElement upBound ;
-               INT32 rsCmp = 0 ;
-
-               // lowBound <= upBound
-               if ( beShardingKey.numberInt() >= 0 )
-               {
-                  if ( iterLB.more() )
-                  {
-                     lowBound = iterLB.next();
-                     rsCmp = rtnKeyCompare( lowBound,
-                                            matcherBound._stopKey._bound );
-                     if ( rsCmp > 0 )
-                     {
-                        rsTmp = FALSE;
-                        goto check_children;
-                     }
-                     else if ( 0 == rsCmp )
-                     {
-                        if ( !matcherBound._stopKey._inclusive )
-                        {
-                           rsTmp = FALSE;
-                           goto check_children;
-                        }
-                        if ( !iterSK.more() )
-                        {
-                           rsTmp = TRUE;
-                           goto check_children;
-                        }
-                        if ( iterUB.more() )
-                        {
-                           upBound = iterUB.next();
-                        }
-                        continue;
-                     }
-                  }
-                  if ( iterUB.more() )
-                  {
-                     upBound = iterUB.next();
-                     rsCmp = rtnKeyCompare( upBound,
-                                            matcherBound._startKey._bound );
-                     if ( rsCmp < 0 )
-                     {
-                        rsTmp = FALSE;
-                        goto check_children;
-                     }
-                     else if ( 0 == rsCmp )
-                     {
-                        if ( !matcherBound._startKey._inclusive ||
-                             !iterSK.more() )
-                        {
-                           rsTmp = FALSE;
-                           goto check_children;
-                        }
-                        continue;
-                     }
-                  }
-                  rsTmp = TRUE;
-                  goto check_children;
-               }
-               else // lowBound > upBound
-               {
-                  if ( iterLB.more() )
-                  {
-                     upBound = iterLB.next();
-                     rsCmp = rtnKeyCompare( upBound,
-                                            matcherBound._startKey._bound );
-                     if ( rsCmp < 0 || ( 0 == rsCmp &&
-                          !matcherBound._startKey._inclusive ) )
-                     {
-                        rsTmp = FALSE;
-                        goto check_children;
-                     }
-                     else if ( 0 == rsCmp )
-                     {
-                        if ( !matcherBound._startKey._inclusive )
-                        {
-                           rsTmp = FALSE;
-                           goto check_children;
-                        }
-                        if ( !iterSK.more() )
-                        {
-                           rsTmp = TRUE;
-                           goto check_children;
-                        }
-                        if ( iterUB.more() )
-                        {
-                           lowBound = iterUB.next();
-                        }
-                        continue;
-                     }
-                  }
-                  if ( iterUB.more() )
-                  {
-                     lowBound = iterUB.next();
-                     rsCmp = rtnKeyCompare( lowBound,
-                                            matcherBound._stopKey._bound );
-                     if ( rsCmp > 0 )
-                     {
-                        rsTmp = FALSE;
-                        goto check_children;
-                     }
-                     else if ( 0 == rsCmp )
-                     {
-                        if ( !matcherBound._stopKey._inclusive ||
-                             !iterSK.more() )
-                        {
-                           rsTmp = FALSE;
-                           goto check_children;
-                        }
-                        continue;
-                     }
-                  }
-                  rsTmp = TRUE;
-                  goto check_children;
-               }
-            }
-            if ( !iterSK.more() )
-            {
-               rsTmp = FALSE;
-            }
-         }
-         catch ( std::exception &e )
-         {
-            rc = SDB_INVALIDARG;
-            PD_LOG( PDERROR, "occured unexpected error:%s", e.what() );
+            PD_LOG( PDERROR, "Initialize predicate list failed, rc: %d",
+                    rc ) ;
             goto error ;
          }
       }
 
-   check_children:
-      if ( _children.size() > 0 && ( predicates.size() == 0 ||
-           TRUE == rsTmp || CLS_CATA_LOGIC_OR == _logicType ) )
+      /// done children
+      if ( !_children.empty() )
       {
-         UINT32 i = 0;
-         for ( ; i < _children.size(); i++ )
+         SDB_ASSERT( _predicateSet.getSize() == 0, "Predicates must be empty") ;
+
+         VEC_CLSCATAPREDICATESET::iterator it = _children.begin() ;
+         while( it != _children.end() )
          {
-            rc = _children[i]->matches( pCatalogItem, rsTmp );
-            PD_RC_CHECK( rc, PDERROR, "Failed to match the shardingKey(rc=%d)",
-                         rc );
-            if ( ( !rsTmp && CLS_CATA_LOGIC_AND == _logicType ) ||
-                 ( rsTmp && CLS_CATA_LOGIC_OR == _logicType ) )
+            rc = (*it)->_done() ;
+            if ( rc )
             {
-               break;
+               goto error ;
+            }
+            ++it ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSCATAPREDICATETREE__DONE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE_CALC, "clsCatalogPredicateTree::calc" )
+   INT32 clsCatalogPredicateTree::calc( const _clsCatalogSet *pSet,
+                                        CLS_SET_CATAITEM &setItem )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE_CALC ) ;
+
+      clsCatalogPredicateTree *pChild = NULL ;
+      const _clsCatalogSet::MAP_CAT_ITEM *pCataItem = NULL ;
+      pCataItem = pSet->getCataItem() ;
+
+      if ( isNull() )
+      {
+         /// none
+      }
+      else if ( isUniverse() )
+      {
+         /// push all
+         _clsCatalogSet::MAP_CAT_ITEM::const_iterator cit ;
+         cit = pCataItem->begin() ;
+         while( cit != pCataItem->end() )
+         {
+            setItem.insert( cit->second ) ;
+            ++cit ;
+         }
+      }
+      else if ( _predicateLst.isInitialized() )
+      {
+         try
+         {
+            VEC_INT32 vecPos( _predicateLst.size(), 0 ) ;
+            BOOLEAN isEnd = FALSE ;
+
+            while( !isEnd )
+            {
+               rc = _calc( pSet, vecPos, setItem ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+               isEnd = _calcNext( vecPos ) ? FALSE : TRUE ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+      }
+      else
+      {
+         /// process children
+         VEC_CLSCATAPREDICATESET::iterator it = _children.begin() ;
+         BOOLEAN isFirst = TRUE ;
+         while ( it != _children.end() )
+         {
+            pChild = *it ;
+
+            if ( CLS_CATA_LOGIC_AND == _logicType )
+            {
+               if ( pChild->isNull() )
+               {
+                  setItem.clear() ;
+                  break ;
+               }
+               CLS_SET_CATAITEM tmpItem ;
+               rc = pChild->calc( pSet, isFirst ? setItem : tmpItem ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+               if ( !isFirst )
+               {
+                  _mergeAnd( setItem, tmpItem ) ;
+               }
+            }
+            else
+            {
+               CLS_SET_CATAITEM tmpItem ;
+               rc = pChild->calc( pSet, isFirst ? setItem : tmpItem ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+               if ( !isFirst )
+               {
+                  rc = _mergeOr( setItem, tmpItem ) ;
+                  if ( rc )
+                  {
+                     goto error ;
+                  }
+               }
+               if ( pChild->isUniverse() )
+               {
+                  break ;
+               }
+            }
+
+            ++it ;
+            isFirst = FALSE ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CLSCATAPREDICATETREE_CALC, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE__CALC, "clsCatalogPredicateTree::_calc" )
+   INT32 clsCatalogPredicateTree::_calc( const _clsCatalogSet *pSet,
+                                         VEC_INT32 &vecCur,
+                                         CLS_SET_CATAITEM &setItem )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE__CALC ) ;
+
+      INT32 cmpResult = 0 ;
+      BSONObj objStart ;
+      BOOLEAN isEqual = FALSE ;
+      const _clsCatalogItem *pItem = NULL ;
+      const _clsCatalogSet::MAP_CAT_ITEM *pMapCata = NULL ;
+      pMapCata = pSet->getCataItem() ;
+      _clsCatalogSet::MAP_CAT_ITEM::const_iterator cit ;
+
+      rc = _buildStartObj( vecCur, objStart, isEqual ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      else if ( pSet->isHashSharding() )
+      {
+         if ( !isEqual )
+         {
+            cit = pMapCata->begin() ;
+            while( cit != pMapCata->end() )
+            {
+               setItem.insert( cit->second ) ;
+               ++cit ;
+            }
+         }
+         else
+         {
+            clsCataItemKey findKey( clsPartition( objStart,
+                                                  pSet->getPartitionBit(),
+                                                  pSet->getInternalV() ) ) ;
+            cit = pMapCata->upper_bound( findKey ) ;
+            if ( cit == pMapCata->end() )
+            {
+               if ( pSet->getLastItem() )
+               {
+                  setItem.insert( pSet->getLastItem() ) ;
+               }
+            }
+            else
+            {
+               setItem.insert( cit->second ) ;
+            }
+         }
+      }
+      else
+      {
+         clsCataItemKey findKey( objStart.objdata(), pSet->getOrdering() ) ;
+         cit = pMapCata->upper_bound( findKey ) ;
+         /// When not found
+         if ( cit == pMapCata->end() )
+         {
+            if ( pSet->getLastItem() )
+            {
+               setItem.insert( pSet->getLastItem() ) ;
+            }
+         }
+         else if ( isEqual && pSet->isWholeRange() )
+         {
+            setItem.insert( cit->second ) ;
+         }
+         else
+         {
+            while ( cit != pMapCata->end() )
+            {
+               pItem = cit->second ;
+               /// compare start with upBound
+               cmpResult = _compareStartWithBound( vecCur,
+                                                   pItem->getUpBound(),
+                                                   pSet->getOrdering() ) ;
+               if ( cmpResult >= 0 )
+               {
+                  ++cit ;
+                  continue ;
+               }
+               /// compare stop with lowBound
+               cmpResult = _compareStopWithBound( vecCur,
+                                                  pItem->getLowBound(),
+                                                  pSet->getOrdering() ) ;
+               if ( cmpResult < 0 )
+               {
+                  break ;
+               }
+
+               setItem.insert( pItem ) ;
+               ++cit ;
             }
          }
       }
 
    done:
-      result = rsTmp;
-      // PD_TRACE_EXITRC ( SDB_CLSCATAPREDICATETREE_MATCHES, rc ) ;
-      return rc;
+      PD_TRACE_EXITRC( SDB_CLSCATAPREDICATETREE__CALC, rc ) ;
+      return rc ;
    error:
-      goto done;
+      goto done ;
    }
-*/
+
+   BOOLEAN clsCatalogPredicateTree::_calcNext( VEC_INT32 &vecCur ) const
+   {
+      BOOLEAN hasNext = TRUE ;
+      const RTN_PREDICATE_LIST *pPredList = NULL ;
+      pPredList = _predicateLst.getPredicateList() ;
+
+      UINT32 size = vecCur.size() ;
+      INT32 i = size - 1 ;
+      for ( ; i >= 0 ; --i )
+      {
+         const rtnPredicate &pred = (*pPredList)[i] ;
+         if ( vecCur[i] + 1 < (INT32)pred._startStopKeys.size() )
+         {
+            ++vecCur[i] ;
+            break ;
+         }
+         else
+         {
+            vecCur[i] = 0 ;
+         }
+      }
+
+      if ( i < 0 )
+      {
+         hasNext = FALSE ;
+      }
+
+      return hasNext ;
+   }
+
+   INT32 clsCatalogPredicateTree::_buildStartObj( VEC_INT32 &vecCur,
+                                                  BSONObj &obj,
+                                                  BOOLEAN &isEqual )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+      const RTN_PREDICATE_LIST *pPredList = NULL ;
+      pPredList = _predicateLst.getPredicateList() ;
+      UINT32 size = vecCur.size() ;
+
+      try
+      {
+         isEqual = TRUE ;
+         for ( UINT32 i = 0 ; i < size ; ++i )
+         {
+            const rtnPredicate &pred = (*pPredList)[i] ;
+            if ( isEqual && !pred._startStopKeys[vecCur[i]].isEquality() )
+            {
+               isEqual = FALSE ;
+            }
+            builder.appendAs( pred._startStopKeys[vecCur[i]]._startKey._bound,
+                              "" ) ;
+         }
+         obj = builder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void clsCatalogPredicateTree::_mergeAnd( CLS_SET_CATAITEM &setItem,
+                                            const CLS_SET_CATAITEM &mergeItem )
+   {
+      CLS_SET_CATAITEM::const_iterator cit = mergeItem.begin() ;
+      CLS_SET_CATAITEM::iterator it = setItem.begin() ;
+
+      while ( cit != mergeItem.end() && it != setItem.end() )
+      {
+         if ( *cit == *it )
+         {
+            ++cit ;
+            ++it ;
+         }
+         else if ( *cit < *it )
+         {
+            ++cit ;
+         }
+         else
+         {
+            setItem.erase( it++ ) ;
+         }
+      }
+
+      /// remove the others
+      while ( it != setItem.end() )
+      {
+         setItem.erase( it++ ) ;
+      }
+   }
+
+   INT32 clsCatalogPredicateTree::_mergeOr( CLS_SET_CATAITEM &setItem,
+                                            const CLS_SET_CATAITEM &mergeItem )
+   {
+      INT32 rc = SDB_OK ;
+
+      CLS_SET_CATAITEM::const_iterator cit = mergeItem.begin() ;
+
+      try
+      {
+         while ( cit != mergeItem.end() )
+         {
+            setItem.insert( *cit ) ;
+            ++cit ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 clsCatalogPredicateTree::_compareStartWithBound( VEC_INT32 &vecCur,
+                                                          const BSONObj &bound,
+                                                          const Ordering *pOrder )
+   {
+      INT32 cmpResult = 0 ;
+      const RTN_PREDICATE_LIST *pPredList = NULL ;
+      pPredList = _predicateLst.getPredicateList() ;
+      UINT32 size = vecCur.size() ;
+
+      BSONObjIterator itr( bound ) ;
+
+      for ( UINT32 i = 0 ; i < size ; ++i )
+      {
+         const rtnPredicate &pred = (*pPredList)[i] ;
+         const rtnStartStopKey &startStop = pred._startStopKeys[ vecCur[i] ] ;
+         BSONElement e = itr.next() ;
+
+         cmpResult = startStop._startKey._bound.woCompare( e, false ) ;
+         if ( 0 == cmpResult )
+         {
+            if ( !startStop._startKey._inclusive )
+            {
+               cmpResult = 1 * pOrder->get( i ) ;
+               break ;
+            }
+         }
+         else
+         {
+            cmpResult *= pOrder->get( i ) ;
+            break ;
+         }
+      }
+
+      return cmpResult ;
+   }
+
+   INT32 clsCatalogPredicateTree::_compareStopWithBound( VEC_INT32 &vecCur,
+                                                         const BSONObj &bound,
+                                                         const Ordering *pOrder )
+   {
+      INT32 cmpResult = 0 ;
+      const RTN_PREDICATE_LIST *pPredList = NULL ;
+      pPredList = _predicateLst.getPredicateList() ;
+      UINT32 size = vecCur.size() ;
+
+      BSONObjIterator itr( bound ) ;
+
+      for ( UINT32 i = 0 ; i < size ; ++i )
+      {
+         const rtnPredicate &pred = (*pPredList)[i] ;
+         const rtnStartStopKey &startStop = pred._startStopKeys[ vecCur[i] ] ;
+         BSONElement e = itr.next() ;
+
+         cmpResult = startStop._stopKey._bound.woCompare( e, false ) ;
+         if ( 0 == cmpResult )
+         {
+            if ( !startStop._stopKey._inclusive )
+            {
+               /// stop not include means <
+               cmpResult = -1 * pOrder->get( i ) ;
+               break ;
+            }
+         }
+         else
+         {
+            cmpResult *= pOrder->get( i ) ;
+            break ;
+         }
+      }
+
+      return cmpResult ;
+   }
 
 }
 

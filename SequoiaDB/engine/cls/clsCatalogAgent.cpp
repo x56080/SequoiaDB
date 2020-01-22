@@ -39,7 +39,6 @@
 #include "clsTrace.hpp"
 #include "clsCatalogMatcher.hpp"
 #include "catDef.hpp"
-#include "clsCataHashMatcher.hpp"
 #include "utilBsonHash.hpp"
 #include "utilCommon.hpp"
 #include "ossMemPool.hpp"
@@ -54,10 +53,12 @@ using namespace bson ;
 
 namespace engine
 {
-#define CLS_CA_SHARDINGTYPE_NONE 0
-#define CLS_CA_SHARDINGTYPE_RANGE 1
-#define CLS_CA_SHARDINGTYPE_HASH 2
+   #define CLS_CA_SHARDINGTYPE_NONE       ( 0 )
+   #define CLS_CA_SHARDINGTYPE_RANGE      ( 1 )
+   #define CLS_CA_SHARDINGTYPE_HASH       ( 2 )
 
+   #define CLS_CATSET_GROUPSZ_DFT         ( 8 )
+   #define CLS_CATSET_SUBCLSZ_DFT         ( 8 )
 
    /*
    note: _clsCataItemKey implement
@@ -222,17 +223,17 @@ namespace engine
       return _groupID ;
    }
 
-   BSONObj& _clsCatalogItem::getLowBound ()
+   const BSONObj& _clsCatalogItem::getLowBound () const
    {
       return _lowBound ;
    }
 
-   BSONObj& _clsCatalogItem::getUpBound ()
+   const BSONObj& _clsCatalogItem::getUpBound () const
    {
       return _upBound ;
    }
 
-   clsCataItemKey _clsCatalogItem::getLowBoundKey ( const Ordering* ordering )
+   clsCataItemKey _clsCatalogItem::getLowBoundKey ( const Ordering* ordering ) const
    {
       if ( !_isHash )
       {
@@ -244,7 +245,7 @@ namespace engine
       }
    }
 
-   clsCataItemKey _clsCatalogItem::getUpBoundKey ( const Ordering * ordering )
+   clsCataItemKey _clsCatalogItem::getUpBoundKey ( const Ordering * ordering ) const
    {
       if ( !_isHash )
       {
@@ -501,16 +502,42 @@ namespace engine
       return &_vecGroupID ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTSET_GETALLGPID, "_clsCatalogSet::getAllGroupID" )
-   UINT32 _clsCatalogSet::getAllGroupID ( VEC_GROUP_ID &vecGroup ) const
+   BOOLEAN _clsCatalogSet::isInGroup( UINT32 groupID ) const
    {
+      VEC_GROUP_ID::const_iterator cit = _vecGroupID.begin() ;
+      while( cit != _vecGroupID.end() )
+      {
+         if ( groupID == *cit )
+         {
+            return TRUE ;
+         }
+         ++cit ;
+      }
+      return FALSE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTSET_GETALLGPID, "_clsCatalogSet::getAllGroupID" )
+   INT32 _clsCatalogSet::getAllGroupID ( VEC_GROUP_ID &vecGroup ) const
+   {
+      INT32 size = 0 ;
       PD_TRACE_ENTRY ( SDB__CLSCTSET_GETALLGPID ) ;
       vecGroup.clear() ;
-      UINT32 size = (UINT32)_vecGroupID.size() ;
-      for ( UINT32 index = 0 ; index < size ; index++ )
+      size = (INT32)_vecGroupID.size() ;
+
+      try
       {
-         vecGroup.push_back ( _vecGroupID[index] ) ;
+         vecGroup.reserve( _vecGroupID.size() ) ;
+         for ( INT32 index = 0 ; index < size ; index++ )
+         {
+            vecGroup.push_back ( _vecGroupID[index] ) ;
+         }
       }
+      catch( std::exception &e )
+      {
+         size = SDB_OOM ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
       PD_TRACE_EXIT ( SDB__CLSCTSET_GETALLGPID ) ;
       return size ;
    }
@@ -545,8 +572,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTSET_ADDGPID, "_clsCatalogSet::_addGroupID" )
-   void _clsCatalogSet::_addGroupID ( UINT32 groupID )
+   INT32 _clsCatalogSet::_addGroupID ( UINT32 groupID )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSCTSET_ADDGPID ) ;
       VEC_GROUP_ID::iterator it =  _vecGroupID.begin() ;
       while ( it != _vecGroupID.end() )
@@ -557,20 +585,41 @@ namespace engine
          }
          ++it ;
       }
-      _vecGroupID.push_back ( groupID ) ;
-      _groupCount = _vecGroupID.size() ;
+      try
+      {
+         _vecGroupID.reserve( CLS_CATSET_GROUPSZ_DFT ) ;
+         _vecGroupID.push_back ( groupID ) ;
+         _groupCount = _vecGroupID.size() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
 
    done:
-      PD_TRACE_EXIT ( SDB__CLSCTSET_ADDGPID ) ;
+      PD_TRACE_EXITRC( SDB__CLSCTSET_ADDGPID, rc ) ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTSET_ADDSUBCLNAME, "_clsCatalogSet::_addSubClName" )
-   void _clsCatalogSet::_addSubClName( UINT32 id,
-                                       const std::string &strClName )
+   INT32 _clsCatalogSet::_addSubClName( UINT32 id,
+                                        const std::string &strClName )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSCTSET_ADDSUBCLNAME ) ;
-      _subCLList.insert( std::make_pair( id, strClName ) ) ;
-      PD_TRACE_EXIT ( SDB__CLSCTSET_ADDSUBCLNAME ) ;
+
+      try
+      {
+         _subCLList.insert( std::make_pair( id, strClName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+      }
+      PD_TRACE_EXITRC ( SDB__CLSCTSET_ADDSUBCLNAME, rc ) ;
+      return rc ;
    }
 
    BOOLEAN _clsCatalogSet::isSharding () const
@@ -914,73 +963,63 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSCTSET_FINDGPIDS ) ;
       INT32 rc = SDB_OK ;
-      BOOLEAN result = FALSE ;
-      MAP_CAT_ITEM::iterator iter ;
 
       PD_CHECK ( !_mapItems.empty(), SDB_SYS, error, PDERROR,
                  "The collection[%s]'s cataItem is empty", name() ) ;
 
-      if ( !isSharding() || 1 == _groupCount )
+      try
       {
-         iter = _mapItems.begin();
-         while( iter != _mapItems.end() )
+         if ( !isSharding() || 1 == _groupCount ||
+              ( isHashSharding() && getInternalV() < CAT_INTERNAL_VERSION_2 ) )
          {
-            vecGroup.push_back( iter->second->getGroupID() );
-            ++iter;
-         }
-         goto done ;
-      }
-
-      if ( isHashSharding() )
-      {
-         if ( CAT_INTERNAL_VERSION_2 <= getInternalV() )
-         {
-            clsCataHashMatcher hashMatcher( _shardingKey ) ;
-            rc = hashMatcher.loadPattern( matcher, _square, getInternalV() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Load matcher failed, rc: %d", rc ) ;
-
-            iter = _mapItems.begin();
-            while( iter != _mapItems.end() )
+            vecGroup.reserve( _groupCount ) ;
+            VEC_GROUP_ID::iterator itGrp = _vecGroupID.begin() ;
+            while ( itGrp != _vecGroupID.end() )
             {
-               rc = hashMatcher.matches( iter->second, result );
-               PD_RC_CHECK( rc, PDERROR, "Match catalog item failed, rc: %d",
-                            rc ) ;
-               if ( result )
-               {
-                  vecGroup.push_back( iter->second->getGroupID() );
-               }
-               ++iter ;
+               vecGroup.push_back( *itGrp ) ;
+               ++itGrp ;
             }
          }
          else
          {
-            iter = _mapItems.begin();
-            while( iter != _mapItems.end() )
-            {
-               vecGroup.push_back( iter->second->getGroupID() );
-               ++iter ;
-            }
-         }
-         goto done ;
-      }
-      else
-      {
-         clsCatalogMatcher clsMatcher( _shardingKey ) ;
-         rc = clsMatcher.loadPattern( matcher );
-         PD_RC_CHECK( rc, PDERROR, "Load matcher failed, rc: %d", rc ) ;
+            CLS_SET_CATAITEM setItem ;
+            CLS_SET_CATAITEM::iterator itSet ;
+            clsCatalogMatcher clsMatcher( _shardingKey, isHashSharding() ) ;
+            rc = clsMatcher.loadPattern( matcher );
+            PD_RC_CHECK( rc, PDERROR, "Load matcher failed, rc: %d", rc ) ;
 
-         iter = _mapItems.begin();
-         while( iter != _mapItems.end() )
-         {
-            rc = clsMatcher.matches( iter->second, result );
-            PD_RC_CHECK( rc, PDERROR, "Match catalog item failed, rc: %d",
-                         rc ) ;
-            if ( result )
+            if ( clsMatcher.isUniverse() )
             {
-               vecGroup.push_back( iter->second->getGroupID() );
+               vecGroup.reserve( _groupCount ) ;
+               VEC_GROUP_ID::iterator itGrp = _vecGroupID.begin() ;
+               while ( itGrp != _vecGroupID.end() )
+               {
+                  vecGroup.push_back( *itGrp ) ;
+                  ++itGrp ;
+               }
+               goto done ;
             }
-            ++iter ;
+
+            rc = clsMatcher.calc( this, setItem ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+
+            vecGroup.reserve( CLS_CATSET_GROUPSZ_DFT ) ;
+            itSet = setItem.begin() ;
+            while( itSet != setItem.end() )
+            {
+               vecGroup.push_back( (*itSet)->getGroupID() ) ;
+               ++itSet ;
+            }
          }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
       }
 
    done:
@@ -1345,7 +1384,11 @@ namespace engine
             _deduplicate () ;
 
             // finally remake group ids
-            _remakeGroupIDs() ;
+            rc = _remakeGroupIDs() ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
       }
       catch ( std::exception &e )
@@ -1362,8 +1405,9 @@ namespace engine
       goto done ;
    }
 
-   void _clsCatalogSet::_remakeGroupIDs()
+   INT32 _clsCatalogSet::_remakeGroupIDs()
    {
+      INT32 rc = SDB_OK ;
       _vecGroupID.clear() ;
       clsCatalogItem *item = NULL ;
 
@@ -1371,9 +1415,15 @@ namespace engine
       while ( it != _mapItems.end() )
       {
          item = it->second ;
-         _addGroupID( item->getGroupID() ) ;
+         rc = _addGroupID( item->getGroupID() ) ;
+         if ( rc )
+         {
+            break ;
+         }
          ++it ;
       }
+
+      return rc ;
    }
 
    INT32 _clsCatalogSet::_removeItem( clsCatalogItem * item )
@@ -1394,15 +1444,24 @@ namespace engine
    INT32 _clsCatalogSet::_addItem( clsCatalogItem * item )
    {
       INT32 rc = SDB_OK ;
-      // add to map
-      if ( !(_mapItems.insert(std::make_pair(
-                             item->getUpBoundKey( getOrdering() ),
-                             item))).second )
+
+      try
       {
-         // if two ranges got same upper bound, that means something wrong
-         rc = SDB_CAT_CORRUPTION ;
-         PD_LOG ( PDERROR, "CataItem already exist: %s",
-                  item->toBson().toString().c_str() ) ;
+         // add to map
+         if ( !(_mapItems.insert(std::make_pair(
+                                item->getUpBoundKey( getOrdering() ),
+                                item))).second )
+         {
+            // if two ranges got same upper bound, that means something wrong
+            rc = SDB_CAT_CORRUPTION ;
+            PD_LOG ( PDERROR, "CataItem already exist: %s",
+                     item->toBson().toString().c_str() ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
       }
 
       return rc ;
@@ -2008,12 +2067,21 @@ namespace engine
             if ( !_isMainCL )
             {
                // add group id
-               _addGroupID ( cataItem->getGroupID() ) ;
+               rc = _addGroupID ( cataItem->getGroupID() ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
             }
             else
             {
                // add sub-collection name
-               _addSubClName( cataItem->getID(), cataItem->getSubClName() );
+               rc = _addSubClName( cataItem->getID(),
+                                   cataItem->getSubClName() );
+               if ( rc )
+               {
+                  goto error ;
+               }
             }
          }
       }
@@ -2055,7 +2123,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTSET__ISOBJALLMK, "_clsCatalogSet::_isObjAllMaxKey" )
-   BOOLEAN _clsCatalogSet::_isObjAllMaxKey ( BSONObj &obj )
+   BOOLEAN _clsCatalogSet::_isObjAllMaxKey ( const BSONObj &obj )
    {
       PD_TRACE_ENTRY ( SDB__CLSCTSET__ISOBJALLMK ) ;
       BOOLEAN ret = TRUE ;
@@ -2121,28 +2189,38 @@ namespace engine
       return _lobShardingKeyFormat ;
    }
 
-   INT32 _clsCatalogSet::getSubCLList( vector< string > &subCLLst,
+   INT32 _clsCatalogSet::getSubCLList( CLS_SUBCL_LIST &subCLLst,
                                        CLS_SUBCL_SORT_TYPE sortType )
    {
-      /// sort by id desc, newest sub cl in first
-      if ( SUBCL_SORT_BY_ID == sortType )
+      try
       {
-         std::multimap<UINT32, std::string>::reverse_iterator rit =
-            _subCLList.rbegin() ;
-         while( rit != _subCLList.rend() )
+         subCLLst.reserve( _mapItems.size() ) ;
+
+         /// sort by id desc, newest sub cl in first
+         if ( SUBCL_SORT_BY_ID == sortType )
          {
-            subCLLst.push_back( rit->second ) ;
-            ++rit ;
+            std::multimap<UINT32, std::string>::reverse_iterator rit =
+               _subCLList.rbegin() ;
+            while( rit != _subCLList.rend() )
+            {
+               subCLLst.push_back( rit->second ) ;
+               ++rit ;
+            }
+         }
+         else
+         {
+            MAP_CAT_ITEM_IT it = _mapItems.begin() ;
+            while( it != _mapItems.end() )
+            {
+               subCLLst.push_back( it->second->getSubClName() ) ;
+               ++it ;
+            }
          }
       }
-      else
+      catch( std::exception &e )
       {
-         MAP_CAT_ITEM_IT it = _mapItems.begin() ;
-         while( it != _mapItems.end() )
-         {
-            subCLLst.push_back( it->second->getSubClName() ) ;
-            ++it ;
-         }
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return SDB_OOM ;
       }
       return SDB_OK;
    }
@@ -2726,43 +2804,29 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsCatalogSet::_findLobSubCLNamesByMatcher(
-                                                     const BSONObj &matcher,
-                                                     vector<string> &subCLList )
+   INT32 _clsCatalogSet::_findLobSubCLNamesByMatcher( const BSONObj &matcher,
+                                                      CLS_SUBCL_LIST &subCLList,
+                                                      CLS_SUBCL_SORT_TYPE sortType )
    {
       INT32 rc = SDB_OK ;
-      BOOLEAN result = FALSE ;
       BSONObj lobShardingKey ;
-      MAP_CAT_ITEM::iterator iter ;
-      lobShardingKey = BSON( FIELD_NAME_LOB_OID
-                             << _shardingKey.firstElement().numberInt() ) ;
-      clsCatalogMatcher clsMatcher( lobShardingKey ) ;
 
-      rc = clsMatcher.loadPattern( matcher ) ;
-      PD_RC_CHECK( rc, PDERROR, "Load matcher failed, rc: %d", rc ) ;
-
-      if ( clsMatcher.isUniverse() )
+      try
       {
-         rc = getSubCLList( subCLList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get subcl list, rc: %d", rc ) ;
-         goto done ;
+         lobShardingKey = BSON( FIELD_NAME_LOB_OID
+                                << _shardingKey.firstElement().numberInt() ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
       }
 
-      subCLList.clear() ;
-      iter = _mapItems.begin() ;
-      while( iter != _mapItems.end() )
+      rc = findSubCLNames( matcher, subCLList, sortType ) ;
+      if ( rc )
       {
-         clsCatalogItem *item = iter->second ;
-         rc = clsMatcher.matches( item, result ) ;
-         PD_RC_CHECK( rc, PDERROR, "Match catalog item failed, rc: %d", rc ) ;
-         if ( result )
-         {
-            PD_LOG( PDDEBUG, "Find Lob subcl[%s]",
-                    item->getSubClName().c_str() ) ;
-            subCLList.push_back( item->getSubClName() ) ;
-         }
-
-         ++iter ;
+         goto error ;
       }
 
    done:
@@ -2772,7 +2836,8 @@ namespace engine
    }
 
    INT32 _clsCatalogSet::findLobSubCLNamesByMatcher( const BSONObj *matcher,
-                                                     vector<string> &subCLList )
+                                                     CLS_SUBCL_LIST &subCLList,
+                                                     CLS_SUBCL_SORT_TYPE sortType )
    {
       INT32 rc = SDB_OK ;
       BSONObjBuilder builder ;
@@ -2788,36 +2853,56 @@ namespace engine
 
       if ( _mapItems.empty() )
       {
-         PD_LOG( PDERROR, "The collection[%s]'s cataItem is empty", name() ) ;
+         PD_LOG( PDWARNING, "The collection[%s]'s cataItem is empty",
+                 name() ) ;
          rc = SDB_CAT_NO_MATCH_CATALOG ;
          goto error ;
       }
 
       if ( NULL == matcher || matcher->isEmpty() )
       {
-         rc = getSubCLList( subCLList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get subcl list, rc: %d", rc ) ;
-         goto done ;
+         goto getall ;
       }
 
-      rc = _rewriteMatcherForLob( *matcher, builder ) ;
-      if ( SDB_OK != rc )
+      try
       {
-         rc = getSubCLList( subCLList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get subcl list, rc: %d", rc ) ;
-         goto done ;
-      }
+         rc = _rewriteMatcherForLob( *matcher, builder ) ;
+         if ( SDB_OK != rc )
+         {
+            goto getall ;
+         }
 
-      newMatcher = builder.obj() ;
-      if ( newMatcher.isEmpty() )
+         newMatcher = builder.obj() ;
+         if ( newMatcher.isEmpty() )
+         {
+            goto getall ;
+         }
+      }
+      catch( std::exception &e )
       {
-         rc = getSubCLList( subCLList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get subcl list, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      rc = _findLobSubCLNamesByMatcher( newMatcher, subCLList, sortType ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Match catalog item failed, rc: %d", rc ) ;
+         goto error ;
+      }
+      else
+      {
          goto done ;
       }
 
-      rc = _findLobSubCLNamesByMatcher( newMatcher, subCLList ) ;
-      PD_RC_CHECK( rc, PDERROR, "Match catalog item failed, rc: %d", rc ) ;
+   getall:
+      rc = getSubCLList( subCLList, sortType ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to get subcl list, rc: %d", rc ) ;
+         goto error ;
+      }
 
    done:
       return rc ;
@@ -2826,13 +2911,11 @@ namespace engine
    }
 
    INT32 _clsCatalogSet::findSubCLNames( const BSONObj &matcher,
-                                         vector< string > &subCLList,
+                                         CLS_SUBCL_LIST &subCLList,
                                          CLS_SUBCL_SORT_TYPE sortType )
    {
       INT32 rc = SDB_OK ;
-      BOOLEAN result = FALSE ;
-      std::multimap<UINT32, clsCatalogItem* > mapSubItem ;
-      MAP_CAT_ITEM::iterator iter ;
+      ossPoolMultiMap<UINT32, clsCatalogItem* > mapSubItem ;
 
       if ( !isMainCL() )
       {
@@ -2843,44 +2926,20 @@ namespace engine
       }
       else if ( _mapItems.empty() )
       {
-         PD_LOG( PDERROR, "The collection[%s]'s cataItem is empty", name() ) ;
+         PD_LOG( PDWARNING, "The collection[%s]'s cataItem is empty", name() ) ;
          rc = SDB_CAT_NO_MATCH_CATALOG ;
          goto error ;
       }
 
       subCLList.clear() ;
 
-      if ( isHashSharding() )
+      try
       {
-         iter = _mapItems.begin() ;
-         while( iter != _mapItems.end() )
+         if ( isHashSharding() )
          {
-            if ( SUBCL_SORT_BY_ID == sortType )
-            {
-               mapSubItem.insert( std::make_pair( iter->second->getID(),
-                                                  iter->second ) ) ;
-            }
-            else
-            {
-               subCLList.push_back( iter->second->getSubClName() ) ;
-            }
-            ++iter ;
-         }
-         goto done ;
-      }
-      else
-      {
-         clsCatalogMatcher clsMatcher( _shardingKey ) ;
-         rc = clsMatcher.loadPattern( matcher ) ;
-         PD_RC_CHECK( rc, PDERROR, "Load matcher failed, rc: %d", rc ) ;
-
-         iter = _mapItems.begin() ;
-         while( iter != _mapItems.end() )
-         {
-            rc = clsMatcher.matches( iter->second, result ) ;
-            PD_RC_CHECK( rc, PDERROR, "Match catalog item failed, rc: %d",
-                         rc ) ;
-            if ( result )
+            subCLList.reserve( _mapItems.size() ) ;
+            MAP_CAT_ITEM::iterator iter = _mapItems.begin() ;
+            while( iter != _mapItems.end() )
             {
                if ( SUBCL_SORT_BY_ID == sortType )
                {
@@ -2891,34 +2950,94 @@ namespace engine
                {
                   subCLList.push_back( iter->second->getSubClName() ) ;
                }
+               ++iter ;
             }
-            ++iter ;
-         }
-
-         if ( SUBCL_SORT_BY_ID == sortType )
-         {
-            PD_CHECK( mapSubItem.size() != 0, SDB_CAT_NO_MATCH_CATALOG,
-                      error, PDERROR, "couldn't find the match catalog" ) ;
          }
          else
          {
-            PD_CHECK( subCLList.size() != 0, SDB_CAT_NO_MATCH_CATALOG,
-                      error, PDERROR, "couldn't find the match catalog" ) ;
+            MAP_CAT_ITEM mapBoundItem ;
+            CLS_SET_CATAITEM setItem ;
+            CLS_SET_CATAITEM::iterator itSet ;
+            clsCatalogMatcher clsMatcher( _shardingKey, isHashSharding() ) ;
+            rc = clsMatcher.loadPattern( matcher ) ;
+            PD_RC_CHECK( rc, PDERROR, "Load matcher failed, rc: %d", rc ) ;
+
+            if ( clsMatcher.isUniverse() )
+            {
+               rc = getSubCLList( subCLList, sortType ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to get subcl list, rc: %d", rc ) ;
+                  goto error ;
+               }
+               goto done ;
+            }
+
+            rc = clsMatcher.calc( this, setItem ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Calc matcher failed, rc: %d", rc ) ;
+               goto error ;
+            }
+
+            if ( setItem.empty() )
+            {
+               rc = SDB_CAT_NO_MATCH_CATALOG ;
+               PD_LOG( PDWARNING, "Couldn't find the match catalog, rc: %d",
+                       rc ) ;
+               goto error ;
+            }
+
+            itSet = setItem.begin() ;
+            while ( itSet != setItem.end() )
+            {
+               if ( SUBCL_SORT_BY_ID == sortType )
+               {
+                  mapSubItem.insert( std::make_pair( (*itSet)->getID(),
+                                                     (clsCatalogItem*)(*itSet) ) ) ;
+               }
+               else
+               {
+                  mapBoundItem.insert( std::make_pair( (*itSet)->getUpBoundKey( getOrdering() ),
+                                                       (clsCatalogItem*)(*itSet) ) ) ;
+               }
+               ++itSet ;
+            }
+
+            if ( SUBCL_SORT_BY_ID == sortType )
+            {
+               subCLList.reserve( mapSubItem.size() ) ;
+
+               ossPoolMultiMap<UINT32, clsCatalogItem* >::reverse_iterator rit ;
+               rit = mapSubItem.rbegin() ;
+               while ( rit != mapSubItem.rend() )
+               {
+                  subCLList.push_back( rit->second->getSubClName() ) ;
+                  ++rit ;
+               }
+            }
+            else
+            {
+               subCLList.reserve( mapBoundItem.size() ) ;
+
+               MAP_CAT_ITEM::iterator it ;
+               it = mapBoundItem.begin() ;
+               while ( it != mapBoundItem.end() )
+               {
+                  subCLList.push_back( it->second->getSubClName() ) ;
+                  ++it ;
+               }
+            }
          }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
       }
 
    done:
-      if ( SDB_OK == rc && SUBCL_SORT_BY_ID == sortType )
-      {
-         /// make sure sort by id desc, the newest sub cl in first
-         std::multimap<UINT32, clsCatalogItem* >::reverse_iterator rit =
-               mapSubItem.rbegin() ;
-         while( rit != mapSubItem.rend() )
-         {
-            subCLList.push_back( rit->second->getSubClName() ) ;
-            ++rit ;
-         }
-      }
       return rc ;
    error:
       goto done ;
@@ -2943,21 +3062,33 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTAGENT_GETALLNAMES, "_clsCatalogAgent::getAllNames" )
-   void _clsCatalogAgent::getAllNames( std::vector<string> &names )
+   INT32 _clsCatalogAgent::getAllNames( std::vector<string> &names )
    {
+      INT32 rc = SDB_OK ; 
       PD_TRACE_ENTRY ( SDB__CLSCTAGENT_GETALLNAMES ) ;
       CAT_MAP_IT itr = _mapCatalog.begin() ;
-      for ( ; itr != _mapCatalog.end(); itr++ )
+
+      try
       {
-         _clsCatalogSet *set = itr->second ;
-         do
+         names.reserve( _mapCatalog.size() ) ;
+         for ( ; itr != _mapCatalog.end(); itr++ )
          {
-            names.push_back( string( set->name() ) ) ;
-            set = set->next() ;
-         } while ( NULL != set ) ;
+            _clsCatalogSet *set = itr->second ;
+            do
+            {
+               names.push_back( set->nameStr() ) ;
+               set = set->next() ;
+            } while ( NULL != set ) ;
+         }
       }
-      PD_TRACE_EXIT ( SDB__CLSCTAGENT_GETALLNAMES ) ;
-      return ;
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      PD_TRACE_EXITRC ( SDB__CLSCTAGENT_GETALLNAMES, rc ) ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTAGENT_CLVS, "_clsCatalogAgent::collectionVersion" )
@@ -3048,6 +3179,8 @@ namespace engine
                                                          utilCLUniqueID clUniqueID )
    {
       PD_TRACE_ENTRY ( SDB__CLSCTAGENT__ADDCLSET ) ;
+      BOOLEAN addName = FALSE ;
+
       _clsCatalogSet *catSet = SDB_OSS_NEW _clsCatalogSet ( name,
                                                             FALSE,
                                                             clUniqueID) ;
@@ -3058,25 +3191,42 @@ namespace engine
 
       UINT32 hashCode = ossHash ( name ) ;
 
-      CAT_MAP_IT it = _mapCatalog.find ( hashCode ) ;
-      if ( it == _mapCatalog.end() )
+      try
       {
-         _mapCatalog[hashCode] = catSet ;
-      }
-      else
-      {
-         //add to the last
-         _clsCatalogSet * rootSet = it->second ;
-         while ( rootSet->next() )
+         CAT_MAP_IT it = _mapCatalog.find ( hashCode ) ;
+         if ( it == _mapCatalog.end() )
          {
-            rootSet = rootSet->next () ;
+            _mapCatalog[hashCode] = catSet ;
          }
-         rootSet->next ( catSet ) ;
-      }
+         else
+         {
+            //add to the last
+            _clsCatalogSet * rootSet = it->second ;
+            while ( rootSet->next() )
+            {
+               rootSet = rootSet->next () ;
+            }
+            rootSet->next ( catSet ) ;
+         }
+         addName = TRUE ;
 
-      if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
+         if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
+         {
+            _mapIDCatalog[ clUniqueID ] = catSet ;
+         }
+      }
+      catch( std::exception &e )
       {
-         _mapIDCatalog[ clUniqueID ] = catSet ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         if ( addName )
+         {
+            clear( name ) ;
+         }
+         else
+         {
+            SDB_OSS_DEL catSet ;
+            catSet = NULL ;
+         }
       }
 
       PD_TRACE_EXIT ( SDB__CLSCTAGENT__ADDCLSET ) ;
@@ -3132,12 +3282,20 @@ namespace engine
 
          /// add cata info to cache map
          catSet = collectionSet ( clName.c_str(), clUniqueID ) ;
-         if ( catSet &&
-              ( ossStrcmp( clName.c_str(), catSet->name() ) != 0 ||
-                clUniqueID != catSet->clUniqueID() ) )
+         if ( catSet )
          {
-            clear( clName.c_str() ) ;
-            catSet = NULL ;
+            if ( ossStrcmp( clName.c_str(), catSet->name() ) != 0 )
+            {
+               /// name is not the same
+               clear( catSet->name() ) ;
+               catSet = NULL ;
+            }
+            else if ( clUniqueID != catSet->clUniqueID() )
+            {
+               /// id is not the same
+               clear( clName.c_str() ) ;
+               catSet = NULL ;
+            }
          }
 
          if ( !catSet )
@@ -3183,16 +3341,27 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTAGENT_CLEAR, "_clsCatalogAgent::clear" )
-   INT32 _clsCatalogAgent::clear ( const CHAR* name,
-                                   CHAR * mainCL )
+   INT32 _clsCatalogAgent::clear ( const CHAR* name, CHAR* mainCLBuf,
+                                   UINT32 bufSize )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSCTAGENT_CLEAR ) ;
       _clsCatalogSet *preSet = NULL ;
       _clsCatalogSet *curSet = NULL ;
       UINT32 hashCode = ossHash ( name ) ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
+      CAT_MAP_IT it ;
 
-      CAT_MAP_IT it = _mapCatalog.find ( hashCode ) ;
+      if ( mainCLBuf && bufSize < DMS_COLLECTION_FULL_NAME_SZ )
+      {
+         SDB_ASSERT( FALSE, "Buff size is invalid" ) ;
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Buff size(%u) should grater than %u",
+                 bufSize, DMS_COLLECTION_FULL_NAME_SZ ) ;
+         goto error ;
+      }
+
+      it = _mapCatalog.find ( hashCode ) ;
       if ( it != _mapCatalog.end() )
       {
          curSet = it->second ;
@@ -3201,11 +3370,11 @@ namespace engine
             if ( ossStrcmp ( curSet->name(), name ) == 0 )
             {
                if ( !curSet->getMainCLName().empty() &&
-                    mainCL != NULL )
+                    mainCLBuf != NULL )
                {
-                  ossStrncpy( mainCL, curSet->getMainCLName().c_str(),
+                  ossStrncpy( mainCLBuf, curSet->getMainCLName().c_str(),
                               DMS_COLLECTION_FULL_NAME_SZ ) ;
-                  mainCL[ DMS_COLLECTION_FULL_NAME_SZ ] = '\0' ;
+                  mainCLBuf[ DMS_COLLECTION_FULL_NAME_SZ ] = '\0' ;
                }
                clUniqueID = curSet->clUniqueID() ;
                break ;
@@ -3243,8 +3412,11 @@ namespace engine
          }
       }
 
+   done:
       PD_TRACE_EXIT ( SDB__CLSCTAGENT_CLEAR ) ;
-      return SDB_OK ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    /* Description:
@@ -3258,9 +3430,10 @@ namespace engine
    */
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTAGENT_CRBYSPACENAME, "_clsCatalogAgent::clearBySpaceName" )
    INT32 _clsCatalogAgent::clearBySpaceName ( const CHAR * csName,
-                                              vector< string > *pSubCLs,
+                                              CLS_SUBCL_LIST *pSubCLs,
                                               ossPoolSet< string > * pMainCLs )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSCTAGENT_CRBYSPACENAME ) ;
       _clsCatalogSet *preSet = NULL ;
       _clsCatalogSet *curSet = NULL ;
@@ -3270,7 +3443,7 @@ namespace engine
       ossPoolSet< string > mainCLList ;
       ossPoolSet< string >::iterator iterMain ;
       CAT_MAP_IT it = _mapCatalog.begin() ;
-      ossPoolSet< utilCLUniqueID > deletingCSList ;
+      utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
 
       if ( NULL == pMainCLs )
       {
@@ -3303,7 +3476,15 @@ namespace engine
                }
                else
                {
-                  pSubCLs->push_back( curSet->_name ) ;
+                  try
+                  {
+                     pSubCLs->push_back( curSet->_name ) ;
+                  }
+                  catch( std::exception &e )
+                  {
+                     PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+                     rc = SDB_OOM ;
+                  }
                }
             }
 
@@ -3320,17 +3501,20 @@ namespace engine
                   }
                   else
                   {
-                     pMainCLs->insert( strMainCL ) ;
+                     try
+                     {
+                        pMainCLs->insert( strMainCL ) ;
+                     }
+                     catch( std::exception &e )
+                     {
+                        PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+                        rc = SDB_OOM ;
+                     }
                   }
                }
                // save CS unique ID for deleting
                // there might be expired unique ID for the same cs name
-               utilCLUniqueID csUniqueID =
-                                 utilGetCSUniqueID( curSet->clUniqueID() ) ;
-               if ( UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
-               {
-                  deletingCSList.insert( csUniqueID );
-               }
+               clUniqueID = curSet->clUniqueID() ;
 
                tmpSet = curSet ;
                curSet = curSet->next () ;
@@ -3351,6 +3535,15 @@ namespace engine
 
                tmpSet->next ( NULL ) ;
                SDB_OSS_DEL tmpSet ;
+
+               if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
+               {
+                  ID_CAT_MAP_IT it = _mapIDCatalog.find ( clUniqueID ) ;
+                  if ( it != _mapIDCatalog.end() )
+                  {
+                     _mapIDCatalog.erase ( it ) ;
+                  }
+               }
 
                continue ;
             }
@@ -3373,31 +3566,9 @@ namespace engine
          ++iterMain ;
       }
 
-      // clear ID map for deleting CS unique IDs
-      for ( ossPoolSet< utilCLUniqueID >::iterator iter = deletingCSList.begin() ;
-            iter != deletingCSList.end() ;
-            ++ iter )
-      {
-         utilCLUniqueID csUniqueID = *iter ;
-         if ( UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
-         {
-            ID_CAT_MAP_IT it = _mapIDCatalog.begin() ;
-            while ( it != _mapIDCatalog.end() )
-            {
-               utilCSUniqueID curCSID = utilGetCSUniqueID( it->first ) ;
-               if ( curCSID == csUniqueID )
-               {
-                  _mapIDCatalog.erase(it++) ;
-                  continue ;
-               }
-               it++ ;
-            }
-         }
-      }
-
    done:
-      PD_TRACE_EXIT ( SDB__CLSCTAGENT_CRBYSPACENAME ) ;
-      return SDB_OK ;
+      PD_TRACE_EXITRC ( SDB__CLSCTAGENT_CRBYSPACENAME, rc ) ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTAGENT_CLALL, "_clsCatalogAgent::clearAll" )
@@ -3460,7 +3631,15 @@ namespace engine
       if ( it == _mapKey2ID.end() )
       {
          retID = _id++ ;
-         _mapKey2ID[ shardingKey ] = ossPack32To64( retID, 1 ) ;
+         try
+         {
+            _mapKey2ID[ shardingKey ] = ossPack32To64( retID, 1 ) ;
+         }
+         catch( std::exception & )
+         {
+            /// register failed
+            retID = 0 ;
+         }
       }
       else
       {
@@ -3766,36 +3945,46 @@ namespace engine
 
    INT32 _clsGroupItem::updateNodes ( std::map <UINT64, _netRouteNode> & nodes )
    {
+      INT32 rc = SDB_OK ;
 
       _clear() ;
 
       std::map <UINT64, _netRouteNode>::iterator it = nodes.begin () ;
       UINT8 pos = 0 ;
 
-      // Add nodes
-      while ( it != nodes.end() )
+      try
       {
-         _netRouteNode & node = it->second ;
-
-         // Set primary position
-         if ( _primaryNode.columns.nodeID == node._id.columns.nodeID )
+         _vecNodes.reserve( nodes.size() ) ;
+         // Add nodes
+         while ( it != nodes.end() )
          {
-            _primaryPos = pos ;
+            _netRouteNode & node = it->second ;
+
+            // Set primary position
+            if ( _primaryNode.columns.nodeID == node._id.columns.nodeID )
+            {
+               _primaryPos = pos ;
+            }
+
+            // By default, use the position in group array as node instance
+            if ( !utilCheckInstanceID( (UINT32)node._instanceID, FALSE ) )
+            {
+               node._instanceID = pos + 1 ;
+            }
+
+            _vecNodes.push_back ( node ) ;
+
+            ++ it ;
+            ++ pos ;
          }
-
-         // By default, use the position in group array as node instance
-         if ( !utilCheckInstanceID( (UINT32)node._instanceID, FALSE ) )
-         {
-            node._instanceID = pos + 1 ;
-         }
-
-         _vecNodes.push_back ( node ) ;
-
-         ++ it ;
-         ++ pos ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
       }
 
-      return SDB_OK ;
+      return rc ;
    }
 
    void _clsGroupItem::_clear ()
@@ -3955,7 +4144,6 @@ namespace engine
                updateNodeStat( node._id.columns.nodeID,
                                (NET_NODE_STATUS)nodeStatus,
                                &nodeFalutTime ) ;
-
             }
          }
       }
@@ -3982,10 +4170,20 @@ namespace engine
    {
       groups.clear() ;
       GROUP_MAP_IT it = _groupMap.begin() ;
-      while ( it != _groupMap.end() )
+
+      try
       {
-         groups.push_back( it->first ) ;
-         ++it ;
+         groups.reserve( _groupMap.size() ) ;
+         while ( it != _groupMap.end() )
+         {
+            groups.push_back( it->first ) ;
+            ++it ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return SDB_OOM ;
       }
       return (INT32)groups.size() ;
    }
@@ -3994,10 +4192,20 @@ namespace engine
    {
       groups.clear() ;
       GROUP_NAME_MAP_IT it = _groupNameMap.begin() ;
-      while ( it != _groupNameMap.end() )
+
+      try
       {
-         groups.push_back( it->first ) ;
-         ++it ;
+         groups.reserve( _groupNameMap.size() ) ;
+         while ( it != _groupNameMap.end() )
+         {
+            groups.push_back( it->first ) ;
+            ++it ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return SDB_OOM ;
       }
       return (INT32)_groupNameMap.size() ;
    }
@@ -4262,7 +4470,15 @@ namespace engine
       clsGroupItem* item = SDB_OSS_NEW clsGroupItem ( id ) ;
       if ( item )
       {
-         _groupMap[id] = item ;
+         try
+         {
+            _groupMap[id] = item ;
+         }
+         catch( std::exception & )
+         {
+            SDB_OSS_DEL item ;
+            item = NULL ;
+         }
       }
       PD_TRACE_EXIT ( SDB__CLSNDMGRAGENT__ADDGPIM ) ;
       return item ;
@@ -4283,7 +4499,17 @@ namespace engine
             goto done ;
          }
       }
-      _groupNameMap[name] = id ;
+
+      try
+      {
+         _groupNameMap[name] = id ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB__CLSNDMGRAGENT__ADDGPNAME, rc ) ;
       return rc ;
