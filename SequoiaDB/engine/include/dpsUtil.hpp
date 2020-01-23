@@ -43,6 +43,7 @@
 #include "ossTypes.h"
 #include "dpsDef.hpp"
 #include "ossMemPool.hpp"
+#include "stpLogicalTime.hpp"
 #include "../bson/bson.hpp"
 
 namespace engine
@@ -62,6 +63,22 @@ namespace engine
 
    // format transaction ID to string format
    ossPoolString dpsTransIDToString( const DPS_TRANS_ID &transID ) ;
+
+   // format transaction SN to string format
+   const CHAR *dpsTransSNToString( const DPS_TRANSID_SN &transSN,
+                                   CHAR *buffer,
+                                   UINT32 bufferSize ) ;
+
+   // format transaction SN to string format
+   ossPoolString dpsTransSNToString( const DPS_TRANSID_SN &transSN ) ;
+
+   // format transaction time to string format
+   const CHAR* dpsTransTimeToString( const stpLogicalTimeUS &time,
+                                     CHAR *buffer,
+                                     UINT32 bufferSize ) ;
+
+   // format transaction time to string format
+   ossPoolString dpsTransTimeToString( const stpLogicalTimeUS &time ) ;
 
    const CHAR* dpsTransIDAttrToString( const DPS_TRANS_ID &transID,
                                        CHAR *pBuff,

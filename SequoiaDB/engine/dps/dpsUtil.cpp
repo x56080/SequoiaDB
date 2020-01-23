@@ -106,6 +106,40 @@ namespace engine
       return dpsTransIDToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
    }
 
+   const CHAR *dpsTransSNToString( const DPS_TRANSID_SN &transSN,
+                                   CHAR *buffer,
+                                   UINT32 bufferSize )
+   {
+      SDB_ASSERT( NULL != buffer, "buffer is invalid" ) ;
+      SDB_ASSERT( bufferSize > 0, "buffer size is invalid" ) ;
+      ossSnprintf( buffer, bufferSize, "%llu(0x%llx)",
+                   transSN, transSN ) ;
+      return buffer ;
+   }
+
+   ossPoolString dpsTransSNToString( const DPS_TRANSID_SN &transSN )
+   {
+      CHAR tmpStr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+      return dpsTransSNToString( transSN, tmpStr, DPS_TRANS_STR_LEN ) ;
+   }
+
+   const CHAR *dpsTransTimeToString( const stpLogicalTimeUS &time,
+                                     CHAR *buffer,
+                                     UINT32 bufferSize )
+   {
+      SDB_ASSERT( NULL != buffer, "buffer is invalid" ) ;
+      SDB_ASSERT( bufferSize > 0, "buffer size is invalid" ) ;
+      ossSnprintf( buffer, bufferSize, "%llu(0x%llx), TE: %u",
+                   time.getTime(), time.getTime(), time.getTimeError() ) ;
+      return buffer ;
+   }
+
+   ossPoolString dpsTransTimeToString( const stpLogicalTimeUS &time )
+   {
+      CHAR tmpStr[ 2 * DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+      return dpsTransTimeToString( time, tmpStr, 2 * DPS_TRANS_STR_LEN ) ;
+   }
+
    #define DPS_STATUS_SEPARATOR                       " | "
 
    static void _dpsAppendFlagString( CHAR *pBuffer,
