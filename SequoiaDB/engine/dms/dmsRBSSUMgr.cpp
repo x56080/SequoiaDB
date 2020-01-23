@@ -718,7 +718,19 @@ namespace engine
                      clName, extID, offset  ) ;
 #endif
             rc = _su->data()->getMBContext( &context, clName, SHARED ) ;
-            if ( rc )
+            if ( SDB_DMS_NOTEXIST == rc )
+            {
+               // RBS collection is removed by GC, there no earlier records
+               // to be found
+               // which means the record is created after current transaction
+               // and current transaction should not see the record
+#ifdef _DEBUG
+               PD_LOG ( PDDEBUG, "Collection %s is deleted, "
+                        "no more older version found", clName ) ;
+#endif
+               goto done ;
+            }
+            else if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to get mbLatch for %s, rc=%d",
                         clName, rc ) ;
@@ -763,27 +775,49 @@ namespace engine
             if ( ( vecKey[0].numberInt() == csid ) &&
                  ( vecKey[1].numberInt() == clid ) &&
                  ( vecKey[2].numberInt() == rid._extent ) &&
-                 ( vecKey[3].numberInt() == rid._offset ) &&
-                 //( recordLSNOffset == lsn ) &&
-                 ( eleCLLID.numberInt() == clLID ) &&
-                 sdbGetTransCB()->isVersionVisible( recordTransID,
-                                                    transid,
-                                                    eduCB->getTransBeginTime() ) )
+                 ( vecKey[3].numberInt() == rid._offset ) )
             {
-               BSONElement ele =
-                    cappedRecord.getField(FIELD_NAME_RBS_RECORD_DATA) ;
-               found = TRUE ;
-               recordData.setData( ele.value(), ele.valuesize() )  ;
+                 UINT32 recCLLID = eleCLLID.numberInt() ;
+                 //( recordLSNOffset == lsn ) &&
+                 if ( recCLLID != clLID )
+                 {
+                    // logical ID of collection is different
+                    // which means the collection had been truncated or
+                    // recreated, earlier records should not been seen
+                    // by current transaction
 #ifdef _DEBUG
-               PD_LOG ( PDDEBUG, 
-                        "Found version(%s) at position(%d, %ld)",
-                        dpsTransIDToString( recordTransID ).c_str(),
-                        position._clID,
-                        position._logicalID ) ;
+                    PD_LOG ( PDDEBUG, "collection's logical ID is different, "
+                             "current [%u], record [%u], "
+                             "no more older version found", clLID, recCLLID ) ;
 #endif
-               _su->data()->releaseMBContext( context ) ;
-               break ;
+                    _su->data()->releaseMBContext( context ) ;
+                    context = NULL ;
+                    goto done ;
+                 }
+                 else if ( sdbGetTransCB()->isVersionVisible(
+                                               recordTransID,
+                                               transid,
+                                               eduCB->getTransBeginTime() ) )
+                 {
+                    // check version, and it is visible
+                    BSONElement ele =
+                       cappedRecord.getField(FIELD_NAME_RBS_RECORD_DATA) ;
+                    found = TRUE ;
+                    recordData.setData( ele.value(), ele.valuesize() )  ;
+#ifdef _DEBUG
+                    PD_LOG ( PDDEBUG,
+                             "Found version(%s) at position(%d, %ld)",
+                             dpsTransIDToString( recordTransID ).c_str(),
+                             position._clID,
+                             position._logicalID ) ;
+#endif
+                    _su->data()->releaseMBContext( context ) ;
+                    context = NULL ;
+                    break ;
+                 }
+                 // version is not matched, go on to earlier record
             }
+
 
             // setup next position, release mblatch and continue
             position._clID =
@@ -801,6 +835,7 @@ namespace engine
          }
          // release mblatch before move to next position
          _su->data()->releaseMBContext( context ) ;
+         context = NULL ;
 
 #ifdef _DEBUG
          PD_LOG ( PDDEBUG, "Moving to next position(%d, %ld)",
