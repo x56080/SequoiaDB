@@ -239,7 +239,6 @@ namespace engine
             DPS_LSN currentLSN ;
             DPS_LSN committed ;
             DPS_LSN expectLSN ;
-            DPS_TRANS_ID lowTranID ;
             if ( dpscb )
             {
                dpscb->getLsnWindow( beginLSN, currentLSN, &expectLSN, &committed ) ;
@@ -262,20 +261,25 @@ namespace engine
             subCommit.append( FIELD_NAME_LSN_VERSION, committed.version ) ;
             subCommit.done() ;
 
-            lowTranID = transCB->getGlobLowTran() ;
+            CHAR szTmp[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
-            /// SNPRINTF will truncate the last char, so need + 2
-            CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;
+            // global lowTran
+            // NOTE: node ID is meaningless for global lowTran
+            dpsTransSNToString( transCB->getGlobLowTran().getGlobSN(),
+                                szTmp,
+                                DPS_TRANS_STR_LEN ) ;
+            ob.append( FIELD_NAME_LOW_TRANS_LSN, szTmp ) ;
 
-            ossSnprintf( szTmp, sizeof(szTmp)-1, "%llu", lowTranID.getGlobSN() ) ;
+            // global expireTran
+            // NOTE: node ID is meaningless for global expireTran
+            dpsTransSNToString( transCB->getGlobExpireTran().getGlobSN(),
+                                szTmp,
+                                DPS_TRANS_STR_LEN ) ;
+            ob.append( FIELD_NAME_EXPIRE_TRAN, szTmp ) ;
 
-            BSONObjBuilder subLowTran( ob.subobjStart( FIELD_NAME_LOW_TRANS_LSN ) ) ;
-            subLowTran.append( FIELD_NAME_LOW_TRANSID_SN, szTmp ) ;
-            subLowTran.append( FIELD_NAME_LOW_TRANSID_NODEID, lowTranID.getNodeID() ) ;
-            subLowTran.done() ;
-
-            ossSnprintf( szTmp, sizeof(szTmp)-1, "%llu", transCB->getOldVCB()->
-                                                         getMinLowTranSN() ) ;
+            dpsTransSNToString( transCB->getOldVCB()->getMinLowTranSN(),
+                                szTmp,
+                                DPS_TRANS_STR_LEN ) ;
             ob.append( FIELD_NAME_IDX_TREE_LOW_TRAN, szTmp ) ;
 
 
