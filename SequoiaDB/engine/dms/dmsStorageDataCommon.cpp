@@ -3786,16 +3786,21 @@ namespace engine
 // FIXME:  remove
 #ifdef _DEBUG
             DPS_TRANS_ID lowTran ;
+            DPS_TRANS_ID expireTran ;
             if ( pTransCB )
             {
                lowTran = pTransCB->getGlobLowTran() ;
+               expireTran = pTransCB->getGlobExpireTran() ;
             }
-            PD_LOG( PDDEBUG, "Truely delete record(%d, %d), isDeleting(%d),flag(%x)  "
-                    "hastransid(%d),lowtran(%s), recordtransid(%s), pTransCB(%x)",
+            PD_LOG( PDDEBUG, "Truely delete record(%d, %d), "
+                    "isDeleting(%d), flag(%x), "
+                    "hastransid(%d), lowtran(%s), expireTran(%s), "
+                    "recordtransid(%s), pTransCB(%x)",
                     recordID._extent, recordID._offset, isDeleting, 
                     pRecord->getFlag(),
                     pRecord->hasGlobTransID(),
                     dpsTransIDToString( lowTran ).c_str(),
+                    dpsTransIDToString( expireTran ).c_str(),
                     dpsTransIDToString( pRecord->getGlobTransID() ).c_str(),
                     pTransCB ) ;
 #endif

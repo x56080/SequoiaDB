@@ -44,7 +44,7 @@
 #include "ossMemPool.hpp"
 #include "dpsTransDef.hpp"
 #include "sdbInterface.hpp"
-#include "rtnGTSAgent.hpp"
+#include "dpsGTSAgent.hpp"
 
 namespace engine
 {
@@ -56,7 +56,7 @@ namespace engine
     */
    // _coordGTSAgent handles GTS agent in COORD
    class _coordGTSAgent : public SDBObject,
-                          public rtnGTSAgent
+                          public dpsGTSAgent
    {
    public:
       // constructor and destructor

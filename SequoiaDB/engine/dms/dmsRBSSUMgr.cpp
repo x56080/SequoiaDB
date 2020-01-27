@@ -925,11 +925,14 @@ namespace engine
 
 #ifdef _DEBUG
          PD_LOG ( PDDEBUG,
-                  "Got maxGlobTransID and lowTran (%s, %s), curPos=%d",
-                   dpsTransIDToString( maxGlobTransID ).c_str(),
-                   dpsTransIDToString(
-                         sdbGetTransCB()->getGlobLowTran() ).c_str(),
-                   curPos ) ;
+                  "Got maxGlobTransID [%s], lowTran [%s], expireTran [%s], "
+                  "curPos=%d",
+                  dpsTransIDToString( maxGlobTransID ).c_str(),
+                  dpsTransIDToString(
+                        sdbGetTransCB()->getGlobLowTran() ).c_str(),
+                  dpsTransIDToString(
+                        sdbGetTransCB()->getGlobExpireTran() ).c_str(),
+                  curPos ) ;
 #endif
          // Do GC when the cl max transID is older than lowtran
          // TODO: we may want to do GC when lowTran is invalid, meaning no 

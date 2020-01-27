@@ -477,11 +477,13 @@ namespace engine
 #ifdef _DEBUG
                   PD_LOG( PDDEBUG,
                           "Skipping rid(%d, %d) in memory tree due to "
-                          "lowtran(%s), node transid(%s)",
+                          "lowTran(%s) and expireTran(%s), node transid(%s)",
                           nodeKey.getRID()._extent,
                           nodeKey.getRID()._offset,
                           dpsTransIDToString(
                                 _pTransCB->getGlobLowTran() ).c_str(),
+                          dpsTransIDToString(
+                                _pTransCB->getGlobExpireTran() ).c_str(),
                           dpsTransIDToString(
                                 nodeKey.getNodeTransID() ).c_str() ) ;
 #endif

@@ -294,8 +294,7 @@ rtnFiles = [
       "rtn/rtnLobLockSectionMgr.cpp",
       "rtn/rtnLocalTaskMgr.cpp",
       "rtn/rtnLocalTaskFactory.cpp",
-      "rtn/rtnLocalTask.cpp",
-      "rtn/rtnGTSAgent.cpp"
+      "rtn/rtnLocalTask.cpp"
       ]
 
 msgFiles = [
@@ -489,6 +488,7 @@ dpsFiles = [
       "dps/dpsTransExecutor.cpp",
       "dps/dpsTransVersionCtrl.cpp",
       "dps/dpsTransLockMgr.cpp",
+      "dps/dpsGTSAgent.cpp",
       "dps/dpsOp2Record.cpp",
       "dps/dpsDump.cpp",
       "dps/dpsArchiveMgr.cpp",

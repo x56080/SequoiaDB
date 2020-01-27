@@ -252,7 +252,7 @@ namespace engine
       EDUID eduID = 0 ;
 
       // start GTS lowTran job
-      rc = rtnStartGTSLowTranJob( _pGTSAgent, &eduID ) ;
+      rc = dpsStartGTSLowTranJob( _pGTSAgent, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start GTS lowTran job, rc: %d",
                    rc ) ;
 

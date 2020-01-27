@@ -57,6 +57,13 @@
 namespace engine
 {
 
+   static const DPS_TRANS_ID &_dpsGetMinGlobTran()
+   {
+      static DPS_TRANS_ID s_minGlobTran( DPS_TRANSID_MIN_GLOB_SN,
+                                         DPS_INVALID_TRANSID_NODEID ) ;
+      return s_minGlobTran ;
+   }
+
    dpsTransCB::dpsTransCB()
    :_TransIDL56Cur( 1 ) ,
     _MapMutex( MON_LATCH_DPSTRANSCB_MAPMUTEX ),
@@ -70,6 +77,7 @@ namespace engine
     _errCount( 0LL ),
     _primaryActiveTime( DPS_INVALID_TRANS_TIME ),
     _globLowTran( DPS_INVALID_TRANSID_SN ),
+    _globExpireTran( DPS_INVALID_TRANSID_SN ),
     _archivedLowTran( DPS_INVALID_TRANSID_SN ),
     _numTransIDConflict( 0LL )
    {
@@ -383,16 +391,16 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_ISVERSIONEXPIRED ) ;
 
-      DPS_TRANSID_SN expiredLowTran = getExpiredLowTran() ;
+      DPS_TRANSID_SN expiredVersion = getExpiredVersion() ;
 
       // NOTE: if expired lowTran is invalid, means the global lowTrans had
       //       not been calculated yet, so any version is not expired at this
       //       time
-      if ( DPS_INVALID_TRANSID_SN != expiredLowTran )
+      if ( DPS_INVALID_TRANSID_SN != expiredVersion )
       {
          // check if the version(represented by transaction ID) is expired.
-         // Expired means it's older than system lowtran
-         expired = ( transID.getGlobSN() < expiredLowTran ) ;
+         // Expired means it's older than system expired version
+         expired = ( transID.getGlobSN() < expiredVersion ) ;
       }
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB_ISVERSIONEXPIRED ) ;
@@ -408,7 +416,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBLOWTRAN ) ;
 
       // get global low transaction ID
-      DPS_TRANSID_SN globTransID = (DPS_TRANSID_SN)( _globLowTran.fetch() ) ;
+      DPS_TRANSID_SN globTransID = _getGlobLowTran( 0 ) ;
       if ( DPS_INVALID_TRANSID_SN != globTransID )
       {
          lowTran.setNodeID( _TransIDH16 ) ;
@@ -418,6 +426,60 @@ namespace engine
       PD_TRACE_EXIT( SDB_DPSTRANSCB_GETGLOBLOWTRAN ) ;
 
       return lowTran ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB__GETGLOBLOWTRAN, "dpsTransCB::_getGlobLowTran" )
+   DPS_TRANSID_SN dpsTransCB::_getGlobLowTran( INT32 timeError )
+   {
+      DPS_TRANSID_SN globLowTran = DPS_INVALID_TRANSID_SN ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB__GETGLOBLOWTRAN ) ;
+
+      // get global lowTran
+      globLowTran = (DPS_TRANSID_SN)( _globLowTran.fetch() ) ;
+
+      DPS_ADJUST_TRANSID_SN( globLowTran, timeError ) ;
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB__GETGLOBLOWTRAN ) ;
+
+      return globLowTran ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBEXPIRETRAN, "dpsTransCB::getGlobExpireTran" )
+   DPS_TRANS_ID dpsTransCB::getGlobExpireTran()
+   {
+      DPS_TRANS_ID expireTran ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBEXPIRETRAN ) ;
+
+      // get global expire transaction ID
+      DPS_TRANSID_SN globTransID = _getGlobExpireTran( 0 ) ;
+      if ( DPS_INVALID_TRANSID_SN != globTransID )
+      {
+         expireTran.setNodeID( _TransIDH16 ) ;
+         expireTran.setSN( globTransID ) ;
+      }
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_GETGLOBEXPIRETRAN ) ;
+
+      return expireTran ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB__GETGLOBEXPTRAN, "dpsTransCB::_getGlobExpireTran" )
+   DPS_TRANSID_SN dpsTransCB::_getGlobExpireTran( INT32 timeError )
+   {
+      DPS_TRANSID_SN globExpireTran = DPS_INVALID_TRANSID_SN ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB__GETGLOBEXPTRAN ) ;
+
+      // get global expireTran
+      globExpireTran = (DPS_TRANSID_SN)( _globExpireTran.fetch() ) ;
+
+      DPS_ADJUST_TRANSID_SN( globExpireTran, timeError ) ;
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB__GETGLOBEXPTRAN ) ;
+
+      return globExpireTran ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SYNCUPDATEGLOBLOWTRAN, "dpsTransCB::syncUpdateGlobLowTran" )
@@ -464,7 +526,7 @@ namespace engine
       // for below 2 cases, we won't update global lowTran cache to keep
       // global lowTran in monotonic
       // - invalid value of transaction SN means global lowTran has not been
-      //   calculated by catalog ( some node had not reported )
+      //   calculated by CATALOG ( some node had not reported )
       // - max value of transaction SN means no global transaction in the
       //   cluster currently
       if ( DPS_INVALID_TRANSID_SN != globLowTran &&
@@ -491,6 +553,41 @@ namespace engine
       PD_TRACE_EXIT( SDB_DPSTRANSCB_SETGLOBLOWTRAN ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SETGLOBEXPTRAN, "dpsTransCB::setGlobExpireTran" )
+   void dpsTransCB::setGlobExpireTran( const DPS_TRANSID_SN &globExpireTran )
+   {
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_SETGLOBEXPTRAN ) ;
+
+      // for below 2 cases, we won't update global expireTran cache to keep
+      // global expireTran in monotonic
+      // - invalid value of transaction SN means global expireTran has not been
+      //   calculated by CATALOG ( some node had not reported )
+      // - max value of transaction SN means no global transaction in the
+      //   cluster currently
+      if ( DPS_INVALID_TRANSID_SN != globExpireTran &&
+           DPS_MAX_TRANSID_SN != globExpireTran )
+      {
+         DPS_TRANSID_SN tempExpireTran = DPS_INVALID_TRANSID_SN ;
+
+         _globExpireTran.swapGreaterThan( (UINT64)globExpireTran ) ;
+
+         tempExpireTran = _globExpireTran.fetch() ;
+         PD_LOG( PDDEBUG, "Set global expireTran [%llu(0x%llX)]",
+                 tempExpireTran, tempExpireTran ) ;
+      }
+#if defined (_DEBUG)
+      else
+      {
+         DPS_TRANSID_SN tempExpireTran = _globExpireTran.fetch() ;
+         PD_LOG( PDDEBUG, "Got ignored global expireTran [%llu(0x%llX)], "
+                 "current global expireTran [%llu(0x%llX)]",
+                 globExpireTran, globExpireTran, tempExpireTran, tempExpireTran ) ;
+      }
+#endif
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_SETGLOBEXPTRAN ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETLOCALLOWTRAN, "dpsTransCB::getLocalLowTran" )
    DPS_TRANS_ID dpsTransCB::getLocalLowTran()
    {
@@ -498,14 +595,11 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETLOCALLOWTRAN ) ;
 
-      DPS_TRANS_ID minGlobTran ;
+      DPS_TRANS_ID minGlobTran = _dpsGetMinGlobTran() ;
 
       // NOTE: cbMap contains transactions between rtnTransBegin and
       //       rtnTransCommit / rtnTransRollback
       ossScopedLock _lock( &_CBMapMutex, SHARED ) ;
-
-      // we only care global transactions in this case
-      minGlobTran.setGlobTrans() ;
 
       // get first transaction
       TRANS_CB_MAP::iterator iterCB = _cbMap.upper_bound( minGlobTran ) ;
@@ -514,44 +608,111 @@ namespace engine
          lowTran = iterCB->first ;
       }
 
-      // failed to get lowTran from cb map, check archived lowTran
-      if ( lowTran.isInvalid() )
-      {
-         DPS_TRANSID_SN archivedLowTran = _archivedLowTran.fetch() ;
-         if ( DPS_INVALID_TRANSID_SN != archivedLowTran )
-         {
-            lowTran.setNodeID( _TransIDH16 ) ;
-            lowTran.setSN( archivedLowTran ) ;
-         }
-      }
-
       PD_TRACE_EXIT( SDB_DPSTRANSCB_GETLOCALLOWTRAN ) ;
 
       return lowTran ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETEXPIREDLOWTRAN, "dpsTransCB::getExpiredLowTran" )
-   DPS_TRANSID_SN dpsTransCB::getExpiredLowTran()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETLOCALEXPTRAN, "dpsTransCB::getLocalExpireTran" )
+   DPS_TRANS_ID dpsTransCB::getLocalExpireTran()
    {
-      DPS_TRANSID_SN expiredTransSN = DPS_INVALID_TRANSID_SN ;
+      DPS_TRANS_ID expireTran ;
 
-      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETEXPIREDLOWTRAN ) ;
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETLOCALEXPTRAN ) ;
 
-      DPS_TRANSID_SN minTransSN = (DPS_TRANSID_SN)STP_MAX_TIME_ERROR_US ;
-      DPS_SET_TRANSID_SN_GLOBAL( minTransSN ) ;
+      // the expireTran is the maximum expired transaction ID, which
+      // means transactions before expireTran are expired, whose transaction
+      // objects, like RBS, old version, etc, could be cleared
+      //
+      //              +--------
+      //              |
+      //  +---+   +---+---+
+      //  |   |   |   |   |
+      // -+---+---+---+---+----
+      //  T0      T1  T2     NOW
+      //
+      // T2 is minimum running transaction ( lowTran ), while T1 is the
+      // minimum transaction started before T2, but committed after T2.
+      //    start time of T1 < start time of T2 < commit time of T1
+      // In this case, T2 should see old versions created by T1 ( old version's
+      // owner transaction is T1 )
+      // so the expired transaction should before T1, transaction objects
+      // created by transactions before T1 ( e.g. T0 ) could be cleared
+      // ( which means they are expired for given lowTran )
 
-      expiredTransSN = _globLowTran.fetch() ;
+      // get global lowTran, minus maximum time error for network delay
+      // consideration
+      DPS_TRANS_ID globLowTranID ;
+      DPS_TRANSID_SN globLowTran = _getGlobLowTran( -STP_MAX_TIME_ERROR_US ) ;
 
-      // NOTE: add consideration of maximum time error due to network delay etc
-      if ( DPS_INVALID_TRANSID_SN != expiredTransSN &&
-           expiredTransSN > minTransSN )
+      globLowTranID.setNodeID( _TransIDH16 ) ;
+      globLowTranID.setSN( globLowTran ) ;
+
+      // We need global lowTran to calculate local expireTran, so we need
+      // at least 2 rounds of lowTran requests to calculate global expireTran
+      // - the first round to report local lowTran and calculate global lowTran
+      // - the second round to calculate local expireTran with global lowTran,
+      //   report to CATALOG, and calculate global expire lowTran
+      // if global lowTran is invalid, it means the global lowTran has not been
+      // calculated yet
+      if ( DPS_INVALID_TRANSID_SN != globLowTran )
       {
-         expiredTransSN -= (DPS_TRANSID_SN)STP_MAX_TIME_ERROR_US ;
+         UINT64 lowTranTime = globLowTranID.getLogicalTime() ;
+         DPS_TRANS_ID minGlobTran = _dpsGetMinGlobTran() ;
+
+         ossScopedLock lock( &_hisMutex, SHARED ) ;
+
+         // iterate from beginning of history with global transaction tag to
+         // the global lowTran, find transactions with commit time greater
+         // than global lowTran, and assign the minimum one for local
+         // expireTran
+         for ( TRANS_ID_2_STATUS::iterator iter =
+                                 _hisTransStatus.upper_bound( minGlobTran ) ;
+               _hisTransStatus.end() != iter ;
+               ++ iter )
+         {
+            const DPS_TRANS_ID &histTransID = iter->first ;
+            UINT64 commitTime = iter->second._commitTime.getTime() ;
+
+            if ( globLowTranID < histTransID )
+            {
+               // end of searching, this transaction is after global lowTran
+               break ;
+            }
+            else if ( commitTime - STP_MAX_TIME_ERROR_US > lowTranTime )
+            {
+               // end of searching, find the minimum one
+               expireTran = histTransID ;
+               break ;
+            }
+         }
       }
 
-      PD_TRACE_EXIT( SDB_DPSTRANSCB_GETEXPIREDLOWTRAN ) ;
+      // if no matched transactions found,
+      // use global lowTran as local expireTran
+      if ( expireTran.isInvalid() )
+      {
+         expireTran = globLowTranID ;
+      }
 
-      return expiredTransSN ;
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_GETLOCALEXPTRAN ) ;
+
+      return expireTran ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETEXPIREDVERSION, "dpsTransCB::getExpiredVersion" )
+   DPS_TRANSID_SN dpsTransCB::getExpiredVersion()
+   {
+      DPS_TRANSID_SN expiredVersion = DPS_INVALID_TRANSID_SN ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETEXPIREDVERSION ) ;
+
+      // NOTE: add consideration of maximum time error due to network delay etc
+      expiredVersion = _getGlobExpireTran( -STP_MAX_TIME_ERROR_US ) ;
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_GETEXPIREDVERSION ) ;
+
+      return expiredVersion ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBTRANSTIME, "dpsTransCB::getGlobTransTime" )
@@ -642,7 +803,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_CHECKGLOBTRANS ) ;
 
       UINT64 activeTime = 0LL ;
-      DPS_TRANS_ID globLowTran = getGlobLowTran() ;
+      DPS_TRANS_ID globExpireTran = getGlobExpireTran() ;
 
       // only check with global transaction
       if ( !transID.isGlobTrans() )
@@ -671,17 +832,17 @@ namespace engine
                 "in this node [%llu]", dpsTransIDToString( transID ).c_str(),
                 beginTime.getTime(), activeTime ) ;
 
-      // check global lowTran, make sure it is after global lowTran
-      // NOTE: If the node to start transaction doesn't report lowTran for a
-      //       while, it might be kicked out from global lowTran calculation.
+      // check global expireTran, make sure it is after global expireTran
+      // NOTE: If the node to start transaction doesn't report expireTran for a
+      //       while, it might be kicked out from global expireTran calculation.
       //       But if it can still send transaction requests to other nodes,
       //       we need to reject those requests
-      PD_CHECK( globLowTran.getLogicalTime() <= beginTime.getTime(),
+      PD_CHECK( globExpireTran.getLogicalTime() <= beginTime.getTime(),
                 SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
                 "Failed to check global transaction  [%s], it had been passed "
-                "by global lowTran [%llu(0x%llX)]",
+                "by global expireTran [%llu(0x%llX)]",
                 dpsTransIDToString( transID ).c_str(),
-                globLowTran.getGlobSN(), globLowTran.getGlobSN() ) ;
+                globExpireTran.getGlobSN(), globExpireTran.getGlobSN() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSCB_CHECKGLOBTRANS, rc ) ;
@@ -1496,7 +1657,7 @@ namespace engine
    void dpsTransCB::clearOutDateHisTrans( DPS_LSN_OFFSET lsn )
    {
       TRANS_LSN_ID_MAP::iterator it ;
-      DPS_TRANSID_SN expiredLowTran = getExpiredLowTran() ;
+      DPS_TRANSID_SN expiredVersion = getExpiredVersion() ;
 
       if ( DPS_INVALID_LSN_OFFSET != lsn )
       {
@@ -1510,7 +1671,7 @@ namespace engine
             // - global transaction is older than expired global lowTran
             if ( it->first < lsn ||
                  ( it->second.isGlobTrans() &&
-                   it->second.getGlobSN() < expiredLowTran ) )
+                   it->second.getGlobSN() < expiredVersion ) )
             {
                _hisTransStatus.erase( it->second ) ;
                _hisLsnTrans.erase( it++ ) ;

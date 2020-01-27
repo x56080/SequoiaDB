@@ -74,7 +74,8 @@ namespace engine
 
       // update node lowTran
       // input:
-      //    - nodeLowTran: node LowTran reported by node
+      //    - lowTran: lowTran reported by node
+      //    - expireTran: expireTran reported by node
       //    - transOn: indicate whether transaction feature is enabled on node
       //    - globTransOn: indicate whether global transaction feature is
       //                   enabled on node
@@ -82,31 +83,48 @@ namespace engine
       //    - stpAvailable: indicate whether STP is available on node
       // NOTE: global transaction support requires transOn, mvccOn and
       //       globTransOn must be TRUE
-      void updateLowTran( DPS_TRANSID_SN nodeLowTran,
+      void updateLowTran( DPS_TRANSID_SN lowTran,
+                          DPS_TRANSID_SN expireTran,
                           BOOLEAN transOn,
                           BOOLEAN globTransOn,
                           BOOLEAN mvccOn,
                           BOOLEAN stpAvailable ) ;
 
-      // get node lowTran
+      // get node lowTran and expireTran
       // output:
-      //    node lowTran last reported of this node
-      //    DPS_INVALID_TRANSID_SN: means this node had not reported yet
-      //    DPS_MAX_TRANSID_SN: means global transaction support is not enabled
-      //                        in this node, or this node had been kicked out
-      // NOTE: if node had not reported for 2 minutes, it will be kicked out
-      //       from lowTran calculation ( consider it is down or disconnected )
-      DPS_TRANSID_SN getLowTran() ;
+      //    - lowTran: lowTran last reported by this node
+      //    - expireTran: expireTran last reported by this node
+      // NOTE:
+      // - DPS_INVALID_TRANSID_SN: means this node had not reported yet
+      // - DPS_MAX_TRANSID_SN: means global transaction support is not enabled
+      //                       in this node, or this node had been kicked out
+      // - if node had not reported for 2 minutes, it will be kicked out
+      //   from lowTran calculation ( consider it is down or disconnected )
+      void getLowTran( DPS_TRANSID_SN &lowTran,
+                       DPS_TRANSID_SN &expireTran ) ;
 
    protected:
+      // role of node ( COORD or DATA )
       SDB_ROLE       _role ;
+      // route ID of node
       MsgRouteID     _routeID ;
-      DPS_TRANSID_SN _nodeLowTran ;
+      // lowTran of node: minimum running transaction on node
+      DPS_TRANSID_SN _lowTran ;
+      // expireTran of node: maximum expired transaction on node
+      // NODE: transaction objects ( RBS, old version, etc ) before expireTran
+      //       could be cleared
+      DPS_TRANSID_SN _expireTran ;
+      // indicate if global transaction feature is enabled on node
       BOOLEAN        _globTransEnabled ;
+      // --transactionon options on node
       BOOLEAN        _transOn ;
+      // --globtranson options on node
       BOOLEAN        _globTransOn ;
+      // --mvccon options on node
       BOOLEAN        _mvccOn ;
+      // indicate if STP is available on node
       BOOLEAN        _stpAvailable ;
+      // last update tick for node
       UINT64         _updateTick ;
    } ;
 
@@ -141,12 +159,14 @@ namespace engine
       // update global lowTran with lowTran from specified node
       // after update, will re-calculate global lowTran
       INT32 updateGlobLowTran( const MsgRouteID &nodeRID,
-                               DPS_TRANSID_SN nodeLowTran,
+                               DPS_TRANSID_SN lowTran,
+                               DPS_TRANSID_SN expireTran,
                                BOOLEAN transOn,
                                BOOLEAN globTransOn,
                                BOOLEAN mvccOn,
                                BOOLEAN stpAvailable,
-                               DPS_TRANSID_SN &globLowTran ) ;
+                               DPS_TRANSID_SN &globLowTran,
+                               DPS_TRANSID_SN &globExpireTran ) ;
 
    protected:
       typedef ossPoolMap< MsgRouteID,
@@ -157,7 +177,8 @@ namespace engine
       // update lowTran of specified node
       // WARNING: should be accessed under _lowTranMutex
       INT32 _updateNodeLowTran( const MsgRouteID &nodeRID,
-                                DPS_TRANSID_SN nodeLowTran,
+                                DPS_TRANSID_SN lowTran,
+                                DPS_TRANSID_SN expireTran,
                                 BOOLEAN transOn,
                                 BOOLEAN globTransOn,
                                 BOOLEAN mvccOn,
@@ -165,7 +186,8 @@ namespace engine
 
       // calculate global lowTran
       // WARNING: should be accessed under _lowTranMutex
-      INT32 _calcGlobLowTran( DPS_TRANSID_SN &globLowTran ) ;
+      INT32 _calcGlobLowTran( DPS_TRANSID_SN &globLowTran,
+                              DPS_TRANSID_SN &globExpireTran ) ;
 
       // load transaction nodes ( including COORD and DATA )
       INT32 _loadTransNodes( GTS_NODE_SET &transNodes ) ;
@@ -177,8 +199,10 @@ namespace engine
    protected:
       // mutex to protect global lowTran and lowTran map
       ossRWMutex        _lowTranMutex ;
-      // global low transaction ( earliest running transaction )
+      // global low transaction ( minimum running transaction )
       DPS_TRANSID_SN    _globLowTran ;
+      // global expire transaction ( maximum expired transaction )
+      DPS_TRANSID_SN    _globExpireTran ;
       // low transaction from nodes
       GTS_LOWTRAN_MAP   _lowTranMap ;
       // indicate lowTranMap is loaded
