@@ -92,14 +92,16 @@ namespace engine
                                 rtnContextBuf &replyBuffer,
                                 _pmdEDUCB *eduCB ) ;
       INT32 _parseLowTranReq( const BSONObj &requestObject,
-                              DPS_TRANSID_SN &nodeLowTran,
+                              DPS_TRANSID_SN &lowTran,
+                              DPS_TRANSID_SN &expireTran,
                               BOOLEAN &transOn,
                               BOOLEAN &globTransOn,
                               BOOLEAN &mvccOn,
                               BOOLEAN &stpAvailable ) ;
 
       INT32 _buildLowTranRsp( BSONObj &responseObject,
-                              DPS_TRANSID_SN globLowTran ) ;
+                              DPS_TRANSID_SN globLowTran,
+                              DPS_TRANSID_SN globExpireTran ) ;
 
    private:
       _catGTSManager*         _gtsMgr ;

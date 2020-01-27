@@ -15,9 +15,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = rtnGTSAgent.hpp
+   Source File Name = dpsGTSAgent.hpp
 
-   Descriptive Name = Runtime Global Transaction Agent
+   Descriptive Name = DPS Global Transaction Agent
 
    When/how to use: this program may be used on binary and text-formatted
    versions of Runtime component. This file contains background job to update
@@ -36,8 +36,8 @@
 
 *******************************************************************************/
 
-#ifndef RTN_GTS_AGENT_HPP__
-#define RTN_GTS_AGENT_HPP__
+#ifndef DPS_GTS_AGENT_HPP__
+#define DPS_GTS_AGENT_HPP__
 
 #include "rtnBackgroundJobBase.hpp"
 #include "msgCatalog.hpp"
@@ -49,14 +49,14 @@ namespace engine
 {
 
    /*
-      _rtnGTSAgent define
+      _dpsGTSAgent define
     */
-   // _rtnGTSAgent use to handle global transaction events
-   class _rtnGTSAgent
+   // _dpsGTSAgent use to handle global transaction events
+   class _dpsGTSAgent
    {
    public:
-      _rtnGTSAgent() ;
-      virtual ~_rtnGTSAgent() ;
+      _dpsGTSAgent() ;
+      virtual ~_dpsGTSAgent() ;
 
    public:
       // update global lowTran
@@ -71,34 +71,52 @@ namespace engine
       // on detach event
       OSS_INLINE virtual void onDetach( pmdEDUCB *eduCB ) {}
 
+      // set route ID of local
+      OSS_INLINE void setLocalRID( const MsgRouteID &routeID )
+      {
+         _localRID.value = routeID.value ;
+      }
+
+      // get route ID of local
+      OSS_INLINE const MsgRouteID &getLocalRID() const
+      {
+         return _localRID ;
+      }
+
    protected:
       // get local lowTran
       // NOTE: if no global transaction in this node, will return max value
       //       of transaction SN in local lowTran
-      INT32 _getLocalLowTran( DPS_TRANSID_SN &localLowTran ) ;
+      INT32 _getLocalLowTran( DPS_TRANSID_SN &localLowTran,
+                              DPS_TRANSID_SN &localExpireTran ) ;
       // set global lowTran
-      INT32 _setGlobLowTran( const DPS_TRANSID_SN &globLowTran ) ;
+      INT32 _setGlobLowTran( const DPS_TRANSID_SN &globLowTran,
+                             const DPS_TRANSID_SN &globExpireTran ) ;
       // fill GTS lowTran request
-      INT32 _fillLowTranRequest( MsgGTSLowTranReq *request,
-                                 const DPS_TRANSID_SN &nodeLowTran,
-                                 bson::BSONObj &requestObject ) ;
-      INT32 _parseLowTranResponse( MsgGTSLowTranRsp *response,
-                                   DPS_TRANSID_SN &globLowTran ) ;
+      INT32 _fillLowTranReq( MsgGTSLowTranReq *request,
+                             const DPS_TRANSID_SN &localLowTran,
+                             const DPS_TRANSID_SN &localExpireTran,
+                             bson::BSONObj &requestObject ) ;
+      // parse GTS lowTran response
+      INT32 _parseLowTranRsp( MsgGTSLowTranRsp *response,
+                              DPS_TRANSID_SN &globLowTran,
+                              DPS_TRANSID_SN &globExpireTran ) ;
 
    protected:
-      dpsTransCB * _transCB ;
+      dpsTransCB *   _transCB ;
+      MsgRouteID     _localRID ;
    } ;
 
-   typedef class _rtnGTSAgent rtnGTSAgent ;
+   typedef class _dpsGTSAgent dpsGTSAgent ;
 
    /*
-       _rtnGTSLowTranJob define
+       _dpsGTSLowTranJob define
     */
-   class _rtnGTSLowTranJob : public _rtnBaseJob
+   class _dpsGTSLowTranJob : public _rtnBaseJob
    {
    public:
-      _rtnGTSLowTranJob( rtnGTSAgent *gtsAgent ) ;
-      virtual ~_rtnGTSLowTranJob() ;
+      _dpsGTSLowTranJob( dpsGTSAgent *gtsAgent ) ;
+      virtual ~_dpsGTSLowTranJob() ;
 
    public:
       OSS_INLINE virtual RTN_JOB_TYPE type() const
@@ -120,36 +138,21 @@ namespace engine
       virtual INT32 doit() ;
 
    protected:
-      OSS_INLINE virtual void _onAttach()
-      {
-         // call on attach event of GTS agent
-         if ( NULL != _gtsAgent )
-         {
-            _gtsAgent->onAttach( eduCB() ) ;
-         }
-      }
-
-      OSS_INLINE virtual void _onDetach()
-      {
-         // call on detach event of GTS agent
-         if ( NULL != _gtsAgent )
-         {
-            _gtsAgent->onDetach( eduCB() ) ;
-         }
-      }
+      OSS_INLINE virtual void _onAttach() ;
+      OSS_INLINE virtual void _onDetach() ;
 
    protected:
       // GTS agent
-      rtnGTSAgent * _gtsAgent ;
+      dpsGTSAgent * _gtsAgent ;
    } ;
 
-   typedef class _rtnGTSLowTranJob rtnGTSLowTranJob ;
+   typedef class _dpsGTSLowTranJob dpsGTSLowTranJob ;
 
    /*
       function to start GTS lowTran job
     */
-   INT32 rtnStartGTSLowTranJob( rtnGTSAgent *gtsAgent, EDUID *eduID ) ;
+   INT32 dpsStartGTSLowTranJob( dpsGTSAgent *gtsAgent, EDUID *eduID ) ;
 
 }
 
-#endif // RTN_GTS_AGENT_HPP__
+#endif // DPS_GTS_AGENT_HPP__

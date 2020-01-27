@@ -44,7 +44,7 @@
 #include "ossMemPool.hpp"
 #include "dpsTransDef.hpp"
 #include "sdbInterface.hpp"
-#include "rtnGTSAgent.hpp"
+#include "dpsGTSAgent.hpp"
 
 namespace engine
 {
@@ -54,7 +54,7 @@ namespace engine
    */
    class _clsGTSAgent : public SDBObject,
                         public _dpsTransEvent,
-                        public rtnGTSAgent
+                        public dpsGTSAgent
    {
       public:
          _clsGTSAgent( _clsShardMgr *pShardMgr ) ;

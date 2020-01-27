@@ -701,12 +701,14 @@ namespace engine
       MsgGTSLowTranReq *request = NULL ;
       catGlobTransManager *globTransMgr = _gtsMgr->getGlobTransMgr() ;
       MsgRouteID routeID ;
-      DPS_TRANSID_SN nodeLowTran = DPS_INVALID_TRANSID_SN ;
+      DPS_TRANSID_SN lowTran = DPS_INVALID_TRANSID_SN ;
+      DPS_TRANSID_SN expireTran = DPS_INVALID_TRANSID_SN ;
       BOOLEAN transOn = FALSE ;
       BOOLEAN globTransOn = FALSE ;
       BOOLEAN mvccOn = FALSE ;
       BOOLEAN stpAvailable = FALSE ;
       DPS_TRANSID_SN globLowTran = DPS_INVALID_TRANSID_SN ;
+      DPS_TRANSID_SN globExpireTran = DPS_INVALID_TRANSID_SN ;
       BSONObj requestObject, responseObject ;
 
       SDB_ASSERT( NULL != message, "message is invalid" ) ;
@@ -733,8 +735,8 @@ namespace engine
       {
          requestObject = BSONObj( (CHAR *)request +
                                   sizeof( MsgGTSLowTranReq ) ) ;
-         rc = _parseLowTranReq( requestObject, nodeLowTran, transOn,
-                                globTransOn, mvccOn, stpAvailable ) ;
+         rc = _parseLowTranReq( requestObject, lowTran, expireTran,
+                                transOn, globTransOn, mvccOn, stpAvailable ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse lowTran request, "
                       "rc: %d", rc ) ;
       }
@@ -748,17 +750,19 @@ namespace engine
 
       // update global lowTran
       rc = globTransMgr->updateGlobLowTran( routeID,
-                                            nodeLowTran,
+                                            lowTran,
+                                            expireTran,
                                             transOn,
                                             globTransOn,
                                             mvccOn,
                                             stpAvailable,
-                                            globLowTran ) ;
+                                            globLowTran,
+                                            globExpireTran ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update global lowTran, "
                    "rc: %d", rc ) ;
 
       // build response BSON object
-      rc = _buildLowTranRsp( responseObject, globLowTran ) ;
+      rc = _buildLowTranRsp( responseObject, globLowTran, globExpireTran ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build lowTran response, rc: %d",
                    rc ) ;
 
@@ -775,7 +779,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER__PARSELOWTRANREQ, "_catGTSMsgHandler::_parseLowTranReq" )
    INT32 _catGTSMsgHandler::_parseLowTranReq( const BSONObj &requestObject,
-                                              DPS_TRANSID_SN &nodeLowTran,
+                                              DPS_TRANSID_SN &lowTran,
+                                              DPS_TRANSID_SN &expireTran,
                                               BOOLEAN &transOn,
                                               BOOLEAN &globTransOn,
                                               BOOLEAN &mvccOn,
@@ -797,7 +802,17 @@ namespace engine
          PD_CHECK( NumberLong == element.type(), SDB_SYS, error, PDERROR,
                    "Failed to get field [%s], it should be long type",
                    FIELD_NAME_TRANS_LOWTRAN ) ;
-         nodeLowTran = (DPS_TRANSID_SN)( element.numberLong() ) ;
+         lowTran = (DPS_TRANSID_SN)( element.numberLong() ) ;
+
+         // parse expireTran field
+         element = requestObject.getField( FIELD_NAME_TRANS_EXPTRAN ) ;
+         PD_CHECK( EOO != element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should not be empty",
+                   FIELD_NAME_TRANS_EXPTRAN ) ;
+         PD_CHECK( NumberLong == element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should be long type",
+                   FIELD_NAME_TRANS_EXPTRAN ) ;
+         expireTran = (DPS_TRANSID_SN)( element.numberLong() ) ;
 
          // get transaction configs of node
          // NOTE: not critical fields, no need to return error
@@ -835,7 +850,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER__BUILDLOWTRANRSP, "_catGTSMsgHandler::_buildLowTranRsp" )
    INT32 _catGTSMsgHandler::_buildLowTranRsp( BSONObj &responseObject,
-                                              DPS_TRANSID_SN globLowTran )
+                                              DPS_TRANSID_SN globLowTran,
+                                              DPS_TRANSID_SN globExpireTran )
    {
       INT32 rc = SDB_OK ;
 
@@ -844,7 +860,9 @@ namespace engine
       try
       {
          responseObject = BSON( FIELD_NAME_TRANS_GLOBLOWTRAN <<
-                                (INT64)globLowTran ) ;
+                                (INT64)globLowTran <<
+                                FIELD_NAME_TRANS_GLOBEXPTRAN <<
+                                (INT64)globExpireTran ) ;
       }
       catch ( exception &e )
       {

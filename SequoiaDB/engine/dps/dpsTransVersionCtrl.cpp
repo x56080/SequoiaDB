@@ -1491,7 +1491,7 @@ namespace engine
    {
       preIdxTreePtr treePtr ;
       IDXID_TO_TREE_MAP_IT it ;
-      DPS_TRANSID_SN  expiredLowTran ;
+      DPS_TRANSID_SN  expiredVersion = DPS_INVALID_TRANSID_SN ;
       DPS_TRANSID_SN  minTreeLowTran = DPS_MAX_TRANSID_SN ;
       latchS() ;
 
@@ -1501,27 +1501,27 @@ namespace engine
       while ( it != _idxTrees.end() )
       {
          releaseS() ;
-         // get current lowtran for each tree
-         expiredLowTran = sdbGetTransCB()->getExpiredLowTran() ;
+         // get current expired version for each tree
+         expiredVersion = sdbGetTransCB()->getExpiredVersion() ;
          // handle one tree
          treePtr = it->second ;
 
          // TODO: may add optimization to check if the tree is changed
          // after last gc
          if ( treePtr.get() &&
-              DPS_INVALID_TRANSID_SN != expiredLowTran )
+              DPS_INVALID_TRANSID_SN != expiredVersion )
          {
             DPS_TRANSID_SN treeLowTran ;
 #ifdef _DEBUG  // FIXME remove after stable
-            PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, lowtran[%llu(0x%llX)]",
+            PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, expired version[%llu(0x%llX)]",
                     it->first.toString().c_str(),
                     treePtr->getKeyPattern().toString().c_str(),
-                    expiredLowTran, expiredLowTran ) ;
+                    expiredVersion, expiredVersion ) ;
                     //lowTran.getGlobSN() ) ;
             treePtr->printTree( FALSE ) ;
 #endif
             // NOTE: we need global transaction tag with SN
-            treeLowTran = treePtr->gc( expiredLowTran ) ;
+            treeLowTran = treePtr->gc( expiredVersion ) ;
 
             if ( treeLowTran < minTreeLowTran )
             {

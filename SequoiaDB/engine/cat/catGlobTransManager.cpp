@@ -62,7 +62,8 @@ namespace engine
     */
    _catLowTranRecord::_catLowTranRecord()
    : _role( SDB_ROLE_DATA ),
-     _nodeLowTran( DPS_INVALID_TRANSID_SN ),
+     _lowTran( DPS_INVALID_TRANSID_SN ),
+     _expireTran( DPS_INVALID_TRANSID_SN ),
      _globTransEnabled( FALSE ),
      _transOn( FALSE ),
      _globTransOn( FALSE ),
@@ -75,7 +76,8 @@ namespace engine
 
    _catLowTranRecord::_catLowTranRecord( const _catLowTranRecord &record )
    : _role( record._role ),
-     _nodeLowTran( record._nodeLowTran ),
+     _lowTran( record._lowTran ),
+     _expireTran( record._expireTran ),
      _globTransEnabled( record._globTransEnabled ),
      _transOn( record._transOn ),
      _globTransOn( record._globTransOn ),
@@ -107,7 +109,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBLOWTRANRECORD_UPDATELOWTRAN, "_catLowTranRecord::updateLowTran" )
-   void _catLowTranRecord::updateLowTran( DPS_TRANSID_SN nodeLowTran,
+   void _catLowTranRecord::updateLowTran( DPS_TRANSID_SN lowTran,
+                                          DPS_TRANSID_SN expireTran,
                                           BOOLEAN transOn,
                                           BOOLEAN globTransOn,
                                           BOOLEAN mvccOn,
@@ -115,7 +118,8 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__CATGLOBLOWTRANRECORD_UPDATELOWTRAN ) ;
 
-      _nodeLowTran = nodeLowTran ;
+      _lowTran = lowTran ;
+      _expireTran = expireTran ;
       _transOn = transOn ;
       _globTransOn = globTransOn ;
       _mvccOn = mvccOn ;
@@ -126,13 +130,16 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBLOWTRANRECORD_GETLOWTRAN, "_catLowTranRecord::getLowTran" )
-   DPS_TRANSID_SN _catLowTranRecord::getLowTran()
+   void _catLowTranRecord::getLowTran( DPS_TRANSID_SN &lowTran,
+                                       DPS_TRANSID_SN &expireTran )
    {
-      DPS_TRANSID_SN nodeLowTran = DPS_INVALID_TRANSID_SN ;
-
       PD_TRACE_ENTRY( SDB__CATGLOBLOWTRANRECORD_GETLOWTRAN ) ;
 
       UINT64 updatePassed = pmdGetTickSpanTime( _updateTick ) ;
+
+      // set to invalid value
+      lowTran = DPS_INVALID_TRANSID_SN ;
+      expireTran = DPS_INVALID_TRANSID_SN ;
 
       if ( updatePassed > CAT_LOWTRAN_TIMEOUT )
       {
@@ -142,17 +149,17 @@ namespace engine
          PD_LOG( PDDEBUG, "Node %s had not been reported lowTran "
                  "for %llu ms, kick it out",
                  routeID2String( _routeID ).c_str(), updatePassed ) ;
-         nodeLowTran = DPS_MAX_TRANSID_SN ;
+         lowTran = DPS_MAX_TRANSID_SN ;
+         expireTran = DPS_MAX_TRANSID_SN ;
       }
       else
       {
          // if this node is normal, fetch node lowTran directly
-         nodeLowTran = _nodeLowTran ;
+         lowTran = _lowTran ;
+         expireTran = _expireTran ;
       }
 
       PD_TRACE_EXIT( SDB__CATGLOBLOWTRANRECORD_GETLOWTRAN ) ;
-
-      return nodeLowTran ;
    }
 
    /*
@@ -160,6 +167,7 @@ namespace engine
     */
    _catGlobTransManager::_catGlobTransManager()
    : _globLowTran( DPS_INVALID_TRANSID_SN ),
+     _globExpireTran( DPS_INVALID_TRANSID_SN ),
      _lowTranMapLoaded( FALSE )
    {
    }
@@ -176,6 +184,7 @@ namespace engine
       ossScopedRWLock lock( &_lowTranMutex, EXCLUSIVE ) ;
 
       _globLowTran = DPS_INVALID_TRANSID_SN ;
+      _globExpireTran = DPS_INVALID_TRANSID_SN ;
       _lowTranMapLoaded = FALSE ;
       _lowTranMap.clear() ;
 
@@ -199,12 +208,14 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBTRANSMANAGER_UPDATEGLOBLOWTRAN, "_catGlobTransManager::updateGlobLowTran" )
    INT32 _catGlobTransManager::updateGlobLowTran( const MsgRouteID &nodeRID,
-                                                  DPS_TRANSID_SN nodeLowTran,
+                                                  DPS_TRANSID_SN lowTran,
+                                                  DPS_TRANSID_SN expireTran,
                                                   BOOLEAN transOn,
                                                   BOOLEAN globTransOn,
                                                   BOOLEAN mvccOn,
                                                   BOOLEAN stpAvailable,
-                                                  DPS_TRANSID_SN &globLowTran )
+                                                  DPS_TRANSID_SN &globLowTran,
+                                                  DPS_TRANSID_SN &globExpireTran )
    {
       INT32 rc = SDB_OK ;
 
@@ -214,9 +225,9 @@ namespace engine
       GTS_NODE_SET transNodes ;
 
       PD_LOG( PDINFO, "Got node lowTran [%llu(0x%llX)] "
-              "transOn [%s] globTransOn [%s] mvccOn [%s] stpAvailable [%s] "
-              "from route ID %s",
-              nodeLowTran, nodeLowTran,
+              "expireTran [%llu(0x%llX)] transOn [%s] globTransOn [%s] "
+              "mvccOn [%s] stpAvailable [%s] from route ID %s",
+              lowTran, lowTran, expireTran, expireTran,
               transOn ? "TRUE" : "FALSE",
               globTransOn ? "TRUE" : "FALSE",
               mvccOn ? "TRUE" : "FALSE",
@@ -245,7 +256,8 @@ namespace engine
 
       // update lowTran of specified node
       rc = _updateNodeLowTran( nodeRID,
-                               nodeLowTran,
+                               lowTran,
+                               expireTran,
                                transOn,
                                globTransOn,
                                mvccOn,
@@ -254,7 +266,7 @@ namespace engine
                    "rc: %d", routeID2String( nodeRID ).c_str(), rc ) ;
 
       // re-calculate global lowTran
-      rc = _calcGlobLowTran( globLowTran ) ;
+      rc = _calcGlobLowTran( globLowTran, globExpireTran ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to calculate global lowTran, "
                    "rc: %d", rc ) ;
 
@@ -265,8 +277,17 @@ namespace engine
          _globLowTran = globLowTran ;
       }
 
-      PD_LOG( PDEVENT, "Update global lowTran to [%llu(0x%llX)]",
-              globLowTran, globLowTran ) ;
+      if ( DPS_INVALID_TRANSID_SN != globExpireTran &&
+           DPS_MAX_TRANSID_SN != globExpireTran )
+      {
+         // update valid global expireTran
+         _globExpireTran = globExpireTran ;
+      }
+
+      PD_LOG( PDEVENT, "Update global lowTran to [%llu(0x%llX)], "
+              "global expireTran to [%llu(0x%llX)]",
+              globLowTran, globLowTran,
+              globExpireTran, globExpireTran ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CATGLOBTRANSMANAGER_UPDATEGLOBLOWTRAN, rc ) ;
@@ -278,7 +299,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBTRANSMANAGER__UPDATENODELOWTRAN, "_catGlobTransManager::_updateNodeLowTran" )
    INT32 _catGlobTransManager::_updateNodeLowTran( const MsgRouteID &nodeRID,
-                                                   DPS_TRANSID_SN nodeLowTran,
+                                                   DPS_TRANSID_SN lowTran,
+                                                   DPS_TRANSID_SN expireTran,
                                                    BOOLEAN transOn,
                                                    BOOLEAN globTransOn,
                                                    BOOLEAN mvccOn,
@@ -296,7 +318,8 @@ namespace engine
                 routeID2String( nodeRID ).c_str() ) ;
 
       // update node
-      iter->second.updateLowTran( nodeLowTran,
+      iter->second.updateLowTran( lowTran,
+                                  expireTran,
                                   transOn,
                                   globTransOn,
                                   mvccOn,
@@ -311,19 +334,32 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGLOBTRANSMANAGER__CALCGLOBLOWTRAN, "_catGlobTransManager::_calcGlobLowTran" )
-   INT32 _catGlobTransManager::_calcGlobLowTran( DPS_TRANSID_SN &globLowTran )
+   INT32 _catGlobTransManager::_calcGlobLowTran( DPS_TRANSID_SN &globLowTran,
+                                                 DPS_TRANSID_SN &globExpireTran )
    {
       INT32 rc = SDB_OK ;
 
-      globLowTran = DPS_MAX_TRANSID_SN ;
-
       PD_TRACE_ENTRY( SDB__CATGLOBTRANSMANAGER__CALCGLOBLOWTRAN ) ;
+
+      UINT32 numInvalidExpireTran = 0 ;
+
+      globLowTran = DPS_MAX_TRANSID_SN ;
+      globExpireTran = DPS_MAX_TRANSID_SN ;
+
+      // global lowTran can be calculated in one round between all nodes
+      // global expireTran need two rounds:
+      // - the first round to calculate global lowTran
+      // - the second round to use global lowTran to calculate global expire
+      //   lowTran
 
       for ( GTS_LOWTRAN_MAP::iterator iter = _lowTranMap.begin() ;
             iter != _lowTranMap.end() ;
             ++ iter )
       {
-         DPS_TRANSID_SN nodeLowTran = iter->second.getLowTran() ;
+         DPS_TRANSID_SN nodeLowTran = DPS_INVALID_TRANSID_SN ;
+         DPS_TRANSID_SN nodeExpireTran = DPS_INVALID_TRANSID_SN ;
+
+         iter->second.getLowTran( nodeLowTran, nodeExpireTran ) ;
 
          // if node lowTran is invalid, it means the node had not report
          // lowTran yet
@@ -331,11 +367,33 @@ namespace engine
          PD_CHECK( DPS_INVALID_TRANSID_SN != nodeLowTran,
                    SDB_GLOB_LOWTRAN_UNKNOWN, error, PDERROR,
                    "Failed to calculate global lowTran, lowTran of node %s "
-                   "had not reported yet",
+                   "had not been reported yet",
                    routeID2String( iter->first ).c_str() ) ;
 
-         // global lowTran is the earliest running transaction among nodes
+         // global lowTran is the minimum running transaction among all nodes
          globLowTran = OSS_MIN( nodeLowTran, globLowTran ) ;
+
+         // global expireTran is the maximum expired transaction among
+         // all nodes
+         if ( DPS_INVALID_TRANSID_SN != nodeExpireTran )
+         {
+            globExpireTran = OSS_MIN( nodeExpireTran, globExpireTran ) ;
+         }
+         else
+         {
+            // if node expireTran is invalid, it means the node had not report
+            // expireTran yet, in this case, global expireTran is not completed
+            PD_LOG( PDWARNING, "expireTran of node %s had not been "
+                    "reported yet", routeID2String( iter->first ).c_str() ) ;
+            ++ numInvalidExpireTran ;
+         }
+      }
+
+      if ( numInvalidExpireTran > 0 )
+      {
+         // if node expireTran is invalid, it means the node had not report
+         // expireTran yet, in this case, global expireTran is not completed
+         globExpireTran = DPS_INVALID_TRANSID_SN ;
       }
 
    done:

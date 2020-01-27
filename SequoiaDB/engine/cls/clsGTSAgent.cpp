@@ -178,7 +178,7 @@ namespace engine
       for ( UINT32 i = 0 ; i < nodeNum; ++i )
       {
          nodeID.value = pNodes[ i ] ;
-         if ( pmdGetNodeID().columns.groupID == nodeID.columns.groupID )
+         if ( _localRID.columns.groupID == nodeID.columns.groupID )
          {
             continue ;
          }
@@ -505,7 +505,8 @@ namespace engine
       MsgGTSLowTranReq request ;
       MsgHeader *receiveMessage = NULL ;
 
-      DPS_TRANSID_SN nodeLowTran = DPS_INVALID_TRANSID_SN ;
+      DPS_TRANSID_SN localLowTran = DPS_INVALID_TRANSID_SN ;
+      DPS_TRANSID_SN localExpireTran = DPS_INVALID_TRANSID_SN ;
       BSONObj requestObject ;
 
       const UINT32 maxRetryTimes = 3 ;
@@ -519,12 +520,14 @@ namespace engine
       }
 
       // get local lowTran
-      rc = _getLocalLowTran( nodeLowTran ) ;
+      rc = _getLocalLowTran( localLowTran, localExpireTran ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get local lowTran, rc: %d", rc ) ;
 
       // fill lowTran request
-      rc = _fillLowTranRequest( &request, nodeLowTran, requestObject ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to fill lowTran request, rc: %d", rc ) ;
+      rc = _fillLowTranReq( &request, localLowTran, localExpireTran,
+                            requestObject ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to fill lowTran request, rc: %d",
+                   rc ) ;
 
       while( ( retryTimes ++ ) < maxRetryTimes )
       {
@@ -609,12 +612,13 @@ namespace engine
             // extract global lowTran from response, and update
             MsgGTSLowTranRsp *response = (MsgGTSLowTranRsp *)receiveMessage ;
             DPS_TRANSID_SN globLowTran = DPS_INVALID_TRANSID_SN ;
+            DPS_TRANSID_SN globExpireTran = DPS_INVALID_TRANSID_SN ;
 
-            rc = _parseLowTranResponse( response, globLowTran ) ;
+            rc = _parseLowTranRsp( response, globLowTran, globExpireTran ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse lowTran response, "
                          "rc: %d", rc ) ;
 
-            _setGlobLowTran( (DPS_TRANSID_SN)( globLowTran ) ) ;
+            _setGlobLowTran( globLowTran, globExpireTran ) ;
 
             // quit
             break ;

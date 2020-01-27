@@ -331,13 +331,21 @@ namespace engine
       //    - FALSE: transaction is not expired ( could not be cleared )
       BOOLEAN isVersionExpired( const DPS_TRANS_ID &transID ) ;
 
-      // get transaction ID of the earliest running transaction ID ( lowTran )
+      // get transaction ID of the minimum running transaction ID ( lowTran )
       // of whole cluster
       // return:
       //    - transaction ID of lowTran of whole cluster
       // NOTE: this call gets global lowTran in cache ( won't update with
       //       CATALOG
       DPS_TRANS_ID getGlobLowTran() ;
+
+      // get transaction ID of the maximum expired transaction ID
+      // ( expireTran ) of whole cluster
+      // return:
+      //    - transaction ID of expireTran of whole cluster
+      // NOTE: this call gets global expireTran in cache ( won't update with
+      //       CATALOG
+      DPS_TRANS_ID getGlobExpireTran() ;
 
       // update global lowTran to CATALOG, and get back latest global lowTran
       // input:
@@ -353,7 +361,7 @@ namespace engine
       INT32 syncUpdateGlobLowTran( DPS_TRANS_ID &globLowTran,
                                    INT64 timeout = -1 ) ;
 
-      // set transaction ID of the global earliest running transaction ID
+      // set transaction ID of the global minimum running transaction ID
       // ( global lowTran )
       // input :
       //    - globLowTran: global low transaction ID
@@ -362,20 +370,35 @@ namespace engine
       // - it is atomic, so no need to acquire locks
       void setGlobLowTran( const DPS_TRANSID_SN &globLowTran ) ;
 
-      // get transaction ID of the earliest running global transaction ID
+      // set transaction ID of the global maximum expired transaction ID
+      // ( global expireTran )
+      // input :
+      //    - globExpireTran: global expired transaction ID
+      // NOTE:
+      //    - the expireTran will be updated in monotonic
+      //    - it is atomic, so no need to acquire locks
+      void setGlobExpireTran( const DPS_TRANSID_SN &globExpireTran ) ;
+
+      // get transaction ID of the minimum running global transaction ID
       // ( lowTran ) in this node
       // return:
       //    - transaction ID of lowTran of this node
       DPS_TRANS_ID getLocalLowTran() ;
 
-      // get expired lowTran
+      // get transaction ID of the maximum expired global transaction ID
+      // ( lowTran ) in this node
       // return:
-      //    - lowTran which is safely expired
+      //    - transaction ID of expireTran of this node
+      DPS_TRANS_ID getLocalExpireTran() ;
+
+      // get maximum expired transaction
+      // return:
+      //    - expireTran which is safely expired
       //    - DPS_INVALID_TRANSID_SN for invalid value
-      // NOTE: expired transaction SN is calculated from global lowTran minus
-      //       a max time error ( which is a safe value for clear expired
-      //       transaction objects, old version, etc )
-      DPS_TRANSID_SN getExpiredLowTran() ;
+      // NOTE: expired transaction SN is calculated from global expireTran
+      //       minus a max time error ( which is a safe value for clear
+      //       expired transaction objects, old version, etc )
+      DPS_TRANSID_SN getExpiredVersion() ;
 
       // get logical time from STP
       // output:
@@ -698,6 +721,27 @@ namespace engine
       void   updateMaxLRSize( UINT32 recordSize, DPS_LSN_OFFSET curLSN ) ;
       void   printCounters() ;
 
+   protected:
+      // get global lowTran with a given time error as offset
+      // input:
+      //    - timeError: time error as offset
+      // return:
+      //    - DPS_INVALID_TRANSID_SN: global lowTran is invalid
+      //    - DPS_MAX_TRANSID_SN: global transaction feature is not enabled
+      //                          among all nodes
+      //    - other values: global lowTran with time error as offset
+      DPS_TRANSID_SN _getGlobLowTran( INT32 timeError ) ;
+
+      // get global expireTran with a given time error as offset
+      // input:
+      //    - timeError: time error as offset
+      // return:
+      //    - DPS_INVALID_TRANSID_SN: global expireTran is invalid
+      //    - DPS_MAX_TRANSID_SN: global transaction feature is not enabled
+      //                          among all nodes
+      //    - other values: global expireTran with time error as offset
+      DPS_TRANSID_SN _getGlobExpireTran( INT32 timeError ) ;
+
    private:
       // node ID of transaction
       DPS_TRANSID_NODEID _TransIDH16 ;
@@ -755,8 +799,13 @@ namespace engine
       // NOTE: set to logical time of this node to become primary
       ossAtomic64          _primaryActiveTime ;
 
-      // global lowTran ( only save timestamp SN and global tag )
+      // global lowTran ( global minimum running transaction )
+      // NOTE: only save timestamp SN and global tag )
       ossAtomic64          _globLowTran ;
+
+      // global expireTran ( global maximum expired transaction )
+      // NOTE: only save timestamp SN and global tag )
+      ossAtomic64          _globExpireTran ;
 
       // archived lowTran from cb map
       // NOTE:

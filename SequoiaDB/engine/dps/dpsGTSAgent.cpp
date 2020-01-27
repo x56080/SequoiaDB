@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = rtnGTSAgent.cpp
+   Source File Name = dpsGTSAgent.cpp
 
    Descriptive Name = Runtime Global Transaction Agent
 
@@ -36,10 +36,10 @@
 
 *******************************************************************************/
 
-#include "rtnGTSAgent.hpp"
+#include "dpsGTSAgent.hpp"
 #include "pmd.hpp"
 #include "pd.hpp"
-#include "rtnTrace.hpp"
+#include "dpsTrace.hpp"
 #include "pmdOptions.hpp"
 #include "rtnCB.hpp"
 #include "../bson/bson.hpp"
@@ -52,37 +52,52 @@ namespace engine
    // update lowTran for each 10 seconds
    // NOTE: so global lowTran from different nodes should be updated in at
    //       lease 2 rounds
-   #define RTN_LOWTRAN_WAIT_SEC ( 10 )
+   #define DPS_LOWTRAN_WAIT_SEC ( 10 )
 
    /*
-      _rtnGTSAgent implement
+      _dpsGTSAgent implement
     */
-   _rtnGTSAgent::_rtnGTSAgent()
+   _dpsGTSAgent::_dpsGTSAgent()
    : _transCB( sdbGetTransCB() )
    {
       SDB_ASSERT( NULL != _transCB, "transCB is invalid" ) ;
+      _localRID.value = MSG_INVALID_ROUTEID ;
    }
 
-   _rtnGTSAgent::~_rtnGTSAgent()
+   _dpsGTSAgent::~_dpsGTSAgent()
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNGTSAGENT__GETLOCALLOWTRAN, "_rtnGTSAgent::_getLocalLowTran" )
-   INT32 _rtnGTSAgent::_getLocalLowTran( DPS_TRANSID_SN &localLowTran )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSGTSAGENT__GETLOCALLOWTRAN, "_dpsGTSAgent::_getLocalLowTran" )
+   INT32 _dpsGTSAgent::_getLocalLowTran( DPS_TRANSID_SN &localLowTran,
+                                         DPS_TRANSID_SN &localExpireTran )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNGTSAGENT__GETLOCALLOWTRAN ) ;
+      PD_TRACE_ENTRY( SDB__DPSGTSAGENT__GETLOCALLOWTRAN ) ;
 
       DPS_TRANSID_SN lowTran = DPS_MAX_TRANSID_SN ;
+      DPS_TRANSID_SN expireTran = DPS_MAX_TRANSID_SN ;
 
       // only get lowTran when global transaction is enabled
       if ( _transCB->isTransOn() && _transCB->isGlobTransOn() )
       {
-         DPS_TRANS_ID lowTranID = _transCB->getLocalLowTran() ;
+         DPS_TRANS_ID lowTranID ;
+         DPS_TRANS_ID expireTranID ;
+
+         lowTranID = _transCB->getLocalLowTran() ;
          if ( lowTranID.isValid() )
          {
             lowTran = lowTranID.getGlobSN() ;
+         }
+
+         if ( SDB_ROLE_DATA == pmdGetDBRole() )
+         {
+            expireTranID = _transCB->getLocalExpireTran() ;
+            if ( expireTranID.isValid() )
+            {
+               expireTran = expireTranID.getGlobSN() ;
+            }
          }
       }
 
@@ -90,40 +105,45 @@ namespace engine
       // if no global transaction in local, we report max value of
       // transaction SN to caller
       localLowTran = lowTran ;
+      localExpireTran = expireTran ;
 
-      PD_LOG( PDDEBUG, "Got local lowTran [%llu(0x%llX)]",
-              lowTran, lowTran ) ;
+      PD_LOG( PDDEBUG, "Got local lowTran [%llu(0x%llX)], "
+              "local expireTran [%llu(0x%llX)]", lowTran, lowTran,
+              expireTran, expireTran ) ;
 
-      PD_TRACE_EXITRC( SDB__RTNGTSAGENT__GETLOCALLOWTRAN, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPSGTSAGENT__GETLOCALLOWTRAN, rc ) ;
 
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNGTSAGENT__SETNODELOWTRANBSON, "_rtnGTSAgent::_setGlobLowTran" )
-   INT32 _rtnGTSAgent::_setGlobLowTran( const DPS_TRANSID_SN &globLowTran )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSGTSAGENT__SETNODELOWTRANBSON, "_dpsGTSAgent::_setGlobLowTran" )
+   INT32 _dpsGTSAgent::_setGlobLowTran( const DPS_TRANSID_SN &globLowTran,
+                                        const DPS_TRANSID_SN &globExpireTran )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNGTSAGENT__SETNODELOWTRANBSON ) ;
+      PD_TRACE_ENTRY( SDB__DPSGTSAGENT__SETNODELOWTRANBSON ) ;
 
       if ( _transCB->isTransOn() && _transCB->isGlobTransOn() )
       {
          _transCB->setGlobLowTran( globLowTran ) ;
+         _transCB->setGlobExpireTran( globExpireTran ) ;
       }
 
-      PD_TRACE_EXITRC( SDB__RTNGTSAGENT__SETNODELOWTRANBSON, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPSGTSAGENT__SETNODELOWTRANBSON, rc ) ;
 
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNGTSAGENT__FILLLOWTRANREQUEST, "_rtnGTSAgent::_fillLowTranRequest" )
-   INT32 _rtnGTSAgent::_fillLowTranRequest( MsgGTSLowTranReq *request,
-                                            const DPS_TRANSID_SN &nodeLowTran,
-                                            BSONObj &requestObject )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSGTSAGENT__FILLLOWTRANREQ, "_dpsGTSAgent::_fillLowTranReq" )
+   INT32 _dpsGTSAgent::_fillLowTranReq( MsgGTSLowTranReq *request,
+                                        const DPS_TRANSID_SN &localLowTran,
+                                        const DPS_TRANSID_SN &localExpireTran,
+                                        BSONObj &requestObject )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNGTSAGENT__FILLLOWTRANREQUEST ) ;
+      PD_TRACE_ENTRY( SDB__DPSGTSAGENT__FILLLOWTRANREQ ) ;
 
       stpAgent *agent = sdbGetRTNCB()->getSTPAgent() ;
 
@@ -136,7 +156,8 @@ namespace engine
       try
       {
          BSONObjBuilder builder ;
-         builder.append( FIELD_NAME_TRANS_LOWTRAN, (INT64)nodeLowTran ) ;
+         builder.append( FIELD_NAME_TRANS_LOWTRAN, (INT64)localLowTran ) ;
+         builder.append( FIELD_NAME_TRANS_EXPTRAN, (INT64)localExpireTran ) ;
          builder.appendBool( PMD_OPTION_TRANSACTIONON, transOn ) ;
          builder.appendBool( PMD_OPTION_GLOBTRANSON, globTransOn ) ;
          builder.appendBool( PMD_OPTION_MVCCON, mvccOn ) ;
@@ -157,24 +178,25 @@ namespace engine
       request->opCode = MSG_GTS_LOWTRAN_REQ ;
       request->TID = 0 ;
       // set route ID of this node
-      request->routeID.value = pmdGetNodeID().value ;
+      request->routeID.value = _localRID.value ;
       request->requestID = 0LL ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNGTSAGENT__FILLLOWTRANREQUEST, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPSGTSAGENT__FILLLOWTRANREQ, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNGTSAGENT__PARSELOWTRANRSP, "_rtnGTSAgent::_parseLowTranResponse" )
-   INT32 _rtnGTSAgent::_parseLowTranResponse( MsgGTSLowTranRsp *response,
-                                              DPS_TRANSID_SN &globLowTran )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSGTSAGENT__PARSELOWTRANRSP, "_dpsGTSAgent::_parseLowTranRsp" )
+   INT32 _dpsGTSAgent::_parseLowTranRsp( MsgGTSLowTranRsp *response,
+                                         DPS_TRANSID_SN &globLowTran,
+                                         DPS_TRANSID_SN &globExpireTran )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNGTSAGENT__PARSELOWTRANRSP ) ;
+      PD_TRACE_ENTRY( SDB__DPSGTSAGENT__PARSELOWTRANRSP ) ;
 
       BSONObj responseObject ;
 
@@ -187,13 +209,15 @@ namespace engine
                 "message length [%d] is unexpected",
                 response->header.messageLength ) ;
 
-      // parse global lowTran
       try
       {
+         BSONElement element ;
+
          responseObject = BSONObj( (CHAR *)response +
                                    sizeof( MsgGTSLowTranRsp ) ) ;
-         BSONElement element =
-                     responseObject.getField( FIELD_NAME_TRANS_GLOBLOWTRAN ) ;
+
+         // parse global lowTran
+         element = responseObject.getField( FIELD_NAME_TRANS_GLOBLOWTRAN ) ;
          PD_CHECK( EOO != element.type(), SDB_SYS, error, PDERROR,
                    "Failed to get field [%s], it should not be empty",
                    FIELD_NAME_TRANS_GLOBLOWTRAN ) ;
@@ -201,6 +225,15 @@ namespace engine
                    "Failed to get field [%s], it should be long type",
                    FIELD_NAME_TRANS_GLOBLOWTRAN ) ;
          globLowTran = (DPS_TRANSID_SN)( element.numberLong() ) ;
+
+         element = responseObject.getField( FIELD_NAME_TRANS_GLOBEXPTRAN ) ;
+         PD_CHECK( EOO != element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should not be empty",
+                   FIELD_NAME_TRANS_GLOBEXPTRAN ) ;
+         PD_CHECK( NumberLong == element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should be long type",
+                   FIELD_NAME_TRANS_GLOBEXPTRAN ) ;
+         globExpireTran = (DPS_TRANSID_SN)( element.numberLong() ) ;
       }
       catch ( exception &e )
       {
@@ -211,7 +244,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNGTSAGENT__PARSELOWTRANRSP, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPSGTSAGENT__PARSELOWTRANRSP, rc ) ;
       return rc ;
 
    error:
@@ -219,24 +252,24 @@ namespace engine
    }
 
    /*
-       _rtnGTSLowTranJob implement
+       _dpsGTSLowTranJob implement
     */
-   _rtnGTSLowTranJob::_rtnGTSLowTranJob( rtnGTSAgent *gtsAgent )
+   _dpsGTSLowTranJob::_dpsGTSLowTranJob( dpsGTSAgent *gtsAgent )
    : _gtsAgent( gtsAgent )
    {
       SDB_ASSERT( NULL != gtsAgent, "GTS agent is invalid" ) ;
    }
 
-   _rtnGTSLowTranJob::~_rtnGTSLowTranJob()
+   _dpsGTSLowTranJob::~_dpsGTSLowTranJob()
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNGTSLOWTRANJOB_DOIT, "_rtnGTSLowTranJob::doit" )
-   INT32 _rtnGTSLowTranJob::doit()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSGTSLOWTRANJOB_DOIT, "_dpsGTSLowTranJob::doit" )
+   INT32 _dpsGTSLowTranJob::doit()
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNGTSLOWTRANJOB_DOIT ) ;
+      PD_TRACE_ENTRY( SDB__DPSGTSLOWTRANJOB_DOIT ) ;
 
       pmdEDUCB *cb = eduCB() ;
       pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
@@ -250,7 +283,7 @@ namespace engine
       while ( !PMD_IS_DB_DOWN() &&
               !cb->isForced() )
       {
-         if ( 0 == timeout % RTN_LOWTRAN_WAIT_SEC )
+         if ( 0 == timeout % DPS_LOWTRAN_WAIT_SEC )
          {
             PD_LOG( PDDEBUG, "%s: start to update global lowTran", name() ) ;
             rc = _gtsAgent->updateGlobLowTran() ;
@@ -302,25 +335,54 @@ namespace engine
 
       rc = SDB_OK ;
 
-      PD_TRACE_EXITRC( SDB__RTNGTSLOWTRANJOB_DOIT, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPSGTSLOWTRANJOB_DOIT, rc ) ;
 
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSTARTGTSLOWTRANJOB, "rtnStartGTSLowTranJob" )
-   INT32 rtnStartGTSLowTranJob( rtnGTSAgent *gtsAgent,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSGTSLOWTRANJOB__ONATTACH, "_dpsGTSLowTranJob::_onAttach" )
+   void _dpsGTSLowTranJob::_onAttach()
+   {
+      PD_TRACE_ENTRY( SDB__DPSGTSLOWTRANJOB__ONATTACH ) ;
+
+      // call on attach event of GTS agent
+      if ( NULL != _gtsAgent )
+      {
+         _gtsAgent->setLocalRID( pmdGetNodeID() ) ;
+         _gtsAgent->onAttach( eduCB() ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__DPSGTSLOWTRANJOB__ONATTACH ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSGTSLOWTRANJOB__ONDETACH, "_dpsGTSLowTranJob::_onDetach" )
+   void _dpsGTSLowTranJob::_onDetach()
+   {
+      PD_TRACE_ENTRY( SDB__DPSGTSLOWTRANJOB__ONDETACH ) ;
+
+      // call on detach event of GTS agent
+      if ( NULL != _gtsAgent )
+      {
+         _gtsAgent->onDetach( eduCB() ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__DPSGTSLOWTRANJOB__ONDETACH ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSSTARTGTSLOWTRANJOB, "dpsStartGTSLowTranJob" )
+   INT32 dpsStartGTSLowTranJob( dpsGTSAgent *gtsAgent,
                                 EDUID *eduID )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__RTNSTARTGTSLOWTRANJOB ) ;
+      PD_TRACE_ENTRY( SDB__DPSSTARTGTSLOWTRANJOB ) ;
 
-      rtnGTSLowTranJob *job = NULL ;
+      dpsGTSLowTranJob *job = NULL ;
 
       PD_CHECK( NULL != gtsAgent, SDB_SYS, error, PDERROR,
                 "Failed to start GTSLowTranJob, GTS agent is invalid" ) ;
 
-      job = SDB_OSS_NEW rtnGTSLowTranJob( gtsAgent ) ;
+      job = SDB_OSS_NEW dpsGTSLowTranJob( gtsAgent ) ;
       PD_CHECK( NULL != job, SDB_OOM, error, PDERROR,
                 "Failed to allocate job" ) ;
       rc = rtnGetJobMgr()->startJob( job, RTN_JOB_MUTEX_STOP_RET, eduID ) ;
@@ -328,7 +390,7 @@ namespace engine
                    rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNSTARTGTSLOWTRANJOB, rc ) ;
+      PD_TRACE_EXITRC( SDB__DPSSTARTGTSLOWTRANJOB, rc ) ;
       return rc ;
 
    error:
