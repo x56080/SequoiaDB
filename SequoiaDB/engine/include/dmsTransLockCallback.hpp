@@ -100,6 +100,11 @@ namespace engine
 
       DPS_TRANS_ID getRecordTransID() ;
       DPS_TRANS_ID getOwnerTransID() ;
+
+      BOOLEAN isIndexProtectionRequired() ;
+
+      BOOLEAN isIndexProtected( INT32 idxTreeId, INT32 latchMode = -1 ) ;
+        
    public:
 
       /// Interface
