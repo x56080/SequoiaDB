@@ -1721,5 +1721,38 @@ namespace engine
       }
    }
 
-}
+   BOOLEAN dmsTransLockCallback::isIndexProtectionRequired()
+   {
+      BOOLEAN bResult = FALSE ;
+      if ( _pScanner && ( SCANNER_TYPE_MERGE == _pScanner->getType() ) )
+      {
+         bResult = TRUE ;
+      }
+      return bResult ;
+   }
 
+   BOOLEAN dmsTransLockCallback::isIndexProtected
+   (
+      INT32 idxTreeId,
+      INT32 latchMode
+   )
+   {
+      BOOLEAN bResult = FALSE ;
+      if ( idxTreeId == _latchedIdxLid )
+      {
+         if ( -1 != latchMode )
+         {
+            if ( idxTreeLatchMode() == latchMode )
+            {
+               bResult = TRUE ;
+            }
+         }
+         else
+         {
+            bResult = TRUE ;
+         }
+      }
+      return bResult ;
+   }
+
+}

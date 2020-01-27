@@ -2034,12 +2034,17 @@ namespace engine
                                        _rid, 
                                        pTree->getOrdering(),
                                        _ownerTransID ) ;
+            INT32 idxLID = pTree->getLID() ;
 
-            if ( callback && callback->idxTreeLatched(pTree->getLID()) )
+            // For merge scanner, make sure the scanner is X latched ;
+            // as for non-transactional IUD, it could be disk scan.
+            if ( callback &&
+                 callback->isIndexProtectionRequired() &&
+                 callback->isIndexProtected( idxLID ) )
             {
-                SDB_ASSERT( (EXCLUSIVE == callback->idxTreeLatchMode()),
-                            "Index tree must be held exclusively" ) ;
-                treeLatchHeld = TRUE ;
+               SDB_ASSERT( callback->isIndexProtected( idxLID, EXCLUSIVE ),
+                           "Index tree must be held exclusively" ) ;
+               treeLatchHeld = TRUE ;
             }
 
             // remove the index from mem tree if mvcc is off 
