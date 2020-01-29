@@ -467,11 +467,15 @@ namespace engine
                // with lowtran. If the node transID is older than lowtran, we
                // can skip it
 
-               // skip the node if expired (older than lowtran) OR
-               // isolation level is below RR and value is reset
-               if ( _pTransCB->isVersionExpired( nodeKey.getNodeTransID() ) ||
-                    ( (_transIsolation < TRANS_ISOLATION_RR) && 
-                      ( !_curIndexPos->second.isValid()) ) )
+               // When mvcc is enabled, there will be multiple versions
+               // in the tree, nomater what isolation is set. When a node
+               // is invalid, if isolation is RC or any level below RR,
+               // we shall skip the invalid node right away; if isolation is RR,
+               // skip the invalid node if it is expired (older than lowtran) 
+               if ((!_curIndexPos->second.isValid()) &&
+                   ((_transIsolation < TRANS_ISOLATION_RR) ||
+                    ((TRANS_ISOLATION_RR == _transIsolation) &&
+                     (_pTransCB->isVersionExpired(nodeKey.getNodeTransID())))))
                {
                   // FIXME: remove from set
 #ifdef _DEBUG
