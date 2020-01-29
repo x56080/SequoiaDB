@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -253,6 +254,61 @@ public class TransUtils extends SdbTestBase {
         Collections.shuffle( insertDatas );
         cl.insert( insertDatas );
         return expDatas;
+    }
+
+    public static ArrayList< BSONObject > prepareDatas( Sequoiadb db,
+            DBCollection cl, int recordNums ) throws BaseException {
+        ArrayList< BSONObject > insertDatas = new ArrayList<>();
+        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        int times = 0;
+        int maxInsertNum = 100;
+        int insertTimes = recordNums / 100;
+        if ( recordNums % maxInsertNum != 0 ) {
+            insertTimes++;
+        }
+        new Random().nextBytes( new byte[ 1024 ] );
+        for ( int i = 0; i < insertTimes; i++ ) {
+            insertDatas.clear();
+            for ( int j = 0; j < maxInsertNum; j++ ) {
+                if ( times < recordNums ) {
+                    times++;
+                } else {
+                    break;
+                }
+                BSONObject data = ( BSONObject ) JSON
+                        .parse( "{_id:" + ( i * recordNums + j ) + ", a:"
+                                + ( i * recordNums + j )
+                                + ", b:'test trans rr mode" + j + "'}" );
+                insertDatas.add( data );
+                expDatas.add( data );
+            }
+            Collections.shuffle( insertDatas );
+            if ( new Random().nextInt( 2 ) != 0 ) {
+                db.beginTransaction();
+                cl.insert( insertDatas );
+                db.commit();
+            } else {
+                cl.insert( insertDatas );
+            }
+        }
+
+        return expDatas;
+    }
+
+    public static void updateList( List< BSONObject > list, String modify,
+            int begin, int end ) {
+        for ( int i = begin; i < end; i++ ) {
+            BSONObject data = ( BSONObject ) JSON.parse(
+                    "{_id:" + i + ", a:" + i + ", b:'" + modify + "'}" );
+            list.set( i, data );
+        }
+    }
+
+    public static void removeList( List< BSONObject > list, int begin,
+            int end ) {
+        for ( int i = begin; i < end; i++ ) {
+            list.remove( i );
+        }
     }
 
     public static boolean getReadActList( DBCursor cursor, StringBuilder expRes,
@@ -591,8 +647,14 @@ public class TransUtils extends SdbTestBase {
             cl.createIndex( idxName, idxKey, true, false );
             Assert.fail( "CREATE IDX SHOULD THROW ERR" );
         } catch ( BaseException e ) {
-            if ( -38 != e.getErrorCode() ) {
-                throw e;
+            if ( "rcuserbs".equals( SdbTestBase.testGroup ) ) {
+                if ( -334 != e.getErrorCode() ) {
+                    throw e;
+                }
+            } else {
+                if ( -38 != e.getErrorCode() ) {
+                    throw e;
+                }
             }
         }
     }
