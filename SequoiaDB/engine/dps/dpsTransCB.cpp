@@ -664,8 +664,8 @@ namespace engine
 
          // iterate from beginning of history with global transaction tag to
          // the global lowTran, find transactions with commit time greater
-         // than global lowTran, and assign the minimum one for local
-         // expireTran
+         // than global lowTran ( with a maximum time error for network delay
+         // consideration ), and assign the minimum one for local expireTran
          for ( TRANS_ID_2_STATUS::iterator iter =
                                  _hisTransStatus.upper_bound( minGlobTran ) ;
                _hisTransStatus.end() != iter ;
@@ -674,12 +674,17 @@ namespace engine
             const DPS_TRANS_ID &histTransID = iter->first ;
             UINT64 commitTime = iter->second._commitTime.getTime() ;
 
-            if ( globLowTranID < histTransID )
+            if ( DPS_TRANS_COMMIT != iter->second._status )
+            {
+               // we only check commit transaction
+               continue ;
+            }
+            else if ( globLowTranID < histTransID )
             {
                // end of searching, this transaction is after global lowTran
                break ;
             }
-            else if ( commitTime - STP_MAX_TIME_ERROR_US > lowTranTime )
+            else if ( commitTime + STP_MAX_TIME_ERROR_US >= lowTranTime )
             {
                // end of searching, find the minimum one
                expireTran = histTransID ;
