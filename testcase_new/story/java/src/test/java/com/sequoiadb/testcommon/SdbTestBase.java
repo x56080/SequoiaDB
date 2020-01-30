@@ -65,15 +65,18 @@ public class SdbTestBase {
     public static final String RCAUTO = "rcauto";
     public static final String RCUSERBS = "rcuserbs";
     public static final String TRANSREPLSIZE = "transreplsize";
+    public static final String RR = "rr";
+    public static final String MVCCON = "mvccon";
+    public static final String GLOBTRANSON = "globtranson";
 
     private static ConfigOptions options = new ConfigOptions();
     public static String testGroup = null;
     private static final int newIndexScanStep = 100;
     private static final int transReplsize = 1;
     public static final int timeOutLen = 120;
-    private static final Map< String, BSONObject > group2Conf = new HashMap< String, BSONObject >();
-    private static final Map< String, AtomicInteger > group2Count = new HashMap< String, AtomicInteger >();
-    private static final Map< String, BSONObject > node2Conf = new HashMap< String, BSONObject >();
+    private static final Map< String, BSONObject > group2Conf = new HashMap<>();
+    private static final Map< String, AtomicInteger > group2Count = new HashMap<>();
+    private static final Map< String, BSONObject > node2Conf = new HashMap<>();
     private static boolean istransactionOn = true;
     private static BasicBSONObject confObj = new BasicBSONObject();
     public static List< String > coordUrls = new ArrayList<>();
@@ -138,6 +141,17 @@ public class SdbTestBase {
         group2Conf.get( RCUSERBS ).put( TRANSAUTOROLLBACK, true );
         group2Conf.get( RCUSERBS ).put( TRANSUSERBS, false );
         group2Conf.get( RCUSERBS ).put( TRANSREPLSIZE, transReplsize );
+
+        group2Conf.put( RR, new BasicBSONObject() );
+        group2Conf.get( RR ).put( TRANSISOLATION, 3 );
+        group2Conf.get( RR ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RR ).put( INDEXSCANSTEP, newIndexScanStep );
+        group2Conf.get( RR ).put( TRANSTIMEOUT, timeOutLen );
+        group2Conf.get( RR ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( RR ).put( TRANSAUTOROLLBACK, true );
+        group2Conf.get( RR ).put( TRANSUSERBS, true );
+        group2Conf.get( RR ).put( MVCCON, true );
+        group2Conf.get( RR ).put( GLOBTRANSON, true );
 
         for ( String key : group2Conf.keySet() ) {
             group2Count.put( key, new AtomicInteger( 0 ) );
@@ -309,7 +323,7 @@ public class SdbTestBase {
         }
     }
 
-    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS } )
+    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS, RR })
     public static synchronized void initTestGroups() {
         if ( testGroup == null )
             return;
@@ -317,8 +331,8 @@ public class SdbTestBase {
         modifyNodeConf( group2Conf.get( testGroup ), null );
     }
 
-    @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO,
-            RCUSERBS }, alwaysRun = true)
+    @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO, RCUSERBS,
+            RR }, alwaysRun = true)
     public static synchronized void finiTestGroups() {
         if ( testGroup == null )
             return;
