@@ -729,6 +729,8 @@ namespace engine
                PD_LOG ( PDDEBUG, "Collection %s is deleted, "
                         "no more older version found", clName ) ;
 #endif
+               // no need to report
+               rc = SDB_OK ;
                goto done ;
             }
             else if ( rc )
