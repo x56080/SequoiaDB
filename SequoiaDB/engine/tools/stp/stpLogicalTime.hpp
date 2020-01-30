@@ -732,7 +732,7 @@ namespace engine
          // if T1 - max time error < T2 < T1 + max time error, they are equal
          // ( within time error )
          UINT32 timeError = _getMaxTimeErrorUS( time ) ;
-         return ( time._time - timeError < _time &&
+         return ( time._time < _time + timeError &&
                   time._time + timeError > _time ) ;
       }
 
@@ -741,8 +741,8 @@ namespace engine
       {
          // compare two logical time
          // max time error = max( time error of T1, time error of T2 )
-         // if T1 <= T2 - max time error, then T1 < T2 ( within time error )
-         return _time <= time._time - _getMaxTimeErrorUS( time ) ;
+         // if T1 + max time error <= T2 , then T1 < T2 ( within time error )
+         return _time + _getMaxTimeErrorUS( time ) <= time._time ;
       }
 
       // larger than with time error
