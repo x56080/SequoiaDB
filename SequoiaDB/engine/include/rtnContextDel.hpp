@@ -42,6 +42,7 @@
 #include "rtnContext.hpp"
 #include "utilRenameLogger.hpp"
 #include "rtnLocalTaskFactory.hpp"
+#include "clsCatalogAgent.hpp"
 
 namespace engine
 {

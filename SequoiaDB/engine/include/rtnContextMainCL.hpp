@@ -44,6 +44,7 @@
 #include "rtnContextMain.hpp"
 #include "rtnContextExplain.hpp"
 #include "ossMemPool.hpp"
+#include "clsCatalogAgent.hpp"
 
 namespace engine
 {
