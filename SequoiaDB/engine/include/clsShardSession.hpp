@@ -36,6 +36,7 @@
 
 #include "pmdAsyncSession.hpp"
 #include "rtn.hpp"
+#include "clsCatalogAgent.hpp"
 
 using namespace bson ;
 
