@@ -835,5 +835,42 @@ namespace engine
       return &_listIterator ;
    }
 
+   // returned startPos is inclusive, but the endPos is exclusive
+   void _rtnMemIXTreeScanner::getRBSPositions( dmsRBSOffset & startPos,
+                                               dmsRBSOffset & endPos,
+                                               preIdxTreePtr  memTree )
+   {
+      SDB_ASSERT( memTree.get() == _memIdxTree.get(), "tree does not match" ) ;
+      // FIXME: we assign both start and end to curPos for now.
+      // Next we will follow _ridNext to find the 
+      if ( _memIdxTree->isPosValid( _curIndexPos ) )
+      {
+         startPos = _memIdxTree->getNodeData(_curIndexPos).getRBSOffset() ;
+         if ( _memIdxTree->hasRidPre(_curIndexPos) )
+         {
+            endPos = _memIdxTree->getNodeData(_curIndexPos).getRidPre()
+                        ->second.getRBSOffset() ;
+         }
+         else
+         {
+            // search till the end of RBS
+            endPos.reset() ;
+         }
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, 
+                 "IdxMemScan use startPos(%d, %lld) endPos(%d, %lld) for RBS",
+                 startPos._clID, startPos._logicalID,
+                 endPos._clID, endPos._logicalID );
+#endif
+
+      }
+      else
+      {
+         SDB_ASSERT( FALSE, "should not try to retrieve position" ) ;
+         startPos.reset() ;
+         endPos.reset() ;
+      }
+   }
+
 }
 

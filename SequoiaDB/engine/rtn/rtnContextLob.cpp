@@ -33,6 +33,7 @@
 *******************************************************************************/
 
 #include "rtnContextLob.hpp"
+#include "utilLobID.hpp"
 #include "pmd.hpp"
 #include "rtnLobStream.hpp"
 #include "rtnLobFetcher.hpp"

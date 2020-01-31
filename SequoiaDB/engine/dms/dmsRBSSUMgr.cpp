@@ -492,17 +492,17 @@ namespace engine
    // 2. build proper record
    // 3. invoke insertRecord to append the record to the destinated collection
    // 4. update bucket with the returned offset, unlock bucket
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_APPENDRECORD1, "_dmsRBSSUMgr::appendRecord" )
-   SINT32 _dmsRBSSUMgr::appendRecord ( dmsStorageUnitID      csid,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_RBSAPPENDRECORD, "_dmsRBSSUMgr::rbsAppendRecord" )
+   SINT32 _dmsRBSSUMgr::rbsAppendRecord ( dmsStorageUnitID   csid,
                                        UINT16                clid,
-                                       //DPS_LSN_OFFSET        lsn,
                                        UINT32                clLID,
                                        const dmsRecordID    &rid,
                                        DPS_TRANS_ID         &recordTransID,
                                        DPS_TRANS_ID         &ownerTransID,
-                                       const BSONObj        &data )
+                                       const BSONObj        &data,
+                                       dmsTransLockCallback * callback )
    {
-      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_APPENDRECORD1 );
+      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_RBSAPPENDRECORD );
       SINT32        rc          = SDB_OK ;
       dmsRBSOffset  newOffset ;
       //dmsRBSRecord *rbsRecord ;
@@ -522,6 +522,7 @@ namespace engine
       BOOLEAN       bktLatched   = FALSE ;
       BOOLEAN       clLocked     = FALSE ;
       UINT32        recSize ;
+      dmsRBSOffset  location ;
       // type conversion for following use
       SINT32        cl           = clid ;
       _dmsStorageDataCapped *sd = (_dmsStorageDataCapped*)_su->data();
@@ -612,10 +613,8 @@ namespace engine
 
       // Update bucket to point to the new record location
       {
-         dmsRBSOffset location ;
          SINT32       ext, offset ;
          insertResult.getInsertLoc( ext, offset ) ;
-         // FIXME:  is this ext correct? should it be extlid from extent
          sd->_extLidAndOffset2RecLid( ext, offset, location._logicalID ) ;
          location._clID = _currentCollection ;
          _rbsRecordBkt.setOffset( location, bkt ) ;
@@ -624,8 +623,13 @@ namespace engine
       _rbsRecordBkt.release( bkt ) ;
       bktLatched  = FALSE ;
 
+      if ( callback )
+      {
+         callback->setRBSRecordOffset( location ) ;
+      }
+
    done:
-      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_APPENDRECORD1, rc );
+      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_RBSAPPENDRECORD, rc );
       return  rc ;
    error:
       if ( bktLatched )
@@ -640,18 +644,22 @@ namespace engine
    }
 
    // Given a transactionID and beginning of a record chain, find a visiable record
-   // This method uses fetch method from cappedCL
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_GETRECORD, "_dmsRBSSUMgr::getRecord" )
-   SINT32 _dmsRBSSUMgr::getRecord ( dmsStorageUnitID  csid,
-                                    UINT16            clid,
-                                    //DPS_LSN_OFFSET    &lsn,
-                                    UINT32            clLID,
-                                    dmsRecordID      &rid,
-                                    DPS_TRANS_ID     &transid,
-                                    BOOLEAN          &found,
-                                    dmsRecordData    &recordData )
+   // This method uses fetch method from cappedCL.
+   // User can provide start and end position of the RBSRecord, index scan 
+   // normally does this as it need make sure the index value matches the 
+   // old version of the record.
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_RBSGETRECORD, "_dmsRBSSUMgr::rbsGetRecord" )
+   SINT32 _dmsRBSSUMgr::rbsGetRecord ( dmsStorageUnitID  csid,
+                                       UINT16            clid,
+                                       UINT32            clLID,
+                                       dmsRecordID      &rid,
+                                       DPS_TRANS_ID     &transid,
+                                       BOOLEAN          &found,
+                                       dmsRecordData    &recordData,
+                                       dmsRBSOffset     &startPos,
+                                       dmsRBSOffset     &endPos )
    {
-      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_GETRECORD );
+      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_RBSGETRECORD );
       SINT32        rc         = SDB_OK ;
       UINT32        bkt        = _hash( csid, clid, rid );
       dmsMBContext *context    = NULL ;
@@ -662,6 +670,9 @@ namespace engine
       dmsStorageDataCapped *sd = (dmsStorageDataCapped*)_su->data();
       dmsExtentID   extID      = DMS_INVALID_EXTENT ;
       dmsOffset     offset     = DMS_INVALID_OFFSET;
+      // decide if we were provided with start and finish position in RBS.
+      // index scan does this type of search. Either of this can be valid.
+      BOOLEAN       useRange   = ( startPos.isValid() || endPos.isValid() );
 
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
@@ -670,30 +681,51 @@ namespace engine
                dpsTransIDToString( transid ).c_str(),
                csid, clid, rid._extent, rid._offset, clLID ) ;
 #endif
+      SDB_ASSERT( pmdGetOptionCB()->globTransOn() && 
+                  pmdGetOptionCB()->mvccOn() , 
+                  "global transaction should be on" ) ;
+
       found = FALSE ;
       // 1. From the hash table, find the position
       // lock the bucket
-      _rbsRecordBkt.lock( bkt );
-      position = _rbsRecordBkt.getOffset( bkt );
+      if ( useRange && startPos.isValid() )
+      {
+         position = startPos ;
+      }
+      else
+      {
+         // range search without valid start position means start from
+         // the offset in hash bucket
+         _rbsRecordBkt.lock( bkt );
+         position = _rbsRecordBkt.getOffset( bkt );
 
-      // When is it safe to release the latch? do we allow anybody else to
-      // insert/free the position while  we got a position and are still
-      // using it.
-      // I "think" it should be ok as long as insert guy holds recordLock
-      // in X and reader already went through the lock request but failed
-      // thus decided to use a version of old record, AND the version is
-      // already stored in RBS AND hasn't been recycled yet.
-      _rbsRecordBkt.release( bkt ) ;
+         // When is it safe to release the latch? do we allow anybody else to
+         // insert/free the position while  we got a position and are still
+         // using it.
+         // I "think" it should be ok as long as insert guy holds recordLock
+         // in X and reader already went through the lock request but failed
+         // thus decided to use a version of old record, AND the version is
+         // already stored in RBS AND hasn't been recycled yet.
+         _rbsRecordBkt.release( bkt ) ;
+      }
 
       do
       {
-         // finish if the hasbucket entry is invalid
-         // FIXME: is it possible that the position is pointing to a
-         // version no longer exist (CL has been recycled)
-         if ( !position.isValid() )
+         // finish if the hasbucket entry is invalid Or hit the end of range
+         // Or the position is pointing to a version no longer exist
+         // (CL has been recycled)
+         if ( !position.isValid() || 
+              ( useRange && ( endPos == position ) ) ||
+              _rbsPositionExpired( position ) )
          {
 #ifdef _DEBUG
-            PD_LOG ( PDDEBUG, "no more older version found" ) ;
+            PD_LOG ( PDDEBUG, 
+                     "no more older version found, useRange(%d)"
+                     "position(%d, %llu), endPos(%d, %llu)"
+                     "curCL(%d), lastFreeCL(%d)",
+                     useRange,  position._clID, position._logicalID,
+                     endPos._clID, endPos._logicalID,
+                     _currentCollection, _lastFreeCollection ) ;
 #endif
             goto done ;
          }
@@ -707,7 +739,6 @@ namespace engine
             dmsRecordID   recordID( extID, offset ) ;
             BSONObj       cappedRecord ;
             DPS_TRANS_ID  recordTransID ;
-            //DPS_LSN_OFFSET recordLSNOffset ;
             BSONElement   eleTransID;
             BSONElement   eleCLLID;
             BSONElement   eleLsnOffset;
@@ -719,24 +750,12 @@ namespace engine
                      clName, extID, offset  ) ;
 #endif
             rc = _su->data()->getMBContext( &context, clName, SHARED ) ;
-            if ( SDB_DMS_NOTEXIST == rc )
-            {
-               // RBS collection is removed by GC, there no earlier records
-               // to be found
-               // which means the record is created after current transaction
-               // and current transaction should not see the record
-#ifdef _DEBUG
-               PD_LOG ( PDDEBUG, "Collection %s is deleted, "
-                        "no more older version found", clName ) ;
-#endif
-               // no need to report
-               rc = SDB_OK ;
-               goto done ;
-            }
-            else if ( rc )
+            if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to get mbLatch for %s, rc=%d",
                         clName, rc ) ;
+               SDB_ASSERT( (SDB_DMS_NOTEXIST != rc),
+                           "Should not use deleted collection " ) ;
                goto error ;
             }
 
@@ -751,13 +770,7 @@ namespace engine
             }
 
             // 3. parse the dataRecord to figure out record key and visiability
-            //cappedRecord = BSONObj( cappedRecordData.data() ) ;
             eleTransID = cappedRecord.getField(FIELD_NAME_RBS_RECORD_TRANSID) ;
-/*
-            eleLsnOffset = 
-                     cappedRecord.getField(FIELD_NAME_RBS_RECORD_LSN_OFFSET) ;
-            recordLSNOffset = eleLsnOffset.numberLong();
-*/
             eleCLLID = 
                      cappedRecord.getField(FIELD_NAME_RBS_RECORD_CLLID) ;
 
@@ -778,10 +791,12 @@ namespace engine
             if ( ( vecKey[0].numberInt() == csid ) &&
                  ( vecKey[1].numberInt() == clid ) &&
                  ( vecKey[2].numberInt() == rid._extent ) &&
-                 ( vecKey[3].numberInt() == rid._offset ) )
+                 ( vecKey[3].numberInt() == rid._offset ) &&
+                 sdbGetTransCB()->isVersionVisible( recordTransID,
+                                                    transid,
+                                                    eduCB->getTransBeginTime() ) )
             {
                  UINT32 recCLLID = eleCLLID.numberInt() ;
-                 //( recordLSNOffset == lsn ) &&
                  if ( recCLLID != clLID )
                  {
                     // logical ID of collection is different
@@ -857,7 +872,7 @@ namespace engine
          goto error ;
       }
    done:
-      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_GETRECORD, rc );
+      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR_RBSGETRECORD, rc );
       return  rc ;
    error:
       _su->data()->releaseMBContext( context ) ;
@@ -993,6 +1008,35 @@ namespace engine
       return  rc ;
    error:
       goto done ;
+   }
+
+   BOOLEAN _dmsRBSSUMgr::_rbsPositionExpired( dmsRBSOffset & pos ) 
+   {
+      BOOLEAN rv = TRUE; 
+      //   lastFreeCL           currentCL
+      // 0-----|=====================|-----4096
+      // OR
+      //   currentCL            lastFreeCL
+      // 0=====|---------------------|=====4096
+      // --- expired (rv=TRUE)
+      // === inUse   (rv=FALSE)
+      if ( _lastFreeCollection < _currentCollection )
+      {
+         if ( ( pos._clID > _lastFreeCollection ) && 
+              ( pos._clID <= _currentCollection ) )
+         {
+            rv = FALSE; 
+         }
+      }
+      else
+      {
+         if ( ( pos._clID > _lastFreeCollection ) ||
+              ( pos._clID <= _currentCollection ) )
+         {
+            rv = FALSE; 
+         }
+      }
+      return rv ;
    }
 
    // This is the main interface to run garbage collection on RBS with best

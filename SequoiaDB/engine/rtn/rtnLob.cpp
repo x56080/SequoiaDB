@@ -33,6 +33,7 @@
 *******************************************************************************/
 
 #include "rtnLob.hpp"
+#include "utilLobID.hpp"
 #include "dmsStorageUnit.hpp"
 #include "dmsLobDef.hpp"
 #include "pd.hpp"

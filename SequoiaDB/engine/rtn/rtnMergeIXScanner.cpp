@@ -567,6 +567,23 @@ namespace engine
       goto done ;
    }
 
+   void _rtnMergeIXScanner::getRBSPositions( dmsRBSOffset & startPos,
+                                             dmsRBSOffset & endPos,
+                                             preIdxTreePtr  memTree ) 
+   {
+      if ( SCAN_LEFT == _fromDir )
+      {
+         _leftIXScanner->getRBSPositions( startPos, endPos, 
+                      ((_rtnMemIXTreeScanner*) _leftIXScanner)->getMemTree() ) ;
+      }
+      else
+      {
+         _rightIXScanner->getRBSPositions( startPos, endPos,
+                   memTree.get() ? memTree : 
+                      ((_rtnMemIXTreeScanner*) _leftIXScanner)->getMemTree() ) ;
+      }
+   }
+
    const dmsRecordID& _rtnMergeIXScanner::getSavedRIDFromChild() const
    {
       SDB_ASSERT( SCAN_NONE != _fromDir, "Invalid scann from" ) ;

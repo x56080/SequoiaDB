@@ -51,6 +51,7 @@
 #include "../bson/ordering.h"
 #include "ossMemPool.hpp"
 #include "rtnPredicate.hpp"
+#include "dmsRBSSUMgr.hpp"
 #include <boost/shared_ptr.hpp>
 
 using namespace bson ;
@@ -62,8 +63,9 @@ namespace engine
    class dpsTransCB ;
    class dpsTransLRBHeader ;
    class oldVersionContainer ;
-   class _dmsRBSSUMgr ;
    class dmsTransLockCallback ;
+   class preIdxTreeNodeKey ;
+   class preIdxTreeNodeValue ;
 
    // globIdxID uniquely define an index globally
    class globIdxID : public SDBObject
@@ -117,6 +119,21 @@ namespace engine
    } ;
 
    typedef _utilPooledAutoPtr dpsOldRecordPtr ;
+
+   // use map which is implemented using red-black tree to hold
+   // old version index value
+   typedef  ossPoolMap<preIdxTreeNodeKey,
+                       preIdxTreeNodeValue
+                       > INDEX_BINARY_TREE ;
+
+   typedef INDEX_BINARY_TREE::iterator                   INDEX_TREE_POS ;
+   typedef INDEX_BINARY_TREE::const_iterator             INDEX_TREE_CPOS ;
+   typedef INDEX_BINARY_TREE::reverse_iterator           INDEX_TREE_RPOS ;
+   typedef INDEX_BINARY_TREE::const_reverse_iterator     INDEX_TREE_CRPOS ;
+
+   typedef  ossPoolMap<dmsRecordID,
+                       INDEX_TREE_POS
+                       > INDEX_RID_TREE ;
 
    /** definition of preIdxTreeNodeKey
     *  preIdxTreeNodeKey is the key for node in preIdxTree.
@@ -264,6 +281,9 @@ namespace engine
       preIdxTreeNodeValue( const preIdxTreeNodeValue &rhs )
       {
          _pOldVer = rhs._pOldVer ;
+         _ridPre = rhs._ridPre ;
+         _ridNext = rhs._ridNext ;
+         _rbsOffset = rhs._rbsOffset ;
       }
 
       ~preIdxTreeNodeValue()
@@ -274,6 +294,9 @@ namespace engine
       preIdxTreeNodeValue& operator=( const preIdxTreeNodeValue &rhs )
       {
          _pOldVer = rhs._pOldVer ;
+         _ridPre = rhs._ridPre ;
+         _ridNext = rhs._ridNext ;
+         _rbsOffset = rhs._rbsOffset ;
          return *this ;
       }
 
@@ -292,6 +315,13 @@ namespace engine
       BOOLEAN isRecordNew() const ;
 
       const oldVersionContainer* getOldVer() const { return _pOldVer ; }
+      const INDEX_TREE_POS   getRidPre() const  { return _ridPre ; }
+      const INDEX_TREE_POS   getRidNext() const { return _ridNext ; }
+      dmsRBSOffset     getRBSOffset() const { return _rbsOffset ; }
+
+      void setRidPre(INDEX_TREE_POS pre) { _ridPre = pre ; }
+      void setRidNext(INDEX_TREE_POS next) { _ridNext = next ; }
+
 
       dpsOldRecordPtr      getRecordPtr() const ;
       const dmsRecord*     getRecord() const ;
@@ -299,23 +329,21 @@ namespace engine
       BSONObj              getRecordObj() const ;
       UINT32               getOwnerTID() const ;
 
+      void setRBSOffset( const dmsRBSOffset& offset ) ;
+
       string toString() const ;
 
    // private member
    private:
       oldVersionContainer    *_pOldVer ;
+      // Following three fields are only used to support MVCC index scan.
+      // pre and next pointer for the node with same record(RID)
+      INDEX_TREE_POS          _ridPre ;   // This is previous version
+      INDEX_TREE_POS          _ridNext ;  // This is newer version
+      // Corresponding old record version location stored in RBS 
+      dmsRBSOffset            _rbsOffset ;
    } ;
 
-   // use map which is implemented using red-black tree to hold
-   // old version index value
-   typedef  ossPoolMap<preIdxTreeNodeKey,
-                       preIdxTreeNodeValue
-                       > INDEX_BINARY_TREE ;
-
-   typedef INDEX_BINARY_TREE::iterator                   INDEX_TREE_POS ;
-   typedef INDEX_BINARY_TREE::const_iterator             INDEX_TREE_CPOS ;
-   typedef INDEX_BINARY_TREE::reverse_iterator           INDEX_TREE_RPOS ;
-   typedef INDEX_BINARY_TREE::const_reverse_iterator     INDEX_TREE_CRPOS ;
 
    /** definition of preIdxTree
     *  preIdxTree is a red-black tree which holds all old key values of a 
@@ -418,7 +446,8 @@ namespace engine
                               const dmsRecordID &rid,
                               oldVersionContainer *oldVer,
                               BOOLEAN hasLock,
-                              const DPS_TRANS_ID &transID = DPS_TRANS_ID() ) ;
+                              const DPS_TRANS_ID &transID = DPS_TRANS_ID(),
+                              dmsTransLockCallback * callback = NULL ) ;
 
       void lockX()
       {
@@ -460,6 +489,18 @@ namespace engine
          return _tree.size() ;
       }
 
+      BOOLEAN hasRidPre( INDEX_TREE_CPOS pos ) 
+      {
+         return ( this->getNodeData(pos).getRidPre() != _tree.end() ) ;
+      }
+
+      BOOLEAN hasRidNext( INDEX_TREE_CPOS pos ) 
+      {
+         return ( this->getNodeData(pos).getRidNext() != _tree.end() ) ;
+      }
+
+      INDEX_TREE_POS getKeyNodeFromRidTree( dmsRecordID rid ) ; 
+
       // assistant function to print out the whole tree.
       void printTree( BOOLEAN detailed = TRUE) const ;
 
@@ -499,11 +540,14 @@ namespace engine
                                  const VEC_BOOLEAN &matchInclusive,
                                  INT32 direction ) const ;
 
+   private:
+      void  _adjustRidChainForErase( INDEX_TREE_POS pos ) ;
+
    // private attributes:
    private:
-      BOOLEAN              _isValid ;
-      SINT32               _idxLID ; // index logic id
-      DPS_TRANSID_SN       _lastLowTranID ; // The lowTran in the tree from last GC
+      BOOLEAN             _isValid ;
+      SINT32              _idxLID ; // index logic id
+      DPS_TRANSID_SN      _lastLowTranID ; // The lowTran in the tree from last GC
       // Latching protocal
       // 1. preIdxTree latch must be held in X to insert/delete node in the tree
       //    oldVersionCB(_oldVersionCBLatch) need to be held in S before
@@ -515,10 +559,15 @@ namespace engine
       ossSpinSLatch       _latch ;  // latch for concurrency control, 
                                     // adding/removing node need latch in X
                                     // find/travers need latch in S
-      INDEX_BINARY_TREE    _tree ;  // tree to hold all old index key value
-      clsCataOrder         *_order ;// wrap class to hold the shared ordering
-      BSONObj              _keyPattern ;
-
+      INDEX_BINARY_TREE   _tree ;   // tree to hold all old index key value
+      clsCataOrder       *_order ;  // wrap class to hold the shared ordering
+      BSONObj             _keyPattern ;
+      // a separate tree ordered by RID, the value points to the latest
+      // index value(iterator) in the above _tree. This tree only exists
+      // if MVCC and Globtrans are enabled. This is also protected by the 
+      // _latch. Note that we normally update the _ridTree the same time we
+      // touch _tree, under the same _latch at the same time.
+      INDEX_RID_TREE      _ridTree ;
    } ;
 
    typedef utilSharePtr<preIdxTree>       preIdxTreePtr ;
