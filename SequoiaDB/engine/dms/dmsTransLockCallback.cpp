@@ -711,7 +711,7 @@ namespace engine
                                            rid, transID, found,
                                            *_rbsRecordData,
                                            startPos, endPos ) ;
-                  if (SDB_OK == rc)
+                  if (SDB_OK != rc)
                   {
                      PD_LOG( PDERROR, "Failed to read record from RBS, rc=%d",
                              rc ) ;
@@ -738,7 +738,7 @@ namespace engine
                                               rid, transID, found,
                                               *_rbsRecordData,
                                               startPos, endPos ) ;
-                     if (SDB_OK == rc)
+                     if (SDB_OK != rc)
                      {
                         PD_LOG( PDERROR, 
                               "Idxscan failed to read record from RBS, rc= %d",
@@ -777,7 +777,7 @@ namespace engine
                                            rid, transID, found,
                                            *_rbsRecordData,
                                            startPos, endPos ) ;
-                  if (SDB_OK == rc)
+                  if (SDB_OK != rc)
                   {
                      PD_LOG( PDERROR, "Failed to read record from RBS, rc=%d",
                              rc ) ;
@@ -800,7 +800,7 @@ namespace engine
                                            rid, transID, found,
                                            *_rbsRecordData,
                                            startPos, endPos ) ;
-                  if (SDB_OK == rc)
+                  if (SDB_OK != rc)
                   {
                      PD_LOG( PDERROR, 
                              "Idxscan failed to read record from RBS, rc=%d",
@@ -916,7 +916,7 @@ namespace engine
                                               rid, transID, found,
                                               *_rbsRecordData,
                                               startPos, endPos ) ;
-                     if (SDB_OK == rc)
+                     if (SDB_OK != rc)
                      {
                         PD_LOG( PDERROR, 
                                 "Failed to read record from RBS, rc=%d",
@@ -944,7 +944,7 @@ namespace engine
                                                  rid, transID, found,
                                                  *_rbsRecordData,
                                                  startPos, endPos ) ;
-                        if (SDB_OK == rc)
+                        if (SDB_OK != rc)
                         {
                            PD_LOG( PDERROR, 
                                    "Idxscan failed to read record from RBS, rc=%d",
