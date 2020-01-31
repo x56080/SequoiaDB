@@ -728,27 +728,42 @@ namespace engine
                                             dmsRBSOffset & endPos,
                                             preIdxTreePtr  memTree ) 
    {
+      preIdxTreePtr  tree ;
       // native diskIXScan should not get to here. We can only 
       // call this function through merge scan, and the tree 
-      // should have been set up
-      SDB_ASSERT ( memTree.get(), "memTree can't be NULL" ) ;
+      // should have been set up. One speical case was during merge
+      // scan, the MemIXscanner hasn't touch the tree yet, 
       // if we come from disk ixscanner, we might need to search 
       // RBS, but the stopping position would be the first position
       // pointed by mem tree 
       startPos.reset() ;
-      // End position should be the newest index tree value for
-      // this RID. If there is no keynode for this RID in memTree, that
-      // means we didn't change the index before, we should search the 
-      // whole RBS
-      INDEX_TREE_POS it = memTree->getKeyNodeFromRidTree( _savedRID) ;
-      if ( it != memTree->getTree()->end() )
+      endPos.reset() ;
+      
+      if ( !memTree.get() )
       {
-         endPos = it->second.getRBSOffset() ;
+         globIdxID gid( getSu()->CSID(),
+                        getIndexCB()->getMBID(),
+                        getIndexCB()->getLogicalID() ) ;
+         tree = pmdGetKRCB()->getTransCB()->getOldVCB()
+                ->getIdxTree( gid, FALSE ) ;
       }
       else
       {
-         endPos.reset() ;
+         tree = memTree ;
       }
+      if ( tree.get() )
+      {
+         // End position should be the newest index tree value for
+         // this RID. If there is no keynode for this RID in memTree, that
+         // means we didn't change the index before, we should search the 
+         // whole RBS
+         INDEX_TREE_POS it = memTree->getKeyNodeFromRidTree( _savedRID) ;
+         if ( it != memTree->getTree()->end() )
+         {
+            endPos = it->second.getRBSOffset() ;
+         }
+      }
+      return ;
    }
 
 }

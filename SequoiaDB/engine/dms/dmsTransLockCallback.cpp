@@ -1482,10 +1482,6 @@ namespace engine
                   rid._extent, rid._offset, rc ) ;
          goto error ;
       }
-      // FIXME:  remove
-#ifdef _DEBUG
-            treePtr->printTree( FALSE ) ;
-#endif
    done:
       return rc ;
    error:
@@ -1507,12 +1503,6 @@ namespace engine
       {
          goto done ;
       }
-// FIXME:  remove
-         PD_LOG ( PDDEBUG, 
-                  "Trans(%s) on delete index(%d) with rid(%d, %d), older(%x) ",
-                  dpsTransIDToString( getOwnerTransID() ).c_str(),
-                  indexCB->getLogicalID(),
-                  rid._extent, rid._offset, _oldVer ) ;
 
       /// insert key to mem tree
       for ( BSONObjSet::const_iterator cit = keySet.begin() ;

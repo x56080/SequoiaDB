@@ -335,36 +335,30 @@ namespace engine
             ret.first->second.setRidNext( _tree.end() ) ;
             _ridTree.insert( INDEX_RID_TREE::value_type( keyNode.getRID(),
                                                          ret.first) ) ;
+#if _DEBUG
             PD_LOG( PDDEBUG,
                     "Inserted rid[%d, %d] version(%s) to rid tree[%d],"
                     "address(%x)",
                     keyNode.getRID()._extent, keyNode.getRID()._offset,
                     dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
                     _idxLID, ret.first ) ;
+#endif
          }
          else
          {
-            // FIXME: remove
-            PD_LOG( PDDEBUG,
-                    "Before adding new rid[%d, %d] to rid tree[%d],"
-                    "old version(%s), address(%x)",
-                    pre->second->first.getRID()._extent,
-                    pre->second->first.getRID()._offset,
-                    _idxLID,
-                    dpsTransIDToString(pre->second->first.getNodeTransID()).c_str(),
-                    pre->second ) ;
-
             // rid already exist 
             pre->second->second.setRidNext( ret.first );
             ret.first->second.setRidPre( pre->second ) ;
             _ridTree[keyNode.getRID()] = ret.first ;
 
+#if _DEBUG
             PD_LOG( PDDEBUG, 
                     "Added new rid[%d, %d] version(%s) to rid tree[%d], "
                     "new address(%x)" ,
                     keyNode.getRID()._extent, keyNode.getRID()._offset,
                     dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
                     _idxLID, ret.first ) ;
+#endif
          }
       }
 
@@ -2098,7 +2092,7 @@ namespace engine
       ///        release due to rollback. But it won't hurt much
       ///        if we just write it out. There could be an identical
       ///        version in RBS, waste one disk read in the future
-/*
+/*    //FIXME: potential perf improvement to only write RBS during commit
       if ( pmdGetOptionCB()->mvccOn()  && this->hasRecord() )
       {
          // FIXME, decide on the API during review
