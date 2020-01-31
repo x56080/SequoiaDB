@@ -57,6 +57,8 @@ namespace engine
    */
    class _rtnMemIXTreeScanner : public _rtnIXScanner
    {
+      friend class _rtnMergeIXScanner ;
+
    public:
       _rtnMemIXTreeScanner( ixmIndexCB *pIndexCB,
                             rtnPredicateList *predList,
@@ -90,12 +92,15 @@ namespace engine
       virtual INT32           isCursorSame( const BSONObj &saveObj,
                                             const dmsRecordID &saveRID,
                                             BOOLEAN &isSame ) ;
+      virtual void getRBSPositions( dmsRBSOffset & startPos,
+                                    dmsRBSOffset & endPos,
+                                    preIdxTreePtr  memTree ) ;
 
    protected:
       virtual INT32 relocateRID( BOOLEAN &found )  ;
       virtual rtnPredicateListIterator*   getPredicateListInterator() ;
       DPS_TRANS_ID  getCurKeyTransID() ;
-
+      preIdxTreePtr getMemTree() { return _memIdxTree ; }
    protected:
       void                    reset() ;
 

@@ -87,6 +87,10 @@ namespace engine
                                             const dmsRecordID &saveRID,
                                             BOOLEAN &isSame ) ;
 
+      virtual void getRBSPositions( dmsRBSOffset & startPos,
+                                    dmsRBSOffset & endPos,
+                                    preIdxTreePtr  memTree ) ;
+
    protected:
       virtual INT32 relocateRID( BOOLEAN &found ) ;
       virtual rtnPredicateListIterator*   getPredicateListInterator() ;

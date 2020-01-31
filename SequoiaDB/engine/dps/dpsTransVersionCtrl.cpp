@@ -170,9 +170,17 @@ namespace engine
       {
          ss << "(Deleted)" ;
       }
-      ss << "Object(" << obj.toString() << ")" ;
+      ss << "Object(" << obj.toString() << "), " ;
+
+      ss << "rbsOffset(" << _rbsOffset._clID << ", "
+         << _rbsOffset._logicalID << ")" ;
 
       return ss.str() ;
+   }
+
+   void preIdxTreeNodeValue::setRBSOffset( const dmsRBSOffset& offset )
+   {
+      _rbsOffset = offset ;
    }
 
    /*
@@ -316,6 +324,51 @@ namespace engine
          goto error ;
       }
 
+      // if mvccOn, we need to modify the _ridTree and _ridPre/_ridNext
+      if ( ret.second && pmdGetOptionCB()->mvccOn() )
+      {
+         INDEX_RID_TREE::iterator pre = _ridTree.find(keyNode.getRID()) ;
+         if ( pre == _ridTree.end() )
+         {
+            // rid not exist, add it
+            ret.first->second.setRidPre( _tree.end() ) ;
+            ret.first->second.setRidNext( _tree.end() ) ;
+            _ridTree.insert( INDEX_RID_TREE::value_type( keyNode.getRID(),
+                                                         ret.first) ) ;
+            PD_LOG( PDDEBUG,
+                    "Inserted rid[%d, %d] version(%s) to rid tree[%d],"
+                    "address(%x)",
+                    keyNode.getRID()._extent, keyNode.getRID()._offset,
+                    dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
+                    _idxLID, ret.first ) ;
+         }
+         else
+         {
+            // FIXME: remove
+            PD_LOG( PDDEBUG,
+                    "Before adding new rid[%d, %d] to rid tree[%d],"
+                    "old version(%s), address(%x)",
+                    pre->second->first.getRID()._extent,
+                    pre->second->first.getRID()._offset,
+                    _idxLID,
+                    dpsTransIDToString(pre->second->first.getNodeTransID()).c_str(),
+                    pre->second ) ;
+
+            // rid already exist 
+            pre->second->second.setRidNext( ret.first );
+            ret.first->second.setRidPre( pre->second ) ;
+            _ridTree[keyNode.getRID()] = ret.first ;
+
+            PD_LOG( PDDEBUG, 
+                    "Added new rid[%d, %d] version(%s) to rid tree[%d], "
+                    "new address(%x)" ,
+                    keyNode.getRID()._extent, keyNode.getRID()._offset,
+                    dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
+                    _idxLID, ret.first ) ;
+         }
+      }
+
+
       if( !hasLock )
       {
          unlockX();
@@ -368,7 +421,8 @@ namespace engine
                                        const dmsRecordID &rid,
                                        oldVersionContainer *oldVer,
                                        BOOLEAN hasLock,
-                                       const DPS_TRANS_ID &transID )
+                                       const DPS_TRANS_ID &transID,
+                                       dmsTransLockCallback *callback )
    {
       INT32 rc = SDB_OK ;
 
@@ -384,6 +438,15 @@ namespace engine
                                     getOrdering(), transID ) ;
          preIdxTreeNodeValue keyValue( oldVer ) ;
          INDEX_TREE_POS pos ;
+
+         // TODO: when insert node, we need to add the RBS offset and pre/next
+         // if mvccon
+         if( pmdGetOptionCB()->mvccOn() )
+         {
+            SDB_ASSERT( callback, "Callback should not be NULL" ) ;
+            keyValue.setRBSOffset( callback->getRBSRecordOffset() ) ;
+            
+         }
 
          if ( !hasLock )
          {
@@ -469,12 +532,20 @@ namespace engine
       }
 
       pos = _tree.find( keyNode ) ;
+
       if ( pos != _tree.end() )
       {
          if ( !pOldVer || pOldVer == pos->second.getOldVer() )
          {
             tmpValue = pos->second ;
             ++numDeleted ;
+
+            // if mvccOn  deal with _ridTree and _ridPre/_ridNext
+            if ( pmdGetOptionCB()->mvccOn() )
+            {
+               _adjustRidChainForErase( pos ) ;
+            }
+
             _tree.erase( pos ) ;
          }
       }
@@ -937,11 +1008,13 @@ namespace engine
             if ( pos->first.getNodeTransID().getGlobSN() < lowTran )
             {
                INDEX_TREE_POS temp = pos ;
+               //preIdxTreeNodeValue tmpValue = pos->second ;
 #ifdef _DEBUG
                PD_LOG ( PDDEBUG, "Remove node(%s) from ixtree(%d),lowTran(%llu)",
                         pos->first.toString().c_str(), _idxLID,
                         lowTran );
 #endif
+               _adjustRidChainForErase( pos ) ;
                pos++ ;
                _tree.erase(temp) ;
             }
@@ -975,6 +1048,47 @@ namespace engine
       unlockX() ;
 
       return idxTreeLowTran ;
+   }
+
+   // adjust pre and next node in the chain when removing a node from the tree
+   void preIdxTree::_adjustRidChainForErase( INDEX_TREE_POS pos ) 
+   {
+      preIdxTreeNodeValue tmpValue = pos->second ;
+
+               // this is the last version of index for this rid
+               if ( tmpValue.getRidPre() == _tree.end() &&
+                    tmpValue.getRidNext() == _tree.end() )
+               {
+                  _ridTree.erase( pos->first.getRID() ) ;
+               }
+               else
+               {
+                  if ( tmpValue.getRidPre() != _tree.end() )
+                  {
+                     tmpValue.getRidPre()->
+                        second.setRidNext( tmpValue.getRidNext() ) ;
+                  }
+                  if ( tmpValue.getRidNext() != _tree.end() )
+                  {
+                     tmpValue.getRidNext()->
+                        second.setRidPre( tmpValue.getRidPre() ) ;
+                  }
+               }
+
+   }
+
+   // search _ridTree, find the first version of keynode in memtree
+   // for the given rid. Caller should hold the tree latch
+   INDEX_TREE_POS preIdxTree::getKeyNodeFromRidTree( dmsRecordID rid ) 
+   {
+      INDEX_TREE_POS pos = _tree.end() ;
+      INDEX_RID_TREE::iterator it = _ridTree.find( rid ) ;
+      if ( it != _ridTree.end() )
+      {
+         pos = it->second ;
+      }
+
+      return pos ;
    }
 
    void preIdxTree::printTree( BOOLEAN detailed ) const

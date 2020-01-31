@@ -66,6 +66,7 @@
 #include "dpsUtil.hpp"
 #include "msgDef.h"
 #include "monMgr.hpp"
+#include "dpsTransVersionCtrl.hpp"
 
 using namespace bson ;
 using namespace boost::asio::ip ;

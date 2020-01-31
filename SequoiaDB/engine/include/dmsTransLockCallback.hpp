@@ -79,7 +79,8 @@ namespace engine
 
       void     setIXScanner( _rtnIXScanner *pScanner ) ;
 
-      void     attachRecordRW( _dmsRecordRW * recordRW ) ;
+      void     attachRecordRW( _dmsRecordRW  * recordRW, 
+                               dmsRecordData * recordData ) ;
       void     detachRecordRW() ;
 
       /*
@@ -105,10 +106,18 @@ namespace engine
 
       BOOLEAN isIndexProtected( INT32 idxTreeId, INT32 latchMode = -1 ) ;
         
+      const dmsRBSOffset & getRBSRecordOffset() ;
+
+      void  setRBSRecordOffset( dmsRBSOffset & loc )
+      {
+         _rbsRecordOffset._clID = loc._clID ;
+         _rbsRecordOffset._logicalID = loc._logicalID ;
+      }
+
    public:
 
       /// Interface
-      virtual void afterLockAcquire( const dpsTransLockId &lockId,
+      virtual INT32 afterLockAcquire( const dpsTransLockId &lockId,
                                      INT32 irc,
                                      DPS_TRANSLOCK_TYPE requestLockMode,
                                      UINT32 refCounter,
@@ -245,9 +254,13 @@ namespace engine
    private:
       dpsTransCB           *_transCB ;    // use it to access global old copy tree
       pmdEDUCB             *_eduCB ;
+      oldVersionCB         *_oldVerCB ;
+      _dmsRBSSUMgr         *_rbsMgr ;
 
       // DMS related information
-      _dmsRecordRW         * _recordRW ;
+      _dmsRecordRW         *_recordRW ;
+      // record data read from RBS
+      dmsRecordData        *_rbsRecordData ;
       // working area to be setup by callback function so the update can
       // put proper old copy into the area right before the update
       oldVersionContainer  *_oldVer ;
@@ -257,6 +270,7 @@ namespace engine
       INT32                _result ;
       BOOLEAN              _useOldVersion ;
       dpsOldRecordPtr      _recordPtr ;
+      dmsRBSOffset         _rbsRecordOffset ;
 
       /// status var
       UINT32               _csLID ;
@@ -264,6 +278,7 @@ namespace engine
       INT32                _csID ;
       UINT16               _clID ;
       SINT32               _latchedIdxLid ; // which we are holding a latch on
+      INT32                _transIsolation ;
       _rtnIXScanner       *_pScanner ;
       oldVersionUnitPtr    _unitPtr ;
 

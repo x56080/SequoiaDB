@@ -46,6 +46,8 @@
 #include "utilPooledObject.hpp"
 #include "rtnPredicate.hpp"
 #include "ossMemPool.hpp"
+#include "dmsRBSSUMgr.hpp"
+#include "dpsTransVersionCtrl.hpp"
 #include "../bson/ordering.h"
 #include "../bson/oid.h"
 
@@ -169,6 +171,9 @@ namespace engine
       virtual INT32           isCursorSame( const BSONObj &saveObj,
                                             const dmsRecordID &saveRID,
                                             BOOLEAN &isSame ) = 0 ;
+      virtual void getRBSPositions( dmsRBSOffset & startPos,
+                                    dmsRBSOffset & endPos,
+                                    preIdxTreePtr  memTree ) = 0;
 
    protected:
       virtual INT32 relocateRID( BOOLEAN &found ) = 0 ;

@@ -54,6 +54,9 @@ using namespace std ;
 
 namespace engine
 {
+   // class forward declaration
+   class dmsTransLockCallback ;
+
    // number of slots in RBS hash bucket, a prime number less than 32K
    #define  DMS_RBS_HASH_BKT_SLOTS   ( (UINT32) 32749 )
 
@@ -192,23 +195,24 @@ namespace engine
       SINT32 init() ;
       SINT32 fini() ;
 
-      SINT32 appendRecord ( dmsStorageUnitID   csid,
-                            UINT16             clid,
-                            //DPS_LSN_OFFSET    lsn,
-                            UINT32             clLID,
-                            const dmsRecordID &rid,
-                            DPS_TRANS_ID      &recordTransid,
-                            DPS_TRANS_ID      &ownerTransid,
-                            const BSONObj     &obj );
+      SINT32 rbsAppendRecord ( dmsStorageUnitID   csid,
+                               UINT16             clid,
+                               UINT32             clLID,
+                               const dmsRecordID &rid,
+                               DPS_TRANS_ID      &recordTransid,
+                               DPS_TRANS_ID      &ownerTransid,
+                               const BSONObj     &obj,
+                               dmsTransLockCallback * callback = NULL );
 
-      SINT32 getRecord ( dmsStorageUnitID  csid,
-                         UINT16            clid,
-                         //DPS_LSN_OFFSET    &lsn,
-                         UINT32            clLID,
-                         dmsRecordID      &rid,
-                         DPS_TRANS_ID     &transid,
-                         BOOLEAN          &found,
-                         dmsRecordData    &record ) ; 
+      SINT32 rbsGetRecord ( dmsStorageUnitID  csid,
+                            UINT16            clid,
+                            UINT32            clLID,
+                            dmsRecordID      &rid,
+                            DPS_TRANS_ID     &transid,
+                            BOOLEAN          &found,
+                            dmsRecordData    &record,
+                            dmsRBSOffset     &startPos,
+                            dmsRBSOffset     &endPos ) ; 
       void gcRBS ( ) ;
 
       void incActiveGC() { _numActiveGC.inc() ; }
@@ -263,6 +267,7 @@ namespace engine
                                    dmsMBContext *&clContext ) ;
       SINT32 _gcRBS ( UINT16 position, SDB_DPSCB *dpsCB ) ;
 
+      BOOLEAN _rbsPositionExpired( dmsRBSOffset &pos ) ;
    } ;
    typedef class _dmsRBSSUMgr dmsRBSSUMgr ;
 

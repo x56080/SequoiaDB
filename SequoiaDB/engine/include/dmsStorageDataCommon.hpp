@@ -42,7 +42,6 @@
 #include "dmsStorageBase.hpp"
 #include "dmsExtent.hpp"
 #include "dpsLogWrapper.hpp"
-#include "dpsTransVersionCtrl.hpp"
 #include "dmsCompress.hpp"
 #include "dmsEventHandler.hpp"
 #include "dmsExtDataHandler.hpp"
@@ -56,6 +55,8 @@ using namespace bson ;
 
 namespace engine
 {
+   // class forward declare
+   class oldVersionContainer ;
 
 #pragma pack(1)
    /*

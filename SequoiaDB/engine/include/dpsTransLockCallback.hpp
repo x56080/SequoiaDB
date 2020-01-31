@@ -63,7 +63,7 @@ namespace engine
       }
 
       /// Interface
-      virtual void afterLockAcquire( const dpsTransLockId &lockId,
+      virtual INT32 afterLockAcquire( const dpsTransLockId &lockId,
                                      INT32 irc,
                                      DPS_TRANSLOCK_TYPE requestLockMode,
                                      UINT32 refCounter,
