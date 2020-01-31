@@ -365,6 +365,10 @@ namespace engine
             {
                PD_LOG ( PDERROR, "Failed to add RBS collection %s, rc: %d",
                         clName, rc ) ;
+               if ( SDB_DMS_EXIST == rc )
+               {
+                  rc = SDB_DMS_NOSPC ;
+               }
                _releaseX() ;
                goto error ;
             }
