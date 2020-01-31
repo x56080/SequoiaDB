@@ -127,6 +127,19 @@ public class TransUtils extends SdbTestBase {
         return true;
     }
 
+    public static int getTransisolationConfig( Sequoiadb db ) {
+        int transisolation = -1;
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS,
+                "{\"svcname\":\"" + serviceName + "\"}", "{transisolation:''}",
+                null );
+        while ( cursor.hasNext() ) {
+            BSONObject record = cursor.getNext();
+            transisolation = ( int ) record.get( "transisolation" );
+        }
+        cursor.close();
+        return transisolation;
+    }
+
     public static DBCollection createCL( String clName, CollectionSpace cs,
             String option ) throws BaseException {
         DBCollection tmp = null;

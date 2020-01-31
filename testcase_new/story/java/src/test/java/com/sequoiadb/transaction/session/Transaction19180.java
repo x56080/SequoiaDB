@@ -26,6 +26,7 @@ public class Transaction19180 extends SdbTestBase {
 
     private Sequoiadb sdb;
     private String clName = "cl_19180";
+    private int transisolation = -1;
 
     @BeforeClass
     public void setUp() {
@@ -34,6 +35,7 @@ public class Transaction19180 extends SdbTestBase {
             throw new SkipException( "STANDALONE MODE" );
         }
         sdb.getCollectionSpace( SdbTestBase.csName ).createCollection( clName );
+        transisolation = TransUtils.getTransisolationConfig( sdb );
     }
 
     @Test
@@ -72,12 +74,16 @@ public class Transaction19180 extends SdbTestBase {
             try {
                 DBCursor cursor = cl2.query();
                 TransUtils.getReadActList( cursor );
-                Assert.fail();
+                if ( transisolation != 3 ) {
+                    Assert.fail();
+                }
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(), -13 );
             }
 
-        } finally {
+        } finally
+
+        {
             if ( null != db1 ) {
                 db1.commit();
                 db1.close();
