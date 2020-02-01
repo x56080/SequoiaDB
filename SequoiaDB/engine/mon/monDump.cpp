@@ -287,27 +287,6 @@ namespace engine
             subCommit.append( FIELD_NAME_LSN_VERSION, committed.version ) ;
             subCommit.done() ;
 
-            CHAR szTmp[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-
-            // global lowTran
-            // NOTE: node ID is meaningless for global lowTran
-            dpsTransSNToString( transCB->getGlobLowTran().getGlobSN(),
-                                szTmp,
-                                DPS_TRANS_STR_LEN ) ;
-            ob.append( FIELD_NAME_LOW_TRANS_LSN, szTmp ) ;
-
-            // global expireTran
-            // NOTE: node ID is meaningless for global expireTran
-            dpsTransSNToString( transCB->getGlobExpireTran().getGlobSN(),
-                                szTmp,
-                                DPS_TRANS_STR_LEN ) ;
-            ob.append( FIELD_NAME_EXPIRE_TRAN, szTmp ) ;
-
-            dpsTransSNToString( transCB->getOldVCB()->getMinLowTranSN(),
-                                szTmp,
-                                DPS_TRANS_STR_LEN ) ;
-            ob.append( FIELD_NAME_IDX_TREE_LOW_TRAN, szTmp ) ;
-
 
             /// complete lsn and queue size
             DPS_LSN completeLSN ;
@@ -330,15 +309,54 @@ namespace engine
          {
             UINT32 transCount = 0 ;
             DPS_LSN_OFFSET beginLSNOff = 0 ;
+            DPS_TRANSID_SN globLowTran = DPS_INVALID_TRANSID_SN ;
+            DPS_TRANSID_SN globExpireTran = DPS_INVALID_TRANSID_SN ;
+            DPS_TRANSID_SN lowTran = DPS_INVALID_TRANSID_SN ;
+            DPS_TRANSID_SN expireTran = DPS_INVALID_TRANSID_SN ;
+            DPS_TRANSID_SN treeLowTran = DPS_INVALID_TRANSID_SN ;
+            CHAR szTmp[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+
             if ( transCB )
             {
                transCount = pmdIsPrimary() ? transCB->getTransCBSize() :
                             (UINT32)transCB->getTransMap()->size() ;
                beginLSNOff = transCB->getOldestBeginLsn() ;
+               globLowTran = transCB->getGlobLowTran().getGlobSN() ;
+               globExpireTran = transCB->getGlobExpireTran().getGlobSN() ;
+               lowTran = transCB->getLocalLowTran().getGlobSN() ;
+               expireTran = transCB->getLocalExpireTran().getGlobSN() ;
+               treeLowTran = transCB->getOldVCB()->getMinLowTranSN() ;
             }
+
             BSONObjBuilder subTrans( ob.subobjStart( FIELD_NAME_TRANS_INFO ) ) ;
+
             subTrans.append( FIELD_NAME_TOTAL_COUNT, (INT32)transCount ) ;
             subTrans.append( FIELD_NAME_BEGIN_LSN, (INT64)beginLSNOff ) ;
+
+            // global lowTran
+            // NOTE: node ID is meaningless for global lowTran
+            dpsTransSNToString( globLowTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            subTrans.append( FIELD_NAME_TRANS_GLOBLOWTRAN, szTmp ) ;
+
+            // global expireTran
+            // NOTE: node ID is meaningless for global expireTran
+            dpsTransSNToString( globExpireTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            subTrans.append( FIELD_NAME_TRANS_GLOBEXPTRAN, szTmp ) ;
+
+            // lowTran
+            // NOTE: node ID is meaningless for lowTran
+            dpsTransSNToString( lowTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            subTrans.append( FIELD_NAME_TRANS_LOWTRAN, szTmp ) ;
+
+            // expireTran
+            // NOTE: node ID is meaningless for expireTran
+            dpsTransSNToString( expireTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            subTrans.append( FIELD_NAME_TRANS_EXPTRAN, szTmp ) ;
+
+            // tree min lowTran
+            dpsTransSNToString( treeLowTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            subTrans.append( FIELD_NAME_IDX_TREE_LOW_TRAN, szTmp ) ;
+
             subTrans.done() ;
          }
 
