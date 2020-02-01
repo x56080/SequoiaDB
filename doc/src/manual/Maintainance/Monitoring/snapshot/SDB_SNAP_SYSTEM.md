@@ -27,6 +27,11 @@ SDB_SNAP_SYSTEM
 | LSNQueSize           | 整型   | 等待同步的LSN队列长度                                          |
 | TransInfo.TotalCount | 整型   | 正在执行的事务数量                                             |
 | TransInfo.BeginLSN   | 长整型 | 正在执行的事务的起始 LSN 的偏移                                |
+| TransInfo.GlobLowTran | 字符串 | 集群中正在执行的最小的全局事务                                |
+| TransInfo.GlobExpireTran | 字符串 | 集群中已经过期最大的事务，用于清理过期的 MVCC 老版本       |
+| TransInfo.LowTran | 字符串 | 本节点中正在执行的最小的全局事务                                  |
+| TransInfo.ExpireTran | 字符串 | 本节点中已经过期最大的事务，用于清理过期的 MVCC 老版本         |
+| TransInfo.IdxTreeLowTran | 字符串 | MVCC 老版本索引树上最小的全局事务版本                      |
 | NodeID               | 数组   | 节点的 ID，为“[ <分区组 ID>, <节点 ID> ]”<br>在 standalone 模式下，该字段为“[ 0，0 ]” |
 | CPU.User             | 浮点数 | 操作系统启动后所消耗的总用户 CPU 时间（单位：秒）              |
 | CPU.Sys              | 浮点数 | 操作系统启动后所消耗的总系统 CPU 时间（单位：秒）              |
@@ -98,7 +103,12 @@ SDB_SNAP_SYSTEM
   "LSNQueSize": 0,
   "TransInfo": {
     "TotalCount": 0,
-    "BeginLSN": -1
+    "BeginLSN": -1,
+    "GlobLowTran": "73638130660874757(0x1059d7d5bf71a05)",
+    "GlobExpireTran": "73638130660824757(0x1059d7d5bf656b5)",
+    "LowTran": "73638130660874757(0x1059d7d5bf71a05)",
+    "ExpireTran": "73638130660824757(0x1059d7d5bf656b5)",
+    "IdxTreeLowTran": "73638130600722703(0x1059d7d5861410f)"
     },
   "NodeID": [
     1000,
