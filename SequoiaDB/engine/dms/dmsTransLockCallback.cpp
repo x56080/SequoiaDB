@@ -1016,9 +1016,9 @@ namespace engine
          }
 
 #ifdef _DEBUG
-         if ( _oldVer )
+         if ( _oldVer && _rbsRecordData )
          {
-            PD_LOG( PDDEBUG, 
+            PD_LOG( PDDEBUG,
                     "Set oldVer[%x] for rid[%s] in memory, lockmod=%d,"
                     "_useOldVersion=%d,_rbsRecordData.isEmpty()=%d",
                     _oldVer, lockId.toString().c_str(), requestLockMode,
@@ -1031,7 +1031,7 @@ namespace engine
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIRE );
       return  rc ;
    error :
-      goto done ; 
+      goto done ;
    }
 
    // Description:
