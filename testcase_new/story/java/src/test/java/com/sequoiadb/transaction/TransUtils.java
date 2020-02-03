@@ -127,17 +127,16 @@ public class TransUtils extends SdbTestBase {
         return true;
     }
 
-    public static int getTransisolationConfig( Sequoiadb db ) {
-        int transisolation = -1;
+    public static String getMvccConfig( Sequoiadb db ) {
+        String mvccon = null;
         DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS,
-                "{\"svcname\":\"" + serviceName + "\"}", "{transisolation:''}",
-                null );
+                "{\"svcname\":\"" + serviceName + "\"}", "{mvccon:''}", null );
         while ( cursor.hasNext() ) {
             BSONObject record = cursor.getNext();
-            transisolation = ( int ) record.get( "transisolation" );
+            mvccon = ( String ) record.get( "mvccon" );
         }
         cursor.close();
-        return transisolation;
+        return mvccon;
     }
 
     public static DBCollection createCL( String clName, CollectionSpace cs,
