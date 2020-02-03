@@ -996,6 +996,17 @@ namespace engine
                }
             }
 
+            /// from memory tree
+            if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
+                 SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() )
+            {
+               _skipRecord = TRUE ;
+               /// remove the duplicate rid
+               _pScanner->removeDuplicatRID( _oldVer->getRecordID() ) ;
+               _oldVer = NULL ;
+               goto done ;
+            }
+
             if ( _oldVer->isRecordNew() &&
                  _oldVer->getOwnerTID() == _eduCB->getTID() )
             {

@@ -468,11 +468,13 @@ namespace engine
                // can skip it
 
                // When mvcc is enabled, there will be multiple versions
-               // in the tree, nomater what isolation is set. When a node
-               // is invalid, if isolation is RC or any level below RR,
-               // we shall skip the invalid node right away; if isolation is RR,
-               // skip the invalid node if it is expired (older than lowtran) 
-               if ((!_curIndexPos->second.isValid()) &&
+               // in the tree, no matter what isolation is. When a node
+               // is invalid or marked as deleted, if isolation is RC or
+               // any level below RR, we shall skip this node right away;
+               // if isolation is RR, skip this node if it is expired ( older
+               // than lowtran )
+               if (( !_curIndexPos->second.isValid() ||
+                     nodeVal.isRecordDeleted() ) &&
                    ((_transIsolation < TRANS_ISOLATION_RR) ||
                     ((TRANS_ISOLATION_RR == _transIsolation) &&
                      (_pTransCB->isVersionExpired(nodeKey.getNodeTransID())))))
