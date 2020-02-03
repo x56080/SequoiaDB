@@ -47,13 +47,15 @@
 namespace engine
 {
 
+   // sleep time ( 100ms ) for retry getting logical time
+   #define STP_AGENT_RETRY_INTERVAL ( 100 )
+
    /*
       _stpAgent define
     */
    // _stpAgent gets logical time from shared memory
    // NOTE: currently, STP agent used inside SequoiaDB
-   class _stpAgent : public utilPooledObject,
-                     public stpMetaReader
+   class _stpAgent : public utilPooledObject
    {
    public:
       // constructor and destructor
@@ -61,70 +63,36 @@ namespace engine
       ~_stpAgent() ;
 
    public:
-      // activate STP agent
-      INT32 active( BOOLEAN mustAvailable ) ;
-      // deactivate STP agent
-      INT32 deactive() ;
-
-   public:
       // quick check if STP is available
-      OSS_INLINE BOOLEAN isAvailble() const
-      {
-         return _available ;
-      }
+      BOOLEAN isAvailable() ;
+
+      // check if STP is available
+      INT32 checkAvailable() ;
+
+      // notify the STP to synchronize with server
+      INT32 notifySync() ;
 
       // get logical time in nanosecond in given timeout
       // NOTE: `timeout` is -1 means never timeout
       //       `timeout` is 0 means only try once
       INT32 getLogicalTimeNS( stpLogicalTimeNS &time, INT32 timeout = -1 ) ;
+
       // try to get logical time in microseconds in given timeout
       // NOTE: `timeout` is -1 means never timeout
       //       `timeout` is 0 means only try once
       INT32 getLogicalTimeUS( stpLogicalTimeUS &time, INT32 timeout = -1 ) ;
+
       // try to get logical time in nanosecond
-      INT32 tryGetLogicalTimeNS( stpLogicalTimeNS &time ) ;
+      OSS_INLINE INT32 tryGetLogicalTimeNS( stpLogicalTimeNS &time )
+      {
+         return getLogicalTimeNS( time, 0 ) ;
+      }
+
       // try to get logical time in microseconds
-      INT32 tryGetLogicalTimeUS( stpLogicalTimeUS &time ) ;
-
-      // check if STP is available
-      INT32 checkAvailable() ;
-
-   protected:
-      // clear agent
-      void  _clear() ;
-      // get STP node by checking PID
-      INT32 _getSTP() ;
-      // test alive of STP node
-      INT32 _testSTP() ;
-      // check and attach meta data
-      INT32 _checkMetaData( const CHAR *shmKey ) ;
-      // release meta data
-      INT32 _releaseMetaData() ;
-      // get logical time in nanoseconds
-      INT32 _getLogicalTimeNS( stpLogicalTimeNS &time ) ;
-
-      // attach shared memory buffer
-      INT32 _attachSHMBuffer( const CHAR *shmKey ) ;
-      // release shared memory buffer
-      INT32 _releaseSHMBuffer() ;
-      // re-check if we could retry to get logical time
-      BOOLEAN _recheckAvailable( INT32 rc ) ;
-
-   protected:
-      // PID of STP
-      OSSPID            _stpPID ;
-      // service name ( port ) of STP
-      ossPoolString     _stpServiceName ;
-      // lock to protect meta data from shared memory
-      // - when reads meta data, should get the shared lock
-      // - when attaches or releases meta data, should get the exclusive lock
-      ossRWMutex        _metaMutex ;
-      // synchronize interval extracted from meta data
-      volatile UINT32   _syncInterval ;
-      // indicate STP is available
-      volatile BOOLEAN  _available ;
-      // shared memory buffer
-      utilSHMBuffer     _buffer ;
+      OSS_INLINE INT32 tryGetLogicalTimeUS( stpLogicalTimeUS &time )
+      {
+         return getLogicalTimeUS( time, 0 ) ;
+      }
    } ;
 
    typedef class _stpAgent stpAgent ;

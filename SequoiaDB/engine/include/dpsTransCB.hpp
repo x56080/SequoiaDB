@@ -52,7 +52,7 @@
 #include "ossEvent.hpp"
 #include "ossMemPool.hpp"
 #include "monLatch.hpp"
-#include "stpLogicalTime.hpp"
+#include "stpAgent.hpp"
 #include "../bson/bson.hpp"
 
 using namespace bson ;
@@ -850,6 +850,9 @@ namespace engine
       // - increase when generated the same transaction ID by STP
       // - no need to be atomic, just a value for statistics
       UINT64               _numTransIDConflict ;
+
+      // STP agent to provide global logical time service
+      stpAgent             _stpAgent ;
    } ;
 
    /*

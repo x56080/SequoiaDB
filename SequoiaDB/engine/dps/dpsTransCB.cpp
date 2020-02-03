@@ -79,7 +79,8 @@ namespace engine
     _globLowTran( DPS_INVALID_TRANSID_SN ),
     _globExpireTran( DPS_INVALID_TRANSID_SN ),
     _archivedLowTran( DPS_INVALID_TRANSID_SN ),
-    _numTransIDConflict( 0LL )
+    _numTransIDConflict( 0LL ),
+    _stpAgent()
    {
       _TransIDH16          = DPS_INVALID_TRANSID_NODEID ;
       _isOn                = FALSE ;
@@ -212,6 +213,17 @@ namespace engine
 
    INT32 dpsTransCB::active ()
    {
+      if ( isGlobTransOn() )
+      {
+         // if global transaction feature is required, check available of STP
+         // just test available, no need to report error
+         INT32 tmpRC = _stpAgent.checkAvailable() ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDWARNING, "STP is not available, rc: %d", tmpRC ) ;
+         }
+      }
+
       return SDB_OK ;
    }
 
@@ -728,15 +740,10 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBTRANSTIME ) ;
 
-      stpAgent *agent = sdbGetRTNCB()->getSTPAgent() ;
-      PD_CHECK( NULL != agent, SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
-                "Failed to allocate transaction ID for global transaction, "
-                "STP agent is not available" ) ;
-
       // try to get time in timeout
       // NOTE: it might be failed if STP is busy with synchronization
       //       we could retry within a given timeout
-      rc = agent->getLogicalTimeUS( time, timeout ) ;
+      rc = _stpAgent.getLogicalTimeUS( time, timeout ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, "
                    "rc: %d", rc ) ;
 
@@ -923,7 +930,7 @@ namespace engine
       // try to get a global time in a short period
       // NOTE: if STP is unavailable temporarily, timeout > 0
       //       will trigger STP checking
-      rc = getGlobTransTime( activeTime, 100 ) ;
+      rc = getGlobTransTime( activeTime, STP_AGENT_RETRY_INTERVAL ) ;
       if ( SDB_OK == rc )
       {
          // try set primary active time

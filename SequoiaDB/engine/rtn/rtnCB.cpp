@@ -50,8 +50,7 @@ namespace engine
    _SDB_RTNCB::_SDB_RTNCB()
       : _contextIdGenerator( 0 ),
         _remoteMessenger( NULL ),
-        _textIdxVersion((INT64)RTN_INIT_TEXT_INDEX_VERSION),
-        _stpAgent( NULL )
+        _textIdxVersion((INT64)RTN_INIT_TEXT_INDEX_VERSION)
    {
       _pLTMgr = NULL ;
    }
@@ -113,15 +112,6 @@ namespace engine
 
       sdbGetDMSCB()->setIxmKeySorterCreator( creator ) ;
 
-      // if global transaction is enabled, create STP agent to get global
-      // logical time
-      if ( pmdGetOptionCB()->globTransOn() )
-      {
-         _stpAgent = SDB_OSS_NEW stpAgent() ;
-         PD_CHECK( NULL != _stpAgent, SDB_OOM, error, PDERROR,
-                   "Failed to create STP agent" ) ;
-      }
-
       // The error of initialization of APM could be ignore
       // Only data and catalog nodes could initialize plan cache
       _accessPlanManager.init(
@@ -143,13 +133,6 @@ namespace engine
 
    INT32 _SDB_RTNCB::active ()
    {
-      if ( NULL != _stpAgent )
-      {
-         // activate STP agent, no need to be available now, we could
-         // re-check later when we need STP to get logical time
-         _stpAgent->active( FALSE ) ;
-      }
-
       return SDB_OK ;
    }
 
@@ -158,11 +141,6 @@ namespace engine
       if ( _remoteMessenger )
       {
          _remoteMessenger->deactive() ;
-      }
-
-      if ( NULL != _stpAgent )
-      {
-         _stpAgent->deactive() ;
       }
 
       return SDB_OK ;
