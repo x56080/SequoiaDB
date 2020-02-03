@@ -76,14 +76,9 @@ public class Split10182 extends SdbTestBase {
     public void test() {
 
         Split split = new Split();
-        split.start();
+        split.start( 2 );
 
-        MetaDataUtils.sleep( random.nextInt( msec ) );
-        split.start();
-
-        if ( !split.isSuccess() ) {
-            Assert.fail( split.getErrorMsg() );
-        }
+        Assert.assertTrue( split.isSuccess(), split.getErrorMsg() );
 
         // check results
         MetaDataUtils.checkCLResult( csName, clName );
@@ -104,6 +99,7 @@ public class Split10182 extends SdbTestBase {
                 int bound = i.nextInt( 10000 );
                 strCond.put( "a", bound );
                 endCond.put( "a", bound + 100 );
+                MetaDataUtils.sleep( random.nextInt( msec ) );
                 clDB.split( groupNames.get( 0 ), groupNames.get( 1 ), strCond,
                         endCond );
             } catch ( BaseException e ) {
