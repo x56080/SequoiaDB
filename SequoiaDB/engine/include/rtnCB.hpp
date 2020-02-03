@@ -56,7 +56,6 @@
 #include "ossMemPool.hpp"
 #include "rtnLocalTaskMgr.hpp"
 #include "rtnRemoteMessenger.hpp"
-#include "stpAgent.hpp"
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
 
@@ -87,9 +86,6 @@ namespace engine
       ossAtomicSigned64    _textIdxVersion ;
 
       rtnLocalTaskMgr      *_pLTMgr ;
-
-      // agent for Serial Time Protocol (STP)
-      stpAgent *           _stpAgent ;
 
    public:
       virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
@@ -224,11 +220,6 @@ namespace engine
       OSS_INLINE rtnLocalTaskMgr* getLTMgr()
       {
          return _pLTMgr ;
-      }
-
-      OSS_INLINE stpAgent* getSTPAgent()
-      {
-         return _stpAgent ;
       }
 
    } ;

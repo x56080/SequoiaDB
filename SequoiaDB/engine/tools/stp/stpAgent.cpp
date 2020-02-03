@@ -48,71 +48,211 @@ namespace engine
    // max count to retry to get logical time
    #define STP_AGENT_MAX_RETRY ( 2 )
 
-   // sleep time ( 100ms ) for retry getting logical time
-   #define STP_AGENT_RETRY_SLEEP ( 100 )
-
    /*
-      _stpAgent implement
+      _stpAgentService define and implement
     */
-   _stpAgent::_stpAgent()
-   : stpMetaReader(),
-     _stpPID( OSS_INVALID_PID ),
-     _syncInterval( STP_DEF_SYNC_INTERVAL ),
-     _available( FALSE )
+   class _stpAgentService : public stpMetaReader
    {
-   }
+   public:
+      _stpAgentService() ;
+      ~_stpAgentService() ;
 
-   _stpAgent::~_stpAgent()
-   {
-   }
+   public:
+      // quick check if STP is available
+      BOOLEAN isAvailable() ;
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_ACTIVE, "_stpAgent::active" )
-   INT32 _stpAgent::active( BOOLEAN mustAvailable )
-   {
-      INT32 rc = SDB_OK ;
+      // check if STP is available
+      INT32 checkAvailable( BOOLEAN notifySync ) ;
 
-      PD_TRACE_ENTRY( SDB__STPAGENT_ACTIVE ) ;
+      // notify the STP to synchronize with server
+      INT32 notifySync() ;
 
-      // check available of STP
-      rc = checkAvailable() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDWARNING, "Failed to check STP available, rc: %d", rc ) ;
-      }
+      // get logical time in nanosecond in given timeout
+      // NOTE: `timeout` is -1 means never timeout
+      //       `timeout` is 0 means only try once
+      INT32 getLogicalTimeNS( stpLogicalTimeNS &time, INT32 timeout = -1 ) ;
 
-      if ( !mustAvailable )
-      {
-         // ignore errors, later could re-check again
-         rc = SDB_OK ;
-      }
-
-      PD_TRACE_EXITRC( SDB__STPAGENT_ACTIVE, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_DEACTIVE, "_stpAgent::deactive" )
-   INT32 _stpAgent::deactive()
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPAGENT_DEACTIVE ) ;
-
+   protected:
       // clear agent
-      _clear() ;
+      void  _clear() ;
+      // get STP node by checking PID
+      INT32 _getSTP() ;
+      // test alive of STP node
+      INT32 _testSTP( BOOLEAN notifySync ) ;
+      // check and attach meta data
+      INT32 _checkMetaData( const CHAR *shmKey ) ;
+      // release meta data
+      INT32 _releaseMetaData() ;
+      // get logical time in nanoseconds
+      INT32 _getLogicalTimeNS( stpLogicalTimeNS &time ) ;
 
-      PD_TRACE_EXITRC( SDB__STPAGENT_DEACTIVE, rc ) ;
+      // attach shared memory buffer
+      INT32 _attachSHMBuffer( const CHAR *shmKey ) ;
+      // release shared memory buffer
+      INT32 _releaseSHMBuffer() ;
+      // re-check if we could retry to get logical time
+      BOOLEAN _recheckAvailable( INT32 rc ) ;
 
-      return rc ;
+   protected:
+      ossAtomic32       _availableFlag ;
 
+      ossAtomicXLatch   _metaCheckLatch ;
+
+      ossAtomic32       _metaVersion ;
+
+      // PID of STP
+      OSSPID            _stpPID ;
+      // service name ( port ) of STP
+      ossPoolString     _stpServiceName ;
+
+      // lock to protect meta data from shared memory
+      // - when reads meta data, should get the shared lock
+      // - when attaches or releases meta data, should get the exclusive lock
+      ossRWMutex        _metaMutex ;
+      // shared memory buffer
+      utilSHMBuffer     _buffer ;
+   } ;
+
+   typedef class _stpAgentService stpAgentService ;
+
+   _stpAgentService::_stpAgentService()
+   : stpMetaReader(),
+     _availableFlag( 0 ),
+     _metaVersion( 0 ),
+     _stpPID( OSS_INVALID_PID )
+   {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_GETLOGICALTIMENS, "_stpAgent::getLogicalTimeNS" )
-   INT32 _stpAgent::getLogicalTimeNS( stpLogicalTimeNS &time, INT32 timeout )
+   _stpAgentService::~_stpAgentService()
+   {
+      _clear() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE_ISAVAILABLE, "_stpAgentService::isAvailable" )
+   BOOLEAN _stpAgentService::isAvailable()
+   {
+      BOOLEAN available = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENTSERVICE_ISAVAILABLE ) ;
+
+      available = _availableFlag.compare( 1 ) ;
+
+      PD_TRACE_EXIT( SDB__STPAGENTSERVICE_ISAVAILABLE ) ;
+
+      return available ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE_CHECKAVAILABLE, "_stpAgentService::checkAvailable" )
+   INT32 _stpAgentService::checkAvailable( BOOLEAN notifySync )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__STPAGENT_GETLOGICALTIMENS ) ;
+      PD_TRACE_ENTRY( SDB__STPAGENTSERVICE_CHECKAVAILABLE ) ;
+
+      BOOLEAN gotCheckLatch = FALSE ;
+
+      // the caller try to check available of STP, to avoid too many threads
+      // to access the test pipe of STP node, we could only allow one thread
+      // to do the testing
+
+      // when entering the critical section, current thread needn't to wait,
+      // just try to get the latch, if failed to get the latch, means someone
+      // is doing the same check, so current thread could leave the check to
+      // that one
+
+      // also, we need to check meta version, if some one changed meta version
+      // during current thread to get the latch, which means a check just
+      // finished, so current thread could use the result of that finished
+      // check
+
+      // fetch meta version before entry critical section
+      UINT32 metaVersion = _metaVersion.fetch() ;
+
+      // critical section: only one thread could check available in concurrent
+      if ( !_metaCheckLatch.try_get() )
+      {
+         // if we failed to get latch, means someone else is updating,
+         // just goto done
+         goto done ;
+      }
+
+      // entered critical section
+      gotCheckLatch = TRUE ;
+
+      if ( _metaVersion.fetch() != metaVersion )
+      {
+         // someone else have updated, to avoid checking too frequently,
+         // just goto done
+         if ( !isAvailable() )
+         {
+            PD_LOG( PDERROR, "Failed to check available, still not available "
+                   "after check" ) ;
+            rc = STP_NOT_AVAILABLE ;
+         }
+         goto done ;
+      }
+
+      _metaVersion.inc() ;
+
+      // check PID of STP
+      if ( OSS_INVALID_PID == _stpPID )
+      {
+         // if PID is invalid, get STP node
+         rc = _getSTP() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get STP node, rc: %d", rc ) ;
+      }
+
+      // test alive of STP
+      rc = _testSTP( notifySync ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to test STP node, rc: %d", rc ) ;
+
+      // check meta data
+      rc = _checkMetaData( _stpServiceName.c_str() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check meta data with key [%s], "
+                   "rc: %d", _stpServiceName.c_str(), rc ) ;
+
+   done:
+      // exit critical section
+      if ( gotCheckLatch )
+      {
+         _metaCheckLatch.release() ;
+      }
+      PD_TRACE_EXITRC( SDB__STPAGENTSERVICE_CHECKAVAILABLE, rc ) ;
+      return rc ;
+
+   error:
+      // when error happened, clear agent
+      SDB_ASSERT( gotCheckLatch, "should in critical section" ) ;
+      _clear() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE_NOTIFYSYNC, "_stpAgentService::notifySync" )
+   INT32 _stpAgentService::notifySync()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENTSERVICE_NOTIFYSYNC ) ;
+
+      rc = checkAvailable( TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check STP available with notifying "
+                   "synchronize, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPAGENTSERVICE_NOTIFYSYNC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE_GETLOGICALTIMENS, "_stpAgentService::getLogicalTimeNS" )
+   INT32 _stpAgentService::getLogicalTimeNS( stpLogicalTimeNS &time,
+                                             INT32 timeout )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENTSERVICE_GETLOGICALTIMENS ) ;
 
       INT32 totalTimeout = 0 ;
 
@@ -140,10 +280,10 @@ namespace engine
          else if ( _recheckAvailable( rc ) )
          {
             // we could retry, sleep and continue loop
-            ossSleep( STP_AGENT_RETRY_SLEEP ) ;
+            ossSleep( STP_AGENT_RETRY_INTERVAL ) ;
             if ( timeout > 0 )
             {
-               totalTimeout += STP_AGENT_RETRY_SLEEP ;
+               totalTimeout += STP_AGENT_RETRY_INTERVAL ;
             }
             continue ;
          }
@@ -154,84 +294,17 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__STPAGENT_GETLOGICALTIMENS, rc ) ;
+      PD_TRACE_EXITRC( SDB__STPAGENTSERVICE_GETLOGICALTIMENS, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_GETLOGICALTIMEUS, "_stpAgent::getLogicalTimeUS" )
-   INT32 _stpAgent::getLogicalTimeUS( stpLogicalTimeUS &time, INT32 timeout )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE__CLEAR, "_stpAgentService::_clear" )
+   void _stpAgentService::_clear()
    {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPAGENT_GETLOGICALTIMEUS ) ;
-
-      stpLogicalTimeNS timeNS ;
-
-      // get logical time
-      rc = getLogicalTimeNS( timeNS, timeout ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
-
-      time = timeNS ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPAGENT_GETLOGICALTIMEUS, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   INT32 _stpAgent::tryGetLogicalTimeNS( stpLogicalTimeNS &time )
-   {
-      return getLogicalTimeNS( time, 0 ) ;
-   }
-
-   INT32 _stpAgent::tryGetLogicalTimeUS( stpLogicalTimeUS &time )
-   {
-      return getLogicalTimeUS( time, 0 ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_CHECKAVAILABLE, "_stpAgent::checkAvailable" )
-   INT32 _stpAgent::checkAvailable()
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPAGENT_CHECKAVAILABLE ) ;
-
-      // check PID of STP
-      if ( OSS_INVALID_PID == _stpPID )
-      {
-         // if PID is invalid, get STP node
-         rc = _getSTP() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get STP node, rc: %d", rc ) ;
-      }
-
-      // test alive of STP
-      rc = _testSTP() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to test STP node, rc: %d", rc ) ;
-
-      // check meta data
-      rc = _checkMetaData( _stpServiceName.c_str() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check meta data with key [%s], "
-                   "rc: %d", _stpServiceName.c_str(), rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPAGENT_CHECKAVAILABLE, rc ) ;
-      return rc ;
-
-   error:
-      // when error happened, clear agent
-      _clear() ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__CLEAR, "_stpAgent::_clear" )
-   void _stpAgent::_clear()
-   {
-      PD_TRACE_ENTRY( SDB__STPAGENT__CLEAR ) ;
+      PD_TRACE_ENTRY( SDB__STPAGENTSERVICE__CLEAR ) ;
 
       // reset PID of STP
       _stpPID = OSS_INVALID_PID ;
@@ -240,15 +313,15 @@ namespace engine
       // release meta data
       _releaseMetaData() ;
 
-      PD_TRACE_EXIT( SDB__STPAGENT__CLEAR ) ;
+      PD_TRACE_EXIT( SDB__STPAGENTSERVICE__CLEAR ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__GETSTP, "_stpAgent::_getSTP" )
-   INT32 _stpAgent::_getSTP()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE__GETSTP, "_stpAgentService::_getSTP" )
+   INT32 _stpAgentService::_getSTP()
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__STPAGENT__GETSTP ) ;
+      PD_TRACE_ENTRY( SDB__STPAGENTSERVICE__GETSTP ) ;
 
       utilNodeInfo node ;
       UTIL_VEC_NODES listNodes ;
@@ -277,48 +350,50 @@ namespace engine
       _stpPID = node._pid ;
 
    done:
-      PD_TRACE_EXITRC( SDB__STPAGENT__GETSTP, rc ) ;
+      PD_TRACE_EXITRC( SDB__STPAGENTSERVICE__GETSTP, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__TESTSTP, "_stpAgent::_testSTP" )
-   INT32 _stpAgent::_testSTP()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE__TESTSTP, "_stpAgentService::_testSTP" )
+   INT32 _stpAgentService::_testSTP( BOOLEAN notifySync )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__STPAGENT__TESTSTP ) ;
+      PD_TRACE_ENTRY( SDB__STPAGENTSERVICE__TESTSTP ) ;
 
+      const CHAR *command = notifySync ?
+                            STP_PIPE_MSG_SYNC :
+                            STP_PIPE_MSG_TEST ;
       INT8 test = 0 ;
 
       // write test command to pipe
       rc = utilWriteReadPipe( STP_PIPE_SERVICE_NAME, _stpPID,
-                              STP_PIPE_MSG_TEST,
-                              sizeof( STP_PIPE_MSG_TEST ),
+                              command, ossStrlen( command ),
                               (CHAR *)( &test ), sizeof( test ), FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to test from STP "
                    "node [%s] pid [%u], rc: %d", _stpServiceName.c_str(),
                    _stpPID, rc ) ;
 
-      PD_LOG( PDINFO, "Test STP node [%s] pid [%u] done",
-              _stpServiceName.c_str(), _stpPID ) ;
+      PD_LOG( PDINFO, "Test STP node [%s] pid [%u] with command [%s] done",
+              _stpServiceName.c_str(), _stpPID, command ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__STPAGENT__TESTSTP, rc ) ;
+      PD_TRACE_EXITRC( SDB__STPAGENTSERVICE__TESTSTP, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__CHECKMETADATA, "_stpAgent::_checkMetaData" )
-   INT32 _stpAgent::_checkMetaData( const CHAR *shmKey )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE__CHECKMETADATA, "_stpAgentService::_checkMetaData" )
+   INT32 _stpAgentService::_checkMetaData( const CHAR *shmKey )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__STPAGENT__CHECKMETADATA ) ;
+      PD_TRACE_ENTRY( SDB__STPAGENTSERVICE__CHECKMETADATA ) ;
 
       SDB_ASSERT( NULL != shmKey, "shared memory key is invalid" ) ;
 
@@ -327,13 +402,13 @@ namespace engine
       ossScopedRWLock( &_metaMutex, SHARED ) ;
 
       // if it is not available, means the buffer is not attached
-      needAttach = ( !_available ) ;
+      needAttach = _availableFlag.compare( 0 ) ;
 
       // if available but key of shared buffer is changed, release the old one
-      if ( _available && 0 != ossStrcmp( shmKey, _buffer.getKeyString() ) )
+      if ( !needAttach && 0 != ossStrcmp( shmKey, _buffer.getKeyString() ) )
       {
          // reset available
-         _available = FALSE ;
+         _availableFlag.swap( 0 ) ;
          // release buffer
          _releaseSHMBuffer() ;
          // need re-attach
@@ -348,32 +423,30 @@ namespace engine
                       shmKey, rc ) ;
       }
 
-      if ( NULL != getMetaData() )
-      {
-         // extract synchronize interval from meta data
-         _syncInterval = getMetaData()->getSyncInterval() ;
-      }
-
       // set available
-      _available = TRUE ;
+      _availableFlag.swap( 1 ) ;
+
 
    done:
-      PD_TRACE_EXITRC( SDB__STPAGENT__CHECKMETADATA, rc ) ;
+      PD_TRACE_EXITRC( SDB__STPAGENTSERVICE__CHECKMETADATA, rc ) ;
       return rc ;
 
    error:
       // when error happened, release shared memory buffer
-      _available = FALSE ;
+      _availableFlag.swap( 0 ) ;
       _releaseSHMBuffer() ;
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__RELEASEMETADATA, "_stpAgent::_releaseMetaData" )
-   INT32 _stpAgent::_releaseMetaData()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__RELEASEMETADATA, "_stpAgentService::_releaseMetaData" )
+   INT32 _stpAgentService::_releaseMetaData()
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPAGENT__RELEASEMETADATA ) ;
+
+      // reset available
+      _availableFlag.swap( 0 ) ;
 
       ossScopedRWLock lock( &_metaMutex, EXCLUSIVE ) ;
 
@@ -382,8 +455,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to release meta data, rc: %d", rc ) ;
 
    done:
-      // reset available
-      _available = FALSE ;
       PD_TRACE_EXITRC( SDB__STPAGENT__RELEASEMETADATA, rc ) ;
       return rc ;
 
@@ -391,8 +462,8 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__GETLOGICALTIMENS, "_stpAgent::_getLogicalTimeNS" )
-   INT32 _stpAgent::_getLogicalTimeNS( stpLogicalTimeNS &time )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__GETLOGICALTIMENS, "_stpAgentService::_getLogicalTimeNS" )
+   INT32 _stpAgentService::_getLogicalTimeNS( stpLogicalTimeNS &time )
    {
       INT32 rc = SDB_OK ;
 
@@ -401,7 +472,7 @@ namespace engine
       ossScopedRWLock lock( &_metaMutex, SHARED ) ;
 
       // check available
-      PD_CHECK( _available, STP_NOT_AVAILABLE, error, PDERROR,
+      PD_CHECK( isAvailable(), STP_NOT_AVAILABLE, error, PDERROR,
                 "Failed to get logical time, STP is not available" ) ;
       // check meta data
       PD_CHECK( NULL != getMetaData(), STP_NOT_AVAILABLE, error, PDERROR,
@@ -419,8 +490,8 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__ATTACHSHMBUFFER, "_stpAgent::_attachSHMBuffer" )
-   INT32 _stpAgent::_attachSHMBuffer( const CHAR *shmKey )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__ATTACHSHMBUFFER, "_stpAgentService::_attachSHMBuffer" )
+   INT32 _stpAgentService::_attachSHMBuffer( const CHAR *shmKey )
    {
       INT32 rc = SDB_OK ;
 
@@ -469,8 +540,8 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__RELEASESHMBUFFER, "_stpAgent::_releaseSHMBuffer" )
-   INT32 _stpAgent::_releaseSHMBuffer()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__RELEASESHMBUFFER, "_stpAgentService::_releaseSHMBuffer" )
+   INT32 _stpAgentService::_releaseSHMBuffer()
    {
       INT32 rc = SDB_OK ;
 
@@ -486,8 +557,8 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__RECHECKAVAILABLE, "_stpAgent::_recheckAvailable" )
-   BOOLEAN _stpAgent::_recheckAvailable( INT32 rc )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT__RECHECKAVAILABLE, "_stpAgentService::_recheckAvailable" )
+   BOOLEAN _stpAgentService::_recheckAvailable( INT32 rc )
    {
       BOOLEAN canRetry = FALSE ;
 
@@ -500,7 +571,7 @@ namespace engine
          {
             // it is not synchronized or not available
             // in these cases, STP might not started, so check available
-            if ( SDB_OK == checkAvailable() )
+            if ( SDB_OK == checkAvailable( FALSE ) )
             {
                // it is available now, go retry
                canRetry = TRUE ;
@@ -524,6 +595,144 @@ namespace engine
       PD_TRACE_EXIT( SDB__STPAGENT__RECHECKAVAILABLE ) ;
 
       return canRetry ;
+   }
+
+   static stpAgentService *_stpGetAgentService()
+   {
+      static stpAgentService s_service ;
+      return ( &s_service ) ;
+   }
+
+   /*
+      _stpAgent implement
+    */
+   _stpAgent::_stpAgent()
+   {
+   }
+
+   _stpAgent::~_stpAgent()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_ISAVAILABLE, "_stpAgent::isAvailable" )
+   BOOLEAN _stpAgent::isAvailable()
+   {
+      BOOLEAN available = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENT_ISAVAILABLE ) ;
+
+      stpAgentService *service = _stpGetAgentService() ;
+
+      SDB_ASSERT( NULL != service, "service is invalid" ) ;
+
+      if ( NULL != service )
+      {
+         available = service->isAvailable() ;
+      }
+
+      PD_TRACE_EXIT( SDB__STPAGENT_ISAVAILABLE ) ;
+
+      return available ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_CHECKAVAILABLE, "_stpAgent::checkAvailable" )
+   INT32 _stpAgent::checkAvailable()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENT_CHECKAVAILABLE ) ;
+
+      stpAgentService *service = _stpGetAgentService() ;
+
+      SDB_ASSERT( NULL != service, "service is invalid" ) ;
+
+      PD_CHECK( NULL != service, STP_NOT_AVAILABLE, error, PDERROR,
+                "Failed to get STP agent service" ) ;
+
+      rc = service->checkAvailable( FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check STP available, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPAGENT_CHECKAVAILABLE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_NOTIFYSYNC, "_stpAgent::notifySync" )
+   INT32 _stpAgent::notifySync()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENT_NOTIFYSYNC ) ;
+
+      stpAgentService *service = _stpGetAgentService() ;
+
+      SDB_ASSERT( NULL != service, "service is invalid" ) ;
+
+      PD_CHECK( NULL != service, STP_NOT_AVAILABLE, error, PDERROR,
+                "Failed to get STP agent service" ) ;
+
+      rc = service->notifySync() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to notify STP to synchronize "
+                   "with server, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPAGENT_NOTIFYSYNC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_GETLOGICALTIMENS, "_stpAgent::getLogicalTimeNS" )
+   INT32 _stpAgent::getLogicalTimeNS( stpLogicalTimeNS &time, INT32 timeout )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENT_GETLOGICALTIMENS ) ;
+
+      stpAgentService *service = _stpGetAgentService() ;
+
+      SDB_ASSERT( NULL != service, "service is invalid" ) ;
+
+      PD_CHECK( NULL != service, STP_NOT_AVAILABLE, error, PDERROR,
+                "Failed to get STP agent service" ) ;
+
+      rc = service->getLogicalTimeNS( time, timeout ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPAGENT_GETLOGICALTIMENS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_GETLOGICALTIMEUS, "_stpAgent::getLogicalTimeUS" )
+   INT32 _stpAgent::getLogicalTimeUS( stpLogicalTimeUS &time, INT32 timeout )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENT_GETLOGICALTIMEUS ) ;
+
+      stpLogicalTimeNS timeNS ;
+
+      // get logical time
+      rc = getLogicalTimeNS( timeNS, timeout ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
+
+      time = timeNS ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPAGENT_GETLOGICALTIMEUS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
 }

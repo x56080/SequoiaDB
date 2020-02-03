@@ -145,12 +145,12 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DPSGTSAGENT__FILLLOWTRANREQ ) ;
 
-      stpAgent *agent = sdbGetRTNCB()->getSTPAgent() ;
+      stpAgent agent ;
 
       BOOLEAN transOn = pmdGetOptionCB()->transactionOn() ;
       BOOLEAN globTransOn = pmdGetOptionCB()->globTransOn() ;
       BOOLEAN mvccOn = pmdGetOptionCB()->mvccOn() ;
-      BOOLEAN stpAvailable = ( NULL != agent && agent->isAvailble() ) ;
+      BOOLEAN stpAvailable = agent.isAvailable() ;
 
       // build request object
       try
