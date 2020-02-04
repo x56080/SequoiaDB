@@ -79,11 +79,11 @@ $SNAPSHOT_SYSTEM
   "TransInfo": {
     "TotalCount": 1,
     "BeginLSN": 3314225744,
-    "GlobLowTran": "73638130660874757(0x1059d7d5bf71a05)",
-    "GlobExpireTran": "73638130660824757(0x1059d7d5bf656b5)",
-    "LowTran": "73638130660874757(0x1059d7d5bf71a05)",
-    "ExpireTran": "73638130660824757(0x1059d7d5bf656b5)",
-    "IdxTreeLowTran": "73638130600722703(0x1059d7d5861410f)"
+    "GlobLowTran": "0x1059d7d5bf71a05",
+    "GlobExpireTran": "0x1059d7d5bf656b5",
+    "LowTran": "0x1059d7d5bf71a05",
+    "ExpireTran": "0x1059d7d5bf656b5",
+    "IdxTreeLowTran": "0x1059d7d5861410f"
   },
   "NodeID": [
     1001,
