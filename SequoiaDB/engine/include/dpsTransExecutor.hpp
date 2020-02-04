@@ -85,7 +85,6 @@ namespace engine
          BOOLEAN              isTransAutoCommit() const ;
          BOOLEAN              isTransAutoRollback() const ;
          BOOLEAN              isTransRCCount() const ;
-         BOOLEAN              isGlobTransOn() const ;
 
          UINT32               getTransConfMask() const ;
          UINT32               getTransConfVer() const ;
@@ -104,8 +103,6 @@ namespace engine
                                                     BOOLEAN enableMask = TRUE ) ;
          void                 setTransRCCount ( BOOLEAN rcCount,
                                                 BOOLEAN enableMask = TRUE ) ;
-         void                 setGlobTransOn( BOOLEAN globTransOn,
-                                              BOOLEAN enableMask = TRUE ) ;
 
          void                 reset() ;
          void                 resetConfMask() ;
@@ -130,8 +127,6 @@ namespace engine
          BOOLEAN                 _transAutoRollback ;
          // whether to use RC isolation to process count()
          BOOLEAN                 _transRCCount ;
-         // if transaction is a global transaction
-         BOOLEAN                 _globTransOn ;
 
          UINT32                  _transConfMask ;
          UINT32                  _transConfVer ;

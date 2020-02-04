@@ -1166,7 +1166,7 @@ namespace engine
 
    BOOLEAN _pmdEDUCB::isGlobTransOn() const
    {
-      return _transExecutor.isGlobTransOn() ;
+      return sdbGetTransCB()->isGlobTransOn() ;
    }
 
    UINT32 _pmdEDUCB::getTransTimeout() const
