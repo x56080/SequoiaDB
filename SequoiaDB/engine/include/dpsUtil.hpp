@@ -72,6 +72,14 @@ namespace engine
    // format transaction SN to string format
    ossPoolString dpsTransSNToString( const DPS_TRANSID_SN &transSN ) ;
 
+   // format transaction SN to HEX string format
+   const CHAR *dpsTransSNToHEXString( const DPS_TRANSID_SN &transSN,
+                                      CHAR *buffer,
+                                      UINT32 bufferSize ) ;
+
+   // format transaction SN to HEX string format
+   ossPoolString dpsTransSNToHEXString( const DPS_TRANSID_SN &transSN ) ;
+
    // format transaction time to string format
    const CHAR* dpsTransTimeToString( const stpLogicalTimeUS &time,
                                      CHAR *buffer,

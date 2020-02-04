@@ -123,6 +123,23 @@ namespace engine
       return dpsTransSNToString( transSN, tmpStr, DPS_TRANS_STR_LEN ) ;
    }
 
+   const CHAR *dpsTransSNToHEXString( const DPS_TRANSID_SN &transSN,
+                                      CHAR *buffer,
+                                      UINT32 bufferSize )
+   {
+      SDB_ASSERT( NULL != buffer, "buffer is invalid" ) ;
+      SDB_ASSERT( bufferSize > 0, "buffer size is invalid" ) ;
+      ossSnprintf( buffer, bufferSize, "0x%llx",
+                   transSN, transSN ) ;
+      return buffer ;
+   }
+
+   ossPoolString dpsTransSNToHEXString( const DPS_TRANSID_SN &transSN )
+   {
+      CHAR tmpStr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+      return dpsTransSNToHEXString( transSN, tmpStr, DPS_TRANS_STR_LEN ) ;
+   }
+
    const CHAR *dpsTransTimeToString( const stpLogicalTimeUS &time,
                                      CHAR *buffer,
                                      UINT32 bufferSize )

@@ -310,26 +310,26 @@ namespace engine
 
             // global lowTran
             // NOTE: node ID is meaningless for global lowTran
-            dpsTransSNToString( globLowTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            dpsTransSNToHEXString( globLowTran, szTmp, DPS_TRANS_STR_LEN ) ;
             subTrans.append( FIELD_NAME_TRANS_GLOBLOWTRAN, szTmp ) ;
 
             // global expireTran
             // NOTE: node ID is meaningless for global expireTran
-            dpsTransSNToString( globExpireTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            dpsTransSNToHEXString( globExpireTran, szTmp, DPS_TRANS_STR_LEN ) ;
             subTrans.append( FIELD_NAME_TRANS_GLOBEXPTRAN, szTmp ) ;
 
             // lowTran
             // NOTE: node ID is meaningless for lowTran
-            dpsTransSNToString( lowTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            dpsTransSNToHEXString( lowTran, szTmp, DPS_TRANS_STR_LEN ) ;
             subTrans.append( FIELD_NAME_TRANS_LOWTRAN, szTmp ) ;
 
             // expireTran
             // NOTE: node ID is meaningless for expireTran
-            dpsTransSNToString( expireTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            dpsTransSNToHEXString( expireTran, szTmp, DPS_TRANS_STR_LEN ) ;
             subTrans.append( FIELD_NAME_TRANS_EXPTRAN, szTmp ) ;
 
             // tree min lowTran
-            dpsTransSNToString( treeLowTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            dpsTransSNToHEXString( treeLowTran, szTmp, DPS_TRANS_STR_LEN ) ;
             subTrans.append( FIELD_NAME_IDX_TREE_LOW_TRAN, szTmp ) ;
 
             subTrans.done() ;
