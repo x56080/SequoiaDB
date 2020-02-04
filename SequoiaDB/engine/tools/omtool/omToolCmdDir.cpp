@@ -128,7 +128,8 @@ namespace omTool
             rc = ossPermissions( tmpPath, iPermission ) ;
             if( rc )
             {
-               cout << "get dir permissions failed, errno: " << rc << endl ;
+               cout << "Get dir permissions failed, errno: " << rc
+                    << ", path: " << tmpPath << endl ;
                goto error ;
             }
 
@@ -164,14 +165,14 @@ namespace omTool
       if ( path.empty() )
       {
          rc = SDB_INVALIDARG ;
-         cout << "invalid path" << endl ;
+         cout << "Invalid path" << endl ;
          goto error ;
       }
 
       if ( user.empty() )
       {
          rc = SDB_INVALIDARG ;
-         cout << "invalid user name" << endl ;
+         cout << "Invalid user name" << endl ;
          goto error ;
       }
 
@@ -180,8 +181,8 @@ namespace omTool
          if( path.find( _systemDirList[i] ) == 0 )
          {
             rc = SDB_INVALIDARG ;
-            cout << "invalid path, can't create directories in the system path."
-                 << endl ;
+            cout << "Invalid path, can't create directories in the system path,"
+                    " path: " << path << endl ;
             goto error ;
          }
       }
@@ -204,7 +205,8 @@ namespace omTool
       rc = ossGetUserInfo( user.c_str(), _uid, _gid ) ;
       if ( rc )
       {
-         cout << "get user id failed, errno: " << rc << endl ;
+         cout << "Get user id failed, errno: " << rc
+              << ", user: " << user << endl ;
          goto error ;
       }
 
@@ -278,15 +280,18 @@ namespace omTool
       {
          if( SDB_PERM == rc )
          {
-            cout << "failed to change permissions, Permission denied" << endl ;
+            cout << "Failed to change permissions, Permission denied, path: "
+                 << path << endl ;
          }
          else if( SDB_FE == rc )
          {
-            cout << "failed to change permissions, dir already exist" << endl ;
+            cout << "Failed to change permissions, dir already exist, path: "
+                 << path << endl ;
          }
          else
          {
-            cout << "failed to change permissions, errno: " << rc << endl ;
+            cout << "Failed to change permissions, errno: " << rc
+                 << ", path: " << path << endl ;
          }
       }
       return rc ;
@@ -299,15 +304,18 @@ namespace omTool
       {
          if( SDB_PERM == rc )
          {
-            cout << "failed to change permissions, Permission denied" << endl ;
+            cout << "Failed to change permissions, Permission denied, path: "
+                 << path << endl ;
          }
          else if( SDB_FNE == rc )
          {
-            cout << "failed to change permissions, path not exist" << endl ;
+            cout << "Failed to change permissions, path not exist, path: "
+                 << path << endl ;
          }
          else
          {
-            cout << "failed to change permissions, errno: " << rc << endl ;
+            cout << "Failed to change permissions, errno: " << rc
+                 << ", path: " << path << endl ;
          }
       }
       return rc ;
@@ -350,7 +358,7 @@ namespace omTool
       rc = ossAccess( path ) ;
       if ( rc )
       {
-         cout << "Path not exist" << endl ;
+         cout << "Path not exist, path: " << path << endl ;
          goto error ;
       }
 
@@ -358,42 +366,42 @@ namespace omTool
       rc = ossGetPathType( path, &type ) ;
       if ( rc )
       {
-         cout << "Failed to get path type" << endl ;
+         cout << "Failed to get path type, path: " << path << endl ;
          goto error ;
       }
 
       if ( SDB_OSS_DIR != type )
       {
          rc = SDB_INVALIDARG ;
-         cout << "path must be dir" << endl ;
+         cout << "Path must be dir, path: " << path << endl ;
          goto error ;
       }
 
       rc = ossEnumFiles( path, mapFiles, NULL, 1 ) ;
       if( rc )
       {
-         cout << "Failed to enum files" << endl ;
+         cout << "Failed to enum files, path: " << path << endl ;
          goto error ;
       }
 
       if ( !mapFiles.empty() )
       {
          rc = SDB_INVALIDARG ;
-         cout << "path is not empty" << endl ;
+         cout << "Path is not empty, path: " << path << endl ;
          goto error ;
       }
 
       rc = ossEnumSubDirs( path, dirs, 1 ) ;
       if( rc )
       {
-         cout << "Failed to enum dirs" << endl ;
+         cout << "Failed to enum dirs, path: " << path << endl ;
          goto error ;
       }
 
       if ( !dirs.empty() )
       {
          rc = SDB_INVALIDARG ;
-         cout << "path is not empty" << endl ;
+         cout << "Path is not empty, path: " << path << endl ;
          goto error ;
       }
 
