@@ -726,6 +726,7 @@ namespace engine
 
    void _rtnDiskIXScanner::getRBSPositions( dmsRBSOffset & startPos,
                                             dmsRBSOffset & endPos,
+                                            dmsRecordID  & rid,
                                             preIdxTreePtr  memTree ) 
    {
       preIdxTreePtr  tree ;
@@ -757,7 +758,7 @@ namespace engine
          // this RID. If there is no keynode for this RID in memTree, that
          // means we didn't change the index before, we should search the 
          // whole RBS
-         INDEX_TREE_POS it = memTree->getKeyNodeFromRidTree( _savedRID) ;
+         INDEX_TREE_POS it = memTree->getKeyNodeFromRidTree( rid ) ;
          if ( it != memTree->getTree()->end() )
          {
             endPos = it->second.getRBSOffset() ;

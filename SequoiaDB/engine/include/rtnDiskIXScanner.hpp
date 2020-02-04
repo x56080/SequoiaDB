@@ -89,6 +89,7 @@ namespace engine
 
       virtual void getRBSPositions( dmsRBSOffset & startPos,
                                     dmsRBSOffset & endPos,
+                                    dmsRecordID  & rid,
                                     preIdxTreePtr  memTree ) ;
 
    protected:

@@ -173,6 +173,7 @@ namespace engine
                                             BOOLEAN &isSame ) = 0 ;
       virtual void getRBSPositions( dmsRBSOffset & startPos,
                                     dmsRBSOffset & endPos,
+                                    dmsRecordID  & rid,
                                     preIdxTreePtr  memTree ) = 0;
 
    protected:

@@ -840,6 +840,7 @@ namespace engine
    // returned startPos is inclusive, but the endPos is exclusive
    void _rtnMemIXTreeScanner::getRBSPositions( dmsRBSOffset & startPos,
                                                dmsRBSOffset & endPos,
+                                               dmsRecordID  & rid,
                                                preIdxTreePtr  memTree )
    {
       SDB_ASSERT( memTree.get() == _memIdxTree.get(), "tree does not match" ) ;
