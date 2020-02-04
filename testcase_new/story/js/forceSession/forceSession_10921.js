@@ -4,19 +4,20 @@
  * @Date: 2019-12-20
 /***************************************/
 testConf.skipStandAlone = true;
-//SEQUOIADBMAINSTREAM-5396
-//main( test );
+main( test );
 
 function test()
 {
-   // 获取所有系统EDU类型的session，并随机从中取得一个用于force
+   // 获取所有系统EDU类型的session，并随机从中取得一个用于force(Name为DATASYNC-JOB-D的系统会话可以被强杀)
    var sessions = db.list( 2, { Global: true, Status: { $ne: "Waiting" },
+                                Name: { $nin: [ "DATASYNC-JOB-D"] },
                                 Type: { $nin: [ "Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent" ] } } );
    var obj = sessions.next().toObj();
    var sessionID = obj.SessionID;
 
    //list加条件是因为通过sessionid有可能也能查到非系统EDU类型的session
    var expResult = db.list( 2, { Global: true, SessionID: sessionID, Status: { $ne: "Waiting" }, 
+                                 Name: { $nin: [ "DATASYNC-JOB-D"] },
                                  Type: { $nin: [ "Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent" ] } } ).toArray();
 
    try 
@@ -33,6 +34,7 @@ function test()
    }
 
    var actResult = db.list( 2, { Global: true, SessionID: sessionID, Status: { $ne: "Waiting" }, 
+                                 Name: { $nin: [ "DATASYNC-JOB-D"] },
                                  Type: { $nin: [ "Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent" ] } } ).toArray();
    if( expResult.length !== actResult.length )
    {
