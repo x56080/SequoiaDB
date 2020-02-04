@@ -2,7 +2,7 @@
 *@Description: seqDB-12224: 重放复制日志时过滤/指定cl  
 *@Author: 2019-7-3  xiaoni zhao init
 ************************************************************************/
-main();
+//main();
 function main ()
 {
    if( commIsStandalone( db ) )
