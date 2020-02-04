@@ -39,7 +39,7 @@ public class UniqueIndexReplSyncOptimize17004a extends SdbTestBase {
     private DBCollection dbcl2 = null;
     private ArrayList< BSONObject > insertRecordsInCL1 = null;
     private ArrayList< BSONObject > insertRecordsInCL2 = null;
-    private int insertNums = 100000;
+    private int insertNums = 10000;
 
     @BeforeClass
     public void setUp() {
@@ -137,7 +137,6 @@ public class UniqueIndexReplSyncOptimize17004a extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            int insertNums = 100000;
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
                 DBCollection dbcl = db.getCollectionSpace( SdbTestBase.csName )
