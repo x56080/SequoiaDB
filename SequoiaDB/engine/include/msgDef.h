@@ -522,7 +522,6 @@
 #define FIELD_NAME_TRANS_AUTOCOMMIT          "TransAutoCommit"
 #define FIELD_NAME_TRANS_AUTOROLLBACK        "TransAutoRollback"
 #define FIELD_NAME_TRANS_RCCOUNT             "TransRCCount"
-#define FIELD_NAME_TRANS_GLOBTRANSON         "GlobTransOn"
 #define FIELD_NAME_TRANS_LOWTRAN             "LowTran"
 #define FIELD_NAME_TRANS_GLOBLOWTRAN         "GlobLowTran"
 #define FIELD_NAME_TRANS_EXPTRAN             "ExpireTran"

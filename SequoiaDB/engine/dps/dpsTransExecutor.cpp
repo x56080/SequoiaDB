@@ -68,7 +68,6 @@ namespace engine
       _transAutoCommit  = FALSE ;
       _transAutoRollback= TRUE ;
       _transRCCount     = DPS_TRANS_RCCOUNT_DFT ;
-      _globTransOn        = FALSE ;
       _transConfMask    = 0 ;
       _transConfVer     = 1 ;
    }
@@ -116,11 +115,6 @@ namespace engine
    BOOLEAN _dpsTransConfItem::isTransRCCount() const
    {
       return _transRCCount ;
-   }
-
-   BOOLEAN _dpsTransConfItem::isGlobTransOn() const
-   {
-      return _globTransOn ;
    }
 
    UINT32 _dpsTransConfItem::getTransConfMask() const
@@ -233,20 +227,6 @@ namespace engine
       }
    }
 
-   void _dpsTransConfItem::setGlobTransOn( BOOLEAN globTransOn,
-                                           BOOLEAN enableMask )
-   {
-      if ( _globTransOn != globTransOn )
-      {
-         _globTransOn = globTransOn ;
-         ++ _transConfVer ;
-      }
-      if ( enableMask )
-      {
-         _transConfMask |= TRANS_CONF_MASK_GLOBTRANSON ;
-      }
-   }
-
    void _dpsTransConfItem::updateByMask( const _dpsTransConfItem &rhs )
    {
       UINT32 rhsMask = rhs.getTransConfMask() ;
@@ -280,10 +260,6 @@ namespace engine
       {
          setTransRCCount( rhs.isTransRCCount(), TRUE ) ;
       }
-      if ( rhsMask & TRANS_CONF_MASK_GLOBTRANSON )
-      {
-         setGlobTransOn( rhs.isGlobTransOn(), TRUE ) ;
-      }
 
       if ( oldTransConfVer != _transConfVer )
       {
@@ -309,7 +285,6 @@ namespace engine
          builder.appendBool( FIELD_NAME_TRANS_AUTOROLLBACK,
                              _transAutoRollback ) ;
          builder.appendBool( FIELD_NAME_TRANS_RCCOUNT, _transRCCount ) ;
-         builder.appendBool( FIELD_NAME_TRANS_GLOBTRANSON, _globTransOn ) ;
       }
       catch ( std::exception &e )
       {
@@ -363,11 +338,6 @@ namespace engine
                                       FIELD_NAME_TRANS_RCCOUNT ) )
             {
                setTransRCCount( e.booleanSafe(), TRUE ) ;
-            }
-            else if ( 0 == ossStrcmp( e.fieldName(),
-                                      FIELD_NAME_TRANS_GLOBTRANSON ) )
-            {
-               setGlobTransOn( e.booleanSafe(), TRUE ) ;
             }
          }
       }
@@ -702,7 +672,6 @@ namespace engine
       setTransAutoRollback( autoRollback, FALSE ) ;
       setUseRollbackSemgent( useRBS, FALSE ) ;
       setTransRCCount( rcCount, FALSE ) ;
-      setGlobTransOn( globTrans, FALSE ) ;
 
       _useTransLock        = TRUE ;
       _transConfVer        = 1 ;
@@ -751,10 +720,6 @@ namespace engine
          if ( !OSS_BIT_TEST( _transConfMask, TRANS_CONF_MASK_RCCOUNT ) )
          {
             setTransRCCount( rcCount, FALSE ) ;
-         }
-         if ( !OSS_BIT_TEST( _transConfMask, TRANS_CONF_MASK_GLOBTRANSON ) )
-         {
-            setGlobTransOn( globTrans, FALSE ) ;
          }
          updateAll = TRUE ;
       }
