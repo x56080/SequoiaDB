@@ -346,9 +346,12 @@ namespace engine
          }
          else
          {
-            // rid already exist 
+            // rid already exist. Note that newly inserted one 
+            // should always be the newest version, thus be directly
+            // pointed by ridTree node.
             pre->second->second.setRidNext( ret.first );
             ret.first->second.setRidPre( pre->second ) ;
+            ret.first->second.setRidNext( _tree.end() ) ;
             _ridTree[keyNode.getRID()] = ret.first ;
 
 #if _DEBUG
@@ -985,7 +988,8 @@ namespace engine
                "gc memixtree(%d) to lowTran %llu), lastGCtime(%llu)",
                _idxLID, lowTran, _lastLowTranID );
 #endif
-
+      SDB_ASSERT( pmdGetOptionCB()->mvccOn(),
+                  "should only be called if mvcc is enabled." ) ;
       lockX();
 
       // Only gc if lowtran moved up
@@ -1044,30 +1048,52 @@ namespace engine
       return idxTreeLowTran ;
    }
 
-   // adjust pre and next node in the chain when removing a node from the tree
+   // adjust pre and next node in the rid chain when removing a node from
+   // the in memory index tree. tree latch must be held in X
    void preIdxTree::_adjustRidChainForErase( INDEX_TREE_POS pos ) 
    {
       preIdxTreeNodeValue tmpValue = pos->second ;
+      dmsRecordID         rid = pos->first.getRID() ;
 
-               // this is the last version of index for this rid
-               if ( tmpValue.getRidPre() == _tree.end() &&
-                    tmpValue.getRidNext() == _tree.end() )
-               {
-                  _ridTree.erase( pos->first.getRID() ) ;
-               }
-               else
-               {
-                  if ( tmpValue.getRidPre() != _tree.end() )
-                  {
-                     tmpValue.getRidPre()->
-                        second.setRidNext( tmpValue.getRidNext() ) ;
-                  }
-                  if ( tmpValue.getRidNext() != _tree.end() )
-                  {
-                     tmpValue.getRidNext()->
-                        second.setRidPre( tmpValue.getRidPre() ) ;
-                  }
-               }
+      // this is the last version of index for this rid
+      if ( tmpValue.getRidPre() == _tree.end() &&
+           tmpValue.getRidNext() == _tree.end() )
+      {
+#ifdef _DEBUG
+         PD_LOG ( PDDEBUG, "Removing rid(%d, %d) from ridtree(%d)",
+                  rid._extent, rid._offset, _idxLID ) ;
+#endif
+         SDB_ASSERT( ( _ridTree[rid] == pos ),
+                     "Ridtree node is not valid." ) ;
+         _ridTree.erase( rid ) ;
+      }
+      else
+      {
+         // removing the first node(newest version) in rid chain.
+         // this can happen if all the old versions of this rid
+         // are good candidates for GC, but the newest version has the
+         // "front" order in idx tree. So it is cleaned up first.
+         if ( _ridTree[rid] == pos )
+         {
+#ifdef _DEBUG
+            PD_LOG ( PDDEBUG, 
+                     "Remove first rid(%d, %d) from ridtree(%d)",
+                     rid._extent, rid._offset, _idxLID ) ;
+#endif
+            _ridTree[rid] = tmpValue.getRidPre() ;
+         }
+
+         if ( tmpValue.getRidPre() != _tree.end() )
+         {
+            tmpValue.getRidPre()->
+               second.setRidNext( tmpValue.getRidNext() ) ;
+         }
+         if ( tmpValue.getRidNext() != _tree.end() )
+         {
+            tmpValue.getRidNext()->
+               second.setRidPre( tmpValue.getRidPre() ) ;
+         }
+      }
 
    }
 
