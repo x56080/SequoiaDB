@@ -1,12 +1,13 @@
 package com.sequoias3.commlibs3.s3utils;
 
-import com.sequoias3.commlibs3.S3TestBase;
-import com.sequoias3.commlibs3.TestRest;
 import org.json.JSONObject;
 import org.json.XML;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
+
+import com.sequoias3.commlibs3.S3TestBase;
+import com.sequoias3.commlibs3.TestRest;
 
 public class UserUtils extends S3TestBase {
     public final static String ACCESS_KEYS = "AccessKeys";
@@ -73,6 +74,10 @@ public class UserUtils extends S3TestBase {
                 .setResponseType( String.class ).exec();
         String body = response.getBody().toString();
         return XML.toJSONObject( body );
+    }
+
+    public static JSONObject getUser( String name){
+        return getUser( name,S3TestBase.s3AccessKeyId );
     }
 
     public static JSONObject getUser( String name, String accessKeyId )
