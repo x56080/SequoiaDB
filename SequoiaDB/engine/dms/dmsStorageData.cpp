@@ -441,6 +441,10 @@ namespace engine
                // No need to move data for OVF record
                pRecord->migrateFromV0( FALSE ) ;
             }
+
+            SDB_ASSERT( pRecord->hasGlobTransID(), 
+                        "Original record was not migrated properly!") ;
+            pRecord->setGlobTransID( cb->getTransID() ) ;
             pRecord->setOvf() ;
             pRecord->setOvfRID( foundDeletedID ) ;
  

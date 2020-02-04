@@ -714,7 +714,7 @@ namespace engine
 
                if ( !_pScanner )
                {
-                  // TODO:TBScan, directly hash and use RBS based on the chain
+                  // TBScan, directly hash and use RBS based on the chain
                   // on return, we setup _rbsRecordData
 #ifdef _DEBUG
                   PD_LOG( PDDEBUG, "TBScan try to get record from RBS" );
@@ -736,15 +736,16 @@ namespace engine
 #ifdef _DEBUG
                   PD_LOG( PDDEBUG, "IndexScan try to get record from RBS" );
 #endif
-                  // TODO: Index scan, no matter we come from mem tree or disk,
-                  // we need to use proper version. 
-                  // First step is to only use the position 
-                  // currently pointed to(both start and end set to same value)
-                  // Next step we figure out the correct one (current node will
-                  // be the endPos, we need to find backwards for the startPos
+                  // Index scan, if we come from mem tree, we need to use 
+                  // proper version.  we will figure out the correct one 
+                  // (current node will be the endPos, we follow the rid
+                  // chain backwards to find the the startPos.)
+                  // If the scan come from disk, there might not be old
+                  // version index if the update didn't touch index
                   _pScanner->getRBSPositions( startPos, endPos, dummy ) ;
                   // only search RBS is we have a proper range
-                  if ( startPos.isValid() || endPos.isValid() )
+                  if ( startPos.isValid() || endPos.isValid() ||
+                      (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
                   {
                      rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
                                               rid, transID, found,
@@ -781,7 +782,7 @@ namespace engine
 #endif
             if ( !_pScanner )
             {
-               // TODO: TBScan, directly hash and use RBS based on the chain
+               // TBScan, directly hash and use RBS based on the chain
 #ifdef _DEBUG
                   PD_LOG( PDDEBUG, "TBScan try to get record from RBS" );
 #endif
@@ -798,15 +799,17 @@ namespace engine
             }
             else
             {
-               // TODO: Index scan, if we come from mem tree, we need to use 
-               // proper version. First step is to only use the position 
-               // currently pointed to(both start and end set to same value)
-               // Next step we figure out the correct one (current node will
-               // be the endPos, we need to find backwards for the startPos
+               // Index scan, if we come from mem tree, we need to use 
+               // proper version.  we will figure out the correct one 
+               // (current node will be the endPos, we follow the rid
+               // chain backwards to find the the startPos.)
+               // If the scan come from disk, there might not be old
+               // version index if the update didn't touch index
                preIdxTreePtr dummy ;
                _pScanner->getRBSPositions(startPos, endPos, dummy) ;
                // only search RBS is we have a proper range
-               if ( startPos.isValid() || endPos.isValid() )
+               if ( startPos.isValid() || endPos.isValid() ||
+                    (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
                {
                   rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
                                            rid, transID, found,
@@ -943,14 +946,16 @@ namespace engine
                      PD_LOG( PDDEBUG, 
                              "Have lock, IXScan still try to get record from RBS" );
 #endif
-                     // TODO: Index scan, if we come from mem tree, we need to use 
-                     // proper version. First step is to only use the position 
-                     // currently pointed to(both start and end set to same value)
-                     // Next step we figure out the correct one (current node will
-                     // be the endPos, we need to find backwards for the startPos
+                     // Index scan, if we come from mem tree, we need to use 
+                     // proper version.  we will figure out the correct one 
+                     // (current node will be the endPos, we follow the rid
+                     // chain backwards to find the the startPos.)
+                     // If the scan come from disk, there might not be old
+                     // version index if the update didn't touch index
                      _pScanner->getRBSPositions(startPos, endPos, dummy) ;
                      // only search RBS is we have a proper range
-                     if ( startPos.isValid() || endPos.isValid() )
+                     if ( startPos.isValid() || endPos.isValid() ||
+                          (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
                      {
                         rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
                                                  rid, transID, found,
@@ -994,17 +999,92 @@ namespace engine
                   PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
                           lockId.toString().c_str() ) ;
                }
-            }
 
-            /// from memory tree
-            if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
-                 SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() )
+               /// from memory tree
+               if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
+                    SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() )
+               {
+                  _skipRecord = TRUE ;
+                  /// remove the duplicate rid
+                  _pScanner->removeDuplicatRID( _oldVer->getRecordID() ) ;
+                  _oldVer = NULL ;
+                  goto done ;
+               }
+
+            }
+            // although we got the lock, there is in memory old version,
+            // we still need to get proper visiable version if this is RR
+            else if( pmdGetOptionCB()->mvccOn() && 
+                     ( DPS_TRANSLOCK_S == requestLockMode ) &&
+                     ( TRANS_ISOLATION_RR == _transIsolation ) )
             {
-               _skipRecord = TRUE ;
-               /// remove the duplicate rid
-               _pScanner->removeDuplicatRID( _oldVer->getRecordID() ) ;
-               _oldVer = NULL ;
-               goto done ;
+               const dmsRecord* record = _recordRW->readPtr( 0 ) ;
+               if ( record->hasGlobTransID()  &&
+                    !sdbGetTransCB()->isVersionVisible(
+                       record->getGlobTransID(), transID,
+                       _eduCB->getTransBeginTime() ) )
+               {
+                  if ( !_pScanner )
+                  {
+                     // TBScan, directly hash and use RBS based on the chain
+#ifdef _DEBUG
+                     PD_LOG( PDDEBUG, 
+                             "Have lock(%s), TBScan still try to get record "
+                             "from RBS", lockId.toString().c_str() );
+#endif
+                     rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
+                                              rid, transID, found,
+                                              *_rbsRecordData,
+                                              startPos, endPos ) ;
+                        PD_RC_CHECK( rc, PDERROR, 
+                                     "Failed to read record from RBS, rc=%d",
+                                     rc ) ;
+                  }
+                  else
+                  {
+                     preIdxTreePtr dummy ;
+#ifdef _DEBUG
+                     PD_LOG( PDDEBUG, 
+                             "Have lock(%s), IXScan still try to get record "
+                             "from RBS", lockId.toString().c_str() );
+#endif
+                     _pScanner->getRBSPositions(startPos, endPos, dummy) ;
+                     // only search RBS is we have a proper range
+                     if ( startPos.isValid() || endPos.isValid() ||
+                          (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
+                     {
+                        rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
+                                                 rid, transID, found,
+                                                 *_rbsRecordData,
+                                                 startPos, endPos ) ;
+                        PD_RC_CHECK( rc, PDERROR, 
+                                     "Idxscan failed to read record from RBS, rc=%d",
+                                     rc ) ;
+                     }
+                  }
+                  if ( !found )
+                  {
+                     _skipRecord = TRUE ;
+                     _useOldVersion = FALSE ;
+                  }
+                  else
+                  {
+                     _useOldVersion = TRUE ;
+                  }
+               }
+            }
+            else
+            {
+               /// from memory tree
+               if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
+                    SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() )
+               {
+                  _skipRecord = TRUE ;
+                  /// remove the duplicate rid
+                  _pScanner->removeDuplicatRID( _oldVer->getRecordID() ) ;
+                  _oldVer = NULL ;
+                  goto done ;
+               }
             }
 
             if ( _oldVer->isRecordNew() &&
