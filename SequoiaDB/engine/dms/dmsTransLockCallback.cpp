@@ -730,7 +730,7 @@ namespace engine
                   // chain backwards to find the the startPos.)
                   // If the scan come from disk, there might not be old
                   // version index if the update didn't touch index
-                  _pScanner->getRBSPositions( startPos, endPos, dummy ) ;
+                  _pScanner->getRBSPositions( startPos, endPos, rid, dummy ) ;
                   // only search RBS is we have a proper range
                   if ( startPos.isValid() || endPos.isValid() ||
                       (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
@@ -794,7 +794,7 @@ namespace engine
                // If the scan come from disk, there might not be old
                // version index if the update didn't touch index
                preIdxTreePtr dummy ;
-               _pScanner->getRBSPositions(startPos, endPos, dummy) ;
+               _pScanner->getRBSPositions(startPos, endPos, rid, dummy) ;
                // only search RBS is we have a proper range
                if ( startPos.isValid() || endPos.isValid() ||
                     (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
@@ -940,7 +940,7 @@ namespace engine
                      // chain backwards to find the the startPos.)
                      // If the scan come from disk, there might not be old
                      // version index if the update didn't touch index
-                     _pScanner->getRBSPositions(startPos, endPos, dummy) ;
+                     _pScanner->getRBSPositions(startPos, endPos, rid, dummy) ;
                      // only search RBS is we have a proper range
                      if ( startPos.isValid() || endPos.isValid() ||
                           (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
@@ -1036,7 +1036,7 @@ namespace engine
                              "Have lock(%s), IXScan still try to get record "
                              "from RBS", lockId.toString().c_str() );
 #endif
-                     _pScanner->getRBSPositions(startPos, endPos, dummy) ;
+                     _pScanner->getRBSPositions(startPos, endPos, rid, dummy) ;
                      // only search RBS is we have a proper range
                      if ( startPos.isValid() || endPos.isValid() ||
                           (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )

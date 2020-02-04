@@ -569,16 +569,17 @@ namespace engine
 
    void _rtnMergeIXScanner::getRBSPositions( dmsRBSOffset & startPos,
                                              dmsRBSOffset & endPos,
+                                             dmsRecordID  & rid,
                                              preIdxTreePtr  memTree ) 
    {
       if ( SCAN_LEFT == _fromDir )
       {
-         _leftIXScanner->getRBSPositions( startPos, endPos, 
+         _leftIXScanner->getRBSPositions( startPos, endPos, rid,
                       ((_rtnMemIXTreeScanner*) _leftIXScanner)->getMemTree() ) ;
       }
       else
       {
-         _rightIXScanner->getRBSPositions( startPos, endPos,
+         _rightIXScanner->getRBSPositions( startPos, endPos, rid,
                    memTree.get() ? memTree : 
                       ((_rtnMemIXTreeScanner*) _leftIXScanner)->getMemTree() ) ;
       }
