@@ -328,40 +328,55 @@ namespace engine
       if ( ret.second && pmdGetOptionCB()->mvccOn() )
       {
          INDEX_RID_TREE::iterator pre = _ridTree.find(keyNode.getRID()) ;
-         if ( pre == _ridTree.end() )
+
+         try
          {
-            // rid not exist, add it
-            ret.first->second.setRidPre( _tree.end() ) ;
-            ret.first->second.setRidNext( _tree.end() ) ;
-            _ridTree.insert( INDEX_RID_TREE::value_type( keyNode.getRID(),
-                                                         ret.first) ) ;
+            if ( pre == _ridTree.end() )
+            {
+               // rid not exist, add it
+               ret.first->second.setRidPre( _tree.end() ) ;
+               ret.first->second.setRidNext( _tree.end() ) ;
+               _ridTree.insert( INDEX_RID_TREE::value_type( keyNode.getRID(),
+                                                            ret.first) ) ;
 #if _DEBUG
-            PD_LOG( PDDEBUG,
-                    "Inserted rid[%d, %d] version(%s) to rid tree[%d],"
-                    "address(%x)",
-                    keyNode.getRID()._extent, keyNode.getRID()._offset,
-                    dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
-                    _idxLID, ret.first ) ;
+               PD_LOG( PDDEBUG,
+                       "Inserted rid[%d, %d] version(%s) to rid tree[%d],"
+                       "address(%x)",
+                       keyNode.getRID()._extent, keyNode.getRID()._offset,
+                       dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
+                       _idxLID, ret.first ) ;
 #endif
-         }
-         else
-         {
-            // rid already exist. Note that newly inserted one 
-            // should always be the newest version, thus be directly
-            // pointed by ridTree node.
-            pre->second->second.setRidNext( ret.first );
-            ret.first->second.setRidPre( pre->second ) ;
-            ret.first->second.setRidNext( _tree.end() ) ;
-            _ridTree[keyNode.getRID()] = ret.first ;
+            }
+            else
+            {
+               // rid already exist. Note that newly inserted one 
+               // should always be the newest version, thus be directly
+               // pointed by ridTree node.
+               pre->second->second.setRidNext( ret.first );
+               ret.first->second.setRidPre( pre->second ) ;
+               ret.first->second.setRidNext( _tree.end() ) ;
+               _ridTree[keyNode.getRID()] = ret.first ;
 
 #if _DEBUG
-            PD_LOG( PDDEBUG, 
-                    "Added new rid[%d, %d] version(%s) to rid tree[%d], "
-                    "new address(%x)" ,
-                    keyNode.getRID()._extent, keyNode.getRID()._offset,
-                    dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
-                    _idxLID, ret.first ) ;
+               PD_LOG( PDDEBUG, 
+                       "Added new rid[%d, %d] version(%s) to rid tree[%d], "
+                       "new address(%x)" ,
+                       keyNode.getRID()._extent, keyNode.getRID()._offset,
+                       dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
+                       _idxLID, ret.first ) ;
 #endif
+            }
+         }
+         catch ( std::exception &e )
+         {
+            if( !hasLock )
+            {
+               unlockX();
+            }
+
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+            goto error ;
          }
       }
 
@@ -1050,11 +1065,13 @@ namespace engine
 
    // adjust pre and next node in the rid chain when removing a node from
    // the in memory index tree. tree latch must be held in X
-   void preIdxTree::_adjustRidChainForErase( INDEX_TREE_POS pos ) 
+   void preIdxTree::_adjustRidChainForErase( INDEX_TREE_POS & pos ) 
    {
       preIdxTreeNodeValue tmpValue = pos->second ;
       dmsRecordID         rid = pos->first.getRID() ;
 
+      SDB_ASSERT( ( _ridTree.find(rid) != _ridTree.end() ),
+                    "Ridtree node is not valid." ) ;
       // this is the last version of index for this rid
       if ( tmpValue.getRidPre() == _tree.end() &&
            tmpValue.getRidNext() == _tree.end() )
