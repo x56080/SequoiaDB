@@ -46,8 +46,11 @@ public class SdbTestBase {
     private static final String TRANSAUTOROLLBACK = "transautorollback";
     private static final String TRANSUSERBS = "transuserbs";
     private static final String TRANSREPLSIZE = "transreplsize";
+    private static final String GLOBTRANSON = "globtranson";
+    private static final String MVCCON = "mvccon";
     private static final String RCAUTO = "rcauto";
     private static final String RC = "rc";
+    private static final String RR = "rr";
     private static final String NODENAME = "NodeName";
     private static final Map< String, BSONObject > group2Conf = new HashMap< >();
     private static final Map< String, BSONObject > node2Conf = new HashMap< >();
@@ -143,6 +146,13 @@ public class SdbTestBase {
         group2Conf.get( RC ).put( TRANSUSERBS, true );
         group2Conf.get( RC ).put( TRANSREPLSIZE, transReplsize );
 
+        group2Conf.put( RR, new BasicBSONObject() );
+        group2Conf.get( RR ).put( TRANSISOLATION, 3 );
+        group2Conf.get( RR ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RR ).put( MVCCON, true );
+        group2Conf.get( RR ).put( TRANSUSERBS, true );
+        group2Conf.get( RR ).put( GLOBTRANSON, true );
+
         for ( String key : group2Conf.keySet() ) {
             groupName2Count.put( key, new AtomicInteger( 0 ) );
             for ( String conf : group2Conf.get( key ).keySet() ) {
@@ -166,7 +176,7 @@ public class SdbTestBase {
         }
     }
 
-    @BeforeTest(groups = { RC, RCAUTO })
+    @BeforeTest(groups = { RC, RCAUTO, RR })
     public static synchronized void initTestGroups() {
         if ( !groupName2Count.containsKey( testGroupOfCurrent ) ) {
             return;
@@ -180,7 +190,7 @@ public class SdbTestBase {
         modifyNodeConf( group2Conf.get( testGroupOfCurrent ), null );
     }
 
-    @AfterTest(groups = { RC, RCAUTO }, alwaysRun = true)
+    @AfterTest(groups = { RC, RCAUTO, RR }, alwaysRun = true)
     public static synchronized void finiTestGroups() {
         if ( !groupName2Count.containsKey( testGroupOfCurrent ) ) {
             return;
