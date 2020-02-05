@@ -338,13 +338,12 @@ namespace engine
                ret.first->second.setRidNext( _tree.end() ) ;
                _ridTree.insert( INDEX_RID_TREE::value_type( keyNode.getRID(),
                                                             ret.first) ) ;
-#if _DEBUG
+#if defined ( _DEBUG )
                PD_LOG( PDDEBUG,
-                       "Inserted rid[%d, %d] version(%s) to rid tree[%d],"
-                       "address(%x)",
+                       "Inserted rid[%d, %d] version(%s) to rid tree[%d]",
                        keyNode.getRID()._extent, keyNode.getRID()._offset,
                        dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
-                       _idxLID, ret.first ) ;
+                       _idxLID ) ;
 #endif
             }
             else
@@ -357,13 +356,12 @@ namespace engine
                ret.first->second.setRidNext( _tree.end() ) ;
                _ridTree[keyNode.getRID()] = ret.first ;
 
-#if _DEBUG
+#if defined ( _DEBUG )
                PD_LOG( PDDEBUG, 
-                       "Added new rid[%d, %d] version(%s) to rid tree[%d], "
-                       "new address(%x)" ,
+                       "Added new rid[%d, %d] version(%s) to rid tree[%d]",
                        keyNode.getRID()._extent, keyNode.getRID()._offset,
                        dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
-                       _idxLID, ret.first ) ;
+                       _idxLID ) ;
 #endif
             }
          }
