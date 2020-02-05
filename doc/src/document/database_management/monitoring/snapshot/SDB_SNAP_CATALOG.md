@@ -19,16 +19,46 @@ SDB_SNAP_CATALOG
 | ReplSize            | 整型   | 执行修改操作时需要同步的副本数<br>当执行更新、插入、删除记录等操作时，仅当指定副本数的节点都完成操作时才返回操作结果 |
 | ShardingKey         | 对象   | 数据分区类型：<br>- range：数据按分区键值的范围进行分区存储<br>- hash：数据按分区键的哈希值进行分区存储 |
 | Version             | 整型   | 集合版本号，当对集合的元数据执行修改操作时递增该版本号（例如数据切分） |
-| Attribute           | 整形   | 集合属性                     |
+| Attribute           | 整型   | 集合属性                     |
 | AttributeDesc       | 字符串 | 集合属性描述                 |
-| CompressionType     | 整形   | 压缩算法类型                 |
+| CompressionType     | 整型   | 压缩算法类型                 |
 | CompressionTypeDesc | 字符串 | 压缩算法类型描述             |
+| Partition           | 整型   | hash 分区的个数 ( 仅水平分区集合显示 )|
+| InternalV           | 整型   | hash 算法版本号 ( 仅水平分区集合显示，内部使用 ) |
+| AutoSplit           | 布尔   | 集合是否开启自动切分功能 ( 仅水平分区集合显示 ) |
+| IsMainCL            | 布尔   | 集合是否为垂直分区中的主表 ( 仅垂直分区集合显示 )|
+| MainCLName          | 字符串 | 集合在垂直分区中所关联的主表名 ( 仅垂直分区集合显示 )|
+| CataInfo.ID	      | 整型   | 子表挂载的顺序 ID ( 仅垂直分区集合显示，内部使用 ) |
+| CataInfo.SubCLName  | 字符串 | 子表名( 仅垂直分区集合显示 ) |
 | CataInfo.GroupID    | 整型   | 分区组 ID                    |
 | CataInfo.GroupName  | 字符串 | 分区组名                     |
 | CataInfo.LowBound   | 对象   | 数据分区区间的上限           |
 | CataInfo.UpBound    | 对象   | 数据分区区间的下限           |
 
 ##示例##
+1.普通集合
+
+```lang-javascript
+> db.snapshot( SDB_SNAP_CATALOG )
+{
+  "_id": {
+    "$oid": "5247a2bc60080822db1cfba2"
+  },
+  "Name": "foo.bar",
+  "Version": 2,
+  "Attribute": 1,
+  "AttributeDesc": "Compressed",
+  "CompressionType": 1,
+  "CompressionTypeDesc": "lzw",
+  "CataInfo": [
+    {
+      "GroupID": 1000,
+      "GroupName": "group1"
+    }
+  ]
+}
+```
+2.水平分区集合
 
 ```lang-javascript
 > db.snapshot( SDB_SNAP_CATALOG )
@@ -39,13 +69,17 @@ SDB_SNAP_CATALOG
   "Name": "foo.bar",
   "Version": 1,
   "Attribute": 0,
-  "AttributeDesc": "",
+  "AttributeDesc": "Compressed",
   "ReplSize": 1,
   "ShardingKey": {
     "age": 1
   },
+  "CompressionType": 1,
+  "CompressionTypeDesc": "lzw",
   "EnsureShardingIndex": true,
-  "ShardingType": "range",
+  "ShardingType": "hash",
+  "Partition": 1024,
+  "InternalV": 3,
   "CataInfo": [
     {
       "GroupID": 1000,
@@ -62,5 +96,41 @@ SDB_SNAP_CATALOG
       }
     }
   ]
+  "AutoSplit": true
 }
+```
+3.垂直分区集合
+
+```lang-javascript
+> db.snapshot( SDB_SNAP_CATALOG )
+{
+  "_id": {
+    "$oid": "5247a2bc60080822db1cfba2"
+  },
+  "Name": "foo.bar",
+  "Version": 2,
+  "Attribute": 1,
+  "AttributeDesc": "Compressed",
+  "CataInfo": [
+    {
+      "ID": 1,
+      "SubCLName": "foo.subCL",
+      "LowBound": {
+        "a": 0
+      },
+      "UpBound": {
+        "a": 100
+      }
+    }
+  ],
+  "ShardingType": "range",
+  "CompressionType": 1,
+  "CompressionTypeDesc": "lzw",
+  "EnsureShardingIndex": true,
+  "IsMainCL": true,
+  "ShardingKey": {
+    "a": 1
+  },
+}
+
 ```
