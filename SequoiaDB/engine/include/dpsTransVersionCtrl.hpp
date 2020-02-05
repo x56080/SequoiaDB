@@ -489,12 +489,12 @@ namespace engine
          return _tree.size() ;
       }
 
-      BOOLEAN hasRidPre( INDEX_TREE_CPOS pos ) 
+      BOOLEAN hasRidPre( INDEX_TREE_CPOS & pos ) 
       {
          return ( this->getNodeData(pos).getRidPre() != _tree.end() ) ;
       }
 
-      BOOLEAN hasRidNext( INDEX_TREE_CPOS pos ) 
+      BOOLEAN hasRidNext( INDEX_TREE_CPOS & pos ) 
       {
          return ( this->getNodeData(pos).getRidNext() != _tree.end() ) ;
       }
@@ -541,7 +541,7 @@ namespace engine
                                  INT32 direction ) const ;
 
    private:
-      void  _adjustRidChainForErase( INDEX_TREE_POS pos ) ;
+      void  _adjustRidChainForErase( INDEX_TREE_POS & pos ) ;
 
    // private attributes:
    private:
