@@ -371,7 +371,7 @@ namespace engine
 
       // write test command to pipe
       rc = utilWriteReadPipe( STP_PIPE_SERVICE_NAME, _stpPID,
-                              command, ossStrlen( command ),
+                              command, ossStrlen( command ) + 1,
                               (CHAR *)( &test ), sizeof( test ), FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to test from STP "
                    "node [%s] pid [%u], rc: %d", _stpServiceName.c_str(),
