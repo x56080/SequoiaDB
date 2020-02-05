@@ -1013,6 +1013,11 @@ namespace engine
                                             buffObj.recordNum(), TRUE ) ;
                PD_RC_CHECK( rc, PDERROR, "Append objs to dump context failed, "
                             "rc: %d", rc ) ;
+               /// check result buffer
+               if ( contextDump.buffEndOffset() >= (INT32)DMS_RECORD_MAX_SZ )
+               {
+                  break ;
+               }
             }
 
             rc = contextDump.getMore( -1, buffObj, _pEDUCB ) ;
