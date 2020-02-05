@@ -1,5 +1,5 @@
 /******************************************************************************
-*@Description : seqDB-18671:�ڵ��lobһ���Լ�飨lob��LSN��
+*@Description : seqDB-18671:节点间lob一致性检查（lob、LSN）
 *@Modify list :
 *     2019-07-12 xiaoni huang init
 ******************************************************************************/
@@ -66,6 +66,7 @@ function main ()
 
       println( "\n---Begin to drop cs." );
       commDropCS( db, csName, false, "Failed to drop cs in the end-condition." );
+      cmd.run( "rm -rf " + pubLobFile + "*" );
    }
    catch( e )
    {

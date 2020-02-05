@@ -41,10 +41,12 @@ function importData ( csName, clName, imprtFile )
 
    //backup sdbimport.log and generate new sdbimport.log
    var rt = cmd.run( 'find ./ -name "sdbimport.log"' );
+   var newLogFile = '';
    if( rt !== '' )  //file is exist
    {
-      var time = cmd.run( 'date "+%Y-%m-%d-%H:%M:%S"' );
-      cmd.run( 'mv ./sdbimport.log sdbimport.log_' + time );
+      var time = cmd.run( 'date "+%Y-%m-%d-%H:%M:%S"' ).split( "\n" )[0];
+      newLogFile = 'sdbimport.log_' + time;
+      cmd.run( 'mv ./sdbimport.log ./' + newLogFile );
    }
 
    //---------------------scene1-------------------------
@@ -119,5 +121,11 @@ function importData ( csName, clName, imprtFile )
       throw buildException( "importData", null, "[sdbimprt results]",
          "[" + expV + "]",
          "[" + actV + "]" );
+   }
+
+   // recover log
+   if( rt !== '' )  //file is exist
+   {
+      cmd.run( 'mv ' + newLogFile + ' sdbimport.log' );
    }
 }
