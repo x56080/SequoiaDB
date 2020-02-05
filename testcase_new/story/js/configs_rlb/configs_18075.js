@@ -12,7 +12,8 @@ function test()
    var nodeNum = 1;
    var groupName = "rg_18075";
    var hostName = commGetGroups ( db )[0][1].HostName;
-   var nodes = commCreateRG( db, groupName, nodeNum, hostName );
+   var nodeOption = { diaglevel: 3 };
+   var nodes = commCreateRG( db, groupName, nodeNum, hostName, nodeOption );
 
    var configs = { "transactionon": "TRUE" };
    var options = { "HostName": hostName, "svcName": nodes[0].svcname.toString() };

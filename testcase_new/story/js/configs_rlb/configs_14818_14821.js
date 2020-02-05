@@ -13,7 +13,8 @@ function test()
    var nodeNum = 1;
    var groupName = "rg_14818_14821";
    var hostName = commGetGroups ( db )[0][1].HostName;
-   var nodes = commCreateRG( db, groupName, nodeNum, hostName );
+   var nodeOption = { diaglevel: 3 };
+   var nodes = commCreateRG( db, groupName, nodeNum, hostName, nodeOption );
 
    //当前值为默认值，修改参数值为默认值
    var config = getRandomRunConfig( "defaultVal" );

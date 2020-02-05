@@ -13,7 +13,8 @@ function test ()
    var nodeNum = 3;
    var groupName = "rg_14828_14843";
    var hostName = commGetGroups ( db )[0][1].HostName;
-   var nodes = commCreateRG( db, groupName, nodeNum, hostName );
+   var nodeOption = { diaglevel: 3 };
+   var nodes = commCreateRG( db, groupName, nodeNum, hostName, nodeOption );
    
    // 更新多个run级别参数
    var options = { GroupName: groupName };

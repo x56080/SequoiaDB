@@ -14,7 +14,8 @@ function test()
    var nodeNum = 1;
    var groupNames = [ "rg_14831_14846_1", "rg_14831_14846_2", "rg_14831_14846_3" ];
    var hostName = commGetGroups ( db )[0][1].HostName;
-   var nodes = commCreateRG( db, groupNames[0], nodeNum, hostName );
+   var nodeOption = { diaglevel: 3 };
+   var nodes = commCreateRG( db, groupNames[0], nodeNum, hostName, nodeOption );
    nodes = nodes.concat( commCreateRG( db, groupNames[1], nodeNum, hostName ) );
    nodes = nodes.concat( commCreateRG( db, groupNames[2], nodeNum, hostName ) );
 
