@@ -132,10 +132,13 @@ namespace engine
       SDB_ASSERT( cb, "cb can't be null" ) ;
       INT32         rc          = SDB_OK ;
       dpsTransCB *  transCB     = sdbGetTransCB() ;
+      pmdTransExecutor *transExecutor = cb->getTransExecutor() ;
       DPS_TRANS_ID  transID     = cb->getTransID() ;
       BOOLEAN       mvccOn      = pmdGetKRCB()->getOptionCB()->mvccOn() ;
       BOOLEAN       globTransOn = ( cb->isGlobTransOn() &&
                                     transCB->isGlobTransOn() ) ;
+
+      SDB_ASSERT( NULL != transExecutor, "transaction executor is invalid" ) ;
 
       // transaction should be on
       if ( !transCB->isTransOn() )
@@ -168,7 +171,7 @@ namespace engine
       }
 
       // RR isolation requires MVCC is on and global transaction is on
-      if ( TRANS_ISOLATION_RR == cb->getTransExecutor()->getTransIsolation() )
+      if ( TRANS_ISOLATION_RR == transExecutor->getTransIsolation() )
       {
          if ( !mvccOn )
          {
@@ -354,6 +357,8 @@ namespace engine
 
       IRemoteOperator *pRemoteOperator = NULL ;
 
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      pmdTransExecutor *transExecutor = cb->getTransExecutor() ;
       DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
@@ -375,6 +380,8 @@ namespace engine
                                     cb->getTransBeginTime(),
                                     cb->getTransPreCommitTime() ) ;
 
+      SDB_ASSERT( NULL != transExecutor, "transaction executor is invalid" ) ;
+
       if ( transInfo._transID.isInvalid() ||
            DPS_INVALID_LSN_OFFSET == transInfo._preTransLSN )
       {
@@ -382,14 +389,21 @@ namespace engine
 
          // make sure to commit meta-block statistics
          // NOTE: actually it is empty
-         cb->getTransExecutor()->commitMBStats() ;
+         transExecutor->commitMBStats() ;
 
-         sdbGetTransCB()->delTransCB( transInfo._transID ) ;
+         // remove from transaction CB map
+         transCB->delTransCB( transInfo._transID ) ;
+
+         // clear records for transaction arbitration
+         transExecutor->clearArbit() ;
+
+         // reset transaction ID
          cb->resetTransID() ;
+
          // release all transactions lock
-         sdbGetTransCB()->transLockReleaseAll( cb ) ;
+         transCB->transLockReleaseAll( cb ) ;
          // reduce the reservedLogSpace from dps for the transaction
-         sdbGetTransCB()->releaseRBLogSpace( cb ) ;
+         transCB->releaseRBLogSpace( cb ) ;
          goto done ;
       }
 
@@ -407,8 +421,8 @@ namespace engine
       {
          // auto-commit global transaction needs pre-commit time
          stpLogicalTimeUS preCommitTime ;
-         rc = sdbGetTransCB()->getGlobTransTime(
-                           preCommitTime, (INT32)( cb->getTransTimeout() ) ) ;
+
+         rc = transCB->getGlobTransPreCommitTime( cb, preCommitTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
                       "pre-commit time of transaction %s, rc: %d",
                       dpsTransIDToString( transInfo._transID ).c_str(), rc ) ;
@@ -417,7 +431,7 @@ namespace engine
          transInfo._preCommitTime = preCommitTime.getTime() ;
       }
 
-      firstTransLsn = sdbGetTransCB()->getBeginLsn( transInfo._transID ) ;
+      firstTransLsn = transCB->getBeginLsn( transInfo._transID ) ;
       SDB_ASSERT( firstTransLsn != DPS_INVALID_LSN_OFFSET,
                   "First transaction lsn can't be invalid" ) ;
 
@@ -445,18 +459,26 @@ namespace engine
       // commit meta-block statistics
       // SHOULD commit this before release TX locks
       // the mbstat can be protected by TX locks
-      cb->getTransExecutor()->commitMBStats() ;
+      transExecutor->commitMBStats() ;
 
+      // remove from transaction CB map
       sdbGetTransCB()->delTransCB( transInfo._transID ) ;
+
+      // clear records for transaction arbitration
+      transExecutor->clearArbit() ;
+
+      // reset transaction ID
       cb->resetTransID() ;
+
+      // reset transaction LSN
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
       // clear all lsn mapping
-      cb->getTransExecutor()->clearRecordMap() ;
+      transExecutor->clearRecordMap() ;
       // release all transactions lock
-      sdbGetTransCB()->transLockReleaseAll( cb ) ;
+      transCB->transLockReleaseAll( cb ) ;
 
       // reduce the reservedLogSpace from dps for the transaction
-      sdbGetTransCB()->releaseRBLogSpace( cb ) ;
+      transCB->releaseRBLogSpace( cb ) ;
 
       // report succeed
       sdbGetTransCB()->incSucCount() ;
@@ -477,6 +499,8 @@ namespace engine
       SDB_ASSERT( cb, "cb can't be null" ) ;
       INT32 rc = SDB_OK;
       IRemoteOperator *pRemoteOperator = NULL ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      pmdTransExecutor *transExecutor = cb->getTransExecutor() ;
       _dpsMessageBlock mb( DPS_MSG_BLOCK_DEF_LEN );
       DPS_LSN dpsLsn ;
       DPS_LSN_OFFSET curLsnOffset = DPS_INVALID_LSN_OFFSET ;
@@ -487,10 +511,13 @@ namespace engine
       _clsReplayer replayer( TRUE ) ;
       MAP_TRANS_PENDING_OBJ mapPendingObj ;
 
+      SDB_ASSERT( NULL != transExecutor, "transaction executor is invalid" ) ;
+
       cb->startTransRollback() ;
+
       curLsnOffset = cb->getCurTransLsn() ;
       transID = cb->getTransID() ;
-      rollbackID = sdbGetTransCB()->getRollbackID( transID ) ;
+      rollbackID = transCB->getRollbackID( transID ) ;
 
       pRemoteOperator = cb->getRemoteOperator() ;
       if ( NULL != pRemoteOperator )
@@ -611,18 +638,26 @@ namespace engine
       // this avoid infinite recursion when rollback failed
 
       // rollback meta-block statistics
-      cb->getTransExecutor()->rollbackMBStats() ;
+      transExecutor->rollbackMBStats() ;
 
-      sdbGetTransCB()->delTransCB( transID ) ;
+      // remove from transaction CB map
+      transCB->delTransCB( transID ) ;
+
+      // clear records for transaction arbitration
+      transExecutor->clearArbit() ;
+
+      // reset transaction ID
       cb->resetTransID() ;
+
+      // reset transaction LSN
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
       cb->setRelatedTransLSN( DPS_INVALID_LSN_OFFSET ) ;
       // clear all lsn mapping
-      cb->getTransExecutor()->clearRecordMap() ;
-      sdbGetTransCB()->transLockReleaseAll( cb ) ;
+      transExecutor->clearRecordMap() ;
+      transCB->transLockReleaseAll( cb ) ;
 
       // reduce the reservedLogSpace from dps for the transaction
-      sdbGetTransCB()->releaseRBLogSpace( cb ) ;
+      transCB->releaseRBLogSpace( cb ) ;
 
       cb->stopTransRollback() ;
 
@@ -871,8 +906,13 @@ namespace engine
 
       SDB_ASSERT( cb, "cb can't be null" ) ;
 
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      pmdTransExecutor *transExecutor = cb->getTransExecutor() ;
+
       DPS_LSN_OFFSET curLsnOffset = cb->getCurTransLsn() ;
       DPS_TRANS_ID transID = cb->getTransID() ;
+
+      SDB_ASSERT( NULL != transExecutor, "transaction executor is invalid" ) ;
 
       savedAsWaitCommit = FALSE ;
 
@@ -903,19 +943,27 @@ namespace engine
 
    done:
       // just clear meta-block statistics
-      cb->getTransExecutor()->clearMBStats() ;
+      transExecutor->clearMBStats() ;
 
-      sdbGetTransCB()->delTransCB( transID ) ;
+      // remove from transaction CB map
+      transCB->delTransCB( transID ) ;
+
+      // clear records for transaction arbitration
+      transExecutor->clearArbit() ;
+
+      // reset transaction ID
       cb->resetTransID() ;
+
+      // reset transaction LSN
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
       cb->setRelatedTransLSN( DPS_INVALID_LSN_OFFSET ) ;
 
       // clear all lsn mapping
-      cb->getTransExecutor()->clearRecordMap() ;
-      sdbGetTransCB()->transLockReleaseAll( cb ) ;
+      transExecutor->clearRecordMap() ;
+      transCB->transLockReleaseAll( cb ) ;
 
       // reduce the reservedLogSpace from dps for the transaction
-      sdbGetTransCB()->releaseRBLogSpace( cb ) ;
+      transCB->releaseRBLogSpace( cb ) ;
 
       PD_TRACE_EXITRC( SDB_RTNTRANSSAVEWAITCOMMIT, rc ) ;
 

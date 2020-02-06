@@ -189,25 +189,6 @@ namespace engine
          virtual void      setTransID( const DPS_TRANS_ID &transID ) ;
          virtual void      setCurTransLsn( UINT64 lsn ) ;
 
-         OSS_INLINE const stpLogicalTimeUS &getTransBeginTime() const
-         {
-            return _transBeginTime ;
-         }
-
-         OSS_INLINE const stpLogicalTimeUS &getTransPreCommitTime() const
-         {
-            return _transPreCommitTime ;
-         }
-
-         OSS_INLINE void setTransPreCommitTime(
-                                    const stpLogicalTimeUS &preCommitTime )
-         {
-            // no time error for pre-commit time, will reuse time error of
-            // transaction begin time
-            _transPreCommitTime = preCommitTime ;
-            _transPreCommitTime.setTimeError( _transBeginTime.getTimeError() ) ;
-         }
-
          /*
             Context Related
          */
@@ -224,8 +205,8 @@ namespace engine
          void              clearTransRBPending() ;
 
          // set eduCB is handling global transaction
-         void              setGlobTrans( const DPS_TRANS_ID &transID,
-                                         const stpLogicalTimeUS &beginTime ) ;
+         void     setGlobTrans( const DPS_TRANS_ID &transID,
+                                const stpLogicalTimeUS &beginTime ) ;
 
          void              setBlock( EDU_BLOCK_TYPE type,
                                      const CHAR *pBlockDesp ) ;
@@ -432,6 +413,7 @@ namespace engine
       }
       DPS_LSN_OFFSET getRelatedTransLSN() const { return _relatedTransLSN ; }
       BOOLEAN  isTransaction() const ;
+      INT32    getTransIsolation() const ;
       BOOLEAN  isTransRU () const ;
       BOOLEAN  isTransRC () const ;
       BOOLEAN  isTransRS () const ;
@@ -439,6 +421,8 @@ namespace engine
       BOOLEAN  isAutoCommitTrans() const ;
       // check if global transaction is acquired
       BOOLEAN  isGlobTransOn() const ;
+      // check if transaction isolation for RR is required
+      BOOLEAN  isTransRRRequired() const ;
       // get transaction timeout
       UINT32   getTransTimeout() const ;
       // check if current transaction is global transaction
@@ -479,6 +463,48 @@ namespace engine
       IRemoteOperator*  getRemoteOperator() ;
       INT32             getOrCreateRemoteOperator(
                                      IRemoteOperator **ppOperator ) ;
+
+      // get begin time of transaction
+      OSS_INLINE const stpLogicalTimeUS &getTransBeginTime() const
+      {
+         return _transExecutor.getBeginTime() ;
+      }
+
+      // set begin time of transaction
+      OSS_INLINE void setTransBeginTime( const stpLogicalTimeUS &beginTime )
+      {
+         _transExecutor.setBeginTime( beginTime ) ;
+      }
+
+      // get pre-commit time of transaction
+      OSS_INLINE const stpLogicalTimeUS &getTransPreCommitTime() const
+      {
+         return _transExecutor.getPreCommitTime() ;
+      }
+
+      // set pre-commit time of transaction
+      OSS_INLINE void setTransPreCommitTime(
+                                 const stpLogicalTimeUS &preCommitTime )
+      {
+         _transExecutor.setPreCommitTime( preCommitTime ) ;
+      }
+
+      // check if transaction has passed doing arbitration time
+      // - before that time, current transaction needs arbitrate for all
+      //   records created or updated by doing transactions
+      // - after that time, the doing transactions could not be able to
+      //   commit by that time, so the records created or updated by them
+      //   won't be seen by this transaction
+      OSS_INLINE BOOLEAN isPassedDoingArbit() const
+      {
+         return _transExecutor.isPassedDoingArbit() ;
+      }
+
+      // set transaction passed doing arbitration time
+      OSS_INLINE void setPassedDoingArbit( BOOLEAN passed )
+      {
+         _transExecutor.setPassedDoingArbit( passed ) ;
+      }
    #endif // SDB_ENGINE
 
    protected:

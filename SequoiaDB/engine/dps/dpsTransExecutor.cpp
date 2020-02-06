@@ -41,6 +41,9 @@
 #include "dpsTransLockDef.hpp"
 #include "dpsTransCB.hpp"
 #include "dpsTransLRB.hpp"
+#include "dpsUtil.hpp"
+#include "dpsTrace.hpp"
+#include "pdTrace.hpp"
 
 using namespace bson ;
 
@@ -371,6 +374,7 @@ namespace engine
       _reservedLogSpace = 0 ;
       _lockWaitStarted  = FALSE ;
       _monLock          = NULL ;
+      _passedDoingArbit = FALSE ;
    }
 
    _dpsTransExecutor::~_dpsTransExecutor()
@@ -380,6 +384,8 @@ namespace engine
    void _dpsTransExecutor::clearAll()
    {
       clearMBStats() ;
+      clearArbit() ;
+      resetTransTime() ;
       for ( UINT32 i = LOCKMGR_TRANS_LOCK; i < LOCKMGR_TYPE_MAX; i++ )
       {
          clearWaiterInfo( (LOCKMGR_TYPE)i ) ;
@@ -940,4 +946,86 @@ namespace engine
    {
       return _accessingTransLRB[ lockMgrType ] ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_CLEARARBIT, "_dpsTransExecutor::clearArbit" )
+   void _dpsTransExecutor::clearArbit()
+   {
+      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_CLEARARBIT ) ;
+
+      _transArbit.clear() ;
+
+      PD_TRACE_EXIT( SDB__DPSTRANSEXE_CLEARARBIT ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_ARBIT, "_dpsTransExecutor::arbit" )
+   INT32 _dpsTransExecutor::arbit( const DPS_TRANS_ID &writeTransID,
+                                   DPS_TRANS_STATUS writeStatus,
+                                   BOOLEAN &visible )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_ARBIT ) ;
+
+      rc = _transArbit.arbit( writeTransID, writeStatus, visible ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check arbitration for transaction "
+                   "[%s], status [%s], rc: %d",
+                   dpsTransIDToString( writeTransID ).c_str(),
+                   dpsTransStatusToString( writeStatus ), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSTRANSEXE_ARBIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_FINDARBIT, "_dpsTransExecutor::findArbit" )
+   BOOLEAN _dpsTransExecutor::findArbit( const DPS_TRANS_ID &writeTransID,
+                                         BOOLEAN &visible )
+   {
+      BOOLEAN found = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_FINDARBIT ) ;
+
+      found = _transArbit.findArbit( writeTransID, visible ) ;
+
+      PD_TRACE_EXIT( SDB__DPSTRANSEXE_FINDARBIT ) ;
+
+      return found ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_SAVEARBIT, "_dpsTransExecutor::saveArbit" )
+   INT32 _dpsTransExecutor::saveArbit( const DPS_TRANS_ID &writeTransID,
+                                       DPS_TRANS_STATUS writeStatus,
+                                       BOOLEAN visible )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_SAVEARBIT ) ;
+
+      rc = _transArbit.saveArbit( writeTransID, writeStatus, visible ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save arbitrate record, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSTRANSEXE_SAVEARBIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_RESETTRANSTIME, "_dpsTransExecutor::resetTransTime" )
+   void _dpsTransExecutor::resetTransTime()
+   {
+      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_RESETTRANSTIME ) ;
+
+      _beginTime.reset() ;
+      _preCommitTime.reset() ;
+      _passedDoingArbit = FALSE ;
+
+      PD_TRACE_EXIT( SDB__DPSTRANSEXE_RESETTRANSTIME ) ;
+   }
+
 }

@@ -1662,10 +1662,10 @@ namespace engine
          {
             DPS_TRANSID_SN treeLowTran ;
 #ifdef _DEBUG  // FIXME remove after stable
-            PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, expired version[%llu(0x%llX)]",
+            PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, expired version[%s]",
                     it->first.toString().c_str(),
                     treePtr->getKeyPattern().toString().c_str(),
-                    expiredVersion, expiredVersion ) ;
+                    dpsTransSNToString( expiredVersion ).c_str() ) ;
                     //lowTran.getGlobSN() ) ;
             treePtr->printTree( FALSE ) ;
 #endif

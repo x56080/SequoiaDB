@@ -368,6 +368,27 @@ namespace engine
                                INT32 waitSyncTimeout = OSS_ONE_SEC * 60,
                                BOOLEAN ignoreWaitSyncError = FALSE ) ;
 
+         // check transaction with RR isolation
+         // input:
+         //    - transID: transaction ID of current transaction
+         //    - remoteRID: route ID of remote node to launch this transaction
+         //    - remoteTime: global logical time to send transaction begin
+         //                  message of this transaction
+         //    - localTime: global logical time to receive the transaction
+         //                 begin message
+         //    - nextIsWrite: indicate if this is a write operator
+         // return:
+         //    - SDB_OK: succeed to check transaction with RR isolation
+         //    - other errors: failed to check transaction with RR isolation
+         // NOTE: the RR isolation requires global transaction support
+         //    - check global time synchronization between nodes
+         //    - do pre-arbitration for write transaction
+         INT32 _checkTransRR( const DPS_TRANS_ID &transID,
+                              const MsgRouteID &remoteRID,
+                              const stpLogicalTimeUS &remoteTime,
+                              const stpLogicalTimeUS &localTime,
+                              BOOLEAN nextIsWrite ) ;
+
       protected:
          _clsReplicateSet       *_pReplSet ;
          _clsShardMgr           *_pShdMgr ;

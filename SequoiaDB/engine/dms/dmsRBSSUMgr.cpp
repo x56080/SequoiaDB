@@ -795,49 +795,65 @@ namespace engine
             if ( ( vecKey[0].numberInt() == csid ) &&
                  ( vecKey[1].numberInt() == clid ) &&
                  ( vecKey[2].numberInt() == rid._extent ) &&
-                 ( vecKey[3].numberInt() == rid._offset ) &&
-                 sdbGetTransCB()->isVersionVisible( recordTransID,
-                                                    transid,
-                                                    eduCB->getTransBeginTime() ) )
+                 ( vecKey[3].numberInt() == rid._offset ) )
             {
-                 UINT32 recCLLID = eleCLLID.numberInt() ;
-                 if ( recCLLID != clLID )
-                 {
-                    // logical ID of collection is different
-                    // which means the collection had been truncated or
-                    // recreated, earlier records should not been seen
-                    // by current transaction
+               UINT32 recCLLID = eleCLLID.numberInt() ;
+               if ( recCLLID != clLID )
+               {
+                  // logical ID of collection is different
+                  // which means the collection had been truncated or
+                  // recreated, earlier records should not been seen
+                  // by current transaction
 #ifdef _DEBUG
-                    PD_LOG ( PDDEBUG, "collection's logical ID is different, "
-                             "current [%u], record [%u], "
-                             "no more older version found", clLID, recCLLID ) ;
+                  PD_LOG ( PDDEBUG, "collection's logical ID is different, "
+                           "current [%u], record [%u], "
+                           "no more older version found", clLID, recCLLID ) ;
 #endif
-                    _su->data()->releaseMBContext( context ) ;
-                    context = NULL ;
-                    goto done ;
-                 }
-                 else if ( sdbGetTransCB()->isVersionVisible(
-                                               recordTransID,
-                                               transid,
-                                               eduCB->getTransBeginTime() ) )
-                 {
-                    // check version, and it is visible
-                    BSONElement ele =
-                       cappedRecord.getField(FIELD_NAME_RBS_RECORD_DATA) ;
-                    found = TRUE ;
-                    recordData.setData( ele.value(), ele.valuesize() )  ;
+                  _su->data()->releaseMBContext( context ) ;
+                  context = NULL ;
+                  goto done ;
+               }
+               else
+               {
+                  BOOLEAN isVisible = FALSE ;
+
+                  // check version visible for current transaction against record
+                  // transaction
+                  rc = sdbGetTransCB()->isVersionVisible(
+                                                  eduCB,
+                                                  recordTransID,
+                                                  transid,
+                                                  eduCB->getTransBeginTime(),
+                                                  TRANS_ISOLATION_RR,
+                                                  FALSE,
+                                                  isVisible ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check version visible for "
+                               "current transaction [%s] against record "
+                               "transaction [%s], rc: %d",
+                               dpsTransIDToString( transid ).c_str(),
+                               dpsTransIDToString( recordTransID ).c_str(),
+                               rc ) ;
+
+                  if ( isVisible )
+                  {
+                     // it is visible, get data to output
+                     BSONElement ele =
+                           cappedRecord.getField(FIELD_NAME_RBS_RECORD_DATA) ;
+                     found = TRUE ;
+                     recordData.setData( ele.value(), ele.valuesize() )  ;
 #ifdef _DEBUG
-                    PD_LOG ( PDDEBUG,
-                             "Found version(%s) at position(%d, %ld)",
-                             dpsTransIDToString( recordTransID ).c_str(),
-                             position._clID,
-                             position._logicalID ) ;
+                     PD_LOG ( PDDEBUG,
+                              "Found version(%s) at position(%d, %ld)",
+                              dpsTransIDToString( recordTransID ).c_str(),
+                              position._clID,
+                              position._logicalID ) ;
 #endif
-                    _su->data()->releaseMBContext( context ) ;
-                    context = NULL ;
-                    break ;
-                 }
-                 // version is not matched, go on to earlier record
+                     _su->data()->releaseMBContext( context ) ;
+                     context = NULL ;
+                     break ;
+                  }
+               }
+               // version is not matched, go on to earlier record
             }
 
 

@@ -44,6 +44,7 @@
 #include "rtnContextBuff.hpp"
 #include "msgMessageFormat.hpp"
 #include "pmd.hpp"
+#include "dpsUtil.hpp"
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
 #include "pd.hpp"
@@ -224,10 +225,11 @@ namespace engine
       globLowTran = DPS_MAX_TRANSID_SN ;
       GTS_NODE_SET transNodes ;
 
-      PD_LOG( PDINFO, "Got node lowTran [%llu(0x%llX)] "
-              "expireTran [%llu(0x%llX)] transOn [%s] globTransOn [%s] "
+      PD_LOG( PDINFO, "Got node lowTran [%s] "
+              "expireTran [%s] transOn [%s] globTransOn [%s] "
               "mvccOn [%s] stpAvailable [%s] from route ID %s",
-              lowTran, lowTran, expireTran, expireTran,
+              dpsTransSNToString( lowTran ).c_str(),
+              dpsTransSNToString( expireTran ).c_str(),
               transOn ? "TRUE" : "FALSE",
               globTransOn ? "TRUE" : "FALSE",
               mvccOn ? "TRUE" : "FALSE",
@@ -284,10 +286,10 @@ namespace engine
          _globExpireTran = globExpireTran ;
       }
 
-      PD_LOG( PDEVENT, "Update global lowTran to [%llu(0x%llX)], "
-              "global expireTran to [%llu(0x%llX)]",
-              globLowTran, globLowTran,
-              globExpireTran, globExpireTran ) ;
+      PD_LOG( PDEVENT, "Update global lowTran to [%s], "
+              "global expireTran to [%s]",
+              dpsTransSNToString( globLowTran ).c_str(),
+              dpsTransSNToString( globExpireTran ).c_str() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CATGLOBTRANSMANAGER_UPDATEGLOBLOWTRAN, rc ) ;

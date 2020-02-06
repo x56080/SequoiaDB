@@ -42,6 +42,7 @@
 #include "dpsTrace.hpp"
 #include "pmdOptions.hpp"
 #include "rtnCB.hpp"
+#include "dpsUtil.hpp"
 #include "../bson/bson.hpp"
 
 using namespace bson ;
@@ -58,7 +59,8 @@ namespace engine
       _dpsGTSAgent implement
     */
    _dpsGTSAgent::_dpsGTSAgent()
-   : _transCB( sdbGetTransCB() )
+   : _transCB( sdbGetTransCB() ),
+     _maxNodeTimeError( DPS_DEF_GLOBTRANS_MAXTIMEERROR )
    {
       SDB_ASSERT( NULL != _transCB, "transCB is invalid" ) ;
       _localRID.value = MSG_INVALID_ROUTEID ;
@@ -107,9 +109,9 @@ namespace engine
       localLowTran = lowTran ;
       localExpireTran = expireTran ;
 
-      PD_LOG( PDDEBUG, "Got local lowTran [%llu(0x%llX)], "
-              "local expireTran [%llu(0x%llX)]", lowTran, lowTran,
-              expireTran, expireTran ) ;
+      PD_LOG( PDDEBUG, "Got local lowTran [%s], "
+              "local expireTran [%s]", dpsTransSNToString( lowTran ).c_str(),
+              dpsTransSNToString( expireTran ).c_str() ) ;
 
       PD_TRACE_EXITRC( SDB__DPSGTSAGENT__GETLOCALLOWTRAN, rc ) ;
 
@@ -245,6 +247,101 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__DPSGTSAGENT__PARSELOWTRANRSP, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSGTSAGENT__FILLGTSARBITREQ, "_dpsGTSAgent::_fillGTSArbitReq" )
+   INT32 _dpsGTSAgent::_fillGTSArbitReq( MsgClsGTSArbitReq *request,
+                                         const DPS_TRANS_ID &readTransID,
+                                         const DPS_TRANS_ID &writeTransID,
+                                         DPS_TRANS_STATUS writeTransStatus )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPSGTSAGENT__FILLGTSARBITREQ ) ;
+
+      SDB_ASSERT( NULL != request, "request is invalid" ) ;
+
+      // fill message ( header is filled by constructor of message )
+      request->readTransNodeID = (UINT16)( readTransID.getNodeID() ) ;
+      request->readTransID = (UINT64)( readTransID.getGlobSN() ) ;
+      request->writeTransNodeID = (UINT16)( writeTransID.getNodeID() ) ;
+      request->writeTransID = (UINT64)( writeTransID.getGlobSN() ) ;
+      request->writeTransStatus = (UINT16)writeTransStatus ;
+
+      PD_TRACE_EXITRC( SDB__DPSGTSAGENT__FILLGTSARBITREQ, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSGTSAGENT__PARSEGTSARBITRSP, "_dpsGTSAgent::_parseGTSArbitRsp" )
+   INT32 _dpsGTSAgent::_parseGTSArbitRsp( const MsgClsGTSArbitRsp *response,
+                                          BOOLEAN &visible )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPSGTSAGENT__PARSEGTSARBITRSP ) ;
+
+      SDB_ASSERT( NULL != response, "response is invalid" ) ;
+
+      visible = ( 0 != response->visible ) ? TRUE : FALSE ;
+
+      PD_TRACE_EXITRC( SDB__DPSGTSAGENT__PARSEGTSARBITRSP, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSGTSAGENT__FILLGTSPREARBITREQ, "_dpsGTSAgent::_fillGTSPreArbitReq" )
+   INT32 _dpsGTSAgent::_fillGTSPreArbitReq( MsgClsGTSPreArbitReq *request,
+                                            const DPS_TRANS_ID &writeTransID,
+                                            DPS_TRANSID_NODEID preArbitNodeID,
+                                            const TRANS_ID_LIST &preArbitList,
+                                            BSONObj &requestObject )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPSGTSAGENT__FILLGTSPREARBITREQ ) ;
+
+      SDB_ASSERT( NULL != request, "request is invalid" ) ;
+
+      // build request object
+      try
+      {
+         BSONObjBuilder builder ;
+
+         BSONArrayBuilder subBuilder(
+               builder.subarrayStart( FIELD_NAME_TRANS_PREARBITLIST ) ) ;
+
+         for ( TRANS_ID_LIST::const_iterator iter = preArbitList.begin() ;
+               preArbitList.end() != iter ;
+               ++ iter )
+         {
+            const DPS_TRANS_ID &transID = ( *iter ) ;
+            subBuilder.append( (INT64)( transID.getGlobSN() ) ) ;
+         }
+
+         subBuilder.doneFast() ;
+
+         requestObject = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build request object, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      request->header.messageLength += requestObject.objsize() ;
+      request->writeTransNodeID = (UINT16)( writeTransID.getNodeID() ) ;
+      request->writeTransID = (UINT64)(writeTransID.getGlobSN() ) ;
+      request->preArbitNodeID = (UINT16)preArbitNodeID ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSGTSAGENT__FILLGTSPREARBITREQ, rc ) ;
       return rc ;
 
    error:

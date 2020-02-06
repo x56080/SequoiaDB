@@ -71,7 +71,70 @@ namespace engine
 
    public:
       // update global lowTran
-      virtual INT32  updateGlobLowTran() ;
+      // return:
+      //    - SDB_OK: update succeed
+      //    - SDB_GLOB_LOWTRAN_UNKNOWN: global lowTran is not ready
+      // NOTE: will send local lowTran to catalog and get back global lowTran
+      virtual INT32 updateGlobLowTran() ;
+
+      // arbitrate global transaction
+      // input:
+      //    - eduCB: EDUCB of current read transaction
+      //    - readTransID: transaction ID of read transaction
+      //    - writeTransID: transaction ID of write transaction
+      //    - writeTransStatus: transaction status of write transaction
+      //    - forceLocal: force do arbitration on local
+      // output:
+      //    - visible: indicate if current read transaction could see changes
+      //               from write transaction
+      // return:
+      //    - SDB_OK: succeed to finish arbitration
+      //    - other errors: failed to finish arbitration
+      // NOTE:
+      //    - only when write transaction is involved in a single DATA
+      //      group, we could use the force local mode
+      //    - generally, visible will be TRUE when transaction status of
+      //      write transaction is committed
+      // WARNING: should not be called for COORD
+      virtual INT32 arbitGlobTrans( pmdEDUCB *eduCB,
+                                    const DPS_TRANS_ID &readTransID,
+                                    const DPS_TRANS_ID &writeTransID,
+                                    DPS_TRANS_STATUS writeTransStatus,
+                                    BOOLEAN forceLocal,
+                                    BOOLEAN &visible ) ;
+
+      // pre-arbitrate global write transaction
+      // input:
+      //    - writeTransID: transaction ID of current write transaction
+      //    - preArbitList: list of pre-arbitrate read transactions
+      // return:
+      //    - SDB_OK: succeed to do pre-arbitration
+      //    - other errors: failed to do pre-arbitration
+      // NOTE: writeTransID should be original transaction ID without tags
+      //       except for global transaction tag
+      // WARNINGL should not be called for COORD
+      virtual INT32 preArbitGlobTrans( const DPS_TRANS_ID writeTransID,
+                                       TRANS_ID_LIST &preArbitList ) ;
+
+      // wait arbitrating transaction to commit
+      // input:
+      //    - eduCB: EDUCB of current transaction
+      //    - arbitTransID: transaction ID of arbitrating write transaction
+      //    - timeout: timeout to wait ( in milliseconds )
+      // output:
+      //    - committed: indicate if the waiting transaction has committed
+      //    - multiGroups: transaction is involved in multiple DATA groups
+      // return:
+      //    - SDB_OK: succeed to wait result
+      //    - SDB_TIMEOUT: timeout to wait result
+      //    - other errors: failed to wait result
+      // WARNINGL should not be called for COORD
+      virtual INT32 waitArbitCommit( pmdEDUCB *eduCB,
+                                     const DPS_TRANS_ID &transID,
+                                     INT32 timeout,
+                                     BOOLEAN &commited,
+                                     BOOLEAN &multiGroups ) ;
+
       // on attach event
       virtual void   onAttach( pmdEDUCB *eduCB ) ;
       // on detach event

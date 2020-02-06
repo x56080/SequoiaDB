@@ -336,6 +336,10 @@ enum MSG_TYPE
 
    MSG_CLS_TRANS_CHECK_REQ             = 4020,
    MSG_CLS_TRANS_CHECK_RES             = MAKE_REPLY_TYPE(MSG_CLS_TRANS_CHECK_REQ),
+   MSG_CLS_GTS_ARBIT_REQ               = 4021,
+   MSG_CLS_GTS_ARBIT_RSP               = MAKE_REPLY_TYPE( MSG_CLS_GTS_ARBIT_REQ ),
+   MSG_CLS_GTS_PREARBIT_REQ            = 4022,
+   MSG_CLS_GTS_PREARBIT_RSP            = MAKE_REPLY_TYPE( MSG_CLS_GTS_PREARBIT_REQ ),
    MSG_CLS_END                         = 4999,
 
    /// common msg
@@ -770,7 +774,10 @@ typedef struct _MsgOpTransBegin
    UINT64    transID ;
    // time error of logical time for global transaction
    UINT32    transTimeError ;
-   // TODO: fields to do logical time adjustment
+   // fields to do logical time adjustment
+   UINT64    currentTime ;
+   UINT32    currentTimeError ;
+   INT8      nextIsWrite ;
    // reserved new fields in minor version upgrade
    CHAR      reserved[ 8 ] ;
 } MsgOpTransBegin;

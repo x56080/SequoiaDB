@@ -2843,10 +2843,10 @@
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_355</name> <!-- SDB_GLOB_TRANS_NOT_SYNC -->
+         <name>SDB_GLOB_TRANS_NOT_SYNC</name>
          <description>
-            <en>Reserved</en> <!-- Global transaction times of nodes are not synchronized -->
-            <cn>保留</cn> <!-- 节点间的全局逻辑时间不同步 -->
+            <en>Global transaction times of nodes are not synchronized</en>
+            <cn>节点间的全局逻辑时间不同步</cn>
          </description>
       </code>
 

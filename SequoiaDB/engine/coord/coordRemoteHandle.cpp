@@ -44,6 +44,8 @@
 #include "coordResource.hpp"
 #include "msgMessage.hpp"
 #include "coordRemoteSession.hpp"
+#include "coordTrace.hpp"
+#include "pdTrace.hpp"
 #include "../bson/bson.h"
 
 using namespace bson ;
@@ -626,6 +628,57 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDREMOTEHANDLERBASE_ONTRANSBEGIN, "_coordRemoteHandlerBase::onTransBegin" )
+   INT32 _coordRemoteHandlerBase::onTransBegin( MsgOpTransBegin *request,
+                                                pmdEDUCB *cb,
+                                                pmdSubSession *subSession )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__COORDREMOTEHANDLERBASE_ONTRANSBEGIN ) ;
+
+      if ( cb->isGlobTrans() && cb->isTransRR() && !isVersion0() )
+      {
+         // for new version, global and RR transaction, fetch global logical
+         // time, for DATA node to check and adjust times
+         stpLogicalTimeUS currentTime ;
+         rc = sdbGetTransCB()->getGlobTransTime( currentTime,
+                                                 cb->getTransTimeout() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction "
+                      "time, rc: %d", rc ) ;
+
+         request->currentTime = currentTime.getTime() ;
+         request->currentTimeError = currentTime.getTimeError() ;
+
+         // set next operation, DATA node will do pre-arbitration if needed
+         if ( NULL != subSession &&
+              NULL != subSession->getReqMsg() )
+         {
+            MsgHeader *nextMessage = subSession->getReqMsg() ;
+            request->nextIsWrite = ( isTransWriteMsg( nextMessage->opCode,
+                                                      nextMessage ) ) ? 1 : 0 ;
+         }
+         else
+         {
+            request->nextIsWrite = 0 ;
+         }
+      }
+      else
+      {
+         // old version or non-global transaction does not need global time
+         // check
+         request->currentTime = 0 ;
+         request->currentTimeError = 0 ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__COORDREMOTEHANDLERBASE_ONTRANSBEGIN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _coordRemoteHandlerBase::_checkSessionTransaction( _pmdRemoteSession *pSession,
                                                             _pmdSubSession *pSub,
                                                             _pmdEDUCB *cb,
@@ -656,7 +709,15 @@ namespace engine
             // time error of logical time for global transaction
             msgReq.transTimeError =
                         (UINT32)( cb->getTransBeginTime().getTimeError() ) ;
+            msgReq.currentTime = 0LL ;
+            msgReq.currentTimeError = 0 ;
+            msgReq.nextIsWrite = 0 ;
             ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
+
+            // call on transaction begin event, fill current time of message
+            rc = onTransBegin( &msgReq, cb, pSub ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to call on transaction begin "
+                         "event, rc: %d", rc ) ;
 
             rc = coordBuildPacketMsg( pSession,pSub, &msgReq.header ) ;
             if ( rc )

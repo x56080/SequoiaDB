@@ -276,6 +276,13 @@ namespace engine
                                     BOOLEAN *pUpdated = NULL ) ;
          INT32 unlockGroupItem( clsGroupItem *item ) ;
 
+         INT32 getNodeInfo( const MsgRouteID &routeID,
+                            std::string &hostName,
+                            std::string &serviceName,
+                            BOOLEAN noWithUpdate = TRUE,
+                            INT64 waitMillSec = CLS_SHARD_TIMEOUT,
+                            BOOLEAN *updated = NULL ) ;
+
          INT32 rGetCSInfo( const CHAR *csName,
                            utilCSUniqueID &csUniqueID,
                            UINT32 *pageSize = NULL,
@@ -294,6 +301,12 @@ namespace engine
                                BOOLEAN canUpCataGrp = TRUE ) ;
          INT32  syncSend( MsgHeader * msg, UINT32 groupID, BOOLEAN primary,
                           MsgHeader **ppRecvMsg,
+                          INT64 millisec = CLS_SHARD_TIMEOUT,
+                          const CHAR *buffer = NULL,
+                          UINT32 bufferSize = 0 ) ;
+         INT32  syncSend( MsgHeader *message,
+                          const MsgRouteID &routeID,
+                          MsgHeader **recvMessage,
                           INT64 millisec = CLS_SHARD_TIMEOUT,
                           const CHAR *buffer = NULL,
                           UINT32 bufferSize = 0 ) ;
@@ -343,6 +356,15 @@ namespace engine
                                 UINT64 requestID = 0,
                                 NET_HANDLE *pHandle = NULL,
                                 INT64 millsec = 0 ) ;
+
+         // send message and receive reply with temporary socket
+         INT32 _sendAndRecv( const CHAR *hostName,
+                             UINT16 port,
+                             MsgHeader *message,
+                             MsgHeader **receiveMessage,
+                             INT64 millisec = CLS_SHARD_TIMEOUT,
+                             const CHAR *buffer = NULL,
+                             UINT32 bufferSize = 0 ) ;
 
          clsEventItem *_findCatSyncEvent ( const CHAR *pCollectionName,
                                            utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,

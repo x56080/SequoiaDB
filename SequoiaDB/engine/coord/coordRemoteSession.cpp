@@ -44,6 +44,7 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "rtnRemoteMessenger.hpp"
+#include "stpAgent.hpp"
 
 using namespace bson ;
 
@@ -456,9 +457,15 @@ namespace engine
    {
       if ( cb->isGlobTrans() )
       {
+         // remove from transaction CB map
          sdbGetTransCB()->delTransCB( cb->getTransID() ) ;
       }
+
+      // clear records for transaction arbitration
+      cb->getTransExecutor()->clearArbit() ;
+
       cb->resetTransID() ;
+
       _mapTransNodes.clear() ;
       _writeTransNodeNum = 0 ;
    }
@@ -2078,13 +2085,32 @@ namespace engine
       BOOLEAN bRetry = FALSE ;
       _pmdEDUCB *cb = _pPropSite->getEDUCB() ;
 
-      if ( _canRetry() && coordCataCheckFlag( flag ) )
+      if ( _canRetry() )
       {
-         bRetry = TRUE ;
-
-         if ( canUpdate && SDB_OK != cataSel.updateCataInfo( NULL, cb ) )
+         if ( coordCataCheckFlag( flag ) )
          {
-            bRetry = FALSE ;
+            bRetry = TRUE ;
+
+            if ( canUpdate && SDB_OK != cataSel.updateCataInfo( NULL, cb ) )
+            {
+               bRetry = FALSE ;
+            }
+         }
+         else if ( coordGlobTransCheckFlag( flag ) )
+         {
+            // global logical time used for global transaction is not
+            // synchronized with remote node, notify STP to synchronize,
+            // and retry again
+            stpAgent agent ;
+            bRetry = TRUE ;
+            if ( SDB_OK != agent.notifySync() )
+            {
+               bRetry = FALSE ;
+            }
+            else
+            {
+               ossSleep( STP_AGENT_RETRY_INTERVAL ) ;
+            }
          }
       }
 

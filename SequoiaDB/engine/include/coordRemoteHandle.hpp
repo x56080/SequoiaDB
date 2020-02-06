@@ -142,6 +142,10 @@ namespace engine
          virtual BOOLEAN canReconnect ( _pmdRemoteSession * session,
                                         _pmdSubSession * subSession ) ;
 
+         INT32 onTransBegin( MsgOpTransBegin *request,
+                             _pmdEDUCB *cb,
+                             _pmdSubSession *subSession ) ;
+
       protected:
 
          INT32          _sessionInit( _pmdRemoteSession *pSession,

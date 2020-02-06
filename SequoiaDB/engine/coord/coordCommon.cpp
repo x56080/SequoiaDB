@@ -340,6 +340,11 @@ namespace engine
                SDB_CAT_NO_MATCH_CATALOG == flag ) ;
    }
 
+   BOOLEAN coordGlobTransCheckFlag( INT32 flag )
+   {
+      return ( SDB_GLOB_TRANS_NOT_SYNC == flag ) ;
+   }
+
    // return TRUE if we should delete the node
    BOOLEAN  coordCheckNodeReplyFlag( INT32 flag )
    {

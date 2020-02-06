@@ -44,6 +44,7 @@
 #include "dpsTransLockDef.hpp"
 #include "dpsTransDef.hpp"
 #include "dpsTransLockMgr.hpp"
+#include "dpsTransArbit.hpp"
 #include "monClass.hpp"
 #include "monMgr.hpp"
 #include "utilSegment.hpp"
@@ -381,6 +382,98 @@ namespace engine
          BOOLEAN getMBTotalRecords ( utilCLUniqueID clUniqueID,
                                      UINT64 & totalRecords ) const ;
 
+         // clear arbitration records
+         void     clearArbit() ;
+
+         // arbitrate current transaction against given write transaction
+         // input:
+         //    - writeTransID: transaction ID of write transaction
+         //    - writeTransStatus: transaction status of write transaction
+         // output:
+         //    - visible: indicate if current transaction could see changes
+         //               from write transaction
+         // NOTE: only when write transaction is committed, current transaction
+         //       could see the changes from write transaction
+         // return:
+         //    - SDB_OK: succeed to arbitrate
+         //    - other errors: failed to arbitrate
+         INT32    arbit( const DPS_TRANS_ID &writeTransID,
+                         DPS_TRANS_STATUS writeTransStatus,
+                         BOOLEAN &visible ) ;
+
+         // find arbitration records for given write transaction
+         // input:
+         //    - writeTransID: transaction ID of write transaction
+         // output:
+         //    - visible: indicate if current transaction could see changes
+         //               from write transaction
+         // return:
+         //    - TRUE: record exists ( had been arbitrated before )
+         //    - FALSE: record does not exist
+         BOOLEAN  findArbit( const DPS_TRANS_ID &writeTransID,
+                             BOOLEAN &visible ) ;
+
+         // save arbitration result for given write transaction
+         // input:
+         //    - writeTransID: transaction ID of write transaction
+         //    - writeTransStatus: transaction status of write transaction
+         //    - visible: indicate if current transaction could see changes
+         //               from write transaction
+         // return:
+         //    - SDB_OK: succeed to arbitrate
+         //    - other errors: failed to arbitrate
+         INT32    saveArbit( const DPS_TRANS_ID &writeTransID,
+                             DPS_TRANS_STATUS writeTransStatus,
+                             BOOLEAN visible ) ;
+
+         // get begin time of transaction
+         OSS_INLINE const stpLogicalTimeUS &getBeginTime() const
+         {
+            return _beginTime ;
+         }
+
+         // set begin time of transaction
+         OSS_INLINE void setBeginTime( const stpLogicalTimeUS &beginTime )
+         {
+            _beginTime = beginTime ;
+         }
+
+         // get pre-commit time of transaction
+         OSS_INLINE const stpLogicalTimeUS &getPreCommitTime() const
+         {
+            return _preCommitTime ;
+         }
+
+         // set pre-commit time of transaction
+         OSS_INLINE void setPreCommitTime( const stpLogicalTimeUS &preCommitTime )
+         {
+            // no time error for pre-commit time, will reuse time error of
+            // transaction begin time
+            _preCommitTime = preCommitTime ;
+            _preCommitTime.setTimeError( _beginTime.getTimeError() ) ;
+         }
+
+         // check if transaction passed doing arbitration time
+         // - before that time, current transaction needs arbitrate for all
+         //   records created or updated by doing transactions
+         // - after that time, the doing transactions could not be able to
+         //   commit by that time, so the records created or updated by them
+         //   won't be seen by this transaction
+         OSS_INLINE BOOLEAN isPassedDoingArbit() const
+         {
+            return _passedDoingArbit ;
+         }
+
+         // set transaction passed doing arbitration time
+         OSS_INLINE void setPassedDoingArbit( BOOLEAN passed )
+         {
+            _passedDoingArbit = passed ;
+         }
+
+         // reset transaction times ( begin time, pre-commit time and
+         // pass arbitration time flag )
+         void resetTransTime() ;
+
       protected:
          void                 initTransConf( INT32 isolation,
                                              UINT32 timeout,
@@ -442,6 +535,22 @@ namespace engine
 
          // record counts of collection during transaction
          TRANS_MB_STAT_MAP       _transMBStatMap ;
+
+         // records for global transaction arbitration
+         dpsTransArbit           _transArbit ;
+
+         // logical time of transaction begin
+         stpLogicalTimeUS        _beginTime ;
+         // logical time of transaction pre-commit
+         stpLogicalTimeUS        _preCommitTime ;
+
+         // indicate if transaction has passed doing arbitration time
+         // - before that time, current transaction needs arbitrate for all
+         //   records created or updated by doing transactions
+         // - after that time, the doing transactions could not be able to
+         //   commit by that time, so the records created or updated by them
+         //   won't be seen by this transaction
+         BOOLEAN                 _passedDoingArbit ;
 
       private:
          BOOLEAN                 _useTransLock ;

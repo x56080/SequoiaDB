@@ -571,6 +571,112 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    */
    typedef MsgOpReply MsgClsTransCheckRes ;
 
+   /*
+      _MsgClsGTSArbitReq define
+    */
+   class _MsgClsGTSArbitReq : public SDBObject
+   {
+   public:
+      MsgHeader header ;
+      // transaction ID of read transaction
+      UINT16    readTransNodeID ;
+      UINT64    readTransID ;
+      // transaction ID of write transaction
+      UINT64    writeTransID ;
+      UINT16    writeTransNodeID ;
+      // status of write transaction
+      UINT16    writeTransStatus ;
+
+      _MsgClsGTSArbitReq()
+      {
+         header.messageLength = sizeof( _MsgClsGTSArbitReq ) ;
+         header.opCode = MSG_CLS_GTS_ARBIT_REQ ;
+         header.routeID.value = MSG_INVALID_ROUTEID ;
+         header.TID = 0 ;
+         header.requestID = 0 ;
+         readTransNodeID = 0 ;
+         readTransID = 0LL ;
+         writeTransNodeID = 0 ;
+         writeTransID = 0LL ;
+         writeTransStatus = 0 ;
+      }
+   } ;
+
+   typedef class _MsgClsGTSArbitReq MsgClsGTSArbitReq ;
+
+   /*
+      _MsgClsGTSArbitRsp define
+    */
+   class _MsgClsGTSArbitRsp : public SDBObject
+   {
+   public:
+      MsgInternalReplyHeader  header ;
+      // indicate visibility of write transaction
+      UINT8                   visible ;
+
+      _MsgClsGTSArbitRsp()
+      {
+         header.header.messageLength = sizeof( _MsgClsGTSArbitRsp ) ;
+         header.header.opCode = MSG_CLS_GTS_ARBIT_RSP ;
+         header.header.routeID.value = MSG_INVALID_ROUTEID ;
+         header.header.TID = 0 ;
+         header.header.requestID = 0 ;
+         header.res = SDB_OK ;
+         visible = FALSE ;
+      }
+   } ;
+
+   typedef class _MsgClsGTSArbitRsp MsgClsGTSArbitRsp ;
+
+   /*
+      _MsgClsGTSPreArbitReq define
+    */
+   // | header | write transaction ID | number of read transaction | BSON ... |
+   class _MsgClsGTSPreArbitReq : public SDBObject
+   {
+   public:
+      MsgHeader header ;
+      // transaction ID of write transaction
+      UINT16    writeTransNodeID ;
+      UINT64    writeTransID ;
+      UINT16    preArbitNodeID ;
+
+      _MsgClsGTSPreArbitReq()
+      {
+         header.messageLength = sizeof( _MsgClsGTSPreArbitReq ) ;
+         header.opCode = MSG_CLS_GTS_PREARBIT_REQ ;
+         header.routeID.value = MSG_INVALID_ROUTEID ;
+         header.TID = 0 ;
+         header.requestID = 0 ;
+         writeTransNodeID = 0 ;
+         writeTransID = 0LL ;
+         preArbitNodeID = 0 ;
+      }
+   } ;
+
+   typedef class _MsgClsGTSPreArbitReq MsgClsGTSPreArbitReq ;
+
+   /*
+      _MsgClsGTSPreArbitRsp define
+    */
+   class _MsgClsGTSPreArbitRsp : public SDBObject
+   {
+   public:
+      MsgInternalReplyHeader  header ;
+
+      _MsgClsGTSPreArbitRsp()
+      {
+         header.header.messageLength = sizeof( _MsgClsGTSPreArbitRsp ) ;
+         header.header.opCode = MSG_CLS_GTS_PREARBIT_RSP ;
+         header.header.routeID.value = MSG_INVALID_ROUTEID ;
+         header.header.TID = 0 ;
+         header.header.requestID = 0 ;
+         header.res = SDB_OK ;
+      }
+   } ;
+
+   typedef class _MsgClsGTSPreArbitRsp MsgClsGTSPreArbitRsp ;
+
 }
 
 #pragma pack()
