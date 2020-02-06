@@ -180,6 +180,7 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to drop cl" ) ;
          goto error ;
       }
+      rval.addSelfProperty( clName )->setDelete() ;
    done:
       return rc ;
    error:
@@ -261,6 +262,7 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to rename cl" ) ;
          goto error ;
       }
+      rval.addSelfProperty( oldName )->setDelete() ;
    done:
       return rc ;
    error:

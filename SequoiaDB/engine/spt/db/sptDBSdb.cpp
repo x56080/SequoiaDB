@@ -2574,6 +2574,7 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to rename collection space" ) ;
          goto error ;
       }
+      rval.addSelfProperty( oldName )->setDelete() ;
    done:
       return rc ;
    error:
