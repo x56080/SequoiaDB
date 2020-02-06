@@ -7,6 +7,7 @@ import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -22,7 +23,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.00
  */
 
-public class TestSdbUser extends SdbTestBase {
+public class TestSdbUser7119To7120 extends SdbTestBase {
     private Sequoiadb sdb;
     private CollectionSpace cs;
     private DBCollection cl;
@@ -44,7 +45,8 @@ public class TestSdbUser extends SdbTestBase {
 
         } catch ( BaseException e ) {
             Assert.fail(
-                    "Sequoiadb driver TestSdbUser7119 setUp error, error description:"
+                    "Sequoiadb driver TestSdbUser7119 setUp error, error " +
+                            "description:"
                             + e.getMessage() );
         }
     }
@@ -58,20 +60,22 @@ public class TestSdbUser extends SdbTestBase {
 
     @Test
     public void test() {
-        testSdbUser();
+        testSdbUser7119();
         testSdbUser7120();
     }
 
-    public void testSdbUser() {
+    public void testSdbUser7119() {
+        String username = "用户七一一九";
+        String password = "密码七一一九";
+        Sequoiadb sdb1 = null;
         try {
             BSONObject bson = new BasicBSONObject();
             bson.put( "name", "xiaoming" );
             bson.put( "age", 6 );
             this.cl.insert( bson );
 
-            this.sdb.createUser( "admin", "admin" );
-            Sequoiadb sdb1 = new Sequoiadb( coordAddr, "admin", "admin" );
-            System.out.println( "admin conn  " + this.sdb );
+            this.sdb.createUser( username, password );
+            sdb1 = new Sequoiadb( coordAddr, username, password );
             sdb1.getCollectionSpace( commCSName ).getCollection( clName )
                     .delete( "{age:{$et:6}}" );
             // user admin to insertdata
@@ -93,16 +97,17 @@ public class TestSdbUser extends SdbTestBase {
             try {
                 node = this.sdb.getReplicaGroup( "SYSCatalogGroup" )
                         .getMaster();
-                node.connect( "admin", "admin" );
+                node.connect( username, password );
                 node.disconnect();
             } catch ( BaseException e ) {
                 Assert.fail( "connect or disconnect node failed, errMsg:"
                         + e.getMessage() );
             }
-        } catch ( BaseException e ) {
-            Assert.fail(
-                    "Sequoiadb driver TestSdbUser testSdbUser error, error description:"
-                            + e.getMessage() );
+        } finally {
+            if ( sdb1 != null ) {
+                this.sdb.removeUser( username, password );
+                sdb1.disconnect();
+            }
         }
     }
 
@@ -110,15 +115,25 @@ public class TestSdbUser extends SdbTestBase {
         if ( !Util.isCluster( this.sdb ) ) {
             return;
         }
+        String username = "admin7120";
+        String password = "admin7120";
+        Sequoiadb sdb1 = null;
         try {
             for ( int i = 0; i < 3; i++ ) {
-                this.sdb.createUser( "admin1", "" );
+                this.sdb.createUser( username, password );
+                sdb1 = new Sequoiadb( coordAddr, username, password );
+                Assert.assertFalse( sdb1.isCollectionSpaceExist( username ) );
             }
             Assert.fail(
-                    "Sequoiadb driver TestSdbUser7120 repeat create the same user!" );
+                    "Sequoiadb driver TestSdbUser7120 repeat create the same " +
+                            "user!" );
         } catch ( BaseException e ) {
-            // this.sdb.removeUser("admin1", "");
             Assert.assertEquals( e.getErrorCode(), -295 );
+        } finally {
+            if ( sdb1 != null ) {
+                this.sdb.removeUser( username, password );
+                sdb1.disconnect();
+            }
         }
     }
 
@@ -128,19 +143,10 @@ public class TestSdbUser extends SdbTestBase {
             if ( this.cs.isCollectionExist( clName ) ) {
                 this.cs.dropCollection( clName );
             }
-            try {
-                this.sdb.removeUser( "admin", "admin" );
-                this.sdb.removeUser( "admin1", "" );
-            } catch ( BaseException e ) {
-                if ( -300 != e.getErrorCode() ) {
-                    Assert.assertTrue( false,
-                            "drop user, errMsg: " + e.getMessage() );
-                }
+        } finally {
+            if ( this.sdb != null ) {
+                this.sdb.disconnect();
             }
-
-            this.sdb.disconnect();
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         }
     }
 }
