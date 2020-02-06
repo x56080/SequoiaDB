@@ -199,6 +199,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize GTS agent, "
                    "rc: %d", rc ) ;
 
+      // register to transCB
+      sdbGetTransCB()->registerGTSAgent( _pGTSAgent ) ;
+
    done:
       if ( pCataGroup )
       {

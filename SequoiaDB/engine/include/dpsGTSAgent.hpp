@@ -41,6 +41,7 @@
 
 #include "rtnBackgroundJobBase.hpp"
 #include "msgCatalog.hpp"
+#include "msgReplicator.hpp"
 #include "dpsTransID.hpp"
 #include "dpsTransCB.hpp"
 #include "../bson/bson.hpp"
@@ -66,6 +67,73 @@ namespace engine
       // NOTE: will send local lowTran to catalog and get back global lowTran
       virtual INT32 updateGlobLowTran() = 0 ;
 
+      // arbitrate global transaction
+      // input:
+      //    - eduCB: EDUCB of current read transaction
+      //    - readTransID: transaction ID of read transaction
+      //    - writeTransID: transaction ID of write transaction
+      //    - writeTransStatus: transaction status of write transaction
+      //    - forceLocal: force do arbitration on local
+      // output:
+      //    - visible: indicate if current read transaction could see changes
+      //               from write transaction
+      // return:
+      //    - SDB_OK: succeed to finish arbitration
+      //    - other errors: failed to finish arbitration
+      // NOTE:
+      //    - only when write transaction is involved in a single DATA
+      //      group, we could use the force local mode
+      //    - generally, visible will be TRUE when transaction status of
+      //      write transaction is committed
+      virtual INT32 arbitGlobTrans( pmdEDUCB *eduCB,
+                                    const DPS_TRANS_ID &readTransID,
+                                    const DPS_TRANS_ID &writeTransID,
+                                    DPS_TRANS_STATUS writeTransStatus,
+                                    BOOLEAN forceLocal,
+                                    BOOLEAN &visible ) = 0 ;
+
+      // pre-arbitrate global write transaction
+      // input:
+      //    - writeTransID: transaction ID of current write transaction
+      //    - preArbitList: list of pre-arbitrate read transactions
+      // return:
+      //    - SDB_OK: succeed to do pre-arbitration
+      //    - other errors: failed to do pre-arbitration
+      // NOTE:
+      //    - writeTransID should be original transaction ID without tags
+      //      except for global transaction tag
+      //    - considering that, this write transaction could be quickly
+      //      committed after this operator, the commit time could before a
+      //      read transaction in this node with time error, so it might cause
+      //      stale read issue on other groups
+      //      the read transaction should not see changes from this writing
+      //      transaction, but on other group, the read operator might be
+      //      sent later
+      //      so if we do not do pre-arbitration for read transaction to
+      //      tell that the read transaction is not visible for this
+      //      write transaction, the read transaction might have a chance to
+      //      see changes in a staled read request to other groups
+      virtual INT32 preArbitGlobTrans( const DPS_TRANS_ID writeTransID,
+                                       TRANS_ID_LIST &preArbitList ) = 0 ;
+
+      // wait arbitrating transaction to commit
+      // input:
+      //    - eduCB: EDUCB of current transaction
+      //    - arbitTransID: transaction ID of arbitrating write transaction
+      //    - timeout: timeout to wait ( in milliseconds )
+      // output:
+      //    - committed: indicate if the waiting transaction has committed
+      //    - multiGroups: transaction is involved in multiple DATA groups
+      // return:
+      //    - SDB_OK: succeed to wait result
+      //    - SDB_TIMEOUT: timeout to wait result
+      //    - other errors: failed to wait result
+      virtual INT32 waitArbitCommit( pmdEDUCB *eduCB,
+                                     const DPS_TRANS_ID &arbitTransID,
+                                     INT32 timeout,
+                                     BOOLEAN &commited,
+                                     BOOLEAN &multiGroups ) = 0 ;
+
       // on attach event
       OSS_INLINE virtual void onAttach( pmdEDUCB *eduCB ) {}
       // on detach event
@@ -83,28 +151,127 @@ namespace engine
          return _localRID ;
       }
 
+      // get maximum acceptable time error
+      UINT32 getMaxNodeTimeError() const
+      {
+         return _maxNodeTimeError ;
+      }
+
+      // set maximum acceptable time error
+      // NOTE: this value is in nanosecond, --globtransmaxtimeerror is in
+      //       microsecond, need convert
+      void setMaxNodeTimeError( UINT32 maxTimeError )
+      {
+         _maxNodeTimeError = maxTimeError ;
+      }
+
    protected:
       // get local lowTran
+      // output:
+      //    - localLowTran: local lowTran
+      //    - localExpireTran: local expireTran
+      // return:
+      //    - SDB_OK: succeed to get lowTran
+      //    - other error: failed to get lowTran
       // NOTE: if no global transaction in this node, will return max value
       //       of transaction SN in local lowTran
       INT32 _getLocalLowTran( DPS_TRANSID_SN &localLowTran,
                               DPS_TRANSID_SN &localExpireTran ) ;
       // set global lowTran
+      // input:
+      //    - globLowTran: global lowTran
+      //    - globExpireTran: global expireTran
+      // return:
+      //    - SDB_OK: succeed to set lowTran
+      //    - other error: failed to set lowTran
       INT32 _setGlobLowTran( const DPS_TRANSID_SN &globLowTran,
                              const DPS_TRANSID_SN &globExpireTran ) ;
+
       // fill GTS lowTran request
+      // input:
+      //    - request: GTS lowTran request
+      //    - localLowTran: local lowTran
+      //    - localExpireTran: local expireTran
+      // output:
+      //    - requestObject: BSON object contains local lowTran and local
+      //                     expireTran
+      // return:
+      //    - SDB_OK: succeed to fill request
+      //    - other errors: failed to fill request
       INT32 _fillLowTranReq( MsgGTSLowTranReq *request,
                              const DPS_TRANSID_SN &localLowTran,
                              const DPS_TRANSID_SN &localExpireTran,
                              bson::BSONObj &requestObject ) ;
+
       // parse GTS lowTran response
+      // input:
+      //    - response: GTS lowTran response
+      // output:
+      //    - globLowTran: global lowTran extracted from response
+      //    - globExpireTran: global expireTran extracted from response
+      // return:
+      //    - SDB_OK: succeed to parse response
+      //    - other errors: failed to parse response
       INT32 _parseLowTranRsp( MsgGTSLowTranRsp *response,
                               DPS_TRANSID_SN &globLowTran,
                               DPS_TRANSID_SN &globExpireTran ) ;
 
+      // fill GTS arbitrate request
+      // input:
+      //    - request: GTS arbitrate request
+      //    - readTransID: transaction ID of read transaction
+      //    - writeTransID: transaction ID of write transaction
+      //    - writeTransStatus: transaction status of write transaction
+      // return:
+      //    - SDB_OK: succeed to fill request
+      //    - other errors: failed to fill request
+      INT32 _fillGTSArbitReq( MsgClsGTSArbitReq *request,
+                              const DPS_TRANS_ID &readTransID,
+                              const DPS_TRANS_ID &writeTransID,
+                              DPS_TRANS_STATUS writeTransStatus ) ;
+
+      // parse GTS arbitrate response
+      // input:
+      //    - response: GTS arbitrate response
+      // output:
+      //    - visible: arbitration result to indicate if current read
+      //               transaction could see changes from write transaction
+      // return:
+      //    - SDB_OK: succeed to parse response
+      //    - other errors: failed to parse response
+      INT32 _parseGTSArbitRsp( const MsgClsGTSArbitRsp *response,
+                               BOOLEAN &visible ) ;
+
+      // fill GTS pre-arbitrate request
+      // input:
+      //    - request: GTS pre-arbitrate request
+      //    - writeTransID: transaction ID of current writing transaction ID
+      //    - preArbitNodeID: node ID to do pre-arbitrate
+      //    - preArbitList: transaction ID list to be pre-arbitrated
+      // output:
+      //    - requestObject: BSON object contains pre-arbitrate list
+      // return:
+      //    - SDB_OK: succeed to fill request
+      //    - other errors: failed to fill request
+      // NOTE: the node should be a COORD
+      INT32 _fillGTSPreArbitReq( MsgClsGTSPreArbitReq *request,
+                                 const DPS_TRANS_ID &writeTransID,
+                                 DPS_TRANSID_NODEID preArbitNodeID,
+                                 const TRANS_ID_LIST &preArbitList,
+                                 bson::BSONObj &requestObject ) ;
+
    protected:
+      // pointer to transCB
       dpsTransCB *   _transCB ;
+
+      // route ID of local node
+      // NOTE: should be set after register to CATALOG
       MsgRouteID     _localRID ;
+
+      // maximum acceptable time error ( --globtransmaxtimeerror )
+      // NOTE: this value is in nanosecond, --globtransmaxtimeerror is in
+      //       microsecond, need convert
+      volatile UINT32      _maxNodeTimeError ;
    } ;
 
    typedef class _dpsGTSAgent dpsGTSAgent ;

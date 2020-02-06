@@ -526,6 +526,7 @@
 #define FIELD_NAME_TRANS_GLOBLOWTRAN         "GlobLowTran"
 #define FIELD_NAME_TRANS_EXPTRAN             "ExpireTran"
 #define FIELD_NAME_TRANS_GLOBEXPTRAN         "GlobExpireTran"
+#define FIELD_NAME_TRANS_PREARBITLIST        "PreArbitList"
 #define FIELD_NAME_STP_AVAILABLE             "STPAvailable"
 #define FIELD_NAME_LAST_GENERATE_ID          "LastGenerateID"
 #define FIELD_NAME_INSERT_NUM                "InsertedNum"

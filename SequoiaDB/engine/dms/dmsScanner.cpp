@@ -692,7 +692,7 @@ namespace engine
             recordID = _curRID ;
 
             // recordData could be setup by dmsTransLockCallback if we got
-            // versions from RBS 
+            // versions from RBS
             if ( recordData.isEmpty() )
             {
                rc = _pSu->extractData( _context, _recordRW, cb, recordData ) ;
@@ -2012,7 +2012,7 @@ namespace engine
          _curRecordPtr = _recordRW.readPtr( 0 ) ;
 
          // Handle the record being deleted
-         if ( recordData.isEmpty()  && 
+         if ( recordData.isEmpty() &&
               _curRecordPtr->isDeleting() )
          {
             // if lock mode is X which also implies mbLatch locked in X,

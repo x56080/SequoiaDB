@@ -54,7 +54,8 @@ namespace engine
       _coordGTSAgent implement
     */
    _coordGTSAgent::_coordGTSAgent()
-   : _resource( NULL )
+   : _dpsGTSAgent(),
+     _resource( NULL )
    {
    }
 
@@ -202,6 +203,78 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__COORDGTSAGENT_UPDATEGLOBLOWTRAN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDGTSAGENT_ARBITGLOBTRANS, "_coordGTSAgent::arbitGlobTrans" )
+   INT32 _coordGTSAgent::arbitGlobTrans( pmdEDUCB *eduCB,
+                                         const DPS_TRANS_ID &readTransID,
+                                         const DPS_TRANS_ID &writeTransID,
+                                         DPS_TRANS_STATUS writeTransStatus,
+                                         BOOLEAN forceLocal,
+                                         BOOLEAN &visible )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__COORDGTSAGENT_ARBITGLOBTRANS ) ;
+
+      visible = FALSE ;
+
+      // COORD shouldn't arbitrate global transaction
+      SDB_ASSERT( FALSE, "COORD should not arbitrate global transaction" ) ;
+      PD_CHECK( FALSE, SDB_SYS, error, PDERROR,
+                "COORD should not arbitrate global transaction" ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__COORDGTSAGENT_ARBITGLOBTRANS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDGTSAGENT_PREARBITGLOBTRANS, "_coordGTSAgent::preArbitGlobTrans" )
+   INT32 _coordGTSAgent::preArbitGlobTrans( const DPS_TRANS_ID writeTransID,
+                                            TRANS_ID_LIST &preArbitList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__COORDGTSAGENT_PREARBITGLOBTRANS ) ;
+
+      // COORD shouldn't pre-arbitrate global transaction
+      SDB_ASSERT( FALSE, "COORD should not pre-arbitrate global transaction" ) ;
+      PD_CHECK( FALSE, SDB_SYS, error, PDERROR,
+                "COORD should not do pre-arbitrate global transaction" ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__COORDGTSAGENT_PREARBITGLOBTRANS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDGTSAGENT_WAITARBITCOMMIT, "_coordGTSAgent::waitArbitCommit" )
+   INT32 _coordGTSAgent::waitArbitCommit( pmdEDUCB *eduCB,
+                                          const DPS_TRANS_ID &transID,
+                                          INT32 timeout,
+                                          BOOLEAN &commited,
+                                          BOOLEAN &multiGroups )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__COORDGTSAGENT_WAITARBITCOMMIT ) ;
+
+      // COORD shouldn't wait for transaction commit
+      SDB_ASSERT( FALSE, "COORD should not wait for transaction commit" ) ;
+      PD_CHECK( FALSE, SDB_SYS, error, PDERROR,
+                "COORD should not wait for transaction commit" ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__COORDGTSAGENT_WAITARBITCOMMIT, rc ) ;
       return rc ;
 
    error:

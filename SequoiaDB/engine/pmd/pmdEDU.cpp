@@ -760,8 +760,9 @@ namespace engine
    {
       DPS_TRANS_ID transID ;
       setTransID( transID ) ;
-      _transBeginTime.reset() ;
-      _transPreCommitTime.reset() ;
+#if defined ( SDB_ENGINE )
+      _transExecutor.resetTransTime() ;
+#endif
    }
 
    void _pmdEDUCB::setTransID( const DPS_TRANS_ID &transID )
@@ -893,10 +894,9 @@ namespace engine
                                  const stpLogicalTimeUS &beginTime )
    {
       setTransID( transID ) ;
-      if ( _curTransID.isGlobTrans() )
-      {
-         _transBeginTime = beginTime ;
-      }
+#if defined ( SDB_ENGINE )
+      setTransBeginTime( beginTime ) ;
+#endif
    }
 
    void _pmdEDUCB::contextCopy( _pmdEDUCB::SET_CONTEXT &contextList )
@@ -941,6 +941,12 @@ namespace engine
          PD_LOG( PDWARNING, "transaction mb statistics is not empty" ) ;
          _transExecutor.clearMBStats() ;
       }
+
+      // clear records for transaction arbitration
+      _transExecutor.clearArbit() ;
+
+      // reset transaction times
+      _transExecutor.resetTransTime() ;
 #endif //SDB_ENGINE
    }
 
@@ -1093,8 +1099,6 @@ namespace engine
    void _pmdEDUCB::clearTransInfo()
    {
       _curTransID.reset() ;
-      _transBeginTime.reset() ;
-      _transPreCommitTime.reset() ;
 
       _relatedTransLSN = DPS_INVALID_LSN_OFFSET ;
       _curTransLSN = DPS_INVALID_LSN_OFFSET ;
@@ -1106,6 +1110,9 @@ namespace engine
       {
          pTransCB->transLockReleaseAll( this, NULL ) ;
       }
+
+      _transExecutor.clearArbit() ;
+      _transExecutor.resetTransTime() ;
    }
 
    BOOLEAN _pmdEDUCB::isTransaction() const
@@ -1119,22 +1126,24 @@ namespace engine
              _transExecutor.getTransIsolation() == TRANS_ISOLATION_RU ;
    }
 
+   INT32 _pmdEDUCB::getTransIsolation() const
+   {
+      return _transExecutor.getTransIsolation() ;
+   }
+
    BOOLEAN _pmdEDUCB::isTransRC () const
    {
-      return isTransaction() &&
-             _transExecutor.getTransIsolation() == TRANS_ISOLATION_RC ;
+      return isTransaction() && TRANS_ISOLATION_RC == getTransIsolation() ;
    }
 
    BOOLEAN _pmdEDUCB::isTransRS () const
    {
-      return isTransaction() &&
-             _transExecutor.getTransIsolation() == TRANS_ISOLATION_RS ;
+      return isTransaction() && TRANS_ISOLATION_RS == getTransIsolation() ;
    }
 
    BOOLEAN _pmdEDUCB::isTransRR () const
    {
-      return isTransaction() &&
-             _transExecutor.getTransIsolation() == TRANS_ISOLATION_RR ;
+      return isTransaction() && TRANS_ISOLATION_RR == getTransIsolation() ;
    }
 
    BOOLEAN _pmdEDUCB::isAutoCommitTrans() const
@@ -1145,6 +1154,11 @@ namespace engine
    BOOLEAN _pmdEDUCB::isGlobTransOn() const
    {
       return sdbGetTransCB()->isGlobTransOn() ;
+   }
+
+   BOOLEAN _pmdEDUCB::isTransRRRequired() const
+   {
+      return ( isGlobTransOn() && TRANS_ISOLATION_RR == getTransIsolation() ) ;
    }
 
    UINT32 _pmdEDUCB::getTransTimeout() const
@@ -1161,8 +1175,8 @@ namespace engine
    {
       transInfo._eduID        = _eduID ;
       transInfo._transID      = _curTransID ;
-      transInfo._transBeginTime = _transBeginTime ;
-      transInfo._transPreCommitTime = _transPreCommitTime ;
+      transInfo._transBeginTime = _transExecutor.getBeginTime() ;
+      transInfo._transPreCommitTime = _transExecutor.getPreCommitTime() ;
       transInfo._curTransLsn  = _curTransLSN ;
 
       {

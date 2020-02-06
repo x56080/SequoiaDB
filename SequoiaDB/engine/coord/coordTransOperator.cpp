@@ -51,6 +51,11 @@ using namespace bson ;
 namespace engine
 {
 
+   // require time synchronize between COORD and DATA nodes
+   // increase retry in case it needs retry after synchronization
+   // with STP servers
+   #define COORD_GLOB_TRANS_MAX_RETRY ( 10 )
+
    /*
       _coordTransOperator implement
    */
@@ -86,7 +91,16 @@ namespace engine
             /// otherwise begin transaction
             if ( !_canPushDownAutoCommit( inMsg, options, cb ) )
             {
-               _groupSession.getPropSite()->beginTrans( cb, TRUE ) ;
+               rc = _groupSession.getPropSite()->beginTrans( cb, TRUE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction, "
+                            "rc: %d", rc ) ;
+
+               if ( cb->isGlobTrans() &&
+                    cb->isTransRRRequired() )
+               {
+                  _groupSession.getGroupCtrl()->
+                        setMaxRetryTimes( COORD_GLOB_TRANS_MAX_RETRY ) ;
+               }
             }
 
             /// transaction should access with primary
@@ -308,6 +322,9 @@ namespace engine
          // time error of logical time for global transaction
          msgReq.transTimeError =
                      (UINT32)( cb->getTransBeginTime().getTimeError() ) ;
+         msgReq.currentTime = 0LL ;
+         msgReq.currentTimeError = 0 ;
+         msgReq.nextIsWrite = 0 ;
          ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
 
          iterGroup = groupLst.begin() ;
@@ -323,6 +340,12 @@ namespace engine
 
          newNodeMap.clear() ;
          result._pOkRC = &newNodeMap ;
+
+         // call on transaction begin event, fill current time of message
+         rc = _remoteHandler.onTransBegin( &msgReq, cb, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call on transaction begin "
+                      "event on remote handler, rc: %d", rc ) ;
+
          rc = coordOperator::doOnGroups( inMsg, options, cb, result ) ;
          // add ok route id to trans node id
          if ( newNodeMap.size() > 0 )
@@ -366,7 +389,23 @@ namespace engine
 
    INT32 _coordTransBegin::beginTrans( pmdEDUCB *cb, BOOLEAN isAutoCommit )
    {
-      return _groupSession.getPropSite()->beginTrans( cb, isAutoCommit ) ;
+      INT32 rc = SDB_OK ;
+
+      rc = _groupSession.getPropSite()->beginTrans( cb, isAutoCommit ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction, rc: %d", rc ) ;
+
+      if ( cb->isGlobTrans() &&
+           cb->isTransRRRequired() )
+      {
+         _groupSession.getGroupCtrl()->
+               setMaxRetryTimes( COORD_GLOB_TRANS_MAX_RETRY ) ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _coordTransBegin::execute( MsgHeader *pMsg,
@@ -683,6 +722,7 @@ namespace engine
                                             pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
       UINT32 msgLen = 0 ;
       MsgOpTransCommitPre *pCommitPreMsg = NULL ;
       UINT32 i = 0 ;
@@ -714,15 +754,17 @@ namespace engine
       if ( cb->isGlobTrans() )
       {
          // global transaction requires commit time
-         stpLogicalTimeUS time ;
-         rc = sdbGetTransCB()->getGlobTransTime( time,
-                                                 cb->getTransTimeout() ) ;
+         stpLogicalTimeUS preCommitTime ;
+
+         // if global transaction arbitration is enabled, the transaction
+         // should be committed after a time error interval
+         rc = transCB->getGlobTransPreCommitTime( cb, preCommitTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get logical time of "
-                      "transaction commit, rc: %d", rc ) ;
+                      "transaction pre-commit, rc: %d", rc ) ;
 
-         cb->setTransPreCommitTime( time ) ;
-
-         pCommitPreMsg->preCommitTime = time.getTime() ;
+         // NOTE: pre-commit time uses time error of transaction begin time
+         cb->setTransPreCommitTime( preCommitTime ) ;
+         pCommitPreMsg->preCommitTime = preCommitTime.getTime() ;
       }
       else
       {

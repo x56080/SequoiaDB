@@ -67,6 +67,10 @@ namespace engine
 
    // convert nanoseconds to microseconds
    #define STP_NANOSEC_TO_MICROSEC( x )      ( (UINT64)( x ) / 1000LL )
+   // convert microseconds to millicseconds
+   #define STP_MICROSEC_TO_MILLISEC( x )     ( (UINT32)( x ) / 1000 )
+   // convert milliseconds to seconds
+   #define STP_MILLISEC_TO_SEC( x )          ( ( x ) / 1000 )
 
    // STP synchronize interval defines ( in seconds )
    // minimum synchronize interval is 10 seconds

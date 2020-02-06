@@ -104,6 +104,11 @@ namespace engine
             return _pSequenceAgent ;
          }
 
+         OSS_INLINE _coordGTSAgent *getGTSAgent()
+         {
+            return _pGTSAgent ;
+         }
+
       public:
 
          INT32       getGroupInfo( UINT32 groupID,

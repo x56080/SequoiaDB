@@ -671,88 +671,96 @@ namespace engine
 #endif
 
             record = (const dmsRecord*)_recordPtr.get() ;
-            
+
             // setup the buffer pointer in dmsRecordRW
             *_recordRW = dmsMemRecordRW( _recordPtr ) ;
 
             // set the return info if we successfully used old version
             _useOldVersion = TRUE ;
-            
+
             // if RR, we need to retrieve proper version based on visiability
             if( pmdGetOptionCB()->mvccOn() && 
                 record->hasGlobTransID() && 
-                ( TRANS_ISOLATION_RR == _transIsolation ) &&
-                !sdbGetTransCB()->isVersionVisible(
-                            record->getGlobTransID(), transID,
-                            _eduCB->getTransBeginTime() ) )
+                TRANS_ISOLATION_RR == _transIsolation )
             {
-               SDB_ASSERT( _rbsMgr, "rbsMgr should not be NULL!" ) ;
+               DPS_TRANS_ID recTransID = record->getGlobTransID() ;
+               BOOLEAN visible = FALSE ;
+
+               rc = _transCB->isVersionVisible( _eduCB,
+                                                recTransID,
+                                                transID,
+                                                _eduCB->getTransBeginTime(),
+                                                TRANS_ISOLATION_RR,
+                                                FALSE,
+                                                visible ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check visibility for "
+                            "read transaction [%s] against write "
+                            "transaction [%s], rc: %d",
+                            dpsTransIDToString( transID ).c_str(),
+                            dpsTransIDToString( recTransID ).c_str(),
+                            rc ) ;
+
+               if ( !visible )
+               {
+                  SDB_ASSERT( _rbsMgr, "rbsMgr should not be NULL!" ) ;
 #ifdef  _DEBUG
-               SDB_ASSERT( pmdGetOptionCB()->globTransOn(), 
-                           "global transaction should be on with RR" ) ;
-               PD_LOG( PDDEBUG, "In memory record version not visiable for "
-                       "rid(%d, %d), transid(%s) vs recordTransid(%s),"
-                       "clLID(%d) ",
-                       lockId.extentID(), lockId.offset(),
-                       dpsTransIDToString( transID ).c_str(),
-                       dpsTransIDToString(  
-                                   record->getGlobTransID() ).c_str(),
-                       _clLID ) ;
+                  SDB_ASSERT( pmdGetOptionCB()->globTransOn(),
+                              "global transaction should be on with RR" ) ;
+                  PD_LOG( PDDEBUG, "In memory record version not visiable for "
+                          "rid(%d, %d), transid(%s) vs recordTransid(%s),"
+                          "clLID(%d) ",
+                          lockId.extentID(), lockId.offset(),
+                          dpsTransIDToString( transID ).c_str(),
+                          dpsTransIDToString( recTransID ).c_str(),
+                          _clLID ) ;
 #endif
 
-               if ( !_pScanner )
-               {
-                  // TBScan, directly hash and use RBS based on the chain
-                  // on return, we setup _rbsRecordData
-#ifdef _DEBUG
-                  PD_LOG( PDDEBUG, "TBScan try to get record from RBS" );
-#endif
-                  rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
-                                           rid, transID, found,
-                                           *_rbsRecordData,
-                                           startPos, endPos ) ;
-                  if (SDB_OK != rc)
+                  if ( !_pScanner )
                   {
-                     PD_LOG( PDERROR, "Failed to read record from RBS, rc=%d",
-                             rc ) ;
-                     goto error ;
-                  }
-               }
-               else
-               {
-                  preIdxTreePtr dummy ;
+                     // TBScan, directly hash and use RBS based on the chain
+                     // on return, we setup _rbsRecordData
 #ifdef _DEBUG
-                  PD_LOG( PDDEBUG, "IndexScan try to get record from RBS" );
+                     PD_LOG( PDDEBUG, "TBScan try to get record from RBS" ) ;
 #endif
-                  // Index scan, if we come from mem tree, we need to use 
-                  // proper version.  we will figure out the correct one 
-                  // (current node will be the endPos, we follow the rid
-                  // chain backwards to find the the startPos.)
-                  // If the scan come from disk, there might not be old
-                  // version index if the update didn't touch index
-                  _pScanner->getRBSPositions( startPos, endPos, rid, dummy ) ;
-                  // only search RBS is we have a proper range
-                  if ( startPos.isValid() || endPos.isValid() ||
-                      (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
-                  {
                      rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
-                                              rid, transID, found,
-                                              *_rbsRecordData,
-                                              startPos, endPos ) ;
-                     if (SDB_OK != rc)
+                                                 rid, transID, found,
+                                                 *_rbsRecordData,
+                                                 startPos, endPos ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to read record from "
+                                  "RBS, rc: %d", rc ) ;
+                  }
+                  else
+                  {
+                     preIdxTreePtr dummy ;
+#ifdef _DEBUG
+                     PD_LOG( PDDEBUG,
+                             "IndexScan try to get record from RBS" ) ;
+#endif
+                     // Index scan, if we come from mem tree, we need to use
+                     // proper version.  we will figure out the correct one
+                     // (current node will be the endPos, we follow the rid
+                     // chain backwards to find the the startPos.)
+                     // If the scan come from disk, there might not be old
+                     // version index if the update didn't touch index
+                     _pScanner->getRBSPositions( startPos, endPos, rid, dummy ) ;
+                     // only search RBS is we have a proper range
+                     if ( startPos.isValid() || endPos.isValid() ||
+                         (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
                      {
-                        PD_LOG( PDERROR, 
-                              "Idxscan failed to read record from RBS, rc= %d",
-                                rc ) ;
-                        goto error ;
+                        rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
+                                                    rid, transID, found,
+                                                    *_rbsRecordData,
+                                                    startPos, endPos ) ;
+                        PD_RC_CHECK( rc, PDERROR, "IndexScan failed to read "
+                                     "record from RBS, rc: %d", rc ) ;
                      }
                   }
-               }
 
-               if ( !found )
-               {
-                  _skipRecord = TRUE ;
-                  _useOldVersion = FALSE ;
+                  if ( !found )
+                  {
+                     _skipRecord = TRUE ;
+                     _useOldVersion = FALSE ;
+                  }
                }
             }
          }
@@ -903,69 +911,76 @@ namespace engine
                      ( TRANS_ISOLATION_RR == _transIsolation ) )
             {
                const dmsRecord* record = _recordRW->readPtr( 0 ) ;
-               if ( record->hasGlobTransID()  &&
-                    !sdbGetTransCB()->isVersionVisible(
-                       record->getGlobTransID(), transID,
-                       _eduCB->getTransBeginTime() ) )
+               if ( record->hasGlobTransID() )
                {
-                  if ( !_pScanner )
+                  DPS_TRANS_ID recTransID = record->getGlobTransID() ;
+                  BOOLEAN visible = FALSE ;
+
+                  rc = _transCB->isVersionVisible( _eduCB,
+                                                   recTransID,
+                                                   transID,
+                                                   _eduCB->getTransBeginTime(),
+                                                   TRANS_ISOLATION_RR,
+                                                   FALSE,
+                                                   visible ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check visibility for "
+                               "read transaction [%s] against write "
+                               "transaction [%s], rc: %d",
+                               dpsTransIDToString( transID ).c_str(),
+                               dpsTransIDToString( recTransID ).c_str(),
+                               rc ) ;
+
+                  if ( !visible )
                   {
-                     // TBScan, directly hash and use RBS based on the chain
-#ifdef _DEBUG
-                     PD_LOG( PDDEBUG, 
-                             "Have lock, TBScan still try to get record from RBS" );
-#endif
-                     rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
-                                              rid, transID, found,
-                                              *_rbsRecordData,
-                                              startPos, endPos ) ;
-                     if (SDB_OK != rc)
+                     if ( !_pScanner )
                      {
-                        PD_LOG( PDERROR, 
-                                "Failed to read record from RBS, rc=%d",
-                                rc ) ;
-                        goto error ;
-                     }
-                  }
-                  else
-                  {
-                     preIdxTreePtr dummy ;
+                        // TBScan, directly hash and use RBS based on the chain
 #ifdef _DEBUG
-                     PD_LOG( PDDEBUG, 
-                             "Have lock, IXScan still try to get record from RBS" );
+                        PD_LOG( PDDEBUG, "Have lock, TBScan still try to get "
+                                "record from RBS" ) ;
 #endif
-                     // Index scan, if we come from mem tree, we need to use 
-                     // proper version.  we will figure out the correct one 
-                     // (current node will be the endPos, we follow the rid
-                     // chain backwards to find the the startPos.)
-                     // If the scan come from disk, there might not be old
-                     // version index if the update didn't touch index
-                     _pScanner->getRBSPositions(startPos, endPos, rid, dummy) ;
-                     // only search RBS is we have a proper range
-                     if ( startPos.isValid() || endPos.isValid() ||
-                          (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
-                     {
                         rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
-                                                 rid, transID, found,
-                                                 *_rbsRecordData,
-                                                 startPos, endPos ) ;
-                        if (SDB_OK != rc)
+                                                    rid, transID, found,
+                                                    *_rbsRecordData,
+                                                    startPos, endPos ) ;
+                        PD_RC_CHECK( rc, PDERROR, "Failed to read record from "
+                                     "RBS, rc: %d", rc ) ;
+                     }
+                     else
+                     {
+                        preIdxTreePtr dummy ;
+#ifdef _DEBUG
+                        PD_LOG( PDDEBUG, "Have lock, IXScan still try to get "
+                                "record from RBS" ) ;
+#endif
+                        // Index scan, if we come from mem tree, we need to use
+                        // proper version.  we will figure out the correct one
+                        // (current node will be the endPos, we follow the rid
+                        // chain backwards to find the the startPos.)
+                        // If the scan come from disk, there might not be old
+                        // version index if the update didn't touch index
+                        _pScanner->getRBSPositions(startPos, endPos, rid, dummy) ;
+                        // only search RBS is we have a proper range
+                        if ( startPos.isValid() || endPos.isValid() ||
+                             (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
                         {
-                           PD_LOG( PDERROR, 
-                                   "Idxscan failed to read record from RBS, rc=%d",
-                                   rc ) ;
-                           goto error ;
+                           rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
+                                                       rid, transID, found,
+                                                       *_rbsRecordData,
+                                                       startPos, endPos ) ;
+                           PD_RC_CHECK( rc, PDERROR, "IndexScan failed to "
+                                        "read record from RBS, rc: %d", rc ) ;
                         }
                      }
-                  }
-                  if ( !found )
-                  {
-                     _skipRecord = TRUE ;
-                     _useOldVersion = FALSE ;
-                  }
-                  else
-                  {
-                     _useOldVersion = TRUE ;
+                     if ( !found )
+                     {
+                        _skipRecord = TRUE ;
+                        _useOldVersion = FALSE ;
+                     }
+                     else
+                     {
+                        _useOldVersion = TRUE ;
+                     }
                   }
                }
             }
@@ -1007,57 +1022,73 @@ namespace engine
                      ( TRANS_ISOLATION_RR == _transIsolation ) )
             {
                const dmsRecord* record = _recordRW->readPtr( 0 ) ;
-               if ( record->hasGlobTransID()  &&
-                    !sdbGetTransCB()->isVersionVisible(
-                       record->getGlobTransID(), transID,
-                       _eduCB->getTransBeginTime() ) )
+               if ( record->hasGlobTransID() )
                {
-                  if ( !_pScanner )
+                  DPS_TRANS_ID recTransID = record->getGlobTransID() ;
+                  BOOLEAN visible = FALSE ;
+
+                  rc = _transCB->isVersionVisible( _eduCB,
+                                                   recTransID,
+                                                   transID,
+                                                   _eduCB->getTransBeginTime(),
+                                                   TRANS_ISOLATION_RR,
+                                                   FALSE,
+                                                   visible ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check visibility for "
+                               "read transaction [%s] against write "
+                               "transaction [%s], rc: %d",
+                               dpsTransIDToString( transID ).c_str(),
+                               dpsTransIDToString( recTransID ).c_str(),
+                               rc ) ;
+
+                  if ( !visible )
                   {
-                     // TBScan, directly hash and use RBS based on the chain
-#ifdef _DEBUG
-                     PD_LOG( PDDEBUG, 
-                             "Have lock(%s), TBScan still try to get record "
-                             "from RBS", lockId.toString().c_str() );
-#endif
-                     rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
-                                              rid, transID, found,
-                                              *_rbsRecordData,
-                                              startPos, endPos ) ;
-                        PD_RC_CHECK( rc, PDERROR, 
-                                     "Failed to read record from RBS, rc=%d",
-                                     rc ) ;
-                  }
-                  else
-                  {
-                     preIdxTreePtr dummy ;
-#ifdef _DEBUG
-                     PD_LOG( PDDEBUG, 
-                             "Have lock(%s), IXScan still try to get record "
-                             "from RBS", lockId.toString().c_str() );
-#endif
-                     _pScanner->getRBSPositions(startPos, endPos, rid, dummy) ;
-                     // only search RBS is we have a proper range
-                     if ( startPos.isValid() || endPos.isValid() ||
-                          (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
+                     if ( !_pScanner )
                      {
+                        // TBScan, directly hash and use RBS based on the chain
+#ifdef _DEBUG
+                        PD_LOG( PDDEBUG,
+                                "Have lock(%s), TBScan still try to get "
+                                "record from RBS",
+                                lockId.toString().c_str() ) ;
+#endif
                         rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
                                                  rid, transID, found,
                                                  *_rbsRecordData,
                                                  startPos, endPos ) ;
-                        PD_RC_CHECK( rc, PDERROR, 
-                                     "Idxscan failed to read record from RBS, rc=%d",
-                                     rc ) ;
+                        PD_RC_CHECK( rc, PDERROR, "Failed to read record from "
+                                     "RBS, rc: %d", rc ) ;
                      }
-                  }
-                  if ( !found )
-                  {
-                     _skipRecord = TRUE ;
-                     _useOldVersion = FALSE ;
-                  }
-                  else
-                  {
-                     _useOldVersion = TRUE ;
+                     else
+                     {
+                        preIdxTreePtr dummy ;
+#ifdef _DEBUG
+                        PD_LOG( PDDEBUG, "Have lock(%s), IXScan still try "
+                                "to get record from RBS",
+                                lockId.toString().c_str() );
+#endif
+                        _pScanner->getRBSPositions(startPos, endPos, rid, dummy) ;
+                        // only search RBS is we have a proper range
+                        if ( startPos.isValid() || endPos.isValid() ||
+                             (_pScanner->getCurScanType() == SCANNER_TYPE_DISK) )
+                        {
+                           rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
+                                                       rid, transID, found,
+                                                       *_rbsRecordData,
+                                                       startPos, endPos ) ;
+                           PD_RC_CHECK( rc, PDERROR, "IndexScan failed to "
+                                        "read record from RBS, rc: %d", rc ) ;
+                        }
+                     }
+                     if ( !found )
+                     {
+                        _skipRecord = TRUE ;
+                        _useOldVersion = FALSE ;
+                     }
+                     else
+                     {
+                        _useOldVersion = TRUE ;
+                     }
                   }
                }
             }

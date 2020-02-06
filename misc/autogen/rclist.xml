@@ -2841,5 +2841,14 @@
             <cn>全局事务最早正在执行的事务 ID 未知</cn>
          </description>
       </code>
-   </codelist>
+
+      <code>
+         <name>SDB_GLOB_TRANS_NOT_SYNC</name>
+         <description>
+            <en>Global transaction times of nodes are not synchronized</en>
+            <cn>节点间的全局逻辑时间不同步</cn>
+         </description>
+      </code>
+
+    </codelist>
 </rclist>

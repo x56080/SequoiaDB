@@ -98,6 +98,9 @@ namespace engine
    #define DPS_TRANS_USE_RBS_DFT          TRUE
    #define DPS_TRANS_RCCOUNT_DFT          TRUE
 
+   #define DPS_DEF_GLOBTRANS_MAXTIMEERROR ( 500000 )
+   #define DPS_MAX_GLOBTRANS_MAXTIMEERROR ( 5000000 )
+
    /*
       TRANS CONFIG MASK
    */

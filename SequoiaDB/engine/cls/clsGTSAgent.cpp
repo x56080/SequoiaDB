@@ -39,6 +39,7 @@
 #include "clsGTSAgent.hpp"
 #include "clsShardMgr.hpp"
 #include "msgReplicator.hpp"
+#include "msgMessageFormat.hpp"
 #include "pmdEnv.hpp"
 #include "pmd.hpp"
 #include "dpsTransCB.hpp"
@@ -55,10 +56,25 @@ using namespace bson ;
 namespace engine
 {
 
+   #define CLS_GTS_MAX_RETRY ( 3 )
+
+   // wait time interval for GTS transaction
+   #define CLS_GTS_WAIT_INTERVAL       ( OSS_ONE_SEC )
+   // small wait time interval for GTS transaction
+   #define CLS_GTS_WAIT_SMALL_INTERVAL ( 100 )
+
+   #define CLS_GTS_INC_TIME_ERROR_STEP    ( 1.1 )
+   #define CLS_GTS_DEC_TIME_ERROR_STEP    ( 0.9 )
+
+   #define CLS_GTS_DEC_TIME_ERROR_COUNT   ( 10 )
+
    /*
       _clsGTSAgent implement
    */
    _clsGTSAgent::_clsGTSAgent( _clsShardMgr *pShardMgr )
+   : _dpsGTSAgent(),
+     _nodeTimeError( STP_DEF_TIME_ERROR ),
+     _decTimeErrorCount( 0 )
    {
       SDB_ASSERT( pShardMgr, "Invalid param" ) ;
 
@@ -96,7 +112,7 @@ namespace engine
          }
          PD_LOG( PDDEBUG, "There are still %u EDUs under rollback or commit",
                  transCBSize ) ;
-         ossSleep( OSS_ONE_SEC ) ;
+         ossSleep( CLS_GTS_WAIT_INTERVAL ) ;
       }
 
       // to avoid erase iterator and insert in the same map
@@ -170,6 +186,30 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSGTSAGENT_CHKTRANSSTATUS ) ;
 
+      rc = _checkTransStatus( transID, nodeNum, pNodes, cb, FALSE, status ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check status for transaction [%s], "
+                   "rc: %d", dpsTransIDToString( transID ).c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_CHKTRANSSTATUS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT__CHKTRANSSTATUS, "_clsGTSAgent::_checkTransStatus" )
+   INT32 _clsGTSAgent::_checkTransStatus( DPS_TRANS_ID transID,
+                                          UINT32 nodeNum,
+                                          const UINT64 *pNodes,
+                                          IExecutor *cb,
+                                          BOOLEAN checkForArbit,
+                                          DPS_TRANS_STATUS &status )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT__CHKTRANSSTATUS ) ;
+
       MsgRouteID nodeID ;
 
       BOOLEAN hasCommit = FALSE ;
@@ -199,18 +239,38 @@ namespace engine
          switch( status )
          {
             case DPS_TRANS_COMMIT :
+            {
                hasCommit= TRUE ;
                break ;
+            }
             case DPS_TRANS_DOING :
             case DPS_TRANS_DOING_INTERRUPT :
+            {
+               if ( !checkForArbit )
+               {
+                  hasRollback = TRUE ;
+               }
+               break ;
+            }
             case DPS_TRANS_ROLLBACK :
+            {
                hasRollback = TRUE ;
                break ;
+            }
             case DPS_TRANS_UNKNOWN :
+            {
                /// ignore unknown
                break ;
+            }
             default :
+            {
                break ;
+            }
+         }
+
+         if ( checkForArbit && ( hasCommit || hasRollback ) )
+         {
+            break ;
          }
       }
 
@@ -223,20 +283,24 @@ namespace engine
       {
          status = DPS_TRANS_COMMIT ;
       }
+      else if ( checkForArbit )
+      {
+         status = DPS_TRANS_UNKNOWN ;
+      }
       else
       {
          status = DPS_TRANS_COMMIT ;
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_CHKTRANSSTATUS, rc ) ;
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT__CHKTRANSSTATUS, rc ) ;
       return rc ;
    error:
       status = DPS_TRANS_UNKNOWN ;
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT__CHKTRANSSTATUS, "_clsGTSAgent::_checkTransStatus" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT__CHKTRANSSTATUS_NODE, "_clsGTSAgent::_checkTransStatus" )
    INT32 _clsGTSAgent::_checkTransStatus( DPS_TRANS_ID transID,
                                           UINT32 group,
                                           IExecutor *cb,
@@ -244,12 +308,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__CLSGTSAGENT__CHKTRANSSTATUS ) ;
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT__CHKTRANSSTATUS_NODE ) ;
 
       MsgClsTransCheckReq checkMsg ;
       MsgHeader *pRecvMsg = NULL ;
       MsgOpReply *pReply = NULL ;
-      const UINT32 maxRetryTimes = 3 ;
       UINT32 retryTimes = 0 ;
 
       // for backward compatibility, transID field is global serial number
@@ -257,7 +320,7 @@ namespace engine
       // node ID of transaction ID
       checkMsg.transIDNodeID = transID.getNodeID() ;
 
-      while( retryTimes++ < maxRetryTimes )
+      while( retryTimes++ < CLS_GTS_MAX_RETRY )
       {
          /// send message
          rc = _pShardMgr->syncSend( ( MsgHeader* )&checkMsg, group, TRUE,
@@ -353,8 +416,59 @@ namespace engine
       {
          SDB_OSS_FREE( ( CHAR* )pRecvMsg ) ;
       }
-      PD_TRACE_EXITRC( SDB__CLSGTSAGENT__CHKTRANSSTATUS, rc ) ;
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT__CHKTRANSSTATUS_NODE, rc ) ;
       return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT__GETCOMMITINFO, "_clsGTSAgent::_getCommitInfo" )
+   INT32 _clsGTSAgent::_getCommitInfo( DPS_LSN_OFFSET commitLSN,
+                                       DPS_LOG_TYPE &logType,
+                                       UINT8 &attr,
+                                       UINT32 &nodeNum,
+                                       const UINT64 **nodes )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT__GETCOMMITINFO ) ;
+
+      SDB_DPSCB *dpsCB = sdbGetDPSCB() ;
+
+      DPS_LSN lsn ;
+      dpsMessageBlock mb ;
+      dpsLogRecord record ;
+
+      DPS_TRANS_ID recordTransID ;
+      DPS_LSN_OFFSET preTransLSN = DPS_INVALID_LSN_OFFSET ;
+      DPS_LSN_OFFSET firstLSN = DPS_INVALID_LSN_OFFSET ;
+
+      lsn.offset = commitLSN ;
+
+      /// load lsn
+      rc = dpsCB->search( lsn, &mb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to search LSN [%llu], rc: %d",
+                   commitLSN, rc ) ;
+
+      rc = record.load( mb.offset( 0 ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to load DPS record with LSN [%llu], "
+                   "rc: %d", commitLSN, rc ) ;
+
+      PD_CHECK( LOG_TYPE_TS_COMMIT == record.head()._type,
+                SDB_INVALIDARG, error, PDERROR,
+                "Failed to get transaction commit record, it is not "
+                "commit record, expected [%d], given [%d]",
+                LOG_TYPE_TS_COMMIT, record.head()._type ) ;
+
+      rc = dpsRecord2TransCommit( mb.offset( 0 ), recordTransID, preTransLSN,
+                                  firstLSN, attr, nodeNum, nodes ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get transaction commit from DPS "
+                   "record with LSN [%llu], rc: %d", commitLSN, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT__GETCOMMITINFO, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }
@@ -370,32 +484,13 @@ namespace engine
 
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
-      SDB_DPSCB *pDpsCB = pmdGetKRCB()->getDPSCB() ;
 
-      DPS_LSN lsn ;
-      _dpsMessageBlock mb ;
-      lsn.offset = curLsn ;
-
-      DPS_TRANS_ID recordTransID ;
-      DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
-      DPS_LSN_OFFSET firstLsn = DPS_INVALID_LSN_OFFSET ;
+      DPS_LOG_TYPE logType = LOG_TYPE_DUMMY ;
       UINT8 attr = 0 ;
       UINT32 nodeNum = 0 ;
       const UINT64 *pNodes = NULL ;
 
-      /// load lsn
-      rc = pDpsCB->search( lsn, &mb ) ;
-      SDB_ASSERT( SDB_OK == rc, "Search lsn is error" ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Search lsn(%llu) failed, rc: %d",
-                 lsn.offset, rc ) ;
-         goto error ;
-      }
-
-      rc = dpsRecord2TransCommit( mb.offset( 0 ), recordTransID, preTransLsn,
-                                  firstLsn, attr, nodeNum,
-                                  &pNodes ) ;
+      rc = _getCommitInfo( curLsn, logType, attr, nodeNum, &pNodes ) ;
       SDB_ASSERT( SDB_OK == rc &&
                   attr == DPS_TS_COMMIT_ATTR_PRE &&
                   nodeNum > 0,
@@ -411,7 +506,7 @@ namespace engine
          rc = checkTransStatus( transID, nodeNum, pNodes, cb, status ) ;
          if ( rc )
          {
-            ossSleep( OSS_ONE_SEC ) ;
+            ossSleep( CLS_GTS_WAIT_INTERVAL ) ;
             continue ;
          }
          break ;
@@ -509,7 +604,6 @@ namespace engine
       DPS_TRANSID_SN localExpireTran = DPS_INVALID_TRANSID_SN ;
       BSONObj requestObject ;
 
-      const UINT32 maxRetryTimes = 3 ;
       UINT32 retryTimes = 0 ;
 
       // only COORD and DATA need report
@@ -529,7 +623,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to fill lowTran request, rc: %d",
                    rc ) ;
 
-      while( ( retryTimes ++ ) < maxRetryTimes )
+      while( ( retryTimes ++ ) < CLS_GTS_MAX_RETRY )
       {
          MsgOpReply *reply = NULL ;
 
@@ -637,6 +731,682 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_ARBITGLOBTRAN, "_clsGTSAgent::arbitGlobTrans" )
+   INT32 _clsGTSAgent::arbitGlobTrans( pmdEDUCB *eduCB,
+                                       const DPS_TRANS_ID &readTransID,
+                                       const DPS_TRANS_ID &writeTransID,
+                                       DPS_TRANS_STATUS writeTransStatus,
+                                       BOOLEAN forceLocal,
+                                       BOOLEAN &visible )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_ARBITGLOBTRAN ) ;
+
+      visible = FALSE ;
+
+      PD_CHECK( readTransID.isValid(), SDB_SYS, error, PDERROR,
+                "Failed to arbitrate global transaction, "
+                "read transaction is invalid" ) ;
+
+      PD_CHECK( writeTransID.isValid(), SDB_SYS, error, PDERROR,
+                "Failed to arbitrate global transaction, "
+                "write transaction is invalid" ) ;
+
+      PD_LOG( PDDEBUG, "Start arbitration: read transaction [%s] against "
+              "write transaction [%s] with status [%s]",
+              dpsTransIDToString( readTransID ).c_str(),
+              dpsTransIDToString( writeTransID ).c_str(),
+              dpsTransStatusToString( writeTransStatus ) ) ;
+
+      // check if global transactions
+      if ( !readTransID.isGlobTrans() )
+      {
+         PD_LOG( PDDEBUG, "Read transaction [%s] is not global transaction",
+                 dpsTransIDToString( readTransID ).c_str() ) ;
+         visible = TRUE ;
+         goto done ;
+      }
+      else if ( !writeTransID.isGlobTrans() )
+      {
+         PD_LOG( PDDEBUG, "Write transaction [%s] is not global transaction",
+                 dpsTransIDToString( writeTransID ).c_str() ) ;
+         visible = TRUE ;
+         goto done ;
+      }
+
+      if ( forceLocal ||
+           _localRID.columns.nodeID == readTransID.getNodeID() )
+      {
+         // from local, do arbitrate on local
+         rc = _arbitLocal( eduCB, readTransID, writeTransID, writeTransStatus,
+                           visible ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to arbitrate transaction on "
+                      "local, rc: %d", rc ) ;
+      }
+      else if ( readTransID.getNodeID() <= SYS_NODE_ID_END )
+      {
+         // from COORD, do arbitrate on remote node
+         rc = _arbitRemote( eduCB, readTransID, writeTransID, writeTransStatus,
+                            visible ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to arbitrate transaction on "
+                      "remote, rc: %d", rc ) ;
+      }
+      else
+      {
+         SDB_ASSERT( FALSE, "invalid node ID" ) ;
+         PD_CHECK( FALSE, SDB_SYS, error, PDERROR, "Failed to arbitrate "
+                   "transaction with read transaction [%s], invalid node ID",
+                   dpsTransIDToString( readTransID ).c_str() ) ;
+      }
+
+      PD_LOG( PDDEBUG, "Finish arbitration: read transaction [%s] against "
+              "write transaction [%s] with status [%s], visible [%s]",
+              dpsTransIDToString( readTransID ).c_str(),
+              dpsTransIDToString( writeTransID ).c_str(),
+              dpsTransStatusToString( writeTransStatus ),
+              visible ? "TRUE" : "FALSE" ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_ARBITGLOBTRAN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_PREARBITGLOBTRAN, "_clsGTSAgent::preArbitGlobTrans" )
+   INT32 _clsGTSAgent::preArbitGlobTrans( const DPS_TRANS_ID writeTransID,
+                                          TRANS_ID_LIST &preArbitList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_PREARBITGLOBTRAN ) ;
+
+      PD_CHECK( writeTransID.isValid(), SDB_SYS, error, PDERROR,
+                "Failed to arbitrate global transaction, "
+                "write transaction is invalid" ) ;
+
+      PD_LOG( PDDEBUG, "Start pre-arbitration: write transaction [%s]",
+              dpsTransIDToString( writeTransID ).c_str() ) ;
+
+      // no need to do pre-arbitration for non-global transaction
+      if ( !writeTransID.isGlobTrans() )
+      {
+         PD_LOG( PDDEBUG, "Write transaction [%s] is not global transaction",
+                 dpsTransIDToString( writeTransID ).c_str() ) ;
+         goto done ;
+      }
+
+      // no candidate transactions for pre-arbitration
+      if ( preArbitList.empty() )
+      {
+         PD_LOG( PDDEBUG, "Pre-arbitrate transactions are empty" ) ;
+         goto done ;
+      }
+
+      while ( !preArbitList.empty() )
+      {
+         TRANS_ID_LIST curList ;
+         DPS_TRANSID_NODEID curNodeID = DPS_INVALID_TRANSID_NODEID ;
+
+         // do the pre-arbitration one node by one node
+         // merge transactions from the same node, and send in a batch
+         // NOTE: the remote node should be COORD node
+         TRANS_ID_LIST::iterator iter = preArbitList.begin() ;
+         while ( preArbitList.end() != iter )
+         {
+            DPS_TRANS_ID curTransID = ( *iter ) ;
+
+            if ( DPS_INVALID_TRANSID_NODEID == curNodeID )
+            {
+               // found the first node
+               PD_LOG( PDDEBUG, "Pre-arbitration: write transaction [%s] "
+                       "against read transaction [%s]",
+                       dpsTransIDToString( writeTransID ).c_str(),
+                       dpsTransIDToString( curTransID ).c_str() ) ;
+
+               curNodeID = curTransID.getNodeID() ;
+
+               // add to current list
+               try
+               {
+                  curList.push_back( curTransID ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDERROR, "Failed to add transaction to current "
+                          "list, error: %s", e.what() ) ;
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
+
+               // remove from candidate list
+               iter = preArbitList.erase( iter ) ;
+            }
+            else if ( curTransID.getNodeID() == curNodeID )
+            {
+               // from the same node, merge to a batch
+               PD_LOG( PDDEBUG, "Pre-arbitration: write transaction [%s] "
+                       "against read transaction [%s]",
+                       dpsTransIDToString( writeTransID ).c_str(),
+                       dpsTransIDToString( curTransID ).c_str() ) ;
+
+               // add to current list
+               try
+               {
+                  curList.push_back( curTransID ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDERROR, "Failed to add transaction to current "
+                          "list, error: %s", e.what() ) ;
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
+
+               // remove from candidate list
+               iter = preArbitList.erase( iter ) ;
+            }
+            else
+            {
+               // not from the same node, skip for next time
+               ++ iter ;
+            }
+         }
+
+         // do pre-arbitration on remote node
+         PD_LOG( PDDEBUG, "Pre-arbitration: write transaction [%s] on "
+                 "node [%u]", dpsTransIDToString( writeTransID ).c_str(),
+                 curNodeID ) ;
+         rc = _preArbitRemote( writeTransID, curNodeID, curList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to do pre-arbitrate write "
+                      "transaction [%s] on remote node [%u], rc: %d",
+                      dpsTransIDToString( writeTransID ).c_str(),
+                      curNodeID, rc ) ;
+      }
+
+      PD_LOG( PDDEBUG, "Finish pre-arbitration: write transaction [%s]",
+              dpsTransIDToString( writeTransID ).c_str() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_PREARBITGLOBTRAN, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_WAITARBITCOMMIT, "_clsGTSAgent::waitArbitCommit" )
+   INT32 _clsGTSAgent::waitArbitCommit( pmdEDUCB *eduCB,
+                                        const DPS_TRANS_ID &arbitTransID,
+                                        INT32 timeout,
+                                        BOOLEAN &commited,
+                                        BOOLEAN &multiGroups )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_WAITARBITCOMMIT ) ;
+
+      INT32 waitedTime = 0 ;
+      INT32 waitTime = CLS_GTS_WAIT_INTERVAL ;
+      BOOLEAN retried = FALSE ;
+      dpsTransBackInfo info ;
+
+      // assuming that the transaction is not committed and involved in
+      // multiple groups
+      commited = FALSE ;
+      multiGroups = TRUE ;
+
+   retry:
+      // check if EDUCB is interrupted
+      PD_CHECK( !eduCB->isInterrupted(), SDB_APP_INTERRUPT, error, PDERROR,
+                "Failed to wait commit for transaction [%s], "
+                "EDUCB is interrupted",
+                dpsTransIDToString( arbitTransID ).c_str() ) ;
+
+      if ( !_transCB->getTransInfo( arbitTransID, info ) )
+      {
+         // not found, must be removed
+         commited = TRUE ;
+         goto done ;
+      }
+
+      switch ( info._status )
+      {
+         case DPS_TRANS_DOING :
+         {
+            // still doing, wait for a while, and retry
+            waitTime = CLS_GTS_WAIT_INTERVAL ;
+            break ;
+         }
+         case DPS_TRANS_WAIT_COMMIT :
+         {
+            // for wait-commit transaction, we first wait a short time
+            // to check if it could commit itself
+            if ( !retried )
+            {
+               // wait for a small interval, and retry
+               waitTime = CLS_GTS_WAIT_SMALL_INTERVAL ;
+            }
+            else
+            {
+               // if still not commit, we need check with involved groups
+               // if one of them has committed, we could treat this
+               // transaction as committed
+               DPS_TRANS_STATUS status = DPS_TRANS_UNKNOWN ;
+               DPS_LSN_OFFSET commitLSN = info._lsn ;
+               DPS_LOG_TYPE logType = LOG_TYPE_DUMMY ;
+               UINT8 attr = 0 ;
+               UINT32 nodeNum = 0 ;
+               const UINT64 *nodes = NULL ;
+
+               // get commit info from DPS log
+               rc = _getCommitInfo( info._lsn, logType, attr, nodeNum,
+                                    &nodes ) ;
+               if ( SDB_OK != rc &&
+                    LOG_TYPE_TS_COMMIT != logType &&
+                    LOG_TYPE_DUMMY != logType )
+               {
+                  // log type is not commit, the pre-commit might be still
+                  // processing, wait a while again
+                  waitTime = CLS_GTS_WAIT_SMALL_INTERVAL ;
+                  rc = SDB_OK ;
+                  break ;
+               }
+               PD_RC_CHECK( rc, PDERROR, "Failed to get commit info with "
+                            "LSN [%llu] for transaction, rc: %d",
+                            commitLSN,
+                            dpsTransIDToString( arbitTransID ).c_str(), rc ) ;
+
+               // mark multiple groups or not
+               multiGroups = ( nodeNum > 1 ) ? TRUE : FALSE ;
+
+               if ( DPS_TS_COMMIT_ATTR_PRE != attr )
+               {
+                  // not pre-commit record, transaction is committed
+                  commited = TRUE ;
+                  goto done ;
+               }
+
+               // check transaction status with involved groups
+               rc = _checkTransStatus( arbitTransID, nodeNum, nodes, eduCB,
+                                       TRUE, status ) ;
+               if ( SDB_OK != rc )
+               {
+                  // failed, we could wait a while and retry
+                  PD_LOG( PDWARNING, "Failed to check status for "
+                          "transaction [%s], rc: %d", rc ) ;
+                  rc = SDB_OK ;
+               }
+               else if ( DPS_TRANS_COMMIT == status )
+               {
+                  // it is committed
+                  commited = TRUE ;
+                  goto done ;
+               }
+               else if ( DPS_TRANS_ROLLBACK == status )
+               {
+                  // it is rollbacked
+                  commited = FALSE ;
+                  goto done ;
+               }
+               // doing or rollback status, we need to recheck
+               waitTime = CLS_GTS_WAIT_INTERVAL ;
+            }
+            break ;
+         }
+         case DPS_TRANS_COMMIT :
+         {
+            // it is commit
+            commited = TRUE ;
+            goto done ;
+         }
+         case DPS_TRANS_ROLLBACK :
+         {
+            // it is rollback
+            PD_LOG( PDDEBUG, "Transaction [%s] is rollbacked",
+                    dpsTransIDToString( arbitTransID ).c_str() ) ;
+            commited = FALSE ;
+            goto done ;
+         }
+         case DPS_TRANS_UNKNOWN :
+         {
+            // unknown means it is removed by lowTran
+            // treat as commit
+            commited = TRUE ;
+            goto done ;
+         }
+         default :
+         {
+            SDB_ASSERT( FALSE, "Unknown transaction status, "
+                        "should not go here" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+      // check timeout
+      PD_CHECK( timeout < 0 || timeout >= waitedTime,
+                SDB_TIMEOUT, error, PDWARNING,
+                "Failed to wait transaction [%s] to commit, "
+                "timeout [%d], waited [%d]",
+                dpsTransIDToString( arbitTransID ).c_str(), timeout,
+                waitedTime ) ;
+
+      ossSleep( waitTime ) ;
+      waitedTime += waitTime ;
+
+      retried = TRUE ;
+
+      goto retry ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_WAITARBITCOMMIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_ARBITREMOTE, "_clsGTSAgent::_arbitRemote" )
+   INT32 _clsGTSAgent::_arbitRemote( pmdEDUCB *eduCB,
+                                     const DPS_TRANS_ID &readTransID,
+                                     const DPS_TRANS_ID &writeTransID,
+                                     DPS_TRANS_STATUS writeTransStatus,
+                                     BOOLEAN &visible )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_ARBITREMOTE ) ;
+
+      MsgRouteID routeID ;
+      MsgClsGTSArbitReq request ;
+      MsgHeader *replyMessage = NULL ;
+      MsgClsGTSArbitRsp *response = NULL ;
+
+      // check if we have arbitrated this write transaction before
+      if ( eduCB->getTransExecutor()->findArbit( writeTransID,
+                                                 visible ) )
+      {
+         PD_LOG( PDDEBUG, "Write transaction [%s] already done "
+                 "arbitration" ) ;
+         goto done ;
+      }
+
+      // send to node of read transaction
+      // should be a COORD
+      routeID.columns.groupID = COORD_GROUPID ;
+      routeID.columns.nodeID = readTransID.getNodeID() ;
+      routeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
+
+      // fill request
+      rc = _fillGTSArbitReq( &request,
+                             readTransID,
+                             writeTransID,
+                             writeTransStatus ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to fill arbitrate request, rc: %d",
+                   rc ) ;
+
+      // set request
+      rc = _pShardMgr->syncSend( (MsgHeader *)( &request ),
+                                 routeID,
+                                 &replyMessage,
+                                 CLS_SHARD_TIMEOUT,
+                                 NULL,
+                                 0 ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to send arbitrate request to "
+                   "route ID %s, rc: %d", routeID2String( routeID ).c_str(),
+                   rc ) ;
+      PD_CHECK( MSG_CLS_GTS_ARBIT_RSP == replyMessage->opCode,
+                SDB_SYS, error, PDERROR,
+                "Failed to receive reply from route ID %s, message type "
+                "is not matched, given [%d], expected [%d]",
+                routeID2String( routeID ).c_str(), replyMessage->opCode,
+                MSG_CLS_GTS_ARBIT_RSP ) ;
+      PD_CHECK( sizeof( MsgClsGTSArbitRsp ) == replyMessage->messageLength,
+                SDB_SYS, error, PDERROR,
+                "Failed to receive reply from route ID %s, message length "
+                "is not matched, given [%d], expected [%d]",
+                routeID2String( routeID ).c_str(), replyMessage->messageLength,
+                sizeof( MsgClsGTSArbitRsp ) ) ;
+
+      // check return code
+      response = (MsgClsGTSArbitRsp *)replyMessage ;
+      rc = response->header.res ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to do arbitrate on route ID %s, "
+                   "rc: %d", routeID2String( routeID ).c_str(), rc ) ;
+
+      // parse response
+      rc = _parseGTSArbitRsp( response, visible ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse arbitrate response, rc: %d",
+                   rc ) ;
+
+      // save arbitration results
+      rc = eduCB->getTransExecutor()->saveArbit( writeTransID,
+                                                 writeTransStatus,
+                                                 visible ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save arbitrate record, rc: %d",
+                   rc ) ;
+
+   done:
+      SAFE_OSS_FREE( replyMessage ) ;
+
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_ARBITREMOTE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_ARBITLOCAL, "_clsGTSAgent::_arbitLocal" )
+   INT32 _clsGTSAgent::_arbitLocal( pmdEDUCB *eduCB,
+                                    const DPS_TRANS_ID &readTransID,
+                                    const DPS_TRANS_ID &writeTransID,
+                                    DPS_TRANS_STATUS writeTransStatus,
+                                    BOOLEAN &visible )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_ARBITLOCAL ) ;
+
+      SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
+
+      // arbitrate with local transCB
+      rc = eduCB->getTransExecutor()->arbit( writeTransID,
+                                             writeTransStatus,
+                                             visible ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to arbitrate transaction, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_ARBITLOCAL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_PREARBITREMOTE, "_clsGTSAgent::_preArbitRemote" )
+   INT32 _clsGTSAgent::_preArbitRemote( const DPS_TRANS_ID &writeTransID,
+                                        DPS_TRANSID_NODEID preArbitNodeID,
+                                        const TRANS_ID_LIST &preArbitList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_PREARBITREMOTE ) ;
+
+      MsgRouteID routeID ;
+      MsgClsGTSPreArbitReq request ;
+      BSONObj requestObject ;
+      MsgHeader *replyMessage = NULL ;
+      MsgClsGTSPreArbitRsp *response = NULL ;
+
+      // send to node of read transaction
+      // should be a COORD
+      routeID.columns.groupID = COORD_GROUPID ;
+      routeID.columns.nodeID = preArbitNodeID ;
+      routeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
+
+      // fill request
+      rc = _fillGTSPreArbitReq( &request,
+                                writeTransID,
+                                preArbitNodeID,
+                                preArbitList,
+                                requestObject ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to fill pre-arbitrate request, rc: %d",
+                   rc ) ;
+
+      // send request
+      rc = _pShardMgr->syncSend( (MsgHeader *)( &request ),
+                                 routeID,
+                                 &replyMessage,
+                                 CLS_SHARD_TIMEOUT,
+                                 requestObject.objdata(),
+                                 requestObject.objsize() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to send pre-arbitrate request to "
+                   "route ID %s, rc: %d", routeID2String( routeID ).c_str(),
+                   rc ) ;
+      PD_CHECK( MSG_CLS_GTS_PREARBIT_RSP == replyMessage->opCode,
+                SDB_SYS, error, PDERROR,
+                "Failed to receive reply from route ID %s, message type "
+                "is not matched, given [%d], expected [%d]",
+                routeID2String( routeID ).c_str(), replyMessage->opCode,
+                MSG_CLS_GTS_PREARBIT_RSP ) ;
+      PD_CHECK( sizeof( MsgClsGTSPreArbitRsp ) == replyMessage->messageLength,
+                SDB_SYS, error, PDERROR,
+                "Failed to receive reply from route ID %s, message length "
+                "is not matched, given [%d], expected [%d]",
+                routeID2String( routeID ).c_str(), replyMessage->messageLength,
+                sizeof( MsgClsGTSPreArbitRsp ) ) ;
+
+      response = (MsgClsGTSPreArbitRsp *)replyMessage ;
+
+      // check return code
+      rc = response->header.res ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to do pre-arbitrate on route ID %s, "
+                   "rc: %d", routeID2String( routeID ).c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_PREARBITREMOTE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_GETNODETIMEERROR, "_clsGTSAgent::getNodeTimeError" )
+   UINT32 _clsGTSAgent::getNodeTimeError()
+   {
+      UINT32 timeError = 0 ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_GETNODETIMEERROR ) ;
+
+      ossScopedLock lock( &_timeErrorLatch, SHARED ) ;
+      timeError = _nodeTimeError ;
+
+      PD_TRACE_EXIT( SDB__CLSGTSAGENT_GETNODETIMEERROR ) ;
+
+      return timeError ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_INCNODETIMEERROR, "_clsGTSAgent::incNodeTimeError" )
+   void _clsGTSAgent::incNodeTimeError( UINT32 currentTimeError )
+   {
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_INCNODETIMEERROR ) ;
+
+      ossScopedLock lock( &_timeErrorLatch, EXCLUSIVE ) ;
+
+      // calculate target time error by 1.1 x current time error
+      UINT32 targetTimeError = OSS_MIN(
+            (UINT32)( (double)currentTimeError * CLS_GTS_INC_TIME_ERROR_STEP ),
+            _maxNodeTimeError ) ;
+
+      // target time error is larger than node time error
+      // increase node time error
+      if ( targetTimeError > _nodeTimeError )
+      {
+         UINT32 oldTimeError = _nodeTimeError ;
+
+         _nodeTimeError = targetTimeError ;
+         _decTimeErrorCount = 0 ;
+
+         PD_LOG( PDDEBUG, "Increase node time error from [%u] to [%u] by "
+                 "current time error [%u]",
+                 oldTimeError, _nodeTimeError, currentTimeError ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__CLSGTSAGENT_INCNODETIMEERROR ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_DECNODETIMEERROR, "_clsGTSAgent::decNodeTimeError" )
+   void _clsGTSAgent::decNodeTimeError( UINT32 currentTimeError )
+   {
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_DECNODETIMEERROR ) ;
+
+      ossScopedLock lock( &_timeErrorLatch, EXCLUSIVE ) ;
+
+      // target time error is 0.9 x node time error
+      UINT32 targetTimeError = OSS_MAX(
+            (UINT32)( (double)_nodeTimeError * CLS_GTS_DEC_TIME_ERROR_STEP ),
+            STP_MIN_TIME_ERROR ) ;
+
+      // current time error is smaller than target time error
+      // in this case, we could consider decrease the node time error
+      if ( currentTimeError < targetTimeError &&
+           ++ _decTimeErrorCount > CLS_GTS_DEC_TIME_ERROR_COUNT )
+      {
+         UINT32 oldTimeError = _nodeTimeError ;
+
+         _nodeTimeError = targetTimeError ;
+         _decTimeErrorCount = 0 ;
+
+         PD_LOG( PDDEBUG, "Decrease node time error from [%u] to [%u] by "
+                 "current time error [%u]",
+                 oldTimeError, _nodeTimeError, currentTimeError ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__CLSGTSAGENT_DECNODETIMEERROR ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_RESETNODETIMEERROR, "_clsGTSAgent::resetNodeTimeError" )
+   void _clsGTSAgent::resetNodeTimeError()
+   {
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_RESETNODETIMEERROR ) ;
+
+      ossScopedLock lock( &_timeErrorLatch, EXCLUSIVE ) ;
+      _nodeTimeError = STP_MIN_TIME_ERROR ;
+      _decTimeErrorCount = 0 ;
+
+      PD_TRACE_EXIT( SDB__CLSGTSAGENT_RESETNODETIMEERROR ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_GETACCEPTTIMEERROR, "_clsGTSAgent::getAcceptTimeError" )
+   UINT32 _clsGTSAgent::getAcceptTimeError( const stpLogicalTimeUS &remoteTime,
+                                            const stpLogicalTimeUS &localTime )
+   {
+      UINT64 timeError = 0LL ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_GETACCEPTTIMEERROR ) ;
+
+      if ( remoteTime.getTime() > localTime.getTime() )
+      {
+         timeError = remoteTime.getTime() - localTime.getTime() ;
+      }
+      else if ( remoteTime.getTime() < localTime.getTime() )
+      {
+         timeError = localTime.getTime() - remoteTime.getTime() ;
+      }
+
+      // round to max time error in nanosecond
+      timeError = (UINT32)( OSS_MIN( STP_MICROSEC_TO_NANOSEC( timeError ),
+                            STP_MAX_TIME_ERROR ) ) ;
+
+      PD_TRACE_EXIT( SDB__CLSGTSAGENT_GETACCEPTTIMEERROR ) ;
+
+      return timeError ;
    }
 
 }

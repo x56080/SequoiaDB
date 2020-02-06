@@ -484,6 +484,7 @@ dpsFiles = [
       "dps/dpsTransVersionCtrl.cpp",
       "dps/dpsTransLockMgr.cpp",
       "dps/dpsGTSAgent.cpp",
+      "dps/dpsTransArbit.cpp",
       "dps/dpsOp2Record.cpp",
       "dps/dpsDump.cpp",
       "dps/dpsArchiveMgr.cpp",

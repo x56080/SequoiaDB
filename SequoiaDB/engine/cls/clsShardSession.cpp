@@ -584,6 +584,106 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKTRANSRR, "_clsShdSession::_checkTransRR" )
+   INT32 _clsShdSession::_checkTransRR( const DPS_TRANS_ID &transID,
+                                        const MsgRouteID &remoteRID,
+                                        const stpLogicalTimeUS &remoteTime,
+                                        const stpLogicalTimeUS &localTime,
+                                        BOOLEAN nextIsWrite )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKTRANSRR ) ;
+
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      stpLogicalTimeUS tmpLocalTime = localTime ;
+
+      // check transaction with RR isolation
+      // - check logical times between remote and local nodes, the logical time
+      //   should be synchronized in a given time error
+      // - do pre-arbitration to avoid stale read on other groups
+
+      // check logical time between remote and local
+      if ( transCB->isGlobTransSyncCheck() &&
+           remoteTime != tmpLocalTime )
+      {
+         clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
+         UINT32 acceptTimeError =
+               gtsAgent->getAcceptTimeError( remoteTime, tmpLocalTime ) ;
+
+         PD_LOG( PDDEBUG, "Global transaction times between nodes "
+                 "are not synchronized with original time error, "
+                 "remote node %s is [%s], local node %s is [%s]",
+                 routeID2String( remoteRID ).c_str(),
+                 dpsTransTimeToString( remoteTime ).c_str(),
+                 routeID2String( pmdGetNodeID() ).c_str(),
+                 dpsTransTimeToString( tmpLocalTime ).c_str() ) ;
+
+         tmpLocalTime.setTimeError( gtsAgent->getNodeTimeError() ) ;
+         if ( remoteTime != tmpLocalTime )
+         {
+            stpAgent agent ;
+
+            PD_LOG( PDWARNING, "Global transaction times between nodes "
+                    "are not synchronized with node time error, "
+                    "remote node %s is [%s], local node %s is [%s]",
+                    routeID2String( remoteRID ).c_str(),
+                    dpsTransTimeToString( remoteTime ).c_str(),
+                    routeID2String( pmdGetNodeID() ).c_str(),
+                    dpsTransTimeToString( tmpLocalTime ).c_str() ) ;
+
+            // notify local to synchronize time
+            agent.notifySync() ;
+
+            // increase time error
+            gtsAgent->incNodeTimeError( acceptTimeError ) ;
+
+            rc = SDB_GLOB_TRANS_NOT_SYNC ;
+            goto error ;
+         }
+         else
+         {
+            // try decrease time error
+            gtsAgent->decNodeTimeError( acceptTimeError ) ;
+
+            PD_LOG( PDWARNING, "Global transaction times between nodes "
+                    "pass synchronization check with node time error, "
+                    "remote node %s is [%s], local node %s is [%s]",
+                    routeID2String( remoteRID ).c_str(),
+                    dpsTransTimeToString( remoteTime ).c_str(),
+                    routeID2String( pmdGetNodeID() ).c_str(),
+                    dpsTransTimeToString( tmpLocalTime ).c_str() ) ;
+         }
+      }
+
+      // pre-arbitrate for write transactions
+      // NOTE: considering that, this write transaction could be quickly
+      //       committed after this operator, the commit time could before a
+      //       read transaction in this node with time error, so it might cause
+      //       stale read issue on other groups
+      //       the read transaction should not see changes from this writing
+      //       transaction, but on other group, the read operator might be
+      //       sent later
+      //       so if we do not do pre-arbitration for read transaction to
+      //       tell that the read transaction is not visible for this
+      //       write transaction, the read transaction might have a chance to
+      //       see changes in a staled read request to other groups
+      if ( transCB->isGlobTransArbitOn() && nextIsWrite )
+      {
+          rc = transCB->doPreArbitGlobTrans( transID, tmpLocalTime ) ;
+          PD_RC_CHECK( rc, PDERROR, "Failed to do pre-arbitration "
+                       "with write transaction [%s], rc: %d",
+                       dpsTransIDToString( transID ).c_str(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKTRANSRR, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__DFMSGFUNC, "_clsShdSession::_defaultMsgFunc" )
    INT32 _clsShdSession::_defaultMsgFunc ( NET_HANDLE handle, MsgHeader * msg )
    {
@@ -2528,12 +2628,30 @@ namespace engine
    INT32 _clsShdSession::_onTransBeginMsg( NET_HANDLE handle, MsgHeader *msg )
    {
       INT32 rc = SDB_OK ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
       MsgOpTransBegin *pTransBegin = ( MsgOpTransBegin* )msg ;
+      MsgRouteID remoteRID ;
+      stpLogicalTimeUS currentTime ;
+
+      remoteRID.value = pTransBegin->header.routeID.value ;
 
       if ( DPS_TRANS_WAIT_COMMIT == eduCB()->getTransStatus() )
       {
          rc = SDB_RTN_EXIST_INDOUBT_TRANS ;
          goto error ;
+      }
+
+      // for RR isolation, we need to do transaction arbitration later
+      // get current time as earlier as we could
+      if ( _pEDUCB->isTransRRRequired() &&
+           ( transCB->isGlobTransSyncCheck() ||
+             transCB->isGlobTransArbitOn() ) )
+      {
+         rc = transCB->getGlobTransTime( currentTime,
+                                         _pEDUCB->getTransTimeout() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction "
+                      "time for transaction begin on this node, rc: %d",
+                      rc ) ;
       }
 
       rc = _checkPrimaryStatus() ;
@@ -2546,21 +2664,37 @@ namespace engine
       if ( msg->messageLength > (INT32)sizeof( MsgHeader ) &&
            // only serial number for backward compatibility
            DPS_INVALID_TRANSID_SN != pTransBegin->transID &&
-           // check node ID component
-           DPS_INVALID_TRANSID_NODEID !=
-                 pTransBegin->header.routeID.columns.nodeID )
+           // check node ID component, which is hidden in route ID of message
+           DPS_INVALID_TRANSID_NODEID != remoteRID.columns.nodeID )
       {
          DPS_TRANS_ID transID ;
          stpLogicalTimeUS beginTime ;
 
          transID.setSN( pTransBegin->transID ) ;
-         transID.setNodeID( pTransBegin->header.routeID.columns.nodeID ) ;
+         transID.setNodeID( remoteRID.columns.nodeID ) ;
 
          // if transaction is global, get transaction begin time
          if ( transID.isGlobTrans() )
          {
             beginTime.setTime( transID.getLogicalTime() ) ;
             beginTime.setTimeError( pTransBegin->transTimeError ) ;
+
+            // for RR isolation, we need to do transaction arbitration
+            if ( _pEDUCB->isTransRRRequired() )
+            {
+               stpLogicalTimeUS remoteTime( pTransBegin->currentTime,
+                                            pTransBegin->currentTimeError ) ;
+               rc = _checkTransRR( transID, remoteRID, remoteTime, currentTime,
+                                   pTransBegin->nextIsWrite ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check transaction "
+                            "isolation for RR, rc: %d", rc ) ;
+            }
+
+            if ( beginTime.getTime() + STP_MAX_TIME_ERROR_US >
+                 currentTime.getTime() )
+            {
+               _pEDUCB->setPassedDoingArbit( TRUE ) ;
+            }
          }
 
          rc = rtnTransBegin( _pEDUCB, transID.isAutoCommit(),
@@ -2636,10 +2770,14 @@ namespace engine
       CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
       CHAR tmpAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
+      dpsTransCB *transCB = sdbGetTransCB() ;
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
       MsgOpTransCommitPre *pCommitPreMsg = ( MsgOpTransCommitPre* )msg ;
 
-      stpLogicalTimeUS preCommitTime( pCommitPreMsg->preCommitTime, 0 ) ;
+      stpLogicalTimeUS preCommitTime(
+                           pCommitPreMsg->preCommitTime,
+                           _pEDUCB->getTransBeginTime().getTimeError() ) ;
+      stpLogicalTimeUS currentTime ;
 
       INT16 replSize = optCB->transReplSize() ;
       INT16 w = 0 ;
@@ -2653,6 +2791,50 @@ namespace engine
       {
          rc = SDB_DPS_TRANS_NO_TRANS ;
          goto error ;
+      }
+
+      // for global transaction with RR isolation, we need to do transaction
+      // time synchronization checking before pre-commit
+      if ( _pEDUCB->isGlobTrans() &&
+           _pEDUCB->isTransRRRequired() &&
+           transCB->isGlobTransSyncCheck() )
+      {
+         clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
+
+         SDB_ASSERT( NULL != gtsAgent, "GTS agent is invalid" ) ;
+
+         rc = transCB->getGlobTransTime( currentTime,
+                                         _pEDUCB->getTransTimeout() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction "
+                      "time for transaction begin on this node, rc: %d",
+                      rc ) ;
+
+         // we check doing transaction arbitration with maximum time error,
+         // ( read transaction started after a maximum time error period, it
+         // needn't to do arbitration with doing transaction anymore )
+         // so we could check pre-commit with maximum time error too
+         currentTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
+
+         // check logical time between remote and local
+         if ( transCB->isGlobTransSyncCheck() &&
+              preCommitTime != currentTime )
+         {
+            stpAgent agent ;
+
+            PD_LOG( PDWARNING, "Global transaction times between nodes "
+                    "are not synchronized with node time error, "
+                    "remote node %s is [%s], local node %s is [%s]",
+                    routeID2String( pCommitPreMsg->header.routeID ).c_str(),
+                    dpsTransTimeToString( preCommitTime ).c_str(),
+                    routeID2String( pmdGetNodeID() ).c_str(),
+                    dpsTransTimeToString( currentTime ).c_str() ) ;
+
+            // notify local to synchronize time
+            agent.notifySync() ;
+
+            rc = SDB_GLOB_TRANS_NOT_SYNC ;
+            goto error ;
+         }
       }
 
       dpsTransIDToString( eduCB()->getTransID(),

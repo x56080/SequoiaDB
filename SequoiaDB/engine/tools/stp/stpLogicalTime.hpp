@@ -736,6 +736,12 @@ namespace engine
                   time._time + timeError > _time ) ;
       }
 
+      // non-equal with time error
+      OSS_INLINE BOOLEAN operator !=( const stpLogicalTimeUS &time ) const
+      {
+         return !( operator ==( time ) ) ;
+      }
+
       // less than with time error
       OSS_INLINE BOOLEAN operator <( const stpLogicalTimeUS &time ) const
       {
@@ -749,6 +755,18 @@ namespace engine
       OSS_INLINE BOOLEAN operator >( const stpLogicalTimeUS &time ) const
       {
          return ( time < ( *this ) ) ;
+      }
+
+      // not lager than with time error
+      OSS_INLINE BOOLEAN operator <=( const stpLogicalTimeUS &time ) const
+      {
+         return !( time > ( *this ) ) ;
+      }
+
+      // not less than with time error
+      OSS_INLINE BOOLEAN operator >=( const stpLogicalTimeUS &time ) const
+      {
+         return !( time < ( *this ) ) ;
       }
 
    public:
