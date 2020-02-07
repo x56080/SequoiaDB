@@ -727,10 +727,6 @@ namespace engine
                 "Failed to update meta LSN, given time [%llu] is ignored",
                 time ) ;
 
-      // no time synchronize on primary server, so update synchronize time of
-      // meta data when meta LSN updated
-      getMetaData()->updateSyncTime() ;
-
    done:
       PD_TRACE_EXITRC( SDB__STPMETAMGR_UPDATEMETALSN, rc ) ;
       return rc ;
@@ -807,6 +803,16 @@ namespace engine
 
       if ( updated )
       {
+         // no time synchronize on primary server, so update synchronize
+         // time of meta data when meta LSN updated
+         // NOTE:
+         //    - update the synchronize time to tell STP agents, this STP node
+         //      is alive and available to acquire logical time
+         //    - saving into file may take a while, so update synchronize
+         //      time before flushing to file to avoid blocking the STP agents
+         //      to acquire logical time
+         getMetaData()->updateSyncTime() ;
+
          // if updated, save to meta file
          rc = _store.save() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to save meta, rc: %d", rc ) ;
