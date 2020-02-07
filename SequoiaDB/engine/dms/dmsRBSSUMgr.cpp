@@ -50,6 +50,7 @@
 #include "dmsStorageDataCapped.hpp"
 #include "dpsUtil.hpp"
 #include "ossMem.hpp"
+#include "dmsRBSGCJob.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
@@ -170,6 +171,16 @@ namespace engine
 
          // Memset hash bucket
          _rbsRecordBkt.reset() ;
+
+         // trigger GC background job
+         rc = dmsStartAsyncRBSGC() ;
+         if ( rc )
+         {
+            // log error message and reset to OK
+            PD_LOG ( PDWARNING, "Failed to trigger GC during start, rc=%d ",
+                     rc ) ;
+            rc = SDB_OK ;
+         }
       }
 
    done :
@@ -342,6 +353,21 @@ namespace engine
             tempCurCL = DMS_FIRST_RBS_CL ;
          }
 
+         // new curCL should not be overlap with last free
+         // special case is lastFree never changed after system start
+         if ( ( tempCurCL == _lastFreeCollection )      ||
+              ( DMS_MAX_RBS_CL == _lastFreeCollection && 
+                DMS_FIRST_RBS_CL == tempCurCL ) )
+         {
+            rc = SDB_DMS_NOSPC ;
+            PD_LOG ( PDWARNING, 
+                     "Run out of space in RBS collection lastFreeCL=%d,"
+                     "curCL(full)=%d, rc=%d",
+                     _lastFreeCollection, _currentCollection, rc ) ;
+            _releaseX() ;
+            goto error ;
+         }
+
          // create next CL
          try
          {
@@ -365,10 +391,6 @@ namespace engine
             {
                PD_LOG ( PDERROR, "Failed to add RBS collection %s, rc: %d",
                         clName, rc ) ;
-               if ( SDB_DMS_EXIST == rc )
-               {
-                  rc = SDB_DMS_NOSPC ;
-               }
                _releaseX() ;
                goto error ;
             }
@@ -389,7 +411,17 @@ namespace engine
 
          _releaseX() ;
 
-         dmsStartAsyncRBSGC() ;
+         // trigger GC event,
+         if ( allowGC() )
+         {
+            rc = dmsStartAsyncRBSGC() ;
+            if ( rc )
+            {
+               // log error message and reset to OK
+               PD_LOG ( PDWARNING, "Failed to trigger GC, rc=%d ", rc ) ; 
+               rc = SDB_OK ;
+            }
+         }
 
          // get curCL context and take mbLock here
          rc = _su->data()->getMBContext( &clContext, clName, EXCLUSIVE ) ;
@@ -411,6 +443,12 @@ namespace engine
          _su->data()->releaseMBContext( clContext ) ;
       }
       goto done ;
+   }
+
+   BOOLEAN _dmsRBSSUMgr::allowGC() 
+   {
+      // simple logic to only allow certain amount of light job tasks
+      return getNumActiveGC() < MAX_RBS_GC_TASK ;
    }
 
    // allocate space for RBS record and return the beginning offset
@@ -900,8 +938,6 @@ namespace engine
 
    // Given start position, try to run RBS garbage collection to recycle space
    // once finished, the new position is returned.
-   // Note that the caller should hold mbLock of SYSRBS000
-   // position could be stale.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__GCRBS, "_dmsRBSSUMgr::_gcRBS" )
    SINT32 _dmsRBSSUMgr::_gcRBS ( UINT16 position, SDB_DPSCB *dpsCB )
    {
@@ -917,6 +953,12 @@ namespace engine
       dmsMBContext *pContext = NULL ;
       BOOLEAN     latched    = FALSE ;
 
+      // finish if transCB or oldVersionCB was not setup. This can happen
+      // during start time
+      if ( !sdbGetTransCB() || !sdbGetTransCB()->getOldVCB() )
+      {
+         goto done ;
+      }
       // From start position, go through each CL, compare its maxGlobTransID
       // against current lowtran. If the the maxGlobTransID is older, we can
       // recycle the CL by dropping it.
@@ -1029,7 +1071,7 @@ namespace engine
       goto done ;
    }
 
-   BOOLEAN _dmsRBSSUMgr::_rbsPositionExpired( dmsRBSOffset & pos ) 
+   BOOLEAN _dmsRBSSUMgr::_rbsCLExpired( UINT16 cl )
    {
       BOOLEAN rv = TRUE; 
       //   lastFreeCL           currentCL
@@ -1041,21 +1083,26 @@ namespace engine
       // === inUse   (rv=FALSE)
       if ( _lastFreeCollection < _currentCollection )
       {
-         if ( ( pos._clID > _lastFreeCollection ) && 
-              ( pos._clID <= _currentCollection ) )
+         if ( ( cl > _lastFreeCollection ) && 
+              ( cl <= _currentCollection ) )
          {
             rv = FALSE; 
          }
       }
       else
       {
-         if ( ( pos._clID > _lastFreeCollection ) ||
-              ( pos._clID <= _currentCollection ) )
+         if ( ( cl > _lastFreeCollection ) ||
+              ( cl <= _currentCollection ) )
          {
             rv = FALSE; 
          }
       }
       return rv ;
+   }
+
+   BOOLEAN _dmsRBSSUMgr::_rbsPositionExpired( dmsRBSOffset & pos ) 
+   {
+      return _rbsCLExpired( pos._clID ) ;
    }
 
    // This is the main interface to run garbage collection on RBS with best
@@ -1084,56 +1131,4 @@ namespace engine
       goto done ;
    }
 
-   _dmsRBSGCJob::_dmsRBSGCJob( _dmsRBSSUMgr  *rbsSUMgr )
-   {
-      _rbsSUMgr = rbsSUMgr ;
-   }
-
-   _dmsRBSGCJob::~_dmsRBSGCJob()
-   {
-      _rbsSUMgr->decActiveGC() ;
-   }
-
-   const CHAR* _dmsRBSGCJob::name() const
-   {
-      return "RBS GC" ;
-   }
-
-   INT32 _dmsRBSGCJob::doit( IExecutor *pExe,
-                             UTIL_LJOB_DO_RESULT &result,
-                             UINT64 &sleepTime )
-   {
-      _rbsSUMgr->incActiveGC() ;
-      _rbsSUMgr->gcRBS() ;
-      result = UTIL_LJOB_DO_FINISH ;
-      return SDB_OK ;
-   }
-
-   // submit async job to do garbage collection on RBS including data and idx
-   void  dmsStartAsyncRBSGC()
-   {
-      if ( pmdGetOptionCB()->mvccOn() )
-      {
-         dmsRBSGCJob * pJob = NULL ;
-#ifdef _DEBUG
-         PD_LOG( PDDEBUG, "Creating dmsRBSGCJob " ) ;
-#endif
-         pJob = SDB_OSS_NEW dmsRBSGCJob( pmdGetKRCB()->
-                                         getDMSCB()->getRBSSUMgr() ) ;
-
-         if ( !pJob )
-         {
-            PD_LOG( PDWARNING, "Alloc dmsRBSGCJob failed" ) ;
-         }
-         else
-         {
-            INT32 rc = pJob->submit( TRUE ) ;
-            if ( rc )
-            {
-               PD_LOG( PDWARNING, "Submit dmsRBSGCJob failed,rc:%d",
-                       rc ) ;
-            }
-         }
-      }
-   }
 }

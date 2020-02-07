@@ -337,7 +337,8 @@ dmsFiles = [
       "dms/dmsCachedPlanUnit.cpp",
       "dms/dmsTransLockCallback.cpp",
       "dms/dmsSUCache.cpp",
-      "dms/dmsLightJob.cpp"
+      "dms/dmsLightJob.cpp",
+      "dms/dmsRBSGCJob.cpp"
       ]
 
 ixmFiles = [

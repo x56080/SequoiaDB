@@ -162,6 +162,9 @@ namespace engine
       }
    } ;
 
+   // Max allowed RBS GC tasks
+   #define MAX_RBS_GC_TASK 3
+
    class _dmsRBSSUMgr : public _dmsSysSUMgr
    {
    private :
@@ -213,11 +216,14 @@ namespace engine
                             dmsRecordData    &record,
                             dmsRBSOffset     &startPos,
                             dmsRBSOffset     &endPos ) ; 
-      void gcRBS ( ) ;
 
+
+      void gcRBS ( ) ;
       void incActiveGC() { _numActiveGC.inc() ; }
       void decActiveGC() { _numActiveGC.dec() ; }
       UINT32 getNumActiveGC() { return _numActiveGC.fetch() ; }
+      BOOLEAN allowGC() ;
+
       UINT32 getCLSize() { return DMS_DFT_RBSCL_SIZE ; }
       UINT32 getNumTotalCL() { return DMS_MAX_RBS_CL ; }
       UINT32 getNumFreeCL()
@@ -268,6 +274,7 @@ namespace engine
       SINT32 _gcRBS ( UINT16 position, SDB_DPSCB *dpsCB ) ;
 
       BOOLEAN _rbsPositionExpired( dmsRBSOffset &pos ) ;
+      BOOLEAN _rbsCLExpired( UINT16 cl ) ;
    } ;
    typedef class _dmsRBSSUMgr dmsRBSSUMgr ;
 
@@ -311,25 +318,6 @@ namespace engine
                DMS_RBS_HASH_BKT_SLOTS ;
    }
 
-   /*
-      _dmsRBSGCJob define
-      Class to trigger RBS GC work in the background
-   */
-   class _dmsRBSGCJob : public _utilLightJob
-   {
-      public:
-         _dmsRBSGCJob( _dmsRBSSUMgr  *rbsSUMgr ) ;
-         virtual ~_dmsRBSGCJob() ;
-         virtual const CHAR*     name() const ;
-         virtual INT32        doit( IExecutor *pExe,
-                                       UTIL_LJOB_DO_RESULT &result,
-                                       UINT64 &sleepTime ) ;
-      private:
-         _dmsRBSSUMgr * _rbsSUMgr ;
-   } ;
-   typedef _dmsRBSGCJob dmsRBSGCJob ;
-
-   void  dmsStartAsyncRBSGC() ;
 }
 #endif //DMSRBSSUMGR_HPP__
 
