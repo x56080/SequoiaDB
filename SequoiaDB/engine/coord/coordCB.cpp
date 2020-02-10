@@ -548,7 +548,7 @@ retry :
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDCB__ONCATREGRES, "_CoordCB::_onCatRegisterRes" )
-   INT32 _CoordCB::_onCatRegisterRes ( const NET_HANDLE &handle,
+   INT32 _CoordCB::_onCatRegisterRes ( NET_HANDLE handle,
                                        MsgHeader *pMsg )
    {
       INT32 rc = SDB_OK ;
