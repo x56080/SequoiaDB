@@ -68,15 +68,12 @@ public class Transaction17186 extends SdbTestBase {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         // 开启2个并发事务
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         db1.beginTransaction();
         db2.beginTransaction();
-
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
 
         // 事务1更新记录
         cl1.update( "{a:1}", "{$set:{a:10}}", "{'':null}" );
@@ -97,7 +94,8 @@ public class Transaction17186 extends SdbTestBase {
         // 事务2读记录走表扫描阻塞
         CL2Query cl2Thread = new CL2Query( null, "{'':null}" );
         cl2Thread.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                cl2Thread.getTransactionID() ) );
 
         // 提交事务1
         db1.commit();
@@ -139,6 +137,9 @@ public class Transaction17186 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             DBCursor cursor = cl2.query( matcher, null, null, hint );
             List< BSONObject > records = TransUtils.getReadActList( cursor );
             try {

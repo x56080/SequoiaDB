@@ -37,7 +37,7 @@ public class Transaction18047 extends SdbTestBase {
     }
 
     @Test(dataProvider = "provider_18047", invocationCount = 5)
-    public void test( String clName ) {
+    public void test( String clName ) throws InterruptedException {
         Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         Sequoiadb db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         Sequoiadb db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
@@ -57,12 +57,10 @@ public class Transaction18047 extends SdbTestBase {
 
             db2.beginTransaction();
 
-            // 判断事务阻塞需先获取事务id
-            String transactionID2 = TransUtils.getTransactionID( db2 );
             Operation operation2 = new Operation( cl2 );
             operation2.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    operation2.getTransactionID() ) );
 
             db1.rollback();
             if ( !operation2.isSuccess() ) {
@@ -105,6 +103,9 @@ public class Transaction18047 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             cl.delete( null, "{'':'a'}" );
         }
     }

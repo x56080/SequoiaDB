@@ -74,17 +74,12 @@ public class Transaction17170A extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
 
         // 开启3个并发事务
         db1.beginTransaction();
         db2.beginTransaction();
         db3.beginTransaction();
-
-        // 判断事务阻塞需先获取事务id
-        String transactionID1 = TransUtils.getTransactionID( db1 );
-        String transactionID2 = TransUtils.getTransactionID( db2 );
-        String transactionID3 = TransUtils.getTransactionID( db3 );
 
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
@@ -104,17 +99,20 @@ public class Transaction17170A extends SdbTestBase {
         // 事务1记录读
         QueryThread tableScanThread1 = new QueryThread( cl1 );
         tableScanThread1.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID1 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                tableScanThread1.getTransactionID() ) );
 
         // 事务2记录读
         QueryThread tableScanThread2 = new QueryThread( cl2 );
         tableScanThread2.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                tableScanThread2.getTransactionID() ) );
 
         // 事务3记录读
         QueryThread tableScanThread3 = new QueryThread( cl3 );
         tableScanThread3.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                tableScanThread3.getTransactionID() ) );
 
         // 非事务记录读
         expList.add( insertR1 );
@@ -181,6 +179,9 @@ public class Transaction17170A extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             try {
                 List< BSONObject > ret = new ArrayList< BSONObject >();
                 DBCursor indexCursor = cl.query( null, null, null, hint );

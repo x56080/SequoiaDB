@@ -73,8 +73,8 @@ public class Transaction17770A extends SdbTestBase {
 
     @SuppressWarnings("unchecked")
     @Test(dataProvider = "index")
-    public void test( String indexKey,
-            List< BSONObject > expPositiveReadList ) {
+    public void test( String indexKey, List< BSONObject > expPositiveReadList )
+            throws InterruptedException {
         try {
 
             // 开启4个并发事务
@@ -87,11 +87,6 @@ public class Transaction17770A extends SdbTestBase {
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
             cl4 = db4.getCollectionSpace( csName ).getCollection( clName );
 
-            // 判断事务阻塞需先获取事务id
-            String transactionID2 = TransUtils.getTransactionID( db2 );
-            String transactionID3 = TransUtils.getTransactionID( db3 );
-            String transactionID4 = TransUtils.getTransactionID( db4 );
-
             // 插入记录R1、R2，R1小于R2
             cl.insert( insertR1 );
             cl.insert( insertR2 );
@@ -103,22 +98,22 @@ public class Transaction17770A extends SdbTestBase {
             // 事务2匹配R1、R2删除
             DeleteThread deleteThread = new DeleteThread();
             deleteThread.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    deleteThread.getTransactionID() ) );
 
             // 事务3记录读
             TransactionQueryThread tableScanThread1 = new TransactionQueryThread(
                     cl3, "{a:1}" );
             tableScanThread1.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    tableScanThread1.getTransactionID() ) );
 
             // 事务3记录读
             TransactionQueryThread tableScanThread2 = new TransactionQueryThread(
                     cl4, "{a:1}" );
             tableScanThread2.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID4 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    tableScanThread2.getTransactionID() ) );
 
             // 非事务读,正序
             cursor = cl.query( null, null, "{a:1}", hint );
@@ -136,10 +131,10 @@ public class Transaction17770A extends SdbTestBase {
             db1.rollback();
             Assert.assertTrue( deleteThread.isSuccess(),
                     deleteThread.getErrorMsg() );
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID4 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    tableScanThread1.getTransactionID() ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    tableScanThread2.getTransactionID() ) );
 
             // 非事务读,正序
             expList.clear();
@@ -265,6 +260,9 @@ public class Transaction17770A extends SdbTestBase {
     private class DeleteThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.delete( null, hint );
         }
     }
@@ -281,6 +279,9 @@ public class Transaction17770A extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             DBCursor indexCursor = cl.query( null, null, sort, hint );
             List< BSONObject > actQueryList = TransUtils
                     .getReadActList( indexCursor );

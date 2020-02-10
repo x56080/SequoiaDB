@@ -73,7 +73,7 @@ public class Transaction17170B extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
 
         // 开启3个并发事务
         db1.beginTransaction();
@@ -86,11 +86,6 @@ public class Transaction17170B extends SdbTestBase {
         DBCollection cl3 = db3.getCollectionSpace( csName )
                 .getCollection( clName );
 
-        // 判断事务阻塞需先获取事务id
-        String transactionID1 = TransUtils.getTransactionID( db1 );
-        String transactionID2 = TransUtils.getTransactionID( db2 );
-        String transactionID3 = TransUtils.getTransactionID( db3 );
-
         // 事务1插入记录R1
         BSONObject insertR1 = ( BSONObject ) JSON.parse( "{a:1,b:1}" );
         cl1.insert( insertR1 );
@@ -102,17 +97,20 @@ public class Transaction17170B extends SdbTestBase {
         // 事务1索引读
         QueryThread indexScanThread1 = new QueryThread( cl1 );
         indexScanThread1.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID1 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                indexScanThread1.getTransactionID() ) );
 
         // 事务2索引读
         QueryThread indexScanThread2 = new QueryThread( cl2 );
         indexScanThread2.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                indexScanThread2.getTransactionID() ) );
 
         // 事务3索引读
         QueryThread indexScanThread3 = new QueryThread( cl3 );
         indexScanThread3.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                indexScanThread3.getTransactionID() ) );
 
         // 非事务索引读
         expList.add( insertR1 );
@@ -180,6 +178,9 @@ public class Transaction17170B extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             try {
                 List< BSONObject > ret = new ArrayList< BSONObject >();
                 DBCursor indexCursor = cl.query( null, null, null, hint );

@@ -114,7 +114,8 @@ public class Transaction17358A extends SdbTestBase {
     public void test( String indexKey, List< BSONObject > expPositiveReadList1,
             List< BSONObject > expReverseReadList1,
             List< BSONObject > expPositiveReadList2,
-            List< BSONObject > expReverseReadList2 ) {
+            List< BSONObject > expReverseReadList2 )
+            throws InterruptedException {
         try {
             // 插入记录R1
             cl.insert( insertR1 );
@@ -129,17 +130,14 @@ public class Transaction17358A extends SdbTestBase {
             sdb2.beginTransaction();
             sdb3.beginTransaction();
 
-            // 判断事务阻塞需先获取事务id
-            String transactionID2 = TransUtils.getTransactionID( sdb2 );
-
             // 事务1插入记录，R1>R2
             cl1.insert( insertR2 );
 
             // 事务2更新记录R1为R3，R2为R4,R4>R3>R2>R1
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    updateThread.getTransactionID() ) );
 
             // 事务1记录读，正序查询
             expDataList.clear();
@@ -344,6 +342,9 @@ public class Transaction17358A extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.update( null, "{'$inc': {'a': 2, 'b': 2}}", "{'': 'a'}" );
         }
     }

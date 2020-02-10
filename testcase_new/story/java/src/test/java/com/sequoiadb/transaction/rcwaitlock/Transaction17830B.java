@@ -79,7 +79,7 @@ public class Transaction17830B extends SdbTestBase {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
 
         // 开启3个并发事务
         db1.beginTransaction();
@@ -88,10 +88,6 @@ public class Transaction17830B extends SdbTestBase {
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
-
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
-        String transactionID3 = TransUtils.getTransactionID( db3 );
 
         // 插入记录R1、R2
         BSONObject insertR2 = ( BSONObject ) JSON.parse( "{_id:2,a:2,b:2}" );
@@ -105,13 +101,15 @@ public class Transaction17830B extends SdbTestBase {
         // 事务2匹配R1、R2删除
         DeleteThread deleteThread = new DeleteThread();
         deleteThread.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                deleteThread.getTransactionID() ) );
 
         // 事务3记录读
         TransactionQueryThread tableScanThread1 = new TransactionQueryThread(
                 cl3 );
         tableScanThread1.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                tableScanThread1.getTransactionID() ) );
 
         // 非事务读
         BSONObject updateR1 = ( BSONObject ) JSON.parse( "{_id:1,a:3,b:1}" );
@@ -126,7 +124,8 @@ public class Transaction17830B extends SdbTestBase {
         if ( !( deleteThread.isSuccess() ) ) {
             Assert.fail( deleteThread.getErrorMsg() );
         }
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                tableScanThread1.getTransactionID() ) );
 
         // 非事务读
         expList.clear();
@@ -179,6 +178,9 @@ public class Transaction17830B extends SdbTestBase {
     private class DeleteThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.delete( null, hint );
         }
     }
@@ -193,6 +195,9 @@ public class Transaction17830B extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             List< BSONObject > ret = new ArrayList< BSONObject >();
             DBCursor indexCursor = cl.query( null, null, "{_id:1}", hint );
             while ( indexCursor.hasNext() ) {

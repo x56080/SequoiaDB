@@ -1,10 +1,5 @@
 package com.sequoiadb.transaction.rcwaitlock;
 
-/**
- * @Description seqDB-17154: 更新记录与读记录并发，事务提交 
- * @author xiaoni Zhao
- * @date 2019-1-22
- */
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +16,12 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 import com.sequoiadb.transaction.TransUtils;
+
+/**
+ * @Description seqDB-17154: 更新记录与读记录并发，事务提交
+ * @author xiaoni Zhao
+ * @date 2019-1-22
+ */
 
 @Test(groups = "rcwaitlock")
 public class Transaction17154A extends SdbTestBase {
@@ -66,12 +67,6 @@ public class Transaction17154A extends SdbTestBase {
         db4.beginTransaction();
         db5.beginTransaction();
 
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
-        String transactionID3 = TransUtils.getTransactionID( db3 );
-        String transactionID4 = TransUtils.getTransactionID( db4 );
-        String transactionID5 = TransUtils.getTransactionID( db5 );
-
         // 事务1更新索引字段的值
         cl1.update( null, "{$set:{a:2}}", "{'':'a'}" );
         BSONObject updateR1 = ( BSONObject ) JSON.parse( "{_id:1, a:2, b:1}" );
@@ -92,10 +87,14 @@ public class Transaction17154A extends SdbTestBase {
         read4.start();
 
         // 查询均等锁
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID4 ) );
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID5 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read1.getTransactionID() ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read2.getTransactionID() ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read3.getTransactionID() ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read4.getTransactionID() ) );
 
         // 非事务表扫描/索引扫描记录
         TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expList );
@@ -109,11 +108,6 @@ public class Transaction17154A extends SdbTestBase {
         Assert.assertTrue( read2.isSuccess(), read2.getErrorMsg() );
         Assert.assertTrue( read3.isSuccess(), read3.getErrorMsg() );
         Assert.assertTrue( read4.isSuccess(), read4.getErrorMsg() );
-
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID4 ) );
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID5 ) );
 
         // 再次事务中查询
         TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList );
@@ -146,6 +140,9 @@ public class Transaction17154A extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             TransUtils.queryAndCheck( cl, findConf, "", "{a:1}", hint,
                     expList );
         }

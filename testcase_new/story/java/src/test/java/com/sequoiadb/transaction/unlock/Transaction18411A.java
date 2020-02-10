@@ -89,11 +89,10 @@ public class Transaction18411A extends SdbTestBase {
 
         // 开启事务3，select for update R1
         db3.beginTransaction();
-        // 判断事务阻塞需先获取事务id
-        String transactionID3 = TransUtils.getTransactionID( db3 );
         CL3Query th3 = new CL3Query();
         th3.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th3.getTransactionID() ) );
 
         // 待事务3等锁超时后，提交所有事务，再次开启事务，执行查询，检查结果
         Assert.assertFalse(
@@ -114,6 +113,9 @@ public class Transaction18411A extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             try {
+                // 判断事务阻塞需先获取事务id
+                setTransactionID( db3 );
+
                 DBCollection cl3 = db3.getCollectionSpace( csName )
                         .getCollection( clName );
                 DBCursor cursor = cl3.query( "{a:1}", "", "",

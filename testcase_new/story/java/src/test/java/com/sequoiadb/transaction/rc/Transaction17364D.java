@@ -307,6 +307,9 @@ public class Transaction17364D extends SdbTestBase {
     private class DeleteThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.delete( null, hintIxScan );
         }
     }

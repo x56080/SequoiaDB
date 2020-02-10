@@ -83,20 +83,19 @@ public class Transaction18406 extends SdbTestBase {
 
         // 开启事务2，select for update R1
         db2.beginTransaction();
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
         CL2Query th2 = new CL2Query();
         th2.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th2.getTransactionID() ) );
 
         Thread.sleep( TransUtils.delayTime );
 
         // 开启事务3，select for update R1
         db3.beginTransaction();
-        String transactionID3 = TransUtils.getTransactionID( db3 );
         CL3Query th3 = new CL3Query();
         th3.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th3.getTransactionID() ) );
 
         // 待事务2等锁超时，提交事务1，事务3查询返回R1
         Assert.assertFalse(
@@ -115,6 +114,9 @@ public class Transaction18406 extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             try {
+                // 判断事务阻塞需先获取事务id
+                setTransactionID( db2 );
+
                 DBCollection cl2 = db2.getCollectionSpace( csName )
                         .getCollection( clName );
                 DBCursor cursor = cl2.query( "{a:1}", "", "",
@@ -131,6 +133,9 @@ public class Transaction18406 extends SdbTestBase {
     private class CL3Query extends SdbThreadBase {
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( db3 );
+
             DBCollection cl3 = db3.getCollectionSpace( csName )
                     .getCollection( clName );
             DBCursor cursor = cl3.query( "{a:1}", "", "",

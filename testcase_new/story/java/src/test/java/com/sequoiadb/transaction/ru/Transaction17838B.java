@@ -84,7 +84,7 @@ public class Transaction17838B extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
 
         // 开启3个并发事务
         db1.beginTransaction();
@@ -93,9 +93,6 @@ public class Transaction17838B extends SdbTestBase {
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
-
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
 
         // 插入记录R1、R2
         BSONObject insertR2 = ( BSONObject ) JSON.parse( "{_id:2,a:2,b:2}" );
@@ -110,7 +107,8 @@ public class Transaction17838B extends SdbTestBase {
         // 事务2匹配记录R1、R2更新为R3、R4
         UpdateThread updateThread = new UpdateThread();
         updateThread.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                updateThread.getTransactionID() ) );
 
         // 事务1索引读
         BSONObject updateR4 = ( BSONObject ) JSON.parse( "{_id:2,a:3,b:2}" );
@@ -261,6 +259,9 @@ public class Transaction17838B extends SdbTestBase {
     private class UpdateThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             hint = "{\"\":null}";
             cl2.update( null, "{$set:{a:3}}", hint );
         }

@@ -79,7 +79,7 @@ public class Transaction17111A extends SdbTestBase {
 
     @SuppressWarnings("unchecked")
     @Test(dataProvider = "index")
-    public void test( String indexKey ) {
+    public void test( String indexKey ) throws InterruptedException {
         try {
             cl.createIndex( "a", indexKey, false, false );
 
@@ -96,10 +96,6 @@ public class Transaction17111A extends SdbTestBase {
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
-            // 判断事务阻塞需先获取事务id
-            String transactionID2 = TransUtils.getTransactionID( db2 );
-            String transactionID3 = TransUtils.getTransactionID( db3 );
-
             // 事务1 select for update读记录走索引扫描
             DBCursor recordsCursor = cl1.query( null, null, null, "{'':'a'}",
                     DBQuery.FLG_QUERY_FOR_UPDATE );
@@ -109,14 +105,14 @@ public class Transaction17111A extends SdbTestBase {
             // 事务2 select for update 读记录走表扫描阻塞
             CL2Query cl2Thread = new CL2Query( null, "{'':null}" );
             cl2Thread.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    cl2Thread.getTransactionID() ) );
 
             // 事务3更新记录阻塞
             CL3Update cl3Update = new CL3Update();
             cl3Update.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    cl3Update.getTransactionID() ) );
 
             // 提交事务1
             db1.commit();
@@ -127,8 +123,8 @@ public class Transaction17111A extends SdbTestBase {
             } catch ( InterruptedException e ) {
                 Assert.fail( e.getMessage() );
             }
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    cl3Update.getTransactionID() ) );
 
             // 非事务表扫描
             TransUtils.queryAndCheck( cl, hintTbScan, expList );
@@ -210,6 +206,9 @@ public class Transaction17111A extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl3.getSequoiadb() );
+
             cl3.update( "{a:1}", "{$set:{a:4}}", "{'':'a'}" );
         }
     }
@@ -226,6 +225,9 @@ public class Transaction17111A extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             DBCursor cursor = cl2.query( matcher, null, null, hint,
                     DBQuery.FLG_QUERY_FOR_UPDATE );
             List< BSONObject > records = TransUtils.getReadActList( cursor );

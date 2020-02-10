@@ -91,7 +91,7 @@ public class Transaction17214 extends SdbTestBase {
     }
 
     @Test(dataProvider = "index")
-    public void test( String indexKey ) {
+    public void test( String indexKey ) throws InterruptedException {
         try {
             cl.createIndex( "a", indexKey, false, false );
 
@@ -102,9 +102,6 @@ public class Transaction17214 extends SdbTestBase {
             cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
-
-            // 判断事务阻塞需先获取事务id
-            String transactionID2 = TransUtils.getTransactionID( db2 );
 
             // 插入记录R1
             TransUtils.insertRandomDatas( cl, startId, stopId );
@@ -117,8 +114,8 @@ public class Transaction17214 extends SdbTestBase {
             // 事务2匹配记录R1更新为R3
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    updateThread.getTransactionID() ) );
 
             // 事务1记录读
             ArrayList< BSONObject > updateR1s = TransUtils.getIncDatas( startId,
@@ -420,6 +417,9 @@ public class Transaction17214 extends SdbTestBase {
     private class UpdateThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             hint = "{\"\":\"a\"}";
             cl2.update( "{a: {$gte: " + startId + ", $lt: " + stopId + "}}",
                     "{$inc:{a:" + updateValue2 + "}}", hint );

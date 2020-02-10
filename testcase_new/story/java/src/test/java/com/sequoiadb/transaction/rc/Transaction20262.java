@@ -63,14 +63,11 @@ public class Transaction20262 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
         db1.beginTransaction();
         db2.beginTransaction();
-
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
 
         // 事务1指定_id字段更新记录R1为R2；事务2指定_id字段更新记录R1为R3。
         cl1.update( "{_id:1}", "{$set:{a:2}}", "" );
@@ -79,7 +76,8 @@ public class Transaction20262 extends SdbTestBase {
         TransUtils.queryAndCheck( cl1, "{_id:1}", expList );
         Trans2Update th2 = new Trans2Update();
         th2.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th2.getTransactionID() ) );
 
         // 事务1指定_id删除记录R2，然后回滚；事务2提交。
         cl1.delete( "{_id:1}" );
@@ -95,6 +93,9 @@ public class Transaction20262 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( db2 );
+
             DBCollection cl2 = db2.getCollectionSpace( csName )
                     .getCollection( clName );
             cl2.update( "{_id:1}", "{$set:{a:2}}", "" );

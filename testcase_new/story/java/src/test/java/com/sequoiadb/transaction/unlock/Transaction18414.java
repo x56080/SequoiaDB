@@ -69,7 +69,7 @@ public class Transaction18414 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
         DBCollection cl3 = db3.getCollectionSpace( csName )
@@ -87,13 +87,10 @@ public class Transaction18414 extends SdbTestBase {
 
         // 开启事务2，select for update R1
         db2.beginTransaction();
-
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
-
         CL2Update th2 = new CL2Update();
         th2.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th2.getTransactionID() ) );
 
         // 开启事务3，查询记录R1
         db3.beginTransaction();
@@ -110,6 +107,9 @@ public class Transaction18414 extends SdbTestBase {
     private class CL2Update extends SdbThreadBase {
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( db2 );
+
             DBCollection cl2 = db2.getCollectionSpace( csName )
                     .getCollection( clName );
             DBCursor cursor = cl2.query( "{a:1}", "", "",

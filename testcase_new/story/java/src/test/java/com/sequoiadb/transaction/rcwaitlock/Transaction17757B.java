@@ -86,7 +86,8 @@ public class Transaction17757B extends SdbTestBase {
 
     @SuppressWarnings("unchecked")
     @Test(dataProvider = "index")
-    public void test( String indexKey, String orderBy ) {
+    public void test( String indexKey, String orderBy )
+            throws InterruptedException {
         try {
             cl.createIndex( "a", indexKey, false, false );
             // 开启3个并发事务
@@ -96,10 +97,6 @@ public class Transaction17757B extends SdbTestBase {
             cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
-
-            // 判断事务阻塞需先获取事务id
-            String transactionID2 = TransUtils.getTransactionID( db2 );
-            String transactionID3 = TransUtils.getTransactionID( db3 );
 
             // 插入记录R1
             TransUtils.insertRandomDatas( cl, startId, stopId );
@@ -111,8 +108,8 @@ public class Transaction17757B extends SdbTestBase {
             // 事务2匹配R1删除
             DeleteThread deleteThread = new DeleteThread();
             deleteThread.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    deleteThread.getTransactionID() ) );
 
             // 事务3读
             // 该查询不进行正序索引 逆序查询,反之亦然.原因是因为正序索引进行更新操作时是正向扫描记录,加锁顺序是1 2 3
@@ -120,8 +117,8 @@ public class Transaction17757B extends SdbTestBase {
             TransactionQueryThread tableScanThread1 = new TransactionQueryThread(
                     cl3, orderBy );
             tableScanThread1.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    tableScanThread1.getTransactionID() ) );
 
             // 非事务读
             ArrayList< BSONObject > updateR1s = TransUtils.getIncDatas( startId,
@@ -139,8 +136,8 @@ public class Transaction17757B extends SdbTestBase {
             db1.rollback();
             Assert.assertTrue( deleteThread.isSuccess(),
                     deleteThread.getErrorMsg() );
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    tableScanThread1.getTransactionID() ) );
 
             // 非事务读
             expList.clear();
@@ -233,6 +230,9 @@ public class Transaction17757B extends SdbTestBase {
     private class DeleteThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.delete( "{a: {$gte: " + startId + ", $lt: " + stopId + "}}",
                     hint );
         }
@@ -250,6 +250,9 @@ public class Transaction17757B extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             List< BSONObject > ret = new ArrayList< BSONObject >();
             DBCursor indexCursor = cl.query( null, null, orderBy, hint );
             while ( indexCursor.hasNext() ) {

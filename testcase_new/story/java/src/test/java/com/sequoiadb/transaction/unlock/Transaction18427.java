@@ -62,7 +62,7 @@ public class Transaction18427 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
         DBCollection cl2 = db2.getCollectionSpace( csName )
@@ -70,7 +70,6 @@ public class Transaction18427 extends SdbTestBase {
 
         // 开启事务1，查询记录R1
         db1.beginTransaction();
-        String transactionID1 = TransUtils.getTransactionID( db1 );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
         DBCursor cursor = cl1.query( "{a:1}", "", "",
                 "{'':'" + idxName + "'}" );
@@ -90,7 +89,8 @@ public class Transaction18427 extends SdbTestBase {
         // 事务1更新记录R1为R2
         CL1Update th1 = new CL1Update();
         th1.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID1 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th1.getTransactionID() ) );
 
         // 提交事务2，检查结果
         db2.commit();
@@ -109,6 +109,9 @@ public class Transaction18427 extends SdbTestBase {
     private class CL1Update extends SdbThreadBase {
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( db1 );
+
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
             cl1.update( "{a:1}", "{$set:{a:2}}", "{'':'" + idxName + "'}" );

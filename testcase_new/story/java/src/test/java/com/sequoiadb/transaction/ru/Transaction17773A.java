@@ -107,7 +107,8 @@ public class Transaction17773A extends SdbTestBase {
     public void test( String indexKey, List< BSONObject > expPositiveReadList1,
             List< BSONObject > expReverseReadList1,
             List< BSONObject > expPositiveReadList2,
-            List< BSONObject > expReverseReadList2 ) {
+            List< BSONObject > expReverseReadList2 )
+            throws InterruptedException {
         try {
             cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
@@ -117,9 +118,6 @@ public class Transaction17773A extends SdbTestBase {
             sdb1.beginTransaction();
             sdb2.beginTransaction();
             sdb3.beginTransaction();
-
-            // 判断事务阻塞需先获取事务id
-            String transactionID2 = TransUtils.getTransactionID( sdb2 );
 
             // 插入记录R1
             cl.createIndex( "a", indexKey, false, false );
@@ -131,8 +129,8 @@ public class Transaction17773A extends SdbTestBase {
             // 事务2更新记录R1为R3，R2为R4
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    updateThread.getTransactionID() ) );
 
             // 事务1记录读，正序
             recordCur = cl1.query( null, null, "{a:1}", "{'': null}" );
@@ -210,8 +208,6 @@ public class Transaction17773A extends SdbTestBase {
             sdb1.commit();
             Assert.assertTrue( updateThread.isSuccess(),
                     updateThread.getErrorMsg() );
-            Assert.assertFalse(
-                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
             // 非事务记录读，正序
             expDataList.clear();
@@ -445,6 +441,9 @@ public class Transaction17773A extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.update( null, "{'$inc': {'a': 2, 'b': 2}}", "{'': 'a'}" );
         }
     }

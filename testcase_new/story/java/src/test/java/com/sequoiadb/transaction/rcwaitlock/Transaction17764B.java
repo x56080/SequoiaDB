@@ -69,7 +69,7 @@ public class Transaction17764B extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = sdb3.getCollectionSpace( csName ).getCollection( clName );
@@ -78,22 +78,20 @@ public class Transaction17764B extends SdbTestBase {
         sdb2.beginTransaction();
         sdb3.beginTransaction();
 
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( sdb2 );
-        String transactionID3 = TransUtils.getTransactionID( sdb3 );
-
         // 2 trans1 query.update
         cl1.insert( data2 );
 
         // 3 trans2 delete r1 and r2
         DeleteThread deleteThread = new DeleteThread();
         deleteThread.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                deleteThread.getTransactionID() ) );
 
         // 4 trans3 read
         QueryThread queryThread = new QueryThread();
         queryThread.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                queryThread.getTransactionID() ) );
 
         // 5 no trans read
         expDataList.clear();
@@ -181,6 +179,9 @@ public class Transaction17764B extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.delete( null, "{'': 'a'}" );
         }
     }
@@ -189,6 +190,8 @@ public class Transaction17764B extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl3.getSequoiadb() );
 
             List< BSONObject > queryList = new ArrayList< BSONObject >();
             queryList.add( data2 );

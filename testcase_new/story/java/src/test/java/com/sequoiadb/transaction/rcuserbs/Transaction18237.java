@@ -59,7 +59,7 @@ public class Transaction18237 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
 
         cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
@@ -72,10 +72,6 @@ public class Transaction18237 extends SdbTestBase {
         sdb3.beginTransaction();
         sdb4.beginTransaction();
         sdb5.beginTransaction();
-
-        // 判断事务阻塞需先获取事务id
-        String transactionID4 = TransUtils.getTransactionID( sdb4 );
-        String transactionID5 = TransUtils.getTransactionID( sdb5 );
 
         // 1 trans1 query
         expDataList.clear();
@@ -107,11 +103,13 @@ public class Transaction18237 extends SdbTestBase {
         // trans 4 query
         QueryThread queryThread1 = new QueryThread( cl4, "{'': null}" );
         queryThread1.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID4 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                queryThread1.getTransactionID() ) );
 
         QueryThread queryThread2 = new QueryThread( cl5, "{'': 'a'}" );
         queryThread2.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID5 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                queryThread2.getTransactionID() ) );
 
         // no trans read
         expDataList.clear();
@@ -184,6 +182,9 @@ public class Transaction18237 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             List< BSONObject > expList = new ArrayList< BSONObject >();
             expList.add( ( BSONObject ) JSON.parse( "{'_id': 1, 'a': 2}" ) );
 

@@ -56,10 +56,6 @@ public class Transaction17154D extends SdbTestBase {
         db2.beginTransaction();
         db3.beginTransaction();
 
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
-        String transactionID3 = TransUtils.getTransactionID( db3 );
-
         // 事务1删除非索引字段
         cl1.update( null, "{$unset:{b:1}}", "{'':'a'}" );
         BSONObject updateR1 = ( BSONObject ) JSON.parse( "{_id:1, a:1}" );
@@ -72,8 +68,10 @@ public class Transaction17154D extends SdbTestBase {
         read2.start();
 
         // 查询均等锁
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read1.getTransactionID() ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read1.getTransactionID() ) );
 
         // 非事务表扫描/索引扫描记录
         TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expList );
@@ -85,9 +83,6 @@ public class Transaction17154D extends SdbTestBase {
         // 查询线程判断返回成功，且不再等锁
         Assert.assertTrue( read1.isSuccess(), read1.getErrorMsg() );
         Assert.assertTrue( read2.isSuccess(), read2.getErrorMsg() );
-
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         // 再次事务中查询
         TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList );
@@ -116,6 +111,9 @@ public class Transaction17154D extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             TransUtils.queryAndCheck( cl, "{a:1}", hint, expList );
         }
     }

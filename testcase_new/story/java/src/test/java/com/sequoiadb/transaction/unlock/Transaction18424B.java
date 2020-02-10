@@ -97,10 +97,10 @@ public class Transaction18424B extends SdbTestBase {
 
         // 开启事务3，删除记录R1
         db3.beginTransaction();
-        String transactionID3 = TransUtils.getTransactionID( db3 );
         CL3Delete th3 = new CL3Delete();
         th3.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th3.getTransactionID() ) );
 
         // 待事务3等锁超时后，再次开启事务查询，执行查询检查结果
         Assert.assertFalse(
@@ -123,6 +123,9 @@ public class Transaction18424B extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             try {
+                // 判断事务阻塞需先获取事务id
+                setTransactionID( db3 );
+
                 DBCollection cl3 = db3.getCollectionSpace( csName )
                         .getCollection( clName );
                 cl3.delete( "{a:1}", "{'':'" + idxName + "'}" );

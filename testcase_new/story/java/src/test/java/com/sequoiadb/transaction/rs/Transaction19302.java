@@ -93,9 +93,6 @@ public class Transaction19302 extends SdbTestBase {
             cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
 
-            // 判断事务阻塞需先获取事务id
-            String transactionID2 = TransUtils.getTransactionID( db2 );
-
             // 事务1查询R1
             TransUtils.queryAndCheck( cl1, hint, expList );
 
@@ -112,8 +109,8 @@ public class Transaction19302 extends SdbTestBase {
             // 事务2升级s锁为u锁，阻塞等锁
             Cl2Query cl2Query = new Cl2Query( hint );
             cl2Query.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    cl2Query.getTransactionID() ) );
 
             // 事务1u锁升级为x锁，升级失败，事务回滚
             try {
@@ -147,6 +144,9 @@ public class Transaction19302 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             DBCursor cursor = cl2.query( "", "", "", hint,
                     DBQuery.FLG_QUERY_FOR_UPDATE );
             ArrayList< BSONObject > actualList = new ArrayList< BSONObject >();

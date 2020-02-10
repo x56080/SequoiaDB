@@ -86,7 +86,7 @@ public class Transaction17827 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = sdb3.getCollectionSpace( csName ).getCollection( clName );
@@ -95,22 +95,20 @@ public class Transaction17827 extends SdbTestBase {
         sdb2.beginTransaction();
         sdb3.beginTransaction();
 
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( sdb2 );
-        String transactionID3 = TransUtils.getTransactionID( sdb3 );
-
         // 2 trans1 insert record R2
         cl1.insert( data2 );
 
         // 3 trans2 update R1 and R2 to R3 and R4
         UpdateThread updateThread = new UpdateThread();
         updateThread.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                updateThread.getTransactionID() ) );
 
         // 4 trans3 read
         QueryThread queryThread = new QueryThread();
         queryThread.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                queryThread.getTransactionID() ) );
 
         // 5 no trans read
         expDataList.clear();
@@ -130,7 +128,6 @@ public class Transaction17827 extends SdbTestBase {
         sdb1.commit();
         Assert.assertTrue( updateThread.isSuccess(),
                 updateThread.getErrorMsg() );
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         expDataList.clear();
         expDataList.add( data3 );
@@ -159,7 +156,6 @@ public class Transaction17827 extends SdbTestBase {
         // 8 read after trans2 commit
         sdb2.commit();
         Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
 
         recordCur = cl.query( null, null, "{a:1}", "{'': null}" );
         actDataList = TransUtils.getReadActList( recordCur );
@@ -213,6 +209,9 @@ public class Transaction17827 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.update( null, "{'$inc': {'a': 2, 'b': 2}}", "{'': null}" );
         }
     }
@@ -221,6 +220,9 @@ public class Transaction17827 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl3.getSequoiadb() );
+
             List< BSONObject > queryList = new ArrayList< BSONObject >();
             queryList.add( data3 );
             queryList.add( data4 );

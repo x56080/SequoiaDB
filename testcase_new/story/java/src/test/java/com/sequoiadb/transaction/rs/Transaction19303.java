@@ -93,9 +93,6 @@ public class Transaction19303 extends SdbTestBase {
             cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
 
-            // 判断事务阻塞需先获取事务id
-            String transactionID2 = TransUtils.getTransactionID( db2 );
-
             // 事务1查询R1
             TransUtils.queryAndCheck( cl1, hint, expList );
 
@@ -112,8 +109,8 @@ public class Transaction19303 extends SdbTestBase {
             // 事务2升级s锁为x锁，阻塞等锁
             Cl2Update cl2Update = new Cl2Update( hint );
             cl2Update.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    cl2Update.getTransactionID() ) );
 
             // 事务1 u锁升级为x锁，升级失败，事务回滚
             try {
@@ -152,6 +149,9 @@ public class Transaction19303 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.update( "", "{$set:{a:2}}", hint );
         }
     }

@@ -93,9 +93,6 @@ public class Transaction19304 extends SdbTestBase {
             cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
 
-            // 判断事务阻塞需先获取事务id
-            String transactionID1 = TransUtils.getTransactionID( db1 );
-
             // 事务1查询R1
             TransUtils.queryAndCheck( cl1, hint, expList );
 
@@ -105,8 +102,8 @@ public class Transaction19304 extends SdbTestBase {
             // 事务1升级s锁为x锁，阻塞等锁
             Cl1Update cl1Update = new Cl1Update( hint );
             cl1Update.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID1 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    cl1Update.getTransactionID() ) );
 
             // 事务2s锁升级为u锁，升级成功
             DBCursor cursor = cl2.query( "", "", "", hint,
@@ -114,8 +111,8 @@ public class Transaction19304 extends SdbTestBase {
             ArrayList< BSONObject > actualList = TransUtils
                     .getReadActList( cursor );
             Assert.assertEquals( actualList, expList );
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID1 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    cl1Update.getTransactionID() ) );
 
             // 事务2 u锁升级为x锁，升级失败，事务回滚
             try {
@@ -154,6 +151,9 @@ public class Transaction19304 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl1.getSequoiadb() );
+
             cl1.update( "", "{$set:{a:2}}", hint );
         }
     }

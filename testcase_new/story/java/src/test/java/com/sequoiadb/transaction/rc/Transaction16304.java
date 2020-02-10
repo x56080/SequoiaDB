@@ -53,15 +53,12 @@ public class Transaction16304 extends SdbTestBase {
     }
 
     @Test
-    private void testTrans16304() {
+    private void testTrans16304() throws InterruptedException {
         // 因query接口使用QUERY_FLG_FOR_UPDATE执行查询已在用例17111中覆盖，这里只测试queryone接口
         sdb.beginTransaction();
         sdb2.beginTransaction();
         cl1 = sdb.getCollectionSpace( commCSName ).getCollection( clName );
         cl2 = sdb2.getCollectionSpace( commCSName ).getCollection( clName );
-
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( sdb2 );
 
         BSONObject obj = cl1.queryOne( null, null, null, null,
                 DBQuery.FLG_QUERY_FOR_UPDATE );
@@ -72,7 +69,8 @@ public class Transaction16304 extends SdbTestBase {
 
         CL2Update cl2Update = new CL2Update();
         cl2Update.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                cl2Update.getTransactionID() ) );
 
         sdb.commit();
         Assert.assertTrue( cl2Update.isSuccess(), cl2Update.getErrorMsg() );
@@ -136,6 +134,9 @@ public class Transaction16304 extends SdbTestBase {
     private class CL2Update extends SdbThreadBase {
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             DBQuery query = new DBQuery();
             query.setModifier( ( BSONObject ) JSON.parse( "{$set:{num:22}}" ) );
             cl2.update( query );

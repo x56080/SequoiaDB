@@ -97,7 +97,7 @@ public class Transaction17778 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = sdb3.getCollectionSpace( csName ).getCollection( clName );
@@ -106,16 +106,14 @@ public class Transaction17778 extends SdbTestBase {
         sdb2.beginTransaction();
         sdb3.beginTransaction();
 
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( sdb2 );
-
         // 2 trans1 insert record
         cl1.update( new BasicBSONObject( "a", 1 ), modifier3, null );
 
         // 3 trans2 update
         UpdateThread updateThread = new UpdateThread();
         updateThread.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                updateThread.getTransactionID() ) );
 
         // 4 trans1 read
         expDataList.add( data2 );
@@ -156,7 +154,6 @@ public class Transaction17778 extends SdbTestBase {
         sdb1.commit();
         Assert.assertTrue( updateThread.isSuccess(),
                 updateThread.getErrorMsg() );
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
         expDataList.clear();
         expDataList.add( data4 );
@@ -251,6 +248,9 @@ public class Transaction17778 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.update( null, "{'$inc': {'a': 2, 'b': 2}}", "{'': 'a'}" );
         }
     }

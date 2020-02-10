@@ -81,11 +81,10 @@ public class Transaction18408A extends SdbTestBase {
 
         // 开启事务2，更新记录R1为R2
         db2.beginTransaction();
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
         CL2Update th2 = new CL2Update();
         th2.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th2.getTransactionID() ) );
 
         // 开启事务3，查询记录R1
         db3.beginTransaction();
@@ -113,6 +112,9 @@ public class Transaction18408A extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             try {
+                // 判断事务阻塞需先获取事务id
+                setTransactionID( db2 );
+
                 DBCollection cl2 = db2.getCollectionSpace( csName )
                         .getCollection( clName );
                 cl2.update( "{a:1}", "{$set:{a:2}}", "{'':'" + idxName + "'}" );

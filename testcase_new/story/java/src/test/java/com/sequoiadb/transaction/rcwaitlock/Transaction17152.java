@@ -54,9 +54,6 @@ public class Transaction17152 extends SdbTestBase {
         db1.beginTransaction();
         db2.beginTransaction();
         db3.beginTransaction();
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
-        String transactionID3 = TransUtils.getTransactionID( db3 );
 
         // 事务1插入记录R1
         BSONObject insertR1 = ( BSONObject ) JSON.parse( "{_id:1,a:1,b:1}" );
@@ -71,8 +68,10 @@ public class Transaction17152 extends SdbTestBase {
         Query read2 = new Query( cl3, "{'':'a'}", expList );
         read2.start();
 
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read1.getTransactionID() ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read2.getTransactionID() ) );
 
         // 非事务扫描记录
         TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expList );
@@ -110,6 +109,9 @@ public class Transaction17152 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             TransUtils.queryAndCheck( cl, "{a:1}", hint, expList );
         }
     }

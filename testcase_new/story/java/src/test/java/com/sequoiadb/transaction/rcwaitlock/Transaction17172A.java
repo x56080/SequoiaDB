@@ -79,7 +79,7 @@ public class Transaction17172A extends SdbTestBase {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
 
         // 开启3个并发事务
         db1.beginTransaction();
@@ -89,10 +89,6 @@ public class Transaction17172A extends SdbTestBase {
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
-        String transactionID3 = TransUtils.getTransactionID( db3 );
-
         // 事务1插入记录R1
         ArrayList< BSONObject > insertR1s = TransUtils.insertDatas( cl1,
                 startId, stopId, insertValue );
@@ -100,13 +96,15 @@ public class Transaction17172A extends SdbTestBase {
         // 事务2删除记录R1
         DeleteThread deleteThread = new DeleteThread();
         deleteThread.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                deleteThread.getTransactionID() ) );
 
         // 事务3读
         TransactionQueryThread tableScanThread1 = new TransactionQueryThread(
                 cl3 );
         tableScanThread1.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                tableScanThread1.getTransactionID() ) );
 
         // 非事务读
         expList.addAll( insertR1s );
@@ -119,7 +117,8 @@ public class Transaction17172A extends SdbTestBase {
         db1.commit();
         Assert.assertTrue( deleteThread.isSuccess(),
                 deleteThread.getErrorMsg() );
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                tableScanThread1.getTransactionID() ) );
 
         // 非事务读
         expList.clear();
@@ -171,6 +170,9 @@ public class Transaction17172A extends SdbTestBase {
     private class DeleteThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.delete( null, hint );
         }
     }
@@ -185,6 +187,9 @@ public class Transaction17172A extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             List< BSONObject > ret = new ArrayList< BSONObject >();
             DBCursor indexCursor = cl.query( null, null, "{_id:1}", hint );
             while ( indexCursor.hasNext() ) {

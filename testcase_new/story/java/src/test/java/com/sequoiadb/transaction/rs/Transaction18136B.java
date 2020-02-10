@@ -75,7 +75,7 @@ public class Transaction18136B extends SdbTestBase {
     }
 
     @Test(dataProvider = "index")
-    public void test( String indexKey ) {
+    public void test( String indexKey ) throws InterruptedException {
         try {
             cl.createIndex( "a", indexKey, false, false );
             BSONObject R1 = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
@@ -88,9 +88,6 @@ public class Transaction18136B extends SdbTestBase {
             db1.beginTransaction();
             db2.beginTransaction();
             db3.beginTransaction();
-
-            // 判断事务阻塞需先获取事务id
-            String transactionID3 = TransUtils.getTransactionID( db3 );
 
             // 事务1读记录走表扫描
             expList.clear();
@@ -117,8 +114,8 @@ public class Transaction18136B extends SdbTestBase {
             // 事务3更新记录
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    updateThread.getTransactionID() ) );
 
             // 提交事务1和事务2
             db1.commit();
@@ -189,6 +186,9 @@ public class Transaction18136B extends SdbTestBase {
     private class UpdateThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl3.getSequoiadb() );
+
             cl3.update( null, "{$set:{a:" + 2 + "}}", "{'':'a'}" );
         }
     }

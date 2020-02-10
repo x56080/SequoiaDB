@@ -77,7 +77,7 @@ public class Transaction17239 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         // 开启并发事务
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
@@ -85,9 +85,6 @@ public class Transaction17239 extends SdbTestBase {
         db1.beginTransaction();
         db2.beginTransaction();
         db3.beginTransaction();
-
-        // 判断事务阻塞需先获取事务id
-        String transactionID3 = TransUtils.getTransactionID( db3 );
 
         // 事务1 select for update读记录走表扫描
         DBCursor recordsCursor = cl1.query( null, null, null, "{'':null}",
@@ -115,7 +112,8 @@ public class Transaction17239 extends SdbTestBase {
         // 事务3更新记录阻塞
         CL3Update cl3Update = new CL3Update();
         cl3Update.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                cl3Update.getTransactionID() ) );
 
         // 提交事务1
         db1.commit();
@@ -171,6 +169,9 @@ public class Transaction17239 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl3.getSequoiadb() );
+
             cl3.update( "{a:1}", "{$set:{a:4}}", "{'':'textIndex17240'}" );
         }
     }

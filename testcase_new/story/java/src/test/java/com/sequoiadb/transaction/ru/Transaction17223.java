@@ -84,7 +84,7 @@ public class Transaction17223 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
 
         // 开启3个并发事务
         db1.beginTransaction();
@@ -93,9 +93,6 @@ public class Transaction17223 extends SdbTestBase {
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
-
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
 
         // 插入记录R1
         TransUtils.insertDatas( cl, startId, stopId, insertValue );
@@ -107,7 +104,8 @@ public class Transaction17223 extends SdbTestBase {
         // 事务2匹配R1删除
         DeleteThread deleteThread = new DeleteThread();
         deleteThread.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                deleteThread.getTransactionID() ) );
 
         // 事务1索引读
         hint = "{\"\":\"a\"}";
@@ -237,6 +235,9 @@ public class Transaction17223 extends SdbTestBase {
     private class DeleteThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             hint = "{\"\":\"a\"}";
             cl2.delete( null, hint );
         }

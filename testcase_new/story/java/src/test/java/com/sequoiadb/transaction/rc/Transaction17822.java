@@ -77,7 +77,8 @@ public class Transaction17822 extends SdbTestBase {
     }
 
     @Test(dataProvider = "index")
-    public void test( String indexKey, List< BSONObject > expReadList1 ) {
+    public void test( String indexKey, List< BSONObject > expReadList1 )
+            throws InterruptedException {
         try {
             // 插入记录R1
             cl.insert( insertR1 );
@@ -91,17 +92,14 @@ public class Transaction17822 extends SdbTestBase {
             sdb2.beginTransaction();
             sdb3.beginTransaction();
 
-            // 判断事务阻塞需先获取事务id
-            String transactionID2 = TransUtils.getTransactionID( sdb2 );
-
             // 事务1插入记录R2
             cl1.insert( insertR2 );
 
             // 事务2删除R1及R2
             DeleteThread deleteThread = new DeleteThread();
             deleteThread.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    deleteThread.getTransactionID() ) );
 
             // 事务1正序记录读
             expDataList.clear();
@@ -253,6 +251,9 @@ public class Transaction17822 extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.delete( null, hintTbScan );
         }
     }

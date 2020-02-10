@@ -78,7 +78,7 @@ public class Transaction17113 extends SdbTestBase {
     }
 
     @Test(dataProvider = "index")
-    public void test( String indexKey ) {
+    public void test( String indexKey ) throws InterruptedException {
         try {
             cl.createIndex( "a", indexKey, false, false );
 
@@ -94,9 +94,6 @@ public class Transaction17113 extends SdbTestBase {
             cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
-
-            // 判断事务阻塞需先获取事务id
-            String transactionID3 = TransUtils.getTransactionID( db3 );
 
             // 事务1表扫描
             TransUtils.queryAndCheck( cl1, hintTbScan, expList );
@@ -140,13 +137,13 @@ public class Transaction17113 extends SdbTestBase {
             // 事务3更新记录阻塞
             CL3Update cl3Update = new CL3Update();
             cl3Update.start();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    cl3Update.getTransactionID() ) );
 
             // 提交事务1
             db1.commit();
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    cl3Update.getTransactionID() ) );
 
             // 非事务表扫描
             Collections.reverse( expList );
@@ -231,6 +228,9 @@ public class Transaction17113 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl3.getSequoiadb() );
+
             cl3.update( "{a:1}", "{$set:{a:4}}", "{'':'a'}" );
         }
     }

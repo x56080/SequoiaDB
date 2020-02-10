@@ -80,7 +80,7 @@ public class Transaction17832B extends SdbTestBase {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
 
         // 开启3个并发事务
         db1.beginTransaction();
@@ -89,10 +89,6 @@ public class Transaction17832B extends SdbTestBase {
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
-
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
-        String transactionID3 = TransUtils.getTransactionID( db3 );
 
         // 插入记录R2、R1
         BSONObject insertR2 = ( BSONObject ) JSON.parse( "{_id:2,a:2,b:2}" );
@@ -106,13 +102,15 @@ public class Transaction17832B extends SdbTestBase {
         // 事务2匹配R1、R2更新为R3、R4,R1<R2<R3
         UpdateThread updateThread = new UpdateThread();
         updateThread.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                updateThread.getTransactionID() ) );
 
         // 事务3记录读
         TransactionQueryThread tableScanThread1 = new TransactionQueryThread(
                 cl3 );
         tableScanThread1.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                tableScanThread1.getTransactionID() ) );
 
         // 非事务读
         BSONObject updateR2 = ( BSONObject ) JSON.parse( "{_id:2,a:3,b:2}" );
@@ -126,7 +124,8 @@ public class Transaction17832B extends SdbTestBase {
         db1.commit();
         Assert.assertTrue( updateThread.isSuccess(),
                 updateThread.getErrorMsg() );
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                tableScanThread1.getTransactionID() ) );
 
         // 非事务记录读
         expList.clear();
@@ -189,6 +188,9 @@ public class Transaction17832B extends SdbTestBase {
     private class UpdateThread extends SdbThreadBase {
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl2.getSequoiadb() );
+
             cl2.update( null, "{$set:{a:3}}", hint );
         }
     }
@@ -203,6 +205,9 @@ public class Transaction17832B extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             List< BSONObject > ret = new ArrayList< BSONObject >();
             DBCursor indexCursor = cl.query( null, null, "{_id:1}", hint );
             while ( indexCursor.hasNext() ) {

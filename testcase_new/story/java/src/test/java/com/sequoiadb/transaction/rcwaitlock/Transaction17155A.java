@@ -70,12 +70,6 @@ public class Transaction17155A extends SdbTestBase {
         db4.beginTransaction();
         db5.beginTransaction();
 
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
-        String transactionID3 = TransUtils.getTransactionID( db3 );
-        String transactionID4 = TransUtils.getTransactionID( db4 );
-        String transactionID5 = TransUtils.getTransactionID( db5 );
-
         // 事务1更新索引字段的值
         cl1.update( null, "{$set:{a:2}}", "{'':'a'}" );
         BSONObject updateR1 = ( BSONObject ) JSON.parse( "{_id:1, a:2, b:1}" );
@@ -109,11 +103,6 @@ public class Transaction17155A extends SdbTestBase {
         Assert.assertTrue( read3.isSuccess(), read3.getErrorMsg() );
         Assert.assertTrue( read4.isSuccess(), read4.getErrorMsg() );
 
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID4 ) );
-        Assert.assertFalse( TransUtils.isTransWaitLock( sdb, transactionID5 ) );
-
         // 再次事务中查询
         TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList1 );
         TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}", expList1 );
@@ -145,6 +134,9 @@ public class Transaction17155A extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             TransUtils.queryAndCheck( cl, findConf, "", "{a:1}", hint,
                     expList );
         }

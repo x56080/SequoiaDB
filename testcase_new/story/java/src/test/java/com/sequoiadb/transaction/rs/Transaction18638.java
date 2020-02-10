@@ -87,9 +87,6 @@ public class Transaction18638 extends SdbTestBase {
                 .getCollection( hashCLName );
         DBCollection cl3 = db3.getCollectionSpace( csName )
                 .getCollection( hashCLName );
-        // 判断事务阻塞需先获取事务id
-        String transactionID2 = TransUtils.getTransactionID( db2 );
-        String transactionID3 = TransUtils.getTransactionID( db3 );
 
         // 事务1批量插入记录后为R1s
         expList = TransUtils.insertRandomDatas( cl1, 0, 10000 );
@@ -101,8 +98,10 @@ public class Transaction18638 extends SdbTestBase {
         Query th2_2 = new Query( cl3, hintIxScan, expList );
         th2_2.start();
 
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID3 ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th2_1.getTransactionID() ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th2_2.getTransactionID() ) );
 
         // 非事务表扫描/索引扫描记录
         TransUtils.queryAndCheck( cl, "{a:1}", hintTbScan, expList );
@@ -141,6 +140,9 @@ public class Transaction18638 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+            // 判断事务阻塞需先获取事务id
+            setTransactionID( cl.getSequoiadb() );
+
             TransUtils.queryAndCheck( cl, "{a:1}", hint, expList );
         }
     }
