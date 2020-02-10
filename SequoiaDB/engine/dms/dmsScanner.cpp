@@ -655,8 +655,12 @@ namespace engine
               _curRecordPtr->isDeleting() )
          {
             // if lock mode is X which implies mbLatch mode is also X,
-            // we should simply skip without looking into RBS
-            if ( DPS_TRANSLOCK_X == _recordLock )
+            // we should simply skip without looking into RBS.
+            // We can only delete the record if it expired
+            if ( ( DPS_TRANSLOCK_X == _recordLock ) &&
+                 ( !pmdGetOptionCB()->mvccOn() || 
+                   _pTransCB->isVersionExpired(
+                        _curRecordPtr->getGlobTransID() ) ) )
             {
                INT32 rc1 = _pSu->deleteRecord( _context, _curRID,
                                                0, cb, NULL, NULL,
@@ -678,7 +682,10 @@ namespace engine
             PD_LOG( PDDEBUG, "skip deleting record " ) ;
             continue ;
          }
-         SDB_ASSERT( !_curRecordPtr->isDeleted(), "record can't be deleted" ) ;
+         // either we got an old version from RBS(setup in recordData), we
+         // we have a non deleted record
+         SDB_ASSERT( !( _curRecordPtr->isDeleted() && recordData.isEmpty() ),
+                     "record can't be deleted" ) ;
 
          if ( !_matchRuntime && _skipNum > 0 )
          {
@@ -2017,7 +2024,11 @@ namespace engine
          {
             // if lock mode is X which also implies mbLatch locked in X,
             // we should simply skip without looking into RBS
-            if ( DPS_TRANSLOCK_X == _recordLock )
+            // We can only delete the record if it expired
+            if ( ( DPS_TRANSLOCK_X == _recordLock ) &&
+                 ( !pmdGetOptionCB()->mvccOn() || 
+                   _pTransCB->isVersionExpired(
+                        _curRecordPtr->getGlobTransID() ) ) )
             {
                INT32 rc1 = _pSu->deleteRecord( _context, _curRID, 0,
                                                cb, NULL, NULL,
@@ -2044,8 +2055,9 @@ namespace engine
 
             continue ;
          }
-
-         SDB_ASSERT( !_curRecordPtr->isDeleted(),
+         // either we got an old version from RBS(setup in recordData), we
+         // we have a non deleted record
+         SDB_ASSERT( !( _curRecordPtr->isDeleted() && recordData.isEmpty() ),
                     "record can't be deleted" ) ;
 
          recordID = _curRID ;
