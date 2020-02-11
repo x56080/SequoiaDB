@@ -165,7 +165,8 @@ namespace engine
       //       be available for write operators from global transactions
       if ( options.isWriteOp() ||
            !_eduCB->isGlobTrans() ||
-           !sdbGetTransCB()->isRRSupported() )
+           ( _eduCB->getTransExecutor()->getTransIsolation() != 
+             TRANS_ISOLATION_RR ) )
       {
          goto done ;
       }
