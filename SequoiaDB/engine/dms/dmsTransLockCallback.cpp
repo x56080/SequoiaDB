@@ -626,6 +626,10 @@ namespace engine
           (DPS_TRANSLOCK_OP_MODE_TEST == opMode ||
            DPS_TRANSLOCK_OP_MODE_TRY == opMode ) )
       {
+         DPS_TRANS_ID writingTransID ;
+
+         SDB_ASSERT( pExtData, "ExtData is invalid " ) ;
+
          if ( !pExtData || 0 == pExtData->_data )
          {
             goto done ;
@@ -644,6 +648,46 @@ namespace engine
          {
             _oldVer = NULL ;
             goto done ;
+         }
+
+         // if both read transaction ( current transaction ) and write
+         // transaction ( who is holding the lock ) are global RR transactions,
+         // we need to check if the write transaction could be committed before
+         // read transaction started ( compare global logical time with time
+         // error )
+         writingTransID = _oldVer->getOwnerTransID() ;
+         if ( writingTransID.isGlobTrans() &&
+              transID.isGlobTrans() &&
+              pmdGetOptionCB()->mvccOn() &&
+              TRANS_ISOLATION_RR == _transIsolation )
+         {
+            BOOLEAN visible = FALSE ;
+
+            // check visibility
+            rc = _transCB->isVersionVisible( _eduCB,
+                                             writingTransID,
+                                             transID,
+                                             _eduCB->getTransBeginTime(),
+                                             TRANS_ISOLATION_RR,
+                                             FALSE,
+                                             visible ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check visibility for "
+                         "read transaction [%s] against write "
+                         "transaction [%s], rc: %d",
+                         dpsTransIDToString( transID ).c_str(),
+                         dpsTransIDToString( writingTransID ).c_str(),
+                         rc ) ;
+
+            // if the visible is TRUE returned by checking, the write
+            // transaction must be committed in other groups
+            // to access this record updated by the write transaction, we need
+            // to wait for write transaction to commit to release locks
+            // instead of reading the old version
+            if ( visible )
+            {
+               _oldVer = NULL ;
+               goto done ;
+            }
          }
 
          _recordPtr = _oldVer->getRecordPtr() ;

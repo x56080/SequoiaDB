@@ -552,6 +552,12 @@ namespace engine
          return _timeError ;
       }
 
+      // get time error ( in microseconds )
+      OSS_INLINE UINT32 getTimeErrorUS() const
+      {
+         return STP_NANOSEC_TO_MICROSEC( _timeError ) ;
+      }
+
    protected:
       // get max time error between two logical times ( in nanoseconds )
       OSS_INLINE UINT64 _getMaxTimeErrorNS(
@@ -789,10 +795,35 @@ namespace engine
          _timeError = 0 ;
       }
 
+      // check whether time is validated
       OSS_INLINE BOOLEAN isValid()
       {
          return ( 0 != _time &&
                   0 != _timeError ) ;
+      }
+
+      // get time with upper time error
+      OSS_INLINE UINT64 getUpperTime() const
+      {
+         return _time + (UINT64)( getTimeErrorUS() ) ;
+      }
+
+      // get time with lower time error
+      OSS_INLINE UINT64 getLowerTime() const
+      {
+         return _time - (UINT64)( getTimeErrorUS() ) ;
+      }
+
+      // get logical time with upper time error
+      OSS_INLINE stpLogicalTimeUS getUpperLogicalTime() const
+      {
+         return stpLogicalTimeUS( getUpperTime(), _timeError ) ;
+      }
+
+      // get logical time with lower time error
+      OSS_INLINE stpLogicalTimeUS getLowerLogicalTime() const
+      {
+         return stpLogicalTimeUS( getLowerTime(), _timeError ) ;
       }
 
    protected:

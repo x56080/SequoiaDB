@@ -587,6 +587,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKTRANSRR, "_clsShdSession::_checkTransRR" )
    INT32 _clsShdSession::_checkTransRR( const DPS_TRANS_ID &transID,
                                         const MsgRouteID &remoteRID,
+                                        const stpLogicalTimeUS &transBeginTime,
                                         const stpLogicalTimeUS &remoteTime,
                                         const stpLogicalTimeUS &localTime,
                                         BOOLEAN nextIsWrite )
@@ -596,6 +597,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKTRANSRR ) ;
 
       dpsTransCB *transCB = sdbGetTransCB() ;
+      clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
       stpLogicalTimeUS tmpLocalTime = localTime ;
 
       // check transaction with RR isolation
@@ -607,7 +609,6 @@ namespace engine
       if ( transCB->isGlobTransSyncCheck() &&
            remoteTime != tmpLocalTime )
       {
-         clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
          UINT32 acceptTimeError =
                gtsAgent->getAcceptTimeError( remoteTime, tmpLocalTime ) ;
 
@@ -674,6 +675,20 @@ namespace engine
           PD_RC_CHECK( rc, PDERROR, "Failed to do pre-arbitration "
                        "with write transaction [%s], rc: %d",
                        dpsTransIDToString( transID ).c_str(), rc ) ;
+      }
+
+      // check if transaction passed doing arbitration time ( after that
+      // time, no need to launch arbitration against doing write transactions )
+      tmpLocalTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
+      if ( transBeginTime < tmpLocalTime )
+      {
+#if defined (_DEBUG)
+         PD_LOG( PDDEBUG, "current transaction [%s] passed doing "
+                 "arbit limit, current time [%s]",
+                 dpsTransIDToString( transID ).c_str(),
+                 dpsTransTimeToString( tmpLocalTime ).c_str() ) ;
+#endif
+         _pEDUCB->setPassedDoingArbit( TRUE ) ;
       }
 
    done:
@@ -2722,16 +2737,10 @@ namespace engine
             {
                stpLogicalTimeUS remoteTime( pTransBegin->currentTime,
                                             pTransBegin->currentTimeError ) ;
-               rc = _checkTransRR( transID, remoteRID, remoteTime, currentTime,
-                                   pTransBegin->nextIsWrite ) ;
+               rc = _checkTransRR( transID, remoteRID, beginTime, remoteTime,
+                                   currentTime, pTransBegin->nextIsWrite ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to check transaction "
                             "isolation for RR, rc: %d", rc ) ;
-            }
-
-            if ( beginTime.getTime() + STP_MAX_TIME_ERROR_US >
-                 currentTime.getTime() )
-            {
-               _pEDUCB->setPassedDoingArbit( TRUE ) ;
             }
          }
 
