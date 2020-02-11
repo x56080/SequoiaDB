@@ -760,13 +760,13 @@ namespace engine
       // not lager than with time error
       OSS_INLINE BOOLEAN operator <=( const stpLogicalTimeUS &time ) const
       {
-         return !( time > ( *this ) ) ;
+         return !( time < ( *this ) ) ;
       }
 
       // not less than with time error
       OSS_INLINE BOOLEAN operator >=( const stpLogicalTimeUS &time ) const
       {
-         return !( time < ( *this ) ) ;
+         return !( ( *this ) < time ) ;
       }
 
    public:
