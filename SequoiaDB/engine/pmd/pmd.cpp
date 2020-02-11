@@ -500,6 +500,7 @@ namespace engine
       /// fini cache manager
       _buffPool.fini() ;
       _syncMgr.fini() ;
+      _monMgr.fini() ;
 
       pmdUndeclareEDUCB() ;
 
