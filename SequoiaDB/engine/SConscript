@@ -773,6 +773,9 @@ clsTestFiles = [
       "test/cls/clsTest.cpp",
       "test/cls/clsCataAgentTest.cpp"
       ]
+gtsTestFiles = [
+      "test/dps/dpsGTSTest.cpp"
+      ]
 #catalogueTestFiles = [
 #      "test/catalogTest/catalogTestMainController.cpp"
 #      ]
@@ -898,6 +901,7 @@ env.StaticLibrary('stpagent', stpAgentFiles)
 #nettest = env.Object ( 'nettest', gtestMainFile )
 #cataloguetest = env.Object('cataloguetest', gtestMainFile)
 clstest = env.Object('clstest', gtestMainFile)
+gtstest = env.Object( 'gtstest', gtestMainFile )
 sqltest2 = env.Object('sqltest2', gtestMainFile)
 #sqltest3 = env.Object('sqltest3', gtestMainFile)
 #spdtest = env.Object('spdtest', gtestMainFile)
@@ -998,6 +1002,9 @@ if hasTestcase:
    clsTest = env.Program("clsTest", [ clsTestFiles, clstest],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+   gtsTest = env.Program("gtsTest", [ gtsTestFiles, gtstest],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
    sqlTest2 = env.Program("sqlTest2", [ sqlTest2Files, sqltest2],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","sql","auth", "aggr", "spd", "omsvc", "stpagent"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1056,6 +1063,7 @@ if hasTestcase:
 #   env.Install( '#/tests', npipeServerTest )
 #   env.Install( '#/tests', npipeClientTest )
    env.Install( '#/tests', clsTest )
+   env.Install( '#/tests', gtsTest )
    env.Install( '#/tests', construct )
    env.Install( '#/tests', sqlTest2 )
 #   env.Install( '#/tests', montest )
