@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = rtnFecthBase.hpp
+   Source File Name = rtnFetchBase.hpp
 
    Dependencies: N/A
 
@@ -38,6 +38,7 @@
 #include "oss.hpp"
 #include "pmdEDU.hpp"
 #include "ossMemPool.hpp"
+#include "monDMS.hpp"
 #include "../bson/bson.h"
 
 using namespace bson ;
@@ -88,14 +89,47 @@ namespace engine
    } ;
 
    /*
+      _IRtnMonProcessor define
+   */
+   class _IRtnMonProcessor : public utilPooledObject
+   {
+      public:
+         static const UINT32 FLAG_OUTPUT = 1 ;
+         static const UINT32 FLAG_IGNORE = 2 ;
+
+      public:
+         _IRtnMonProcessor() {}
+         virtual ~_IRtnMonProcessor() {}
+
+         virtual INT32 process( const monCollection &clIn,
+                                monCollection &clOut,
+                                UINT32 &resultFlag )
+         {
+            return SDB_OK ;
+         }
+   } ;
+   typedef _IRtnMonProcessor IRtnMonProcessor ;
+
+   /*
       _rtnFetchBase define
    */
-   class _rtnFetchBase : public SDBObject
+   class _rtnFetchBase : public utilPooledObject
    {
       public :
-         _rtnFetchBase(INT32 sz, RTN_FETCH_TYPE type) : _builder( sz ), _hitEnd( TRUE ), _type(type) {}
+         _rtnFetchBase(INT32 sz, RTN_FETCH_TYPE type) :
+               _builder( sz ),
+               _hitEnd( TRUE ),
+               _type( type ),
+               _pDataProcessor( NULL ),
+               _owned( FALSE ) {}
 
-         virtual ~_rtnFetchBase() {}
+         virtual ~_rtnFetchBase()
+         {
+            if ( _pDataProcessor && _owned )
+            {
+               SDB_OSS_DEL _pDataProcessor ;
+            }
+         }
 
          virtual INT32           init( pmdEDUCB *cb,
                                        BOOLEAN isCurrent,
@@ -111,12 +145,20 @@ namespace engine
 
          RTN_FETCH_TYPE    getType() const { return _type ; }
 
+         void setDataProcessor( IRtnMonProcessor *pDataProcessor, BOOLEAN owned )
+         {
+            _pDataProcessor = pDataProcessor ;
+            _owned = owned ;
+         }
+
       public:
          BufBuilder _builder ;
 
       protected:
-         BOOLEAN    _hitEnd ;
-         RTN_FETCH_TYPE _type ;
+         BOOLEAN           _hitEnd ;
+         RTN_FETCH_TYPE    _type ;
+         IRtnMonProcessor *_pDataProcessor ;
+         BOOLEAN           _owned ;
    } ;
    typedef _rtnFetchBase rtnFetchBase ;
 

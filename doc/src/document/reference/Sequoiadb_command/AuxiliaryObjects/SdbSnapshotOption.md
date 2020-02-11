@@ -55,16 +55,16 @@
 | options   |	Json 对象 | 指定快照参数，因不同快照类型而异，在对应[快照类型](database_management/monitoring/snapshot/snapshot.md)查看选项及示例。  | 是 |
 
 ####options选项####
-| 参数名  | 参数类型 	| 描述 		| 是否必填 |
-| ------  | ------ 	| ------ 	| ------   |
-| Mode   |	String  | 指定返回配置的模式。在 run 模式下，显示当前运行时配置信息，在 local 模式下，显示配置文件中配置信息。如 { "Mode": "local" }。默认为 run。 | 否 |
-| Expand |	Bool/String  | 是否扩展显示用户未配置的配置项。如 { "Expand": false }。默认为 true。| 否 |
-| ShowError | String | 指定是否返回错误信息。在 show 模式下，显示错误信息，在 only 模式下，只显示错误信息，不显示其他快照信息，在 ignore 模式下，不显示错误信息。如 { "ShowError: "only" }。默认为 show。 | 否 |
-| ShowErrorMode | String | 指定返回错误信息的格式。在 aggr 模式下，错误信息聚合为一条记录显示，在 flat 模式下，一个错误节点对应一条记录显示。如 { "ShowErrorMode": "flat" }。默认为 aggr。 | 否 |
+| 参数名  | 参数类型 | 对应快照 | 描述 | 是否必填 |
+| ------  | -------- | -------- | ---- | -------- |
+| Mode    |  String  | [配置快照](database_management/monitoring/snapshot/SDB_SNAP_CONFIGS.md) | 指定返回配置的模式。在 run 模式下，显示当前运行时配置信息，在 local 模式下，显示配置文件中配置信息。如 { "Mode": "local" }。默认为 run。 | 否 |
+| Expand  |  Bool/String  | [配置快照](database_management/monitoring/snapshot/SDB_SNAP_CONFIGS.md) | 是否扩展显示用户未配置的配置项。如 { "Expand": false }。默认为 true。| 否 |
+| ShowError | String | ALL | 指定是否返回错误信息。在 show 模式下，显示错误信息，在 only 模式下，只显示错误信息，不显示其他快照信息，在 ignore 模式下，不显示错误信息。如 { "ShowError: "only" }。默认为 show。 | 否 |
+| ShowErrorMode | String | ALL | 指定返回错误信息的格式。在 aggr 模式下，错误信息聚合为一条记录显示，在 flat 模式下，一个错误节点对应一条记录显示。如 { "ShowErrorMode": "flat" }。默认为 aggr。 | 否 |
+| ShowMainCLMode | String | [集合快照](database_management/monitoring/snapshot/SDB_SNAP_COLLECTIONS.md) | 显示主子表的模式。在 main 模式下，仅显示主表信息，不显示各个子表的信息；在 sub 模式下，仅显示子表信息；both 模式则是两者都显示。如 { "ShowErrorMode": "main" }。默认为 sub。 | 否 |
 
 > **Note：**
 
-> * Mode 参数和 Expand 参数仅支持[配置快照](database_management/monitoring/snapshot/SDB_SNAP_CONFIGS.md)
 > * ShowError 参数和 ShowErrorMode 参数只在协调节点执行快照生效。
 > * ShowError 参数和 ShowErrorMode 参数仅支持会返回错误信息的快照。
 > * 当 ShowError 参数为 ignore 的情况下，ShowErrorMode 参数不起作用。
@@ -201,3 +201,48 @@
 	}
 	Return 1 row(s).
 	```
+
+* 同时查看主表和各个子表的记录数。
+
+	```lang-javascript
+  > var option = new SdbSnapshotOption().sel({ "Name": "", "Details.Group.TotalRecords": "" }).options({ "ShowMainCLMode": "both" });
+  Takes 0.000373s.
+  > db.snapshot( SDB_SNAP_COLLECTIONS, option )
+  {
+    "Name": "cs.mainCL",
+    "Details": [
+      {
+        "Group": [
+          {
+            "TotalRecords": 249
+          }
+        ]
+      }
+    ]
+  }
+  {
+    "Name": "cs.subCL01",
+    "Details": [
+      {
+        "Group": [
+          {
+            "TotalRecords": 198
+          }
+        ]
+      }
+    ]
+  }
+  {
+    "Name": "cs.subCL02",
+    "Details": [
+      {
+        "Group": [
+          {
+            "TotalRecords": 51
+          }
+        ]
+      }
+    ]
+  }
+  Return 3 row(s).
+  ```

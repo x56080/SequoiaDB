@@ -50,6 +50,7 @@
 #include "dpsOp2Record.hpp"
 #include "dpsLogRecordDef.hpp"
 #include "dpsUtil.hpp"
+#include "clsMainCLMonAggregator.hpp"
 
 using namespace bson ;
 
@@ -2189,6 +2190,21 @@ namespace engine
                {
                   goto error ;
                }
+            }
+            else if ( CMD_SNAPSHOT_COLLECTIONS == pCommand->type() )
+            {
+               _rtnMonInnerBase *pMonBase = (_rtnMonInnerBase *)pCommand ;
+               clsShowMainCLMode mode ;
+               IRtnMonProcessor *pProcessor = NULL ;
+               rc = clsParseShowMainCLModeHint( BSONObj(pHintBuffer), mode ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse hint, rc=%d", rc );
+               pProcessor = SDB_OSS_NEW clsMainCLMonAggregator( mode ) ;
+               if ( !pProcessor )
+               {
+                  rc = SDB_OOM ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to alloc monitor data processor" ) ;
+               }
+               pMonBase->setDataProcessor( pProcessor ) ;
             }
             //run command
             rc = rtnRunCommand( pCommand, getServiceType(),

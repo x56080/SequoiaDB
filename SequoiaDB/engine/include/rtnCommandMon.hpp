@@ -36,6 +36,7 @@
 
 #include "rtnCommand.hpp"
 #include "aggrBuilder.hpp"
+#include "rtnFetchBase.hpp"
 
 using namespace bson ;
 
@@ -56,11 +57,16 @@ namespace engine
       protected:
          _rtnMonInnerBase () ;
 
-         _rtnMonInnerBase(const CHAR* name, 
-                          RTN_COMMAND_TYPE type,
-                          INT32 fetchType,
-                          UINT32 infoMask ) 
-           : _name(name), _type(type), _fetchType(fetchType), _infoMask(infoMask){}
+         _rtnMonInnerBase ( const CHAR* name,
+                            RTN_COMMAND_TYPE type,
+                            INT32 fetchType,
+                            UINT32 infoMask ) :
+               _name( name ),
+               _type( type ),
+               _fetchType( fetchType ),
+               _infoMask( infoMask ),
+               _pDataProcessor( NULL ) {}
+
          virtual ~_rtnMonInnerBase () ;
 
       public:
@@ -73,6 +79,11 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
+
+         void setDataProcessor( IRtnMonProcessor *pDataProcessor )
+         {
+            _pDataProcessor = pDataProcessor ;
+         }
 
       protected:
          INT32           _createFetch( _pmdEDUCB *cb,
@@ -103,6 +114,7 @@ namespace engine
          RTN_COMMAND_TYPE     _type ;
          INT32                _fetchType ;
          UINT32               _infoMask ;
+         IRtnMonProcessor    *_pDataProcessor ;
    } ;
 
    /*

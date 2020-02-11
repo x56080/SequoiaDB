@@ -1590,6 +1590,121 @@ namespace engine
       return rc ;
    }
 
+   void  monCollection2Obj ( const monCollection &full, UINT32 addInfoMask,
+                             BSONObjBuilder &ob )
+   {
+       MON_CL_DETAIL_MAP::const_iterator itDetail ;
+      /// add name & space name
+      ob.append ( FIELD_NAME_NAME, full._name ) ;
+      ob.append ( FIELD_NAME_UNIQUEID, (INT64)full._clUniqueID ) ;
+      const CHAR *pDot = ossStrchr( full._name, '.' ) ;
+      if ( pDot )
+      {
+         ob.appendStrWithNoTerminating ( FIELD_NAME_COLLECTIONSPACE,
+                                         full._name,
+                                         pDot - full._name ) ;
+      }
+      /// add detial
+      BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_DETAILS ) ) ;
+      for ( itDetail = full._details.begin() ;
+            itDetail != full._details.end() ;
+            ++itDetail )
+      {
+         const detailedInfo &detail = itDetail->second ;
+         BSONObjBuilder sub( ba.subobjStart() ) ;
+
+         UINT16 flag = detail._flag ;
+         std::string status = "" ;
+         CHAR tmp[ MON_TMP_STR_SZ + 1 ] = { 0 } ;
+         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+
+         /// add system info
+         monAppendSystemInfo( sub, addInfoMask ) ;
+
+         sub.append ( FIELD_NAME_ID, detail._blockID ) ;
+         sub.append ( FIELD_NAME_LOGICAL_ID, detail._logicID ) ;
+         sub.append ( FIELD_NAME_SEQUENCE, (INT32)itDetail->first ) ;
+         sub.append ( FIELD_NAME_INDEXES, detail._numIndexes ) ;
+         monDMSCollectionFlagToString ( flag, status ) ;
+         sub.append ( FIELD_NAME_STATUS, status ) ;
+         mbAttr2String( detail._attribute, tmp, MON_TMP_STR_SZ ) ;
+         sub.append ( FIELD_NAME_ATTRIBUTE, tmp ) ;
+         if ( OSS_BIT_TEST( detail._attribute, DMS_MB_ATTR_COMPRESSED ) )
+         {
+            sub.append ( FIELD_NAME_COMPRESSIONTYPE,
+                         utilCompressType2String( detail._compressType ) ) ;
+         }
+         else
+         {
+            sub.append ( FIELD_NAME_COMPRESSIONTYPE, "" ) ;
+         }
+         sub.appendBool( FIELD_NAME_DICT_CREATED, detail._dictCreated ) ;
+         sub.append( FIELD_NAME_DICT_VERSION, detail._dictVersion ) ;
+         sub.append ( FIELD_NAME_PAGE_SIZE, detail._pageSize ) ;
+         sub.append ( FIELD_NAME_LOB_PAGE_SIZE, detail._lobPageSize ) ;
+
+         /// stat info
+         sub.append ( FIELD_NAME_TOTAL_RECORDS,
+                      (long long)(detail._totalRecords )) ;
+         sub.append ( FIELD_NAME_TOTAL_LOBS,
+                      (long long)(detail._totalLobs) ) ;
+         sub.append ( FIELD_NAME_TOTAL_DATA_PAGES,
+                      detail._totalDataPages ) ;
+         sub.append ( FIELD_NAME_TOTAL_INDEX_PAGES,
+                      detail._totalIndexPages ) ;
+         sub.append ( FIELD_NAME_TOTAL_LOB_PAGES,
+                      detail._totalLobPages ) ;
+         sub.append ( FIELD_NAME_TOTAL_DATA_FREESPACE,
+                      (long long)(detail._totalDataFreeSpace )) ;
+         sub.append ( FIELD_NAME_TOTAL_INDEX_FREESPACE,
+                      (long long)(detail._totalIndexFreeSpace )) ;
+         sub.append ( FIELD_NAME_CURR_COMPRESS_RATIO,
+                      (FLOAT64)detail._currCompressRatio / 100.0 ) ;
+
+         /// sync info
+         sub.append ( FIELD_NAME_DATA_COMMIT_LSN, (INT64)detail._dataCommitLSN ) ;
+         sub.append ( FIELD_NAME_IDX_COMMIT_LSN, (INT64)detail._idxCommitLSN ) ;
+         sub.append ( FIELD_NAME_LOB_COMMIT_LSN, (INT64)detail._lobCommitLSN ) ;
+         sub.appendBool ( FIELD_NAME_DATA_COMMITTED, detail._dataIsValid ) ;
+         sub.appendBool ( FIELD_NAME_IDX_COMMITTED, detail._idxIsValid ) ;
+         sub.appendBool ( FIELD_NAME_LOB_COMMITTED, detail._lobIsValid ) ;
+         // TODO: enble it after enable
+         //sub.append ( FIELD_NAME_MAX_GTID, (INT64)detail._maxGlobTransID ) ;
+
+         /// CRUD statistics
+         sub.append( FIELD_NAME_TOTALDATAREAD,
+                     (INT64)detail._crudCB._totalDataRead ) ;
+         sub.append( FIELD_NAME_TOTALINDEXREAD,
+                     (INT64)detail._crudCB._totalIndexRead ) ;
+         sub.append( FIELD_NAME_TOTALDATAWRITE,
+                     (INT64)detail._crudCB._totalDataWrite ) ;
+         sub.append( FIELD_NAME_TOTALINDEXWRITE,
+                     (INT64)detail._crudCB._totalIndexWrite ) ;
+         sub.append( FIELD_NAME_TOTALUPDATE,
+                     (INT64)detail._crudCB._totalUpdate ) ;
+         sub.append( FIELD_NAME_TOTALDELETE,
+                     (INT64)detail._crudCB._totalDelete ) ;
+         sub.append( FIELD_NAME_TOTALINSERT,
+                     (INT64)detail._crudCB._totalInsert ) ;
+         sub.append( FIELD_NAME_TOTALSELECT,
+                     (INT64)detail._crudCB._totalSelect ) ;
+         sub.append( FIELD_NAME_TOTALREAD,
+                     (INT64)detail._crudCB._totalRead ) ;
+         sub.append( FIELD_NAME_TOTALWRITE,
+                     (INT64)detail._crudCB._totalWrite ) ;
+         sub.append( FIELD_NAME_TOTALTBSCAN,
+                     (INT64)detail._crudCB._totalTbScan ) ;
+         sub.append( FIELD_NAME_TOTALIXSCAN,
+                     (INT64)detail._crudCB._totalIxScan ) ;
+         ossTimestamp resetTimestamp =  detail._crudCB._resetTimestamp ;
+         ossTimestampToString( resetTimestamp, timestamp ) ;
+         sub.append( FIELD_NAME_RESETTIMESTAMP, timestamp ) ;
+
+         sub.done() ;
+      }
+      ba.done() ;
+   }
+
    /*
       _monTransFetcher implement
    */
@@ -2449,121 +2564,34 @@ namespace engine
       {
          _builder.reset() ;
          BSONObjBuilder ob( _builder ) ;
-         MON_CL_LIST::iterator it ;
-         MON_CL_DETAIL_MAP::const_iterator itDetail ;
+         MON_CL_LIST::iterator it = _collectionInfo.begin() ;
+         UINT32 resFlag = 0 ;
+         monCollection clOut ;
 
-         it = _collectionInfo.begin() ;
-         const monCollection &full = *it ;
-
-         /// add name & space name
-         ob.append ( FIELD_NAME_NAME, full._name ) ;
-         ob.append ( FIELD_NAME_UNIQUEID, (INT64)full._clUniqueID ) ;
-         const CHAR *pDot = ossStrchr( full._name, '.' ) ;
-         if ( pDot )
+         // Aggregate sub cl info into main cl if needed.
+         if ( _pDataProcessor )
          {
-            ob.appendStrWithNoTerminating ( FIELD_NAME_COLLECTIONSPACE,
-                                            full._name,
-                                            pDot - full._name ) ;
-         }
-         /// add detial
-         BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_DETAILS ) ) ;
-         for ( itDetail = full._details.begin() ;
-               itDetail != full._details.end() ;
-               ++itDetail )
-         {
-            const detailedInfo &detail = itDetail->second ;
-            BSONObjBuilder sub( ba.subobjStart() ) ;
-
-            UINT16 flag = detail._flag ;
-            std::string status = "" ;
-            CHAR tmp[ MON_TMP_STR_SZ + 1 ] = { 0 } ;
-            CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
-
-            /// add system info
-            monAppendSystemInfo( sub, _addInfoMask ) ;
-
-            sub.append ( FIELD_NAME_ID, detail._blockID ) ;
-            sub.append ( FIELD_NAME_LOGICAL_ID, detail._logicID ) ;
-            sub.append ( FIELD_NAME_SEQUENCE, (INT32)itDetail->first ) ;
-            sub.append ( FIELD_NAME_INDEXES, detail._numIndexes ) ;
-            monDMSCollectionFlagToString ( flag, status ) ;
-            sub.append ( FIELD_NAME_STATUS, status ) ;
-            mbAttr2String( detail._attribute, tmp, MON_TMP_STR_SZ ) ;
-            sub.append ( FIELD_NAME_ATTRIBUTE, tmp ) ;
-            if ( OSS_BIT_TEST( detail._attribute, DMS_MB_ATTR_COMPRESSED ) )
+            do
             {
-               sub.append ( FIELD_NAME_COMPRESSIONTYPE,
-                            utilCompressType2String( detail._compressType ) ) ;
+               rc = _pDataProcessor->process( *it, clOut, resFlag ) ;
+               PD_RC_CHECK(rc, PDERROR,
+                           "Failed to process the cl info, rc=%d", rc ) ;
+               if ( resFlag & IRtnMonProcessor::FLAG_OUTPUT )
+               {
+                  _collectionInfo.insert( clOut ) ;
+               }
+               if ( resFlag & IRtnMonProcessor::FLAG_IGNORE )
+               {
+                  _collectionInfo.erase( it ) ;
+                  PD_CHECK( !_collectionInfo.empty(), SDB_SYS, error, PDERROR, 
+                            "Unexpected collection count" ) ;
+                  it = _collectionInfo.begin() ;
+               }
             }
-            else
-            {
-               sub.append ( FIELD_NAME_COMPRESSIONTYPE, "" ) ;
-            }
-            sub.appendBool( FIELD_NAME_DICT_CREATED, detail._dictCreated ) ;
-            sub.append( FIELD_NAME_DICT_VERSION, detail._dictVersion ) ;
-            sub.append ( FIELD_NAME_PAGE_SIZE, detail._pageSize ) ;
-            sub.append ( FIELD_NAME_LOB_PAGE_SIZE, detail._lobPageSize ) ;
-
-            /// stat info
-            sub.append ( FIELD_NAME_TOTAL_RECORDS,
-                         (long long)(detail._totalRecords )) ;
-            sub.append ( FIELD_NAME_TOTAL_LOBS,
-                         (long long)(detail._totalLobs) ) ;
-            sub.append ( FIELD_NAME_TOTAL_DATA_PAGES,
-                         detail._totalDataPages ) ;
-            sub.append ( FIELD_NAME_TOTAL_INDEX_PAGES,
-                         detail._totalIndexPages ) ;
-            sub.append ( FIELD_NAME_TOTAL_LOB_PAGES,
-                         detail._totalLobPages ) ;
-            sub.append ( FIELD_NAME_TOTAL_DATA_FREESPACE,
-                         (long long)(detail._totalDataFreeSpace )) ;
-            sub.append ( FIELD_NAME_TOTAL_INDEX_FREESPACE,
-                         (long long)(detail._totalIndexFreeSpace )) ;
-            sub.append ( FIELD_NAME_CURR_COMPRESS_RATIO,
-                         (FLOAT64)detail._currCompressRatio / 100.0 ) ;
-
-            /// sync info
-            sub.append ( FIELD_NAME_DATA_COMMIT_LSN, (INT64)detail._dataCommitLSN ) ;
-            sub.append ( FIELD_NAME_IDX_COMMIT_LSN, (INT64)detail._idxCommitLSN ) ;
-            sub.append ( FIELD_NAME_LOB_COMMIT_LSN, (INT64)detail._lobCommitLSN ) ;
-            sub.appendBool ( FIELD_NAME_DATA_COMMITTED, detail._dataIsValid ) ;
-            sub.appendBool ( FIELD_NAME_IDX_COMMITTED, detail._idxIsValid ) ;
-            sub.appendBool ( FIELD_NAME_LOB_COMMITTED, detail._lobIsValid ) ;
-            // TODO: enble it after enable
-            //sub.append ( FIELD_NAME_MAX_GTID, (INT64)detail._maxGlobTransID ) ;
-
-            /// CRUD statistics
-            sub.append( FIELD_NAME_TOTALDATAREAD,
-                        (INT64)detail._crudCB._totalDataRead ) ;
-            sub.append( FIELD_NAME_TOTALINDEXREAD,
-                        (INT64)detail._crudCB._totalIndexRead ) ;
-            sub.append( FIELD_NAME_TOTALDATAWRITE,
-                        (INT64)detail._crudCB._totalDataWrite ) ;
-            sub.append( FIELD_NAME_TOTALINDEXWRITE,
-                        (INT64)detail._crudCB._totalIndexWrite ) ;
-            sub.append( FIELD_NAME_TOTALUPDATE,
-                        (INT64)detail._crudCB._totalUpdate ) ;
-            sub.append( FIELD_NAME_TOTALDELETE,
-                        (INT64)detail._crudCB._totalDelete ) ;
-            sub.append( FIELD_NAME_TOTALINSERT,
-                        (INT64)detail._crudCB._totalInsert ) ;
-            sub.append( FIELD_NAME_TOTALSELECT,
-                        (INT64)detail._crudCB._totalSelect ) ;
-            sub.append( FIELD_NAME_TOTALREAD,
-                        (INT64)detail._crudCB._totalRead ) ;
-            sub.append( FIELD_NAME_TOTALWRITE,
-                        (INT64)detail._crudCB._totalWrite ) ;
-            sub.append( FIELD_NAME_TOTALTBSCAN,
-                        (INT64)detail._crudCB._totalTbScan ) ;
-            sub.append( FIELD_NAME_TOTALIXSCAN,
-                        (INT64)detail._crudCB._totalIxScan ) ;
-            ossTimestamp resetTimestamp =  detail._crudCB._resetTimestamp ;
-            ossTimestampToString( resetTimestamp, timestamp ) ;
-            sub.append( FIELD_NAME_RESETTIMESTAMP, timestamp ) ;
-
-            sub.done() ;
+            while ( resFlag & IRtnMonProcessor::FLAG_IGNORE ) ;
          }
-         ba.done() ;
+
+         monCollection2Obj( *it, _addInfoMask, ob ) ;
          obj = ob.done() ;
 
          /// remove the current

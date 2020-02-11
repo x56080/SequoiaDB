@@ -372,6 +372,10 @@
 #define FIELD_NAME_REMOTE_PORT               "RemotePort"
 #define FIELD_NAME_MODE                      "Mode"
 #define VALUE_NAME_LOCAL                     "local"
+#define FIELD_NAME_SHOW_MAIN_CL_MODE         "ShowMainCLMode"
+#define VALUE_NAME_MAIN                      "main"
+#define VALUE_NAME_SUB                       "sub"
+#define VALUE_NAME_BOTH                      "both"
 
 #define FIELD_NAME_MODIFY                    "$Modify"
 #define FIELD_NAME_OP                        "OP"
