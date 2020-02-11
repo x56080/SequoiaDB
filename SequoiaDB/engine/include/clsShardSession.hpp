@@ -372,6 +372,7 @@ namespace engine
          // input:
          //    - transID: transaction ID of current transaction
          //    - remoteRID: route ID of remote node to launch this transaction
+         //    - transBeginTime: global logical time to begin transaction
          //    - remoteTime: global logical time to send transaction begin
          //                  message of this transaction
          //    - localTime: global logical time to receive the transaction
@@ -385,6 +386,7 @@ namespace engine
          //    - do pre-arbitration for write transaction
          INT32 _checkTransRR( const DPS_TRANS_ID &transID,
                               const MsgRouteID &remoteRID,
+                              const stpLogicalTimeUS &transBeginTime,
                               const stpLogicalTimeUS &remoteTime,
                               const stpLogicalTimeUS &localTime,
                               BOOLEAN nextIsWrite ) ;

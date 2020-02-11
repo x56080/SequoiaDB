@@ -395,17 +395,6 @@ namespace engine
             goto done ;
          }
 
-         // if current transaction started before current time with
-         // time error between current transaction and record
-         // record transaction, the record transaction could not
-         // commit before current transaction, so the record could
-         // not be seen by current transaction
-         currentTime.setTimeError( recTransInfo._beginTime.getTimeError() ) ;
-         if ( transBeginTime < currentTime )
-         {
-            visible = FALSE ;
-            goto done ;
-         }
          // otherwise, we need arbitration further
       }
       else
@@ -424,31 +413,10 @@ namespace engine
                    dpsTransIDToString( transID ).c_str(),
                    dpsTransIDToString( recTransID ).c_str(),
                    dpsTransStatusToString( recTransInfo._status ) ) ;
-      if ( visible )
-      {
-         // the arbitration is return visible, but when we check write transaction
-         // earlier, it is still in doing status
-         // in this case, it means the write transaction has committed in other
-         // group later, so we need to wait the write transaction to commit
-         // in local node
-         BOOLEAN committed = FALSE ;
-         BOOLEAN multiGroups = TRUE ;
-         rc = _gtsAgent->waitArbitCommit( eduCB,
-                                          recTransID,
-                                          eduCB->getTransTimeout(),
-                                          committed,
-                                          multiGroups ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to wait transaction [%s] to "
-                      "commit, rc: %d",
-                      dpsTransIDToString( recTransID ).c_str(), rc ) ;
-         // failed to wait commit, record transaction is rollback,
-         // must report error, in case that current transaction already
-         // read records in other DATA groups
-         PD_CHECK( committed, SDB_DPS_TRANS_DOING_ROLLBACK, error, PDERROR,
-                   "Failed to wait transaction [%s] "
-                   "to be committed, it is rollbacked",
-                   dpsTransIDToString( recTransID ).c_str() ) ;
-      }
+
+      // NOTE:
+      // no need to wait for commit if visible is TRUE, the caller should
+      // wait for transaction lock release instead
 
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSCB__ISGLOBDOINGVISIBLE, rc ) ;
@@ -590,29 +558,33 @@ namespace engine
               dpsTransTimeToString( recTransInfo._preCommitTime ).c_str() ) ;
 #endif
 
-      if ( ( DPS_TRANS_DOING == recTransInfo._status ||
-             DPS_TRANS_WAIT_COMMIT == recTransInfo._status ||
-             DPS_TRANS_COMMIT == recTransInfo._status ) &&
-           transBeginTime < recTransInfo._beginTime )
+      if ( transBeginTime < recTransInfo._beginTime )
       {
-         // current transaction is definitely started after record
-         // transaction, the record should not be seen by the
-         // transaction
-         visible = FALSE ;
-         goto done ;
+         if ( DPS_TRANS_DOING == recTransInfo._status ||
+              DPS_TRANS_WAIT_COMMIT == recTransInfo._status ||
+              DPS_TRANS_COMMIT == recTransInfo._status )
+         {
+            // current transaction is definitely started after record
+            // transaction, the record should not be seen by the
+            // transaction
+            visible = FALSE ;
+            goto done ;
+         }
       }
-      else if ( DPS_TRANS_DOING == recTransInfo._status &&
-                transBeginTime.getTimeError() <=
-                recTransInfo._beginTime.getTimeError() )
+      else
       {
-         // in this case, record transaction could not be committed
-         // before current transaction ( should be committed after an
-         // interval given by time error of record transaction )
-         // current transaction is definitely started after record
-         // transaction, the record should not be seen by the
-         // transaction
-         visible = FALSE ;
-         goto done ;
+         if ( DPS_TRANS_DOING == recTransInfo._status &&
+              transBeginTime <= recTransInfo._beginTime.getUpperLogicalTime() )
+         {
+            // in this case, record transaction could not be committed
+            // before current transaction ( should be committed after an
+            // interval given by time error of record transaction )
+            // current transaction is definitely started after record
+            // transaction, the record should not be seen by the
+            // transaction
+            visible = FALSE ;
+            goto done ;
+         }
       }
 
       // record transaction is started before current transaction with time
