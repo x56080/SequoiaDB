@@ -219,6 +219,7 @@
                newHostList.push( hostInfo ) ;
             }
          } ) ;
+         hostList = newHostList ;
          $scope.HostListTable['body'] = newHostList ;
          $scope.HostListTable['options']['text']['default'] = sprintf( $scope.autoLanguage( '已扫描 ? 台主机, 共 ? 台主机连接成功。' ), $scope.HostListTable['body'].length, $scope.HostListTable['body'].length ) ;
          $rootScope.tempData( 'Deploy', 'ScanHost', hostList ) ;
