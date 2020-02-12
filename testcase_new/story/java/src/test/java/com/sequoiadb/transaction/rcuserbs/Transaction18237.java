@@ -111,15 +111,15 @@ public class Transaction18237 extends SdbTestBase {
 
         // mvcc分支下transuserbs在RR隔离级别下强制为true,查询不阻塞
         if ( !mvcc.equals( "TRUE" ) ) {
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID4 ) );
-            Assert.assertTrue(
-                    TransUtils.isTransWaitLock( sdb, transactionID5 ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    queryThread1.getTransactionID() ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    queryThread2.getTransactionID() ) );
         } else {
-            Assert.assertFalse(
-                    TransUtils.isTransWaitLock( sdb, transactionID4 ) );
-            Assert.assertFalse(
-                    TransUtils.isTransWaitLock( sdb, transactionID5 ) );
+            Assert.assertFalse( TransUtils.isTransWaitLock( sdb,
+                    queryThread1.getTransactionID() ) );
+            Assert.assertFalse( TransUtils.isTransWaitLock( sdb,
+                    queryThread2.getTransactionID() ) );
         }
 
         // no trans read
