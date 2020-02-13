@@ -1400,9 +1400,9 @@ namespace engine
          timeError = localTime.getTime() - remoteTime.getTime() ;
       }
 
-      // round to max time error in nanosecond
+      // round to node maximum time error in nanosecond
       timeError = (UINT32)( OSS_MIN( STP_MICROSEC_TO_NANOSEC( timeError ),
-                            STP_MAX_TIME_ERROR ) ) ;
+                            _maxNodeTimeError ) ) ;
 
       PD_TRACE_EXIT( SDB__CLSGTSAGENT_GETACCEPTTIMEERROR ) ;
 
