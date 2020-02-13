@@ -2537,10 +2537,14 @@
       <detail>
          <en>1. It specifies whether support MVCC or not.<fig></fig>
              2. If it is not specifed, the default value is false.<fig></fig>
-             3. Only takes effect when transactionon is true.</en>
+             3. Only takes effect when transactionon is true..<fig></fig>
+             4. transuserbs will be default to true if mvccon is true..<fig></fig>
+             5. translockwait will be default to false if mvccon is true.</en>
          <cn>1. 指定是否打开多版本。<fig></fig>
              2. 如果不指定，则默认为false。<fig></fig>
-             3. 只有当 transactionon 开启时，取值才会有效。</cn>
+             3. 只有当 transactionon 开启时，取值才会有效。.<fig></fig>
+             4. 当mvccon被设为true时，transuserbs 会被默认为true。.<fig></fig>
+             5. 当mvccon被设为true时，translockwait 会被默认为false。</cn>
       </detail>
       <typeofweb>boolean</typeofweb>
    </opt>
