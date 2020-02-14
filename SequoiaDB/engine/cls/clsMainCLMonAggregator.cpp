@@ -237,10 +237,15 @@ namespace engine
          std::string mainCLName ;
 
          rc = _getMainCLName( clIn._name, mainCLName ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get main cl unique ID, rc=%d", rc );
+         PD_RC_CHECK( rc, PDWARNING, "Failed to get main cl name, rc=%d", rc );
          if ( mainCLName.empty() )
          {
             goto done ;
+         }
+
+         if ( SHOW_MODE_MAIN == _mode )
+         {
+            resultFlag |= FLAG_IGNORE ;
          }
 
          it = _infoMap.find( mainCLName ) ;
@@ -252,7 +257,7 @@ namespace engine
          {
             std::pair<MainCLInfoMap::iterator, bool> ret ;
             rc = _createMainCLInfo( mainCLName.c_str(), &mainCLInfo ) ;
-            PD_RC_CHECK( rc, PDERROR,
+            PD_RC_CHECK( rc, PDWARNING,
                          "Failed to create main cl[%s] mon info, rc=%d",
                          mainCLName.c_str(), rc ) ;
 
@@ -268,11 +273,6 @@ namespace engine
             _infoMap.erase( it ) ;
             resultFlag |= FLAG_OUTPUT ;
          }
-
-         if ( SHOW_MODE_MAIN == _mode )
-         {
-            resultFlag |= FLAG_IGNORE ;
-         }
       }
       catch ( std::exception &e )
       {
@@ -284,6 +284,11 @@ namespace engine
    done:
       return rc ;
    error:
+      // cl may be not exist for currently dropping.
+      if ( SDB_DMS_NOTEXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
       goto done ;
    }
 
@@ -323,7 +328,7 @@ namespace engine
       else
       {
          _pShdMgr->unlockCataSet( pMainCata ) ;
-         PD_RC_CHECK( rc, PDERROR, "can not find collection:%s", mainCLName ) ;
+         PD_RC_CHECK( rc, PDWARNING, "can not find collection:%s", mainCLName ) ;
       }
 
       // Find out sub cl that in local.
@@ -339,7 +344,7 @@ namespace engine
          {
             _pCatAgent->release_r() ;
             rc = _pShdMgr->syncUpdateCatalog( subCLName ) ;
-            PD_RC_CHECK( rc, PDERROR,
+            PD_RC_CHECK( rc, PDWARNING,
                          "Failed to update catalog of collection[%s], rc=%d",
                          subCLName, rc ) ;
             continue ;
@@ -367,7 +372,7 @@ namespace engine
       if ( rc != SDB_OK || !pMainCata )
       {
          _pShdMgr->unlockCataSet( pMainCata ) ;
-         PD_LOG( PDERROR, "can not find collection:%s", mainCLName ) ;
+         PD_LOG( PDWARNING, "can not find collection:%s", mainCLName ) ;
          goto error ;
       }
 
