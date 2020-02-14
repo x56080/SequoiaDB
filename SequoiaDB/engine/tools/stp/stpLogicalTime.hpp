@@ -216,6 +216,7 @@ namespace engine
          }
          catch ( std::exception &e )
          {
+            (void)e ;
             rc = SDB_SYS ;
             goto error ;
          }
@@ -249,6 +250,7 @@ namespace engine
          }
          catch ( std::exception &e )
          {
+            (void)e ;
             rc = SDB_SYS ;
             goto error ;
          }

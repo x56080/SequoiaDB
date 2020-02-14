@@ -52,8 +52,9 @@
 #include "ossVer.h"
 #include "ossIO.hpp"
 
+namespace po = boost::program_options ;
+
 using namespace std ;
-using namespace po ;
 
 namespace engine
 {
@@ -70,8 +71,8 @@ namespace engine
       ( PMD_OPTION_CURUSER, "use current user" )
 
    // initialize options
-   void init( options_description &desc,
-              options_description &all )
+   void init( po::options_description &desc,
+              po::options_description &all )
    {
       PMD_ADD_PARAM_OPTIONS_BEGIN ( desc )
          COMMANDS_OPTIONS
@@ -83,14 +84,14 @@ namespace engine
       PMD_ADD_PARAM_OPTIONS_END
    }
 
-   void displayArg( options_description &desc )
+   void displayArg( po::options_description &desc )
    {
       cout << desc << endl ;
    }
 
-   INT32 resolveArgument( options_description &desc,
-                          options_description &all,
-                          variables_map &vm,
+   INT32 resolveArgument( po::options_description &desc,
+                          po::options_description &all,
+                          po::variables_map &vm,
                           INT32 argc,
                           CHAR **argv,
                           BOOLEAN &force )
@@ -155,9 +156,9 @@ namespace engine
       UTIL_VEC_NODES::iterator itrNode ;
 
       BOOLEAN force = FALSE ;
-      options_description desc ( "Command options" ) ;
-      options_description all ( "Command options" ) ;
-      variables_map vm ;
+      po::options_description desc ( "Command options" ) ;
+      po::options_description all ( "Command options" ) ;
+      po::variables_map vm ;
 
       init( desc, all ) ;
 

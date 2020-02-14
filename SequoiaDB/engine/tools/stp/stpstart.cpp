@@ -56,9 +56,10 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 
+namespace po = boost::program_options ;
+
 using namespace std ;
 using namespace boost::algorithm ;
-using namespace po ;
 
 namespace engine
 {
@@ -71,15 +72,15 @@ namespace engine
        ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h"), "help" ) \
        ( PMD_OPTION_VERSION, "version" ) \
        ( PMD_OPTION_FORCE, "force" ) \
-       ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c"), value<string>(), "configuration file path" ) \
-       ( STPSTART_OPTION_OPTIONS, value<string>(), "options" )
+       ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c"), po::value<string>(), "configuration file path" ) \
+       ( STPSTART_OPTION_OPTIONS, po::value<string>(), "options" )
 #else
    #define COMMANDS_OPTIONS \
        ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h"), "help" ) \
        ( PMD_OPTION_VERSION, "version" ) \
        ( PMD_OPTION_FORCE, "force" ) \
-       ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c"), value<string>(), "configuration file path" ) \
-       ( STPSTART_OPTION_OPTIONS, value<string>(), "options" ) \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c"), po::value<string>(), "configuration file path" ) \
+       ( STPSTART_OPTION_OPTIONS, po::value<string>(), "options" ) \
        ( PMD_COMMANDS_STRING( PMD_OPTION_IGNOREULIMIT, ",i"), "skip checking ulimit" )
 #endif
 
@@ -87,8 +88,8 @@ namespace engine
       ( PMD_OPTION_HELPFULL, "help all configs" ) \
       ( PMD_OPTION_CURUSER, "use current user" )
 
-   static void init( options_description &desc,
-                     options_description &all )
+   static void init( po::options_description &desc,
+                     po::options_description &all )
    {
       PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
          COMMANDS_OPTIONS
@@ -100,7 +101,7 @@ namespace engine
       PMD_ADD_PARAM_OPTIONS_END
    }
 
-   static void displayArg( options_description &desc )
+   static void displayArg( po::options_description &desc )
    {
       cout << desc << endl ;
    }
@@ -117,9 +118,9 @@ namespace engine
       return FALSE ;
    }
 
-   static INT32 resolveArgument( options_description &desc,
-                                 options_description &all,
-                                 variables_map &vm,
+   static INT32 resolveArgument( po::options_description &desc,
+                                 po::options_description &all,
+                                 po::variables_map &vm,
                                  INT32 argc,
                                  CHAR **argv,
                                  BOOLEAN &force,
@@ -231,9 +232,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 tmpRC = SDB_OK ;
 
-      options_description desc( "Command options" ) ;
-      options_description all( "Command options" ) ;
-      variables_map vm ;
+      po::options_description desc( "Command options" ) ;
+      po::options_description all( "Command options" ) ;
+      po::variables_map vm ;
 
       BOOLEAN force = FALSE ;
       string configPath ;
