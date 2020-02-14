@@ -2,6 +2,7 @@
 @discretion: seqDB-20546:reset接口支持创建/删除多个自增字段，覆盖所有参数
 @author：2018-11-04 zhao xiaoni
 ***************************************************************************** */
+testConf.skipStandAlone = true;
 testConf.csName = COMMCSNAME;
 testConf.clName = "cl_" + 20546;
 
