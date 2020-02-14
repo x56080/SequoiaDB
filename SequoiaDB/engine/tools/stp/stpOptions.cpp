@@ -40,8 +40,9 @@
 #include "ossVer.h"
 #include "pmdEnv.hpp"
 
+namespace po = boost::program_options ;
+
 using namespace std ;
-using namespace po ;
 
 namespace engine
 {
@@ -50,29 +51,29 @@ namespace engine
    #define PMD_STP_OPTION_STARTSHIFTTIME_DFT     (600)
 
    #define FILE_OPTIONS \
-         ( PMD_OPTION_PORT, value<string>(), "sdbtp listening port, default is 9622" ) \
-         ( PMD_STP_OPTION_SERVERLIST, value<string>(), "sdbtp server list" ) \
-         ( PMD_OPTION_ROLE, value<string>(), "sdbtp role, default is standalone" ) \
-         ( PMD_OPTION_WEIGHT, value<INT32>(), "sdbtp vote weight" ) \
-         ( PMD_STP_OPTION_SYNCINTERVAL, value<INT32>(), "sdbtp synchronize interval" ) \
-         ( PMD_STP_OPTION_MAXTIMEERROR, value<INT32>(), "sdbtp max time error" ) \
-         ( PMD_OPTION_DIAGLEVEL, value<INT32>(), "sdbtp dialog level, default is 3" ) \
-         ( PMD_OPTION_SHARINGBRK, value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
-         ( PMD_OPTION_START_SHIFT_TIME, value<INT32>(), "Nodes starting shift time(sec), default:600, value range:[0,7200]" )
+         ( PMD_OPTION_PORT, po::value<string>(), "sdbtp listening port, default is 9622" ) \
+         ( PMD_STP_OPTION_SERVERLIST, po::value<string>(), "sdbtp server list" ) \
+         ( PMD_OPTION_ROLE, po::value<string>(), "sdbtp role, default is standalone" ) \
+         ( PMD_OPTION_WEIGHT, po::value<INT32>(), "sdbtp vote weight" ) \
+         ( PMD_STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "sdbtp synchronize interval" ) \
+         ( PMD_STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "sdbtp max time error" ) \
+         ( PMD_OPTION_DIAGLEVEL, po::value<INT32>(), "sdbtp dialog level, default is 3" ) \
+         ( PMD_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
+         ( PMD_OPTION_START_SHIFT_TIME, po::value<INT32>(), "Nodes starting shift time(sec), default:600, value range:[0,7200]" )
 
    #define COMMANDS_OPTIONS \
-         ( PMD_COMMANDS_STRING( PMD_OPTION_PORT, ",p" ), value<string>(), "sdbtp listening port, default is 9622" ) \
-         ( PMD_STP_OPTION_SERVERLIST, value<string>(), "sdbtp server list" ) \
-         ( PMD_OPTION_ROLE, value<string>(), "sdbtp role, default is standalone" ) \
-         ( PMD_OPTION_WEIGHT, value<INT32>(), "sdbtp vote weight" ) \
-         ( PMD_STP_OPTION_SYNCINTERVAL, value<INT32>(), "sdbtp synchronize interval" ) \
-         ( PMD_STP_OPTION_MAXTIMEERROR, value<INT32>(), "sdbtp max time error" ) \
-         ( PMD_OPTION_DIAGLEVEL, value<INT32>(), "sdbtp dialog level, default is 3" ) \
-         ( PMD_OPTION_SHARINGBRK, value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
-         ( PMD_OPTION_START_SHIFT_TIME, value<INT32>(), "Nodes starting shift time(sec), default:600, value range:[0,7200]" ) \
+         ( PMD_COMMANDS_STRING( PMD_OPTION_PORT, ",p" ), po::value<string>(), "sdbtp listening port, default is 9622" ) \
+         ( PMD_STP_OPTION_SERVERLIST, po::value<string>(), "sdbtp server list" ) \
+         ( PMD_OPTION_ROLE, po::value<string>(), "sdbtp role, default is standalone" ) \
+         ( PMD_OPTION_WEIGHT, po::value<INT32>(), "sdbtp vote weight" ) \
+         ( PMD_STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "sdbtp synchronize interval" ) \
+         ( PMD_STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "sdbtp max time error" ) \
+         ( PMD_OPTION_DIAGLEVEL, po::value<INT32>(), "sdbtp dialog level, default is 3" ) \
+         ( PMD_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
+         ( PMD_OPTION_START_SHIFT_TIME, po::value<INT32>(), "Nodes starting shift time(sec), default:600, value range:[0,7200]" ) \
          ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h" ), "help" ) \
          ( PMD_OPTION_VERSION, "version" ) \
-         ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c" ), value<string>(), "sdbtp configuration file path" ) \
+         ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c" ), po::value<string>(), "sdbtp configuration file path" ) \
          ( PMD_OPTION_FORCE, "force to start without configuration file" )
 
    /*
@@ -106,8 +107,8 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       BOOLEAN force = TRUE ;
-      options_description desc( "Command options" ) ;
-      variables_map vmFile, vmCommand ;
+      po::options_description desc( "Command options" ) ;
+      po::variables_map vmFile, vmCommand ;
 
       // initialize arguments
       rc = _initArguments( argc, argv, vmCommand ) ;
@@ -428,10 +429,10 @@ namespace engine
 
    INT32 _stpOptions::_initArguments( INT32 argc,
                                       CHAR **argv,
-                                      variables_map &vm )
+                                      po::variables_map &vm )
    {
       INT32 rc = SDB_OK ;
-      options_description desc( "Command options" ) ;
+      po::options_description desc( "Command options" ) ;
 
       // initialize options
       PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
@@ -463,7 +464,8 @@ namespace engine
       return rc ;
    }
 
-   void _stpOptions::_displayArguments( const options_description &desc ) const
+   void _stpOptions::_displayArguments(
+                                 const po::options_description &desc ) const
    {
       cout << "Usage:  stp [OPTION]" << endl ;
       cout << desc << endl ;

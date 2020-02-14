@@ -447,36 +447,36 @@ typedef DPS_TRANS_ID_V1 DPS_TRANS_ID ;
 // NOTE: to process lowTran with UINT64 ( DPS_TRANSID_SN ) is more convenient
 //       than transID
 #define DPS_SET_TRANSID_SN_GLOBAL( x ) \
-      ( OSS_BIT_SET( x, DPS_TRANSID_GLOBTRANS_TAG_V1 ) )
+      ( OSS_BIT_SET( ( x ), DPS_TRANSID_GLOBTRANS_TAG_V1 ) )
 
 #define DPS_TEST_TRANSID_SN_GLOBAL( x ) \
-      ( OSS_BIT_TEST( x, DPS_TRANSID_GLOBTRANS_TAG_V1 ) ? TRUE : FALSE )
+      ( OSS_BIT_TEST( ( x ), DPS_TRANSID_GLOBTRANS_TAG_V1 ) ? TRUE : FALSE )
 
 #define DPS_CLEAR_TRANSID_SN_GLOBAL( x ) \
-      ( OSS_BIT_CLEAR( x, DPS_TRANSID_GLOBTRANS_TAG_V1 ) )
+      ( OSS_BIT_CLEAR( ( x ), DPS_TRANSID_GLOBTRANS_TAG_V1 ) )
 
 // adjust transaction SN with time error
-#define DPS_ADJUST_TRANSID_SN( sn, timeError )                          \
-do                                                                      \
-{                                                                       \
-   if ( DPS_INVALID_TRANSID_SN != sn &&                                 \
-        DPS_MAX_TRANSID_SN != sn &&                                     \
-        DPS_TEST_TRANSID_SN_GLOBAL( sn ) &&                             \
-        0 != timeError )                                                \
-   {                                                                    \
-      DPS_CLEAR_TRANSID_SN_GLOBAL( sn ) ;                               \
-      if ( timeError > 0 &&                                             \
-           sn < DPS_MAX_TRANSID_SN - (DPS_TRANSID_SN)timeError )        \
-      {                                                                 \
-         sn = sn + (DPS_TRANSID_SN)timeError ;                          \
-      }                                                                 \
-      else if ( timeError < 0 &&                                        \
-                sn > (DPS_TRANSID_SN)( -timeError ) )                   \
-      {                                                                 \
-         sn = sn - (DPS_TRANSID_SN)( -timeError ) ;                     \
-      }                                                                 \
-      DPS_SET_TRANSID_SN_GLOBAL( sn ) ;                                 \
-   }                                                                    \
+#define DPS_ADJUST_TRANSID_SN( sn, timeError )                             \
+do                                                                         \
+{                                                                          \
+   if ( DPS_INVALID_TRANSID_SN != ( sn ) &&                                \
+        DPS_MAX_TRANSID_SN != ( sn ) &&                                    \
+        DPS_TEST_TRANSID_SN_GLOBAL( ( sn ) ) &&                            \
+        0 != ( timeError ) )                                               \
+   {                                                                       \
+      DPS_CLEAR_TRANSID_SN_GLOBAL( sn ) ;                                  \
+      if ( ( timeError ) > 0 &&                                            \
+           ( sn ) < DPS_MAX_TRANSID_SN - (DPS_TRANSID_SN)( timeError ) )   \
+      {                                                                    \
+         ( sn ) = ( sn ) + (DPS_TRANSID_SN)( timeError ) ;                 \
+      }                                                                    \
+      else if ( ( timeError ) < 0 &&                                       \
+                ( sn ) > (DPS_TRANSID_SN)( -( timeError ) ) )              \
+      {                                                                    \
+         ( sn ) = ( sn ) - (DPS_TRANSID_SN)( -( timeError ) ) ;            \
+      }                                                                    \
+      DPS_SET_TRANSID_SN_GLOBAL( sn ) ;                                    \
+   }                                                                       \
 } while ( FALSE )
 
 #endif // DPS_TRANS_ID_HPP_

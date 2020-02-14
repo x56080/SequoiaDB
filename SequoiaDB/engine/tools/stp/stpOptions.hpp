@@ -213,10 +213,12 @@ namespace engine
       virtual INT32 preSaving() ;
 
       // initialize arguments
-      INT32 _initArguments( INT32 argc, CHAR **argv, po::variables_map &vm ) ;
+      INT32 _initArguments( INT32 argc, CHAR **argv,
+                            boost::program_options::variables_map &vm ) ;
 
       // display arguments for help
-      void _displayArguments( const po::options_description &desc ) const ;
+      void _displayArguments(
+            const boost::program_options::options_description &desc ) const ;
 
       // display version
       void _displayVersion() const ;
