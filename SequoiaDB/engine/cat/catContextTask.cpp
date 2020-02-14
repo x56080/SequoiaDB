@@ -712,11 +712,25 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXDROPIDXTASK_CHECK_INT ) ;
 
+      INT64 splitTaskNum = 0 ;
+
       rc = catGetAndLockCollection( _dataName, _boData, cb,
                                     _needLocks ? &lockMgr : NULL, SHARED ) ;
       PD_RC_CHECK( rc, PDWARNING,
                    "Failed to get the collection [%s], rc: %d",
                    _dataName.c_str(), rc ) ;
+
+      rc = catGetCLTaskCountByType( _dataName.c_str(), cb, CLS_TASK_SPLIT,
+                                    splitTaskNum ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get split task number for "
+                   "collection [%s]", _dataName.c_str() ) ;
+      if ( splitTaskNum > 0 )
+      {
+         rc = SDB_OPERATION_CONFLICT ;
+         PD_LOG( PDERROR, "Can not change AutoIndexId to false when collection "
+                 "[%s] is being splitted", _dataName.c_str() ) ;
+         goto error ;
+      }
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXDROPIDXTASK_CHECK_INT, rc ) ;

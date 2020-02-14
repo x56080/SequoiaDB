@@ -97,6 +97,14 @@ namespace engine
                        pmdEDUCB *cb,
                        BSONObj &obj ) ;
 
+   /* Query and get count of objects */
+   INT32 catGetObjectCount ( const CHAR * collectionName,
+                             const BSONObj & selector,
+                             const BSONObj & matcher,
+                             const BSONObj & hint,
+                             pmdEDUCB * cb,
+                             INT64 & count ) ;
+
    /* Collection[CAT_NODE_INFO_COLLECTION] functions: */
    INT32 catGetGroupObj( const CHAR *groupName,
                          BOOLEAN dataGroupOnly,
@@ -188,6 +196,10 @@ namespace engine
    /* Collection[CAT_TASK_INFO_COLLECTION] functions: */
    INT32 catAddTask( BSONObj & taskObj, pmdEDUCB *cb, INT16 w ) ;
    INT32 catGetTask( UINT64 taskID, BSONObj &obj, pmdEDUCB *cb ) ;
+   INT32 catGetCLTaskCountByType( const CHAR *collection,
+                                  pmdEDUCB *cb,
+                                  CLS_TASK_TYPE type,
+                                  INT64 &count ) ;
    INT32 catGetTaskStatus( UINT64 taskID, INT32 &status, pmdEDUCB *cb ) ;
    INT32 catUpdateTaskStatus( UINT64 taskID, INT32 status, pmdEDUCB *cb,
                               INT16 w ) ;

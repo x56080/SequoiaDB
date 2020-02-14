@@ -2513,7 +2513,7 @@
            <cn>复制日志未归档</cn>
         </description>
       </code>
-      
+
       <code>
         <name>SDB_DS_NOT_INIT</name>
         <description>
@@ -2538,5 +2538,148 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_ERROR_RESERVED_3</name> <!-- SDB_LOB_IS_IN_USE -->
+         <description>
+            <en>Reserved</en> <!-- LOB is in use -->
+            <cn>保留</cn> <!-- LOB当前正在使用 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_4</name> <!-- SDB_VALUE_OVERFLOW -->
+         <description>
+            <en>Reserved</en> <!-- Data operation is overflowed -->
+            <cn>保留</cn> <!-- 数值运算出现溢出 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_5</name> <!-- SDB_LOB_PIECESINFO_OVERFLOW -->
+         <description>
+            <en>Reserved</en> <!-- LOB's pieces info is overflowed -->
+            <cn>保留</cn> <!-- LOB切片信息溢出 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_6</name> <!-- SDB_LOB_LOCK_CONFLICTED -->
+         <description>
+            <en>Reserved</en> <!-- LOB lock is conflicted -->
+            <cn>保留</cn> <!-- LOB锁冲突 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_7</name> <!-- SDB_DMS_TRUNCATED -->
+         <description>
+            <en>Reserved</en> <!-- Collection is truncated -->
+            <cn>保留</cn> <!-- 集合被清空 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_8</name> <!-- SDB_RTN_CONF_NOT_TAKE_EFFECT -->
+         <description>
+            <en>Reserved</en> <!-- Some configuration changes didn't take effect -->
+            <cn>保留</cn> <!-- 部分配置修改未生效 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_9</name> <!-- SDB_SEQUENCE_EXIST -->
+         <description>
+            <en>Reserved</en> <!-- Sequence already exists -->
+            <cn>保留</cn> <!-- 序列已存在 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_10</name> <!-- SDB_SEQUENCE_NOT_EXIST -->
+         <description>
+            <en>Reserved</en> <!-- Sequence not exists -->
+            <cn>保留</cn> <!-- 序列不存在 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_11</name> <!-- SDB_SEQUENCE_EXCEEDED -->
+         <description>
+            <en>Reserved</en> <!-- Sequence is exceeded -->
+            <cn>保留</cn> <!-- 序列值超出范围 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_12</name> <!-- SDB_DMS_CS_UNIQUEID_CONFLICT -->
+         <description>
+            <en>Reserved</en> <!-- CS uniqueID conflict -->
+            <cn>保留</cn> <!-- 集合空间的UniqueID冲突 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_13</name> <!-- SDB_DMS_UNIQUEID_CONFLICT -->
+         <description>
+            <en>Reserved</en> <!-- CL uniqueID conflict -->
+            <cn>保留</cn> <!-- 集合的UniqueID冲突 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_14</name> <!-- SDB_DMS_CS_REMAIN -->
+         <description>
+            <en>Reserved</en> <!-- CS uniqueID conflict with remain cs -->
+            <cn>保留</cn> <!-- 集合空间的UniqueID与残留的集合空间冲突 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_15</name> <!-- SDB_DMS_REMAIN -->
+         <description>
+            <en>Reserved</en> <!-- CL uniqueID conflict with remain cl -->
+            <cn>保留</cn> <!-- 集合的UniqueID与残留的集合冲突 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_16</name> <!-- SDB_CAT_CS_UNIQUEID_EXCEEDED -->
+         <description>
+            <en>Reserved</en> <!-- CS uniqueID exceeds the maximum -->
+            <cn>保留</cn> <!-- 集合空间的UniqueID达到上限 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_17</name> <!-- SDB_CAT_CL_UNIQUEID_EXCEEDED -->
+         <description>
+            <en>Reserved</en> <!-- CL uniqueID exceeds the maximum -->
+            <cn>保留</cn> <!-- 集合的UniqueID达到上限 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_18</name> <!-- SDB_AUTOINCREMENT_FIELD_CONFLICT -->
+         <description>
+            <en>Reserved</en> <!-- Autoincrement field conflicts on collection -->
+            <cn>保留</cn> <!-- 自增字段冲突 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_19</name> <!-- SDB_AUTOINCREMENT_FIELD_NOT_EXIST -->
+         <description>
+            <en>Reserved</en> <!-- Autoincrement field does not exist on collection -->
+            <cn>保留</cn> <!-- 自增字段不存在 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_OPERATION_CONFLICT</name>
+         <description>
+            <en>Operations conflict</en>
+            <cn>操作冲突</cn>
+         </description>
+      </code>
    </codelist>
 </rclist>

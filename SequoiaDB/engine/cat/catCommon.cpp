@@ -447,6 +447,35 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETOBJCOUNT, "catGetObjectCount" )
+   INT32 catGetObjectCount ( const CHAR * collectionName,
+                             const BSONObj & selector,
+                             const BSONObj & matcher,
+                             const BSONObj & hint,
+                             pmdEDUCB * cb,
+                             INT64 & count )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATGETOBJCOUNT ) ;
+
+      pmdKRCB * krcb = pmdGetKRCB() ;
+      SDB_DMSCB * dmsCB = krcb->getDMSCB() ;
+      SDB_RTNCB * rtnCB = krcb->getRTNCB() ;
+
+      rc = rtnGetCount( collectionName, matcher, hint, dmsCB, cb, rtnCB,
+                        &count, 0 ) ;
+      PD_RC_CHECK ( rc, PDERROR, "Failed to get count on collection [%s], "
+                    "rc: %d", collectionName, rc ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATGETOBJCOUNT, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETGROUPOBJ, "catGetGroupObj" )
    INT32 catGetGroupObj( const CHAR * groupName, BOOLEAN dataGroupOnly,
                          BSONObj & obj, pmdEDUCB *cb  )
@@ -1585,6 +1614,32 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_CATGETTASK, rc ) ;
       return rc;
    error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETTASKCOUNTBYTYPE, "catGetCLTaskCountByType" )
+   INT32 catGetCLTaskCountByType( const CHAR * collection, pmdEDUCB * cb,
+                                  CLS_TASK_TYPE type, INT64 & count )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETTASKCOUNTBYTYPE ) ;
+      SDB_ASSERT( NULL != collection, "Collection is invalid" ) ;
+      SDB_ASSERT( CLS_TASK_UNKNOW != type, "Task type is invalid" ) ;
+
+      BSONObj dummy ;
+      BSONObj matcher = BSON( CAT_COLLECTION_NAME << collection  <<
+                              CAT_TASKTYPE_NAME << type ) ;
+
+      rc = catGetObjectCount( CAT_TASK_INFO_COLLECTION, dummy, matcher, dummy,
+                              cb, count ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get task count for collection [%s]",
+                   "rc: %d", collection, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETTASKCOUNTBYTYPE, rc ) ;
+      return rc ;
+   error:
       goto done ;
    }
 
