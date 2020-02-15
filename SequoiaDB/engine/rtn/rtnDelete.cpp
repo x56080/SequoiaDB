@@ -177,6 +177,15 @@ namespace engine
             while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
                                                         cb ) ) )
             {
+               if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
+                                  DMS_MB_ATTR_NOIDINDEX ) )
+               {
+                  PD_LOG( PDERROR, "can not delete data when autoIndexId is "
+                          "false" ) ;
+                  rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;
+                  goto error ;
+               }
+
                generator.getDataPtr( recordDataPtr ) ;
                rc = su->data()->deleteRecord( mbContext, recordID, recordDataPtr,
                                               cb, dpsCB ) ;
