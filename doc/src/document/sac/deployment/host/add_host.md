@@ -8,15 +8,23 @@
 2. 在 **IP地址/主机名** 输入要扫描主机的IP地址或主机名。
 
    扫描主机支持4种输入方式：
-   * 普通格式：```sdbserver1```
+   * 普通格式：```sdbserver1``` 或者 ```192.168.1.101```
    * 区间格式：```sdbserver[1-3]``` 或者 ```192.168.1.[101-103]```
-   * 逗号分隔：```sdbserver1, sdbserver2, sdbserver3```
+   * 逗号分隔：```sdbserver1, sdbserver2, sdbserver3``` 或者 ```192.168.1.101, 192.168.1.102, 192.168.1.103```
    * 换行分隔：
 
      ```
      sdbserver1
      sdbserver2
      sdbserver3
+     ```
+
+     或者
+
+     ```
+     192.168.1.101
+     192.168.1.102
+     192.168.1.103
      ```
 
    ![扫描主机](sac/deployment/host/add_host_2.png)
