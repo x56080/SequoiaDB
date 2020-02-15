@@ -245,6 +245,15 @@ namespace engine
             while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
                                                         cb, &mthContext ) ) )
             {
+               if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
+                                  DMS_MB_ATTR_NOIDINDEX ) )
+               {
+                  PD_LOG( PDERROR, "can not update data when autoIndexId is "
+                          "false" ) ;
+                  rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;
+                  goto error ;
+               }
+
                execStartTime = krcb->getCurTime() ;
 
                mthContext.getDollarList( &dollarList ) ;

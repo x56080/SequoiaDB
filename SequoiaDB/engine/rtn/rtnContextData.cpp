@@ -489,6 +489,14 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       SDB_ASSERT( NULL != _queryModifier, "_queryModifier can't be null" ) ;
+      // check id index
+      if ( OSS_BIT_TEST( _mbContext->mb()->_attributes,
+                         DMS_MB_ATTR_NOIDINDEX ) )
+      {
+         PD_LOG( PDERROR, "can not update data when autoIndexId is false" ) ;
+         rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;
+         goto error ;
+      }
 
       if ( _queryModifier->isUpdate() )
       {

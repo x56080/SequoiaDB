@@ -201,6 +201,19 @@ namespace engine
             while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
                                                         cb ) ) )
             {
+               // Capped collection has no index, but delete is supported.
+               if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
+                                  DMS_MB_ATTR_NOIDINDEX )
+                    &&
+                    !(OSS_BIT_TEST( mbContext->mb()->_attributes,
+                                    DMS_MB_ATTR_CAPPED ) ) )
+               {
+                  PD_LOG( PDERROR, "can not delete data when autoIndexId is "
+                          "false" ) ;
+                  rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;
+                  goto error ;
+               }
+
                // by now, we have a qualified record to delete, and already hold
                // the record lock in X
                execStartTime = krcb->getCurTime() ;
