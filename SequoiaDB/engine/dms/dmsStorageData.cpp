@@ -364,6 +364,8 @@ namespace engine
          {
             pOvfRecord->setData( newRecordData ) ;
             pOvfRecord->setGlobTransID( cb->getTransID() ) ;
+            // need to update transID in original record header
+            pRecord->setGlobTransID( cb->getTransID() ) ;
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
             /// sub the remove data info
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;

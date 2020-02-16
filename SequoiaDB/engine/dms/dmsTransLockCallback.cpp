@@ -631,8 +631,9 @@ namespace engine
          SDB_ASSERT( _oldVer->getRecordID() ==
                      dmsRecordID(lockId.extentID(), lockId.offset()),
                      "LockID is not the same" ) ;
-
-         if ( _oldVer->isRecordDeleted() )
+         // For RR, still need to check version visibility
+         if ( _oldVer->isRecordDeleted() &&
+              ( TRANS_ISOLATION_RR > _transIsolation ) )
          {
             _oldVer = NULL ;
             goto done ;
