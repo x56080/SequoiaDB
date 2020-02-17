@@ -2,7 +2,7 @@
 *@Description: seqDB-12225: 重放时过滤/指定操作  
 *@Author: 2019-7-3  xiaoni zhao init
 ************************************************************************/
-//main();
+main();
 function main ()
 {
    if( commIsStandalone( db ) )
