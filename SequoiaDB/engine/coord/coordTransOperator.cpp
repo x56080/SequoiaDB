@@ -43,6 +43,7 @@
 #include "rtn.hpp"
 #include "utilMemListPool.hpp"
 #include "dpsUtil.hpp"
+#include "msgMessage.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 
@@ -54,7 +55,11 @@ namespace engine
    // require time synchronize between COORD and DATA nodes
    // increase retry in case it needs retry after synchronization
    // with STP servers
-   #define COORD_GLOB_TRANS_MAX_RETRY ( 10 )
+   #define COORD_GLOB_TRANS_MAX_RETRY ( 5 )
+
+   // if RR transaction message is too long, if will have network delay issue
+   // which may cause not synchronization problem
+   #define COORD_MAX_PACK_TRANS_MESSAGE ( 128 * 1024 )
 
    /*
       _coordTransOperator implement
@@ -94,13 +99,6 @@ namespace engine
                rc = _groupSession.getPropSite()->beginTrans( cb, TRUE ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction, "
                             "rc: %d", rc ) ;
-
-               if ( cb->isGlobTrans() &&
-                    cb->isTransRRRequired() )
-               {
-                  _groupSession.getGroupCtrl()->
-                        setMaxRetryTimes( COORD_GLOB_TRANS_MAX_RETRY ) ;
-               }
             }
 
             /// transaction should access with primary
@@ -123,14 +121,31 @@ namespace engine
             /// transaction should access with primary
             options._primary = TRUE ;
          }
+
+         // set max retry times for global transaction which might need retry
+         // to synchronize with global logical time with STP
+         if ( cb->isGlobTrans() &&
+              cb->isTransRRRequired() )
+         {
+            _groupSession.getGroupCtrl()->
+                  setMaxRetryTimes( COORD_GLOB_TRANS_MAX_RETRY ) ;
+         }
       }
 
-      /// when data is old version
-      if ( _remoteHandler.isVersion0() && _isTrans( cb, inMsg.msg() ) )
+      /// in below cases we need to send transaction begin separately,
+      /// - when data is old version
+      /// - when RR transaction and input message is too long, which may cause
+      ///   network delay
+      if ( _isTrans( cb, inMsg.msg() ) &&
+           ( ( _remoteHandler.isVersion0() ) ||
+             ( cb->isTransRR() &&
+               inMsg.msg()->messageLength > COORD_MAX_PACK_TRANS_MESSAGE ) ) )
       {
          ROUTE_RC_MAP newNodeMap ;
          // build trans session on new data groups
-         rc = buildTransSession( options._groupLst, cb, newNodeMap ) ;
+         rc = buildTransSession( options._groupLst, cb, newNodeMap,
+                                 isTransWriteMsg( inMsg.opCode(),
+                                                  inMsg.msg() ) ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to build transaction session on "
@@ -293,7 +308,8 @@ namespace engine
 
    INT32 _coordTransOperator::buildTransSession( const CoordGroupList &groupLst,
                                                  pmdEDUCB *cb,
-                                                 ROUTE_RC_MAP &newNodeMap )
+                                                 ROUTE_RC_MAP &newNodeMap,
+                                                 BOOLEAN nextIsWrite )
    {
       INT32 rc = SDB_OK ;
 
@@ -324,7 +340,6 @@ namespace engine
                      (UINT32)( cb->getTransBeginTime().getTimeError() ) ;
          msgReq.currentTime = 0LL ;
          msgReq.currentTimeError = 0 ;
-         msgReq.nextIsWrite = 0 ;
          ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
 
          iterGroup = groupLst.begin() ;
@@ -342,7 +357,7 @@ namespace engine
          result._pOkRC = &newNodeMap ;
 
          // call on transaction begin event, fill current time of message
-         rc = _remoteHandler.onTransBegin( &msgReq, cb, NULL ) ;
+         rc = _remoteHandler.onTransBegin( &msgReq, cb, nextIsWrite ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to call on transaction begin "
                       "event on remote handler, rc: %d", rc ) ;
 

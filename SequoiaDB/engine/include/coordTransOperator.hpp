@@ -87,7 +87,8 @@ namespace engine
       protected:
          INT32          buildTransSession( const CoordGroupList &groupLst,
                                            pmdEDUCB *cb,
-                                           ROUTE_RC_MAP &newNodeMap ) ;
+                                           ROUTE_RC_MAP &newNodeMap,
+                                           BOOLEAN nextIsWrite ) ;
     
          INT32          releaseTransSession( SET_NODEID &nodes,
                                              pmdEDUCB *cb  ) ;
