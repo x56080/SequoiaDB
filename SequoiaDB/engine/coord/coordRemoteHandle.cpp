@@ -631,7 +631,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDREMOTEHANDLERBASE_ONTRANSBEGIN, "_coordRemoteHandlerBase::onTransBegin" )
    INT32 _coordRemoteHandlerBase::onTransBegin( MsgOpTransBegin *request,
                                                 pmdEDUCB *cb,
-                                                pmdSubSession *subSession )
+                                                BOOLEAN nextIsWrite )
    {
       INT32 rc = SDB_OK ;
 
@@ -651,17 +651,7 @@ namespace engine
          request->currentTimeError = currentTime.getTimeError() ;
 
          // set next operation, DATA node will do pre-arbitration if needed
-         if ( NULL != subSession &&
-              NULL != subSession->getReqMsg() )
-         {
-            MsgHeader *nextMessage = subSession->getReqMsg() ;
-            request->nextIsWrite = ( isTransWriteMsg( nextMessage->opCode,
-                                                      nextMessage ) ) ? 1 : 0 ;
-         }
-         else
-         {
-            request->nextIsWrite = 0 ;
-         }
+         request->nextIsWrite = nextIsWrite ? 1 : 0 ;
       }
       else
       {
@@ -669,6 +659,7 @@ namespace engine
          // check
          request->currentTime = 0 ;
          request->currentTimeError = 0 ;
+         request->nextIsWrite = 0 ;
       }
 
    done:
@@ -715,7 +706,7 @@ namespace engine
             ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
 
             // call on transaction begin event, fill current time of message
-            rc = onTransBegin( &msgReq, cb, pSub ) ;
+            rc = onTransBegin( &msgReq, cb, isWriteMsg ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to call on transaction begin "
                          "event, rc: %d", rc ) ;
 

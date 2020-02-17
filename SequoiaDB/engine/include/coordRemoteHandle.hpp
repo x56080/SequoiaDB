@@ -144,7 +144,7 @@ namespace engine
 
          INT32 onTransBegin( MsgOpTransBegin *request,
                              _pmdEDUCB *cb,
-                             _pmdSubSession *subSession ) ;
+                             BOOLEAN nextIsWrite ) ;
 
       protected:
 
