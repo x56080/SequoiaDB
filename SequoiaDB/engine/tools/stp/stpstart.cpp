@@ -52,6 +52,7 @@
 #include "stpToolCommon.hpp"
 #include "ossIO.hpp"
 #include "ossCmdRunner.hpp"
+#include "stpToolUtil.hpp"
 
 #include <string>
 #include <boost/algorithm/string.hpp>
@@ -64,28 +65,27 @@ using namespace boost::algorithm ;
 namespace engine
 {
 
-   #define STPSTART_LOG_FILE_NAME   "stpstart.log"
-   #define STPSTART_OPTION_OPTIONS  "options"
+   #define STPSTART_LOG_FILE_NAME         "stpstart.log"
+   #define STPSTART_OPTION_OPTIONS        "options"
+   #define STPSTART_OPTION_IGNOREULIMIT   PMD_OPTION_IGNOREULIMIT
 
 #if defined (_WINDOWS)
    #define COMMANDS_OPTIONS \
-       ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h"), "help" ) \
-       ( PMD_OPTION_VERSION, "version" ) \
-       ( PMD_OPTION_FORCE, "force" ) \
-       ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c"), po::value<string>(), "configuration file path" ) \
+       ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h"), "help" ) \
+       ( STP_OPTION_VERSION, "version" ) \
+       ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c"), po::value<string>(), "configuration file path" ) \
        ( STPSTART_OPTION_OPTIONS, po::value<string>(), "options" )
 #else
    #define COMMANDS_OPTIONS \
-       ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h"), "help" ) \
-       ( PMD_OPTION_VERSION, "version" ) \
-       ( PMD_OPTION_FORCE, "force" ) \
-       ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c"), po::value<string>(), "configuration file path" ) \
+       ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h"), "help" ) \
+       ( STP_OPTION_VERSION, "version" ) \
+       ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c"), po::value<string>(), "configuration file path" ) \
        ( STPSTART_OPTION_OPTIONS, po::value<string>(), "options" ) \
-       ( PMD_COMMANDS_STRING( PMD_OPTION_IGNOREULIMIT, ",i"), "skip checking ulimit" )
+       ( PMD_COMMANDS_STRING( STPSTART_OPTION_IGNOREULIMIT, ",i"), "skip checking ulimit" )
 #endif
 
    #define COMMANDS_HIDE_OPTIONS \
-      ( PMD_OPTION_HELPFULL, "help all configs" ) \
+      ( STP_OPTION_HELPFULL, "help all configs" ) \
       ( PMD_OPTION_CURUSER, "use current user" )
 
    static void init( po::options_description &desc,
@@ -106,24 +106,11 @@ namespace engine
       cout << desc << endl ;
    }
 
-   static BOOLEAN serviceExists( const CHAR *serviceName, utilNodeInfo &info )
-   {
-      UTIL_VEC_NODES nodes ;
-      INT32 rc = utilListNodes( nodes, -1, serviceName ) ;
-      if ( SDB_OK == rc && nodes.size() > 0 )
-      {
-         info = *nodes.begin() ;
-         return TRUE ;
-      }
-      return FALSE ;
-   }
-
    static INT32 resolveArgument( po::options_description &desc,
                                  po::options_description &all,
                                  po::variables_map &vm,
                                  INT32 argc,
                                  CHAR **argv,
-                                 BOOLEAN &force,
                                  string &configPath,
                                  string &options )
    {
@@ -135,37 +122,28 @@ namespace engine
          goto error ;
       }
 
-      if ( vm.count( PMD_OPTION_HELP ) )
+      if ( vm.count( STP_OPTION_HELP ) )
       {
          displayArg( desc ) ;
          rc = SDB_PMD_HELP_ONLY ;
          goto done ;
       }
-      if ( vm.count( PMD_OPTION_HELPFULL ) )
+      if ( vm.count( STP_OPTION_HELPFULL ) )
       {
          displayArg( all ) ;
          rc = SDB_PMD_HELP_ONLY ;
          goto done ;
       }
-      else if ( vm.count( PMD_OPTION_VERSION ) )
+      else if ( vm.count( STP_OPTION_VERSION ) )
       {
-         ossPrintVersion( "SDBTP Start Version" ) ;
+         ossPrintVersion( "STP Start Version" ) ;
          rc = SDB_PMD_VERSION_ONLY ;
          goto done ;
       }
 
-      if ( vm.count( PMD_OPTION_FORCE ) )
+      if ( vm.count( STP_OPTION_CONFPATH ) )
       {
-         force = TRUE ;
-      }
-      else
-      {
-         force = FALSE ;
-      }
-
-      if ( vm.count( PMD_OPTION_CONFPATH ) )
-      {
-         configPath = vm[PMD_OPTION_CONFPATH].as<string>() ;
+         configPath = vm[ STP_OPTION_CONFPATH ].as<string>() ;
       }
 
       if ( vm.count( STPSTART_OPTION_OPTIONS ) )
@@ -175,17 +153,12 @@ namespace engine
          // can't include '-c/--confpath'
          if ( ossStrstr( options.c_str(), "-c" ) ||
               ossStrstr( options.c_str(),
-                         SDBCM_OPTION_PREFIX PMD_OPTION_CONFPATH ) )
+                         SDBCM_OPTION_PREFIX STP_OPTION_CONFPATH ) )
          {
             cout << "options invalid" << endl ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-      }
-
-      if ( configPath.empty() )
-      {
-         force = TRUE ;
       }
 
    done:
@@ -195,70 +168,25 @@ namespace engine
       goto done ;
    }
 
-   static void buildListArgs( const CHAR *sdbtpPathName,
-                              BOOLEAN force,
-                              const string &configPath,
-                              const string &options,
-                              string &cmd )
-   {
-      BOOLEAN addedConf = FALSE ;
-
-      cmd = sdbtpPathName ;
-
-      if ( !configPath.empty() )
-      {
-         cmd += " " ;
-         cmd += SDBCM_OPTION_PREFIX PMD_OPTION_CONFPATH ;
-         cmd += " " ;
-         cmd += configPath ;
-         addedConf = TRUE ;
-      }
-
-      if ( !options.empty() )
-      {
-         cmd += " " ;
-         cmd += options ;
-      }
-
-      if ( force || !addedConf )
-      {
-         cmd += " " ;
-         cmd += SDBCM_OPTION_PREFIX PMD_OPTION_FORCE ;
-      }
-   }
-
    static INT32 mainEntry( INT32 argc, CHAR **argv )
    {
       INT32 rc = SDB_OK ;
-      INT32 tmpRC = SDB_OK ;
 
       po::options_description desc( "Command options" ) ;
       po::options_description all( "Command options" ) ;
       po::variables_map vm ;
 
-      BOOLEAN force = FALSE ;
       string configPath ;
       string options ;
 
       CHAR dialogFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR rootPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      CHAR stpPathName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-
-      string svcname ;
-      utilNodeInfo info ;
-
-      string runCmd ;
-      OSSHANDLE handle ;
-      ossCmdRunner runner ;
-
-      UINT32 exitCode = 0 ;
 
       init( desc, all ) ;
 
       /// 1.validate arguments
-      rc = resolveArgument( desc, all, vm, argc, argv, force, configPath,
-                            options ) ;
+      rc = resolveArgument( desc, all, vm, argc, argv, configPath, options ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_PMD_HELP_ONLY != rc && SDB_PMD_VERSION_ONLY != rc )
@@ -275,7 +203,7 @@ namespace engine
 
 #if defined ( _LINUX )
       /// check ulimit
-      if ( !vm.count( PMD_OPTION_IGNOREULIMIT ) )
+      if ( !vm.count( STPSTART_OPTION_IGNOREULIMIT ) )
       {
          rc = utilSetAndCheckUlimit() ;
          if ( SDB_OK != rc )
@@ -302,30 +230,6 @@ namespace engine
          ossPrintf( "Error: Get module self path failed:  %d"OSS_NEWLINE,
                     rc ) ;
          goto error ;
-      }
-
-      /// binary path
-      rc = utilBuildFullPath( rootPath, STP_NAME, OSS_MAX_PATHSIZE,
-                              stpPathName ) ;
-      if ( SDB_OK != rc )
-      {
-         ossPrintf( "Error: Build engine path name failed: %d"OSS_NEWLINE,
-                    rc ) ;
-         goto error ;
-      }
-
-      /// config path
-      if ( configPath.empty() )
-      {
-         CHAR tmpPath[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
-         rc = utilBuildFullPath( rootPath, STP_ROOT_PATH, OSS_MAX_PATHSIZE,
-                                 tmpPath ) ;
-         if ( SDB_OK != rc )
-         {
-            ossPrintf( "Failed to build config path: %d"OSS_NEWLINE, rc ) ;
-            goto error ;
-         }
-         configPath.assign( tmpPath ) ;
       }
 
       /// dialog path and file
@@ -362,85 +266,8 @@ namespace engine
       ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
       PD_LOG( PDEVENT, "Start program [%s]...", verText ) ;
 
-      // first check
-      rc = utilGetServiceByConfigPath( configPath, STP_CFG_FILE_NAME,
-                                       PMD_OPTION_PORT, svcname,
-                                       STP_DEF_SERVICE_NAME ) ;
-      if ( SDB_OK == rc && !svcname.empty() &&
-           serviceExists( svcname.c_str(), info ) )
-      {
-         ossPrintf( "Success: %s(%s) is already started (%d)"OSS_NEWLINE,
-                    utilDBTypeStr( SDB_TYPE_STP ), svcname.c_str(),
-                    info._pid ) ;
-         goto done ;
-      }
-
-      // start node
-      buildListArgs( stpPathName, force, configPath, options, runCmd ) ;
-
-      tmpRC = runner.exec( runCmd.c_str(), exitCode, TRUE, -1, TRUE, &handle ) ;
-      if ( SDB_OK != tmpRC )
-      {
-         rc = tmpRC ;
-         ossPrintf( "Error: Start %s(%s) failed, rc: %d(%s)"OSS_NEWLINE,
-                    utilDBTypeStr( SDB_TYPE_STP ), svcname.c_str(), tmpRC,
-                    getErrDesp( rc ) ) ;
-         goto error ;
-      }
-
-      info._pid = runner.getPID() ;
-      info._svcname = svcname ;
-
-      tmpRC = utilWaitNodeOK( info, info._svcname.c_str(), info._pid ) ;
-
-      /// notify node to end pipe
-      utilEndNodePipeDup( info._svcname.c_str(), info._pid ) ;
-      runner.done() ;
-
-      if ( SDB_OK == tmpRC )
-      {
-         ossPrintf( "Success: %s(%s) is successfully started (%d)"OSS_NEWLINE,
-                    utilDBTypeStr( SDB_TYPE_STP ), svcname.c_str(),
-                    info._pid ) ;
-      }
-      else
-      {
-         rc = tmpRC ;
-
-         /// read out
-         if ( (OSSHANDLE)0 != handle )
-         {
-            string outString ;
-            runner.read( outString ) ;
-            utilStrTrim( outString ) ;
-#if defined( _WINDOWS )
-            // need to remove all '\r'
-            erase_all( outString, "\r" ) ;
-#endif // _WINDOWS
-            if ( !outString.empty() )
-            {
-               ossPrintf( "%s: %u bytes out==>%s%s%s<=="OSS_NEWLINE,
-                          info._svcname.c_str(),
-                          (UINT32)(outString.length() + ossStrlen( OSS_NEWLINE ) * 2 ),
-                          OSS_NEWLINE,
-                          outString.c_str(),
-                          OSS_NEWLINE ) ;
-            }
-         }
-
-         if ( !ossIsProcessRunning( info._pid ) &&
-              (OSSHANDLE)0 != handle &&
-              SDB_OK == ossGetExitCodeProcess( handle, exitCode ) )
-         {
-            rc = exitCode ;
-         }
-         ossPrintf( "Error: Start %s(%s) failed, rc: %d(%s)"OSS_NEWLINE,
-                    utilDBTypeStr( SDB_TYPE_STP ), svcname.c_str(), rc,
-                    getErrDesp( utilShellRC2RC( rc ) ) ) ;
-      }
-
-      // close handle
-      ossCloseProcessHandle( handle ) ;
+      rc = stpStartNode( rootPath, configPath, options ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to start STP node, rc: %d", rc ) ;
 
    done:
       PD_LOG( PDEVENT, "Stop program." ) ;

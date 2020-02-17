@@ -39,6 +39,7 @@
 #include "stpOptions.hpp"
 #include "ossVer.h"
 #include "pmdEnv.hpp"
+#include "stpToolUtil.hpp"
 
 namespace po = boost::program_options ;
 
@@ -51,30 +52,33 @@ namespace engine
    #define PMD_STP_OPTION_STARTSHIFTTIME_DFT     (600)
 
    #define FILE_OPTIONS \
-         ( PMD_OPTION_PORT, po::value<string>(), "sdbtp listening port, default is 9622" ) \
-         ( PMD_STP_OPTION_SERVERLIST, po::value<string>(), "sdbtp server list" ) \
-         ( PMD_OPTION_ROLE, po::value<string>(), "sdbtp role, default is standalone" ) \
-         ( PMD_OPTION_WEIGHT, po::value<INT32>(), "sdbtp vote weight" ) \
-         ( PMD_STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "sdbtp synchronize interval" ) \
-         ( PMD_STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "sdbtp max time error" ) \
-         ( PMD_OPTION_DIAGLEVEL, po::value<INT32>(), "sdbtp dialog level, default is 3" ) \
-         ( PMD_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
-         ( PMD_OPTION_START_SHIFT_TIME, po::value<INT32>(), "Nodes starting shift time(sec), default:600, value range:[0,7200]" )
+         ( STP_OPTION_PORT, po::value<string>(), "STP listening port, default is 9622" ) \
+         ( STP_OPTION_SERVERLIST, po::value<string>(), "STP server list" ) \
+         ( STP_OPTION_ROLE, po::value<string>(), "STP role, default is standalone" ) \
+         ( STP_OPTION_WEIGHT, po::value<INT32>(), "STP vote weight" ) \
+         ( STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "STP synchronize interval" ) \
+         ( STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "STP max time error" ) \
+         ( STP_OPTION_DIAGLEVEL, po::value<INT32>(), "STP dialog level, default is 3" ) \
+         ( STP_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
+         ( STP_OPTION_STARTSHIFTTIME, po::value<INT32>(), "Nodes starting shift time( in seconds ), default:600, value range:[0,7200]" ) \
+         ( STP_OPTION_DAEMON, "Start STP in daemon mode" ) \
+         ( STP_OPTION_TESTMODE, "Start STP in test mode" )
 
    #define COMMANDS_OPTIONS \
-         ( PMD_COMMANDS_STRING( PMD_OPTION_PORT, ",p" ), po::value<string>(), "sdbtp listening port, default is 9622" ) \
-         ( PMD_STP_OPTION_SERVERLIST, po::value<string>(), "sdbtp server list" ) \
-         ( PMD_OPTION_ROLE, po::value<string>(), "sdbtp role, default is standalone" ) \
-         ( PMD_OPTION_WEIGHT, po::value<INT32>(), "sdbtp vote weight" ) \
-         ( PMD_STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "sdbtp synchronize interval" ) \
-         ( PMD_STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "sdbtp max time error" ) \
-         ( PMD_OPTION_DIAGLEVEL, po::value<INT32>(), "sdbtp dialog level, default is 3" ) \
-         ( PMD_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
-         ( PMD_OPTION_START_SHIFT_TIME, po::value<INT32>(), "Nodes starting shift time(sec), default:600, value range:[0,7200]" ) \
-         ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h" ), "help" ) \
-         ( PMD_OPTION_VERSION, "version" ) \
-         ( PMD_COMMANDS_STRING( PMD_OPTION_CONFPATH, ",c" ), po::value<string>(), "sdbtp configuration file path" ) \
-         ( PMD_OPTION_FORCE, "force to start without configuration file" )
+         ( PMD_COMMANDS_STRING( STP_OPTION_PORT, ",p" ), po::value<string>(), "STP listening port, default is 9622" ) \
+         ( STP_OPTION_SERVERLIST, po::value<string>(), "STP server list" ) \
+         ( STP_OPTION_ROLE, po::value<string>(), "STP role, default is standalone" ) \
+         ( STP_OPTION_WEIGHT, po::value<INT32>(), "STP vote weight" ) \
+         ( STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "STP synchronize interval" ) \
+         ( STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "STP max time error" ) \
+         ( STP_OPTION_DIAGLEVEL, po::value<INT32>(), "STP dialog level, default is 3" ) \
+         ( STP_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
+         ( STP_OPTION_STARTSHIFTTIME, po::value<INT32>(), "Nodes starting shift time( in seconds ), default:600, value range:[0,7200]" ) \
+         ( STP_OPTION_DAEMON, "Start STP in daemon mode" ) \
+         ( STP_OPTION_TESTMODE, "Start STP in test mode" ) \
+         ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h" ), "help" ) \
+         ( STP_OPTION_VERSION, "version" ) \
+         ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), po::value<string>(), "STP configuration file path" )
 
    /*
       _tpOptions implement
@@ -102,11 +106,11 @@ namespace engine
 
    INT32 _stpOptions::initialize( INT32 argc,
                                   CHAR **argv,
-                                  const CHAR *rootPath )
+                                  const CHAR *rootPath,
+                                  BOOLEAN &daemonMode )
    {
       INT32 rc = SDB_OK ;
 
-      BOOLEAN force = TRUE ;
       po::options_description desc( "Command options" ) ;
       po::variables_map vmFile, vmCommand ;
 
@@ -122,20 +126,19 @@ namespace engine
          goto error ;
       }
 
-      if ( vmCommand.count( PMD_OPTION_CONFPATH ) )
+      if ( vmCommand.count( STP_OPTION_CONFPATH ) )
       {
          // if config path is given, check if exists
          if ( NULL == ossGetRealPath(
-                     vmCommand[ PMD_OPTION_CONFPATH ].as<string>().c_str(),
+                     vmCommand[ STP_OPTION_CONFPATH ].as<string>().c_str(),
                      _stpPath, OSS_MAX_PATHSIZE ) )
          {
             cerr << "ERROR: Failed to get real path for " <<
-                    vmCommand[ PMD_OPTION_CONFPATH ].as<string>().c_str() <<
+                    vmCommand[ STP_OPTION_CONFPATH ].as<string>().c_str() <<
                     endl ;
             rc = SDB_INVALIDPATH ;
             goto error;
          }
-         force = FALSE ;
       }
       else
       {
@@ -150,10 +153,27 @@ namespace engine
                       "path %s, rc: %d", rootPath, rc ) ;
       }
 
-      if ( vmCommand.count( PMD_OPTION_FORCE ) )
+      if ( vmCommand.count( STP_OPTION_DAEMON ) )
       {
-         // force to start
-         force = TRUE ;
+         string options ;
+
+         // remove options should no saved into config file
+         vmCommand.erase( STP_OPTION_CONFPATH ) ;
+         vmCommand.erase( STP_OPTION_DAEMON ) ;
+
+         // initialize config record
+         rc = pmdCfgRecord::init( NULL, &vmCommand ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize configurations, "
+                      "rc: %d", rc ) ;
+
+         rc = toString( options ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get extra configurations for "
+                      "daemon mode, rc: %d", rc ) ;
+
+         rc = stpStartNode( rootPath, _stpPath, options ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to start STP node, rc: %d", rc ) ;
+
+         daemonMode = TRUE ;
       }
 
       // build stp config file path
@@ -171,25 +191,19 @@ namespace engine
       rc = utilReadConfigureFile( _cfgFileName, desc, vmFile ) ;
       if ( SDB_OK != rc )
       {
-         if ( SDB_FNE == rc && force )
+         if ( SDB_FNE == rc )
          {
             // file or dir not exist
             PD_LOG( PDWARNING, "Failed to read missing configurations [%s], "
                     "use default configurations", _cfgFileName ) ;
          }
-         else
-         {
-            PD_LOG( PDERROR, "Failed to read configurations from file [%s], "
-                    "rc: %d", _cfgFileName, rc ) ;
-            goto error ;
-         }
       }
 
       // remove options should no saved into config file
-      vmCommand.erase( PMD_OPTION_CONFPATH ) ;
-      vmCommand.erase( PMD_OPTION_FORCE ) ;
+      vmCommand.erase( STP_OPTION_CONFPATH ) ;
+      vmCommand.erase( STP_OPTION_DAEMON ) ;
 
-      // initialze config record
+      // initialize config record
       rc = pmdCfgRecord::init( &vmFile, &vmCommand ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize configurations, rc: %d",
                    rc ) ;
@@ -305,43 +319,43 @@ namespace engine
       resetResult() ;
 
       // --port
-      rdxString( ex, PMD_OPTION_PORT, _serviceName,
+      rdxString( ex, STP_OPTION_PORT, _serviceName,
                  sizeof( _serviceName ), FALSE, PMD_CFG_CHANGE_FORBIDDEN,
                  _serviceName ) ;
 
       // --serverlist
-      rdxString( ex, PMD_STP_OPTION_SERVERLIST, _serverListString,
+      rdxString( ex, STP_OPTION_SERVERLIST, _serverListString,
                  sizeof( _serverListString ), FALSE, PMD_CFG_CHANGE_RUN,
                  _serverListString ) ;
 
       // --role
-      rdxString( ex, PMD_OPTION_ROLE, _roleString, sizeof( _roleString ),
+      rdxString( ex, STP_OPTION_ROLE, _roleString, sizeof( _roleString ),
                  FALSE, PMD_CFG_CHANGE_RUN, _roleString ) ;
 
       // --weight
-      rdxUInt( ex, PMD_OPTION_WEIGHT, _weight, FALSE, PMD_CFG_CHANGE_RUN,
+      rdxUInt( ex, STP_OPTION_WEIGHT, _weight, FALSE, PMD_CFG_CHANGE_RUN,
                _weight ) ;
 
       // --syncinterval
-      rdxUInt( ex, PMD_STP_OPTION_SYNCINTERVAL, _syncInterval, FALSE,
+      rdxUInt( ex, STP_OPTION_SYNCINTERVAL, _syncInterval, FALSE,
                PMD_CFG_CHANGE_RUN, _syncInterval ) ;
 
       // --maxtimeerror
-      rdxUInt( ex, PMD_STP_OPTION_MAXTIMEERROR, _maxTimeErrorUS, FALSE,
+      rdxUInt( ex, STP_OPTION_MAXTIMEERROR, _maxTimeErrorUS, FALSE,
                PMD_CFG_CHANGE_RUN, _maxTimeErrorUS ) ;
 
       // --diaglevel
-      rdxUShort( ex, PMD_OPTION_DIAGLEVEL, _diagLevel, FALSE,
+      rdxUShort( ex, STP_OPTION_DIAGLEVEL, _diagLevel, FALSE,
               PMD_CFG_CHANGE_RUN, _diagLevel ) ;
       rdvMinMax( ex, _diagLevel, PDSEVERE, PDDEBUG, TRUE ) ;
 
       // --sharingBreak
-      rdxUInt( ex, PMD_OPTION_SHARINGBRK, _sharingBreakTime, FALSE,
+      rdxUInt( ex, STP_OPTION_SHARINGBRK, _sharingBreakTime, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_STP_OPTION_BREAKTIME_DFT, TRUE ) ;
       rdvMinMax( ex, _sharingBreakTime, 5000, 300000, TRUE ) ;
 
       // --startshifttime
-      rdxUInt( ex, PMD_OPTION_START_SHIFT_TIME, _startShiftTime, FALSE,
+      rdxUInt( ex, STP_OPTION_STARTSHIFTTIME, _startShiftTime, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_STP_OPTION_STARTSHIFTTIME_DFT, TRUE ) ;
       rdvMinMax( ex, _startShiftTime, 0, 7200, TRUE ) ;
 
@@ -415,14 +429,14 @@ namespace engine
       // make sure has field
       if ( '\0' != _serverListString[ 0 ] )
       {
-         _addToFieldMap( PMD_STP_OPTION_SERVERLIST, _serverListString, TRUE,
+         _addToFieldMap( STP_OPTION_SERVERLIST, _serverListString, TRUE,
                          TRUE ) ;
       }
 
       // format role
       ossStrncpy( _roleString, stpGetRoleName( _role ), PMD_MAX_SHORT_STR_LEN ) ;
       _roleString[ PMD_MAX_SHORT_STR_LEN ] = '\0' ;
-      _addToFieldMap( PMD_OPTION_ROLE, _roleString, TRUE, TRUE ) ;
+      _addToFieldMap( STP_OPTION_ROLE, _roleString, TRUE, TRUE ) ;
 
       return rc ;
    }
@@ -449,12 +463,12 @@ namespace engine
       }
 
       // handle help or version
-      if ( vm.count( PMD_OPTION_HELP ) )
+      if ( vm.count( STP_OPTION_HELP ) )
       {
          _displayArguments( desc ) ;
          rc = SDB_PMD_HELP_ONLY ;
       }
-      else if ( vm.count( PMD_OPTION_VERSION ) )
+      else if ( vm.count( STP_OPTION_VERSION ) )
       {
          ossPrintVersion( "SequoiaDB STP version" ) ;
          rc = SDB_PMD_VERSION_ONLY ;

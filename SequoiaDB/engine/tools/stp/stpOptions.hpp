@@ -59,7 +59,8 @@ namespace engine
       virtual ~_stpOptions() ;
 
       // initialize options
-      INT32 initialize( INT32 argc, CHAR **argv, const CHAR *rootPath ) ;
+      INT32 initialize( INT32 argc, CHAR **argv, const CHAR *rootPath,
+                        BOOLEAN &daemonMode ) ;
 
       // save options to config file
       INT32 save() ;

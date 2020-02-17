@@ -98,12 +98,26 @@ namespace engine
    #define STP_LOG_PATH             STP_ROOT_PATH
 
    // names of STP options
+   #define STP_OPTION_PORT             PMD_OPTION_PORT
+   #define STP_OPTION_ROLE             PMD_OPTION_ROLE
+   #define STP_OPTION_WEIGHT           PMD_OPTION_WEIGHT
+   #define STP_OPTION_DIAGLEVEL        PMD_OPTION_DIAGLEVEL
+   #define STP_OPTION_SHARINGBRK       PMD_OPTION_SHARINGBRK
+   #define STP_OPTION_STARTSHIFTTIME   PMD_OPTION_START_SHIFT_TIME
+   #define STP_OPTION_CONFPATH         PMD_OPTION_CONFPATH
+   #define STP_OPTION_VERSION          PMD_OPTION_VERSION
+   #define STP_OPTION_HELP             PMD_OPTION_HELP
+   #define STP_OPTION_HELPFULL         PMD_OPTION_HELPFULL
    // server list
-   #define PMD_STP_OPTION_SERVERLIST   "serverlist"
+   #define STP_OPTION_SERVERLIST       "serverlist"
    // synchronize interval
-   #define PMD_STP_OPTION_SYNCINTERVAL "syncinterval"
+   #define STP_OPTION_SYNCINTERVAL     "syncinterval"
    // max time error
-   #define PMD_STP_OPTION_MAXTIMEERROR "maxtimeerror"
+   #define STP_OPTION_MAXTIMEERROR     "maxtimeerror"
+   // daemon mode
+   #define STP_OPTION_DAEMON           "daemon"
+   // test mode
+   #define STP_OPTION_TESTMODE         "testmode"
 
    // default STP port ( service name ) is 9622
    #define STP_DEF_PORT                ( 9622 )

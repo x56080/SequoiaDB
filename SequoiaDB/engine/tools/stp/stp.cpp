@@ -71,6 +71,7 @@ namespace engine
       CHAR pidFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       INT32 delSig[] = { 17, 0 } ; // del SIGCHLD
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      BOOLEAN daemonMode = FALSE ;
 
       pmdSetDBRole( SDB_ROLE_STP ) ;
 
@@ -130,8 +131,12 @@ namespace engine
 
       // 4. init param
       options = stpCB->getOptions() ;
-      rc = options->initialize( argc, argv, currentPath ) ;
+      rc = options->initialize( argc, argv, currentPath, daemonMode ) ;
       if ( SDB_OK != rc )
+      {
+         goto done ;
+      }
+      if ( daemonMode )
       {
          goto done ;
       }

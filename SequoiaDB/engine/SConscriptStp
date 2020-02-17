@@ -239,6 +239,10 @@ stpFiles = [
       "tools/stp/stpCommand.cpp"
       ]
 
+stpToolFiles = [
+      "tools/stp/stpToolUtil.cpp"
+      ]
+
 stpMainFiles = [
       "tools/stp/stp.cpp"
       ]
@@ -275,20 +279,22 @@ stpEnv.StaticLibrary('ssh2', ssh2Files)
 stpEnv.StaticLibrary('clsRepl', clsReplFiles)
 # Serial Time Protocol
 stpEnv.StaticLibrary('stp', stpFiles)
+# STP tool
+stpEnv.StaticLibrary('stpTool', stpToolFiles)
 
 #Executable
 stp = stpEnv.Program(
       "stp",
       stpMainFiles,
       LIBDEPS = [ "pd", "oss", "msg", "bson", "util", "net", "pmd",
-                  "pmdMT", "ssh2", "rtnJob", "clsRepl", "stp" ],
+                  "pmdMT", "ssh2", "rtnJob", "clsRepl", "stp", "stpTool" ],
       _LIBDEPS = '$_LIBDEPS_OBJS'
       )
 
 stpstart = stpEnv.Program(
       "stpstart",
       stpstartFiles,
-      LIBDEPS = [ "pd", "oss", "pmd", "bson", "util" ],
+      LIBDEPS = [ "pd", "oss", "pmd", "bson", "util", "stpTool" ],
       _LIBDEPS = '$_LIBDEPS_OBJS'
       )
 
