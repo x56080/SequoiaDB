@@ -1125,8 +1125,7 @@ namespace engine
       if ( _local.getRole() != _options->getRole() )
       {
          PD_LOG( PDEVENT, "[%s] changed from [%s] to [%s]",
-                 PMD_OPTION_ROLE,
-                 stpGetRoleName( _local.getRole() ),
+                 STP_OPTION_ROLE, stpGetRoleName( _local.getRole() ),
                  stpGetRoleName( _options->getRole() ) ) ;
 
          // set role
@@ -1140,8 +1139,7 @@ namespace engine
       if ( _local.getMaxTimeError() != _options->getMaxTimeErrorNS() )
       {
          PD_LOG( PDEVENT, "[%s] changed from [%u] to [%u]",
-                 PMD_STP_OPTION_MAXTIMEERROR,
-                 _local.getMaxTimeError(),
+                 STP_OPTION_MAXTIMEERROR, _local.getMaxTimeError(),
                  _options->getMaxTimeErrorNS() ) ;
 
          // set max time error ( NOTE: used nanosecond internal )
@@ -1155,8 +1153,7 @@ namespace engine
       if ( _local.getSyncInterval() != _options->getSyncInterval() )
       {
          PD_LOG( PDEVENT, "[%s] changed from [%u] to [%u]",
-                 PMD_STP_OPTION_SYNCINTERVAL,
-                 _local.getSyncInterval(),
+                 STP_OPTION_SYNCINTERVAL, _local.getSyncInterval(),
                  _options->getSyncInterval() ) ;
 
          // set synchronize interval
@@ -1248,8 +1245,7 @@ namespace engine
       }
 
       PD_LOG( PDEVENT, "[%s] changed from [%s] to [%s]",
-              PMD_STP_OPTION_SERVERLIST,
-              tmpOptions.getServerListString(),
+              STP_OPTION_SERVERLIST, tmpOptions.getServerListString(),
               _options->getServerListString() ) ;
 
       // get new server list

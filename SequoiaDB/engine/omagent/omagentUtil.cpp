@@ -585,16 +585,16 @@ namespace engine
 
       // read port from config file
       PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
-         ( PMD_OPTION_PORT, po::value<string>(), "port" )
+         ( STP_OPTION_PORT, po::value<string>(), "port" )
       PMD_ADD_PARAM_OPTIONS_END
 
       rc = utilReadConfigureFile( cfgFileName, desc, vm ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to read STP config file [%s], "
                    "rc: %d", cfgFileName, rc ) ;
 
-      if ( vm.count( PMD_OPTION_PORT ) )
+      if ( vm.count( STP_OPTION_PORT ) )
       {
-         svcName = vm[ PMD_OPTION_PORT ].as<string>() ;
+         svcName = vm[ STP_OPTION_PORT ].as<string>() ;
       }
       else
       {

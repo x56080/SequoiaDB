@@ -59,15 +59,15 @@ using namespace std ;
 namespace engine
 {
    #define STPSTOP_LOG_FILE_NAME    "stpstop.log"
-   #define STPSTOP_OPTION_ALL       "all"
+   #define STPSTOP_OPTION_FORCE     PMD_OPTION_FORCE
 
    #define COMMANDS_OPTIONS \
-       ( PMD_COMMANDS_STRING( PMD_OPTION_HELP, ",h" ), "help" )\
-       ( PMD_OPTION_VERSION, "version" ) \
-       ( PMD_OPTION_FORCE, "force stop when the node can't stop normally" )
+       ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h" ), "help" )\
+       ( STP_OPTION_VERSION, "version" ) \
+       ( STPSTOP_OPTION_FORCE, "force stop when the node can't stop normally" )
 
    #define COMMANDS_HIDE_OPTIONS \
-      ( PMD_OPTION_HELPFULL, "help all configs" ) \
+      ( STP_OPTION_HELPFULL, "help all configs" ) \
       ( PMD_OPTION_CURUSER, "use current user" )
 
    // initialize options
@@ -105,26 +105,26 @@ namespace engine
          goto error ;
       }
 
-      if ( vm.count( PMD_OPTION_HELP ) )
+      if ( vm.count( STP_OPTION_HELP ) )
       {
          displayArg( desc ) ;
          rc = SDB_PMD_HELP_ONLY ;
          goto done ;
       }
-      else if ( vm.count( PMD_OPTION_HELPFULL ) )
+      else if ( vm.count( STP_OPTION_HELPFULL ) )
       {
          displayArg( all ) ;
          rc = SDB_PMD_HELP_ONLY ;
          goto done ;
       }
-      else if ( vm.count( PMD_OPTION_VERSION ) )
+      else if ( vm.count( STP_OPTION_VERSION ) )
       {
-         ossPrintVersion( "SDBTP Stop Version" ) ;
+         ossPrintVersion( "STP Stop Version" ) ;
          rc = SDB_PMD_VERSION_ONLY ;
          goto done ;
       }
 
-      if ( vm.count( PMD_OPTION_FORCE ) )
+      if ( vm.count( STPSTOP_OPTION_FORCE ) )
       {
          force = TRUE ;
       }

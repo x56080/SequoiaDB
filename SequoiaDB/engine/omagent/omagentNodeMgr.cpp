@@ -1092,7 +1092,7 @@ namespace engine
          while ( iter.more() )
          {
             BSONElement element = iter.next() ;
-            if ( 0 == ossStrcmp( element.fieldName(), PMD_OPTION_PORT ) )
+            if ( 0 == ossStrcmp( element.fieldName(), STP_OPTION_PORT ) )
             {
                if ( String == element.type() )
                {
@@ -1112,9 +1112,9 @@ namespace engine
                             "or number" ) ;
                }
             }
-            /// ignore PMD_OPTION_CONFPATH
+            /// ignore STP_OPTION_CONFPATH
             else if ( 0 != ossStrcmp( element.fieldName(),
-                                      PMD_OPTION_CONFPATH ) )
+                                      STP_OPTION_CONFPATH ) )
             {
                rc = omGetOptionString( ss, element ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to build options tring for "
