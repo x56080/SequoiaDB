@@ -1135,16 +1135,16 @@ namespace engine
       if ( DPS_INVALID_TRANSID_SN != globLowTran )
       {
          UINT64 lowTranTime = globLowTranID.getLogicalTime() ;
-         DPS_TRANS_ID minGlobTran = _dpsGetMinGlobTran() ;
+         DPS_TRANS_ID lastGlobExpireTran = getGlobExpireTran() ;
 
          ossScopedLock lock( &_hisMutex, SHARED ) ;
 
-         // iterate from beginning of history with global transaction tag to
-         // the global lowTran, find transactions with commit time greater
-         // than global lowTran ( with a maximum time error for network delay
-         // consideration ), and assign the minimum one for local expireTran
+         // iterate from last global expireTran to the global lowTran, find
+         // transactions with commit time greater than global lowTran
+         // ( with a maximum time error for network delay consideration ),
+         // and assign the minimum one for local expireTran
          for ( TRANS_ID_2_STATUS::iterator iter =
-                                 _hisTransStatus.upper_bound( minGlobTran ) ;
+                           _hisTransStatus.lower_bound( lastGlobExpireTran ) ;
                _hisTransStatus.end() != iter ;
                ++ iter )
          {
