@@ -84,6 +84,10 @@ namespace engine
       virtual IXScannerType   getCurScanType() const ;
       virtual void            disableByType( IXScannerType type ) ;
       virtual INT32           getLockModeByType( IXScannerType type ) const ;
+      virtual void getOwnerTransID(DPS_TRANS_ID & transID) 
+      {
+         transID = _savedTransID ; 
+      }
 
       virtual const BSONObj*  getCurKeyObj() const { return &_curKeyObj ; }
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }

@@ -664,6 +664,12 @@ namespace engine
       goto done ;
    }
 
+   void _rtnDiskIXScanner::getOwnerTransID( DPS_TRANS_ID &transID ) 
+   {
+      SDB_ASSERT( FALSE, "Owner not provided in disk scan.") ;
+      transID.reset() ;
+   }
+   
    INT32 _rtnDiskIXScanner::_isCursorSame( ixmExtent *pExtent,
                                            const BSONObj &saveObj,
                                            const dmsRecordID &saveRID,

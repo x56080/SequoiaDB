@@ -412,12 +412,7 @@ namespace engine
          // invalid if the update/insert is done when transaction is not ON
          setHasGlobTransID() ;
       }
-/*
-      DPS_LSN_OFFSET getLSNOffset() const
-      {
-         return _lsnOffset ;
-      }
-*/
+
       DPS_TRANS_ID getGlobTransID() const
       {
          return _globTransID ;
@@ -433,14 +428,7 @@ namespace engine
          _globTransID.reset() ;
          setHasGlobTransID() ;
       }
-/*
-      void setLSNOffset ( const DPS_LSN_OFFSET &lsnOffset )
-      {
-         SDB_ASSERT( (this->hasGlobTransID()), 
-                     "This is not a V1 record" ) ;
-         _lsnOffset = lsnOffset ;
-      }
-*/
+
       void setGlobTransID ( const DPS_TRANS_ID &globtransid )
       {
          _globTransID = globtransid.getOrigTransID() ;
@@ -610,13 +598,7 @@ namespace engine
       // similar to LR LSN, logical ID is an strictly incremental offset of
       // an record within the capped CS
       INT64       _logicalID ;
-/*
-      DPS_LSN_OFFSET _lsnOffset ;  // record creation lsn offset. We can use 
-                                   // it to uniquely identify a record cross 
-                                   // nodes. It is set during insertRecord.
-                                   // However, we are not using it yet. 
-                                   // Keep it for debug and future expension.
-*/
+      // cappedCL in internal and will be newly created in new release
       DPS_TRANS_ID  _globTransID ; // global transaction ID updated the 
                                    // record it's the same trans created
                                    // cappedRecord
@@ -713,19 +695,6 @@ namespace engine
          _globTransID = globtransid.getOrigTransID() ;
          ((dmsRecord*)this)->setHasGlobTransID() ;
       }
-/*
-      DPS_LSN_OFFSET getLSNOffset() const
-      {
-         return _lsnOffset ;
-      }
-
-      void setLSNOffset ( const DPS_LSN_OFFSET &lsnOffset )
-      {
-         SDB_ASSERT( ( ((dmsRecord*)this)->hasGlobTransID() ), 
-                     "This is not a V1 record" ) ;
-         _lsnOffset = lsnOffset ;
-      }
-*/
    } ;
 #pragma pack()
    typedef _dmsCappedRecord dmsCappedRecord ;

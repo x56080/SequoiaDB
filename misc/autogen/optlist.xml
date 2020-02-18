@@ -1933,7 +1933,7 @@
       <name>PMD_OPTION_TRANS_LOCKWAIT</name>
       <long>translockwait</long>
       <description>
-         <en>Specify the lock wait behavior within transaction under RC isolation level. false for no lock wait, true for lock wait. Default is false</en>
+         <en>Specify the lock wait behavior within transaction under RC isolation level. false for no lock wait, true for lock wait. Default is false.</en>
          <cn>事务在RC隔离级别下是否需要等锁，false为不等锁，true为等锁。默认为false。</cn>
       </description>
       <reloadable>
@@ -1946,12 +1946,14 @@
       </reloadstrategy>
       <detail>
          <en>1. Specify the record lock wait behavior within transaction under RC isolation level. Value is true/false. Default is false. Should be used in conjunction with transisolation<fig></fig>
-           2. Value enumeration:<fig></fig>
+             2. translockwait will be default to false if mvccon is true.<fig></fig>
+             3. Value enumeration:<fig></fig>
              ● false: no lock wait, retrieve last committed version of record from system directly.<fig></fig>
              ● true: wait for the lock to be released and get the newly committed version.<fig></fig>
           </en>
           <cn>1. 指定事务在RC隔离级别下记录锁的等待行为，默认是false。需要与transisolation配合使用<fig></fig>
-              2. 取值列表：<fig></fig>
+              2. 当mvccon被设为true时，translockwait 会被默认为false。<fig></fig>
+              3. 取值列表：<fig></fig>
               ● false: 不等待记录锁，直接从系统读取最后一次提交的版本。<fig></fig>
               ● true: 等待记录锁，读取最新提交版本的数据<fig></fig>
         </cn>
@@ -2011,7 +2013,7 @@
       <long>transuserbs</long>
       <description>
          <en>Whether use rollback segment or not in transaction. Default is true.</en>
-         <cn>事务操作是否使用回滚段。默认为true。</cn>
+         <cn>事务操作是否使用回滚段。默认为true。</cn> 
       </description>
       <reloadable>
          <en>Take effect immediately</en>
@@ -2022,8 +2024,10 @@
          <cn>下一次事务中生效</cn>
       </reloadstrategy>
       <detail>
-         <en>Whether use rollback segment or not in transaction. Default is true. Take effect when transaction is on.</en>
-         <cn>事务操作是否使用回滚段。默认为true。只有当 transaction 开启时取值才会有效。</cn>
+         <en>1. Whether use rollback segment or not in transaction. Default is true. Take effect when transaction is on.<fig></fig>
+             2. transuserbs will be default to true if mvccon is true.</en>
+         <cn>1. 事务操作是否使用回滚段。默认为true。只有当 transaction 开启时取值才会有效。<fig></fig>
+             2. 当mvccon被设为true时，transuserbs 会被默认为true。 </cn>
       </detail>
       <default>true</default>
       <typeofweb>boolean</typeofweb>
@@ -2537,13 +2541,13 @@
       <detail>
          <en>1. It specifies whether support MVCC or not.<fig></fig>
              2. If it is not specifed, the default value is false.<fig></fig>
-             3. Only takes effect when transactionon is true..<fig></fig>
-             4. transuserbs will be default to true if mvccon is true..<fig></fig>
+             3. Only takes effect when transactionon is true.<fig></fig>
+             4. transuserbs will be default to true if mvccon is true.<fig></fig>
              5. translockwait will be default to false if mvccon is true.</en>
          <cn>1. 指定是否打开多版本。<fig></fig>
              2. 如果不指定，则默认为false。<fig></fig>
-             3. 只有当 transactionon 开启时，取值才会有效。.<fig></fig>
-             4. 当mvccon被设为true时，transuserbs 会被默认为true。.<fig></fig>
+             3. 只有当 transactionon 开启时，取值才会有效。<fig></fig>
+             4. 当mvccon被设为true时，transuserbs 会被默认为true。<fig></fig>
              5. 当mvccon被设为true时，translockwait 会被默认为false。</cn>
       </detail>
       <typeofweb>boolean</typeofweb>

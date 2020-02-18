@@ -201,11 +201,12 @@ namespace engine
                                 INT8 direction = 1,
                                 BOOLEAN byNumber = FALSE ) ;
 
-      INT32 fetch ( dmsMBContext *context,
+      INT32 fetch ( dmsMBContext      *context,
                     const dmsRecordID &recordID,
-                    BSONObj &dataRecord,
-                    _pmdEDUCB *cb,
-                    BOOLEAN dataOwned = FALSE ) ;
+                    BSONObj           &dataRecord,
+                    _pmdEDUCB         *cb,
+                    BOOLEAN            dataOwned = FALSE,
+                    DPS_TRANS_ID      *version = NULL ) ;
 
       virtual INT32 dumpExtOptions( dmsMBContext *context,
                                     BSONObj &extOptions ) ;

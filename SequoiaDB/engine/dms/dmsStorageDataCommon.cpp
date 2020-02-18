@@ -4319,7 +4319,8 @@ namespace engine
                                        const dmsRecordID &recordID,
                                        BSONObj &dataRecord,
                                        pmdEDUCB * cb,
-                                       BOOLEAN dataOwned )
+                                       BOOLEAN dataOwned,
+                                       DPS_TRANS_ID *version )
    {
       INT32 rc                     = SDB_OK ;
       dmsRecordData recordData ;
@@ -4391,6 +4392,11 @@ namespace engine
          // if this record is overflow from
          rc = extractData( context, recordRW, cb, recordData ) ;
          PD_RC_CHECK( rc, PDERROR, "Extract record data failed, rc: %d", rc ) ;
+
+         if ( version && pRecord->hasGlobTransID() )
+         {
+            *version = pRecord->getGlobTransID() ;
+         }
 
          if ( dataOwned )
          {

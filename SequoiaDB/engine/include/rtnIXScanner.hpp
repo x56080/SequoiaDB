@@ -47,6 +47,7 @@
 #include "rtnPredicate.hpp"
 #include "ossMemPool.hpp"
 #include "dmsRBSSUMgr.hpp"
+#include "dpsTransID.hpp"
 #include "dpsTransVersionCtrl.hpp"
 #include "../bson/ordering.h"
 #include "../bson/oid.h"
@@ -167,6 +168,8 @@ namespace engine
       virtual const BSONObj*  getCurKeyObj() const = 0 ;
       virtual const dmsRecordID& getSavedRID () const = 0 ;
       virtual const BSONObj*  getSavedObj () const = 0 ;
+      virtual void getOwnerTransID( DPS_TRANS_ID &transID ) = 0 ;
+
 
       virtual INT32           isCursorSame( const BSONObj &saveObj,
                                             const dmsRecordID &saveRID,

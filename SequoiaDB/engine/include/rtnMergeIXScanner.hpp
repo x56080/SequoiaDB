@@ -95,6 +95,7 @@ namespace engine
       virtual INT32           isCursorSame( const BSONObj &saveObj,
                                             const dmsRecordID &saveRID,
                                             BOOLEAN &isSame ) ;
+      virtual void getOwnerTransID( DPS_TRANS_ID &transID ) ;
 
       virtual void getRBSPositions( dmsRBSOffset & startPos, 
                                     dmsRBSOffset & endPos,

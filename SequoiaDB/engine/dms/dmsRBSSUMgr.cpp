@@ -173,7 +173,8 @@ namespace engine
          // Memset hash bucket
          _rbsRecordBkt.reset() ;
 
-         // trigger GC background job
+         // trigger GC background job, we will use the light weight background
+         // to run gc every minute
          rc = dmsStartAsyncRBSGC() ;
          if ( rc )
          {
@@ -715,7 +716,7 @@ namespace engine
       // decide if we were provided with start and finish position in RBS.
       // index scan does this type of search. Either of this can be valid.
       BOOLEAN       useRange   = ( startPos.isValid() || endPos.isValid() );
-
+      DPS_TRANS_ID  ownerTransid ;
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
                "Transaction (%s) tries to find a proper version from RBS, "
@@ -801,8 +802,12 @@ namespace engine
                goto error ;
             }
 
-            //rc = sd->fetch( context, recordID, cappedRecordData, eduCB ) ;
-            rc = sd->fetch( context, recordID, cappedRecord, eduCB, FALSE ) ;
+            // get the record's onwer transid as well. 
+            // TODO: we may want to skip the record if the ownerTransID
+            // is visiable. But the logic is already handled by upper 
+            // caller (see afterLockAquired)
+            rc = sd->fetch( context, recordID, cappedRecord, 
+                            eduCB, FALSE, &ownerTransid ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, 
