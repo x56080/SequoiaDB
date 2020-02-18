@@ -204,7 +204,8 @@ public class Transaction17137A extends SdbTestBase {
                     } catch ( BaseException e ) {
                         int actErrCode = e.getErrorCode();
                         if ( actErrCode != -48 && actErrCode != -52
-                                && actErrCode != -10 && actErrCode != -199 ) {
+                                && actErrCode != -10 && actErrCode != -199
+                                && actErrCode != -47 ) {
                             e.printStackTrace();
                             throw e;
                         }
