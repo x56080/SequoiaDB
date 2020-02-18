@@ -567,6 +567,18 @@ namespace engine
       goto done ;
    }
 
+   void _rtnMergeIXScanner::getOwnerTransID( DPS_TRANS_ID &transID ) 
+   {
+      if ( SCAN_LEFT == _fromDir )
+      {
+         _leftIXScanner->getOwnerTransID( transID ) ;
+      }
+      else
+      {
+         _rightIXScanner->getOwnerTransID( transID ) ;
+      }
+   }
+
    void _rtnMergeIXScanner::getRBSPositions( dmsRBSOffset & startPos,
                                              dmsRBSOffset & endPos,
                                              dmsRecordID  & rid,

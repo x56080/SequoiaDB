@@ -215,10 +215,11 @@ namespace engine
                   if ( right._transID.isValid() && _transID.isValid() )
                   {
                      // evaluate transID if both have valid transID
-                     // FIXME: do you have proper interface without dpsTransCB 
-                     // ?????
-                     //rv = transIDLessThan( _transID, right._transID ) ;
-                     rv = _transID.getGlobSN() < right._transID.getGlobSN() ;
+                     // note that the tranID is in decending order so that 
+                     // we will scan and evaluate newer version first. This
+                     // way we won't mistakenly use too old version which 
+                     // could be "visiable" to the newer transaction.
+                     rv = _transID.getGlobSN() > right._transID.getGlobSN() ;
                   }
                   // if either side has INVALID_TRANS_ID, we treat two key
                   // equal, which we will return false

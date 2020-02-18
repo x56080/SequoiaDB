@@ -965,7 +965,8 @@ namespace engine
                        const dmsRecordID &recordID,
                        BSONObj           &dataRecord,
                        _pmdEDUCB         *cb,
-                       BOOLEAN            dataOwned = FALSE ) ;
+                       BOOLEAN            dataOwned = FALSE,
+                       DPS_TRANS_ID      *version = NULL ) ;
 
          INT32 loadDictionary( dmsMBContext *context, const CHAR *dictionary,
                                UINT32 dictLen, BOOLEAN force ) ;
