@@ -1235,7 +1235,7 @@ namespace engine
 
       // we should commit transaction after an interval given by time error
       UINT64 expectingTimeUS = beginTime.getTime() +
-                               beginTime.getTimeError() ;
+                               beginTime.getTimeErrorUS() ;
 
    retry:
       // check if interrupted
@@ -1248,9 +1248,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction time, "
                    "rc: %d", rc ) ;
 
-      if ( !isGlobTransArbitOn() )
+      if ( !isGlobTransArbitOn() || eduCB->isAutoCommitTrans() )
       {
-         // if global transaction arbitration is not enabled, no need to wait
+         // if global transaction arbitration is not enabled, or it is
+         // auto-commit, no need to wait
          goto done ;
       }
       else if ( expectingTimeUS > preCommitTime.getTime() )
