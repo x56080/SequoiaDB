@@ -1,4 +1,3 @@
-<<<<<<< HEAD:doc/src/document/database_management/Special_configuration_modify/log_synchronization.md
 ##日志文件##
 
 SequoiaDB 采用日志方式进行副本间的数据同步。日志文件存在于 replicalog 目录中。文件大小和个数可以分别通过 logfilesz 和 logfilenum 参数进行设置。默认分别为 64MB（不包含头大小）和 20。参数生效后无法修改。（如果要修改必须离线删除全部日志文件，重新配置参数并启动 SequoiaDB。但此举通常会引起全量同步。）
