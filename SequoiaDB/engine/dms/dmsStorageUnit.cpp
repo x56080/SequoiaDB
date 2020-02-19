@@ -1973,32 +1973,9 @@ namespace engine
          // for RS should consider locking the whole table or need MVCC,
          // this may cause unmatched results between count() and find() with
          // deleting from other transactions ( phantom read ? )
-         dpsTransCB * transCB = pmdGetKRCB()->getTransCB() ;
-         dmsTBTransContext txContext( context, DMS_ACCESS_TYPE_QUERY ) ;
-         dpsTransRetInfo lockConflict ;
 
-         // try to lock IS for collection
-         // we will release mbcontext later, so keep a transaction lock to
-         // avoid dropping collection
-         INT32 tmpRC = transCB->transLockGetIS( cb, LogicalCSID(),
-                                                context->mbID(), &txContext,
-                                                &lockConflict ) ;
-         if ( SDB_OK != tmpRC )
-         {
-            // NOTE: won't happen
-            PD_LOG ( PDWARNING,
-                     "Failed to get CS/CL lock, rc: %d"OSS_NEWLINE
-                     "Conflict ( representative ):"OSS_NEWLINE
-                     "   EDUID:  %llu"OSS_NEWLINE
-                     "   TID:    %u"OSS_NEWLINE
-                     "   LockId: %s"OSS_NEWLINE
-                     "   Mode:   %s"OSS_NEWLINE,
-                     tmpRC,
-                     lockConflict._eduID,
-                     lockConflict._tid,
-                     lockConflict._lockID.toString().c_str(),
-                     lockModeToString( lockConflict._lockType ) ) ;
-         }
+         // no need collection IS lock to protect CL against being dropped
+         // since we already have mblatch S
          if ( !cb->getTransExecutor()->getMBTotalRecords(
                                                 context->mb()->_clUniqueID,
                                                 (UINT64 &)recordNum ) )
