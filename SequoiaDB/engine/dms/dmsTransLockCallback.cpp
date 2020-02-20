@@ -615,6 +615,62 @@ namespace engine
               dpsTransIDToString( transID ).c_str(),
               _clLID, irc, requestLockMode ) ;
 #endif
+
+      // if both read transaction ( current transaction ) and write
+      // transaction (who did the original change) are global RR trans,
+      // we need to check if the write transaction could be committed before
+      // read transaction started ( compare global logical time with time
+      // error ). If that's the case and record came from mem tree, we will
+      // skip the record because there will be a newer verion of the record
+      // which is visiable to this read transaction.
+      if ( _pScanner && 
+           ( TRANS_ISOLATION_RR == _transIsolation ) &&
+           ( _pScanner->getCurScanType() == SCANNER_TYPE_MEM_TREE ) )
+      {
+         SDB_ASSERT( ( pmdGetOptionCB()->mvccOn() &&
+                       transID.isGlobTrans() ), 
+                     "RR is only supported when mvccon/globtrans are true" );
+         _pScanner->getOwnerTransID(writingTransID) ;
+
+         if ( writingTransID.isGlobTrans() )
+         {
+            BOOLEAN visible = FALSE ;
+
+            // check visibility
+            rc = _transCB->isVersionVisible( _eduCB,
+                                             writingTransID,
+                                             transID,
+                                             _eduCB->getTransBeginTime(),
+                                             TRANS_ISOLATION_RR,
+                                             FALSE,
+                                             visible ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check visibility for "
+                         "read transaction [%s] against write "
+                         "transaction [%s], rc: %d",
+                         dpsTransIDToString( transID ).c_str(),
+                         dpsTransIDToString( writingTransID ).c_str(),
+                         rc ) ;
+            // if the visible is TRUE returned by checking, the write
+            // transaction must have been committed. So we should skip
+            // this node. We will find visiable version of same record
+            // through disk or other node in the idxtree.
+            if ( visible )
+            {
+               _oldVer = NULL ;
+#ifdef _DEBUG
+               PD_LOG( PDDEBUG, 
+                    "skip rid(%d, %d) after comparing curTransID(%s) against "
+                    "owner transID(%s) ",
+                    lockId.extentID(), lockId.offset(),
+                    dpsTransIDToString( transID ).c_str(),
+                    dpsTransIDToString( writingTransID ).c_str() ) ;
+#endif
+               _skipRecord = TRUE ;
+               goto done ;
+            }
+         }
+      }
+
       // Handle case 1 mentioned above
       // When the update was done by non transaction session, it's
       // possible that the oldRecord does not exist. We do nothing
@@ -693,7 +749,8 @@ namespace engine
                  dpsTransIDToString( transID ).c_str(),
                  dpsTransIDToString( writingTransID ).c_str() ) ;
 #endif
-               _skipRecord = TRUE ;
+               // DO NOT set _skipRecord because we are going to wait on the
+               // lock after coming out of this function
                _oldVer = NULL ;
                goto done ;
             }
@@ -927,60 +984,6 @@ namespace engine
                                                        lockId.offset() ) ) ;
             _oldVer = NULL ;
             goto done ;
-         }
-
-         // if both read transaction ( current transaction ) and write
-         // transaction (who did the original change) are global RR trans,
-         // we need to check if the write transaction could be committed before
-         // read transaction started ( compare global logical time with time
-         // error ). If that's the case and record came from mem tree, we will
-         // skip the record because there will be a newer verion of the record
-         // which is visiable to this read transaction.
-         if ( _pScanner && 
-             ( _pScanner->getCurScanType() == SCANNER_TYPE_MEM_TREE ) )
-         {
-            _pScanner->getOwnerTransID(writingTransID) ;
-            if ( writingTransID.isGlobTrans() &&
-                 transID.isGlobTrans() &&
-                 pmdGetOptionCB()->mvccOn() &&
-                 TRANS_ISOLATION_RR == _transIsolation )
-            {
-               BOOLEAN visible = FALSE ;
-
-               // check visibility
-               rc = _transCB->isVersionVisible( _eduCB,
-                                                writingTransID,
-                                                transID,
-                                                _eduCB->getTransBeginTime(),
-                                                TRANS_ISOLATION_RR,
-                                                FALSE,
-                                                visible ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to check visibility for "
-                            "read transaction [%s] against write "
-                            "transaction [%s], rc: %d",
-                            dpsTransIDToString( transID ).c_str(),
-                            dpsTransIDToString( writingTransID ).c_str(),
-                            rc ) ;
-               // if the visible is TRUE returned by checking, the write
-               // transaction must be committed in other groups
-               // to access this record updated by the write transaction, we need
-               // to wait for write transaction to commit to release locks
-               // instead of reading the old version
-               if ( visible )
-               {
-                  _oldVer = NULL ;
-#ifdef _DEBUG
-                  PD_LOG( PDDEBUG, 
-                    "skip rid(%d, %d) after comparing curTransID(%s) against "
-                    "owner transID(%s) ",
-                    lockId.extentID(), lockId.offset(),
-                    dpsTransIDToString( transID ).c_str(),
-                    dpsTransIDToString( writingTransID ).c_str() ) ;
-#endif
-                  _skipRecord = TRUE ;
-                  goto done ;
-               }
-            }
          }
 
          // when pExtData->_data is 0, should create oldver if scan came 
