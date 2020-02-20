@@ -21,7 +21,7 @@
 | -------- | ---- |
 | 索引属性 | [点击查看](sac/sequoiadb_data/index/attribute.md) |
 | 创建索引 | [点击查看](sac/sequoiadb_data/index/create_index.md) |
-| 删除删除 | [点击查看](sac/sequoiadb_data/index/drop_index.md) |
+| 删除索引 | [点击查看](sac/sequoiadb_data/index/drop_index.md) |
 
 | 记录操作文档 | 链接 |
 | ------------ | ---- |
