@@ -1119,6 +1119,9 @@ namespace engine
       SINT32      rc         = SDB_OK ;
       SDB_DPSCB  *dpsCB      = pmdGetKRCB()->getDPSCB() ;
 
+      // make sure that the RBSCS(su) is not changed while we are doing gc.
+      DMSSYSSUMGR_SLOCK() ;
+
       // try the best to gc as much as possible
       rc = _gcRBS( _lastFreeCollection, dpsCB ) ;
       if ( rc )
