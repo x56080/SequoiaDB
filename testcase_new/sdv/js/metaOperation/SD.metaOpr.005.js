@@ -6,8 +6,8 @@
 **************************************/
 
 var domainName = CHANGEDPREFIX + "_domain"
-var csName = CHANGEDPREFIX + "_cs"
-var clName = CHANGEDPREFIX + "_cl"
+var csName = CHANGEDPREFIX + "_meta005_cs"
+var clName = CHANGEDPREFIX + "_meta005_cl"
 
 main( db );
 function main ( db )

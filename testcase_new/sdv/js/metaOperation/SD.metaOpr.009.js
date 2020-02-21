@@ -3,8 +3,8 @@
 *@Author：     Qiangzhong Deng  2015/10/14
 **************************************/
 
-var domainName = CHANGEDPREFIX + "_domain"
-var csName = CHANGEDPREFIX + "_cs"
+var domainName = CHANGEDPREFIX + "_meta009_domain"
+var csName = CHANGEDPREFIX + "_meta009_cs"
 
 main( db );
 function main ( db )

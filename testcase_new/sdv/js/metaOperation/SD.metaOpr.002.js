@@ -3,8 +3,8 @@
 *@Author：     Qiangzhong Deng  2015/10/14
 **************************************/
 
-var csName = CHANGEDPREFIX + "_cs"
-var clName = CHANGEDPREFIX + "_cl"
+var csName = CHANGEDPREFIX + "_meta002_cs"
+var clName = CHANGEDPREFIX + "_meta002_cl"
 
 main( db );
 function main ( db )
