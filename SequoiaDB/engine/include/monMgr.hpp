@@ -79,11 +79,7 @@ public:
    {
       //TODO need to verify T is a subclass of monClass
       MON_CLASS_TYPE classType = T::getType() ;
-      T* ptr = NULL ;
-      if ( _monClass[classType] )
-      {
-         _monClass[classType]->add<T>();
-      }
+      T* ptr = _monClass[classType]->add<T>();
       return ptr ;
    }
 
@@ -98,11 +94,7 @@ public:
    {
       //TODO need to verify T is a subclass of monClass
       MON_CLASS_TYPE classType = T::getType() ;
-      T* ptr = NULL ;
-      if ( _monClass[classType] )
-      {
-         _monClass[classType]->add<T>(data);
-      }
+      T* ptr = _monClass[classType]->add<T>(data);
 
       return ptr ;
    }
@@ -176,28 +168,17 @@ public:
     */
    void setMonitorLvl( MON_CLASS_TYPE classType, MON_DATA_LEVEL mode )
    {
-      if ( _monClass[classType] )
-      {
-         _monClass[classType]->setMonitorLvl( mode ) ;
-      }
+      _monClass[classType]->setMonitorLvl( mode ) ;
    }
 
    MON_DATA_LEVEL getCollectionLvl( MON_CLASS_TYPE classType )
    {
-      if ( _monClass[classType] )
-      {
-         return _monClass[classType]->getCollectionLvl() ;
-      }
-      return MON_DATA_LVL_NONE ;
+      return _monClass[classType]->getCollectionLvl() ;
    }
 
    BOOLEAN isOperational( MON_CLASS_TYPE classType )
    {
-      if ( _monClass[classType] )
-      {
-         return _monClass[classType]->isOperational() ;
-      }
-      return FALSE ;
+      return _monClass[classType]->isOperational() ;
    }
 
    /**
@@ -209,10 +190,7 @@ public:
    {
       for ( INT32 i = 0; i < MON_CLASS_MAX; i ++ )
       {
-         if ( _monClass[i] )
-         {
-            _monClass[i]->setMaxArchivedListLen( size ) ;
-         }
+         _monClass[i]->setMaxArchivedListLen( size ) ;
       }
    }
    /**
@@ -224,18 +202,15 @@ public:
    monClassReadScanner* getReadScanner ( MON_CLASS_TYPE classType,
                                          MON_CLASS_LIST_TYPE listType )
    {
-      monClassReadScanner *scanner = NULL ;
-      if ( _monClass[classType] )
-      {
-         scanner = SDB_OSS_NEW monClassReadScanner( _monClass[classType], listType ) ;
-      }
+      monClassReadScanner *scanner =
+         SDB_OSS_NEW monClassReadScanner( _monClass[classType], listType ) ;
       return scanner ;
    }
 
    /**
     * Cleanup each container's pending archive and pending delete objects
     */
-   void cleanup() ;
+   void relocate() ;
 
    INT32 fini() ;
 

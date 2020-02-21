@@ -553,7 +553,7 @@ namespace engine
 
       if (_monTimeCounter >= PMD_MONITOR_CLEANUP_INTERVAL )
       {
-         _monMgr.cleanup() ;
+         _monMgr.relocate() ;
          _monTimeCounter = 0 ;
       }
    }

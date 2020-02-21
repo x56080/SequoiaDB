@@ -482,7 +482,7 @@ public:
  * Contains an active list and archived list.
  * See below for latch protocol for these two lists.
  */
-class _monClassContainer : public utilPooledObject
+class _monClassContainer : public SDBObject
 {
 friend class _monMonitorManager ;
 
@@ -492,6 +492,41 @@ friend class _monMonitorManager ;
 public:
    typedef listFwdIterator<MONCLASS_LIST> iterator ;
    typedef listFwdIterator<const MONCLASS_LIST> const_iterator ;
+
+   INT32 cleanup()
+   {
+      getListLatch( EXCLUSIVE ) ;
+      getArchiveLatch( EXCLUSIVE ) ;
+
+      setMaxArchivedListLen( 0 ) ;
+      setMonitorLvl( MON_DATA_LVL_NONE ) ;
+
+      MONCLASS_LIST::iterator it = _activeList.begin() ;
+      while ( it != _activeList.end() )
+      {
+         monClass &obj = *it ;
+         it = _activeList.erase(it) ;
+         SDB_OSS_DEL &obj ;
+      }
+
+      MONCLASS_LIST::iterator it2 = _archivedList.begin() ;
+      while ( it2 != _archivedList.end() )
+      {
+         monClass &obj = *it2 ;
+         it2 = _archivedList.erase(it2) ;
+         SDB_OSS_DEL &obj ;
+      }
+
+      releaseArchiveLatch( EXCLUSIVE ) ;
+      releaseListLatch( EXCLUSIVE ) ;
+
+      return SDB_OK ;
+   }
+
+   ~_monClassContainer()
+   {
+      cleanup() ;
+   }
 
 private:
    _monClassContainer (MON_CLASS_TYPE type) ;
