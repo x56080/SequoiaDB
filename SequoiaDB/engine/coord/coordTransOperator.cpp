@@ -55,7 +55,7 @@ namespace engine
    // require time synchronize between COORD and DATA nodes
    // increase retry in case it needs retry after synchronization
    // with STP servers
-   #define COORD_GLOB_TRANS_MAX_RETRY ( 5 )
+   #define COORD_GLOB_TRANS_MAX_RETRY ( 10 )
 
    // if RR transaction message is too long, if will have network delay issue
    // which may cause not synchronization problem
@@ -785,6 +785,7 @@ namespace engine
       {
          pCommitPreMsg->preCommitTime = 0LL ;
       }
+      pCommitPreMsg->currentTime = pCommitPreMsg->preCommitTime ;
 
       /// build node info
       pCommitPreMsg->nodeNum = writeTransNodes ;

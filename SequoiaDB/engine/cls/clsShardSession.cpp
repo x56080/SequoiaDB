@@ -2786,6 +2786,9 @@ namespace engine
       stpLogicalTimeUS preCommitTime(
                            pCommitPreMsg->preCommitTime,
                            _pEDUCB->getTransBeginTime().getTimeError() ) ;
+      stpLogicalTimeUS remoteTime(
+                           pCommitPreMsg->currentTime,
+                           _pEDUCB->getTransBeginTime().getTimeError() ) ;
       stpLogicalTimeUS currentTime ;
 
       INT16 replSize = optCB->transReplSize() ;
@@ -2826,15 +2829,17 @@ namespace engine
 
          // check logical time between remote and local
          if ( transCB->isGlobTransSyncCheck() &&
-              preCommitTime != currentTime )
+              remoteTime != currentTime )
          {
             stpAgent agent ;
 
             PD_LOG( PDWARNING, "Global transaction times between nodes "
                     "are not synchronized with node time error, "
-                    "remote node %s is [%s], local node %s is [%s]",
+                    "remote node %s is pre-committed at [%s], sent at [%s], "
+                    "local node %s is received at [%s]",
                     routeID2String( pCommitPreMsg->header.routeID ).c_str(),
                     dpsTransTimeToString( preCommitTime ).c_str(),
+                    dpsTransTimeToString( remoteTime ).c_str(),
                     routeID2String( pmdGetNodeID() ).c_str(),
                     dpsTransTimeToString( currentTime ).c_str() ) ;
 
