@@ -683,7 +683,18 @@ function listLobsWithSortAndCheckResult ( mainCL, filePath, sortCond, sortKey, s
       {
          return function( a, b )
          {
-            if( a.CreateTime['$timestamp'] > b.CreateTime['$timestamp'] )
+            if( a.CreateTime['$timestamp'] == b.CreateTime['$timestamp'] )
+            {
+               if( a.ModificationTime['$timestamp'] > b.ModificationTime['$timestamp'] )
+               {
+                  return 1;
+               }
+               else
+               {
+                  return -1;
+               }
+            }
+            else if( a.CreateTime['$timestamp'] > b.CreateTime['$timestamp'] )
             {
                return 1;
             }
@@ -697,7 +708,18 @@ function listLobsWithSortAndCheckResult ( mainCL, filePath, sortCond, sortKey, s
       {
          return function( a, b )
          {
-            if( a.CreateTime['$timestamp'] > b.CreateTime['$timestamp'] )
+            if( a.CreateTime['$timestamp'] == b.CreateTime['$timestamp'] )
+            {
+               if( a.ModificationTime['$timestamp'] > b.ModificationTime['$timestamp'] )
+               {
+                  return -1;
+               }
+               else
+               {
+                  return 1;
+               }
+            }
+            else if( a.CreateTime['$timestamp'] > b.CreateTime['$timestamp'] )
             {
                return -1;
             }
@@ -824,20 +846,3 @@ function getTargetGroup ( csName, clName, srcGroupName )
    }
    return targetGroupName;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
