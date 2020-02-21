@@ -1151,16 +1151,17 @@ namespace engine
       PD_TRACE_ENTRY( SDB_OLDVERSIONCB_ADDIDXTREE ) ;
 
       preIdxTreePtr tmpTreePtr ;
+      preIdxTree *pTree = NULL ;
       pair<IDXID_TO_TREE_MAP_IT, BOOLEAN> ret ;
 
-      tmpTreePtr = preIdxTreePtr::allocRaw( __FILE__, __LINE__, ALLOC_OSS ) ;
-      if ( !tmpTreePtr.get() )
+      pTree = SDB_OSS_NEW preIdxTree( gid._idxLID, indexCB ) ;
+      if ( !pTree  )
       {
          rc = SDB_OOM ;
          goto error ;
       }
-      new ( (void*)tmpTreePtr.get() ) preIdxTree( gid._idxLID, indexCB ) ;
-
+      tmpTreePtr = preIdxTreePtr( pTree ) ;
+      pTree = NULL ;
       if ( !tmpTreePtr->isValid() )
       {
          rc = SDB_OOM ;

@@ -453,7 +453,7 @@ namespace engine
 
    } ;
 
-   typedef utilSharePtr<preIdxTree>       preIdxTreePtr ;
+   typedef boost::shared_ptr<preIdxTree>     preIdxTreePtr ;
 
    // global map from an index to its own tree
    typedef  ossPoolMap< const globIdxID,
