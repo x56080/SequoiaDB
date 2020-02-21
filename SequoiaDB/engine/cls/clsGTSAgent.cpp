@@ -64,9 +64,9 @@ namespace engine
    #define CLS_GTS_WAIT_SMALL_INTERVAL ( 100 )
 
    #define CLS_GTS_INC_TIME_ERROR_STEP    ( 1.1 )
-   #define CLS_GTS_DEC_TIME_ERROR_STEP    ( 0.9 )
+   #define CLS_GTS_DEC_TIME_ERROR_STEP    ( 0.95 )
 
-   #define CLS_GTS_DEC_TIME_ERROR_COUNT   ( 10 )
+   #define CLS_GTS_DEC_TIME_ERROR_COUNT   ( 8192 )
 
    /*
       _clsGTSAgent implement
@@ -1017,9 +1017,10 @@ namespace engine
                   break ;
                }
                PD_RC_CHECK( rc, PDERROR, "Failed to get commit info with "
-                            "LSN [%llu] for transaction, rc: %d",
+                            "LSN [%llu] for transaction [%s], rc: %d",
                             commitLSN,
-                            dpsTransIDToString( arbitTransID ).c_str(), rc ) ;
+                            dpsTransIDToString( arbitTransID ).c_str(),
+                            rc ) ;
 
                // mark multiple groups or not
                multiGroups = ( nodeNum > 1 ) ? TRUE : FALSE ;
@@ -1038,7 +1039,8 @@ namespace engine
                {
                   // failed, we could wait a while and retry
                   PD_LOG( PDWARNING, "Failed to check status for "
-                          "transaction [%s], rc: %d", rc ) ;
+                          "transaction [%s], rc: %d",
+                          dpsTransIDToString( arbitTransID ).c_str(), rc ) ;
                   rc = SDB_OK ;
                }
                else if ( DPS_TRANS_COMMIT == status )
@@ -1331,12 +1333,13 @@ namespace engine
          UINT32 oldTimeError = _nodeTimeError ;
 
          _nodeTimeError = targetTimeError ;
-         _decTimeErrorCount = 0 ;
 
          PD_LOG( PDDEBUG, "Increase node time error from [%u] to [%u] by "
                  "current time error [%u]",
                  oldTimeError, _nodeTimeError, currentTimeError ) ;
       }
+         
+      _decTimeErrorCount = 0 ;
 
       PD_TRACE_EXIT( SDB__CLSGTSAGENT_INCNODETIMEERROR ) ;
    }
@@ -1355,8 +1358,8 @@ namespace engine
 
       // current time error is smaller than target time error
       // in this case, we could consider decrease the node time error
-      if ( currentTimeError < targetTimeError &&
-           ++ _decTimeErrorCount > CLS_GTS_DEC_TIME_ERROR_COUNT )
+      if ( ( currentTimeError < targetTimeError ) &&
+           ( ++ _decTimeErrorCount > CLS_GTS_DEC_TIME_ERROR_COUNT ) )
       {
          UINT32 oldTimeError = _nodeTimeError ;
 

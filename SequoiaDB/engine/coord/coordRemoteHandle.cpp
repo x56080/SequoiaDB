@@ -719,6 +719,22 @@ namespace engine
             pPropSite->addTransNode( pSub->getNodeID(), isWriteMsg ) ;
          }
       }
+      else if ( cb->isTransaction() &&
+                MSG_BS_TRANS_COMMITPRE_REQ == pSub->getOrgReqOpCode() )
+      {
+         MsgOpTransCommitPre *message = (MsgOpTransCommitPre *)( pSub->getReqMsg() ) ;
+
+         if ( 0LL != message->preCommitTime )
+         {
+            stpLogicalTimeUS currentTime ;
+            rc = sdbGetTransCB()->getGlobTransTime( currentTime,
+                                                    cb->getTransTimeout() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction "
+                         "time, rc: %d", rc ) ;
+
+            message->currentTime = currentTime.getTime() ;
+         }
+      }
 
    done:
       return rc ;
