@@ -387,14 +387,6 @@ namespace engine
       UINT64      _lobLastWriteTick ;
       BOOLEAN     _lobIsCrash ;
 
-      // Use a double linked list to holding all oldVer for the collection
-      // By doing this we can:
-      // 1. Retrieve the statistic data easily
-      // 2. Quickly rebuild in memory index tree using the oldVer of the
-      //    collection. Online create index need this to guarantee no dup
-      //    key for even old versions. Otherwise rollback could fail.
-      oldVersionContainer *_oldVerChain ;
-
       // total record count for transaction RC count
       ossAtomic64 _rcTotalRecords ;
 
@@ -430,9 +422,6 @@ namespace engine
          _lobLastLSN.init( ~0 ) ;
          _lobLastWriteTick       = 0 ;
          _lobIsCrash             = FALSE ;
-         // remove all the chain, and leave asyn thread or next X lock holder
-         // to physically free the lock/memory.
-         removeAllFromChain() ;
          _rcTotalRecords.init( 0 ) ;
          _crudCB.reset() ;
       }
@@ -514,54 +503,6 @@ namespace engine
          return _maxGlobTransID.peek() ; 
       }
 
-      OSS_INLINE oldVersionContainer* getChain() { return _oldVerChain ; }
-
-      OSS_INLINE  void   addToChain( oldVersionContainer * oldVer )
-      {
-         oldVer->setPrev( NULL ) ;
-         oldVer->setNext( _oldVerChain ) ;
-         if ( _oldVerChain )
-         {
-            _oldVerChain->setPrev( oldVer ) ;
-         }
-         // add to beginning
-         _oldVerChain = oldVer ;
-
-         oldVer->setOnChain() ;
-      }
-
-      OSS_INLINE void removeFromChain( oldVersionContainer * oldVer )
-      {
-         oldVersionContainer *prev = oldVer->getPrev() ;
-         oldVersionContainer *next = oldVer->getNext() ;
-
-         // prev is not NULL, it could be not the head of a connected chain
-         if ( prev )
-         {
-            prev->setNext( next ) ;
-            if ( next )
-            {
-               next->setPrev( prev ) ;
-            }
-         }
-         else
-         {
-            SDB_ASSERT( _oldVerChain == oldVer, "Not the same" ) ;
-            _oldVerChain = next ;
-
-            if ( next )
-            {
-               next->setPrev( NULL );
-            }
-         }
-
-         oldVer->setPrev( NULL ) ;
-         oldVer->setNext( NULL ) ;
-         oldVer->unsetOnChain() ;
-      }
-
-      void removeAllFromChain() ;
-
       _dmsMBStatInfo ()
       : _commitFlag( 0 ),
         _lastLSN( 0 ),
@@ -570,7 +511,6 @@ namespace engine
         _idxLastLSN( 0 ),
         _lobCommitFlag( 0 ),
         _lobLastLSN( 0 ),
-        _oldVerChain( NULL ),
         _rcTotalRecords( 0 )
       {
          reset() ;

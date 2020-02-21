@@ -371,22 +371,22 @@ namespace engine
 
       void lockX()
       {
-         // _latch.get() ;
+         _latch.get() ;
       }
 
       void lockS()
       {
-         // _latch.get_shared() ;
+         _latch.get_shared() ;
       }
 
       void unlockX()
       {
-         // _latch.release() ;
+         _latch.release() ;
       }
 
       void unlockS()
       {
-         // _latch.release_shared() ;
+         _latch.release_shared() ;
       }
  
       BOOLEAN empty() const
@@ -442,18 +442,18 @@ namespace engine
       //    latch, reverse order is OK. Keep in mind we store the _lrbHdrIdx
       //    in the tree so that we have direct access to lrbHdr without need
       //    to go through lrbhash bkt.
-      /*
+
       ossSpinSLatch       _latch ;  // latch for concurrency control, 
                                     // adding/removing node need latch in X
                                     // find/travers need latch in S
-      */
+
       INDEX_BINARY_TREE    _tree ;  // tree to hold all old index key value
       clsCataOrder         *_order ;// wrap class to hold the shared ordering
       BSONObj              _keyPattern ;
 
    } ;
 
-   typedef boost::shared_ptr<preIdxTree>     preIdxTreePtr ;
+   typedef utilSharePtr<preIdxTree>       preIdxTreePtr ;
 
    // global map from an index to its own tree
    typedef  ossPoolMap< const globIdxID,
@@ -465,6 +465,138 @@ namespace engine
    typedef  std::pair< const globIdxID,
                        preIdxTreePtr
                      > IDXID_TO_TREE_MAP_PAIR ;
+
+   #define OLD_VERUNIT_ITR_STEP_DFT             ( 200 )
+   #define OLD_VERUNIT_ITR_INTERVAL_DFT         ( 100 )
+
+   /*
+      oldVersionUnit define
+   */
+   class oldVersionUnit : public utilPooledObject
+   {
+      public:
+         class iterator
+         {
+            public:
+               iterator()
+               {
+                  _pUnit = NULL ;
+                  _cur = NULL ;
+                  _lockOnChain = FALSE ;
+                  _locked = FALSE ;
+                  _init = FALSE ;
+
+                  _stepCnt = OLD_VERUNIT_ITR_STEP_DFT ;
+                  _getCnt  = 0 ;
+                  _interval = OLD_VERUNIT_ITR_INTERVAL_DFT ;
+               }
+
+               iterator( oldVersionUnit *pUnit,
+                         INT64 stepCnt = OLD_VERUNIT_ITR_STEP_DFT,
+                         INT32 interval = OLD_VERUNIT_ITR_INTERVAL_DFT )
+               {
+                  _pUnit = pUnit ;
+                  _cur = NULL ;
+                  _lockOnChain = FALSE ;
+                  _locked = FALSE ;
+                  _init = FALSE ;
+
+                  _stepCnt = stepCnt ;
+                  _getCnt  = 0 ;
+                  _interval = interval ;
+
+                  if ( _interval < 0 )
+                  {
+                     _interval = OLD_VERUNIT_ITR_INTERVAL_DFT ;
+                  }
+               }
+
+               iterator( const iterator &rhs )
+               {
+                  _pUnit = NULL ;
+                  _cur = NULL ;
+                  _lockOnChain = FALSE ;
+                  _locked = FALSE ;
+                  _init = FALSE ;
+
+                  _stepCnt = OLD_VERUNIT_ITR_STEP_DFT ;
+                  _getCnt  = 0 ;
+                  _interval = OLD_VERUNIT_ITR_INTERVAL_DFT ;
+
+                  this->operator= ( rhs ) ;
+               }
+
+               ~iterator()
+               {
+                  release() ;
+               }
+
+               iterator& operator= ( const iterator &rhs ) ;
+               void release() ;
+               oldVersionContainer* next() ;
+
+            protected:
+               void pause() ;
+               void resume() ;
+
+            private:
+               oldVersionUnit             *_pUnit ;
+               oldVersionContainer        *_cur ;
+               BOOLEAN                    _lockOnChain ;
+               BOOLEAN                    _locked ;
+               BOOLEAN                    _init ;
+               INT64                      _stepCnt ;
+               INT64                      _getCnt ;
+               INT32                      _interval ;
+         } ;
+
+      public:
+         oldVersionUnit() ;
+         ~oldVersionUnit() ;
+
+         void lockX()
+         {
+            _latch.get() ;
+         }
+
+         void lockS()
+         {
+            _latch.get_shared() ;
+         }
+
+         void unlockX()
+         {
+            _latch.release() ;
+         }
+
+         void unlockS()
+         {
+            _latch.release_shared() ;
+         }
+
+         BOOLEAN empty() const { return !_pChain ? TRUE : FALSE ;  }
+
+      public:
+
+         void           addToChain( oldVersionContainer *pOldVer,
+                                    BOOLEAN hasLock = FALSE ) ;
+         void           removeFromChain( oldVersionContainer *pOldVer,
+                                         BOOLEAN hasLock = FALSE ) ;
+         void           clearChain( BOOLEAN hasLock = FALSE ) ;
+
+         iterator       itr( INT64 stepCnt = OLD_VERUNIT_ITR_STEP_DFT,
+                             INT32 interval = OLD_VERUNIT_ITR_INTERVAL_DFT ) ;
+
+      private:
+         oldVersionContainer        *_pChain ;
+         ossSpinSLatch              _latch ;
+         ossEvent                   _event ;
+   } ;
+
+   typedef utilSharePtr<oldVersionUnit>               oldVersionUnitPtr ;
+   typedef ossPoolMap< UINT64, oldVersionUnitPtr >    MAP_OLDVERION_UNIT ;
+   typedef MAP_OLDVERION_UNIT::iterator               MAP_OLDVERION_UNIT_IT ;
+   typedef std::pair< UINT64, oldVersionUnitPtr>      MAP_OLDVERION_UNIT_PAIR ;
 
    /** definition of oldVersionCB
     *  Control block holding all resources and structures for old version 
@@ -525,6 +657,27 @@ namespace engine
                                             UINT16 clID,
                                             BOOLEAN hasLock ) ;
 
+      INT32             addOldVersionUnit( UINT32 csID,
+                                           UINT32 clID,
+                                           oldVersionUnitPtr &unitPtr,
+                                           BOOLEAN hasLock = FALSE ) ;
+
+      oldVersionUnitPtr getOldVersionUnit( UINT32 csID,
+                                           UINT32 clID,
+                                           BOOLEAN hasLock = FALSE ) ;
+
+      INT32             getOrCreateOldVersionUnit( UINT32 csID,
+                                                   UINT32 clID,
+                                                   oldVersionUnitPtr &unitPtr,
+                                                   BOOLEAN hasLock = FALSE ) ;
+
+      void              delOldVersionUnit( UINT32 csID,
+                                           UINT32 clID,
+                                           BOOLEAN hasLock = FALSE ) ;
+
+      void              clearOldVersionUnitByCS( UINT32 csID,
+                                                 BOOLEAN hasLock = FALSE ) ;
+
    // private attributes
    private:
       // latch to protect the fields. Should hold it in X to initialize and 
@@ -532,6 +685,7 @@ namespace engine
       ossSpinSLatch       _oldVersionCBLatch ;
       IDXID_TO_TREE_MAP   _idxTrees ;     // in memory trees holding older 
                                           // version of indexes
+      MAP_OLDVERION_UNIT  _mapOldVersionUnit ;
  
    } ;
 
@@ -603,6 +757,7 @@ namespace engine
    class oldVersionContainer : public _utilPooledObject
    {
       friend class preIdxTree ;
+      friend class oldVersionUnit ;
 
    public:
       oldVersionContainer( const dmsRecordID &rid,
@@ -625,7 +780,8 @@ namespace engine
       INT32                saveRecord( const dmsRecord *pRecord,
                                        const BSONObj &obj,
                                        UINT32 ownnerTID ) ;
-      void                 releaseRecord() ;
+      void                 releaseRecord( INT32 idxLID = -1,
+                                          BOOLEAN hasLock = FALSE ) ;
 
       void                 setRecordDeleted() ;
       BOOLEAN              isRecordDeleted() const ;
@@ -644,25 +800,30 @@ namespace engine
 
       // check if the index lid already exists in the set
       BOOLEAN              idxLidExist( SINT32 idxLID ) const ;
-      BOOLEAN              insertIdxTree( preIdxTreePtr treePtr ) ;
+      INT32                insertIdxTree( preIdxTreePtr treePtr,
+                                          BOOLEAN *pInserted = NULL ) ;
 
       // based on index LID passed in, retrieve the index value
       const dpsIdxObj*     getIdxObj( SINT32 idxLID ) const ;
       BOOLEAN              isIdxObjExist( const dpsIdxObj &obj ) const ;
 
-      oldVersionContainer * getNext() { return _next ; }
-      oldVersionContainer * getPrev() { return _prev ; }
-      void setNext( oldVersionContainer * ptr ) { _next = ptr ; }
-      void setPrev( oldVersionContainer * ptr ) { _prev = ptr ; }
-      BOOLEAN isOnChain() const { return _isOnChain ; }
-      void    setOnChain() { _isOnChain = TRUE ; }
-      void    unsetOnChain() { _isOnChain = FALSE ; }
+      BOOLEAN              isOnChain() const { return _isOnChain ; }
+      BOOLEAN              isLockOnChain() const ;
 
    protected:
       // given an index object, insert into the idxObjSet. Return false
       // if the same index for the record already exist. In this case,
       // the object was not inserted
       BOOLEAN              insertIdx( const dpsIdxObj &i ) ;
+
+      oldVersionContainer *getNext() const { return _next ; }
+      oldVersionContainer *getPrev() const { return _prev ; }
+      void setNext( oldVersionContainer * ptr ) { _next = ptr ; }
+      void setPrev( oldVersionContainer * ptr ) { _prev = ptr ; }
+      void setOnChain() { _isOnChain = TRUE ; }
+      void unsetOnChain() { _isOnChain = FALSE ; }
+      void lockOnChain() ;
+      void unlockOnChain() ;
 
    private:
       INT32             _csID ;
@@ -687,6 +848,7 @@ namespace engine
       oldVersionContainer * _prev ;
       oldVersionContainer * _next ;
       BOOLEAN               _isOnChain ;
+      UINT32               _lockCnt ;
    } ;
 
 }

@@ -180,7 +180,7 @@ namespace engine
       _keyPattern = indexCB->keyPattern().getOwned() ;
       _order = SDB_OSS_NEW clsCataOrder( Ordering::make( _keyPattern ) ) ;
    }
-   
+
    // copy constructor
    preIdxTree::preIdxTree( const preIdxTree &intree )
    {
@@ -246,7 +246,7 @@ namespace engine
       }
 
       _tree.clear() ;
-   
+
       if ( !hasLock )
       {
          unlockX() ;
@@ -856,6 +856,252 @@ namespace engine
    }
 
    /*
+      oldVersionUnit implement
+   */
+   oldVersionUnit::iterator& oldVersionUnit::iterator::operator= ( const oldVersionUnit::iterator &rhs )
+   {
+      release() ;
+
+      _pUnit = rhs._pUnit ;
+      _cur = rhs._cur ;
+      _init = rhs._init ;
+      _stepCnt = rhs._stepCnt ;
+      _getCnt = rhs._getCnt ;
+      _interval = rhs._interval ;
+
+      if ( rhs._locked )
+      {
+         _pUnit->lockS() ;
+         _locked = TRUE ;
+      }
+
+      if ( rhs._lockOnChain )
+      {
+         _cur->lockOnChain() ;
+         _lockOnChain = TRUE ;
+      }
+
+      return *this ;
+   }
+
+   void oldVersionUnit::iterator::release()
+   {
+      if ( _lockOnChain )
+      {
+         _cur->unlockOnChain() ;
+         _pUnit->_event.signalAll() ;
+         _lockOnChain = FALSE ;
+      }
+
+      if ( _locked )
+      {
+         _pUnit->unlockS() ;
+         _locked = FALSE ;
+      }
+
+      _pUnit = NULL ;
+      _cur = NULL ;
+   }
+
+   oldVersionContainer* oldVersionUnit::iterator::next()
+   {
+      if ( _pUnit )
+      {
+         ++_getCnt ;
+
+         if ( !_locked )
+         {
+            resume() ;
+         }
+         else if ( _stepCnt > 0 && _getCnt % _stepCnt == 0 )
+         {
+            pause() ;
+            ossSleep( _interval ) ;
+            resume() ;
+         }
+
+         if ( !_init )
+         {
+            _cur = _pUnit->_pChain ;
+            _init = TRUE ;
+         }
+         else if ( _cur )
+         {
+            _cur = _cur->getNext() ;
+         }
+
+         if ( !_cur )
+         {
+            pause() ;
+         }
+      }
+      return _cur ;
+   }
+
+   void oldVersionUnit::iterator::pause()
+   {
+      if ( _pUnit && _locked )
+      {
+         if ( _cur && !_lockOnChain )
+         {
+            _cur->lockOnChain() ;
+            _pUnit->_event.reset() ;
+            _lockOnChain = TRUE ;
+         }
+         _pUnit->unlockS() ;
+         _locked = FALSE ;
+      }
+   }
+
+   void oldVersionUnit::iterator::resume()
+   {
+      if ( _pUnit && !_locked )
+      {
+         _pUnit->lockS() ;
+         _locked = TRUE ;
+   
+         if ( _lockOnChain )
+         {
+            _cur->unlockOnChain() ;
+            _pUnit->_event.signalAll() ;
+            _lockOnChain = FALSE ;
+         }
+      }
+   }
+
+   oldVersionUnit::oldVersionUnit()
+   {
+      _pChain = NULL ;
+   }
+
+   oldVersionUnit::~oldVersionUnit()
+   {
+      clearChain() ;
+   }
+
+   void oldVersionUnit::addToChain( oldVersionContainer *pOldVer,
+                                    BOOLEAN hasLock )
+   {
+      BOOLEAN locked = FALSE ;
+
+      if ( !hasLock )
+      {
+         lockX() ;
+         locked = TRUE ;
+      }
+
+      pOldVer->setPrev( NULL ) ;
+      pOldVer->setNext( _pChain ) ;
+      if ( _pChain )
+      {
+         _pChain->setPrev( pOldVer ) ;
+      }
+      _pChain = pOldVer ;
+      _pChain->setOnChain() ;
+
+      if ( locked )
+      {
+         unlockX() ;
+         locked = FALSE ;
+      }
+   }
+
+   void oldVersionUnit::removeFromChain( oldVersionContainer *pOldVer,
+                                         BOOLEAN hasLock )
+   {
+      BOOLEAN locked = FALSE ;
+
+      if ( !hasLock )
+      {
+         lockX() ;
+         locked = TRUE ;
+      }
+
+   retry:
+      if ( pOldVer->isOnChain() )
+      {
+         oldVersionContainer *prev = pOldVer->getPrev() ;
+         oldVersionContainer *next = pOldVer->getNext() ;
+
+         if ( pOldVer->isLockOnChain() )
+         {
+            unlockX() ;
+            while( pOldVer->isLockOnChain() )
+            {
+               _event.wait( OSS_ONE_SEC ) ;
+            }
+            lockX() ;
+            goto retry ;
+         }
+
+         // prev is not NULL, it could be not the head of a connected chain
+         if ( prev )
+         {
+            prev->setNext( next ) ;
+            if ( next )
+            {
+               next->setPrev( prev ) ;
+            }
+         }
+         else
+         {
+            SDB_ASSERT( _pChain == pOldVer, "Not the same" ) ;
+            _pChain = next ;
+
+            if ( next )
+            {
+               next->setPrev( NULL );
+            }
+         }
+
+         pOldVer->setPrev( NULL ) ;
+         pOldVer->setNext( NULL ) ;
+         pOldVer->unsetOnChain() ;
+      }
+
+      if ( locked )
+      {
+         unlockX() ;
+         locked = FALSE ;
+      }
+   }
+
+   void oldVersionUnit::clearChain( BOOLEAN hasLock )
+   {
+      BOOLEAN locked = FALSE ;
+
+      if ( !hasLock )
+      {
+         lockX() ;
+         locked = TRUE ;
+      }
+
+      oldVersionContainer *oldVer = _pChain ;
+      while ( NULL != oldVer )
+      {
+         _pChain = oldVer->getNext() ;
+
+         oldVer->setPrev( NULL ) ;
+         oldVer->setNext( NULL ) ;
+         oldVer->unsetOnChain() ;
+
+         oldVer = _pChain ;
+      }
+
+      if ( locked )
+      {
+         unlockX() ;
+         locked = FALSE ;
+      }
+   }
+
+   oldVersionUnit::iterator oldVersionUnit::itr( INT64 stepCnt, INT32 interval )
+   {
+      iterator it( this, stepCnt, interval ) ;
+      return it ;
+   }
+
+   /*
       oldVersionCB implement
    */
    oldVersionCB::oldVersionCB()
@@ -881,12 +1127,20 @@ namespace engine
          SDB_ASSERT( it->second->empty(), "Index tree should be empty" ) ;
          ++it ;
       }
-
       _idxTrees.clear() ;
+
+      /// check old version unit map
+      MAP_OLDVERION_UNIT_IT itUnit = _mapOldVersionUnit.begin() ;
+      while ( itUnit != _mapOldVersionUnit.end() )
+      {
+         SDB_ASSERT( itUnit->second->empty(),
+                     "Old version unit should be empty" ) ;
+         ++itUnit ;
+      }
+      _mapOldVersionUnit.clear() ;
    }
 
    // Create an in memory index tree and add to the map
-   // Caller must hold _oldVersionCBLatch in X
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OLDVERSIONCB_ADDIDXTREE, "oldVersionCB::addIdxTree" )
    INT32 oldVersionCB::addIdxTree( const globIdxID &gid,
                                    const ixmIndexCB *indexCB,
@@ -897,17 +1151,21 @@ namespace engine
       PD_TRACE_ENTRY( SDB_OLDVERSIONCB_ADDIDXTREE ) ;
 
       preIdxTreePtr tmpTreePtr ;
-      preIdxTree *pTree = NULL ;
       pair<IDXID_TO_TREE_MAP_IT, BOOLEAN> ret ;
 
-      pTree = SDB_OSS_NEW preIdxTree( gid._idxLID, indexCB ) ;
-      if ( !pTree || !pTree->isValid() )
+      tmpTreePtr = preIdxTreePtr::allocRaw( __FILE__, __LINE__, ALLOC_OSS ) ;
+      if ( !tmpTreePtr.get() )
       {
          rc = SDB_OOM ;
          goto error ;
       }
-      tmpTreePtr = preIdxTreePtr( pTree ) ;
-      pTree = NULL ;
+      new ( (void*)tmpTreePtr.get() ) preIdxTree( gid._idxLID, indexCB ) ;
+
+      if ( !tmpTreePtr->isValid() )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
 
       if ( !hasLock )
       {
@@ -929,6 +1187,7 @@ namespace engine
       }
       else
       {
+         treePtr = ret.first->second ;
          rc = SDB_IXM_EXIST ;
          goto error ;
       }
@@ -983,7 +1242,11 @@ namespace engine
       }
 
       rc = addIdxTree( gid, indexCB, treePtr, hasLock ) ;
-      if ( rc )
+      if ( SDB_IXM_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      else if ( rc )
       {
          goto error ;
       }
@@ -1024,7 +1287,6 @@ namespace engine
       if ( !hasLock )
       {
          releaseX() ;
-
       }
 
       if ( treePtr.get() )
@@ -1042,6 +1304,7 @@ namespace engine
    void oldVersionCB::clearIdxTreeByCSID( UINT32 csID, BOOLEAN hasLock )
    {
       preIdxTreePtr treePtr ;
+      IDXID_TO_TREE_MAP mapTmpTree ;
       IDXID_TO_TREE_MAP_IT it ;
 
       if ( !hasLock )
@@ -1062,8 +1325,16 @@ namespace engine
                        it->first.toString().c_str(),
                        treePtr->getKeyPattern().toString().c_str() ) ;
 
-               treePtr->clear() ;
                treePtr->setDeleted() ;
+               try
+               {
+                  mapTmpTree[ it->first ] = it->second ;
+               }
+               catch( std::exception &e )
+               {
+                  PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+                  treePtr->clear() ;
+               }
             }
             _idxTrees.erase( it++ ) ;
             continue ;
@@ -1075,6 +1346,15 @@ namespace engine
       {
          releaseX() ;
       }
+
+      /// clear trees's node out of latch mutex
+      it = mapTmpTree.begin() ;
+      while( it != mapTmpTree.end() )
+      {
+         it->second->clear() ;
+         ++it ;
+      }
+      mapTmpTree.clear() ;
    }
 
    void oldVersionCB::clearIdxTreeByCLID( UINT32 csID,
@@ -1082,6 +1362,7 @@ namespace engine
                                           BOOLEAN hasLock )
    {
       preIdxTreePtr treePtr ;
+      IDXID_TO_TREE_MAP mapTmpTree ;
       IDXID_TO_TREE_MAP_IT it ;
 
       if ( !hasLock )
@@ -1103,8 +1384,16 @@ namespace engine
                        it->first.toString().c_str(),
                        treePtr->getKeyPattern().toString().c_str() ) ;
 
-               treePtr->clear() ;
                treePtr->setDeleted() ;
+               try
+               {
+                  mapTmpTree[ it->first ] = it->second ;
+               }
+               catch( std::exception &e )
+               {
+                  PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+                  treePtr->clear() ;
+               }
             }
             _idxTrees.erase( it++ ) ;
             continue ;
@@ -1116,6 +1405,209 @@ namespace engine
       {
          releaseX() ;
       }
+
+      /// clear trees's node out of latch mutex
+      it = mapTmpTree.begin() ;
+      while( it != mapTmpTree.end() )
+      {
+         it->second->clear() ;
+         ++it ;
+      }
+      mapTmpTree.clear() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OLDVERSIONCB_ADDOLDVERSIONUNIT, "oldVersionCB::addOldVersionUnit" )
+   INT32 oldVersionCB::addOldVersionUnit( UINT32 csID,
+                                          UINT32 clID,
+                                          oldVersionUnitPtr &unitPtr,
+                                          BOOLEAN hasLock )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_OLDVERSIONCB_ADDOLDVERSIONUNIT ) ;
+
+      oldVersionUnitPtr tmpUnitPtr ;
+      pair<MAP_OLDVERION_UNIT_IT, BOOLEAN> ret ;
+      UINT64 keyID = ossPack32To64( csID, clID ) ;
+
+      tmpUnitPtr = oldVersionUnitPtr::alloc( __FILE__, __LINE__, ALLOC_OSS ) ;
+      if ( !tmpUnitPtr.get() )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      if ( !hasLock )
+      {
+         latchX() ;
+      }
+
+      ret = _mapOldVersionUnit.insert( MAP_OLDVERION_UNIT_PAIR( keyID,
+                                                                tmpUnitPtr ) ) ;
+
+      if ( !hasLock )
+      {
+         releaseX() ;
+      }
+
+      if ( ret.second )
+      {
+         PD_LOG( PDDEBUG, "Create old version unit[CSID:%u, CLID:%u] succeed",
+                 csID, clID ) ;
+      }
+      else
+      {
+         unitPtr = ret.first->second ;
+         rc = SDB_DMS_EXIST ;
+         goto error ;
+      }
+
+      unitPtr = ret.first->second ;
+
+   done:
+      PD_TRACE_EXIT( SDB_OLDVERSIONCB_ADDOLDVERSIONUNIT ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   oldVersionUnitPtr oldVersionCB::getOldVersionUnit( UINT32 csID,
+                                                      UINT32 clID,
+                                                      BOOLEAN hasLock )
+   {
+      oldVersionUnitPtr unitPtr ;
+      MAP_OLDVERION_UNIT_IT it ;
+
+      if ( !hasLock )
+      {
+         latchS() ;
+      }
+
+      it = _mapOldVersionUnit.find( ossPack32To64( csID, clID ) ) ;
+
+      if ( it != _mapOldVersionUnit.end() )
+      {
+         unitPtr = it->second ;
+      }
+
+      if ( !hasLock )
+      {
+         releaseS() ;
+      }
+
+      return unitPtr ;
+   }
+
+   INT32 oldVersionCB::getOrCreateOldVersionUnit( UINT32 csID,
+                                                  UINT32 clID,
+                                                  oldVersionUnitPtr &unitPtr,
+                                                  BOOLEAN hasLock )
+   {
+      INT32 rc = SDB_OK ;
+
+      unitPtr = getOldVersionUnit( csID, clID, hasLock ) ;
+      if ( unitPtr.get() )
+      {
+         goto done ;
+      }
+
+      rc = addOldVersionUnit( csID, clID, unitPtr, hasLock ) ;
+      if ( SDB_DMS_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      else if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OLDVERSIONCB_DELOLDVERSIONUNIT, "oldVersionCB::delOldVersionUnit" )
+   void oldVersionCB::delOldVersionUnit( UINT32 csID,
+                                         UINT32 clID,
+                                         BOOLEAN hasLock )
+   {
+      oldVersionUnitPtr unitPtr ;
+      MAP_OLDVERION_UNIT_IT it ;
+
+      PD_TRACE_ENTRY( SDB_OLDVERSIONCB_DELOLDVERSIONUNIT );
+
+      if ( !hasLock )
+      {
+         latchX() ;
+      }
+
+      it = _mapOldVersionUnit.find( ossPack32To64( csID, clID ) ) ;
+      if ( it != _mapOldVersionUnit.end() )
+      {
+         unitPtr = it->second ;
+         _mapOldVersionUnit.erase( it ) ;
+      }
+
+      if ( !hasLock )
+      {
+         releaseX() ;
+      }
+
+      if ( unitPtr.get() )
+      {
+         unitPtr->clearChain() ;
+         PD_LOG( PDDEBUG, "Has removed old version unit[CSID:%u, CLID:%u]",
+                 csID, clID ) ;
+      }
+
+      PD_TRACE_EXIT ( SDB_OLDVERSIONCB_DELOLDVERSIONUNIT ) ;
+   }
+
+   void oldVersionCB::clearOldVersionUnitByCS( UINT32 csID, BOOLEAN hasLock )
+   {
+      MAP_OLDVERION_UNIT tmpMapUnit ;
+      MAP_OLDVERION_UNIT_IT it ;
+
+      UINT32 keyCSID = ~0 ;
+      UINT32 keyCLID = ~0 ;
+
+      if ( !hasLock )
+      {
+         latchX() ;
+      }
+
+      it = _mapOldVersionUnit.begin() ;
+      while ( it != _mapOldVersionUnit.end() )
+      {
+         ossUnpack32From64( it->first, keyCSID, keyCLID ) ;
+         if ( keyCSID == csID )
+         {
+            try
+            {
+               tmpMapUnit[ it->first ] = it->second ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+               /// ignore
+            }
+
+            PD_LOG( PDDEBUG, "Has removed old version unit[CSID:%u, CLID:%u]",
+                    keyCSID, keyCLID ) ;
+
+            _mapOldVersionUnit.erase( it++ ) ;
+            continue ;
+         }
+         ++it ;
+      }
+
+      if ( !hasLock )
+      {
+         releaseX() ;
+      }
+
+      /// clear old version unit's chain out of latch mutex
+      tmpMapUnit.clear() ;
    }
 
    /*
@@ -1135,6 +1627,7 @@ namespace engine
       _prev          = NULL ;
       _next          = NULL ;
       _isOnChain     = FALSE ;
+      _lockCnt       = 0 ;
    }
 
    oldVersionContainer::~oldVersionContainer()
@@ -1183,7 +1676,8 @@ namespace engine
       }
 
       recSize = DMS_RECORD_METADATA_SZ + obj.objsize() ;
-      _recordPtr = dpsOldRecordPtr::alloc( recSize, __FILE__, __LINE__ ) ;
+      _recordPtr = dpsOldRecordPtr::alloc( recSize, __FILE__, __LINE__,
+                                           ALLOC_POOL ) ;
       if ( !_recordPtr.get() )
       {
          PD_LOG( PDERROR, "Alloc memory(%u) failed, rc: %d",
@@ -1221,7 +1715,7 @@ namespace engine
       return _oldIdx.empty() ? TRUE : FALSE ;
    }
 
-   void oldVersionContainer::releaseRecord()
+   void oldVersionContainer::releaseRecord( INT32 idxLID, BOOLEAN hasLock )
    {
       preIdxTree *pTree = NULL ;
       idxObjSet::iterator itSet ;
@@ -1241,7 +1735,8 @@ namespace engine
          else
          {
             pTree = (itMap->second).get() ;
-            pTree->remove( &(tmpObj.getKeyObj()), _rid, FALSE ) ;
+            pTree->remove( &(tmpObj.getKeyObj()), _rid,
+                           idxLID == tmpObj.getIdxLID() ? hasLock : FALSE ) ;
          }
          ++itSet ;
       }
@@ -1341,11 +1836,43 @@ namespace engine
       return _oldIdx.insert( i ).second ;
    }
 
-   BOOLEAN oldVersionContainer::insertIdxTree( preIdxTreePtr treePtr )
+   INT32 oldVersionContainer::insertIdxTree( preIdxTreePtr treePtr,
+                                             BOOLEAN *pInserted )
    {
-      return _oldIdxLid.insert( idxLidMap::value_type( treePtr->getLID(),
+      INT32 rc = SDB_OK ;
+      BOOLEAN succeed = FALSE ;
+      try
+      {
+         succeed = _oldIdxLid.insert( idxLidMap::value_type( treePtr->getLID(),
                                                        treePtr ) ).second ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+      }
+      if ( pInserted )
+      {
+         *pInserted = succeed ;
+      }
+      return rc ;
    }
+
+   BOOLEAN oldVersionContainer::isLockOnChain() const
+   {
+      return 0 == _lockCnt ? FALSE : TRUE ;
+   }
+
+   void oldVersionContainer::lockOnChain()
+   {
+      ossFetchAndIncrement32( &_lockCnt ) ;
+   }
+
+   void oldVersionContainer::unlockOnChain()
+   {
+      ossFetchAndDecrement32( &_lockCnt ) ;
+   }
+
 
 }  // end of namespace
 

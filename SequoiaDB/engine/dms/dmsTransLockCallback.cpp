@@ -80,17 +80,15 @@ namespace engine
    {
       public:
          _dmsReleaseLockJob( const dpsTransLockId &id,
-                             const oldVersionContainer *oldVer )
+                             oldVersionContainer *oldVer )
          {
-            _recordID._extent = id.extentID() ;
-            _recordID._offset = id.offset() ;
-            _csID = oldVer->getCSID() ;
-            _clID = oldVer->getCLID() ;
-            _csLID = oldVer->getCSLID() ;
-            _clLID = oldVer->getCLLID() ;
-            _needDelete = oldVer->isDiskDeleting() ;
+            _pOldVer = oldVer ;
          }
-         virtual ~_dmsReleaseLockJob() {}
+         virtual ~_dmsReleaseLockJob()
+         {
+            SDB_OSS_DEL _pOldVer ;
+            _pOldVer = NULL ;
+         }
 
          virtual const CHAR*     name() const
          {
@@ -101,14 +99,24 @@ namespace engine
                                        UINT64 &sleepTime ) ;
 
       private:
-         dmsRecordID             _recordID ;
-         INT32                   _csID ;
-         UINT16                  _clID ;
-         UINT32                  _csLID ;
-         UINT32                  _clLID ;
-         BOOLEAN                 _needDelete ;
+         oldVersionContainer    *_pOldVer ;
    } ;
    typedef _dmsReleaseLockJob dmsReleaseLockJob ;
+
+   static void _dmsRemoveOldVerFromChain( oldVersionContainer *oldVer )
+   {
+      static dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
+      static oldVersionCB *oldCB = transCB->getOldVCB() ;
+
+      oldVersionUnitPtr unitPtr ;
+      unitPtr = oldCB->getOldVersionUnit( oldVer->getCSID(),
+                                          oldVer->getCLID() ) ;
+      /// when unitPtr.get() is null, means collection is dropped or truncated
+      if ( unitPtr.get() )
+      {
+         unitPtr->removeFromChain( oldVer ) ;
+      }
+   }
 
    INT32 _dmsReleaseLockJob::doit( IExecutor *pExe,
                                    UTIL_LJOB_DO_RESULT &result,
@@ -120,75 +128,96 @@ namespace engine
       INT32 rcTmp = SDB_OK ;
       dmsStorageUnit *su = NULL ;
       dmsMBContext *pContext = NULL ;
-      dmsMBStatInfo *mbStat = NULL ;
-      dmsTransLockCallback callback ;
       dpsTransRetInfo transRetInfo ;
       sleepTime = 2000000 ;
-      BOOLEAN needDelete = FALSE ;
 
-      su = pDmsCB->suLock( _csID ) ;
-      if ( su && su->LogicalCSID() == _csLID )
+      if ( _pOldVer->isOnChain() )
       {
-         if ( SDB_OK == su->data()->getMBContext( &pContext, _clID,
-                                                  _clLID, _clLID ) )
-         {
-            rcTmp = pContext->mbTryLock( EXCLUSIVE, TRUE ) ;
-            if ( SDB_TIMEOUT == rcTmp )
-            {
-               result = UTIL_LJOB_DO_CONT ;
-               goto done ;
-            }
-            else if ( SDB_OK == rcTmp )
-            {
-               mbStat = pContext->mbStat() ;
-               needDelete = _needDelete ;
-            }
-            else
-            {
-               SDB_ASSERT( FALSE, "Unknow error" ) ;
-            }
-         }
-         else
+         /// remove from chain
+         _dmsRemoveOldVerFromChain( _pOldVer ) ;
+      }
+
+      /// release
+      if ( _pOldVer->isRecordDeleted() )
+      {
+         _pOldVer->releaseRecord() ;
+      }
+
+      if ( !_pOldVer->isDiskDeleting() || !pmdGetOptionCB()->recycleRecord() )
+      {
+         result = UTIL_LJOB_DO_FINISH ;
+         goto done ;
+      }
+
+      /// lock collectionspace
+      su = pDmsCB->suLock( _pOldVer->getCSID() ) ;
+      if ( !su || su->LogicalCSID() != _pOldVer->getCSLID() )
+      {
+         /// collectionspace has dropped
+         result = UTIL_LJOB_DO_FINISH ;
+         goto done ;
+      }
+
+      /// lock collection
+      if ( SDB_OK == su->data()->getMBContext( &pContext,
+                                               _pOldVer->getCLID(),
+                                               _pOldVer->getCLLID(),
+                                               _pOldVer->getCLLID() ) )
+      {
+         rcTmp = pContext->mbTryLock( EXCLUSIVE, TRUE ) ;
+         if ( SDB_TIMEOUT == rcTmp )
          {
             result = UTIL_LJOB_DO_CONT ;
             goto done ;
          }
+         else if ( rcTmp )
+         {
+            /// collection has dropped or truncated
+            result = UTIL_LJOB_DO_FINISH ;
+            goto done ;
+         }
+      }
+      else
+      {
+         /// out-of-memory
+         result = UTIL_LJOB_DO_CONT ;
+         goto done ;
       }
 
-      callback.setBaseInfo( pTransCB, (_pmdEDUCB*)pExe ) ;
-      callback.setIDInfo( _csID, _clID, _csLID, _clLID, mbStat ) ;
-      rcTmp = pTransCB->transLockTestX( (_pmdEDUCB*)pExe, _csLID,
-                                        _clID, &_recordID, &transRetInfo,
-                                        &callback ) ;
+      rcTmp = pTransCB->transLockTestX( (_pmdEDUCB*)pExe,
+                                        _pOldVer->getCSLID(),
+                                        _pOldVer->getCLID(),
+                                        &_pOldVer->getRecordID(),
+                                        &transRetInfo,
+                                        NULL ) ;
       if ( SDB_OK == rcTmp )
       {
          result = UTIL_LJOB_DO_FINISH ;
 
-         if ( needDelete && pmdGetOptionCB()->recycleRecord() )
+         dmsRecordRW recordRW ;
+         const dmsRecord *pRecord = NULL ;
+         const dmsRecordID &rid = _pOldVer->getRecordID() ;
+
+         recordRW = su->data()->record2RW( rid,
+                                           _pOldVer->getCLID() ) ;
+         recordRW.setNothrow( TRUE ) ;
+         pRecord = recordRW.readPtr<dmsRecord>() ;
+         if ( !pRecord || pRecord->getMyOffset() != rid._offset )
          {
-            dmsRecordRW recordRW ;
-            const dmsRecord *pRecord = NULL ;
-
-            recordRW = su->data()->record2RW( _recordID, _clID ) ;
-            recordRW.setNothrow( TRUE ) ;
-            pRecord = recordRW.readPtr<dmsRecord>() ;
-            if ( !pRecord || pRecord->getMyOffset() != _recordID._offset )
-            {
-               /// record not exist
-               goto done ;
-            }
-
-            if ( !pRecord->isDeleting() )
-            {
-               /// record not deleting
-               goto done ;
-            }
-
-            /// delete record
-            su->data()->deleteRecord( pContext, _recordID,
-                                      (ossValuePtr)pRecord,
-                                      (pmdEDUCB*)pExe, NULL, NULL, NULL ) ;
+            /// record not exist
+            goto done ;
          }
+
+         if ( !pRecord->isDeleting() )
+         {
+            /// record not deleting
+            goto done ;
+         }
+
+         /// delete record
+         su->data()->deleteRecord( pContext, rid,
+                                   (ossValuePtr)pRecord,
+                                   (pmdEDUCB*)pExe, NULL, NULL, NULL ) ;
       }
       else if ( DPS_TRANSLOCK_X == transRetInfo._lockType )
       {
@@ -212,22 +241,23 @@ namespace engine
       return SDB_OK ;
    }
 
-   static void _dmsStartReleaseLockJob( const dpsTransLockId &lockId,
-                                        const oldVersionContainer *oldVer )
+   static INT32 _dmsStartReleaseLockJob( const dpsTransLockId &lockId,
+                                         oldVersionContainer *oldVer )
    {
+      INT32 rc = SDB_OK ;
       dmsReleaseLockJob *pJob = NULL ;
       pJob = SDB_OSS_NEW dmsReleaseLockJob( lockId, oldVer ) ;
       SDB_ASSERT( pJob, "Job is NULL" ) ;
       if ( pJob )
       {
-         INT32 rcTmp = pJob->submit( TRUE ) ;
-         if ( rcTmp )
+         rc = pJob->submit( TRUE ) ;
+         if ( rc )
          {
             PD_LOG( PDWARNING, "Submit dmsReleaseLockJob(ID:%llu, CSID:%u, "
                     "CLID:%u, CSLID:%u, CLLID:%u, ExtentID:%u, Offset:%u) "
                     "failed, rc: %d", pJob->getJobID(), oldVer->getCSID(),
                     oldVer->getCLID(), oldVer->getCSLID(), oldVer->getCLLID(),
-                    lockId.extentID(), lockId.offset(), rcTmp) ;
+                    lockId.extentID(), lockId.offset(), rc) ;
          }
          else
          {
@@ -246,7 +276,10 @@ namespace engine
                  oldVer->getCSID(), oldVer->getCLID(),
                  oldVer->getCSLID(), oldVer->getCLLID(),
                  lockId.extentID(), lockId.offset() ) ;
+         rc = SDB_OOM ;
       }
+
+      return rc ;
    }
 
    /*
@@ -309,6 +342,15 @@ namespace engine
          oldVer->releaseRecord() ;
          PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
                  lockId.toString().c_str() ) ;
+
+         if ( !oldVer->isDiskDeleting() ||
+              !pmdGetOptionCB()->recycleRecord() )
+         {
+            _dmsRemoveOldVerFromChain( oldVer ) ;
+            SDB_OSS_DEL oldVer ;
+            pExtData->_data = 0 ;
+            goto done ;
+         }
       }
       else
       {
@@ -318,7 +360,14 @@ namespace engine
       }
 
       /// PUT the rid to backgroud task to recycle
-      _dmsStartReleaseLockJob( lockId, oldVer ) ;
+      if ( SDB_OK == _dmsStartReleaseLockJob( lockId, oldVer ) )
+      {
+         pExtData->_data = 0 ;
+      }
+      else
+      {
+         _dmsRemoveOldVerFromChain( oldVer ) ;
+      }
 
    done:
       return ;
@@ -352,7 +401,6 @@ namespace engine
       _latchedIdxLid = DMS_INVALID_EXTENT ;
       _latchedIdxMode = -1 ;
       _pScanner      = NULL ;
-      _mbStat     = NULL ;
 
       clearStatus() ;
    }
@@ -375,7 +423,6 @@ namespace engine
       _latchedIdxLid = DMS_INVALID_EXTENT ;
       _latchedIdxMode = -1 ;
       _pScanner      = NULL ;
-      _mbStat     = NULL ;
 
       clearStatus() ;
 
@@ -395,14 +442,12 @@ namespace engine
    }
 
    void dmsTransLockCallback::setIDInfo( INT32 csID, UINT16 clID,
-                                         UINT32 csLID, UINT32 clLID,
-                                         dmsMBStatInfo * mbStat )
+                                         UINT32 csLID, UINT32 clLID )
    {
       _csID = csID ;
       _clID = clID ;
       _csLID = csLID ;
       _clLID = clLID ;
-      _mbStat = mbStat ;
    }
 
    void dmsTransLockCallback::setIXScanner( _rtnIXScanner *pScanner )
@@ -627,25 +672,12 @@ namespace engine
             {
                if( _oldVer->isRecordDeleted() )
                {
-                  _oldVer->releaseRecord() ;
+                  BOOLEAN hasLock = DMS_INVALID_EXTENT != _latchedIdxMode ?
+                                    TRUE : FALSE ;
+                  _oldVer->releaseRecord( _latchedIdxLid, hasLock ) ;
 
                   PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
                           lockId.toString().c_str() ) ;
-               }
-               /// In that sequence:
-               /// submit Job
-               /// ---------- truncate
-               /// ------------------- update - submit
-               /// ------------------------------------Job::doit
-               /// when the releaseLockJob::doit will occur
-               /// _oldVer->isOnChain(), but _mbStat is NULL
-               /// Another case: old version is not empty means lock
-               /// re-acquired by myself, should not remove in this
-               /// case
-               if( _oldVer->isOnChain() && _mbStat &&
-                   _oldVer->isRecordEmpty() )
-               {
-                  _mbStat->removeFromChain( _oldVer ) ;
                }
             }
 
@@ -757,7 +789,16 @@ namespace engine
             }
          }
          // 3. hang the old version container to the linked list
-         _mbStat->addToChain( _oldVer ) ;
+         if ( !_unitPtr.get() )
+         {
+            oldVersionCB *oldCB = _transCB->getOldVCB() ;
+            rc = oldCB->getOrCreateOldVersionUnit( _csID, _clID, _unitPtr ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         _unitPtr->addToChain( _oldVer ) ;
       }
 
    done:
@@ -1027,7 +1068,11 @@ namespace engine
 
             deleteCursor = _DELETE_SAVE ;
             /// insert into oldVer's indexSet
-            _oldVer->insertIdxTree( treePtr ) ;
+            rc = _oldVer->insertIdxTree( treePtr ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
       }
       else if ( _DELETE_IGNORE == deleteCursor )
@@ -1248,6 +1293,8 @@ namespace engine
          globIdxID gid( _csID, _clID, indexCB->getLogicalID() ) ;
          oldVersionContainer *oldVer = NULL ;
          preIdxTreePtr treePtr ;
+         oldVersionUnitPtr unitPtr ;
+         oldVersionUnit::iterator itChain ;
 
          // take mbLock if not already held
          // first take the mblock
@@ -1262,6 +1309,14 @@ namespace engine
             lockedHere = TRUE ;
          }
 
+         unitPtr = pOldVCB->getOldVersionUnit( _csID, _clID ) ;
+         if ( !unitPtr.get() )
+         {
+            /// collection chain is not exist
+            goto done ;
+         }
+         itChain = unitPtr->itr() ;
+
          treePtr = pOldVCB->getIdxTree( gid, FALSE ) ;
          if ( !treePtr.get() || !treePtr->isValid() )
          {
@@ -1275,7 +1330,7 @@ namespace engine
                  gid.toString().c_str() ) ;
 #endif
          // go through the old version link list and insert index to tree
-         oldVer = context->mbStat()->getChain() ;
+         oldVer = itChain.next() ;
          while ( oldVer )
          {
             if ( oldVer->isRecordDeleted() )
@@ -1345,7 +1400,7 @@ namespace engine
 #endif
             }
 
-            oldVer = oldVer->getNext() ;
+            oldVer = itChain.next() ;
          }  // while (oldVer)
          PD_LOG( PDDEBUG, "Rebuild index callback done successfully(%s)",
                  gid.toString().c_str() ) ;
@@ -1410,6 +1465,7 @@ namespace engine
       {
          oldVersionCB *pOldVCB = _transCB->getOldVCB() ;
          pOldVCB->clearIdxTreeByCSID( csID, FALSE ) ;
+         pOldVCB->clearOldVersionUnitByCS( csID ) ;
          PD_LOG( PDDEBUG, "CS close callback done successfully(%d)",
                  csID ) ;
       }
@@ -1421,6 +1477,7 @@ namespace engine
       {
          oldVersionCB *pOldVCB = _transCB->getOldVCB() ;
          pOldVCB->clearIdxTreeByCLID( csID, clID, FALSE ) ;
+         pOldVCB->delOldVersionUnit( csID, clID ) ;
       }
    }
 

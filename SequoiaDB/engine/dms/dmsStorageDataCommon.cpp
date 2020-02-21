@@ -226,21 +226,6 @@ namespace engine
       PD_TRACE_EXIT ( SDB__MBATTR2STRING ) ;
    }
 
-   void _dmsMBStatInfo::removeAllFromChain()
-   {
-      oldVersionContainer *oldVer = _oldVerChain ;
-      while ( NULL != oldVer )
-      {
-         _oldVerChain = oldVer->getNext() ;
-
-         oldVer->setPrev( NULL ) ;
-         oldVer->setNext( NULL ) ;
-         oldVer->unsetOnChain() ;
-
-         oldVer = _oldVerChain ;
-      }
-   }
-
    /*
       _dmsMBContext implement
    */
@@ -1634,7 +1619,6 @@ namespace engine
       context->mbStat()->_rcTotalRecords.init( 0 ) ;
       context->mbStat()->_totalDataLen = 0 ;
       context->mbStat()->_totalOrgDataLen = 0 ;
-      context->mbStat()->removeAllFromChain() ;
 
       {
          dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(), NULL ) ;
@@ -3288,7 +3272,7 @@ namespace engine
             {
                dpsTransRetInfo lockConflict ;
                callback.setIDInfo( CSID(), context->mbID(), _logicalCSID,
-                                   context->clLID(), context->mbStat() ) ;
+                                   context->clLID() ) ;
 
                rc = pTransCB->transLockTryX( cb, _logicalCSID,
                                              context->mbID(),

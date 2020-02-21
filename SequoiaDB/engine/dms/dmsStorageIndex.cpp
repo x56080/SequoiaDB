@@ -973,8 +973,7 @@ namespace engine
 
          callback.setIDInfo( _pDataSu->CSID(), context->mbID(),
                              _pDataSu->logicalID(),
-                             context->clLID(),
-                             context->mbStat() ) ;
+                             context->clLID() ) ;
          rc = callback.onDropIndex( context, &indexCB, cb ) ;
          if ( rc )
          {
@@ -1136,8 +1135,7 @@ namespace engine
             pOprHandler = &callback ;
             callback.setIDInfo( _pDataSu->CSID(), context->mbID(),
                                 _pDataSu->logicalID(),
-                                context->clLID(),
-                                context->mbStat() ) ;
+                                context->clLID() ) ;
             rc = callback.onCreateIndex( context, &indexCB, cb ) ;
             if ( rc )
             {
