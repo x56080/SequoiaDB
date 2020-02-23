@@ -434,18 +434,26 @@ namespace engine
             if ( _monLock )
             {
                dpsTransLRB *ownerLRB = waiter->lrbHdr->ownerLRB ;
-               SDB_ASSERT( ownerLRB != NULL, "Owner cannot be NULL") ;
-
-               if ( ownerLRB->lockMode == DPS_TRANSLOCK_X )
+               // NOTE:
+               // The owner list could be empty this time. For example,
+               // when the last owner releases the lock, it removes itself
+               // from owner list. At this time a new lock requester may
+               // get the bkt latch before the one be woken up. The new
+               // requester will add itself into the upgrade or waiter list,
+               // if the list is not empty to avoid starving the waiters.
+               if ( NULL != ownerLRB )
                {
-                  _monLock->xOwnerTID = ownerLRB->dpsTxExectr->getTID() ;
-               }
+                  if ( ownerLRB->lockMode == DPS_TRANSLOCK_X )
+                  {
+                     _monLock->xOwnerTID = ownerLRB->dpsTxExectr->getTID() ;
+                  }
 
-               _monLock->numOwner = 1 ;
-               while ( ownerLRB->nextLRB != NULL )
-               {
-                  _monLock->numOwner++ ;
-                  ownerLRB = ownerLRB->nextLRB ;
+                  _monLock->numOwner = 1 ;
+                  while ( ownerLRB->nextLRB != NULL )
+                  {
+                     _monLock->numOwner++ ;
+                     ownerLRB = ownerLRB->nextLRB ;
+                  }
                }
                _monLock->waiterTID = getTID() ;
                _monLock->lockID = waiter->lrbHdr->lockId ;
