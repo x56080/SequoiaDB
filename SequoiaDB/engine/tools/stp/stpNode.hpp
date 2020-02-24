@@ -150,6 +150,11 @@ namespace engine
       }
 
    protected:
+      INT32 _fromBSON( const bson::BSONObj &nodeObject ) ;
+      INT32 _toBSON( bson::BSONObjBuilder &nodeBuilder,
+                     BOOLEAN toDisplay ) const ;
+
+   protected:
       // role of node
       STP_ROLE       _role ;
       // route ID of node
@@ -189,7 +194,11 @@ namespace engine
       // parse server node from BSON format
       INT32 fromBSON( const bson::BSONObj &nodeObject ) ;
       // format server node into BSON format
-      INT32 toBSON( bson::BSONObjBuilder &nodeBuilder ) const ;
+      // NOTE:
+      // - forDisplay: TRUE for output to STP shell commands
+      //               FALSE for internal messages
+      INT32 toBSON( bson::BSONObjBuilder &nodeBuilder,
+                    BOOLEAN forDisplay ) const ;
 
       // format server node into route node format ( used for replica )
       INT32 toRouteNode( netRouteNode &node ) const ;
@@ -260,8 +269,11 @@ namespace engine
       void mergeStats() ;
 
       // format source node into BSON format
+      // - forDisplay: TRUE for output to STP shell commands
+      //               FALSE for internal messages
       INT32 toBSON( bson::BSONObjBuilder &nodeBuilder,
-                    BOOLEAN current ) const ;
+                    BOOLEAN current,
+                    BOOLEAN forDisplay ) const ;
 
    protected:
       // last tick to synchronize with
@@ -375,8 +387,12 @@ namespace engine
    public:
       // format client node into string format
       ossPoolString toString() const ;
+
+      // parse client node from BSON format
+      INT32 fromBSON( const bson::BSONObj &nodeObject ) ;
       // format client node into BSON format
-      INT32 toBSON( bson::BSONObjBuilder &nodeBuilder ) const ;
+      INT32 toBSON( bson::BSONObjBuilder &nodeBuilder,
+                    BOOLEAN toDisplay ) const ;
 
       // check if role is valid
       OSS_INLINE BOOLEAN isValidRole() const

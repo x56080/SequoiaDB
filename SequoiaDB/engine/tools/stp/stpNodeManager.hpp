@@ -351,7 +351,7 @@ namespace engine
       INT32 getServers( UINT32 &version, STP_SERVER_LIST &servers ) ;
 
       // get information of servers as BSON object
-      INT32 getServers( bson::BSONObj &object ) ;
+      INT32 getServers( bson::BSONObj &object, BOOLEAN forDisplay ) ;
 
       // update information of servers from BSON object
       INT32 setServers( const bson::BSONObj &object ) ;
@@ -443,11 +443,13 @@ namespace engine
                            UINT32 version ) ;
       // build BSON object for server nodes
       INT32 _buildServers( bson::BSONObjBuilder &builder,
-                           const STP_SERVER_LIST &servers ) ;
+                           const STP_SERVER_LIST &servers,
+                           BOOLEAN forDisplay ) ;
       // build BSON object for primary node
       INT32 _buildPrimaryNode( bson::BSONObjBuilder &builder,
                                const STP_SERVER_LIST &servers,
-                               const MsgRouteID &primaryRID ) ;
+                               const MsgRouteID &primaryRID,
+                               BOOLEAN forDisplay ) ;
       // parse version of servers from BSON object
       INT32 _parseVersion( const bson::BSONObj &object,
                            UINT32 &version ) ;

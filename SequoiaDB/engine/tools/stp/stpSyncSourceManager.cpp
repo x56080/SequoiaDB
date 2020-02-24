@@ -218,13 +218,42 @@ namespace engine
                 "Failed to register client %s, primary is not me",
                 routeID2String( routeID ).c_str() ) ;
 
-      // set client node
-      client.setRouteID( routeID ) ;
-      client.setRole( (STP_ROLE)( request->role ) ) ;
-      client.setSyncInterval( request->syncInterval ) ;
-      client.setMaxTimeError( request->maxTimeError ) ;
-      client.setTimeError( request->timeError ) ;
-      client.setOID( request->oid ) ;
+      try
+      {
+         BSONObj regObject ;
+
+         // check length of message
+         PD_CHECK( request->header.messageLength >=
+                   (INT32)( sizeof( stpRegReq ) + regObject.objsize() ),
+                   SDB_SYS, error, PDERROR, "Failed to handle server "
+                   "response, size of message is unexpected, "
+                   "expected >= [%u], given [%u]",
+                   sizeof( stpServerRsp ) + regObject.objsize(),
+                   request->header.messageLength ) ;
+
+         // extract result in BSON format
+         regObject = BSONObj( (CHAR *)( request ) + sizeof( stpRegReq ) ) ;
+
+         // parse client node
+         rc = client.fromBSON( regObject ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse client node object, "
+                      "rc: %d", rc ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to parse client node object, "
+                 "occurred unexpected error: %s", e.what() ) ;
+         goto error ;
+      }
+
+      // check route ID
+      PD_CHECK( routeID.value == client.getRouteIDValue(),
+                SDB_SYS, error, PDERROR,
+                "Failed to register client, route IDs are different, "
+                "net route ID %s, register request ID %s",
+                routeID2String( routeID ).c_str(),
+                routeID2String( client.getRouteID() ).c_str() ) ;
 
       // register client node
       rc = registerClient( request->version, client ) ;

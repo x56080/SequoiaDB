@@ -109,19 +109,23 @@ namespace engine
    #define STP_DEF_PORT                ( 9622 )
    #define STP_DEF_SERVICE_NAME        "9622"
 
+   // unknown STP host and service names
+   #define STP_UNKNOWN_HOST_NAME       "Unknown"
+   #define STP_UNKNOWN_SERVICE_NAME    "Unknown"
+
    /*
       STP_ROLE define
     */
    // roles of STP
    enum STP_ROLE
    {
-      // standalone: only one tp node
-      STP_ROLE_STANDALONE = -1,
+      // standalone: only one stp node
+      STP_ROLE_STANDALONE = 0,
       // client: run as synchronize client
-      STP_ROLE_CLIENT = -2,
+      STP_ROLE_CLIENT,
       // server: run as synchronize server which could vote primary
       // NOTE: only primary server is the synchronize source
-      STP_ROLE_SERVER = -3
+      STP_ROLE_SERVER
    } ;
 
    // names of STP role
@@ -137,14 +141,22 @@ namespace engine
       {
          case STP_ROLE_STANDALONE :
             return STP_ROLE_NAME_STANDALONE ;
-         case STP_ROLE_SERVER :
-            return STP_ROLE_NAME_SERVER ;
          case STP_ROLE_CLIENT :
             return STP_ROLE_NAME_CLIENT ;
+         case STP_ROLE_SERVER :
+            return STP_ROLE_NAME_SERVER ;
          default :
             break ;
       }
       return STP_ROLE_MANE_UNKNOWN ;
+   }
+
+   // check if role is valid
+   OSS_INLINE BOOLEAN stpCheckRole( STP_ROLE role )
+   {
+      return ( STP_ROLE_STANDALONE == role ||
+               STP_ROLE_CLIENT == role ||
+               STP_ROLE_SERVER == role ) ;
    }
 
    /*
@@ -210,6 +222,17 @@ namespace engine
             break ;
       }
       return STP_SYNC_STATUS_NAME_UNKNOWN ;
+   }
+
+   // check if synchronize status is valid
+   OSS_INLINE BOOLEAN stpCheckSyncStatus( STP_SYNC_STATUS status )
+   {
+      return ( STP_SYNC_NOSOURCE == status ||
+               STP_SYNC_CHECKOFFSET == status ||
+               STP_SYNC_CHECKSLEWRATE == status ||
+               STP_SYNC_RECHECKOFFSET == status ||
+               STP_SYNC_INTERVALCHECK == status ||
+               STP_SYNC_CHECKERROR == status ) ;
    }
 
    /*

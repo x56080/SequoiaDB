@@ -78,6 +78,193 @@ namespace engine
       return ( *this ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODE__FROMBSON, "_stpNode::_fromBSON" )
+   INT32 _stpNode::_fromBSON( const BSONObj &nodeObject )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPNODE__FROMBSON ) ;
+
+      STP_ROLE role = STP_ROLE_STANDALONE ;
+      MsgRouteID routeID ;
+      UINT32 groupID = INVALID_GROUPID ;
+      UINT16 nodeID = INVALID_NODEID ;
+      const CHAR * hostName = NULL ;
+      const CHAR * serviceName = NULL ;
+
+      try
+      {
+         BSONElement element ;
+
+         // get role field
+         element = nodeObject.getField( STP_FIELD_NAME_ROLE ) ;
+         // role field should not be empty
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "field [%s] is not found", STP_FIELD_NAME_ROLE ) ;
+         // role field should be integer type
+         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "field [%s] is not an integer", STP_FIELD_NAME_ROLE ) ;
+         // get role
+         role = (STP_ROLE)( element.numberInt() ) ;
+
+         // get group ID field
+         element = nodeObject.getField( STP_FIELD_NAME_GROUPID ) ;
+         // group ID field should not be empty
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "field [%s] is not found", STP_FIELD_NAME_GROUPID ) ;
+         // group ID field should be integer type
+         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "field [%s] is not an integer", STP_FIELD_NAME_GROUPID ) ;
+         // get group ID
+         groupID = (UINT32)( element.numberInt() ) ;
+
+         // get node ID field
+         element = nodeObject.getField( STP_FIELD_NAME_NODEID ) ;
+         // node ID field should not be empty
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "field [%s] is not found", STP_FIELD_NAME_NODEID ) ;
+         // node ID field should be integer type
+         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "field [%s] is not an integer", STP_FIELD_NAME_NODEID ) ;
+         // get node ID
+         nodeID = (UINT16)( element.numberInt() ) ;
+
+         // get host name field
+         element = nodeObject.getField( STP_FIELD_NAME_HOST ) ;
+         // host name field should not be empty
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "field [%s] is not found", STP_FIELD_NAME_HOST ) ;
+         // host name field should be string type
+         PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "field [%s] is not a string", STP_FIELD_NAME_HOST ) ;
+         // get host name
+         hostName = element.valuestrsafe() ;
+
+         // get service name field
+         element = nodeObject.getField( STP_FIELD_NAME_SERVICE ) ;
+         // service name field should not be empty
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "field [%s] is not found", STP_FIELD_NAME_SERVICE ) ;
+         // service name field should be string type
+         PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "field [%s] is not a string", STP_FIELD_NAME_SERVICE ) ;
+         // get service name
+         serviceName = element.valuestrsafe() ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to parse node object, "
+                 "occurred unexpected error: %s", e.what() ) ;
+         goto error ;
+      }
+
+      // check if role is valid
+      PD_CHECK( stpCheckRole( role ), SDB_INVALIDARG, error, PDERROR,
+                "Failed to parse node object, "
+                "role [%d] is invalid", role ) ;
+
+      // check if group ID is valid
+      PD_CHECK( INVALID_GROUPID != groupID,
+                SDB_INVALIDARG, error, PDERROR,
+                "Failed to parse node object, "
+                "group ID [%u] is invalid", groupID ) ;
+
+      // check if node ID is valid
+      PD_CHECK( INVALID_NODEID != nodeID,
+                SDB_INVALIDARG, error, PDERROR,
+                "Failed to parse node object, "
+                "node ID [%u] is invalid", nodeID ) ;
+
+      // check if host name is valid
+      PD_CHECK( NULL != hostName && '\0' != hostName,
+                SDB_INVALIDARG, error, PDERROR,
+                "Failed to parse node object, "
+                "host name is invalid" ) ;
+
+      // check if service name is valid
+      PD_CHECK( NULL != serviceName && '\0' != serviceName,
+                SDB_INVALIDARG, error, PDERROR,
+                "Failed to parse node object, "
+                "service name is invalid" ) ;
+
+      // set route ID
+      // NOTE: always use local service as service ID
+      routeID.columns.groupID = groupID ;
+      routeID.columns.nodeID = nodeID ;
+      routeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
+
+      // set fields of node
+      setRole( role ) ;
+      setRouteID( routeID ) ;
+      setHostName( hostName ) ;
+      setServiceName( serviceName ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPNODE__FROMBSON, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODE__TOBSON, "_stpNode::_toBSON" )
+   INT32 _stpNode::_toBSON( BSONObjBuilder &nodeBuilder,
+                            BOOLEAN toDisplay ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPNODE__TOBSON ) ;
+
+      try
+      {
+         if ( toDisplay )
+         {
+            // to display, we use name of role
+            nodeBuilder.append( STP_FIELD_NAME_ROLE,
+                                stpGetRoleName( getRole() ) ) ;
+         }
+         else
+         {
+            // we use value of role for internal usage
+            nodeBuilder.append( STP_FIELD_NAME_ROLE, (INT32)( getRole() ) ) ;
+
+            // we need group ID and node ID for internal usage
+            nodeBuilder.append( STP_FIELD_NAME_GROUPID,
+                                (INT32)( getGroupID() ) ) ;
+            nodeBuilder.append( STP_FIELD_NAME_NODEID,
+                                (INT32)( getNodeID() ) ) ;
+         }
+         // build host name and service name
+         nodeBuilder.append( STP_FIELD_NAME_HOST, getHostName() ) ;
+         nodeBuilder.append( STP_FIELD_NAME_SERVICE, getServiceName() ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to build node object, "
+                 "occurred unexpected error: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPNODE__TOBSON, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       _stpServerNode implement
     */
@@ -133,110 +320,17 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__STPSERVERNODE_FROMBSON ) ;
 
-      MsgRouteID routeID ;
-      UINT32 groupID = INVALID_GROUPID ;
-      UINT16 nodeID = INVALID_NODEID ;
-      const CHAR * hostName = NULL ;
-      const CHAR * serviceName = NULL ;
+      // parse BSON object
+      rc = _fromBSON( nodeObject ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse BSON object of server node, "
+                   "rc: %d", rc ) ;
 
-      try
-      {
-         BSONElement element ;
-
-         // get group ID field
-         element = nodeObject.getField( STP_FIELD_NAME_GROUPID ) ;
-         // group ID field should not be empty
-         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse server node object, "
-                   "field [%s] is not found", STP_FIELD_NAME_GROUPID ) ;
-         // group ID field should be integer type
-         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse server node object, "
-                   "field [%s] is not an integer", STP_FIELD_NAME_GROUPID ) ;
-         // get group ID
-         groupID = (UINT32)( element.numberInt() ) ;
-
-         // get node ID field
-         element = nodeObject.getField( STP_FIELD_NAME_NODEID ) ;
-         // node ID field should not be empty
-         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse server node object, "
-                   "field [%s] is not found", STP_FIELD_NAME_NODEID ) ;
-         // node ID field should be integer type
-         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse server node object, "
-                   "field [%s] is not an integer", STP_FIELD_NAME_NODEID ) ;
-         // get node ID
-         nodeID = (UINT16)( element.numberInt() ) ;
-
-         // get host name field
-         element = nodeObject.getField( STP_FIELD_NAME_HOST ) ;
-         // host name field should not be empty
-         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse server node object, "
-                   "field [%s] is not found", STP_FIELD_NAME_HOST ) ;
-         // host name field should be string type
-         PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse server node object, "
-                   "field [%s] is not a string", STP_FIELD_NAME_HOST ) ;
-         // get host name
-         hostName = element.valuestrsafe() ;
-
-         // get service name field
-         element = nodeObject.getField( STP_FIELD_NAME_SERVICE ) ;
-         // service name field should not be empty
-         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse server node object, "
-                   "field [%s] is not found", STP_FIELD_NAME_SERVICE ) ;
-         // service name field should be string type
-         PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse server node object, "
-                   "field [%s] is not a string", STP_FIELD_NAME_SERVICE ) ;
-         // get service name
-         serviceName = element.valuestrsafe() ;
-      }
-      catch ( exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Failed to parse server node object, "
-                 "occurred unexpected error: %s", e.what() ) ;
-         goto error ;
-      }
-
-      // check if group ID is valid
-      PD_CHECK( INVALID_GROUPID != groupID,
-                SDB_INVALIDARG, error, PDERROR,
-                "Failed to parse server node object, "
-                "group ID [%u] is invalid", groupID ) ;
-
-      // check if node ID is valid
-      PD_CHECK( INVALID_NODEID != nodeID,
-                SDB_INVALIDARG, error, PDERROR,
-                "Failed to parse server node object, "
-                "node ID [%u] is invalid", nodeID ) ;
-
-      // check if host name is valid
-      PD_CHECK( NULL != hostName && '\0' != hostName,
-                SDB_INVALIDARG, error, PDERROR,
-                "Failed to parse server node object, "
-                "host name is invalid" ) ;
-
-      // check if service name is valid
-      PD_CHECK( NULL != serviceName && '\0' != serviceName,
-                SDB_INVALIDARG, error, PDERROR,
-                "Failed to parse server node object, "
-                "service name is invalid" ) ;
-
-      // set route ID
-      // NOTE: always use local service as service ID
-      routeID.columns.groupID = groupID ;
-      routeID.columns.nodeID = nodeID ;
-      routeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
-
-      // set fields of server node
-      setRouteID( routeID ) ;
-      setHostName( hostName ) ;
-      setServiceName( serviceName ) ;
+      // check role
+      PD_CHECK( STP_ROLE_SERVER == getRole(), SDB_INVALIDARG, error, PDERROR,
+                "Failed to parse BSON object of server node, "
+                "expected [%s] role, given [%s] role",
+                stpGetRoleName( STP_ROLE_SERVER ),
+                stpGetRoleName( getRole() ) ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__STPSERVERNODE_FROMBSON, rc ) ;
@@ -247,27 +341,16 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSERVERNODE_TOBSON, "_stpServerNode::toBSON" )
-   INT32 _stpServerNode::toBSON( BSONObjBuilder &nodeBuilder ) const
+   INT32 _stpServerNode::toBSON( BSONObjBuilder &nodeBuilder,
+                                 BOOLEAN forDisplay ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPSERVERNODE_TOBSON ) ;
 
-      try
-      {
-         // append fields to BSON
-         nodeBuilder.append( STP_FIELD_NAME_GROUPID, (INT32)( getGroupID() ) ) ;
-         nodeBuilder.append( STP_FIELD_NAME_NODEID, (INT32)( getNodeID() ) ) ;
-         nodeBuilder.append( STP_FIELD_NAME_HOST, getHostName() ) ;
-         nodeBuilder.append( STP_FIELD_NAME_SERVICE, getServiceName() ) ;
-      }
-      catch ( exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Failed to build server node object, "
-                 "occurred unexpected error: %s", e.what() ) ;
-         goto error ;
-      }
+      rc = _toBSON( nodeBuilder, forDisplay ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build server node into "
+                   "BSON object, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__STPSERVERNODE_TOBSON, rc ) ;
@@ -388,7 +471,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSOURCENODE_TOBSON, "_stpSourceNode::toBSON" )
    INT32 _stpSourceNode::toBSON( BSONObjBuilder &nodeBuilder,
-                                 BOOLEAN current ) const
+                                 BOOLEAN current,
+                                 BOOLEAN forDisplay ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -397,7 +481,7 @@ namespace engine
       try
       {
          // build server fields into BSON format
-         rc = stpServerNode::toBSON( nodeBuilder ) ;
+         rc = stpServerNode::toBSON( nodeBuilder, forDisplay ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build source node %s, "
                       "rc: %d", toString().c_str(), rc ) ;
 
@@ -493,35 +577,168 @@ namespace engine
       return ss.poolStr() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTNODE_FROMBSON, "_stpClientNode::fromBSON" )
+   INT32 _stpClientNode::fromBSON( const BSONObj &nodeObject )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCLIENTNODE_FROMBSON ) ;
+
+      OID oid ;
+      STP_SYNC_STATUS syncStatus = STP_SYNC_NOSOURCE ;
+      UINT32 syncInterval = STP_DEF_SYNC_INTERVAL ;
+      UINT32 timeError = STP_DEF_TIME_ERROR ;
+      UINT32 maxTimeError = STP_MAX_TIME_ERROR ;
+
+      rc = _fromBSON( nodeObject ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse BSON object of client node, "
+                   "rc: %d", rc ) ;
+
+      try
+      {
+         BSONElement element ;
+
+         // get OID field
+         element = nodeObject.getField( STP_FIELD_NAME_NODE_OID ) ;
+         // OID field should not be empty
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse client node object, "
+                   "field [%s] is not found", STP_FIELD_NAME_NODE_OID ) ;
+         // OID field should be OID type
+         PD_CHECK( jstOID == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse client node object, "
+                   "field [%s] is not an OID", STP_FIELD_NAME_NODE_OID ) ;
+         // get OID
+         oid = element.OID() ;
+
+         // get synchronize status field
+         element = nodeObject.getField( STP_FIELD_NAME_SYNC_STATUS ) ;
+         // synchronize status field should not be empty
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse client node object, "
+                   "field [%s] is not found", STP_FIELD_NAME_SYNC_STATUS ) ;
+         // synchronize status field should be integer type
+         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse client node object, "
+                   "field [%s] is not an integer",
+                   STP_FIELD_NAME_SYNC_STATUS ) ;
+         // get synchronize status
+         syncStatus = (STP_SYNC_STATUS)( element.numberInt() ) ;
+
+         // get synchronize interval field
+         element = nodeObject.getField( STP_FIELD_NAME_SYNC_INTERVAL ) ;
+         // synchronize interval field should not be empty
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse client node object, "
+                   "field [%s] is not found", STP_FIELD_NAME_SYNC_INTERVAL ) ;
+         // synchronize interval field should be integer type
+         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse client node object, "
+                   "field [%s] is not an integer",
+                   STP_FIELD_NAME_SYNC_INTERVAL ) ;
+         // get synchronize interval
+         syncInterval = (UINT32)( element.numberInt() ) ;
+
+         // get time error field
+         element = nodeObject.getField( STP_FIELD_NAME_TIME_ERROR ) ;
+         // time error field should not be empty
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse client node object, "
+                   "field [%s] is not found", STP_FIELD_NAME_TIME_ERROR ) ;
+         // time error field should be integer type
+         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse client node object, "
+                   "field [%s] is not an integer",
+                   STP_FIELD_NAME_TIME_ERROR ) ;
+         // get time error
+         timeError = (UINT32)( element.numberInt() ) ;
+
+         // get max time error field
+         element = nodeObject.getField( STP_FIELD_NAME_MAX_TIME_ERROR ) ;
+         // max time error field should not be empty
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse client node object, "
+                   "field [%s] is not found", STP_FIELD_NAME_MAX_TIME_ERROR ) ;
+         // max time error field should be integer type
+         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse client node object, "
+                   "field [%s] is not an integer",
+                   STP_FIELD_NAME_MAX_TIME_ERROR ) ;
+         // get max time error
+         maxTimeError = (UINT32)( element.numberInt() ) ;
+      }
+      catch ( exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to parse client node object, "
+                 "occurred unexpected error: %s", e.what() ) ;
+         goto error ;
+      }
+
+      // check OID
+      PD_CHECK( oid.isSet(), SDB_INVALIDARG, error, PDERROR,
+                "Failed to parse client node object, OID is invalid" ) ;
+
+      // check synchronize status
+      PD_CHECK( stpCheckSyncStatus( syncStatus ),
+                SDB_INVALIDARG, error, PDERROR,
+                "Failed to parse client node object, "
+                "synchronize status is invalid" ) ;
+
+      // set fields of client node
+      setOID( oid ) ;
+      setStatus( syncStatus ) ;
+      setSyncInterval( syncInterval ) ;
+      setTimeError( timeError ) ;
+      setMaxTimeError( maxTimeError ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCLIENTNODE_FROMBSON, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTNODE_TOBSON, "_stpClientNode::toBSON" )
-   INT32 _stpClientNode::toBSON( BSONObjBuilder &nodeBuilder ) const
+   INT32 _stpClientNode::toBSON( BSONObjBuilder &nodeBuilder,
+                                 BOOLEAN toDisplay ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPCLIENTNODE_TOBSON ) ;
 
+      rc = _toBSON( nodeBuilder, toDisplay ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build client node into "
+                   "BSON object, rc: %d", rc ) ;
+
       try
       {
-         // calculate time after last synchronize ( in milliseconds )
-         INT64 syncPassed = pmdGetTickSpanTime( getLastSyncTick() ) ;
-
          // build client fields into BSON format
-         nodeBuilder.append( STP_FIELD_NAME_GROUPID, (INT32)( getGroupID() ) ) ;
-         nodeBuilder.append( STP_FIELD_NAME_NODEID, (INT32)( getNodeID() ) ) ;
-         nodeBuilder.append( STP_FIELD_NAME_HOST, getHostName() ) ;
-         nodeBuilder.append( STP_FIELD_NAME_SERVICE, getServiceName() ) ;
          nodeBuilder.append( STP_FIELD_NAME_NODE_OID, getOID() ) ;
-         nodeBuilder.append( STP_FIELD_NAME_SYNC_STATUS,
-                             stpGetSyncStatusName( getStatus() ) ) ;
          nodeBuilder.append( STP_FIELD_NAME_SYNC_INTERVAL,
                              (INT32)getSyncInterval() ) ;
          nodeBuilder.append( STP_FIELD_NAME_TIME_ERROR,
                              (INT32)getTimeError() ) ;
          nodeBuilder.append( STP_FIELD_NAME_MAX_TIME_ERROR,
                              (INT32)getMaxTimeError() ) ;
-         nodeBuilder.append( STP_FIELD_NAME_LAST_SYNC_PASSED, syncPassed ) ;
-         nodeBuilder.append( STP_FIELD_NAME_SYNC_COUNT,
-                             (INT64)getSyncCount() ) ;
+         if ( toDisplay )
+         {
+            // calculate time after last synchronize ( in milliseconds )
+            INT64 syncPassed = pmdGetTickSpanTime( getLastSyncTick() ) ;
+            nodeBuilder.append( STP_FIELD_NAME_LAST_SYNC_PASSED, syncPassed ) ;
+            nodeBuilder.append( STP_FIELD_NAME_SYNC_COUNT,
+                                (INT64)getSyncCount() ) ;
+            // output name of synchronize status to display
+            nodeBuilder.append( STP_FIELD_NAME_SYNC_STATUS,
+                                stpGetSyncStatusName( getStatus() ) ) ;
+         }
+         else
+         {
+            // output value of synchronize status for internal usage
+            nodeBuilder.append( STP_FIELD_NAME_SYNC_STATUS,
+                                (INT32)( getStatus() ) ) ;
+         }
       }
       catch ( exception &e )
       {
