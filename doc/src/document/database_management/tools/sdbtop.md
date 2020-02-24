@@ -35,6 +35,14 @@ sdbtop 是一个 SequoiaDB 数据库的性能监控工具。通过 sdbtop，可�
 >            $ ./configure
 >            $ sudo make && make install
 >            ```
+>   *   若 Ncurses 库安装完成后仍提示“Error opening terminal: TERM”，则尝试以下解决方案：
+>       *    创建软连接
+>
+>            ```lang-bash
+>            $ sudo mkdir -p /usr/share/terminfo/x
+>            $ cd /usr/share/terminfo/x
+>            $ sudo ln -s /lib/terminfo/x/xterm xterm
+>            ```
 
 ##使用方法##
 
