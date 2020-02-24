@@ -45,6 +45,7 @@
 #include "dpsTransDef.hpp"
 #include "sdbInterface.hpp"
 #include "dpsGTSAgent.hpp"
+#include "dpsLogWrapper.hpp"
 
 namespace engine
 {
@@ -240,6 +241,7 @@ namespace engine
          // input:
          //    - commitLSN: LSN to write the commit DPS log
          // output:
+         //    - mb: DPS message block to store the record
          //    - logType: logType of record found by LSN
          //    - attr: commit attribute ( pre-commit or final commit )
          //    - nodeNum: number of nodes/groups involved in this transaction
@@ -247,7 +249,13 @@ namespace engine
          // return:
          //    - SDB_OK: succeed to get commit info
          //    - other errors: failed to get commit info
+         // NOTE:
+         //    for DPS record loaded from file, its memory will be
+         //    held in DPS message block, so we need to keep DPS
+         //    message block to access the fields in DPS record
+         //    especailly for the array of nodes
          INT32       _getCommitInfo( DPS_LSN_OFFSET commitLSN,
+                                     dpsMessageBlock *mb,
                                      DPS_LOG_TYPE &logType,
                                      UINT8 &attr,
                                      UINT32 &nodeNum,
