@@ -65,8 +65,12 @@ TEST( sdbSyncDB, normal )
    ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName ;
    bson_destroy( &option ) ;
    const CHAR* clName = "syncTestCl" ;
-   rc = sdbCreateCollection( cs, clName, &cl ) ;
+   bson_init( &option ) ; 
+   bson_append_int( &option, "ReplSize", -1 ) ; 
+   bson_finish( &option ) ; 
+   rc = sdbCreateCollection1( cs, clName, &option, &cl ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to create cl " << clName ;
+   bson_destroy( &option ) ;
 
    // sync cs in data node
    bson_init( &option ) ;
