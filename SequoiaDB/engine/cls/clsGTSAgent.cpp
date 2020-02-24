@@ -424,6 +424,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT__GETCOMMITINFO, "_clsGTSAgent::_getCommitInfo" )
    INT32 _clsGTSAgent::_getCommitInfo( DPS_LSN_OFFSET commitLSN,
+                                       dpsMessageBlock *mb,
                                        DPS_LOG_TYPE &logType,
                                        UINT8 &attr,
                                        UINT32 &nodeNum,
@@ -436,21 +437,22 @@ namespace engine
       SDB_DPSCB *dpsCB = sdbGetDPSCB() ;
 
       DPS_LSN lsn ;
-      dpsMessageBlock mb ;
       dpsLogRecord record ;
 
       DPS_TRANS_ID recordTransID ;
       DPS_LSN_OFFSET preTransLSN = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET firstLSN = DPS_INVALID_LSN_OFFSET ;
 
+      SDB_ASSERT( NULL != mb, "DPS message block is invalid" ) ;
+
       lsn.offset = commitLSN ;
 
       /// load lsn
-      rc = dpsCB->search( lsn, &mb ) ;
+      rc = dpsCB->search( lsn, mb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to search LSN [%llu], rc: %d",
                    commitLSN, rc ) ;
 
-      rc = record.load( mb.offset( 0 ) ) ;
+      rc = record.load( mb->offset( 0 ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load DPS record with LSN [%llu], "
                    "rc: %d", commitLSN, rc ) ;
 
@@ -460,7 +462,7 @@ namespace engine
                 "commit record, expected [%d], given [%d]",
                 LOG_TYPE_TS_COMMIT, record.head()._type ) ;
 
-      rc = dpsRecord2TransCommit( mb.offset( 0 ), recordTransID, preTransLSN,
+      rc = dpsRecord2TransCommit( mb->offset( 0 ), recordTransID, preTransLSN,
                                   firstLSN, attr, nodeNum, nodes ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get transaction commit from DPS "
                    "record with LSN [%llu], rc: %d", commitLSN, rc ) ;
@@ -485,12 +487,13 @@ namespace engine
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
 
+      dpsMessageBlock mb ;
       DPS_LOG_TYPE logType = LOG_TYPE_DUMMY ;
       UINT8 attr = 0 ;
       UINT32 nodeNum = 0 ;
       const UINT64 *pNodes = NULL ;
 
-      rc = _getCommitInfo( curLsn, logType, attr, nodeNum, &pNodes ) ;
+      rc = _getCommitInfo( curLsn, &mb, logType, attr, nodeNum, &pNodes ) ;
       SDB_ASSERT( SDB_OK == rc &&
                   attr == DPS_TS_COMMIT_ATTR_PRE &&
                   nodeNum > 0,
@@ -998,13 +1001,14 @@ namespace engine
                // transaction as committed
                DPS_TRANS_STATUS status = DPS_TRANS_UNKNOWN ;
                DPS_LSN_OFFSET commitLSN = info._lsn ;
+               dpsMessageBlock mb ;
                DPS_LOG_TYPE logType = LOG_TYPE_DUMMY ;
                UINT8 attr = 0 ;
                UINT32 nodeNum = 0 ;
                const UINT64 *nodes = NULL ;
 
                // get commit info from DPS log
-               rc = _getCommitInfo( info._lsn, logType, attr, nodeNum,
+               rc = _getCommitInfo( info._lsn, &mb, logType, attr, nodeNum,
                                     &nodes ) ;
                if ( SDB_OK != rc &&
                     LOG_TYPE_TS_COMMIT != logType &&
