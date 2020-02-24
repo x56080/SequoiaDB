@@ -107,16 +107,11 @@ namespace engine
       _stpRegReq define
     */
    // send a register request to register a synchronize client into a source
-   // | header | configurations for client | OID for verify |
+   // | header | version of servers from requester | BSON object of requester |
    struct _stpRegReq
    {
       MsgHeader   header ;
       UINT32      version ;
-      UINT32      role ;
-      UINT32      syncInterval ;
-      UINT32      maxTimeError ;
-      UINT32      timeError ;
-      bson::OID   oid ;
    } ;
 
    typedef struct _stpRegReq stpRegReq ;

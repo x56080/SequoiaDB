@@ -113,7 +113,7 @@ namespace engine
       // send synchronize register request
       INT32 _sendRegReq( const MsgRouteID &routeID,
                          UINT32 version,
-                         const stpClientNode &local ) ;
+                         const bson::BSONObj &regObject ) ;
       // send time synchronize request ( in UDP )
       INT32 _sendTimeSyncReq( const MsgRouteID &routeID,
                               UINT32 version,
@@ -170,6 +170,15 @@ namespace engine
 
       // check whether we could decrease time error
       BOOLEAN _canDecTimeError( UINT32 curTimeError ) ;
+
+      // launch register
+      INT32 _launchRegister( const MsgRouteID &primaryRID,
+                             UINT32 version,
+                             const stpClientNode &local ) ;
+      // launch time synchronization
+      INT32 _launchTimeSync( const MsgRouteID &primaryRID,
+                             UINT32 version,
+                             const stpClientNode &local ) ;
 
    public:
       // register a given synchronize source

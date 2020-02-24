@@ -247,7 +247,7 @@ namespace engine
       // get servers
       // NOTE: for add or remove server request, also return information with
       //       response
-      rc = getServers( groupObject ) ;
+      rc = getServers( groupObject, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get server group, rc: %d", rc ) ;
 
       // send server response
@@ -291,8 +291,7 @@ namespace engine
 
             // check length of message
             PD_CHECK( response->reply.header.messageLength >=
-                      (INT32)( sizeof( stpServerRsp ) +
-                               object.objsize() ),
+                      (INT32)( sizeof( stpServerRsp ) + object.objsize() ),
                       SDB_SYS, error, PDERROR, "Failed to handle server "
                       "response, size of message is unexpected, "
                       "expected >= [%u], given [%u]",
@@ -300,8 +299,7 @@ namespace engine
                       response->reply.header.messageLength ) ;
 
             // extract result in BSON format
-            object = BSONObj( (CHAR *)( response ) +
-                              sizeof( stpServerRsp ) ) ;
+            object = BSONObj( (CHAR *)( response ) + sizeof( stpServerRsp ) ) ;
 
             // update servers
             rc = setServers( object ) ;
@@ -780,7 +778,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR_GETSERVERS_BSON, "_stpNodeManager::getServers" )
-   INT32 _stpNodeManager::getServers( BSONObj &object )
+   INT32 _stpNodeManager::getServers( BSONObj &object, BOOLEAN forDisplay )
    {
       INT32 rc = SDB_OK ;
 
@@ -803,12 +801,12 @@ namespace engine
                       "rc: %d", rc ) ;
 
          // build servers into BSON object
-         rc = _buildServers( builder, servers ) ;
+         rc = _buildServers( builder, servers, forDisplay ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build server group object, "
                       "rc: %d", rc ) ;
 
          // build primary into BSON object
-         rc = _buildPrimaryNode( builder, servers, primaryRID ) ;
+         rc = _buildPrimaryNode( builder, servers, primaryRID, forDisplay ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build primary node object, "
                       "rc: %d", rc ) ;
 
@@ -1043,6 +1041,8 @@ namespace engine
                    "rc: %d", _local.toString().c_str(), rc ) ;
 
       // set fields of local node
+      local.setHostName( hostName ) ;
+      local.setServiceName( serviceName ) ;
       local.setRouteID( routeID ) ;
       local.setRole( _options->getRole() ) ;
       local.setSyncInterval( _options->getSyncInterval() ) ;
@@ -1489,7 +1489,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR__BUILDSERVERS, "_stpNodeManager::_buildServers" )
    INT32 _stpNodeManager::_buildServers( BSONObjBuilder &builder,
-                                         const STP_SERVER_LIST &servers )
+                                         const STP_SERVER_LIST &servers,
+                                         BOOLEAN forDisplay )
    {
       INT32 rc = SDB_OK ;
 
@@ -1507,7 +1508,7 @@ namespace engine
             BSONObjBuilder nodeBuilder( groupBuilder.subobjStart() ) ;
 
             // format server into BSON object
-            rc = iter->toBSON( nodeBuilder ) ;
+            rc = iter->toBSON( nodeBuilder, forDisplay ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for server "
                          "node %s, rc: %d", iter->toString().c_str(),
                          rc ) ;
@@ -1534,7 +1535,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR__BUILDPRIMARYNODE, "_stpNodeManager::_buildPrimaryNode" )
    INT32 _stpNodeManager::_buildPrimaryNode( BSONObjBuilder &builder,
                                              const STP_SERVER_LIST &servers,
-                                             const MsgRouteID &primaryRID )
+                                             const MsgRouteID &primaryRID,
+                                             BOOLEAN forDisplay )
    {
       INT32 rc = SDB_OK ;
 
@@ -1545,12 +1547,50 @@ namespace engine
          // build primary object
          BSONObjBuilder primaryBuilder(
                              builder.subobjStart( STP_FIELD_NAME_PRIMARY ) ) ;
-         // add group ID
-         primaryBuilder.append( STP_FIELD_NAME_GROUPID,
-                                (INT32)( primaryRID.columns.groupID ) ) ;
-         // add node ID
-         primaryBuilder.append( STP_FIELD_NAME_NODEID,
-                                (INT32)( primaryRID.columns.nodeID ) ) ;
+         if ( forDisplay )
+         {
+            // for display, use host and service name
+            BOOLEAN found = FALSE ;
+
+            // find primary from server list
+            if ( MSG_INVALID_ROUTEID != primaryRID.value )
+            {
+               STP_SERVER_LIST::const_iterator iter = find( servers.begin(),
+                                                            servers.end(),
+                                                            primaryRID ) ;
+               if ( servers.end() != iter )
+               {
+                  const stpServerNode &primaryServer = ( *iter ) ;
+
+                  // if found primary, append host and service names
+                  primaryBuilder.append( STP_FIELD_NAME_HOST,
+                                         primaryServer.getHostName() ) ;
+                  primaryBuilder.append( STP_FIELD_NAME_SERVICE,
+                                         primaryServer.getServiceName() ) ;
+
+                  found = TRUE ;
+               }
+            }
+
+            if ( !found )
+            {
+               // if not found primary, append unknown host and service names
+               primaryBuilder.append( STP_FIELD_NAME_HOST,
+                                      STP_UNKNOWN_HOST_NAME ) ;
+               primaryBuilder.append( STP_FIELD_NAME_SERVICE,
+                                      STP_UNKNOWN_SERVICE_NAME ) ;
+            }
+         }
+         else
+         {
+            // not for display, use route ID
+            // add group ID
+            primaryBuilder.append( STP_FIELD_NAME_GROUPID,
+                                   (INT32)( primaryRID.columns.groupID ) ) ;
+            // add node ID
+            primaryBuilder.append( STP_FIELD_NAME_NODEID,
+                                   (INT32)( primaryRID.columns.nodeID ) ) ;
+         }
          primaryBuilder.doneFast() ;
       }
       catch ( exception &e )

@@ -455,7 +455,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__STPGETSERVERSCMD_DOIT ) ;
 
       // get servers into BSON format
-      rc = _stpCB->getNodeManager()->getServers( result ) ;
+      rc = _stpCB->getNodeManager()->getServers( result, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
    done:
@@ -509,7 +509,7 @@ namespace engine
             BSONObjBuilder clientBuilder( arrayBuilder.subobjStart() ) ;
 
             // build BSON for client
-            rc = client.toBSON( clientBuilder ) ;
+            rc = client.toBSON( clientBuilder, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for client %s, "
                          "rc: %d", client.toString().c_str(), rc ) ;
 
@@ -586,7 +586,7 @@ namespace engine
                  SDB_OK == _stpCB->getSyncManager()->getSource( primaryRID,
                                                                 source ) )
             {
-               rc = source.toBSON( builder, TRUE ) ;
+               rc = source.toBSON( builder, TRUE, TRUE ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for source %s, "
                             "rc: %d", source.toString().c_str(), rc ) ;
             }
@@ -659,7 +659,7 @@ namespace engine
             BSONObjBuilder sourceBuilder( arrayBuilder.subobjStart() ) ;
 
             // output source into BSON format
-            rc = source.toBSON( sourceBuilder, FALSE ) ;
+            rc = source.toBSON( sourceBuilder, FALSE, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for source %s, "
                          "rc: %d", source.toString().c_str(), rc ) ;
 

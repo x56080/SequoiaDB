@@ -413,7 +413,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__SENDREGREQ, "_stpSyncClientManager::_sendRegReq" )
    INT32 _stpSyncClientManager::_sendRegReq( const MsgRouteID &routeID,
                                              UINT32 version,
-                                             const stpClientNode &local )
+                                             const bson::BSONObj &regObject )
    {
       INT32 rc = SDB_OK ;
 
@@ -422,22 +422,21 @@ namespace engine
       stpRegReq request ;
 
       // fill request header
-      _fillRequestHeader( request.header, sizeof( stpRegReq ),
+      _fillRequestHeader( request.header,
+                          sizeof( stpRegReq ) + regObject.objsize(),
                           MSG_STP_REG_REQ ) ;
 
       // fill fields for register request
       request.version = version ;
-      request.role = (UINT32)( local.getRole() ) ;
-      request.syncInterval = local.getSyncInterval() ;
-      request.maxTimeError = local.getMaxTimeError() ;
-      request.timeError = local.getTimeError() ;
-      request.oid = local.getOID() ;
 
       // update last request ID
       _setLastRequestID( request.header.requestID, version ) ;
 
       // send by net agent
-      rc = _netAgent->syncSend( routeID, &request ) ;
+      rc = _netAgent->syncSend( routeID,
+                                (MsgHeader *)( &request ),
+                                (void *)( regObject.objdata() ),
+                                regObject.objsize() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send register request to %s, "
                    "rc: %d", routeID2String( routeID ).c_str(), rc ) ;
 
@@ -508,11 +507,11 @@ namespace engine
       if ( _nodeManager->isSyncClient() )
       {
          MsgRouteID primaryRID ;
-         stpClientNode local ;
+         stpClientNode localNode ;
          UINT32 version = STP_GROUP_INVALID_VERSION ;
 
          // get local node and group version
-         _nodeManager->getLocalAndVersion( local, version ) ;
+         _nodeManager->getLocalAndVersion( localNode, version ) ;
 
          // get primary server as source
          rc = _session.getPrimaryRID( primaryRID ) ;
@@ -523,32 +522,15 @@ namespace engine
             // current is no source status, means we are first time to
             // synchronize to the node in this round, send register request
             // first
-
-            // regenerate OID
-            local.generateOID() ;
-
-            // send register request
-            rc = _sendRegReq( primaryRID, version, local ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to send register request, "
-                         "rc: %d", rc ) ;
+            rc = _launchRegister( primaryRID, version, localNode ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to launch register, rc: %d",
+                         rc ) ;
          }
          else
          {
             // for other status, send synchronize time request
-            UINT32 timeError = local.getTimeError() ;
-            UINT16 flag = STP_SYNC_TIME_FLAG_EMPTY ;
-
-            // check if we could decrease time error
-            if ( _canDecTimeError( timeError ) )
-            {
-               // set flag to tell source to decrease the time error
-               OSS_BIT_SET( flag, STP_SYNC_TIME_FLAG_DECTIMEERROR ) ;
-            }
-
-            // send time synchronize request
-            rc = _sendTimeSyncReq( primaryRID, version, flag, _status,
-                                   timeError ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize request, "
+            rc = _launchTimeSync( primaryRID, version, localNode ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to launch time synchronize, "
                          "rc: %d", rc ) ;
          }
       }
@@ -895,6 +877,85 @@ namespace engine
       return canDecrease ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__LAUNCHREGISTER, "_stpSyncClientManager::_launchRegister" )
+   INT32 _stpSyncClientManager::_launchRegister( const MsgRouteID &primaryRID,
+                                                 UINT32 version,
+                                                 const stpClientNode &local )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR__LAUNCHREGISTER ) ;
+
+      BSONObj regObject ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         stpClientNode temp = local ;
+
+         // regenerate OID
+         temp.generateOID() ;
+
+         // build BSON object
+         rc = temp.toBSON( builder, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON object for register "
+                      "node [%s], rc: %d", temp.toString().c_str(), rc ) ;
+
+         regObject = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON object for register node, "
+                 "error: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      // send register request
+      rc = _sendRegReq( primaryRID, version, regObject ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to send register request, rc: %d",
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__TPSYNCCLIENTMGR__LAUNCHREGISTER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__LAUNCHTIMESYNC, "_stpSyncClientManager::_launchTimeSync" )
+   INT32 _stpSyncClientManager::_launchTimeSync( const MsgRouteID &primaryRID,
+                                                 UINT32 version,
+                                                 const stpClientNode &local )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR__LAUNCHTIMESYNC ) ;
+
+      // for other status, send synchronize time request
+      UINT32 timeError = local.getTimeError() ;
+      UINT16 flag = STP_SYNC_TIME_FLAG_EMPTY ;
+
+      // check if we could decrease time error
+      if ( _canDecTimeError( timeError ) )
+      {
+         // set flag to tell source to decrease the time error
+         OSS_BIT_SET( flag, STP_SYNC_TIME_FLAG_DECTIMEERROR ) ;
+      }
+
+      // send time synchronize request
+      rc = _sendTimeSyncReq( primaryRID, version, flag, _status, timeError ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize request, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__TPSYNCCLIENTMGR__LAUNCHTIMESYNC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR_REGSOURCE, "_stpSyncClientManager::registerSource" )
    INT32 _stpSyncClientManager::registerSource( const stpSourceNode &source )
