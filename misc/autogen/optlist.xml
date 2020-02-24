@@ -2504,7 +2504,6 @@
    <opt>
       <name>PMD_OPTION_MVCCON</name>
       <long>mvccon</long>
-      <short>e</short>
       <description>
          <en>Turn on MVCC support, default:false</en>
          <cn>是否打开多版本功能,默认为:false</cn>
