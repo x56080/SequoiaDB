@@ -813,8 +813,7 @@ namespace engine
          // the same transaction, should see
          visible = TRUE ;
       }
-      else if ( recTransID.getGlobSN() <
-                _getGlobExpireTran( DPS_TRANSID_SN_NO_OFFSET ) )
+      else if ( recTransID.getGlobSN() < _getGlobExpireTran() )
       {
          // global expireTran is passed, should see
          visible = TRUE ;
@@ -891,11 +890,11 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBLOWTRAN ) ;
 
       // get global low transaction ID
-      DPS_TRANSID_SN globTransID = _getGlobLowTran( DPS_TRANSID_SN_NO_OFFSET ) ;
-      if ( DPS_INVALID_TRANSID_SN != globTransID )
+      DPS_TRANSID_SN globLowTran = _getGlobLowTran() ;
+      if ( DPS_INVALID_TRANSID_SN != globLowTran )
       {
          lowTran.setNodeID( _TransIDH16 ) ;
-         lowTran.setSN( globTransID ) ;
+         lowTran.setSN( globLowTran ) ;
       }
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB_GETGLOBLOWTRAN ) ;
@@ -904,7 +903,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB__GETGLOBLOWTRAN, "dpsTransCB::_getGlobLowTran" )
-   DPS_TRANSID_SN dpsTransCB::_getGlobLowTran( INT32 timeError )
+   DPS_TRANSID_SN dpsTransCB::_getGlobLowTran()
    {
       DPS_TRANSID_SN globLowTran = DPS_INVALID_TRANSID_SN ;
 
@@ -912,8 +911,6 @@ namespace engine
 
       // get global lowTran
       globLowTran = (DPS_TRANSID_SN)( _globLowTran.fetch() ) ;
-
-      DPS_ADJUST_TRANSID_SN( globLowTran, timeError ) ;
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB__GETGLOBLOWTRAN ) ;
 
@@ -928,11 +925,11 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBEXPIRETRAN ) ;
 
       // get global expire transaction ID
-      DPS_TRANSID_SN globTransID = _getGlobExpireTran( 0 ) ;
-      if ( DPS_INVALID_TRANSID_SN != globTransID )
+      DPS_TRANSID_SN globExpireTran = _getGlobExpireTran() ;
+      if ( DPS_INVALID_TRANSID_SN != globExpireTran )
       {
          expireTran.setNodeID( _TransIDH16 ) ;
-         expireTran.setSN( globTransID ) ;
+         expireTran.setSN( globExpireTran ) ;
       }
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB_GETGLOBEXPIRETRAN ) ;
@@ -941,7 +938,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB__GETGLOBEXPTRAN, "dpsTransCB::_getGlobExpireTran" )
-   DPS_TRANSID_SN dpsTransCB::_getGlobExpireTran( INT32 timeError )
+   DPS_TRANSID_SN dpsTransCB::_getGlobExpireTran()
    {
       DPS_TRANSID_SN globExpireTran = DPS_INVALID_TRANSID_SN ;
 
@@ -949,8 +946,6 @@ namespace engine
 
       // get global expireTran
       globExpireTran = (DPS_TRANSID_SN)( _globExpireTran.fetch() ) ;
-
-      DPS_ADJUST_TRANSID_SN( globExpireTran, timeError ) ;
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB__GETGLOBEXPTRAN ) ;
 
@@ -1117,10 +1112,8 @@ namespace engine
       // created by transactions before T1 ( e.g. T0 ) could be cleared
       // ( which means they are expired for given lowTran )
 
-      // get global lowTran, minus maximum time error for network delay
-      // consideration
       DPS_TRANS_ID globLowTranID ;
-      DPS_TRANSID_SN globLowTran = _getGlobLowTran( -STP_MAX_TIME_ERROR_US ) ;
+      DPS_TRANSID_SN globLowTran = _getGlobLowTran() ;
 
       globLowTranID.setNodeID( _TransIDH16 ) ;
       globLowTranID.setSN( globLowTran ) ;
@@ -1189,8 +1182,9 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETEXPIREDVERSION ) ;
 
-      // NOTE: add consideration of maximum time error due to network delay etc
-      expiredVersion = _getGlobExpireTran( -STP_MAX_TIME_ERROR_US ) ;
+      // no need to add consideration of maximum time error, already done
+      // by CATALOG
+      expiredVersion = _getGlobExpireTran() ;
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB_GETEXPIREDVERSION ) ;
 

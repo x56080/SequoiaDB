@@ -398,6 +398,21 @@ namespace engine
          globExpireTran = DPS_INVALID_TRANSID_SN ;
       }
 
+      // in consideration of network delay, adjust global lowTran and
+      // expireTran by maximum time error
+      if ( DPS_INVALID_TRANSID_SN != globLowTran &&
+           DPS_MAX_TRANSID_SN != globLowTran &&
+           globLowTran > STP_MAX_TIME_ERROR_US )
+      {
+         globLowTran -= STP_MAX_TIME_ERROR_US ;
+      }
+      if ( DPS_INVALID_TRANSID_SN != globExpireTran &&
+           DPS_MAX_TRANSID_SN != globExpireTran &&
+           globExpireTran > STP_MAX_TIME_ERROR_US )
+      {
+         globExpireTran -= STP_MAX_TIME_ERROR_US ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__CATGLOBTRANSMANAGER__CALCGLOBLOWTRAN, rc ) ;
       return rc ;

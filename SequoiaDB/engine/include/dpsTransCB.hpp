@@ -836,24 +836,20 @@ namespace engine
 
    protected:
       // get global lowTran with a given time error as offset
-      // input:
-      //    - timeError: time error as offset
       // return:
       //    - DPS_INVALID_TRANSID_SN: global lowTran is invalid
       //    - DPS_MAX_TRANSID_SN: global transaction feature is not enabled
       //                          among all nodes
       //    - other values: global lowTran with time error as offset
-      DPS_TRANSID_SN _getGlobLowTran( INT32 timeError ) ;
+      DPS_TRANSID_SN _getGlobLowTran() ;
 
       // get global expireTran with a given time error as offset
-      // input:
-      //    - timeError: time error as offset
       // return:
       //    - DPS_INVALID_TRANSID_SN: global expireTran is invalid
       //    - DPS_MAX_TRANSID_SN: global transaction feature is not enabled
       //                          among all nodes
       //    - other values: global expireTran with time error as offset
-      DPS_TRANSID_SN _getGlobExpireTran( INT32 timeError ) ;
+      DPS_TRANSID_SN _getGlobExpireTran() ;
 
       // get candidate global transactions to pre-arbitrate for
       // given write transactions
