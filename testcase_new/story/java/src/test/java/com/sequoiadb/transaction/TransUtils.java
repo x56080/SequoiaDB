@@ -504,11 +504,29 @@ public class TransUtils extends SdbTestBase {
             String selector, String orderBy, String hint,
             List< BSONObject > expList ) {
         // 由于matchBlockingMethod只能判断一个接口，大量的用例均调用了该接口，因此先query再count！！！！
-        List< BSONObject > actList = queryToBSONList( cl, matcher, selector,
-                orderBy, hint );
-        Assert.assertEquals( actList, expList );
+        checkRecord( cl, matcher, selector, orderBy, hint, expList );
 
         // 该测试点是校验count接口的，不能够删除
+        checkCount( cl, matcher, orderBy, hint, expList );
+    }
+
+     /**
+     * 校验记录
+     * 
+     * @param list
+     */
+    public static void checkRecord( DBCollection cl, String matcher,
+            String selector, String orderBy, String hint, List< BSONObject > expList ){
+        List< BSONObject > actList = queryToBSONList( cl, matcher, selector, orderBy, hint );
+        Assert.assertEquals( actList, expList );
+    }
+    
+    /**
+     * 校验记录数
+     * 
+     * @param list
+     */
+    public static void checkCount( DBCollection cl, String matcher, String orderBy, String hint, List< BSONObject > expList ){
         BSONObject matcherBSON = ( BSONObject ) JSON.parse( matcher );
         BSONObject hintBSON = ( BSONObject ) JSON.parse( hint );
         long actCount = cl.getCount( matcherBSON, hintBSON );
@@ -678,6 +696,56 @@ public class TransUtils extends SdbTestBase {
         }
         cursor.close();
         return isTransWaitLock;
+    }
+
+    /**
+     * zhaoxiaoni
+     * @param records
+     * @param start
+     * @param end
+     **/
+    public static List<BSONObject> addList( List<BSONObject> records, int start, int end ){
+        for ( int i = start; i < end; i++ ) {
+            BSONObject object = ( BSONObject ) JSON.parse( "{ _id: " + i + ", a: " + i + ", b: " + i + " }" );
+            records.add( object );
+        }
+        return records;
+    }
+   
+    /**
+     * zhaoxiaoni
+     * @param records
+     * @param start
+     * @param end
+     * @param updateContent
+     **/ 
+    public static List<BSONObject> updateList( List<BSONObject> records, int start, int end, int updateContent ){
+        for ( int i = start; i < end; i++ ) {
+            BSONObject record = (BSONObject)JSON.parse("{ _id: " + i + ", a: " + updateContent + ", b: " + i + " }");
+            records.set( start + i, record );
+        }
+        return records;
+    }
+
+    public static List<BSONObject> updateList( List<BSONObject> records, int start, int end, String updateContent ){
+        for ( int i = start; i < end; i++ ) {
+            BSONObject record = (BSONObject)JSON.parse("{ _id: " + i + ", a: '" + updateContent + "', b: " + i + " }");
+            records.set( start + i, record );
+        }
+        return records;
+    }
+    
+    /**
+     * zhaoxiaoni
+     * @param records
+     * @param start
+     * @param end
+     **/
+    public static List<BSONObject> deleteList( List<BSONObject> records, int start, int end ){
+        for ( int i = start; i < end; i++ ) {
+            records.remove( start );
+        }
+        return records;
     }
 }
 
