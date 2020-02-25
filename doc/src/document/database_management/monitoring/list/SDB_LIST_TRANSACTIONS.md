@@ -1,14 +1,8 @@
 ##描述##
 
-[事务](basic_operation/transaction.md)快照 SDB_LIST_TRANSACTIONS 列出数据库中正在进行的事务信息。
+[事务](basic_operation/transaction.md)列表 SDB_LIST_TRANSACTIONS 列出数据库中正在进行的事务信息。
 
 每一个数据节点上正在进行的每一个事务为一条记录。
-
->   **Note:**
->
->   默认情况下，事务功能是关闭的。
->
->   如要打开事务功能需要在节点的配置文件中配置参数：transactionon = TRUE；在创建数据节点时，增加 JSON 类型的参数：{ "transactionon": "YES" } 或 { "transactionon": true }。
 
 ##标示##
 

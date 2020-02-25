@@ -4,12 +4,6 @@
 
 每一个数据节点上正在进行的每一个事务为一条记录。
 
->   **Note:**
->
->   默认情况下，事务功能是关闭的。
->
->   如要打开事务功能需要在节点的配置文件中配置参数：transactionon = TRUE；在创建数据节点时，增加 JSON 类型的参数：{ "transactionon": "YES" } 或 { "transactionon": true }。
-
 ##标示##
 
 SDB_SNAP_TRANSACTIONS
