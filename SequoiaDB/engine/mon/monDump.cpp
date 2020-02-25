@@ -2583,8 +2583,12 @@ namespace engine
                if ( resFlag & IRtnMonProcessor::FLAG_IGNORE )
                {
                   _collectionInfo.erase( it ) ;
-                  PD_CHECK( !_collectionInfo.empty(), SDB_SYS, error, PDERROR, 
-                            "Unexpected collection count" ) ;
+                  if ( _collectionInfo.empty() )
+                  {
+                     rc = SDB_DMS_EOC ;
+                     _hitEnd = TRUE ;
+                     goto done ;
+                  }
                   it = _collectionInfo.begin() ;
                }
             }
