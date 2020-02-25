@@ -2,7 +2,7 @@
 *@Description: seqDB-18451:主子表，多张子表其中包括普通表和分区表，重放复制日志到文件   
 *@Author: 2019-7-2  xiaoni zhao init
 ************************************************************************/
-//main();
+main();
 function main ()
 {
    if( commIsStandalone( db ) )
@@ -36,8 +36,6 @@ function main ()
       expDataArr.push( '"I","' + i + '"' );
       expDataArr.push( '"I","' + ( 200 + i ) + '"' );
       expDataArr.push( '"I","' + ( 300 + i ) + '"' );
-      expDataArr.push( '"B","' + ( 200 + i ) + '"' );
-      expDataArr.push( '"A","' + ( 200 + i ) + '"' );
       expDataArr.push( '"D","' + ( 300 + i ) + '"' );
    }
 
