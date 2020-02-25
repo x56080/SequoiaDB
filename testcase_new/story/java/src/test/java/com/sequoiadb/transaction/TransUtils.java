@@ -719,6 +719,23 @@ public class TransUtils extends SdbTestBase {
      * 
      * @param cl
      * @param matcher
+     * @param orderBy
+     * @param hint
+     * @param expList
+     *            预期结果，记录 BSONObject 的 List
+     */
+    public static void queryAndCheck( DBCollection cl, String matcher,
+            String orderBy, String hint, List< BSONObject > expList ) {
+        List< BSONObject > actList = queryToBSONList( cl, matcher, null,
+                orderBy, hint );
+        Assert.assertEquals( actList, expList );
+    }
+
+    /**
+     * 查询并检查记录正确性
+     * 
+     * @param cl
+     * @param matcher
      * @param selector
      * @param orderBy
      * @param hint
