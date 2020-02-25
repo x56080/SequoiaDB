@@ -127,18 +127,6 @@ public class TransUtils extends SdbTestBase {
         return true;
     }
 
-    public static String getMvccConfig( Sequoiadb db ) {
-        String mvccon = null;
-        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS,
-                "{\"svcname\":\"" + serviceName + "\"}", "{mvccon:''}", null );
-        while ( cursor.hasNext() ) {
-            BSONObject record = cursor.getNext();
-            mvccon = ( String ) record.get( "mvccon" );
-        }
-        cursor.close();
-        return mvccon;
-    }
-
     public static DBCollection createCL( String clName, CollectionSpace cs,
             String option ) throws BaseException {
         DBCollection tmp = null;
@@ -287,10 +275,10 @@ public class TransUtils extends SdbTestBase {
                 } else {
                     break;
                 }
-                BSONObject data = ( BSONObject ) JSON
-                        .parse( "{_id:" + ( i * recordNums + j ) + ", a:"
-                                + ( i * recordNums + j )
-                                + ", b:'test trans rr mode" + j + "'}" );
+                int currentNum = i * maxInsertNum + j;
+                BSONObject data = ( BSONObject ) JSON.parse( "{_id:"
+                        + currentNum + ", a:" + currentNum
+                        + ", b:'test trans rr mode" + currentNum + "'}" );
                 insertDatas.add( data );
                 expDatas.add( data );
             }
@@ -307,6 +295,26 @@ public class TransUtils extends SdbTestBase {
         return expDatas;
     }
 
+    public static ArrayList< BSONObject > getPrepareDatas( int recordNums ) {
+        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        for ( int i = 0; i < recordNums; i++ ) {
+            BSONObject data = ( BSONObject ) JSON.parse( "{_id:" + i + ", a:"
+                    + i + ", b:'test trans rr mode" + i + "'}" );
+            expDatas.add( data );
+        }
+        return expDatas;
+    }
+
+    /**
+     * 此方法只更新b字段
+     * 
+     * @param list
+     * @param modify
+     *            b字段新值
+     * @param begin
+     * @param end
+     */
+
     public static void updateList( List< BSONObject > list, String modify,
             int begin, int end ) {
         for ( int i = begin; i < end; i++ ) {
@@ -316,10 +324,32 @@ public class TransUtils extends SdbTestBase {
         }
     }
 
+    /**
+     * 此方法更新a字段和b字段
+     * 
+     * @param list
+     * @param inc
+     *            a字段自增值
+     * @param modify
+     *            b字段新值
+     * @param begin
+     * @param end
+     */
+
+    public static void updateList( List< BSONObject > list, int inc,
+            String modify, int begin, int end ) {
+        for ( int i = begin; i < end; i++ ) {
+            int a = ( int ) list.get( i ).get( "a" );
+            BSONObject data = ( BSONObject ) JSON.parse( "{_id:" + i + ", a:"
+                    + ( a + inc ) + ", b:'" + modify + "'}" );
+            list.set( i, data );
+        }
+    }
+
     public static void removeList( List< BSONObject > list, int begin,
             int end ) {
         for ( int i = begin; i < end; i++ ) {
-            list.remove( i );
+            list.remove( begin );
         }
     }
 
@@ -562,6 +592,23 @@ public class TransUtils extends SdbTestBase {
     public static void queryAndCheck( DBCollection cl, String orderBy,
             String hint, List< BSONObject > expList ) {
         queryAndCheck( cl, null, null, orderBy, hint, expList );
+    }
+
+    /**
+     * 查询并检查记录正确性
+     * 
+     * @param cl
+     * @param matcher
+     * @param orderBy
+     * @param hint
+     * @param expList
+     *            预期结果，记录 BSONObject 的 List
+     */
+    public static void queryAndCheck( DBCollection cl, String matcher,
+            String orderBy, String hint, List< BSONObject > expList ) {
+        List< BSONObject > actList = queryToBSONList( cl, matcher, null,
+                orderBy, hint );
+        Assert.assertEquals( actList, expList );
     }
 
     /**
