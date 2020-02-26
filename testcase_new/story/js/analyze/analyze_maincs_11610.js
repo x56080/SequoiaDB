@@ -27,9 +27,7 @@ var insertDiffNum = 16000;
 var insertSameNum = 2000;
 
 var db1;
-var db2;
 var dbclPrimary;
-var dbclSlave;
 
 
 function main ()
@@ -108,9 +106,6 @@ function main ()
    db1 = new Sdb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    dbclPrimary = db1.getCS( maincsName ).getCL( mainclName );
-   //db2 = new Sdb( db ); 
-   //db2.setSessionAttr( { PreferedInstance: "s" } ); 
-   //dbclSlave = db2.getCS( maincsName ).getCL( mainclName ); 
 
    //检查主备同步
    checkConsistency( db, null, null, [srcGroupName, desGroupName] );
@@ -126,13 +121,10 @@ function main ()
    //执行查询
    var findConf = { a: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
    var findConf = { a0: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
    var findConf = { a1: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
 
    //检查访问计划快照
    var expAccessPlan = [{ GroupName: srcGroupName, ScanType: "ixscan", IndexName: "$shard" },
@@ -165,13 +157,10 @@ function main ()
    //执行查询
    var findConf = { a: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
    var findConf = { a0: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
    var findConf = { a1: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
 
    //检查访问计划快照
    var expAccessPlan = [{ GroupName: srcGroupName, ScanType: "ixscan", IndexName: "$shard" },
@@ -208,13 +197,10 @@ function main ()
    //执行查询
    var findConf = { a: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
    var findConf = { a0: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
    var findConf = { a1: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
 
    //检查访问计划快照
    var expAccessPlan = [{ GroupName: srcGroupName, ScanType: "ixscan", IndexName: "$shard" },
@@ -252,13 +238,10 @@ function main ()
    //执行查询
    var findConf = { a: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
    var findConf = { a0: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
    var findConf = { a1: { $in: [0, 10000] } };
    query( dbclPrimary, findConf, null, null, ( insertSameNum + 1 ) * 2 );
-   //query( dbclSlave, findConf, null, null, ( insertSameNum + 1 )*2 ); 
 
    //检查访问计划快照
    var expAccessPlan = [{ GroupName: srcGroupName, ScanType: "ixscan", IndexName: "$shard" },
@@ -341,7 +324,6 @@ function main ()
    commDropCS( db, subcsName2 );
    commDropCS( db, maincsName );
    db1.close();
-   //db2.close(); 
 }
 try
 {
@@ -367,9 +349,6 @@ function checkExplainBeforeAnalyze ()
    { GroupName: desGroupName, Name: subclFullName3, ScanType: "tbscan", IndexName: "", ReturnNum: insertSameNum + 1 }];
    var actExplains = getMainclExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
-
-   //var actExplains = getMainclExplain( dbclSlave, findConf ); 
-   //checkExplain( actExplains, expExplains ); 
 
    println( "check maincl key before analyze success!" );
 
@@ -407,9 +386,6 @@ function checkExplainBeforeAnalyze ()
 
    var actExplains = getMainclExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
-
-   //var actExplains = getMainclExplain( dbclSlave, findConf ); 
-   //checkExplain( actExplains, expExplains ); 
 
    println( "check subcl key before analyze success!" );
 
@@ -451,9 +427,6 @@ function checkExplainBeforeAnalyze ()
    var actExplains = getMainclExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
 
-   //var actExplains = getMainclExplain( dbclSlave, findConf ); 
-   //checkExplain( actExplains, expExplains ); 
-
    println( "check index before analyze success!" );
 }
 
@@ -481,9 +454,6 @@ function checkExplainAfterAnalyzeMaincs ()
 
    var actExplains = getMainclExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
-
-   //var actExplains = getMainclExplain( dbclSlave, findConf ); 
-   //checkExplain( actExplains, expExplains ); 
 
    println( "check maincl key after analyze maincs success!" );
 
@@ -521,9 +491,6 @@ function checkExplainAfterAnalyzeMaincs ()
 
    var actExplains = getMainclExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
-
-   //var actExplains = getMainclExplain( dbclSlave, findConf ); 
-   //checkExplain( actExplains, expExplains ); 
 
    println( "check subcl key after analyze maincs success!" );
 
@@ -566,9 +533,6 @@ function checkExplainAfterAnalyzeMaincs ()
    var actExplains = getMainclExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
 
-   //var actExplains = getMainclExplain( dbclSlave, findConf ); 
-   //checkExplain( actExplains, expExplains ); 
-
    println( "check index after analyze maincs success!" );
 }
 
@@ -597,9 +561,6 @@ function checkExplainAfterAnalyzesubcs ()
 
    var actExplains = getMainclExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
-
-   //var actExplains = getMainclExplain( dbclSlave, findConf ); 
-   //checkExplain( actExplains, expExplains ); 
 
    println( "check maincl key after analyze subcs success!" );
 
@@ -637,9 +598,6 @@ function checkExplainAfterAnalyzesubcs ()
 
    var actExplains = getMainclExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
-
-   //var actExplains = getMainclExplain( dbclSlave, findConf ); 
-   //checkExplain( actExplains, expExplains ); 
 
    println( "check subcl key after analyze subcs success!" );
 
@@ -681,9 +639,6 @@ function checkExplainAfterAnalyzesubcs ()
 
    var actExplains = getMainclExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
-
-   //var actExplains = getMainclExplain( dbclSlave, findConf ); 
-   //checkExplain( actExplains, expExplains ); 
 
    println( "check index in maincs after analyze subcs success!" );
 }

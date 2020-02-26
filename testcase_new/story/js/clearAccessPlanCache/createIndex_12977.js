@@ -6,6 +6,19 @@
 **************************************/
 function main ()
 {
+   if( commIsStandalone( db ) )
+   {
+      println( "skip standalone environment" );
+      return;
+   }
+
+   //判断1节点模式
+   if( true == isOnlyOneNodeInGroup() )
+   {   
+      println( "only one node" );
+      return;
+   }   
+
    var csName = COMMCSNAME + "12977";
    commDropCS( db, csName, true, "drop CS in the beginning" );
 
@@ -74,7 +87,6 @@ function main ()
 
    //检查主备同步
    checkConsistency( db, csName, clName );
-   checkIndexExistsInAllNodes( csName, clName, "$id" );
 
    checkStat( db, csName, clName, "$id", true, false );
    checkStat( db, csName, clName, "a", true, false );
@@ -112,7 +124,6 @@ function main ()
 
    //检查主备同步
    checkConsistency( db, csName, clName );
-   checkIndexExistsInAllNodes( csName, clName, "a" );
 
    checkStat( db, csName, clName, "$id", true, false );
    checkStat( db, csName, clName, "a", true, false );

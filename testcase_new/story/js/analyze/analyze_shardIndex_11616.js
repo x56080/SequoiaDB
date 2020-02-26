@@ -56,9 +56,6 @@ function main ()
    var db1 = new Sdb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( COMMCSNAME ).getCL( clName );
-   //var db2 = new Sdb( db ); 
-   //db2.setSessionAttr( { PreferedInstance: "s" } ); 
-   //var dbclSlave = db2.getCS( COMMCSNAME ).getCL( clName ); 
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -68,11 +65,9 @@ function main ()
    //执行查询
    var findConf = { a: { $in: [sameValues1, sameValues2] } };
    query( dbclPrimary, findConf, null, null, insertNum * 2 + 1 );
-   //query( dbclSlave, findConf, null, null, insertNum*2 + 1 ); 
 
    var findConf = { a0: sameValues1 };
    query( dbclPrimary, findConf, null, null, insertNum );
-   //query( dbclSlave, findConf, null, null, insertNum ); 
 
    //检查访问计划快照
    var expAccessPlan = [{ ScanType: "ixscan", IndexName: "$shard", GroupName: groups[0].GroupName },
@@ -99,11 +94,9 @@ function main ()
    //执行查询
    var findConf = { a: { $in: [sameValues1, sameValues2] } };
    query( dbclPrimary, findConf, null, null, insertNum * 2 + 1 );
-   //query( dbclSlave, findConf, null, null, insertNum*2 + 1 ); 
 
    var findConf = { a0: sameValues1 };
    query( dbclPrimary, findConf, null, null, insertNum );
-   //query( dbclSlave, findConf, null, null, insertNum ); 
 
    //检查访问计划快照
    var expAccessPlan = [{ ScanType: "tbscan", IndexName: "", GroupName: groups[0].GroupName },
@@ -116,7 +109,6 @@ function main ()
    //清理环境
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
    db1.close();
-   //db2.close(); 
 
 }
 try

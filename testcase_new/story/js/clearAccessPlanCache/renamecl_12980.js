@@ -6,11 +6,18 @@
 **************************************/
 function main ()
 {
-   if( !commIsStandalone( db ) )
-   {
-      println( "not standalone enviroment" );
+   if( commIsStandalone( db ) ) 
+   {   
+      println( "skip standalone environment" );
       return;
-   }
+   }   
+
+   //判断1节点模式
+   if( true == isOnlyOneNodeInGroup() )
+   {   
+      println( "only one node" );
+      return;
+   }   
 
    var allGroups = commGetGroups( db );
    var groups = new Array();

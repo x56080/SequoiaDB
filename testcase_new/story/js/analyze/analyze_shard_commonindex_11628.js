@@ -33,10 +33,6 @@ function main ()
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( csName ).getCL( clName );
 
-   //   db1 = new Sdb( db ); 
-   //   db1.setSessionAttr( {PreferedInstance: "s"} ); 
-   //   var dbclSlave = db1.getCS( csName ).getCL( clName ); 
-
    //insert datas
    var insertNums = 10000;
    var sameValues = 90002;
@@ -86,16 +82,9 @@ function main ()
    checkExplain( actExplains1, expExplains1 );
    checkExplain( actExplains2, expExplains2 );
 
-   //   var actExplains1 = getSplitExplain( dbclSlave, findConf1 ); 
-   //   var actExplains2 = getSplitExplain( dbclSlave, findConf2 ); 
-   //   checkExplain( actExplains1, expExplains1 ); 
-   //   checkExplain( actExplains2, expExplains2 ); 
-
    //query
    query( dbclPrimary, findConf1, null, null, insertNums );
    query( dbclPrimary, findConf2, null, null, insertNums );
-   //   query( dbclSlave, findConf1, null, null, insertNums ); 
-   //   query( dbclSlave, findConf2, null, null, insertNums ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };
@@ -139,16 +128,9 @@ function main ()
    checkExplain( actExplains1, expExplains1 );
    checkExplain( actExplains2, expExplains2 );
 
-   //   var actExplains1 = getSplitExplain( dbclSlave, findConf1 ); 
-   //   var actExplains2 = getSplitExplain( dbclSlave, findConf2 ); 
-   //   checkExplain( actExplains1, expExplains1 ); 
-   //   checkExplain( actExplains2, expExplains2 ); 
-
    //query
    query( dbclPrimary, findConf1, null, null, insertNums );
    query( dbclPrimary, findConf2, null, null, insertNums );
-   //   query( dbclSlave, findConf1, null, null, insertNums ); 
-   //   query( dbclSlave, findConf2, null, null, insertNums ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };
@@ -200,16 +182,9 @@ function main ()
    checkExplain( actExplains1, expExplains1 );
    checkExplain( actExplains2, expExplains2 );
 
-   //   var actExplains1 = getSplitExplain( dbclSlave, findConf1 ); 
-   //   var actExplains2 = getSplitExplain( dbclSlave, findConf2 ); 
-   //   checkExplain( actExplains1, expExplains1 ); 
-   //   checkExplain( actExplains2, expExplains2 ); 
-
    //query
    query( dbclPrimary, findConf1, null, null, insertNums );
    query( dbclPrimary, findConf2, null, null, insertNums );
-   //   query( dbclSlave, findConf1, null, null, insertNums ); 
-   //   query( dbclSlave, findConf2, null, null, insertNums ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };
@@ -252,16 +227,9 @@ function main ()
    checkExplain( actExplains1, expExplains1 );
    checkExplain( actExplains2, expExplains2 );
 
-   //   var actExplains1 = getSplitExplain( dbclSlave, findConf1 ); 
-   //   var actExplains2 = getSplitExplain( dbclSlave, findConf2 ); 
-   //   checkExplain( actExplains1, expExplains1 ); 
-   //   checkExplain( actExplains2, expExplains2 ); 
-
    //query
    query( dbclPrimary, findConf1, null, null, insertNums );
    query( dbclPrimary, findConf2, null, null, insertNums );
-   //   query( dbclSlave, findConf1, null, null, insertNums ); 
-   //   query( dbclSlave, findConf2, null, null, insertNums ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };
@@ -297,16 +265,9 @@ function main ()
    checkExplain( actExplains1, expExplains1 );
    checkExplain( actExplains2, expExplains2 );
 
-   //   var actExplains1 = getSplitExplain( dbclSlave, findConf1 ); 
-   //   var actExplains2 = getSplitExplain( dbclSlave, findConf2 ); 
-   //   checkExplain( actExplains1, expExplains1 ); 
-   //   checkExplain( actExplains2, expExplains2 ); 
-
    //query
    query( dbclPrimary, findConf1, null, null, insertNums );
    query( dbclPrimary, findConf2, null, null, insertNums );
-   //   query( dbclSlave, findConf1, null, null, insertNums ); 
-   //   query( dbclSlave, findConf2, null, null, insertNums ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };
@@ -347,16 +308,9 @@ function main ()
    checkExplain( actExplains1, expExplains1 );
    checkExplain( actExplains2, expExplains2 );
 
-   //   var actExplains1 = getSplitExplain( dbclSlave, findConf1 ); 
-   //   var actExplains2 = getSplitExplain( dbclSlave, findConf2 ); 
-   //   checkExplain( actExplains1, expExplains1 ); 
-   //   checkExplain( actExplains2, expExplains2 ); 
-
    //query
    query( dbclPrimary, findConf1, null, null, insertNums );
    query( dbclPrimary, findConf2, null, null, insertNums );
-   //   query( dbclSlave, findConf1, null, null, insertNums ); 
-   //   query( dbclSlave, findConf2, null, null, insertNums ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };

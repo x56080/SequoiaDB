@@ -19,10 +19,6 @@ function main ()
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( csName ).getCL( clName );
 
-   //   db1 = new Sdb( db ); 
-   //   db1.setSessionAttr( {PreferedInstance: "s"} ); 
-   //   var dbclSlave = db1.getCS( csName ).getCL( clName ); 
-
    //insert datas
    var insertNums = 5000;
    insertDiffDatas( dbcl, insertNums );
@@ -52,12 +48,8 @@ function main ()
    var actExplains = getCommonExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
 
-   //   var actExplains = getCommonExplain( dbclSlave, findConf ); 
-   //   checkExplain( actExplains, expExplains ); 
-
    //query
    query( dbclPrimary, findConf, null, null, 1 );
-   //   query( dbclSlave, findConf, null, null, 1 ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };
@@ -89,12 +81,8 @@ function main ()
    var actExplains = getCommonExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
 
-   //   var actExplains = getCommonExplain( dbclSlave, findConf ); 
-   //   checkExplain( actExplains, expExplains ); 
-
    //query
    query( dbclPrimary, findConf, null, null, 1 );
-   //   query( dbclSlave, findConf, null, null, 1 ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };
@@ -129,12 +117,8 @@ function main ()
    var actExplains = getCommonExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
 
-   //   var actExplains = getCommonExplain( dbclSlave, findConf ); 
-   //   checkExplain( actExplains, expExplains ); 
-
    //query
    query( dbclPrimary, findConf, null, null, 1 );
-   //   query( dbclSlave, findConf, null, null, 1 ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };
@@ -164,12 +148,8 @@ function main ()
    var actExplains = getCommonExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
 
-   //   var actExplains = getCommonExplain( dbclSlave, findConf ); 
-   //   checkExplain( actExplains, expExplains ); 
-
    //query
    query( dbclPrimary, findConf, null, null, 1 );
-   //   query( dbclSlave, findConf, null, null, 1 ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };
@@ -196,12 +176,8 @@ function main ()
    var actExplains = getCommonExplain( dbclPrimary, findConf, null, hintConf );
    checkExplain( actExplains, expExplains );
 
-   //   var actExplains = getCommonExplain( dbclSlave, findConf ); 
-   //   checkExplain( actExplains, expExplains ); 
-
    //query
    query( dbclPrimary, findConf, null, null, 1 );
-   //   query( dbclSlave, findConf, null, null, 1 ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };
@@ -233,12 +209,8 @@ function main ()
    var actExplains = getCommonExplain( dbclPrimary, findConf );
    checkExplain( actExplains, expExplains );
 
-   //   var actExplains = getCommonExplain( dbclSlave, findConf ); 
-   //   checkExplain( actExplains, expExplains ); 
-
    //query
    query( dbclPrimary, findConf, null, null, 1 );
-   //   query( dbclSlave, findConf, null, null, 1 ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: cl_full_name };

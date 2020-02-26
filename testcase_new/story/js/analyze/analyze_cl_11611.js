@@ -47,14 +47,6 @@ function main ()
    var dbclPrimary4 = db1.getCS( csName ).getCL( clName4 );
    var dbclPrimary5 = db1.getCS( csName ).getCL( clName5 );
 
-   //   db1 = new Sdb( db ); 
-   //   db1.setSessionAttr( {PreferedInstance: "s"} ); 
-   //   var dbclSlave1 = db1.getCS( csName ).getCL( clName1 ); 
-   //   var dbclSlave2 = db1.getCS( csName ).getCL( clName2 ); 
-   //   var dbclSlave3 = db1.getCS( csName ).getCL( clName3 ); 
-   //   var dbclSlave4 = db1.getCS( csName ).getCL( clName4 ); 
-   //   var dbclSlave5 = db1.getCS( csName ).getCL( clName5 ); 
-
    //create index
    commCreateIndex( dbcl3, "a", { a: 1 } );
    commCreateIndex( dbcl4, "a", { a: 1 } );
@@ -103,28 +95,12 @@ function main ()
    var actExplains5 = getCommonExplain( dbclPrimary5, findConf );
    checkExplain( actExplains5, expExplains5 );
 
-   //   var actExplains1 = getCommonExplain( dbclSlave1, findConf ); 
-   //   checkExplain( actExplains1, expExplains1 ); 
-   //   var actExplains2 = getCommonExplain( dbclSlave2, findConf ); 
-   //   checkExplain( actExplains2, expExplains2 ); 
-   //   var actExplains3 = getCommonExplain( dbclSlave3, findConf ); 
-   //   checkExplain( actExplains3, expExplains3 ); 
-   //   var actExplains4 = getCommonExplain( dbclSlave4, findConf ); 
-   //   checkExplain( actExplains4, expExplains4 ); 
-   //   var actExplains5 = getCommonExplain( dbclSlave5, findConf ); 
-   //   checkExplain( actExplains5, expExplains5 ); 
-
    //query
    query( dbclPrimary1, findConf, null, null, insertNums );
    query( dbclPrimary2, findConf, null, null, 0 );
    query( dbclPrimary3, findConf, null, null, insertNums );
    query( dbclPrimary4, findConf, null, null, 0 );
    query( dbclPrimary5, findConf, null, null, insertNums );
-   //   query( dbclSlave1, findConf, null, null, insertNums ); 
-   //   query( dbclSlave2, findConf, null, null, 0 ); 
-   //   query( dbclSlave3, findConf, null, null, insertNums ); 
-   //   query( dbclSlave4, findConf, null, null, 0 ); 
-   //   query( dbclSlave5, findConf, null, null, insertNums ); 
 
    //check out snapshot access plans
    var accessFindOption1 = { Collection: clFullName1 };
@@ -215,28 +191,12 @@ function main ()
    var actExplains5 = getCommonExplain( dbclPrimary5, findConf );
    checkExplain( actExplains5, expExplains5 );
 
-   //   var actExplains1 = getCommonExplain( dbclSlave1, findConf ); 
-   //   checkExplain( actExplains1, expExplains1 ); 
-   //   var actExplains2 = getCommonExplain( dbclSlave2, findConf ); 
-   //   checkExplain( actExplains2, expExplains2 ); 
-   //   var actExplains3 = getCommonExplain( dbclSlave3, findConf ); 
-   //   checkExplain( actExplains3, expExplains3 ); 
-   //   var actExplains4 = getCommonExplain( dbclSlave4, findConf ); 
-   //   checkExplain( actExplains4, expExplains4 ); 
-   //   var actExplains5 = getCommonExplain( dbclPrimary5, findConf ); 
-   //   checkExplain( actExplains5, expExplains5 ); 
-
    //query
    query( dbclPrimary1, findConf, null, null, insertNums );
    query( dbclPrimary2, findConf, null, null, 0 );
    query( dbclPrimary3, findConf, null, null, insertNums );
    query( dbclPrimary4, findConf, null, null, 0 );
    query( dbclPrimary5, findConf, null, null, insertNums );
-   //   query( dbclSlave1, findConf, null, null, insertNums ); 
-   //   query( dbclSlave2, findConf, null, null, 0 ); 
-   //   query( dbclSlave3, findConf, null, null, insertNums ); 
-   //   query( dbclSlave4, findConf, null, null, 0 ); 
-   //   query( dbclSlave5, findConf, null, null, insertNums ); 
 
    //check out snapshot access plans
    var accessFindOption1 = { Collection: clFullName1 };
@@ -287,12 +247,8 @@ function main ()
    var actExplains = getCommonExplain( dbclPrimary5, findConf );
    checkExplain( actExplains, expExplains );
 
-   //   var actExplains = getCommonExplain( dbclSlave5, findConf ); 
-   //   checkExplain( actExplains, expExplains ); 
-
    //query
    query( dbclPrimary5, findConf, null, null, insertNums );
-   //   query( dbclSlave5, findConf, null, null, insertNums ); 
 
    //check out snapshot access plans
    var accessFindOption = { Collection: clFullName5 };

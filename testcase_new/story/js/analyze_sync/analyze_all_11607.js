@@ -93,16 +93,6 @@ function main ()
    var dbRangCLPrimary2 = db1.getCS( csName2 ).getCL( clName3 );
    var dbMainCLPrimary = db1.getCS( maincsName ).getCL( mainclName );
 
-   //   db1 = new Sdb(db);
-   //   db1.setSessionAttr( {PreferedInstance: "s"} );
-   //   var dbCommCLSlave1 = db1.getCS(csName1).getCL(clName1);
-   //   var dbCommCLSlave2 = db1.getCS(csName2).getCL(clName1);
-   //   var dbHashCLSlave1 = db1.getCS(csName1).getCL(clName2);
-   //   var dbHashCLSlave2 = db1.getCS(csName2).getCL(clName2);
-   //   var dbRangCLSlave1 = db1.getCS(csName1).getCL(clName3);
-   //   var dbRangCLSlave2 = db1.getCS(csName2).getCL(clName3);
-   //   var dbMainCLSlave = db1.getCS(maincsName).getCL(mainclName);
-
    //attach cl
    maincl.attachCL( subclFullName, { LowBound: { a: 0 }, UpBound: { a: 10000 } } );
 
@@ -227,34 +217,6 @@ function main ()
    checkExplain( actMainExplains1, expMainExplains1 );
    checkExplain( actMainExplains2, expMainExplains2 );
 
-   //check slave
-   //   var actCommExplains1 = getCommonExplain( dbCommCLSlave1, findConf1); 
-   //   var actCommExplains2 = getCommonExplain( dbCommCLSlave2, findConf1); 
-   //   var actHashExplains1 = getSplitExplain( dbHashCLSlave1, findConf1); 
-   //   var actHashExplains2 = getSplitExplain( dbHashCLSlave2, findConf1); 
-   //   var actRangExplains1 = getSplitExplain( dbRangCLSlave1, findConf1); 
-   //   var actRangExplains2 = getSplitExplain( dbRangCLSlave2, findConf1); 
-   //   var actHashExplains3 = getSplitExplain( dbHashCLSlave1, findConf2); 
-   //   var actHashExplains4 = getSplitExplain( dbHashCLSlave2, findConf2); 
-   //   var actRangExplains3 = getSplitExplain( dbRangCLSlave1, findConf2); 
-   //   var actRangExplains4 = getSplitExplain( dbRangCLSlave2, findConf2);
-   //   var actMainExplains1 = getMainclExplain( dbMainCLSlave, findConf1 );
-   //   var actMainExplains2 = getMainclExplain( dbMainCLSlave, findConf2 );   
-
-   //   checkExplain( actCommExplains1, expCommExplains );
-   //   checkExplain( actCommExplains2, expCommExplains );
-   //   checkExplain( actHashExplains1, expHashExplains1 );                                                    	
-   //   checkExplain( actHashExplains2, expHashExplains2 );
-   //   checkExplain( actRangExplains1, expRangExplains1 );
-   //   checkExplain( actRangExplains2, expRangExplains2 );
-   //   checkExplain( actRangExplains2, expRangExplains2 );
-   //   checkExplain( actHashExplains3, expHashExplains3 );                                                    	
-   //   checkExplain( actHashExplains4, expHashExplains4 );
-   //   checkExplain( actRangExplains3, expRangExplains3 );
-   //   checkExplain( actRangExplains4, expRangExplains4 );
-   //   checkExplain( actMainExplains1, expMainExplains1 );
-   //   checkExplain( actMainExplains2, expMainExplains2 );
-
    //query
    query( dbCommCLPrimary1, findConf1, null, null, insertNums );
    query( dbHashCLPrimary1, findConf1, null, null, insertNums );
@@ -268,19 +230,6 @@ function main ()
    query( dbRangCLPrimary2, findConf2, null, null, insertNums );
    query( dbMainCLPrimary, findConf1, null, null, insertNums );
    query( dbMainCLPrimary, findConf2, null, null, insertNums );
-
-   //   query( dbCommCLSlave1, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave1, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave1, findConf2, null, null, insertNums );
-   //   query( dbRangCLSlave1, findConf1, null, null, insertNums );
-   //   query( dbRangCLSlave1, findConf2, null, null, insertNums );
-   //   query( dbCommCLSlave2, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave2, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave2, findConf2, null, null, insertNums );
-   //   query( dbRangCLSlave2, findConf1, null, null, insertNums );
-   //   query( dbRangCLSlave2, findConf2, null, null, insertNums );
-   //   query( dbMainCLSlave, findConf1, null, null, insertNums );
-   //   query( dbMainCLSlave, findConf2, null, null, insertNums );
 
    //check out snapshot access plans
    var accessFindOption11 = { Collection: clFullName11 };
@@ -419,33 +368,6 @@ function main ()
    checkExplain( actMainExplains1, expMainExplains1 );
    checkExplain( actMainExplains2, expMainExplains2 );
 
-   //check slave
-   //   var actCommExplains1 = getCommonExplain( dbCommCLSlave1, findConf1); 
-   //   var actCommExplains2 = getCommonExplain( dbCommCLSlave2, findConf1); 
-   //   var actHashExplains1 = getSplitExplain( dbHashCLSlave1, findConf1); 
-   //   var actHashExplains2 = getSplitExplain( dbHashCLSlave2, findConf1); 
-   //   var actRangExplains1 = getSplitExplain( dbRangCLSlave1, findConf1); 
-   //   var actRangExplains2 = getSplitExplain( dbRangCLSlave2, findConf1); 
-   //   var actHashExplains3 = getSplitExplain( dbHashCLSlave1, findConf2); 
-   //   var actHashExplains4 = getSplitExplain( dbHashCLSlave2, findConf2); 
-   //   var actRangExplains3 = getSplitExplain( dbRangCLSlave1, findConf2); 
-   //   var actRangExplains4 = getSplitExplain( dbRangCLSlave2, findConf2); 
-   //   var actMainExplains1 = getMainclExplain( dbMainCLSlave, findConf1 );
-   //   var actMainExplains2 = getMainclExplain( dbMainCLSlave, findConf2 );
-
-   //   checkExplain( actCommExplains1, expCommExplains );
-   //   checkExplain( actCommExplains2, expCommExplains );
-   //   checkExplain( actHashExplains1, expHashExplains1 );                                                    	
-   //   checkExplain( actHashExplains2, expHashExplains2 );
-   //   checkExplain( actRangExplains1, expRangExplains1 );
-   //   checkExplain( actRangExplains2, expRangExplains2 );
-   //   checkExplain( actHashExplains3, expHashExplains3 );                                                    	
-   //   checkExplain( actHashExplains4, expHashExplains4 );
-   //   checkExplain( actRangExplains3, expRangExplains3 );
-   //   checkExplain( actRangExplains4, expRangExplains4 );
-   //   checkExplain( actMainExplains1, expMainExplains1 );
-   //   checkExplain( actMainExplains2, expMainExplains2 );
-
    //query
    query( dbCommCLPrimary1, findConf1, null, null, insertNums );
    query( dbHashCLPrimary1, findConf1, null, null, insertNums );
@@ -459,19 +381,6 @@ function main ()
    query( dbRangCLPrimary2, findConf2, null, null, insertNums );
    query( dbMainCLPrimary, findConf1, null, null, insertNums );
    query( dbMainCLPrimary, findConf2, null, null, insertNums );
-
-   //   query( dbCommCLSlave1, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave1, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave1, findConf2, null, null, insertNums );
-   //   query( dbRangCLSlave1, findConf1, null, null, insertNums );
-   //   query( dbRangCLSlave1, findConf2, null, null, insertNums );
-   //   query( dbCommCLSlave2, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave2, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave2, findConf2, null, null, insertNums );
-   //   query( dbRangCLSlave2, findConf1, null, null, insertNums );
-   //   query( dbRangCLSlave2, findConf2, null, null, insertNums );
-   //   query( dbMainCLSlave, findConf1, null, null, insertNums );
-   //   query( dbMainCLSlave, findConf2, null, null, insertNums );
 
    //check out snapshot access plans
    var accessFindOption11 = { Collection: clFullName11 };
@@ -610,33 +519,6 @@ function main ()
    checkExplain( actMainExplains1, expMainExplains1 );
    checkExplain( actMainExplains2, expMainExplains2 );
 
-   //check slave
-   //   var actCommExplains1 = getCommonExplain( dbCommCLSlave1, findConf1); 
-   //   var actCommExplains2 = getCommonExplain( dbCommCLSlave2, findConf1); 
-   //   var actHashExplains1 = getSplitExplain( dbHashCLSlave1, findConf1); 
-   //   var actHashExplains2 = getSplitExplain( dbHashCLSlave2, findConf1); 
-   //   var actRangExplains1 = getSplitExplain( dbRangCLSlave1, findConf1); 
-   //   var actRangExplains2 = getSplitExplain( dbRangCLSlave2, findConf1); 
-   //   var actHashExplains3 = getSplitExplain( dbHashCLSlave1, findConf2); 
-   //   var actHashExplains4 = getSplitExplain( dbHashCLSlave2, findConf2); 
-   //   var actRangExplains3 = getSplitExplain( dbRangCLSlave1, findConf2); 
-   //   var actRangExplains4 = getSplitExplain( dbRangCLSlave2, findConf2); 
-   //   var actMainExplains1 = getMainclExplain( dbMainCLSlave, findConf1 );
-   //   var actMainExplains2 = getMainclExplain( dbMainCLSlave, findConf2 );
-
-   //   checkExplain( actCommExplains1, expCommExplains );
-   //   checkExplain( actCommExplains2, expCommExplains );
-   //   checkExplain( actHashExplains1, expHashExplains1 );                                                    	
-   //   checkExplain( actHashExplains2, expHashExplains2 );
-   //   checkExplain( actRangExplains1, expRangExplains1 );
-   //   checkExplain( actRangExplains2, expRangExplains2 );
-   //   checkExplain( actHashExplains3, expHashExplains3 );                                                    	
-   //   checkExplain( actHashExplains4, expHashExplains4 );
-   //   checkExplain( actRangExplains3, expRangExplains3 );
-   //   checkExplain( actRangExplains4, expRangExplains4 );
-   //   checkExplain( actMainExplains1, expMainExplains1 );
-   //   checkExplain( actMainExplains2, expMainExplains2 );
-
    //query
    query( dbCommCLPrimary1, findConf1, null, null, insertNums );
    query( dbHashCLPrimary1, findConf1, null, null, insertNums );
@@ -650,19 +532,6 @@ function main ()
    query( dbRangCLPrimary2, findConf2, null, null, insertNums );
    query( dbMainCLPrimary, findConf1, null, null, insertNums );
    query( dbMainCLPrimary, findConf2, null, null, insertNums );
-
-   //   query( dbCommCLSlave1, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave1, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave1, findConf2, null, null, insertNums );
-   //   query( dbRangCLSlave1, findConf1, null, null, insertNums );
-   //   query( dbRangCLSlave1, findConf2, null, null, insertNums );
-   //   query( dbCommCLSlave2, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave2, findConf1, null, null, insertNums );
-   //   query( dbHashCLSlave2, findConf2, null, null, insertNums );
-   //   query( dbRangCLSlave2, findConf1, null, null, insertNums );
-   //   query( dbRangCLSlave2, findConf2, null, null, insertNums );
-   //   query( dbMainCLSlave, findConf1, null, null, insertNums );
-   //   query( dbMainCLSlave, findConf2, null, null, insertNums );
 
    //check out snapshot access plans
    var accessFindOption11 = { Collection: clFullName11 };

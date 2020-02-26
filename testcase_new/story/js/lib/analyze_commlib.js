@@ -921,49 +921,6 @@ function checkSnapShotAccessPlans ( clFullName, expectAccessPlans, actAccessPlan
       var datas = getNodesInGroups( db, groups );
    }
 
-   //判断独立模式、存在1组1节点模式的集群、cl不存在的情况下可能存在不同的预期结果
-   /*if( commIsStandalone( db )== true ){
-   for( var i = 0; i < expectAccessPlans.length / 2; i++ )
-   {
-   expAccessPlans.push( expectAccessPlans[i] ); 
-   }
-   }else{
-   if( groups !== undefined ){
-   var datas = getNodesInGroups( db, groups ); 
-   }else{
-   var groups = getGroupsFromcl( db, clFullName ); 
-   var datas = getNodesInGroups( db, groups ); 
-   }
-   //判断普通表一组一节点的情况
-   if( 1 === datas.length && 1 === datas[0].length )
-   {
-   for( var i = 0; i < expectAccessPlans.length / 2; i++ )
-   {
-   expAccessPlans.push( expectAccessPlans[i] ); 
-   }
-   //判断分区表有一组一节点的情况( 其中一个组是一组一节点 )
-   }else if( 1 < datas.length &&
-   ( 1 === datas[0].length || 1 === datas[1].length ) ){
-   var groupName = groups[1]; 
-   if( 1 === datas[1].length ){ groupName = groups[0]; }
-   
-   for( var i = 0; i < expectAccessPlans.length / 2; i++ )
-   {
-   expAccessPlans.push( expectAccessPlans[i] ); 
-   }
-   while( i < expectAccessPlans.length )
-   {
-   if( groupName === expectAccessPlans[i]['GroupName'] )
-   {
-   expAccessPlans.push( expectAccessPlans[i] ); 
-   }
-   i++; 
-   }
-   }else{
-   expAccessPlans = expectAccessPlans; 
-   }
-   }*/
-
    //校验计划个数
    if( expAccessPlans.length !== actAccessPlans.length )
    {
@@ -1234,4 +1191,32 @@ function checkStats ( db, csName, clNames, indexName, clExistStat, indexExistSta
    }
    println( "check stat sucess" );
 
+}
+
+/************************************
+*@Description: 判断所有数据组中是否有任意1个组存在1节点
+*@author:      liuxiaoxuan
+*@createDate:  2020.2.25
+**************************************/
+function isOnlyOneNodeInGroup()
+{
+   //获取所有数据组
+   var allGroupObj = db.listReplicaGroups();
+   //遍历所有数据组
+   while( allGroupObj.next() )
+   {
+      var rec = allGroupObj.current().toObj();
+      if( rec.GroupName == 'SYSCatalogGroup' || rec.GroupName == 'SYSCoord' )
+      {
+         continue;
+      }
+
+      //判断1节点模式
+      if( 1 == rec.Group.length ) 
+      {
+         return true;
+      }
+   }
+
+   return false;
 }

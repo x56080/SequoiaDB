@@ -30,22 +30,12 @@ function main ()
       }
 
       //判断1节点模式
-      var groups = new Array();
-      temp = commGetGroups( db );
-      for( var i = 0; i < temp.length; i++ )
-      {
-         groups.push( temp[i][0].GroupName );
-      }
+      if( true == isOnlyOneNodeInGroup() )
+      {   
+         println( "only one node" );
+         return;
+      }   
 
-      var nodes = getNodesInGroups( db, groups );
-      for( var i = 0; i < nodes.length; i++ )
-      {
-         if( 1 === nodes[i].length )
-         {
-            println( "group exists one node" );
-            return;
-         }
-      }
    }
    catch( e )
    {

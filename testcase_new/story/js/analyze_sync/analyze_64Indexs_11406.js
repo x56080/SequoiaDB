@@ -46,9 +46,6 @@ function main ()
    var db1 = new Sdb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( COMMCSNAME ).getCL( clName );
-   //var db2 = new Sdb(db);
-   //db2.setSessionAttr( { PreferedInstance: "s" } );
-   //var dbclSlave = db2.getCS(COMMCSNAME).getCL(clName);
 
    //执行统计
    analyze( db, { Collection: COMMCSNAME + "." + clName } );
@@ -69,9 +66,6 @@ function main ()
 
       var actExplains = getCommonExplain( dbclPrimary, findConf );
       checkExplain( actExplains, expExplains );
-
-      //var actExplains = getCommonExplain( dbclSlave, findConf);
-      //checkExplain( actExplains, expExplains ); 
    }
    println( "check result after analyze success!" );
 
@@ -97,14 +91,10 @@ function main ()
 
       var actExplains = getCommonExplain( dbclPrimary, findConf );
       checkExplain( actExplains, expExplains );
-
-      //var actExplains = getCommonExplain( dbclSlave, findConf);
-      //checkExplain( actExplains, expExplains ); 
    }
    println( "check result drop index success!" );
 
    //清理环境
    commDropCL( db, COMMCSNAME, clName );
    db1.close();
-   //db2.close();
 }

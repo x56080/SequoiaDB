@@ -61,11 +61,6 @@ function main ()
    var dbclPrimary1 = db1.getCS( csName ).getCL( clName1 );
    var dbclPrimary2 = db1.getCS( csName ).getCL( clName2 );
 
-   //   db1 = new Sdb(db);
-   //   db1.setSessionAttr( {PreferedInstance: "s"} );
-   //   var dbclSlave1 = db1.getCS(csName).getCL(clName1);
-   //   var dbclSlave2 = db1.getCS(csName).getCL(clName2);
-
    //create index
    commCreateIndex( dbcl1, "a", { a: 1 } );
    commCreateIndex( dbcl2, "a", { a: 1 } );
@@ -93,16 +88,9 @@ function main ()
    checkExplain( actExplains1, expExplains );
    checkExplain( actExplains2, expExplains );
 
-   //   var actExplains = getCommonExplain( dbclSlave1, findConf);
-   //   var actExplains = getCommonExplain( dbclSlave2, findConf);
-   //   checkExplain( actExplains1, expExplains );
-   //   checkExplain( actExplains2, expExplains );
-
    //query
    query( dbclPrimary1, findConf, null, null, insertNums );
    query( dbclPrimary2, findConf, null, null, insertNums );
-   //   query(dbclSlave1, findConf, null, null, insertNums);
-   //   query(dbclSlave2, findConf, null, null, insertNums);
 
    //check out snapshot access plans
    var accessFindOption1 = { Collection: clFullName1 };
@@ -151,16 +139,9 @@ function main ()
    checkExplain( actExplains1, expExplains1 );
    checkExplain( actExplains2, expExplains2 );
 
-   //   var actExplains = getCommonExplain( dbclSlave1, findConf);
-   //   var actExplains = getCommonExplain( dbclSlave2, findConf);
-   //   checkExplain( actExplains1, expExplains1 );
-   //   checkExplain( actExplains2, expExplains2 );
-
    //query
    query( dbclPrimary1, findConf, null, null, insertNums );
    query( dbclPrimary2, findConf, null, null, insertNums );
-   //   query(dbclSlave1, findConf, null, null, insertNums);
-   //   query(dbclSlave2, findConf, null, null, insertNums);
 
    var accessFindOption1 = { Collection: clFullName1 };
    var accessFindOption2 = { Collection: clFullName2 };
@@ -190,8 +171,6 @@ function main ()
    //query
    query( dbclPrimary1, findConf, null, null, insertNums );
    query( dbclPrimary2, findConf, null, null, insertNums );
-   //   query(dbclSlave1, findConf, null, null, insertNums);
-   //   query(dbclSlave2, findConf, null, null, insertNums);
 
    var accessFindOption1 = { Collection: clFullName1 };
    var accessFindOption2 = { Collection: clFullName2 };
@@ -239,16 +218,9 @@ function main ()
    checkExplain( actExplains1, expExplains );
    checkExplain( actExplains2, expExplains );
 
-   //   var actExplains = getCommonExplain( dbclSlave1, findConf);
-   //   var actExplains = getCommonExplain( dbclSlave2, findConf);
-   //   checkExplain( actExplains1, expExplains );
-   //   checkExplain( actExplains2, expExplains );
-
    //query
    query( dbclPrimary1, findConf, null, null, insertNums );
    query( dbclPrimary2, findConf, null, null, insertNums );
-   //   query(dbclSlave1, findConf, null, null, insertNums);
-   //   query(dbclSlave2, findConf, null, null, insertNums);
 
    var accessFindOption1 = { Collection: clFullName1 };
    var accessFindOption2 = { Collection: clFullName2 };

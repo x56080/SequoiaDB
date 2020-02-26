@@ -18,20 +18,16 @@ function main ()
       return;
    }
 
+   //判断1节点模式
+   if( true == isOnlyOneNodeInGroup() )
+   {   
+      println( "only one node" );
+      return;
+   }   
+
    var allGroups = commGetGroups( db );
    var groups = new Array();
    for( var i = 0; i < allGroups.length; i++ ) { groups.push( allGroups[i][0].GroupName ); }
-
-   //判断1节点模式
-   var nodes = getNodesInGroups( db, groups );
-   for( var i = 0; i < nodes.length; i++ )
-   {
-      if( 1 === nodes[i].length )
-      {
-         println( "group exists one node" );
-         return;
-      }
-   }
 
    var csName = COMMCSNAME + "12981";
    commDropCS( db, csName, true, "drop CS in the beginning" );

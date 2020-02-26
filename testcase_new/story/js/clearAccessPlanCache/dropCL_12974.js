@@ -6,6 +6,19 @@
 **************************************/
 function main ()
 {
+   if( commIsStandalone( db ) )
+   {
+      println( "skip standalone environment" );
+      return;
+   }
+
+   //判断1节点模式
+   if( true == isOnlyOneNodeInGroup() )
+   {   
+      println( "only one node" );
+      return;
+   }   
+
    var allGroups = commGetGroups( db );
    var groups = new Array();
    for( var i = 0; i < allGroups.length; i++ ) { groups.push( allGroups[i][0].GroupName ); }
@@ -21,13 +34,7 @@ function main ()
    //清理环境
    commDropCS( db, csName, true, "drop subcs before test" );
 
-   //获取数据组
-   var temp = commGetGroups( db );
-   if( commIsStandalone( db ) == false )
-   {
-      var groupName = temp[0][0].GroupName;
-   }
-
+   var groupName = groups[0];
    //创建2个cl在同一个数据组上
    var CLOption = { Group: groupName };
    var dbcl1 = commCreateCL( db, csName, clName1, CLOption );

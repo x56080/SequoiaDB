@@ -58,9 +58,6 @@ function main ()
    var db1 = new Sdb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( csName ).getCL( clName );
-   //var db2 = new Sdb( db ); 
-   //db2.setSessionAttr( { PreferedInstance: "s" } ); 
-   //var dbclSlave = db2.getCS( csName ).getCL( clName ); 
 
    //检查统计信息
    checkConsistency( db, csName, clName );
@@ -70,12 +67,10 @@ function main ()
    //在主备节点使用shard索引字段执行查询
    var findConf = { a: sameValues };
    query( dbclPrimary, findConf, null, null, insertNum );
-   //query( dbclSlave, findConf, null, null, insertNum ); 
 
    //在主备节点使用普通索引字段执行查询
    var findConf = { a0: sameValues };
    query( dbclPrimary, findConf, null, null, insertNum );
-   //query( dbclSlave, findConf, null, null, insertNum ); 
 
    //检查访问计划快照
    var expAccessPlan = [{ ScanType: "ixscan", IndexName: "$shard", GroupName: groups[0] },
@@ -100,12 +95,10 @@ function main ()
    //在主备节点使用shard索引字段执行查询
    var findConf = { a: sameValues };
    query( dbclPrimary, findConf, null, null, insertNum );
-   //query( dbclSlave, findConf, null, null, insertNum ); 
 
    //在主备节点使用普通索引字段执行查询
    var findConf = { a0: sameValues };
    query( dbclPrimary, findConf, null, null, insertNum );
-   //query( dbclSlave, findConf, null, null, insertNum ); 
 
    //检查访问计划快照
    var expAccessPlan = [{ ScanType: "tbscan", IndexName: "", GroupName: groups[0] },
@@ -119,7 +112,6 @@ function main ()
    commDropCS( db, csName );
    commDropDomain( db, domainName );
    db1.close();
-   //db2.close(); 
 
 }
 try

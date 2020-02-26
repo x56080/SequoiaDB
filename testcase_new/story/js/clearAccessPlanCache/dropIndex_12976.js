@@ -6,6 +6,19 @@
 **************************************/
 function main ()
 {
+   if( commIsStandalone( db ) ) 
+   {   
+      println( "skip standalone environment" );
+      return;
+   }   
+
+   //判断1节点模式
+   if( true == isOnlyOneNodeInGroup() )
+   {   
+      println( "only one node" );
+      return;
+   }   
+                                                                                                   
    var clName = COMMCLNAME + "12976";
    var insertNum = 5000;
    var sameValues = 9000;
