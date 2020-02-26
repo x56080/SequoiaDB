@@ -444,6 +444,7 @@ namespace engine
       _oldVer     = NULL ;
       _eduCB      = eduCB ;
       _recordRW   = NULL ;
+      _rbsRecordData = NULL ;
       _oldVerCB   = transCB->getOldVCB() ;
       _rbsMgr     = pmdGetKRCB()->getDMSCB()->getRBSSUMgr() ;
 

@@ -808,6 +808,9 @@ namespace engine
       goto error ;
 
    done:
+      // make sure to detach the recordRW from callback
+      _callback.detachRecordRW() ;
+
       PD_TRACE_EXITRC ( SDB__DMSEXTSCAN__FETCHNEXT, rc );
       return rc ;
    error:
@@ -2187,6 +2190,10 @@ namespace engine
                                       _context->mbID(), &waitUnlockRID,
                                       &_callback ) ;
       }
+
+      // make sure to detach the recordRW from callback
+      _callback.detachRecordRW() ;
+
       PD_TRACE_EXITRC ( SDB__DMSIXSECSCAN_ADVANCE, rc ) ;
       return rc ;
    error:
