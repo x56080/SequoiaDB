@@ -1,8 +1,8 @@
 /************************************
-*@Description:  独立模式下，普通表rename cl，清空缓存功能验证
+*@Description: 普通表rename cs，清空缓存功能验证
 *@author:      liuxiaoxuan
 *@createdate:  2017.11.09
-*@testlinkCase: seqDB-12980
+*@testlinkCase: seqDB-12979
 **************************************/
 function main ()
 {
@@ -23,26 +23,26 @@ function main ()
    var groups = new Array();
    for( var i = 0; i < allGroups.length; i++ ) { groups.push( allGroups[i][0].GroupName ); }
 
-   var csName = COMMCSNAME + "12980";
+   var csName = COMMCSNAME + "12979";
+   var csName_new = "newCsName"
    commDropCS( db, csName, true, "drop CS in the beginning" );
+   commDropCS( db, csName_new, true, "drop CS in the beginning" );
 
    commCreateCS( db, csName, false, "" );
 
    //create CLs
-   var clName1 = COMMCLNAME + "12980_1";
+   var clName1 = COMMCLNAME + "12979_1";
    var dbcl1 = commCreateCL( db, csName, clName1 );
 
-   var clName2 = COMMCLNAME + "12980_2";
+   var clName2 = COMMCLNAME + "12979_2";
    var dbcl2 = commCreateCL( db, csName, clName2 );
 
    var clFullName1 = csName + "." + clName1;
    var clFullName2 = csName + "." + clName2;
 
-   //create indexs
    commCreateIndex( dbcl1, "a", { a: 1 } );
    commCreateIndex( dbcl2, "b", { b: 1 } );
 
-   //insert datas
    var insertNums = 3000;
    var sameValues = 9000;
 
@@ -57,10 +57,10 @@ function main ()
    var dbclPrimary1 = db1.getCS( csName ).getCL( clName1 );
    var dbclPrimary2 = db1.getCS( csName ).getCL( clName2 );
 
-   db1 = new Sdb( db );
-   db1.setSessionAttr( { PreferedInstance: "s" } );
-   var dbclSlave1 = db1.getCS( csName ).getCL( clName1 );
-   var dbclSlave2 = db1.getCS( csName ).getCL( clName2 );
+   db2 = new Sdb( db );
+   db2.setSessionAttr( { PreferedInstance: "s" } );
+   var dbclSlave1 = db2.getCS( csName ).getCL( clName1 );
+   var dbclSlave2 = db2.getCS( csName ).getCL( clName2 );
 
    //检查主备同步
    checkConsistency( db, null, null, groups );
@@ -143,56 +143,50 @@ function main ()
 
    println( "check result after analyze success!" );
 
-   //rename CL1
-   var oldClName = clName1;
-   var newClName = "newClName";
-   renameCL( csName, oldClName, newClName );
-
-   //get new primary/slave node
-   db1 = new Sdb( db );
-   db1.setSessionAttr( { PreferedInstance: "m" } );
-   var newclPrimary1 = db1.getCS( csName ).getCL( newClName );
-
-   db1 = new Sdb( db );
-   db1.setSessionAttr( { PreferedInstance: "s" } );
-   var newclSlave1 = db1.getCS( csName ).getCL( newClName );
-
-   //check result after renameCL
-   checkAnalyzeStatInfo( csName, newClName );
+   //rename CS
+   var oldCsName = csName;
+   var newCsName = csName_new;
+   db.renameCS( oldCsName, newCsName );
 
    //检查主备同步
    checkConsistency( db, null, null, groups );
 
-   //检查统计信息
-   checkStat( db, csName, newClName, "a", true, true );
-   checkStat( db, csName, clName2, "b", true, true );
+   //check newCL's anaylze info
+   checkStat( db, newCsName, clName1, "a", true, true );
+   checkStat( db, newCsName, clName2, "b", true, true );
 
    //check out snapshot access plans
-   var clNewFullName = csName + "." + newClName;
-   var accessFindOption1 = { Collection: clNewFullName };
+   var accessFindOption1 = { Collection: clFullName1 };
    var accessFindOption2 = { Collection: clFullName2 };
 
    var actAccessPlans1 = getCommonAccessPlans( db, accessFindOption1 );
    var actAccessPlans2 = getCommonAccessPlans( db, accessFindOption2 );
-   var expAccessPlans1 = [];
-   var expAccessPlans2 = [{ ScanType: "tbscan", IndexName: "" },
-   { ScanType: "tbscan", IndexName: "" }];
+   var expAccessPlans = [];
 
-   checkSnapShotAccessPlans( clFullName1, expAccessPlans1, actAccessPlans1 );
-   checkSnapShotAccessPlans( clFullName2, expAccessPlans2, actAccessPlans2 );
+   checkSnapShotAccessPlans( clFullName1, expAccessPlans, actAccessPlans1 );
+   checkSnapShotAccessPlans( clFullName2, expAccessPlans, actAccessPlans2 );
+
+   //get new primary/slave node
+   var newclPrimary1 = db1.getCS( newCsName ).getCL( clName1 );
+   var newclPrimary2 = db1.getCS( newCsName ).getCL( clName2 );
+   var newclSlave1 = db2.getCS( newCsName ).getCL( clName1 );
+   var newclSlave2 = db2.getCS( newCsName ).getCL( clName2 );
 
    //query from primary/slave node
    var findConf1 = { a: 9000 };
    var findConf2 = { b: 9000 };
 
    query( newclPrimary1, findConf1, null, null, insertNums );
-   query( dbclPrimary2, findConf2, null, null, insertNums );
+   query( newclPrimary2, findConf2, null, null, insertNums );
    query( newclSlave1, findConf1, null, null, insertNums );
-   query( dbclSlave2, findConf2, null, null, insertNums );
+   query( newclSlave2, findConf2, null, null, insertNums );
 
    //check out snapshot access plans
-   var accessFindOption1 = { Collection: clNewFullName };
-   var accessFindOption2 = { Collection: clFullName2 };
+   var clNewFullName1 = newCsName + "." + clName1;
+   var clNewFullName2 = newCsName + "." + clName2;
+
+   var accessFindOption1 = { Collection: clNewFullName1 };
+   var accessFindOption2 = { Collection: clNewFullName2 };
 
    var actAccessPlans1 = getCommonAccessPlans( db, accessFindOption1 );
    var actAccessPlans2 = getCommonAccessPlans( db, accessFindOption2 );
@@ -205,76 +199,11 @@ function main ()
    checkSnapShotAccessPlans( clFullName1, expAccessPlans1, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans2, actAccessPlans2 );
 
-   println( "check analyze result after rename CL success!" );
-
-   //check and create oldCL
-   dbcl = commCreateCL( db, csName, clName1 );
-
-   //get primary/slave node
-   db1 = new Sdb( db );
-   db1.setSessionAttr( { PreferedInstance: "m" } );
-   var dbclPrimary1 = db1.getCS( csName ).getCL( clName1 );
-
-   db1 = new Sdb( db );
-   db1.setSessionAttr( { PreferedInstance: "s" } );
-   var dbclSlave1 = db1.getCS( csName ).getCL( clName1 );
-
-   //create index
-   commCreateIndex( dbcl, "a", { a: 1 } );
-
-   //insert datas
-   var insertNums = 3000;
-   var sameValues = 9000;
-
-   insertDiffDatas( dbcl, insertNums );
-   insertSameDatas( dbcl, insertNums, sameValues );
-
-   //query from primary/slave node
-   var findConf = { a: 9000 };
-
-   query( dbclPrimary1, findConf, null, null, insertNums );
-   query( dbclSlave1, findConf, null, null, insertNums );
-
-   //check out snapshot access plans
-   var accessFindOption = { Collection: clFullName1 };
-   var actAccessPlans = getCommonAccessPlans( db, accessFindOption );
-   var expAccessPlans = [{ ScanType: "ixscan", IndexName: "a" },
-   { ScanType: "ixscan", IndexName: "a" }];
-
-   checkSnapShotAccessPlans( clFullName1, expAccessPlans, actAccessPlans );
+   println( "check result after rename success!" );
 
    commDropCS( db, csName, true, "drop CS in the end" );
-}
-
-function renameCL ( csName, oldClName, newClName )
-{
-   try
-   {
-      var cs = db.getCS( csName );
-      cs.renameCL( oldClName, newClName );
-   }
-   catch( e )
-   {
-      throw buildException( "renameCL", e, "rename cl", "rename success", e );
-   }
-}
-
-function checkAnalyzeStatInfo ( csName, clName )
-{
-   try
-   {
-      var matcher = { CollectionSpace: csName, Collection: clName }
-      var rec = db.SYSSTAT.SYSCOLLECTIONSTAT.find( matcher ).toArray();
-
-      if( 0 === rec.length )
-      {
-         throw "CHECK RENAMECL FAILED";
-      }
-
-   }
-   catch( e )
-   {
-      throw buildException( "check analyze info", e, "check", "success", e );
-   }
+   commDropCS( db, csName_new, true, "drop CS in the end" );
+   db1.close();
+   db2.close();
 }
 main(); 
