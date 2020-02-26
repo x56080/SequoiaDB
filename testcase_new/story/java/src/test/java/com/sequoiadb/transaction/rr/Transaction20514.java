@@ -78,7 +78,7 @@ public class Transaction20514 extends SdbTestBase {
 
     }
 
-    public void insertData( DBCollection cl ) {
+    private void insertData( DBCollection cl ) {
         List< BSONObject > insertedData = new ArrayList< BSONObject >();
         for ( int i = 0; i < 100; i++ ) {
             BSONObject obj = ( BSONObject ) JSON
@@ -88,7 +88,7 @@ public class Transaction20514 extends SdbTestBase {
         cl.insert( insertedData );
     }
 
-    public void checkSplit( Sequoiadb db ) {
+    private void checkSplit( Sequoiadb db ) {
 
         BasicBSONList bsonLists = null;
         DBCursor cur = db.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
