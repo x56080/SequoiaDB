@@ -2807,9 +2807,13 @@ namespace engine
 
       // for global transaction with RR isolation, we need to do transaction
       // time synchronization checking before pre-commit
+      // NOTE: only write transaction needs pre-commit check, read-only
+      //       transaction does not care about pre-commit time which won't
+      //       affect visibility of other transactions
       if ( _pEDUCB->isGlobTrans() &&
            _pEDUCB->isTransRRRequired() &&
-           transCB->isGlobTransSyncCheck() )
+           transCB->isGlobTransSyncCheck() &&
+           DPS_INVALID_LSN_OFFSET != _pEDUCB->getCurTransLsn() )
       {
          clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
 
