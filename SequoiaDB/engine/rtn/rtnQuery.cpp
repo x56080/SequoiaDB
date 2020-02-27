@@ -589,6 +589,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNQUERY ) ;
 
+      PD_TRACE1( SDB_RTNQUERY,
+                 PD_PACK_STRING(pCollectionName) ) ;
       // matcher, selector, order, hint, collection, skip, limit, flag
       rtnQueryOptions options( matcher, selector, orderBy, hint,
                                pCollectionName, numToSkip, numToReturn, flags ) ;

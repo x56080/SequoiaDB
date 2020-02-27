@@ -657,6 +657,9 @@ namespace engine
       }
 
    done:
+      PD_TRACE1 ( SDB_DPSTRANSCB__ISGLOBVISIBLE,
+                  PD_PACK_UINT( visible ) ) ;
+
       PD_TRACE_EXITRC( SDB_DPSTRANSCB__ISGLOBVISIBLE, rc ) ;
       return rc ;
 
@@ -761,6 +764,8 @@ namespace engine
       }
 
    done:
+      PD_TRACE1 ( SDB_DPSTRANSCB__ISLOCALVISIBLE,
+                  PD_PACK_UINT( visible ) ) ;
       PD_TRACE_EXITRC( SDB_DPSTRANSCB__ISLOCALVISIBLE, rc ) ;
       return rc ;
 
@@ -853,6 +858,8 @@ namespace engine
 #endif
 
    done:
+      PD_TRACE1 ( SDB_DPSTRANSCB_ISVERSIONVISIBLE,
+                  PD_PACK_UINT( visible ) ) ;
       PD_TRACE_EXIT( SDB_DPSTRANSCB_ISVERSIONVISIBLE ) ;
       return rc ;
 
@@ -2776,7 +2783,7 @@ namespace engine
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_TERMALLTRANS );
    }
 
-
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_TRANSLOCKGETX, "dpsTransCB::transLockGetX" )
    INT32 dpsTransCB::transLockGetX( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                     UINT16 collectionID,
                                     const dmsRecordID *recordID,
@@ -2785,28 +2792,35 @@ namespace engine
                                     _dpsITransLockCallback * callback )
    {
       INT32 rc = SDB_OK ;
-      if ( !_isOn )
-      {
-         return rc ;
-      }
-      dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      rc =  _transLockMgr->acquire( eduCB->getTransExecutor(),
-                                    lockId, DPS_TRANSLOCK_X,
-                                    pContext, pdpsTxResInfo,
-                                    callback );
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKGETX ) ;
 
-      if ( eduCB->getTransExecutor()->hasLockWait() )
+      PD_TRACE4( SDB_DPSTRANSCB_TRANSLOCKGETX, 
+                 PD_PACK_UINT(logicCSID),
+                 PD_PACK_UINT(collectionID),
+                 PD_PACK_UINT(recordID->_extent),
+                 PD_PACK_UINT(recordID->_offset) ) ;
+      if ( _isOn )
       {
-         eduCB->getTransExecutor()->finishLockWait() ;
+         dpsTransLockId lockId( logicCSID, collectionID, recordID );
+         rc =  _transLockMgr->acquire( eduCB->getTransExecutor(),
+                                       lockId, DPS_TRANSLOCK_X,
+                                       pContext, pdpsTxResInfo,
+                                       callback );
 
-         if ( eduCB->getMonQueryCB() )
+         if ( eduCB->getTransExecutor()->hasLockWait() )
          {
-            eduCB->getMonQueryCB()->lockWaitTime += eduCB->
+            eduCB->getTransExecutor()->finishLockWait() ;
+
+            if ( eduCB->getMonQueryCB() )
+            {
+               eduCB->getMonQueryCB()->lockWaitTime += eduCB->
                                                      getTransExecutor()->
                                                      getLockWaitTime() ;
+            }
          }
       }
 
+      PD_TRACE_EXITRC ( SDB_DPSTRANSCB_TRANSLOCKGETX, rc );
       return rc ;
    }
 
@@ -2843,7 +2857,7 @@ namespace engine
       return rc ;
    }
 
-
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_TRANSLOCKGETS, "dpsTransCB::transLockGetS" )
    INT32 dpsTransCB::transLockGetS( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                     UINT16 collectionID,
                                     const dmsRecordID *recordID,
@@ -2852,27 +2866,35 @@ namespace engine
                                     _dpsITransLockCallback * callback )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKGETS ) ;
+
+      PD_TRACE4( SDB_DPSTRANSCB_TRANSLOCKGETS, 
+                 PD_PACK_UINT(logicCSID),
+                 PD_PACK_UINT(collectionID),
+                 PD_PACK_UINT(recordID->_extent),
+                 PD_PACK_UINT(recordID->_offset) ) ;
       if ( !_isOn )
       {
-         return SDB_OK ;
-      }
-      dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      rc = _transLockMgr->acquire( eduCB->getTransExecutor(),
-                                   lockId, DPS_TRANSLOCK_S,
-                                   pContext, pdpsTxResInfo,
-                                   callback );
+         dpsTransLockId lockId( logicCSID, collectionID, recordID );
+         rc = _transLockMgr->acquire( eduCB->getTransExecutor(),
+                                      lockId, DPS_TRANSLOCK_S,
+                                      pContext, pdpsTxResInfo,
+                                      callback );
 
-      if ( eduCB->getTransExecutor()->hasLockWait() )
-      {
-         eduCB->getTransExecutor()->finishLockWait() ;
-
-         if ( eduCB->getMonQueryCB() )
+         if ( eduCB->getTransExecutor()->hasLockWait() )
          {
-            eduCB->getMonQueryCB()->lockWaitTime += eduCB->
+            eduCB->getTransExecutor()->finishLockWait() ;
+
+            if ( eduCB->getMonQueryCB() )
+            {
+               eduCB->getMonQueryCB()->lockWaitTime += eduCB->
                                                      getTransExecutor()->
                                                      getLockWaitTime() ;
+            }
          }
       }
+
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_TRANSLOCKGETS, rc ) ;
       return rc ;
    }
 
@@ -2936,20 +2958,34 @@ namespace engine
       return rc ;
    }
 
-
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_TRANSLOCKRELEASE, "dpsTransCB::transLockRelease" )
    void dpsTransCB::transLockRelease( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                       UINT16 collectionID,
                                       const dmsRecordID *recordID,
                                       _dpsITransLockCallback * callback )
    {
-      if ( 0 == eduCB->getTransExecutor()->getLockCount( LOCKMGR_TRANS_LOCK ) )
-      {
-         return ;
-      }
-      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKRELEASE ) ;
 
-      return _transLockMgr->release( eduCB->getTransExecutor(),
+      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKRELEASE, 
+                 PD_PACK_INT(logicCSID),
+                 PD_PACK_INT(collectionID) ) ;
+      if ( recordID )
+      {
+         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKRELEASE, 
+                    PD_PACK_INT(recordID->_extent),
+                    PD_PACK_INT(recordID->_offset) ) ;
+      }
+
+      if ( 0 != eduCB->getTransExecutor()->getLockCount( LOCKMGR_TRANS_LOCK ) )
+      {
+         dpsTransLockId lockId( logicCSID, collectionID, recordID );
+
+         _transLockMgr->release( eduCB->getTransExecutor(),
                                      lockId, FALSE, callback );
+      }
+
+      PD_TRACE_EXIT ( SDB_DPSTRANSCB_TRANSLOCKRELEASE );
+      return ;
    }
 
    void dpsTransCB::transLockReleaseAll( _pmdEDUCB *eduCB,
@@ -3136,21 +3172,32 @@ namespace engine
    }
 
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_TRANSLOCKTRYS, "dpsTransCB::transLockTryS" )
    INT32 dpsTransCB::transLockTryS( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                     UINT16 collectionID,
                                     const dmsRecordID *recordID,
                                     dpsTransRetInfo * pdpsTxResInfo,
                                     _dpsITransLockCallback * callback )
    {
-      if ( !_isOn )
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKTRYS ) ;
+
+      PD_TRACE4( SDB_DPSTRANSCB_TRANSLOCKTRYS, 
+                 PD_PACK_UINT(logicCSID),
+                 PD_PACK_UINT(collectionID),
+                 PD_PACK_UINT(recordID->_extent),
+                 PD_PACK_UINT(recordID->_offset) ) ;
+
+      if ( _isOn )
       {
-         return SDB_OK ;
+         dpsTransLockId lockId( logicCSID, collectionID, recordID );
+         rc = _transLockMgr->tryAcquire( eduCB->getTransExecutor(),
+                                          lockId, DPS_TRANSLOCK_S,
+                                          pdpsTxResInfo,
+                                          callback ) ;
       }
-      dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      return _transLockMgr->tryAcquire( eduCB->getTransExecutor(),
-                                       lockId, DPS_TRANSLOCK_S,
-                                       pdpsTxResInfo,
-                                       callback ) ;
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_TRANSLOCKTRYS, rc ) ;
+      return rc ;
    }
 
 
