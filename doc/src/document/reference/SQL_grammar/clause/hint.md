@@ -248,6 +248,7 @@ hint有多种不同类型：
 ```
 
 同时查看主表和各个子表的记录数
+
 ```lang-javascript
 > db.exec('select T.Name as Name, T.Details.$[0].TotalRecords as Records from $SNAPSHOT_CL as T split by T.Details /*+use_option(ShowMainCLMode, both)*/')
 {

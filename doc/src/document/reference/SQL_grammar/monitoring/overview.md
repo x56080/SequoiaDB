@@ -78,11 +78,15 @@ SdbSnapshotOption[.cond(<cond>)]
 
 ###cond(\<cond\>)###
 
+对应 SQL 语法[ where 子句](reference/SQL_grammar/clause/where.md)
+
 | SQL 语句 | API 语句        |
 | -------- | -------------- |
 | db.exec( "select * from $SNAPSHOT_CONTEXT where SessionID = 22" ) | db.snapshot( SDB_SNAP_CONTEXTS, new SdbSnapshotOption().cond( { SessionID: 22 } ) ) |
 
 ###sel(\<sel\>)###
+
+对应 SQL 语法的字段名
 
 | SQL 语句 | API 语句        |
 | -------- | -------------- |
@@ -90,22 +94,32 @@ SdbSnapshotOption[.cond(<cond>)]
 
 ###sort(\<sort\>)###
 
+对应 SQL 语法[ order by 子句](reference/SQL_grammar/clause/order_by.md)
+
 | SQL 语句 | API 语句        |
 | -------- | -------------- |
 | db.exec( " select * from $SNAPSHOT_CONTEXT order by SessionID" ) | db.snapshot( SDB_SNAP_CONTEXTS, new SdbSnapshotOption().cond( {} ).sort( { SessionID: 1 } ) ) |
 
 ###options(\<options\>)###
 
+对应 SQL 语法[ hint 子句](reference/SQL_grammar/clause/hint.md)中的 use_option 部分。
+
 | SQL 语句 | API 语句        |
 | -------- | -------------- |
 | db.exec('select * from $SNAPSHOT_CONFIGS where GroupName = "db1" and ServiceName = "20000" /*+use_option(Mode, local) use_option(Expand, false)*/') | db.snapshot( SDB_SNAP_CONFIGS, new SdbSnapshotOption().cond( { GroupName:'db1', ServiceName:'20000' } ).options( { "Mode": "local", "Expand": false } ) ) |
 
 ###skip(\<skip\>)###
+
+对应 SQL 语法[ offset 子句](reference/SQL_grammar/clause/offset.md)
+
 | SQL 语句 | API 语句        |
 | -------- | -------------- |
 | db.exec( " select * from $SNAPSHOT_CONTEXT offset 2" ) | db.snapshot( SDB_SNAP_CONTEXTS, new SdbSnapshotOption().cond( {} ).skip( 2 ) ) |
 
 ###limit(\<limit\>)###
+
+对应 SQL 语法[ limit 子句](reference/SQL_grammar/clause/limit.md)
+
 | SQL 语句 | API 语句        |
 | -------- | -------------- |
 | db.exec( "select * from $SNAPSHOT_CONTEXT limit 1" ) | db.snapshot( SDB_SNAP_CONTEXTS, new SdbSnapshotOption().cond( {} ).limit( 1 ) ) |
