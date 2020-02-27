@@ -43,7 +43,7 @@ public class Transaction20437A extends SdbTestBase {
     private DBCollection cl4 = null;
     private List<BSONObject> expList = new ArrayList<BSONObject>();
     
-    @BeforeMethod(enabled = false)
+    @BeforeMethod
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         TR1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
@@ -78,7 +78,7 @@ public class Transaction20437A extends SdbTestBase {
         return new Object[][] { { "{ \"\": \"index_20437A\" }" }, { "{ \"\": null }"} };
     }
     
-    @Test( enabled = false, dataProvider = "index" )
+    @Test( dataProvider = "index" )
     public void test( String hint ) {
         //1.开启读事务TR1，所有读事务读记录
         TR1.beginTransaction();
@@ -188,7 +188,7 @@ public class Transaction20437A extends SdbTestBase {
         Assert.assertTrue( queryThread10.isSuccess(), queryThread10.getErrorMsg() );
     }
     
-    @AfterMethod(enabled = false)
+    @AfterMethod
     public void tearDown() {
         TR1.commit();
         TR1.close();
