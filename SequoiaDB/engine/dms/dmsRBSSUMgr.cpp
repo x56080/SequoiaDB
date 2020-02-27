@@ -396,6 +396,9 @@ namespace engine
                _releaseX() ;
                goto error ;
             }
+            PD_TRACE2 ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD,
+                        PD_PACK_STRING(clName),
+                        PD_PACK_UINT(logicalID) );
             PD_LOG ( PDDEBUG, "Successfully created RBS collection %s, logicalID= %d",
                      clName, logicalID ) ;
          }
@@ -569,6 +572,12 @@ namespace engine
       // type conversion for following use
       SINT32        cl           = clid ;
       _dmsStorageDataCapped *sd = (_dmsStorageDataCapped*)_su->data();
+
+      PD_TRACE4( SDB__DMSRBSSUMGR_RBSAPPENDRECORD,
+                 PD_PACK_UINT(csid),
+                 PD_PACK_UINT(clid),
+                 PD_PACK_UINT(rid._extent),
+                 PD_PACK_UINT(rid._offset) ) ;
 
       // build BSON record to include following:
       // recordKey, transID, preOffset and original recordData
