@@ -41,6 +41,8 @@
 #include "dmsCB.hpp"
 #include "dmsRBSGCJob.hpp"
 #include "dmsRBSSUMgr.hpp"
+#include "dmsTrace.hpp"
+#include "pdTrace.hpp"
 
 namespace engine
 {
@@ -64,10 +66,12 @@ namespace engine
       return "RBS GC" ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DMSRBSGCJOB_DOIT, "_dmsRBSGCJob::doit" )
    INT32 _dmsRBSGCJob::doit( IExecutor *pExe,
                              UTIL_LJOB_DO_RESULT &result,
                              UINT64 &sleepTime )
    {
+      PD_TRACE_ENTRY ( SDB__DMSRBSGCJOB_DOIT );
       // check for interrupt
       if ( PMD_IS_DB_DOWN() || pExe->isInterrupted() || pExe->isForced() )
       {
@@ -90,6 +94,7 @@ namespace engine
             sleepTime = 60000000 ;  // 60 second
          }
       }
+      PD_TRACE_EXIT ( SDB__DMSRBSGCJOB_DOIT );
       return SDB_OK ;
    }
 

@@ -1550,11 +1550,14 @@ namespace engine
 
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIXSECSCAN__FIRSTINIT, "_dmsIXSecScanner::_firstInit" )
    INT32 _dmsIXSecScanner::_firstInit( pmdEDUCB * cb )
    {
       INT32 rc          = SDB_OK ;
       _pTransCB         = pmdGetKRCB()->getTransCB() ;
       dpsTransExecutor *pExe = cb->getTransExecutor() ;
+
+      PD_TRACE_ENTRY ( SDB__DMSIXSECSCAN__FIRSTINIT );
 
       _transIsolation = pExe->getTransIsolation() ;
       _waitLock = pExe->isTransWaitLock() ;
@@ -1688,6 +1691,7 @@ namespace engine
       _onceRestNum = (INT64)pmdGetKRCB()->getOptionCB()->indexScanStep() ;
 
    done:
+      PD_TRACE_EXITRC ( SDB__DMSIXSECSCAN__FIRSTINIT, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1762,7 +1766,7 @@ namespace engine
                  PD_PACK_UINT(_mbLockType),
                  PD_PACK_UINT(_accessType),
                  PD_PACK_UINT(_waitLock),
-                 PD_PACK_UINT(_recordLock) );
+                 PD_PACK_BYTE(_recordLock) );
 
       if ( _firstRun )
       {
@@ -2193,6 +2197,10 @@ namespace engine
 
       // make sure to detach the recordRW from callback
       _callback.detachRecordRW() ;
+
+      PD_TRACE2( SDB__DMSIXSECSCAN_ADVANCE,
+                 PD_PACK_UINT(recordID._extent),
+                 PD_PACK_UINT(recordID._offset) ) ;
 
       PD_TRACE_EXITRC ( SDB__DMSIXSECSCAN_ADVANCE, rc ) ;
       return rc ;

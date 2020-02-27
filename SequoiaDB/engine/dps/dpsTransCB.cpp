@@ -866,6 +866,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_ISVERSIONEXPIRED ) ;
 
       DPS_TRANSID_SN expiredVersion = getExpiredVersion() ;
+      DPS_TRANSID_SN transSN= transID.getGlobSN() ;
 
       // NOTE: if expired lowTran is invalid, means the global lowTrans had
       //       not been calculated yet, so any version is not expired at this
@@ -874,9 +875,13 @@ namespace engine
       {
          // check if the version(represented by transaction ID) is expired.
          // Expired means it's older than system expired version
-         expired = ( transID.getGlobSN() < expiredVersion ) ;
+         expired = ( transSN < expiredVersion ) ;
       }
 
+      PD_TRACE3( SDB_DPSTRANSCB_ISVERSIONEXPIRED,
+                 PD_PACK_INT ( expired ),
+                 PD_PACK_ULONG( transSN ),
+                 PD_PACK_ULONG ( expiredVersion ) ) ;
       PD_TRACE_EXIT( SDB_DPSTRANSCB_ISVERSIONEXPIRED ) ;
 
       return expired ;

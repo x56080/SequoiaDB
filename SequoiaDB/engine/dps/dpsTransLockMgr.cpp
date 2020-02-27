@@ -188,6 +188,7 @@ namespace engine
    //    FALSE    -- compatible with owners
    // Dependency:  the lock bucket latch shall be acquired
    //
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER__CHECKLOCKMODEWITHOTHERS, "dpsTransLockManager::_checkLockModeWithOthers" )
    BOOLEAN dpsTransLockManager::_checkLockModeWithOthers
    (
       const dpsTransLRB *         lrbBegin,
@@ -196,6 +197,8 @@ namespace engine
       dpsTransLRB *            &  pLRBIncompatible
    )
    {
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER__CHECKLOCKMODEWITHOTHERS ) ;
+
       dpsTransLRB *plrb = (dpsTransLRB *)lrbBegin ;
       BOOLEAN foundIncomp = FALSE ;
 
@@ -218,6 +221,7 @@ namespace engine
       }
 
    exit :
+      PD_TRACE_EXIT( SDB_DPSTRANSLOCKMANAGER__CHECKLOCKMODEWITHOTHERS ) ;
       return foundIncomp ;
    }
 
@@ -1072,6 +1076,7 @@ namespace engine
    // Return:     None
    // Dependency:  the lock bucket latch shall be acquired
    //
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER__REMOVEFROMEDULRBLIST, "dpsTransLockManager::_removeFromEDULRBList" )
    void dpsTransLockManager::_removeFromEDULRBList
    (
       _dpsTransExecutor    * dpsTxExectr,
@@ -1079,6 +1084,8 @@ namespace engine
       const dpsTransLockId & lockId
    )
    {
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER__REMOVEFROMEDULRBLIST ) ;
+
       if ( dpsTxExectr && delLRB && dpsTxExectr->getLastLRB( _lockMgrType ) )
       {
          dpsTxExectr->acquireLRBAccessingLock( _lockMgrType ) ;
@@ -1116,6 +1123,7 @@ namespace engine
          delLRB->eduLrbPrev = NULL ;
          delLRB->eduLrbNext = NULL ;
       }
+      PD_TRACE_EXIT( SDB_DPSTRANSLOCKMANAGER__REMOVEFROMEDULRBLIST ) ;
    }
 
 
@@ -1220,7 +1228,16 @@ namespace engine
                  PD_PACK_ULONG( eduId ) ) ;
 
       SDB_ASSERT( _initialized, "dpsTransLockManager is not initialized." ) ;
+#else
+      PD_TRACE6( SDB_DPSTRANSLOCKMANAGER__TRYACQUIREORTEST,
+                 PD_PACK_UINT( lockId.csID() ),
+                 PD_PACK_UINT( lockId.clID() ),
+                 PD_PACK_UINT( lockId.extentID() ),
+                 PD_PACK_UINT( lockId.offset() ),
+                 PD_PACK_BYTE( requestLockMode ),
+                 PD_PACK_BYTE( opMode ) );
 #endif
+
       if ( bktLatched )
       {
          bLatched = TRUE ;
