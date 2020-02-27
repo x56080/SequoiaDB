@@ -541,7 +541,7 @@ namespace engine
          virtual INT32  resume () ;
 
          OSS_INLINE INT32   mbLock( INT32 lockType ) ;
-         OSS_INLINE INT32   mbTryLock( INT32 lockType, BOOLEAN force = FALSE ) ;
+         OSS_INLINE INT32   mbTryLock( INT32 lockType ) ;
          OSS_INLINE INT32   mbUnlock() ;
          OSS_INLINE BOOLEAN isMBLock( INT32 lockType ) const ;
          OSS_INLINE BOOLEAN isMBLock() const ;
@@ -555,8 +555,7 @@ namespace engine
          OSS_INLINE  INT32  mbLockType() const { return _mbLockType ; }
 
       private:
-         OSS_INLINE INT32   _mbLock( INT32 lockType, BOOLEAN isTry,
-                                     BOOLEAN force = FALSE ) ;
+         OSS_INLINE INT32   _mbLock( INT32 lockType, BOOLEAN isTry ) ;
       private:
          dmsMB             *_mb ;
          dmsMBStatInfo     *_mbStat ;
@@ -573,8 +572,7 @@ namespace engine
       _dmsMBContext OSS_INLINE functions
    */
    OSS_INLINE INT32 _dmsMBContext::_mbLock( INT32 lockType,
-                                            BOOLEAN isTry,
-                                            BOOLEAN force )
+                                            BOOLEAN isTry )
    {
       INT32 rc = SDB_OK ;
       if ( SHARED != lockType && EXCLUSIVE != lockType )
@@ -591,24 +589,21 @@ namespace engine
          return rc ;
       }
 
-      if ( !force )
+      // check before lock
+      if ( !DMS_IS_MB_INUSE(_mb->_flag) )
       {
-         // check before lock
-         if ( !DMS_IS_MB_INUSE(_mb->_flag) )
+         return SDB_DMS_NOTEXIST ;
+      }
+      if ( _clLID != _mb->_logicalID )
+      {
+         if ( _startLID == _mbStat->_startLID &&
+              DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag ) )
+         {
+            return SDB_DMS_TRUNCATED ;
+         }
+         else
          {
             return SDB_DMS_NOTEXIST ;
-         }
-         if ( _clLID != _mb->_logicalID )
-         {
-            if ( _startLID == _mbStat->_startLID &&
-                 DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag ) )
-            {
-               return SDB_DMS_TRUNCATED ;
-            }
-            else
-            {
-               return SDB_DMS_NOTEXIST ;
-            }
          }
       }
 
@@ -628,39 +623,37 @@ namespace engine
       }
 
       // check after lock
-      if ( !force )
+      if ( !DMS_IS_MB_INUSE(_mb->_flag) )
       {
-         if ( !DMS_IS_MB_INUSE(_mb->_flag) )
+         ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+         return SDB_DMS_NOTEXIST ;
+      }
+      if ( _clLID != _mb->_logicalID )
+      {
+         if ( _startLID == _mbStat->_startLID &&
+              DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag ) )
+         {
+            ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+            return SDB_DMS_TRUNCATED ;
+         }
+         else
          {
             ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
             return SDB_DMS_NOTEXIST ;
          }
-         if ( _clLID != _mb->_logicalID )
-         {
-            if ( _startLID == _mbStat->_startLID &&
-                 DMS_MB_STATINFO_IS_TRUNCATED( _mbStat->_flag ) )
-            {
-               ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
-               return SDB_DMS_TRUNCATED ;
-            }
-            else
-            {
-               ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
-               return SDB_DMS_NOTEXIST ;
-            }
-         }
       }
+
       _mbLockType = lockType ;
       _resumeType = -1 ;
       return SDB_OK ;
    }
    OSS_INLINE INT32 _dmsMBContext::mbLock( INT32 lockType )
    {
-      return _mbLock( lockType, FALSE, FALSE ) ;
+      return _mbLock( lockType, FALSE ) ;
    }
-   OSS_INLINE INT32 _dmsMBContext::mbTryLock( INT32 lockType, BOOLEAN force )
+   OSS_INLINE INT32 _dmsMBContext::mbTryLock( INT32 lockType )
    {
-      return _mbLock( lockType, TRUE, force ) ;
+      return _mbLock( lockType, TRUE ) ;
    }
    OSS_INLINE INT32 _dmsMBContext::mbUnlock()
    {

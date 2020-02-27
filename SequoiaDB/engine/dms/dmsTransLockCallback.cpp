@@ -164,7 +164,7 @@ namespace engine
                                                _pOldVer->getCLLID(),
                                                _pOldVer->getCLLID() ) )
       {
-         rcTmp = pContext->mbTryLock( EXCLUSIVE, TRUE ) ;
+         rcTmp = pContext->mbTryLock( EXCLUSIVE ) ;
          if ( SDB_TIMEOUT == rcTmp )
          {
             result = UTIL_LJOB_DO_CONT ;
@@ -294,8 +294,8 @@ namespace engine
    {
       const oldVersionContainer *pOldVer = NULL ;
       pOldVer = ( const oldVersionContainer * )( pExtData->_data ) ;
-      if ( pOldVer && ( !pOldVer->isIndexObjEmpty() ||
-                        pOldVer->isOnChain() ) )
+      if ( pOldVer &&
+           ( !pOldVer->isIndexObjEmpty() || pOldVer->isOnChain() ) )
       {
          return FALSE ;
       }
@@ -316,7 +316,9 @@ namespace engine
    void dmsOnTransLockRelease( const dpsTransLockId &lockId,
                                DPS_TRANSLOCK_TYPE lockMode,
                                UINT32 refCounter,
-                               dpsLRBExtData *pExtData )
+                               dpsLRBExtData *pExtData,
+                               INT32 idxLID,
+                               BOOLEAN hasLock )
    {
       oldVersionContainer *oldVer   = NULL ;
 
@@ -336,10 +338,10 @@ namespace engine
                   dmsRecordID(lockId.extentID(), lockId.offset()),
                   "LockID is not the same" ) ;
 
-      /// release old record only if there is no old index
-      if ( oldVer && oldVer->isIndexObjEmpty() )
+      /// try relerase record, because maybe should wait index tree's lock,
+      /// so use try
+      if ( oldVer && oldVer->tryReleaseRecord( idxLID, hasLock ) )
       {
-         oldVer->releaseRecord() ;
          PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
                  lockId.toString().c_str() ) ;
 
@@ -347,8 +349,6 @@ namespace engine
               !pmdGetOptionCB()->recycleRecord() )
          {
             _dmsRemoveOldVerFromChain( oldVer ) ;
-            SDB_OSS_DEL oldVer ;
-            pExtData->_data = 0 ;
             goto done ;
          }
       }
@@ -672,8 +672,7 @@ namespace engine
             {
                if( _oldVer->isRecordDeleted() )
                {
-                  BOOLEAN hasLock = DMS_INVALID_EXTENT != _latchedIdxMode ?
-                                    TRUE : FALSE ;
+                  BOOLEAN hasLock = -1 != _latchedIdxMode ? TRUE : FALSE ;
                   _oldVer->releaseRecord( _latchedIdxLid, hasLock ) ;
 
                   PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
@@ -747,7 +746,9 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_BEFORELOCKRELEASE ) ;
 
-      dmsOnTransLockRelease( lockId, lockMode, refCounter, pExtData ) ;
+      BOOLEAN hasLock = -1 != _latchedIdxMode ? TRUE : FALSE ;
+      dmsOnTransLockRelease( lockId, lockMode, refCounter, pExtData,
+                             _latchedIdxLid, hasLock ) ;
 
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_BEFORELOCKRELEASE );
    }

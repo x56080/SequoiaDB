@@ -116,7 +116,9 @@ namespace engine
    typedef void    (*DPS_EXTDATA_ON_LOCKRELEASE)( const dpsTransLockId &lockId,
                                                   DPS_TRANSLOCK_TYPE lockMode,
                                                   UINT32 refCounter,
-                                                  dpsLRBExtData *pExtData ) ;
+                                                  dpsLRBExtData *pExtData,
+                                                  INT32 idxLID,
+                                                  BOOLEAN hasLock ) ;
 
    class dpsLRBExtData : public utilPooledObject
    {

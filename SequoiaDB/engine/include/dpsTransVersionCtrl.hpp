@@ -388,6 +388,16 @@ namespace engine
       {
          _latch.release_shared() ;
       }
+
+      BOOLEAN tryLockX()
+      {
+         return _latch.try_get() ;
+      }
+
+      BOOLEAN tryLockS()
+      {
+         return _latch.try_get_shared() ;
+      }
  
       BOOLEAN empty() const
       {
@@ -415,10 +425,12 @@ namespace engine
 
       // delete a node
       UINT32 remove( const preIdxTreeNodeKey &keyNode,
+                     const oldVersionContainer *pOldVer,
                      BOOLEAN hasLock = FALSE ) ;
 
       UINT32 remove( const BSONObj *keyData,
                      const dmsRecordID &rid,
+                     const oldVersionContainer *pOldVer,
                      BOOLEAN hasLock = FALSE ) ;
 
       void  clear( BOOLEAN hasLock = FALSE ) ;
@@ -752,6 +764,12 @@ namespace engine
    // use set of idxObj to store all index key values
    typedef ossPoolSet< dpsIdxObj >                 idxObjSet ;
 
+   #define OLDVER_MASK_NEW_RECORD            0x00000001
+   #define OLDVER_MASK_DUMMY                 0x00000002
+   #define OLDVER_MASK_DELETED               0x00000004
+   #define OLDVER_MASK_DISK_DELETING         0x00000008
+ //#define OLDVER_MASK_HAS_COPED             0x00000010
+
    // Class to store all information for old version record/indexes. This 
    // container is currently hanging off LRBHdr
    class oldVersionContainer : public _utilPooledObject
@@ -782,6 +800,8 @@ namespace engine
                                        UINT32 ownnerTID ) ;
       void                 releaseRecord( INT32 idxLID = -1,
                                           BOOLEAN hasLock = FALSE ) ;
+      BOOLEAN              tryReleaseRecord( INT32 idxLID = -1,
+                                             BOOLEAN hasLock = FALSE ) ;
 
       void                 setRecordDeleted() ;
       BOOLEAN              isRecordDeleted() const ;
@@ -810,6 +830,15 @@ namespace engine
       BOOLEAN              isOnChain() const { return _isOnChain ; }
       BOOLEAN              isLockOnChain() const ;
 
+      /*
+      static oldVersionContainer*   newThis( const dmsRecordID &rid,
+                                             INT32 csID, UINT16 clID,
+                                             UINT32 csLID, UINT32 clLID) ;
+      oldVersionContainer*          copyThis() ;
+      void                          releaseThis() ;
+      BOOLEAN                       hasCoped() const ;
+      */
+
    protected:
       // given an index object, insert into the idxObjSet. Return false
       // if the same index for the record already exist. In this case,
@@ -834,10 +863,7 @@ namespace engine
       dpsOldRecordPtr   _recordPtr ;   // pointer to copy of old record
       UINT32            _ownnerTID ;
 
-      BOOLEAN           _isDiskDeleting ;
-      BOOLEAN           _isDeleted ;
-      BOOLEAN           _isDummyRecord ; // when not use rollback segment
-      BOOLEAN           _isNewRecord ; // is this a newly created record or not
+      UINT32            _statMask ;
       // A set of index Lids (up to 64) associated to this record.
       // We use this to figure out if the idx was already stored in the tree
       // Keep in mind that RC require us read the last committed version which
@@ -849,6 +875,9 @@ namespace engine
       oldVersionContainer * _next ;
       BOOLEAN               _isOnChain ;
       UINT32               _lockCnt ;
+      /*
+      INT32                _refCount ;
+      */
    } ;
 
 }

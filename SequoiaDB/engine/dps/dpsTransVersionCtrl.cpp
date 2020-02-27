@@ -370,7 +370,7 @@ namespace engine
          preIdxTreeNodeKey keyNode( &(myIdxObj.getKeyObj()), rid,
                                     getOrdering() ) ;
          preIdxTreeNodeValue keyValue( oldVer ) ;
-         INDEX_TREE_CPOS pos ;
+         INDEX_TREE_POS pos ;
 
          if ( !hasLock )
          {
@@ -380,11 +380,21 @@ namespace engine
 
          // check if it exist. We might be able to save this check if all
          // callers did the check.
-         pos = find( keyNode ) ;
+         pos = _tree.find( keyNode ) ;
          if ( isPosValid( pos ) )
          {
-            /// already exist
-            goto done ;
+            if ( pos->second.getOldVer() != oldVer )
+            {
+               SDB_ASSERT( pos->second.isRecordDeleted(),
+                           "The record must be Deleted" ) ;
+               /// found deleted, should remove it
+               _tree.erase( pos ) ;
+            }
+            else
+            {
+               /// already exist
+               goto done ;
+            }
          }
 
          SDB_ASSERT( oldVer->idxLidExist( getLID() ),
@@ -428,6 +438,7 @@ namespace engine
    //   Number of node deleted from the map
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_REMOVE, "preIdxTree::remove" )
    UINT32 preIdxTree::remove( const preIdxTreeNodeKey &keyNode,
+                              const oldVersionContainer *pOldVer,
                               BOOLEAN hasLock )
    {
       PD_TRACE_ENTRY( SDB_PREIDXTREE_REMOVE ) ;
@@ -446,9 +457,12 @@ namespace engine
       pos = _tree.find( keyNode ) ;
       if ( pos != _tree.end() )
       {
-         tmpValue = pos->second ;
-         ++numDeleted ;
-         _tree.erase( pos ) ;
+         if ( !pOldVer || pOldVer == pos->second.getOldVer() )
+         {
+            tmpValue = pos->second ;
+            ++numDeleted ;
+            _tree.erase( pos ) ;
+         }
       }
 
       if ( !hasLock )
@@ -458,7 +472,7 @@ namespace engine
 
       if ( 1 != numDeleted )
       {
-         if ( _isValid )
+         if ( _isValid && !pOldVer )
          {
             PD_LOG( PDWARNING, 
                     "Did not find records in index tree(%d) with key[%s]",
@@ -484,10 +498,11 @@ namespace engine
 
    UINT32 preIdxTree::remove( const BSONObj *keyData,
                               const dmsRecordID &rid,
+                              const oldVersionContainer *pOldVer,
                               BOOLEAN hasLock )
    {
       preIdxTreeNodeKey keyNode( keyData, rid, getOrdering() ) ;
-      return remove( keyNode, hasLock ) ;
+      return remove( keyNode, pOldVer, hasLock ) ;
    }
 
    INT32 preIdxTree::advance( INDEX_TREE_CPOS &pos, INT32 direction ) const
@@ -1620,25 +1635,24 @@ namespace engine
    :_csID( csID ), _clID( clID ), _csLID( csLID ), _clLID( clLID ),
     _rid( rid )
    {
-      _isNewRecord   = FALSE ;
-      _isDiskDeleting= FALSE ;
-      _isDeleted     = FALSE ;
-      _isDummyRecord = FALSE ;
+      _statMask      = 0 ;
       _ownnerTID     = 0 ;
       _prev          = NULL ;
       _next          = NULL ;
       _isOnChain     = FALSE ;
       _lockCnt       = 0 ;
+      //_refCount      = 0 ;
    }
 
    oldVersionContainer::~oldVersionContainer()
    {
       releaseRecord() ;
+      //SDB_ASSERT( 0 == _refCount, "RefCount is invalid" ) ;
    }
 
    BOOLEAN oldVersionContainer::isRecordEmpty() const
    {
-      if ( _isDummyRecord || _isNewRecord || _recordPtr.get() )
+      if ( isRecordDummy() || isRecordNew() || _recordPtr.get() )
       {
          return FALSE ;
       }
@@ -1736,7 +1750,7 @@ namespace engine
          else
          {
             pTree = (itMap->second).get() ;
-            pTree->remove( &(tmpObj.getKeyObj()), _rid,
+            pTree->remove( &(tmpObj.getKeyObj()), _rid, this,
                            idxLID == tmpObj.getIdxLID() ? hasLock : FALSE ) ;
          }
          ++itSet ;
@@ -1747,43 +1761,91 @@ namespace engine
 
       /// 2. release the record
       _recordPtr = dpsOldRecordPtr() ;
-      _isNewRecord = FALSE ;
-      _isDiskDeleting = FALSE ;
-      _isDeleted = FALSE ;
-      _isDummyRecord = FALSE ;
+      _statMask = 0 ;
       _ownnerTID = 0 ;
+   }
+
+   BOOLEAN oldVersionContainer::tryReleaseRecord( INT32 idxLID,
+                                                  BOOLEAN hasLock )
+   {
+      BOOLEAN succeed = FALSE ;
+      preIdxTree *pTree = NULL ;
+      idxObjSet::iterator itSet ;
+      idxLidMap::iterator itMap ;
+
+      /// 1. release the tree node
+      itSet = _oldIdx.begin() ;
+      while( itSet != _oldIdx.end() )
+      {
+         const dpsIdxObj &tmpObj = *itSet ;
+
+         itMap = _oldIdxLid.find( tmpObj.getIdxLID() ) ;
+         if ( itMap == _oldIdxLid.end() )
+         {
+            SDB_ASSERT( FALSE, "Index[%u] can't found in index set" ) ;
+         }
+         else
+         {
+            pTree = (itMap->second).get() ;
+
+            if ( idxLID == tmpObj.getIdxLID() && hasLock )
+            {
+               pTree->remove( &(tmpObj.getKeyObj()), _rid, this, hasLock ) ;
+               _oldIdx.erase( itSet++ ) ;
+               continue ;
+            }
+            else if ( pTree->tryLockX() )
+            {
+               pTree->remove( &(tmpObj.getKeyObj()), _rid, this, TRUE ) ;
+               pTree->unlockX() ;
+               _oldIdx.erase( itSet++ ) ;
+               continue ;
+            }
+            else
+            {
+               goto done ;
+            }
+         }
+         ++itSet ;
+      }
+
+      releaseRecord() ;
+      succeed = TRUE ;
+
+   done:
+      return succeed ;
    }
 
    void oldVersionContainer::setRecordDeleted()
    {
-      _isDeleted = TRUE ;
+      OSS_BIT_SET( _statMask, OLDVER_MASK_DELETED ) ;
    }
 
    void oldVersionContainer::setDiskDeleting()
    {
-      _isDiskDeleting = TRUE ;
+      OSS_BIT_SET( _statMask, OLDVER_MASK_DISK_DELETING ) ;
    }
 
    void oldVersionContainer::setRecordNew( UINT32 ownnerTID )
    {
-      _isNewRecord = TRUE ;
+      OSS_BIT_SET( _statMask, OLDVER_MASK_NEW_RECORD ) ;
       _ownnerTID = ownnerTID ;
    }
 
    BOOLEAN oldVersionContainer::isRecordNew() const
    {
-      return _isNewRecord ;
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_NEW_RECORD ) ;
    }
 
    void oldVersionContainer::setRecordDummy( UINT32 ownnerTID )
    {
-      _isDummyRecord = TRUE ;
+      OSS_BIT_SET( _statMask, OLDVER_MASK_DUMMY ) ;
       _ownnerTID = ownnerTID ;
    }
 
    BOOLEAN oldVersionContainer::isRecordDummy() const
    {
-      return _isDummyRecord ;
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_DUMMY ) ;
    }
 
    UINT32 oldVersionContainer::getOwnnerTID() const
@@ -1793,12 +1855,12 @@ namespace engine
 
    BOOLEAN oldVersionContainer::isRecordDeleted() const
    {
-      return _isDeleted ;
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_DELETED ) ;
    }
 
    BOOLEAN oldVersionContainer::isDiskDeleting() const
    {
-      return _isDiskDeleting ;
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_DISK_DELETING ) ;
    }
 
    // check if the index lid already exists in the set
@@ -1874,6 +1936,54 @@ namespace engine
       ossFetchAndDecrement32( &_lockCnt ) ;
    }
 
+   /*
+   oldVersionContainer* oldVersionContainer::newThis( const dmsRecordID &rid,
+                                                      INT32 csID,
+                                                      UINT16 clID,
+                                                      UINT32 csLID,
+                                                      UINT32 clLID )
+   {
+      oldVersionContainer *pOldVer = NULL ;
+      pOldVer = SDB_OSS_NEW oldVersionContainer( rid, csID, clID,
+                                                 csLID, clLID ) ;
+      if ( pOldVer )
+      {
+         ossFetchAndIncrement32( &(pOldVer->_refCount) ) ;
+      }
+
+      return pOldVer ;
+   }
+
+   oldVersionContainer* oldVersionContainer::copyThis()
+   {
+      INT32 oldRef = ossFetchAndIncrement32( &_refCount ) ;
+      if ( oldRef > 0 )
+      {
+         OSS_BIT_SET( _statMask, OLDVER_MASK_HAS_COPED ) ;
+         return this ;
+      }
+      else
+      {
+         SDB_ASSERT( oldRef > 0, "OldRef is invalid" ) ;
+      }
+      return NULL ;
+   }
+
+   void oldVersionContainer::releaseThis()
+   {
+      INT32 oldRef = ossFetchAndDecrement32( &_refCount ) ;
+      if ( oldRef <= 1 )
+      {
+         SDB_ASSERT( 1 == oldRef, "OldRef is invalid" ) ;
+         SDB_OSS_DEL this ;
+      }
+   }
+
+   BOOLEAN oldVersionContainer::hasCoped() const
+   {
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_HAS_COPED ) ;
+   }
+   */
 
 }  // end of namespace
 
