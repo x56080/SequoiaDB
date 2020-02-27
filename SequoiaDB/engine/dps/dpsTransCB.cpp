@@ -2794,11 +2794,16 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKGETX ) ;
 
-      PD_TRACE4( SDB_DPSTRANSCB_TRANSLOCKGETX, 
+      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETX, 
                  PD_PACK_UINT(logicCSID),
-                 PD_PACK_UINT(collectionID),
-                 PD_PACK_UINT(recordID->_extent),
-                 PD_PACK_UINT(recordID->_offset) ) ;
+                 PD_PACK_UINT(collectionID) ) ;
+      if ( recordID )
+      {
+         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETX, 
+                    PD_PACK_UINT(recordID->_extent),
+                    PD_PACK_UINT(recordID->_offset) ) ;
+      }
+
       if ( _isOn )
       {
          dpsTransLockId lockId( logicCSID, collectionID, recordID );
@@ -2868,12 +2873,18 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKGETS ) ;
 
-      PD_TRACE4( SDB_DPSTRANSCB_TRANSLOCKGETS, 
+      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETS, 
                  PD_PACK_UINT(logicCSID),
-                 PD_PACK_UINT(collectionID),
-                 PD_PACK_UINT(recordID->_extent),
-                 PD_PACK_UINT(recordID->_offset) ) ;
-      if ( !_isOn )
+                 PD_PACK_UINT(collectionID) ) ;
+
+      if ( recordID )
+      {
+         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETS, 
+                    PD_PACK_UINT(recordID->_extent),
+                    PD_PACK_UINT(recordID->_offset) ) ;
+      }
+
+      if ( _isOn )
       {
          dpsTransLockId lockId( logicCSID, collectionID, recordID );
          rc = _transLockMgr->acquire( eduCB->getTransExecutor(),
@@ -3182,11 +3193,15 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKTRYS ) ;
 
-      PD_TRACE4( SDB_DPSTRANSCB_TRANSLOCKTRYS, 
+      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKTRYS, 
                  PD_PACK_UINT(logicCSID),
-                 PD_PACK_UINT(collectionID),
-                 PD_PACK_UINT(recordID->_extent),
-                 PD_PACK_UINT(recordID->_offset) ) ;
+                 PD_PACK_UINT(collectionID) ) ;
+      if ( recordID )
+      {
+         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKGETS, 
+                    PD_PACK_UINT(recordID->_extent),
+                    PD_PACK_UINT(recordID->_offset) ) ;
+      }
 
       if ( _isOn )
       {
