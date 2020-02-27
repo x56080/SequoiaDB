@@ -287,7 +287,7 @@
          <en>1. It specifies local service port.<fig></fig>
              2. If it is not specified, the default value are 11810 for coord, 11800 for catalog, 11820 for datanode.</en>
          <cn>1. 指定本地服务端口。<fig></fig>
-             2. 如果不指定则默认为11810端口用于编目节点，11800用于协调节点，11820用于数据节点。</cn>
+             2. 如果不指定则默认为11810端口用于协调节点，11800用于编目节点，11820用于数据节点。</cn>
       </detail>
       <typeofweb>str</typeofweb>
    </opt>
