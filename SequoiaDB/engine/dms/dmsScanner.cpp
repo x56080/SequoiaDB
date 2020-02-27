@@ -525,7 +525,7 @@ namespace engine
 
       while ( DMS_INVALID_OFFSET != _next && 0 != _maxRecords )
       {
-         //skipDelete    = FALSE ;
+         _hasLockedRecord = FALSE ;
          recordData.reset() ;
          _curRID._offset = _next ;
          _recordRW = _pSu->record2RW( _curRID, _context->mbID() ) ;
@@ -811,6 +811,9 @@ namespace engine
       // make sure to detach the recordRW from callback
       _callback.detachRecordRW() ;
 
+      PD_TRACE2 ( SDB__DMSEXTSCAN__FETCHNEXT, 
+                  PD_PACK_UINT(recordID._extent),
+                  PD_PACK_UINT(recordID._offset) );
       PD_TRACE_EXITRC ( SDB__DMSEXTSCAN__FETCHNEXT, rc );
       return rc ;
    error:
@@ -1780,12 +1783,11 @@ namespace engine
       {
          _pTransCB->transLockRelease( cb, _pSu->logicalID(), _context->mbID(),
                                       &_curRID, &_callback ) ;
-         _hasLockedRecord = FALSE ;
       }
 
-      _hasLockedRecord = FALSE ;
       while ( _onceRestNum-- > 0 && 0 != _maxRecords )
       {
+         _hasLockedRecord = FALSE ;
          ignoredLock   = FALSE ;
          recordData.reset() ;
 
