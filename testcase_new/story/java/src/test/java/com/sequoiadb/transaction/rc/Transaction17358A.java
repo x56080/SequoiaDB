@@ -1,6 +1,7 @@
 package com.sequoiadb.transaction.rc;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -25,7 +26,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @author luweikang
  * @date 2019年1月15日
  */
-@Test(groups = "rc")
+@Test(groups = { "rc", "rr" })
 public class Transaction17358A extends SdbTestBase {
 
     private String clName = "transCL_17358A";
@@ -151,9 +152,7 @@ public class Transaction17358A extends SdbTestBase {
                     expDataList );
 
             // 事务1记录读，逆序查询
-            expDataList.clear();
-            expDataList.add( insertR2 );
-            expDataList.add( insertR1 );
+            Collections.reverse( expDataList );
             TransUtils.queryAndCheck( cl1, "{a: -1, b:1}", "{'': null}",
                     expDataList );
 
@@ -228,9 +227,7 @@ public class Transaction17358A extends SdbTestBase {
                     expDataList );
 
             // 事务2记录读，逆序查询
-            expDataList.clear();
-            expDataList.add( updateR2 );
-            expDataList.add( updateR1 );
+            Collections.reverse( expDataList );
             TransUtils.queryAndCheck( cl2, "{a: -1, b:1}", "{'': null}",
                     expDataList );
 
@@ -240,8 +237,13 @@ public class Transaction17358A extends SdbTestBase {
 
             // 事务3记录读，正序查询
             expDataList.clear();
-            expDataList.add( insertR1 );
-            expDataList.add( insertR2 );
+            if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+                expDataList.add( insertR1 );
+                expDataList.add( insertR2 );
+            } else {
+                expDataList.add( insertR1 );
+            }
+
             TransUtils.queryAndCheck( cl3, "{a:1, b:-1}", "{'': null}",
                     expDataList );
 
@@ -250,9 +252,7 @@ public class Transaction17358A extends SdbTestBase {
                     expDataList );
 
             // 事务3记录读，逆序查询
-            expDataList.clear();
-            expDataList.add( insertR2 );
-            expDataList.add( insertR1 );
+            Collections.reverse( expDataList );
             TransUtils.queryAndCheck( cl3, "{a:-1, b:1}", "{'': null}",
                     expDataList );
 
@@ -281,8 +281,13 @@ public class Transaction17358A extends SdbTestBase {
 
             // 事务3记录读，正序查询
             expDataList.clear();
-            expDataList.add( updateR1 );
-            expDataList.add( updateR2 );
+            if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+                expDataList.add( updateR1 );
+                expDataList.add( updateR2 );
+            } else {
+                expDataList.add( insertR1 );
+            }
+
             TransUtils.queryAndCheck( cl3, "{a: 1, b:-1}", "{'': null}",
                     expDataList );
 
@@ -291,9 +296,7 @@ public class Transaction17358A extends SdbTestBase {
                     expDataList );
 
             // 事务3记录读，逆序查询
-            expDataList.clear();
-            expDataList.add( updateR2 );
-            expDataList.add( updateR1 );
+            Collections.reverse( expDataList );
             TransUtils.queryAndCheck( cl3, "{a: -1, b:1}", "{'': null}",
                     expDataList );
 

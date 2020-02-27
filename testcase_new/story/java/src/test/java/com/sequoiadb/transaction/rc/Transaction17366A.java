@@ -1,6 +1,7 @@
 package com.sequoiadb.transaction.rc;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -26,7 +27,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @Date 2019-01-29
  * @Version 1.00
  */
-@Test(groups = "rc")
+@Test(groups = { "rc", "rr" })
 public class Transaction17366A extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_17366A";
@@ -135,9 +136,7 @@ public class Transaction17366A extends SdbTestBase {
             TransUtils.queryAndCheck( cl3, orderBy1, hintIxScan, expList );
 
             // 事务3逆序记录读
-            expList.clear();
-            expList.add( insertR2 );
-            expList.add( insertR1 );
+            Collections.reverse( expList );
             TransUtils.queryAndCheck( cl3, orderBy2, hintTbScan, expList );
 
             // 事务3逆序索引读
@@ -181,30 +180,38 @@ public class Transaction17366A extends SdbTestBase {
                     new ArrayList< BSONObject >() );
 
             // 事务2正序记录读
-            TransUtils.queryAndCheck( cl2, orderBy1, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            expList.clear();
+            if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+            } else {
+                expList.add( insertR1 );
+            }
+            TransUtils.queryAndCheck( cl2, orderBy1, hintTbScan, expList );
 
             // 事务2正序索引读
-            TransUtils.queryAndCheck( cl2, orderBy1, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl2, orderBy1, hintIxScan, expList );
 
             // 事务2逆序记录读
-            TransUtils.queryAndCheck( cl2, orderBy2, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl2, orderBy2, hintTbScan, expList );
 
             // 事务2逆序索引读
-            TransUtils.queryAndCheck( cl2, orderBy2, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl2, orderBy2, hintIxScan, expList );
 
             // 事务3正序记录读
             expList.clear();
-            expList.add( insertR2 );
+            if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+                expList.add( insertR2 );
+            } else {
+                expList.add( insertR1 );
+                expList.add( insertR2 );
+            }
+
             TransUtils.queryAndCheck( cl3, orderBy1, hintTbScan, expList );
 
             // 事务3正序索引读
             TransUtils.queryAndCheck( cl3, orderBy1, hintIxScan, expList );
 
             // 事务3逆序记录读
+            Collections.reverse( expList );
             TransUtils.queryAndCheck( cl3, orderBy2, hintTbScan, expList );
 
             // 事务3逆序索引读
@@ -230,20 +237,23 @@ public class Transaction17366A extends SdbTestBase {
                     new ArrayList< BSONObject >() );
 
             // 事务3正序记录读
-            TransUtils.queryAndCheck( cl3, orderBy1, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            expList.clear();
+            if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+            } else {
+                expList.add( insertR1 );
+                expList.add( insertR2 );
+            }
+            TransUtils.queryAndCheck( cl3, orderBy1, hintTbScan, expList );
 
             // 事务3正序索引读
-            TransUtils.queryAndCheck( cl3, orderBy1, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl3, orderBy1, hintIxScan, expList );
 
             // 事务3逆序记录读
-            TransUtils.queryAndCheck( cl3, orderBy2, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            Collections.reverse( expList );
+            TransUtils.queryAndCheck( cl3, orderBy2, hintTbScan, expList );
 
             // 事务3逆序索引读
-            TransUtils.queryAndCheck( cl3, orderBy2, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl3, orderBy2, hintIxScan, expList );
 
             // 提交事务3
             db3.commit();

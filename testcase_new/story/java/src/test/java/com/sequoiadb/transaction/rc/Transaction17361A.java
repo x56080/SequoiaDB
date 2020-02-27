@@ -1,6 +1,7 @@
 package com.sequoiadb.transaction.rc;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -20,12 +21,12 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
- * @Description seqDB-17360.java 插入与删除并发，
- *              删除的记录同时匹配已提交记录及其他事务插入的记录，删除走索引，事务回滚，过程中读 R1>R2
+ * @Description seqDB-17361:插入与删除并发， 删除的记录同时匹配已提交记录及其他事务插入的记录，事务回滚，过程中读，过程中读
+ *              R1>R2
  * @author luweikang
  * @date 2019年1月15日
  */
-@Test(groups = "rc")
+@Test(groups = { "rc" }) // SEQUOIADBMAINSTREAM-5538
 public class Transaction17361A extends SdbTestBase {
 
     private String clName = "transCL_17361A";
@@ -124,9 +125,7 @@ public class Transaction17361A extends SdbTestBase {
             TransUtils.queryAndCheck( cl1, orderBy1, hintIxScan, expDataList );
 
             // 事务1逆序记录读
-            expDataList.clear();
-            expDataList.add( insertR1 );
-            expDataList.add( insertR2 );
+            Collections.reverse( expDataList );
             TransUtils.queryAndCheck( cl1, orderBy2, hintTbScan, expDataList );
 
             // 事务1逆序索引读
@@ -189,17 +188,20 @@ public class Transaction17361A extends SdbTestBase {
 
             // 事务3正序记录读
             expDataList.clear();
-            expDataList.add( insertR2 );
-            expDataList.add( insertR1 );
+            if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+                expDataList.add( insertR2 );
+                expDataList.add( insertR1 );
+            } else {
+                expDataList.add( insertR1 );
+            }
+
             TransUtils.queryAndCheck( cl3, orderBy1, hintTbScan, expDataList );
 
             // 事务3正序索引读
             TransUtils.queryAndCheck( cl3, orderBy1, hintIxScan, expDataList );
 
             // 事务3逆序记录读
-            expDataList.clear();
-            expDataList.add( insertR1 );
-            expDataList.add( insertR2 );
+            Collections.reverse( expDataList );
             TransUtils.queryAndCheck( cl3, orderBy2, hintTbScan, expDataList );
 
             // 事务3逆序索引读
@@ -228,17 +230,19 @@ public class Transaction17361A extends SdbTestBase {
 
             // 事务3正序记录读
             expDataList.clear();
-            expDataList.add( insertR2 );
-            expDataList.add( insertR1 );
+            if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+                expDataList.add( insertR2 );
+                expDataList.add( insertR1 );
+            } else {
+                expDataList.add( insertR1 );
+            }
             TransUtils.queryAndCheck( cl3, orderBy1, hintTbScan, expDataList );
 
             // 事务3正序索引读
             TransUtils.queryAndCheck( cl3, orderBy1, hintIxScan, expDataList );
 
             // 事务3逆序记录读
-            expDataList.clear();
-            expDataList.add( insertR1 );
-            expDataList.add( insertR2 );
+            Collections.reverse( expDataList );
             TransUtils.queryAndCheck( cl3, orderBy2, hintTbScan, expDataList );
 
             // 事务3逆序索引读
