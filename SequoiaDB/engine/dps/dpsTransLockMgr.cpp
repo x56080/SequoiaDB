@@ -1229,11 +1229,7 @@ namespace engine
 
       SDB_ASSERT( _initialized, "dpsTransLockManager is not initialized." ) ;
 #else
-      PD_TRACE6( SDB_DPSTRANSLOCKMANAGER__TRYACQUIREORTEST,
-                 PD_PACK_UINT( lockId.csID() ),
-                 PD_PACK_UINT( lockId.clID() ),
-                 PD_PACK_UINT( lockId.extentID() ),
-                 PD_PACK_UINT( lockId.offset() ),
+      PD_TRACE2( SDB_DPSTRANSLOCKMANAGER__TRYACQUIREORTEST,
                  PD_PACK_BYTE( requestLockMode ),
                  PD_PACK_BYTE( opMode ) );
 #endif
