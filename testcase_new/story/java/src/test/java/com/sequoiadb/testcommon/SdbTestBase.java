@@ -18,6 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
+import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeSuite;
@@ -74,9 +76,9 @@ public class SdbTestBase {
     private static final int newIndexScanStep = 100;
     private static final int transReplsize = 1;
     public static final int timeOutLen = 120;
-    private static final Map< String, BSONObject > group2Conf = new HashMap<>();
-    private static final Map< String, AtomicInteger > group2Count = new HashMap<>();
-    private static final Map< String, BSONObject > node2Conf = new HashMap<>();
+    private static final Map< String, BSONObject > group2Conf = new HashMap< >();
+    private static final Map< String, AtomicInteger > group2Count = new HashMap< >();
+    private static final Map< String, BSONObject > node2Conf = new HashMap< >();
     private static boolean istransactionOn = true;
     private static BasicBSONObject confObj = new BasicBSONObject();
     public static List< String > coordUrls = new ArrayList<>();
@@ -328,6 +330,25 @@ public class SdbTestBase {
         if ( testGroup == null )
             return;
         System.out.println( "init " + testGroup + " Groups..........." );
+        if ( testGroup.equals( RR ) ) {
+            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
+                    options )) {
+                DBCursor snapshot = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS,
+                        "{'Role': 'coord'}", null, null );
+                if ( snapshot.hasNext() ) {
+                    BSONObject configs = snapshot.getNext();
+                    Object mvccon = configs.get( "mvccon" );
+                    Object globtranson = configs.get( "globtranson" );
+                    if ( !mvccon.equals( "TRUE" )
+                            || !globtranson.equals( "TRUE" ) ) {
+                        throw new SkipException(
+                                "mvccon or globtranson disable!" );
+                    }
+                } else {
+                    Assert.fail( "SDB_SNAP_CONFIGS is empty！" );
+                }
+            }
+        }
         modifyNodeConf( group2Conf.get( testGroup ), null );
     }
 
@@ -362,6 +383,18 @@ public class SdbTestBase {
             // sequoiadb.dropCollectionSpace(cappedCSName);
             // }
             // sdb.close() ;
+
+            // 检查事务快照
+            DBCursor cursor = sequoiadb
+                    .getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS, "", "", "" );
+            ArrayList< BSONObject > List = new ArrayList< >();
+            while ( cursor.hasNext() ) {
+                List.add( cursor.getNext() );
+            }
+            if ( !List.isEmpty() ) {
+                System.out.println( "SDB_SNAP_TRANSACTIONS in List:" + List );
+                Assert.fail( "SDB_SNAP_TRANSACTIONS is not empty！" );
+            }
 
         } catch ( BaseException e ) {
             e.printStackTrace();
