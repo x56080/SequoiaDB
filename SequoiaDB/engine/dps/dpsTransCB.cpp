@@ -2041,6 +2041,7 @@ namespace engine
                transFinished = TRUE ;
 
                // prepare history transaction info
+               histInfo._status = status ;
                histInfo._lsn = it->second._lsn ;
                histInfo._beginTime = it->second._beginTime ;
                if ( transID.isAutoCommit() )
