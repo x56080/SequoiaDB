@@ -16,9 +16,13 @@ function test()
    var nodeOption = { diaglevel: 3 };
    var nodes = commCreateRG( db, groupName, nodeNum, hostName, nodeOption );
 
+   //指定diaglevel创建节点会将此参数写入节点conf文件，由于后面会校验节点conf文件里的配置参数，将此参数从conf文件里删除，以便后面校验
+   var config = { "diaglevel": 1 };
+   var options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() }; 
+   deleteConf( db, config, options );
+
    //当前值为默认值，修改参数值为默认值
-   var config = getRandomRunConfig( "defaultVal" );
-   var options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() };
+   config = getRandomRunConfig( "defaultVal" );
    updateConf( db, config, options );
 
    var snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
@@ -36,7 +40,6 @@ function test()
 
    //当前值为默认值，修改参数值为其他值
    config = getRandomRunConfig( "validVal" );
-   options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() };
    updateConf( db, config, options );
 
    snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
@@ -53,9 +56,8 @@ function test()
    fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
    checkResult( config, fileInfo, true );
 
-   //当前值为其他值，修改参数值为无效值
+   //当前值为默认值，修改参数值为无效值
    config = getRandomRunConfig( "invalidVal" );
-   options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() };
    updateConf( db, config, options, -264 );
 
    config = getRandomRunConfig( "defaultVal" );

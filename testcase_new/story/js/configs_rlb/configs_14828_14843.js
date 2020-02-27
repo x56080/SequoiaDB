@@ -16,9 +16,14 @@ function test ()
    var nodeOption = { diaglevel: 3 };
    var nodes = commCreateRG( db, groupName, nodeNum, hostName, nodeOption );
    
+   //指定diaglevel创建节点会将此参数写入节点conf文件，由于后面会校验节点conf文件里的配置参数，将此参数从conf文件里删除，以便后面校验
+   var config = { "diaglevel": 1 };
+   var options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() };
+   deleteConf( db, config, options );
+
    // 更新多个run级别参数
-   var options = { GroupName: groupName };
-   var configs = getConfigs( "validVal" )[ "runConfigs" ];
+   options = { GroupName: groupName };
+   configs = getConfigs( "validVal" )[ "runConfigs" ];
    updateConf( db, configs, options );
 
    for( var i = 0; i < nodes.length; i++ )

@@ -15,8 +15,12 @@ function test()
    var nodeOption = { diaglevel: 3 };
    var nodes = commCreateRG( db, groupName, nodeNum, hostName, nodeOption );
 
-   var configs = { "transactionon": "TRUE" };
-   var options = { "HostName": hostName, "svcName": nodes[0].svcname.toString() };
+   //指定diaglevel创建节点会将此参数写入节点conf文件，由于后面会校验节点conf文件里的配置参数，将此参数从conf文件里删除，以便后面校验
+   var config = { "diaglevel": 1 };
+   var options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() };
+   deleteConf( db, config, options );
+
+   configs = { "transactionon": "TRUE" };
    updateConf( db, configs, options, -264 );
    check( nodes, configs );
 

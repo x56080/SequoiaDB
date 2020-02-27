@@ -16,13 +16,20 @@ function test()
    var hostName = commGetGroups ( db )[0][1].HostName;
    var nodeOption = { diaglevel: 3 };
    var nodes = commCreateRG( db, groupNames[0], nodeNum, hostName, nodeOption );
-   nodes = nodes.concat( commCreateRG( db, groupNames[1], nodeNum, hostName ) );
-   nodes = nodes.concat( commCreateRG( db, groupNames[2], nodeNum, hostName ) );
+   nodes = nodes.concat( commCreateRG( db, groupNames[1], nodeNum, hostName, nodeOption ) );
+   nodes = nodes.concat( commCreateRG( db, groupNames[2], nodeNum, hostName, nodeOption ) );
 
-   var index = Math.floor( Math.random() * 3 );
+   //指定diaglevel创建节点会将此参数写入节点conf文件，由于后面会校验节点conf文件里的配置参数，将此参数从conf文件里删除，以便后面校验
+   var config = { "diaglevel": 1 };
+   for( var i = 0; i < groupNames.length; i++ )
+   {
+      var options = { "HostName": nodes[i].hostname, "ServiceName": nodes[i].svcname.toString() };
+      deleteConf( db, config, options );
+   }
+
    //指定多个组批量更新不同级别的配置 
-   var configs = getConfigs( "validVal" )[ "allConfigs" ];
-   var options = { GroupName: groupNames };
+   configs = getConfigs( "validVal" )[ "allConfigs" ];
+   options = { GroupName: groupNames };
    updateConf ( db, configs, options, -264 );
 
    var runConfigs = getConfigs( "validVal" )[ "runConfigs" ];
@@ -52,13 +59,12 @@ function test()
    }
    
    //指定多个组批量删除不同级别的配置
-   var configs = getConfigs( "defaultVal" )[ "allConfigs" ];
-   var options = { GroupName: groupNames };
+   configs = getConfigs( "defaultVal" )[ "allConfigs" ];
    deleteConf( db, configs, options, -264 );
 
-   var runConfigs = getConfigs( "defaultVal" )[ "runConfigs" ];
-   var rebootConfigs = getConfigs( "defaultVal" )[ "rebootConfigs" ];
-   var runRebootConfigs = JSON.parse( ( JSON.stringify( runConfigs )+JSON.stringify( rebootConfigs ) ).replace( /}{/, ",") );
+   runConfigs = getConfigs( "defaultVal" )[ "runConfigs" ];
+   rebootConfigs = getConfigs( "defaultVal" )[ "rebootConfigs" ];
+   runRebootConfigs = JSON.parse( ( JSON.stringify( runConfigs )+JSON.stringify( rebootConfigs ) ).replace( /}{/, ",") );
 
    for( var i = 0; i < nodes.length; i++ )
    {
