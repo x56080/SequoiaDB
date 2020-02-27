@@ -149,6 +149,7 @@
         </groups>
         <packages>
             <package name="com.sequoiadb.transaction.rr" />
+            <package name="com.sequoiadb.transaction.rc" />
         </packages>
     </test>
 
