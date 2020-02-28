@@ -51,6 +51,7 @@ public class SdbTestBase {
     private static final String RCAUTO = "rcauto";
     private static final String RC = "rc";
     private static final String RR = "rr";
+    private static final String RRAUTO = "rrauto";
     private static final String NODENAME = "NodeName";
     private static final Map< String, BSONObject > group2Conf = new HashMap< >();
     private static final Map< String, BSONObject > node2Conf = new HashMap< >();
@@ -152,6 +153,13 @@ public class SdbTestBase {
         group2Conf.get( RR ).put( MVCCON, true );
         group2Conf.get( RR ).put( TRANSUSERBS, true );
         group2Conf.get( RR ).put( GLOBTRANSON, true );
+        
+        group2Conf.put( RRAUTO, new BasicBSONObject() );
+        group2Conf.get( RRAUTO ).put( TRANSISOLATION, 3 );
+        group2Conf.get( RRAUTO ).put( TRANSAUTOCOMMIT, true );
+        group2Conf.get( RRAUTO ).put( TRANSAUTOROLLBACK, false );
+        group2Conf.get( RRAUTO ).put( MVCCON, true );
+        group2Conf.get( RRAUTO ).put( GLOBTRANSON, true );
 
         for ( String key : group2Conf.keySet() ) {
             groupName2Count.put( key, new AtomicInteger( 0 ) );
