@@ -68,6 +68,7 @@ public class SdbTestBase {
     public static final String RCUSERBS = "rcuserbs";
     public static final String TRANSREPLSIZE = "transreplsize";
     public static final String RR = "rr";
+    public static final String RRAUTO = "rrauto";
     public static final String MVCCON = "mvccon";
     public static final String GLOBTRANSON = "globtranson";
 
@@ -154,6 +155,17 @@ public class SdbTestBase {
         group2Conf.get( RR ).put( TRANSUSERBS, true );
         group2Conf.get( RR ).put( MVCCON, true );
         group2Conf.get( RR ).put( GLOBTRANSON, true );
+
+        group2Conf.put( RRAUTO, new BasicBSONObject() );
+        group2Conf.get( RRAUTO ).put( TRANSISOLATION, 3 );
+        group2Conf.get( RRAUTO ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RRAUTO ).put( INDEXSCANSTEP, newIndexScanStep );
+        group2Conf.get( RRAUTO ).put( TRANSTIMEOUT, timeOutLen );
+        group2Conf.get( RRAUTO ).put( TRANSAUTOCOMMIT, true );
+        group2Conf.get( RRAUTO ).put( TRANSAUTOROLLBACK, false );
+        group2Conf.get( RRAUTO ).put( TRANSUSERBS, true );
+        group2Conf.get( RRAUTO ).put( MVCCON, true );
+        group2Conf.get( RRAUTO ).put( GLOBTRANSON, true );
 
         for ( String key : group2Conf.keySet() ) {
             group2Count.put( key, new AtomicInteger( 0 ) );
@@ -325,12 +337,13 @@ public class SdbTestBase {
         }
     }
 
-    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS, RR })
+    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS, RR,
+            RRAUTO })
     public static synchronized void initTestGroups() {
         if ( testGroup == null )
             return;
         System.out.println( "init " + testGroup + " Groups..........." );
-        if ( testGroup.equals( RR ) ) {
+        if ( testGroup.equals( RR ) || testGroup.equals( RRAUTO ) ) {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
                     options )) {
                 DBCursor snapshot = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS,
