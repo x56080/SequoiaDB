@@ -19,9 +19,9 @@ import com.sequoiadb.transaction.TransUtils;
  * @date 2020.1.15
  */
 @Test(groups = "rr")
-public class Transaction20449 extends SdbTestBase {
+public class Transaction20449B extends SdbTestBase {
 
-    private String clName = "transCL_20449";
+    private String clName = "transCL_20449B";
     private Sequoiadb sdb = null;
     private Sequoiadb TR1 = null;
     private Sequoiadb TW1 = null;
@@ -58,16 +58,16 @@ public class Transaction20449 extends SdbTestBase {
         TW1.beginTransaction();
         clTW1.upsert(
                 ( BSONObject ) JSON.parse( "{'a': {'$gte': 0, '$lt': 1000}}" ),
-                ( BSONObject ) JSON.parse(
-                        "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r3s'}}" ),
+                ( BSONObject ) JSON
+                        .parse( "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r3s'}}" ),
                 ( BSONObject ) JSON.parse( "{'': 'a'}" ) );
         clTW1.upsert(
                 ( BSONObject ) JSON
                         .parse( "{'a': {'$gte': 2000, '$lt': 3000}}" ),
-                ( BSONObject ) JSON.parse(
-                        "{'$inc':{a: 1}, '$set': {'b': 'update r2s to r4s'}}" ),
+                ( BSONObject ) JSON
+                        .parse( "{'$inc':{a: 1}, '$set': {'b': 'update r2s to r4s'}}" ),
                 ( BSONObject ) JSON.parse( "{'': 'a'}" ) );
-        TW1.commit();
+        TW1.rollback();
 
         // 1 trans TR1 read
         TR1.beginTransaction();

@@ -1,5 +1,6 @@
 package com.sequoiadb.transaction.rr;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -16,14 +17,15 @@ import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @Description seqDB-20448
- *              读事务中使用update、remove、findAndUpdate、findAndRemove，未匹配到记录更新及删除，隔离级别验证
+ *              读事务中使用update、remove、findAndUpdate、findAndRemove，未匹配到记录更新及删除，
+ *              隔离级别验证
  * @author luweikang
  * @date 2020.1.15
  */
 @Test(groups = "rr")
-public class Transaction20448 extends SdbTestBase {
+public class Transaction20448B extends SdbTestBase {
 
-    private String clName = "transCL_20448";
+    private String clName = "transCL_20448B";
     private Sequoiadb sdb = null;
     private Sequoiadb T1 = null;
     private Sequoiadb T2 = null;
@@ -41,7 +43,7 @@ public class Transaction20448 extends SdbTestBase {
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 
-    @Test
+    @Test(enabled = false)
     public void test() throws InterruptedException {
         T1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         T2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
@@ -60,7 +62,7 @@ public class Transaction20448 extends SdbTestBase {
         T2.beginTransaction();
         clT2.update( "{'a': {'$gte': 0, '$lt': 1000}}", "{'$inc': {'a': 1000}}",
                 "{'': 'a'}" );
-        T2.commit();
+        T2.rollback();
 
         // T1 read
         TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
@@ -93,10 +95,11 @@ public class Transaction20448 extends SdbTestBase {
         }
         cur1.close();
 
+        List< BSONObject > t1ExpList = new ArrayList< >();
         TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': null}", expDataList );
+                "{'_id': 1}", "{'': null}", t1ExpList );
         TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': 'a'}", expDataList );
+                "{'_id': 1}", "{'': 'a'}", t1ExpList );
 
         T1.commit();
     }

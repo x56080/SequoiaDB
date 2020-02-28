@@ -502,11 +502,12 @@ public class TransUtils extends SdbTestBase {
      * @param csName
      * @param hashCLName
      */
-    public static void createHashCL( Sequoiadb sdb, String csName,
+    public static DBCollection createHashCL( Sequoiadb sdb, String csName,
             String hashCLName ) {
-        sdb.getCollectionSpace( csName ).createCollection( hashCLName,
-                ( BSONObject ) JSON.parse(
+        DBCollection hashCL = sdb.getCollectionSpace( csName )
+                .createCollection( hashCLName, ( BSONObject ) JSON.parse(
                         "{ShardingKey:{_id:1}, ShardingType:'hash', AutoSplit:true}" ) );
+        return hashCL;
     }
 
     /**
@@ -522,7 +523,7 @@ public class TransUtils extends SdbTestBase {
      * @param sep
      *            主表的切分范围为(min - sep)(sep - max)
      */
-    public static void createMainCL( Sequoiadb sdb, String csName,
+    public static DBCollection createMainCL( Sequoiadb sdb, String csName,
             String mainCLName, String subCLName1, String subCLName2, int sep ) {
         DBCollection mainCL = sdb.getCollectionSpace( csName )
                 .createCollection( mainCLName, ( BSONObject ) JSON.parse(
@@ -538,6 +539,8 @@ public class TransUtils extends SdbTestBase {
         mainCL.attachCollection( csName + "." + subCLName2,
                 ( BSONObject ) JSON.parse( "{LowBound:{_id:" + sep
                         + "}, UpBound:{_id:{'$maxKey':1}}}" ) );
+
+        return mainCL;
     }
 
     /**

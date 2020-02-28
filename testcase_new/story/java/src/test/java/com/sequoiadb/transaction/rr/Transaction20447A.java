@@ -19,9 +19,9 @@ import com.sequoiadb.transaction.TransUtils;
  * @date 2020.1.15
  */
 @Test(groups = "rr")
-public class Transaction20447 extends SdbTestBase {
+public class Transaction20447A extends SdbTestBase {
 
-    private String clName = "transCL_20447";
+    private String clName = "transCL_20447A";
     private Sequoiadb sdb = null;
     private Sequoiadb T1 = null;
     private Sequoiadb T2 = null;
@@ -86,7 +86,7 @@ public class Transaction20447 extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         clT1.delete( "{'a': {'$gte': 1000, '$lt': 2000}}", "{'': 'a'}" );
-        List< BSONObject > T1ExpList = new ArrayList<>();
+        List< BSONObject > T1ExpList = new ArrayList< >();
         T1ExpList.addAll( expDataList );
         TransUtils.removeList( T1ExpList, 1000, 1999 );
 

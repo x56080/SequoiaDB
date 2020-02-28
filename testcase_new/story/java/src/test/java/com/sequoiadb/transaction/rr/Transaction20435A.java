@@ -4,12 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -21,9 +25,13 @@ import com.sequoiadb.transaction.TransUtils;
  * @date 2020.1.15
  */
 @Test(groups = "rr")
-public class Transaction20435 extends SdbTestBase {
+public class Transaction20435A extends SdbTestBase {
 
-    private String clName = "transCL_20435";
+    private String clName = "transCL_20435A";
+    private String mainCLName = "mainCL_20435A";
+    private String subCLName1 = "subCL_20435A_1";
+    private String subCLName2 = "subCL_20435A_2";
+    private String hashCLName = "hashCL_20435A";
     private Sequoiadb sdb = null;
     private Sequoiadb TR1 = null;
     private Sequoiadb TW1 = null;
@@ -55,16 +63,40 @@ public class Transaction20435 extends SdbTestBase {
     private int recordNum = 4000;
     private List< BSONObject > expDataList = null;
 
+    @DataProvider(name = "clNameProvider", parallel = false)
+    public Object[][] generateCLName() {
+        return new Object[][] {
+                // the parameter is clname
+                new Object[] { clName, "{a: -1}" },
+                new Object[] { mainCLName, "{a: -1}" },
+                new Object[] { hashCLName, "{a: 1}" } };
+    }
+
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        cl.createIndex( "a", "{a:1}", false, false );
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        DBCollection cl = cs.createCollection( clName );
+        if ( !CommLib.isStandAlone( sdb ) ) {
+            DBCollection hashCL = TransUtils.createHashCL( sdb, csName,
+                    hashCLName );
+            DBCollection mainCL = TransUtils.createMainCL( sdb, csName,
+                    mainCLName, subCLName1, subCLName2, 500 );
+            TransUtils.prepareDatas( sdb, hashCL, recordNum );
+            TransUtils.prepareDatas( sdb, mainCL, recordNum );
+        }
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 
-    @Test
-    public void test() {
+    @Test(dataProvider = "clNameProvider")
+    public void test( String clName, String indexKey ) {
+        if ( CommLib.isStandAlone( sdb ) ) {
+            if ( clName.equals( mainCLName ) || clName.equals( hashCLName ) )
+                throw new SkipException( "is standalone skip testcase!" );
+        }
+
+        cl = sdb.getCollectionSpace( csName ).getCollection( clName );
+        cl.createIndex( "a", indexKey, false, false );
         TW1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         TW2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         TW3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
