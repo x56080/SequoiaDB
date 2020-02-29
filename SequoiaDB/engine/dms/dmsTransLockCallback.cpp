@@ -620,6 +620,17 @@ namespace engine
             goto done ;
          }
 
+         /// from memory tree
+         if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
+              SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() )
+         {
+            _skipRecord = TRUE ;
+            /// remove the duplicate rid
+            _pScanner->removeDuplicatRID( _oldVer->getRecordID() ) ;
+            _oldVer = NULL ;
+            goto done ;
+         }
+
          /// when pExtData->_data is 0, should create oldver
          if ( 0 == pExtData->_data )
          {
@@ -655,17 +666,6 @@ namespace engine
             SDB_ASSERT( _oldVer->getRecordID() ==
                         dmsRecordID(lockId.extentID(), lockId.offset()),
                         "LockID is not the same" ) ;
-
-            /// from memory tree
-            if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
-                 SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() )
-            {
-               _skipRecord = TRUE ;
-               /// remove the duplicate rid
-               _pScanner->removeDuplicatRID( _oldVer->getRecordID() ) ;
-               _oldVer = NULL ;
-               goto done ;
-            }
 
             /// check the record whether is deleted
             if ( DPS_TRANSLOCK_X == requestLockMode )
