@@ -9,7 +9,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.CommLib;
 import com.sequoiadb.commlib.GroupMgr;
@@ -39,6 +38,7 @@ public class Transaction18835 extends SdbTestBase {
     private String subCLName2 = "subcl18835_2";
     private GroupMgr groupMgr;
     private List< String > groupNames;
+    private int sum = 100000000;
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
@@ -71,7 +71,7 @@ public class Transaction18835 extends SdbTestBase {
         return new Object[][] { { hashCLName }, { mainCLName } };
     }
 
-    @Test(dataProvider = "getCL", enabled = false)//SEQUOIADBMAINSTREAM-4829
+    @Test(dataProvider = "getCL", enabled = false) // SEQUOIADBMAINSTREAM-4829
     public void test( String clName )
             throws ReliabilityException, InterruptedException {
         // 正常重启一个数据主节点
@@ -102,10 +102,7 @@ public class Transaction18835 extends SdbTestBase {
                 "GROUP ERROR" );
 
         // 待集群正常后，查询所有账户的金额总和
-        DBCursor cursor = sdb.exec( "select sum(balance) as balance from "
-                + csName + "." + clName );
-        double balance = ( double ) cursor.getNext().get( "balance" );
-        cursor.close();
-        Assert.assertEquals( ( int ) balance, 100000000 );
+        TransUtil.checkSum( sdb, csName, clName, sum,
+                this.getClass().getName() );
     }
 }

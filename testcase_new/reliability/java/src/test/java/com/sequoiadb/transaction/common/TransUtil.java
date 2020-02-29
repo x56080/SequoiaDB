@@ -8,6 +8,7 @@ import java.util.TimerTask;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
+import org.testng.Assert;
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
@@ -246,6 +247,36 @@ public class TransUtil {
     public static void cleanEnv( Sequoiadb sdb, String csName,
             String... clNames ) throws InterruptedException {
         cleanEnv( sdb, csName, false, clNames );
+    }
+
+    /**
+     * 检查账户总和是否与预期相等
+     * 
+     * @param sdb
+     * @param csName
+     * @param clName
+     * @throws InterruptedException
+     */
+    public static void checkSum( Sequoiadb db, String csName, String clName,
+            int sum, String className ) throws InterruptedException {
+        int count = 0;
+        int checkTimes = 1800;
+        while ( count++ < checkTimes ) {
+            DBCursor cursor = db.exec( "select sum(balance) as balance from "
+                    + csName + "." + clName );
+            double balance = ( double ) cursor.getNext().get( "balance" );
+            cursor.close();
+            if ( sum != ( int ) balance ) {
+                if ( count == checkTimes ) {
+                    System.out.println( "testCase name:" + className
+                            + " amount of general ledger: " + balance );
+                    Assert.fail( "check amount of general ledger timeout..." );
+                }
+                Thread.sleep( 1000 );
+                continue;
+            }
+            break;
+        }
     }
 
     /**
