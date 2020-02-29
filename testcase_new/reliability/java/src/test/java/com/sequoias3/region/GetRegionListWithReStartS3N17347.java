@@ -1,5 +1,14 @@
 package com.sequoias3.region;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -13,18 +22,10 @@ import com.sequoias3.commlibs3.s3utils.RegionUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.Region;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * test content: 获取区域列表过程中sequoiaS3端节点异常 testlink-case: seqDB-17347
- * 
+ *
  * @author wangkexin
  * @Date 2019.05.10
  * @version 1.00
@@ -111,6 +112,10 @@ public class GetRegionListWithReStartS3N17347 extends S3TestBase {
             } catch ( SdkClientException e ) {
                 if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
+                    throw e;
+                }
+            } catch ( Exception e ) {
+                if ( !e.getMessage().contains( "I/O error on POST request" ) ) {
                     throw e;
                 }
             }

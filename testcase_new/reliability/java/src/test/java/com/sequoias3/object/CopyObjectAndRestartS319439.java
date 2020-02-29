@@ -134,6 +134,10 @@ public class CopyObjectAndRestartS319439 extends S3TestBase {
                         .contains( "Unable to execute HTTP request" ) ) {
                     throw e;
                 }
+            } catch ( Exception e ) {
+                if ( !e.getMessage().contains( "I/O error on POST request" ) ) {
+                    throw e;
+                }
             } finally {
                 if ( s3 != null ) {
                     s3.shutdown();

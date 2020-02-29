@@ -1,5 +1,17 @@
 package com.sequoias3.partupload;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -17,21 +29,10 @@ import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.PartUploadUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * test content: 查询桶分段上传列表过程中sequoiaS3异常 testlink-case: seqDB-18790
- * 
+ *
  * @author wangkexin
  * @Date 2019.08.16
  * @version 1.00
@@ -42,7 +43,8 @@ public class ListMultipartUploadsWithReStartS3N18790 extends S3TestBase {
     private int keyNum = 20;
     private AmazonS3 s3Client = null;
     private long fileSize = 100 * 1024 * 1024;
-    MultiValueMap< String, String > expUploads = new LinkedMultiValueMap< String, String >();
+    MultiValueMap< String, String > expUploads = new LinkedMultiValueMap<
+            String, String >();
     private File localPath = null;
     private String filePath = null;
     private boolean runSuccess = false;
@@ -102,7 +104,8 @@ public class ListMultipartUploadsWithReStartS3N18790 extends S3TestBase {
             AmazonS3 s3Client = CommLibS3.buildS3Client();
             try {
                 Thread.sleep( 1000 );
-                ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
+                ListMultipartUploadsRequest request = new
+                        ListMultipartUploadsRequest(
                         bucketName );
                 MultipartUploadListing partUploadList = s3Client
                         .listMultipartUploads( request );
@@ -116,6 +119,10 @@ public class ListMultipartUploadsWithReStartS3N18790 extends S3TestBase {
             } catch ( SdkClientException e ) {
                 if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
+                    throw e;
+                }
+            } catch ( Exception e ) {
+                if ( !e.getMessage().contains( "I/O error on POST request" ) ) {
                     throw e;
                 }
             } finally {

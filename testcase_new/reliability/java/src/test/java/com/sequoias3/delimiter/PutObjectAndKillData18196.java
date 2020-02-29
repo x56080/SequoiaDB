@@ -1,5 +1,18 @@
 package com.sequoias3.delimiter;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.BucketVersioningConfiguration;
@@ -20,18 +33,6 @@ import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.DelimiterUtils;
 
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 /**
  * @Description seqDB-18196 ::开启版本控制，创建对象过程中sdb端节点故障
  * @author wuyan
@@ -48,7 +49,8 @@ public class PutObjectAndKillData18196 extends S3TestBase {
     private String delimiter = "?";
     private String objectNameBase = "PutObject18196";
     private List< String > objectNames = new ArrayList< String >();
-    private List< String > objectNameList = new CopyOnWriteArrayList< String >();
+    private List< String > objectNameList = new CopyOnWriteArrayList< String
+            >();
     private File localPath = null;
 
     @BeforeClass
@@ -143,7 +145,7 @@ public class PutObjectAndKillData18196 extends S3TestBase {
                 if ( e.getStatusCode() != 500 ) {
                     throw new Exception( objectName, e );
                 }
-            } catch ( Exception e ) {
+            } catch ( SdkClientException e ) {
                 if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
                     throw new Exception( objectName, e );

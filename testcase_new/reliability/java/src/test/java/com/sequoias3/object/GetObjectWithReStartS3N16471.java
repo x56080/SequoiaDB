@@ -1,5 +1,17 @@
 package com.sequoias3.object;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -13,17 +25,6 @@ import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.ObjectUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @Description seqDB-16471:获取对象过程中SequiaS3Client端异常
@@ -36,7 +37,8 @@ public class GetObjectWithReStartS3N16471 extends S3TestBase {
     private String bucketName = "bucket16471";
     private String objectNameBase = "aa/bb/object16471";
     private List< String > objectNames = new ArrayList< String >();
-    private List< String > objectNameList = new CopyOnWriteArrayList< String >();
+    private List< String > objectNameList = new CopyOnWriteArrayList< String
+            >();
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * new Random().nextInt( 1025 );
     private int objectNums = 1024;
@@ -118,6 +120,10 @@ public class GetObjectWithReStartS3N16471 extends S3TestBase {
             } catch ( SdkClientException e ) {
                 if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
+                    throw e;
+                }
+            } catch ( Exception e ) {
+                if ( !e.getMessage().contains( "I/O error on POST request" ) ) {
                     throw e;
                 }
             }

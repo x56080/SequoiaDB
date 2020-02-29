@@ -1,5 +1,15 @@
 package com.sequoias3.partupload;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -17,15 +27,6 @@ import com.sequoias3.commlibs3.s3utils.ObjectUtils;
 import com.sequoias3.commlibs3.s3utils.PartUploadUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @Description seqDB-18787 :不存在为1的分段号，完成分段上传过程中SequoiaS3节点异常
@@ -115,6 +116,10 @@ public class CompleteMultipartUploadAndS3ReStart18787 extends S3TestBase {
                 if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
                     throw new Exception( keyName, e );
+                }
+            } catch ( Exception e ) {
+                if ( !e.getMessage().contains( "I/O error on POST request" ) ) {
+                    throw e;
                 }
             } finally {
                 if ( s3Client1 != null ) {

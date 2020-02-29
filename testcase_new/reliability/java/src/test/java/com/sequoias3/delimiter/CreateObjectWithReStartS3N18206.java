@@ -1,5 +1,17 @@
 package com.sequoias3.delimiter;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -15,21 +27,10 @@ import com.sequoias3.commlibs3.s3utils.ObjectUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.UserUtils;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * test content: 创建对象过程中s3节点异常 testlink-case: seqDB-18206
- * 
+ *
  * @author wangkexin
  * @Date 2019.05.23
  * @version 1.00
@@ -42,7 +43,8 @@ public class CreateObjectWithReStartS3N18206 extends S3TestBase {
     private String objectName = "object18206";
     private String content = "content18206";
     private List< String > objectNames = new ArrayList< String >();
-    private List< String > putObjectNameList = new CopyOnWriteArrayList< String >();
+    private List< String > putObjectNameList = new CopyOnWriteArrayList<
+            String >();
     private String roleName = "normal";
     private String[] accessKeys = null;
     private AmazonS3 s3Client = null;
@@ -114,6 +116,10 @@ public class CreateObjectWithReStartS3N18206 extends S3TestBase {
             } catch ( SdkClientException e ) {
                 if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
+                    throw e;
+                }
+            } catch ( Exception e ) {
+                if ( !e.getMessage().contains( "I/O error on POST request" ) ) {
                     throw e;
                 }
             } finally {

@@ -1,7 +1,23 @@
 package com.sequoias3.delimiter;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
@@ -14,16 +30,6 @@ import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.DelimiterUtils;
 import com.sequoias3.commlibs3.s3utils.ObjectUtils;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @Description seqDB-18198 :: 增加对象过程中db端节点异常
@@ -41,7 +47,8 @@ public class PutObjectWithKillCoord18198 extends S3TestBase {
     private String objectNameBase = "object18198?";
     private String delimiter = "?";
     private List< String > objectNames = new ArrayList< String >();
-    private List< String > objectNameList = new CopyOnWriteArrayList< String >();
+    private List< String > objectNameList = new CopyOnWriteArrayList< String
+            >();
     private File localPath = null;
     private GroupMgr groupMgr = null;
     private GroupWrapper coordGroup = null;
@@ -124,8 +131,16 @@ public class PutObjectWithKillCoord18198 extends S3TestBase {
                         new File( filePath ) );
                 objectNameList.add( this.objectName );
             } catch ( AmazonS3Exception e ) {
-                if ( e.getStatusCode() != 500 && !e.getMessage()
+                if ( e.getStatusCode() != 500 ) {
+                    throw e;
+                }
+            } catch ( SdkClientException e ) {
+                if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
+                    throw new Exception( objectName, e );
+                }
+            } catch ( Exception e ) {
+                if ( !e.getMessage().contains( "I/O error on POST request" ) ) {
                     throw e;
                 }
             }

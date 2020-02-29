@@ -10,6 +10,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
@@ -127,7 +128,7 @@ public class UploadPartWithBrokenNet18783 extends S3TestBase {
                 if ( e.getStatusCode() != 500 ) {
                     throw e;
                 }
-            } catch ( Exception e ) {
+            } catch ( SdkClientException e ) {
                 if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
                     throw e;

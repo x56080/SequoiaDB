@@ -1,5 +1,13 @@
 package com.sequoias3.privilege;
 
+import java.io.File;
+import java.io.IOException;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -16,13 +24,6 @@ import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.PrivilegeUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
 
 /**
  * @Description seqDB-19485 :获取对象acl过程中s3节点异常
@@ -120,6 +121,10 @@ public class SetObjectAclAndS3ReStart19485 extends S3TestBase {
                 if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
                     throw new Exception( "keyName : " + keyName, e );
+                }
+            } catch ( Exception e ) {
+                if ( !e.getMessage().contains( "I/O error on POST request" ) ) {
+                    throw e;
                 }
             } finally {
                 if ( s3 != null ) {

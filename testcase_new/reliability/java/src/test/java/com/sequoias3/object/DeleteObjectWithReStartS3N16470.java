@@ -1,5 +1,16 @@
 package com.sequoias3.object;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -12,16 +23,6 @@ import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 
 /**
  * @Description seqDB-16470 ::开启版本控制，删除对象过程中SequiaS3Client端异常
@@ -123,6 +124,11 @@ public class DeleteObjectWithReStartS3N16470 extends S3TestBase {
                 } catch ( SdkClientException e ) {
                     if ( !e.getMessage()
                             .contains( "Unable to execute HTTP request" ) ) {
+                        throw e;
+                    }
+                } catch ( Exception e ) {
+                    if ( !e.getMessage()
+                            .contains( "I/O error on POST request" ) ) {
                         throw e;
                     }
                 }

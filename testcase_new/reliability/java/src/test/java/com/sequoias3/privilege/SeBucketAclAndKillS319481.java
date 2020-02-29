@@ -39,7 +39,8 @@ public class SeBucketAclAndKillS319481 extends S3TestBase {
     private String bucketNameBase = "bucket" + tcId + "a";
     private List< String > bucketNames = new ArrayList<>();
     private Grant grant;
-    private List< String > setBucketAclFailList = new CopyOnWriteArrayList< String >();
+    private List< String > setBucketAclFailList = new CopyOnWriteArrayList<
+            String >();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -126,6 +127,10 @@ public class SeBucketAclAndKillS319481 extends S3TestBase {
                 setBucketAclFailList.add( bucketName );
                 if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
+                    throw e;
+                }
+            } catch ( Exception e ) {
+                if ( !e.getMessage().contains( "I/O error on POST request" ) ) {
                     throw e;
                 }
             } finally {
