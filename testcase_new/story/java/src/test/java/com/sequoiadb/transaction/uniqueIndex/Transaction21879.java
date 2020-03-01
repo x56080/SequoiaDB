@@ -22,7 +22,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @date 2019年1月15日
  */
 @Test(groups = { "rc", "ru", "rcuserbs" })
-public class Transaction17122 extends SdbTestBase {
+public class Transaction21879 extends SdbTestBase {
 
     private String clName = "transCL_17122";
     private Sequoiadb sdb = null;
@@ -59,7 +59,7 @@ public class Transaction17122 extends SdbTestBase {
     }
 
     @Test
-    public void test1() {
+    public void test() {
 
         sdb.beginTransaction();
 
@@ -95,10 +95,8 @@ public class Transaction17122 extends SdbTestBase {
         Assert.assertEquals( actDataList, expDataList );
         actDataList.clear();
 
-    }
-
-    @Test
-    public void test2() {
+        cl.delete( "{'a': {'$isnull' :0}}" );
+        Assert.assertEquals( cl.getCount(), 0 );
 
         sdb.beginTransaction();
 
