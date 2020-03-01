@@ -626,7 +626,8 @@ namespace engine
          {
             _skipRecord = TRUE ;
             /// remove the duplicate rid
-            _pScanner->removeDuplicatRID( _oldVer->getRecordID() ) ;
+            _pScanner->removeDuplicatRID( dmsRecordID( lockId.extentID(),
+                                                       lockId.offset() ) ) ;
             _oldVer = NULL ;
             goto done ;
          }
