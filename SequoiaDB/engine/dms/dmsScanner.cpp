@@ -1783,8 +1783,10 @@ namespace engine
       {
          _pTransCB->transLockRelease( cb, _pSu->logicalID(), _context->mbID(),
                                       &_curRID, &_callback ) ;
+         _hasLockedRecord = FALSE ;
       }
 
+      _hasLockedRecord = FALSE ;
       while ( _onceRestNum-- > 0 && 0 != _maxRecords )
       {
          _hasLockedRecord = FALSE ;
