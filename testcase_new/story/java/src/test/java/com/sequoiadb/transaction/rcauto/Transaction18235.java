@@ -26,7 +26,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @author luweikang
  *
  */
-@Test(groups = "rcauto")
+@Test(groups = { "rcauto", "rrauto" })
 public class Transaction18235 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb sdb1;

@@ -27,10 +27,11 @@ import com.sequoiadb.transaction.TransUtils;
  * @author yinzhen
  *
  */
-@Test(groups = "rcauto")
+@Test(groups = { "rcauto", "rrauto" })
 public class Transaction18228 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl18228";
+    private CollectionSpace cs = null;
     private DBCollection cl = null;
     private List< BSONObject > expList = new ArrayList<>();
 
@@ -44,17 +45,14 @@ public class Transaction18228 extends SdbTestBase {
             throw new SkipException( "less than two groups" );
         }
 
-        cl = sdb.getCollectionSpace( csName ).createCollection( clName,
-                ( BSONObject ) JSON.parse(
-                        "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}" ) );
+        cs = sdb.getCollectionSpace( csName );
+        cl = cs.createCollection( clName, ( BSONObject ) JSON.parse(
+                "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}" ) );
     }
 
     @AfterClass
     public void tearDown() {
-        CollectionSpace cs = sdb.getCollectionSpace( csName );
-        if ( cs.isCollectionExist( clName ) ) {
-            cs.dropCollection( clName );
-        }
+        cs.dropCollection( clName );
         if ( !sdb.isClosed() ) {
             sdb.close();
         }
@@ -74,6 +72,8 @@ public class Transaction18228 extends SdbTestBase {
 
         DBCursor cursor = cl.query( "", "", "{a:1, b:1}", "" );
         List< BSONObject > actList = TransUtils.getReadActList( cursor );
+        System.out.println( "actList:" + actList );
+        System.out.println( "expList:" + expList );
         Assert.assertEquals( actList, expList );
 
         // 使用update批量更新记录R1s为R2s，过程中某条记录由于唯一索引键与R2冲突导致更新失败，更新操作走索引
@@ -88,6 +88,7 @@ public class Transaction18228 extends SdbTestBase {
         cursor = cl.query( "", "", "{a:1,b:1}", "" );
         actList = TransUtils.getReadActList( cursor );
         Assert.assertEquals( actList, expList );
+
     }
 
     private void insertData() {

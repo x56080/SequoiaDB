@@ -27,10 +27,11 @@ import com.sequoiadb.transaction.TransUtils;
  * @author yinzhen
  *
  */
-@Test(groups = "rcauto")
+@Test(groups = { "rcauto", "rrauto" })
 public class Transaction18227 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl18227";
+    private CollectionSpace cs = null;
     private DBCollection cl = null;
     private List< BSONObject > expList = new ArrayList<>();
 
@@ -44,17 +45,15 @@ public class Transaction18227 extends SdbTestBase {
             throw new SkipException( "less than two groups" );
         }
 
-        cl = sdb.getCollectionSpace( csName ).createCollection( clName,
-                ( BSONObject ) JSON.parse(
-                        "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}" ) );
+        cs = sdb.getCollectionSpace( csName );
+        cl = cs.createCollection( clName, ( BSONObject ) JSON.parse(
+                "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}" ) );
+
     }
 
     @AfterClass
     public void tearDown() {
-        CollectionSpace cs = sdb.getCollectionSpace( csName );
-        if ( cs.isCollectionExist( clName ) ) {
-            cs.dropCollection( clName );
-        }
+        cs.dropCollection( clName );
         if ( !sdb.isClosed() ) {
             sdb.close();
         }
@@ -68,6 +67,7 @@ public class Transaction18227 extends SdbTestBase {
         cl.insert( record );
         expList.add( record );
 
+        // 事务中查询记录
         DBCursor cursor = cl.query( "", "", "{a:1, b:1}", "" );
         List< BSONObject > actList = TransUtils.getReadActList( cursor );
         Assert.assertEquals( actList, expList );
@@ -80,9 +80,11 @@ public class Transaction18227 extends SdbTestBase {
             Assert.assertEquals( e.getErrorCode(), -38 );
         }
 
+        // 事务中查询记录
         cursor = cl.query( "", "", "{a:1, b:1}", "" );
         actList = TransUtils.getReadActList( cursor );
         Assert.assertEquals( actList, expList );
+
     }
 
     private void insertData() {
