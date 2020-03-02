@@ -268,6 +268,19 @@ namespace engine
       
    } ;
 
+   enum DPS_PREIDXTREENODEVALUE_STATUS
+   {
+      DPS_PREIDXTREENODEVALUE_NONE = 0,
+      // preIdxTree node value is valid
+      DPS_PREIDXTREENODEVALUE_VALID,
+      // preIdxTree node value is deleted
+      DPS_PREIDXTREENODEVALUE_DELETED,
+      // _pOldVer is NULL, or recordPtr is NULL.
+      // new record or dummy record are not in
+      // the tree, so will be invalid.
+      DPS_PREIDXTREENODEVALUE_INVALID
+   } ;
+
    // the index tree node value is the index into the lrbHdr which contain
    // both old version index and record
    class preIdxTreeNodeValue : SDBObject
@@ -333,6 +346,8 @@ namespace engine
       void setRBSOffset( const dmsRBSOffset& offset ) ;
 
       string toString() const ;
+
+      DPS_PREIDXTREENODEVALUE_STATUS getStatus() const ;
 
    // private member
    private:
