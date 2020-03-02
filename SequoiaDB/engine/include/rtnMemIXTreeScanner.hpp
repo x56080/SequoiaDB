@@ -145,6 +145,7 @@ namespace engine
       BSONObj                    _savedObj ;
       dmsRecordID                _savedRID ;
       DPS_TRANS_ID               _savedTransID ;
+      DPS_PREIDXTREENODEVALUE_STATUS _objStatus ;
 
       // pointer to the in memory index tree. It's hanging off dpsTransCB
       preIdxTreePtr              _memIdxTree ;

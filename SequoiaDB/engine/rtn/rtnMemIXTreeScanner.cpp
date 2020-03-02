@@ -118,9 +118,10 @@ namespace engine
 
    void _rtnMemIXTreeScanner::reset()
    {
-      _savedObj      = BSONObj() ;
+      _savedObj  = BSONObj() ;
       _savedRID.reset() ;
       _listIterator.reset() ;
+      _objStatus = DPS_PREIDXTREENODEVALUE_NONE ;
 
       if ( _pInfo )
       {
@@ -457,6 +458,8 @@ namespace engine
             // update monitor counters under latch
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
 
+            _objStatus = nodeVal.getStatus() ;
+
             // if mvcc is enabled, there will be multiple versions in
             // the tree. All except the latest version's records are
             // deleted.
@@ -494,12 +497,14 @@ namespace engine
                                 nodeKey.getNodeTransID() ).c_str() ) ;
 #endif
                   _savedRID.reset() ;
+                  _objStatus = DPS_PREIDXTREENODEVALUE_NONE ;
                   goto begin ;
                }
             }
             else if (nodeVal.isRecordDeleted() )
             {
                _savedRID.reset() ;
+               _objStatus = DPS_PREIDXTREENODEVALUE_NONE ;
                goto begin ;
             }
 
@@ -547,12 +552,15 @@ namespace engine
                SDB_ASSERT( !_savedRID.isNull(),
                            "The RID from curIndexIter should not be NULL" ) ;
 
+               _objStatus = nodeVal.getStatus() ;
+
                if ( !_insert2Dup( _savedRID ) )
                {
                   // if we are able to find the recordid in dupBuffer, that
                   // means we've already processed the record, so let's also
                   // jump back to begin
                   _savedRID.reset() ;
+                  _objStatus = DPS_PREIDXTREENODEVALUE_NONE ;
                   goto begin ;
                }
 
@@ -581,6 +589,7 @@ namespace engine
                   // in readonly scenario, _savedRID should always be null
                   // unless pauseScan() is called
                   _savedRID.reset() ;
+                  _objStatus = DPS_PREIDXTREENODEVALUE_NONE ;
                }
                rc = SDB_OK ;
                break ;
@@ -823,7 +832,8 @@ namespace engine
                                                       _savedTransID ) ;
          if ( _memIdxTree->isPosValid( findPos ) &&
               _curIndexPos == findPos &&
-              !_memIdxTree->getNodeData( _curIndexPos ).isRecordDeleted() )
+              // !_memIdxTree->getNodeData( _curIndexPos ).isRecordDeleted() )
+              _memIdxTree->getNodeData(_curIndexPos).getStatus() == _objStatus )
          {
             isSame = TRUE ;
          }

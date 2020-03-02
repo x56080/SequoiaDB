@@ -183,6 +183,28 @@ namespace engine
       _rbsOffset = offset ;
    }
 
+   DPS_PREIDXTREENODEVALUE_STATUS preIdxTreeNodeValue::getStatus() const
+   {
+      DPS_PREIDXTREENODEVALUE_STATUS result = DPS_PREIDXTREENODEVALUE_INVALID ;
+      // When _pOldVer is NULL or recordPtr is NULL,
+      // it will be treated invalid. As for new record or dummy record,
+      // they are not in the tree, the recordPtr will be NULL,
+      // thus they will be treated as invalid.
+      if ( ( NULL != _pOldVer ) && ( NULL != getRecord() ) )
+      {
+         if ( isRecordDeleted() )
+         {
+            result = DPS_PREIDXTREENODEVALUE_DELETED ;
+         }         
+         else
+         {
+            result = DPS_PREIDXTREENODEVALUE_VALID ;
+         }
+      }
+      return result ;
+   }
+
+
    /*
       preIdxTree implement
    */
