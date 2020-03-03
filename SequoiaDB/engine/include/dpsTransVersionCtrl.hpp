@@ -906,6 +906,7 @@ namespace engine
    // We could delete the record with light job during gc
    #define OLDVER_MASK_DISK_DELETING         0x00000008
  //#define OLDVER_MASK_HAS_COPED             0x00000010
+   #define OLDVER_MASK_ROLLED_BACK           0x00000020
 
    // Class to store all information for old version record/indexes. This 
    // container is currently hanging off LRBHdr
@@ -954,6 +955,9 @@ namespace engine
 
       void                 setRecordNew( UINT32 ownerTID ) ;
       BOOLEAN              isRecordNew() const ;
+
+      void                 setRolledback( ) ;
+      BOOLEAN              isRolledback() const ;
 
       void                 setRecordDummy( UINT32 ownerTID ) ;
       BOOLEAN              isRecordDummy() const ;
@@ -1008,7 +1012,6 @@ namespace engine
       UINT32            _ownerTID ;   // owner thread ID
       DPS_TRANS_ID      _recordTransID ; // record transID as the version
       DPS_TRANS_ID      _ownerTransID ; // transaction ID from owner
-
       UINT32            _statMask ;
       // A set of index Lids (up to 64) associated to this record.
       // We use this to figure out if the idx was already stored in the tree

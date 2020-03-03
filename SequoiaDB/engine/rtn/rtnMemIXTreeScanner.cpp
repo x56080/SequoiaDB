@@ -284,6 +284,7 @@ namespace engine
       goto done ;
    }
 
+   // return the transID in the key which is the owner transID
    DPS_TRANS_ID  _rtnMemIXTreeScanner::getCurKeyTransID() 
    {
       SDB_ASSERT( _memIdxTree->isPosValid( _curIndexPos ), 

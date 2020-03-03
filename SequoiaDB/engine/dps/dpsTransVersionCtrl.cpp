@@ -2218,8 +2218,9 @@ namespace engine
                treeLatchHeld = TRUE ;
             }
 
-            // remove the index from mem tree if mvcc is off 
-            if ( !pmdGetOptionCB()->mvccOn() )
+            // remove the index from mem tree if mvcc is off or the 
+            // transaction had been rolledback
+            if ( !pmdGetOptionCB()->mvccOn() || isRolledback() )
             {
 #ifdef _DEBUG   // FIXME: to be removed
          PD_LOG( PDDEBUG, "Removing index from mem tree, latchHeld(%d): "
@@ -2346,6 +2347,17 @@ namespace engine
    {
       return OSS_BIT_TEST( _statMask, OLDVER_MASK_DUMMY ) ? TRUE : FALSE ;
    }
+
+   void oldVersionContainer::setRolledback()
+   {
+      OSS_BIT_SET( _statMask, OLDVER_MASK_ROLLED_BACK ) ;
+   }
+
+   BOOLEAN oldVersionContainer::isRolledback() const
+   {
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_ROLLED_BACK ) ? TRUE : FALSE ;
+   }
+
 
    UINT32 oldVersionContainer::getOwnerTID() const
    {

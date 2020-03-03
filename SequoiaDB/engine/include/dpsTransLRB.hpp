@@ -124,6 +124,7 @@ namespace engine
    typedef void    (*DPS_EXTDATA_ON_LOCKRELEASE)( const dpsTransLockId &lockId,
                                                   DPS_TRANSLOCK_TYPE lockMode,
                                                   UINT32 refCounter,
+                                                  BOOLEAN  isRollback,
                                                   dpsLRBExtData *pExtData,
                                                   INT32 idxLID,
                                                   BOOLEAN hasLock ) ;
