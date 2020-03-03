@@ -40,6 +40,7 @@
 #include "dpsTransDef.hpp"
 #include "dpsTrace.hpp"
 #include "pd.hpp"
+#include "pmdEDU.hpp"
 #include "dpsTrace.hpp"
 #include "pdTrace.hpp"
 #include "sdbInterface.hpp"   // IContext
@@ -2430,6 +2431,8 @@ namespace engine
             pLRBHdr->extData._onLockReleaseFunc( lockId,
                                                  pMyLRB->lockMode,
                                                  pMyLRB->refCounter,
+                                                 pmdGetThreadEDUCB()->
+                                                      isInRollback(),
                                                  &(pLRBHdr->extData),
                                                  -1,
                                                  FALSE ) ;

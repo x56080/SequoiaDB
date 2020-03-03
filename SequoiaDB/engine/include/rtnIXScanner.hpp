@@ -170,7 +170,6 @@ namespace engine
       virtual const BSONObj*  getSavedObj () const = 0 ;
       virtual void getOwnerTransID( DPS_TRANS_ID &transID ) = 0 ;
 
-
       virtual INT32           isCursorSame( const BSONObj &saveObj,
                                             const dmsRecordID &saveRID,
                                             BOOLEAN &isSame ) = 0 ;

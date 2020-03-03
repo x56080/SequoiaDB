@@ -370,6 +370,13 @@ namespace engine
          Copy the data to disk directly
       */
       OSS_INLINE void  setData( const dmsRecordData &data ) ;
+
+      // return dummy trans id for down version
+      const DPS_TRANS_ID getGlobTransID() const
+      {
+         DPS_TRANS_ID dummy ;
+         return dummy ;
+      }
    } ;
 #pragma pack()
 
