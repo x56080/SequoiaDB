@@ -834,6 +834,12 @@ namespace engine
       // unregister GTS agent from transCB
       void unregisterGTSAgent() ;
 
+      // get record transID from oldVersion container
+      BOOLEAN getOldVerRecordTransID( UINT32 logicCSID,
+                                      UINT16 collectionID,
+                                      const dmsRecordID *recordID,
+                                      DPS_TRANS_ID &transID ) ;
+
    protected:
       // get global lowTran with a given time error as offset
       // return:

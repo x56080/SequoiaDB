@@ -185,6 +185,89 @@ namespace engine
       return SDB_OPERATION_INCOMPATIBLE ;
    }
 
+
+   INT32 _dmsStorageData::_setRecordGlobTransID( dmsMBContext *context,
+                                                 dmsRecordRW  &recordRW,
+                                                 _pmdEDUCB    *cb,
+                                                 BOOLEAN       bSetOvfRecord )
+   {
+      INT32 rc = SDB_OK ;
+      dmsRecord  *pRecord  = NULL, *pOvfRecord = NULL ;
+      dpsTransCB *pTransCB = NULL ;
+      dmsRecordID recordID, ovfRID ;
+      dmsRecordRW ovfRW ;
+      DPS_TRANS_ID transID ;
+
+      pRecord  = recordRW.writePtr( 0 ) ;
+      recordID = recordRW.getRecordID() ;
+
+      if ( bSetOvfRecord && pRecord->isOvf() )
+      {
+         ovfRID = pRecord->getOvfRID() ;
+         ovfRW  = record2RW( ovfRID, context->mbID() ) ;
+         pOvfRecord = ovfRW.writePtr( 0 ) ;
+      }
+
+      if ( ! cb->isInTransRollback() )
+      {
+         transID = cb->getTransID() ;
+         // update transID in original record header
+         pRecord->setGlobTransID( transID ) ;
+         // update transID for ovf record when required 
+         if ( bSetOvfRecord && pOvfRecord )
+         {
+            pOvfRecord->setGlobTransID( transID ) ;
+         }
+         // FIXME: remove
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, "set record(%d, %d) transid(%s) ",
+                 recordID._extent, recordID._offset,
+                 dpsTransIDToString( transID ).c_str() ) ;
+         if ( bSetOvfRecord && pOvfRecord )
+         {
+            PD_LOG( PDDEBUG, "set record(%d, %d)(ovf) transid(%s)",
+                    ovfRID._extent, ovfRID._offset,
+                    dpsTransIDToString( transID ).c_str() ) ;
+         }
+#endif
+      }
+      else
+      {
+         // restore record transID when rollback
+         pTransCB = pmdGetKRCB()->getTransCB() ;
+         SDB_ASSERT ( pTransCB, "ERROR: pTransCB is NULL" ) ;
+         if ( pTransCB->getOldVerRecordTransID( _logicalCSID,
+                                                context->mbID(),
+                                                &recordID,
+                                                transID ) )
+         {
+            // restore transID in original record header
+            pRecord->setGlobTransID( transID ) ;
+            // restore transID for ovf record when required
+            if ( bSetOvfRecord && pOvfRecord )
+            {
+               pOvfRecord->setGlobTransID( transID ) ;
+            }
+            // FIXME: remove
+#ifdef _DEBUG
+            PD_LOG( PDDEBUG,
+                    "set record(%d, %d) transid(%s) when rollback",
+                    recordID._extent, recordID._offset,
+                    dpsTransIDToString( transID ).c_str() ) ;
+            if ( bSetOvfRecord && pOvfRecord )
+            {
+               PD_LOG( PDDEBUG,
+                       "set record(%d, %d)(ovf) transid(%s) when rollback",
+                       ovfRID._extent, ovfRID._offset,
+                       dpsTransIDToString( transID ).c_str() ) ;
+            }
+#endif
+         }
+      }
+      return rc ;
+   }
+
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD, "_dmsStorageData::_extentUpdatedRecord" )
    INT32 _dmsStorageData::_extentUpdatedRecord( dmsMBContext *context,
                                                 dmsExtRW &extRW,
@@ -337,14 +420,10 @@ namespace engine
               pRecord->hasGlobTransID() )
          {
             pRecord->setData( newRecordData ) ;
-            pRecord->setGlobTransID( cb->getTransID() ) ;
-            // FIXME: remove 
-#ifdef _DEBUG
-            PD_LOG ( PDDEBUG, "set record(%d, %d) transid(%s) ",
-                     recordRW.getRecordID()._extent, 
-                     recordRW.getRecordID()._offset,
-                     dpsTransIDToString( cb->getTransID() ).c_str() ) ;
-#endif
+
+            // set or restore transID in record header
+            _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
+
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
 
             if ( ovfRID.isValid() )
@@ -363,9 +442,10 @@ namespace engine
                    pOvfRecord->hasGlobTransID() )
          {
             pOvfRecord->setData( newRecordData ) ;
-            pOvfRecord->setGlobTransID( cb->getTransID() ) ;
-            // need to update transID in original record header
-            pRecord->setGlobTransID( cb->getTransID() ) ;
+
+            // set or restore transID in both origin and ovf record header
+            _setRecordGlobTransID( context, recordRW, cb, TRUE ) ;
+
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
             /// sub the remove data info
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
@@ -422,7 +502,7 @@ namespace engine
                goto error ;
             }
             // set the create LSN to the ovf record create lsn
-           // pNewRecord->setLSNOffset( pRecord->getLSNOffset() ) ;
+            // pNewRecord->setLSNOffset( pRecord->getLSNOffset() ) ;
             // set remote record as overflowed to
             pNewRecord->setOvt() ;
             if ( ovfRID.isValid() )
@@ -444,7 +524,10 @@ namespace engine
 
             SDB_ASSERT( pRecord->hasGlobTransID(), 
                         "Original record was not migrated properly!") ;
-            pRecord->setGlobTransID( cb->getTransID() ) ;
+
+            // set or restore transID in record header
+            _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
+
             pRecord->setOvf() ;
             pRecord->setOvfRID( foundDeletedID ) ;
  
@@ -865,13 +948,9 @@ namespace engine
       // set to normal status
       pRecord->setNormal() ;
       pRecord->resetAttr() ;
-      // setup global transaction id
-      // FIXME: to be removed
-      PD_LOG ( PDDEBUG, "set record(%d, %d) transID: %s",
-               recordRW.getRecordID()._extent,
-               recordRW.getRecordID()._offset,
-               dpsTransIDToString( cb->getTransID() ).c_str() ) ;
-      pRecord->setGlobTransID( cb->getTransID() ) ;
+
+      // set or restore transID in record header
+      _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
 
       // and then need to check if we need to split deleted record
       if ( pRecord->getSize() - needRecordSize > DMS_MIN_RECORD_SZ )

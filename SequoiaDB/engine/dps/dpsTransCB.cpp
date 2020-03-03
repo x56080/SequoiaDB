@@ -3211,11 +3211,42 @@ namespace engine
       {
          return FALSE ;
       }
-      SDB_ASSERT( collectionID!=DMS_INVALID_MBID, "invalid collectionID" ) ;
+      SDB_ASSERT( collectionID != DMS_INVALID_MBID, "invalid collectionID" ) ;
       SDB_ASSERT( recordID, "recordID can't be NULL" ) ;
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
       return _transLockMgr->hasWait( lockId );
    }
+
+
+   BOOLEAN dpsTransCB::getOldVerRecordTransID( UINT32 logicCSID,
+                                               UINT16 collectionID,
+                                               const dmsRecordID *recordID,
+                                               DPS_TRANS_ID &transID )
+   {
+      BOOLEAN               found     = FALSE ;
+      oldVersionContainer * oldVerPtr = NULL ;
+      dpsLRBExtData       * pExtData  = NULL ;
+
+      SDB_ASSERT( collectionID != DMS_INVALID_MBID, "invalid collectionID" ) ;
+      SDB_ASSERT( recordID, "recordID can't be NULL" ) ;
+
+      dpsTransLockId lockId( logicCSID, collectionID, recordID ) ;
+      pExtData = _transLockMgr->getExtDataHdlByLockId( lockId ) ;
+      if ( pExtData )
+      {
+         oldVerPtr = (oldVersionContainer*)(pExtData->_data) ;
+         if ( oldVerPtr )
+         {
+            if (  oldVerPtr->getRecord() )
+            {
+               found   = TRUE ;
+               transID = oldVerPtr->getRecordTransID() ;
+            }
+         }
+      }   
+      return found ; 
+   }
+
 
    // Agorithm to decide if we have sufficent log space for new LR:
    // Support archive logging for transaction is the ultimate goal, meanwhile,

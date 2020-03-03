@@ -223,6 +223,9 @@ namespace engine
          UINT32               & refCount
       ) ;
 
+      // search LRB header list by lockId to get dpsLRBExtData pointer
+      dpsLRBExtData * getExtDataHdlByLockId( const dpsTransLockId &lockId ) ;
+
    private:
       // Latch for normal lock operation ( acquire, tryAcquire,
       // testAcquire, release, releaseAll, hasWait etc on ) :

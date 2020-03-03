@@ -2640,4 +2640,16 @@ namespace engine
    error :
       goto done ;
    }
+
+   INT32 _dmsStorageDataCapped::_setRecordGlobTransID
+   (
+      dmsMBContext *context,
+      dmsRecordRW  &recordRW,
+      _pmdEDUCB    *cb,
+      BOOLEAN       bSetOvfRecrd
+   ) 
+   {
+      SDB_ASSERT( FALSE, "Should not be here" ) ;
+      return SDB_OPERATION_INCOMPATIBLE ;
+   }
 }
