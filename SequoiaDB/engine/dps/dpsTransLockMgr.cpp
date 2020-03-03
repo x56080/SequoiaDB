@@ -3104,6 +3104,48 @@ nextLock:
    }
 
 
+   dpsLRBExtData * dpsTransLockManager::getExtDataHdlByLockId
+   (
+      const dpsTransLockId &lockId
+   )
+   {
+      UINT32 bktIdx  = DPS_LOCK_INVALID_BUCKET_SLOT ;
+      dpsTransLRBHeader *pLRBHdr  = NULL ;
+      dpsLRBExtData     *pExtData = NULL ;
+
+      if ( lockId.isValid() )
+      {
+         // calculate the hash index by lockId
+         bktIdx = _getBucketNo( lockId ) ;
+
+         // latch the LRB Header list
+         _acquireOpLatch( bktIdx ) ;
+
+         pLRBHdr = _LockHdrBkt[bktIdx].lrbHdr ;
+         if ( _getLRBHdrByLockId( lockId, pLRBHdr ) )
+         {
+            SDB_ASSERT( pLRBHdr, "Invalid LRB Header" ) ;
+            pExtData = &( pLRBHdr->extData ) ;
+         }
+
+         // free LRB Header list latch
+         _releaseOpLatch( bktIdx ) ;
+      }
+#ifdef _DEBUG
+      else
+      {
+         PD_LOG( PDERROR, "Invalid lockId:%s", lockId.toString().c_str() ) ;
+         goto error ;
+      }
+#endif
+
+   done:
+      return pExtData;
+   error:
+      goto done ;
+   }
+
+
    #define DPS_STRING_LEN_MAX ( 512 )
    //
    // format LRB to string, flat one line

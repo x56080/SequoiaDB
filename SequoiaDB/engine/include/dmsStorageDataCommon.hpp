@@ -1086,6 +1086,10 @@ namespace engine
          virtual void   _onRestore() ;
          virtual INT32  _onFlushDirty( BOOLEAN force, BOOLEAN sync ) ;
 
+         virtual INT32  _setRecordGlobTransID( dmsMBContext *context,
+                                               dmsRecordRW  &recordRW,
+                                               _pmdEDUCB    *cb,
+                                               BOOLEAN      bSetOvfRecrd ) = 0 ;
       private:
          virtual UINT64 _dataOffset() ;
          virtual UINT32 _curVersion() const ;

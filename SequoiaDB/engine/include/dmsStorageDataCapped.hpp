@@ -305,6 +305,11 @@ namespace engine
 
       virtual void _onAllocSpaceReady( dmsContext *context, BOOLEAN &doit ) ;
 
+      virtual INT32 _setRecordGlobTransID( dmsMBContext *context,
+                                           dmsRecordRW  &recordRW,
+                                           _pmdEDUCB    *cb,
+                                           BOOLEAN      bSetOvfRecrd ) ;
+
       INT32 _parseExtendOptions( const BSONObj *extOptions,
                                  dmsCappedCLOptions &options ) ;
 

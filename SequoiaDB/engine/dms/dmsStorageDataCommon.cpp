@@ -3329,6 +3329,14 @@ namespace engine
             SDB_ASSERT( pRecord->hasGlobTransID(),
                         "Record is down level version during rollback" ) ;
 
+            // restore record transID when rollback
+            if ( cb->isInTransRollback() &&
+                 ( FALSE == isCapped() ) &&
+                 pRecord->hasGlobTransID() )
+            {
+               _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
+            }
+
             ++( pWRExtent->_recCount ) ;
             _increaseMBStat( context->mb()->_clUniqueID,
                              &( _mbStatInfo[ context->mbID() ] ), cb ) ;

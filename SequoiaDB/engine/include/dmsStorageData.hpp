@@ -173,6 +173,14 @@ namespace engine
                                    IDmsOprHandler *pHandler,
                                    utilUpdateResult *pResult ) ;
 
+      // must hold mb exclusive lock
+      // set or restore global transID for record ( and the 
+      // overflow to record when it is required ). 
+      INT32 _setRecordGlobTransID( dmsMBContext *context,
+                                   dmsRecordRW  &recordRW,
+                                   _pmdEDUCB    *cb,
+                                   BOOLEAN       bSetOvfRecrd ) ;
+
    } ;
    typedef _dmsStorageData dmsStorageData ;
 }
