@@ -222,3 +222,43 @@ function startNodes ( nodeAddresses )
       throw new Error( e );
    }
 }
+
+function isContained( actResult, result )
+{
+   var flag = true;
+   for( var i = 0; i < result.length; i++ )
+   {
+      if( actResult.indexOf( result[i] ) == -1 )
+      {
+         flag = false;
+         break;
+      }
+   }
+   return flag;
+}
+
+function checkParameters( cursor, expResult )
+{
+   while( cursor.next() )
+   {
+      var object = cursor.current().toObj().Details[0];
+      println(JSON.stringify(object));
+      for( var i in expResult )
+      {
+         if( object[i] !== expResult[i] )
+         {
+            throw new Error( "\nact " + i + ": " + JSON.stringify( object[i] ) + "\nexp " + i + ": " + JSON.stringify( expResult[i] ) );
+         }
+      }
+   }
+}
+
+function getCursorResult( cursor )
+{
+   var cursorResult = [];
+   while( cursor.next() )
+   {
+      cursorResult.push( cursor.current().toObj()["Name"] );
+   }
+   return cursorResult;
+}
