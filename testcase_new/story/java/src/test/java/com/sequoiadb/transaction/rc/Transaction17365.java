@@ -28,7 +28,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @Date 2019-01-29
  * @Version 1.00
  */
-@Test(groups = { "rc" }) // SEQUOIADBMAINSTREAM-5538
+@Test(groups = { "rc", "rr" })
 public class Transaction17365 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_17365";
