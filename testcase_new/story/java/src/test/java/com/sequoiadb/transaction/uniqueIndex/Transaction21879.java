@@ -24,7 +24,7 @@ import com.sequoiadb.transaction.TransUtils;
 @Test(groups = { "rc", "ru", "rcuserbs" })
 public class Transaction21879 extends SdbTestBase {
 
-    private String clName = "transCL_17122";
+    private String clName = "transCL_21879";
     private Sequoiadb sdb = null;
     private DBCollection cl = null;
     private BSONObject data1 = null;
