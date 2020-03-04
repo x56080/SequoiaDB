@@ -1040,16 +1040,29 @@ namespace engine
             // only compare serial number with global transaction tag
             if ( pos->first.getNodeTransID().getGlobSN() < lowTran )
             {
-               INDEX_TREE_POS temp = pos ;
-               //preIdxTreeNodeValue tmpValue = pos->second ;
+               // only remove the node if old version container
+               // pointer is NULL, otherwise, the thread running
+               // releaseRecord() may encounter assertion failure
+               // when it removes this node.
+               if ( FALSE == pos->second.isValid() )
+               {
+                  INDEX_TREE_POS temp = pos ;
+                  //preIdxTreeNodeValue tmpValue = pos->second ;
 #ifdef _DEBUG
-               PD_LOG ( PDDEBUG, "Remove node(%s) from ixtree(%d),lowTran(%llu)",
-                        pos->first.toString().c_str(), _idxLID,
-                        lowTran );
+                  PD_LOG ( PDDEBUG,
+                           "Remove node(%s) from ixtree(%d),lowTran(%llu)",
+                           pos->first.toString().c_str(), _idxLID,
+                           lowTran );
 #endif
-               _adjustRidChainForErase( pos ) ;
-               pos++ ;
-               _tree.erase(temp) ;
+                  _adjustRidChainForErase( pos ) ;
+                  pos++ ;
+                  _tree.erase(temp) ;
+               }
+               else
+               {
+                  // skip the node if old version container is still there
+                  pos++ ;
+               }
             }
             else
             {
