@@ -182,6 +182,7 @@ namespace engine
                          DPS_LSN *committed ) ;
 
       INT32 init( const CHAR *path, UINT32 pageNum, dpsTransCB *pTransCB );
+      void  fini() ;
 
       INT32 merge( _dpsMergeBlock &block ) ;
 
@@ -255,7 +256,7 @@ namespace engine
          return ((UINT64)logicalFileId) * getLogFileSz () ;
       }
 
-      INT32 readOldestBeginLsnOffset( DPS_LSN_OFFSET &offset ) ;
+      DPS_LSN_OFFSET readOldestBeginLsnOffset() const ;
 
       UINT32 getLoggerLogicalWork ()
       {
@@ -282,7 +283,7 @@ namespace engine
 
       INT32  _movePages ( const DPS_LSN_OFFSET &offset,
                           const DPS_LSN_VER &version ) ;
-      INT32 _restore () ;
+      INT32 _restore ( const DPS_LSN &fastStartLsn = DPS_LSN() ) ;
 
       INT32 _restoreMeta() ;
 

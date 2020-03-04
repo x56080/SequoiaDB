@@ -50,15 +50,6 @@
 namespace engine
 {
 
-   #define LOG_LOOP_BEGIN( a ) \
-           for ( UINT32 i = 0; i < a; i++ ) {\
-
-   #define LOG_LOOP_FILE ( _files.at( i ) )
-
-   #define LOG_LOOP_END }
-
-   #define EACH i
-
    #define LOG_FILE( a ) ( _files.at((a)%_logFileNum) )
 
    #define WORK_FILE()  ( _files.at( _work ) )
@@ -81,22 +72,37 @@ namespace engine
    // destructor
    _dpsLogFileMgr::~_dpsLogFileMgr()
    {
-      LOG_LOOP_BEGIN ( _files.size() )
+      fini() ;
+   }
+
+   void _dpsLogFileMgr::fini()
+   {
+      _clear() ;
+   }
+
+   void _dpsLogFileMgr::_clear()
+   {
+      for ( UINT32 i = 0; i < _files.size() ; i++ )
       {
-         if ( LOG_LOOP_FILE )
-            SDB_OSS_DEL LOG_LOOP_FILE ;
+         if ( _files[ i ] )
+         {
+            SDB_OSS_DEL _files[ i ] ;
+         }
       }
-      LOG_LOOP_END
       _files.clear();
    }
 
    // initialize log file manager
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGFILEMGR_INIT, "_dpsLogFileMgr::init" )
-   INT32 _dpsLogFileMgr::init( const CHAR *path )
+   INT32 _dpsLogFileMgr::init( const CHAR *path,
+                               dpsMetaFileContent &content )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSLGFILEMGR_INIT );
       SDB_ASSERT( path, "path can not be NULL!") ;
+
+      BOOLEAN needRetry = FALSE ;
+      INT32 length = -1 ;
       CHAR fileFullPath[ OSS_MAX_PATHSIZE+1 ] = {0} ;
       // temp buffer stores log file sequence up to 0xFFFFFFFF, which is
       // 4294967295 ( 10 bytes )
@@ -112,7 +118,9 @@ namespace engine
          goto error ;
       }
 
-      LOG_LOOP_BEGIN( _logFileNum )
+   retry:
+      for ( UINT32 i = 0; i < _logFileNum ; i++ )
+      {
          // memory is free in destructor, or by end of error in this function
          _dpsLogFile *file = SDB_OSS_NEW _dpsLogFile();
          if ( NULL == file )
@@ -128,38 +136,95 @@ namespace engine
                             OSS_MAX_PATHSIZE, fileFullPath ) ;
          ossSnprintf ( tmp, sizeof(tmp), "%d", i ) ;
          ossStrncat( fileFullPath, tmp, ossStrlen( tmp ) ) ;
+
+         /// calc file's valid length
+         if ( content.isStatusValid() )
+         {
+            /// work file
+            if ( i == content._workFile )
+            {
+               length = ( content._curLsnOffset + content._curLsnLength ) %
+                        _logFileSz ;
+            }
+            else if ( content._workFile >= content._beginFile )
+            {
+               /// [ begin, work ) is full
+               if ( i >= content._beginFile && i < content._workFile )
+               {
+                  length = _logFileSz ;
+               }
+               /// other is empty
+               else
+               {
+                  length = 0 ;
+               }
+            }
+            else
+            {
+               /// ( work, begin ) is empty
+               if ( i > content._workFile && i < content._beginFile )
+               {
+                  length = 0 ;
+               }
+               /// other is full
+               else
+               {
+                  length = _logFileSz ;
+               }
+            }
+         }
+         else
+         {
+            length = -1 ;
+         }
+
          // initialize log file for each newly created one
          // we set readonly to FALSE, so that each log file is opened with
          // WRITEONLY option
-         rc = file->init( fileFullPath, _logFileSz, _logFileNum );
+         rc = file->init( fileFullPath, _logFileSz, _logFileNum,
+                          length, &needRetry ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR,"Failed to init log file for %d, rc = %d", i, rc ) ;
+            PD_LOG ( PDERROR, "Failed to init log file for %d, rc: %d",
+                     i, rc ) ;
             goto error;
          }
-      LOG_LOOP_END
+         else if ( needRetry )
+         {
+            goto check_retry ;
+         }
+      }
 
-      _analysis () ;
+      _analysis( content, needRetry ) ;
+      if ( needRetry )
+      {
+         goto check_retry ;
+      }
 
    done:
       PD_TRACE_EXITRC ( SDB__DPSLGFILEMGR_INIT, rc );
-      return rc;
+      return rc ;
    error:
-      // free memory if error occurs
-      LOG_LOOP_BEGIN ( _files.size() )
-         SDB_OSS_DEL LOG_LOOP_FILE ;
-      LOG_LOOP_END
-      _files.clear();
-      goto done;
+      _clear() ;
+      goto done ;
+   check_retry:
+      _clear() ;
+      content.resetStatus() ;
+      needRetry = FALSE ;
+      goto retry ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGFILEMGR__ANLYS, "_dpsLogFileMgr::_analysis" )
-   void _dpsLogFileMgr::_analysis ()
+   void _dpsLogFileMgr::_analysis ( const dpsMetaFileContent &content,
+                                    BOOLEAN &needRetry )
    {
       PD_TRACE_ENTRY ( SDB__DPSLGFILEMGR__ANLYS );
       _dpsLogFile *file = NULL ;
       UINT32 i = 0 ;
       UINT32 beginLogID = DPS_INVALID_LOG_FILE_ID ;
+      UINT32 tmpWork = 0 ;
+
+      needRetry = FALSE ;
 
       //find begin
       while ( i < _files.size() )
@@ -181,8 +246,19 @@ namespace engine
          ++i ;
       }
 
+      /// check _begin is the same with content
+      if ( content.isStatusValid() && _begin != content._beginFile )
+      {
+         PD_LOG( PDWARNING, "Calc begin file(%d) is not the same with "
+                            "meta file(%d), will retry restore without "
+                            "meta file",
+                 _begin, content._beginFile ) ;
+         needRetry = TRUE ;
+         goto done ;
+      }
+
       //find work
-      UINT32 tmpWork = _begin ;
+      tmpWork = _begin ;
       i = 0 ;
 
       // Skip full log files
@@ -203,6 +279,17 @@ namespace engine
          _work = tmpWork ;
          tmpWork = _incFileID ( tmpWork ) ;
          ++i ;
+      }
+
+      /// check _work is the same with content
+      if ( content.isStatusValid() && _work != content._workFile )
+      {
+         PD_LOG( PDWARNING, "Calc work file(%d) is not the same with "
+                            "meta file(%d), will retry restore without "
+                            "meta file",
+                 _work, content._workFile ) ;
+         needRetry = TRUE ;
+         goto done ;
       }
 
       //reset other
@@ -228,6 +315,7 @@ namespace engine
       PD_LOG( PDEVENT, "Analysis dps logs[begin: %u, work: %u, "
               "logicalWork: %u]", _begin, _work, _logicalWork ) ;
 
+   done:
       PD_TRACE_EXIT ( SDB__DPSLGFILEMGR__ANLYS ) ;
    }
 

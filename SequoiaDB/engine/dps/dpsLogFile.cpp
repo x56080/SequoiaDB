@@ -94,7 +94,11 @@ namespace engine
 
    // initialize a log file, file size max 4GB
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLOGFILE_INIT, "_dpsLogFile::init" )
-   INT32 _dpsLogFile::init( const CHAR *path, UINT32 size, UINT32 fileNum )
+   INT32 _dpsLogFile::init( const CHAR *path,
+                            UINT32 size,
+                            UINT32 fileNum,
+                            INT32 length,
+                            BOOLEAN *pNeedRetry )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSLOGFILE_INIT ) ;
@@ -125,7 +129,8 @@ namespace engine
                         *_file ) ;
          if ( rc == SDB_OK )
          {
-            rc = _restore () ;
+            BOOLEAN crashStart = !pmdGetStartup().isOK() ;
+            rc = _restore( crashStart, length ) ;
             if ( rc == SDB_OK )
             {
                UINT32 startOffset = 0 ;
@@ -138,14 +143,29 @@ namespace engine
                         "firstLsn[%lld], idle space: %u, start offset: %d",
                         path, getFirstLSN().offset, getIdleSize(),
                         startOffset ) ;
+
+               /// check length
+               if ( pNeedRetry && -1 != length &&
+                    length != (INT32)getLength() )
+               {
+                  PD_LOG( PDWARNING, "File[%s] length[%d] is not the same with "
+                                     "calc value[%d] by meta file, will "
+                                     "retry init without meta file",
+                          path, getLength(), length ) ;
+                  *pNeedRetry = TRUE ;
+               }
                goto done ;
             }
             else
             {
                close () ;
-               PD_LOG ( PDEVENT, "Restore dps log file[%s] failed[rc:%d]",
-                        path, rc ) ;
-               goto error ;
+
+               if ( SDB_INVALIDSIZE != rc || !crashStart )
+               {
+                  PD_LOG ( PDERROR, "Restore dps log file[%s] failed[rc:%d]",
+                           path, rc ) ;
+                  goto error ;
+               }
             }
          }
       }
@@ -200,6 +220,14 @@ namespace engine
          goto error ;
       }
 
+      if ( pNeedRetry && -1 != length )
+      {
+         PD_LOG( PDWARNING, "File[%s] status is not the same with "
+                            "meta file, will retry init without meta file",
+                 path ) ;
+         *pNeedRetry = TRUE ;
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB__DPSLOGFILE_INIT, rc );
       return rc;
@@ -215,7 +243,7 @@ namespace engine
          rcTmp = ossDelete( path ) ;
          if ( SDB_OK != rcTmp )
          {
-            PD_LOG( PDERROR, "failed to remove new file[%s], rc:%d",
+            PD_LOG( PDERROR, "Failed to remove new file[%s], rc: %d",
                     path, rc ) ;
          }
       }
@@ -223,7 +251,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLOGFILE__RESTRORE, "_dpsLogFile::_restore" )
-   INT32 _dpsLogFile::_restore ()
+   INT32 _dpsLogFile::_restore( BOOLEAN crashStart, INT32 length )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSLOGFILE__RESTRORE );
@@ -243,11 +271,12 @@ namespace engine
          goto error ;
       }
 
-      if ( fileSize < (INT64)( _fileSize + sizeof(dpsLogHeader) ) )
+      if ( fileSize < (INT64)sizeof(dpsLogHeader) )
       {
-         PD_LOG ( PDERROR, "DPS file size[%d] is smaller than config[%d]",
-                  fileSize - sizeof(dpsLogHeader), _fileSize ) ;
-         rc = SDB_DPS_FILE_SIZE_NOT_SAME ;
+         PD_LOG ( ( crashStart ? PDWARNING : PDERROR ),
+                  "DPS file[%s] size[%d] is invalid",
+                  _path.c_str(), fileSize ) ;
+         rc = SDB_INVALIDSIZE ;
          goto error ;
       }
 
@@ -255,7 +284,8 @@ namespace engine
       rc = _readHeader() ;
       if ( SDB_OK != rc )
       {
-         PD_LOG ( PDERROR, "Fail to read dps file header[rc:%d]", rc ) ;
+         PD_LOG ( PDERROR, "Fail to read dps file[%s] header, rc: %d",
+                  _path.c_str(), rc ) ;
          goto error ;
       }
 
@@ -263,45 +293,55 @@ namespace engine
       if ( ossStrncmp( _logHeader._eyeCatcher, DPS_LOG_HEADER_EYECATCHER,
                        sizeof( _logHeader._eyeCatcher ) ) != 0 )
       {
-         PD_LOG( PDERROR, "DPS file eye catcher error" ) ;
+         PD_LOG( PDERROR, "DPS file[%s] eye catcher error", _path.c_str() ) ;
          rc = SDB_DPS_FILE_NOT_RECOGNISE ;
          goto error ;
       }
       else if ( _logHeader._fileSize != 0 &&
                 _logHeader._fileSize != _fileSize )
       {
-         PD_LOG( PDERROR, "DPS file's meta size[%d] is not the same with "
-                 "config[%d]", _logHeader._fileSize, _fileSize ) ;
+         PD_LOG( PDERROR, "DPS file[%s]'s meta file size[%d] is not the "
+                 "same with config[%d]", _path.c_str(),
+                 _logHeader._fileSize, _fileSize ) ;
          rc = SDB_DPS_FILE_SIZE_NOT_SAME ;
          goto error ;
       }
       else if ( _logHeader._fileNum != 0 &&
                 _logHeader._fileNum != _fileNum )
       {
-         PD_LOG( PDERROR, "DPS file's meta file num[%d] is not the same with "
-                 "config[%d]", _logHeader._fileNum, _fileNum ) ;
+         PD_LOG( PDERROR, "DPS file[%s]'s meta file num[%d] is not the "
+                 "same with config[%d]", _path.c_str(),
+                 _logHeader._fileNum, _fileNum ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
       // check the real size
-      if ( fileSize > (INT64)( _fileSize + sizeof(dpsLogHeader) ) )
+      if ( fileSize < (INT64)( _fileSize + sizeof(dpsLogHeader) ) )
       {
-         PD_LOG( PDERROR, "DPS file real size[%d] is not the same with "
-                 "config[%d]", fileSize - sizeof(dpsLogHeader),
-                 _fileSize ) ;
+         PD_LOG ( ( crashStart ? PDWARNING : PDERROR ),
+                  "DPS file[%s]'s size[%d] is smaller than config[%d]",
+                  _path.c_str(), fileSize - sizeof(dpsLogHeader), _fileSize ) ;
+         rc = SDB_INVALIDSIZE ;
+         goto error ;
+      }
+      else if ( fileSize > (INT64)( _fileSize + sizeof(dpsLogHeader) ) )
+      {
+         PD_LOG( ( crashStart ? PDWARNING : PDERROR ),
+                 "DPS file[%s]'s size[%d] is grater than config[%d]",
+                 _path.c_str(), fileSize - sizeof(dpsLogHeader), _fileSize ) ;
          // start up from crash
-         if ( !pmdGetStartup().isOK() )
+         if ( crashStart )
          {
             rc = ossTruncateFile( _file, _fileSize + sizeof(dpsLogHeader) ) ;
             if ( rc )
             {
-               PD_LOG( PDWARNING, "Tuncate dps file to config size failed, "
-                       "rc: %d", rc ) ;
+               PD_LOG( PDERROR, "Tuncate dps file[%s] to config size failed, "
+                       "rc: %d", _path.c_str(), rc ) ;
                goto error ;
             }
-            PD_LOG( PDEVENT, "Tuncate dps file to config size[%d]",
-                    _fileSize ) ;
+            PD_LOG( PDEVENT, "Tuncate dps file[%s] to config size[%d]",
+                    _path.c_str(), _fileSize ) ;
          }
          else
          {
@@ -332,6 +372,12 @@ namespace engine
          _logHeader._logID = DPS_INVALID_LOG_FILE_ID ;
          _logHeader._firstLSN.version = DPS_INVALID_LSN_VERSION ;
          _logHeader._firstLSN.offset = DPS_INVALID_LSN_OFFSET ;
+         goto done ;
+      }
+
+      if ( length >= 0 && length <= (INT32)_fileSize )
+      {
+         _idleSize = _fileSize - length ;
          goto done ;
       }
 

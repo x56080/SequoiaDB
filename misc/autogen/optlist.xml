@@ -536,10 +536,10 @@
       </reloadable>
       <default>true</default>
       <detail>
-         <en>1. It specifies whether transaction turns on or not.<fig></fig>
-             2. If it is not specifed, the default value is true.</en>
-         <cn>1. 指定是否打开事务。<fig></fig>
-             2. 如果不指定，则默认为true。</cn>
+         <en>1. It specifies whether transaction turns on or not. Default is true.<fig></fig>
+             2. When transaction turns on, 'logfilenum' must grater than 1.</en>
+         <cn>1. 是否开启事务功能。默认为true<fig></fig>
+             2. 当开启事务功能，'logfilenum' 必须大于1。</cn>
       </detail>
       <typeofweb>boolean</typeofweb>
    </opt>

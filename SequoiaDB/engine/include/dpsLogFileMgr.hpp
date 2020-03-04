@@ -42,6 +42,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "dpsLogFile.hpp"
+#include "dpsMetaFile.hpp"
 #include "pmdDef.hpp"
 #include <vector>
 using namespace std;
@@ -75,7 +76,8 @@ namespace engine
       _dpsLogFileMgr( class _dpsReplicaLogMgr *replMgr );
       ~_dpsLogFileMgr();
 
-      INT32 init( const CHAR *path );
+      INT32 init( const CHAR *path, dpsMetaFileContent &content );
+      void  fini() ;
 
       INT32 flush( _dpsMessageBlock *mb,
                    const DPS_LSN &beginLsn,
@@ -126,6 +128,11 @@ namespace engine
          return _work ;
       }
 
+      UINT32 getBeginPos() const
+      {
+         return _begin ;
+      }
+
       UINT32 getLogicalWorkPos() const
       {
          return OSS_ONCE_UINT32_GET( _logicalWork ) ;
@@ -134,7 +141,10 @@ namespace engine
       INT32 sync() ;
 
    protected:
-      void     _analysis () ;
+      void     _analysis ( const dpsMetaFileContent &content,
+                           BOOLEAN &needRetry ) ;
+      void     _clear() ;
+
       UINT32   _incFileID ( UINT32 fileID ) ;
       UINT32   _decFileID ( UINT32 fileID ) ;
       void     _incLogicalFileID () ;

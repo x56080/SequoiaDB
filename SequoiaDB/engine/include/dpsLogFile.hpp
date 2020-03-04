@@ -144,7 +144,11 @@ namespace engine
 
    public:
       // initialize file
-      INT32 init ( const CHAR *path, UINT32 fileSize, UINT32 fileNum ) ;
+      INT32 init ( const CHAR *path,
+                   UINT32 fileSize,
+                   UINT32 fileNum,
+                   INT32 length = -1,
+                   BOOLEAN *pNeedRetry = NULL ) ;
       // write into file
       INT32 write ( const CHAR *content, UINT32 len ) ;
       // read from file
@@ -195,7 +199,7 @@ namespace engine
       // restore header
       INT32 _readHeader () ;
       // restore from file
-      INT32 _restore () ;
+      INT32 _restore( BOOLEAN crashStart, INT32 length ) ;
    };
    typedef class _dpsLogFile dpsLogFile;
 }

@@ -151,10 +151,7 @@ namespace engine
          UINT32 logFileNum = pmdGetOptionCB()->getReplLogFileNum() ;
          _logFileTotalSize = logFileSize * logFileNum ;
 
-         rc = sdbGetDPSCB()->readOldestBeginLsnOffset( startLsnOffset ) ;
-         PD_RC_CHECK( rc, PDERROR, "Read oldest begin lsn offset failed:rc=%d",
-                      rc ) ;
-         PD_LOG( PDEVENT, "oldest begin lsn offset=%llu", startLsnOffset ) ;
+         startLsnOffset = sdbGetDPSCB()->readOldestBeginLsnOffset() ;
          if ( _isOn && startLsnOffset != DPS_INVALID_LSN_OFFSET &&
               SDB_ROLE_STANDALONE != pmdGetDBRole() )
          {

@@ -2731,8 +2731,8 @@ done:
 
       if ( _transactionOn )
       {
-         PD_CHECK( _logFileNum >= 5, SDB_INVALIDARG, error, PDERROR,
-                   "The value of parameter \"logfilenum\" must be greater than 5 "
+         PD_CHECK( _logFileNum > 1, SDB_INVALIDARG, error, PDERROR,
+                   "The value of parameter \"logfilenum\" must be greater than 1 "
                    "when configure transaction" ) ;
       }
 

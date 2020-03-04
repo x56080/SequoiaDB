@@ -225,6 +225,8 @@ namespace engine
          }
       }
 
+      _buf.fini() ;
+
    done:
       PD_TRACE_EXITRC( SDB__DPSLGWRAPP_FINI, rc ) ;
       return rc ;
@@ -319,9 +321,9 @@ namespace engine
       return _buf.getStartLsn ( logBufOnly ) ;
    }
 
-   INT32 _dpsLogWrapper::readOldestBeginLsnOffset( DPS_LSN_OFFSET &offset )
+   DPS_LSN_OFFSET _dpsLogWrapper::readOldestBeginLsnOffset() const
    {
-      return _buf.readOldestBeginLsnOffset( offset ) ;
+      return _buf.readOldestBeginLsnOffset() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_GETCURRENTLSN, "_dpsLogWrapper::getCurrentLsn" )

@@ -42,7 +42,7 @@
 #include "dpsLogRecordDef.hpp"
 #include "pmdEDU.hpp"
 #include "pmd.hpp"
-#include "pmdCB.hpp"
+#include "pmdStartup.hpp"
 #include "pdTrace.hpp"
 #include "dpsTrace.hpp"
 #include "dpsTransCB.hpp"
@@ -84,11 +84,7 @@ namespace engine
 
    _dpsReplicaLogMgr::~_dpsReplicaLogMgr()
    {
-      if ( NULL != _pages )
-      {
-         SDB_OSS_DEL []_pages;
-         _pages = NULL;
-      }
+      fini() ;
    }
 
    void _dpsReplicaLogMgr::regEventHandler( dpsEventHandler *pEventHandler )
@@ -120,6 +116,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR_INIT );
       SDB_ASSERT ( path, "path can't be NULL" ) ;
 
+      dpsMetaFileContent metaContent ;
       _transCB = pTransCB ;
 
       // free in destructor
@@ -144,20 +141,35 @@ namespace engine
       }
 
       rc = _metaFile.init( path ) ;
-      PD_RC_CHECK( rc, PDERROR, "init meta file failed:rc=%d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init meta file failed, rc: %d", rc ) ;
+      /// read meta content
+      metaContent = _metaFile.getContent() ;
+      /// invalid meta status
+      rc = _metaFile.invalidateStatus() ;
+      PD_RC_CHECK( rc, PDERROR, "Invalidate dps meta status failed, rc: %d",
+                   rc ) ;
+
+      /// when start from crash
+      if ( metaContent.isStatusValid() && !pmdGetStartup().isOK() )
+      {
+         metaContent.resetStatus() ;
+      }
 
       // initialize log files
-      rc = _logger.init( path );
+      rc = _logger.init( path, metaContent );
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to initial log files, rc = %d", rc ) ;
+         PD_LOG ( PDERROR, "Failed to initial log files, rc: %d", rc ) ;
          goto error;
       }
 
       //if restored from file, need to fill the memory pages
       if ( !_logger.getStartLSN( FALSE ).invalid() )
       {
-         rc = _restore () ;
+         DPS_LSN fastStartLsn ;
+         fastStartLsn.offset = metaContent._memBeginLsnOffset ;
+         fastStartLsn.version = metaContent._memBeginLsnVer ;
+         rc = _restore( fastStartLsn ) ;
          if ( SDB_OK == rc )
          {
             _lastCommitted = _currentLsn ;
@@ -168,13 +180,14 @@ namespace engine
          }
          else
          {
-            PD_LOG ( PDERROR, "Dps restore failed[rc:%d]", rc ) ;
+            PD_LOG ( PDERROR, "Dps restore failed, rc: %d", rc ) ;
+            metaContent.resetStatus() ;
             goto error ;
          }
       }
 
       rc = _restoreMeta() ;
-      PD_RC_CHECK( rc, PDERROR, "Restore meta failed:rc=%d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Restore meta failed, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB__DPSRPCMGR_INIT, rc );
@@ -183,29 +196,42 @@ namespace engine
       goto done;
    }
 
+   void _dpsReplicaLogMgr::fini()
+   {
+      _logger.fini() ;
+
+      if ( NULL != _pages )
+      {
+         SDB_OSS_DEL []_pages;
+         _pages = NULL;
+      }
+   }
+
    INT32 _dpsReplicaLogMgr::_restoreMeta()
    {
       INT32 rc = SDB_OK ;
       DPS_LSN_OFFSET metaFileLSNOffset = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN startLsn ;
-      rc = _metaFile.readOldestLSNOffset( metaFileLSNOffset ) ;
-      PD_RC_CHECK( rc, PDERROR, "Read lsn offset failed:rc=%d", rc ) ;
-
-      PD_LOG( PDEVENT, "Read oldest begin lsn:offset=%llu",
-              metaFileLSNOffset ) ;
+      metaFileLSNOffset = _metaFile.getCacheLSN() ;
 
       startLsn = getStartLsn( FALSE ) ;
-      if ( _currentLsn.compareOffset( metaFileLSNOffset ) < 0
-           || startLsn.compareOffset( metaFileLSNOffset ) > 0 )
+      if ( _currentLsn.compareOffset( metaFileLSNOffset ) < 0 ||
+           startLsn.compareOffset( metaFileLSNOffset ) > 0 )
       {
-         PD_LOG( PDEVENT, "Rewrite oldest lsn to startLsn:oldest Lsn=%llu,"
-                 "currentLsn=%llu,startLsn=%llu", metaFileLSNOffset,
-                 _currentLsn.offset, startLsn.offset ) ;
+         PD_LOG( PDEVENT, "Oldest lsn(%llu) is out range of startLsn(%llu) "
+                 "and currentLsn(%llu), rewrite it to startLsn",
+                 metaFileLSNOffset, startLsn.offset, _currentLsn.offset ) ;
+
          // meta file's trans lsn is out of bound
          rc = _metaFile.writeOldestLSNOffset( startLsn.offset ) ;
-         PD_RC_CHECK( rc, PDERROR, "Write oldest lsn failed:rc=%d", rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Write oldest lsn failed, rc: %d", rc ) ;
       }
 
+      rc = _metaFile.invalidateStatus() ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
    done:
       return rc ;
@@ -214,7 +240,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__RESTRORE, "_dpsReplicaLogMgr::_restore" )
-   INT32 _dpsReplicaLogMgr::_restore ()
+   INT32 _dpsReplicaLogMgr::_restore( const DPS_LSN &fastStartLsn )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR__RESTRORE );
@@ -232,6 +258,16 @@ namespace engine
       {
          rc = SDB_DPS_INVALID_LSN ;
          goto error ;
+      }
+
+      /// find the begin lsn fast
+      if ( !fastStartLsn.invalid() &&
+           fastStartLsn.offset > beginLsn.offset &&
+           ( fastStartLsn.offset / file->size() ==
+             beginLsn.offset / file->size() ) &&
+           fastStartLsn.offset % file->size() < length )
+      {
+         beginLsn = fastStartLsn ;
       }
 
       //truncate
@@ -536,9 +572,9 @@ namespace engine
       return lsn ;
    }
 
-   INT32 _dpsReplicaLogMgr::readOldestBeginLsnOffset( DPS_LSN_OFFSET &offset )
+   DPS_LSN_OFFSET _dpsReplicaLogMgr::readOldestBeginLsnOffset() const
    {
-      return _metaFile.readOldestLSNOffset( offset ) ;
+      return _metaFile.getCacheLSN() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_GETLSNWIN, "_dpsReplicaLogMgr::getLsnWindow" )
@@ -685,7 +721,7 @@ namespace engine
          rc = _metaFile.writeOldestLSNOffset( DPS_INVALID_LSN_OFFSET ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Failed to reset meta lsn offset, rc = %d",
+            PD_LOG( PDERROR, "Failed to reset meta lsn offset, rc: %d",
                     rc ) ;
             goto error ;
          }
@@ -734,7 +770,7 @@ namespace engine
       //out for memory range but in file range, need to restore
       if ( !_logger.getStartLSN().invalid() && offset < tmpBeginOffset )
       {
-         rc = _restore () ;
+         rc = _restore() ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -1393,18 +1429,34 @@ namespace engine
          }
       }
 
-      if ( NULL != _transCB )
+      /// save info to meta file
       {
-         INT32 tmpRC = SDB_OK ;
-         DPS_LSN_OFFSET offset = _transCB->getOldestBeginLsn() ;
+         DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
+         UINT32 curLsnLength = 0 ;
+
+         if ( _transCB )
+         {
+            offset = _transCB->getOldestBeginLsn() ;
+         }
+
          if ( offset == DPS_INVALID_LSN_OFFSET )
          {
             offset = _currentLsn.offset ;
          }
 
-         tmpRC = _metaFile.writeOldestLSNOffset( offset ) ;
-         PD_LOG( PDEVENT, "Write oldest begin lsn:offset=%llu,rc=%d",
-                 offset, tmpRC ) ;
+         if ( DPS_INVALID_LSN_OFFSET != _currentLsn.offset &&
+              DPS_INVALID_LSN_OFFSET != _lsn.offset &&
+              _lsn.offset > _currentLsn.offset )
+         {
+            curLsnLength = _lsn.offset - _currentLsn.offset ;
+         }
+
+         _metaFile.stop( offset,
+                         _logger.getBeginPos(),
+                         _logger.getWorkPos(),
+                         _currentLsn,
+                         curLsnLength,
+                         _getStartLsn() ) ;
       }
 
    done :
