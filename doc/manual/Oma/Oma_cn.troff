@@ -17,11 +17,11 @@ Oma
 集群管理对象。
 .SH 参数
 .IP \[bu] 2
-\f[C]hostname\f[] ( \f[I]String\f[]， \f[I]必填\f[] )
+\f[C]hostname\f[] ( \f[I]String\f[]， \f[I]选填\f[] )
 .PP
 目标sdbcm所在主机的主机名。
 .IP \[bu] 2
-\f[C]svcname\f[] ( \f[I]String\f[]， \f[I]必填\f[] )
+\f[C]svcname\f[] ( \f[I]Int | String\f[]， \f[I]选填\f[] )
 .PP
 目标sdbcm所使用的端口号， 默认端口号为11790。
 .SH 返回值

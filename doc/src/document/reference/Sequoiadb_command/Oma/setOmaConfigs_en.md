@@ -4,7 +4,7 @@ getOmaConfigs - Set the configuration information to the configuration file of s
 
 ##SYNOPSIS##
 
-**Oma.setOmaConfigs(\<config\>,[confFile])**
+**oma.setOmaConfigs(\<config\>,[confFile])**
 
 ##CATEGORY##
 
@@ -20,7 +20,7 @@ Set the configuration information to the configuration file of sdbcm.
 
 	The configuration information for [sdbcm](infrastructure/sdbcm.md)。
 
-* `svcname` ( *String*， *Optional* )
+* `confFile` ( *String*， *Optional* )
 
 	The configuration file of sdbcm, default to be the file of [getOmaConfigFile()](reference/Sequoiadb_command/Oma/getOmaConfigFile.md), when `confFile` is not specified.
 
@@ -32,7 +32,7 @@ On error, exception will be thrown.
 
 ##ERRORS##
 
-the exceptions of `getOmaConfigs()` are as below:
+the exceptions of `setOmaConfigs()` are as below:
 
 | Error Code | Error Type | Description | Solution |
 | ------ | --- | ------------ | ----------- |
@@ -52,7 +52,7 @@ Since v2.0.
 	> println(obj["DiagLevel"])
 	3
 	> obj["DiagLevel"] = 5
-	> Oma.getOmaConfigs(obj)
+	> Oma.setOmaConfigs(obj)
 	> var oma = new Oma()
  	> oma.reloadConfigs()
 	```

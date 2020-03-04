@@ -4,7 +4,7 @@ getOmaInstallFile - Get the installation information file.
 
 ##SYNOPSIS##
 
-**Oma.getOmaInstallFile()**
+**oma.getOmaInstallFile()**
 
 ##CATEGORY##
 

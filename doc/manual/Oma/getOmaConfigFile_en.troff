@@ -7,7 +7,7 @@
 getOmaConfigFile \- Get the configuration file of sdbcm.
 .SH SYNOPSIS
 .PP
-\f[B]Oma.getOmaConfigFile()\f[]
+\f[B]oma.getOmaConfigFile()\f[]
 .SH CATEGORY
 .PP
 Oma

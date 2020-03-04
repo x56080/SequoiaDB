@@ -20,7 +20,7 @@ Oma
 
 ##参数##
 
-* `svcname` ( *String*， *必填* )
+* `svcname` ( *Int | String*， *必填* )
 
     节点端口号。
 
@@ -52,5 +52,5 @@ v2.0及以上版本。
 
 	```lang-javascript
 	> var oma = new Oma( "localhost", 11790 )
-	> oma.removeOM( 11830 )
+	> oma.removeOM( 11780 )
 	```

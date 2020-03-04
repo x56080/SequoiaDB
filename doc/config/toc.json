@@ -2957,6 +2957,18 @@
                            "en": "Oma()"
                         },
                         {
+                           "id": 1580718029,
+                           "file": "addAOmaSvcName",
+                           "cn": "addAOmaSvcName()",
+                           "en": "addAOmaSvcName()"
+                        },
+                        {
+                           "id": 1580718030,
+                           "file": "delAOmaSvcName",
+                           "cn": "delAOmaSvcName()",
+                           "en": "delAOmaSvcName()"
+                        },
+                        {
                            "id": 1432190889,
                            "file": "close",
                            "cn": "close()",
@@ -2981,6 +2993,60 @@
                            "en": "createOM()"
                         },
                         {
+                           "id": 1580718031,
+                           "file": "getAOmaSvcName",
+                           "cn": "getAOmaSvcName()",
+                           "en": "getAOmaSvcName()"
+                        },
+                        {
+                           "id": 1580718032,
+                           "file": "getIniConfigs",
+                           "cn": "getIniConfigs()",
+                           "en": "getIniConfigs()"
+                        },
+                        {
+                           "id": 1580718033,
+                           "file": "getNodeConfigs",
+                           "cn": "getNodeConfigs()",
+                           "en": "getNodeConfigs()"
+                        },
+                        {
+                           "id": 1580718034,
+                           "file": "getOmaConfigFile",
+                           "cn": "getOmaConfigFile()",
+                           "en": "getOmaConfigFile()"
+                        },
+                        {
+                           "id": 1580718035,
+                           "file": "getOmaConfigs",
+                           "cn": "getOmaConfigs()",
+                           "en": "getOmaConfigs()"
+                        },
+                        {
+                           "id": 1580718036,
+                           "file": "getOmaInstallFile",
+                           "cn": "getOmaInstallFile()",
+                           "en": "getOmaInstallFile()"
+                        },
+                        {
+                           "id": 1580718037,
+                           "file": "getOmaInstallInfo",
+                           "cn": "getOmaInstallInfo()",
+                           "en": "getOmaInstallInfo()"
+                        },
+                        {
+                           "id": 1580718038,
+                           "file": "listNodes",
+                           "cn": "listNodes()",
+                           "en": "listNodes()"
+                        },
+                        {
+                           "id": 1580718039,
+                           "file": "reloadConfigs",
+                           "cn": "reloadConfigs()",
+                           "en": "reloadConfigs()"
+                        },
+                        {
                            "id": 1432190893,
                            "file": "removeCoord",
                            "cn": "removeCoord()",
@@ -2999,16 +3065,28 @@
                            "en": "removeOM()"
                         },
                         {
-                           "id": 1432190896,
-                           "file": "startNode",
-                           "cn": "startNode()",
-                           "en": "startNode()"
+                           "id": 1580718040,
+                           "file": "setIniConfigs",
+                           "cn": "setIniConfigs()",
+                           "en": "setIniConfigs()"
+                        }, 
+                        {
+                           "id": 1580718041,
+                           "file": "setNodeConfigs",
+                           "cn": "setNodeConfigs()",
+                           "en": "setNodeConfigs()"
                         },
                         {
-                           "id": 1432190897,
-                           "file": "stopNode",
-                           "cn": "stopNode()",
-                           "en": "stopNode()"
+                           "id": 1580718042,
+                           "file": "setOmaConfigs",
+                           "cn": "setOmaConfigs()",
+                           "en": "setOmaConfigs()"
+                        },
+                        {
+                           "id": 1580718043,
+                           "file": "start",
+                           "cn": "start()",
+                           "en": "start()"
                         },
                         {
                            "id": 1507622478,
@@ -3023,10 +3101,34 @@
                            "en": "stopAllNodes()"
                         },
                         {
-                           "id": 1529910092,
-                           "file": "setNodeConfigs",
-                           "cn": "setNodeConfigs()",
-                           "en": "setNodeConfigs()"
+                           "id": 1432190896,
+                           "file": "startNode",
+                           "cn": "startNode()",
+                           "en": "startNode()"
+                        },
+                        {
+                           "id": 1432190897,
+                           "file": "stopNode",
+                           "cn": "stopNode()",
+                           "en": "stopNode()"
+                        },
+                        {
+                           "id": 1580718044,
+                           "file": "startNodes",
+                           "cn": "startNodes()",
+                           "en": "startNodes()"
+                        },
+                        {
+                           "id": 1580718045,
+                           "file": "stopNodes",
+                           "cn": "stopNodes()",
+                           "en": "stopNodes()"
+                        },
+                        {
+                           "id": 1580718046,
+                           "file": "updateNodeConfigs",
+                           "cn": "updateNodeConfigs()",
+                           "en": "updateNodeConfigs()"
                         }
                      ]
                   },

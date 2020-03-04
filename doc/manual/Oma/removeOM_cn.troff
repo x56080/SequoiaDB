@@ -23,7 +23,7 @@ Oma
 oma 对象为连接到目标（本地/远端机器）集群控制器（sdbcm）获得的连接对象。
 .SH 参数
 .IP \[bu] 2
-\f[C]svcname\f[] ( \f[I]String\f[]， \f[I]必填\f[] )
+\f[C]svcname\f[] ( \f[I]Int | String\f[]， \f[I]必填\f[] )
 .RS 2
 .PP
 节点端口号。
@@ -83,7 +83,7 @@ v2.0及以上版本。
 .nf
 \f[C]
 >\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.removeOM(\ 11830\ )
+>\ oma.removeOM(\ 11780\ )
 \f[]
 .fi
 .RE

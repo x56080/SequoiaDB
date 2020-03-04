@@ -4,7 +4,7 @@ getOmaInstallFile - 获取安装信息文件。
 
 ##语法##
 
-**Oma.getOmaInstallFile()**
+**oma.getOmaInstallFile()**
 
 ##类别##
 

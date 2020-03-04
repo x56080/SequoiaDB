@@ -17,13 +17,13 @@ Oma
 Class for cluster management.
 .SH DESCRIPTION
 .IP \[bu] 2
-\f[C]hostname\f[] ( \f[I]String\f[]， \f[I]Required\f[] )
+\f[C]hostname\f[] ( \f[I]String\f[]， \f[I]optional\f[] )
 .RS 2
 .PP
 the hostname of the target sdbcm.
 .RE
 .IP \[bu] 2
-\f[C]svcname\f[] ( \f[I]String\f[]， \f[I]Required\f[] )
+\f[C]svcname\f[] ( \f[I]Int | String\f[]， \f[I]optional\f[] )
 .RS 2
 .PP
 the port of the target sdbcm, default to be 11790.

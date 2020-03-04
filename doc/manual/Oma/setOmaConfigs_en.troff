@@ -9,7 +9,7 @@ getOmaConfigs \- Set the configuration information to the configuration file of
 sdbcm.
 .SH SYNOPSIS
 .PP
-\f[B]Oma.setOmaConfigs(<config>,[confFile])\f[]
+\f[B]oma.setOmaConfigs(<config>,[confFile])\f[]
 .SH CATEGORY
 .PP
 Oma
@@ -24,7 +24,7 @@ Set the configuration information to the configuration file of sdbcm.
 The configuration information for sdbcm。
 .RE
 .IP \[bu] 2
-\f[C]svcname\f[] ( \f[I]String\f[]， \f[I]Optional\f[] )
+\f[C]confFile\f[] ( \f[I]String\f[]， \f[I]Optional\f[] )
 .RS 2
 .PP
 The configuration file of sdbcm, default to be the file of getOmaConfigFile(),
@@ -37,7 +37,7 @@ On success, nothing returns.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-the exceptions of \f[C]getOmaConfigs()\f[] are as below:
+the exceptions of \f[C]setOmaConfigs()\f[] are as below:
 .PP
 .TS
 tab(@);
@@ -93,7 +93,7 @@ Reset the dialog level from "ERROR" to "DEBUG", and then make it works.
 >\ println(obj["DiagLevel"])
 3
 >\ obj["DiagLevel"]\ =\ 5
->\ Oma.getOmaConfigs(obj)
+>\ Oma.setOmaConfigs(obj)
 >\ var\ oma\ =\ new\ Oma()
 >\ oma.reloadConfigs()
 \f[]

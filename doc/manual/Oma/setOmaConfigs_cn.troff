@@ -8,7 +8,7 @@
 setOmaConfigs \- 把 sdbcm 的配置信息写入到其配置文件。
 .SH 语法
 .PP
-\f[B]Oma.setOmaConfigs(<config>,[confFile])\f[]
+\f[B]oma.setOmaConfigs(<config>,[confFile])\f[]
 .SH 类别
 .PP
 Oma
@@ -94,7 +94,7 @@ v2.0及以上版本。
 >\ println(obj["DiagLevel"])
 3
 >\ obj["DiagLevel"]\ =\ 5
->\ Oma.getOmaConfigs(obj)
+>\ Oma.setOmaConfigs(obj)
 >\ var\ oma\ =\ new\ Oma()
 >\ oma.reloadConfigs()
 \f[]

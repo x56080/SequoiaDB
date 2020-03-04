@@ -8,7 +8,7 @@
 getOmaConfigs \- 获取 sdbcm 的配置信息。
 .SH 语法
 .PP
-\f[B]Oma.getOmaConfigs([confFile])\f[]
+\f[B]oma.getOmaConfigs([confFile])\f[]
 .SH 类别
 .PP
 Oma

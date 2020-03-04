@@ -4,7 +4,7 @@ setOmaConfigs - 把 sdbcm 的配置信息写入到其配置文件。
 
 ##语法##
 
-**Oma.setOmaConfigs(\<config\>,[confFile])**
+**oma.setOmaConfigs(\<config\>,[confFile])**
 
 ##类别##
 
@@ -56,7 +56,7 @@ v2.0及以上版本。
 	> println(obj["DiagLevel"])
 	3
 	> obj["DiagLevel"] = 5
-	> Oma.getOmaConfigs(obj)
+	> Oma.setOmaConfigs(obj)
 	> var oma = new Oma()
  	> oma.reloadConfigs()
 	```

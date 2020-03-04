@@ -4,7 +4,7 @@ getOmaConfigFile - 获取 sdbcm 的配置文件。
 
 ##语法##
 
-**Oma.getOmaConfigFile()**
+**oma.getOmaConfigFile()**
 
 ##类别##
 

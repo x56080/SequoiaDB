@@ -20,7 +20,7 @@ Oma
 
 ##参数##
 
-* `svcname` ( *String*， *必填* )
+* `svcname` ( *Int | String*， *必填* )
 
 	节点端口号。
 

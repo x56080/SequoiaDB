@@ -20,7 +20,7 @@ Oma
 
 ##参数##
 
-* `svcname` ( *String*， *必填* )
+* `svcname` ( *Int | String*， *必填* )
 
 	节点端口号。
 
@@ -50,9 +50,9 @@ v2.0及以上版本。
 
 ##示例##
 
-1. 在集群的ubuntu1机器上删除一个端口号为11810的 coord 节点
+1. 在集群的 sdbserver1 机器上删除一个端口号为 11810 的 coord 节点
 
 	```lang-javascript
-	> var oma = new Oma( "ubuntu1", 11790 )
+	> var oma = new Oma( "sdbserver1", 11790 )
 	> oma.removeCoord( 11810 )
 	```

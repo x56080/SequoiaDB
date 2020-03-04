@@ -4,7 +4,7 @@ getOmaConfigFile - Get the configuration file of sdbcm.
 
 ##SYNOPSIS##
 
-**Oma.getOmaConfigFile()**
+**oma.getOmaConfigFile()**
 
 ##CATEGORY##
 

@@ -19,7 +19,7 @@ Class for cluster management.
 
 	the hostname of the target sdbcm.
 
-* `svcname` ( *String*， *Required* )
+* `svcname` ( *Int | String*， *Required* )
 
 	the port of the target sdbcm, default to be 11790.
 
