@@ -542,6 +542,9 @@ namespace engine
                      const oldVersionContainer *pOldVer,
                      BOOLEAN hasLock = FALSE ) ;
 
+      // delete all nodes for a record
+      void  removeForRecord( SINT32 extID, SINT32 offset ) ;
+
       void  resetValue( const preIdxTreeNodeKey &keyNode,
                         DPS_TRANSID_SN           ownerTransID,
                         BOOLEAN                  hasLock = FALSE ) ;
@@ -791,6 +794,10 @@ namespace engine
       void              clearIdxTreeByCLID( UINT32 csID,
                                             UINT16 clID,
                                             BOOLEAN hasLock ) ;
+      void              cleanIdxNodesForRecord( UINT32 csID,
+                                                UINT16 clID,
+                                                SINT32 extID,
+                                                SINT32 offset ) ;
 
       INT32             addOldVersionUnit( UINT32 csID,
                                            UINT32 clID,

@@ -49,6 +49,8 @@ namespace engine
 {
    class _dpsTransExecutor ;
    class dpsTransLRBHeader ;
+   class dpsTransCB ;
+   class _pmdEDUCB ;
 
    #define DPS_LRB_STATUS_NONE  ( (UINT8) 0x00 )
    #define DPS_LRB_STATUS_AWAKE ( (UINT8) 0x01 )
@@ -124,7 +126,9 @@ namespace engine
    typedef void    (*DPS_EXTDATA_ON_LOCKRELEASE)( const dpsTransLockId &lockId,
                                                   DPS_TRANSLOCK_TYPE lockMode,
                                                   UINT32 refCounter,
-                                                  BOOLEAN  isRollback,
+                                                  BOOLEAN  nonTransNeedCleanup,
+                                                  dpsTransCB *transCB,
+                                                  _pmdEDUCB *eduCB,
                                                   dpsLRBExtData *pExtData,
                                                   INT32 idxLID,
                                                   BOOLEAN hasLock ) ;

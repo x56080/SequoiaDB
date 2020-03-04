@@ -625,6 +625,43 @@ namespace engine
       return remove( keyNode, pOldVer, hasLock ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_REMOVEFORRECORD, "preIdxTree::removeForRecord" )
+   void preIdxTree::removeForRecord( SINT32 extID, SINT32 offset )
+   {
+      dmsRecordID              rid( extID, offset ) ;
+      INDEX_TREE_POS           curPos, nextPos ;
+      INDEX_RID_TREE::iterator it ;
+
+      PD_TRACE_ENTRY( SDB_PREIDXTREE_REMOVEFORRECORD ) ;
+
+      lockX() ;
+
+      it = _ridTree.find( rid ) ;
+
+      // check if rid exist in the _ridTree
+      if ( it != _ridTree.end() )
+      {
+         // get the first(newest) tree nodes of the record
+         curPos = it->second ;
+         do 
+         {
+            nextPos = curPos->second.getRidPre() ;
+#ifdef _DEBUG
+            PD_LOG( PDDEBUG,
+                    "Erasing node in index tree(%d) with key[%s]",
+                    _idxLID,
+                    curPos->first.toString().c_str() ) ;
+#endif
+            _tree.erase( curPos ) ;
+            curPos = nextPos ;
+         }
+         while ( curPos != _tree.end() ) ;
+      }
+
+      unlockX() ;
+      PD_TRACE_EXIT( SDB_PREIDXTREE_REMOVEFORRECORD ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_RESETVALUE, "preIdxTree::resetValue" )
    void preIdxTree::resetValue( const preIdxTreeNodeKey &keyNode,
                                 DPS_TRANSID_SN           ownerTransID,
@@ -684,9 +721,11 @@ namespace engine
    }
 
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_ADVANCE, "preIdxTree::advance" )
    INT32 preIdxTree::advance( INDEX_TREE_CPOS &pos, INT32 direction ) const
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_PREIDXTREE_ADVANCE ) ;
 
       while( TRUE )
       {
@@ -723,6 +762,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXIT( SDB_PREIDXTREE_ADVANCE );
       return rc ;
    error:
       goto done ;
@@ -1012,12 +1052,15 @@ namespace engine
    }
 
    // run garbage collection on a tree, erase all nodes older than lowtran
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_GC, "preIdxTree::gc" )
    DPS_TRANSID_SN preIdxTree::gc( DPS_TRANSID_SN lowTran )
    {
       INDEX_TREE_POS pos ;
 
       // Lowest transID in the tree
       DPS_TRANSID_SN idxTreeLowTran = DPS_MAX_TRANSID_SN ;
+
+      PD_TRACE_ENTRY( SDB_PREIDXTREE_GC );
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
                "gc memixtree(%d) to lowTran %llu), lastGCtime(%llu)",
@@ -1093,6 +1136,7 @@ namespace engine
 
       unlockX() ;
 
+      PD_TRACE_EXIT( SDB_PREIDXTREE_GC );
       return idxTreeLowTran ;
    }
 
@@ -1671,8 +1715,10 @@ namespace engine
       PD_TRACE_EXIT ( SDB_OLDVERSIONCB_DELIDXTREE ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OLDVERSIONCB_GCIDXTREES, "oldVersionCB::gcIdxTrees" )
    void oldVersionCB::gcIdxTrees( ) 
    {
+      PD_TRACE_ENTRY ( SDB_OLDVERSIONCB_GCIDXTREES ) ;
       preIdxTreePtr treePtr ;
       IDXID_TO_TREE_MAP_IT it ;
       DPS_TRANSID_SN  expiredVersion = DPS_INVALID_TRANSID_SN ;
@@ -1724,6 +1770,7 @@ namespace engine
          updateMinLowTranSN( minTreeLowTran ) ;
       }
       releaseS() ;
+      PD_TRACE_EXIT ( SDB_OLDVERSIONCB_GCIDXTREES ) ;
    }
 
    void oldVersionCB::clearIdxTreeByCSID( UINT32 csID, BOOLEAN hasLock )
@@ -2033,6 +2080,47 @@ namespace engine
 
       /// clear old version unit's chain out of latch mutex
       tmpMapUnit.clear() ;
+   }
+
+   // This function will go through each index tree for the given collection,
+   // remove all nodes for the given record by following the ridTree chain.
+   // Proper latch are taken within this function. The caller suppose to hold
+   // the record lock of the provided record. Currently mblatch of the
+   // collection is also held.
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OLDVERSIONCB_CLEANIDXNODESFORRECORD, "oldVersionCB::cleanIdxNodesForRecord" )
+   void oldVersionCB::cleanIdxNodesForRecord( UINT32 csID,
+                                              UINT16 clID,
+                                              SINT32 extID,
+                                              SINT32 offset ) 
+   {
+      PD_TRACE_ENTRY ( SDB_OLDVERSIONCB_CLEANIDXNODESFORRECORD ) ;
+      preIdxTreePtr treePtr ;
+      IDXID_TO_TREE_MAP_IT it ;
+      globIdxID   gid(csID, clID, 0); 
+
+      latchS() ;
+      // find the first index tree of this collection under the latch
+      // _idxTrees is ordered by globIdxID, where csID/clID take privillage
+      // over idxLid on comparison. And idxLid is in ascending order.
+      it = _idxTrees.lower_bound(gid) ;
+
+      while ( it != _idxTrees.end()     &&
+              (it->first._csID == csID) &&
+              (it->first._clID == clID) )
+      {
+         // this index can't be dropped as we hold the record lock
+         // (and mblatch), we can do the work without latch
+         releaseS() ;
+         treePtr = it->second ;
+
+         treePtr->removeForRecord( extID, offset );
+
+         latchS() ;
+         ++it ;
+      }
+
+      releaseS() ;
+      PD_TRACE_EXIT ( SDB_OLDVERSIONCB_CLEANIDXNODESFORRECORD ) ;
    }
 
    /*
