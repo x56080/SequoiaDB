@@ -241,6 +241,13 @@ namespace engine
                {
                   break ;
                }
+               // All succeeded, set up the cleanup flag
+               if( pmdGetOptionCB()->mvccOn() &&
+                   pScanner->callbackHandler() &&
+                   !cb->isInTransRollback() )
+               {
+                  pScanner->callbackHandler()->setNonTransNeedCleanup() ;
+               }
             }
 
             if ( SDB_DMS_EOC == rc )

@@ -331,16 +331,46 @@ namespace engine
       }
    }
 
+   // Callback function pointer main body. This is actual callback
+   // is done. There are two part of handling here:
+   // 1. special case for nontransactional changes when mvcc is on
+   // 2. general case to handle in memory old versions
    void dmsOnTransLockRelease( const dpsTransLockId &lockId,
                                DPS_TRANSLOCK_TYPE    lockMode,
                                UINT32                refCounter,
-                               BOOLEAN               isRollback,
+                               BOOLEAN               nonTransNeedCleanup,
+                               dpsTransCB           *transCB,
+                               pmdEDUCB             *eduCB,
                                dpsLRBExtData        *pExtData,
                                INT32                 idxLID,
                                BOOLEAN               hasLock )
    {
       oldVersionContainer *oldVer   = NULL ;
 
+      // When mvcc is enabled, transactions will store old version indexes
+      // in the in memory idxTree. However, if a non transactional change
+      // comes in, the result is immediately avaliable. Thus at the time
+      // those changes were made, we need to get rid of all old version
+      // tree nodes associate with the rid so that index scan would not
+      // pick up any of those versions. 
+      if( pmdGetOptionCB()->mvccOn()        &&
+          eduCB->getTransID().isInvalid()  &&
+          ( lockId.isLeafLevel() )          &&
+          ( DPS_TRANSLOCK_X == lockMode )   &&
+          nonTransNeedCleanup )   
+      {
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, 
+                 "Cleanup old indexes for rid[%s] in mvcc for nontrans change"
+                 "refCounter=%d, pExtData=%x, _data=%x",
+                 lockId.toString().c_str(), refCounter, pExtData,
+                 pExtData ? pExtData->_data : NULL ) ;
+#endif
+         transCB->getOldVCB()->cleanIdxNodesForRecord( lockId.csID(),
+                                                       lockId.clID(),
+                                                       lockId.extentID(),
+                                                       lockId.offset() ) ;
+      }
       // early exit if this is not record lock OR not in X mode OR
       // there is no old record setup.
       if ( ( !lockId.isLeafLevel() )               ||
@@ -349,6 +379,7 @@ namespace engine
            ( NULL == pExtData )                    ||
            ( 0 == pExtData->_data ) )
       {
+
          goto done ;
       }
 
@@ -396,7 +427,7 @@ namespace engine
                  lockId.toString().c_str() ) ;
 #endif
          oldVer->setRecordDeleted() ;
-         if ( isRollback )
+         if ( eduCB->isInTransRollback() )
          {
             // notify LJ to remove the old version index from tree if the
             // transaction is rolledback
@@ -441,9 +472,10 @@ namespace engine
       _clLID      = ~0 ;
       _csID       = DMS_INVALID_SUID ;
       _clID       = DMS_INVALID_MBID ;
-      _latchedIdxLid = DMS_INVALID_EXTENT ;
+      _latchedIdxLid  = DMS_INVALID_EXTENT ;
       _transIsolation = TRANS_ISOLATION_MAX ;
-      _pScanner      = NULL ;
+      _nonTransNeedCleanup = FALSE ;
+      _pScanner    = NULL ;
 
       clearStatus() ;
    }
@@ -459,6 +491,7 @@ namespace engine
       _eduCB      = eduCB ;
       _recordRW   = NULL ;
       _rbsRecordData = NULL ;
+      _nonTransNeedCleanup = FALSE ;
       _oldVerCB   = transCB->getOldVCB() ;
       _rbsMgr     = pmdGetKRCB()->getDMSCB()->getRBSSUMgr() ;
 
@@ -524,6 +557,7 @@ namespace engine
       _skipRecord       = FALSE ;
       _result           = SDB_OK ;
       _useOldVersion    = FALSE ;
+      _nonTransNeedCleanup = FALSE ;
       _recordPtr        = dpsOldRecordPtr() ;
       _recordInfo.reset() ;
       _rbsRecordOffset.reset() ;
@@ -620,7 +654,6 @@ namespace engine
       if ( transID.isInvalid() ||
            _eduCB->isInTransRollback() )
       {
-         // FIXME: revisit rollback logic
          notTransOrRollback = TRUE ;
       }
 
@@ -628,10 +661,10 @@ namespace engine
 #ifdef _DEBUG
       PD_LOG( PDDEBUG, 
               "Begin chek for rid(%d, %d), transid(%s), clLID(%d), irc(%d) ,"
-              "requestLockMode(%d) ",
+              "requestLockMode(%d), notTransOrRollback(%d) ",
               lockId.extentID(), lockId.offset(),
               dpsTransIDToString( transID ).c_str(),
-              _clLID, irc, requestLockMode ) ;
+              _clLID, irc, requestLockMode, notTransOrRollback ) ;
 #endif
 
       // if both read transaction ( current transaction ) and write
@@ -1046,9 +1079,10 @@ namespace engine
             }
             // although we got the lock, there is no in memory old version,
             // we still need to get proper visiable version if this is RR
-            else if( pmdGetOptionCB()->mvccOn() && 
-                     ( DPS_TRANSLOCK_S == requestLockMode ) &&
-                     ( TRANS_ISOLATION_RR == _transIsolation ) )
+            else if( pmdGetOptionCB()->mvccOn()                &&
+                     ( DPS_TRANSLOCK_S == requestLockMode )    &&
+                     ( TRANS_ISOLATION_RR == _transIsolation ) &&
+                     !notTransOrRollback )
             {
                // if this record came from tbscan or index disk scan, we
                // can directly read the record from disk
@@ -1187,7 +1221,8 @@ namespace engine
             // we still need to get proper visiable version if this is RR
             else if( pmdGetOptionCB()->mvccOn() && 
                      ( DPS_TRANSLOCK_S == requestLockMode ) &&
-                     ( TRANS_ISOLATION_RR == _transIsolation ) )
+                     ( TRANS_ISOLATION_RR == _transIsolation ) &&
+                     !notTransOrRollback )
             {
 
                if ( !_pScanner || 
@@ -1297,7 +1332,7 @@ namespace engine
                   }
                }
             }
-            else
+            else if ( !notTransOrRollback )
             {
                /// from memory tree
                if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
@@ -1384,8 +1419,8 @@ namespace engine
 
       BOOLEAN hasLock = ( -1 != idxTreeLatchMode() ) ? TRUE : FALSE ;
       dmsOnTransLockRelease( lockId, lockMode, refCounter,
-                             _eduCB->isInRollback(), pExtData,
-                             _latchedIdxLid, hasLock ) ;
+                             _nonTransNeedCleanup, _transCB, _eduCB,
+                             pExtData, _latchedIdxLid, hasLock ) ;
 
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_BEFORELOCKRELEASE );
    }

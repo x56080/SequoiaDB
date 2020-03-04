@@ -2431,8 +2431,9 @@ namespace engine
             pLRBHdr->extData._onLockReleaseFunc( lockId,
                                                  pMyLRB->lockMode,
                                                  pMyLRB->refCounter,
-                                                 pmdGetThreadEDUCB()->
-                                                      isInRollback(),
+                                                 FALSE,
+                                                 sdbGetTransCB(),
+                                                 pmdGetThreadEDUCB(),
                                                  &(pLRBHdr->extData),
                                                  -1,
                                                  FALSE ) ;

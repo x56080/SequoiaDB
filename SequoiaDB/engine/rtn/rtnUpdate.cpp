@@ -270,13 +270,19 @@ namespace engine
                ++numUpdatedRecords ;
                mthContext.clear() ;
                mthContext.enableDollarList() ;
-
                execEndTime = krcb->getCurTime() ;
                monCtxCB.monExecuteTimeInc( execStartTime, execEndTime ) ;
 
                if ( updateOne && 1 == numUpdatedRecords )
                {
                   break ;
+               }
+               // All succeeded, set up the cleanup flag
+               if( pmdGetOptionCB()->mvccOn() &&
+                   pScanner->callbackHandler() &&
+                   !cb->isInTransRollback() )
+               {
+                  pScanner->callbackHandler()->setNonTransNeedCleanup() ;
                }
             }
 

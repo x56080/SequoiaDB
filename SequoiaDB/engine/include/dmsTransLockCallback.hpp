@@ -87,6 +87,8 @@ namespace engine
          Status
       */
       BOOLEAN  isSkipRecord() const { return _skipRecord ; }
+      BOOLEAN  isNonTransNeedCleanup() const { return _nonTransNeedCleanup ; }
+      void     setNonTransNeedCleanup() { _nonTransNeedCleanup = TRUE ; }
       INT32    getResult() const { return _result ; }
       BOOLEAN  hasError() const { return SDB_OK != _result ? TRUE : FALSE ; }
       BOOLEAN  isUseOldVersion() const { return _useOldVersion ; }
@@ -269,6 +271,12 @@ namespace engine
       BOOLEAN              _skipRecord ;
       INT32                _result ;
       BOOLEAN              _useOldVersion ;
+      // used for non-transactional operation to track if the operation
+      // (update/delete) need to cleanup nodes for this rid in memidxtree.
+      // Only need the cleanup when the operation was successfull.
+      // Note that because this is for Non-transactional, it's set/reset
+      // per record, and per record lock
+      BOOLEAN              _nonTransNeedCleanup;  
       dpsOldRecordPtr      _recordPtr ;
       dmsRBSOffset         _rbsRecordOffset ;
 

@@ -2973,6 +2973,15 @@ namespace engine
          PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKRELEASE, 
                     PD_PACK_INT(recordID->_extent),
                     PD_PACK_INT(recordID->_offset) ) ;
+         //FIXME: remove
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, 
+                 "trans(%s) release translock,rid(%d, %d),callback(%x)", 
+                 dpsTransIDToString(eduCB->getTransID()).c_str(),
+                 recordID->_extent, recordID->_offset,
+                 callback ) ;
+
+#endif
       }
 
       if ( 0 != eduCB->getTransExecutor()->getLockCount( LOCKMGR_TRANS_LOCK ) )
