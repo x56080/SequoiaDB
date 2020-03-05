@@ -299,6 +299,8 @@ class SequoiaDB
     *    errno:       the error number
     *    description: the description of the errno
     *    detail:      the error detail
+    *    ErrNodes:    describes which data nodes have errors, and detailed information about the error
+    *                 (this field is an expand field, which is only returned when an error occurs on the data node)
     *    @endcode
     *
     * Example:
