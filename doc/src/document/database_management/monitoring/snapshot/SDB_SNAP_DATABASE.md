@@ -82,6 +82,7 @@ SDB_SNAP_DATABASE
 | Wait                  | 整型   | 当前处于等待队列的任务数量（包含未分发的任务）                                  |
 | SchdlrMgrEvtNum       | 整型   | 当前未分发的任务数量                                                            |
 | SchdlrTimes           | 长整型 | 统计时间范围内总的任务执行次数                                                  |
+| MemPoolSize           | 长整型 | Pool Memory 的大小（单位：字节）                                                |
 
 ##协调节点字段信息##
 
@@ -206,6 +207,7 @@ SDB_SNAP_DATABASE
   "shardNetOut": 9265,
   "replNetIn": 0,
   "replNetOut": 0
+  "MemPoolSize": 56868864
 }
 ```
 
