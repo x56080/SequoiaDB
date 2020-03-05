@@ -30,7 +30,7 @@ function test()
    var containedResult = [ COMMCSNAME + "." + clName, COMMCSNAME + "." + subCLName1, COMMCSNAME + "." + subCLName2 ];
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS );
    var actResult = getCursorResult( cursor );
-   if( !isContained( actResult, containedResult ) || isContained( actResult, notContainedResult ) )
+   if( !isContained( actResult, containedResult ) || !isNotContained( actResult, notContainedResult ) )
    {
       throw new Error( "\nactResult [" + actResult + "]\nnotContainedResult [" + notContainedResult + 
                        "]\ncontainedResult [" + containedResult + "]" );
@@ -38,7 +38,7 @@ function test()
 
    cursor = db.exec( 'select * from $SNAPSHOT_CL' );
    actResult = getCursorResult( cursor );
-   if( !isContained( actResult, containedResult ) || isContained( actResult, notContainedResult ) )
+   if( !isContained( actResult, containedResult ) || !isNotContained( actResult, notContainedResult ) )
    {
       throw new Error( "\nactResult [" + actResult + "]\nnotContainedResult [" + notContainedResult +
                        "]\ncontainedResult [" + containedResult + "]" );

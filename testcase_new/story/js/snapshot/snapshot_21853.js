@@ -27,7 +27,7 @@ function test()
    var sdbsnapshotOption = new SdbSnapshotOption().options( { ShowMainCLMode: "非法值" } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, sdbsnapshotOption );
    var actResult = getCursorResult( cursor );
-   if( !isContained( actResult, containedResult ) || isContained( actResult, notContainedResult ) )
+   if( !isContained( actResult, containedResult ) || !isNotContained( actResult, notContainedResult ) )
    {
       throw new Error( "\nactResult [" + actResult + "]\nnotContainedResult [" + notContainedResult + 
                        "]\ncontainedResult [" + containedResult + "]" );

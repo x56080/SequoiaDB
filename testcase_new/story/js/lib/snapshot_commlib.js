@@ -223,13 +223,27 @@ function startNodes ( nodeAddresses )
    }
 }
 
-function isContained( actResult, result )
+function isContained( actResult, expResult )
 {
    var flag = true;
-   for( var i = 0; i < result.length; i++ )
+   for( var i = 0; i < expResult.length; i++ )
    {
-      if( actResult.indexOf( result[i] ) == -1 )
+      if( actResult.indexOf( expResult[i] ) == -1 )
       {
+         flag = false;
+         break;
+      }
+   }
+   return flag;
+}
+
+function isNotContained( actResult, expResult )
+{  
+   var flag = true;
+   for( var i = 0; i < expResult.length; i++ )
+   {  
+      if( actResult.indexOf( expResult[i] ) !== -1 )
+      {  
          flag = false;
          break;
       }
@@ -260,5 +274,6 @@ function getCursorResult( cursor )
    {
       cursorResult.push( cursor.current().toObj()["Name"] );
    }
+   cursor.close();
    return cursorResult;
 }

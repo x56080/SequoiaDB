@@ -6,7 +6,7 @@
 ******************************************************************************/
 testConf.skipStandAlone = true;
 
-main( test );
+//main( test );SEQUOIADBMAINSTREAM-5593
 
 function test()
 {
@@ -46,7 +46,7 @@ function test()
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, sdbsnapshotOption );
    actResult = getCursorResult( cursor );
    //判断快照信息中含有子表信息且不含有主表信息
-   if( !isContained( actResult, containedResult ) || isContained( actResult, notContainedResult ) )
+   if( !isContained( actResult, containedResult ) || !isNotContained( actResult, notContainedResult ) )
    {
       throw new Error( "\nactResult [" + actResult + "]\nnotContainedResult [" + notContainedResult +
                        "]\ncontainedResult [" + containedResult + "]" );
@@ -55,12 +55,12 @@ function test()
    //指定ShowMainCLMode为main
    var actResult = [];
    var containedResult = [ COMMCSNAME + "." + mainCLName ];
-   var notContainedResult = [ COMMCSNAME + "." + clName, COMMCSNAME + "." + subCLName1, COMMCSNAME + "." + subCLName2 ];
+   var notContainedResult = [ COMMCSNAME + "." + subCLName1, COMMCSNAME + "." + subCLName2 ];
    var sdbsnapshotOption = new SdbSnapshotOption().options( { ShowMainCLMode: "main" } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, sdbsnapshotOption );
    actResult = getCursorResult( cursor );
    //判断快照信息中含有主表信息且不含有子表信息
-   if( !isContained( actResult, containedResult ) || isContained( actResult, notContainedResult ) )
+   if( !isContained( actResult, containedResult ) || !isNotContained( actResult, notContainedResult ) )
    {
       throw new Error( "\nactResult [" + actResult + "]\nnotContainedResult [" + notContainedResult +
                        "]\ncontainedResult [" + containedResult + "]" );
@@ -70,7 +70,7 @@ function test()
    cursor = db.exec( 'select * from $SNAPSHOT_CL ' + snapshotOption );
    actResult = getCursorResult( cursor );
    //判断快照信息中含有主表信息且不含有子表信息
-   if( !isContained( actResult, containedResult ) || isContained( actResult, notContainedResult ) )
+   if( !isContained( actResult, containedResult ) || !isNotContained( actResult, notContainedResult ) )
    {
       throw new Error( "\nactResult [" + actResult + "]\nnotContainedResult [" + notContainedResult +
                        "]\ncontainedResult [" + containedResult + "]" );

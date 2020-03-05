@@ -21,7 +21,7 @@ function test()
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, sdbsnapshotOption );
    var actResult = getCursorResult( cursor );
    //判断快照信息中不含有主表信息
-   if( isContained( actResult, notContainedResult ) )
+   if( !isNotContained( actResult, notContainedResult ) )
    {
       throw new Error( "\nactResult [" + actResult + "]\nnotContainedResult [" + notContainedResult + "]" );
    }
