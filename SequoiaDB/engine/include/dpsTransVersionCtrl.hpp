@@ -947,8 +947,7 @@ namespace engine
                                        UINT32 ownnerTID,
                                        DPS_TRANS_ID recordTransID ) ;
       void                 releaseRecord( dmsTransLockCallback* callback = NULL ) ;
-      BOOLEAN              tryReleaseRecord( INT32 idxLID = -1,
-                                             BOOLEAN hasLock = FALSE ) ;
+      BOOLEAN              tryReleaseRecord( dmsTransLockCallback* callback = NULL ) ;
 
       void                 setRecordDeleted() ;
       void                 setOwnerTransID( DPS_TRANS_ID const & ownerTransID ) 
@@ -1008,6 +1007,10 @@ namespace engine
       void unsetOnChain() { _isOnChain = FALSE ; }
       void lockOnChain() ;
       void unlockOnChain() ;
+
+      void _releaseRecord( preIdxTree *pTree,
+                           const preIdxTreeNodeKey &keyNode,
+                           BOOLEAN treeLatchHeld ) ;
 
    private:
       INT32             _csID ;

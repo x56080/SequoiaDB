@@ -2244,6 +2244,43 @@ namespace engine
       return _oldIdx.empty() ? TRUE : FALSE ;
    }
 
+   void oldVersionContainer::_releaseRecord( preIdxTree *pTree,
+                                             const preIdxTreeNodeKey &keyNode,
+                                             BOOLEAN treeLatchHeld )
+   {
+      SDB_ASSERT( NULL != pTree, "tree is invalid" ) ;
+
+      // remove the index from mem tree if mvcc is off or the
+      // transaction had been rolledback
+      if ( !pmdGetOptionCB()->mvccOn() || isRolledback() )
+      {
+#ifdef _DEBUG   // FIXME: to be removed
+   PD_LOG( PDDEBUG, "Removing index from mem tree, latchHeld(%d): "
+           "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
+            treeLatchHeld, _rid._extent, _rid._offset,
+            dpsTransIDToString( _ownerTransID ).c_str(),
+            dpsTransIDToString( _recordTransID ).c_str(),
+            this->getRecordObj().toString().c_str() ) ;
+#endif
+         pTree->remove( keyNode, this, treeLatchHeld ) ;
+      }
+      else
+      {
+#ifdef _DEBUG   // FIXME: to be removed
+   PD_LOG( PDDEBUG, "Resetting index in mem tree, latchHeld(%d): "
+           "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
+            treeLatchHeld, _rid._extent, _rid._offset,
+            dpsTransIDToString( _ownerTransID ).c_str(),
+            dpsTransIDToString( _recordTransID ).c_str(),
+            this->getRecordObj().toString().c_str() ) ;
+#endif
+         // reset the tree node value if mvcc is on
+         pTree->resetValue( keyNode,
+                            getOwnerTransID().getGlobSN(),
+                            treeLatchHeld ) ;
+      }
+   }
+
    // free up all the storage for this old version record
    void oldVersionContainer::releaseRecord( dmsTransLockCallback* callback )
    {
@@ -2319,35 +2356,7 @@ namespace engine
                treeLatchHeld = TRUE ;
             }
 
-            // remove the index from mem tree if mvcc is off or the 
-            // transaction had been rolledback
-            if ( !pmdGetOptionCB()->mvccOn() || isRolledback() )
-            {
-#ifdef _DEBUG   // FIXME: to be removed
-         PD_LOG( PDDEBUG, "Removing index from mem tree, latchHeld(%d): "
-                 "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
-                  treeLatchHeld, _rid._extent, _rid._offset,
-                  dpsTransIDToString( _ownerTransID ).c_str(),
-                  dpsTransIDToString( _recordTransID ).c_str(),
-                  this->getRecordObj().toString().c_str() ) ;
-#endif
-               pTree->remove( keyNode, this, treeLatchHeld ) ;
-            }
-            else
-            {
-#ifdef _DEBUG   // FIXME: to be removed
-         PD_LOG( PDDEBUG, "Resetting index in mem tree, latchHeld(%d): "
-                 "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
-                  treeLatchHeld, _rid._extent, _rid._offset,
-                  dpsTransIDToString( _ownerTransID ).c_str(),
-                  dpsTransIDToString( _recordTransID ).c_str(),
-                  this->getRecordObj().toString().c_str() ) ;
-#endif
-               // reset the tree node value if mvcc is on
-               pTree->resetValue( keyNode,
-                                  getOwnerTransID().getGlobSN(),
-                                  treeLatchHeld ) ;
-            }
+            _releaseRecord( pTree, keyNode, treeLatchHeld ) ;
          }
          ++itSet ;
       }
@@ -2366,8 +2375,7 @@ namespace engine
       return ;
    }
 
-   BOOLEAN oldVersionContainer::tryReleaseRecord( INT32 idxLID,
-                                                  BOOLEAN hasLock )
+   BOOLEAN oldVersionContainer::tryReleaseRecord( dmsTransLockCallback* callback )
    {
       BOOLEAN succeed = FALSE ;
       preIdxTree *pTree = NULL ;
@@ -2387,17 +2395,34 @@ namespace engine
          }
          else
          {
+            BOOLEAN treeLatchHeld = FALSE ;
             pTree = (itMap->second).get() ;
+            preIdxTreeNodeKey keyNode( &(tmpObj.getKeyObj()),
+                                       _rid,
+                                       pTree->getOrdering(),
+                                       _ownerTransID ) ;
+            INT32 idxLID = pTree->getLID() ;
 
-            if ( idxLID == tmpObj.getIdxLID() && hasLock )
+            // For merge scanner, make sure the scanner is X latched ;
+            // as for non-transactional IUD, it could be disk scan.
+            if ( callback &&
+                 callback->isIndexProtectionRequired() &&
+                 callback->isIndexProtected( idxLID ) )
             {
-               pTree->remove( &(tmpObj.getKeyObj()), _rid, this, hasLock ) ;
+               SDB_ASSERT( callback->isIndexProtected( idxLID, EXCLUSIVE ),
+                           "Index tree must be held exclusively" ) ;
+               treeLatchHeld = TRUE ;
+            }
+
+            if ( idxLID == tmpObj.getIdxLID() && treeLatchHeld )
+            {
+               _releaseRecord( pTree, keyNode, treeLatchHeld ) ;
                _oldIdx.erase( itSet++ ) ;
                continue ;
             }
             else if ( pTree->tryLockX() )
             {
-               pTree->remove( &(tmpObj.getKeyObj()), _rid, this, TRUE ) ;
+               _releaseRecord( pTree, keyNode, TRUE ) ;
                pTree->unlockX() ;
                _oldIdx.erase( itSet++ ) ;
                continue ;

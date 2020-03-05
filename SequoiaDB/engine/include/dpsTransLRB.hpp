@@ -129,9 +129,7 @@ namespace engine
                                                   BOOLEAN  nonTransNeedCleanup,
                                                   dpsTransCB *transCB,
                                                   _pmdEDUCB *eduCB,
-                                                  dpsLRBExtData *pExtData,
-                                                  INT32 idxLID,
-                                                  BOOLEAN hasLock ) ;
+                                                  dpsLRBExtData *pExtData ) ;
 
    class dpsLRBExtData : public utilPooledObject
    {

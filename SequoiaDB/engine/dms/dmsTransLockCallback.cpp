@@ -341,9 +341,7 @@ namespace engine
                                BOOLEAN               nonTransNeedCleanup,
                                dpsTransCB           *transCB,
                                pmdEDUCB             *eduCB,
-                               dpsLRBExtData        *pExtData,
-                               INT32                 idxLID,
-                               BOOLEAN               hasLock )
+                               dpsLRBExtData        *pExtData )
    {
       oldVersionContainer *oldVer   = NULL ;
 
@@ -362,7 +360,7 @@ namespace engine
 #ifdef _DEBUG
          PD_LOG( PDDEBUG, 
                  "Cleanup old indexes for rid[%s] in mvcc for nontrans change"
-                 "refCounter=%d, pExtData=%x, _data=%x",
+                 "refCounter=%d, pExtData=%p, _data=%p",
                  lockId.toString().c_str(), refCounter, pExtData,
                  pExtData ? pExtData->_data : NULL ) ;
 #endif
@@ -411,7 +409,7 @@ namespace engine
 
       /// try relerase record, because maybe should wait index tree's lock,
       /// so use try
-      if ( oldVer && oldVer->tryReleaseRecord( idxLID, hasLock ) )
+      if ( oldVer && oldVer->tryReleaseRecord() )
       {
          // FIXME: remove after stable
 #ifdef _DEBUG
@@ -1390,10 +1388,9 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_BEFORELOCKRELEASE ) ;
 
-      BOOLEAN hasLock = ( -1 != idxTreeLatchMode() ) ? TRUE : FALSE ;
       dmsOnTransLockRelease( lockId, lockMode, refCounter,
                              _nonTransNeedCleanup, _transCB, _eduCB,
-                             pExtData, _latchedIdxLid, hasLock ) ;
+                             pExtData ) ;
 
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_BEFORELOCKRELEASE );
    }
