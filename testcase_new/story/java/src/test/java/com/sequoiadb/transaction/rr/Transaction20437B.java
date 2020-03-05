@@ -35,7 +35,7 @@ public class Transaction20437B extends SdbTestBase {
     private Sequoiadb TR8 = null;
     private Sequoiadb TR9 = null;
     private Sequoiadb TR10 = null;
-    private String clName = "cl_20437A";
+    private String clName = "cl_20437B";
     private DBCollection cl = null;
     private DBCollection cl1 = null;
     private DBCollection cl2 = null;
@@ -65,7 +65,7 @@ public class Transaction20437B extends SdbTestBase {
         cl2 = TW2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = TW3.getCollectionSpace( csName ).getCollection( clName );
         cl4 = TW4.getCollectionSpace( csName ).getCollection( clName );
-        cl.createIndex( "index_20437A", "{ a: 1 }", false, false );
+        cl.createIndex( "index_20437B", "{ a: 1 }", false, false );
         
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 200 ) );//插入记录为0-200
         sdb.beginTransaction();
@@ -75,7 +75,7 @@ public class Transaction20437B extends SdbTestBase {
     
     @DataProvider(name = "index")
     public Object[][] useIndex() {
-        return new Object[][] { { "{ \"\": \"index_20437A\" }" }, { "{ \"\": null }"} };
+        return new Object[][] { { "{ \"\": \"index_20437B\" }" }, { "{ \"\": null }"} };
     }
     
     @Test( dataProvider = "index" )
