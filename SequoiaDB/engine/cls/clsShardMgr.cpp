@@ -3629,7 +3629,7 @@ namespace engine
             }
             reply.flags = checkRC ;
          }
-         else if ( DPS_TRANS_DOING == status )
+         else if ( DPS_TRANS_DOING == transInfo._status )
          {
             // the status is still doing, it might be processing
             // pre-commit/rollback messages

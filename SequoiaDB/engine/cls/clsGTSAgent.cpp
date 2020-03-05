@@ -980,6 +980,7 @@ namespace engine
       switch ( info._status )
       {
          case DPS_TRANS_DOING :
+         case DPS_TRANS_DOING_INTERRUPT :
          {
             // still doing, wait for a while, and retry
             waitTime = CLS_GTS_WAIT_INTERVAL ;

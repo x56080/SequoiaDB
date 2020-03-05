@@ -563,6 +563,7 @@ namespace engine
       if ( transBeginTime < recTransInfo._beginTime )
       {
          if ( DPS_TRANS_DOING == recTransInfo._status ||
+              DPS_TRANS_DOING_INTERRUPT == recTransInfo._status ||
               DPS_TRANS_WAIT_COMMIT == recTransInfo._status ||
               DPS_TRANS_COMMIT == recTransInfo._status )
          {
@@ -575,7 +576,8 @@ namespace engine
       }
       else
       {
-         if ( DPS_TRANS_DOING == recTransInfo._status &&
+         if ( ( DPS_TRANS_DOING == recTransInfo._status ||
+                DPS_TRANS_DOING_INTERRUPT == recTransInfo._status ) &&
               transBeginTime <= recTransInfo._beginTime.getUpperLogicalTime() )
          {
             // in this case, record transaction could not be committed
@@ -637,7 +639,15 @@ namespace engine
             // transaction ID, which means the transaction is doing
             // rollback, or this is an old version record which was not
             // cleared in time
-            // so, the record should not been seen anyway
+            // so, the record should not be seen anyway
+            visible = FALSE ;
+            break ;
+         }
+         case DPS_TRANS_DOING_INTERRUPT :
+         {
+            // if transaction is DOING INTERRUPTED status,
+            // it is going to rollback, so this record could not be seen
+            // like ROLLBACK status
             visible = FALSE ;
             break ;
          }
@@ -713,6 +723,7 @@ namespace engine
       switch ( recTransInfo._status )
       {
          case DPS_TRANS_DOING :
+         case DPS_TRANS_DOING_INTERRUPT :
          {
             // transaction is still doing, the record should not been seen
             visible = FALSE ;

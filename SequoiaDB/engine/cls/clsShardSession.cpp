@@ -549,6 +549,7 @@ namespace engine
       }
       else if ( DPS_TRANS_DOING == _pEDUCB->getTransStatus() )
       {
+         stpLogicalTimeUS dummyTime ;
          _pEDUCB->setTransStatus( DPS_TRANS_DOING_INTERRUPT ) ;
          sdbGetTransCB()->updateTransStatus( _pEDUCB->getTransID(),
                                              DPS_TRANS_DOING_INTERRUPT ) ;

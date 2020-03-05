@@ -2434,9 +2434,7 @@ namespace engine
                                                  FALSE,
                                                  sdbGetTransCB(),
                                                  pmdGetThreadEDUCB(),
-                                                 &(pLRBHdr->extData),
-                                                 -1,
-                                                 FALSE ) ;
+                                                 &(pLRBHdr->extData) ) ;
          }
       }
 
