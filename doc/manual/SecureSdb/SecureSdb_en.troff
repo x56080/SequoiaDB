@@ -28,7 +28,15 @@ SecureSdb is subclass of Sdb and SecureSdb object uses SSL connection.
 .RE
 .RS
 .IP "2." 3
+Need to set the database configuration item before using SecureSdb --usessl=true.
+.RE
+.RS
+.IP "3." 3
 The method and syntax of the SecureSdb object and the Sdb object are the same.
+.RE
+.RS
+.IP "4." 3
+Only the Enterprise version currently supports SSL.
 .RE
 .SH PARAMETERS
 .PP
@@ -69,9 +77,9 @@ svcname
 T}@T{
 int
 T}@T{
-local sdbcm\[aq]s port
+local coord\[aq]s port
 T}@T{
-sdbcm\[aq]s port
+coord\[aq]s port
 T}@T{
 not
 T}
@@ -117,7 +125,7 @@ For more detial, please reference to Troubleshooting.
 Create a SecureSdb object.
 .nf
 \f[C]
->\ var\ securesdb\ =\ new\ SecureSdb(\ "192.168.20.71",\ 11790\ )
+>\ var\ securesdb\ =\ new\ SecureSdb(\ "192.168.20.71",\ 11810\ )
 \f[]
 .fi
 .RE
@@ -125,7 +133,7 @@ Create a SecureSdb object.
 Create a SecureSdb object with a username and password.
 .nf
 \f[C]
->\ var\ securesdb\ =\ new\ SecureSdb("sdbserver1",11810,"sdbadmin","123")
+>\ var\ securesdb\ =\ new\ SecureSdb("192.168.20.71",11810,"sdbadmin","123")
 \f[]
 .fi
 .RE
