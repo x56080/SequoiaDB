@@ -25,7 +25,7 @@ import com.sequoiadb.transaction.TransUtils;
 public class Transaction20438B extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb db1 = null;
-    private String clName = "cl_20438A";
+    private String clName = "cl_20438B";
     private DBCollection cl = null;
     private DBCollection cl1 = null;
     private List<BSONObject> expList = new ArrayList<BSONObject>();
@@ -36,7 +36,7 @@ public class Transaction20438B extends SdbTestBase {
         db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
-        cl.createIndex( "index_20438A", "{ a: 1 }", false, false );
+        cl.createIndex( "index_20438B", "{ a: 1 }", false, false );
         
         //1.分别在事务中及非事务中插入记录，为R1s
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );//插入记录为0-50
@@ -48,7 +48,7 @@ public class Transaction20438B extends SdbTestBase {
     
     @DataProvider(name = "index")
     public Object[][] useIndex() {
-        return new Object[][] { { "{ \"\": \"index_20438A\" }" }, { "{ \"\": null }" } };
+        return new Object[][] { { "{ \"\": \"index_20438B\" }" }, { "{ \"\": null }" } };
     }
     
     @Test(enabled = false, dataProvider = "index")

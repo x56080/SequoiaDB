@@ -41,10 +41,10 @@ public class Transaction20440B extends SdbTestBase {
         TR4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         
         for( int i = 0; i < 2; i++ ){
-            CollectionSpace cs = sdb.createCollectionSpace( "cs_20440A_" + i );
+            CollectionSpace cs = sdb.createCollectionSpace( "cs_20440B_" + i );
             for( int j = 0; j < 2; j++ ){
-                DBCollection cl = cs.createCollection( "cl_20440A_" + j );
-                cl.createIndex( "index_20440A", "{ a: 1 }", false, false );
+                DBCollection cl = cs.createCollection( "cl_20440B_" + j );
+                cl.createIndex( "index_20440B", "{ a: 1 }", false, false );
                 
                 //1.分别在事务中及非事务中插入记录，R1s+R2s+R3s
                 TransUtils.insertRandomDatas( cl, 0, 100 );//插入记录为0-100
@@ -60,7 +60,7 @@ public class Transaction20440B extends SdbTestBase {
     
     @DataProvider(name = "index")
     public Object[][] useIndex() {
-        return new Object[][] { { "{ \"\": \"index_20440A\" }" }, { "{ \"\": null }"} };
+        return new Object[][] { { "{ \"\": \"index_20440B\" }" }, { "{ \"\": null }"} };
     }
     
     @Test( dataProvider = "index" )
@@ -73,9 +73,9 @@ public class Transaction20440B extends SdbTestBase {
         //2.开启写事务TW1，在多个集合下插入记录R4s，更新记录R1s为R5s,删除记录R2s，并回滚 
         TW1.beginTransaction();
         for( int i = 0; i < 2; i++ ){
-            CollectionSpace cs = TW1.getCollectionSpace( "cs_20440A_" + i );
+            CollectionSpace cs = TW1.getCollectionSpace( "cs_20440B_" + i );
             for( int j = 0; j < 2; j++ ){
-                DBCollection cl = cs.getCollection( "cl_20440A_" +  j );
+                DBCollection cl = cs.getCollection( "cl_20440B_" +  j );
                 TransUtils.insertRandomDatas( cl, 300, 400 );
                 cl.update( "{ '$and': [ { '_id': { '$gte': 0 } }, { '_id': { '$lt': 100 } }] }", "{ '$set': { 'a': 400 } }", hint);
                 cl.delete( "{ '$and': [ { '_id': { '$gte': 100 } }, { '_id': { '$lt': 200 } }] }" );
@@ -91,9 +91,9 @@ public class Transaction20440B extends SdbTestBase {
         //4.开启写事务TW2在多个集合下插入记录R6s,更新记录R5s为R7s,删除记录R3s; 
         TW2.beginTransaction();
         for( int i = 0; i < 2; i++ ){
-            CollectionSpace cs = TW2.getCollectionSpace( "cs_20440A_" + i );
+            CollectionSpace cs = TW2.getCollectionSpace( "cs_20440B_" + i );
             for( int j = 0; j < 2; j++ ){
-                DBCollection cl = cs.getCollection( "cl_20440A_" + j );
+                DBCollection cl = cs.getCollection( "cl_20440B_" + j );
                 TransUtils.insertRandomDatas( cl, 500, 600 );
                 cl.update( "{ 'a': 400 }", "{ '$set': { 'a': 600 } }", hint);
                 cl.delete( "{ '$and': [ { '_id': { '$gte': 200 } }, { '_id': { '$lt': 300 } }] }" );
@@ -131,7 +131,7 @@ public class Transaction20440B extends SdbTestBase {
         TR4.close();
         
         for( int i = 0; i < 2; i++ ){
-            sdb.dropCollectionSpace( "cs_20440A_" + i );
+            sdb.dropCollectionSpace( "cs_20440B_" + i );
         }
         sdb.close();
         expList.clear();
@@ -155,9 +155,9 @@ public class Transaction20440B extends SdbTestBase {
             int timeOut = 50;
             while ( true ) {
                 for( int i = 0; i < 2; i++ ){
-                    CollectionSpace cs = db.getCollectionSpace( "cs_20440A_" + i );
+                    CollectionSpace cs = db.getCollectionSpace( "cs_20440B_" + i );
                     for( int j = 0; j < 2; j++ ){
-                        DBCollection cl = cs.getCollection( "cl_20440A_" + j );
+                        DBCollection cl = cs.getCollection( "cl_20440B_" + j );
                         TransUtils.checkRecord( cl, null, null, "{ _id: 1}", hint, expList );
                     }
                 }
