@@ -43,7 +43,8 @@ public class Transaction20446A extends SdbTestBase {
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 
-    @Test
+    //SEQUOIADBMAINSTREAM-5589
+    @Test(enable = false)
     public void test() throws InterruptedException {
         T1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         T2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
