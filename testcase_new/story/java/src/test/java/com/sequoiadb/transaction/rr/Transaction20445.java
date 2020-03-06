@@ -46,7 +46,7 @@ public class Transaction20445 extends SdbTestBase {
     }
 
     //SEQUOIADBMAINSTREAM-5589
-    @Test(enable = false)
+    @Test(enabled = false)
     public void test() {
         T1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         T2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
