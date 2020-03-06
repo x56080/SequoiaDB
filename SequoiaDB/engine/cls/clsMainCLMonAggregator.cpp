@@ -194,7 +194,7 @@ namespace engine
       _detail._totalIndexPages /= (_detail._pageSize / DMS_PAGE_SIZE_BASE ) ;
       _detail._totalLobPages /= ( _detail._lobPageSize / DMS_PAGE_SIZE_BASE ) ;
       // Calculate the average compression ratio
-      _detail._currCompressRatio = _detail._currCompressRatio / _totalSubCLCount ;
+      _detail._currCompressRatio = _detail._currCompressRatio / _doneSubCLCount ;
 
       ossStrncpy( out._name, _name, sizeof( _name ) ) ;
       out._clUniqueID = _clUniqueID ;
@@ -233,7 +233,7 @@ namespace engine
       try
       {
          MainCLInfoMap::iterator it ;
-         _clsMainCLMonInfo *mainCLInfo = NULL ;
+         _clsMainCLMonInfo *pMainCLInfo = NULL ;
          std::string mainCLName ;
 
          rc = _getMainCLName( clIn._name, mainCLName ) ;
@@ -251,25 +251,25 @@ namespace engine
          it = _infoMap.find( mainCLName ) ;
          if ( it != _infoMap.end() )
          {
-            mainCLInfo = it->second ;
+            pMainCLInfo = it->second ;
          }
          else
          {
             std::pair<MainCLInfoMap::iterator, bool> ret ;
-            rc = _createMainCLInfo( mainCLName.c_str(), &mainCLInfo ) ;
+            rc = _createMainCLInfo( mainCLName.c_str(), &pMainCLInfo ) ;
             PD_RC_CHECK( rc, PDWARNING,
                          "Failed to create main cl[%s] mon info, rc=%d",
                          mainCLName.c_str(), rc ) ;
 
-            ret = _infoMap.insert( MainCLInfoPair( mainCLName, mainCLInfo ) ) ;
+            ret = _infoMap.insert( MainCLInfoPair( mainCLName, pMainCLInfo ) ) ;
             it = ret.first ;
          }
 
-         mainCLInfo->append( clIn ) ;
-         if ( mainCLInfo->isFinished() )
+         pMainCLInfo->append( clIn ) ;
+         if ( pMainCLInfo->isFinished() )
          {
-            mainCLInfo->get( clOut ) ;
-            SDB_OSS_DEL mainCLInfo ;
+            pMainCLInfo->get( clOut ) ;
+            SDB_OSS_DEL pMainCLInfo ;
             _infoMap.erase( it ) ;
             resultFlag |= FLAG_OUTPUT ;
          }
@@ -290,6 +290,34 @@ namespace engine
          rc = SDB_OK ;
       }
       goto done ;
+   }
+
+   INT32 _clsMainCLMonAggregator::outputDataInProcess( MON_CL_LIST &out )
+   {
+      int rc = SDB_OK ;
+      try 
+      {
+         MainCLInfoMap::iterator it ;
+         for ( it = _infoMap.begin() ; it != _infoMap.end(); ++it )
+         {
+            _clsMainCLMonInfo *pMainCLInfo = it->second ;
+            monCollection monCL;
+            pMainCLInfo->get( monCL ) ;
+            out.insert( monCL );
+            SDB_OSS_DEL pMainCLInfo ;
+         }
+         _infoMap.clear();
+      } 
+      catch ( std::exception &e )
+      {
+         PD_LOG ( PDERROR, "Failed to out put data in process: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 _clsMainCLMonAggregator::_getMainCLName( const CHAR *clName,

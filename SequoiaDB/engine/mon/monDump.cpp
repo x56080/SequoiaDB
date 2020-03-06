@@ -2583,6 +2583,11 @@ namespace engine
                if ( resFlag & IRtnMonProcessor::FLAG_IGNORE )
                {
                   _collectionInfo.erase( it ) ;
+                  if ( _collectionInfo.empty() && 
+                       _pDataProcessor->hasDataInProcess() )
+                  {
+                     _pDataProcessor->outputDataInProcess( _collectionInfo );
+                  }
                   if ( _collectionInfo.empty() )
                   {
                      rc = SDB_DMS_EOC ;

@@ -105,6 +105,10 @@ namespace engine
                                 monCollection &clOut,
                                 UINT32 &resultFlag ) ;
 
+         virtual BOOLEAN hasDataInProcess() { return !_infoMap.empty(); }
+
+         virtual INT32 outputDataInProcess( MON_CL_LIST &out ) ;
+
       private:
          INT32 _getMainCLName( const CHAR *clName, std::string &mainCLName ) ;
 

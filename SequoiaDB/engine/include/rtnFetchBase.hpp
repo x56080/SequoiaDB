@@ -103,10 +103,11 @@ namespace engine
 
          virtual INT32 process( const monCollection &clIn,
                                 monCollection &clOut,
-                                UINT32 &resultFlag )
-         {
-            return SDB_OK ;
-         }
+                                UINT32 &resultFlag ) = 0 ;
+
+         virtual BOOLEAN hasDataInProcess() = 0 ;
+
+         virtual INT32 outputDataInProcess( MON_CL_LIST &out ) = 0 ;
    } ;
    typedef _IRtnMonProcessor IRtnMonProcessor ;
 
