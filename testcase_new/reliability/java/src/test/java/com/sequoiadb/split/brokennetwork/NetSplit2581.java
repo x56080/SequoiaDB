@@ -3,6 +3,7 @@ package com.sequoiadb.split.brokennetwork;
 import java.util.List;
 
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -127,6 +128,12 @@ public class NetSplit2581 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
             DBCollection cl = db.getCollectionSpace( csName )
                     .getCollection( clName );
+            // 再次插入数据时避免故障时{sk:faultSuccRecsNum+1}可能插入失败程序报错，但实际已经插入成功的情况
+            long cnt = cl.getCount(
+                    new BasicBSONObject( "sk", faultSuccRecsNum + 1 ) );
+            if ( cnt == 1 ) {
+                faultSuccRecsNum++;
+            }
             insertData( cl, faultSuccRecsNum + 1, totalRecsNum );
 
             // 校验结果
