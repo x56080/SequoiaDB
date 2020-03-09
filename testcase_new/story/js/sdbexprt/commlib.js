@@ -3,6 +3,8 @@
 * @author      :  Liang XueWang
 *                
 *******************************************************************************/
+import("../lib/main.js")
+
 var cmd = new Cmd();
 var installPath = getInstallDir();
 var tmpFileDir = WORKDIR + "/sdbexprt/";
