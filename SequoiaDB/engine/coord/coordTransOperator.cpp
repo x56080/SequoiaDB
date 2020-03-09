@@ -261,7 +261,8 @@ namespace engine
 
       cb->startRollback() ;
 
-      if ( DPS_TRANS_DOING == cb->getTransStatus() )
+      if ( DPS_TRANS_DOING == cb->getTransStatus() ||
+           DPS_TRANS_DOING_INTERRUPT == cb->getTransStatus() )
       {
          rc = releaseTransSession( nodes, cb ) ;
       }

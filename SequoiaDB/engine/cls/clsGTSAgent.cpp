@@ -164,12 +164,20 @@ namespace engine
             goto error ;
          }
 
+         // NOTE:
+         // backward compatibility for DOING status
+         // old version will return DOING status,
+         // new version will return DOING_INTERRUPT status if it is checking
+         // transaction status as well, ( if peer node is not checking, it
+         // will report an error to retry, since peer node might be processing
+         // pre-commit/rollback request )
          switch( status )
          {
             case DPS_TRANS_COMMIT :
                hasCommit= TRUE ;
                break ;
             case DPS_TRANS_DOING :
+            case DPS_TRANS_DOING_INTERRUPT :
             case DPS_TRANS_ROLLBACK :
                hasRollback = TRUE ;
                break ;
@@ -257,6 +265,15 @@ namespace engine
 
             SDB_OSS_FREE( ( CHAR* )pRecvMsg ) ;
             pRecvMsg = NULL ;
+            continue ;
+         }
+         else if ( SDB_RTN_EXIST_INDOUBT_TRANS == rc )
+         {
+            // peer node might be doing pre-commit or rollback
+            // retry later
+            SDB_OSS_FREE( (CHAR *)pRecvMsg ) ;
+            pRecvMsg = NULL ;
+            ossSleep( OSS_ONE_SEC ) ;
             continue ;
          }
          else if ( rc )

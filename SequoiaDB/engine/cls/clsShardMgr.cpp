@@ -2931,6 +2931,13 @@ namespace engine
             }
             reply.flags = checkRC ;
          }
+         else if ( DPS_TRANS_DOING == status )
+         {
+            // the status is still doing, it might be processing
+            // pre-commit/rollback messages
+            // tell the requester to wait
+            reply.flags = SDB_RTN_EXIST_INDOUBT_TRANS ;
+         }
          else
          {
             reply.flags = SDB_OK ;

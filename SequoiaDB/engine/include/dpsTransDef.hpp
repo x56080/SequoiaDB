@@ -74,11 +74,18 @@ namespace engine
    */
    enum DPS_TRANS_STATUS
    {
+      // transaction is doing
       DPS_TRANS_DOING         = 1,
+      // transaction is waiting for commit
+      // ( have processed pre-commit request )
       DPS_TRANS_WAIT_COMMIT   = 2,
+      // transaction is committed
       DPS_TRANS_COMMIT        = 3,
+      // transaction is rollbacked
       DPS_TRANS_ROLLBACK      = 4,
-
+      // transaction is doing but interrupted (it is going to rollback)
+      DPS_TRANS_DOING_INTERRUPT = 5,
+      // transaction is not found in history map ( cleared by gc )
       DPS_TRANS_UNKNOWN       = 99
    } ;
 

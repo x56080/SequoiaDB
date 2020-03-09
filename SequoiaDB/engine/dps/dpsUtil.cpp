@@ -73,6 +73,9 @@ namespace engine
          case DPS_TRANS_ROLLBACK :
             pStr = "Rollbacked" ;
             break ;
+         case DPS_TRANS_DOING_INTERRUPT :
+            pStr = "DoingInterrupted" ;
+            break ;
          default :
             break ;
       }
