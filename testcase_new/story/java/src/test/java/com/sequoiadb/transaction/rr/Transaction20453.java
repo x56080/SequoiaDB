@@ -1,9 +1,9 @@
 package com.sequoiadb.transaction.rr;
 
-import java.util.List;
+import java.util.ArrayList;
 
 import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -17,84 +17,103 @@ import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
- * @Description seqDB-20453 已生成访问计划缓存，删除索引，事务读需重新生成访问计划
+ * @Description seqDB-20453:老事务在新建索引后不再生成访问计划缓存
  * @author luweikang
- * @date 2020.1.15
+ * @modify zhaoyu
+ * @date 2020.3.10
  */
 @Test(groups = "rr")
 public class Transaction20453 extends SdbTestBase {
 
     private String clName = "transCL_20453";
     private Sequoiadb sdb = null;
-    private Sequoiadb TR1 = null;
-    private Sequoiadb TW1 = null;
+    private Sequoiadb T1 = null;
+    private Sequoiadb T2 = null;
     private DBCollection cl = null;
-    private DBCollection clTR1 = null;
-    private DBCollection clTW1 = null;
-    private int recordNum = 1000;
-    private List< BSONObject > expDataList = null;
+    private DBCollection cl1 = null;
+    private DBCollection cl2 = null;
 
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        cl.createIndex( "a", "{a:1}", false, false );
-        expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
+        TransUtils.insertRandomDatas( cl, 0, 1000 );
     }
 
     @Test
     public void test() throws InterruptedException {
-        TR1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TW1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        T1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        T2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
-        clTR1 = TR1.getCollectionSpace( csName ).getCollection( clName );
-        clTW1 = TW1.getCollectionSpace( csName ).getCollection( clName );
+        cl1 = T1.getCollectionSpace( csName ).getCollection( clName );
+        cl2 = T2.getCollectionSpace( csName ).getCollection( clName );
 
-        // 1 begin trans TR1
-        TR1.beginTransaction();
-        TransUtils.queryAndCheck( clTR1, "{a: {'$gte': 0, '$lt': 1000}}",
-                "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{a: {'$gte': 0, '$lt': 1000}}",
-                "{'_id': 1}", "{'': 'a'}", expDataList );
+        try {
+            // 创建索引
+            cl.createIndex( "index20453_1", "{a:1}", false, false );
 
-        checkAccessPlans( sdb, csName, clName, 2 );
+            // 创建索引的过程是同步的，不需要sleep，但是全局事务必须要考虑节点之间的时间差，因此，需要一个sleep时间
+            Thread.sleep( 1000 );
 
-        // 2 begin trans TW1 upsert R1s to R2s
-        TW1.beginTransaction();
-        clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}", "{'$inc': {'a': 1}}",
-                "{'': 'a'}" );
-        TW1.commit();
+            // 开启事务T1
+            T1.beginTransaction();
 
-        // 3 drop index
-        cl.dropIndex( "a" );
+            // 创建索引
+            cl.createIndex( "index20453_2", "{a:1,b:1}", false, false );
 
-        // 3 trans TR1 explain
-        DBCursor cur = clTR1.explain(
-                ( BSONObject ) JSON.parse( "{'a': {'$gte': 0, '$lt': 1000}}" ),
-                null, null, new BasicBSONObject( "", "a" ), 0, -1, 0,
-                new BasicBSONObject( "Detail", true ) );
-        while ( cur.hasNext() ) {
-            BSONObject explain = cur.getNext();
-            BSONObject planPath = ( BSONObject ) explain.get( "PlanPath" );
-            @SuppressWarnings("unchecked")
-            List< BSONObject > childOperators = ( List< BSONObject > ) planPath
-                    .get( "ChildOperators" );
-            Object CacheStatus = childOperators.get( 0 ).get( "CacheStatus" );
-            Assert.assertEquals( CacheStatus, "NewCache", explain.toString() );
+            // 创建索引的过程是同步的，不需要sleep，但是全局事务必须要考虑节点之间的时间差，因此，需要一个sleep时间
+            Thread.sleep( 1000 );
+
+            // 开启事务T2
+            T2.beginTransaction();
+
+            // 执行5次查询生成访问计划缓存
+            ArrayList< BSONObject > expList = new ArrayList<>();
+            for ( int i = 0; i < 5; i++ ) {
+                expList.clear();
+                BSONObject record = ( BSONObject ) JSON
+                        .parse( "{_id:" + i + ",a:" + i + ",b:" + i + "}" );
+                expList.add( record );
+                TransUtils.queryAndCheck( cl, "{a:" + i + ",b:" + i + "}", "",
+                        "", expList );
+            }
+            int accessPlanNum = getAccessPlanNum( sdb, csName + "." + clName );
+            Assert.assertEquals( accessPlanNum, 1 );
+
+            // T1执行{a:i,b:i}的查询，未命中查询计划缓存
+            BSONObject matcher = ( BSONObject ) JSON.parse( "{a:100,b:100}" );
+            checkAccessPlan( cl1, matcher, 1, "NoCache" );
+
+            // T2执行{a:i,b:i}的查询，命中查询计划缓存
+            checkAccessPlan( cl2, matcher, 1, "HitCache" );
+
+            // T1执行{a:1}的匹配查询，无法再生成新的访问计划缓存
+            expList.clear();
+            BSONObject record = ( BSONObject ) JSON.parse( "{_id:1,a:1,b:1}" );
+            expList.add( record );
+            TransUtils.queryAndCheck( cl1, "{a:1}", "", "", expList );
+            accessPlanNum = getAccessPlanNum( sdb, csName + "." + clName );
+            Assert.assertEquals( accessPlanNum, 1 );
+
+            // T2执行{a:1}的匹配查询，正常生成新的访问计划缓存
+            TransUtils.queryAndCheck( cl2, "{a:1}", "", "", expList );
+            accessPlanNum = getAccessPlanNum( sdb, csName + "." + clName );
+            Assert.assertEquals( accessPlanNum, 2 );
+
+        } finally {
+            T1.commit();
+            T2.commit();
         }
-        cur.close();
-
-        TR1.commit();
 
     }
 
     @AfterClass
     public void tearDown() {
-        if ( TR1 != null ) {
-            TR1.close();
+        if ( T1 != null ) {
+            T1.close();
         }
-        if ( TW1 != null ) {
-            TW1.close();
+        if ( T2 != null ) {
+            T2.close();
         }
         sdb.getCollectionSpace( csName ).dropCollection( clName );
         if ( sdb != null ) {
@@ -102,17 +121,42 @@ public class Transaction20453 extends SdbTestBase {
         }
     }
 
-    private void checkAccessPlans( Sequoiadb db, String csName, String clName,
-            int planNum ) {
-        String fullNama = csName + "." + clName;
-        DBCursor cur = db.getSnapshot( Sequoiadb.SDB_SNAP_ACCESSPLANS,
-                "{Collection: '" + fullNama + "'}", "", "" );
-        int count = 0;
-        while ( cur.hasNext() ) {
-            cur.getNext();
-            count++;
+    private void checkAccessPlan( DBCollection cl, BSONObject matcher,
+            int expectRecordNum, String expectCacheStatus ) {
+        BSONObject options = ( BSONObject ) JSON
+                .parse( "{Run:true,Detail:true}" );
+        DBCursor cursor = cl.explain( matcher, null, null, null, 0, -1, 0,
+                options );
+        while ( cursor.hasNext() ) {
+            BSONObject record = cursor.getNext();
+
+            // 比较记录数
+            int returnNum = ( int ) record.get( "ReturnNum" );
+            Assert.assertEquals( returnNum, expectRecordNum );
+
+            // 比较是否命中查询计划缓存
+            BSONObject planPath = ( BSONObject ) record.get( "PlanPath" );
+            BasicBSONList childOperators = ( BasicBSONList ) planPath
+                    .get( "ChildOperators" );
+            BSONObject nodeOperator = ( BSONObject ) childOperators.get( 0 );
+            String cacheStatus = ( String ) nodeOperator.get( "CacheStatus" );
+            Assert.assertEquals( cacheStatus, expectCacheStatus );
         }
-        cur.close();
-        Assert.assertEquals( count, planNum, "check cl accessplans num" );
+        cursor.close();
     }
+
+    private int getAccessPlanNum( Sequoiadb db, String clFullName ) {
+        BSONObject matcher = ( BSONObject ) JSON
+                .parse( "{Collection:'" + clFullName + "'}" );
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_ACCESSPLANS,
+                matcher, null, null );
+        int accessPlanNum = 0;
+        while ( cursor.hasNext() ) {
+            cursor.getNext();
+            accessPlanNum++;
+        }
+        cursor.close();
+        return accessPlanNum;
+    }
+
 }
