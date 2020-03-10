@@ -1,9 +1,6 @@
 package com.sequoiadb.transaction.rr;
 
-import java.util.ArrayList;
-
 import org.bson.BSONObject;
-import org.bson.types.BasicBSONList;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -17,15 +14,14 @@ import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
- * @Description seqDB-20452:老事务不使用新建索引后生成的新的查询计划
- * @author luweikang
- * @modify zhaoyu
+ * @Description seqDB-21923:老事务不使用新创建的索引
+ * @author zhaoyu
  * @date 2020.3.10
  */
 @Test(groups = "rr")
-public class Transaction20452 extends SdbTestBase {
+public class Transaction21923 extends SdbTestBase {
 
-    private String clName = "transCL_20452";
+    private String clName = "transCL_21923";
     private Sequoiadb sdb = null;
     private Sequoiadb T1 = null;
     private Sequoiadb T2 = null;
@@ -53,7 +49,7 @@ public class Transaction20452 extends SdbTestBase {
             T1.beginTransaction();
 
             // 创建索引
-            cl.createIndex( "index20452", "{a:1}", false, false );
+            cl.createIndex( "index21923", "{a:1}", false, false );
 
             // 创建索引的过程是同步的，不需要sleep，但是全局事务必须要考虑节点之间的时间差，因此，需要一个sleep时间
             Thread.sleep( 1000 );
@@ -61,25 +57,11 @@ public class Transaction20452 extends SdbTestBase {
             // 开启事务T2
             T2.beginTransaction();
 
-            // 执行5次查询生成访问计划缓存
-            ArrayList< BSONObject > expList = new ArrayList<>();
-            for ( int i = 0; i < 5; i++ ) {
-                expList.clear();
-                BSONObject record = ( BSONObject ) JSON
-                        .parse( "{_id:" + i + ",a:" + i + ",b:" + i + "}" );
-                expList.add( record );
-                TransUtils.queryAndCheck( cl, "{a:" + i + "}", "", "",
-                        expList );
-            }
-            Boolean planValid = getAccessPlanValid( sdb,
-                    csName + "." + clName );
-            Assert.assertTrue( planValid );
+            // T1执行查询，走表扫描
+            checkAccessPlan( cl1, 1, "tbscan" );
 
-            // T1执行查询，未命中查询计划缓存
-            checkAccessPlan( cl1, 1, "NoCache" );
-
-            // T2执行查询，命中查询计划缓存
-            checkAccessPlan( cl2, 1, "HitCache" );
+            // T2执行查询，走索引扫描
+            checkAccessPlan( cl2, 1, "ixscan" );
 
         } finally {
             T1.commit();
@@ -103,10 +85,9 @@ public class Transaction20452 extends SdbTestBase {
     }
 
     private void checkAccessPlan( DBCollection cl, int expectRecordNum,
-            String expectCacheStatus ) {
+            String expectcanType ) {
         BSONObject matcher = ( BSONObject ) JSON.parse( "{a:100}" );
-        BSONObject options = ( BSONObject ) JSON
-                .parse( "{Run:true,Detail:true}" );
+        BSONObject options = ( BSONObject ) JSON.parse( "{Run:true}" );
         DBCursor cursor = cl.explain( matcher, null, null, null, 0, -1, 0,
                 options );
         while ( cursor.hasNext() ) {
@@ -116,32 +97,10 @@ public class Transaction20452 extends SdbTestBase {
             int returnNum = ( int ) record.get( "ReturnNum" );
             Assert.assertEquals( returnNum, expectRecordNum );
 
-            // 比较是否命中查询计划缓存
-            BSONObject planPath = ( BSONObject ) record.get( "PlanPath" );
-            BasicBSONList childOperators = ( BasicBSONList ) planPath
-                    .get( "ChildOperators" );
-            BSONObject nodeOperator = ( BSONObject ) childOperators.get( 0 );
-            String cacheStatus = ( String ) nodeOperator.get( "CacheStatus" );
-            Assert.assertEquals( cacheStatus, expectCacheStatus );
+            // 比较是否使用索引扫描
+            String scanType = ( String ) record.get( "ScanType" );
+            Assert.assertEquals( scanType, expectcanType );
         }
-    }
-
-    private boolean getAccessPlanValid( Sequoiadb db, String clFullName ) {
-        BSONObject matcher = ( BSONObject ) JSON
-                .parse( "{Collection:'" + clFullName + "'}" );
-        BSONObject selector = ( BSONObject ) JSON
-                .parse( "{ParamPlanValid:''}" );
-
-        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_ACCESSPLANS,
-                matcher, selector, null );
-        Boolean paramPlanValid = null;
-        while ( cursor.hasNext() ) {
-            paramPlanValid = ( Boolean ) cursor.getNext()
-                    .get( "ParamPlanValid" );
-        }
-        cursor.close();
-        return paramPlanValid;
-
     }
 
 }
