@@ -803,6 +803,13 @@ namespace engine
             rc = _su->data()->getMBContext( &context, clName, SHARED ) ;
             if ( rc )
             {
+               // if the error is due to expired position(CL has been recycled)
+               // means no more old version record found, may simply exit.
+               if ( _rbsPositionExpired( position ) )
+               {
+                  rc = SDB_OK ;
+                  goto done ;
+               }
                PD_LOG ( PDERROR, "Failed to get mbLatch for %s, rc=%d",
                         clName, rc ) ;
                SDB_ASSERT( (SDB_DMS_NOTEXIST != rc),
@@ -826,8 +833,7 @@ namespace engine
 
             // 3. parse the dataRecord to figure out record key and visiability
             eleTransID = cappedRecord.getField(FIELD_NAME_RBS_RECORD_TRANSID) ;
-            eleCLLID = 
-                     cappedRecord.getField(FIELD_NAME_RBS_RECORD_CLLID) ;
+            eleCLLID = cappedRecord.getField(FIELD_NAME_RBS_RECORD_CLLID) ;
 
             eleKey = cappedRecord.getField( FIELD_NAME_RBS_RECORD_KEY ) ;
             vector< BSONElement > vecKey = eleKey.Array() ;
