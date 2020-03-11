@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -30,7 +31,7 @@ public class Transaction20475 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
@@ -39,8 +40,8 @@ public class Transaction20475 extends SdbTestBase {
     @Test
     public void test() {
 
-        Sequoiadb TW1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        Sequoiadb TR1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        Sequoiadb TW1 = CommLib.getRandomSequoiadb();
+        Sequoiadb TR1 = CommLib.getRandomSequoiadb();
         DBCollection clTW1 = TW1.getCollectionSpace( csName )
                 .getCollection( clName );
         DBCollection clTR1 = TR1.getCollectionSpace( csName )
@@ -174,7 +175,7 @@ public class Transaction20475 extends SdbTestBase {
     }
 
     private void insertDatas( DBCollection cl, int recordNums ) {
-        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        ArrayList< BSONObject > expDatas = new ArrayList< >();
         for ( int i = -recordNums; i < recordNums; i++ ) {
             BSONObject data = ( BSONObject ) JSON.parse( "{_id:" + i + ", a:"
                     + i + ", b:'test trans rr mode" + i + "'}" );

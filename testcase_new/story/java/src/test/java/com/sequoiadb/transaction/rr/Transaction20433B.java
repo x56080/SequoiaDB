@@ -67,7 +67,7 @@ public class Transaction20433B extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         CollectionSpace cs = sdb.getCollectionSpace( csName );
         DBCollection cl = cs.createCollection( clName );
         if ( !CommLib.isStandAlone( sdb ) ) {
@@ -90,16 +90,16 @@ public class Transaction20433B extends SdbTestBase {
 
         cl = sdb.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", indexKey, false, false );
-        TW1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TW2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TW3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR5 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR6 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR7 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        TW1 = CommLib.getRandomSequoiadb();
+        TW2 = CommLib.getRandomSequoiadb();
+        TW3 = CommLib.getRandomSequoiadb();
+        TR1 = CommLib.getRandomSequoiadb();
+        TR2 = CommLib.getRandomSequoiadb();
+        TR3 = CommLib.getRandomSequoiadb();
+        TR4 = CommLib.getRandomSequoiadb();
+        TR5 = CommLib.getRandomSequoiadb();
+        TR6 = CommLib.getRandomSequoiadb();
+        TR7 = CommLib.getRandomSequoiadb();
 
         clTW1 = TW1.getCollectionSpace( csName ).getCollection( clName );
         clTW2 = TW2.getCollectionSpace( csName ).getCollection( clName );

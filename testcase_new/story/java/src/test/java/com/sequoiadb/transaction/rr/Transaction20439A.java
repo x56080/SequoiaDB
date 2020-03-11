@@ -2,19 +2,23 @@ package com.sequoiadb.transaction.rr;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.bson.BSONObject;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 import com.sequoiadb.transaction.TransUtils;
+
 /**
- * @testcase seqDB-20439: 只读事务与只写事务并发，穿插执行非事务的truncate操作，事务读隔离级别为RR  
+ * @testcase seqDB-20439: 只读事务与只写事务并发，穿插执行非事务的truncate操作，事务读隔离级别为RR
  * @date 2020-01-15
  * @author zhaoxiaoni
  */
@@ -25,60 +29,62 @@ public class Transaction20439A extends SdbTestBase {
     private String clName = "cl_20439A";
     private DBCollection cl = null;
     private DBCollection cl1 = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
-    
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
+
     @BeforeMethod
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
+        db1 = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20439A", "{ a: 1 }", false, false );
-        
-        //1.分别在事务中及非事务中插入记录，为R1s
-        expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );//插入记录为0-50
+
+        // 1.分别在事务中及非事务中插入记录，为R1s
+        expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );// 插入记录为0-50
         sdb.beginTransaction();
-        expList.addAll( TransUtils.insertRandomDatas( cl, 50, 100) );//插入记录为50-100
+        expList.addAll( TransUtils.insertRandomDatas( cl, 50, 100 ) );// 插入记录为50-100
         sdb.commit();
     }
-    
+
     @DataProvider(name = "index")
     public Object[][] useIndex() {
-        return new Object[][] { { "{ \"\": \"index_20439\" }" }, { "{ \"\": null }" } };
+        return new Object[][] { { "{ \"\": \"index_20439\" }" },
+                { "{ \"\": null }" } };
     }
-    
+
     @Test(dataProvider = "index")
     public void test( String hint ) {
-        //2.开启读事务TR1
-        //4.过程中TR1反复读，检查结果
+        // 2.开启读事务TR1
+        // 4.过程中TR1反复读，检查结果
         db1.beginTransaction();
         QueryThread queryThread = new QueryThread( hint, expList );
         queryThread.start();
-        
-        //3.开启写事务TW1，更新R1s为R2s,提交事务，循环执行多次 
+
+        // 3.开启写事务TW1，更新R1s为R2s,提交事务，循环执行多次
         OperatorThread operatorThread = new OperatorThread( hint );
         operatorThread.start();
-        
-        //5.非事务执行truncate操作 
+
+        // 5.非事务执行truncate操作
         Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
-        Assert.assertTrue( operatorThread.isSuccess(), operatorThread.getErrorMsg() );
+        Assert.assertTrue( operatorThread.isSuccess(),
+                operatorThread.getErrorMsg() );
         cl.truncate();
-        
-        //6.TR1读，检查结果
-        //8.过程中TR1反复读，检查结果
+
+        // 6.TR1读，检查结果
+        // 8.过程中TR1反复读，检查结果
         expList.clear();
         queryThread = new QueryThread( hint, expList );
         queryThread.start();
-       
+
         Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
     }
-    
+
     @AfterMethod
     public void tearDown() {
-        //提交读事务
+        // 提交读事务
         db1.commit();
         db1.close();
-        
+
         sdb.getCollectionSpace( csName ).dropCollection( clName );
         sdb.close();
         expList.clear();
@@ -95,20 +101,23 @@ public class Transaction20439A extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db = CommLib.getRandomSequoiadb();
             cl = db.getCollectionSpace( csName ).getCollection( clName );
-            try{
+            try {
                 int doTimes = 1;
                 int timeOut = 30;
                 while ( true ) {
-                    //开启更新事务
+                    // 开启更新事务
                     db.beginTransaction();
-                    
-                    cl.update( null, "{ '$set': { 'a': " + (int)Math.random()*100 + "} }", hint);
-                    
-                    //提交更新事务
+
+                    cl.update(
+                            null, "{ '$set': { 'a': "
+                                    + ( int ) Math.random() * 100 + "} }",
+                            hint );
+
+                    // 提交更新事务
                     db.commit();
-                    
+
                     if ( doTimes == timeOut ) {
                         break;
                     } else {
@@ -121,23 +130,24 @@ public class Transaction20439A extends SdbTestBase {
             }
         }
     }
-    
+
     class QueryThread extends SdbThreadBase {
         private String hint;
-        private List<BSONObject> expList = new ArrayList<>();
-        
-        public QueryThread( String hint, List<BSONObject> expList ) {
+        private List< BSONObject > expList = new ArrayList< >();
+
+        public QueryThread( String hint, List< BSONObject > expList ) {
             // TODO Auto-generated constructor stub
-            this.hint = hint;   
+            this.hint = hint;
             this.expList = expList;
         }
-        
+
         @Override
         public void exec() throws Exception {
             int doTimes = 1;
             int timeOut = 50;
             while ( true ) {
-                TransUtils.checkRecord( cl1, null, null, "{ _id: 1}", hint, expList );
+                TransUtils.checkRecord( cl1, null, null, "{ _id: 1}", hint,
+                        expList );
                 if ( doTimes == timeOut ) {
                     break;
                 } else {

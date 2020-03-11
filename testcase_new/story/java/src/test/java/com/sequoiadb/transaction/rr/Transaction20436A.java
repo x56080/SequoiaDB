@@ -69,7 +69,7 @@ public class Transaction20436A extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         sdb.updateConfig( ( BSONObject ) JSON.parse( "{diaglevel:5}" ) );
         CollectionSpace cs = sdb.getCollectionSpace( csName );
         DBCollection cl = cs.createCollection( clName );
@@ -93,16 +93,16 @@ public class Transaction20436A extends SdbTestBase {
 
         cl = sdb.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", indexKey, false, false );
-        TW1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TW2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TW3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR5 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR6 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TR7 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        TW1 = CommLib.getRandomSequoiadb();
+        TW2 = CommLib.getRandomSequoiadb();
+        TW3 = CommLib.getRandomSequoiadb();
+        TR1 = CommLib.getRandomSequoiadb();
+        TR2 = CommLib.getRandomSequoiadb();
+        TR3 = CommLib.getRandomSequoiadb();
+        TR4 = CommLib.getRandomSequoiadb();
+        TR5 = CommLib.getRandomSequoiadb();
+        TR6 = CommLib.getRandomSequoiadb();
+        TR7 = CommLib.getRandomSequoiadb();
 
         clTW1 = TW1.getCollectionSpace( csName ).getCollection( clName );
         clTW2 = TW2.getCollectionSpace( csName ).getCollection( clName );
@@ -184,7 +184,7 @@ public class Transaction20436A extends SdbTestBase {
 
         // 8 commit TW3, TW1 insert R7s, begin trans TR5
         TW3.commit();
-        List< BSONObject > tw3ExpList = new ArrayList<>();
+        List< BSONObject > tw3ExpList = new ArrayList< >();
         tw3ExpList.addAll( expDataList );
         TransUtils.updateList( tw3ExpList, 1, "update r1s to r6s", 0, 1000 );
         TransUtils.removeList( tw3ExpList, 999, 2000 );
@@ -221,7 +221,7 @@ public class Transaction20436A extends SdbTestBase {
 
         // 9 commit trans TW1, TW2 insert R9s, begin trans TR6
         TW1.commit();
-        List< BSONObject > tw1ExpList = new ArrayList<>();
+        List< BSONObject > tw1ExpList = new ArrayList< >();
         tw1ExpList.addAll( tw3ExpList );
         TransUtils.updateList( tw1ExpList, 1, "update r6s to r8s", 0, 1000 );
         TransUtils.removeList( tw1ExpList, 999, 1999 );
@@ -262,7 +262,7 @@ public class Transaction20436A extends SdbTestBase {
 
         // 9 commit TW3, begin trans TR7 read
         TW2.commit();
-        List< BSONObject > tw2ExpList = new ArrayList<>();
+        List< BSONObject > tw2ExpList = new ArrayList< >();
         tw2ExpList.addAll( tw1ExpList );
         TransUtils.updateList( tw2ExpList, 1, "update r8s to r10s", 0, 998 );
         TransUtils.removeList( tw2ExpList, 999, 1999 );

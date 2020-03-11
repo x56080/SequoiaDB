@@ -18,6 +18,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 import com.sequoiadb.transaction.TransUtils;
@@ -100,7 +101,7 @@ public class Transaction20472B extends SdbTestBase {
     }
 
     class InsertDeleteThread extends SdbThreadBase {
-        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        private Sequoiadb db = CommLib.getRandomSequoiadb();
 
         @Override
         public void exec() throws Exception {
@@ -166,7 +167,7 @@ public class Transaction20472B extends SdbTestBase {
     }
 
     class QueryThread extends SdbThreadBase {
-        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        private Sequoiadb db = CommLib.getRandomSequoiadb();
 
         @Override
         public void exec() throws Exception {
@@ -233,7 +234,7 @@ public class Transaction20472B extends SdbTestBase {
     }
 
     class DropIndexThread extends SdbThreadBase {
-        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        private Sequoiadb db = CommLib.getRandomSequoiadb();
 
         @Override
         public void exec() throws Exception {

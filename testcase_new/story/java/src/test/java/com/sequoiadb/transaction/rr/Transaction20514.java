@@ -2,6 +2,7 @@ package com.sequoiadb.transaction.rr;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.types.BasicBSONList;
 import org.bson.util.JSON;
@@ -10,8 +11,8 @@ import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import com.sequoiadb.base.CollectionSpace;
 
+import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
@@ -38,7 +39,7 @@ public class Transaction20514 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
 
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
 
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "skip StandAlone!" );
@@ -55,8 +56,8 @@ public class Transaction20514 extends SdbTestBase {
 
         cs = sdb.getCollectionSpace( csName );
         cl = cs.createCollection( clName,
-                ( BSONObject ) JSON.parse(
-                        "{ShardingKey:{'sk':1},ShardingType:'range',Group:'"
+                ( BSONObject ) JSON
+                        .parse( "{ShardingKey:{'sk':1},ShardingType:'range',Group:'"
                                 + srcGroup + "'}" ) );
 
         insertData( cl );

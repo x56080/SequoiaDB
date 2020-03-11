@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -37,7 +38,7 @@ public class Transaction20446B extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
@@ -45,10 +46,10 @@ public class Transaction20446B extends SdbTestBase {
 
     @Test
     public void test() throws InterruptedException {
-        T1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        T2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        T3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        T4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        T1 = CommLib.getRandomSequoiadb();
+        T2 = CommLib.getRandomSequoiadb();
+        T3 = CommLib.getRandomSequoiadb();
+        T4 = CommLib.getRandomSequoiadb();
 
         clT1 = T1.getCollectionSpace( csName ).getCollection( clName );
         clT2 = T2.getCollectionSpace( csName ).getCollection( clName );

@@ -12,15 +12,17 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 import com.sequoiadb.transaction.TransUtils;
+
 /**
- * @testcase seqDB-20438: 只读事务与只写事务并发，穿插执行非事务的curd操作，事务读隔离级别为RR 
+ * @testcase seqDB-20438: 只读事务与只写事务并发，穿插执行非事务的curd操作，事务读隔离级别为RR
  * @date 2020-01-15
  * @author zhaoxiaoni
  */
-//SEQUOIADBMAINSTREAM-5543
+// SEQUOIADBMAINSTREAM-5543
 @Test(groups = "rr")
 public class Transaction20438B extends SdbTestBase {
     private Sequoiadb sdb = null;
@@ -28,73 +30,75 @@ public class Transaction20438B extends SdbTestBase {
     private String clName = "cl_20438B";
     private DBCollection cl = null;
     private DBCollection cl1 = null;
-    private List<BSONObject> expList = new ArrayList<BSONObject>();
-    
+    private List< BSONObject > expList = new ArrayList< BSONObject >();
+
     @BeforeMethod(enabled = false)
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
+        db1 = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20438B", "{ a: 1 }", false, false );
-        
-        //1.分别在事务中及非事务中插入记录，为R1s
-        expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );//插入记录为0-50
+
+        // 1.分别在事务中及非事务中插入记录，为R1s
+        expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );// 插入记录为0-50
         sdb.beginTransaction();
-        expList.addAll( TransUtils.insertRandomDatas( cl, 50, 100 ) );//插入记录为50-100
+        expList.addAll( TransUtils.insertRandomDatas( cl, 50, 100 ) );// 插入记录为50-100
         sdb.commit();
     }
-    
-    
+
     @DataProvider(name = "index")
     public Object[][] useIndex() {
-        return new Object[][] { { "{ \"\": \"index_20438B\" }" }, { "{ \"\": null }" } };
+        return new Object[][] { { "{ \"\": \"index_20438B\" }" },
+                { "{ \"\": null }" } };
     }
-    
+
     @Test(enabled = false, dataProvider = "index")
     public void test( String hint ) {
-        //2.开启读事务TR1
-        //4.过程中TR1反复读，检查结果
+        // 2.开启读事务TR1
+        // 4.过程中TR1反复读，检查结果
         db1.beginTransaction();
         QueryThread queryThread = new QueryThread( hint, expList );
         queryThread.start();
-        
-        //3.开启写事务TW1，更新R1s为R2s,提交事务，循环执行多次 
+
+        // 3.开启写事务TW1，更新R1s为R2s,提交事务，循环执行多次
         OperatorThread operatorThread = new OperatorThread( hint );
         operatorThread.start();
-        
-        //5.非事务更新R2s为R3s
+
+        // 5.非事务更新R2s为R3s
         Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
-        Assert.assertTrue( operatorThread.isSuccess(), operatorThread.getErrorMsg() );
-        cl.update( null, "{ '$set': { 'a': 200 } }", hint);
-        
-        //6.TR1读，检查结果
-        //8.过程中TR1反复读，检查结果
+        Assert.assertTrue( operatorThread.isSuccess(),
+                operatorThread.getErrorMsg() );
+        cl.update( null, "{ '$set': { 'a': 200 } }", hint );
+
+        // 6.TR1读，检查结果
+        // 8.过程中TR1反复读，检查结果
         expList = TransUtils.updateList( expList, 0, 100, 200 );
         queryThread = new QueryThread( hint, expList );
         queryThread.start();
-        
-        //7.开启写事务TW2，更新R3s为R4s，提交事务，循环执行多次
+
+        // 7.开启写事务TW2，更新R3s为R4s，提交事务，循环执行多次
         operatorThread = new OperatorThread( hint );
         operatorThread.start();
-        
-        //9.非事务删除记录R4s 
+
+        // 9.非事务删除记录R4s
         Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
-        Assert.assertTrue( operatorThread.isSuccess(), operatorThread.getErrorMsg() );
+        Assert.assertTrue( operatorThread.isSuccess(),
+                operatorThread.getErrorMsg() );
         cl.delete( "" );
-        
-        //10.TR1读，检查结果
+
+        // 10.TR1读，检查结果
         expList = TransUtils.deleteList( expList, 0, 100 );
         queryThread = new QueryThread( hint, expList );
         queryThread.start();
     }
-    
+
     @AfterMethod(enabled = false)
     public void tearDown() {
-        //提交读事务
+        // 提交读事务
         db1.commit();
         db1.close();
-        
+
         sdb.getCollectionSpace( csName ).dropCollection( clName );
         sdb.close();
         expList.clear();
@@ -111,20 +115,23 @@ public class Transaction20438B extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db = CommLib.getRandomSequoiadb();
             cl = db.getCollectionSpace( csName ).getCollection( clName );
-            try{
+            try {
                 int doTimes = 1;
                 int timeOut = 100;
                 while ( true ) {
-                    //开启更新事务
+                    // 开启更新事务
                     db.beginTransaction();
-                    
-                    cl.update( null, "{ '$set': { 'a': " + (int)Math.random()*100 + "} }", hint);
-                    
-                    //回滚更新事务
+
+                    cl.update(
+                            null, "{ '$set': { 'a': "
+                                    + ( int ) Math.random() * 100 + "} }",
+                            hint );
+
+                    // 回滚更新事务
                     db.rollback();
-                    
+
                     if ( doTimes == timeOut ) {
                         break;
                     } else {
@@ -137,23 +144,24 @@ public class Transaction20438B extends SdbTestBase {
             }
         }
     }
-    
+
     class QueryThread extends SdbThreadBase {
         private String hint;
-        private List<BSONObject> expList = new ArrayList<>();
-        
-        public QueryThread( String hint, List<BSONObject> expList ) {
+        private List< BSONObject > expList = new ArrayList< >();
+
+        public QueryThread( String hint, List< BSONObject > expList ) {
             // TODO Auto-generated constructor stub
             this.hint = hint;
             this.expList = expList;
         }
-        
+
         @Override
         public void exec() throws Exception {
             int doTimes = 1;
             int timeOut = 100;
             while ( true ) {
-                TransUtils.checkRecord( cl1, null, null, "{ _id: 1}", hint, expList );
+                TransUtils.checkRecord( cl1, null, null, "{ _id: 1}", hint,
+                        expList );
                 if ( doTimes == timeOut ) {
                     break;
                 } else {
