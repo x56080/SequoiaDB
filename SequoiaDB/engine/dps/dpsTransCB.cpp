@@ -837,7 +837,9 @@ namespace engine
          visible = TRUE ;
       }
       else if ( isGlobTransArbitOn() &&
-                recTransID.getNodeID() != transID.getNodeID() )
+                recTransID.getNodeID() != transID.getNodeID() &&
+                _TransIDH16 != recTransID.getNodeID() &&
+                _TransIDH16 != transID.getNodeID() )
       {
          // from different node, check visible in global cluster with
          // time error
@@ -850,8 +852,8 @@ namespace engine
       }
       else
       {
-         // from the same node, or arbitration is off, check visible in this
-         // node
+         // from the same node, or from this node, or arbitration is off
+         // check visible in this node
          // NOTE: we could check visible without time error
          rc = _isLocalVisible( recTransID, transID, transBeginTime, visible ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check local visible for "
