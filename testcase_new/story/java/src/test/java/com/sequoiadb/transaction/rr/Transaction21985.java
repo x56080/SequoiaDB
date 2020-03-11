@@ -30,12 +30,12 @@ public class Transaction21985 extends SdbTestBase {
     private String clName = "cl21985";
     private CollectionSpace cs = null;
     private DBCollection cl = null;
-    private List< BSONObject > expList = new ArrayList<>();
+    private List< BSONObject > expList = new ArrayList< >();
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
+        db = CommLib.getRandomSequoiadb();
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }

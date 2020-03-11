@@ -13,6 +13,7 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -35,7 +36,7 @@ public class Transaction20452 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         TransUtils.insertRandomDatas( cl, 0, 1000 );
     }
@@ -62,7 +63,7 @@ public class Transaction20452 extends SdbTestBase {
             T2.beginTransaction();
 
             // 执行5次查询生成访问计划缓存
-            ArrayList< BSONObject > expList = new ArrayList<>();
+            ArrayList< BSONObject > expList = new ArrayList< >();
             for ( int i = 0; i < 5; i++ ) {
                 expList.clear();
                 BSONObject record = ( BSONObject ) JSON

@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -30,14 +31,14 @@ public class Transaction20541 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         sdb.getCollectionSpace( csName ).createCollection( clName );
     }
 
     @Test
     public void test() throws InterruptedException {
-        TR1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TW1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        TR1 = CommLib.getRandomSequoiadb();
+        TW1 = CommLib.getRandomSequoiadb();
 
         clTR1 = TR1.getCollectionSpace( csName ).getCollection( clName );
         clTW1 = TW1.getCollectionSpace( csName ).getCollection( clName );
@@ -48,7 +49,7 @@ public class Transaction20541 extends SdbTestBase {
         List< BSONObject > expList = TransUtils.insertRandomDatas( clTW1, 0,
                 1000 );
 
-        List< BSONObject > expList1 = new ArrayList<>();
+        List< BSONObject > expList1 = new ArrayList< >();
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'_id': 1}", "{'': null}", expList1 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",

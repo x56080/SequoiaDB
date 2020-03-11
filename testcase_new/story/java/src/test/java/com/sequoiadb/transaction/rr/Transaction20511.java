@@ -2,18 +2,19 @@ package com.sequoiadb.transaction.rr;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
-
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -37,7 +38,7 @@ public class Transaction20511 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
 
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
 
         record1 = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
@@ -52,16 +53,16 @@ public class Transaction20511 extends SdbTestBase {
     @Test
     public void test() {
 
-        Sequoiadb sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        Sequoiadb sdb1 = CommLib.getRandomSequoiadb();
         DBCollection cl1 = sdb1.getCollectionSpace( csName )
                 .getCollection( clName );
-        Sequoiadb sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        Sequoiadb sdb2 = CommLib.getRandomSequoiadb();
         DBCollection cl2 = sdb2.getCollectionSpace( csName )
                 .getCollection( clName );
-        Sequoiadb sdb3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        Sequoiadb sdb3 = CommLib.getRandomSequoiadb();
         DBCollection cl3 = sdb3.getCollectionSpace( csName )
                 .getCollection( clName );
-        Sequoiadb sdbw = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        Sequoiadb sdbw = CommLib.getRandomSequoiadb();
         DBCollection clw = sdbw.getCollectionSpace( csName )
                 .getCollection( clName );
 

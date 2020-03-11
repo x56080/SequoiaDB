@@ -9,6 +9,7 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -33,7 +34,7 @@ public class Transaction20506 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         sdb.beginTransaction();
         expDataList = TransUtils.insertRandomDatas( cl, 0, 300 );
@@ -46,9 +47,9 @@ public class Transaction20506 extends SdbTestBase {
 
     @Test
     public void test() throws InterruptedException {
-        TR1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TW1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TW2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        TR1 = CommLib.getRandomSequoiadb();
+        TW1 = CommLib.getRandomSequoiadb();
+        TW2 = CommLib.getRandomSequoiadb();
 
         clTR1 = TR1.getCollectionSpace( csName ).getCollection( clName );
         clTW1 = TW1.getCollectionSpace( csName ).getCollection( clName );

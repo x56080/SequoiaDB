@@ -40,7 +40,7 @@ public class Transaction20451A extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         List< String > groupNames = CommLib.getDataGroupNames( sdb );
         srcGroup = groupNames.get( 0 );
         tarGroup = groupNames.get( 1 );
@@ -55,8 +55,8 @@ public class Transaction20451A extends SdbTestBase {
 
     @Test
     public void test() throws InterruptedException {
-        TR1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        TW1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        TR1 = CommLib.getRandomSequoiadb();
+        TW1 = CommLib.getRandomSequoiadb();
 
         clTR1 = TR1.getCollectionSpace( csName ).getCollection( clName );
         clTW1 = TW1.getCollectionSpace( csName ).getCollection( clName );
