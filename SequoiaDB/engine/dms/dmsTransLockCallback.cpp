@@ -1035,18 +1035,6 @@ namespace engine
             goto done ;
          }
 
-         /// from memory tree
-         if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
-              SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() )
-         {
-            _skipRecord = TRUE ;
-            /// remove the duplicate rid
-            _pScanner->removeDuplicatRID( dmsRecordID( lockId.extentID(),
-                                                       lockId.offset() ) ) ;
-            _oldVer = NULL ;
-            goto done ;
-         }
-
          // when pExtData->_data is 0, should create oldver if scan came
          // from disk
          if ( 0 == pExtData->_data )
