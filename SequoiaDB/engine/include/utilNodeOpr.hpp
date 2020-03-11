@@ -139,6 +139,9 @@ namespace engine
                            INT32 roleFilter = -1,
                            BOOLEAN allowAloneCM = FALSE ) ;
 
+   INT32 utilWritePipe( const CHAR *pSvcName, OSSPID pid,
+                        const CHAR *pWriteBuf, INT32 writeLen ) ;
+
    /*
       send command to node pipe and read result from node pipe
    */

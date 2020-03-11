@@ -492,6 +492,37 @@ namespace engine
    /*
       Local define
    */
+   static INT32 _utilWritePipeOnly( const CHAR *pSvcName, OSSPID pid,
+                                    const CHAR *pWriteBuf, INT32 writeLen )
+   {
+      INT32 rc = SDB_OK ;
+
+      utilNodePipe nodePipe ;
+
+      rc = nodePipe.openPipe( pSvcName, pid ) ;
+      if ( rc && SDB_FE != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to open named pipe: %s, rc: %d",
+                  nodePipe.getReadPipeName(), rc ) ;
+         goto error ;
+      }
+
+      rc = nodePipe.writePipe( pWriteBuf, writeLen ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send %s to %s, rc: %d",
+                  pWriteBuf, nodePipe.getWritePipeName(), rc ) ;
+         goto error ;
+      }
+
+      done:
+         nodePipe.closePipe() ;
+         return rc ;
+
+      error:
+         goto done ;
+   }
+
    static INT32 _utilWriteReadPipe( const CHAR *pSvcName, OSSPID pid,
                                     const CHAR *pWriteBuf, INT32 writeLen,
                                     CHAR *pReadBuf, INT32 readLen,
@@ -543,6 +574,12 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 utilWritePipe( const CHAR *pSvcName, OSSPID pid,
+                        const CHAR *pWriteBuf, INT32 writeLen )
+   {
+      return _utilWritePipeOnly( pSvcName, pid, pWriteBuf, writeLen ) ;
    }
 
    INT32 utilWriteReadPipe( const CHAR *pSvcName, OSSPID pid,

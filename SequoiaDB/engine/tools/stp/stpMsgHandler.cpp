@@ -308,12 +308,10 @@ namespace engine
       }
       else if ( 0 == ossStrcmp( message, STP_PIPE_MSG_SYNC ) )
       {
-         // synchronize message
-         INT8 test = 1 ;
+         // got synchronize message
          // signal to synchronize time
          getSyncClientManager()->signalSync() ;
-         // write response back to sender
-         rc = nodePipe.writePipe( (CHAR *)( &test ), sizeof( test ) ) ;
+         // no need to write response back to sender
       }
       else
       {

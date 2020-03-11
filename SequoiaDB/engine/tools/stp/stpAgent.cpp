@@ -62,7 +62,7 @@ namespace engine
       BOOLEAN isAvailable() ;
 
       // check if STP is available
-      INT32 checkAvailable( BOOLEAN notifySync ) ;
+      INT32 checkAvailable() ;
 
       // notify the STP to synchronize with server
       INT32 notifySync() ;
@@ -78,7 +78,9 @@ namespace engine
       // get STP node by checking PID
       INT32 _getSTP() ;
       // test alive of STP node
-      INT32 _testSTP( BOOLEAN notifySync ) ;
+      INT32 _testSTP() ;
+      // notify STP to synchronize
+      INT32 _notifySTPSync() ;
       // check and attach meta data
       INT32 _checkMetaData( const CHAR *shmKey ) ;
       // release meta data
@@ -94,10 +96,14 @@ namespace engine
       BOOLEAN _recheckAvailable( INT32 rc ) ;
 
    protected:
+      // indicate if STP is available for service
       ossAtomic32       _availableFlag ;
 
+      // latch to protect checking STP
+      // NOTE: only one thread could launch STP checking
       ossAtomicXLatch   _metaCheckLatch ;
 
+      // version of STP meta data ( increase for each attach )
       ossAtomic32       _metaVersion ;
 
       // PID of STP
@@ -111,6 +117,11 @@ namespace engine
       ossRWMutex        _metaMutex ;
       // shared memory buffer
       utilSHMBuffer     _buffer ;
+
+      // latch to protect notification of STP synchronization
+      ossAtomicXLatch   _syncLatch ;
+      // last tick to synchronize notification
+      ossAtomic64       _lastSyncTick ;
    } ;
 
    typedef class _stpAgentService stpAgentService ;
@@ -119,7 +130,8 @@ namespace engine
    : stpMetaReader(),
      _availableFlag( 0 ),
      _metaVersion( 0 ),
-     _stpPID( OSS_INVALID_PID )
+     _stpPID( OSS_INVALID_PID ),
+     _lastSyncTick( 0LL )
    {
    }
 
@@ -143,7 +155,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE_CHECKAVAILABLE, "_stpAgentService::checkAvailable" )
-   INT32 _stpAgentService::checkAvailable( BOOLEAN notifySync )
+   INT32 _stpAgentService::checkAvailable()
    {
       INT32 rc = SDB_OK ;
 
@@ -203,7 +215,7 @@ namespace engine
       }
 
       // test alive of STP
-      rc = _testSTP( notifySync ) ;
+      rc = _testSTP() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to test STP node, rc: %d", rc ) ;
 
       // check meta data
@@ -234,9 +246,45 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__STPAGENTSERVICE_NOTIFYSYNC ) ;
 
-      rc = checkAvailable( TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check STP available with notifying "
-                   "synchronize, rc: %d", rc ) ;
+      BOOLEAN available = isAvailable() ;
+
+      if ( available )
+      {
+         // to avoid notify too frequency
+         UINT64 notifyPassed = pmdGetTickSpanTime( _lastSyncTick.fetch() ) ;
+         if ( notifyPassed <= STP_SEC_TO_MILLISEC( STP_MIN_SYNC_INTERVAL ) )
+         {
+            goto done ;
+         }
+         // try to get synchronize latch
+         if ( !_syncLatch.try_get() )
+         {
+            goto done ;
+         }
+         // notify STP to synchronize
+         rc = _notifySTPSync() ;
+         if ( SDB_OK != rc )
+         {
+            // if not succeed, check available later
+            PD_LOG( PDWARNING, "Failed to notify STP to synchronize, rc: %d",
+                    rc ) ;
+            available = FALSE ;
+         }
+         else
+         {
+            // set last synchronize time
+            _lastSyncTick.swapGreaterThan( pmdGetDBTick() ) ;
+         }
+         _syncLatch.release() ;
+      }
+
+      // check available if needed
+      if ( !available )
+      {
+         rc = checkAvailable() ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to check STP available with "
+                      "notifying synchronize, rc: %d", rc ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__STPAGENTSERVICE_NOTIFYSYNC, rc ) ;
@@ -312,6 +360,8 @@ namespace engine
       _stpServiceName.clear() ;
       // release meta data
       _releaseMetaData() ;
+      // reset synchronize notification tick
+      _lastSyncTick.swap( 0LL ) ;
 
       PD_TRACE_EXIT( SDB__STPAGENTSERVICE__CLEAR ) ;
    }
@@ -358,30 +408,58 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE__TESTSTP, "_stpAgentService::_testSTP" )
-   INT32 _stpAgentService::_testSTP( BOOLEAN notifySync )
+   INT32 _stpAgentService::_testSTP()
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPAGENTSERVICE__TESTSTP ) ;
 
-      const CHAR *command = notifySync ?
-                            STP_PIPE_MSG_SYNC :
-                            STP_PIPE_MSG_TEST ;
       INT8 test = 0 ;
 
       // write test command to pipe
-      rc = utilWriteReadPipe( STP_PIPE_SERVICE_NAME, _stpPID,
-                              command, ossStrlen( command ) + 1,
-                              (CHAR *)( &test ), sizeof( test ), FALSE ) ;
+      rc = utilWriteReadPipe( STP_PIPE_SERVICE_NAME,
+                              _stpPID,
+                              STP_PIPE_MSG_TEST,
+                              sizeof( STP_PIPE_MSG_TEST ),
+                              (CHAR *)( &test ),
+                              sizeof( test ),
+                              FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to test from STP "
                    "node [%s] pid [%u], rc: %d", _stpServiceName.c_str(),
                    _stpPID, rc ) ;
 
-      PD_LOG( PDINFO, "Test STP node [%s] pid [%u] with command [%s] done",
-              _stpServiceName.c_str(), _stpPID, command ) ;
+      PD_LOG( PDINFO, "Send STP node [%s] pid [%u] with command [%s] done",
+              _stpServiceName.c_str(), _stpPID, STP_PIPE_MSG_TEST ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__STPAGENTSERVICE__TESTSTP, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE__NOTIFYSTPSYNC, "_stpAgentService::_notifySTPSync" )
+   INT32 _stpAgentService::_notifySTPSync()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENTSERVICE__NOTIFYSTPSYNC ) ;
+
+      // write sync command to pipe ( no need to reply )
+      rc = utilWritePipe( STP_PIPE_SERVICE_NAME,
+                          _stpPID,
+                          STP_PIPE_MSG_SYNC,
+                          sizeof( STP_PIPE_MSG_SYNC ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to notify synchronize to STP "
+                   "node [%s] pid [%u], rc: %d", _stpServiceName.c_str(),
+                   _stpPID, rc ) ;
+
+      PD_LOG( PDINFO, "Send STP node [%s] pid [%u] with command [%s] done",
+              _stpServiceName.c_str(), _stpPID, STP_PIPE_MSG_SYNC ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPAGENTSERVICE__NOTIFYSTPSYNC, rc ) ;
       return rc ;
 
    error:
@@ -571,7 +649,7 @@ namespace engine
          {
             // it is not synchronized or not available
             // in these cases, STP might not started, so check available
-            if ( SDB_OK == checkAvailable( FALSE ) )
+            if ( SDB_OK == checkAvailable() )
             {
                // it is available now, go retry
                canRetry = TRUE ;
@@ -649,7 +727,7 @@ namespace engine
       PD_CHECK( NULL != service, STP_NOT_AVAILABLE, error, PDERROR,
                 "Failed to get STP agent service" ) ;
 
-      rc = service->checkAvailable( FALSE ) ;
+      rc = service->checkAvailable() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check STP available, "
                    "rc: %d", rc ) ;
 
