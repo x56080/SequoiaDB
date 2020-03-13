@@ -107,19 +107,19 @@
    指定实例名为myinst，该实例名映射相应的数据目录和日志路径，用户可以根据自己需要指定不同的实例名。
 
    ```lang-javascript
-   $ bin/sdb_sql_ctl addinst myinst -D pg_data/
+   $ bin/sdb_pg_ctl addinst myinst -D pg_data/
    ```
 
    若端口号5432被占用，用户可以使用-p参数指定实例端口号：
 
    ```lang-javascript
-   $ bin/sdb_sql_ctl addinst myinst -D pg_data/ -p 5433
+   $ bin/sdb_pg_ctl addinst myinst -D pg_data/ -p 5433
    ```
 
    查看实例：
 
    ```lang-javascript
-   $ bin/sdb_sql_ctl listinst
+   $ bin/sdb_pg_ctl listinst
    NAME       PGDATA                         PGLOG                                   
    myinst     /opt/sequoiasqloltp/pg_data    /opt/sequoiasqloltp/myinst.log     
    Total: 1
@@ -128,7 +128,7 @@
 4. 启动实例进程
 
    ```lang-javascript
-   $ bin/sdb_sql_ctl start myinst
+   $ bin/sdb_pg_ctl start myinst
    Starting instance myinst ...
    ok (PID: 20502)
    ```
@@ -136,7 +136,7 @@
     查看实例状态
     
     ```lang-javascript
-   $ bin/sdb_sql_ctl status
+   $ bin/sdb_pg_ctl status
    INSTANCE   PID      SVCNAME   PGDATA                        PGLOG                                   
    myinst     20502    5432      /opt/sequoiasqloltp/pg_data   /opt/sequoiasqloltp/pg_data/myinst.log     
    Total: 1; Run: 1
@@ -153,7 +153,7 @@
 6. 创建 SequoiaSQL 的 database
 
    ```lang-javascript
-   $ bin/sdb_sql_ctl createdb foo myinst
+   $ bin/sdb_pg_ctl createdb foo myinst
    ```
 
    进入 SequoiaSQL shell 环境
@@ -172,7 +172,7 @@
    当添加一个新实例时，会自动加入 service 的管理中。
 
    ```lang-javascript
-   $ bin/sdb_sql_ctl addinst myinst -D pg_data
+   $ bin/sdb_pg_ctl addinst myinst -D pg_data
    Adding instance myinst ...
    ok
    ```
@@ -180,7 +180,7 @@
 2. 如果不想实例纳入服务的管理：
 
    ```lang-javascript
-   $ bin/sdb_sql_ctl delfromsvc myinst
+   $ bin/sdb_pg_ctl delfromsvc myinst
    Deleting instance myinst from service ...
    ok
    ```
@@ -188,7 +188,7 @@
    或者在添加实例的时候指定参数--addtosvc：
 
    ```lang-javascript
-   $ bin/sdb_sql_ctl addinst myinst -D pg_data --addtosvc=false
+   $ bin/sdb_pg_ctl addinst myinst -D pg_data --addtosvc=false
    Adding instance myinst ...
    ok
    ```
@@ -196,7 +196,7 @@
 3. 添加实例到服务
 
    ```lang-javascript
-   $ bin/sdb_sql_ctl addtosvc myinst
+   $ bin/sdb_pg_ctl addtosvc myinst
    Adding instance myinst to service ...
    ok
    ```   
