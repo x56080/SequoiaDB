@@ -742,8 +742,7 @@ namespace engine
          }
 
          _oldVer = (oldVersionContainer*)(pExtData->_data) ;
-         SDB_ASSERT( _oldVer->getRecordID() ==
-                     dmsRecordID(lockId.extentID(), lockId.offset()),
+         SDB_ASSERT( _oldVer->getRecordID() == rid,
                      "LockID is not the same" ) ;
          // For RR, still need to check version visibility
          if ( _oldVer->isRecordDeleted() &&
@@ -1031,7 +1030,6 @@ namespace engine
                  DPS_TRANSLOCK_OP_MODE_TEST != opMode &&
                  !notTransOrRollback )
             {
-               dmsRecordID rid( lockId.extentID(), lockId.offset() ) ;
                // skip the record if from memory tree
                if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
                     SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() )
@@ -1172,12 +1170,24 @@ namespace engine
                   }
                }
             }
+            else if ( !notTransOrRollback )
+            {
+               /// from memory tree
+               if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
+                    SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() )
+               {
+                  _skipRecord = TRUE ;
+                  /// remove the duplicate rid
+                  _pScanner->removeDuplicatRID( rid ) ;
+                  _oldVer = NULL ;
+                  goto done ;
+               }
+            }
          }
          else  // we had the lock and oldVer already setup in callback
          {
             _oldVer = (oldVersionContainer*)pExtData->_data ;
-            SDB_ASSERT( _oldVer->getRecordID() ==
-                        dmsRecordID(lockId.extentID(), lockId.offset()),
+            SDB_ASSERT( _oldVer->getRecordID() == rid,
                         "LockID is not the same" ) ;
 
             /// check the record whether is deleted
