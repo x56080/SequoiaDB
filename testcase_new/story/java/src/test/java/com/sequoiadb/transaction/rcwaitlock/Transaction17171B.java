@@ -116,6 +116,7 @@ public class Transaction17171B extends SdbTestBase {
                     tableScanThread.getTransactionID() ) );
 
             // 非事务读
+            expList.clear();
             expList.addAll( insertR1s );
             cursor = cl.query( null, null, "{a:1}", hint );
             actList = TransUtils.getReadActList( cursor );
@@ -171,8 +172,6 @@ public class Transaction17171B extends SdbTestBase {
             db2.commit();
             Assert.assertTrue( tableScanThread.isSuccess(),
                     tableScanThread.getErrorMsg() );
-
-            System.out.println( "record num: " + cl.getCount() );
 
             // 检查事务3读
             try {
