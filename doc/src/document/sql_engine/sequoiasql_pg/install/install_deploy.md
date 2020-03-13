@@ -109,19 +109,19 @@
    指定实例名为myinst，该实例名映射相应的数据目录和日志路径，用户可以根据自己需要指定不同的实例名。
 
    ```lang-bash
-   $ bin/sdb_sql_ctl addinst myinst -D database/5432/
+   $ bin/sdb_pg_ctl addinst myinst -D database/5432/
    ```
 
    若端口号5432被占用，用户可以使用-p参数指定实例端口号：
 
    ```lang-bash
-   $ bin/sdb_sql_ctl addinst myinst -D database/5442/ -p 5442
+   $ bin/sdb_pg_ctl addinst myinst -D database/5442/ -p 5442
    ```
 
    查看实例：
 
    ```lang-bash
-   $ bin/sdb_sql_ctl listinst
+   $ bin/sdb_pg_ctl listinst
    NAME       PGDATA                                       PGLOG
    myinst     /opt/sequoiasql/postgresql/database/5432/    /opt/sequoiasql/postgresql/myinst.log
    Total: 1
@@ -130,7 +130,7 @@
 4. 启动实例进程
 
    ```lang-bash
-   $ bin/sdb_sql_ctl start myinst
+   $ bin/sdb_pg_ctl start myinst
    Starting instance myinst ...
    ok (PID: 28115)
    ```
@@ -138,7 +138,7 @@
     查看实例状态
    
     ```lang-bash
-   $ bin/sdb_sql_ctl status
+   $ bin/sdb_pg_ctl status
    INSTANCE   PID        SVCNAME    PGDATA                                   PGLOG
    myinst     28115      5432       /opt/sequoiasql/postgresql/database/5432/ /opt/sequoiasql/postgresql/myinst.log
    Total: 1; Run: 1
@@ -155,7 +155,7 @@
 6. 创建 SequoiaSQL PostgreSQL 的 database
 
    ```lang-bash
-   $ bin/sdb_sql_ctl createdb foo myinst
+   $ bin/sdb_pg_ctl createdb foo myinst
    ```
 
    进入 SequoiaSQL PostgreSQL shell 环境
@@ -174,7 +174,7 @@
    当添加一个新实例时，会自动加入 service 的管理中。
 
    ```lang-bash
-   $ bin/sdb_sql_ctl addinst myinst -D database/5432/
+   $ bin/sdb_pg_ctl addinst myinst -D database/5432/
    Adding instance myinst ...
    ok
    ```
@@ -182,7 +182,7 @@
 2. 如果不想实例纳入服务的管理：
 
    ```lang-bash
-   $ bin/sdb_sql_ctl delfromsvc myinst
+   $ bin/sdb_pg_ctl delfromsvc myinst
    Deleting instance myinst from service ...
    ok
    ```
@@ -190,7 +190,7 @@
    或者在添加实例的时候指定参数--addtosvc：
 
    ```lang-bash
-   $ bin/sdb_sql_ctl addinst myinst -D database/5432/ --addtosvc=false
+   $ bin/sdb_pg_ctl addinst myinst -D database/5432/ --addtosvc=false
    Adding instance myinst ...
    ok
    ```
@@ -198,7 +198,7 @@
 3. 添加实例到服务
 
    ```lang-bash
-   $ bin/sdb_sql_ctl addtosvc myinst
+   $ bin/sdb_pg_ctl addtosvc myinst
    Adding instance myinst to service ...
    ok
    ```

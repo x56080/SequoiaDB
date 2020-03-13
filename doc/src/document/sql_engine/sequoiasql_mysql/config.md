@@ -79,10 +79,10 @@ Records: 0  Duplicates: 0  Warnings: 0
 
     配置参数有三种修改方式。
 
-   + 使用工具sdb_sql_ctl修改配置
+   + 使用工具sdb_mysql_ctl修改配置
 
    ```lang-bash
-   $ bin/sdb_sql_ctl chconf myinst --sdb-auto-partition=OFF
+   $ bin/sdb_mysql_ctl chconf myinst --sdb-auto-partition=OFF
    ```
 
    + 修改实例数据目录下的配置文件auto.cnf，在[mysqld]下添加/更改对应配置项。示例：

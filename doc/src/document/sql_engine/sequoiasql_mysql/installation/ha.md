@@ -76,7 +76,7 @@ tools/
 + 重启 MySQL 实例
 
    ```config
-   sdb_sql_ctl restart myinst
+   sdb_mysql_ctl restart myinst
    ```
 
 + 检查审计日志文件目录，确保生成了审计日志文件 server_audit.log
