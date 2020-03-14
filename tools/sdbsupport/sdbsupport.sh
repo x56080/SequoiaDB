@@ -132,7 +132,7 @@ dataRole=`find -name "*.conf"|xargs grep  "\brole.*=.*data\b"|cut -d "/" -f 2`
 cd $localPath
 # check DB is used or not. check it's database
 if [ "$aloneRole" == "" ] && [ "$coordRole" == "" ] &&
-   [ "$cataRole" == "" ] && [ "$dataRole"=="" ] ; then
+   [ "$cataRole" == "" ] && [ "$dataRole" == "" ] ; then
    echo "local host don't create database"
    sdbEchoLog "ERROR" "$0" "${LINENO}" "Local host don't create database database"
    echo ""
