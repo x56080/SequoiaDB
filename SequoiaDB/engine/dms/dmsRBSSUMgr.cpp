@@ -806,15 +806,14 @@ namespace engine
             {
                // if the error is due to expired position(CL has been recycled)
                // means no more old version record found, may simply exit.
-               if ( _rbsPositionExpired( position ) )
+               if ( _rbsPositionExpired( position ) ||
+                    ( SDB_DMS_NOTEXIST == rc ) )
                {
                   rc = SDB_OK ;
                   goto done ;
                }
                PD_LOG ( PDERROR, "Failed to get mbLatch for %s, rc=%d",
                         clName, rc ) ;
-               SDB_ASSERT( (SDB_DMS_NOTEXIST != rc),
-                           "Should not use deleted collection " ) ;
                goto error ;
             }
 
@@ -1038,7 +1037,6 @@ namespace engine
          // running transaction
          if ( sdbGetTransCB()->isVersionExpired( maxGlobTransID ) )
          {
-
             rc = _su->data()->dropCollection( clName, eduCB, dpsCB,
                                              TRUE, pContext ) ;
             _su->data()->releaseMBContext( pContext ) ;
