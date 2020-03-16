@@ -2,7 +2,7 @@
 *@Description: seqDB-18465:tables.fields配置多个字段，部分字段fieldType不同
 *@Author: 2019-6-28  xiaoni huang init
 ************************************************************************/
-main();
+//main();SEQUOIADBMAINSTREAM-5608
 
 function main ()
 {
