@@ -891,11 +891,11 @@ Stp.prototype.getSyncHistory = function() {
    return this._runCommand( "stp get sync history" ) ;
 }
 
-Stp.prototype.getConfig = function() {
+Stp.prototype.getConf = function() {
    return this._runCommand( "stp get config" ) ;
 }
 
-Stp.prototype.updateConfig = function( configs ) {
+Stp.prototype.updateConf = function( configs ) {
    if ( undefined === configs )
    {
       setLastErrMsg( "configs is not given" ) ;
