@@ -387,6 +387,32 @@ namespace engine
 
    typedef class _stpUpdateConfigCMD stpUpdateConfigCMD ;
 
+   /*
+      _stpStopCMD define
+    */
+   // stop STP node
+   class _stpStopCMD : public stpCommand
+   {
+      DECLARE_STP_CMD_AUTO_REGISTER()
+
+   public:
+      // constructor and destructor
+      _stpStopCMD( STPCB *stpCB ) ;
+      virtual ~_stpStopCMD() ;
+
+   public:
+      // get name of command
+      OSS_INLINE virtual const CHAR *getName() const
+      {
+         return CMD_NAME_STP_STOP ;
+      }
+
+      // finalize command
+      virtual INT32 finalize() ;
+      // run command
+      virtual INT32 doit( bson::BSONObj &result ) ;
+   } ;
+
 }
 
 #endif // STP_COMMAND_HPP__

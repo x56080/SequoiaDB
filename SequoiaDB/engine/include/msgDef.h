@@ -794,24 +794,25 @@
  */
 
 // common prefix for stp commands
-#define CMD_NAME_STP_PREFIX             "stp "
+#define CMD_NAME_STP_PREFIX               "stp "
 
 // run in omagent
-#define CMD_NAME_STP_CREATE             CMD_NAME_STP_PREFIX "create"
-#define CMD_NAME_STP_REMOVE             CMD_NAME_STP_PREFIX "remove"
-#define CMD_NAME_STP_START              CMD_NAME_STP_PREFIX "start"
-#define CMD_NAME_STP_STOP               CMD_NAME_STP_PREFIX "stop"
-#define CMD_NAME_STP_GET                CMD_NAME_STP_PREFIX "get"
+#define CMD_NAME_STP_CREATE               CMD_NAME_STP_PREFIX "create"
+#define CMD_NAME_STP_REMOVE               CMD_NAME_STP_PREFIX "remove"
+#define CMD_NAME_STP_START                CMD_NAME_STP_PREFIX "start"
+#define CMD_NAME_STP_STOP                 CMD_NAME_STP_PREFIX "stop"
+#define CMD_NAME_STP_GET                  CMD_NAME_STP_PREFIX "get"
 
 // run in sdbtp
-#define CMD_NAME_STP_GET_TIME           CMD_NAME_STP_PREFIX "get time"
-#define CMD_NAME_STP_GET_META           CMD_NAME_STP_PREFIX "get meta"
-#define CMD_NAME_STP_GET_SERVERS        CMD_NAME_STP_PREFIX "get servers"
-#define CMD_NAME_STP_GET_SYNC_CLIENTS   CMD_NAME_STP_PREFIX "get sync clients"
-#define CMD_NAME_STP_GET_SYNC_STATUS    CMD_NAME_STP_PREFIX "get sync status"
-#define CMD_NAME_STP_GET_SYNC_HISTORY   CMD_NAME_STP_PREFIX "get sync history"
-#define CMD_NAME_STP_GET_CONFIG         CMD_NAME_STP_PREFIX "get config"
-#define CMD_NAME_STP_UPDATE_CONFIG      CMD_NAME_STP_PREFIX "update config"
+#define CMD_NAME_STP_GET_TIME             CMD_NAME_STP_PREFIX "get time"
+#define CMD_NAME_STP_GET_META             CMD_NAME_STP_PREFIX "get meta"
+#define CMD_NAME_STP_GET_SERVERS          CMD_NAME_STP_PREFIX "get servers"
+#define CMD_NAME_STP_GET_SYNC_CLIENTS     CMD_NAME_STP_PREFIX "get sync clients"
+#define CMD_NAME_STP_GET_SYNC_STATUS      CMD_NAME_STP_PREFIX "get sync status"
+#define CMD_NAME_STP_GET_SYNC_HISTORY     CMD_NAME_STP_PREFIX "get sync history"
+#define CMD_NAME_STP_GET_CONFIG           CMD_NAME_STP_PREFIX "get config"
+#define CMD_NAME_STP_UPDATE_CONFIG        CMD_NAME_STP_PREFIX "update config"
+#define CMD_NAME_STP_STOP                 CMD_NAME_STP_PREFIX "stop"
 
 #define CLS_REPLSET_MAX_NODE_SIZE            7
 #define SDB_MAX_MSG_LENGTH                   ( 512 * 1024 * 1024 )
