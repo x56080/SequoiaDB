@@ -643,7 +643,7 @@ namespace engine
       {
          // get the first(newest) tree nodes of the record
          curPos = it->second ;
-         do 
+         do
          {
             nextPos = curPos->second.getRidPre() ;
 #ifdef _DEBUG
@@ -656,6 +656,8 @@ namespace engine
             curPos = nextPos ;
          }
          while ( curPos != _tree.end() ) ;
+         // make sure rid is removed
+         _ridTree.erase( rid ) ;
       }
 
       unlockX() ;
