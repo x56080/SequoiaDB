@@ -1,6 +1,5 @@
 package com.sequoiadb.lob.networkfail;
 
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;

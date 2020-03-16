@@ -1,7 +1,6 @@
 package com.sequoiadb.lob.networkfail;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -171,8 +170,8 @@ public class Lob3476 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -104 && e.getErrorCode() != -134
-                        && e.getErrorCode() != -79
-                        && e.getErrorCode() != -36 ) {
+                        && e.getErrorCode() != -79 && e.getErrorCode() != -36
+                        && e.getErrorCode() != -13 ) {
                     e.printStackTrace();
                     throw e;
                 }
