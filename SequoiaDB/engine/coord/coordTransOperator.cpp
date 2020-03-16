@@ -259,7 +259,7 @@ namespace engine
          goto done ;
       }
 
-      cb->startRollback() ;
+      cb->startTransRollback() ;
 
       if ( DPS_TRANS_DOING == cb->getTransStatus() ||
            DPS_TRANS_DOING_INTERRUPT == cb->getTransStatus() )
@@ -269,7 +269,7 @@ namespace engine
 
    done:
       _groupSession.getPropSite()->endTrans( cb ) ;
-      cb->stopRollback() ;
+      cb->stopTransRollback() ;
       return rc ;
    }
 

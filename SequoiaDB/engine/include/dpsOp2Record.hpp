@@ -209,10 +209,12 @@ namespace engine
                                 const UINT64 **ppNodes
                                 ) ;
 
+/*
    INT32 dpsTransRollback2Record( const DPS_TRANS_ID &transID,
                                   const DPS_LSN_OFFSET &preTransLSN,
                                   const DPS_LSN_OFFSET &relatedLSN,
                                   dpsLogRecord &record ) ;
+*/
 
    INT32 dpsInvalidCata2Record( const UINT8 &type,
                                 const CHAR * clFullName,
@@ -328,6 +330,12 @@ namespace engine
                                  const CHAR** csname,
                                  utilCSUniqueID& csUniqueID,
                                  bson::BSONObj & clInfoObj ) ;
+
+   // get transaction ID from record
+   INT32 dpsGetTransIDFromRecord( const CHAR *logRecord,
+                                  DPS_TRANS_ID &transID ) ;
+   INT32 dpsGetTransIDFromRecord( const dpsLogRecord &record,
+                                  DPS_TRANS_ID &transID ) ;
 
 }
 

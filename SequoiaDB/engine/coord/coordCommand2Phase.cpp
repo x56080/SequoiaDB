@@ -530,10 +530,10 @@ namespace engine
          PD_RC_CHECK( rc, PDWARNING, "Generate rollback message to data failed "
                       "for command[%s, target:%s], rc: %d", getName(),
                       pArguments->_targetName.c_str(), rc ) ;
-         cb->startRollback() ;
+         cb->startTransRollback() ;
          rc = _rollbackOnDataGroup( (MsgHeader*)pRollbackMsgBuf, cb,
                                     pArguments, sucGroupLst ) ;
-         cb->stopRollback() ;
+         cb->stopTransRollback() ;
          PD_RC_CHECK( rc, PDWARNING, "Do rollback phase on data failed for "
                       "command[%s, target:%s], rc: %d", getName(),
                       pArguments->_targetName.c_str(), rc ) ;

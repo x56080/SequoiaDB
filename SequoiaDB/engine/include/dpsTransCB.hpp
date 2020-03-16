@@ -67,138 +67,17 @@ namespace engine
    class _dpsLogWrapper ;
 
    /*
-      _dpsTransPendingKey define
-   */
-   struct _dpsTransPendingKey
-   {
-      ossPoolString  _collection ;
-      BSONObj        _obj ;
-
-      _dpsTransPendingKey()
-      {
-      }
-
-      _dpsTransPendingKey( const CHAR *collection,
-                           const BSONObj &obj,
-                           BOOLEAN getOwned )
-      {
-         setKey( collection, obj, getOwned ) ;
-      }
-
-      bool operator <( const _dpsTransPendingKey &rhs ) const
-      {
-         /// compare id
-         BSONElement l, r ;
-         INT32 res = _collection.compare( rhs._collection ) ;
-         if ( res < 0 )
-         {
-            return true ;
-         }
-         else if ( res > 0 )
-         {
-            return false ;
-         }
-         l = _obj.getField( DMS_ID_KEY_NAME ) ;
-         r = rhs._obj.getField( DMS_ID_KEY_NAME ) ;
-         return l.woCompare( r, FALSE ) < 0 ;
-      }
-
-      bool operator ==( const _dpsTransPendingKey &rhs ) const
-      {
-         if ( _collection == rhs._collection )
-         {
-            /// compare id
-            BSONElement l, r ;
-            l = _obj.getField( DMS_ID_KEY_NAME ) ;
-            r = rhs._obj.getField( DMS_ID_KEY_NAME ) ;
-            return l.woCompare( r, FALSE ) == 0 ;
-         }
-         return false ;
-      }
-
-      void setKey( const CHAR *collection,
-                   const BSONObj &obj,
-                   BOOLEAN getOwned )
-      {
-         _collection.assign( collection ) ;
-         if ( getOwned )
-         {
-            _obj = obj.getOwned() ;
-         }
-         else
-         {
-            _obj = obj ;
-         }
-      }
-   } ;
-   typedef struct _dpsTransPendingKey dpsTransPendingKey ;
-
-   /*
-      _dpsTransPendingValue define
-   */
-   struct _dpsTransPendingValue
-   {
-      BSONObj     _obj ;
-      INT32       _opType ;
-
-      _dpsTransPendingValue()
-      : _opType( LOG_TYPE_DUMMY )
-      {
-      }
-
-      _dpsTransPendingValue( const BSONObj &obj, INT32 opType )
-      {
-         setValue( obj, opType ) ;
-      }
-
-      void setValue( const BSONObj &obj, INT32 opType )
-      {
-         _obj = obj.getOwned() ;
-         _opType = opType ;
-      }
-   } ;
-   typedef struct _dpsTransPendingValue dpsTransPendingValue ;
-
-   // NOTE:
-   // 1. pending key is expected DMS record during rollback
-   //    it should contains the whole DMS record
-   // 2. pending value is the actual DMS record on disk ( must have OID )
-   //    during rollback
-   typedef ossPoolMap<dpsTransPendingKey,
-                      dpsTransPendingValue> MAP_TRANS_PENDING_OBJ ;
-
-   // helper functions for transaction rollback pending objects
-   // add pending key and value into pending map
-   INT32 dpsAddTransPending( MAP_TRANS_PENDING_OBJ &pendingMap,
-                             dpsTransPendingKey &pendingKey,
-                             dpsTransPendingValue &pendingValue,
-                             BOOLEAN &added ) ;
-   // remove pending key and value from pending map
-   // and get back the removed key and value if needed
-   INT32 dpsRemoveTransPending( MAP_TRANS_PENDING_OBJ &pendingMap,
-                                const dpsTransPendingKey &pendingKey,
-                                BSONObj *oldKey,
-                                dpsTransPendingValue *oldValue,
-                                BOOLEAN &removed ) ;
-
-   /*
       _dpsTransBackInfo define
    */
    struct _dpsTransBackInfo
    {
       DPS_LSN_OFFSET                _lsn ;
       INT32                         _status ;
-      // current pending LSN: the last LSN still rollback pending
-      DPS_LSN_OFFSET                _curLSNWithRBPending ;
-      // current non pending LSN: the LSN which did not create pending object
-      // during rollback pending
-      ossPoolSet< DPS_LSN_OFFSET >  _curNonPendingLSN ;
 
       _dpsTransBackInfo( DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET,
                          INT32 status = DPS_TRANS_DOING )
       {
          _lsn = lsn ;
-         _curLSNWithRBPending = DPS_INVALID_LSN_OFFSET ;
          _status = status ;
       }
    } ;
@@ -286,11 +165,6 @@ namespace engine
       BOOLEAN isFirstOp( DPS_TRANS_ID transID ) ;
       void    clearFirstOpTag( DPS_TRANS_ID &transID ) ;
 
-      // check transaction if rollback pending
-      BOOLEAN isRBPending( DPS_TRANS_ID transID ) ;
-      // check if has rollback pending transactions
-      BOOLEAN hasRBPendingTrans() ;
-
       INT32 startRollbackTask() ;
       INT32 stopRollbackTask() ;
       BOOLEAN isDoRollback() const { return _doRollback ; }
@@ -305,8 +179,7 @@ namespace engine
                             INT32 status ) ;
       void updateTransInfo( dpsTransBackInfo &transInfo,
                             INT32 status,
-                            DPS_LSN_OFFSET lsn,
-                            BOOLEAN rbPending ) ;
+                            DPS_LSN_OFFSET lsn ) ;
 
       BOOLEAN  addTransCB( DPS_TRANS_ID transID, _pmdEDUCB *eduCB ) ;
       void     delTransCB( DPS_TRANS_ID transID ) ;

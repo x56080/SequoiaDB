@@ -764,6 +764,8 @@ namespace engine
       INT32 rc                     = SDB_OK ;
       INT32  indexID               = 0 ;
       BOOLEAN found                = FALSE ;
+      dpsTransCB *transCB          = sdbGetTransCB() ;
+      BOOLEAN lockedCL             = FALSE ;
 
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d" ) ;
@@ -775,6 +777,38 @@ namespace engine
                   context->mb()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
+      }
+      else if ( 0 == ossStrcmp( IXM_ID_KEY_NAME, indexName ) &&
+                _pDataSu->isTransSupport() &&
+                NULL != cb )
+      {
+         if ( transCB->isTransOn() &&
+              cb->getTransExecutor()->useTransLock() )
+         {
+            // if transaction is on, need to get S lock of collection to
+            // avoid transactions have inserted/updated/deleted records
+            // ( including this session itself if it is in transaction )
+            // on the same collection ( if $id index is dropped, they won't
+            // be able to rollback )
+            dpsTransRetInfo lockConflict ;
+            rc = transCB->transLockTryS( cb, _pDataSu->_logicalCSID,
+                                         context->mbID(),  NULL,
+                                         &lockConflict ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to lock the collection, rc: %d"OSS_NEWLINE
+                         "Conflict( representative ):"OSS_NEWLINE
+                         "   EDUID:  %llu"OSS_NEWLINE
+                         "   TID:    %u"OSS_NEWLINE
+                         "   LockId: %s"OSS_NEWLINE
+                         "   Mode:   %s"OSS_NEWLINE,
+                         rc,
+                         lockConflict._eduID,
+                         lockConflict._tid,
+                         lockConflict._lockID.toString().c_str(),
+                         lockModeToString( lockConflict._lockType ) ) ;
+
+            lockedCL = TRUE ;
+         }
       }
 
       for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
@@ -822,6 +856,11 @@ namespace engine
       }
 
    done :
+      if ( lockedCL )
+      {
+         transCB->transLockRelease( cb, _pDataSu->logicalID(),
+                                    context->mbID(), NULL, NULL ) ;
+      }
       return rc ;
    error :
       goto done ;
@@ -1687,7 +1726,9 @@ namespace engine
       ixmExtent rootidx ( indexCB->getRoot(), this ) ;
 
       rc = rootidx.insert ( key, rid, order,
-                            ( cb && cb->isDoRollback() ) ? TRUE : dupAllowed,
+                            ( cb && ( cb->isDoRollback() ||
+                                      cb->isInTransRollback() ) ) ? TRUE :
+                                                                    dupAllowed,
                             indexCB, pResult ) ;
       if ( rc )
       {
@@ -1918,7 +1959,8 @@ namespace engine
       }
 
       unique = indexCB->unique() ;
-      dupAllowed = ( cb && cb->isDoRollback() ) ? TRUE : !unique,
+      dupAllowed = ( cb && ( cb->isDoRollback() ||
+                             cb->isInTransRollback() ) ) ? TRUE : !unique ;
 
       rc = indexCB->getKeysFromObject ( newObj, keySetNew ) ;
       if ( rc )

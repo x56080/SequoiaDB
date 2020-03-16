@@ -709,9 +709,28 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSREP_REPLAY );
       SDB_ASSERT( NULL != recordHeader, "head should not be NULL" ) ;
 
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
+      BOOLEAN startedRollback = FALSE ;
+
       if ( !_dpsCB )
       {
          eduCB->insertLsn( recordHeader->_lsn ) ;
+      }
+
+      // check transaction rollback
+      rc = dpsGetTransIDFromRecord( (CHAR *)recordHeader,
+                                    transID ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      if ( DPS_INVALID_TRANS_ID != transID &&
+           transCB->isRollback( transID ) )
+      {
+         eduCB->startTransRollback() ;
+         startedRollback = TRUE ;
       }
 
       try
@@ -1447,6 +1466,10 @@ namespace engine
       }
 
    done:
+      if ( startedRollback )
+      {
+         eduCB->stopTransRollback() ;
+      }
       eduCB->resetLsn() ;
       if ( SDB_OK != rc )
       {
@@ -1462,57 +1485,6 @@ namespace engine
                  tmpBuff, rc ) ;
       }
       PD_TRACE_EXITRC ( SDB__CLSREP_REPLAY, rc );
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _clsReplayer::rollbackTrans( const dpsLogRecordHeader *recordHeader,
-                                      pmdEDUCB *eduCB,
-                                      MAP_TRANS_PENDING_OBJ &mapPendingObj )
-   {
-      INT32 rc = SDB_OK ;
-      SDB_ASSERT( NULL != recordHeader, "head should not be NULL" ) ;
-      MAP_TRANS_PENDING_OBJ::iterator it ;
-      INT64 contextID = -1 ;
-
-      if ( !_dpsCB )
-      {
-         eduCB->insertLsn( recordHeader->_lsn, TRUE ) ;
-      }
-
-      if ( LOG_TYPE_DATA_INSERT == recordHeader->_type )
-      {
-         rc = _rollbackTransInsert( recordHeader, eduCB, mapPendingObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to rollback insert record of "
-                      "LSN [%llu], rc: %d", recordHeader->_lsn, rc ) ;
-      }
-      else if ( LOG_TYPE_DATA_UPDATE == recordHeader->_type )
-      {
-         rc = _rollbackTransUpdate( recordHeader, eduCB, mapPendingObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to rollback update record of "
-                      "LSN [%llu], rc: %d", recordHeader->_lsn, rc ) ;
-      }
-      else if ( LOG_TYPE_DATA_DELETE == recordHeader->_type )
-      {
-         rc = _rollbackTransDelete( recordHeader, eduCB, mapPendingObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to rollback delete record of "
-                      "LSN [%llu], rc: %d", recordHeader->_lsn, rc ) ;
-      }
-      else
-      {
-         rc = rollback( recordHeader, eduCB ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-
-   done:
-      if ( -1 != contextID )
-      {
-         sdbGetRTNCB()->contextDelete( contextID, eduCB ) ;
-      }
       return rc ;
    error:
       goto done ;
@@ -1539,6 +1511,8 @@ namespace engine
          {
             BSONObj obj ;
             const CHAR *fullname = NULL ;
+            utilDeleteResult delResult ;
+
             rc = dpsRecord2Insert( (const CHAR *)recordHeader,
                                    &fullname, obj ) ;
             if ( SDB_OK != rc )
@@ -1561,7 +1535,22 @@ namespace engine
                   selectorBuilder.append( idEle ) ;
                   BSONObj selector = selectorBuilder.obj() ;
                   rc = rtnDelete( fullname, selector, s_replayHint, 0, eduCB,
-                                  _dmsCB, _dpsCB, 1 ) ;
+                                  _dmsCB, _dpsCB, 1, &delResult ) ;
+               }
+
+               if ( SDB_OK == rc )
+               {
+                  if ( delResult.deletedNum() == 0 )
+                  {
+                     PD_LOG( PDWARNING, "Rollback insert record of LSN [%llu], "
+                             "no record is rollbacked", recordHeader->_lsn ) ;
+                  }
+                  else if ( delResult.deletedNum() > 1 )
+                  {
+                     PD_LOG( PDWARNING, "Rollback insert record of LSN [%llu], "
+                             "more than one record [%lld] are rollbacked",
+                             recordHeader->_lsn, delResult.deletedNum() ) ;
+                  }
                }
             }
             break ;
@@ -1574,6 +1563,8 @@ namespace engine
             BSONObj newMatch ;     //new matcher
             BSONObj newObj ;
             UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+            utilUpdateResult upResult ;
+
             rc = dpsRecord2Update( (const CHAR *)recordHeader,
                                     &fullname,
                                     oldMatch,
@@ -1585,6 +1576,20 @@ namespace engine
                rc = rtnUpdate( fullname, newMatch, modifier, s_replayHint,
                                0, eduCB, _dmsCB, _dpsCB, 1, NULL,
                                NULL, logWriteMod ) ;
+               if ( SDB_OK == rc )
+               {
+                  if ( upResult.updateNum() == 0 )
+                  {
+                     PD_LOG( PDWARNING, "Rollback update record of LSN [%llu], "
+                             "no record is rollbacked", recordHeader->_lsn ) ;
+                  }
+                  else if ( upResult.updateNum() > 1 )
+                  {
+                     PD_LOG( PDWARNING, "Rollback update record of LSN [%llu], "
+                             "more than one record [%lld] are rollbacked",
+                             recordHeader->_lsn, upResult.updateNum() ) ;
+                  }
+               }
             }
             break ;
          }
@@ -2022,772 +2027,6 @@ namespace engine
       return rtnWriteLob( fullName, oid, sequence,
                           offset, len, data, eduCB,
                           1, _dpsCB ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__ROLEBACKTRANSINSERT, "_clsReplayer::_rollbackTransInsert" )
-   INT32 _clsReplayer::_rollbackTransInsert(
-                                       const dpsLogRecordHeader *recordHeader,
-                                       pmdEDUCB *eduCB,
-                                       MAP_TRANS_PENDING_OBJ &mapPendingObj )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSREP__ROLEBACKTRANSINSERT ) ;
-
-      SDB_ASSERT( NULL != recordHeader, "record header is invalid" ) ;
-      SDB_ASSERT( LOG_TYPE_DATA_INSERT == recordHeader->_type,
-                  "should be INSERT log" ) ;
-
-      BSONObj insertObject, deleteSelector ;
-      const CHAR *clFullName = NULL ;
-      BOOLEAN pendingRemoved = FALSE ;
-      dpsTransPendingKey pendingKey ;
-      dpsTransPendingValue pendingValue ;
-
-      rc = dpsRecord2Insert( (const CHAR *)recordHeader, &clFullName,
-                             insertObject ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get insert record of LSN [%llu], "
-                   "rc: %d", recordHeader->_lsn, rc ) ;
-
-      // no need to copy, used for find
-      pendingKey.setKey( clFullName, insertObject, FALSE ) ;
-
-      rc = dpsRemoveTransPending( mapPendingObj, pendingKey, NULL,
-                                  &pendingValue, pendingRemoved ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to remove transaction rollback "
-                   "pending object, rc: %d", rc ) ;
-
-      if ( pendingRemoved )
-      {
-         // pending object is removed, means duplicated key issue happened
-         // with earlier rollback records
-         if ( LOG_TYPE_DATA_DELETE != pendingValue._opType )
-         {
-            // if the corresponding record still exists, delete it
-            // NOTE: OID might be changed by subsequent records in this
-            //       transaction, use the saved OID (current OID on disk)
-            //       rather than OID from record
-            deleteSelector = pendingValue._obj ;
-         }
-         else
-         {
-            // if the corresponding record doesn't exist, ignore it
-            // NOTE: record is not inserted by earlier rollback records
-            deleteSelector = BSONObj() ;
-         }
-
-         if ( mapPendingObj.empty() )
-         {
-            // no pending object, clear rollback pending flag
-            eduCB->clearTransRBPending() ;
-         }
-      }
-      else
-      {
-         // no pending object is found, do the rollback DELETE
-         BSONElement idElement = insertObject.getField( DMS_ID_KEY_NAME ) ;
-         PD_CHECK( EOO != idElement.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to find OID from BSON [%s]",
-                   insertObject.toPoolString().c_str() ) ;
-         deleteSelector = BSON( DMS_ID_KEY_NAME << idElement ) ;
-      }
-
-      /// delete disk
-      if ( !deleteSelector.isEmpty() )
-      {
-         utilDeleteResult delResult ;
-         rc = rtnDelete( clFullName, deleteSelector, s_replayHint, 0, eduCB,
-                         _dmsCB, _dpsCB, 1, &delResult ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to delete record to rollback "
-                      "LSN [%llu], rc: %d", recordHeader->_lsn, rc ) ;
-
-         if ( delResult.deletedNum() == 0 )
-         {
-            PD_LOG( PDWARNING, "Rollback insert record of LSN [%llu], "
-                    "no record is rollbacked", recordHeader->_lsn ) ;
-         }
-         else if ( delResult.deletedNum() > 1 )
-         {
-            PD_LOG( PDWARNING, "Rollback insert record of LSN [%llu], "
-                    "more than one record [%lld] are rollbacked",
-                    recordHeader->_lsn, delResult.deletedNum() ) ;
-         }
-      }
-      else if ( pendingRemoved )
-      {
-         if ( DPS_INVALID_LSN_OFFSET == eduCB->getCurTransLsn() )
-         {
-            SDB_ASSERT( mapPendingObj.empty(), "pending map should be emtpy" ) ;
-            SDB_ASSERT( !eduCB->isTransRBPending(),
-                        "transaction should not be rollback pending" ) ;
-
-            rc = _logTransRollback( eduCB ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to log rollback, rc: %d", rc ) ;
-         }
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSREP__ROLEBACKTRANSINSERT, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__ROLEBACKTRANSUPDATE, "_clsReplayer::_rollbackTransUpdate" )
-   INT32 _clsReplayer::_rollbackTransUpdate(
-                                       const dpsLogRecordHeader *recordHeader,
-                                       pmdEDUCB *eduCB,
-                                       MAP_TRANS_PENDING_OBJ &mapPendingObj )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSREP__ROLEBACKTRANSUPDATE ) ;
-
-      SDB_ASSERT( NULL != recordHeader, "record header is invalid" ) ;
-      SDB_ASSERT( LOG_TYPE_DATA_UPDATE == recordHeader->_type,
-                  "should be UPDATE log" ) ;
-
-      const CHAR *clFullName = NULL ;
-      BSONObj oldMatch ;   // old matcher
-      BSONObj oldObject ;  // old modifier
-      BSONObj newMatch ;   // new matcher
-      BSONObj newObject ;  // new modifier
-      BSONObj rollbackObject ;
-
-      dpsTransPendingKey newPendingKey, oldPendingKey ;
-      dpsTransPendingValue newPendingValue, oldPendingValue ;
-      BOOLEAN isPendingKeyExist = FALSE ;
-      UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
-
-      rc = dpsRecord2Update( (const CHAR *)recordHeader,
-                              &clFullName, oldMatch, oldObject,
-                              newMatch, newObject, NULL, NULL, NULL,
-                              &logWriteMod ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get update record of LSN [%llu], "
-                   "rc: %d", recordHeader->_lsn, rc ) ;
-
-      if ( oldObject.isEmpty() )
-      {
-         PD_LOG( PDDEBUG, "Update record of LSN [%llu] has empty modifier",
-                 recordHeader->_lsn ) ;
-         goto done ;
-      }
-
-      // construct old pending key, no need to copy, used for find
-      // check for new match (NOT old) of update record, which OID to be
-      // rollbacked
-      oldPendingKey.setKey( clFullName, newMatch, FALSE ) ;
-
-      rc = dpsRemoveTransPending( mapPendingObj, oldPendingKey, &newObject,
-                                  &oldPendingValue, isPendingKeyExist ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to remove transaction rollback "
-                   "pending object, rc: %d", rc ) ;
-
-      if ( isPendingKeyExist )
-      {
-         // pending key exists means a duplicated key issue happened
-         // we need to rollback to the old object of update DPS record
-         // but current record on the disk is not correct since the duplicated
-         // key issue, so we need to recover the old object from the removed
-         // pending key
-         rc = _replayUpdateModifier( oldObject, newObject, rollbackObject,
-                                     logWriteMod ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to replay update modifier on "
-                      "old pending object, rc: %d", rc ) ;
-
-         if ( LOG_TYPE_DATA_DELETE != oldPendingValue._opType )
-         {
-            // old pending value is not created by DELETE
-            // ( means created by UPDATE ), the DMS object is not correct,
-            // need to replace whole object with the new one
-            newMatch = oldPendingValue._obj ;
-            oldObject = BSON( "$replace" << rollbackObject ) ;
-            logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
-         }
-
-         if ( mapPendingObj.empty() )
-         {
-            // no pending object, clear rollback pending flag
-            eduCB->clearTransRBPending() ;
-         }
-      }
-
-      if ( isPendingKeyExist &&
-           LOG_TYPE_DATA_DELETE == oldPendingValue._opType )
-      {
-         // in below case, we perform INSERT
-         // if pending key exists but pending value is empty
-         // ( created by DELETE ), means the object does not exists in DMS,
-         // so we need to insert the expected rollback object back
-         rc = rtnInsert( clFullName, rollbackObject, 1, 0, eduCB,
-                         _dmsCB, _dpsCB, 1 ) ;
-      }
-      else
-      {
-         // in below case, we perform UPDATE
-         // if pending key does not exist, perform the original update rollback
-         // and if pending value is not empty, means a incorrect record exists
-         // in DMS, so we need to update the
-         utilUpdateResult upResult ;
-         rc = rtnUpdate( clFullName, newMatch, oldObject,
-                         s_replayHint, 0, eduCB, _dmsCB, _dpsCB, 1,
-                         &upResult, NULL, logWriteMod ) ;
-
-         if ( upResult.updateNum() == 0 )
-         {
-            PD_LOG( PDWARNING, "Rollback update record of LSN [%llu], "
-                    "no record is rollbacked", recordHeader->_lsn ) ;
-         }
-         else if ( upResult.updateNum() > 1 )
-         {
-            PD_LOG( PDWARNING, "Rollback update record of LSN [%llu], "
-                    "more than one record [%lld] are rollbacked",
-                    recordHeader->_lsn, upResult.updateNum() ) ;
-         }
-      }
-      if ( SDB_IXM_DUP_KEY == rc )
-      {
-         BOOLEAN added = FALSE ;
-
-         if ( !isPendingKeyExist )
-         {
-            // old pending key does not exists, we need to construct the new
-            // pending key from corresponding DMS object, perform the update on
-            // corresponding object and store result in new pending key
-            BSONObj currentObject ;
-            rc = _queryRecord( clFullName, newMatch, eduCB, currentObject ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to query object [%s] from "
-                         "collection [%s], rc: %d",
-                         newMatch.toPoolString().c_str(), clFullName, rc ) ;
-
-            rc = _replayUpdateModifier( oldObject, currentObject,
-                                        rollbackObject, logWriteMod ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to replay update modifier on "
-                         "DMS object, rc: %d", rc ) ;
-
-            newPendingKey.setKey( clFullName, rollbackObject, TRUE ) ;
-
-            // old pending key does not exit, save the current DMS object (OID)
-            // as new pending value
-            newPendingValue.setValue( newMatch, LOG_TYPE_DATA_UPDATE ) ;
-         }
-         else
-         {
-            // old pending key exits, and we failed to rollback again
-            // rollback object is already generated in earlier phase, use it
-            // as new pending key
-            newPendingKey.setKey( clFullName, rollbackObject, TRUE ) ;
-
-            // restore the old pending value back
-            newPendingValue.setValue( oldPendingValue._obj,
-                                      oldPendingValue._opType ) ;
-         }
-
-         // save pending object into pending map
-         rc = dpsAddTransPending( mapPendingObj, newPendingKey, newPendingValue,
-                                  added ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to add transaction pending object, "
-                      "rc: %d", rc ) ;
-
-         // have pending object, set rollback pending flag
-         eduCB->setTransRBPending() ;
-      }
-      else
-      {
-         PD_RC_CHECK( rc, PDERROR, "Failed to rollback update record of "
-                      "LSN [%llu], rc: %d", recordHeader->_lsn, rc ) ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSREP__ROLEBACKTRANSUPDATE, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__ROLEBACKTRANSDELETE, "_clsReplayer::_rollbackTransDelete" )
-   INT32 _clsReplayer::_rollbackTransDelete(
-                                       const dpsLogRecordHeader *recordHeader,
-                                       pmdEDUCB *eduCB,
-                                       MAP_TRANS_PENDING_OBJ &mapPendingObj )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSREP__ROLEBACKTRANSUPDATE ) ;
-
-      SDB_ASSERT( NULL != recordHeader, "record header is invalid" ) ;
-      SDB_ASSERT( LOG_TYPE_DATA_DELETE == recordHeader->_type,
-                  "should be DELETE log" ) ;
-
-      BSONObj deleteObject ;
-      const CHAR *clFullName = NULL ;
-
-      rc = dpsRecord2Delete( (const CHAR *)recordHeader, &clFullName,
-                             deleteObject ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get delete record of LSN [%llu], "
-                   "rc: %d", recordHeader->_lsn, rc ) ;
-
-      rc = rtnInsert( clFullName, deleteObject, 1, 0, eduCB, _dmsCB, _dpsCB,
-                      1 ) ;
-      if ( SDB_IXM_DUP_KEY == rc )
-      {
-         // A duplicated key issue happened, means the key had been recreated
-         // during this transaction by other transactions
-         // NOTE: if the key was not first inserted by this transaction,
-         //       other transaction will report duplicated keys since the old
-         //       version exists
-         dpsTransPendingKey newKey( clFullName, deleteObject, TRUE ) ;
-         dpsTransPendingValue newValue( BSONObj(), LOG_TYPE_DATA_DELETE ) ;
-         BOOLEAN added = FALSE ;
-
-         // save pending object into pending map
-         rc = dpsAddTransPending( mapPendingObj, newKey, newValue, added ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to add transaction pending object, "
-                      "rc: %d", rc ) ;
-
-         // have pending object, set rollback pending flag
-         eduCB->setTransRBPending() ;
-      }
-      else
-      {
-         PD_RC_CHECK( rc, PDERROR, "Failed to execute insert to rollback "
-                      "delete record of LSN [%llu], rc: %d",
-                      recordHeader->_lsn, rc ) ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSREP__ROLEBACKTRANSUPDATE, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__LOGTRANSROLLBACK, "_clsReplayer::_logTransRollback" )
-   INT32 _clsReplayer::_logTransRollback( pmdEDUCB *eduCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSREP__LOGTRANSROLLBACK ) ;
-
-      dpsMergeInfo info ;
-
-      // no need for notify LSN
-      info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
-
-      dpsLogRecord &record = info.getMergeBlock().record() ;
-
-      DPS_TRANS_ID transID = eduCB->getTransID() ;
-      DPS_LSN_OFFSET preTransLSN = eduCB->getCurTransLsn() ;
-      DPS_LSN_OFFSET relatedTransLSN = eduCB->getRelatedTransLSN() ;
-
-      PD_CHECK( DPS_INVALID_LSN_OFFSET == preTransLSN, SDB_SYS, error, PDERROR,
-                "Failed to log transaction rollback for transaction [%llu], "
-                "preTransLSN is not empty [%llu]", transID, preTransLSN ) ;
-
-      rc = dpsTransRollback2Record( transID, preTransLSN, relatedTransLSN,
-                                    record ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to transform record into "
-                   "transaction rollback record, rc: %d", rc ) ;
-
-      rc = _dpsCB->prepare( info ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to prepare transaction rollback "
-                   "record, rc: %d", rc ) ;
-
-      // write dps
-      _dpsCB->writeData( info ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSREP__LOGTRANSROLLBACK, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP_REPLAYRBPENDING, "_clsReplayer::replayRBPending" )
-   INT32 _clsReplayer::replayRBPending( const dpsLogRecordHeader *recordHeader,
-                                        BOOLEAN removeOnly,
-                                        pmdEDUCB *eduCB,
-                                        MAP_TRANS_PENDING_OBJ &mapPendingObj )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSREP_REPLAYRBPENDING ) ;
-
-      switch ( recordHeader->_type )
-      {
-         case LOG_TYPE_DATA_INSERT :
-         {
-            rc = _replayInsertRBPending( recordHeader, removeOnly, eduCB,
-                                         mapPendingObj ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to replay INSERT rollback "
-                         "pending DPS record [LSN: %llu]",
-                         recordHeader->_lsn ) ;
-            break ;
-         }
-         case LOG_TYPE_DATA_UPDATE :
-         {
-            rc = _replayUpdateRBPending( recordHeader, removeOnly, eduCB,
-                                         mapPendingObj ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to replay UPDATE rollback "
-                         "pending DPS record [LSN: %llu]",
-                         recordHeader->_lsn ) ;
-            break ;
-         }
-         case LOG_TYPE_DATA_DELETE :
-         {
-            rc = _replayDeleteRBPending( recordHeader, removeOnly, eduCB,
-                                         mapPendingObj ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to replay DELETE rollback "
-                         "pending DPS record [LSN: %llu]",
-                         recordHeader->_lsn ) ;
-            break ;
-         }
-         default :
-         {
-            PD_CHECK( FALSE, SDB_SYS, error, PDERROR,
-                      "Failed to replay rollback pending DPS record "
-                      "[LSN: %llu], unsupported type [%d]",
-                      recordHeader->_lsn, recordHeader->_type ) ;
-         }
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSREP_REPLAYRBPENDING, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__REPLAYINSERTRBPENDING, "_clsReplayer::_replayInsertRBPending" )
-   INT32 _clsReplayer::_replayInsertRBPending(
-                                       const dpsLogRecordHeader *recordHeader,
-                                       BOOLEAN removeOnly,
-                                       pmdEDUCB *eduCB,
-                                       MAP_TRANS_PENDING_OBJ &mapPendingObj )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSREP__REPLAYINSERTRBPENDING ) ;
-
-      SDB_ASSERT( NULL != recordHeader, "record header is invalid" ) ;
-      SDB_ASSERT( LOG_TYPE_DATA_INSERT == recordHeader->_type,
-                  "should be INSERT log" ) ;
-
-      BSONObj insertObject ;
-      const CHAR *clFullName = NULL ;
-      BOOLEAN pendingRemoved = FALSE ;
-      dpsTransPendingKey pendingKey ;
-
-      rc = dpsRecord2Insert( (const CHAR *)recordHeader, &clFullName,
-                             insertObject ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get insert record of LSN [%llu], "
-                   "rc: %d", recordHeader->_lsn, rc ) ;
-
-      // no need to copy, used for find
-      pendingKey.setKey( clFullName, insertObject, FALSE ) ;
-
-      rc = dpsRemoveTransPending( mapPendingObj, pendingKey, NULL, NULL,
-                                  pendingRemoved ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to remove transaction rollback "
-                   "pending object, rc: %d", rc ) ;
-
-      // this might remove nothing which is not related to any
-      // pending objects
-      // no need to check
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSREP__REPLAYINSERTRBPENDING, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__REPLAYUPDATERBPENDING, "_clsReplayer::_replayUpdateRBPending" )
-   INT32 _clsReplayer::_replayUpdateRBPending(
-                                       const dpsLogRecordHeader *recordHeader,
-                                       BOOLEAN removeOnly,
-                                       pmdEDUCB *eduCB,
-                                       MAP_TRANS_PENDING_OBJ &mapPendingObj )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSREP__REPLAYUPDATERBPENDING ) ;
-
-      SDB_ASSERT( NULL != recordHeader, "record header is invalid" ) ;
-      SDB_ASSERT( LOG_TYPE_DATA_UPDATE == recordHeader->_type,
-                  "should be UPDATE log" ) ;
-
-      const CHAR *clFullName = NULL ;
-      BSONObj oldMatch ;   // old matcher
-      BSONObj oldObject ;  // old modifier
-      BSONObj newMatch ;   // new matcher
-      BSONObj newObject ;  // new modifier
-      BSONObj rollbackObject ;
-
-      dpsTransPendingKey newPendingKey, oldPendingKey ;
-      dpsTransPendingValue newPendingValue, oldPendingValue ;
-      BOOLEAN isPendingKeyExist = FALSE, added = FALSE ;
-      UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
-
-      rc = dpsRecord2Update( (const CHAR *)recordHeader,
-                              &clFullName, oldMatch, oldObject,
-                              newMatch, newObject, NULL, NULL, NULL,
-                              &logWriteMod ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get update record of LSN [%llu], "
-                   "rc: %d", recordHeader->_lsn, rc ) ;
-
-      if ( oldObject.isEmpty() )
-      {
-         PD_LOG( PDDEBUG, "Update record of LSN [%llu] has empty modifier",
-                 recordHeader->_lsn ) ;
-         goto done ;
-      }
-
-      // construct old pending key, no need to copy, used for find
-      // check for new match (NOT old) of update record, which OID to be
-      // rollbacked
-      oldPendingKey.setKey( clFullName, newMatch, FALSE ) ;
-
-      rc = dpsRemoveTransPending( mapPendingObj, oldPendingKey, &newObject,
-                                  &oldPendingValue, isPendingKeyExist ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to remove transaction rollback "
-                   "pending object, rc: %d", rc ) ;
-
-      if ( removeOnly )
-      {
-         // this might remove nothing which is not related to any
-         // pending objects
-         // no need to check
-         goto done ;
-      }
-
-      if ( isPendingKeyExist )
-      {
-         // pending key exists means a duplicated key issue happened
-         // we need to rollback to the old object of update DPS record
-         // but current record on the disk is not correct since the duplicated
-         // key issue, so we need to recover the old object from the removed
-         // pending key
-         rc = _replayUpdateModifier( oldObject, newObject, rollbackObject,
-                                     logWriteMod ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to replay update modifier on "
-                      "old pending object, rc: %d", rc ) ;
-
-         // old pending key exits, and we failed to rollback again
-         // rollback object is already generated in earlier phase, use it
-         // as new pending key
-         newPendingKey.setKey( clFullName, rollbackObject, TRUE ) ;
-
-         // restore the old pending value back
-         newPendingValue.setValue( oldPendingValue._obj,
-                                   oldPendingValue._opType ) ;
-      }
-      else
-      {
-         // old pending key does not exists, we need to construct the new
-         // pending key from corresponding DMS object, perform the update on
-         // corresponding object and store result in new pending key
-         BSONObj currentObject ;
-         rc = _queryRecord( clFullName, newMatch, eduCB, currentObject ) ;
-         if ( SDB_DMS_EOC == rc )
-         {
-            // EOC means later rollback will remove this pending object
-            // which might change the object in DMS, so we could not find
-            // the object with previous DPS record
-            // in this case, we only keep the OID as pending key for later DPS
-            // record to remove this pending object
-            rollbackObject = oldMatch ;
-            rc = SDB_OK ;
-         }
-         else
-         {
-            PD_RC_CHECK( rc, PDERROR, "Failed to query object [%s] from "
-                         "collection [%s], rc: %d",
-                         newMatch.toPoolString().c_str(), clFullName, rc ) ;
-
-            rc = _replayUpdateModifier( oldObject, currentObject,
-                                        rollbackObject, logWriteMod ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to replay update modifier on "
-                         "DMS object, rc: %d", rc ) ;
-         }
-
-         newPendingKey.setKey( clFullName, rollbackObject, TRUE ) ;
-
-         // old pending key does not exit, save the current DMS object (OID)
-         // as new pending value
-         newPendingValue.setValue( newMatch, LOG_TYPE_DATA_UPDATE ) ;
-      }
-
-      // save pending object into pending map
-      rc = dpsAddTransPending( mapPendingObj, newPendingKey, newPendingValue,
-                               added ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to add transaction pending object, "
-                   "rc: %d", rc ) ;
-
-      PD_CHECK( added, SDB_SYS, error, PDERROR,
-                "Failed to add pending key [ collection %s, key %s ]",
-                newPendingKey._collection.c_str(),
-                newPendingKey._obj.toPoolString().c_str() ) ;
-
-      // have pending object, set rollback pending flag
-      eduCB->setTransRBPending() ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSREP__REPLAYUPDATERBPENDING, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__REPLAYDELETERBPENDING, "_clsReplayer::_replayDeleteRBPending" )
-   INT32 _clsReplayer::_replayDeleteRBPending(
-                                       const dpsLogRecordHeader *recordHeader,
-                                       BOOLEAN removeOnly,
-                                       pmdEDUCB *eduCB,
-                                       MAP_TRANS_PENDING_OBJ &mapPendingObj )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSREP__REPLAYDELETERBPENDING ) ;
-
-      SDB_ASSERT( NULL != recordHeader, "record header is invalid" ) ;
-      SDB_ASSERT( LOG_TYPE_DATA_DELETE == recordHeader->_type,
-                  "should be DELETE log" ) ;
-
-      BSONObj deleteObject ;
-      const CHAR *clFullName = NULL ;
-      BOOLEAN added = FALSE ;
-      dpsTransPendingKey pendingKey ;
-      dpsTransPendingValue pendingValue ;
-
-      if ( removeOnly )
-      {
-         // this might remove nothing which is not related to any
-         // pending objects
-         // no need to check
-         goto done ;
-      }
-
-      rc = dpsRecord2Delete( (const CHAR *)recordHeader, &clFullName,
-                             deleteObject ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get delete record of LSN [%llu], "
-                   "rc: %d", recordHeader->_lsn, rc ) ;
-
-      pendingKey.setKey( clFullName, deleteObject, TRUE ) ;
-      pendingValue.setValue( BSONObj(), LOG_TYPE_DATA_DELETE ) ;
-
-      // save pending object into pending map
-      rc = dpsAddTransPending( mapPendingObj, pendingKey, pendingValue, added ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to add transaction pending object, "
-                   "rc: %d", rc ) ;
-
-      PD_CHECK( added, SDB_SYS, error, PDERROR,
-                "Failed to add pending key [ collection %s, key %s ]",
-                pendingKey._collection.c_str(),
-                pendingKey._obj.toPoolString().c_str() ) ;
-
-      // have pending object, set rollback pending flag
-      eduCB->setTransRBPending() ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSREP__REPLAYDELETERBPENDING, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__REPLAYUPDATEMODIFIER, "_clsReplayer::_replayUpdateModifier" )
-   INT32 _clsReplayer::_replayUpdateModifier( const BSONObj &updater,
-                                              const BSONObj &oldObject,
-                                              BSONObj &newObject,
-                                              UINT32 logWriteMode )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSREP__REPLAYUPDATEMODIFIER ) ;
-
-      mthModifier modifier ;
-      rc = modifier.loadPattern( updater, NULL, TRUE, NULL, FALSE,
-                                 logWriteMode ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to load modify pattern [%s], rc: %d",
-                   updater.toPoolString().c_str(), rc ) ;
-
-      rc = modifier.modify( oldObject, newObject ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to modify [%s] by [%s], rc: %d",
-                   oldObject.toPoolString().c_str(),
-                   updater.toPoolString().c_str(), rc ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSREP__REPLAYUPDATEMODIFIER, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__QUERYRECORD, "_clsReplayer::_queryRecord" )
-   INT32 _clsReplayer::_queryRecord( const CHAR *collection,
-                                     const BSONObj &matcher,
-                                     pmdEDUCB *eduCB,
-                                     BSONObj &object )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSREP__QUERYRECORD ) ;
-
-      SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
-      INT64 contextID = -1 ;
-      BSONObj currentObject ;
-      rtnContextBuf buffer ;
-      mthModifier modifier ;
-
-      rc = rtnQuery( collection, BSONObj(), matcher, BSONObj(),
-                     s_replayHint, 0, eduCB, 0, 1, _dmsCB,
-                     sdbGetRTNCB(), contextID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to query object [%s] from "
-                   "collection [%s], rc: %d", matcher.toPoolString().c_str(),
-                   collection, rc ) ;
-
-      rc = rtnGetMore( contextID, 1, buffer, eduCB, sdbGetRTNCB() ) ;
-      if ( SDB_DMS_EOC == rc )
-      {
-         PD_LOG( PDDEBUG, "Hit end of query object [%s] from collection [%s]",
-                 matcher.toPoolString().c_str(), collection ) ;
-         goto done ;
-      }
-      else
-      {
-         PD_RC_CHECK( rc, PDERROR, "Failed to get object [%s] from "
-                      "collection [%s], rc: %d",
-                      matcher.toPoolString().c_str(), collection, rc ) ;
-      }
-
-      /// get object
-      rc = buffer.nextObj( currentObject ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse object [%s] from "
-                   "collection [%s], rc: %d",
-                   matcher.toPoolString().c_str(), collection, rc ) ;
-
-      object = currentObject.getOwned() ;
-
-   done :
-      if ( -1 != contextID )
-      {
-         rtnCB->contextDelete( contextID, eduCB ) ;
-      }
-      PD_TRACE_EXITRC( SDB__CLSREP__QUERYRECORD, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
    }
 
    static BOOLEAN _isTextIdx( const BSONObj &index )

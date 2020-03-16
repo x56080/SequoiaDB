@@ -1834,7 +1834,7 @@ namespace engine
 
    BOOLEAN oldVersionContainer::isRecordNew() const
    {
-      return OSS_BIT_TEST( _statMask, OLDVER_MASK_NEW_RECORD ) ;
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_NEW_RECORD ) ? TRUE : FALSE ;
    }
 
    void oldVersionContainer::setRecordDummy( UINT32 ownnerTID )
@@ -1845,7 +1845,7 @@ namespace engine
 
    BOOLEAN oldVersionContainer::isRecordDummy() const
    {
-      return OSS_BIT_TEST( _statMask, OLDVER_MASK_DUMMY ) ;
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_DUMMY ) ? TRUE : FALSE ;
    }
 
    UINT32 oldVersionContainer::getOwnnerTID() const
@@ -1855,12 +1855,24 @@ namespace engine
 
    BOOLEAN oldVersionContainer::isRecordDeleted() const
    {
-      return OSS_BIT_TEST( _statMask, OLDVER_MASK_DELETED ) ;
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_DELETED ) ? TRUE : FALSE ;
    }
 
    BOOLEAN oldVersionContainer::isDiskDeleting() const
    {
-      return OSS_BIT_TEST( _statMask, OLDVER_MASK_DISK_DELETING ) ;
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_DISK_DELETING ) ?
+             TRUE : FALSE ;
+   }
+
+   BOOLEAN oldVersionContainer::isOIDUpdated() const
+   {
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_OID_UPDATED ) ?
+             TRUE : FALSE ;
+   }
+
+   void oldVersionContainer::setOIDUpdated()
+   {
+      OSS_BIT_SET( _statMask, OLDVER_MASK_OID_UPDATED ) ;
    }
 
    // check if the index lid already exists in the set
@@ -1981,7 +1993,7 @@ namespace engine
 
    BOOLEAN oldVersionContainer::hasCoped() const
    {
-      return OSS_BIT_TEST( _statMask, OLDVER_MASK_HAS_COPED ) ;
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_HAS_COPED ) ? TRUE : FALSE ;
    }
    */
 

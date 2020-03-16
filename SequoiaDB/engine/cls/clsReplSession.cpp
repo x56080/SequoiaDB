@@ -619,11 +619,7 @@ namespace engine
 
                // the end condition of consult searching
                // 1. has common LSN offset
-               // 2. has no rollback pending transactions
-               //    since rollback pending transaction should be replayed
-               //    from non rollback pending status
-               if ( 0 == point.compareOffset( rollback.offset ) &&
-                    !sdbGetTransCB()->hasRBPendingTrans() )
+               if ( 0 == point.compareOffset( rollback.offset ) )
                {
                   break ;
                }

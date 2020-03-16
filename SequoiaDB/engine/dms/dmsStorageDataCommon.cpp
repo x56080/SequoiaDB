@@ -3039,7 +3039,7 @@ namespace engine
       {
          dpsTransExecutor *pTransExe = cb->getTransExecutor() ;
          /// when is rollback, and the rid is found
-         if ( DPS_INVALID_TRANS_ID != transID && cb->isInRollback() &&
+         if ( DPS_INVALID_TRANS_ID != transID && cb->isInTransRollback() &&
               pTransExe->getRecord( relatedLsn, foundRID, TRUE ) )
          {
             markInsert = TRUE ;
@@ -3206,6 +3206,17 @@ namespace engine
             rc = SDB_DMS_INCOMPATIBLE_MODE ;
             goto error ;
          }
+         else if ( OSS_BIT_TEST( context->mb()->_attributes,
+                                 DMS_MB_ATTR_NOIDINDEX ) &&
+                   cb->isTransaction() &&
+                   !cb->isInTransRollback() )
+         {
+            // for transaction, we need $id index for rollback
+            PD_LOG( PDERROR, "Failed to insert data for transaction when "
+                    "autoIndexId is false" ) ;
+            rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;
+            goto error ;
+         }
 
          textIdxNum = context->mbStat()->_textIdxNum ;
          if ( textIdxNum > 0 )
@@ -3268,7 +3279,7 @@ namespace engine
             }
             recordRW = record2RW( foundRID, context->mbID() ) ;
 
-            if ( dpscb && isTransSupport() && !cb->isInRollback() )
+            if ( dpscb && isTransSupport() && !cb->isInTransRollback() )
             {
                dpsTransRetInfo lockConflict ;
                callback.setIDInfo( CSID(), context->mbID(), _logicalCSID,
@@ -3520,7 +3531,7 @@ namespace engine
          // when in transaction(not rollback), we should not immediately
          // delete the record, otherwise TB scan won't be able to find
          // this record even if the current transaction has not committed.
-         if ( DPS_INVALID_TRANS_ID != transID && !cb->isInRollback() )
+         if ( DPS_INVALID_TRANS_ID != transID && !cb->isInTransRollback() )
          {
             inTrans = TRUE ;
          }
@@ -4469,7 +4480,7 @@ namespace engine
       ++ ( mbStat->_totalRecords ) ;
 
       // update meta-block statistics for transaction
-      if ( cb->isInRollback() )
+      if ( cb->isInTransRollback() )
       {
          // do nothing
       }
@@ -4503,7 +4514,7 @@ namespace engine
       -- ( mbStat->_totalRecords ) ;
 
       // update meta-block statistics for transaction
-      if ( cb->isInRollback() )
+      if ( cb->isInTransRollback() )
       {
          // do nothing
       }

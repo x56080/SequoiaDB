@@ -1716,37 +1716,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_TRANSROLLBACK2RECORD, "dpsTransRollback2Record" )
-   INT32 dpsTransRollback2Record( const DPS_TRANS_ID &transID,
-                                  const DPS_LSN_OFFSET &preTransLSN,
-                                  const DPS_LSN_OFFSET &relatedLSN,
-                                  dpsLogRecord &record )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DPS_TRANSROLLBACK2RECORD ) ;
-
-      dpsLogRecordHeader &header = record.head() ;
-      header._type = LOG_TYPE_TS_ROLLBACK ;
-
-      rc = dpsPushTran( transID, preTransLSN, relatedLSN, record ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to push transaction information, "
-                   "rc: %d", rc ) ;
-
-      rc = checkAndAddTimeInfo( record ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to add time information, "
-                   "rc: %d", rc ) ;
-
-      header._length = record.alignedLen() ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__DPS_TRANSROLLBACK2RECORD, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_INVALIDCATA2RECORD, "dpsInvalidCata2Record" )
    INT32 dpsInvalidCata2Record( const UINT8 &type,
                                 const CHAR * clFullName,
@@ -2891,6 +2860,54 @@ namespace engine
       return rc ;
    error :
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_GETTRANSIDFROMEREC, "dpsGetTransIDFromRecord" )
+   INT32 dpsGetTransIDFromRecord( const CHAR* logRecord,
+                                  DPS_TRANS_ID &transID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_GETTRANSIDFROMEREC ) ;
+
+      SDB_ASSERT( NULL != logRecord, "record should not be NULL" ) ;
+
+      dpsLogRecord record ;
+      dpsLogRecord::iterator it ;
+
+      rc = record.load( logRecord ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to load record, rc: %d", rc ) ;
+
+      rc = dpsGetTransIDFromRecord( record, transID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get transaction ID, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPS_GETTRANSIDFROMEREC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_GETTRANSIDFROMEREC_REC, "dpsGetTransIDFromRecord" )
+   INT32 dpsGetTransIDFromRecord( const dpsLogRecord &record,
+                                  DPS_TRANS_ID &transID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPS_GETTRANSIDFROMEREC_REC ) ;
+
+      transID = DPS_INVALID_TRANS_ID ;
+
+      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
+      if ( itr.valid() )
+      {
+         transID = *( (DPS_TRANS_ID *)itr.value() ) ;
+      }
+
+      PD_TRACE_EXITRC( SDB__DPS_GETTRANSIDFROMEREC_REC, rc ) ;
+
+      return rc ;
    }
 
 }

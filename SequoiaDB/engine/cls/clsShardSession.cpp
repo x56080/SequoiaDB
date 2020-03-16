@@ -336,7 +336,7 @@ namespace engine
             UINT32 timeout = 0 ;
 
             // start rollback to avoid interrupt during wait-sync
-            _pEDUCB->startRollback() ;
+            _pEDUCB->startTransRollback() ;
             while ( replCB->groupSize() > 1 &&
                     pmdIsPrimary() &&
                     timeout < 5 * 60 * OSS_ONE_SEC )
@@ -363,7 +363,7 @@ namespace engine
                   break ;
                }
             }
-            _pEDUCB->stopRollback() ;
+            _pEDUCB->stopTransRollback() ;
          }
 
          INT32 rcTmp = _rollbackTrans( NULL, 0 ) ;

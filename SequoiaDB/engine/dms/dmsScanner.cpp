@@ -381,7 +381,7 @@ namespace engine
       /// In transaction
       else
       {
-         if ( cb->isInRollback() )
+         if ( cb->isInTransRollback() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
             _selectForUpdate = FALSE ;
@@ -1546,7 +1546,7 @@ namespace engine
       /// In transaction
       else
       {
-         if ( cb->isInRollback() )
+         if ( cb->isInTransRollback() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
             _selectForUpdate = FALSE ;

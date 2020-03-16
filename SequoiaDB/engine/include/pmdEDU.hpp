@@ -194,9 +194,6 @@ namespace engine
 
          INT64             getCurAutoTransCtxID() const ;
          void              setCurAutoTransCtxID( INT64 contextID ) ;
-         BOOLEAN           isTransRBPending() const ;
-         void              setTransRBPending() ;
-         void              clearTransRBPending() ;
 
    public:
       _pmdEDUCB( _pmdEDUMgr *mgr, INT32 type ) ;
@@ -383,9 +380,9 @@ namespace engine
       BOOLEAN  isTransRC () const ;
       BOOLEAN  isTransRS () const ;
       BOOLEAN  isAutoCommitTrans() const ;
-      void     startRollback() { _isDoRollback = TRUE ; }
-      void     stopRollback() { _isDoRollback = FALSE ; }
-      BOOLEAN  isInRollback() const { return _isDoRollback ; }
+      void     startTransRollback() { _isDoTransRollback = TRUE ; }
+      void     stopTransRollback() { _isDoTransRollback = FALSE ; }
+      BOOLEAN  isInTransRollback() const { return _isDoTransRollback ; }
       void     setTransRC( INT32 rc ) { _transRC = rc ; }
       INT32    getTransRC() const { return _transRC ; }
       void     setTransStatus( INT32 status ) { _transStatus = status ; }
@@ -480,7 +477,8 @@ namespace engine
       CHAR              _source[ PMD_EDU_NAME_LENGTH + 1 ] ;
       ossSocket        *_pClientSock ;
 
-      BOOLEAN                 _isDoRollback ;
+      // indicate transaction is rolling back
+      BOOLEAN                 _isDoTransRollback ;
 
       monAppCB                _monApplCB ;
       monConfigCB             _monCfgCB ;
@@ -510,6 +508,7 @@ namespace engine
       UINT64                  _beginLsn ;
       UINT64                  _endLsn ;
       UINT32                  _lsnNumber ;
+      // indicate to rollback DPS log
       BOOLEAN                 _doRollback ;
       UINT64                  _processEventCount ;
 

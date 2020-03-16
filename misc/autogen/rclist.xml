@@ -2746,5 +2746,13 @@
          </description>
       </code>      
 
+      <code>
+         <name>SDB_ID_UPDATED_IN_TRANS</name>
+         <description>
+            <en>The _id field already updated in the same transaction</en>
+            <cn>_id字段已经在同一个事务中更新</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

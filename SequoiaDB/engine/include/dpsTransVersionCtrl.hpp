@@ -764,11 +764,18 @@ namespace engine
    // use set of idxObj to store all index key values
    typedef ossPoolSet< dpsIdxObj >                 idxObjSet ;
 
+   // indicate it is a newly created record
    #define OLDVER_MASK_NEW_RECORD            0x00000001
+   // indicate it is a dummy record when not use rollback segment
    #define OLDVER_MASK_DUMMY                 0x00000002
+   // indicate when trans is committed, in mem older record off lrbhdr is deleted
    #define OLDVER_MASK_DELETED               0x00000004
+   // indicate part of delete operation created this oldVer.
+   // We could delete the record with light job during gc
    #define OLDVER_MASK_DISK_DELETING         0x00000008
  //#define OLDVER_MASK_HAS_COPED             0x00000010
+   // indicate the _id field has been updated in the same transaction
+   #define OLDVER_MASK_OID_UPDATED           0x00000020
 
    // Class to store all information for old version record/indexes. This 
    // container is currently hanging off LRBHdr
@@ -814,6 +821,10 @@ namespace engine
 
       void                 setRecordDummy( UINT32 ownnerTID ) ;
       BOOLEAN              isRecordDummy() const ;
+
+      void                 setOIDUpdated() ;
+      BOOLEAN              isOIDUpdated() const ;
+
       UINT32               getOwnnerTID() const ;
 
       BOOLEAN              isIndexObjEmpty() const ;

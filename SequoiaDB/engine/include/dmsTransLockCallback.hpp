@@ -213,6 +213,10 @@ namespace engine
                                        const dmsRecordID &rid,
                                        _pmdEDUCB* cb ) ;
 
+      INT32 _checkIDIndexUpdate( const dmsRecordID &rid,
+                                 const BSONElement &idEle,
+                                 _pmdEDUCB *cb ) ;
+
    private:
 
       INT32    saveOldVersionRecord( const _dmsRecordRW *pRecordRW,
