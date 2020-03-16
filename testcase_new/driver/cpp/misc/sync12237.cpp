@@ -71,7 +71,7 @@ TEST_F( syncTest12237, legalOption12237 )
 	ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName ;
 	const CHAR* clName = "syncTestCl12237" ;
 	sdbCollection cl ;
-	BSONObj option = BSON( "Group" << rgName ) ;
+	BSONObj option = BSON( "Group" << rgName <<"ReplSize"<<0) ;
 	rc = cs.createCollection( clName, option, cl ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to create cl " << clName ;
 
