@@ -19,7 +19,7 @@ SecureSdb
 > **Note:**
 
 > 1. SecureSdb 是 Sdb 的子类，SecureSdb 的对象使用 SSL 连接。
-> 2. 在使用 SecureSdb 之前需要先设置数据库配置项 --usessl=true ，请参考[配置项参数](database_management\database_configuration)。
+> 2. 在使用 SecureSdb 之前需要先设置数据库配置项 --usessl=true ，请参考[配置项参数](database_management/database_configuration/configuration_parameters.md)。
 > 3. SecureSdb 对象和 Sdb 对象的方法和语法一致。 
 > 4. 目前只有企业版支持SSL功能。
 
