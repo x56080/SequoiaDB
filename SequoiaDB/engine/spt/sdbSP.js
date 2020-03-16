@@ -919,6 +919,10 @@ Stp.prototype.setPDLevel = function( diagLevel ) {
    this._runCommand( "stp update config", configs ) ;
 }
 
+Stp.prototype.stop = function() {
+   this._runCommand( "stp stop" ) ;
+}
+
 // end Stp
 
 // _Filter member function

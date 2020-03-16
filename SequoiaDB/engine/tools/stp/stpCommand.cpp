@@ -859,4 +859,49 @@ namespace engine
       goto done ;
    }
 
+   /*
+      _stpStopCMD implement
+    */
+   IMPLEMENT_STP_CMD_AUTO_REGISTER( _stpStopCMD )
+
+   _stpStopCMD::_stpStopCMD( STPCB *stpCB )
+   : stpCommand( stpCB )
+   {
+   }
+
+   _stpStopCMD::~_stpStopCMD()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSTOPCMD_FINALIZE, "_stpStopCMD::finalize" )
+   INT32 _stpStopCMD::finalize()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSTOPCMD_FINALIZE ) ;
+
+      // shutdown STP
+      PMD_SHUTDOWN_DB( SDB_OK ) ;
+
+      PD_TRACE_EXITRC( SDB__STPSTOPCMD_FINALIZE, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSTOPCMD_DOIT, "_stpStopCMD::doit" )
+   INT32 _stpStopCMD::doit( BSONObj &result )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSTOPCMD_DOIT ) ;
+
+      // do nothing, do the shutdown in finalize phase ( since we need to
+      // reply to client after doing phase )
+      PD_LOG( PDEVENT, "Got stop command" ) ;
+
+      PD_TRACE_EXITRC( SDB__STPSTOPCMD_DOIT, rc ) ;
+
+      return rc ;
+   }
+
 }

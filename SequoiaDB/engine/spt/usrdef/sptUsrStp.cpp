@@ -60,7 +60,6 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptUsrStp, toString )
    JS_MEMBER_FUNC_DEFINE( _sptUsrStp, close )
    JS_MEMBER_FUNC_DEFINE( _sptUsrStp, start )
-   JS_MEMBER_FUNC_DEFINE( _sptUsrStp, stop )
    JS_MEMBER_FUNC_DEFINE( _sptUsrStp, runCommand )
 
    /*
@@ -72,7 +71,6 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "toString", toString )
       JS_ADD_MEMBER_FUNC( "close", close )
       JS_ADD_MEMBER_FUNC( "start", start )
-      JS_ADD_MEMBER_FUNC( "stop", stop )
       JS_ADD_MEMBER_FUNC_WITHATTR( "_runCommand", runCommand, 0 )
    JS_MAPPING_END()
 
@@ -212,35 +210,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _sptUsrStp::stop( const _sptArguments &arg,
-                           _sptReturnVal &rval,
-                           BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-
-      BSONObj dummy ;
-
-      if ( arg.argc() != 0 )
-      {
-         rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Wrong arguments" ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to check argument, should have no "
-                      "arguments, rc: %d", rc ) ;
-      }
-
-      rc = _runOmaCommand( CMD_NAME_STP_STOP, dummy, FALSE, rval,
-                           detail ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to run stop STP node command in "
-                   "remote sdbcm, rc: %d", rc ) ;
-
-   done:
-      _assit.disconnect() ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    INT32 _sptUsrStp::runCommand( const _sptArguments &arg,
                                  _sptReturnVal &rval,
                                  BSONObj &detail )
@@ -333,7 +302,7 @@ namespace engine
       }
 
       rc = _assit.runCommand( command, argument.objdata(),
-                              &retBuffer, retCode, needResult ) ;
+                              &retBuffer, retCode, TRUE ) ;
       if ( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to run command in STP node" ) ;
