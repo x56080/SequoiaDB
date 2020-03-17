@@ -91,7 +91,6 @@ public class CopyObjectAndRestartS319439 extends S3TestBase {
                     localPath, bucketName, dstKeyName );
             Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         }
-
         runSuccess = true;
     }
 
