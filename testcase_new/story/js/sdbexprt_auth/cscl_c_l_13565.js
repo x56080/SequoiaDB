@@ -37,7 +37,7 @@ function main ()
 function testExprtNoCsCl ()
 {
    var csvDir = tmpFileDir + "13565/";
-   cmd.run( "mkdir -p " + csvDir ) ;
+   cmd.run( "mkdir -p " + csvDir );
 
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +

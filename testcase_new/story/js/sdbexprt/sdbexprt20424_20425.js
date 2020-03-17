@@ -1,6 +1,6 @@
 /***************************************************************************
-@Description : seqDB-20424:sdbexprt指定--hosts执行导出
-               seqDB-20425:sdbexprt csv指定--field参数写成多行执行导出
+@Description : seqDB-20424:sdbexprt鎸囧畾--hosts鎵ц瀵煎嚭
+               seqDB-20425:sdbexprt csv鎸囧畾--field鍙傛暟鍐欐垚澶氳鎵ц瀵煎嚭
 @Modify list :
 2020-01-15  chensiqin  Create
 ****************************************************************************/
