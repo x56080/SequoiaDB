@@ -6,7 +6,12 @@ main( test );
 
 function test()
 {
-   var ssh = new Ssh( COORDHOSTNAME, user, password, port );
+   if( !isUserExist( COORDHOSTNAME, user ) )
+   {
+      return;
+   }
+ 
+   var ssh = new SshObj( COORDHOSTNAME, user, password, port );
    try
    {
       var localIp = ssh.getLocalIP();

@@ -1,5 +1,5 @@
 /******************************************************************************
-*@Description : seqDB-13190:使用ssh推送拉取文件，目标文件已存在（有权限）
+*@Description : seqDB-13179:使用ssh推送拉取文件
 *@author      : Liang XueWang
 ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -13,31 +13,26 @@ function test()
    {
       return;
    }
-
-   var remoteFile = "/tmp/pullsrc_13190_2.txt";
-   var localFile = "/tmp/pulldst_13190_2.txt";
-   var srcContent = "testPullDstExisted_src";
-   var dstContent = "testPullDstExisted_dst";
-   var dstMode = 0755;
-   var mode = "rwxr-xr-x";
+ 
+   var remoteFile = "/tmp/pullsrc_13179_2.txt";
+   var localFile = "/tmp/pulldst_13179_2.txt";
+   var mode = "rw-r-----";
+   var content = "testPull";
 
    cleanLocalFile( localFile );
    cleanRemoteFile( hostName, CMSVCNAME, remoteFile );
 
    var remote = getRemote( hostName, CMSVCNAME );
    var file = remote.getFile( remoteFile );
-   file.write( srcContent );
-   file.close();
-   
-   file = new File( localFile, dstMode );
-   file.write( dstContent );
+   file.write( content );
    file.close();
 
-   var ssh = new Ssh( hostName, user, password, port );
+   //使用ssh拉取文件
+   var ssh = new SshObj( hostName, user, password, port );
    ssh.pull( remoteFile, localFile );
    ssh.close();
 
-   checkLocalFile ( localFile, mode, srcContent );
+   checkLocalFile ( localFile, mode, content )
 
    cleanLocalFile( localFile );
    cleanRemoteFile( hostName, CMSVCNAME, remoteFile );

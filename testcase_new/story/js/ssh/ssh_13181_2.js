@@ -12,25 +12,25 @@ function test()
    if( !checkCmUser( hostName, user ) )
    {
       return;
-   } 
+   }
 
-   var srcFile = "/tmp/pushsrc_13181_1.txt";
-   var dstFile = "/tmp/pushdst_13181_1.txt";
+   var remoteFile = "/tmp/pullsrc_13181.txt";
+   var localFile = "/tmp/pulldst_13181.txt";
 
-   cleanLocalFile( srcFile );
-   cleanRemoteFile( hostName, CMSVCNAME, dstFile );
+   cleanLocalFile( localFile );
+   cleanRemoteFile( hostName, CMSVCNAME, remoteFile );
 
-   var ssh = new Ssh( hostName, user, password, port );
+   var ssh = new SshObj( hostName, user, password, port );
    try
    {
-      ssh.push( srcFile, dstFile );
+      ssh.pull( remoteFile, localFile );
       throw "NEED_ERROR";
    }
    catch( e )
    {
-      if( e !== -4 )
+      if( !commCompareErrorCode( e, -10 ) )
       {
-         throw new Error( e );
+         commThrowError( e );
       }
    }
    ssh.close();

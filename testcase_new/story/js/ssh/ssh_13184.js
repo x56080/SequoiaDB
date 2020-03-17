@@ -7,7 +7,12 @@ main( test );
 
 function test()
 {
-   var ssh = new Ssh( COORDHOSTNAME, user, password, port );
+   if( !checkCmUser( COORDHOSTNAME, user ) )
+   {
+      return;
+   }
+
+   var ssh = new SshObj( COORDHOSTNAME, user, password, port );
    ssh.close();
    ssh.close();
   
@@ -23,10 +28,10 @@ function test()
    }
    catch( e )
    {
-      if( e !== -15 )
+      if( !commCompareErrorCode( e, -15 ) )
       {
-         throw new Error( e );
-      }
+         commThrowError( e );
+      }      
    }
  
    try
@@ -36,9 +41,9 @@ function test()
    }
    catch( e )
    {
-      if( e !== -15 )
+      if( !commCompareErrorCode( e, -15 ) )
       {
-         throw new Error( e );
+         commThrowError( e );
       }
    }
    
@@ -49,9 +54,9 @@ function test()
    }
    catch( e )
    {
-      if( e !== -15 )
+      if( !commCompareErrorCode( e, -15 ) )
       {
-         throw new Error( e );
+         commThrowError( e );
       }
    }
 }

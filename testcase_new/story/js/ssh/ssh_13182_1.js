@@ -23,7 +23,7 @@ function test()
    cleanLocalFile( srcFile );
    cleanRemoteFile( hostName, CMSVCNAME, dstFile );   
    
-   var ssh = new Ssh( hostName, user, password, port );
+   var ssh = new SshObj( hostName, user, password, port );
    for( var i = 0; i < modes.length; i++ )
    {
       var file = new File( srcFile );
@@ -41,9 +41,9 @@ function test()
       }
       catch( e )
       {
-         if( i === 0 && e !== -3 )
+         if( i === 0 && !commCompareErrorCode( e, -3 ) )
          {
-            throw new Error( e ); 
+            commThrowError( e );
          }
       }
      

@@ -31,7 +31,7 @@ function test()
    file.close();
    remote.close();
 
-   var ssh = new Ssh( hostName, user, password, port );
+   var ssh = new SshObj( hostName, user, password, port );
    for( var i = 0; i < dstModes.length; i++ )
    {
       var file = new File( localFile );
@@ -49,9 +49,9 @@ function test()
       }
       catch( e )
       {
-         if( dstModes[i] === 0555 && e !== -3)
+         if( dstModes[i] === 0555 && !commCompareErrorCode( e, -3 ) )
          {
-            throw new Error( e );
+            commThrowError( e );
          }
       }
       cleanLocalFile( localFile );

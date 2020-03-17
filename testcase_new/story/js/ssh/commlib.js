@@ -1,4 +1,5 @@
 import( "../lib/main.js" )
+import( "../lib/basic_operation/sequoiadb.js" );
 
 /******************************************************************************
 *@Description : common parameters
@@ -95,6 +96,24 @@ function checkCmUser ( hostName, user )
    remote.close();
    if( user !== actual )
    {
+      println( "Remote user is not " + hostName );
+      return false;
+   }
+   return true;
+}
+
+/******************************************************************************
+*@Description : check system has user
+*@author      : Liang XueWang
+******************************************************************************/
+function isUserExist( hostName, user )
+{
+   var remote = new Remote( hostName, CMSVCNAME );
+   var cmd = remote.getCmd();
+   var content = cmd.run( "cat /etc/passwd | grep " + user );
+   if( content == "")
+   {
+      println( "There is no user: " + user );
       return false;
    }
    return true;

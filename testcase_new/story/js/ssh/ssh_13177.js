@@ -7,7 +7,12 @@ main( test );
 
 function test()
 {
-   var ssh = new Ssh( COORDHOSTNAME, user, password, port ); 
+   if( !isUserExist( COORDHOSTNAME, user ) )
+   {
+      return;
+   }
+
+   var ssh = new SshObj( COORDHOSTNAME, user, password, port ); 
   
    //ssh执行正常命令
    var hostName = ssh.exec( "hostname" ).split( "\n" )[0];
@@ -37,16 +42,16 @@ function test()
    }
    catch( e )
    {
-      if( e !== 127 )
+      if( !commCompareErrorCode( e, 127 ) )
       {
-         throw new Error( e );
+         commThrowError( e );
       }
    }
 
    var ret = ssh.getLastRet();
    if( ret !== 127 )
    {
-      throw new Error( e );
+      throw new Error( "ret = " + ret );
    }
 
    var out = ssh.getLastOut();

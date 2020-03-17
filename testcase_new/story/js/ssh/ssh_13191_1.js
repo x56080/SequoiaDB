@@ -29,7 +29,7 @@ function test()
    file.close();
 
    var remote = getRemote( hostName, CMSVCNAME );
-   var ssh = new Ssh( hostName, user, password, port ); 
+   var ssh = new SshObj( hostName, user, password, port ); 
    for( var i = 0; i < dstModes.length; i++ )
    {
       var file = remote.getFile( dstFile );
@@ -47,9 +47,9 @@ function test()
       }
       catch( e )
       {
-         if( dstModes[i] === 0555 && e !== -10 )
+         if( dstModes[i] === 0555 && !commCompareErrorCode( e, -10 ) )
          {
-            throw new Error( e );
+            commThrowError( e );            
          }
       }
       cleanRemoteFile( hostName, CMSVCNAME, dstFile );

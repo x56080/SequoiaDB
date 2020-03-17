@@ -28,7 +28,7 @@ function test()
    var modes = [0755, 0644, 0640];
    var index = Math.floor( Math.random()*3 );
    var permissions = ["rwxr-xr-x", "rw-r--r--", "rw-r-----"];
-   var ssh = new Ssh( hostName, user, password, port );
+   var ssh = new SshObj( hostName, user, password, port );
    ssh.push( srcFile, dstFile, modes[ index ] );
    ssh.close();
    
