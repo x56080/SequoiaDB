@@ -3206,7 +3206,8 @@ namespace engine
             rc = SDB_DMS_INCOMPATIBLE_MODE ;
             goto error ;
          }
-         else if ( OSS_BIT_TEST( context->mb()->_attributes,
+         else if ( isTransSupport() &&
+                   OSS_BIT_TEST( context->mb()->_attributes,
                                  DMS_MB_ATTR_NOIDINDEX ) &&
                    cb->isTransaction() &&
                    !cb->isInTransRollback() )
