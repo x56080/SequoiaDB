@@ -43,6 +43,11 @@ public class TransUtils extends SdbTestBase {
     public static final int transTimeoutSession = 10;
     public static final int delayTime = ( transTimeoutSession - 5 ) * 1000;
 
+    /*
+     * loopNum rbs清理的用例，重复执行次数
+     */
+    public static final int loopNum = 50;
+
     public static CollectionSpace createCS( String csName, Sequoiadb db )
             throws BaseException {
         CollectionSpace tmp = null;
@@ -263,6 +268,48 @@ public class TransUtils extends SdbTestBase {
             insertDatas.add( data );
             expDatas.add( data );
         }
+        Collections.shuffle( insertDatas );
+        cl.insert( insertDatas );
+        return expDatas;
+    }
+
+    public static ArrayList< BSONObject > insertRandomLengthRecords(
+            DBCollection cl, int insertNum, int minStringLength,
+            int maxStringLenth ) throws BaseException {
+        ArrayList< BSONObject > insertDatas = new ArrayList<>();
+        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        for ( int i = 0; i < insertNum; i++ ) {
+            StringBuilder sb = new StringBuilder();
+            int stringLength = new Random().nextInt( maxStringLenth )
+                    + minStringLength;
+            for ( int j = 0; j < stringLength; j++ ) {
+                sb.append( "a" );
+            }
+            insertDatas.add( ( BSONObject ) JSON.parse( "{_id:" + i + ",a:" + i
+                    + ",b:" + i + ",c:'" + sb + "'}" ) );
+        }
+        expDatas.addAll( insertDatas );
+        Collections.shuffle( insertDatas );
+        cl.insert( insertDatas );
+        return expDatas;
+    }
+
+    public static ArrayList< BSONObject > insertRandomLengthRecords(
+            DBCollection cl, int starId, int stopId, int minStringLength,
+            int maxStringLenth ) throws BaseException {
+        ArrayList< BSONObject > insertDatas = new ArrayList<>();
+        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        for ( int i = starId; i < stopId; i++ ) {
+            StringBuilder sb = new StringBuilder();
+            int stringLength = new Random().nextInt( maxStringLenth )
+                    + minStringLength;
+            for ( int j = 0; j < stringLength; j++ ) {
+                sb.append( "a" );
+            }
+            insertDatas.add( ( BSONObject ) JSON.parse( "{_id:" + i + ",a:" + i
+                    + ",b:" + i + ",c:'" + sb + "'}" ) );
+        }
+        expDatas.addAll( insertDatas );
         Collections.shuffle( insertDatas );
         cl.insert( insertDatas );
         return expDatas;

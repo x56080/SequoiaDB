@@ -147,8 +147,20 @@
         </groups>
         <packages>
             <package name="com.sequoiadb.transaction.rr" />
+            <package name="com.sequoiadb.transaction.rr.rbs" />
             <package name="com.sequoiadb.transaction.rc" />
         </packages>
+    </test>
+    
+    <test name="rrsync" parallel="classes" thread-count="1">
+       <groups>
+          <run>
+             <include name="rr" />
+          </run>
+       </groups>
+       <packages>
+          <package name="com.sequoiadb.transaction.rr.rbs.serial" />
+       </packages>
     </test>
 
 
