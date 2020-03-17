@@ -77,7 +77,7 @@ public class Transaction18223 extends SdbTestBase {
             cond.put( "$lt", endId2 );
             BSONObject matcher = new BasicBSONObject( "b", cond );
             BSONObject modifer = new BasicBSONObject( "$inc",
-                    new BasicBSONObject( "_id", decValue ) );
+                    new BasicBSONObject( "b", decValue ) );
             DBCursor cur = cl2.queryAndUpdate( matcher, null, null, null,
                     modifer, 0, -1, 0, false );
             List< BSONObject > actList = TransUtils.getReadActList( cur );
