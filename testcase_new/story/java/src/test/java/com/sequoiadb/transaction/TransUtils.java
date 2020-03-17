@@ -69,7 +69,7 @@ public class TransUtils extends SdbTestBase {
 
     public static Domain createDomain( Sequoiadb sdb, String name,
             ArrayList< String > groupArr, int size, boolean autoSplit )
-            throws BaseException {
+                    throws BaseException {
         Domain domain = null;
         try {
             if ( sdb.isDomainExist( name ) ) {
@@ -105,7 +105,7 @@ public class TransUtils extends SdbTestBase {
                 "{RawData:true, GroupName:'" + groupName + "'}",
                 "{TransInfo:''}", null );
         while ( cursor.hasNext() ) {
-            BSONObject info = ( BSONObject ) cursor.getNext();
+            BSONObject info = cursor.getNext();
             BSONObject transInfo = ( BSONObject ) info.get( "TransInfo" );
             int transCount = ( int ) transInfo.get( "TotalCount" );
             Long transBeginLSN = ( Long ) transInfo.get( "BeginLSN" );
@@ -510,23 +510,38 @@ public class TransUtils extends SdbTestBase {
         checkCount( cl, matcher, orderBy, hint, expList );
     }
 
-     /**
+    /**
      * 校验记录
      * 
      * @param list
      */
     public static void checkRecord( DBCollection cl, String matcher,
-            String selector, String orderBy, String hint, List< BSONObject > expList ){
-        List< BSONObject > actList = queryToBSONList( cl, matcher, selector, orderBy, hint );
-        Assert.assertEquals( actList, expList );
+            String selector, String orderBy, String hint,
+            List< BSONObject > expList ) {
+        List< BSONObject > actList = queryToBSONList( cl, matcher, selector,
+                orderBy, hint );
+        if ( actList.size() != expList.size() ) {
+            Assert.fail( "lists don't have the same size expected ["
+                    + actList.size() + "] but found [" + expList.size()
+                    + "], actList: " + actList.toString() + ", expList: "
+                    + expList.toString() );
+        }
+        for ( int i = 0; i < actList.size(); i++ ) {
+            if ( !actList.get( i ).equals( expList.get( i ) ) ) {
+                Assert.fail( "expected [" + actList.get( i ) + "], but found ["
+                        + expList.get( i ) + "], actList: " + actList.toString()
+                        + ", expList: " + expList.toString() );
+            }
+        }
     }
-    
+
     /**
      * 校验记录数
      * 
      * @param list
      */
-    public static void checkCount( DBCollection cl, String matcher, String orderBy, String hint, List< BSONObject > expList ){
+    public static void checkCount( DBCollection cl, String matcher,
+            String orderBy, String hint, List< BSONObject > expList ) {
         BSONObject matcherBSON = ( BSONObject ) JSON.parse( matcher );
         BSONObject hintBSON = ( BSONObject ) JSON.parse( hint );
         long actCount = cl.getCount( matcherBSON, hintBSON );
@@ -649,7 +664,6 @@ public class TransUtils extends SdbTestBase {
                 Thread.sleep( eachSleepTime );
                 alreadySleepTime += eachSleepTime;
             } catch ( InterruptedException e ) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         } while ( true );
@@ -700,48 +714,58 @@ public class TransUtils extends SdbTestBase {
 
     /**
      * zhaoxiaoni
+     * 
      * @param records
      * @param start
      * @param end
      **/
-    public static List<BSONObject> addList( List<BSONObject> records, int start, int end ){
+    public static List< BSONObject > addList( List< BSONObject > records,
+            int start, int end ) {
         for ( int i = start; i < end; i++ ) {
-            BSONObject object = ( BSONObject ) JSON.parse( "{ _id: " + i + ", a: " + i + ", b: " + i + " }" );
+            BSONObject object = ( BSONObject ) JSON
+                    .parse( "{ _id: " + i + ", a: " + i + ", b: " + i + " }" );
             records.add( object );
         }
         return records;
     }
-   
+
     /**
      * zhaoxiaoni
+     * 
      * @param records
      * @param start
      * @param end
      * @param updateContent
-     **/ 
-    public static List<BSONObject> updateList( List<BSONObject> records, int start, int end, int updateContent ){
+     **/
+    public static List< BSONObject > updateList( List< BSONObject > records,
+            int start, int end, int updateContent ) {
         for ( int i = start; i < end; i++ ) {
-            BSONObject record = (BSONObject)JSON.parse("{ _id: " + i + ", a: " + updateContent + ", b: " + i + " }");
+            BSONObject record = ( BSONObject ) JSON.parse( "{ _id: " + i
+                    + ", a: " + updateContent + ", b: " + i + " }" );
             records.set( start + i, record );
         }
         return records;
     }
 
-    public static List<BSONObject> updateList( List<BSONObject> records, int start, int end, String updateContent ){
+    public static List< BSONObject > updateList( List< BSONObject > records,
+            int start, int end, String updateContent ) {
         for ( int i = start; i < end; i++ ) {
-            BSONObject record = (BSONObject)JSON.parse("{ _id: " + i + ", a: '" + updateContent + "', b: " + i + " }");
+            BSONObject record = ( BSONObject ) JSON.parse( "{ _id: " + i
+                    + ", a: '" + updateContent + "', b: " + i + " }" );
             records.set( start + i, record );
         }
         return records;
     }
-    
+
     /**
      * zhaoxiaoni
+     * 
      * @param records
      * @param start
      * @param end
      **/
-    public static List<BSONObject> deleteList( List<BSONObject> records, int start, int end ){
+    public static List< BSONObject > deleteList( List< BSONObject > records,
+            int start, int end ) {
         for ( int i = start; i < end; i++ ) {
             records.remove( start );
         }
