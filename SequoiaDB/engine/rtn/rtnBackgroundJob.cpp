@@ -271,10 +271,7 @@ namespace engine
                      ixmIndexCB indexCB ( idxExtent, su->index(), mbContext ) ;
                      _indexName = indexCB.getName() ;
                      /// first set index flag to IXM_INDEX_FLAG_INVALID
-                     if ( _indexObj.getBoolField( IXM_UNIQUE_FIELD ) )
-                     {
-                        indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
-                     }
+                     indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
                   }
                }
                else
@@ -296,10 +293,7 @@ namespace engine
                   {
                      ixmIndexCB indexCB ( idxExtent, su->index(), mbContext ) ;
                      /// first set index flag to IXM_INDEX_FLAG_INVALID
-                     if ( _indexObj.getBoolField( IXM_UNIQUE_FIELD ) )
-                     {
-                        indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
-                     }
+                     indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
                   }
                }
             }
