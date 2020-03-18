@@ -25,8 +25,7 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  *                       2、执行split，设置切分条件 3、切分过程中删除id索引（源组清除数据之前删除id索引）
  *                       4、查看切分和删除id索引结果
  * @author huangqiaohui
- * @version 3.00
- *
+ * @version 3.00 *
  */
 
 public class Split10536 extends SdbTestBase {
@@ -37,7 +36,6 @@ public class Split10536 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-
         try {
             commSdb = new Sequoiadb( coordUrl, "", "" );
 
@@ -62,7 +60,6 @@ public class Split10536 extends SdbTestBase {
         } catch ( BaseException e ) {
             if ( commSdb != null ) {
                 commSdb.close();
-                ;
             }
             e.printStackTrace();
             Assert.fail( this.getClass().getName()
@@ -145,13 +142,11 @@ public class Split10536 extends SdbTestBase {
         } finally {
             if ( commSdb != null ) {
                 commSdb.close();
-                ;
             }
         }
     }
 
     class Split extends SdbThreadBase {
-
         @Override
         public void exec() throws Exception {
             Sequoiadb sdb = null;
@@ -166,11 +161,9 @@ public class Split10536 extends SdbTestBase {
             } finally {
                 if ( sdb != null ) {
                     sdb.close();
-                    ;
                 }
             }
         }
-
     }
 
     public void checkIndex( DBCollection cl ) {
@@ -207,5 +200,4 @@ public class Split10536 extends SdbTestBase {
             }
         }
     }
-
 }

@@ -54,8 +54,6 @@ function Sequoiadb ( hostname, svcname, username, password )
       throw new Error( e );
    }
 
-   
-
    this.createCS =
       function( name, options )
       {
