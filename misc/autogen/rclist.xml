@@ -1637,8 +1637,8 @@
       <code>
          <name>SDB_DPS_LOG_FILE_OUT_OF_SIZE</name>
          <description>
-            <en>Log file size is too large</en>
-            <cn>日志文件超长</cn>
+            <en>No writable log space</en>
+            <cn>可写日志空间不足</cn>
          </description>
       </code>
 
