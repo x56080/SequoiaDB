@@ -2083,10 +2083,6 @@ namespace engine
             {
                bRetry = FALSE ;
             }
-            else
-            {
-               ossSleep( STP_AGENT_RETRY_INTERVAL ) ;
-            }
          }
       }
 

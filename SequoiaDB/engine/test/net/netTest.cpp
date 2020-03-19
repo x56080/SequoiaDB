@@ -86,7 +86,8 @@ class myHandler : public _netMsgHandler
    public:
       virtual INT32 handleMsg( const NET_HANDLE &handle,
                                const _MsgHeader *header,
-                               const CHAR *msg )
+                               const CHAR *msg,
+                               netUserDataHolder *userDataHolder )
       {
          _header = *header ;
          myMsg *m = (myMsg *)msg;

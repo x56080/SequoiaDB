@@ -59,7 +59,6 @@ namespace engine
    _netUDPEventSuit::_netUDPEventSuit( netFrame *frame,
                                        netRoute *route )
    : _frame( frame ),
-     _handler( NULL ),
      _route( route ),
      _restartTimer( frame ),
      _sock( frame->getIOService() ),
@@ -166,24 +165,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVENTSUIT_HANDLEMSG, "_netUDPEventSuit::handleMsg" )
    void _netUDPEventSuit::handleMsg( NET_EH eh )
    {
-      MsgHeader *message = (_MsgHeader *)eh->msg() ;
-
-      if ( NULL != _handler )
-      {
-         _handler->onReceiveMsg( eh->handle(), eh->id(), message ) ;
-      }
-
-      // handle heart beats in net frame
-      if ( NULL != _handler &&
-           MSG_HEARTBEAT != message->opCode &&
-           MSG_HEARTBEAT_RES != message->opCode )
-      {
-         _handler->handleMsg( eh->handle(), message, eh->msg() ) ;
-      }
-      else
-      {
-         _frame->handleMsg( eh ) ;
-      }
+      _frame->handleMsg( eh ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVENTSUIT_GETEH, "_netUDPEventSuit::getEH" )
@@ -398,6 +380,9 @@ namespace engine
          goto error_close ;
       }
 
+      _frame->onReceiveMsg( eh, message->routeID, message,
+                            message->messageLength ) ;
+
       if ( SDB_OK == getEH( _remoteEndPoint, message->routeID, eh ) )
       {
          netUDPEventHandler *handler = NULL ;
@@ -428,7 +413,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVENTSUIT_LISTEN, "_netUDPEventSuit::listen" )
    INT32 _netUDPEventSuit::listen( const CHAR *hostName,
                                    const CHAR *serviceName,
-                                   INetUDPMsgHandler *handler,
                                    UINT32 bufferSize )
    {
       INT32 rc = SDB_OK ;
@@ -439,8 +423,6 @@ namespace engine
 
       PD_CHECK( !_sock.is_open(), SDB_NET_ALREADY_LISTENED, error, PDWARNING,
                 "UDP socket is opened" ) ;
-
-      _handler = handler ;
 
       // allocate buffer
       rc = _allocateBuffer( bufferSize ) ;
@@ -466,7 +448,7 @@ namespace engine
       }
 
       _localEndPoint = localEndPoint ;
-      _restartTimer.setInfo( hostName, serviceName, handler, bufferSize ) ;
+      _restartTimer.setInfo( hostName, serviceName, bufferSize ) ;
 
       setOptions() ;
       asyncRead() ;

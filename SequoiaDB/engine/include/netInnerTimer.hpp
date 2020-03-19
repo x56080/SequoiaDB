@@ -97,11 +97,9 @@ namespace engine
    public:
       void setInfo( const CHAR *hostName,
                     const CHAR *serviceName,
-                    INetUDPMsgHandler *handler,
                     UINT32 bufferSize ) ;
 
    protected:
-      INetUDPMsgHandler *   _handler ;
       UINT32               _bufferSize ;
    } ;
 

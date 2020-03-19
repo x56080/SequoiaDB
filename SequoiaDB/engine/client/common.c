@@ -3485,8 +3485,7 @@ INT32 clientBuildTransactionBegMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transBeginMsg->header.TID           = ossGetCurrentThreadID() ;
    transBeginMsg->transID              = 0 ;
    transBeginMsg->transTimeError       = 0 ;
-   transBeginMsg->currentTime          = 0 ;
-   transBeginMsg->currentTimeError     = 0 ;
+   transBeginMsg->sendTime             = 0 ;
    transBeginMsg->nextIsWrite          = 0 ;
    ossMemset( transBeginMsg->reserved, 0, sizeof( transBeginMsg->reserved ) ) ;
    if( endianConvert )

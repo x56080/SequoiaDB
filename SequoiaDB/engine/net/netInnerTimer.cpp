@@ -114,7 +114,6 @@ namespace engine
     */
    _netUDPRestartTimer::_netUDPRestartTimer( netFrame *frame )
    : _netRestartTimer( frame ),
-     _handler( NULL ),
      _bufferSize( NET_UDP_DEFAULT_BUFFER_SIZE )
    {
    }
@@ -132,7 +131,6 @@ namespace engine
       {
          rc = _frame->_listenUDP( _hostName.c_str(),
                                   _svcName.c_str(),
-                                  _handler,
                                   _bufferSize ) ;
          if ( SDB_OK == rc || SDB_NET_ALREADY_LISTENED == rc )
          {
@@ -145,11 +143,9 @@ namespace engine
 
    void _netUDPRestartTimer::setInfo( const CHAR *hostName,
                                       const CHAR *serviceName,
-                                      INetUDPMsgHandler *handler,
                                       UINT32 bufferSize )
    {
       _netRestartTimer::setInfo( hostName, serviceName ) ;
-      _handler = handler ;
       _bufferSize = bufferSize ;
    }
 

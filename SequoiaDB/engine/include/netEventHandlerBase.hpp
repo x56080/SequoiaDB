@@ -64,9 +64,116 @@ namespace engine
    } ;
 
    /*
+      _INetUserData define
+    */
+   // use to pass information between net handle and running session
+   enum NET_USER_DATA_TYPE
+   {
+      // sharding message user data
+      NET_USER_DATA_SHARD = 0
+   } ;
+
+   class _INetUserData : public utilPooledObject
+   {
+   public:
+      // constructor and destructor
+      _INetUserData()
+      : _handle( NET_INVALID_HANDLE ),
+        _requestID( 0 )
+      {
+      }
+
+      virtual ~_INetUserData()
+      {
+      }
+
+   public:
+      // set net handle
+      OSS_INLINE void setHandle( NET_HANDLE handle )
+      {
+         _handle = handle ;
+      }
+
+      // get net handle
+      OSS_INLINE NET_HANDLE getHandle()
+      {
+         return _handle ;
+      }
+
+      // set request ID for current message
+      OSS_INLINE void setRequestID( UINT64 requestID )
+      {
+         _requestID = requestID ;
+      }
+
+      // get request ID for current message
+      OSS_INLINE UINT64 getRequestID() const
+      {
+         return _requestID ;
+      }
+
+      // get type of user data
+      virtual NET_USER_DATA_TYPE getType() const = 0 ;
+
+   protected:
+      NET_HANDLE  _handle ;
+      UINT64      _requestID ;
+   } ;
+
+   /*
+      _netUserDataHolder define
+    */
+   // holder to net user data
+   class _netUserDataHolder
+   {
+   public:
+      // constructor and destructor
+      _netUserDataHolder()
+      : _userData( NULL )
+      {
+      }
+
+      virtual ~_netUserDataHolder()
+      {
+         SAFE_OSS_DELETE( _userData ) ;
+      }
+
+      // get user data
+      OSS_INLINE INetUserData *getUserData()
+      {
+         return _userData ;
+      }
+
+      // set user data
+      OSS_INLINE void setUserData( INetUserData *userData )
+      {
+         SAFE_OSS_DELETE( _userData ) ;
+         _userData = userData ;
+      }
+
+      // check if has user data
+      OSS_INLINE BOOLEAN hasUserData() const
+      {
+         return NULL != _userData ;
+      }
+
+      // check if has user data of specified type
+      OSS_INLINE BOOLEAN hasUserData( NET_USER_DATA_TYPE type ) const
+      {
+         return ( NULL != _userData &&
+                  type == _userData->getType() ) ;
+      }
+
+   protected:
+      // net user data
+      INetUserData *_userData ;
+   } ;
+
+   /*
       _netEventHandlerBase define
     */
-   class _netEventHandlerBase : public utilPooledObject
+   class _netEventHandlerBase : public utilPooledObject,
+                                public netUserDataHolder
    {
    public:
       _netEventHandlerBase( const NET_HANDLE &handle ) ;
@@ -143,6 +250,9 @@ namespace engine
       virtual void close() = 0 ;
       virtual CHAR *msg() = 0 ;
       virtual void setOpt() = 0 ;
+
+      // get available size in the receive buffer
+      virtual UINT32 getAvailableSize() = 0 ;
 
       virtual std::string localAddr() const = 0 ;
       virtual std::string remoteAddr() const = 0 ;

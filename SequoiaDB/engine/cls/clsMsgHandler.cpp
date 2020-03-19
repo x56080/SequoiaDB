@@ -32,6 +32,9 @@
 *******************************************************************************/
 
 #include "clsMsgHandler.hpp"
+#include "clsShardSession.hpp"
+#include "msgMessageFormat.hpp"
+#include "dpsUtil.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 
@@ -77,6 +80,39 @@ namespace engine
       }
    }
 
+   INT32 _shdMsgHandler::_allocUserData( NET_HANDLE handle,
+                                         netUserDataHolder *userDataHolder )
+   {
+      INT32 rc = SDB_OK ;
+
+      clsShdUserData *userData = NULL ;
+
+      // if holder is empty or already hold sharding message user data
+      // no need to allocate
+      if ( NULL == userDataHolder ||
+           userDataHolder->hasUserData( NET_USER_DATA_SHARD ) )
+      {
+         goto done ;
+      }
+
+      // allocate new user data for sharding message
+      userData = SDB_OSS_NEW clsShdUserData() ;
+      PD_CHECK( NULL != userData, SDB_OOM, error, PDWARNING,
+                "Failed to allocate shard user data" ) ;
+
+      // set handle
+      userData->setHandle( handle ) ;
+
+      // set user data to given holder
+      userDataHolder->setUserData( userData ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    void _shdMsgHandler::handleClose( const NET_HANDLE &handle,
                                      _MsgRouteID id )
    {
@@ -109,6 +145,79 @@ namespace engine
                                                pMsg, (UINT64)handle ) ) ;
          }
       }
+   }
+
+   INT32 _shdMsgHandler::onReceiveMsg( const NET_HANDLE &handle,
+                                       const MsgRouteID &id,
+                                       MsgHeader *header,
+                                       UINT32 availableSize,
+                                       netUserDataHolder *userDataHolder )
+   {
+      INT32 rc = SDB_OK ;
+
+      clsShdUserData *shardUserData = NULL ;
+
+#if defined (_DEBUG)
+      PD_LOG( PDDEBUG, "Connection [Handle:%d, Node:%s] on receive "
+              "message [%s], available size: %u",
+              handle, routeID2String( id ).c_str(),
+              msg2String( header, MSG_MASK_ALL, 0 ).c_str(),
+              availableSize ) ;
+#endif
+
+      if ( NULL == userDataHolder )
+      {
+         goto done ;
+      }
+
+      if ( NULL == userDataHolder->getUserData() )
+      {
+         rc = _allocUserData( handle, userDataHolder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Connection [Handle:%d, Node:%s] failed "
+                      "to allocate user data, rc: %d",
+                      handle, routeID2String( id ).c_str(),
+                      msg2String( header, MSG_MASK_ALL, 0 ).c_str(), rc ) ;
+      }
+
+      shardUserData =
+            dynamic_cast<clsShdUserData *>( userDataHolder->getUserData() ) ;
+      PD_CHECK( NULL != shardUserData, SDB_SYS, error, PDERROR,
+                "Connection [Handle:%d, Node:%s] failed to convert user data",
+                handle, routeID2String( id ).c_str(),
+                msg2String( header, MSG_MASK_ALL, 0 ).c_str() ) ;
+
+      if ( !OSS_BIT_TEST( header->requestID, MSG_REQUEST_FLAG_GLOBTIME ) )
+      {
+         shardUserData->onReceiveMsg( availableSize,
+                                      header->messageLength ) ;
+         goto done ;
+      }
+
+      shardUserData->setRequestID( header->requestID ) ;
+
+      rc = shardUserData->acquireRecvTime( availableSize,
+                                           header->messageLength ) ;
+      PD_RC_CHECK( rc, PDERROR, "Connection [Handle:%d, Node:%s] failed to "
+                   "acquire receive time for message [%s], rc: %d",
+                   handle, routeID2String( id ).c_str(),
+                   msg2String( header, MSG_MASK_ALL, 0 ).c_str(),
+                   rc ) ;
+
+#if defined (_DEBUG)
+      PD_LOG( PDDEBUG, "Connection [Handle:%d, Node:%s] acquired "
+              "receive time for message [%s], received at %s",
+              handle, routeID2String( id ).c_str(),
+              msg2String( header, MSG_MASK_ALL, 0 ).c_str(),
+              dpsTransTimeToString( shardUserData->getRecvTime() ).c_str() ) ;
+#endif
+
+   done:
+      // clear flags
+      header->requestID &= MSG_REQUEST_FLAG_MASK ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    /*

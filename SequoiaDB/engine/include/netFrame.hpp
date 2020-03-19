@@ -157,7 +157,7 @@ namespace engine
 
       public:
          /// handler will not be freed by frame
-         _netFrame( _netMsgHandler *handler, _netRoute *pRoute ) ;
+         _netFrame( INetMsgHandler *handler, _netRoute *pRoute ) ;
 
          ~_netFrame() ;
 
@@ -218,7 +218,6 @@ namespace engine
          INT32    listen( const CHAR *hostName,
                           const CHAR *serviceName,
                           UINT32 protocolMask = NET_FRAME_MASK_TCP,
-                          INetUDPMsgHandler *udpHandler = NULL,
                           UINT32 udpBufferSize = NET_UDP_DEFAULT_BUFFER_SIZE ) ;
 
          /// if call this func with same params for twice,
@@ -287,6 +286,14 @@ namespace engine
 
          void  handleClose( NET_EH eh, _MsgRouteID id ) ;
 
+         INT32 onSendMsg( NET_EH eh,
+                          const MsgRouteID &id,
+                          MsgHeader *header ) ;
+         INT32 onReceiveMsg( NET_EH eh,
+                             const MsgRouteID &id,
+                             MsgHeader *header,
+                             UINT32 receivedSize ) ;
+
          INT64 netIn() ;
 
          INT64 netOut() ;
@@ -314,6 +321,11 @@ namespace engine
             return (NET_HANDLE)( _handle.inc() ) ;
          }
 
+         OSS_INLINE INetMsgHandler *getMsgHandler()
+         {
+            return _handler ;
+         }
+
       protected:
          netEvSuitPtr      _getEvSuit( BOOLEAN needLock ) ;
          void              _stopAllEvSuit() ;
@@ -330,7 +342,6 @@ namespace engine
                                        const CHAR *serviceName ) ;
          INT32             _listenUDP( const CHAR *hostName,
                                        const CHAR *serviceName,
-                                       INetUDPMsgHandler *handler,
                                        UINT32 bufferSize ) ;
 
       private:
@@ -361,7 +372,7 @@ namespace engine
 
          MAP_TIMMER                       _timers ;
 
-         _netMsgHandler                   *_handler ;
+         INetMsgHandler                   *_handler ;
          MsgRouteID                       _local ;
          monSpinSLatch                    _mtx ;
          boost::asio::ip::tcp::acceptor   _acceptor ;

@@ -110,7 +110,8 @@ namespace engine
    }
 
    void _clsReplDstSession::onRecieve( const NET_HANDLE netHandle,
-                                       MsgHeader *msg )
+                                       MsgHeader *msg,
+                                       INetUserData *userData )
    {
       if ( MSG_INVALID_ROUTEID != _syncSrc.value )
       {
@@ -1283,7 +1284,8 @@ namespace engine
    }
 
    void _clsReplSrcSession::onRecieve ( const NET_HANDLE netHandle,
-                                        MsgHeader * msg )
+                                        MsgHeader * msg,
+                                        INetUserData *userData )
    {
       _timeout = 0 ;
       _repl->aliveNode( msg->routeID ) ;

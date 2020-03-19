@@ -1343,7 +1343,7 @@ namespace engine
                  "current time error [%u]",
                  oldTimeError, _nodeTimeError, currentTimeError ) ;
       }
-         
+
       _decTimeErrorCount = 0 ;
 
       PD_TRACE_EXIT( SDB__CLSGTSAGENT_INCNODETIMEERROR ) ;

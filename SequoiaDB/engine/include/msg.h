@@ -511,6 +511,10 @@ typedef enum _MSG_ROUTE_SERVICE_TYPE
 
    MSG_ROUTE_SERVICE_TYPE_MAX
 }MSG_ROUTE_SERVICE_TYPE;
+
+#define MSG_REQUEST_FLAG_GLOBTIME   ( 0x8000000000000000 )
+#define MSG_REQUEST_FLAG_MASK       ( 0x7FFFFFFFFFFFFFFF )
+
 // 28 bytes
 struct _MsgHeader
 {
@@ -528,6 +532,14 @@ struct _MsgInternalReplyHeader
    SINT32     res ;
 } ;
 typedef struct _MsgInternalReplyHeader MsgInternalReplyHeader ;
+
+struct _MsgPacketReq
+{
+   MsgHeader header ;
+   UINT64    sendTime ;
+} ;
+
+typedef struct _MsgPacketReq MsgPacketReq ;
 
 // If set, the database will insert the supplied object into the collection if
 // no matching document is found.
@@ -770,8 +782,7 @@ typedef struct _MsgOpTransBegin
    // time error of logical time for global transaction
    UINT32    transTimeError ;
    // fields to do logical time adjustment
-   UINT64    currentTime ;
-   UINT32    currentTimeError ;
+   UINT64    sendTime ;
    INT8      nextIsWrite ;
    // reserved new fields in minor version upgrade
    CHAR      reserved[ 8 ] ;
@@ -785,9 +796,13 @@ typedef struct _MsgOpTransCommit
 typedef struct _MsgOpTransCommitPre
 {
    MsgHeader header ;
+   // global logical time to pre-commit transaction
    UINT64    preCommitTime ;
-   UINT64    currentTime ;
+   // global logical time to send message
+   UINT64    sendTime ;
+   // number of nodes ( primary node of groups ) involved in transaction
    UINT32    nodeNum ;
+   // node list involved in transaction
    UINT64    nodes[0] ;
 } MsgOpTransCommitPre;
 

@@ -63,7 +63,8 @@ namespace engine
       _netEventHandlerBase implement
     */
    _netEventHandlerBase::_netEventHandlerBase( const NET_HANDLE &handle )
-   : _handle( handle ),
+   : netUserDataHolder(),
+     _handle( handle ),
      _isConnected( FALSE ),
      _isNew( TRUE ),
      _msgid( 0 ),

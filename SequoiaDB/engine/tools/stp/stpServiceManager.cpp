@@ -96,8 +96,10 @@ namespace engine
          case MSG_BS_QUERY_REQ :
          {
             // redirect message to asynchronous message handler
-            rc = _messageHandler.handleMsg( handle, message,
-                                            (const CHAR *)message ) ;
+            rc = _messageHandler.handleMsg( handle,
+                                            message,
+                                            (const CHAR *)message,
+                                            NULL ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to handle message [%d], rc: %d",
                          message->opCode, rc ) ;
             break ;

@@ -95,6 +95,7 @@ namespace engine
                                  UINT32 len ) ;
 
          virtual void  setOpt() ;
+         virtual UINT32 getAvailableSize() ;
 
          virtual std::string localAddr() const ;
          virtual std::string remoteAddr() const ;

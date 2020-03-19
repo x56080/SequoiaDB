@@ -167,8 +167,11 @@ namespace engine
          virtual EDU_TYPES       eduType () const = 0 ;
          virtual const CHAR*     className() const = 0 ;
 
+         // on receive callback for async session
+         // NOTE: pass user data from net handler to async session if needed
          virtual void    onRecieve ( const NET_HANDLE netHandle,
-                                     MsgHeader * msg ) ;
+                                     MsgHeader * msg,
+                                     INetUserData *userData ) ;
          virtual BOOLEAN timeout ( UINT32 interval ) ;
 
          virtual void    onDispatchMsgBegin( const NET_HANDLE netHandle,
@@ -325,6 +328,7 @@ namespace engine
          INT32                dispatchMsg( const NET_HANDLE &handle,
                                            const MsgHeader *pMsg,
                                            pmdEDUMemTypes memType,
+                                           netUserDataHolder *userDataHolder,
                                            BOOLEAN decPending,
                                            BOOLEAN *hasDispatched = NULL ) ;
 

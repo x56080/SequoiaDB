@@ -223,7 +223,7 @@ namespace engine
    /*
       _netFrame implement
    */
-   _netFrame::_netFrame( _netMsgHandler *handler, _netRoute *pRoute )
+   _netFrame::_netFrame( INetMsgHandler *handler, _netRoute *pRoute )
    : _protocolMask( NET_FRAME_MASK_EMPTY ),
      _pRoute( pRoute ),
      // this might have bad-alloc issue in initialize phase
@@ -691,7 +691,6 @@ namespace engine
    INT32 _netFrame::listen( const CHAR *hostName,
                             const CHAR *serviceName,
                             UINT32 protocolMask,
-                            INetUDPMsgHandler *udpHandler,
                             UINT32 udpBufferSize )
    {
       SDB_ASSERT( NULL != hostName, "hostName should not be NULL" ) ;
@@ -715,7 +714,7 @@ namespace engine
       }
       if ( OSS_BIT_TEST( protocolMask, NET_FRAME_MASK_UDP ) )
       {
-         rc = _listenUDP( hostName, serviceName, udpHandler, udpBufferSize ) ;
+         rc = _listenUDP( hostName, serviceName, udpBufferSize ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to listen UDP for host %s "
                       "service %s, rc: %d", hostName, serviceName, rc ) ;
       }
@@ -786,7 +785,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__LISTENUDP, "_netFrame::_listenUDP" )
    INT32 _netFrame::_listenUDP( const CHAR *hostName,
                                 const CHAR *serviceName,
-                                INetUDPMsgHandler *handler,
                                 UINT32 bufferSize )
    {
       SDB_ASSERT( NULL != hostName, "hostName should not be NULL" ) ;
@@ -817,7 +815,7 @@ namespace engine
          _udpMainSuit = suitPtr ;
       }
 
-      rc = _udpMainSuit->listen( hostName, serviceName, handler, bufferSize ) ;
+      rc = _udpMainSuit->listen( hostName, serviceName, bufferSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to listen UDP on port %s, rc: %d",
                    serviceName, rc ) ;
 
@@ -876,7 +874,7 @@ namespace engine
       }
 
       // callback: handleConnect
-      _handler->handleConnect( eh->handle(), id, TRUE ) ;
+      _handler->handleConnect( eh->handle(), id, TRUE, eh.get() ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNNCCONN, rc );
@@ -952,7 +950,7 @@ namespace engine
       if ( hasConnect )
       {
          // callback: handleConnect
-         _handler->handleConnect( eh->handle(), eh->id(), TRUE ) ;
+         _handler->handleConnect( eh->handle(), eh->id(), TRUE, eh.get() ) ;
       }
 
    done:
@@ -1061,6 +1059,14 @@ namespace engine
          msgHeader->routeID = _local ;
       }
       eh->mtx().get() ;
+
+      rc = onSendMsg( eh, eh->id(), msgHeader ) ;
+      if ( SDB_OK != rc )
+      {
+         eh->mtx().release() ;
+         goto error ;
+      }
+
       rc = eh->syncSend( msgHeader, msgHeader->messageLength ) ;
       if ( pHandle )
       {
@@ -1159,7 +1165,6 @@ namespace engine
                               UINT32 bodyLen )
    {
       SDB_ASSERT( NULL != header, "header should not be NULL") ;
-      SDB_ASSERT( NULL != body, "body should not be NULL") ;
       SDB_ASSERT( NET_INVALID_HANDLE != handle,
                   "handle should not be invalid" ) ;
 
@@ -1188,6 +1193,14 @@ namespace engine
          header->routeID = _local ;
       }
       eh->mtx().get() ;
+
+      rc = onSendMsg( eh, eh->id(), header ) ;
+      if ( SDB_OK != rc )
+      {
+         eh->mtx().release() ;
+         goto error ;
+      }
+
       /// header len should be computed. can not get sizeof(MsgHeader)
       rc = eh->syncSend( header, headLen ) ;
       if ( SDB_OK != rc )
@@ -1197,14 +1210,21 @@ namespace engine
          goto error ;
       }
       _netOut.add( headLen ) ;
-      rc = eh->syncSend( body, bodyLen ) ;
-      eh->mtx().release() ;
-      if ( SDB_OK != rc )
+      if ( NULL != body )
       {
-         eh->close() ;
-         goto error ;
+         rc = eh->syncSend( body, bodyLen ) ;
+         eh->mtx().release() ;
+         if ( SDB_OK != rc )
+         {
+            eh->close() ;
+            goto error ;
+         }
+         _netOut.add( bodyLen ) ;
       }
-      _netOut.add( bodyLen ) ;
+      else
+      {
+         eh->mtx().release() ;
+      }
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNCSEND3, rc );
       return rc ;
@@ -1250,6 +1270,14 @@ namespace engine
                   "Should not use UDP socket to send multiple packets" ) ;
 
       eh->mtx().get() ;
+
+      rc = onSendMsg( eh, eh->id(), header ) ;
+      if ( SDB_OK != rc )
+      {
+         eh->mtx().release() ;
+         goto error ;
+      }
+
       rc = eh->syncSend( header, sizeof(MsgHeader) ) ;
       if ( SDB_OK != rc )
       {
@@ -1389,6 +1417,14 @@ namespace engine
       {
          *pHandle = eh->handle() ;
       }
+
+      rc = onSendMsg( eh, eh->id(), header ) ;
+      if ( SDB_OK != rc )
+      {
+         eh->mtx().release() ;
+         goto error ;
+      }
+
       rc = eh->syncSend( header, sizeof(MsgHeader) ) ;
       if ( SDB_OK != rc )
       {
@@ -1656,7 +1692,7 @@ namespace engine
       }
       else
       {
-         rc = _handler->handleMsg( eh->handle(), pMsg, eh->msg() ) ;
+         rc = _handler->handleMsg( eh->handle(), pMsg, eh->msg(), eh.get() ) ;
          _netIn.add( pMsg->messageLength ) ;
          if ( SDB_NET_BROKEN_MSG == rc )
          {
@@ -1671,6 +1707,27 @@ namespace engine
    void _netFrame::handleClose( NET_EH eh, _MsgRouteID id )
    {
       _handler->handleClose( eh->handle(), id ) ;
+   }
+
+   INT32 _netFrame::onSendMsg( NET_EH eh,
+                               const MsgRouteID &id,
+                               MsgHeader *header )
+   {
+      return _handler->onSendMsg( eh->handle(), id, header ) ;
+   }
+
+   INT32 _netFrame::onReceiveMsg( NET_EH eh,
+                                  const MsgRouteID &id,
+                                  MsgHeader *header,
+                                  UINT32 receivedSize )
+   {
+      NET_HANDLE handle =
+            ( NULL == eh.get() ) ? NET_INVALID_HANDLE : eh->handle() ;
+      UINT32 availableSize =
+            ( NULL == eh.get() ) ? 0 : eh->getAvailableSize() ;
+      return _handler->onReceiveMsg( handle, id, header,
+                                     availableSize + receivedSize,
+                                     eh.get() ) ;
    }
 
    //TODO rewrite it later
@@ -1894,7 +1951,7 @@ namespace engine
       _mtx.release() ;
 
       // callback: handleConnect
-      _handler->handleConnect( eh->handle(), eh->id(), FALSE ) ;
+      _handler->handleConnect( eh->handle(), eh->id(), FALSE, eh.get() ) ;
 
       eh->asyncRead() ;
       _asyncAccept() ;

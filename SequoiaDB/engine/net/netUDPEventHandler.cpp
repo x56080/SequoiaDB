@@ -152,12 +152,12 @@ namespace engine
       PD_CHECK( sock->is_open(), SDB_NETWORK, error, PDERROR,
                 "Failed to send message, UDP socket is closed" ) ;
 
-      if ( NULL != _evSuitPtr->getHandler() )
-      {
-         _evSuitPtr->getHandler()->onSendMsg( handle(),
-                                              id(),
+      rc = _evSuitPtr->getFrame()->onSendMsg( _getSharedBase(),
+                                              _id,
                                               (MsgHeader *)( buf ) ) ;
-      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to call event on sending message "
+                   "by connection[Handle:%d, Node:%s], rc: %d",
+                   _handle, routeID2String( _id ).c_str(), rc ) ;
 
       while ( TRUE )
       {
@@ -220,6 +220,11 @@ namespace engine
    CHAR *_netUDPEventHandler::msg()
    {
       return _evSuitPtr->getMessage() ;
+   }
+
+   UINT32 _netUDPEventHandler::getAvailableSize()
+   {
+      return 0 ;
    }
 
    string _netUDPEventHandler::localAddr() const

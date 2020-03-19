@@ -42,7 +42,7 @@
 
 namespace engine
 {
-   _netRouteAgent::_netRouteAgent( _netMsgHandler *handler ):
+   _netRouteAgent::_netRouteAgent( INetMsgHandler *handler ):
                                    _frame( handler, &_route )
    {
 
@@ -137,7 +137,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETRTAG_LSTN, "_netRouteAgent::listen" )
    INT32 _netRouteAgent::listen( const _MsgRouteID &id,
                                  UINT32 protocolMask,
-                                 INetUDPMsgHandler *udpHandler,
                                  UINT32 udpBufferSize )
    {
       INT32 rc = SDB_OK ;
@@ -155,8 +154,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _frame.listen( host, service, protocolMask, udpHandler,
-                          udpBufferSize ) ;
+      rc = _frame.listen( host, service, protocolMask, udpBufferSize ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -264,7 +262,8 @@ namespace engine
                                    MsgHeader *header, void *body,
                                    UINT32 bodyLen )
    {
-      SDB_ASSERT( NULL != header && NULL != body, "should not be NULL" ) ;
+      //SDB_ASSERT( NULL != header && NULL != body, "should not be NULL" ) ;
+      SDB_ASSERT( NULL != header, "should not be NULL" ) ;
 
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETRTAG_SYNCSND3 );

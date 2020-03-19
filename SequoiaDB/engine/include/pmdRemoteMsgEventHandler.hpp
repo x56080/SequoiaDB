@@ -56,11 +56,18 @@ namespace engine
 
          virtual INT32 handleMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,
-                                  const CHAR *msg ) ;
+                                  const CHAR *msg,
+                                  netUserDataHolder *userDataHolder ) ;
          virtual void  handleClose( const NET_HANDLE &handle, _MsgRouteID id ) ;
          virtual void  handleConnect( const NET_HANDLE &handle,
                                       _MsgRouteID id,
-                                      BOOLEAN isPositive ) ;
+                                      BOOLEAN isPositive,
+                                      netUserDataHolder *userDataHolder ) ;
+
+         virtual INT32 onSendMsg( const NET_HANDLE &handle,
+                                  const MsgRouteID &id,
+                                  MsgHeader *header ) ;
+
       protected:
          INT32 _postMsg( const NET_HANDLE &handle,
                          const MsgHeader *header,

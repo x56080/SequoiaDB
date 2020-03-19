@@ -39,6 +39,7 @@
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "msgMessage.hpp"
+#include "stpAgent.hpp"
 
 namespace engine
 {
@@ -69,7 +70,8 @@ namespace engine
 
    INT32 _pmdRemoteMsgHandler::handleMsg( const NET_HANDLE &handle,
                                           const _MsgHeader *header,
-                                          const CHAR *msg )
+                                          const CHAR *msg,
+                                          netUserDataHolder *userDataHolder )
    {
       INT32 rc = SDB_OK ;
 
@@ -143,11 +145,67 @@ namespace engine
 
    void _pmdRemoteMsgHandler::handleConnect( const NET_HANDLE &handle,
                                              _MsgRouteID id,
-                                             BOOLEAN isPositive )
+                                             BOOLEAN isPositive,
+                                             netUserDataHolder *userDataHolder )
    {
       SDB_ASSERT( _pRSManager, "Remote session manager can't be NULL" ) ;
 
       _pRSManager->handleConnect( handle, id, isPositive ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDRMTMSGHDL_ONSENDMSG, "_pmdRemoteMsgHandler::onSendMsg" )
+   INT32 _pmdRemoteMsgHandler::onSendMsg( const NET_HANDLE &handle,
+                                          const MsgRouteID &id,
+                                          MsgHeader *header )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__PMDRMTMSGHDL_ONSENDMSG ) ;
+
+      if ( OSS_BIT_TEST( header->requestID, MSG_REQUEST_FLAG_GLOBTIME ) )
+      {
+         stpAgent agent ;
+         stpLogicalTimeUS currentTime ;
+
+         rc = agent.getLogicalTimeUS( currentTime, 1, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
+                      "message %s to node %s via handle %d, rc: %d",
+                      msg2String( header, MSG_MASK_ALL, 0 ).c_str(), handle,
+                      routeID2String( id ).c_str(), rc ) ;
+
+         switch ( header->opCode )
+         {
+            case MSG_PACKET :
+            {
+               MsgPacketReq *request = (MsgPacketReq *)header ;
+               request->sendTime = currentTime.getTime() ;
+               break ;
+            }
+            case MSG_BS_TRANS_BEGIN_REQ :
+            {
+               MsgOpTransBegin *request = (MsgOpTransBegin *)header ;
+               request->sendTime = currentTime.getTime() ;
+               break ;
+            }
+            case MSG_BS_TRANS_COMMITPRE_REQ :
+            {
+               MsgOpTransCommitPre *request = (MsgOpTransCommitPre *)header ;
+               request->sendTime = currentTime.getTime() ;
+               break ;
+            }
+            default :
+            {
+               break ;
+            }
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__PMDRMTMSGHDL_ONSENDMSG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDRMTMSGHDL__POSTMSG, "_pmdRemoteMsgHandler::_postMsg" )
