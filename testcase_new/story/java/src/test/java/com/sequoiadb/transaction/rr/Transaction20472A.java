@@ -17,24 +17,26 @@ import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
- * @testcase seqDB-20471：转账程序支持全局RR隔离级别
+ * @testcase seqDB-20472：转账的同时，创建删除索引
  * @date 2020-1-16
  * @author zhaoyu
  *
  */
 
 @Test(groups = "rr")
-public class Transaction20471 extends SdbTestBase {
+public class Transaction20472A extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String clName = "cl20471";
-    private String idxName = "idx20471";
+    private String clName = "cl20472A";
+    private String idxName = "idx20472A";
     private DBCollection cl = null;
     private CountDownLatch latch = null;
+    private String indexKey = null;
     private int insertNum = 100;
     private int loopNum = 1000;
 
@@ -59,13 +61,13 @@ public class Transaction20471 extends SdbTestBase {
     @DataProvider(name = "index")
     public Object[][] createIndex() {
         return new Object[][] { { "{'b':-1}" }, { "{'b':1}" } };
-
     }
 
     @Test(dataProvider = "index")
     public void test( String indexKey ) {
         try {
             latch = new CountDownLatch( 3 );
+            this.indexKey = indexKey;
 
             // 创建索引
             cl.createIndex( idxName, indexKey, false, false );
@@ -74,22 +76,22 @@ public class Transaction20471 extends SdbTestBase {
             UpdateThread updateThread = new UpdateThread();
             updateThread.start();
 
-            InsertDeleteThread insertDeleteTh = new InsertDeleteThread();
-            insertDeleteTh.start();
-
             QueryThread queryThread = new QueryThread();
             queryThread.start();
+
+            DropIndexThread dropIndexThread = new DropIndexThread();
+            dropIndexThread.start();
 
             // 判断事务是否正确返回
             Assert.assertTrue( queryThread.isSuccess(),
                     queryThread.getErrorMsg() );
             Assert.assertTrue( updateThread.isSuccess(),
                     updateThread.getErrorMsg() );
-            Assert.assertTrue( insertDeleteTh.isSuccess(),
-                    insertDeleteTh.getErrorMsg() );
+            Assert.assertTrue( dropIndexThread.isSuccess(),
+                    dropIndexThread.getErrorMsg() );
+
             latch.await();
         } catch ( InterruptedException e ) {
-            e.printStackTrace();
             Assert.fail( e.getMessage() );
         } finally {
 
@@ -124,17 +126,29 @@ public class Transaction20471 extends SdbTestBase {
                     db.beginTransaction();
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
-                    cl.update( "{b:" + aid + "}", "{$inc:{a:-" + value + "}}",
-                            "{'':'" + idxName + "'}" );
-                    cl.update( "{b:" + bid + "}", "{$inc:{a:" + value + "}}",
-                            "{'':'" + idxName + "'}" );
-                    // 提交、回滚更新事务
-                    if ( aid % 2 == 0 ) {
-                        db.commit();
-                    } else {
-                        db.rollback();
-                    }
 
+                    // 由于更新和读存在死锁，因此需要规避此问题
+                    try {
+                        cl.update( "{b:" + aid + "}",
+                                "{$inc:{a:-" + value + "}}",
+                                "{'':'" + idxName + "'}" );
+                        cl.update( "{b:" + bid + "}",
+                                "{$inc:{a:" + value + "}}",
+                                "{'':'" + idxName + "'}" );
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() == -48 || e.getErrorCode() == -47
+                                || e.getErrorCode() == -52
+                                || e.getErrorCode() == -10
+                                || e.getErrorCode() == -199 ) {
+                            db.rollback();
+                            continue;
+                        } else {
+                            e.printStackTrace();
+                            throw e;
+                        }
+                    }
+                    // 提交更新事务
+                    db.commit();
                 }
             } finally {
                 db.commit();
@@ -145,62 +159,13 @@ public class Transaction20471 extends SdbTestBase {
         }
     }
 
-    class InsertDeleteThread extends SdbThreadBase {
-        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-
-        @Override
-        public void exec() throws Exception {
-            try {
-                for ( int i = 0; i < loopNum * 2; i++ ) {
-                    System.out.println( "insert delete times:" + i );
-                    int aId = ( int ) ( Math.random() * insertNum ) + insertNum;
-                    int bId = ( int ) ( Math.random() * insertNum );
-                    int cId = ( int ) ( Math.random() * insertNum ) - insertNum;
-
-                    // 开启写事务
-                    db.beginTransaction();
-                    DBCollection cl = db.getCollectionSpace( csName )
-                            .getCollection( clName );
-                    BSONObject object = ( BSONObject ) JSON.parse(
-                            "{_id:" + aId + ", a:10000, b:" + aId + "}" );
-                    cl.insert( object );
-                    cl.delete( "{b:" + aId + "}", "{'':'" + idxName + "'}" );
-
-                    object = ( BSONObject ) JSON
-                            .parse( "{_id:" + ( bId + insertNum * 2 )
-                                    + ", a:10000, b:" + bId + "}" );
-                    cl.insert( object );
-                    cl.delete( "{_id:" + ( bId + insertNum * 2 ) + "}",
-                            "{'':'$id'}" );
-
-                    object = ( BSONObject ) JSON.parse(
-                            "{_id:" + cId + ", a:10000, b:" + cId + "}" );
-                    cl.insert( object );
-                    cl.delete( "{b:" + cId + "}", "{'':'" + idxName + "'}" );
-
-                    // 提交、回滚更新事务
-                    if ( aId % 2 == 0 ) {
-                        db.commit();
-                    } else {
-                        db.rollback();
-                    }
-                }
-            } finally {
-                db.commit();
-                db.close();
-                latch.countDown();
-                System.out.println( "insert delete thread end" + new Date() );
-            }
-        }
-    }
-
     class QueryThread extends SdbThreadBase {
         private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         @Override
         public void exec() throws Exception {
             try {
-                for ( int i = 0; i < loopNum; i++ ) {
+                for ( int i = 0; i < loopNum * 3; i++ ) {
                     System.out.println( "query times:" + i );
                     // 开启查询事务，索引扫描
                     db.beginTransaction();
@@ -225,8 +190,21 @@ public class Transaction20471 extends SdbTestBase {
                     db.beginTransaction();
                     String sqlTblScan = "select sum(a) as sum from " + csName
                             + "." + clName + " /*+use_index(" + idxName + ")*/";
-                    cursor = db.exec( sqlTblScan );
-                    actNums = TransUtils.getReadActList( cursor );
+                    try {
+                        cursor = db.exec( sqlTblScan );
+                        actNums = TransUtils.getReadActList( cursor );
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() == -48 || e.getErrorCode() == -47
+                                || e.getErrorCode() == -52
+                                || e.getErrorCode() == -10
+                                || e.getErrorCode() == -199 ) {
+                            db.rollback();
+                            continue;
+                        } else {
+                            Assert.fail( e.getMessage() );
+                        }
+                    }
+
                     Assert.assertEquals( actNums.size(), 1 );
                     sumValue = ( double ) actNums.get( 0 ).get( "sum" );
                     sum = ( int ) sumValue;
@@ -237,7 +215,6 @@ public class Transaction20471 extends SdbTestBase {
                                 "IdxScan check sum error, expect sum is 1000000, but actual sum:"
                                         + +sum );
                     }
-
                 }
             } finally {
                 db.commit();
@@ -245,6 +222,32 @@ public class Transaction20471 extends SdbTestBase {
                 db.close();
                 latch.countDown();
                 System.out.println( "query thread end" + new Date() );
+            }
+        }
+    }
+
+    class DropIndexThread extends SdbThreadBase {
+        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+
+        @Override
+        public void exec() throws Exception {
+            try {
+                for ( int i = 0; i < loopNum * 3; i++ ) {
+                    System.out.println( "drop and create index:" + i );
+                    DBCollection cl = db.getCollectionSpace( csName )
+                            .getCollection( clName );
+                    Assert.assertTrue( cl.isIndexExist( idxName ) );
+                    cl.dropIndex( idxName );
+                    Assert.assertFalse( cl.isIndexExist( idxName ) );
+                    cl.createIndex( idxName, indexKey, false, false );
+
+                }
+            } finally {
+                db.commit();
+                db.close();
+                latch.countDown();
+                System.out
+                        .println( "create drop index thread end" + new Date() );
             }
         }
     }

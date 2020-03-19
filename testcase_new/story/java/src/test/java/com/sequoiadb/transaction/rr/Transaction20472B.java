@@ -30,10 +30,10 @@ import com.sequoiadb.transaction.TransUtils;
  */
 
 @Test(groups = "rr")
-public class Transaction20472 extends SdbTestBase {
+public class Transaction20472B extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String clName = "cl20472";
-    private String idxName = "idx20472";
+    private String clName = "cl20472B";
+    private String idxName = "idx20472B";
     private DBCollection cl = null;
     private CountDownLatch latch = null;
     private String indexKey = null;
@@ -72,10 +72,6 @@ public class Transaction20472 extends SdbTestBase {
             // 创建索引
             cl.createIndex( idxName, indexKey, false, false );
 
-            // 开启 4 个并发事务
-            UpdateThread updateThread = new UpdateThread();
-            updateThread.start();
-
             InsertDeleteThread insertDeleteTh = new InsertDeleteThread();
             insertDeleteTh.start();
 
@@ -88,8 +84,6 @@ public class Transaction20472 extends SdbTestBase {
             // 判断事务是否正确返回
             Assert.assertTrue( queryThread.isSuccess(),
                     queryThread.getErrorMsg() );
-            Assert.assertTrue( updateThread.isSuccess(),
-                    updateThread.getErrorMsg() );
             Assert.assertTrue( insertDeleteTh.isSuccess(),
                     insertDeleteTh.getErrorMsg() );
             Assert.assertTrue( dropIndexThread.isSuccess(),
@@ -115,62 +109,13 @@ public class Transaction20472 extends SdbTestBase {
         cl.insert( records );
     }
 
-    class UpdateThread extends SdbThreadBase {
-        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-
-        @Override
-        public void exec() throws Exception {
-            try {
-                for ( int i = 0; i < loopNum; i++ ) {
-                    System.out.println( "update times:" + i );
-                    int aid = ( int ) ( Math.random() * insertNum );
-                    int bid = ( int ) ( Math.random() * insertNum );
-                    int value = ( int ) ( Math.random() * 100 ) + 1;
-
-                    // 开启更新事务
-                    db.beginTransaction();
-                    DBCollection cl = db.getCollectionSpace( csName )
-                            .getCollection( clName );
-
-                    // 由于更新和读存在死锁，因此需要规避此问题
-                    try {
-                        cl.update( "{b:" + aid + "}",
-                                "{$inc:{a:-" + value + "}}",
-                                "{'':'" + idxName + "'}" );
-                        cl.update( "{b:" + bid + "}",
-                                "{$inc:{a:" + value + "}}",
-                                "{'':'" + idxName + "'}" );
-                    } catch ( BaseException e ) {
-                        if ( e.getErrorCode() == -13 || e.getErrorCode() == -48
-                                || e.getErrorCode() == -52
-                                || e.getErrorCode() == -10
-                                || e.getErrorCode() == -199 ) {
-                            db.rollback();
-                            continue;
-                        } else {
-                            e.printStackTrace();
-                            throw e;
-                        }
-                    }
-                    // 提交更新事务
-                    db.commit();
-                }
-            } finally {
-                db.commit();
-                db.close();
-                latch.countDown();
-                System.out.println( "udpate thread end" + new Date() );
-            }
-        }
-    }
-
     class InsertDeleteThread extends SdbThreadBase {
         private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         @Override
         public void exec() throws Exception {
             try {
-                for ( int i = 0; i < loopNum; i++ ) {
+                for ( int i = 0; i < loopNum * 2; i++ ) {
                     System.out.println( "insert delete times:" + i );
                     int aId = ( int ) ( Math.random() * insertNum ) + insertNum;
                     int bId = ( int ) ( Math.random() * insertNum );
@@ -201,14 +146,15 @@ public class Transaction20472 extends SdbTestBase {
                                 "{'':'" + idxName + "'}" );
 
                     } catch ( BaseException e ) {
-                        if ( e.getErrorCode() == -13 || e.getErrorCode() == -48
+                        if ( e.getErrorCode() == -47 || e.getErrorCode() == -48
                                 || e.getErrorCode() == -52
                                 || e.getErrorCode() == -10
                                 || e.getErrorCode() == -199 ) {
-                            e.printStackTrace();
-                            throw e;
+                            db.rollback();
+                            continue;
+                        } else {
+                            Assert.fail( e.getMessage() );
                         }
-
                     }
 
                     // 提交更新事务
@@ -230,35 +176,55 @@ public class Transaction20472 extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             try {
-                for ( int i = 0; i < loopNum * 5; i++ ) {
+                for ( int i = 0; i < loopNum * 3; i++ ) {
                     System.out.println( "query times:" + i );
-                    // 开启查询事务
+                    // 开启查询事务，索引扫描
                     db.beginTransaction();
-                    String sql = "select sum(a) as sum from " + csName + "."
-                            + clName;
+                    String sqlIdxScan = "select sum(a) as sum from " + csName
+                            + "." + clName + " /*+use_index(NULL)*/";
                     DBCursor cursor = null;
                     List< BSONObject > actNums = null;
-                    try {
-                        cursor = db.exec( sql );
-                        actNums = TransUtils.getReadActList( cursor );
-                    } catch ( BaseException e ) {
-                        if ( e.getErrorCode() == -48 || e.getErrorCode() == -52
-                                || e.getErrorCode() == -10
-                                || e.getErrorCode() == -199 ) {
-                            e.printStackTrace();
-                            Assert.fail( e.getMessage() );
-
-                        }
-                    }
+                    cursor = db.exec( sqlIdxScan );
+                    actNums = TransUtils.getReadActList( cursor );
                     Assert.assertEquals( actNums.size(), 1 );
                     double sumValue = ( double ) actNums.get( 0 ).get( "sum" );
                     int sum = ( int ) sumValue;
-
-                    // 提交查询事务
                     db.commit();
                     if ( sum != 1000000 ) {
-                        System.out.println( "SUM Value: " + sum );
-                        throw new Exception( "VALUENUM ERROR" );
+                        System.out.println( "TblScan Sum Value: " + sum );
+                        throw new Exception(
+                                "TblScan check sum error, expect sum is 1000000, but actual sum:"
+                                        + sum );
+                    }
+
+                    // 开启查询事务，表扫描
+                    db.beginTransaction();
+                    String sqlTblScan = "select sum(a) as sum from " + csName
+                            + "." + clName + " /*+use_index(" + idxName + ")*/";
+                    try {
+                        cursor = db.exec( sqlTblScan );
+                        actNums = TransUtils.getReadActList( cursor );
+                    } catch ( BaseException e ) {
+                        if ( e.getErrorCode() == -48 || e.getErrorCode() == -47
+                                || e.getErrorCode() == -52
+                                || e.getErrorCode() == -10
+                                || e.getErrorCode() == -199 ) {
+                            db.rollback();
+                            continue;
+                        } else {
+                            Assert.fail( e.getMessage() );
+                        }
+                    }
+
+                    Assert.assertEquals( actNums.size(), 1 );
+                    sumValue = ( double ) actNums.get( 0 ).get( "sum" );
+                    sum = ( int ) sumValue;
+                    db.commit();
+                    if ( sum != 1000000 ) {
+                        System.out.println( "IdxScan Sum Value: " + sum );
+                        throw new Exception(
+                                "IdxScan check sum error, expect sum is 1000000, but actual sum:"
+                                        + +sum );
                     }
                 }
             } finally {
