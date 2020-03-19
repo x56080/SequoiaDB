@@ -179,11 +179,15 @@ namespace engine
       // get logical time in nanoseconds
       // NOTE: check whether time is synchronized if needed
       INT32 getLogicalTimeNS( stpLogicalTimeNS &time,
-                              BOOLEAN checkSync ) const ;
+                              BOOLEAN monotonic,
+                              BOOLEAN checkSync,
+                              UINT32 &waitTimeUS ) const ;
       // get logical time in microseconds
       // NOTE: check whether time is synchronized if needed
       INT32 getLogicalTimeUS( stpLogicalTimeUS &time,
-                              BOOLEAN checkSync ) const ;
+                              BOOLEAN monotonic,
+                              BOOLEAN checkSync,
+                              UINT32 &waitTimeUS ) const ;
 
       // output meta data to BSON format
       INT32 toBSON( bson::BSONObjBuilder &builder ) const ;

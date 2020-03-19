@@ -309,9 +309,11 @@ namespace engine
       PD_TRACE_ENTRY( SDB__STPGETTIMECMD_DOIT ) ;
 
       stpLogicalTimeNS time ;
+      UINT32 waitTimeUS = 0 ;
 
       // get logical time in nanoseconds
-      rc = _stpCB->getMetaData()->getLogicalTimeNS( time, FALSE ) ;
+      rc = _stpCB->getMetaData()->getLogicalTimeNS( time, FALSE, FALSE,
+                                                    waitTimeUS ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
       try

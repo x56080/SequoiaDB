@@ -73,25 +73,61 @@ namespace engine
       INT32 notifySync() ;
 
       // get logical time in nanosecond in given timeout
+      // output:
+      // - time: global logical time returned from STP
+      // input:
+      // - timeout: timeout to get global logical time
+      // - monotonic: indicate if monotonic time is required
+      // return:
+      // - SDB_OK: succeed to get global logical time
+      // - other return code: failed to get global logical time
       // NOTE: `timeout` is -1 means never timeout
       //       `timeout` is 0 means only try once
-      INT32 getLogicalTimeNS( stpLogicalTimeNS &time, INT32 timeout = -1 ) ;
+      INT32 getLogicalTimeNS( stpLogicalTimeNS &time,
+                              INT32 timeout = -1,
+                              BOOLEAN monotonic = TRUE ) ;
 
       // try to get logical time in microseconds in given timeout
+      // output:
+      // - time: global logical time returned from STP
+      // input:
+      // - timeout: timeout to get global logical time
+      // - monotonic: indicate if monotonic time is required
+      // return:
+      // - SDB_OK: succeed to get global logical time
+      // - other return code: failed to get global logical time
       // NOTE: `timeout` is -1 means never timeout
       //       `timeout` is 0 means only try once
-      INT32 getLogicalTimeUS( stpLogicalTimeUS &time, INT32 timeout = -1 ) ;
+      INT32 getLogicalTimeUS( stpLogicalTimeUS &time,
+                              INT32 timeout = -1,
+                              BOOLEAN monotonic = TRUE ) ;
 
       // try to get logical time in nanosecond
-      OSS_INLINE INT32 tryGetLogicalTimeNS( stpLogicalTimeNS &time )
+      // output:
+      // - time: global logical time returned from STP
+      // input:
+      // - monotonic: indicate if monotonic time is required
+      // return:
+      // - SDB_OK: succeed to get global logical time
+      // - other return code: failed to get global logical time
+      OSS_INLINE INT32 tryGetLogicalTimeNS( stpLogicalTimeNS &time,
+                                            BOOLEAN monotonic = TRUE )
       {
-         return getLogicalTimeNS( time, 0 ) ;
+         return getLogicalTimeNS( time, 0, monotonic ) ;
       }
 
       // try to get logical time in microseconds
-      OSS_INLINE INT32 tryGetLogicalTimeUS( stpLogicalTimeUS &time )
+      // output:
+      // - time: global logical time returned from STP
+      // input:
+      // - monotonic: indicate if monotonic time is required
+      // return:
+      // - SDB_OK: succeed to get global logical time
+      // - other return code: failed to get global logical time
+      OSS_INLINE INT32 tryGetLogicalTimeUS( stpLogicalTimeUS &time,
+                                            BOOLEAN monotonic = TRUE )
       {
-         return getLogicalTimeUS( time, 0 ) ;
+         return getLogicalTimeUS( time, 0, monotonic ) ;
       }
    } ;
 
