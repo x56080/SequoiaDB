@@ -95,7 +95,12 @@ namespace engine
 
          virtual INT32 handleMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,
-                                  const CHAR *msg );
+                                  const CHAR *msg,
+                                  netUserDataHolder *userDataHolder ) ;
+         virtual void  handleConnect( const NET_HANDLE &handle,
+                                      _MsgRouteID id,
+                                      BOOLEAN isPositive,
+                                      netUserDataHolder *userDataHolder ) ;
          virtual void  handleClose( const NET_HANDLE &handle, _MsgRouteID id ) ;
 
          virtual void  handleConnect( const NET_HANDLE &handle,
@@ -110,7 +115,8 @@ namespace engine
 
          INT32 _handleSessionMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,
-                                  const CHAR *msg );
+                                  const CHAR *msg,
+                                  netUserDataHolder *userDataHolder ) ;
 
          INT32 _handleAdapterMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,
@@ -128,6 +134,19 @@ namespace engine
          virtual void _postMainMsg( const NET_HANDLE &handle,
                                     MsgHeader *pNewMsg,
                                     pmdEDUMemTypes memType ) ;
+
+         // indicate if user data is needed for net event
+         virtual BOOLEAN _needUserData()
+         {
+            return FALSE ;
+         }
+
+         // allocate user data for given holder
+         virtual INT32 _allocUserData( NET_HANDLE handle,
+                                       netUserDataHolder *userDataHolder )
+         {
+            return SDB_OK ;
+         }
 
       protected:
          _pmdAsycSessionMgr      *_pSessionMgr ;

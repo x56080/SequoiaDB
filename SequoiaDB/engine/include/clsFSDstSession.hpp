@@ -129,7 +129,8 @@ namespace engine
          virtual BOOLEAN timeout ( UINT32 interval ) ;
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
          virtual void    onRecieve ( const NET_HANDLE netHandle,
-                                     MsgHeader * msg ) ;
+                                     MsgHeader * msg,
+                                     INetUserData *userData ) ;
 
       protected:
          virtual INT32 _onMetaDone( const _clMetaData &meta ) ;

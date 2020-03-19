@@ -88,7 +88,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMSGHANDLER_HANDLEMSG, "_rtnMsgHandler::handleMsg" )
    INT32 _rtnMsgHandler::handleMsg( const NET_HANDLE &handle,
                                     const _MsgHeader *header,
-                                    const CHAR *msg )
+                                    const CHAR *msg,
+                                    netUserDataHolder *userDataHolder )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNMSGHANDLER_HANDLEMSG ) ;
@@ -121,7 +122,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMSGHANDLER_HANDLECONNECT, "_rtnMsgHandler::handleConnect" )
    void _rtnMsgHandler::handleConnect( const NET_HANDLE &handle,
                                        _MsgRouteID id,
-                                       BOOLEAN isPositive )
+                                       BOOLEAN isPositive,
+                                       netUserDataHolder *userDataHolder )
    {
       PD_TRACE_ENTRY( SDB__RTNMSGHANDLER_HANDLECONNECT ) ;
       _pRSManager->handleConnect( handle, id, isPositive ) ;

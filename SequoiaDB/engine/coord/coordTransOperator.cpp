@@ -338,8 +338,7 @@ namespace engine
          // time error of logical time for global transaction
          msgReq.transTimeError =
                      (UINT32)( cb->getTransBeginTime().getTimeError() ) ;
-         msgReq.currentTime = 0LL ;
-         msgReq.currentTimeError = 0 ;
+         msgReq.sendTime = 0LL ;
          ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
 
          iterGroup = groupLst.begin() ;
@@ -785,12 +784,16 @@ namespace engine
          // NOTE: pre-commit time uses time error of transaction begin time
          cb->setTransPreCommitTime( preCommitTime ) ;
          pCommitPreMsg->preCommitTime = preCommitTime.getTime() ;
+
+         // set global time flag
+         OSS_BIT_SET( pCommitPreMsg->header.requestID,
+                      MSG_REQUEST_FLAG_GLOBTIME ) ;
       }
       else
       {
          pCommitPreMsg->preCommitTime = 0LL ;
       }
-      pCommitPreMsg->currentTime = pCommitPreMsg->preCommitTime ;
+      pCommitPreMsg->sendTime = pCommitPreMsg->preCommitTime ;
 
       /// build node info
       pCommitPreMsg->nodeNum = writeTransNodes ;

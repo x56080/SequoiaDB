@@ -69,6 +69,242 @@ namespace engine
 
 #define SHD_RET_BUILDER_DFT_SIZE          ( 80 )
 
+   /*
+      _clsShdUserData implement
+    */
+   _clsShdUserData::_clsShdUserData()
+   : INetUserData(),
+     _recvTimeRC( SDB_OK ),
+     _recvTime(),
+     _totalBlockSize( 0 ),
+     _blockInfoIndex( 0 ),
+     _blockInfoSize( 0 )
+   {
+   }
+
+   _clsShdUserData::~_clsShdUserData()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDUSERDATA_SETUSERDATA, "_clsShdUserData::setUserData" )
+   void _clsShdUserData::setUserData( INetUserData *userData )
+   {
+      PD_TRACE_ENTRY( SDB__CLSSHDUSERDATA_SETUSERDATA ) ;
+
+      clsShdUserData *shardUserData = NULL ;
+
+      if ( NULL == userData )
+      {
+         goto done ;
+      }
+
+      // check if it is shard user data
+      shardUserData = dynamic_cast<clsShdUserData *>( userData ) ;
+      if ( NULL == shardUserData )
+      {
+         goto done ;
+      }
+
+      // copy request ID
+      _requestID = shardUserData->getRequestID() ;
+
+      // copy receive time if needed
+      if ( shardUserData->isGlobTimeRequest() )
+      {
+         _recvTimeRC = shardUserData->getRecvTimeRC() ;
+         _recvTime = shardUserData->getRecvTime() ;
+      }
+      else
+      {
+         _recvTimeRC = SDB_OK ;
+         _recvTime.reset() ;
+      }
+
+   done:
+      PD_TRACE_EXIT( SDB__CLSSHDUSERDATA_SETUSERDATA ) ;
+      return ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDUSERDATA_ACQUIRERECVTIME, "_clsShdUserData::acquireRecvTime" )
+   INT32 _clsShdUserData::acquireRecvTime( UINT32 receivedSize,
+                                           UINT32 currentSize )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDUSERDATA_ACQUIRERECVTIME ) ;
+
+      stpAgent agent ;
+
+      // if has blocking messages, use the time to block the message
+      if ( _totalBlockSize > 0 && _blockInfoSize > 0 )
+      {
+         _recvTime = _blockInfo[ _blockInfoIndex ].blockTimestamp ;
+         onReceiveMsg( receivedSize, currentSize ) ;
+         goto done ;
+      }
+
+      // acquiring new logical time, so we could reset blocking info
+      _totalBlockSize = 0 ;
+      _blockInfoIndex = 0 ;
+      _blockInfoSize = 0 ;
+
+      // get logical time
+      rc = agent.getLogicalTimeUS( _recvTime, 1, FALSE ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get logical time from STP, "
+                   "rc: %d", rc ) ;
+
+      // check if remain messages are blocking, if so, add to blocking list
+      if ( receivedSize > currentSize &&
+           receivedSize - currentSize > CLS_SHD_MSG_BLOCK_SIZE )
+      {
+         _addBlockInfo( receivedSize - currentSize, _recvTime ) ;
+      }
+
+   done:
+      // set return code
+      _recvTimeRC = rc ;
+
+      PD_TRACE_EXITRC( SDB__CLSSHDUSERDATA_ACQUIRERECVTIME, rc ) ;
+      return rc ;
+
+   error:
+      _recvTime.reset() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDUSERDATA_ONRECVMSG, "_clsShdUserData::onReceiveMsg" )
+   void _clsShdUserData::onReceiveMsg( UINT32 receivedSize, UINT32 currentSize )
+   {
+      PD_TRACE_ENTRY( SDB__CLSSHDUSERDATA_ONRECVMSG ) ;
+
+      // calculate current blocking size
+      _calcBlockSize( receivedSize, currentSize ) ;
+
+      // if new received messages are blocking, add a new blocking info
+      if ( receivedSize > _totalBlockSize &&
+           receivedSize - _totalBlockSize > CLS_SHD_MSG_BLOCK_SIZE )
+      {
+         stpLogicalTimeUS blockTime ;
+         _addBlockInfo( receivedSize - _totalBlockSize, blockTime ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__CLSSHDUSERDATA_ONRECVMSG ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDUSERDATA__CALCBLOCKSIZE, "_clsShdUserData::_calcBlockSize" )
+   void _clsShdUserData::_calcBlockSize( UINT32 &blockSize,
+                                         UINT32 currentSize )
+   {
+      PD_TRACE_ENTRY( SDB__CLSSHDUSERDATA__CALCBLOCKSIZE ) ;
+
+      // remove current message from received messages
+      if ( blockSize > currentSize )
+      {
+         blockSize -= currentSize ;
+      }
+      else
+      {
+         blockSize = 0 ;
+      }
+
+      // remove current message from blocking messages
+      if ( _totalBlockSize > currentSize )
+      {
+         _totalBlockSize -= currentSize ;
+         while ( currentSize > 0 && _blockInfoSize > 0 )
+         {
+            if ( _blockInfo[ _blockInfoIndex ].blockSize > currentSize )
+            {
+               // only part of the first blocking info is covered by current
+               // message, reduce the block size of the first blocking info
+               _blockInfo[ _blockInfoIndex ].blockSize -= currentSize ;
+               currentSize = 0 ;
+            }
+            else
+            {
+               // the whole of the first blocking info is covered by current
+               // message, remove first blocking info
+               currentSize -= _blockInfo[ _blockInfoIndex ].blockSize ;
+               _blockInfoIndex =
+                     ( _blockInfoIndex + 1 ) % CLS_SHD_MAX_BLOCK_SIZE ;
+               -- _blockInfoSize ;
+            }
+         }
+         if ( 0 == _blockInfoSize )
+         {
+            // all blocking info have been cleared
+            _totalBlockSize = 0 ;
+            _blockInfoIndex = 0 ;
+         }
+      }
+      else
+      {
+         // bigger message arrived, clear blocking info
+         _totalBlockSize = 0 ;
+         _blockInfoIndex = 0 ;
+         _blockInfoSize = 0 ;
+      }
+
+#if defined (_DEBUG)
+      PD_LOG( PDDEBUG, "handle %u: total blocking size %u/%u, "
+              "blocking list size %u, first blocking size %u",
+              _handle, _totalBlockSize, _blockInfoSize,
+              _blockInfoSize > 0 ?
+                    ( _blockInfo[ _blockInfoIndex ].blockSize ) : 0 ) ;
+#endif
+
+      PD_TRACE_EXIT( SDB__CLSSHDUSERDATA__CALCBLOCKSIZE ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDUSERDATA__ADDBLOCKINFO, "_clsShdUserData::_addBlockInfo" )
+   INT32 _clsShdUserData::_addBlockInfo( UINT32 blockSize,
+                                         stpLogicalTimeUS &blockTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDUSERDATA__ADDBLOCKINFO ) ;
+
+      UINT8 nextIndex = 0 ;
+
+      if ( _blockInfoSize >= CLS_SHD_MAX_BLOCK_SIZE )
+      {
+         // blocking info is full
+         goto done ;
+      }
+
+      // acquire logical time for saving blocking info if not given
+      if ( !blockTime.isValid() )
+      {
+         stpAgent agent ;
+         rc = agent.getLogicalTimeUS( blockTime, 1, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
+      }
+
+      // add a new blocking info
+      nextIndex =
+            ( _blockInfoIndex + _blockInfoSize ) % CLS_SHD_MAX_BLOCK_SIZE ;
+      _blockInfo[ nextIndex ].blockSize = blockSize ;
+      _blockInfo[ nextIndex ].blockTimestamp = blockTime ;
+      ++ _blockInfoSize ;
+      _totalBlockSize += blockSize ;
+
+#if defined (_DEBUG)
+      PD_LOG( PDDEBUG, "handle %u: add new blocking info %u, "
+              "total blocking size %u/%u, blocking list size %u, "
+              "first blocking info size %u",
+              _handle, blockSize, _totalBlockSize, _blockInfoSize,
+              _blockInfoSize > 0 ?
+                    ( _blockInfo[ _blockInfoIndex ].blockSize ) : 0 ) ;
+#endif
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSSHDUSERDATA__ADDBLOCKINFO, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    BEGIN_OBJ_MSG_MAP( _clsShdSession, _pmdAsyncSession )
       ON_MSG ( MSG_BS_UPDATE_REQ, _onOPMsg )
       ON_MSG ( MSG_BS_INSERT_REQ, _onOPMsg )
@@ -182,10 +418,18 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS_ONRV, "_clsShdSession::onRecieve" )
    void _clsShdSession::onRecieve ( const NET_HANDLE netHandle,
-                                    MsgHeader * msg )
+                                    MsgHeader * msg,
+                                    INetUserData *userData )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS_ONRV ) ;
+
       ossGetCurrentTime( _lastRecvTime ) ;
+
+      if ( NULL != userData )
+      {
+         _msgUserData.setUserData( userData ) ;
+      }
+
       PD_TRACE_EXIT ( SDB__CLSSHDSESS_ONRV ) ;
    }
 
@@ -589,8 +833,7 @@ namespace engine
    INT32 _clsShdSession::_checkTransRR( const DPS_TRANS_ID &transID,
                                         const MsgRouteID &remoteRID,
                                         const stpLogicalTimeUS &transBeginTime,
-                                        const stpLogicalTimeUS &remoteTime,
-                                        const stpLogicalTimeUS &localTime,
+                                        const stpLogicalTimeUS &sendTime,
                                         BOOLEAN nextIsWrite )
    {
       INT32 rc = SDB_OK ;
@@ -599,7 +842,43 @@ namespace engine
 
       dpsTransCB *transCB = sdbGetTransCB() ;
       clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
-      stpLogicalTimeUS tmpLocalTime = localTime ;
+
+      stpLogicalTimeUS receivedTime ;
+
+      if ( transCB->isGlobTransSyncCheck() ||
+           transCB->isGlobTransArbitOn() )
+      {
+         if ( SDB_OK != _msgUserData.getRecvTimeRC() )
+         {
+            PD_LOG( PDWARNING, "Failed to get global transaction time "
+                    "for RR transaction checking, rc: %d",
+                    _msgUserData.getRecvTimeRC() ) ;
+            stpAgent agent ;
+            rc = agent.getLogicalTimeUS( receivedTime,
+                                         _pEDUCB->getTransTimeout(),
+                                         FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get global logical "
+                         "time for transaction begin on this node, "
+                         "rc: %d", rc ) ;
+         }
+         else
+         {
+            receivedTime = _msgUserData.getRecvTime() ;
+         }
+
+#if defined (_DEBUG)
+         PD_LOG( PDERROR, "Check RR transaction begin [%s], "
+                 "begin time [%s], send time [%s], "
+                 "receive time [%s], "
+                 "request ID %llu, rc: %d",
+                 dpsTransIDToString( transID ).c_str(),
+                 dpsTransTimeToString( transBeginTime ).c_str(),
+                 dpsTransTimeToString( sendTime ).c_str(),
+                 dpsTransTimeToString( receivedTime ).c_str(),
+                 _msgUserData.getRequestID(),
+                 _msgUserData.getRecvTimeRC() ) ;
+#endif
+      }
 
       // check transaction with RR isolation
       // - check logical times between remote and local nodes, the logical time
@@ -608,31 +887,37 @@ namespace engine
 
       // check logical time between remote and local
       if ( transCB->isGlobTransSyncCheck() &&
-           remoteTime != tmpLocalTime )
+           sendTime != receivedTime )
       {
          UINT32 acceptTimeError =
-               gtsAgent->getAcceptTimeError( remoteTime, tmpLocalTime ) ;
+               gtsAgent->getAcceptTimeError( sendTime, receivedTime ) ;
 
          PD_LOG( PDDEBUG, "Global transaction times between nodes "
                  "are not synchronized with original time error, "
-                 "remote node %s is [%s], local node %s is [%s]",
+                 "remote node %s is [%s], local node %s is [%s], "
+                 "diff [%lld]",
                  routeID2String( remoteRID ).c_str(),
-                 dpsTransTimeToString( remoteTime ).c_str(),
+                 dpsTransTimeToString( sendTime ).c_str(),
                  routeID2String( pmdGetNodeID() ).c_str(),
-                 dpsTransTimeToString( tmpLocalTime ).c_str() ) ;
+                 dpsTransTimeToString( receivedTime ).c_str(),
+                 (INT64)( receivedTime.getTime() ) -
+                       (INT64)( sendTime.getTime() ) ) ;
 
-         tmpLocalTime.setTimeError( gtsAgent->getNodeTimeError() ) ;
-         if ( remoteTime != tmpLocalTime )
+         receivedTime.setTimeError( gtsAgent->getNodeTimeError() ) ;
+         if ( sendTime != receivedTime )
          {
             stpAgent agent ;
 
             PD_LOG( PDWARNING, "Global transaction times between nodes "
                     "are not synchronized with node time error, "
-                    "remote node %s is [%s], local node %s is [%s]",
+                    "remote node %s is [%s], local node %s is [%s], "
+                    "diff [%lld]",
                     routeID2String( remoteRID ).c_str(),
-                    dpsTransTimeToString( remoteTime ).c_str(),
+                    dpsTransTimeToString( sendTime ).c_str(),
                     routeID2String( pmdGetNodeID() ).c_str(),
-                    dpsTransTimeToString( tmpLocalTime ).c_str() ) ;
+                    dpsTransTimeToString( receivedTime ).c_str(),
+                    (INT64)( receivedTime.getTime() ) -
+                          (INT64)( sendTime.getTime() ) ) ;
 
             // notify local to synchronize time
             agent.notifySync() ;
@@ -650,11 +935,14 @@ namespace engine
 
             PD_LOG( PDWARNING, "Global transaction times between nodes "
                     "pass synchronization check with node time error, "
-                    "remote node %s is [%s], local node %s is [%s]",
+                    "remote node %s is [%s], local node %s is [%s], "
+                    "diff [%lld]",
                     routeID2String( remoteRID ).c_str(),
-                    dpsTransTimeToString( remoteTime ).c_str(),
+                    dpsTransTimeToString( sendTime ).c_str(),
                     routeID2String( pmdGetNodeID() ).c_str(),
-                    dpsTransTimeToString( tmpLocalTime ).c_str() ) ;
+                    dpsTransTimeToString( receivedTime ).c_str(),
+                    (INT64)( receivedTime.getTime() ) -
+                          (INT64)( sendTime.getTime() ) ) ;
          }
       }
 
@@ -672,7 +960,7 @@ namespace engine
       //       see changes in a staled read request to other groups
       if ( transCB->isGlobTransArbitOn() && nextIsWrite )
       {
-          rc = transCB->doPreArbitGlobTrans( transID, tmpLocalTime ) ;
+          rc = transCB->doPreArbitGlobTrans( transID, receivedTime ) ;
           PD_RC_CHECK( rc, PDERROR, "Failed to do pre-arbitration "
                        "with write transaction [%s], rc: %d",
                        dpsTransIDToString( transID ).c_str(), rc ) ;
@@ -680,14 +968,14 @@ namespace engine
 
       // check if transaction passed doing arbitration time ( after that
       // time, no need to launch arbitration against doing write transactions )
-      tmpLocalTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
-      if ( transBeginTime < tmpLocalTime )
+      receivedTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
+      if ( transBeginTime < receivedTime )
       {
 #if defined (_DEBUG)
          PD_LOG( PDDEBUG, "current transaction [%s] passed doing "
                  "arbit limit, current time [%s]",
                  dpsTransIDToString( transID ).c_str(),
-                 dpsTransTimeToString( tmpLocalTime ).c_str() ) ;
+                 dpsTransTimeToString( receivedTime ).c_str() ) ;
 #endif
          _pEDUCB->setPassedDoingArbit( TRUE ) ;
       }
@@ -2674,10 +2962,8 @@ namespace engine
    INT32 _clsShdSession::_onTransBeginMsg( NET_HANDLE handle, MsgHeader *msg )
    {
       INT32 rc = SDB_OK ;
-      dpsTransCB *transCB = sdbGetTransCB() ;
       MsgOpTransBegin *pTransBegin = ( MsgOpTransBegin* )msg ;
       MsgRouteID remoteRID ;
-      stpLogicalTimeUS currentTime ;
 
       remoteRID.value = pTransBegin->header.routeID.value ;
 
@@ -2685,19 +2971,6 @@ namespace engine
       {
          rc = SDB_RTN_EXIST_INDOUBT_TRANS ;
          goto error ;
-      }
-
-      // for RR isolation, we need to do transaction arbitration later
-      // get current time as earlier as we could
-      if ( _pEDUCB->isTransRRRequired() &&
-           ( transCB->isGlobTransSyncCheck() ||
-             transCB->isGlobTransArbitOn() ) )
-      {
-         rc = transCB->getGlobTransTime( currentTime,
-                                         _pEDUCB->getTransTimeout() ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction "
-                      "time for transaction begin on this node, rc: %d",
-                      rc ) ;
       }
 
       rc = _checkPrimaryStatus() ;
@@ -2736,10 +3009,10 @@ namespace engine
             // for RR isolation, we need to do transaction arbitration
             if ( _pEDUCB->isTransRRRequired() )
             {
-               stpLogicalTimeUS remoteTime( pTransBegin->currentTime,
-                                            pTransBegin->currentTimeError ) ;
-               rc = _checkTransRR( transID, remoteRID, beginTime, remoteTime,
-                                   currentTime, pTransBegin->nextIsWrite ) ;
+               stpLogicalTimeUS sendTime( pTransBegin->sendTime,
+                                          pTransBegin->transTimeError ) ;
+               rc = _checkTransRR( transID, remoteRID, beginTime, sendTime,
+                                   pTransBegin->nextIsWrite ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to check transaction "
                             "isolation for RR, rc: %d", rc ) ;
             }
@@ -2822,13 +3095,10 @@ namespace engine
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
       MsgOpTransCommitPre *pCommitPreMsg = ( MsgOpTransCommitPre* )msg ;
 
-      stpLogicalTimeUS preCommitTime(
-                           pCommitPreMsg->preCommitTime,
-                           _pEDUCB->getTransBeginTime().getTimeError() ) ;
-      stpLogicalTimeUS remoteTime(
-                           pCommitPreMsg->currentTime,
-                           _pEDUCB->getTransBeginTime().getTimeError() ) ;
-      stpLogicalTimeUS currentTime ;
+      UINT32 transTimeError = _pEDUCB->getTransBeginTime().getTimeError() ;
+      stpLogicalTimeUS preCommitTime( pCommitPreMsg->preCommitTime,
+                                      transTimeError ) ;
+      stpLogicalTimeUS sendTime( pCommitPreMsg->sendTime, transTimeError ) ;
 
       INT16 replSize = optCB->transReplSize() ;
       INT16 w = 0 ;
@@ -2854,37 +3124,65 @@ namespace engine
            transCB->isGlobTransSyncCheck() &&
            DPS_INVALID_LSN_OFFSET != _pEDUCB->getCurTransLsn() )
       {
+         stpLogicalTimeUS receivedTime ;
          clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
 
          SDB_ASSERT( NULL != gtsAgent, "GTS agent is invalid" ) ;
 
-         rc = transCB->getGlobTransTime( currentTime,
-                                         _pEDUCB->getTransTimeout() ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction "
-                      "time for transaction begin on this node, rc: %d",
-                      rc ) ;
+         if ( SDB_OK != _msgUserData.getRecvTimeRC() )
+         {
+            // failed to get logical time when receiving message
+            // retry now
+            PD_LOG( PDWARNING, "Failed to get receive time for pre-commit "
+                    "message, rc: %d", _msgUserData.getRecvTimeRC() ) ;
+
+            stpAgent agent ;
+            rc = agent.getLogicalTimeUS( receivedTime,
+                                         _pEDUCB->getTransTimeout(),
+                                         FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get global logical "
+                         "time for transaction pre-commit on this node, "
+                         "rc: %d", rc ) ;
+         }
+         else
+         {
+            receivedTime = _msgUserData.getRecvTime() ;
+         }
+
+#if defined (_DEBUG)
+         PD_LOG( PDERROR, "Check RR transaction pre-commit [%s], "
+                 "pre-commit time [%s], send time [%s], "
+                 "receive time [%s], request ID %llu, rc: %d",
+                 dpsTransIDToString( _pEDUCB->getTransID() ).c_str(),
+                 dpsTransTimeToString( preCommitTime ).c_str(),
+                 dpsTransTimeToString( sendTime ).c_str(),
+                 dpsTransTimeToString( receivedTime ).c_str(),
+                 _msgUserData.getRequestID(),
+                 _msgUserData.getRecvTimeRC() ) ;
+#endif
 
          // we check doing transaction arbitration with maximum time error,
          // ( read transaction started after a maximum time error period, it
          // needn't to do arbitration with doing transaction anymore )
          // so we could check pre-commit with maximum time error too
-         currentTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
+         receivedTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
 
          // check logical time between remote and local
-         if ( transCB->isGlobTransSyncCheck() &&
-              remoteTime != currentTime )
+         if ( transCB->isGlobTransSyncCheck() && sendTime != receivedTime )
          {
             stpAgent agent ;
 
             PD_LOG( PDWARNING, "Global transaction times between nodes "
                     "are not synchronized with node time error, "
                     "remote node %s is pre-committed at [%s], sent at [%s], "
-                    "local node %s is received at [%s]",
+                    "local node %s is received at [%s], diff [%lld]",
                     routeID2String( pCommitPreMsg->header.routeID ).c_str(),
                     dpsTransTimeToString( preCommitTime ).c_str(),
-                    dpsTransTimeToString( remoteTime ).c_str(),
+                    dpsTransTimeToString( sendTime ).c_str(),
                     routeID2String( pmdGetNodeID() ).c_str(),
-                    dpsTransTimeToString( currentTime ).c_str() ) ;
+                    dpsTransTimeToString( receivedTime ).c_str(),
+                    (INT64)( receivedTime.getTime() ) -
+                          (INT64)( sendTime.getTime() ) ) ;
 
             // notify local to synchronize time
             agent.notifySync() ;
@@ -5456,11 +5754,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 pos = 0 ;
+      MsgPacketReq *packetMsg = (MsgPacketReq *)msg ;
       MsgHeader *pTmpMsg = NULL ;
 
       ++_inPacketLevel ;
 
-      pos += sizeof( MsgHeader ) ;
+      pos += sizeof( MsgPacketReq ) ;
       while( pos < msg->messageLength )
       {
          pTmpMsg = ( MsgHeader* )( ( CHAR*)msg + pos ) ;
@@ -5469,6 +5768,18 @@ namespace engine
          pTmpMsg->routeID.value = msg->routeID.value ;
 
          opCode = pTmpMsg->opCode ;
+
+         // copy send time from packet message to packed message
+         if ( MSG_BS_TRANS_BEGIN_REQ == opCode )
+         {
+            MsgOpTransBegin *request = (MsgOpTransBegin *)pTmpMsg ;
+            request->sendTime = packetMsg->sendTime ;
+         }
+         else if ( MSG_BS_TRANS_COMMITPRE_REQ == opCode )
+         {
+            MsgOpTransCommitPre *request = (MsgOpTransCommitPre *)pTmpMsg ;
+            request->sendTime = packetMsg->sendTime ;
+         }
 
          rc = _onOPMsg( handle, pTmpMsg ) ;
          if ( rc )

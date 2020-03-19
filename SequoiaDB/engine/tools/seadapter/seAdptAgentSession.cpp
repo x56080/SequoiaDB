@@ -76,7 +76,8 @@ namespace seadapter
    }
 
    void _seAdptAgentSession::onRecieve( const NET_HANDLE netHandle,
-                                        MsgHeader *msg )
+                                        MsgHeader *msg,
+                                        INetUserData *userData )
    {
    }
 

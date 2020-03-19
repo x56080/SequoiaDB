@@ -121,7 +121,8 @@ namespace engine
    }
 
    void _clsDataSrcBaseSession::onRecieve ( const NET_HANDLE netHandle,
-                                            MsgHeader * msg )
+                                            MsgHeader * msg,
+                                            INetUserData *userData )
    {
       _disconnectMsg.routeID = msg->routeID ;
 

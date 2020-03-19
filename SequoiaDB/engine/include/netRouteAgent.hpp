@@ -52,7 +52,7 @@ namespace engine
    class _netRouteAgent : public SDBObject
    {
       public:
-         _netRouteAgent( _netMsgHandler *handler ) ;
+         _netRouteAgent( INetMsgHandler *handler ) ;
 
          _netRoute* getRoute() { return &_route ; }
          _netFrame* getFrame() { return &_frame ; }
@@ -127,7 +127,6 @@ namespace engine
       public:
          INT32 listen( const _MsgRouteID &id,
                        UINT32 protocolMask = NET_FRAME_MASK_TCP,
-                       INetUDPMsgHandler *udpHandler = NULL,
                        UINT32 udpBufferSize = NET_UDP_DEFAULT_BUFFER_SIZE ) ;
 
          INT32 syncConnect( const _MsgRouteID &id,

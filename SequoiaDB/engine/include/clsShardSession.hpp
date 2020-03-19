@@ -83,6 +83,113 @@ namespace engine
    } ;
    typedef _clsIdentifyInfo clsIdentifyInfo ;
 
+   // if receive buffer contains messages larger than block size, we consider
+   // the socket is blocked by message traffic
+   #define CLS_SHD_MSG_BLOCK_SIZE   ( 1024 )
+   // size of blocking message info array
+   #define CLS_SHD_MAX_BLOCK_SIZE   ( 16 )
+
+   /*
+      _clsShdBlockInfo define
+    */
+   // information of blocking messages, contains block size and logical time
+   // for saving information of blocking messages
+   class _clsShdBlockInfo : public utilPooledObject
+   {
+   public:
+      // constructor and destructor
+      _clsShdBlockInfo()
+      : blockSize( 0 ),
+        blockTimestamp()
+      {
+      }
+
+      ~_clsShdBlockInfo()
+      {
+      }
+
+   public:
+      // size of blocking messages
+      UINT32            blockSize ;
+      // logical timestamp to saving blocking information
+      stpLogicalTimeUS  blockTimestamp ;
+   } ;
+
+   typedef class _clsShdBlockInfo clsShdBlockInfo ;
+
+   /*
+      _clsShdUserData define
+    */
+   // shard user data to save info from net message
+   class _clsShdUserData : public INetUserData
+   {
+   public:
+      // constructor and destructor
+      _clsShdUserData() ;
+      virtual ~_clsShdUserData() ;
+
+   public:
+      virtual OSS_INLINE NET_USER_DATA_TYPE getType() const
+      {
+         return NET_USER_DATA_SHARD ;
+      }
+
+      // indicate if message requires global logical time
+      OSS_INLINE BOOLEAN isGlobTimeRequest() const
+      {
+         return OSS_BIT_TEST( _requestID, MSG_REQUEST_FLAG_GLOBTIME ) ?
+                TRUE :
+                FALSE ;
+      }
+
+      // get return code to acquire global logical time
+      OSS_INLINE UINT32 getRecvTimeRC() const
+      {
+         return _recvTimeRC ;
+      }
+
+      // get global logical time to receive message
+      OSS_INLINE const stpLogicalTimeUS &getRecvTime() const
+      {
+         return _recvTime ;
+      }
+
+      // copy user data
+      void setUserData( INetUserData *userData ) ;
+
+      // acquire receive time from STP
+      INT32 acquireRecvTime( UINT32 receivedSize,
+                             UINT32 currentSize ) ;
+
+      // callback event to handle receive messages
+      void onReceiveMsg( UINT32 receivedSize, UINT32 currentSize ) ;
+
+   protected:
+      // calculate blocking size
+      void _calcBlockSize( UINT32 &blockSize, UINT32 currentSize ) ;
+      // add new blocking info
+      INT32 _addBlockInfo( UINT32 blockSize, stpLogicalTimeUS &blockTime ) ;
+
+   protected:
+      // return code to acquire global logical time
+      UINT32            _recvTimeRC ;
+      // global logical time to receive message
+      stpLogicalTimeUS  _recvTime ;
+      // total size of blocking messages
+      UINT32            _totalBlockSize ;
+      // current index to first blocking info
+      UINT8             _blockInfoIndex ;
+      // size of blocking info list
+      UINT8             _blockInfoSize ;
+      // blocking info list
+      clsShdBlockInfo   _blockInfo[ CLS_SHD_MAX_BLOCK_SIZE ] ;
+   } ;
+
+   typedef class _clsShdUserData clsShdUserData ;
+
+   /*
+      _clsShdSession implement
+    */
    class _clsShdSession : public _pmdAsyncSession
    {
       DECLARE_OBJ_MSG_MAP()
@@ -98,7 +205,8 @@ namespace engine
          virtual void clear() ;
 
          virtual void    onRecieve ( const NET_HANDLE netHandle,
-                                     MsgHeader * msg ) ;
+                                     MsgHeader * msg,
+                                     INetUserData *userData ) ;
          virtual BOOLEAN timeout ( UINT32 interval ) ;
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
 
@@ -373,10 +481,8 @@ namespace engine
          //    - transID: transaction ID of current transaction
          //    - remoteRID: route ID of remote node to launch this transaction
          //    - transBeginTime: global logical time to begin transaction
-         //    - remoteTime: global logical time to send transaction begin
-         //                  message of this transaction
-         //    - localTime: global logical time to receive the transaction
-         //                 begin message
+         //    - sendTime: global logical time to send transaction begin
+         //                message of this transaction
          //    - nextIsWrite: indicate if this is a write operator
          // return:
          //    - SDB_OK: succeed to check transaction with RR isolation
@@ -387,8 +493,7 @@ namespace engine
          INT32 _checkTransRR( const DPS_TRANS_ID &transID,
                               const MsgRouteID &remoteRID,
                               const stpLogicalTimeUS &transBeginTime,
-                              const stpLogicalTimeUS &remoteTime,
-                              const stpLogicalTimeUS &localTime,
+                              const stpLogicalTimeUS &sendTime,
                               BOOLEAN nextIsWrite ) ;
 
       protected:
@@ -412,6 +517,7 @@ namespace engine
          BOOLEAN                _hasUpdateCataInfo ;
 
          ossTimestamp           _lastRecvTime ;
+         clsShdUserData         _msgUserData ;
 
          CHAR                   _detailName[SESSION_NAME_LEN+1] ;
          BOOLEAN                _logout ;

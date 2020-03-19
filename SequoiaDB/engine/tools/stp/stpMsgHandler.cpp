@@ -50,7 +50,7 @@ namespace engine
       _stpNetMsgHandler implement
     */
    _stpNetMsgHandler::_stpNetMsgHandler( STPCB *stpCB )
-   : INetUDPMsgHandler(),
+   : INetMsgHandler(),
      stpHandlerBase( stpCB ),
      _requestID( 0 )
    {
@@ -63,7 +63,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNETMSGHANDLER_HANDLEMSG, "_stpNetMsgHandler::handleMsg" )
    INT32 _stpNetMsgHandler::handleMsg( const NET_HANDLE &handle,
                                        const MsgHeader *header,
-                                       const CHAR *message )
+                                       const CHAR *message,
+                                       netUserDataHolder *userDataHolder )
    {
       INT32 rc = SDB_OK ;
 
@@ -177,10 +178,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNETMSGHANDLER_ONSENDMSG, "_stpNetMsgHandler::onSendMsg" )
-   void _stpNetMsgHandler::onSendMsg( const NET_HANDLE &handle,
-                                      const MsgRouteID &id,
-                                      MsgHeader *header )
+   INT32 _stpNetMsgHandler::onSendMsg( const NET_HANDLE &handle,
+                                       const MsgRouteID &id,
+                                       MsgHeader *header )
    {
+      INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY( SDB__STPNETMSGHANDLER_ONSENDMSG ) ;
 
       SDB_ASSERT( NULL != header, "message is invalid" ) ;
@@ -208,14 +211,20 @@ namespace engine
          }
       }
 
-      PD_TRACE_EXIT( SDB__STPNETMSGHANDLER_ONSENDMSG ) ;
+      PD_TRACE_EXITRC( SDB__STPNETMSGHANDLER_ONSENDMSG, rc ) ;
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNETMSGHANDLER_ONRECEIVEMSG, "_stpNetMsgHandler::onReceiveMsg" )
-   void _stpNetMsgHandler::onReceiveMsg( const NET_HANDLE &handle,
-                                         const MsgRouteID &id,
-                                         MsgHeader *header )
+   INT32 _stpNetMsgHandler::onReceiveMsg( const NET_HANDLE &handle,
+                                          const MsgRouteID &id,
+                                          MsgHeader *header,
+                                          UINT32 availableSize,
+                                          netUserDataHolder *userDataHolder )
    {
+      INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY( SDB__STPNETMSGHANDLER_ONRECEIVEMSG ) ;
 
       SDB_ASSERT( NULL != header, "message is invalid" ) ;
@@ -243,7 +252,9 @@ namespace engine
          }
       }
 
-      PD_TRACE_EXIT( SDB__STPNETMSGHANDLER_ONRECEIVEMSG ) ;
+      PD_TRACE_EXITRC( SDB__STPNETMSGHANDLER_ONRECEIVEMSG, rc ) ;
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNETMSGHANDLER__HANDLESYSINFO, "_stpNetMsgHandler::_handleSysInfo" )

@@ -297,7 +297,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_HANDLEMSG, "catMainController::handleMsg" )
    INT32 catMainController::handleMsg( const NET_HANDLE &handle,
                                        const _MsgHeader *header,
-                                       const CHAR *msg )
+                                       const CHAR *msg,
+                                       netUserDataHolder *userDataHolder )
    {
       SDB_ASSERT ( _pEduMgr && _pCatCB && _pDmsCB,
                    "all of the members must be initialized before init "
@@ -1439,7 +1440,7 @@ namespace engine
 
       _pCatCB->incPacketLevel() ;
 
-      pos += sizeof( MsgHeader ) ;
+      pos += sizeof( MsgPacketReq ) ;
       while( pos < pMsg->messageLength )
       {
          pTmpMsg = ( MsgHeader* )( ( CHAR*)pMsg + pos ) ;

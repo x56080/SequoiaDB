@@ -78,7 +78,7 @@ namespace engine
 
       if ( MSG_PACKET != pOldHeader->opCode )
       {
-         totalLen += sizeof( MsgHeader ) ;
+         totalLen += sizeof( MsgPacketReq ) ;
       }
 
       rc = cb->allocBuff( totalLen, &pBuff, NULL ) ;
@@ -90,10 +90,10 @@ namespace engine
       }
       else
       {
-         MsgHeader *pMsgPacket = NULL ;
+         MsgPacketReq *pMsgPacket = NULL ;
          /// packet
-         pMsgPacket = ( MsgHeader* )( pBuff + pos ) ;
-         pos += sizeof( MsgHeader ) ;
+         pMsgPacket = ( MsgPacketReq* )( pBuff + pos ) ;
+         pos += sizeof( MsgPacketReq ) ;
 
          /// new add
          ossMemcpy( pBuff + pos, (void*)pHeader, pHeader->messageLength ) ;
@@ -106,16 +106,23 @@ namespace engine
          if ( MSG_PACKET == pOldHeader->opCode )
          {
             ossMemcpy( (void*)pMsgPacket, (void*)pOldHeader,
-                       sizeof( MsgHeader ) ) ;
+                       sizeof( MsgPacketReq ) ) ;
          }
          else
          {
-            pMsgPacket->opCode = MSG_PACKET ;
-            pMsgPacket->requestID = pOldHeader->requestID ;
-            pMsgPacket->routeID.value = pOldHeader->routeID.value ;
-            pMsgPacket->TID = pOldHeader->TID ;
+            pMsgPacket->header.opCode = MSG_PACKET ;
+            pMsgPacket->header.requestID = pOldHeader->requestID ;
+            pMsgPacket->header.routeID.value = pOldHeader->routeID.value ;
+            pMsgPacket->header.TID = pOldHeader->TID ;
          }
-         pMsgPacket->messageLength = totalLen ;
+         pMsgPacket->header.messageLength = totalLen ;
+
+         // global time synchronization is required
+         if ( OSS_BIT_TEST( pHeader->requestID, MSG_REQUEST_FLAG_GLOBTIME ) )
+         {
+            OSS_BIT_SET( pMsgPacket->header.requestID,
+                         MSG_REQUEST_FLAG_GLOBTIME ) ;
+         }
 
          /// old
          if ( pSub->getIODatas()->size() > 0 )
@@ -142,8 +149,8 @@ namespace engine
 
             if ( MSG_PACKET == pOldHeader->opCode )
             {
-               pCopyData += sizeof( MsgHeader ) ;
-               copyLen -= sizeof( MsgHeader ) ;
+               pCopyData += sizeof( MsgPacketReq ) ;
+               copyLen -= sizeof( MsgPacketReq ) ;
             }
             ossMemcpy( pBuff + pos, pCopyData,copyLen ) ;
             pos += copyLen ;
@@ -639,35 +646,15 @@ namespace engine
 
       if ( cb->isGlobTrans() && cb->isTransRR() && !isVersion0() )
       {
-         // for new version, global and RR transaction, fetch global logical
-         // time, for DATA node to check and adjust times
-         stpLogicalTimeUS currentTime ;
-         rc = sdbGetTransCB()->getGlobTransTime( currentTime,
-                                                 cb->getTransTimeout() ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction "
-                      "time, rc: %d", rc ) ;
-
-         request->currentTime = currentTime.getTime() ;
-         request->currentTimeError = currentTime.getTimeError() ;
-
          // set next operation, DATA node will do pre-arbitration if needed
          request->nextIsWrite = nextIsWrite ? 1 : 0 ;
-      }
-      else
-      {
-         // old version or non-global transaction does not need global time
-         // check
-         request->currentTime = 0 ;
-         request->currentTimeError = 0 ;
-         request->nextIsWrite = 0 ;
+
+         OSS_BIT_SET( request->header.requestID, MSG_REQUEST_FLAG_GLOBTIME ) ;
       }
 
-   done:
       PD_TRACE_EXITRC( SDB__COORDREMOTEHANDLERBASE_ONTRANSBEGIN, rc ) ;
-      return rc ;
 
-   error:
-      goto done ;
+      return rc ;
    }
 
    INT32 _coordRemoteHandlerBase::_checkSessionTransaction( _pmdRemoteSession *pSession,
@@ -700,8 +687,7 @@ namespace engine
             // time error of logical time for global transaction
             msgReq.transTimeError =
                         (UINT32)( cb->getTransBeginTime().getTimeError() ) ;
-            msgReq.currentTime = 0LL ;
-            msgReq.currentTimeError = 0 ;
+            msgReq.sendTime = 0LL ;
             msgReq.nextIsWrite = 0 ;
             ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
 
@@ -719,20 +705,20 @@ namespace engine
             pPropSite->addTransNode( pSub->getNodeID(), isWriteMsg ) ;
          }
       }
-      else if ( cb->isTransaction() &&
-                MSG_BS_TRANS_COMMITPRE_REQ == pSub->getOrgReqOpCode() )
+      else if ( cb->isGlobTrans() && cb->isTransRR() )
       {
-         MsgOpTransCommitPre *message = (MsgOpTransCommitPre *)( pSub->getReqMsg() ) ;
-
-         if ( 0LL != message->preCommitTime )
+         switch ( pSub->getOrgReqOpCode() )
          {
-            stpLogicalTimeUS currentTime ;
-            rc = sdbGetTransCB()->getGlobTransTime( currentTime,
-                                                    cb->getTransTimeout() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction "
-                         "time, rc: %d", rc ) ;
-
-            message->currentTime = currentTime.getTime() ;
+            case MSG_PACKET :
+            case MSG_BS_TRANS_BEGIN_REQ :
+            case MSG_BS_TRANS_COMMITPRE_REQ :
+            {
+               OSS_BIT_SET( pSub->getReqMsg()->requestID,
+                            MSG_REQUEST_FLAG_GLOBTIME ) ;
+               break ;
+            }
+            default :
+               break ;
          }
       }
 

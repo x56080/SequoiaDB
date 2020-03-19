@@ -80,6 +80,7 @@ namespace engine
       virtual void close() ;
       virtual void setOpt() ;
       virtual CHAR *msg() ;
+      virtual UINT32 getAvailableSize() ;
 
       virtual std::string localAddr() const ;
       virtual std::string remoteAddr() const ;

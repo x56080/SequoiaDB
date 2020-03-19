@@ -472,8 +472,7 @@ namespace engine
 
       // listen on both TCP and UDP
       rc = _netAgent.listen( local.getRouteID(),
-                             ( NET_FRAME_MASK_TCP | NET_FRAME_MASK_UDP ),
-                             &_netMsgHandler ) ;
+                             ( NET_FRAME_MASK_TCP | NET_FRAME_MASK_UDP ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to listen on port [%u], rc: %d",
                    _options.getPort(), rc ) ;
 

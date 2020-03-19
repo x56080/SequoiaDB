@@ -798,7 +798,7 @@ namespace engine
       }
 
       // check whether time is validated
-      OSS_INLINE BOOLEAN isValid()
+      OSS_INLINE BOOLEAN isValid() const
       {
          return ( 0 != _time &&
                   0 != _timeError ) ;

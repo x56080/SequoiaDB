@@ -180,7 +180,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_HNDMSG, "_pmdAsyncMsgHandler::handleMsg" )
    INT32 _pmdAsyncMsgHandler::handleMsg( const NET_HANDLE & handle,
                                          const _MsgHeader *header,
-                                         const CHAR *msg )
+                                         const CHAR *msg,
+                                         netUserDataHolder *userDataHolder )
    {
       //If TID not Zero, implicate external business require form client
       //or repl sync messages
@@ -216,7 +217,7 @@ namespace engine
          /// When _handleAdapterMsg failed, need call _handleSessionMsg
          if ( !_pTaskAdapter || rc )
          {
-            rc = _handleSessionMsg ( handle, header, msg ) ;
+            rc = _handleSessionMsg( handle, header, msg, userDataHolder ) ;
          }
       }
       //Other msg will push to cb queue
@@ -260,6 +261,31 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_HNDCONNECT, "_pmdAsyncMsgHandler::handleConnect" )
+   void _pmdAsyncMsgHandler::handleConnect( const NET_HANDLE &handle,
+                                            _MsgRouteID id,
+                                            BOOLEAN isPositive,
+                                            netUserDataHolder *userDataHolder )
+   {
+      PD_TRACE_ENTRY( SDB__PMDMSGHND_HNDCONNECT ) ;
+
+      if ( _needUserData() &&
+           NULL != userDataHolder &&
+           !( userDataHolder->hasUserData() ) )
+      {
+         INT32 rc = SDB_OK ;
+         rc = _allocUserData( handle, userDataHolder ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to allocate user data for handle %u "
+                    "route ID %s", handle, routeID2String( id ).c_str(),
+                    rc ) ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__PMDMSGHND_HNDCONNECT ) ;
    }
 
    // This function will not be used concurrently, so we don't need to latch it
@@ -353,10 +379,13 @@ namespace engine
 
    INT32 _pmdAsyncMsgHandler::_handleSessionMsg ( const NET_HANDLE &handle,
                                                   const _MsgHeader *header,
-                                                  const CHAR *msg )
+                                                  const CHAR *msg,
+                                                  netUserDataHolder *userDataHolder )
    {
-      return _pSessionMgr->dispatchMsg( handle, header,
+      return _pSessionMgr->dispatchMsg( handle,
+                                        header,
                                         PMD_EDU_MEM_NONE,
+                                        userDataHolder,
                                         FALSE ) ;
    }
 

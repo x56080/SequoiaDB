@@ -254,6 +254,32 @@ namespace engine
       PD_TRACE_EXIT ( SDB__NETEVNHND_SETOPT );
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_GETAVAILABLESIZE, "_netEventHandler::getAvailableSize" )
+   UINT32 _netEventHandler::getAvailableSize()
+   {
+      UINT32 availableSize = 0 ;
+
+      PD_TRACE_ENTRY( SDB__NETEVNHND_GETAVAILABLESIZE ) ;
+
+      boost::system::error_code ec ;
+
+      if ( _sock.is_open() )
+      {
+         availableSize = _sock.available( ec ) ;
+         if ( ec )
+         {
+            PD_LOG( PDWARNING, "Connection[Handle:%d, Node:%s] failed to "
+                    "get available size, error: %s,%d",
+                    _handle, routeID2String( _id ).c_str(),
+                    ec.message().c_str(), ec.value() ) ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__NETEVNHND_GETAVAILABLESIZE ) ;
+
+      return availableSize ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SYNCCONN, "_netEventHandler::syncConnect" )
    INT32 _netEventHandler::syncConnect( const CHAR *hostName,
                                         const CHAR *serviceName )
@@ -619,6 +645,13 @@ namespace engine
                     msg2String( &_header, MSG_MASK_ALL, 0 ).c_str(),
                     remoteAddr().c_str(), remotePort() ) ;
          }
+
+         // on receive message callback
+         _evSuitPtr->getFrame()->onReceiveMsg( _getSharedBase(),
+                                               _id,
+                                               &_header,
+                                               sizeof( MsgHeader ) ) ;
+
          /// msg has only header
          if ( (UINT32)sizeof(_MsgHeader) == (UINT32)_header.messageLength )
          {

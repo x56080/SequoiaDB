@@ -946,8 +946,8 @@ namespace engine
          }
          else
          {
-            rc = _pAgent->syncSend( pSub->getHandle(),
-                                    (void*)pSub->getReqMsg() ) ;
+            rc = _pAgent->syncSend( pSub->getHandle(), pSub->getReqMsg(),
+                                    NULL, 0 ) ;
          }
 
          if ( SDB_OK == rc )
@@ -1610,6 +1610,7 @@ namespace engine
       MAP_SUB_SESSIONPTR_IT itPtr ;
       MsgHeader *pReply = NULL ;
       UINT64 nodeID = 0 ;
+      UINT64 requestID = 0 ;
       pmdSubSession *pSubSession = NULL ;
       NET_HANDLE handle = (NET_HANDLE)event._userData ;
 
@@ -1625,6 +1626,7 @@ namespace engine
 
       pReply = ( MsgHeader* )event._Data ;
       nodeID = pReply->routeID.value ;
+      requestID = ( pReply->requestID & MSG_REQUEST_FLAG_MASK ) ;
 
       // if is MSG_BS_DISCONNECT, the remote node is disconnect
       if ( MSG_BS_DISCONNECT == pReply->opCode )
@@ -1634,7 +1636,7 @@ namespace engine
          itPtr = _mapReq2SubSession.begin() ;
          while ( itPtr != _mapReq2SubSession.end() )
          {
-            if ( pReply->requestID < itPtr->first )
+            if ( requestID < itPtr->first )
             {
                break ;
             }
@@ -1697,7 +1699,7 @@ namespace engine
       }
       else
       {
-         itPtr = _mapReq2SubSession.find( pReply->requestID ) ;
+         itPtr = _mapReq2SubSession.find( requestID ) ;
          if ( itPtr != _mapReq2SubSession.end() )
          {
             pSubSession = itPtr->second ;
@@ -1739,7 +1741,7 @@ namespace engine
             PD_LOG( PDWARNING, "Session[%s] recv expired msg[opCode: (%d)%u, "
                     "ReqID: %lld, Len: %d, NodeID: %s]",
                     _pEDUCB->toString().c_str(), IS_REPLY_TYPE(pReply->opCode),
-                    GET_REQUEST_TYPE(pReply->opCode), pReply->requestID,
+                    GET_REQUEST_TYPE(pReply->opCode), requestID,
                     pReply->messageLength,
                     routeID2String(pReply->routeID).c_str() ) ;
 

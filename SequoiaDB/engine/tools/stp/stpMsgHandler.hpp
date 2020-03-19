@@ -52,7 +52,7 @@ namespace engine
    /*
       _stpNetMsgHandler define
     */
-   class _stpNetMsgHandler : public INetUDPMsgHandler,
+   class _stpNetMsgHandler : public INetMsgHandler,
                              public stpHandlerBase
    {
    public:
@@ -65,19 +65,22 @@ namespace engine
       // handle message
       virtual INT32 handleMsg( const NET_HANDLE &handle,
                                const MsgHeader *header,
-                               const CHAR *message ) ;
+                               const CHAR *message,
+                               netUserDataHolder *userDataHolder ) ;
       // handle close message ( disconnect )
       virtual void handleClose( const NET_HANDLE &handle,
                                 MsgRouteID id ) ;
 
       // handle event on sending message ( via UDP )
-      virtual void onSendMsg( const NET_HANDLE &handle,
-                              const MsgRouteID &id,
-                              MsgHeader *header ) ;
+      virtual INT32 onSendMsg( const NET_HANDLE &handle,
+                               const MsgRouteID &id,
+                               MsgHeader *header ) ;
       // handle event on receiving message ( via UDP )
-      virtual void onReceiveMsg( const NET_HANDLE &handle,
-                                 const MsgRouteID &id,
-                                 MsgHeader *header ) ;
+      virtual INT32 onReceiveMsg( const NET_HANDLE &handle,
+                                  const MsgRouteID &id,
+                                  MsgHeader *header,
+                                  UINT32 availableSize,
+                                  netUserDataHolder *userDataHolder ) ;
 
    public:
       // override function of STP module

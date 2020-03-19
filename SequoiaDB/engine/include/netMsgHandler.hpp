@@ -54,57 +54,74 @@ namespace engine
         _netMsgHandler(){}
         virtual ~_netMsgHandler(){}
       public:
+        // callback to handle message
+        // - handle: net handle
+        // - header: header of message
+        // - msg: content of message
+        // - userDataHolder: holder of user data, pass user data to handle
+        //                   session
         virtual INT32   handleMsg( const NET_HANDLE &handle,
                                    const _MsgHeader *header,
-                                   const CHAR *msg ) = 0 ;
+                                   const CHAR *msg,
+                                   netUserDataHolder *userDataHolder ) = 0 ;
 
+        // callback to handle connection close
+        // - handle: net handle
+        // - id: route ID to peer node
         virtual void    handleClose( const NET_HANDLE &handle,
                                      _MsgRouteID id )
         {
         }
 
+        // callback to handle connection establish
+        // - handle: net handle
+        // - id: route ID to peer node
+        // - isPositive: TRUE means connection is launched from this node
+        //               FALSE means connection is launched from peer node
+        // - userDataHolder: holder of user data, pass user data to handle
+        //                   session, may create user data of type specified
+        //                   by handle session
         virtual void    handleConnect( const NET_HANDLE &handle,
                                        _MsgRouteID id,
-                                       BOOLEAN isPositive )
+                                       BOOLEAN isPositive,
+                                       netUserDataHolder *userDataHolder )
         {
         }
 
+        // callback on before sending message
+        // - handle: net handle
+        // - id: route ID to peer node
+        // - header: message header to send
+        virtual INT32   onSendMsg( const NET_HANDLE &handle,
+                                   const MsgRouteID &id,
+                                   MsgHeader *header )
+        {
+           return SDB_OK ;
+        }
+
+        // callback on after receiving message
+        // - handle: net handle
+        // - id: route ID to peer node
+        // - header: message header to send
+        // - availableSize: size of available messages in socket ( including
+        //                  current message and blocking messages )
+        // - userDataHolder: holder of user data, pass user data to handle
+        //                   session
+        virtual INT32   onReceiveMsg( const NET_HANDLE &handle,
+                                      const MsgRouteID &id,
+                                      MsgHeader *header,
+                                      UINT32 availableSize,
+                                      netUserDataHolder *userDataHolder )
+        {
+           return SDB_OK ;
+        }
+
+        // callback on IO service stop
         virtual void    onStop() {}
    } ;
 
    typedef _netMsgHandler INetMsgHandler ;
 
-   /*
-      _netUDPMsgHandler define
-    */
-   class _netUDPMsgHandler : public _netMsgHandler
-   {
-   public:
-      _netUDPMsgHandler()
-      {
-      }
-
-     virtual ~_netUDPMsgHandler()
-     {
-     }
-
-   public:
-      virtual void onSendMsg( const NET_HANDLE &handle,
-                              const MsgRouteID &id,
-                              MsgHeader *header )
-      {
-      }
-
-      virtual void onReceiveMsg( const NET_HANDLE &handle,
-                                 const MsgRouteID &id,
-                                 MsgHeader *header )
-      {
-      }
-   } ;
-
-   typedef class _netUDPMsgHandler INetUDPMsgHandler ;
-
 }
 
 #endif // NETMSGHANDLER_HPP_
-

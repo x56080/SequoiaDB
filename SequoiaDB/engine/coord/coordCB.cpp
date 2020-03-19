@@ -1298,7 +1298,7 @@ retry :
 
       ++_inPacketLevel ;
 
-      pos += sizeof( MsgHeader ) ;
+      pos += sizeof( MsgPacketReq ) ;
       while( pos < header->messageLength )
       {
          pTmpMsg = ( MsgHeader* )( ( CHAR*)header + pos ) ;

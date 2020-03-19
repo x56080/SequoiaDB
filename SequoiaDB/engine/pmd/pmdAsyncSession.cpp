@@ -339,7 +339,8 @@ namespace engine
    }
 
    void _pmdAsyncSession::onRecieve ( const NET_HANDLE netHandle,
-                                      MsgHeader * msg )
+                                      MsgHeader * msg,
+                                      INetUserData *userData )
    {
    }
 
@@ -853,6 +854,7 @@ namespace engine
    INT32 _pmdAsycSessionMgr::dispatchMsg( const NET_HANDLE &handle,
                                           const MsgHeader *pMsg,
                                           pmdEDUMemTypes memType,
+                                          netUserDataHolder *userDataHolder,
                                           BOOLEAN decPending,
                                           BOOLEAN *hasDispatched )
    {
@@ -976,10 +978,12 @@ namespace engine
          goto done ;
       }
 
-      // On recieve
-      pSession->onRecieve ( handle, (_MsgHeader*)pMsg ) ;
+      // On receive
+      pSession->onRecieve( handle, (_MsgHeader*)pMsg,
+                           NULL == userDataHolder ?
+                                 NULL : userDataHolder->getUserData() ) ;
 
-      // push the mssage into session manager
+      // push the message into session manager
       rc = _pushMessage( pSession, pMsg, memType, handle ) ;
       if ( SDB_OK != rc )
       {
