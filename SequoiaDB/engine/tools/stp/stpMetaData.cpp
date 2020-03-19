@@ -132,7 +132,9 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETADATA_GETLOGICALTIMENS, "_stpMetaData::getLogicalTimeNS" )
    INT32 _stpMetaData::getLogicalTimeNS( stpLogicalTimeNS &time,
-                                         BOOLEAN checkSync ) const
+                                         BOOLEAN monotonic,
+                                         BOOLEAN checkSync,
+                                         UINT32 &waitTimeUS ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -146,20 +148,35 @@ namespace engine
          UINT64 syncLimit = STP_SEC_TO_NANOSEC( _syncInterval +
                                                 STP_MIN_SYNC_INTERVAL ) ;
          stpHPTime curHWTime( STP_SAMPLE_TIME_MONOTONIC ) ;
+
          // check if current hardware time is larger than synchronized hardware
          // time, if not, means the time is pushed forward because it is ahead
          // of source after synchronization, and should to be valid after
          // current hardware time passed synchronize hardware time
          // NOTE: in this case, caller could wait for synchronize time to be
          //       passed later
-         PD_CHECK( curHWTime >= syncHWTime,
-                   STP_TIME_AHEAD_AFTER_SYNC, error, PDWARNING,
-                   "STP logical time is not available now, time synchronized "
-                   "is ahead of source, need wait for current hardware time "
-                   "passes last synchronized hardware time, "
-                   "last synchronized hardware time [%llu], "
-                   "current hardware time [%llu]", syncHWTime.toMicroSecond(),
-                   curHWTime.toMicroSecond() ) ;
+         if ( monotonic && curHWTime < syncHWTime )
+         {
+            rc = STP_TIME_AHEAD_AFTER_SYNC ;
+            waitTimeUS = syncHWTime.toMicroSecond() -
+                         curHWTime.toMicroSecond() ;
+
+            PD_LOG( PDWARNING,
+                    "STP logical time is not available now, time synchronized "
+                    "is ahead of source, need wait for current hardware time "
+                    "passes last synchronized hardware time, "
+                    "last synchronized hardware time [%llu], "
+                    "current hardware time [%llu]",
+                    syncHWTime.toMicroSecond(),
+                    curHWTime.toMicroSecond() ) ;
+
+            goto error ;
+         }
+         else
+         {
+            waitTimeUS = 0 ;
+         }
+
          // check if current hardware time is smaller than synchronized
          // hardware time with a synchronize limit buffer, if not, means the
          // meta data is expired ( long time without synchronize )
@@ -199,7 +216,9 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETADATA_GETLOGICALTIMEUS, "_stpMetaData::getLogicalTimeUS" )
    INT32 _stpMetaData::getLogicalTimeUS( stpLogicalTimeUS &time,
-                                         BOOLEAN checkSync ) const
+                                         BOOLEAN monotonic,
+                                         BOOLEAN checkSync,
+                                         UINT32 &waitTimeUS ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -208,7 +227,7 @@ namespace engine
       stpLogicalTimeNS timeNS ;
 
       // get logical time in nanosecond
-      rc = getLogicalTimeNS( timeNS, checkSync ) ;
+      rc = getLogicalTimeNS( timeNS, monotonic, checkSync, waitTimeUS ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
       // copy to output ( change unit to microsecond )

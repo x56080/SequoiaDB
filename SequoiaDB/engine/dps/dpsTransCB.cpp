@@ -1229,7 +1229,7 @@ namespace engine
       // try to get time in timeout
       // NOTE: it might be failed if STP is busy with synchronization
       //       we could retry within a given timeout
-      rc = _stpAgent.getLogicalTimeUS( time, timeout ) ;
+      rc = _stpAgent.getLogicalTimeUS( time, timeout, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, "
                    "rc: %d", rc ) ;
 
