@@ -108,7 +108,7 @@ namespace engine
 
                extRW.setNothrow( TRUE ) ;
                pExtent = extRW.readPtr<dmsExtent>() ;
-               
+
                // if return 0, means invalid so that we can ignore
                if ( pExtent )
                {
@@ -149,10 +149,16 @@ namespace engine
                      }
                   }
                } // if ( addr )
-               // unlock the collection space so that someone else is able to
-               // drop it
-               dmscb->suUnlock ( csid ) ;
             } // if ( su )
+
+            // unlock the collection space so that someone else is able to
+            // drop it
+            if ( su )
+            {
+               dmscb->suUnlock ( csid ) ;
+               su = NULL ;
+            }
+
             // push pre-load request to drop back queue
             dropReqQ->push ( prefReq ) ;
          } // if ( prefReqQ->timed_wait_and_pop

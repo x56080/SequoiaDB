@@ -245,23 +245,30 @@ namespace engine
    INT32 _rtnContextDelCS::_tryLock( const CHAR *pCollectionName,
                                      _pmdEDUCB *cb )
    {
-      INT32 rc = SDB_OK;
+      INT32 rc = SDB_OK ;
+      dmsStorageUnitID suID = DMS_INVALID_CS ;
+
       if ( getDPSCB() )
       {
-         dmsStorageUnitID suID = DMS_INVALID_CS;
-         UINT32 logicCSID = DMS_INVALID_LOGICCSID;
-         dmsStorageUnit *su = NULL;
+         UINT32 logicCSID = DMS_INVALID_LOGICCSID ;
+         dmsStorageUnit *su = NULL ;
          dpsTransRetInfo lockConflict ;
-         UINT32 length = ossStrlen ( pCollectionName );
+
+         UINT32 length = ossStrlen ( pCollectionName ) ;
          PD_CHECK( (length > 0 && length <= DMS_SU_NAME_SZ), SDB_INVALIDARG,
                    error, PDERROR, "Invalid length of collectionspace name:%s",
-                   pCollectionName );
+                   pCollectionName ) ;
 
-         rc = _pDmsCB->nameToSUAndLock( pCollectionName, suID, &su );
+         rc = _pDmsCB->nameToSUAndLock( pCollectionName, suID, &su ) ;
          PD_RC_CHECK(rc, PDERROR, "lock collection space(%s) failed(rc=%d)",
-                     pCollectionName, rc );
-         logicCSID = su->LogicalCSID();
+                     pCollectionName, rc ) ;
+
+         logicCSID = su->LogicalCSID() ;
+
          _pDmsCB->suUnlock ( suID ) ;
+         suID = DMS_INVALID_CS ;
+         su = NULL ;
+
          rc = _pTransCB->transLockTryX( cb, logicCSID, DMS_INVALID_MBID,
                                         NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -279,7 +286,13 @@ namespace engine
 
          _logicCSID = logicCSID ;
       }
+
    done:
+      if ( suID != DMS_INVALID_CS )
+      {
+         _pDmsCB->suUnlock ( suID ) ;
+         suID = DMS_INVALID_CS ;
+      }
       return rc;
    error:
       goto done;
@@ -1012,6 +1025,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCTXRENAMECS__TRYLOCK ) ;
+      dmsStorageUnitID suID = DMS_INVALID_CS ;
 
       // When two threads concurrently do rename, blockWrite() will report
       // -148. We retry multiple times to reduce the error.
@@ -1042,16 +1056,19 @@ namespace engine
 
       if ( getDPSCB() )
       {
-         dmsStorageUnitID suID = DMS_INVALID_CS;
-         UINT32 logicCSID = DMS_INVALID_LOGICCSID;
-         dmsStorageUnit *su = NULL;
+         UINT32 logicCSID = DMS_INVALID_LOGICCSID ;
+         dmsStorageUnit *su = NULL ;
          dpsTransRetInfo lockConflict ;
 
-         rc = _pDmsCB->nameToSUAndLock( pCSName, suID, &su );
+         rc = _pDmsCB->nameToSUAndLock( pCSName, suID, &su ) ;
          PD_RC_CHECK(rc, PDERROR, "lock collection space[%s] failed, rc: %d",
-                     pCSName, rc );
-         logicCSID = su->LogicalCSID();
+                     pCSName, rc ) ;
+
+         logicCSID = su->LogicalCSID() ;
+
          _pDmsCB->suUnlock ( suID ) ;
+         suID = DMS_INVALID_CS ;
+         su = NULL ;
 
          rc = _pTransCB->transLockTryX( cb, logicCSID, DMS_INVALID_MBID,
                                         NULL, &lockConflict ) ;
@@ -1070,7 +1087,13 @@ namespace engine
 
          _logicCSID = logicCSID ;
       }
+
    done:
+      if ( suID != DMS_INVALID_CS )
+      {
+         _pDmsCB->suUnlock ( suID ) ;
+         suID = DMS_INVALID_CS ;
+      }
       PD_TRACE_EXITRC( SDB__RTNCTXRENAMECS__TRYLOCK, rc ) ;
       return rc;
    error:
@@ -1320,6 +1343,7 @@ namespace engine
       if ( getDPSCB() )
       {
          dpsTransRetInfo lockConflict ;
+
          rc = _pDmsCB->nameToSUAndLock( csName, suID, &_su, SHARED );
          PD_RC_CHECK( rc, PDERROR, "lock collection space[%s] failed, rc: %d",
                       csName, rc );
@@ -1329,8 +1353,9 @@ namespace engine
                       "rc: %d", _clShortName, rc ) ;
 
          mbID = mbContext->mbID() ;
+
          _su->data()->releaseMBContext( mbContext ) ;
-         _pDmsCB->suUnlock ( suID ) ;
+         mbContext = NULL ;
 
          rc = _pTransCB->transLockTryX( cb, _su->LogicalCSID(), mbID,
                                         NULL, &lockConflict ) ;
@@ -1352,6 +1377,11 @@ namespace engine
       }
 
    done:
+      if ( _su && mbContext )
+      {
+         _su->data()->releaseMBContext( mbContext ) ;
+         mbContext = NULL ;
+      }
       PD_TRACE_EXITRC( SDB__RTNCTXRENAMECL__TRYLOCK, rc ) ;
       return rc ;
    error:
@@ -1367,6 +1397,12 @@ namespace engine
       {
          _pTransCB->transLockRelease( cb, _su->LogicalCSID(), _mbID ) ;
          _mbID = DMS_INVALID_MBID ;
+      }
+
+      if ( _pDmsCB && _su )
+      {
+         _pDmsCB->suUnlock( _su->CSID() ) ;
+         _su = NULL ;
       }
 
       if ( _lockDMS )
