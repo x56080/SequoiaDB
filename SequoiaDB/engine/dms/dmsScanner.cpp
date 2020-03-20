@@ -2192,6 +2192,19 @@ namespace engine
       goto error ;
 
    done:
+#if SDB_INTERNAL_DEBUG
+      if ( SDB_OK == rc )
+      {
+         PD_LOG( PDDEBUG, 
+                 "Going to use rid(%d, %d) from scanner(%d), lockmod(%d), key is %s,"
+                 "_onceRestNum(%d)",
+                 _curRID._extent, _curRID._offset,
+                 _scanner-> getCurScanType(),
+                 _recordLock,
+                 _scanner->getCurKeyObj()->toString().c_str(),
+                 _onceRestNum ) ;
+      }
+#endif
       if ( waitUnlockRID.isValid() )
       {
          _pTransCB->transLockRelease( cb, _pSu->logicalID(),
@@ -2209,6 +2222,16 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DMSIXSECSCAN_ADVANCE, rc ) ;
       return rc ;
    error:
+#if SDB_INTERNAL_DEBUG
+      PD_LOG( PDDEBUG, 
+              "Advance failed(%d) with rid(%d, %d) from scanner(%d), lockmod(%d), key is %s,"
+              "_onceRestNum(%d), _maxRecords(%d)",
+              rc, _curRID._extent, _curRID._offset,
+              _scanner-> getCurScanType(),
+              _recordLock,
+              _scanner->getCurKeyObj()->toString().c_str(),
+              _onceRestNum, _maxRecords ) ;
+#endif
       if ( _hasLockedRecord && _recordLock != DPS_TRANSLOCK_MAX )
       {
          _pTransCB->transLockRelease( cb, _pSu->logicalID(), _context->mbID(),

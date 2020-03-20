@@ -152,6 +152,12 @@ namespace engine
          }
 
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
+#ifdef _DEBUG
+         PD_LOG ( PDDEBUG, 
+                  "relocateRID to saved obj(%s) and rid(%d, %d), found(%d)",
+                  _savedObj.toString().c_str(),
+                  _savedRID._extent, _savedRID._offset, found ) ;
+#endif
       }
       // mark _init to true so that advance won't call keyLocate again
       _init = TRUE ;
