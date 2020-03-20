@@ -1,7 +1,5 @@
 package com.sequoiadb.crud.truncate;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -24,35 +22,22 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 public class TestTruncate174 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String clName = "cl_174";
+    private String clName = "cl174";
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
-        try {
-            DBCollection cl = TruncateUtils.createCL( sdb, csName, clName );
-            // doing insert
-            TruncateUtils.insertData( cl );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        DBCollection cl = TruncateUtils.createCL( sdb, csName, clName );
+        TruncateUtils.insertData( cl );
     }
 
     @AfterClass
     public void tearDown() {
         try {
             CollectionSpace cs = sdb.getCollectionSpace( csName );
-            if ( cs.isCollectionExist( clName ) ) {
-                cs.dropCollection( clName );
-            }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
+            cs.dropCollection( clName );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -84,7 +69,7 @@ public class TestTruncate174 extends SdbTestBase {
                     throw e;
                 }
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }

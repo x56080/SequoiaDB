@@ -6,7 +6,6 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 import org.bson.types.ObjectId;
-import org.bson.util.JSON;
 import org.testng.Assert;
 
 import com.sequoiadb.base.CollectionSpace;
@@ -30,28 +29,15 @@ public class TruncateUtils {
      */
     public static DBCollection createCL( Sequoiadb sdb, String csName,
             String clName ) throws BaseException {
-        try {
-            if ( !sdb.isCollectionSpaceExist( csName ) ) {
-                sdb.createCollectionSpace( csName );
-            }
-        } catch ( BaseException e ) {
-            // -33 CS exist,ignore exceptions
-            if ( -33 != e.getErrorCode() ) {
-                throw e;
-            }
+        if ( !sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.createCollectionSpace( csName );
         }
         DBCollection cl = null;
-        String test = "{ReplSize:0,Compressed:true}";
-        BSONObject options = ( BSONObject ) JSON.parse( test );
-        try {
-            CollectionSpace cs = sdb.getCollectionSpace( csName );
-            if ( cs.isCollectionExist( clName ) ) {
-                cs.dropCollection( clName );
-            }
-            cl = cs.createCollection( clName, options );
-        } catch ( BaseException e ) {
-            throw e;
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        if ( cs.isCollectionExist( clName ) ) {
+            cs.dropCollection( clName );
         }
+        cl = cs.createCollection( clName );
         return cl;
     }
 
@@ -62,48 +48,40 @@ public class TruncateUtils {
      * @throws BaseException
      */
     public static void insertData( DBCollection cl ) throws BaseException {
-        try {
-            ArrayList< BSONObject > records = new ArrayList< BSONObject >();
+        ArrayList< BSONObject > records = new ArrayList< BSONObject >();
 
-            int lobNum = 100;
-            ArrayList< ObjectId > oidlist = new ArrayList< ObjectId >();
-            for ( int i = 0; i < lobNum; i++ ) {
-                oidlist.add( new ObjectId() );
-            }
-            // put lobs
-            String randomStr = "a;kdjflajdfoweine3030asd.f0-:dmalsdf;";
-            try {
-                for ( int i = 0; i < lobNum; i++ ) {
-                    DBLob lob = null;
-                    lob = cl.createLob( oidlist.get( i ) );
-                    lob.write( randomStr.getBytes() );
-                    lob.close();
-                }
-            } catch ( BaseException e ) {
-                Assert.fail( "write lob fail:" + e.getMessage() );
-            }
-
-            // insert a record with a Lob's oid
-            BSONObject record = new BasicBSONObject();
-            for ( int i = 0; i < lobNum; i++ ) {
-                record = new BasicBSONObject();
-                record.put( "name", "zhangsan" + i );
-                records.add( record );
-            }
-
-            // insert normal records
-            int normalRecNum = 100;
-            for ( int i = 0; i < normalRecNum; i++ ) {
-                record = new BasicBSONObject();
-                record.put( "name", "zhangsan" + i );
-                record.put( "age", i );
-                record.put( "num", i );
-                records.add( record );
-            }
-            cl.bulkInsert( records, 0 );
-        } catch ( BaseException e ) {
-            throw e;
+        int lobNum = 100;
+        ArrayList< ObjectId > oidlist = new ArrayList< ObjectId >();
+        for ( int i = 0; i < lobNum; i++ ) {
+            oidlist.add( new ObjectId() );
         }
+        // put lobs
+        String randomStr = "a;kdjflajdfoweine3030asd.f0-:dmalsdf;";
+        for ( int i = 0; i < lobNum; i++ ) {
+            DBLob lob = null;
+            lob = cl.createLob( oidlist.get( i ) );
+            lob.write( randomStr.getBytes() );
+            lob.close();
+        }
+
+        // insert a record with a Lob's oid
+        BSONObject record = new BasicBSONObject();
+        for ( int i = 0; i < lobNum; i++ ) {
+            record = new BasicBSONObject();
+            record.put( "name", "zhangsan" + i );
+            records.add( record );
+        }
+
+        // insert normal records
+        int normalRecNum = 100;
+        for ( int i = 0; i < normalRecNum; i++ ) {
+            record = new BasicBSONObject();
+            record.put( "name", "zhangsan" + i );
+            record.put( "age", i );
+            record.put( "num", i );
+            records.add( record );
+        }
+        cl.insert( records );
     }
 
     /**
@@ -115,6 +93,7 @@ public class TruncateUtils {
      */
     public static void checkTruncated( Sequoiadb sdb, DBCollection cl )
             throws BaseException {
+        Sequoiadb clGroupDB = null;
         if ( !isStandAlone( sdb ) ) {
             try {
                 // get the group of the cl
@@ -123,7 +102,7 @@ public class TruncateUtils {
                 // connect to dataGroup and get information of collection
                 String url = sdb.getReplicaGroup( clGroupName ).getMaster()
                         .getNodeName();
-                Sequoiadb clGroupDB = new Sequoiadb( url, "", "" );
+                clGroupDB = new Sequoiadb( url, "", "" );
 
                 BSONObject clNameBSON = new BasicBSONObject();
                 clNameBSON.put( "Name", cl.getFullName() );
@@ -150,8 +129,8 @@ public class TruncateUtils {
                     }
                     Assert.fail( failMsg );
                 }
-            } catch ( BaseException e ) {
-                throw e;
+            } finally {
+                clGroupDB.close();
             }
         } else {
             if ( cl.getCount() != 0 ) {
@@ -170,22 +149,18 @@ public class TruncateUtils {
      */
     public static String getSrcGroupName( Sequoiadb sdb, DBCollection cl )
             throws BaseException {
-        try {
-            // get the snapshot to find the datagroup of cl
-            BSONObject clNameBSON = new BasicBSONObject();
-            clNameBSON.put( "Name", cl.getFullName() );
-            DBCursor gpSnapshot = sdb.getSnapshot( 8, clNameBSON, null, null );
+        // get the snapshot to find the datagroup of cl
+        BSONObject clNameBSON = new BasicBSONObject();
+        clNameBSON.put( "Name", cl.getFullName() );
+        DBCursor gpSnapshot = sdb.getSnapshot( 8, clNameBSON, null, null );
 
-            // extract group information from snapshot
-            BasicBSONList CataInfo = ( BasicBSONList ) gpSnapshot.getNext()
-                    .get( "CataInfo" );
-            gpSnapshot.close();
-            BasicBSONObject groupInfo = ( BasicBSONObject ) CataInfo.get( 0 );
-            String clGroupName = groupInfo.get( "GroupName" ).toString();
-            return clGroupName;
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        // extract group information from snapshot
+        BasicBSONList CataInfo = ( BasicBSONList ) gpSnapshot.getNext()
+                .get( "CataInfo" );
+        gpSnapshot.close();
+        BasicBSONObject groupInfo = ( BasicBSONObject ) CataInfo.get( 0 );
+        String clGroupName = groupInfo.get( "GroupName" ).toString();
+        return clGroupName;
     }
 
     /**
@@ -238,14 +213,10 @@ public class TruncateUtils {
     }
 
     public static ArrayList< String > getDataGroups( Sequoiadb sdb ) {
-        try {
-            groupList = sdb.getReplicaGroupNames();
-            groupList.remove( "SYSCatalogGroup" );
-            groupList.remove( "SYSCoord" );
-            groupList.remove( "SYSSpare" );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false, "getDataGroups fail " + e.getMessage() );
-        }
+        groupList = sdb.getReplicaGroupNames();
+        groupList.remove( "SYSCatalogGroup" );
+        groupList.remove( "SYSCoord" );
+        groupList.remove( "SYSSpare" );
         return groupList;
     }
 }

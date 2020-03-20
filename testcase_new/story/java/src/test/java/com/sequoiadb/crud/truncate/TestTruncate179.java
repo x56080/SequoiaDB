@@ -1,7 +1,5 @@
 package com.sequoiadb.crud.truncate;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -24,22 +22,13 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 public class TestTruncate179 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String clName = "cl_179";
+    private String clName = "cl179";
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
-        try {
-            DBCollection cl = TruncateUtils.createCL( sdb, csName, clName );
-            // doing insert
-            TruncateUtils.insertData( cl );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        DBCollection cl = TruncateUtils.createCL( sdb, csName, clName );
+        TruncateUtils.insertData( cl );
     }
 
     @AfterClass
@@ -49,10 +38,8 @@ public class TestTruncate179 extends SdbTestBase {
             if ( cs.isCollectionExist( clName ) ) {
                 cs.dropCollection( clName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -86,7 +73,7 @@ public class TestTruncate179 extends SdbTestBase {
                 // all exceptions are acceptable, as long as no core dump and
                 // hanging
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }
@@ -105,7 +92,7 @@ public class TestTruncate179 extends SdbTestBase {
                 // all exceptions are acceptable, as long as no core dump and
                 // hanging
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }

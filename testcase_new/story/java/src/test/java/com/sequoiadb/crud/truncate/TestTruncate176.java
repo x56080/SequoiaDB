@@ -1,7 +1,5 @@
 package com.sequoiadb.crud.truncate;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -25,41 +23,29 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 public class TestTruncate176 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String clName = "cl_176";
+    private String clName = "cl176";
     private BSONObject modifier = null;
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
-        try {
-            DBCollection cl = TruncateUtils.createCL( sdb, csName, clName );
-            // doing insert
-            TruncateUtils.insertData( cl );
-            // prepare data for upsert
-            modifier = new BasicBSONObject();
-            BSONObject upsertValue = new BasicBSONObject();
-            upsertValue.put( "newKey", "is upserted" );
-            modifier.put( "$set", upsertValue );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        DBCollection cl = TruncateUtils.createCL( sdb, csName, clName );
+        // doing insert
+        TruncateUtils.insertData( cl );
+        // prepare data for upsert
+        modifier = new BasicBSONObject();
+        BSONObject upsertValue = new BasicBSONObject();
+        upsertValue.put( "newKey", "is upserted" );
+        modifier.put( "$set", upsertValue );
     }
 
     @AfterClass
     public void tearDown() {
         try {
             CollectionSpace cs = sdb.getCollectionSpace( csName );
-            if ( cs.isCollectionExist( clName ) ) {
-                cs.dropCollection( clName );
-            }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
+            cs.dropCollection( clName );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -95,11 +81,8 @@ public class TestTruncate176 extends SdbTestBase {
                 cl = db.getCollectionSpace( csName ).getCollection( clName );
                 // doing truncate
                 cl.truncate();
-            } catch ( BaseException e ) {
-                e.printStackTrace();
-                throw e;
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }
@@ -121,7 +104,7 @@ public class TestTruncate176 extends SdbTestBase {
                     throw e;
                 }
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }

@@ -23,7 +23,7 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 public class TestTruncate173 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String clName = "cl_173";
+    private String clName = "cl173";
     private BSONObject record = null;
 
     @BeforeClass
@@ -43,9 +43,7 @@ public class TestTruncate173 extends SdbTestBase {
     public void tearDown() {
         try {
             CollectionSpace cs = sdb.getCollectionSpace( csName );
-            if ( cs.isCollectionExist( clName ) ) {
-                cs.dropCollection( clName );
-            }
+            cs.dropCollection( clName );
         } finally {
             sdb.close();
         }

@@ -1,7 +1,5 @@
 package com.sequoiadb.crud.truncate;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -29,21 +27,12 @@ public class TestTruncate178 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            if ( !sdb.isCollectionSpaceExist( myCsName ) ) {
-                sdb.createCollectionSpace( myCsName );
-            }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( !sdb.isCollectionSpaceExist( myCsName ) ) {
+            sdb.createCollectionSpace( myCsName );
         }
-        try {
-            DBCollection cl = TruncateUtils.createCL( sdb, myCsName, clName );
-            // doing insert
-            TruncateUtils.insertData( cl );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        DBCollection cl = TruncateUtils.createCL( sdb, myCsName, clName );
+        TruncateUtils.insertData( cl );
     }
 
     @AfterClass
@@ -52,10 +41,8 @@ public class TestTruncate178 extends SdbTestBase {
             if ( sdb.isCollectionSpaceExist( myCsName ) ) {
                 sdb.dropCollectionSpace( myCsName );
             }
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -89,7 +76,7 @@ public class TestTruncate178 extends SdbTestBase {
                 // all exceptions are acceptable, as long as no core dump and
                 // hanging
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }
@@ -108,7 +95,7 @@ public class TestTruncate178 extends SdbTestBase {
                 // all exceptions are acceptable, as long as no core dump and
                 // hanging
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }

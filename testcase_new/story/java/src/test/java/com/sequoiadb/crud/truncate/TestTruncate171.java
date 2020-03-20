@@ -1,7 +1,5 @@
 package com.sequoiadb.crud.truncate;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -28,18 +26,13 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  */
 public class TestTruncate171 extends SdbTestBase {
     private Sequoiadb sdb = null;
-    private String clName = "cl_171";
+    private String clName = "cl171";
     private String srcGroupName = null;
     private String dstGroupName = null;
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false,
-                    "connect failed," + SdbTestBase.coordUrl + e.getMessage() );
-        }
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( TruncateUtils.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
@@ -47,29 +40,22 @@ public class TestTruncate171 extends SdbTestBase {
         if ( TruncateUtils.OneGroupMode( sdb ) ) {
             throw new SkipException( "less two groups skip testcase" );
         }
-        try {
-            DBCollection cl = createShardCL( sdb, csName, clName );
-            // doing insert
-            TruncateUtils.insertData( cl );
-            // prepare data for splitting
-            srcGroupName = TruncateUtils.getSrcGroupName( sdb, cl );
-            dstGroupName = TruncateUtils.getDstGroupName( sdb, srcGroupName );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        BSONObject options = ( BSONObject ) JSON
+                .parse( "{ShardingKey:{a:1},ShardingType:'hash'}" );
+        CollectionSpace cs = sdb.getCollectionSpace( csName );
+        DBCollection cl = cs.createCollection( clName, options );
+        TruncateUtils.insertData( cl );
+        srcGroupName = TruncateUtils.getSrcGroupName( sdb, cl );
+        dstGroupName = TruncateUtils.getDstGroupName( sdb, srcGroupName );
     }
 
     @AfterClass
     public void tearDown() {
         try {
             CollectionSpace cs = sdb.getCollectionSpace( csName );
-            if ( cs.isCollectionExist( clName ) ) {
-                cs.dropCollection( clName );
-            }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
+            cs.dropCollection( clName );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -101,10 +87,8 @@ public class TestTruncate171 extends SdbTestBase {
                 cl.truncate();
                 // check truncate
                 TruncateUtils.checkTruncated( db, cl );
-            } catch ( BaseException e ) {
-                throw e;
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }
@@ -128,77 +112,43 @@ public class TestTruncate171 extends SdbTestBase {
                     throw e;
                 }
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
-    }
-
-    private DBCollection createShardCL( Sequoiadb sdb, String csName,
-            String clName ) {
-        try {
-            if ( !sdb.isCollectionSpaceExist( csName ) ) {
-                sdb.createCollectionSpace( csName );
-            }
-        } catch ( BaseException e ) {
-            // -33 CS exist,ignore exceptions
-            Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
-        }
-        DBCollection cl = null;
-        String test = "{ShardingKey:{a:1},ShardingType:'hash',ReplSize:0,Compressed:true}";
-        BSONObject options = ( BSONObject ) JSON.parse( test );
-        try {
-            CollectionSpace cs = sdb.getCollectionSpace( csName );
-            if ( cs.isCollectionExist( clName ) ) {
-                cs.dropCollection( clName );
-            }
-            cl = cs.createCollection( clName, options );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false, "create cl fail " + e.getErrorType() + ":"
-                    + e.getMessage() );
-        }
-        return cl;
     }
 
     private void checkSplit( Sequoiadb db, String srcGroupName,
             String dstGroupName ) {
-        try {
-            // get CataInfo
-            BSONObject option = new BasicBSONObject();
-            option.put( "Name", csName + '.' + clName );
-            DBCursor snapshot = db.getSnapshot( 8, option, null, null );
-            BasicBSONList cataInfo = ( BasicBSONList ) snapshot.getNext()
-                    .get( "CataInfo" );
-            snapshot.close();
+        // get CataInfo
+        BSONObject option = new BasicBSONObject();
+        option.put( "Name", csName + '.' + clName );
+        DBCursor snapshot = db.getSnapshot( 8, option, null, null );
+        BasicBSONList cataInfo = ( BasicBSONList ) snapshot.getNext()
+                .get( "CataInfo" );
+        snapshot.close();
 
-            // justify source group catalog information
-            BSONObject srcInfo = ( BSONObject ) cataInfo.get( 0 );
-            int expSrcLowBound = 0;
-            int expSrcUpBound = 2048;
-            if ( !( ( ( String ) srcInfo.get( "GroupName" ) )
-                    .equals( srcGroupName )
-                    && ( ( BasicBSONObject ) srcInfo.get( "LowBound" ) )
-                            .getInt( "" ) == expSrcLowBound
-                    && ( ( BasicBSONObject ) srcInfo.get( "UpBound" ) )
-                            .getInt( "" ) == expSrcUpBound ) ) {
-                Assert.fail( "split fail: source group cataInfo is wrong" );
-            }
+        // justify source group catalog information
+        BSONObject srcInfo = ( BSONObject ) cataInfo.get( 0 );
+        int expSrcLowBound = 0;
+        int expSrcUpBound = 2048;
+        if ( !( ( ( String ) srcInfo.get( "GroupName" ) ).equals( srcGroupName )
+                && ( ( BasicBSONObject ) srcInfo.get( "LowBound" ) )
+                        .getInt( "" ) == expSrcLowBound
+                && ( ( BasicBSONObject ) srcInfo.get( "UpBound" ) )
+                        .getInt( "" ) == expSrcUpBound ) ) {
+            Assert.fail( "split fail: source group cataInfo is wrong" );
+        }
 
-            // justify destination group catalog information
-            BSONObject dstInfo = ( BSONObject ) cataInfo.get( 1 );
-            int expDstLowBound = 2048;
-            int expDstUpBound = 4096;
-            if ( !( ( ( String ) dstInfo.get( "GroupName" ) )
-                    .equals( dstGroupName )
-                    && ( ( BasicBSONObject ) dstInfo.get( "LowBound" ) )
-                            .getInt( "" ) == expDstLowBound
-                    && ( ( BasicBSONObject ) dstInfo.get( "UpBound" ) )
-                            .getInt( "" ) == expDstUpBound ) ) {
-                Assert.fail(
-                        "split fail: destination group cataInfo is wrong" );
-            }
-        } catch ( BaseException e ) {
-            e.getStackTrace();
-            Assert.fail( e.getMessage() );
+        // justify destination group catalog information
+        BSONObject dstInfo = ( BSONObject ) cataInfo.get( 1 );
+        int expDstLowBound = 2048;
+        int expDstUpBound = 4096;
+        if ( !( ( ( String ) dstInfo.get( "GroupName" ) ).equals( dstGroupName )
+                && ( ( BasicBSONObject ) dstInfo.get( "LowBound" ) )
+                        .getInt( "" ) == expDstLowBound
+                && ( ( BasicBSONObject ) dstInfo.get( "UpBound" ) )
+                        .getInt( "" ) == expDstUpBound ) ) {
+            Assert.fail( "split fail: destination group cataInfo is wrong" );
         }
     }
 }
