@@ -2227,16 +2227,16 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_UPDATETRANSSTATUS, "dpsTransCB::updateTransStatus" )
-   void dpsTransCB::updateTransStatus( DPS_TRANS_ID transID,
+   void dpsTransCB::updateTransStatus( const DPS_TRANS_ID &transID,
                                        INT32 status )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_UPDATETRANSSTATUS ) ;
 
-      transID = getTransID( transID ) ;
+      DPS_TRANS_ID origID = getTransID( transID ) ;
 
-      ossScopedLock _lock( &_MapMutex ) ;
+      ossScopedLock _lock( &_MapMutex, EXCLUSIVE ) ;
 
-      TRANS_MAP::iterator iter = _TransMap.find( transID ) ;
+      TRANS_MAP::iterator iter = _TransMap.find( origID ) ;
       if ( _TransMap.end() != iter )
       {
          iter->second._status = status ;
