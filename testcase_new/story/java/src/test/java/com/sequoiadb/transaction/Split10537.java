@@ -8,6 +8,7 @@ package com.sequoiadb.transaction;
  */
 import java.util.ArrayList;
 import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -15,6 +16,7 @@ import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -23,6 +25,7 @@ import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
+@Test(groups = "ru")
 public class Split10537 extends SdbTestBase {
     private String clName = "testcaseCL10537";
     private String srcGroupName;
@@ -50,7 +53,8 @@ public class Split10537 extends SdbTestBase {
         insertData( cl );
     }
 
-    @Test()
+    // SEQUOIADBMAINSTREAM-5432
+    @Test(enabled = false)
     public void transaction() {
         Sequoiadb db = null;
         DBCollection cl = null;
@@ -153,7 +157,7 @@ public class Split10537 extends SdbTestBase {
         }
     }
 
-    public void insertData( DBCollection cl ) {
+    private void insertData( DBCollection cl ) {
         List< BSONObject > insertedData = new ArrayList< BSONObject >();
         for ( int i = 0; i < 100000; i++ ) {
             BSONObject obj = ( BSONObject ) JSON
@@ -163,7 +167,7 @@ public class Split10537 extends SdbTestBase {
         cl.insert( insertedData );
     }
 
-    public void checkDestAndSrcGroup() {
+    private void checkDestAndSrcGroup() {
         List< BSONObject > srcExpect = new ArrayList< BSONObject >();
         for ( int i = 0; i < 40000; i++ ) {
             srcExpect.add( ( BSONObject ) JSON

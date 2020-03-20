@@ -56,6 +56,7 @@
             </run>
         </groups>
         <packages>
+            <package name="com.sequoiadb.transaction" />
             <package name="com.sequoiadb.transaction.ru" />
             <package name="com.sequoiadb.transaction.uniqueIndex" />
             <package name="com.sequoiadb.transaction.metadata" />

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -18,6 +19,7 @@ import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -26,6 +28,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
+@Test(groups = "ru")
 public class Split18392 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_18392";
@@ -52,7 +55,8 @@ public class Split18392 extends SdbTestBase {
         insertData( cl );
     }
 
-    @Test
+    // SEQUOIADBMAINSTREAM-5432
+    @Test(enabled = false)
     public void Test() {
         Sequoiadb db = null;
         DBCollection cl = null;
@@ -80,7 +84,7 @@ public class Split18392 extends SdbTestBase {
         sdb.close();
     }
 
-    public void insertData( DBCollection cl ) {
+    private void insertData( DBCollection cl ) {
         List< BSONObject > insertedData = new ArrayList< BSONObject >();
         for ( int i = 0; i < 100000; i++ ) {
             BSONObject obj = ( BSONObject ) JSON
@@ -90,7 +94,7 @@ public class Split18392 extends SdbTestBase {
         cl.insert( insertedData );
     }
 
-    public void checkSplit( DBCollection cl ) {
+    private void checkSplit( DBCollection cl ) {
         List< String > groupNames = new ArrayList<>();
         DBCursor cur = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
                 ( BSONObject ) JSON

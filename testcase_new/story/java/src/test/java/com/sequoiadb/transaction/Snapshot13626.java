@@ -1,12 +1,14 @@
 package com.sequoiadb.transaction;
 
 import java.util.List;
+
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.ReplicaGroup;
@@ -23,11 +25,11 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 @Test(groups = "ru")
 public class Snapshot13626 extends SdbTestBase {
 
-    private String clName = "Snapshot13626";
+    private String clName = "cl13626";
     private Sequoiadb sdb = null;
     private String master = null;
 
-    @BeforeClass(alwaysRun = true)
+    @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( coordUrl, "", "" );
         // 跳过 standAlone 和数据组不足的环境
@@ -47,7 +49,7 @@ public class Snapshot13626 extends SdbTestBase {
         master = host + ":" + port;
     }
 
-    @Test(groups = "ru")
+    @Test
     public void test() throws InterruptedException {
         TransactionThread transaction = new TransactionThread();
         transaction.start( 100 );
