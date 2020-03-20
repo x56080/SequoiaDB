@@ -11,7 +11,9 @@
 //
 // dummyKey: change dummy _id to generate temporary record
 // sdb -e "var db = new Sdb( 'localhost', 50000 ) ; var dummyKey = \"ANOTHER_DUMMY_KEY\"" -f fixDataCommitLSN.js
-
+//
+// verbose: print log in verbose
+// sdb -e "var db = new Sdb( 'localhost', 50000 ) ; var verbose = true ;" -f fixDataCommitLSN.js
 
 // check if test mode
 function _isTestMode()
@@ -43,6 +45,16 @@ function _getDummyKey()
    return dummyKey ;
 }
 
+// check if print log in verbose
+function _isVerbose()
+{
+   if ( "undefined" == typeof( verbose ) )
+   {
+      return false ;
+   }
+   return verbose ;
+}
+
 // get catalog info for given collection
 function _getCataInfo( collFullName )
 {
@@ -59,17 +71,23 @@ function _getTmpObjFromHash( collFullName, groupName, cataObject )
 {
    var partition = cataObject.Partition ;
    var shardingKey = cataObject.ShardingKey ;
-   var csName = collFullName.split( '.', 1 ) ;
+   var csName = collFullName.split( '.' )[ 0 ] ;
    var clName = collFullName.split( '.' ).slice( 1 ).join( '.' ) ;
    // try to iterate partitions for sharding key and explain query to check if
    // query key is on given group
-   for ( i = 0 ; i < partition ; i ++ )
+   var keyCount = 0 ;
+   var query = {} ;
+   var lastKey = "" ;
+   for ( let key  in shardingKey )
    {
-      var query = {} ;
-      for ( let key in shardingKey )
-      {
-         query[ key ] = i ;
-      }
+      query[ key ] = 0 ;
+      lastKey = key ;
+      ++ keyCount ;
+   }
+   // retry for partition * key count times
+   for ( i = 0 ; i < partition * keyCount ; i ++ )
+   {
+      query[ lastKey ] = i ;
       var explainCursor = db.getCS( csName ).getCL( clName ).find( query ).explain() ;
       while ( explainCursor.next() )
       {
@@ -109,56 +127,142 @@ function _getTmpObjFromCata( collFullName, groupName )
       var shardingType = cataObject.ShardingType ;
       if ( shardingType == "hash" )
       {
-         println( "collection [" + collFullName + "] is hash sharding" ) ;
+         if ( _isVerbose() )
+         {
+            println( "collection [" + collFullName + "] is hash sharding" ) ;
+         }
          return _getTmpObjFromHash( collFullName, groupName, cataObject ) ;
       }
       else if ( shardingType = "range" )
       {
-         println( "collection [" + collFullName + "] is range sharding" ) ;
+         if ( _isVerbose() )
+         {
+            println( "collection [" + collFullName + "] is range sharding" ) ;
+         }
          return _getTmpObjFromRange( collFullName, groupName, cataObject ) ;
       }
       else
       {
-         println( "collection [" + collFullName + "] is not sharding" ) ;
+         if ( _isVerbose() )
+         {
+            println( "collection [" + collFullName + "] is not sharding" ) ;
+         }
          return {} ;
       }
    }
    throw "collection [" + collFullName + "] on group [" + groupName + "] is not found in catalog" ;
 }
 
-// insert temporary object
-function _insertTmpObj( csName, clName, tmpObj )
+function _tryFixLSN( csName, clName, shardingObj, isEmpty )
 {
-   tmpObj[ "_id" ] = _getDummyKey() ;
-   try
+   if ( undefined === shardingObj[ "_id" ] )
    {
-      db.getCS( csName ).getCL( clName ).insert( tmpObj ) ;
+      // no _id field, add _id field to temporary object
+      // insert temporary object, then remove
+      shardingObj[ "_id" ] = _getDummyKey() ;
+      _insertAndRemoveTmpObj( csName, clName, shardingObj ) ;
    }
-   catch ( e )
+   else if ( isEmpty )
    {
-      throw( "failed to insert tempory object, rc: " + e ) ;
+      // has _id field in sharding key, but collection is empty
+      // insert temporary object, then remove
+      _insertAndRemoveTmpObj( csName, clName, shardingObj ) ;
    }
-   println( "INSERT collecton [" + csName + "." + clName + "] object " + JSON.stringify( tmpObj ) ) ;
+   else
+   {
+      // has _id field, update record with temporary field then remove
+      tmpField = "__TEMP_FIELD__" + _getDummyKey() ;
+      // test if origin data contains temporary field
+      var dataCursor = db.getCS( csName ).getCL( clName ).find( shardingObj ).limit( 1 ).hint( { "" : "$id" } ) ;
+      if ( dataCursor.next() )
+      {
+         curObj = dataCursor.current().toObj() ;
+         while ( undefined !== curObj[ tmpField ] )
+         {
+            tmpField = tmpField + "_DUMMY_" ;
+         }
+      }
+      dataCursor.close() ;
+      _updateTmpField( csName, clName, shardingObj, tmpField ) ;
+   }
 }
 
-// remove temporary object
-function _removeTmpObj( csName, clName )
+// insert and remove temporary object
+function _insertAndRemoveTmpObj( csName, clName, shardingObj )
 {
+   // check if contains _id
+   if ( undefined === shardingObj[ "_id" ] )
+   {
+      throw( "failed to insert temporary object " + JSON.stringify( shardingObj ) + ", no _id field" ) ;
+   }
+   // insert temporary object
    try
    {
-      db.getCS( csName ).getCL( clName ).remove( { "_id" : _getDummyKey() } ) ;
+      db.getCS( csName ).getCL( clName ).insert( shardingObj ) ;
    }
    catch ( e )
    {
-      throw( "failed to remove tempory object, rc: " + e ) ;
+      throw( "failed to insert temporary object " + JSON.stringify( shardingObj ) + ", rc: " + e ) ;
    }
-   println( "REMOVE collecton [" + csName + "." + clName + "] id " + _getDummyKey() ) ;
+   if ( _isVerbose() )
+   {
+      println( "INSERT collecton [" + csName + "." + clName + "] object " + JSON.stringify( shardingObj ) ) ;
+   }
+   // remove temporary object
+   try
+   {
+      db.getCS( csName ).getCL( clName ).remove( shardingObj, { "" : "$id" } ) ;
+   }
+   catch ( e )
+   {
+      throw( "failed to remove temporary object " + JSON.stringify( shardingObj ) + ", rc: " + e ) ;
+   }
+   if ( _isVerbose() )
+   {
+      println( "REMOVE collecton [" + csName + "." + clName + "] object " + JSON.stringify( shardingObj ) ) ;
+   }
+}
+
+// update object with temporary field
+function _updateTmpField( csName, clName, shardingObj, tmpField )
+{
+   // check if contains _id
+   if ( undefined === shardingObj[ "_id" ] )
+   {
+      throw( "failed to update temporary object " + JSON.stringify( shardingObj ) + ", no _id field" ) ;
+   }
+   // update to add temporary field
+   try
+   {
+      db.getCS( csName ).getCL( clName ).update( { "$set" : { tmpField : 1 } }, shardingObj, { "" : "$id" } )
+   }
+   catch ( e )
+   {
+      throw( "failed to update object " + JSON.stringify( shardingObj ) + " to add field " + tmpField + ", rc: " + e ) ;
+   }
+   if ( _isVerbose() )
+   {
+      println( "UPDATE collection [" + csName + "." + clName + "] object " + JSON.stringify( shardingObj ) + " to add field " + tmpField ) ;
+   }
+   // update to remove temporary field
+   try
+   {
+      db.getCS( csName ).getCL( clName ).update( { "$unset" : { tmpField : 1 } }, shardingObj, { "" : "$id" } )
+   }
+   catch ( e )
+   {
+      throw( "failed to update object " + JSON.stringify( shardingObj ) + " to remove field " + tmpField + ", rc: " + e ) ;
+   }
+   if ( _isVerbose() )
+   {
+      println( "UPDATE collection [" + csName + "." + clName + "] object " + JSON.stringify( shardingObj ) + " to remove field " + tmpField ) ;
+   }
 }
 
 // fix one collection for one group
 function _fixCollGroup( curColl, curGroup, curNode )
 {
-   var csName = curColl.split( '.', 1 ) ;
+   var csName = curColl.split( '.' )[ 0 ] ;
    var clName = curColl.split( '.' ).slice( 1 ).join( '.' ) ;
 
     // get sharding
@@ -169,7 +273,7 @@ function _fixCollGroup( curColl, curGroup, curNode )
    }
    catch ( e )
    {
-      println( "ERROR: failed to get catalog for [" + curColl + "]" ) ;
+      println( "ERROR: failed to get catalog for [" + curColl + "], error: " + e ) ;
       throw e ;
    }
 
@@ -177,11 +281,13 @@ function _fixCollGroup( curColl, curGroup, curNode )
         Object.keys( shardingKey ).length === 0 )
    {
       // non sharding collection, just insert a empty record
-      println( "collection [" + curColl + "] empty sharding key" ) ;
+      if ( _isVerbose() )
+      {
+         println( "collection [" + curColl + "] empty sharding key" ) ;
+      }
       try
       {
-         _insertTmpObj( csName, clName, {} ) ;
-         _removeTmpObj( csName, clName ) ;
+         _tryFixLSN( csName, clName, {}, false )
       }
       catch ( e )
       {
@@ -195,18 +301,20 @@ function _fixCollGroup( curColl, curGroup, curNode )
       // try to fetch one record from current group
       var found = false ;
       var succeed = true ;
-      println( "query from node [" + curNode + "], sharding key " + JSON.stringify( shardingKey ) ) ;
+      if ( _isVerbose() )
+      {
+         println( "query from node [" + curNode + "], sharding key " + JSON.stringify( shardingKey ) ) ;
+      }
       var data = new Sdb( curNode ) ;
       var dataCursor = data.getCS( csName ).getCL( clName ).find( {}, shardingKey ).limit( 1 ) ;
       if ( dataCursor.next() )
       {
          // found record, use the same sharding key to insert temporary record
          found = true ;
-         var tmpObj = dataCursor.current().toObj() ;
+         var shardingObj = dataCursor.current().toObj() ;
          try
          {
-            _insertTmpObj( csName, clName, tmpObj ) ;
-            _removeTmpObj( csName, clName ) ;
+            _tryFixLSN( csName, clName, shardingObj, false )
          }
          catch ( e )
          {
@@ -219,11 +327,14 @@ function _fixCollGroup( curColl, curGroup, curNode )
       if ( !found )
       {
          // no record is found, try get sharding key from catalog
-         var tmpObj = {} ;
-         println( "collection [" + curColl + "] empty on group [" + curGroup + "]" ) ;
+         var shardingObj = {} ;
+         if ( _isVerbose() )
+         {
+            println( "collection [" + curColl + "] empty on group [" + curGroup + "]" ) ;
+         }
          try
          {
-            tmpObj = _getTmpObjFromCata( curColl, curGroup ) ;
+            shardingObj = _getTmpObjFromCata( curColl, curGroup ) ;
          }
          catch ( e )
          {
@@ -232,8 +343,7 @@ function _fixCollGroup( curColl, curGroup, curNode )
          }
          try
          {
-            _insertTmpObj( csName, clName, tmpObj ) ;
-            _removeTmpObj( csName, clName ) ;
+            _tryFixLSN( csName, clName, shardingObj, true )
          }
          catch ( e )
          {
