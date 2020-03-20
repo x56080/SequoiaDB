@@ -497,9 +497,8 @@ namespace engine
       else if ( DPS_TRANS_DOING == _pEDUCB->getTransStatus() )
       {
          _pEDUCB->setTransStatus( DPS_TRANS_DOING_INTERRUPT ) ;
-         sdbGetTransCB()->updateTransInfo( _pEDUCB->getTransID(),
-                                           _pEDUCB->getCurTransLsn(),
-                                           DPS_TRANS_DOING_INTERRUPT ) ;
+         sdbGetTransCB()->updateTransStatus( _pEDUCB->getTransID(),
+                                             DPS_TRANS_DOING_INTERRUPT ) ;
       }
 
    rollback:

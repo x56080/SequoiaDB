@@ -181,6 +181,9 @@ namespace engine
                             INT32 status,
                             DPS_LSN_OFFSET lsn ) ;
 
+      void updateTransStatus( DPS_TRANS_ID transID,
+                              INT32 status ) ;
+
       BOOLEAN  addTransCB( DPS_TRANS_ID transID, _pmdEDUCB *eduCB ) ;
       void     delTransCB( DPS_TRANS_ID transID ) ;
       void     dumpTransEDUList( TRANS_EDU_LIST  &eduList ) ;

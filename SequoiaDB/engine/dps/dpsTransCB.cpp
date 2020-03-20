@@ -458,6 +458,25 @@ namespace engine
       PD_TRACE_EXIT( SDB_DPSTRANSCB_UPDATETRANSINFO_INFO ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_UPDATETRANSSTATUS, "dpsTransCB::updateTransStatus" )
+   void dpsTransCB::updateTransStatus( DPS_TRANS_ID transID,
+                                       INT32 status )
+   {
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_UPDATETRANSSTATUS ) ;
+
+      transID = getTransID( transID ) ;
+
+      ossScopedLock _lock( &_MapMutex ) ;
+
+      TRANS_MAP::iterator iter = _TransMap.find( transID ) ;
+      if ( _TransMap.end() != iter )
+      {
+         iter->second._status = status ;
+      }
+
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_UPDATETRANSSTATUS ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ADDTRANSCB, "dpsTransCB::addTransCB" )
    BOOLEAN dpsTransCB::addTransCB( DPS_TRANS_ID transID, _pmdEDUCB *eduCB )
    {

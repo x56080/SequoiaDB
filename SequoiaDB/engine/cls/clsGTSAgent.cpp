@@ -100,6 +100,23 @@ namespace engine
       // to avoid erase iterator and insert in the same map
       pTransCB->cloneTransMap( tmpTransMap ) ;
 
+      // check doing transactions, update to doing interrupted
+      it = tmpTransMap.begin() ;
+      while ( it != tmpTransMap.end() )
+      {
+         transID = it->first ;
+         dpsTransBackInfo &transInfo = it->second ;
+         if ( DPS_TRANS_DOING == transInfo._status )
+         {
+            PD_LOG( PDDEBUG, "Transaction(ID:%s, IDAttr:%s) is doing, "
+                    "need interrupt", dpsTransIDToString( transID ).c_str(),
+                    dpsTransIDAttrToString( transID ).c_str() ) ;
+            pTransCB->updateTransStatus( transID, DPS_TRANS_DOING_INTERRUPT ) ;
+         }
+         ++ it ;
+      }
+
+      // check pre-commit transactions, commit if passes check
       it = tmpTransMap.begin() ;
       while ( it != tmpTransMap.end() )
       {
