@@ -638,7 +638,11 @@ namespace engine
                             DPS_LSN_OFFSET lsn,
                             BOOLEAN rbPending ) ;
 
-      void updateTransStatus( DPS_TRANS_ID transID,
+      // update transaction status with given transaction ID
+      // input:
+      //    - transID: transaction ID
+      //    - status: transaction status to update
+      void updateTransStatus( const DPS_TRANS_ID &transID,
                               INT32 status ) ;
 
       BOOLEAN  addTransCB( const DPS_TRANS_ID &transID, _pmdEDUCB *eduCB ) ;

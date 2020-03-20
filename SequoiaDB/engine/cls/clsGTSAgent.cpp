@@ -129,7 +129,7 @@ namespace engine
             PD_LOG( PDDEBUG, "Transaction(ID:%s, IDAttr:%s) is doing, "
                     "need interrupt", dpsTransIDToString( transID ).c_str(),
                     dpsTransIDAttrToString( transID ).c_str() ) ;
-            pTransCB->updateTransStatus( transID, DPS_TRANS_DOING_INTERRUPT ) ;
+            _transCB->updateTransStatus( transID, DPS_TRANS_DOING_INTERRUPT ) ;
          }
          ++ it ;
       }
@@ -485,7 +485,6 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSGTSAGENT__SYNCCHKTRANSSTATUS ) ;
 
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
-      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
 
       dpsMessageBlock mb ;
       DPS_LOG_TYPE logType = LOG_TYPE_DUMMY ;
@@ -513,7 +512,7 @@ namespace engine
             continue ;
          }
          break ;
-      } while( pTransCB->isDoRollback() ) ;
+      } while( _transCB->isDoRollback() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CLSGTSAGENT__SYNCCHKTRANSSTATUS, rc ) ;
@@ -533,7 +532,6 @@ namespace engine
 
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       SDB_DPSCB *pDpsCB = pmdGetKRCB()->getDPSCB() ;
-      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       UINT8 attr = DPS_TS_COMMIT_ATTR_SND ;
 
       DPS_LSN_OFFSET firstLsn = DPS_INVALID_LSN_OFFSET ;
@@ -548,7 +546,7 @@ namespace engine
       cb->setTransID( transID ) ;
       cb->setCurTransLsn( lastLsn ) ;
 
-      firstLsn = pTransCB->getBeginLsn( transID ) ;
+      firstLsn = _transCB->getBeginLsn( transID ) ;
       SDB_ASSERT( firstLsn != DPS_INVALID_LSN_OFFSET,
                   "First transaction lsn can't be invalid" ) ;
 
@@ -582,9 +580,9 @@ namespace engine
       // clear all lsn mapping
       cb->getTransExecutor()->clearRecordMap() ;
       // release all transactions lock
-      pTransCB->transLockReleaseAll( cb ) ;
+      _transCB->transLockReleaseAll( cb ) ;
       // reduce the reservedLogSpace from dps for the transaction
-      pTransCB->releaseRBLogSpace( cb ) ;
+      _transCB->releaseRBLogSpace( cb ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__CLSGTSAGENT__COMMITTRANS, rc ) ;
