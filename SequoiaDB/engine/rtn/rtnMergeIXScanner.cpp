@@ -480,6 +480,33 @@ namespace engine
          _lrid.reset() ;
       }
 
+#if SDB_INTERNAL_DEBUG
+      if ( ( _rightEnabled && ( SCAN_RIGHT == _fromDir ) && !rIsSame ) ||
+           ( _leftEnabled && ( SCAN_LEFT == _fromDir ) && !lIsSame ) )
+      {
+         PD_LOG( PDDEBUG, 
+                 "Resuming, was from %d side but cursor(%d,%d) changed:"
+                 OSS_NEWLINE
+                 "left side:"OSS_NEWLINE
+                 "  savedObj(%s)  savedRID(%d, %d),"OSS_NEWLINE
+                 "  curKeyObj(%s) with rid(%d, %d),"OSS_NEWLINE
+                 "right side:"OSS_NEWLINE
+                 "  savedObj(%s)  savedRID(%d, %d),"OSS_NEWLINE
+                 "  curKeyObj(%s) with rid(%d, %d)",
+                 _fromDir, lIsSame, rIsSame, 
+                 _leftIXScanner->getSavedObj()->toString().c_str(),
+                 _leftIXScanner->getSavedRID()._extent,
+                 _leftIXScanner->getSavedRID()._offset,
+                 _leftIXScanner->getCurKeyObj()->toString().c_str(),
+                 _lrid._extent, _lrid._offset,
+                 _rightIXScanner->getSavedObj()->toString().c_str(),
+                 _rightIXScanner->getSavedRID()._extent,
+                 _rightIXScanner->getSavedRID()._offset,
+                 _rightIXScanner->getCurKeyObj()->toString().c_str(),
+                 _rrid._extent, _rrid._offset ) ;
+      }
+#endif
+
       /// when left has changed, but last from right
       if ( SCAN_RIGHT == _fromDir && _leftEnabled &&
            !_leftIXScanner->eof() &&
@@ -491,9 +518,13 @@ namespace engine
             PD_LOG( PDERROR, "Left scan advance failed, rc: %d", rc ) ;
             goto error ;
          }
-         PD_LOG( PDDEBUG, "Left scanner advance to obj(%s) with rid(%d,%d)",
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG,
+                 "Left scanner advance to obj(%s) with rid(%d,%d)"
+                 "lIsSame(%d), rIsSame(%d)",
                  _leftIXScanner->getCurKeyObj()->toString().c_str(),
-                 _lrid._extent, _lrid._offset ) ;
+                 _lrid._extent, _lrid._offset, lIsSame, rIsSame ) ;
+#endif
          rc = SDB_OK ;
       }
       /// when right has changed, but last from left
@@ -507,9 +538,13 @@ namespace engine
             PD_LOG( PDERROR, "Right scan advance failed, rc: %d", rc ) ;
             goto error ;
          }
-         PD_LOG( PDDEBUG, "Right scanner advance to obj(%s) with rid(%d,%d)",
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG,
+                 "Right scanner advance to obj(%s) with rid(%d,%d), "
+                 "lIsSame(%d), rIsSame(%d)",
                  _rightIXScanner->getCurKeyObj()->toString().c_str(),
-                 _rrid._extent, _rrid._offset ) ;
+                 _rrid._extent, _rrid._offset, lIsSame, rIsSame ) ;
+#endif
          rc = SDB_OK ;
       }
 

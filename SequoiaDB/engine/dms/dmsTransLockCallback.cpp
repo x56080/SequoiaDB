@@ -146,6 +146,12 @@ namespace engine
       /// release
       if ( _pOldVer->isRecordDeleted() )
       {
+#ifdef _DEBUG
+         const dmsRecordID &rid = _pOldVer->getRecordID() ;
+         PD_LOG( PDDEBUG, "Removing rid(%d, %d) in from memory tree",
+                 rid._extent, rid._offset ) ;
+#endif
+
          _pOldVer->releaseRecord() ;
       }
 
@@ -1351,9 +1357,11 @@ namespace engine
          {
             PD_LOG( PDDEBUG,
                     "Set oldVer[%x] for rid[%s] in memory, lockmod=%d,"
-                    "_useOldVersion=%d,_rbsRecordData.isEmpty()=%d",
+                    "_useOldVersion=%d, _skipRecord=%d, "
+                    "_rbsRecordData.isEmpty()=%d",
                     _oldVer, lockId.toString().c_str(), requestLockMode,
-                    _useOldVersion, _rbsRecordData->isEmpty() ) ;
+                    _useOldVersion, _skipRecord,
+                    _rbsRecordData->isEmpty() ) ;
          }
 #endif //_DEBUG
       }
