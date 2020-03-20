@@ -3,6 +3,7 @@
 <!--sync testcase, which should be excute serially-->
 
 <suite name="driver" verbose="1" preserve-order="true">  
+
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"       value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
@@ -25,7 +26,7 @@
     <parameter name="WORKDIR"        value="/tmp/javatest" />
 
     <listeners>
-        <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
+       <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
     </listeners>
 
     <test name="normal" preserve-order="true">
@@ -33,6 +34,7 @@
             <package name="com.sequoiadb.rename"/>
         </packages>
     </test>
+    
     <test name="normaltest">
         <packages>
             <package name="com.sequoiadb.crud.backup" />
@@ -47,8 +49,9 @@
             <package name="com.sequoiadb.split.serial" />
             <package name="com.sequoiadb.lob.serial" />
             <package name="com.sequoiadb.transaction.session.serial" />
-            <package name="com.sequoiadb.transaction.pendingobject" />
-        </packages>    
-    </test>
+            <!--SEQUOIADBMAINSTREAM-5361-->
+            <!--package name="com.sequoiadb.transaction.pendingobject" /-->
+      </packages>    
+   </test>
 </suite>
    
