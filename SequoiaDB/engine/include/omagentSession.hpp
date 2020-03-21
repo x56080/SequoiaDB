@@ -66,8 +66,7 @@ namespace engine
          virtual EDU_TYPES eduType () const ;
 
          virtual void    onRecieve ( const NET_HANDLE netHandle,
-                                     MsgHeader * msg,
-                                     INetUserData *userData ) ;
+                                     MsgHeader * msg ) ;
          virtual BOOLEAN timeout ( UINT32 interval ) ;
 
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;

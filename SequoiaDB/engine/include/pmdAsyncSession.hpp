@@ -141,6 +141,65 @@ namespace engine
    typedef _pmdSessionMeta pmdSessionMeta ;
 
    /*
+      _pmdAsyncSessData define
+    */
+   enum PMD_SESS_DATA_TYPE
+   {
+      PMD_SESS_DATA_COMMON = 0,
+      PMD_SESS_DATA_SHARD = 1
+   } ;
+
+   class _pmdAsyncSessData : public utilPooledObject
+   {
+   public:
+      _pmdAsyncSessData()
+      : _handle( NET_INVALID_HANDLE ),
+        _poolType( PMD_SESSION_MSG_INPOOL )
+      {
+      }
+
+      virtual ~_pmdAsyncSessData()
+      {
+      }
+
+      OSS_INLINE void setHandle( NET_HANDLE handle )
+      {
+         _handle = handle ;
+      }
+
+      OSS_INLINE NET_HANDLE getHandle() const
+      {
+         return _handle ;
+      }
+
+      OSS_INLINE void setPoolType( UINT32 poolType )
+      {
+         _poolType = poolType ;
+      }
+
+      OSS_INLINE UINT32 getPoolType() const
+      {
+         return _poolType ;
+      }
+
+      OSS_INLINE virtual PMD_SESS_DATA_TYPE getType() const
+      {
+         return PMD_SESS_DATA_COMMON ;
+      }
+
+      virtual void copyNetData( INetUserData *netData )
+      {
+         return ;
+      }
+
+   protected:
+      NET_HANDLE  _handle ;
+      UINT32      _poolType ;
+   } ;
+
+   typedef class _pmdAsyncSessData pmdAsyncSessData ;
+
+   /*
       _pmdAsyncSession define
    */
    class _pmdAsyncSession : public _pmdObjBase, public _ISession
@@ -170,12 +229,12 @@ namespace engine
          // on receive callback for async session
          // NOTE: pass user data from net handler to async session if needed
          virtual void    onRecieve ( const NET_HANDLE netHandle,
-                                     MsgHeader * msg,
-                                     INetUserData *userData ) ;
+                                     MsgHeader * msg ) ;
          virtual BOOLEAN timeout ( UINT32 interval ) ;
 
          virtual void    onDispatchMsgBegin( const NET_HANDLE netHandle,
-                                             const MsgHeader *pHeader )
+                                             const MsgHeader *pHeader,
+                                             pmdAsyncSessData *sessData )
          {
          }
          virtual void    onDispatchMsgEnd( INT64 costUsecs )
@@ -184,6 +243,8 @@ namespace engine
 
          virtual void clear() ;
          virtual BOOLEAN canAttachMeta() const { return TRUE ; }
+
+         virtual INT32 allocSessData( pmdAsyncSessData **sessionData ) ;
 
          INT32 waitAttach ( INT64 millisec = -1 ) ;
          INT32 waitDetach ( INT64 millisec = -1 ) ;
@@ -328,7 +389,7 @@ namespace engine
          INT32                dispatchMsg( const NET_HANDLE &handle,
                                            const MsgHeader *pMsg,
                                            pmdEDUMemTypes memType,
-                                           netUserDataHolder *userDataHolder,
+                                           netUserDataHolder *netDataHolder,
                                            BOOLEAN decPending,
                                            BOOLEAN *hasDispatched = NULL ) ;
 
@@ -426,7 +487,8 @@ namespace engine
          INT32          _pushMessage ( pmdAsyncSession *pSession,
                                        const MsgHeader *header,
                                        pmdEDUMemTypes memType,
-                                       const NET_HANDLE &handle ) ;
+                                       const NET_HANDLE &handle,
+                                       INetUserData *netData ) ;
 
       protected:
          void           _checkSession( UINT32 interval ) ;

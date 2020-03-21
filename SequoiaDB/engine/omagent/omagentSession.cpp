@@ -97,8 +97,7 @@ namespace engine
    }
 
    void _omaSession::onRecieve( const NET_HANDLE netHandle,
-                                MsgHeader * msg,
-                                INetUserData *userData )
+                                MsgHeader * msg )
    {
       ossGetCurrentTime( _lastRecvTime ) ;
       sdbGetOMAgentMgr()->resetNoMsgTimeCounter() ;
