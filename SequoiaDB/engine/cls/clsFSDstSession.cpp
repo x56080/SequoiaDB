@@ -3112,6 +3112,70 @@ namespace engine
       }
       else if ( STEP_POST_SYNC == _step )
       {
+         INT32       rc       = SDB_OK ;
+         SDB_DMSCB  *dmsCB    = pmdGetKRCB()->getDMSCB() ;
+         dpsTransCB *pTransCB = sdbGetTransCB() ;
+
+         // get glob trans time if RR is supported
+         if ( pTransCB->isRRSupported() )
+         {
+            UINT32  retryCounter = 0 ;
+            BOOLEAN jobDone      = FALSE ;
+
+            // get glob tx time and mark split finish timestamp in mbStat
+            // until succeed or EDU is interrupted
+            do
+            {
+               dmsStorageUnit  *su       = NULL ;
+               const CHAR      *pCLShort = NULL ;
+               dmsMBContext    *pContext = NULL ;
+               dmsStorageUnitID suID     = DMS_INVALID_SUID ;
+               stpLogicalTimeUS finishTime ;
+
+               // get glob trans time
+               rc = pTransCB->getGlobTransTime( finishTime, OSS_ONE_SEC ) ;
+
+               // lock su
+               if ( ( SDB_OK == rc ) &&
+                    ( SDB_OK == rtnResolveCollectionNameAndLock(
+                                   _pTask->clFullName(), dmsCB, &su,
+                                   &pCLShort, suID ) ) )
+               {
+                  // mark split finish timestamp in mbStat
+                  if ( SDB_OK == su->data()->getMBContext( &pContext, pCLShort,
+                                                           SHARED ) )
+                  {
+                     UINT64 tm = finishTime.getTime() ;
+                     // update mbStat._splitFinishTime
+                     pContext->mbStat()
+                             ->_splitFinishTime.swapGreaterThan( tm ) ;
+                     // release context
+                     su->data()->releaseMBContext( pContext ) ;
+                     jobDone   = TRUE ;
+                  }
+                  // release sulock
+                  dmsCB->suUnlock( suID ) ;
+               }
+               if ( SDB_OK != rc )
+               {
+                  // report error every 60 times retry
+                  if ( 0 == retryCounter % 60 )
+                  {
+                     PD_LOG( PDERROR,
+                             "Failed to get global transaction time at %d "
+                             "times retry, rc:%d", retryCounter + 1, rc ) ;
+                  }
+                  retryCounter++ ;
+               }
+               else if ( FALSE == jobDone )
+               {
+                  PD_LOG( PDERROR,
+                          "Failed to update split operation finish time due to"
+                          "unable to acquire CS / CL lock." ) ;
+               }
+            }  while ( ( SDB_OK != rc ) && ( ! eduCB()->isInterrupted() ) ) ;
+         }
+
          _taskNotify( MSG_CAT_SPLIT_CHGMETA_REQ ) ;
       }
       else if ( STEP_META == _step )

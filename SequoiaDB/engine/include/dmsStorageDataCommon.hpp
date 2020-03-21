@@ -398,6 +398,9 @@ namespace engine
       // how many operators need to block index creating
       UINT32      _blockIndexCreatingCount ;
 
+      // spit finish timestamp
+      ossAtomic64 _splitFinishTime ;
+
       void reset()
       {
          _totalRecords           = 0 ;
@@ -430,6 +433,7 @@ namespace engine
          _rcTotalRecords.init( 0 ) ;
          _crudCB.reset() ;
          _blockIndexCreatingCount = 0 ;
+         _splitFinishTime.init( 0 ) ;
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
@@ -521,7 +525,8 @@ namespace engine
         _idxLastLSN( 0 ),
         _lobCommitFlag( 0 ),
         _lobLastLSN( 0 ),
-        _rcTotalRecords( 0 )
+        _rcTotalRecords( 0 ),
+        _splitFinishTime( 0 )
       {
          reset() ;
       }
