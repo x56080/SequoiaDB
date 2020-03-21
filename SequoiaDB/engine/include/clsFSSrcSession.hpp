@@ -80,8 +80,7 @@ namespace engine
          virtual ~_clsDataSrcBaseSession () ;
 
          virtual void    onRecieve ( const NET_HANDLE netHandle,
-                                     MsgHeader * msg,
-                                     INetUserData *userData ) ;
+                                     MsgHeader * msg ) ;
          // called by net io thread
          virtual BOOLEAN timeout ( UINT32 interval ) ;
          // called by self thread

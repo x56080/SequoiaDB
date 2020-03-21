@@ -70,68 +70,28 @@ namespace engine
 #define SHD_RET_BUILDER_DFT_SIZE          ( 80 )
 
    /*
-      _clsShdUserData implement
+      _clsShdNetData implement
     */
-   _clsShdUserData::_clsShdUserData()
+   _clsShdNetData::_clsShdNetData()
    : INetUserData(),
-     _recvTimeRC( SDB_OK ),
-     _recvTime(),
+     clsShdRecvTimeInfo(),
      _totalBlockSize( 0 ),
      _blockInfoIndex( 0 ),
      _blockInfoSize( 0 )
    {
    }
 
-   _clsShdUserData::~_clsShdUserData()
+   _clsShdNetData::~_clsShdNetData()
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDUSERDATA_SETUSERDATA, "_clsShdUserData::setUserData" )
-   void _clsShdUserData::setUserData( INetUserData *userData )
-   {
-      PD_TRACE_ENTRY( SDB__CLSSHDUSERDATA_SETUSERDATA ) ;
-
-      clsShdUserData *shardUserData = NULL ;
-
-      if ( NULL == userData )
-      {
-         goto done ;
-      }
-
-      // check if it is shard user data
-      shardUserData = dynamic_cast<clsShdUserData *>( userData ) ;
-      if ( NULL == shardUserData )
-      {
-         goto done ;
-      }
-
-      // copy request ID
-      _requestID = shardUserData->getRequestID() ;
-
-      // copy receive time if needed
-      if ( shardUserData->isGlobTimeRequest() )
-      {
-         _recvTimeRC = shardUserData->getRecvTimeRC() ;
-         _recvTime = shardUserData->getRecvTime() ;
-      }
-      else
-      {
-         _recvTimeRC = SDB_OK ;
-         _recvTime.reset() ;
-      }
-
-   done:
-      PD_TRACE_EXIT( SDB__CLSSHDUSERDATA_SETUSERDATA ) ;
-      return ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDUSERDATA_ACQUIRERECVTIME, "_clsShdUserData::acquireRecvTime" )
-   INT32 _clsShdUserData::acquireRecvTime( UINT32 receivedSize,
-                                           UINT32 currentSize )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDNETDATA_ACQUIRERECVTIME, "_clsShdNetData::acquireRecvTime" )
+   INT32 _clsShdNetData::acquireRecvTime( UINT32 receivedSize,
+                                          UINT32 currentSize )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__CLSSHDUSERDATA_ACQUIRERECVTIME ) ;
+      PD_TRACE_ENTRY( SDB__CLSSHDNETDATA_ACQUIRERECVTIME ) ;
 
       stpAgent agent ;
 
@@ -164,7 +124,7 @@ namespace engine
       // set return code
       _recvTimeRC = rc ;
 
-      PD_TRACE_EXITRC( SDB__CLSSHDUSERDATA_ACQUIRERECVTIME, rc ) ;
+      PD_TRACE_EXITRC( SDB__CLSSHDNETDATA_ACQUIRERECVTIME, rc ) ;
       return rc ;
 
    error:
@@ -172,10 +132,10 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDUSERDATA_ONRECVMSG, "_clsShdUserData::onReceiveMsg" )
-   void _clsShdUserData::onReceiveMsg( UINT32 receivedSize, UINT32 currentSize )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDNETDATA_ONRECVMSG, "_clsShdNetData::onReceiveMsg" )
+   void _clsShdNetData::onReceiveMsg( UINT32 receivedSize, UINT32 currentSize )
    {
-      PD_TRACE_ENTRY( SDB__CLSSHDUSERDATA_ONRECVMSG ) ;
+      PD_TRACE_ENTRY( SDB__CLSSHDNETDATA_ONRECVMSG ) ;
 
       // calculate current blocking size
       _calcBlockSize( receivedSize, currentSize ) ;
@@ -188,14 +148,14 @@ namespace engine
          _addBlockInfo( receivedSize - _totalBlockSize, blockTime ) ;
       }
 
-      PD_TRACE_EXIT( SDB__CLSSHDUSERDATA_ONRECVMSG ) ;
+      PD_TRACE_EXIT( SDB__CLSSHDNETDATA_ONRECVMSG ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDUSERDATA__CALCBLOCKSIZE, "_clsShdUserData::_calcBlockSize" )
-   void _clsShdUserData::_calcBlockSize( UINT32 &blockSize,
-                                         UINT32 currentSize )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDNETDATA__CALCBLOCKSIZE, "_clsShdNetData::_calcBlockSize" )
+   void _clsShdNetData::_calcBlockSize( UINT32 &blockSize,
+                                        UINT32 currentSize )
    {
-      PD_TRACE_ENTRY( SDB__CLSSHDUSERDATA__CALCBLOCKSIZE ) ;
+      PD_TRACE_ENTRY( SDB__CLSSHDNETDATA__CALCBLOCKSIZE ) ;
 
       // remove current message from received messages
       if ( blockSize > currentSize )
@@ -253,16 +213,16 @@ namespace engine
                     ( _blockInfo[ _blockInfoIndex ].blockSize ) : 0 ) ;
 #endif
 
-      PD_TRACE_EXIT( SDB__CLSSHDUSERDATA__CALCBLOCKSIZE ) ;
+      PD_TRACE_EXIT( SDB__CLSSHDNETDATA__CALCBLOCKSIZE ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDUSERDATA__ADDBLOCKINFO, "_clsShdUserData::_addBlockInfo" )
-   INT32 _clsShdUserData::_addBlockInfo( UINT32 blockSize,
-                                         stpLogicalTimeUS &blockTime )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDNETDATA__ADDBLOCKINFO, "_clsShdNetData::_addBlockInfo" )
+   INT32 _clsShdNetData::_addBlockInfo( UINT32 blockSize,
+                                        stpLogicalTimeUS &blockTime )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__CLSSHDUSERDATA__ADDBLOCKINFO ) ;
+      PD_TRACE_ENTRY( SDB__CLSSHDNETDATA__ADDBLOCKINFO ) ;
 
       UINT8 nextIndex = 0 ;
 
@@ -298,11 +258,51 @@ namespace engine
 #endif
 
    done:
-      PD_TRACE_EXITRC( SDB__CLSSHDUSERDATA__ADDBLOCKINFO, rc ) ;
+      PD_TRACE_EXITRC( SDB__CLSSHDNETDATA__ADDBLOCKINFO, rc ) ;
       return rc ;
 
    error:
       goto done ;
+   }
+
+   /*
+      _clsShdSessData implement
+    */
+   _clsShdSessData::_clsShdSessData()
+   : pmdAsyncSessData(),
+     clsShdRecvTimeInfo()
+   {
+   }
+
+   _clsShdSessData::~_clsShdSessData()
+   {
+   }
+
+   void _clsShdSessData::copyNetData( INetUserData *netData )
+   {
+      if ( NULL != netData &&
+           NET_USER_DATA_SHARD == netData->getType() )
+      {
+         clsShdNetData *shardNetData = NULL ;
+
+         // check if it is shard user data
+         shardNetData = dynamic_cast<clsShdNetData *>( netData ) ;
+
+         if ( NULL != shardNetData )
+         {
+            // copy receive time if needed
+            if ( shardNetData->isGlobTimeRequest() )
+            {
+               _recvTimeRC = shardNetData->getRecvTimeRC() ;
+               _recvTime = shardNetData->getRecvTime() ;
+            }
+            else
+            {
+               _recvTimeRC = SDB_OK ;
+               _recvTime.reset() ;
+            }
+         }
+      }
    }
 
    BEGIN_OBJ_MSG_MAP( _clsShdSession, _pmdAsyncSession )
@@ -418,25 +418,42 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS_ONRV, "_clsShdSession::onRecieve" )
    void _clsShdSession::onRecieve ( const NET_HANDLE netHandle,
-                                    MsgHeader * msg,
-                                    INetUserData *userData )
+                                    MsgHeader * msg )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS_ONRV ) ;
 
       ossGetCurrentTime( _lastRecvTime ) ;
 
-      if ( NULL != userData )
-      {
-         _msgUserData.setUserData( userData ) ;
-      }
-
       PD_TRACE_EXIT ( SDB__CLSSHDSESS_ONRV ) ;
    }
 
    void _clsShdSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
-                                            const MsgHeader *pHeader )
+                                            const MsgHeader *pHeader,
+                                            pmdAsyncSessData *sessData )
    {
       _pTaskInfo->beginATask() ;
+
+      if ( NULL != pHeader )
+      {
+         BOOLEAN needReset = TRUE ;
+
+         if ( NULL != sessData &&
+              PMD_SESS_DATA_SHARD == sessData->getType() )
+         {
+            clsShdSessData *data = dynamic_cast<clsShdSessData *>( sessData ) ;
+            if ( NULL != data )
+            {
+               _msgRecvTimeInfo.setRecvTimeRC( data->getRecvTimeRC() ) ;
+               _msgRecvTimeInfo.setRecvTime( data->getRecvTime() ) ;
+               needReset = FALSE ;
+            }
+         }
+
+         if ( needReset )
+         {
+            _msgRecvTimeInfo.reset( STP_NOT_AVAILABLE ) ;
+         }
+      }
    }
 
    void _clsShdSession::onDispatchMsgEnd( INT64 costUsecs )
@@ -455,6 +472,36 @@ namespace engine
                                         costUsecs ) ;
          }
       }
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS_ALLOCSESSDATA, "_clsShdSession::allocSessData" )
+   INT32 _clsShdSession::allocSessData( pmdAsyncSessData **sessionData )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS_ALLOCSESSDATA ) ;
+
+      clsShdSessData *data = NULL ;
+
+      if ( NULL == sessionData )
+      {
+         goto done ;
+      }
+
+      *sessionData = NULL ;
+
+      data = SDB_OSS_NEW clsShdSessData() ;
+      PD_CHECK( NULL != data, SDB_OOM, error, PDERROR,
+                "Failed to allocate shard user data" ) ;
+
+      *sessionData = (pmdAsyncSessData *)data ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS_ALLOCSESSDATA, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS_TMOUT, "_clsShdSession::timeout" )
@@ -848,11 +895,11 @@ namespace engine
       if ( transCB->isGlobTransSyncCheck() ||
            transCB->isGlobTransArbitOn() )
       {
-         if ( SDB_OK != _msgUserData.getRecvTimeRC() )
+         if ( SDB_OK != _msgRecvTimeInfo.getRecvTimeRC() )
          {
             PD_LOG( PDWARNING, "Failed to get global transaction time "
                     "for RR transaction checking, rc: %d",
-                    _msgUserData.getRecvTimeRC() ) ;
+                    _msgRecvTimeInfo.getRecvTimeRC() ) ;
             stpAgent agent ;
             rc = agent.getLogicalTimeUS( receivedTime,
                                          _pEDUCB->getTransTimeout(),
@@ -863,20 +910,18 @@ namespace engine
          }
          else
          {
-            receivedTime = _msgUserData.getRecvTime() ;
+            receivedTime = _msgRecvTimeInfo.getRecvTime() ;
          }
 
 #if defined (_DEBUG)
          PD_LOG( PDDEBUG, "Check RR transaction begin [%s], "
                  "begin time [%s], send time [%s], "
-                 "receive time [%s], "
-                 "request ID %llu, rc: %d",
+                 "receive time [%s], rc: %d",
                  dpsTransIDToString( transID ).c_str(),
                  dpsTransTimeToString( transBeginTime ).c_str(),
                  dpsTransTimeToString( sendTime ).c_str(),
                  dpsTransTimeToString( receivedTime ).c_str(),
-                 _msgUserData.getRequestID(),
-                 _msgUserData.getRecvTimeRC() ) ;
+                 _msgRecvTimeInfo.getRecvTimeRC() ) ;
 #endif
       }
 
@@ -3129,12 +3174,12 @@ namespace engine
 
          SDB_ASSERT( NULL != gtsAgent, "GTS agent is invalid" ) ;
 
-         if ( SDB_OK != _msgUserData.getRecvTimeRC() )
+         if ( SDB_OK != _msgRecvTimeInfo.getRecvTimeRC() )
          {
             // failed to get logical time when receiving message
             // retry now
             PD_LOG( PDWARNING, "Failed to get receive time for pre-commit "
-                    "message, rc: %d", _msgUserData.getRecvTimeRC() ) ;
+                    "message, rc: %d", _msgRecvTimeInfo.getRecvTimeRC() ) ;
 
             stpAgent agent ;
             rc = agent.getLogicalTimeUS( receivedTime,
@@ -3146,19 +3191,18 @@ namespace engine
          }
          else
          {
-            receivedTime = _msgUserData.getRecvTime() ;
+            receivedTime = _msgRecvTimeInfo.getRecvTime() ;
          }
 
 #if defined (_DEBUG)
-         PD_LOG( PDERROR, "Check RR transaction pre-commit [%s], "
+         PD_LOG( PDDEBUG, "Check RR transaction pre-commit [%s], "
                  "pre-commit time [%s], send time [%s], "
-                 "receive time [%s], request ID %llu, rc: %d",
+                 "receive time [%s], rc: %d",
                  dpsTransIDToString( _pEDUCB->getTransID() ).c_str(),
                  dpsTransTimeToString( preCommitTime ).c_str(),
                  dpsTransTimeToString( sendTime ).c_str(),
                  dpsTransTimeToString( receivedTime ).c_str(),
-                 _msgUserData.getRequestID(),
-                 _msgUserData.getRecvTimeRC() ) ;
+                 _msgRecvTimeInfo.getRecvTimeRC() ) ;
 #endif
 
          // we check doing transaction arbitration with maximum time error,

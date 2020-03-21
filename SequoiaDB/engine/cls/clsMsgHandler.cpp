@@ -86,7 +86,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      clsShdUserData *userData = NULL ;
+      clsShdNetData *netData = NULL ;
 
       // if holder is empty or already hold sharding message user data
       // no need to allocate
@@ -97,15 +97,15 @@ namespace engine
       }
 
       // allocate new user data for sharding message
-      userData = SDB_OSS_NEW clsShdUserData() ;
-      PD_CHECK( NULL != userData, SDB_OOM, error, PDWARNING,
+      netData = SDB_OSS_NEW clsShdNetData() ;
+      PD_CHECK( NULL != netData, SDB_OOM, error, PDWARNING,
                 "Failed to allocate shard user data" ) ;
 
       // set handle
-      userData->setHandle( handle ) ;
+      netData->setHandle( handle ) ;
 
       // set user data to given holder
-      userDataHolder->setUserData( userData ) ;
+      userDataHolder->setUserData( netData ) ;
 
    done:
       return rc ;
@@ -156,7 +156,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      clsShdUserData *shardUserData = NULL ;
+      clsShdNetData *netData = NULL ;
 
 #if defined (_DEBUG)
       PD_LOG( PDDEBUG, "Connection [Handle:%d, Node:%s] on receive "
@@ -180,24 +180,22 @@ namespace engine
                       msg2String( header, MSG_MASK_ALL, 0 ).c_str(), rc ) ;
       }
 
-      shardUserData =
-            dynamic_cast<clsShdUserData *>( userDataHolder->getUserData() ) ;
-      PD_CHECK( NULL != shardUserData, SDB_SYS, error, PDERROR,
+      netData = dynamic_cast<clsShdNetData *>( userDataHolder->getUserData() ) ;
+      PD_CHECK( NULL != netData, SDB_SYS, error, PDERROR,
                 "Connection [Handle:%d, Node:%s] failed to convert user data",
                 handle, routeID2String( id ).c_str(),
                 msg2String( header, MSG_MASK_ALL, 0 ).c_str() ) ;
 
       if ( !OSS_BIT_TEST( header->requestID, MSG_REQUEST_FLAG_GLOBTIME ) )
       {
-         shardUserData->onReceiveMsg( availableSize,
-                                      header->messageLength ) ;
+         netData->onReceiveMsg( availableSize, header->messageLength ) ;
          goto done ;
       }
 
-      shardUserData->setRequestID( header->requestID ) ;
+      netData->setRequestID( header->requestID ) ;
 
-      rc = shardUserData->acquireRecvTime( availableSize,
-                                           header->messageLength ) ;
+      rc = netData->acquireRecvTime( availableSize,
+                                     header->messageLength ) ;
       PD_RC_CHECK( rc, PDERROR, "Connection [Handle:%d, Node:%s] failed to "
                    "acquire receive time for message [%s], rc: %d",
                    handle, routeID2String( id ).c_str(),
@@ -209,7 +207,7 @@ namespace engine
               "receive time for message [%s], received at %s",
               handle, routeID2String( id ).c_str(),
               msg2String( header, MSG_MASK_ALL, 0 ).c_str(),
-              dpsTransTimeToString( shardUserData->getRecvTime() ).c_str() ) ;
+              dpsTransTimeToString( netData->getRecvTime() ).c_str() ) ;
 #endif
 
    done:

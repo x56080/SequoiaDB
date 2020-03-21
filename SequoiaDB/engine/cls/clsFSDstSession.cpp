@@ -168,8 +168,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDATADBS_ONRECV, "_clsDataDstBaseSession::onRecieve" )
    void _clsDataDstBaseSession::onRecieve( const NET_HANDLE netHandle,
-                                           MsgHeader * msg,
-                                           INetUserData *userData )
+                                           MsgHeader * msg )
    {
       // set the net handle, when peer socket close, the session will to be
       // delete auto
