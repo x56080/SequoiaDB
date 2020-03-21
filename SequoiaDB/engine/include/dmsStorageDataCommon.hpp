@@ -394,6 +394,9 @@ namespace engine
       // runtime CRUD statistics monitor
       monCRUDCB _crudCB ;
 
+      // spit finish timestamp
+      ossAtomic64 _splitFinishTime ;
+
       void reset()
       {
          _totalRecords           = 0 ;
@@ -425,6 +428,7 @@ namespace engine
          _lobIsCrash             = FALSE ;
          _rcTotalRecords.init( 0 ) ;
          _crudCB.reset() ;
+         _splitFinishTime.init( 0 ) ;
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
@@ -516,7 +520,8 @@ namespace engine
         _idxLastLSN( 0 ),
         _lobCommitFlag( 0 ),
         _lobLastLSN( 0 ),
-        _rcTotalRecords( 0 )
+        _rcTotalRecords( 0 ),
+        _splitFinishTime( 0 )
       {
          reset() ;
       }

@@ -726,6 +726,23 @@ namespace engine
          goto error ;
       }
 
+      // if a transaction isolation is RR and it starts before
+      // the split operation finishes, return with error
+      // SDB_GLOB_TRANS_NOT_AVAILABLE
+      if ( cb->isTransaction() &&
+           cb->isGlobTrans() &&
+           ( TRANS_ISOLATION_RR == cb->getTransIsolation() ) )
+      {
+         UINT64 splitFinTm = mbContext->mbStat()->_splitFinishTime.fetch() ;
+         stpLogicalTimeUS txBeginTm = cb->getTransBeginTime() ;
+         if ( splitFinTm &&
+              ( splitFinTm > txBeginTm.getTime() + STP_MAX_TIME_ERROR_US ) )
+         {
+            rc = SDB_GLOB_TRANS_NOT_AVAILABLE ;
+            goto error ;
+         }
+      }
+
       try
       {
       // create a new context
