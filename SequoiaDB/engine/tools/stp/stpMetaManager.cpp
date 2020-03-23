@@ -84,7 +84,8 @@ namespace engine
          {
             if ( _stpCB->isPrimary() )
             {
-               // if this is primary, update meta LSN by logical time
+               // if this is primary server, update meta LSN by
+               // logical time
                rc = updateMetaLSN() ;
                if ( SDB_OK != rc )
                {
@@ -216,10 +217,9 @@ namespace engine
       PD_CHECK( NULL != metaData, SDB_OOM, error, PDERROR,
                 "Failed to allocate meta data" ) ;
 
-      if ( STP_ROLE_SERVER == _options->getRole() ||
-           STP_ROLE_STANDALONE == _options->getRole() )
+      if ( STP_ROLE_SERVER == _options->getRole() )
       {
-         // for server and standalone role, try read meta file
+         // for testmode or server, try read meta file
          // initialize meta file
          rc = _store.initialize( _options->getStpPath() ) ;
          if ( SDB_FNE == rc )
@@ -282,7 +282,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__STPMETAMGR__POSTACTIVATE ) ;
 
-      // if this is primary ( only one server or standalone ),
+      // if this is primary ( only one server or test mode ),
       // update synchronize time to meta data
       // if this is not primary, it needs time to vote, so we don't launch meta
       // synchronize here, and let the time to launch meta synchronize
