@@ -867,7 +867,7 @@ namespace engine
          }
 
 #if defined (_DEBUG)
-         PD_LOG( PDERROR, "Check RR transaction begin [%s], "
+         PD_LOG( PDDEBUG, "Check RR transaction begin [%s], "
                  "begin time [%s], send time [%s], "
                  "receive time [%s], "
                  "request ID %llu, rc: %d",
