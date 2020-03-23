@@ -608,13 +608,17 @@ namespace engine
                        "   EDUID:  %llu"OSS_NEWLINE
                        "   TID:    %u"OSS_NEWLINE
                        "   LockId: %s"OSS_NEWLINE
-                       "   Mode:   %s"OSS_NEWLINE,
+                       "   Mode:   %s"OSS_NEWLINE
+                       "WaitLock: %s"OSS_NEWLINE
+                       "Isolation: %d"OSS_NEWLINE,
                        rc,
                        lockModeToString( _recordLock ),
                        lockConflict._eduID,
                        lockConflict._tid,
                        lockConflict._lockID.toString().c_str(),
-                       lockModeToString( lockConflict._lockType ) ) ;
+                       lockModeToString( lockConflict._lockType ),
+                       needWaitForLock() ? "TRUE" : "FALSE",
+                       cb->getTransIsolation() ) ;
                cb->printInfo( EDU_INFO_ERROR, "Failed to get record lock" ) ;
                goto error ;
             }
@@ -1970,13 +1974,17 @@ namespace engine
                        "   EDUID:  %llu"OSS_NEWLINE
                        "   TID:    %u"OSS_NEWLINE
                        "   LockId: %s"OSS_NEWLINE
-                       "   Mode:   %s"OSS_NEWLINE,
+                       "   Mode:   %s"OSS_NEWLINE
+                       "WaitLock: %s"OSS_NEWLINE
+                       "Isolation: %d"OSS_NEWLINE,
                        rc,
                        lockModeToString( _recordLock ),
                        lockConflict._eduID,
                        lockConflict._tid,
                        lockConflict._lockID.toString().c_str(),
-                       lockModeToString( lockConflict._lockType ) ) ;
+                       lockModeToString( lockConflict._lockType ),
+                       needWaitForLock() ? "TRUE" : "FALSE",
+                       cb->getTransIsolation() ) ;
                cb->printInfo( EDU_INFO_ERROR, "Failed to get record lock" ) ;
                goto error ;
             }
