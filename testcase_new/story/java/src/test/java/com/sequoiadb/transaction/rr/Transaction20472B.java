@@ -43,12 +43,14 @@ public class Transaction20472B extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{diaglevel:5}" ) );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         insertData();
     }
 
     @AfterClass
     public void tearDown() {
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{diaglevel:3}" ) );
         CollectionSpace cs = sdb.getCollectionSpace( csName );
         if ( cs.isCollectionExist( clName ) ) {
             cs.dropCollection( clName );
@@ -121,26 +123,31 @@ public class Transaction20472B extends SdbTestBase {
                     int bId = ( int ) ( Math.random() * insertNum );
                     int cId = ( int ) ( Math.random() * insertNum ) - insertNum;
 
+                    int aBalance = aId + 10000;
+                    int bBalance = bId + 10000;
+                    int cBalance = cId + 10000;
+
                     // 开启更新事务
                     db.beginTransaction();
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     try {
-                        BSONObject object = ( BSONObject ) JSON.parse(
-                                "{_id:" + aId + ", a:10000, b:" + aId + "}" );
+                        BSONObject object = ( BSONObject ) JSON
+                                .parse( "{_id:" + aId + ", a:" + aBalance
+                                        + ", b:" + aId + "}" );
                         cl.insert( object );
                         cl.delete( "{b:" + aId + "}",
                                 "{'':'" + idxName + "'}" );
 
-                        object = ( BSONObject ) JSON
-                                .parse( "{_id:" + ( bId + insertNum * 2 )
-                                        + ", a:10000, b:" + bId + "}" );
+                        object = ( BSONObject ) JSON.parse(
+                                "{_id:" + ( bId + insertNum * 2 ) + ", a:"
+                                        + bBalance + ", b:" + bId + "}" );
                         cl.insert( object );
                         cl.delete( "{_id:" + ( bId + insertNum * 2 ) + "}",
                                 "{'':'$id'}" );
 
-                        object = ( BSONObject ) JSON.parse(
-                                "{_id:" + cId + ", a:10000, b:" + cId + "}" );
+                        object = ( BSONObject ) JSON.parse( "{_id:" + cId
+                                + ", a:" + cBalance + ", b:" + cId + "}" );
                         cl.insert( object );
                         cl.delete( "{b:" + cId + "}",
                                 "{'':'" + idxName + "'}" );

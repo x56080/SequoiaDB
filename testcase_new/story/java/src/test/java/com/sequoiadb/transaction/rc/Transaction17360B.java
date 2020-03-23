@@ -270,6 +270,7 @@ public class Transaction17360B extends SdbTestBase {
             sdb3.close();
         }
         sdb.getCollectionSpace( csName ).dropCollection( clName );
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{diaglevel:3}" ) );
         if ( sdb != null ) {
             sdb.close();
         }
