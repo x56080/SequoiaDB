@@ -54,7 +54,7 @@ namespace engine
    #define FILE_OPTIONS \
          ( STP_OPTION_PORT, po::value<string>(), "STP listening port, default is 9622" ) \
          ( STP_OPTION_SERVERLIST, po::value<string>(), "STP server list" ) \
-         ( STP_OPTION_ROLE, po::value<string>(), "STP role, default is standalone" ) \
+         ( STP_OPTION_ROLE, po::value<string>(), "STP role, default is server" ) \
          ( STP_OPTION_WEIGHT, po::value<INT32>(), "STP vote weight" ) \
          ( STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "STP synchronize interval" ) \
          ( STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "STP max time error" ) \
@@ -67,7 +67,7 @@ namespace engine
    #define COMMANDS_OPTIONS \
          ( PMD_COMMANDS_STRING( STP_OPTION_PORT, ",p" ), po::value<string>(), "STP listening port, default is 9622" ) \
          ( STP_OPTION_SERVERLIST, po::value<string>(), "STP server list" ) \
-         ( STP_OPTION_ROLE, po::value<string>(), "STP role, default is standalone" ) \
+         ( STP_OPTION_ROLE, po::value<string>(), "STP role, default is server" ) \
          ( STP_OPTION_WEIGHT, po::value<INT32>(), "STP vote weight" ) \
          ( STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "STP synchronize interval" ) \
          ( STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "STP max time error" ) \
@@ -91,7 +91,8 @@ namespace engine
      _sharingBreakTime( PMD_STP_OPTION_BREAKTIME_DFT ),
      _startShiftTime( PMD_STP_OPTION_STARTSHIFTTIME_DFT ),
      _port( STP_DEF_PORT ),
-     _role( STP_ROLE_STANDALONE )
+     _role( STP_ROLE_SERVER ),
+     _testMode( FALSE )
    {
       _cfgFileName[ 0 ] = '\0' ;
       _stpPath[ 0 ] = '\0' ;
@@ -332,6 +333,10 @@ namespace engine
       rdxString( ex, STP_OPTION_ROLE, _roleString, sizeof( _roleString ),
                  FALSE, PMD_CFG_CHANGE_RUN, _roleString ) ;
 
+      // --testmode
+      rdxBooleanS( ex, STP_OPTION_TESTMODE, _testMode, FALSE,
+                   PMD_CFG_CHANGE_REBOOT, _testMode, TRUE ) ;
+
       // --weight
       rdxUInt( ex, STP_OPTION_WEIGHT, _weight, FALSE, PMD_CFG_CHANGE_RUN,
                _weight ) ;
@@ -388,11 +393,7 @@ namespace engine
                    _serverListString, rc ) ;
 
       // parse role
-      if ( 0 == ossStrcmp( _roleString, STP_ROLE_NAME_STANDALONE ) )
-      {
-         _role = STP_ROLE_STANDALONE ;
-      }
-      else if ( 0 == ossStrcmp( _roleString, STP_ROLE_NAME_CLIENT ) )
+      if ( 0 == ossStrcmp( _roleString, STP_ROLE_NAME_CLIENT ) )
       {
          _role = STP_ROLE_CLIENT ;
       }
@@ -409,8 +410,8 @@ namespace engine
       // reset role
       if ( _serverList.empty() )
       {
-         PD_LOG( PDEVENT, "Server list is empty, change to standalone" ) ;
-         _role = STP_ROLE_STANDALONE ;
+         PD_LOG( PDEVENT, "Server list is empty, change to server" ) ;
+         _role = STP_ROLE_SERVER ;
       }
 
    done:

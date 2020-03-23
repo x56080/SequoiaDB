@@ -129,7 +129,8 @@ namespace engine
       PD_TRACE_ENTRY( SDB__STPCB_ACTIVE ) ;
 
       // get role mask of config role
-      UINT32 roleMask = tpGetRoleMask( _options.getRole() ) ;
+      UINT32 roleMask = tpGetRoleMask( _options.isTestMode(),
+                                       _options.getRole() ) ;
 
       // test role mask against each module, activate supported module
       for ( STP_MODULE_LIST::iterator iter = _moduleList.begin() ;
@@ -290,7 +291,8 @@ namespace engine
       PD_TRACE_ENTRY( SDB__STPCB_ONCHANGEROLE ) ;
 
       // get role mask for modules
-      UINT32 roleMask = tpGetRoleMask( _options.getRole() ) ;
+      UINT32 roleMask = tpGetRoleMask( _options.isTestMode(),
+                                       _options.getRole() ) ;
 
       // for each module, check against role mask
       // if role mask supports given role, activate module,

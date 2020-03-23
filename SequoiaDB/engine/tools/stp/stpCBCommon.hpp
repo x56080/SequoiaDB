@@ -52,17 +52,15 @@ namespace engine
 
    // invalid server group version
    #define STP_GROUP_INVALID_VERSION      ( 0 )
-   // version of server group when node is configured as standalone
-   #define STP_GROUP_STANDALONE_VERSION   ( 1 )
    // initial version of server group
-   #define STP_GROUP_INIT_VERSION         ( 2 )
+   #define STP_GROUP_INIT_VERSION         ( 1 )
 
    // role masks for STPCB modules
    // indicate that a module could be used in a role
    // empty mask
    #define STP_ROLE_MASK_UNKNOWN       0x00000000
-   // mark module used in standalone role
-   #define STP_ROLE_MASK_STANDALONE    0x00000001
+   // mark module used in test mode
+   #define STP_ROLE_MASK_TESTMODE      0x00000001
    // mark module used in client role
    #define STP_ROLE_MASK_CLIENT        0x00000002
    // mark module used in server role
@@ -71,12 +69,15 @@ namespace engine
    #define STP_ROLE_MASK_ALL           0xFFFFFFFF
 
    // convert STP role to STPCB module mask
-   OSS_INLINE UINT32 tpGetRoleMask( STP_ROLE role )
+   OSS_INLINE UINT32 tpGetRoleMask( BOOLEAN testMode, STP_ROLE role )
    {
+      // test mode has higher priority than role
+      if ( testMode )
+      {
+         return STP_ROLE_MASK_TESTMODE ;
+      }
       switch ( role )
       {
-         case STP_ROLE_STANDALONE :
-            return STP_ROLE_MASK_STANDALONE ;
          case STP_ROLE_SERVER :
             return STP_ROLE_MASK_SERVER ;
          case STP_ROLE_CLIENT :

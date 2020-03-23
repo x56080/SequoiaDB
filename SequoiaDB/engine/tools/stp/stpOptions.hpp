@@ -124,6 +124,16 @@ namespace engine
          return _roleString ;
       }
 
+      OSS_INLINE void setTestMode( BOOLEAN testMode )
+      {
+         _testMode = testMode ;
+      }
+
+      OSS_INLINE BOOLEAN isTestMode() const
+      {
+         return _testMode ;
+      }
+
       // set vote weight
       OSS_INLINE void setWeight( UINT32 weight )
       {
@@ -255,6 +265,8 @@ namespace engine
       vector< pmdAddrPair >   _serverList ;
       // role
       STP_ROLE                _role ;
+      // test mode
+      BOOLEAN                 _testMode ;
    } ;
 
    typedef class _stpOptions stpOptions ;

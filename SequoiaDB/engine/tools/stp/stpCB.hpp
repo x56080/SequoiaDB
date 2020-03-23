@@ -176,7 +176,7 @@ namespace engine
       }
 
       // check if local is primary
-      // NOTE: could be a standalone
+      // NOTE: could be test mode
       OSS_INLINE BOOLEAN isPrimary()
       {
          return _nodeManager.isPrimary() ;

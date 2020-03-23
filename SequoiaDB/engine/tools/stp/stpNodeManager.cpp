@@ -946,16 +946,8 @@ namespace engine
             // if status is normal after changes, update versions if needed
             if ( localRoleUpdated && serversUpdated )
             {
-               if ( STP_ROLE_STANDALONE == getLocalRole() )
-               {
-                  // set standalone version for standalone role
-                  setVersion( STP_GROUP_STANDALONE_VERSION ) ;
-               }
-               else
-               {
-                  // set initial version for server or client role
-                  setVersion( STP_GROUP_INIT_VERSION ) ;
-               }
+               // set initial version for server or client role
+               setVersion( STP_GROUP_INIT_VERSION ) ;
             }
             // notify other modules on servers changed
             _stpCB->onChangeServers() ;
@@ -1073,11 +1065,10 @@ namespace engine
       STP_ROLE role = _options->getRole() ;
       vector< pmdAddrPair > serverList = _options->getServerList() ;
 
-      if ( STP_ROLE_STANDALONE == role )
+      if ( _options->isTestMode() )
       {
-         // for standalone role, set version
-         // and no need for other changes
-         setVersion( STP_GROUP_STANDALONE_VERSION ) ;
+         // set group version to initial version
+         setVersion( STP_GROUP_INIT_VERSION ) ;
          goto done ;
       }
 
@@ -1086,6 +1077,35 @@ namespace engine
                 SDB_INVALIDARG, error, PDWARNING,
                 "Failed to to initialize servers, unknown role: %d",
                 role ) ;
+
+      if ( STP_ROLE_SERVER == role && serverList.empty() )
+      {
+         // if server list is empty for server role
+         // add self into server list
+
+         // get host name
+         const CHAR *hostName = pmdGetKRCB()->getHostName() ;
+         // get service name
+         const CHAR *serviceName = _options->getServiceName() ;
+         // set address pair
+         pmdAddrPair selfAddr( hostName, serviceName ) ;
+
+         // add to server list
+         try
+         {
+            serverList.push_back( selfAddr ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add self to server list, error: %s",
+                    e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         PD_LOG( PDEVENT, "No server list is given for server role, "
+                 "add self [%s:%s] to server list", hostName, serviceName ) ;
+      }
 
       // check if server list is empty
       PD_CHECK( !serverList.empty(), SDB_INVALIDARG, error, PDERROR,
@@ -1210,15 +1230,6 @@ namespace engine
       vector< pmdAddrPair > serverList ;
       STP_ROLE role = _options->getRole() ;
 
-      if ( STP_ROLE_STANDALONE == _options->getRole() )
-      {
-         // standalone role, remove servers and reset version
-         // no need for other changes
-         removeServers() ;
-         setVersion( STP_GROUP_STANDALONE_VERSION ) ;
-         goto done ;
-      }
-
       // copy server
       rc = dumpServers( servers ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to dump servers, rc: %d", rc ) ;
@@ -1294,15 +1305,6 @@ namespace engine
 
       if ( _servers.empty() )
       {
-         // server list is empty, reset to standalone mode
-         if ( STP_ROLE_STANDALONE != _local.getRole() )
-         {
-            PD_LOG( PDWARNING, "Local role is invalid, "
-                    "expected [%s], given [%s]",
-                    stpGetRoleName( STP_ROLE_STANDALONE ),
-                    stpGetRoleName( _local.getRole() ) ) ;
-            _local.setRole( STP_ROLE_STANDALONE ) ;
-         }
          _setStatus( STP_NODE_NORMAL ) ;
       }
       else if ( _servers.end() != find( _servers.begin(),
@@ -1342,9 +1344,9 @@ namespace engine
          }
       }
 
-      if ( STP_ROLE_STANDALONE == _local.getRole() )
+      if ( _options->isTestMode() )
       {
-         // standalone role, this node is primary
+         // test mode, this node is primary
          _primaryRID = _local.getRouteID() ;
          pmdSetPrimary( TRUE ) ;
       }

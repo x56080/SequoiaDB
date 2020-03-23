@@ -51,7 +51,7 @@ namespace engine
       _stpNode implement
     */
    _stpNode::_stpNode()
-   : _role( STP_ROLE_STANDALONE )
+   : _role( STP_ROLE_SERVER )
    {
       _routeID.value = MSG_INVALID_ROUTEID ;
    }
@@ -85,7 +85,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__STPNODE__FROMBSON ) ;
 
-      STP_ROLE role = STP_ROLE_STANDALONE ;
+      STP_ROLE role = STP_ROLE_SERVER ;
       MsgRouteID routeID ;
       UINT32 groupID = INVALID_GROUPID ;
       UINT16 nodeID = INVALID_NODEID ;

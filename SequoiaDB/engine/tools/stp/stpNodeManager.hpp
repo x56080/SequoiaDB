@@ -173,7 +173,7 @@ namespace engine
       }
 
       // check whether self is primary
-      // NOTE: it could be a standalone node
+      // NOTE: it could be a test mode node
       OSS_INLINE BOOLEAN isPrimary()
       {
          ossScopedRWLock lock( &_mutex, SHARED ) ;

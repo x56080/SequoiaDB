@@ -133,18 +133,15 @@ namespace engine
    // roles of STP
    enum STP_ROLE
    {
-      // standalone: only one stp node
-      STP_ROLE_STANDALONE = 0,
-      // client: run as synchronize client
-      STP_ROLE_CLIENT,
       // server: run as synchronize server which could vote primary
       // NOTE: only primary server is the synchronize source
-      STP_ROLE_SERVER
+      STP_ROLE_SERVER = 0,
+      // client: run as synchronize client
+      STP_ROLE_CLIENT
    } ;
 
    // names of STP role
    #define STP_ROLE_MANE_UNKNOWN       "unknown"
-   #define STP_ROLE_NAME_STANDALONE    "standalone"
    #define STP_ROLE_NAME_CLIENT        "client"
    #define STP_ROLE_NAME_SERVER        "server"
 
@@ -153,8 +150,6 @@ namespace engine
    {
       switch ( role )
       {
-         case STP_ROLE_STANDALONE :
-            return STP_ROLE_NAME_STANDALONE ;
          case STP_ROLE_CLIENT :
             return STP_ROLE_NAME_CLIENT ;
          case STP_ROLE_SERVER :
@@ -168,8 +163,7 @@ namespace engine
    // check if role is valid
    OSS_INLINE BOOLEAN stpCheckRole( STP_ROLE role )
    {
-      return ( STP_ROLE_STANDALONE == role ||
-               STP_ROLE_CLIENT == role ||
+      return ( STP_ROLE_CLIENT == role ||
                STP_ROLE_SERVER == role ) ;
    }
 
