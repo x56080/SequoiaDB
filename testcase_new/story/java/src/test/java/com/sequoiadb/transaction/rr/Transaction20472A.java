@@ -43,12 +43,14 @@ public class Transaction20472A extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{diaglevel:5}" ) );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         insertData();
     }
 
     @AfterClass
     public void tearDown() {
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{diaglevel:3}" ) );
         CollectionSpace cs = sdb.getCollectionSpace( csName );
         if ( cs.isCollectionExist( clName ) ) {
             cs.dropCollection( clName );

@@ -52,6 +52,7 @@ public class Transaction17362A extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{diaglevel:5}" ) );
         sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         sdb3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
@@ -305,6 +306,7 @@ public class Transaction17362A extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{diaglevel:3}" ) );
         if ( sdb1 != null ) {
             sdb1.close();
         }

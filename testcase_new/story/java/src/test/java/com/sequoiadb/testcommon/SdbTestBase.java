@@ -76,7 +76,7 @@ public class SdbTestBase {
     public static String testGroup = null;
     private static final int newIndexScanStep = 100;
     private static final int transReplsize = 1;
-    public static final int timeOutLen = 120;
+    public static final int timeOutLen = 300;
     private static final Map< String, BSONObject > group2Conf = new HashMap< >();
     private static final Map< String, AtomicInteger > group2Count = new HashMap< >();
     private static final Map< String, BSONObject > node2Conf = new HashMap< >();
@@ -400,7 +400,7 @@ public class SdbTestBase {
             // 检查事务快照
             DBCursor cursor = sequoiadb
                     .getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS, "", "", "" );
-            ArrayList< BSONObject > List = new ArrayList< >();
+            ArrayList< BSONObject > List = new ArrayList<>();
             while ( cursor.hasNext() ) {
                 List.add( cursor.getNext() );
             }
