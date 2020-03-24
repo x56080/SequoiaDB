@@ -3,6 +3,7 @@
 <!--testcase for function test, which can be excuted concurrently-->
 
 <suite name="driver" verbose="1" parallel="tests" >
+    
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"       value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->

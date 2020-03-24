@@ -2,7 +2,8 @@
 <!--this xml is for ci, please don't modify it-->
 <!--large data testcase-->
 
-<suite name="driver" verbose="1" parallel="classes" thread-count="5">  
+<suite name="driver" verbose="1" parallel="classes" thread-count="5">
+    
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"       value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
@@ -25,15 +26,15 @@
     <parameter name="WORKDIR"        value="/tmp/javatest" />
 
     <listeners>
-        <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
+        <listener class-name="com.sequoiadb.testcommon.TimePrinterListener" />
     </listeners>
 
     <!--SEQUOIADBMAINSTREAM-3978-->
     <test name="fulltext" parallel="classes" thread-count="5">
         <packages>
             <package name="com.sequoiadb.fulltext.largedata" />
-        </packages>    
+        </packages>     
     </test>
-   
+    
 </suite>
-   
+    

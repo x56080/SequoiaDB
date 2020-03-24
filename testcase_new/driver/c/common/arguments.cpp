@@ -41,8 +41,8 @@ arguments::arguments()
    strcpy( _rsrvPortEnd, "27000" ) ;
    //用例创建节点存放节点数据目录
    strcpy( _rsrvNodeDir, "/opt/sequoiadb/database/" ) ;
-   strcpy( _workDir, "/tmp/cpptest" ) ;
    //用例存放临时文件的目录
+   strcpy( _workDir, "/tmp/cpptest" ) ;
    _forceClear = TRUE ;
 
    // get arguments from outside

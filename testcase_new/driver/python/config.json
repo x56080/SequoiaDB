@@ -1,4 +1,6 @@
-{"HOSTNAME":"localhost",
+{
+ 
+ "HOSTNAME":"localhost",
  "SVCNAME":11810,
  "CHANGEDPREFIX":"driver_python_test",
  "RSRVPORTBEGIN":26000,
@@ -7,4 +9,5 @@
  "WORKDIR":"/tmp/pythontest",
  "BREAK_ON_FAILURE":false
 }
+
 

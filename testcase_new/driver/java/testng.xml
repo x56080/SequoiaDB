@@ -3,7 +3,7 @@
 <!--testcase for function test, which can be excuted concurrently-->
 
 <suite name="driver" verbose="1" parallel="tests" >
-
+    
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"       value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
@@ -20,7 +20,7 @@
     <parameter name="WORKDIR"        value="/tmp/javatest" />
     <!--用例远程机器root用户密码-->
     <parameter name="ROOTPASSWD"     value="jenkins" />
-   
+    
     <listeners>
         <listener class-name="com.sequoiadb.testcommon.TimePrinterListener" />
     </listeners>
@@ -38,7 +38,7 @@
             <package name="com.sequoiadb.index"/>
             <package name="com.sequoiadb.transaction"/>
         </packages>
-    </test>   
+    </test>    
  
 </suite>
-   
+    

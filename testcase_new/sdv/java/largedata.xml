@@ -3,6 +3,7 @@
 <!--sync testcase, which should be excute serially-->
 
 <suite name="sdv" verbose="1"> 
+    
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"       value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
@@ -19,9 +20,9 @@
     <parameter name="WORKDIR"        value="/tmp/javatest" />
 
     <listeners>
-        <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
+        <listener class-name="com.sequoiadb.testcommon.TimePrinterListener" />
     </listeners>
-   
+    
     <test name="largedata" parallel="classes" thread-count="1">
         <packages>
         </packages>

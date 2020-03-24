@@ -3,6 +3,7 @@
 <!--testcase which should configure node -->
 
 <suite name="driver" verbose="1">
+
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"          value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
@@ -34,7 +35,7 @@
     </listeners>
 
     <!--The testcases of different configure should be placed in different 
-      <test> -->
+        <test> -->
     <test name="rc" parallel="classes" thread-count="5">
         <groups>
             <run>
@@ -131,4 +132,4 @@
     </test>
 
 </suite>
-   
+    

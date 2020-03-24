@@ -3,9 +3,9 @@
 <!--testcase which should configure node -->
 
 <suite name="driver" verbose="1" >  
-
+    
     <!--主机名，CI默认传入localhost-->
-    <parameter name="HOSTNAME"      value="${HOSTNAME}" />
+    <parameter name="HOSTNAME"     value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
     <parameter name="SVCNAME"       value="${SVCNAME}" />
     <!--公共CS名-->
@@ -24,13 +24,15 @@
     <parameter name="CONFTOOL"      value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
     
     <listeners>
-        <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
+        <listener class-name="com.sequoiadb.testcommon.TimePrinterListener" />
     </listeners>
+    
     <!--The testcases of different configure should be placed in different <test> -->
     <test name="ssl">
-        <packages> 
-            <package name="com.sequoiadb.ssl"/>
-        </packages>  
+      <packages> 
+            <package name="com.sequoiadb.ssl" />
+      </packages>  
     </test>
+    
 </suite>
-   
+    

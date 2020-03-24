@@ -4,6 +4,7 @@
    disk-full testcase. -->
 
 <suite name="reliability" verbose="1">
+
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"      value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
@@ -29,28 +30,29 @@
     <!--远程机器用户密码-->
     <parameter name="REMOTEPASSWD"  value="sdbadmin" />
     <!--可靠性shell脚本位置-->
-    <parameter name="SCRIPTDIR"     value="${SCRIPTDIR}" />
+    <parameter name="SCRIPTDIR" value="${SCRIPTDIR}" />
 
     <listeners>
         <listener
-            class-name="com.sequoiadb.commlib.ReliabilityInvokeMethodListener" />
+             class-name="com.sequoiadb.commlib.ReliabilityInvokeMethodListener" />
     </listeners>
 
     <test name="reliability" preserve-order="true">
-      <packages>
-          <package name="com.sequoiadb.subcl.diskfull" />
-          <package name="com.sequoiadb.split.diskfull" />
-          <package name="com.sequoiadb.metaopr.diskfull" />
-          <package name="com.sequoiadb.datasync.diskfull" />
-          <package name="com.sequoiadb.cappedCL.diskfull" />
-          <package name="com.sequoiadb.transaction.diskfull" />
-      </packages>
+        <packages>
+            <package name="com.sequoiadb.subcl.diskfull" />
+            <package name="com.sequoiadb.split.diskfull" />
+            <package name="com.sequoiadb.metaopr.diskfull" />
+            <package name="com.sequoiadb.datasync.diskfull" />
+            <package name="com.sequoiadb.cappedCL.diskfull" />
+            <package name="com.sequoiadb.transaction.diskfull" />
+        </packages>
     </test>
 
-    <test name="reliability_transaction_rcauto" preserve-order="true">
+    <test name="reliability_transaction_rcauto"
+         preserve-order="true">
         <groups>
             <run>
-                <include name="rcauto" />
+               <include name="rcauto" />
             </run>
         </groups>
         <packages>

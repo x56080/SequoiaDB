@@ -3,6 +3,7 @@
 <!--testcase for function test, which can be excuted concurrently-->
 
 <suite name="driver" verbose="1" parallel="tests" >
+    
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"       value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
@@ -17,7 +18,7 @@
     <parameter name="RSRVNODEDIR"    value="/opt/sequoiadb/database/" />
     <!--用例存放临时文件的目录-->
     <parameter name="WORKDIR"        value="/tmp/javatest" />
-
+    
     <listeners>
         <listener class-name="com.sequoiadb.testcommon.TimePrinterListener"/>
     </listeners>
@@ -25,6 +26,6 @@
     <test name="javadriver" parallel="classes" thread-count="5">
  
     </test>
-   
+    
 </suite>
    

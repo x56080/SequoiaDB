@@ -3,6 +3,7 @@
 <!--sync testcase, which should be excute serially -->
 
 <suite name="sdv" verbose="1">
+    
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"       value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
@@ -30,5 +31,6 @@
             <package name="com.sequoiadb.transactionsync" />
         </packages>
     </test>
+    
 </suite>
    
