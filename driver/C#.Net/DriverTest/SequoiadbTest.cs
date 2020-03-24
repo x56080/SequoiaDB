@@ -183,7 +183,7 @@ namespace DriverTest
             // connect to database
             sdb2.Connect("", "", cfgOpt);
             if (true == sdb2.IsCollectionSpaceExist("testSSL"))
-                cs2 = sdb2.GetCollecitonSpace("testSSL");
+                cs2 = sdb2.GetCollectionSpace("testSSL");
             else
                 cs2 = sdb2.CreateCollectionSpace("testSSL");
             if (true == cs2.IsCollectionExist("testSSL"))
@@ -693,7 +693,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // transction begin
             sdb.TransactionBegin();
@@ -733,7 +733,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // transction begin
             sdb.TransactionBegin();
@@ -772,7 +772,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // insert record
             BsonDocument insertor1 = new BsonDocument();
@@ -829,7 +829,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // insert record
             BsonDocument insertor1 = new BsonDocument();
@@ -886,7 +886,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // insert record
             BsonDocument insertor1 = new BsonDocument();
@@ -951,7 +951,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // insert record
             BsonDocument insertor1 = new BsonDocument();
@@ -1222,7 +1222,7 @@ namespace DriverTest
                 Assert.IsFalse(sdb.IsCollectionSpaceExist(csName));
                 Assert.IsTrue(sdb.IsCollectionSpaceExist(newCSName));
 
-                CollectionSpace cs = sdb.GetCollecitonSpace(newCSName);
+                CollectionSpace cs = sdb.GetCollectionSpace(newCSName);
                 Assert.IsTrue(cs.IsCollectionExist(clName));
                 cs.RenameCollection(clName, newCLName);
                 Assert.IsFalse(cs.IsCollectionExist(clName));
@@ -1251,7 +1251,7 @@ namespace DriverTest
             string csName = "exception_test";
             try
             {
-                CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+                CollectionSpace cs = sdb.GetCollectionSpace(csName);
             }
             catch (BaseException e)
             {
@@ -1270,5 +1270,20 @@ namespace DriverTest
                 Console.WriteLine("error obj is: {0}", errobj.ToString());
             }
         }
+
+        [TestMethod()]
+        public void GetCollectionSpaceTest()
+        {
+            string csName = "testCS1";
+            CollectionSpace cs = null;
+            Sequoiadb sdb = new Sequoiadb(config.conf.Coord.Address);
+            sdb.Connect(config.conf.UserName, config.conf.Password);
+            if (!sdb.IsCollectionSpaceExist(csName))
+                cs = sdb.CreateCollectionSpace(csName);
+            cs = sdb.GetCollectionSpace(csName);
+            sdb.DropCollectionSpace(csName);
+            sdb.Disconnect();
+        }
+
     }
 }

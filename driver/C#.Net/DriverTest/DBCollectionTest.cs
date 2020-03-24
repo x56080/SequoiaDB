@@ -1560,7 +1560,7 @@ namespace DriverTest
         {
             string csName = "testfoo";
             string clName = "testbar";
-            DBCollection cl = sdb.GetCollecitonSpace(csName).GetCollection(clName);
+            DBCollection cl = sdb.GetCollectionSpace(csName).GetCollection(clName);
             DBCursor cursor = cl.Query();
             BsonDocument record = cursor.Next();
             BsonValue bsonValue = record.GetValue("bindata");
