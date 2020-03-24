@@ -32,7 +32,7 @@
 | Docker 环境      | Mac Docker 2.0.0.3                                           |
 | ---------------- | ------------------------------------------------------------ |
 | 容器操作系统版本 | Ubuntu 18                                                    |
-| 数据库版本       | SequoiaDB 3.2.1                                              |
+| 数据库版本       | SequoiaDB 3.2.3                                              |
 | 集群部署         | 一个运行协调和编目节点，三个运行数据节点，一个运行 MySQL 实例 |
 
 Docker 在 Linux/Windows/MacOS 平台安装方法可参考官方文档。
@@ -96,30 +96,6 @@ $ docker inspect sdb_data3 | grep IPAddress |awk 'NR==2 {print $0}'
             "IPAddress": "172.17.0.4",
             "IPAddress": "172.17.0.5",           
 ```
-
-## 配置容器的 /etc/hosts 文件
-
-在各个容器的 /etc/hosts 文件中添加其他容器的 ip 与主机名的映射，让各个容器之间能够相互访问。以 sdb_data1 容器为例：
-
-进入容器 sdb_data1 。
-
-```lang-bash
-$ docker exec -it sdb_data1 /bin/bash
-```
-
-修改容器 sdb_data1 的 /etc/hosts 文件，将其他容器的 ip 与主机名的映射添加至 /etc/hosts 文件末尾，如下为其他容器的 ip 与主机名映射：
-
-```lang-bash
-172.17.0.2       6acedc175ef2
-172.17.0.4       53fd1642eb29
-172.17.0.5       bf7ce04f17b5
-```
-> **Note:**  
-> 1. 这里的 ip 与主机名为示例，请以实际的容器为准。  
-> 2. 容器的主机名默认为容器 id，如 6acedc175ef2 是 coord_catalog 容器的容器 id，也是其主机名。
-
-修改其他容器的 /etc/hosts 文件，之后检查各个容器之间是否能够相互访问。
-
 
 ## 部署 SequoiaDB 集群
 
