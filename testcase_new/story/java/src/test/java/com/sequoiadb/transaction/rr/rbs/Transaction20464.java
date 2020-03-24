@@ -38,8 +38,7 @@ public class Transaction20464 extends SdbTestBase {
         sdb.commit();
     }
 
-    // SEQUOIADBMAINSTREAM-5620
-    @Test(enabled = false)
+    @Test
     public void test() {
         Sequoiadb db1 = null;
         Sequoiadb db2 = null;
