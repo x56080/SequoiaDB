@@ -1,7 +1,6 @@
 package com.sequoiadb.rename.networkfail;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BasicBSONObject;
@@ -34,8 +33,8 @@ import com.sequoiadb.task.TaskMgr;
  */
 public class RenameClNetworkfailNode16771A extends SdbTestBase {
 
-    private List< String > oldCLNameList = new ArrayList<>();
-    private List< String > newCLNameList = new ArrayList<>();
+    private List< String > oldCLNameList = new ArrayList< >();
+    private List< String > newCLNameList = new ArrayList< >();
     private String csName = "cs16771A";
     private String oldCLName = "oldCL_16771A";
     private String newCLName = "newCL_16771A";
@@ -134,7 +133,7 @@ public class RenameClNetworkfailNode16771A extends SdbTestBase {
             } catch ( BaseException e ) {
                 int actErrCode = e.getErrorCode();
                 if ( actErrCode != -134 && actErrCode != -15
-                        && actErrCode != -116 ) {
+                        && actErrCode != -116 && actErrCode != -36 ) {
                     throw e;
                 }
             }
