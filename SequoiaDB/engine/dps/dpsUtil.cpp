@@ -92,10 +92,9 @@ namespace engine
    {
       SDB_ASSERT( pBuff && bufSize > 0, "Invalid input" ) ;
 
-      ossSnprintf( pBuff, bufSize, "0x%04x%014llx%s",
+      ossSnprintf( pBuff, bufSize, "0x%04x%016llx",
                    transID.getNodeID(),
-                   transID.getGlobSN(),
-                   transID.isGlobTrans() ? "(Global)" : "" ) ;
+                   transID.getGlobSN() ) ;
 
       return pBuff ;
    }
@@ -112,7 +111,7 @@ namespace engine
    {
       SDB_ASSERT( NULL != buffer, "buffer is invalid" ) ;
       SDB_ASSERT( bufferSize > 0, "buffer size is invalid" ) ;
-      ossSnprintf( buffer, bufferSize, "%llu(0x%llx)",
+      ossSnprintf( buffer, bufferSize, "%llu(0x%016llx)",
                    transSN, transSN ) ;
       return buffer ;
    }
@@ -129,7 +128,7 @@ namespace engine
    {
       SDB_ASSERT( NULL != buffer, "buffer is invalid" ) ;
       SDB_ASSERT( bufferSize > 0, "buffer size is invalid" ) ;
-      ossSnprintf( buffer, bufferSize, "0x%llx",
+      ossSnprintf( buffer, bufferSize, "0x%016llx",
                    transSN, transSN ) ;
       return buffer ;
    }
@@ -146,7 +145,7 @@ namespace engine
    {
       SDB_ASSERT( NULL != buffer, "buffer is invalid" ) ;
       SDB_ASSERT( bufferSize > 0, "buffer size is invalid" ) ;
-      ossSnprintf( buffer, bufferSize, "%llu(0x%llx), TE: %u",
+      ossSnprintf( buffer, bufferSize, "%llu(0x%016llx), TE: %u",
                    time.getTime(), time.getTime(), time.getTimeError() ) ;
       return buffer ;
    }
