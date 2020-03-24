@@ -70,17 +70,17 @@ function collection ( csName, clName, replSize )
    var funname = "collection";
    if( "undefined" === typeof ( csName ) )
    {
-      throw buildException( funname, "csName is undefined" );
+      throw new Error("csName is undefined") ;
    }
 
    if( "undefined" === typeof ( clName ) )
    {
-      throw buildException( funname, "clName is undefined" );
+      throw new Error("clName is undefined") ;
    }
 
    if( "undefined" === typeof ( replSize ) )
    {
-      throw buildException( funname, "replSize is undefined" );
+      throw new Error("replSize is undefined") ;
    }
 
    this.csName = csName;
@@ -93,12 +93,12 @@ collection.prototype.create =
    {
       if( "undefined" === typeof ( db ) )
       {
-         throw buildException( "collection.create", "db is undefined" );
+         throw new Error("db is undefined") 
       }
 
       if( "undefined" === typeof ( groupName ) )
       {
-         throw buildException( "collection.create", "groupName is undefined" );
+         throw new Error("groupName is undefined") ;
       }
 
       this.groupName = groupName;
@@ -119,7 +119,7 @@ collection.prototype.drop =
    {
       if( undefined === db )
       {
-         throw buildException( "collection.drop", "db is undefined" );
+         throw new Error("db is undefined");
       }
       commDropCL( db, this.csName, this.clName );
    }
@@ -129,7 +129,7 @@ collection.prototype.insert =
    {
       if( "number" !== typeof ( docSize ) )
       {
-         throw buildException( "collection.insert", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       try
@@ -144,7 +144,7 @@ collection.prototype.insert =
       }
       catch( e )
       {
-         throw buildException( "collection.insert", e );
+         throw new Error(e);
       }
    }
 
@@ -153,7 +153,7 @@ collection.prototype.bulkInsert =
    {
       if( "number" !== typeof ( number ) )
       {
-         throw buildException( "collection.bulkInsert", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
       try
       {
@@ -184,7 +184,7 @@ collection.prototype.bulkInsert =
       }
       catch( e )
       {
-         throw buildException( "collection.bulkinsert", e );
+         throw new Error(e);
       }
    }
 
@@ -193,7 +193,7 @@ collection.prototype.update =
    {
       if( "object" !== typeof ( condition ) )
       {
-         throw buildException( "collection.update", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       try
@@ -204,7 +204,7 @@ collection.prototype.update =
       }
       catch( e )
       {
-         throw buildException( "collection.update", e );
+         throw new Error(e);
       }
    }
 
@@ -213,7 +213,7 @@ collection.prototype.delete =
    {
       if( "object" !== typeof ( condition ) )
       {
-         throw buildException( "collection.delete", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       try
@@ -224,7 +224,7 @@ collection.prototype.delete =
       }
       catch( e )
       {
-         throw buildException( "collection.delete", e );
+         throw new Error(e);
       }
    }
 
@@ -237,7 +237,7 @@ collection.prototype.removeAll =
       }
       catch( e )
       {
-         throw buildException( "collection.removeAll", e );
+         throw new Error(e);
       }
    }
 
@@ -251,7 +251,7 @@ collection.prototype.createIndex =
 
       if( "object" !== typeof ( indexDef ) )
       {
-         throw buildException( "collection.createIndex", "indexDef is not object" );
+         throw new Error("indexDef is not object") ;
       }
 
       try
@@ -260,7 +260,7 @@ collection.prototype.createIndex =
       }
       catch( e )
       {
-         throw buildException( "collection.createIndex", e );
+         throw new Error(e);
       }
    }
 
@@ -269,7 +269,7 @@ collection.prototype.dropIndex =
    {
       if( "string" !== typeof ( idxName ) )
       {
-         throw buildException( "collection.dropIndex", "idxName must is string" );
+         throw new Error("idxName must is string") ;
       }
 
       try
@@ -278,7 +278,7 @@ collection.prototype.dropIndex =
       }
       catch( e )
       {
-         throw buildException( "collection.dropIndex", e );
+         throw new Error(e) ;
       }
    }
 
@@ -294,7 +294,7 @@ collection.prototype.explain =
    {
       if( "object" !== typeof ( db ) )
       {
-         throw buildException( "collection.getCount", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       if( "undefined" === typeof ( cond ) )
@@ -317,7 +317,7 @@ collection.prototype.explain =
       }
       catch( e )
       {
-         throw BuildException( "collection.explain", e );
+         throw new Error(e);
       }
    }
 
@@ -330,7 +330,7 @@ collection.prototype.putLob =
       }
       catch( e )
       {
-         throw buildException( "collection.putLob", e );
+         throw new Error(e);
       }
    }
 
@@ -350,7 +350,7 @@ collection.prototype.getLob =
       }
       catch( e )
       {
-         throw buildException( "collection.getLob", e );
+         throw new Error(e);
       }
    }
 
@@ -359,7 +359,7 @@ collection.prototype.getCount =
    {
       if( "object" !== typeof ( db ) )
       {
-         throw buildException( "collection.getCount", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       if( "undefined" === typeof ( cond ) )
@@ -375,7 +375,7 @@ collection.prototype.getCount =
       }
       catch( e )
       {
-         throw buildException( "collection.getCount", e );
+         throw new Error(e);
       }
    }
 
@@ -384,7 +384,7 @@ collection.prototype.checkCountAfterOperate =
    {
       if( "object" !== typeof ( db ) )
       {
-         throw buildException( "collection.getCount", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       try
@@ -407,7 +407,7 @@ collection.prototype.checkCountAfterOperate =
       }
       catch( e )
       {
-         throw buildException( "collection.getCount", e );
+         throw new Error(e);
       }
 
       return true;
@@ -417,17 +417,17 @@ function replicaNode ( hostName, svcName, group )
 {
    if( "undefined" === typeof ( hostName ) )
    {
-      throw buildException( "replicaNode", "hostName is undefined" );
+      throw new Error("hostName is undefined") ;
    }
 
    if( "undefined" === typeof ( svcName ) )
    {
-      throw buildException( "replicaNode", "svcName is undefined" );
+      throw new Error("svcName is undefined") ;
    }
 
    if( "undefined" === typeof ( group ) )
    {
-      throw buildException( "replicaNode", "group is undefined" );
+      throw new Error("group is undefined");
    }
 
    this.hostName = hostName;
@@ -442,7 +442,7 @@ replicaNode.prototype.setDbPath =
    {
       if( "string" !== typeof ( path ) )
       {
-         throw buildException( "replicaNode.setDbPath", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       this.dbPath = path;
@@ -453,7 +453,7 @@ replicaNode.prototype.setConfig =
    {
       if( "object" !== typeof ( config ) )
       {
-         throw buildException( "replicaNode.setConfig", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       this.config = config;
@@ -471,7 +471,7 @@ replicaNode.prototype.create =
       }
       catch( e )
       {
-         throw buildException( "replicaNode.create", e );
+         throw new Error(e);
       }
    }
 
@@ -486,7 +486,7 @@ replicaNode.prototype.drop =
       }
       catch( e )
       {
-         throw buildException( "replicaNode.drop", e );
+         throw new Error(e);
       }
    }
 
@@ -498,7 +498,7 @@ replicaNode.prototype.connect =
       {
          try
          {
-            println( "connect" + this.hostName + ":" + this.svcName );
+            println( "connect " + this.hostName + ":" + this.svcName );
             this.db = new Sdb( this.hostName, this.svcName );
             isOk = true;
          }
@@ -509,7 +509,7 @@ replicaNode.prototype.connect =
                isOk = false;
                continue;
             }
-            throw buildException( "replicaNode.connect", e );
+            throw new Error(e);
          }
       } while( !isOk );
    }
@@ -526,7 +526,7 @@ replicaNode.prototype.disConnect =
       }
       catch( e )
       {
-         throw buildException( "replicaNode.disConnect", e );
+         throw new Error(e);
       }
    }
 
@@ -548,7 +548,7 @@ replicaNode.prototype.getCurrentLsn =
       }
       catch( e )
       {
-         throw buildException( "replicaNode.getCurrentLsn", e );
+         throw new Error(e);
       }
    }
 
@@ -578,7 +578,7 @@ replicaNode.prototype.getAllCS =
       }
       catch( e )
       {
-         throw buildException( "replicaNode.getALLCS", e );
+         throw new Error(e);
       }
 
       return csSet;
@@ -604,7 +604,7 @@ replicaNode.prototype.getAllCL =
       }
       catch( e )
       {
-         throw buildException( "replicaNode.getALLCS", e );
+         throw new Error(e);
       }
 
       return clSet;
@@ -614,7 +614,7 @@ function groupMgr ( db )
 {
    if( "undefined" === typeof ( db ) )
    {
-      throw buildException( "groupMgr", "invalid parameter" );
+      throw new Error("invalid parameter");
    }
 
    this.db = db;
@@ -630,20 +630,22 @@ groupMgr.prototype.init =
          for( var i = 0; i < groups.length; ++i )
          {
             var group = new replicaGroup( this.db, groups[i][0].GroupName, groups[i][0].GroupID );
+            println( groups[i][0].GroupName + " begin" );
             for( var j = 1; j < groups[i].length; ++j )
             {
                var node = new replicaNode( groups[i][j].HostName, groups[i][j].svcname, group );
                node.setDbPath( groups[i][j].dbpath );
-
+               println( "node: " + groups[i][j].HostName + ":" + groups[i][j].svcname );
                group.addNode( node );
             }
+            println( groups[i][0].GroupName + " end" );
 
             this.groupSet.push( group );
          }
       }
       catch( e )
       {
-         throw buildException( "groupMgr.init", e );
+         throw new Error(e);
       }
    }
 
@@ -658,7 +660,7 @@ groupMgr.prototype.getGroupByName =
    {
       if( "string" !== typeof ( name ) )    
       {
-         throw buildException( "groupMgr.getGroupByName", "invalid parameter" );
+         throw new Error("invalid parameter");
       }
 
       for( var i = 0; i < this.groupSet.length; ++i )
@@ -669,7 +671,7 @@ groupMgr.prototype.getGroupByName =
          }
       }
 
-      throw buildException( "groupMgr.getGroupByName", "the group " + name + "is not exist" );
+      throw  new Error( "the group " + name + "is not exist") ;
    }
 
 groupMgr.prototype.getGroupByPos =
@@ -681,7 +683,7 @@ groupMgr.prototype.getGroupByPos =
       }
       else
       {
-         buildException( "groupMgr.getGroupByPos", "groups[" + index + "] is not exist" );
+         throw new Error( "groups[" + index + "] is not exist") ;
       }
    }
 
@@ -692,17 +694,17 @@ function replicaGroup ( db, name, id )
    var funname = "replicaGroup";
    if( "undefined" === typeof ( db ) )
    {
-      throw buildException( funname, "db is undefined" );
+      throw new Error("db is undefined") ;
    }
 
    if( "undefined" === typeof ( name ) )
    {
-      throw buildException( funname, "name is undefined" );
+      throw new Error("name is undefined") ;
    }
 
    if( "undefined" === typeof ( id ) )
    {
-      throw buildException( funname, "id is undefined" );
+      throw new Error("id is undefined") ;
    }
 
    this.db = db;
@@ -722,7 +724,7 @@ replicaGroup.prototype.addNode =
    {
       if( "object" !== typeof ( node ) )
       {
-         buildException( "replicaGroup.addNode", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       this.nodeSet.push( node );
@@ -733,7 +735,7 @@ replicaGroup.prototype.delNode =
    {
       if( "object" !== typeof ( node ) )
       {
-         buildException( "replicaGroup.delNode", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       var tmpnode = this.nodeSet.pop();
@@ -778,7 +780,7 @@ replicaGroup.prototype.create =
       }
       catch( e )
       {
-         throw buildException( "replicaGroup.create", e );
+         throw new Error(e);
       }
    }
 
@@ -791,7 +793,7 @@ replicaGroup.prototype.drop =
       }
       catch( e )
       {
-         throw buildException( "replicaGroup.drop", e );
+         throw new Error(e);
       }
    }
 
@@ -810,7 +812,7 @@ replicaGroup.prototype.getNodeByPos =
       }
       else
       {
-         throw buildException( "replicaGroup.getNodeByPos", "nodeSet[" + index + "] is not exist" );
+         throw new Error("nodeSet[" + index + "] is not exist") ;
       }
    }
 
@@ -819,11 +821,10 @@ replicaGroup.prototype.checkResult =
    {
       if( "function" !== typeof ( checkfun ) )
       {
-         throw buildException( "replicaGroup.checkResult",
-            "checkfun is not function" );
+         throw  new Error("checkfun is not function") ;
       }
 
-      var totalSleepDuration = 120000;
+      var totalSleepDuration = 10000;
       var sleepInteval = 2;
 
       var sleepDuration = 0;
@@ -868,7 +869,7 @@ replicaGroup.prototype.checkLSN =
          }
          else if( prevLsn !== currentLsn )
          {
-            //println("prev is " + prevLsn + " current is " + currentLsn)
+            println( "prev is " + prevLsn + " current is " + currentLsn )
             return false;
          }
       }
@@ -881,7 +882,7 @@ replicaGroup.prototype.checkExplain =
    {
       if( "object" !== typeof ( coll ) )
       {
-         buildException( "checkExplain", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       var prevExplain = [];
@@ -911,7 +912,7 @@ replicaGroup.prototype.checkDoc =
    {
       if( "object" !== typeof ( coll ) )
       {
-         buildException( "checkDoc", "invalid parameter" );
+         throw new Error("invalid parameter") ;
       }
 
       var prevCnt = 0;
@@ -920,16 +921,47 @@ replicaGroup.prototype.checkDoc =
          var node = group.getNodeByPos( i );
          node.connect();
          println( JSON.stringify( cond ) );
-         var currentCnt = coll.getCount( node.db, cond );
-         if( 0 === i )
+         var totalSleepLen = 10000;
+         var alreadySleep = 0;
+         do
          {
-            prevCnt = parseInt( currentCnt );
-         }
-         else if( prevCnt !== parseInt( currentCnt ) )
-         {
-            println( "*** " + node.toString() + currentCnt + prevCnt );
-            return false;
-         }
+            try
+            {
+               var currentCnt = coll.getCount( node.db, cond );
+               break;
+            } catch( e )
+            {
+               if( -23 != e.message )
+               {
+                  sleep( 10 );
+                  alreadySleep += 10;
+
+                  if( alreadySleep >= totalSleepLen )
+                  {
+                     throw new Error(e);
+                  }
+                  continue;
+               }
+			   throw new Error(e);
+            }
+
+            if( 0 === i )
+            {
+               prevCnt = parseInt( currentCnt );
+            }
+            else if( prevCnt !== parseInt( currentCnt ) )
+            {
+               if( alreadySleep < totalSleepLen )
+               {
+                  sleep( 10 );
+                  alreadySleep += 10;
+                  continue;
+               }
+               println( "*** " + node.toString() + " curr val=" + currentCnt + "prev val=" + prevCnt );
+               return false;
+            }
+
+         } while( true )
 
          if( !coll.checkCountAfterOperate( node.db ) )
          {
@@ -943,19 +975,20 @@ replicaGroup.prototype.checkDoc =
 replicaGroup.prototype.checkConsistency =
    function( coll )
    {
-      try
-      {
-         var totalTimeLen = 10000;
-         var sleepTimeLen = 0;
-         while( sleepTimeLen < totalTimeLen )
-         {
-            if( CATALOG_GROUPNAME === this.name ||
-               COORD_GROUPNAME === this.name ||
-               SPARE_GROUPNAME === this.name )
-            {
-               return true;
-            }
 
+      var totalTimeLen = 60000;
+      var sleepTimeLen = 0;
+      while( sleepTimeLen < totalTimeLen )
+      {
+         if( CATALOG_GROUPNAME === this.name ||
+            COORD_GROUPNAME === this.name ||
+            SPARE_GROUPNAME === this.name )
+         {
+            return true;
+         }
+
+         try
+         {
             var installPath = commGetInstallPath();
             var cmd = new command( installPath + "/bin/sdbinspect" );
             cmd.addOption( "-g " + this.name );
@@ -964,7 +997,7 @@ replicaGroup.prototype.checkConsistency =
             cmd.addOption( "-l " + coll.clName );
 
             var result = cmd.exec();
-
+            println( result );
             if( result.lastIndexOf( "inspect done" ) === 0 &&
                result.lastIndexOf( "exit with no records different" ) !== -1 )
             {
@@ -972,17 +1005,22 @@ replicaGroup.prototype.checkConsistency =
             }
             else
             {
-               //println("sdbinspect exec result:" + result )
+               println( "sdbinspect exec result:" + result )
                sleep( 1000 );
                sleepTimeLen += 1000;
                continue;
             }
          }
-      }
-      catch( e )
-      {
-         throw buildException( "checkConsistency", e );
-      }
+         catch( e )
+         {
+            sleep( 1000 );
+            sleepTimeLen += 1000;
+            if( sleepTimeLen >= totalTimeLen )
+               throw new Error(e);
+            continue;
+         }
+      }//while  
+      return false;
    }
 
 replicaGroup.prototype.checkCS =
@@ -1080,10 +1118,12 @@ function selectGroupByNodeNum ( groupMgr, nodeNum )
 
    if( 0 === groups.length )
    {
+      println( "all data group node num less than " + nodeNum );
       return;
    }
 
    var pos = Math.floor( Math.random() * groups.length );
+   println( groups[pos].name + " size is " + groups[pos].size() );
    return groups[pos];
 }
 
@@ -1092,13 +1132,13 @@ function checkResult ( arrSdb, obj )
    if( undefined === arrSdb ||
       "array" !== arrSdb.constructor )
    {
-      throw buildException( "checkResult", "parameter arrSdb invalid" );
+      throw new Error("parameter arrSdb invalid") ;
    }
 
    if( undefined === obj ||
       "object" !== typeof ( obj ) )
    {
-      throw buildException( "checkResult", "parameter obj invalid" );
+      throw new Error("parameter obj invalid") ;
    }
 
    this.totalSleepDuration = 10;
@@ -1167,7 +1207,7 @@ function command ( name )
 {
    if( "undefined" === typeof ( name ) )
    {
-      throw buildException( command, "name undefined" );
+      throw new Error("name undefined") ;
    }
 
    this.name = name;
@@ -1194,7 +1234,7 @@ command.prototype.exec =
       catch( e )
       {
          var exceptionMsg = "exec " + cmdstr + e;
-         throw buildException( "command.exec", exceptionMsg )
+         throw new Error(exceptionMsg) ;
       }
 
       return result;
@@ -1205,7 +1245,7 @@ command.prototype.addOption =
    {
       if( "undefined" === typeof ( option ) )
       {
-         throw buildException( "command.addOption()", "option is undefined" );
+         throw new Error("option is undefined") ;
       }
 
       if( "undefined" === typeof ( this.options ) )
@@ -1300,7 +1340,7 @@ testFile.prototype.generator =
       }
       catch( e )
       {
-         throw buildException( "generator", e );
+         throw new Error(e) ;
       }
       finally
       {

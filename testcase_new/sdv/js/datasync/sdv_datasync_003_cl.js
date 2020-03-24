@@ -36,6 +36,10 @@ function main ()
    }
    catch( e )
    {
+      if( e.constructor === Error )
+	  {
+	     println( e.stack );
+	  }
       throw e;
    }
    finally
