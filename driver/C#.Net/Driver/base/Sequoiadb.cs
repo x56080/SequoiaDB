@@ -609,15 +609,15 @@ namespace SequoiaDB
             RemoveCache(csName);
         }
 
-        /** \fn CollectionSpace GetCollecitonSpace(string csName)
+        /** \fn CollectionSpace GetCollectionSpace(string csName)
          *  \brief Get the named collection space
          *  \param csName The collection space name
-         *  \return The CollecionSpace handle
+         *  \return The CollectionSpace handle
          *  \note If collection space not exit, throw BaseException
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
-        public CollectionSpace GetCollecitonSpace(string csName) 
+        public CollectionSpace GetCollectionSpace(string csName) 
         {
             // create cs from cache
             if (FetchCache(csName))
@@ -631,9 +631,23 @@ namespace SequoiaDB
                 throw new BaseException("SDB_DMS_CS_NOTEXIST") ;
         }
 
+        /** \fn CollectionSpace GetCollecitonSpace(string csName)
+         *  \brief Get the named collection space
+         *  \param csName The collection space name
+         *  \return The CollectionSpace handle
+         *  \note If collection space not exit, throw BaseException
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         *  \deprecated Rename to "GetCollectionSpace".
+         */
+        public CollectionSpace GetCollecitonSpace(string csName)
+        {
+            return GetCollectionSpace(csName);
+        }
+
         /** \fn bool IsCollectionSpaceExist(string csName)
          *  \brief Verify the existence of collection space
-         *  \param csName The collecion space name
+         *  \param csName The collection space name
          *  \return True if existed or False if not existed
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception

@@ -1490,7 +1490,7 @@ namespace DriverTest
             
             DBCollection mycl =
         //                mydb.getCollectionSpace("maincs").getCollection("maincl");
-                    sdb.GetCollecitonSpace("mytest").GetCollection("mytest1");
+                    sdb.GetCollectionSpace("mytest").GetCollection("mytest1");
             long runTimes = 1L;
             int range = 1000;
             Random random = new Random();

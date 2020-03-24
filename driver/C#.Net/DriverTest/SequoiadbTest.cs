@@ -183,7 +183,7 @@ namespace DriverTest
             // connect to database
             sdb2.Connect("", "", cfgOpt);
             if (true == sdb2.IsCollectionSpaceExist("testSSL"))
-                cs2 = sdb2.GetCollecitonSpace("testSSL");
+                cs2 = sdb2.GetCollectionSpace("testSSL");
             else
                 cs2 = sdb2.CreateCollectionSpace("testSSL");
             if (true == cs2.IsCollectionExist("testSSL"))
@@ -594,7 +594,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // transction begin
             sdb.TransactionBegin();
@@ -634,7 +634,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // transction begin
             sdb.TransactionBegin();
@@ -673,7 +673,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // insert record
             BsonDocument insertor1 = new BsonDocument();
@@ -730,7 +730,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // insert record
             BsonDocument insertor1 = new BsonDocument();
@@ -787,7 +787,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // insert record
             BsonDocument insertor1 = new BsonDocument();
@@ -852,7 +852,7 @@ namespace DriverTest
             if (sdb.IsCollectionSpaceExist(csName))
                 sdb.DropCollectionSpace(csName);
             sdb.CreateCollectionSpace(csName);
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             DBCollection cl = cs.CreateCollection(cName);
             // insert record
             BsonDocument insertor1 = new BsonDocument();
@@ -1058,6 +1058,21 @@ namespace DriverTest
             node = rg.GetNode("ubuntu-hs03", 11840);
             node.Start();
         }
+
+        [TestMethod()]
+        public void GetCollectionSpaceTest()
+        {
+            string csName = "testCS1";
+            CollectionSpace cs = null;
+            Sequoiadb sdb = new Sequoiadb(config.conf.Coord.Address);
+            sdb.Connect(config.conf.UserName, config.conf.Password);
+            if (!sdb.IsCollectionSpaceExist(csName))
+                cs = sdb.CreateCollectionSpace(csName);
+            cs = sdb.GetCollectionSpace(csName);
+            sdb.DropCollectionSpace(csName);
+            sdb.Disconnect();
+        }
+
 
     }
 }
