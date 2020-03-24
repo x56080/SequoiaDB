@@ -138,6 +138,12 @@ namespace engine
            _transIsolation != isolation )
       {
          _transIsolation = isolation ;
+         // overrid _transWaitLock if _transIsolation
+         // is set to RR
+         if ( TRANS_ISOLATION_RR == getTransIsolation() )
+         {
+            _transWaitLock = FALSE ;
+         }
          ++_transConfVer ;
       }
       if ( enableMask )
@@ -166,6 +172,12 @@ namespace engine
       if ( _transWaitLock != waitLock )
       {
          _transWaitLock = waitLock ;
+         // overrid _transWaitLock if _transIsolation
+         // is set to RR
+         if ( TRANS_ISOLATION_RR == getTransIsolation() )
+         {
+            _transWaitLock = FALSE ;
+         }
          ++_transConfVer ;
       }
       if ( enableMask )

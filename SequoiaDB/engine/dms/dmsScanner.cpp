@@ -424,6 +424,14 @@ namespace engine
          }
       }
 
+#ifdef _DEBUG
+      if ( TRANS_ISOLATION_RR == _transIsolation )
+      {
+         SDB_ASSERT( ( FALSE == _waitLock ),
+                     "_waitLock must be set to FALSE when isolation is RR" ) ;
+      }
+#endif
+
       _extRW = _pSu->extent2RW( _curRID._extent, _context->mbID() ) ;
       _extRW.setNothrow( TRUE ) ;
       _extent = _extRW.readPtr<dmsExtent>() ;
@@ -1647,6 +1655,14 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
+#ifdef _DEBUG
+      if ( TRANS_ISOLATION_RR == _transIsolation )
+      {
+         SDB_ASSERT( ( FALSE == _waitLock ),
+                     "_waitLock must be set to FALSE when isolation is RR" ) ;
+      }
+#endif
 
       _scanner->setReadonly( isReadOnly() ) ;
       if ( DPS_TRANSLOCK_MAX == _recordLock )
