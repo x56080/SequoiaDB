@@ -96,7 +96,8 @@ namespace bson {
     public:
         /** @param initsize this is just a hint as to the final size of the
             object */
-        BSONObjBuilder(int initsize=512) : _b(_buf), _buf(initsize + sizeof(unsigned)),
+        BSONObjBuilder(int initsize=512) : _b(_buf),
+          _buf(initsize + sizeof(unsigned), BSONObjMaxInternalSize),
           _offset( sizeof(unsigned) ), _s( this ) , _tracker(0) , _doneCalled(false) {
             _orgReserve = _b.getReserveBytes() ;
             _b.skipDeplay(4) ; /* reference count */
@@ -110,7 +111,8 @@ namespace bson {
          *  This is for more efficient adding of subobjects/arrays. See docs for
          *  subobjStart for example.
          */
-        BSONObjBuilder( BufBuilder &baseBuilder ) : _b( baseBuilder ), _buf( 0 ),
+        BSONObjBuilder( BufBuilder &baseBuilder ) : _b( baseBuilder ),
+          _buf( 0, BSONObjMaxInternalSize ),
           _offset( baseBuilder.len() ), _s( this ) , _tracker(0) , _doneCalled(false) {
             _orgReserve = _b.getReserveBytes() ;
             _b.skipDeplay( 4 );
@@ -119,7 +121,7 @@ namespace bson {
         }
 
         BSONObjBuilder( const BSONSizeTracker & tracker ) : _b(_buf) ,
-          _buf(tracker.getSize() + sizeof(unsigned) ), _offset( sizeof(unsigned) ),
+          _buf(tracker.getSize() + sizeof(unsigned), BSONObjMaxInternalSize ), _offset( sizeof(unsigned) ),
           _s( this ) , _tracker( (BSONSizeTracker*)(&tracker) ) , _doneCalled(false) {
             _orgReserve = _b.getReserveBytes() ;
             _b.skipDeplay(4); /* reference count */

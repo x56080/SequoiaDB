@@ -119,9 +119,13 @@ accesses) is the same as if
         _BufBuilder& operator=( const _BufBuilder& );
         myAllocator al;
     public:
-        _BufBuilder(int initsize = 512) : _initsize(initsize), size(0) {
+        _BufBuilder(int initsize = 512, int maxBuffSize = BufferMaxSize)
+        : _initsize(initsize), _maxBuffSize(maxBuffSize), size(0) {
             if ( _initsize <= 0 ) {
                _initsize = 256 ;
+            }
+            if ( _maxBuffSize < _initsize ) {
+               _maxBuffSize = BufferMaxSize ;
             }
             data = 0;
             reservedBytes = 0;
@@ -311,11 +315,14 @@ accesses) is the same as if
             } else if ( minSize > a ) {
                 a = minSize + 16 * 1024;
             }
-            if ( a > BufferMaxSize ) {
-                if ( minSize > BufferMaxSize ) {
-                    msgasserted(13548, "BufBuilder grow() > 64MB") ;
+            if ( a > _maxBuffSize ) {
+                if ( minSize > _maxBuffSize ) {
+                    char errMsg[ 50 + 1 ] = "" ;
+                    snprintf( errMsg, 50, "BufBuilder grow() > %d",
+                              _maxBuffSize ) ;
+                    msgasserted(13548, errMsg) ;
                 } else {
-                    a = BufferMaxSize ;
+                    a = _maxBuffSize ;
                 }
             }
             char * newData = (char *)0 ;
@@ -332,6 +339,7 @@ accesses) is the same as if
         char *data;
         int l;
         int _initsize ;
+        int _maxBuffSize ;
         bool _isdelay ;
         int size;
         // eagerly grow_reallocate to keep this many bytes of spare room.

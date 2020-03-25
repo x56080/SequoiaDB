@@ -950,89 +950,97 @@ namespace engine
          }
       }
 
-      if ( SDB_OK != rc )
+      try
       {
-         BOOLEAN inTrans = _pEDUCB->isTransaction() ;
-         BOOLEAN hasRollbacked = FALSE ;
-
-         /// when coord catalog info is old, can't rollback, coord will retry
-         if ( inTrans &&
-              ( isAutoCommit ||
-                ( isNeedRollback && SDB_CLS_COORD_NODE_CAT_VER_OLD != rc &&
-                  _pEDUCB->getTransExecutor()->isTransAutoRollback() )
-               )
-             )
+         if ( SDB_OK != rc )
          {
-            PD_LOG ( PDDEBUG, "Rolling back operation(op=%d, rc=%d) on data",
-                     opCode, rc ) ;
-            INT32 rcTmp = _rollbackTrans() ;
-            if ( rcTmp )
+            BOOLEAN inTrans = _pEDUCB->isTransaction() ;
+            BOOLEAN hasRollbacked = FALSE ;
+
+            /// when coord catalog info is old, can't rollback, coord will retry
+            if ( inTrans &&
+                 ( isAutoCommit ||
+                   ( isNeedRollback && SDB_CLS_COORD_NODE_CAT_VER_OLD != rc &&
+                     _pEDUCB->getTransExecutor()->isTransAutoRollback() )
+                  )
+                )
             {
-               PD_LOG ( PDERROR, "Failed to rollback(rc=%d)", rcTmp ) ;
-            }
-            hasRollbacked = TRUE ;
-         }
-
-         if ( SDB_APP_INTERRUPT == rc &&
-              SDB_OK != _pEDUCB->getInterruptRC() )
-         {
-            rc = _pEDUCB->getInterruptRC() ;
-            PD_LOG ( PDDEBUG, "Interrupted EDU [%llu] with return code %d",
-                     _pEDUCB->getID(), rc ) ;
-         }
-
-         if ( 0 == buffObj.size() )
-         {
-            utilBuildErrorBson( _retBuilder, rc,
-                                _pEDUCB->getInfo( EDU_INFO_ERROR ),
-                                inTrans ? &hasRollbacked : NULL ) ;
-            _errorInfo = _retBuilder.done() ;
-            buffObj = rtnContextBuf( _errorInfo ) ;
-         }
-         else
-         {
-            SDB_ASSERT( 1 == buffObj.recordNum(), "Record number must be 1" ) ;
-
-            BSONObj errObj( buffObj.data() ) ;
-            BSONObjIterator itr( errObj ) ;
-            while( itr.more() )
-            {
-               BSONElement e = itr.next() ;
-               if ( 0 != ossStrcmp( FIELD_NAME_ROLLBACK, e.fieldName() ) )
+               PD_LOG ( PDDEBUG, "Rolling back operation(op=%d, rc=%d) on data",
+                        opCode, rc ) ;
+               INT32 rcTmp = _rollbackTrans() ;
+               if ( rcTmp )
                {
-                  _retBuilder.append( e ) ;
+                  PD_LOG ( PDERROR, "Failed to rollback(rc=%d)", rcTmp ) ;
+               }
+               hasRollbacked = TRUE ;
+            }
+
+            if ( SDB_APP_INTERRUPT == rc &&
+                 SDB_OK != _pEDUCB->getInterruptRC() )
+            {
+               rc = _pEDUCB->getInterruptRC() ;
+               PD_LOG ( PDDEBUG, "Interrupted EDU [%llu] with return code %d",
+                        _pEDUCB->getID(), rc ) ;
+            }
+
+            if ( 0 == buffObj.size() )
+            {
+               utilBuildErrorBson( _retBuilder, rc,
+                                   _pEDUCB->getInfo( EDU_INFO_ERROR ),
+                                   inTrans ? &hasRollbacked : NULL ) ;
+               _errorInfo = _retBuilder.done() ;
+               buffObj = rtnContextBuf( _errorInfo ) ;
+            }
+            else
+            {
+               SDB_ASSERT( 1 == buffObj.recordNum(), "Record number must be 1" ) ;
+
+               BSONObj errObj( buffObj.data() ) ;
+               BSONObjIterator itr( errObj ) ;
+               while( itr.more() )
+               {
+                  BSONElement e = itr.next() ;
+                  if ( 0 != ossStrcmp( FIELD_NAME_ROLLBACK, e.fieldName() ) )
+                  {
+                     _retBuilder.append( e ) ;
+                  }
+               }
+               _retBuilder.appendBool( FIELD_NAME_ROLLBACK, hasRollbacked ) ;
+               _errorInfo = _retBuilder.done() ;
+               buffObj = rtnContextBuf( _errorInfo ) ;
+            }
+
+            if ( rc != SDB_DMS_EOC )
+            {
+               PD_LOG ( (SDB_CLS_COORD_NODE_CAT_VER_OLD==rc ? PDINFO : PDERROR),
+                        "Session[%s] process OP[type:%u] failed[rc:%d]",
+                        sessionName(), opCode, rc ) ;
+            }
+
+            if ( SDB_CLS_NOT_PRIMARY == rc )
+            {
+               if ( 0 == _primaryID.columns.nodeID )
+               {
+                  _primaryID.value = _pReplSet->getPrimary().value ;
+               }
+               if ( 0 != _primaryID.columns.nodeID )
+               {
+                  // return the node id by startFrom
+                  startFrom = _primaryID.columns.nodeID ;
                }
             }
-            _retBuilder.appendBool( FIELD_NAME_ROLLBACK, hasRollbacked ) ;
+         }
+         /// succeed and has result info
+         else if ( !_retBuilder.isEmpty() && 0 == buffObj.size() )
+         {
             _errorInfo = _retBuilder.done() ;
             buffObj = rtnContextBuf( _errorInfo ) ;
          }
-
-         if ( rc != SDB_DMS_EOC )
-         {
-            PD_LOG ( (SDB_CLS_COORD_NODE_CAT_VER_OLD==rc ? PDINFO : PDERROR),
-                     "Session[%s] process OP[type:%u] failed[rc:%d]",
-                     sessionName(), opCode, rc ) ;
-         }
-
-         if ( SDB_CLS_NOT_PRIMARY == rc )
-         {
-            if ( 0 == _primaryID.columns.nodeID )
-            {
-               _primaryID.value = _pReplSet->getPrimary().value ;
-            }
-            if ( 0 != _primaryID.columns.nodeID )
-            {
-               // return the node id by startFrom
-               startFrom = _primaryID.columns.nodeID ;
-            }
-         }
       }
-      /// succeed and has result info
-      else if ( !_retBuilder.isEmpty() && 0 == buffObj.size() )
+      catch ( std::exception &e )
       {
-         _errorInfo = _retBuilder.done() ;
-         buffObj = rtnContextBuf( _errorInfo ) ;
+         PD_LOG( PDWARNING, "Failed to build retObj:exception=%s",
+                 e.what() ) ;
       }
 
       if ( _inPacketLevel > 0 )
