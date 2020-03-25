@@ -140,7 +140,7 @@ namespace engine
          _transIsolation = isolation ;
          // overrid _transWaitLock if _transIsolation
          // is set to RR
-         if ( TRANS_ISOLATION_RR == getTransIsolation() )
+         if ( TRANS_ISOLATION_RR == _transIsolation )
          {
             _transWaitLock = FALSE ;
          }
@@ -174,7 +174,7 @@ namespace engine
          _transWaitLock = waitLock ;
          // overrid _transWaitLock if _transIsolation
          // is set to RR
-         if ( TRANS_ISOLATION_RR == getTransIsolation() )
+         if ( TRANS_ISOLATION_RR == _transIsolation )
          {
             _transWaitLock = FALSE ;
          }
