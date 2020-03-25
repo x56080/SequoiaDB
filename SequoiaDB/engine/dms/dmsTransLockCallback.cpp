@@ -1567,43 +1567,6 @@ namespace engine
          goto error ;
       }
 
-      if ( !cb->isTransaction() )
-      {
-         // no need to check for non-transaction
-         goto done ;
-      }
-      else if ( NULL != _oldVer )
-      {
-         if ( _oldVer->isOIDUpdated() )
-         {
-            // we could only update _id in the same transaction once
-            PD_LOG( PDERROR, "Failed to update _id field of record "
-                    "(%d, %d) in the same transaction again",
-                    rid._extent, rid._offset ) ;
-            rc = SDB_ID_UPDATED_IN_TRANS ;
-            goto error ;
-         }
-         else if ( _oldVer->isRecordNew() )
-         {
-            // new inserted record (RID reused) could not update _id field
-            PD_LOG( PDERROR, "Failed to update _id field of record "
-                    "(%d, %d) in the same transaction, it is inserted by "
-                    "this transaction", rid._extent, rid._offset ) ;
-            rc = SDB_ID_UPDATED_IN_TRANS ;
-            goto done ;
-         }
-         _oldVer->setOIDUpdated() ;
-      }
-      else
-      {
-         // new inserted record could not update _id field
-         PD_LOG( PDERROR, "Failed to update _id field of record "
-                 "(%d, %d) in the same transaction, it is inserted by "
-                 "this transaction", rid._extent, rid._offset ) ;
-         rc = SDB_ID_UPDATED_IN_TRANS ;
-         goto done ;
-      }
-
    done:
       PD_TRACE_EXITRC( SDB_DMSTRANSLOCKCALLBACK__CHKIDIDXUPDATE, rc ) ;
       return rc ;

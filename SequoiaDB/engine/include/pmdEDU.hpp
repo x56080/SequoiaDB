@@ -194,6 +194,9 @@ namespace engine
 
          INT64             getCurAutoTransCtxID() const ;
          void              setCurAutoTransCtxID( INT64 contextID ) ;
+         BOOLEAN           isTransRBPending() const ;
+         void              setTransRBPending() ;
+         void              clearTransRBPending() ;
 
    public:
       _pmdEDUCB( _pmdEDUMgr *mgr, INT32 type ) ;

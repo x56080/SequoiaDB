@@ -2737,20 +2737,19 @@
             <cn>存在未完成的自动提交事务</cn>
          </description>
       </code>
-      
+
       <code>
          <name>SDB_FMP_FUNC_EXIST</name>
          <description>
             <en>Stored procedure exists</en>
             <cn>存储过程已存在</cn>
          </description>
-      </code>      
 
       <code>
-         <name>SDB_ID_UPDATED_IN_TRANS</name>
+         <name>SDB_OP_INCOMPLETE</name>
          <description>
-            <en>The _id field already updated in the same transaction</en>
-            <cn>_id字段已经在同一个事务中更新</cn>
+            <en>Operation is incomplete</en>
+            <cn>操作不完整</cn>
          </description>
       </code>
 

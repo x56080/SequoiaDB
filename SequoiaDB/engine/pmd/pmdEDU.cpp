@@ -806,6 +806,25 @@ namespace engine
       return _curAutoTransCtxID ;
    }
 
+   BOOLEAN _pmdEDUCB::isTransRBPending() const
+   {
+      return DPS_TRANS_IS_RBPENDING( _curTransID ) ? TRUE : FALSE ;
+   }
+
+   void _pmdEDUCB::setTransRBPending()
+   {
+      SDB_ASSERT( DPS_TRANS_IS_ROLLBACK( _curTransID ),
+                  "Current transaction is not rollback" ) ;
+      DPS_TRANS_SET_RBPENDING( _curTransID ) ;
+   }
+
+   void _pmdEDUCB::clearTransRBPending()
+   {
+      SDB_ASSERT( DPS_TRANS_IS_ROLLBACK( _curTransID ),
+                  "Current transaction is not rollback" ) ;
+      DPS_TRANS_CLEAR_RBPENDING( _curTransID ) ;
+   }
+
    void _pmdEDUCB::contextCopy( _pmdEDUCB::SET_CONTEXT &contextList )
    {
       ossScopedLock _lock ( &_mutex, SHARED ) ;

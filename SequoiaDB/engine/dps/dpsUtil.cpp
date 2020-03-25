@@ -133,6 +133,10 @@ namespace engine
       {
          _dpsAppendFlagString( pBuff, bufSize, "Rollback" ) ;
       }
+      if ( DPS_TRANS_IS_RBPENDING( transID ) )
+      {
+         _dpsAppendFlagString( pBuff, bufSize, "Pending" ) ;
+      }
 
       return pBuff ;
    }

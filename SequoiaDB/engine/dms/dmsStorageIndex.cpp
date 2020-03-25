@@ -1725,11 +1725,15 @@ namespace engine
       // insert (root split)
       ixmExtent rootidx ( indexCB->getRoot(), this ) ;
 
-      rc = rootidx.insert ( key, rid, order,
-                            ( cb && ( cb->isDoRollback() ||
-                                      cb->isInTransRollback() ) ) ? TRUE :
-                                                                    dupAllowed,
-                            indexCB, pResult ) ;
+      // adjust allow duplicated flag
+      // - doing DPS log rollback: allow duplicated
+      // - doing transaction rollback on non-id index: allow duplicated
+      dupAllowed = ( NULL != cb &&
+                     ( cb->isDoRollback() ||
+                     ( cb->isInTransRollback() &&
+                           !indexCB->isSysIndex() ) ) ) ? TRUE : dupAllowed ;
+
+      rc = rootidx.insert ( key, rid, order, dupAllowed, indexCB, pResult ) ;
       if ( rc )
       {
          if ( pResult )
@@ -1959,8 +1963,15 @@ namespace engine
       }
 
       unique = indexCB->unique() ;
-      dupAllowed = ( cb && ( cb->isDoRollback() ||
-                             cb->isInTransRollback() ) ) ? TRUE : !unique ;
+
+      // adjust allow duplicated flag
+      // - doing DPS log rollback: allow duplicated
+      // - doing transaction rollback on non-id index: allow duplicated
+      // - non-unique index: allow duplicated
+      dupAllowed = ( NULL != cb &&
+                     ( cb->isDoRollback() ||
+                     ( cb->isInTransRollback() &&
+                           !indexCB->isSysIndex() ) ) ) ? TRUE : !unique ;
 
       rc = indexCB->getKeysFromObject ( newObj, keySetNew ) ;
       if ( rc )

@@ -1864,17 +1864,6 @@ namespace engine
              TRUE : FALSE ;
    }
 
-   BOOLEAN oldVersionContainer::isOIDUpdated() const
-   {
-      return OSS_BIT_TEST( _statMask, OLDVER_MASK_OID_UPDATED ) ?
-             TRUE : FALSE ;
-   }
-
-   void oldVersionContainer::setOIDUpdated()
-   {
-      OSS_BIT_SET( _statMask, OLDVER_MASK_OID_UPDATED ) ;
-   }
-
    // check if the index lid already exists in the set
    BOOLEAN oldVersionContainer::idxLidExist( SINT32 idxLID ) const
    {

@@ -774,8 +774,6 @@ namespace engine
    // We could delete the record with light job during gc
    #define OLDVER_MASK_DISK_DELETING         0x00000008
  //#define OLDVER_MASK_HAS_COPED             0x00000010
-   // indicate the _id field has been updated in the same transaction
-   #define OLDVER_MASK_OID_UPDATED           0x00000020
 
    // Class to store all information for old version record/indexes. This 
    // container is currently hanging off LRBHdr
@@ -821,9 +819,6 @@ namespace engine
 
       void                 setRecordDummy( UINT32 ownnerTID ) ;
       BOOLEAN              isRecordDummy() const ;
-
-      void                 setOIDUpdated() ;
-      BOOLEAN              isOIDUpdated() const ;
 
       UINT32               getOwnnerTID() const ;
 

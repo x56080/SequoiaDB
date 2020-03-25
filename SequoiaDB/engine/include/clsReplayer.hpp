@@ -172,9 +172,56 @@ namespace engine
                             _pmdEDUCB *eduCB ) ;
 
       INT32 rollbackTrans( const dpsLogRecordHeader *recordHeader,
-                           pmdEDUCB *eduCB ) ;
+                           pmdEDUCB *eduCB,
+                           MAP_TRANS_PENDING_OBJ &mapPendingObj ) ;
+
+      INT32 replayRBPending( const dpsLogRecordHeader *recordHeader,
+                             BOOLEAN removeOnly,
+                             pmdEDUCB *eduCB,
+                             MAP_TRANS_PENDING_OBJ &mapPendingObj ) ;
 
    protected:
+      // rollback INSERT DPS record
+      INT32 _rollbackTransInsert( const dpsLogRecordHeader *recordHeader,
+                                  pmdEDUCB *eduCB,
+                                  MAP_TRANS_PENDING_OBJ &mapPendingObj ) ;
+      // rollback UPDATE DPS record
+      INT32 _rollbackTransUpdate( const dpsLogRecordHeader *recordHeader,
+                                  pmdEDUCB *eduCB,
+                                  MAP_TRANS_PENDING_OBJ &mapPendingObj ) ;
+      // rollback DELETE DPS record
+      INT32 _rollbackTransDelete( const dpsLogRecordHeader *recordHeader,
+                                  pmdEDUCB *eduCB,
+                                  MAP_TRANS_PENDING_OBJ &mapPendingObj ) ;
+      // write DPS transaction rollback log
+      INT32 _logTransRollback( pmdEDUCB *eduCB ) ;
+
+      // replay rollback INSERT to construct pending object
+      INT32 _replayInsertRBPending( const dpsLogRecordHeader *recordHeader,
+                                    BOOLEAN removeOnly,
+                                    pmdEDUCB *eduCB,
+                                    MAP_TRANS_PENDING_OBJ &mapPendingObj ) ;
+      // replay rollback UPDATE to construct pending object
+      INT32 _replayUpdateRBPending( const dpsLogRecordHeader *recordHeader,
+                                    BOOLEAN removeOnly,
+                                    pmdEDUCB *eduCB,
+                                    MAP_TRANS_PENDING_OBJ &mapPendingObj ) ;
+      // replay rollback UPDATE to construct pending object
+      INT32 _replayDeleteRBPending( const dpsLogRecordHeader *recordHeader,
+                                    BOOLEAN removeOnly,
+                                    pmdEDUCB *eduCB,
+                                    MAP_TRANS_PENDING_OBJ &mapPendingObj ) ;
+      // helper function: construct new object by modifier
+      INT32 _replayUpdateModifier( const bson::BSONObj &updater,
+                                   const bson::BSONObj &oldObject,
+                                   bson::BSONObj &newObject,
+                                   UINT32 logWriteMode ) ;
+      // helper function: query DMS record
+      INT32 _queryRecord( const CHAR *collection,
+                          const bson::BSONObj &matcher,
+                          pmdEDUCB *eduCB,
+                          bson::BSONObj &object ) ;
+
       // helper function: calculate bucket ID
       INT32 _calcBucketID( dpsLogRecordHeader *recordHeader,
                            _clsBucket *pBucket,
