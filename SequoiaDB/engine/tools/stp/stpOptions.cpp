@@ -61,7 +61,6 @@ namespace engine
          ( STP_OPTION_DIAGLEVEL, po::value<INT32>(), "STP dialog level, default is 3" ) \
          ( STP_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
          ( STP_OPTION_STARTSHIFTTIME, po::value<INT32>(), "Nodes starting shift time( in seconds ), default:600, value range:[0,7200]" ) \
-         ( STP_OPTION_DAEMON, "Start STP in daemon mode" ) \
          ( STP_OPTION_TESTMODE, "Start STP in test mode" )
 
    #define COMMANDS_OPTIONS \
@@ -79,6 +78,10 @@ namespace engine
          ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h" ), "help" ) \
          ( STP_OPTION_VERSION, "version" ) \
          ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), po::value<string>(), "STP configuration file path" )
+
+   #define COMMANDS_HIDE_OPTIONS \
+         ( STP_OPTION_HELPFULL, "help all configs" ) \
+         ( STP_OPTION_CURUSER, "use current user" )
 
    /*
       _tpOptions implement
@@ -127,6 +130,12 @@ namespace engine
          goto error ;
       }
 
+      /// change user
+      if ( !vmCommand.count( STP_OPTION_CURUSER ) )
+      {
+         UTIL_CHECK_AND_CHG_USER() ;
+      }
+
       if ( vmCommand.count( STP_OPTION_CONFPATH ) )
       {
          // if config path is given, check if exists
@@ -162,13 +171,8 @@ namespace engine
          vmCommand.erase( STP_OPTION_CONFPATH ) ;
          vmCommand.erase( STP_OPTION_DAEMON ) ;
 
-         // initialize config record
-         rc = pmdCfgRecord::init( NULL, &vmCommand ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to initialize configurations, "
-                      "rc: %d", rc ) ;
-
-         rc = toString( options ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get extra configurations for "
+         rc = _toCommandLine( vmCommand, options ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to generate command line for "
                       "daemon mode, rc: %d", rc ) ;
 
          rc = stpStartNode( rootPath, _stpPath, options ) ;
@@ -203,6 +207,7 @@ namespace engine
       // remove options should no saved into config file
       vmCommand.erase( STP_OPTION_CONFPATH ) ;
       vmCommand.erase( STP_OPTION_DAEMON ) ;
+      vmCommand.erase( STP_OPTION_CURUSER ) ;
 
       // initialize config record
       rc = pmdCfgRecord::init( &vmFile, &vmCommand ) ;
@@ -448,14 +453,20 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       po::options_description desc( "Command options" ) ;
+      po::options_description all( "Command options" ) ;
 
       // initialize options
       PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
          COMMANDS_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
 
+      PMD_ADD_PARAM_OPTIONS_BEGIN( all )
+         COMMANDS_OPTIONS
+         COMMANDS_HIDE_OPTIONS
+      PMD_ADD_PARAM_OPTIONS_END
+
       // validate arguments
-      rc = utilReadCommandLine( argc, argv, desc, vm ) ;
+      rc = utilReadCommandLine( argc, argv, all, vm ) ;
       if ( SDB_OK != rc )
       {
          cout << "Invalid arguments: " << rc << endl ;
@@ -467,6 +478,11 @@ namespace engine
       if ( vm.count( STP_OPTION_HELP ) )
       {
          _displayArguments( desc ) ;
+         rc = SDB_PMD_HELP_ONLY ;
+      }
+      else if ( vm.count( STP_OPTION_HELPFULL ) )
+      {
+         _displayArguments( all ) ;
          rc = SDB_PMD_HELP_ONLY ;
       }
       else if ( vm.count( STP_OPTION_VERSION ) )
@@ -489,6 +505,40 @@ namespace engine
    void _stpOptions::_displayVersion() const
    {
       ossPrintVersion( "Serial Time Protocol version" ) ;
+   }
+
+   INT32 _stpOptions::_toCommandLine( const po::variables_map &vm,
+                                      string &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         stringstream ss ;
+
+         // merge variables into command line
+         for ( po::variables_map::const_iterator iter = vm.begin() ;
+               iter != vm.end() ;
+               ++ iter )
+         {
+            ss << " --" << iter->first << " " << iter->second.as<string>() ;
+         }
+
+         options = ss.str() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to generate command line, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
 }

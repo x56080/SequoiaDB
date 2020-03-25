@@ -234,6 +234,10 @@ namespace engine
       // display version
       void _displayVersion() const ;
 
+      // to command line
+      INT32 _toCommandLine( const boost::program_options::variables_map &vm,
+                            std::string &options ) ;
+
    protected:
       // name of config file ( with full path )
       CHAR           _cfgFileName[ OSS_MAX_PATHSIZE + 1 ] ;

@@ -108,6 +108,8 @@ namespace engine
    #define STP_OPTION_VERSION          PMD_OPTION_VERSION
    #define STP_OPTION_HELP             PMD_OPTION_HELP
    #define STP_OPTION_HELPFULL         PMD_OPTION_HELPFULL
+   #define STP_OPTION_CURUSER          PMD_OPTION_CURUSER
+
    // server list
    #define STP_OPTION_SERVERLIST       "serverlist"
    // synchronize interval
