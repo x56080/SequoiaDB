@@ -99,7 +99,8 @@ accesses) is the same as if
         _BufBuilder& operator=( const _BufBuilder& );
         Allocator al;
     public:
-        _BufBuilder(int initsize = 512) : size(initsize) {
+        _BufBuilder(int initsize = 512, int maxBuffSize = BufferMaxSize)
+        : _maxBuffSize(maxBuffSize), size(initsize) {
             if ( size > 0 ) {
                 data = (char *) al.Malloc(size);
                 if( data == 0 )
@@ -240,8 +241,13 @@ accesses) is the same as if
                 a = 512;
             if ( minSize > a )
                 a = minSize + 16 * 1024;
-            if ( a > BufferMaxSize )
-                msgasserted(13548, "BufBuilder grow() > 64MB");
+            if ( a > _maxBuffSize ) {
+                char errMsg[ 50 + 1 ] = "" ;
+                snprintf( errMsg, 50, "BufBuilder grow() > %d",
+                          _maxBuffSize ) ;
+                msgasserted(13548, errMsg) ;
+            }
+
             char * newData = (char *) al.Realloc(data, a);
             if ( !newData )
                msgasserted(13550, "BufBuilder grow() out-of-memory");
@@ -251,6 +257,7 @@ accesses) is the same as if
 
         char *data;
         int l;
+        int _maxBuffSize ;
         int size;
         // eagerly grow_reallocate to keep this many bytes of spare room.
         int reservedBytes;
