@@ -86,7 +86,7 @@ namespace engine
 
    #define COMMANDS_HIDE_OPTIONS \
       ( STP_OPTION_HELPFULL, "help all configs" ) \
-      ( PMD_OPTION_CURUSER, "use current user" )
+      ( STP_OPTION_CURUSER, "use current user" )
 
    static void init( po::options_description &desc,
                      po::options_description &all )
@@ -218,7 +218,7 @@ namespace engine
 #endif
 
       /// change user
-      if ( !vm.count( PMD_OPTION_CURUSER ) )
+      if ( !vm.count( STP_OPTION_CURUSER ) )
       {
          UTIL_CHECK_AND_CHG_USER() ;
       }
