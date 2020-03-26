@@ -99,7 +99,6 @@ testFiles = [
    [ "./tdd/collectionspace.cpp" ],
    [ "./tdd/concurrent_insert.cpp" ],
    [ "./tdd/cursor.cpp" ],
-   [ "./tdd/debug.cpp" ],
    [ "./tdd/domain.cpp" ],
    [ "./tdd/mutex.cpp" ],
    [ "./tdd/newapi.cpp" ],

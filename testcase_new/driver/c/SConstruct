@@ -196,7 +196,7 @@ elif guess_os == "linux":
         env.Append( LIBPATH=[join(boost_lib_dir,'ppclinux64', build_type)] )
 
 
-    winLibString = "staticsdbc boost_program_options boost_thread boost_system boost_filesystem gtest pthread dl"
+    winLibString = "staticsdbc gtest pthread dl"
     env.Append( LIBS=Split(winLibString) )
     if debugBuild:
         env.Append( CPPFLAGS=" -O0 -fstack-protector")
@@ -217,7 +217,7 @@ elif guess_os == 'aix':
     env.Append( LIBPATH="/lib" )
     # use project-related boost library
     env.Append( LIBPATH=[join(boost_lib_dir,'aix64', build_type)] )
-    winLibString = "staticsdbc boost_program_options boost_thread boost_system boost_filesystem gtest pthread dl"
+    winLibString = "staticsdbc gtest pthread dl"
     env.Append( LIBS=Split(winLibString) )
     if debugBuild:
         env.Append( CPPFLAGS=" -O0 ")

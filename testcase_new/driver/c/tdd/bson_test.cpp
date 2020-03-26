@@ -1,11 +1,11 @@
 #include <iostream>
 #include <gtest/gtest.h>
-#include <boost/thread/thread.hpp>
-#include <boost/bind.hpp>
+
 
 #include <client.h>
 #include "arguments.hpp"
 #include "../common/testcommon.hpp"
+#include "../common/impWorker.hpp"
 
 using namespace std ;
 
@@ -68,9 +68,18 @@ void bsonTest::TearDown()
    sdbReleaseConnection( _db ) ;
 }
 
-void bulk_insert( INT32 totalNum, const CHAR *pCLFullName )
+class TestWorkerArgs: public import::WorkerArgs {
+    public:
+        TestWorkerArgs(int num, const char *pName):totalNum(num),pCLFullName(pName){}
+        int totalNum ;
+        const char *pCLFullName;
+};
+
+void bulk_insert( import::WorkerArgs* args )
 {
    INT32 rc = SDB_OK ;
+   
+   TestWorkerArgs* testArgs = (TestWorkerArgs*)args;
    #define bulk_num 1000 
    INT32 had_insert_num = 0 ;
    sdbConnectionHandle db = 0 ;
@@ -84,18 +93,18 @@ void bulk_insert( INT32 totalNum, const CHAR *pCLFullName )
       goto error ;
    }
 
-   rc = sdbGetCollection( db, pCLFullName, &cl ) ;
+   rc = sdbGetCollection( db,testArgs->pCLFullName, &cl ) ;
    if ( SDB_OK != rc )
    {
       CHECK_MSG( "%s%d\n","failed to get cl handle, rc = ",rc ) ;
       goto error ;
    }
 
-   while( had_insert_num < totalNum )
+   while( had_insert_num < testArgs->totalNum )
    {
       INT32 i = 0 ;
       INT32 count = 0 ; 
-      INT32 num = totalNum - had_insert_num ;
+      INT32 num = testArgs->totalNum  - had_insert_num ;
       num = num > bulk_num ? bulk_num : num ;
       for ( count = 0; count < num; count++ )
       {
@@ -154,13 +163,29 @@ TEST_F( bsonTest, multi_thread_bulk_insert_to_check_oid )
    INT32 thread_num = 20 ;
    INT32 total_num = 25000 ;
    SINT64 count = 0 ;
-   boost::thread_group threads ;
+   std::vector<import::Worker> threads ;
+   TestWorkerArgs args(total_num, _pCLFullName) ;
    for ( INT32 i = 0; i < thread_num; i++ )
    {
-      threads.create_thread( boost::bind( &bulk_insert, total_num,
-                                          _pCLFullName ) ) ;
+      //threads.create_thread( boost::bind( &bulk_insert, total_num,
+      //                                    _pCLFullName ) ) ;
+	  threads.push_back(import::Worker(bulk_insert, &args)) ;
    }
-   threads.join_all() ;
+   
+   for ( INT32 i = 0; i < thread_num; i++ )
+   {
+      //threads.create_thread( boost::bind( &bulk_insert, total_num,
+      //                                    _pCLFullName ) ) ;
+	  threads[i].start() ;
+   }
+   
+   for ( INT32 i = 0; i < thread_num; i++ )
+   {
+      //threads.create_thread( boost::bind( &bulk_insert, total_num,
+      //                                    _pCLFullName ) ) ;
+	  threads[i].waitStop() ;
+   }
+   //threads.join_all() ;
 
    rc = sdbGetCount( _cl, NULL, &count ) ;
    ASSERT_EQ( SDB_OK, rc ) ;

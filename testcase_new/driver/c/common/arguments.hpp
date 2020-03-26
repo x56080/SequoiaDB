@@ -53,8 +53,8 @@ private:
    BOOLEAN _forceClear ;
 
    arguments() ;
-   arguments( const arguments& ) {}
-   arguments& operator=( const arguments& ) {}
+   arguments( const arguments& ); 
+   arguments& operator=( const arguments& ) ;
 } ;
 
 #endif

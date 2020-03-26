@@ -12,7 +12,6 @@
 using namespace std ;
 using testing::internal::g_argvs ;
 
-extern vector<testing::internal::String> g_argvs ;
 
 arguments* arguments::getInstance()
 {
