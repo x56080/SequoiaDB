@@ -2335,14 +2335,27 @@ namespace engine
          itMap = _oldIdxLid.find( tmpObj.getIdxLID() ) ;
          if ( itMap == _oldIdxLid.end() )
          {
-            SDB_ASSERT( FALSE, "Index can't found in index set" ) ;
+#if defined ( _DEBUG )
+            // When drops an index, onDropIndex() will delete
+            // memory index tree from index set. We've seen following
+            // scenario at runtime :
+            // thread 1:                 thread 2:
+            //   rtnTransBegin
+            //                           rtnDropIndexCommand
+            //   ....
+            //   transLockRelease
+            //     dmsOnTransLockRelease
+            //       tryReleaseRecord
+            PD_LOG( PDDEBUG, "Index[%u] is not found in index set",
+                    tmpObj.getIdxLID() );
+#endif
          }
          else
          {
             BOOLEAN treeLatchHeld = FALSE ;
             pTree = (itMap->second).get() ;
             preIdxTreeNodeKey keyNode( &(tmpObj.getKeyObj()),
-                                       _rid, 
+                                       _rid,
                                        pTree->getOrdering(),
                                        _ownerTransID ) ;
             INT32 idxLID = pTree->getLID() ;
@@ -2428,10 +2441,6 @@ namespace engine
                            "Index tree must be held exclusively" ) ;
                treeLatchHeld = TRUE ;
             }
-
-#if defined ( _DEBUG )
-            PD_LOG( PDDEBUG, "_oldIdx size: %u", _oldIdx.size() );
-#endif
 
             if ( idxLID == tmpObj.getIdxLID() && treeLatchHeld )
             {
