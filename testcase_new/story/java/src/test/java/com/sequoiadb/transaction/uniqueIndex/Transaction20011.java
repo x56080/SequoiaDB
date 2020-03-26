@@ -39,8 +39,7 @@ public class Transaction20011 extends SdbTestBase {
         expDataList = new ArrayList< BSONObject >();
     }
 
-    // SEQUOIADBMAINSTREAM-5361
-    @Test(enabled = false)
+    @Test
     public void test() {
         Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 

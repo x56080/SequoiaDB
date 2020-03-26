@@ -49,8 +49,7 @@
             <package name="com.sequoiadb.split.serial" />
             <package name="com.sequoiadb.lob.serial" />
             <package name="com.sequoiadb.transaction.session.serial" />
-            <!--SEQUOIADBMAINSTREAM-5361-->
-            <!--package name="com.sequoiadb.transaction.pendingobject" /-->
+            <package name="com.sequoiadb.transaction.pendingobject" />
       </packages>    
    </test>
 </suite>
