@@ -105,5 +105,16 @@
             <package name="com.sequoiadb.transaction.restartnode" />
         </packages>
     </test>
+    
+    <test name="reliability_transaction_rcauto"preserve-order="true">
+        <groups>
+            <run>
+                <include name="rrauto" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.rr" />
+        </packages>
+    </test>
 </suite>
     

@@ -1,10 +1,10 @@
 package com.sequoiadb.transaction.rr;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.Random;
+import java.util.List;
 
 import org.bson.BSONObject;
+import org.bson.types.BasicBSONList;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -28,21 +28,22 @@ import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 import com.sequoiadb.transaction.common.TransRBS;
+import com.sequoiadb.transaction.common.TransUtil;
 
 /**
- * @Description seqDB-20520:事务操作过程中，数据节点主节点正常重启
+ * @Description seqDB-20520:事务操作过程中，数据节点主节点正常停止120s后启动
  * @author zhaoyu
  * @date 2020-2-2
  *
  */
-@Test(groups = "rr")
+@Test(groups = "rrauto")
 public class Transaction20520 extends SdbTestBase {
-    private String csName = "cs20520";
-    private String clName = "transCL_20520";
+    private String clName = "cl20520";
     private Sequoiadb sdb = null;
     private DBCollection cl = null;
     private GroupMgr groupMgr;
-    private String groupName;
+    private CollectionSpace cs = null;
+    private int insertNum = 10000;
 
     @BeforeClass
     public void setUp() throws ReliabilityException {
@@ -52,23 +53,23 @@ public class Transaction20520 extends SdbTestBase {
         }
 
         groupMgr = GroupMgr.getInstance();
-        if ( !groupMgr.checkBusiness( 120 ) ) {
+        if ( !groupMgr.checkBusiness( TransUtil.ClusterRestoreTimeOut ) ) {
             throw new SkipException( "GROUP ERROR" );
         }
 
-        ArrayList< String > groupNames = CommLib.getDataGroupNames( sdb );
-        groupName = groupNames.get( 0 );
-        cl = sdb.createCollectionSpace( csName ).createCollection( clName,
-                ( BSONObject ) JSON.parse( "{Group:'" + groupName + "'}" ) );
+        cs = sdb.getCollectionSpace( csName );
+        BSONObject clOption = ( BSONObject ) JSON.parse(
+                "{ShardingKey:{_id:1},ShardingType:'hash',AutoSplit:true}" );
+        cl = cs.createCollection( clName, clOption );
         cl.createIndex( "a", "{a:1}", false, false );
-        TransRBS.insertDatas( cl );
-        TransRBS.genMultiRBSCL( cl );
+        TransRBS.insertRandomLengthRecords( cl, insertNum, 400, 1024 );
+        TransRBS.genMultiRBSCL( cl, 1 );
     }
 
     @AfterClass
     public void tearDown() throws InterruptedException {
         sdb.commit();
-        sdb.dropCollectionSpace( csName );
+        cs.dropCollection( clName );
         if ( sdb != null ) {
             sdb.close();
         }
@@ -76,46 +77,70 @@ public class Transaction20520 extends SdbTestBase {
 
     @Test
     public void test() throws ReliabilityException, InterruptedException {
+        // 获取组上的GlobLowTran及GlobExpireTran
+        List< String > groupNames = groupMgr.getAllDataGroupName();
+        BasicBSONList globTransIDGroups = TransRBS
+                .getGlobTransIDInDataGroup( sdb, groupNames );
+
+        sdb.beginTransaction();
+
         // 正常重启集合所在的数据节点主节点
-        GroupWrapper dataGroup = groupMgr.getGroupByName( groupName );
-        NodeWrapper dataMaster = dataGroup.getMaster();
+        // 由于框架中,同一个组内获取的node,使用了同一个连接,通过下述方式使用不同连接停节点,避免使用同一个连接做并发停节点的操作,导致异常
+        TaskMgr mgr = new TaskMgr();
+        for ( int i = 0; i < groupNames.size(); i++ ) {
+            groupMgr.setSdb( new Sequoiadb( SdbTestBase.coordUrl, "", "" ) );
+            GroupWrapper dataGroup = groupMgr
+                    .getGroupByName( groupNames.get( i ) );
+            NodeWrapper dataMaster = dataGroup.getMaster();
+            FaultMakeTask faultTask = NodeRestart.getFaultMakeTask( dataMaster,
+                    60, 180 );
+            mgr.addTask( faultTask );
+        }
 
         // 建立并行任务
-        FaultMakeTask faultTask = NodeRestart.getFaultMakeTask( dataMaster,
-                new Random().nextInt( 60 ), 10, 10 );
-        TaskMgr mgr = new TaskMgr( faultTask );
-        mgr.addTask( new Update() );
-        mgr.addTask( new CreateTask() );
+        mgr.addTask( new TransUpdate() );
         mgr.execute();
 
         // TaskMgr检查线程异常
         Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
 
         // 最长等待10分钟的集群环境恢复
-        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 600 ),
-                "GROUP ERROR" );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN(
+                TransUtil.ClusterRestoreTimeOut ), "GROUP ERROR" );
 
-        // 待集群正常后，TR1读记录进行结果校验
+        // 事务查询报错
         cl = sdb.getCollectionSpace( csName ).getCollection( clName );
-        DBCursor cursor1 = cl.query( "", "", "{_id:1}", "{'':null}" );
-        ArrayList< BSONObject > expDataList = new ArrayList< BSONObject >();
-        while ( cursor1.hasNext() ) {
-            BSONObject record = cursor1.getNext();
-            expDataList.add( record );
+        try {
+            cl.query();
+        } catch ( BaseException e ) {
+            Assert.assertEquals( e.getErrorCode(), -348 );
+            sdb.rollback();
         }
-        cursor1.close();
 
-        DBCursor cursor2 = cl.query( "", "", "{_id:1}", "{'':'a'}" );
-        ArrayList< BSONObject > actDataList = new ArrayList< BSONObject >();
-        while ( cursor2.hasNext() ) {
-            BSONObject record = cursor2.getNext();
-            actDataList.add( record );
+        sdb.beginTransaction();
+        DBCursor cursor = cl.query();
+        TransUtil.getReadActList( cursor );
+
+        // 继续产生老版本，使rbs集合切换
+        TransRBS.genMultiRBSCL( cl, 1 );
+
+        // 比较组上的GlobLowTran及GlobExpireTran继续更新
+        BasicBSONList lastGlobTransIDGroups = TransRBS
+                .getGlobTransIDInDataGroup( sdb, groupNames );
+        TransRBS.checkGlobTransIDInDataGroup( globTransIDGroups,
+                lastGlobTransIDGroups );
+
+        // 比较数据节点的RBS集合重新从0号集合开始
+        BasicBSONList rbsCLs = TransRBS.getMaxRBSCLInDataGroup( sdb,
+                groupNames );
+        for ( int i = 0; i < rbsCLs.size(); i++ ) {
+            Assert.assertEquals(
+                    ( ( BSONObject ) rbsCLs.get( i ) ).get( "RbsCLName" ),
+                    "SYSRBS.SYSRBS0000" );
         }
-        cursor2.close();
-        Assert.assertEquals( actDataList, expDataList );
     }
 
-    class Update extends OperateTask {
+    class TransUpdate extends OperateTask {
         Sequoiadb db = null;
 
         @Override
@@ -123,41 +148,21 @@ public class Transaction20520 extends SdbTestBase {
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                 cl = db.getCollectionSpace( csName ).getCollection( clName );
-
-                for ( int i = 0; i < 2; i++ ) {
-                    System.out.println( "update thread start:" + new Date() );
+                System.out.println( "trans update thread start:" + new Date() );
+                for ( int i = 0; i < TransRBS.loopNum; i++ ) {
                     db.beginTransaction();
                     cl.update( null, "{$inc:{a:1}}", "{'':'a'}" );
                     db.commit();
-                    System.out.println( "update thread end:" + new Date() );
+                    cl.update( null, "{$inc:{a:1}}", "{'':'a'}" );
                 }
 
             } catch ( BaseException e ) {
                 e.printStackTrace();
             } finally {
+                System.out.println( "trans update thread end:" + new Date() );
                 db.close();
             }
 
-        }
-    }
-
-    private class CreateTask extends OperateTask {
-        @Override
-        public void exec() throws Exception {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( coordUrl, "", "" );
-                CollectionSpace cs = db.getCollectionSpace( csName );
-                for ( int i = 0; i < 4000; i++ ) {
-                    cs.createCollection( clName + i );
-                }
-            } catch ( BaseException e ) {
-                e.printStackTrace();
-            } finally {
-                if ( db != null ) {
-                    db.close();
-                }
-            }
         }
     }
 

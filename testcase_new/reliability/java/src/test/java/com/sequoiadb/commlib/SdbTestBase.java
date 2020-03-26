@@ -153,7 +153,7 @@ public class SdbTestBase {
         group2Conf.get( RR ).put( MVCCON, true );
         group2Conf.get( RR ).put( TRANSUSERBS, true );
         group2Conf.get( RR ).put( GLOBTRANSON, true );
-        
+
         group2Conf.put( RRAUTO, new BasicBSONObject() );
         group2Conf.get( RRAUTO ).put( TRANSISOLATION, 3 );
         group2Conf.get( RRAUTO ).put( TRANSAUTOCOMMIT, true );
@@ -184,7 +184,7 @@ public class SdbTestBase {
         }
     }
 
-    @BeforeTest(groups = { RC, RCAUTO, RR })
+    @BeforeTest(groups = { RC, RCAUTO, RR, RRAUTO })
     public static synchronized void initTestGroups() {
         if ( !groupName2Count.containsKey( testGroupOfCurrent ) ) {
             return;
@@ -198,7 +198,7 @@ public class SdbTestBase {
         modifyNodeConf( group2Conf.get( testGroupOfCurrent ), null );
     }
 
-    @AfterTest(groups = { RC, RCAUTO, RR }, alwaysRun = true)
+    @AfterTest(groups = { RC, RCAUTO, RR, RRAUTO }, alwaysRun = true)
     public static synchronized void finiTestGroups() {
         if ( !groupName2Count.containsKey( testGroupOfCurrent ) ) {
             return;
