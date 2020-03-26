@@ -2744,6 +2744,7 @@
             <en>Stored procedure exists</en>
             <cn>存储过程已存在</cn>
          </description>
+      </code>
 
       <code>
          <name>SDB_OP_INCOMPLETE</name>
