@@ -1366,7 +1366,7 @@ namespace engine
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Has transID/lsn : %s"OSS_NEWLINE,
+                           "       Has transID : %s"OSS_NEWLINE,
                            OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_HASGLOBTRANSID ) ?
                            "True":"False" ) ;
 

@@ -455,7 +455,7 @@ namespace engine
       }
       if ( len > DMS_RECORD_MAX_SZ )
       {
-         std::string text = "Record size is grater than max record size: " ;
+         std::string text = "Record size is greater than max record size: " ;
          text += toString() ;
 
          if ( isNothrow() )
@@ -473,7 +473,11 @@ namespace engine
    {
       std::stringstream ss ;
       ss << "RecordRW(" << _rw.getCollectionID()
-         << "," << _rid._extent << "," << _rid._offset << ")" ;
+         << "," << _rid._extent << "," << _rid._offset << ");\n" ;
+      if ( _pData ) 
+      {
+         ss << "su(" << _pData->getSuFileName() << ")" ;
+      }
       return ss.str() ;
    }
 
@@ -1138,6 +1142,102 @@ namespace engine
          }
       }
       return oldestWriteTick ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__DUMMYUPDATERECORD, "_dmsStorageDataCommon::_dummyUpdateRecord" )
+   // A dummy update will not change the content of the data, but go through
+   // the update flow, which may cause over flow of the original record
+   // and potentially migrate it.
+   // This is an internal helper function, it's not logged, it's not suppose
+   // to be called directly
+   INT32 _dmsStorageDataCommon::_dummyUpdateRecord ( dmsMBContext *context,
+                                                     const dmsRecordID &recordID,
+                                                     ossValuePtr updatedDataPtr,
+                                                     _pmdEDUCB *cb )
+   {
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON__DUMMYUPDATERECORD ) ;
+      INT32            rc          = SDB_OK ;
+      dmsExtRW         extRW ;
+      dmsRecordRW      recordRW ;
+      const dmsRecord *pRecord    = NULL ;
+      dmsRecordData    recordData ;
+
+      rc = _operationPermChk( DMS_ACCESS_TYPE_UPDATE ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed in permission check of update, rc: %d", rc ) ;
+
+      if ( !context->isMBLock( EXCLUSIVE ) )
+      {
+         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+                 context->toString().c_str() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      try
+      {
+         extRW = extent2RW( recordID._extent, context->mbID() ) ;
+         recordRW = record2RW( recordID, context->mbID() ) ;
+         pRecord = recordRW.readPtr() ;
+
+         // get data
+         if ( updatedDataPtr )
+         {
+            recordData.setData( (const CHAR*)updatedDataPtr,
+                                *(UINT32*)updatedDataPtr,
+                                UTIL_COMPRESSOR_INVALID, TRUE ) ;
+            if ( pRecord->isCompressed() )
+            {
+               recordData.setOrgData( NULL, _getRecordDataLen( pRecord ) ) ;
+            }
+         }
+         else
+         {
+            rc = extractData(  context, recordRW, cb, recordData ) ;
+            PD_RC_CHECK( rc, PDERROR, "Extract record data failed, rc: %d",
+                         rc ) ;
+         }
+
+         try
+         {
+            BSONObj obj ( recordData.data() ) ;
+            // create a new object for updated record
+            BSONObj newobj ( recordData.data() );
+#if _DEBUG
+            PD_LOG ( PDDEBUG,
+                     "Dummy update record (%s)",
+                     obj.toString().c_str() ) ;
+#endif
+            rc = _extentUpdatedRecord( context, extRW, recordRW,
+                                       recordData, newobj, cb,
+                                       NULL, NULL ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to update record from (%s) to (%s), "
+                        "rc: %d", obj.toString().c_str(),
+                        newobj.toString().c_str(), rc ) ;
+               goto error ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG ( PDERROR, "Failed to create BSON object: %s", e.what() ) ;
+            rc = SDB_CORRUPTED_RECORD ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON__DUMMYUPDATERECORD, rc ) ;
+      return rc ;
+   error :
+      goto done ;
    }
 
    void _dmsStorageDataCommon::_onRestore()
@@ -3519,6 +3619,7 @@ namespace engine
       IDmsExtDataHandler *handler   = NULL ;
       BOOLEAN inTrans               = FALSE ;
       BOOLEAN hasWaitLock           = FALSE ;
+      BOOLEAN retry                 = FALSE ;
 
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
@@ -3544,6 +3645,7 @@ namespace engine
          transInfo.reset() ;
       }
 
+   begin :
       try
       {
          extRW = extent2RW( recordID._extent, context->mbID() ) ;
@@ -3634,96 +3736,105 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Extract data failed, rc: %d", rc ) ;
             }
 
-            // delete index keys
-            try
+            if ( !retry )
             {
-               delObject = BSONObj( recordData.data() ) ;
-               // need to create own bson buffer as migration would move the obj
-               if ( !pRecord->hasGlobTransID() )
+               // delete index keys
+               try
                {
-                  delObject = delObject.getOwned() ;
-               }
-
-               textIdxNum = context->mbStat()->_textIdxNum ;
-               if ( textIdxNum > 0 )
-               {
-                  handler = getExtDataHandler() ;
-                  if ( handler )
+                  delObject = BSONObj( recordData.data() ) ;
+                  // need to create own bson buffer as migration would move
+                  // the obj
+                  if ( !pRecord->hasGlobTransID() )
                   {
-                     rc = handler->prepare( DMS_EXTOPR_TYPE_DELETE,
-                                            getSuName(),
-                                            context->mb()->_collectionName, NULL,
-                                            &delObject, NULL, cb ) ;
-                     PD_RC_CHECK( rc, PDERROR, "External operation check failed, "
-                                  "rc: %d", rc ) ;
+                     delObject = delObject.getOwned() ;
                   }
-               }
-               // first to reserve dps
-               if ( NULL != dpscb )
-               {
-                  if ( pHandler )
+
+                  textIdxNum = context->mbStat()->_textIdxNum ;
+                  if ( textIdxNum > 0 )
                   {
-                     rc = pHandler->onDeleteRecord( context, delObject,
-                                                    recordID, &recordRW,
-                                                    markDeleting,
-                                                    cb ) ;
+                     handler = getExtDataHandler() ;
+                     if ( handler )
+                     {
+                        rc = handler->prepare( DMS_EXTOPR_TYPE_DELETE,
+                                               getSuName(),
+                                               context->mb()->_collectionName,
+                                               NULL,
+                                               &delObject, NULL, cb ) ;
+                        PD_RC_CHECK( rc, PDERROR,
+                                     "External operation check failed, rc: %d",
+                                     rc ) ;
+                     }
+                  }
+                  // first to reserve dps
+                  if ( NULL != dpscb ) 
+                  {
+                     if ( pHandler )
+                     {
+                        rc = pHandler->onDeleteRecord( context, delObject,
+                                                       recordID, &recordRW,
+                                                       markDeleting,
+                                                       cb ) ;
+                        if ( rc )
+                        {
+                           PD_LOG( PDERROR, "Process delete record(%s) in "
+                                   "handler failed, rc: %d",
+                                   delObject.toString().c_str(), rc ) ;
+                           goto error ;
+                        }
+                     }
+
+                     _clFullName( context->mb()->_collectionName, fullName,
+                                  sizeof(fullName) ) ;
+
+                     // reserved log-size
+                     rc = dpsDelete2Record( fullName, delObject, transInfo,
+                                            record ) ;
+
+                     if ( SDB_OK != rc )
+                     {
+                        PD_LOG( PDERROR, "Failed to build record: %d",rc ) ;
+                        goto error ;
+                     }
+
+                     rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
+                     PD_RC_CHECK( rc, PDERROR,
+                                  "Check sync control failed, rc: %d",
+                                  rc ) ;
+
+                     logRecSize = record.alignedLen() ;
+                     rc = pTransCB->reservedLogSpace( logRecSize, cb ) ;
                      if ( rc )
                      {
-                        PD_LOG( PDERROR, "Process delete record(%s) in "
-                                "handler failed, rc: %d",
-                                delObject.toString().c_str(), rc ) ;
+                        PD_LOG( PDERROR,
+                                "Failed to reserved log space(length=%u)",
+                                logRecSize ) ;
+                        logRecSize = 0 ;
                         goto error ;
                      }
                   }
 
-                  _clFullName( context->mb()->_collectionName, fullName,
-                               sizeof(fullName) ) ;
-
-                  // reserved log-size
-                  rc = dpsDelete2Record( fullName, delObject, transInfo,
-                                         record ) ;
-
-                  if ( SDB_OK != rc )
-                  {
-                     PD_LOG( PDERROR, "Failed to build record: %d",rc ) ;
-                     goto error ;
-                  }
-
-                  rc = dpscb->checkSyncControl( record.alignedLen(), cb ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Check sync control failed, rc: %d",
-                               rc ) ;
-
-                  logRecSize = record.alignedLen() ;
-                  rc = pTransCB->reservedLogSpace( logRecSize, cb ) ;
+                  // then delete indexes. Note that the old version indexes
+                  // would be kept in the in memory tree under the cover
+                  rc = _pIdxSU->indexesDelete( context, pExtent->_logicID,
+                                               delObject, recordID, cb,
+                                               dpscb ? pHandler : NULL ) ;
                   if ( rc )
                   {
-                     PD_LOG( PDERROR, "Failed to reserved log space(length=%u)",
-                             logRecSize ) ;
-                     logRecSize = 0 ;
-                     goto error ;
+                     // if index delete fail, let's continue remove the record
+                     PD_LOG ( PDERROR, "Failed to delete indexes, rc: %d",
+                              rc ) ;
                   }
+                  context->mbStat()->_totalDataLen -= recordData.orgLen() ;
+                  context->mbStat()->_totalOrgDataLen -= recordData.len() ;
                }
-
-               // then delete indexes. Note that the old version indexes
-               // would be kept in the in memory tree under the cover
-               rc = _pIdxSU->indexesDelete( context, pExtent->_logicID,
-                                            delObject, recordID, cb,
-                                            dpscb ? pHandler : NULL ) ;
-               if ( rc )
+               catch ( std::exception &e )
                {
-                  // if index delete fail, let's continue remove the record
-                  PD_LOG ( PDERROR, "Failed to delete indexes, rc: %d",rc ) ;
+                  PD_LOG ( PDERROR, "Corrupted record: %d:%d: %s",
+                           recordID._extent, recordID._offset, e.what() ) ;
+                  rc = SDB_CORRUPTED_RECORD ;
+                  goto error ;
                }
-               context->mbStat()->_totalDataLen -= recordData.orgLen() ;
-               context->mbStat()->_totalOrgDataLen -= recordData.len() ;
-            }
-            catch ( std::exception &e )
-            {
-               PD_LOG ( PDERROR, "Corrupted record: %d:%d: %s",
-                        recordID._extent, recordID._offset, e.what() ) ;
-               rc = SDB_CORRUPTED_RECORD ;
-               goto error ;
-            }
+            } // end of !retry
          }
 
          // delete really
@@ -3756,6 +3867,10 @@ namespace engine
                          "rc: %d", rc ) ;
 
             // delete also need to set the transID
+            // This may be unnecessary because we either did the migration
+            // when we mark the record deleting or we decide to immediately
+            // wipe out the record which means it's no longer visiable to
+            // anyone else. It does not matter what's in the record header.
             if( !pRecord->hasGlobTransID() )
             {
                // migrate to V1 record header before we can set transID
@@ -3769,12 +3884,25 @@ namespace engine
             {
                pRecord->setGlobTransID( transInfo._transID ) ;
             }
+#if _DEBUG
+            else
+            {
+               // because we don't free up the space occupied in OVF from
+               // record, we should not fail the migration. Here we'll
+               // just dump some debug message. But functional wise, we
+               // can continue.
+               PD_LOG ( PDDEBUG, 
+                        "Failed In-flight migration of record during "
+                        "truely delet object(%s), but we will continue ",
+                        recordRW.toString().c_str() ) ;
+               PD_LOG ( PDDEBUG,
+                        "Record: ",
+                         pRecord->toString().c_str() );
+            }
+#endif
 
             if ( ovfRID.isValid() )
             {
-               SDB_ASSERT( pRecord->hasGlobTransID(), 
-                           "Delete could not in flight migrate OVF record" ) ;
-
                dmsRecordRW ovfRW = record2RW( ovfRID, context->mbID() ) ;
                _extentRemoveRecord( context, extRW, ovfRW, cb, FALSE ) ;
             }
@@ -3782,7 +3910,6 @@ namespace engine
          // set deleting attr
          else
          {
-            pRecord->setDeleting() ;
             // delete also need to set the transID
             if( !pRecord->hasGlobTransID() )
             {
@@ -3790,6 +3917,7 @@ namespace engine
                PD_LOG ( PDDEBUG, 
                         "In-flight migration of record during delet object(%s) ",
                         recordRW.toString().c_str() ) ;
+
                pRecord->migrateFromV0() ;
             }
 
@@ -3799,14 +3927,39 @@ namespace engine
             }
             else
             {
-               // FIXME:  handle this case by allocate overflow record
+               // The migration could fail due to the size, since we
+               // only mark deleting here, other query might need to use the
+               // transaction ID for visiability check. We should handle this
+               // case by doing a dummy update first, causing an overflow,
+               // then we can try the delete again.
                PD_LOG ( PDERROR, 
                         "In-flight migration of record failed during delet"
                         " object(%s) because out of space in the record on disk",
                         recordRW.toString().c_str() ) ;
-               SDB_ASSERT( FALSE, 
-                           "Need to call update to allocate overflow for delete" ) ;
+               SDB_ASSERT( !retry,
+                           "Already tried dummy update and couldn't get "
+                           "enough space to migrate.") ;
+               if ( !retry )
+               {
+                  PD_LOG ( PDDEBUG,
+                           "Going to do dummy update for record: %s",
+                            pRecord->toString().c_str() );
+                  rc = _dummyUpdateRecord( context, recordID,
+                                           deletedDataPtr, cb ) ;
+                  PD_RC_CHECK( rc, PDERROR, 
+                               "Dummy update record for migration failed, "
+                               "rc: %d", rc ) ;
+                  retry = TRUE ;
+                  goto begin ;
+               }
+               else
+               {
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
             }
+
+            pRecord->setDeleting() ;
 
             // need to dec count
             --( pExtent->_recCount ) ;
