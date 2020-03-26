@@ -43,6 +43,7 @@
 #include "../bson/bson.h"
 #include "oss.hpp"
 #include "ossUtil.hpp"
+#include "dpsUtil.hpp"
 #include "utilCompressor.hpp"
 #include "dpsDef.hpp"
 #include "dpsLogDef.hpp"
@@ -377,6 +378,8 @@ namespace engine
          DPS_TRANS_ID dummy ;
          return dummy ;
       }
+
+      OSS_INLINE string toString() const ;
    } ;
 #pragma pack()
 
@@ -469,7 +472,19 @@ namespace engine
             // set globTransID flag and initialize the value
             resetGlobTransID() ;
          }
-         
+#if _DEBUG
+         else
+         {
+            PD_LOG ( PDDEBUG,
+                     "Skipped In-flight migration of record(%s),"
+                     "oldsize(%d), exitingDataLen(%d), moveData(%d)",
+                     this->toString().c_str(),
+                     oldsize,
+                     ((dmsRecord_v0 *) this)->getDataLength(),
+                     moveData ) ;
+
+         }
+#endif         
          return ;
       }
    
@@ -557,6 +572,57 @@ namespace engine
          ossMemcpy( (CHAR*)this+DMS_RECORD_VERSIONED_METADATA_SZ,
                     data.data(), data.len() ) ;
       }
+   }
+
+   OSS_INLINE string _dmsRecord_v0::toString () const
+   {
+      stringstream ss ;
+      ss << OSS_NEWLINE << "Record:" ;
+      ss << OSS_NEWLINE << "  Status:" ;
+      if ( this->isNormal() )
+      {
+         ss << " Normal" ;
+      }
+      if ( this->isOvf() )
+      {
+        ss << " OvfFrom" ;
+      }
+      if ( this->isOvt() )
+      {
+        ss << " OvfTo" ;
+      }
+      if ( this->isDeleted() )
+      {
+        ss << " Deleted" ;
+      }
+      if ( this->isDeleting() )
+      {
+        ss << " Deleting" ;
+      }
+
+      ss << OSS_NEWLINE << "  Flags:" << OSS_NEWLINE;
+      ss << "    Compressed: " << 
+            ( this->isCompressed() ? "True" : "False" )
+         << OSS_NEWLINE ;
+      ss << "    CompressType: "
+         << utilCompressType2String( this->getCompressType() )
+         << OSS_NEWLINE ;
+      ss << "    Has transID: " <<
+            (this->hasGlobTransID() ? "True" : "False")
+         << OSS_NEWLINE ;
+      ss << "  Record Size: " << this->getSize() << OSS_NEWLINE ;
+      ss << "  My Offset : " << _myOffset << OSS_NEWLINE ;
+      ss << "  Prev Offset : " << _previousOffset << OSS_NEWLINE ;
+      ss << "  Nextv Offset : " << _nextOffset << OSS_NEWLINE ;
+      
+      if ( this->hasGlobTransID() )
+      {
+         ss << "  Trans ID: " 
+            << dpsTransIDToString(((_dmsRecord_v1*)this)->_globTransID).c_str() 
+            << OSS_NEWLINE ;
+      }
+
+      return ss.str() ;
    }
 
    // Extract Data

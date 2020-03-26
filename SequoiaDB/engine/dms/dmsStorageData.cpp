@@ -405,9 +405,17 @@ namespace engine
                // FIXME: need to figure out solution on this. Otherwise we
                // have to always force read of the OVT record to determin
                // if a record can be used
+               // it might not be a problem for now as we don't release
+               // the space on OVF record now.
                PD_LOG ( PDERROR, 
                         "Update could not in-flight migrate on OVF record(%s)",
                         recordRW.toString().c_str() ) ;
+               PD_LOG ( PDERROR,
+                        "OVF Record: ",
+                        pRecord->toString().c_str() );
+               PD_LOG ( PDERROR,
+                        "OVT Record: ",
+                        pOvfRecord->toString().c_str() );
                SDB_ASSERT ( FALSE, 
                             "Update failed to migrate existing OVF record." ) ;
             }

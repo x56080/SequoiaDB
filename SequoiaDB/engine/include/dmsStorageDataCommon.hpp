@@ -1109,6 +1109,13 @@ namespace engine
 
          virtual UINT64 _getOldestWriteTick() const ;
 
+         virtual INT32 _dummyUpdateRecord ( dmsMBContext *context,
+                                            const dmsRecordID &recordID,
+                                            ossValuePtr updatedDataPtr,
+                                            _pmdEDUCB *cb ) ;
+
+
+
       protected:
          OSS_INLINE const CHAR* _clFullName ( const CHAR *clName,
                                               CHAR *clFullName,
