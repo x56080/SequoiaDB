@@ -76,10 +76,10 @@ public class SdbTestBase {
     public static String testGroup = null;
     private static final int newIndexScanStep = 100;
     private static final int transReplsize = 1;
-    public static final int timeOutLen = 300;
-    private static final Map< String, BSONObject > group2Conf = new HashMap< >();
-    private static final Map< String, AtomicInteger > group2Count = new HashMap< >();
-    private static final Map< String, BSONObject > node2Conf = new HashMap< >();
+    public static final int timeOutLen = 120;
+    private static final Map< String, BSONObject > group2Conf = new HashMap<>();
+    private static final Map< String, AtomicInteger > group2Count = new HashMap<>();
+    private static final Map< String, BSONObject > node2Conf = new HashMap<>();
     private static boolean istransactionOn = true;
     private static BasicBSONObject confObj = new BasicBSONObject();
     public static List< String > coordUrls = new ArrayList<>();
@@ -155,6 +155,7 @@ public class SdbTestBase {
         group2Conf.get( RR ).put( TRANSUSERBS, true );
         group2Conf.get( RR ).put( MVCCON, true );
         group2Conf.get( RR ).put( GLOBTRANSON, true );
+        group2Conf.get( RR ).put( TRANSREPLSIZE, transReplsize );
 
         group2Conf.put( RRAUTO, new BasicBSONObject() );
         group2Conf.get( RRAUTO ).put( TRANSISOLATION, 3 );
@@ -166,6 +167,7 @@ public class SdbTestBase {
         group2Conf.get( RRAUTO ).put( TRANSUSERBS, true );
         group2Conf.get( RRAUTO ).put( MVCCON, true );
         group2Conf.get( RRAUTO ).put( GLOBTRANSON, true );
+        group2Conf.get( RRAUTO ).put( TRANSREPLSIZE, transReplsize );
 
         for ( String key : group2Conf.keySet() ) {
             group2Count.put( key, new AtomicInteger( 0 ) );
@@ -365,8 +367,8 @@ public class SdbTestBase {
         modifyNodeConf( group2Conf.get( testGroup ), null );
     }
 
-    @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO, RCUSERBS,
-            RR }, alwaysRun = true)
+    @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO, RCUSERBS, RR,
+            RRAUTO }, alwaysRun = true)
     public static synchronized void finiTestGroups() {
         if ( testGroup == null )
             return;
