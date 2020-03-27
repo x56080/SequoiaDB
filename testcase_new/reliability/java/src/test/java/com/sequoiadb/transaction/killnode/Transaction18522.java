@@ -54,7 +54,7 @@ public class Transaction18522 extends SdbTestBase {
             throw new SkipException( "ONE GROUP MODE" );
         }
         groupMgr = GroupMgr.getInstance();
-        if ( !groupMgr.checkBusiness( 120 ) ) {
+        if ( !groupMgr.checkBusiness( TransUtil.ClusterRestoreTimeOut ) ) {
             throw new SkipException( "GROUP ERROR" );
         }
 
@@ -102,8 +102,8 @@ public class Transaction18522 extends SdbTestBase {
         taskMgr.execute();
 
         Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
-        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 300 ),
-                "GROUP ERROR" );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN(
+                TransUtil.ClusterRestoreTimeOut ), "GROUP ERROR" );
 
         // 待集群正常后，查询所有账户的金额总和
         sdb = new Sequoiadb( coordUrl, "", "" );

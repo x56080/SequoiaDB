@@ -37,6 +37,11 @@ public class TransUtil {
     public static FaultMakeTask currentTask;
 
     /**
+     * 集群恢复时间,时间s
+     */
+    public static int ClusterRestoreTimeOut = 600;
+
+    /**
      * 初始化线程执行标记和构造异常
      * 
      * @param task
@@ -268,9 +273,11 @@ public class TransUtil {
             cursor.close();
             if ( sum != ( int ) balance ) {
                 if ( count == checkTimes ) {
-                    System.out.println( "testCase name:" + className
-                            + " amount of general ledger: " + balance );
-                    Assert.fail( "check amount of general ledger timeout..." );
+                    Assert.fail( "testCase name: " + className
+                            + ",check clName: " + csName + "." + clName
+                            + " amount of general ledger timeout,"
+                            + " actual sum(balance): " + balance
+                            + ",expect sum(balance): " + sum );
                 }
                 Thread.sleep( 1000 );
                 continue;

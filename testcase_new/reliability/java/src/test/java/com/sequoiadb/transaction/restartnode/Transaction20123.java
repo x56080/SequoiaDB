@@ -19,6 +19,7 @@ import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.NodeRestart;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.TaskMgr;
+import com.sequoiadb.transaction.common.TransUtil;
 
 /**
  * @Description seqDB-20123:更新记录为原值，重启节点
@@ -39,7 +40,7 @@ public class Transaction20123 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
-        if ( !groupMgr.checkBusiness( 120 ) ) {
+        if ( !groupMgr.checkBusiness( TransUtil.ClusterRestoreTimeOut ) ) {
             throw new SkipException( "GROUP ERROR" );
         }
         groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
@@ -75,7 +76,7 @@ public class Transaction20123 extends SdbTestBase {
         taskMgr.execute();
 
         Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
-        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 300 ),
-                "GROUP ERROR" );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN(
+                TransUtil.ClusterRestoreTimeOut ), "GROUP ERROR" );
     }
 }

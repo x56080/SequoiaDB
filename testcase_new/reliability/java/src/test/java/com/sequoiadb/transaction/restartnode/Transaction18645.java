@@ -48,7 +48,7 @@ public class Transaction18645 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
-        if ( !groupMgr.checkBusiness( 120 ) ) {
+        if ( !groupMgr.checkBusiness( TransUtil.ClusterRestoreTimeOut ) ) {
             throw new SkipException( "GROUP ERROR" );
         }
         groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
@@ -92,8 +92,8 @@ public class Transaction18645 extends SdbTestBase {
         taskMgr.execute();
 
         Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
-        Assert.assertTrue( groupMgr.checkBusinessWithLSN( 300 ),
-                "GROUP ERROR" );
+        Assert.assertTrue( groupMgr.checkBusinessWithLSN(
+                TransUtil.ClusterRestoreTimeOut ), "GROUP ERROR" );
 
         // 待集群正常后，分别在非事务及事务中执行count/query查询，覆盖：表扫描、索引扫描
         // 非事务表扫描/索引扫描

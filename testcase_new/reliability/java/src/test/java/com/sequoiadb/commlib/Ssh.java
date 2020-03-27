@@ -26,7 +26,7 @@ import com.sequoiadb.exception.ReliabilityException;
 public class Ssh {
     private final static Logger log = Logger.getLogger( Ssh.class.getName() );
 
-    private static final int CHANNEL_CONNECT_TIMEOUT = 60 * 1000;
+    private static final int CHANNEL_CONNECT_TIMEOUT = 600 * 1000;
     private static final int GETRESULT_TIMEOUT = 600 * 1000;
     private String host;
     private String username;
@@ -190,6 +190,7 @@ public class Ssh {
             e.printStackTrace();
             throw new FaultException( e );
         }
+
     }
 
     /**
@@ -365,6 +366,7 @@ public class Ssh {
                     String strTime = format.format( date.getTime() );
                     logger = new PrintStream(
                             SdbTestBase.workDir + "/jsch" + strTime + ".log" );
+
                 } catch ( FileNotFoundException e ) {
                     e.printStackTrace();
                 }

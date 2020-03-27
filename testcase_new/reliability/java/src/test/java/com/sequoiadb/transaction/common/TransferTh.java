@@ -130,6 +130,10 @@ public class TransferTh extends OperateTask {
                 commitRollback( db );
             }
         } catch ( BaseException e ) {
+        } finally {
+            if ( db != null ) {
+                db.close();
+            }
         }
     }
 }
