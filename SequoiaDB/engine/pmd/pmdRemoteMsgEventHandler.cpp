@@ -169,9 +169,9 @@ namespace engine
 
          rc = agent.getLogicalTimeUS( currentTime, 1, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
-                      "message %s to node %s via handle %d, rc: %d",
-                      msg2String( header, MSG_MASK_ALL, 0 ).c_str(), handle,
-                      routeID2String( id ).c_str(), rc ) ;
+                      "message %s to node %s via handle %u, rc: %d",
+                      msg2String( header, MSG_MASK_ALL, 0 ).c_str(),
+                      routeID2String( id ).c_str(), handle, rc ) ;
 
          switch ( header->opCode )
          {
