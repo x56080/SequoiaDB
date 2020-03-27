@@ -86,12 +86,15 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      dpsTransCB *transCB = sdbGetTransCB() ;
       clsShdNetData *netData = NULL ;
 
-      // if holder is empty or already hold sharding message user data
+      // if holder is empty, or already hold sharding message user data,
+      // or no RR feature is enabled (transaction, global transaction or MVCC )
       // no need to allocate
       if ( NULL == userDataHolder ||
-           userDataHolder->hasUserData( NET_USER_DATA_SHARD ) )
+           userDataHolder->hasUserData( NET_USER_DATA_SHARD ) ||
+           !transCB->isRRSupported() )
       {
          goto done ;
       }
