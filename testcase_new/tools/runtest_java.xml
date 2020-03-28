@@ -128,7 +128,7 @@
                      <equals arg1="@{onexml}" arg2="testng.xml"/>
                      <then>
                         <copyfile src="${casedir}/@{onexml}" dest="${casedir}/proxyxml.xml"/>
-                        <var name="xmlfile" value="proxyxml.xml,s3testng.xml"/>
+                        <var name="xmlfile" value="s3testng.xml,proxyxml.xml"/>
                      </then>
                      <else>
                         <copyfile src="${casedir}/@{onexml}" dest="${casedir}/proxyxml_release.xml"/>
