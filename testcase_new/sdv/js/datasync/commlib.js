@@ -824,8 +824,8 @@ replicaGroup.prototype.checkResult =
          throw  new Error("checkfun is not function") ;
       }
 
-      var totalSleepDuration = 10000;
-      var sleepInteval = 2;
+      var totalSleepDuration = 30000;
+      var sleepInteval = 20;
 
       var sleepDuration = 0;
       var checkOk = true;
@@ -860,19 +860,28 @@ replicaGroup.prototype.checkLSN =
    function( group )
    {
       var prevLsn = 0;
+      var prevSvc = "" ;
+      if ( typeof(this.failedCound) === "undefined" )
+      {
+         this.failedCound = 0;
+      }
+
       for( var i = 0; i < group.size(); ++i )
       {
-         var currentLsn = group.getNodeByPos( i ).getCurrentLsn();
+         var node = group.getNodeByPos( i ) ;
+         var currentLsn = node..getCurrentLsn();
          if( 0 === i )
          {
             prevLsn = currentLsn;
+            prevSvc = node.toString() ;
          }
-         else if( prevLsn !== currentLsn )
+         else if( prevLsn !== currentLsn && this.failedCound++ % 100 == 0 )
          {
-            println( "prev is " + prevLsn + " current is " + currentLsn )
+            println( prevSvc + "is LSN: " + prevLsn + node.toString() + " is LSN:" + currentLsn );
             return false;
          }
       }
+      this.failedCound = 0 ;
 
       return true;
    }
@@ -999,7 +1008,8 @@ replicaGroup.prototype.checkConsistency =
             var result = cmd.exec();
             println( result );
             if( result.lastIndexOf( "inspect done" ) === 0 &&
-               result.lastIndexOf( "exit with no records different" ) !== -1 )
+               result.lastIndexOf( "exit with no records different" ) !== -1 &&
+               result.lastIndexOf("Total different collections count : 0") !== -1)
             {
                return true;
             }
@@ -1292,8 +1302,8 @@ function isPortUsed ( port )
 // only valid at the host that is run script 
 function allocPort ()
 {
-   var port = parseInt( SPAREPORTSTART );
-   for( ; port < parseInt( SPAREPORTSTOP ); port += 10 )
+   var port = parseInt( RSRVPORTBEGIN );
+   for( ; port < parseInt( RSRVPORTEND ); port += 10 )
    {
       if( !isPortUsed( port ) )
       {
