@@ -2,7 +2,7 @@ import os
 
 Import("fapEnv")
 
-fapMongoFiles = [
+fapMongo2Files = [
       "fap/mongodb/commands.cpp",
       "fap/mongodb/mongoAccess.cpp",
       "fap/mongodb/mongoConverter.cpp",
@@ -49,6 +49,6 @@ bsonFiles = [
 
 #fapmongo = fapEnv.SharedLibrary( 'fapmongo', [ bsonFiles, pdFiles, utilFiles, rtnFiles, pmdFiles, monFiles, fapMongoFiles ] )
 #fapmongo = fapEnv.SharedLibrary( 'fapmongo', [ bsonFiles, fapMongoFiles ] )
-fapmongo = fapEnv.SharedLibrary( 'fapmongo', [ fapMongoFiles ] )
+fapmongo2 = fapEnv.SharedLibrary( 'fapmongo2', [ fapMongo2Files ] )
 
-fapEnv.Install( '#/bin/fap', fapmongo )
+fapEnv.Install( '#/bin/fap', fapmongo2 )

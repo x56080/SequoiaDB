@@ -1227,8 +1227,8 @@
       <name>FAP_OPTION_NAME</name>
       <long>fap</long>
       <description>
-         <en>Enable foreign access protocol.Only module name 'fapmongo' is supportted</en>
-         <cn>开启第三方驱动接入.暂支持'fapmongo'选项</cn>
+         <en>Enable foreign access protocol.Only module name 'fapmongo2' is supportted</en>
+         <cn>开启第三方驱动接入.暂支持'fapmongo2'选项</cn>
       </description>
      <hidden>true</hidden>
    </opt>
