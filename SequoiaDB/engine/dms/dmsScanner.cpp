@@ -260,7 +260,7 @@ namespace engine
    void  _dmsExtScannerBase::acquireCSCLLock( )
    {
       INT32 rc = SDB_OK ;
-      if ( !_CSCLLockHeld && DPS_TRANSLOCK_X != _recordLock )
+      if ( !_CSCLLockHeld && DPS_TRANSLOCK_MAX != _recordLock )
       {
          dmsTBTransContext tbTxContext( _context, _accessType ) ;
          dpsTransRetInfo   lockConflict ;
@@ -1444,7 +1444,7 @@ namespace engine
    void _dmsIXSecScanner::acquireCSCLLock( )
    {
       INT32 rc = SDB_OK ;
-      if ( !_CSCLLockHeld && DPS_TRANSLOCK_X != _recordLock )
+      if ( !_CSCLLockHeld && DPS_TRANSLOCK_MAX != _recordLock )
       {
          dpsTransRetInfo   lockConflict ;
          dmsIXTransContext ixTxContext( _context, _accessType,
