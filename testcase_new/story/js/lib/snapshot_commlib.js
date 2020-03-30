@@ -256,7 +256,6 @@ function checkParameters( cursor, expResult )
    while( cursor.next() )
    {
       var object = cursor.current().toObj().Details[0];
-      println(JSON.stringify(object));
       for( var i in expResult )
       {
          if( object[i] !== expResult[i] )
