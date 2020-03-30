@@ -73,9 +73,9 @@ namespace engine
       while ( !_msgQueue.empty() )
       {
          _catGTSMsg* msg = NULL ;
-         if ( _msgQueue.try_pop( msg ) )
+         if ( _msgQueue.try_pop( msg ) && NULL != msg )
          {
-            SAFE_OSS_FREE( msg ) ;
+            SDB_THREAD_FREE( msg ) ;
          }
       }
    }
@@ -120,9 +120,9 @@ namespace engine
       while ( !_msgQueue.empty() )
       {
          _catGTSMsg* msg = NULL ;
-         if ( _msgQueue.try_pop( msg ) )
+         if ( _msgQueue.try_pop( msg ) && NULL != msg )
          {
-            SAFE_OSS_FREE( msg ) ;
+            SDB_THREAD_FREE( msg ) ;
          }
       }
 
