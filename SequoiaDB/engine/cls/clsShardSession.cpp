@@ -348,12 +348,17 @@ namespace engine
                {
                   break ;
                }
-               else if ( SDB_TIMEOUT == checkRC ||
-                         SDB_CLS_WAIT_SYNC_FAILED == checkRC )
+               else if ( SDB_TIMEOUT == checkRC )
                {
                   // could wait again
                   timeout += OSS_ONE_SEC ;
                   continue ;
+               }
+               else if ( SDB_CLS_WAIT_SYNC_FAILED == checkRC )
+               {
+                  // wait sync may not pass 1 second, so sleep and retry
+                  ossSleep( OSS_ONE_SEC ) ;
+                  timeout += OSS_ONE_SEC ;
                }
                else
                {

@@ -2926,7 +2926,7 @@ namespace engine
             if ( SDB_OK != checkRC )
             {
                PD_LOG( PDWARNING, "Failed to check sync for transaction "
-                       "[%llu] lsn [%llu], rc: %d", pReq->transID, lsn, rc ) ;
+                       "[%llu] lsn [%llu], rc: %d", pReq->transID, lsn, checkRC ) ;
                checkRC = SDB_CLS_WAIT_SYNC_FAILED ;
             }
             reply.flags = checkRC ;
