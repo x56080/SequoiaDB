@@ -66,40 +66,28 @@ public class Transaction20472A extends SdbTestBase {
     }
 
     @Test(dataProvider = "index")
-    public void test( String indexKey ) {
-        try {
-            latch = new CountDownLatch( 3 );
-            this.indexKey = indexKey;
+    public void test( String indexKey ) throws InterruptedException {
+        latch = new CountDownLatch( 3 );
+        this.indexKey = indexKey;
 
-            // 创建索引
-            cl.createIndex( idxName, indexKey, false, false );
+        // 开启 3 个并发事务
+        UpdateThread updateThread = new UpdateThread();
+        updateThread.start();
 
-            // 开启 3 个并发事务
-            UpdateThread updateThread = new UpdateThread();
-            updateThread.start();
+        QueryThread queryThread = new QueryThread();
+        queryThread.start();
 
-            QueryThread queryThread = new QueryThread();
-            queryThread.start();
+        DropIndexThread dropIndexThread = new DropIndexThread();
+        dropIndexThread.start();
 
-            DropIndexThread dropIndexThread = new DropIndexThread();
-            dropIndexThread.start();
+        // 判断事务是否正确返回
+        Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
+        Assert.assertTrue( updateThread.isSuccess(),
+                updateThread.getErrorMsg() );
+        Assert.assertTrue( dropIndexThread.isSuccess(),
+                dropIndexThread.getErrorMsg() );
 
-            // 判断事务是否正确返回
-            Assert.assertTrue( queryThread.isSuccess(),
-                    queryThread.getErrorMsg() );
-            Assert.assertTrue( updateThread.isSuccess(),
-                    updateThread.getErrorMsg() );
-            Assert.assertTrue( dropIndexThread.isSuccess(),
-                    dropIndexThread.getErrorMsg() );
-
-            latch.await();
-        } catch ( InterruptedException e ) {
-            Assert.fail( e.getMessage() );
-        } finally {
-
-            // 删除索引
-            cl.dropIndex( idxName );
-        }
+        latch.await();
     }
 
     private void insertData() {
@@ -238,10 +226,10 @@ public class Transaction20472A extends SdbTestBase {
                     System.out.println( "drop and create index:" + i );
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
+                    cl.createIndex( idxName, indexKey, false, false );
                     Assert.assertTrue( cl.isIndexExist( idxName ) );
                     cl.dropIndex( idxName );
                     Assert.assertFalse( cl.isIndexExist( idxName ) );
-                    cl.createIndex( idxName, indexKey, false, false );
 
                 }
             } finally {
