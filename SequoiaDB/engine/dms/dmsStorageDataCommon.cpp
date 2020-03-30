@@ -3548,11 +3548,14 @@ namespace engine
          }
          else if ( inTrans )
          {
+            // although this record was inserted by this transaction(itself),
+            // we shall not remove it directly from disk; othsewise, in case
+            // of rollback, when insertRecord() it doesn't guarantee the same
+            // RID can be used/allocated if space allocation is needed.
+            // As a result, under condition isolation RC and transwaitlock =
+            // TRUE, table scan may wait on that record, index scan will
+            // not wait on that record lock.
             markDeleting = TRUE ;
-            if ( pInfo && pInfo->_transInsert )
-            {
-               markDeleting = FALSE ;
-            }
          }
 
          if ( pRecord->isDeleting() )
