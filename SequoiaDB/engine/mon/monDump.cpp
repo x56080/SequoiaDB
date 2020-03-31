@@ -325,7 +325,10 @@ namespace engine
                globExpireTran = transCB->getGlobExpireTran().getGlobSN() ;
                lowTran = transCB->getLocalLowTran().getGlobSN() ;
                expireTran = transCB->getLocalExpireTran().getGlobSN() ;
-               treeLowTran = transCB->getOldVCB()->getMinLowTranSN() ;
+               if ( NULL != transCB->getOldVCB() )
+               {
+                  treeLowTran = transCB->getOldVCB()->getMinLowTranSN() ;
+               }
             }
 
             BSONObjBuilder subTrans( ob.subobjStart( FIELD_NAME_TRANS_INFO ) ) ;
