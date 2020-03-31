@@ -64,7 +64,7 @@ namespace CSharp.Meta
             sdb.CreateCollectionSpace(csName, option);
             CheckCSInfo(csName, option);
 
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName);
             Assert.AreEqual(csName, cs.Name);
 
             sdb.DropCollectionSpace(csName);
@@ -81,7 +81,7 @@ namespace CSharp.Meta
             matcher.Add("Name", ckCSName);
             ReplicaGroup cataRg = sdb.GetReplicaGroup("SYSCatalogGroup");
             Sequoiadb cataDB = cataRg.GetMaster().Connect();
-            CollectionSpace sysCS = cataDB.GetCollecitonSpace("SYSCAT");
+            CollectionSpace sysCS = cataDB.GetCollectionSpace("SYSCAT");
             DBCollection sysCL = sysCS.GetCollection("SYSCOLLECTIONSPACES");
             query.Matcher = matcher;
             DBCursor cur = sysCL.Query(query);
