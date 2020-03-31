@@ -272,3 +272,19 @@ function removeRG ( rgName )
       }
    }
 }
+
+/* ****************************************************
+@description: backup group diaglog
+**************************************************** */
+function backupGroupLog ( hostname, svcname, testcaseID )
+{
+   var remote = new Remote( hostname, CMSVCNAME );
+   var cmd = remote.getCmd();
+   // bakup to svcname_file_bak, e.g: database/data/26000_fail_bak
+   var srcPath = RSRVNODEDIR + "data/" + svcname;
+   var srcLogPath = srcPath + "/diaglog";
+   var dstPath = srcPath + "_" + testcaseID + "_bak/";
+   cmd.run( "mkdir -p " + dstPath );
+   cmd.run( 'cp -rf ' + srcLogPath + ' ' + dstPath );
+   println( "dstPath = " + dstPath );
+}

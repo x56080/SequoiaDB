@@ -39,7 +39,7 @@ function main ()
    srcGroupName += "4978";
    // 目标组
    var dstGroupName = groupNames[0][0].GroupName;
-   var hostName = groupNames[0][1].HostName;
+   var hostname = groupNames[0][1].HostName;
 
    var clName = CHANGEDPREFIX + "_split_4978";
    var recsNum = 3000;
@@ -50,7 +50,7 @@ function main ()
    try
    {
       var nodeNum = 1;
-      var srcRGLogPath = commCreateRG( db, srcGroupName, nodeNum, hostName );
+      var nodeInfo = commCreateRG( db, srcGroupName, nodeNum, hostname );
       try
       {
          var option = { ShardingKey: { a: 1 }, ShardingType: "range", Group: srcGroupName };
@@ -71,10 +71,9 @@ function main ()
       }
       catch( e )
       {
-         //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
-         var backupDir = "/tmp/ci/rsrvnodelog/split_rlb_4978";
-         File.mkdir( backupDir );
-         File.scp( srcRGLogPath, backupDir + "/sdbdiag.log" );
+         println( "srcGroupName = " + srcGroupName );
+         var svcname = nodeInfo[0].svcname;
+         backupGroupLog( hostname, svcname, "split_4978" );
          throw e;
       }
    }

@@ -31,7 +31,7 @@ function main ()
 
    var groupNames = commGetGroups( db, false, "", true, true, true );
    var srcGroupName = groupNames[0][0].GroupName;
-   var hostName = groupNames[0][1].HostName;
+   var hostname = groupNames[0][1].HostName;
    // 目标组，最大长度分区组名
    var dstGroupName = "";
    for( var i = 0; i < 123; i++ )
@@ -59,7 +59,7 @@ function main ()
    try
    {
       var nodeNum = 1;
-      var dstRGLogPath = commCreateRG( db, dstGroupName, nodeNum, hostName );
+      var dstRGLogPath = commCreateRG( db, dstGroupName, nodeNum, hostname );
       try
       {
          cl.split( srcGroupName, dstGroupName, { a: 0 }, { a: recsNum } );
@@ -68,10 +68,9 @@ function main ()
       }
       catch( e )
       {
-         //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
-         var backupDir = "/tmp/ci/rsrvnodelog/split_rlb_4983";
-         File.mkdir( backupDir );
-         File.scp( dstRGLogPath, backupDir + "/sdbdiag.log" );
+         println( "dstGroupName = " + dstGroupName );
+         var svcname = nodeInfo[0].svcname;
+         backupGroupLog( hostname, svcname, "split_4983" );
          throw e;
       }
    }
