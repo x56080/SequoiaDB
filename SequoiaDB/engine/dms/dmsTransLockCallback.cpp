@@ -392,6 +392,13 @@ namespace engine
                   dmsRecordID(lockId.extentID(), lockId.offset()),
                   "LockID is not the same" ) ;
 
+      if ( eduCB->isInTransRollback() )
+      {
+         // notify releaseRecord guy (could be here or LJ) to remove the old
+         // version index from tree if the transaction is rolledback
+         oldVer->setRolledback() ;
+      }
+
       // Previously when creates index, takes old version container
       // from chain first, then inserts into index LID set of that
       // old version container and inserts index tree; while
@@ -431,12 +438,6 @@ namespace engine
                  lockId.toString().c_str() ) ;
 #endif
          oldVer->setRecordDeleted() ;
-         if ( eduCB->isInTransRollback() )
-         {
-            // notify LJ to remove the old version index from tree if the
-            // transaction is rolledback
-            oldVer->setRolledback() ;
-         }
       }
 
       /// PUT the rid to backgroud task to recycle
