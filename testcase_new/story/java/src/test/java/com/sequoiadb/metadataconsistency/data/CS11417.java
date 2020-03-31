@@ -8,6 +8,7 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -28,15 +29,14 @@ public class CS11417 extends SdbTestBase {
         try {
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or node number
-            if ( MetaDataUtils.isStandAlone( sdb )
-                    || MetaDataUtils.oneDataNode( sdb ) ) {
+            if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
                 throw new SkipException(
                         "The mode is standlone or one node, skip the testCase." );
             }
             MetaDataUtils.clearCS( sdb, csName );
             this.createCS();
         } catch ( BaseException e ) {
-            sdb.disconnect();
+            sdb.close();
             Assert.fail( e.getMessage() );
         }
     }
@@ -49,7 +49,7 @@ public class CS11417 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -79,7 +79,7 @@ public class CS11417 extends SdbTestBase {
                     throw e;
                 }
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }
@@ -92,7 +92,7 @@ public class CS11417 extends SdbTestBase {
         } catch ( BaseException e ) {
             throw e;
         } finally {
-            db.disconnect();
+            db.close();
         }
     }
 

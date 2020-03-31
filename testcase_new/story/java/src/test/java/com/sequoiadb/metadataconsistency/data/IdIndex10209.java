@@ -12,6 +12,7 @@ import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -34,8 +35,7 @@ public class IdIndex10209 extends SdbTestBase {
         try {
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or group number or node number
-            if ( MetaDataUtils.isStandAlone( sdb )
-                    || MetaDataUtils.OneGroupMode( sdb )
+            if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb )
                     || MetaDataUtils.oneCataNode( sdb )
                     || MetaDataUtils.oneDataNode( sdb ) ) {
                 throw new SkipException(
@@ -48,7 +48,7 @@ public class IdIndex10209 extends SdbTestBase {
             createCL( csName );
             MetaDataUtils.insertData( sdb, csName, clName );
         } catch ( BaseException e ) {
-            sdb.disconnect();
+            sdb.close();
             Assert.fail( e.getMessage() );
         }
     }
@@ -60,12 +60,12 @@ public class IdIndex10209 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         DropIdIndex dropIdIndex = new DropIdIndex();
         dropIdIndex.start();
 
@@ -103,7 +103,7 @@ public class IdIndex10209 extends SdbTestBase {
                     throw e;
                 }
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }
@@ -124,7 +124,7 @@ public class IdIndex10209 extends SdbTestBase {
                     throw e;
                 }
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }

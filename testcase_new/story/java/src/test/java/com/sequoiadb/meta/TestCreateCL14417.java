@@ -28,11 +28,7 @@ public class TestCreateCL14417 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( TruncateUtils.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone, skip testcase" );
         }
@@ -55,10 +51,8 @@ public class TestCreateCL14417 extends SdbTestBase {
             if ( sdb.isCollectionSpaceExist( csName ) ) {
                 sdb.dropCollectionSpace( csName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -74,10 +68,8 @@ public class TestCreateCL14417 extends SdbTestBase {
             option.put( "AutoSplit", true );
             // create a AutoSplit CL with CS is not specied domain
             cs.createCollection( clName, option );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            db.disconnect();
+            db.close();
         }
     }
 }

@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -34,7 +35,7 @@ public class IdIndex10208 extends SdbTestBase {
         try {
             sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             // judge the mode or node number
-            if ( MetaDataUtils.isStandAlone( sdb )
+            if ( CommLib.isStandAlone( sdb )
                     || MetaDataUtils.oneDataNode( sdb ) ) {
                 throw new SkipException(
                         "The mode is standlone or one node, skip the testCase." );
@@ -48,7 +49,7 @@ public class IdIndex10208 extends SdbTestBase {
             createIdIndex( sdb );
             MetaDataUtils.insertData( sdb, csName, mCLName );
         } catch ( BaseException e ) {
-            sdb.disconnect();
+            sdb.close();
             Assert.fail( e.getMessage() );
         }
     }
@@ -60,12 +61,12 @@ public class IdIndex10208 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         DropIndex dropIndex = new DropIndex();
         dropIndex.start( 10 );
 
@@ -92,7 +93,7 @@ public class IdIndex10208 extends SdbTestBase {
                     throw e;
                 }
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }

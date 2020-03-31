@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -30,20 +31,14 @@ public class Node10230 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         // start time
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            // judge the mode and group number
-            if ( MetaDataUtils.isStandAlone( sdb )
-                    || MetaDataUtils.OneGroupMode( sdb ) ) {
-                throw new SkipException(
-                        "The mode is standlone, or only one group, skip the testCase." );
-            }
-            MetaDataUtils.clearGroup( sdb, rgName );
-            sdb.createReplicaGroup( rgName );
-        } catch ( BaseException e ) {
-            sdb.disconnect();
-            Assert.fail( e.getMessage() );
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        // judge the mode and group number
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException(
+                    "The mode is standlone, or only one group, skip the testCase." );
         }
+        MetaDataUtils.clearGroup( sdb, rgName );
+        sdb.createReplicaGroup( rgName );
 
     }
 
@@ -51,10 +46,8 @@ public class Node10230 extends SdbTestBase {
     public void tearDown() {
         try {
             MetaDataUtils.clearGroup( sdb, rgName );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -89,10 +82,8 @@ public class Node10230 extends SdbTestBase {
                         SdbTestBase.reservedPortBegin,
                         SdbTestBase.reservedPortEnd, SdbTestBase.reservedDir );
 
-            } catch ( BaseException e ) {
-                throw e;
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }
@@ -104,10 +95,8 @@ public class Node10230 extends SdbTestBase {
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                 db.removeReplicaGroup( rgName );
-            } catch ( BaseException e ) {
-                throw e;
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }

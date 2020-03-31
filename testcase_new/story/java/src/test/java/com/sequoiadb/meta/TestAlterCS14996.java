@@ -35,12 +35,7 @@ public class TestAlterCS14996 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false, "connect %s failed,"
-                    + SdbTestBase.coordUrl + e.getMessage() );
-        }
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone" );
         }
@@ -99,8 +94,6 @@ public class TestAlterCS14996 extends SdbTestBase {
             if ( sdb.isCollectionSpaceExist( csName ) ) {
                 sdb.dropCollectionSpace( csName );
             }
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false, "clean up failed:" + e.getMessage() );
         } finally {
             if ( sdb != null ) {
                 sdb.close();

@@ -16,6 +16,7 @@ import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -36,25 +37,19 @@ public class Node10234 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         // start time
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            // judge the mode and group number
-            if ( MetaDataUtils.isStandAlone( sdb )
-                    || MetaDataUtils.OneGroupMode( sdb ) ) {
-                throw new SkipException(
-                        "The mode is standlone, or only one group, skip the testCase." );
-            }
-            MetaDataUtils.clearGroup( sdb, rgName );
-
-            ReplicaGroup rg = sdb.createReplicaGroup( rgName );
-            createNode();
-            rg.start();
-
-            nodes = MetaDataUtils.getNodeAddress( sdb, rgName );
-        } catch ( BaseException e ) {
-            sdb.disconnect();
-            Assert.fail( e.getMessage() );
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        // judge the mode and group number
+        if ( CommLib.isStandAlone( sdb ) || CommLib.OneGroupMode( sdb ) ) {
+            throw new SkipException(
+                    "The mode is standlone, or only one group, skip the testCase." );
         }
+        MetaDataUtils.clearGroup( sdb, rgName );
+
+        ReplicaGroup rg = sdb.createReplicaGroup( rgName );
+        createNode();
+        rg.start();
+
+        nodes = MetaDataUtils.getNodeAddress( sdb, rgName );
     }
 
     @AfterClass
@@ -62,10 +57,8 @@ public class Node10234 extends SdbTestBase {
         try {
             this.attachNodeForCleanEnv();
             MetaDataUtils.clearGroup( sdb, rgName );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -110,7 +103,7 @@ public class Node10234 extends SdbTestBase {
                     throw e;
                 }
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }
@@ -135,20 +128,16 @@ public class Node10234 extends SdbTestBase {
                     throw e;
                 }
             } finally {
-                db.disconnect();
+                db.close();
             }
         }
     }
 
     public void createNode() {
-        try {
-            for ( int i = 0; i < 3; i++ ) {
-                MetaDataUtils.createNode( sdb, rgName,
-                        SdbTestBase.reservedPortBegin,
-                        SdbTestBase.reservedPortEnd, SdbTestBase.reservedDir );
-            }
-        } catch ( BaseException e ) {
-            throw e;
+        for ( int i = 0; i < 3; i++ ) {
+            MetaDataUtils.createNode( sdb, rgName,
+                    SdbTestBase.reservedPortBegin, SdbTestBase.reservedPortEnd,
+                    SdbTestBase.reservedDir );
         }
     }
 

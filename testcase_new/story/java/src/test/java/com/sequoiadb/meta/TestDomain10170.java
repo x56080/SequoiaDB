@@ -1,7 +1,7 @@
 package com.sequoiadb.meta;
 
 import java.util.ArrayList;
-import java.util.Date;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -41,11 +41,7 @@ public class TestDomain10170 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( TruncateUtils.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone, skip testcase" );
         }
@@ -66,10 +62,8 @@ public class TestDomain10170 extends SdbTestBase {
             if ( sdb.isDomainExist( domainName ) ) {
                 sdb.dropDomain( domainName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -82,59 +76,41 @@ public class TestDomain10170 extends SdbTestBase {
             DBCollection cl = createCL( cs );
             splitCL( cl );
             checkSplit( db );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
-            db.disconnect();
+            db.close();
         }
     }
 
     private ArrayList< String > getDataGroups( Sequoiadb sdb ) {
         ArrayList< String > groupList = null;
-        try {
-            groupList = sdb.getReplicaGroupNames();
-            groupList.remove( "SYSCatalogGroup" );
-            groupList.remove( "SYSCoord" );
-            groupList.remove( "SYSSpare" );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false, "getDataGroups fail " + e.getMessage() );
-        }
+        groupList = sdb.getReplicaGroupNames();
+        groupList.remove( "SYSCatalogGroup" );
+        groupList.remove( "SYSCoord" );
+        groupList.remove( "SYSSpare" );
         return groupList;
     }
 
     private void initGroups() {
-        try {
-            ArrayList< String > dataGroupNames = null;
-            dataGroupNames = getDataGroups( sdb );
-            srcGroup = dataGroupNames.get( 0 );
-            dstGroup = dataGroupNames.get( 1 );
-            outGroup = dataGroupNames.get( 2 );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        ArrayList< String > dataGroupNames = null;
+        dataGroupNames = getDataGroups( sdb );
+        srcGroup = dataGroupNames.get( 0 );
+        dstGroup = dataGroupNames.get( 1 );
+        outGroup = dataGroupNames.get( 2 );
     }
 
     private void createDomain() {
-        try {
-            BSONObject option = new BasicBSONObject();
-            BSONObject groups = new BasicBSONList();
-            groups.put( "0", srcGroup );
-            groups.put( "1", dstGroup );
-            option.put( "Groups", groups );
-            sdb.createDomain( domainName, option );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        BSONObject option = new BasicBSONObject();
+        BSONObject groups = new BasicBSONList();
+        groups.put( "0", srcGroup );
+        groups.put( "1", dstGroup );
+        option.put( "Groups", groups );
+        sdb.createDomain( domainName, option );
     }
 
     private void createCS() {
-        try {
-            BSONObject option = new BasicBSONObject();
-            option.put( "Domain", domainName );
-            sdb.createCollectionSpace( csName, option );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        BSONObject option = new BasicBSONObject();
+        option.put( "Domain", domainName );
+        sdb.createCollectionSpace( csName, option );
     }
 
     private DBCollection createCL( CollectionSpace cs ) {
@@ -162,13 +138,9 @@ public class TestDomain10170 extends SdbTestBase {
             Assert.assertEquals( e.getErrorCode(), -154, e.getMessage() );
         }
         // create a CL in domain
-        try {
-            option.removeField( "Group" );
-            option.put( "Group", srcGroup );
-            cl = cs.createCollection( clName, option );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        option.removeField( "Group" );
+        option.put( "Group", srcGroup );
+        cl = cs.createCollection( clName, option );
         return cl;
     }
 
@@ -190,50 +162,40 @@ public class TestDomain10170 extends SdbTestBase {
             Assert.assertEquals( e.getErrorCode(), -154, e.getMessage() );
         }
         // split (dst group in domain)
-        try {
-            cl.split( srcGroup, dstGroup, 50 );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        cl.split( srcGroup, dstGroup, 50 );
     }
 
     private void checkSplit( Sequoiadb db ) {
-        try {
-            // get CataInfo
-            BSONObject option = new BasicBSONObject();
-            option.put( "Name", csName + '.' + clName );
-            DBCursor snapshot = db.getSnapshot( 8, option, null, null );
-            BasicBSONList cataInfo = ( BasicBSONList ) snapshot.getNext()
-                    .get( "CataInfo" );
-            snapshot.close();
+        // get CataInfo
+        BSONObject option = new BasicBSONObject();
+        option.put( "Name", csName + '.' + clName );
+        DBCursor snapshot = db.getSnapshot( 8, option, null, null );
+        BasicBSONList cataInfo = ( BasicBSONList ) snapshot.getNext()
+                .get( "CataInfo" );
+        snapshot.close();
 
-            // justify source group catalog information
-            BSONObject srcInfo = ( BSONObject ) cataInfo.get( 0 );
-            int expSrcLowBound = 0;
-            int expSrcUpBound = 2048;
-            if ( !( ( ( String ) srcInfo.get( "GroupName" ) ).equals( srcGroup )
-                    && ( ( BasicBSONObject ) srcInfo.get( "LowBound" ) )
-                            .getInt( "" ) == expSrcLowBound
-                    && ( ( BasicBSONObject ) srcInfo.get( "UpBound" ) )
-                            .getInt( "" ) == expSrcUpBound ) ) {
-                Assert.fail( "split fail: source group cataInfo is wrong" );
-            }
+        // justify source group catalog information
+        BSONObject srcInfo = ( BSONObject ) cataInfo.get( 0 );
+        int expSrcLowBound = 0;
+        int expSrcUpBound = 2048;
+        if ( !( ( ( String ) srcInfo.get( "GroupName" ) ).equals( srcGroup )
+                && ( ( BasicBSONObject ) srcInfo.get( "LowBound" ) )
+                        .getInt( "" ) == expSrcLowBound
+                && ( ( BasicBSONObject ) srcInfo.get( "UpBound" ) )
+                        .getInt( "" ) == expSrcUpBound ) ) {
+            Assert.fail( "split fail: source group cataInfo is wrong" );
+        }
 
-            // justify destination group catalog information
-            BSONObject dstInfo = ( BSONObject ) cataInfo.get( 1 );
-            int expDstLowBound = 2048;
-            int expDstUpBound = 4096;
-            if ( !( ( ( String ) dstInfo.get( "GroupName" ) ).equals( dstGroup )
-                    && ( ( BasicBSONObject ) dstInfo.get( "LowBound" ) )
-                            .getInt( "" ) == expDstLowBound
-                    && ( ( BasicBSONObject ) dstInfo.get( "UpBound" ) )
-                            .getInt( "" ) == expDstUpBound ) ) {
-                Assert.fail(
-                        "split fail: destination group cataInfo is wrong" );
-            }
-        } catch ( BaseException e ) {
-            e.getStackTrace();
-            Assert.fail( e.getMessage() );
+        // justify destination group catalog information
+        BSONObject dstInfo = ( BSONObject ) cataInfo.get( 1 );
+        int expDstLowBound = 2048;
+        int expDstUpBound = 4096;
+        if ( !( ( ( String ) dstInfo.get( "GroupName" ) ).equals( dstGroup )
+                && ( ( BasicBSONObject ) dstInfo.get( "LowBound" ) )
+                        .getInt( "" ) == expDstLowBound
+                && ( ( BasicBSONObject ) dstInfo.get( "UpBound" ) )
+                        .getInt( "" ) == expDstUpBound ) ) {
+            Assert.fail( "split fail: destination group cataInfo is wrong" );
         }
     }
 }

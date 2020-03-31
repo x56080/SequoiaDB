@@ -19,39 +19,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
 public class MetaDataUtils extends SdbTestBase {
 
     /**
-     * Judge the mode
-     * 
-     * @param sdb
-     * @return true/false, true is standalone, false is cluster
-     */
-    public static boolean isStandAlone( Sequoiadb sdb ) {
-        try {
-            sdb.listReplicaGroups();
-        } catch ( BaseException e ) {
-            if ( e.getErrorCode() == -159 ) { // -159:The operation is for coord
-                                              // node only
-                System.out.printf( "The mode is standalone." );
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Judge the group number
-     * 
-     * @param sdb
-     * @return true/false, true is only on group, false is multiple group
-     */
-    public static boolean OneGroupMode( Sequoiadb sdb ) {
-        if ( getDataGroupNames( sdb ).size() < 2 ) {
-            System.out.printf( "Only one group." );
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * get dataGroupNames
      * 
      * @param sdb
@@ -59,14 +26,10 @@ public class MetaDataUtils extends SdbTestBase {
      */
     public static ArrayList< String > getDataGroupNames( Sequoiadb sdb ) {
         ArrayList< String > dataGroupNames = new ArrayList< String >();
-        try {
-            dataGroupNames = sdb.getReplicaGroupNames();
-            dataGroupNames.remove( "SYSCatalogGroup" );
-            dataGroupNames.remove( "SYSCoord" );
-            dataGroupNames.remove( "SYSSpare" );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        dataGroupNames = sdb.getReplicaGroupNames();
+        dataGroupNames.remove( "SYSCatalogGroup" );
+        dataGroupNames.remove( "SYSCoord" );
+        dataGroupNames.remove( "SYSSpare" );
         return dataGroupNames;
     }
 
@@ -120,23 +83,17 @@ public class MetaDataUtils extends SdbTestBase {
     public static List< String > getNodeAddress( Sequoiadb sdb,
             String rgName ) {
         List< String > nodeAddrs = new ArrayList< String >();
-        try {
-            ReplicaGroup tmpArray = sdb.getReplicaGroup( rgName );
-            BasicBSONObject doc = ( BasicBSONObject ) tmpArray.getDetail();
-            BasicBSONList groups = ( BasicBSONList ) doc.get( "Group" );
+        ReplicaGroup tmpArray = sdb.getReplicaGroup( rgName );
+        BasicBSONObject doc = ( BasicBSONObject ) tmpArray.getDetail();
+        BasicBSONList groups = ( BasicBSONList ) doc.get( "Group" );
 
-            for ( int i = 0; i < groups.size(); ++i ) {
-                BasicBSONObject group = ( BasicBSONObject ) groups.get( i );
-                String hostName = group.getString( "HostName" );
-                BasicBSONList service = ( BasicBSONList ) group
-                        .get( "Service" );
-                BasicBSONObject srcInfo = ( BasicBSONObject ) service.get( 0 );
-                String svcName = srcInfo.getString( "Name" );
-                nodeAddrs.add( hostName + ":" + svcName );
-            }
-            // System.out.println(rgName + " address: " + nodeAddrs.toString());
-        } catch ( BaseException e ) {
-            throw e;
+        for ( int i = 0; i < groups.size(); ++i ) {
+            BasicBSONObject group = ( BasicBSONObject ) groups.get( i );
+            String hostName = group.getString( "HostName" );
+            BasicBSONList service = ( BasicBSONList ) group.get( "Service" );
+            BasicBSONObject srcInfo = ( BasicBSONObject ) service.get( 0 );
+            String svcName = srcInfo.getString( "Name" );
+            nodeAddrs.add( hostName + ":" + svcName );
         }
         return nodeAddrs;
     }
@@ -151,9 +108,7 @@ public class MetaDataUtils extends SdbTestBase {
         ArrayList< BSONObject > csInfoOfCata = new ArrayList< BSONObject >();
         Sequoiadb cataDB = null;
         try {
-            String nodeName = sdb.getReplicaGroup( "SYSCATALOG" ).getMaster()
-                    .getNodeName();
-            cataDB = new Sequoiadb( nodeName, "", "" );
+            cataDB = sdb.getReplicaGroup( "SYSCATALOG" ).getMaster().connect();
             DBCollection dmDB = cataDB.getCollectionSpace( "SYSCAT" )
                     .getCollection( "SYSCOLLECTIONSPACES" );
 
@@ -166,10 +121,8 @@ public class MetaDataUtils extends SdbTestBase {
                 BSONObject tmpInfo = ( BSONObject ) cursor.getNext();
                 csInfoOfCata.add( tmpInfo );
             }
-        } catch ( BaseException e ) {
-            throw e;
         } finally {
-            cataDB.disconnect();
+            cataDB.close();
         }
         return csInfoOfCata;
     }
@@ -195,10 +148,8 @@ public class MetaDataUtils extends SdbTestBase {
             String csName = "SYSCAT";
             String clName = "SYSDOMAINS";
             compareNodeData( db, rgName, csName, clName, matcher );
-        } catch ( BaseException e ) {
-            throw e;
         } finally {
-            db.disconnect();
+            db.close();
         }
     }
 
@@ -223,10 +174,8 @@ public class MetaDataUtils extends SdbTestBase {
             String sysCsName = "SYSCAT";
             String sysClName = "SYSCOLLECTIONSPACES";
             compareNodeData( db, rgName, sysCsName, sysClName, matcher );
-        } catch ( BaseException e ) {
-            throw e;
         } finally {
-            db.disconnect();
+            db.close();
         }
     }
 
@@ -238,20 +187,16 @@ public class MetaDataUtils extends SdbTestBase {
      */
     public static void checkCLOfCatalog( Sequoiadb sdb, String csName,
             String clName ) {
-        try {
-            BSONObject matcher = new BasicBSONObject();
-            BSONObject subObj = new BasicBSONObject();
-            subObj.put( "$regex", "^" + csName + "." + clName );
-            matcher.put( "Name", subObj );
+        BSONObject matcher = new BasicBSONObject();
+        BSONObject subObj = new BasicBSONObject();
+        subObj.put( "$regex", "^" + csName + "." + clName );
+        matcher.put( "Name", subObj );
 
-            // compare node's data within the group
-            String rgName = "SYSCatalogGroup";
-            String sysCSName = "SYSCAT";
-            String sysCLName = "SYSCOLLECTIONS";
-            compareNodeData( sdb, rgName, sysCSName, sysCLName, matcher );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+        // compare node's data within the group
+        String rgName = "SYSCatalogGroup";
+        String sysCSName = "SYSCAT";
+        String sysCLName = "SYSCOLLECTIONS";
+        compareNodeData( sdb, rgName, sysCSName, sysCLName, matcher );
     }
 
     /**
@@ -274,10 +219,8 @@ public class MetaDataUtils extends SdbTestBase {
             String sysCsName = "SYSCAT";
             String sysClName = "SYSNODES";
             compareNodeData( db, rgName, sysCsName, sysClName, matcher );
-        } catch ( BaseException e ) {
-            throw e;
         } finally {
-            db.disconnect();
+            db.close();
         }
     }
 
@@ -290,83 +233,78 @@ public class MetaDataUtils extends SdbTestBase {
      */
     public static void checkCLOfDataRG( Sequoiadb sdb, String csName,
             String clName ) {
-        try {
-            BSONObject matcher = new BasicBSONObject();
-            BSONObject subObj = new BasicBSONObject();
-            subObj.put( "$regex", "^" + csName + "." + clName );
-            matcher.put( "Name", subObj );
+        BSONObject matcher = new BasicBSONObject();
+        BSONObject subObj = new BasicBSONObject();
+        subObj.put( "$regex", "^" + csName + "." + clName );
+        matcher.put( "Name", subObj );
 
-            // get all dataGroupNames
-            ArrayList< String > dataGroupNames = getDataGroupNames( sdb );
-            for ( int i = 0; i < dataGroupNames.size(); i++ ) {
-                List< String > nodeAddrs = getNodeAddress( sdb,
-                        dataGroupNames.get( i ) );
+        // get all dataGroupNames
+        ArrayList< String > dataGroupNames = getDataGroupNames( sdb );
+        for ( int i = 0; i < dataGroupNames.size(); i++ ) {
+            List< String > nodeAddrs = getNodeAddress( sdb,
+                    dataGroupNames.get( i ) );
 
-                if ( nodeAddrs.size() < 2 ) { // other testCase create empty
-                                              // group
-                                              // or only one node that may be
-                                              // cause to fail
-                    System.out.println( "group = " + dataGroupNames.get( i )
-                            + ", nodeNum = " + nodeAddrs.size() );
-                    break;
-                    // throw new Exception("group = " + dataGroupNames.get(i) +
-                    // ", nodeNum = " + nodeAddrs.size());
-                }
-
-                // direct node and compare node's data
-                int failCnt = 0;
-                int maxCnt = 600;
-                boolean checkSucc = false;
-                do {
-                    ArrayList< String > allNodeData = new ArrayList< String >();
-
-                    for ( int j = 0; j < nodeAddrs.size(); j++ ) {
-                        Sequoiadb dataDB = new Sequoiadb( nodeAddrs.get( j ),
-                                "", "" );
-                        DBCursor cursor = dataDB.listCollections();
-
-                        // get the data for each node
-                        ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
-                        while ( cursor.hasNext() ) {
-                            BSONObject clList = ( BSONObject ) cursor.getNext();
-                            if ( clList.get( "Name" ).toString()
-                                    .indexOf( clName ) >= 0 ) {
-                                oneNodeData.add( clList );
-                            }
-                        }
-                        cursor.close();
-                        dataDB.disconnect();
-                        // all node data within the group
-                        allNodeData.add( j, oneNodeData.toString() );
-
-                        // compare data between nodes
-                        if ( j > 0 ) {
-                            if ( allNodeData.get( j )
-                                    .equals( allNodeData.get( j - 1 ) ) ) {
-                                checkSucc = true;
-                                break;
-                            } else if ( ++failCnt < maxCnt ) {
-                                try {
-                                    Thread.sleep( 200 );
-                                } catch ( InterruptedException e ) {
-                                    e.printStackTrace();
-                                }
-                                break;
-                            }
-                            Assert.assertEquals( allNodeData.get( j ),
-                                    allNodeData.get( j - 1 ),
-                                    "The group is SYSCatalogGroup, "
-                                            + nodeAddrs.get( j ) + " and "
-                                            + nodeAddrs.get( j - 1 )
-                                            + " is not consistent." );
-                        }
-
-                    }
-                } while ( !checkSucc && failCnt < maxCnt );
+            if ( nodeAddrs.size() < 2 ) { // other testCase create empty
+                                          // group
+                                          // or only one node that may be
+                                          // cause to fail
+                System.out.println( "group = " + dataGroupNames.get( i )
+                        + ", nodeNum = " + nodeAddrs.size() );
+                break;
+                // throw new Exception("group = " + dataGroupNames.get(i) +
+                // ", nodeNum = " + nodeAddrs.size());
             }
-        } catch ( BaseException e ) {
-            e.printStackTrace();
-            throw e;
+
+            // direct node and compare node's data
+            int failCnt = 0;
+            int maxCnt = 600;
+            boolean checkSucc = false;
+            do {
+                ArrayList< String > allNodeData = new ArrayList< String >();
+
+                for ( int j = 0; j < nodeAddrs.size(); j++ ) {
+                    Sequoiadb dataDB = new Sequoiadb( nodeAddrs.get( j ), "",
+                            "" );
+                    DBCursor cursor = dataDB.listCollections();
+
+                    // get the data for each node
+                    ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                    while ( cursor.hasNext() ) {
+                        BSONObject clList = ( BSONObject ) cursor.getNext();
+                        if ( clList.get( "Name" ).toString()
+                                .indexOf( clName ) >= 0 ) {
+                            oneNodeData.add( clList );
+                        }
+                    }
+                    cursor.close();
+                    dataDB.close();
+                    // all node data within the group
+                    allNodeData.add( j, oneNodeData.toString() );
+
+                    // compare data between nodes
+                    if ( j > 0 ) {
+                        if ( allNodeData.get( j )
+                                .equals( allNodeData.get( j - 1 ) ) ) {
+                            checkSucc = true;
+                            break;
+                        } else if ( ++failCnt < maxCnt ) {
+                            try {
+                                Thread.sleep( 200 );
+                            } catch ( InterruptedException e ) {
+                                e.printStackTrace();
+                            }
+                            break;
+                        }
+                        Assert.assertEquals( allNodeData.get( j ),
+                                allNodeData.get( j - 1 ),
+                                "The group is SYSCatalogGroup, "
+                                        + nodeAddrs.get( j ) + " and "
+                                        + nodeAddrs.get( j - 1 )
+                                        + " is not consistent." );
+                    }
+
+                }
+            } while ( !checkSucc && failCnt < maxCnt );
         }
     }
 
@@ -388,10 +326,8 @@ public class MetaDataUtils extends SdbTestBase {
             boolean rc = compareDataAndCata( db, csName, clName );
             Assert.assertTrue( rc );
 
-        } catch ( BaseException e ) {
-            throw e;
         } finally {
-            db.disconnect();
+            db.close();
         }
     }
 
@@ -401,8 +337,10 @@ public class MetaDataUtils extends SdbTestBase {
      * @param sdb
      * @param csName
      * @param clName
+     * @throws InterruptedException
      */
-    public static void checkIndex( String csName, String clName ) {
+    public static void checkIndex( String csName, String clName )
+            throws InterruptedException {
         Sequoiadb db = null;
         try {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
@@ -449,7 +387,7 @@ public class MetaDataUtils extends SdbTestBase {
                                 cur = clDB.getIndexes();
                             }
                             // get the data for each node
-                            ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                            ArrayList< String > oneNodeData = new ArrayList< String >();
                             while ( cur.hasNext() ) {
                                 BSONObject idxList = ( BSONObject ) cur
                                         .getNext();
@@ -458,11 +396,11 @@ public class MetaDataUtils extends SdbTestBase {
                                 String idxName = ( String ) IndexDef
                                         .get( "name" );
                                 if ( !idxName.equals( "$id" ) ) {
-                                    oneNodeData.add( idxList );
+                                    oneNodeData.add( idxName );
                                 }
                             }
                             cur.close();
-                            dataDB.disconnect();
+                            dataDB.close();
                             // all node data within the group
                             allNodeData.add( j, oneNodeData.toString() );
                             // compare data between nodes
@@ -479,11 +417,7 @@ public class MetaDataUtils extends SdbTestBase {
                                             break;
                                         }
                                     } else if ( ++failCnt < maxCnt ) {
-                                        try {
-                                            Thread.sleep( 200 );
-                                        } catch ( InterruptedException e ) {
-                                            e.printStackTrace();
-                                        }
+                                        Thread.sleep( 200 );
                                         break;
                                     } else {
                                         Assert.fail( "clName = " + name
@@ -515,53 +449,42 @@ public class MetaDataUtils extends SdbTestBase {
      */
     public static boolean compareDataAndCata( Sequoiadb sdb, String csName,
             String clName ) {
-        try {
-            // get all dataGroupNames
-            ArrayList< String > dataGroupNames = getDataGroupNames( sdb );
-            for ( int i = 0; i < dataGroupNames.size(); i++ ) {
-                // direct connect data master node, listCollections
-                String dataMAddr = sdb
-                        .getReplicaGroup( dataGroupNames.get( i ) ).getMaster()
-                        .getNodeName();
-                Sequoiadb dataDB = new Sequoiadb( dataMAddr, "", "" );
-                DBCursor cursor = dataDB.listCollections();
-                while ( cursor.hasNext() ) {
-                    String tmpCLName = ( String ) cursor.getNext()
-                            .get( "Name" );
-                    if ( tmpCLName.indexOf( csName + "." + clName ) >= 0 ) {
-                        // direct connect cata master node, find the collection
-                        String cataAddr = sdb
-                                .getReplicaGroup( "SYSCatalogGroup" )
-                                .getMaster().getNodeName();
-                        Sequoiadb cataDB = new Sequoiadb( cataAddr, "", "" );
-                        BSONObject matcher = new BasicBSONObject();
-                        matcher.put( "Name", csName + "." + tmpCLName );
-                        DBCursor cur = cataDB.getCollectionSpace( "SYSCAT" )
-                                .getCollection( "SYSCOLLECTIONS" )
-                                .query( matcher, null, null, null );
-                        while ( cur.hasNext() ) {
-                            String name = ( String ) cur.getNext()
-                                    .get( "Name" );
-                            if ( name.isEmpty() ) {
-                                return false;
-                            }
+        // get all dataGroupNames
+        ArrayList< String > dataGroupNames = getDataGroupNames( sdb );
+        for ( int i = 0; i < dataGroupNames.size(); i++ ) {
+            // direct connect data master node, listCollections
+            Sequoiadb dataDB = sdb.getReplicaGroup( dataGroupNames.get( i ) )
+                    .getMaster().connect();
+            DBCursor cursor = dataDB.listCollections();
+            while ( cursor.hasNext() ) {
+                String tmpCLName = ( String ) cursor.getNext().get( "Name" );
+                if ( tmpCLName.indexOf( csName + "." + clName ) >= 0 ) {
+                    // direct connect cata master node, find the collection
+                    Sequoiadb cataDB = sdb.getReplicaGroup( "SYSCatalogGroup" )
+                            .getMaster().connect();
+                    BSONObject matcher = new BasicBSONObject();
+                    matcher.put( "Name", csName + "." + tmpCLName );
+                    DBCursor cur = cataDB.getCollectionSpace( "SYSCAT" )
+                            .getCollection( "SYSCOLLECTIONS" )
+                            .query( matcher, null, null, null );
+                    while ( cur.hasNext() ) {
+                        String name = ( String ) cur.getNext().get( "Name" );
+                        if ( name.isEmpty() ) {
+                            return false;
                         }
-                        cur.close();
-                        cataDB.disconnect();
                     }
+                    cur.close();
+                    cataDB.close();
                 }
-                cursor.close();
-                dataDB.disconnect();
             }
-        } catch ( BaseException e ) {
-            throw e;
+            cursor.close();
+            dataDB.close();
         }
 
         try {
             // direct connect cata master node, find collections
-            String cataAddr = sdb.getReplicaGroup( "SYSCatalogGroup" )
-                    .getMaster().getNodeName();
-            Sequoiadb cataDB = new Sequoiadb( cataAddr, "", "" );
+            Sequoiadb cataDB = sdb.getReplicaGroup( "SYSCatalogGroup" )
+                    .getMaster().connect();
             BSONObject matcher = new BasicBSONObject();
             BSONObject subObj = new BasicBSONObject();
             subObj.put( "$regex", "^" + csName + "." + clName );
@@ -579,22 +502,22 @@ public class MetaDataUtils extends SdbTestBase {
                 for ( int i = 0; i < cataInfo.size(); ++i ) {
                     BasicBSONObject groupInfo = ( BasicBSONObject ) cataInfo
                             .get( i );
-                    String dataGroupNames = groupInfo.getString( "GroupName" );
+                    String dataGroupNames1 = groupInfo.getString( "GroupName" );
                     // direct dataNode, get the collection
-                    if ( dataGroupNames != null ) {
-                        String dataMAddr = sdb.getReplicaGroup( dataGroupNames )
-                                .getMaster().getNodeName();
-                        Sequoiadb dataDB = new Sequoiadb( dataMAddr, "", "" );
+                    if ( dataGroupNames1 != null ) {
+                        Sequoiadb dataDB = sdb
+                                .getReplicaGroup( dataGroupNames1 ).getMaster()
+                                .connect();
                         dataDB.getCollectionSpace( csName )
                                 .getCollection( tmpCLName );
 
-                        dataDB.disconnect();
+                        dataDB.close();
                     }
                 }
             }
 
             cursor.close();
-            cataDB.disconnect();
+            cataDB.close();
 
         } catch ( BaseException e ) {
             int eCode = e.getErrorCode();
@@ -616,60 +539,56 @@ public class MetaDataUtils extends SdbTestBase {
     public static void compareNodeData( Sequoiadb sdb, String rgName,
             String csName, String clName, BSONObject matcher ) {
         Sequoiadb dataDB = null;
-        try {
-            // get node address within the group
-            List< String > nodeAdrrs = getNodeAddress( sdb, rgName );
+        // get node address within the group
+        List< String > nodeAdrrs = getNodeAddress( sdb, rgName );
 
-            // direct node and compare node's data
-            int failCnt = 0;
-            int maxCnt = 600;
-            boolean checkSucc = false;
-            do {
-                ArrayList< String > allNodeData = new ArrayList< String >();
+        // direct node and compare node's data
+        int failCnt = 0;
+        int maxCnt = 600;
+        boolean checkSucc = false;
+        do {
+            ArrayList< String > allNodeData = new ArrayList< String >();
 
-                for ( int i = 0; i < nodeAdrrs.size(); ++i ) {
-                    dataDB = new Sequoiadb( nodeAdrrs.get( i ), "", "" );
-                    DBCollection clDB = dataDB.getCollectionSpace( csName )
-                            .getCollection( clName );
-                    DBCursor cursor = clDB.query( matcher, null, null, null );
+            for ( int i = 0; i < nodeAdrrs.size(); ++i ) {
+                dataDB = new Sequoiadb( nodeAdrrs.get( i ), "", "" );
+                DBCollection clDB = dataDB.getCollectionSpace( csName )
+                        .getCollection( clName );
+                DBCursor cursor = clDB.query( matcher, null, null, null );
 
-                    // get the data for each node
-                    ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
-                    while ( cursor.hasNext() ) {
-                        BSONObject csInfo = ( BSONObject ) cursor.getNext();
-                        oneNodeData.add( csInfo );
-                    }
-                    cursor.close();
-                    dataDB.disconnect();
-                    // all node data within the group
-                    allNodeData.add( i, oneNodeData.toString() );
-
-                    // compare data between nodes
-                    if ( i > 0 ) {
-                        if ( allNodeData.get( i )
-                                .equals( allNodeData.get( i - 1 ) ) ) {
-                            checkSucc = true;
-                            break;
-                        } else if ( ++failCnt < maxCnt ) {
-                            try {
-                                Thread.sleep( 200 );
-                            } catch ( InterruptedException e ) {
-                                e.printStackTrace();
-                            }
-                            break;
-                        }
-                        Assert.assertEquals( allNodeData.get( i ),
-                                allNodeData.get( i - 1 ),
-                                "The group is SYSCatalogGroup, "
-                                        + nodeAdrrs.get( i ) + " and "
-                                        + nodeAdrrs.get( i - 1 )
-                                        + " is not consistent." );
-                    }
+                // get the data for each node
+                ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                while ( cursor.hasNext() ) {
+                    BSONObject csInfo = ( BSONObject ) cursor.getNext();
+                    oneNodeData.add( csInfo );
                 }
-            } while ( !checkSucc && failCnt < maxCnt );
-        } catch ( BaseException e ) {
-            throw e;
-        }
+                cursor.close();
+                dataDB.close();
+                // all node data within the group
+                allNodeData.add( i, oneNodeData.toString() );
+
+                // compare data between nodes
+                if ( i > 0 ) {
+                    if ( allNodeData.get( i )
+                            .equals( allNodeData.get( i - 1 ) ) ) {
+                        checkSucc = true;
+                        break;
+                    } else if ( ++failCnt < maxCnt ) {
+                        try {
+                            Thread.sleep( 200 );
+                        } catch ( InterruptedException e ) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    }
+                    Assert.assertEquals( allNodeData.get( i ),
+                            allNodeData.get( i - 1 ),
+                            "The group is SYSCatalogGroup, "
+                                    + nodeAdrrs.get( i ) + " and "
+                                    + nodeAdrrs.get( i - 1 )
+                                    + " is not consistent." );
+                }
+            }
+        } while ( !checkSucc && failCnt < maxCnt );
     }
 
     /**
@@ -796,58 +715,53 @@ public class MetaDataUtils extends SdbTestBase {
      */
     public static void createNode( Sequoiadb sdb, String rgName, int portStart,
             int portStop, String path ) {
-        try {
-            // get hostname
-            // String hostName =
-            // sdb.getReplicaGroup("SYSCatalogGroup").getMaster().getHostName();
-            Random random = new Random();
-            ReplicaGroup catalogGroup = sdb
-                    .getReplicaGroup( "SYSCatalogGroup" );
-            List< String > hostNames = new ArrayList< String >();
-            BasicBSONObject info = ( BasicBSONObject ) catalogGroup.getDetail();
-            BasicBSONList group = ( BasicBSONList ) info.get( "Group" );
-            for ( int i = 0; i < group.size(); ++i ) {
-                BasicBSONObject tmp = ( BasicBSONObject ) group.get( i );
-                String tmpHostName = tmp.getString( "HostName" );
-                hostNames.add( tmpHostName );
-            }
-
-            // create node
-            ReplicaGroup rg = sdb.getReplicaGroup( rgName );
-            BSONObject rgConf = new BasicBSONObject();
-            rgConf.put( "logfilesz", 64 );
-            int svnName = portStart;
-            boolean checkSucc = false;
-            do {
-                String nodePath = null;
-                String hostName = null;
-                nodePath = path + "data/" + String.valueOf( svnName );
-                hostName = hostNames.get( random.nextInt( hostNames.size() ) );
-                try {
-                    if ( rg != null ) {
-                        rg.createNode( hostName, svnName, nodePath, rgConf );
-                        checkSucc = true;
-                        break;
-                    } else if ( rg == null ) {
-                        System.out.println( "DataRG is not exist." );
-                        break;
-                    }
-                } catch ( BaseException e ) {
-                    int eCode = e.getErrorCode();
-                    if ( eCode == -157 // -157:Invalid node configuration(Port
-                                       // is
-                                       // occupied)
-                            || eCode == -145 ) { // -145:Node already exists
-                        svnName = svnName + 10;
-                    } else if ( eCode == -154 ) {
-                        System.out.println( "DataRG is not exist." );
-                        break;
-                    }
-                }
-            } while ( !checkSucc && svnName < portStop );
-        } catch ( BaseException e ) {
-            throw e;
+        // get hostname
+        // String hostName =
+        // sdb.getReplicaGroup("SYSCatalogGroup").getMaster().getHostName();
+        Random random = new Random();
+        ReplicaGroup catalogGroup = sdb.getReplicaGroup( "SYSCatalogGroup" );
+        List< String > hostNames = new ArrayList< String >();
+        BasicBSONObject info = ( BasicBSONObject ) catalogGroup.getDetail();
+        BasicBSONList group = ( BasicBSONList ) info.get( "Group" );
+        for ( int i = 0; i < group.size(); ++i ) {
+            BasicBSONObject tmp = ( BasicBSONObject ) group.get( i );
+            String tmpHostName = tmp.getString( "HostName" );
+            hostNames.add( tmpHostName );
         }
+
+        // create node
+        ReplicaGroup rg = sdb.getReplicaGroup( rgName );
+        BSONObject rgConf = new BasicBSONObject();
+        rgConf.put( "logfilesz", 64 );
+        int svnName = portStart;
+        boolean checkSucc = false;
+        do {
+            String nodePath = null;
+            String hostName = null;
+            nodePath = path + "data/" + String.valueOf( svnName );
+            hostName = hostNames.get( random.nextInt( hostNames.size() ) );
+            try {
+                if ( rg != null ) {
+                    rg.createNode( hostName, svnName, nodePath, rgConf );
+                    checkSucc = true;
+                    break;
+                } else if ( rg == null ) {
+                    System.out.println( "DataRG is not exist." );
+                    break;
+                }
+            } catch ( BaseException e ) {
+                int eCode = e.getErrorCode();
+                if ( eCode == -157 // -157:Invalid node configuration(Port
+                                   // is
+                                   // occupied)
+                        || eCode == -145 ) { // -145:Node already exists
+                    svnName = svnName + 10;
+                } else if ( eCode == -154 ) {
+                    System.out.println( "DataRG is not exist." );
+                    break;
+                }
+            }
+        } while ( !checkSucc && svnName < portStop );
     }
 
     public static void insertData( Sequoiadb sdb, String csName,
@@ -863,7 +777,7 @@ public class MetaDataUtils extends SdbTestBase {
                 records.add( record );
             }
             if ( clDB != null ) {
-                clDB.bulkInsert( records, 0 );
+                clDB.insert( records );
             }
         } catch ( BaseException e ) {
             if ( -23 != e.getErrorCode() ) {
