@@ -468,7 +468,7 @@ function Sequoiadb ( hostname, svcname, username, password )
          }
       }
 
-   this.deleteConf = 
+   this.deleteConf =
       function( config, options )
       {
          if( options === undefined ) { options = {}; }
@@ -482,7 +482,7 @@ function Sequoiadb ( hostname, svcname, username, password )
          }
       }
 
-   this.invalidateCache = 
+   this.invalidateCache =
       function()
       {
          try
@@ -510,5 +510,55 @@ function Sequoiadb ( hostname, svcname, username, password )
             throw new Error( e );
          }
          return new Cursor( cursor );
+      }
+   this.backup =
+      function( option )
+      {
+         try
+         {
+            var cursor = db.backup( option );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return new Cursor( cursor );
+      }
+   this.removeBackup =
+      function( option )
+      {
+         try
+         {
+            db.removeBackup( option );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+      }
+   this.createUsr =
+      function( userName, password, options )
+      {
+         if( options == undefined ) { options = {}; }
+         try
+         {
+            db.createUsr( userName, password, options );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+      }
+   this.dropUsr =
+      function( userName, password )
+      {
+         try
+         {
+            db.dropUsr( userName, password );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
       }
 }
