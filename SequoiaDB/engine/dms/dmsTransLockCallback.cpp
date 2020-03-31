@@ -1768,6 +1768,7 @@ namespace engine
          }
          else
          {
+            BOOLEAN bInsertResult = FALSE ;
             if ( !treePtr.get() )
             {
                oldVersionCB *pVerCB = _transCB->getOldVCB() ;
@@ -1783,11 +1784,17 @@ namespace engine
 
             deleteCursor = _DELETE_SAVE ;
             /// insert into oldVer's indexSet
-            rc = _oldVer->insertIdxTree( treePtr ) ;
+            rc = _oldVer->insertIdxTree( treePtr, &bInsertResult ) ;
             if ( rc )
             {
                goto error ;
             }
+#ifdef _DEBUG
+            PD_LOG( PDDEBUG, "Insert tree[%d] into _oldIdxLid %s",
+                    gid._idxLID,
+                    ( bInsertResult ? "succeeded" : "failed" ) ) ;
+            SDB_ASSERT( bInsertResult, "Failed to insert into _oldIdxLid" ) ;
+#endif
          }
       }
       else if ( _DELETE_IGNORE == deleteCursor )

@@ -2336,18 +2336,9 @@ namespace engine
          if ( itMap == _oldIdxLid.end() )
          {
 #if defined ( _DEBUG )
-            // When drops an index, onDropIndex() will delete
-            // memory index tree from index set. We've seen following
-            // scenario at runtime :
-            // thread 1:                 thread 2:
-            //   rtnTransBegin
-            //                           rtnDropIndexCommand
-            //   ....
-            //   transLockRelease
-            //     dmsOnTransLockRelease
-            //       tryReleaseRecord
-            PD_LOG( PDDEBUG, "Index[%u] is not found in index set",
+            PD_LOG( PDDEBUG, "Index[%u] is not found in idxLidMap",
                     tmpObj.getIdxLID() );
+            SDB_ASSERT( FALSE, "Index is not found in idxLidMap, _oldIdxLid" ) ;
 #endif
          }
          else
@@ -2407,18 +2398,9 @@ namespace engine
          if ( itMap == _oldIdxLid.end() )
          {
 #if defined ( _DEBUG )
-            // When drops an index, onDropIndex() will delete
-            // memory index tree from index set. We've seen following
-            // scenario at runtime :
-            // thread 1:                 thread 2:
-            //   rtnTransBegin
-            //                           rtnDropIndexCommand
-            //   ....
-            //   transLockRelease
-            //     dmsOnTransLockRelease
-            //       tryReleaseRecord
-            PD_LOG( PDDEBUG, "Index[%u] is not found in index set",
+            PD_LOG( PDDEBUG, "Index[%u] is not found in idxLidMap",
                     tmpObj.getIdxLID() );
+            SDB_ASSERT( FALSE, "Index is not found in idxLidMap, _oldIdxLid" ) ;
 #endif
          }
          else
