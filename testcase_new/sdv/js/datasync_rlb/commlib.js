@@ -869,7 +869,7 @@ replicaGroup.prototype.checkLSN =
       for( var i = 0; i < group.size(); ++i )
       {
          var node = group.getNodeByPos( i ) ;
-         var currentLsn = node..getCurrentLsn();
+         var currentLsn = node.getCurrentLsn();
          if( 0 === i )
          {
             prevLsn = currentLsn;
