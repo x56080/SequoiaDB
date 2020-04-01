@@ -930,8 +930,9 @@ namespace engine
          if ( IXM_INDEX_FLAG_NORMAL != indexCB.getFlag() &&
               IXM_INDEX_FLAG_INVALID != indexCB.getFlag() )
          {
-            PD_LOG ( PDWARNING, "Index is either creating or dropping: %d",
-                     (INT32)indexCB.getFlag() ) ;
+            PD_LOG ( PDWARNING, "Index is either creating or dropping: %d(%s)",
+                     (INT32)indexCB.getFlag(),
+                     ixmGetIndexFlagDesp( indexCB.getFlag() ) ) ;
          }
          if ( !isSys && 0 == ossStrcmp ( indexCB.getName(), IXM_ID_KEY_NAME ) )
          {
@@ -1020,15 +1021,13 @@ namespace engine
          }
 
          // truncate index, do remove root
-         rc = indexCB.truncate ( TRUE ) ;
+         rc = indexCB.truncate ( TRUE, IXM_INDEX_FLAG_DROPPING ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to truncate index, rc: %d", rc ) ;
             goto error ;
          }
-         // truncate will set status back to normal, so we'll have to reset to
-         // dropping again
-         indexCB.setFlag ( IXM_INDEX_FLAG_DROPPING ) ;
+         // set to dropping
          indexCB.clearLogicID() ;
 
          if ( indexCB.unique() )
@@ -2459,8 +2458,8 @@ namespace engine
             continue ;
          }
          // we don't check index flag since we are doing full index rebuild now
-         // truncate index, do remove root
-         rc = indexCB.truncate ( FALSE ) ;
+         // truncate index, do not remove root
+         rc = indexCB.truncate ( FALSE, IXM_INDEX_FLAG_NORMAL ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to truncate index(%s), rc: %d",

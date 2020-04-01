@@ -975,7 +975,7 @@ namespace engine
             }
             ob.done () ;
 
-            flagDesp = getIndexFlagDesp(indexItem._indexFlag) ;
+            flagDesp = ixmGetIndexFlagDesp(indexItem._indexFlag) ;
             builder.append (IXM_FIELD_NAME_INDEX_FLAG, flagDesp.c_str() ) ;
             if ( IXM_INDEX_FLAG_CREATING == indexItem._indexFlag )
             {
@@ -3464,7 +3464,7 @@ namespace engine
          }
          sub.done () ;
 
-         const CHAR *pFlagDesp = getIndexFlagDesp( indexItem._indexFlag ) ;
+         const CHAR *pFlagDesp = ixmGetIndexFlagDesp( indexItem._indexFlag ) ;
          ob.append ( IXM_FIELD_NAME_INDEX_FLAG, pFlagDesp ) ;
          if ( IXM_INDEX_FLAG_CREATING == indexItem._indexFlag )
          {

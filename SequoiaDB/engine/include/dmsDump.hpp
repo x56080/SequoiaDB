@@ -75,7 +75,6 @@ namespace engine
    /*
       Tool functions
    */
-   const CHAR* getIndexFlagDesp ( UINT16 indexFlag ) ;
    string getIndexTypeDesp ( UINT16 type ) ;
 
    class _pmdEDUCB ;

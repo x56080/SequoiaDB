@@ -495,7 +495,7 @@ namespace engine
       }
 
       // Now we have done the external operation and everything is going
-      // smoothly. Set set the index as CREATING and it will be set as NORMAL
+      // smoothly. Set the index as CREATING and it will be set as NORMAL
       // in _finish() of dmsIndexRebuilder.
       _indexCB->setFlag( IXM_INDEX_FLAG_CREATING ) ;
 

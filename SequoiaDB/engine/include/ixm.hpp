@@ -179,6 +179,11 @@ namespace engine
    #define IXM_INDEX_IS_INVALID(flag)  (0!=((flag) & IXM_INDEX_FLAG_INVALID ))
 
    /*
+      Get index flag description
+   */
+   const CHAR* ixmGetIndexFlagDesp( UINT16 indexFlag ) ;
+
+   /*
       _ixmIndexCB define
    */
    class _ixmIndexCB : public utilPooledObject
@@ -738,7 +743,7 @@ namespace engine
          return curOID == oid ;
       }
 
-      INT32 truncate ( BOOLEAN removeRoot ) ;
+      INT32 truncate ( BOOLEAN removeRoot, UINT16 indexFlag ) ;
 
       BOOLEAN isSameDef( const BSONObj &defObj,
                          BOOLEAN strict = FALSE ) const ;

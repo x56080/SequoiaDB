@@ -133,26 +133,24 @@ namespace engine
       {
          _scanExtLID = _indexCB->scanExtLID() ;
       }
-      else if ( IXM_INDEX_FLAG_NORMAL != _indexCB->getFlag() &&
-                IXM_INDEX_FLAG_INVALID != _indexCB->getFlag() )
+      else if ( IXM_INDEX_FLAG_NORMAL == _indexCB->getFlag() ||
+                IXM_INDEX_FLAG_INVALID == _indexCB->getFlag() )
       {
-         PD_LOG ( PDERROR, "Index is either creating or dropping: %d",
-                  (INT32)_indexCB->getFlag() ) ;
-         _indexCB->setFlag ( IXM_INDEX_FLAG_INVALID ) ;
-         rc = SDB_IXM_UNEXPECTED_STATUS ;
-         goto error ;
-      }
-      else
-      {
-         // truncate index, do NOT remove root
-         rc = _indexCB->truncate ( FALSE ) ;
+         // truncate index, do not remove root
+         rc = _indexCB->truncate ( FALSE, IXM_INDEX_FLAG_CREATING ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to truncate index, rc: %d", rc ) ;
-            _indexCB->setFlag ( IXM_INDEX_FLAG_INVALID ) ;
             goto error ;
          }
-         _indexCB->setFlag ( IXM_INDEX_FLAG_CREATING ) ;
+      }
+      else
+      {
+         PD_LOG ( PDERROR, "Index status[%d(%s)] is unexpected",
+                  (INT32)_indexCB->getFlag(),
+                  ixmGetIndexFlagDesp( _indexCB->getFlag() ) ) ;
+         rc = SDB_IXM_UNEXPECTED_STATUS ;
+         goto error ;
       }
 
       _unique = _indexCB->unique() ;

@@ -275,11 +275,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB_TRUNC, "_ixmIndexCB::truncate" )
-   INT32 _ixmIndexCB::truncate ( BOOLEAN removeRoot )
+   INT32 _ixmIndexCB::truncate ( BOOLEAN removeRoot, UINT16 indexFlag )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMINXCB_TRUNC );
-      PD_TRACE1 ( SDB__IXMINXCB_TRUNC, PD_PACK_INT(removeRoot) );
+      PD_TRACE1 ( SDB__IXMINXCB_TRUNC, PD_PACK_INT(removeRoot) ) ;
+
       setFlag ( IXM_INDEX_FLAG_TRUNCATING ) ;
       dmsExtentID root = getRoot() ;
       if ( DMS_INVALID_EXTENT != root )
@@ -302,7 +303,7 @@ namespace engine
             }
          }
       }
-      setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
+      setFlag ( indexFlag ) ;
 
    done :
       scanExtLID ( DMS_INVALID_EXTENT ) ;
@@ -469,6 +470,34 @@ namespace engine
    BSONObj ixmGetIDIndexDefine ()
    {
       return s_idKeyObj ;
+   }
+
+   /*
+      Common function
+   */
+   const CHAR* ixmGetIndexFlagDesp(UINT16 indexFlag)
+   {
+      switch ( indexFlag )
+      {
+      case IXM_INDEX_FLAG_NORMAL :
+         return "Normal" ;
+         break ;
+      case IXM_INDEX_FLAG_CREATING :
+         return "Creating" ;
+         break ;
+      case IXM_INDEX_FLAG_DROPPING :
+         return "Dropping" ;
+         break ;
+      case IXM_INDEX_FLAG_INVALID :
+         return "Invalid" ;
+         break ;
+      case IXM_INDEX_FLAG_TRUNCATING :
+         return "Truncating" ;
+         break ;
+      default :
+         break ;
+      }
+      return "Unknown" ;
    }
 
 }

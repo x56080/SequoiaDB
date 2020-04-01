@@ -64,31 +64,6 @@ namespace engine
       ossStrncat( pBuffer, flagStr, bufSize - ossStrlen( pBuffer ) ) ;
    }
 
-   const CHAR* getIndexFlagDesp( UINT16 indexFlag )
-   {
-      switch ( indexFlag )
-      {
-      case IXM_INDEX_FLAG_NORMAL :
-         return "Normal" ;
-         break ;
-      case IXM_INDEX_FLAG_CREATING :
-         return "Creating" ;
-         break ;
-      case IXM_INDEX_FLAG_DROPPING :
-         return "Dropping" ;
-         break ;
-      case IXM_INDEX_FLAG_INVALID :
-         return "Invalid" ;
-         break ;
-      case IXM_INDEX_FLAG_TRUNCATING :
-         return "Truncating" ;
-         break ;
-      default :
-         break ;
-      }
-      return "Unknow" ;
-   }
-
    #define DMS_INDEXTYPE_TMP_STR_SZ       63
 
    string getIndexTypeDesp( UINT16 type )
@@ -1783,7 +1758,7 @@ namespace engine
                            "    Eye Catcher  : %c%c"OSS_NEWLINE,
                            header->_eyeCatcher[0], header->_eyeCatcher[1] ) ;
 
-      ossStrncpy ( tmpBuff, getIndexFlagDesp(header->_indexFlag),
+      ossStrncpy ( tmpBuff, ixmGetIndexFlagDesp(header->_indexFlag),
                    DMS_DUMP_IXM_CB_FLAG_TEXT_LEN ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "    Index Flags  : %d (%s)"OSS_NEWLINE,
