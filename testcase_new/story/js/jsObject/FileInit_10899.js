@@ -137,6 +137,13 @@ function testInitRemoteNoPermission ()
 
 function main ()
 {
+   var cmd = new Cmd();
+   var umask = cmd.run( "umask" ).split( "\n" )[0];
+   if( umask !== "0022" )
+   {
+      println( "umask is not 0022" );
+      return;
+   }
    // 测试本地文件初始化指定权限
    testInitLocal();
    // 测试远程文件初始化指定权限
