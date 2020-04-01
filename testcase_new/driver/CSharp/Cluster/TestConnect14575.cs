@@ -42,7 +42,7 @@ namespace CSharp.Cluster
             {
                 return;
             }
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             if (cs.IsCollectionExist(clName))
             {
                 cs.DropCollection(clName);
@@ -55,7 +55,7 @@ namespace CSharp.Cluster
             ReplicaGroup rg = sdb.GetReplicaGroup(rgNames[0]);
             Node node = rg.GetMaster();
             Sequoiadb dataDB = node.Connect("", "");
-            cs = dataDB.GetCollecitonSpace(SdbTestBase.csName);
+            cs = dataDB.GetCollectionSpace(SdbTestBase.csName);
             cl = cs.GetCollection(clName);
             Assert.AreEqual(1, cl.GetCount(null));
             dataDB.Disconnect();
@@ -77,7 +77,7 @@ namespace CSharp.Cluster
         [TestCleanup()]
         public void TearDown()
         {
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             if (cs.IsCollectionExist(clName))
             {
                 cs.DropCollection(clName);

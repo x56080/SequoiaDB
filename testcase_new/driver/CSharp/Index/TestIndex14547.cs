@@ -47,7 +47,7 @@ namespace CSharp.Index
         [TestMethod]
         public void Test14547()
         {
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             if (cs.IsCollectionExist(clName))
             {
                 cs.DropCollection(clName);

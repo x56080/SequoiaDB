@@ -74,17 +74,17 @@ namespace CSharp.Meta
 
         private void CreateCL()
         {
-            CollectionSpace cs = sdb.GetCollecitonSpace(csName1);
+            CollectionSpace cs = sdb.GetCollectionSpace(csName1);
             cs.CreateCollection(clName1);
             cs.CreateCollection(clName2);
             cs.CreateCollection(clName3);
 
-            cs = sdb.GetCollecitonSpace(csName2);
+            cs = sdb.GetCollectionSpace(csName2);
             cs.CreateCollection(clName1);
             cs.CreateCollection(clName2);
             cs.CreateCollection(clName3);
 
-            cs = sdb.GetCollecitonSpace(csName3);
+            cs = sdb.GetCollectionSpace(csName3);
             cs.CreateCollection(clName1);
             cs.CreateCollection(clName2);
             cs.CreateCollection(clName3);

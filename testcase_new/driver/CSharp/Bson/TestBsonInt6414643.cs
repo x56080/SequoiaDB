@@ -93,7 +93,7 @@ namespace CSharp.Bson
 
         private void prepareData()
         {
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             if (cs.IsCollectionExist(clName))
             {
                 cs.DropCollection(clName);

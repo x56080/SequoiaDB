@@ -97,7 +97,7 @@ namespace CSharp.Sql
 
             sql = "update " + localCSName + "." + clName + " set age=30 where age < 5";
             sdb.ExecUpdate(sql);
-            cs = sdb.GetCollecitonSpace(localCSName);
+            cs = sdb.GetCollectionSpace(localCSName);
             cl = cs.GetCollection(clName);
             BsonDocument matcher = new BsonDocument();
             matcher.Add("age", new BsonDocument("$et", 30));

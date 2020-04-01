@@ -35,7 +35,7 @@ namespace CSharp.Crud.Update
             Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss:fff") + " begin: " + this.GetType().ToString());
             sdb = new Sequoiadb(SdbTestBase.coordUrl);
             sdb.Connect();
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             BsonDocument options = new BsonDocument();
             options.Add("ShardingKey", new BsonDocument(SHARD_KEY, 1));
             cl = cs.CreateCollection(clName, options);

@@ -98,7 +98,7 @@ namespace CSharp.Meta
             matcher.Add("Name", localCsName);
             ReplicaGroup cataRg = sdb.GetReplicaGroup("SYSCatalogGroup");
             Sequoiadb cataDB = cataRg.GetMaster().Connect();
-            CollectionSpace sysCS = cataDB.GetCollecitonSpace("SYSCAT");
+            CollectionSpace sysCS = cataDB.GetCollectionSpace("SYSCAT");
             DBCollection sysCL = sysCS.GetCollection("SYSCOLLECTIONSPACES");
             query.Matcher = matcher;
             DBCursor cur = sysCL.Query(query);

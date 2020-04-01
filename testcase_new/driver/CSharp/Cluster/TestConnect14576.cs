@@ -43,7 +43,7 @@ namespace CSharp.Cluster
         public void Test14576()
         {
              //1、连接远程sequoiadb，不指定用户名和密码，并创建集合1 
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             cl = cs.CreateCollection(clName1);
             Assert.AreEqual(true, sdb.IsValid());
             //2、连接远程sequoiadb，指定用户名和密码，并创建集合2 ，该场景在seqDB-14567中已覆盖
@@ -58,7 +58,7 @@ namespace CSharp.Cluster
                 options.ConnectTimeout = 12000;
                 options.KeepIdle = 50;
                 localdb.Connect(username, passwd, options);
-                cs = localdb.GetCollecitonSpace(SdbTestBase.csName);
+                cs = localdb.GetCollectionSpace(SdbTestBase.csName);
                 if (cs.IsCollectionExist(clName2))
                 {
                     cs.DropCollection(clName2);
@@ -82,7 +82,7 @@ namespace CSharp.Cluster
         [TestCleanup()]
         public void TearDown()
         {
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             if (cs.IsCollectionExist(clName1))
             {
                 cs.DropCollection(clName1);

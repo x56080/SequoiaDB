@@ -43,7 +43,7 @@ namespace CSharp.Bson
         [TestMethod]
         public void Test14620()
         {
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             if (cs.IsCollectionExist(clName))
             {
                 cs.DropCollection(clName);

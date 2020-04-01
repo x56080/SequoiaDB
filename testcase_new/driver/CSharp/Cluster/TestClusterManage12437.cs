@@ -60,7 +60,7 @@ namespace CSharp.Cluster
             Node node2 = rg.CreateNode(hostName, port2, SdbTestBase.reservedDir + "/" + port2, map);
             rg.Start();
             //向新组上插入记录
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             cl = cs.CreateCollection(clName, new BsonDocument("Group", rgName1).Add("ReplSize", 0));
             List<BsonDocument> datas = new List<BsonDocument>();
             for (int i = 0; i < 100; i++)
@@ -97,7 +97,7 @@ namespace CSharp.Cluster
 
             }
             Sequoiadb localdb = master.Connect("", "");
-            cs = localdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = localdb.GetCollectionSpace(SdbTestBase.csName);
             cl = cs.GetCollection(clName);
             Assert.AreEqual(100, cl.GetCount(new BsonDocument()));
         }
@@ -107,7 +107,7 @@ namespace CSharp.Cluster
         {
             try
             {
-                cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+                cs = sdb.GetCollectionSpace(SdbTestBase.csName);
                 if (cs.IsCollectionExist(clName))
                 {
                     cs.DropCollection(clName);

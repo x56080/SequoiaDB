@@ -36,7 +36,7 @@ namespace CSharp.Auth
             Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss:fff") + " begin: " + this.GetType().ToString());
             sdb = new Sequoiadb(SdbTestBase.coordUrl);
             sdb.Connect();
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
         }
 
         [TestMethod]
@@ -53,7 +53,7 @@ namespace CSharp.Auth
             sdb.CreateUser(username, passwd);
             Sequoiadb localdb = new Sequoiadb(SdbTestBase.coordUrl);
             localdb.Connect(username, passwd);
-            cs = localdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = localdb.GetCollectionSpace(SdbTestBase.csName);
             if (cs.IsCollectionExist(clName))
             {
                 cs.DropCollection(clName);

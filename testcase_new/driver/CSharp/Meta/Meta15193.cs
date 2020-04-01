@@ -45,7 +45,7 @@ namespace CSharp.Meta
             {
                 return;
             }
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             cl = cs.CreateCollection(clName);
             BsonDocument option = new BsonDocument();
             option = new BsonDocument {

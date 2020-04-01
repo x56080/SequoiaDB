@@ -65,9 +65,9 @@ namespace CSharp.Meta
             cs3.CreateCollection(clName3);
 
             //获取CSNames，检查返回信息 
-            cs1 = sdb.GetCollecitonSpace(csName1);
-            cs2 = sdb.GetCollecitonSpace(csName2);
-            cs3 = sdb.GetCollecitonSpace(csName3);
+            cs1 = sdb.GetCollectionSpace(csName1);
+            cs2 = sdb.GetCollectionSpace(csName2);
+            cs3 = sdb.GetCollectionSpace(csName3);
             Assert.AreEqual(csName1, cs1.Name);
             Assert.AreEqual(csName2, cs2.Name);
             Assert.AreEqual(csName3, cs3.Name);

@@ -42,7 +42,7 @@ namespace CSharp.Transaction
             try
             {
                 sdb.TransactionBegin();
-                cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+                cs = sdb.GetCollectionSpace(SdbTestBase.csName);
                 if (cs.IsCollectionExist(clName))
                 {
                     cs.DropCollection(clName);
@@ -91,7 +91,7 @@ namespace CSharp.Transaction
             try
             {
                 
-                cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+                cs = sdb.GetCollectionSpace(SdbTestBase.csName);
                 if (cs.IsCollectionExist(clName))
                 {
                     cs.DropCollection(clName);

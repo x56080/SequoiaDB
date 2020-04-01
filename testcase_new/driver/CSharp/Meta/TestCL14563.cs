@@ -46,7 +46,7 @@ namespace CSharp.Meta
                 return;
             }
             dataGroupNames = Common.getDataGroupNames(sdb);
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             cl = cs.CreateCollection(clName);
             BsonArray alterArray = new BsonArray();
             alterArray.Add(new BsonDocument{

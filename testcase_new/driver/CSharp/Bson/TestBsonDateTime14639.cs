@@ -39,7 +39,7 @@ namespace CSharp.Bson
         public void Test14639()
         {
             DateTime date = new DateTime(2016, 9, 1);
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             if (cs.IsCollectionExist(clName))
             {
                 cs.DropCollection(clName);

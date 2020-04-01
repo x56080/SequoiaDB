@@ -52,7 +52,7 @@ namespace CSharp.Split
             {
                 return;
             }
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             BsonDocument option = new BsonDocument();
             option.Add("Group", dataGroupNames[0]);
             option.Add("ShardingKey", new BsonDocument { { "a", 1 } });
@@ -83,7 +83,7 @@ namespace CSharp.Split
         private void CheckSrcDataGroup()
         {
             Sequoiadb srcDataNode = sdb.GetReplicaGroup(dataGroupNames[0]).GetMaster().Connect();
-            DBCollection localCL = srcDataNode.GetCollecitonSpace(SdbTestBase.csName).GetCollection(clName);
+            DBCollection localCL = srcDataNode.GetCollectionSpace(SdbTestBase.csName).GetCollection(clName);
             long actual = localCL.GetCount(null);
             Assert.AreEqual(8, actual, "SrcDataGroup data count:" + actual);
         }
@@ -91,7 +91,7 @@ namespace CSharp.Split
         private void CheckDestDataGroup()
         {
             Sequoiadb destDataNode = sdb.GetReplicaGroup(dataGroupNames[1]).GetMaster().Connect();
-            DBCollection localCL = destDataNode.GetCollecitonSpace(SdbTestBase.csName).GetCollection(clName);
+            DBCollection localCL = destDataNode.GetCollectionSpace(SdbTestBase.csName).GetCollection(clName);
             long actual = localCL.GetCount(null);
             Assert.AreEqual(4, actual, "DestDataGroup data count:" + actual);
         }

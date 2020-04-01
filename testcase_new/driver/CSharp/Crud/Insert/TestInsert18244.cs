@@ -39,7 +39,7 @@ namespace CSharp.Crud.Insert
         [TestMethod]
         public void Test18244()
         {
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             if (cs.IsCollectionExist(clName))
             {
                 cs.DropCollection(clName);

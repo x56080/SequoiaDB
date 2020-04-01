@@ -56,7 +56,7 @@ namespace CSharp.Monitor
             cl.Insert(new BsonDocument("name14578",1));
             ReplicaGroup rg = sdb.GetReplicaGroup(dataList[0]);
             Sequoiadb datadb = rg.GetMaster().Connect();
-            cs = datadb.GetCollecitonSpace(localCSName);
+            cs = datadb.GetCollectionSpace(localCSName);
             cl = cs.GetCollection(clName);
             DBCursor cur = cl.Query();
             while (cur.Next() != null)

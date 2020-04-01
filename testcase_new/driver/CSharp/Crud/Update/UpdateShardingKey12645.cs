@@ -36,7 +36,7 @@ namespace CSharp.Crud.Update
             {
                 return;
             }
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             BsonDocument options = new BsonDocument
                                 {
                                     {"ShardingType", "hash"},

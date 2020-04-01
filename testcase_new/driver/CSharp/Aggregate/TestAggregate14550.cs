@@ -36,7 +36,7 @@ namespace CSharp.Aggregate
         [TestMethod]
         public void Test14550()
         {
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             if (cs.IsCollectionExist(clName))
             {
                 cs.DropCollection(clName);
