@@ -34,7 +34,7 @@ namespace CSharp.Crud.Lob
             Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss:fff") + " begin: " + this.GetType().ToString());
             sdb = new Sequoiadb(SdbTestBase.coordUrl);
             sdb.Connect();
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             cl = cs.CreateCollection(clName);
         }
 
@@ -50,7 +50,7 @@ namespace CSharp.Crud.Lob
         db2.Connect();
        try
         {  
-          DBCollection cl2 = db2.GetCollecitonSpace(SdbTestBase.csName).GetCollection(clName);
+          DBCollection cl2 = db2.GetCollectionSpace(SdbTestBase.csName).GetCollection(clName);
           DBLob rLob = null;
          rLob = cl2.OpenLob(oid);         
          byte[] rbuff = new byte[1024];

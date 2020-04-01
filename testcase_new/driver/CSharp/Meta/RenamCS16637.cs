@@ -46,7 +46,7 @@ namespace CSharp.Meta
             sdb.RenameCollectionSpace(localCSName, newCSName);
             Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl);
             db.Connect();
-            CollectionSpace cs =  db.GetCollecitonSpace(newCSName);
+            CollectionSpace cs =  db.GetCollectionSpace(newCSName);
             cs.CreateCollection(localCLName);
             CheckSnapshotCS(db, localCSName, newCSName, 1);
             if (db.IsCollectionSpaceExist(localCSName))

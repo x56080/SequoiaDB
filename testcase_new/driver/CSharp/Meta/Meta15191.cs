@@ -72,7 +72,7 @@ namespace CSharp.Meta
             checkCLAlter("cappedcl", option);
 
             //normal cl
-            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             cl = cs.CreateCollection(clName);
             option = new BsonDocument();
             option = new BsonDocument {

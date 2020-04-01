@@ -91,7 +91,7 @@ namespace CSharp.TestBaseException
             try
             {
 
-                cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+                cs = sdb.GetCollectionSpace(SdbTestBase.csName);
                 BsonDocument option = new BsonDocument();
                 option.Add("Group", dataGroupNames[0]);
                 cl = cs.CreateCollection(clName, option);

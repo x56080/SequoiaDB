@@ -43,7 +43,7 @@ namespace CSharp.TestBaseException
             {
                 Assert.AreEqual(-33, e.ErrorCode);
             }
-            CollectionSpace cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+            CollectionSpace cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             try
             {
                 cs.GetCollection("bar"); 
@@ -57,7 +57,7 @@ namespace CSharp.TestBaseException
             //get 不存在的cs
             try
             {
-                sdb.GetCollecitonSpace("notexistcs");
+                sdb.GetCollectionSpace("notexistcs");
             }
             catch (BaseException e)
             {

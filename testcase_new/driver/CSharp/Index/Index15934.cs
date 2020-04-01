@@ -121,7 +121,7 @@ namespace CSharp.Index
                                                          {"Compressed",true},
                                                          {"AutoIndexId",false}
                                        };
-                cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
+                cs = sdb.GetCollectionSpace(SdbTestBase.csName);
                 cl = cs.CreateCollection(clName, options);
             }
             catch (BaseException e)
