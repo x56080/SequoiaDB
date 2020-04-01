@@ -461,7 +461,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       rc = context->mbLock( EXCLUSIVE ) ;
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d" ) ;
+      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
       while ( DMS_INVALID_EXTENT != context->mb()->_indexExtent[0] )
       {
