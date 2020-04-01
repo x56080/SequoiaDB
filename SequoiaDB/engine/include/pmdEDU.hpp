@@ -370,6 +370,7 @@ namespace engine
       ossEvent & getEvent () { return _event ; }
 
       UINT64 getCurRequestID() const { return _curRequestID ; }
+      // WANRING: no lock protect, only called by eduCB thread itself
       UINT64 incCurRequestID() { return ++_curRequestID ; }
 
       // transaction related

@@ -1457,7 +1457,13 @@ namespace engine
          {
             pMsg->header.messageLength = sizeof( MsgOpReply ) ;
             pMsg->header.opCode = MSG_BS_DISCONNECT ;
-            pMsg->header.requestID = eduCB()->incCurRequestID() ;
+            // WARNING: could not use incCurRequestID()
+            // The _curRequestID of eduCB is not protected by locks,
+            // so incCurRequestID() must be called by eduCB thread itself
+            // While the handle close caused by disconnect from other
+            // connections is from the io_service thread, so should not call
+            // incCurRequestID() here
+            pMsg->header.requestID = eduCB()->getCurRequestID() ;
             pMsg->header.TID = eduCB()->getTID() ;
             pMsg->header.routeID.value = id.value ;
             pMsg->contextID = -1 ;
