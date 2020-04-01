@@ -23,22 +23,16 @@ function test ()
          var snapshotTmpObj = snapshotCur.current().toObj();
          var expObj = {
             GroupName: tmpObj["GroupName"], Collection: tmpObj["Collection"],
-            CollectionSpace: tmpObj["CollectionSpace"],
-            HashCode: tmpObj["HashCode"], Score: tmpObj["Score"]
+            CollectionSpace: tmpObj["CollectionSpace"], Score: tmpObj["Score"]
          };
          var actObj = {
             GroupName: snapshotTmpObj["GroupName"], Collection: snapshotTmpObj["Collection"],
-            CollectionSpace: snapshotTmpObj["CollectionSpace"],
-            HashCode: snapshotTmpObj["HashCode"], Score: snapshotTmpObj["Score"]
+            CollectionSpace: snapshotTmpObj["CollectionSpace"], Score: snapshotTmpObj["Score"]
          };
          if( !( commCompareObject( expObj, actObj ) ) )
          {
             throw new Error( "$SNAPSHOT_ACCESSPLANS result error\n" + "expObj :" + JSON.stringify( expObj ) + "\nactObj :" + JSON.stringify( actObj ) );
          }
-      }
-      if( snapshotCount != 1 )
-      {
-         throw new Error( "result is 1, but actually result is " + snapshotCount );
       }
    }
 }

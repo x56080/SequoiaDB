@@ -9,111 +9,35 @@
 @modify list:
       2015-5-13 ShanShan Hu added  2016-3-16 XiaoNi Huang modify
 ****************************************************/
-var csName = CHANGEDPREFIX + "_foo";
+testConf.csName = CHANGEDPREFIX + "_7407", testConf.csOpt = { PageSize: 4096 };
 
-println( "------Begin to clean in the begin." );
-try
-{
-   db.execUpdate( "drop collectionspace " + csName );
-}
-catch( e )
-{
-   if( e != -34 )
-   {
-      println( "Failed to clean env in the begin." );
-      throw e;
-   }
-}
+main( test );
 
-println( "------Begin to create cs." );
-try
+function test ()
 {
-   db.execUpdate( "create collectionspace " + csName );
-}
-catch( e )
-{
-   println( "Failed to create cs." );
-   throw e;
-}
 
-println( "------Begin to check results." );
-try
-{
-   var rc = db.getCS( csName );
-}
-catch( e )
-{
-   println( "Failed to create cs." );
-   throw e;
-}
+   var rc = db.getCS( testConf.csName );
 
-println( "------Begin to exec [list collectionspaces]." );
-try
-{
    var rc = db.exec( "list collectionspaces" );
-}
-catch( e )
-{
-   println( "Failed to exec [list collectionspaces]." );
-   throw e;
-}
-//compare results
-if( 0 == rc.size() )
-   throw "Failed to compare results.";
-
-println( "------Begin to create the same cs repeat." );
-try
-{
-   db.execUpdate( "create collectionspace " + csName );
-   throw "Create duplicate cs success. Expect errorno: -33";
-}
-catch( e )
-{
-   if( e !== -33 )
+   if( 0 === rc.size() )
    {
-      throw e;
+      throw new Error( "Failed to compare results." );
    }
-}
+   try
+   {
+      db.execUpdate( "create collectionspace " + testConf.csName );
+   }
+   catch( e )
+   {
+      if( e.message != -33 )
+      {
+         throw new Error( e );
+      }
+   }
 
-println( "------Begin to drop the cs." );
-try
-{
-   db.execUpdate( "drop collectionspace " + csName );
-}
-catch( e )
-{
-   println( "Failed to drop cs." );
-   throw e;
-}
+   db.execUpdate( "drop collectionspace " + testConf.csName );
 
-println( "------Begin to create the cs again." );
-try
-{
-   db.execUpdate( "create collectionspace " + csName );
-}
-catch( e )
-{
-   println( "Failed to create cs." );
-   throw e;
-}
+   db.execUpdate( "create collectionspace " + testConf.csName );
 
-try
-{
-   var rc = db.getCS( csName );
-}
-catch( e )
-{
-   println( "Failed to create cs again." );
-   throw e;
-}
-
-println( "------Begin to drop cs in the end." );
-try
-{
-   db.execUpdate( "drop collectionspace " + csName );
-}
-catch( e )
-{
-   println( "Failed to clear env." );
-   throw e;
+   var rc = db.getCS( testConf.csName );
 }

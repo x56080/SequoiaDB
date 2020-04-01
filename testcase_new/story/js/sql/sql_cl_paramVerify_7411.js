@@ -8,129 +8,107 @@
 @modify list:
       2015-5-13 ShanShan Hu added  2016-3-16 XiaoNi Huang modify
 ****************************************************/
-csName = COMMCSNAME;
-clName = CHANGEDPREFIX + "_bar";
+testConf.csName = COMMCSNAME, testConf.csOpt = { PageSize: 4096 };
 
-println( "------Begin to clean env in the begin." );
-try  //clean cl
+main( test );
+
+function test ()
 {
-   db.execUpdate( "drop collection " + csName + "." + clName );
-}
-catch( e )
-{
-   if( e != -23 )
+   clName = CHANGEDPREFIX + "_bar";
+
+   try  //clean cl
    {
-      println( "Failed to clean env in the begin." );
-      throw e;
+      db.execUpdate( "drop collection " + testConf.csName + "." + clName );
    }
-}
-
-println( "------Begin to create cl,the length of the name is 127B (valid length)." );
-var specCLName1 = "";
-for( var i = 0; i < 127; ++i )
-{
-   specCLName1 = specCLName1 + "a";
-}
-
-try  //clean cl
-{
-   db.execUpdate( "drop collection " + csName + "." + specCLName1 );
-}
-catch( e )
-{
-   if( e != -23 )
+   catch( e )
    {
-      println( "Failed to clean env " + csName + "." + specCLName1 );
-      throw e;
+      if( e.message != -23 )
+      {
+         throw new Error( "Failed to clean env in the begin." );
+      }
    }
-}
 
-try //create cl
-{
-   db.execUpdate( "create collection " + csName + "." + specCLName1 );
-}
-catch( e )
-{
-   println( "Failed to create cl, the length of the name is 127B. Except result is success." );
-   throw e;
-}
-
-println( "------Begin to check results." );
-try
-{
-   db.getCS( csName ).getCL( specCLName1 );
-}
-catch( e )
-{
-   if( e !== 23 )
+   var specCLName1 = "";
+   for( var i = 0; i < 127; ++i )
    {
-      println( "Failed to drop cl. rc=3" );
-      throw e;
+      specCLName1 = specCLName1 + "a";
    }
-}
 
-println( "------Begin to drop the cl." );
-try  
-{
-   db.execUpdate( "drop collection " + csName + "." + specCLName1 );
-}
-catch( e )
-{
-
-   println( "Failed to drop CL." );
-   throw e;
-}
-
-println( "------Begin to create CL,the length of the name is 128B (invalid length)." );
-var specCLName2 = "";
-for( var i = 0; i < 128; ++i )
-{
-   specCLName2 = specCLName2 + "a";
-}
-
-try
-{
-   db.execUpdate( "create collection " + csName + "." + specCLName2 );
-   db.execUpdate( "drop collection " + csName + "." + specCLName2 );
-}
-catch( e )
-{
-   if( e !== -6 )
-      throw "The length of the name is 128B (invalid length),create cl success. Except errorno: -6";
-}
-
-println( '------Begin to create/drop cl, the name is " ".' );
-try
-{
-   //create cl
-   db.execUpdate( "create collection " + csName + "." + " " );
-   //drop cl
-   db.execUpdate( "drop collection " + csName + "." + " " );
-}
-catch( e )
-{
-   if( e !== -6 )
+   try  //clean cl
    {
-      throw e;
+      db.execUpdate( "drop collection " + testConf.csName + "." + specCLName1 );
    }
-}
+   catch( e )
+   {
+      if( e.message != -23 )
+      {
+         throw new Error( "Failed to clean env " + testConf.csName + "." + specCLName1 );
+      }
+   }
 
-println( "------Begin to create cl, the name cotains invalid characters." );
-var aa = Array( "$", ".", "a." );
-for( var i = 0; i < aa.length; ++i )
-{
+   db.execUpdate( "create collection " + testConf.csName + "." + specCLName1 );
+
    try
    {
-      var specCLName3 = aa[i] + CHANGEDPREFIX;
-      //create cl
-      db.execUpdate( "create collection " + csName + "." + specCLName3 );
-      //drop cl
-      db.execUpdate( "drop collection " + csName + "." + specCLName3 );
-      //expect errorno: -6 ,if create success then throw
-      throw "The name contains invalid characters,create cl success. Expect errorno: -6 ";
-   } catch( e )
+      db.getCS( testConf.csName ).getCL( specCLName1 );
+   }
+   catch( e )
    {
-      if( e !== -6 )
-         throw e;
+      if( e.message != -23 )
+      {
+         throw new Error( "Failed to drop cl. rc=3" );
+      }
+   }
+
+   db.execUpdate( "drop collection " + testConf.csName + "." + specCLName1 );
+
+   var specCLName2 = "";
+   for( var i = 0; i < 128; ++i )
+   {
+      specCLName2 = specCLName2 + "a";
+   }
+
+   try
+   {
+      db.execUpdate( "create collection " + testConf.csName + "." + specCLName2 );
+      db.execUpdate( "drop collection " + testConf.csName + "." + specCLName2 );
+   }
+   catch( e )
+   {
+      if( e.message != -6 )
+      {
+         throw new Error( "The length of the name is 128B (invalid length),create cl success. Except errorno: -6" );
+      }
+   }
+
+   try
+   {
+      db.execUpdate( "create collection " + testConf.csName + "." + " " );
+      db.execUpdate( "drop collection " + testConf.csName + "." + " " );
+   }
+   catch( e )
+   {
+      if( e.message != -6 )
+      {
+         throw new Error( e );
+      }
+   }
+
+   var aa = Array( "$", ".", "a." );
+   for( var i = 0; i < aa.length; ++i )
+   {
+      try
+      {
+         var specCLName3 = aa[i] + CHANGEDPREFIX;
+         db.execUpdate( "create collection " + testConf.csName + "." + specCLName3 );
+         db.execUpdate( "drop collection " + testConf.csName + "." + specCLName3 );
+      }
+      catch( e )
+      {
+         if( e.message != -6 )
+         {
+            throw new Error( e );
+         }
+      }
    }
 }

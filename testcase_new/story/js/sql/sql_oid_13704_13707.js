@@ -4,63 +4,48 @@
 *@createdate:  2017.12.20
 *@testlinkCase:seqDB-13704，seqDB-13707
 **************************************/
+testConf.csName = CHANGEDPREFIX + "_13704_CS", testConf.csOpt = { PageSize: 4096 };
+testConf.clName = CHANGEDPREFIX + "_13704_CL", testConf.clOpt = {};
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   var csName = CHANGEDPREFIX + "_13704_CS";
-   var clName = CHANGEDPREFIX + "_13704_CL";
+   isnotnullSQL( testPara.testCL, testConf.csName, testConf.clName );
 
-   commDropCS( db, csName, true, "drop cs in the begin" );
-   var cl = commCreateCL( db, csName, clName, {}, true, false, "create cl in the begin" );
+   insertSQL( db, testPara.testCL, testConf.csName, testConf.clName, 'oid(\"55713F7953E6769804000001\")', { $oid: "55713f7953e6769804000001" }, true );
+   insertSQL( db, testPara.testCL, testConf.csName, testConf.clName, 'oid(\"55713f7953e\")', { $oid: "55713f7953e6769804000001" }, false );
 
-   println( "---begin test---" );
-   isnotnullSQL( cl, csName, clName );
+   updateSQL( db, testPara.testCL, testConf.csName, testConf.clName, 'oid(\"55713f7953e6769804000001\")', 'oid(\"55713f7953e\")', null, false );
+   updateSQL( db, testPara.testCL, testConf.csName, testConf.clName, 'oid(\"55713F7953E6769804000001\")', 'oid(\"55713f7953e6769804000111\")', { $oid: "55713f7953e6769804000111" }, true );
 
-   insertSQL( db, cl, csName, clName, 'oid(\"55713F7953E6769804000001\")', { $oid: "55713f7953e6769804000001" }, true );
-   insertSQL( db, cl, csName, clName, 'oid(\"55713f7953e\")', { $oid: "55713f7953e6769804000001" }, false );
+   selectSQL( db, testConf.csName, testConf.clName, 'oid(\"55713f7953e6769804000111\")', true );
+   selectSQL( db, testConf.csName, testConf.clName, 'oid(\"55713f7953e\")', false );
 
-   updateSQL( db, cl, csName, clName, 'oid(\"55713f7953e6769804000001\")', 'oid(\"55713f7953e\")', null, false );
-   updateSQL( db, cl, csName, clName, 'oid(\"55713F7953E6769804000001\")', 'oid(\"55713f7953e6769804000111\")', { $oid: "55713f7953e6769804000111" }, true );
-
-   selectSQL( db, csName, clName, 'oid(\"55713f7953e6769804000111\")', true );
-   selectSQL( db, csName, clName, 'oid(\"55713f7953e\")', false );
-
-   deleteSQL( db, cl, csName, clName, 'oid(\"55713f7953e\")', null, false );
-   deleteSQL( db, cl, csName, clName, 'oid(\"55713F7953E6769804000111\")', { $oid: "55713f7953e6769804000111" }, true );
-
-   println( "---end the test---" );
-   commDropCS( db, csName, true, "drop CS in the end" );
+   deleteSQL( db, testPara.testCL, testConf.csName, testConf.clName, 'oid(\"55713f7953e\")', null, false );
+   deleteSQL( db, testPara.testCL, testConf.csName, testConf.clName, 'oid(\"55713F7953E6769804000111\")', { $oid: "55713f7953e6769804000111" }, true );
 }
 
 function isnotnullSQL ( cl, csName, clName )
 {
-   var doc = [{ num: 1, textFields: null },
-   { num: 2, textFields: 'textstr' }];
-   try
+   var doc = [
+      { num: 1, textFields: null },
+      { num: 2, textFields: 'textstr' }];
+   cl.insert( doc );
+   var sql = 'select * from ' + csName + "." + clName + ' where textFields is not null';
+   var cursor = db.exec( sql );
+   if( cursor.next() != null )
    {
-
-      cl.insert( doc );
-      var sql = 'select * from ' + csName + "." + clName + ' where textFields is not null';
-      var cursor = db.exec( sql );
-      if( cursor.next() != null )
+      var obj = cursor.current().toObj();
+      var num = obj.num;
+      if( num !== 2 )
       {
-         var obj = cursor.current().toObj();
-         var num = obj.num;
-         if( num !== 2 )
-         {
-            throw buildException( "isnotnullSQL()", null, "check record", "{num:2, textFields:'textstr'}", obj );
-         }
-      }
-      else
-      {
-         throw buildException( "isnotnullSQL()", null, "check record", "have data", "no data" );
+         throw new Error( "isnotnullSQL() check record," + "Expect result:{num:2, textFields:'textstr'}" + "Real result:" + obj );
       }
    }
-   catch( e )
+   else
    {
-      throw buildException( "insertData()", e, "insert data", "insert success", "insert faild: " + e );
+      throw new Error( "isnotnullSQL() check record," + "Expect result:have data" + "Real result:no data" );
    }
 }
 
@@ -70,18 +55,11 @@ function insertSQL ( db, cl, csName, clName, insertValue, checkValue, result )
    var sql = 'insert into ' + csName + '.' + clName + '(num, textFields ) values (3, ' + insertValue + ')';
    if( result )
    {
-      try
+      db.execUpdate( sql );
+      var cursor = cl.find( { textFields: checkValue } );
+      if( cursor.next() == null )
       {
-         db.execUpdate( sql );
-         var cursor = cl.find( { textFields: checkValue } );
-         if( cursor.next() == null )
-         {
-            throw buildException( "insertSQL()", null, "check record", "have data", "no data" );
-         }
-      }
-      catch( e )
-      {
-         throw buildException( "insertSQL()", e, "insert record", "insert success", "insert faild: " + e );
+         throw new Error( "insertSQL() check record," + "Expect result:have data" + "Real result:no data" + obj );
       }
    }
    else
@@ -89,13 +67,12 @@ function insertSQL ( db, cl, csName, clName, insertValue, checkValue, result )
       try
       {
          db.execUpdate( sql );
-         throw buildException( "insertSQL()", null, "insert error record", "insert faild", "insert success" );
       }
       catch( e )
       {
-         if( e != -6 )
+         if( e.message != -6 )
          {
-            throw buildException( "insertSQL()", e, "insert record", '-6', e );
+            throw new Error( e );
          }
       }
    }
@@ -107,18 +84,11 @@ function updateSQL ( db, cl, csName, clName, oldValue, newValue, checkValue, res
    var sql = 'update ' + csName + '.' + clName + ' set textFields=' + newValue + ' where textFields=' + oldValue;
    if( result )
    {
-      try
+      db.execUpdate( sql );
+      var cursor = cl.find( { textFields: checkValue } );
+      if( cursor.next() == null )
       {
-         db.execUpdate( sql );
-         var cursor = cl.find( { textFields: checkValue } );
-         if( cursor.next() == null )
-         {
-            throw buildException( "updateSQL()", null, "check record", "have data", "no data" );
-         }
-      }
-      catch( e )
-      {
-         throw buildException( "updateSQL()", e, "update record", "update success", "update faild: " + e );
+         throw new Error( "updateSQL() check record," + "Expect result:have data" + "Real result:no data" + obj );
       }
    }
    else
@@ -126,13 +96,12 @@ function updateSQL ( db, cl, csName, clName, oldValue, newValue, checkValue, res
       try
       {
          db.execUpdate( sql );
-         throw buildException( "updateSQL()", null, "update error record", "update faild", "update success" );
       }
       catch( e )
       {
-         if( e != -6 )
+         if( e.message != -6 )
          {
-            throw buildException( "updateSQL()", e, "update record", '-6', e );
+            throw new Error( e );
          }
       }
    }
@@ -143,17 +112,10 @@ function selectSQL ( db, csName, clName, value, result )
    var sql = 'select * from ' + csName + "." + clName + ' where textFields=' + value;
    if( result )
    {
-      try
+      var cursor = db.exec( sql );
+      if( cursor.next() == null )
       {
-         var cursor = db.exec( sql );
-         if( cursor.next() == null )
-         {
-            throw buildException( "selectSQL()", null, "check record", "have data", "no data" );
-         }
-      }
-      catch( e )
-      {
-         throw buildException( "selectSQL()", e, "select record", "select success", "select faild: " + e );
+         throw new Error( "selectSQL() check record," + "Expect result:have data" + "Real result:no data" + obj );
       }
    }
    else
@@ -161,13 +123,12 @@ function selectSQL ( db, csName, clName, value, result )
       try
       {
          db.execUpdate( sql );
-         throw buildException( "selectSQL()", null, "select error record", "select faild", "select success" );
       }
       catch( e )
       {
-         if( e != -6 )
+         if( e.message != -6 )
          {
-            throw buildException( "selectSQL()", e, "select record", '-6', e );
+            throw new Error( e );
          }
       }
    }
@@ -178,18 +139,11 @@ function deleteSQL ( db, cl, csName, clName, deleteValue, checkValue, result )
    var sql = 'delete from ' + csName + '.' + clName + ' where textFields=' + deleteValue;
    if( result )
    {
-      try
+      db.execUpdate( sql );
+      var cursor = cl.find( { textFields: checkValue } );
+      if( cursor.next() != null )
       {
-         db.execUpdate( sql );
-         var cursor = cl.find( { textFields: checkValue } );
-         if( cursor.next() != null )
-         {
-            throw buildException( "deleteSQL()", null, "check record", "no data", "have data" );
-         }
-      }
-      catch( e )
-      {
-         throw buildException( "deleteSQL()", e, "delete record", "delete success", "delete faild: " + e );
+         throw new Error( "deleteSQL() check record," + "Expect result:no data" + "Real result:have data" + obj );
       }
    }
    else
@@ -197,27 +151,13 @@ function deleteSQL ( db, cl, csName, clName, deleteValue, checkValue, result )
       try
       {
          db.execUpdate( sql );
-         throw buildException( "deleteSQL()", null, "delete error record", "delete faild", "delete success" );
       }
       catch( e )
       {
-         if( e != -6 )
+         if( e.message != -6 )
          {
-            throw buildException( "deleteSQL()", e, "delete record", '-6', e );
+            throw new Error( e );
          }
       }
    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

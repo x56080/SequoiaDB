@@ -11,152 +11,66 @@
 @modify list:
       2015-5-13 ShanShan Hu added  2016-3-16 XiaoNi Huang modify
 ****************************************************/
-csName = COMMCSNAME;
-clName = CHANGEDPREFIX + "_bar";
-indexName = CHANGEDPREFIX + "_ix";
+testConf.csName = COMMCSNAME, testConf.csOpt = { PageSize: 4096 };
+testConf.clName = CHANGEDPREFIX + "_7413", testConf.clOpt = { ReplSize: 0 };
 
-println( "------Begin to ready cl." );
-try
-{
-   // db.execUpdate("create collection "+csName+"."+clName);
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   var opt = { ReplSize: 0 };
-   var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
-}
-catch( e )
-{
-   println( "Failed to drop/create cl in the begin." );
-   throw e;
-}
+main( test );
 
-println( "------Begin to insert into records." );
-for( var i = 0; i < 20; i++ )
+function test ()
 {
+   indexName = CHANGEDPREFIX + "_ix";
+
+   for( var i = 0; i < 20; i++ )
+   {
+      db.execUpdate( "insert into " + testConf.csName + "." + testConf.clName + " (name,age) values (\"Tom\"," + i + ")" );
+   }
+
    try
    {
-      db.execUpdate( "insert into " + csName + "." + clName + " (name,age) values (\"Tom\"," + i + ")" );
+      db.execUpdate( "drop index " + indexName + " on " + testConf.csName + "." + testConf.clName );
    }
    catch( e )
    {
-      println( "Failed to insert records." );
-      throw e;
+      if( e.message != -47 )
+      {
+         throw new Error( e );
+      }
    }
-}
 
-println( "------Begin to drop index when it does not exist." );
-try
-{
-   db.execUpdate( "drop index " + indexName + " on " + csName + "." + clName );
-}
-catch( e )
-{
-   if( e !== -47 )
+   db.execUpdate( "create index " + indexName + " on " + testConf.csName + "." + testConf.clName + " (age desc)" );
+
+   try
    {
-      throw e;
+      db.execUpdate( "create index " + indexName + " on " + testConf.csName + "." + testConf.clName + " (age desc)" );
    }
-}
-
-println( "------Begin to create nomal index." );
-try
-{
-   db.execUpdate( "create index " + indexName + " on " + csName + "." + clName + " (age desc)" );
-}
-catch( e )
-{
-   println( "Failed to create index by age desc." );
-   throw e;
-}
-
-println( "------Begin to create the same index repeat." );
-try
-{
-   db.execUpdate( "create index " + indexName + " on " + csName + "." + clName + " (age desc)" );
-   throw "Repeat to create the same index, success. Expected errorno: -247";
-}
-catch( e )
-{
-   if( e !== -247 )
+   catch( e )
    {
-      throw e;
+      if( e.message != -247 )
+      {
+         throw new Error( e );
+      }
    }
-}
 
-println( "------Begin to drop the index." );
-try
-{
-   db.execUpdate( "drop index " + indexName + " on " + csName + "." + clName );
-}
-catch( e )
-{
-   println( "Failed to drop index." );
-   throw e;
-}
+   db.execUpdate( "drop index " + indexName + " on " + testConf.csName + "." + testConf.clName );
 
-println( "------Begin to create index, the indexKey contains two fields." );
-try
-{
-   db.execUpdate( "create index " + indexName + " on " + csName + "." + clName + " (age,name)" );
-}
-catch( e )
-{
-   println( "Failed to create index used two fields." );
-   throw e;
-}
+   db.execUpdate( "create index " + indexName + " on " + testConf.csName + "." + testConf.clName + " (age,name)" );
 
-println( "------Begin to drop the index." );
-try
-{
-   db.execUpdate( "drop index " + indexName + " on " + csName + "." + clName );
-}
-catch( e )
-{
-   println( "Failed to drop index." );
-   throw e;
-}
+   db.execUpdate( "drop index " + indexName + " on " + testConf.csName + "." + testConf.clName );
 
-println( "------Begin to create unique index." );
-try
-{
-   db.execUpdate( "create unique index " + indexName + " on " + csName + "." + clName + " (age)" );
-}
-catch( e )
-{
-   println( "Failed to create unique index." );
-   throw e;
-}
+   db.execUpdate( "create unique index " + indexName + " on " + testConf.csName + "." + testConf.clName + " (age)" );
 
-println( "------Begin to drop the index." );
-try
-{
-   db.execUpdate( "drop index " + indexName + " on " + csName + "." + clName );
-}
-catch( e )
-{
-   println( "Failed to drop the unique index." );
-   throw e;
-}
+   db.execUpdate( "drop index " + indexName + " on " + testConf.csName + "." + testConf.clName );
 
-println( "------Begin to drop the same index repeat." );
-try
-{
-   db.execUpdate( "drop index " + indexName + " on " + csName + "." + clName );
-   throw "Repeat to drop the same index, success. Expected errorno: -47";
-}
-catch( e )
-{
-   if( e !== -47 )
+   try
    {
-      throw e;
+      db.execUpdate( "drop index " + indexName + " on " + testConf.csName + "." + testConf.clName );
    }
-}
+   catch( e )
+   {
+      if( e.message != -47 )
+      {
+         throw new Error( e );
+      }
+   }
 
-println( "------Begin to drop cl in the end." );
-try
-{
-   db.execUpdate( "drop collection " + csName + "." + clName );
-}
-catch( e )
-{
-   println( "Failed to drop cl in the end." );
-   throw e;
 }

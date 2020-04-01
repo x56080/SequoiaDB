@@ -175,4 +175,18 @@ function Query ( query )
          }
          return this;
       }
+
+   this.size =
+      function()
+      {
+         try
+         {
+            var size = query.size();
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return new CLCountObj( size );
+      }
 }

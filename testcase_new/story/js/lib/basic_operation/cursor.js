@@ -102,4 +102,18 @@ function Cursor ( cursor )
          }
          return str;
       }
+
+   this.size =
+      function()
+      {
+         try
+         {
+            var size = cursor.size();
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return size;
+      }
 }

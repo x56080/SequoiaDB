@@ -511,6 +511,7 @@ function Sequoiadb ( hostname, svcname, username, password )
          }
          return new Cursor( cursor );
       }
+
    this.backup =
       function( option )
       {
@@ -524,6 +525,7 @@ function Sequoiadb ( hostname, svcname, username, password )
          }
          return new Cursor( cursor );
       }
+
    this.removeBackup =
       function( option )
       {
@@ -536,6 +538,7 @@ function Sequoiadb ( hostname, svcname, username, password )
             throw new Error( e );
          }
       }
+
    this.createUsr =
       function( userName, password, options )
       {
@@ -549,6 +552,7 @@ function Sequoiadb ( hostname, svcname, username, password )
             throw new Error( e );
          }
       }
+
    this.dropUsr =
       function( userName, password )
       {
@@ -561,4 +565,18 @@ function Sequoiadb ( hostname, svcname, username, password )
             throw new Error( e );
          }
       }
+
+   this.execUpdate =
+      function( otherSql )
+      {
+         try
+         {
+            db.execUpdate( otherSql );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+      }
+
 }

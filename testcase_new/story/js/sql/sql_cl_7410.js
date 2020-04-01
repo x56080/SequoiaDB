@@ -9,109 +9,44 @@
 @modify list:
       2015-5-13 ShanShan Hu added  2016-3-16 XiaoNi Huang modify
 ****************************************************/
-var tmpCS = CHANGEDPREFIX + "_foo"
-var csName = COMMCSNAME;
-var clName = CHANGEDPREFIX + "_bar";
+testConf.csName = COMMCSNAME, testConf.csOpt = { PageSize: 4096 };
+testConf.clName = CHANGEDPREFIX + "_7410", testConf.clOpt = {};
 
-println( "------Begin to clean env in the begin." );
-try  //clean cl
+main( test );
+
+function test ()
 {
-   db.execUpdate( "drop collection " + csName + "." + clName );
-}
-catch( e )
-{
-   if( e != -23 )
+   var tmpCS = CHANGEDPREFIX + "_foo";
+
+   try
    {
-      println( "Failed to clean env in the begin." );
-      throw e;
+      db.execUpdate( "create collection " + tmpCS + "." + testConf.clName );
    }
-}
-
-println( "------Begin to create cl when the cs does not exist." );
-try
-{
-   db.execUpdate( "create collection " + tmpCS + "." + clName );
-}
-catch( e )
-{
-   if( e !== -34 )
+   catch( e )
    {
-      println( "Failed to create CL in the CS when the CS does not exist. Expected errorno: -34" );
-      throw e;
+      if( e.message != -34 )
+      {
+         throw new Error( "Failed to create CL in the CS when the CS does not exist. Expected errorno: -34" );
+      }
    }
-}
 
-println( "------Begin to create nomal cl." );
-try
-{
-   db.execUpdate( "create collection " + csName + "." + clName );
-}
-catch( e )
-{
-   println( "Failed to create CL." );
-   throw e;
-}
+   db.getCS( testConf.csName ).getCL( testConf.clName );
 
-println( "------Begin to check results." );
-try
-{
-   db.getCS( csName ).getCL( clName );
-}
-catch( e )
-{
-   println( "Failed to get CL " + csName + "." + clName );
-   throw e;
-}
-
-println( "------Begin to exec [list collections]." );
-try
-{
    var rc = db.exec( "list collections" );
-}
-catch( e )
-{
-   println( "Failed to exec [list collections]." );
-   throw e;
-}
-//compare results
-if( 0 == rc.size() )
-   throw "Failed to compare results.";
-
-println( "------Begin to create the same cl repeat." );
-try
-{
-   db.execUpdate( "create collection " + csName + "." + clName );
-}
-catch( e )
-{
-   if( e !== -22 )
+   if( 0 === rc.size() )
    {
-      println( "create the same CL again,success. Expected errorno: -22" );
-      throw e;
+      throw "Failed to compare results.";
    }
-}
 
-println( "------Begin to drop the cl." );
-try 
-{
-   db.execUpdate( "drop collection " + csName + "." + clName );
-}
-catch( e )
-{
-   println( "Failed to drop cl." );
-   throw e;
-}
-
-println( "------Begin to check results after drop cl." );
-try
-{
-   db.getCS( csName ).getCL( clName );
-}
-catch( e )
-{
-   if( e !== -23 )
+   try
    {
-      println( "Failed to compare result[drop cl]." );
-      throw e;
+      db.execUpdate( "create collection " + testConf.csName + "." + testConf.clName );
+   }
+   catch( e )
+   {
+      if( e.message != -22 )
+      {
+         throw new Error( "create the same CL again,success. Expected errorno: -22" );
+      }
    }
 }
