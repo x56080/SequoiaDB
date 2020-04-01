@@ -4,12 +4,6 @@
 *@author:     wangwenjing
 **************************************/
 
-/************************************
-*@Description: put 2m lob
-               
-*@author:     wangwenjing
-**************************************/
-
 function main ()
 {
    try

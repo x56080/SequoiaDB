@@ -3,6 +3,7 @@
                dropCL,Collection is not exist in all node of group
 *@author:     wangwenjing
 *****************************************************************/
+
 function main ()
 {
    try

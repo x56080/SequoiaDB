@@ -3,6 +3,7 @@
                strong data consistency
 *@author:     wangwenjing
 **************************************/
+
 function main ()
 {
    try

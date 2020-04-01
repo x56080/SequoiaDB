@@ -4,6 +4,7 @@
 *@author:     wangwenjing
 *****************************************************************/
 
+
 function buildCond ( obj, name )
 {
    var cond = {}
