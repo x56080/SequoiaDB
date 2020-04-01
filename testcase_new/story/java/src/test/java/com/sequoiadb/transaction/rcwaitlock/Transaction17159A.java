@@ -44,7 +44,7 @@ public class Transaction17159A extends SdbTestBase {
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
-        expList = TransUtils.insertRandomDatas( cl, 0, 10000 );
+        expList = TransUtils.insertRandomDatas( cl, 0, 10 );
     }
 
     @Test
@@ -54,7 +54,7 @@ public class Transaction17159A extends SdbTestBase {
 
         // 事务1对同一条记录执行多个原子操作
         BSONObject insertR3 = ( BSONObject ) JSON.parse( "{a:10000,b:10000}" );
-        for ( int i = 0; i < 10000; i++ ) {
+        for ( int i = 0; i < 100; i++ ) {
             cl1.insert( insertR3 );
             cl1.update( "{a:10000}", "{$set:{a:10001}}", "{'':'a'}" );
             cl1.delete( "{a:10001}", "{'':'a'}" );
