@@ -84,7 +84,7 @@ namespace engine
       default :
          break ;
       }
-      return "Unknow" ;
+      return "Unknown" ;
    }
 
    #define DMS_INDEXTYPE_TMP_STR_SZ       63
