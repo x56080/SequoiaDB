@@ -24,6 +24,13 @@ $SNAPSHOT_CATA
 | AttributeDesc       | 字符串 | 集合属性描述                 |
 | CompressionType     | 整型   | 压缩算法类型                 |
 | CompressionTypeDesc | 字符串 | 压缩算法类型描述             |
+| Partition           | 整型   | hash 分区的个数 ( 仅水平分区集合显示 )|
+| InternalV           | 整型   | hash 算法版本号 ( 仅水平分区集合显示，内部使用 )    |
+| AutoSplit           | 布尔   | 集合是否开启自动切分功能 ( 仅水平分区集合显示 )      |
+| IsMainCL            | 布尔   | 集合是否为垂直分区中的主表 ( 仅垂直分区集合显示 )    |
+| MainCLName          | 字符串 | 集合在垂直分区中所关联的主表名 ( 仅垂直分区集合显示 )|
+| CataInfo.ID         | 整型   | 子表挂载的顺序 ID ( 内部使用 ) |
+| CataInfo.SubCLName  | 字符串 | 子表名 ( 仅垂直分区集合显示 )  |
 | CataInfo.GroupID    | 整型   | 分区组 ID                    |
 | CataInfo.GroupName  | 字符串 | 分区组名                     |
 | CataInfo.LowBound   | 对象   | 数据分区区间的上限           |
@@ -35,20 +42,105 @@ $SNAPSHOT_CATA
 
 ##示例##
 
+1.普通集合
+
 ```lang-javascript
 > db.exec( "select * from $SNAPSHOT_CATA" )
 {
+  "_id": {
+    "$oid": "5e4245f9e86d05a0a03e69c8"
+  },
+  "Name": "sample.employee",
+  "UniqueID": 4294967297,
+  "Version": 1,
+  "Attribute": 1,
+  "AttributeDesc": "Compressed",
+  "CompressionType": 1,
+  "CompressionTypeDesc": "lzw",
+  "CataInfo": [
+    {
+      "GroupID": 1000,
+      "GroupName": "group1"
+    }
+  ]
+}
+```
+
+2.水平分区集合
+
+
+```lang-javascript
+> db.exec( "select * from $SNAPSHOT_CATA" )
+{
+  "_id": {
+    "$oid": "5247a2bc60080822db1cfba2"
+  },
+  "Name": "sample.employee",
+  "UniqueID": 261993005057,
+  "Version": 1,
+  "Attribute": 0,
+  "AttributeDesc": "",
+  "AutoIncrement": [
+    {
+      "SequenceName": "SYS_261993005057_studentID_SEQ",
+      "Field": "studentID",
+      "Generated": "default",
+      "SequenceID": 4
+    }
+  ],
+  "CompressionType": 0,
+  "CompressionTypeDesc": "snappy",
+  "ReplSize": 1,
+  "ShardingKey": {
+    "age": 1
+  },
+  "EnsureShardingIndex": true,
+  "ShardingType": "hash",
+  "Partition": 4096,
+  "InternalV": 3,
+  "CataInfo": [
+    {
+      "ID": 0,
+      "GroupID": 1000,
+      "GroupName": "group1",
+      "LowBound": {
+        "": {
+          "$minKey": 1
+        }
+      },
+      "UpBound": {
+        "": {
+          "$maxKey": 1
+        }
+      }
+    }
+  ]
+  "AutoSplit": ture,
+}
+```
+
+3.垂直分区集合
+
+
+```lang-javascript
+> db.exec( "select * from $SNAPSHOT_CATA" )
+{
+  "_id": {
+    "$oid": "5e426b88e86d05a0a03e69c9"
+  }
+  "Name": "year_2019.month",
+  "UniqueID": 4294967298,
   "Attribute": 1,
   "AttributeDesc": "Compressed",
   "CataInfo": [
     {
       "ID": 1,
-      "SubCLName": "year2015.month01",
+      "SubCLName": "year_2019.month_07",
       "LowBound": {
-        "a": 0
+        "date": "20190701"
       },
       "UpBound": {
-        "a": 100
+        "date": "20190801"
       }
     }
   ],
@@ -56,16 +148,11 @@ $SNAPSHOT_CATA
   "CompressionTypeDesc": "lzw",
   "EnsureShardingIndex": true,
   "IsMainCL": true,
-  "Name": "newmaincs.newmaincl",
+  "LobShardingKeyFormat": "YYYYMMDD",
   "ShardingKey": {
-    "a": 1
+    "date": 1
   },
   "ShardingType": "range",
-  "UniqueID": 502511173633,
-  "Version": 6,
-  "_id": {
-    "$oid": "5cf08d3007c2e1754b77ba97"
-  }
+  "Version": 2,
 }
-...
 ```

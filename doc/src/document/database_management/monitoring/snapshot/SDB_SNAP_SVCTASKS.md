@@ -10,9 +10,10 @@ SDB_SNAP_SVCTASKS
 
 | 字段名            | 类型          | 描述                                               |
 | ----------------- | ------------- | -------------------------------------------------- |
-| TaskName          | 字符串        | 任务名称                           |
-| TaskID         | 整型        | 任务ID                                           |
-| Time | 长整型        |  任务持续时间                              |
+| NodeName          | 字符串        | 任务所在的节点                                     |
+| TaskName          | 字符串        | 任务名称                                           |
+| TaskID            | 整型          | 任务ID                                             |
+| Time              | 长整型        |  任务持续时间                                      |
 | TotalContexts     | 长整型        | 总上下文记录数量                                   |
 | TotalDataRead     | 长整型        | 数据记录读                                         |
 | TotalIndexRead    | 长整型        | 索引读                                             |
@@ -24,25 +25,31 @@ SDB_SNAP_SVCTASKS
 | TotalSelect       | 长整型        | 总选取记录数量                                     |
 | TotalRead         | 长整型        | 总数据读                                           |
 | TotalWrite        | 长整型        | 总数据写                                           |
+| StartTimestamp    | 字符串        | 开始时间                                           |
+| ResetTimestamp    | 字符串        | 重置时间                                           |
+
 
 ##示例##
 
 ```lang-javascript
 > db.snapshot(SDB_SNAP_SVCTASKS)
 {
-  "TaskName": "Default",
+  "NodeName": "u1604-ljh:42000",
   "TaskID": 0,
-  "Time": 3394882,
-  "TotalContexts": 343080,
-  "TotalDataRead": 29293243,
-  "TotalIndexRead": 3733053,
-  "TotalDataWrite": 5606426,
-  "TotalIndexWrite": 8322975,
-  "TotalUpdate": 113864,
-  "TotalDelete": 660423,
-  "TotalInsert": 4826079,
-  "TotalSelect": 10306224,
-  "TotalRead": 29073837,
-  "TotalWrite": 5600366
+  "TaskName": "Default",
+  "Time": 4271,
+  "TotalContexts": 62,
+  "TotalDataRead": 0,
+  "TotalIndexRead": 0,
+  "TotalDataWrite": 0,
+  "TotalIndexWrite": 0,
+  "TotalUpdate": 0,
+  "TotalDelete": 0,
+  "TotalInsert": 0,
+  "TotalSelect": 25,
+  "TotalRead": 0,
+  "TotalWrite": 0,
+  "StartTimestamp": "2019-08-14-10.30.59.172628",
+  "ResetTimestamp": "2019-08-14-10.30.59.172628"
 }
 ```

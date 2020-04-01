@@ -14,6 +14,8 @@ $SNAPSHOT_CS
 | GroupName       | 字符串     | 集合空间所属分区组名                         |
 | Name            | 字符串     | 集合空间名                                   |
 | UniqueID        | 整型       | 集合空间的UniqueID，在集群上全局唯一         |
+| ID              | 整型       | 集合空间在节点上的物理ID                     |
+| LogicalID       | 整型       | 集合空间在节点上的逻辑ID                     |
 | Collection.Name | 字符串     | 集合空间所包含的集合的名字                   |
 | Collection.UniqueID | 长整型 | 集合空间所包含的集合的UniqueID               |
 | PageSize        | 整型       | 集合空间数据页大小（单位：字节）             |
@@ -50,6 +52,8 @@ $SNAPSHOT_CS
   "GroupName": "db2",
   "Name": "year2015",
   "UniqueID": 124,
+  "ID" : 20,
+  "LogicalID" : 20,
   "Collection": [
     {
       "Name": "year2015.month01",

@@ -31,7 +31,8 @@ $SNAPSHOT_DB
 | Version.Major         | 整型   | 数据库主版本号                                                                  |
 | Version.Minor         | 整型   | 数据库子版本号                                                                  |
 | Version.Fix           | 整型   | 数据库修复版本号                                                                |
-| Version.Release       | 整型   | 数据库发行版本号                                                                |
+| Version.Release       | 整型   | 数据库内部版本号                                                                |
+| Version.GitVersion    | 字符串 | 数据库发行版本号                                                                |
 | Version.Build         | 字符串 | 数据库编译时间                                                                  |
 | Editon                | 字符串 | “Enterprise”表示企业版（备注：社区版中无该字段）                                |
 | CurrentActiveSessions | 整型   | 当前活动会话                                                                |
@@ -81,6 +82,8 @@ $SNAPSHOT_DB
 | Wait                  | 整型   | 当前处于等待队列的任务数量（包含未分发的任务）                                  |
 | SchdlrMgrEvtNum       | 整型   | 当前未分发的任务数量                                                            |
 | SchdlrTimes           | 长整型 | 统计时间范围内总的任务执行次数                                                  |
+| MemPoolSize           | 长整型 | Pool Memory 的大小（单位：字节）                                                |
+
 
 ##协调节点字段信息##
 
@@ -160,6 +163,7 @@ $SNAPSHOT_DB
     "Minor": 2,
     "Fix": 1,
     "Release": 41325,
+    "GitVersion": "7b21adc4206894102682a621a4b49f17ed96a46f",
     "Build": "2019-05-30-15.48.53(Debug)"
   },
   "CurrentActiveSessions": 19,
@@ -210,7 +214,8 @@ $SNAPSHOT_DB
   "Run": 1,
   "Wait": 0,
   "SchdlrMgrEvtNum": 0,
-  "SchdlrTimes": 0
+  "SchdlrTimes": 0,
+  "MemPoolSize": 56868864
 }
 ...
 ```
