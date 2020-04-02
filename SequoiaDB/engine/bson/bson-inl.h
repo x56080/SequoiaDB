@@ -380,7 +380,8 @@ namespace bson {
         return s;
     }
 
-    inline string BSONObj::toString( bool isArray, bool full ) const {
+    inline string BSONObj::toString( bool isArray, bool full,
+                                     bool noThrow ) const {
         if ( isEmpty() )
         {
            if ( isArray )
@@ -393,9 +394,34 @@ namespace bson {
            }
         }
         StringBuilder s;
-        toString(s, isArray, full);
-        return s.str();
+
+        if ( !noThrow )
+        {
+           toString(s, isArray, full);
+           return s.str();
+        }
+        else
+        {
+           try
+           {
+              toString(s, isArray, full);
+              return s.str();
+           }
+           catch ( std::exception &e )
+           {
+              try
+              {
+                 s << e.what() ;
+                 return s.str();
+              }
+              catch (...)
+              {
+                 return "Out of memory";
+              }
+           }
+        }
     }
+
     inline void BSONObj::toString(StringBuilder& s,  bool isArray, bool full )
       const {
         if ( isEmpty() )

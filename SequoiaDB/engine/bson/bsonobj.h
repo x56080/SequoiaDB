@@ -2,7 +2,7 @@
  * @file bsonobj.h
  * @brief CPP BSONObj Declarations
  */
- 
+
 /*    Copyright 2009 10gen Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -177,7 +177,8 @@ namespace bson {
             notation. This is an abbreviated representation which might be used
             for logging.
         */
-        string toString( bool isArray = false, bool full=false ) const;
+        string toString( bool isArray = false, bool full=false,
+                         bool noThrow = true ) const;
         void toString(StringBuilder& s, bool isArray = false, bool full=false )
           const;
 
@@ -514,9 +515,9 @@ namespace bson {
         }
     public:
         /**
-         * when this value is not zero, the BSONObje::toString() 
+         * when this value is not zero, the BSONObje::toString()
          * method will
-         * show the string which is the same with that 
+         * show the string which is the same with that
          * shows in sdb shell.
          */
         static void setJSCompatibility(bool compatible) {
