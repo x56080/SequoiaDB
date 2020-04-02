@@ -88,6 +88,7 @@ namespace import
    #define IMP_OPTION_STRICTFIELDNUM    "strictfieldnum"
    #define IMP_OPTION_UNICODE           "unicode"
    #define IMP_OPTION_CHECKDELIMETER    "checkdelimeter"
+   #define IMP_OPTION_DECIMALTO         "decimalto"
 
    #define IMP_EXPLAIN_HELP             "print help information"
    #define IMP_EXPLAIN_VERSION          "print version"
@@ -135,6 +136,7 @@ namespace import
    #define IMP_EXPLAIN_STRICTFIELDNUM   "report error if record fields num does not equal to fields definition, default: false"
    #define IMP_EXPLAIN_UNICODE          "whether to escape Unicode encoding, default: true"
    #define IMP_EXPLAIN_CHECKDEL         "whether to check delimeter strictly, default: true"
+   #define IMP_EXPLAIN_DECIMALTO        "decimal type cast (arg: [double|string], e.g. --decimalto double), default: \"\""
 
    #define _TYPE(T) utilOptType(T)
    #define _IMPLICIT_TYPE(T,V) implicit_value<T>(V)
@@ -150,6 +152,9 @@ namespace import
    #define IMP_STR_TRIM_BOTH  "both"
 
    #define IMP_STR_LINEPRIORITY_AUTO   "auto"
+
+   #define IMP_INT_DECIMALTO_DOUBLE    "double"
+   #define IMP_INT_DECIMALTO_STRING    "string"
 
    #define IMP_STR_TRIM_TYPE_EQ(str, type) \
       ((sizeof(type) - 1) == str.length() && ossStrncasecmp(str.c_str(), type, str.length()) == 0)
@@ -189,6 +194,7 @@ namespace import
 
    #define IMP_JSON_OPTIONS \
       (IMP_OPTION_UNICODE,             _TYPE(bool),      IMP_EXPLAIN_UNICODE) \
+      (IMP_OPTION_DECIMALTO,           _TYPE(string),    IMP_EXPLAIN_DECIMALTO) \
 
    #define IMP_CSV_OPTIONS \
       (IMP_OPTION_DELCHAR",a",         _TYPE(string),    IMP_EXPLAIN_DELCHAR) \
@@ -319,6 +325,7 @@ namespace import
       _allowKeyDuplication = TRUE;
 
       _isUnicode = TRUE ;
+      _decimalto = DECIMALTO_DEFAULT ;
 
       _stringDelimiter = "\"";
       _fieldDelimiter = ",";
@@ -845,6 +852,31 @@ namespace import
       if (has(IMP_OPTION_UNICODE))
       {
          _isUnicode = get<bool>(IMP_OPTION_UNICODE) ? TRUE : FALSE ;
+      }
+
+      if( has( IMP_OPTION_DECIMALTO ) )
+      {
+         string decimalto = get<string>( IMP_OPTION_DECIMALTO ) ;
+
+         if( decimalto.empty() )
+         {
+            _decimalto = DECIMALTO_DEFAULT ;
+         }
+         else if( IMP_STR_TRIM_TYPE_EQ( decimalto, IMP_INT_DECIMALTO_DOUBLE ) )
+         {
+            _decimalto = DECIMALTO_DOUBLE ;
+         }
+         else if( IMP_STR_TRIM_TYPE_EQ( decimalto, IMP_INT_DECIMALTO_STRING ) )
+         {
+            _decimalto = DECIMALTO_STRING ;
+         }
+         else
+         {
+            std::cerr << "invalid argument of [" IMP_OPTION_DECIMALTO "]: "
+                      << decimalto << std::endl ;
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
       }
 
       if (FORMAT_CSV == _inputFormat)

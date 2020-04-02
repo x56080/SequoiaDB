@@ -63,7 +63,7 @@ namespace exprt
       else
       {
          if( !json2bson( _cl.select.c_str(), NULL, CJSON_RIGOROUS_PARSE,
-                         FALSE, TRUE, &select ) )
+                         FALSE, TRUE, 0, &select ) )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "Invalid format of select : %s", 
@@ -79,7 +79,7 @@ namespace exprt
       else
       {
          if( !json2bson( _cl.filter.c_str(), NULL, CJSON_RIGOROUS_PARSE,
-                         FALSE, TRUE, &condition ) )
+                         FALSE, TRUE, 0, &condition ) )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "Invalid format of filter : %s", 
@@ -95,7 +95,7 @@ namespace exprt
       else
       {
          if( !json2bson( _cl.sort.c_str(), NULL, CJSON_RIGOROUS_PARSE,
-                         FALSE, TRUE, &sort ) )
+                         FALSE, TRUE, 0, &sort ) )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "Invalid format of sort : %s", 

@@ -100,7 +100,8 @@ JSON_PLOG_FUNC _pJsonPrintfLogFun ;
 static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
                                 const cJson_iterator *pIter,
                                 bson *pBson,
-                                BOOLEAN isObj ) ;
+                                BOOLEAN isObj,
+                                INT32 decimalto ) ;
 
 /*
  * pFun print log function
@@ -128,7 +129,7 @@ SDB_EXPORT BOOLEAN jsonToBson2 ( bson *bs,
                                  BOOLEAN isBatch )
 {
    return json2bson( json_str, NULL, CJSON_RIGOROUS_PARSE,
-                     !isBatch, TRUE, bs ) ;
+                     !isBatch, TRUE, JSON_DECIMAL_NO_CONVERT, bs ) ;
 }
 
 /*
@@ -139,7 +140,8 @@ SDB_EXPORT BOOLEAN jsonToBson2 ( bson *bs,
 */
 SDB_EXPORT BOOLEAN json2bson2( const CHAR *pJson, bson *pBson )
 {
-   return json2bson( pJson, NULL, CJSON_RIGOROUS_PARSE, TRUE, TRUE, pBson ) ;
+   return json2bson( pJson, NULL, CJSON_RIGOROUS_PARSE, TRUE, TRUE,
+                     JSON_DECIMAL_NO_CONVERT, pBson ) ;
 }
 
 /*
@@ -159,6 +161,7 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
                               INT32 parseMode,
                               BOOLEAN isCheckEnd,
                               BOOLEAN isUnicode,
+                              INT32 decimalto,
                               bson *pBson )
 {
    BOOLEAN flag = TRUE ;
@@ -195,7 +198,7 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
 
    bson_init( pBson ) ;
 
-   if( jsonConvertBson( pMachine, pIter, pBson, TRUE ) == FALSE )
+   if( jsonConvertBson( pMachine, pIter, pBson, TRUE, decimalto ) == FALSE )
    {
       JSON_PRINTF_LOG( "Failed to convert json to bson" ) ;
       goto error ;
@@ -684,7 +687,8 @@ static CHAR* intToString ( INT32 value, CHAR *string, INT32 radix )
 static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
                                 const cJson_iterator *pIter,
                                 bson *pBson,
-                                BOOLEAN isObj )
+                                BOOLEAN isObj,
+                                INT32 decimalto )
 {
    BOOLEAN flag = TRUE ;
    INT32 i = 0 ;
@@ -800,7 +804,8 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
             JSON_PRINTF_LOG( "Failed to get '%s' sub iterator", pKey ) ;
             goto error ;
          }
-         if( jsonConvertBson( pMachine, pIterSub, pBson, TRUE ) == FALSE )
+         if( jsonConvertBson( pMachine, pIterSub, pBson,
+                              TRUE, decimalto ) == FALSE )
          {
             JSON_PRINTF_LOG( "Failed to convert '%s' value", pKey ) ;
             goto error ;
@@ -829,7 +834,8 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
             JSON_PRINTF_LOG( "Failed to get '%s' sub iterator", pKey ) ;
             goto error ;
          }
-         if( jsonConvertBson( pMachine, pIterSub, pBson, TRUE ) == FALSE )
+         if( jsonConvertBson( pMachine, pIterSub, pBson,
+                              TRUE, decimalto ) == FALSE )
          {
             JSON_PRINTF_LOG( "Failed to convert '%s' value", pKey ) ;
             goto error ;
@@ -1309,12 +1315,62 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
                goto error ;
             }
          }
-         if( bson_append_decimal( pBson, pKey, &bsonDecimal ) == BSON_ERROR )
+
+         if( JSON_DECIMAL_NO_CONVERT == decimalto )
          {
-            JSON_PRINTF_LOG( "Failed to append bson '%s' decimal", pKey ) ;
-            sdb_decimal_free( &bsonDecimal ) ;
-            goto error ;
+            //to decimal
+            if( bson_append_decimal( pBson, pKey, &bsonDecimal ) == BSON_ERROR )
+            {
+               JSON_PRINTF_LOG( "Failed to append bson '%s' decimal", pKey ) ;
+               sdb_decimal_free( &bsonDecimal ) ;
+               goto error ;
+            }
          }
+         else if( JSON_DECIMAL_TO_DOUBLE == decimalto )
+         {
+            //to double
+            FLOAT64 number = sdb_decimal_to_double( &bsonDecimal ) ;
+
+            if( bson_append_double( pBson, pKey, number ) == BSON_ERROR )
+            {
+               JSON_PRINTF_LOG( "Failed to append bson '%s' double", pKey ) ;
+               goto error ;
+            }
+         }
+         else if( JSON_DECIMAL_NO_STRING == decimalto )
+         {
+            //to string
+            INT32 strLen = 0 ;
+            const CHAR *pString = NULL ;
+
+            sdb_decimal_to_str_get_len( &bsonDecimal, &strLen ) ;
+
+            pString = (CHAR *)cJsonMalloc( strLen + 1, pMachine ) ;
+            if( pString == NULL )
+            {
+               JSON_PRINTF_LOG( "Failed to malloc base64 memory" ) ;
+               goto error ;
+            }
+
+            ossMemset( pString, 0, strLen + 1 ) ;
+
+            if( 0 != sdb_decimal_to_str( &bsonDecimal, pString, strLen ) )
+            {
+               cJsonFree( pString, pMachine ) ;
+               JSON_PRINTF_LOG( "Failed to convert '%s' to string", pKey ) ;
+               goto error ;
+            }
+
+            if( bson_append_string( pBson, pKey, pString ) == BSON_ERROR )
+            {
+               cJsonFree( pString, pMachine ) ;
+               JSON_PRINTF_LOG( "Failed to append bson '%s' string", pKey ) ;
+               goto error ;
+            }
+
+            cJsonFree( pString, pMachine ) ;
+         }
+
          sdb_decimal_free( &bsonDecimal ) ;
          break ;
       }

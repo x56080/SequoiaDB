@@ -63,6 +63,13 @@ namespace import
       STR_TRIM_BOTH
    };
 
+   enum DECIMAL_TO_TYPE
+   {
+      DECIMALTO_DEFAULT = 0,
+      DECIMALTO_DOUBLE,
+      DECIMALTO_STRING
+   };
+
    class Options: public engine::utilOptions
    {
    public:
@@ -109,6 +116,7 @@ namespace import
 
       /* json */
       inline BOOLEAN isUnicode() const { return _isUnicode; }
+      inline const DECIMAL_TO_TYPE decimalto() const { return _decimalto ; }
 
       /* csv */
       inline const string& stringDelimiter() const { return _stringDelimiter; }
@@ -171,7 +179,8 @@ namespace import
       BOOLEAN        _force;
 
       /* json */
-      BOOLEAN        _isUnicode ;
+      BOOLEAN         _isUnicode ;
+      DECIMAL_TO_TYPE _decimalto ;
 
       /* csv */
       string         _stringDelimiterIn;

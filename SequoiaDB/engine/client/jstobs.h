@@ -24,6 +24,10 @@
 #include "core.h"
 #include "bson/bson.h"
 
+#define JSON_DECIMAL_NO_CONVERT  0
+#define JSON_DECIMAL_TO_DOUBLE   1
+#define JSON_DECIMAL_NO_STRING   2
+
 SDB_EXTERN_C_START
 
 /** \fn
@@ -69,6 +73,10 @@ SDB_EXPORT BOOLEAN json2bson2( const CHAR *pJson, bson *pBson ) ;
     \param [in]  parseMode The json parse mode, 0:loose mode; 1:rigorous mode;
     \param [in]  isCheckEnd whether to check the end of json
     \param [in]  isUnicode whether to escape Unicode encoding
+    \param [in]  decimalto decimal type cast
+                  JSON_DECIMAL_NO_CONVERT: no convert
+                  JSON_DECIMAL_TO_DOUBLE:  convert to double
+                  JSON_DECIMAL_NO_STRING:  convert to string
     \param [out] pBson The return bson object
     \retval TRUE Operation Success
     \retval FALSE Operation Fail
@@ -78,6 +86,7 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
                               INT32 parseMode,
                               BOOLEAN isCheckEnd,
                               BOOLEAN isUnicode,
+                              INT32 decimalto,
                               bson *pBson ) ;
 
 SDB_EXPORT void setJsonPrecision( const CHAR *pFloatFmt ) ;
