@@ -318,7 +318,7 @@ accesses) is the same as if
             if ( a > _maxBuffSize ) {
                 if ( minSize > _maxBuffSize ) {
                     char errMsg[ 50 + 1 ] = "" ;
-#if defined (_WINDOWS)
+#if defined (_WIN32) || defined (_WIN64)
                      _snprintf( errMsg, 50, "BufBuilder grow() > %d",
                                 _maxBuffSize ) ;
                      errMsg[50] = '\0' ;
