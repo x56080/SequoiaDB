@@ -3148,11 +3148,25 @@ namespace engine
       UINT32               textIdxNum  = 0 ;
       IDmsExtDataHandler  *handler  = NULL ;
       BOOLEAN markInsert            = FALSE ;
+      BOOLEAN mbLockHeld            = context->isMBLock();
+      BOOLEAN highConcurrentMode    = FALSE ;
       dmsTransLockCallback callback( pTransCB, cb ) ;
 
       if ( !isTransSupport() )
       {
          transInfo.reset() ;
+      }
+
+      // If not logging and no transaction support, we don't need locking
+      // nor logging. Thus we don't need to guarantee index/data
+      // and logging in atomic fashion. So we can get/release mbLock when
+      // needed, like during space allocation, write extent and write index.
+      // By doing so, we allow better concurrency for space allocation and
+      // actual record/index IO, we also hold the latch for shorter duration.
+      // Potential drawback is we may acquire the latch more times. 
+      if ( !dpscb && !isTransSupport() )
+      {
+         highConcurrentMode = TRUE ;
       }
 
       try
@@ -3313,7 +3327,8 @@ namespace engine
             }
          }
 
-         // lock mb
+         // lock mb to guarantee record/index/logs are created/write in atomic
+         // fashion if needed
          rc = context->mbLock( EXCLUSIVE ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
@@ -3402,6 +3417,15 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Allocate space for record failed, "
                          "rc: %d", rc ) ;
 
+            // TODO: We can't release MB latch here even for high concurrent
+            // mode because the work extent information is not updated until
+            // extent insertion time. Plus if we don't have finer granuarity
+            // to protect io, there is not point to release and reaquire
+            // mbLock between allocate space and write. But if we have extent
+            // or page level protection in the future, we can use mblock or
+            // metalock to get the space, then use extent/page lock to protect
+            // IO which gives better concurrency.
+
             // Step 3: Insert the record into target extent.
             /// validate the extent page information
             extRW = extent2RW( foundRID._extent, context->mbID() ) ;
@@ -3469,6 +3493,14 @@ namespace engine
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INSERT, 1 ) ;
          _incWriteRecord() ;
 
+         if ( highConcurrentMode )
+         {
+            // allow breathing point between record IO and index change
+            context->mbUnlock() ;
+            rc = context->mbLock( EXCLUSIVE ) ;
+            PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+         }
+
          // insert object's indexes
          rc = _pIdxSU->indexesInsert( context, pExtent->_logicID,
                                       insertObj, foundRID, cb,
@@ -3533,7 +3565,6 @@ namespace engine
                                                    DMS_FILE_DATA,
                                                    cb->isDoRollback() ) ;
          pRecord = recordRW.writePtr( dmsRecordSize ) ;
-         //pRecord->setLSNOffset( cb->getEndLsn() ) ;
       }
 
       if ( handler )
@@ -3552,6 +3583,11 @@ namespace engine
       if ( 0 != logRecSize )
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
+      }
+      if ( !mbLockHeld )
+      {
+         // release lock if not held on entry
+         context->mbUnlock() ;
       }
       if ( insertResult && SDB_OK == rc )
       {
