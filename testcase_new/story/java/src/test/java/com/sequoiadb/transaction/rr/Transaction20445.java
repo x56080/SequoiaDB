@@ -45,8 +45,8 @@ public class Transaction20445 extends SdbTestBase {
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 
-    //SEQUOIADBMAINSTREAM-5589
-    @Test(enabled = false)
+    // SEQUOIADBMAINSTREAM-5589
+    @Test
     public void test() {
         T1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         T2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
@@ -98,7 +98,7 @@ public class Transaction20445 extends SdbTestBase {
         }
         cur.close();
 
-        List< BSONObject > T1ExpList = new ArrayList<>();
+        List< BSONObject > T1ExpList = new ArrayList< >();
         T1ExpList.addAll( expDataList );
         TransUtils.removeList( T1ExpList, 1000, 1999 );
 
