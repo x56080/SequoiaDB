@@ -268,8 +268,11 @@ namespace engine
    // a record with specified size. If the current one run out of space,
    // this function will automatically move to next CL.
    //
-   // On normal return, the context for current RBSCL will be latched in X
-   // and returned.
+   // On normal return, the context for current RBSCL will be returned, but
+   // not locked. Since it's unlocked, this is best effort to prepare
+   // space, this is small chance in extremely busy system that the cl
+   // maybe consumed quickly. It's the caller's responsibility to handle
+   // failure or retry logic.
    // On error, nothing is held.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD, "_dmsRBSSUMgr::_prepareRBSCLForRecord" )
    SINT32 _dmsRBSSUMgr::_prepareRBSCLForRecord( UINT32          recordSize,
@@ -294,7 +297,7 @@ namespace engine
       DMS_BUILD_RBS_CL_NAME( clName, _currentCollection ) ;
       _releaseS() ;
 
-      rc = _su->data()->getMBContext( &clContext, clName, EXCLUSIVE ) ;
+      rc = _su->data()->getMBContext( &clContext, clName, SHARED ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get curCL(%s) mbLock, rc: %d",
@@ -307,7 +310,12 @@ namespace engine
       // of latch protection
       tempCurCL = _currentCollection ;
       //if( !sd->clDataSpaceEnough( clContext, recordSize ) )
-      if( !sd->spaceEnough( clContext, recordSize ) )
+      if( sd->spaceEnough( clContext, recordSize ) )
+      {
+         clContext->mbUnlock() ;
+         mbLocked = FALSE ;
+      }
+      else
       {
          // current CL does NOT have enough space, create the new CL
          BSONObjBuilder builder ;
@@ -429,15 +437,13 @@ namespace engine
          }
 
          // get curCL context and take mbLock here
-         rc = _su->data()->getMBContext( &clContext, clName, EXCLUSIVE ) ;
+         rc = _su->data()->getMBContext( &clContext, clName ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to get curCL mbLock, rc: %d", rc ) ;
             goto error ;
          }
-         mbLocked = TRUE ;
-      } // end of spaceEnough
-
+      } // end of !spaceEnough
    done:
       PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD, rc );
       return rc ;
@@ -617,8 +623,9 @@ namespace engine
          recSize = ossAlignX( recSize, 4 ) ;
 
       retry:
-         // move to proper RBS CL which has enough space, on OK return,
-         // the cl is locked in X
+         // move to proper RBS CL which has enough space
+         // We do not hold the cl lock on return as insertRecord would
+         // take the lock
          rc = _prepareRBSCLForRecord( recSize, eduCB, dpsCB, clContext ) ;
          if ( rc )
          {
@@ -626,8 +633,6 @@ namespace engine
                      rc ) ;
             goto error ;
          }
-         clLocked = TRUE ;
-
 
          // insert the record to RBS
          rc = _su->insertRecord ( clName, record, eduCB, dpsCB,
