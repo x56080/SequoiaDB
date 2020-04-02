@@ -2493,8 +2493,7 @@ INT32 clientBuildTransactionCommitMsg( CHAR **ppBuffer, INT32 *bufferSize,
 {
    INT32 rc = SDB_OK ;
    MsgOpTransCommit *transCommitMsg = NULL ;
-   INT32 len = sizeof( MsgOpTransCommit ) +
-               ossRoundUpToMultipleX( 0, sizeof(ossValuePtr) ) ;
+   INT32 len = sizeof( MsgOpTransCommit )  ;
    if ( len < 0 )
    {
       ossPrintf ( "Packet size overflow"OSS_NEWLINE ) ;
@@ -2512,7 +2511,7 @@ INT32 clientBuildTransactionCommitMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transCommitMsg                       = ( MsgOpTransCommit *)( *ppBuffer ) ;
    transCommitMsg->header.requestID     = reqID ;
    transCommitMsg->header.opCode        = MSG_BS_TRANS_COMMIT_REQ ;
-   transCommitMsg->header.messageLength = sizeof( MsgOpTransBegin ) + 0 ;
+   transCommitMsg->header.messageLength = len ;
    transCommitMsg->header.routeID.value = 0 ;
    transCommitMsg->header.TID           = ossGetCurrentThreadID() ;
    if( endianConvert )
