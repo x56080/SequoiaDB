@@ -12,15 +12,13 @@ Oma
 
 ##描述##
 
-在目标集群控制器（sdbcm）所在的机器中删除指定的 standalone 节点。
+在目标集群控制器（sdbcm）所在的机器中删除指定的 standalone 节点。删除集群节点，请参考 [rg.removeNode()](reference/Sequoiadb_command/SdbReplicaGroup/removeNode.md)。
 
-**Note:**
-
-* oma对象为连接到目标（本地/远端机器）集群控制器（sdbcm）获得的连接对象。
+oma对象为连接到目标（本地/远端机器）集群控制器（sdbcm）获得的连接对象。
 
 ##参数##
 
-* `svcname` ( *Int | String*， *必填* )
+* `svcname` ( *Int32 | String*， *必填* )
 
 	节点端口号。
 
@@ -37,7 +35,7 @@ Oma
 | 错误码 | 错误类型 | 描述 | 解决方法 |
 | ------ | ------ | --- | ------ |
 | -3     | SDB_PERM | 权限错误。| 检查节点路径是否正确，路径权限是否正确。 |
-| -15    | SDB_NETWORK | 网络错误。| 1. 检查 sdbcm 状态是否正常，如果状态异常，可以尝试重启。2. 检查网络情况。 |
+| -15    | SDB_NETWORK | 网络错误。| 1. 检查 sdbcm 状态是否正常，如果状态异常，可以尝试重启。<br> 2. 检查网络情况。 |
 | -146   | SDBCM_NODE_NOTEXISTED | 节点不存在。| 检查节点是否存在。 |
 
 当异常抛出时，可以通过[getLastError()](reference/Sequoiadb_command/Global/getLastError.md)获取[错误码](reference/Sequoiadb_error_code.md)，
