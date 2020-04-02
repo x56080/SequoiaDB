@@ -9,7 +9,6 @@ import org.testng.Assert;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Node;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
@@ -625,12 +624,6 @@ public class FullTextUtils {
         List< String > groupNames = FullTextDBUtils.getCLGroups( cl );
 
         for ( String groupName : groupNames ) {
-            List< String > nodeNames = CommLib.getNodeAddress( db, groupName );
-            List< Node > nodes = new ArrayList<>();
-            for ( String nodeName : nodeNames ) {
-                nodes.add(
-                        db.getReplicaGroup( groupName ).getNode( nodeName ) );
-            }
             isConsistency = isConsistency( db, groupName, cl.getCSName(),
                     cl.getName() );
             if ( !isConsistency ) {
