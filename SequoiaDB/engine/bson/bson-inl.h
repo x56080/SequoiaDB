@@ -386,7 +386,8 @@ namespace bson {
         return s;
     }
 
-    inline string BSONObj::toString( bool isArray, bool full ) const {
+    inline string BSONObj::toString( bool isArray, bool full,
+                                     bool noThrow ) const {
         if ( isEmpty() )
         {
            if ( isArray )
@@ -399,12 +400,37 @@ namespace bson {
            }
         }
         StringBuilder s;
-        toString(s, isArray, full);
-        return s.str();
+
+        if ( !noThrow )
+        {
+           toString(s, isArray, full);
+           return s.str();
+        }
+        else
+        {
+           try
+           {
+              toString(s, isArray, full);
+              return s.str();
+           }
+           catch ( std::exception &e )
+           {
+              try
+              {
+                 s << e.what() ;
+                 return s.str();
+              }
+              catch (...)
+              {
+                 return "Out of memory";
+              }
+           }
+        }
     }
 
 #if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL )
-    inline ossPoolString BSONObj::toPoolString( bool isArray, bool full ) const {
+    inline ossPoolString BSONObj::toPoolString( bool isArray, bool full,
+                                                bool noThrow ) const {
         if ( isEmpty() )
         {
            if ( isArray )
@@ -417,8 +443,32 @@ namespace bson {
            }
         }
         StringBuilder s;
-        toString(s, isArray, full);
-        return s.poolStr();
+
+        if ( !noThrow )
+        {
+           toString(s, isArray, full);
+           return s.poolStr();
+        }
+        else
+        {
+           try
+           {
+              toString(s, isArray, full);
+              return s.poolStr();
+           }
+           catch ( std::exception &e )
+           {
+              try
+              {
+                 s << e.what() ;
+                 return s.poolStr();
+              }
+              catch (...)
+              {
+                 return "Out of memory";
+              }
+           }
+        }
     }
 
     inline ossPoolString BSONElement::_numberDecimalPoolStr() const
