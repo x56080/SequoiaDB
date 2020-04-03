@@ -66,49 +66,58 @@ namespace engine
 
       SDB_ASSERT( NULL != obj, "can not be NULL" ) ;
 
-      _hasSetErrMsg = FALSE ;
-
-      if ( pIsArray && JS_IsArrayObject( _cx, obj ) )
+      try
       {
-         *pIsArray = TRUE ;
+         _hasSetErrMsg = FALSE ;
+
+         if ( pIsArray && JS_IsArrayObject( _cx, obj ) )
+         {
+            *pIsArray = TRUE ;
+         }
+
+         spVal.reset( _cx, OBJECT_TO_JSVAL( obj ) ) ;
+
+         /// When is spt object
+         if ( spVal.isSPTObject( NULL, NULL, &pDesc ) &&
+              pDesc->hasCVTToBSONFunc() )
+         {
+            string errMsg ;
+            BSONElement e ;
+            BSONObj tmpObj ;
+            rc = pDesc->cvtToBSON( SPT_SPTOBJ_DUMMY_FIELD,
+                                   sptSPObject( _cx, obj ),
+                                   FALSE, builder, errMsg ) ;
+            if ( rc )
+            {
+               _setErrMsg( errMsg, FALSE ) ;
+               goto error ;
+            }
+            tmpObj = builder.obj() ;
+            e = tmpObj.getField( SPT_SPTOBJ_DUMMY_FIELD ) ;
+            if ( Object != e.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               _setErrMsg( "Specail object can't convert to BSONObj", FALSE ) ;
+               goto error ;
+            }
+            bsobj = e.embeddedObject().copy() ;
+         }
+         else
+         {
+            rc = _traverse( obj, builder ) ;
+            if ( SDB_OK != rc )
+            {
+               _setErrMsg( "Failed to call traverse", FALSE ) ;
+               goto error ;
+            }
+            bsobj = builder.obj() ;
+         }
       }
-
-      spVal.reset( _cx, OBJECT_TO_JSVAL( obj ) ) ;
-
-      /// When is spt object
-      if ( spVal.isSPTObject( NULL, NULL, &pDesc ) &&
-           pDesc->hasCVTToBSONFunc() )
+      catch ( std::exception &e )
       {
-         string errMsg ;
-         BSONElement e ;
-         BSONObj tmpObj ;
-         rc = pDesc->cvtToBSON( SPT_SPTOBJ_DUMMY_FIELD,
-                                sptSPObject( _cx, obj ),
-                                FALSE, builder, errMsg ) ;
-         if ( rc )
-         {
-            _setErrMsg( errMsg, FALSE ) ;
-            goto error ;
-         }
-         tmpObj = builder.obj() ;
-         e = tmpObj.getField( SPT_SPTOBJ_DUMMY_FIELD ) ;
-         if ( Object != e.type() )
-         {
-            rc = SDB_INVALIDARG ;
-            _setErrMsg( "Specail object can't convert to BSONObj", FALSE ) ;
-            goto error ;
-         }
-         bsobj = e.embeddedObject().copy() ;
-      }
-      else
-      {
-         rc = _traverse( obj, builder ) ;
-         if ( SDB_OK != rc )
-         {
-            _setErrMsg( "Failed to call traverse", FALSE ) ;
-            goto error ;
-         }
-         bsobj = builder.obj() ;
+         rc = SDB_SYS ;
+         _setErrMsg( e.what(), FALSE ) ;
+         goto error ;
       }
 
    done:
@@ -346,132 +355,141 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( val.isVoid() )
+      try
       {
-      }
-      else if ( val.isNull() )
-      {
-         builder.appendNull( name ) ;
-      }
-      else if ( val.isInt() )
-      {
-         INT32 v = 0 ;
-         rc = val.toInt( v ) ;
-         if ( rc )
+         if ( val.isVoid() )
          {
-            _setErrMsg( "Failed to convert to int", FALSE ) ;
-            goto error ;
          }
-         builder.append( name, v ) ;
-      }
-      else if ( val.isDouble() )
-      {
-         FLOAT64 v = 0.0 ;
-         rc = val.toDouble( v ) ;
-         if ( rc )
+         else if ( val.isNull() )
          {
-            _setErrMsg( "Failed to convert to double", FALSE ) ;
-            goto error ;
+            builder.appendNull( name ) ;
          }
-         builder.append( name, v ) ;
-      }
-      else if ( val.isString() )
-      {
-         std::string v ;
-         rc = val.toString( v ) ;
-         if ( rc )
+         else if ( val.isInt() )
          {
-            _setErrMsg( "Failed to convert to string", FALSE ) ;
-            goto error ;
-         }
-         builder.append( name, v ) ;
-      }
-      else if ( val.isBoolean() )
-      {
-         BOOLEAN v = FALSE ;
-         rc = val.toBoolean( v ) ;
-         if ( rc )
-         {
-            _setErrMsg( "Failed to convert to boolean", FALSE ) ;
-            goto error ;
-         }
-         builder.appendBool( name, v ) ;
-      }
-      else if ( val.isFunctionObj() )
-      {
-         string v ;
-         rc = val.toString( v ) ;
-         if ( rc )
-         {
-            _setErrMsg( "Failed to convert to string", FALSE ) ;
-            goto error ;
-         }
-         builder.appendCode( name, v ) ;
-      }
-      else if ( val.isObject() )
-      {
-         const sptObjDesc *desc = NULL ;
-         BOOLEAN isSpecialObj = FALSE ;
-         BOOLEAN hasDone = FALSE ;
-         JSObject *obj = JSVAL_TO_OBJECT( *(val.valuePtr()) ) ;
-
-         if ( NULL == obj )
-         {
-            _setErrMsg( "Failed to convert to object", FALSE ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         if ( val.isSPTObject( &isSpecialObj, NULL, &desc ) )
-         {
-            string errMsg ;
-            rc = desc->cvtToBSON( name.c_str(), sptSPObject( _cx, obj ),
-                                  isSpecialObj, builder, errMsg ) ;
-            if ( SDB_OK == rc )
+            INT32 v = 0 ;
+            rc = val.toInt( v ) ;
+            if ( rc )
             {
-               hasDone = TRUE ;
+               _setErrMsg( "Failed to convert to int", FALSE ) ;
+               goto error ;
             }
-            else if ( SDB_SPT_NOT_SPECIAL_JSON == rc )
+            builder.append( name, v ) ;
+         }
+         else if ( val.isDouble() )
+         {
+            FLOAT64 v = 0.0 ;
+            rc = val.toDouble( v ) ;
+            if ( rc )
             {
-               if ( _strict )
+               _setErrMsg( "Failed to convert to double", FALSE ) ;
+               goto error ;
+            }
+            builder.append( name, v ) ;
+         }
+         else if ( val.isString() )
+         {
+            std::string v ;
+            rc = val.toString( v ) ;
+            if ( rc )
+            {
+               _setErrMsg( "Failed to convert to string", FALSE ) ;
+               goto error ;
+            }
+            builder.append( name, v ) ;
+         }
+         else if ( val.isBoolean() )
+         {
+            BOOLEAN v = FALSE ;
+            rc = val.toBoolean( v ) ;
+            if ( rc )
+            {
+               _setErrMsg( "Failed to convert to boolean", FALSE ) ;
+               goto error ;
+            }
+            builder.appendBool( name, v ) ;
+         }
+         else if ( val.isFunctionObj() )
+         {
+            string v ;
+            rc = val.toString( v ) ;
+            if ( rc )
+            {
+               _setErrMsg( "Failed to convert to string", FALSE ) ;
+               goto error ;
+            }
+            builder.appendCode( name, v ) ;
+         }
+         else if ( val.isObject() )
+         {
+            const sptObjDesc *desc = NULL ;
+            BOOLEAN isSpecialObj = FALSE ;
+            BOOLEAN hasDone = FALSE ;
+            JSObject *obj = JSVAL_TO_OBJECT( *(val.valuePtr()) ) ;
+
+            if ( NULL == obj )
+            {
+               _setErrMsg( "Failed to convert to object", FALSE ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+
+            if ( val.isSPTObject( &isSpecialObj, NULL, &desc ) )
+            {
+               string errMsg ;
+               rc = desc->cvtToBSON( name.c_str(), sptSPObject( _cx, obj ),
+                                     isSpecialObj, builder, errMsg ) ;
+               if ( SDB_OK == rc )
+               {
+                  hasDone = TRUE ;
+               }
+               else if ( SDB_SPT_NOT_SPECIAL_JSON == rc )
+               {
+                  if ( _strict )
+                  {
+                     _setErrMsg( errMsg, FALSE ) ;
+                     rc = SDB_INVALIDARG ;
+                     goto error ;
+                  }
+               }
+               else
                {
                   _setErrMsg( errMsg, FALSE ) ;
-                  rc = SDB_INVALIDARG ;
                   goto error ;
                }
             }
-            else
+
+            if ( !hasDone )
             {
-               _setErrMsg( errMsg, FALSE ) ;
-               goto error ;
+               BSONObjBuilder subBuild( 1024 ) ;
+               BOOLEAN isArray = JS_IsArrayObject( _cx, obj ) ;
+
+               rc = _traverse( obj, subBuild ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+               if ( isArray )
+               {
+                  builder.appendArray( name, subBuild.obj() ) ;
+               }
+               else
+               {
+                  builder.append( name, subBuild.obj() ) ;
+               }
             }
          }
-
-         if ( !hasDone )
+         else
          {
-            BSONObjBuilder subBuild( 1024 ) ;
-            BOOLEAN isArray = JS_IsArrayObject( _cx, obj ) ;
-
-            rc = _traverse( obj, subBuild ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-            if ( isArray )
-            {
-               builder.appendArray( name, subBuild.obj() ) ;
-            }
-            else
-            {
-               builder.append( name, subBuild.obj() ) ;
-            }
+            _setErrMsg( "unexpected type", FALSE ) ;
+            SDB_ASSERT( FALSE, "unexpected type" ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
          }
       }
-      else
+      catch ( std::exception &e )
       {
-         _setErrMsg( "unexpected type", FALSE ) ;
-         SDB_ASSERT( FALSE, "unexpected type" ) ;
-         rc = SDB_INVALIDARG ;
+         rc = SDB_SYS ;
+         _setErrMsg( e.what(), FALSE ) ;
          goto error ;
       }
 
