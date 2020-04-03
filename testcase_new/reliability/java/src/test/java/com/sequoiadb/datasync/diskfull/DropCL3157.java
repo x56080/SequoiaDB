@@ -1,5 +1,18 @@
 package com.sequoiadb.datasync.diskfull;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+import org.bson.BSONObject;
+import org.bson.util.JSON;
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
@@ -14,15 +27,6 @@ import com.sequoiadb.fault.DiskFull;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.bson.BSONObject;
-import org.bson.util.JSON;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.*;
 
 /**
  * @FileName seqDB-3157: 删除CL过程中主节点磁盘满，该主节点为同步的源节点
@@ -138,7 +142,9 @@ public class DropCL3157 extends SdbTestBase {
                     commCS.dropCollection( clName );
                 }
             } catch ( BaseException e ) {
-                throw e;
+                if ( e.getErrorCode() != -11 ) {
+                    throw e;
+                }
             } finally {
                 if ( db != null ) {
                     db.close();
@@ -179,6 +185,7 @@ public class DropCL3157 extends SdbTestBase {
 
     private void sortByName( List< BSONObject > list ) {
         Collections.sort( list, new Comparator< BSONObject >() {
+            @Override
             public int compare( BSONObject a, BSONObject b ) {
                 String aName = ( String ) a.get( "Name" );
                 String bName = ( String ) b.get( "Name" );
