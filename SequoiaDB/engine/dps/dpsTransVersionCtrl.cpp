@@ -1725,18 +1725,23 @@ namespace engine
       IDXID_TO_TREE_MAP_IT it ;
       DPS_TRANSID_SN  expiredVersion = DPS_INVALID_TRANSID_SN ;
       DPS_TRANSID_SN  minTreeLowTran = DPS_MAX_TRANSID_SN ;
-      latchS() ;
 
+      latchS() ;
       it = _idxTrees.begin() ;
 
       // loop through trees
       while ( it != _idxTrees.end() )
       {
+         // handle one tree
+         // Will release the latch of old version container, save the global
+         // index ID and tree pointer before we release the latch.
+         globIdxID curGIID = it->first ;
+         treePtr = it->second ;
+
          releaseS() ;
+
          // get current expired version for each tree
          expiredVersion = sdbGetTransCB()->getExpiredVersion() ;
-         // handle one tree
-         treePtr = it->second ;
 
          // TODO: may add optimization to check if the tree is changed
          // after last gc
@@ -1764,7 +1769,12 @@ namespace engine
 #endif
          }
          latchS() ;
-         ++it ;
+         // We have released latch of oldVerContainer after we got
+         // the tree pointer from this iterator. But during we gc the current
+         // tree, the iterator could be erased by drop index, so the iterator
+         // will not be safe to move to next. We need to find the next
+         // tree by upper bound of the current global index ID
+         it = _idxTrees.upper_bound( curGIID ) ;
       }
 
       if ( minTreeLowTran != DPS_MAX_TRANSID_SN )
