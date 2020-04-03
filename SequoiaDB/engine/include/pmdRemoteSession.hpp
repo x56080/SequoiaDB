@@ -225,10 +225,7 @@ namespace engine
       protected:
          void        setParent( _pmdRemoteSession *parent ) { _parent = parent ; }
          void        setNodeID( UINT64 nodeID ) { _nodeID.value = nodeID ; }
-         void        setReqID( UINT64 reqID )
-         {
-            _reqID = MSG_REQUEST_FLAG_MASK & reqID ;
-         }
+         void        setReqID( UINT64 reqID ) { _reqID = reqID ; }
          void        setSendResult( BOOLEAN isSend ) ;
          void        processEvent( pmdEDUEvent &event ) ;
          void        setStop( BOOLEAN isStop ) { _hasStop = isStop ; }

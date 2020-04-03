@@ -781,8 +781,8 @@ namespace engine
          pCommitPreMsg->preCommitTime = preCommitTime.getTime() ;
 
          // set global time flag
-         OSS_BIT_SET( pCommitPreMsg->header.requestID,
-                      MSG_REQUEST_FLAG_GLOBTIME ) ;
+         pCommitPreMsg->header.opCode =
+               MAKE_GLOBTIME_TYPE( MSG_BS_TRANS_COMMITPRE_REQ ) ;
       }
       else
       {

@@ -39,10 +39,20 @@
 #pragma warning( disable: 4200 )
 #include "core.h"
 
-
+// indicates the message is a reply
 #define MAKE_REPLY_TYPE(type)       (INT32)((UINT32)type | 0x80000000)
 #define IS_REPLY_TYPE(type)         (INT32)((UINT32)type >> 31 )
-#define GET_REQUEST_TYPE(type)      (INT32)((UINT32)type & 0x7FFFFFFF)
+
+// indicates the message require global time synchronization
+#define MAKE_GLOBTIME_TYPE( type ) \
+      (INT32)( (UINT32)( type ) | 0x40000000 )
+#define IS_GLOBTIME_TYPE( type ) \
+      (INT32)( (UINT32)( type ) & 0x40000000 )
+#define CLEAR_GLOBTIME_TYPE( type ) \
+      (INT32)( (UINT32)( type ) & ( ~( 0x40000000 ) ) )
+
+// 0x80000000 and 0x40000000 are used
+#define GET_REQUEST_TYPE(type)      (INT32)((UINT32)type & 0x3FFFFFFF)
 
 /// Reserved for cata delay event
 #define CAT_DELAY_EVENT_TYPE        ( MAKE_REPLY_TYPE( 0 ) )
@@ -511,9 +521,6 @@ typedef enum _MSG_ROUTE_SERVICE_TYPE
 
    MSG_ROUTE_SERVICE_TYPE_MAX
 }MSG_ROUTE_SERVICE_TYPE;
-
-#define MSG_REQUEST_FLAG_GLOBTIME   ( 0x8000000000000000 )
-#define MSG_REQUEST_FLAG_MASK       ( 0x7FFFFFFFFFFFFFFF )
 
 // 28 bytes
 struct _MsgHeader
