@@ -1000,6 +1000,9 @@ namespace engine
             {
                SDB_ASSERT( 1 == buffObj.recordNum(), "Record number must be 1" ) ;
 
+               // buffObj may be hold by _retBuilder, need a new builder
+               BSONObjBuilder errorBuilder ;
+
                BSONObj errObj( buffObj.data() ) ;
                BSONObjIterator itr( errObj ) ;
                while( itr.more() )
@@ -1007,11 +1010,11 @@ namespace engine
                   BSONElement e = itr.next() ;
                   if ( 0 != ossStrcmp( FIELD_NAME_ROLLBACK, e.fieldName() ) )
                   {
-                     _retBuilder.append( e ) ;
+                     errorBuilder.append( e ) ;
                   }
                }
-               _retBuilder.appendBool( FIELD_NAME_ROLLBACK, hasRollbacked ) ;
-               _errorInfo = _retBuilder.done() ;
+               errorBuilder.appendBool( FIELD_NAME_ROLLBACK, hasRollbacked ) ;
+               _errorInfo = errorBuilder.obj() ;
                buffObj = rtnContextBuf( _errorInfo ) ;
             }
 
