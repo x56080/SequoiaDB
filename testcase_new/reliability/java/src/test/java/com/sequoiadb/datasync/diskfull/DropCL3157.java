@@ -153,7 +153,9 @@ public class DropCL3157 extends SdbTestBase {
                     commCS.dropCollection( clName );
                 }
             } catch ( BaseException e ) {
-                throw e;
+                if ( e.getErrorCode() != -11 ) {
+                    throw e;
+                }
             } finally {
                 if ( db != null ) {
                     db.disconnect();
