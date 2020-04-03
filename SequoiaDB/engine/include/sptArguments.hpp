@@ -39,6 +39,8 @@
 #include "../bson/bson.hpp"
 #include "sptPrivateData.hpp"
 #include "sptObjDesc.hpp"
+#include "sptObject.hpp"
+
 namespace engine
 {
    enum SPT_NATIVE_TYPE
@@ -59,6 +61,8 @@ namespace engine
    public:
       _sptArguments() {}
       virtual ~_sptArguments(){}
+
+      virtual const sptObject*   getObject() const = 0 ;
 
    public:
       /// start with zero.

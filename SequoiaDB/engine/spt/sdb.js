@@ -869,18 +869,6 @@ SdbNode.prototype.getNodeDetail = function() {
           this._servicename + "(" +
           this._rg.toString() + ")" ;
 }
-
-SdbNode.prototype.connect = function( isSecure )
-{
-   if( true == isSecure )
-   {
-      return new SecureSdb( this._hostname, this._servicename ) ;
-   }
-   else
-   {
-      return new Sdb( this._hostname, this._servicename ) ;
-   }
-}
 // end SdbNode
 
 // SdbReplicaGroup

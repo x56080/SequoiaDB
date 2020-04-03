@@ -37,21 +37,34 @@
 #include "sptConvertor.hpp"
 #include "sptObjDesc.hpp"
 #include "sptSPVal.hpp"
+#include "sptSPObject.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
-   _sptSPArguments::_sptSPArguments( JSContext *context, uintN argc, jsval *vp )
+   _sptSPArguments::_sptSPArguments( JSContext *context, uintN argc,
+                                     jsval *vp, JSObject *pObj )
    :_context(context),
     _argc(argc),
-    _vp(vp)
+    _vp(vp),
+    _pObject( NULL )
    {
       SDB_ASSERT( NULL != _context && NULL != _vp, "can not be NULL" ) ;
+      if ( pObj )
+      {
+         _pObject = SDB_OSS_NEW sptSPObject( _context, pObj ) ;
+         SDB_ASSERT( _pObject, "Alloc out-of-memory" ) ;
+      }
    }
 
    _sptSPArguments::~_sptSPArguments()
    {
+      if ( _pObject )
+      {
+         SDB_OSS_DEL _pObject ;
+         _pObject = NULL ;
+      }
       _context = NULL ;
       _vp = NULL ;
    }

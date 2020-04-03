@@ -59,14 +59,6 @@ using sdbclient::_sdbCursor ;
 using sdbclient::_sdbDataCenter ;
 using sdbclient::_sdbDomain ;
 
-#if defined (SDB_FMP)
-   extern CHAR FMP_COORD_SERVICE[OSS_MAX_SERVICENAME+1] ;
-   extern CHAR *FMP_COORD_HOST ;
-   extern CHAR g_UserName[ OSS_MAX_PATHSIZE + 1 ] ;
-   extern CHAR g_Password[ OSS_MAX_PATHSIZE + 1 ] ;
-   // TODO:fmp disable password encode
-#endif // SDB_FMP
-
 namespace engine
 {
    #define SDB_DEF_COORD_NAME "localhost"
@@ -211,7 +203,7 @@ namespace engine
       string svcname ;
       string username ;
       string passwd ;
-#if !defined( SDB_FMP )
+
       // Get hostname
       rc = arg.getString( 0, hostname, FALSE ) ;
       if( SDB_OUT_OF_BOUND == rc )
@@ -286,13 +278,7 @@ namespace engine
             }
          }
       }
-#else
-      hostname = FMP_COORD_HOST ;
-      svcname = FMP_COORD_SERVICE ;
-      // Fmp use the username and password sent from Coord to connect sdb
-      username = g_UserName ;
-      passwd = g_Password ;
-#endif
+
       rc = _sptSdb.connect( hostname.c_str(), svcname.c_str(),
                             username.c_str(), passwd.c_str() ) ;
       if( SDB_OK != rc )
@@ -301,8 +287,11 @@ namespace engine
          goto error ;
       }
 
+      _user = username ;
+      _passwd = passwd ;
       rval.addSelfProperty( "_host" )->setValue( hostname ) ;
       rval.addSelfProperty( "_port" )->setValue( svcname ) ;
+
    done:
       return rc ;
    error:
@@ -1125,6 +1114,13 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to create user" ) ;
          goto error ;
       }
+
+      if ( _user.empty() )
+      {
+         _user = username ;
+         _passwd = passwd ;
+      }
+
    done:
       return rc ;
    error:
@@ -1168,6 +1164,12 @@ namespace engine
       {
          detail = BSON( SPT_ERR << "Failed to drop user" ) ;
          goto error ;
+      }
+
+      if ( _user == username )
+      {
+         _user.clear() ;
+         _passwd.clear() ;
       }
    done:
       return rc ;

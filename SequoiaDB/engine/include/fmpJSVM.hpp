@@ -64,7 +64,11 @@ public:
 
    virtual INT32 fetch( BSONObj &res ) ;
 
-   virtual INT32 initGlobalDB( BSONObj &res ) ;
+   virtual INT32 initGlobalDB( const CHAR *pHostName,
+                               const CHAR *pSvcname,
+                               const CHAR *pUser,
+                               const CHAR *pPasswd,
+                               BSONObj &res ) ;
 
   // virtual INT32 compile( const BSONElement &func, const CHAR *name ) ;
 

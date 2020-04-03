@@ -6864,10 +6864,14 @@ do                                                            \
    {
       INT32 rc = SDB_OK ;
       BOOLEAN locked = FALSE ;
-      CHAR md5[SDB_MD5_DIGEST_LENGTH*2+1] ;
+      CHAR md5[SDB_MD5_DIGEST_LENGTH*2+1] = { 0 } ;
       SINT64 contextID = 0 ;
       const CHAR *pUN = "" ;
       const CHAR *pPW = "" ;
+
+#if defined( SDB_FMP )
+      BOOLEAN isRetry = FALSE ;
+#endif // SDB_FMP
 
       if ( !pHostName || !*pHostName || port <= 0 || port > 65535 )
       {
@@ -6893,6 +6897,7 @@ do                                                            \
          goto error ;
       }
 
+#if !defined( SDB_FMP )
       rc = md5Encrypt( pPW, md5, SDB_MD5_DIGEST_LENGTH*2+1 ) ;
       if ( rc )
       {
@@ -6901,6 +6906,26 @@ do                                                            \
 
       rc = clientBuildAuthMsg( &_pSendBuffer, &_sendBufferSize,
                                pUN, md5, 0, _endianConvert ) ;
+#else
+   retry:
+      if ( isRetry || !isMd5String( pPW ) )
+      {
+         rc = md5Encrypt( pPW, md5, SDB_MD5_DIGEST_LENGTH*2+1 ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         rc = clientBuildAuthMsg( &_pSendBuffer, &_sendBufferSize,
+                                  pUN, md5, 0, _endianConvert ) ;
+      }
+      else
+      {
+         rc = clientBuildAuthMsg( &_pSendBuffer, &_sendBufferSize,
+                                  pUN, 0 == md5[0] ? pPW : md5,
+                                  0, _endianConvert ) ;
+      }
+#endif // SDB_FMP
+
       if ( rc )
       {
          goto error ;
@@ -6917,6 +6942,15 @@ do                                                            \
                           contextID ) ;
       if ( rc )
       {
+#if defined( SDB_FMP )
+         if ( SDB_AUTH_AUTHORITY_FORBIDDEN == rc && 0 == md5[0] && !isRetry )
+         {
+            unlock() ;
+            locked = FALSE ;
+            isRetry = TRUE ;
+            goto retry ;
+         }
+#endif // SDB_FMP
          goto error ;
       }
       // check return msg header

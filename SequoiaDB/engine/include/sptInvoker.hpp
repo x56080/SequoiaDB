@@ -74,7 +74,7 @@ namespace engine
          SDB_ASSERT( NULL != f, "can not be NULL" ) ;
 
          jsval jsRval = JSVAL_VOID ;
-         _sptSPArguments arg( cx, argc, vp ) ;
+         _sptSPArguments arg( cx, argc, vp, JS_THIS_OBJECT ( cx , vp ) ) ;
          _sptReturnVal rval ;
          bson::BSONObj detail ;
          void *instance = JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
@@ -290,7 +290,7 @@ namespace engine
          if ( JSVAL_IS_INT( valID ) || JSVAL_IS_STRING ( valID ) )
          {
             jsval vp[ 3 ] = { JSVAL_VOID, JSVAL_VOID, valID } ;
-            _sptSPArguments args( cx, 1, &vp[0] ) ;
+            _sptSPArguments args( cx, 1, &vp[0], obj ) ;
 
             /// when the property is exist, ignored
             JSObject *prototype = JS_GetPrototype( cx, obj ) ;

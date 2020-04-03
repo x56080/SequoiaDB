@@ -61,7 +61,11 @@ public:
 
    virtual INT32 fetch( BSONObj &res ) = 0 ;
 
-   virtual INT32 initGlobalDB( BSONObj &res ) = 0 ;
+   virtual INT32 initGlobalDB( const CHAR *pHostName,
+                               const CHAR *pSvcname,
+                               const CHAR *pUser,
+                               const CHAR *pPasswd,
+                               BSONObj &res ) = 0 ;
 
    OSS_INLINE BOOLEAN ok() const { return _ok ;}
 

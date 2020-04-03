@@ -66,10 +66,7 @@ static INT32 FMP_STATUS_M[FMP_CONTROL_SETP_MAX][FMP_CONTROL_SETP_MAX]
 #define FMP_STEP_ASSIGN( step )\
         do {_step = (step) ;}while(FALSE)
 
-CHAR FMP_COORD_SERVICE[OSS_MAX_SERVICENAME + 1] = {0};
-CHAR *FMP_COORD_HOST = "localhost" ;
-CHAR g_UserName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-CHAR g_Password[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+const CHAR *FMP_COORD_HOST = "localhost" ;
 static const CHAR magicNumber[] = FMP_MSG_MAGIC ;
 
 BSONObj OK_RES = BSON( FMP_RES_CODE << SDB_OK ) ;
@@ -239,23 +236,19 @@ INT32 _fmpController::_handleOneLoop( const BSONObj &obj,
          sdbEnablePD( diaglog ) ;
       }
       BSONElement localService = obj.getField( FMP_LOCAL_SERVICE ) ;
-      if ( !localService.eoo() && String == localService.type() &&
-           0 == ossStrlen(FMP_COORD_SERVICE) )
+      if ( String == localService.type() )
       {
-         ossStrncpy( FMP_COORD_SERVICE, localService.valuestrsafe(),
-                     OSS_MAX_SERVICENAME ) ;
+         _svcname = localService.valuestrsafe() ;
       }
       BSONElement localUser = obj.getField( FMP_LOCAL_USERNAME ) ;
       if ( String == localUser.type() )
       {
-         ossStrncpy( g_UserName, localUser.valuestrsafe(),
-                     OSS_MAX_PATHSIZE ) ;
+         _userName = localUser.valuestrsafe() ;
       }
       BSONElement localPass = obj.getField( FMP_LOCAL_PASSWORD ) ;
       if ( String == localPass.type() )
       {
-         ossStrncpy( g_Password, localPass.valuestrsafe(),
-                     OSS_MAX_PATHSIZE ) ;
+         _password = localPass.valuestrsafe() ;
       }
       BSONElement fType = obj.getField( FMP_FUNC_TYPE ) ;
       if ( fType.eoo() )
@@ -326,7 +319,9 @@ INT32 _fmpController::_handleOneLoop( const BSONObj &obj,
    }
    else if ( FMP_CONTROL_STEP_EVAL == step )
    {
-      rc = _vm->initGlobalDB( res ) ;
+      rc = _vm->initGlobalDB( FMP_COORD_HOST, _svcname.c_str(),
+                              _userName.c_str(), _password.c_str(),
+                              res ) ;
       if ( rc )
       {
          PD_LOG( PDWARNING, "Failed to init global db: %s",
@@ -538,5 +533,10 @@ void _fmpController::_clear()
 {
    SAFE_OSS_DELETE( _vm ) ;
    FMP_STEP_ASSIGN( FMP_CONTROL_STEP_BEGIN ) ;
+
+   _svcname.clear() ;
+   _userName.clear() ;
+   _password.clear() ;
+
    return ;
 }

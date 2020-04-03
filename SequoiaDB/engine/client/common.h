@@ -342,6 +342,8 @@ INT32 md5Encrypt( const CHAR *src,
                   CHAR *code,
                   UINT32 size ) ;
 
+BOOLEAN isMd5String( const CHAR *str ) ;
+
 INT32 clientReplicaGroupExtractNode ( const CHAR *data,
                                       CHAR *pHostName,
                                       INT32 hostNameSize,

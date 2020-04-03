@@ -49,8 +49,6 @@
 using namespace bson ;
 using namespace engine ;
 
-BSONObj GLOBAL_SDB ;
-
 _fmpJSVM::_fmpJSVM()
 :_engine( NULL ),
  _scope( NULL ),
@@ -63,11 +61,6 @@ _fmpJSVM::_fmpJSVM()
       PD_LOG( PDERROR, "failed to new scope" ) ;
       return ;
    }
-
-   BSONObjBuilder builder ;
-   builder.appendCode( FMP_FUNC_VALUE, "var db=new Sdb();" ) ;
-   builder.append( FMP_FUNC_TYPE, FMP_FUNC_TYPE_JS ) ;
-   GLOBAL_SDB = builder.obj() ;
    _setOK( TRUE ) ;
 }
 
@@ -79,14 +72,41 @@ _fmpJSVM::~_fmpJSVM()
    _cursor = NULL ;
 }
 
-INT32 _fmpJSVM::initGlobalDB( BSONObj &res )
+INT32 _fmpJSVM::initGlobalDB( const CHAR *pHostName,
+                              const CHAR *pSvcname,
+                              const CHAR *pUser,
+                              const CHAR *pPasswd,
+                              BSONObj &res )
 {
    INT32 rc = SDB_OK ;
-   rc = eval( GLOBAL_SDB, res ) ;
-   if ( SDB_OK != rc )
+   StringBuilder ss ;
+   BSONObjBuilder builder ;
+
+   try
    {
+      ss << "var db = new Sdb( "
+         << "'" << pHostName << "', "
+         << "'" << pSvcname << "', "
+         << "'" << pUser << "', "
+         << "'" << pPasswd << "' ) ;" ;
+
+      builder.appendCode( FMP_FUNC_VALUE, ss.poolStr() ) ;
+      builder.append( FMP_FUNC_TYPE, FMP_FUNC_TYPE_JS ) ;
+
+      rc = eval( builder.obj(), res ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = SDB_OOM ;
+      res = BSON( FMP_ERR_MSG << "e.what()" <<
+                  FMP_RES_CODE << rc ) ;
       goto error ;
    }
+
 done:
    return rc ;
 error:

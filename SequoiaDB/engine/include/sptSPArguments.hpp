@@ -45,8 +45,11 @@ namespace engine
    class _sptSPArguments : public _sptArguments
    {
    public:
-      _sptSPArguments( JSContext *context, uintN argc, jsval *vp ) ;
+      _sptSPArguments( JSContext *context, uintN argc, jsval *vp,
+                       JSObject *pObj = NULL ) ;
       virtual ~_sptSPArguments() ;
+
+      virtual const sptObject*   getObject() const { return _pObject ; }
 
    public:
       virtual INT32 getNative( UINT32 pos, void *value,
@@ -100,6 +103,7 @@ namespace engine
       uintN             _argc ;
       jsval             *_vp ;
       mutable string    _errMsg ;
+      sptObject         *_pObject ;
    } ;
 }
 

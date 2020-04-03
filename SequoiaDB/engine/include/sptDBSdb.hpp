@@ -39,6 +39,8 @@ namespace engine
 {
    class _sptDBSdb : public SDBObject
    {
+   friend class _sptDBNode ;
+
    JS_DECLARE_CLASS( _sptDBSdb )
    public:
       _sptDBSdb( BOOLEAN isSecure = FALSE ) ;
@@ -290,7 +292,11 @@ namespace engine
 
       INT32 _getRGAndSetProperty( INT32 id, _sptReturnVal &rval,
                                   bson::BSONObj &detail ) ;
-      sdb _sptSdb ;
+
+   private:
+      string   _user ;
+      string   _passwd ;
+      sdb      _sptSdb ;
    } ;
    typedef _sptDBSdb sptDBSdb ;
 }

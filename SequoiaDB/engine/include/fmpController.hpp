@@ -40,6 +40,7 @@
 
 #include "core.hpp"
 #include "ossIO.hpp"
+#include "ossMemPool.hpp"
 #include "../bson/bson.h"
 
 using namespace bson ;
@@ -70,12 +71,18 @@ private:
    void _clear() ;
 
 private:
-   OSSFILE _in ;
-   OSSFILE _out ;
-   _fmpVM *_vm ;
-   CHAR *_inBuf ;
-   UINT32 _inBufSize ;
-   INT32  _step ;
+   OSSFILE     _in ;
+   OSSFILE     _out ;
+   _fmpVM      *_vm ;
+   CHAR        *_inBuf ;
+   UINT32      _inBufSize ;
+   INT32       _step ;
+
+   /// global db info
+   ossPoolString _svcname ;
+   ossPoolString _userName ;
+   ossPoolString _password ;
+
 } ;
 
 typedef class _fmpController fmpController ;

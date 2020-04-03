@@ -3496,6 +3496,29 @@ error :
    goto done ;
 }
 
+BOOLEAN isMd5String( const CHAR *str )
+{
+   UINT32 len = strlen( str ) ;
+   if ( len == 2*SDB_MD5_DIGEST_LENGTH )
+   {
+      while( *str )
+      {
+         if ( ( *str >= '0' && *str <= '9' ) ||
+              ( *str >= 'A' && *str <= 'F' ) ||
+              ( *str >= 'a' && *str <= 'f' ) )
+         {
+            ++str ;
+         }
+         else
+         {
+            return FALSE ;
+         }
+      }
+      return TRUE ;
+   }
+   return FALSE ;
+}
+
 INT32 clientReplicaGroupExtractNode ( const CHAR *data,
                                       CHAR *pHostName,
                                       INT32 hostNameSize,

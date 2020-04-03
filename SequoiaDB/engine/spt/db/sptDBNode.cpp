@@ -31,6 +31,8 @@
 *******************************************************************************/
 #include "sptDBNode.hpp"
 #include "sptDBRG.hpp"
+#include "sptDBSdb.hpp"
+#include "sptDBSecureSdb.hpp"
 
 using sdbclient::_sdbReplicaGroup ;
 using namespace bson ;
@@ -42,12 +44,14 @@ namespace engine
    JS_DESTRUCT_FUNC_DEFINE( _sptDBNode, destruct )
    JS_MEMBER_FUNC_DEFINE( _sptDBNode, start )
    JS_MEMBER_FUNC_DEFINE( _sptDBNode, stop )
+   JS_MEMBER_FUNC_DEFINE( _sptDBNode, connect )
 
    JS_BEGIN_MAPPING( _sptDBNode, SPT_NODE_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
       JS_ADD_DESTRUCT_FUNC( destruct )
       JS_ADD_MEMBER_FUNC( "start", start )
       JS_ADD_MEMBER_FUNC( "stop", stop )
+      JS_ADD_MEMBER_FUNC( "connect", connect )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBNode::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBNode::fmpToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBNode::bsonToJSObj )
@@ -107,6 +111,134 @@ namespace engine
    done:
       return rc ;
    error:
+      goto done ;
+   }
+
+   INT32 _sptDBNode::connect( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 isSecure = 0 ;
+      const sptObject *pObj = arg.getObject() ;
+      sptObjectPtr rgPtr ;
+      sptObjectPtr connPtr ;
+      const _sptDBSdb *pSdb = NULL ;
+      _sptDBSdb *pRetSdb = NULL ;
+
+      if ( arg.argc() >= 1 )
+      {
+         rc = arg.getNative( 0, (void *)&isSecure, SPT_NATIVE_INT32 ) ;
+         if ( rc )
+         {
+            if ( arg.hasErrMsg() )
+            {
+               detail = BSON( SPT_ERR << arg.hasErrMsg() ) ;
+            }
+            else
+            {
+               detail = BSON( SPT_ERR << "Param[isSecure] must be bool" ) ;
+            }
+            goto error ;
+         }
+      }
+
+      if ( !pObj )
+      {
+         detail = BSON( SPT_ERR << "Get object failed" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      // get rg object
+      rc = pObj->getObjectField( SPT_NODE_RG_FIELD, rgPtr ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get rg js obj" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      // get conn object
+      rc = rgPtr->getObjectField( SPT_RG_CONN_FIELD, connPtr ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get conn js obj" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = connPtr->getUserObj( _sptDBSdb::__desc, ( const void** )&pSdb ) ;
+      if ( rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get conn obj" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( !isSecure )
+      {
+         pRetSdb = SDB_OSS_NEW _sptDBSdb() ;
+         if ( !pRetSdb )
+         {
+            detail = BSON( SPT_ERR << "Failed to alloc memory for sptDBSdb" ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+
+         rc = pRetSdb->_sptSdb.connect( _node.getHostName(),
+                                        _node.getServiceName(),
+                                        pSdb->_user.c_str(),
+                                        pSdb->_passwd.c_str() ) ;
+         if ( rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to connect sdb" ) ;
+            goto error ;
+         }
+
+         rc = rval.setUsrObjectVal<_sptDBSdb>( pRetSdb ) ;
+      }
+      else
+      {
+         pRetSdb = SDB_OSS_NEW _sptDBSecureSdb() ;
+         if ( !pRetSdb )
+         {
+            detail = BSON( SPT_ERR <<
+                           "Failed to alloc memory for _sptDBSecureSdb" ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+
+         rc = pRetSdb->_sptSdb.connect( _node.getHostName(),
+                                        _node.getServiceName(),
+                                        pSdb->_user.c_str(),
+                                        pSdb->_passwd.c_str() ) ;
+         if ( rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to connect sdb" ) ;
+            goto error ;
+         }
+
+         rc = rval.setUsrObjectVal<_sptDBSecureSdb>( pRetSdb ) ;
+      }
+
+      if ( rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set return obj" ) ;
+         goto error ;
+      }
+
+      rval.addReturnValProperty( "_host" )->setValue( _node.getHostName() ) ;
+      rval.addReturnValProperty( "_port" )->setValue( _node.getServiceName() ) ;
+
+   done:
+      return rc ;
+   error:
+      if ( pRetSdb )
+      {
+         SDB_OSS_DEL pRetSdb ;
+         pRetSdb = NULL ;
+      }
       goto done ;
    }
 
@@ -263,7 +395,7 @@ namespace engine
       }
       pSptRG = NULL ;
 
-      pTmpProp->addBackwardProp( SPT_NODE_RG_FIELD ) ;
+      pTmpProp->addBackwardProp( SPT_RG_CONN_FIELD ) ;
       pTmpProp = pTmpProp->addSubProp( SPT_RG_NAME_FIELD ) ;
       if ( !pTmpProp )
       {
