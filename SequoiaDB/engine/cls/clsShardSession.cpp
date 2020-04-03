@@ -206,7 +206,7 @@ namespace engine
       }
 
 #if defined (_DEBUG)
-      PD_LOG( PDDEBUG, "handle %u: total blocking size %u/%u, "
+      PD_LOG( PDDEBUG, "handle %u: total blocking size %u, "
               "blocking list size %u, first blocking size %u",
               _handle, _totalBlockSize, _blockInfoSize,
               _blockInfoSize > 0 ?
@@ -250,7 +250,7 @@ namespace engine
 
 #if defined (_DEBUG)
       PD_LOG( PDDEBUG, "handle %u: add new blocking info %u, "
-              "total blocking size %u/%u, blocking list size %u, "
+              "total blocking size %u, blocking list size %u, "
               "first blocking info size %u",
               _handle, blockSize, _totalBlockSize, _blockInfoSize,
               _blockInfoSize > 0 ?
