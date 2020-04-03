@@ -3610,7 +3610,7 @@ namespace engine
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
       }
-      if ( !mbLockHeld )
+      if ( !mbLockHeld && !canUnLock )
       {
          // release lock if not held on entry
          context->mbUnlock() ;
@@ -4034,7 +4034,7 @@ namespace engine
                // transaction ID for visiability check. We should handle this
                // case by doing a dummy update first, causing an overflow,
                // then we can try the delete again.
-               PD_LOG ( PDERROR, 
+               PD_LOG ( PDINFO, 
                         "In-flight migration of record failed during delet"
                         " object(%s) because out of space in the record on disk",
                         recordRW.toString().c_str() ) ;
