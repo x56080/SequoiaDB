@@ -3199,7 +3199,6 @@ namespace engine
       UINT32               textIdxNum  = 0 ;
       IDmsExtDataHandler  *handler  = NULL ;
       BOOLEAN markInsert            = FALSE ;
-      BOOLEAN mbLockHeld            = context->isMBLock();
       BOOLEAN highConcurrentMode    = FALSE ;
       dmsTransLockCallback callback( pTransCB, cb ) ;
 
@@ -3609,11 +3608,6 @@ namespace engine
       if ( 0 != logRecSize )
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
-      }
-      if ( !mbLockHeld && !canUnLock )
-      {
-         // release lock if not held on entry
-         context->mbUnlock() ;
       }
       if ( insertResult && SDB_OK == rc )
       {
