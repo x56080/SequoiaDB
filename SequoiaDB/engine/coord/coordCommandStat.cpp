@@ -42,6 +42,8 @@
 #include "msgMessage.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
+#include "clsMainCLMonAggregator.hpp"
+#include "monDump.hpp"
 
 using namespace bson ;
 
@@ -128,6 +130,8 @@ namespace engine
          rc = queryOpr.queryOrDoOnCL( pMsg, cb, &pContext,
                                       sendOpt, &queryConf, buf ) ;
          PD_RC_CHECK( rc, PDERROR, "Query failed, rc: %d", rc ) ;
+
+         _cataPtr = queryOpr.getCataPtr() ;
 
          // statistics the result
          rc = generateResult( pContext, cb ) ;
@@ -449,6 +453,170 @@ namespace engine
 
    _coordCMDGetQueryMeta::~_coordCMDGetQueryMeta()
    {
+   }
+
+   /*
+      _coordCMDGetCollectionDetail implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDGetCollectionDetail,
+                                      CMD_NAME_GET_CL_DETAIL,
+                                      TRUE ) ;
+   _coordCMDGetCollectionDetail::_coordCMDGetCollectionDetail()
+   {
+   }
+
+   _coordCMDGetCollectionDetail::~_coordCMDGetCollectionDetail()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_GET_CL_DETAIL_GENRESULT, "_coordCMDGetCollectionDetail::generateResult" )
+   INT32 _coordCMDGetCollectionDetail::generateResult( rtnContext * pContext,
+                                                       pmdEDUCB * cb )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( COORD_GET_CL_DETAIL_GENRESULT ) ;
+
+      ossPoolMap< ossPoolString, clsMainCLMonInfo* > groupName2MainCLInfo ;
+      ossPoolMap< ossPoolString, clsMainCLMonInfo* >::iterator iter ;
+      ossPoolMap< ossPoolString, ossPoolString > groupName2NodeName ;
+      ossPoolMap< ossPoolString, ossPoolString >::iterator nameIter ;
+
+      clsMainCLMonInfo *pNewInfo = NULL ;
+      BSONObjBuilder builder ;
+
+      try
+      {
+         rtnContextBuf buffObj ;
+         CHAR clFullName[ DMS_COLLECTION_FULL_NAME_SZ ] = { 0 } ;
+         CHAR *separator = NULL ;
+
+         if ( !_cataPtr->isMainCL() )
+         {
+            rc = SDB_OK ;
+            goto done ;
+         }
+
+         // Aggregate the main collection detail. One group one record.
+         while ( TRUE )
+         {
+            rc = pContext->getMore( 1, buffObj, cb ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to get more detail, rc: %d", rc ) ;
+
+            BSONObj boTmp( buffObj.data() ) ;
+            BSONObj boDetails = boTmp.getField( FIELD_NAME_DETAILS ).Obj() ;
+            ossPoolString groupName ;
+            ossPoolString nodeName ;
+
+            monCollection subMonCL ;
+            BSONObjIterator it( boDetails ) ;
+            INT32 i = 0 ;
+            while ( it.more() )
+            {
+               BSONObj obj = it.next().embeddedObject() ;
+               groupName = obj.getField( FIELD_NAME_GROUPNAME ).valuestrsafe() ;
+               nodeName = obj.getField( FIELD_NAME_NODE_NAME ).valuestrsafe() ;
+               detailedInfo info ;
+               rc = monDetailObj2Info( obj, info ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to convert detail BSON to struct, rc: %d", rc );
+               subMonCL._details[i] = info ;
+               ++i ;
+            }
+
+            iter = groupName2MainCLInfo.find( groupName ) ;
+            if ( iter == groupName2MainCLInfo.end() )
+            {
+               pNewInfo = SDB_OSS_NEW clsMainCLMonInfo( _cataPtr->getCatalogSet(), 0 ) ;
+               if ( NULL == pNewInfo )
+               {
+                  rc = SDB_OOM ;
+                  PD_RC_CHECK( rc, PDERROR, "No memory to store main cl info" ) ;
+               }
+               pNewInfo->append( subMonCL ) ;
+               groupName2NodeName[ groupName ] = nodeName ;
+               groupName2MainCLInfo[ groupName ] = pNewInfo ;
+               pNewInfo = NULL ;
+            }
+            else
+            {
+               iter->second->append( subMonCL ) ;
+            }
+         }
+
+         ossStrcpy( clFullName, _cataPtr->getName() ) ;
+         separator = ossStrchr( clFullName, '.' ) ;
+
+         for ( iter = groupName2MainCLInfo.begin() ;
+               iter != groupName2MainCLInfo.end() ;
+               ++iter )
+         {
+            builder.reset() ;
+            builder.append( FIELD_NAME_NAME, clFullName ) ;
+            builder.append( FIELD_NAME_UNIQUEID, (INT64) _cataPtr->clUniqueID() ) ;
+
+            *separator = '\0' ;
+            builder.append( FIELD_NAME_COLLECTIONSPACE, clFullName ) ;
+            *separator = '.' ;
+
+            BSONArrayBuilder subBuilder(
+                  builder.subarrayStart( FIELD_NAME_DETAILS ) ) ;
+            monCollection mainMonCL ;
+            iter->second->get( mainMonCL ) ;
+            MON_CL_DETAIL_MAP::iterator monIt = mainMonCL._details.begin() ;
+            nameIter = groupName2NodeName.find( iter->first ) ;
+
+            while ( monIt != mainMonCL._details.end() )
+            {
+               BSONObjBuilder detailBuilder( subBuilder.subobjStart() ) ;
+               // append location info
+               detailBuilder.append( FIELD_NAME_NODE_NAME, nameIter->second ) ;
+               detailBuilder.append( FIELD_NAME_GROUPNAME, nameIter->first ) ;
+               // details
+               rc = monDetailInfo2Obj( monIt->second, monIt->first, detailBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to convert cl detail to BSON "
+                            "object, rc: %d", rc ) ;
+               detailBuilder.done() ;
+               ++monIt ;
+            }
+            subBuilder.done() ;
+
+            rc = pContext->append( builder.done() ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to append cl detail to context, rc: %d", rc ) ;
+         }
+      }
+      catch ( std::bad_alloc &ba )
+      {
+         rc = SDB_OOM ;
+         PD_RC_CHECK( rc, PDERROR, "Out of memory when generating result" ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to generate detail result. "
+                      "Occured unexpected error:%s", e.what() ) ;
+      }
+
+   done:
+      if ( pNewInfo )
+      {
+         SDB_OSS_DEL pNewInfo ;
+      }
+      for ( iter = groupName2MainCLInfo.begin() ;
+            iter != groupName2MainCLInfo.end() ;
+            ++iter )
+      {
+         SDB_OSS_DEL iter->second ;
+      }
+      PD_TRACE_EXITRC ( COORD_GET_CL_DETAIL_GENRESULT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
 }

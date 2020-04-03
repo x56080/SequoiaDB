@@ -3481,6 +3481,7 @@ namespace engine
       case CMD_GET_COUNT:
       case CMD_GET_INDEXES:
       case CMD_LIST_LOB:
+      case CMD_GET_CL_DETAIL:
          rc = _getOnMainCL( pCommandName, pCommand->collectionFullName(),
                             flags, numToSkip, numToReturn, pQuery, pField,
                             pOrderBy, pHint, w, contextID );

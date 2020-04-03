@@ -3296,6 +3296,17 @@ SDB_EXPORT INT32 sdbDropAutoIncrement( sdbCollectionHandle cHandle,
 SDB_EXPORT INT32 sdbCLSetAttributes ( sdbCollectionHandle cHandle,
                                                const bson *options ) ;
 
+/** \fn INT32 sdbCLGetDetail ( sdbCollectionHandle cHandle,
+                               sdbCursorHandle *handle )
+    \brief Get the detail of the collection.
+    \param [in] cHandle The collection handle
+    \param [out] handle Return the all the info of current collection.
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbCLGetDetail ( sdbCollectionHandle cHandle,
+                                  sdbCursorHandle *handle ) ;
+
 /* \fn INT32 sdbPop( sdbCollectionHandle cHandle, bson *options )
     \brief pop records from capped collection
     \param [in] cHandle The handle of connection

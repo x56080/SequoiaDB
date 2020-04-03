@@ -2537,6 +2537,12 @@
                            "en": "findOne()"
                         },
                         {
+                           "id": 1586250289,
+                           "file": "getDetail",
+                           "cn": "getDetail()",
+                           "en": "getDetail()"
+                        },
+                        {
                            "id": 1432190837,
                            "file": "getIndex",
                            "cn": "getIndex()",

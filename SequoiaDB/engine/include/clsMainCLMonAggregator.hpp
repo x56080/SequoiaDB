@@ -73,6 +73,7 @@ namespace engine
          UINT32         _totalSubCLCount ;
          UINT32         _doneSubCLCount ;
    } ;
+   typedef _clsMainCLMonInfo clsMainCLMonInfo ;
 
 
 

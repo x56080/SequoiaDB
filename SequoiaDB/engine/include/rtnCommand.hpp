@@ -780,6 +780,18 @@ namespace engine
 
    } ;
 
+   class _rtnGetCollectionDetail : public _rtnGet
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnGetCollectionDetail () ;
+         virtual ~_rtnGetCollectionDetail () ;
+
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+   };
+
    /*
       Only in standalone
    */

@@ -3044,6 +3044,31 @@ namespace engine
       return rc ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DUMP_CL_INFO, "_dmsStorageUnit::dumpCLInfo" )
+   INT32 _dmsStorageUnit::dumpCLInfo ( const CHAR *collectionName,
+                                       monCollection &info )
+   {
+      PD_TRACE_ENTRY ( SDB__DMSSU_DUMP_CL_INFO ) ;
+      INT32 rc = SDB_OK ;
+      dmsStorageData::COLNAME_MAP_IT it ;
+      ossScopedLock lock( &_pDataSu->_metadataLatch, SHARED ) ;
+      it = _pDataSu->_collectionNameMap.find( collectionName ) ;
+      if ( _pDataSu->_collectionNameMap.end() == it )
+      {
+         rc = SDB_DMS_NOTEXIST ;
+         goto error ;
+      }
+      rc = _dumpCLInfo( info, it->second ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to dump collection info, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC ( SDB__DMSSU_DUMP_CL_INFO, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_TOTALSIZE, "_dmsStorageUnit::totalSize" )
    INT64 _dmsStorageUnit::totalSize( UINT32 type ) const
    {

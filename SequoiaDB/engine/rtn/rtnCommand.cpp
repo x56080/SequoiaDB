@@ -1610,6 +1610,25 @@ namespace engine
       goto done ;
    }
 
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnGetCollectionDetail)
+   _rtnGetCollectionDetail::_rtnGetCollectionDetail ()
+   {
+   }
+
+   _rtnGetCollectionDetail::~_rtnGetCollectionDetail ()
+   {
+   }
+
+   const CHAR *_rtnGetCollectionDetail::name ()
+   {
+      return NAME_GET_CL_DETAIL ;
+   }
+
+   RTN_COMMAND_TYPE _rtnGetCollectionDetail::type ()
+   {
+      return CMD_GET_CL_DETAIL ;
+   }
+
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnRenameCollection)
    _rtnRenameCollection::_rtnRenameCollection ()
       :_clShortName ( NULL ), _newCLShortName ( NULL ), _csName( NULL )

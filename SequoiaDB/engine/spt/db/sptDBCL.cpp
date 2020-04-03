@@ -84,6 +84,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, enableCompression )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, disableCompression )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, setAttributes )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, getDetail )
 
    JS_BEGIN_MAPPING( _sptDBCL, SPT_CL_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
@@ -124,6 +125,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "disableCompression", disableCompression )
       JS_ADD_MEMBER_FUNC( "setAttributes", setAttributes )
       JS_ADD_MEMBER_FUNC( "truncateLob", truncateLob )
+      JS_ADD_MEMBER_FUNC( "getDetail", getDetail )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBCL::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBCL::fmpToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBCL::bsonToJSObj )
@@ -2444,6 +2446,26 @@ namespace engine
    done:
       return rc ;
    error:
+      goto done ;
+   }
+
+   INT32 _sptDBCL::getDetail( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      _sdbCursor *pCursor = NULL ;
+      rc = _cl.getDetail( &pCursor ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get detail" ) ;
+         goto error ;
+      }
+      SPT_SET_CURSOR_TO_RETURNVAL( pCursor ) ;
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( pCursor ) ;
       goto done ;
    }
 

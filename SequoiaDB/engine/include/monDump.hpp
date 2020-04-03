@@ -123,6 +123,15 @@ namespace engine
 
    INT32 monParseArchiveOpt ( const BSONObj &obj , BOOLEAN &archiveOpt ) ;
 
+   INT32 monDetailObj2Info( const BSONObj &obj, detailedInfo &info ) ;
+
+   INT32 monDetailInfo2Obj( const detailedInfo &info,
+                            INT32 sequence,
+                            BSONObjBuilder &ob ) ;
+
+   INT32 monCollection2Obj ( const monCollection &full, UINT32 addInfoMask,
+                             BSONObjBuilder &ob ) ;
+
    /*
       _monTransFetcher define
    */

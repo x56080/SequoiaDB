@@ -678,6 +678,7 @@
 #define CMD_NAME_UPDATE_CONFIG               "update config"
 #define CMD_NAME_DELETE_CONFIG               "delete config"
 #define CMD_NAME_ANALYZE                     "analyze"
+#define CMD_NAME_GET_CL_DETAIL               "get collection detail"
 
 #define CMD_NAME_SNAPSHOT_DATABASE_INTR      "SNAPSHOT_DB"
 #define CMD_NAME_SNAPSHOT_SYSTEM_INTR        "SNAPSHOT_SYSTEM"

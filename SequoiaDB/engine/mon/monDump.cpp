@@ -881,52 +881,53 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDMSCOLLECTIONFLAGTOSTRING, "monDMSCollectionFlagToString" )
-   void monDMSCollectionFlagToString ( UINT16 flag, std::string &out )
+   const CHAR *monDMSCollectionFlagToString ( UINT16 flag )
    {
       PD_TRACE_ENTRY ( SDB_MONDMSCOLLECTIONFLAGTOSTRING ) ;
       PD_TRACE1 ( SDB_MONDMSCOLLECTIONFLAGTOSTRING, PD_PACK_USHORT(flag) ) ;
+      const CHAR *str = NULL ;
       // free flag is 0x0000
       if ( DMS_IS_MB_FREE(flag) )
       {
-         out = "Free" ;
+         str = "Free" ;
          goto done ;
       }
       // normal flag is 0x0001
       if ( DMS_IS_MB_NORMAL(flag) )
       {
-         out = "Normal" ;
+         str = "Normal" ;
          goto done ;
       }
       // drop flag is 0x0002
       if ( DMS_IS_MB_DROPPED(flag) )
       {
-         out = "Dropped" ;
+         str = "Dropped" ;
          goto done ;
       }
       // reorg
       if ( DMS_IS_MB_OFFLINE_REORG_SHADOW_COPY(flag) )
       {
-         out = "Offline Reorg Shadow Copy Phase" ;
+         str = "Offline Reorg Shadow Copy Phase" ;
          goto done ;
       }
       if ( DMS_IS_MB_OFFLINE_REORG_TRUNCATE(flag) )
       {
-         out = "Offline Reorg Truncate Phase" ;
+         str = "Offline Reorg Truncate Phase" ;
          goto done ;
       }
       if ( DMS_IS_MB_OFFLINE_REORG_COPY_BACK(flag) )
       {
-         out = "Offline Reorg Copy Back Phase" ;
+         str = "Offline Reorg Copy Back Phase" ;
          goto done ;
       }
       if ( DMS_IS_MB_OFFLINE_REORG_REBUILD(flag) )
       {
-         out = "Offline Reorg Rebuild Phase" ;
+         str = "Offline Reorg Rebuild Phase" ;
          goto done ;
       }
    done :
       PD_TRACE_EXIT ( SDB_MONDMSCOLLECTIONFLAGTOSTRING ) ;
-      return ;
+      return str ;
    }
 
    // dump information for all collections
@@ -1590,119 +1591,334 @@ namespace engine
       return rc ;
    }
 
-   void  monCollection2Obj ( const monCollection &full, UINT32 addInfoMask,
-                             BSONObjBuilder &ob )
+   INT32 monDetailObj2Info( const BSONObj &obj, detailedInfo &info )
    {
-       MON_CL_DETAIL_MAP::const_iterator itDetail ;
-      /// add name & space name
-      ob.append ( FIELD_NAME_NAME, full._name ) ;
-      ob.append ( FIELD_NAME_UNIQUEID, (INT64)full._clUniqueID ) ;
-      const CHAR *pDot = ossStrchr( full._name, '.' ) ;
-      if ( pDot )
+      INT32 rc = SDB_OK ;
+      BSONElement ele ;
+      try
       {
-         ob.appendStrWithNoTerminating ( FIELD_NAME_COLLECTIONSPACE,
-                                         full._name,
-                                         pDot - full._name ) ;
-      }
-      /// add detial
-      BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_DETAILS ) ) ;
-      for ( itDetail = full._details.begin() ;
-            itDetail != full._details.end() ;
-            ++itDetail )
-      {
-         const detailedInfo &detail = itDetail->second ;
-         BSONObjBuilder sub( ba.subobjStart() ) ;
-
-         UINT16 flag = detail._flag ;
-         std::string status = "" ;
-         CHAR tmp[ MON_TMP_STR_SZ + 1 ] = { 0 } ;
-         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
-
-         /// add system info
-         monAppendSystemInfo( sub, addInfoMask ) ;
-
-         sub.append ( FIELD_NAME_ID, detail._blockID ) ;
-         sub.append ( FIELD_NAME_LOGICAL_ID, detail._logicID ) ;
-         sub.append ( FIELD_NAME_SEQUENCE, (INT32)itDetail->first ) ;
-         sub.append ( FIELD_NAME_INDEXES, detail._numIndexes ) ;
-         monDMSCollectionFlagToString ( flag, status ) ;
-         sub.append ( FIELD_NAME_STATUS, status ) ;
-         mbAttr2String( detail._attribute, tmp, MON_TMP_STR_SZ ) ;
-         sub.append ( FIELD_NAME_ATTRIBUTE, tmp ) ;
-         if ( OSS_BIT_TEST( detail._attribute, DMS_MB_ATTR_COMPRESSED ) )
+         BSONObjIterator iter( obj ) ;
+         while ( iter.more() )
          {
-            sub.append ( FIELD_NAME_COMPRESSIONTYPE,
-                         utilCompressType2String( detail._compressType ) ) ;
+            ele = iter.next() ;
+            if (0 == ossStrcmp( ele.fieldName(),
+                                FIELD_NAME_PAGE_SIZE ))
+            {
+               info._pageSize = ele.Int() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_LOB_PAGE_SIZE ))
+            {
+               info._lobPageSize = ele.Int() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_RECORDS ))
+            {
+               info._totalRecords = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_LOBS ))
+            {
+               info._totalLobs = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_DATA_PAGES ))
+            {
+               info._totalDataPages = ele.Int() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_INDEX_PAGES ))
+            {
+               info._totalIndexPages = ele.Int() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_LOB_PAGES ))
+            {
+               info._totalLobPages = ele.Int() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_DATA_FREESPACE ))
+            {
+               info._totalDataFreeSpace = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTAL_INDEX_FREESPACE ))
+            {
+               info._totalIndexFreeSpace = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALDATAREAD ))
+            {
+               info._crudCB._totalDataRead = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALINDEXREAD ))
+            {
+               info._crudCB._totalIndexRead = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALDATAWRITE ))
+            {
+               info._crudCB._totalDataWrite = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALINDEXWRITE ))
+            {
+               info._crudCB._totalIndexWrite = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALUPDATE ))
+            {
+               info._crudCB._totalUpdate = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALDELETE ))
+            {
+               info._crudCB._totalDelete = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALINSERT ))
+            {
+               info._crudCB._totalInsert = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALSELECT ))
+            {
+               info._crudCB._totalSelect = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALREAD ))
+            {
+               info._crudCB._totalRead = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALWRITE ))
+            {
+               info._crudCB._totalWrite = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALTBSCAN ))
+            {
+               info._crudCB._totalTbScan = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_TOTALIXSCAN ))
+            {
+               info._crudCB._totalIxScan = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_INDEXES ))
+            {
+               info._numIndexes = ele.Int() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_DATA_COMMITTED ))
+            {
+               info._dataIsValid = ele.Bool() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_IDX_COMMITTED ))
+            {
+               info._idxIsValid = ele.Bool() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_LOB_COMMITTED ))
+            {
+               info._lobIsValid = ele.Bool() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_DICT_CREATED ))
+            {
+               info._dictCreated = ele.Bool() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_CURR_COMPRESS_RATIO ))
+            {
+               info._currCompressRatio = (UINT32)(ele.Double() * 100.0) ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_ID ))
+            {
+               info._blockID = (UINT16) ele.Int() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_LOGICAL_ID ))
+            {
+               info._logicID = ele.Int() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_DATA_COMMIT_LSN ))
+            {
+               info._dataCommitLSN = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_IDX_COMMIT_LSN ))
+            {
+               info._idxCommitLSN = ele.Long() ;
+            }
+            else if (0 == ossStrcmp( ele.fieldName(),
+                                     FIELD_NAME_LOB_COMMIT_LSN ))
+            {
+               info._lobCommitLSN = ele.Long() ;
+            }
+            // ignore _flag _attribute _dictVersion _compressType _maxGlobTransID
+         }
+      }
+      catch ( bson::assertion &ba )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Failed to parse detail bson object. "
+                 "Field[%s] has a wrong type. Detail: %s",
+                 ele.fieldName(), ba.what() ) ;
+      }
+      return rc ;
+   }
+
+   INT32 monDetailInfo2Obj( const detailedInfo &info,
+                           INT32 sequence,
+                           BSONObjBuilder &ob )
+   {
+      INT32 rc = SDB_OK ;
+      UINT16 flag = info._flag ;
+      CHAR tmp[ MON_TMP_STR_SZ + 1 ] = { 0 } ;
+      CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+      try
+      {
+         ob.append ( FIELD_NAME_ID, info._blockID ) ;
+         ob.append ( FIELD_NAME_LOGICAL_ID, info._logicID ) ;
+         ob.append ( FIELD_NAME_SEQUENCE, sequence ) ;
+         ob.append ( FIELD_NAME_INDEXES, info._numIndexes ) ;
+         ob.append ( FIELD_NAME_STATUS, monDMSCollectionFlagToString ( flag ) ) ;
+         mbAttr2String( info._attribute, tmp, MON_TMP_STR_SZ ) ;
+         ob.append ( FIELD_NAME_ATTRIBUTE, tmp ) ;
+         if ( OSS_BIT_TEST( info._attribute, DMS_MB_ATTR_COMPRESSED ) )
+         {
+            ob.append ( FIELD_NAME_COMPRESSIONTYPE,
+                        utilCompressType2String( info._compressType ) ) ;
          }
          else
          {
-            sub.append ( FIELD_NAME_COMPRESSIONTYPE, "" ) ;
+            ob.append ( FIELD_NAME_COMPRESSIONTYPE, "" ) ;
          }
-         sub.appendBool( FIELD_NAME_DICT_CREATED, detail._dictCreated ) ;
-         sub.append( FIELD_NAME_DICT_VERSION, detail._dictVersion ) ;
-         sub.append ( FIELD_NAME_PAGE_SIZE, detail._pageSize ) ;
-         sub.append ( FIELD_NAME_LOB_PAGE_SIZE, detail._lobPageSize ) ;
+         ob.appendBool( FIELD_NAME_DICT_CREATED, info._dictCreated ) ;
+         ob.append( FIELD_NAME_DICT_VERSION, info._dictVersion ) ;
+         ob.append ( FIELD_NAME_PAGE_SIZE, info._pageSize ) ;
+         ob.append ( FIELD_NAME_LOB_PAGE_SIZE, info._lobPageSize ) ;
 
          /// stat info
-         sub.append ( FIELD_NAME_TOTAL_RECORDS,
-                      (long long)(detail._totalRecords )) ;
-         sub.append ( FIELD_NAME_TOTAL_LOBS,
-                      (long long)(detail._totalLobs) ) ;
-         sub.append ( FIELD_NAME_TOTAL_DATA_PAGES,
-                      detail._totalDataPages ) ;
-         sub.append ( FIELD_NAME_TOTAL_INDEX_PAGES,
-                      detail._totalIndexPages ) ;
-         sub.append ( FIELD_NAME_TOTAL_LOB_PAGES,
-                      detail._totalLobPages ) ;
-         sub.append ( FIELD_NAME_TOTAL_DATA_FREESPACE,
-                      (long long)(detail._totalDataFreeSpace )) ;
-         sub.append ( FIELD_NAME_TOTAL_INDEX_FREESPACE,
-                      (long long)(detail._totalIndexFreeSpace )) ;
-         sub.append ( FIELD_NAME_CURR_COMPRESS_RATIO,
-                      (FLOAT64)detail._currCompressRatio / 100.0 ) ;
+         ob.append ( FIELD_NAME_TOTAL_RECORDS,
+                     (long long)(info._totalRecords )) ;
+         ob.append ( FIELD_NAME_TOTAL_LOBS,
+                     (long long)(info._totalLobs) ) ;
+         ob.append ( FIELD_NAME_TOTAL_DATA_PAGES,
+                     info._totalDataPages ) ;
+         ob.append ( FIELD_NAME_TOTAL_INDEX_PAGES,
+                     info._totalIndexPages ) ;
+         ob.append ( FIELD_NAME_TOTAL_LOB_PAGES,
+                     info._totalLobPages ) ;
+         ob.append ( FIELD_NAME_TOTAL_DATA_FREESPACE,
+                     (long long)(info._totalDataFreeSpace )) ;
+         ob.append ( FIELD_NAME_TOTAL_INDEX_FREESPACE,
+                     (long long)(info._totalIndexFreeSpace )) ;
+         ob.append ( FIELD_NAME_CURR_COMPRESS_RATIO,
+                     (FLOAT64)info._currCompressRatio / 100.0 ) ;
 
          /// sync info
-         sub.append ( FIELD_NAME_DATA_COMMIT_LSN, (INT64)detail._dataCommitLSN ) ;
-         sub.append ( FIELD_NAME_IDX_COMMIT_LSN, (INT64)detail._idxCommitLSN ) ;
-         sub.append ( FIELD_NAME_LOB_COMMIT_LSN, (INT64)detail._lobCommitLSN ) ;
-         sub.appendBool ( FIELD_NAME_DATA_COMMITTED, detail._dataIsValid ) ;
-         sub.appendBool ( FIELD_NAME_IDX_COMMITTED, detail._idxIsValid ) ;
-         sub.appendBool ( FIELD_NAME_LOB_COMMITTED, detail._lobIsValid ) ;
+         ob.append ( FIELD_NAME_DATA_COMMIT_LSN, (INT64)info._dataCommitLSN ) ;
+         ob.append ( FIELD_NAME_IDX_COMMIT_LSN, (INT64)info._idxCommitLSN ) ;
+         ob.append ( FIELD_NAME_LOB_COMMIT_LSN, (INT64)info._lobCommitLSN ) ;
+         ob.appendBool ( FIELD_NAME_DATA_COMMITTED, info._dataIsValid ) ;
+         ob.appendBool ( FIELD_NAME_IDX_COMMITTED, info._idxIsValid ) ;
+         ob.appendBool ( FIELD_NAME_LOB_COMMITTED, info._lobIsValid ) ;
          // TODO: enble it after enable
-         //sub.append ( FIELD_NAME_MAX_GTID, (INT64)detail._maxGlobTransID ) ;
+         //ob.append ( FIELD_NAME_MAX_GTID, (INT64)info._maxGlobTransID ) ;
 
          /// CRUD statistics
-         sub.append( FIELD_NAME_TOTALDATAREAD,
-                     (INT64)detail._crudCB._totalDataRead ) ;
-         sub.append( FIELD_NAME_TOTALINDEXREAD,
-                     (INT64)detail._crudCB._totalIndexRead ) ;
-         sub.append( FIELD_NAME_TOTALDATAWRITE,
-                     (INT64)detail._crudCB._totalDataWrite ) ;
-         sub.append( FIELD_NAME_TOTALINDEXWRITE,
-                     (INT64)detail._crudCB._totalIndexWrite ) ;
-         sub.append( FIELD_NAME_TOTALUPDATE,
-                     (INT64)detail._crudCB._totalUpdate ) ;
-         sub.append( FIELD_NAME_TOTALDELETE,
-                     (INT64)detail._crudCB._totalDelete ) ;
-         sub.append( FIELD_NAME_TOTALINSERT,
-                     (INT64)detail._crudCB._totalInsert ) ;
-         sub.append( FIELD_NAME_TOTALSELECT,
-                     (INT64)detail._crudCB._totalSelect ) ;
-         sub.append( FIELD_NAME_TOTALREAD,
-                     (INT64)detail._crudCB._totalRead ) ;
-         sub.append( FIELD_NAME_TOTALWRITE,
-                     (INT64)detail._crudCB._totalWrite ) ;
-         sub.append( FIELD_NAME_TOTALTBSCAN,
-                     (INT64)detail._crudCB._totalTbScan ) ;
-         sub.append( FIELD_NAME_TOTALIXSCAN,
-                     (INT64)detail._crudCB._totalIxScan ) ;
-         ossTimestamp resetTimestamp =  detail._crudCB._resetTimestamp ;
+         ob.append( FIELD_NAME_TOTALDATAREAD,
+                    (INT64)info._crudCB._totalDataRead ) ;
+         ob.append( FIELD_NAME_TOTALINDEXREAD,
+                    (INT64)info._crudCB._totalIndexRead ) ;
+         ob.append( FIELD_NAME_TOTALDATAWRITE,
+                    (INT64)info._crudCB._totalDataWrite ) ;
+         ob.append( FIELD_NAME_TOTALINDEXWRITE,
+                     (INT64)info._crudCB._totalIndexWrite ) ;
+         ob.append( FIELD_NAME_TOTALUPDATE,
+                    (INT64)info._crudCB._totalUpdate ) ;
+         ob.append( FIELD_NAME_TOTALDELETE,
+                    (INT64)info._crudCB._totalDelete ) ;
+         ob.append( FIELD_NAME_TOTALINSERT,
+                    (INT64)info._crudCB._totalInsert ) ;
+         ob.append( FIELD_NAME_TOTALSELECT,
+                    (INT64)info._crudCB._totalSelect ) ;
+         ob.append( FIELD_NAME_TOTALREAD,
+                    (INT64)info._crudCB._totalRead ) ;
+         ob.append( FIELD_NAME_TOTALWRITE,
+                    (INT64)info._crudCB._totalWrite ) ;
+         ob.append( FIELD_NAME_TOTALTBSCAN,
+                    (INT64)info._crudCB._totalTbScan ) ;
+         ob.append( FIELD_NAME_TOTALIXSCAN,
+                    (INT64)info._crudCB._totalIxScan ) ;
+         ossTimestamp resetTimestamp =  info._crudCB._resetTimestamp ;
          ossTimestampToString( resetTimestamp, timestamp ) ;
-         sub.append( FIELD_NAME_RESETTIMESTAMP, timestamp ) ;
-
-         sub.done() ;
+         ob.append( FIELD_NAME_RESETTIMESTAMP, timestamp ) ;
       }
-      ba.done() ;
+      catch ( std::bad_alloc &ba )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "No memory to build BSON object" ) ;
+      }
+      return rc ;
+   }
+
+   INT32 monCollection2Obj ( const monCollection &full, UINT32 addInfoMask,
+                             BSONObjBuilder &ob )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         MON_CL_DETAIL_MAP::const_iterator itDetail ;
+         /// add name & space name
+         ob.append ( FIELD_NAME_NAME, full._name ) ;
+         ob.append ( FIELD_NAME_UNIQUEID, (INT64)full._clUniqueID ) ;
+         const CHAR *pDot = ossStrchr( full._name, '.' ) ;
+         if ( pDot )
+         {
+            ob.appendStrWithNoTerminating ( FIELD_NAME_COLLECTIONSPACE,
+                                            full._name,
+                                            pDot - full._name ) ;
+         }
+         /// add detial
+         BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_DETAILS ) ) ;
+         for ( itDetail = full._details.begin() ;
+               itDetail != full._details.end() ;
+               ++itDetail )
+         {
+            const detailedInfo &detail = itDetail->second ;
+            BSONObjBuilder sub( ba.subobjStart() ) ;
+
+            /// add system info
+            monAppendSystemInfo( sub, addInfoMask ) ;
+            rc = monDetailInfo2Obj( detail, itDetail->first, sub ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to convert detail info to BSON, rc: %d", rc ) ;
+            sub.done() ;
+         }
+         ba.done() ;
+      }
+      catch ( std::bad_alloc &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "No memory to build BSON object" ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Unexcepted exception occurred: %s", e.what() ) ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*
@@ -2583,7 +2799,7 @@ namespace engine
                if ( resFlag & IRtnMonProcessor::FLAG_IGNORE )
                {
                   _collectionInfo.erase( it ) ;
-                  if ( _collectionInfo.empty() && 
+                  if ( _collectionInfo.empty() &&
                        _pDataProcessor->hasDataInProcess() )
                   {
                      _pDataProcessor->outputDataInProcess( _collectionInfo );
@@ -2600,7 +2816,8 @@ namespace engine
             while ( resFlag & IRtnMonProcessor::FLAG_IGNORE ) ;
          }
 
-         monCollection2Obj( *it, _addInfoMask, ob ) ;
+         rc = monCollection2Obj( *it, _addInfoMask, ob ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON obj, rc: %d", rc ) ;
          obj = ob.done() ;
 
          /// remove the current

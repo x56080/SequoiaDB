@@ -3643,6 +3643,44 @@ do                                                            \
       return _alterInternal( SDB_ALTER_CL_SET_ATTR, &options, FALSE ) ;
    }
 
+   INT32 _sdbCollectionImpl::getDetail ( _sdbCursor **cursor )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj obj ;
+
+      if ( '\0' == _collectionFullName[0] || !_connection || !cursor )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      obj = BSON( FIELD_NAME_COLLECTION << _collectionFullName ) ;
+
+      rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_GET_CL_DETAIL,
+                                     NULL, NULL, NULL, &obj,
+                                     0, 0, 0, -1,
+                                     cursor ) ;
+
+      /// ignore update result
+      updateCachedObject( rc, _connection->_getCachedContainer(),
+                          _collectionFullName ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      ((_sdbCursorImpl*)*cursor)->_attachCollection ( this ) ;
+   done:
+      return rc ;
+   error:
+      if ( NULL != *cursor )
+      {
+         delete *cursor ;
+         *cursor = NULL ;
+      }
+      goto done ;
+   }
+
    /*
     * _sdbNodeImpl
     * Sdb Node Implementation

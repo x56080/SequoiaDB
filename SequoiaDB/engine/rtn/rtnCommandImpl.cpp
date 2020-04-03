@@ -404,6 +404,52 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETCOLLECTIONDETAIL, "rtnGetCollectionDetail" )
+   static INT32 rtnGetCollectionDetail( const CHAR *pCollection,
+                                        SDB_DMSCB *dmsCB,
+                                        rtnContextDump *context )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNGETCOLLECTIONDETAIL ) ;
+      SDB_ASSERT ( pCollection, "collection can't be NULL" ) ;
+      SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
+      dmsStorageUnit *su = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_CS ;
+      const CHAR *pCollectionShortName = NULL ;
+      monCollection info ;
+      UINT32 infoMask = MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME ;
+      BSONObjBuilder builder ;
+
+      rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
+                                             &pCollectionShortName, suID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to resolve collection name %s, rc: %d",
+                   pCollection, rc ) ;
+
+      rc = su->dumpCLInfo( pCollectionShortName, info ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to dump collection[%s] info, rc: %d",
+                   pCollectionShortName, rc ) ;
+
+      dmsCB->suUnlock( suID ) ;
+      suID = DMS_INVALID_SUID ;
+
+      rc = monCollection2Obj( info, infoMask, builder ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON object, rc: %d", rc ) ;
+
+      rc = context->monAppend( builder.obj() ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to add object to context, rc: %d", rc ) ;
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_RTNGETCOLLECTIONDETAIL, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    static UINT32 _rtnIndexKeyNodeCount( dmsExtentID extentID,
                                         dmsStorageUnit *su,
                                         UINT32 deep )
@@ -1063,7 +1109,7 @@ namespace engine
                           options.isOrderByEmpty() ? options.getSkip() : 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
 
-      // sample timetamp
+      // sample timestamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          context->getMonCB()->recordStartTimestamp() ;
@@ -1080,6 +1126,9 @@ namespace engine
             break ;
          case CMD_GET_DATABLOCKS :
             rc = rtnGetDatablocks( pCollectionName, dmsCB, cb, context ) ;
+            break ;
+         case CMD_GET_CL_DETAIL :
+            rc = rtnGetCollectionDetail( pCollectionName, dmsCB, context ) ;
             break ;
          default :
             rc = SDB_INVALIDARG ;

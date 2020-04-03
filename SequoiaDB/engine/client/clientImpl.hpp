@@ -552,6 +552,14 @@ namespace sdbclient
 
       INT32 setAttributes ( const bson::BSONObj & options ) ;
 
+      INT32 getDetail ( _sdbCursor **cursor ) ;
+
+      INT32 getDetail ( sdbCursor &cursor )
+      {
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return getDetail ( &cursor.pCursor ) ;
+      }
+
    private:
       INT32 _alterCollection1( const bson::BSONObj &options ) ;
       INT32 _alterCollection2( const bson::BSONObj &options ) ;

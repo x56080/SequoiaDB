@@ -196,6 +196,10 @@ namespace engine
                            _sptReturnVal &rval,
                            bson::BSONObj &detail ) ;
 
+      INT32 getDetail( const _sptArguments &arg,
+                       _sptReturnVal &rval,
+                       bson::BSONObj &detail ) ;
+
       INT32 query( const BSONObj &cond, const BSONObj &sel,
                    const BSONObj &order, const BSONObj &hint,
                    const BSONObj &options, INT32 numToSkip,

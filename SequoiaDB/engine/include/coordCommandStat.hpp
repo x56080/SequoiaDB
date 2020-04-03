@@ -143,6 +143,21 @@ namespace engine
    } ;
    typedef _coordCMDGetQueryMeta coordCMDGetQueryMeta ;
 
+   /*
+      _coordCMDGetCollectionDetail define
+   */
+   class _coordCMDGetCollectionDetail : public _coordCMDStatisticsBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDGetCollectionDetail() ;
+         virtual ~_coordCMDGetCollectionDetail() ;
+      private :
+         virtual INT32 generateResult( rtnContext *pContext,
+                                       pmdEDUCB *cb ) ;
+   } ;
+   typedef _coordCMDGetCollectionDetail coordCMDGetCollectionDetail ;
+
 }
 
 #endif // COORD_COMMAND_STAT_HPP__

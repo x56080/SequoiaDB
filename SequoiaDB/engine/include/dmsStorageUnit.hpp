@@ -371,6 +371,9 @@ namespace engine
          INT32    dumpInfo ( monCollectionSpace &collectionSpace,
                              BOOLEAN sys = FALSE ) ;
 
+         INT32    dumpCLInfo ( const CHAR *collectionName,
+                               monCollection &info ) ;
+
          INT32    getSegExtents ( const CHAR *pName,
                                   vector< dmsExtentID > &segExtents,
                                   dmsMBContext *context = NULL ) ;
