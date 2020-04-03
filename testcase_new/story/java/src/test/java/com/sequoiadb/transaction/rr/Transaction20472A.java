@@ -3,7 +3,6 @@ package com.sequoiadb.transaction.rr;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
@@ -20,7 +19,8 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
@@ -36,7 +36,6 @@ public class Transaction20472A extends SdbTestBase {
     private String clName = "cl20472A";
     private String idxName = "idx20472A";
     private DBCollection cl = null;
-    private CountDownLatch latch = null;
     private String indexKey = null;
     private int insertNum = 100;
     private int loopNum = 1000;
@@ -67,28 +66,15 @@ public class Transaction20472A extends SdbTestBase {
     }
 
     @Test(dataProvider = "index")
-    public void test( String indexKey ) throws InterruptedException {
-        latch = new CountDownLatch( 3 );
+    public void test( String indexKey ) throws Exception {
         this.indexKey = indexKey;
 
         // 开启 3 个并发事务
-        UpdateThread updateThread = new UpdateThread();
-        updateThread.start();
-
-        QueryThread queryThread = new QueryThread();
-        queryThread.start();
-
-        DropIndexThread dropIndexThread = new DropIndexThread();
-        dropIndexThread.start();
-
-        // 判断事务是否正确返回
-        Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
-        Assert.assertTrue( updateThread.isSuccess(),
-                updateThread.getErrorMsg() );
-        Assert.assertTrue( dropIndexThread.isSuccess(),
-                dropIndexThread.getErrorMsg() );
-
-        latch.await();
+        ThreadExecutor threadExecutor = new ThreadExecutor( 3600000 );
+        threadExecutor.addWorker( new UpdateThread() );
+        threadExecutor.addWorker( new QueryThread() );
+        threadExecutor.addWorker( new DropIndexThread() );
+        threadExecutor.run();
     }
 
     private void insertData() {
@@ -101,11 +87,11 @@ public class Transaction20472A extends SdbTestBase {
         cl.insert( records );
     }
 
-    class UpdateThread extends SdbThreadBase {
+    private class UpdateThread {
         private Sequoiadb db = CommLib.getRandomSequoiadb();
 
-        @Override
-        public void exec() throws Exception {
+        @ExecuteOrder(step = 1, desc = "转账")
+        private void update() {
             try {
                 for ( int i = 0; i < loopNum * 3; i++ ) {
                     System.out.println( "update times:" + i );
@@ -144,17 +130,16 @@ public class Transaction20472A extends SdbTestBase {
             } finally {
                 db.commit();
                 db.close();
-                latch.countDown();
                 System.out.println( "udpate thread end" + new Date() );
             }
         }
     }
 
-    class QueryThread extends SdbThreadBase {
+    private class QueryThread {
         private Sequoiadb db = CommLib.getRandomSequoiadb();
 
-        @Override
-        public void exec() throws Exception {
+        @ExecuteOrder(step = 1, desc = "查询记录总账")
+        private void query() throws Exception {
             try {
                 for ( int i = 0; i < loopNum * 3; i++ ) {
                     System.out.println( "query times:" + i );
@@ -211,17 +196,16 @@ public class Transaction20472A extends SdbTestBase {
                 db.commit();
                 db.closeAllCursors();
                 db.close();
-                latch.countDown();
                 System.out.println( "query thread end" + new Date() );
             }
         }
     }
 
-    class DropIndexThread extends SdbThreadBase {
+    private class DropIndexThread {
         private Sequoiadb db = CommLib.getRandomSequoiadb();
 
-        @Override
-        public void exec() throws Exception {
+        @ExecuteOrder(step = 1, desc = "删除索引")
+        private void dropIndex() {
             try {
                 for ( int i = 0; i < loopNum * 3; i++ ) {
                     System.out.println( "drop and create index:" + i );
@@ -236,7 +220,6 @@ public class Transaction20472A extends SdbTestBase {
             } finally {
                 db.commit();
                 db.close();
-                latch.countDown();
                 System.out
                         .println( "create drop index thread end" + new Date() );
             }
