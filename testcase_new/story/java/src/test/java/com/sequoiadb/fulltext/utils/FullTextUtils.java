@@ -576,6 +576,8 @@ public class FullTextUtils {
                 }
             } else {
                 BSONObject indexInfo = masterCL.getIndexInfo( indexName );
+                indexInfo.removeField( "CreateTime" );
+                indexInfo.removeField( "RebuildTime" );
                 for ( String nodeName : nodeNames ) {
                     if ( masterNode.getNodeName().equals( nodeName ) ) {
                         continue;
@@ -593,6 +595,8 @@ public class FullTextUtils {
                     }
                     BSONObject checkIndexInfo = nodeCL
                             .getIndexInfo( indexName );
+                    checkIndexInfo.removeField( "CreateTime" );
+                    checkIndexInfo.removeField( "RebuildTime" );
                     if ( !indexInfo.equals( checkIndexInfo ) ) {
                         throw new Exception( cl.getFullName()
                                 + " the index info is different, masterNode "
