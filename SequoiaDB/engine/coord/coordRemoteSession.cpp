@@ -639,8 +639,10 @@ namespace engine
          goto error ;
       }
 
-      _pos = _calcBeginPos( groupItem, _pPropSite->getInstanceOption(),
-                            ossRand() ) ;
+      rc = _calcBeginPos( groupItem, _pPropSite->getInstanceOption(),
+                          ossRand(), _pos ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to calculate begin position for "
+                   "group [%u], rc: %d", groupID, rc ) ;
       if ( _pos < 0 )
       {
          rc = SDB_CLS_NODE_NOT_EXIST ;
@@ -700,18 +702,24 @@ namespace engine
 
    INT32 _coordGroupSel::_calcBeginPos( clsGroupItem *pGroupItem,
                                         const rtnInstanceOption & instanceOption,
-                                        UINT32 random )
+                                        UINT32 random,
+                                        INT32 &pos )
    {
-      UINT32 pos = 0 ;
+      INT32 rc = SDB_OK ;
+
       BOOLEAN selected = FALSE ;
       UINT32 primaryPos = pGroupItem->getPrimaryPos() ;
+
+      pos = 0 ;
 
       if ( instanceOption.hasCommonInstance() )
       {
          const VEC_NODE_INFO * nodes = pGroupItem->getNodes() ;
          SDB_ASSERT( NULL != nodes, "node list is invalid" ) ;
-         _selectPositions( *nodes, primaryPos, instanceOption, random,
-                           _selectedPositions ) ;
+         rc = _selectPositions( *nodes, primaryPos, instanceOption, random,
+                                _selectedPositions ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to select position for group [%u], "
+                      "rc: %d", pGroupItem->groupID(), rc ) ;
 
          if ( !_selectedPositions.empty() )
          {
@@ -725,6 +733,21 @@ namespace engine
             selected = TRUE ;
          }
       }
+      else if ( instanceOption.isSlavePerferred() )
+      {
+         const VEC_NODE_INFO * nodes = pGroupItem->getNodes() ;
+         SDB_ASSERT( NULL != nodes, "node list is invalid" ) ;
+         rc = _selectSlavePreferred( *nodes, primaryPos, _selectedPositions ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to select slave position for "
+                      "group [%u], rc: %d", pGroupItem->groupID(), rc ) ;
+
+         if ( !_selectedPositions.empty() )
+         {
+            pos = _selectedPositions.front() ;
+            _selectedPositions.pop_front() ;
+            selected = TRUE ;
+         }
+      }
 
       if ( !selected )
       {
@@ -735,11 +758,11 @@ namespace engine
             case PREFER_INSTANCE_TYPE_MASTER :
             case PREFER_INSTANCE_TYPE_MASTER_SND :
             {
-               pos = pGroupItem->getPrimaryPos() ;
                // if there is no primary, then go on to get random node
-               if ( CLS_RG_NODE_POS_INVALID != pos )
+               if ( CLS_RG_NODE_POS_INVALID != primaryPos )
                {
                   selected = TRUE ;
+                  pos = (INT32)primaryPos ;
                }
                else
                {
@@ -778,7 +801,7 @@ namespace engine
          {
             // Round up the position to number of nodes
             pos = pos % nodeCount ;
-            if ( isSlavePreferred && pos == primaryPos )
+            if ( isSlavePreferred && (UINT32)pos == primaryPos )
             {
                // Move one position back for slave preferred but primary has
                // been chosen
@@ -787,7 +810,11 @@ namespace engine
          }
       }
 
-      return (INT32)pos ;
+   done:
+      return rc ;
+
+   error :
+      goto done ;
    }
 
    INT32 _coordGroupSel::_nextPos( CoordGroupInfoPtr &groupPtr,
@@ -911,28 +938,36 @@ namespace engine
       goto done ;
    }
 
-   void _coordGroupSel::_selectPositions ( const VEC_NODE_INFO & groupNodes,
-                                           UINT32 primaryPos,
-                                           const rtnInstanceOption & instanceOption,
-                                           UINT32 random,
-                                           COORD_POS_LIST & selectedPositions )
+   INT32 _coordGroupSel::_selectPositions ( const VEC_NODE_INFO & groupNodes,
+                                            UINT32 primaryPos,
+                                            const rtnInstanceOption & instanceOption,
+                                            UINT32 random,
+                                            COORD_POS_LIST & selectedPositions )
    {
+      INT32 rc = SDB_OK ;
+
       RTN_PREFER_INSTANCE_MODE mode = instanceOption.getPreferredMode() ;
       const RTN_INSTANCE_LIST & instanceList = instanceOption.getInstanceList() ;
       COORD_POS_ARRAY tempPositions ;
       UINT8 unselectMask = 0xFF ;
       UINT32 nodeCount = groupNodes.size() ;
       BOOLEAN foundPrimary = FALSE ;
-      BOOLEAN primaryFirst = ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER ) ;
-      BOOLEAN primaryLast = ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_SLAVE ) ;
+      BOOLEAN primaryFirst = ( instanceOption.getSpecialInstance() ==
+                               PREFER_INSTANCE_TYPE_MASTER ) ;
+      BOOLEAN primaryLast = ( instanceOption.getSpecialInstance() ==
+                              PREFER_INSTANCE_TYPE_SLAVE ) ;
 
       selectedPositions.clear() ;
 
+      // no need to get select positions in below cases
+      // - no nodes in this group
+      // - instance list is empty
       if ( nodeCount == 0 || instanceList.empty() )
       {
          goto done ;
       }
 
+      // iterate each instance to match nodes in current group
       for ( RTN_INSTANCE_LIST::const_iterator instIter = instanceList.begin() ;
             instIter != instanceList.end() ;
             instIter ++ )
@@ -948,45 +983,107 @@ namespace engine
             {
                if ( nodeIter->_instanceID == (UINT8)instance )
                {
+                  // check if current node is primary
                   if ( primaryPos == pos )
                   {
-                     if ( !primaryFirst && !primaryLast )
-                     {
-                        // Primary is not specified in this case
-                        tempPositions.append( pos ) ;
-                     }
                      foundPrimary = TRUE ;
+                     if ( primaryFirst || primaryLast )
+                     {
+                        // primary is required in the first or the last position
+                        // skip to process other nodes
+                        // will add primary later
+                        continue ;
+                     }
+                  }
+
+                  // if this is not primary, or we don't care about primary
+                  // save to result
+                  if ( PREFER_INSTANCE_MODE_ORDERED == mode )
+                  {
+                     // the preferred mode is ordered,
+                     // save the position one by one
+                     try
+                     {
+                        selectedPositions.push_back( pos ) ;
+                     }
+                     catch ( exception &e )
+                     {
+                        PD_LOG( PDERROR, "Failed to add selected position, "
+                                "error: %s", e.what() ) ;
+                        rc = SDB_SYS ;
+                        goto error ;
+                     }
                   }
                   else
                   {
-                     tempPositions.append( pos ) ;
+                     // the preferred mode is random, save the position
+                     // into candidate positions which will be shuffled later
+                     try
+                     {
+                        tempPositions.append( pos ) ;
+                     }
+                     catch ( exception &e )
+                     {
+                        PD_LOG( PDERROR, "Failed to add selected position, "
+                                "error: %s", e.what() ) ;
+                        rc = SDB_SYS ;
+                        goto error ;
+                     }
                   }
+
                   OSS_BIT_CLEAR( unselectMask, 1 << pos ) ;
                }
-            }
-            if ( !tempPositions.empty() &&
-                 PREFER_INSTANCE_MODE_ORDERED == mode )
-            {
-               _shufflePositions( tempPositions, selectedPositions ) ;
             }
          }
       }
 
       if ( !tempPositions.empty() )
       {
-         _shufflePositions( tempPositions, selectedPositions ) ;
+         // shuffle candidate positions into selected positions
+         // NOTE: the preferred mode is random in this case
+         SDB_ASSERT( PREFER_INSTANCE_MODE_RANDOM == mode,
+                     "should be random mode" ) ;
+         rc = _shufflePositions( tempPositions, selectedPositions ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to shuffle positions, rc: %d",
+                      rc ) ;
       }
 
       if ( foundPrimary )
       {
+         // primary is found in preferred instance
          if ( primaryFirst )
          {
-            selectedPositions.push_front( primaryPos ) ;
+            // preferred is master, put the primary at the first of
+            // selected positions
+            try
+            {
+               selectedPositions.push_front( primaryPos ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to add selected position, "
+                       "error: %s", e.what() ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
          }
          else if ( primaryLast )
          {
-            selectedPositions.push_back( primaryPos ) ;
+            // preferred is slave, put the primary at the last of selected
+            // positions
+            try
+            {
+               selectedPositions.push_back( primaryPos ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to add selected position, "
+                       "error: %s", e.what() ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
          }
+         OSS_BIT_CLEAR( unselectMask, 1 << primaryPos ) ;
       }
       else if ( CLS_RG_NODE_POS_INVALID != primaryPos &&
                 !selectedPositions.empty() &&
@@ -996,7 +1093,17 @@ namespace engine
          // Primary is not in the selected list, but "M" or "m" is specified,
          // so we need to consider primary node if all previous selected nodes
          // are failing, put the primary node to the end
-         selectedPositions.push_back( primaryPos ) ;
+         try
+         {
+            selectedPositions.push_back( primaryPos ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add selected position, "
+                    "error: %s", e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
          OSS_BIT_CLEAR( unselectMask, 1 << primaryPos ) ;
       }
 
@@ -1010,7 +1117,17 @@ namespace engine
             tmpPos = ( tmpPos + 1 ) % nodeCount ;
             if ( OSS_BIT_TEST( unselectMask, 1 << tmpPos ) )
             {
-               selectedPositions.push_back( (UINT8)tmpPos ) ;
+               try
+               {
+                  selectedPositions.push_back( (UINT8)tmpPos ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDERROR, "Failed to add selected position, "
+                          "error: %s", e.what() ) ;
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
             }
          }
       }
@@ -1038,13 +1155,137 @@ namespace engine
       }
 #endif
 
-   done :
-      return ;
+   done:
+      return rc ;
+
+   error:
+      selectedPositions.clear() ;
+      goto done ;
    }
 
-   void _coordGroupSel::_shufflePositions ( COORD_POS_ARRAY & positionArray,
-                                            COORD_POS_LIST & positionList )
+   INT32 _coordGroupSel::_selectSlavePreferred ( const VEC_NODE_INFO & groupNodes,
+                                                 UINT32 primaryPos,
+                                                 COORD_POS_LIST & selectedPositions )
    {
+      INT32 rc = SDB_OK ;
+
+      COORD_POS_ARRAY tempPositions ;
+      UINT8 pos = 0 ;
+
+      selectedPositions.clear() ;
+
+      // add all slave nodes into candidate positions
+      for ( VEC_NODE_INFO::const_iterator nodeIter = groupNodes.begin() ;
+            nodeIter != groupNodes.end() ;
+            nodeIter ++, pos ++ )
+      {
+         if ( primaryPos != pos )
+         {
+            try
+            {
+               tempPositions.append( pos ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to add selected position, "
+                       "error: %s", e.what() ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+         }
+      }
+
+      // shuffle candidate positions
+      if ( !tempPositions.empty() )
+      {
+         rc = _shufflePositions( tempPositions, selectedPositions ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to shuffle positions, rc: %d",
+                      rc ) ;
+      }
+
+      if ( CLS_RG_NODE_POS_INVALID != primaryPos )
+      {
+         // add primary to the last of selected positions
+         try
+         {
+            selectedPositions.push_back( primaryPos ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add selected position, "
+                    "error: %s", e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+#ifdef _DEBUG
+      if ( selectedPositions.empty() )
+      {
+         PD_LOG( PDDEBUG, "Got no selected node positions" ) ;
+      }
+      else
+      {
+         StringBuilder ss ;
+         for ( COORD_POS_LIST::iterator iter = selectedPositions.begin() ;
+               iter != selectedPositions.end() ;
+               iter ++ )
+         {
+            if ( iter != selectedPositions.begin() )
+            {
+               ss << ", " ;
+            }
+            ss << ( *iter ) ;
+         }
+         PD_LOG( PDDEBUG, "Got selected node positions : [ %s ]",
+                 ss.str().c_str() ) ;
+      }
+#endif
+
+   done:
+      return rc ;
+
+   error:
+      selectedPositions.clear() ;
+      goto done ;
+   }
+
+   INT32 _coordGroupSel::_savePositions( COORD_POS_ARRAY &positionArray,
+                                         COORD_POS_LIST &positionList )
+   {
+      INT32 rc = SDB_OK ;
+
+      COORD_POS_ARRAY::iterator posIter( positionArray ) ;
+      UINT8 tmpPos = 0 ;
+      while ( posIter.next( tmpPos ) )
+      {
+         try
+         {
+            positionList.push_back( tmpPos ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add selected position, "
+                    "error: %s", e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+      positionArray.clear() ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _coordGroupSel::_shufflePositions ( COORD_POS_ARRAY & positionArray,
+                                             COORD_POS_LIST & positionList )
+   {
+      INT32 rc = SDB_OK ;
+
       for ( UINT32 i = 0 ; i < positionArray.size() ; i ++ )
       {
          UINT32 random = ossRand() % positionArray.size() ;
@@ -1056,14 +1297,15 @@ namespace engine
          }
       }
 
-      COORD_POS_ARRAY::iterator posIter( positionArray ) ;
-      UINT8 tmpPos = 0 ;
-      while ( posIter.next( tmpPos ) )
-      {
-         positionList.push_back( tmpPos ) ;
-      }
+      rc = _savePositions( positionArray, positionList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save selected positions, "
+                   "rc: %d", rc ) ;
 
-      positionArray.clear() ;
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    void _coordGroupSel::selDone()

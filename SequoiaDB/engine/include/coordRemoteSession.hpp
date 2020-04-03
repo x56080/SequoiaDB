@@ -238,19 +238,25 @@ namespace engine
       private:
          INT32    _calcBeginPos( clsGroupItem *pGroupItem,
                                  const rtnInstanceOption & instanceOption,
-                                 UINT32 random ) ;
+                                 UINT32 random,
+                                 INT32 &pos ) ;
          INT32    _nextPos( CoordGroupInfoPtr &groupPtr,
                             const rtnInstanceOption & instanceOption,
                             UINT32 &selTimes,
                             INT32 &pos,
                             MsgRouteID &nodeID ) ;
          void     _resetStatus() ;
-         void     _selectPositions ( const VEC_NODE_INFO & groupNodes,
+         INT32    _selectPositions ( const VEC_NODE_INFO & groupNodes,
                                      UINT32 primaryPos,
                                      const rtnInstanceOption & instanceOption,
                                      UINT32 random,
                                      COORD_POS_LIST & selectedPositions ) ;
-         void     _shufflePositions ( COORD_POS_ARRAY & positionArray,
+         INT32    _selectSlavePreferred ( const VEC_NODE_INFO & groupNodes,
+                                          UINT32 primaryPos,
+                                          COORD_POS_LIST & selectedPositions ) ;
+         INT32    _savePositions ( COORD_POS_ARRAY & positionArray,
+                                   COORD_POS_LIST & positionList ) ;
+         INT32    _shufflePositions ( COORD_POS_ARRAY & positionArray,
                                       COORD_POS_LIST & positionList ) ;
 
       private:
