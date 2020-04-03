@@ -3,7 +3,6 @@ package com.sequoiadb.transaction.rr;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
@@ -19,7 +18,8 @@ import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
@@ -35,7 +35,6 @@ public class Transaction20471 extends SdbTestBase {
     private String clName = "cl20471";
     private String idxName = "idx20471";
     private DBCollection cl = null;
-    private CountDownLatch latch = null;
     private int insertNum = 100;
     private int loopNum = 1000;
 
@@ -65,35 +64,19 @@ public class Transaction20471 extends SdbTestBase {
 
     }
 
-    @Test(dataProvider = "index")
-    public void test( String indexKey ) {
+    @Test(dataProvider = "index", enabled = false) // SEQUOIADBMAINSTREAM-5718
+    public void test( String indexKey ) throws Exception {
         try {
-            latch = new CountDownLatch( 3 );
 
             // 创建索引
             cl.createIndex( idxName, indexKey, false, false );
 
             // 开启 3 个并发事务
-            UpdateThread updateThread = new UpdateThread();
-            updateThread.start();
-
-            InsertDeleteThread insertDeleteTh = new InsertDeleteThread();
-            insertDeleteTh.start();
-
-            QueryThread queryThread = new QueryThread();
-            queryThread.start();
-
-            // 判断事务是否正确返回
-            Assert.assertTrue( queryThread.isSuccess(),
-                    queryThread.getErrorMsg() );
-            Assert.assertTrue( updateThread.isSuccess(),
-                    updateThread.getErrorMsg() );
-            Assert.assertTrue( insertDeleteTh.isSuccess(),
-                    insertDeleteTh.getErrorMsg() );
-            latch.await();
-        } catch ( InterruptedException e ) {
-            e.printStackTrace();
-            Assert.fail( e.getMessage() );
+            ThreadExecutor threadExecutor = new ThreadExecutor( 3600000 );
+            threadExecutor.addWorker( new UpdateThread() );
+            threadExecutor.addWorker( new InsertDeleteThread() );
+            threadExecutor.addWorker( new QueryThread() );
+            threadExecutor.run();
         } finally {
             // 删除索引
             cl.dropIndex( idxName );
@@ -110,11 +93,11 @@ public class Transaction20471 extends SdbTestBase {
         cl.insert( records );
     }
 
-    class UpdateThread extends SdbThreadBase {
+    private class UpdateThread {
         private Sequoiadb db = CommLib.getRandomSequoiadb();
 
-        @Override
-        public void exec() throws Exception {
+        @ExecuteOrder(step = 1, desc = "转账")
+        public void update() {
             try {
                 for ( int i = 0; i < loopNum * 3; i++ ) {
                     System.out.println( "update times:" + i );
@@ -141,17 +124,16 @@ public class Transaction20471 extends SdbTestBase {
             } finally {
                 db.commit();
                 db.close();
-                latch.countDown();
                 System.out.println( "udpate thread end" + new Date() );
             }
         }
     }
 
-    class InsertDeleteThread extends SdbThreadBase {
+    private class InsertDeleteThread {
         private Sequoiadb db = CommLib.getRandomSequoiadb();
 
-        @Override
-        public void exec() throws Exception {
+        @ExecuteOrder(step = 1, desc = "插入删除记录")
+        private void insertDelete() {
             try {
                 for ( int i = 0; i < loopNum * 2; i++ ) {
                     System.out.println( "insert delete times:" + i );
@@ -194,17 +176,16 @@ public class Transaction20471 extends SdbTestBase {
             } finally {
                 db.commit();
                 db.close();
-                latch.countDown();
                 System.out.println( "insert delete thread end" + new Date() );
             }
         }
     }
 
-    class QueryThread extends SdbThreadBase {
+    private class QueryThread {
         private Sequoiadb db = CommLib.getRandomSequoiadb();
 
-        @Override
-        public void exec() throws Exception {
+        @ExecuteOrder(step = 1, desc = "查询记录总账")
+        public void query() throws Exception {
             try {
                 for ( int i = 0; i < loopNum; i++ ) {
                     System.out.println( "query times:" + i );
@@ -249,7 +230,6 @@ public class Transaction20471 extends SdbTestBase {
                 db.commit();
                 db.closeAllCursors();
                 db.close();
-                latch.countDown();
                 System.out.println( "query thread end" + new Date() );
             }
         }
