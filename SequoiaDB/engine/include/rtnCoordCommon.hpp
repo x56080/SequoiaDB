@@ -387,11 +387,11 @@ namespace engine
    typedef _utilArray< UINT8, CLS_REPLSET_MAX_NODE_SIZE > RTN_COORD_POS_ARRAY ;
    typedef _utilList< UINT8, CLS_REPLSET_MAX_NODE_SIZE > RTN_COORD_POS_LIST ;
 
-   void  rtnCoordGetNodePos ( clsGroupItem * pGroupItem,
-                              const rtnInstanceOption & instanceOption,
-                              UINT32 random,
-                              UINT32 & pos,
-                              RTN_COORD_POS_LIST & selectedPositions ) ;
+   INT32  rtnCoordGetNodePos ( clsGroupItem * pGroupItem,
+                               const rtnInstanceOption & instanceOption,
+                               UINT32 random,
+                               UINT32 & pos,
+                               RTN_COORD_POS_LIST & selectedPositions ) ;
 
    void  rtnCoordGetNextNode ( clsGroupItem * pGroupItem,
                                RTN_COORD_POS_LIST & selectedPositions,
