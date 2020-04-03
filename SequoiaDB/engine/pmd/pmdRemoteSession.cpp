@@ -905,7 +905,7 @@ namespace engine
       pSub->getReqMsg()->requestID = pSub->getReqID() ;
       pSub->getReqMsg()->routeID.value = MSG_INVALID_ROUTEID ;
       pSub->getReqMsg()->TID = _pEDUCB->getTID() ;
-      pSub->_reqOpCode = pSub->getReqMsg()->opCode ;
+      pSub->_reqOpCode = GET_REQUEST_TYPE( pSub->getReqMsg()->opCode ) ;
       // add to assit node
       *pSub->getAddPos() = _pSite->addAssitNode(
          pSub->getNodeID().columns.nodeID ) ;
@@ -1626,7 +1626,7 @@ namespace engine
 
       pReply = ( MsgHeader* )event._Data ;
       nodeID = pReply->routeID.value ;
-      requestID = ( pReply->requestID & MSG_REQUEST_FLAG_MASK ) ;
+      requestID = pReply->requestID ;
 
       // if is MSG_BS_DISCONNECT, the remote node is disconnect
       if ( MSG_BS_DISCONNECT == pReply->opCode )

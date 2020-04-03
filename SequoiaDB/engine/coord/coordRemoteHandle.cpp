@@ -64,6 +64,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       UINT32 totalLen = 0 ;
+      BOOLEAN isNewGTType = FALSE, isOldGTType = FALSE ;
       UINT32 pos = 0 ;
       MsgHeader *pOldHeader = pSub->getReqMsg() ;
       CHAR *pBuff = NULL ;
@@ -75,6 +76,18 @@ namespace engine
       }
 
       totalLen = pHeader->messageLength + pOldHeader->messageLength ;
+
+      // pass global time request to packet message
+      isNewGTType = IS_GLOBTIME_TYPE( pHeader->opCode ) ? TRUE : FALSE ;
+      if ( isNewGTType )
+      {
+         pHeader->opCode = CLEAR_GLOBTIME_TYPE( pHeader->opCode ) ;
+      }
+      isOldGTType = IS_GLOBTIME_TYPE( pOldHeader->opCode ) ? TRUE : FALSE ;
+      if ( isOldGTType )
+      {
+         pOldHeader->opCode = CLEAR_GLOBTIME_TYPE( pOldHeader->opCode ) ;
+      }
 
       if ( MSG_PACKET != pOldHeader->opCode )
       {
@@ -110,19 +123,15 @@ namespace engine
          }
          else
          {
-            pMsgPacket->header.opCode = MSG_PACKET ;
             pMsgPacket->header.requestID = pOldHeader->requestID ;
             pMsgPacket->header.routeID.value = pOldHeader->routeID.value ;
             pMsgPacket->header.TID = pOldHeader->TID ;
          }
+         // set glob time type request if needed
+         pMsgPacket->header.opCode =
+               ( isNewGTType || isOldGTType ) ?
+                     ( MAKE_GLOBTIME_TYPE( MSG_PACKET ) ) : MSG_PACKET ;
          pMsgPacket->header.messageLength = totalLen ;
-
-         // global time synchronization is required
-         if ( OSS_BIT_TEST( pHeader->requestID, MSG_REQUEST_FLAG_GLOBTIME ) )
-         {
-            OSS_BIT_SET( pMsgPacket->header.requestID,
-                         MSG_REQUEST_FLAG_GLOBTIME ) ;
-         }
 
          /// old
          if ( pSub->getIODatas()->size() > 0 )
@@ -648,8 +657,9 @@ namespace engine
       {
          // set next operation, DATA node will do pre-arbitration if needed
          request->nextIsWrite = nextIsWrite ? 1 : 0 ;
-
-         OSS_BIT_SET( request->header.requestID, MSG_REQUEST_FLAG_GLOBTIME ) ;
+         // need synchronize global logical time for global RR transaction
+         request->header.opCode =
+               MAKE_GLOBTIME_TYPE( request->header.opCode ) ;
       }
 
       PD_TRACE_EXITRC( SDB__COORDREMOTEHANDLERBASE_ONTRANSBEGIN, rc ) ;
@@ -680,6 +690,7 @@ namespace engine
             msgReq.header.opCode = MSG_BS_TRANS_BEGIN_REQ ;
             msgReq.header.routeID.value = 0 ;
             msgReq.header.TID = cb->getTID() ;
+            msgReq.header.requestID = pSub->getReqMsg()->requestID ;
             // for backward compatibility, transID field is global serial
             // number
             // NOTE: node ID of transaction ID is in routeID of message header
@@ -713,8 +724,8 @@ namespace engine
             case MSG_BS_TRANS_BEGIN_REQ :
             case MSG_BS_TRANS_COMMITPRE_REQ :
             {
-               OSS_BIT_SET( pSub->getReqMsg()->requestID,
-                            MSG_REQUEST_FLAG_GLOBTIME ) ;
+               pSub->getReqMsg()->opCode =
+                     MAKE_GLOBTIME_TYPE( pSub->getReqMsg()->opCode ) ;
                break ;
             }
             default :

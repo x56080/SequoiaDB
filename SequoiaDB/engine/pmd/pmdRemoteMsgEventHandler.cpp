@@ -162,7 +162,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__PMDRMTMSGHDL_ONSENDMSG ) ;
 
-      if ( OSS_BIT_TEST( header->requestID, MSG_REQUEST_FLAG_GLOBTIME ) )
+      if ( IS_GLOBTIME_TYPE( header->opCode ) )
       {
          stpAgent agent ;
          stpLogicalTimeUS currentTime ;
@@ -173,7 +173,7 @@ namespace engine
                       msg2String( header, MSG_MASK_ALL, 0 ).c_str(),
                       routeID2String( id ).c_str(), handle, rc ) ;
 
-         switch ( header->opCode )
+         switch ( GET_REQUEST_TYPE( header->opCode ) )
          {
             case MSG_PACKET :
             {

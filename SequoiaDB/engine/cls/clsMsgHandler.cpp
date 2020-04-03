@@ -189,14 +189,16 @@ namespace engine
                 handle, routeID2String( id ).c_str(),
                 msg2String( header, MSG_MASK_ALL, 0 ).c_str() ) ;
 
-      if ( !OSS_BIT_TEST( header->requestID, MSG_REQUEST_FLAG_GLOBTIME ) )
+      if ( !IS_GLOBTIME_TYPE( header->opCode ) )
       {
          netData->onReceiveMsg( availableSize, header->messageLength ) ;
          goto done ;
       }
 
-      netData->setRequestID( header->requestID ) ;
+      // set opcode
+      netData->setOpCode( header->opCode ) ;
 
+      // acquire global logical time as received time
       rc = netData->acquireRecvTime( availableSize,
                                      header->messageLength ) ;
       PD_RC_CHECK( rc, PDERROR, "Connection [Handle:%d, Node:%s] failed to "
@@ -215,7 +217,7 @@ namespace engine
 
    done:
       // clear flags
-      header->requestID &= MSG_REQUEST_FLAG_MASK ;
+      header->opCode = CLEAR_GLOBTIME_TYPE( header->opCode ) ;
       return rc ;
 
    error:

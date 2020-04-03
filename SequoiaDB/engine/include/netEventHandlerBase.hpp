@@ -79,7 +79,7 @@ namespace engine
       // constructor and destructor
       _INetUserData()
       : _handle( NET_INVALID_HANDLE ),
-        _requestID( 0 )
+        _opCode( 0 )
       {
       }
 
@@ -100,16 +100,16 @@ namespace engine
          return _handle ;
       }
 
-      // set request ID for current message
-      OSS_INLINE void setRequestID( UINT64 requestID )
+      // set opcode for current message
+      OSS_INLINE void setOpCode( INT32 opCode )
       {
-         _requestID = requestID ;
+         _opCode = opCode ;
       }
 
-      // get request ID for current message
-      OSS_INLINE UINT64 getRequestID() const
+      // get opcode for current message
+      OSS_INLINE INT32 getOpCode() const
       {
-         return _requestID ;
+         return _opCode ;
       }
 
       // get type of user data
@@ -117,7 +117,7 @@ namespace engine
 
    protected:
       NET_HANDLE  _handle ;
-      UINT64      _requestID ;
+      INT32       _opCode ;
    } ;
 
    /*

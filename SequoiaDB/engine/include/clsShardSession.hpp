@@ -194,9 +194,7 @@ namespace engine
       // indicate if message requires global logical time
       OSS_INLINE BOOLEAN isGlobTimeRequest() const
       {
-         return OSS_BIT_TEST( _requestID, MSG_REQUEST_FLAG_GLOBTIME ) ?
-                TRUE :
-                FALSE ;
+         return IS_GLOBTIME_TYPE( _opCode ) ? TRUE : FALSE ;
       }
 
       // acquire receive time from STP
