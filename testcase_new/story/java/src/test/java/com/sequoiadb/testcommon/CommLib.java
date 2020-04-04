@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -61,7 +60,7 @@ public class CommLib {
      * @return dataGroupNames
      */
     public static ArrayList< String > getDataGroupNames( Sequoiadb sdb ) {
-        ArrayList< String > dataGroupNames = new ArrayList<>();
+        ArrayList< String > dataGroupNames = new ArrayList< >();
         try {
             dataGroupNames = sdb.getReplicaGroupNames();
             dataGroupNames.remove( "SYSCatalogGroup" );
@@ -82,7 +81,7 @@ public class CommLib {
      */
     public static List< String > getNodeAddress( Sequoiadb sdb,
             String rgName ) {
-        List< String > nodeAddrs = new ArrayList<>();
+        List< String > nodeAddrs = new ArrayList< >();
         try {
             ReplicaGroup tmpArray = sdb.getReplicaGroup( rgName );
             BasicBSONObject doc = ( BasicBSONObject ) tmpArray.getDetail();
@@ -112,7 +111,7 @@ public class CommLib {
      * @return csInfoOfCata
      */
     public static ArrayList< BSONObject > getCSInfoOfCatalog( Sequoiadb sdb ) {
-        ArrayList< BSONObject > csInfoOfCata = new ArrayList<>();
+        ArrayList< BSONObject > csInfoOfCata = new ArrayList< >();
         Sequoiadb cataDB = null;
         try {
             String nodeName = sdb.getReplicaGroup( "SYSCATALOG" ).getMaster()
@@ -750,7 +749,7 @@ public class CommLib {
      * @Date 2018-11-15
      */
     public static List< String > getCLGroups( DBCollection cl ) {
-        List< String > groupNames = new ArrayList<>();
+        List< String > groupNames = new ArrayList< >();
         Sequoiadb db = cl.getSequoiadb();
         if ( CommLib.isStandAlone( db ) ) {
             return groupNames;
