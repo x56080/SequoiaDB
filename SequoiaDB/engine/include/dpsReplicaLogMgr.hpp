@@ -99,6 +99,7 @@ namespace engine
       _dpsMetaFile               _metaFile ;
 
       UINT64                     _pageFlushCount ;
+      DPS_LSN                    _pageFlushedBeginLSN ;
 
    public:
       _dpsReplicaLogMgr();
@@ -298,6 +299,10 @@ namespace engine
       }
 
       void _flushOldestTransBeginLSN() ;
+
+      UINT32 _generateDummySize( dpsMergeBlock &block,
+                                 dpsLogRecordHeader &head,
+                                 UINT32 logFileSz ) ;
    };
    typedef class _dpsReplicaLogMgr dpsReplicaLogMgr;
 }

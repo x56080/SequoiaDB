@@ -327,6 +327,23 @@ namespace engine
       goto done ;
    }
 
+   UINT32 _dpsReplicaLogMgr::_generateDummySize( dpsMergeBlock &block,
+                                                 dpsLogRecordHeader &head,
+                                                 UINT32 logFileSz )
+   {
+      UINT32 dummyLogSize = 0 ;
+      if ( !block.isRow() )
+      {
+         if ( ( _lsn.offset / logFileSz ) !=
+               ( _lsn.offset + head._length - 1 ) / logFileSz )
+         {
+            dummyLogSize = logFileSz - ( _lsn.offset % logFileSz ) ;
+         }
+      }
+
+      return dummyLogSize ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_PREPAGES, "_dpsReplicaLogMgr::preparePages" )
    INT32 _dpsReplicaLogMgr::preparePages ( dpsMergeInfo &info )
    {
@@ -351,14 +368,17 @@ namespace engine
 
       if ( FALSE == _restoreFlag )
       {
+         UINT32 checkDummySize = 0 ;
          /// first to lock writeMutex, then make sure idle space is enough,
          /// at last lock mtx. So, this don't block read operations
          _writeMutex.get() ;
-         while ( _idleSize.peek() < head._length )
+
+         checkDummySize = _generateDummySize( block, head, logFileSz ) ;
+         while ( _idleSize.peek() < head._length + checkDummySize )
          {
-            PD_LOG ( PDWARNING, "No space in log buffer for %d bytes, "
-                     "currently left %d bytes", head._length,
-                     _idleSize.peek() ) ;
+            PD_LOG ( PDWARNING, "No space in log buffer for %d bytes data, "
+                     "%d bytes dummmy, currently left %d bytes", head._length,
+                     checkDummySize, _idleSize.peek() ) ;
             _allocateEvent.wait ( OSS_ONE_SEC ) ;
          }
          _mtx.get();
@@ -716,6 +736,7 @@ namespace engine
       _mtx.get() ;
       locked = TRUE ;
 
+      _pageFlushedBeginLSN.reset() ;
       if ( _metaFile.isCacheLSNValid() )
       {
          rc = _metaFile.writeOldestLSNOffset( DPS_INVALID_LSN_OFFSET ) ;
@@ -1301,6 +1322,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_RUN, "_dpsReplicaLogMgr::run" )
    INT32 _dpsReplicaLogMgr::run( _pmdEDUCB *cb )
    {
+      // Do not get lock this._mtx while this._allocate() may be waiting for
+      // _idleSize, see SEQUOIADBMAINSTREAM-5661 for more information
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR_RUN );
       _dpsLogPage *page = NULL;
@@ -1311,18 +1334,22 @@ namespace engine
          {
             cb->incEventCount() ;
          }
-         rc = _flushPage ( page ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to flush page, rc = %d", rc ) ;
-            goto error ;
-         }
 
+         // move() will flush transBeginLSN too when _queSize == 0
+         // to avoid concurrency issue we should flush transBeginLSN before
+         // _flushPage() which will decrease _queSize
          _pageFlushCount++ ;
          // same as _pageFlushCount % 0x4000 == 0
          if ( ( _pageFlushCount & 0x3FFF ) == 0 )
          {
             _flushOldestTransBeginLSN() ;
+         }
+
+         rc = _flushPage ( page ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to flush page, rc = %d", rc ) ;
+            goto error ;
          }
       }
 
@@ -1337,8 +1364,6 @@ namespace engine
    {
       if ( NULL != _transCB )
       {
-         // must get current lsn before _transCB->getOldestBeginLsn() !!
-         DPS_LSN current = currentLsn() ;
          DPS_LSN_OFFSET offset = _transCB->getOldestBeginLsn() ;
          if ( DPS_INVALID_LSN_OFFSET != offset )
          {
@@ -1349,8 +1374,11 @@ namespace engine
          {
             // offset is invalid, that means trans is finished.
             // and trans commit must have been saved in dpslog.
-            // in this case we can safely save currentLsn.offset.
-            _metaFile.writeOldestLSNOffset( current.offset ) ;
+            // in this case we can safely save _pageFlushedBeginLSN.offset.
+            if ( !_pageFlushedBeginLSN.invalid() )
+            {
+               _metaFile.writeOldestLSNOffset( _pageFlushedBeginLSN.offset ) ;
+            }
          }
       }
    }
@@ -1477,12 +1505,20 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR__FLUSHPAGE );
       SDB_ASSERT ( page, "page can't be NULL" ) ;
       UINT32 length = 0 ;
+      DPS_LSN pageBeginLSN ;
       // note in tearDown it may call _flushPage with non-full page
       page->lock();
       page->unlock();
+
+      pageBeginLSN = page->getBeginLSN() ;
+      if ( !pageBeginLSN.invalid() )
+      {
+         _pageFlushedBeginLSN = pageBeginLSN ;
+      }
+
       preFileId = _logger.getWorkPos() ;
       preLogicalFileId = _logger.getLogicalWorkPos() ;
-      rc = _logger.flush( page->mb(), page->getBeginLSN(), shutdown );
+      rc = _logger.flush( page->mb(), pageBeginLSN, shutdown );
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to flush page, rc = %d", rc ) ;
