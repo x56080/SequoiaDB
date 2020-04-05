@@ -257,7 +257,7 @@ namespace engine
       _curRID._offset = DMS_INVALID_OFFSET ;
    }
 
-   void  _dmsExtScannerBase::acquireCSCLLock( )
+   INT32 _dmsExtScannerBase::acquireCSCLLock( )
    {
       INT32 rc = SDB_OK ;
       if ( !_CSCLLockHeld && DPS_TRANSLOCK_MAX != _recordLock )
@@ -298,14 +298,18 @@ namespace engine
                      lockConflict._tid,
                      lockConflict._lockID.toString().c_str(),
                      lockModeToString( lockConflict._lockType ) ) ;
+            goto error ;
          }
          else
          {
             _CSCLLockHeld = TRUE ;
          }
       }
+
    done:
-      return ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    void   _dmsExtScannerBase::releaseCSCLLock( )
@@ -467,7 +471,11 @@ namespace engine
       // CL lock right in the beginning to avoid extra performance overhead
       // to acquire these locks when acquiring record lock in each step
       // We release and require the lock during pauseScan/resumeScan
-      acquireCSCLLock() ;
+      rc = acquireCSCLLock() ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       // unset first run
       _firstRun = FALSE ;
@@ -1441,7 +1449,7 @@ namespace engine
       }
    }
 
-   void _dmsIXSecScanner::acquireCSCLLock( )
+   INT32 _dmsIXSecScanner::acquireCSCLLock( )
    {
       INT32 rc = SDB_OK ;
       if ( !_CSCLLockHeld && DPS_TRANSLOCK_MAX != _recordLock )
@@ -1483,6 +1491,7 @@ namespace engine
                       lockConflict._tid,
                       lockConflict._lockID.toString().c_str(),
                       lockModeToString( lockConflict._lockType ) ) ;
+            goto error ;
          }
          else
          {
@@ -1490,7 +1499,9 @@ namespace engine
          }
       }
    done:
-      return ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    void  _dmsIXSecScanner::releaseCSCLLock( )
@@ -1617,7 +1628,11 @@ namespace engine
       // CL lock right in the beginning to avoid extra performance overhead
       // to acquire these locks when acquiring record lock in each step
       // We release and require the lock during pauseScan/resumeScan
-      acquireCSCLLock() ;
+      rc = acquireCSCLLock() ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       /// set callback info
       _callback.setBaseInfo( _pTransCB, cb ) ;

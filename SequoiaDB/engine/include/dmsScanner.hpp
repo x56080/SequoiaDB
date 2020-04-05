@@ -153,8 +153,8 @@ namespace engine
                                    _pmdEDUCB *cb,
                                    _mthMatchTreeContext *mhtContext = NULL) = 0 ;
          void _checkMaxRecordsNum( _mthRecordGenerator &generator ) ;
-         void acquireCSCLLock() ;
-         void releaseCSCLLock() ;
+         INT32 acquireCSCLLock() ;
+         void  releaseCSCLLock() ;
 
       protected:
          INT64                _maxRecords ;
@@ -333,7 +333,7 @@ namespace engine
          dmsRecordID* _getStartRID () ;
          dmsRecordID* _getEndRID () ;
          void _updateMaxRecordsNum( _mthRecordGenerator &generator ) ;
-         void  acquireCSCLLock( ) ;
+         INT32 acquireCSCLLock( ) ;
          void  releaseCSCLLock( ) ;
 
       private:
