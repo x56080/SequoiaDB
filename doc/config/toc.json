@@ -327,8 +327,8 @@
             {
                "id": 1519627277,
                "dir": "sequoiasql",
-               "cn": "SequoiaSQL",
-               "en": "SequoiaSQL",
+               "cn": "PostgreSQL实例组件",
+               "en": "PostgreSQL_instance",
                "contents": [
                   {
                      "id": 1519627741,
