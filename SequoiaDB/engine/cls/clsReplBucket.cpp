@@ -265,7 +265,7 @@ namespace engine
       {
          waitEmpty() ;
       }
-      else
+      if ( 0 == _maxReplSync || 0 == maxReplSync )
       {
          reset() ;
       }
