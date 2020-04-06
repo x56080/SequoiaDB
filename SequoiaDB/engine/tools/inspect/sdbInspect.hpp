@@ -45,6 +45,7 @@
 #include "pmdOptionsMgr.hpp"
 #include "dms.hpp"
 #include "client.hpp"
+#include "inspectTargetParser.hpp"
 // third party
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -108,6 +109,10 @@ CHAR g_password[ CI_PASSWD_SIZE + 1 ] = { 0 } ;
 #define CI_SUB_VERSION 1
 #define CI_ACTION_SIZE 20
 #define CI_EYECATCHER_SIZE 8
+// Max length for '--list' argument.
+#define CI_ARG_MAX_SIZE             1024
+#define CI_REPAIR_RETRY_TIMES       10
+#define CI_BRAKE_DEFAULT_STEP       10000
 /*#define CI_HEAD_PADDING_SIZE ( ( CI_HEADER_SIZE )          - \
                                ( CI_HOSTNAME_SIZE + 1 )    - \
                                ( CI_SERVICENAME_SIZE + 1)  - \
@@ -125,7 +130,8 @@ CHAR g_password[ CI_PASSWD_SIZE + 1 ] = { 0 } ;
 // the length of ciGroupHeader
 #define CI_GROUP_HEADER_SIZE ( ( CI_GROUPNAME_SIZE + 1 ) + \
                                  sizeof( INT32 )         + \
-                                 sizeof( UINT32 ) * 2 )
+                                 sizeof( UINT32 ) * 2 )  + \
+                                 sizeof( UINT64 )
 // the length of ciClHeader
 #define CI_CL_HEADER_SIZE ( ( CI_CL_FULLNAME_SIZE + 1 ) * 2 + sizeof( UINT32 ) )
 
@@ -249,6 +255,7 @@ private:
    TNode  *_curNode ;
 } ;
 
+// Information to write into the file header.
 struct _ciHeader
 {
    INT32 _mainVersion ;
@@ -262,7 +269,7 @@ struct _ciHeader
    CHAR  _groupName[ CI_GROUPNAME_SIZE + 1 ] ;
    CHAR  _csName[ CI_CS_NAME_SIZE + 1 ] ;
    CHAR  _clName[ CI_CL_NAME_SIZE + 1 ] ;
-   CHAR  _filepath[ OSS_MAX_PATHSIZE + 1 ] ;
+   CHAR  _filepath[ OSS_MAX_PATHSIZE + 1 ] ;    // For parameter -f/--file
    CHAR  _outfile[ OSS_MAX_PATHSIZE + 1 ] ;
    CHAR  _view[ CI_VIEWOPTION_SIZE + 1 ] ;
    _ciHeader() : _mainVersion( CI_MAIN_VERSION ),
@@ -286,15 +293,20 @@ struct _ciHeader
 } ;
 typedef _ciHeader ciHeader ;
 
+/*
+ * Group header information to write into the output file.
+ */
 struct _ciGroupHeader
 {
    INT32   _groupID ;
    UINT32  _nodeCount ;
-   UINT32  _clCount ;
+   UINT32  _clCount ;   // Number of collections to be inspected in this group.
    CHAR    _groupName[ CI_GROUPNAME_SIZE + 1 ] ;
+   UINT64  _maxCompleteLSN ;  // Max compelteLSN of all the nodes in this group.
    _ciGroupHeader() : _groupID( 0 ),
                       _nodeCount( 0 ),
-                      _clCount( 0 )
+                      _clCount( 0 ),
+                      _maxCompleteLSN( 0 )
    {
       ossMemset( _groupName, 0, CI_GROUPNAME_SIZE + 1 ) ;
    }
@@ -303,7 +315,7 @@ typedef _ciGroupHeader ciGroupHeader ;
 
 struct _ciClHeader
 {
-   UINT32 _recordCount ;
+   UINT32 _recordCount ;      // Different record number for the collection.
    CHAR   _fullname[ CI_CL_FULLNAME_SIZE + 1 ] ;
    CHAR   _mainClName[ CI_CL_FULLNAME_SIZE + 1 ] ;
    _ciClHeader() : _recordCount( 0 )
@@ -343,7 +355,7 @@ typedef _ciGroup ciGroup ;
 
 struct _ciNode
 {
-   enum 
+   enum
    {
       STATE_NORMAL = 0,    // normal
       STATE_DISCONN,       // failed to connect to
@@ -357,12 +369,12 @@ struct _ciNode
 
    INT32           _index ;
    INT32           _nodeID ;
-   INT32           _state ; 
+   INT32           _state ;   // Whther node is normal or not.
    sdbclient::sdb *_db ;
    _ciNode        *_next ;
    CHAR            _hostname[ CI_HOSTNAME_SIZE + 1 ] ;
    CHAR            _serviceName[ CI_SERVICENAME_SIZE + 1 ] ;
-   _ciNode() : _index( 0 ), _nodeID( 0 ), 
+   _ciNode() : _index( 0 ), _nodeID( 0 ),
                _state( STATE_NORMAL ), _db( NULL ), _next( NULL )
    {
       ossMemset( _hostname, 0, CI_HOSTNAME_SIZE + 1 ) ;
@@ -423,11 +435,19 @@ typedef _ciCollection ciCollection ;
 
 struct _ciRecord
 {
+   // _origState is the state after the first inspection. So at the beginning,
+   // it has the same value with _state. The difference is that _origState will
+   // not change during the whole inspection, while _state will change as the
+   // inspection going on. _origState is used to handle data inconsistency
+   // issues, for the '-r' option of this tool.It's used to confirm the data
+   // change to tell whose data is right. Please refer to the code in the
+   // repairing part for detail.
+   CHAR            _origState ;
    CHAR            _state ;
    INT32           _len ;
    _ciRecord      *_next ;
    bson::BSONObj   _bson ;
-   _ciRecord() : _state( 0 ), _len( 0 ), _next( NULL )
+   _ciRecord() : _origState( 0 ), _state( 0 ), _len( 0 ), _next( NULL )
    {}
    ~_ciRecord()
    {
@@ -486,6 +506,7 @@ struct _ciCursor
 } ;
 typedef _ciCursor ciCursor ;
 
+// Hold one record from each node of one replication group.
 struct _ciBson
 {
    bson::BSONObj objs[ MAX_NODE_COUNT ] ;
@@ -520,16 +541,18 @@ typedef _ciOffset ciOffset ;
 typedef std::vector< std::string > subCl ;
 typedef std::map< std::string, subCl > mainCl ;
 
+// Information to be written at the end of the analyze file.
 struct _ciTail
 {
    INT32  _exitCode ;
-   UINT32 _groupCount ;
+   UINT32 _groupCount ;    // Number of groups which have been inspected.
    UINT32 _clCount ;
-   UINT32 _diffCLCount ;
+   UINT32 _diffCLCount ;   // Collection number which contains data differences.
    UINT32 _mainClCount ;
    INT64  _recordCount ;
    UINT64 _timeCount ;
    mainCl _mainCls ;
+   // List of group header offset in the intermediate file.
    ciLinkList< ciOffset > _groupOffset ;
    _ciTail() : _exitCode( 0 ), _groupCount( 0 ), _clCount( 0 ), _diffCLCount(0),
                _mainClCount( 0 ), _recordCount( 0 ), _timeCount( 0 )
@@ -537,10 +560,11 @@ struct _ciTail
 } ;
 typedef _ciTail ciTail ;
 
+// Record compare status.
 struct _ciState
 {
    //    0   1   1   0   1   1   0   0             bits of state
-   //    1   2   3   4   5   6   7   -             index if node 
+   //    1   2   3   4   5   6   7   -             index if node
    //  if 8th of state is 1, means that all node has current record, and every
    //  cursor should get next record. or the min bson( of "oid" ) need get next
    //  record.
@@ -567,6 +591,7 @@ typedef _ciState ciState ;
 //////////////////////////////////////////////////////////////////////////
 // sdbCi
 #define CONSISTENCY_INSPECT_HELP      "help"
+#define CONSISTENCY_INSPECT_HELPFULL  "helpfull"
 #define CONSISTENCY_INSPECT_VER       "version"
 #define CONSISTENCY_INSPECT_ACTION    "action"
 #define CONSISTENCY_INSPECT_COORD     "coord"
@@ -578,6 +603,20 @@ typedef _ciState ciState ;
 #define CONSISTENCY_INSPECT_OUTPUT    "output"
 #define CONSISTENCY_INSPECT_VIEW      "view"
 #define CONSISTENCY_INSPECT_AUTH      "auth"
+#define CONSISTENCY_INSPECT_LIST      "list"
+#define CONSISTENCY_INSPECT_LISTFILE  "listfile"
+#define CONSISTENCY_INSPECT_REPAIR    "repair"
+#define CONSISTENCY_INSPECT_BRAKETIME "braketime"
+#define CONSISTENCY_INSPECT_BRAKESTEP "brakestep"
+#define CONSISTENCY_INSPECT_FAST      "fast"
+
+// Retry time for repairing operation.
+#define CONSISTENCY_INSPECT_RETRY     "retry"
+
+#ifdef _DEBUG
+#define CONSISTENCY_INSPECT_ENCODE   "encode"
+#define CONSISTENCY_INSPECT_DECODE   "decode"
+#endif
 
 #define INSPECT_ADD_OPTIONS_BEGIN( desc ) desc.add_options()
 #define INSPECT_ADD_OPTIONS_END ;
@@ -587,17 +626,31 @@ typedef _ciState ciState ;
 #define INSPECT_OPTIONS \
    ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_HELP, ",h" ), "show all command options" ) \
    ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_VER, ",v" ), "show version of tool" ) \
-   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_AUTH, ",u" ), boost::program_options::value< std::string >(), "auth, username:password, \"\":\"\" is set default" ) \
-   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_ACTION, ",a" ), boost::program_options::value< std::string >(), "specify action, \"inspect\" or \"report\" supported, \"inspect\" is set default" ) \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_AUTH, ",u" ), boost::program_options::value< std::string >(), "authentication information in format of username:password, default: \"\":\"\"" ) \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_ACTION, ",a" ), boost::program_options::value< std::string >(), "specify action, \"inspect\" or \"report\" supported, default: \"inspect\"" ) \
    ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_COORD, ",d" ), boost::program_options::value< std::string >(), "specify the coord address, default: \"localhost:11810\"" ) \
-   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_LOOP, ",t" ), boost::program_options::value< INT32 >(), "specify times to loop" ) \
-   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_GROUP, ",g" ),boost::program_options::value< std::string >(), "specify group name to be inspect" ) \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_LOOP, ",t" ), boost::program_options::value< INT32 >(), "specify times to loop, default: 5" ) \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_GROUP, ",g" ),boost::program_options::value< std::string >(), "specify group name to be inspected" ) \
    ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_CS, ",c" ), boost::program_options::value< std::string >(), "specify the collection space to be inspected") \
    ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_CL, ",l" ), boost::program_options::value< std::string >(), "specify the collection to be inspected") \
-   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_FILE, ",f" ), boost::program_options::value< std::string >(), "specify the file existed, when specified, other option will be ignored except options that \"-o\" and \"-f\" sepcified " ) \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_FILE, ",f" ), boost::program_options::value< std::string >(), "specify the file existed, when specified, other option will be ignored except options that \"-o\" and \"-f\" sepcified" ) \
    ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_OUTPUT, ",o" ), boost::program_options::value< std::string >(), "specify the output file" ) \
-   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_VIEW, ",w" ), boost::program_options::value< std::string >(), "specify the way to view the report, \"group\" or \"collection\" is avaliable, \"group\" is set default" )
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_VIEW, ",w" ), boost::program_options::value< std::string >(), "specify the way to view the report, \"group\" or \"collection\" is avaliable, default: \"group\"" ) \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_LIST, ""), boost::program_options::value<std::string>(), "list of targets to be inspected in format of group1:cs.cl,group2:cs.cl, if any one of the \"-g\", \"-c\" or \"-l\" option is used, this option will be ignored ") \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_LISTFILE, ""), boost::program_options::value<std::string>(), "file of targets to be inspected, should contain only one line in the format(same as --list option): group1:cs.cl,group2:cs.cl, if any one of the \"-g\", \"-c\", \"-l\" or \"--list\" option is used, this option will be ignored ") \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_BRAKETIME, ",b"), boost::program_options::value<INT32>(), "brake time(ms) after inspecting a batch of records(batch size depends on the argument specified by \"-s\"), default: 0" ) \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_BRAKESTEP, ",s"), boost::program_options::value<INT32>(), "brake interval(record number) when inspecting. Only woking when \"-b\" option is greater than 0, range:[1-100000000], default: 10000" ) \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_FAST, ""), boost::program_options::value<std::string>(), "running in fast mode or not. Only OID will be checked in fase mode, default: false" )
 
+#define INSPECT_HIDDEN_OPTIONS \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_REPAIR, ",r"), boost::program_options::value<std::string>(), "repair inconsistency problem, default: false") \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_RETRY, ""), boost::program_options::value<INT32>(), "repairing operation retry times, only working when \"-r\" option is true, default: 10")
+
+#ifdef _DEBUG
+#define INSPECT_HIDDEN_OPTIONS_DEBUG \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_ENCODE, ",e"), boost::program_options::value<std::string>(), "list file to be encoded, item should be in format of group:cs.cl, and each line should contain only one item, can use \"-o\" option to set the output file, if not, the default output file is \"out.bin\"" ) \
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_DECODE, ",x"), boost::program_options::value<std::string>(), "list file to be decoded, can use \"-o\" option to set the output name, the default output file is \"out.txt\"" )
+#endif
 
 class _sdbCi : public engine::_pmdCfgRecord
 {
@@ -609,11 +662,9 @@ public:
 
 public:
    INT32 init( INT32 argc, CHAR **argv,
-               po::options_description &desc,
                po::variables_map &vm ) ;
 
-   INT32 handle( const po::options_description &desc,
-                 const po::variables_map &vm) ;
+   INT32 handle( const po::variables_map &vm ) ;
 
 private:
    INT32 splitAddr() ;
@@ -633,6 +684,16 @@ private:
    ciHeader _header ;
    CHAR     _coordAddr[ CI_ADDRESS_SIZE + 1 ] ;
    CHAR     _auth[ CI_AUTH_SIZE + 1 ] ;
+   BOOLEAN  _repair ;
+   INT32    _repairRetryTimes ;
+   CHAR     _list[ CI_ARG_MAX_SIZE + 1 ] ;
+   CHAR     _listFile[ OSS_MAX_PATHSIZE + 1 ] ;
+   INT32    _brakeTime ;  // This value will not be written to file.
+   INT32    _brakeStep ;
+#ifdef _DEBUG
+   CHAR     _encodeFile[OSS_MAX_PATHSIZE + 1 ] ;
+   CHAR     _decodeFile[ OSS_MAX_PATHSIZE + 1 ] ;
+#endif
 } ;
 typedef _sdbCi sdbCi ;
 
