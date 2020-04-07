@@ -2330,10 +2330,11 @@ namespace engine
             else if ( CMD_SNAPSHOT_COLLECTIONS == pCommand->type() )
             {
                _rtnMonInnerBase *pMonBase = (_rtnMonInnerBase *)pCommand ;
-               clsShowMainCLMode mode ;
+               clsShowMainCLMode mode = SHOW_MODE_SUB ;
                IRtnMonProcessor *pProcessor = NULL ;
-               rc = clsParseShowMainCLModeHint( BSONObj(pHintBuffer), mode ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to parse hint, rc=%d", rc );
+               // Disable main cl mode for SEQUOIADBMAINSTREAM-5578
+               // rc = clsParseShowMainCLModeHint( BSONObj(pHintBuffer), mode ) ;
+               // PD_RC_CHECK( rc, PDERROR, "Failed to parse hint, rc=%d", rc );
                pProcessor = SDB_OSS_NEW clsMainCLMonAggregator( mode ) ;
                if ( !pProcessor )
                {

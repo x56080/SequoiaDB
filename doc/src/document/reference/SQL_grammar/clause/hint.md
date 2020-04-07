@@ -197,7 +197,6 @@ hint有多种不同类型：
   | Expand | [配置快照视图](reference/SQL_grammar/monitoring/SNAPSHOT_CONFIGS.md) | 是否扩展显示用户未配置的配置项。如 ```use_option(Expand,false)```。默认为 true。 |
   | ShowError | ALL | 指定是否返回错误信息。在 show 模式下，显示错误信息，在 only 模式下，只显示错误信息，不显示其他快照信息，在 ignore 模式下，不显示错误信息。如 ```use_option(ShowError,only)```。默认为 show。 |
   | ShowErrorMode | ALL | 指定返回错误信息的格式。在 aggr 模式下，错误信息聚合为一条记录显示，在 flat 模式下，一个错误节点对应一条记录显示。如 ```use_option(ShowErrorMode,flat)```。默认为 aggr。 |
-  | ShowMainCLMode | [集合快照视图](reference/SQL_grammar/monitoring/SNAPSHOT_CL.md) | 显示主子表的模式。在 main 模式下，仅显示主表信息，不显示各个子表的信息；在 sub 模式下，仅显示子表信息；both 模式则是两者都显示。如 ```use_option(ShowMainCLMode,main)```。默认为 sub。 | 否 |
 
 * 例子
 
@@ -244,23 +243,5 @@ hint有多种不同类型：
   "catalogaddr": "hostname:30003,hostname:30013,hostname:30023",
   "sparsefile": "TRUE",
   "plancachelevel": 3
-}
-```
-
-同时查看主表和各个子表的记录数
-
-```lang-javascript
-> db.exec('select T.Name as Name, T.Details.$[0].TotalRecords as Records from $SNAPSHOT_CL as T split by T.Details /*+use_option(ShowMainCLMode, both)*/')
-{
-  "Name": "cs.subCL01",
-  "Records": 200
-}
-{
-  "Name": "cs.subCL02",
-  "Records": 51
-}
-{
-  "Name": "cs.mainCL",
-  "Records": 251
 }
 ```

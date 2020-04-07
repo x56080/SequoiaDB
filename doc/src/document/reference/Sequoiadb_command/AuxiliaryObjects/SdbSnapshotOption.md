@@ -61,7 +61,6 @@
 | Expand  |  Bool/String  | [配置快照](database_management/monitoring/snapshot/SDB_SNAP_CONFIGS.md) | 是否扩展显示用户未配置的配置项。如 { "Expand": false }。默认为 true。| 否 |
 | ShowError | String | ALL | 指定是否返回错误信息。在 show 模式下，显示错误信息，在 only 模式下，只显示错误信息，不显示其他快照信息，在 ignore 模式下，不显示错误信息。如 { "ShowError: "only" }。默认为 show。 | 否 |
 | ShowErrorMode | String | ALL | 指定返回错误信息的格式。在 aggr 模式下，错误信息聚合为一条记录显示，在 flat 模式下，一个错误节点对应一条记录显示。如 { "ShowErrorMode": "flat" }。默认为 aggr。 | 否 |
-| ShowMainCLMode | String | [集合快照](database_management/monitoring/snapshot/SDB_SNAP_COLLECTIONS.md) | 显示主子表的模式。在 main 模式下，仅显示主表信息，不显示各个子表的信息；在 sub 模式下，仅显示子表信息；both 模式则是两者都显示。如 { "ShowErrorMode": "main" }。默认为 sub。 | 否 |
 
 > **Note：**
 
@@ -201,48 +200,3 @@
 	}
 	Return 1 row(s).
 	```
-
-* 同时查看主表和各个子表的记录数。
-
-	```lang-javascript
-  > var option = new SdbSnapshotOption().sel({ "Name": "", "Details.Group.TotalRecords": "" }).options({ "ShowMainCLMode": "both" });
-  Takes 0.000373s.
-  > db.snapshot( SDB_SNAP_COLLECTIONS, option )
-  {
-    "Name": "cs.mainCL",
-    "Details": [
-      {
-        "Group": [
-          {
-            "TotalRecords": 249
-          }
-        ]
-      }
-    ]
-  }
-  {
-    "Name": "cs.subCL01",
-    "Details": [
-      {
-        "Group": [
-          {
-            "TotalRecords": 198
-          }
-        ]
-      }
-    ]
-  }
-  {
-    "Name": "cs.subCL02",
-    "Details": [
-      {
-        "Group": [
-          {
-            "TotalRecords": 51
-          }
-        ]
-      }
-    ]
-  }
-  Return 3 row(s).
-  ```
