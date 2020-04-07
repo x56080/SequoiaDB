@@ -6,7 +6,7 @@
 ******************************************************************************/
 testConf.skipStandAlone = true;
 
-//main( test );SEQUOIADBMAINSTREAM-5593
+//main( test );SEQUOIADBMAINSTREAM-5593;SEQUOIADBMAINSTREAM-5578
 
 function test()
 {
