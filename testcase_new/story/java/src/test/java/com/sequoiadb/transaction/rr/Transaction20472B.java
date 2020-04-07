@@ -65,7 +65,7 @@ public class Transaction20472B extends SdbTestBase {
         return new Object[][] { { "{'b':-1}" }, { "{'b':1}" } };
     }
 
-    @Test(dataProvider = "index")
+    @Test(dataProvider = "index", enabled = false) // SEQUOIADBMAINSTREAM-5718
     public void test( String indexKey ) throws Exception {
         this.indexKey = indexKey;
 
