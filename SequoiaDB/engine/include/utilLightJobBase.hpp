@@ -76,7 +76,8 @@ namespace engine
 
          INT32       submit( BOOLEAN takeOver = TRUE,
                              INT32 priority = UTIL_LJOB_PRI_MID,
-                             UINT64 expectAvgCost = UTIL_LJOB_DFT_AVG_COST ) ;
+                             UINT64 expectAvgCost = UTIL_LJOB_DFT_AVG_COST,
+                             UINT64 *pJobID = NULL ) ;
 
          UINT64      getJobID() const { return _jobID ; }
 

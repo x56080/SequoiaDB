@@ -45,12 +45,13 @@ namespace engine
    */
    INT32 _utilLightJob::submit( BOOLEAN takeOver,
                                 INT32 priority,
-                                UINT64 expectAvgCost )
+                                UINT64 expectAvgCost,
+                                UINT64 *pJobID )
    {
       INT32 rc = SDB_OK ;
       _utilLightJob *pJob = this ;
       utilLightJobMgr *pMgr = utilGetGlobalJobMgr() ;
-
+      UINT64 jobID = 0 ;
       SDB_ASSERT( pMgr, "Global job manager is NULL" ) ;
       SDB_ASSERT( expectAvgCost < UTIL_LJOB_MAX_AVG_COST,
                   "Expect avgCost is more than max" ) ;
@@ -64,7 +65,8 @@ namespace engine
 
       try
       {
-         pJob->_jobID = pMgr->allocID() ;
+         jobID = pMgr->allocID() ;
+         pJob->_jobID = jobID ;
          pMgr->push( pJob, takeOver, priority, expectAvgCost ) ;
          pJob = NULL ;
       }
@@ -73,6 +75,12 @@ namespace engine
          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          rc = SDB_OOM ;
          goto error ;
+      }
+
+      // copy job ID if needed
+      if ( NULL != pJobID )
+      {
+         *pJobID = jobID ;
       }
 
    done:

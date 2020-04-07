@@ -246,27 +246,36 @@ namespace engine
                                          oldVersionContainer *oldVer )
    {
       INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( NULL != oldVer, "old version is invalid" ) ;
+
+      // oldVer might be destroyed after job submit
+      // copy fields if we want to print into logs later
+      INT32 csID = oldVer->getCSID() ;
+      UINT16 clID = oldVer->getCLID() ;
+      UINT32 csLID = oldVer->getCSLID() ;
+      UINT32 clLID = oldVer->getCLLID() ;
+
       dmsReleaseLockJob *pJob = NULL ;
       pJob = SDB_OSS_NEW dmsReleaseLockJob( lockId, oldVer ) ;
       SDB_ASSERT( pJob, "Job is NULL" ) ;
       if ( pJob )
       {
-         rc = pJob->submit( TRUE ) ;
+         UINT64 jobID = 0 ;
+         rc = pJob->submit( TRUE, UTIL_LJOB_PRI_MID, UTIL_LJOB_DFT_AVG_COST,
+                            &jobID ) ;
          if ( rc )
          {
             PD_LOG( PDWARNING, "Submit dmsReleaseLockJob(ID:%llu, CSID:%u, "
                     "CLID:%u, CSLID:%u, CLLID:%u, ExtentID:%u, Offset:%u) "
-                    "failed, rc: %d", pJob->getJobID(), oldVer->getCSID(),
-                    oldVer->getCLID(), oldVer->getCSLID(), oldVer->getCLLID(),
+                    "failed, rc: %d", jobID, csID, clID, csLID, clLID,
                     lockId.extentID(), lockId.offset(), rc) ;
          }
          else
          {
             PD_LOG( PDDEBUG, "Submit dmsReleaseLockJob(ID:%llu, CSID:%u, "
                     "CLID:%u, CSLID:%u, CLLID:%u, ExtentID:%u, Offset:%u) "
-                    "succeed", pJob->getJobID(),
-                    oldVer->getCSID(), oldVer->getCLID(),
-                    oldVer->getCSLID(), oldVer->getCLLID(),
+                    "succeed", jobID, csID, clID, csLID, clLID,
                     lockId.extentID(), lockId.offset() ) ;
          }
       }
@@ -274,8 +283,7 @@ namespace engine
       {
          PD_LOG( PDWARNING, "Alloc dmsReleaseLockJob(CSID:%u, CLID:%u, "
                  "CSLID:%u, CLLID:%u, ExtentID:%u, Offset:%u) failed",
-                 oldVer->getCSID(), oldVer->getCLID(),
-                 oldVer->getCSLID(), oldVer->getCLLID(),
+                 csID, clID, csLID, clLID,
                  lockId.extentID(), lockId.offset() ) ;
          rc = SDB_OOM ;
       }
