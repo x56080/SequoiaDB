@@ -127,6 +127,7 @@ public class SdbTestBase {
         group2Conf.put( RCAUTO, new BasicBSONObject() );
         group2Conf.get( RCAUTO ).put( TRANSAUTOCOMMIT, true );
         group2Conf.get( RCAUTO ).put( TRANSAUTOROLLBACK, false );
+        group2Conf.get( RCAUTO ).put( TRANSLOCKWAIT, false );
 
         group2Conf.put( RC, new BasicBSONObject() );
         group2Conf.get( RC ).put( TRANSISOLATION, 1 );
