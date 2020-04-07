@@ -4,7 +4,6 @@
    2014-07-30 pusheng Ding  Init
    2015-12-19 Ting YU modify
 ***************************************************************************** */
-
 //2015-12-19 Ting YU modify
 function getSourceGroupName_alone( csName , clName )
 {
