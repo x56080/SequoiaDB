@@ -1595,6 +1595,7 @@ namespace engine
 
       INT32 rc = SDB_OK ;
       dmsIndexBuilder* builder = NULL ;
+      BOOLEAN needUnlock = FALSE ;
 
       if ( sortBufferSize < 0 )
       {
@@ -1606,13 +1607,34 @@ namespace engine
       // invoke callback function
       if ( pOprHandle )
       {
+         // indexCB need context lock
+         if ( !context->isMBLock() )
+         {
+            rc = context->mbLock( SHARED ) ;
+            PD_RC_CHECK( rc, PDERROR, "Lock mb failed[%d]", rc ) ;
+            needUnlock = TRUE ;
+         }
          ixmIndexCB indexCB ( indexExtentID, this, context ) ;
+         PD_CHECK( indexCB.isInitialized(),
+                   SDB_DMS_INIT_INDEX, error, PDERROR,
+                   "Failed to initialize index" ) ;
+         PD_CHECK( indexLID == indexCB.getLogicalID(),
+                   SDB_DMS_INVALID_INDEXCB, error, PDERROR,
+                   "Index logical id[%d] is not as expected[%d]. The index may "
+                   "have been recreated", indexCB.getLogicalID(), indexLID ) ;
+
          rc = pOprHandle->onRebuildIndex( context, &indexCB, cb, pResult ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Rebuild failed to invoke callback, rc = %d",
                     rc ) ;
             goto error ;
+         }
+
+         if ( needUnlock )
+         {
+            context->mbUnlock() ;
+            needUnlock = FALSE ;
          }
       }
       if ( sortBufferSize > 0 &&
@@ -1628,7 +1650,8 @@ namespace engine
                                                  pResult ) ;
       if ( NULL == builder )
       {
-         PD_LOG ( PDERROR, "Failed to get index builder instance, sort buffer size: %d",
+         PD_LOG ( PDERROR,
+                  "Failed to get index builder instance, sort buffer size: %d",
                   sortBufferSize ) ;
          rc = SDB_SYS ;
          goto error ;
@@ -1642,6 +1665,11 @@ namespace engine
       }
 
    done :
+      if ( needUnlock )
+      {
+         context->mbUnlock() ;
+         needUnlock = FALSE ;
+      }
       if ( NULL != builder )
       {
          dmsIndexBuilder::releaseInstance( builder ) ;

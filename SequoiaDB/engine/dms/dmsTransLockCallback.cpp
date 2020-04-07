@@ -595,9 +595,9 @@ namespace engine
             // We need to re-verify the record with the
             // index again. Here is how this could happen:
             // Session 1 did update, changed index from 1 to 2, paused;
-            // session 2 does index scan, searching for record with 
+            // session 2 does index scan, searching for record with
             // index 2. It found the index on disk. Did get record lock
-            // and ended up using the old version from memory. But 
+            // and ended up using the old version from memory. But
             // the old version record contain the index 1. We must verify
             // and skip this record.
             if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
@@ -745,7 +745,7 @@ namespace engine
    //    oldVersionCB(_oldVersionCBLatch) need to be held in S before
    //    accessing individual index tree.
    // 3. Request preIdxTree latch while holding LRB hash bkt latch is forbidden,
-   //    But reverse order is OK. Note that the scanner will hold tree latch 
+   //    But reverse order is OK. Note that the scanner will hold tree latch
    //    and acquire lock.
    //
    // Input:
@@ -1356,9 +1356,9 @@ namespace engine
    //    indexCB:  index control block
    //    cb:  edu control block
    // return:
-   //    rc:  
+   //    rc:
    // Dependency:
-   //    The context and indexCB must be setup. 
+   //    The context and indexCB must be setup.
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK_ONREBUILDINDEX, "dmsTransLockCallback::onRebuildIndex" )
    INT32 dmsTransLockCallback::onRebuildIndex( _dmsMBContext *context,
                                                const ixmIndexCB *indexCB,
@@ -1366,11 +1366,11 @@ namespace engine
                                                utilWriteResult *pResult )
    {
       INT32   rc         = SDB_OK ;
-      BOOLEAN lockedHere = FALSE ;
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_ONREBUILDINDEX ) ;
 
       // Input parameter validation ASSERTS
-      SDB_ASSERT( context, "context is invalid " ) ;
+      SDB_ASSERT( context && context->isMBLock(),
+                  "Caller should hold mb lock" ) ;
       SDB_ASSERT( indexCB, "indexCB is invalid " ) ;
 
       if ( _transCB && _transCB->isTransOn() )
@@ -1381,19 +1381,6 @@ namespace engine
          preIdxTreePtr treePtr ;
          oldVersionUnitPtr unitPtr ;
          oldVersionUnit::iterator itChain ;
-
-         // take mbLock if not already held
-         // first take the mblock
-         if ( !context->isMBLock() )
-         {
-            rc = context->mbLock( SHARED ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Lock mb failed[%d]", rc ) ;
-               goto error ;
-            }
-            lockedHere = TRUE ;
-         }
 
          unitPtr = pOldVCB->getOldVersionUnit( _csID, _clID ) ;
          if ( !unitPtr.get() )
@@ -1428,7 +1415,7 @@ namespace engine
                if ( indexCB->unique() )
                {
                   /// We can't allow unique index if there are transactions
-                  /// with RB segment disable configuration. otherwise 
+                  /// with RB segment disable configuration. otherwise
                   /// rollback of those transaction could fail
                   rc = SDB_OPERATION_CONFLICT ;
                   PD_LOG_MSG( PDERROR, "Can't allow create unique index "
@@ -1445,7 +1432,7 @@ namespace engine
                _oldVer = oldVer ;
 
                // get the keyset
-               rc = indexCB->getKeysFromObject ( oldVer->getRecordObj(), 
+               rc = indexCB->getKeysFromObject ( oldVer->getRecordObj(),
                                                  keySet ) ;
                if ( rc )
                {
@@ -1481,7 +1468,7 @@ namespace engine
                   }
 
                   rc = _checkDeleteIndex( treePtr,deleteCursor, indexCB,
-                                          indexCB->unique(), *cit, 
+                                          indexCB->unique(), *cit,
                                           oldVer->getRecordID(), cb ) ;
                   if ( rc )
                   {
@@ -1504,16 +1491,11 @@ namespace engine
       }
 
    done :
-      if ( lockedHere )
-      {
-         context->mbUnlock() ;
-      }
-
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_ONREBUILDINDEX ) ;
       return rc ;
 
    error :
-      PD_LOG( PDERROR, "Rebuild index callback failed, lid=%d, rc=%d", 
+      PD_LOG( PDERROR, "Rebuild index callback failed, lid=%d, rc=%d",
               indexCB->getLogicalID(), rc ) ;
       goto done ;
    }
@@ -1534,7 +1516,7 @@ namespace engine
          oldVersionCB *pVerCB = _transCB->getOldVCB() ;
 
 #ifdef _DEBUG
-         SDB_ASSERT( !(pVerCB->getIdxTree(gid, FALSE).get()), 
+         SDB_ASSERT( !(pVerCB->getIdxTree(gid, FALSE).get()),
                      "Index tree already exist " ) ;
 #endif
 
