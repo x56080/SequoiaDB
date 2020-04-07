@@ -693,14 +693,36 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__CTWAKEPLAN ) ;
 
+      UINT32 fullSyncNodes = 0 ;
+
       DPS_LSN_OFFSET offsetTmp = DPS_INVALID_LSN_OFFSET ;
+      DPS_LSN_OFFSET offsetMax = 0 ;
+
+      for ( UINT32 i = 0; i < _validSync ; i++ )
+      {
+         if ( DPS_INVALID_LSN_OFFSET == _notifyList[ i ].offset )
+         {
+            ++ fullSyncNodes ;
+         }
+         else if ( offsetMax < _notifyList[ i ].offset )
+         {
+            offsetMax = _notifyList[ i ].offset ;
+         }
+      }
+
+      if ( fullSyncNodes == _validSync )
+      {
+         // All nodes are under full sync
+         offsetMax = DPS_INVALID_LSN_OFFSET - 1 ;
+      }
 
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
          if ( DPS_INVALID_LSN_OFFSET == _notifyList[i].offset )
          {
             /// DPS_INVALID_LSN_OFFSET is for full sync, so ignore the node.
-            plan.insert( DPS_INVALID_LSN_OFFSET - 1 ) ;
+            /// Save as max offset of other nodes
+            plan.insert( offsetMax ) ;
          }
          else
          {
