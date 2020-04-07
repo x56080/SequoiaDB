@@ -131,11 +131,12 @@ namespace engine
       dpsTransRetInfo transRetInfo ;
       sleepTime = 2000000 ;
 
-      if ( _pOldVer->isOnChain() )
-      {
-         /// remove from chain
-         _dmsRemoveOldVerFromChain( _pOldVer ) ;
-      }
+      // This backgroud job, _dmsReleaseLockJob, is started by
+      // dmsOnTransLockRelease() after it removed this old version
+      // container from the chain.
+      SDB_ASSERT( ( ! _pOldVer->isOnChain() ),
+                  "This old version container must have been "
+                  "removed from chain." ) ;
 
       /// release
       if ( _pOldVer->isRecordDeleted() )
@@ -338,6 +339,27 @@ namespace engine
                   dmsRecordID(lockId.extentID(), lockId.offset()),
                   "LockID is not the same" ) ;
 
+      // Previously when creates index, takes old version container
+      // from chain first, then inserts into index LID set of that
+      // old version container and inserts index tree; while
+      // tryReleaseRecord deletes from index tree and index LID set,
+      // then removes old version container from chain. In case of
+      // both create/rebuild index and releaseRecord running at the
+      // same time, we may see unexpect status of index LID set
+      // So, we remove old version container from the chain first
+      // then releaseRecord when release a lock( dmsOnTransLockRelease,
+      // _dmsReleaseLockJob::doit ); when creates an index, walks through
+      // the chain and checks if the index LID is in that old version
+      // container's index LID set and do insert index LID and index
+      // tree ( insertIdxTree and insertWithOldVer ) if it is not there.
+      // When traverse the chain, add or remove an old version container
+      // to or from the chain, proper latch on oldVersionUnit will apply
+      // to protect synchronized accessing.
+      if ( oldVer && oldVer->isOnChain() )
+      {
+         _dmsRemoveOldVerFromChain( oldVer ) ;
+      }
+
       /// try relerase record, because maybe should wait index tree's lock,
       /// so use try
       if ( oldVer && oldVer->tryReleaseRecord( idxLID, hasLock ) )
@@ -345,12 +367,7 @@ namespace engine
          PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
                  lockId.toString().c_str() ) ;
 
-         if ( !oldVer->isDiskDeleting() ||
-              !pmdGetOptionCB()->recycleRecord() )
-         {
-            _dmsRemoveOldVerFromChain( oldVer ) ;
-            goto done ;
-         }
+         goto done ;
       }
       else
       {
@@ -364,11 +381,6 @@ namespace engine
       {
          pExtData->_data = 0 ;
       }
-      else
-      {
-         _dmsRemoveOldVerFromChain( oldVer ) ;
-      }
-
    done:
       return ;
    }
@@ -1433,6 +1445,17 @@ namespace engine
                            oldVer->getRecordObj().toString().c_str() ) ;
                   goto error ;
                }
+
+               // We remove old version container from the chain first
+               // then releaseRecord when release a lock( dmsOnTransLockRelease,
+               // _dmsReleaseLockJob::doit ); when creates an index, walks
+               // through the chain and checks if the index LID is in that
+               // old version container's index LID set and do insert index
+               // LID and index tree ( insertIdxTree and insertWithOldVer )
+               // if it is not there.
+               // When traverse the chain, add or remove an old version
+               // container to or from the chain, proper latch on oldVersionUnit
+               // will apply to protect synchronized accessing.
 
                // insert to the mem tree
                for ( BSONObjSet::const_iterator cit = keySet.begin() ;
