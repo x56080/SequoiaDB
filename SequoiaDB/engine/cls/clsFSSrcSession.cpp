@@ -2109,7 +2109,14 @@ namespace engine
          MON_CS_LIST::iterator itCS = csList.begin() ;
          while( itCS != csList.end() )
          {
-            if ( 0 == itCS->_collections.size() )
+            // Skip SYSRBS CS during sync because it's local to node
+            if ( 0 == ossStrncmp( itCS->_name, SDB_DMSRBS_NAME,
+                                  (sizeof(SDB_DMSRBS_NAME) -1) ) )
+            {
+               csList.erase( itCS++ ) ;
+               continue ;
+            }
+            else if ( 0 == itCS->_collections.size() )
             {
                curLen = b.bb().len() ;
                curReserved = b.bb().getReserveBytes() ;
@@ -2150,9 +2157,9 @@ namespace engine
          MON_CL_LIST::const_iterator itrCL = clList.begin() ;
          while( itrCL != clList.end() )
          {
-            // Skip RBSCL
-            if ( 0 == ossStrncmp( itrCL->_name, 
-                                  SDB_DMSRBS_NAME, sizeof(SDB_DMSRBS_NAME) ) )
+            // Skip SYSRBS CLs
+            if ( 0 == ossStrncmp( itrCL->_name, SDB_DMSRBS_NAME, 
+                                  (sizeof(SDB_DMSRBS_NAME)-1) ) )
             {
                clList.erase( itrCL++ ) ;
                continue ;
@@ -2192,9 +2199,9 @@ namespace engine
          MAP_SU_STATUS::iterator itValid = validCLs.begin() ;
          while( itValid != validCLs.end() )
          {
-            // Skip RBSCL
-            if ( 0 == ossStrncmp( itValid->second._clName, 
-                                  SDB_DMSRBS_NAME, sizeof(SDB_DMSRBS_NAME) ) )
+            // Skip SYSRBS CLs
+            if ( 0 == ossStrncmp( itValid->second._clName, SDB_DMSRBS_NAME,
+                                  (sizeof(SDB_DMSRBS_NAME) - 1) ) )
             {
                validCLs.erase( itValid++ ) ;
                continue ;
