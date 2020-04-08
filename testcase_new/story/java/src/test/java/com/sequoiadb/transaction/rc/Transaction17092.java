@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import org.bson.BSONObject;
-import org.bson.util.JSON;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -55,7 +54,6 @@ public class Transaction17092 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb.updateConfig( ( BSONObject ) JSON.parse( "{diaglevel:5}" ) );
         db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
@@ -72,7 +70,6 @@ public class Transaction17092 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        sdb.updateConfig( ( BSONObject ) JSON.parse( "{diaglevel:3}" ) );
         // 关闭所有游标
         sdb.closeAllCursors();
         db1.closeAllCursors();
