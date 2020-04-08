@@ -1752,7 +1752,7 @@ namespace engine
 
                   rc = _sendTo( src, &(msg.header),
                                 (void*)bodyObj.objdata(),
-                                (UINT32)bodyObj.objsize() ) ;                  
+                                (UINT32)bodyObj.objsize() ) ;
                }
             }
 
@@ -1985,7 +1985,7 @@ namespace engine
             }
             info._dataCommitLSN = vecLSN[0].numberLong() ;
             info._idxCommitLSN = vecLSN[1].numberLong() ;
-            info._lobCommitLSN = vecLSN[1].numberLong() ;
+            info._lobCommitLSN = vecLSN[2].numberLong() ;
          }
          catch( std::exception &e )
          {
