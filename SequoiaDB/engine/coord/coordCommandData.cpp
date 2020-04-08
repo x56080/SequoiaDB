@@ -3606,10 +3606,10 @@ namespace engine
          pSiteProp = (coordSessionPropSite*)pSite->getUserData() ;
       }
 
-      if ( NULL != pSiteProp && !pSiteProp->isMasterPreferred() )
+      if ( NULL != pSiteProp && !pSiteProp->isMasterRequired() )
       {
          instanceOption = pSiteProp->getInstanceOption() ;
-         pSiteProp->setMasterPreferred() ;
+         pSiteProp->setMasterRequired() ;
          replacedInstanceOption = TRUE ;
       }
 

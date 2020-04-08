@@ -634,6 +634,7 @@ namespace engine
          OSS_INLINE const CHAR * getPrefInstStr () const { return _prefInstStr ; }
          OSS_INLINE const CHAR * getPrefInstModeStr () const { return _prefInstModeStr ; }
          OSS_INLINE BOOLEAN isPreferedStrict() const { return _preferedStrict ; }
+         OSS_INLINE INT32 getPreferedPeriod() const { return _preferedPeriod ; }
          OSS_INLINE UINT32 getInstanceID () const { return _instanceID ; }
          OSS_INLINE UINT32 getMaxConn () const { return _maxconn ; }
          OSS_INLINE UINT32 getSvcSchedulerType() const { return _svcSchedulerType ; }
@@ -756,6 +757,7 @@ namespace engine
          UINT32      _svcSchedulerType ;
          UINT32      _svcMaxConcurrency ;
          BOOLEAN     _preferedStrict ;
+         INT32       _preferedPeriod ;
          CHAR        _logWriteModStr[ PMD_MAX_LOGMOD_STR_LEN + 1 ] ;
          UINT32      _logWriteMod ;
          BOOLEAN     _logTimeOn ;

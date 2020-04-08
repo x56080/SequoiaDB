@@ -54,7 +54,7 @@ namespace engine
                                             _coordGroupSel *pSel,
                                             _coordGroupSessionCtrl *pCtrl )
    {
-      if ( !pSel->isPrimary() && pSel->isPreferedPrimary() )
+      if ( !pSel->isPrimary() && pSel->isRequiredPrimary() )
       {
          MsgHeader *pMsg = pSub->getReqMsg() ;
          BOOLEAN isResend = pCtrl->getRetryTimes() > 0 ? TRUE : FALSE ;

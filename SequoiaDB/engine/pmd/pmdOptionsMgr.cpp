@@ -104,6 +104,7 @@ namespace engine
    #define PMD_DFT_PREFINST            ( PREFER_INSTANCE_MASTER_STR )
    #define PMD_DFT_PREFINST_MODE       ( PREFER_INSTANCE_RANDOM_STR )
    #define PMD_DFT_INSTANCE_ID         ( NODE_INSTANCE_ID_UNKNOWN )
+   #define PMD_DFT_PREFINST_PERIOD     ( PREFER_INSTANCE_DEF_PERIOD )
    #define PMD_DFT_MAX_CONN            (0)   // unlimited
    #define PMD_DFT_LOGWRITEMOD         ( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR )
    /*
@@ -1929,6 +1930,7 @@ done:
       _svcMaxConcurrency= 0 ;
 
       _preferedStrict = FALSE ;
+      _preferedPeriod = PMD_DFT_PREFINST_PERIOD ;
 
       ossMemset( _logWriteModStr, 0, sizeof(_logWriteModStr) ) ;
       _logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
@@ -2096,6 +2098,9 @@ done:
       // --preferedstrict
       rdxBooleanS( pEX, PMD_OPTION_PREFINST_STRICT, _preferedStrict, FALSE,
                    PMD_CFG_CHANGE_RUN, FALSE ) ;
+      // --preferedperiod
+      rdxInt( pEX, PMD_OPTION_PREFINST_PERIOD, _preferedPeriod, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD, FALSE ) ;
       // --instanceid
       rdxUInt( pEX, PMD_OPTION_INSTANCE_ID, _instanceID, FALSE, PMD_CFG_CHANGE_REBOOT,
                PMD_DFT_INSTANCE_ID, FALSE ) ;

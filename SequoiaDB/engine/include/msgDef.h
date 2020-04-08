@@ -423,6 +423,7 @@
 #define FIELD_NAME_PREFERED_INSTANCE_V1      "PreferedInstanceV1"
 #define FIELD_NAME_PREFERED_INSTANCE_MODE    "PreferedInstanceMode"
 #define FIELD_NAME_PREFERED_STRICT           "PreferedStrict"
+#define FIELD_NAME_PREFERED_PERIOD           "PreferedPeriod"
 #define FIELD_NAME_TIMEOUT                   "Timeout"
 #define FIELD_NAME_NODE_SELECT               "NodeSelect"
 #define FIELD_NAME_RAWDATA                   "RawData"

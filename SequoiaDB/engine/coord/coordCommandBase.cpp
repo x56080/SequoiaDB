@@ -798,8 +798,7 @@ namespace engine
             MsgRouteID nodeID = pSub->getNodeID() ;
             /// should update the node status
             _pResource->updateNodeStat( nodeID, rcTmp ) ;
-            _groupSession.getPropSite()->delLastNode( nodeID.columns.groupID,
-                                                      nodeID.value ) ;
+            _groupSession.getPropSite()->delLastNode( nodeID ) ;
 
             faileds[ *it ] = rcTmp ;
             pRemote->delSubSession( *it ) ;

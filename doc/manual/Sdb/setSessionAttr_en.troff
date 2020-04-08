@@ -27,23 +27,9 @@ Set session attributes.
               "s", "A", "a", 1-255, or BSON Array to include
               multiple values.
               "M", "m": read and write instance( master instance ).
-              If multiple numeric instances are given with "M",
-              matched master instance will be chosen in higher
-              priority. If multiple numeric instances are given
-              with "M" or "m", master instance will be chosen if no
-              numeric instance is matched.
-              "S", "s": read only instance( slave instance ). If
-              multiple numeric instances are given with "S",
-              matched slave instances will be chosen in higher
-              priority. If multiple numeric instances are given with
-              "S" or "s", slave instance will be chosen if no
-              numeric instance is matched.
+              "S", "s": read only instance( slave instance ).
               "A", "a": any instance.
               1-255: the instance with specified instance ID.
-              If multiple alphabet instances are given, only first
-              one will be used.
-              If matched instance is not found, will choose instance
-              by random.
 .br
               PreferedInstance : "M"
               PreferedInstance : [ 1, 7 ]
@@ -68,7 +54,18 @@ Set session attributes.
               "PreferedInstance".
               Default is FALSE.
 .br
-              "PreferedStrict : "true"
+              PreferedStrict : "true"
+.br
+       \fBPreferedPeriod\fR
+.br
+              Specify the timeout period (in seconds) of last
+              node chosen for requests. During this timeout period,
+              SequoiaDB will reuse the last node for read quest.
+              Default is 60 seconds, -1 means the last chosen node
+              will not be re-chosen for read request, 0 means
+              always re-choose for read request.
+.br
+              PreferedPeriod : 60
 .br
        \fBTimeout\fR
 .br

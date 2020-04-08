@@ -92,12 +92,29 @@ namespace engine
    typedef _coordTransNodeStatus coordTransNodeStatus ;
 
    /*
+      _coordLastNodeStatus define
+    */
+   typedef struct _coordLastNodeStatus
+   {
+      _coordLastNodeStatus()
+      {
+         _nodeID.value = MSG_INVALID_ROUTEID ;
+         _addTick = 0LL ;
+      }
+
+      // node ID of last selected node
+      MsgRouteID  _nodeID ;
+      // tick to add the last selected node
+      UINT64      _addTick ;
+   } coordLastNodeStatus ;
+
+   /*
       _coordSessionPropSite define
    */
    class _coordSessionPropSite : public _rtnSessionProperty
    {
       public:
-         typedef ossPoolMap< UINT32, UINT64 >      MAP_GROUP_2_NODE ;
+         typedef ossPoolMap< UINT32, coordLastNodeStatus > MAP_GROUP_2_NODE ;
          typedef MAP_GROUP_2_NODE::iterator        MAP_GROUP_2_NODE_IT ;
 
          typedef ossPoolMap< UINT32, coordTransNodeStatus > MAP_TRANS_NODES ;
@@ -112,11 +129,12 @@ namespace engine
 
          void        clear() ;
 
-         void        addLastNode( UINT32 groupID, UINT64 nodeID ) ;
-         UINT64      getLastNode( UINT32 groupID ) const ;
+         INT32       addLastNode( const MsgRouteID &nodeID,
+                                  BOOLEAN primaryRequest ) ;
+         UINT64      getLastNode( UINT32 groupID ) ;
          BOOLEAN     existNode( UINT32 groupID ) const ;
          void        delLastNode( UINT32 groupID ) ;
-         void        delLastNode( UINT32 groupID, UINT64 nodeID ) ;
+         void        delLastNode( const MsgRouteID &nodeID ) ;
 
          /*
             Trans info
@@ -215,7 +233,7 @@ namespace engine
          void     setServiceType( MSG_ROUTE_SERVICE_TYPE svcType ) ;
 
          BOOLEAN  isPrimary() const ;
-         BOOLEAN  isPreferedPrimary() const ;
+         BOOLEAN  isRequiredPrimary() const ;
 
          INT32    selBegin( UINT32 groupID, MsgRouteID &nodeID ) ;
          INT32    selNext( MsgRouteID &nodeID ) ;
@@ -249,7 +267,6 @@ namespace engine
          INT32    _selectPositions ( const VEC_NODE_INFO & groupNodes,
                                      UINT32 primaryPos,
                                      const rtnInstanceOption & instanceOption,
-                                     UINT32 random,
                                      COORD_POS_LIST & selectedPositions ) ;
          INT32    _selectSlavePreferred ( const VEC_NODE_INFO & groupNodes,
                                           UINT32 primaryPos,
