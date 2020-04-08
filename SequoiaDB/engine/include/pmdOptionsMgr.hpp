@@ -563,6 +563,7 @@ namespace engine
          OSS_INLINE UINT32  getDataErrorOp() const { return _dataErrorOp ; }
          OSS_INLINE const CHAR * getPrefInstStr () const { return _prefInstStr ; }
          OSS_INLINE const CHAR * getPrefInstModeStr () const { return _prefInstModeStr ; }
+         OSS_INLINE INT32 getPreferedPeriod() const { return _preferedPeriod ; }
          OSS_INLINE UINT32 getInstanceID () const { return _instanceID ; }
 
          std::string getOmAddr() const ;
@@ -651,6 +652,7 @@ namespace engine
          UINT32      _pageAllocTimeout ;  // ms
          BOOLEAN     _perfStat ;
          UINT32      _instanceID ;
+         INT32       _preferedPeriod ;
 
 #ifdef SDB_ENTERPRISE
 

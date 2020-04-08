@@ -63,7 +63,25 @@ namespace engine
    } subSessionInfo ;
 
    typedef _utilMap<UINT64, subSessionInfo, 20 >   COORD_SUBSESSION_MAP ;
-   typedef _utilMap<UINT32, MsgRouteID, 20 >       COORD_LASTNODE_MAP ;
+
+   /*
+      _coordLastNodeStatus define
+    */
+   typedef struct _coordLastNodeStatus
+   {
+      _coordLastNodeStatus()
+      {
+         _nodeID.value = MSG_INVALID_ROUTEID ;
+         _addTick = 0LL ;
+      }
+
+      // node ID of last selected node
+      MsgRouteID  _nodeID ;
+      // tick to add the last selected node
+      UINT64      _addTick ;
+   } coordLastNodeStatus ;
+
+   typedef _utilMap< UINT32, coordLastNodeStatus, 20 > COORD_LASTNODE_MAP ;
 
    /*
       coordRequestInfo define
@@ -102,10 +120,11 @@ namespace engine
       void     addSubSessionWithoutCheck( const MsgRouteID &routeID );
       BOOLEAN  delSubSession( const MsgRouteID &routeID );
       INT32    disConnect( const MsgRouteID &routeID );
-      void     addLastNode( const MsgRouteID &routeID );
-      MsgRouteID getLastNode( UINT32 groupID );
+      INT32    addLastNode( const MsgRouteID &routeID,
+                            BOOLEAN primaryRequest ) ;
+      UINT64   getLastNode( UINT32 groupID );
       void     removeLastNode( UINT32 groupID ) ;
-      void     removeLastNode( UINT32 groupID, const MsgRouteID &nodeID ) ;
+      void     removeLastNode( const MsgRouteID &nodeID ) ;
       void     getAllSessionRoute( ROUTE_SET &routeMap );
       void     postEvent ( pmdEDUEvent const &data );
       BOOLEAN  isSubsessionConnected( const MsgRouteID &routeID );

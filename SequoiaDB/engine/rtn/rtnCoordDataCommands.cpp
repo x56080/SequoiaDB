@@ -1360,10 +1360,10 @@ namespace engine
       rtnInstanceOption instanceOption ;
       BOOLEAN replacedInstanceOption = FALSE ;
 
-      if ( NULL != coordSession && !coordSession->isMasterPreferred() )
+      if ( NULL != coordSession && !coordSession->isMasterRequired() )
       {
          instanceOption = coordSession->getInstanceOption() ;
-         coordSession->setMasterPreferred() ;
+         coordSession->setMasterRequired() ;
          replacedInstanceOption = TRUE ;
       }
 

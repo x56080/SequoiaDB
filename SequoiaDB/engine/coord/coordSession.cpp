@@ -57,6 +57,7 @@ namespace engine
       pmdOptionsCB * optionCB = pmdGetKRCB()->getOptionCB() ;
       setInstanceOption( optionCB->getPrefInstStr(),
                          optionCB->getPrefInstModeStr(),
+                         optionCB->getPreferedPeriod(),
                          PREFER_INSTANCE_TYPE_MASTER ) ;
       _pEduCB = pEduCB ;
    }
@@ -337,9 +338,56 @@ namespace engine
       return hasConnected;
    }
 
-   void CoordSession::addLastNode( const MsgRouteID &routeID )
+   INT32 CoordSession::addLastNode( const MsgRouteID &nodeID,
+                                    BOOLEAN primaryRequest )
    {
-      _lastNodeMap[routeID.columns.groupID] = routeID;
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         COORD_LASTNODE_MAP::iterator iter =
+                              _lastNodeMap.find( nodeID.columns.groupID ) ;
+         if ( iter != _lastNodeMap.end() && !primaryRequest )
+         {
+            // found group
+            coordLastNodeStatus &lastNodeStatus = iter->second ;
+            if ( lastNodeStatus._nodeID.value != nodeID.value )
+            {
+               // not the same node, need update node ID
+               lastNodeStatus._nodeID.value = nodeID.value ;
+               // new node is used, save current tick, then make it
+               // timeout after a preferred period
+               lastNodeStatus._addTick = pmdGetDBTick() ;
+            }
+         }
+         else
+         {
+            // if not found or primary required (write request),
+            // add last node directly
+            coordLastNodeStatus lastNodeStatus ;
+            // set node ID
+            lastNodeStatus._nodeID.value = nodeID.value ;
+            // new node is used, save current tick, then make it
+            // timeout after a preferred period
+            lastNodeStatus._addTick = pmdGetDBTick() ;
+            // save to the last node map
+            _lastNodeMap[ nodeID.columns.groupID ] = lastNodeStatus ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save the last node for group [%u] "
+                 "with node [%u], error: %s", nodeID.columns.groupID,
+                 nodeID.columns.nodeID, e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    void CoordSession::removeLastNode( UINT32 groupID )
@@ -347,33 +395,49 @@ namespace engine
       _lastNodeMap.erase( groupID ) ;
    }
 
-   void CoordSession::removeLastNode( UINT32 groupID,
-                                      const MsgRouteID &nodeID )
+   void CoordSession::removeLastNode( const MsgRouteID &nodeID )
    {
-      COORD_LASTNODE_MAP::iterator it = _lastNodeMap.find( groupID ) ;
+      COORD_LASTNODE_MAP::iterator it = _lastNodeMap.find( nodeID.columns.groupID ) ;
       if ( it != _lastNodeMap.end() &&
-           it->second.columns.nodeID == nodeID.columns.nodeID )
+           it->second._nodeID.columns.nodeID == nodeID.columns.nodeID )
       {
          _lastNodeMap.erase( it ) ;
       }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_COORDSN_GETLASTND, "CoordSession::getLastNode" )
-   MsgRouteID CoordSession::getLastNode( UINT32 groupID )
+   UINT64 CoordSession::getLastNode( UINT32 groupID )
    {
+      MsgRouteID nodeID ;
+
       PD_TRACE_ENTRY ( SDB_COORDSN_GETLASTND );
-      MsgRouteID routeID;
-      COORD_LASTNODE_MAP::iterator it = _lastNodeMap.find( groupID );
-      if ( it != _lastNodeMap.end() )
+
+      COORD_LASTNODE_MAP::iterator iter = _lastNodeMap.find( groupID ) ;
+
+      nodeID.value = MSG_INVALID_ROUTEID ;
+
+      if ( iter != _lastNodeMap.end() )
       {
-         routeID = it->second ;
+         nodeID.value = iter->second._nodeID.value ;
+         // check if timeout against preferred period
+         // - if period is zero, always timeout
+         // - if added before a period (in second), make it timeout
+         // NOTE: if period is -1, always not timeout
+         if ( ( _instanceOption.getPreferedPeriod() == 0 ) ||
+              ( _instanceOption.getPreferedPeriod() > 0 &&
+                pmdGetTickSpanTime( iter->second._addTick ) >
+                      ( (UINT64)( _instanceOption.getPreferedPeriod() ) *
+                        OSS_ONE_SEC ) ) )
+         {
+            nodeID.value = MSG_INVALID_ROUTEID ;
+            // remote node now
+            _lastNodeMap.erase( iter ) ;
+         }
       }
-      else
-      {
-         routeID.value = 0 ;
-      }
-      PD_TRACE_EXIT ( SDB_COORDSN_GETLASTND );
-      return routeID;
+
+      PD_TRACE_EXIT ( SDB_COORDSN_GETLASTND ) ;
+
+      return nodeID.value ;
    }
 
    void CoordSession::addRequest( const UINT64 reqID,

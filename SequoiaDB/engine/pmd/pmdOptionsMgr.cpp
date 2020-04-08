@@ -94,6 +94,7 @@ namespace engine
    #define PMD_DFT_PREFINST            ( PREFER_INSTANCE_MASTER_STR )
    #define PMD_DFT_PREFINST_MODE       ( PREFER_INSTANCE_RANDOM_STR )
    #define PMD_DFT_INSTANCE_ID         ( NODE_INSTANCE_ID_UNKNOWN )
+   #define PMD_DFT_PREFINST_PERIOD     ( PREFER_INSTANCE_DEF_PERIOD )
 
    /*
       _pmdCfgExchange implement
@@ -1527,6 +1528,7 @@ namespace engine
       _pageAllocTimeout = PMD_DFT_PAGE_ALLOC_TIMEOUT ;
       _perfStat = FALSE ;
       _instanceID = PMD_DFT_INSTANCE_ID ;
+      _preferedPeriod = PMD_DFT_PREFINST_PERIOD ;
 
 #ifdef SDB_ENTERPRISE
 
@@ -1669,6 +1671,9 @@ namespace engine
       rdxString( pEX, PMD_OPTION_PREFINST_MODE, _prefInstModeStr,
                  sizeof( _prefInstModeStr ), FALSE, TRUE,
                  PMD_DFT_PREFINST_MODE ) ;
+      // --preferedperiod
+      rdxInt( pEX, PMD_OPTION_PREFINST_PERIOD, _preferedPeriod, FALSE,
+              TRUE, PMD_DFT_PREFINST_PERIOD, FALSE ) ;
       // --instanceid
       rdxUInt( pEX, PMD_OPTION_INSTANCE_ID, _instanceID, FALSE, FALSE,
                PMD_DFT_INSTANCE_ID, FALSE ) ;

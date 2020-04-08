@@ -86,14 +86,13 @@ namespace engine
       BOOLEAN hasInvalidID    = FALSE ;
       BOOLEAN hasRetry        = FALSE ;
       UINT64 reqID            = 0 ;
-
-      RTN_COORD_POS_LIST selectedPositions ;
+      RTN_COORD_POS_LIST   selectedPositions ;
 
       PD_TRACE_ENTRY ( SDB__RTNCOSENDREQUESTTOONE ) ;
 
       if ( pSession )
       {
-         if ( pSession->isMasterPreferred() )
+         if ( pSession->isMasterRequired() )
          {
             if ( MSG_BS_QUERY_REQ == pBuffer->opCode )
             {
@@ -128,10 +127,10 @@ namespace engine
       ********************************/
       if ( NULL != pSession )
       {
-         routeID = pSession->getLastNode( groupInfo->groupID() ) ;
+         routeID.value = pSession->getLastNode( groupInfo->groupID() ) ;
          // last node is valid and in group info( when group or node
          // is remove )
-         if ( routeID.value != 0 &&
+         if ( routeID.value != MSG_INVALID_ROUTEID &&
               groupInfo->nodePos( routeID.columns.nodeID ) >= 0 )
          {
             if ( pIOVec && pIOVec->size() > 0 )
@@ -228,7 +227,7 @@ namespace engine
 
                if ( pSession )
                {
-                  pSession->addLastNode( routeID ) ;
+                  pSession->addLastNode( routeID, FALSE ) ;
                }
                break ;
             }
@@ -308,7 +307,7 @@ namespace engine
             sendNodes[ reqID ] = primaryRouteID ;
             if ( pSession )
             {
-               pSession->addLastNode( primaryRouteID ) ;
+               pSession->addLastNode( primaryRouteID, TRUE ) ;
             }
             goto done ;
          }
@@ -2620,7 +2619,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       RTN_COORD_POS_ARRAY tempPositions ;
-      BOOLEAN foundPrimary = FALSE ;
       UINT8 pos = 0 ;
 
       selectedPositions.clear() ;
@@ -2645,7 +2643,6 @@ namespace engine
             }
          }
       }
-
 
       // shuffle candidate positions
       if ( !tempPositions.empty() )
@@ -2696,13 +2693,13 @@ namespace engine
       return rc ;
 
    error:
+      selectedPositions.clear() ;
       goto done ;
    }
 
    static INT32 _rtnCoordSelectPositions ( const VEC_NODE_INFO & groupNodes,
                                            UINT32 primaryPos,
                                            const rtnInstanceOption & instanceOption,
-                                           UINT32 random,
                                            RTN_COORD_POS_LIST & selectedPositions )
    {
       INT32 rc = SDB_OK ;
@@ -2713,8 +2710,10 @@ namespace engine
       UINT8 unselectMask = 0xFF ;
       UINT32 nodeCount = groupNodes.size() ;
       BOOLEAN foundPrimary = FALSE ;
-      BOOLEAN primaryFirst = ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER ) ;
-      BOOLEAN primaryLast = ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_SLAVE ) ;
+      BOOLEAN primaryFirst = ( instanceOption.getSpecialInstance() ==
+                               PREFER_INSTANCE_TYPE_MASTER ) ;
+      BOOLEAN primaryLast = ( instanceOption.getSpecialInstance() ==
+                              PREFER_INSTANCE_TYPE_SLAVE ) ;
 
       selectedPositions.clear() ;
 
@@ -2843,40 +2842,35 @@ namespace engine
          }
          OSS_BIT_CLEAR( unselectMask, 1 << primaryPos ) ;
       }
-      else if ( CLS_RG_NODE_POS_INVALID != primaryPos &&
-                !selectedPositions.empty() &&
-                ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER ||
-                  instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER_SND ) )
-      {
-         // Primary is not in the selected list, but "M" or "m" is specified,
-         // so we need to consider primary node if all previous selected nodes
-         // are failing, put the primary node to the end
-         try
-         {
-            selectedPositions.push_back( primaryPos ) ;
-         }
-         catch ( exception &e )
-         {
-            PD_LOG( PDERROR, "Failed to add selected position, "
-                    "error: %s", e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         OSS_BIT_CLEAR( unselectMask, 1 << primaryPos ) ;
-      }
 
-      // Push the unselected positions in the end of selected positions
-      if ( !selectedPositions.empty() )
+      // push the unselected positions in the end of selected positions
+      // - if some of them are selected already, we could put remaining nodes
+      //   as later choice
+      // - if master or slave is preferred, we need to put the remaining nods
+      //   into master or slave preferred order
+      if ( !selectedPositions.empty() ||
+            instanceOption.isMasterPreferred() ||
+            instanceOption.isSlavePreferred() )
       {
-         UINT8 tmpPos = (UINT8)random ;
-         for ( UINT32 i = 0 ; i < nodeCount ; i ++ )
+         foundPrimary = FALSE ;
+         tempPositions.clear() ;
+         for ( UINT32 pos = 0 ; pos < nodeCount ; ++ pos )
          {
-            tmpPos = ( tmpPos + 1 ) % nodeCount ;
-            if ( OSS_BIT_TEST( unselectMask, 1 << tmpPos ) )
+            if ( OSS_BIT_TEST( unselectMask, 1 << pos ) )
             {
+               if ( pos == primaryPos )
+               {
+                  // slave/master is preferred, and primary should be added later
+                  if ( instanceOption.isMasterPreferred() ||
+                       instanceOption.isSlavePreferred() )
+                  {
+                     foundPrimary = TRUE ;
+                     continue ;
+                  }
+               }
                try
                {
-                  selectedPositions.push_back( (UINT8)tmpPos ) ;
+                  tempPositions.append( (UINT8)pos ) ;
                }
                catch ( exception &e )
                {
@@ -2885,6 +2879,47 @@ namespace engine
                   rc = SDB_SYS ;
                   goto error ;
                }
+            }
+         }
+
+         if ( foundPrimary && instanceOption.isMasterPreferred() )
+         {
+            // add primary to the beginning of remaining nodes
+            try
+            {
+               selectedPositions.push_back( primaryPos ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to add selected position, "
+                       "error: %s", e.what() ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+         }
+
+         if ( !tempPositions.empty() )
+         {
+            // shuffle candidate positions into selected positions
+            // NOTE: the preferred mode is random in this case
+            rc = _rtnCoordShufflePositions( tempPositions, selectedPositions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to shuffle positions, rc: %d",
+                         rc ) ;
+         }
+
+         if ( foundPrimary && instanceOption.isSlavePreferred() )
+         {
+            // add primary to the last
+            try
+            {
+               selectedPositions.push_back( primaryPos ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to add selected position, "
+                       "error: %s", e.what() ) ;
+               rc = SDB_SYS ;
+               goto error ;
             }
          }
       }
@@ -2939,7 +2974,7 @@ namespace engine
          const VEC_NODE_INFO * nodes = pGroupItem->getNodes() ;
          SDB_ASSERT( NULL != nodes, "node list is invalid" ) ;
          rc = _rtnCoordSelectPositions( *nodes, primaryPos, instanceOption,
-                                        random, selectedPositions ) ;
+                                        selectedPositions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to select position for group [%u], "
                       "rc: %d", pGroupItem->groupID(), rc ) ;
 
@@ -2950,7 +2985,7 @@ namespace engine
             selected = TRUE ;
          }
       }
-      else if ( instanceOption.isSlavePerferred() )
+      else if ( instanceOption.isSlavePreferred() )
       {
          const VEC_NODE_INFO * nodes = pGroupItem->getNodes() ;
          SDB_ASSERT( NULL != nodes, "node list is invalid" ) ;
@@ -3063,7 +3098,7 @@ namespace engine
                // for slave preferred option
                // The selected positions have been considered for slave
                // preferred option
-               isSlavePreferred = instanceOption.isSlavePerferred() ;
+               isSlavePreferred = instanceOption.isSlavePreferred() ;
                tmpPos = ( tmpPos + 1 ) % nodeCount ;
             }
             else
@@ -4101,8 +4136,7 @@ namespace engine
       }
       else if ( SDB_OK != retCode && pSession )
       {
-         pSession->removeLastNode( routeID.columns.groupID,
-                                   routeID ) ;
+         pSession->removeLastNode( routeID ) ;
       }
 
       if( groupInfo.get() )
@@ -4129,8 +4163,7 @@ namespace engine
       }
       else if ( SDB_OK != retCode && pSession )
       {
-         pSession->removeLastNode( routeID.columns.groupID,
-                                   routeID ) ;
+         pSession->removeLastNode( routeID ) ;
       }
 
       if ( SDB_OK == rtnCoordGetGroupInfo( cb, routeID.columns.groupID,
@@ -4156,8 +4189,7 @@ namespace engine
       /// remove the last node
       if ( cb && cb->getCoordSession() )
       {
-         cb->getCoordSession()->removeLastNode( nodeID.columns.groupID,
-                                                nodeID ) ;
+         cb->getCoordSession()->removeLastNode( nodeID ) ;
       }
 
       if ( SDB_CLS_NOT_PRIMARY == flag && 0 != primaryID &&

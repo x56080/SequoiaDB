@@ -92,15 +92,24 @@ namespace engine
                      _instanceList.empty() ) ? FALSE : TRUE ;
          }
 
-         OSS_INLINE BOOLEAN isMasterPreferred () const
+         OSS_INLINE BOOLEAN isMasterRequired() const
          {
+            // must use master node
             return ( _instanceList.empty() &&
                      ( PREFER_INSTANCE_TYPE_MASTER == _specInstance ||
                        PREFER_INSTANCE_TYPE_MASTER_SND == _specInstance ) ) ;
          }
 
-         OSS_INLINE BOOLEAN isSlavePerferred () const
+         OSS_INLINE BOOLEAN isMasterPreferred () const
          {
+            // master is preferred, but not required
+            return ( PREFER_INSTANCE_TYPE_MASTER == _specInstance ||
+                     PREFER_INSTANCE_TYPE_MASTER_SND == _specInstance ) ;
+         }
+
+         OSS_INLINE BOOLEAN isSlavePreferred () const
+         {
+            // slave is preferred
             return ( PREFER_INSTANCE_TYPE_SLAVE == _specInstance ||
                      PREFER_INSTANCE_TYPE_SLAVE_SND == _specInstance ) ;
          }
@@ -125,7 +134,17 @@ namespace engine
             return (RTN_PREFER_INSTANCE_MODE)_mode ;
          }
 
-         void reset () ;
+         OSS_INLINE void setPreferedPeriod( INT32 period )
+         {
+            _period = period ;
+         }
+
+         OSS_INLINE INT32 getPreferedPeriod() const
+         {
+            return _period ;
+         }
+
+         void  reset () ;
          INT32 setPreferredInstance ( PREFER_REPLICA_TYPE replType ) ;
          INT32 setPreferredInstance ( RTN_PREFER_INSTANCE_TYPE instance ) ;
          INT32 setPreferredInstanceMode ( RTN_PREFER_INSTANCE_MODE mode ) ;
@@ -148,6 +167,7 @@ namespace engine
       protected :
          UINT8             _mode ;
          INT8              _specInstance ;
+         INT32             _period ;
          RTN_INSTANCE_LIST _instanceList ;
    } ;
 
@@ -168,6 +188,7 @@ namespace engine
 
          void setInstanceOption ( const CHAR * instanceStr,
                                   const CHAR * instanceModeStr,
+                                  INT32 preferedPeriod,
                                   RTN_PREFER_INSTANCE_TYPE defaultInstance ) ;
 
          OSS_INLINE void setInstanceOption ( const rtnInstanceOption & instanceOption )
@@ -185,12 +206,12 @@ namespace engine
             return _instanceOption ;
          }
 
-         OSS_INLINE BOOLEAN isMasterPreferred () const
+         OSS_INLINE BOOLEAN isMasterRequired () const
          {
-            return _instanceOption.isMasterPreferred() ;
+            return _instanceOption.isMasterRequired() ;
          }
 
-         OSS_INLINE void setMasterPreferred ()
+         OSS_INLINE void setMasterRequired ()
          {
             _instanceOption.setPreferredInstance( PREFER_INSTANCE_TYPE_MASTER ) ;
             _instanceOption.setPreferredInstanceMode( PREFER_INSTANCE_MODE_RANDOM ) ;

@@ -52,6 +52,7 @@ namespace engine
    _rtnInstanceOption::_rtnInstanceOption ()
    : _mode( (UINT8)PREFER_INSTANCE_MODE_UNKNOWN ),
      _specInstance( (INT8)PREFER_INSTANCE_TYPE_UNKNOWN ),
+     _period( PREFER_INSTANCE_DEF_PERIOD ),
      _instanceList()
    {
    }
@@ -59,6 +60,7 @@ namespace engine
    _rtnInstanceOption::_rtnInstanceOption ( const rtnInstanceOption & option )
    : _mode( option._mode ),
      _specInstance( option._specInstance ),
+     _period( option._period ),
      _instanceList()
    {
       _instanceList = option._instanceList ;
@@ -72,6 +74,7 @@ namespace engine
    {
       _mode = option._mode ;
       _specInstance = option._specInstance ;
+      _period = option._period ;
       _instanceList = option._instanceList ;
       return ( *this ) ;
    }
@@ -82,6 +85,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNINST_RESET ) ;
 
       _mode = (UINT8)PREFER_INSTANCE_MODE_UNKNOWN ;
+      _period = PREFER_INSTANCE_DEF_PERIOD ;
       _clearInstance() ;
 
       PD_TRACE_EXIT( SDB__RTNINST_RESET ) ;
@@ -249,27 +253,33 @@ namespace engine
 
       const CHAR * instanceStr = option.valuestrsafe() ;
 
-      if ( 0 == ossStrcmp( instanceStr, PREFER_INSTANCE_MASTER_STR ) )
+      if ( 0 == ossStrcasecmp( instanceStr,
+                               PREFER_INSTANCE_MASTER_STR ) )
       {
          _specInstance = (INT8)PREFER_INSTANCE_TYPE_MASTER ;
       }
-      else if ( 0 == ossStrcmp( instanceStr, PREFER_INSTANCE_SLAVE_STR ) )
+      else if ( 0 == ossStrcasecmp( instanceStr,
+                                    PREFER_INSTANCE_SLAVE_STR ) )
       {
          _specInstance = (INT8)PREFER_INSTANCE_TYPE_SLAVE ;
       }
-      else if ( 0 == ossStrcmp( instanceStr, PREFER_INSTANCE_ANY_STR ) )
+      else if ( 0 == ossStrcasecmp( instanceStr,
+                                    PREFER_INSTANCE_ANY_STR ) )
       {
          _specInstance = (INT8)PREFER_INSTANCE_TYPE_ANYONE ;
       }
-      else if ( 0 == ossStrcmp( instanceStr, PREFER_INSTANCE_MASTER_LOWSTR ) )
+      else if ( 0 == ossStrcasecmp( instanceStr,
+                                    PREFER_INSTANCE_MASTER_SND_STR ) )
       {
          _specInstance = (INT8)PREFER_INSTANCE_TYPE_MASTER_SND ;
       }
-      else if ( 0 == ossStrcmp( instanceStr, PREFER_INSTANCE_SLAVE_LOWSTR ) )
+      else if ( 0 == ossStrcasecmp( instanceStr,
+                                    PREFER_INSTANCE_SLAVE_SND_STR ) )
       {
          _specInstance = (INT8)PREFER_INSTANCE_TYPE_SLAVE_SND ;
       }
-      else if ( 0 == ossStrcmp( instanceStr, PREFER_INSTANCE_ANY_LOWSTR ) )
+      else if ( 0 == ossStrcasecmp( instanceStr,
+                                    PREFER_INSTANCE_ANY_SND_STR ) )
       {
          _specInstance = (INT8)PREFER_INSTANCE_TYPE_ANYONE_SND ;
       }
@@ -354,32 +364,38 @@ namespace engine
       curInstanceStr = ossStrtok( instanceCopyStr, ",", &lastParsed ) ;
       while ( NULL != curInstanceStr && '\0' != curInstanceStr )
       {
-         if ( 0 == ossStrcmp( curInstanceStr, PREFER_INSTANCE_MASTER_STR ) &&
+         if ( 0 == ossStrcasecmp( curInstanceStr,
+                                  PREFER_INSTANCE_MASTER_STR ) &&
               PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
          {
             _specInstance = PREFER_INSTANCE_TYPE_MASTER ;
          }
-         else if ( 0 == ossStrcmp( curInstanceStr, PREFER_INSTANCE_SLAVE_STR ) &&
+         else if ( 0 == ossStrcasecmp( curInstanceStr,
+                                       PREFER_INSTANCE_SLAVE_STR ) &&
                    PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
          {
             _specInstance = PREFER_INSTANCE_TYPE_SLAVE ;
          }
-         else if ( 0 == ossStrcmp( curInstanceStr, PREFER_INSTANCE_ANY_STR ) &&
+         else if ( 0 == ossStrcasecmp( curInstanceStr,
+                                       PREFER_INSTANCE_ANY_STR ) &&
                    PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
          {
             _specInstance = PREFER_INSTANCE_TYPE_ANYONE ;
          }
-         else if ( 0 == ossStrcmp( curInstanceStr, PREFER_INSTANCE_MASTER_LOWSTR ) &&
+         else if ( 0 == ossStrcasecmp( curInstanceStr,
+                                       PREFER_INSTANCE_MASTER_SND_STR ) &&
                    PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
          {
             _specInstance = PREFER_INSTANCE_TYPE_MASTER_SND ;
          }
-         else if ( 0 == ossStrcmp( curInstanceStr, PREFER_INSTANCE_SLAVE_LOWSTR ) &&
+         else if ( 0 == ossStrcasecmp( curInstanceStr,
+                                       PREFER_INSTANCE_SLAVE_SND_STR ) &&
                    PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
          {
             _specInstance = PREFER_INSTANCE_TYPE_SLAVE_SND ;
          }
-         else if ( 0 == ossStrcmp( curInstanceStr, PREFER_INSTANCE_ANY_LOWSTR ) &&
+         else if ( 0 == ossStrcasecmp( curInstanceStr,
+                                       PREFER_INSTANCE_ANY_SND_STR ) &&
                    PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
          {
             _specInstance = PREFER_INSTANCE_TYPE_ANYONE_SND ;
@@ -495,6 +511,7 @@ namespace engine
                break ;
          }
          builder.append( FIELD_NAME_PREFERED_INSTANCE_MODE, modeStr ) ;
+         builder.append( FIELD_NAME_PREFERED_PERIOD, _period ) ;
       }
       else
       {
@@ -513,15 +530,15 @@ namespace engine
          case PREFER_INSTANCE_TYPE_MASTER :
             return PREFER_INSTANCE_MASTER_STR ;
          case PREFER_INSTANCE_TYPE_MASTER_SND :
-            return PREFER_INSTANCE_MASTER_LOWSTR ;
+            return PREFER_INSTANCE_MASTER_SND_STR ;
          case PREFER_INSTANCE_TYPE_SLAVE :
             return PREFER_INSTANCE_SLAVE_STR ;
          case PREFER_INSTANCE_TYPE_SLAVE_SND :
-            return PREFER_INSTANCE_SLAVE_LOWSTR ;
+            return PREFER_INSTANCE_SLAVE_SND_STR ;
          case PREFER_INSTANCE_TYPE_ANYONE :
             return PREFER_INSTANCE_ANY_STR ;
          case PREFER_INSTANCE_TYPE_ANYONE_SND :
-            return PREFER_INSTANCE_ANY_LOWSTR ;
+            return PREFER_INSTANCE_ANY_SND_STR ;
          default :
             break ;
       }
@@ -556,16 +573,21 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSESSPROP_SETINSTOPT, "_rtnSessionProperty::setInstanceOption" )
    void _rtnSessionProperty::setInstanceOption ( const CHAR * instanceStr,
                                                  const CHAR * instanceModeStr,
+                                                 INT32 preferedPeriod,
                                                  RTN_PREFER_INSTANCE_TYPE defaultInstance )
    {
       PD_TRACE_ENTRY( SDB__RTNSESSPROP_SETINSTOPT ) ;
 
       _instanceOption.parsePreferredInstance( instanceStr ) ;
       _instanceOption.parsePreferredInstanceMode( instanceModeStr ) ;
+      _instanceOption.setPreferedPeriod( preferedPeriod ) ;
 
       if ( !_instanceOption.isValidated() )
       {
          _instanceOption.setPreferredInstance( defaultInstance ) ;
+
+         // if no preferred instance is given, no need to check timeout period
+         _instanceOption.setPreferedPeriod( -1 ) ;
       }
 
       PD_TRACE_EXIT( SDB__RTNSESSPROP_SETINSTOPT ) ;
@@ -752,7 +774,16 @@ namespace engine
 
             gotInstance = TRUE ;
          }
-         else if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_TIMEOUT ) )
+         else if ( 0 == ossStrcmp( field.fieldName(),
+                                   FIELD_NAME_PREFERED_PERIOD ) )
+         {
+            /// PreferedPeriod
+            PD_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                      "Field [%s] is not number", FIELD_NAME_PREFERED_PERIOD ) ;
+            instanceOption.setPreferedPeriod( field.numberInt() ) ;
+            gotInstance = TRUE ;
+         }
+         else if ( 0 == ossStrcasecmp( field.fieldName(), FIELD_NAME_TIMEOUT ) )
          {
             /// Timeout
             PD_CHECK( field.isNumber(), SDB_INVALIDARG, error,
@@ -777,6 +808,12 @@ namespace engine
 
       if ( gotInstance )
       {
+         if ( !instanceOption.isValidated() )
+         {
+            // if no preferred instance is given, no need to check
+            // timeout period
+            _instanceOption.setPreferedPeriod( -1 ) ;
+         }
          setInstanceOption( instanceOption ) ;
          _onSetInstance() ;
       }
