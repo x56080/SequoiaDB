@@ -1,5 +1,7 @@
 package com.sequoiadb.backup;
 
+import java.io.File;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -30,7 +32,7 @@ public class Backup7173 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        path = SdbTestBase.workDir + "/%g";
+        path = SdbTestBase.workDir + "/" + groupName;
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "run mode is standalone,test case skip" );
@@ -40,6 +42,10 @@ public class Backup7173 extends SdbTestBase {
                 sdb.dropCollectionSpace( csName );
             }
             sdb.removeReplicaGroup( groupName );
+        }
+        File backupDir = new File( path );
+        if ( backupDir.exists() ) {
+            backupDir.delete();
         }
         BackupUtil.createRGAndNode( sdb, groupName, nodeNum );
         BSONObject options = new BasicBSONObject();
@@ -55,11 +61,8 @@ public class Backup7173 extends SdbTestBase {
         BSONObject removeOption = new BasicBSONObject();
         removeOption.put( "GroupName", groupName );
         removeOption.put( "Path", path );
-        try {
-            if ( success ) {
-                sdb.removeBackup( removeOption );
-            }
-        } finally {
+        if ( success ) {
+            sdb.removeBackup( removeOption );
             sdb.dropCollectionSpace( csName );
             sdb.removeReplicaGroup( groupName );
             sdb.close();
