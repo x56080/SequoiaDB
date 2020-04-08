@@ -1,6 +1,5 @@
 package com.sequoiadb.cappedcl;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -11,7 +10,6 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.fulltext.utils.FullTextDBUtils;
 import com.sequoiadb.testcommon.CommLib;
 
 public class CappedCLUtils {
@@ -54,8 +52,8 @@ public class CappedCLUtils {
             String clName, int stringLength ) {
 
         // 固定集合只能在1个组上，获取组名
-        ArrayList< String > groupNames = getCLGroupNames( db, csName, clName );
-        ReplicaGroup rg = db.getReplicaGroup( groupNames.get( 0 ) );
+        String groupName = getCLGroupName( db, csName, clName );
+        ReplicaGroup rg = db.getReplicaGroup( groupName );
 
         try ( Sequoiadb master = rg.getMaster().connect()) {
             DBCollection cl = master.getCollectionSpace( csName )
@@ -101,69 +99,66 @@ public class CappedCLUtils {
      * @return boolean 主备节点一致则返回true，不一致则返回false
      * @throws Exception
      */
-    public static boolean checkRecord( Sequoiadb db, String csName,
+    public static boolean isRecordConsistency( Sequoiadb db, String csName,
             String clName ) throws Exception {
 
-        // 校验主备节点lsn
-        isCLConsistency( db, csName, clName );
-
         // 获取集合所在的组
-        ArrayList< String > groupNames = getCLGroupNames( db, csName, clName );
-        for ( int i = 0; i < groupNames.size(); i++ ) {
-            ReplicaGroup rg = db.getReplicaGroup( groupNames.get( i ) );
-            ArrayList< String > nodeNames = getNodeNames( db,
-                    groupNames.get( i ) );
+        String groupName = getCLGroupName( db, csName, clName );
+        ReplicaGroup rg = db.getReplicaGroup( groupName );
+        List< String > nodeNames = CommLib.getNodeAddress( db, groupName );
 
-            // 在第一个节点上的集合上查询数据，作为预期结果
-            try ( Sequoiadb node0 = rg.getNode( ( String ) nodeNames.get( 0 ) )
-                    .connect()) {
-                DBCollection nodecl0 = node0.getCollectionSpace( csName )
-                        .getCollection( clName );
-                long count0 = nodecl0.getCount();
-                DBCursor cursor0 = nodecl0.query( null, null, "{'_id':1}",
-                        null );
-                for ( int j = 1; j < nodeNames.size(); j++ ) {
-                    try ( Sequoiadb node1 = rg
-                            .getNode( ( String ) nodeNames.get( i ) )
-                            .connect()) {
-                        DBCollection nodecl1 = node1
-                                .getCollectionSpace( csName )
-                                .getCollection( clName );
-                        long count1 = nodecl1.getCount();
-                        // 比较记录数
-                        if ( count0 != count1 ) {
-                            System.out.println( "cl in nodeName:"
-                                    + nodeNames.get( 0 ) + "getCount:" + count0
-                                    + ",cl in nodeName:" + nodeNames.get( i )
-                                    + "getCount:" + count1 );
-                            return false;
-                        }
-
-                        // 比较记录
-                        DBCursor cursor1 = nodecl1.query( null, null,
-                                "{'_id':1}", null );
-                        while ( cursor0.hasNext() && cursor1.hasNext() ) {
-                            BSONObject record0 = cursor0.getNext();
-                            BSONObject record1 = cursor1.getNext();
-
-                            if ( !record0.equals( record1 ) ) {
-                                System.out.println( "cl in nodeName:"
-                                        + nodeNames.get( 0 ) + "record0:"
-                                        + record0 + ",cl in nodeName:"
-                                        + nodeNames.get( i ) + "record1:"
-                                        + record1 );
-                                return false;
-                            }
-                        }
-                        cursor1.close();
+        // 在第一个节点上的集合上查询数据，作为预期结果
+        try ( Sequoiadb node0 = rg.getNode( ( String ) nodeNames.get( 0 ) )
+                .connect()) {
+            DBCollection nodecl0 = node0.getCollectionSpace( csName )
+                    .getCollection( clName );
+            long count0 = nodecl0.getCount();
+            DBCursor cursor0 = nodecl0.query( null, null, "{'_id':1}", null );
+            for ( int j = 1; j < nodeNames.size(); j++ ) {
+                try ( Sequoiadb node1 = rg
+                        .getNode( ( String ) nodeNames.get( j ) ).connect()) {
+                    DBCollection nodecl1 = node1.getCollectionSpace( csName )
+                            .getCollection( clName );
+                    long count1 = nodecl1.getCount();
+                    // 比较记录数
+                    if ( count0 != count1 ) {
+                        System.out.println( "testCase:"
+                                + new Exception().getStackTrace()[ 1 ]
+                                        .getClassName()
+                                + ",clName:" + csName + "." + clName
+                                + " in nodeName:" + nodeNames.get( 0 )
+                                + ",getCount:" + count0 + ",in nodeName:"
+                                + nodeNames.get( j ) + ",getCount:" + count1 );
+                        return false;
                     }
 
-                }
-                cursor0.close();
-            }
+                    // 比较记录
+                    DBCursor cursor1 = nodecl1.query( null, null, "{'_id':1}",
+                            null );
+                    while ( cursor0.hasNext() && cursor1.hasNext() ) {
+                        BSONObject record0 = cursor0.getNext();
+                        BSONObject record1 = cursor1.getNext();
 
+                        if ( !record0.equals( record1 ) ) {
+                            System.out.println( "testCase:"
+                                    + new Exception().getStackTrace()[ 1 ]
+                                            .getClassName()
+                                    + ",clName:" + csName + "." + clName
+                                    + " in nodeName:" + nodeNames.get( 0 )
+                                    + ",record0:" + record0 + ",cl in nodeName:"
+                                    + nodeNames.get( j ) + ",record1:"
+                                    + record1 );
+                            return false;
+                        }
+                    }
+                    cursor1.close();
+                }
+
+            }
+            cursor0.close();
         }
         return true;
+
     }
 
     /**
@@ -173,100 +168,72 @@ public class CappedCLUtils {
      * @return boolean 主备节点一致则返回true，不一致则返回false
      * @throws Exception
      */
-    public static ArrayList< String > getCLGroupNames( Sequoiadb db,
-            String csName, String clName ) {
-        ArrayList< String > groupNames = new ArrayList< String >();
-        DBCursor cursorSnapshot = db.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
+    public static String getCLGroupName( Sequoiadb db, String csName,
+            String clName ) {
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
                 "{Name:'" + csName + "." + clName + "'}", "{CataInfo:''}",
                 null );
 
-        BasicBSONList cataInfo = ( BasicBSONList ) cursorSnapshot.getNext()
-                .get( "CataInfo" );
-        cursorSnapshot.close();
-        for ( int i = 0; i < cataInfo.size(); i++ )
-
-        {
-            BasicBSONObject record = ( BasicBSONObject ) cataInfo.get( i );
-            String groupName = record.getString( "GroupName" );
-            if ( !groupNames.isEmpty() && groupNames.contains( groupName ) ) {
-                continue;
-            }
-            groupNames.add( groupName );
+        String groupName = null;
+        while ( cursor.hasNext() ) {
+            BasicBSONList records = ( BasicBSONList ) cursor.getNext()
+                    .get( "CataInfo" );
+            groupName = ( String ) ( ( BSONObject ) records.get( 0 ) )
+                    .get( "GroupName" );
         }
-        return groupNames;
 
+        cursor.close();
+        return groupName;
     }
 
     /**
-     * 获取组内所有节点的nodeName
-     * 
-     * @param
-     * @return
-     * @throws Exception
-     */
-    public static ArrayList< String > getNodeNames( Sequoiadb db,
-            String groupName ) {
-        ArrayList< String > nodeNames = new ArrayList< String >();
-        ReplicaGroup rg = db.getReplicaGroup( groupName );
-        BasicBSONList detail = ( BasicBSONList ) rg.getDetail().get( "Group" );
-        String svcName = null;
-        for ( int i = 0; i < detail.size(); i++ ) {
-            BSONObject group = ( BSONObject ) detail.get( i );
-            String hostName = ( String ) group.get( "HostName" );
-            BasicBSONList services = ( BasicBSONList ) group.get( "Service" );
-            for ( int j = 0; j < services.size(); j++ ) {
-                BSONObject service = ( BSONObject ) services.get( i );
-                if ( ( int ) service.get( "Type" ) == 0 ) {
-                    svcName = ( String ) service.get( "Name" );
-                    break;
-                }
-            }
-            nodeNames.add( hostName + ":" + svcName );
-        }
-        return nodeNames;
-    }
-
-    /**
-     * 检查主备节点集合CompleteLSN一致
+     * 检查CL主备节点集合CompleteLSN一致
      * 
      * @param cl
      * @return boolean 如果主节点CompleteLSN小于等于备节点CompleteLSN返回true,否则返回false
      * @throws Exception
+     * @author luweikang
      */
-    private static boolean isCLConsistency( Sequoiadb db, String csName,
-            String clName ) {
-
+    public static boolean isLSNConsistency( Sequoiadb db, String groupName )
+            throws Exception {
         boolean isConsistency = false;
+        List< String > nodeNames = CommLib.getNodeAddress( db, groupName );
+        ReplicaGroup rg = db.getReplicaGroup( groupName );
 
-        DBCollection cl = db.getCollectionSpace( csName )
-                .getCollection( clName );
-        List< String > groupNames = FullTextDBUtils.getCLGroups( cl );
-        for ( String groupName : groupNames ) {
-            List< String > nodeNames = CommLib.getNodeAddress( db, groupName );
-            ReplicaGroup rg = db.getReplicaGroup( groupName );
+        try ( Sequoiadb masterNode = rg.getMaster().connect()) {
             long completeLSN = -2;
-            try ( Sequoiadb masterNode = rg.getMaster().connect()) {
-                DBCursor cursor = masterNode.getSnapshot(
-                        Sequoiadb.SDB_SNAP_SYSTEM, null, "{CompleteLSN: ''}",
-                        null );
-                if ( cursor.hasNext() ) {
-                    completeLSN = ( long ) cursor.getNext()
-                            .get( "CompleteLSN" );
+            DBCursor cursor = masterNode.getSnapshot( Sequoiadb.SDB_SNAP_SYSTEM,
+                    null, "{CompleteLSN: ''}", null );
+            if ( cursor.hasNext() ) {
+                BasicBSONObject snapshot = ( BasicBSONObject ) cursor.getNext();
+                if ( snapshot.containsField( "CompleteLSN" ) ) {
+                    completeLSN = ( long ) snapshot.get( "CompleteLSN" );
                 }
-                cursor.close();
+            } else {
+                throw new Exception( masterNode.getNodeName()
+                        + " can't not find system snapshot" );
             }
+            cursor.close();
 
             for ( String nodeName : nodeNames ) {
+                if ( masterNode.getNodeName().equals( nodeName ) ) {
+                    continue;
+                }
                 isConsistency = false;
                 try ( Sequoiadb nodeConn = rg.getNode( nodeName ).connect()) {
                     DBCursor cur = null;
-                    long checkCompleteLSN = -2;
+                    long checkCompleteLSN = -3;
                     for ( int i = 0; i < 600; i++ ) {
                         cur = nodeConn.getSnapshot( Sequoiadb.SDB_SNAP_SYSTEM,
                                 null, "{CompleteLSN: ''}", null );
                         if ( cur.hasNext() ) {
-                            checkCompleteLSN = ( long ) cur.getNext()
-                                    .get( "CompleteLSN" );
+                            BasicBSONObject checkSnapshot = ( BasicBSONObject ) cur
+                                    .getNext();
+                            if ( checkSnapshot
+                                    .containsField( "CompleteLSN" ) ) {
+                                checkCompleteLSN = ( long ) checkSnapshot
+                                        .get( "CompleteLSN" );
+                            }
                         }
                         cur.close();
 
@@ -280,8 +247,14 @@ public class CappedCLUtils {
                             e.printStackTrace();
                         }
                     }
+                    if ( !isConsistency ) {
+                        System.out.println( "Group [" + groupName
+                                + "] node system snapshot is not the same, masterNode "
+                                + masterNode.getNodeName() + " CompleteLSN: "
+                                + completeLSN + ", " + nodeName
+                                + " CompleteLSN: " + checkCompleteLSN );
+                    }
                 }
-
             }
         }
 

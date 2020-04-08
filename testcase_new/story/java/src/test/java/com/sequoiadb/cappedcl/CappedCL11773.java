@@ -35,6 +35,7 @@ public class CappedCL11773 extends SdbTestBase {
     private int stringLength = CappedCLUtils.getRandomStringLength( 1, 4000 );
     private int threadNum = 5;
     private ThreadExecutor te = new ThreadExecutor( 1800000 );
+    private String groupName = null;
 
     @BeforeClass
     public void setUp() {
@@ -45,8 +46,9 @@ public class CappedCL11773 extends SdbTestBase {
         }
 
         cappedCS = sdb.getCollectionSpace( cappedCSName );
-        cappedCS.createCollection( cappedCLName,
-                ( BSONObject ) JSON.parse( "{Capped:true, Size:10240}" ) );
+        groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
+        cappedCS.createCollection( cappedCLName, ( BSONObject ) JSON.parse(
+                "{Capped:true, Size:10240,Group:'" + groupName + "'}" ) );
 
         // 构造插入的字符串
         strBuffer = new StringBuffer();
@@ -67,8 +69,9 @@ public class CappedCL11773 extends SdbTestBase {
                 cappedCLName, stringLength ) );
 
         // 校验主备一致性
-        Assert.assertTrue(
-                CappedCLUtils.checkRecord( sdb, cappedCSName, cappedCLName ) );
+        Assert.assertTrue( CappedCLUtils.isLSNConsistency( sdb, groupName ) );
+        Assert.assertTrue( CappedCLUtils.isRecordConsistency( sdb, cappedCSName,
+                cappedCLName ) );
     }
 
     @AfterClass

@@ -35,6 +35,7 @@ public class CappedCL18836 extends SdbTestBase {
     private StringBuffer strBuffer = null;
     private int stringLength = CappedCLUtils.getRandomStringLength( 1, 2000 );
     private ThreadExecutor te = new ThreadExecutor( 1800000 );
+    private String groupName = null;
 
     @BeforeClass
     public void setUp() {
@@ -44,6 +45,7 @@ public class CappedCL18836 extends SdbTestBase {
             throw new SkipException( "skip StandAlone" );
         }
 
+        groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
         for ( int i = 0; i < csNum; i++ ) {
             String cappedCSNamei = cappedCSName + "_" + i;
             if ( sdb.isCollectionSpaceExist( cappedCSNamei ) ) {
@@ -95,7 +97,9 @@ public class CappedCL18836 extends SdbTestBase {
                         stringLength ) );
 
                 // 校验主备一致性
-                Assert.assertTrue( CappedCLUtils.checkRecord( sdb,
+                Assert.assertTrue(
+                        CappedCLUtils.isLSNConsistency( sdb, groupName ) );
+                Assert.assertTrue( CappedCLUtils.isRecordConsistency( sdb,
                         cappedCSName + "_" + i, cappedCLName + "_" + j ) );
             }
         }
@@ -105,7 +109,7 @@ public class CappedCL18836 extends SdbTestBase {
     public void tearDown() {
         try {
             for ( int i = 0; i < csNum; i++ ) {
-                sdb.dropCollectionSpace( cappedCSName + "_" + i );
+                // sdb.dropCollectionSpace( cappedCSName + "_" + i );
             }
         } finally {
             sdb.close();
@@ -132,14 +136,13 @@ public class CappedCL18836 extends SdbTestBase {
                                 .format( new Date() ) );
                 db.getCollectionSpace( csName ).createCollection( clName,
                         ( BSONObject ) JSON
-                                .parse( "{Capped:true, Size:1024}" ) );
+                                .parse( "{Capped:true, Size:1024, Group:'"
+                                        + groupName + "'}" ) );
                 System.out.println( this.getClass().getName().toString()
                         + " stop at:"
                         + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.S" )
                                 .format( new Date() ) );
-            } finally
-
-            {
+            } finally {
                 db.close();
             }
 

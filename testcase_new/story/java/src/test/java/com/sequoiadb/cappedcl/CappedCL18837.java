@@ -39,6 +39,7 @@ public class CappedCL18837 extends SdbTestBase {
     private StringBuffer strBuffer = null;
     private int stringLength = CappedCLUtils.getRandomStringLength( 1, 2000 );
     private ThreadExecutor te = new ThreadExecutor( 1800000 );
+    private String groupName = null;
 
     @BeforeClass
     public void setUp() {
@@ -48,9 +49,11 @@ public class CappedCL18837 extends SdbTestBase {
             throw new SkipException( "skip StandAlone" );
         }
 
+        groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
         cappedCS = sdb.getCollectionSpace( cappedCSName );
         DBCollection cappedCL = cappedCS.createCollection( cappedCLName,
-                ( BSONObject ) JSON.parse( "{Capped:true,Size:1024}" ) );
+                ( BSONObject ) JSON.parse(
+                        "{Capped:true,Size:1024,Group:'" + groupName + "'}" ) );
 
         // 构造插入的字符串
         strBuffer = new StringBuffer();
@@ -74,8 +77,9 @@ public class CappedCL18837 extends SdbTestBase {
         te.run();
 
         // 校验主备一致性
-        Assert.assertTrue(
-                CappedCLUtils.checkRecord( sdb, cappedCSName, cappedCLName ) );
+        Assert.assertTrue( CappedCLUtils.isLSNConsistency( sdb, groupName ) );
+        Assert.assertTrue( CappedCLUtils.isRecordConsistency( sdb, cappedCSName,
+                cappedCLName ) );
 
     }
 
@@ -109,7 +113,8 @@ public class CappedCL18837 extends SdbTestBase {
                                 .format( new Date() ) );
                 db.getCollectionSpace( cappedCSName ).createCollection( clName,
                         ( BSONObject ) JSON
-                                .parse( "{Capped:true, Size:1024}" ) );
+                                .parse( "{Capped:true, Size:1024, Group:'"
+                                        + groupName + "'}" ) );
                 System.out.println( this.getClass().getName().toString()
                         + " stop at:"
                         + new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.S" )

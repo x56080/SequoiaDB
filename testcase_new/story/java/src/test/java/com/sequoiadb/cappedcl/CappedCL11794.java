@@ -42,6 +42,7 @@ public class CappedCL11794 extends SdbTestBase {
     private int insertNum = 10000;
     private int threadNum = 5;
     private ThreadExecutor te = new ThreadExecutor( 1800000 );
+    private String groupName = null;
 
     @BeforeClass
     public void setUp() {
@@ -51,6 +52,7 @@ public class CappedCL11794 extends SdbTestBase {
             throw new SkipException( "skip StandAlone" );
         }
 
+        groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
         // 构造插入的字符串
         strBuffer = new StringBuffer();
         for ( int len = 0; len < stringLength; len++ ) {
@@ -66,8 +68,10 @@ public class CappedCL11794 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{Capped:true}" ) );
             for ( int j = 0; j < clNum; j++ ) {
                 DBCollection cappedCL = cappedCS.createCollection(
-                        cappedCLName + "_" + j, ( BSONObject ) JSON
-                                .parse( "{Capped:true, Size:10240}" ) );
+                        cappedCLName + "_" + j,
+                        ( BSONObject ) JSON
+                                .parse( "{Capped:true, Size:10240,Group:'"
+                                        + groupName + "'}" ) );
                 BasicBSONObject insertObj = new BasicBSONObject();
                 insertObj.put( "a", strBuffer.toString() );
                 CappedCLUtils.insertRecords( cappedCL, insertObj, insertNum );
@@ -87,10 +91,13 @@ public class CappedCL11794 extends SdbTestBase {
         }
         te.run();
 
+        // 校验主备节点lsn
+        Assert.assertTrue( CappedCLUtils.isLSNConsistency( sdb, groupName ) );
+
+        // 校验主备节点记录一致性
         for ( int i = 0; i < csNum; i++ ) {
             for ( int j = 0; j < clNum; j++ ) {
-                // 校验主备一致性
-                Assert.assertTrue( CappedCLUtils.checkRecord( sdb,
+                Assert.assertTrue( CappedCLUtils.isRecordConsistency( sdb,
                         cappedCSName + "_" + i, cappedCLName + "_" + j ) );
             }
         }
