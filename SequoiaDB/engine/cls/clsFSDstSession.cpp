@@ -2539,7 +2539,16 @@ namespace engine
          {
             const monCSSimple &csInfo = *it ;
 
+            // skip SYSTEM during sync
             if ( 0 == ossStrcmp( csInfo._name, SDB_DMSTEMP_NAME ) )
+            {
+               csList.erase( it++ ) ;
+               ++count ;
+               continue ;
+            }
+
+            // skip SYSRBS CS during sync because it's local to the node
+            if ( 0 == ossStrcmp( csInfo._name, SDB_DMSRBS_NAME ) )
             {
                csList.erase( it++ ) ;
                ++count ;

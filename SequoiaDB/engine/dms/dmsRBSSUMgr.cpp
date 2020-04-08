@@ -156,7 +156,7 @@ namespace engine
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to get collection space and lock for %s, "
-                     "rc: %d", SDB_DMSTEMP_NAME, rc ) ;
+                     "rc: %d", SDB_DMSRBS_NAME, rc ) ;
             goto error ;
          }
 
