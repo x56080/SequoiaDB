@@ -1648,7 +1648,7 @@ namespace engine
             }
             info._dataCommitLSN = vecLSN[0].numberLong() ;
             info._idxCommitLSN = vecLSN[1].numberLong() ;
-            info._lobCommitLSN = vecLSN[1].numberLong() ;
+            info._lobCommitLSN = vecLSN[2].numberLong() ;
          }
          catch( std::exception &e )
          {
