@@ -342,7 +342,9 @@ void _monGetSLatch(T* latchObj)
 
 }
 monSpinXLatch::monSpinXLatch( MON_LATCH_IDENTIFIER latchID )
-   : numOwner( 0 )
+   : xOwnerTID( 0 ),
+     numOwner( 0 ),
+     lastSOwnerTID( 0 )
 {
    this->latchID = latchID ;
 }
@@ -385,7 +387,9 @@ BOOLEAN monSpinXLatch::try_get()
  */
 
 monSpinSLatch::monSpinSLatch( MON_LATCH_IDENTIFIER latchID )
-   : numOwner( 0 )
+   : xOwnerTID( 0 ),
+     lastSOwnerTID( 0 ),
+     numOwner( 0 )
 {
    this->latchID = latchID ;
 }
