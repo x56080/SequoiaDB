@@ -36,7 +36,7 @@ public class UniqueIndexReplSyncOptimize20252a extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "standAlone skip testcase" );
         }
-        groupName = DataConsistencyUtil.getGroupName( sdb );
+        groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
         if ( DataConsistencyUtil.isOneNodeInGroup( sdb, groupName ) ) {
             throw new SkipException( "one node in group skip testcase" );
         }

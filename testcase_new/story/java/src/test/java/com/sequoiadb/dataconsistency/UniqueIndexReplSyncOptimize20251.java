@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
-import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -15,7 +14,8 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
  * @testlink seqDB-20251:多个集合空间下的集合，更新重复键及_id字段
@@ -38,7 +38,7 @@ public class UniqueIndexReplSyncOptimize20251 extends SdbTestBase {
             throw new SkipException( "standAlone skip testcase" );
         }
 
-        groupName = DataConsistencyUtil.getGroupName( sdb );
+        groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
         if ( DataConsistencyUtil.isOneNodeInGroup( sdb, groupName ) ) {
             throw new SkipException( "one node in group skip testcase" );
         }
@@ -52,7 +52,8 @@ public class UniqueIndexReplSyncOptimize20251 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        ArrayList< UpdateThread > updateThreads = new ArrayList<>();
+        ThreadExecutor thExecutor = new ThreadExecutor(
+                DataConsistencyUtil.THREAD_TIMEOUT );
         for ( int i = 0; i < csNum; i++ ) {
             String csName = "cs20251" + i;
             if ( sdb.isCollectionSpaceExist( csName ) ) {
@@ -65,17 +66,11 @@ public class UniqueIndexReplSyncOptimize20251 extends SdbTestBase {
                         ( BSONObject ) JSON
                                 .parse( "{Group:'" + groupName + "'}" ) );
                 cl.createIndex( "a20251", "{a:1}", true, true );
-                UpdateThread updateThread = new UpdateThread( csName, clName );
-                updateThread.start();
-                updateThreads.add( updateThread );
+                thExecutor.addWorker( new UpdateThread( csName, clName ) );
             }
 
         }
-
-        for ( int i = 0; i < updateThreads.size(); i++ ) {
-            Assert.assertTrue( updateThreads.get( i ).isSuccess(),
-                    updateThreads.get( i ).getErrorMsg() );
-        }
+        thExecutor.run();
 
         for ( int i = 0; i < csNum; i++ ) {
             String csName = "cs20251" + i;
@@ -105,19 +100,19 @@ public class UniqueIndexReplSyncOptimize20251 extends SdbTestBase {
         }
     }
 
-    public class UpdateThread extends SdbThreadBase {
+    private class UpdateThread {
 
         private String csName;
         private String clName;
 
-        public UpdateThread( String csName, String clName ) {
+        private UpdateThread( String csName, String clName ) {
             super();
             this.csName = csName;
             this.clName = clName;
         }
 
-        @Override
-        public void exec() throws Exception {
+        @ExecuteOrder(step = 1, desc = "更新记录")
+        private void update() {
 
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {

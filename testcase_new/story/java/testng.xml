@@ -52,6 +52,7 @@
             <package name="com.sequoiadb.sortOptimize"/>
             <package name="com.sequoiadb.fulltext.parallel"/>
             <package name="com.sequoiadb.cappedcl" />
+            <package name="com.sequoiadb.dataconsistency"/>
         </packages>        
     </test>
     

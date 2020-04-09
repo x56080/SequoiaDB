@@ -44,7 +44,6 @@
             <package name="com.sequoiadb.metadataconsistency.cluster"/>
             <package name="com.sequoiadb.alter"/>
             <package name="com.sequoiadb.sync"/>
-            <package name="com.sequoiadb.dataconsistency"/>
             <package name="com.sequoiadb.subcl.serial" />
             <package name="com.sequoiadb.split.serial" />
             <package name="com.sequoiadb.lob.serial" />

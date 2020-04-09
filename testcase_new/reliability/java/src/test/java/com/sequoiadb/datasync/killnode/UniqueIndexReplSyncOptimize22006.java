@@ -1,9 +1,10 @@
-package com.sequoiadb.dataconsistency;
+package com.sequoiadb.datasync.killnode;
 
 import java.util.ArrayList;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
+import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -12,41 +13,50 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.CommLib;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.threadexecutor.ThreadExecutor;
-import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
+import com.sequoiadb.commlib.CommLib;
+import com.sequoiadb.commlib.GroupMgr;
+import com.sequoiadb.commlib.GroupWrapper;
+import com.sequoiadb.commlib.NodeWrapper;
+import com.sequoiadb.commlib.SdbTestBase;
+import com.sequoiadb.exception.ReliabilityException;
+import com.sequoiadb.fault.KillNode;
+import com.sequoiadb.task.OperateTask;
+import com.sequoiadb.task.TaskMgr;
 
 /**
- * @testlink seqDB-20249:存在多个唯一索引，插入/更新记录在备节点重放记录与多个桶产生duplicated key错误
+ * @testlink seqDB-22006:存在多个唯一索引，插入/更新记录再备节点重放记录与多个桶产生duplicated
+ *           key错误，同时强杀数据备节点
  * @author zhaoyu
- * @Date 2019.11.11
+ * @Date 2020.4.2
  */
-public class UniqueIndexReplSyncOptimize20249 extends SdbTestBase {
+public class UniqueIndexReplSyncOptimize22006 extends SdbTestBase {
 
     private String clName = "cl20249";
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
     private DBCollection dbcl = null;
-    private int loopNum = 10000;
+    private int loopNum = 20000;
     private String groupName;
-    private ArrayList< BSONObject > insertRecords = new ArrayList<>();
+    private GroupMgr groupMgr;
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws ReliabilityException {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "standAlone skip testcase" );
         }
 
-        groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
-        if ( DataConsistencyUtil.isOneNodeInGroup( sdb, groupName ) ) {
-            throw new SkipException( "one node in group skip testcase" );
+        groupMgr = GroupMgr.getInstance();
+        if ( !groupMgr.checkBusiness() ) {
+            throw new SkipException( "checkBusiness failed" );
         }
+
+        groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
         cs = sdb.getCollectionSpace( csName );
         dbcl = cs.createCollection( clName,
                 ( BSONObject ) JSON.parse( "{Group:'" + groupName + "'}" ) );
         dbcl.createIndex( "a20249", "{a:1}", true, true );
+        ArrayList< BSONObject > insertRecords = new ArrayList< BSONObject >();
         insertRecords.add( ( BSONObject ) JSON.parse( "{_id:7,a:7,order:1}" ) );
         insertRecords.add( ( BSONObject ) JSON.parse( "{_id:8,a:8,order:2}" ) );
         insertRecords.add( ( BSONObject ) JSON.parse( "{_id:9,a:9,order:3}" ) );
@@ -57,18 +67,17 @@ public class UniqueIndexReplSyncOptimize20249 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor thExecutor = new ThreadExecutor(
-                DataConsistencyUtil.THREAD_TIMEOUT );
-        thExecutor.addWorker( new InsertThread() );
-        thExecutor.addWorker( new UpdateThread() );
-        thExecutor.run();
-
-        int bValue = loopNum - 1;
-        for ( BSONObject doc : insertRecords ) {
-            doc.put( "b", bValue );
-        }
-        DataConsistencyUtil.checkDataConsistency( sdb, csName, clName,
-                insertRecords, "" );
+        // 异常重启数据备节点
+        TaskMgr taskMgr = new TaskMgr();
+        GroupWrapper group = groupMgr.getGroupByName( groupName );
+        NodeWrapper node = group.getSlave();
+        taskMgr.addTask( KillNode.getFaultMakeTask( node, 60 ) );
+        taskMgr.addTask( new InsertThread() );
+        taskMgr.addTask( new UpdateThread() );
+        taskMgr.execute();
+        Assert.assertTrue( taskMgr.isAllSuccess(), taskMgr.getErrorMsg() );
+        Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true );
+        Assert.assertEquals( group.checkInspect( 60 ), true );
 
     }
 
@@ -81,10 +90,10 @@ public class UniqueIndexReplSyncOptimize20249 extends SdbTestBase {
         }
     }
 
-    private class InsertThread {
+    private class InsertThread extends OperateTask {
 
-        @ExecuteOrder(step = 1, desc = "插入记录")
-        private void insert() {
+        @Override
+        public void exec() throws Exception {
 
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
@@ -117,10 +126,10 @@ public class UniqueIndexReplSyncOptimize20249 extends SdbTestBase {
         }
     }
 
-    private class UpdateThread {
+    private class UpdateThread extends OperateTask {
 
-        @ExecuteOrder(step = 1, desc = "更新记录")
-        private void update() {
+        @Override
+        public void exec() throws Exception {
 
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {

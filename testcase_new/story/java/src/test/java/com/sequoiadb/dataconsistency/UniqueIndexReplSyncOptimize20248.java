@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
-import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -15,7 +14,8 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.threadexecutor.ThreadExecutor;
+import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
  * @testlink seqDB-20248:存在多个唯一索引，插入/更新记录在备节点重放记录与其他桶产生duplicated key错误
@@ -40,7 +40,7 @@ public class UniqueIndexReplSyncOptimize20248 extends SdbTestBase {
             throw new SkipException( "standAlone skip testcase" );
         }
 
-        groupName = DataConsistencyUtil.getGroupName( sdb );
+        groupName = CommLib.getDataGroupNames( sdb ).get( 0 );
         if ( DataConsistencyUtil.isOneNodeInGroup( sdb, groupName ) ) {
             throw new SkipException( "one node in group skip testcase" );
         }
@@ -59,14 +59,11 @@ public class UniqueIndexReplSyncOptimize20248 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        InsertThread insertThread = new InsertThread();
-        UpdateThread updateThread = new UpdateThread();
-        insertThread.start();
-        updateThread.start();
-        Assert.assertTrue( insertThread.isSuccess(),
-                insertThread.getErrorMsg() );
-        Assert.assertTrue( updateThread.isSuccess(),
-                updateThread.getErrorMsg() );
+        ThreadExecutor thExecutor = new ThreadExecutor(
+                DataConsistencyUtil.THREAD_TIMEOUT );
+        thExecutor.addWorker( new InsertThread() );
+        thExecutor.addWorker( new UpdateThread() );
+        thExecutor.run();
 
         expRecords.clear();
         int bValue = loopNum - 1;
@@ -90,10 +87,10 @@ public class UniqueIndexReplSyncOptimize20248 extends SdbTestBase {
         }
     }
 
-    public class InsertThread extends SdbThreadBase {
+    private class InsertThread {
 
-        @Override
-        public void exec() throws Exception {
+        @ExecuteOrder(step = 1, desc = "插入记录")
+        private void insert() {
 
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
@@ -119,10 +116,10 @@ public class UniqueIndexReplSyncOptimize20248 extends SdbTestBase {
         }
     }
 
-    public class UpdateThread extends SdbThreadBase {
+    public class UpdateThread {
 
-        @Override
-        public void exec() throws Exception {
+        @ExecuteOrder(step = 1, desc = "更新记录")
+        public void update() {
 
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {

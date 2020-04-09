@@ -1,21 +1,20 @@
 package com.sequoiadb.dataconsistency;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BSONDecimal;
 import org.bson.types.BasicBSONList;
-import org.bson.util.JSON;
 import org.testng.Assert;
 
-import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.fulltext.utils.FullTextDBUtils;
 import com.sequoiadb.testcommon.CommLib;
 
 /**
@@ -25,17 +24,19 @@ import com.sequoiadb.testcommon.CommLib;
  */
 
 public class DataConsistencyUtil {
+    public static final int THREAD_TIMEOUT = 3600000; // timeout 60 mins
+
     public static ArrayList< BSONObject > insertDatas( DBCollection dbcl,
-            int insertNums, int beginNo ) {
+            int insertNum, int beginNo ) {
         int batchNums = 10000;
-        int times = insertNums / batchNums;
-        int remainder = insertNums % batchNums;
+        int times = insertNum / batchNums;
+        int remainder = insertNum % batchNums;
         if ( remainder != 0 ) {
             times += 1;
         }
 
         ArrayList< BSONObject > insertRecords = new ArrayList< BSONObject >(
-                insertNums );
+                insertNum );
         for ( int k = 0; k < times; k++ ) {
             if ( k == times - 1 && remainder != 0 ) {
                 batchNums = remainder;
@@ -46,16 +47,9 @@ public class DataConsistencyUtil {
             for ( int i = 0; i < batchNums; i++ ) {
                 int count = beginNo++;
                 BSONObject obj = new BasicBSONObject();
-                obj.put( "testa", "test" + count );
-                String str = "32345.06789123456" + count;
-                BSONDecimal decimal = new BSONDecimal( str );
-                obj.put( "decimala", decimal );
-                obj.put( "no", count );
-                obj.put( "order", count );
-                obj.put( "inta", count );
-                obj.put( "ftest", count + 0.2345 );
-                obj.put( "str", "test_" + String.valueOf( count ) );
-
+                obj.put( "a", count );
+                obj.put( "b", count );
+                obj.put( "c", "test_" + count );
                 insertRecord.add( obj );
                 insertRecords.add( obj );
             }
@@ -64,17 +58,49 @@ public class DataConsistencyUtil {
         return insertRecords;
     }
 
-    public static void checkDataContent( DBCollection dbcl,
-            List< BSONObject > expRecord, String matcher ) {
-        DBCursor cursor = dbcl.query( matcher, "", "{'order':1}", "" );
-
-        int count = 0;
-        while ( cursor.hasNext() ) {
-            BSONObject record = cursor.getNext();
-            Assert.assertEquals( record, expRecord.get( count++ ) );
+    /**
+     * 获取原始集合对应的数据组，原始集合可以是普通表、分区表
+     * 
+     * @param cl
+     * @return List<String> 返回所有数据组
+     * @Author liuxiaoxuan
+     * @Date 2018-11-15
+     */
+    public static List< String > getCLGroups( DBCollection cl ) {
+        List< String > groupNames = new ArrayList< String >();
+        Sequoiadb db = cl.getSequoiadb();
+        if ( CommLib.isStandAlone( db ) ) {
+            return groupNames;
         }
-        cursor.close();
-        Assert.assertEquals( count, expRecord.size() );
+
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put( "Name", cl.getFullName() );
+        DBCursor cur = db.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG, matcher,
+                null, null );
+        HashSet< String > groupNamesSet = new HashSet< String >();
+        while ( cur.hasNext() ) {
+            BasicBSONList bsonLists = ( BasicBSONList ) cur.getNext()
+                    .get( "CataInfo" );
+            for ( int i = 0; i < bsonLists.size(); i++ ) {
+                BasicBSONObject obj = ( BasicBSONObject ) bsonLists.get( i );
+                groupNamesSet.add( obj.getString( "GroupName" ) );
+            }
+        }
+        groupNames.addAll( groupNamesSet );
+        // groupNames数组元素排序,排序是为了cl的esIndexNames和cappedCLs能一一对应
+        Collections.sort( groupNames, new Comparator< Object >() {
+            @Override
+            public int compare( Object o1, Object o2 ) {
+                String str1 = ( String ) o1;
+                String str2 = ( String ) o2;
+                if ( str1.compareToIgnoreCase( str2 ) < 0 ) {
+                    return -1;
+                }
+                return 1;
+            }
+        } );
+
+        return groupNames;
     }
 
     /**
@@ -85,12 +111,12 @@ public class DataConsistencyUtil {
      * @throws Exception
      * @author luweikang
      */
-    public static boolean isCLConsistency( DBCollection cl ) throws Exception {
+    public static boolean isLSNConsistency( DBCollection cl ) throws Exception {
 
         Sequoiadb db = cl.getSequoiadb();
         boolean isConsistency = false;
 
-        List< String > groupNames = FullTextDBUtils.getCLGroups( cl );
+        List< String > groupNames = getCLGroups( cl );
         for ( String groupName : groupNames ) {
             List< String > nodeNames = CommLib.getNodeAddress( db, groupName );
             ReplicaGroup rg = db.getReplicaGroup( groupName );
@@ -170,31 +196,37 @@ public class DataConsistencyUtil {
             throws Exception {
         DBCollection cl = sdb.getCollectionSpace( csName )
                 .getCollection( clName );
-        Assert.assertTrue( isCLConsistency( cl ) );
-        checkDataContent( cl, expRecord, matcher );
+        Assert.assertTrue( isLSNConsistency( cl ) );
+        Assert.assertTrue( isCLDataConsistency( sdb, csName, clName, expRecord,
+                matcher ) );
     }
 
-    public static String getGroupName( Sequoiadb sdb ) {
-        ArrayList< String > rgNames = CommLib.getDataGroupNames( sdb );
-        int serino = ( int ) ( Math.random() * rgNames.size() );
-        String groupName = rgNames.get( serino );
-        return groupName;
-    }
-
-    public static DBCollection createCL( CollectionSpace cs, String clName,
-            String option ) {
-        DBCollection cl = null;
-        BSONObject options = ( BSONObject ) JSON.parse( option );
-        if ( cs.isCollectionExist( clName ) ) {
-            cs.dropCollection( clName );
+    public static boolean isCLDataConsistency( Sequoiadb db, String csName,
+            String clName, List< BSONObject > expRecord, String matcher ) {
+        DBCollection cl = db.getCollectionSpace( csName )
+                .getCollection( clName );
+        List< String > groupNames = getCLGroups( cl );
+        for ( int i = 0; i < groupNames.size(); i++ ) {
+            ReplicaGroup rg = db.getReplicaGroup( groupNames.get( i ) );
+            List< String > nodeNames = CommLib.getNodeAddress( db,
+                    groupNames.get( i ) );
+            for ( int j = 0; j < nodeNames.size(); j++ ) {
+                Sequoiadb node = rg.getNode( nodeNames.get( j ) ).connect();
+                DBCollection nodeCL = node.getCollectionSpace( csName )
+                        .getCollection( clName );
+                DBCursor cursor = nodeCL.query( matcher, "", "{order:1}", "" );
+                List< BSONObject > actRecords = new ArrayList< BSONObject >();
+                while ( cursor.hasNext() ) {
+                    actRecords.add( cursor.getNext() );
+                }
+                if ( !expRecord.equals( actRecords ) ) {
+                    System.out.println( "expRecord:" + expRecord
+                            + "\nactRecords:" + actRecords );
+                    return false;
+                }
+            }
         }
-
-        cl = cs.createCollection( clName, options );
-        return cl;
-    }
-
-    public static DBCollection createCL( CollectionSpace cs, String clName ) {
-        return createCL( cs, clName, null );
+        return true;
     }
 
     public static boolean isOneNodeInGroup( Sequoiadb db, String groupName ) {
@@ -207,14 +239,4 @@ public class DataConsistencyUtil {
         return false;
     }
 
-    public static void createUnquieIndexes( CollectionSpace cs,
-            String clName ) {
-        DBCollection dbcl = cs.getCollection( clName );
-        dbcl.createIndex( "testa", "{no:1}", true, false );
-        dbcl.createIndex( "testb", "{inta:1,no:1}", true, false );
-        dbcl.createIndex( "testc", "{str:1,no:1}", true, false );
-        dbcl.createIndex( "teste", "{ftest:1,no:-1}", true, false );
-        dbcl.createIndex( "testf", "{ftest:-1,no:1}", true, false );
-        dbcl.createIndex( "testg", "{str:-1,order:1,no:-1}", true, false );
-    }
 }
