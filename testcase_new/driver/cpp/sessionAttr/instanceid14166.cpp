@@ -143,6 +143,8 @@ protected:
       clOption = BSON( "Group" << rgName << "ReplSize" << 0 ) ;
       rc = cs.createCollection( clName, clOption, cl ) ;
       CHECK_RC( SDB_OK, rc, "fail to create cl %s", clName ) ;
+      rc = cl.insert(BSON("_id" <<1 ));
+      CHECK_RC( SDB_OK, rc, "fail to insert");
    done:
       return rc ;
    error:
@@ -200,15 +202,8 @@ TEST_F( sessionAttrTest14166, mix )
       cout << "Run mode is standalone" << endl ;
       return ;
    }
-   const CHAR* instances[][3] = {
-         { "M", "", "" },
-         { "m", "", "" },
-         { "S", "", "" },
-         { "s", "", "" },
-         { "A", "", "" },
-         { "a", "", "" },
-         { "M", "S", "A" }   
-      } ;
+
+   const CHAR* instances[] = { "M","m", "S","s","A","a","" } ;
    INT32 size = sizeof(instances) / sizeof(instances[0]) ;
 
    for( INT32 i = 0;i < size;i++ )
@@ -217,13 +212,9 @@ TEST_F( sessionAttrTest14166, mix )
       arrBuilder.append( 8 ) ;
       arrBuilder.append( 9 ) ;
       arrBuilder.append( 10 ) ;
-      for( INT32 j = 0;j < 3;j++ )
+      if( instances[0] != 0  )
       {
-         const CHAR* instance = instances[i][j] ; 
-         if( strcmp( "", instance ) )
-         {
-            arrBuilder.append( instance ) ;
-         }
+         arrBuilder.append( instances[i] ) ;
       }
       BSONObj obj = arrBuilder.done() ;
       BSONObjBuilder builder ;
@@ -240,18 +231,15 @@ TEST_F( sessionAttrTest14166, mix )
       INT32 instanceid = nodeInfo.at( nodename ) ;
       switch( i )
       {
-      case 0: ASSERT_EQ( primaryInstanceid, instanceid ) ;  // M
-              break ;
-      case 1: ASSERT_EQ( 8, instanceid ) ; // m
+      case 0:
+      case 1: ASSERT_EQ( primaryInstanceid, instanceid ) ; //M|m
               break ;      
-      case 2: ASSERT_NE( primaryInstanceid, instanceid ) ; // S
-              break ;
+      case 2:  // S
       case 3:  // s 
       case 4:  // A
       case 5:  // a
+      case 6:
               ASSERT_EQ( 8, instanceid ) ;
-              break ;
-      case 6: ASSERT_EQ( primaryInstanceid, instanceid ) ; // M S A
               break ;
       default: ASSERT_EQ( 1, 0 ) << "Wrong i value " << i ;
               break ;
