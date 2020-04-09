@@ -24,8 +24,8 @@ public class Sync11752 extends SdbTestBase {
     @BeforeClass
     public void setup() {
         db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        DBCollection cl = db.createCollectionSpace( csName ).createCollection(
-                clName, new BasicBSONObject( "ReplSize", 0 ) );
+        DBCollection cl = db.createCollectionSpace( csName )
+                .createCollection( clName );
         cl.insert( new BasicBSONObject( "a", 1 ) );
     }
 

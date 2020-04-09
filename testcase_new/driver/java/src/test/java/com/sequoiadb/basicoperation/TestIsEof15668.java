@@ -10,7 +10,6 @@ import org.bson.BSONObject;
 import org.bson.types.ObjectId;
 import org.bson.util.JSON;
 import org.testng.Assert;
-
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -123,8 +122,7 @@ public class TestIsEof15668 extends SdbTestBase {
 
     private void createCL() {
         try {
-            String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:1024,"
-                    + "ReplSize:0,Compressed:true}";
+            String clOptions = "{ShardingKey:{no:1},ShardingType:'hash',Partition:1024}";
             BSONObject options = ( BSONObject ) JSON.parse( clOptions );
 
             cs = sdb.getCollectionSpace( SdbTestBase.csName );

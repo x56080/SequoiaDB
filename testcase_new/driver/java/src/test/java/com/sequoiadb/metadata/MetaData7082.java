@@ -1,7 +1,5 @@
 package com.sequoiadb.metadata;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -86,7 +84,6 @@ public class MetaData7082 extends SdbTestBase {
         mainShardingKey.put( "a", 1 );
         mainCLOption.put( "ShardingKey", mainShardingKey );
         mainCLOption.put( "ShardingType", "range" );
-        mainCLOption.put( "ReplSize", 0 );
         mainCLOption.put( "IsMainCL", true );
         mainCLOption.put( "Compressed", true );
 

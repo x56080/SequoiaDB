@@ -6,7 +6,6 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONTimestamp;
 import org.bson.util.DateInterceptUtil;
-import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -48,10 +47,8 @@ public class TimestampTestGetDate10344 extends SdbTestBase {
             // -33 CS exist,ignore exceptions
             Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
         }
-        String test = "{ReplSize:0,Compressed:true}";
-        BSONObject options = ( BSONObject ) JSON.parse( test );
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
-        cl = cs.createCollection( clName, options );
+        cl = cs.createCollection( clName );
     }
 
     @Test

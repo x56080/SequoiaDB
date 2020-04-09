@@ -1,18 +1,17 @@
 package com.sequoiadb.basicoperation;
 
-import java.text.SimpleDateFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.regex.Pattern;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
 //import org.bson.types.Binary;
 import org.bson.types.BSONDecimal;
 import org.bson.types.BSONTimestamp;
+import org.bson.types.BasicBSONList;
 import org.bson.types.ObjectId;
-import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -56,12 +55,9 @@ public class TestInsertToBson7152 extends SdbTestBase {
         if ( !sdb.isCollectionSpaceExist( SdbTestBase.csName ) ) {
             sdb.createCollectionSpace( SdbTestBase.csName );
         }
-
-        String test = "{ReplSize:0,Compressed:true}";
-        BSONObject options = ( BSONObject ) JSON.parse( test );
         try {
             cs = sdb.getCollectionSpace( SdbTestBase.csName );
-            cl = cs.createCollection( clName, options );
+            cl = cs.createCollection( clName );
         } catch ( BaseException e ) {
             // -33 CS exist,ignore exceptions
             Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );

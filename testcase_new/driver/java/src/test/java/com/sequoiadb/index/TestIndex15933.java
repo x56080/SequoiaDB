@@ -2,12 +2,14 @@ package com.sequoiadb.index;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -92,8 +94,7 @@ public class TestIndex15933 extends SdbTestBase {
             Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
         }
         try {
-            String clOptions = "{ShardingKey:{a:1},ShardingType:'hash',Partition:1024,"
-                    + "ReplSize:0,Compressed:true,AutoIndexId:false}";
+            String clOptions = "{ShardingKey:{a:1},ShardingType:'hash',Partition:1024,AutoIndexId:false}";
             BSONObject options = ( BSONObject ) JSON.parse( clOptions );
             this.cs = this.sdb.getCollectionSpace( SdbTestBase.csName );
             this.cl = this.cs.createCollection( clName, options );

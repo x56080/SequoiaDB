@@ -138,7 +138,7 @@ public class TestUpdateShardingKey12628 extends SdbTestBase {
             // -33 CS exist,ignore exceptions
             Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
         }
-        String test = "{ShardingKey:{no:1},ShardingType:'hash',ReplSize:0,Compressed:true}";
+        String test = "{ShardingKey:{no:1},ShardingType:'hash'}";
         BSONObject options = ( BSONObject ) JSON.parse( test );
         try {
             cs = sdb.getCollectionSpace( SdbTestBase.csName );

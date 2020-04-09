@@ -1,13 +1,12 @@
 package com.sequoiadb.basicoperation;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
-import com.sequoiadb.util.Helper;
+import java.util.Arrays;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.util.JSON;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -18,8 +17,7 @@ import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
-
-import static org.testng.Assert.*;
+import com.sequoiadb.util.Helper;
 
 /**
  * Created by laojingtang on 17-4-10. 覆盖的测试用例11318 测试点：交替调用Cursor.getNext()
@@ -53,11 +51,9 @@ public class CursorTest11318 extends SdbTestBase {
             assertEquals( -33, e.getErrorCode(), e.getMessage() );
         }
 
-        String test = "{ReplSize:0,Compressed:true}";
-        BSONObject options = ( BSONObject ) JSON.parse( test );
         try {
             cs = sdb.getCollectionSpace( SdbTestBase.csName );
-            cl = cs.createCollection( clName, options );
+            cl = cs.createCollection( clName );
         } catch ( BaseException e ) {
             assertTrue( false, "create cl fail " + e.getErrorType() + ":"
                     + e.getMessage() );

@@ -1,7 +1,5 @@
 package com.sequoiadb.transaction;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -52,8 +50,7 @@ public class TestTransaction7118 extends SdbTestBase {
             if ( this.cs.isCollectionExist( clName ) ) {
                 this.cs.dropCollection( clName );
             }
-            this.cl = this.cs.createCollection( clName,
-                    new BasicBSONObject( "ReplSize", 0 ) );
+            this.cl = this.cs.createCollection( clName );
         } catch ( BaseException e ) {
             System.out.println(
                     "Sequoiadb driver TestTransaction7118 setUp error, error description:"

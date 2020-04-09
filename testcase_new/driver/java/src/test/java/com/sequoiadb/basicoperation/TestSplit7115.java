@@ -1,17 +1,13 @@
 package com.sequoiadb.basicoperation;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
-
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
@@ -61,8 +57,7 @@ public class TestSplit7115 extends SdbTestBase {
         if ( !sdb.isCollectionSpaceExist( SdbTestBase.csName ) ) {
             sdb.createCollectionSpace( SdbTestBase.csName );
         }
-        String test = "{ShardingKey:{no:1},ShardingType:'range',"
-                + "ReplSize:0,Compressed:true}";
+        String test = "{ShardingKey:{no:1},ShardingType:'range'}";
         BSONObject options = ( BSONObject ) JSON.parse( test );
         try {
             cs = sdb.getCollectionSpace( SdbTestBase.csName );

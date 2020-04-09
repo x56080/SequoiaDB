@@ -50,7 +50,6 @@ public class Backup7173 extends SdbTestBase {
         BackupUtil.createRGAndNode( sdb, groupName, nodeNum );
         BSONObject options = new BasicBSONObject();
         options.put( "Group", groupName );
-        options.put( "ReplSize", 0 );
         DBCollection cl = sdb.createCollectionSpace( csName )
                 .createCollection( clName, options );
         BackupUtil.insertData( cl );

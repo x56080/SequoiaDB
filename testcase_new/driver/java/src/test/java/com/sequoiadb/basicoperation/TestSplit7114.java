@@ -1,7 +1,6 @@
 package com.sequoiadb.basicoperation;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -70,8 +69,7 @@ public class TestSplit7114 extends SdbTestBase {
             // -33 CS exist,ignore exceptions
             Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
         }
-        String test = "{ShardingKey:{a:1},ShardingType:'hash',Partition:1024,"
-                + "ReplSize:0,Compressed:true}";
+        String test = "{ShardingKey:{a:1},ShardingType:'hash',Partition:1024}";
         BSONObject options = ( BSONObject ) JSON.parse( test );
         try {
             cs = sdb.getCollectionSpace( SdbTestBase.csName );

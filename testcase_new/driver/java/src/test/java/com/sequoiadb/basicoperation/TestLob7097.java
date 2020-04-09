@@ -4,9 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 
-import org.bson.BSONObject;
 import org.bson.types.ObjectId;
-import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -58,11 +56,9 @@ public class TestLob7097 extends SdbTestBase {
             // -33 CS exist,ignore exceptions
             Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
         }
-        String test = "{ReplSize:0,Compressed:true}";
-        BSONObject options = ( BSONObject ) JSON.parse( test );
         try {
             cs = sdb.getCollectionSpace( SdbTestBase.csName );
-            cl = cs.createCollection( clName, options );
+            cl = cs.createCollection( clName );
         } catch ( BaseException e ) {
             Assert.assertTrue( false, "create cl fail " + e.getErrorType() + ":"
                     + e.getMessage() );

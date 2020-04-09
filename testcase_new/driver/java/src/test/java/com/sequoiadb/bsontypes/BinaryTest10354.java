@@ -1,14 +1,11 @@
 package com.sequoiadb.bsontypes;
 
-import java.util.Date;
-
-import org.bson.*;
-import org.bson.types.*;
-import org.bson.util.JSON;
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.types.Binary;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
@@ -55,11 +52,9 @@ public class BinaryTest10354 extends SdbTestBase {
             Assert.assertEquals( -33, e.getErrorCode(), e.getMessage() );
         }
 
-        String test = "{ReplSize:0,Compressed:true}";
-        BSONObject options = ( BSONObject ) JSON.parse( test );
         try {
             cs = sdb.getCollectionSpace( SdbTestBase.csName );
-            cl = cs.createCollection( clName, options );
+            cl = cs.createCollection( clName );
         } catch ( BaseException e ) {
             Assert.assertTrue( false, "create cl fail " + e.getErrorType() + ":"
                     + e.getMessage() );
