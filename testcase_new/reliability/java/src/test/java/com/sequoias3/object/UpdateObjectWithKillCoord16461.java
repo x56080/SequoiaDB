@@ -13,6 +13,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.BucketVersioningConfiguration;
 import com.amazonaws.services.s3.model.ListVersionsRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3VersionSummary;
 import com.amazonaws.services.s3.model.VersionListing;
 import com.sequoiadb.commlib.GroupMgr;
@@ -28,25 +29,29 @@ import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.UserUtils;
 
 /**
- * test content: 开启版本控制，更新对象过程中db端节点异常 testlink-case: seqDB-16461
- * 
- * @author wangkexin
+ * @FileName seqDB-16461:开启版本控制，更新对象过程中db端节点异常
+ * @Author wangkexin
  * @Date 2019.01.09
- * @version 1.00
  */
+
 public class UpdateObjectWithKillCoord16461 extends S3TestBase {
-    private GroupMgr groupMgr = null;
+    private boolean runSuccess = false;
     private String userName = "user16461";
-    private String bucketName = "bucket16461";
-    private String keyName = "key16461";
     private String roleName = "normal";
-    private List< String > keyNames = new ArrayList<>();
-    private List< String > updatedObjectList = new CopyOnWriteArrayList< String >();
-    private int objectNum = 10;
     private String[] accessKeys = null;
     private AmazonS3 s3Client = null;
+
+    private String bucketName = "bucket16461";
+    private String keyName = "key16461";
+    private List< String > keyNames = new ArrayList<>();
+    private int objectNum = 10;
+    private String objectContent = "object_old";
+    private String objectContentNew = "object_new";
+
+    private List< String > updatedObjectList = new CopyOnWriteArrayList< String >();
+
+    private GroupMgr groupMgr = null;
     private GroupWrapper coordGroup = null;
-    private boolean runSuccess = false;
 
     @BeforeClass
     private void setUp() throws Exception {
@@ -62,12 +67,12 @@ public class UpdateObjectWithKillCoord16461 extends S3TestBase {
 
         for ( int i = 0; i < objectNum; i++ ) {
             String currentKey = keyName + "_" + i;
-            s3Client.putObject( bucketName, currentKey, currentKey + "old" );
+            s3Client.putObject( bucketName, currentKey, objectContent );
             keyNames.add( currentKey );
         }
     }
 
-    @Test
+    @Test(enabled = false) // jira-5731
     public void testUpdateObject() throws Exception {
         TaskMgr mgr = new TaskMgr();
         for ( NodeWrapper node : coordGroup.getNodes() ) {
@@ -111,8 +116,7 @@ public class UpdateObjectWithKillCoord16461 extends S3TestBase {
             AmazonS3 s3Client = CommLibS3.buildS3Client( accessKeys[ 0 ],
                     accessKeys[ 1 ] );
             try {
-                String currContent = keyName + "new";
-                s3Client.putObject( bucketName, keyName, currContent );
+                s3Client.putObject( bucketName, keyName, objectContentNew );
                 updatedObjectList.add( keyName );
             } catch ( AmazonServiceException e ) {
                 if ( !e.getErrorCode().equals( "GetDBConnectFail" ) ) {
@@ -127,14 +131,37 @@ public class UpdateObjectWithKillCoord16461 extends S3TestBase {
     }
 
     private void updateObjectAgainAndCheck() throws Exception {
+        // 排除已被update成功的对象
         List< String > remainOldObjects = new ArrayList< String >();
         remainOldObjects.addAll( keyNames );
         remainOldObjects.removeAll( updatedObjectList );
+        // 排除故障时实际update成功但是线程报错而未被加入到updatedObjectList的对象
         for ( String keyName : remainOldObjects ) {
-            String currContent = keyName + "new";
-            s3Client.putObject( bucketName, keyName, currContent );
+            ObjectMetadata objectMetadata = null;
+            try {
+                objectMetadata = s3Client.getObjectMetadata( bucketName,
+                        keyName );
+            } catch ( AmazonServiceException e ) {
+                // 元数据存在lob不存在时getObjectMetadata会失败，打印keyName方便定位
+                System.out
+                        .println( "getObjectMetadata failed, key: " + keyName );
+                throw e;
+            }
+            if ( objectMetadata.getVersionId().equals( "1" ) ) {
+                System.out.println(
+                        "update return fail but actual success, keyName: "
+                                + keyName );
+                updatedObjectList.add( keyName );
+            }
+        }
+        remainOldObjects.removeAll( updatedObjectList );
+
+        // update未成功的对象
+        for ( String keyName : remainOldObjects ) {
+            s3Client.putObject( bucketName, keyName, objectContentNew );
         }
 
+        // 检查当前版本和历史版本所有对象metadata及lob正确性
         VersionListing versions = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
         List< S3VersionSummary > objects = versions.getVersionSummaries();
@@ -143,15 +170,13 @@ public class UpdateObjectWithKillCoord16461 extends S3TestBase {
                         + "  ,objects=" + printVersionKeys( objects ) );
         for ( int i = 0; i < objects.size(); i += 2 ) {
             String key = objects.get( i ).getKey();
-            String expContent = key + "new";
-            String expEtag = TestTools.getMD5( expContent.getBytes() );
+            String expEtag = TestTools.getMD5( objectContentNew.getBytes() );
             String actEtag = objects.get( i ).getETag();
             Assert.assertEquals( objects.get( i ).getVersionId(), "1",
                     "objectName is : " + key );
             Assert.assertEquals( actEtag, expEtag, "objectName is : " + key );
 
-            expContent = key + "old";
-            expEtag = TestTools.getMD5( expContent.getBytes() );
+            expEtag = TestTools.getMD5( objectContent.getBytes() );
             actEtag = objects.get( i + 1 ).getETag();
             Assert.assertEquals( objects.get( i + 1 ).getVersionId(), "0",
                     "objectName is : " + key );
@@ -162,8 +187,7 @@ public class UpdateObjectWithKillCoord16461 extends S3TestBase {
     private String printVersionKeys( List< S3VersionSummary > objects ) {
         String str = "";
         for ( S3VersionSummary obj : objects ) {
-            str += obj.getKey();
-            str += " ";
+            str += obj.getKey() + ", ";
         }
         return str;
     }
