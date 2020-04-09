@@ -803,8 +803,7 @@ namespace engine
       }
       BOOLEAN isDeleted() const
       {
-         return ( ( DMS_RECORD_FLAG_DELETED | getFlag() ) 
-                  == DMS_RECORD_FLAG_DELETED ) ;
+         return DMS_RECORD_FLAG_DELETED == getState() ;
       }
       UINT32 getSize() const
       {
@@ -837,6 +836,10 @@ namespace engine
       BYTE getAttr() const
       {
          return (BYTE)(getFlag() & 0xF0) ;
+      }
+      BYTE getState() const
+      {
+         return (BYTE)(getFlag() & 0x0F) ;
       }
       void  setState( BYTE state )
       {
