@@ -93,7 +93,7 @@ class setSessionAttr14209 extends PHPUnit_Framework_TestCase
       
       
       echo "\n---Begin to setSessionAttr[noCache, second].\n"; 
-      $instanceid = 's';
+      $instanceid = 'S';
       $instanceMode = 'ordered';
       $instanceTimeout = 400000;            
       // setSessionAttr
