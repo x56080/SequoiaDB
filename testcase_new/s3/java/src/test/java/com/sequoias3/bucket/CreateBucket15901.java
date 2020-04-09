@@ -38,7 +38,7 @@ public class CreateBucket15901 extends S3TestBase {
     @Test
     public void testCreateBucket() {
         s3Client.createBucket( new CreateBucketRequest( bucketName ) );
-        //创建对象是为了校验桶的创建时间
+        // 创建对象是为了校验桶的创建时间
         s3Client.putObject( bucketName, objectName, "test" );
         checkCreateBucketResult();
         runSuccess = true;
@@ -70,9 +70,9 @@ public class CreateBucket15901 extends S3TestBase {
                 long actDate = buckets.get( i ).getCreationDate().getTime();
                 long expDate = object.getObjectMetadata().getLastModified()
                         .getTime();
-                //桶的创建时间减去对象的创建时间的绝对值不超过30分钟
-                Assert.assertTrue( Math.abs( actDate - expDate ) < 30 * 60 *
-                        1000 );
+                // 桶的创建时间减去对象的创建时间的绝对值不超过30分钟
+                Assert.assertTrue(
+                        Math.abs( actDate - expDate ) < 30 * 60 * 1000 );
                 findBucketFlag = true;
                 break;
             }

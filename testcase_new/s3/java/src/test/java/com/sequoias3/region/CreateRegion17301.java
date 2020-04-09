@@ -49,13 +49,12 @@ public class CreateRegion17301 extends S3TestBase {
                 .withName( regionName );
         try {
             RegionUtils.putRegion( region );
-            Assert.fail(
-                    "exp fail but act success,regionName = " + "" + regionName
-                            + ",datadomain = " + dataDomain + ",metaDomain = "
-                            + metaDomain );
+            Assert.fail( "exp fail but act success,regionName = " + ""
+                    + regionName + ",datadomain = " + dataDomain
+                    + ",metaDomain = " + metaDomain );
         } catch ( AmazonS3Exception e ) {
-            if ( e.getStatusCode() != 400 && !e.getErrorCode()
-                    .contains( "InvalidDomain" ) ) {
+            if ( e.getStatusCode() != 400
+                    && !e.getErrorCode().contains( "InvalidDomain" ) ) {
                 throw e;
             }
         }

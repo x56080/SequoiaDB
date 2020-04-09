@@ -74,28 +74,28 @@ public class ListObjects18117 extends S3TestBase {
     }
 
     private void listObjectsAndCheckResult() {
-        List<String> matchPrefixList = ObjectUtils
-                .getCommPrefixes( keyList, prefix, delimiter );
+        List< String > matchPrefixList = ObjectUtils.getCommPrefixes( keyList,
+                prefix, delimiter );
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" );
         request.withDelimiter( delimiter ).withPrefix( prefix );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         Collections.sort( matchPrefixList );
         Assert.assertEquals( commonPrefixes, matchPrefixList,
                 "actPrefixes:" + commonPrefixes.toString() + "\n ecpPrefixes:"
                         + matchPrefixList.toString() );
 
         // objects do not match delimiter are displayed in contents,num is 10
-        List<String> actContentsList = new ArrayList<>();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > actContentsList = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             actContentsList.add( key );
         }
 
         // check the keyName
-        List<String> matchContentsList = new ArrayList<>();
+        List< String > matchContentsList = new ArrayList<>();
         Assert.assertEquals( actContentsList, matchContentsList );
     }
 }

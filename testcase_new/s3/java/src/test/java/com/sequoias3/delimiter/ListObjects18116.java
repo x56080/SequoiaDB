@@ -67,17 +67,16 @@ public class ListObjects18116 extends S3TestBase {
     }
 
     private void listObjectsAndCheckResult() {
-        List<String> matchPrefixList = new ArrayList<>();
+        List< String > matchPrefixList = new ArrayList<>();
         matchPrefixList.add( "dir1/testa" );
         matchPrefixList.add( "dir1.testa" );
         matchPrefixList.add( "dir1/dir2/a" );
         matchPrefixList.add( "dira" );
-        List<String> matchContentsList = new ArrayList<>();
+        List< String > matchContentsList = new ArrayList<>();
         matchContentsList.add( "dir1/test1_18116.png" );
         matchContentsList.add( "dir1//dir2/dir3/test2_18116" );
         matchContentsList.add( "testdir1.txt_18116" );
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        matchPrefixList, matchContentsList );
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, matchPrefixList, matchContentsList );
     }
 }

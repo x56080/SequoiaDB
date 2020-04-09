@@ -37,7 +37,7 @@ public class ListObjectsWithPrefix19162_19163 extends S3TestBase {
     private String bucketName = "bucket19162";
     private String[] objectNames = { "dir1/19162", "dir1/dir2/19162",
             "dir1/dir3/19162", "19162" };
-    private List<String> objectNameList = new ArrayList<>();
+    private List< String > objectNameList = new ArrayList<>();
     private String prefix = "";
     private int versionNum = 10;
     private AmazonS3 s3Client = null;
@@ -47,10 +47,10 @@ public class ListObjectsWithPrefix19162_19163 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -94,17 +94,17 @@ public class ListObjectsWithPrefix19162_19163 extends S3TestBase {
                 .withBucketName( bucketName ).withEncodingType( "url" );
         request.withPrefix( prefix );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         Assert.assertEquals( commonPrefixes.size(), 0,
                 "commonPrefixes : " + commonPrefixes.toString() );
 
-        List<String> actContentList = new ArrayList<>();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > actContentList = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             actContentList.add( os.getKey() );
         }
         // check the keyName
-        List<String> expContentList = Arrays.asList( objectNames );
+        List< String > expContentList = Arrays.asList( objectNames );
         Collections.sort( expContentList );
         Assert.assertEquals( actContentList, expContentList );
     }
@@ -114,7 +114,7 @@ public class ListObjectsWithPrefix19162_19163 extends S3TestBase {
                 .withBucketName( bucketName );
         request.withPrefix( prefix );
         VersionListing vsList = s3Client.listVersions( request );
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = 0; i < objectNames.length; i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
                 expMap.add( objectNames[ i ], String.valueOf( j ) );
@@ -123,7 +123,7 @@ public class ListObjectsWithPrefix19162_19163 extends S3TestBase {
         // check
         Assert.assertEquals( vsList.isTruncated(), false,
                 "vsList.isTruncated() must be false" );
-        ObjectUtils
-                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                expMap );
     }
 }

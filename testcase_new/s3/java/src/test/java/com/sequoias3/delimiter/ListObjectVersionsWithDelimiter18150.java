@@ -30,15 +30,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ListObjectVersionsWithDelimiter18150 extends S3TestBase {
     private String bucketName = "bucket18150";
-    private List<String> keyNames = Arrays
-            .asList( "dir1/test18150_1", "dir1/dir2/test18150_2",
-                    "dir1/aa/bb/test18150_3", "dir1/bb/test18150_4",
-                    "dir1/versions18150" );
+    private List< String > keyNames = Arrays.asList( "dir1/test18150_1",
+            "dir1/dir2/test18150_2", "dir1/aa/bb/test18150_3",
+            "dir1/bb/test18150_4", "dir1/versions18150" );
     private String versionsKey = "dir1/versions18150";
     private String delimiter = "te";
     private String prefix = "dir1/";
     private int versionNum = 3;
-    private MultiValueMap<String, String> versionsMap = new LinkedMultiValueMap<String, String>();
+    private MultiValueMap< String, String > versionsMap = new LinkedMultiValueMap< String, String >();
     private AmazonS3 s3Client = null;
     private AtomicInteger actSuccessTests = new AtomicInteger( 0 );
 
@@ -88,18 +87,17 @@ public class ListObjectVersionsWithDelimiter18150 extends S3TestBase {
     @Test(dataProvider = "keyMarKerProvider")
     public void testGetObjectList( String KeyMarker, int startIndex,
             boolean versionsIsNull ) throws Exception {
-        VersionListing versionList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withKeyMarker( KeyMarker ) );
-        List<String> subKeyNames = keyNames
-                .subList( startIndex, keyNames.size() );
+        VersionListing versionList = s3Client
+                .listVersions( new ListVersionsRequest()
+                        .withBucketName( bucketName ).withDelimiter( delimiter )
+                        .withPrefix( prefix ).withKeyMarker( KeyMarker ) );
+        List< String > subKeyNames = keyNames.subList( startIndex,
+                keyNames.size() );
         String[] objectNames = new String[ subKeyNames.size() ];
-        List<String> expCommPrefixes = ObjectUtils
-                .getCommPrefixes( subKeyNames.toArray( objectNames ), prefix,
-                        delimiter );
+        List< String > expCommPrefixes = ObjectUtils.getCommPrefixes(
+                subKeyNames.toArray( objectNames ), prefix, delimiter );
 
-        MultiValueMap<String, String> expVersionsMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersionsMap = new LinkedMultiValueMap< String, String >();
         if ( versionsIsNull ) {
             ObjectUtils.checkListVSResults( versionList, expCommPrefixes,
                     expVersionsMap );

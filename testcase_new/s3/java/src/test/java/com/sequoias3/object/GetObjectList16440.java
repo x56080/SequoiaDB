@@ -31,7 +31,7 @@ public class GetObjectList16440 extends S3TestBase {
     private String contentKey = "%6Ftest!_content";
     private String prefix = "%6Ftest!_";
     private String delimiter = "|";
-    private List<String> expCommprefixList = new ArrayList<String>( 3000 );
+    private List< String > expCommprefixList = new ArrayList< String >( 3000 );
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
 
@@ -43,8 +43,8 @@ public class GetObjectList16440 extends S3TestBase {
 
         // put multiple objects
         for ( int i = 0; i < keyNames.length; i++ ) {
-            String expCommPrefixes = keyNames[ i ]
-                    .substring( 0, keyNames[ i ].indexOf( delimiter ) + 1 );
+            String expCommPrefixes = keyNames[ i ].substring( 0,
+                    keyNames[ i ].indexOf( delimiter ) + 1 );
             s3Client.putObject( bucketName, keyNames[ i ], "object_file16440" );
             expCommprefixList.add( expCommPrefixes );
         }
@@ -58,11 +58,11 @@ public class GetObjectList16440 extends S3TestBase {
                 .withPrefix( prefix ).withDelimiter( delimiter );
         ListObjectsV2Result result = s3Client.listObjectsV2( req );
         Assert.assertEquals( result.getEncodingType(), "url" );
-        List<String> commprefixesResult = result.getCommonPrefixes();
+        List< String > commprefixesResult = result.getCommonPrefixes();
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult,
                 expCommprefixList );
 
-        List<S3ObjectSummary> content = result.getObjectSummaries();
+        List< S3ObjectSummary > content = result.getObjectSummaries();
         Assert.assertEquals( content.get( 0 ).getKey(), contentKey,
                 "contents is wrong" );
         runSuccess = true;

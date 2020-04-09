@@ -38,10 +38,10 @@ public class CreateObject18104 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -59,8 +59,8 @@ public class CreateObject18104 extends S3TestBase {
         String subKeyName = keyName + "_" + num + "%aa%test.png";
         s3Client.putObject( bucketName, subKeyName, new File( filePath ) );
         // check the content of the create object
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, subKeyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, subKeyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
@@ -72,14 +72,13 @@ public class CreateObject18104 extends S3TestBase {
     }
 
     private void testListObject() {
-        List<String> expCommonPrefixList = new ArrayList<>();
+        List< String > expCommonPrefixList = new ArrayList<>();
         for ( int i = 0; i < keyNum; i++ ) {
             expCommonPrefixList.add( keyName + "_" + i + "%" );
         }
-        List<String> expContextList = new ArrayList<>();
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        expCommonPrefixList, expContextList );
+        List< String > expContextList = new ArrayList<>();
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, expCommonPrefixList, expContextList );
     }
 
     private void testDeleteObjectAndCheckResult() throws Exception {
@@ -88,11 +87,10 @@ public class CreateObject18104 extends S3TestBase {
             s3Client.deleteObject( bucketName, subKeyName );
         }
         // check the content of the create object
-        List<String> expCommprefixList = new ArrayList<>();
-        List<String> expContentList = new ArrayList<>();
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        expCommprefixList, expContentList );
+        List< String > expCommprefixList = new ArrayList<>();
+        List< String > expContentList = new ArrayList<>();
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, expCommprefixList, expContentList );
 
     }
 

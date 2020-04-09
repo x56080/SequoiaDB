@@ -29,7 +29,7 @@ import java.util.List;
 public class DeleteObject16451 extends S3TestBase {
     private String bucketName = "bucket16451";
     private String keyName = "testkey16451";
-    private List<S3VersionSummary> expVersionList = new ArrayList<>();
+    private List< S3VersionSummary > expVersionList = new ArrayList<>();
     private int oneObjVersionNum = 3;
     private String file = "object16451";
     private File localPath = null;
@@ -38,8 +38,8 @@ public class DeleteObject16451 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
 
@@ -81,7 +81,7 @@ public class DeleteObject16451 extends S3TestBase {
         ListVersionsRequest req = new ListVersionsRequest()
                 .withBucketName( bucketName );
         VersionListing versionList = s3Client.listVersions( req );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         Assert.assertEquals( verList.size(), expVersionList.size() );
         for ( int i = 0; i < verList.size(); i++ ) {
             Assert.assertEquals( verList.get( i ).getKey(),

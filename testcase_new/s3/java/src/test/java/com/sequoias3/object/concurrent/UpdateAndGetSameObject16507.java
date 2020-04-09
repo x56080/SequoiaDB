@@ -36,12 +36,12 @@ public class UpdateAndGetSameObject16507 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -104,22 +104,20 @@ public class UpdateAndGetSameObject16507 extends S3TestBase {
         String versionId = metadata.getVersionId();
         String curVersionId = "1";
         if ( versionId.equals( curVersionId ) ) {
-            String downfileMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, key,
-                            versionId );
+            String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, key, versionId );
             Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
         } else {
-            String downfileMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, key,
-                            versionId );
+            String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, key, versionId );
             Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         }
     }
 
     private void checkUpdateObjectResult( String bucketName, String key )
             throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
     }
 
@@ -143,8 +141,8 @@ public class UpdateAndGetSameObject16507 extends S3TestBase {
         public void exec() throws Exception {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
-                object = s3Client
-                        .getObject( S3TestBase.enableVerBucketName, keyName );
+                object = s3Client.getObject( S3TestBase.enableVerBucketName,
+                        keyName );
             } finally {
                 if ( s3Client != null ) {
                     s3Client.shutdown();

@@ -66,7 +66,7 @@ public class TestDeleteRegion17355 extends S3TestBase {
 
     @AfterClass
     private void tearDown() throws Exception {
-        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ) ) {
+        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" )) {
             sdb.dropCollectionSpace( dataCSName );
             sdb.dropCollectionSpace( metaCSName );
         }

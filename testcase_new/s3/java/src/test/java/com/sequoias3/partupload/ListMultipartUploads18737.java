@@ -47,14 +47,13 @@ public class ListMultipartUploads18737 extends S3TestBase {
 
     @Test
     private void test() throws Exception {
-        MultiValueMap<String, String> expUploads = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expUploads = new LinkedMultiValueMap< String, String >();
         for ( String key : keys ) {
             // uploadPart multi object
-            String uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, key );
-            PartUploadUtils
-                    .partUpload( s3Client, bucketName, key, uploadId, file,
-                            fileSize / maxPartNumber );
+            String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, key );
+            PartUploadUtils.partUpload( s3Client, bucketName, key, uploadId,
+                    file, fileSize / maxPartNumber );
             expUploads.add( key, uploadId );
         }
 
@@ -63,10 +62,9 @@ public class ListMultipartUploads18737 extends S3TestBase {
                 bucketName );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
-        List<String> expCommonPrefixes = new ArrayList<>();
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes,
-                        expUploads );
+        List< String > expCommonPrefixes = new ArrayList<>();
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes, expUploads );
 
         runSuccess = true;
     }
@@ -84,10 +82,10 @@ public class ListMultipartUploads18737 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );

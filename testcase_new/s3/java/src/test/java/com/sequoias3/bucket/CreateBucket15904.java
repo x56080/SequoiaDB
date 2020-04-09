@@ -69,7 +69,7 @@ public class CreateBucket15904 extends S3TestBase {
     private void checkCreateBucketResult( AmazonS3 s3Client, String bucketName,
             int bucketNums ) {
         // check bucket nums
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         Assert.assertEquals( buckets.size(), bucketNums );
         Bucket bucket = buckets.get( 0 );
         String actOwner = bucket.getOwner().getDisplayName();

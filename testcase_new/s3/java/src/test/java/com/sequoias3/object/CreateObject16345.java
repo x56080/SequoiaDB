@@ -38,8 +38,8 @@ public class CreateObject16345 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         s3Client = CommLib.buildS3Client();
         // create bucket and set bucket version status
         s3Client.createBucket( new CreateBucketRequest( bucketName ) );
@@ -48,7 +48,7 @@ public class CreateObject16345 extends S3TestBase {
 
     @Test
     public void testPutObject() throws Exception {
-        List<String> contentList = new ArrayList<>();
+        List< String > contentList = new ArrayList<>();
         for ( int i = 0; i < countNum; i++ ) {
             String currentExpContent = expContent + "." + i;
             s3Client.putObject( bucketName, keyName, currentExpContent );
@@ -67,13 +67,13 @@ public class CreateObject16345 extends S3TestBase {
         }
     }
 
-    private void checkPutObjectResult( List<String> contentList )
+    private void checkPutObjectResult( List< String > contentList )
             throws Exception {
         // Objects in the version list are stored in reverse order by versionId
         Collections.reverse( contentList );
         VersionListing listing = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
-        List<S3VersionSummary> list = listing.getVersionSummaries();
+        List< S3VersionSummary > list = listing.getVersionSummaries();
         Assert.assertEquals( list.size(), countNum );
 
         // check object content by md5
@@ -81,9 +81,8 @@ public class CreateObject16345 extends S3TestBase {
             Assert.assertEquals(
                     Integer.parseInt( list.get( i ).getVersionId() ),
                     ( list.size() - 1 ) - i, "versionid is wrong!" );
-            String actMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, keyName,
-                            list.get( i ).getVersionId() );
+            String actMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                    bucketName, keyName, list.get( i ).getVersionId() );
             Assert.assertEquals( actMd5,
                     TestTools.getMD5( contentList.get( i ).getBytes() ),
                     "md5 is different!" );

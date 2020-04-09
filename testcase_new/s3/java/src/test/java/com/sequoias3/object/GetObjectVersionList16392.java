@@ -31,8 +31,8 @@ public class GetObjectVersionList16392 extends S3TestBase {
             "test4" };
     private String delimiter = "/";
     private String expPrefix = "dir1/";
-    private List<String> expVersionsKeyName = new ArrayList<String>();
-    private List<String> expVersionsKeyEtag = new ArrayList<String>();
+    private List< String > expVersionsKeyName = new ArrayList< String >();
+    private List< String > expVersionsKeyEtag = new ArrayList< String >();
     private String[] expVersionId = { "1", "0", "1", "0" };
     private String content = "object16392";
     private AmazonS3 s3Client = null;
@@ -46,7 +46,7 @@ public class GetObjectVersionList16392 extends S3TestBase {
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
 
         for ( int i = 0; i < keyName.length; i++ ) {
-            List<String> tempEtag = new ArrayList<>();
+            List< String > tempEtag = new ArrayList<>();
             String currentContent = content + ObjectUtils.getRandomString( i );
             s3Client.putObject( bucketName, keyName[ i ], currentContent );
             tempEtag.add( TestTools.getMD5( currentContent.getBytes() ) );
@@ -79,7 +79,7 @@ public class GetObjectVersionList16392 extends S3TestBase {
                 "the number of results returned by commonPrefixes is wrong" );
         Assert.assertEquals( versionList.getCommonPrefixes().get( 0 ),
                 expPrefix, "the result of commonPrefixes is wrong" );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
 
         checkVersionsResult( verList );
         runSuccess = true;
@@ -93,7 +93,7 @@ public class GetObjectVersionList16392 extends S3TestBase {
         }
     }
 
-    private void checkVersionsResult( List<S3VersionSummary> verList ) {
+    private void checkVersionsResult( List< S3VersionSummary > verList ) {
         Assert.assertEquals( verList.size(), expVersionsKeyName.size(),
                 "The number of results returned does not match the expected value" );
         for ( int i = 0; i < verList.size(); i++ ) {
@@ -101,13 +101,11 @@ public class GetObjectVersionList16392 extends S3TestBase {
                     expVersionsKeyName.get( i ),
                     "the result of versions is wrong!" );
             Assert.assertEquals( verList.get( i ).getVersionId(),
-                    expVersionId[ i ],
-                    "version id is wrong! the key is : " + verList.get( i )
-                            .getKey() );
+                    expVersionId[ i ], "version id is wrong! the key is : "
+                            + verList.get( i ).getKey() );
             Assert.assertEquals( verList.get( i ).getETag(),
-                    expVersionsKeyEtag.get( i ),
-                    "etag is wrong! the key is : " + verList.get( i )
-                            .getKey() );
+                    expVersionsKeyEtag.get( i ), "etag is wrong! the key is : "
+                            + verList.get( i ).getKey() );
         }
     }
 }

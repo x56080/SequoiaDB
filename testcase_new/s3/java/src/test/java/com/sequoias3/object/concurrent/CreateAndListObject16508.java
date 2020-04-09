@@ -35,14 +35,14 @@ public class CreateAndListObject16508 extends S3TestBase {
     private File localPath = null;
     private String filePath = null;
     private int objectNums = 10;
-    private List<String> keyList = new ArrayList<>();
+    private List< String > keyList = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -56,7 +56,8 @@ public class CreateAndListObject16508 extends S3TestBase {
 
     @Test
     public void testCreateBucket() throws Exception {
-        List<PutObjectThread> putObjectThreads = new ArrayList<>( objectNums );
+        List< PutObjectThread > putObjectThreads = new ArrayList<>(
+                objectNums );
         ListObjectThread listObjectThread = new ListObjectThread();
         for ( int i = 0; i < objectNums; i++ ) {
             String key = keyName + "_" + i;
@@ -94,11 +95,11 @@ public class CreateAndListObject16508 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList )
+    private void listObjectsAndCheckResult( List< String > keyList )
             throws IOException {
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         ListObjectsV2Result result = s3Client.listObjectsV2( bucketName );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         Assert.assertEquals( objects.size(), objectNums );
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();

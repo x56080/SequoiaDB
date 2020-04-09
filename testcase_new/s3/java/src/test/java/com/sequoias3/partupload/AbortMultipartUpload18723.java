@@ -38,14 +38,14 @@ public class AbortMultipartUpload18723 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath1 =
-                localPath + File.separator + "localFile_" + fileSize1 + ".txt";
-        filePath2 =
-                localPath + File.separator + "localFile_" + fileSize2 + ".txt";
-        filePath3 =
-                localPath + File.separator + "localFile_" + fileSize3 + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath1 = localPath + File.separator + "localFile_" + fileSize1
+                + ".txt";
+        filePath2 = localPath + File.separator + "localFile_" + fileSize2
+                + ".txt";
+        filePath3 = localPath + File.separator + "localFile_" + fileSize3
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath1, fileSize1 );
@@ -59,19 +59,18 @@ public class AbortMultipartUpload18723 extends S3TestBase {
         File file1 = new File( filePath1 );
         File file2 = new File( filePath2 );
         File file3 = new File( filePath3 );
-        String uploadId1 = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
+        String uploadId1 = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, keyName );
         PartUploadUtils.partUpload( s3Client, S3TestBase.bucketName, keyName,
                 uploadId1, file1 );
-        String uploadId2 = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
+        String uploadId2 = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, keyName );
         PartUploadUtils.partUpload( s3Client, S3TestBase.bucketName, keyName,
                 uploadId2, file2 );
-        String uploadId3 = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
-        List<PartETag> partEtags = PartUploadUtils
-                .partUpload( s3Client, S3TestBase.bucketName, keyName,
-                        uploadId3, file3 );
+        String uploadId3 = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, keyName );
+        List< PartETag > partEtags = PartUploadUtils.partUpload( s3Client,
+                S3TestBase.bucketName, keyName, uploadId3, file3 );
 
         AbortMultipartUploadRequest request1 = new AbortMultipartUploadRequest(
                 S3TestBase.bucketName, keyName, uploadId1 );
@@ -85,14 +84,12 @@ public class AbortMultipartUpload18723 extends S3TestBase {
         PartUploadUtils.checkAbortMultipartUploadResult( s3Client,
                 S3TestBase.bucketName, keyName, uploadId2 );
 
-        PartUploadUtils
-                .completeMultipartUpload( s3Client, S3TestBase.bucketName,
-                        keyName, uploadId3, partEtags );
+        PartUploadUtils.completeMultipartUpload( s3Client,
+                S3TestBase.bucketName, keyName, uploadId3, partEtags );
 
         // down file check the file content
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, S3TestBase.bucketName,
-                        keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                S3TestBase.bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath3 ) );
         runSuccess = true;
     }

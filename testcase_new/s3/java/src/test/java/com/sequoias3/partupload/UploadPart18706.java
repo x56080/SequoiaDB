@@ -47,10 +47,10 @@ public class UploadPart18706 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -64,15 +64,13 @@ public class UploadPart18706 extends S3TestBase {
 
     @Test(dataProvider = "partSizeProvider")
     private void testUpload( long partSize ) throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        List<PartETag> partEtags = PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId, file,
-                        partSize );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        List< PartETag > partEtags = PartUploadUtils.partUpload( s3Client,
+                bucketName, keyName, uploadId, file, partSize );
         try {
-            PartUploadUtils
-                    .completeMultipartUpload( s3Client, bucketName, keyName,
-                            uploadId, partEtags );
+            PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
+                    keyName, uploadId, partEtags );
             Assert.fail( "complete multipart upload should fail." );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getErrorCode(), "EntityTooSmall" );

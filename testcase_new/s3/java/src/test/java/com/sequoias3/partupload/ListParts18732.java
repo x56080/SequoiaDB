@@ -37,20 +37,18 @@ public class ListParts18732 extends S3TestBase {
     private int maxPartNumber = 5;
     private String key = "/aa/bb/obj18732";
     private String uploadId;
-    private List<PartETag> partETags = new ArrayList<>();
+    private List< PartETag > partETags = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
         this.initFile();
         s3Client = CommLib.buildS3Client();
-        uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, key );
-        partETags = PartUploadUtils
-                .partUpload( s3Client, S3TestBase.bucketName, key, uploadId,
-                        file, fileSize / maxPartNumber );
-        PartUploadUtils
-                .listPartsAndCheckPartNumbers( s3Client, S3TestBase.bucketName,
-                        key, partETags, uploadId );
+        uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, key );
+        partETags = PartUploadUtils.partUpload( s3Client, S3TestBase.bucketName,
+                key, uploadId, file, fileSize / maxPartNumber );
+        PartUploadUtils.listPartsAndCheckPartNumbers( s3Client,
+                S3TestBase.bucketName, key, partETags, uploadId );
     }
 
     @Test
@@ -59,7 +57,7 @@ public class ListParts18732 extends S3TestBase {
                 key, uploadId );
         request.setMaxParts( maxPartNumber - 1 );
         PartListing partList = s3Client.listParts( request );
-        List<PartSummary> parts = partList.getParts();
+        List< PartSummary > parts = partList.getParts();
         Assert.assertEquals( parts.size(), maxPartNumber - 1 );
         for ( int i = 0; i < parts.size(); i++ ) {
             PartSummary partSumm = parts.get( i );
@@ -73,7 +71,7 @@ public class ListParts18732 extends S3TestBase {
         // set nextPartNumberMarker
         request.setPartNumberMarker( nextPartNumberMarker );
         PartListing partList2 = s3Client.listParts( request );
-        List<PartSummary> parts2 = partList2.getParts();
+        List< PartSummary > parts2 = partList2.getParts();
         Assert.assertEquals( parts2.size(), 1 );
         Assert.assertEquals( parts2.get( 0 ).getETag(),
                 partETags.get( maxPartNumber - 1 ).getETag() );
@@ -88,7 +86,7 @@ public class ListParts18732 extends S3TestBase {
                 key, uploadId );
         request.setMaxParts( maxPartNumber + 1 );
         PartListing partList = s3Client.listParts( request );
-        List<PartSummary> parts = partList.getParts();
+        List< PartSummary > parts = partList.getParts();
         Assert.assertEquals( parts.size(), maxPartNumber );
         for ( int i = 0; i < parts.size(); i++ ) {
             PartSummary partSumm = parts.get( i );
@@ -105,7 +103,7 @@ public class ListParts18732 extends S3TestBase {
                 key, uploadId );
         request.setMaxParts( maxPartNumber );
         PartListing partList = s3Client.listParts( request );
-        List<PartSummary> parts = partList.getParts();
+        List< PartSummary > parts = partList.getParts();
         Assert.assertEquals( parts.size(), maxPartNumber );
         for ( int i = 0; i < parts.size(); i++ ) {
             PartSummary partSumm = parts.get( i );
@@ -120,9 +118,8 @@ public class ListParts18732 extends S3TestBase {
     private void tearDown() {
         try {
             if ( runSuccessNum == expRunSuccessNum ) {
-                s3Client.abortMultipartUpload(
-                        new AbortMultipartUploadRequest( S3TestBase.bucketName,
-                                key, uploadId ) );
+                s3Client.abortMultipartUpload( new AbortMultipartUploadRequest(
+                        S3TestBase.bucketName, key, uploadId ) );
                 s3Client.deleteObject( S3TestBase.bucketName, key );
                 TestTools.LocalFile.removeFile( localPath );
             }
@@ -132,10 +129,10 @@ public class ListParts18732 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );

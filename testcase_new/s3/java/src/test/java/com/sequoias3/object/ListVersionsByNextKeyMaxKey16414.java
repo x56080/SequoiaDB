@@ -55,14 +55,13 @@ public class ListVersionsByNextKeyMaxKey16414 extends S3TestBase {
         int versionIdMarker = versionNum;
         Integer maxResults = 7;
 
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withKeyMarker( keyMarker ).withVersionIdMarker(
-                        String.valueOf( versionIdMarker ) )
-                        .withMaxResults( maxResults ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withKeyMarker( keyMarker )
+                .withVersionIdMarker( String.valueOf( versionIdMarker ) )
+                .withMaxResults( maxResults ) );
 
         // expected results
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = index; i < maxResults / versionNum; i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
                 expMap.add( objectNames[ i ], String.valueOf( j ) );
@@ -72,8 +71,8 @@ public class ListVersionsByNextKeyMaxKey16414 extends S3TestBase {
 
         Assert.assertTrue( vsList.isTruncated(),
                 "vsList.isTruncated() must be true" );
-        ObjectUtils
-                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                expMap );
 
         String nextKeyMarker = vsList.getNextKeyMarker();
         String nextVersionIdMarker = String.valueOf( 1 );
@@ -82,12 +81,13 @@ public class ListVersionsByNextKeyMaxKey16414 extends S3TestBase {
 
         VersionListing vsList1 = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
-                        .withKeyMarker( nextKeyMarker ).withVersionIdMarker(
-                        String.valueOf( nextVersionIdMarker ) )
+                        .withKeyMarker( nextKeyMarker )
+                        .withVersionIdMarker(
+                                String.valueOf( nextVersionIdMarker ) )
                         .withMaxResults( maxResults ) );
 
         // expected results
-        MultiValueMap<String, String> expMap1 = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap1 = new LinkedMultiValueMap< String, String >();
         expMap1.add( objectNames[ 2 ], "0" );
         for ( int i = 3; i < objectNames.length; i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
@@ -96,7 +96,7 @@ public class ListVersionsByNextKeyMaxKey16414 extends S3TestBase {
         }
         Assert.assertFalse( vsList1.isTruncated(),
                 "vsList.isTruncated() must be false" );
-        ObjectUtils.checkListVSResults( vsList1, new ArrayList<String>(),
+        ObjectUtils.checkListVSResults( vsList1, new ArrayList< String >(),
                 expMap1 );
         runSuccess = true;
     }

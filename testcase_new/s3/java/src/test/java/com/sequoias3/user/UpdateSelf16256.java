@@ -44,9 +44,8 @@ public class UpdateSelf16256 extends S3TestBase {
     @Test
     private void test() throws JSONException {
         // create user
-        JSONObject createUser = UserUtils
-                .createUser( userName, UserCommDefind.admin,
-                        UserUtils.accessKeyId );
+        JSONObject createUser = UserUtils.createUser( userName,
+                UserCommDefind.admin, UserUtils.accessKeyId );
 
         // update user
         String accessKeyId = createUser
@@ -92,7 +91,7 @@ public class UpdateSelf16256 extends S3TestBase {
             s3Client.createBucket( bucketName );
 
             // check
-            List<Bucket> buckets = s3Client.listBuckets();
+            List< Bucket > buckets = s3Client.listBuckets();
             Assert.assertEquals( buckets.size(), 1, " only one bucket" );
             Bucket expbucket = buckets.get( 0 );
             String actOwner = expbucket.getOwner().getDisplayName();

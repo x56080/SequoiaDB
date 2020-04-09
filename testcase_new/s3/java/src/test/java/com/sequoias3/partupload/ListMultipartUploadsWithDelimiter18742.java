@@ -40,10 +40,10 @@ public class ListMultipartUploadsWithDelimiter18742 extends S3TestBase {
 
     @Test
     public void uploadParts() {
-        MultiValueMap<String, String> uploadIds = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > uploadIds = new LinkedMultiValueMap< String, String >();
         for ( String keyName : keyNames ) {
-            String uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, keyName );
+            String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, keyName );
             uploadIds.add( keyName, uploadId );
         }
 
@@ -68,33 +68,31 @@ public class ListMultipartUploadsWithDelimiter18742 extends S3TestBase {
     }
 
     private void listPartUploadsMatchedDelimiter(
-            MultiValueMap<String, String> uploadIds, String delimiter ) {
+            MultiValueMap< String, String > uploadIds, String delimiter ) {
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
                 bucketName ).withDelimiter( delimiter );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
-        MultiValueMap<String, String> expUpload = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expUpload = new LinkedMultiValueMap< String, String >();
         expUpload.add( keyNames[ 0 ], uploadIds.getFirst( keyNames[ 0 ] ) );
-        List<String> expCommonPrefixes = new ArrayList<>();
+        List< String > expCommonPrefixes = new ArrayList<>();
         expCommonPrefixes.add( "dir1/" );
         expCommonPrefixes.add( "/" );
         expCommonPrefixes.add( "dir4/" );
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes,
-                        expUpload );
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes, expUpload );
     }
 
     private void listPartUploadsMisMatchedDelimiter(
-            MultiValueMap<String, String> uploadIds, String delimiter ) {
+            MultiValueMap< String, String > uploadIds, String delimiter ) {
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
                 bucketName ).withDelimiter( delimiter );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
 
-        List<String> expCommonPrefixes = new ArrayList<>();
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes,
-                        uploadIds );
+        List< String > expCommonPrefixes = new ArrayList<>();
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes, uploadIds );
     }
 
 }

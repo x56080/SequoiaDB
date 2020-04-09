@@ -66,7 +66,7 @@ public class TestGetBucketLocation17357 extends S3TestBase {
         try {
             if ( runSuccess ) {
                 try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
-                        "" ) ) {
+                        "" )) {
                     CommLib.clearBucket( s3Client, bucketName );
                     RegionUtils.deleteRegion( regionName );
                     sdb.dropCollectionSpace( dataCSName );

@@ -40,8 +40,8 @@ public class SetBucketAcl19468 extends S3TestBase {
         CommLib.clearBucket( adminS3, bucketName );
 
         userAcessKeys = UserUtils.createUser( userName, userType );
-        userS3 = CommLib
-                .buildS3Client( userAcessKeys[ 0 ], userAcessKeys[ 1 ] );
+        userS3 = CommLib.buildS3Client( userAcessKeys[ 0 ],
+                userAcessKeys[ 1 ] );
         userOwnerId = userS3.getS3AccountOwner().getId();
 
         adminS3.createBucket( bucketName );
@@ -99,8 +99,10 @@ public class SetBucketAcl19468 extends S3TestBase {
                         userAcessKeys[ 1 ] );
                 // ownerS3 set object acl, authorized to userS3, and set
                 // permission
-                Grant grant = new Grant( new CanonicalGrantee(
-                        authS3.getS3AccountOwner().getId() ), permission );
+                Grant grant = new Grant(
+                        new CanonicalGrantee(
+                                authS3.getS3AccountOwner().getId() ),
+                        permission );
                 PrivilegeUtils.setBucketAclByBody( ownerS3, bucketName, grant );
             } finally {
                 if ( ownerS3 != null ) {

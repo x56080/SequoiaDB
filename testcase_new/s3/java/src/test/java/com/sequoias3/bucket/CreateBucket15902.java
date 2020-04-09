@@ -68,7 +68,7 @@ public class CreateBucket15902 extends S3TestBase {
     private void checkCreateBucketResult( AmazonS3 s3Client, String bucketName,
             String userName ) {
         // create one bucket,check the bucket name and owner name
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         Assert.assertEquals( buckets.size(), 1, " only one bucket" );
         Bucket bucket = buckets.get( 0 );
         String actOwner = bucket.getOwner().getDisplayName();

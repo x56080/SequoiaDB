@@ -37,10 +37,10 @@ public class CreateSameObject16484 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -89,16 +89,16 @@ public class CreateSameObject16484 extends S3TestBase {
         Assert.assertEquals(
                 listObjectsV2Result.getObjectSummaries().get( 0 ).getKey(),
                 keyName, "keyName is wrong!" );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
     private class CreateObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.putObject( bucketName, keyName, new File( filePath ) );
             } finally {

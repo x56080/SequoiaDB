@@ -34,12 +34,12 @@ public class HeadObject16677 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath1 =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        filePath2 =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath1 = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        filePath2 = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath1, fileSize );

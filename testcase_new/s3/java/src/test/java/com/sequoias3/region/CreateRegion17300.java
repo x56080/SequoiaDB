@@ -52,8 +52,9 @@ public class CreateRegion17300 extends S3TestBase {
         return new Object[][] {
                 // regionName dataDomain metaDomain expDataDomain expMetaDomain
                 { regionNames[ 0 ], domainNames[ 0 ], null, domainNames[ 0 ],
-                        "" }, { regionNames[ 1 ], null, domainNames[ 1 ], "",
-                domainNames[ 1 ] },
+                        "" },
+                { regionNames[ 1 ], null, domainNames[ 1 ], "",
+                        domainNames[ 1 ] },
                 { regionNames[ 2 ], domainNames[ 1 ], domainNames[ 1 ],
                         domainNames[ 1 ], domainNames[ 1 ] },
                 { regionNames[ 3 ], domainNames[ 0 ], domainNames[ 1 ],
@@ -85,7 +86,7 @@ public class CreateRegion17300 extends S3TestBase {
                 .withName( regionName ).withDataLocation( "" )
                 .withMetaHisLocation( "" ).withMetaLocation( "" )
                 .withDataLobPageSize( "262144" ).withDataReplSize( "-1" );
-        List<String> expBuckets = new ArrayList<>();
+        List< String > expBuckets = new ArrayList<>();
         expBuckets.add( randomBucketName );
         // check
         checkGetResult( result, expRegion, expBuckets );
@@ -110,12 +111,12 @@ public class CreateRegion17300 extends S3TestBase {
     }
 
     private void checkGetResult( GetRegionResult result, Region expRegion,
-            List<String> expBuckets ) {
+            List< String > expBuckets ) {
         Region region = result.getRegion();
-        List<Bucket> buckets = result.getBuckets();
+        List< Bucket > buckets = result.getBuckets();
         Assert.assertEquals( region.toString(), expRegion.toString(),
-                "region = " + region.toString() + ",expRegion = " + expRegion
-                        .toString() );
+                "region = " + region.toString() + ",expRegion = "
+                        + expRegion.toString() );
         Assert.assertEquals( buckets.size(), expBuckets.size() );
         for ( int i = 0; i < expBuckets.size(); i++ ) {
             Assert.assertEquals( buckets.get( i ).getName(),

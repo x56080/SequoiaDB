@@ -25,14 +25,14 @@ import java.util.List;
  * @Date 2019.04.24
  * @version 1.00
  */
-@Test(groups = "contextlifecycleconf") public class ListObjectsWithDelimiter18132
-        extends S3TestBase {
+@Test(groups = "contextlifecycleconf")
+public class ListObjectsWithDelimiter18132 extends S3TestBase {
     private String bucketName = "bucket18132";
     private String keyNamePrefix = "dir/dir";
     private String[] objectNames = new String[ 10 ];
     private String delimiter = "?";
     private int maxkeys = 2;
-    private List<String> expCommonprefixes = new ArrayList<String>();
+    private List< String > expCommonprefixes = new ArrayList< String >();
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
 
@@ -55,8 +55,8 @@ import java.util.List;
         DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
 
-        expCommonprefixes = ObjectUtils
-                .getCommPrefixes( objectNames, "", delimiter );
+        expCommonprefixes = ObjectUtils.getCommPrefixes( objectNames, "",
+                delimiter );
         Collections.sort( expCommonprefixes );
         ListObjectsV2Request req = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withDelimiter( delimiter )
@@ -64,11 +64,11 @@ import java.util.List;
         ListObjectsV2Result result;
 
         result = s3Client.listObjectsV2( req );
-        List<String> commprefixesResult = result.getCommonPrefixes();
+        List< String > commprefixesResult = result.getCommonPrefixes();
 
         // check result
-        List<String> tmpCommonprefixes = expCommonprefixes
-                .subList( 0, maxkeys );
+        List< String > tmpCommonprefixes = expCommonprefixes.subList( 0,
+                maxkeys );
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult,
                 tmpCommonprefixes );
 

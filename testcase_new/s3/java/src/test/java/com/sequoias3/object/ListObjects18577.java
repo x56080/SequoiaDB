@@ -64,12 +64,12 @@ public class ListObjects18577 extends S3TestBase {
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName ).withMaxKeys( maxKeys );
         ObjectListing result;
-        List< String > queryKeyList = new ArrayList< >();
+        List< String > queryKeyList = new ArrayList<>();
         do {
             result = s3Client.listObjects( request );
             List< S3ObjectSummary > objects = result.getObjectSummaries();
 
-            List< String > oneQueryKeyList = new ArrayList< >();
+            List< String > oneQueryKeyList = new ArrayList<>();
             for ( S3ObjectSummary os : objects ) {
                 String key = os.getKey();
                 queryKeyList.add( key );
@@ -92,7 +92,7 @@ public class ListObjects18577 extends S3TestBase {
     }
 
     private List< String > putObjects() {
-        List< String > keyList = new ArrayList< >();
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < objectNums; i++ ) {
             String keyName = key + "_" + i;
             keyList.add( keyName );

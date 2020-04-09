@@ -37,16 +37,14 @@ public class AbortMultipartUpload18717 extends S3TestBase {
 
     @Test
     private void test() throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, key );
-        PartUploadUtils
-                .partUpload( s3Client, S3TestBase.bucketName, key, uploadId,
-                        file, fileSize / maxPartNumber );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, key );
+        PartUploadUtils.partUpload( s3Client, S3TestBase.bucketName, key,
+                uploadId, file, fileSize / maxPartNumber );
         s3Client.abortMultipartUpload(
                 new AbortMultipartUploadRequest( bucketName, key, uploadId ) );
-        PartUploadUtils
-                .checkAbortMultipartUploadResult( s3Client, bucketName, key,
-                        uploadId );
+        PartUploadUtils.checkAbortMultipartUploadResult( s3Client, bucketName,
+                key, uploadId );
 
         runSuccess = true;
     }
@@ -63,10 +61,10 @@ public class AbortMultipartUpload18717 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );

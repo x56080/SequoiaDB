@@ -55,19 +55,18 @@ public class ListVersionsByPrefixDelimiterMaxkeys16415 extends S3TestBase {
         String delimiter = "/";
         Integer maxResults = 1;
 
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withPrefix( prefix ).withDelimiter( delimiter )
-                        .withMaxResults( maxResults ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withPrefix( prefix )
+                .withDelimiter( delimiter ).withMaxResults( maxResults ) );
         // expected results
-        List<String> expCommonPrefixes = new ArrayList<String>();
+        List< String > expCommonPrefixes = new ArrayList< String >();
         expCommonPrefixes.add( "/aa/" );
 
         // chceck
         Assert.assertEquals( vsList.isTruncated(), true,
                 "vsList.isTruncated() must be true" );
         ObjectUtils.checkListVSResults( vsList, expCommonPrefixes,
-                new LinkedMultiValueMap<String, String>() );
+                new LinkedMultiValueMap< String, String >() );
 
         // test isTruncated
         String nextKeyMarker = vsList.getNextKeyMarker();
@@ -81,13 +80,13 @@ public class ListVersionsByPrefixDelimiterMaxkeys16415 extends S3TestBase {
                         .withMaxResults( maxResults2 ) );
 
         // expected results
-        List<String> expCommonPrefixes2 = new ArrayList<String>();
+        List< String > expCommonPrefixes2 = new ArrayList< String >();
         expCommonPrefixes2.add( "/bb/" );
         expCommonPrefixes2.add( "/cc/" );
         Assert.assertEquals( vsList2.isTruncated(), false,
                 "vsList3.isTruncated() must be false" );
         ObjectUtils.checkListVSResults( vsList2, expCommonPrefixes2,
-                new LinkedMultiValueMap<String, String>() );
+                new LinkedMultiValueMap< String, String >() );
 
         // add new object
         String newObjectName = "/dd";
@@ -106,10 +105,10 @@ public class ListVersionsByPrefixDelimiterMaxkeys16415 extends S3TestBase {
                         .withMaxResults( maxResults3 ) );
 
         // expected results
-        List<String> expCommonPrefixes3 = new ArrayList<String>();
+        List< String > expCommonPrefixes3 = new ArrayList< String >();
         expCommonPrefixes3.add( "/bb/" );
         expCommonPrefixes3.add( "/cc/" );
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int k = versionNum - 1; k >= 0; k-- ) {
             expMap.add( newObjectName, String.valueOf( k ) );
         }

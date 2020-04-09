@@ -45,7 +45,7 @@ public final class RestClient {
 
     public static void sendRequest( CloseableHttpClient client,
             String sessionId, HttpEntityEnclosingRequestBase request,
-            List<NameValuePair> params ) throws Exception {
+            List< NameValuePair > params ) throws Exception {
         CloseableHttpResponse response = sendRequestWithHttpResponse( client,
                 sessionId, request, params );
         closeResp( response );
@@ -66,8 +66,8 @@ public final class RestClient {
 
     public static String sendRequestWithHeaderResponse(
             CloseableHttpClient client, String sessionId,
-            HttpEntityEnclosingRequestBase request, List<NameValuePair> params,
-            String keyName ) throws Exception {
+            HttpEntityEnclosingRequestBase request,
+            List< NameValuePair > params, String keyName ) throws Exception {
         CloseableHttpResponse response = sendRequestWithHttpResponse( client,
                 sessionId, request, params );
         try {
@@ -84,8 +84,8 @@ public final class RestClient {
         CloseableHttpResponse response = sendRequestWithHttpResponse( client,
                 sessionId, request );
         try {
-            String resp = EntityUtils
-                    .toString( response.getEntity(), CHARSET_UTF8 );
+            String resp = EntityUtils.toString( response.getEntity(),
+                    CHARSET_UTF8 );
             return ( BSONObject ) JSON.parse( resp );
         } finally {
             closeResp( response );
@@ -94,13 +94,13 @@ public final class RestClient {
 
     public static BSONObject sendRequestWithJsonResponse(
             CloseableHttpClient client, String sessionId,
-            HttpEntityEnclosingRequestBase request, List<NameValuePair> params )
-            throws Exception {
+            HttpEntityEnclosingRequestBase request,
+            List< NameValuePair > params ) throws Exception {
         CloseableHttpResponse response = sendRequestWithHttpResponse( client,
                 sessionId, request, params );
         try {
-            String resp = EntityUtils
-                    .toString( response.getEntity(), CHARSET_UTF8 );
+            String resp = EntityUtils.toString( response.getEntity(),
+                    CHARSET_UTF8 );
             return ( BSONObject ) JSON.parse( resp );
         } finally {
             closeResp( response );
@@ -119,8 +119,8 @@ public final class RestClient {
 
     public static CloseableHttpResponse sendRequestWithHttpResponse(
             CloseableHttpClient client, String sessionId,
-            HttpEntityEnclosingRequestBase request, List<NameValuePair> params )
-            throws Exception {
+            HttpEntityEnclosingRequestBase request,
+            List< NameValuePair > params ) throws Exception {
         if ( !NO_AUTH_SESSION_ID.equals( sessionId ) ) {
             request.setHeader( AUTHORIZATION, sessionId );
         }

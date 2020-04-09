@@ -51,8 +51,8 @@ public class CreateAndDelectSameObject16490 extends S3TestBase {
                 createObject.getErrorMsg() );
 
         if ( s3Client.doesObjectExist( bucketName, keyName ) ) {
-            ObjectMetadata metadata = s3Client
-                    .getObjectMetadata( bucketName, keyName );
+            ObjectMetadata metadata = s3Client.getObjectMetadata( bucketName,
+                    keyName );
             Assert.assertEquals( metadata.getETag(),
                     TestTools.getMD5( content.getBytes() ) );
             Assert.assertEquals( metadata.getVersionId(), "null" );
@@ -78,8 +78,8 @@ public class CreateAndDelectSameObject16490 extends S3TestBase {
     private class CreateObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.putObject( bucketName, keyName, content );
             } finally {
@@ -93,8 +93,8 @@ public class CreateAndDelectSameObject16490 extends S3TestBase {
     private class DeleteObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.deleteObject( bucketName, keyName );
             } finally {

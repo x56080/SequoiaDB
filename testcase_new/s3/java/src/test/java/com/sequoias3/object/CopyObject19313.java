@@ -37,10 +37,10 @@ public class CopyObject19313 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         copyFilePath = localPath + File.separator + "localFile_" + copyFileSize
                 + ".txt";
 
@@ -63,9 +63,8 @@ public class CopyObject19313 extends S3TestBase {
 
     @Test
     public void testCopyObject() throws Exception {
-        CopyObjectResult result = s3Client
-                .copyObject( srcBucketName, srcKeyName, destBucketName,
-                        destKeyName );
+        CopyObjectResult result = s3Client.copyObject( srcBucketName,
+                srcKeyName, destBucketName, destKeyName );
 
         String currentVersionId = "1";
         String hisVersionId = "0";
@@ -93,15 +92,13 @@ public class CopyObject19313 extends S3TestBase {
     private void checkObjectContent( String bucketName, String keyName,
             String currentVersionId, String hisVersionId ) throws Exception {
         // down file by currentVersion
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName,
-                        currentVersionId );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName, currentVersionId );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( copyFilePath ) );
 
         // down file by historyVersion,is the old keyName
-        downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName,
-                        hisVersionId );
+        downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName, hisVersionId );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

@@ -42,8 +42,8 @@ public class CreateObject16346 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -103,10 +103,12 @@ public class CreateObject16346 extends S3TestBase {
         Assert.assertEquals(
                 getGMTDate( object.getObjectMetadata().getHttpExpiresDate() ),
                 expires, "Expires is wrong" );
-        Assert.assertEquals( object.getObjectMetadata().getUserMetadata()
-                .get( "myparameter" ), x_amz_meta_x, "x-amz-meta-* is wrong" );
-        String actMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        Assert.assertEquals(
+                object.getObjectMetadata().getUserMetadata()
+                        .get( "myparameter" ),
+                x_amz_meta_x, "x-amz-meta-* is wrong" );
+        String actMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( actMd5, TestTools.getMD5( content.getBytes() ) );
         runSuccess = true;
     }

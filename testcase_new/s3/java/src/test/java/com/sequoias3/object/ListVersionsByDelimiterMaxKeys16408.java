@@ -52,18 +52,17 @@ public class ListVersionsByDelimiterMaxKeys16408 extends S3TestBase {
     private void test() throws Exception {
         String delimiter = "#";
         Integer maxResults = versionNum * objectNames.length;
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter )
-                        .withMaxResults( maxResults ) );
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withDelimiter( delimiter )
+                .withMaxResults( maxResults ) );
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( String objectName : objectNames ) {
             for ( int i = versionNum - 1; i >= 0; i-- ) {
                 expMap.add( objectName, String.valueOf( i ) );
             }
         }
         if ( !vsList.isTruncated() ) {
-            ObjectUtils.checkListVSResults( vsList, new ArrayList<String>(),
+            ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
                     expMap );
         } else {
             Assert.fail( "vsList.isTruncated() must be false" );

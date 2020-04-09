@@ -76,7 +76,7 @@ public class CreateBucket15918 extends S3TestBase {
 
     private void checkBucketResult( AmazonS3 s3Client ) {
         // check bucket nums
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         Assert.assertEquals( buckets.size(), defaultNums - 1 );
 
         for ( int i = 0; i < buckets.size(); i++ ) {
@@ -96,8 +96,8 @@ public class CreateBucket15918 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.deleteBucket( bucketName );
             } catch ( AmazonS3Exception e ) {

@@ -67,21 +67,20 @@ public class ListVersions18154 extends S3TestBase {
         String versionIdMarker = "2";
 
         // list versions by prefix/delimiter/versionIdMarker/keyMarker
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withKeyMarker( keyMarker )
-                        .withVersionIdMarker( versionIdMarker ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withDelimiter( delimiter )
+                .withPrefix( prefix ).withKeyMarker( keyMarker )
+                .withVersionIdMarker( versionIdMarker ) );
 
         // expected results,no match "dir1/atest"
-        List<String> matchPrefixList = new ArrayList<>();
+        List< String > matchPrefixList = new ArrayList<>();
         matchPrefixList.add( "dir1?test" );
         matchPrefixList.add( "dir1??dir2??/dir3/test" );
         matchPrefixList.add( "dir1?dir2?aa?test" );
         matchPrefixList.add( "dir1?dir2?aa?dd?test" );
 
         Collections.sort( matchPrefixList );
-        MultiValueMap<String, String> expVersions = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersions = new LinkedMultiValueMap< String, String >();
 
         // expContent:"dir1_18154",the versionId is:2,1,0
         for ( int i = versionNum - 1; i >= 0; i-- ) {

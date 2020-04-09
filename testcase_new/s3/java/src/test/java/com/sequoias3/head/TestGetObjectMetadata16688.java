@@ -43,15 +43,14 @@ public class TestGetObjectMetadata16688 extends S3TestBase {
     private void testGetObjectMetadata() throws Exception {
         s3Client.createBucket( bucketName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content );
         String versionid = result.getVersionId();
 
         // test a : 匹配key不匹配versionid
         try {
-            s3Client.getObjectMetadata(
-                    new GetObjectMetadataRequest( bucketName, keyName,
-                            notMatchVersionid ) );
+            s3Client.getObjectMetadata( new GetObjectMetadataRequest(
+                    bucketName, keyName, notMatchVersionid ) );
             Assert.fail( "test a should fail!" );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getStatusCode(), 404, "test a failed" );
@@ -59,9 +58,8 @@ public class TestGetObjectMetadata16688 extends S3TestBase {
 
         // test b : 匹配versionid不匹配key
         try {
-            s3Client.getObjectMetadata(
-                    new GetObjectMetadataRequest( bucketName, notMatchKeyName,
-                            versionid ) );
+            s3Client.getObjectMetadata( new GetObjectMetadataRequest(
+                    bucketName, notMatchKeyName, versionid ) );
             Assert.fail( "test b should fail!" );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getStatusCode(), 404, "test b failed" );
@@ -69,9 +67,8 @@ public class TestGetObjectMetadata16688 extends S3TestBase {
 
         // test c : key和versionid都不匹配
         try {
-            s3Client.getObjectMetadata(
-                    new GetObjectMetadataRequest( bucketName, notMatchKeyName,
-                            notMatchVersionid ) );
+            s3Client.getObjectMetadata( new GetObjectMetadataRequest(
+                    bucketName, notMatchKeyName, notMatchVersionid ) );
             Assert.fail( "test c should fail!" );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getStatusCode(), 404, "test c failed" );

@@ -42,10 +42,10 @@ public class GetObjectVersionList16391 extends S3TestBase {
 
     @Test
     public void testGetObjectList() throws Exception {
-        VersionListing versionList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withPrefix( prefix ) );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        VersionListing versionList = s3Client
+                .listVersions( new ListVersionsRequest()
+                        .withBucketName( bucketName ).withPrefix( prefix ) );
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         Assert.assertEquals( verList.size(), 0, "act versionList is not null" );
         runSuccess = true;
     }

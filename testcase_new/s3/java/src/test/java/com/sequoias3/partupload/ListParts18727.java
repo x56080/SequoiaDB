@@ -35,12 +35,12 @@ public class ListParts18727 extends S3TestBase {
 
     @Test
     private void test() throws Exception {
-        uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, key );
+        uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, key );
         ListPartsRequest request = new ListPartsRequest( S3TestBase.bucketName,
                 key, uploadId );
         PartListing partList = s3Client.listParts( request );
-        List<PartSummary> parts = partList.getParts();
+        List< PartSummary > parts = partList.getParts();
         Assert.assertEquals( parts.size(), 0 );
         runSuccess = true;
     }
@@ -49,9 +49,8 @@ public class ListParts18727 extends S3TestBase {
     private void tearDown() {
         try {
             if ( runSuccess ) {
-                s3Client.abortMultipartUpload(
-                        new AbortMultipartUploadRequest( S3TestBase.bucketName,
-                                key, uploadId ) );
+                s3Client.abortMultipartUpload( new AbortMultipartUploadRequest(
+                        S3TestBase.bucketName, key, uploadId ) );
                 s3Client.deleteObject( S3TestBase.bucketName, key );
             }
         } finally {

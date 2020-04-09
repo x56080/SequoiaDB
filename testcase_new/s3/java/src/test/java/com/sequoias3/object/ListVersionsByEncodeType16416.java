@@ -55,20 +55,19 @@ public class ListVersionsByEncodeType16416 extends S3TestBase {
         String prefix = "16416!";
         String delimiter = "!";
         String encodingType = "url";
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withPrefix( prefix ).withDelimiter( delimiter )
-                        .withEncodingType( encodingType ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withPrefix( prefix )
+                .withDelimiter( delimiter ).withEncodingType( encodingType ) );
 
         // expected results
-        List<String> expCommonPrefixes = ObjectUtils
+        List< String > expCommonPrefixes = ObjectUtils
                 .getCommPrefixes( objectNames, prefix, delimiter );
-        List<String> expCommonPrefixesByEncode = new ArrayList<String>();
+        List< String > expCommonPrefixesByEncode = new ArrayList< String >();
         for ( String expCommonPrefix : expCommonPrefixes ) {
             expCommonPrefixesByEncode
                     .add( URLEncoder.encode( expCommonPrefix, "utf-8" ) );
         }
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = 4; i < objectNames.length; i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
                 expMap.add( URLEncoder.encode( objectNames[ i ], "utf-8" ),

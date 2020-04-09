@@ -71,8 +71,8 @@ public class CopyObject19309 extends S3TestBase {
                     e.getStatusCode() + e.getErrorMessage() );
         }
 
-        boolean isExist = s3Client
-                .doesObjectExist( destBucketName, destKeyName );
+        boolean isExist = s3Client.doesObjectExist( destBucketName,
+                destKeyName );
         Assert.assertFalse( isExist );
     }
 }

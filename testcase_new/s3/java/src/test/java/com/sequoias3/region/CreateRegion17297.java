@@ -102,18 +102,15 @@ public class CreateRegion17297 extends S3TestBase {
         String expMd5 = TestTools.getMD5( context.getBytes() );
         for ( int i = 0; i < 10; i++ ) {
             s3Client.putObject( bucketName, key, context );
-            File localPath = new File(
-                    S3TestBase.workDir + File.separator + TestTools
-                            .getClassName() + bucketName );
+            File localPath = new File( S3TestBase.workDir + File.separator
+                    + TestTools.getClassName() + bucketName );
             // File localPath = new File(S3TestBase.workDir + File.separator +
             // TestTools.getClassName() );
             String versionId = i + "";
-            String downfileMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, key,
-                            versionId );
-            Assert.assertEquals( downfileMd5, expMd5,
-                    "the fail version is " + versionId + " bucket is "
-                            + bucketName );
+            String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, key, versionId );
+            Assert.assertEquals( downfileMd5, expMd5, "the fail version is "
+                    + versionId + " bucket is " + bucketName );
             TestTools.LocalFile.removeFile( localPath );
         }
         s3Client.shutdown();

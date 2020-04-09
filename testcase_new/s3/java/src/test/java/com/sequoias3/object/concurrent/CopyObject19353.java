@@ -38,14 +38,14 @@ public class CopyObject19353 extends S3TestBase {
     private String filePath = null;
     private String delimiter = "%";
     private int copyObjectNums = 20;
-    private List<String> matchKeyList = new ArrayList<>();
+    private List< String > matchKeyList = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -60,8 +60,8 @@ public class CopyObject19353 extends S3TestBase {
     public void testCopyObject() throws Exception {
         ThreadExecutor threadExec = new ThreadExecutor();
         for ( int i = 0; i < copyObjectNums; i++ ) {
-            String subDestKeyName =
-                    destKeyName + "_" + i + delimiter + "test.png";
+            String subDestKeyName = destKeyName + "_" + i + delimiter
+                    + "test.png";
             threadExec.addWorker( new CopyObject( subDestKeyName ) );
             matchKeyList.add( destKeyName + "_" + i + delimiter );
         }
@@ -71,12 +71,11 @@ public class CopyObject19353 extends S3TestBase {
         threadExec.run();
 
         // check the dir of object availability
-        List<String> expContentList = new ArrayList<>();
+        List< String > expContentList = new ArrayList<>();
         // srcKeyName no match dellimiter
         expContentList.add( srcKeyName );
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        matchKeyList, expContentList );
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, matchKeyList, expContentList );
 
         runSuccess = true;
     }
@@ -114,9 +113,8 @@ public class CopyObject19353 extends S3TestBase {
         @ExecuteOrder(step = 2)
         private void checkObjectContent() throws Exception {
             try {
-                String downfileMd5 = ObjectUtils
-                        .getMd5OfObject( s3Client1, localPath, bucketName,
-                                destKeyName );
+                String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client1,
+                        localPath, bucketName, destKeyName );
                 Assert.assertEquals( downfileMd5,
                         TestTools.getMD5( filePath ) );
             } finally {

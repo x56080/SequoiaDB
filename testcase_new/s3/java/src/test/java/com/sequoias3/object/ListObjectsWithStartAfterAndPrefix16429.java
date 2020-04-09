@@ -38,10 +38,10 @@ public class ListObjectsWithStartAfterAndPrefix16429 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -54,7 +54,7 @@ public class ListObjectsWithStartAfterAndPrefix16429 extends S3TestBase {
 
     @Test
     public void testListObjects() throws Exception {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
 
         // test a: query returns results once
         int startAfterNoA = 1000;
@@ -79,19 +79,19 @@ public class ListObjectsWithStartAfterAndPrefix16429 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList,
+    private void listObjectsAndCheckResult( List< String > keyList,
             int startAfterNo ) throws IOException {
-        List<String> expKeyList = new ArrayList<>( keyList );
+        List< String > expKeyList = new ArrayList<>( keyList );
         Collections.sort( expKeyList );
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" )
                 .withStartAfter( expKeyList.get( startAfterNo ) )
                 .withPrefix( prefix );
         ListObjectsV2Result result;
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         do {
             result = s3Client.listObjectsV2( request );
-            List<S3ObjectSummary> objects = result.getObjectSummaries();
+            List< S3ObjectSummary > objects = result.getObjectSummaries();
             for ( S3ObjectSummary os : objects ) {
                 String key = os.getKey();
                 queryKeyList.add( key );
@@ -109,8 +109,8 @@ public class ListObjectsWithStartAfterAndPrefix16429 extends S3TestBase {
         Assert.assertEquals( queryKeyList, expKeyList );
     }
 
-    private List<String> putObjects() {
-        List<String> matchKeyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > matchKeyList = new ArrayList<>();
         String keyName;
         for ( int i = 0; i < objectNums; i++ ) {
             if ( i % 10 == 0 ) {

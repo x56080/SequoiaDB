@@ -33,8 +33,8 @@ public class ListObjectVersionsWithDelimiter18139 extends S3TestBase {
     private String repeatedKeyName1 = "dir1?test18139";
     private String repeatedKeyName2 = "dir1test18139";
     private int versionNum = 3;
-    private List<String> keyList = new ArrayList<String>();
-    private List<String> versions = new ArrayList<String>();
+    private List< String > keyList = new ArrayList< String >();
+    private List< String > versions = new ArrayList< String >();
     private int objectWithDelimiterNum = 150;
     private int objectWithoutDelimiterNum = 50;
     private AmazonS3 s3Client = null;
@@ -80,18 +80,18 @@ public class ListObjectVersionsWithDelimiter18139 extends S3TestBase {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withDelimiter( delimiter ) );
-        List<String> commonPrefixes = versionList.getCommonPrefixes();
+        List< String > commonPrefixes = versionList.getCommonPrefixes();
 
         String[] objectNames = new String[ keyList.size() ];
-        List<String> expresultList = ObjectUtils
-                .getCommPrefixes( keyList.toArray( objectNames ), "",
-                        delimiter );
+        List< String > expresultList = ObjectUtils.getCommPrefixes(
+                keyList.toArray( objectNames ), "", delimiter );
         ObjectUtils.checkListObjectsV2Commprefixes( commonPrefixes,
                 expresultList );
 
-        List<String> actVersionsKeyName = new ArrayList<String>();
-        List<S3VersionSummary> versionLists = versionList.getVersionSummaries();
-        List<String> versionId = new ArrayList<>();
+        List< String > actVersionsKeyName = new ArrayList< String >();
+        List< S3VersionSummary > versionLists = versionList
+                .getVersionSummaries();
+        List< String > versionId = new ArrayList<>();
         for ( S3VersionSummary s3VersionSummary : versionLists ) {
             actVersionsKeyName.add( s3VersionSummary.getKey() );
             if ( s3VersionSummary.getKey().equals( repeatedKeyName2 ) ) {
@@ -104,10 +104,10 @@ public class ListObjectVersionsWithDelimiter18139 extends S3TestBase {
         Collections.sort( versions );
         Assert.assertEquals( actVersionsKeyName, versions,
                 "the returned result by versions is wrong, act: "
-                        + actVersionsKeyName.toString() + ", exp: " + versions
-                        .toString() );
+                        + actVersionsKeyName.toString() + ", exp: "
+                        + versions.toString() );
 
-        List<String> expVersionIdList = getVersionIdList();
+        List< String > expVersionIdList = getVersionIdList();
         Assert.assertEquals( versionId, expVersionIdList );
         runSuccess = true;
     }
@@ -126,8 +126,8 @@ public class ListObjectVersionsWithDelimiter18139 extends S3TestBase {
         }
     }
 
-    private List<String> getVersionIdList() {
-        List<String> versionIdList = new ArrayList<>();
+    private List< String > getVersionIdList() {
+        List< String > versionIdList = new ArrayList<>();
         for ( int i = versionNum - 1; i > -1; i-- ) {
             versionIdList.add( String.valueOf( i ) );
         }

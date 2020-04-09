@@ -31,7 +31,7 @@ public class ListVersionsByKeyVersionId16412 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket16412";
     private String[] objectNames = { "aaa%16412", "bbb%16412", "ccc%16412" };
-    private List<PutObjectResult> objectList = new ArrayList<PutObjectResult>();
+    private List< PutObjectResult > objectList = new ArrayList< PutObjectResult >();
     private AmazonS3 s3Client = null;
     private int versionNum = 3;
 
@@ -44,9 +44,8 @@ public class ListVersionsByKeyVersionId16412 extends S3TestBase {
                 BucketVersioningConfiguration.ENABLED );
         for ( String objectName : objectNames ) {
             for ( int j = 0; j < versionNum; j++ ) {
-                PutObjectResult object = s3Client
-                        .putObject( bucketName, objectName,
-                                "" + UUID.randomUUID() );
+                PutObjectResult object = s3Client.putObject( bucketName,
+                        objectName, "" + UUID.randomUUID() );
                 objectList.add( object );
             }
         }
@@ -57,15 +56,14 @@ public class ListVersionsByKeyVersionId16412 extends S3TestBase {
         // keyMarker >= maxKeyMarker
         String keyMarker = objectNames[ objectNames.length - 1 ];
         int versionIdMarker = 0;
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withKeyMarker( keyMarker ).withVersionIdMarker(
-                        String.valueOf( versionIdMarker ) ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withKeyMarker( keyMarker )
+                .withVersionIdMarker( String.valueOf( versionIdMarker ) ) );
         // check
         Assert.assertEquals( vsList.isTruncated(), false,
                 "vsList.isTruncated() must be false" );
-        ObjectUtils.checkListVSResults( vsList, new ArrayList<String>(),
-                new LinkedMultiValueMap<String, String>() );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                new LinkedMultiValueMap< String, String >() );
 
         // keyMarker < maxKeyMarker
         String keyMarker1 = objectNames[ objectNames.length - 2 ];
@@ -73,9 +71,9 @@ public class ListVersionsByKeyVersionId16412 extends S3TestBase {
         VersionListing vsList1 = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withKeyMarker( keyMarker1 ).withVersionIdMarker(
-                        String.valueOf( versionIdMarker1 ) ) );
+                                String.valueOf( versionIdMarker1 ) ) );
         // expected results
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = versionNum - 1; i >= 0; i-- ) {
             expMap.add( objectNames[ objectNames.length - 1 ],
                     String.valueOf( i ) );
@@ -83,8 +81,8 @@ public class ListVersionsByKeyVersionId16412 extends S3TestBase {
         // check
         Assert.assertEquals( vsList1.isTruncated(), false,
                 "vsList.isTruncated() must be false" );
-        ObjectUtils
-                .checkListVSResults( vsList1, new ArrayList<String>(), expMap );
+        ObjectUtils.checkListVSResults( vsList1, new ArrayList< String >(),
+                expMap );
         runSuccess = true;
     }
 

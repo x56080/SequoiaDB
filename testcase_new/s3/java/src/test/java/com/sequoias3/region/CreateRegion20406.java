@@ -63,7 +63,7 @@ public class CreateRegion20406 extends S3TestBase {
             }
             executor.run();
             counter.set( objectNum );
-            //check result
+            // check result
             checkResults( dataCSRanges[ i ] );
         }
         runSuccess = true;
@@ -82,16 +82,15 @@ public class CreateRegion20406 extends S3TestBase {
     }
 
     private void checkResults( int dataCSRange ) throws IOException {
-        String prefix = RegionUtils
-                .getDataCSName( regionName, "year", new Date() );
+        String prefix = RegionUtils.getDataCSName( regionName, "year",
+                new Date() );
         List< String > csList = RegionUtils.listCS( prefix );
         List< Integer > csNumList = new ArrayList<>();
         Assert.assertTrue( csList.size() > 0, csList.toString() );
         // get dataCS index
         for ( String csName : csList ) {
-            csNumList.add( Integer.parseInt(
-                    csName.substring( csName.lastIndexOf( "_" ) + 1,
-                            csName.length() ) ) );
+            csNumList.add( Integer.parseInt( csName.substring(
+                    csName.lastIndexOf( "_" ) + 1, csName.length() ) ) );
         }
         Collections.sort( csNumList );
         if ( dataCSRange < 0 ) {
@@ -104,13 +103,13 @@ public class CreateRegion20406 extends S3TestBase {
             Assert.assertEquals( csNumList.size(), 1, csNumList.toString() );
             Assert.assertTrue( csNumList.get( 0 ) == 1, csNumList.toString() );
         }
-        //check object content
+        // check object content
         for ( int i = 1; i <= objectNum; i++ ) {
             S3Object obj = s3Client.getObject( bucketName, objectNameBase + i );
             Assert.assertEquals( Md5Utils.md5AsBase64( obj.getObjectContent() ),
                     Md5Utils.md5AsBase64( String.valueOf( i ).getBytes() ),
-                    "bucketName = " + bucketName + ",objectName = " +
-                            objectNameBase + i );
+                    "bucketName = " + bucketName + ",objectName = "
+                            + objectNameBase + i );
         }
     }
 

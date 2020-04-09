@@ -32,7 +32,7 @@ public class ListObjectsWithDelimiter18135 extends S3TestBase {
             "dir1?dir2/?aa?dd?test18135_6", "testdir1.txt" };
     private String oldDelimiter = "/";
     private String newDelimiter = "?";
-    private List<String> expCommonprefixes = new ArrayList<String>();
+    private List< String > expCommonprefixes = new ArrayList< String >();
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
 
@@ -57,17 +57,17 @@ public class ListObjectsWithDelimiter18135 extends S3TestBase {
         ListObjectsV2Request req = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withDelimiter( oldDelimiter );
         ListObjectsV2Result result = s3Client.listObjectsV2( req );
-        List<String> commprefixesResult = result.getCommonPrefixes();
+        List< String > commprefixesResult = result.getCommonPrefixes();
 
         // check result
-        expCommonprefixes = ObjectUtils
-                .getCommPrefixes( objectNames, "", oldDelimiter );
+        expCommonprefixes = ObjectUtils.getCommPrefixes( objectNames, "",
+                oldDelimiter );
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult,
                 expCommonprefixes );
 
-        List<String> contents = ObjectUtils
-                .getKeys( objectNames, "", oldDelimiter );
-        List<S3ObjectSummary> objectSummaries = result.getObjectSummaries();
+        List< String > contents = ObjectUtils.getKeys( objectNames, "",
+                oldDelimiter );
+        List< S3ObjectSummary > objectSummaries = result.getObjectSummaries();
         ObjectUtils.checkListObjectsV2KeyName( objectSummaries, contents );
 
         runSuccess = true;

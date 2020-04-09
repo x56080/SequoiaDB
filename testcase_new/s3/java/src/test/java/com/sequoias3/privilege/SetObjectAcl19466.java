@@ -40,8 +40,8 @@ public class SetObjectAcl19466 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
 
         adminS3 = CommLib.buildS3Client();
@@ -61,9 +61,11 @@ public class SetObjectAcl19466 extends S3TestBase {
         adminS3.setObjectAcl( bucketName, keyName, objCurVer,
                 CannedAccessControlList.AuthenticatedRead );
         // check results
-        Grant[] expGrants1 = { new Grant(
-                new CanonicalGrantee( adminS3.getS3AccountOwner().getId() ),
-                Permission.FullControl ),
+        Grant[] expGrants1 = {
+                new Grant(
+                        new CanonicalGrantee(
+                                adminS3.getS3AccountOwner().getId() ),
+                        Permission.FullControl ),
                 new Grant( GroupGrantee.AuthenticatedUsers, Permission.Read ) };
         checkObjectAcl( objCurVer, expGrants1 );
         checkObjectContent( adminS3, keyName, objCurVer, fileContentB );
@@ -73,9 +75,11 @@ public class SetObjectAcl19466 extends S3TestBase {
         adminS3.setObjectAcl( bucketName, keyName, objHisVer,
                 CannedAccessControlList.PublicReadWrite );
         // check results
-        Grant[] expGrants2 = { new Grant(
-                new CanonicalGrantee( adminS3.getS3AccountOwner().getId() ),
-                Permission.FullControl ),
+        Grant[] expGrants2 = {
+                new Grant(
+                        new CanonicalGrantee(
+                                adminS3.getS3AccountOwner().getId() ),
+                        Permission.FullControl ),
                 new Grant( GroupGrantee.AllUsers, Permission.Read ),
                 new Grant( GroupGrantee.AllUsers, Permission.Write ) };
         checkObjectAcl( objHisVer, expGrants2 );
@@ -99,8 +103,8 @@ public class SetObjectAcl19466 extends S3TestBase {
     private void checkObjectAcl( String objectVersion, Grant[] grants ) {
         // check owner
         Owner owner = adminS3.getS3AccountOwner();
-        AccessControlList acl = adminS3
-                .getObjectAcl( bucketName, keyName, objectVersion );
+        AccessControlList acl = adminS3.getObjectAcl( bucketName, keyName,
+                objectVersion );
         Assert.assertEquals( acl.getOwner(), owner );
         // check grant
         PrivilegeUtils.checkSetObjectAclResult( adminS3, bucketName, keyName,
@@ -109,9 +113,8 @@ public class SetObjectAcl19466 extends S3TestBase {
 
     private void checkObjectContent( AmazonS3 authUserS3, String keyName,
             String objectVersion, String expFileContent ) throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( authUserS3, localPath, bucketName, keyName,
-                        objectVersion );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( authUserS3, localPath,
+                bucketName, keyName, objectVersion );
         Assert.assertEquals( downfileMd5,
                 TestTools.getMD5( expFileContent.getBytes() ) );
     }

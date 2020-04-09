@@ -32,8 +32,8 @@ public class ListObjectsWithDelimiter18134 extends S3TestBase {
     private String bucketName = "bucket18134";
     private String[] objectNames = new String[ 100 ];
     private String delimiter = "test";
-    private List<String> expCommprefixes = new ArrayList<String>();
-    private List<String> expContents = new ArrayList<String>(
+    private List< String > expCommprefixes = new ArrayList< String >();
+    private List< String > expContents = new ArrayList< String >(
             Arrays.asList( "18134_1.txt", "18134_2.txt", "18134_3.txt" ) );
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
@@ -43,8 +43,8 @@ public class ListObjectsWithDelimiter18134 extends S3TestBase {
         s3Client = CommLib.buildS3Client();
         s3Client.createBucket( new CreateBucketRequest( bucketName ) );
         for ( int i = 0; i < objectNames.length; i++ ) {
-            String currentKey =
-                    "dir" + i + "/dir" + i + delimiter + "test18134";
+            String currentKey = "dir" + i + "/dir" + i + delimiter
+                    + "test18134";
             objectNames[ i ] = currentKey;
             s3Client.putObject( bucketName, currentKey, "object_file18134" );
         }
@@ -102,15 +102,15 @@ public class ListObjectsWithDelimiter18134 extends S3TestBase {
         @ExecuteOrder(step = 2, desc = "检查结果")
         public void checkResult() {
             // 手工校验查询方式为元数据扫描方式
-            List<String> commprefixesResult = result.getCommonPrefixes();
-            List<String> contentsResult = new ArrayList<>();
-            List<S3ObjectSummary> contents = result.getObjectSummaries();
+            List< String > commprefixesResult = result.getCommonPrefixes();
+            List< String > contentsResult = new ArrayList<>();
+            List< S3ObjectSummary > contents = result.getObjectSummaries();
             for ( S3ObjectSummary content : contents ) {
                 contentsResult.add( content.getKey() );
             }
             // check result
-            expCommprefixes = ObjectUtils
-                    .getCommPrefixes( objectNames, "", delimiter );
+            expCommprefixes = ObjectUtils.getCommPrefixes( objectNames, "",
+                    delimiter );
             ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult,
                     expCommprefixes );
             Assert.assertEquals( contentsResult, expContents,

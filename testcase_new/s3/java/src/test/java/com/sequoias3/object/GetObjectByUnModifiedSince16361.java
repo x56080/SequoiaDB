@@ -37,22 +37,21 @@ public class GetObjectByUnModifiedSince16361 extends S3TestBase {
     private AmazonS3 s3Client = null;
     private int fileSize = 7;
     private File localPath = null;
-    private List<String> filePathList = new ArrayList<String>();
-    private List<PutObjectResult> objectVSList = new ArrayList<PutObjectResult>();
+    private List< String > filePathList = new ArrayList< String >();
+    private List< PutObjectResult > objectVSList = new ArrayList< PutObjectResult >();
     private int fileNum = 7;
     private Calendar cal = Calendar.getInstance();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         String filePath = null;
         for ( int i = 0; i < fileNum; i++ ) {
-            filePath =
-                    localPath + File.separator + "localFile_" + ( fileSize + i )
-                            + ".txt";
+            filePath = localPath + File.separator + "localFile_"
+                    + ( fileSize + i ) + ".txt";
             TestTools.LocalFile.createFile( filePath, fileSize + i );
             filePathList.add( filePath );
         }
@@ -66,9 +65,9 @@ public class GetObjectByUnModifiedSince16361 extends S3TestBase {
     @Test
     private void test() throws Exception {
         for ( int i = 0; i < fileNum; i++ ) {
-            objectVSList.add( s3Client.putObject(
-                    new PutObjectRequest( bucketName, objectName,
-                            new File( filePathList.get( i ) ) ) ) );
+            objectVSList
+                    .add( s3Client.putObject( new PutObjectRequest( bucketName,
+                            objectName, new File( filePathList.get( i ) ) ) ) );
         }
 
         // history version
@@ -77,8 +76,8 @@ public class GetObjectByUnModifiedSince16361 extends S3TestBase {
         String histVersionId = objectVSList.get( histIndex ).getVersionId();
         // the object has not been modified since now+one_month
         cal.set( Calendar.MONTH, cal.get( Calendar.MONTH ) + 1 );
-        S3Object histObject = s3Client.getObject(
-                new GetObjectRequest( bucketName, objectName )
+        S3Object histObject = s3Client
+                .getObject( new GetObjectRequest( bucketName, objectName )
                         .withVersionId( histVersionId )
                         .withUnmodifiedSinceConstraint( cal.getTime() ) );
 
@@ -111,9 +110,9 @@ public class GetObjectByUnModifiedSince16361 extends S3TestBase {
         S3ObjectInputStream s3ObjectInputStream = null;
         try {
             s3ObjectInputStream = object.getObjectContent();
-            String downloadPath = TestTools.LocalFile
-                    .initDownloadPath( localPath, TestTools.getMethodName(),
-                            Thread.currentThread().getId() );
+            String downloadPath = TestTools.LocalFile.initDownloadPath(
+                    localPath, TestTools.getMethodName(),
+                    Thread.currentThread().getId() );
             ObjectUtils.inputStream2File( s3ObjectInputStream, downloadPath );
             Assert.assertEquals( TestTools.getMD5( downloadPath ),
                     TestTools.getMD5( filePath ) );

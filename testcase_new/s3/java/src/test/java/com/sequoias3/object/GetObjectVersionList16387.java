@@ -28,7 +28,7 @@ public class GetObjectVersionList16387 extends S3TestBase {
     private String bucketName = "bucket16387";
     private String keyName = "dir";
     private String repeatedKeyName = keyName + "_1_16387";
-    private List<String> expresultList = new ArrayList<String>();
+    private List< String > expresultList = new ArrayList< String >();
     private int objectTotalNum = 5;
     private String latestVersionId = null;
     private AmazonS3 s3Client = null;
@@ -52,8 +52,8 @@ public class GetObjectVersionList16387 extends S3TestBase {
         // put object key = "dir_1_16387" twice again
         s3Client.putObject( bucketName, repeatedKeyName, "object_file16387" );
         expresultList.add( repeatedKeyName );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, repeatedKeyName, "object_file16387" );
+        PutObjectResult result = s3Client.putObject( bucketName,
+                repeatedKeyName, "object_file16387" );
         latestVersionId = result.getVersionId();
         expresultList.add( repeatedKeyName );
     }
@@ -62,7 +62,7 @@ public class GetObjectVersionList16387 extends S3TestBase {
     public void testGetObjectList() throws Exception {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         checkListObjectsResult( verList );
         runSuccess = true;
     }
@@ -75,7 +75,7 @@ public class GetObjectVersionList16387 extends S3TestBase {
         }
     }
 
-    private void checkListObjectsResult( List<S3VersionSummary> versions ) {
+    private void checkListObjectsResult( List< S3VersionSummary > versions ) {
         Collections.sort( expresultList );
         Assert.assertEquals( versions.size(), expresultList.size(),
                 "The number of results returned does not match the expected value" );

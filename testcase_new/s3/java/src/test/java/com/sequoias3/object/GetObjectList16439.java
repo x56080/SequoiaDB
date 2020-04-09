@@ -28,7 +28,7 @@ public class GetObjectList16439 extends S3TestBase {
     private String prefix = "/";
     private String delimiter = "/";
     private int maxKeys = 2;
-    private List<String> exCommprefixList = new ArrayList<String>();
+    private List< String > exCommprefixList = new ArrayList< String >();
     private int samePrefixObjNum = 5;
     private int sameDirNum = 3;
     private AmazonS3 s3Client = null;
@@ -59,7 +59,7 @@ public class GetObjectList16439 extends S3TestBase {
                 .withBucketName( bucketName ).withPrefix( prefix )
                 .withDelimiter( delimiter ).withMaxKeys( maxKeys );
         ListObjectsV2Result result;
-        List<String> commprefixesResult = new ArrayList<>();
+        List< String > commprefixesResult = new ArrayList<>();
         // currentTurn is query times
         int queryTime = 0;
 

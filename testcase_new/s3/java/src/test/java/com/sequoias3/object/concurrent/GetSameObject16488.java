@@ -77,8 +77,8 @@ public class GetSameObject16488 extends S3TestBase {
     private class GetObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 S3Object object = s3Client.getObject( bucketName, keyName );
                 ObjectMetadata metadata = object.getObjectMetadata();

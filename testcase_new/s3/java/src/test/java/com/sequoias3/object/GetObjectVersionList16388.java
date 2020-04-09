@@ -27,8 +27,8 @@ public class GetObjectVersionList16388 extends S3TestBase {
     private String bucketName = "bucket16388";
     private int objectTotalNum = 5;
     private String[] keyName = new String[ objectTotalNum ];
-    private List<String> expDeleteMarKersList = new ArrayList<String>();
-    private List<String> expVersionsKeyNameList = new ArrayList<String>();
+    private List< String > expDeleteMarKersList = new ArrayList< String >();
+    private List< String > expVersionsKeyNameList = new ArrayList< String >();
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
 
@@ -62,7 +62,7 @@ public class GetObjectVersionList16388 extends S3TestBase {
     public void testGetObjectList() throws Exception {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         checklistVersionsResult( verList );
         runSuccess = true;
     }
@@ -75,7 +75,7 @@ public class GetObjectVersionList16388 extends S3TestBase {
         }
     }
 
-    private void checklistVersionsResult( List<S3VersionSummary> versions ) {
+    private void checklistVersionsResult( List< S3VersionSummary > versions ) {
         Collections.sort( expVersionsKeyNameList );
         Collections.sort( expDeleteMarKersList );
         Assert.assertEquals( versions.size(),
@@ -94,8 +94,8 @@ public class GetObjectVersionList16388 extends S3TestBase {
                     "deleteMarKerList key is wrong" );
             Assert.assertEquals(
                     versions.get( expVersionsKeyNameList.size() + i )
-                            .isDeleteMarker(), true,
-                    "isdeleteMarKer is wrong" );
+                            .isDeleteMarker(),
+                    true, "isdeleteMarKer is wrong" );
         }
     }
 }

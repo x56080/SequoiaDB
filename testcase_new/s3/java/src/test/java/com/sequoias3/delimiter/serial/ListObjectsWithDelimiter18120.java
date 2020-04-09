@@ -27,8 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * @Description seqDB-18120: To get a list of objects within a bucket.specify
  * @author wuyan
- * @version 1.00
- * matching delimiter with different formats
+ * @version 1.00 matching delimiter with different formats
  * @Date 2019.4.23
  */
 public class ListObjectsWithDelimiter18120 extends S3TestBase {
@@ -36,7 +35,7 @@ public class ListObjectsWithDelimiter18120 extends S3TestBase {
     private String bucketName = "bucket18120";
     private String encodingType = "utf-8";
     private AmazonS3 s3Client = null;
-    private List<String> keyList = null;
+    private List< String > keyList = null;
 
     public static void updateDelimiterSuccessAgain( String bucketName,
             String delimiter, String accessKeyId, String encodingType )
@@ -88,8 +87,10 @@ public class ListObjectsWithDelimiter18120 extends S3TestBase {
                         2 },
                 // http://jira:8080/browse/SEQUOIADBMAINSTREAM-4392
                 new Object[] { URLEncoder.encode( "\040te\065s", encodingType ),
-                        3 }, new Object[] {
-                URLEncoder.encode( "/\035te\41a\57", encodingType ), 4 },
+                        3 },
+                new Object[] {
+                        URLEncoder.encode( "/\035te\41a\57", encodingType ),
+                        4 },
                 // test d: delimiter type is 、^`><{}[]#%"~|
                 new Object[] { URLEncoder.encode( "test、^`><{}[]#%\"~|_1",
                         encodingType ), 5 } };
@@ -124,21 +125,21 @@ public class ListObjectsWithDelimiter18120 extends S3TestBase {
 
     private void listObjectsAndCheckResult( String delimiter, int position )
             throws IOException {
-        List<String> expKeyList = new ArrayList<>( keyList );
+        List< String > expKeyList = new ArrayList<>( keyList );
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" )
                 .withDelimiter( URLDecoder.decode( delimiter, encodingType ) );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         // matching delimiter displays only 1 record
         Assert.assertEquals( commonPrefixes.size(), 1 );
         Assert.assertEquals( commonPrefixes.get( 0 ),
                 URLDecoder.decode( delimiter, "utf-8" ) );
         // objects do not match delimiter are displayed in contents,num is 5
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         int contentsNums = 5;
         Assert.assertEquals( objects.size(), contentsNums );
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             queryKeyList.add( key );
@@ -152,8 +153,8 @@ public class ListObjectsWithDelimiter18120 extends S3TestBase {
                         + expKeyList.toString() );
     }
 
-    private List<String> putObjects( String[] keys ) {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects( String[] keys ) {
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < keys.length; i++ ) {
             String keyName = keys[ i ];
             s3Client.putObject( bucketName, keyName, "testcontext18120_" + i );

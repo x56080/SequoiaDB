@@ -40,7 +40,7 @@ public class ListObjectsWithDelimiter18563 extends S3TestBase {
 
     @Test
     public void testListObjects() throws IOException {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
         listObjectsAndCheckResult( keyList );
         runSuccess = true;
     }
@@ -56,19 +56,19 @@ public class ListObjectsWithDelimiter18563 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList )
+    private void listObjectsAndCheckResult( List< String > keyList )
             throws IOException {
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName );
         request.withDelimiter( delimiter );
         ObjectListing result = s3Client.listObjects( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         // matching delimiter displays only 0 record
         Assert.assertEquals( commonPrefixes.size(), 0 );
 
         // objects do not match delimiter are displayed in contents,num is 10
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         int contentsNums = 10;
         Assert.assertEquals( objects.size(), contentsNums );
         for ( S3ObjectSummary os : objects ) {
@@ -81,8 +81,8 @@ public class ListObjectsWithDelimiter18563 extends S3TestBase {
         Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private List<String> putObjects() {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > keyList = new ArrayList<>();
         String keyName;
         for ( int i = 0; i < objectNums; i++ ) {
             keyName = key + "_" + i;

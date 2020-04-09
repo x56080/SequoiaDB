@@ -67,9 +67,8 @@ public class UpdateDelimiter18089 extends S3TestBase {
     private void testUpdateDelimiter( String newDelimiter ) throws Exception {
         // 因为本用例为更新不同格式的分隔符，在短时间内频繁更新桶的分隔符会导致用例执行时间比较长，所以这里每次都新创建桶。
         s3Client.createBucket( bucketName );
-        objectNames = DelimiterUtils
-                .getRandomKeyListWithDelimiter( oldDelimiter, newDelimiter,
-                        keyNum, "18089" );
+        objectNames = DelimiterUtils.getRandomKeyListWithDelimiter(
+                oldDelimiter, newDelimiter, keyNum, "18089" );
         for ( int i = 0; i < objectNames.length; i++ ) {
             s3Client.putObject( bucketName, objectNames[ i ], "test18089" );
         }
@@ -80,12 +79,11 @@ public class UpdateDelimiter18089 extends S3TestBase {
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, newDelimiter,
                 accessKeys[ 0 ] );
 
-        List<String> expCommonPrefixes = ObjectUtils
+        List< String > expCommonPrefixes = ObjectUtils
                 .getCommPrefixes( objectNames, "", newDelimiter );
-        List<String> expContents = new ArrayList<>();
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, newDelimiter,
-                        expCommonPrefixes, expContents );
+        List< String > expContents = new ArrayList<>();
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                newDelimiter, expCommonPrefixes, expContents );
 
         CommLib.clearBucket( s3Client, bucketName );
         actSuccessTests.getAndIncrement();

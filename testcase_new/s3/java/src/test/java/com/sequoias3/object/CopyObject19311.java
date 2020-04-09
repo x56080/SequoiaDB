@@ -36,14 +36,14 @@ public class CopyObject19311 extends S3TestBase {
     private int fileSize = 1024 * 1024 * 30;
     private File localPath = null;
     private String filePath = null;
-    private Map<String, String> expMeta = new HashMap<>();
+    private Map< String, String > expMeta = new HashMap<>();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -102,13 +102,13 @@ public class CopyObject19311 extends S3TestBase {
     private void checkObjectContent( String bucketName, String keyName )
             throws Exception {
         // down file
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
     private void checkObjectAttributeInfo( String bucketName, String keyName,
-            Map<String, String> expMeta ) throws IOException {
+            Map< String, String > expMeta ) throws IOException {
         // check the attributeInfo of get object
         GetObjectMetadataRequest request = new GetObjectMetadataRequest(
                 bucketName, keyName );
@@ -116,15 +116,14 @@ public class CopyObject19311 extends S3TestBase {
         Assert.assertEquals( result.getETag(), TestTools.getMD5( filePath ) );
         Assert.assertEquals( result.getContentLength(), fileSize );
 
-        Map<String, String> actMeta = result.getUserMetadata();
-        Assert.assertEquals( actMeta.size(), expMeta.size(),
-                "expMeta is : " + expMeta.toString() + "actMeta is : " + actMeta
-                        .toString() );
-        for ( Map.Entry<String, String> entry : expMeta.entrySet() ) {
+        Map< String, String > actMeta = result.getUserMetadata();
+        Assert.assertEquals( actMeta.size(), expMeta.size(), "expMeta is : "
+                + expMeta.toString() + "actMeta is : " + actMeta.toString() );
+        for ( Map.Entry< String, String > entry : expMeta.entrySet() ) {
             Object key = entry.getKey();
             Assert.assertEquals( actMeta.get( key ), expMeta.get( key ),
-                    "actMeta = " + actMeta.toString() + ",expMeta = " + expMeta
-                            .toString() );
+                    "actMeta = " + actMeta.toString() + ",expMeta = "
+                            + expMeta.toString() );
         }
     }
 }

@@ -37,12 +37,12 @@ public class DeleteObjectWithDelimiter18174 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -73,8 +73,8 @@ public class DeleteObjectWithDelimiter18174 extends S3TestBase {
     private void tearDown() {
         try {
             if ( runSuccess ) {
-                ObjectUtils
-                        .deleteObjectAllVersions( s3Client, bucketName, key );
+                ObjectUtils.deleteObjectAllVersions( s3Client, bucketName,
+                        key );
                 s3Client.deleteBucket( bucketName );
                 TestTools.LocalFile.removeFile( localPath );
             }
@@ -96,8 +96,8 @@ public class DeleteObjectWithDelimiter18174 extends S3TestBase {
 
         // 查看最新元数据表中新增v1版本的对象记录，历史元数据表中v1版本对象记录已删除，对象目录未删除
         // 不指定版本获取v1版本对象内容正确
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 }

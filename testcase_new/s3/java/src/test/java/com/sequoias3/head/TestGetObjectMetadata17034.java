@@ -50,18 +50,17 @@ public class TestGetObjectMetadata17034 extends S3TestBase {
     private void testGetObjectMetadata() throws Exception {
         s3Client.createBucket( bucketName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content );
         String versionId = result.getVersionId();
 
-        ObjectMetadata metadata = s3Client.getObjectMetadata(
-                new GetObjectMetadataRequest( bucketName, keyName,
-                        versionId ) );
+        ObjectMetadata metadata = s3Client
+                .getObjectMetadata( new GetObjectMetadataRequest( bucketName,
+                        keyName, versionId ) );
         Date modifiedSince = metadata.getLastModified();
 
-        HttpHead request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + bucketName + "/" + keyName
-                        + "?versionId=" + versionId );
+        HttpHead request = new HttpHead( S3TestBase.s3ClientUrl + "/"
+                + bucketName + "/" + keyName + "?versionId=" + versionId );
         request.setHeader( "Authorization",
                 "Credential=" + accessKeys[ 0 ] + "/" );
         request.setHeader( "If-Modified-Since",

@@ -15,7 +15,8 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * @Description seqDB-16336: enabling bucket versioning , create object on the bucket
+ * @Description seqDB-16336: enabling bucket versioning , create object on the
+ *              bucket
  * @author wuyan
  * @Date 2018.11.6
  * @version 1.00
@@ -30,16 +31,16 @@ public class CreateObjectWithVersion16336 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
         s3Client = CommLib.buildS3Client();
-        if ( s3Client
-                .doesObjectExist( S3TestBase.enableVerBucketName, keyName ) ) {
+        if ( s3Client.doesObjectExist( S3TestBase.enableVerBucketName,
+                keyName ) ) {
             s3Client.deleteVersion( S3TestBase.enableVerBucketName, keyName,
                     "0" );
         }
@@ -47,9 +48,8 @@ public class CreateObjectWithVersion16336 extends S3TestBase {
 
     @Test
     public void testCreateObject() throws Exception {
-        PutObjectResult result = s3Client
-                .putObject( S3TestBase.enableVerBucketName, keyName,
-                        new File( filePath ) );
+        PutObjectResult result = s3Client.putObject(
+                S3TestBase.enableVerBucketName, keyName, new File( filePath ) );
         checkObjectAttributeInfo( result );
         checkPutObjectResult( S3TestBase.enableVerBucketName );
         runSuccess = true;
@@ -72,8 +72,8 @@ public class CreateObjectWithVersion16336 extends S3TestBase {
 
     private void checkPutObjectResult( String bucketName ) throws Exception {
         // down file
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

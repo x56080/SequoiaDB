@@ -75,8 +75,8 @@ public class CreateBucket18591 extends S3TestBase {
             rest.setApi( URLEncoder.encode( bucketName, "UTF-8" ) )
                     .setRequestMethod( HttpMethod.PUT )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
         }

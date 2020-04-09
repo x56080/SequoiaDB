@@ -76,8 +76,8 @@ public class TestHeadBucket16667 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.headBucket( new HeadBucketRequest( bucketName ) );
             } catch ( AmazonS3Exception e ) {
@@ -99,8 +99,8 @@ public class TestHeadBucket16667 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.deleteBucket( bucketName );
             } finally {

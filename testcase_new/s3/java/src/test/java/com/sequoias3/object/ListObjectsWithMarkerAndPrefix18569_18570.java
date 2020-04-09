@@ -32,7 +32,7 @@ public class ListObjectsWithMarkerAndPrefix18569_18570 extends S3TestBase {
     private AmazonS3 s3Client = null;
     private int objectNums = 10;
     private String delimiter = "%";
-    private List<String> matchKeyList = new ArrayList<>();
+    private List< String > matchKeyList = new ArrayList<>();
 
     @BeforeClass
     private void setUp() {
@@ -78,12 +78,12 @@ public class ListObjectsWithMarkerAndPrefix18569_18570 extends S3TestBase {
                 .withBucketName( bucketName ).withMarker( matchMarker )
                 .withPrefix( matchPrefix ).withDelimiter( matchDelimiter );
         ObjectListing result = s3Client.listObjects( request );
-        List<String> actCommonPrefixes = result.getCommonPrefixes();
+        List< String > actCommonPrefixes = result.getCommonPrefixes();
         // no match key,the commonprefixes is 0
         Assert.assertEquals( actCommonPrefixes.size(), 0 );
 
-        List<String> queryKeyList = new ArrayList<>();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > queryKeyList = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             queryKeyList.add( key );
@@ -102,12 +102,12 @@ public class ListObjectsWithMarkerAndPrefix18569_18570 extends S3TestBase {
                 .withBucketName( bucketName ).withMarker( matchMarker )
                 .withPrefix( matchPrefix ).withDelimiter( matchDelimiter );
         ObjectListing result = s3Client.listObjects( request );
-        List<String> actCommonPrefixes = result.getCommonPrefixes();
+        List< String > actCommonPrefixes = result.getCommonPrefixes();
         // no match key,the commonprefixes is 0
         Assert.assertEquals( actCommonPrefixes.size(), 0 );
 
-        List<String> queryKeyList = new ArrayList<>();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > queryKeyList = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             queryKeyList.add( key );

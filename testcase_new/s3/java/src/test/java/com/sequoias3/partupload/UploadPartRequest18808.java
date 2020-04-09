@@ -64,10 +64,10 @@ public class UploadPartRequest18808 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath[ 0 ] =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath[ 0 ] = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         filePath[ 1 ] = localPath + File.separator + "localFile_0" + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
@@ -119,8 +119,8 @@ public class UploadPartRequest18808 extends S3TestBase {
     @AfterClass
     private void tearDown() {
         try {
-            if ( actSuccessTests.get() == ( generateKeyName().length * 2
-                    + 2 ) ) {
+            if ( actSuccessTests
+                    .get() == ( generateKeyName().length * 2 + 2 ) ) {
                 s3Client = CommLib.buildS3Client();
                 CommLib.clearBucket( s3Client, bucketName );
                 TestTools.LocalFile.removeFile( localPath );
@@ -142,9 +142,9 @@ public class UploadPartRequest18808 extends S3TestBase {
 
     public void testLegalKeyName( String keyName, int partNumber,
             int fileIndex ) throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        List<PartETag> partEtags = new ArrayList<>();
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        List< PartETag > partEtags = new ArrayList<>();
         int filePosition = 0;
         long fileSize = file[ fileIndex ].length();
         String md5 = getMD5Digest( file[ fileIndex ] );
@@ -160,15 +160,15 @@ public class UploadPartRequest18808 extends S3TestBase {
                 uploadId, partEtags );
 
         String expMd5 = TestTools.getMD5( filePath[ fileIndex ] );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
     }
 
     private void testIllegalKeyName() throws Exception {
         // test a : 对象名为空串，null，901个字节
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, "key18808" );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                "key18808" );
         int filePosition = 0;
         long fileSize = file[ 0 ].length();
         UploadPartRequest partRequest = new UploadPartRequest()
@@ -212,8 +212,8 @@ public class UploadPartRequest18808 extends S3TestBase {
     private void testIllegalPartNumber() throws Exception {
         String keyName = "testkey18808";
         // test a : partNumber超过边界值
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
         int filePosition = 0;
         long fileSize = file[ 0 ].length();
         UploadPartRequest partRequest = new UploadPartRequest()
@@ -243,8 +243,8 @@ public class UploadPartRequest18808 extends S3TestBase {
     private void testIllegalBucketName() throws Exception {
         // test a : 桶不存在，为null
         String nonexistBucket = "nonexistentbucket18808";
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, "key18808" );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                "key18808" );
         int filePosition = 0;
         long fileSize = file[ 0 ].length();
         UploadPartRequest partRequest = new UploadPartRequest()
@@ -275,8 +275,8 @@ public class UploadPartRequest18808 extends S3TestBase {
         // test a : file文件不存在
         String filePath = localPath + File.separator + "notexistfile18808.txt";
         File file = new File( filePath );
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, "key18808" );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                "key18808" );
         int filePosition = 0;
         long fileSize = file.length();
         UploadPartRequest partRequest = new UploadPartRequest().withFile( file )
@@ -308,8 +308,8 @@ public class UploadPartRequest18808 extends S3TestBase {
     private void testIllegalMd5() throws Exception {
         // test a : withMD5Digest取值和上传分段不一致
         String md5Digest = "123456789";
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, "key18808" );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                "key18808" );
         long fileSize = file[ 0 ].length();
         UploadPartRequest partRequest = new UploadPartRequest()
                 .withFile( file[ 0 ] ).withFileOffset( 0 ).withPartNumber( 1 )
@@ -361,7 +361,8 @@ public class UploadPartRequest18808 extends S3TestBase {
                 .withEndpointConfiguration( endpointConfiguration )
                 .withClientConfiguration( config )
                 .withChunkedEncodingDisabled( true )
-                .withPathStyleAccessEnabled( true ).withCredentials(
+                .withPathStyleAccessEnabled( true )
+                .withCredentials(
                         new AWSStaticCredentialsProvider( credentials ) )
                 .build();
         return s3Client;

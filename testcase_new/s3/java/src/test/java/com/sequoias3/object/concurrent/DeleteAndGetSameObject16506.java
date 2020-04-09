@@ -40,8 +40,8 @@ public class DeleteAndGetSameObject16506 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         CommLib.clearUser( userName );
         acessKeys = UserUtils.createUser( userName, roleName );
         s3Client = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
@@ -93,8 +93,8 @@ public class DeleteAndGetSameObject16506 extends S3TestBase {
     private class DeleteObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.deleteVersion( bucketName, keyName, deleteVersionId );
             } finally {
@@ -108,16 +108,15 @@ public class DeleteAndGetSameObject16506 extends S3TestBase {
     private class GetObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
-                S3Object object = s3Client.getObject(
-                        new GetObjectRequest( bucketName, keyName,
-                                deleteVersionId ) );
+                S3Object object = s3Client.getObject( new GetObjectRequest(
+                        bucketName, keyName, deleteVersionId ) );
                 S3ObjectInputStream s3is = object.getObjectContent();
-                String downloadPath = TestTools.LocalFile
-                        .initDownloadPath( localPath, TestTools.getMethodName(),
-                                Thread.currentThread().getId() );
+                String downloadPath = TestTools.LocalFile.initDownloadPath(
+                        localPath, TestTools.getMethodName(),
+                        Thread.currentThread().getId() );
                 ObjectUtils.inputStream2File( s3is, downloadPath );
                 s3is.close();
                 String getObjectMd5 = TestTools.getMD5( downloadPath );

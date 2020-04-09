@@ -50,7 +50,8 @@ public class DelimiterUtils extends S3TestBase {
      *
      * @param bucketName
      * @param delimiter
-     * @param accessKeyId the oprater user accessKeyId,default user is administrator
+     * @param accessKeyId
+     *            the oprater user accessKeyId,default user is administrator
      * @author wuyan
      */
     public static void putBucketDelimiter( String bucketName, String delimiter,
@@ -59,7 +60,7 @@ public class DelimiterUtils extends S3TestBase {
         delimiterConfig.setDelimiter( delimiter );
         TestRest rest = new TestRest( type );
         try {
-            ResponseEntity<?> response = rest
+            ResponseEntity< ? > response = rest
                     .setApi( bucketName + "/?delimiter-config" )
                     .setRequestMethod( HttpMethod.PUT )
                     .setRequestHeaders( UserCommDefind.authorization,
@@ -68,9 +69,8 @@ public class DelimiterUtils extends S3TestBase {
                     .setResponseType( String.class ).exec();
             int status = response.getStatusCodeValue();
             if ( status != 200 ) {
-                System.out.println(
-                        "put delimiter failed,delimiter = " + delimiterConfig
-                                .toString() );
+                System.out.println( "put delimiter failed,delimiter = "
+                        + delimiterConfig.toString() );
             }
         } catch ( HttpStatusCodeException e ) {
             throw httpToAmazon( e );
@@ -82,7 +82,8 @@ public class DelimiterUtils extends S3TestBase {
      *
      * @param bucketName
      * @param delimiter
-     * @param accessKeyId the oprater user accessKeyId,default user is administrator
+     * @param accessKeyId
+     *            the oprater user accessKeyId,default user is administrator
      * @author fanyu
      */
     public static void putBucketDelimiterWithEncodingType( String bucketName,
@@ -92,7 +93,7 @@ public class DelimiterUtils extends S3TestBase {
         delimiterConfig.setDelimiter( delimiter );
         TestRest rest = new TestRest( type );
         try {
-            ResponseEntity<?> response = rest
+            ResponseEntity< ? > response = rest
                     .setApi( bucketName + "/?delimiter-config" )
                     .setRequestMethod( HttpMethod.PUT )
                     .setRequestHeaders( UserCommDefind.authorization,
@@ -102,9 +103,8 @@ public class DelimiterUtils extends S3TestBase {
                     .setResponseType( String.class ).exec();
             int status = response.getStatusCodeValue();
             if ( status != 200 ) {
-                System.out.println(
-                        "put delimiter failed,delimiter = " + delimiterConfig
-                                .toString() );
+                System.out.println( "put delimiter failed,delimiter = "
+                        + delimiterConfig.toString() );
             }
         } catch ( HttpStatusCodeException e ) {
             throw httpToAmazon( e );
@@ -120,14 +120,15 @@ public class DelimiterUtils extends S3TestBase {
      * get delimiter info of bucket *
      *
      * @param bucketName
-     * @param accessKeyId the oprater user accessKeyId,default user is administrator
+     * @param accessKeyId
+     *            the oprater user accessKeyId,default user is administrator
      * @return the delimiter result info of the getDelimiter operation
      * @author wuyan
      */
     public static DelimiterConfiguration getDelimiter( String bucketName,
             String accessKeyId ) throws Exception {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         DelimiterConfiguration result;
         try {
             resp = rest.setApi( bucketName + "/?delimiter-config" )
@@ -152,7 +153,8 @@ public class DelimiterUtils extends S3TestBase {
      * get delimiter info of bucket with encodingType*
      *
      * @param bucketName
-     * @param accessKeyId  the oprater user accessKeyId,default user is administrator
+     * @param accessKeyId
+     *            the oprater user accessKeyId,default user is administrator
      * @param encodingType
      * @return the delimiter result info of the getDelimiter operation
      * @author fanyu
@@ -161,7 +163,7 @@ public class DelimiterUtils extends S3TestBase {
             String bucketName, String accessKeyId, String encodingType )
             throws Exception {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         DelimiterConfiguration result;
         try {
             resp = rest.setApi( bucketName + "/?delimiter-config" )
@@ -194,8 +196,10 @@ public class DelimiterUtils extends S3TestBase {
      * information * *
      *
      * @param bucketName
-     * @param delimiter   expected delimiter
-     * @param accessKeyId the oprater user accessKeyId,default user is administrator
+     * @param delimiter
+     *            expected delimiter
+     * @param accessKeyId
+     *            the oprater user accessKeyId,default user is administrator
      * @author wuyan
      */
     public static void checkCurrentDelimiteInfo( String bucketName,
@@ -214,27 +218,30 @@ public class DelimiterUtils extends S3TestBase {
      *
      * @param s3Client
      * @param bucketName
-     * @param delimiter         specify the delimiter to list
-     * @param expKeyList        generated directory list,expected to match commonPrefixes
-     * @param matchContentsList the keys expected to not match delimter
+     * @param delimiter
+     *            specify the delimiter to list
+     * @param expKeyList
+     *            generated directory list,expected to match commonPrefixes
+     * @param matchContentsList
+     *            the keys expected to not match delimter
      * @author wuyan
      */
     public static void listObjectsWithDelimiter( AmazonS3 s3Client,
-            String bucketName, String delimiter, List<String> expKeyList,
-            List<String> matchContentsList ) {
+            String bucketName, String delimiter, List< String > expKeyList,
+            List< String > matchContentsList ) {
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" );
         request.withDelimiter( delimiter );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         Collections.sort( expKeyList );
         Collections.sort( commonPrefixes );
         Assert.assertEquals( commonPrefixes, expKeyList,
                 "actPrefixes:" + commonPrefixes.toString() + "\n ecpPrefixes:"
                         + expKeyList.toString() );
         // objects do not match delimiter are displayed in contents,num is 10
-        List<String> actContentsList = new ArrayList<>();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > actContentsList = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             actContentsList.add( key );
@@ -251,25 +258,27 @@ public class DelimiterUtils extends S3TestBase {
      * update delimiter repeatedly
      *
      * @param bucketName
-     * @param delimiter   specify the delimiter
-     * @param accessKeyId the oprater user accessKeyId,default user is administrator
+     * @param delimiter
+     *            specify the delimiter
+     * @param accessKeyId
+     *            the oprater user accessKeyId,default user is administrator
      * @return the errorCode of update delimiter,if update delimiter
-     * success,return 0;if update delimiter fail,return the actual error
-     * code :409
+     *         success,return 0;if update delimiter fail,return the actual error
+     *         code :409
      * @author wuyan
      */
     public static int updateDelimiterAgain( String bucketName, String delimiter,
             String accessKeyId ) {
         int errCode = 0;
         try {
-            DelimiterUtils
-                    .putBucketDelimiter( bucketName, delimiter, accessKeyId );
+            DelimiterUtils.putBucketDelimiter( bucketName, delimiter,
+                    accessKeyId );
         } catch ( AmazonS3Exception e ) {
             errCode = e.getStatusCode();
-            if ( errCode != 409 && !e.getErrorCode()
-                    .contains( "DelimiterNotStable" ) ) {
-                Assert.fail( "update delimiter fail! e=" + e.getStatusCode() + e
-                        .getErrorCode() );
+            if ( errCode != 409
+                    && !e.getErrorCode().contains( "DelimiterNotStable" ) ) {
+                Assert.fail( "update delimiter fail! e=" + e.getStatusCode()
+                        + e.getErrorCode() );
             }
         }
         return errCode;
@@ -286,8 +295,10 @@ public class DelimiterUtils extends S3TestBase {
      * specified time
      *
      * @param bucketName
-     * @param delimiter   specify the delimiter
-     * @param accessKeyId the oprater user accessKeyId,default user is administrator
+     * @param delimiter
+     *            specify the delimiter
+     * @param accessKeyId
+     *            the oprater user accessKeyId,default user is administrator
      * @author wuyan
      */
     public static void updateDelimiterSuccessAgain( String bucketName,
@@ -337,10 +348,14 @@ public class DelimiterUtils extends S3TestBase {
     /**
      * get an array of random keys with specified delimiters.
      *
-     * @param delimiter1 specify the delimiter
-     * @param delimiter2 specify another delimiter
-     * @param keyNum     number of keys in the returned array
-     * @param testID     specify the test id
+     * @param delimiter1
+     *            specify the delimiter
+     * @param delimiter2
+     *            specify another delimiter
+     * @param keyNum
+     *            number of keys in the returned array
+     * @param testID
+     *            specify the test id
      * @return An array containing random keys with specified delimiters.
      * @author wangkexin
      */
@@ -375,8 +390,10 @@ public class DelimiterUtils extends S3TestBase {
     /**
      * insert delimiter in StringBuffer
      *
-     * @param StringBuffer specify the StringBuffer
-     * @param delimiter    specify the delimiter
+     * @param StringBuffer
+     *            specify the StringBuffer
+     * @param delimiter
+     *            specify the delimiter
      * @author wangkexin
      */
     public static void insertDelimiter( StringBuffer sb, String delimiter ) {

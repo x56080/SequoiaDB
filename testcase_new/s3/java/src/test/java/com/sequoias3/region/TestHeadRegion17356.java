@@ -60,7 +60,7 @@ public class TestHeadRegion17356 extends S3TestBase {
     private void tearDown() throws Exception {
         if ( runSuccess ) {
             try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
-                    "" ) ) {
+                    "" )) {
                 RegionUtils.deleteRegion( regionName );
                 sdb.dropCollectionSpace( dataCSName );
                 sdb.dropCollectionSpace( metaCSName );

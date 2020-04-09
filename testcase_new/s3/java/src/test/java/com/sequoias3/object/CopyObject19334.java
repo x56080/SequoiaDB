@@ -40,14 +40,14 @@ public class CopyObject19334 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath1 =
-                localPath + File.separator + "localFile_" + fileSize + "_1.txt";
-        filePath2 =
-                localPath + File.separator + "localFile_" + fileSize + "_2.txt";
-        filePath3 =
-                localPath + File.separator + "localFile_" + fileSize + "_2.txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath1 = localPath + File.separator + "localFile_" + fileSize
+                + "_1.txt";
+        filePath2 = localPath + File.separator + "localFile_" + fileSize
+                + "_2.txt";
+        filePath3 = localPath + File.separator + "localFile_" + fileSize
+                + "_2.txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath1, fileSize );
@@ -55,8 +55,8 @@ public class CopyObject19334 extends S3TestBase {
         TestTools.LocalFile.createFile( filePath3, fileSize );
 
         CommLib.clearUser( userName );
-        String[] acessKeys = UserUtils
-                .createUser( userName, UserCommDefind.normal );
+        String[] acessKeys = UserUtils.createUser( userName,
+                UserCommDefind.normal );
         s3Client = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
 
         s3Client.createBucket( srcBucketName );
@@ -109,8 +109,8 @@ public class CopyObject19334 extends S3TestBase {
     }
 
     private void checkObjectContent( String filePath ) throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, srcBucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                srcBucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

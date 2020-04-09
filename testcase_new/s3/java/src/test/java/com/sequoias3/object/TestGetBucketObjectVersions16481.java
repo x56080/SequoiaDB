@@ -56,7 +56,7 @@ public class TestGetBucketObjectVersions16481 extends S3TestBase {
         request.setVersionIdMarker( "null" );
         VersionListing list = s3Client.listVersions( request );
 
-        List<String> commonPrefixes = list.getCommonPrefixes();
+        List< String > commonPrefixes = list.getCommonPrefixes();
         Assert.assertEquals( commonPrefixes.size(), 1 );
         Assert.assertEquals( commonPrefixes.get( 0 ),
                 URLEncoder.encode( "aa/bb/key16481_3/", "UTF-8" ) );

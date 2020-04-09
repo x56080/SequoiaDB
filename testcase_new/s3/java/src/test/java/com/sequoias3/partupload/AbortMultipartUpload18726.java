@@ -46,10 +46,10 @@ public class AbortMultipartUpload18726 extends S3TestBase {
 
         CommLib.clearUser( userA );
         CommLib.clearUser( userB );
-        String[] accessKeysA = UserUtils
-                .createUser( userA, UserCommDefind.normal );
-        String[] accessKeysB = UserUtils
-                .createUser( userB, UserCommDefind.normal );
+        String[] accessKeysA = UserUtils.createUser( userA,
+                UserCommDefind.normal );
+        String[] accessKeysB = UserUtils.createUser( userB,
+                UserCommDefind.normal );
         s3ClientA = CommLib.buildS3Client( accessKeysA[ 0 ], accessKeysA[ 1 ] );
         s3ClientB = CommLib.buildS3Client( accessKeysB[ 0 ], accessKeysB[ 1 ] );
 
@@ -59,32 +59,28 @@ public class AbortMultipartUpload18726 extends S3TestBase {
     @Test
     private void test() throws Exception {
         // userA upload part
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3ClientA, bucketName, key );
-        List<PartETag> partETags = PartUploadUtils
-                .partUpload( s3ClientA, bucketName, key, uploadId, file,
-                        fileSize / maxPartNumber );
+        String uploadId = PartUploadUtils.initPartUpload( s3ClientA, bucketName,
+                key );
+        List< PartETag > partETags = PartUploadUtils.partUpload( s3ClientA,
+                bucketName, key, uploadId, file, fileSize / maxPartNumber );
 
         // userB abort upload
         try {
-            s3ClientB.abortMultipartUpload(
-                    new AbortMultipartUploadRequest( bucketName, key,
-                            uploadId ) );
+            s3ClientB.abortMultipartUpload( new AbortMultipartUploadRequest(
+                    bucketName, key, uploadId ) );
         } catch ( AmazonServiceException e ) {
             if ( !e.getErrorCode().equals( "AccessDenied" ) ) {
                 Assert.fail( e.getMessage() );
             }
         }
-        PartUploadUtils
-                .listPartsAndCheckPartNumbers( s3ClientA, bucketName, key,
-                        partETags, uploadId );
+        PartUploadUtils.listPartsAndCheckPartNumbers( s3ClientA, bucketName,
+                key, partETags, uploadId );
 
         // userA abort again
         s3ClientA.abortMultipartUpload(
                 new AbortMultipartUploadRequest( bucketName, key, uploadId ) );
-        PartUploadUtils
-                .checkAbortMultipartUploadResult( s3ClientA, bucketName, key,
-                        uploadId );
+        PartUploadUtils.checkAbortMultipartUploadResult( s3ClientA, bucketName,
+                key, uploadId );
 
         runSuccess = true;
     }
@@ -105,10 +101,10 @@ public class AbortMultipartUpload18726 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );

@@ -38,10 +38,10 @@ public class AbortMultipartUpload18720 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -51,12 +51,12 @@ public class AbortMultipartUpload18720 extends S3TestBase {
     @Test
     public void abortMultipartUpload() throws Exception {
         File file = new File( filePath );
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, keyName );
         int[] partSizes = { 1024 * 1024 * 6, 1024 * 1024 * 5, 1024 * 1024 * 6,
                 1024 * 1024 * 8, 1024 * 1024 * 6, 1024 * 1024 * 7 };
         int[] partNumbers = { 2, 4, 6, 10, 1000, 10000 };
-        List<PartETag> partEtags = partUpload( uploadId, file, partSizes,
+        List< PartETag > partEtags = partUpload( uploadId, file, partSizes,
                 partNumbers );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
@@ -73,9 +73,8 @@ public class AbortMultipartUpload18720 extends S3TestBase {
         }
 
         // check upload result
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, S3TestBase.bucketName,
-                        keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                S3TestBase.bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
 
         runSuccess = true;
@@ -93,9 +92,9 @@ public class AbortMultipartUpload18720 extends S3TestBase {
         }
     }
 
-    private List<PartETag> partUpload( String uploadId, File file,
+    private List< PartETag > partUpload( String uploadId, File file,
             int[] partSizes, int[] partNumbers ) {
-        List<PartETag> partEtags = new ArrayList<>();
+        List< PartETag > partEtags = new ArrayList<>();
         int filePosition = 0;
         for ( int i = 0; i < partSizes.length; i++ ) {
             int partNumber = partNumbers[ i ];

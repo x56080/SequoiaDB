@@ -115,7 +115,7 @@ public class GetRegionMessage17313 extends S3TestBase {
     private void tearDown() throws Exception {
         if ( runSuccess ) {
             try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
-                    "" ) ) {
+                    "" )) {
                 s3Client.deleteBucket( specifiedBucket );
                 s3Client.deleteBucket( shardingBucket );
                 sdb.dropCollectionSpace( dataCSName );

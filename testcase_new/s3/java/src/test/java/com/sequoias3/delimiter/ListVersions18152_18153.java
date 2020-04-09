@@ -62,8 +62,8 @@ public class ListVersions18152_18153 extends S3TestBase {
                         .withVersionIdMarker( versionIdMarker )
                         .withDelimiter( delimiter ) );
 
-        ObjectUtils.checkListVSResults( vsList, new ArrayList<String>(),
-                new LinkedMultiValueMap<String, String>() );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                new LinkedMultiValueMap< String, String >() );
 
         // versionIdMarker does not exist
         String keyMarker1 = "test18153";
@@ -75,8 +75,8 @@ public class ListVersions18152_18153 extends S3TestBase {
                         .withVersionIdMarker( versionIdMarker1 )
                         .withDelimiter( delimiter ) );
 
-        ObjectUtils.checkListVSResults( vsList1, new ArrayList<String>(),
-                new LinkedMultiValueMap<String, String>() );
+        ObjectUtils.checkListVSResults( vsList1, new ArrayList< String >(),
+                new LinkedMultiValueMap< String, String >() );
 
         runSuccess = true;
     }

@@ -50,9 +50,9 @@ public class ListObjectVersionsWithDelimiter18145 extends S3TestBase {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withDelimiter( delimiter ).withPrefix( prefix ) );
-        List<String> commonPrefixes = versionList.getCommonPrefixes();
-        List<String> expCommPrefixes = ObjectUtils
-                .getCommPrefixes( keyName, "", delimiter );
+        List< String > commonPrefixes = versionList.getCommonPrefixes();
+        List< String > expCommPrefixes = ObjectUtils.getCommPrefixes( keyName,
+                "", delimiter );
         ObjectUtils.checkListObjectsV2Commprefixes( commonPrefixes,
                 expCommPrefixes );
         Assert.assertEquals( versionList.getVersionSummaries().size(), 0 );

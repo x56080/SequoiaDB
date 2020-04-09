@@ -36,20 +36,19 @@ public class GetObjectByVersionId17053 extends S3TestBase {
 
     private int fileSize = 1024 * 200;
     private File localPath = null;
-    private List<String> filePathList = new ArrayList<String>();
-    private List<PutObjectResult> objectVSList = new ArrayList<PutObjectResult>();
+    private List< String > filePathList = new ArrayList< String >();
+    private List< PutObjectResult > objectVSList = new ArrayList< PutObjectResult >();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         String filePath = null;
         for ( int i = 0; i < versionNum; i++ ) {
-            filePath =
-                    localPath + File.separator + "localFile_" + ( fileSize + i )
-                            + ".txt";
+            filePath = localPath + File.separator + "localFile_"
+                    + ( fileSize + i ) + ".txt";
             TestTools.LocalFile.createFile( filePath, fileSize + i );
             filePathList.add( filePath );
         }
@@ -104,9 +103,9 @@ public class GetObjectByVersionId17053 extends S3TestBase {
         S3ObjectInputStream s3ObjectInputStream = null;
         try {
             s3ObjectInputStream = object.getObjectContent();
-            String downloadPath = TestTools.LocalFile
-                    .initDownloadPath( localPath, TestTools.getMethodName(),
-                            Thread.currentThread().getId() );
+            String downloadPath = TestTools.LocalFile.initDownloadPath(
+                    localPath, TestTools.getMethodName(),
+                    Thread.currentThread().getId() );
             ObjectUtils.inputStream2File( s3ObjectInputStream, downloadPath );
             Assert.assertEquals( TestTools.getMD5( downloadPath ),
                     TestTools.getMD5( filePath ) );

@@ -73,10 +73,10 @@ public class ListObjectsWithPrefixAndDelimiter18571 extends S3TestBase {
     }
 
     private void listObjectsAndCheckResult() {
-        List<String> matchPrefixList = new ArrayList<>();
+        List< String > matchPrefixList = new ArrayList<>();
         matchPrefixList.add( "dir1?dir2?" );
         matchPrefixList.add( "dir1??" );
-        List<String> matchContentsList = new ArrayList<>();
+        List< String > matchContentsList = new ArrayList<>();
         matchContentsList.add( "dir1?test1_18571.png" );
         matchContentsList.add( "dir1?test3_18571" );
 
@@ -84,7 +84,7 @@ public class ListObjectsWithPrefixAndDelimiter18571 extends S3TestBase {
                 .withBucketName( bucketName );
         request.withDelimiter( delimiter ).withPrefix( prefix );
         ObjectListing result = s3Client.listObjects( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         Collections.sort( matchPrefixList );
         Assert.assertEquals( commonPrefixes, matchPrefixList,
                 "actPrefixes:" + commonPrefixes.toString() + "\n ecpPrefixes:"
@@ -92,8 +92,8 @@ public class ListObjectsWithPrefixAndDelimiter18571 extends S3TestBase {
 
         // objects do not match delimiter are displayed in
         // contents:dir1?test1_18571.png, dir1?test3_18571
-        List<String> actContentsList = new ArrayList<>();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > actContentsList = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             actContentsList.add( key );

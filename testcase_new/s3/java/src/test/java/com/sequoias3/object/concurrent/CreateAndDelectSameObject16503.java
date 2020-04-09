@@ -51,8 +51,8 @@ public class CreateAndDelectSameObject16503 extends S3TestBase {
         Assert.assertTrue( deleteObject.isSuccess(),
                 createObject.getErrorMsg() );
         if ( s3Client.doesObjectExist( bucketName, keyName ) ) {
-            ObjectMetadata metadata = s3Client
-                    .getObjectMetadata( bucketName, keyName );
+            ObjectMetadata metadata = s3Client.getObjectMetadata( bucketName,
+                    keyName );
             Assert.assertEquals( metadata.getETag(),
                     TestTools.getMD5( content.getBytes() ) );
             Assert.assertEquals( metadata.getVersionId(), "1" );
@@ -84,8 +84,8 @@ public class CreateAndDelectSameObject16503 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.putObject( bucketName, keyName, content );
             } finally {
@@ -105,8 +105,8 @@ public class CreateAndDelectSameObject16503 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.deleteObject( bucketName, keyName );
             } finally {

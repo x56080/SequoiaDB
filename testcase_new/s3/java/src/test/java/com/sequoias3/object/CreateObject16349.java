@@ -33,10 +33,10 @@ public class CreateObject16349 extends S3TestBase {
     @BeforeClass
     private void setUp() throws IOException {
         // create a path, but there is no file under the path.
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
 
@@ -52,9 +52,8 @@ public class CreateObject16349 extends S3TestBase {
             s3Client.putObject( bucketName, keyName, new File( filePath ) );
             Assert.fail( "exp fail but found success" );
         } catch ( SdkClientException e ) {
-            Assert.assertNotEquals( e.getMessage()
-                            .indexOf( "Unable to calculate MD5 hash: " + filePath ),
-                    -1 );
+            Assert.assertNotEquals( e.getMessage().indexOf(
+                    "Unable to calculate MD5 hash: " + filePath ), -1 );
         }
         runSuccess = true;
     }

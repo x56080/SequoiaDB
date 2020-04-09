@@ -38,10 +38,10 @@ public class ListParts18728 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -51,12 +51,11 @@ public class ListParts18728 extends S3TestBase {
     @Test
     public void listParts() throws Exception {
         File file = new File( filePath );
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, keyName );
         long partSize = 1024 * 1024 * 5;
-        List<PartETag> partEtags = PartUploadUtils
-                .partUpload( s3Client, S3TestBase.bucketName, keyName, uploadId,
-                        file, partSize );
+        List< PartETag > partEtags = PartUploadUtils.partUpload( s3Client,
+                S3TestBase.bucketName, keyName, uploadId, file, partSize );
         listPartsAndCheckPartNumbers( s3Client, S3TestBase.bucketName, keyName,
                 partEtags, uploadId, partSize );
 
@@ -73,9 +72,8 @@ public class ListParts18728 extends S3TestBase {
                 partEtags, uploadId, partSize );
 
         // check listparts no upload part after completeMultipartUpload
-        PartUploadUtils
-                .completeMultipartUpload( s3Client, S3TestBase.bucketName,
-                        keyName, uploadId, partEtags );
+        PartUploadUtils.completeMultipartUpload( s3Client,
+                S3TestBase.bucketName, keyName, uploadId, partEtags );
         try {
             ListPartsRequest listRequest = new ListPartsRequest( bucketName,
                     keyName, uploadId );
@@ -101,9 +99,9 @@ public class ListParts18728 extends S3TestBase {
     }
 
     private void listPartsAndCheckPartNumbers( AmazonS3 s3Client,
-            String bucketName, String keyName, List<PartETag> partEtags,
+            String bucketName, String keyName, List< PartETag > partEtags,
             String uploadId, long partSize ) {
-        List<Integer> expPartNumbersList = new ArrayList<>();
+        List< Integer > expPartNumbersList = new ArrayList<>();
         for ( PartETag expPartNumbers : partEtags ) {
             int partNumber = expPartNumbers.getPartNumber();
             expPartNumbersList.add( partNumber );
@@ -112,8 +110,8 @@ public class ListParts18728 extends S3TestBase {
         ListPartsRequest request = new ListPartsRequest( bucketName, keyName,
                 uploadId );
         PartListing listResult = s3Client.listParts( request );
-        List<PartSummary> listParts = listResult.getParts();
-        List<Integer> actPartNumbersList = new ArrayList<>();
+        List< PartSummary > listParts = listResult.getParts();
+        List< Integer > actPartNumbersList = new ArrayList<>();
         for ( PartSummary partNumbers : listParts ) {
             int partNumber = partNumbers.getPartNumber();
             long size = partNumbers.getSize();
@@ -124,7 +122,7 @@ public class ListParts18728 extends S3TestBase {
         // check the keyName
         Assert.assertEquals( actPartNumbersList, expPartNumbersList,
                 "actPartNumbersList:" + actPartNumbersList
-                        + "  expPartNumbersList:" + expPartNumbersList
-                        .toString() );
+                        + "  expPartNumbersList:"
+                        + expPartNumbersList.toString() );
     }
 }

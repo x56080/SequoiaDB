@@ -46,8 +46,8 @@ public class SetObjectAclAndPutObject19479 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         oldFilePath = localPath + File.separator + "localFile_" + oldFileSize
                 + ".txt";
         newFilePath = localPath + File.separator + "localFile_" + newFileSize
@@ -69,8 +69,9 @@ public class SetObjectAclAndPutObject19479 extends S3TestBase {
 
     @Test
     private void test() throws Exception {
-        Grant[] expGrant = { new Grant( new CanonicalGrantee( ownerId ),
-                Permission.ReadAcp ),
+        Grant[] expGrant = {
+                new Grant( new CanonicalGrantee( ownerId ),
+                        Permission.ReadAcp ),
                 new Grant( GroupGrantee.AllUsers, Permission.Read ) };
         Grant[] defaultGrant = { new Grant( new CanonicalGrantee( ownerId ),
                 Permission.FullControl ) };
@@ -81,23 +82,23 @@ public class SetObjectAclAndPutObject19479 extends S3TestBase {
         threadExec.run();
 
         // check object acl
-        List<Grant> expGrantsList = null;
+        List< Grant > expGrantsList = null;
         AccessControlList result = s3Client.getObjectAcl( bucketName, keyName );
-        List<Grant> actGrantsList = result.getGrantsAsList();
+        List< Grant > actGrantsList = result.getGrantsAsList();
         if ( actGrantsList.size() == defaultGrant.length ) {
             expGrantsList = new ArrayList<>( Arrays.asList( defaultGrant ) );
         } else if ( actGrantsList.size() == expGrant.length ) {
             expGrantsList = new ArrayList<>( Arrays.asList( expGrant ) );
         } else {
-            Assert.fail( "act object acl size is wrong : " + actGrantsList
-                    .toString() );
+            Assert.fail( "act object acl size is wrong : "
+                    + actGrantsList.toString() );
         }
         checkGrantList( actGrantsList, expGrantsList );
 
         // check object
         String expMd5 = TestTools.getMD5( newFilePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
         runSuccess = true;
     }
@@ -114,18 +115,18 @@ public class SetObjectAclAndPutObject19479 extends S3TestBase {
         }
     }
 
-    private void checkGrantList( List<Grant> actGrantsList,
-            List<Grant> expGrantsList ) {
+    private void checkGrantList( List< Grant > actGrantsList,
+            List< Grant > expGrantsList ) {
         boolean isEqual = false;
-        if ( actGrantsList.size() == expGrantsList.size() && actGrantsList
-                .containsAll( expGrantsList ) && expGrantsList
-                .containsAll( actGrantsList ) ) {
+        if ( actGrantsList.size() == expGrantsList.size()
+                && actGrantsList.containsAll( expGrantsList )
+                && expGrantsList.containsAll( actGrantsList ) ) {
             isEqual = true;
         }
         if ( !isEqual ) {
-            Assert.fail( "object acl is wrong! exp grants = " + expGrantsList
-                    .toString() + ", act grants = " + actGrantsList
-                    .toString() );
+            Assert.fail( "object acl is wrong! exp grants = "
+                    + expGrantsList.toString() + ", act grants = "
+                    + actGrantsList.toString() );
         }
     }
 
@@ -140,8 +141,8 @@ public class SetObjectAclAndPutObject19479 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void setObjectAcl() {
             try {
-                PrivilegeUtils
-                        .setObjectAclByBody( s3, bucketName, keyName, grant );
+                PrivilegeUtils.setObjectAclByBody( s3, bucketName, keyName,
+                        grant );
             } finally {
                 if ( s3 != null ) {
                     s3.shutdown();

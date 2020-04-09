@@ -43,10 +43,10 @@ public class ListMultipartUploads18738 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -59,18 +59,18 @@ public class ListMultipartUploads18738 extends S3TestBase {
     @Test
     public void listMultipartUploads() throws Exception {
         // test a: PartUpload
-        String uploadIdA = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameA );
-        PartUploadUtils
-                .partUpload( s3Client, bucketName, keyNameA, uploadIdA, file );
+        String uploadIdA = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyNameA );
+        PartUploadUtils.partUpload( s3Client, bucketName, keyNameA, uploadIdA,
+                file );
 
         // test b: initPartUpload
-        String uploadIdB = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameB );
+        String uploadIdB = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyNameB );
 
         // test c: upload partial uploads
-        String uploadIdC = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameC );
+        String uploadIdC = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyNameC );
         UploadPartRequest partRequest = new UploadPartRequest().withFile( file )
                 .withFileOffset( 0 ).withPartNumber( 1 )
                 .withPartSize( 1024 * 1024 * 5 ).withBucketName( bucketName )
@@ -78,16 +78,16 @@ public class ListMultipartUploads18738 extends S3TestBase {
         s3Client.uploadPart( partRequest );
 
         // test d: completeMultipartUpload
-        String uploadIdD = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameD );
-        List<PartETag> partEtagsD = PartUploadUtils
-                .partUpload( s3Client, bucketName, keyNameD, uploadIdD, file );
+        String uploadIdD = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyNameD );
+        List< PartETag > partEtagsD = PartUploadUtils.partUpload( s3Client,
+                bucketName, keyNameD, uploadIdD, file );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyNameD,
                 uploadIdD, partEtagsD );
 
         // test e: abortMultipartUpload
-        String uploadIdE = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameE );
+        String uploadIdE = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyNameE );
         AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(
                 bucketName, keyNameE, uploadIdE );
         s3Client.abortMultipartUpload( abortRequest );
@@ -96,14 +96,13 @@ public class ListMultipartUploads18738 extends S3TestBase {
                 bucketName );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
-        MultiValueMap<String, String> expUpload = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expUpload = new LinkedMultiValueMap< String, String >();
         expUpload.add( keyNameA, uploadIdA );
         expUpload.add( keyNameB, uploadIdB );
         expUpload.add( keyNameC, uploadIdC );
-        List<String> expCommonPrefixes = new ArrayList<>();
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes,
-                        expUpload );
+        List< String > expCommonPrefixes = new ArrayList<>();
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes, expUpload );
         runSuccess = true;
     }
 

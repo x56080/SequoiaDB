@@ -32,7 +32,7 @@ public class CreateBucket15911 extends S3TestBase {
     private String bucketName = "bucket15911";
     private String userName = "user15911";
     private String roleName = "normal";
-    private List<String> expBucketNameList = new ArrayList<String>();
+    private List< String > expBucketNameList = new ArrayList< String >();
     private AmazonS3 s3Client = null;
 
     @BeforeClass
@@ -85,11 +85,11 @@ public class CreateBucket15911 extends S3TestBase {
 
     private void checkResultAfterDelete( AmazonS3 s3Client ) {
         // check bucket nums
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         Assert.assertEquals( buckets.size(),
                 defaultNums - ( rightInterval - leftInterval + 1 ) );
 
-        List<String> actbucketNameLists = new ArrayList<>();
+        List< String > actbucketNameLists = new ArrayList<>();
         for ( Bucket bucket : buckets ) {
             Owner actOwner = bucket.getOwner();
             Assert.assertEquals( actOwner.getDisplayName(), userName );

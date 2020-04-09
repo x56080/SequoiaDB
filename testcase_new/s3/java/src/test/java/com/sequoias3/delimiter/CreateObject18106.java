@@ -34,10 +34,10 @@ public class CreateObject18106 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -52,16 +52,15 @@ public class CreateObject18106 extends S3TestBase {
     public void testCreateObject() throws Exception {
         s3Client.putObject( bucketName, keyName, new File( filePath ) );
         // check the content of the create object
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
 
-        List<String> matchDelimiterKeyList = new ArrayList<>();
-        List<String> expContentList = new ArrayList<>();
+        List< String > matchDelimiterKeyList = new ArrayList<>();
+        List< String > expContentList = new ArrayList<>();
         expContentList.add( keyName );
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, newDelimiter,
-                        matchDelimiterKeyList, expContentList );
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                newDelimiter, matchDelimiterKeyList, expContentList );
         runSuccess = true;
     }
 

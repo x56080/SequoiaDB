@@ -37,12 +37,12 @@ public class TestGetObject16482 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
@@ -54,17 +54,15 @@ public class TestGetObject16482 extends S3TestBase {
     @Test
     public void testGetObject() throws Exception {
         // test a : 合法值校验
-        String downloadPath = TestTools.LocalFile
-                .initDownloadPath( localPath, TestTools.getMethodName(),
-                        Thread.currentThread().getId() );
-        String tmpPath = TestTools.LocalFile
-                .initDownloadPath( localPath, TestTools.getMethodName(),
-                        Thread.currentThread().getId() );
+        String downloadPath = TestTools.LocalFile.initDownloadPath( localPath,
+                TestTools.getMethodName(), Thread.currentThread().getId() );
+        String tmpPath = TestTools.LocalFile.initDownloadPath( localPath,
+                TestTools.getMethodName(), Thread.currentThread().getId() );
         int start = 0;
         int end = 1024 * 100;
 
-        S3Object object = s3Client.getObject(
-                new GetObjectRequest( bucketName, keyName )
+        S3Object object = s3Client
+                .getObject( new GetObjectRequest( bucketName, keyName )
                         .withRange( start, end ) );
         ObjectUtils.inputStream2File( object.getObjectContent(), downloadPath );
         seekFile( new FileInputStream( new File( filePath ) ), tmpPath, start,

@@ -34,8 +34,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @Author wangkexin
  * @Date 2019.08.07
  */
-@Test(groups = "partsizelimitoff") public class UploadPart18763
-        extends S3TestBase {
+@Test(groups = "partsizelimitoff")
+public class UploadPart18763 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket18763";
     private String keyName = "key18763";
@@ -45,17 +45,17 @@ import java.util.concurrent.CopyOnWriteArrayList;
     private File file = null;
     private String filePath = null;
     private String uploadId = "";
-    private List<int[]> samePartNumberList = new ArrayList<>();
-    private List<int[]> diffPartNumberList = new ArrayList<>();
-    private List<String> expSamePartNumberEtags = new ArrayList<>();
-    private List<PartETag> diffPartNumberEtags = new CopyOnWriteArrayList<>();
+    private List< int[] > samePartNumberList = new ArrayList<>();
+    private List< int[] > diffPartNumberList = new ArrayList<>();
+    private List< String > expSamePartNumberEtags = new ArrayList<>();
+    private List< PartETag > diffPartNumberEtags = new CopyOnWriteArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -74,8 +74,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
     @Test
     private void testUpload() throws Exception {
-        uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
         ThreadExecutor es = new ThreadExecutor();
         for ( int i = 0; i < samePartNumberList.size(); i++ ) {
             es.addWorker( new ThreadUploadSamePart18763(
@@ -114,24 +114,24 @@ import java.util.concurrent.CopyOnWriteArrayList;
         int[] parts = { 0, 2 * 1024 * 1024, 1 };
         samePartNumberList.add( parts );
         // expSamePartNumberEtags[part1Md5, part2Md5, part3Md5, ...]
-        expSamePartNumberEtags.add( TestTools
-                .getFilePartMD5( file, parts[ 0 ], parts[ 1 ] ) );
+        expSamePartNumberEtags.add(
+                TestTools.getFilePartMD5( file, parts[ 0 ], parts[ 1 ] ) );
         parts = new int[] { 0, 3 * 1024 * 1024, 1 };
         samePartNumberList.add( parts );
-        expSamePartNumberEtags.add( TestTools
-                .getFilePartMD5( file, parts[ 0 ], parts[ 1 ] ) );
+        expSamePartNumberEtags.add(
+                TestTools.getFilePartMD5( file, parts[ 0 ], parts[ 1 ] ) );
         parts = new int[] { 5 * 1024 * 1024, 2 * 1024 * 1024, 1 };
         samePartNumberList.add( parts );
-        expSamePartNumberEtags.add( TestTools
-                .getFilePartMD5( file, parts[ 0 ], parts[ 1 ] ) );
+        expSamePartNumberEtags.add(
+                TestTools.getFilePartMD5( file, parts[ 0 ], parts[ 1 ] ) );
         parts = new int[] { 0, 1 * 1024 * 1024, 1 };
         samePartNumberList.add( parts );
-        expSamePartNumberEtags.add( TestTools
-                .getFilePartMD5( file, parts[ 0 ], parts[ 1 ] ) );
+        expSamePartNumberEtags.add(
+                TestTools.getFilePartMD5( file, parts[ 0 ], parts[ 1 ] ) );
         parts = new int[] { 3 * 1024 * 1024, 2 * 1024 * 1024, 1 };
         samePartNumberList.add( parts );
-        expSamePartNumberEtags.add( TestTools
-                .getFilePartMD5( file, parts[ 0 ], parts[ 1 ] ) );
+        expSamePartNumberEtags.add(
+                TestTools.getFilePartMD5( file, parts[ 0 ], parts[ 1 ] ) );
     }
 
     private void prepareDiffPartNumberList() throws IOException {
@@ -155,7 +155,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
         ListPartsRequest request = new ListPartsRequest( bucketName, keyName,
                 uploadId );
         PartListing listResult = s3Client.listParts( request );
-        List<PartSummary> listParts = listResult.getParts();
+        List< PartSummary > listParts = listResult.getParts();
         int partNumber = listParts.get( 0 ).getPartNumber();
         actSamePartNumberEtag = listParts.get( 0 ).getETag();
         samePartEtag = new PartETag( partNumber, actSamePartNumberEtag );
@@ -164,8 +164,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
         Assert.assertTrue(
                 expSamePartNumberEtags.contains( actSamePartNumberEtag ),
                 "actSamePartNumberEtag : " + actSamePartNumberEtag
-                        + ", expSamePartNumberEtags : " + expSamePartNumberEtags
-                        .toString() + ", diffPartNumberEtags : "
+                        + ", expSamePartNumberEtags : "
+                        + expSamePartNumberEtags.toString()
+                        + ", diffPartNumberEtags : "
                         + diffPartNumberEtags.toString() );
 
         // 将分段1的PartETag值与其他分段PartETag值放在一起
@@ -190,8 +191,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
                 }
             }
             String expMd5 = new String( Hex.encodeHex( md5.digest() ) );
-            String actMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+            String actMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                    bucketName, keyName );
             Assert.assertEquals( actMd5, expMd5 );
         } finally {
             if ( fileInputStream != null ) {

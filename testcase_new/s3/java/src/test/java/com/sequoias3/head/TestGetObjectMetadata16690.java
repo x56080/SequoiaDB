@@ -42,10 +42,10 @@ public class TestGetObjectMetadata16690 extends S3TestBase {
     @BeforeClass
     private void setUp() throws Exception {
         CommLib.clearUser( userName );
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -57,14 +57,13 @@ public class TestGetObjectMetadata16690 extends S3TestBase {
     private void testGetObjectMetadata() throws Exception {
         s3Client.createBucket( bucketName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, new File( filePath ) );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                new File( filePath ) );
         String versionid = result.getVersionId();
         String etag = result.getETag();
 
-        HttpHead request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + bucketName + "/" + keyName
-                        + "?versionId=" + versionid );
+        HttpHead request = new HttpHead( S3TestBase.s3ClientUrl + "/"
+                + bucketName + "/" + keyName + "?versionId=" + versionid );
         request.setHeader( "Authorization",
                 "Credential=" + accessKeys[ 0 ] + "/" );
 
@@ -72,9 +71,8 @@ public class TestGetObjectMetadata16690 extends S3TestBase {
         int leftBoundary = fileSize - 10;
         int rightBoundary = fileSize + 1;
 
-        request.setHeader( "Range",
-                "bytes=" + String.valueOf( leftBoundary ) + "-" + String
-                        .valueOf( rightBoundary ) );
+        request.setHeader( "Range", "bytes=" + String.valueOf( leftBoundary )
+                + "-" + String.valueOf( rightBoundary ) );
         client = RestClient.createHttpClient();
         CloseableHttpResponse resp1 = RestClient.sendRequest( client, request );
         Assert.assertEquals( resp1.getFirstHeader( "ETag" ).getValue(),
@@ -98,9 +96,8 @@ public class TestGetObjectMetadata16690 extends S3TestBase {
         leftBoundary = fileSize + 100;
         rightBoundary = fileSize + 101;
 
-        request.setHeader( "Range",
-                "bytes=" + String.valueOf( leftBoundary ) + "-" + String
-                        .valueOf( rightBoundary ) );
+        request.setHeader( "Range", "bytes=" + String.valueOf( leftBoundary )
+                + "-" + String.valueOf( rightBoundary ) );
         client = RestClient.createHttpClient();
         try {
             RestClient.sendRequest( client, request );

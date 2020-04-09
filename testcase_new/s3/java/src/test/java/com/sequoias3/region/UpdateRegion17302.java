@@ -50,11 +50,11 @@ public class UpdateRegion17302 extends S3TestBase {
                     .withMetaHisLocation( csName + "." + clNames[ 5 ] )
                     .withName( regionName );
             RegionUtils.putRegion( region1 );
-            Assert.fail( "put region must be failed, region = " + region
-                    .toString() );
+            Assert.fail( "put region must be failed, region = "
+                    + region.toString() );
         } catch ( AmazonS3Exception e ) {
-            if ( e.getStatusCode() != 409 && !e.getErrorCode()
-                    .contains( "ConflictRegionType" ) ) {
+            if ( e.getStatusCode() != 409
+                    && !e.getErrorCode().contains( "ConflictRegionType" ) ) {
                 throw e;
             }
         }

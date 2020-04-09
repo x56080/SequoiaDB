@@ -65,7 +65,7 @@ public class DeleteObject18179 extends S3TestBase {
     private void checkDeleteObjectReslut( String versionId ) throws Exception {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
-        List<S3VersionSummary> versionSummary = versionList
+        List< S3VersionSummary > versionSummary = versionList
                 .getVersionSummaries();
 
         int existObjectNum = 1;

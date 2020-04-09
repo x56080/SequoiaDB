@@ -42,15 +42,14 @@ public class TestGetObjectMetadata16689 extends S3TestBase {
     private void testGetObjectMetadata() throws Exception {
         s3Client.createBucket( bucketName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content );
         String versionid = result.getVersionId();
 
         // 查询不存在的对象keyB,指定versionid为已存在的versionid
         try {
-            s3Client.getObjectMetadata(
-                    new GetObjectMetadataRequest( bucketName, nonExistKeyName,
-                            versionid ) );
+            s3Client.getObjectMetadata( new GetObjectMetadataRequest(
+                    bucketName, nonExistKeyName, versionid ) );
             Assert.fail( "exp fail but found success" );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getStatusCode(), 404 );

@@ -59,13 +59,12 @@ public class ListVersionsByVersionId17050 extends S3TestBase {
         String keyMarker = objectNames[ index ];
         String versionIdMarker = "null";
 
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withKeyMarker( keyMarker )
-                        .withVersionIdMarker( versionIdMarker ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withKeyMarker( keyMarker )
+                .withVersionIdMarker( versionIdMarker ) );
 
         // expected results
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = index + 1; i < objectNames.length; i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
                 if ( j != 0 ) {
@@ -77,8 +76,8 @@ public class ListVersionsByVersionId17050 extends S3TestBase {
         }
         Assert.assertFalse( vsList.isTruncated(),
                 "vsList.isTruncated() must be false" );
-        ObjectUtils
-                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                expMap );
         runSuccess = true;
     }
 

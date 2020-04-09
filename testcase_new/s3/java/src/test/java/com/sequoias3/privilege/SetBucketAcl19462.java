@@ -44,10 +44,10 @@ public class SetBucketAcl19462 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -69,20 +69,21 @@ public class SetBucketAcl19462 extends S3TestBase {
     @Test
     private void testSetBucketAcl() throws Exception {
         // 使用标准acl配置桶acl为private，对象acl为public
-        ownerS3Client
-                .setBucketAcl( bucketName, CannedAccessControlList.Private );
+        ownerS3Client.setBucketAcl( bucketName,
+                CannedAccessControlList.Private );
         ownerS3Client.setObjectAcl( bucketName, keyName,
                 CannedAccessControlList.PublicRead );
         getObjectByOtherUser();
 
         // 使用标准acl更新桶acl配置为public
-        ownerS3Client
-                .setBucketAcl( bucketName, CannedAccessControlList.PublicRead );
-        Grant[] expGrant = { new Grant( new CanonicalGrantee( ownerId ),
-                Permission.FullControl ),
+        ownerS3Client.setBucketAcl( bucketName,
+                CannedAccessControlList.PublicRead );
+        Grant[] expGrant = {
+                new Grant( new CanonicalGrantee( ownerId ),
+                        Permission.FullControl ),
                 new Grant( GroupGrantee.AllUsers, Permission.Read ) };
-        PrivilegeUtils
-                .checkSetBucketAclResult( userS3Client, bucketName, expGrant );
+        PrivilegeUtils.checkSetBucketAclResult( userS3Client, bucketName,
+                expGrant );
         runSuccess = true;
     }
 

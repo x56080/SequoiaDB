@@ -44,7 +44,7 @@ public class UploadPart18778 extends S3TestBase {
     private String key = "obj18778";
     private int partsNum = 10;
     private String uploadId;
-    private List<PartETag> partETags = new ArrayList<>();
+    private List< PartETag > partETags = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -78,8 +78,8 @@ public class UploadPart18778 extends S3TestBase {
                 int len = ( fileSize / partsNum ) * partETags.size();
                 TestTools.LocalFile.readFile( filePath2, 0, len, filePath3 );
             }
-            String downfileMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, key );
+            String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, key );
             Assert.assertEquals( downfileMd5, TestTools.getMD5( expFilePath ) );
         }
 
@@ -100,18 +100,18 @@ public class UploadPart18778 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
 
-        filePath1 =
-                localPath + File.separator + "localFile_" + fileSize + "_1.txt";
+        filePath1 = localPath + File.separator + "localFile_" + fileSize
+                + "_1.txt";
         TestTools.LocalFile.createFile( filePath1, fileSize );
         file = new File( filePath1 );
 
-        filePath2 =
-                localPath + File.separator + "localFile_" + fileSize + "_2.txt";
+        filePath2 = localPath + File.separator + "localFile_" + fileSize
+                + "_2.txt";
         TestTools.LocalFile.createFile( filePath2, 0 );
         TestTools.LocalFile.readFile( filePath1, 0, fileSize, filePath2 );
 

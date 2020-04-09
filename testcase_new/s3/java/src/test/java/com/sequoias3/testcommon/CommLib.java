@@ -53,7 +53,8 @@ public class CommLib {
                 .withEndpointConfiguration( endpointConfiguration )
                 .withClientConfiguration( config )
                 .withChunkedEncodingDisabled( true )
-                .withPathStyleAccessEnabled( true ).withCredentials(
+                .withPathStyleAccessEnabled( true )
+                .withCredentials(
                         new AWSStaticCredentialsProvider( credentials ) )
                 .build();
         return s3Client;
@@ -122,7 +123,7 @@ public class CommLib {
         ListObjectsV2Result result;
         do {
             result = s3Client.listObjectsV2( request );
-            Iterator<S3ObjectSummary> objIter = result.getObjectSummaries()
+            Iterator< S3ObjectSummary > objIter = result.getObjectSummaries()
                     .iterator();
             while ( objIter.hasNext() ) {
                 S3ObjectSummary vs = objIter.next();
@@ -144,7 +145,7 @@ public class CommLib {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
         while ( true ) {
-            Iterator<S3VersionSummary> versionIter = versionList
+            Iterator< S3VersionSummary > versionIter = versionList
                     .getVersionSummaries().iterator();
             while ( versionIter.hasNext() ) {
                 S3VersionSummary vs = versionIter.next();
@@ -166,7 +167,7 @@ public class CommLib {
      * @param s3Client
      */
     public static void clearBuckets( AmazonS3 s3Client ) {
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         if ( buckets.size() != 0 ) {
             for ( int i = 0; i < buckets.size(); i++ ) {
                 String bucketName = buckets.get( i ).getName();

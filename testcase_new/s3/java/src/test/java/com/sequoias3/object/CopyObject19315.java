@@ -37,10 +37,10 @@ public class CopyObject19315 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -49,7 +49,7 @@ public class CopyObject19315 extends S3TestBase {
         CommLib.clearBucket( s3Client, bucketName );
         s3Client.createBucket( bucketName );
 
-        Map<String, String> srcMeta = new HashMap<>();
+        Map< String, String > srcMeta = new HashMap<>();
         srcMeta.put( "tag1", "srcobject123" );
         ObjectMetadata metaData = new ObjectMetadata();
         metaData.setUserMetadata( srcMeta );
@@ -104,7 +104,7 @@ public class CopyObject19315 extends S3TestBase {
 
     private void copyObjectWithMetaSuccess( String metadataDirective )
             throws IOException {
-        Map<String, String> objectMeta = new HashMap<>();
+        Map< String, String > objectMeta = new HashMap<>();
         objectMeta.put( "tag1", "testa" );
         objectMeta.put( "tag2", "testa2" );
         ObjectMetadata metaData = new ObjectMetadata();
@@ -123,11 +123,11 @@ public class CopyObject19315 extends S3TestBase {
         Assert.assertEquals( result.getETag(), TestTools.getMD5( filePath ) );
         Assert.assertEquals( result.getContentLength(), fileSize );
 
-        Map<String, String> actMeta = result.getUserMetadata();
+        Map< String, String > actMeta = result.getUserMetadata();
         Assert.assertEquals( actMeta.size(), objectMeta.size(),
                 "expMeta is : " + objectMeta.toString() + "actMeta is : "
                         + actMeta.toString() );
-        for ( Map.Entry<String, String> entry : objectMeta.entrySet() ) {
+        for ( Map.Entry< String, String > entry : objectMeta.entrySet() ) {
             Object key = entry.getKey();
             Assert.assertEquals( actMeta.get( key ), objectMeta.get( key ),
                     "actMeta = " + actMeta.toString() + ",expMeta = "

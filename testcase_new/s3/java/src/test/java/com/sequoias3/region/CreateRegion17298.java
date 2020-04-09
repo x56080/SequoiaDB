@@ -99,16 +99,14 @@ public class CreateRegion17298 extends S3TestBase {
         s3Client.createBucket( bucketName, regionName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
         for ( int i = 0; i < 10; i++ ) {
-            String context =
-                    "testcreatekeyonregion17298_" + bucketName + "_" + i;
+            String context = "testcreatekeyonregion17298_" + bucketName + "_"
+                    + i;
             s3Client.putObject( bucketName, key, context );
-            File localPath = new File(
-                    S3TestBase.workDir + File.separator + TestTools
-                            .getClassName() + bucketName );
+            File localPath = new File( S3TestBase.workDir + File.separator
+                    + TestTools.getClassName() + bucketName );
             String versionId = i + "";
-            String downfileMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, key,
-                            versionId );
+            String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, key, versionId );
             Assert.assertEquals( downfileMd5,
                     TestTools.getMD5( context.getBytes() ),
                     "the bucket is " + bucketName + ", the versionId is " + i

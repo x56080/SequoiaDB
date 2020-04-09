@@ -55,13 +55,12 @@ public class UpdateDelimiter18180 extends S3TestBase {
 
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
 
-        List<String> expCommonPrefixes = ObjectUtils
+        List< String > expCommonPrefixes = ObjectUtils
                 .getCommPrefixes( objectNames, "", delimiter );
-        List<String> matchContentsList = ObjectUtils
-                .getKeys( objectNames, "", delimiter );
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        expCommonPrefixes, matchContentsList );
+        List< String > matchContentsList = ObjectUtils.getKeys( objectNames, "",
+                delimiter );
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, expCommonPrefixes, matchContentsList );
         runSuccess = true;
     }
 

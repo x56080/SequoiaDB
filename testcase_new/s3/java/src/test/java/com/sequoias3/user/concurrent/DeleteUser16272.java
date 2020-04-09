@@ -44,7 +44,7 @@ public class DeleteUser16272 extends S3TestBase {
 
     @Test
     public void testDeleteUser() throws Exception {
-        List<DeleteUser> threads = new ArrayList<DeleteUser>();
+        List< DeleteUser > threads = new ArrayList< DeleteUser >();
         for ( int i = 0; i < num; i++ ) {
             threads.add( new DeleteUser() );
         }

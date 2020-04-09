@@ -37,17 +37,17 @@ public class UploadPart18761 extends S3TestBase {
     private File file2 = null;
     private String filePath = null;
     private String filePath2 = null;
-    private List<AmazonS3> clientList = Collections
-            .synchronizedList( new ArrayList<AmazonS3>() );
+    private List< AmazonS3 > clientList = Collections
+            .synchronizedList( new ArrayList< AmazonS3 >() );
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        filePath2 =
-                localPath + File.separator + "localFile2_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        filePath2 = localPath + File.separator + "localFile2_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -71,10 +71,10 @@ public class UploadPart18761 extends S3TestBase {
         // 未开启版本控制，对象内容为最后一次完成分段上传的对象内容，因只上传了两种内容file和file2，故实际对象内容应为2者中的一种
         String expMd5 = TestTools.getMD5( filePath );
         String expMd5_2 = TestTools.getMD5( filePath2 );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
-        if ( !downloadMd5.equals( expMd5 ) && !downloadMd5
-                .equals( expMd5_2 ) ) {
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
+        if ( !downloadMd5.equals( expMd5 )
+                && !downloadMd5.equals( expMd5_2 ) ) {
             Assert.fail( "actMd5 = " + downloadMd5 + "expMd5=[" + expMd5 + ", "
                     + expMd5_2 + "]" );
         }
@@ -103,7 +103,7 @@ public class UploadPart18761 extends S3TestBase {
         private long partSize;
         private File file;
         private String uploadId;
-        private List<PartETag> partEtags = new ArrayList<>();
+        private List< PartETag > partEtags = new ArrayList<>();
 
         public ThreadUploadPart18761( long partSize, File file ) {
             inner_s3Client = CommLib.buildS3Client();
@@ -114,15 +114,14 @@ public class UploadPart18761 extends S3TestBase {
 
         @ExecuteOrder(step = 1, desc = "初始化分段上传")
         public void initPartUpload() {
-            uploadId = PartUploadUtils
-                    .initPartUpload( inner_s3Client, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( inner_s3Client,
+                    bucketName, keyName );
         }
 
         @ExecuteOrder(step = 2, desc = "分段上传对象")
         public void UploadPart() {
-            partEtags = PartUploadUtils
-                    .partUpload( inner_s3Client, bucketName, keyName, uploadId,
-                            file, partSize );
+            partEtags = PartUploadUtils.partUpload( inner_s3Client, bucketName,
+                    keyName, uploadId, file, partSize );
         }
 
         @ExecuteOrder(step = 3, desc = "完成分段上传")

@@ -103,12 +103,13 @@ public class CreateUser18589 extends S3TestBase {
             String authorization ) {
         TestRest rest = new TestRest( type );
         try {
-            ResponseEntity<?> resp = rest.setApi(
-                    "/users/?Action=CreateUser&UserName=" + name + "&Role="
-                            + role ).setRequestMethod( HttpMethod.POST )
+            ResponseEntity< ? > resp = rest
+                    .setApi( "/users/?Action=CreateUser&UserName=" + name
+                            + "&Role=" + role )
+                    .setRequestMethod( HttpMethod.POST )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject resultJson = XML.toJSONObject( xmlBody );
             JSONObject AccessKeys = resultJson.getJSONObject( "AccessKeys" );
@@ -125,12 +126,12 @@ public class CreateUser18589 extends S3TestBase {
     private String[] updateUser( String name, String authorization ) {
         TestRest rest = new TestRest( type );
         try {
-            ResponseEntity<?> resp = rest
+            ResponseEntity< ? > resp = rest
                     .setApi( "/users/?Action=CreateAccessKey&UserName=" + name )
                     .setRequestMethod( HttpMethod.POST )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject resultJson = XML.toJSONObject( xmlBody );
             JSONObject AccessKeys = resultJson.getJSONObject( "AccessKeys" );
@@ -148,12 +149,12 @@ public class CreateUser18589 extends S3TestBase {
             boolean force ) {
         TestRest rest = new TestRest( type );
         try {
-            rest.setApi(
-                    "/users/?Action=DeleteUser&UserName=" + name + "&Force="
-                            + force ).setRequestMethod( HttpMethod.POST )
+            rest.setApi( "/users/?Action=DeleteUser&UserName="
+                    + name + "&Force=" + force )
+                    .setRequestMethod( HttpMethod.POST )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
         }
@@ -164,12 +165,12 @@ public class CreateUser18589 extends S3TestBase {
         TestRest rest = new TestRest( type );
         String accessKeyId = "";
         try {
-            ResponseEntity<?> resp = rest
+            ResponseEntity< ? > resp = rest
                     .setApi( "/users/?Action=GetAccessKey&UserName=" + name )
                     .setRequestMethod( HttpMethod.POST )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject resultJson = XML.toJSONObject( xmlBody );
             JSONObject AccessKeys = resultJson.getJSONObject( "AccessKeys" );

@@ -35,21 +35,20 @@ public class GetObjectByHistVersion16357 extends S3TestBase {
     private AmazonS3 s3Client = null;
     private int fileSize = 10;
     private File localPath = null;
-    private List<String> filePathList = new ArrayList<String>();
-    private List<PutObjectResult> objectVSList = new ArrayList<PutObjectResult>();
+    private List< String > filePathList = new ArrayList< String >();
+    private List< PutObjectResult > objectVSList = new ArrayList< PutObjectResult >();
     private int fileNum = 10;
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         String filePath = null;
         for ( int i = 0; i < fileNum; i++ ) {
-            filePath =
-                    localPath + File.separator + "localFile_" + ( fileSize + i )
-                            + ".txt";
+            filePath = localPath + File.separator + "localFile_"
+                    + ( fileSize + i ) + ".txt";
             TestTools.LocalFile.createFile( filePath, fileSize + i );
             filePathList.add( filePath );
         }
@@ -61,9 +60,9 @@ public class GetObjectByHistVersion16357 extends S3TestBase {
     @Test
     private void test() throws Exception {
         for ( int i = 0; i < fileNum; i++ ) {
-            objectVSList.add( s3Client.putObject(
-                    new PutObjectRequest( bucketName, objectName,
-                            new File( filePathList.get( i ) ) ) ) );
+            objectVSList
+                    .add( s3Client.putObject( new PutObjectRequest( bucketName,
+                            objectName, new File( filePathList.get( i ) ) ) ) );
         }
 
         // random history version
@@ -101,9 +100,9 @@ public class GetObjectByHistVersion16357 extends S3TestBase {
         S3ObjectInputStream s3InputStream = null;
         try {
             s3InputStream = object.getObjectContent();
-            String downloadPath = TestTools.LocalFile
-                    .initDownloadPath( localPath, TestTools.getMethodName(),
-                            Thread.currentThread().getId() );
+            String downloadPath = TestTools.LocalFile.initDownloadPath(
+                    localPath, TestTools.getMethodName(),
+                    Thread.currentThread().getId() );
             ObjectUtils.inputStream2File( s3InputStream, downloadPath );
             Assert.assertEquals( TestTools.getMD5( downloadPath ),
                     TestTools.getMD5( filePath ) );

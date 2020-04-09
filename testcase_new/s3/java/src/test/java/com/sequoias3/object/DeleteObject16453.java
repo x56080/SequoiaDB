@@ -29,7 +29,7 @@ public class DeleteObject16453 extends S3TestBase {
     private String bucketName = "bucket16453";
     private String keyName = "testkey16453";
     private int deleteVersionNum = 3;
-    private List<S3VersionSummary> expDeleteMarkersList = new ArrayList<S3VersionSummary>();
+    private List< S3VersionSummary > expDeleteMarkersList = new ArrayList< S3VersionSummary >();
     private AmazonS3 s3Client = null;
     private AtomicInteger actSuccessTests = new AtomicInteger( 0 );
 
@@ -72,7 +72,7 @@ public class DeleteObject16453 extends S3TestBase {
         ListVersionsRequest req = new ListVersionsRequest()
                 .withBucketName( bucketName );
         VersionListing versionList = s3Client.listVersions( req );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         checkDeleteMarkerResult( verList, remove_index );
 
         CommLib.deleteAllObjectVersions( s3Client, bucketName );
@@ -88,7 +88,7 @@ public class DeleteObject16453 extends S3TestBase {
         }
     }
 
-    private void checkDeleteMarkerResult( List<S3VersionSummary> verList,
+    private void checkDeleteMarkerResult( List< S3VersionSummary > verList,
             int removeIndex ) {
         expDeleteMarkersList.remove( removeIndex );
         Assert.assertEquals( verList.size(), expDeleteMarkersList.size() );

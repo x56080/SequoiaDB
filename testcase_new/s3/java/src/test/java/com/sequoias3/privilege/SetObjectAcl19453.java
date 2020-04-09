@@ -81,9 +81,8 @@ public class SetObjectAcl19453 extends S3TestBase {
         for ( Permission permission : Permission.values() ) {
             Grant expGrant2 = new Grant( new CanonicalGrantee( ownerId ),
                     permission );
-            PrivilegeUtils
-                    .setObjectAclByHeader( s3AccessKeyId, bucketName, keyName,
-                            expGrant2 );
+            PrivilegeUtils.setObjectAclByHeader( s3AccessKeyId, bucketName,
+                    keyName, expGrant2 );
             PrivilegeUtils.checkSetObjectAclResult( ownerS3Client, bucketName,
                     keyName, expGrant2 );
             getObjectByOtherUser();
@@ -93,9 +92,8 @@ public class SetObjectAcl19453 extends S3TestBase {
         for ( Permission permission : Permission.values() ) {
             Grant expGrant3 = new Grant( new CanonicalGrantee( ownerId ),
                     permission );
-            PrivilegeUtils
-                    .setObjectAclByBody( ownerS3Client, bucketName, keyName,
-                            expGrant3 );
+            PrivilegeUtils.setObjectAclByBody( ownerS3Client, bucketName,
+                    keyName, expGrant3 );
             PrivilegeUtils.checkSetObjectAclResult( ownerS3Client, bucketName,
                     keyName, expGrant3 );
             getObjectByOtherUser();
@@ -132,8 +130,8 @@ public class SetObjectAcl19453 extends S3TestBase {
     }
 
     private void putObjectBeforeTest() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         oldFilePath = localPath + File.separator + "localFile_" + oldFileSize
                 + ".txt";
         newFilePath = localPath + File.separator + "localFile_" + newFileSize

@@ -38,17 +38,17 @@ public class ListObjectVersionsWithDelimiter18186 extends S3TestBase {
     private int versionNum = 3;
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * 10;
-    private List<String> keyNames = new ArrayList<>();
+    private List< String > keyNames = new ArrayList<>();
     private File localPath = null;
     private String filePath = null;
     private boolean runSuccess = false;
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -105,9 +105,9 @@ public class ListObjectVersionsWithDelimiter18186 extends S3TestBase {
 
         @ExecuteOrder(step = 2, desc = "检查匹配结果")
         public void checkResult() {
-            List<String> expCommprefixList = new ArrayList<>();
+            List< String > expCommprefixList = new ArrayList<>();
             // expected versions result
-            MultiValueMap<String, String> expVersionsMap = new LinkedMultiValueMap<String, String>();
+            MultiValueMap< String, String > expVersionsMap = new LinkedMultiValueMap< String, String >();
             for ( int i = 0; i < objectNames.length; i++ ) {
                 for ( int j = versionNum - 1; j >= 0; j-- ) {
                     expVersionsMap.add( objectNames[ i ], String.valueOf( j ) );
@@ -128,17 +128,16 @@ public class ListObjectVersionsWithDelimiter18186 extends S3TestBase {
 
         @ExecuteOrder(step = 1, desc = "指定delimiter查询对象版本列表")
         public void ListObjectVersions() {
-            vsList = s3Client.listVersions(
-                    new ListVersionsRequest().withBucketName( bucketName )
-                            .withDelimiter( delimiter ) );
+            vsList = s3Client.listVersions( new ListVersionsRequest()
+                    .withBucketName( bucketName ).withDelimiter( delimiter ) );
         }
 
         @ExecuteOrder(step = 3, desc = "检查指定delimiter查询对象版本列表匹配结果")
         public void checkResult() {
-            List<String> expCommprefixList = ObjectUtils
+            List< String > expCommprefixList = ObjectUtils
                     .getCommPrefixes( objectNames, "", delimiter );
             // expected versions result
-            MultiValueMap<String, String> expVersionsMap = new LinkedMultiValueMap<String, String>();
+            MultiValueMap< String, String > expVersionsMap = new LinkedMultiValueMap< String, String >();
             Assert.assertFalse( vsList.isTruncated(),
                     "vsList.isTruncated() must be true" );
             ObjectUtils.checkListVSResults( vsList, expCommprefixList,

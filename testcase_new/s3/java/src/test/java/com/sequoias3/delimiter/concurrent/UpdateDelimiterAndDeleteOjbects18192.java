@@ -34,7 +34,7 @@ public class UpdateDelimiterAndDeleteOjbects18192 extends S3TestBase {
     private String bucketName = "bucket18192";
     private String keyName = "/目录1/object18192";
     private int objectNums = 100;
-    private List<String> keyList = new ArrayList<>();
+    private List< String > keyList = new ArrayList<>();
     private AmazonS3 s3Client = null;
 
     @BeforeClass
@@ -85,7 +85,7 @@ public class UpdateDelimiterAndDeleteOjbects18192 extends S3TestBase {
         // /versionID/isDeleteMarker
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
-        List<S3VersionSummary> versionSummary = versionList
+        List< S3VersionSummary > versionSummary = versionList
                 .getVersionSummaries();
         int existObjectNum = objectNums * 2;
         int actVersionNum = versionSummary.size();
@@ -139,8 +139,8 @@ public class UpdateDelimiterAndDeleteOjbects18192 extends S3TestBase {
         @ExecuteOrder(step = 2)
         private void checkResult() {
             // check the currentVersion object is not exist.
-            boolean isExistObject = s3Client
-                    .doesObjectExist( bucketName, keyName );
+            boolean isExistObject = s3Client.doesObjectExist( bucketName,
+                    keyName );
             Assert.assertFalse( isExistObject,
                     "the object should not exist! key=" + keyName );
         }

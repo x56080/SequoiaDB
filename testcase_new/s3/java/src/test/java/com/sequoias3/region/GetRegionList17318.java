@@ -31,7 +31,7 @@ public class GetRegionList17318 extends S3TestBase {
     private String dataCSName = "dataCS17318";
     private String[] metaClNames = { "metaCL17318", "metaHistoryCL17318" };
     private String[] dataClName = { "dataCL17318" };
-    private List<String> regionNames = new ArrayList<>();
+    private List< String > regionNames = new ArrayList<>();
     private int regionNum = 10;
     private boolean runSuccess = false;
 
@@ -87,7 +87,7 @@ public class GetRegionList17318 extends S3TestBase {
         checkGetRegion();
 
         // delete region,the delete num is 2
-        List<String> deleteRegions = new ArrayList<>();
+        List< String > deleteRegions = new ArrayList<>();
         for ( int i = regionNum / 2; i < regionNum / 2 + 2; i++ ) {
             String deleteRegion = regionNames.get( i );
             RegionUtils.deleteRegion( deleteRegion );
@@ -108,7 +108,7 @@ public class GetRegionList17318 extends S3TestBase {
     private void tearDown() throws Exception {
         if ( runSuccess ) {
             try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
-                    "" ) ) {
+                    "" )) {
                 sdb.dropCollectionSpace( metaCSName );
                 sdb.dropCollectionSpace( dataCSName );
                 deleteRegions( regionNames );
@@ -118,7 +118,7 @@ public class GetRegionList17318 extends S3TestBase {
         }
     }
 
-    private void deleteRegions( List<String> regions ) throws Exception {
+    private void deleteRegions( List< String > regions ) throws Exception {
         for ( int i = 0; i < regions.size(); i++ ) {
             if ( RegionUtils.headRegion( regions.get( i ) ) ) {
                 RegionUtils.deleteRegion( regions.get( i ) );
@@ -127,8 +127,8 @@ public class GetRegionList17318 extends S3TestBase {
     }
 
     private void checkGetRegion() throws Exception {
-        List<String> actRegions = RegionUtils.listRegions();
-        Set<String> unRepeatRegionNames = new HashSet<>();
+        List< String > actRegions = RegionUtils.listRegions();
+        Set< String > unRepeatRegionNames = new HashSet<>();
         for ( String regionName : actRegions ) {
             boolean isRepeat = unRepeatRegionNames.add( regionName );
             Assert.assertTrue( isRepeat,
@@ -139,9 +139,9 @@ public class GetRegionList17318 extends S3TestBase {
                         + ", act regions is : " + actRegions.toString() );
     }
 
-    private void checkDeleteRegion( List<String> deleteRegions )
+    private void checkDeleteRegion( List< String > deleteRegions )
             throws Exception {
-        List<String> actRegions = RegionUtils.listRegions();
+        List< String > actRegions = RegionUtils.listRegions();
         for ( String region : deleteRegions ) {
             Assert.assertFalse( actRegions.contains( region ),
                     "the region : " + region + " is still exist!" );

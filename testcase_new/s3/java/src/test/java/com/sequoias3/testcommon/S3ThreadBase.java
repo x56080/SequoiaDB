@@ -14,8 +14,8 @@ public abstract class S3ThreadBase implements Runnable {
     private static final int MAX_THREAD_NUMBER = 100;
     private static ExecutorService service = Executors
             .newFixedThreadPool( MAX_THREAD_NUMBER );
-    private List<Throwable> exceptionList = Collections
-            .synchronizedList( new ArrayList<Throwable>() );
+    private List< Throwable > exceptionList = Collections
+            .synchronizedList( new ArrayList< Throwable >() );
     private Integer syncRes = new Integer( 0 );
     private Integer syncRunning = new Integer( 0 );
     private Object result = null;
@@ -71,13 +71,10 @@ public abstract class S3ThreadBase implements Runnable {
 
     /*
      * -------------------------------------------------------------------------
-     * -
-     *
-     * getExecResult -- 获取线程的执行结果，只适应启动一个线程的情况 必须在线程结束前通过setExecResult进行设置
-     * 如果线程没有开始或者已经结束调用直接返回，否则会阻塞到结果被设置 Parameters:
-     *
-     * Returns: 结果对象实例，如果是一个DBCursor，返回后通过 Object ret = getExecResult() ; if (
-     * ret instanceof DBCursor){ DBCursor cursor = (DBCursor)ret; }
+     * - getExecResult -- 获取线程的执行结果，只适应启动一个线程的情况 必须在线程结束前通过setExecResult进行设置
+     * 如果线程没有开始或者已经结束调用直接返回，否则会阻塞到结果被设置 Parameters: Returns:
+     * 结果对象实例，如果是一个DBCursor，返回后通过 Object ret = getExecResult() ; if ( ret
+     * instanceof DBCursor){ DBCursor cursor = (DBCursor)ret; }
      * -------------------------------------------------------------------------
      * -
      */
@@ -95,13 +92,8 @@ public abstract class S3ThreadBase implements Runnable {
 
     /*
      * -------------------------------------------------------------------------
-     * -
-     *
-     * setExecResult -- 设置线程的执行结果，只适合启单个线程的情况
-     *
-     * Parameters: result: Object 可以是任意对象类型
-     *
-     * Returns: void
+     * - setExecResult -- 设置线程的执行结果，只适合启单个线程的情况 Parameters: result: Object
+     * 可以是任意对象类型 Returns: void
      * -------------------------------------------------------------------------
      * -
      */
@@ -114,7 +106,7 @@ public abstract class S3ThreadBase implements Runnable {
     }
 
     // 返回结果集
-    public List<Throwable> getExceptions() {
+    public List< Throwable > getExceptions() {
         join();
         return exceptionList;
     }
@@ -186,17 +178,11 @@ public abstract class S3ThreadBase implements Runnable {
 
     /*
      * -------------------------------------------------------------------------
-     * -
-     *
-     * matchBlockingMethod -- 当前线程是否阻塞在相应的调用上
-     *
-     * Parameters: className: 类名 (DBCollection.class.getName()) methodName:
-     * 方法名(query ...)
-     *
-     * Returns: 如果当前线程执行CL.update()阻塞
-     * matchBlockingMethod(cl.getClass().getName(), "update")则返回true
-     * 如果当前线程执行CL.query()阻塞，则返回true matchBlockingMethod(cl.getClass().getName(),
-     * "query")则返回true 否则返回false
+     * - matchBlockingMethod -- 当前线程是否阻塞在相应的调用上 Parameters: className: 类名
+     * (DBCollection.class.getName()) methodName: 方法名(query ...) Returns:
+     * 如果当前线程执行CL.update()阻塞 matchBlockingMethod(cl.getClass().getName(),
+     * "update")则返回true 如果当前线程执行CL.query()阻塞，则返回true
+     * matchBlockingMethod(cl.getClass().getName(), "query")则返回true 否则返回false
      * -------------------------------------------------------------------------
      * -
      */
@@ -261,14 +247,14 @@ public abstract class S3ThreadBase implements Runnable {
 
                 if ( stackElem[ pos ].getClassName().equals( className )
                         && stackElem[ pos ].getMethodName()
-                        .equals( methodName ) ) {
+                                .equals( methodName ) ) {
                     ++matchTimes;
                 }
             } else {
                 for ( pos = 0; pos < stackElem.length; ++pos ) {
                     if ( stackElem[ pos ].getClassName().equals( className )
                             && stackElem[ pos ].getMethodName()
-                            .equals( methodName ) ) {
+                                    .equals( methodName ) ) {
                         ++matchTimes;
                         break;
                     }

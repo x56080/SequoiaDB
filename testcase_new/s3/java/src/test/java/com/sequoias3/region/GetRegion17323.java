@@ -47,12 +47,11 @@ public class GetRegion17323 extends S3TestBase {
         // get region by normal user
         try {
             RegionUtils.getRegion( regionName, accessKeyID );
-            Assert.fail(
-                    "exp fail but act success," + "regionName = " + regionName
-                            + ",username = " + username );
+            Assert.fail( "exp fail but act success," + "regionName = "
+                    + regionName + ",username = " + username );
         } catch ( AmazonS3Exception e ) {
-            if ( e.getStatusCode() != 403 && !e.getErrorCode()
-                    .contains( "AccessDenied" ) ) {
+            if ( e.getStatusCode() != 403
+                    && !e.getErrorCode().contains( "AccessDenied" ) ) {
                 throw e;
             }
         }

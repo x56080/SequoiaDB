@@ -47,14 +47,13 @@ public class TestGetObjectMetadata16691 extends S3TestBase {
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
         s3Client.putObject( bucketName, keyName, content + "v1" );
         s3Client.putObject( bucketName, keyName, content + "v2" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content + "v3" );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content + "v3" );
         String etag = result.getETag();
         String versionid = result.getVersionId();
 
-        HttpHead request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + bucketName + "/" + keyName
-                        + "?versionId=" + versionid );
+        HttpHead request = new HttpHead( S3TestBase.s3ClientUrl + "/"
+                + bucketName + "/" + keyName + "?versionId=" + versionid );
         request.setHeader( "Authorization",
                 "Credential=" + accessKeys[ 0 ] + "/" );
 

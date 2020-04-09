@@ -33,7 +33,7 @@ public class UpdateDelimiterAndCreateOjbects18190 extends S3TestBase {
     private String bucketName = "bucket18190";
     private String keyName = "/aa/object18190";
     private int objectNums = 200;
-    private List<String> matchKeyList = new ArrayList<>();
+    private List< String > matchKeyList = new ArrayList<>();
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * 1024 * 100;
     private File localPath = null;
@@ -41,10 +41,10 @@ public class UpdateDelimiterAndCreateOjbects18190 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -77,10 +77,9 @@ public class UpdateDelimiterAndCreateOjbects18190 extends S3TestBase {
         threadExec.run();
 
         // check the dir of object availability
-        List<String> expContentList = new ArrayList<>();
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        matchKeyList, expContentList );
+        List< String > expContentList = new ArrayList<>();
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, matchKeyList, expContentList );
         runSuccess = true;
     }
 
@@ -151,8 +150,8 @@ public class UpdateDelimiterAndCreateOjbects18190 extends S3TestBase {
         @ExecuteOrder(step = 2)
         private void checkObjectContent() throws Exception {
             // check the content of the create object
-            String downfileMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+            String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, keyName );
             Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         }
     }

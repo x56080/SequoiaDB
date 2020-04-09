@@ -79,10 +79,10 @@ public class SetObjectAcl19457 extends S3TestBase {
         Grant grant = new Grant(
                 new CanonicalGrantee( userS3.getS3AccountOwner().getId() ),
                 permission );
-        PrivilegeUtils
-                .setObjectAclByBody( adminS3, bucketName, keyName, grant );
+        PrivilegeUtils.setObjectAclByBody( adminS3, bucketName, keyName,
+                grant );
         // userS3 get object acl and check results
-        PrivilegeUtils
-                .checkSetObjectAclResult( userS3, bucketName, keyName, grant );
+        PrivilegeUtils.checkSetObjectAclResult( userS3, bucketName, keyName,
+                grant );
     }
 }

@@ -40,10 +40,10 @@ public class ListObjectsWithDelimiter16422_18562 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -56,7 +56,7 @@ public class ListObjectsWithDelimiter16422_18562 extends S3TestBase {
 
     @Test
     public void testListObjects() throws Exception {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
         listObjectsAndCheckResult( keyList );
         listObjectV1AndCheckResult( keyList );
         runSuccess = true;
@@ -74,20 +74,20 @@ public class ListObjectsWithDelimiter16422_18562 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList )
+    private void listObjectsAndCheckResult( List< String > keyList )
             throws IOException {
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" );
         request.withDelimiter( delimiter );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         // matching delimiter displays only 1 record
         Assert.assertEquals( commonPrefixes.size(), 1 );
         Assert.assertEquals( commonPrefixes.get( 0 ), delimiter );
 
         // objects do not match delimiter are displayed in contents,num is 10
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         int contentsNums = 10;
         Assert.assertEquals( objects.size(), contentsNums );
         for ( S3ObjectSummary os : objects ) {
@@ -103,22 +103,22 @@ public class ListObjectsWithDelimiter16422_18562 extends S3TestBase {
         Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private void listObjectV1AndCheckResult( List<String> keyList )
+    private void listObjectV1AndCheckResult( List< String > keyList )
             throws IOException {
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName );
         request.withDelimiter( delimiter );
         ObjectListing result = s3Client.listObjects( request );
         Assert.assertEquals( result.getDelimiter(), delimiter );
 
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         // matching delimiter displays only 1 record
         Assert.assertEquals( commonPrefixes.size(), 1 );
         Assert.assertEquals( commonPrefixes.get( 0 ), delimiter );
 
         // objects do not match delimiter are displayed in contents,num is 10
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         int contentsNums = 10;
         Assert.assertEquals( objects.size(), contentsNums );
         for ( S3ObjectSummary os : objects ) {
@@ -134,8 +134,8 @@ public class ListObjectsWithDelimiter16422_18562 extends S3TestBase {
         Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private List<String> putObjects() {
-        List<String> noMatchKeyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > noMatchKeyList = new ArrayList<>();
         int objectNums = 50;
         String keyName;
         for ( int i = 0; i < objectNums; i++ ) {

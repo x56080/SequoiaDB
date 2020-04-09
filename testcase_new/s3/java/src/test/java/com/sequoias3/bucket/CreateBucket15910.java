@@ -37,7 +37,7 @@ public class CreateBucket15910 extends S3TestBase {
     @Test
     private void testCreateBucket() throws Exception {
         // get bucket information fail
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         Assert.assertEquals( buckets.size(), 0,
                 "get bucket information should fail!" );
         runSuccess = true;

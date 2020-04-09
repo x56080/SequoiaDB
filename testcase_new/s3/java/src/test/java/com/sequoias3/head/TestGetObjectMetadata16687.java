@@ -42,10 +42,10 @@ public class TestGetObjectMetadata16687 extends S3TestBase {
     @BeforeClass
     private void setUp() throws Exception {
         CommLib.clearUser( userName );
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -57,23 +57,21 @@ public class TestGetObjectMetadata16687 extends S3TestBase {
     private void testGetObjectMetadata() throws Exception {
         s3Client.createBucket( bucketName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, new File( filePath ) );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                new File( filePath ) );
         String expEtag = result.getETag();
         String versionid = result.getVersionId();
 
-        HttpHead request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + bucketName + "/" + keyName
-                        + "?versionId=" + versionid );
+        HttpHead request = new HttpHead( S3TestBase.s3ClientUrl + "/"
+                + bucketName + "/" + keyName + "?versionId=" + versionid );
         request.setHeader( "Authorization",
                 "Credential=" + accessKeys[ 0 ] + "/" );
 
         // 指定range为中间范围1k-99k
         int leftBoundary = 1 * 1024;
         int rightBoundary = 99 * 1024;
-        request.setHeader( "Range",
-                "bytes=" + String.valueOf( leftBoundary ) + "-" + String
-                        .valueOf( rightBoundary ) );
+        request.setHeader( "Range", "bytes=" + String.valueOf( leftBoundary )
+                + "-" + String.valueOf( rightBoundary ) );
         client = RestClient.createHttpClient();
         CloseableHttpResponse resp = RestClient.sendRequest( client, request );
 

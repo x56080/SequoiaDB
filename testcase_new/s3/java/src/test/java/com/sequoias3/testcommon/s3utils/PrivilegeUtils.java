@@ -31,7 +31,7 @@ public class PrivilegeUtils extends S3TestBase {
      */
     public static void setBucketAclByHeader( String accessKeyId,
             String bucketName, Grant... grants ) throws Exception {
-        MultiValueMap<String, String> grantHeaderMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > grantHeaderMap = new LinkedMultiValueMap< String, String >();
 
         HttpPut request = new HttpPut(
                 S3TestBase.s3ClientUrl + "/" + bucketName + "/?acl" );
@@ -39,11 +39,11 @@ public class PrivilegeUtils extends S3TestBase {
                 UserCommDefind.authValPre + accessKeyId + "/" );
         for ( Grant grant : grants ) {
             grantHeaderMap.add( grant.getPermission().getHeaderName(),
-                    grant.getGrantee().getTypeIdentifier() + "=" + grant
-                            .getGrantee().getIdentifier() );
+                    grant.getGrantee().getTypeIdentifier() + "="
+                            + grant.getGrantee().getIdentifier() );
             ;
         }
-        Set<String> headers = grantHeaderMap.keySet();
+        Set< String > headers = grantHeaderMap.keySet();
         for ( String header : headers ) {
             String grantStr = grantHeaderMap.get( header ).toString();
             request.setHeader( header,
@@ -81,21 +81,21 @@ public class PrivilegeUtils extends S3TestBase {
     public static void checkSetBucketAclResult( AmazonS3 s3Client,
             String bucketName, Grant... expGrants ) {
         boolean isEqual = false;
-        List<Grant> expGrantsList = new ArrayList<>();
+        List< Grant > expGrantsList = new ArrayList<>();
         AccessControlList result = s3Client.getBucketAcl( bucketName );
         if ( expGrants != null ) {
             expGrantsList = new ArrayList<>( Arrays.asList( expGrants ) );
         }
-        List<Grant> actGrantsList = result.getGrantsAsList();
-        if ( actGrantsList.size() == expGrantsList.size() && actGrantsList
-                .containsAll( expGrantsList ) && expGrantsList
-                .containsAll( actGrantsList ) ) {
+        List< Grant > actGrantsList = result.getGrantsAsList();
+        if ( actGrantsList.size() == expGrantsList.size()
+                && actGrantsList.containsAll( expGrantsList )
+                && expGrantsList.containsAll( actGrantsList ) ) {
             isEqual = true;
         }
         if ( !isEqual ) {
-            Assert.fail( "bucket acl is wrong! exp grants = " + expGrantsList
-                    .toString() + ", act grants = " + actGrantsList
-                    .toString() );
+            Assert.fail( "bucket acl is wrong! exp grants = "
+                    + expGrantsList.toString() + ", act grants = "
+                    + actGrantsList.toString() );
         }
     }
 
@@ -129,26 +129,24 @@ public class PrivilegeUtils extends S3TestBase {
     public static void setObjectAclByHeader( String accessKeyId,
             String bucketName, String keyName, String versionId,
             Grant... grants ) throws Exception {
-        MultiValueMap<String, String> grantHeaderMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > grantHeaderMap = new LinkedMultiValueMap< String, String >();
         HttpPut request = null;
         if ( versionId == null ) {
-            request = new HttpPut(
-                    S3TestBase.s3ClientUrl + "/" + bucketName + "/" + keyName
-                            + "?acl" );
+            request = new HttpPut( S3TestBase.s3ClientUrl + "/" + bucketName
+                    + "/" + keyName + "?acl" );
         } else {
-            request = new HttpPut(
-                    S3TestBase.s3ClientUrl + "/" + bucketName + "/" + keyName
-                            + "?acl&versionId=" + versionId );
+            request = new HttpPut( S3TestBase.s3ClientUrl + "/" + bucketName
+                    + "/" + keyName + "?acl&versionId=" + versionId );
         }
         request.setHeader( UserCommDefind.authorization,
                 UserCommDefind.authValPre + accessKeyId + "/" );
         for ( Grant grant : grants ) {
             grantHeaderMap.add( grant.getPermission().getHeaderName(),
-                    grant.getGrantee().getTypeIdentifier() + "=" + grant
-                            .getGrantee().getIdentifier() );
+                    grant.getGrantee().getTypeIdentifier() + "="
+                            + grant.getGrantee().getIdentifier() );
             ;
         }
-        Set<String> headers = grantHeaderMap.keySet();
+        Set< String > headers = grantHeaderMap.keySet();
         for ( String header : headers ) {
             String grantStr = grantHeaderMap.get( header ).toString();
             request.setHeader( header,
@@ -188,9 +186,8 @@ public class PrivilegeUtils extends S3TestBase {
         AccessControlList objectAcl = new AccessControlList();
         objectAcl.grantAllPermissions( grants );
         objectAcl.setOwner( s3Client.getS3AccountOwner() );
-        s3Client.setObjectAcl(
-                new SetObjectAclRequest( bucketName, keyName, versionId,
-                        objectAcl ) );
+        s3Client.setObjectAcl( new SetObjectAclRequest( bucketName, keyName,
+                versionId, objectAcl ) );
     }
 
     /**
@@ -224,16 +221,16 @@ public class PrivilegeUtils extends S3TestBase {
             String bucketName, String keyName, String versionId,
             Grant... expGrants ) {
         boolean isEqual = false;
-        List<Grant> expGrantsList = new ArrayList<>();
+        List< Grant > expGrantsList = new ArrayList<>();
         AccessControlList result = s3Client.getObjectAcl(
                 new GetObjectAclRequest( bucketName, keyName, versionId ) );
         if ( expGrants != null ) {
             expGrantsList = new ArrayList<>( Arrays.asList( expGrants ) );
         }
-        List<Grant> actGrantsList = result.getGrantsAsList();
-        if ( actGrantsList.size() == expGrantsList.size() && actGrantsList
-                .containsAll( expGrantsList ) && expGrantsList
-                .containsAll( actGrantsList ) ) {
+        List< Grant > actGrantsList = result.getGrantsAsList();
+        if ( actGrantsList.size() == expGrantsList.size()
+                && actGrantsList.containsAll( expGrantsList )
+                && expGrantsList.containsAll( actGrantsList ) ) {
             isEqual = true;
         }
         if ( !isEqual ) {

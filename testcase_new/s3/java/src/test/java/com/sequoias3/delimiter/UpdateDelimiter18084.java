@@ -49,24 +49,22 @@ public class UpdateDelimiter18084 extends S3TestBase {
 
     @Test(dataProvider = "keyNumsProvider")
     private void testUpdateDelimiter( int keyNum ) throws Exception {
-        keyList = DelimiterUtils
-                .getRandomKeyListWithDelimiter( delimiter1, delimiter2, keyNum,
-                        "18084" );
+        keyList = DelimiterUtils.getRandomKeyListWithDelimiter( delimiter1,
+                delimiter2, keyNum, "18084" );
         for ( int i = 0; i < keyList.length; i++ ) {
             s3Client.putObject( bucketName, keyList[ i ], "test18084" );
         }
 
         // 更新分隔符为delimiter2并检查结果(这里通过携带delimiter查询对象列表的对外映射场景检测目录表是否生成新目录，对象元数据表和目录表中数据通过连接db手工校验)
-        DelimiterUtils
-                .putBucketDelimiter( bucketName, delimiter2, accessKeys[ 0 ] );
+        DelimiterUtils.putBucketDelimiter( bucketName, delimiter2,
+                accessKeys[ 0 ] );
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter2,
                 accessKeys[ 0 ] );
 
-        List<String> expCommonPrefixes = ObjectUtils
-                .getCommPrefixes( keyList, "", delimiter2 );
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter2,
-                        expCommonPrefixes, new ArrayList<String>() );
+        List< String > expCommonPrefixes = ObjectUtils.getCommPrefixes( keyList,
+                "", delimiter2 );
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter2, expCommonPrefixes, new ArrayList< String >() );
 
         CommLib.deleteAllObjects( s3Client, bucketName );
         actSuccessTests.getAndIncrement();

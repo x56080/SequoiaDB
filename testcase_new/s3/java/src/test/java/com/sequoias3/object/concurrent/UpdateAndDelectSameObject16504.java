@@ -41,12 +41,12 @@ public class UpdateAndDelectSameObject16504 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -96,16 +96,16 @@ public class UpdateAndDelectSameObject16504 extends S3TestBase {
             String key ) throws Exception {
         boolean isExistObject = s3Client.doesObjectExist( bucketName, key );
         if ( isExistObject ) {
-            String downfileMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+            String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, keyName );
             Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
         } else {
             S3Object object = s3Client.getObject(
                     new GetObjectRequest( bucketName, keyName, "1" ) );
             S3ObjectInputStream s3is = object.getObjectContent();
-            String downloadPath = TestTools.LocalFile
-                    .initDownloadPath( localPath, TestTools.getMethodName(),
-                            Thread.currentThread().getId() );
+            String downloadPath = TestTools.LocalFile.initDownloadPath(
+                    localPath, TestTools.getMethodName(),
+                    Thread.currentThread().getId() );
             ObjectUtils.inputStream2File( s3is, downloadPath );
             s3is.close();
             String getObjectMd5 = TestTools.getMD5( downloadPath );
@@ -116,8 +116,8 @@ public class UpdateAndDelectSameObject16504 extends S3TestBase {
     private class UpdateObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.putObject( bucketName, keyName,
                         new File( updatePath ) );
@@ -132,8 +132,8 @@ public class UpdateAndDelectSameObject16504 extends S3TestBase {
     private class DeleteObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 Thread.sleep( 30 );
                 s3Client.deleteObject( bucketName, keyName );

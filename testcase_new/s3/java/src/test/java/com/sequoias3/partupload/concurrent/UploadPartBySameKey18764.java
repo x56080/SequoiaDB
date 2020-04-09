@@ -26,8 +26,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * @Description seqDB-18764: enabling bucket versioning,the key upload multiple parts concurrently
- *              by different uploadId.
+ * @Description seqDB-18764: enabling bucket versioning,the key upload multiple
+ *              parts concurrently by different uploadId.
  * @author wuyan
  * @Date 2019.08.06
  * @version 1.00
@@ -44,14 +44,13 @@ public class UploadPartBySameKey18764 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         for ( int i = 0; i < fileSizes.length; i++ ) {
-            String filePath =
-                    localPath + File.separator + "localFile_" + fileSizes[ i ]
-                            + ".txt";
+            String filePath = localPath + File.separator + "localFile_"
+                    + fileSizes[ i ] + ".txt";
             TestTools.LocalFile.createFile( filePath, fileSizes[ i ] );
             filePaths[ i ] = filePath;
         }
@@ -93,7 +92,7 @@ public class UploadPartBySameKey18764 extends S3TestBase {
     }
 
     private void listObjectsAndCheckResults() throws Exception {
-        MultiValueMap<Long, String> expFileSizeAndMd5 = new LinkedMultiValueMap<Long, String>();
+        MultiValueMap< Long, String > expFileSizeAndMd5 = new LinkedMultiValueMap< Long, String >();
         for ( int i = 0; i < filePaths.length; i++ ) {
             String fileMd5 = TestTools.getMD5( filePaths[ i ] );
             long fileSize = fileSizes[ i ];
@@ -102,17 +101,16 @@ public class UploadPartBySameKey18764 extends S3TestBase {
         // listObjectVersion, then get object to check filemd5
         VersionListing vsList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
-        List<S3VersionSummary> vsSummaryList = vsList.getVersionSummaries();
-        List<String> versionList = new ArrayList<>();
-        List<String> expVersionList = new ArrayList<>();
+        List< S3VersionSummary > vsSummaryList = vsList.getVersionSummaries();
+        List< String > versionList = new ArrayList<>();
+        List< String > expVersionList = new ArrayList<>();
         int count = 0;
         for ( S3VersionSummary versionSummary : vsSummaryList ) {
             String keyName = versionSummary.getKey();
             String versionId = versionSummary.getVersionId();
             long size = versionSummary.getSize();
-            String downfileMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, keyName,
-                            versionId );
+            String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, keyName, versionId );
             String expFileMd5 = expFileSizeAndMd5.get( size ).get( 0 );
             Assert.assertEquals( downfileMd5, expFileMd5,
                     "the object version is :" + versionId + "  object Size is:"
@@ -134,7 +132,7 @@ public class UploadPartBySameKey18764 extends S3TestBase {
         private File file;
         private String uploadId;
         private int partSize;
-        private List<PartETag> partEtags;
+        private List< PartETag > partEtags;
         private AmazonS3 s3Client1 = CommLib.buildS3Client();
 
         private PartUpload( File file, int partSize ) {
@@ -144,15 +142,14 @@ public class UploadPartBySameKey18764 extends S3TestBase {
 
         @ExecuteOrder(step = 1)
         private void initPartUpload() {
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client1, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client1, bucketName,
+                    keyName );
         }
 
         @ExecuteOrder(step = 2)
         private void partUpload() {
-            partEtags = PartUploadUtils
-                    .partUpload( s3Client1, bucketName, keyName, uploadId, file,
-                            partSize );
+            partEtags = PartUploadUtils.partUpload( s3Client1, bucketName,
+                    keyName, uploadId, file, partSize );
         }
 
         @ExecuteOrder(step = 3)

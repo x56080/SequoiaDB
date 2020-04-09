@@ -38,10 +38,10 @@ public class UploadPart18707 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -55,18 +55,17 @@ public class UploadPart18707 extends S3TestBase {
 
     @Test
     private void testUpload() throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        List<PartETag> partEtags = PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        List< PartETag > partEtags = PartUploadUtils.partUpload( s3Client,
+                bucketName, keyName, uploadId, file );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
 
         // 再次指定相同key和相同uploadId，执行分段上传
         try {
-            partEtags = PartUploadUtils
-                    .partUpload( s3Client, bucketName, keyName, uploadId,
-                            file );
+            partEtags = PartUploadUtils.partUpload( s3Client, bucketName,
+                    keyName, uploadId, file );
             Assert.fail( "upload part again should fail." );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getErrorCode(), "NoSuchUpload" );
@@ -76,17 +75,16 @@ public class UploadPart18707 extends S3TestBase {
         }
 
         try {
-            PartUploadUtils
-                    .completeMultipartUpload( s3Client, bucketName, keyName,
-                            uploadId, partEtags );
+            PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
+                    keyName, uploadId, partEtags );
             Assert.fail( "complete multipart upload again should fail." );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getErrorCode(), "NoSuchUpload" );
         }
 
         String expMd5 = TestTools.getMD5( filePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
         runSuccess = true;
     }

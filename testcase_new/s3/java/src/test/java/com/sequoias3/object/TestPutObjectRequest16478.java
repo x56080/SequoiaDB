@@ -65,10 +65,10 @@ public class TestPutObjectRequest16478 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         s3Client = CommLib.buildS3Client();
         s3Client.createBucket( new CreateBucketRequest( bucketName ) );
     }
@@ -78,9 +78,8 @@ public class TestPutObjectRequest16478 extends S3TestBase {
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
-        PutObjectResult result = s3Client.putObject(
-                new PutObjectRequest( bucketName, keyName,
-                        new File( filePath ) ) );
+        PutObjectResult result = s3Client.putObject( new PutObjectRequest(
+                bucketName, keyName, new File( filePath ) ) );
         String actMd5 = result.getETag();
         String expMd5 = TestTools.getMD5( filePath );
         Assert.assertEquals( actMd5, expMd5,
@@ -132,12 +131,11 @@ public class TestPutObjectRequest16478 extends S3TestBase {
         }
 
         // test c : file 为不存在的路径、文件名不存在
-        String nonexistentFilePath =
-                localPath + File.separator + "nonexistentFilePath.txt";
+        String nonexistentFilePath = localPath + File.separator
+                + "nonexistentFilePath.txt";
         try {
-            s3Client.putObject(
-                    new PutObjectRequest( bucketName, "/dir/test16478",
-                            new File( nonexistentFilePath ) ) );
+            s3Client.putObject( new PutObjectRequest( bucketName,
+                    "/dir/test16478", new File( nonexistentFilePath ) ) );
             Assert.fail( "when file path does not exist,it should fail" );
         } catch ( SdkClientException e ) {
             Assert.assertTrue(

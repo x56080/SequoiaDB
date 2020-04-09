@@ -30,8 +30,8 @@ public class GetObjectVersionList16393 extends S3TestBase {
     private String[] keyName = { "dir1/test1", "dir2/dir2_1/test2",
             "dir3/dir3_1/test3", "test4", "test5" };
     private String delimiter = "/";
-    private List<String> expCommonPrefixes = new ArrayList<String>();
-    private List<String> expVersionsKeyName = new ArrayList<String>();
+    private List< String > expCommonPrefixes = new ArrayList< String >();
+    private List< String > expVersionsKeyName = new ArrayList< String >();
     private String content = "object16393";
     private AmazonS3 s3Client = null;
     private AtomicInteger actSuccessTests = new AtomicInteger( 0 );
@@ -75,19 +75,20 @@ public class GetObjectVersionList16393 extends S3TestBase {
     @Test(dataProvider = "maxKeyProvider")
     public void testGetObjectList( int maxKeys, int expQueryTimes )
             throws Exception {
-        List<String> actCommonPrefixes = new ArrayList<String>();
-        List<String> actVersionsKeyName = new ArrayList<String>();
+        List< String > actCommonPrefixes = new ArrayList< String >();
+        List< String > actVersionsKeyName = new ArrayList< String >();
         int queryTimes = 0;
         ListVersionsRequest req = new ListVersionsRequest()
                 .withBucketName( bucketName ).withDelimiter( delimiter )
                 .withMaxResults( maxKeys );
         VersionListing versionList = s3Client.listVersions( req );
         while ( true ) {
-            List<String> commprefixesResult = versionList.getCommonPrefixes();
+            List< String > commprefixesResult = versionList.getCommonPrefixes();
             for ( String s : commprefixesResult ) {
                 actCommonPrefixes.add( s );
             }
-            List<S3VersionSummary> verList = versionList.getVersionSummaries();
+            List< S3VersionSummary > verList = versionList
+                    .getVersionSummaries();
             for ( S3VersionSummary s3VersionSummary : verList ) {
                 actVersionsKeyName.add( s3VersionSummary.getKey() );
             }

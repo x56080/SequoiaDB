@@ -37,10 +37,10 @@ public class CreateObject18183 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -58,12 +58,11 @@ public class CreateObject18183 extends S3TestBase {
             es.addWorker( new ThreadPutObject18183() );
         }
         es.run();
-        List<String> expCommprefixList = new ArrayList<>();
+        List< String > expCommprefixList = new ArrayList<>();
         expCommprefixList.add( "dir1/dir2/test18183_1?" );
-        List<String> expContentList = new ArrayList<>();
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        expCommprefixList, expContentList );
+        List< String > expContentList = new ArrayList<>();
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, expCommprefixList, expContentList );
 
         runSuccess = true;
     }

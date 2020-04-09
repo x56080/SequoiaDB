@@ -38,15 +38,15 @@ public class UploadPart18698 extends S3TestBase {
     private String filePath = null;
     private int fileSize = 1024 * 1024 * 50;
     private int partSize = 1024 * 1024 * 10;
-    private List<PartETag> partEtags = Collections
-            .synchronizedList( new ArrayList<PartETag>() );
+    private List< PartETag > partEtags = Collections
+            .synchronizedList( new ArrayList< PartETag >() );
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -56,8 +56,8 @@ public class UploadPart18698 extends S3TestBase {
     @Test
     public void uploadParts() throws Exception {
         File file = new File( filePath );
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, keyName );
 
         ThreadExecutor threadExec = new ThreadExecutor();
         int partNum = fileSize / partSize;
@@ -70,14 +70,12 @@ public class UploadPart18698 extends S3TestBase {
         }
         threadExec.run();
 
-        PartUploadUtils
-                .completeMultipartUpload( s3Client, S3TestBase.bucketName,
-                        keyName, uploadId, partEtags );
+        PartUploadUtils.completeMultipartUpload( s3Client,
+                S3TestBase.bucketName, keyName, uploadId, partEtags );
 
         // check the upload file
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, S3TestBase.bucketName,
-                        keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                S3TestBase.bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         runSuccess = true;
     }

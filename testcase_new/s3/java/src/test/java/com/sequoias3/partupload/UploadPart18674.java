@@ -52,10 +52,10 @@ public class UploadPart18674 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -99,11 +99,11 @@ public class UploadPart18674 extends S3TestBase {
 
     private void testUpload1( String keyName, long setPartSize )
             throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
 
         String md5[] = null;
-        List<PartETag> partEtags = new ArrayList<>();
+        List< PartETag > partEtags = new ArrayList<>();
         md5 = getMD5s( file, 0, setPartSize );
         String contentMd5 = md5[ 0 ];
 
@@ -122,15 +122,15 @@ public class UploadPart18674 extends S3TestBase {
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
         String expMd5 = TestTools.getMD5( filePath );
-        String actMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String actMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( actMd5, expMd5 );
     }
 
     private void testUpload2( String keyName, long setPartSize )
             throws IOException {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
 
         UploadPartRequest partRequest = new UploadPartRequest().withFile( file )
                 .withFileOffset( 0 ).withPartNumber( 1 )
@@ -148,10 +148,10 @@ public class UploadPart18674 extends S3TestBase {
 
     private void testUpload3( String keyName, long setPartSize )
             throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
 
-        List<PartETag> partEtags = new ArrayList<>();
+        List< PartETag > partEtags = new ArrayList<>();
         String[] md5 = getMD5s( file, 0, setPartSize );
         UploadPartRequest partRequest = new UploadPartRequest().withFile( file )
                 .withFileOffset( 0 ).withPartNumber( 1 )
@@ -161,15 +161,14 @@ public class UploadPart18674 extends S3TestBase {
         partEtags.add( uploadPartResult.getPartETag() );
         String expPartMd5 = md5[ 1 ];
         String actPartMd5 = uploadPartResult.getPartETag().getETag();
-        Assert.assertEquals( actPartMd5, expPartMd5,
-                "part number = " + uploadPartResult.getPartETag()
-                        .getPartNumber() );
+        Assert.assertEquals( actPartMd5, expPartMd5, "part number = "
+                + uploadPartResult.getPartETag().getPartNumber() );
 
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
         String expMd5 = getMD5s( file, 0, setPartSize )[ 1 ];
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
     }
 
@@ -216,7 +215,8 @@ public class UploadPart18674 extends S3TestBase {
                 .withEndpointConfiguration( endpointConfiguration )
                 .withClientConfiguration( config )
                 .withChunkedEncodingDisabled( false )
-                .withPathStyleAccessEnabled( true ).withCredentials(
+                .withPathStyleAccessEnabled( true )
+                .withCredentials(
                         new AWSStaticCredentialsProvider( credentials ) )
                 .build();
         return s3Client;

@@ -40,10 +40,10 @@ public class CreateObject18105 extends S3TestBase {
     @SuppressWarnings("deprecation")
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -61,11 +61,11 @@ public class CreateObject18105 extends S3TestBase {
 
     @Test
     public void testCreateObject() throws Exception {
-        List<String> matchDelimiterKeyList = new ArrayList<>();
-        List<String> keyNameList = new ArrayList<>();
+        List< String > matchDelimiterKeyList = new ArrayList<>();
+        List< String > keyNameList = new ArrayList<>();
         for ( int i = 0; i < keyNum; i++ ) {
-            String subKeyName =
-                    keyName + "_" + i + "_" + delimiter + "/test.png";
+            String subKeyName = keyName + "_" + i + "_" + delimiter
+                    + "/test.png";
             s3Client.putObject( bucketName, subKeyName, new File( filePath ) );
             keyNameList.add( subKeyName );
 
@@ -73,10 +73,9 @@ public class CreateObject18105 extends S3TestBase {
             matchDelimiterKeyList.add( matchDelimiterKey );
         }
 
-        List<String> expContentList = new ArrayList<>();
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        matchDelimiterKeyList, expContentList );
+        List< String > expContentList = new ArrayList<>();
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, matchDelimiterKeyList, expContentList );
 
         deleteObjectAndBucket( keyNameList );
         deleteRegionAndCheckResult();
@@ -95,7 +94,7 @@ public class CreateObject18105 extends S3TestBase {
         }
     }
 
-    private void deleteObjectAndBucket( List<String> keyNameList ) {
+    private void deleteObjectAndBucket( List< String > keyNameList ) {
         for ( String key : keyNameList ) {
             s3Client.deleteObject( bucketName, key );
         }
@@ -107,8 +106,8 @@ public class CreateObject18105 extends S3TestBase {
 
         // check cs clear result
         Date date = Calendar.getInstance().getTime();
-        String datacsName =
-                RegionUtils.getDataCSName( regionName, "year", date ) + "_1";
+        String datacsName = RegionUtils.getDataCSName( regionName, "year",
+                date ) + "_1";
         String metacsName = RegionUtils.getMetaCSName( regionName );
         Assert.assertFalse( RegionUtils.doesCSExist( datacsName ) );
         Assert.assertFalse( RegionUtils.doesCSExist( metacsName ) );

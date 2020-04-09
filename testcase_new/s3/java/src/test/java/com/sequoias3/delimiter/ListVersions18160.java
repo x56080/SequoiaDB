@@ -63,13 +63,13 @@ public class ListVersions18160 extends S3TestBase {
                         .withDelimiter( delimiter ).withMaxResults( maxKeys ) );
 
         // check query result
-        List<String> matchPrefixList = new ArrayList<>();
+        List< String > matchPrefixList = new ArrayList<>();
         matchPrefixList.add( "a/t" );
         matchPrefixList.add( "dir1/at" );
         matchPrefixList.add( "dir1/dir2/dir3/t" );
         matchPrefixList.add( "dir1/xx?t" );
         matchPrefixList.add( "dir1/t" );
-        MultiValueMap<String, String> expVersions = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersions = new LinkedMultiValueMap< String, String >();
         Assert.assertTrue( vsList.isTruncated(),
                 "vsList.isTruncated() must be true" );
         ObjectUtils.checkListVSResults( vsList, matchPrefixList, expVersions );
@@ -86,15 +86,15 @@ public class ListVersions18160 extends S3TestBase {
                         .withDelimiter( delimiter ) );
 
         // expected results
-        List<String> matchPrefixList1 = new ArrayList<>();
+        List< String > matchPrefixList1 = new ArrayList<>();
         matchPrefixList1.add( "hdir1/t" );
         matchPrefixList1.add( "t" );
-        MultiValueMap<String, String> expVersions1 = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersions1 = new LinkedMultiValueMap< String, String >();
         expVersions1.add( keyNames[ 7 ], defalueVersionId );
         Assert.assertFalse( vsList1.isTruncated(),
                 "vsList1.isTruncated() must be false" );
-        ObjectUtils
-                .checkListVSResults( vsList1, matchPrefixList1, expVersions1 );
+        ObjectUtils.checkListVSResults( vsList1, matchPrefixList1,
+                expVersions1 );
 
         runSuccess = true;
     }

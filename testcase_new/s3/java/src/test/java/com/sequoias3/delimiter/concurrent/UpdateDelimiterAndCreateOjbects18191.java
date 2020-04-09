@@ -31,7 +31,7 @@ public class UpdateDelimiterAndCreateOjbects18191 extends S3TestBase {
     private String bucketName = "bucket18191";
     private String keyName = "object18191";
     private int objectNums = 20;
-    private List<String> matchKeyList = new ArrayList<>();
+    private List< String > matchKeyList = new ArrayList<>();
     private AmazonS3 s3Client = null;
 
     @BeforeClass
@@ -58,10 +58,9 @@ public class UpdateDelimiterAndCreateOjbects18191 extends S3TestBase {
         threadExec.run();
 
         // check the dir of object availability
-        List<String> expContentList = new ArrayList<>();
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        matchKeyList, expContentList );
+        List< String > expContentList = new ArrayList<>();
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, matchKeyList, expContentList );
         runSuccess = true;
     }
 

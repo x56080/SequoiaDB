@@ -33,9 +33,9 @@ public class GetObjectListWithVersion16499 extends S3TestBase {
     private String keyName = "/dir/dir";
     private String prefix = "/dir";
     private String delimiter = "/";
-    private List<String> expresultList1 = new ArrayList<String>();
-    private List<String> expresultList2 = new ArrayList<String>();
-    private List<String> expresultList3 = new ArrayList<String>();
+    private List< String > expresultList1 = new ArrayList< String >();
+    private List< String > expresultList2 = new ArrayList< String >();
+    private List< String > expresultList3 = new ArrayList< String >();
     private int objectTotalNum = 50;
     private AmazonS3 s3Client = null;
     private String[] acessKeys = null;
@@ -106,15 +106,15 @@ public class GetObjectListWithVersion16499 extends S3TestBase {
     private class ListVersionThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            List<String> actVersionsKeyName = new ArrayList<String>();
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            List< String > actVersionsKeyName = new ArrayList< String >();
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 ListVersionsRequest req = new ListVersionsRequest()
                         .withBucketName( bucketName );
                 VersionListing versionList = s3Client.listVersions( req );
                 while ( true ) {
-                    List<S3VersionSummary> verList = versionList
+                    List< S3VersionSummary > verList = versionList
                             .getVersionSummaries();
                     for ( S3VersionSummary s3VersionSummary : verList ) {
                         actVersionsKeyName.add( s3VersionSummary.getKey() );
@@ -142,15 +142,15 @@ public class GetObjectListWithVersion16499 extends S3TestBase {
     private class ListVersionWithPerfixThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            List<String> actVersionsKeyName = new ArrayList<String>();
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            List< String > actVersionsKeyName = new ArrayList< String >();
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 ListVersionsRequest req = new ListVersionsRequest()
                         .withBucketName( bucketName ).withPrefix( prefix );
                 VersionListing versionList = s3Client.listVersions( req );
                 while ( true ) {
-                    List<S3VersionSummary> verList = versionList
+                    List< S3VersionSummary > verList = versionList
                             .getVersionSummaries();
                     for ( S3VersionSummary s3VersionSummary : verList ) {
                         actVersionsKeyName.add( s3VersionSummary.getKey() );
@@ -178,16 +178,16 @@ public class GetObjectListWithVersion16499 extends S3TestBase {
     private class ListVersionWithPerfixAndDelimiterThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            List<String> actCommonPrefixes = new ArrayList<String>();
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            List< String > actCommonPrefixes = new ArrayList< String >();
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 ListVersionsRequest req = new ListVersionsRequest()
                         .withBucketName( bucketName ).withPrefix( prefix )
                         .withDelimiter( delimiter );
                 VersionListing versionList = s3Client.listVersions( req );
                 while ( true ) {
-                    List<String> commprefixesResult = versionList
+                    List< String > commprefixesResult = versionList
                             .getCommonPrefixes();
                     for ( String s : commprefixesResult ) {
                         actCommonPrefixes.add( s );

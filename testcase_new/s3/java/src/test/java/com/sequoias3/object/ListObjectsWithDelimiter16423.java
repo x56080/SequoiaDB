@@ -40,10 +40,10 @@ public class ListObjectsWithDelimiter16423 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -56,7 +56,7 @@ public class ListObjectsWithDelimiter16423 extends S3TestBase {
 
     @Test
     public void testListObjects() throws Exception {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
         int maxKeysA = 3;
         listObjectsAndCheckResult( keyList, maxKeysA );
         int maxKeysB = 20;
@@ -76,9 +76,9 @@ public class ListObjectsWithDelimiter16423 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList, int maxKeys )
-            throws IOException {
-        List<String> queryKeyList = new ArrayList<>();
+    private void listObjectsAndCheckResult( List< String > keyList,
+            int maxKeys ) throws IOException {
+        List< String > queryKeyList = new ArrayList<>();
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" )
                 .withDelimiter( delimiter ).withMaxKeys( maxKeys );
@@ -86,7 +86,7 @@ public class ListObjectsWithDelimiter16423 extends S3TestBase {
         int listCount = 0;
         do {
             result = s3Client.listObjectsV2( request );
-            List<String> commonPrefixes = result.getCommonPrefixes();
+            List< String > commonPrefixes = result.getCommonPrefixes();
             // matching delimiter displays only 1 record
             if ( listCount == 0 ) {
                 Assert.assertEquals( commonPrefixes.size(), 1 );
@@ -95,7 +95,7 @@ public class ListObjectsWithDelimiter16423 extends S3TestBase {
 
             // objects do not match delimiter are displayed in contents,num is
             // less than 3
-            List<S3ObjectSummary> objects = result.getObjectSummaries();
+            List< S3ObjectSummary > objects = result.getObjectSummaries();
             if ( objects.size() > maxKeys ) {
                 Assert.fail( "exceed the maximum number,  :" + objects.size() );
             }
@@ -123,8 +123,8 @@ public class ListObjectsWithDelimiter16423 extends S3TestBase {
         Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private List<String> putObjects() {
-        List<String> noMatchKeyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > noMatchKeyList = new ArrayList<>();
         int objectNums = 50;
         String keyName;
         for ( int i = 0; i < objectNums; i++ ) {

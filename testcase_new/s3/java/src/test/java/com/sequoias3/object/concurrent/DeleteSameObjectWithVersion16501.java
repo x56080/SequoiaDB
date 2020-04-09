@@ -36,8 +36,8 @@ public class DeleteSameObjectWithVersion16501 extends S3TestBase {
     private String roleName = "normal";
     private String content = "testContent16501";
     private String deleteVersionId = "1";
-    private List<String> expEtag = new ArrayList<>();
-    private List<String> expVersionId = new ArrayList<>();
+    private List< String > expEtag = new ArrayList<>();
+    private List< String > expVersionId = new ArrayList<>();
     private String[] acessKeys = null;
     private AmazonS3 s3Client = null;
 
@@ -52,8 +52,8 @@ public class DeleteSameObjectWithVersion16501 extends S3TestBase {
         // put three versions of the object
         for ( int i = 0; i < 3; i++ ) {
             String currentContent = content + ObjectUtils.getRandomString( i );
-            PutObjectResult result = s3Client
-                    .putObject( bucketName, keyName, currentContent );
+            PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                    currentContent );
             expVersionId.add( result.getVersionId() );
             expEtag.add( TestTools.getMD5( currentContent.getBytes() ) );
         }
@@ -106,12 +106,12 @@ public class DeleteSameObjectWithVersion16501 extends S3TestBase {
     }
 
     private void checkVersionResult() {
-        List<String> actEtg = new ArrayList<>();
-        List<String> actVersionId = new ArrayList<>();
+        List< String > actEtg = new ArrayList<>();
+        List< String > actVersionId = new ArrayList<>();
         ListVersionsRequest req = new ListVersionsRequest()
                 .withBucketName( bucketName );
         VersionListing versionList = s3Client.listVersions( req );
-        List<S3VersionSummary> objectVersionList = versionList
+        List< S3VersionSummary > objectVersionList = versionList
                 .getVersionSummaries();
         Assert.assertEquals( objectVersionList.size(), 102,
                 "the number of results returned is incorrect!" );
@@ -139,8 +139,8 @@ public class DeleteSameObjectWithVersion16501 extends S3TestBase {
     private class DeleteObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.deleteObject( bucketName, keyName );
             } finally {
@@ -160,8 +160,8 @@ public class DeleteSameObjectWithVersion16501 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.deleteVersion( bucketName, keyName, versionId );
             } finally {

@@ -75,7 +75,8 @@ public class SetBucketAcl19446 extends S3TestBase {
             rest.setApi( "/" + bucketName + "/?acl" )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + S3TestBase.s3AccessKeyId
-                                    + "/" ).setRequestMethod( HttpMethod.PUT )
+                                    + "/" )
+                    .setRequestMethod( HttpMethod.PUT )
                     .setResponseType( String.class );
             if ( setByStandardAcl ) {
                 rest.setRequestHeaders( "x-amz-acl", "private" );
@@ -115,7 +116,7 @@ public class SetBucketAcl19446 extends S3TestBase {
     private void checkDefaultSettings() {
         Grant expGrant = new Grant( new CanonicalGrantee( ownerId ),
                 Permission.FullControl );
-        PrivilegeUtils
-                .checkSetBucketAclResult( s3Client, bucketName, expGrant );
+        PrivilegeUtils.checkSetBucketAclResult( s3Client, bucketName,
+                expGrant );
     }
 }

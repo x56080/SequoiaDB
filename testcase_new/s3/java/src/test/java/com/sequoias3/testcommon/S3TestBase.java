@@ -30,7 +30,7 @@ public class S3TestBase {
     private static final String AUTHORIZATION = "sdbs3.authorization.check";
     private static final String ALLOWREPUT = "sdbs3.bucket.allowreput";
     private static final String CSRANGE = "sdbs3.sequoiadb.data.csRange";
-    private static final Map<String, Map<String, String>> group2Conf = new HashMap<String, Map<String, String>>();
+    private static final Map< String, Map< String, String > > group2Conf = new HashMap< String, Map< String, String > >();
     protected static String coordUrl;
     protected static String hostName;
     protected static String serviceName;
@@ -57,32 +57,32 @@ public class S3TestBase {
     private static StorageInterface storage = new SdbStorage();
 
     static {
-        Map<String, String> partListiNuseOffMap = new HashMap<>();
+        Map< String, String > partListiNuseOffMap = new HashMap<>();
         partListiNuseOffMap.put( PARTLISTINUSE, "false" );
         group2Conf.put( PARTLISTINUSEOFF, partListiNuseOffMap );
 
-        Map<String, String> partSizeLimitOffMap = new HashMap<>();
+        Map< String, String > partSizeLimitOffMap = new HashMap<>();
         partSizeLimitOffMap.put( PARTSIZELIMIT, "false" );
         group2Conf.put( PARTSIZELIMITOFF, partSizeLimitOffMap );
 
-        Map<String, String> contextLifeCycleConfMap = new HashMap<>();
+        Map< String, String > contextLifeCycleConfMap = new HashMap<>();
         contextLifeCycleConfMap.put( CONTEXTLIFECYCLE, "2" );
         group2Conf.put( CONTEXTLIFECYCLECONF, contextLifeCycleConfMap );
 
-        Map<String, String> authorizationMap = new HashMap<>();
+        Map< String, String > authorizationMap = new HashMap<>();
         authorizationMap.put( AUTHORIZATION, "false" );
         group2Conf.put( AUTHORIZATIONOFF, authorizationMap );
 
-        Map<String, String> allowReputMap = new HashMap<>();
+        Map< String, String > allowReputMap = new HashMap<>();
         allowReputMap.put( ALLOWREPUT, "true" );
         group2Conf.put( ALLOWREPUTON, allowReputMap );
 
-        Map<String,String> csRangeMap = new HashMap<>();
-        csRangeMap.put(CSRANGE,"10");
+        Map< String, String > csRangeMap = new HashMap<>();
+        csRangeMap.put( CSRANGE, "10" );
         group2Conf.put( DATACSRANGE, csRangeMap );
     }
 
-    public static synchronized void setRunGroup( List<String> testGroups ) {
+    public static synchronized void setRunGroup( List< String > testGroups ) {
         if ( testGroups.size() != 1 ) {
             return;
         }
@@ -122,7 +122,7 @@ public class S3TestBase {
         getInstallPath();
 
         storage.envPrePare( coordUrl );
-        changeConfAndStartS3();
+        // changeConfAndStartS3();
         // clean file
         File workDirFile = new File( workDir );
         if ( !workDirFile.exists() ) {
@@ -133,7 +133,7 @@ public class S3TestBase {
         try {
             // clean up existing buckets
             s3Client = CommLib.buildS3Client();
-            List<Bucket> buckets = s3Client.listBuckets();
+            List< Bucket > buckets = s3Client.listBuckets();
             for ( int i = 0; i < buckets.size(); i++ ) {
                 String bucketName = buckets.get( i ).getName();
                 String bucketVerStatus = s3Client
@@ -226,7 +226,7 @@ public class S3TestBase {
         System.out.println( "finish update application.properties" );
         execCmd( Command.S3_CHECKPORTALIVE );
         String output = Command.S3_CHECKPORTALIVE.getOutput();
-        //检查如已存在s3进程，则重启s3服务，不存在的话就直接启动s3
+        // 检查如已存在s3进程，则重启s3服务，不存在的话就直接启动s3
         if ( output.contains( "sequoias3" ) ) {
             System.out.println( "restart s3..." );
             execCmd( Command.S3_STOP );
@@ -260,8 +260,8 @@ public class S3TestBase {
                     replaceFileName, s3Port, coordUrls, propertiesFileName );
             break;
         case S3_CHANGEDIALEVEL:
-            String logBackFileName =
-                    installPath + "/tools/sequoias3/config/logback.xml";
+            String logBackFileName = installPath
+                    + "/tools/sequoias3/config/logback.xml";
             cmd.exec( s3HostName, remoteuser, remotepasswd, logBackFileName );
             break;
         case S3_RESTORECONF:
@@ -293,9 +293,8 @@ public class S3TestBase {
             ssh = new Ssh( s3HostName, remoteuser, remotepasswd );
             ssh.exec( command );
             if ( ssh.getExitStatus() != 0 ) {
-                throw new Exception(
-                        "exec command : " + command + " failed, stout= " + ssh
-                                .getStdout() );
+                throw new Exception( "exec command : " + command
+                        + " failed, stout= " + ssh.getStdout() );
             }
         } finally {
             if ( ssh != null ) {
@@ -305,16 +304,16 @@ public class S3TestBase {
     }
 
     enum Command {
-        S3_CHECKPORTALIVE( "%s/tools/sequoias3/sequoias3.sh status" ), S3_START(
-                "source /etc/profile;%s/tools/sequoias3/sequoias3.sh start > /tmp/s3start.log" ), S3_STOP(
-                "%s/tools/sequoias3/sequoias3.sh stop -a" ), S3_SETCONFBEFORE(
-                "mv %s %s;echo 'server.port=%s\nsdbs3.sequoiadb.url=sequoiadb://%s\nsdbs3.multipartupload.completereservetime=1' > %s" ), S3_CHANGEDIALEVEL(
-                "sed -i 's/INFO/DEBUG/g' %s" ), S3_RESTORECONF(
-                "rm -f %s;mv %s %s" ), S3_CHANGECONF_BEFORETEST(
-                "echo '%s' >> %s" ), S3_CHANGECONF_AFTERTEST(
-                "sed -i 's/%s/#%s/g' %s" ), S3_SAVECLUSTERINFO(
-                "echo %s > %s" ), S3_GETINSTALLPATH(
-                "cat /etc/default/sequoiadb | grep 'INSTALL_DIR' | awk -F '=' '{printf(\"%s\",$2)}'" );
+        S3_CHECKPORTALIVE("%s/tools/sequoias3/sequoias3.sh status"), S3_START(
+                "source /etc/profile;%s/tools/sequoias3/sequoias3.sh start > /tmp/s3start.log"), S3_STOP(
+                        "%s/tools/sequoias3/sequoias3.sh stop -a"), S3_SETCONFBEFORE(
+                                "mv %s %s;echo 'server.port=%s\nsdbs3.sequoiadb.url=sequoiadb://%s\nsdbs3.multipartupload.completereservetime=1' > %s"), S3_CHANGEDIALEVEL(
+                                        "sed -i 's/INFO/DEBUG/g' %s"), S3_RESTORECONF(
+                                                "rm -f %s;mv %s %s"), S3_CHANGECONF_BEFORETEST(
+                                                        "echo '%s' >> %s"), S3_CHANGECONF_AFTERTEST(
+                                                                "sed -i 's/%s/#%s/g' %s"), S3_SAVECLUSTERINFO(
+                                                                        "echo %s > %s"), S3_GETINSTALLPATH(
+                                                                                "cat /etc/default/sequoiadb | grep 'INSTALL_DIR' | awk -F '=' '{printf(\"%s\",$2)}'");
 
         private String cmd;
         private String output;
@@ -330,9 +329,8 @@ public class S3TestBase {
                 ssh = new Ssh( remoteHost, user, password );
                 ssh.exec( command );
                 if ( ssh.getExitStatus() != 0 ) {
-                    throw new Exception(
-                            "exec command : " + command + " failed, stout= "
-                                    + ssh.getStdout() );
+                    throw new Exception( "exec command : " + command
+                            + " failed, stout= " + ssh.getStdout() );
                 }
                 this.output = ssh.getStdout();
             } finally {

@@ -42,12 +42,12 @@ public class CopyObject19336 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        hisVersionFilePath =
-                localPath + File.separator + "localFile_" + fileSize1 + ".txt";
-        curVersionFilePath =
-                localPath + File.separator + "localFile_" + fileSize1 + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        hisVersionFilePath = localPath + File.separator + "localFile_"
+                + fileSize1 + ".txt";
+        curVersionFilePath = localPath + File.separator + "localFile_"
+                + fileSize1 + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( hisVersionFilePath, fileSize1 );
@@ -88,8 +88,8 @@ public class CopyObject19336 extends S3TestBase {
         s3Client.copyObject( request );
 
         // check the content of destObject
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, destKeyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, destKeyName );
         Assert.assertEquals( downfileMd5,
                 TestTools.getMD5( curVersionFilePath ) );
         runSuccess = true;

@@ -16,8 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @Description seqDB-18743: lists in-progress multipart uploads by bucket.specify prefix:matching
- *              prefix and mismatched prefix.
+ * @Description seqDB-18743: lists in-progress multipart uploads by
+ *              bucket.specify prefix:matching prefix and mismatched prefix.
  * @author wuyan
  * @Date 2019.08.05
  * @version 1.00
@@ -39,10 +39,10 @@ public class ListMultipartUploadsWithDelimiter18743 extends S3TestBase {
 
     @Test
     public void uploadParts() {
-        MultiValueMap<String, String> uploadIds = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > uploadIds = new LinkedMultiValueMap< String, String >();
         for ( String keyName : keyNames ) {
-            String uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, keyName );
+            String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, keyName );
             uploadIds.add( keyName, uploadId );
         }
         // test a: matching prefix
@@ -66,33 +66,31 @@ public class ListMultipartUploadsWithDelimiter18743 extends S3TestBase {
     }
 
     private void listPartUploadsMatchedPrefix(
-            MultiValueMap<String, String> uploadIds, String prefix ) {
+            MultiValueMap< String, String > uploadIds, String prefix ) {
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
                 bucketName ).withPrefix( prefix );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
-        MultiValueMap<String, String> expUpload = uploadIds;
+        MultiValueMap< String, String > expUpload = uploadIds;
         // remove the object not match prefix
         expUpload.remove( keyNames[ 0 ] );
 
-        List<String> expCommonPrefixes = new ArrayList<>();
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes,
-                        expUpload );
+        List< String > expCommonPrefixes = new ArrayList<>();
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes, expUpload );
     }
 
     private void listPartUploadsMisMatchedPrefix(
-            MultiValueMap<String, String> uploadIds, String prefix ) {
+            MultiValueMap< String, String > uploadIds, String prefix ) {
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
                 bucketName ).withPrefix( prefix );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
 
-        List<String> expCommonPrefixes = new ArrayList<>();
-        MultiValueMap<String, String> expUploadIds = new LinkedMultiValueMap<String, String>();
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes,
-                        expUploadIds );
+        List< String > expCommonPrefixes = new ArrayList<>();
+        MultiValueMap< String, String > expUploadIds = new LinkedMultiValueMap< String, String >();
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes, expUploadIds );
     }
 
 }

@@ -38,8 +38,8 @@ public class ListVersions18168 extends S3TestBase {
     private String prefix = "dir1";
     private String delimiter = "%";
     private int maxKeys = 100;
-    private List<String> matchPrefixList = new ArrayList<>();
-    private MultiValueMap<String, String> expVersions = new LinkedMultiValueMap<String, String>();
+    private List< String > matchPrefixList = new ArrayList<>();
+    private MultiValueMap< String, String > expVersions = new LinkedMultiValueMap< String, String >();
     private AmazonS3 s3Client = null;
     private int versionNum = 5;
     private int objectsNum = 200;
@@ -59,13 +59,12 @@ public class ListVersions18168 extends S3TestBase {
     @Test
     private void testListVersions() throws Exception {
         // list versions by prefix/delimiter/maxKes, for first query
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withMaxResults( maxKeys ) );
-        List<String> actCommonPrefixes = vsList.getCommonPrefixes();
-        List<S3VersionSummary> vsSummaryList = vsList.getVersionSummaries();
-        MultiValueMap<String, String> actVersionMap = new LinkedMultiValueMap<String, String>();
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withDelimiter( delimiter )
+                .withPrefix( prefix ).withMaxResults( maxKeys ) );
+        List< String > actCommonPrefixes = vsList.getCommonPrefixes();
+        List< S3VersionSummary > vsSummaryList = vsList.getVersionSummaries();
+        MultiValueMap< String, String > actVersionMap = new LinkedMultiValueMap< String, String >();
         for ( S3VersionSummary versionSummary : vsSummaryList ) {
             actVersionMap.add( versionSummary.getKey(),
                     versionSummary.getVersionId() );
@@ -88,9 +87,9 @@ public class ListVersions18168 extends S3TestBase {
                         .withVersionIdMarker( nextVersionIdMarker )
                         .withDelimiter( delimiter ) );
 
-        List<String> actCommonPrefixes1 = vsList1.getCommonPrefixes();
-        List<S3VersionSummary> vsSummaryList1 = vsList1.getVersionSummaries();
-        MultiValueMap<String, String> actVersionMap1 = new LinkedMultiValueMap<String, String>();
+        List< String > actCommonPrefixes1 = vsList1.getCommonPrefixes();
+        List< S3VersionSummary > vsSummaryList1 = vsList1.getVersionSummaries();
+        MultiValueMap< String, String > actVersionMap1 = new LinkedMultiValueMap< String, String >();
         for ( S3VersionSummary versionSummary : vsSummaryList1 ) {
             actVersionMap1.add( versionSummary.getKey(),
                     versionSummary.getVersionId() );
@@ -101,9 +100,9 @@ public class ListVersions18168 extends S3TestBase {
                 "vsList1.isTruncated() must be false" );
         actCommonPrefixes1.addAll( actCommonPrefixes );
         // actVersionMap1.addAll(actVersionMap);
-        for ( Map.Entry<String, List<String>> entry : actVersionMap
+        for ( Map.Entry< String, List< String > > entry : actVersionMap
                 .entrySet() ) {
-            List<String> versions = entry.getValue();
+            List< String > versions = entry.getValue();
             for ( String version : versions ) {
                 actVersionMap1.add( entry.getKey(), version );
             }
@@ -138,8 +137,8 @@ public class ListVersions18168 extends S3TestBase {
 
             } else {
                 // keyName match prefix and delimter
-                String subKeyName =
-                        prefix + "_" + i + delimiter + "_" + keyName;
+                String subKeyName = prefix + "_" + i + delimiter + "_"
+                        + keyName;
                 for ( int j = versionNum - 1; j >= 0; j-- ) {
                     s3Client.putObject( bucketName, subKeyName,
                             subKeyName + "_" + i + "_" + j );
@@ -150,25 +149,26 @@ public class ListVersions18168 extends S3TestBase {
 
         // put delete tag object
         for ( int i = 0; i < deleteTagObjectsNum; i++ ) {
-            String subKeyName =
-                    prefix + "_deleteTag_" + i + delimiter + "_" + keyName;
+            String subKeyName = prefix + "_deleteTag_" + i + delimiter + "_"
+                    + keyName;
             s3Client.deleteObject( bucketName, subKeyName );
             matchPrefixList.add( prefix + "_deleteTag_" + i + delimiter );
         }
     }
 
-    private void checkMatchResult( List<String> actCommonPrefixes,
-            MultiValueMap<String, String> actVersionMap ) {
+    private void checkMatchResult( List< String > actCommonPrefixes,
+            MultiValueMap< String, String > actVersionMap ) {
         Collections.sort( actCommonPrefixes );
         Collections.sort( matchPrefixList );
         Assert.assertEquals( actCommonPrefixes, matchPrefixList,
                 "actCommonPrefixes = " + actCommonPrefixes.toString()
-                        + ",expCommonPrefixes = " + matchPrefixList
-                        .toString() );
+                        + ",expCommonPrefixes = "
+                        + matchPrefixList.toString() );
         Assert.assertEquals( actVersionMap.size(), expVersions.size(),
                 "actMap = " + actVersionMap.toString() + ",expMap = "
                         + expVersions.toString() );
-        for ( Map.Entry<String, List<String>> entry : expVersions.entrySet() ) {
+        for ( Map.Entry< String, List< String > > entry : expVersions
+                .entrySet() ) {
             Assert.assertEquals( actVersionMap.get( entry.getKey() ),
                     expVersions.get( entry.getKey() ),
                     "actMap = " + actVersionMap.toString() + ",expMap = "

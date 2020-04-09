@@ -108,21 +108,20 @@ public class ListVersion18162 extends S3TestBase {
 
         @ExecuteOrder(step = 1)
         private void listVersions() {
-            vsList = s3Client.listVersions(
-                    new ListVersionsRequest().withBucketName( bucketName )
-                            .withDelimiter( delimiter ) );
+            vsList = s3Client.listVersions( new ListVersionsRequest()
+                    .withBucketName( bucketName ).withDelimiter( delimiter ) );
 
         }
 
         @ExecuteOrder(step = 2)
         private void checkListVersionsResult() {
-            List<String> matchPrefixList = new ArrayList<>();
+            List< String > matchPrefixList = new ArrayList<>();
             matchPrefixList.add( "/a!" );
             matchPrefixList.add( "/atest2!" );
             matchPrefixList.add( "/test@!" );
             matchPrefixList.add( "/testa_x7!" );
             matchPrefixList.add( "/y/test8!" );
-            MultiValueMap<String, String> expVersions = new LinkedMultiValueMap<String, String>();
+            MultiValueMap< String, String > expVersions = new LinkedMultiValueMap< String, String >();
             for ( int i = versionNum - 1; i >= 0; i-- ) {
                 expVersions.add( keyNames[ 1 ], String.valueOf( i ) );
                 expVersions.add( keyNames[ 4 ], String.valueOf( i ) );
@@ -130,8 +129,8 @@ public class ListVersion18162 extends S3TestBase {
             }
             Assert.assertEquals( vsList.isTruncated(), false,
                     "list.isTruncated() is unexpected!" );
-            ObjectUtils
-                    .checkListVSResults( vsList, matchPrefixList, expVersions );
+            ObjectUtils.checkListVSResults( vsList, matchPrefixList,
+                    expVersions );
         }
     }
 }

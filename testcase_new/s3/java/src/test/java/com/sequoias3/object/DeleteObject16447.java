@@ -38,12 +38,12 @@ public class DeleteObject16447 extends S3TestBase {
     @SuppressWarnings("deprecation")
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -89,19 +89,19 @@ public class DeleteObject16447 extends S3TestBase {
         Assert.assertFalse( isExistObject, "the object should not exist!" );
 
         // deleted object has been a history version object,the versionId is "1"
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key, "1" );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key, "1" );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
 
         // check the oldest version object,the version is "0"
-        String downOldfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key, "0" );
+        String downOldfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key, "0" );
         Assert.assertEquals( downOldfileMd5, TestTools.getMD5( filePath ) );
 
         // delete the object, add a delete tag ,the object num is 3
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
-        Iterator<S3VersionSummary> versionIter = versionList
+        Iterator< S3VersionSummary > versionIter = versionList
                 .getVersionSummaries().iterator();
         int count = 0;
         int deleteTagNums = 0;

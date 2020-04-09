@@ -32,7 +32,7 @@ public class UpdateDelimiterAndListOjbects18189 extends S3TestBase {
     private String bucketName = "bucket18189";
     private String keyName = "/aa/object18189";
     private int objectNums = 200;
-    private List<String> matchKeyList = new ArrayList<>();
+    private List< String > matchKeyList = new ArrayList<>();
     private AmazonS3 s3Client = null;
 
     @BeforeClass
@@ -87,8 +87,8 @@ public class UpdateDelimiterAndListOjbects18189 extends S3TestBase {
     }
 
     private class ListObjects {
-        private List<String> commonPrefixes;
-        private List<S3ObjectSummary> objects;
+        private List< String > commonPrefixes;
+        private List< S3ObjectSummary > objects;
 
         @ExecuteOrder(step = 1)
         private void listVersions() {
@@ -102,14 +102,14 @@ public class UpdateDelimiterAndListOjbects18189 extends S3TestBase {
 
         @ExecuteOrder(step = 2)
         private void checkListVersions() {
-            List<String> expContentList = new ArrayList<>();
+            List< String > expContentList = new ArrayList<>();
             Collections.sort( matchKeyList );
             Assert.assertEquals( commonPrefixes, matchKeyList,
                     "actPrefixes:" + commonPrefixes.toString()
                             + "\n ecpPrefixes:" + matchKeyList.toString() );
             // objects do not match delimiter are displayed in contents,num is
             // 10
-            List<String> actContentsList = new ArrayList<>();
+            List< String > actContentsList = new ArrayList<>();
             for ( S3ObjectSummary os : objects ) {
                 String key = os.getKey();
                 actContentsList.add( key );

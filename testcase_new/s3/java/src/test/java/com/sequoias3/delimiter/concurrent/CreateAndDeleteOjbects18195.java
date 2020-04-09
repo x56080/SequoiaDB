@@ -36,8 +36,8 @@ public class CreateAndDeleteOjbects18195 extends S3TestBase {
     private String bucketName = "bucket18195";
     private String keyName = "/目录1/object18195";
     private int objectNums = 20;
-    private List<String> deleteKeyList = new ArrayList<>();
-    private List<String> createKeyList = new ArrayList<>();
+    private List< String > deleteKeyList = new ArrayList<>();
+    private List< String > createKeyList = new ArrayList<>();
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * 2;
     private File localPath = null;
@@ -45,10 +45,10 @@ public class CreateAndDeleteOjbects18195 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -75,8 +75,8 @@ public class CreateAndDeleteOjbects18195 extends S3TestBase {
         }
 
         for ( int i = 0; i < objectNums; i++ ) {
-            String subKeyName =
-                    keyName + "_" + i + delimiter + "addObject/test.png";
+            String subKeyName = keyName + "_" + i + delimiter
+                    + "addObject/test.png";
             threadExec.addWorker( new CreateObject( subKeyName ) );
             createKeyList.add( subKeyName );
         }
@@ -104,7 +104,7 @@ public class CreateAndDeleteOjbects18195 extends S3TestBase {
         Collections.sort( createKeyList );
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
-        List<S3VersionSummary> versionSummary = versionList
+        List< S3VersionSummary > versionSummary = versionList
                 .getVersionSummaries();
 
         int existObjectNum = objectNums;
@@ -142,9 +142,8 @@ public class CreateAndDeleteOjbects18195 extends S3TestBase {
         @ExecuteOrder(step = 2)
         private void checkResult() throws Exception {
             try {
-                String downfileMd5 = ObjectUtils
-                        .getMd5OfObject( s3Client1, localPath, bucketName,
-                                keyName );
+                String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client1,
+                        localPath, bucketName, keyName );
                 Assert.assertEquals( downfileMd5,
                         TestTools.getMD5( filePath ) );
             } finally {
@@ -171,8 +170,8 @@ public class CreateAndDeleteOjbects18195 extends S3TestBase {
         @ExecuteOrder(step = 2)
         private void checkDeleteResult() {
             try {
-                boolean isExistObject = s3Client
-                        .doesObjectExist( bucketName, keyName );
+                boolean isExistObject = s3Client.doesObjectExist( bucketName,
+                        keyName );
                 Assert.assertFalse( isExistObject,
                         "the object should not exist! key=" + keyName );
             } finally {

@@ -37,10 +37,10 @@ public class ListObjects16417_18558 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -52,7 +52,7 @@ public class ListObjects16417_18558 extends S3TestBase {
 
     @Test
     public void testCreateObject() throws Exception {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
         listObjectsAndCheckResult( keyList );
         listObjectV1AndCheckResult( keyList );
         runSuccess = true;
@@ -70,11 +70,11 @@ public class ListObjects16417_18558 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList )
+    private void listObjectsAndCheckResult( List< String > keyList )
             throws IOException {
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         ListObjectsV2Result result = s3Client.listObjectsV2( bucketName );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         Assert.assertEquals( objects.size(), objectNums );
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
@@ -92,11 +92,11 @@ public class ListObjects16417_18558 extends S3TestBase {
         Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private void listObjectV1AndCheckResult( List<String> keyList )
+    private void listObjectV1AndCheckResult( List< String > keyList )
             throws IOException {
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         ObjectListing result = s3Client.listObjects( bucketName );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         Assert.assertEquals( objects.size(), objectNums );
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
@@ -113,8 +113,8 @@ public class ListObjects16417_18558 extends S3TestBase {
         Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private List<String> putObjects() {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < objectNums; i++ ) {
             String keyName = key + "_" + i + TestTools.getRandomString( i );
             keyList.add( keyName );

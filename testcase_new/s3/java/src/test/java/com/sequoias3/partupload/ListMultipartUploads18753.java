@@ -43,15 +43,15 @@ public class ListMultipartUploads18753 extends S3TestBase {
 
     @Test
     private void testListMultipartUploads() throws Exception {
-        List<String> uploadIds1 = new ArrayList<>();
-        List<String> uploadIds2 = new ArrayList<>();
+        List< String > uploadIds1 = new ArrayList<>();
+        List< String > uploadIds2 = new ArrayList<>();
         String uploadId = "";
         for ( String keyName : keyNames ) {
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                    keyName );
             uploadIds1.add( uploadId );
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                    keyName );
             uploadIds2.add( uploadId );
         }
 
@@ -65,8 +65,8 @@ public class ListMultipartUploads18753 extends S3TestBase {
         request.setDelimiter( "%" );
         MultipartUploadListing partUploadList = s3Client
                 .listMultipartUploads( request );
-        List<String> expCommonPrefixes = new ArrayList<>();
-        MultiValueMap<String, String> expUploads = new LinkedMultiValueMap<String, String>();
+        List< String > expCommonPrefixes = new ArrayList<>();
+        MultiValueMap< String, String > expUploads = new LinkedMultiValueMap< String, String >();
         expUploads.add( keyNames[ 2 ], uploadIds2.get( 2 ) );
         expUploads.add( keyNames[ 3 ], uploadIds1.get( 3 ) );
         expUploads.add( keyNames[ 3 ], uploadIds2.get( 3 ) );
@@ -83,7 +83,7 @@ public class ListMultipartUploads18753 extends S3TestBase {
         request2.setUploadIdMarker( uploadIds1.get( 2 ) );
         request2.setDelimiter( "/" );
         partUploadList = s3Client.listMultipartUploads( request2 );
-        expUploads = new LinkedMultiValueMap<String, String>();
+        expUploads = new LinkedMultiValueMap< String, String >();
         PartUploadUtils.checkListMultipartUploadsResults( partUploadList,
                 expCommonPrefixes, expUploads );
 

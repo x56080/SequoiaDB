@@ -45,15 +45,14 @@ public class UpdateUserManyTimes16258 extends S3TestBase {
     @Test
     private void test() throws JSONException {
         // create user
-        JSONObject craeteUser = UserUtils
-                .createUser( userName, UserCommDefind.normal,
-                        UserUtils.accessKeyId );
+        JSONObject craeteUser = UserUtils.createUser( userName,
+                UserCommDefind.normal, UserUtils.accessKeyId );
 
         // update user
         JSONObject updateUser = null;
         for ( int i = 0; i < times; i++ ) {
-            updateUser = UserUtils
-                    .updateUser( userName, UserUtils.accessKeyId );
+            updateUser = UserUtils.updateUser( userName,
+                    UserUtils.accessKeyId );
         }
 
         // create bucket for check
@@ -94,7 +93,7 @@ public class UpdateUserManyTimes16258 extends S3TestBase {
             s3Client.createBucket( bucketName );
 
             // check
-            List<Bucket> buckets = s3Client.listBuckets();
+            List< Bucket > buckets = s3Client.listBuckets();
             Assert.assertEquals( buckets.size(), 1, " only one bucket" );
             Bucket expbucket = buckets.get( 0 );
             String actOwner = expbucket.getOwner().getDisplayName();

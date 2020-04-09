@@ -34,24 +34,23 @@ public class ListVersionsByPrefixDelimiterIDKey16406 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket16406";
     private String objectNameBase = "dir";
-    private List<String> objectNames = new ArrayList<String>();
+    private List< String > objectNames = new ArrayList< String >();
     private int objectNum = 1000;
     private AmazonS3 s3Client = null;
     private int fileSize = 1;
     private int versionNum = 3;
     private File localPath = null;
-    private List<String> filePathList = new ArrayList<String>();
+    private List< String > filePathList = new ArrayList< String >();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         for ( int i = 0; i < versionNum; i++ ) {
-            String filePath =
-                    localPath + File.separator + "localFile_" + ( fileSize + i )
-                            + ".txt";
+            String filePath = localPath + File.separator + "localFile_"
+                    + ( fileSize + i ) + ".txt";
             TestTools.LocalFile.createFile( filePath, fileSize + i );
             filePathList.add( filePath );
         }
@@ -83,15 +82,14 @@ public class ListVersionsByPrefixDelimiterIDKey16406 extends S3TestBase {
         String versionIdMarker = String.valueOf( versionNum );
 
         // list versions by prefix/delimiter/versionIdMarker/keyMarker
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withKeyMarker( keyMarker )
-                        .withVersionIdMarker( versionIdMarker ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withDelimiter( delimiter )
+                .withPrefix( prefix ).withKeyMarker( keyMarker )
+                .withVersionIdMarker( versionIdMarker ) );
 
         // expected results
         Collections.sort( objectNames );
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = objectNum / 2; i <= objectNum / 2 + 1000 / 3; i++ ) {
             if ( i == objectNum / 2 + 1000 / 3 ) {
                 expMap.add( objectNames.get( i ),
@@ -105,20 +103,20 @@ public class ListVersionsByPrefixDelimiterIDKey16406 extends S3TestBase {
         // check
         Assert.assertEquals( vsList.isTruncated(), true,
                 "vsList.isTruncated() must be true" );
-        ObjectUtils
-                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                expMap );
 
         // list versions by prefix/delimiter/versionIdMarker/keyMarker
         String keyMarker1 = vsList.getNextKeyMarker();
         String versionIdMarker1 = vsList.getNextVersionIdMarker();
-        VersionListing vsList1 = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withKeyMarker( keyMarker1 )
+        VersionListing vsList1 = s3Client
+                .listVersions( new ListVersionsRequest()
+                        .withBucketName( bucketName ).withDelimiter( delimiter )
+                        .withPrefix( prefix ).withKeyMarker( keyMarker1 )
                         .withVersionIdMarker( versionIdMarker1 ) );
 
         // expected results
-        MultiValueMap<String, String> expMap1 = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap1 = new LinkedMultiValueMap< String, String >();
         for ( int i = objectNum / 2 + 1000 / 3; i < objectNum; i++ ) {
             if ( i == objectNum / 2 + 1000 / 3 ) {
                 for ( int j = versionNum - 2; j >= 0; j-- ) {
@@ -133,7 +131,7 @@ public class ListVersionsByPrefixDelimiterIDKey16406 extends S3TestBase {
         // check
         Assert.assertEquals( vsList1.isTruncated(), false,
                 "vsList1.isTruncated() must be false" );
-        ObjectUtils.checkListVSResults( vsList1, new ArrayList<String>(),
+        ObjectUtils.checkListVSResults( vsList1, new ArrayList< String >(),
                 expMap1 );
         runSuccess = true;
     }
@@ -146,18 +144,17 @@ public class ListVersionsByPrefixDelimiterIDKey16406 extends S3TestBase {
         String versionIdMarker = String.valueOf( versionNum );
 
         // list versions by prefix/delimiter/versionIdMarker/keyMarker
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withKeyMarker( keyMarker )
-                        .withVersionIdMarker( versionIdMarker ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withDelimiter( delimiter )
+                .withPrefix( prefix ).withKeyMarker( keyMarker )
+                .withVersionIdMarker( versionIdMarker ) );
 
         // expected results
         Collections.sort( objectNames );
-        List<String> expCommprefixes = new ArrayList<String>();
+        List< String > expCommprefixes = new ArrayList< String >();
         expCommprefixes.add( "dir/" );
 
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = objectNum / 2; i <= objectNum / 2 + 1000 / 3 - 1; i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
                 expMap.add( objectNames.get( i ), String.valueOf( j ) );
@@ -171,14 +168,14 @@ public class ListVersionsByPrefixDelimiterIDKey16406 extends S3TestBase {
         // list versions by prefix/delimiter/versionIdMarker/keyMarker
         String keyMarker1 = vsList.getNextKeyMarker();
         String versionIdMarker1 = vsList.getNextVersionIdMarker();
-        VersionListing vsList1 = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withKeyMarker( keyMarker1 )
+        VersionListing vsList1 = s3Client
+                .listVersions( new ListVersionsRequest()
+                        .withBucketName( bucketName ).withDelimiter( delimiter )
+                        .withPrefix( prefix ).withKeyMarker( keyMarker1 )
                         .withVersionIdMarker( versionIdMarker1 ) );
 
         // expected results
-        MultiValueMap<String, String> expMap1 = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap1 = new LinkedMultiValueMap< String, String >();
         for ( int i = objectNum / 2 + 1000 / 3; i < objectNum; i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
                 expMap1.add( objectNames.get( i ), String.valueOf( j ) );
@@ -187,7 +184,7 @@ public class ListVersionsByPrefixDelimiterIDKey16406 extends S3TestBase {
         // check
         Assert.assertEquals( vsList1.isTruncated(), false,
                 "vsList1.isTruncated() must be false" );
-        ObjectUtils.checkListVSResults( vsList1, new ArrayList<String>(),
+        ObjectUtils.checkListVSResults( vsList1, new ArrayList< String >(),
                 expMap1 );
         runSuccess = true;
     }

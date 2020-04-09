@@ -37,10 +37,10 @@ public class ListObjectsWithStartAfterAndPrefix16428 extends S3TestBase {
     @SuppressWarnings("deprecation")
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -81,15 +81,15 @@ public class ListObjectsWithStartAfterAndPrefix16428 extends S3TestBase {
                 .withBucketName( bucketName ).withEncodingType( "url" )
                 .withStartAfter( startAfter ).withPrefix( prefix );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         // misMatchObject, the list size is 0
         Assert.assertEquals( objects.size(), 0 );
         Assert.assertEquals( commonPrefixes.size(), 0 );
     }
 
     private void putObjects() {
-        List<String> keyList = new ArrayList<>();
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < objectNums; i++ ) {
             String keyName = key + "_" + i;
             keyList.add( keyName );

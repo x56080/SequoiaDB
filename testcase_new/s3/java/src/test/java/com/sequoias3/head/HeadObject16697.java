@@ -44,9 +44,8 @@ public class HeadObject16697 extends S3TestBase {
 
     @Test
     private void testHeadObject() throws Exception {
-        PutObjectResult resultV1 = s3Client
-                .putObject( S3TestBase.enableVerBucketName, key,
-                        "testobject16697v100" );
+        PutObjectResult resultV1 = s3Client.putObject(
+                S3TestBase.enableVerBucketName, key, "testobject16697v100" );
         String etagV1 = resultV1.getETag();
         s3Client.putObject( S3TestBase.enableVerBucketName, key,
                 "testobject16697v2" );
@@ -60,9 +59,8 @@ public class HeadObject16697 extends S3TestBase {
         Date date = result.getLastModified();
         String unmodifiedTime = getDateByRfc( date );
 
-        HttpHead request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + S3TestBase.enableVerBucketName
-                        + "/" + key );
+        HttpHead request = new HttpHead( S3TestBase.s3ClientUrl + "/"
+                + S3TestBase.enableVerBucketName + "/" + key );
         request.setHeader( "Authorization",
                 "Credential=" + S3TestBase.s3AccessKeyId + "/" );
         request.setHeader( "If-Unmodified-Since", unmodifiedTime );

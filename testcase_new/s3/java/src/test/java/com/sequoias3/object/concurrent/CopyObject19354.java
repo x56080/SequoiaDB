@@ -39,10 +39,10 @@ public class CopyObject19354 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -67,14 +67,16 @@ public class CopyObject19354 extends S3TestBase {
         int deleteBucketErrCode = deleteBucket.getRetCode();
         int copyObjectErrCode = copyObject.getRetCode();
         if ( copyObjectErrCode == 0 ) {
-            // copy object success.delete bucket fail,the errorcode 409(BucketNotEmpty)
+            // copy object success.delete bucket fail,the errorcode
+            // 409(BucketNotEmpty)
             Assert.assertEquals( deleteBucketErrCode, 409 );
             checkObjectContent( destBucketName, destKeyName );
         } else {
-            // delete bucket success,copy object fail,the errorCode:404(NoSuchBucket)
-            //or the errorCode:200(源对象在copy过程中被删除，有可能报200错误)
-            Assert.assertTrue( copyObjectErrCode == 404 ||
-                    copyObjectErrCode == 200 );
+            // delete bucket success,copy object fail,the
+            // errorCode:404(NoSuchBucket)
+            // or the errorCode:200(源对象在copy过程中被删除，有可能报200错误)
+            Assert.assertTrue(
+                    copyObjectErrCode == 404 || copyObjectErrCode == 200 );
             Assert.assertFalse( s3Client.doesBucketExist( destBucketName ) );
         }
         runSuccess = true;
@@ -95,8 +97,8 @@ public class CopyObject19354 extends S3TestBase {
 
     private void checkObjectContent( String bucketName, String keyName )
             throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
@@ -144,7 +146,8 @@ public class CopyObject19354 extends S3TestBase {
 
         @ExecuteOrder(step = 1)
         private void deleteBucket() throws Exception {
-            // random waiting time is less than 100ms.run randomly to different concurrency results.
+            // random waiting time is less than 100ms.run randomly to different
+            // concurrency results.
             int random = ( int ) ( Math.random() * 100 );
             Thread.sleep( random );
             try {

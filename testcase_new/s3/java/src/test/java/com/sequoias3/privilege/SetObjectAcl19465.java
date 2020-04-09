@@ -59,8 +59,8 @@ public class SetObjectAcl19465 extends S3TestBase {
         // check grant
         Grant grant = new Grant( new CanonicalGrantee( owner.getId() ),
                 Permission.FullControl );
-        PrivilegeUtils
-                .checkSetObjectAclResult( adminS3, bucketName, keyName, grant );
+        PrivilegeUtils.checkSetObjectAclResult( adminS3, bucketName, keyName,
+                grant );
 
         // not object owner set object's acl
         try {
@@ -72,8 +72,8 @@ public class SetObjectAcl19465 extends S3TestBase {
         }
 
         // check object acl again
-        PrivilegeUtils
-                .checkSetObjectAclResult( adminS3, bucketName, keyName, grant );
+        PrivilegeUtils.checkSetObjectAclResult( adminS3, bucketName, keyName,
+                grant );
 
         runSuccess = true;
     }

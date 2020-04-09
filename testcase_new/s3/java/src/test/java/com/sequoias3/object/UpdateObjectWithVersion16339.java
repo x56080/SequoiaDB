@@ -35,12 +35,12 @@ public class UpdateObjectWithVersion16339 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -78,8 +78,8 @@ public class UpdateObjectWithVersion16339 extends S3TestBase {
         S3Object object = s3Client.getObject( bucketName, keyName );
         Date createDate = object.getObjectMetadata().getLastModified();
 
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, new File( filePath ) );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                new File( filePath ) );
         // check the versionId, should be 1
         String updateVersionId = "1";
         Assert.assertEquals( result.getVersionId(), updateVersionId );
@@ -94,8 +94,8 @@ public class UpdateObjectWithVersion16339 extends S3TestBase {
 
     private void updateObjectWithDiffContent( String bucketName )
             throws Exception {
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, new File( updatePath ) );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                new File( updatePath ) );
         // check the versionId, should be 2
         Assert.assertEquals( result.getVersionId(), "2" );
     }
@@ -105,20 +105,18 @@ public class UpdateObjectWithVersion16339 extends S3TestBase {
         String updateVersionId = "1";
 
         // check the content of the create object
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName,
-                        createVersionId );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName, createVersionId );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
 
         // check the content of the first update
-        String updateMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName,
-                        updateVersionId );
+        String updateMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName, updateVersionId );
         Assert.assertEquals( updateMd5, TestTools.getMD5( filePath ) );
 
         // check the content of the second update
-        String secUdateMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String secUdateMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( secUdateMd5, TestTools.getMD5( updatePath ) );
     }
 }

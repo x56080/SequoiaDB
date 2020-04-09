@@ -35,12 +35,12 @@ public class GetObjectWithIfMatch16354 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -95,9 +95,8 @@ public class GetObjectWithIfMatch16354 extends S3TestBase {
 
     private void checkGetObjectResult( S3Object object ) throws Exception {
         S3ObjectInputStream s3is = object.getObjectContent();
-        String downloadPath = TestTools.LocalFile
-                .initDownloadPath( localPath, TestTools.getMethodName(),
-                        Thread.currentThread().getId() );
+        String downloadPath = TestTools.LocalFile.initDownloadPath( localPath,
+                TestTools.getMethodName(), Thread.currentThread().getId() );
         ObjectUtils.inputStream2File( s3is, downloadPath );
         String getMd5 = TestTools.getMD5( downloadPath );
         Assert.assertEquals( getMd5, TestTools.getMD5( updatePath ) );

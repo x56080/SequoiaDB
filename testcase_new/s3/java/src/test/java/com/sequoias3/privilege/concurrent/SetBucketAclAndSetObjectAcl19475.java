@@ -42,14 +42,14 @@ public class SetBucketAclAndSetObjectAcl19475 extends S3TestBase {
     private String filePath = null;
     private int threadNum = 100;
     private String ownerId;
-    private List<Grantee> granteeList = new ArrayList<>();
+    private List< Grantee > granteeList = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -72,7 +72,7 @@ public class SetBucketAclAndSetObjectAcl19475 extends S3TestBase {
                 Permission.WriteAcp );
         threadExec.addWorker( new ThreadSetBucketAcl( bucketGrant ) );
 
-        Map<String, Grant> grants = new HashMap<String, Grant>();
+        Map< String, Grant > grants = new HashMap< String, Grant >();
         Random random = new Random();
         for ( int i = 0; i < threadNum; i++ ) {
             String keyName = keyName_base + "_" + i;
@@ -93,10 +93,10 @@ public class SetBucketAclAndSetObjectAcl19475 extends S3TestBase {
         threadExec.run();
 
         // check bucket acl
-        PrivilegeUtils
-                .checkSetBucketAclResult( s3Client, bucketName, bucketGrant );
+        PrivilegeUtils.checkSetBucketAclResult( s3Client, bucketName,
+                bucketGrant );
         // check object acl
-        for ( Map.Entry<String, Grant> entry : grants.entrySet() ) {
+        for ( Map.Entry< String, Grant > entry : grants.entrySet() ) {
             PrivilegeUtils.checkSetObjectAclResult( s3Client, bucketName,
                     entry.getKey(), entry.getValue() );
         }
@@ -159,8 +159,8 @@ public class SetBucketAclAndSetObjectAcl19475 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void setObjectAcl() {
             try {
-                PrivilegeUtils
-                        .setObjectAclByBody( s3, bucketName, keyName, grant );
+                PrivilegeUtils.setObjectAclByBody( s3, bucketName, keyName,
+                        grant );
             } finally {
                 if ( s3 != null ) {
                     s3.shutdown();

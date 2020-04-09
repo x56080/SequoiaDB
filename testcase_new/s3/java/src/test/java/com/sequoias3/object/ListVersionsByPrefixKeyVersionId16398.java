@@ -62,7 +62,7 @@ public class ListVersionsByPrefixKeyVersionId16398 extends S3TestBase {
                         .withVersionIdMarker( versionIdMarker ) );
 
         // expected results
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( String objectName : objectNames ) {
             for ( int i = versionNum - 1; i >= 0; i-- ) {
                 expMap.add( objectName, String.valueOf( i ) );
@@ -71,8 +71,8 @@ public class ListVersionsByPrefixKeyVersionId16398 extends S3TestBase {
         // check
         Assert.assertEquals( vsList.isTruncated(), false,
                 "vsList.isTruncated() must be false" );
-        ObjectUtils
-                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                expMap );
 
         String prefix1 = "air";
         // keyMarker does not exist
@@ -84,8 +84,8 @@ public class ListVersionsByPrefixKeyVersionId16398 extends S3TestBase {
                         .withPrefix( prefix1 ).withKeyMarker( keyMarker1 )
                         .withVersionIdMarker( versionIdMarker1 ) );
         // check
-        ObjectUtils.checkListVSResults( vsList1, new ArrayList<String>(),
-                new LinkedMultiValueMap<String, String>() );
+        ObjectUtils.checkListVSResults( vsList1, new ArrayList< String >(),
+                new LinkedMultiValueMap< String, String >() );
         runSuccess = true;
     }
 

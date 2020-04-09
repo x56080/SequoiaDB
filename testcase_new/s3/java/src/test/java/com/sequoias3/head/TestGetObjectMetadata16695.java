@@ -45,12 +45,12 @@ public class TestGetObjectMetadata16695 extends S3TestBase {
     private void testGetObjectMetadata() throws Exception {
         s3Client.createBucket( bucketName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
-        PutObjectResult resultV1 = s3Client
-                .putObject( bucketName, keyName, content + "v1" );
+        PutObjectResult resultV1 = s3Client.putObject( bucketName, keyName,
+                content + "v1" );
         String etagV1 = resultV1.getETag();
         s3Client.putObject( bucketName, keyName, content + "v2" );
-        PutObjectResult resultV3 = s3Client
-                .putObject( bucketName, keyName, content + "v3" );
+        PutObjectResult resultV3 = s3Client.putObject( bucketName, keyName,
+                content + "v3" );
         String etagV3 = resultV3.getETag();
         String versionid = resultV3.getVersionId();
 

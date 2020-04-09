@@ -69,9 +69,8 @@ public class ListObjectVersionsWithDelimiter18149 extends S3TestBase {
     private void testUpdateDelimiter( String newDelimiter ) throws Exception {
         s3Client.createBucket( bucketName );
 
-        objectNames = DelimiterUtils
-                .getRandomKeyListWithDelimiter( oldDelimiter, newDelimiter,
-                        keyNum, "18149" );
+        objectNames = DelimiterUtils.getRandomKeyListWithDelimiter(
+                oldDelimiter, newDelimiter, keyNum, "18149" );
         for ( int i = 0; i < objectNames.length; i++ ) {
             s3Client.putObject( bucketName, objectNames[ i ], "test18149" );
         }
@@ -81,16 +80,16 @@ public class ListObjectVersionsWithDelimiter18149 extends S3TestBase {
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, newDelimiter,
                 accessKeys[ 0 ] );
 
-        List<String> expCommonPrefixes = ObjectUtils
+        List< String > expCommonPrefixes = ObjectUtils
                 .getCommPrefixes( objectNames, "", newDelimiter );
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withDelimiter( newDelimiter ) );
-        List<String> commonPrefixes = versionList.getCommonPrefixes();
+        List< String > commonPrefixes = versionList.getCommonPrefixes();
         ObjectUtils.checkListObjectsV2Commprefixes( commonPrefixes,
                 expCommonPrefixes );
 
-        List<S3VersionSummary> versions = versionList.getVersionSummaries();
+        List< S3VersionSummary > versions = versionList.getVersionSummaries();
         Assert.assertEquals( versions.size(), 0 );
 
         CommLib.clearBucket( s3Client, bucketName );

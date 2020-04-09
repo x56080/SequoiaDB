@@ -36,8 +36,8 @@ public class CreateRegion17299 extends S3TestBase {
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * 200;
     private File localPath = null;
-    private List<String> filePathList = new ArrayList<String>();
-    private List<Date> dateList = new ArrayList<Date>();
+    private List< String > filePathList = new ArrayList< String >();
+    private List< Date > dateList = new ArrayList< Date >();
     private int fileNum = 3;
     private boolean runSuccess = false;
 
@@ -118,15 +118,14 @@ public class CreateRegion17299 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         String filePath = null;
         for ( int i = 0; i < fileNum; i++ ) {
-            filePath =
-                    localPath + File.separator + "localFile_" + ( fileSize + i )
-                            + ".txt";
+            filePath = localPath + File.separator + "localFile_"
+                    + ( fileSize + i ) + ".txt";
             TestTools.LocalFile.createFile( filePath, fileSize + i );
             filePathList.add( filePath );
         }
@@ -160,18 +159,18 @@ public class CreateRegion17299 extends S3TestBase {
 
         // check cs and cl
         for ( int i = 0; i < dateList.size(); i++ ) {
-            String csName = RegionUtils
-                    .getDataCSName( regionName, "month", dateList.get( i ) );
-            String clName = RegionUtils
-                    .getDataCLName( "year", dateList.get( i ) );
+            String csName = RegionUtils.getDataCSName( regionName, "month",
+                    dateList.get( i ) );
+            String clName = RegionUtils.getDataCLName( "year",
+                    dateList.get( i ) );
             Assert.assertTrue( RegionUtils.clInCS( csName, clName ),
                     "csName = " + csName + ",clName = " + clName );
         }
 
         // get object for check
         for ( int i = 0; i < fileNum; i++ ) {
-            S3Object s3Object = s3Client
-                    .getObject( bucketName, objectName + "_" + i );
+            S3Object s3Object = s3Client.getObject( bucketName,
+                    objectName + "_" + i );
             checkObjectMetaAndData( s3Object, filePathList.get( i ),
                     dateList.get( i ) );
         }
@@ -198,13 +197,14 @@ public class CreateRegion17299 extends S3TestBase {
         ObjectMetadata metadata = object.getObjectMetadata();
         Assert.assertEquals( metadata.getVersionId(), "null" );
         Assert.assertEquals( metadata.getETag(), TestTools.getMD5( filePath ) );
-        Assert.assertTrue( metadata.getLastModified().getTime() / 1000
-                        >= date.getTime() / 1000,
-                "metadata.getLastModified = " + metadata.getLastModified()
-                        .getTime() + ",expDate = " + date.getTime() );
-        String downloadPath = TestTools.LocalFile
-                .initDownloadPath( localPath, TestTools.getMethodName(),
-                        Thread.currentThread().getId() );
+        Assert.assertTrue(
+                metadata.getLastModified().getTime() / 1000 >= date.getTime()
+                        / 1000,
+                "metadata.getLastModified = "
+                        + metadata.getLastModified().getTime() + ",expDate = "
+                        + date.getTime() );
+        String downloadPath = TestTools.LocalFile.initDownloadPath( localPath,
+                TestTools.getMethodName(), Thread.currentThread().getId() );
         ObjectUtils.inputStream2File( object.getObjectContent(), downloadPath );
         Assert.assertEquals( TestTools.getMD5( downloadPath ),
                 TestTools.getMD5( filePath ), "filePath = " + filePath );

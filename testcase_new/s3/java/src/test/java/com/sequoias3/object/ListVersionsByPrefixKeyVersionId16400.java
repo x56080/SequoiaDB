@@ -32,7 +32,7 @@ public class ListVersionsByPrefixKeyVersionId16400 extends S3TestBase {
     private String bucketName = "bucket16400";
     private String[] objectNames = { "dir16400$dir16400A$dir16400AB",
             "dir16400$subdir16400A", "dirsub16400A", "dirsub16400B" };
-    private List<String> objectNameList = new ArrayList<>();
+    private List< String > objectNameList = new ArrayList<>();
     private AmazonS3 s3Client = null;
     private int versionNum = 500;
 
@@ -67,7 +67,7 @@ public class ListVersionsByPrefixKeyVersionId16400 extends S3TestBase {
                         .withVersionIdMarker( versionIdMarker ) );
 
         // expected results
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = index; i < objectNames.length; i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
                 expMap.add( objectNames[ i ], String.valueOf( j ) );
@@ -76,8 +76,8 @@ public class ListVersionsByPrefixKeyVersionId16400 extends S3TestBase {
         // check
         Assert.assertEquals( vsList.isTruncated(), false,
                 "vsList.isTruncated() must be false" );
-        ObjectUtils
-                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                expMap );
         runSuccess1 = true;
     }
 
@@ -98,14 +98,14 @@ public class ListVersionsByPrefixKeyVersionId16400 extends S3TestBase {
                             .withVersionIdMarker( versionIdMarker ) );
 
             // check
-            MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+            MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
             for ( int i = 0; i < vsList.getMaxKeys() / versionNum; i++ ) {
                 for ( int j = versionNum - 1; j >= 0; j--, count++ ) {
                     expMap.add( objectNameList.get( count ),
                             String.valueOf( j ) );
                 }
             }
-            ObjectUtils.checkListVSResults( vsList, new ArrayList<String>(),
+            ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
                     expMap );
             keyMarker = vsList.getNextKeyMarker();
             versionIdMarker = vsList.getNextVersionIdMarker();

@@ -68,10 +68,10 @@ public class CreateRegion18611 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -140,14 +140,13 @@ public class CreateRegion18611 extends S3TestBase {
 
     private void checkRegion( String expDataLobPageSize,
             String expDataReplSize ) throws Exception {
-        String datacsName =
-                RegionUtils.getDataCSName( regionName, "year", new Date() )
-                        + "_1";
+        String datacsName = RegionUtils.getDataCSName( regionName, "year",
+                new Date() ) + "_1";
         String dataclName = RegionUtils.getDataCLName( "quarter", new Date() );
-        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ) ) {
-            DBCursor csCursor = sdb
-                    .getSnapshot( 5, "{'Name':'" + datacsName + "'}",
-                            "{'LobPageSize':{'$include':1}}", null );
+        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" )) {
+            DBCursor csCursor = sdb.getSnapshot( 5,
+                    "{'Name':'" + datacsName + "'}",
+                    "{'LobPageSize':{'$include':1}}", null );
             String actLobPageSize = csCursor.getNext().get( "LobPageSize" )
                     .toString();
             Assert.assertEquals( actLobPageSize, expDataLobPageSize );
@@ -165,8 +164,8 @@ public class CreateRegion18611 extends S3TestBase {
     private void createObjectAndCheckResult() throws Exception {
         s3Client.createBucket( bucketName, regionName );
         s3Client.putObject( bucketName, key, new File( filePath ) );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

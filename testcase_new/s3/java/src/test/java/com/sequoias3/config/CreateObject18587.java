@@ -102,8 +102,8 @@ public class CreateObject18587 extends S3TestBase {
         }
 
         // check
-        List<String> expContentList = new ArrayList<>();
-        List<String> expCommonPrefixes = ObjectUtils
+        List< String > expContentList = new ArrayList<>();
+        List< String > expCommonPrefixes = ObjectUtils
                 .getCommPrefixes( objectNames, "", delimiter );
         JSONObject ListBucketResultObj = listObjectsWithDelimiter( bucketName,
                 delimiter, authorization );
@@ -134,8 +134,8 @@ public class CreateObject18587 extends S3TestBase {
             rest.setApi( URLEncoder.encode( bucketName, "UTF-8" ) )
                     .setRequestMethod( HttpMethod.PUT )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
         }
@@ -150,7 +150,8 @@ public class CreateObject18587 extends S3TestBase {
             rest.setApi( bucketName + "/?delimiter-config" )
                     .setRequestMethod( HttpMethod.PUT )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestBody( delimiterConfig )
+                            authorization )
+                    .setRequestBody( delimiterConfig )
                     .setResponseType( String.class ).exec();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
@@ -170,12 +171,13 @@ public class CreateObject18587 extends S3TestBase {
     private DelimiterConfiguration getDelimiter( String bucketName,
             String authorization ) {
         TestRest rest = new TestRest( type );
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         DelimiterConfiguration result;
         try {
             resp = rest.setApi( bucketName + "/?delimiter-config" )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestMethod( HttpMethod.GET )
+                            authorization )
+                    .setRequestMethod( HttpMethod.GET )
                     .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject jsonBody = XML.toJSONObject( xmlBody );
@@ -193,7 +195,7 @@ public class CreateObject18587 extends S3TestBase {
 
     private void clearBucket( String bucketName, String authorization )
             throws Exception {
-        List<String> keyNames = listObjects( bucketName, authorization );
+        List< String > keyNames = listObjects( bucketName, authorization );
         for ( String key : keyNames ) {
             deleteObjet( bucketName, key, authorization );
             try {
@@ -214,8 +216,8 @@ public class CreateObject18587 extends S3TestBase {
             rest.setApi( URLEncoder.encode( bucketName, "UTF-8" ) )
                     .setRequestMethod( HttpMethod.DELETE )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
         }
@@ -224,14 +226,16 @@ public class CreateObject18587 extends S3TestBase {
     private JSONObject listObjectsWithDelimiter( String bucketName,
             String delimiter, String authorization ) {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         JSONObject listBucketResultJson = null;
 
         try {
-            resp = rest.setApi(
-                    bucketName + "/?list-type=2&delimiter=" + delimiter )
+            resp = rest
+                    .setApi( bucketName + "/?list-type=2&delimiter="
+                            + delimiter )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestMethod( HttpMethod.GET )
+                            authorization )
+                    .setRequestMethod( HttpMethod.GET )
                     .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject resultJson = XML.toJSONObject( xmlBody );
@@ -245,10 +249,10 @@ public class CreateObject18587 extends S3TestBase {
     }
 
     private void checkListObjV2WithDelimiter( JSONObject ListBucketResultObj,
-            List<String> expCommonPrefixes, List<String> expContents ) {
+            List< String > expCommonPrefixes, List< String > expContents ) {
 
-        List<String> actCommprefixes = new ArrayList<String>();
-        List<String> actContents = new ArrayList<String>();
+        List< String > actCommprefixes = new ArrayList< String >();
+        List< String > actContents = new ArrayList< String >();
         JSONArray commonPrefixes = new JSONArray();
         JSONArray contents = new JSONArray();
 
@@ -260,8 +264,8 @@ public class CreateObject18587 extends S3TestBase {
                     "JSONObject[\"CommonPrefixes\"] not found." );
         }
         for ( int i = 0; i < commonPrefixes.length(); i++ ) {
-            actCommprefixes.add( commonPrefixes.getJSONObject( i )
-                    .getString( "Prefix" ) );
+            actCommprefixes.add(
+                    commonPrefixes.getJSONObject( i ).getString( "Prefix" ) );
         }
 
         try {
@@ -289,9 +293,9 @@ public class CreateObject18587 extends S3TestBase {
 
     private void putObject( String bucketName, String objectName,
             String content, String authorization ) throws Exception {
-        HttpPut request = new HttpPut( S3TestBase.s3ClientUrl + "/" + URLEncoder
-                .encode( bucketName, "UTF-8" ) + "/" + URLEncoder
-                .encode( objectName, "UTF-8" ) );
+        HttpPut request = new HttpPut( S3TestBase.s3ClientUrl + "/"
+                + URLEncoder.encode( bucketName, "UTF-8" ) + "/"
+                + URLEncoder.encode( objectName, "UTF-8" ) );
         // RequestHeaders:
         request.setHeader( "Authorization", authorization );
 
@@ -306,13 +310,13 @@ public class CreateObject18587 extends S3TestBase {
     private String getObject( String bucketName, String objectName,
             String authorization ) throws Exception {
         String etag = "";
-        HttpGet request = new HttpGet( S3TestBase.s3ClientUrl + "/" + URLEncoder
-                .encode( bucketName, "UTF-8" ) + "/" + URLEncoder
-                .encode( objectName, "UTF-8" ) );
+        HttpGet request = new HttpGet( S3TestBase.s3ClientUrl + "/"
+                + URLEncoder.encode( bucketName, "UTF-8" ) + "/"
+                + URLEncoder.encode( objectName, "UTF-8" ) );
         request.setHeader( "Authorization", authorization );
         CloseableHttpClient client = RestClient.createHttpClient();
-        CloseableHttpResponse response = RestClient
-                .sendRequest( client, request );
+        CloseableHttpResponse response = RestClient.sendRequest( client,
+                request );
         etag = response.getFirstHeader( "ETag" ).getValue().replace( "\"", "" );
 
         return etag;
@@ -320,10 +324,9 @@ public class CreateObject18587 extends S3TestBase {
 
     private void headObject( String bucketName, String objectName,
             String authorization ) throws Exception {
-        HttpHead request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + URLEncoder
-                        .encode( bucketName, "UTF-8" ) + "/" + URLEncoder
-                        .encode( objectName, "UTF-8" ) );
+        HttpHead request = new HttpHead( S3TestBase.s3ClientUrl + "/"
+                + URLEncoder.encode( bucketName, "UTF-8" ) + "/"
+                + URLEncoder.encode( objectName, "UTF-8" ) );
         request.setHeader( "Authorization", authorization );
         CloseableHttpClient client = RestClient.createHttpClient();
         RestClient.sendRequest( client, request );
@@ -331,26 +334,26 @@ public class CreateObject18587 extends S3TestBase {
 
     private void deleteObjet( String bucketName, String objectName,
             String authorization ) throws Exception {
-        HttpDelete request = new HttpDelete(
-                S3TestBase.s3ClientUrl + "/" + URLEncoder
-                        .encode( bucketName, "UTF-8" ) + "/" + URLEncoder
-                        .encode( objectName, "UTF-8" ) );
+        HttpDelete request = new HttpDelete( S3TestBase.s3ClientUrl + "/"
+                + URLEncoder.encode( bucketName, "UTF-8" ) + "/"
+                + URLEncoder.encode( objectName, "UTF-8" ) );
         request.setHeader( "Authorization", authorization );
         CloseableHttpClient client = RestClient.createHttpClient();
         RestClient.sendRequest( client, request );
     }
 
-    private List<String> listObjects( String bucketName,
+    private List< String > listObjects( String bucketName,
             String authorization ) {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         JSONArray contents = new JSONArray();
-        List<String> keyNames = new ArrayList<>();
+        List< String > keyNames = new ArrayList<>();
 
         try {
             resp = rest.setApi( bucketName + "/?list-type=2" )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestMethod( HttpMethod.GET )
+                            authorization )
+                    .setRequestMethod( HttpMethod.GET )
                     .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject resultJson = XML.toJSONObject( xmlBody );

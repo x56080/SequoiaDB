@@ -32,17 +32,17 @@ public class CreateObject18184 extends S3TestBase {
     private int threadNum = 200;
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * 10;
-    private List<String> keyNames = new ArrayList<>();
+    private List< String > keyNames = new ArrayList<>();
     private File localPath = null;
     private String filePath = null;
     private boolean runSuccess = false;
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -65,12 +65,11 @@ public class CreateObject18184 extends S3TestBase {
 
         String[] objectNames = keyNames
                 .toArray( new String[ keyNames.size() ] );
-        List<String> expCommprefixList = ObjectUtils
+        List< String > expCommprefixList = ObjectUtils
                 .getCommPrefixes( objectNames, "", delimiter );
-        List<String> expContentList = new ArrayList<>();
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        expCommprefixList, expContentList );
+        List< String > expContentList = new ArrayList<>();
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, expCommprefixList, expContentList );
         runSuccess = true;
     }
 

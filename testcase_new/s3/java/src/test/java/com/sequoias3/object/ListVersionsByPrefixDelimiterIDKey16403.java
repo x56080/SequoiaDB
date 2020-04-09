@@ -38,18 +38,17 @@ public class ListVersionsByPrefixDelimiterIDKey16403 extends S3TestBase {
     private int fileSize = 3;
     private int versionNum = 5;
     private File localPath = null;
-    private List<String> filePathList = new ArrayList<String>();
+    private List< String > filePathList = new ArrayList< String >();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         for ( int i = 0; i < versionNum; i++ ) {
-            String filePath =
-                    localPath + File.separator + "localFile_" + ( fileSize + i )
-                            + ".txt";
+            String filePath = localPath + File.separator + "localFile_"
+                    + ( fileSize + i ) + ".txt";
             TestTools.LocalFile.createFile( filePath, fileSize + i );
             filePathList.add( filePath );
         }
@@ -60,9 +59,8 @@ public class ListVersionsByPrefixDelimiterIDKey16403 extends S3TestBase {
                 BucketVersioningConfiguration.ENABLED );
         for ( String objectName : objectNames ) {
             for ( int i = 0; i < versionNum; i++ ) {
-                s3Client.putObject(
-                        new PutObjectRequest( bucketName, objectName,
-                                new File( filePathList.get( i ) ) ) );
+                s3Client.putObject( new PutObjectRequest( bucketName,
+                        objectName, new File( filePathList.get( i ) ) ) );
             }
         }
     }
@@ -74,36 +72,35 @@ public class ListVersionsByPrefixDelimiterIDKey16403 extends S3TestBase {
         String keyMarker = objectNames[ 0 ];
 
         // expected results
-        List<String> expCommPrefixes = ObjectUtils
+        List< String > expCommPrefixes = ObjectUtils
                 .getCommPrefixes( objectNames, prefix, delimiter );
 
         // list versions by prefix/delimiter/currentversionId/key
         String versionIdMarker1 = "4";
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withKeyMarker( keyMarker )
-                        .withVersionIdMarker( versionIdMarker1 ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withDelimiter( delimiter )
+                .withPrefix( prefix ).withKeyMarker( keyMarker )
+                .withVersionIdMarker( versionIdMarker1 ) );
 
         // check
         Assert.assertEquals( vsList.isTruncated(), false,
                 "vsList.isTruncated() must be false" );
         ObjectUtils.checkListVSResults( vsList, expCommPrefixes,
-                new LinkedMultiValueMap<String, String>() );
+                new LinkedMultiValueMap< String, String >() );
 
         // list versions by prefix/delimiter/histversionId/key
         String versionIdMarker2 = "3";
-        VersionListing vsList1 = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withKeyMarker( keyMarker )
+        VersionListing vsList1 = s3Client
+                .listVersions( new ListVersionsRequest()
+                        .withBucketName( bucketName ).withDelimiter( delimiter )
+                        .withPrefix( prefix ).withKeyMarker( keyMarker )
                         .withVersionIdMarker( versionIdMarker2 ) );
 
         // check
         Assert.assertEquals( vsList1.isTruncated(), false,
                 "vsList1.isTruncated() must be false" );
         ObjectUtils.checkListVSResults( vsList1, expCommPrefixes,
-                new LinkedMultiValueMap<String, String>() );
+                new LinkedMultiValueMap< String, String >() );
         runSuccess = true;
     }
 

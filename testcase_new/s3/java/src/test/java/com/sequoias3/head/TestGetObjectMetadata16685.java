@@ -56,7 +56,7 @@ public class TestGetObjectMetadata16685 extends S3TestBase {
 
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         for ( S3VersionSummary version : verList ) {
             if ( version.isDeleteMarker() ) {
                 newestVersionId = version.getVersionId();
@@ -65,9 +65,8 @@ public class TestGetObjectMetadata16685 extends S3TestBase {
         }
         historyVersionId = verList.get( verList.size() - 1 ).getVersionId();
         try {
-            s3Client.getObjectMetadata(
-                    new GetObjectMetadataRequest( bucketName, keyName,
-                            newestVersionId ) );
+            s3Client.getObjectMetadata( new GetObjectMetadataRequest(
+                    bucketName, keyName, newestVersionId ) );
             Assert.fail(
                     "get the object with the latest deletemarker should fail!" );
         } catch ( AmazonS3Exception e ) {
@@ -76,9 +75,8 @@ public class TestGetObjectMetadata16685 extends S3TestBase {
         }
 
         try {
-            s3Client.getObjectMetadata(
-                    new GetObjectMetadataRequest( bucketName, keyName,
-                            historyVersionId ) );
+            s3Client.getObjectMetadata( new GetObjectMetadataRequest(
+                    bucketName, keyName, historyVersionId ) );
             Assert.fail(
                     "get the object with history deletemarker should fail!" );
         } catch ( AmazonS3Exception e ) {

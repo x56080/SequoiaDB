@@ -54,8 +54,8 @@ public class DeleteObject16446 extends S3TestBase {
     private void tearDown() {
         try {
             if ( runSuccess ) {
-                ObjectUtils
-                        .deleteObjectAllVersions( s3Client, bucketName, key );
+                ObjectUtils.deleteObjectAllVersions( s3Client, bucketName,
+                        key );
                 s3Client.deleteBucket( bucketName );
             }
         } finally {
@@ -72,7 +72,7 @@ public class DeleteObject16446 extends S3TestBase {
         // delete the object of delete tag , add a delete tag
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
-        Iterator<S3VersionSummary> versionIter = versionList
+        Iterator< S3VersionSummary > versionIter = versionList
                 .getVersionSummaries().iterator();
         int count = 0;
         while ( versionIter.hasNext() ) {

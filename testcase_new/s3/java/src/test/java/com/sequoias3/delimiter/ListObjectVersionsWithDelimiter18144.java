@@ -33,7 +33,7 @@ public class ListObjectVersionsWithDelimiter18144 extends S3TestBase {
     private String[] keyName = { "dir1/test18144_1",
             "dir1/Dir2/dir3/test18144_2", "dir1/test18144_3",
             "dir1/dir2/aa/test18144_4", "testdir18144.txt" };
-    private List<String> versionsKeys = new ArrayList<String>(
+    private List< String > versionsKeys = new ArrayList< String >(
             Arrays.asList( "dir1/test18144_1", "dir1/Dir2/dir3/test18144_2",
                     "dir1/test18144_3", "dir1/dir2/aa/test18144_4" ) );
     private String delimiter = "?";
@@ -67,14 +67,14 @@ public class ListObjectVersionsWithDelimiter18144 extends S3TestBase {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withDelimiter( delimiter ).withPrefix( prefix ) );
-        List<String> expCommPrefixes = new ArrayList<>();
+        List< String > expCommPrefixes = new ArrayList<>();
 
-        MultiValueMap<String, String> expVersionsMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersionsMap = new LinkedMultiValueMap< String, String >();
         Collections.sort( versionsKeys );
         for ( int i = 0; i < versionsKeys.size(); i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
-                expVersionsMap
-                        .add( versionsKeys.get( i ), String.valueOf( j ) );
+                expVersionsMap.add( versionsKeys.get( i ),
+                        String.valueOf( j ) );
             }
         }
 

@@ -42,23 +42,23 @@ public class SetBucketVersioning16612 extends S3TestBase {
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
 
         // put some objects
-        List<PutObjectResult> objectResults = new ArrayList<PutObjectResult>();
-        objectResults.add( s3Client
-                .putObject( bucketName, "test1", "object1_file16612" ) );
-        objectResults.add( s3Client
-                .putObject( bucketName, "test2", "object2_file16612" ) );
-        objectResults.add( s3Client
-                .putObject( bucketName, "test3", "object3_file16612" ) );
+        List< PutObjectResult > objectResults = new ArrayList< PutObjectResult >();
+        objectResults.add( s3Client.putObject( bucketName, "test1",
+                "object1_file16612" ) );
+        objectResults.add( s3Client.putObject( bucketName, "test2",
+                "object2_file16612" ) );
+        objectResults.add( s3Client.putObject( bucketName, "test3",
+                "object3_file16612" ) );
         checkListObjectsV2Result( objectResults, true );
 
         CommLib.setBucketVersioning( s3Client, bucketName, "Suspended" );
-        List<PutObjectResult> objectResults2 = new ArrayList<PutObjectResult>();
-        objectResults2.add( s3Client
-                .putObject( bucketName, "test1", "object1_file16612" ) );
-        objectResults2.add( s3Client
-                .putObject( bucketName, "test2", "object2_file16612" ) );
-        objectResults2.add( s3Client
-                .putObject( bucketName, "test3", "object3_file16612" ) );
+        List< PutObjectResult > objectResults2 = new ArrayList< PutObjectResult >();
+        objectResults2.add( s3Client.putObject( bucketName, "test1",
+                "object1_file16612" ) );
+        objectResults2.add( s3Client.putObject( bucketName, "test2",
+                "object2_file16612" ) );
+        objectResults2.add( s3Client.putObject( bucketName, "test3",
+                "object3_file16612" ) );
         checkListObjectsV2Result( objectResults2, false );
         runSuccess = true;
     }
@@ -76,8 +76,8 @@ public class SetBucketVersioning16612 extends S3TestBase {
         }
     }
 
-    private void checkListObjectsV2Result( List<PutObjectResult> objectResults,
-            boolean VersionIdNotNull ) {
+    private void checkListObjectsV2Result(
+            List< PutObjectResult > objectResults, boolean VersionIdNotNull ) {
         if ( VersionIdNotNull ) {
             for ( PutObjectResult objectResult : objectResults ) {
                 Assert.assertNotEquals( objectResult.getVersionId(), "null" );

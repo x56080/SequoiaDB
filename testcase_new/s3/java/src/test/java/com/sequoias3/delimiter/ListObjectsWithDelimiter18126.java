@@ -34,10 +34,9 @@ public class ListObjectsWithDelimiter18126 extends S3TestBase {
     private String prefix = "%dir%";
     private String delimiter = "%";
     private String startAfter = "%dir%dir10%";
-    private List<String> expCommprefixes = new ArrayList<String>();
-    private List<String> expContents = new ArrayList<String>(
-            Arrays.asList( "%dir%test18126_1", "%dir%test18126_2",
-                    "%dir%test18126_3" ) );
+    private List< String > expCommprefixes = new ArrayList< String >();
+    private List< String > expContents = new ArrayList< String >( Arrays.asList(
+            "%dir%test18126_1", "%dir%test18126_2", "%dir%test18126_3" ) );
     private int objectTotalNum = 2000;
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
@@ -72,8 +71,8 @@ public class ListObjectsWithDelimiter18126 extends S3TestBase {
         DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
 
-        List<String> commprefixesResult = new ArrayList<>();
-        List<String> contentsResult = new ArrayList<>();
+        List< String > commprefixesResult = new ArrayList<>();
+        List< String > contentsResult = new ArrayList<>();
         ListObjectsV2Request req = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withPrefix( prefix )
                 .withDelimiter( delimiter ).withStartAfter( startAfter );
@@ -84,7 +83,7 @@ public class ListObjectsWithDelimiter18126 extends S3TestBase {
             queryNum++;
             result = s3Client.listObjectsV2( req );
             commprefixesResult.addAll( result.getCommonPrefixes() );
-            List<S3ObjectSummary> contents = result.getObjectSummaries();
+            List< S3ObjectSummary > contents = result.getObjectSummaries();
             for ( S3ObjectSummary content : contents ) {
                 contentsResult.add( content.getKey() );
             }
@@ -97,9 +96,9 @@ public class ListObjectsWithDelimiter18126 extends S3TestBase {
 
         // expresultList are stored after 'startAfter'
         // subList[int,int)
-        expCommprefixes = expCommprefixes
-                .subList( expCommprefixes.indexOf( startAfter ) + 1,
-                        expCommprefixes.size() );
+        expCommprefixes = expCommprefixes.subList(
+                expCommprefixes.indexOf( startAfter ) + 1,
+                expCommprefixes.size() );
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult,
                 expCommprefixes );
         Assert.assertEquals( contentsResult, expContents,

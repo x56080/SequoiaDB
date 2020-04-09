@@ -61,12 +61,13 @@ public class GetBucketVersioning16617 extends S3TestBase {
     private class GetBucketVersioningThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 Assert.assertEquals(
                         s3Client.getBucketVersioningConfiguration( bucketName )
-                                .getStatus(), "Enabled" );
+                                .getStatus(),
+                        "Enabled" );
             } finally {
                 if ( s3Client != null ) {
                     s3Client.shutdown();

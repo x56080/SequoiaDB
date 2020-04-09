@@ -39,10 +39,10 @@ public class CreateObject16350 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -69,7 +69,7 @@ public class CreateObject16350 extends S3TestBase {
         wrongMd5 = TestTools.getMD5( filePath );
         metadata.setContentMD5( wrongMd5 );
         metadata.setContentLength( fileSize );
-        try ( InputStream input2 = new FileInputStream( f ) ) {
+        try ( InputStream input2 = new FileInputStream( f )) {
             s3Client.putObject( bucketName, keyName, input2, metadata );
             Assert.fail( "exp fail but found success" );
         } catch ( AmazonS3Exception e ) {
@@ -89,8 +89,8 @@ public class CreateObject16350 extends S3TestBase {
 
     private void checkPutObjectResult() throws Exception {
         // down file
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 }

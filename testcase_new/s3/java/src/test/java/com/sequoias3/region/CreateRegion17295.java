@@ -103,12 +103,10 @@ public class CreateRegion17295 extends S3TestBase {
             String context = "testcreatekeyonregion17295" + "_test" + i;
             s3Client.putObject( bucketName, key, context );
             String version = i + "";
-            File localPath = new File(
-                    S3TestBase.workDir + File.separator + TestTools
-                            .getClassName() );
-            String downfileMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, key,
-                            version );
+            File localPath = new File( S3TestBase.workDir + File.separator
+                    + TestTools.getClassName() );
+            String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, key, version );
             Assert.assertEquals( downfileMd5,
                     TestTools.getMD5( context.getBytes() ) );
             TestTools.LocalFile.removeFile( localPath );
@@ -117,7 +115,7 @@ public class CreateRegion17295 extends S3TestBase {
 
     private void checkIndex( String csName, String clName, String indexName,
             String indexKey ) {
-        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ) ) {
+        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" )) {
             DBCollection cl = sdb.getCollectionSpace( csName )
                     .getCollection( clName );
             Assert.assertTrue( cl.isIndexExist( indexName ) );

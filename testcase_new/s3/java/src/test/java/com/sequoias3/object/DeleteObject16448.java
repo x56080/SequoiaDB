@@ -30,7 +30,7 @@ import java.util.List;
 public class DeleteObject16448 extends S3TestBase {
     private String bucketName = "bucket16448";
     private String keyName = "testkey16448";
-    private List<S3VersionSummary> expVersionList = new ArrayList<>();
+    private List< S3VersionSummary > expVersionList = new ArrayList<>();
     private int oneObjVersionNum = 3;
     private String file = "object16448";
     private File localPath = null;
@@ -39,8 +39,8 @@ public class DeleteObject16448 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
 
@@ -79,7 +79,7 @@ public class DeleteObject16448 extends S3TestBase {
         ListVersionsRequest req = new ListVersionsRequest()
                 .withBucketName( bucketName );
         VersionListing versionList = s3Client.listVersions( req );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         Assert.assertEquals( verList.size(), expVersionList.size() );
         for ( int i = 0; i < verList.size(); i++ ) {
             Assert.assertEquals( verList.get( i ).getKey(),
@@ -91,8 +91,8 @@ public class DeleteObject16448 extends S3TestBase {
         // check that the current latest version of the object is correct by the
         // MD5 value
         String currlatestVersionId = String.valueOf( oneObjVersionNum - 2 );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools
                 .getMD5( ( file + "." + currlatestVersionId ).getBytes() ) );
 

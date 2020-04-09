@@ -52,17 +52,17 @@ public class TestGetObjectMetadata16703 extends S3TestBase {
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
 
         s3Client.putObject( bucketName, keyName, content + "v1" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content + "v2" );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content + "v2" );
         String historyEtag = result.getETag();
 
-        PutObjectResult result2 = s3Client
-                .putObject( bucketName, keyName, content + "v3" );
+        PutObjectResult result2 = s3Client.putObject( bucketName, keyName,
+                content + "v3" );
         String versionid = result2.getVersionId();
 
-        ObjectMetadata metadata = s3Client.getObjectMetadata(
-                new GetObjectMetadataRequest( bucketName, keyName,
-                        versionid ) );
+        ObjectMetadata metadata = s3Client
+                .getObjectMetadata( new GetObjectMetadataRequest( bucketName,
+                        keyName, versionid ) );
         Date actDate = metadata.getLastModified();
 
         // 匹配If-Unmodified-Since不匹配If-Match

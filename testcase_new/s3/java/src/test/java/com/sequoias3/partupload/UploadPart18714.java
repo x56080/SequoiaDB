@@ -49,10 +49,10 @@ public class UploadPart18714 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -89,7 +89,7 @@ public class UploadPart18714 extends S3TestBase {
 
     private void testUpload( AmazonS3 s3 ) throws Exception {
         // 对象A正在上传
-        List<PartETag> partEtags = new ArrayList<>();
+        List< PartETag > partEtags = new ArrayList<>();
         String uploadIdA = uploadObjectA( s3, partEtags );
 
         // 初始化对象B
@@ -107,8 +107,8 @@ public class UploadPart18714 extends S3TestBase {
 
         // 上传分段指定uploadId为对象A的uploadId
         try {
-            PartUploadUtils
-                    .partUpload( s3, bucketName, keyNameB, uploadIdA, file );
+            PartUploadUtils.partUpload( s3, bucketName, keyNameB, uploadIdA,
+                    file );
             Assert.fail(
                     "upload part with uploadId of other keys should fail." );
         } catch ( AmazonS3Exception e ) {
@@ -116,9 +116,8 @@ public class UploadPart18714 extends S3TestBase {
         }
 
         // 对象A完成分段上传
-        PartUploadUtils
-                .completeMultipartUpload( s3, bucketName, keyNameA, uploadIdA,
-                        partEtags );
+        PartUploadUtils.completeMultipartUpload( s3, bucketName, keyNameA,
+                uploadIdA, partEtags );
         Assert.assertFalse( s3.doesObjectExist( bucketName, keyNameB ) );
     }
 
@@ -137,9 +136,9 @@ public class UploadPart18714 extends S3TestBase {
         }
     }
 
-    private String uploadObjectA( AmazonS3 s3, List<PartETag> partEtags ) {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3, bucketName, keyNameA );
+    private String uploadObjectA( AmazonS3 s3, List< PartETag > partEtags ) {
+        String uploadId = PartUploadUtils.initPartUpload( s3, bucketName,
+                keyNameA );
         long partSize = 5 * 1024;
         UploadPartRequest partRequest = new UploadPartRequest().withFile( file )
                 .withFileOffset( 0 ).withPartNumber( 1 )
@@ -163,7 +162,8 @@ public class UploadPart18714 extends S3TestBase {
                 .withEndpointConfiguration( endpointConfiguration )
                 .withClientConfiguration( config )
                 .withChunkedEncodingDisabled( true )
-                .withPathStyleAccessEnabled( true ).withCredentials(
+                .withPathStyleAccessEnabled( true )
+                .withCredentials(
                         new AWSStaticCredentialsProvider( credentials ) )
                 .build();
         return s3Client;

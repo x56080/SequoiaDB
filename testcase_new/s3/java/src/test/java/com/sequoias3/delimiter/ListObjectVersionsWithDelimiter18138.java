@@ -31,7 +31,7 @@ public class ListObjectVersionsWithDelimiter18138 extends S3TestBase {
     private String keyName = "dir";
     private String delimiter = "?";
     private String repeatedKeyName = "dir1?test18138";
-    private List<String> expVersions = new ArrayList<String>(
+    private List< String > expVersions = new ArrayList< String >(
             Arrays.asList( "18138_1.txt", "18138_2.txt", "18138_3.txt" ) );
     private String[] objectNames = new String[ 200 ];
     private AmazonS3 s3Client = null;
@@ -69,15 +69,15 @@ public class ListObjectVersionsWithDelimiter18138 extends S3TestBase {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withDelimiter( delimiter ) );
-        List<String> commonPrefixes = versionList.getCommonPrefixes();
-        List<String> versionsResult = new ArrayList<>();
-        List<S3VersionSummary> versions = versionList.getVersionSummaries();
+        List< String > commonPrefixes = versionList.getCommonPrefixes();
+        List< String > versionsResult = new ArrayList<>();
+        List< S3VersionSummary > versions = versionList.getVersionSummaries();
         for ( S3VersionSummary version : versions ) {
             versionsResult.add( version.getKey() );
             Assert.assertEquals( version.getVersionId(), "0" );
         }
 
-        List<String> expCommonprefixes = ObjectUtils
+        List< String > expCommonprefixes = ObjectUtils
                 .getCommPrefixes( objectNames, "", delimiter );
         ObjectUtils.checkListObjectsV2Commprefixes( commonPrefixes,
                 expCommonprefixes );

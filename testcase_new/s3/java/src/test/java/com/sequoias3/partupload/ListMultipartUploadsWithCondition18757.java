@@ -35,10 +35,10 @@ public class ListMultipartUploadsWithCondition18757 extends S3TestBase {
     private String delimiter1 = "/";
     private String delimiter2 = "test";
     private AmazonS3 s3Client = null;
-    private List<String> commonPrefixes1 = new ArrayList<>();
-    private List<String> commonPrefixes2 = new ArrayList<>();
-    private MultiValueMap<String, String> uploads = new LinkedMultiValueMap<String, String>();
-    private MultiValueMap<String, String> uploads2 = new LinkedMultiValueMap<String, String>();
+    private List< String > commonPrefixes1 = new ArrayList<>();
+    private List< String > commonPrefixes2 = new ArrayList<>();
+    private MultiValueMap< String, String > uploads = new LinkedMultiValueMap< String, String >();
+    private MultiValueMap< String, String > uploads2 = new LinkedMultiValueMap< String, String >();
 
     @BeforeClass
     private void setUp() {
@@ -62,17 +62,15 @@ public class ListMultipartUploadsWithCondition18757 extends S3TestBase {
         // list multipartUploads and check list info.return the num is 1000
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
                 bucketName ).withDelimiter( delimiter1 ).withPrefix( prefix1 )
-                .withKeyMarker( keyMarker )
-                .withUploadIdMarker( uploadIdMarker );
+                        .withKeyMarker( keyMarker )
+                        .withUploadIdMarker( uploadIdMarker );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
-        MultiValueMap<String, String> uploads1 = new LinkedMultiValueMap<String, String>();
-        List<String> expCommonPrefixes1 = commonPrefixes1
-                .subList( keySerial + 1,
-                        defaultEachListMaxNum + keySerial + 1 );
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes1,
-                        uploads1 );
+        MultiValueMap< String, String > uploads1 = new LinkedMultiValueMap< String, String >();
+        List< String > expCommonPrefixes1 = commonPrefixes1.subList(
+                keySerial + 1, defaultEachListMaxNum + keySerial + 1 );
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes1, uploads1 );
 
         // second query,reSet delimiter and prefix.
         String continuationKeyMarker = result.getNextKeyMarker();
@@ -84,12 +82,10 @@ public class ListMultipartUploadsWithCondition18757 extends S3TestBase {
                 .withUploadIdMarker( continuationUploadIdMarker );
         MultipartUploadListing result2 = s3Client
                 .listMultipartUploads( request );
-        List<String> expCommonPrefixes2 = commonPrefixes2
-                .subList( defaultEachListMaxNum + keySerial + 1,
-                        commonPrefixes2.size() );
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result2, expCommonPrefixes2,
-                        uploads2 );
+        List< String > expCommonPrefixes2 = commonPrefixes2.subList(
+                defaultEachListMaxNum + keySerial + 1, commonPrefixes2.size() );
+        PartUploadUtils.checkListMultipartUploadsResults( result2,
+                expCommonPrefixes2, uploads2 );
         Assert.assertFalse( result2.isTruncated(),
                 "the list should be query	finsh!" );
         runSuccess = true;
@@ -108,12 +104,12 @@ public class ListMultipartUploadsWithCondition18757 extends S3TestBase {
 
     private void initPartUpload() {
         for ( int i = 0; i < objectNum - 1; i++ ) {
-            String subKeyName =
-                    "dir_" + i + delimiter2 + delimiter1 + baseKeyName;
-            String uploadId1 = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, subKeyName );
-            String uploadId2 = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, subKeyName );
+            String subKeyName = "dir_" + i + delimiter2 + delimiter1
+                    + baseKeyName;
+            String uploadId1 = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, subKeyName );
+            String uploadId2 = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, subKeyName );
             commonPrefixes1.add( "dir_" + i + delimiter2 + delimiter1 );
             commonPrefixes2.add( "dir_" + i + delimiter2 );
             uploads.add( subKeyName, uploadId1 );
@@ -121,10 +117,10 @@ public class ListMultipartUploadsWithCondition18757 extends S3TestBase {
         }
         // add the object is misMatch delimiter1 and delimieter2
         String subKeyName = "dir_998_" + baseKeyName;
-        String uploadId1 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, subKeyName );
-        String uploadId2 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, subKeyName );
+        String uploadId1 = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                subKeyName );
+        String uploadId2 = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                subKeyName );
         uploads2.add( subKeyName, uploadId1 );
         uploads2.add( subKeyName, uploadId2 );
         Collections.sort( commonPrefixes1 );

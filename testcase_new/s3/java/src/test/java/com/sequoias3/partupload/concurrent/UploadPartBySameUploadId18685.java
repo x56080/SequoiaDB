@@ -23,8 +23,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * @Description seqDB-18685: upload multiple parts concurrently,the length of the parts is the same
- *              and there is partNum of 1.
+ * @Description seqDB-18685: upload multiple parts concurrently,the length of
+ *              the parts is the same and there is partNum of 1.
  * @author wuyan
  * @Date 2019.07.27
  * @version 1.00
@@ -37,15 +37,15 @@ public class UploadPartBySameUploadId18685 extends S3TestBase {
     private String filePath = null;
     private int fileSize = 1024 * 1024 * 200;
     private int partSize = 1024 * 1024 * 5;
-    private List<PartETag> partEtags = Collections
-            .synchronizedList( new ArrayList<PartETag>() );
+    private List< PartETag > partEtags = Collections
+            .synchronizedList( new ArrayList< PartETag >() );
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -55,8 +55,8 @@ public class UploadPartBySameUploadId18685 extends S3TestBase {
     @Test
     public void uploadParts() throws Exception {
         File file = new File( filePath );
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, keyName );
 
         ThreadExecutor threadExec = new ThreadExecutor();
         int partNums = fileSize / partSize;
@@ -71,8 +71,8 @@ public class UploadPartBySameUploadId18685 extends S3TestBase {
                 uploadId, partEtags );
 
         // check the upload file
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         runSuccess = true;
     }

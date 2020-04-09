@@ -68,17 +68,16 @@ public class PartUploadUtils extends S3TestBase {
      *            upload object file
      * @return the list of part number and Etag
      */
-    public static List<PartETag> partUpload( AmazonS3 s3Client,
+    public static List< PartETag > partUpload( AmazonS3 s3Client,
             String bucketName, String key, String uploadId, File file ) {
-        return PartUploadUtils
-                .partUpload( s3Client, bucketName, key, uploadId, file,
-                        PartUploadUtils.partLimitMinSize );
+        return PartUploadUtils.partUpload( s3Client, bucketName, key, uploadId,
+                file, PartUploadUtils.partLimitMinSize );
     }
 
-    public static List<PartETag> partUpload( AmazonS3 s3Client,
+    public static List< PartETag > partUpload( AmazonS3 s3Client,
             String bucketName, String key, String uploadId, File file,
             long partSize ) {
-        List<PartETag> partEtags = new ArrayList<>();
+        List< PartETag > partEtags = new ArrayList<>();
         int filePosition = 0;
         long fileSize = file.length();
         for ( int i = 1; filePosition < fileSize; i++ ) {
@@ -110,7 +109,7 @@ public class PartUploadUtils extends S3TestBase {
      */
     public static CompleteMultipartUploadResult completeMultipartUpload(
             AmazonS3 s3Client, String bucketName, String key, String uploadId,
-            List<PartETag> partEtags ) {
+            List< PartETag > partEtags ) {
         CompleteMultipartUploadRequest completeRequest = new CompleteMultipartUploadRequest()
                 .withBucketName( bucketName ).withKey( key )
                 .withUploadId( uploadId ).withPartETags( partEtags );
@@ -163,9 +162,9 @@ public class PartUploadUtils extends S3TestBase {
      *            *
      */
     public static void listPartsAndCheckPartNumbers( AmazonS3 s3Client,
-            String bucketName, String keyName, List<PartETag> partEtags,
+            String bucketName, String keyName, List< PartETag > partEtags,
             String uploadId ) {
-        List<Integer> expPartNumbersList = new ArrayList<>();
+        List< Integer > expPartNumbersList = new ArrayList<>();
         for ( PartETag expPartNumbers : partEtags ) {
             int partNumber = expPartNumbers.getPartNumber();
             expPartNumbersList.add( partNumber );
@@ -175,8 +174,8 @@ public class PartUploadUtils extends S3TestBase {
         ListPartsRequest request = new ListPartsRequest( bucketName, keyName,
                 uploadId );
         PartListing listResult = s3Client.listParts( request );
-        List<PartSummary> listParts = listResult.getParts();
-        List<Integer> actPartNumbersList = new ArrayList<>();
+        List< PartSummary > listParts = listResult.getParts();
+        List< Integer > actPartNumbersList = new ArrayList<>();
         for ( PartSummary partNumbers : listParts ) {
             int partNumber = partNumbers.getPartNumber();
             actPartNumbersList.add( partNumber );
@@ -185,8 +184,8 @@ public class PartUploadUtils extends S3TestBase {
         // check the keyName
         Assert.assertEquals( actPartNumbersList, expPartNumbersList,
                 "actPartNumbersList:" + actPartNumbersList
-                        + "  expPartNumbersList:" + expPartNumbersList
-                        .toString() );
+                        + "  expPartNumbersList:"
+                        + expPartNumbersList.toString() );
     }
 
     /**
@@ -201,16 +200,16 @@ public class PartUploadUtils extends S3TestBase {
      *            include key and uploadId.
      */
     public static void checkListMultipartUploadsResults(
-            MultipartUploadListing result, List<String> expCommonPrefixes,
-            MultiValueMap<String, String> expUploads ) {
+            MultipartUploadListing result, List< String > expCommonPrefixes,
+            MultiValueMap< String, String > expUploads ) {
         Collections.sort( expCommonPrefixes );
-        List<String> actCommonPrefixes = result.getCommonPrefixes();
+        List< String > actCommonPrefixes = result.getCommonPrefixes();
         Assert.assertEquals( actCommonPrefixes, expCommonPrefixes,
                 "actCommonPrefixes = " + actCommonPrefixes.toString()
-                        + ",expCommonPrefixes = " + expCommonPrefixes
-                        .toString() );
-        List<MultipartUpload> multipartUploads = result.getMultipartUploads();
-        MultiValueMap<String, String> actUploads = new LinkedMultiValueMap<String, String>();
+                        + ",expCommonPrefixes = "
+                        + expCommonPrefixes.toString() );
+        List< MultipartUpload > multipartUploads = result.getMultipartUploads();
+        MultiValueMap< String, String > actUploads = new LinkedMultiValueMap< String, String >();
         for ( MultipartUpload multipartUpload : multipartUploads ) {
             String keyName = multipartUpload.getKey();
             String uploadId = multipartUpload.getUploadId();
@@ -220,7 +219,8 @@ public class PartUploadUtils extends S3TestBase {
         Assert.assertEquals( actUploads.size(), expUploads.size(),
                 "actMap = " + actUploads.toString() + ",expUpload = "
                         + expUploads.toString() );
-        for ( Map.Entry<String, List<String>> entry : expUploads.entrySet() ) {
+        for ( Map.Entry< String, List< String > > entry : expUploads
+                .entrySet() ) {
             Assert.assertEquals( actUploads.get( entry.getKey() ),
                     expUploads.get( entry.getKey() ),
                     "actMap = " + actUploads.toString() + ",expMap = "

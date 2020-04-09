@@ -51,9 +51,9 @@ public class ListObjects18579 extends S3TestBase {
         ObjectListing result;
         // first list
         result = s3Client.listObjects( request );
-        List<String> firstCommprefixes = result.getCommonPrefixes();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
-        List<String> firstQueryKeyList = new ArrayList<>();
+        List< String > firstCommprefixes = result.getCommonPrefixes();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
+        List< String > firstQueryKeyList = new ArrayList<>();
         String key = "";
         for ( S3ObjectSummary os : objects ) {
             key = os.getKey();
@@ -62,9 +62,9 @@ public class ListObjects18579 extends S3TestBase {
 
         // check the first list result
         Assert.assertTrue( result.isTruncated() );
-        List<String> expFirstCommomPrefixs = new ArrayList<>();
+        List< String > expFirstCommomPrefixs = new ArrayList<>();
         expFirstCommomPrefixs.add( "/aa/" );
-        List<String> expFirstQueryKeyList = new ArrayList<>();
+        List< String > expFirstQueryKeyList = new ArrayList<>();
         expFirstQueryKeyList.add( "/aa?aa?test1_18579" );
         Assert.assertEquals( firstCommprefixes, expFirstCommomPrefixs,
                 "query commprefixs:" + firstCommprefixes.toString() );
@@ -81,9 +81,9 @@ public class ListObjects18579 extends S3TestBase {
         String marker = result.getNextMarker();
         request.setMarker( marker );
         result = s3Client.listObjects( request );
-        List<String> secondCommprefixes = result.getCommonPrefixes();
-        List<S3ObjectSummary> objects2 = result.getObjectSummaries();
-        List<String> secondQueryKeyList = new ArrayList<>();
+        List< String > secondCommprefixes = result.getCommonPrefixes();
+        List< S3ObjectSummary > objects2 = result.getObjectSummaries();
+        List< String > secondQueryKeyList = new ArrayList<>();
         for ( S3ObjectSummary os : objects2 ) {
             String key2 = os.getKey();
             secondQueryKeyList.add( key2 );
@@ -91,8 +91,8 @@ public class ListObjects18579 extends S3TestBase {
 
         // check the second list result
         Assert.assertFalse( result.isTruncated() );
-        List<String> expSecondCommomPrefixs = new ArrayList<>();
-        List<String> expSecondQueryKeyList = new ArrayList<>();
+        List< String > expSecondCommomPrefixs = new ArrayList<>();
+        List< String > expSecondQueryKeyList = new ArrayList<>();
         expSecondQueryKeyList.add( "/aa_test4_18579" );
         expSecondQueryKeyList.add( keyName2 );
         Assert.assertEquals( secondCommprefixes, expSecondCommomPrefixs,

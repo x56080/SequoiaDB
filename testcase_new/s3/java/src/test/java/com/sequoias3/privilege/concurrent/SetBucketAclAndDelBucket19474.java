@@ -35,22 +35,23 @@ public class SetBucketAclAndDelBucket19474 extends S3TestBase {
         s3Client = CommLib.buildS3Client();
         for ( int i = 0; i < bucketNum; i++ ) {
             CommLib.clearBucket( s3Client, bucketNameBase + i );
-            s3Client.createBucket( new CreateBucketRequest( bucketNameBase + i
-            ) );
+            s3Client.createBucket(
+                    new CreateBucketRequest( bucketNameBase + i ) );
         }
         ownerId = s3Client.getS3AccountOwner().getId();
     }
 
     @Test
     private void testSetObjectAcl() throws Exception {
-        Grant[] expGrant = { new Grant( new CanonicalGrantee( ownerId ),
-                Permission.ReadAcp ),
+        Grant[] expGrant = {
+                new Grant( new CanonicalGrantee( ownerId ),
+                        Permission.ReadAcp ),
                 new Grant( GroupGrantee.AllUsers, Permission.Read ) };
 
         ThreadExecutor threadExec = new ThreadExecutor();
         for ( int i = 0; i < bucketNum; i++ ) {
-            threadExec.addWorker( new ThreadSetBucketAcl( expGrant,
-                    bucketNameBase + i ) );
+            threadExec.addWorker(
+                    new ThreadSetBucketAcl( expGrant, bucketNameBase + i ) );
             threadExec
                     .addWorker( new ThreadDeleteBucket( bucketNameBase + i ) );
         }

@@ -40,10 +40,10 @@ public class DeleteAndGetBucket15921 extends S3TestBase {
 
     @Test
     public void testCreateBucket() throws Exception {
-        List<DeleteBucketThread> deleteBuckets = new ArrayList<>( 20 );
+        List< DeleteBucketThread > deleteBuckets = new ArrayList<>( 20 );
         GetBucketThread getBuckets = new GetBucketThread();
 
-        List<String> existBuckets = new ArrayList<String>();
+        List< String > existBuckets = new ArrayList< String >();
         for ( int i = 0; i < defaultNums; i++ ) {
             String subBucketName = bucketName + "." + i;
             if ( i % 2 == 0 ) {
@@ -89,12 +89,12 @@ public class DeleteAndGetBucket15921 extends S3TestBase {
     }
 
     private void checkDeleteBucketResult( AmazonS3 s3Client,
-            List<String> existBuckets ) {
+            List< String > existBuckets ) {
         // check bucket nums
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         Assert.assertEquals( buckets.size(), defaultNums / 2 );
 
-        List<String> actExistBuckets = new ArrayList<String>();
+        List< String > actExistBuckets = new ArrayList< String >();
         for ( int i = 0; i < buckets.size(); i++ ) {
             Bucket bucket = buckets.get( i );
             String actBucketName = bucket.getName();
@@ -103,9 +103,8 @@ public class DeleteAndGetBucket15921 extends S3TestBase {
 
         Collections.sort( actExistBuckets );
         Collections.sort( existBuckets );
-        Assert.assertEquals( actExistBuckets, existBuckets,
-                "buckets actual:" + actExistBuckets + ";the expect :"
-                        + existBuckets );
+        Assert.assertEquals( actExistBuckets, existBuckets, "buckets actual:"
+                + actExistBuckets + ";the expect :" + existBuckets );
     }
 
     private class DeleteBucketThread extends S3ThreadBase {
@@ -117,8 +116,8 @@ public class DeleteAndGetBucket15921 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.deleteBucket( bucketName );
             } finally {
@@ -132,10 +131,10 @@ public class DeleteAndGetBucket15921 extends S3TestBase {
     private class GetBucketThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
-                List<Bucket> buckets = s3Client.listBuckets();
+                List< Bucket > buckets = s3Client.listBuckets();
 
                 // test list bucket success, the buckets not 0
                 Assert.assertNotEquals( buckets.size(), 0 );

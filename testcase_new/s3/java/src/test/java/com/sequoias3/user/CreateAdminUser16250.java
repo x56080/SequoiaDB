@@ -54,9 +54,8 @@ public class CreateAdminUser16250 extends S3TestBase {
     @Test
     private void test() throws JSONException {
         // create user
-        JSONObject actUser = UserUtils
-                .createUser( userName, UserCommDefind.admin,
-                        UserUtils.accessKeyId );
+        JSONObject actUser = UserUtils.createUser( userName,
+                UserCommDefind.admin, UserUtils.accessKeyId );
         // CRUD user for check
         checkByCRUDUser( actUser );
         // create bucket for check
@@ -91,7 +90,7 @@ public class CreateAdminUser16250 extends S3TestBase {
             // create bucket
             s3Client.createBucket( bucketName.toLowerCase() );
             // check
-            List<Bucket> buckets = s3Client.listBuckets();
+            List< Bucket > buckets = s3Client.listBuckets();
             Assert.assertEquals( buckets.size(), 1, " only one bucket" );
             Bucket expbucket = buckets.get( 0 );
             String actOwner = expbucket.getOwner().getDisplayName();
@@ -107,8 +106,8 @@ public class CreateAdminUser16250 extends S3TestBase {
 
     private JSONObject createAndCheck( String username, String accessKeyID ) {
         // craete user
-        JSONObject actUser = UserUtils
-                .createUser( username, UserCommDefind.normal, accessKeyID );
+        JSONObject actUser = UserUtils.createUser( username,
+                UserCommDefind.normal, accessKeyID );
         JSONObject actJSON = actUser.getJSONObject( UserCommDefind.accessKeys );
         // get user
         JSONObject expUser = UserUtils.getUser( username, accessKeyID );
@@ -116,13 +115,13 @@ public class CreateAdminUser16250 extends S3TestBase {
         // check
         Assert.assertEquals( actJSON.getString( UserCommDefind.accessKeyID ),
                 expJSON.getString( UserCommDefind.accessKeyID ),
-                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON
-                        .toString() );
+                "actJSON = " + actJSON.toString() + ",expJSON = "
+                        + expJSON.toString() );
         Assert.assertEquals(
                 actJSON.getString( UserCommDefind.secretAccessKey ),
                 expJSON.getString( UserCommDefind.secretAccessKey ),
-                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON
-                        .toString() );
+                "actJSON = " + actJSON.toString() + ",expJSON = "
+                        + expJSON.toString() );
         return actJSON;
     }
 

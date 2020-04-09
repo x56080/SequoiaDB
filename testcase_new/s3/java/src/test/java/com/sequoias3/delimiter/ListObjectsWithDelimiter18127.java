@@ -61,8 +61,8 @@ public class ListObjectsWithDelimiter18127 extends S3TestBase {
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
 
         // 指定maxkeys大于匹配记录数
-        List<String> commprefixesResult = new ArrayList<>();
-        List<String> actContents = new ArrayList<>();
+        List< String > commprefixesResult = new ArrayList<>();
+        List< String > actContents = new ArrayList<>();
         ListObjectsV2Request req = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withPrefix( prefix )
                 .withStartAfter( startAfter ).withDelimiter( delimiter )
@@ -71,7 +71,7 @@ public class ListObjectsWithDelimiter18127 extends S3TestBase {
 
         result = s3Client.listObjectsV2( req );
         commprefixesResult = result.getCommonPrefixes();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary obj : objects ) {
             actContents.add( obj.getKey() );
         }
@@ -79,21 +79,21 @@ public class ListObjectsWithDelimiter18127 extends S3TestBase {
                 " commprefixes : " + commprefixesResult.toString()
                         + " contents : " + actContents.toString() );
 
-        List<String> expCommonPrefixes = ObjectUtils
-                .getCommPrefixes( keyList, prefix, delimiter );
+        List< String > expCommonPrefixes = ObjectUtils.getCommPrefixes( keyList,
+                prefix, delimiter );
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult,
                 expCommonPrefixes );
 
-        List<String> expContents = ObjectUtils
-                .getKeys( keyList, prefix, delimiter );
+        List< String > expContents = ObjectUtils.getKeys( keyList, prefix,
+                delimiter );
         Collections.sort( expContents );
         Assert.assertEquals( actContents, expContents,
                 "act contents : " + actContents.toString()
                         + " , exp contects : " + expContents.toString() );
 
         // 指定maxkeys小于匹配记录数
-        List<String> commprefixesResult2 = new ArrayList<>();
-        List<String> actContents2 = new ArrayList<>();
+        List< String > commprefixesResult2 = new ArrayList<>();
+        List< String > actContents2 = new ArrayList<>();
         ListObjectsV2Request req2 = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withPrefix( prefix )
                 .withStartAfter( startAfter ).withDelimiter( delimiter )
@@ -103,7 +103,7 @@ public class ListObjectsWithDelimiter18127 extends S3TestBase {
         do {
             result2 = s3Client.listObjectsV2( req2 );
             commprefixesResult2.addAll( result2.getCommonPrefixes() );
-            List<S3ObjectSummary> objects2 = result2.getObjectSummaries();
+            List< S3ObjectSummary > objects2 = result2.getObjectSummaries();
             for ( S3ObjectSummary obj : objects2 ) {
                 actContents2.add( obj.getKey() );
             }

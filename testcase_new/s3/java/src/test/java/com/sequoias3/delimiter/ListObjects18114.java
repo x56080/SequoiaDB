@@ -79,27 +79,27 @@ public class ListObjects18114 extends S3TestBase {
     }
 
     private void listObjectsAndCheckResult() {
-        List<String> matchPrefixList = new ArrayList<>();
+        List< String > matchPrefixList = new ArrayList<>();
         matchPrefixList.add( "dir1?" );
         matchPrefixList.add( "dir1/dir2?" );
         // match deleteTag perfix:dir1_?
         matchPrefixList.add( "dir1_?" );
-        List<String> matchContentsList = new ArrayList<>();
+        List< String > matchContentsList = new ArrayList<>();
         matchContentsList.add( "dir1_18114" );
 
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" );
         request.withDelimiter( delimiter ).withPrefix( prefix );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         Collections.sort( matchPrefixList );
         Assert.assertEquals( commonPrefixes, matchPrefixList,
                 "actPrefixes:" + commonPrefixes.toString() + "\n ecpPrefixes:"
                         + matchPrefixList.toString() );
 
         // objects do not match delimiter are displayed in contents,num is 1
-        List<String> actContentsList = new ArrayList<>();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > actContentsList = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             actContentsList.add( key );

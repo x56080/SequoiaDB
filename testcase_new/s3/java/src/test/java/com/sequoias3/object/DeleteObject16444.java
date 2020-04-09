@@ -32,12 +32,12 @@ public class DeleteObject16444 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -79,13 +79,13 @@ public class DeleteObject16444 extends S3TestBase {
         Assert.assertFalse( isExistObject, "the object should not exist!" );
 
         // deleted object has been a history version object,the versionId is "1"
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key, "1" );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key, "1" );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
 
         // check the oldest version object,the version is "0"
-        String downOldfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key, "0" );
+        String downOldfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key, "0" );
         Assert.assertEquals( downOldfileMd5, TestTools.getMD5( filePath ) );
     }
 }

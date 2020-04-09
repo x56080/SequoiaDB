@@ -203,10 +203,10 @@ public class Region {
     public String toString() {
         StringBuffer buffer = new StringBuffer();
         buffer.append( "[" + Region.REGION_NAME + "=" + this.name );
-        buffer.append( "," + Region.DATA_CS_SHARDINGTYPE + "=" +
-                this.dataCSShardingType );
-        buffer.append( "," + Region.DATA_CL_SHARDINGTYPE + "=" +
-                this.dataCLShardingType );
+        buffer.append( "," + Region.DATA_CS_SHARDINGTYPE + "="
+                + this.dataCSShardingType );
+        buffer.append( "," + Region.DATA_CL_SHARDINGTYPE + "="
+                + this.dataCLShardingType );
         buffer.append( "," + Region.DATA_DOMAIN + "=" + this.dataDomain );
         buffer.append(
                 "," + Region.DATA_LOBPAGESIZE + "=" + this.dataLobPageSize );
@@ -215,9 +215,8 @@ public class Region {
         buffer.append( "," + Region.DATA_LOCATION + "=" + this.dataLocation );
         buffer.append( "," + Region.DATA_CS_RANGE + "=" + this.dataCSRange );
         buffer.append( "," + Region.META_LOCATION + "=" + this.metaLocation );
-        buffer.append(
-                "," + Region.META_HIS_LOCATION + "=" + this.metaHisLocation +
-                        "]" );
+        buffer.append( "," + Region.META_HIS_LOCATION + "="
+                + this.metaHisLocation + "]" );
         return buffer.toString();
     }
 }

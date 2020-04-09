@@ -42,10 +42,10 @@ public class SetObjectAcl19470 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -61,7 +61,7 @@ public class SetObjectAcl19470 extends S3TestBase {
     @Test
     private void testSetObjectAcl() throws Exception {
         ThreadExecutor threadExec = new ThreadExecutor();
-        Set<Grant> grants = new HashSet<Grant>();
+        Set< Grant > grants = new HashSet< Grant >();
         Random random = new Random();
         for ( int i = 0; i < threadNum; i++ ) {
             int randomIndex = random.nextInt( Permission.values().length );
@@ -74,7 +74,7 @@ public class SetObjectAcl19470 extends S3TestBase {
 
         // get object acl list size is 1 and included in grants
         AccessControlList result = s3Client.getObjectAcl( bucketName, keyName );
-        List<Grant> actGrants = result.getGrantsAsList();
+        List< Grant > actGrants = result.getGrantsAsList();
         Assert.assertEquals( actGrants.size(), 1,
                 "exp grants = " + grants.toString() + " , act grants = "
                         + actGrants.toString() );
@@ -108,8 +108,8 @@ public class SetObjectAcl19470 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void setObjectAcl() {
             try {
-                PrivilegeUtils
-                        .setObjectAclByBody( s3, bucketName, keyName, grant );
+                PrivilegeUtils.setObjectAclByBody( s3, bucketName, keyName,
+                        grant );
             } finally {
                 if ( s3 != null ) {
                     s3.shutdown();

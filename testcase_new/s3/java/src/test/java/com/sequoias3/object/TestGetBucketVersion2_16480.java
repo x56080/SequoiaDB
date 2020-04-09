@@ -49,7 +49,7 @@ public class TestGetBucketVersion2_16480 extends S3TestBase {
         request.withStartAfter( "aa" );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
 
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         Assert.assertEquals( commonPrefixes.size(), 1 );
         Assert.assertEquals( commonPrefixes.get( 0 ), "aa/bb/key16480_1/" );
 

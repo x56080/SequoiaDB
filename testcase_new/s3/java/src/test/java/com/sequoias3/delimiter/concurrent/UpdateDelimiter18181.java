@@ -92,13 +92,12 @@ public class UpdateDelimiter18181 extends S3TestBase {
     private void checkResult( String delimiter ) throws Exception {
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
 
-        List<String> expCommonPrefixes = ObjectUtils
+        List< String > expCommonPrefixes = ObjectUtils
                 .getCommPrefixes( objectNames, "", delimiter );
-        List<String> matchContentsList = ObjectUtils
-                .getKeys( objectNames, "", delimiter );
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        expCommonPrefixes, matchContentsList );
+        List< String > matchContentsList = ObjectUtils.getKeys( objectNames, "",
+                delimiter );
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, expCommonPrefixes, matchContentsList );
     }
 
     class ThreadUpdateDelimiter18181 extends ResultStore {

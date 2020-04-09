@@ -40,7 +40,7 @@ public class ListObjectsWithMarker18565_18566 extends S3TestBase {
 
     @Test
     public void testListObjects() throws Exception {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
         // test a: starting with the first record
         int startPositionA = 0;
         listObjectsAndCheckResult( keyList, startPositionA );
@@ -74,17 +74,17 @@ public class ListObjectsWithMarker18565_18566 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList,
+    private void listObjectsAndCheckResult( List< String > keyList,
             int startPosition ) throws IOException {
-        List<String> expKeyList = new ArrayList<>( keyList );
+        List< String > expKeyList = new ArrayList<>( keyList );
         String marker = expKeyList.get( startPosition );
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName ).withMarker( marker );
         ObjectListing result;
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         do {
             result = s3Client.listObjects( request );
-            List<S3ObjectSummary> objects = result.getObjectSummaries();
+            List< S3ObjectSummary > objects = result.getObjectSummaries();
             for ( S3ObjectSummary os : objects ) {
                 String key = os.getKey();
                 queryKeyList.add( key );
@@ -102,13 +102,13 @@ public class ListObjectsWithMarker18565_18566 extends S3TestBase {
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName ).withMarker( marker );
         ObjectListing result = s3Client.listObjects( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         // misMatchObject, the list size is 0
         Assert.assertEquals( objects.size(), 0 );
     }
 
-    private List<String> putObjects() {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < objectNums; i++ ) {
             String keyName = key + "_" + i;
             s3Client.putObject( bucketName, keyName, "test18565" + i );

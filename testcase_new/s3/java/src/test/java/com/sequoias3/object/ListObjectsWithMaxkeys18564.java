@@ -39,7 +39,7 @@ public class ListObjectsWithMaxkeys18564 extends S3TestBase {
 
     @Test
     public void testListObjects() throws Exception {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
         // test a: maxkeys < objectNums
         int maxKeysA = 5;
         listObjectsAndCheckResult( keyList, maxKeysA );
@@ -66,15 +66,15 @@ public class ListObjectsWithMaxkeys18564 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList, int maxKeys )
-            throws IOException {
+    private void listObjectsAndCheckResult( List< String > keyList,
+            int maxKeys ) throws IOException {
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName ).withMaxKeys( maxKeys );
         ObjectListing result;
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         do {
             result = s3Client.listObjects( request );
-            List<S3ObjectSummary> objects = result.getObjectSummaries();
+            List< S3ObjectSummary > objects = result.getObjectSummaries();
             int oneQueryKeyNums = 0;
             for ( S3ObjectSummary os : objects ) {
                 String key = os.getKey();
@@ -96,8 +96,8 @@ public class ListObjectsWithMaxkeys18564 extends S3TestBase {
         Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private List<String> putObjects() {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < objectNums; i++ ) {
             String keyName = key + "_" + i;
             keyList.add( keyName );

@@ -30,7 +30,7 @@ public class Ssh {
     private Session session = null;
 
     // ssh建立的后台命令集合（key：Channel id ，value：Channel）
-    private Map<Integer, Channel> backgroundCMD = new HashMap<Integer, Channel>();
+    private Map< Integer, Channel > backgroundCMD = new HashMap< Integer, Channel >();
 
     public Ssh( String host ) throws JSchException {
         this( host, "root", "jenkins" );

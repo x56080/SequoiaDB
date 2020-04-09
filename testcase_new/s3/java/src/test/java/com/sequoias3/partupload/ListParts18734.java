@@ -39,10 +39,10 @@ public class ListParts18734 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -57,18 +57,18 @@ public class ListParts18734 extends S3TestBase {
 
     @Test
     private void testListParts() throws Exception {
-        List<Integer> expPartNumbersList = Arrays.asList( 1, 2, 3 );
+        List< Integer > expPartNumbersList = Arrays.asList( 1, 2, 3 );
         int maxParts = 3;
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        PartUploadUtils.partUpload( s3Client, bucketName, keyName, uploadId,
+                file );
         ListPartsRequest request = new ListPartsRequest( bucketName, keyName,
                 uploadId );
         request.setMaxParts( maxParts );
         PartListing listResult = s3Client.listParts( request );
-        List<PartSummary> listParts = listResult.getParts();
-        List<Integer> actPartNumbersList = new ArrayList<>();
+        List< PartSummary > listParts = listResult.getParts();
+        List< Integer > actPartNumbersList = new ArrayList<>();
         for ( PartSummary parts : listParts ) {
             int partNumber = parts.getPartNumber();
             actPartNumbersList.add( partNumber );

@@ -46,10 +46,10 @@ public class CompleteMultipartUploadRequest18811 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -63,27 +63,27 @@ public class CompleteMultipartUploadRequest18811 extends S3TestBase {
 
     @Test(dataProvider = "legalKeyNameProvider")
     public void testLegalKeyName( String keyName ) throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        List<PartETag> partEtags = PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        List< PartETag > partEtags = PartUploadUtils.partUpload( s3Client,
+                bucketName, keyName, uploadId, file );
 
         // a.接口参数取值合法---已在功能测试中验证（此处覆盖对象名长度为1和900字节）
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
         String expMd5 = TestTools.getMD5( filePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
         actSuccessTests.getAndIncrement();
     }
 
     @Test
     public void testIllegalParameter() throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        List<PartETag> partEtags = PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        List< PartETag > partEtags = PartUploadUtils.partUpload( s3Client,
+                bucketName, keyName, uploadId, file );
 
         // b.接口参数取值非法---对象名为空串""，null，901个字节
         CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(

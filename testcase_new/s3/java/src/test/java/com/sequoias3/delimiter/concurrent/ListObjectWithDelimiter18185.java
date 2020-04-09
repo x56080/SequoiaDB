@@ -39,17 +39,17 @@ public class ListObjectWithDelimiter18185 extends S3TestBase {
     private int objectNum = 100;
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * 10;
-    private List<String> keyNames = new ArrayList<>();
+    private List< String > keyNames = new ArrayList<>();
     private File localPath = null;
     private String filePath = null;
     private boolean runSuccess = false;
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -63,9 +63,8 @@ public class ListObjectWithDelimiter18185 extends S3TestBase {
     @Test
     public void testGetObjectList() throws Exception {
         for ( int i = 0; i < objectNum; i++ ) {
-            String currentKey =
-                    keyName + "_" + i + delimiter + "/test" + unMatchDelimiter
-                            + ".txt";
+            String currentKey = keyName + "_" + i + delimiter + "/test"
+                    + unMatchDelimiter + ".txt";
             s3Client.putObject( bucketName, currentKey, new File( filePath ) );
             keyNames.add( currentKey );
         }
@@ -108,8 +107,8 @@ public class ListObjectWithDelimiter18185 extends S3TestBase {
         @ExecuteOrder(step = 2, desc = "检查匹配结果")
         public void checkResult() {
             Assert.assertEquals( result.getCommonPrefixes().size(), 0 );
-            List<S3ObjectSummary> contents = result.getObjectSummaries();
-            List<String> actKeys = new ArrayList<>();
+            List< S3ObjectSummary > contents = result.getObjectSummaries();
+            List< String > actKeys = new ArrayList<>();
             for ( S3ObjectSummary content : contents ) {
                 actKeys.add( content.getKey() );
             }
@@ -121,7 +120,7 @@ public class ListObjectWithDelimiter18185 extends S3TestBase {
         private ListObjectsV2Result result = new ListObjectsV2Result();
         private String[] objectNames = keyNames
                 .toArray( new String[ keyNames.size() ] );
-        private List<String> expCommprefixList = ObjectUtils
+        private List< String > expCommprefixList = ObjectUtils
                 .getCommPrefixes( objectNames, "", delimiter );
 
         @ExecuteOrder(step = 1, desc = "指定prefix和delimiter查询对象列表")
@@ -134,11 +133,11 @@ public class ListObjectWithDelimiter18185 extends S3TestBase {
 
         @ExecuteOrder(step = 3, desc = "检查指定prefix和delimiter查询对象列表的匹配结果")
         public void checkResult() {
-            List<String> commonPrefixes = result.getCommonPrefixes();
+            List< String > commonPrefixes = result.getCommonPrefixes();
             ObjectUtils.checkListObjectsV2Commprefixes( commonPrefixes,
                     expCommprefixList );
 
-            List<S3ObjectSummary> objects = result.getObjectSummaries();
+            List< S3ObjectSummary > objects = result.getObjectSummaries();
             Assert.assertEquals( objects.size(), 0 );
         }
     }

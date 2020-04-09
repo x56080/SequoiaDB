@@ -22,7 +22,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * @Description seqDB-18678: upload multiple parts,the length of the middle parts is inconsistent.
+ * @Description seqDB-18678: upload multiple parts,the length of the middle
+ *              parts is inconsistent.
  * @author wuyan
  * @Date 2019.07.26
  * @version 1.00
@@ -65,15 +66,15 @@ public class UploadPart18678 extends S3TestBase {
             long fifthPartSize ) throws Exception {
         String filePath = createFile( fileSize );
         File file = new File( filePath );
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
-        List<PartETag> partEtags = partUpload( uploadId, file, eachPartSize,
+        String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, keyName );
+        List< PartETag > partEtags = partUpload( uploadId, file, eachPartSize,
                 secondPartSize, thirdPartSize, fourthPartSize, fifthPartSize );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
 
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         actSuccessTests.getAndIncrement();
     }
@@ -91,20 +92,20 @@ public class UploadPart18678 extends S3TestBase {
     }
 
     private String createFile( int fileSize ) throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        String filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        String filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
         return filePath;
     }
 
-    private List<PartETag> partUpload( String uploadId, File file,
+    private List< PartETag > partUpload( String uploadId, File file,
             long partSize, long secondPartSize, long thirdPartSize,
             long fourthPartSize, long fifthPartSize ) {
-        List<PartETag> partEtags = new ArrayList<>();
+        List< PartETag > partEtags = new ArrayList<>();
         int filePosition = 0;
         long fileSize = file.length();
         for ( int i = 1; filePosition < fileSize; i++ ) {

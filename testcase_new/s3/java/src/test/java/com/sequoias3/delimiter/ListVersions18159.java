@@ -70,12 +70,12 @@ public class ListVersions18159 extends S3TestBase {
                         .withDelimiter( delimiter ).withKeyMarker( keyMarker )
                         .withVersionIdMarker( versionIdMarker ) );
 
-        List<String> matchPrefixList = new ArrayList<>();
+        List< String > matchPrefixList = new ArrayList<>();
         matchPrefixList.add( "atest2!" );
         matchPrefixList.add( "test@!" );
         matchPrefixList.add( "testa_x7!" );
         matchPrefixList.add( "y/test8!" );
-        MultiValueMap<String, String> expVersions = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersions = new LinkedMultiValueMap< String, String >();
         // expContent:"atest1_18157",the versionId is:2,1,0;"test@a4_18157",the
         // versionId is:2,1,0;"testa_test6_18157",the versionId is:2,1,0
         for ( int i = versionNum - 1; i >= 0; i-- ) {
@@ -83,9 +83,8 @@ public class ListVersions18159 extends S3TestBase {
             expVersions.add( keyNames[ 4 ], String.valueOf( i ) );
             expVersions.add( keyNames[ 6 ], String.valueOf( i ) );
         }
-        Assert.assertEquals( vsList.isTruncated(), false,
-                "keyMarker:" + keyMarker
-                        + "  list.isTruncated() is unexpected!" );
+        Assert.assertEquals( vsList.isTruncated(), false, "keyMarker:"
+                + keyMarker + "  list.isTruncated() is unexpected!" );
         ObjectUtils.checkListVSResults( vsList, matchPrefixList, expVersions );
         runSuccess = true;
     }

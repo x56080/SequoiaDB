@@ -15,18 +15,17 @@ public class SdbStorage implements StorageInterface {
     private static final String TRANSISOLATION = "transisolation";
     private static final String TRANSLOCKWAIT = "translockwait";
     private static final String NODENAME = "NodeName";
-    private static Map<String, BSONObject> nodesConf = new HashMap<String, BSONObject>();
+    private static Map< String, BSONObject > nodesConf = new HashMap< String, BSONObject >();
 
     private static void getAllNodeConf( String coordUrl ) {
         BasicBSONObject selector = new BasicBSONObject();
-        try ( Sequoiadb sdb = new Sequoiadb( coordUrl, "", "" ) ) {
+        try ( Sequoiadb sdb = new Sequoiadb( coordUrl, "", "" )) {
             selector.put( NODENAME, "" );
             selector.put( TRANSISOLATION, "" );
             selector.put( TRANSLOCKWAIT, "" );
 
-            DBCursor cursor = sdb
-                    .getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, null, selector,
-                            null );
+            DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, null,
+                    selector, null );
             while ( cursor.hasNext() ) {
                 BasicBSONObject doc = ( BasicBSONObject ) cursor.getNext();
                 String key = doc.getString( NODENAME );
@@ -43,7 +42,7 @@ public class SdbStorage implements StorageInterface {
             options = new BasicBSONObject().append( "Global", true );
         }
 
-        try ( Sequoiadb sdb = new Sequoiadb( coordUrl, "", "" ) ) {
+        try ( Sequoiadb sdb = new Sequoiadb( coordUrl, "", "" )) {
             sdb.updateConfig( configs, options );
         } catch ( BaseException e ) {
             e.printStackTrace();
@@ -81,7 +80,7 @@ public class SdbStorage implements StorageInterface {
     @Override
     public String getUrls( String coordUrl ) {
         StringBuffer buf = new StringBuffer();
-        try ( Sequoiadb sdb = new Sequoiadb( coordUrl, "", "" ) ) {
+        try ( Sequoiadb sdb = new Sequoiadb( coordUrl, "", "" )) {
             ReplicaGroup rg = sdb.getReplicaGroup( "SYSCoord" );
             BSONObject rgDetail = rg.getDetail();
             BasicBSONList groupInfo = ( BasicBSONList ) rgDetail.get( "Group" );
@@ -100,7 +99,7 @@ public class SdbStorage implements StorageInterface {
     @Override
     public String getClusterInfo( String coordUrl ) {
         String info = "";
-        try ( Sequoiadb db = new Sequoiadb( coordUrl, "", "" ); ) {
+        try ( Sequoiadb db = new Sequoiadb( coordUrl, "", "" ) ;) {
             DBCursor cur = db.getList( 7, null, null, null );
             while ( cur.hasNext() ) {
                 info += cur.getNext().toString();

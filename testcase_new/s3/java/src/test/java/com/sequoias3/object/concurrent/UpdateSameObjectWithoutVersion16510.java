@@ -84,7 +84,7 @@ public class UpdateSameObjectWithoutVersion16510 extends S3TestBase {
         ListVersionsRequest req = new ListVersionsRequest()
                 .withBucketName( bucketName );
         VersionListing versionList = s3Client.listVersions( req );
-        List<S3VersionSummary> objectVersionList = versionList
+        List< S3VersionSummary > objectVersionList = versionList
                 .getVersionSummaries();
         Assert.assertEquals( objectVersionList.size(), 1,
                 "the number of object version is incorrect!" );
@@ -93,8 +93,8 @@ public class UpdateSameObjectWithoutVersion16510 extends S3TestBase {
     private class UpdateObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.putObject( bucketName, keyName, newContent );
             } finally {

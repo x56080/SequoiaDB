@@ -65,9 +65,8 @@ public class SetBucketAcl19467 extends S3TestBase {
         private void setBucketAcl() throws Exception {
             Grant grant = new Grant( new CanonicalGrantee( ownerId ),
                     Permission.Read );
-            PrivilegeUtils
-                    .setBucketAclByHeader( S3TestBase.s3AccessKeyId, bucketName,
-                            grant );
+            PrivilegeUtils.setBucketAclByHeader( S3TestBase.s3AccessKeyId,
+                    bucketName, grant );
         }
     }
 

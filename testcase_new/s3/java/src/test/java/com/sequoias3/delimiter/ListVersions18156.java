@@ -98,8 +98,8 @@ public class ListVersions18156 extends S3TestBase {
 
     private VersionListing listVersionWithContentsAndCheckResult(
             VersionListing vsList, String keyMarker, String versionIdMarker,
-            int maxKeys, List<String> expCommonPrefixes,
-            MultiValueMap<String, String> expVersions, boolean isTruncate ) {
+            int maxKeys, List< String > expCommonPrefixes,
+            MultiValueMap< String, String > expVersions, boolean isTruncate ) {
         if ( vsList != null ) {
             keyMarker = vsList.getNextKeyMarker();
             versionIdMarker = vsList.getNextVersionIdMarker();
@@ -111,22 +111,21 @@ public class ListVersions18156 extends S3TestBase {
                         .withVersionIdMarker( versionIdMarker )
                         .withMaxResults( maxKeys ) );
 
-        Assert.assertEquals( vsList1.isTruncated(), isTruncate,
-                "keyMarker:" + keyMarker
-                        + "  list.isTruncated() is unexpected!" );
-        ObjectUtils
-                .checkListVSResults( vsList1, expCommonPrefixes, expVersions );
+        Assert.assertEquals( vsList1.isTruncated(), isTruncate, "keyMarker:"
+                + keyMarker + "  list.isTruncated() is unexpected!" );
+        ObjectUtils.checkListVSResults( vsList1, expCommonPrefixes,
+                expVersions );
 
         return vsList1;
     }
 
     private void testScenarioA( String keyMarker, String versionIdMarker,
             int maxKeys ) {
-        List<String> matchPrefixList = new ArrayList<>();
+        List< String > matchPrefixList = new ArrayList<>();
         matchPrefixList.add( "a?" );
         matchPrefixList.add( "atest2?" );
         matchPrefixList.add( "test?" );
-        MultiValueMap<String, String> expVersions = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersions = new LinkedMultiValueMap< String, String >();
         // expContent:"atest1_18155",the versionId is:2,1,0
         for ( int i = versionNum - 1; i >= 0; i-- ) {
             expVersions.add( keyNames[ 1 ], String.valueOf( i ) );
@@ -136,13 +135,13 @@ public class ListVersions18156 extends S3TestBase {
                 expVersions, true );
 
         // second query
-        MultiValueMap<String, String> expVersions1 = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersions1 = new LinkedMultiValueMap< String, String >();
         // expContent:""testa_test5_18155"",the versionId is:2,1,0;
         for ( int i = versionNum - 1; i >= 0; i-- ) {
             expVersions1.add( keyNames[ 5 ], String.valueOf( i ) );
         }
 
-        List<String> matchPrefixList1 = new ArrayList<>();
+        List< String > matchPrefixList1 = new ArrayList<>();
         matchPrefixList1.add( "testa_x6?" );
         matchPrefixList1.add( "y/test7?" );
         listVersionWithContentsAndCheckResult( vsList, "", "", maxKeys,
@@ -151,11 +150,11 @@ public class ListVersions18156 extends S3TestBase {
 
     private void testScenarioB( String keyMarker, String versionIdMarker,
             int maxKeys ) {
-        List<String> matchPrefixList = new ArrayList<>();
+        List< String > matchPrefixList = new ArrayList<>();
         matchPrefixList.add( "y/test7?" );
 
         // expContent is null
-        MultiValueMap<String, String> expVersions = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersions = new LinkedMultiValueMap< String, String >();
 
         listVersionWithContentsAndCheckResult( null, keyMarker, versionIdMarker,
                 maxKeys, matchPrefixList, expVersions, false );
@@ -163,10 +162,10 @@ public class ListVersions18156 extends S3TestBase {
 
     private void testScenarioC( String keyMarker, String versionIdMarker,
             int maxKeys ) {
-        List<String> matchPrefixList = new ArrayList<>();
+        List< String > matchPrefixList = new ArrayList<>();
 
         // expContent is null
-        MultiValueMap<String, String> expVersions = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersions = new LinkedMultiValueMap< String, String >();
 
         listVersionWithContentsAndCheckResult( null, keyMarker, versionIdMarker,
                 maxKeys, matchPrefixList, expVersions, false );

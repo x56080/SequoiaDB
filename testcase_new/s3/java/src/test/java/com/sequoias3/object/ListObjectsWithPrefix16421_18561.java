@@ -33,7 +33,6 @@ public class ListObjectsWithPrefix16421_18561 extends S3TestBase {
     private AmazonS3 s3Client = null;
     private int matchObjectNums = 0;
     private String prefix = "/dir_1/prefix/test16421";
-    ;
 
     @BeforeClass
     private void setUp() {
@@ -65,7 +64,7 @@ public class ListObjectsWithPrefix16421_18561 extends S3TestBase {
                 .withBucketName( bucketName ).withEncodingType( "url" );
         request.withPrefix( prefix );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         Assert.assertEquals( objects.size(), matchObjectNums );
     }
 
@@ -74,7 +73,7 @@ public class ListObjectsWithPrefix16421_18561 extends S3TestBase {
                 .withBucketName( bucketName );
         request.withPrefix( prefix );
         ObjectListing result = s3Client.listObjects( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         Assert.assertEquals( objects.size(), matchObjectNums );
     }
 

@@ -80,8 +80,8 @@ public class ListObjects18575 extends S3TestBase {
         request.withDelimiter( delimiter1 ).withPrefix( prefix )
                 .withMarker( marker ).withMaxKeys( maxKeys );
         ObjectListing result = s3Client.listObjects( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
-        List<String> matchPrefixList1 = new ArrayList<>();
+        List< String > commonPrefixes = result.getCommonPrefixes();
+        List< String > matchPrefixList1 = new ArrayList<>();
         matchPrefixList1.add( "dir1?%dir2?" );
         matchPrefixList1.add( "dir1?/dir2?" );
         matchPrefixList1.add( "dir1??" );
@@ -90,14 +90,14 @@ public class ListObjects18575 extends S3TestBase {
                 "actPrefixes:" + commonPrefixes.toString() + "\n expPrefixes:"
                         + matchPrefixList1.toString() );
 
-        List<String> actContentsList1 = new ArrayList<>();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > actContentsList1 = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             actContentsList1.add( key );
         }
         // check the key of contents
-        List<String> matchContentsList1 = new ArrayList<>();
+        List< String > matchContentsList1 = new ArrayList<>();
         matchContentsList1.add( "dir1?a%test3_18575" );
         Assert.assertEquals( actContentsList1, matchContentsList1 );
         Assert.assertTrue( result.isTruncated() );
@@ -112,15 +112,15 @@ public class ListObjects18575 extends S3TestBase {
         request.withDelimiter( delimiter2 ).withPrefix( prefix2 )
                 .withMaxKeys( maxKeys2 );
         ObjectListing result2 = s3Client.listObjects( request );
-        List<String> commonPrefixes2 = result2.getCommonPrefixes();
-        List<String> matchPrefixList2 = new ArrayList<>();
+        List< String > commonPrefixes2 = result2.getCommonPrefixes();
+        List< String > matchPrefixList2 = new ArrayList<>();
         matchPrefixList2.add( "dir1?dir2?aa?%" );
         Assert.assertEquals( commonPrefixes2, matchPrefixList2,
                 "actPrefixes:" + commonPrefixes2.toString() + "\n expPrefixes2:"
                         + matchPrefixList2.toString() );
 
-        List<String> actContentsList2 = new ArrayList<>();
-        List<S3ObjectSummary> objects2 = result2.getObjectSummaries();
+        List< String > actContentsList2 = new ArrayList<>();
+        List< S3ObjectSummary > objects2 = result2.getObjectSummaries();
         for ( S3ObjectSummary os2 : objects2 ) {
             String key = os2.getKey();
             actContentsList2.add( key );
@@ -128,7 +128,7 @@ public class ListObjects18575 extends S3TestBase {
         Assert.assertFalse( result2.isTruncated() );
 
         // check the key of contents
-        List<String> matchContentsList2 = new ArrayList<>();
+        List< String > matchContentsList2 = new ArrayList<>();
         matchContentsList2.add( "dir1_18575" );
         Assert.assertEquals( actContentsList2, matchContentsList2 );
     }

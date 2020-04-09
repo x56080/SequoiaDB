@@ -88,8 +88,8 @@ public class DeleteRegion17324 extends S3TestBase {
                 region.toString() );
 
         // check cs.cl has been deleted
-        String csName1 = RegionUtils
-                .getDataCSName( regionName2, "year", new Date() );
+        String csName1 = RegionUtils.getDataCSName( regionName2, "year",
+                new Date() );
         String csName2 = RegionUtils.getMetaCSName( regionName2 );
         Assert.assertFalse( RegionUtils.doesCSExist( csName1 ),
                 "csName1 = " + csName1 );

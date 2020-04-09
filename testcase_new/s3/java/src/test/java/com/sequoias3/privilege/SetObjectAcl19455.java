@@ -82,7 +82,7 @@ public class SetObjectAcl19455 extends S3TestBase {
     @Test(dataProvider = "methodProvider")
     private void testSetObjectAcl( String methodOfSetBucketAcl )
             throws Exception {
-        List<Grant> expGrantList = new ArrayList<>();
+        List< Grant > expGrantList = new ArrayList<>();
         // grantee include: id:ownerId , non-owner Id, perdefined group,
         // emailAddress
         Grantee[] grantees = { new CanonicalGrantee( ownerId ),
@@ -101,19 +101,16 @@ public class SetObjectAcl19455 extends S3TestBase {
 
         switch ( methodOfSetBucketAcl ) {
         case "setByRequestHeader":
-            PrivilegeUtils
-                    .setObjectAclByHeader( s3AccessKeyId, bucketName, keyName,
-                            expGrant );
+            PrivilegeUtils.setObjectAclByHeader( s3AccessKeyId, bucketName,
+                    keyName, expGrant );
             break;
         case "setByRequestBody":
-            PrivilegeUtils
-                    .setObjectAclByBody( ownerS3Client, bucketName, keyName,
-                            expGrant );
+            PrivilegeUtils.setObjectAclByBody( ownerS3Client, bucketName,
+                    keyName, expGrant );
             break;
         }
-        PrivilegeUtils
-                .checkSetObjectAclResult( ownerS3Client, bucketName, keyName,
-                        expGrant );
+        PrivilegeUtils.checkSetObjectAclResult( ownerS3Client, bucketName,
+                keyName, expGrant );
         getObjectByOtherUser();
         actSuccessTests.getAndIncrement();
     }
@@ -134,14 +131,14 @@ public class SetObjectAcl19455 extends S3TestBase {
 
     private void getObjectByOtherUser() throws Exception {
         String expMd5 = TestTools.getMD5( newFilePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( userS3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( userS3Client,
+                localPath, bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
     }
 
     private void putObjectBeforeTest() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         oldFilePath = localPath + File.separator + "localFile_" + oldFileSize
                 + ".txt";
         newFilePath = localPath + File.separator + "localFile_" + newFileSize

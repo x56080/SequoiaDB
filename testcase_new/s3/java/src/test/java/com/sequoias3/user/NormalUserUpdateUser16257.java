@@ -58,15 +58,12 @@ public class NormalUserUpdateUser16257 extends S3TestBase {
     @Test
     public void test() throws JSONException {
         // create user
-        JSONObject testUser = UserUtils
-                .createUser( userName, UserCommDefind.normal,
-                        UserUtils.accessKeyId );
-        JSONObject adminUser = UserUtils
-                .createUser( adminUserName, UserCommDefind.admin,
-                        UserUtils.accessKeyId );
-        JSONObject normalUser = UserUtils
-                .createUser( normalUserName, UserCommDefind.normal,
-                        UserUtils.accessKeyId );
+        JSONObject testUser = UserUtils.createUser( userName,
+                UserCommDefind.normal, UserUtils.accessKeyId );
+        JSONObject adminUser = UserUtils.createUser( adminUserName,
+                UserCommDefind.admin, UserUtils.accessKeyId );
+        JSONObject normalUser = UserUtils.createUser( normalUserName,
+                UserCommDefind.normal, UserUtils.accessKeyId );
 
         JSONObject actJSON = testUser
                 .getJSONObject( UserCommDefind.accessKeys );
@@ -85,8 +82,8 @@ public class NormalUserUpdateUser16257 extends S3TestBase {
                 Assert.fail( e.getMessage() );
             }
         }
-        JSONObject expUser = UserUtils
-                .getUser( userName, UserUtils.accessKeyId );
+        JSONObject expUser = UserUtils.getUser( userName,
+                UserUtils.accessKeyId );
         checkResult( testUser, expUser );
         // update admin user
         try {
@@ -101,8 +98,8 @@ public class NormalUserUpdateUser16257 extends S3TestBase {
                 Assert.fail( e.getMessage() );
             }
         }
-        JSONObject expAdminUser = UserUtils
-                .getUser( adminUserName, UserUtils.accessKeyId );
+        JSONObject expAdminUser = UserUtils.getUser( adminUserName,
+                UserUtils.accessKeyId );
         checkResult( adminUser, expAdminUser );
 
         // update normal user
@@ -118,8 +115,8 @@ public class NormalUserUpdateUser16257 extends S3TestBase {
                 Assert.fail( e.getMessage() );
             }
         }
-        JSONObject expNormalUser = UserUtils
-                .getUser( normalUserName, UserUtils.accessKeyId );
+        JSONObject expNormalUser = UserUtils.getUser( normalUserName,
+                UserUtils.accessKeyId );
         checkResult( normalUser, expNormalUser );
 
         runSuccess = true;

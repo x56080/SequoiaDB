@@ -53,25 +53,24 @@ public class TestGetObjectMetadata16707 extends S3TestBase {
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
 
         s3Client.putObject( bucketName, keyName, content + "v1" );
-        PutObjectResult resultV2 = s3Client
-                .putObject( bucketName, keyName, content + "v2" );
+        PutObjectResult resultV2 = s3Client.putObject( bucketName, keyName,
+                content + "v2" );
         String etagV2 = resultV2.getETag();
         String versionidV2 = resultV2.getVersionId();
 
-        PutObjectResult resultV3 = s3Client
-                .putObject( bucketName, keyName, content + "v3" );
+        PutObjectResult resultV3 = s3Client.putObject( bucketName, keyName,
+                content + "v3" );
         String etagV3 = resultV3.getETag();
         String versionidV3 = resultV3.getVersionId();
 
-        ObjectMetadata metadata = s3Client.getObjectMetadata(
-                new GetObjectMetadataRequest( bucketName, keyName,
-                        versionidV3 ) );
+        ObjectMetadata metadata = s3Client
+                .getObjectMetadata( new GetObjectMetadataRequest( bucketName,
+                        keyName, versionidV3 ) );
         Date currDate = metadata.getLastModified();
 
         // 指定ifNoneMatch/ifMatch/ifModifiedSince/ifNoneModifiedSince条件查询对象
-        HttpHead request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + bucketName + "/" + keyName
-                        + "?versionId=" + versionidV2 );
+        HttpHead request = new HttpHead( S3TestBase.s3ClientUrl + "/"
+                + bucketName + "/" + keyName + "?versionId=" + versionidV2 );
         request.setHeader( "Authorization",
                 "Credential=" + accessKeys[ 0 ] + "/" );
         request.setHeader( "If-Match", etagV2 );

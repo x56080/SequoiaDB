@@ -69,9 +69,8 @@ public class ListObjects18574 extends S3TestBase {
         // test c: maxKey = 0
         int maxKey = 0;
         ListObjectsRequest request = new ListObjectsRequest()
-                .withBucketName( bucketName )
-                .withPrefix( prefix ).withDelimiter( delimiter )
-                .withMaxKeys( maxKey );
+                .withBucketName( bucketName ).withPrefix( prefix )
+                .withDelimiter( delimiter ).withMaxKeys( maxKey );
         ObjectListing result = s3Client.listObjects( request );
         Assert.assertEquals( result.isTruncated(), false,
                 "result.isTruncated() must be false" );
@@ -102,14 +101,14 @@ public class ListObjects18574 extends S3TestBase {
                 .withPrefix( prefix ).withDelimiter( delimiter )
                 .withMaxKeys( maxKeys );
         ObjectListing result;
-        List<String> commonPrefixes = new ArrayList<>();
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > commonPrefixes = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         do {
             result = s3Client.listObjects( request );
-            List<String> oneGetCommPrefixes = result.getCommonPrefixes();
+            List< String > oneGetCommPrefixes = result.getCommonPrefixes();
             commonPrefixes.addAll( oneGetCommPrefixes );
-            List<S3ObjectSummary> objects = result.getObjectSummaries();
-            List<String> oneQueryKeyList = new ArrayList<>();
+            List< S3ObjectSummary > objects = result.getObjectSummaries();
+            List< String > oneQueryKeyList = new ArrayList<>();
             for ( S3ObjectSummary os : objects ) {
                 String key = os.getKey();
                 oneQueryKeyList.add( key );
@@ -118,32 +117,31 @@ public class ListObjects18574 extends S3TestBase {
             String nextMarker = result.getNextMarker();
             request.setMarker( nextMarker );
 
-            int eachListNums =
-                    oneGetCommPrefixes.size() + oneQueryKeyList.size();
+            int eachListNums = oneGetCommPrefixes.size()
+                    + oneQueryKeyList.size();
             if ( eachListNums > maxKeys ) {
-                Assert.fail(
-                        "list nums error! commonPrefixes: " + oneGetCommPrefixes
-                                .toString() + "  contents:" + oneQueryKeyList
-                                .toString() + "\n eachListNums=" + eachListNums
-                                + "  maxKeys=" + maxKeys );
+                Assert.fail( "list nums error! commonPrefixes: "
+                        + oneGetCommPrefixes.toString() + "  contents:"
+                        + oneQueryKeyList.toString() + "\n eachListNums="
+                        + eachListNums + "  maxKeys=" + maxKeys );
             }
         } while ( result.isTruncated() );
 
         // check the commprefixList and contents
-        List<String> expCommprefixLists = new ArrayList<>();
+        List< String > expCommprefixLists = new ArrayList<>();
         expCommprefixLists.add( "dir1/dir2/dir3/test?" );
         expCommprefixLists.add( "dir1/test?" );
         expCommprefixLists.add( "dir1/dir2/xx?" );
 
-        List<String> expContentLists = new ArrayList<>();
+        List< String > expContentLists = new ArrayList<>();
         expContentLists.add( "dir1/test6_18574" );
         expContentLists.add( "dir1/test/aa9_18574" );
 
         Collections.sort( expCommprefixLists );
         Assert.assertEquals( commonPrefixes, expCommprefixLists,
                 "commonPrefixes:" + commonPrefixes.toString()
-                        + "\n expCommprefixList:" + expCommprefixLists
-                        .toString() );
+                        + "\n expCommprefixList:"
+                        + expCommprefixLists.toString() );
         Collections.sort( expContentLists );
         Assert.assertEquals( queryKeyList, expContentLists,
                 "matchContents:" + queryKeyList.toString()

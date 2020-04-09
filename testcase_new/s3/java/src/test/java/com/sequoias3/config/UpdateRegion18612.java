@@ -55,8 +55,8 @@ public class UpdateRegion18612 extends S3TestBase {
         try {
             // update region
             RegionUtils.putRegion( region );
-            Assert.fail( "exp failed but act success,region = " + region
-                    .toString() );
+            Assert.fail( "exp failed but act success,region = "
+                    + region.toString() );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getErrorCode(), errorCode );
         }

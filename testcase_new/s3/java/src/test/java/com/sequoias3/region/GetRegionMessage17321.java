@@ -37,7 +37,7 @@ public class GetRegionMessage17321 extends S3TestBase {
         RegionUtils.putRegion( region );
 
         GetRegionResult result = RegionUtils.getRegion( regionName );
-        List<Bucket> bucketList = result.getBuckets();
+        List< Bucket > bucketList = result.getBuckets();
         Assert.assertEquals( bucketList.size(), 0 );
 
         runSuccess = true;

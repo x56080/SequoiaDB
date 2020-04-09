@@ -50,8 +50,8 @@ public class SetBucketAcl19448 extends S3TestBase {
     @Test
     private void testSetBucketAcl() throws Exception {
         // 使用标准acl配置桶acl为private
-        ownerS3Client
-                .setBucketAcl( bucketName, CannedAccessControlList.Private );
+        ownerS3Client.setBucketAcl( bucketName,
+                CannedAccessControlList.Private );
         try {
             userS3Client.getBucketAcl( bucketName );
             Assert.fail( "expect failed but found success." );
@@ -64,16 +64,16 @@ public class SetBucketAcl19448 extends S3TestBase {
         // 使用x-amz-grant-*方式配置桶acl,被授权人为预定义组AuthenticatedUsers，权限为FULL_CONTROL
         Grant expGrant = new Grant( GroupGrantee.AuthenticatedUsers,
                 Permission.FullControl );
-        PrivilegeUtils
-                .setBucketAclByHeader( s3AccessKeyId, bucketName, expGrant );
-        PrivilegeUtils
-                .checkSetBucketAclResult( userS3Client, bucketName, expGrant );
+        PrivilegeUtils.setBucketAclByHeader( s3AccessKeyId, bucketName,
+                expGrant );
+        PrivilegeUtils.checkSetBucketAclResult( userS3Client, bucketName,
+                expGrant );
 
         // 使用body配置桶acl，被授权人为桶owner，权限为FULL_CONTROL
         Grant expGrant2 = new Grant( new CanonicalGrantee( ownerId ),
                 Permission.FullControl );
-        PrivilegeUtils
-                .setBucketAclByBody( ownerS3Client, bucketName, expGrant2 );
+        PrivilegeUtils.setBucketAclByBody( ownerS3Client, bucketName,
+                expGrant2 );
         try {
             userS3Client.getBucketAcl( bucketName );
             Assert.fail( "expect failed but found success." );

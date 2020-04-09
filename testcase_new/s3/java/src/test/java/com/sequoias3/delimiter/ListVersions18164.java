@@ -36,8 +36,8 @@ public class ListVersions18164 extends S3TestBase {
     private String prefix = "dir1/";
     private String delimiter = "%";
     private int maxKeys = 255;
-    private List<String> matchPrefixList = new ArrayList<>();
-    private MultiValueMap<String, String> expVersions = new LinkedMultiValueMap<String, String>();
+    private List< String > matchPrefixList = new ArrayList<>();
+    private MultiValueMap< String, String > expVersions = new LinkedMultiValueMap< String, String >();
     private AmazonS3 s3Client = null;
     private int versionNum = 5;
     private int objectsNum = 50;
@@ -57,10 +57,9 @@ public class ListVersions18164 extends S3TestBase {
     @Test
     private void testListVersions() throws Exception {
         // list versions by prefix/delimiter/maxkeys
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withMaxResults( maxKeys ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withDelimiter( delimiter )
+                .withPrefix( prefix ).withMaxResults( maxKeys ) );
 
         // check
         Assert.assertEquals( vsList.isTruncated(), false,
@@ -96,8 +95,8 @@ public class ListVersions18164 extends S3TestBase {
 
             } else {
                 // keyName match prefix and delimter
-                String subKeyName =
-                        prefix + "_" + i + delimiter + "_" + keyName;
+                String subKeyName = prefix + "_" + i + delimiter + "_"
+                        + keyName;
                 for ( int j = versionNum - 1; j >= 0; j-- ) {
                     s3Client.putObject( bucketName, subKeyName,
                             subKeyName + "_" + i + "_" + j );
@@ -108,8 +107,8 @@ public class ListVersions18164 extends S3TestBase {
 
         // put delete tag object
         for ( int i = 0; i < deleteTagObjectsNum; i++ ) {
-            String subKeyName =
-                    prefix + "_deleteTag_" + i + delimiter + "_" + keyName;
+            String subKeyName = prefix + "_deleteTag_" + i + delimiter + "_"
+                    + keyName;
             s3Client.deleteObject( bucketName, subKeyName );
             matchPrefixList.add( prefix + "_deleteTag_" + i + delimiter );
         }

@@ -194,7 +194,7 @@ public class TestPutRegion17352 extends S3TestBase {
         if ( actSuccessTests.get() == ( generateRegionName().length
                 + generateIllegalRegionName().length + 1 ) ) {
             try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
-                    "" ) ) {
+                    "" )) {
                 sdb.dropCollectionSpace( metaCSName );
                 sdb.dropCollectionSpace( dataCSName );
                 sdb.dropDomain( dataDomain );

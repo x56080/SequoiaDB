@@ -57,8 +57,8 @@ public class DeleteRegion17325 extends S3TestBase {
             Assert.fail(
                     "exp delete region failed,regionName = " + regionName );
         } catch ( AmazonS3Exception e ) {
-            if ( e.getStatusCode() != 409 && !e.getErrorCode()
-                    .contains( "RegionNotEmpty" ) ) {
+            if ( e.getStatusCode() != 409
+                    && !e.getErrorCode().contains( "RegionNotEmpty" ) ) {
                 throw e;
             }
         }
@@ -69,8 +69,8 @@ public class DeleteRegion17325 extends S3TestBase {
 
         // check cs.cl has not been deleted
         Date date = Calendar.getInstance().getTime();
-        String csName =
-                RegionUtils.getDataCSName( regionName, "month", date ) + "_1";
+        String csName = RegionUtils.getDataCSName( regionName, "month", date )
+                + "_1";
         String clName = RegionUtils.getDataCLName( "month", date );
         Assert.assertTrue( RegionUtils.clInCS( csName, clName ),
                 "csName = " + csName + ",clName = " + clName );

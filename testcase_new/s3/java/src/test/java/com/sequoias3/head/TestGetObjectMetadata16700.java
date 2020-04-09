@@ -53,13 +53,13 @@ public class TestGetObjectMetadata16700 extends S3TestBase {
 
         s3Client.putObject( bucketName, keyName, content + "v1" );
         s3Client.putObject( bucketName, keyName, content + "v2" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content + "v3" );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content + "v3" );
         String versionid = result.getVersionId();
 
-        ObjectMetadata metadata = s3Client.getObjectMetadata(
-                new GetObjectMetadataRequest( bucketName, keyName,
-                        versionid ) );
+        ObjectMetadata metadata = s3Client
+                .getObjectMetadata( new GetObjectMetadataRequest( bucketName,
+                        keyName, versionid ) );
         Date actDate = metadata.getLastModified();
 
         // 指定ifUnModifiedSince不匹配

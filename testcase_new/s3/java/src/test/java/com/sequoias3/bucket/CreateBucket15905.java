@@ -32,7 +32,7 @@ public class CreateBucket15905 extends S3TestBase {
     private String key = "key15905";
     private String userName = "user15905";
     private String roleName = "normal";
-    private List<String> bucketNameList = new ArrayList<String>();
+    private List< String > bucketNameList = new ArrayList< String >();
     private File localPath = null;
     private AmazonS3 s3Client = null;
 
@@ -85,10 +85,10 @@ public class CreateBucket15905 extends S3TestBase {
 
     private void checkCreateBucketResult( AmazonS3 s3Client ) throws Exception {
         // check bucket nums
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         Assert.assertEquals( buckets.size(), defaultMaxNums );
 
-        List<String> actbucketNameLists = new ArrayList<>();
+        List< String > actbucketNameLists = new ArrayList<>();
         for ( int i = 0; i < buckets.size(); i++ ) {
             Bucket bucket = buckets.get( i );
             String actBucketName = bucket.getName();
@@ -106,10 +106,10 @@ public class CreateBucket15905 extends S3TestBase {
 
     private void getObjectAndCheckContent( String bucketName )
             throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         String content = "test" + bucketName;
         String expEtag = TestTools.getMD5( content.getBytes() );
         Assert.assertEquals( downfileMd5, expEtag );

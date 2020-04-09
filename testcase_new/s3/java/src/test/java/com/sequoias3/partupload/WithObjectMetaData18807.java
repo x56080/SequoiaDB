@@ -43,12 +43,12 @@ public class WithObjectMetaData18807 extends S3TestBase {
 
     @DataProvider(name = "legalMetadataProvider")
     public Object[][] generateMetadata() {
-        Map<String, String> expMeta = new HashMap<>();
+        Map< String, String > expMeta = new HashMap<>();
         expMeta.put( "test1", "1234" );
         expMeta.put( "test2", "" );
         expMeta.put( "test3", null );
 
-        Map<String, String> expMeta2 = new HashMap<>();
+        Map< String, String > expMeta2 = new HashMap<>();
         expMeta2.put( "test", ObjectUtils.getRandomString( 2044 ) );
 
         return new Object[][] {
@@ -60,10 +60,10 @@ public class WithObjectMetaData18807 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -76,7 +76,8 @@ public class WithObjectMetaData18807 extends S3TestBase {
     }
 
     @Test(dataProvider = "legalMetadataProvider")
-    public void testLegalMetaData( Map<String, String> meta ) throws Exception {
+    public void testLegalMetaData( Map< String, String > meta )
+            throws Exception {
         InitiateMultipartUploadRequest initRequest = new InitiateMultipartUploadRequest(
                 bucketName, keyName );
         ObjectMetadata userMetadata = new ObjectMetadata();
@@ -86,23 +87,21 @@ public class WithObjectMetaData18807 extends S3TestBase {
                 .initiateMultipartUpload( initRequest );
         String uploadId = result.getUploadId();
         Assert.assertNotEquals( uploadId, null );
-        List<PartETag> partEtags = PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId, file );
+        List< PartETag > partEtags = PartUploadUtils.partUpload( s3Client,
+                bucketName, keyName, uploadId, file );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
 
-        ObjectMetadata metadata = s3Client
-                .getObjectMetadata( bucketName, keyName );
-        Map<String, String> actMeta = new HashMap<>();
+        ObjectMetadata metadata = s3Client.getObjectMetadata( bucketName,
+                keyName );
+        Map< String, String > actMeta = new HashMap<>();
         actMeta = metadata.getUserMetadata();
-        Assert.assertEquals( actMeta.size(), meta.size(),
-                "expMeta is : " + printMap( meta ) + "actMeta is : " + printMap(
-                        actMeta ) );
-        for ( Map.Entry<String, String> entry : meta.entrySet() ) {
+        Assert.assertEquals( actMeta.size(), meta.size(), "expMeta is : "
+                + printMap( meta ) + "actMeta is : " + printMap( actMeta ) );
+        for ( Map.Entry< String, String > entry : meta.entrySet() ) {
             String expValue = entry.getValue() == null ? "" : entry.getValue();
-            String actValue = actMeta.get( entry.getKey() ) == null ?
-                    "" :
-                    actMeta.get( entry.getKey() );
+            String actValue = actMeta.get( entry.getKey() ) == null ? ""
+                    : actMeta.get( entry.getKey() );
             if ( !expValue.equals( actValue ) ) {
                 Assert.fail( "Metadata is wrong ! exp : " + expValue
                         + ", but found : " + actValue );
@@ -116,7 +115,7 @@ public class WithObjectMetaData18807 extends S3TestBase {
         InitiateMultipartUploadRequest initRequest = new InitiateMultipartUploadRequest(
                 bucketName, keyName );
         ObjectMetadata metadata = new ObjectMetadata();
-        Map<String, String> meta = new HashMap<>();
+        Map< String, String > meta = new HashMap<>();
         meta.put( "test", ObjectUtils.getRandomString( 2045 ) );
         metadata.setUserMetadata( meta );
         initRequest.withObjectMetadata( metadata );
@@ -143,9 +142,9 @@ public class WithObjectMetaData18807 extends S3TestBase {
         }
     }
 
-    private String printMap( Map<String, String> map ) {
+    private String printMap( Map< String, String > map ) {
         String str = new String();
-        for ( Map.Entry<String, String> entry : map.entrySet() ) {
+        for ( Map.Entry< String, String > entry : map.entrySet() ) {
             str += "Key = " + entry.getKey() + " value = " + entry.getValue()
                     + " ";
         }

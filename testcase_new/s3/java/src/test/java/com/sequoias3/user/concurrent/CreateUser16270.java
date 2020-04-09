@@ -31,7 +31,7 @@ public class CreateUser16270 extends S3TestBase {
     private String userName = "CreateUser16720";
     private String bucketName = "bucket16270";
     private int num = 50;
-    private List<JSONObject> userList = new CopyOnWriteArrayList<JSONObject>();
+    private List< JSONObject > userList = new CopyOnWriteArrayList< JSONObject >();
 
     @BeforeClass
     private void setUp() throws Exception {
@@ -49,11 +49,10 @@ public class CreateUser16270 extends S3TestBase {
 
     @Test
     public void testCreateBucket() throws Exception {
-        List<CreateUser> threads = new ArrayList<CreateUser>();
+        List< CreateUser > threads = new ArrayList< CreateUser >();
         for ( int i = 0; i < num; i++ ) {
-            threads.add(
-                    new CreateUser( userName + "." + i, UserCommDefind.normal,
-                            UserUtils.accessKeyId ) );
+            threads.add( new CreateUser( userName + "." + i,
+                    UserCommDefind.normal, UserUtils.accessKeyId ) );
         }
 
         for ( int i = 0; i < num; i++ ) {
@@ -113,8 +112,8 @@ public class CreateUser16270 extends S3TestBase {
         @Override
         public void exec() {
             try {
-                JSONObject userJSON = UserUtils
-                        .createUser( username, type, accessKeyID );
+                JSONObject userJSON = UserUtils.createUser( username, type,
+                        accessKeyID );
                 userList.add( userJSON );
             } catch ( Exception e ) {
                 e.printStackTrace();

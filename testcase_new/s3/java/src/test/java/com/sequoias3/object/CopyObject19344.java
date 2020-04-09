@@ -18,7 +18,8 @@ import java.io.IOException;
 import java.util.Date;
 
 /**
- * @Description seqDB-19344: 指定ifNoneMatch/ifMatch/ifModifiedSince/ifNoneModifiedSince条件获取对象
+ * @Description seqDB-19344:
+ *              指定ifNoneMatch/ifMatch/ifModifiedSince/ifNoneModifiedSince条件获取对象
  * @author wuyan
  * @Date 2019.09.20
  * @version 1.00
@@ -38,8 +39,8 @@ public class CopyObject19344 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
 
@@ -81,8 +82,8 @@ public class CopyObject19344 extends S3TestBase {
         s3Client.copyObject( request );
 
         // check the content of destObject
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, destKeyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, destKeyName );
         Assert.assertEquals( downfileMd5, curVersionETag );
 
         runSuccess = true;

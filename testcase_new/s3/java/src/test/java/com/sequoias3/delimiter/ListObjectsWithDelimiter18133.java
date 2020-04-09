@@ -33,7 +33,7 @@ public class ListObjectsWithDelimiter18133 extends S3TestBase {
             "18133.txt" };
     private String delimiter = "te";
     private int maxkeys = 2;
-    private List<String> expCommonprefixes = new ArrayList<String>();
+    private List< String > expCommonprefixes = new ArrayList< String >();
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
 
@@ -59,33 +59,33 @@ public class ListObjectsWithDelimiter18133 extends S3TestBase {
                 .withBucketName( bucketName ).withDelimiter( delimiter )
                 .withMaxKeys( maxkeys );
         ListObjectsV2Result result = s3Client.listObjectsV2( req );
-        List<String> commprefixesResult = result.getCommonPrefixes();
+        List< String > commprefixesResult = result.getCommonPrefixes();
 
         // check result
-        expCommonprefixes = ObjectUtils
-                .getCommPrefixes( objectNames, "", delimiter );
-        List<String> tmpCommonprefixes = expCommonprefixes
-                .subList( 0, maxkeys );
+        expCommonprefixes = ObjectUtils.getCommPrefixes( objectNames, "",
+                delimiter );
+        List< String > tmpCommonprefixes = expCommonprefixes.subList( 0,
+                maxkeys );
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult,
                 tmpCommonprefixes );
 
         String nextContinuationToken = result.getNextContinuationToken();
         req.setContinuationToken( nextContinuationToken );
         result = s3Client.listObjectsV2( req );
-        List<String> commprefixesResult2 = result.getCommonPrefixes();
-        List<String> contentsResult = new ArrayList<>();
-        List<S3ObjectSummary> contents = result.getObjectSummaries();
+        List< String > commprefixesResult2 = result.getCommonPrefixes();
+        List< String > contentsResult = new ArrayList<>();
+        List< S3ObjectSummary > contents = result.getObjectSummaries();
         for ( S3ObjectSummary content : contents ) {
             contentsResult.add( content.getKey() );
         }
 
         // finally check result
-        List<String> tmpCommonprefixes2 = expCommonprefixes
-                .subList( maxkeys, expCommonprefixes.size() );
+        List< String > tmpCommonprefixes2 = expCommonprefixes.subList( maxkeys,
+                expCommonprefixes.size() );
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult2,
                 tmpCommonprefixes2 );
-        List<String> expContents = ObjectUtils
-                .getKeys( objectNames, "", delimiter );
+        List< String > expContents = ObjectUtils.getKeys( objectNames, "",
+                delimiter );
         Assert.assertEquals( contentsResult, expContents );
         Assert.assertEquals( result.isTruncated(), false );
         runSuccess = true;

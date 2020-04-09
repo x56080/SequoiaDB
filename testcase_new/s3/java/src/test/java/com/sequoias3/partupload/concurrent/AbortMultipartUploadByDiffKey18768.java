@@ -31,7 +31,7 @@ public class AbortMultipartUploadByDiffKey18768 extends S3TestBase {
     private boolean runSuccess = false;
     private String baseKeyName = "/aa/object18768";
     private int keyNum = 20;
-    private List<String> keyNames = new ArrayList<>();
+    private List< String > keyNames = new ArrayList<>();
     private String bucketName = "bucket18768";
     private AmazonS3 s3Client = null;
     private File localPath = null;
@@ -40,12 +40,12 @@ public class AbortMultipartUploadByDiffKey18768 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.createFile( filePath, fileSize );
 
         s3Client = CommLib.buildS3Client();
@@ -107,15 +107,14 @@ public class AbortMultipartUploadByDiffKey18768 extends S3TestBase {
 
         @ExecuteOrder(step = 1)
         private void initPartUpload() {
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client1, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client1, bucketName,
+                    keyName );
         }
 
         @ExecuteOrder(step = 2)
         private void partUpload() {
-            PartUploadUtils
-                    .partUpload( s3Client1, bucketName, keyName, uploadId,
-                            file );
+            PartUploadUtils.partUpload( s3Client1, bucketName, keyName,
+                    uploadId, file );
         }
 
         @ExecuteOrder(step = 3)

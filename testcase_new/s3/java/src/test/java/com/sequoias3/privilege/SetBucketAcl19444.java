@@ -117,8 +117,8 @@ public class SetBucketAcl19444 extends S3TestBase {
             Grant[] expGrant ) throws Exception {
         // set bucket acl using standard acl mode
         ownerS3Client.setBucketAcl( bucketName, acl );
-        PrivilegeUtils
-                .checkSetBucketAclResult( ownerS3Client, bucketName, expGrant );
+        PrivilegeUtils.checkSetBucketAclResult( ownerS3Client, bucketName,
+                expGrant );
         getObjectByOtherUser();
         actSuccessTests.getAndIncrement();
     }
@@ -142,8 +142,8 @@ public class SetBucketAcl19444 extends S3TestBase {
         // set bucket acl with access control list in request body
         for ( Permission permission : Permission.values() ) {
             Grant expGrant = new Grant( grantee, permission );
-            PrivilegeUtils
-                    .setBucketAclByBody( ownerS3Client, bucketName, expGrant );
+            PrivilegeUtils.setBucketAclByBody( ownerS3Client, bucketName,
+                    expGrant );
             PrivilegeUtils.checkSetBucketAclResult( ownerS3Client, bucketName,
                     expGrant );
             getObjectByOtherUser();
@@ -167,14 +167,14 @@ public class SetBucketAcl19444 extends S3TestBase {
 
     private void getObjectByOtherUser() throws Exception {
         String expMd5 = TestTools.getMD5( newFilePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( userS3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( userS3Client,
+                localPath, bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
     }
 
     private void putObjectBeforeTest() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         oldFilePath = localPath + File.separator + "localFile_" + oldFileSize
                 + ".txt";
         newFilePath = localPath + File.separator + "localFile_" + newFileSize

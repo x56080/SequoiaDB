@@ -40,20 +40,20 @@ public class GetSameObjectWithoutVersion16511 extends S3TestBase {
     private String filePathV1 = null;
     private String filePathV2 = null;
     private String filePathV3 = null;
-    private List<String> etagList = new ArrayList<>();
+    private List< String > etagList = new ArrayList<>();
     private String[] acessKeys = null;
     private AmazonS3 s3Client = null;
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePathV1 =
-                localPath + File.separator + "localFile_" + fileSizeV1 + ".txt";
-        filePathV2 =
-                localPath + File.separator + "localFile_" + fileSizeV2 + ".txt";
-        filePathV3 =
-                localPath + File.separator + "localFile_" + fileSizeV3 + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePathV1 = localPath + File.separator + "localFile_" + fileSizeV1
+                + ".txt";
+        filePathV2 = localPath + File.separator + "localFile_" + fileSizeV2
+                + ".txt";
+        filePathV3 = localPath + File.separator + "localFile_" + fileSizeV3
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePathV1, fileSizeV1 );
@@ -68,18 +68,18 @@ public class GetSameObjectWithoutVersion16511 extends S3TestBase {
 
         // put three versions of the object
         s3Client.putObject( bucketName, keyName, new File( filePathV1 ) );
-        String downfileMd5V1 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5V1 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         etagList.add( downfileMd5V1 );
 
         s3Client.putObject( bucketName, keyName, new File( filePathV2 ) );
-        String downfileMd5V2 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5V2 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         etagList.add( downfileMd5V2 );
 
         s3Client.putObject( bucketName, keyName, new File( filePathV3 ) );
-        String downfileMd5V3 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5V3 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         etagList.add( downfileMd5V3 );
 
         CommLib.setBucketVersioning( s3Client, bucketName, "Suspended" );
@@ -88,7 +88,7 @@ public class GetSameObjectWithoutVersion16511 extends S3TestBase {
     @Test
     public void testGetObject() throws Exception {
         // Getting different versions of objects
-        List<GetDifferentObjectThread> getDiffVerObjects = new ArrayList<>();
+        List< GetDifferentObjectThread > getDiffVerObjects = new ArrayList<>();
         for ( int i = 0; i < 3; i++ ) {
             getDiffVerObjects
                     .add( new GetDifferentObjectThread( String.valueOf( i ) ) );
@@ -131,16 +131,15 @@ public class GetSameObjectWithoutVersion16511 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
-                S3Object object = s3Client.getObject(
-                        new GetObjectRequest( bucketName, keyName,
-                                versionid ) );
+                S3Object object = s3Client.getObject( new GetObjectRequest(
+                        bucketName, keyName, versionid ) );
                 S3ObjectInputStream s3is = object.getObjectContent();
-                String downloadPath = TestTools.LocalFile
-                        .initDownloadPath( localPath, TestTools.getMethodName(),
-                                Thread.currentThread().getId() );
+                String downloadPath = TestTools.LocalFile.initDownloadPath(
+                        localPath, TestTools.getMethodName(),
+                        Thread.currentThread().getId() );
                 ObjectUtils.inputStream2File( s3is, downloadPath );
                 s3is.close();
                 String getObjectMd5 = TestTools.getMD5( downloadPath );

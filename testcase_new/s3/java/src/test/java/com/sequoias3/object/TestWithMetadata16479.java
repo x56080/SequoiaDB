@@ -40,12 +40,12 @@ public class TestWithMetadata16479 extends S3TestBase {
 
     @DataProvider(name = "legalMetadataProvider")
     public Object[][] generateMetadata() {
-        Map<String, String> expMeta = new HashMap<>();
+        Map< String, String > expMeta = new HashMap<>();
         expMeta.put( "test1", "1234" );
         expMeta.put( "test2", "" );
         expMeta.put( "test3", null );
 
-        Map<String, String> expMeta2 = new HashMap<>();
+        Map< String, String > expMeta2 = new HashMap<>();
         expMeta2.put( "test", ObjectUtils.getRandomString( 2044 ) );
 
         return new Object[][] {
@@ -57,10 +57,10 @@ public class TestWithMetadata16479 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -69,7 +69,7 @@ public class TestWithMetadata16479 extends S3TestBase {
     }
 
     @Test(dataProvider = "legalMetadataProvider")
-    public void testLegalMetadata( Map<String, String> expMeta )
+    public void testLegalMetadata( Map< String, String > expMeta )
             throws Exception {
         PutObjectRequest request = new PutObjectRequest( bucketName, keyName,
                 new File( filePath ) );
@@ -83,18 +83,16 @@ public class TestWithMetadata16479 extends S3TestBase {
         Assert.assertEquals( actMd5, expMd5,
                 "md5 is wrong! the key name is : " + keyName );
 
-        ObjectMetadata metadata = s3Client
-                .getObjectMetadata( bucketName, keyName );
-        Map<String, String> actMeta = new HashMap<>();
+        ObjectMetadata metadata = s3Client.getObjectMetadata( bucketName,
+                keyName );
+        Map< String, String > actMeta = new HashMap<>();
         actMeta = metadata.getUserMetadata();
-        Assert.assertEquals( actMeta.size(), expMeta.size(),
-                "expMeta is : " + printMap( expMeta ) + "actMeta is : "
-                        + printMap( actMeta ) );
-        for ( Map.Entry<String, String> entry : expMeta.entrySet() ) {
+        Assert.assertEquals( actMeta.size(), expMeta.size(), "expMeta is : "
+                + printMap( expMeta ) + "actMeta is : " + printMap( actMeta ) );
+        for ( Map.Entry< String, String > entry : expMeta.entrySet() ) {
             String expValue = entry.getValue() == null ? "" : entry.getValue();
-            String actValue = actMeta.get( entry.getKey() ) == null ?
-                    "" :
-                    actMeta.get( entry.getKey() );
+            String actValue = actMeta.get( entry.getKey() ) == null ? ""
+                    : actMeta.get( entry.getKey() );
             if ( !expValue.equals( actValue ) ) {
                 Assert.fail( "Metadata is wrong ! exp : " + expValue
                         + ", but found : " + actValue );
@@ -107,7 +105,7 @@ public class TestWithMetadata16479 extends S3TestBase {
     @Test
     public void testIllegalMetadata() throws Exception {
         // 非法参数校验 长度超过2KB（key+value总大小）
-        Map<String, String> expMeta = new HashMap<>();
+        Map< String, String > expMeta = new HashMap<>();
         expMeta.put( "test", ObjectUtils.getRandomString( 2045 ) );
 
         PutObjectRequest request = new PutObjectRequest( bucketName, keyName,
@@ -142,9 +140,9 @@ public class TestWithMetadata16479 extends S3TestBase {
         }
     }
 
-    private String printMap( Map<String, String> map ) {
+    private String printMap( Map< String, String > map ) {
         String str = new String();
-        for ( Map.Entry<String, String> entry : map.entrySet() ) {
+        for ( Map.Entry< String, String > entry : map.entrySet() ) {
             str += "Key = " + entry.getKey() + " value = " + entry.getValue()
                     + " ";
         }

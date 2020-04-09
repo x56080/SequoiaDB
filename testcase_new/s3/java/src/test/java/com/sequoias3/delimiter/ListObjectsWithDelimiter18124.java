@@ -35,7 +35,7 @@ public class ListObjectsWithDelimiter18124 extends S3TestBase {
             "dir2#dir2#test18124_2", "dir3#dir3#test18124_3",
             "dir4#dir4#test18124_4", "test18124_5" };
     private String expContents = "test18124_5";
-    private List<String> expCommonPrefixes = null;
+    private List< String > expCommonPrefixes = null;
     private File localPath = null;
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * 20;
@@ -43,10 +43,10 @@ public class ListObjectsWithDelimiter18124 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -63,14 +63,14 @@ public class ListObjectsWithDelimiter18124 extends S3TestBase {
             s3Client.putObject( bucketName, objectNames[ i ],
                     new File( filePath ) );
         }
-        expCommonPrefixes = ObjectUtils
-                .getCommPrefixes( objectNames, "", delimiter );
+        expCommonPrefixes = ObjectUtils.getCommPrefixes( objectNames, "",
+                delimiter );
         Collections.sort( expCommonPrefixes );
     }
 
     @Test
     private void testListObjects() throws Exception {
-        List<String> tmpCommonPrefixes = new ArrayList<>();
+        List< String > tmpCommonPrefixes = new ArrayList<>();
         int objectNums = objectNames.length;
         // test a: 指定位置为中间记录
         tmpCommonPrefixes.add( "dir4#" );
@@ -113,15 +113,15 @@ public class ListObjectsWithDelimiter18124 extends S3TestBase {
     }
 
     private void listObjectsAndCheckResult( int startAfterNo,
-            List<String> commprefixes ) throws IOException {
+            List< String > commprefixes ) throws IOException {
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" )
                 .withStartAfter( objectNames[ startAfterNo ] )
                 .withDelimiter( delimiter );
         ListObjectsV2Result result;
         result = s3Client.listObjectsV2( request );
-        List<String> actCommonPrefixes = result.getCommonPrefixes();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > actCommonPrefixes = result.getCommonPrefixes();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         // check contents
         if ( startAfterNo < expCommonPrefixes.size() ) {
             Assert.assertEquals( objects.get( 0 ).getKey(), expContents );
@@ -141,8 +141,8 @@ public class ListObjectsWithDelimiter18124 extends S3TestBase {
                 .withBucketName( bucketName ).withEncodingType( "url" )
                 .withStartAfter( startAfter ).withDelimiter( delimiter );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> actCommonPrefixes = result.getCommonPrefixes();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > actCommonPrefixes = result.getCommonPrefixes();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
 
         // misMatchObject, the list size is 0
         Assert.assertEquals( actCommonPrefixes.size(), 0 );

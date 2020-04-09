@@ -33,7 +33,7 @@ public class ListVersionsByPrefixKeyVersionId16399 extends S3TestBase {
     private String bucketName = "bucket16399";
     private String[] objectNames = { "dir16399%subdir16399A",
             "dir16399%dir16399A%dir16399AB", "dir16399A", "dir16399B" };
-    private List<String> sortObjectNames = new ArrayList<String>();
+    private List< String > sortObjectNames = new ArrayList< String >();
     private AmazonS3 s3Client = null;
     private int versionNum = 3;
 
@@ -66,7 +66,7 @@ public class ListVersionsByPrefixKeyVersionId16399 extends S3TestBase {
                         .withPrefix( prefix ).withKeyMarker( keyMarker )
                         .withVersionIdMarker( versionIdMarker ) );
         // expected results
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( String objectName : sortObjectNames ) {
             for ( int i = versionNum - 1; i >= 0; i-- ) {
                 expMap.add( objectName, String.valueOf( i ) );
@@ -75,8 +75,8 @@ public class ListVersionsByPrefixKeyVersionId16399 extends S3TestBase {
         // check
         Assert.assertEquals( vsList.isTruncated(), false,
                 "vsList.isTruncated() must be false" );
-        ObjectUtils
-                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                expMap );
         runSuccess = true;
     }
 

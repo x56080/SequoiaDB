@@ -17,14 +17,14 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * @Description seqDB-18711: enabling bucket versioning,upload multiple parts,the key specified
- *              different uploadId.
+ * @Description seqDB-18711: enabling bucket versioning,upload multiple
+ *              parts,the key specified different uploadId.
  * @author wuyan
  * @Date 2019.07.30
  * @version 1.00
  */
-@Test(groups = "partlistinuseoff") public class UploadPart18711
-        extends S3TestBase {
+@Test(groups = "partlistinuseoff")
+public class UploadPart18711 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket18711";
     private String keyName = "/aa/object18711";
@@ -39,12 +39,12 @@ import java.util.List;
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath1 =
-                localPath + File.separator + "localFile_" + fileSize1 + ".txt";
-        filePath2 =
-                localPath + File.separator + "localFile_" + fileSize2 + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath1 = localPath + File.separator + "localFile_" + fileSize1
+                + ".txt";
+        filePath2 = localPath + File.separator + "localFile_" + fileSize2
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath1, fileSize1 );
@@ -58,23 +58,20 @@ import java.util.List;
     @Test
     public void uploadParts() throws Exception {
         File file1 = new File( filePath1 );
-        String uploadId1 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        List<PartETag> partEtags1 = PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId1, file1,
-                        partSize1 );
+        String uploadId1 = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        List< PartETag > partEtags1 = PartUploadUtils.partUpload( s3Client,
+                bucketName, keyName, uploadId1, file1, partSize1 );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId1, partEtags1 );
 
         File file2 = new File( filePath2 );
-        String uploadId2 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        List<PartETag> partEtags2 = PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId2, file2,
-                        partSize2 );
-        PartUploadUtils
-                .listPartsAndCheckPartNumbers( s3Client, bucketName, keyName,
-                        partEtags2, uploadId2 );
+        String uploadId2 = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        List< PartETag > partEtags2 = PartUploadUtils.partUpload( s3Client,
+                bucketName, keyName, uploadId2, file2, partSize2 );
+        PartUploadUtils.listPartsAndCheckPartNumbers( s3Client, bucketName,
+                keyName, partEtags2, uploadId2 );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId2, partEtags2 );
 
@@ -100,14 +97,13 @@ import java.util.List;
         String historyVersionId = "0";
 
         // check the content of the current version object
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath2 ) );
 
         // check the content of the first upload object
-        String updateMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName,
-                        historyVersionId );
+        String updateMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName, historyVersionId );
         Assert.assertEquals( updateMd5, TestTools.getMD5( filePath1 ) );
     }
 

@@ -34,10 +34,10 @@ public class ListPartsRequest18809 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -51,10 +51,10 @@ public class ListPartsRequest18809 extends S3TestBase {
 
     @Test
     public void testIllegalParameter() throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        PartUploadUtils.partUpload( s3Client, bucketName, keyName, uploadId,
+                file );
 
         // a.接口参数取值合法---已在功能测试中验证
         // b.接口参数取值非法---bucketName\key取值为null

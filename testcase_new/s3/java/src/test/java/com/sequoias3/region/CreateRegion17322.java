@@ -25,7 +25,7 @@ import java.util.List;
 public class CreateRegion17322 extends S3TestBase {
     private String regionName = "region17322";
     private String bucketNameBase = "bucket17322";
-    private List<String> bucketNames = new ArrayList<String>();
+    private List< String > bucketNames = new ArrayList< String >();
     private int bucketNum = 80;
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
@@ -89,7 +89,7 @@ public class CreateRegion17322 extends S3TestBase {
     }
 
     private void checkGetRegionResult( GetRegionResult result, Region expRegion,
-            List<String> expBucketNames ) throws Exception {
+            List< String > expBucketNames ) throws Exception {
         Region actRegion = result.getRegion();
         Assert.assertEquals( actRegion.getDataCSShardingType(),
                 expRegion.getDataCSShardingType() );
@@ -100,16 +100,15 @@ public class CreateRegion17322 extends S3TestBase {
         Assert.assertEquals( actRegion.getMetaHisLocation(), "" );
         Assert.assertEquals( actRegion.getMetaDomain(), "" );
         Assert.assertEquals( actRegion.getDataDomain(), "" );
-        List<Bucket> actBuckets = result.getBuckets();
+        List< Bucket > actBuckets = result.getBuckets();
         Assert.assertEquals( actBuckets.size(), expBucketNames.size(),
                 "actBuckets = " + actBuckets.toString() + ",expBucketNames = "
                         + expBucketNames.toString() );
         for ( int i = 0; i < actBuckets.size(); i++ ) {
             if ( !expBucketNames.contains( actBuckets.get( i ).getName() ) ) {
-                throw new Exception(
-                        "exp bucketName not in act BuckNames" + ",actBucket = "
-                                + actBuckets.toString() + ",expBuckets = "
-                                + expBucketNames.toString() );
+                throw new Exception( "exp bucketName not in act BuckNames"
+                        + ",actBucket = " + actBuckets.toString()
+                        + ",expBuckets = " + expBucketNames.toString() );
             }
         }
     }

@@ -46,18 +46,19 @@ public class CopyObject19308 extends S3TestBase {
                 // the parameter is srcVersionId, copyFileSize,copyFilePath
                 // test a: the versionId of copy srcObject is currentVersionId
                 new Object[] { currentVersionId, fileSize2, filePath2 },
-                // test b: the versionId of copy srcObject is the oldest hisVersionId
+                // test b: the versionId of copy srcObject is the oldest
+                // hisVersionId
                 new Object[] { hisVersionId, fileSize1, filePath1 } };
     }
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath1 =
-                localPath + File.separator + "localFile_" + fileSize1 + ".txt";
-        filePath2 =
-                localPath + File.separator + "localFile_" + fileSize2 + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath1 = localPath + File.separator + "localFile_" + fileSize1
+                + ".txt";
+        filePath2 = localPath + File.separator + "localFile_" + fileSize2
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -106,8 +107,8 @@ public class CopyObject19308 extends S3TestBase {
 
     private void checkObjectContent( String bucketName, String keyName,
             String filePath ) throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

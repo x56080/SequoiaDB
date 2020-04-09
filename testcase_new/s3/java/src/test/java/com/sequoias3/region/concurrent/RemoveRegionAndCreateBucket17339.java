@@ -38,17 +38,17 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
     private String roleName = "normal";
     private String[] accessKeys;
     private AmazonS3 s3Client = null;
-    private List<String> bucketNames = new ArrayList<>();
+    private List< String > bucketNames = new ArrayList<>();
     private int fileSize = 1024 * 10;
     private File localPath = null;
     private String filePath = null;
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -73,9 +73,8 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
                     .getExceptions().get( 0 ) );
             // 404, "NoSuchRegion"
             if ( e.getStatusCode() != 404 ) {
-                Assert.fail(
-                        "createBucket fail:" + e.getErrorMessage() + "/n e:" + e
-                                .getStatusCode() );
+                Assert.fail( "createBucket fail:" + e.getErrorMessage()
+                        + "/n e:" + e.getStatusCode() );
             }
             checkRemoveRegionResult( false );
         } else if ( createBuckets.isSuccess() && !removeRegion.isSuccess() ) {
@@ -83,9 +82,8 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
                     .getExceptions().get( 0 ) );
             // -312, "RegionNotEmpty"
             if ( e.getStatusCode() != 409 ) {
-                Assert.fail(
-                        "remove Region fail:" + e.getErrorMessage() + "/n e:"
-                                + e.getStatusCode() );
+                Assert.fail( "remove Region fail:" + e.getErrorMessage()
+                        + "/n e:" + e.getStatusCode() );
             }
             checkCreateBucketResult();
             checkRemoveRegionResult( true );
@@ -116,9 +114,8 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
         boolean curDoesExistRegion = RegionUtils.headRegion( regionName );
         // check that the auto create cs have been deleted
         String metaCSName = RegionUtils.getMetaCSName( regionName );
-        String dataCSName =
-                RegionUtils.getDataCSName( regionName, "year", new Date() )
-                        + "_1";
+        String dataCSName = RegionUtils.getDataCSName( regionName, "year",
+                new Date() ) + "_1";
         if ( doesExistRegion ) {
             Assert.assertTrue( curDoesExistRegion );
             Assert.assertTrue( RegionUtils.doesCSExist( metaCSName ),
@@ -136,11 +133,11 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
 
     private void checkCreateBucketResult() throws Exception {
         // check bucket numst
-        AmazonS3 s3Client = CommLib
-                .buildS3Client( accessKeys[ 0 ], accessKeys[ 1 ] );
+        AmazonS3 s3Client = CommLib.buildS3Client( accessKeys[ 0 ],
+                accessKeys[ 1 ] );
         try {
-            List<Bucket> buckets = s3Client.listBuckets();
-            List<String> actbucketNameLists = new ArrayList<>();
+            List< Bucket > buckets = s3Client.listBuckets();
+            List< String > actbucketNameLists = new ArrayList<>();
             for ( Bucket bucket : buckets ) {
                 String actBucketName = bucket.getName();
                 String actRegion = s3Client.getBucketLocation( actBucketName );
@@ -161,8 +158,8 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
     private void createObjectAndCheckResult( AmazonS3 s3Client,
             String bucketName ) throws Exception {
         s3Client.putObject( bucketName, key, new File( filePath ) );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
@@ -171,8 +168,8 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
         @Override
         public void exec() throws Exception {
             accessKeys = UserUtils.createUser( userName, roleName );
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( accessKeys[ 0 ], accessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( accessKeys[ 0 ],
+                    accessKeys[ 1 ] );
             try {
                 for ( int i = 0; i < 100; i++ ) {
                     String curBucketName = bucketName + "." + i;

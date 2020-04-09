@@ -51,10 +51,10 @@ public class ListObjectVersionsWithDelimiter18146 extends S3TestBase {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withDelimiter( delimiter ).withPrefix( prefix ) );
-        List<String> commonPrefixes = versionList.getCommonPrefixes();
+        List< String > commonPrefixes = versionList.getCommonPrefixes();
         Assert.assertEquals( commonPrefixes.size(), 0 );
 
-        List<S3VersionSummary> s3VersionSummaries = versionList
+        List< S3VersionSummary > s3VersionSummaries = versionList
                 .getVersionSummaries();
         Assert.assertEquals( s3VersionSummaries.size(), 0 );
 

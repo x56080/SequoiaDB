@@ -50,8 +50,8 @@ public class UpdateDelimiter18096 extends S3TestBase {
             Assert.fail( "exp fail but found success" );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getErrorCode(), "AccessDenied",
-                    "errorCode is " + e.getErrorCode() + "  statusCode:" + e
-                            .getStatusCode() );
+                    "errorCode is " + e.getErrorCode() + "  statusCode:"
+                            + e.getStatusCode() );
         } finally {
             if ( s3ClientB != null ) {
                 s3ClientB.shutdown();

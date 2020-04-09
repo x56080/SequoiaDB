@@ -45,8 +45,9 @@ public class SetAndGetBucketAcl19473 extends S3TestBase {
     private void testSetObjectAcl() throws Exception {
         Grant[] defaultGrant = { new Grant( new CanonicalGrantee( ownerId ),
                 Permission.FullControl ) };
-        Grant[] expGrant = { new Grant( new CanonicalGrantee( ownerId ),
-                Permission.ReadAcp ),
+        Grant[] expGrant = {
+                new Grant( new CanonicalGrantee( ownerId ),
+                        Permission.ReadAcp ),
                 new Grant( GroupGrantee.AllUsers, Permission.Read ) };
 
         ThreadExecutor threadExec = new ThreadExecutor();
@@ -93,7 +94,7 @@ public class SetAndGetBucketAcl19473 extends S3TestBase {
         private AmazonS3 s3 = CommLib.buildS3Client();
         private Grant[] defaultGrant;
         private Grant[] expGrant;
-        private List<Grant> expGrantsList;
+        private List< Grant > expGrantsList;
 
         public ThreadGetBucketAcl( Grant[] defaultGrant, Grant[] expGrant ) {
             this.defaultGrant = defaultGrant;
@@ -104,7 +105,7 @@ public class SetAndGetBucketAcl19473 extends S3TestBase {
         private void getBucketAcl() {
             try {
                 AccessControlList result = s3.getBucketAcl( bucketName );
-                List<Grant> actGrantsList = result.getGrantsAsList();
+                List< Grant > actGrantsList = result.getGrantsAsList();
                 if ( actGrantsList.size() == defaultGrant.length ) {
                     expGrantsList = new ArrayList<>(
                             Arrays.asList( defaultGrant ) );
@@ -112,9 +113,8 @@ public class SetAndGetBucketAcl19473 extends S3TestBase {
                     expGrantsList = new ArrayList<>(
                             Arrays.asList( expGrant ) );
                 } else {
-                    Assert.fail(
-                            "act bucket acl size is wrong : " + actGrantsList
-                                    .toString() );
+                    Assert.fail( "act bucket acl size is wrong : "
+                            + actGrantsList.toString() );
                 }
                 checkGrantList( actGrantsList, expGrantsList );
             } finally {
@@ -124,19 +124,18 @@ public class SetAndGetBucketAcl19473 extends S3TestBase {
             }
         }
 
-        private void checkGrantList( List<Grant> actGrantsList,
-                List<Grant> expGrantsList ) {
+        private void checkGrantList( List< Grant > actGrantsList,
+                List< Grant > expGrantsList ) {
             boolean isEqual = false;
-            if ( actGrantsList.size() == expGrantsList.size() && actGrantsList
-                    .containsAll( expGrantsList ) && expGrantsList
-                    .containsAll( actGrantsList ) ) {
+            if ( actGrantsList.size() == expGrantsList.size()
+                    && actGrantsList.containsAll( expGrantsList )
+                    && expGrantsList.containsAll( actGrantsList ) ) {
                 isEqual = true;
             }
             if ( !isEqual ) {
-                Assert.fail(
-                        "bucket acl is wrong! exp grants = " + expGrantsList
-                                .toString() + ", act grants = " + actGrantsList
-                                .toString() );
+                Assert.fail( "bucket acl is wrong! exp grants = "
+                        + expGrantsList.toString() + ", act grants = "
+                        + actGrantsList.toString() );
             }
         }
     }

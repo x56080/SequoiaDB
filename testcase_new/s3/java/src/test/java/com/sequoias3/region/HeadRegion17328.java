@@ -37,9 +37,8 @@ public class HeadRegion17328 extends S3TestBase {
         s3Client = CommLib.buildS3Client();
         sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" );
 
-        dataCSName = RegionUtils
-                .getDataCSName( regionName.toLowerCase(), "year", new Date() )
-                + "_1";
+        dataCSName = RegionUtils.getDataCSName( regionName.toLowerCase(),
+                "year", new Date() ) + "_1";
         metaCSName = RegionUtils.getMetaCSName( regionName.toLowerCase() );
 
         if ( sdb.isCollectionSpaceExist( dataCSName ) ) {

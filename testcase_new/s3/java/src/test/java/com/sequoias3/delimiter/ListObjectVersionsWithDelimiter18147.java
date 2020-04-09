@@ -35,7 +35,7 @@ public class ListObjectVersionsWithDelimiter18147 extends S3TestBase {
             "dir1/?Dir2/?/dir3/test18147_2", "dir1/test18147_3",
             "dir1/dir2/aa/test18147_4", "dir1/dir2/aa/cc/test18147_5",
             "dir1/dir2/aa/dd/test18147_6", "dir18147", "testdir18147.txt" };
-    private List<String> versionsKeys = new ArrayList<String>(
+    private List< String > versionsKeys = new ArrayList< String >(
             Arrays.asList( "dir1/test18147_1", "dir1/test18147_3" ) );
     private String oldDelimiter = "/";
     private String newDelimiter = "te";
@@ -67,15 +67,15 @@ public class ListObjectVersionsWithDelimiter18147 extends S3TestBase {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withDelimiter( oldDelimiter ).withPrefix( prefix ) );
-        List<String> expCommPrefixes = ObjectUtils
-                .getCommPrefixes( keyNames, prefix, oldDelimiter );
+        List< String > expCommPrefixes = ObjectUtils.getCommPrefixes( keyNames,
+                prefix, oldDelimiter );
 
-        MultiValueMap<String, String> expVersionsMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersionsMap = new LinkedMultiValueMap< String, String >();
         Collections.sort( versionsKeys );
         for ( int i = 0; i < versionsKeys.size(); i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
-                expVersionsMap
-                        .add( versionsKeys.get( i ), String.valueOf( j ) );
+                expVersionsMap.add( versionsKeys.get( i ),
+                        String.valueOf( j ) );
             }
         }
 

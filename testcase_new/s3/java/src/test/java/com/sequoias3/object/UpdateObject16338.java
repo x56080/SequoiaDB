@@ -35,12 +35,12 @@ public class UpdateObject16338 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -76,8 +76,8 @@ public class UpdateObject16338 extends S3TestBase {
         S3Object object = s3Client.getObject( bucketName, keyName );
         Date createDate = object.getObjectMetadata().getLastModified();
 
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, new File( filePath ) );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                new File( filePath ) );
         // check the versionId, should be null
         Assert.assertEquals( result.getVersionId(), null );
 
@@ -92,22 +92,22 @@ public class UpdateObject16338 extends S3TestBase {
         }
 
         // check the context
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
     private void updateObjectWithDiffContent( String bucketName )
             throws Exception {
 
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, new File( updatePath ) );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                new File( updatePath ) );
         // check the versionId, should be null
         Assert.assertEquals( result.getVersionId(), null );
 
         // check the content
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
 
         Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
     }

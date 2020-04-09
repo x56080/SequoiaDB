@@ -41,10 +41,10 @@ public class UploadPart18715 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -62,16 +62,15 @@ public class UploadPart18715 extends S3TestBase {
         String uploadIdA = uploadObjectA();
 
         // 初始化对象B
-        String uploadIdB = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameB );
-        List<PartETag> partEtagsB = PartUploadUtils
-                .partUpload( s3Client, bucketName, keyNameB, uploadIdB, file );
+        String uploadIdB = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyNameB );
+        List< PartETag > partEtagsB = PartUploadUtils.partUpload( s3Client,
+                bucketName, keyNameB, uploadIdB, file );
         String wrongUploadId = "upload18715";
         // 完成分段上传指定uploadId不存在
         try {
-            PartUploadUtils
-                    .completeMultipartUpload( s3Client, bucketName, keyNameB,
-                            wrongUploadId, partEtagsB );
+            PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
+                    keyNameB, wrongUploadId, partEtagsB );
             Assert.fail(
                     "complete multipart upload with non-existent uploadId should fail." );
         } catch ( AmazonS3Exception e ) {
@@ -80,9 +79,8 @@ public class UploadPart18715 extends S3TestBase {
 
         // 完成分段上传指定uploadId为对象的uploadId
         try {
-            PartUploadUtils
-                    .completeMultipartUpload( s3Client, bucketName, keyNameB,
-                            uploadIdA, partEtagsB );
+            PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
+                    keyNameB, uploadIdA, partEtagsB );
             Assert.fail(
                     "complete multipart upload with uploadId of other keys should fail." );
         } catch ( AmazonS3Exception e ) {
@@ -95,8 +93,8 @@ public class UploadPart18715 extends S3TestBase {
 
         // check
         String expMd5 = TestTools.getMD5( filePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyNameB );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyNameB );
         Assert.assertEquals( downloadMd5, expMd5 );
         runSuccess = true;
     }
@@ -114,9 +112,9 @@ public class UploadPart18715 extends S3TestBase {
     }
 
     private String uploadObjectA() {
-        List<PartETag> partEtags = new ArrayList<>();
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameA );
+        List< PartETag > partEtags = new ArrayList<>();
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyNameA );
         long partSize = PartUploadUtils.partLimitMinSize;
         UploadPartRequest partRequest = new UploadPartRequest().withFile( file )
                 .withFileOffset( 0 ).withPartNumber( 1 )

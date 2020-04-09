@@ -93,7 +93,7 @@ public class CreateRegion18604 extends S3TestBase {
         }
 
         // 所有用户都可查询区域列表
-        List<String> regions = listRegions( authorizationV2 );
+        List< String > regions = listRegions( authorizationV2 );
         Assert.assertFalse( regions.contains( regionName ) );
 
         try {
@@ -109,8 +109,8 @@ public class CreateRegion18604 extends S3TestBase {
     @Test
     private void testCreateRegionV4() throws Exception {
         runSuccess = false;
-        String authorizationV4 =
-                UserCommDefind.authValPre + accessKeys[ 0 ] + "/";
+        String authorizationV4 = UserCommDefind.authValPre + accessKeys[ 0 ]
+                + "/";
 
         for ( String domainName : domainNames ) {
             RegionUtils.createDomain( domainName );
@@ -147,7 +147,7 @@ public class CreateRegion18604 extends S3TestBase {
         }
 
         // 所有用户都可查询区域列表
-        List<String> regions = listRegions( authorizationV4 );
+        List< String > regions = listRegions( authorizationV4 );
         Assert.assertFalse( regions.contains( regionName ) );
 
         try {
@@ -172,10 +172,11 @@ public class CreateRegion18604 extends S3TestBase {
             throws Exception {
         TestRest rest = new TestRest( type );
         try {
-            rest.setApi( "/region/?Action=CreateRegion&RegionName=" + region
-                    .getName() )
+            rest.setApi( "/region/?Action=CreateRegion&RegionName="
+                    + region.getName() )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestBody( region )
+                            authorization )
+                    .setRequestBody( region )
                     .setRequestMethod( HttpMethod.POST )
                     .setResponseType( String.class ).exec();
         } catch ( HttpClientErrorException e ) {
@@ -186,13 +187,15 @@ public class CreateRegion18604 extends S3TestBase {
     private boolean deleteRegion( String regionName, String authorization )
             throws Exception {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         boolean isDelete = false;
         try {
-            resp = rest.setApi(
-                    "/region/?Action=DeleteRegion&RegionName=" + regionName )
+            resp = rest
+                    .setApi( "/region/?Action=DeleteRegion&RegionName="
+                            + regionName )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestMethod( HttpMethod.POST )
+                            authorization )
+                    .setRequestMethod( HttpMethod.POST )
                     .setResponseType( String.class ).exec();
             if ( resp.getStatusCodeValue() == 204 ) {
                 isDelete = true;
@@ -206,13 +209,15 @@ public class CreateRegion18604 extends S3TestBase {
     private GetRegionResult getRegion( String regionName, String authorization )
             throws Exception {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         GetRegionResult result;
         try {
-            resp = rest.setApi(
-                    "/region/?Action=GetRegion&RegionName=" + regionName )
+            resp = rest
+                    .setApi( "/region/?Action=GetRegion&RegionName="
+                            + regionName )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestMethod( HttpMethod.POST )
+                            authorization )
+                    .setRequestMethod( HttpMethod.POST )
                     .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             result = stringToObject( xmlBody );
@@ -225,13 +230,15 @@ public class CreateRegion18604 extends S3TestBase {
     private boolean headRegion( String regionName, String authorization )
             throws Exception {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         boolean doesExist = false;
         try {
-            resp = rest.setApi(
-                    "/region/?Action=HeadRegion&RegionName=" + regionName )
+            resp = rest
+                    .setApi( "/region/?Action=HeadRegion&RegionName="
+                            + regionName )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestMethod( HttpMethod.POST )
+                            authorization )
+                    .setRequestMethod( HttpMethod.POST )
                     .setResponseType( String.class ).exec();
             if ( resp.getStatusCodeValue() == 200 ) {
                 doesExist = true;
@@ -251,7 +258,8 @@ public class CreateRegion18604 extends S3TestBase {
         try {
             resp = rest.setApi( "/region/?Action=ListRegions" )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestMethod( HttpMethod.POST )
+                            authorization )
+                    .setRequestMethod( HttpMethod.POST )
                     .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             XmlMapper xmlMapper = new XmlMapper();

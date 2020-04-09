@@ -52,7 +52,7 @@ public class DeleteObject16452 extends S3TestBase {
         ListVersionsRequest req = new ListVersionsRequest()
                 .withBucketName( bucketName );
         VersionListing versionList = s3Client.listVersions( req );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         Assert.assertEquals( verList.size(), oneObjVersionNum );
         runSuccess = true;
     }

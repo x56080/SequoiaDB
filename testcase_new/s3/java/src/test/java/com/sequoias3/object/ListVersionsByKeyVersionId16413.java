@@ -53,20 +53,19 @@ public class ListVersionsByKeyVersionId16413 extends S3TestBase {
         int index = objectNames.length - 1;
         String keyMarker = objectNames[ index ];
         int versionIdMarker = versionNum + 1;
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withKeyMarker( keyMarker ).withVersionIdMarker(
-                        String.valueOf( versionIdMarker ) ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withKeyMarker( keyMarker )
+                .withVersionIdMarker( String.valueOf( versionIdMarker ) ) );
         // expected results
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = versionNum - 1; i >= 0; i-- ) {
             expMap.add( objectNames[ index ], String.valueOf( i ) );
         }
         // check
         Assert.assertEquals( vsList.isTruncated(), false,
                 "vsList.isTruncated() must be false" );
-        ObjectUtils
-                .checkListVSResults( vsList, new ArrayList<String>(), expMap );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                expMap );
         runSuccess = true;
     }
 

@@ -50,9 +50,9 @@ public class GetRegionMessage17320 extends S3TestBase {
         CommLib.clearBucket( s3Client, shmodeBucket );
 
         // delete data/meta cs
-        shardingDataCSName = RegionUtils
-                .getDataCSName( shardingModeRegion.toLowerCase(), "quarter",
-                        new Date() ) + "_1";
+        shardingDataCSName = RegionUtils.getDataCSName(
+                shardingModeRegion.toLowerCase(), "quarter", new Date() )
+                + "_1";
         shardingMetaCSName = RegionUtils
                 .getMetaCSName( shardingModeRegion.toLowerCase() );
         sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" );
@@ -114,7 +114,7 @@ public class GetRegionMessage17320 extends S3TestBase {
                 metaCSName + "." + metaClNames[ 1 ] );
         Assert.assertEquals( spRegion.getDataLocation(),
                 dataCSName + "." + dataClName[ 0 ] );
-        List<Bucket> buckets = spResult.getBuckets();
+        List< Bucket > buckets = spResult.getBuckets();
         Assert.assertEquals( buckets.get( 0 ).getName(), spmodeBucket );
 
         // ShardingType mode : get region
@@ -126,7 +126,7 @@ public class GetRegionMessage17320 extends S3TestBase {
         Assert.assertEquals( stRegion.getDataCLShardingType(), "month" );
         Assert.assertEquals( stRegion.getMetaDomain(), metaDomain );
         Assert.assertEquals( stRegion.getDataDomain(), dataDomain );
-        List<Bucket> buckets2 = stResult.getBuckets();
+        List< Bucket > buckets2 = stResult.getBuckets();
         Assert.assertEquals( buckets2.get( 0 ).getName(), shmodeBucket );
 
         runSuccess = true;

@@ -43,10 +43,10 @@ public class SetObjectAcl19459 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -83,25 +83,22 @@ public class SetObjectAcl19459 extends S3TestBase {
         Grant expGrant = new Grant( GroupGrantee.AllUsers, Permission.Write );
         PrivilegeUtils.setObjectAclByHeader( s3AccessKeyId, bucketName, keyName,
                 expGrant );
-        PrivilegeUtils
-                .checkSetObjectAclResult( userS3Client, bucketName, keyName,
-                        expGrant );
+        PrivilegeUtils.checkSetObjectAclResult( userS3Client, bucketName,
+                keyName, expGrant );
 
         // 使用body配置对象acl，被授权人为桶owner，权限为FULL_CONTROL
         Grant expGrant2 = new Grant( new CanonicalGrantee( ownerId ),
                 Permission.FullControl );
         PrivilegeUtils.setObjectAclByBody( ownerS3Client, bucketName, keyName,
                 expGrant2 );
-        PrivilegeUtils
-                .checkSetObjectAclResult( userS3Client, bucketName, keyName,
-                        expGrant2 );
+        PrivilegeUtils.checkSetObjectAclResult( userS3Client, bucketName,
+                keyName, expGrant2 );
 
         // 使用桶owner用户查看桶acl为默认配置
         Grant expDefaultBucketAcl = new Grant( new CanonicalGrantee( ownerId ),
                 Permission.FullControl );
-        PrivilegeUtils
-                .checkSetObjectAclResult( ownerS3Client, bucketName, keyName,
-                        expDefaultBucketAcl );
+        PrivilegeUtils.checkSetObjectAclResult( ownerS3Client, bucketName,
+                keyName, expDefaultBucketAcl );
         runSuccess = true;
     }
 

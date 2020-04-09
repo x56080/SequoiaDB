@@ -26,7 +26,7 @@ import java.util.List;
 public class GetObjectList16437 extends S3TestBase {
     private String bucketName = "bucket16437";
     private String keyName = "&dir&dir";
-    private List<String> expresultList = new ArrayList<String>( 10 );
+    private List< String > expresultList = new ArrayList< String >( 10 );
     private int objectTotalNum = 10;
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
@@ -52,7 +52,7 @@ public class GetObjectList16437 extends S3TestBase {
         ListObjectsV2Request req = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withMaxKeys( keyCount );
         ListObjectsV2Result result = s3Client.listObjectsV2( req );
-        List<S3ObjectSummary> objectSummaries = result.getObjectSummaries();
+        List< S3ObjectSummary > objectSummaries = result.getObjectSummaries();
         checkListObjectsV2Result( objectSummaries, 0, keyCount );
         String NextContinuationToken = result.getNextContinuationToken();
 
@@ -65,7 +65,7 @@ public class GetObjectList16437 extends S3TestBase {
                 .withBucketName( bucketName )
                 .withContinuationToken( NextContinuationToken );
         ListObjectsV2Result result2 = s3Client.listObjectsV2( req2 );
-        List<S3ObjectSummary> objectSummaries2 = result2.getObjectSummaries();
+        List< S3ObjectSummary > objectSummaries2 = result2.getObjectSummaries();
         checkListObjectsV2Result( objectSummaries2, keyCount,
                 objectTotalNum - keyCount - 1 );
 
@@ -81,7 +81,7 @@ public class GetObjectList16437 extends S3TestBase {
     }
 
     private void checkListObjectsV2Result(
-            List<S3ObjectSummary> objectSummaries, int startIndex,
+            List< S3ObjectSummary > objectSummaries, int startIndex,
             int expCount ) {
         Assert.assertEquals( objectSummaries.size(), expCount,
                 "The number of returned results is wrong" );

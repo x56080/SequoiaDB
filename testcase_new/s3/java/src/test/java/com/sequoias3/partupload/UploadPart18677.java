@@ -50,9 +50,10 @@ public class UploadPart18677 extends S3TestBase {
                 // last part
                 // the first part length is 1024 * 1024 * 5 + 1024, the last
                 // part length is 1024 * 1024 ,other pasts is 1024 * 1024 * 5
-                new Object[] { 1024 * 1024 * 5 + 1024 + 1024 * 1024 * 5 * 4
-                        + 1024 * 1024, 1024 * 1024 * 5 + 1024,
-                        1024 * 1024 * 5 }, };
+                new Object[] {
+                        1024 * 1024 * 5 + 1024 + 1024 * 1024 * 5 * 4
+                                + 1024 * 1024,
+                        1024 * 1024 * 5 + 1024, 1024 * 1024 * 5 }, };
     }
 
     @BeforeClass
@@ -65,15 +66,15 @@ public class UploadPart18677 extends S3TestBase {
             long eachPartSize ) throws Exception {
         String filePath = createFile( fileSize );
         File file = new File( filePath );
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
-        List<PartETag> partEtags = partUpload( s3Client, bucketName, keyName,
+        String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, keyName );
+        List< PartETag > partEtags = partUpload( s3Client, bucketName, keyName,
                 uploadId, file, firstPartSize, eachPartSize );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
 
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         actSuccessTests.getAndIncrement();
     }
@@ -91,20 +92,20 @@ public class UploadPart18677 extends S3TestBase {
     }
 
     private String createFile( int fileSize ) throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        String filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        String filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
         return filePath;
     }
 
-    private List<PartETag> partUpload( AmazonS3 s3Client, String bucketName,
+    private List< PartETag > partUpload( AmazonS3 s3Client, String bucketName,
             String key, String uploadId, File file, Long firstPartSize,
             long partSize ) {
-        List<PartETag> partEtags = new ArrayList<>();
+        List< PartETag > partEtags = new ArrayList<>();
         int filePosition = 0;
         long fileSize = file.length();
         for ( int i = 1; filePosition < fileSize; i++ ) {

@@ -37,12 +37,11 @@ public class UpdateDelimiter18093 extends S3TestBase {
     @Test
     public void testUpdateDelimiter() throws Exception {
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
-        List<String> expCommprefixList = new ArrayList<>();
+        List< String > expCommprefixList = new ArrayList<>();
         expCommprefixList.add( "/" );
-        List<String> expContentList = new ArrayList<>();
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        expCommprefixList, expContentList );
+        List< String > expContentList = new ArrayList<>();
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, expCommprefixList, expContentList );
         runSuccess = true;
     }
 

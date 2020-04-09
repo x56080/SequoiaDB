@@ -37,10 +37,10 @@ public class ListObjectsWithMaxkeys16426 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -53,7 +53,7 @@ public class ListObjectsWithMaxkeys16426 extends S3TestBase {
 
     @Test
     public void testListObjects() throws Exception {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
         // test a: maxkeys < objectNums
         int maxKeysA = 5;
         listObjectsAndCheckResult( keyList, maxKeysA );
@@ -81,16 +81,16 @@ public class ListObjectsWithMaxkeys16426 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList, int maxKeys )
-            throws IOException {
+    private void listObjectsAndCheckResult( List< String > keyList,
+            int maxKeys ) throws IOException {
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" )
                 .withMaxKeys( maxKeys );
         ListObjectsV2Result result;
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         do {
             result = s3Client.listObjectsV2( request );
-            List<S3ObjectSummary> objects = result.getObjectSummaries();
+            List< S3ObjectSummary > objects = result.getObjectSummaries();
             int oneQueryKeyNums = 0;
             for ( S3ObjectSummary os : objects ) {
                 String key = os.getKey();
@@ -114,8 +114,8 @@ public class ListObjectsWithMaxkeys16426 extends S3TestBase {
         Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private List<String> putObjects() {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < objectNums; i++ ) {
             String keyName = key + "_" + i;
             keyList.add( keyName );

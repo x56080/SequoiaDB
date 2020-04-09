@@ -34,7 +34,7 @@ public class ListObjectsWithDelimiter16424 extends S3TestBase {
     private int fileSize = 1024 * 10;
     private File localPath = null;
     private String filePath = null;
-    private List<String> keyList = null;
+    private List< String > keyList = null;
 
     @DataProvider(name = "listWithDelimiterProvider")
     public Object[][] generatePageSize() {
@@ -54,10 +54,10 @@ public class ListObjectsWithDelimiter16424 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -94,22 +94,22 @@ public class ListObjectsWithDelimiter16424 extends S3TestBase {
 
     private void listObjectsAndCheckResult( String delimiter, int position )
             throws IOException {
-        List<String> expKeyList = new ArrayList<>( keyList );
+        List< String > expKeyList = new ArrayList<>( keyList );
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" )
                 .withDelimiter( delimiter );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
 
         // matching delimiter displays only 1 record
         Assert.assertEquals( commonPrefixes.size(), 1 );
         Assert.assertEquals( commonPrefixes.get( 0 ), delimiter );
 
         // objects do not match delimiter are displayed in contents,num is 5
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         int contentsNums = 5;
         Assert.assertEquals( objects.size(), contentsNums );
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             String etag = os.getETag();
@@ -124,8 +124,8 @@ public class ListObjectsWithDelimiter16424 extends S3TestBase {
         Assert.assertEquals( queryKeyList, expKeyList );
     }
 
-    private List<String> putObjects( String[] keys ) {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects( String[] keys ) {
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < keys.length; i++ ) {
             String keyName = keys[ i ];
             s3Client.putObject( bucketName, keyName, new File( filePath ) );

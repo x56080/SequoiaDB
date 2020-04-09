@@ -48,25 +48,24 @@ public class TestGetObjectMetadata16682 extends S3TestBase {
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
 
         Date datev1_1 = new Date();
-        PutObjectResult result1 = s3Client
-                .putObject( bucketName, keyName, contentV1 );
+        PutObjectResult result1 = s3Client.putObject( bucketName, keyName,
+                contentV1 );
         Date datev1_2 = new Date();
 
         Date datev2_1 = new Date();
-        PutObjectResult result2 = s3Client
-                .putObject( bucketName, keyName, contentV2 );
+        PutObjectResult result2 = s3Client.putObject( bucketName, keyName,
+                contentV2 );
         Date datev2_2 = new Date();
         s3Client.putObject( bucketName, keyName, content );
 
-        ObjectMetadata metadata = s3Client.getObjectMetadata(
-                new GetObjectMetadataRequest( bucketName, keyName,
-                        result1.getVersionId() ) );
+        ObjectMetadata metadata = s3Client
+                .getObjectMetadata( new GetObjectMetadataRequest( bucketName,
+                        keyName, result1.getVersionId() ) );
         checkResult( metadata, result1, ( long ) contentV1.length(), datev1_1,
                 datev1_2 );
 
-        metadata = s3Client.getObjectMetadata(
-                new GetObjectMetadataRequest( bucketName, keyName,
-                        result2.getVersionId() ) );
+        metadata = s3Client.getObjectMetadata( new GetObjectMetadataRequest(
+                bucketName, keyName, result2.getVersionId() ) );
         checkResult( metadata, result2, ( long ) contentV2.length(), datev2_1,
                 datev2_2 );
 
@@ -102,10 +101,10 @@ public class TestGetObjectMetadata16682 extends S3TestBase {
         // 校验对象lastModified时间在[date1, date2]范围内，只精确到秒，忽略毫秒
         if ( actDate.getTime() < ( date1.getTime() / 1000 ) * 1000
                 || actDate.getTime() > ( date2.getTime() / 1000 ) * 1000 ) {
-            Assert.fail( "lastmodified is wrong!  actDate is : " + HeadUtils
-                    .getGMTDate( actDate ) + ", date1 is :" + HeadUtils
-                    .getGMTDate( date1 ) + ", date2 is : " + HeadUtils
-                    .getGMTDate( date2 ) );
+            Assert.fail( "lastmodified is wrong!  actDate is : "
+                    + HeadUtils.getGMTDate( actDate ) + ", date1 is :"
+                    + HeadUtils.getGMTDate( date1 ) + ", date2 is : "
+                    + HeadUtils.getGMTDate( date2 ) );
         }
     }
 }

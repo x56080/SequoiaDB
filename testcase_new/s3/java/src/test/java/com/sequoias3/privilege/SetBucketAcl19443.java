@@ -43,10 +43,10 @@ public class SetBucketAcl19443 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -69,8 +69,8 @@ public class SetBucketAcl19443 extends S3TestBase {
     @Test
     private void testSetBucketAcl() throws Exception {
         // 使用标准acl配置桶acl
-        ownerS3Client
-                .setBucketAcl( bucketName, CannedAccessControlList.Private );
+        ownerS3Client.setBucketAcl( bucketName,
+                CannedAccessControlList.Private );
         Grant expGrant1 = new Grant( new CanonicalGrantee( ownerId ),
                 Permission.FullControl );
         PrivilegeUtils.checkSetBucketAclResult( ownerS3Client, bucketName,
@@ -92,8 +92,8 @@ public class SetBucketAcl19443 extends S3TestBase {
         for ( Permission permission : Permission.values() ) {
             Grant expGrant3 = new Grant( new CanonicalGrantee( ownerId ),
                     permission );
-            PrivilegeUtils
-                    .setBucketAclByBody( ownerS3Client, bucketName, expGrant3 );
+            PrivilegeUtils.setBucketAclByBody( ownerS3Client, bucketName,
+                    expGrant3 );
             PrivilegeUtils.checkSetBucketAclResult( ownerS3Client, bucketName,
                     expGrant3 );
             getObjectByOtherUser();

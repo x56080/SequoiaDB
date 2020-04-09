@@ -62,14 +62,15 @@ public class CreateBucket18586 extends S3TestBase {
     private AmazonS3 s3Client = null;
     private String[] accessKeys = null;
 
-    private static List<Bucket> listBuckets( String authorization ) {
+    private static List< Bucket > listBuckets( String authorization ) {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
-        List<Bucket> buckets = new ArrayList<>();
+        ResponseEntity< ? > resp;
+        List< Bucket > buckets = new ArrayList<>();
         try {
             resp = rest.setApi( "" )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestMethod( HttpMethod.GET )
+                            authorization )
+                    .setRequestMethod( HttpMethod.GET )
                     .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject jsonBody = XML.toJSONObject( xmlBody );
@@ -113,11 +114,12 @@ public class CreateBucket18586 extends S3TestBase {
     private static String getBucketLocation( String bucketName,
             String authorization ) {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         try {
             resp = rest.setApi( bucketName + "/?location" )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestMethod( HttpMethod.GET )
+                            authorization )
+                    .setRequestMethod( HttpMethod.GET )
                     .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject bucketListJSON = XML.toJSONObject( xmlBody );
@@ -161,7 +163,7 @@ public class CreateBucket18586 extends S3TestBase {
         // check head bucket
         headBucket( bucketName, authorization );
 
-        List<Bucket> buckets = listBuckets( authorization );
+        List< Bucket > buckets = listBuckets( authorization );
         for ( Bucket bucket : buckets ) {
             String actUserName = bucket.getOwner().getDisplayName();
             Assert.assertEquals( actUserName, userName );
@@ -178,7 +180,7 @@ public class CreateBucket18586 extends S3TestBase {
         String status = getBucketVersioning( authorization, bucketName );
         Assert.assertEquals( status, BucketVersioningConfiguration.ENABLED );
 
-        List<String> contentList = new ArrayList<>();
+        List< String > contentList = new ArrayList<>();
         for ( int i = 0; i < keyNum; i++ ) {
             String currentExpContent = tmpContent + "." + i;
             putObject( bucketName, keyName, currentExpContent, authorization );
@@ -211,7 +213,8 @@ public class CreateBucket18586 extends S3TestBase {
             rest.setApi( URLEncoder.encode( bucketName, "UTF-8" ) )
                     .setRequestMethod( HttpMethod.PUT )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
+                            authorization )
+                    .setResponseType( String.class )
                     .setRequestBody(
                             "<CreateBucketConfiguration><LocationConstraint>"
                                     + regionName
@@ -229,8 +232,8 @@ public class CreateBucket18586 extends S3TestBase {
             rest.setApi( URLEncoder.encode( bucketName, "UTF-8" ) )
                     .setRequestMethod( HttpMethod.HEAD )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpClientErrorException e ) {
             throw httpToAmazonHead( e );
         }
@@ -243,9 +246,10 @@ public class CreateBucket18586 extends S3TestBase {
             rest.setApi( bucketName + "/?versioning" )
                     .setRequestMethod( HttpMethod.PUT )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestBody(
-                    "<VersioningConfiguration><Status>" + versioning
-                            + "</Status></VersioningConfiguration>" )
+                            authorization )
+                    .setRequestBody(
+                            "<VersioningConfiguration><Status>" + versioning
+                                    + "</Status></VersioningConfiguration>" )
                     .setResponseType( String.class ).exec();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
@@ -257,9 +261,11 @@ public class CreateBucket18586 extends S3TestBase {
         TestRest rest = new TestRest( type );
         String status = "";
         try {
-            ResponseEntity<?> resp = rest.setApi( bucketName + "/?versioning" )
+            ResponseEntity< ? > resp = rest
+                    .setApi( bucketName + "/?versioning" )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setRequestMethod( HttpMethod.GET )
+                            authorization )
+                    .setRequestMethod( HttpMethod.GET )
                     .setResponseType( String.class ).exec();
 
             String body = resp.getBody().toString();
@@ -275,7 +281,7 @@ public class CreateBucket18586 extends S3TestBase {
     }
 
     private void checkPutObjectResult( String authorization, String bucketName,
-            List<String> contentList ) throws Exception {
+            List< String > contentList ) throws Exception {
         // Objects in the version list are stored in reverse order by versionId
         Collections.reverse( contentList );
         JSONArray version = listVersions( authorization, bucketName );
@@ -312,8 +318,8 @@ public class CreateBucket18586 extends S3TestBase {
             rest.setApi( URLEncoder.encode( bucketName, "UTF-8" ) )
                     .setRequestMethod( HttpMethod.DELETE )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
         }
@@ -321,11 +327,10 @@ public class CreateBucket18586 extends S3TestBase {
 
     private void deleteVersion( String bucketName, String objectName,
             int versionId, String authorization ) throws Exception {
-        HttpDelete request = new HttpDelete(
-                S3TestBase.s3ClientUrl + "/" + URLEncoder
-                        .encode( bucketName, "UTF-8" ) + "/" + URLEncoder
-                        .encode( objectName, "UTF-8" ) + "?versionId="
-                        + versionId );
+        HttpDelete request = new HttpDelete( S3TestBase.s3ClientUrl + "/"
+                + URLEncoder.encode( bucketName, "UTF-8" ) + "/"
+                + URLEncoder.encode( objectName, "UTF-8" ) + "?versionId="
+                + versionId );
         request.setHeader( "Authorization", authorization );
         CloseableHttpClient client = RestClient.createHttpClient();
         RestClient.sendRequest( client, request );
@@ -333,9 +338,10 @@ public class CreateBucket18586 extends S3TestBase {
 
     private JSONArray listVersions( String authorization, String bucketName ) {
         TestRest rest = new TestRest();
-        ResponseEntity<?> resp = rest.setApi( bucketName + "/?versions" )
+        ResponseEntity< ? > resp = rest.setApi( bucketName + "/?versions" )
                 .setRequestHeaders( UserCommDefind.authorization,
-                        authorization ).setRequestMethod( HttpMethod.GET )
+                        authorization )
+                .setRequestMethod( HttpMethod.GET )
                 .setResponseType( String.class ).exec();
 
         String body = resp.getBody().toString();
@@ -348,9 +354,9 @@ public class CreateBucket18586 extends S3TestBase {
 
     private void putObject( String bucketName, String objectName,
             String content, String authorization ) throws Exception {
-        HttpPut request = new HttpPut( S3TestBase.s3ClientUrl + "/" + URLEncoder
-                .encode( bucketName, "UTF-8" ) + "/" + URLEncoder
-                .encode( objectName, "UTF-8" ) );
+        HttpPut request = new HttpPut( S3TestBase.s3ClientUrl + "/"
+                + URLEncoder.encode( bucketName, "UTF-8" ) + "/"
+                + URLEncoder.encode( objectName, "UTF-8" ) );
         // RequestHeaders:
         request.setHeader( "Authorization", authorization );
 

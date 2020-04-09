@@ -44,9 +44,8 @@ public class NormalUserCreateUser16252 extends S3TestBase {
     @Test
     public void test() throws JSONException {
         // create user
-        JSONObject actUser = UserUtils
-                .createUser( userName, UserCommDefind.normal,
-                        UserUtils.accessKeyId );
+        JSONObject actUser = UserUtils.createUser( userName,
+                UserCommDefind.normal, UserUtils.accessKeyId );
         // check create user result
         checkUser( actUser );
         // create bucket for check
@@ -63,8 +62,8 @@ public class NormalUserCreateUser16252 extends S3TestBase {
 
     private void checkUser( JSONObject actUser ) {
         // get user
-        JSONObject expUser = UserUtils
-                .getUser( userName, UserUtils.accessKeyId );
+        JSONObject expUser = UserUtils.getUser( userName,
+                UserUtils.accessKeyId );
 
         JSONObject actJSON = actUser.getJSONObject( UserCommDefind.accessKeys );
         JSONObject expJSON = expUser.getJSONObject( UserCommDefind.accessKeys );
@@ -74,12 +73,12 @@ public class NormalUserCreateUser16252 extends S3TestBase {
         secretAccessKey = actJSON.getString( UserCommDefind.secretAccessKey );
         Assert.assertEquals( accessKeyID,
                 expJSON.getString( UserCommDefind.accessKeyID ),
-                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON
-                        .toString() );
+                "actJSON = " + actJSON.toString() + ",expJSON = "
+                        + expJSON.toString() );
         Assert.assertEquals( secretAccessKey,
                 expJSON.getString( UserCommDefind.secretAccessKey ),
-                "actJSON = " + actJSON.toString() + ",expJSON = " + expJSON
-                        .toString() );
+                "actJSON = " + actJSON.toString() + ",expJSON = "
+                        + expJSON.toString() );
     }
 
     private void checkByCreateUser() {

@@ -33,10 +33,10 @@ public class AbortMultipartUpload18722 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -48,10 +48,10 @@ public class AbortMultipartUpload18722 extends S3TestBase {
     @Test()
     public void abortMultipartUpload() throws Exception {
         File file = new File( filePath );
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        PartUploadUtils.partUpload( s3Client, bucketName, keyName, uploadId,
+                file );
         AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(
                 bucketName, keyName, uploadId );
         s3Client.abortMultipartUpload( request );

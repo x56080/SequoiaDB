@@ -27,7 +27,7 @@ public class DeleteAndUpdateUser16273 extends S3TestBase {
     private String bucketName = "bucketName";
 
     private int num = 50;
-    private List<String> nameList = new ArrayList<String>();
+    private List< String > nameList = new ArrayList< String >();
 
     @BeforeClass
     private void setUp() throws Exception {

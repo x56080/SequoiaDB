@@ -47,8 +47,9 @@ public class RegionUtils extends S3TestBase {
         TestRest rest = new TestRest( type );
         ResponseEntity< ? > resp;
         try {
-            resp = rest.setApi( "/region/?Action=CreateRegion&RegionName=" +
-                    region.getName() )
+            resp = rest
+                    .setApi( "/region/?Action=CreateRegion&RegionName="
+                            + region.getName() )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + accessKeyId + "/" )
                     .setRequestBody( region )
@@ -80,8 +81,9 @@ public class RegionUtils extends S3TestBase {
         ResponseEntity< ? > resp;
         boolean isDelete = false;
         try {
-            resp = rest.setApi(
-                    "/region/?Action=DeleteRegion&RegionName=" + regionName )
+            resp = rest
+                    .setApi( "/region/?Action=DeleteRegion&RegionName="
+                            + regionName )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + accessKeyId + "/" )
                     .setRequestMethod( HttpMethod.POST )
@@ -106,8 +108,9 @@ public class RegionUtils extends S3TestBase {
         ResponseEntity< ? > resp;
         GetRegionResult result;
         try {
-            resp = rest.setApi(
-                    "/region/?Action=GetRegion&RegionName=" + regionName )
+            resp = rest
+                    .setApi( "/region/?Action=GetRegion&RegionName="
+                            + regionName )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + accessKeyId + "/" )
                     .setRequestMethod( HttpMethod.POST )
@@ -130,8 +133,9 @@ public class RegionUtils extends S3TestBase {
         ResponseEntity< ? > resp;
         boolean doesExist = false;
         try {
-            resp = rest.setApi(
-                    "/region/?Action=HeadRegion&RegionName=" + regionName )
+            resp = rest
+                    .setApi( "/region/?Action=HeadRegion&RegionName="
+                            + regionName )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + accessKeyId + "/" )
                     .setRequestMethod( HttpMethod.POST )
@@ -198,7 +202,7 @@ public class RegionUtils extends S3TestBase {
     }
 
     public static void createCSAndCL( String csName, String[] clNames ) {
-        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ) ) {
+        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" )) {
             if ( sdb.isCollectionSpaceExist( csName ) ) {
                 sdb.dropCollectionSpace( csName );
             }
@@ -210,7 +214,7 @@ public class RegionUtils extends S3TestBase {
     }
 
     public static void dropCS( String[] csNames ) {
-        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ) ) {
+        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" )) {
             for ( int i = 0; i < csNames.length; i++ ) {
                 if ( sdb.isCollectionSpaceExist( csNames[ i ] ) ) {
                     sdb.dropCollectionSpace( csNames[ i ] );
@@ -221,8 +225,8 @@ public class RegionUtils extends S3TestBase {
 
     public static String getDataCSName( String regionName, String shardType,
             Date currTime ) {
-        return pregix + regionName + "_DataCS_" +
-                getCsClPostfix( shardType, currTime );
+        return pregix + regionName + "_DataCS_"
+                + getCsClPostfix( shardType, currTime );
     }
 
     public static String getMetaCSName( String regionName ) {
@@ -292,8 +296,8 @@ public class RegionUtils extends S3TestBase {
                 BSONObject groups = new BasicBSONList();
                 if ( groupList.size() < 1 ) {
                     throw new SkipException(
-                            "At least one group is required!!! please check " +
-                                    "env" );
+                            "At least one group is required!!! please check "
+                                    + "env" );
                 }
                 for ( int i = 0; i < groupList.size(); i++ ) {
                     groups.put( String.valueOf( i ), groupList.get( i ) );
@@ -309,7 +313,7 @@ public class RegionUtils extends S3TestBase {
     }
 
     public static void dropDomain( String domainName ) {
-        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ) ) {
+        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" )) {
             if ( sdb.isDomainExist( domainName ) ) {
                 sdb.dropDomain( domainName );
             }
@@ -317,7 +321,7 @@ public class RegionUtils extends S3TestBase {
     }
 
     public static void dropCS( String csName ) {
-        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ) ) {
+        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" )) {
             if ( sdb.isCollectionSpaceExist( csName ) ) {
                 sdb.dropCollectionSpace( csName );
             }

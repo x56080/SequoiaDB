@@ -38,18 +38,17 @@ public class ListVersionsByPrefixDelimiter16401 extends S3TestBase {
     private int fileSize = 3;
     private int versionNum = 3;
     private File localPath = null;
-    private List<String> filePathList = new ArrayList<String>();
+    private List< String > filePathList = new ArrayList< String >();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         for ( int i = 0; i < versionNum; i++ ) {
-            String filePath =
-                    localPath + File.separator + "localFile_" + ( fileSize + i )
-                            + ".txt";
+            String filePath = localPath + File.separator + "localFile_"
+                    + ( fileSize + i ) + ".txt";
             TestTools.LocalFile.createFile( filePath, fileSize + i );
             filePathList.add( filePath );
         }
@@ -60,9 +59,8 @@ public class ListVersionsByPrefixDelimiter16401 extends S3TestBase {
                 BucketVersioningConfiguration.ENABLED );
         for ( String objectName : objectNames ) {
             for ( int i = 0; i < versionNum; i++ ) {
-                s3Client.putObject(
-                        new PutObjectRequest( bucketName, objectName,
-                                new File( filePathList.get( i ) ) ) );
+                s3Client.putObject( new PutObjectRequest( bucketName,
+                        objectName, new File( filePathList.get( i ) ) ) );
             }
         }
     }
@@ -75,11 +73,11 @@ public class ListVersionsByPrefixDelimiter16401 extends S3TestBase {
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withDelimiter( delimiter ).withPrefix( prefix ) );
         // expected results
-        List<String> expCommPrefixes = ObjectUtils
+        List< String > expCommPrefixes = ObjectUtils
                 .getCommPrefixes( objectNames, prefix, delimiter );
-        List<String> versionKeys = ObjectUtils
-                .getKeys( objectNames, prefix, delimiter );
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        List< String > versionKeys = ObjectUtils.getKeys( objectNames, prefix,
+                delimiter );
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( String key : versionKeys ) {
             for ( int i = versionNum - 1; i >= 0; i-- ) {
                 expMap.add( key, String.valueOf( i ) );

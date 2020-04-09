@@ -33,8 +33,8 @@ import java.util.Random;
 public class CreateBucket15908 extends S3TestBase {
     private static CloseableHttpClient client;
     private boolean runSuccess = false;
-    private List<String> bucketNameList = new ArrayList<String>();
-    private List<String> illegalbucketNameList = new ArrayList<String>();
+    private List< String > bucketNameList = new ArrayList< String >();
+    private List< String > illegalbucketNameList = new ArrayList< String >();
     private String userName = "user15908";
     private String roleName = "normal";
     private AmazonS3 s3Client = null;
@@ -119,11 +119,11 @@ public class CreateBucket15908 extends S3TestBase {
     private void checkbucketNameListResult( int bucketNums )
             throws UnsupportedEncodingException {
         // create one bucket,check the bucket name and owner name
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         // check bucket number
         Assert.assertEquals( buckets.size(), bucketNums );
 
-        List<String> actbucketNameLists = new ArrayList<>();
+        List< String > actbucketNameLists = new ArrayList<>();
         for ( Bucket bucket : buckets ) {
             Owner actOwner = bucket.getOwner();
             Assert.assertEquals( actOwner.getDisplayName(), userName );
@@ -131,7 +131,7 @@ public class CreateBucket15908 extends S3TestBase {
         }
         Collections.sort( actbucketNameLists );
 
-        List<String> expBucketNames = new ArrayList<>();
+        List< String > expBucketNames = new ArrayList<>();
         for ( String bucket : bucketNameList ) {
             expBucketNames
                     .add( URLDecoder.decode( bucket, "UTF-8" ).toLowerCase() );

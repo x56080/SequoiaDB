@@ -32,9 +32,9 @@ public class ListObjectsWithDelimiterAndMaxkeys18572 extends S3TestBase {
     private AmazonS3 s3Client = null;
     private int keyNums = 50;
     private String delimiter = "aa";
-    private List<String> keyList = new ArrayList<>();
-    private List<String> noMatchDelimiterKeyList = new ArrayList<>();
-    private List<String> matchDelimiterKeyList = new ArrayList<>();
+    private List< String > keyList = new ArrayList<>();
+    private List< String > noMatchDelimiterKeyList = new ArrayList<>();
+    private List< String > matchDelimiterKeyList = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -79,10 +79,10 @@ public class ListObjectsWithDelimiterAndMaxkeys18572 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> expCommprefixLists,
-            List<String> expContentLists, int maxKeys ) throws IOException {
-        List<String> matchContentList = new ArrayList<>();
-        List<String> matchDelimiterList = new ArrayList<>();
+    private void listObjectsAndCheckResult( List< String > expCommprefixLists,
+            List< String > expContentLists, int maxKeys ) throws IOException {
+        List< String > matchContentList = new ArrayList<>();
+        List< String > matchDelimiterList = new ArrayList<>();
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName ).withDelimiter( delimiter )
                 .withMaxKeys( maxKeys );
@@ -90,13 +90,13 @@ public class ListObjectsWithDelimiterAndMaxkeys18572 extends S3TestBase {
 
         do {
             result = s3Client.listObjects( request );
-            List<String> commonPrefixes = result.getCommonPrefixes();
+            List< String > commonPrefixes = result.getCommonPrefixes();
             matchDelimiterList.addAll( commonPrefixes );
 
             // objects do not match delimiter are displayed in contents,num is
             // less than Maxkeys
-            List<S3ObjectSummary> objects = result.getObjectSummaries();
-            List<String> queryKeyList = new ArrayList<>();
+            List< S3ObjectSummary > objects = result.getObjectSummaries();
+            List< String > queryKeyList = new ArrayList<>();
             for ( S3ObjectSummary os : objects ) {
                 String key = os.getKey();
                 queryKeyList.add( key );
@@ -108,18 +108,17 @@ public class ListObjectsWithDelimiterAndMaxkeys18572 extends S3TestBase {
 
             int eachListNums = commonPrefixes.size() + queryKeyList.size();
             if ( eachListNums > maxKeys ) {
-                Assert.fail(
-                        "list nums error! commonPrefixes: " + commonPrefixes
-                                .toString() + "  contents:" + queryKeyList
-                                .toString() );
+                Assert.fail( "list nums error! commonPrefixes: "
+                        + commonPrefixes.toString() + "  contents:"
+                        + queryKeyList.toString() );
             }
         } while ( result.isTruncated() );
 
         // check the commprefixList and contents
         Assert.assertEquals( matchDelimiterList, expCommprefixLists,
                 "matchDelimiterList:" + matchDelimiterList.toString()
-                        + "\n commprefixList:" + expCommprefixLists
-                        .toString() );
+                        + "\n commprefixList:"
+                        + expCommprefixLists.toString() );
         Assert.assertEquals( matchContentList, expContentLists,
                 "matchContents:" + matchContentList.toString()
                         + "\n contentList:" + expContentLists.toString() );

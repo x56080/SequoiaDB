@@ -49,9 +49,9 @@ public class CreateObject16516 extends S3TestBase {
                 new Random().nextBytes( fileBlock );
                 BigInteger toWrite = size.subtract( written );
                 BigInteger len = BigInteger.valueOf( fileBlock.length )
-                        .compareTo( toWrite ) == -1 ?
-                        BigInteger.valueOf( fileBlock.length ) :
-                        toWrite;
+                        .compareTo( toWrite ) == -1
+                                ? BigInteger.valueOf( fileBlock.length )
+                                : toWrite;
                 fos.write( fileBlock, 0, Integer.valueOf( len.toString() ) );
                 written = written.add( len );
             }
@@ -67,8 +67,8 @@ public class CreateObject16516 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         s3Client = CommLib.buildS3Client();
         // create bucket
         s3Client.createBucket( new CreateBucketRequest( bucketName ) );
@@ -78,8 +78,8 @@ public class CreateObject16516 extends S3TestBase {
     public void testPutObject() throws Exception {
         // 上传对象内容大小为2G
         BigInteger fileSize = new BigInteger( "2147483648" );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -106,8 +106,9 @@ public class CreateObject16516 extends S3TestBase {
         S3Object object = s3Client.getObject( request );
         S3ObjectInputStream s3is = object.getObjectContent();
 
-        Assert.assertEquals( Md5Utils.md5AsBase64( s3is ), Md5Utils.md5AsBase64(
-                new FileInputStream( new File( filePath ) ) ),
+        Assert.assertEquals( Md5Utils.md5AsBase64( s3is ),
+                Md5Utils.md5AsBase64(
+                        new FileInputStream( new File( filePath ) ) ),
                 "md5 is different!" );
         long actSize = object.getObjectMetadata().getContentLength();
         Assert.assertEquals( new BigInteger( String.valueOf( actSize ) ),

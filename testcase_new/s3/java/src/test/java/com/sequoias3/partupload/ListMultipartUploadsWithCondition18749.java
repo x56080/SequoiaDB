@@ -41,16 +41,15 @@ public class ListMultipartUploadsWithCondition18749 extends S3TestBase {
 
     @Test
     public void uploadParts() {
-        List<String> expCommonPrefixes = initPartUpload();
+        List< String > expCommonPrefixes = initPartUpload();
         // list multipartUploads and check list info.
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
                 bucketName ).withDelimiter( delimiter ).withPrefix( prefix );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
-        MultiValueMap<String, String> expUpload = new LinkedMultiValueMap<String, String>();
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes,
-                        expUpload );
+        MultiValueMap< String, String > expUpload = new LinkedMultiValueMap< String, String >();
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes, expUpload );
         runSuccess = true;
     }
 
@@ -65,23 +64,23 @@ public class ListMultipartUploadsWithCondition18749 extends S3TestBase {
         }
     }
 
-    private List<String> initPartUpload() {
-        List<String> expCommonPrefixes = new ArrayList<>();
+    private List< String > initPartUpload() {
+        List< String > expCommonPrefixes = new ArrayList<>();
         for ( int i = 0; i < objectNum; i++ ) {
             if ( i % 10 == 0 ) {
                 // keyName misMatch prefix and delimiter
                 String subKeyName = "test" + i + "_" + baseKeyName;
-                PartUploadUtils
-                        .initPartUpload( s3Client, bucketName, subKeyName );
-                PartUploadUtils
-                        .initPartUpload( s3Client, bucketName, subKeyName );
+                PartUploadUtils.initPartUpload( s3Client, bucketName,
+                        subKeyName );
+                PartUploadUtils.initPartUpload( s3Client, bucketName,
+                        subKeyName );
             } else {
                 // keyName match prefix and delimter
                 String subKeyName = prefix + i + delimiter + "_" + baseKeyName;
-                PartUploadUtils
-                        .initPartUpload( s3Client, bucketName, subKeyName );
-                PartUploadUtils
-                        .initPartUpload( s3Client, bucketName, subKeyName );
+                PartUploadUtils.initPartUpload( s3Client, bucketName,
+                        subKeyName );
+                PartUploadUtils.initPartUpload( s3Client, bucketName,
+                        subKeyName );
                 expCommonPrefixes.add( prefix + i + delimiter );
             }
         }

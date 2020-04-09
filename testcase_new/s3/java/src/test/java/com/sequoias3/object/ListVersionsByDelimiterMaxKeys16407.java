@@ -55,17 +55,16 @@ public class ListVersionsByDelimiterMaxKeys16407 extends S3TestBase {
     private void testGtMaxKeys() throws Exception {
         String delimiter = "/";
         // maxResults > versionNum*objectNames.length
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withMaxResults(
-                        versionNum * objectNames.length + 1 ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withDelimiter( delimiter )
+                .withMaxResults( versionNum * objectNames.length + 1 ) );
 
         // expected results
-        List<String> expCommonPrefixes = new ArrayList<String>();
+        List< String > expCommonPrefixes = new ArrayList< String >();
         expCommonPrefixes.add( "air/" );
         expCommonPrefixes.add( "dir/" );
 
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = 2; i < objectNames.length; i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
                 expMap.add( objectNames[ i ], String.valueOf( j ) );
@@ -88,11 +87,11 @@ public class ListVersionsByDelimiterMaxKeys16407 extends S3TestBase {
         VersionListing vsList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withDelimiter( delimiter ).withMaxResults( 1 ) );
-        List<String> expCommonPrefixes1 = new ArrayList<String>();
+        List< String > expCommonPrefixes1 = new ArrayList< String >();
         expCommonPrefixes1.add( "air/" );
         if ( vsList.isTruncated() ) {
             ObjectUtils.checkListVSResults( vsList, expCommonPrefixes1,
-                    new LinkedMultiValueMap<String, String>() );
+                    new LinkedMultiValueMap< String, String >() );
         } else {
             Assert.fail( "vsList.isTruncated() must be true" );
         }
@@ -107,17 +106,17 @@ public class ListVersionsByDelimiterMaxKeys16407 extends S3TestBase {
                         .withDelimiter( delimiter )
                         .withMaxResults( versionNum * objectNames.length ) );
         // expected results
-        List<String> expCommonPrefixes2 = new ArrayList<String>();
+        List< String > expCommonPrefixes2 = new ArrayList< String >();
         expCommonPrefixes2.add( "dir/" );
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = 2; i < objectNames.length; i++ ) {
             for ( int j = versionNum - 1; j >= 0; j-- ) {
                 expMap.add( objectNames[ i ], String.valueOf( j ) );
             }
         }
         if ( !vsList1.isTruncated() ) {
-            ObjectUtils
-                    .checkListVSResults( vsList1, expCommonPrefixes2, expMap );
+            ObjectUtils.checkListVSResults( vsList1, expCommonPrefixes2,
+                    expMap );
         } else {
             Assert.fail( "vsList.isTruncated() must be false" );
         }

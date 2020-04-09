@@ -37,10 +37,10 @@ public class DeleteObjectWithDelimiter18172 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -64,8 +64,8 @@ public class DeleteObjectWithDelimiter18172 extends S3TestBase {
     private void tearDown() {
         try {
             if ( runSuccess ) {
-                ObjectUtils
-                        .deleteObjectAllVersions( s3Client, bucketName, key );
+                ObjectUtils.deleteObjectAllVersions( s3Client, bucketName,
+                        key );
                 s3Client.deleteBucket( bucketName );
                 TestTools.LocalFile.removeFile( localPath );
             }
@@ -84,7 +84,7 @@ public class DeleteObjectWithDelimiter18172 extends S3TestBase {
         Assert.assertEquals( versionList.getCommonPrefixes().size(), 0 );
 
         // 检查删除标记
-        List<S3VersionSummary> versions = versionList.getVersionSummaries();
+        List< S3VersionSummary > versions = versionList.getVersionSummaries();
         for ( S3VersionSummary version : versions ) {
             if ( version.getVersionId().equals( "0" ) ) {
                 Assert.assertEquals( version.isDeleteMarker(), false );
@@ -95,8 +95,8 @@ public class DeleteObjectWithDelimiter18172 extends S3TestBase {
         }
 
         // check the object of version "0"
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key, "0" );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key, "0" );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 }

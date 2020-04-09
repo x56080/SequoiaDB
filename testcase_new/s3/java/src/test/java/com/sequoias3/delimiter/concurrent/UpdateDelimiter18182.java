@@ -61,7 +61,7 @@ public class UpdateDelimiter18182 extends S3TestBase {
         if ( updateDelimiterThread1.getRetCode() == 0
                 && updateDelimiterThread2.getRetCode() == 0
                 || updateDelimiterThread1.getRetCode() == 409
-                && updateDelimiterThread2.getRetCode() == 0 ) {
+                        && updateDelimiterThread2.getRetCode() == 0 ) {
             checkResult( delimiter2 );
         } else {
             Assert.fail( "unexpect result , t1.getRetCode()="
@@ -90,13 +90,12 @@ public class UpdateDelimiter18182 extends S3TestBase {
     private void checkResult( String delimiter ) throws Exception {
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
 
-        List<String> expCommonPrefixes = ObjectUtils
+        List< String > expCommonPrefixes = ObjectUtils
                 .getCommPrefixes( objectNames, "", delimiter );
-        List<String> matchContentsList = ObjectUtils
-                .getKeys( objectNames, "", delimiter );
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        expCommonPrefixes, matchContentsList );
+        List< String > matchContentsList = ObjectUtils.getKeys( objectNames, "",
+                delimiter );
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, expCommonPrefixes, matchContentsList );
     }
 
     class ThreadUpdateDelimiter18182 extends ResultStore {

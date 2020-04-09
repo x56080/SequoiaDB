@@ -38,9 +38,8 @@ public class GetUserByNormal16269 extends S3TestBase {
     @Test
     private void test() {
         // create user
-        JSONObject userJSON = UserUtils
-                .createUser( userName, UserCommDefind.normal,
-                        UserUtils.accessKeyId );
+        JSONObject userJSON = UserUtils.createUser( userName,
+                UserCommDefind.normal, UserUtils.accessKeyId );
         String accessKeyId = userJSON.getJSONObject( UserCommDefind.accessKeys )
                 .getString( UserCommDefind.accessKeyID );
 

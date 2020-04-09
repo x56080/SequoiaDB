@@ -33,8 +33,8 @@ public class CreateObject16342 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         s3Client = CommLib.buildS3Client();
         // create bucket and set bucket version status
         s3Client.createBucket( new CreateBucketRequest( bucketName ) );
@@ -77,12 +77,12 @@ public class CreateObject16342 extends S3TestBase {
         Date actCreateDate = metadata.getLastModified();
         if ( actCreateDate.after( expDate ) ) {
             Assert.fail( "create time is different! the actCreateDate is : "
-                    + actCreateDate.toString() + ",the expDate is : " + expDate
-                    .toString() );
+                    + actCreateDate.toString() + ",the expDate is : "
+                    + expDate.toString() );
         }
         // check object content by md5
-        String actMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String actMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         String expMd5 = TestTools.getMD5( expContent.getBytes() );
         Assert.assertEquals( actMd5, expMd5, "md5 is different!" );
     }

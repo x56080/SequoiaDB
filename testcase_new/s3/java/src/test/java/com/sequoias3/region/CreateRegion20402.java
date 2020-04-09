@@ -63,16 +63,16 @@ public class CreateRegion20402 extends S3TestBase {
             executor.addWorker( new CreateObject() );
         }
         executor.run();
-        //check result
-        int actCount = RegionUtils
-                .getRecordNum( csNames[ 1 ], dataclNames[ 0 ] );
+        // check result
+        int actCount = RegionUtils.getRecordNum( csNames[ 1 ],
+                dataclNames[ 0 ] );
         Assert.assertEquals( actCount, objectNum );
         for ( int i = 1; i <= objectNum; i++ ) {
             S3Object obj = s3Client.getObject( bucketName, objectNameBase + i );
             Assert.assertEquals( Md5Utils.md5AsBase64( obj.getObjectContent() ),
                     Md5Utils.md5AsBase64( String.valueOf( i ).getBytes() ),
-                    "bucketName = " + bucketName + ",objectName = " +
-                            objectNameBase + i );
+                    "bucketName = " + bucketName + ",objectName = "
+                            + objectNameBase + i );
         }
         runSuccess = true;
     }

@@ -26,7 +26,7 @@ import java.util.List;
 public class GetObjectVersionList16386 extends S3TestBase {
     private String bucketName = "bucket16386";
     private String keyName = "%dir%dir";
-    private List<String> exKeyNameList = new ArrayList<String>();
+    private List< String > exKeyNameList = new ArrayList< String >();
     private int objectTotalNum = 1500;
     private int objectOnceQueryNum = 1000;
     private AmazonS3 s3Client = null;
@@ -54,7 +54,8 @@ public class GetObjectVersionList16386 extends S3TestBase {
         int queryTime = 0;
         while ( true ) {
             queryTime++;
-            List<S3VersionSummary> verList = versionList.getVersionSummaries();
+            List< S3VersionSummary > verList = versionList
+                    .getVersionSummaries();
             checkListObjectsResult( verList, queryTime );
             if ( versionList.isTruncated() ) {
                 versionList = s3Client.listNextBatchOfVersions( versionList );
@@ -75,7 +76,7 @@ public class GetObjectVersionList16386 extends S3TestBase {
         }
     }
 
-    private void checkListObjectsResult( List<S3VersionSummary> versions,
+    private void checkListObjectsResult( List< S3VersionSummary > versions,
             int queryTime ) {
         Collections.sort( exKeyNameList );
         int startKeyNum = ( queryTime - 1 ) * objectOnceQueryNum;

@@ -40,12 +40,11 @@ public class UpdateDelimiter18080 extends S3TestBase {
         DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
 
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
-        List<String> expCommprefixList = new ArrayList<>();
+        List< String > expCommprefixList = new ArrayList<>();
         expCommprefixList.add( "aa%test/" );
-        List<String> expContentList = new ArrayList<>();
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        expCommprefixList, expContentList );
+        List< String > expContentList = new ArrayList<>();
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, expCommprefixList, expContentList );
         runSuccess = true;
     }
 

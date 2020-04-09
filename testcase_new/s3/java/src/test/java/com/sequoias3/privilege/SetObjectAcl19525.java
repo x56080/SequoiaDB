@@ -45,10 +45,10 @@ public class SetObjectAcl19525 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -75,29 +75,25 @@ public class SetObjectAcl19525 extends S3TestBase {
                 CannedAccessControlList.PublicReadWrite );
 
         // part upload object again
-        List<PartETag> partEtags = new ArrayList<>();
-        String uploadId = PartUploadUtils
-                .initPartUpload( ownerS3Client, bucketName, keyName );
-        partEtags = PartUploadUtils
-                .partUpload( ownerS3Client, bucketName, keyName, uploadId,
-                        file );
-        PartUploadUtils
-                .completeMultipartUpload( ownerS3Client, bucketName, keyName,
-                        uploadId, partEtags );
+        List< PartETag > partEtags = new ArrayList<>();
+        String uploadId = PartUploadUtils.initPartUpload( ownerS3Client,
+                bucketName, keyName );
+        partEtags = PartUploadUtils.partUpload( ownerS3Client, bucketName,
+                keyName, uploadId, file );
+        PartUploadUtils.completeMultipartUpload( ownerS3Client, bucketName,
+                keyName, uploadId, partEtags );
 
         // check put object result
-        String actMd5 = ObjectUtils
-                .getMd5OfObject( ownerS3Client, localPath, bucketName,
-                        keyName );
+        String actMd5 = ObjectUtils.getMd5OfObject( ownerS3Client, localPath,
+                bucketName, keyName );
         String expMd5 = TestTools.getMD5( filePath );
         Assert.assertEquals( actMd5, expMd5 );
 
         // check object default acl
         Grant expGrant = new Grant( new CanonicalGrantee( ownerId ),
                 Permission.FullControl );
-        PrivilegeUtils
-                .checkSetObjectAclResult( ownerS3Client, bucketName, keyName,
-                        expGrant );
+        PrivilegeUtils.checkSetObjectAclResult( ownerS3Client, bucketName,
+                keyName, expGrant );
 
         // force delete owner
         UserUtils.deleteUser( ownerName, S3TestBase.s3AccessKeyId, true );

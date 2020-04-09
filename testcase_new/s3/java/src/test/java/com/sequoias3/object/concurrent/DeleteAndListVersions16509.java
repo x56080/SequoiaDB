@@ -41,10 +41,10 @@ public class DeleteAndListVersions16509 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -58,11 +58,11 @@ public class DeleteAndListVersions16509 extends S3TestBase {
 
     @Test
     public void testCreateBucket() throws Exception {
-        List<DeleteObjectThread> deleteObjectThreads = new ArrayList<>(
+        List< DeleteObjectThread > deleteObjectThreads = new ArrayList<>(
                 objectNums );
         ListObjectThread listObjectThread = new ListObjectThread();
 
-        List<String> expKeys = new ArrayList<>();
+        List< String > expKeys = new ArrayList<>();
         for ( int i = 0; i < objectNums; i++ ) {
             String key = keyName + "_" + i;
             s3Client.putObject( bucketName, key, new File( filePath ) );
@@ -100,14 +100,14 @@ public class DeleteAndListVersions16509 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> expKeys )
+    private void listObjectsAndCheckResult( List< String > expKeys )
             throws Exception {
-        List<String> actVersionKeys = new ArrayList<>();
+        List< String > actVersionKeys = new ArrayList<>();
         String deleteTagVersion = "1";
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
         while ( true ) {
-            Iterator<S3VersionSummary> versionIter = versionList
+            Iterator< S3VersionSummary > versionIter = versionList
                     .getVersionSummaries().iterator();
 
             while ( versionIter.hasNext() ) {
@@ -144,9 +144,8 @@ public class DeleteAndListVersions16509 extends S3TestBase {
         Assert.assertFalse( isExistObject, "the object should not exist!" );
 
         // deleted object has been a history version object,the versionId is "0"
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key,
-                        versionId );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key, versionId );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

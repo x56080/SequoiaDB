@@ -34,16 +34,16 @@ public class CopyObject19349 extends S3TestBase {
     private int fileSize = 1024 * 1024 * 2;
     private File localPath = null;
     private String filePath = null;
-    private Map<String, String> userMeta = new HashMap<>();
+    private Map< String, String > userMeta = new HashMap<>();
     private ObjectMetadata metaData = new ObjectMetadata();
     private String contentDisposition = "this is copy object!";
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -52,7 +52,7 @@ public class CopyObject19349 extends S3TestBase {
         CommLib.clearBucket( s3Client, bucketName );
 
         s3Client.createBucket( bucketName );
-        Map<String, String> srcMeta = new HashMap<>();
+        Map< String, String > srcMeta = new HashMap<>();
         srcMeta.put( "oldtag", "test125" );
         ObjectMetadata srcMetaData = new ObjectMetadata();
         srcMetaData.setUserMetadata( srcMeta );
@@ -106,26 +106,25 @@ public class CopyObject19349 extends S3TestBase {
 
     private void checkObjectContent( String bucketName, String keyName )
             throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
-    private void checkObjectMetaData( Map<String, String> expMeta,
+    private void checkObjectMetaData( Map< String, String > expMeta,
             String contentDisposition ) {
         GetObjectMetadataRequest request = new GetObjectMetadataRequest(
                 bucketName, keyName );
         ObjectMetadata result = s3Client.getObjectMetadata( request );
 
-        Map<String, String> actMeta = result.getUserMetadata();
-        Assert.assertEquals( actMeta.size(), expMeta.size(),
-                "expMetaB is : " + expMeta.toString() + "actMetaB is : "
-                        + actMeta.toString() );
-        for ( Map.Entry<String, String> entry : expMeta.entrySet() ) {
+        Map< String, String > actMeta = result.getUserMetadata();
+        Assert.assertEquals( actMeta.size(), expMeta.size(), "expMetaB is : "
+                + expMeta.toString() + "actMetaB is : " + actMeta.toString() );
+        for ( Map.Entry< String, String > entry : expMeta.entrySet() ) {
             Object key = entry.getKey();
             Assert.assertEquals( actMeta.get( key ), expMeta.get( key ),
-                    "actMetaB = " + actMeta.toString() + ",expMeta = " + expMeta
-                            .toString() );
+                    "actMetaB = " + actMeta.toString() + ",expMeta = "
+                            + expMeta.toString() );
         }
         Assert.assertEquals( result.getContentDisposition(),
                 contentDisposition );

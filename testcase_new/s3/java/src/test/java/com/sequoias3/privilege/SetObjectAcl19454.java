@@ -110,9 +110,8 @@ public class SetObjectAcl19454 extends S3TestBase {
             Grant[] expGrant ) throws Exception {
         // set object acl using standard acl mode
         ownerS3Client.setObjectAcl( bucketName, keyName, acl );
-        PrivilegeUtils
-                .checkSetObjectAclResult( ownerS3Client, bucketName, keyName,
-                        expGrant );
+        PrivilegeUtils.checkSetObjectAclResult( ownerS3Client, bucketName,
+                keyName, expGrant );
         getObjectByOtherUser();
         actSuccessTests.getAndIncrement();
     }
@@ -122,9 +121,8 @@ public class SetObjectAcl19454 extends S3TestBase {
         // set object acl with x-amz-grant-* in the request header
         for ( Permission permission : Permission.values() ) {
             Grant expGrant = new Grant( grantee, permission );
-            PrivilegeUtils
-                    .setObjectAclByHeader( s3AccessKeyId, bucketName, keyName,
-                            expGrant );
+            PrivilegeUtils.setObjectAclByHeader( s3AccessKeyId, bucketName,
+                    keyName, expGrant );
             PrivilegeUtils.checkSetObjectAclResult( ownerS3Client, bucketName,
                     keyName, expGrant );
             getObjectByOtherUser();
@@ -137,9 +135,8 @@ public class SetObjectAcl19454 extends S3TestBase {
         // set object acl with access control list in request body
         for ( Permission permission : Permission.values() ) {
             Grant expGrant = new Grant( grantee, permission );
-            PrivilegeUtils
-                    .setObjectAclByBody( ownerS3Client, bucketName, keyName,
-                            expGrant );
+            PrivilegeUtils.setObjectAclByBody( ownerS3Client, bucketName,
+                    keyName, expGrant );
             PrivilegeUtils.checkSetObjectAclResult( ownerS3Client, bucketName,
                     keyName, expGrant );
             getObjectByOtherUser();
@@ -163,16 +160,16 @@ public class SetObjectAcl19454 extends S3TestBase {
 
     private void getObjectByOtherUser() throws Exception {
         String expMd5 = TestTools.getMD5( filePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( userS3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( userS3Client,
+                localPath, bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
     }
 
     private void putObjectBeforeTest() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );

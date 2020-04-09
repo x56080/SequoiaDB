@@ -36,8 +36,8 @@ public class ListMultipartUploads18748 extends S3TestBase {
     private int maxPartNumber = 2;
     private String[] keys = { "atest18748_0", "/dir1/test18748_1",
             "/dir1/dir2/test18748_2", "/dira/test18748_3", "test18748_4" };
-    private List<String> uploadIdsOld = new ArrayList<>();
-    private List<String> uploadIdsNew = new ArrayList<>();
+    private List< String > uploadIdsOld = new ArrayList<>();
+    private List< String > uploadIdsNew = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -50,14 +50,14 @@ public class ListMultipartUploads18748 extends S3TestBase {
     private void test() throws Exception {
         // initPartUpload
         for ( String key : keys ) {
-            String uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, key );
+            String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, key );
             uploadIdsOld.add( uploadId );
         }
         // initPartUpload again
         for ( String key : keys ) {
-            String uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, key );
+            String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, key );
             uploadIdsNew.add( uploadId );
         }
 
@@ -75,21 +75,20 @@ public class ListMultipartUploads18748 extends S3TestBase {
         // list
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
                 bucketName ).withPrefix( "/dir" ).withKeyMarker( keys[ 2 ] )
-                .withUploadIdMarker( uploadIdsOld.get( 2 ) );
+                        .withUploadIdMarker( uploadIdsOld.get( 2 ) );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
 
         // check results
-        List<String> expCommonPrefixes = new ArrayList<>();
-        MultiValueMap<String, String> expUploads = new LinkedMultiValueMap<String, String>();
+        List< String > expCommonPrefixes = new ArrayList<>();
+        MultiValueMap< String, String > expUploads = new LinkedMultiValueMap< String, String >();
         expUploads.add( keys[ 2 ], uploadIdsNew.get( 2 ) );
         expUploads.add( keys[ 1 ], uploadIdsOld.get( 1 ) );
         expUploads.add( keys[ 1 ], uploadIdsNew.get( 1 ) );
         expUploads.add( keys[ 3 ], uploadIdsOld.get( 3 ) );
         expUploads.add( keys[ 3 ], uploadIdsNew.get( 3 ) );
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes,
-                        expUploads );
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes, expUploads );
 
         runSuccess = true;
     }
@@ -107,10 +106,10 @@ public class ListMultipartUploads18748 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );

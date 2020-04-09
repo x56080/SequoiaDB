@@ -39,10 +39,10 @@ public class CreateRegionWithSameConf17330 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -75,7 +75,7 @@ public class CreateRegionWithSameConf17330 extends S3TestBase {
 
     @Test(dependsOnMethods = "testRegion")
     public void checkResult() throws Exception {
-        List<String> listRegions = RegionUtils.listRegions();
+        List< String > listRegions = RegionUtils.listRegions();
         int count = Collections.frequency( listRegions, regionName );
         // finally only create 1 region
         Assert.assertEquals( count, 1 );
@@ -102,8 +102,8 @@ public class CreateRegionWithSameConf17330 extends S3TestBase {
     private void createObjectAndCheckResult() throws Exception {
         s3Client.createBucket( bucketName, regionName );
         s3Client.putObject( bucketName, key, new File( filePath ) );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

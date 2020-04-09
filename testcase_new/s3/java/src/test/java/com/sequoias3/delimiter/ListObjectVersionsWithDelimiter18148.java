@@ -37,8 +37,8 @@ public class ListObjectVersionsWithDelimiter18148 extends S3TestBase {
             "dir/log", "dir/log", "dir/log" };
 
     private String versionsKey = "dir/log";
-    private List<String> expCommPrefixes = new ArrayList<>();
-    private MultiValueMap<String, String> expVersionsMap = new LinkedMultiValueMap<String, String>();
+    private List< String > expCommPrefixes = new ArrayList<>();
+    private MultiValueMap< String, String > expVersionsMap = new LinkedMultiValueMap< String, String >();
     private String delimiter = "tes";
     private int versionNum = 3;
     private AmazonS3 s3Client = null;
@@ -58,8 +58,8 @@ public class ListObjectVersionsWithDelimiter18148 extends S3TestBase {
 
         DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
 
-        expCommPrefixes = ObjectUtils
-                .getCommPrefixes( keyNames, "", delimiter );
+        expCommPrefixes = ObjectUtils.getCommPrefixes( keyNames, "",
+                delimiter );
         for ( int i = versionNum - 1; i >= 0; i-- ) {
             expVersionsMap.add( versionsKey, String.valueOf( i ) );
         }
@@ -68,9 +68,8 @@ public class ListObjectVersionsWithDelimiter18148 extends S3TestBase {
     @Test
     public void testGetObjectList() throws Exception {
         // maxKeys 大于匹配记录数时一次返回对象版本列表的所有匹配结果，这里设置MaxResults为10
-        ListVersionsAtOnce( 10,
-                expCommPrefixes.size() + expVersionsMap.get( versionsKey )
-                        .size() );
+        ListVersionsAtOnce( 10, expCommPrefixes.size()
+                + expVersionsMap.get( versionsKey ).size() );
 
         // maxKeys 小于匹配记录数时分多次返回对象版本列表的所有匹配结果，这里设置MaxResults为1
         ListVersionsWithMultTimes( 1 );
@@ -98,11 +97,11 @@ public class ListObjectVersionsWithDelimiter18148 extends S3TestBase {
                 .withMaxResults( maxResults );
 
         VersionListing versionList = s3Client.listVersions( req );
-        List<String> commonPrefixes = new ArrayList<String>();
+        List< String > commonPrefixes = new ArrayList< String >();
         int onceReturn = 0;
         commonPrefixes.addAll( versionList.getCommonPrefixes() );
         onceReturn += versionList.getCommonPrefixes().size();
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
 
         onceReturn += verList.size();
         Assert.assertEquals( onceReturn, expOnceReturnedNum,
@@ -121,13 +120,14 @@ public class ListObjectVersionsWithDelimiter18148 extends S3TestBase {
                 .withMaxResults( maxResults );
 
         VersionListing versionList = s3Client.listVersions( req );
-        List<String> actCommonPrefixes = new ArrayList<String>();
-        MultiValueMap<String, String> actVersionsMap = new LinkedMultiValueMap<String, String>();
+        List< String > actCommonPrefixes = new ArrayList< String >();
+        MultiValueMap< String, String > actVersionsMap = new LinkedMultiValueMap< String, String >();
         while ( true ) {
             int onceReturn = 0;
             actCommonPrefixes.addAll( versionList.getCommonPrefixes() );
             onceReturn += versionList.getCommonPrefixes().size();
-            List<S3VersionSummary> verList = versionList.getVersionSummaries();
+            List< S3VersionSummary > verList = versionList
+                    .getVersionSummaries();
             for ( S3VersionSummary versionSummary : verList ) {
                 actVersionsMap.add( versionSummary.getKey(),
                         versionSummary.getVersionId() );
@@ -145,18 +145,18 @@ public class ListObjectVersionsWithDelimiter18148 extends S3TestBase {
 
         Assert.assertEquals( actCommonPrefixes, expCommPrefixes,
                 "actCommonPrefixes = " + actCommonPrefixes.toString()
-                        + ",expCommonPrefixes = " + expCommPrefixes
-                        .toString() );
+                        + ",expCommonPrefixes = "
+                        + expCommPrefixes.toString() );
         Assert.assertEquals( actVersionsMap.size(), expVersionsMap.size(),
                 "actMap = " + actVersionsMap.toString() + ",expVersionsMap = "
                         + expVersionsMap.toString() );
-        for ( Map.Entry<String, List<String>> entry : expVersionsMap
+        for ( Map.Entry< String, List< String > > entry : expVersionsMap
                 .entrySet() ) {
             Assert.assertEquals( actVersionsMap.get( entry.getKey() ),
                     expVersionsMap.get( entry.getKey() ),
                     "actMap = " + actVersionsMap.toString()
-                            + ",expVersionsMap = " + expVersionsMap
-                            .toString() );
+                            + ",expVersionsMap = "
+                            + expVersionsMap.toString() );
         }
     }
 }

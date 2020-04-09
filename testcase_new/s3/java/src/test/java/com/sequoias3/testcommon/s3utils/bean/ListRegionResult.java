@@ -10,13 +10,13 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 public class ListRegionResult {
     @JacksonXmlElementWrapper(localName = "Regions", useWrapping = false)
     @JsonProperty("Region")
-    private List<String> regions;
+    private List< String > regions;
 
-    public void setRegions(List<String> regions) {
+    public void setRegions( List< String > regions ) {
         this.regions = regions;
     }
 
-    public List<String> getRegions() {
+    public List< String > getRegions() {
         return this.regions;
     }
 }

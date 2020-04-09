@@ -47,15 +47,15 @@ public class TestGetObjectMetadata16681 extends S3TestBase {
         s3Client.putObject( bucketName, keyName, content );
         s3Client.putObject( bucketName, keyName, content );
         Date date1 = new Date();
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content );
         Date date2 = new Date();
         String expEtag = result.getETag();
         String expVersionid = result.getVersionId();
 
-        ObjectMetadata metadata = s3Client.getObjectMetadata(
-                new GetObjectMetadataRequest( bucketName, keyName,
-                        expVersionid ) );
+        ObjectMetadata metadata = s3Client
+                .getObjectMetadata( new GetObjectMetadataRequest( bucketName,
+                        keyName, expVersionid ) );
 
         // check
         Assert.assertEquals( metadata.getETag(), expEtag, "etag is wrong!" );
@@ -68,10 +68,10 @@ public class TestGetObjectMetadata16681 extends S3TestBase {
         // 校验对象lastModified时间在[date1, date2]范围内，只精确到秒，忽略毫秒
         if ( actDate.getTime() < ( date1.getTime() / 1000 ) * 1000
                 || actDate.getTime() > ( date2.getTime() / 1000 ) * 1000 ) {
-            Assert.fail( "lastmodified is wrong!  actDate is : " + HeadUtils
-                    .getGMTDate( actDate ) + ", date1 is :" + HeadUtils
-                    .getGMTDate( date1 ) + ", date2 is : " + HeadUtils
-                    .getGMTDate( date2 ) );
+            Assert.fail( "lastmodified is wrong!  actDate is : "
+                    + HeadUtils.getGMTDate( actDate ) + ", date1 is :"
+                    + HeadUtils.getGMTDate( date1 ) + ", date2 is : "
+                    + HeadUtils.getGMTDate( date2 ) );
         }
         runSuccess = true;
     }

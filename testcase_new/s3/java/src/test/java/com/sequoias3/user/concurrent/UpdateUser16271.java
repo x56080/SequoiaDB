@@ -47,7 +47,7 @@ public class UpdateUser16271 extends S3TestBase {
 
     @Test
     public void testUpdateUser() throws Exception {
-        List<UpdateUser> threads = new ArrayList<UpdateUser>();
+        List< UpdateUser > threads = new ArrayList< UpdateUser >();
         for ( int i = 0; i < num; i++ ) {
             threads.add( new UpdateUser() );
         }
@@ -71,8 +71,8 @@ public class UpdateUser16271 extends S3TestBase {
     }
 
     private void checkResult() {
-        JSONObject updateUser = UserUtils
-                .getUser( username, UserUtils.accessKeyId );
+        JSONObject updateUser = UserUtils.getUser( username,
+                UserUtils.accessKeyId );
         JSONObject updateJSON = updateUser
                 .getJSONObject( UserCommDefind.accessKeys );
         String accessKeyID = updateJSON.getString( UserCommDefind.accessKeyID );
@@ -86,7 +86,7 @@ public class UpdateUser16271 extends S3TestBase {
             // create bucket
             s3Client.createBucket( bucketName.toLowerCase() );
             // check
-            List<Bucket> buckets = s3Client.listBuckets();
+            List< Bucket > buckets = s3Client.listBuckets();
             Assert.assertEquals( buckets.size(), 1, " only one bucket" );
             Bucket expbucket = buckets.get( 0 );
             String actOwner = expbucket.getOwner().getDisplayName();

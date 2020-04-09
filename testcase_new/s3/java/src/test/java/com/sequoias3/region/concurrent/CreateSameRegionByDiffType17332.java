@@ -39,11 +39,11 @@ public class CreateSameRegionByDiffType17332 extends S3TestBase {
 
     @Test
     private void test() throws Exception {
-        Map<String, String> hashMap1 = new HashMap<String, String>();
+        Map< String, String > hashMap1 = new HashMap< String, String >();
         hashMap1.put( "dataCSShardingType", "month" );
         hashMap1.put( "dataCLShardingType", "quarter" );
 
-        Map<String, String> hashMap2 = new HashMap<String, String>();
+        Map< String, String > hashMap2 = new HashMap< String, String >();
         hashMap2.put( "dataCSShardingType", "quarter" );
         hashMap2.put( "dataCLShardingType", "year" );
 
@@ -62,18 +62,17 @@ public class CreateSameRegionByDiffType17332 extends S3TestBase {
 
         // get region
         GetRegionResult region = RegionUtils.getRegion( regionName );
-        Map<String, String> actMap = new HashMap<String, String>();
+        Map< String, String > actMap = new HashMap< String, String >();
         actMap.put( "dataCSShardingType",
                 region.getRegion().getDataCSShardingType() );
         actMap.put( "dataCLShardingType",
                 region.getRegion().getDataCLShardingType() );
         // check region sharding type
-        if ( !actMap.toString().equals( hashMap1.toString() ) && !actMap
-                .toString().equals( hashMap2.toString() ) ) {
-            throw new Exception(
-                    "actMap = " + actMap.toString() + ",hashMap1 = " + hashMap1
-                            .toString() + ",hashMap2 = " + hashMap2
-                            .toString() );
+        if ( !actMap.toString().equals( hashMap1.toString() )
+                && !actMap.toString().equals( hashMap2.toString() ) ) {
+            throw new Exception( "actMap = " + actMap.toString()
+                    + ",hashMap1 = " + hashMap1.toString() + ",hashMap2 = "
+                    + hashMap2.toString() );
         }
 
         // craete bucket for check

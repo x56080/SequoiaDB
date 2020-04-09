@@ -39,10 +39,10 @@ public class CreateObject18097 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -84,9 +84,8 @@ public class CreateObject18097 extends S3TestBase {
     private void checkResult() throws Exception {
         S3Object obj = s3Client.getObject( bucketName, keyName );
         S3ObjectInputStream s3is = obj.getObjectContent();
-        String downloadPath = TestTools.LocalFile
-                .initDownloadPath( localPath, TestTools.getMethodName(),
-                        Thread.currentThread().getId() );
+        String downloadPath = TestTools.LocalFile.initDownloadPath( localPath,
+                TestTools.getMethodName(), Thread.currentThread().getId() );
         ObjectUtils.inputStream2File( s3is, downloadPath );
         s3is.close();
         String actMd5 = TestTools.getMD5( downloadPath );
@@ -100,7 +99,7 @@ public class CreateObject18097 extends S3TestBase {
                 .withBucketName( bucketName ).withEncodingType( "url" );
         request.withDelimiter( delimiter );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         Assert.assertEquals( commonPrefixes.size(), 1 );
         Assert.assertEquals( commonPrefixes.get( 0 ), expCommPerfix );
         Assert.assertEquals( result.getObjectSummaries().size(), 0 );

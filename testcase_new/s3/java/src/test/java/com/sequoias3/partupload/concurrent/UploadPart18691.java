@@ -27,8 +27,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @Author wangkexin
  * @Date 2019.07.30
  */
-@Test(groups = "partlistinuseoff") public class UploadPart18691
-        extends S3TestBase {
+@Test(groups = "partlistinuseoff")
+public class UploadPart18691 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket18691";
     private String keyName = "key18691";
@@ -38,16 +38,16 @@ import java.util.concurrent.CopyOnWriteArrayList;
     private File file = null;
     private String filePath = null;
     private String uploadId = "";
-    private List<PartETag> partEtags = new CopyOnWriteArrayList<>();
+    private List< PartETag > partEtags = new CopyOnWriteArrayList<>();
     private long[] partSize = new long[] { 200 * 1024, 100 * 1024, 150 * 1024,
             10 * 1024, 200 * 1024 };
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -61,15 +61,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
     @Test
     private void testUpload() throws Exception {
-        uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
         ThreadExecutor es = new ThreadExecutor();
         int index = 0;
         long filepositon = 0;
         for ( int i = 2; i < 7; i++ ) {
-            es.addWorker(
-                    new ThreadUploadPart18691( filepositon, partSize[ index ],
-                            i ) );
+            es.addWorker( new ThreadUploadPart18691( filepositon,
+                    partSize[ index ], i ) );
             filepositon += partSize[ index ];
             index++;
         }
@@ -79,8 +78,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
         String expMd5 = TestTools.getFilePartMD5( file, 0, 660 * 1024 );
-        String actMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String actMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( actMd5, expMd5 );
         runSuccess = true;
     }

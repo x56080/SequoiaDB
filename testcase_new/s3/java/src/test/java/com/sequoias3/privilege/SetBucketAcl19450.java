@@ -88,12 +88,12 @@ public class SetBucketAcl19450 extends S3TestBase {
     }
 
     private void checkIsPrivate() {
-        try ( Sequoiadb sdb = new Sequoiadb( coordUrl, "", "" ) ) {
+        try ( Sequoiadb sdb = new Sequoiadb( coordUrl, "", "" )) {
             DBCollection cl = sdb.getCollectionSpace( "S3_SYS_Meta" )
                     .getCollection( "S3_Bucket" );
-            DBCursor cursor = cl
-                    .query( new BasicBSONObject( "Name", bucketName ), null,
-                            null, null );
+            DBCursor cursor = cl.query(
+                    new BasicBSONObject( "Name", bucketName ), null, null,
+                    null );
             boolean IsPrivate = ( boolean ) cursor.getNext().get( "IsPrivate" );
             Assert.assertTrue( IsPrivate );
             cursor.close();

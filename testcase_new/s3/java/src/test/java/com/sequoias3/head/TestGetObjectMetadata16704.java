@@ -52,18 +52,18 @@ public class TestGetObjectMetadata16704 extends S3TestBase {
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
 
         s3Client.putObject( bucketName, keyName, content + "v1" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content + "v2" );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content + "v2" );
         String historyEtag = result.getETag();
         String versionid = result.getVersionId();
 
-        ObjectMetadata metadata = s3Client.getObjectMetadata(
-                new GetObjectMetadataRequest( bucketName, keyName,
-                        versionid ) );
+        ObjectMetadata metadata = s3Client
+                .getObjectMetadata( new GetObjectMetadataRequest( bucketName,
+                        keyName, versionid ) );
         Date historyDate = metadata.getLastModified();
 
-        PutObjectResult currResult = s3Client
-                .putObject( bucketName, keyName, content + "v3" );
+        PutObjectResult currResult = s3Client.putObject( bucketName, keyName,
+                content + "v3" );
         String expEtag = currResult.getETag();
         String expversionid = currResult.getVersionId();
 

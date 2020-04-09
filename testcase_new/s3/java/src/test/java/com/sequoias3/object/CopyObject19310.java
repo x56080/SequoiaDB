@@ -35,10 +35,10 @@ public class CopyObject19310 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -61,9 +61,8 @@ public class CopyObject19310 extends S3TestBase {
 
     @Test
     public void testCopyObject() throws Exception {
-        CopyObjectResult result = s3Client
-                .copyObject( srcBucketName, srcKeyName, destBucketName,
-                        destKeyName );
+        CopyObjectResult result = s3Client.copyObject( srcBucketName,
+                srcKeyName, destBucketName, destKeyName );
 
         checkObjectAttributeInfo( result, destBucketName, destKeyName );
         checkObjectContent( destBucketName, destKeyName );
@@ -87,8 +86,8 @@ public class CopyObject19310 extends S3TestBase {
     private void checkObjectContent( String bucketName, String keyName )
             throws Exception {
         // down file
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

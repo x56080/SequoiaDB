@@ -38,10 +38,10 @@ public class UpdateDelimiter18078 extends S3TestBase {
     @SuppressWarnings("deprecation")
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -66,13 +66,12 @@ public class UpdateDelimiter18078 extends S3TestBase {
         DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
 
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
-        List<String> expCommprefixList = new ArrayList<>();
+        List< String > expCommprefixList = new ArrayList<>();
         expCommprefixList.add( "aa%test" );
         expCommprefixList.add( "aa%delete/aa%/test" );
-        List<String> expContentList = new ArrayList<>();
-        DelimiterUtils
-                .listObjectsWithDelimiter( s3Client, bucketName, delimiter,
-                        expCommprefixList, expContentList );
+        List< String > expContentList = new ArrayList<>();
+        DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
+                delimiter, expCommprefixList, expContentList );
 
         runSuccess = true;
     }

@@ -53,9 +53,9 @@ public class SetBucketVersioning16616 extends S3TestBase {
         }
 
         CommLib.setBucketVersioning( s3ClientA, bucketName, "Enabled" );
-        Assert.assertEquals(
-                s3ClientA.getBucketVersioningConfiguration( bucketName )
-                        .getStatus(), "Enabled" );
+        Assert.assertEquals( s3ClientA
+                .getBucketVersioningConfiguration( bucketName ).getStatus(),
+                "Enabled" );
 
         try {
             s3ClientB.getBucketVersioningConfiguration( bucketName )
@@ -66,9 +66,9 @@ public class SetBucketVersioning16616 extends S3TestBase {
         }
 
         CommLib.setBucketVersioning( s3ClientA, bucketName, "Suspended" );
-        Assert.assertEquals(
-                s3ClientA.getBucketVersioningConfiguration( bucketName )
-                        .getStatus(), "Suspended" );
+        Assert.assertEquals( s3ClientA
+                .getBucketVersioningConfiguration( bucketName ).getStatus(),
+                "Suspended" );
 
         try {
             s3ClientB.getBucketVersioningConfiguration( bucketName )

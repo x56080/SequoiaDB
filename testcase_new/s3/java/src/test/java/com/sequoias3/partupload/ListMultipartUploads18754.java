@@ -45,25 +45,25 @@ public class ListMultipartUploads18754 extends S3TestBase {
 
     @Test
     private void testListMultipartUploads() throws Exception {
-        List<String> uploadIds1 = new ArrayList<>();
-        List<String> uploadIds2 = new ArrayList<>();
+        List< String > uploadIds1 = new ArrayList<>();
+        List< String > uploadIds2 = new ArrayList<>();
         String uploadId = "";
         for ( String keyName : keyNames ) {
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                    keyName );
             uploadIds1.add( uploadId );
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                    keyName );
             uploadIds2.add( uploadId );
         }
 
         // 指定maxkeys一次返回所有匹配条件的对象，指定为3
         int maxKeys = 3;
-        List<String> expCommonPrefixes = new ArrayList<>();
+        List< String > expCommonPrefixes = new ArrayList<>();
         expCommonPrefixes.add( "dir1/" );
         expCommonPrefixes.add( "dir1a/" );
         expCommonPrefixes.add( "dir1b/" );
-        MultiValueMap<String, String> expUploads = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expUploads = new LinkedMultiValueMap< String, String >();
         expUploads.add( keyNames[ 4 ], uploadIds1.get( 4 ) );
         expUploads.add( keyNames[ 4 ], uploadIds2.get( 4 ) );
         expUploads.add( keyNames[ 5 ], uploadIds1.get( 5 ) );
@@ -92,22 +92,22 @@ public class ListMultipartUploads18754 extends S3TestBase {
     }
 
     private void checkListMultipartUploadsWithMaxKeys( int maxKeys,
-            List<String> expCommonPrefixes,
-            MultiValueMap<String, String> expUploads ) {
+            List< String > expCommonPrefixes,
+            MultiValueMap< String, String > expUploads ) {
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
                 bucketName );
         request.setDelimiter( "/" );
         request.setMaxUploads( maxKeys );
         MultipartUploadListing partUploadList;
-        List<String> actCommonPrefixes = new ArrayList<>();
-        MultiValueMap<String, String> actUploads = new LinkedMultiValueMap<String, String>();
+        List< String > actCommonPrefixes = new ArrayList<>();
+        MultiValueMap< String, String > actUploads = new LinkedMultiValueMap< String, String >();
         do {
             int returnedUploadNum = 0;
             partUploadList = s3Client.listMultipartUploads( request );
-            List<String> commonPrefixes = partUploadList.getCommonPrefixes();
+            List< String > commonPrefixes = partUploadList.getCommonPrefixes();
             returnedUploadNum += commonPrefixes.size();
             actCommonPrefixes.addAll( commonPrefixes );
-            List<MultipartUpload> multipartUploads = partUploadList
+            List< MultipartUpload > multipartUploads = partUploadList
                     .getMultipartUploads();
             for ( MultipartUpload multipartUpload : multipartUploads ) {
                 String temKeyName = multipartUpload.getKey();
@@ -131,12 +131,13 @@ public class ListMultipartUploads18754 extends S3TestBase {
 
         Assert.assertEquals( actCommonPrefixes, expCommonPrefixes,
                 "actCommonPrefixes = " + actCommonPrefixes.toString()
-                        + ",expCommonPrefixes = " + expCommonPrefixes
-                        .toString() );
+                        + ",expCommonPrefixes = "
+                        + expCommonPrefixes.toString() );
         Assert.assertEquals( actUploads.size(), expUploads.size(),
                 "actMap = " + actUploads.toString() + ",expUpload = "
                         + expUploads.toString() );
-        for ( Map.Entry<String, List<String>> entry : expUploads.entrySet() ) {
+        for ( Map.Entry< String, List< String > > entry : expUploads
+                .entrySet() ) {
             Assert.assertEquals( actUploads.get( entry.getKey() ),
                     expUploads.get( entry.getKey() ),
                     "actMap = " + actUploads.toString() + ",expMap = "

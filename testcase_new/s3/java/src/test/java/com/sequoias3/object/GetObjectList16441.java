@@ -30,8 +30,8 @@ public class GetObjectList16441 extends S3TestBase {
     private String keyName = "/dir/dir";
     private String prefix = "/dir/";
     private String delimiter = "/";
-    private List<String> expCommPrefixesList = new ArrayList<String>();
-    private List<String> expContentKeyList = new ArrayList<String>();
+    private List< String > expCommPrefixesList = new ArrayList< String >();
+    private List< String > expContentKeyList = new ArrayList< String >();
     private int commPrefixesNums = 10;
     private int contentNums = 5;
     private String[] accessKeys = null;
@@ -69,11 +69,11 @@ public class GetObjectList16441 extends S3TestBase {
                 .withBucketName( bucketName ).withPrefix( prefix )
                 .withDelimiter( delimiter ).withFetchOwner( true );
         ListObjectsV2Result result = s3Client.listObjectsV2( req );
-        List<String> commprefixesResult = result.getCommonPrefixes();
+        List< String > commprefixesResult = result.getCommonPrefixes();
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult,
                 expCommPrefixesList );
 
-        List<S3ObjectSummary> objectSummaries = result.getObjectSummaries();
+        List< S3ObjectSummary > objectSummaries = result.getObjectSummaries();
         checkContentsResult( objectSummaries );
         runSuccess = true;
     }
@@ -87,7 +87,8 @@ public class GetObjectList16441 extends S3TestBase {
         }
     }
 
-    private void checkContentsResult( List<S3ObjectSummary> objectSummaries ) {
+    private void checkContentsResult(
+            List< S3ObjectSummary > objectSummaries ) {
         Assert.assertEquals( objectSummaries.size(), expContentKeyList.size() );
         for ( int i = 0; i < objectSummaries.size(); i++ ) {
             Assert.assertEquals( objectSummaries.get( i ).getKey(),

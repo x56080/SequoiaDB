@@ -47,7 +47,7 @@ public class UploadPart18777 extends S3TestBase {
     private String key = "obj18777";
     private int partsNum = 10;
     private String uploadId;
-    private List<PartETag> partETags = new ArrayList<>();
+    private List< PartETag > partETags = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -79,8 +79,8 @@ public class UploadPart18777 extends S3TestBase {
         // check results
         if ( threadCompUpload.getRetCode() == 0 ) {
             // complete upload success
-            String downfileMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, key );
+            String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client,
+                    localPath, bucketName, key );
             Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         } else {
             // abort upload success
@@ -88,8 +88,8 @@ public class UploadPart18777 extends S3TestBase {
                     bucketName );
             MultipartUploadListing result = s3Client
                     .listMultipartUploads( request );
-            List<String> expCommonPrefixes = new ArrayList<>();
-            MultiValueMap<String, String> expUploads = new LinkedMultiValueMap<String, String>();
+            List< String > expCommonPrefixes = new ArrayList<>();
+            MultiValueMap< String, String > expUploads = new LinkedMultiValueMap< String, String >();
             PartUploadUtils.checkListMultipartUploadsResults( result,
                     expCommonPrefixes, expUploads );
             try {
@@ -128,10 +128,10 @@ public class UploadPart18777 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -144,9 +144,8 @@ public class UploadPart18777 extends S3TestBase {
             AmazonS3 s3 = null;
             try {
                 s3 = CommLib.buildS3Client();
-                PartUploadUtils
-                        .completeMultipartUpload( s3, bucketName, key, uploadId,
-                                partETags );
+                PartUploadUtils.completeMultipartUpload( s3, bucketName, key,
+                        uploadId, partETags );
             } catch ( AmazonS3Exception e ) {
                 if ( !e.getErrorCode().equals( "NoSuchUpload" ) ) {
                     throw e;
@@ -166,9 +165,8 @@ public class UploadPart18777 extends S3TestBase {
             AmazonS3 s3 = null;
             try {
                 s3 = CommLib.buildS3Client();
-                s3.abortMultipartUpload(
-                        new AbortMultipartUploadRequest( bucketName, key,
-                                uploadId ) );
+                s3.abortMultipartUpload( new AbortMultipartUploadRequest(
+                        bucketName, key, uploadId ) );
             } catch ( AmazonS3Exception e ) {
                 if ( !e.getErrorCode().equals( "NoSuchUpload" ) ) {
                     throw e;

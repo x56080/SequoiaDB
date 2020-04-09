@@ -35,10 +35,10 @@ public class CreateObject18102 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -55,9 +55,9 @@ public class CreateObject18102 extends S3TestBase {
         s3Client.putObject( bucketName, keyName, new File( filePath ) );
 
         checkCreateObjectReslut( bucketName );
-        List<String> expKeyList = new ArrayList<>();
+        List< String > expKeyList = new ArrayList<>();
         expKeyList.add( "aa/" );
-        List<String> expContentList = new ArrayList<>();
+        List< String > expContentList = new ArrayList<>();
         DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
                 defaultDelimiter, expKeyList, expContentList );
         runSuccess = true;
@@ -77,8 +77,8 @@ public class CreateObject18102 extends S3TestBase {
 
     private void checkCreateObjectReslut( String bucketName ) throws Exception {
         // check the content of the create object
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 }

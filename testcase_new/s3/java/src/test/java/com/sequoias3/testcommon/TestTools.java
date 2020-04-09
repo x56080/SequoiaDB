@@ -112,9 +112,8 @@ public class TestTools {
         byte[] buffer = new byte[ ( int ) fileSize ];
         int offset = 0;
         int numRead = 0;
-        while ( offset < buffer.length &&
-                ( numRead = fi.read( buffer, offset, buffer.length - offset ) )
-                        >= 0 ) {
+        while ( offset < buffer.length && ( numRead = fi.read( buffer, offset,
+                buffer.length - offset ) ) >= 0 ) {
             offset += numRead;
         }
         // 确保所有数据均被读取
@@ -241,8 +240,8 @@ public class TestTools {
             int maxLength = 50 * 1024 * 1024;
             byte[] buffer = new byte[ maxLength ];
             while ( readCount < partsize ) {
-                int eachReadLength = ( int ) Math
-                        .min( ( partsize - readCount ), maxLength );
+                int eachReadLength = ( int ) Math.min( ( partsize - readCount ),
+                        maxLength );
                 length = fileInputStream.read( buffer, 0, eachReadLength );
                 readCount += length;
                 if ( length != -1 ) {
@@ -409,9 +408,8 @@ public class TestTools {
                 while ( written < size ) {
                     new Random().nextBytes( fileBlock );
                     long toWrite = size - written;
-                    long len = fileBlock.length < toWrite ?
-                            fileBlock.length :
-                            toWrite;
+                    long len = fileBlock.length < toWrite ? fileBlock.length
+                            : toWrite;
                     fos.write( fileBlock, 0, ( int ) len );
                     written += len;
                 }
@@ -443,9 +441,9 @@ public class TestTools {
                 fos = new FileOutputStream( file );
                 while ( written < size ) {
                     int toWrite = size - written;
-                    int len = contentBytes.length < toWrite ?
-                            contentBytes.length :
-                            toWrite;
+                    int len = contentBytes.length < toWrite
+                            ? contentBytes.length
+                            : toWrite;
                     fos.write( contentBytes, 0, len );
                     written += len;
                 }
@@ -468,10 +466,9 @@ public class TestTools {
                 int randomId = new Random().nextInt( 10000 );
                 String downLoadDir = localPath + File.separator + methodName;
                 createDir( downLoadDir );
-                downloadPath =
-                        downLoadDir + File.separator + "thread-" + threadId
-                                + "_" + System.currentTimeMillis() + "_"
-                                + randomId + ".lob";
+                downloadPath = downLoadDir + File.separator + "thread-"
+                        + threadId + "_" + System.currentTimeMillis() + "_"
+                        + randomId + ".lob";
             } catch ( Exception e ) {
                 Assert.fail( "downloadPath\n" + downloadPath );
             }

@@ -86,8 +86,8 @@ public class UpdateDelimiterAndDeleteBucket18193 extends S3TestBase {
 
         @ExecuteOrder(step = 2)
         private void checkResult() {
-            @SuppressWarnings("deprecation") boolean isExist = s3Client
-                    .doesBucketExist( bucketName );
+            @SuppressWarnings("deprecation")
+            boolean isExist = s3Client.doesBucketExist( bucketName );
             Assert.assertFalse( isExist );
         }
     }

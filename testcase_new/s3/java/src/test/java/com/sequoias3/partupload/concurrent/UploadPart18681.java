@@ -54,13 +54,14 @@ public class UploadPart18681 extends S3TestBase {
 
     private AmazonS3 s3Client;
     private String keyBase = "/aa/bb/obj18681";
-    private List<String> keys = new ArrayList<>();
+    private List< String > keys = new ArrayList<>();
     private String uploadId;
-    private Map<File, PartETag> firstPartETags = new HashMap<File, PartETag>();
+    private Map< File, PartETag > firstPartETags = new HashMap< File, PartETag >();
 
     @DataProvider(name = "firstPartSize")
     private Object[][] generateFirstPartSize() {
-        // parameter : firstPartNumber1, firstPartNumber2, firstPartSize1, firstPartSize2, key
+        // parameter : firstPartNumber1, firstPartNumber2, firstPartSize1,
+        // firstPartSize2, key
         return new Object[][] {
                 // firstPartNumber, firstPartSize1, firstPartSize2, key
                 new Object[] { 1, 5 * 1024 * 1024, 5 * 1024 * 1024,
@@ -84,20 +85,18 @@ public class UploadPart18681 extends S3TestBase {
             int firstPartSize2, String key ) throws Exception {
         filePath3 = this.createFile( 0 );
         keys.add( key );
-        List<PartETag> partETags = new ArrayList<>();
+        List< PartETag > partETags = new ArrayList<>();
 
         // init part upload
-        uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, key );
+        uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, key );
 
         // upload first part
         ThreadExecutor threadExec = new ThreadExecutor();
-        threadExec.addWorker(
-                new ThreadUploadFirstPart( file1, key, firstPartNumber,
-                        firstPartSize1 ) );
-        threadExec.addWorker(
-                new ThreadUploadFirstPart( file2, key, firstPartNumber,
-                        firstPartSize2 ) );
+        threadExec.addWorker( new ThreadUploadFirstPart( file1, key,
+                firstPartNumber, firstPartSize1 ) );
+        threadExec.addWorker( new ThreadUploadFirstPart( file2, key,
+                firstPartNumber, firstPartSize2 ) );
         threadExec.run();
         Assert.assertEquals( firstPartETags.size(), 2 );
 
@@ -110,10 +109,10 @@ public class UploadPart18681 extends S3TestBase {
         // get the firstPartETag
         File actFile = null;
         PartETag firstPartETag = null;
-        Set<Entry<File, PartETag>> entrySet = firstPartETags.entrySet();
-        Iterator<Map.Entry<File, PartETag>> it = entrySet.iterator();
+        Set< Entry< File, PartETag > > entrySet = firstPartETags.entrySet();
+        Iterator< Map.Entry< File, PartETag > > it = entrySet.iterator();
         while ( it.hasNext() ) {
-            Map.Entry<File, PartETag> entry = it.next();
+            Map.Entry< File, PartETag > entry = it.next();
             actFile = entry.getKey();
             firstPartETag = entry.getValue();
             if ( firstPartETag.getETag().equals( partSummary.getETag() ) ) {
@@ -123,23 +122,20 @@ public class UploadPart18681 extends S3TestBase {
         partETags.add( firstPartETag );
 
         // upload others part
-        PartETag otherPartETag = this
-                .uploadOthersPart( key, partSummary.getSize(),
-                        firstPartNumber );
+        PartETag otherPartETag = this.uploadOthersPart( key,
+                partSummary.getSize(), firstPartNumber );
         partETags.add( otherPartETag );
 
         // upload
-        PartUploadUtils
-                .completeMultipartUpload( s3Client, bucketName, key, uploadId,
-                        partETags );
+        PartUploadUtils.completeMultipartUpload( s3Client, bucketName, key,
+                uploadId, partETags );
 
         // check results
         fileId++;
-        File downloadPath = new File(
-                localPath + File.separator + "downloadFile_" + fileSize + "_"
-                        + fileId );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, downloadPath, bucketName, key );
+        File downloadPath = new File( localPath + File.separator
+                + "downloadFile_" + fileSize + "_" + fileId );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, downloadPath,
+                bucketName, key );
         String expFilePath = filePath1;
         if ( actFile == file2 ) {
             expFilePath = filePath3;
@@ -184,8 +180,8 @@ public class UploadPart18681 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
 
@@ -197,9 +193,8 @@ public class UploadPart18681 extends S3TestBase {
 
     private String createFile( int fileSize ) throws IOException {
         fileId++;
-        String filePath =
-                localPath + File.separator + "localFile_" + fileSize + "_"
-                        + fileId + ".txt";
+        String filePath = localPath + File.separator + "localFile_" + fileSize
+                + "_" + fileId + ".txt";
         TestTools.LocalFile.createFile( filePath, fileSize );
         return filePath;
     }

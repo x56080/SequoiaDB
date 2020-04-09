@@ -16,8 +16,9 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * @Description seqDB-16352: enabling bucket versioning,create multiple objects with the same name,
- *              get the object without specifying the versionId
+ * @Description seqDB-16352: enabling bucket versioning,create multiple objects
+ *              with the same name, get the object without specifying the
+ *              versionId
  * @author wuyan
  * @Date 2018.11.13
  * @version 1.00
@@ -36,12 +37,12 @@ public class GetObject16352 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -95,8 +96,8 @@ public class GetObject16352 extends S3TestBase {
         Assert.assertEquals( etag, TestTools.getMD5( updatePath ) );
 
         // chect the content
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
     }
 }

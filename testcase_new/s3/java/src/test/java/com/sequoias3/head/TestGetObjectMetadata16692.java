@@ -46,17 +46,16 @@ public class TestGetObjectMetadata16692 extends S3TestBase {
         s3Client.createBucket( bucketName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
         s3Client.putObject( bucketName, keyName, content + "v1" );
-        PutObjectResult resultV2 = s3Client
-                .putObject( bucketName, keyName, content + "v2" );
-        PutObjectResult resultV3 = s3Client
-                .putObject( bucketName, keyName, content + "v3" );
+        PutObjectResult resultV2 = s3Client.putObject( bucketName, keyName,
+                content + "v2" );
+        PutObjectResult resultV3 = s3Client.putObject( bucketName, keyName,
+                content + "v3" );
         String etagV2 = resultV2.getETag();
         String etagV3 = resultV3.getETag();
         String versionidV3 = resultV3.getVersionId();
 
-        HttpHead request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + bucketName + "/" + keyName
-                        + "?versionId=" + versionidV3 );
+        HttpHead request = new HttpHead( S3TestBase.s3ClientUrl + "/"
+                + bucketName + "/" + keyName + "?versionId=" + versionidV3 );
         request.setHeader( "Authorization",
                 "Credential=" + accessKeys[ 0 ] + "/" );
 
@@ -71,9 +70,8 @@ public class TestGetObjectMetadata16692 extends S3TestBase {
                     -1 );
         }
 
-        request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + bucketName + "/" + keyName
-                        + "?versionId=" + versionidV3 );
+        request = new HttpHead( S3TestBase.s3ClientUrl + "/" + bucketName + "/"
+                + keyName + "?versionId=" + versionidV3 );
         request.setHeader( "Authorization",
                 "Credential=" + accessKeys[ 0 ] + "/" );
         // 设置Etag值不为当前版本对象的Etag值（v2版本）

@@ -46,12 +46,12 @@ public class TestChunkTransferDecode18597 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
         updatePath2 = localPath + File.separator + "localFile_" + updateSize2
                 + ".txt";
 
@@ -70,20 +70,20 @@ public class TestChunkTransferDecode18597 extends S3TestBase {
     private void testReputBacket() throws Exception {
         s3Client.createBucket( bucketName );
         s3Client.putObject( bucketName, keyName, new File( filePath ) );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
 
         // update object
         s3Client.putObject( bucketName, keyName, new File( updatePath ) );
-        downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath ) );
 
         // update object
         s3Client.putObject( bucketName, keyName, new File( updatePath2 ) );
-        downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( updatePath2 ) );
 
         runSuccess = true;
@@ -116,7 +116,8 @@ public class TestChunkTransferDecode18597 extends S3TestBase {
                 .withEndpointConfiguration( endpointConfiguration )
                 .withClientConfiguration( config )
                 .withChunkedEncodingDisabled( false )
-                .withPathStyleAccessEnabled( true ).withCredentials(
+                .withPathStyleAccessEnabled( true )
+                .withCredentials(
                         new AWSStaticCredentialsProvider( credentials ) )
                 .build();
         return s3Client;

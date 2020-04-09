@@ -42,32 +42,31 @@ public class ListMultipartUploads18758 extends S3TestBase {
 
     @Test
     public void listMultipartUploads() {
-        String uploadIdA1 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameA );
-        String uploadIdA2 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameA );
-        String uploadIdB1 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameB );
-        String uploadIdB2 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameB );
-        String uploadIdC1 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameC );
-        String uploadIdC2 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyNameC );
+        String uploadIdA1 = PartUploadUtils.initPartUpload( s3Client,
+                bucketName, keyNameA );
+        String uploadIdA2 = PartUploadUtils.initPartUpload( s3Client,
+                bucketName, keyNameA );
+        String uploadIdB1 = PartUploadUtils.initPartUpload( s3Client,
+                bucketName, keyNameB );
+        String uploadIdB2 = PartUploadUtils.initPartUpload( s3Client,
+                bucketName, keyNameB );
+        String uploadIdC1 = PartUploadUtils.initPartUpload( s3Client,
+                bucketName, keyNameC );
+        String uploadIdC2 = PartUploadUtils.initPartUpload( s3Client,
+                bucketName, keyNameC );
         int maxUploads = 3;
         // first query
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
                 bucketName ).withMaxUploads( maxUploads );
         MultipartUploadListing result1 = s3Client
                 .listMultipartUploads( request );
-        MultiValueMap<String, String> expUpload1 = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expUpload1 = new LinkedMultiValueMap< String, String >();
         expUpload1.add( keyNameA, uploadIdA1 );
         expUpload1.add( keyNameA, uploadIdA2 );
         expUpload1.add( keyNameB, uploadIdB1 );
-        List<String> expCommonPrefixes = new ArrayList<>();
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result1, expCommonPrefixes,
-                        expUpload1 );
+        List< String > expCommonPrefixes = new ArrayList<>();
+        PartUploadUtils.checkListMultipartUploadsResults( result1,
+                expCommonPrefixes, expUpload1 );
 
         // abortMultipartUpload by the nextKeyMarker(eg:keyNameB:uploadIdB1)
         String nextKeyMarker = result1.getNextKeyMarker();
@@ -82,13 +81,12 @@ public class ListMultipartUploads18758 extends S3TestBase {
                 .withUploadIdMarker( nextUploadId );
         MultipartUploadListing result2 = s3Client
                 .listMultipartUploads( request );
-        MultiValueMap<String, String> expUpload2 = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expUpload2 = new LinkedMultiValueMap< String, String >();
         expUpload2.add( keyNameB, uploadIdB2 );
         expUpload2.add( keyNameC, uploadIdC1 );
         expUpload2.add( keyNameC, uploadIdC2 );
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result2, expCommonPrefixes,
-                        expUpload2 );
+        PartUploadUtils.checkListMultipartUploadsResults( result2,
+                expCommonPrefixes, expUpload2 );
         Assert.assertFalse( result2.isTruncated(),
                 "the list query should be finsh!" );
 

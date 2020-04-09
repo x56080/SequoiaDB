@@ -33,10 +33,10 @@ public class UpdateDelimiter18095 extends S3TestBase {
             DelimiterUtils.getDelimiter( bucketName );
             Assert.fail( "get delimiter should be fail!" );
         } catch ( AmazonS3Exception e ) {
-            if ( e.getStatusCode() != 404 || !e.getErrorCode()
-                    .contains( "NoSuchBucket" ) ) {
-                Assert.fail( "get delimiter fail! e=" + e.getErrorCode() + e
-                        .getStatusCode() );
+            if ( e.getStatusCode() != 404
+                    || !e.getErrorCode().contains( "NoSuchBucket" ) ) {
+                Assert.fail( "get delimiter fail! e=" + e.getErrorCode()
+                        + e.getStatusCode() );
             }
         }
     }

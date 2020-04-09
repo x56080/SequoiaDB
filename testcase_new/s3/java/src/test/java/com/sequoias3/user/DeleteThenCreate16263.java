@@ -54,9 +54,8 @@ public class DeleteThenCreate16263 extends S3TestBase {
         checkDelete();
 
         // create same user,the type is different
-        JSONObject userJSON = UserUtils
-                .createUser( userName, UserCommDefind.normal,
-                        UserUtils.accessKeyId );
+        JSONObject userJSON = UserUtils.createUser( userName,
+                UserCommDefind.normal, UserUtils.accessKeyId );
         JSONObject json = userJSON.getJSONObject( UserCommDefind.accessKeys );
         String accessKeyID = json.getString( UserCommDefind.accessKeyID );
         String secretAccessKey = json
@@ -98,7 +97,7 @@ public class DeleteThenCreate16263 extends S3TestBase {
             s3Client.createBucket( bucketName.toLowerCase() );
 
             // check
-            List<Bucket> buckets = s3Client.listBuckets();
+            List< Bucket > buckets = s3Client.listBuckets();
             Assert.assertEquals( buckets.size(), 1, " only one bucket" );
             Bucket expbucket = buckets.get( 0 );
             String actOwner = expbucket.getOwner().getDisplayName();

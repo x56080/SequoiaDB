@@ -42,10 +42,10 @@ public class CreateRegionWithDiffConf17331 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -65,14 +65,14 @@ public class CreateRegionWithDiffConf17331 extends S3TestBase {
         PutRegionWithDynamic putRegionWithDynamic = new PutRegionWithDynamic();
         putRegionWithDynamic.start();
         putRegionWithSpecifyCSCL.start();
-        if ( putRegionWithDynamic.isSuccess() && !putRegionWithSpecifyCSCL
-                .isSuccess() ) {
+        if ( putRegionWithDynamic.isSuccess()
+                && !putRegionWithSpecifyCSCL.isSuccess() ) {
             AmazonS3Exception e = ( AmazonS3Exception ) ( putRegionWithSpecifyCSCL
                     .getExceptions().get( 0 ) );
             // 409:ConflictRegionType
             if ( e.getStatusCode() != 409 ) {
-                Assert.fail( "put region with specifycscl fail:" + e
-                        .getErrorMessage() + "/n e:" + e.getStatusCode() );
+                Assert.fail( "put region with specifycscl fail:"
+                        + e.getErrorMessage() + "/n e:" + e.getStatusCode() );
             }
             RegionUtils.checkRegionWithShardingType( regionName, shardingType,
                     shardingType );
@@ -82,9 +82,8 @@ public class CreateRegionWithDiffConf17331 extends S3TestBase {
                     .getExceptions().get( 0 ) );
             // 409:ConflictRegionType
             if ( e.getStatusCode() != 409 ) {
-                Assert.fail(
-                        "put region with dynamic fail:" + e.getErrorMessage()
-                                + "/n e:" + e.getStatusCode() );
+                Assert.fail( "put region with dynamic fail:"
+                        + e.getErrorMessage() + "/n e:" + e.getStatusCode() );
             }
             RegionUtils.checkRegionWithLocation( regionName, metaLocation,
                     metaHisLocation, dataLocation );
@@ -115,8 +114,8 @@ public class CreateRegionWithDiffConf17331 extends S3TestBase {
     private void createObjectAndCheckResult() throws Exception {
         s3Client.createBucket( bucketName, regionName );
         s3Client.putObject( bucketName, key, new File( filePath ) );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

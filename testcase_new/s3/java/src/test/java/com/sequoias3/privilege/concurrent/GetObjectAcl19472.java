@@ -40,10 +40,10 @@ public class GetObjectAcl19472 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -88,7 +88,6 @@ public class GetObjectAcl19472 extends S3TestBase {
 
     private class ThreadGetObjectAcl {
         private AmazonS3 s3 = CommLib.buildS3Client();
-        ;
 
         @ExecuteOrder(step = 1)
         private void getObjectAcl() {

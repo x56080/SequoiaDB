@@ -38,10 +38,10 @@ public class ListObjectsWithDelimiter18122 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -67,8 +67,8 @@ public class ListObjectsWithDelimiter18122 extends S3TestBase {
                 .withStartAfter( startAfter ).withPrefix( "dir1" )
                 .withDelimiter( delimiter );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         // misMatchObject, the list size is 0
         Assert.assertEquals( objects.size(), 0 );
         Assert.assertEquals( commonPrefixes.size(), 0 );

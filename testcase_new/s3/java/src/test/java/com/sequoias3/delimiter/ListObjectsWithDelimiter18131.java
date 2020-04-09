@@ -33,7 +33,7 @@ public class ListObjectsWithDelimiter18131 extends S3TestBase {
             "dir1/dir2/test18131_2", "dir/aa/test18131_3", "test18131_4" };
     private String delimiter = "test";
     private int maxkeys = 2;
-    private List<String> expCommonprefixes = new ArrayList<String>();
+    private List< String > expCommonprefixes = new ArrayList< String >();
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
 
@@ -54,10 +54,10 @@ public class ListObjectsWithDelimiter18131 extends S3TestBase {
         DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
 
-        expCommonprefixes = ObjectUtils
-                .getCommPrefixes( objectNames, "", delimiter );
+        expCommonprefixes = ObjectUtils.getCommPrefixes( objectNames, "",
+                delimiter );
         Collections.sort( expCommonprefixes );
-        List<String> commprefixesResult = new ArrayList<>();
+        List< String > commprefixesResult = new ArrayList<>();
         ListObjectsV2Request req = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withDelimiter( delimiter )
                 .withMaxKeys( maxkeys );
@@ -79,14 +79,14 @@ public class ListObjectsWithDelimiter18131 extends S3TestBase {
         ListObjectsV2Result result2 = s3Client.listObjectsV2( req2 );
         commprefixesResult.addAll( result2.getCommonPrefixes() );
 
-        List<String> contentsResult = new ArrayList<>();
-        List<S3ObjectSummary> contents = result.getObjectSummaries();
+        List< String > contentsResult = new ArrayList<>();
+        List< S3ObjectSummary > contents = result.getObjectSummaries();
         for ( S3ObjectSummary content : contents ) {
             contentsResult.add( content.getKey() );
         }
 
-        List<String> expContents = ObjectUtils
-                .getKeys( objectNames, "", delimiter );
+        List< String > expContents = ObjectUtils.getKeys( objectNames, "",
+                delimiter );
 
         // check result
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult,

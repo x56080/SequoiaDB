@@ -33,10 +33,10 @@ public class TestResidualData extends S3TestBase {
         // 打印残留信息前等待一分钟（s3后台清理频率为1次/分钟）
         Thread.sleep( 60 * 1024 );
         db = new Sequoiadb( S3TestBase.coordUrl, "", "" );
-        residualdataFilePath =
-                S3TestBase.workDir + File.separator + "residualdata.log";
-        residualDirDataFilePath =
-                S3TestBase.workDir + File.separator + "residualDirData.log";
+        residualdataFilePath = S3TestBase.workDir + File.separator
+                + "residualdata.log";
+        residualDirDataFilePath = S3TestBase.workDir + File.separator
+                + "residualDirData.log";
         TestTools.LocalFile.createFile( residualdataFilePath );
         TestTools.LocalFile.createFile( residualDirDataFilePath );
     }
@@ -48,7 +48,7 @@ public class TestResidualData extends S3TestBase {
         List< String > s3DataCSNames = new ArrayList<>();
 
         csNames = db.getCollectionSpaceNames();
-        //get s3 tables
+        // get s3 tables
         for ( String csName : csNames ) {
             if ( csName.startsWith( "S3_" ) ) {
                 if ( csName.contains( "Meta" ) ) {
@@ -59,7 +59,7 @@ public class TestResidualData extends S3TestBase {
             }
         }
 
-        // residual meta data and lod  write to local file
+        // residual meta data and lod write to local file
         for ( String csName : s3CSNames ) {
             CollectionSpace cs = db.getCollectionSpace( csName );
             List< DBCollection > clList = new ArrayList< DBCollection >();
@@ -69,8 +69,8 @@ public class TestResidualData extends S3TestBase {
                 // S3_SYS_Meta
                 // .S3_IDGenerator为ID生成表，属于s3内部表，不需要打印和校验，S3_SYS_Meta
                 // .S3_ObjectDir目录表单独校验打印
-                if ( !clname.equals( "S3_IDGenerator" ) && !clname
-                        .equals( "S3_ObjectDir" ) ) {
+                if ( !clname.equals( "S3_IDGenerator" )
+                        && !clname.equals( "S3_ObjectDir" ) ) {
                     clList.add( cs.getCollection( clname ) );
                 }
             }
@@ -78,7 +78,7 @@ public class TestResidualData extends S3TestBase {
             residualObjectDirDataWriteToLocalFile( cs );
         }
 
-        // residual meta dir  write to local file
+        // residual meta dir write to local file
         for ( String csName : s3DataCSNames ) {
             CollectionSpace cs = db.getCollectionSpace( csName );
             List< DBCollection > clList = new ArrayList< DBCollection >();
@@ -89,7 +89,7 @@ public class TestResidualData extends S3TestBase {
             }
             residualDataWriteToLocalFile( cs, clList );
         }
-        //scp to s3 host
+        // scp to s3 host
         residualFileScpToS3Host();
     }
 
@@ -98,31 +98,31 @@ public class TestResidualData extends S3TestBase {
         DBCursor cursor = null;
         SimpleDateFormat sdf = new SimpleDateFormat( "yyyy" );
         Date date = new Date();
-        String s3SysDataRegionSpaceName =
-                "S3_SYS_Data_" + sdf.format( date );
+        String s3SysDataRegionSpaceName = "S3_SYS_Data_" + sdf.format( date );
         FileOutputStream fileOutputStream = new FileOutputStream(
                 new File( residualdataFilePath ), true );
         try {
             for ( DBCollection cl : clList ) {
                 cursor = cl.query();
-                String head =
-                        "===============begin print " + cs.getName() + "." + cl
-                                .getName() + " data============\n";
+                String head = "===============begin print " + cs.getName() + "."
+                        + cl.getName() + " data============\n";
                 fileOutputStream.write( head.getBytes() );
                 while ( cursor.hasNext() ) {
                     if ( cursor.getNext().containsField( "Name" ) ) {
                         if ( !cursor.getCurrent().get( "Name" )
-                                .equals( S3TestBase.s3UserName ) && !cursor
-                                .getCurrent().get( "Name" )
-                                .equals( S3TestBase.bucketName ) && !cursor
-                                .getCurrent().get( "Name" )
-                                .equals( S3TestBase.enableVerBucketName )
+                                .equals( S3TestBase.s3UserName )
+                                && !cursor.getCurrent().get( "Name" )
+                                        .equals( S3TestBase.bucketName )
+                                && !cursor.getCurrent().get( "Name" ).equals(
+                                        S3TestBase.enableVerBucketName )
                                 && !( String
-                                .valueOf( cursor.getCurrent().get( "Name"
-                                ) ).startsWith( s3SysDataRegionSpaceName ) ) ) {
-                            fileOutputStream
-                                    .write( ( cursor.getCurrent().toString()
-                                            + "\n" ).getBytes() );
+                                        .valueOf( cursor.getCurrent()
+                                                .get( "Name" ) )
+                                        .startsWith(
+                                                s3SysDataRegionSpaceName ) ) ) {
+                            fileOutputStream.write(
+                                    ( cursor.getCurrent().toString() + "\n" )
+                                            .getBytes() );
                             errorCount++;
                         } else if ( cursor.getCurrent().get( "Name" )
                                 .equals( S3TestBase.bucketName ) ) {
@@ -134,14 +134,14 @@ public class TestResidualData extends S3TestBase {
                                     .toString();
                         }
                     } else {
-                        fileOutputStream.write( ( cursor.getCurrent().toString()
-                                + "\n" ).getBytes() );
+                        fileOutputStream.write(
+                                ( cursor.getCurrent().toString() + "\n" )
+                                        .getBytes() );
                         errorCount++;
                     }
                 }
-                String tail =
-                        "===============end print " + cs.getName() + "." + cl
-                                .getName() + " data==============\n";
+                String tail = "===============end print " + cs.getName() + "."
+                        + cl.getName() + " data==============\n";
                 fileOutputStream.write( tail.getBytes() );
             }
         } finally {
@@ -161,9 +161,8 @@ public class TestResidualData extends S3TestBase {
                 new File( residualdataFilePath ), true );
         try {
             for ( DBCollection cl : clList ) {
-                String head =
-                        "\n===============begin print " + cs.getName() + "."
-                                + cl.getName() + " data============\n";
+                String head = "\n===============begin print " + cs.getName()
+                        + "." + cl.getName() + " data============\n";
                 fileOutputStream.write( head.getBytes() );
                 cursor = cl.listLobs();
                 if ( cursor.hasNext() ) {
@@ -174,9 +173,8 @@ public class TestResidualData extends S3TestBase {
                         errorCount++;
                     }
                 }
-                String tail =
-                        "===============end print " + cs.getName() + "." + cl
-                                .getName() + " data==============\n";
+                String tail = "===============end print " + cs.getName() + "."
+                        + cl.getName() + " data==============\n";
                 fileOutputStream.write( tail.getBytes() );
             }
         } catch ( BaseException e ) {
@@ -200,24 +198,24 @@ public class TestResidualData extends S3TestBase {
         FileOutputStream fileOutputStream = new FileOutputStream(
                 new File( residualDirDataFilePath ), true );
         try {
-            String head =
-                    "===============begin print " + cs.getName() + "." + cl
-                            .getName() + " data============\n";
+            String head = "===============begin print " + cs.getName() + "."
+                    + cl.getName() + " data============\n";
             fileOutputStream.write( head.getBytes() );
             cursor = cl.query();
             if ( cursor.hasNext() ) {
                 while ( cursor.hasNext() ) {
                     if ( !cursor.getNext().get( "BucketId" ).equals( bucketId )
                             && !cursor.getCurrent().get( "BucketId" )
-                            .equals( enabledBucketId ) ) {
-                        fileOutputStream.write( ( cursor.getCurrent().toString()
-                                + "\n" ).getBytes() );
+                                    .equals( enabledBucketId ) ) {
+                        fileOutputStream.write(
+                                ( cursor.getCurrent().toString() + "\n" )
+                                        .getBytes() );
                         errorCount++;
                     }
                 }
             }
-            String tail = "===============end print " + cs.getName() + "." + cl
-                    .getName() + " data==============\n";
+            String tail = "===============end print " + cs.getName() + "."
+                    + cl.getName() + " data==============\n";
             fileOutputStream.write( tail.getBytes() );
         } finally {
             if ( cursor != null ) {
@@ -245,9 +243,8 @@ public class TestResidualData extends S3TestBase {
             ssh = new Ssh( s3HostName, remoteuser, remotepasswd );
             ssh.scpTo( localFilePath, remotePath );
             if ( ssh.getExitStatus() != 0 ) {
-                throw new Exception(
-                        "exec ssh.scpTo(" + localFilePath + ", " + remotePath
-                                + "); failed, stout= " + ssh.getStdout() );
+                throw new Exception( "exec ssh.scpTo(" + localFilePath + ", "
+                        + remotePath + "); failed, stout= " + ssh.getStdout() );
             }
         } catch ( Exception e ) {
             e.printStackTrace();
@@ -261,7 +258,7 @@ public class TestResidualData extends S3TestBase {
 
     @AfterClass
     private void tearDown() throws Exception {
-        //delete local file
+        // delete local file
         TestTools.LocalFile.removeFile( residualdataFilePath );
         TestTools.LocalFile.removeFile( residualDirDataFilePath );
         if ( db != null ) {

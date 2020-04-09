@@ -55,12 +55,10 @@ public class DeleteNormalUser16261 extends S3TestBase {
     @Test
     private void test() {
         // create user
-        JSONObject userJSON1 = UserUtils
-                .createUser( username1, UserCommDefind.normal,
-                        UserUtils.accessKeyId );
-        JSONObject userJSON2 = UserUtils
-                .createUser( username2, UserCommDefind.admin,
-                        UserUtils.accessKeyId );
+        JSONObject userJSON1 = UserUtils.createUser( username1,
+                UserCommDefind.normal, UserUtils.accessKeyId );
+        JSONObject userJSON2 = UserUtils.createUser( username2,
+                UserCommDefind.admin, UserUtils.accessKeyId );
 
         // get the accessKeyID and secretAccessKey from userJSON
         JSONObject json1 = userJSON1.getJSONObject( UserCommDefind.accessKeys );
@@ -137,7 +135,7 @@ public class DeleteNormalUser16261 extends S3TestBase {
         try {
             s3Client = CommLib.buildS3Client( accessKeyId, secretAccessKey );
             // create one bucket,check the bucket name and owner name
-            List<Bucket> buckets = s3Client.listBuckets();
+            List< Bucket > buckets = s3Client.listBuckets();
             Assert.assertEquals( buckets.size(), bucketNum,
                     "buckets = " + buckets.toString() );
             for ( int i = 0; i < bucketNum; i++ ) {

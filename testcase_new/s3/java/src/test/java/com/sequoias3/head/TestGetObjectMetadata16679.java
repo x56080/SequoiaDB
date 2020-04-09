@@ -50,12 +50,12 @@ public class TestGetObjectMetadata16679 extends S3TestBase {
     private void testGetObjectMetadata() throws Exception {
         s3Client.createBucket( bucketName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
-        PutObjectResult resultV1 = s3Client
-                .putObject( bucketName, keyName, content + "v1" );
+        PutObjectResult resultV1 = s3Client.putObject( bucketName, keyName,
+                content + "v1" );
 
         Date date1 = new Date();
-        PutObjectResult resultV2 = s3Client
-                .putObject( bucketName, keyName, content + "v2" );
+        PutObjectResult resultV2 = s3Client.putObject( bucketName, keyName,
+                content + "v2" );
         Date date2 = new Date();
         String expVersionId = resultV2.getVersionId();
         String etagV1 = resultV1.getETag();
@@ -94,10 +94,10 @@ public class TestGetObjectMetadata16679 extends S3TestBase {
         // 校验对象lastModified时间在[date1, date2]范围内，只精确到秒，忽略毫秒
         if ( actDate.getTime() < ( date1.getTime() / 1000 ) * 1000
                 || actDate.getTime() > ( date2.getTime() / 1000 ) * 1000 ) {
-            Assert.fail( "lastmodified is wrong!  actDate is : " + HeadUtils
-                    .getGMTDate( actDate ) + ", date1 is :" + HeadUtils
-                    .getGMTDate( date1 ) + ", date2 is : " + HeadUtils
-                    .getGMTDate( date2 ) );
+            Assert.fail( "lastmodified is wrong!  actDate is : "
+                    + HeadUtils.getGMTDate( actDate ) + ", date1 is :"
+                    + HeadUtils.getGMTDate( date1 ) + ", date2 is : "
+                    + HeadUtils.getGMTDate( date2 ) );
         }
         runSuccess = true;
     }

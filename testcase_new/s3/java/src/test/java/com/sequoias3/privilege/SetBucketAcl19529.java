@@ -34,10 +34,10 @@ public class SetBucketAcl19529 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -60,8 +60,8 @@ public class SetBucketAcl19529 extends S3TestBase {
 
         // 检查配置结果
         Grant[] expGrant = null;
-        PrivilegeUtils
-                .checkSetBucketAclResult( s3Client, bucketName, expGrant );
+        PrivilegeUtils.checkSetBucketAclResult( s3Client, bucketName,
+                expGrant );
 
         // 配置对象acl为空
         AccessControlList objectAcl = new AccessControlList();

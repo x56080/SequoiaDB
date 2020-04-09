@@ -65,10 +65,10 @@ public class ListVersions18155 extends S3TestBase {
     @Test
     private void testListVersions() throws Exception {
         // first query
-        List<String> matchPrefixList = new ArrayList<>();
+        List< String > matchPrefixList = new ArrayList<>();
         matchPrefixList.add( "dir1/dir2/dir3/test?" );
         matchPrefixList.add( "dir1/dir2/aa?" );
-        MultiValueMap<String, String> expVersions = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersions = new LinkedMultiValueMap< String, String >();
         // expContent:"dir1/atest2_18155.png",the versionId is:2,1,0
         for ( int i = versionNum - 1; i >= 0; i-- ) {
             expVersions.add( keyNames[ 2 ], String.valueOf( i ) );
@@ -77,24 +77,24 @@ public class ListVersions18155 extends S3TestBase {
                 matchPrefixList, expVersions, true );
 
         // second query
-        MultiValueMap<String, String> expVersions1 = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersions1 = new LinkedMultiValueMap< String, String >();
         // expContent:"dir1/test10_18155",the versionId
         // is:2,1,0;"dir1/test5_18155",the versionId is:2
         for ( int i = versionNum - 1; i >= 0; i-- ) {
             expVersions1.add( keyNames[ 10 ], String.valueOf( i ) );
         }
         expVersions1.add( keyNames[ 5 ], String.valueOf( 2 ) );
-        List<String> matchPrefixList1 = new ArrayList<>();
+        List< String > matchPrefixList1 = new ArrayList<>();
         matchPrefixList1.add( "dir1/dir2/xx?" );
         VersionListing vsList1 = listVersionWithContentsAndCheckResult( vsList,
                 matchPrefixList1, expVersions1, true );
 
         // third query
-        MultiValueMap<String, String> expVersions2 = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expVersions2 = new LinkedMultiValueMap< String, String >();
         // expContent:"dir1/test5_18155",the versionId is:1,0
         expVersions2.add( keyNames[ 5 ], String.valueOf( 1 ) );
         expVersions2.add( keyNames[ 5 ], String.valueOf( 0 ) );
-        List<String> matchPrefixList2 = new ArrayList<>();
+        List< String > matchPrefixList2 = new ArrayList<>();
         matchPrefixList2.add( "dir1/test?" );
 
         listVersionWithContentsAndCheckResult( vsList1, matchPrefixList2,
@@ -117,8 +117,8 @@ public class ListVersions18155 extends S3TestBase {
     }
 
     private VersionListing listVersionWithContentsAndCheckResult(
-            VersionListing vsList, List<String> expCommonPrefixes,
-            MultiValueMap<String, String> expVersions, boolean isTruncate ) {
+            VersionListing vsList, List< String > expCommonPrefixes,
+            MultiValueMap< String, String > expVersions, boolean isTruncate ) {
         String keyMarker = keyNames[ 1 ];
         String versionIdMarker = "2";
         if ( vsList != null ) {
@@ -126,18 +126,17 @@ public class ListVersions18155 extends S3TestBase {
             versionIdMarker = vsList.getNextVersionIdMarker();
         }
 
-        VersionListing vsList1 = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withKeyMarker( keyMarker )
+        VersionListing vsList1 = s3Client
+                .listVersions( new ListVersionsRequest()
+                        .withBucketName( bucketName ).withDelimiter( delimiter )
+                        .withPrefix( prefix ).withKeyMarker( keyMarker )
                         .withVersionIdMarker( versionIdMarker )
                         .withMaxResults( maxKeys ) );
 
-        Assert.assertEquals( vsList1.isTruncated(), isTruncate,
-                "keyMarker:" + keyMarker
-                        + "  list.isTruncated() is unexpected!" );
-        ObjectUtils
-                .checkListVSResults( vsList1, expCommonPrefixes, expVersions );
+        Assert.assertEquals( vsList1.isTruncated(), isTruncate, "keyMarker:"
+                + keyMarker + "  list.isTruncated() is unexpected!" );
+        ObjectUtils.checkListVSResults( vsList1, expCommonPrefixes,
+                expVersions );
 
         return vsList1;
 

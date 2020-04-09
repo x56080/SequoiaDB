@@ -45,8 +45,8 @@ public class ListVersionsWithDiffConds16498 extends S3TestBase {
     private String updatePath = null;
     private String delimiter = "_";
     private String prefix = "/dir-1/prefix/test16498";
-    private List<String> matchPrefixKeyList = new ArrayList<>();
-    private List<String> keyList = new ArrayList<>();
+    private List< String > matchPrefixKeyList = new ArrayList<>();
+    private List< String > keyList = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -54,12 +54,12 @@ public class ListVersionsWithDiffConds16498 extends S3TestBase {
         acessKeys = UserUtils.createUser( userName, roleName );
         s3Client = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
 
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + updateSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        updatePath = localPath + File.separator + "localFile_" + updateSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -102,14 +102,14 @@ public class ListVersionsWithDiffConds16498 extends S3TestBase {
         }
     }
 
-    private List<String> listVersionsWithConds( AmazonS3 s3Client,
-            List<String> actVersionKeys, String prefix, String delimiter ) {
+    private List< String > listVersionsWithConds( AmazonS3 s3Client,
+            List< String > actVersionKeys, String prefix, String delimiter ) {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withPrefix( prefix ).withDelimiter( delimiter ) );
-        List<String> commPrefixes = versionList.getCommonPrefixes();
+        List< String > commPrefixes = versionList.getCommonPrefixes();
         while ( true ) {
-            Iterator<S3VersionSummary> versionIter = versionList
+            Iterator< S3VersionSummary > versionIter = versionList
                     .getVersionSummaries().iterator();
 
             while ( versionIter.hasNext() ) {
@@ -146,8 +146,9 @@ public class ListVersionsWithDiffConds16498 extends S3TestBase {
     }
 
     private void checkListVersionResult( AmazonS3 s3Client,
-            List<String> actVersionKeys, List<String> expVersionKeys,
-            List<String> commPrefixes, int commPrefixNums, String commPrefix ) {
+            List< String > actVersionKeys, List< String > expVersionKeys,
+            List< String > commPrefixes, int commPrefixNums,
+            String commPrefix ) {
         Assert.assertEquals( commPrefixes.size(), commPrefixNums );
         // if commonPrefiexs is null,mismatch does not check commonPrefixes
         if ( commPrefixes.size() != 0 ) {
@@ -161,13 +162,13 @@ public class ListVersionsWithDiffConds16498 extends S3TestBase {
     private class ListVersionNoMatchConds extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
-            List<String> actVersionKeys = new ArrayList<>();
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
+            List< String > actVersionKeys = new ArrayList<>();
             ;
             try {
                 // no matching prefix and delimiter
-                List<String> commPrefixes = listVersionsWithConds( s3Client,
+                List< String > commPrefixes = listVersionsWithConds( s3Client,
                         actVersionKeys, null, null );
                 checkListVersionResult( s3Client, actVersionKeys, keyList,
                         commPrefixes, 0, null );
@@ -183,11 +184,11 @@ public class ListVersionsWithDiffConds16498 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
-            List<String> actVersionKeys = new ArrayList<>();
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
+            List< String > actVersionKeys = new ArrayList<>();
             try {
-                List<String> commPrefixes = listVersionsWithConds( s3Client,
+                List< String > commPrefixes = listVersionsWithConds( s3Client,
                         actVersionKeys, prefix, null );
                 // no matching delimiter
                 checkListVersionResult( s3Client, actVersionKeys,
@@ -203,14 +204,14 @@ public class ListVersionsWithDiffConds16498 extends S3TestBase {
     private class ListVersionWithPrefixAndDelimiter extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
-            List<String> actVersionKeys = new ArrayList<>();
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
+            List< String > actVersionKeys = new ArrayList<>();
             try {
-                List<String> commPrefixes = listVersionsWithConds( s3Client,
+                List< String > commPrefixes = listVersionsWithConds( s3Client,
                         actVersionKeys, prefix, delimiter );
                 // matching delimiter displays only 1 record
-                List<String> expKeys = new ArrayList<>();
+                List< String > expKeys = new ArrayList<>();
                 checkListVersionResult( s3Client, actVersionKeys, expKeys,
                         commPrefixes, 1, prefix + delimiter );
             } finally {

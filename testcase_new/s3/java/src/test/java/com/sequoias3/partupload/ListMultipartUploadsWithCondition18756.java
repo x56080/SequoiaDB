@@ -34,7 +34,7 @@ public class ListMultipartUploadsWithCondition18756 extends S3TestBase {
     private String prefix = "dir";
     private String delimiter = "/";
     private AmazonS3 s3Client = null;
-    private MultiValueMap<String, String> uploads = new LinkedMultiValueMap<String, String>();
+    private MultiValueMap< String, String > uploads = new LinkedMultiValueMap< String, String >();
 
     @BeforeClass
     private void setUp() {
@@ -46,7 +46,7 @@ public class ListMultipartUploadsWithCondition18756 extends S3TestBase {
 
     @Test
     public void uploadParts() {
-        List<String> commonPrefixes = initPartUpload();
+        List< String > commonPrefixes = initPartUpload();
 
         // specify keyMarker and uploadIdMarker
         int keySerial = 10;
@@ -54,23 +54,23 @@ public class ListMultipartUploadsWithCondition18756 extends S3TestBase {
         Arrays.sort( keyMarkers );
         String keyMarker = keyMarkers[ keySerial ].toString();
         String uploadIdMarker = uploads.get( keyMarker ).get( 0 );
-        List<String> expCommonPrefixes = commonPrefixes
+        List< String > expCommonPrefixes = commonPrefixes
                 .subList( keySerial + 1, commonPrefixes.size() );
 
         // list multipartUploads and check list info.
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
                 bucketName ).withDelimiter( delimiter ).withPrefix( prefix )
-                .withKeyMarker( keyMarker )
-                .withUploadIdMarker( uploadIdMarker );
+                        .withKeyMarker( keyMarker )
+                        .withUploadIdMarker( uploadIdMarker );
         MultipartUploadListing result = null;
-        List<String> matchPrefixList = new ArrayList<>();
-        MultiValueMap<String, String> actUploads = new LinkedMultiValueMap<String, String>();
+        List< String > matchPrefixList = new ArrayList<>();
+        MultiValueMap< String, String > actUploads = new LinkedMultiValueMap< String, String >();
         int defaultEachListNum = 1000;
         do {
             result = s3Client.listMultipartUploads( request );
-            List<String> eachCommonPrefixes = result.getCommonPrefixes();
+            List< String > eachCommonPrefixes = result.getCommonPrefixes();
             matchPrefixList.addAll( eachCommonPrefixes );
-            List<MultipartUpload> multipartUploads = result
+            List< MultipartUpload > multipartUploads = result
                     .getMultipartUploads();
             for ( MultipartUpload multipartUpload : multipartUploads ) {
                 String keyName = multipartUpload.getKey();
@@ -83,8 +83,9 @@ public class ListMultipartUploadsWithCondition18756 extends S3TestBase {
             request.setUploadIdMarker( continuationUploadIdMarker );
 
             int eachListNums = eachCommonPrefixes.size();
-            if ( eachListNums != defaultEachListNum && eachListNums
-                    != expCommonPrefixes.size() % defaultEachListNum ) {
+            if ( eachListNums != defaultEachListNum
+                    && eachListNums != expCommonPrefixes.size()
+                            % defaultEachListNum ) {
                 Assert.fail( "list nums error! eachListNums: " + eachListNums );
             }
 
@@ -95,8 +96,8 @@ public class ListMultipartUploadsWithCondition18756 extends S3TestBase {
                 "the upload show num is 0!" );
         Assert.assertEquals( matchPrefixList, expCommonPrefixes,
                 "actCommonPrefixes = " + matchPrefixList.toString()
-                        + ",expCommonPrefixes = " + expCommonPrefixes
-                        .toString() );
+                        + ",expCommonPrefixes = "
+                        + expCommonPrefixes.toString() );
         runSuccess = true;
     }
 
@@ -111,15 +112,15 @@ public class ListMultipartUploadsWithCondition18756 extends S3TestBase {
         }
     }
 
-    private List<String> initPartUpload() {
-        List<String> expCommonPrefixes = new ArrayList<>();
+    private List< String > initPartUpload() {
+        List< String > expCommonPrefixes = new ArrayList<>();
         for ( int i = 0; i < objectNum; i++ ) {
             String subKeyName = prefix + "test" + i + delimiter + baseKeyName;
-            String uploadId1 = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, subKeyName );
+            String uploadId1 = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, subKeyName );
 
-            String uploadId2 = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, subKeyName );
+            String uploadId2 = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, subKeyName );
             expCommonPrefixes.add( prefix + "test" + i + delimiter );
             uploads.add( subKeyName, uploadId1 );
             uploads.add( subKeyName, uploadId2 );

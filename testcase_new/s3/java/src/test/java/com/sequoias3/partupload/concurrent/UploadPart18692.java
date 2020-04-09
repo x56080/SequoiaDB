@@ -23,14 +23,15 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * @Description seqDB-18692: upload multiple parts concurrently,the partNums discontinuity,the
- *              length of the parts is the same and there is no partNum of 1.
+ * @Description seqDB-18692: upload multiple parts concurrently,the partNums
+ *              discontinuity,the length of the parts is the same and there is
+ *              no partNum of 1.
  * @author wuyan
  * @Date 2019.07.29
  * @version 1.00
  */
-@Test(groups = "partlistinuseoff") public class UploadPart18692
-        extends S3TestBase {
+@Test(groups = "partlistinuseoff")
+public class UploadPart18692 extends S3TestBase {
     private boolean runSuccess = false;
     private String keyName = "/aa/object18692";
     private AmazonS3 s3Client = null;
@@ -38,15 +39,15 @@ import java.util.List;
     private String filePath = null;
     private int fileSize = 1024 * 1000;
     private int partSize = 1024 * 100;
-    private List<PartETag> partEtags = Collections
-            .synchronizedList( new ArrayList<PartETag>() );
+    private List< PartETag > partEtags = Collections
+            .synchronizedList( new ArrayList< PartETag >() );
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -56,8 +57,8 @@ import java.util.List;
     @Test
     public void uploadParts() throws Exception {
         File file = new File( filePath );
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, keyName );
 
         ThreadExecutor threadExec = new ThreadExecutor();
         int partNum = fileSize / partSize;
@@ -74,8 +75,8 @@ import java.util.List;
                 uploadId, partEtags );
 
         // check the upload file
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         runSuccess = true;
     }

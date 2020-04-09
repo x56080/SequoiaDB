@@ -45,13 +45,12 @@ public class UpdateAdminUser16254 extends S3TestBase {
     @Test
     public void test() throws JSONException {
         // create user
-        JSONObject craeteUser = UserUtils
-                .createUser( Username, UserCommDefind.admin,
-                        UserUtils.accessKeyId );
+        JSONObject craeteUser = UserUtils.createUser( Username,
+                UserCommDefind.admin, UserUtils.accessKeyId );
 
         // update user
-        JSONObject updateUser = UserUtils
-                .updateUser( Username, UserUtils.accessKeyId );
+        JSONObject updateUser = UserUtils.updateUser( Username,
+                UserUtils.accessKeyId );
 
         // create bucket for check
         checkResult( craeteUser, updateUser );
@@ -91,7 +90,7 @@ public class UpdateAdminUser16254 extends S3TestBase {
             s3Client.createBucket( bucketName.toLowerCase() );
 
             // check
-            List<Bucket> buckets = s3Client.listBuckets();
+            List< Bucket > buckets = s3Client.listBuckets();
             Assert.assertEquals( buckets.size(), 1, " only one bucket" );
             Bucket expbucket = buckets.get( 0 );
             String actOwner = expbucket.getOwner().getDisplayName();

@@ -37,15 +37,15 @@ public class CreateObject18101_B extends S3TestBase {
     private String keyName = "/aa/!aab/!atest.png";
     private String expCommPerfix = "/aa/!a";
     private String delimiter = "/!a";
-    private List<String> expEtags = new ArrayList<>();
+    private List< String > expEtags = new ArrayList<>();
     private int putSameObjTimes = 200;
     private File localPath = null;
     private AmazonS3 s3Client = null;
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         s3Client = CommLib.buildS3Client();
         CommLib.clearBucket( s3Client, bucketName );
         s3Client.createBucket( bucketName );
@@ -76,9 +76,8 @@ public class CreateObject18101_B extends S3TestBase {
         dataUpBound = new Date();
         expEtags.add( TestTools.getMD5( currContent.getBytes() ) );
 
-        S3Object obj = s3Client.getObject(
-                new GetObjectRequest( bucketName, keyName,
-                        String.valueOf( putSameObjTimes - 1 ) ) );
+        S3Object obj = s3Client.getObject( new GetObjectRequest( bucketName,
+                keyName, String.valueOf( putSameObjTimes - 1 ) ) );
         dataLowBound = obj.getObjectMetadata().getLastModified();
 
         // 此时最后一次上传对象的versionid为putSameObjTimes
@@ -108,12 +107,12 @@ public class CreateObject18101_B extends S3TestBase {
                 new GetObjectRequest( bucketName, keyName, versionId ) );
         ObjectMetadata metadata = obj.getObjectMetadata();
         Date actCreateDate = metadata.getLastModified();
-        if ( actCreateDate.before( expDateLowBound ) || actCreateDate
-                .after( expDateUpBound ) ) {
+        if ( actCreateDate.before( expDateLowBound )
+                || actCreateDate.after( expDateUpBound ) ) {
             Assert.fail( "create time is different! the actCreateDate is : "
                     + actCreateDate.toString() + ",the expDate is in :[ "
-                    + expDateLowBound.toString() + " ~ " + expDateUpBound
-                    .toString() + " ]" );
+                    + expDateLowBound.toString() + " ~ "
+                    + expDateUpBound.toString() + " ]" );
         }
 
         // 检查桶中对象版本列表信息
@@ -124,18 +123,18 @@ public class CreateObject18101_B extends S3TestBase {
                 .withBucketName( bucketName ).withEncodingType( "url" );
         request.withDelimiter( delimiter );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         Assert.assertEquals( commonPrefixes.size(), 1 );
         Assert.assertEquals( commonPrefixes.get( 0 ), expCommPerfix );
         Assert.assertEquals( result.getObjectSummaries().size(), 0 );
     }
 
     private void checkObjList() {
-        List<String> actEtags = new ArrayList<>();
+        List< String > actEtags = new ArrayList<>();
         ListVersionsRequest req = new ListVersionsRequest()
                 .withBucketName( bucketName );
         VersionListing versionList = s3Client.listVersions( req );
-        List<S3VersionSummary> objectVersionList = versionList
+        List< S3VersionSummary > objectVersionList = versionList
                 .getVersionSummaries();
         Assert.assertEquals( objectVersionList.size(), putSameObjTimes + 1 );
         for ( S3VersionSummary obj : objectVersionList ) {

@@ -44,11 +44,11 @@ public class UploadPart18773 extends S3TestBase {
     private AmazonS3 s3Client;
     private String bucketName = "bucket18773";
     private String key = "obj18773";
-    private List<String> uploadIds = new ArrayList<>();
+    private List< String > uploadIds = new ArrayList<>();
     private int uploadPartTimes = 5;
     private int firstUploadPartTimes = 2;
     private int partSize = fileSize / uploadPartTimes;
-    private List<PartETag> partETags = new ArrayList<>();
+    private List< PartETag > partETags = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -63,8 +63,8 @@ public class UploadPart18773 extends S3TestBase {
     private void test() throws Exception {
         // init part upload
         for ( int i = 0; i < uploadPartTimes; i++ ) {
-            String uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, key );
+            String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, key );
             uploadIds.add( uploadId );
         }
 
@@ -78,8 +78,8 @@ public class UploadPart18773 extends S3TestBase {
 
         // upload multi part again, and complete upload
         ThreadExecutor threadExec = new ThreadExecutor();
-        for ( int i = firstUploadPartTimes;
-              i < uploadPartTimes - firstUploadPartTimes; i++ ) {
+        for ( int i = firstUploadPartTimes; i < uploadPartTimes
+                - firstUploadPartTimes; i++ ) {
             int fileOffset = partSize * i;
             int partNumber = i + 1;
             threadExec.addWorker(
@@ -93,8 +93,8 @@ public class UploadPart18773 extends S3TestBase {
         // check complete upload part
         int len = firstUploadPartTimes * partSize;
         TestTools.LocalFile.readFile( filePath, 0, len, expFilePath );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( expFilePath ) );
 
         // check not complete upload part
@@ -102,14 +102,13 @@ public class UploadPart18773 extends S3TestBase {
                 bucketName );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
-        List<String> expCommonPrefixes = new ArrayList<>();
-        MultiValueMap<String, String> expUploads = new LinkedMultiValueMap<String, String>();
+        List< String > expCommonPrefixes = new ArrayList<>();
+        MultiValueMap< String, String > expUploads = new LinkedMultiValueMap< String, String >();
         for ( int i = 1; i < uploadIds.size(); i++ ) {
             expUploads.add( key, uploadIds.get( i ) );
         }
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes,
-                        expUploads );
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes, expUploads );
 
         runSuccess = true;
     }
@@ -137,8 +136,8 @@ public class UploadPart18773 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         filePath = this.createFile( fileSize );
@@ -147,8 +146,8 @@ public class UploadPart18773 extends S3TestBase {
     }
 
     private String createFile( int fileSize ) throws IOException {
-        String filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        String filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.createFile( filePath, fileSize );
         return filePath;
     }
@@ -189,10 +188,10 @@ public class UploadPart18773 extends S3TestBase {
 
     private class ThreadCompleteUploadPart {
         private String uploadId;
-        private List<PartETag> eTags;
+        private List< PartETag > eTags;
 
         public ThreadCompleteUploadPart( String uploadId,
-                List<PartETag> eTags ) {
+                List< PartETag > eTags ) {
             this.uploadId = uploadId;
             this.eTags = eTags;
         }
@@ -202,9 +201,8 @@ public class UploadPart18773 extends S3TestBase {
             AmazonS3 s3 = null;
             try {
                 s3 = CommLib.buildS3Client();
-                PartUploadUtils
-                        .completeMultipartUpload( s3, bucketName, key, uploadId,
-                                eTags );
+                PartUploadUtils.completeMultipartUpload( s3, bucketName, key,
+                        uploadId, eTags );
             } finally {
                 if ( s3 != null ) {
                     s3.shutdown();

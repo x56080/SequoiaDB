@@ -128,23 +128,24 @@ public class TestS3PathWithObject18593 extends S3TestBase {
                     .setRequestMethod( HttpMethod.PUT )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + UserUtils.accessKeyId
-                                    + "/" ).setRequestBody( content )
-                    .setResponseType( String.class ).exec();
+                                    + "/" )
+                    .setRequestBody( content ).setResponseType( String.class )
+                    .exec();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
         }
     }
 
     public String getObject( String bucketName, String objectName ) {
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         TestRest rest = new TestRest( addr );
         try {
             resp = rest.setApi( bucketName + "/" + objectName )
                     .setRequestMethod( HttpMethod.GET )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + UserUtils.accessKeyId
-                                    + "/" ).setResponseType( String.class )
-                    .exec();
+                                    + "/" )
+                    .setResponseType( String.class ).exec();
             return resp.getHeaders().getETag();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
@@ -158,8 +159,8 @@ public class TestS3PathWithObject18593 extends S3TestBase {
                     .setRequestMethod( HttpMethod.HEAD )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + UserUtils.accessKeyId
-                                    + "/" ).setResponseType( String.class )
-                    .exec();
+                                    + "/" )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpClientErrorException e ) {
             throw httpToAmazonHead( e );
         }
@@ -172,8 +173,8 @@ public class TestS3PathWithObject18593 extends S3TestBase {
                     .setRequestMethod( HttpMethod.DELETE )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + UserUtils.accessKeyId
-                                    + "/" ).setResponseType( String.class )
-                    .exec();
+                                    + "/" )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpClientErrorException e ) {
             throw httpToAmazonHead( e );
         }
@@ -188,24 +189,25 @@ public class TestS3PathWithObject18593 extends S3TestBase {
                     .setRequestMethod( HttpMethod.DELETE )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + UserUtils.accessKeyId
-                                    + "/" ).setResponseType( String.class )
-                    .exec();
+                                    + "/" )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpClientErrorException e ) {
             throw httpToAmazonHead( e );
         }
     }
 
-    public List<String> listOvjectV2( String bucketName ) {
+    public List< String > listOvjectV2( String bucketName ) {
         TestRest rest = new TestRest( addr );
-        ResponseEntity<?> resp;
+        ResponseEntity< ? > resp;
         Object contents = null;
-        List<String> keyNames = new ArrayList<>();
+        List< String > keyNames = new ArrayList<>();
 
         try {
             resp = rest.setApi( bucketName + "/?list-type=2" )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + UserUtils.accessKeyId
-                                    + "/" ).setRequestMethod( HttpMethod.GET )
+                                    + "/" )
+                    .setRequestMethod( HttpMethod.GET )
                     .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject resultJson = XML.toJSONObject( xmlBody );
@@ -239,10 +241,11 @@ public class TestS3PathWithObject18593 extends S3TestBase {
         TestRest rest = new TestRest( addr );
         Object version = new JSONArray();
         try {
-            ResponseEntity<?> resp = rest.setApi( bucketName + "/?versions" )
+            ResponseEntity< ? > resp = rest.setApi( bucketName + "/?versions" )
                     .setRequestHeaders( UserCommDefind.authorization,
                             UserCommDefind.authValPre + UserUtils.accessKeyId
-                                    + "/" ).setRequestMethod( HttpMethod.GET )
+                                    + "/" )
+                    .setRequestMethod( HttpMethod.GET )
                     .setResponseType( String.class ).exec();
 
             String body = resp.getBody().toString();

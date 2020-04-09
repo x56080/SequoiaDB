@@ -42,10 +42,10 @@ public class CreateObjectsInSameRegion17336 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -63,7 +63,7 @@ public class CreateObjectsInSameRegion17336 extends S3TestBase {
 
     @Test
     public void testCreateRegion() throws Exception {
-        List<CreateObjectThread> createObjs = new ArrayList<>( objectNums );
+        List< CreateObjectThread > createObjs = new ArrayList<>( objectNums );
 
         for ( int i = 0; i < objectNums; i++ ) {
             String key = keyName + "_" + i;
@@ -102,9 +102,8 @@ public class CreateObjectsInSameRegion17336 extends S3TestBase {
         Assert.assertEquals( object.getKey(), keyName );
 
         S3ObjectInputStream s3is = object.getObjectContent();
-        String downloadPath = TestTools.LocalFile
-                .initDownloadPath( localPath, TestTools.getMethodName(),
-                        Thread.currentThread().getId() );
+        String downloadPath = TestTools.LocalFile.initDownloadPath( localPath,
+                TestTools.getMethodName(), Thread.currentThread().getId() );
         ObjectUtils.inputStream2File( s3is, downloadPath );
         s3is.close();
         String downfileMd5 = TestTools.getMD5( downloadPath );

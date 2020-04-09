@@ -78,13 +78,13 @@ public class ListObjects18121 extends S3TestBase {
         request.withDelimiter( delimiter ).withPrefix( prefix )
                 .withStartAfter( startAfter );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         Assert.assertEquals( commonPrefixes.size(), matchKeySize,
                 "actPrefixes:" + commonPrefixes.toString() );
 
         // objects do not match delimiter are displayed in contents,num is 0
-        List<String> actContentsList = new ArrayList<>();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > actContentsList = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             actContentsList.add( key );

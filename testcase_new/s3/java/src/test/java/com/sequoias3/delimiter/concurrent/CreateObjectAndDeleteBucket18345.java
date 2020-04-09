@@ -37,7 +37,7 @@ public class CreateObjectAndDeleteBucket18345 extends S3TestBase {
     private String delimiter = "?";
     private int objectNum = 10;
     private AmazonS3 s3Client = null;
-    private List<String> keyList = new ArrayList<>();
+    private List< String > keyList = new ArrayList<>();
 
     @BeforeClass
     private void setUp() {
@@ -91,11 +91,11 @@ public class CreateObjectAndDeleteBucket18345 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList )
+    private void listObjectsAndCheckResult( List< String > keyList )
             throws IOException {
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         ListObjectsV2Result result = s3Client.listObjectsV2( bucketName );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             queryKeyList.add( key );
@@ -124,9 +124,8 @@ public class CreateObjectAndDeleteBucket18345 extends S3TestBase {
                 int errCode = e.getStatusCode();
                 // 404:NoSuchBucket
                 if ( errCode != 404 ) {
-                    Assert.fail(
-                            "create object fail! errCode:" + errCode + "," + e
-                                    .getErrorMessage() );
+                    Assert.fail( "create object fail! errCode:" + errCode + ","
+                            + e.getErrorMessage() );
                 }
             } finally {
                 if ( s3Client1 != null ) {

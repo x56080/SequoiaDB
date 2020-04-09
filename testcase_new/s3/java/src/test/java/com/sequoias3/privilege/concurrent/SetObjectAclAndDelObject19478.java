@@ -38,10 +38,10 @@ public class SetObjectAclAndDelObject19478 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -57,8 +57,9 @@ public class SetObjectAclAndDelObject19478 extends S3TestBase {
 
     @Test
     private void testSetObjectAcl() throws Exception {
-        Grant[] expGrant = { new Grant( new CanonicalGrantee( ownerId ),
-                Permission.ReadAcp ),
+        Grant[] expGrant = {
+                new Grant( new CanonicalGrantee( ownerId ),
+                        Permission.ReadAcp ),
                 new Grant( GroupGrantee.AllUsers, Permission.Read ) };
 
         ThreadExecutor threadExec = new ThreadExecutor();
@@ -92,8 +93,8 @@ public class SetObjectAclAndDelObject19478 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void setObjectAcl() {
             try {
-                PrivilegeUtils
-                        .setObjectAclByBody( s3, bucketName, keyName, grant );
+                PrivilegeUtils.setObjectAclByBody( s3, bucketName, keyName,
+                        grant );
             } catch ( AmazonS3Exception e ) {
                 if ( !e.getErrorCode().equals( "NoSuchKey" ) ) {
                     throw e;

@@ -30,17 +30,16 @@ import java.util.List;
 
 public class ListObjectsWithDelimiter18128 extends S3TestBase {
     private String bucketName = "bucket18128";
-    private List<String> keyList = new ArrayList<String>();
+    private List< String > keyList = new ArrayList< String >();
     private String keyNamePrefix[] = { "dir1?dir", "dir2?dir3/dir" };
     private String prefix[] = { "dir1?", "dir2?" };
     private String delimiter = "?";
     private String startAfter[] = { "dir1?dir10?", "dir2?dir3/dir100?" };
     private int objectNum[] = { 1500, 500 };
-    private List<String> expCommonPrefixes1 = new ArrayList<String>();
-    private List<String> expCommonPrefixes2 = new ArrayList<String>();
-    private List<String> expContents = new ArrayList<String>(
-            Arrays.asList( "dir2?test18128_1", "dir2?test18128_2",
-                    "dir2?test18128_3" ) );
+    private List< String > expCommonPrefixes1 = new ArrayList< String >();
+    private List< String > expCommonPrefixes2 = new ArrayList< String >();
+    private List< String > expContents = new ArrayList< String >( Arrays.asList(
+            "dir2?test18128_1", "dir2?test18128_2", "dir2?test18128_3" ) );
     private int objectOnceQueryNum = 1000;
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
@@ -72,12 +71,10 @@ public class ListObjectsWithDelimiter18128 extends S3TestBase {
         }
 
         String[] objectNames = new String[ keyList.size() ];
-        expCommonPrefixes1 = ObjectUtils
-                .getCommPrefixes( keyList.toArray( objectNames ), prefix[ 0 ],
-                        delimiter );
-        expCommonPrefixes2 = ObjectUtils
-                .getCommPrefixes( keyList.toArray( objectNames ), prefix[ 1 ],
-                        delimiter );
+        expCommonPrefixes1 = ObjectUtils.getCommPrefixes(
+                keyList.toArray( objectNames ), prefix[ 0 ], delimiter );
+        expCommonPrefixes2 = ObjectUtils.getCommPrefixes(
+                keyList.toArray( objectNames ), prefix[ 1 ], delimiter );
 
         Collections.sort( expCommonPrefixes1 );
         Collections.sort( expCommonPrefixes2 );
@@ -94,11 +91,11 @@ public class ListObjectsWithDelimiter18128 extends S3TestBase {
                 .withBucketName( bucketName ).withPrefix( prefix[ 0 ] )
                 .withDelimiter( delimiter ).withStartAfter( startAfter[ 0 ] );
         ListObjectsV2Result result = s3Client.listObjectsV2( req );
-        List<String> commprefixesResult = result.getCommonPrefixes();
+        List< String > commprefixesResult = result.getCommonPrefixes();
         // 取出expCommonPrefixes1从startAfter开始的1000条commprefixes记录
         int startIndex = expCommonPrefixes1.indexOf( startAfter[ 0 ] ) + 1;
-        expCommonPrefixes1 = expCommonPrefixes1
-                .subList( startIndex, startIndex + objectOnceQueryNum );
+        expCommonPrefixes1 = expCommonPrefixes1.subList( startIndex,
+                startIndex + objectOnceQueryNum );
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult,
                 expCommonPrefixes1 );
         Assert.assertEquals( result.getObjectSummaries().size(), 0 );
@@ -110,15 +107,15 @@ public class ListObjectsWithDelimiter18128 extends S3TestBase {
                 .withDelimiter( delimiter ).withStartAfter( startAfter[ 1 ] )
                 .withContinuationToken( nextContinuationToken );
         ListObjectsV2Result result2 = s3Client.listObjectsV2( req2 );
-        List<String> commprefixesResult2 = result2.getCommonPrefixes();
-        List<String> contentsResult = new ArrayList<>();
-        List<S3ObjectSummary> contents = result2.getObjectSummaries();
+        List< String > commprefixesResult2 = result2.getCommonPrefixes();
+        List< String > contentsResult = new ArrayList<>();
+        List< S3ObjectSummary > contents = result2.getObjectSummaries();
         for ( S3ObjectSummary content : contents ) {
             contentsResult.add( content.getKey() );
         }
-        expCommonPrefixes2 = expCommonPrefixes2
-                .subList( expCommonPrefixes2.indexOf( startAfter[ 1 ] ) + 1,
-                        expCommonPrefixes2.size() );
+        expCommonPrefixes2 = expCommonPrefixes2.subList(
+                expCommonPrefixes2.indexOf( startAfter[ 1 ] ) + 1,
+                expCommonPrefixes2.size() );
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult2,
                 expCommonPrefixes2 );
         Assert.assertEquals( contentsResult, expContents,

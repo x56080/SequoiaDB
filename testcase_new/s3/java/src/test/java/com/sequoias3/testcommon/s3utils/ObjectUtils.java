@@ -57,9 +57,8 @@ public class ObjectUtils extends S3TestBase {
                 versionId );
         S3Object object = s3Client.getObject( request );
         S3ObjectInputStream s3is = object.getObjectContent();
-        String downloadPath = TestTools.LocalFile
-                .initDownloadPath( localPath, TestTools.getMethodName(),
-                        Thread.currentThread().getId() );
+        String downloadPath = TestTools.LocalFile.initDownloadPath( localPath,
+                TestTools.getMethodName(), Thread.currentThread().getId() );
         inputStream2File( s3is, downloadPath );
         s3is.close();
         String getMd5 = TestTools.getMD5( downloadPath );
@@ -102,7 +101,7 @@ public class ObjectUtils extends S3TestBase {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
         while ( true ) {
-            Iterator<S3VersionSummary> versionIter = versionList
+            Iterator< S3VersionSummary > versionIter = versionList
                     .getVersionSummaries().iterator();
 
             while ( versionIter.hasNext() ) {
@@ -132,40 +131,39 @@ public class ObjectUtils extends S3TestBase {
     }
 
     public static void checkListVSResults( VersionListing vsList,
-            List<String> expCommonPrefixes,
-            MultiValueMap<String, String> expMap ) {
+            List< String > expCommonPrefixes,
+            MultiValueMap< String, String > expMap ) {
         Collections.sort( expCommonPrefixes );
-        List<String> actCommonPrefixes = vsList.getCommonPrefixes();
+        List< String > actCommonPrefixes = vsList.getCommonPrefixes();
         Assert.assertEquals( actCommonPrefixes, expCommonPrefixes,
                 "actCommonPrefixes = " + actCommonPrefixes.toString()
-                        + ",expCommonPrefixes = " + expCommonPrefixes
-                        .toString() );
-        List<S3VersionSummary> vsSummaryList = vsList.getVersionSummaries();
-        MultiValueMap<String, String> actMap = new LinkedMultiValueMap<String, String>();
+                        + ",expCommonPrefixes = "
+                        + expCommonPrefixes.toString() );
+        List< S3VersionSummary > vsSummaryList = vsList.getVersionSummaries();
+        MultiValueMap< String, String > actMap = new LinkedMultiValueMap< String, String >();
         for ( S3VersionSummary versionSummary : vsSummaryList ) {
             actMap.add( versionSummary.getKey(),
                     versionSummary.getVersionId() );
         }
-        Assert.assertEquals( actMap.size(), expMap.size(),
-                "actMap = " + actMap.toString() + ",expMap = " + expMap
-                        .toString() );
-        for ( Map.Entry<String, List<String>> entry : expMap.entrySet() ) {
+        Assert.assertEquals( actMap.size(), expMap.size(), "actMap = "
+                + actMap.toString() + ",expMap = " + expMap.toString() );
+        for ( Map.Entry< String, List< String > > entry : expMap.entrySet() ) {
             Assert.assertEquals( actMap.get( entry.getKey() ),
                     expMap.get( entry.getKey() ),
-                    "actMap = " + actMap.toString() + ",expMap = " + expMap
-                            .toString() );
+                    "actMap = " + actMap.toString() + ",expMap = "
+                            + expMap.toString() );
         }
     }
 
-    public static List<String> getCommPrefixes( String[] objectNames,
+    public static List< String > getCommPrefixes( String[] objectNames,
             String prefix, String delimiter ) {
-        List<String> commPrefixes = new ArrayList<String>();
+        List< String > commPrefixes = new ArrayList< String >();
         for ( String objectName : objectNames ) {
             if ( objectName.startsWith( prefix ) ) {
                 int end = objectName.indexOf( delimiter, prefix.length() );
                 if ( end != -1 ) {
-                    String commPrefix = objectName
-                            .substring( 0, end + delimiter.length() );
+                    String commPrefix = objectName.substring( 0,
+                            end + delimiter.length() );
                     if ( !commPrefixes.contains( commPrefix ) ) {
                         commPrefixes.add( commPrefix );
                     }
@@ -175,9 +173,9 @@ public class ObjectUtils extends S3TestBase {
         return commPrefixes;
     }
 
-    public static List<String> getKeys( String[] objectNames, String prefix,
+    public static List< String > getKeys( String[] objectNames, String prefix,
             String delimiter ) {
-        List<String> keys = new ArrayList<String>();
+        List< String > keys = new ArrayList< String >();
         for ( String objectName : objectNames ) {
             if ( objectName.startsWith( prefix ) ) {
                 int index = objectName.indexOf( delimiter, prefix.length() );
@@ -189,8 +187,8 @@ public class ObjectUtils extends S3TestBase {
         return keys;
     }
 
-    public static void checkListObjectsV2Commprefixes( List<String> resultList,
-            List<String> expresultList ) {
+    public static void checkListObjectsV2Commprefixes(
+            List< String > resultList, List< String > expresultList ) {
         Collections.sort( expresultList );
         Assert.assertEquals( resultList.size(), expresultList.size(),
                 "The expected results do not match the actual number of returns" );
@@ -201,8 +199,8 @@ public class ObjectUtils extends S3TestBase {
     }
 
     public static void checkListObjectsV2KeyName(
-            List<S3ObjectSummary> objectSummaries,
-            List<String> expresultList ) {
+            List< S3ObjectSummary > objectSummaries,
+            List< String > expresultList ) {
         Collections.sort( expresultList );
         Assert.assertEquals( objectSummaries.size(), expresultList.size(),
                 "The number of returned results is wrong" );

@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * @Description seqDB-18765: the key upload multiple parts and completeMultipartUpload concurrently
- *              by the same uploadId.
+ * @Description seqDB-18765: the key upload multiple parts and
+ *              completeMultipartUpload concurrently by the same uploadId.
  * @author wuyan
  * @Date 2019.08.06
  * @version 1.00
@@ -38,19 +38,18 @@ public class CompleteMultipartUploadBySameUploadId18765 extends S3TestBase {
     private String[] filePaths = new String[ 5 ];
     private int[] fileSizes = { 1024 * 1024 * 50, 1024 * 1024 * 29,
             1024 * 1024 * 30, 1024 * 1024 * 10, 1024 * 1024 * 40 };
-    private MultiValueMap<Long, String> uploadFileSizeAndMd5 = new LinkedMultiValueMap<Long, String>();
+    private MultiValueMap< Long, String > uploadFileSizeAndMd5 = new LinkedMultiValueMap< Long, String >();
     private int successNum = 0;
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         for ( int i = 0; i < fileSizes.length; i++ ) {
-            String filePath =
-                    localPath + File.separator + "localFile_" + fileSizes[ i ]
-                            + ".txt";
+            String filePath = localPath + File.separator + "localFile_"
+                    + fileSizes[ i ] + ".txt";
             TestTools.LocalFile.createFile( filePath, fileSizes[ i ] );
             filePaths[ i ] = filePath;
         }
@@ -63,8 +62,8 @@ public class CompleteMultipartUploadBySameUploadId18765 extends S3TestBase {
 
     @Test
     public void uploadParts() throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
         ThreadExecutor threadExec = new ThreadExecutor();
         int[] partSizes = { 1024 * 1024 * 5, 1024 * 1024 * 6, 1024 * 1024 * 6,
                 1024 * 1024 * 5, 1024 * 1024 * 10 };
@@ -98,8 +97,8 @@ public class CompleteMultipartUploadBySameUploadId18765 extends S3TestBase {
         int expSuccessNum = 1;
         Assert.assertEquals( successNum, expSuccessNum );
         // get the upload object to check content by md5
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         long size = ( long ) uploadFileSizeAndMd5.keySet().toArray()[ 0 ];
         String expFileMd5 = uploadFileSizeAndMd5.get( size ).get( 0 );
         Assert.assertEquals( downfileMd5, expFileMd5,
@@ -110,7 +109,7 @@ public class CompleteMultipartUploadBySameUploadId18765 extends S3TestBase {
         private String filePath;
         private String uploadId;
         private int partSize;
-        private List<PartETag> partEtags;
+        private List< PartETag > partEtags;
         private File file = null;
         private AmazonS3 s3Client1 = CommLib.buildS3Client();
 
@@ -123,9 +122,8 @@ public class CompleteMultipartUploadBySameUploadId18765 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void partUpload() {
             file = new File( filePath );
-            partEtags = PartUploadUtils
-                    .partUpload( s3Client1, bucketName, keyName, uploadId, file,
-                            partSize );
+            partEtags = PartUploadUtils.partUpload( s3Client1, bucketName,
+                    keyName, uploadId, file, partSize );
         }
 
         @ExecuteOrder(step = 2)

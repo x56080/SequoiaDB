@@ -48,18 +48,16 @@ public class GetUserByAdmin16267 extends S3TestBase {
     @Test
     private void test() {
         // create user
-        JSONObject expUser1 = UserUtils
-                .createUser( userName1, UserCommDefind.admin,
-                        UserUtils.accessKeyId );
-        JSONObject expUser2 = UserUtils
-                .createUser( userName2, UserCommDefind.normal,
-                        UserUtils.accessKeyId );
+        JSONObject expUser1 = UserUtils.createUser( userName1,
+                UserCommDefind.admin, UserUtils.accessKeyId );
+        JSONObject expUser2 = UserUtils.createUser( userName2,
+                UserCommDefind.normal, UserUtils.accessKeyId );
 
         // get user
-        JSONObject actUser1 = UserUtils
-                .getUser( userName1, UserUtils.accessKeyId );
-        JSONObject actUser2 = UserUtils
-                .getUser( userName2, UserUtils.accessKeyId );
+        JSONObject actUser1 = UserUtils.getUser( userName1,
+                UserUtils.accessKeyId );
+        JSONObject actUser2 = UserUtils.getUser( userName2,
+                UserUtils.accessKeyId );
 
         // check
         checkResult( actUser1, expUser1 );

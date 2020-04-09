@@ -43,8 +43,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @Date 2019.06.20
  * @version 1.00
  */
-@Test(groups = "authorizationoff") public class CreateObject18585
-        extends S3TestBase {
+@Test(groups = "authorizationoff")
+public class CreateObject18585 extends S3TestBase {
     private MediaType type = MediaType
             .parseMediaType( "text/xml;charset=UTF-8" );
     private AtomicInteger actSuccessTests = new AtomicInteger( 0 );
@@ -72,8 +72,8 @@ import java.util.concurrent.atomic.AtomicInteger;
     private void setUp() throws Exception {
         CommLib.clearUser( userName );
         accessKeys = UserUtils.createUser( userName, roleName );
-        s3ClientNorMal = CommLib
-                .buildS3Client( accessKeys[ 0 ], accessKeys[ 1 ] );
+        s3ClientNorMal = CommLib.buildS3Client( accessKeys[ 0 ],
+                accessKeys[ 1 ] );
         s3Client = CommLib.buildS3Client();
     }
 
@@ -133,8 +133,8 @@ import java.util.concurrent.atomic.AtomicInteger;
             rest.setApi( URLEncoder.encode( bucketName, "UTF-8" ) )
                     .setRequestMethod( HttpMethod.PUT )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
         }
@@ -147,8 +147,8 @@ import java.util.concurrent.atomic.AtomicInteger;
             rest.setApi( URLEncoder.encode( bucketName, "UTF-8" ) )
                     .setRequestMethod( HttpMethod.HEAD )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpClientErrorException e ) {
             throw httpToAmazonHead( e );
         }
@@ -161,8 +161,8 @@ import java.util.concurrent.atomic.AtomicInteger;
             rest.setApi( URLEncoder.encode( bucketName, "UTF-8" ) )
                     .setRequestMethod( HttpMethod.DELETE )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
         }
@@ -171,7 +171,7 @@ import java.util.concurrent.atomic.AtomicInteger;
     private void checkCreateBucketResult( AmazonS3 s3Client, String bucketName,
             String userName ) {
         // create one bucket,check the bucket name and owner name
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         boolean findBucketFlag = false;
         for ( int i = 0; i < buckets.size(); i++ ) {
             String actBucketName = buckets.get( i ).getName();
@@ -188,9 +188,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
     private void putObject( String bucketName, String objectName,
             String content, String authorization ) throws Exception {
-        HttpPut request = new HttpPut( S3TestBase.s3ClientUrl + "/" + URLEncoder
-                .encode( bucketName, "UTF-8" ) + "/" + URLEncoder
-                .encode( objectName, "UTF-8" ) );
+        HttpPut request = new HttpPut( S3TestBase.s3ClientUrl + "/"
+                + URLEncoder.encode( bucketName, "UTF-8" ) + "/"
+                + URLEncoder.encode( objectName, "UTF-8" ) );
         // RequestHeaders:
         request.setHeader( "Authorization", authorization );
 
@@ -205,13 +205,13 @@ import java.util.concurrent.atomic.AtomicInteger;
     private String getObject( String bucketName, String objectName,
             String authorization ) throws Exception {
         String etag = "";
-        HttpGet request = new HttpGet( S3TestBase.s3ClientUrl + "/" + URLEncoder
-                .encode( bucketName, "UTF-8" ) + "/" + URLEncoder
-                .encode( objectName, "UTF-8" ) );
+        HttpGet request = new HttpGet( S3TestBase.s3ClientUrl + "/"
+                + URLEncoder.encode( bucketName, "UTF-8" ) + "/"
+                + URLEncoder.encode( objectName, "UTF-8" ) );
         request.setHeader( "Authorization", authorization );
         CloseableHttpClient client = RestClient.createHttpClient();
-        CloseableHttpResponse response = RestClient
-                .sendRequest( client, request );
+        CloseableHttpResponse response = RestClient.sendRequest( client,
+                request );
         etag = response.getFirstHeader( "ETag" ).getValue().replace( "\"", "" );
 
         return etag;
@@ -219,10 +219,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
     private void headObject( String bucketName, String objectName,
             String authorization ) throws Exception {
-        HttpHead request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + URLEncoder
-                        .encode( bucketName, "UTF-8" ) + "/" + URLEncoder
-                        .encode( objectName, "UTF-8" ) );
+        HttpHead request = new HttpHead( S3TestBase.s3ClientUrl + "/"
+                + URLEncoder.encode( bucketName, "UTF-8" ) + "/"
+                + URLEncoder.encode( objectName, "UTF-8" ) );
         request.setHeader( "Authorization", authorization );
         CloseableHttpClient client = RestClient.createHttpClient();
         RestClient.sendRequest( client, request );
@@ -230,10 +229,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
     private void deleteObjet( String bucketName, String objectName,
             String authorization ) throws Exception {
-        HttpDelete request = new HttpDelete(
-                S3TestBase.s3ClientUrl + "/" + URLEncoder
-                        .encode( bucketName, "UTF-8" ) + "/" + URLEncoder
-                        .encode( objectName, "UTF-8" ) );
+        HttpDelete request = new HttpDelete( S3TestBase.s3ClientUrl + "/"
+                + URLEncoder.encode( bucketName, "UTF-8" ) + "/"
+                + URLEncoder.encode( objectName, "UTF-8" ) );
         request.setHeader( "Authorization", authorization );
         CloseableHttpClient client = RestClient.createHttpClient();
         RestClient.sendRequest( client, request );

@@ -35,10 +35,10 @@ public class DeleteAndListVersions16495 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -50,7 +50,7 @@ public class DeleteAndListVersions16495 extends S3TestBase {
 
     @Test
     public void testCreateBucket() throws Exception {
-        List<DeleteObjectThread> deleteObjectThreads = new ArrayList<>(
+        List< DeleteObjectThread > deleteObjectThreads = new ArrayList<>(
                 objectNums );
         ListObjectThread listObjectThread = new ListObjectThread();
         for ( int i = 0; i < objectNums; i++ ) {

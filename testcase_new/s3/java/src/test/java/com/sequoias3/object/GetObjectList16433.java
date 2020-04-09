@@ -29,7 +29,7 @@ public class GetObjectList16433 extends S3TestBase {
     private String prefix = "/dir/";
     private String delimiter = "/";
     private String startAfter = "/dir/dir2/";
-    private List<String> expresultList = new ArrayList<String>();
+    private List< String > expresultList = new ArrayList< String >();
     private int objectTotalNum = 15;
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
@@ -55,7 +55,7 @@ public class GetObjectList16433 extends S3TestBase {
 
     @Test
     public void testGetObjectList() throws Exception {
-        List<String> commprefixesResult = new ArrayList<>();
+        List< String > commprefixesResult = new ArrayList<>();
         ListObjectsV2Request req = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withPrefix( prefix )
                 .withDelimiter( delimiter ).withStartAfter( startAfter );
@@ -70,9 +70,8 @@ public class GetObjectList16433 extends S3TestBase {
 
         // expresultList are stored after 'startAfter'
         // subList[int,int)
-        expresultList = expresultList
-                .subList( expresultList.indexOf( startAfter ) + 1,
-                        expresultList.size() );
+        expresultList = expresultList.subList(
+                expresultList.indexOf( startAfter ) + 1, expresultList.size() );
         ObjectUtils.checkListObjectsV2Commprefixes( commprefixesResult,
                 expresultList );
         runSuccess = true;

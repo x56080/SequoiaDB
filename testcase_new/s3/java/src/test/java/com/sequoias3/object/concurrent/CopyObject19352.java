@@ -37,10 +37,10 @@ public class CopyObject19352 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -69,10 +69,11 @@ public class CopyObject19352 extends S3TestBase {
             Assert.assertFalse(
                     s3Client.doesObjectExist( bucketName, srcKeyName ) );
         } else {
-            // delete object success,copy object fail,the errorCode:404(NoSuchKey)
-            //or the errorCode:200(源对象在copy过程中被删除，有可能报200错误)
-            Assert.assertTrue( copyObjectErrCode == 404 || copyObjectErrCode
-                    == 200 );
+            // delete object success,copy object fail,the
+            // errorCode:404(NoSuchKey)
+            // or the errorCode:200(源对象在copy过程中被删除，有可能报200错误)
+            Assert.assertTrue(
+                    copyObjectErrCode == 404 || copyObjectErrCode == 200 );
             Assert.assertFalse(
                     s3Client.doesObjectExist( bucketName, srcKeyName ) );
             Assert.assertFalse(
@@ -95,8 +96,8 @@ public class CopyObject19352 extends S3TestBase {
     }
 
     private void checkObjectContent( String destKeyName ) throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, destKeyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, destKeyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

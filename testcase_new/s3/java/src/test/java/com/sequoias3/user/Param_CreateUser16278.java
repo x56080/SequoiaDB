@@ -59,11 +59,11 @@ public class Param_CreateUser16278 extends S3TestBase {
             actUser = UserUtils.createUser( name, UserCommDefind.admin,
                     UserUtils.accessKeyId );
             // update
-            JSONObject updateUser = UserUtils
-                    .updateUser( name, UserUtils.accessKeyId );
+            JSONObject updateUser = UserUtils.updateUser( name,
+                    UserUtils.accessKeyId );
             // get
-            JSONObject expUser = UserUtils
-                    .getUser( name, UserUtils.accessKeyId );
+            JSONObject expUser = UserUtils.getUser( name,
+                    UserUtils.accessKeyId );
             checkResult( updateUser, expUser );
         } finally {
             if ( actUser != null ) {
@@ -81,11 +81,11 @@ public class Param_CreateUser16278 extends S3TestBase {
             actUser = UserUtils.createUser( name, UserCommDefind.admin,
                     UserUtils.accessKeyId );
             // update
-            JSONObject updateUser = UserUtils
-                    .updateUser( name, UserUtils.accessKeyId );
+            JSONObject updateUser = UserUtils.updateUser( name,
+                    UserUtils.accessKeyId );
             // get
-            JSONObject expUser = UserUtils
-                    .getUser( name, UserUtils.accessKeyId );
+            JSONObject expUser = UserUtils.getUser( name,
+                    UserUtils.accessKeyId );
             checkResult( updateUser, expUser );
         } finally {
             if ( actUser != null ) {
@@ -148,8 +148,8 @@ public class Param_CreateUser16278 extends S3TestBase {
         JSONObject actUser = null;
         try {
             // create
-            actUser = UserUtils
-                    .createUser( name, "admin|normal", UserUtils.accessKeyId );
+            actUser = UserUtils.createUser( name, "admin|normal",
+                    UserUtils.accessKeyId );
             Assert.fail( "exp fail but act success" );
         } catch ( HttpClientErrorException e ) {
             String errorMsg = e.getResponseBodyAsString();
@@ -195,12 +195,14 @@ public class Param_CreateUser16278 extends S3TestBase {
     }
 
     private void checkResult( JSONObject actUser, JSONObject expUser ) {
-        Assert.assertEquals( actUser.getJSONObject( UserCommDefind.accessKeys )
+        Assert.assertEquals(
+                actUser.getJSONObject( UserCommDefind.accessKeys )
                         .getString( UserCommDefind.accessKeyID ),
                 expUser.getJSONObject( UserCommDefind.accessKeys )
                         .getString( UserCommDefind.accessKeyID ) );
 
-        Assert.assertEquals( actUser.getJSONObject( UserCommDefind.accessKeys )
+        Assert.assertEquals(
+                actUser.getJSONObject( UserCommDefind.accessKeys )
                         .getString( UserCommDefind.secretAccessKey ),
                 expUser.getJSONObject( UserCommDefind.accessKeys )
                         .getString( UserCommDefind.secretAccessKey ) );

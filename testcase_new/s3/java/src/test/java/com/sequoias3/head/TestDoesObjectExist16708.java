@@ -32,7 +32,7 @@ public class TestDoesObjectExist16708 extends S3TestBase {
     private String roleName = "normal";
     private String keyName = "key16708";
     private String content = "content16708";
-    private List<String> validValues = new ArrayList<>();
+    private List< String > validValues = new ArrayList<>();
     private AmazonS3 s3Client = null;
 
     @BeforeClass
@@ -50,22 +50,22 @@ public class TestDoesObjectExist16708 extends S3TestBase {
         // test a :指定桶名为合法名 长度边界值为：3个字符，63个字符
         for ( String validname : validValues ) {
             s3Client.createBucket( validname );
-            PutObjectResult objectResult = s3Client
-                    .putObject( validname, keyName, content + validname );
+            PutObjectResult objectResult = s3Client.putObject( validname,
+                    keyName, content + validname );
             Assert.assertTrue( s3Client.doesObjectExist( validname, keyName ) );
-            ObjectMetadata metadata = s3Client
-                    .getObjectMetadata( validname, keyName );
+            ObjectMetadata metadata = s3Client.getObjectMetadata( validname,
+                    keyName );
             Assert.assertEquals( metadata.getETag(), objectResult.getETag() );
         }
 
         // test b :指定对象名为合法名 长度边界值为：900个字符
         keyName = getRandomString( 900 );
         s3Client.createBucket( bucketName );
-        PutObjectResult objectResult = s3Client
-                .putObject( bucketName, keyName, content + "testb" );
+        PutObjectResult objectResult = s3Client.putObject( bucketName, keyName,
+                content + "testb" );
         Assert.assertTrue( s3Client.doesObjectExist( bucketName, keyName ) );
-        ObjectMetadata metadata = s3Client
-                .getObjectMetadata( bucketName, keyName );
+        ObjectMetadata metadata = s3Client.getObjectMetadata( bucketName,
+                keyName );
         Assert.assertEquals( metadata.getETag(), objectResult.getETag() );
 
         // test c :指定桶名，对象名分别为null和空串""

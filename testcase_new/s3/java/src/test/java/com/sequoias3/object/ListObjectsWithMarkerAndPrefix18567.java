@@ -39,7 +39,7 @@ public class ListObjectsWithMarkerAndPrefix18567 extends S3TestBase {
 
     @Test
     public void testListObjects() throws Exception {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
 
         // test a: match marker not match prefix
         int startPositionA = 0;
@@ -71,15 +71,15 @@ public class ListObjectsWithMarkerAndPrefix18567 extends S3TestBase {
                 .withBucketName( bucketName ).withPrefix( prefix )
                 .withMarker( marker );
         ObjectListing result = s3Client.listObjects( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         // misMatchObject, the list size is 0
         Assert.assertEquals( objects.size(), 0 );
         Assert.assertEquals( commonPrefixes.size(), 0 );
     }
 
-    private List<String> putObjects() {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < objectNums; i++ ) {
             String keyName = key + "_" + i;
             s3Client.putObject( bucketName, keyName, "test18567" + i );

@@ -43,12 +43,12 @@ public class HeadObject16696 extends S3TestBase {
     @Test
     private void testHeadObject() throws Exception {
 
-        PutObjectResult resultV1 = s3Client
-                .putObject( bucketName, key, "testobject16696v100" );
+        PutObjectResult resultV1 = s3Client.putObject( bucketName, key,
+                "testobject16696v100" );
         String etagV1 = resultV1.getETag();
         String versionidV1 = resultV1.getVersionId();
-        PutObjectResult resultV2 = s3Client
-                .putObject( bucketName, key, "testobject16696v2" );
+        PutObjectResult resultV2 = s3Client.putObject( bucketName, key,
+                "testobject16696v2" );
         String etagV2 = resultV2.getETag();
         s3Client.putObject( bucketName, key, "testobject16696v3" );
 

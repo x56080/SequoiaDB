@@ -59,7 +59,7 @@ public class CreateRegion20403 extends S3TestBase {
             executor.addWorker( new CreateObject() );
         }
         executor.run();
-        //check result
+        // check result
         checkResults();
         runSuccess = true;
     }
@@ -77,29 +77,28 @@ public class CreateRegion20403 extends S3TestBase {
     }
 
     private void checkResults() throws IOException {
-        String prefix = RegionUtils
-                .getDataCSName( regionName, "year", new Date() );
+        String prefix = RegionUtils.getDataCSName( regionName, "year",
+                new Date() );
         List< String > csList = RegionUtils.listCS( prefix );
         List< Integer > csNumList = new ArrayList<>();
         Assert.assertTrue( csList.size() > 0, csList.toString() );
         // get dataCS index
         for ( String csName : csList ) {
-            csNumList.add( Integer.parseInt(
-                    csName.substring( csName.lastIndexOf( "_" ) + 1,
-                            csName.length() ) ) );
+            csNumList.add( Integer.parseInt( csName.substring(
+                    csName.lastIndexOf( "_" ) + 1, csName.length() ) ) );
         }
         Collections.sort( csNumList );
         // 0 < csNum <= dataCSRange
         Assert.assertTrue( csNumList.get( 0 ) >= 0, csList.toString() );
         Assert.assertTrue( csNumList.get( csNumList.size() - 1 ) <= dataCSRange,
                 csList.toString() );
-        //check object content
+        // check object content
         for ( int i = 1; i <= objectNum; i++ ) {
             S3Object obj = s3Client.getObject( bucketName, objectNameBase + i );
             Assert.assertEquals( Md5Utils.md5AsBase64( obj.getObjectContent() ),
                     Md5Utils.md5AsBase64( String.valueOf( i ).getBytes() ),
-                    "bucketName = " + bucketName + ",objectName = " +
-                            objectNameBase + i );
+                    "bucketName = " + bucketName + ",objectName = "
+                            + objectNameBase + i );
         }
     }
 

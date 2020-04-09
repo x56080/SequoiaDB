@@ -53,14 +53,14 @@ public class TestGetObjectMetadata16701 extends S3TestBase {
 
         s3Client.putObject( bucketName, keyName, content + "v1" );
         s3Client.putObject( bucketName, keyName, content + "v2" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content + "v3" );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content + "v3" );
         String etag = result.getETag();
         String versionid = result.getVersionId();
 
-        ObjectMetadata metadata = s3Client.getObjectMetadata(
-                new GetObjectMetadataRequest( bucketName, keyName,
-                        versionid ) );
+        ObjectMetadata metadata = s3Client
+                .getObjectMetadata( new GetObjectMetadataRequest( bucketName,
+                        keyName, versionid ) );
         Date actDate = metadata.getLastModified();
 
         // ifUnModifiedSince指定为时间A，时间A后该对象未修改；ifMatch指定为该对象当前版本的Etag值

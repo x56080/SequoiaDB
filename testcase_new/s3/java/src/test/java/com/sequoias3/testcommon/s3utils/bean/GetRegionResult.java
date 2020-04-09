@@ -28,7 +28,8 @@ public class GetRegionResult {
 
     private Region region;
 
-    public GetRegionResult( ) {}
+    public GetRegionResult() {
+    }
 
     public GetRegionResult( Region region ) {
         this.region = region;
@@ -75,56 +76,52 @@ public class GetRegionResult {
     private List< Bucket > buckets;
 
     public Region getRegion() {
-        if(dataCLShardingType == null){
+        if ( dataCLShardingType == null ) {
             dataCLShardingType = "";
         }
-        if(dataCSShardingType == null){
+        if ( dataCSShardingType == null ) {
             dataCSShardingType = "";
         }
-        if(dataDomain == null){
+        if ( dataDomain == null ) {
             dataDomain = "";
         }
-        if(dataLobPageSize == null){
+        if ( dataLobPageSize == null ) {
             dataLobPageSize = "";
         }
-        if(dataLocation == null){
+        if ( dataLocation == null ) {
             dataLocation = "";
         }
-        if(dataReplSize == null){
+        if ( dataReplSize == null ) {
             dataReplSize = "";
         }
-        if(metaDomain == null){
+        if ( metaDomain == null ) {
             metaDomain = "";
         }
-        if(metaHisLocation == null){
+        if ( metaHisLocation == null ) {
             metaHisLocation = "";
         }
-        if(metaLocation == null){
+        if ( metaLocation == null ) {
             metaLocation = "";
         }
-        region = new Region(  ).withDataCLShardingType( dataCLShardingType )
+        region = new Region().withDataCLShardingType( dataCLShardingType )
                 .withDataCSShardingType( dataCSShardingType )
                 .withDataDomain( dataDomain )
                 .withDataLobPageSize( dataLobPageSize )
                 .withDataLocation( dataLocation )
-                .withDataReplSize( dataReplSize )
-                .withMetaDomain( metaDomain )
+                .withDataReplSize( dataReplSize ).withMetaDomain( metaDomain )
                 .withMetaHisLocation( metaHisLocation )
-                .withMetaLocation( metaLocation )
-                .withDataCSRange( dataCSRange )
+                .withMetaLocation( metaLocation ).withDataCSRange( dataCSRange )
                 .withName( name );
         return this.region;
     }
 
     public List< com.amazonaws.services.s3.model.Bucket > getBuckets() {
-        List< com.amazonaws.services.s3.model.Bucket>  amazonBuckets = new
-                ArrayList<>(  );
-        if(buckets != null) {
+        List< com.amazonaws.services.s3.model.Bucket > amazonBuckets = new ArrayList<>();
+        if ( buckets != null ) {
             for ( Bucket bucket : buckets ) {
-                com.amazonaws.services.s3.model.Bucket amazonBucket = new com
-                        .amazonaws.services.s3.model.Bucket();
-                amazonBucket.setCreationDate( DateUtils.parseISO8601Date
-                        ( bucket.getFormatDate() ) );
+                com.amazonaws.services.s3.model.Bucket amazonBucket = new com.amazonaws.services.s3.model.Bucket();
+                amazonBucket.setCreationDate(
+                        DateUtils.parseISO8601Date( bucket.getFormatDate() ) );
                 amazonBucket.setName( bucket.getBucketName() );
                 amazonBuckets.add( amazonBucket );
             }
@@ -146,21 +143,19 @@ class Bucket {
     @JsonProperty(BUCKET_CREATETIME)
     private String formatDate;
 
-
-    public void setFormatDate(String creationDate){
+    public void setFormatDate( String creationDate ) {
         this.formatDate = creationDate;
     }
 
-    public String getFormatDate(){
+    public String getFormatDate() {
         return this.formatDate;
     }
 
-
-    public void setBucketName(String bucketName){
+    public void setBucketName( String bucketName ) {
         this.bucketName = bucketName;
     }
 
-    public String getBucketName(){
+    public String getBucketName() {
         return this.bucketName;
     }
 }

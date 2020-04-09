@@ -42,10 +42,10 @@ public class ListParts18731 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -70,10 +70,10 @@ public class ListParts18731 extends S3TestBase {
     @Test
     private void testListParts() throws Exception {
         // 用户A分段上传对象
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3ClientA, bucketName, keyName );
-        List<PartETag> partEtags = PartUploadUtils
-                .partUpload( s3ClientA, bucketName, keyName, uploadId, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3ClientA, bucketName,
+                keyName );
+        List< PartETag > partEtags = PartUploadUtils.partUpload( s3ClientA,
+                bucketName, keyName, uploadId, file );
 
         // 用户B执行查询分段列表
         ListPartsRequest request = new ListPartsRequest( bucketName, keyName,
@@ -90,8 +90,8 @@ public class ListParts18731 extends S3TestBase {
 
         // 检查结果
         String expMd5 = TestTools.getMD5( filePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3ClientA, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3ClientA, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
         runSuccess = true;
     }

@@ -50,8 +50,8 @@ public class TestGetObjectMetadata16698 extends S3TestBase {
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
         s3Client.putObject( bucketName, keyName, content + "v1" );
         s3Client.putObject( bucketName, keyName, content + "v2" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content + "v3" );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content + "v3" );
         String etag = result.getETag();
 
         Date date = new Date();

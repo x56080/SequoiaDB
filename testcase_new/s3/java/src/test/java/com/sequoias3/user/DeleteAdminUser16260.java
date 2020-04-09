@@ -35,8 +35,8 @@ public class DeleteAdminUser16260 extends S3TestBase {
             }
         }
         try {
-            UserUtils
-                    .deleteUser( deleteAdminName, UserUtils.accessKeyId, true );
+            UserUtils.deleteUser( deleteAdminName, UserUtils.accessKeyId,
+                    true );
         } catch ( HttpClientErrorException e ) {
             if ( e.getStatusCode() != HttpStatus.NOT_FOUND ) {
                 Assert.fail( e.getMessage() );
@@ -47,9 +47,8 @@ public class DeleteAdminUser16260 extends S3TestBase {
     @Test
     private void test() {
         // create user
-        JSONObject adminUserJSON = UserUtils
-                .createUser( adminName, UserCommDefind.admin,
-                        UserUtils.accessKeyId );
+        JSONObject adminUserJSON = UserUtils.createUser( adminName,
+                UserCommDefind.admin, UserUtils.accessKeyId );
 
         // get the accessKeyID and secretAccessKey from userJSON
         JSONObject jsonAdmin = adminUserJSON

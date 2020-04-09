@@ -19,8 +19,8 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * @Description seqDB-18767: the key upload multiple parts and AbortMultipartUpload concurrently by
- *              the same key.
+ * @Description seqDB-18767: the key upload multiple parts and
+ *              AbortMultipartUpload concurrently by the same key.
  * @author wuyan
  * @Date 2019.08.06
  * @version 1.00
@@ -37,14 +37,13 @@ public class AbortMultipartUploadBySameKey18767 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         for ( int i = 0; i < fileSizes.length; i++ ) {
-            String filePath =
-                    localPath + File.separator + "localFile_" + fileSizes[ i ]
-                            + ".txt";
+            String filePath = localPath + File.separator + "localFile_"
+                    + fileSizes[ i ] + ".txt";
             TestTools.LocalFile.createFile( filePath, fileSizes[ i ] );
             filePaths[ i ] = filePath;
         }
@@ -108,16 +107,15 @@ public class AbortMultipartUploadBySameKey18767 extends S3TestBase {
 
         @ExecuteOrder(step = 1)
         private void initPartUpload() {
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client1, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client1, bucketName,
+                    keyName );
         }
 
         @ExecuteOrder(step = 2)
         private void partUpload() {
             file = new File( filePath );
-            PartUploadUtils
-                    .partUpload( s3Client1, bucketName, keyName, uploadId, file,
-                            partSize );
+            PartUploadUtils.partUpload( s3Client1, bucketName, keyName,
+                    uploadId, file, partSize );
         }
 
         @ExecuteOrder(step = 3)

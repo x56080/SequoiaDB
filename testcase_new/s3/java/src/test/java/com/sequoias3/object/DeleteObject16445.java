@@ -34,10 +34,10 @@ public class DeleteObject16445 extends S3TestBase {
     @SuppressWarnings("deprecation")
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -64,8 +64,8 @@ public class DeleteObject16445 extends S3TestBase {
     private void tearDown() {
         try {
             if ( runSuccess ) {
-                ObjectUtils
-                        .deleteObjectAllVersions( s3Client, bucketName, key );
+                ObjectUtils.deleteObjectAllVersions( s3Client, bucketName,
+                        key );
                 s3Client.deleteBucket( bucketName );
             }
         } finally {

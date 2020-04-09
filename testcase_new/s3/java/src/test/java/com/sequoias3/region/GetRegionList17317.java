@@ -31,7 +31,7 @@ public class GetRegionList17317 extends S3TestBase {
     private String dataCSName = "dataCS17317";
     private String[] metaClNames = { "metaCL17317", "metaHistoryCL17317" };
     private String[] dataClName = { "dataCL17317" };
-    private List<String> regionNames = new ArrayList<>();
+    private List< String > regionNames = new ArrayList<>();
     private int regionNum = 50;
     private boolean runSuccess = false;
 
@@ -74,8 +74,8 @@ public class GetRegionList17317 extends S3TestBase {
             RegionUtils.putRegion( region );
         }
 
-        List<String> actRegions = RegionUtils.listRegions();
-        Set<String> unRepeatRegionNames = new HashSet<>();
+        List< String > actRegions = RegionUtils.listRegions();
+        Set< String > unRepeatRegionNames = new HashSet<>();
         for ( String regionName : actRegions ) {
             boolean isRepeat = unRepeatRegionNames.add( regionName );
             Assert.assertTrue( isRepeat,
@@ -92,7 +92,7 @@ public class GetRegionList17317 extends S3TestBase {
     private void tearDown() throws Exception {
         if ( runSuccess ) {
             try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
-                    "" ) ) {
+                    "" )) {
                 sdb.dropCollectionSpace( metaCSName );
                 sdb.dropCollectionSpace( dataCSName );
                 deleteRegions( regionNames );
@@ -102,7 +102,7 @@ public class GetRegionList17317 extends S3TestBase {
         }
     }
 
-    private void deleteRegions( List<String> regions ) throws Exception {
+    private void deleteRegions( List< String > regions ) throws Exception {
         for ( int i = 0; i < regions.size(); i++ ) {
             if ( RegionUtils.headRegion( regions.get( i ) ) ) {
                 RegionUtils.deleteRegion( regions.get( i ) );

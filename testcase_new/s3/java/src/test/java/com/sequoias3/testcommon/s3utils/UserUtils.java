@@ -29,8 +29,9 @@ public class UserUtils extends S3TestBase {
     public static JSONObject createUser( String name, String type,
             String accessKeyId ) throws HttpClientErrorException {
         TestRest rest = new TestRest();
-        ResponseEntity<?> response = rest.setApi(
-                "/users/?Action=CreateUser&UserName=" + name + "&Role=" + type )
+        ResponseEntity< ? > response = rest
+                .setApi( "/users/?Action=CreateUser&UserName="
+                        + name + "&Role=" + type )
                 .setRequestMethod( HttpMethod.POST )
                 .setRequestHeaders( UserCommDefind.authorization,
                         UserCommDefind.authValPre + accessKeyId + "/" )
@@ -52,9 +53,10 @@ public class UserUtils extends S3TestBase {
     public static String deleteUser( String name, String accessKeyId,
             boolean force ) throws HttpClientErrorException {
         TestRest rest = new TestRest();
-        ResponseEntity<?> response = rest.setApi(
-                "/users/?Action=DeleteUser&UserName=" + name + "&Force="
-                        + force ).setRequestMethod( HttpMethod.POST )
+        ResponseEntity< ? > response = rest
+                .setApi( "/users/?Action=DeleteUser&UserName=" + name
+                        + "&Force=" + force )
+                .setRequestMethod( HttpMethod.POST )
                 .setRequestHeaders( UserCommDefind.authorization,
                         UserCommDefind.authValPre + accessKeyId + "/" )
                 .setResponseType( String.class ).exec();
@@ -64,7 +66,7 @@ public class UserUtils extends S3TestBase {
     public static JSONObject updateUser( String name, String accessKeyId )
             throws HttpClientErrorException {
         TestRest rest = new TestRest();
-        ResponseEntity<?> response = rest
+        ResponseEntity< ? > response = rest
                 .setApi( "/users/?Action=CreateAccessKey&UserName=" + name )
                 .setRequestMethod( HttpMethod.POST )
                 .setRequestHeaders( UserCommDefind.authorization,
@@ -77,7 +79,7 @@ public class UserUtils extends S3TestBase {
     public static JSONObject getUser( String name, String accessKeyId )
             throws HttpClientErrorException {
         TestRest rest = new TestRest();
-        ResponseEntity<?> response = rest
+        ResponseEntity< ? > response = rest
                 .setApi( "/users/?Action=GetAccessKey&UserName=" + name )
                 .setRequestMethod( HttpMethod.POST )
                 .setRequestHeaders( UserCommDefind.authorization,

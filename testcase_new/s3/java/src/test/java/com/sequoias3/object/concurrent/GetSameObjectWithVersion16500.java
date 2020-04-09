@@ -35,15 +35,15 @@ public class GetSameObjectWithVersion16500 extends S3TestBase {
     private String keyName = "key16500";
     private String roleName = "normal";
     private String content = "testContent16500";
-    private List<String> etagList = new ArrayList<>();
+    private List< String > etagList = new ArrayList<>();
     private String[] acessKeys = null;
     private AmazonS3 s3Client = null;
     private File localPath = null;
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         CommLib.clearUser( userName );
         acessKeys = UserUtils.createUser( userName, roleName );
         s3Client = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
@@ -72,7 +72,7 @@ public class GetSameObjectWithVersion16500 extends S3TestBase {
                 getSameObject.getErrorMsg() );
 
         // test c : Getting different versions of objects
-        List<GetDifferentObjectThread> getDiffVerObjects = new ArrayList<>();
+        List< GetDifferentObjectThread > getDiffVerObjects = new ArrayList<>();
         for ( int i = 0; i < 3; i++ ) {
             getDiffVerObjects
                     .add( new GetDifferentObjectThread( String.valueOf( i ) ) );
@@ -109,14 +109,14 @@ public class GetSameObjectWithVersion16500 extends S3TestBase {
     private class GetObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 S3Object object = s3Client.getObject( bucketName, keyName );
                 S3ObjectInputStream s3is = object.getObjectContent();
-                String downloadPath = TestTools.LocalFile
-                        .initDownloadPath( localPath, TestTools.getMethodName(),
-                                Thread.currentThread().getId() );
+                String downloadPath = TestTools.LocalFile.initDownloadPath(
+                        localPath, TestTools.getMethodName(),
+                        Thread.currentThread().getId() );
                 ObjectUtils.inputStream2File( s3is, downloadPath );
                 s3is.close();
                 String getObjectMd5 = TestTools.getMD5( downloadPath );
@@ -135,15 +135,15 @@ public class GetSameObjectWithVersion16500 extends S3TestBase {
     private class GetSameObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 S3Object object = s3Client.getObject(
                         new GetObjectRequest( bucketName, keyName, "1" ) );
                 S3ObjectInputStream s3is = object.getObjectContent();
-                String downloadPath = TestTools.LocalFile
-                        .initDownloadPath( localPath, TestTools.getMethodName(),
-                                Thread.currentThread().getId() );
+                String downloadPath = TestTools.LocalFile.initDownloadPath(
+                        localPath, TestTools.getMethodName(),
+                        Thread.currentThread().getId() );
                 ObjectUtils.inputStream2File( s3is, downloadPath );
                 s3is.close();
                 String getObjectMd5 = TestTools.getMD5( downloadPath );
@@ -168,16 +168,15 @@ public class GetSameObjectWithVersion16500 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
-                S3Object object = s3Client.getObject(
-                        new GetObjectRequest( bucketName, keyName,
-                                versionid ) );
+                S3Object object = s3Client.getObject( new GetObjectRequest(
+                        bucketName, keyName, versionid ) );
                 S3ObjectInputStream s3is = object.getObjectContent();
-                String downloadPath = TestTools.LocalFile
-                        .initDownloadPath( localPath, TestTools.getMethodName(),
-                                Thread.currentThread().getId() );
+                String downloadPath = TestTools.LocalFile.initDownloadPath(
+                        localPath, TestTools.getMethodName(),
+                        Thread.currentThread().getId() );
                 ObjectUtils.inputStream2File( s3is, downloadPath );
                 s3is.close();
                 String getObjectMd5 = TestTools.getMD5( downloadPath );

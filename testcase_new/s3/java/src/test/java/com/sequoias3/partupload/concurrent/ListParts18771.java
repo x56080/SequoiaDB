@@ -42,17 +42,17 @@ public class ListParts18771 extends S3TestBase {
     private File localPath = null;
     private File file = null;
     private String uploadId;
-    private List<Integer> expPartNumberList = new ArrayList<>();
-    private List<String> expEtagList = new ArrayList<>();
-    private List<PartETag> partEtags = new CopyOnWriteArrayList<>();
+    private List< Integer > expPartNumberList = new ArrayList<>();
+    private List< String > expEtagList = new ArrayList<>();
+    private List< PartETag > partEtags = new CopyOnWriteArrayList<>();
     private String filePath = null;
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -66,16 +66,16 @@ public class ListParts18771 extends S3TestBase {
 
     @Test
     private void testUpload() throws Exception {
-        uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
         ThreadExecutor es = new ThreadExecutor( 300000 );
         int filePosition = 0;
 
         for ( int i = 1; filePosition < fileSize; i++ ) {
             es.addWorker( new ThreadUploadPart18771( filePosition, i ) );
             expPartNumberList.add( i );
-            expEtagList.add( TestTools
-                    .getLargeFilePartMD5( file, filePosition, partSize ) );
+            expEtagList.add( TestTools.getLargeFilePartMD5( file, filePosition,
+                    partSize ) );
             filePosition += partSize;
         }
         es.run();
@@ -83,8 +83,8 @@ public class ListParts18771 extends S3TestBase {
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
         String expMd5 = TestTools.getMD5( filePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
         runSuccess = true;
     }
@@ -127,9 +127,9 @@ public class ListParts18771 extends S3TestBase {
             ListPartsRequest request = new ListPartsRequest( bucketName,
                     keyName, uploadId );
             PartListing listResult = s3Client.listParts( request );
-            List<PartSummary> listParts = listResult.getParts();
-            List<Integer> actPartNumbersList = new ArrayList<>();
-            List<String> actEtagList = new ArrayList<>();
+            List< PartSummary > listParts = listResult.getParts();
+            List< Integer > actPartNumbersList = new ArrayList<>();
+            List< String > actEtagList = new ArrayList<>();
             for ( PartSummary partNumbers : listParts ) {
                 int partNumber = partNumbers.getPartNumber();
                 String etag = partNumbers.getETag();
@@ -142,15 +142,15 @@ public class ListParts18771 extends S3TestBase {
 
         @ExecuteOrder(step = 2, desc = "查询对象分段列表")
         public void ListPartsWithDiffCond() {
-            List<Integer> actPartNumbersList = new ArrayList<>();
-            List<String> actEtagList = new ArrayList<>();
+            List< Integer > actPartNumbersList = new ArrayList<>();
+            List< String > actEtagList = new ArrayList<>();
             ListPartsRequest request = new ListPartsRequest( bucketName,
                     keyName, uploadId );
             request.withMaxParts( 10 );
             PartListing listResult;
             do {
                 listResult = s3Client.listParts( request );
-                List<PartSummary> listParts = listResult.getParts();
+                List< PartSummary > listParts = listResult.getParts();
                 for ( PartSummary partNumbers : listParts ) {
                     int partNumber = partNumbers.getPartNumber();
                     String etag = partNumbers.getETag();

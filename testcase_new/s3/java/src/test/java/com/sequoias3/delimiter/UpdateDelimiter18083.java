@@ -35,8 +35,8 @@ public class UpdateDelimiter18083 extends S3TestBase {
 
     @Test
     private void testUpdateDelimiter() throws Exception {
-        DelimiterUtils
-                .putBucketDelimiter( bucketName, delimiter, accessKeys[ 0 ] );
+        DelimiterUtils.putBucketDelimiter( bucketName, delimiter,
+                accessKeys[ 0 ] );
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter,
                 accessKeys[ 0 ] );
         runSuccess = true;

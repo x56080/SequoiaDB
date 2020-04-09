@@ -29,8 +29,8 @@ public class GetObjectList16434 extends S3TestBase {
     private String[] prefix = { "/dir/", "/dir/dir1200/" };
     private String delimiter = "/";
     private String startAfter[] = { "/dir/dir10/", "/dir/dir1200/test10/" };
-    private List<String> expresultList1 = new ArrayList<String>( 1000 );
-    private List<String> expresultList2 = new ArrayList<String>( 1000 );
+    private List< String > expresultList1 = new ArrayList< String >( 1000 );
+    private List< String > expresultList2 = new ArrayList< String >( 1000 );
     private int objectNum = 1500;
     private int anotherObjectNum = 500;
     private int objectOnceQueryNum = 1000;
@@ -79,10 +79,10 @@ public class GetObjectList16434 extends S3TestBase {
                 .withBucketName( bucketName ).withPrefix( prefix[ 0 ] )
                 .withDelimiter( delimiter ).withStartAfter( startAfter[ 0 ] );
         ListObjectsV2Result result = s3Client.listObjectsV2( req );
-        List<String> commprefixesResult = result.getCommonPrefixes();
-        expresultList1 = expresultList1
-                .subList( expresultList1.indexOf( startAfter[ 0 ] ) + 1,
-                        expresultList1.size() );
+        List< String > commprefixesResult = result.getCommonPrefixes();
+        expresultList1 = expresultList1.subList(
+                expresultList1.indexOf( startAfter[ 0 ] ) + 1,
+                expresultList1.size() );
         checkListObjectsV2Result( commprefixesResult, expresultList1,
                 objectOnceQueryNum );
 
@@ -93,10 +93,10 @@ public class GetObjectList16434 extends S3TestBase {
                 .withDelimiter( delimiter ).withStartAfter( startAfter[ 1 ] )
                 .withContinuationToken( nextContinuationToken );
         ListObjectsV2Result result2 = s3Client.listObjectsV2( req2 );
-        List<String> commprefixesResult2 = result2.getCommonPrefixes();
-        expresultList2 = expresultList2
-                .subList( expresultList2.indexOf( startAfter[ 1 ] ) + 1,
-                        expresultList2.size() );
+        List< String > commprefixesResult2 = result2.getCommonPrefixes();
+        expresultList2 = expresultList2.subList(
+                expresultList2.indexOf( startAfter[ 1 ] ) + 1,
+                expresultList2.size() );
         checkListObjectsV2Result( commprefixesResult2, expresultList2,
                 expresultList2.size() );
         runSuccess = true;
@@ -110,8 +110,8 @@ public class GetObjectList16434 extends S3TestBase {
         }
     }
 
-    private void checkListObjectsV2Result( List<String> resultList,
-            List<String> expresultList, int keyCount ) {
+    private void checkListObjectsV2Result( List< String > resultList,
+            List< String > expresultList, int keyCount ) {
         Assert.assertEquals( resultList.size(), keyCount,
                 "The expected results do not match the actual number of returns" );
         for ( int i = 0; i < resultList.size(); i++ ) {

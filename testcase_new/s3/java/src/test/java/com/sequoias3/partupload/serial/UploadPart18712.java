@@ -41,7 +41,7 @@ public class UploadPart18712 extends S3TestBase {
     private String bucketName = "bucket18712";
     private String keyName = "key18712";
     private String uploadId = "";
-    private MultiValueMap<Integer, String> expPartsMap = null;
+    private MultiValueMap< Integer, String > expPartsMap = null;
     private AmazonS3 s3Client = null;
     private long fileSize = 5 * 1024 * 1024 * 1024L;
     private File localPath = null;
@@ -61,10 +61,10 @@ public class UploadPart18712 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -79,10 +79,10 @@ public class UploadPart18712 extends S3TestBase {
         TestTools.LocalFile.createFile( filePath, fileSize );
         file = new File( filePath );
 
-        expPartsMap = new LinkedMultiValueMap<Integer, String>();
-        uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        List<PartETag> partEtags = partUpload( partSize );
+        expPartsMap = new LinkedMultiValueMap< Integer, String >();
+        uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        List< PartETag > partEtags = partUpload( partSize );
         checkPartList();
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
@@ -93,8 +93,8 @@ public class UploadPart18712 extends S3TestBase {
             throw new Exception( "delete upload file failed!" );
         }
         // check
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
         TestTools.LocalFile.removeFile( localPath );
         actSuccessTests.getAndIncrement();
@@ -113,11 +113,11 @@ public class UploadPart18712 extends S3TestBase {
     }
 
     private void checkPartList() {
-        MultiValueMap<Integer, String> actPartsMap = new LinkedMultiValueMap<Integer, String>();
+        MultiValueMap< Integer, String > actPartsMap = new LinkedMultiValueMap< Integer, String >();
         ListPartsRequest request = new ListPartsRequest( bucketName, keyName,
                 uploadId );
         PartListing result = s3Client.listParts( request );
-        List<PartSummary> parts = result.getParts();
+        List< PartSummary > parts = result.getParts();
         for ( PartSummary part : parts ) {
             actPartsMap.add( part.getPartNumber(), part.getETag() );
             actPartsMap.add( part.getPartNumber(),
@@ -126,7 +126,8 @@ public class UploadPart18712 extends S3TestBase {
         Assert.assertEquals( actPartsMap.size(), expPartsMap.size(),
                 "actPartsMap = " + actPartsMap.toString() + ",expMap = "
                         + expPartsMap.toString() );
-        for ( Entry<Integer, List<String>> entry : expPartsMap.entrySet() ) {
+        for ( Entry< Integer, List< String > > entry : expPartsMap
+                .entrySet() ) {
             Assert.assertEquals( actPartsMap.get( entry.getKey() ),
                     expPartsMap.get( entry.getKey() ),
                     "actPartsMap = " + actPartsMap.toString() + ",expMap = "
@@ -134,8 +135,8 @@ public class UploadPart18712 extends S3TestBase {
         }
     }
 
-    private List<PartETag> partUpload( long partSize ) throws IOException {
-        List<PartETag> partEtags = new ArrayList<>();
+    private List< PartETag > partUpload( long partSize ) throws IOException {
+        List< PartETag > partEtags = new ArrayList<>();
         long filePosition = 0;
         long fileSize = file.length();
         for ( int i = 1; filePosition < fileSize; i++ ) {
@@ -148,8 +149,8 @@ public class UploadPart18712 extends S3TestBase {
             UploadPartResult uploadPartResult = s3Client
                     .uploadPart( partRequest );
 
-            expPartsMap.add( i, TestTools
-                    .getLargeFilePartMD5( file, filePosition, eachPartSize ) );
+            expPartsMap.add( i, TestTools.getLargeFilePartMD5( file,
+                    filePosition, eachPartSize ) );
             expPartsMap.add( i, String.valueOf( eachPartSize ) );
 
             partEtags.add( uploadPartResult.getPartETag() );

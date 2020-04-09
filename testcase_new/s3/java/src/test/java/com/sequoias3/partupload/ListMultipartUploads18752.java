@@ -44,19 +44,19 @@ public class ListMultipartUploads18752 extends S3TestBase {
 
     @Test
     private void testListMultipartUploads() throws Exception {
-        List<String> uploadIds1 = new ArrayList<>();
-        List<String> uploadIds2 = new ArrayList<>();
-        List<String> uploadIds3 = new ArrayList<>();
+        List< String > uploadIds1 = new ArrayList<>();
+        List< String > uploadIds2 = new ArrayList<>();
+        List< String > uploadIds3 = new ArrayList<>();
         String uploadId = "";
         for ( String keyName : keyNames ) {
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                    keyName );
             uploadIds1.add( uploadId );
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                    keyName );
             uploadIds2.add( uploadId );
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                    keyName );
             uploadIds3.add( uploadId );
         }
         ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
@@ -68,10 +68,10 @@ public class ListMultipartUploads18752 extends S3TestBase {
         request.setDelimiter( "/" );
         MultipartUploadListing partUploadList = s3Client
                 .listMultipartUploads( request );
-        List<String> expCommonPrefixes = new ArrayList<>();
+        List< String > expCommonPrefixes = new ArrayList<>();
         expCommonPrefixes.add( "dir1a/" );
         expCommonPrefixes.add( "dir1b/" );
-        MultiValueMap<String, String> expUploads = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expUploads = new LinkedMultiValueMap< String, String >();
         PartUploadUtils.checkListMultipartUploadsResults( partUploadList,
                 expCommonPrefixes, expUploads );
         runSuccess = true;

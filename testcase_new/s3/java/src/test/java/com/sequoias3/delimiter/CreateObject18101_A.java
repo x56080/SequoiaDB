@@ -42,8 +42,8 @@ public class CreateObject18101_A extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         filePath1 = localPath + File.separator + "localFile_" + oldFileSize
                 + ".txt";
         filePath2 = localPath + File.separator + "localFile_" + newFileSize
@@ -98,16 +98,16 @@ public class CreateObject18101_A extends S3TestBase {
                 new GetObjectRequest( bucketName, keyName, versionId ) );
         ObjectMetadata metadata = obj.getObjectMetadata();
         Date actCreateDate = metadata.getLastModified();
-        if ( actCreateDate.before( expDateLowBound ) || actCreateDate
-                .after( expDateUpBound ) ) {
+        if ( actCreateDate.before( expDateLowBound )
+                || actCreateDate.after( expDateUpBound ) ) {
             Assert.fail( "create time is different! the actCreateDate is : "
                     + actCreateDate.toString() + ",the expDate is in :[ "
-                    + expDateLowBound.toString() + " ~ " + expDateUpBound
-                    .toString() + " ]" );
+                    + expDateLowBound.toString() + " ~ "
+                    + expDateUpBound.toString() + " ]" );
         }
 
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
         Assert.assertEquals( obj.getKey(), keyName );
 
@@ -116,7 +116,7 @@ public class CreateObject18101_A extends S3TestBase {
                 .withBucketName( bucketName ).withEncodingType( "url" );
         request.withDelimiter( delimiter );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         Assert.assertEquals( commonPrefixes.size(), 1 );
         Assert.assertEquals( commonPrefixes.get( 0 ), expCommPerfix );
         Assert.assertEquals( result.getObjectSummaries().size(), 0 );

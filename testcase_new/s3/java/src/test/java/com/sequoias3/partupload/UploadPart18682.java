@@ -27,8 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @Author wangkexin
  * @Date 2019.07.25
  */
-@Test(groups = "partsizelimitoff") public class UploadPart18682
-        extends S3TestBase {
+@Test(groups = "partsizelimitoff")
+public class UploadPart18682 extends S3TestBase {
     private AtomicInteger actSuccessTests = new AtomicInteger( 0 );
     private String bucketName = "bucket18682";
     private AmazonS3 s3Client = null;
@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
     private File file = null;
     private String filePath = null;
     private String uploadId = "";
-    private List<PartETag> partEtags = null;
+    private List< PartETag > partEtags = null;
 
     @DataProvider(name = "uploadProvider")
     public Object[][] generateObjectNumber() {
@@ -53,10 +53,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -97,8 +97,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
     private void uploadPartFirst( String keyName, long partSize )
             throws IOException {
-        uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
 
         int filepositon = 0;
         for ( int i = 1; i < 3; i++ ) {
@@ -110,12 +110,11 @@ import java.util.concurrent.atomic.AtomicInteger;
             UploadPartResult uploadPartResult = s3Client
                     .uploadPart( partRequest );
             partEtags.add( uploadPartResult.getPartETag() );
-            String expPartMd5 = TestTools
-                    .getFilePartMD5( file, filepositon, partSize );
+            String expPartMd5 = TestTools.getFilePartMD5( file, filepositon,
+                    partSize );
             String actPartMd5 = uploadPartResult.getPartETag().getETag();
-            Assert.assertEquals( actPartMd5, expPartMd5,
-                    "part number = " + uploadPartResult.getPartETag()
-                            .getPartNumber() );
+            Assert.assertEquals( actPartMd5, expPartMd5, "part number = "
+                    + uploadPartResult.getPartETag().getPartNumber() );
             filepositon += partSize;
         }
     }
@@ -128,18 +127,17 @@ import java.util.concurrent.atomic.AtomicInteger;
                 .withKey( keyName ).withUploadId( uploadId );
         UploadPartResult uploadPartResult = s3Client.uploadPart( partRequest );
         partEtags.set( 1, uploadPartResult.getPartETag() );
-        String expPartMd5 = TestTools
-                .getFilePartMD5( file, fileOffset, partSize );
+        String expPartMd5 = TestTools.getFilePartMD5( file, fileOffset,
+                partSize );
         String actPartMd5 = uploadPartResult.getPartETag().getETag();
-        Assert.assertEquals( actPartMd5, expPartMd5,
-                "part number = " + uploadPartResult.getPartETag()
-                        .getPartNumber() );
+        Assert.assertEquals( actPartMd5, expPartMd5, "part number = "
+                + uploadPartResult.getPartETag().getPartNumber() );
     }
 
     private void checkResult( String keyName, long fileSize ) throws Exception {
         String expMd5 = TestTools.getFilePartMD5( file, 0, fileSize );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
     }
 }

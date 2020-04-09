@@ -88,7 +88,7 @@ public class ChangeConfigurationMode17312 extends S3TestBase {
     private void tearDown() throws Exception {
         if ( runSuccess ) {
             try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
-                    "" ); ) {
+                    "" ) ;) {
                 sdb.dropCollectionSpace( metaCSName );
                 sdb.dropCollectionSpace( dataCSName );
                 RegionUtils.deleteRegion( specifiedRegionName );

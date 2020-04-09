@@ -34,7 +34,7 @@ public class ListObjectsWithDelimiter18130 extends S3TestBase {
             "dir1?dir2?aa?dd?cctest18130_8" };
     private String delimiter = "tes";
     private int maxkeys = 2;
-    private List<String> expCommprefixes = new ArrayList<String>();
+    private List< String > expCommprefixes = new ArrayList< String >();
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
 
@@ -57,14 +57,14 @@ public class ListObjectsWithDelimiter18130 extends S3TestBase {
         DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
 
-        expCommprefixes = ObjectUtils
-                .getCommPrefixes( objectNames, "", delimiter );
+        expCommprefixes = ObjectUtils.getCommPrefixes( objectNames, "",
+                delimiter );
         int listReturnTimes = ( int ) Math
                 .ceil( ( double ) expCommprefixes.size() / maxkeys );
         int lastReturnNum = expCommprefixes.size() % maxkeys;
         int times = 0;
-        List<String> commprefixesResult = new ArrayList<>();
-        List<String> contentsResult = new ArrayList<>();
+        List< String > commprefixesResult = new ArrayList<>();
+        List< String > contentsResult = new ArrayList<>();
         ListObjectsV2Request req = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withDelimiter( delimiter )
                 .withMaxKeys( maxkeys );
@@ -81,7 +81,7 @@ public class ListObjectsWithDelimiter18130 extends S3TestBase {
                         "return num is wrong" );
             }
 
-            List<S3ObjectSummary> contents = result.getObjectSummaries();
+            List< S3ObjectSummary > contents = result.getObjectSummaries();
             for ( S3ObjectSummary content : contents ) {
                 contentsResult.add( content.getKey() );
             }

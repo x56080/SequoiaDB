@@ -28,7 +28,7 @@ public class ListObjectsWithDelimiter18573 extends S3TestBase {
     private AtomicInteger actSuccessTests = new AtomicInteger( 0 );
     private String bucketName = "bucket18573";
     private AmazonS3 s3Client = null;
-    private List<String> keyList = null;
+    private List< String > keyList = null;
 
     @DataProvider(name = "listWithDelimiterProvider")
     public Object[][] generatePageSize() {
@@ -81,31 +81,31 @@ public class ListObjectsWithDelimiter18573 extends S3TestBase {
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName ).withDelimiter( delimiter );
         ObjectListing result = s3Client.listObjects( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         // matching delimiter displays only 1 record
         Assert.assertEquals( commonPrefixes.size(), 1 );
         Assert.assertEquals( commonPrefixes.get( 0 ), delimiter );
 
         // objects do not match delimiter are displayed in contents,num is 4
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         int contentsNums = 4;
         Assert.assertEquals( objects.size(), contentsNums );
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             queryKeyList.add( key );
         }
 
         // check the keyName
-        List<String> expKeyList = new ArrayList<>( keyList );
+        List< String > expKeyList = new ArrayList<>( keyList );
         expKeyList.remove( position );
         Assert.assertEquals( queryKeyList, expKeyList,
                 "queryKeyList:" + queryKeyList.toString() + " expKeyList:"
                         + expKeyList.toString() );
     }
 
-    private List<String> putObjects( String[] keys ) {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects( String[] keys ) {
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < keys.length; i++ ) {
             String keyName = keys[ i ];
             s3Client.putObject( bucketName, keyName, "testcontext18120_" + i );

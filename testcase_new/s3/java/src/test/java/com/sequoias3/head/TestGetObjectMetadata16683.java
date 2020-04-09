@@ -44,18 +44,17 @@ public class TestGetObjectMetadata16683 extends S3TestBase {
     private void testGetObjectMetadata() throws Exception {
         s3Client.createBucket( bucketName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
-        PutObjectResult resultV1 = s3Client
-                .putObject( bucketName, keyName, content + "v1" );
+        PutObjectResult resultV1 = s3Client.putObject( bucketName, keyName,
+                content + "v1" );
         String versionIdV1 = resultV1.getVersionId();
 
-        PutObjectResult resultV2 = s3Client
-                .putObject( bucketName, keyName, content + "v2" );
+        PutObjectResult resultV2 = s3Client.putObject( bucketName, keyName,
+                content + "v2" );
         String etagV2 = resultV2.getETag();
 
         // 设置Etag值和指定versionID对应值不一致
-        HttpHead request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + bucketName + "/" + keyName
-                        + "?versionId=" + versionIdV1 );
+        HttpHead request = new HttpHead( S3TestBase.s3ClientUrl + "/"
+                + bucketName + "/" + keyName + "?versionId=" + versionIdV1 );
         request.setHeader( "Authorization",
                 "Credential=" + accessKeys[ 0 ] + "/" );
         request.setHeader( "If-Match", etagV2 );

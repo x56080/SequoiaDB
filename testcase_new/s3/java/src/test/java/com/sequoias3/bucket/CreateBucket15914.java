@@ -30,7 +30,7 @@ public class CreateBucket15914 extends S3TestBase {
     private String userName = "user15914";
     private String roleName = "normal";
     private String delBucketName = "bucket15914.5";
-    private List<String> expBucketNameList = new ArrayList<String>();
+    private List< String > expBucketNameList = new ArrayList< String >();
     private AmazonS3 s3Client = null;
 
     @BeforeClass
@@ -77,10 +77,10 @@ public class CreateBucket15914 extends S3TestBase {
 
     private void checkCreateBucketResult( AmazonS3 s3Client ) {
         // check bucket nums
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         Assert.assertEquals( buckets.size(), defaultNums );
 
-        List<String> actbucketNameLists = new ArrayList<>();
+        List< String > actbucketNameLists = new ArrayList<>();
         for ( Bucket bucket : buckets ) {
             Owner actOwner = bucket.getOwner();
             Assert.assertEquals( actOwner.getDisplayName(), userName );
@@ -95,7 +95,7 @@ public class CreateBucket15914 extends S3TestBase {
     private void checkResultAfterDelete( AmazonS3 s3Client,
             String bucketname ) {
         // check bucket nums
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         Assert.assertEquals( buckets.size(), defaultNums - 1 );
         Assert.assertFalse( s3Client.doesBucketExist( bucketname ),
                 "bucket still exist!" );

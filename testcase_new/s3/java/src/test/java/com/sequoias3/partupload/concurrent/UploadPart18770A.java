@@ -39,8 +39,8 @@ public class UploadPart18770A extends S3TestBase {
     private int maxPartNumber = 10;
     private String[] keys = { "atest18770a_0", "/dir1/test18770a_1",
             "/dir1/dir2/test18770a_2", "/dira/test18770a_3", "test18770a_4" };
-    private List<String> uploadIdsOld = new ArrayList<>();
-    private List<String> uploadIdsNew = new ArrayList<>();
+    private List< String > uploadIdsOld = new ArrayList<>();
+    private List< String > uploadIdsNew = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -77,14 +77,14 @@ public class UploadPart18770A extends S3TestBase {
     private void initAndUploadPart() {
         // initPartUpload
         for ( String key : keys ) {
-            String uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, key );
+            String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, key );
             uploadIdsOld.add( uploadId );
         }
         // initPartUpload again
         for ( String key : keys ) {
-            String uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, key );
+            String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                    bucketName, key );
             uploadIdsNew.add( uploadId );
         }
 
@@ -96,10 +96,10 @@ public class UploadPart18770A extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -119,14 +119,14 @@ public class UploadPart18770A extends S3TestBase {
         private void list() {
             ListMultipartUploadsRequest request = new ListMultipartUploadsRequest(
                     bucketName ).withPrefix( "/dir" ).withKeyMarker( keys[ 2 ] )
-                    .withUploadIdMarker( uploadIdsOld.get( 2 ) );
+                            .withUploadIdMarker( uploadIdsOld.get( 2 ) );
             result = s3.listMultipartUploads( request );
         }
 
         @ExecuteOrder(step = 3, desc = "check results")
         private void checkResults() {
-            List<String> expCommonPrefixes = new ArrayList<>();
-            MultiValueMap<String, String> expUploads = new LinkedMultiValueMap<String, String>();
+            List< String > expCommonPrefixes = new ArrayList<>();
+            MultiValueMap< String, String > expUploads = new LinkedMultiValueMap< String, String >();
             expUploads.add( keys[ 2 ], uploadIdsNew.get( 2 ) );
             expUploads.add( keys[ 1 ], uploadIdsOld.get( 1 ) );
             expUploads.add( keys[ 1 ], uploadIdsNew.get( 1 ) );

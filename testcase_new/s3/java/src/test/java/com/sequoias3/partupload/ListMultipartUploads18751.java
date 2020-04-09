@@ -40,10 +40,10 @@ public class ListMultipartUploads18751 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -60,15 +60,15 @@ public class ListMultipartUploads18751 extends S3TestBase {
 
     @Test
     private void testListMultipartUploads() throws Exception {
-        List<String> uploadIds = new ArrayList<>();
-        List<String> newUploadIds = new ArrayList<>();
+        List< String > uploadIds = new ArrayList<>();
+        List< String > newUploadIds = new ArrayList<>();
         String uploadId = "";
         for ( String keyName : keyNames ) {
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                    keyName );
             uploadIds.add( uploadId );
-            uploadId = PartUploadUtils
-                    .initPartUpload( s3Client, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                    keyName );
             newUploadIds.add( uploadId );
         }
         // 指定对象"dir1/test18751"上传多个分段
@@ -82,8 +82,8 @@ public class ListMultipartUploads18751 extends S3TestBase {
         request.setKeyMarker( keyNames[ 2 ] );
         MultipartUploadListing partUploadList = s3Client
                 .listMultipartUploads( request );
-        List<String> expCommonPrefixes = new ArrayList<>();
-        MultiValueMap<String, String> expUploads = new LinkedMultiValueMap<String, String>();
+        List< String > expCommonPrefixes = new ArrayList<>();
+        MultiValueMap< String, String > expUploads = new LinkedMultiValueMap< String, String >();
         expUploads.add( keyNames[ 3 ], uploadIds.get( 3 ) );
         expUploads.add( keyNames[ 3 ], newUploadIds.get( 3 ) );
         PartUploadUtils.checkListMultipartUploadsResults( partUploadList,

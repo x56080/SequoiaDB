@@ -39,10 +39,10 @@ public class TestObjectRequest17861 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -67,7 +67,7 @@ public class TestObjectRequest17861 extends S3TestBase {
         PutObjectRequest putObjectRequest = new PutObjectRequest( bucketName,
                 asciiKeyName, new File( filePath ) );
         ObjectMetadata metadata = new ObjectMetadata();
-        Map<String, String> xMeta = new HashMap<String, String>();
+        Map< String, String > xMeta = new HashMap< String, String >();
         xMeta.put( "meta17861", "17861" );
         metadata.setUserMetadata( xMeta );
         putObjectRequest.withMetadata( metadata );

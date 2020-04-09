@@ -84,13 +84,13 @@ public class CreateUser18588 extends S3TestBase {
         // check updated accessKeyID and secretAccessKey is active
         AmazonS3 s3Client = null;
         try {
-            s3Client = CommLib
-                    .buildS3Client( newAccessKeys[ 0 ], newAccessKeys[ 1 ] );
+            s3Client = CommLib.buildS3Client( newAccessKeys[ 0 ],
+                    newAccessKeys[ 1 ] );
             // create bucket
             s3Client.createBucket( bucketName );
             s3Client.putObject( bucketName, keyName, content );
-            ObjectMetadata metadata = s3Client
-                    .getObjectMetadata( bucketName, keyName );
+            ObjectMetadata metadata = s3Client.getObjectMetadata( bucketName,
+                    keyName );
             Assert.assertEquals( metadata.getETag(),
                     TestTools.getMD5( content.getBytes() ) );
 
@@ -114,12 +114,13 @@ public class CreateUser18588 extends S3TestBase {
             String authorization ) {
         TestRest rest = new TestRest( type );
         try {
-            ResponseEntity<?> resp = rest.setApi(
-                    "/users/?Action=CreateUser&UserName=" + name + "&Role="
-                            + role ).setRequestMethod( HttpMethod.POST )
+            ResponseEntity< ? > resp = rest
+                    .setApi( "/users/?Action=CreateUser&UserName=" + name
+                            + "&Role=" + role )
+                    .setRequestMethod( HttpMethod.POST )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject resultJson = XML.toJSONObject( xmlBody );
             JSONObject AccessKeys = resultJson.getJSONObject( "AccessKeys" );
@@ -136,12 +137,12 @@ public class CreateUser18588 extends S3TestBase {
     private String[] updateUser( String name, String authorization ) {
         TestRest rest = new TestRest( type );
         try {
-            ResponseEntity<?> resp = rest
+            ResponseEntity< ? > resp = rest
                     .setApi( "/users/?Action=CreateAccessKey&UserName=" + name )
                     .setRequestMethod( HttpMethod.POST )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject resultJson = XML.toJSONObject( xmlBody );
             JSONObject AccessKeys = resultJson.getJSONObject( "AccessKeys" );
@@ -159,12 +160,12 @@ public class CreateUser18588 extends S3TestBase {
             boolean force ) {
         TestRest rest = new TestRest( type );
         try {
-            rest.setApi(
-                    "/users/?Action=DeleteUser&UserName=" + name + "&Force="
-                            + force ).setRequestMethod( HttpMethod.POST )
+            rest.setApi( "/users/?Action=DeleteUser&UserName="
+                    + name + "&Force=" + force )
+                    .setRequestMethod( HttpMethod.POST )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
         } catch ( HttpStatusCodeException e ) {
             throw DelimiterUtils.httpToAmazon( e );
         }
@@ -175,12 +176,12 @@ public class CreateUser18588 extends S3TestBase {
         TestRest rest = new TestRest( type );
         String accessKeyId = "";
         try {
-            ResponseEntity<?> resp = rest
+            ResponseEntity< ? > resp = rest
                     .setApi( "/users/?Action=GetAccessKey&UserName=" + name )
                     .setRequestMethod( HttpMethod.POST )
                     .setRequestHeaders( UserCommDefind.authorization,
-                            authorization ).setResponseType( String.class )
-                    .exec();
+                            authorization )
+                    .setResponseType( String.class ).exec();
             String xmlBody = resp.getBody().toString();
             JSONObject resultJson = XML.toJSONObject( xmlBody );
             JSONObject AccessKeys = resultJson.getJSONObject( "AccessKeys" );

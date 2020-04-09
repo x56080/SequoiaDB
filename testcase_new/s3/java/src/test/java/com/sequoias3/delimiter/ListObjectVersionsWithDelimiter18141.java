@@ -59,22 +59,22 @@ public class ListObjectVersionsWithDelimiter18141 extends S3TestBase {
         VersionListing versionList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName )
                         .withDelimiter( delimiter ) );
-        List<String> commonPrefixes = versionList.getCommonPrefixes();
-        List<String> expCommPrefixes = ObjectUtils
-                .getCommPrefixes( keyName, "", delimiter );
+        List< String > commonPrefixes = versionList.getCommonPrefixes();
+        List< String > expCommPrefixes = ObjectUtils.getCommPrefixes( keyName,
+                "", delimiter );
         ObjectUtils.checkListObjectsV2Commprefixes( commonPrefixes,
                 expCommPrefixes );
 
-        List<String> actVersionList = new ArrayList<>();
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< String > actVersionList = new ArrayList<>();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         for ( S3VersionSummary version : verList ) {
             actVersionList.add( version.getKey() );
             Assert.assertEquals( version.getVersionId(), "0" );
             Assert.assertFalse( version.isDeleteMarker(),
                     "isDeleteMarker is wrong , key = " + version.getKey() );
         }
-        List<String> expVersionList = ObjectUtils
-                .getKeys( keyName, "", delimiter );
+        List< String > expVersionList = ObjectUtils.getKeys( keyName, "",
+                delimiter );
         Collections.sort( expVersionList );
         Assert.assertEquals( actVersionList, expVersionList );
         runSuccess = true;

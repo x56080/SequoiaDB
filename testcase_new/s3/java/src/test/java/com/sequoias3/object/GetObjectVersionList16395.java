@@ -26,7 +26,7 @@ public class GetObjectVersionList16395 extends S3TestBase {
     private String bucketName = "bucket16395";
     private String[] keyName = { "dir1%dir2%test1", "dir2%test2", "test3",
             "test4" };
-    private List<S3VersionSummary> expVersionList = new ArrayList<>();
+    private List< S3VersionSummary > expVersionList = new ArrayList<>();
     private int oneObjVersionNum = 3;
     private String file = "object16395";
     private AmazonS3 s3Client = null;
@@ -54,7 +54,7 @@ public class GetObjectVersionList16395 extends S3TestBase {
 
     @Test
     public void testGetObjectList() throws Exception {
-        List<S3VersionSummary> versionList = new ArrayList<>();
+        List< S3VersionSummary > versionList = new ArrayList<>();
         // test a:指定位置为中间记录
         int index = ( keyName.length / 2 ) - 1;
         versionList = getVersionList( keyName[ index ] );
@@ -103,15 +103,15 @@ public class GetObjectVersionList16395 extends S3TestBase {
         }
     }
 
-    private List<S3VersionSummary> getVersionList( String KeyMarker ) {
+    private List< S3VersionSummary > getVersionList( String KeyMarker ) {
         ListVersionsRequest req = new ListVersionsRequest()
                 .withBucketName( bucketName ).withKeyMarker( KeyMarker );
         VersionListing versionList = s3Client.listVersions( req );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         return verList;
     }
 
-    private void checkVersionResult( List<S3VersionSummary> versionList,
+    private void checkVersionResult( List< S3VersionSummary > versionList,
             int index ) {
         int startIndex = ( index + 1 ) * oneObjVersionNum;
         int expNum = ( keyName.length * oneObjVersionNum ) - startIndex;

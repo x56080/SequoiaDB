@@ -66,12 +66,11 @@ public class ListVersions18158 extends S3TestBase {
                         .withDelimiter( delimiter ).withKeyMarker( keyMarker )
                         .withVersionIdMarker( versionIdMarker ) );
 
-        List<String> matchPrefixList = new ArrayList<>();
-        MultiValueMap<String, String> expVersions = new LinkedMultiValueMap<String, String>();
+        List< String > matchPrefixList = new ArrayList<>();
+        MultiValueMap< String, String > expVersions = new LinkedMultiValueMap< String, String >();
 
-        Assert.assertEquals( vsList.isTruncated(), false,
-                "keyMarker:" + keyMarker
-                        + "  list.isTruncated() is unexpected!" );
+        Assert.assertEquals( vsList.isTruncated(), false, "keyMarker:"
+                + keyMarker + "  list.isTruncated() is unexpected!" );
         ObjectUtils.checkListVSResults( vsList, matchPrefixList, expVersions );
         runSuccess = true;
     }

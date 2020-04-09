@@ -46,7 +46,7 @@ public class DefaultRegion20405 extends S3TestBase {
     @Test
     @SuppressWarnings("deprecation")
     public void testRegion() throws Exception {
-        //create bucket
+        // create bucket
         s3Client.createBucket( bucketName );
         // create object
         ThreadExecutor executor = new ThreadExecutor( 1000 * 60 * 5 );
@@ -54,13 +54,12 @@ public class DefaultRegion20405 extends S3TestBase {
             executor.addWorker( new CreateObject() );
         }
         executor.run();
-        //check result
+        // check result
         checkResults();
-        //delete data cs exclude "S3_" + regionName + "_Data_" + new Date()
+        // delete data cs exclude "S3_" + regionName + "_Data_" + new Date()
         // .getYear() + "_1"
-        csNameList.remove(
-                "S3_SYS_Data_" + Calendar.getInstance().get( Calendar.YEAR ) +
-                        "_1" );
+        csNameList.remove( "S3_SYS_Data_"
+                + Calendar.getInstance().get( Calendar.YEAR ) + "_1" );
         for ( String csName : csNameList ) {
             RegionUtils.dropCS( csName );
         }
@@ -79,29 +78,28 @@ public class DefaultRegion20405 extends S3TestBase {
     }
 
     private void checkResults() throws IOException {
-        String prefix =
-                "S3_SYS_Data_" + Calendar.getInstance().get( Calendar.YEAR );
+        String prefix = "S3_SYS_Data_"
+                + Calendar.getInstance().get( Calendar.YEAR );
         csNameList = RegionUtils.listCS( prefix );
         List< Integer > csNumList = new ArrayList<>();
         Assert.assertTrue( csNameList.size() > 0, csNameList.toString() );
         // get dataCS index
         for ( String csName : csNameList ) {
-            csNumList.add( Integer.parseInt(
-                    csName.substring( csName.lastIndexOf( "_" ) + 1,
-                            csName.length() ) ) );
+            csNumList.add( Integer.parseInt( csName.substring(
+                    csName.lastIndexOf( "_" ) + 1, csName.length() ) ) );
         }
         Collections.sort( csNumList );
         // 0 < csNum <= dataCSRange
         Assert.assertTrue( csNumList.get( 0 ) >= 0, csNameList.toString() );
         Assert.assertTrue( csNumList.get( csNumList.size() - 1 ) <= dataCSRange,
                 csNameList.toString() );
-        //check object content
+        // check object content
         for ( int i = 1; i <= objectNum; i++ ) {
             S3Object obj = s3Client.getObject( bucketName, objectNameBase + i );
             Assert.assertEquals( Md5Utils.md5AsBase64( obj.getObjectContent() ),
                     Md5Utils.md5AsBase64( String.valueOf( i ).getBytes() ),
-                    "bucketName = " + bucketName + ",objectName = " +
-                            objectNameBase + i );
+                    "bucketName = " + bucketName + ",objectName = "
+                            + objectNameBase + i );
         }
     }
 

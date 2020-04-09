@@ -42,10 +42,10 @@ public class ListParts18735 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -60,21 +60,21 @@ public class ListParts18735 extends S3TestBase {
 
     @Test
     private void testListParts() throws Exception {
-        List<Integer> partNumbers = new ArrayList<>(
+        List< Integer > partNumbers = new ArrayList<>(
                 Arrays.asList( 1, 3, 5, 6, 7, 8 ) );
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
         partUpload( uploadId, partNumbers );
 
         int maxParts = 3;
         int partNumberMarker = 1;
-        List<Integer> actPartNumbersList = new ArrayList<>();
+        List< Integer > actPartNumbersList = new ArrayList<>();
         ListPartsRequest request = new ListPartsRequest( bucketName, keyName,
                 uploadId );
         request.setMaxParts( maxParts );
         request.setPartNumberMarker( partNumberMarker );
         PartListing listResult = s3Client.listParts( request );
-        List<PartSummary> listParts = listResult.getParts();
+        List< PartSummary > listParts = listResult.getParts();
         for ( PartSummary parts : listParts ) {
             int partNumber = parts.getPartNumber();
             actPartNumbersList.add( partNumber );
@@ -90,7 +90,7 @@ public class ListParts18735 extends S3TestBase {
             actPartNumbersList.add( partNumber );
         }
         // 检查结果
-        List<Integer> expPartNumbers = new ArrayList<>();
+        List< Integer > expPartNumbers = new ArrayList<>();
         expPartNumbers.addAll( partNumbers );
         expPartNumbers.remove( 0 );
         Assert.assertEquals( actPartNumbersList, expPartNumbers );
@@ -111,9 +111,9 @@ public class ListParts18735 extends S3TestBase {
         }
     }
 
-    private List<PartETag> partUpload( String uploadId,
-            List<Integer> partNumbers ) {
-        List<PartETag> partEtags = new ArrayList<>();
+    private List< PartETag > partUpload( String uploadId,
+            List< Integer > partNumbers ) {
+        List< PartETag > partEtags = new ArrayList<>();
         int filePosition = 0;
         long partSize = PartUploadUtils.partLimitMinSize;
         for ( int i = 0; filePosition < fileSize; i++ ) {

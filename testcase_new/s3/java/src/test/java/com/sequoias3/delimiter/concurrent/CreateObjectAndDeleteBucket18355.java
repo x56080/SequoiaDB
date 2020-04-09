@@ -33,8 +33,8 @@ public class CreateObjectAndDeleteBucket18355 extends S3TestBase {
     private String keyName = "dir1/test?18355";
     private String delimiter = "?";
     private AmazonS3 s3Client = null;
-    private List<String> expKeyList = Collections
-            .synchronizedList( new LinkedList<String>() );
+    private List< String > expKeyList = Collections
+            .synchronizedList( new LinkedList< String >() );
 
     @BeforeClass
     private void setUp() {

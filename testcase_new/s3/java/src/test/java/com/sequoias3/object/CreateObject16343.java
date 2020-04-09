@@ -37,8 +37,8 @@ public class CreateObject16343 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         s3Client = CommLib.buildS3Client();
         // create bucket and set bucket version status
         s3Client.createBucket( new CreateBucketRequest( bucketName ) );
@@ -49,8 +49,8 @@ public class CreateObject16343 extends S3TestBase {
     public void testPutObject() throws Exception {
         // put the same object with contents.
         firstTime_expContent = "first_time_file16343";
-        PutObjectResult putObjResult = s3Client
-                .putObject( bucketName, keyName, firstTime_expContent );
+        PutObjectResult putObjResult = s3Client.putObject( bucketName, keyName,
+                firstTime_expContent );
         Date expFirstCreateTime = new Date();
         String historyVersionId = putObjResult.getVersionId();
 
@@ -88,17 +88,15 @@ public class CreateObject16343 extends S3TestBase {
         ObjectMetadata metadata = object.getObjectMetadata();
         Date actCreateDate = metadata.getLastModified();
         if ( actCreateDate.after( expDate ) ) {
-            Assert.fail(
-                    "object create time is different! versionid is " + metadata
-                            .getVersionId() + ",the actCreateDate is : "
-                            + actCreateDate.toString() + ",the expDate is : "
-                            + expDate.toString() );
+            Assert.fail( "object create time is different! versionid is "
+                    + metadata.getVersionId() + ",the actCreateDate is : "
+                    + actCreateDate.toString() + ",the expDate is : "
+                    + expDate.toString() );
         }
 
         // check object content by md5
-        String actMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName,
-                        versionid );
+        String actMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName, versionid );
         String expMd5 = TestTools.getMD5( expContent.getBytes() );
         Assert.assertEquals( actMd5, expMd5,
                 "The md5 value of the current version is different." );

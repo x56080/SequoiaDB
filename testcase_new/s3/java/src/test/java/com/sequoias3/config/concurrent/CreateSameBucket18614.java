@@ -23,8 +23,8 @@ import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
  * @Date 2019.06.25
  * @version 1.00
  */
-@Test(groups = "allowreputon") public class CreateSameBucket18614
-        extends S3TestBase {
+@Test(groups = "allowreputon")
+public class CreateSameBucket18614 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket18614";
     private String userName = "user18614";
@@ -97,8 +97,8 @@ import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
     }
 
     class ThreadCreateBucket18614 {
-        private AmazonS3 s3Client = CommLib
-                .buildS3Client( accessKeys[ 0 ], accessKeys[ 1 ] );
+        private AmazonS3 s3Client = CommLib.buildS3Client( accessKeys[ 0 ],
+                accessKeys[ 1 ] );
 
         @SuppressWarnings("deprecation")
         @ExecuteOrder(step = 1, desc = "上传对象")

@@ -20,22 +20,22 @@ public class TestRest extends S3TestBase {
 
     static {
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
-        factory.setConnectionRequestTimeout( 30*1000 );
-        factory.setConnectTimeout( 60*1000 );
+        factory.setConnectionRequestTimeout( 30 * 1000 );
+        factory.setConnectTimeout( 60 * 1000 );
         factory.setBufferRequestBody( false );
-        factory.setReadTimeout( 180*1000 );
+        factory.setReadTimeout( 180 * 1000 );
         rest = new RestTemplate( factory );
     }
 
     private HttpHeaders requestHeaders;
-    private String addr =
-            "http://" + S3TestBase.s3HostName + ":" + S3TestBase.s3Port;
+    private String addr = "http://" + S3TestBase.s3HostName + ":"
+            + S3TestBase.s3Port;
     private String url = "";
     private HttpMethod requestMethod;
-    private HttpEntity<?> requestEntity;
-    private Class<?> responseType;
+    private HttpEntity< ? > requestEntity;
+    private Class< ? > responseType;
     private Object uriVariables[];
-    private MultiValueMap<Object, Object> param;
+    private MultiValueMap< Object, Object > param;
     private Object resquestBody = null;
     private String api;
     private InputStreamResource resource = null;
@@ -118,7 +118,7 @@ public class TestRest extends S3TestBase {
         return this;
     }
 
-    public TestRest setResponseType( Class<?> responseType ) {
+    public TestRest setResponseType( Class< ? > responseType ) {
         this.responseType = responseType;
         return this;
     }
@@ -136,8 +136,8 @@ public class TestRest extends S3TestBase {
         return url;
     }
 
-    public ResponseEntity<?> exec() {
-        ResponseEntity<?> response = null;
+    public ResponseEntity< ? > exec() {
+        ResponseEntity< ? > response = null;
         try {
             if ( null != this.resource ) {
                 requestEntity = new HttpEntity<>( this.resource,
@@ -152,14 +152,13 @@ public class TestRest extends S3TestBase {
                 }
             }
             if ( this.uriVariables != null ) {
-                response = rest
-                        .exchange( this.getUrl( this.api ), this.requestMethod,
-                                this.requestEntity, this.responseType,
-                                this.uriVariables );
+                response = rest.exchange( this.getUrl( this.api ),
+                        this.requestMethod, this.requestEntity,
+                        this.responseType, this.uriVariables );
             } else {
-                response = rest
-                        .exchange( this.getUrl( this.api ), this.requestMethod,
-                                this.requestEntity, this.responseType );
+                response = rest.exchange( this.getUrl( this.api ),
+                        this.requestMethod, this.requestEntity,
+                        this.responseType );
             }
         } catch ( HttpClientErrorException e ) {
             throw e;

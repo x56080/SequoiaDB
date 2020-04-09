@@ -28,7 +28,7 @@ public class CreateBucket15909 extends S3TestBase {
     private final int defaultNums = 100;
     private boolean runSuccess = false;
     private String bucketName = "bucket15909";
-    private List<String> bucketNameList = new ArrayList<String>();
+    private List< String > bucketNameList = new ArrayList< String >();
     private String userName = "user15909";
     private String roleName = "normal";
     private AmazonS3 s3Client = null;
@@ -73,10 +73,10 @@ public class CreateBucket15909 extends S3TestBase {
 
     private void checkCreateBucketResult( AmazonS3 s3Client ) {
         // check bucket nums
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         Assert.assertEquals( buckets.size(), defaultNums );
 
-        List<String> actbucketNameLists = new ArrayList<>();
+        List< String > actbucketNameLists = new ArrayList<>();
         for ( Bucket bucket : buckets ) {
             Owner actOwner = bucket.getOwner();
             Assert.assertEquals( actOwner.getDisplayName(), userName );

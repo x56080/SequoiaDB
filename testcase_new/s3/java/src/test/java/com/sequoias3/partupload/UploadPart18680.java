@@ -30,7 +30,7 @@ import java.util.List;
  */
 
 public class UploadPart18680 extends S3TestBase {
-    List<PartETag> partETags = new ArrayList<>();
+    List< PartETag > partETags = new ArrayList<>();
     private boolean runSuccess = false;
     private AmazonS3 s3Client;
     private File localPath;
@@ -52,16 +52,15 @@ public class UploadPart18680 extends S3TestBase {
 
     @Test
     private void test() throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, key );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, key );
         this.partUpload( uploadId );
-        PartUploadUtils
-                .completeMultipartUpload( s3Client, bucketName, key, uploadId,
-                        partETags );
+        PartUploadUtils.completeMultipartUpload( s3Client, bucketName, key,
+                uploadId, partETags );
 
         // check results
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath3 ) );
 
         runSuccess = true;
@@ -106,13 +105,13 @@ public class UploadPart18680 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
 
-        String filePathBase =
-                localPath + File.separator + "localFile_" + fileSize;
+        String filePathBase = localPath + File.separator + "localFile_"
+                + fileSize;
         filePath1 = filePathBase + "_1.txt";
         filePath2 = filePathBase + "_2.txt";
         filePath3 = filePathBase + "_3.txt";

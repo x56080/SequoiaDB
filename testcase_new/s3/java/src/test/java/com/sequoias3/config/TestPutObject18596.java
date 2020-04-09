@@ -33,8 +33,8 @@ public class TestPutObject18596 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         CommLib.clearUser( userName );
         accessKeys = UserUtils.createUser( userName, UserCommDefind.normal );
         s3Client = CommLib.buildS3Client( accessKeys[ 0 ], accessKeys[ 1 ] );
@@ -45,8 +45,8 @@ public class TestPutObject18596 extends S3TestBase {
         s3Client.createBucket( bucketName );
         s3Client.putObject( bucketName, keyName, content );
         String expEtag = TestTools.getMD5( content.getBytes() );
-        String actEtag = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String actEtag = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( actEtag, expEtag );
 
         runSuccess = true;

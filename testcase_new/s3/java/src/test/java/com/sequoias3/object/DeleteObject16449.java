@@ -27,7 +27,7 @@ import java.util.List;
 public class DeleteObject16449 extends S3TestBase {
     private String bucketName = "bucket16449";
     private String keyName = "testkey16449";
-    private List<S3VersionSummary> expVersionList = new ArrayList<>();
+    private List< S3VersionSummary > expVersionList = new ArrayList<>();
     private int oneObjVersionNum = 3;
     private String file = "object16449";
     private AmazonS3 s3Client = null;
@@ -71,7 +71,7 @@ public class DeleteObject16449 extends S3TestBase {
         ListVersionsRequest req = new ListVersionsRequest()
                 .withBucketName( bucketName );
         VersionListing versionList = s3Client.listVersions( req );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         Assert.assertEquals( verList.size(), expVersionList.size() );
         for ( int i = 0; i < verList.size(); i++ ) {
             Assert.assertEquals( verList.get( i ).getKey(),

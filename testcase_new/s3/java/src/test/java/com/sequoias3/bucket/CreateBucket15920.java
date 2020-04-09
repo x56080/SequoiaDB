@@ -71,7 +71,7 @@ public class CreateBucket15920 extends S3TestBase {
     }
 
     private void checkBucketResult( AmazonS3 s3Client, int bucketsize ) {
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         Assert.assertEquals( buckets.size(), bucketsize );
         if ( buckets.size() > 0 ) {
             Bucket bucket = buckets.get( 0 );
@@ -91,8 +91,8 @@ public class CreateBucket15920 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.createBucket( bucketName );
             } finally {
@@ -112,8 +112,8 @@ public class CreateBucket15920 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 Thread.sleep( 2 );
                 s3Client.deleteBucket( bucketName );

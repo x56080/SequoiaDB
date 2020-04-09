@@ -31,8 +31,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @Author wangkexin
  * @Date 2019.07.29
  */
-@Test(groups = "partlistinuseoff") public class UploadPart18688
-        extends S3TestBase {
+@Test(groups = "partlistinuseoff")
+public class UploadPart18688 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket18688";
     private String keyName = "key18688";
@@ -42,15 +42,15 @@ import java.util.concurrent.CopyOnWriteArrayList;
     private File file = null;
     private String filePath = null;
     private String uploadId = "";
-    private List<PartETag> partEtags = new CopyOnWriteArrayList<>();
-    private List<int[]> partList = new ArrayList<>();
+    private List< PartETag > partEtags = new CopyOnWriteArrayList<>();
+    private List< int[] > partList = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -73,8 +73,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
     @Test
     private void testUpload() throws Exception {
-        uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
         ThreadExecutor es = new ThreadExecutor();
         for ( int i = 0; i < partList.size(); i++ ) {
             es.addWorker( new ThreadUploadSamePart18688( partList.get( i ) ) );
@@ -114,8 +114,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
                 }
             }
             String expMd5 = new String( Hex.encodeHex( md5.digest() ) );
-            String actMd5 = ObjectUtils
-                    .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+            String actMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                    bucketName, keyName );
             Assert.assertEquals( actMd5, expMd5 );
         } finally {
             if ( fileInputStream != null ) {

@@ -25,7 +25,7 @@ public class ListObjects18110 extends S3TestBase {
     private String defaultDelimiter = "/";
     private AmazonS3 s3Client = null;
     private int objectNums = 200;
-    private List<String> matchKeyList = new ArrayList<>();
+    private List< String > matchKeyList = new ArrayList<>();
 
     @BeforeClass
     private void setUp() {
@@ -48,7 +48,7 @@ public class ListObjects18110 extends S3TestBase {
             matchKeyList.add( keyName + "_" + i + "/" );
         }
 
-        List<String> expContentList = new ArrayList<>();
+        List< String > expContentList = new ArrayList<>();
         DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
                 defaultDelimiter, matchKeyList, expContentList );
         runSuccess = true;

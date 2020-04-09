@@ -42,14 +42,14 @@ public class SetBucketVersioning16611 extends S3TestBase {
         s3Client.createBucket( bucketName );
         checkCreateBucketResult();
         // check bucket versioning status
-        Assert.assertEquals(
-                s3Client.getBucketVersioningConfiguration( bucketName )
-                        .getStatus(), "Off" );
+        Assert.assertEquals( s3Client
+                .getBucketVersioningConfiguration( bucketName ).getStatus(),
+                "Off" );
 
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
-        Assert.assertEquals(
-                s3Client.getBucketVersioningConfiguration( bucketName )
-                        .getStatus(), "Enabled" );
+        Assert.assertEquals( s3Client
+                .getBucketVersioningConfiguration( bucketName ).getStatus(),
+                "Enabled" );
 
         try {
             CommLib.setBucketVersioning( s3Client, bucketName, "null" );
@@ -59,9 +59,9 @@ public class SetBucketVersioning16611 extends S3TestBase {
         }
 
         CommLib.setBucketVersioning( s3Client, bucketName, "Suspended" );
-        Assert.assertEquals(
-                s3Client.getBucketVersioningConfiguration( bucketName )
-                        .getStatus(), "Suspended" );
+        Assert.assertEquals( s3Client
+                .getBucketVersioningConfiguration( bucketName ).getStatus(),
+                "Suspended" );
 
         try {
             CommLib.setBucketVersioning( s3Client, bucketName, "abc" );
@@ -87,7 +87,7 @@ public class SetBucketVersioning16611 extends S3TestBase {
 
     private void checkCreateBucketResult() {
         // create one bucket,check the bucket name and owner name
-        List<Bucket> buckets = s3Client.listBuckets();
+        List< Bucket > buckets = s3Client.listBuckets();
         boolean findBucketFlag = false;
         for ( int i = 0; i < buckets.size(); i++ ) {
             String actBucketName = buckets.get( i ).getName();

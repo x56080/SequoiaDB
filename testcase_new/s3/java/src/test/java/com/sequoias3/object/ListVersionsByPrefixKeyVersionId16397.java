@@ -59,8 +59,8 @@ public class ListVersionsByPrefixKeyVersionId16397 extends S3TestBase {
                         .withPrefix( prefix ).withKeyMarker( keyMarker )
                         .withVersionIdMarker( versionIdMarker ) );
         // check
-        ObjectUtils.checkListVSResults( vsList, new ArrayList<String>(),
-                new LinkedMultiValueMap<String, String>() );
+        ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
+                new LinkedMultiValueMap< String, String >() );
         runSuccess = true;
     }
 

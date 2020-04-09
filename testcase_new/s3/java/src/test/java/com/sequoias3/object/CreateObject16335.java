@@ -33,10 +33,10 @@ public class CreateObject16335 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -47,9 +47,8 @@ public class CreateObject16335 extends S3TestBase {
     @Test
     public void testCreateObject() throws Exception {
         Date beforeDate = new Date();
-        PutObjectResult result = s3Client
-                .putObject( S3TestBase.bucketName, keyName,
-                        new File( filePath ) );
+        PutObjectResult result = s3Client.putObject( S3TestBase.bucketName,
+                keyName, new File( filePath ) );
 
         checkObjectAttributeInfo( result, beforeDate );
         checkPutObjectResult( S3TestBase.bucketName );
@@ -70,8 +69,8 @@ public class CreateObject16335 extends S3TestBase {
 
     private void checkPutObjectResult( String bucketName ) throws Exception {
         // down file
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

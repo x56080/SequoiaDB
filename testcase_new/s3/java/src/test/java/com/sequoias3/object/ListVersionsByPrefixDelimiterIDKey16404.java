@@ -40,18 +40,17 @@ public class ListVersionsByPrefixDelimiterIDKey16404 extends S3TestBase {
     private int fileSize = 3;
     private int versionNum = 5;
     private File localPath = null;
-    private List<String> filePathList = new ArrayList<String>();
+    private List< String > filePathList = new ArrayList< String >();
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         for ( int i = 0; i < versionNum; i++ ) {
-            String filePath =
-                    localPath + File.separator + "localFile_" + ( fileSize + i )
-                            + ".txt";
+            String filePath = localPath + File.separator + "localFile_"
+                    + ( fileSize + i ) + ".txt";
             TestTools.LocalFile.createFile( filePath, fileSize + i );
             filePathList.add( filePath );
         }
@@ -62,9 +61,8 @@ public class ListVersionsByPrefixDelimiterIDKey16404 extends S3TestBase {
                 BucketVersioningConfiguration.ENABLED );
         for ( String objectName : objectNames ) {
             for ( int i = 0; i < versionNum; i++ ) {
-                s3Client.putObject(
-                        new PutObjectRequest( bucketName, objectName,
-                                new File( filePathList.get( i ) ) ) );
+                s3Client.putObject( new PutObjectRequest( bucketName,
+                        objectName, new File( filePathList.get( i ) ) ) );
             }
         }
     }
@@ -77,13 +75,12 @@ public class ListVersionsByPrefixDelimiterIDKey16404 extends S3TestBase {
         String keyMarker = objectNames[ 0 ];
         String versionIdMarker = "4";
         // list versions by prefix/delimiter/currentversionId/key
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withKeyMarker( keyMarker )
-                        .withVersionIdMarker( versionIdMarker ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withDelimiter( delimiter )
+                .withPrefix( prefix ).withKeyMarker( keyMarker )
+                .withVersionIdMarker( versionIdMarker ) );
         // expected results
-        MultiValueMap<String, String> expMap = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
         for ( int i = versionNum - 1; i >= 0; i-- ) {
             expMap.add( objectNames[ 1 ], String.valueOf( i ) );
         }
@@ -104,17 +101,16 @@ public class ListVersionsByPrefixDelimiterIDKey16404 extends S3TestBase {
         String keyMarker = objectNames[ 0 ];
         String versionIdMarker = "4";
         // list versions by prefix/delimiter/currentversionId/key
-        VersionListing vsList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withDelimiter( delimiter ).withPrefix( prefix )
-                        .withKeyMarker( keyMarker )
-                        .withVersionIdMarker( versionIdMarker ) );
+        VersionListing vsList = s3Client.listVersions( new ListVersionsRequest()
+                .withBucketName( bucketName ).withDelimiter( delimiter )
+                .withPrefix( prefix ).withKeyMarker( keyMarker )
+                .withVersionIdMarker( versionIdMarker ) );
         // check
         Assert.assertEquals( vsList.isTruncated(), false,
                 "vsList.isTruncated() must be false" );
         ObjectUtils.checkListVSResults( vsList,
                 ObjectUtils.getCommPrefixes( objectNames, prefix, delimiter ),
-                new LinkedMultiValueMap<String, String>() );
+                new LinkedMultiValueMap< String, String >() );
         runSuccess = true;
     }
 

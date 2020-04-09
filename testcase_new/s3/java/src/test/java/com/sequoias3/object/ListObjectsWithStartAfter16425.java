@@ -38,10 +38,10 @@ public class ListObjectsWithStartAfter16425 extends S3TestBase {
     @SuppressWarnings("deprecation")
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -58,7 +58,7 @@ public class ListObjectsWithStartAfter16425 extends S3TestBase {
 
     @Test
     public void testListObjects() throws Exception {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
         // test a: starting in the middle
         int startAfterNoA = objectNums / 2;
         listObjectsAndCheckResult( keyList, startAfterNoA );
@@ -93,18 +93,18 @@ public class ListObjectsWithStartAfter16425 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList,
+    private void listObjectsAndCheckResult( List< String > keyList,
             int startAfterNo ) throws IOException {
-        List<String> expKeyList = new ArrayList<>( keyList );
+        List< String > expKeyList = new ArrayList<>( keyList );
         Collections.sort( expKeyList );
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" )
                 .withStartAfter( expKeyList.get( startAfterNo ) );
         ListObjectsV2Result result;
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         do {
             result = s3Client.listObjectsV2( request );
-            List<S3ObjectSummary> objects = result.getObjectSummaries();
+            List< S3ObjectSummary > objects = result.getObjectSummaries();
             for ( S3ObjectSummary os : objects ) {
                 String key = os.getKey();
                 queryKeyList.add( key );
@@ -127,13 +127,13 @@ public class ListObjectsWithStartAfter16425 extends S3TestBase {
                 .withBucketName( bucketName ).withEncodingType( "url" )
                 .withStartAfter( startAfter );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         // misMatchObject, the list size is 0
         Assert.assertEquals( objects.size(), 0 );
     }
 
-    private List<String> putObjects() {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < objectNums; i++ ) {
             String keyName = key + "_" + i;
             keyList.add( keyName );

@@ -26,7 +26,7 @@ import java.util.List;
 public class GetObjectList16436 extends S3TestBase {
     private String bucketName = "bucket16436";
     private String keyName = "%%dir";
-    private List<String> keyNameList = new ArrayList<String>( 10 );
+    private List< String > keyNameList = new ArrayList< String >( 10 );
     private int objectTotalNum = 10;
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
@@ -53,7 +53,7 @@ public class GetObjectList16436 extends S3TestBase {
         ListObjectsV2Request req = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withStartAfter( "%%dir0_16436" )
                 .withMaxKeys( maxKeys );
-        List<S3ObjectSummary> objectSummaries = new ArrayList<S3ObjectSummary>();
+        List< S3ObjectSummary > objectSummaries = new ArrayList< S3ObjectSummary >();
         ListObjectsV2Result result;
         // currentTurn is query times
         int queryTime = 0;
@@ -85,7 +85,7 @@ public class GetObjectList16436 extends S3TestBase {
                 .withStartAfter( "%%dir" + ( objectTotalNum - 1 ) + "_16436" )
                 .withMaxKeys( maxKeys );
         ListObjectsV2Result result2 = s3Client.listObjectsV2( req2 );
-        List<S3ObjectSummary> objectSummaries2 = result2.getObjectSummaries();
+        List< S3ObjectSummary > objectSummaries2 = result2.getObjectSummaries();
         Assert.assertEquals( objectSummaries2.size(), 0,
                 "The number of returned results is wrong" );
 

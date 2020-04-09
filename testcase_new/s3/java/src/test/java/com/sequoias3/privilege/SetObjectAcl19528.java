@@ -40,10 +40,10 @@ public class SetObjectAcl19528 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -60,12 +60,10 @@ public class SetObjectAcl19528 extends S3TestBase {
         // set obejct acl
         Grant expGrant = new Grant( GroupGrantee.AuthenticatedUsers,
                 Permission.ReadAcp );
-        PrivilegeUtils
-                .setObjectAclByHeader( s3AccessKeyId, bucketName, srcKeyName,
-                        expGrant );
-        PrivilegeUtils
-                .checkSetObjectAclResult( s3Client, bucketName, srcKeyName,
-                        expGrant );
+        PrivilegeUtils.setObjectAclByHeader( s3AccessKeyId, bucketName,
+                srcKeyName, expGrant );
+        PrivilegeUtils.checkSetObjectAclResult( s3Client, bucketName,
+                srcKeyName, expGrant );
 
         // test a:setMetadataDirective is null
         copyObjectAndCheckObjectAcl( dstKeyNamea, null );
@@ -102,19 +100,18 @@ public class SetObjectAcl19528 extends S3TestBase {
         s3Client.copyObject( request );
 
         // check copy result
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, srcKeyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, srcKeyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
 
-        downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, dstKeyName );
+        downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, dstKeyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
 
         // check object acl
         Grant defaultGrant = new Grant( new CanonicalGrantee( ownerId ),
                 Permission.FullControl );
-        PrivilegeUtils
-                .checkSetObjectAclResult( s3Client, bucketName, dstKeyName,
-                        defaultGrant );
+        PrivilegeUtils.checkSetObjectAclResult( s3Client, bucketName,
+                dstKeyName, defaultGrant );
     }
 }

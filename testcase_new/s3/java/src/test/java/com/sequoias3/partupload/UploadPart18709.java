@@ -42,33 +42,27 @@ public class UploadPart18709 extends S3TestBase {
 
     @Test
     private void test() throws Exception {
-        String uploadId1 = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, key );
-        List<PartETag> partETags1 = PartUploadUtils
-                .partUpload( s3Client, S3TestBase.bucketName, key, uploadId1,
-                        file1, partSize );
-        PartUploadUtils
-                .listPartsAndCheckPartNumbers( s3Client, S3TestBase.bucketName,
-                        key, partETags1, uploadId1 );
-        PartUploadUtils
-                .completeMultipartUpload( s3Client, bucketName, key, uploadId1,
-                        partETags1 );
+        String uploadId1 = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, key );
+        List< PartETag > partETags1 = PartUploadUtils.partUpload( s3Client,
+                S3TestBase.bucketName, key, uploadId1, file1, partSize );
+        PartUploadUtils.listPartsAndCheckPartNumbers( s3Client,
+                S3TestBase.bucketName, key, partETags1, uploadId1 );
+        PartUploadUtils.completeMultipartUpload( s3Client, bucketName, key,
+                uploadId1, partETags1 );
 
-        String uploadId2 = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, key );
-        List<PartETag> partETags2 = PartUploadUtils
-                .partUpload( s3Client, S3TestBase.bucketName, key, uploadId2,
-                        file2, partSize );
-        PartUploadUtils
-                .listPartsAndCheckPartNumbers( s3Client, S3TestBase.bucketName,
-                        key, partETags2, uploadId2 );
-        PartUploadUtils
-                .completeMultipartUpload( s3Client, bucketName, key, uploadId2,
-                        partETags2 );
+        String uploadId2 = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, key );
+        List< PartETag > partETags2 = PartUploadUtils.partUpload( s3Client,
+                S3TestBase.bucketName, key, uploadId2, file2, partSize );
+        PartUploadUtils.listPartsAndCheckPartNumbers( s3Client,
+                S3TestBase.bucketName, key, partETags2, uploadId2 );
+        PartUploadUtils.completeMultipartUpload( s3Client, bucketName, key,
+                uploadId2, partETags2 );
 
         // check results
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath2 ) );
 
         runSuccess = true;
@@ -87,13 +81,13 @@ public class UploadPart18709 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
 
-        String filePathBase =
-                localPath + File.separator + "localFile_" + fileSize;
+        String filePathBase = localPath + File.separator + "localFile_"
+                + fileSize;
         filePath1 = filePathBase + "_1.txt";
         filePath2 = filePathBase + "_2.txt";
         TestTools.LocalFile.createFile( filePath1, fileSize );

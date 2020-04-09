@@ -38,15 +38,15 @@ public class DeleteAndGetSameObject16505 extends S3TestBase {
     private String keyName = "key16505";
     private String roleName = "normal";
     private String content = "testContent16505";
-    private Map<String, String> versionId2Etg = new HashMap<String, String>();
+    private Map< String, String > versionId2Etg = new HashMap< String, String >();
     private File localPath = null;
     private String[] acessKeys = null;
     private AmazonS3 s3Client = null;
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         CommLib.clearUser( userName );
         acessKeys = UserUtils.createUser( userName, roleName );
         s3Client = CommLib.buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
@@ -55,10 +55,10 @@ public class DeleteAndGetSameObject16505 extends S3TestBase {
         s3Client.putObject( bucketName, keyName, content + "v1" );
         s3Client.putObject( bucketName, keyName, content + "v2" );
 
-        versionId2Etg
-                .put( "1", TestTools.getMD5( ( content + "v2" ).getBytes() ) );
-        versionId2Etg
-                .put( "0", TestTools.getMD5( ( content + "v1" ).getBytes() ) );
+        versionId2Etg.put( "1",
+                TestTools.getMD5( ( content + "v2" ).getBytes() ) );
+        versionId2Etg.put( "0",
+                TestTools.getMD5( ( content + "v1" ).getBytes() ) );
     }
 
     @Test
@@ -94,10 +94,10 @@ public class DeleteAndGetSameObject16505 extends S3TestBase {
     }
 
     private void checkDeleteResult() {
-        Map<String, String> actVersionId2Etg = new HashMap<String, String>();
+        Map< String, String > actVersionId2Etg = new HashMap< String, String >();
         VersionListing verList = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
-        List<S3VersionSummary> objectVersionList = verList
+        List< S3VersionSummary > objectVersionList = verList
                 .getVersionSummaries();
         Assert.assertEquals( objectVersionList.size(), 3 );
         for ( S3VersionSummary obj : objectVersionList ) {
@@ -117,8 +117,8 @@ public class DeleteAndGetSameObject16505 extends S3TestBase {
     private class DeleteObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.deleteObject( bucketName, keyName );
             } finally {
@@ -132,14 +132,14 @@ public class DeleteAndGetSameObject16505 extends S3TestBase {
     private class GetObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 S3Object object = s3Client.getObject( bucketName, keyName );
                 S3ObjectInputStream s3is = object.getObjectContent();
-                String downloadPath = TestTools.LocalFile
-                        .initDownloadPath( localPath, TestTools.getMethodName(),
-                                Thread.currentThread().getId() );
+                String downloadPath = TestTools.LocalFile.initDownloadPath(
+                        localPath, TestTools.getMethodName(),
+                        Thread.currentThread().getId() );
                 ObjectUtils.inputStream2File( s3is, downloadPath );
                 s3is.close();
                 String getObjectMd5 = TestTools.getMD5( downloadPath );

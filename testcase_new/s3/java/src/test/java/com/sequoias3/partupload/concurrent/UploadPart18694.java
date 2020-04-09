@@ -28,8 +28,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @Author wangkexin
  * @Date 2019.07.30
  */
-@Test(groups = "partsizelimitoff") public class UploadPart18694
-        extends S3TestBase {
+@Test(groups = "partsizelimitoff")
+public class UploadPart18694 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket18694";
     private String keyName = "key18694";
@@ -41,14 +41,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
     private File newFile = null;
     private String oldFilePath = null;
     private String newFilePath = null;
-    private List<PartETag> partEtags = new CopyOnWriteArrayList<>();
+    private List< PartETag > partEtags = new CopyOnWriteArrayList<>();
     private int[] partNums1 = new int[] { 1, 3, 5 };
     private int[] partNums2 = new int[] { 2, 3, 5 };
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         oldFilePath = localPath + File.separator + "localFile_" + fileSize
                 + "old.txt";
         newFilePath = localPath + File.separator + "localFile_" + fileSize
@@ -72,8 +72,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
     private void testUpload() throws Exception {
         long filepositon = 0;
         // 指定多个分段上传对象
-        String uploadId1 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        String uploadId1 = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
         ThreadExecutor es = new ThreadExecutor();
         for ( int i : partNums1 ) {
             es.addWorker( new ThreadUploadPart18694( i, filepositon, oldFile,
@@ -81,13 +81,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
             filepositon += partSize;
         }
         es.run();
-        List<PartETag> partEtags1 = partEtags;
+        List< PartETag > partEtags1 = partEtags;
 
         // 再次指定多个分段上传对象
         filepositon = 0;
         partEtags = new CopyOnWriteArrayList<>();
-        String uploadId2 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        String uploadId2 = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
         es = new ThreadExecutor();
         for ( int i : partNums2 ) {
             es.addWorker( new ThreadUploadPart18694( i, filepositon, newFile,
@@ -95,7 +95,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
             filepositon += partSize;
         }
         es.run();
-        List<PartETag> partEtags2 = partEtags;
+        List< PartETag > partEtags2 = partEtags;
 
         // 完成分段上传
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
@@ -120,15 +120,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
     private void checkResult() throws Exception {
         String expMd5 = TestTools.getMD5( newFilePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName,
-                        "1" );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName, "1" );
         Assert.assertEquals( downloadMd5, expMd5, "version id = 1" );
 
         expMd5 = TestTools.getMD5( oldFilePath );
-        downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName,
-                        "0" );
+        downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName, "0" );
         Assert.assertEquals( downloadMd5, expMd5, "version id = 0" );
     }
 

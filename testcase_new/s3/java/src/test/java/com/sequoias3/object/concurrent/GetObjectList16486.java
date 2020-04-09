@@ -37,9 +37,9 @@ public class GetObjectList16486 extends S3TestBase {
     private String keyName = "/dir/dir";
     private String prefix = "/dir";
     private String delimiter = "/";
-    private List<String> expresultList1 = new ArrayList<String>();
-    private List<String> expresultList2 = new ArrayList<String>();
-    private List<String> expresultList3 = new ArrayList<String>();
+    private List< String > expresultList1 = new ArrayList< String >();
+    private List< String > expresultList2 = new ArrayList< String >();
+    private List< String > expresultList3 = new ArrayList< String >();
     private int objectTotalNum = 100;
     private AmazonS3 s3Client = null;
     private String[] acessKeys = null;
@@ -125,10 +125,10 @@ public class GetObjectList16486 extends S3TestBase {
     private class ListObjectThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
-                List<S3ObjectSummary> contentsResult = new ArrayList<>();
+                List< S3ObjectSummary > contentsResult = new ArrayList<>();
                 ListObjectsV2Request req = new ListObjectsV2Request()
                         .withBucketName( bucketName );
                 ListObjectsV2Result result;
@@ -154,10 +154,10 @@ public class GetObjectList16486 extends S3TestBase {
     private class ListObjectV1Thread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
-                List<S3ObjectSummary> contentsResult = new ArrayList<>();
+                List< S3ObjectSummary > contentsResult = new ArrayList<>();
                 ListObjectsRequest req = new ListObjectsRequest()
                         .withBucketName( bucketName );
                 ObjectListing result;
@@ -182,10 +182,10 @@ public class GetObjectList16486 extends S3TestBase {
     private class ListObjectWithPerfixThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
-                List<S3ObjectSummary> contentsResult = new ArrayList<>();
+                List< S3ObjectSummary > contentsResult = new ArrayList<>();
                 ListObjectsV2Request req = new ListObjectsV2Request()
                         .withBucketName( bucketName ).withPrefix( prefix );
                 ListObjectsV2Result result;
@@ -211,10 +211,10 @@ public class GetObjectList16486 extends S3TestBase {
     private class ListObjectWithPerfixAndDelimiterThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
-                List<String> commprefixesResult = new ArrayList<>();
+                List< String > commprefixesResult = new ArrayList<>();
                 ListObjectsV2Request req = new ListObjectsV2Request()
                         .withBucketName( bucketName ).withPrefix( prefix )
                         .withDelimiter( delimiter );
@@ -242,10 +242,10 @@ public class GetObjectList16486 extends S3TestBase {
             extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
-                List<String> commprefixesResult = new ArrayList<>();
+                List< String > commprefixesResult = new ArrayList<>();
                 ListObjectsRequest req = new ListObjectsRequest()
                         .withBucketName( bucketName ).withPrefix( prefix )
                         .withDelimiter( delimiter );

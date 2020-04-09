@@ -52,9 +52,9 @@ public class SetBucketVersioning16614 extends S3TestBase {
         }
 
         CommLib.setBucketVersioning( s3ClientA, bucketName, "Enabled" );
-        Assert.assertEquals(
-                s3ClientA.getBucketVersioningConfiguration( bucketName )
-                        .getStatus(), "Enabled" );
+        Assert.assertEquals( s3ClientA
+                .getBucketVersioningConfiguration( bucketName ).getStatus(),
+                "Enabled" );
 
         try {
             CommLib.setBucketVersioning( s3ClientB, bucketName, "Suspended" );
@@ -62,9 +62,9 @@ public class SetBucketVersioning16614 extends S3TestBase {
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getErrorCode(), "AccessDenied" );
         }
-        Assert.assertEquals(
-                s3ClientA.getBucketVersioningConfiguration( bucketName )
-                        .getStatus(), "Enabled" );
+        Assert.assertEquals( s3ClientA
+                .getBucketVersioningConfiguration( bucketName ).getStatus(),
+                "Enabled" );
         runSuccess = true;
     }
 

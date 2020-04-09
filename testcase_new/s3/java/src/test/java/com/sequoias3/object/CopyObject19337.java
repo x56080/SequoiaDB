@@ -15,7 +15,8 @@ import org.testng.annotations.Test;
 import java.util.Date;
 
 /**
- * @Description seqDB-19337:指定ifUnModifiedSince和ifModifiedSince条件复制对象， 源对象不匹配ifUnModifiedSince
+ * @Description seqDB-19337:指定ifUnModifiedSince和ifModifiedSince条件复制对象，
+ *              源对象不匹配ifUnModifiedSince
  * @author wuyan
  * @Date 2019.09.19
  * @version 1.00

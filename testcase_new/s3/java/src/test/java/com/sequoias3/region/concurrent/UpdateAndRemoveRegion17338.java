@@ -37,10 +37,10 @@ public class UpdateAndRemoveRegion17338 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -88,15 +88,14 @@ public class UpdateAndRemoveRegion17338 extends S3TestBase {
     private void checkResult() throws Exception {
         boolean doesExistRegion = RegionUtils.headRegion( regionName );
         if ( doesExistRegion ) {
-            RegionUtils
-                    .checkRegionWithShardingType( regionName, newShardingType,
-                            newShardingType );
+            RegionUtils.checkRegionWithShardingType( regionName,
+                    newShardingType, newShardingType );
             createObjectAndCheckResult();
         } else {
             // check that the auto create cs have been deleted
             String metaCSName = RegionUtils.getMetaCSName( regionName );
-            String dataCSName = RegionUtils
-                    .getDataCSName( regionName, "quarter", new Date() ) + "_1";
+            String dataCSName = RegionUtils.getDataCSName( regionName,
+                    "quarter", new Date() ) + "_1";
             Assert.assertFalse( RegionUtils.doesCSExist( metaCSName ) );
             Assert.assertFalse( RegionUtils.doesCSExist( dataCSName ) );
         }
@@ -106,8 +105,8 @@ public class UpdateAndRemoveRegion17338 extends S3TestBase {
     private void createObjectAndCheckResult() throws Exception {
         s3Client.createBucket( bucketName, regionName );
         s3Client.putObject( bucketName, key, new File( filePath ) );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

@@ -41,15 +41,15 @@ public class UploadPart18700 extends S3TestBase {
     private File file = null;
     private String filePath = null;
     private String uploadId = "";
-    private List<PartETag> partEtags = new CopyOnWriteArrayList<>();
+    private List< PartETag > partEtags = new CopyOnWriteArrayList<>();
     private long[] partSize = new long[] { 6 * m, 10 * m, 5 * m, 6 * m, 8 * m };
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -63,15 +63,14 @@ public class UploadPart18700 extends S3TestBase {
 
     @Test
     private void testUpload() throws Exception {
-        uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
+        uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
         ThreadExecutor es = new ThreadExecutor();
         int index = 0;
         long filepositon = 0;
         for ( int i = 2; i < 7; i++ ) {
-            es.addWorker(
-                    new ThreadUploadPart18700( filepositon, partSize[ index ],
-                            i ) );
+            es.addWorker( new ThreadUploadPart18700( filepositon,
+                    partSize[ index ], i ) );
             filepositon += partSize[ index ];
             index++;
         }
@@ -81,8 +80,8 @@ public class UploadPart18700 extends S3TestBase {
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
         String expMd5 = TestTools.getMD5( filePath );
-        String actMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String actMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( actMd5, expMd5 );
         runSuccess = true;
     }

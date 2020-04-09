@@ -46,8 +46,8 @@ public class ListObjectsWithPrefixAndDelimiter18602 extends S3TestBase {
 
     @Test
     private void testListObjects() {
-        List<String> matchPrefixList = new ArrayList<>();
-        List<String> matchContentsList = new ArrayList<>();
+        List< String > matchPrefixList = new ArrayList<>();
+        List< String > matchContentsList = new ArrayList<>();
 
         String delimiter1 = "?";
         String prefix = "dir1?";
@@ -55,13 +55,13 @@ public class ListObjectsWithPrefixAndDelimiter18602 extends S3TestBase {
                 .withBucketName( bucketName );
         request.withDelimiter( delimiter1 ).withPrefix( prefix );
         ObjectListing result = s3Client.listObjects( request );
-        List<String> commonPrefixes = result.getCommonPrefixes();
+        List< String > commonPrefixes = result.getCommonPrefixes();
         Assert.assertEquals( commonPrefixes, matchPrefixList,
                 "actPrefixes:" + commonPrefixes.toString() + "\n expPrefixes:"
                         + matchPrefixList.toString() );
 
-        List<String> actContentsList = new ArrayList<>();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< String > actContentsList = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             actContentsList.add( key );

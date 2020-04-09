@@ -20,8 +20,8 @@ import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
  * @Date 2019.06.25
  * @version 1.00
  */
-@Test(groups = "allowreputon") public class TestAllowReput18594
-        extends S3TestBase {
+@Test(groups = "allowreputon")
+public class TestAllowReput18594 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket18594";
     private String userName = "user18594";

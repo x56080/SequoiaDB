@@ -41,10 +41,10 @@ public class ListObjectsWithPrefix16420_18560 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -56,7 +56,7 @@ public class ListObjectsWithPrefix16420_18560 extends S3TestBase {
 
     @Test
     public void testCreateObject() throws Exception {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
         listObjectsAndCheckResult( keyList );
         listObjectV1AndCheckResult( keyList );
         runSuccess = true;
@@ -74,14 +74,14 @@ public class ListObjectsWithPrefix16420_18560 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList )
+    private void listObjectsAndCheckResult( List< String > keyList )
             throws IOException {
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" );
         request.withPrefix( prefix );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         Assert.assertEquals( objects.size(), matchObjectNums );
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
@@ -97,16 +97,16 @@ public class ListObjectsWithPrefix16420_18560 extends S3TestBase {
         Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private void listObjectV1AndCheckResult( List<String> keyList )
+    private void listObjectV1AndCheckResult( List< String > keyList )
             throws IOException {
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName );
         request.withPrefix( prefix );
         ObjectListing result = s3Client.listObjects( request );
         Assert.assertEquals( prefix, result.getPrefix() );
 
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         Assert.assertEquals( objects.size(), matchObjectNums );
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
@@ -123,8 +123,8 @@ public class ListObjectsWithPrefix16420_18560 extends S3TestBase {
         Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private List<String> putObjects() {
-        List<String> matchKeyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > matchKeyList = new ArrayList<>();
         int objectNums = 50;
         String keyName;
         for ( int i = 0; i < objectNums; i++ ) {

@@ -48,19 +48,19 @@ public class ListObjects18580 extends S3TestBase {
                 .withBucketName( bucketName ).withPrefix( prefix )
                 .withDelimiter( delimiter ).withEncodingType( "url" );
         ObjectListing result = s3Client.listObjects( request );
-        List<String> commprefixes = result.getCommonPrefixes();
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > commprefixes = result.getCommonPrefixes();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
+        List< String > queryKeyList = new ArrayList<>();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             queryKeyList.add( key );
         }
 
         Assert.assertFalse( result.isTruncated() );
-        List<String> expCommomPrefixs = new ArrayList<>();
+        List< String > expCommomPrefixs = new ArrayList<>();
         // !--%21, (--%28, the v1 list "test!.-(test" is "test%21.-%28test"
         expCommomPrefixs.add( "test%21.-%28test" );
-        List<String> expQueryKeyList = new ArrayList<>();
+        List< String > expQueryKeyList = new ArrayList<>();
         // the listObjectv1 list key: "test!！_ST_18580" is
         // "test%21%EF%BC%81_ST_18580"
         expQueryKeyList.add( "test%21%EF%BC%81_ST_18580" );

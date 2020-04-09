@@ -44,7 +44,7 @@ public class UpdateRegion20404 extends S3TestBase {
     @BeforeClass
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        //create region bucket and object
+        // create region bucket and object
         prepare();
     }
 
@@ -85,29 +85,28 @@ public class UpdateRegion20404 extends S3TestBase {
 
     private void checkResult( String objectNameMiddle, int expDataCSRange )
             throws IOException {
-        String prefix = RegionUtils
-                .getDataCSName( regionName, "year", new Date() );
+        String prefix = RegionUtils.getDataCSName( regionName, "year",
+                new Date() );
         List< String > csList = RegionUtils.listCS( prefix );
         List< Integer > csNumList = new ArrayList<>();
         Assert.assertTrue( csList.size() > 0, csList.toString() );
         for ( String csName : csList ) {
-            csNumList.add( Integer.parseInt(
-                    csName.substring( csName.lastIndexOf( "_" ) + 1,
-                            csName.length() ) ) );
+            csNumList.add( Integer.parseInt( csName.substring(
+                    csName.lastIndexOf( "_" ) + 1, csName.length() ) ) );
         }
         Collections.sort( csNumList );
         Assert.assertTrue( csNumList.get( 0 ) >= 0, csList.toString() );
         Assert.assertTrue(
                 csNumList.get( csNumList.size() - 1 ) <= expDataCSRange,
                 csList.toString() );
-        //check object content
+        // check object content
         for ( int i = 1; i <= objectNum; i++ ) {
             S3Object obj = s3Client.getObject( bucketName,
                     objectNameBase + objectNameMiddle + i );
             Assert.assertEquals( Md5Utils.md5AsBase64( obj.getObjectContent() ),
                     Md5Utils.md5AsBase64( String.valueOf( i ).getBytes() ),
-                    "bucketName = " + bucketName + ",objectName = " +
-                            objectNameBase + i );
+                    "bucketName = " + bucketName + ",objectName = "
+                            + objectNameBase + i );
         }
     }
 
@@ -116,7 +115,7 @@ public class UpdateRegion20404 extends S3TestBase {
         RegionUtils.clearRegion( regionName );
         region.withDataCSShardingType( "year" ).withDataCLShardingType( "year" )
                 .withName( regionName ).withDataCSRange( dataCSRange );
-        //create region
+        // create region
         RegionUtils.putRegion( region );
         // create bucket
         s3Client.createBucket( bucketName, regionName );

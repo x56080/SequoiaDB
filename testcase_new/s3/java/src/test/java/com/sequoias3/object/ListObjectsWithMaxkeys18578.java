@@ -41,17 +41,17 @@ public class ListObjectsWithMaxkeys18578 extends S3TestBase {
     public void testListObjects() throws Exception {
 
         // test a: setMarker is the last key
-        List<String> keyListA = putObjects();
+        List< String > keyListA = putObjects();
         listObjectsAndCheckResultA( keyListA );
         deleteObjects( keyListA );
 
         // test b: setMarker not match key
-        List<String> keyListB = putObjects();
+        List< String > keyListB = putObjects();
         listObjectsAndCheckResultB( keyListB );
         deleteObjects( keyListB );
 
         // test c: setMarker not match key
-        List<String> keyListC = putObjects();
+        List< String > keyListC = putObjects();
         listObjectsAndCheckResultC( keyListC );
         deleteObjects( keyListC );
 
@@ -69,16 +69,16 @@ public class ListObjectsWithMaxkeys18578 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResultA( List<String> keyList ) {
+    private void listObjectsAndCheckResultA( List< String > keyList ) {
         int maxKeys = 5;
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName ).withMaxKeys( maxKeys );
         ObjectListing result;
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         do {
             result = s3Client.listObjects( request );
-            List<S3ObjectSummary> objects = result.getObjectSummaries();
-            List<String> oneQueryKeyList = new ArrayList<>();
+            List< S3ObjectSummary > objects = result.getObjectSummaries();
+            List< String > oneQueryKeyList = new ArrayList<>();
             String key = "";
             for ( S3ObjectSummary os : objects ) {
                 key = os.getKey();
@@ -100,18 +100,18 @@ public class ListObjectsWithMaxkeys18578 extends S3TestBase {
         Assert.assertEquals( queryKeyList, keyList );
     }
 
-    private void listObjectsAndCheckResultB( List<String> keyList ) {
+    private void listObjectsAndCheckResultB( List< String > keyList ) {
         int maxKeys = 6;
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName ).withMaxKeys( maxKeys );
         ObjectListing result;
-        List<String> expKeyList = new ArrayList<>( keyList );
-        List<String> expfirstQueryKeyList = expKeyList.subList( 0, maxKeys );
+        List< String > expKeyList = new ArrayList<>( keyList );
+        List< String > expfirstQueryKeyList = expKeyList.subList( 0, maxKeys );
         String marker = keyList.get( keyList.size() - 1 );
         // first list
         result = s3Client.listObjects( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
-        List<String> oneQueryKeyList = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
+        List< String > oneQueryKeyList = new ArrayList<>();
         String key = "";
         for ( S3ObjectSummary os : objects ) {
             key = os.getKey();
@@ -127,8 +127,8 @@ public class ListObjectsWithMaxkeys18578 extends S3TestBase {
         request.setMarker( marker );
         // second list, not match key
         result = s3Client.listObjects( request );
-        List<S3ObjectSummary> objects1 = result.getObjectSummaries();
-        List<String> secondQueryKeyList = new ArrayList<>();
+        List< S3ObjectSummary > objects1 = result.getObjectSummaries();
+        List< String > secondQueryKeyList = new ArrayList<>();
         for ( S3ObjectSummary os : objects1 ) {
             String key1 = os.getKey();
             secondQueryKeyList.add( key1 );
@@ -138,18 +138,18 @@ public class ListObjectsWithMaxkeys18578 extends S3TestBase {
         Assert.assertFalse( result.isTruncated() );
     }
 
-    private void listObjectsAndCheckResultC( List<String> keyList ) {
+    private void listObjectsAndCheckResultC( List< String > keyList ) {
         int maxKeys = 12;
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName ).withMaxKeys( maxKeys );
         ObjectListing result;
-        List<String> expKeyList = new ArrayList<>( keyList );
-        List<String> expfirstQueryKeyList = expKeyList.subList( 0, maxKeys );
+        List< String > expKeyList = new ArrayList<>( keyList );
+        List< String > expfirstQueryKeyList = expKeyList.subList( 0, maxKeys );
 
         // first list
         result = s3Client.listObjects( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
-        List<String> oneQueryKeyList = new ArrayList<>();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
+        List< String > oneQueryKeyList = new ArrayList<>();
 
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
@@ -168,14 +168,14 @@ public class ListObjectsWithMaxkeys18578 extends S3TestBase {
         String marker = oneQueryKeyList.get( serialNo );
         request.setMarker( marker );
         result = s3Client.listObjects( request );
-        List<S3ObjectSummary> objects1 = result.getObjectSummaries();
-        List<String> secondQueryKeyList = new ArrayList<>();
+        List< S3ObjectSummary > objects1 = result.getObjectSummaries();
+        List< String > secondQueryKeyList = new ArrayList<>();
         for ( S3ObjectSummary os : objects1 ) {
             String key1 = os.getKey();
             secondQueryKeyList.add( key1 );
         }
-        List<String> expSecondQueryKeyList = expKeyList
-                .subList( serialNo + 1, expKeyList.size() );
+        List< String > expSecondQueryKeyList = expKeyList.subList( serialNo + 1,
+                expKeyList.size() );
         Assert.assertEquals( secondQueryKeyList, expSecondQueryKeyList,
                 "second list keys:" + secondQueryKeyList.toString()
                         + "\n expListkeys:" + expSecondQueryKeyList.toString()
@@ -183,8 +183,8 @@ public class ListObjectsWithMaxkeys18578 extends S3TestBase {
         Assert.assertFalse( result.isTruncated() );
     }
 
-    private List<String> putObjects() {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < objectNums; i++ ) {
             String keyName = key + "_" + i;
             keyList.add( keyName );
@@ -194,7 +194,7 @@ public class ListObjectsWithMaxkeys18578 extends S3TestBase {
         return keyList;
     }
 
-    private void deleteObjects( List<String> keyList ) {
+    private void deleteObjects( List< String > keyList ) {
         for ( String keyName : keyList ) {
             s3Client.deleteObject( bucketName, keyName );
         }

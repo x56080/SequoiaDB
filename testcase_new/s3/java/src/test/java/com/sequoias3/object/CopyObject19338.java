@@ -34,8 +34,8 @@ public class CopyObject19338 extends S3TestBase {
 
     @BeforeClass
     private void setUp() {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
 
@@ -69,8 +69,8 @@ public class CopyObject19338 extends S3TestBase {
         s3Client.copyObject( request );
 
         // check the result
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, destKeyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, destKeyName );
         Assert.assertEquals( downfileMd5, curVersionEtag );
 
         runSuccess = true;

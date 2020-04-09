@@ -57,7 +57,7 @@ public class GetObjectList16432 extends S3TestBase {
                 .withBucketName( bucketName ).withPrefix( prefix )
                 .withDelimiter( delimiter ).withStartAfter( keyName1 );
         ListObjectsV2Result result = s3Client.listObjectsV2( req );
-        List<String> commprefixesResult = result.getCommonPrefixes();
+        List< String > commprefixesResult = result.getCommonPrefixes();
 
         // check result
         checkListObjectsV2Result( commprefixesResult );
@@ -72,7 +72,7 @@ public class GetObjectList16432 extends S3TestBase {
         }
     }
 
-    private void checkListObjectsV2Result( List<String> resultList ) {
+    private void checkListObjectsV2Result( List< String > resultList ) {
         Assert.assertEquals( resultList.size(), 1,
                 "The expected results do not match the actual number of returns" );
         Assert.assertEquals( resultList.get( 0 ), expresult,

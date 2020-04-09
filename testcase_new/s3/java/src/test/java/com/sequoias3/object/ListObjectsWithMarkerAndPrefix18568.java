@@ -40,7 +40,7 @@ public class ListObjectsWithMarkerAndPrefix18568 extends S3TestBase {
 
     @Test
     public void testListObjects() throws Exception {
-        List<String> matchPrefixKeyList = putObjects();
+        List< String > matchPrefixKeyList = putObjects();
         int startPosition = 5;
         listObjectsAndCheckResult( matchPrefixKeyList, startPosition );
         runSuccess = true;
@@ -57,16 +57,16 @@ public class ListObjectsWithMarkerAndPrefix18568 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> expKeyList,
+    private void listObjectsAndCheckResult( List< String > expKeyList,
             int startPosition ) {
         Collections.sort( expKeyList );
         String marker = expKeyList.get( startPosition );
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName ).withMarker( marker )
                 .withPrefix( prefix );
-        List<String> queryKeyList = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
         ObjectListing result = s3Client.listObjects( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         for ( S3ObjectSummary os : objects ) {
             String key = os.getKey();
             queryKeyList.add( key );
@@ -79,8 +79,8 @@ public class ListObjectsWithMarkerAndPrefix18568 extends S3TestBase {
                         + expKeyList.toString() );
     }
 
-    private List<String> putObjects() {
-        List<String> matchPrefixKeyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > matchPrefixKeyList = new ArrayList<>();
         String keyName;
         for ( int i = 0; i < objectNums; i++ ) {
             if ( i % 2 == 0 ) {

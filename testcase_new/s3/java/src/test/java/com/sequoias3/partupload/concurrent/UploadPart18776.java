@@ -46,7 +46,7 @@ public class UploadPart18776 extends S3TestBase {
     private String bucketName = "bucket18776";
     private String key = "obj18776";
     private int partsNum = 10;
-    private List<PartETag> partETags = new ArrayList<>();
+    private List< PartETag > partETags = new ArrayList<>();
 
     @BeforeClass
     private void setUp() throws IOException {
@@ -62,10 +62,10 @@ public class UploadPart18776 extends S3TestBase {
         int partSize = fileSize / partsNum;
 
         // init upload part
-        String uploadId1 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, key );
-        String uploadId2 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, key );
+        String uploadId1 = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                key );
+        String uploadId2 = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                key );
 
         // upload part
         for ( int i = 0; i < partsNum; i++ ) {
@@ -90,8 +90,8 @@ public class UploadPart18776 extends S3TestBase {
         // check complete upload part
         int len = partsNum / 2 * partSize;
         TestTools.LocalFile.readFile( filePath, 0, len, expFilePath );
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( expFilePath ) );
 
         // check abort upload part
@@ -99,11 +99,10 @@ public class UploadPart18776 extends S3TestBase {
                 bucketName );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
-        List<String> expCommonPrefixes = new ArrayList<>();
-        MultiValueMap<String, String> expUploads = new LinkedMultiValueMap<String, String>();
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes,
-                        expUploads );
+        List< String > expCommonPrefixes = new ArrayList<>();
+        MultiValueMap< String, String > expUploads = new LinkedMultiValueMap< String, String >();
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes, expUploads );
 
         runSuccess = true;
     }
@@ -131,8 +130,8 @@ public class UploadPart18776 extends S3TestBase {
     }
 
     private void initFile() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         filePath = this.createFile( fileSize );
@@ -141,17 +140,17 @@ public class UploadPart18776 extends S3TestBase {
     }
 
     private String createFile( int fileSize ) throws IOException {
-        String filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        String filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.createFile( filePath, fileSize );
         return filePath;
     }
 
     private class ThreadCompleteUpload {
         private String uploadId;
-        private List<PartETag> eTags;
+        private List< PartETag > eTags;
 
-        public ThreadCompleteUpload( String uploadId, List<PartETag> eTags ) {
+        public ThreadCompleteUpload( String uploadId, List< PartETag > eTags ) {
             this.uploadId = uploadId;
             this.eTags = eTags;
         }
@@ -161,9 +160,8 @@ public class UploadPart18776 extends S3TestBase {
             AmazonS3 s3 = null;
             try {
                 s3 = CommLib.buildS3Client();
-                PartUploadUtils
-                        .completeMultipartUpload( s3, bucketName, key, uploadId,
-                                eTags );
+                PartUploadUtils.completeMultipartUpload( s3, bucketName, key,
+                        uploadId, eTags );
             } finally {
                 if ( s3 != null ) {
                     s3.shutdown();
@@ -184,9 +182,8 @@ public class UploadPart18776 extends S3TestBase {
             AmazonS3 s3 = null;
             try {
                 s3 = CommLib.buildS3Client();
-                s3Client.abortMultipartUpload(
-                        new AbortMultipartUploadRequest( bucketName, key,
-                                uploadId ) );
+                s3Client.abortMultipartUpload( new AbortMultipartUploadRequest(
+                        bucketName, key, uploadId ) );
             } finally {
                 if ( s3 != null ) {
                     s3.shutdown();

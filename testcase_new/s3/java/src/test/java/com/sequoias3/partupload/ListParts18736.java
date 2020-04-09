@@ -38,10 +38,10 @@ public class ListParts18736 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -51,10 +51,10 @@ public class ListParts18736 extends S3TestBase {
     @Test
     public void listParts() throws Exception {
         File file = new File( filePath );
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, S3TestBase.bucketName, keyName );
-        List<Integer> partNumbers = partUpload( s3Client, S3TestBase.bucketName,
-                keyName, uploadId, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client,
+                S3TestBase.bucketName, keyName );
+        List< Integer > partNumbers = partUpload( s3Client,
+                S3TestBase.bucketName, keyName, uploadId, file );
 
         // first listParts,set the partNumberMarker is 2
         ListPartsRequest listRequest = new ListPartsRequest( bucketName,
@@ -64,18 +64,18 @@ public class ListParts18736 extends S3TestBase {
         listRequest.withMaxParts( maxParts )
                 .withPartNumberMarker( partNumberMarker );
         PartListing listResult = s3Client.listParts( listRequest );
-        List<Integer> actPartNumbersList1 = getPartNumbers( listResult );
-        List<Integer> expPartNumbers1 = partNumbers
-                .subList( partNumberMarker, partNumberMarker + maxParts );
+        List< Integer > actPartNumbersList1 = getPartNumbers( listResult );
+        List< Integer > expPartNumbers1 = partNumbers.subList( partNumberMarker,
+                partNumberMarker + maxParts );
         Assert.assertEquals( actPartNumbersList1, expPartNumbers1 );
 
         // second listParts, reset PartNumberMarker,eg:begin to partNumber is 8
         Integer nextMarker = partNumbers.get( 7 );
         listRequest.setPartNumberMarker( nextMarker );
         listResult = s3Client.listParts( listRequest );
-        List<Integer> actPartNumbersList2 = getPartNumbers( listResult );
-        List<Integer> expPartNumbers2 = partNumbers
-                .subList( nextMarker, partNumbers.size() );
+        List< Integer > actPartNumbersList2 = getPartNumbers( listResult );
+        List< Integer > expPartNumbers2 = partNumbers.subList( nextMarker,
+                partNumbers.size() );
         Assert.assertEquals( actPartNumbersList2, expPartNumbers2 );
         Assert.assertFalse( listResult.isTruncated() );
 
@@ -96,9 +96,9 @@ public class ListParts18736 extends S3TestBase {
         }
     }
 
-    private List<Integer> partUpload( AmazonS3 s3Client, String bucketName,
+    private List< Integer > partUpload( AmazonS3 s3Client, String bucketName,
             String key, String uploadId, File file ) {
-        List<Integer> partNumbers = new ArrayList<>();
+        List< Integer > partNumbers = new ArrayList<>();
         int filePosition = 0;
         int partSize = 1024 * 1024 * 5;
         long fileSize = file.length();
@@ -116,9 +116,9 @@ public class ListParts18736 extends S3TestBase {
         return partNumbers;
     }
 
-    private List<Integer> getPartNumbers( PartListing listResult ) {
-        List<PartSummary> listParts = listResult.getParts();
-        List<Integer> actPartNumbersList = new ArrayList<>();
+    private List< Integer > getPartNumbers( PartListing listResult ) {
+        List< PartSummary > listParts = listResult.getParts();
+        List< Integer > actPartNumbersList = new ArrayList<>();
         for ( PartSummary partNumbers : listParts ) {
             int partNumber = partNumbers.getPartNumber();
             actPartNumbersList.add( partNumber );

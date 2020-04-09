@@ -36,10 +36,10 @@ public class UploadPart18704 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -53,16 +53,15 @@ public class UploadPart18704 extends S3TestBase {
 
     @Test
     private void testUpload() throws Exception {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        List<PartETag> partEtags = PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        List< PartETag > partEtags = PartUploadUtils.partUpload( s3Client,
+                bucketName, keyName, uploadId, file );
         // 指定上传的partEtags中第2个分段的etag值不正确
         partEtags.get( 1 ).setETag( partEtags.get( 0 ).getETag() );
         try {
-            PartUploadUtils
-                    .completeMultipartUpload( s3Client, bucketName, keyName,
-                            uploadId, partEtags );
+            PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
+                    keyName, uploadId, partEtags );
             Assert.fail( "complete multipart upload should fail." );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getErrorCode(), "InvalidPart" );

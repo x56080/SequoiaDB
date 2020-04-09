@@ -40,8 +40,8 @@ public class UploadPart18713 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         filePath = localPath + File.separator + "localFile_" + oldFileSize
                 + ".txt";
 
@@ -75,8 +75,8 @@ public class UploadPart18713 extends S3TestBase {
 
         // check
         String expMd5 = TestTools.getMD5( filePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
         runSuccess = true;
     }
@@ -94,16 +94,16 @@ public class UploadPart18713 extends S3TestBase {
     }
 
     private void putObject( long[] partSizes, File file ) {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        List<PartETag> partEtags = partUpload( uploadId, partSizes, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        List< PartETag > partEtags = partUpload( uploadId, partSizes, file );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadId, partEtags );
     }
 
-    private List<PartETag> partUpload( String uploadId, long partSizes[],
+    private List< PartETag > partUpload( String uploadId, long partSizes[],
             File file ) {
-        List<PartETag> partEtags = new ArrayList<>();
+        List< PartETag > partEtags = new ArrayList<>();
         long filePosition = 0;
         for ( int i = 1; i < partSizes.length + 1; i++ ) {
             UploadPartRequest partRequest = new UploadPartRequest()

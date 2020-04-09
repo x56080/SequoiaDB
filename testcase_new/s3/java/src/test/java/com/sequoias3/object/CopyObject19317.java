@@ -34,7 +34,7 @@ public class CopyObject19317 extends S3TestBase {
     private String bucketName;
     private String keyNameA = "srcObj19317A";
     private String keyNameB = "srcObj19317B";
-    private Map<String, String> xMeta = new HashMap<>();
+    private Map< String, String > xMeta = new HashMap<>();
     private ObjectMetadata metadata = new ObjectMetadata();
     private int fileSize = 6 * 1024 * 1024;
     private File localPath = null;
@@ -42,10 +42,10 @@ public class CopyObject19317 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -54,8 +54,8 @@ public class CopyObject19317 extends S3TestBase {
         s3Client = CommLib.buildS3Client();
 
         // put object A, and set user-defined metadata
-        PutObjectResult objResultA = s3Client
-                .putObject( bucketName, keyNameA, new File( filePath ) );
+        PutObjectResult objResultA = s3Client.putObject( bucketName, keyNameA,
+                new File( filePath ) );
         xMeta.put( "def", "test" );
         metadata.setUserMetadata( xMeta );
         objResultA.setMetadata( metadata );
@@ -94,7 +94,7 @@ public class CopyObject19317 extends S3TestBase {
                 bucketName, keyNameB );
         request.setMetadataDirective( "REPLACE" );
         s3Client.copyObject( request );
-        checkObjectAttribute( keyNameB, new HashMap<String, String>() );
+        checkObjectAttribute( keyNameB, new HashMap< String, String >() );
         checkObjectContent( keyNameB );
         runSuccessNum++;
     }
@@ -111,7 +111,7 @@ public class CopyObject19317 extends S3TestBase {
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getErrorCode(), "InvalidRequest" );
         }
-        checkObjectAttribute( keyNameB, new HashMap<String, String>() );
+        checkObjectAttribute( keyNameB, new HashMap< String, String >() );
         checkObjectContent( keyNameB );
         runSuccessNum++;
     }
@@ -124,7 +124,7 @@ public class CopyObject19317 extends S3TestBase {
                 bucketName, keyNameB );
         request.setMetadataDirective( "REPLACE" );
         s3Client.copyObject( request );
-        checkObjectAttribute( keyNameB, new HashMap<String, String>() );
+        checkObjectAttribute( keyNameB, new HashMap< String, String >() );
         checkObjectContent( keyNameB );
         runSuccessNum++;
     }
@@ -143,28 +143,27 @@ public class CopyObject19317 extends S3TestBase {
     }
 
     private void checkObjectContent( String keyName ) throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
     private void checkObjectAttribute( String keyName,
-            Map<String, String> expMeta ) throws IOException {
+            Map< String, String > expMeta ) throws IOException {
         GetObjectMetadataRequest request = new GetObjectMetadataRequest(
                 bucketName, keyName );
         ObjectMetadata result = s3Client.getObjectMetadata( request );
         Assert.assertEquals( result.getETag(), TestTools.getMD5( filePath ) );
         Assert.assertEquals( result.getContentLength(), fileSize );
 
-        Map<String, String> actMeta = result.getUserMetadata();
-        Assert.assertEquals( actMeta.size(), expMeta.size(),
-                "expMeta is : " + expMeta.toString() + "actMeta is : " + actMeta
-                        .toString() );
-        for ( Map.Entry<String, String> entry : expMeta.entrySet() ) {
+        Map< String, String > actMeta = result.getUserMetadata();
+        Assert.assertEquals( actMeta.size(), expMeta.size(), "expMeta is : "
+                + expMeta.toString() + "actMeta is : " + actMeta.toString() );
+        for ( Map.Entry< String, String > entry : expMeta.entrySet() ) {
             Object key = entry.getKey();
             Assert.assertEquals( actMeta.get( key ), expMeta.get( key ),
-                    "actMeta = " + actMeta.toString() + ",expMeta = " + expMeta
-                            .toString() );
+                    "actMeta = " + actMeta.toString() + ",expMeta = "
+                            + expMeta.toString() );
         }
     }
 }

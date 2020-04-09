@@ -42,10 +42,10 @@ public class UploadPart18716 extends S3TestBase {
     @SuppressWarnings("deprecation")
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -65,33 +65,30 @@ public class UploadPart18716 extends S3TestBase {
     @Test
     private void testUpload() throws Exception {
         // 上传分段长度相同
-        String uploadId1 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, SamePartSizekeyName );
-        List<PartETag> partEtags1 = PartUploadUtils
-                .partUpload( s3Client, bucketName, SamePartSizekeyName,
-                        uploadId1, file );
+        String uploadId1 = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                SamePartSizekeyName );
+        List< PartETag > partEtags1 = PartUploadUtils.partUpload( s3Client,
+                bucketName, SamePartSizekeyName, uploadId1, file );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
                 SamePartSizekeyName, uploadId1, partEtags1 );
 
         // 上传分段长度不同
         long[] partSizes = { 6 * 1024 * 1024, 5 * 1024 * 1024,
                 7 * 1024 * 1024 };
-        String uploadId2 = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, diffPartSizekeyName );
-        List<PartETag> partEtags2 = partUpload( uploadId2, partSizes );
+        String uploadId2 = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                diffPartSizekeyName );
+        List< PartETag > partEtags2 = partUpload( uploadId2, partSizes );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
                 diffPartSizekeyName, uploadId2, partEtags2 );
 
         // check
         String expMd5 = TestTools.getMD5( filePath );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName,
-                        SamePartSizekeyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, SamePartSizekeyName );
         Assert.assertEquals( downloadMd5, expMd5 );
 
-        downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName,
-                        diffPartSizekeyName );
+        downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, diffPartSizekeyName );
         Assert.assertEquals( downloadMd5, expMd5 );
         runSuccess = true;
     }
@@ -109,8 +106,8 @@ public class UploadPart18716 extends S3TestBase {
         }
     }
 
-    private List<PartETag> partUpload( String uploadId, long partSizes[] ) {
-        List<PartETag> partEtags = new ArrayList<>();
+    private List< PartETag > partUpload( String uploadId, long partSizes[] ) {
+        List< PartETag > partEtags = new ArrayList<>();
         int filePosition = 0;
         for ( int i = 1; i < partSizes.length + 1; i++ ) {
             UploadPartRequest partRequest = new UploadPartRequest()

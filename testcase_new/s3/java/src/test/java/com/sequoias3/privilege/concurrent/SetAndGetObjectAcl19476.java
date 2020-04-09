@@ -42,10 +42,10 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -63,8 +63,9 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
     private void testSetObjectAcl() throws Exception {
         Grant[] defaultGrant = { new Grant( new CanonicalGrantee( ownerId ),
                 Permission.FullControl ) };
-        Grant[] expGrant = { new Grant( new CanonicalGrantee( ownerId ),
-                Permission.ReadAcp ),
+        Grant[] expGrant = {
+                new Grant( new CanonicalGrantee( ownerId ),
+                        Permission.ReadAcp ),
                 new Grant( GroupGrantee.AuthenticatedUsers,
                         Permission.Write ) };
 
@@ -100,8 +101,8 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void setObjectAcl() {
             try {
-                PrivilegeUtils
-                        .setObjectAclByBody( s3, bucketName, keyName, grant );
+                PrivilegeUtils.setObjectAclByBody( s3, bucketName, keyName,
+                        grant );
             } finally {
                 if ( s3 != null ) {
                     s3.shutdown();
@@ -114,7 +115,7 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
         private AmazonS3 s3 = CommLib.buildS3Client();
         private Grant[] defaultGrant;
         private Grant[] expGrant;
-        private List<Grant> expGrantsList;
+        private List< Grant > expGrantsList;
 
         public ThreadGetObjectAcl( Grant[] defaultGrant, Grant[] expGrant ) {
             this.defaultGrant = defaultGrant;
@@ -124,9 +125,9 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
         @ExecuteOrder(step = 1)
         private void getObjectAcl() {
             try {
-                AccessControlList result = s3
-                        .getObjectAcl( bucketName, keyName );
-                List<Grant> actGrantsList = result.getGrantsAsList();
+                AccessControlList result = s3.getObjectAcl( bucketName,
+                        keyName );
+                List< Grant > actGrantsList = result.getGrantsAsList();
                 if ( actGrantsList.size() == defaultGrant.length ) {
                     expGrantsList = new ArrayList<>(
                             Arrays.asList( defaultGrant ) );
@@ -134,9 +135,8 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
                     expGrantsList = new ArrayList<>(
                             Arrays.asList( expGrant ) );
                 } else {
-                    Assert.fail(
-                            "act object acl size is wrong : " + actGrantsList
-                                    .toString() );
+                    Assert.fail( "act object acl size is wrong : "
+                            + actGrantsList.toString() );
                 }
                 checkGrantList( actGrantsList, expGrantsList );
             } finally {
@@ -146,19 +146,18 @@ public class SetAndGetObjectAcl19476 extends S3TestBase {
             }
         }
 
-        private void checkGrantList( List<Grant> actGrantsList,
-                List<Grant> expGrantsList ) {
+        private void checkGrantList( List< Grant > actGrantsList,
+                List< Grant > expGrantsList ) {
             boolean isEqual = false;
-            if ( actGrantsList.size() == expGrantsList.size() && actGrantsList
-                    .containsAll( expGrantsList ) && expGrantsList
-                    .containsAll( actGrantsList ) ) {
+            if ( actGrantsList.size() == expGrantsList.size()
+                    && actGrantsList.containsAll( expGrantsList )
+                    && expGrantsList.containsAll( actGrantsList ) ) {
                 isEqual = true;
             }
             if ( !isEqual ) {
-                Assert.fail(
-                        "object acl is wrong! exp grants = " + expGrantsList
-                                .toString() + ", act grants = " + actGrantsList
-                                .toString() );
+                Assert.fail( "object acl is wrong! exp grants = "
+                        + expGrantsList.toString() + ", act grants = "
+                        + actGrantsList.toString() );
             }
         }
     }

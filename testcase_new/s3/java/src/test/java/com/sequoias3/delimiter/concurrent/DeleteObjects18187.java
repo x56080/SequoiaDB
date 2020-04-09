@@ -35,17 +35,17 @@ public class DeleteObjects18187 extends S3TestBase {
     private int objectNum = 100;
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * 10;
-    private List<String> keyNames = new ArrayList<>();
+    private List< String > keyNames = new ArrayList<>();
     private File localPath = null;
     private String filePath = null;
     private boolean runSuccess = false;
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -74,7 +74,7 @@ public class DeleteObjects18187 extends S3TestBase {
         ListObjectsV2Request request = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withEncodingType( "url" );
         ListObjectsV2Result result = s3Client.listObjectsV2( request );
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List< S3ObjectSummary > objects = result.getObjectSummaries();
         Assert.assertEquals( objects.size(), 0 );
         runSuccess = true;
     }

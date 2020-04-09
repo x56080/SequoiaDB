@@ -44,10 +44,10 @@ public class UpdateObjectWithVersion16341 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -88,9 +88,8 @@ public class UpdateObjectWithVersion16341 extends S3TestBase {
         Assert.assertEquals( versionId, expVersionId );
 
         // check the content of the create object
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, key,
-                        versionId );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, key, versionId );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 }

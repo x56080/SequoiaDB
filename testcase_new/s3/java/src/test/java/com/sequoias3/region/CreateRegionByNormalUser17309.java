@@ -64,7 +64,7 @@ public class CreateRegionByNormalUser17309 extends S3TestBase {
     private void tearDown() {
         if ( runSuccess ) {
             try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
-                    "" ) ) {
+                    "" )) {
                 sdb.dropCollectionSpace( metaCSName );
                 sdb.dropCollectionSpace( dataCSName );
                 UserUtils.deleteUser( userName );

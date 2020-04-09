@@ -47,16 +47,15 @@ public class TestGetObjectMetadata16684 extends S3TestBase {
     private void testGetObjectMetadata() throws Exception {
         s3Client.createBucket( bucketName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content );
         String versionId = result.getVersionId();
 
         Date date = new Date();
 
         // 指定versionId对象在指定时间未修改
-        HttpHead request = new HttpHead(
-                S3TestBase.s3ClientUrl + "/" + bucketName + "/" + keyName
-                        + "?versionId=" + versionId );
+        HttpHead request = new HttpHead( S3TestBase.s3ClientUrl + "/"
+                + bucketName + "/" + keyName + "?versionId=" + versionId );
         request.setHeader( "Authorization",
                 "Credential=" + accessKeys[ 0 ] + "/" );
         request.setHeader( "If-Modified-Since",

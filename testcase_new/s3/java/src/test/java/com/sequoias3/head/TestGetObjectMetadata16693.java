@@ -51,14 +51,14 @@ public class TestGetObjectMetadata16693 extends S3TestBase {
         s3Client.createBucket( bucketName );
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
         s3Client.putObject( bucketName, keyName, content + "v1" );
-        PutObjectResult result = s3Client
-                .putObject( bucketName, keyName, content + "v2" );
+        PutObjectResult result = s3Client.putObject( bucketName, keyName,
+                content + "v2" );
         String expEtag = result.getETag();
         String versionid = result.getVersionId();
 
-        ObjectMetadata metadata = s3Client.getObjectMetadata(
-                new GetObjectMetadataRequest( bucketName, keyName,
-                        versionid ) );
+        ObjectMetadata metadata = s3Client
+                .getObjectMetadata( new GetObjectMetadataRequest( bucketName,
+                        keyName, versionid ) );
         Date modifiedDate = metadata.getLastModified();
 
         // 指定ifModifiedSince条件查询对象 ，指定时间后该对象未修改

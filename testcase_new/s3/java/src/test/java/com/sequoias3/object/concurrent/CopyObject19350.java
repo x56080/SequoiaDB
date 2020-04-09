@@ -43,12 +43,12 @@ public class CopyObject19350 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath1 =
-                localPath + File.separator + "localFile_" + fileSize1 + ".txt";
-        filePath2 =
-                localPath + File.separator + "localFile_" + fileSize2 + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath1 = localPath + File.separator + "localFile_" + fileSize1
+                + ".txt";
+        filePath2 = localPath + File.separator + "localFile_" + fileSize2
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath1, fileSize1 );
@@ -88,16 +88,16 @@ public class CopyObject19350 extends S3TestBase {
     private void checkResult() throws Exception {
         String currentVersionId = "1";
         String hisVersionId = "0";
-        List<String> expVersionIds = new ArrayList<>();
+        List< String > expVersionIds = new ArrayList<>();
         expVersionIds.add( hisVersionId );
         expVersionIds.add( currentVersionId );
 
-        List<String> actVersionIds = new ArrayList<>();
+        List< String > actVersionIds = new ArrayList<>();
         // list match destKey by prefix
-        VersionListing versionList = s3Client.listVersions(
-                new ListVersionsRequest().withBucketName( bucketName )
-                        .withPrefix( "/dest" ) );
-        List<S3VersionSummary> verList = versionList.getVersionSummaries();
+        VersionListing versionList = s3Client
+                .listVersions( new ListVersionsRequest()
+                        .withBucketName( bucketName ).withPrefix( "/dest" ) );
+        List< S3VersionSummary > verList = versionList.getVersionSummaries();
         for ( S3VersionSummary versionSummary : verList ) {
             String versionId = versionSummary.getVersionId();
             long size = versionSummary.getSize();
@@ -136,9 +136,8 @@ public class CopyObject19350 extends S3TestBase {
 
     private void checkObjectContent( String versionId, String filePath )
             throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, destKeyName,
-                        versionId );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, destKeyName, versionId );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

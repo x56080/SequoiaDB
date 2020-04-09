@@ -38,7 +38,7 @@ public class ListObjectsWithMarkerAndMaxkeys18576 extends S3TestBase {
 
     @Test
     public void testListObjects() throws Exception {
-        List<String> keyList = putObjects();
+        List< String > keyList = putObjects();
         // test a: starting with the first record
         int startPositionA = 0;
         int maxKeysA = 3;
@@ -68,22 +68,22 @@ public class ListObjectsWithMarkerAndMaxkeys18576 extends S3TestBase {
         }
     }
 
-    private void listObjectsAndCheckResult( List<String> keyList,
+    private void listObjectsAndCheckResult( List< String > keyList,
             int startPosition, int maxKeys ) {
-        List<String> expKeyList = new ArrayList<>( keyList );
+        List< String > expKeyList = new ArrayList<>( keyList );
         String marker = expKeyList.get( startPosition );
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName( bucketName ).withMarker( marker )
                 .withMaxKeys( maxKeys );
         ObjectListing result;
-        List<String> queryKeyList = new ArrayList<>();
-        List<String> commonPrefixes = new ArrayList<>();
+        List< String > queryKeyList = new ArrayList<>();
+        List< String > commonPrefixes = new ArrayList<>();
         do {
             result = s3Client.listObjects( request );
-            List<String> oneGetCommPrefixes = result.getCommonPrefixes();
+            List< String > oneGetCommPrefixes = result.getCommonPrefixes();
             commonPrefixes.addAll( oneGetCommPrefixes );
-            List<S3ObjectSummary> objects = result.getObjectSummaries();
-            List<String> oneQueryKeyList = new ArrayList<>();
+            List< S3ObjectSummary > objects = result.getObjectSummaries();
+            List< String > oneQueryKeyList = new ArrayList<>();
             for ( S3ObjectSummary os : objects ) {
                 String key = os.getKey();
                 oneQueryKeyList.add( key );
@@ -91,18 +91,17 @@ public class ListObjectsWithMarkerAndMaxkeys18576 extends S3TestBase {
             }
             String nextMarker = result.getNextMarker();
             request.setMarker( nextMarker );
-            int eachListNums =
-                    oneGetCommPrefixes.size() + oneQueryKeyList.size();
+            int eachListNums = oneGetCommPrefixes.size()
+                    + oneQueryKeyList.size();
             if ( eachListNums > maxKeys ) {
-                Assert.fail(
-                        "list nums error! commonPrefixes: " + oneGetCommPrefixes
-                                .toString() + "  contents:" + oneQueryKeyList
-                                .toString() );
+                Assert.fail( "list nums error! commonPrefixes: "
+                        + oneGetCommPrefixes.toString() + "  contents:"
+                        + oneQueryKeyList.toString() );
             }
         } while ( result.isTruncated() );
 
         // check the commonprefixes is null.
-        List<String> expCommonPrefixes = new ArrayList<>();
+        List< String > expCommonPrefixes = new ArrayList<>();
         Assert.assertEquals( commonPrefixes, expCommonPrefixes );
 
         // check the keyName
@@ -118,8 +117,8 @@ public class ListObjectsWithMarkerAndMaxkeys18576 extends S3TestBase {
 
     }
 
-    private List<String> putObjects() {
-        List<String> keyList = new ArrayList<>();
+    private List< String > putObjects() {
+        List< String > keyList = new ArrayList<>();
         for ( int i = 0; i < objectNums; i++ ) {
             String keyName = key + "_" + i;
             s3Client.putObject( bucketName, keyName, "test18576" + i );

@@ -37,10 +37,10 @@ public class CopyObject19348 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -55,11 +55,11 @@ public class CopyObject19348 extends S3TestBase {
     @Test
     public void testCopyObject() throws Exception {
         // meta set the userMeta and contentDisposition
-        Map<String, String> userMetaA = new HashMap<>();
+        Map< String, String > userMetaA = new HashMap<>();
         userMetaA.put( "tag1", "testa" );
         userMetaA.put( "tag2", "testa2" );
         String contentDispositionA = "this is copy objectA!";
-        Map<String, String> userMetaB = new HashMap<>();
+        Map< String, String > userMetaB = new HashMap<>();
         userMetaB.put( "tag1", "testaB" );
         userMetaB.put( "tag2", "testab2" );
         userMetaB.put( "test3", "testab3" );
@@ -92,21 +92,21 @@ public class CopyObject19348 extends S3TestBase {
 
     private void checkObjectContent( String bucketName, String keyName )
             throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 
-    private void checkObjectMetaData( Map<String, String> expMetaA,
-            Map<String, String> expMetaB, String contentDispositionA,
+    private void checkObjectMetaData( Map< String, String > expMetaA,
+            Map< String, String > expMetaB, String contentDispositionA,
             String contentDispositionB ) {
         GetObjectMetadataRequest request = new GetObjectMetadataRequest(
                 bucketName, keyName );
         ObjectMetadata result = s3Client.getObjectMetadata( request );
 
-        Map<String, String> actMeta = result.getUserMetadata();
+        Map< String, String > actMeta = result.getUserMetadata();
         if ( actMeta.size() == expMetaA.size() ) {
-            for ( Map.Entry<String, String> entry : expMetaA.entrySet() ) {
+            for ( Map.Entry< String, String > entry : expMetaA.entrySet() ) {
                 Object key = entry.getKey();
                 Assert.assertEquals( actMeta.get( key ), expMetaA.get( key ),
                         "actMetaA = " + actMeta.toString() + ",expMetaA = "
@@ -118,7 +118,7 @@ public class CopyObject19348 extends S3TestBase {
             Assert.assertEquals( actMeta.size(), expMetaB.size(),
                     "expMetaB is : " + expMetaB.toString() + "actMetaB is : "
                             + actMeta.toString() );
-            for ( Map.Entry<String, String> entry : expMetaB.entrySet() ) {
+            for ( Map.Entry< String, String > entry : expMetaB.entrySet() ) {
                 Object key = entry.getKey();
                 Assert.assertEquals( actMeta.get( key ), expMetaB.get( key ),
                         "actMetaB = " + actMeta.toString() + ",expMeta = "
@@ -131,12 +131,12 @@ public class CopyObject19348 extends S3TestBase {
     }
 
     private class CopyObject {
-        private Map<String, String> userMeta = new HashMap<>();
+        private Map< String, String > userMeta = new HashMap<>();
         private String contentDisposition;
         private AmazonS3 s3Client1 = CommLib.buildS3Client();
         private ObjectMetadata metaData = new ObjectMetadata();
 
-        private CopyObject( Map<String, String> userMeta,
+        private CopyObject( Map< String, String > userMeta,
                 String contentDisposition ) {
             this.userMeta = userMeta;
             this.contentDisposition = contentDisposition;

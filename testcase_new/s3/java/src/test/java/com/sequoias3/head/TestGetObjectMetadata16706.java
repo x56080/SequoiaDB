@@ -54,14 +54,14 @@ public class TestGetObjectMetadata16706 extends S3TestBase {
         s3Client.putObject( bucketName, keyName, content + "v1" );
         s3Client.putObject( bucketName, keyName, content + "v2" );
 
-        PutObjectResult currResult = s3Client
-                .putObject( bucketName, keyName, content + "v3" );
+        PutObjectResult currResult = s3Client.putObject( bucketName, keyName,
+                content + "v3" );
         String currEtag = currResult.getETag();
         String currVersion = currResult.getVersionId();
 
-        ObjectMetadata metadata = s3Client.getObjectMetadata(
-                new GetObjectMetadataRequest( bucketName, keyName,
-                        currVersion ) );
+        ObjectMetadata metadata = s3Client
+                .getObjectMetadata( new GetObjectMetadataRequest( bucketName,
+                        keyName, currVersion ) );
         Date actDate = metadata.getLastModified();
 
         // 不匹配If-None-Match匹配If-Modified-Since

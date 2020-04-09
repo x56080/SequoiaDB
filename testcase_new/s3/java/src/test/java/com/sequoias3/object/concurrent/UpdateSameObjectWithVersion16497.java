@@ -35,7 +35,7 @@ public class UpdateSameObjectWithVersion16497 extends S3TestBase {
     private String content = "content16497";
     private String keyName = "keytest19497";
     private String roleName = "normal";
-    private List<String> expEtags = new ArrayList<>();
+    private List< String > expEtags = new ArrayList<>();
     private String[] acessKeys = null;
     private AmazonS3 s3Client = null;
 
@@ -52,10 +52,10 @@ public class UpdateSameObjectWithVersion16497 extends S3TestBase {
 
     @Test
     public void testUpdateObject() throws Exception {
-        List<UpdateObjectThread> updateObjects = new ArrayList<>();
+        List< UpdateObjectThread > updateObjects = new ArrayList<>();
         for ( int i = 0; i < defaultNums; i++ ) {
-            String currContent =
-                    content + "." + ObjectUtils.getRandomString( i );
+            String currContent = content + "."
+                    + ObjectUtils.getRandomString( i );
             updateObjects.add( new UpdateObjectThread( currContent ) );
             expEtags.add( TestTools.getMD5( currContent.getBytes() ) );
         }
@@ -89,11 +89,11 @@ public class UpdateSameObjectWithVersion16497 extends S3TestBase {
     }
 
     private void checkCreateObjectResult() {
-        List<String> actEtags = new ArrayList<>();
+        List< String > actEtags = new ArrayList<>();
         ListVersionsRequest req = new ListVersionsRequest()
                 .withBucketName( bucketName );
         VersionListing versionList = s3Client.listVersions( req );
-        List<S3VersionSummary> objectVersionList = versionList
+        List< S3VersionSummary > objectVersionList = versionList
                 .getVersionSummaries();
         Assert.assertEquals( objectVersionList.size(), defaultNums + 1 );
         for ( S3VersionSummary obj : objectVersionList ) {
@@ -118,8 +118,8 @@ public class UpdateSameObjectWithVersion16497 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
-            AmazonS3 s3Client = CommLib
-                    .buildS3Client( acessKeys[ 0 ], acessKeys[ 1 ] );
+            AmazonS3 s3Client = CommLib.buildS3Client( acessKeys[ 0 ],
+                    acessKeys[ 1 ] );
             try {
                 s3Client.putObject( bucketName, keyName, content );
             } finally {

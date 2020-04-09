@@ -44,8 +44,8 @@ public class SetObjectAcl19458 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
 
         adminS3 = CommLib.buildS3Client();
@@ -102,8 +102,8 @@ public class SetObjectAcl19458 extends S3TestBase {
         Grant grant = new Grant(
                 new CanonicalGrantee( authUserS3.getS3AccountOwner().getId() ),
                 permission );
-        PrivilegeUtils
-                .setObjectAclByBody( adminS3, bucketName, keyName, grant );
+        PrivilegeUtils.setObjectAclByBody( adminS3, bucketName, keyName,
+                grant );
         // userS3 get object acl and check results
         PrivilegeUtils.checkSetObjectAclResult( authUserS3, bucketName, keyName,
                 grant );
@@ -111,8 +111,8 @@ public class SetObjectAcl19458 extends S3TestBase {
 
     private void checkObjectContent( AmazonS3 authUserS3, String keyName,
             String expFileContent ) throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( authUserS3, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( authUserS3, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5,
                 TestTools.getMD5( expFileContent.getBytes() ) );
     }

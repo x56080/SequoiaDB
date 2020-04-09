@@ -26,7 +26,7 @@ import java.util.List;
 public class GetObjectList16435 extends S3TestBase {
     private String bucketName = "bucket16435";
     private String keyName = "dir%test16435";
-    private List<String> expresultList = new ArrayList<String>();
+    private List< String > expresultList = new ArrayList< String >();
     private int objectNum = 25;
     private int anotherObjectNum = 4;
     private int maxKeys = 3;
@@ -61,7 +61,7 @@ public class GetObjectList16435 extends S3TestBase {
         int objectTotalNum = objectNum + anotherObjectNum;
         ListObjectsV2Request req = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withMaxKeys( maxKeys );
-        List<S3ObjectSummary> objectSummaries = new ArrayList<S3ObjectSummary>();
+        List< S3ObjectSummary > objectSummaries = new ArrayList< S3ObjectSummary >();
         ListObjectsV2Result result;
         // currentTurn is query times
         int currentTurn = 0;

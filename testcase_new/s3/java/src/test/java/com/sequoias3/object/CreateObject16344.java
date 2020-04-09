@@ -36,14 +36,14 @@ public class CreateObject16344 extends S3TestBase {
     private boolean runSuccess = false;
     private AmazonS3 s3Client = null;
     private Random random = new Random();
-    private LinkedBlockingQueue<SaveEtagAndMd5> etag2md5 = new LinkedBlockingQueue<SaveEtagAndMd5>();
+    private LinkedBlockingQueue< SaveEtagAndMd5 > etag2md5 = new LinkedBlockingQueue< SaveEtagAndMd5 >();
     private File localPath = null;
     private int defaultNums = 10;
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         s3Client = CommLib.buildS3Client();
@@ -54,7 +54,7 @@ public class CreateObject16344 extends S3TestBase {
 
     @Test
     public void testPutObject() throws Exception {
-        List<PutObjectThread> putObjects = new ArrayList<>();
+        List< PutObjectThread > putObjects = new ArrayList<>();
 
         for ( int i = 0; i < defaultNums; i++ ) {
             String subKeyName = keyName + "." + i;
@@ -92,19 +92,19 @@ public class CreateObject16344 extends S3TestBase {
             S3Object object = s3Client.getObject( request );
             String actEtag = object.getObjectMetadata().getETag();
             S3ObjectInputStream s3is = object.getObjectContent();
-            String downloadPath = TestTools.LocalFile
-                    .initDownloadPath( localPath, TestTools.getMethodName(),
-                            expEtagAndMd5.getKeyName() );
+            String downloadPath = TestTools.LocalFile.initDownloadPath(
+                    localPath, TestTools.getMethodName(),
+                    expEtagAndMd5.getKeyName() );
             ObjectUtils.inputStream2File( s3is, downloadPath );
             s3is.close();
             String actMd5 = TestTools.getMD5( downloadPath );
 
             Assert.assertEquals( actEtag, expEtagAndMd5.getEtag(),
-                    "etag is wrong , key name is:" + expEtagAndMd5
-                            .getKeyName() );
+                    "etag is wrong , key name is:"
+                            + expEtagAndMd5.getKeyName() );
             Assert.assertEquals( actMd5, expEtagAndMd5.getMd5(),
-                    "MD5 is wrong , key name is:" + expEtagAndMd5
-                            .getKeyName() );
+                    "MD5 is wrong , key name is:"
+                            + expEtagAndMd5.getKeyName() );
         }
     }
 
@@ -126,8 +126,8 @@ public class CreateObject16344 extends S3TestBase {
                             .getRandomString( writeSize );
                     String currmd5 = TestTools.getMD5( currContent.getBytes() );
                     String currentName = keyName + "." + i;
-                    putObjResult = s3Client
-                            .putObject( bucketName, currentName, currContent );
+                    putObjResult = s3Client.putObject( bucketName, currentName,
+                            currContent );
                     etag2md5.offer( new SaveEtagAndMd5( currentName,
                             putObjResult.getETag(), currmd5 ) );
                 }

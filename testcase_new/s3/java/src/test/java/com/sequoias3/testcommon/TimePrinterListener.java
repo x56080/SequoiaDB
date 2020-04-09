@@ -21,14 +21,14 @@ public class TimePrinterListener extends TestListenerAdapter {
         StringBuilder builder = new StringBuilder();
         builder.append( "[" );
         try ( Sequoiadb db = new Sequoiadb( S3TestBase.getDefaultCoordUrl(), "",
-                "" ); ) {
+                "" ) ;) {
             cursor = db.getSnapshot( 9, "", "", "" );
             while ( cursor.hasNext() ) {
                 builder.append( cursor.getNext().toString() + ",\n" );
             }
         } catch ( Exception e ) {
-            System.out.println( "snapshot 9 failed,coord = " + S3TestBase
-                    .getDefaultCoordUrl() );
+            System.out.println( "snapshot 9 failed,coord = "
+                    + S3TestBase.getDefaultCoordUrl() );
             e.printStackTrace();
         } finally {
             if ( cursor != null ) {
@@ -52,12 +52,11 @@ public class TimePrinterListener extends TestListenerAdapter {
     public void onConfigurationFailure( ITestResult itr ) {
         super.onConfigurationFailure( itr );
         Throwable throwable = itr.getThrowable();
-        if ( throwable != null && throwable.getMessage() != null && throwable
-                .getMessage().contains( errorCode ) ) {
-            System.out.println(
-                    getCurTimeStr() + " " + itr.getTestClass().getRealClass()
-                            .getName() + ":transaction snapshot:"
-                            + transSnapshot() );
+        if ( throwable != null && throwable.getMessage() != null
+                && throwable.getMessage().contains( errorCode ) ) {
+            System.out.println( getCurTimeStr() + " "
+                    + itr.getTestClass().getRealClass().getName()
+                    + ":transaction snapshot:" + transSnapshot() );
         }
         if ( itr.getMethod().isAfterClassConfiguration() ) {
             printEndTime( itr );
@@ -91,12 +90,11 @@ public class TimePrinterListener extends TestListenerAdapter {
     public void onTestFailure( ITestResult tr ) {
         super.onTestFailure( tr );
         Throwable throwable = tr.getThrowable();
-        if ( throwable != null && throwable.getMessage() != null && throwable
-                .getMessage().contains( errorCode ) ) {
-            System.out.println(
-                    getCurTimeStr() + " " + tr.getTestClass().getRealClass()
-                            .getName() + ":transaction snapshot:"
-                            + transSnapshot() );
+        if ( throwable != null && throwable.getMessage() != null
+                && throwable.getMessage().contains( errorCode ) ) {
+            System.out.println( getCurTimeStr() + " "
+                    + tr.getTestClass().getRealClass().getName()
+                    + ":transaction snapshot:" + transSnapshot() );
         }
     }
 
@@ -120,18 +118,18 @@ public class TimePrinterListener extends TestListenerAdapter {
     }
 
     private void dbMsgBeginTime( ITestResult tr ) {
-        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ); ) {
-            sdb.msg( getCurTimeStr() + "\tBegin testcase: " + getTestMethodName(
-                    tr ) );
+        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ) ;) {
+            sdb.msg( getCurTimeStr() + "\tBegin testcase: "
+                    + getTestMethodName( tr ) );
         } catch ( BaseException e ) {
             e.printStackTrace();
         }
     }
 
     private void dbMsgEndTime( ITestResult tr ) {
-        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ); ) {
-            sdb.msg( getCurTimeStr() + "\tEnd testcase: " + getTestMethodName(
-                    tr ) );
+        try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" ) ;) {
+            sdb.msg( getCurTimeStr() + "\tEnd testcase: "
+                    + getTestMethodName( tr ) );
         } catch ( BaseException e ) {
             e.printStackTrace();
         }

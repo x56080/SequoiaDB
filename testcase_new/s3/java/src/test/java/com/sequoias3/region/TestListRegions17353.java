@@ -34,7 +34,7 @@ public class TestListRegions17353 extends S3TestBase {
     @Test
     public void testCreateRegion() throws Exception {
         // 合法值
-        List<String> regions = RegionUtils.listRegions();
+        List< String > regions = RegionUtils.listRegions();
         Assert.assertTrue( regions.contains( regionName.toLowerCase() ) );
 
         // 非法值

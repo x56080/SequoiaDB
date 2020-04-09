@@ -39,10 +39,10 @@ public class AbortMultipartUpload18725 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -62,10 +62,10 @@ public class AbortMultipartUpload18725 extends S3TestBase {
         s3Client.putObject( bucketName, keyName, content );
 
         // 更新对象
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadId, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        PartUploadUtils.partUpload( s3Client, bucketName, keyName, uploadId,
+                file );
         // 终止分段上传
         AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(
                 bucketName, keyName, uploadId );
@@ -78,8 +78,8 @@ public class AbortMultipartUpload18725 extends S3TestBase {
         Assert.assertEquals( versions.getVersionSummaries().size(), 1 );
         // check
         String expMd5 = TestTools.getMD5( content.getBytes() );
-        String downloadMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downloadMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downloadMd5, expMd5 );
         runSuccess = true;
     }

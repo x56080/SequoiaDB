@@ -25,8 +25,8 @@ import java.util.List;
  * @Author wangkexin
  * @Date 2019.08.07
  */
-@Test(groups = "partsizelimitoff") public class UploadPart18762
-        extends S3TestBase {
+@Test(groups = "partsizelimitoff")
+public class UploadPart18762 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket18762";
     private String[] keyName = { "key18762_0", "key18762_1", "key18762_2" };
@@ -37,17 +37,17 @@ import java.util.List;
     private File file2 = null;
     private String filePath = null;
     private String filePath2 = null;
-    private List<AmazonS3> clientList = Collections
-            .synchronizedList( new ArrayList<AmazonS3>() );
+    private List< AmazonS3 > clientList = Collections
+            .synchronizedList( new ArrayList< AmazonS3 >() );
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
-        filePath2 =
-                localPath + File.separator + "localFile2_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
+        filePath2 = localPath + File.separator + "localFile2_" + fileSize
+                + ".txt";
 
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
@@ -74,15 +74,12 @@ import java.util.List;
 
         String expMd5_1_3 = TestTools.getMD5( filePath );
         String expMd5_2 = TestTools.getMD5( filePath2 );
-        String downloadMd5_1 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName,
-                        keyName[ 0 ] );
-        String downloadMd5_2 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName,
-                        keyName[ 1 ] );
-        String downloadMd5_3 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName,
-                        keyName[ 2 ] );
+        String downloadMd5_1 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName[ 0 ] );
+        String downloadMd5_2 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName[ 1 ] );
+        String downloadMd5_3 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName[ 2 ] );
         Assert.assertEquals( downloadMd5_1, expMd5_1_3 );
         Assert.assertEquals( downloadMd5_2, expMd5_2 );
         Assert.assertEquals( downloadMd5_3, expMd5_1_3 );
@@ -111,7 +108,7 @@ import java.util.List;
         private long partSize;
         private File file;
         private String uploadId;
-        private List<PartETag> partEtags = new ArrayList<>();
+        private List< PartETag > partEtags = new ArrayList<>();
         private AmazonS3 inner_s3Client = CommLib.buildS3Client();
 
         public ThreadUploadPart18762( String keyName, long partSize,
@@ -124,15 +121,14 @@ import java.util.List;
 
         @ExecuteOrder(step = 1, desc = "初始化分段上传")
         public void initPartUpload() {
-            uploadId = PartUploadUtils
-                    .initPartUpload( inner_s3Client, bucketName, keyName );
+            uploadId = PartUploadUtils.initPartUpload( inner_s3Client,
+                    bucketName, keyName );
         }
 
         @ExecuteOrder(step = 2, desc = "分段上传对象")
         public void UploadPart() {
-            partEtags = PartUploadUtils
-                    .partUpload( inner_s3Client, bucketName, keyName, uploadId,
-                            file, partSize );
+            partEtags = PartUploadUtils.partUpload( inner_s3Client, bucketName,
+                    keyName, uploadId, file, partSize );
         }
 
         @ExecuteOrder(step = 3, desc = "完成分段上传")

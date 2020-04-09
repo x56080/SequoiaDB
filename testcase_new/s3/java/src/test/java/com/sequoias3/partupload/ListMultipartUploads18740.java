@@ -40,10 +40,10 @@ public class ListMultipartUploads18740 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -57,18 +57,18 @@ public class ListMultipartUploads18740 extends S3TestBase {
     @Test
     public void uploadParts() throws Exception {
         // upload the history version object
-        String uploadIdA = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        List<PartETag> partEtags = PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadIdA, file );
+        String uploadIdA = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        List< PartETag > partEtags = PartUploadUtils.partUpload( s3Client,
+                bucketName, keyName, uploadIdA, file );
         PartUploadUtils.completeMultipartUpload( s3Client, bucketName, keyName,
                 uploadIdA, partEtags );
 
         // upload the current version object, no completeMultipartUpload
-        String uploadIdB = PartUploadUtils
-                .initPartUpload( s3Client, bucketName, keyName );
-        PartUploadUtils
-                .partUpload( s3Client, bucketName, keyName, uploadIdB, file );
+        String uploadIdB = PartUploadUtils.initPartUpload( s3Client, bucketName,
+                keyName );
+        PartUploadUtils.partUpload( s3Client, bucketName, keyName, uploadIdB,
+                file );
 
         // list multipartUploads,then check the list has only current version
         // object info
@@ -76,12 +76,11 @@ public class ListMultipartUploads18740 extends S3TestBase {
                 bucketName );
         MultipartUploadListing result = s3Client
                 .listMultipartUploads( request );
-        MultiValueMap<String, String> expUpload = new LinkedMultiValueMap<String, String>();
+        MultiValueMap< String, String > expUpload = new LinkedMultiValueMap< String, String >();
         expUpload.add( keyName, uploadIdB );
-        List<String> expCommonPrefixes = new ArrayList<>();
-        PartUploadUtils
-                .checkListMultipartUploadsResults( result, expCommonPrefixes,
-                        expUpload );
+        List< String > expCommonPrefixes = new ArrayList<>();
+        PartUploadUtils.checkListMultipartUploadsResults( result,
+                expCommonPrefixes, expUpload );
         runSuccess = true;
     }
 

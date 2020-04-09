@@ -45,15 +45,14 @@ public class UpdateRegion17308 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         filePath = localPath + File.separator + "localFile_" + ( fileSize )
                 + ".txt";
-        updatePath =
-                localPath + File.separator + "localFile_" + ( fileSize + 1024 )
-                        + ".txt";
+        updatePath = localPath + File.separator + "localFile_"
+                + ( fileSize + 1024 ) + ".txt";
         TestTools.LocalFile.createFile( filePath, fileSize );
         TestTools.LocalFile.createFile( updatePath, fileSize );
         s3Client = CommLib.buildS3Client();
@@ -90,23 +89,21 @@ public class UpdateRegion17308 extends S3TestBase {
 
         // get cs and cl
         Date date = Calendar.getInstance().getTime();
-        String csName1 = RegionUtils
-                .getDataCSName( regionName, dataCSShardingType, date ) + "_1";
-        String csName2 = RegionUtils
-                .getDataCSName( regionName, upDataCSShardingType, date ) + "_1";
+        String csName1 = RegionUtils.getDataCSName( regionName,
+                dataCSShardingType, date ) + "_1";
+        String csName2 = RegionUtils.getDataCSName( regionName,
+                upDataCSShardingType, date ) + "_1";
         String clName1 = RegionUtils.getDataCLName( dataCLShardingType, date );
-        String clName2 = RegionUtils
-                .getDataCLName( upDataCLShardingType, date );
+        String clName2 = RegionUtils.getDataCLName( upDataCLShardingType,
+                date );
 
         // count the number of record
         int count1 = RegionUtils.getRecordNum( csName1, clName1 );
         int count2 = RegionUtils.getRecordNum( csName2, clName2 );
-        Assert.assertEquals( count1, 0,
-                "csName1 = " + csName1 + ",clName1 = " + clName1
-                        + ",objectName = " + objectName );
-        Assert.assertEquals( count2, 1,
-                "csName2 = " + csName2 + ",clName2 = " + clName2
-                        + ",objectName = " + objectName );
+        Assert.assertEquals( count1, 0, "csName1 = " + csName1 + ",clName1 = "
+                + clName1 + ",objectName = " + objectName );
+        Assert.assertEquals( count2, 1, "csName2 = " + csName2 + ",clName2 = "
+                + clName2 + ",objectName = " + objectName );
 
         // get object for check
         S3Object s3Object = s3Client.getObject( bucketName, objectName );
@@ -134,9 +131,8 @@ public class UpdateRegion17308 extends S3TestBase {
         ObjectMetadata metadata = object.getObjectMetadata();
         Assert.assertEquals( metadata.getVersionId(), "null" );
         Assert.assertEquals( metadata.getETag(), TestTools.getMD5( filePath ) );
-        String downloadPath = TestTools.LocalFile
-                .initDownloadPath( localPath, TestTools.getMethodName(),
-                        Thread.currentThread().getId() );
+        String downloadPath = TestTools.LocalFile.initDownloadPath( localPath,
+                TestTools.getMethodName(), Thread.currentThread().getId() );
         ObjectUtils.inputStream2File( object.getObjectContent(), downloadPath );
         Assert.assertEquals( TestTools.getMD5( downloadPath ),
                 TestTools.getMD5( filePath ), "filePath = " + filePath );

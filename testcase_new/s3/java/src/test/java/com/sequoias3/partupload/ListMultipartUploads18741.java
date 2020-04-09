@@ -40,10 +40,10 @@ public class ListMultipartUploads18741 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath =
-                localPath + File.separator + "localFile_" + fileSize + ".txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath = localPath + File.separator + "localFile_" + fileSize
+                + ".txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath, fileSize );
@@ -64,10 +64,10 @@ public class ListMultipartUploads18741 extends S3TestBase {
 
     @Test
     public void uploadParts() {
-        String uploadId = PartUploadUtils
-                .initPartUpload( s3ClientA, bucketName, keyName );
-        PartUploadUtils
-                .partUpload( s3ClientA, bucketName, keyName, uploadId, file );
+        String uploadId = PartUploadUtils.initPartUpload( s3ClientA, bucketName,
+                keyName );
+        PartUploadUtils.partUpload( s3ClientA, bucketName, keyName, uploadId,
+                file );
 
         // the userB is not the bucket management user
         try {
@@ -77,8 +77,8 @@ public class ListMultipartUploads18741 extends S3TestBase {
             Assert.fail( "exp fail but found success" );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getErrorCode(), "AccessDenied",
-                    "errorCode is " + e.getErrorCode() + "  statusCode:" + e
-                            .getStatusCode() );
+                    "errorCode is " + e.getErrorCode() + "  statusCode:"
+                            + e.getStatusCode() );
         }
         runSuccess = true;
     }

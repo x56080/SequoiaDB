@@ -42,12 +42,12 @@ public class CopyObject19329 extends S3TestBase {
 
     @BeforeClass
     private void setUp() throws IOException {
-        localPath = new File( S3TestBase.workDir + File.separator + TestTools
-                .getClassName() );
-        filePath1 =
-                localPath + File.separator + "localFile_" + fileSize + "_1.txt";
-        filePath2 =
-                localPath + File.separator + "localFile_" + fileSize + "_2.txt";
+        localPath = new File( S3TestBase.workDir + File.separator
+                + TestTools.getClassName() );
+        filePath1 = localPath + File.separator + "localFile_" + fileSize
+                + "_1.txt";
+        filePath2 = localPath + File.separator + "localFile_" + fileSize
+                + "_2.txt";
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         TestTools.LocalFile.createFile( filePath1, fileSize );
@@ -59,11 +59,11 @@ public class CopyObject19329 extends S3TestBase {
         CommLib.setBucketVersioning( s3Client, bucketName, "Enabled" );
 
         PutObjectResult result;
-        result = s3Client
-                .putObject( bucketName, srcKeyName, new File( filePath1 ) );
+        result = s3Client.putObject( bucketName, srcKeyName,
+                new File( filePath1 ) );
         srcHisVerETag = result.getETag();
-        result = s3Client
-                .putObject( bucketName, srcKeyName, new File( filePath2 ) );
+        result = s3Client.putObject( bucketName, srcKeyName,
+                new File( filePath2 ) );
         srcCurVerETag = result.getETag();
     }
 
@@ -137,8 +137,8 @@ public class CopyObject19329 extends S3TestBase {
 
     private void checkObjectContent( String keyName, String filePath )
             throws Exception {
-        String downfileMd5 = ObjectUtils
-                .getMd5OfObject( s3Client, localPath, bucketName, keyName );
+        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
+                bucketName, keyName );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
 

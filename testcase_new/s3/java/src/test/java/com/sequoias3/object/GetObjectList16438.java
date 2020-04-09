@@ -25,11 +25,11 @@ import java.util.List;
  * @Date 2018.11.21
  * @version 1.00
  */
-@Test(groups = "contextlifecycleconf") public class GetObjectList16438
-        extends S3TestBase {
+@Test(groups = "contextlifecycleconf")
+public class GetObjectList16438 extends S3TestBase {
     private String bucketName = "bucket16438";
     private String keyName = "/dir/dir";
-    private List<String> expresultList = new ArrayList<String>( 10 );
+    private List< String > expresultList = new ArrayList< String >( 10 );
     private int objectTotalNum = 10;
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
@@ -56,7 +56,7 @@ import java.util.List;
         ListObjectsV2Request req = new ListObjectsV2Request()
                 .withBucketName( bucketName ).withMaxKeys( keyCount );
         ListObjectsV2Result result = s3Client.listObjectsV2( req );
-        List<S3ObjectSummary> objectSummaries = result.getObjectSummaries();
+        List< S3ObjectSummary > objectSummaries = result.getObjectSummaries();
         checkListObjectsV2Result( objectSummaries, keyCount );
         String NextContinuationToken = result.getNextContinuationToken();
 
@@ -84,7 +84,7 @@ import java.util.List;
     }
 
     private void checkListObjectsV2Result(
-            List<S3ObjectSummary> objectSummaries, int expCount ) {
+            List< S3ObjectSummary > objectSummaries, int expCount ) {
         Assert.assertEquals( objectSummaries.size(), expCount,
                 "The number of returned results is wrong" );
         Collections.sort( expresultList );
