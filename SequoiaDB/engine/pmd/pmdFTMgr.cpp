@@ -164,15 +164,17 @@ namespace engine
       return &_window[ nextPos ] ;      
    }
 
-   ftSampleWndItem* _ftSampleWindow::next( UINT32 curPos )
+   ftSampleWndItem* _ftSampleWindow::next( UINT32 curPos, UINT32 step )
    {
-      UINT32 nextPos = ( curPos + 1 ) % PMD_FT_SAMPLE_WINDOW_SZ ;
+      UINT32 nextPos = ( curPos + step ) % PMD_FT_SAMPLE_WINDOW_SZ ;
       return &_window[ nextPos ] ;
    }
 
-   ftSampleWndItem* _ftSampleWindow::prev( UINT32 curPos )
+   ftSampleWndItem* _ftSampleWindow::prev( UINT32 curPos, UINT32 step )
    {
-      UINT32 prevPos = curPos > 0 ? curPos - 1 : PMD_FT_SAMPLE_WINDOW_SZ - 1 ;
+      step = step % PMD_FT_SAMPLE_WINDOW_SZ ;
+      UINT32 prevPos = ( curPos + PMD_FT_SAMPLE_WINDOW_SZ - step ) %
+                       PMD_FT_SAMPLE_WINDOW_SZ ;
       return &_window[ prevPos ] ;
    }
 
@@ -397,16 +399,39 @@ namespace engine
       {
          if ( lsnDiff >= _slowNodeThreshold )
          {
-            if ( pPrevItem->_sys._lsnDiff > 0 &&
-                 lsnDiff >= pPrevItem->_sys._lsnDiff + _slowNodeIncrement )
+            if ( 0 == _slowNodeIncrement )
             {
                _sampleWnd.reportRisk( FT_RISK_SLOW_NODE ) ;
                PD_LOG( PDINFO, "Report risk( FT_RISK_SLOW_NODE ), Expr: "
-                       "LsnDiff(%llu) >= Threshold(%llu) && "
-                       "LsnDiff >= PreLsnDiff(%llu) + Increment(%llu)",
-                       lsnDiff, _slowNodeThreshold,
-                       pPrevItem->_sys._lsnDiff,
-                       _slowNodeIncrement ) ;
+                       "LsnDiff(%llu) >= Threshold(%llu) ",
+                       lsnDiff, _slowNodeThreshold ) ;
+            }
+            else if ( 0 != pPrevItem->_time )
+            {
+               if ( lsnDiff >= pPrevItem->_sys._lsnDiff + _slowNodeIncrement )
+               {
+                  _sampleWnd.reportRisk( FT_RISK_SLOW_NODE ) ;
+                  PD_LOG( PDINFO, "Report risk( FT_RISK_SLOW_NODE ), Expr: "
+                          "LsnDiff(%llu) >= Threshold(%llu) && "
+                          "LsnDiff >= PreLsnDiff(%llu) + Increment(%llu)",
+                          lsnDiff, _slowNodeThreshold,
+                          pPrevItem->_sys._lsnDiff,
+                          _slowNodeIncrement ) ;
+               }
+               else if ( pPrevItem->_sys._lsnDiff >= lsnDiff + _slowNodeIncrement )
+               {
+                  /// if down, do nothing
+               }
+               else if ( pPrevItem->_risk[ FT_RISK_SLOW_NODE ]._count > 0 )
+               {
+                  _sampleWnd.reportRisk( FT_RISK_SLOW_NODE ) ;
+                  PD_LOG( PDINFO, "Report risk( FT_RISK_SLOW_NODE ) "
+                          "by inherit, LsnDiff(%llu), Threshold(%llu), "
+                          "PreLsnDiff(%llu), Increment(%llu)"
+                          lsnDiff, _slowNodeThreshold,
+                          pPrevItem->_sys._lsnDiff,
+                          _slowNodeIncrement ) ;
+               }
             }
          }
       }
@@ -477,7 +502,13 @@ namespace engine
       confirmWndSize = ( _confirmPeriod + PMD_FT_SAMPLE_INTERVAL - 1 ) /
                        PMD_FT_SAMPLE_INTERVAL ;
 
-      if ( confirmWndSize > PMD_FT_SAMPLE_WINDOW_SZ )
+      /// nospc need atlest 2 sample wnd sz
+      if ( confirmWndSize < 2 &&
+           OSS_BIT_TEST( _ftMask, PMD_FT_MASK_SLOWNODE ) &&)
+      {
+         confirmWndSize = 2 ;
+      }
+      else if ( confirmWndSize > PMD_FT_SAMPLE_WINDOW_SZ )
       {
          confirmWndSize = PMD_FT_SAMPLE_WINDOW_SZ ;
       }

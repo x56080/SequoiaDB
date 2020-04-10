@@ -262,10 +262,13 @@ namespace engine
             INT32 rc = SDB_OK ;
             UINT32 timeout = 0 ;
             UINT32 onceTimeout = 0 ;
+            BOOLEAN replCheckRC = SDB_OK ;
 
             while ( TRUE )
             {
-               UINT32 tmpSyncWaitTimeout = _syncwaitTimeout ;
+               UINT32 tmpSyncWaitTimeout = SDB_OK == replCheckRC ?
+                                           _syncwaitTimeout :
+                                           _fusingTimeout ;
 
                if ( tmpSyncWaitTimeout <= timeout )
                {
@@ -284,7 +287,8 @@ namespace engine
                rc = sync( cb->getEndLsn(), cb, w, onceTimeout ) ;
                if ( SDB_TIMEOUT == rc || SDB_DATABASE_DOWN == rc )
                {
-                  if ( SDB_DATABASE_DOWN == rc )
+                  if ( SDB_DATABASE_DOWN == rc ||
+                       SDB_CLS_WAIT_SYNC_FAILED == replCheckRC )
                   {
                      rc = SDB_CLS_WAIT_SYNC_FAILED ;
                   }
@@ -295,9 +299,10 @@ namespace engine
                   }
 
                   INT16 tmpW = 0 ;
+                  replCheckRC = replSizeCheck( cb->getOrgReplSize(),
+                                               tmpW, cb, TRUE ) ;
                   /// check replsize again
-                  if ( SDB_OK == replSizeCheck( cb->getOrgReplSize(),
-                                                tmpW, cb, TRUE ) )
+                  if ( SDB_OK == replCheckRC )
                   {
                      w = tmpW ;
                   }

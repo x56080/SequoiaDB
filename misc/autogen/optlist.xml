@@ -1681,7 +1681,7 @@
       <long>ftslownodeincrement</long>
       <description>
          <en>The log difference increment for slow node detection. Default:8, value range:[0,10000], Unit:MB</en>
-         <cn>慢节点检测的日志增量值，默认：8，取值范围：[1,10000]，单位：MB</cn>
+         <cn>慢节点检测的日志增量值，默认：8，取值范围：[0,10000]，单位：MB</cn>
       </description>
       <reloadable>
          <en>Yes</en>
@@ -1689,7 +1689,7 @@
       </reloadable>
       <detail>
          <en>The log difference increment for slow node detection. Default:8, value range:[0,10000], Unit:MB</en>
-         <cn>慢节点检测的日志增量值，默认：8，取值范围：[1,10000]，单位：MB</cn>
+         <cn>慢节点检测的日志增量值，默认：8，取值范围：[0,10000]，单位：MB</cn>
       </detail>
       <type>int</type>
       <default>8</default>

@@ -177,8 +177,8 @@ namespace engine
       public:
          ftSampleWndItem*     first() ;
          ftSampleWndItem*     current() ;
-         ftSampleWndItem*     prev( UINT32 curPos ) ;
-         ftSampleWndItem*     next( UINT32 curPos ) ;
+         ftSampleWndItem*     prev( UINT32 curPos, UINT32 step = 1 ) ;
+         ftSampleWndItem*     next( UINT32 curPos, UINT32 step = 1 ) ;
 
          BOOLEAN              isEmpty() const ;
          BOOLEAN              isFull() const ;
