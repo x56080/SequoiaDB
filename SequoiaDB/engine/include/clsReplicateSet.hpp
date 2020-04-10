@@ -62,20 +62,37 @@ namespace engine
    class _clsMgr ;
    class _clsDataSrcBaseSession ;
    class _pmdEDUCB ;
+   class _pmdFTMgr ;
 
    #define CLS_SYNCCTRL_THRESHOLD_SIZE          (10)
-   #define CLS_SYNC_DFT_TIMEOUT                 ( 3600 * OSS_ONE_SEC )
+   #define CLS_SYNC_DFT_TIMEOUT                 ( 600 * OSS_ONE_SEC )
+
+   #define CLS_SYNCWAIT_FIX_TIME_SLICE          ( 10 * OSS_ONE_SEC )
 
    /*
       _clsReplicateSet define
    */
-   class _clsReplicateSet : public _pmdObjBase, public _dpsEventHandler
+   class _clsReplicateSet : public _pmdObjBase, public _dpsEventHandler,
+                            public _ICluster
    {
       DECLARE_OBJ_MSG_MAP()
 
       public:
          _clsReplicateSet( _netRouteAgent *agent ) ;
          virtual ~_clsReplicateSet() ;
+
+      public:
+         /*
+            When is SDB_DPS_INVALID_LSN_OFFSET means keep the same with
+            ExpectLSN(in dps)
+         */
+         virtual UINT64    completeLsn( UINT32 *pVer = NULL ) ;
+         virtual UINT32    lsnQueSize() ;
+         /*
+            When is SDB_DPS_INVALID_LSN_OFFSET means keep the same with
+            ExpectLSN(in dps)
+         */
+         virtual BOOLEAN   primaryLsn( UINT64 &lsn, UINT32 *pVer = NULL ) ;
 
       public:
          OSS_INLINE BOOLEAN primaryIsMe()
@@ -112,14 +129,49 @@ namespace engine
             return num ;
          }
 
-         OSS_INLINE void getBoth( UINT32 &nodeCnt,
-                                  UINT32 &aliveCnt )
+         OSS_INLINE void getDetailInfo( UINT32 &nodeCnt, UINT32 &aliveCnt,
+                                        UINT32 &falutCnt, UINT32 &ssCnt,
+                                        INT32 &indoubtErr,
+                                        UINT16 &indoubtNodeID )
          {
-            _info.mtx.lock_r() ;
+            map<UINT64, _clsSharingStatus *>::iterator it ;
+            _clsSharingStatus *pStatus = NULL ;
+
+            nodeCnt = 0 ;
+            aliveCnt = 0 ;
+            falutCnt = 0 ;
+            ssCnt = 0 ;
+            indoubtErr = SDB_OK ;
+
+            ossScopedRWLock lock( &_info.mtx, SHARED ) ;
+
             nodeCnt = _info.groupSize() ;
             aliveCnt = _info.aliveSize() ;
-            _info.mtx.release_r() ;
-            return ;
+
+            it = _info.alives.begin() ;
+            while( it != _info.alives.end() )
+            {
+               pStatus = it->second ;
+               ++it ;
+
+               if ( 0 != pStatus->beat.ftConfirmStat )
+               {
+                  ++falutCnt ;
+                  if ( SDB_OK == indoubtErr )
+                  {
+                     indoubtErr = pStatus->beat.indoubtErr ;
+                     indoubtNodeID = pStatus->beat.identity.columns.nodeID ;
+                  }
+               }
+               else if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat )
+               {
+                  --aliveCnt ;
+               }
+               else if ( CLS_NODE_RUNNING != pStatus->beat.nodeRunStat )
+               {
+                  ++ssCnt ;
+               }
+            }
          }
 
          // timeout: ms
@@ -207,7 +259,57 @@ namespace engine
 
          virtual INT32 onCompleteOpr( _pmdEDUCB *cb, INT32 w )
          {
-            return sync( cb->getEndLsn(), cb, w ) ;
+            INT32 rc = SDB_OK ;
+            UINT32 timeout = 0 ;
+            UINT32 onceTimeout = 0 ;
+
+            while ( TRUE )
+            {
+               UINT32 tmpSyncWaitTimeout = _syncwaitTimeout ;
+
+               if ( tmpSyncWaitTimeout <= timeout )
+               {
+                  onceTimeout = 1 ;
+               }
+               else if ( tmpSyncWaitTimeout < timeout +
+                                              CLS_SYNCWAIT_FIX_TIME_SLICE )
+               {
+                  onceTimeout = tmpSyncWaitTimeout - timeout ;
+               }
+               else
+               {
+                  onceTimeout = CLS_SYNCWAIT_FIX_TIME_SLICE ;
+               }
+
+               rc = sync( cb->getEndLsn(), cb, w, onceTimeout ) ;
+               if ( SDB_TIMEOUT == rc || SDB_DATABASE_DOWN == rc )
+               {
+                  if ( SDB_DATABASE_DOWN == rc )
+                  {
+                     rc = SDB_CLS_WAIT_SYNC_FAILED ;
+                  }
+                  timeout += onceTimeout ;
+                  if ( timeout >= _syncwaitTimeout )
+                  {
+                     break ;
+                  }
+
+                  INT16 tmpW = 0 ;
+                  /// check replsize again
+                  if ( SDB_OK == replSizeCheck( cb->getOrgReplSize(),
+                                                tmpW, cb, TRUE ) )
+                  {
+                     w = tmpW ;
+                  }
+                  continue ;
+               }
+
+               break ;
+            }
+
+            /// clean saved org repl size
+            cb->setOrgReplSize( 1 ) ;
+            return rc ;
          }
 
          virtual void  onSwitchLogFile( UINT32 preLogicalFileId,
@@ -249,6 +351,8 @@ namespace engine
 
          INT32 callCatalog( MsgHeader *header, UINT32 times = 1 ) ;
 
+         BOOLEAN getPrimaryInfo( _clsSharingStatus &primaryInfo ) ;
+
          void getGroupInfo( _MsgRouteID &primary,
                             vector<_netRouteNode > &group ) ;
 
@@ -273,6 +377,8 @@ namespace engine
                        pmdEDUCB *cb ) ;
 
          INT32 primaryCheck( pmdEDUCB *cb ) ;
+         INT32 replSizeCheck( INT16 w, INT16 &finalW, _pmdEDUCB *cb,
+                              BOOLEAN isAfterData = FALSE ) ;
 
          INT32 aliveNode( const MsgRouteID &id ) ;
 
@@ -307,6 +413,7 @@ namespace engine
          _clsGroupInfo           _info ;
          _clsVoteMachine         _vote ;
          _dpsLogWrapper          *_logger ;
+         _pmdFTMgr               *_pFTMgr ;
          _clsSyncManager         _sync ;
          _clsCatalogCaller       _cata ;
          _clsReelection          _reelection ;
@@ -336,6 +443,13 @@ namespace engine
 
          ossEvent                _faultEvent ;
          ossEvent                _syncEmptyEvent ;
+
+         UINT32                  _syncwaitTimeout ;
+         UINT32                  _shutdownWaitTimeout ;
+         UINT32                  _fusingTimeout ;
+
+         BOOLEAN                 _isAllNodeFatal ;
+         ossEvent                _heartbeatEvent ;
    } ;
 
    typedef class _clsReplicateSet clsReplicateSet ;

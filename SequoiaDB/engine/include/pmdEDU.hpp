@@ -416,6 +416,8 @@ namespace engine
       void     dumpInfo ( monEDUFull &full ) ;
 
       void     dumpTransInfo( monTransInfo &transInfo ) ;
+      void     setOrgReplSize( INT16 replSize ) { _orgReplSize = replSize ; }
+      INT16    getOrgReplSize() const { return _orgReplSize ; }
 
    #endif // SDB_ENGINE
 
@@ -486,6 +488,8 @@ namespace engine
       DpsTransNodeMap         *_pTransNodeMap ;
       INT32                   _transRC ;
       dpsTransLockId          _waitLock ;
+
+      INT16                   _orgReplSize ;
    #endif // SDB_ENGINE
 
       /*

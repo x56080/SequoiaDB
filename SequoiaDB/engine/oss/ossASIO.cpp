@@ -70,7 +70,7 @@ void _ossAsioMsgProcessor::_process()
    {
       async_write ( _socket,
                     buffer ( _reply,
-                             ((MsgReplHeader*)_reply)->messageLength ),
+                             ((_MsgHeader*)_reply)->messageLength ),
                     boost::bind ( &_ossAsioMsgProcessor::_handleWritePacket,
                                   shared_from_this(),
                                   boost::asio::placeholders::error )

@@ -186,6 +186,7 @@ namespace engine
       _transRC          = SDB_OK ;
 
       _curRequestID     = 1 ;
+      _orgReplSize      = 1 ;
 
       _monCfgCB = *( (monConfigCB*)(pmdGetKRCB()->getMonCB()) ) ;
 #endif // SDB_ENGINE

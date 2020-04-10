@@ -85,6 +85,11 @@ namespace engine
    #define PMD_DFT_MAX_SYNC_JOB        (10)
    #define PMD_DFT_SYNC_INTERVAL       (10000)  // 10 seconds
    #define PMD_DFT_SYNC_RECORDNUM      (0)
+   #define PMD_DFT_SYNCWAIT_TIMEOUT    (600)
+   #define PMD_DFT_SHUTDOWN_WAIT_TIMEOUT  (1200)
+   #define PMD_DFT_FTFUSING_TIMEOUT    (10)
+   #define PMD_DFT_FTSLOWNODE_THRESHOLD   ( 256 )
+   #define PMD_DFT_FTSLOWNODE_INCREMENT   ( 8 )
    #define PMD_DFT_ARCHIVE_TIMEOUT     (600) // 10 minutes
    #define PMD_DFT_ARCHIVE_EXPIRED     (240) // 10 days
    #define PMD_DFT_ARCHIVE_QUOTA       (10)  // 10 GB
@@ -1471,6 +1476,7 @@ namespace engine
       ossMemset( _krcbLobPath, 0, OSS_MAX_PATHSIZE + 1 ) ;
       ossMemset( _krcbLobMetaPath, 0, OSS_MAX_PATHSIZE + 1 ) ;
       ossMemset( _auditMaskStr, 0, sizeof( _auditMaskStr ) ) ;
+      ossMemset( _ftMaskStr, 0, sizeof( _ftMaskStr ) ) ;
 
       _krcbMaxPool         = 0 ;
       _krcbDiagLvl         = (UINT16)PDWARNING ;
@@ -1499,6 +1505,15 @@ namespace engine
       _dialogFileNum       = 0 ;
       _auditFileNum        = 0 ;
       _auditMask           = 0 ;
+      _ftMask              = PMD_FT_MASK_DFT ;
+      _ftConfirmPeriod     = PMD_FT_CACL_INTERVAL_DFT ;
+      _ftConfirmRatio      = PMD_FT_CACL_RATIO_DFT ;
+      _ftLevel             = FT_LEVEL_SEMI ;
+      _ftFusingTimeout     = PMD_DFT_FTFUSING_TIMEOUT ;
+      _ftSlowNodeThreshold = PMD_DFT_FTSLOWNODE_THRESHOLD ;
+      _ftSlowNodeIncrement = PMD_DFT_FTSLOWNODE_INCREMENT ;
+      _syncwaitTimeout     = PMD_DFT_SYNCWAIT_TIMEOUT ;
+      _shutdownWaitTimeout = PMD_DFT_SHUTDOWN_WAIT_TIMEOUT ;
       _directIOInLob       = FALSE ;
       _sparseFile          = FALSE ;
       _weight              = 0 ;
@@ -1600,6 +1615,45 @@ namespace engine
       // --auditmask
       rdxString( pEX, PMD_OPTION_AUDIT_MASK, _auditMaskStr, sizeof(_auditMaskStr),
                  FALSE, FALSE, AUDIT_MASK_DFT_STR ) ;
+      // --ftmask
+      rdxString( pEX, PMD_OPTION_FT_MASK, _ftMaskStr, sizeof(_ftMaskStr),
+                 FALSE, TRUE, PMD_FT_MASK_DFT_STR ) ;
+      // --ftconfirmperiod
+      rdxUInt( pEX, PMD_OPTION_FT_CONFIRM_PERIOD, _ftConfirmPeriod,
+               FALSE, TRUE, PMD_FT_CACL_INTERVAL_DFT ) ;
+      rdvMinMax( pEX, _ftConfirmPeriod, PMD_FT_CACL_INTERVAL_MIN,
+                 PMD_FT_CACL_INTERVAL_MAX ) ;
+      // --ftconfirmratio
+      rdxUInt( pEX, PMD_OPTION_FT_CONFIRM_RATIO, _ftConfirmRatio,
+               FALSE, TRUE, PMD_FT_CACL_RATIO_DFT ) ;
+      rdvMinMax( pEX, _ftConfirmRatio, PMD_FT_CACL_RATIO_MIN,
+                 PMD_FT_CACL_RATIO_MAX ) ;
+      // --ftlevel
+      rdxInt( pEX, PMD_OPTION_FT_LEVEL, _ftLevel,
+              FALSE, TRUE, FT_LEVEL_SEMI ) ;
+      rdvMinMax( pEX, _ftLevel, FT_LEVEL_FUSING, FT_LEVEL_WHOLE ) ;
+      // --ftfusingtimeout
+      rdxUInt( pEX, PMD_OPTION_FT_FUSING_TIMEOUT, _ftFusingTimeout,
+               FALSE, TRUE, PMD_DFT_FTFUSING_TIMEOUT ) ;
+      rdvMinMax( pEX, _ftFusingTimeout, 0, 3600 ) ;
+      // --ftslownodethreshold
+      rdxUInt( pEX, PMD_OPTION_FT_SLOWNODE_THRESHOLD, _ftSlowNodeThreshold,
+               FALSE, TRUE, PMD_DFT_FTSLOWNODE_THRESHOLD,
+               TRUE ) ;
+      rdvMinMax( pEX, _ftSlowNodeThreshold, 1, 10000 ) ;
+      // --ftslownodeincrement
+      rdxUInt( pEX, PMD_OPTION_FT_SLOWNODE_INCREMENT, _ftSlowNodeIncrement,
+               FALSE, TRUE, PMD_DFT_FTSLOWNODE_INCREMENT,
+               TRUE ) ;
+      rdvMinMax( pEX, _ftSlowNodeIncrement, 0, 10000 ) ;
+      // --syncwaittimeout
+      rdxUInt( pEX, PMD_OPTION_SYNCWAIT_TIMEOUT, _syncwaitTimeout,
+               FALSE, TRUE, PMD_DFT_SYNCWAIT_TIMEOUT ) ;
+      rdvMinMax( pEX, _syncwaitTimeout, 1, 3600 ) ;
+      // --shutdownwaittimeout
+      rdxUInt( pEX, PMD_OPTION_SHUTDOWN_WAITTIMEOUT, _shutdownWaitTimeout,
+               FALSE, TRUE, PMD_DFT_SHUTDOWN_WAIT_TIMEOUT ) ;
+      rdvMinMax( pEX, _shutdownWaitTimeout, 0, 864000 ) ;
       // --svcname
       rdxString( pEX, PMD_OPTION_SVCNAME, _krcbSvcName, sizeof(_krcbSvcName),
                  FALSE, FALSE,
@@ -1913,6 +1967,14 @@ namespace engine
          std::cerr << PMD_OPTION_AUDIT_MASK << " value error, use default"
                    << endl ;
          _auditMask = AUDIT_MASK_DEFAULT ;
+      }
+
+      // ft mask check
+      if ( SDB_OK != utilStrToFTMask( _ftMaskStr, _ftMask ) )
+      {
+         std::cerr << PMD_OPTION_FT_MASK << "value error, use default"
+                   << endl ;
+         _ftMask = PMD_FT_MASK_DFT ;
       }
 
       if ( 0 == ossStrlen( _replServiceName ) )

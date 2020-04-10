@@ -530,7 +530,8 @@ sdbcmMain = [
       "pmd/pmdAsyncNetEntryPoint.cpp",
       "pmd/pmdOMAgentEDUEntryPoint.cpp",
       "pmd/pmdCMMain.cpp",
-      "pmd/pmdWindowsListener.cpp"
+      "pmd/pmdWindowsListener.cpp",
+      "pmd/pmdFTMgr.cpp"
       ]
 
 sdbcmDMNMain = [

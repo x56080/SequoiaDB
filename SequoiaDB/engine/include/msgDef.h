@@ -71,6 +71,7 @@
 #define FIELD_NAME_W                         "ReplSize"
 #define FIELD_NAME_PRIMARY                   "PrimaryNode"
 #define FIELD_NAME_GROUP_STATUS              "Status"
+#define FIELD_NAME_FT_STATUS                 "FTStatus"
 #define FIELD_NAME_PAGE_SIZE                 "PageSize"
 #define FIELD_NAME_LOB_PAGE_SIZE             "LobPageSize"
 #define FIELD_NAME_MAX_CAPACITY_SIZE         "MaxCapacitySize"

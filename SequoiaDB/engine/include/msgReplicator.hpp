@@ -44,16 +44,6 @@
 #include "msg.hpp"
 #pragma pack(4)
 
-class _MsgReplHeader : public SDBObject
-{
-public :
-   SINT32 messageLength ; // total message size, including this
-   SINT32 requestID ;     // identifier for this message
-   SINT32 responseTo ;    // requestID from the original request
-   SINT32 opCode ;        // request type
-} ;
-typedef class _MsgReplHeader MsgReplHeader ;
-
 namespace engine
 {
 

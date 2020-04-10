@@ -181,7 +181,8 @@ namespace engine
    INT32    utilStopNode ( utilNodeInfo &node,
                            INT32 timeout = UTIL_STOP_NODE_TIMEOUT,
                            BOOLEAN force = FALSE,
-                           BOOLEAN skipKill = FALSE ) ;
+                           BOOLEAN skipKill = FALSE,
+                           BOOLEAN askDoing = FALSE ) ;
 
    INT32    utilAsyncStopNode( utilNodeInfo &node ) ;
 

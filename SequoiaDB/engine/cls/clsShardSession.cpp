@@ -584,6 +584,11 @@ namespace engine
 
       rc = _reply ( &_replyHeader, buffObj.data(), buffObj.size() ) ;
 
+      if ( _replyHeader.flags != SDB_OK && eduCB()->isWritingDB() )
+      {
+         ftReportErr( _replyHeader.flags ) ;
+      }
+
    done:
       eduCB()->writingDB( FALSE ) ;
       MON_END_OP( _pEDUCB->getMonAppCB() ) ;
@@ -3928,6 +3933,10 @@ namespace engine
       {
          rc = SDB_RTN_IN_REBUILD ;
       }
+      else if ( SDB_DB_SHUTDOWN == PMD_DB_STATUS() )
+      {
+         rc = SDB_DATABASE_DOWN ;
+      }
       else if ( !pmdGetStartup().isOK() )
       {
          rc = SDB_RTN_IN_REBUILD ;
@@ -4036,10 +4045,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CALCW ) ;
-      UINT32 N = 0 ; /// node count
-      UINT32 A = 0 ; /// alive count
       INT16 w = 0 ;
-      _pReplSet->getBoth( N, A ) ;
 
       if ( NULL != replSize )
       {
@@ -4055,49 +4061,12 @@ namespace engine
          w = *clientW ;
       }
 
-      if ( 1 <= w &&
-           w <= CLS_REPLSET_MAX_NODE_SIZE )
+      rc = _pReplSet->replSizeCheck( w, final, _pEDUCB ) ;
+      if ( rc )
       {
-         w = w <= ( INT16 )N ? w: ( INT16 )N ;
-      }
-      else if ( -1 == w )
-      {
-         w = A ;
-      }
-      else if ( 0 == w )
-      {
-         w = N ;
-      }
-      else
-      {
-         stringstream ss ;
-         ss << "node size[" << N << "],"
-            << "alive size[" << A << "]," ;
-         if ( NULL != replSize )
-         {
-            ss << "repl size[" << *replSize << "]," ;
-         }
-         if ( NULL != clientW )
-         {
-            ss << "client w[" << *clientW << "]" ;
-         }
-         PD_LOG( PDERROR, "can not calculate w:%s",
-                 ss.str().c_str() ) ;
-         rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      SDB_ASSERT( 1 <= w && w <= CLS_REPLSET_MAX_NODE_SIZE, "must be valid" ) ;
-      w = w <= 0 ? 1 : w ;
-      if ( ( INT16 )A < w )
-      {
-         PD_LOG( PDERROR, "alive num[%d] can not meet need[%d]",
-                 A, w ) ;
-         rc = SDB_CLS_NODE_NOT_ENOUGH ;
-         goto error ;
-      }
-
-      final = w ;
    done:
       PD_TRACE_EXITRC( SDB__CLSSHDSESS__CALCW, rc ) ;
       return rc ;

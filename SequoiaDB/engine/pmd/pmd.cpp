@@ -129,6 +129,16 @@ namespace engine
       return _arrayCBs[ type ] ? TRUE : FALSE ;
    }
 
+   ICluster* _SDB_KRCB::getCluster()
+   {
+      IControlBlock *pClsCB = getCBByType( SDB_CB_CLS ) ;
+      if ( pClsCB )
+      {
+         return (ICluster*)( pClsCB->queryInterface( SDB_IF_CLS ) ) ;
+      }
+      return NULL ;
+   }
+
    SDB_DB_STATUS _SDB_KRCB::getDBStatus() const
    {
       return _dbStatus ;
@@ -294,6 +304,24 @@ namespace engine
       INT32 index = 0 ;
       IControlBlock *pCB = NULL ;
 
+      _pFTMgr = SDB_OSS_NEW pmdFTMgr() ;
+      if ( !_pFTMgr )
+      {
+         PD_LOG( PDERROR, "Alloc FT manager failed" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      rc = _pFTMgr->init( _optioncb.ftMask(), _optioncb.ftConfirmPeriod(),
+                          _optioncb.ftConfirmRatio(),
+                          _optioncb.ftLevel() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Init FT manager failed, rc: %d", rc ) ;
+         goto error ;
+      }
+      _pFTMgr->setSlowNodeInfo( _optioncb.ftSlowNodeThreshold(),
+                                _optioncb.ftSlowNodeIncrement() ) ;
+
       _mainEDU = SDB_OSS_NEW pmdEDUCB( &_eduMgr, EDU_TYPE_MAIN ) ;
       if ( !_mainEDU )
       {
@@ -417,6 +445,11 @@ namespace engine
       /// sync complete lsn
       _syncMgr.syncAndGetLastLSN() ;
 
+      if ( _pFTMgr )
+      {
+         _pFTMgr->fini() ;
+      }
+
       // Fini all registered cbs ( final resource cleanup )
       for ( index = SDB_CB_MAX ; index > 0 ; --index )
       {
@@ -442,6 +475,12 @@ namespace engine
       {
          SDB_OSS_DEL _mainEDU ;
          _mainEDU = NULL ;
+      }
+
+      if ( _pFTMgr )
+      {
+         SDB_OSS_DEL _pFTMgr ;
+         _pFTMgr = NULL ;
       }
    }
 

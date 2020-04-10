@@ -691,13 +691,13 @@ namespace engine
 
    INT32 _clsMgr::deactive ()
    {
-      // 1. stop listen
-      _replNetRtAgent.closeListen() ;
-      _shardNetRtAgent.closeListen() ;
-
-      // 2. members to deactive
+      // 1. members to deactive
       _replObj.deactive() ;
       _shdObj.deactive() ;
+
+      // 2. stop listen
+      _replNetRtAgent.closeListen() ;
+      _shardNetRtAgent.closeListen() ;
 
       // 3. stop io
       _replNetRtAgent.stop() ;
@@ -728,6 +728,15 @@ namespace engine
    {
       _shdObj.onConfigChange() ;
       _replObj.onConfigChange() ;
+   }
+
+   void* _clsMgr::queryInterface( SDB_INTERFACE_TYPE type )
+   {
+      if ( SDB_IF_CLS == type )
+      {
+         return dynamic_cast<ICluster*>( &_replObj ) ;
+      }
+      return IControlBlock::queryInterface( type ) ;
    }
 
    void _clsMgr::attachCB ( pmdEDUCB *pMainCB )

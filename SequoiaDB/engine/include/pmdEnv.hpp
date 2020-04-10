@@ -39,6 +39,8 @@
 
 #include "utilCommon.hpp"
 #include "ossAtomic.hpp"
+#include "ossLatch.hpp"
+#include "ossUtil.hpp"
 
 using namespace bson ;
 
@@ -58,6 +60,7 @@ namespace engine
    PMD_ON_EDU_EXIT_FUNC pmdSetEDUHook( PMD_ON_EDU_EXIT_FUNC hookFunc ) ;
    PMD_ON_EDU_EXIT_FUNC pmdGetEDUHook() ;
 
+   #define  PMD_DOING_STR_LEN          ( 256 )
    /*
       pmd system info define
    */
@@ -82,6 +85,10 @@ namespace engine
       /// global id
       ossAtomic64                   _globalID ;
 
+      /// doing
+      CHAR                          _doing[ PMD_DOING_STR_LEN + 1 ] ;
+      _ossSpinXLatch                _latch ;
+
       _pmdSysInfo()
       :_isPrimary( 0 ), _globalID( 1 )
       {
@@ -94,6 +101,8 @@ namespace engine
          _localPort     = 0 ;
          _tick          = 0 ;
          _validationTick = 0 ;
+
+         ossMemset( _doing, 0, sizeof( _doing ) ) ;
       }
    } pmdSysInfo ;
 
@@ -134,6 +143,10 @@ namespace engine
    UINT64         pmdAcquireGlobalID() ;
 
    pmdSysInfo*    pmdGetSysInfo () ;
+
+   void           pmdSetDoing( const CHAR *str ) ;
+   void           pmdCleanDoing() ;
+   void           pmdGetDoing( CHAR *buff, UINT32 size ) ;
 
    /*
       pmd trap functions
