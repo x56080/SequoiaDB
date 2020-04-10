@@ -308,6 +308,16 @@ namespace engine
 
          virtual void      _onSucceed( pmdEDUCB *cb ) {}
 
+      private:
+         INT32             _rewriteCommitLSN( _SDB_DMSCB *dmsCB,
+                                              set< monCSSimple > &csList,
+                                              DPS_LSN_OFFSET dpsMaxLSN ) ;
+
+         INT32             _rewriteCLCommitLSN( _SDB_DMSCB *dmsCB,
+                                                dmsStorageUnit *su,
+                                                MAP_SU_STATUS &validCLs,
+                                                DPS_LSN_OFFSET dpsMaxLSN ) ;
+
    } ;
 
    /*
