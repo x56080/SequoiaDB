@@ -973,7 +973,8 @@ namespace engine
             PD_LOG( PDERROR, "Enum %s failed, rc: %d", localPath.c_str(),
                     rc ) ;
             goto error ;
-        }
+        
+}
       }
 
       for ( UINT32 i = 0 ; i < allsvcnames.size() ; ++i )
@@ -1136,7 +1137,7 @@ namespace engine
 
          /// every minute to ask doing
          if ( askDoing && slapedTime > 0 &&
-              slapedTime % ( 60 * OSS_ONE_SEC ) == 0 )
+              slapedTime %  60 == 0 )
          {
             CHAR doing[ PMD_DOING_STR_LEN + 1 ] = { 0 } ;
             _utilWriteReadPipe( node._svcname.c_str(), node._pid,
