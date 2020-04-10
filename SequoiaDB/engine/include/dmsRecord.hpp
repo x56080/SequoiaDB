@@ -803,7 +803,7 @@ namespace engine
       }
       BOOLEAN isDeleted() const
       {
-         return DMS_RECORD_FLAG_DELETED == getState() ;
+         return DMS_RECORD_FLAG_DELETED == getFlag() ;
       }
       UINT32 getSize() const
       {
@@ -833,30 +833,9 @@ namespace engine
       {
          _next = rid ;
       }
-      BYTE getAttr() const
-      {
-         return (BYTE)(getFlag() & 0xF0) ;
-      }
-      BYTE getState() const
-      {
-         return (BYTE)(getFlag() & 0x0F) ;
-      }
-      void  setState( BYTE state )
-      {
-         _head._recordHead[ 0 ] = (CHAR)((state&0x0F)|getAttr()) ;
-      }
       void setDeleted()
       {
-         setState( DMS_RECORD_FLAG_DELETED ) ;
-      }
-      void setHasGlobTransID()
-      {
-         _head._recordHead[ 0 ] |= DMS_RECORD_FLAG_HASGLOBTRANSID ;
-      }
-      void resetGlobTransID()
-      {
-         setHasGlobTransID() ;
-         _globTransID.reset() ;
+         _head._recordHead[ 0 ] = DMS_RECORD_FLAG_DELETED ;
       }
 /*
       void resetLSNOffset ( )
