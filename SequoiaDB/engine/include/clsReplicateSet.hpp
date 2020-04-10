@@ -293,7 +293,7 @@ namespace engine
                      rc = SDB_CLS_WAIT_SYNC_FAILED ;
                   }
                   timeout += onceTimeout ;
-                  if ( timeout >= _syncwaitTimeout )
+                  if ( timeout >= tmpSyncWaitTimeout )
                   {
                      break ;
                   }

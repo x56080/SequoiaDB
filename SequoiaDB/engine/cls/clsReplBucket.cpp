@@ -886,6 +886,7 @@ namespace engine
          {
             SDB_ASSERT( SDB_OOM == rc || SDB_NOSPC == rc,
                         "Unexpect error occured" ) ;
+            ftReportErr( rc ) ;
             if ( CLS_BUCKET_WAIT_ROLLBACK != _status )
             {
                _status = CLS_BUCKET_WAIT_ROLLBACK ;
