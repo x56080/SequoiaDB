@@ -504,7 +504,7 @@ namespace engine
 
       /// nospc need atlest 2 sample wnd sz
       if ( confirmWndSize < 2 &&
-           OSS_BIT_TEST( _ftMask, PMD_FT_MASK_SLOWNODE ) &&)
+           OSS_BIT_TEST( _ftMask, PMD_FT_MASK_SLOWNODE ) )
       {
          confirmWndSize = 2 ;
       }
