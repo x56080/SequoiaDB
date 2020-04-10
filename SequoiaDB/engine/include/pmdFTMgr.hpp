@@ -242,6 +242,9 @@ namespace engine
          ftSampleWndItem*  _sample( UINT64 dbTick ) ;
          UINT32            _confirm( ftSampleWndItem *current ) ;
 
+         UINT64            _sumPrevnLsnDiff( ftSampleWndItem *pItem,
+                                             UINT32 count ) ;
+
       private:
          ftSampleWindow _sampleWnd ;
          UINT64         _lastSampleTick ;
