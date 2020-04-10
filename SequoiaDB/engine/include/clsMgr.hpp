@@ -277,6 +277,9 @@ namespace engine
          INT32 _onStepUp( pmdEDUEvent *event ) ;
 
       private:
+         INT32 _getMaxDMSLSN( SDB_DMSCB *dmsCB, DPS_LSN_OFFSET &maxLsn ) ;
+
+      private:
          _shdMsgHandler                _shdMsgHandlerObj ;
          _replMsgHandler               _replMsgHandlerObj ;
          _clsShardTimerHandler         _shdTimerHandler ;

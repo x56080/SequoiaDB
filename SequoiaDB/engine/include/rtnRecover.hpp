@@ -272,12 +272,16 @@ namespace engine
 
          void        setAllInvalid() ;
 
+         DPS_LSN_OFFSET getMaxValidLsn() { return _maxValidLsn ; }
+
       protected:
 
       private:
          MAP_SU_STATUS              _clStatus ;
 
          dmsStorageUnit             *_pSU ;
+
+         DPS_LSN_OFFSET             _maxValidLsn ;
 
    } ;
    typedef _rtnRecoverUnit rtnRecoverUnit ;

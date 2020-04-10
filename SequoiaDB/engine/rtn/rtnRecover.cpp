@@ -1340,6 +1340,7 @@ namespace engine
    _rtnRecoverUnit::_rtnRecoverUnit()
    {
       _pSU = NULL ;
+      _maxValidLsn = DPS_INVALID_LSN_OFFSET ;
    }
 
    _rtnRecoverUnit::~_rtnRecoverUnit()
@@ -1388,6 +1389,15 @@ namespace engine
             clFullName += mb->_collectionName ;
             /// add to map
             _clStatus[ clFullName ] = info ;
+
+            if ( info.isAllValid() )
+            {
+               if ( DPS_INVALID_LSN_OFFSET == _maxValidLsn
+                    || _maxValidLsn < info.maxLSN() )
+               {
+                  _maxValidLsn = info.maxLSN() ;
+               }
+            }
 
             PD_LOG( PDINFO, "Collection[%s] commit status[DataFlag:%u, "
                     "DataLSN:%llu, IdxFlag:%u, IdxLSN:%llu, LobFlag:%u, "
