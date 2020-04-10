@@ -134,9 +134,21 @@ namespace engine
             return (RTN_PREFER_INSTANCE_MODE)_mode ;
          }
 
-         OSS_INLINE void setPreferedPeriod( INT32 period )
+         OSS_INLINE void setPreferedPeriod( INT64 period )
          {
-            _period = period ;
+            // check range
+            if ( period < 0 )
+            {
+               _period = -1 ;
+            }
+            else if ( period > OSS_SINT32_MAX_LL )
+            {
+               _period = OSS_SINT32_MAX ;
+            }
+            else
+            {
+               _period = (UINT32)period ;
+            }
          }
 
          OSS_INLINE INT32 getPreferedPeriod() const

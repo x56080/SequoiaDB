@@ -1674,6 +1674,7 @@ namespace engine
       // --preferedperiod
       rdxInt( pEX, PMD_OPTION_PREFINST_PERIOD, _preferedPeriod, FALSE,
               TRUE, PMD_DFT_PREFINST_PERIOD, FALSE ) ;
+      rdvMinMax( pEX, _preferedPeriod, -1, OSS_SINT32_MAX, TRUE ) ;
       // --instanceid
       rdxUInt( pEX, PMD_OPTION_INSTANCE_ID, _instanceID, FALSE, FALSE,
                PMD_DFT_INSTANCE_ID, FALSE ) ;
