@@ -815,7 +815,7 @@ namespace engine
             /// PreferedPeriod
             PD_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
                       "Field [%s] is not number", FIELD_NAME_PREFERED_PERIOD ) ;
-            instanceOption.setPreferedPeriod( field.numberInt() ) ;
+            instanceOption.setPreferedPeriod( field.numberLong() ) ;
             gotInstance = TRUE ;
          }
          else if ( 0 == ossStrcasecmp( field.fieldName(), FIELD_NAME_TIMEOUT ) )

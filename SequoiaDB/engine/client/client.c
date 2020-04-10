@@ -9283,17 +9283,20 @@ SDB_EXPORT INT32 sdbSetSessionAttr ( sdbConnectionHandle cHandle,
             {
                INT32 value = PREFER_REPL_TYPE_MAX ;
                const CHAR * str_value = bson_iterator_string( &it ) ;
-               if ( !ossStrcasecmp( "M", str_value ) )
+               if ( 0 == ossStrcasecmp( "M", str_value ) ||
+                    0 == ossStrcasecmp( "-M", str_value ) )
                {
                   // master
                   value = PREFER_REPL_MASTER ;
                }
-               else if ( !ossStrcasecmp( "S", str_value ) )
+               else if ( 0 == ossStrcasecmp( "S", str_value ) ||
+                         0 == ossStrcasecmp( "-S", str_value ) )
                {
                   // slave
                   value = PREFER_REPL_SLAVE ;
                }
-               else if ( !ossStrcasecmp( "A", str_value ) )
+               else if ( 0 == ossStrcasecmp( "A", str_value ) ||
+                         0 == ossStrcasecmp( "-A", str_value ) )
                {
                   // anyone
                   value = PREFER_REPL_ANYONE ;

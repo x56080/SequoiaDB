@@ -2101,6 +2101,7 @@ done:
       // --preferedperiod
       rdxInt( pEX, PMD_OPTION_PREFINST_PERIOD, _preferedPeriod, FALSE,
               PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST_PERIOD, FALSE ) ;
+      rdvMinMax( pEX, _preferedPeriod, -1, OSS_SINT32_MAX, TRUE ) ;
       // --instanceid
       rdxUInt( pEX, PMD_OPTION_INSTANCE_ID, _instanceID, FALSE, PMD_CFG_CHANGE_REBOOT,
                PMD_DFT_INSTANCE_ID, FALSE ) ;

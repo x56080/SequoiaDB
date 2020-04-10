@@ -15,7 +15,7 @@
 | 属性名 | 描述      | 格式      |
 | ------ | --------- | --------- |
 | PreferedInstance | 会话读操作优先选择的实例，取值列表："M"、"m"、"S"、"s"、"A"、"a"、1-255。可以使用数组指定多个取值。<br>"M", "m"：可读写实例（主实例）<br>"S", "s"：只读实例（备实例）<br>"A", "a"：任意实例<br>1-255：通过 --instanceid 指定实例 ID 的实例。 | ```PreferedInstance : "M"```<br>```PreferedInstance : [ 1, 10 ]``` |
-| PreferedInstanceMode | 指定会话当多个实例符合 PreferedInstance 的条件时的选择模式。<br>"random"：从候选的实例中随机选择。<br>"ordered"：从候选的实例中按照 PerferedInstance 的顺序进行选择。 | ```PreferedInstaceMode : "random"``` |
+| PreferedInstanceMode | 指定会话当多个实例符合 PreferedInstance 的条件时的选择模式。<br>"random"：从候选的实例取值中随机选择。<br>"ordered"：从候选的实例取值中按照 PerferedInstance 的顺序进行选择。<br>PreferedInstance 中的角色取值，根据规则选择时优于或者次于实例取值，与 PreferedInstanceMode 取值无关。 | ```PreferedInstaceMode : "random"``` |
 | PreferedStrict   |  指定节点选择是否为严格模式，当为严格模式时，节点只能从 preferedinstance 指定的ID中选取 |  ```PreferedStrict : true ``` |
 | PreferedPeriod   | 优先实例的有效周期，单位为秒。 | ```PerferedPeriod : 60``` |
 | Timeout | 指定会话执行操作的超时时间（单位：毫秒）。<br>-1 表示不进行超时检测。<br>最小值为 1000 毫秒。 | ```Timeout : 10000``` |
@@ -42,11 +42,12 @@
 >       *   混合指定时，如果指定多个角色取值实例，或者其扩展取值，则只有第一个生效。如 ```[ "M", "S" ]``` 中只生效 "M"。
 >       *   单独指定时，角色取值的扩展模式和角色取值的语义是相同的。如单独指定 "S" 和 "-S"，语义是一致的。
 >       *   如果同一个会话中，读请求前有写请求，写请求之后的一段时间内读请求将默认使用写请求使用的节点（可读写例）进行读取，可以通过设置 PreferedPeriod 来修改读请求复用写请求节点的有效期限。
->       *   如果没有符合 PreferedInstance 的实例，之前也没有写请求，一般在数据组中随机选取节点进行。特殊情况是，为了兼容之前的版本，如果单独指定一个实例取值时，将按照实例ID - 1后对节点总数取模后在组内按照nodeid的排序顺序选取。
+>       *   如果没有符合 PreferedInstance 的实例，之前也没有写请求，一般在数据组中随机选取节点进行。特殊情况是，为了兼容之前的版本，如果单独指定一个实例取值时，将按照实例ID - 1后对节点总数取模后在组内按照nodeid的升序排序顺序选取。
 >   * PreferedPeriod 的缺省值是协调节点配置中 --preferedperiod 的取值。
 >       *   如果上一次选择进行请求的节点在有效周期内，读请求仍使用该节点进行查询，周期之后，将根据 PreferedInstance 重新选择。
 >       *   默认值为60。
->       *   -1表示不失效
+>       *   取值范围为 [-1, 2^31]。
+>       *   -1表示不失效。
 >       *   0表示本次查询不使用上次选择的优先实例，根据 PreferedInstance 进行重新选择。
 >   *   Timeout 的默认值是 -1，即不进行超时检测。
 >   *   事务相关属性只有 TransTimeout 允许在事务中设置，其它事务属性需要在非事务中设置。
