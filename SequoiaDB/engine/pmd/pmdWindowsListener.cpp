@@ -207,6 +207,13 @@ namespace engine
                rc = nodePipe.writePipe( (const CHAR*)&startTime,
                                         sizeof( UINT64 ) ) ;
             }
+            else if ( 0 == ossStrncmp( tempBuffer, ENGINE_NPIPE_MSG_DOING,
+                                       sizeof( ENGINE_NPIPE_MSG_DOING ) ) )
+            {
+               CHAR doing[ PMD_DOING_STR_LEN + 1 ] = { 0 } ;
+               pmdGetDoing( doing, PMD_DOING_STR_LEN ) ;
+               rc = nodePipe.writePipe( doing, ossStrlen( doing ) + 1 ) ;
+            }
 
             if ( rc )
             {

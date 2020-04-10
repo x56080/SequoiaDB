@@ -272,12 +272,16 @@ namespace engine
 
          void        setAllInvalid() ;
 
+         DPS_LSN_OFFSET getMaxValidLsn() { return _maxValidLsn ; }
+
       protected:
 
       private:
          MAP_SU_STATUS              _clStatus ;
 
          dmsStorageUnit             *_pSU ;
+
+         DPS_LSN_OFFSET             _maxValidLsn ;
 
    } ;
    typedef _rtnRecoverUnit rtnRecoverUnit ;
@@ -307,6 +311,16 @@ namespace engine
                                    dmsStorageUnitID &suID ) = 0 ;
 
          virtual void      _onSucceed( pmdEDUCB *cb ) {}
+
+      private:
+         INT32             _rewriteCommitLSN( _SDB_DMSCB *dmsCB,
+                                              set< monCSSimple > &csList,
+                                              DPS_LSN_OFFSET dpsMaxLSN ) ;
+
+         INT32             _rewriteCLCommitLSN( _SDB_DMSCB *dmsCB,
+                                                dmsStorageUnit *su,
+                                                MAP_SU_STATUS &validCLs,
+                                                DPS_LSN_OFFSET dpsMaxLSN ) ;
 
    } ;
 

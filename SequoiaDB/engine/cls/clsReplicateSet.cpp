@@ -81,12 +81,18 @@ namespace engine
    #define CLS_CONNREFUSED    ECONNREFUSED
 #endif //_WINDOWS
 
-   #define CLS_SYNCCTRL_BASE_TIME         (10)
+   #define CLS_SYNCCTRL_BASE_TIME               (10)
+   #define CLS_STOP_WAIT_HEARTBEAT_TIMEOUT      (20*OSS_ONE_SEC)
+   #define CLS_FORMART_STR_128                  (128)
 
+   /*
+      _clsReplicateSet implement
+   */
    _clsReplicateSet::_clsReplicateSet( _netRouteAgent *agent )
    : _agent( agent ),
      _vote( &_info, _agent),
      _logger( NULL ),
+     _pFTMgr( NULL ),
      _sync( _agent, &_info ),
      _reelection( &_vote, &_sync ),
      _clsCB( NULL ),
@@ -107,6 +113,11 @@ namespace engine
 
       _faultEvent.reset() ;
       _syncEmptyEvent.signal() ;
+
+      _syncwaitTimeout = 0 ;
+      _shutdownWaitTimeout = 0 ;
+      _fusingTimeout = 0 ;
+      _isAllNodeFatal = FALSE ;
    }
 
    _clsReplicateSet::~_clsReplicateSet()
@@ -127,6 +138,54 @@ namespace engine
          _ntyLastOffset = offset ;
          _ntyQue.push( clsLSNNtyInfo( csLID, clLID, extLID ,offset ) ) ;
       }
+   }
+
+   UINT64 _clsReplicateSet::completeLsn( UINT32 *pVer )
+   {
+      DPS_LSN lsn ;
+
+      if ( !primaryIsMe() && _replBucket.maxReplSync() > 0 )
+      {
+         lsn = _replBucket.completeLSN() ;
+      }
+
+      if ( pVer )
+      {
+         *pVer = lsn.version ;
+      }
+      return lsn.offset ;
+   }
+
+   UINT32 _clsReplicateSet::lsnQueSize()
+   {
+      return getBucket()->bucketSize() ;
+   }
+
+   BOOLEAN _clsReplicateSet::primaryLsn( UINT64 &lsn, UINT32 *pVer )
+   {
+      BOOLEAN got = FALSE ;
+      _clsSharingStatus tmpStatus ;
+
+      if ( primaryIsMe() )
+      {
+         got = TRUE ;
+         lsn = DPS_INVALID_LSN_OFFSET ;
+         if ( pVer )
+         {
+            *pVer = DPS_INVALID_LSN_VERSION ;
+         }
+      }
+      else if ( getPrimaryInfo( tmpStatus ) )
+      {
+         got = TRUE ;
+         lsn = tmpStatus.beat.endLsn.offset ;
+         if ( pVer )
+         {
+            *pVer = tmpStatus.beat.endLsn.version ;
+         }
+      }
+
+      return got ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPPSET_NOTIFY2SESSION, "_clsReplicateSet::notify2Session" )
@@ -205,7 +264,9 @@ namespace engine
 
       _logger = pmdGetKRCB()->getDPSCB() ;
       _clsCB = pmdGetKRCB()->getClsCB() ;
-      SDB_ASSERT( NULL != _logger, "logger should not be NULL" ) ;
+      _pFTMgr = pmdGetKRCB()->getFTMgr() ;
+      SDB_ASSERT( NULL != _logger && NULL != _pFTMgr,
+                  "logger should not be NULL" ) ;
 
       // register dps log event handler
       _logger->regEventHandler( this ) ;
@@ -228,6 +289,11 @@ namespace engine
          }
       }
 
+      _syncwaitTimeout = pmdGetOptionCB()->syncwaitTimeout() * OSS_ONE_SEC ;
+      _fusingTimeout = pmdGetOptionCB()->ftFusingTimeout() * OSS_ONE_SEC ;
+      _shutdownWaitTimeout = pmdGetOptionCB()->shutdownWaitTimeout() *
+                             OSS_ONE_SEC ;
+
    done:
       PD_TRACE_EXITRC ( SDB__CLSREPSET_INIT, rc );
       return rc ;
@@ -238,9 +304,11 @@ namespace engine
    INT32 _clsReplicateSet::deactive ()
    {
       SDB_ASSERT( PMD_IS_DB_DOWN(), "DB must be down" ) ;
+       UINT32 timeout = 0 ;
 
+      /// wait sync replay packet
       _syncEmptyEvent.wait() ;
-
+      /// wait sync bucket
       if ( _replBucket.maxReplSync() > 0 )
       {
          // wait all repl-sync log processed
@@ -248,9 +316,52 @@ namespace engine
                  "all size: %d, agent number: %d]", _replBucket.bucketSize(),
                  _replBucket.size(), _replBucket.curAgentNum() ) ;
 
+         pmdSetDoing( "Waiting repl bucket to replay empty..." ) ;
          _replBucket.waitEmpty() ;
+         pmdCleanDoing() ;
 
          PD_LOG( PDEVENT, "Wait repl bucket empty completed" ) ;
+      }
+
+      /// wait send stop heartbeat to other nodes
+      if ( _active )
+      {
+         PD_LOG( PDEVENT, "Begin to wait broadcast stop-heartbeat..." ) ;
+         _heartbeatEvent.reset() ;
+         _beatTime = CLS_SHARING_BETA_INTERVAL ;
+         if ( SDB_OK != _heartbeatEvent.wait( CLS_STOP_WAIT_HEARTBEAT_TIMEOUT ) )
+         {
+            PD_LOG( PDWARNING, "Wait broadcast stop-heartbeat failed" ) ;
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Wait broadcast stop-heartbeat succeed" ) ;
+         }
+
+         if ( _shutdownWaitTimeout > 0 &&
+              _info.groupSize() > 1 &&
+              _vote.primaryIsMe() )
+         {
+            PD_LOG( PDEVENT, "Begin to wait data consistent..." ) ;
+            pmdSetDoing( "Waiting data consistent..." ) ;
+            /// When i'm primary, wait other node keep the data consistence
+            while ( _vote.primaryIsMe() && timeout < _shutdownWaitTimeout )
+            {
+               if ( _logger->getCurrentLsn().invalid() ||
+                    _sync.atLeastOne( _logger->getCurrentLsn().offset ) )
+               {
+                  PD_LOG( PDEVENT,
+                          "Wait other node keep data consistent succeed" ) ;
+                  break ;
+               }
+               ossSleep( OSS_ONE_SEC ) ;
+               timeout += OSS_ONE_SEC ;
+            }
+         }
+         pmdCleanDoing() ;
+
+         /// force secondary
+         _vote.force( CLS_ELECTION_STATUS_SEC, OSS_SINT32_MAX ) ;
       }
 
       return SDB_OK ;
@@ -279,6 +390,10 @@ namespace engine
       {
          g_startShiftTime = (INT32)pmdGetOptionCB()->startShiftTime() ;
       }
+      _syncwaitTimeout = pmdGetOptionCB()->syncwaitTimeout() * OSS_ONE_SEC ;
+      _fusingTimeout = pmdGetOptionCB()->ftFusingTimeout() * OSS_ONE_SEC ;
+      _shutdownWaitTimeout = pmdGetOptionCB()->shutdownWaitTimeout() *
+                             OSS_ONE_SEC ;
    }
 
    void _clsReplicateSet::ntyPrimaryChange( BOOLEAN primary,
@@ -475,6 +590,28 @@ namespace engine
       return isNormal ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETPRIMARYINFO, "_clsReplicateSet::getPrimaryInfo" )
+   BOOLEAN _clsReplicateSet::getPrimaryInfo( _clsSharingStatus &primaryInfo )
+   {
+      PD_TRACE_ENTRY ( SDB__CLSREPSET_GETPRIMARYINFO );
+      BOOLEAN isOk = FALSE ;
+      _MsgRouteID primary ;
+
+      ossScopedRWLock lock( &_info.mtx, SHARED ) ;
+
+      primary = _info.primary ;
+      map<UINT64, _clsSharingStatus>::iterator itr =
+                                             _info.info.find( primary.value ) ;
+      if ( itr != _info.info.end() )
+      {
+         primaryInfo = itr->second ;
+         isOk = TRUE ;
+      }
+
+      PD_TRACE_EXIT ( SDB__CLSREPSET_GETPRIMARYINFO );
+      return isOk ;
+   }
+
    // The function is caller by any thread, so need to use lock
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETGPINFO, "_clsReplicateSet::getGroupInfo" )
    void _clsReplicateSet::getGroupInfo( _MsgRouteID &primary,
@@ -558,6 +695,26 @@ namespace engine
 
          _vote.handleTimeout( interval ) ;
          _sync.handleTimeout( interval ) ;
+
+         /// When self is primary and NOSPC, should force to secondary
+         if ( _vote.primaryIsMe() &&
+              _info.groupSize() > 1 &&
+              OSS_BIT_TEST( _pFTMgr->getConfirmedStat(), PMD_FT_MASK_NOSPC ) )
+         {
+            DPS_LSN lsn = _logger->getCurrentLsn() ;
+            if ( lsn.invalid() || _sync.atLeastOne( lsn.offset ) )
+            {
+               PD_LOG( PDEVENT, "Force to secondary due to no disk space" ) ;
+               _vote.force( CLS_ELECTION_STATUS_SEC, 5 * OSS_ONE_SEC ) ;
+               _vote.setShadowWeight( CLS_ELECTION_WEIGHT_MIN ) ;
+            }
+         }
+         else if ( !OSS_BIT_TEST( _pFTMgr->getConfirmedStat(),
+                                  PMD_FT_MASK_NOSPC ) &&
+                   CLS_ELECTION_WEIGHT_MIN != _vote.getShadowWeight() )
+         {
+            _vote.setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
+         }
       }
 
    done:
@@ -795,6 +952,16 @@ namespace engine
          UINT8 weight = pmdGetOptionCB()->weight() ;
          UINT8 shadowWeight = _vote.getShadowWeight() ;
          msg.beat.weight = CLS_GET_WEIGHT( weight, shadowWeight ) ;
+         msg.beat.ftConfirmStat = _pFTMgr->getConfirmedStat() ;
+         msg.beat.indoubtErr = _pFTMgr->getIndoubtErr() ;
+         if ( _pFTMgr->isStop() )
+         {
+            msg.beat.nodeRunStat = (UINT8)CLS_NODE_STOP ;
+         }
+         else if ( _pFTMgr->isCatchup() )
+         {
+            msg.beat.nodeRunStat = (UINT8)CLS_NODE_CATCHUP ;
+         }
 
          map<UINT64, _clsSharingStatus>::iterator itr = _info.info.begin() ;
          for ( ; itr != _info.info.end(); itr++ )
@@ -848,6 +1015,7 @@ namespace engine
       }
 
    done:
+      _heartbeatEvent.signalAll() ;
       PD_TRACE_EXIT ( SDB__CLSREPSET__SHRBEAT );
       return ;
    }
@@ -863,15 +1031,29 @@ namespace engine
       BOOLEAN needErase = FALSE ;
       map<UINT64, _clsSharingStatus *>::iterator itr ;
       map< UINT64, _clsSharingStatus>::iterator itrInfo ;
+      _clsSharingStatus *pStatus = NULL ;
+      BOOLEAN isAllNodeFatal = TRUE ;
+      BOOLEAN isStopNode = TRUE ;
 
       for ( itr = _info.alives.begin() ; itr != _info.alives.end() ; itr++ )
       {
-         itr->second->timeout += millisec ;
-         if ( pmdGetOptionCB()->sharingBreakTime() <= itr->second->timeout )
+         pStatus = itr->second ;
+         pStatus->timeout += millisec ;
+
+         if ( isAllNodeFatal &&
+              !PMD_FT_IS_FATAL_FAULT( pStatus->beat.ftConfirmStat ) )
+         {
+            isAllNodeFatal = FALSE ;
+         }
+
+         if ( pmdGetOptionCB()->sharingBreakTime() <= pStatus->timeout )
          {
             needErase = TRUE ;
          }
       }
+
+      /// update _isAllNodeFatal
+      _isAllNodeFatal = isAllNodeFatal ;
 
       // increase break node's break time
       for ( itrInfo = _info.info.begin() ; itrInfo != _info.info.end() ;
@@ -893,20 +1075,35 @@ namespace engine
       itr = _info.alives.begin() ;
       for ( ; itr != _info.alives.end(); )
       {
-         if ( pmdGetOptionCB()->sharingBreakTime() <= itr->second->timeout )
+         pStatus = itr->second ;
+         if ( pmdGetOptionCB()->sharingBreakTime() <= pStatus->timeout )
          {
             if ( itr->first == _info.primary.value )
             {
-               PD_LOG( PDERROR, "vote: primary [node:%d] break",
-                       _info.primary.columns.nodeID ) ;
+               PD_LOG( PDERROR, "vote: primary [node:%d] alive break(%s)",
+                       _info.primary.columns.nodeID,
+                       ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ?
+                         "shutdown" : "unknown" ) ) ;
                _info.primary.value = MSG_INVALID_ROUTEID ;
             }
-            PD_LOG( PDERROR, "vote: [node:%d] alive break",
-                    itr->second->beat.identity.columns.nodeID ) ;
-            itr->second->beat.beatID = CLS_BEATID_INVALID ;
-            itr->second->beat.serviceStatus = SERVICE_UNKNOWN ;
+            else
+            {
+               PD_LOG( PDERROR, "vote: [node:%d] alive break(%s)",
+                       pStatus->beat.identity.columns.nodeID,
+                       ( CLS_NODE_STOP == pStatus->beat.nodeRunStat ?
+                         "shutdown" : "unknown" ) ) ;
+            }
+            pStatus->beat.beatID = CLS_BEATID_INVALID ;
+            pStatus->beat.serviceStatus = SERVICE_UNKNOWN ;
+            pStatus->beat.ftConfirmStat = 0 ;
+            pStatus->beat.indoubtErr = SDB_OK ;
 
-            _sync.updateNodeStatus( itr->second->beat.identity, FALSE ) ;
+            if ( CLS_NODE_STOP != pStatus->beat.nodeRunStat )
+            {
+               isStopNode = FALSE ;
+            }
+
+            _sync.updateNodeStatus( pStatus->beat.identity, FALSE ) ;
 
             _info.alives.erase( itr++ ) ;
          }
@@ -919,7 +1116,7 @@ namespace engine
       /// cutting when down to secandary is in _clsVSPrimary.
       if ( _vote.primaryIsMe() )
       {
-         _sync.cut( _info.alives.size() ) ;
+         _sync.cut( _info.alives.size(), isStopNode ) ;
       }
 
    done:
@@ -933,9 +1130,11 @@ namespace engine
       SDB_ASSERT( NULL != msg, "msg should not be NULL" ) ;
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSREPSET__HNDSHRBEAT );
+
       const _clsGroupBeat &beat = msg->beat ;
-      map<UINT64, _clsSharingStatus>::iterator itr=
-                     _info.info.find( beat.identity.value ) ;
+      map<UINT64, _clsSharingStatus>::iterator itr ;
+
+      itr = _info.info.find( beat.identity.value ) ;
       if ( *(UINT32*)beat.hashCode != _info.getHashCode() ||
           ( _info.info.end() == itr && beat.version <= _info.version ) )
       {
@@ -957,7 +1156,44 @@ namespace engine
       }
       else if ( itr != _info.info.end() )
       {
-         itr->second.beat = beat ;
+         _clsSharingStatus &statusItem = itr->second ;
+
+         /// FT confirm stat changed
+         if ( statusItem.beat.ftConfirmStat != beat.getFTConfirmStat() )
+         {
+            CHAR oldStatStr[ CLS_FORMART_STR_128 + 1 ] = { 0 } ;
+            CHAR newStatStr[ CLS_FORMART_STR_128 + 1 ] = { 0 } ;
+
+            utilFTMaskToStr( statusItem.beat.ftConfirmStat,
+                             oldStatStr, CLS_FORMART_STR_128 ) ;
+            utilFTMaskToStr( beat.getFTConfirmStat(),
+                             newStatStr, CLS_FORMART_STR_128 ) ;
+            PD_LOG( PDEVENT, "Node[%d]'s fault-tolerance confirm stat "
+                    "changed: %08x(%s) => %08x(%s), indoubt error: %d",
+                    beat.identity.columns.nodeID,
+                    statusItem.beat.ftConfirmStat,
+                    oldStatStr,
+                    beat.getFTConfirmStat(),
+                    newStatStr,
+                    beat.getIndoubtErr() ) ;
+         }
+         /// Node start/stop changed
+         if ( statusItem.beat.nodeRunStat != beat.nodeRunStat )
+         {
+            PD_LOG( PDEVENT, "Node[%d]'s run stat changed: %d(%s) => %d(%s)",
+                    beat.identity.columns.nodeID,
+                    statusItem.beat.nodeRunStat,
+                    clsNodeRunStat2String( statusItem.beat.nodeRunStat ),
+                    beat.nodeRunStat,
+                    clsNodeRunStat2String( beat.nodeRunStat ) ) ;
+         }
+
+         statusItem.beat = beat ;
+         if ( CLS_NODE_STOP == statusItem.beat.nodeRunStat )
+         {
+            statusItem.timeout = pmdGetOptionCB()->sharingBreakTime() ;
+         }
+
          if ( CLS_GROUP_ROLE_PRIMARY == beat.role )
          {
             g_startShiftTime = -1 ; // have primary node
@@ -1084,8 +1320,10 @@ namespace engine
          _sync.updateNodeStatus( status.beat.identity, TRUE ) ;
          _info.mtx.release_w() ;
 
-         PD_LOG( PDEVENT, "vote: [node:%d] aliving from break",
-                 status.beat.identity.columns.nodeID ) ;
+         PD_LOG( PDEVENT, "vote: [node:%d] aliving from %s",
+                 status.beat.identity.columns.nodeID,
+                 ( CLS_NODE_STOP == status.beat.nodeRunStat ?
+                   "shutdown" : "break" ) ) ;
       }
       itr->second.timeout = 0 ;
       itr->second.breakTime = 0 ;
@@ -1337,6 +1575,182 @@ namespace engine
       PD_TRACE_EXITRC( SDB__CLSREPSET_PRIMARYCHECK, rc ) ;
       return rc ;
    error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_REPLSZCHECK, "_clsReplicateSet::replSizeCheck" )
+   INT32 _clsReplicateSet::replSizeCheck( INT16 w, INT16 &finalW,
+                                          _pmdEDUCB *cb,
+                                          BOOLEAN isAfterData )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREPSET_REPLSZCHECK ) ;
+
+      UINT32 nodeCnt = 0 ;
+      UINT32 aliveCnt = 0 ;
+      UINT32 faultCnt = 0 ;
+      UINT32 ssCnt = 0 ;
+      INT32 indoubtErr = SDB_OK ;
+      UINT16 indoubtNodeID = 0 ;
+      INT16 adjW = 0 ;
+      UINT32 timeout = 0 ;
+
+      /// check valid
+      if ( w < -1 || w > CLS_REPLSET_MAX_NODE_SIZE )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDWARNING, "Invalid replsize: %d", w ) ;
+         goto error ;
+      }
+
+      cb->setOrgReplSize( w ) ;
+
+      if ( 1 == w && ( isAfterData || !_isAllNodeFatal ) )
+      {
+         finalW = w ;
+         goto done ;
+      }
+
+      while( TRUE )
+      {
+         adjW = 0 ;
+
+         if ( cb->isInterrupted() )
+         {
+            rc = SDB_APP_INTERRUPT ;
+            goto error ;
+         }
+
+         getDetailInfo( nodeCnt, aliveCnt, faultCnt, ssCnt,
+                        indoubtErr, indoubtNodeID ) ;
+
+         /// One node in the group
+         if ( 1 == nodeCnt )
+         {
+            finalW = 1 ;
+            break ;
+         }
+         else if ( 1 == w )
+         {
+            if ( isAfterData || !_isAllNodeFatal )
+            {
+               finalW = 1 ;
+               break ;
+            }
+
+            if ( timeout >= _fusingTimeout )
+            {
+               goto error ;
+            }
+
+            ossSleep( OSS_ONE_SEC ) ;
+            timeout += OSS_ONE_SEC ;
+            continue ;
+         }
+
+         /// When exist fault node
+         if ( faultCnt > 0 )
+         {
+            switch ( _pFTMgr->getFTLevel() )
+            {
+               case FT_LEVEL_FUSING :
+                  break ;
+               case FT_LEVEL_SEMI :
+                  if ( -1 == w )
+                  {
+                     adjW = faultCnt ;
+                  }
+                  break ;
+               case FT_LEVEL_WHOLE :
+                  adjW = faultCnt ;
+                  break ;
+               default:
+                  break ;
+            }
+         }
+
+         if ( 0 == w || w > (INT16)nodeCnt )
+         {
+            finalW = nodeCnt ;
+            ssCnt = 0 ; /// only effect when w = -1
+         }
+         else if ( -1 == w )
+         {
+            finalW = aliveCnt ;
+            adjW += ssCnt ;
+         }
+         else
+         {
+            finalW = w ;
+            ssCnt = 0 ; /// only effect when w = -1
+         }
+
+         if ( finalW > (INT16)aliveCnt )
+         {
+            if ( isAfterData )
+            {
+               rc = SDB_CLS_WAIT_SYNC_FAILED ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Alive num[%d] can not meet need[%d]",
+                       aliveCnt, finalW ) ;
+               rc = SDB_CLS_NODE_NOT_ENOUGH ;
+            }
+            goto error ;
+         }
+         else if ( finalW <= (INT16)( aliveCnt - faultCnt - ssCnt ) )
+         {
+            break ;
+         }
+         /// down level
+         else if ( aliveCnt - faultCnt >= 2 && adjW > 0 )
+         {
+            finalW = (INT16)( aliveCnt - faultCnt - ssCnt ) ;
+            if ( finalW < 2 )
+            {
+               finalW = 2 ;
+            }
+            break ;
+         }
+
+         if ( isAfterData || timeout >= _fusingTimeout )
+         {
+            goto error ;
+         }
+
+         ossSleep( OSS_ONE_SEC ) ;
+         timeout += OSS_ONE_SEC ;
+         continue ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSREPSET_REPLSZCHECK, rc ) ;
+      return rc ;
+   error:
+      if ( SDB_OK == rc )
+      {
+         if ( isAfterData )
+         {
+            rc = SDB_CLS_WAIT_SYNC_FAILED ;
+         }
+         else
+         {
+            rc = SDB_CLS_NODE_NOT_ENOUGH ;
+            if ( indoubtErr )
+            {
+               /// Can't set rc = indoubtErr.
+               /// Because onOPMsg() will retry for some error
+               PD_LOG_MSG( PDERROR, "Fusing operation by indoubt error(%d) "
+                           "from node(%u)", indoubtErr, indoubtNodeID ) ;
+            }
+            else
+            {
+               PD_LOG_MSG( PDERROR, "Fusing operation by error(%d)",
+                           rc ) ;
+            }
+         }
+      }
       goto done ;
    }
 

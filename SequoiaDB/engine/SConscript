@@ -103,7 +103,8 @@ pmdFiles = [
       "pmd/pmdProcessor.cpp",
       "pmd/pmdProtocolEntryPoint.cpp",
       "pmd/pmdModuleLoader.cpp",
-      "pmd/pmdRestSession.cpp"
+      "pmd/pmdRestSession.cpp",
+      "pmd/pmdFTMgr.cpp"
       ]
 migFiles = [
       "mig/migLoad.cpp"

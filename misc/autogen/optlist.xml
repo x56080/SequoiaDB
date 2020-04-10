@@ -846,7 +846,7 @@
              5. More detailed information can be found in [db.setSessionAttr()](reference/Sequoiadb_command/Sdb/setSessionAttr.md).</en>
          <cn>1. 指定执行读请求时优先选择的实例<fig></fig>
              2. 如果不指定，则默认值为M，即选择可读写实例。<fig></fig>
-             3. 取值可以取单值单独指定，也可以取多值混合指定；在 SequoiaDB 的配置中可以使用 ',' 连接多个值。连接多值时字符串最大长度为 256。如："1,2,S"。<fig></fig>
+             3. 取值可以取单值单独指定，也可以取多值混合指定；在 SequoiaDB 的配置文件中可以使用 ',' 连接多个值。连接多值时字符串最大长度为 256。如："1,2,S"。<fig></fig>
              4. 取值范围：<fig></fig>
              ● 取值类型分为两类，一类是角色取值，如 "M", "S" 等；一类是实例取值，即数据节点通过配置 instanceid 设置的实例 ID。<fig></fig>
              ● 角色取值："M", "m"：可读写实例（主实例）；"S", "s": 只读实例（备实例）；"A", "a": 任意角色实例。<fig></fig>
@@ -877,12 +877,15 @@
              2. value enumeration:<fig></fig>
                 ● "random": choose the instance from matched instances by random.<fig></fig>
                 ● "ordered": choose the instance from matched instances by the order of --preferedinstance.<fig></fig>
+                ● ROLE value in --preferedinstance has higher or lower piority than INSTRANCE value.<fig></fig>
              3. Default value is 'random'.</en>
          <cn>1. 指定当多个实例符合 --preferedinstance 的条件时的选择模式。<fig></fig>
              2. 取值列表：<fig></fig>
-                ● "random": 从候选的实例中随机选择。<fig></fig>
-                ● "ordered": 从候选的实例中按照 --perferedinstance 的顺序进行选择。<fig></fig>
-             3. 默认值为 "random"。</cn>
+                ● "random": 从候选的实例取值中随机选择。<fig></fig>
+                ● "ordered": 从候选的实例取值中按照 --perferedinstance 的顺序进行选择。<fig></fig>
+                ● --preferedinstance 中的角色取值，根据规则选择时优于或者次于实例取值，与 -preferedinstancemode 取值无关。<fig></fig>
+             3. 默认值为 "random"。<fig></fig>
+             4. 更详细的内容请参考 [db.setSessionAttr()](reference/Sequoiadb_command/Sdb/setSessionAttr.md)。</cn>
       </detail>
       <typeofweb>str</typeofweb>
       <default>random</default>
@@ -892,12 +895,12 @@
       <name>PMD_OPTION_PREFINST_PERIOD</name>
       <long>preferedperiod</long>
       <description>
-         <en>Specify the timeout period (in seconds) of last node chosen for requests. During this timeout period, SequoiaDB will reuse the last node for read quest. Default is 60 seconds, -1 means the last chosen node will not be re-chosen for read request, 0 means always re-choose for read request.</en>
-         <cn>优先实例的有效周期，单位为秒。如果上一次选择进行请求的节点在有效周期内，读请求仍使用该节点进行查询，周期之后，将根据 preferedinstance 重新选择。默认值为 60 秒，-1 表示不失效，0 表示本次查询不使用上次选择的实例，根据 preferedinstance 进行重新选择。</cn>
+         <en>Specify the timeout period (in seconds) of last node chosen for requests. During this timeout period, SequoiaDB will reuse the last node for read quest. Default is 60 seconds, range is [-1, 2^31 - 1], -1 means the last chosen node will not be re-chosen for read request, 0 means always re-choose for read request.</en>
+         <cn>优先实例的有效周期，单位为秒。如果上一次选择进行请求的节点在有效周期内，读请求仍使用该节点进行查询，周期之后，将根据 preferedinstance 重新选择。默认值为 60 秒，取值范围为 [-1, 2^31 - 1]，-1 表示不失效，0 表示本次查询不使用上次选择的实例，根据 preferedinstance 进行重新选择。</cn>
       </description>
       <reloadable>
-         <en>Take effect immediately</en>
-         <cn>在线生效</cn>
+         <en>Yes</en>
+         <cn>动态生效</cn>
       </reloadable>
       <reloadstrategy>
          <en>takes effect upon new connection</en>
@@ -907,13 +910,15 @@
          <en>1. Specify the timeout period (in seconds) of last node chosen for requests.<fig></fig>
              2. During this timeout period, SequoiaDB will reuse the last node for read quest.<fig></fig>
              3. Default is 60 seconds<fig></fig>
-             4. -1 means the last chosen node will not be re-chosen for read request<fig></fig>
-             5. 0 means always re-choose for read request.</en>
+             4. Range is [-1, 2^31 - 1]<fig></fig>
+             5. -1 means the last chosen node will not be re-chosen for read request<fig></fig>
+             6. 0 means always re-choose for read request.</en>
          <cn>1. 优先实例的有效周期，单位为秒。<fig></fig>
              2. 如果上一次选择进行请求的节点在有效周期内，读请求仍使用该节点进行查询，周期之后，将根据 preferedinstance 重新选择。<fig></fig>
              3. 默认值为 60 秒。<fig></fig>
-             4. -1 表示不失效<fig></fig>
-             5. 0 表示本次查询不使用上次选择的实例，根据 preferedinstance 进行重新选择。</cn>
+             4. 取值范围为 [-1, 2^31]<fig></fig>
+             5. -1 表示不失效<fig></fig>
+             6. 0 表示本次查询不使用上次选择的实例，根据 preferedinstance 进行重新选择。</cn>
       </detail>
       <typeofweb>num</typeofweb>
       <type>int</type>
@@ -1557,5 +1562,176 @@
       <hidden>true</hidden>
    </opt>
 
+   <opt>
+      <name>PMD_OPTION_FT_MASK</name>
+      <long>ftmask</long>
+      <description>
+         <en>Fault-tolerant mask,default:NOSPC|DEADSYNC,value list: NOSPC,DEADSYNC,SLOWNODE, use '|' join multiple values, ALL enable all mask, NONE disable all mask</en>
+         <cn>容错掩码,默认值:NOSPC|DEADSYNC,取值列表为: NOSPC,DEADSYNC,SLOWNODE, 使用'|'连接多个取值, ALL取值表示开启所有, NONE关闭全部</cn>
+      </description>
+      <reloadable>
+         <en>Yes</en>
+         <cn>动态生效</cn>
+      </reloadable>
+      <detail>
+         <en>1. It specifies the mask of fault-tolerant. Mask type in sequoiaDB as follow: NOSPC,DEADSYNC,SLOWNODE.<fig></fig>
+             2. If it is not specified, the default value is "NOSPC|DEADSYNC". ALL enable all mask, NONE disable all mask</en>
+         <cn>1. 指定开启容错处理的掩码。SequoiaDB中容错掩码有：NOSPC,DEADSYNC,SLOWNODE<fig></fig>
+             2. 如果不指定，则默认为"NOSPC|DEADSYNC", ALL取值表示开启所有,NONE关闭全部。</cn>
+      </detail>
+      <typeofweb>str</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_CONFIRM_PERIOD</name>
+      <long>ftconfirmperiod</long>
+      <description>
+         <en>Time period of fault confirmation, default:30, value range:[1,600], unit:s</en>
+         <cn>故障确认的时间周期，默认为30，取值范围:[1,600],单位为秒</cn>
+      </description>
+      <reloadable>
+         <en>Yes</en>
+         <cn>动态生效</cn>
+      </reloadable>
+      <detail>
+         <en>Time period of fault confirmation, default:30, value range:[1,600], unit:s</en>
+         <cn>故障确认的时间周期，默认为30，取值范围:[1,600],单位为秒</cn>
+      </detail>
+      <type>int</type>
+      <default>30</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_CONFIRM_RATIO</name>
+      <long>ftconfirmratio</long>
+      <description>
+         <en>Failure ratio threshold of fault confirmation, default:80, value range:[1,100], unit:Percentage</en>
+         <cn>故障确认的故障比阈值，默认为80，取值范围:[1,100],单位为百分比</cn>
+      </description>
+      <reloadable>
+         <en>Yes</en>
+         <cn>动态生效</cn>
+      </reloadable>
+      <detail>
+         <en>Failure ratio threshold of fault confirmation, default:80, value range:[1,100], unit:Percentage</en>
+         <cn>故障确认的故障比阈值，默认为80，取值范围:[1,100],单位为百分比</cn>
+      </detail>
+      <type>int</type>
+      <default>80</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_LEVEL</name>
+      <long>ftlevel</long>
+      <description>
+         <en>Fault tolerance level. 1(Fusing), 2(Semi fault-tolerant), 3(Whole fault-tolerant). Default:2</en>
+         <cn>容错级别，1(熔断), 2(半容错), 3(全容错). 默认为2</cn>
+      </description>
+      <reloadable>
+         <en>Yes</en>
+         <cn>动态生效</cn>
+      </reloadable>
+      <detail>
+         <en>Fault tolerance level. 1(Fusing), 2(Semi fault-tolerant), 3(Whole fault-tolerant). Default:2</en>
+         <cn>容错级别，1(熔断), 2(半容错), 3(全容错). 默认为2</cn>
+      </detail>
+      <type>int</type>
+      <default>2</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_FUSING_TIMEOUT</name>
+      <long>ftfusingtimeout</long>
+      <description>
+         <en>The timeout value for fusing. Default:10, value range:[0,3600], Unit:second</en>
+         <cn>熔断超时时间，默认为10，取值范围：[0,3600]，单位：秒</cn>
+      </description>
+      <reloadable>
+         <en>Yes</en>
+         <cn>动态生效</cn>
+      </reloadable>
+      <detail>
+         <en>The timeout value for fusing. Default:10, value range:[0,3600], Unit:second</en>
+         <cn>熔断超时时间，默认为10，取值范围：[0,3600]，单位：秒</cn>
+      </detail>
+      <type>int</type>
+      <default>10</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_SLOWNODE_THRESHOLD</name>
+      <long>ftslownodethreshold</long>
+      <description>
+         <en>The log difference threshold for slow node detection. Default:256, value range:[1,10000], Unit:MB</en>
+         <cn>慢节点检测的日志差阈值，默认：256，取值范围：[1,10000]，单位：MB</cn>
+      </description>
+      <reloadable>
+         <en>Yes</en>
+         <cn>动态生效</cn>
+      </reloadable>
+      <detail>
+         <en>The log difference threshold for slow node detection. Default:256, value range:[1,10000], Unit:MB</en>
+         <cn>慢节点检测的日志差阈值，默认：256，取值范围：[1,10000]，单位：MB</cn>
+      </detail>
+      <type>int</type>
+      <default>256</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_SLOWNODE_INCREMENT</name>
+      <long>ftslownodeincrement</long>
+      <description>
+         <en>The log difference increment for slow node detection. Default:8, value range:[0,10000], Unit:MB</en>
+         <cn>慢节点检测的日志增量值，默认：8，取值范围：[0,10000]，单位：MB</cn>
+      </description>
+      <reloadable>
+         <en>Yes</en>
+         <cn>动态生效</cn>
+      </reloadable>
+      <detail>
+         <en>The log difference increment for slow node detection. Default:8, value range:[0,10000], Unit:MB</en>
+         <cn>慢节点检测的日志增量值，默认：8，取值范围：[0,10000]，单位：MB</cn>
+      </detail>
+      <type>int</type>
+      <default>8</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_SYNCWAIT_TIMEOUT</name>
+      <long>syncwaittimeout</long>
+      <description>
+         <en>The timeout value for data consistency synchronization. Default:600, value range:[1,3600], Unit:second</en>
+         <cn>数据一致性同步等待超时时间，默认为600，取值范围：[1,3600]，单位：秒</cn>
+      </description>
+      <reloadable>
+         <en>Yes</en>
+         <cn>动态生效</cn>
+      </reloadable>
+      <detail>
+         <en>The timeout value for data consistency synchronization. Default:600, value range:[1,3600], Unit:second</en>
+         <cn>数据一致性同步等待超时时间，默认为600，取值范围：[1,3600]，单位：秒</cn>
+      </detail>
+      <type>int</type>
+      <default>600</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_SHUTDOWN_WAITTIMEOUT</name>
+      <long>shutdownwaittimeout</long>
+      <description>
+         <en>The timeout value for data consistency synchronization on primary node shutdown. Default:1200, value range:[0,864000], Unit:second</en>
+         <cn>主数据节点停机时等待备节点数据同步超时时间，默认为1200，取值范围：[0,864000]，单位：秒</cn>
+      </description>
+      <reloadable>
+         <en>Yes</en>
+         <cn>动态生效</cn>
+      </reloadable>
+      <detail>
+         <en>The timeout value for data consistency synchronization on primary node shutdown. Default:1200, value range:[0,864000], Unit:second</en>
+         <cn>主数据节点停机时等待备节点数据同步超时时间，默认为1200，取值范围：[0,864000]，单位：秒</cn>
+      </detail>
+      <type>int</type>
+      <default>1200</default>
+      <typeofweb>num</typeofweb>
+   </opt>
 </optlist>
 

@@ -1030,6 +1030,7 @@ namespace engine
                         "Unexpect error occured" ) ;
             PD_LOG( PDERROR, "Session[%s]: Failed to replay log, rc: %d",
                     sessionName(), rc ) ;
+            ftReportErr( rc ) ;
             goto error ;
          }
 

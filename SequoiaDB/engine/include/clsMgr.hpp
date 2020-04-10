@@ -209,6 +209,8 @@ namespace engine
          virtual INT32  fini () ;
          virtual void   onConfigChange() ;
 
+         virtual void* queryInterface( SDB_INTERFACE_TYPE type ) ;
+
          virtual void   attachCB( _pmdEDUCB *cb ) ;
          virtual void   detachCB( _pmdEDUCB *cb ) ;
 
@@ -273,6 +275,9 @@ namespace engine
          INT32 _onCatQueryTaskRes ( NET_HANDLE handle, MsgHeader* msg ) ;
          INT32 _onStepDown( pmdEDUEvent *event ) ;
          INT32 _onStepUp( pmdEDUEvent *event ) ;
+
+      private:
+         INT32 _getMaxDMSLSN( SDB_DMSCB *dmsCB, DPS_LSN_OFFSET &maxLsn ) ;
 
       private:
          _shdMsgHandler                _shdMsgHandlerObj ;

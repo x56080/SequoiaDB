@@ -14,7 +14,8 @@ bsonFiles = [
       ]
 
 inspectFiles = [
-      "tools/inspect/sdbInspect.cpp"
+      "tools/inspect/sdbInspect.cpp",
+      "tools/inspect/inspectTargetParser.cpp"
       ]
 
 importFiles = [
@@ -530,7 +531,8 @@ sdbcmMain = [
       "pmd/pmdAsyncNetEntryPoint.cpp",
       "pmd/pmdOMAgentEDUEntryPoint.cpp",
       "pmd/pmdCMMain.cpp",
-      "pmd/pmdWindowsListener.cpp"
+      "pmd/pmdWindowsListener.cpp",
+      "pmd/pmdFTMgr.cpp"
       ]
 
 sdbcmDMNMain = [

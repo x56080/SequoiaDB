@@ -546,7 +546,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_CUT, "_clsSyncManager::cut" )
-   void _clsSyncManager::cut( UINT32 alives )
+   void _clsSyncManager::cut( UINT32 alives, BOOLEAN isStopNode )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_CUT ) ;
       SDB_ASSERT( alives <= _validSync, "impossible" ) ;
@@ -564,7 +564,14 @@ namespace engine
             _mtxs[i].get() ;
             while ( SDB_OK == _syncList[i].pop( session ) )
             {
-               session.eduCB->getEvent().signal ( SDB_CLS_WAIT_SYNC_FAILED ) ;
+               if ( isStopNode && -1 == session.eduCB->getOrgReplSize() )
+               {
+                  session.eduCB->getEvent().signal( SDB_DATABASE_DOWN ) ;
+               }
+               else
+               {
+                  session.eduCB->getEvent().signal ( SDB_CLS_WAIT_SYNC_FAILED ) ;
+               }
             }
             _mtxs[i].release() ;
          }
@@ -578,7 +585,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_ATLEASTONE, "_clsSyncManager::atLeastOne" )
    BOOLEAN _clsSyncManager::atLeastOne( const DPS_LSN_OFFSET &offset )
    {
-      BOOLEAN res = FALSE ;
+      BOOLEAN res = _validSync > 0 ? FALSE : TRUE ;
       PD_TRACE_ENTRY( SDB__CLSSYNCMAG_ATLEASTONE ) ;
       DPS_LSN lsn ;
       lsn.offset = offset ;

@@ -497,8 +497,8 @@ namespace engine
    BEGIN_OBJ_MSG_MAP( _clsMgr, _pmdObjBase )
       ON_MSG ( MSG_CAT_REG_RES, _onCatRegisterRes )
       ON_MSG ( MSG_CAT_QUERY_TASK_RSP, _onCatQueryTaskRes )
-      ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, _onStepDown )      
-      ON_EVENT( PMD_EDU_EVENT_STEP_UP, _onStepUp )      
+      ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, _onStepDown )
+      ON_EVENT( PMD_EDU_EVENT_STEP_UP, _onStepUp )
       //ON_EVENT FUCTION MAP
    END_OBJ_MSG_MAP()
 
@@ -601,11 +601,106 @@ namespace engine
       goto done ;
    }
 
+   INT32 _clsMgr::_getMaxDMSLSN( SDB_DMSCB *dmsCB, DPS_LSN_OFFSET &maxLsn )
+   {
+      INT32 rc = SDB_OK ;
+      set< monCSSimple >  csList ;
+      set< monCSSimple >::iterator it ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+
+      dmsCB->dumpInfo( csList, TRUE ) ;
+
+      for ( it = csList.begin() ; it != csList.end() ; ++it )
+      {
+         const monCSSimple &csInfo = *it ;
+
+         if ( 0 == ossStrcmp( csInfo._name, SDB_DMSTEMP_NAME ) )
+         {
+            continue ;
+         }
+
+         dmsStorageUnit *su = NULL ;
+         suID = DMS_INVALID_SUID ;
+         rc = dmsCB->nameToSUAndLock( csInfo._name, suID, &su ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to lock collectionspace[%s], rc: %d",
+                    csInfo._name, rc ) ;
+            goto error ;
+         }
+
+         rtnRecoverUnit recoverUnit ;
+         rc = recoverUnit.init( su ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to init recover unit:rc=%d", rc ) ;
+
+         if ( DPS_INVALID_LSN_OFFSET == maxLsn ||
+              maxLsn < recoverUnit.getMaxValidLsn() )
+         {
+            maxLsn = recoverUnit.getMaxValidLsn() ;
+         }
+
+         if ( DMS_INVALID_SUID != suID )
+         {
+            dmsCB->suUnlock( suID ) ;
+            suID = DMS_INVALID_SUID ;
+         }
+      }
+
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_ACTIVE, "_clsMgr::active" )
    INT32 _clsMgr::active ()
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR_ACTIVE ) ;
+
+      if ( pmdGetStartup().isOK() )
+      {
+         SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+         SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+         if ( NULL != dmsCB && NULL != dpsCB )
+         {
+            DPS_LSN_OFFSET maxLSN = DPS_INVALID_LSN_OFFSET ;
+            DPS_LSN expectLSN = dpsCB->expectLsn() ;
+            if ( 0 == expectLSN.version && 0 == expectLSN.offset )
+            {
+               rc = _getMaxDMSLSN( dmsCB, maxLSN ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get max dms lsn:rc=%d",
+                            rc ) ;
+
+               if ( DPS_INVALID_LSN_OFFSET != maxLSN
+                    && expectLSN.offset < maxLSN )
+               {
+                  DPS_LSN newDPSLSN = expectLSN ;
+                  newDPSLSN.offset = maxLSN
+                           + ossAlign4( (UINT32)sizeof( dpsLogRecordHeader ) ) ;
+                  if ( DPS_INVALID_LSN_VERSION == newDPSLSN.version )
+                  {
+                     newDPSLSN.version = DPS_INVALID_LSN_VERSION + 1 ;
+                  }
+
+                  /// clear transinfo
+                  sdbGetTransCB()->clearTransInfo() ;
+                  /// then move to new dps lsn
+                  rc = dpsCB->move( newDPSLSN.offset, newDPSLSN.version ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to move(%lld:%lld)",
+                               newDPSLSN.version, newDPSLSN.offset ) ;
+
+                  PD_LOG( PDEVENT, "Move new lsn(%lld:%lld) succeed",
+                          newDPSLSN.version, newDPSLSN.offset ) ;
+               }
+            }
+         }
+      }
 
       // 1. start cls edu and shard edu
       _attachEvent.reset() ;
@@ -691,13 +786,13 @@ namespace engine
 
    INT32 _clsMgr::deactive ()
    {
-      // 1. stop listen
-      _replNetRtAgent.closeListen() ;
-      _shardNetRtAgent.closeListen() ;
-
-      // 2. members to deactive
+      // 1. members to deactive
       _replObj.deactive() ;
       _shdObj.deactive() ;
+
+      // 2. stop listen
+      _replNetRtAgent.closeListen() ;
+      _shardNetRtAgent.closeListen() ;
 
       // 3. stop io
       _replNetRtAgent.stop() ;
@@ -728,6 +823,15 @@ namespace engine
    {
       _shdObj.onConfigChange() ;
       _replObj.onConfigChange() ;
+   }
+
+   void* _clsMgr::queryInterface( SDB_INTERFACE_TYPE type )
+   {
+      if ( SDB_IF_CLS == type )
+      {
+         return dynamic_cast<ICluster*>( &_replObj ) ;
+      }
+      return IControlBlock::queryInterface( type ) ;
    }
 
    void _clsMgr::attachCB ( pmdEDUCB *pMainCB )

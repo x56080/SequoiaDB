@@ -72,7 +72,7 @@ int main ( int argc, char** argv )
       t1 =
            boost::posix_time::microsec_clock::local_time() ;
       {
-         MsgReplHeader msgHeader ;
+         _MsgHeader msgHeader ;
          msgHeader.messageLength = sizeof(msgHeader) ;
          rc = sock.send ( (CHAR*)(&msgHeader), sizeof(msgHeader), sentLen ) ;
          if ( rc )

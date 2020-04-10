@@ -41,12 +41,45 @@
 #include "utilParam.hpp"
 #include "ossVer.hpp"
 #include "client.hpp"
+#include "ossUtil.hpp"
+#include "pd.hpp"
+#include "inspectTargetParser.hpp"
 
 using namespace engine;
+using namespace bson ;
+using namespace sdbclient ;
+
+#define INSPECT_DEFAULT_BFILE_NAME  "out.bin"
+#define INSPECT_DEFAULT_TFILE_NAME  "out.txt"
+#define INSPECT_LOG_NAME            "sdbinspect.log"
+
+inspectTargetParser* gTargetParser = NULL ;
+_IParam* gOptionMgr = NULL ;
+BOOLEAN gFastMode = FALSE ;
+
+struct str_compare
+{
+   bool operator()( const CHAR *a, const CHAR *b ) const
+   {
+      return std::strcmp(a, b) < 0 ;
+   }
+} ;
+
+void getBrakeOptions( INT32 &brakeTime, INT32 &brakeStep )
+{
+   gOptionMgr->getFieldInt( CONSISTENCY_INSPECT_BRAKETIME, brakeTime ) ;
+   gOptionMgr->getFieldInt( CONSISTENCY_INSPECT_BRAKESTEP, brakeStep ) ;
+}
 
 /**
-** get the index of min bson object
-***/
+ * @brief Find the index of the object with the smallest OID.
+ * @param doc  Contains a group of records for comparison.
+ * @param nodeCount  Node number for consistency check in the replica group.
+ * @return The index of the record which has the smallest OID in the array.
+ *
+ * May be more than one record contain the smallest OID. It's OK. In the
+ * comparison of next step, this can be handled correctly.
+ */
 INT32 getMinObjectIndex( ciBson &doc, const INT32 nodeCount )
 {
    bson::BSONElement eMin, ee ;
@@ -387,12 +420,17 @@ INT32 dumpCiRecord( ciLinkList< ciNode > &nodes,
    ciNode   *node  = NULL ;
    const CHAR *pst = NULL ;
    INT64 len       = 0 ;
+   INT32 brakeTime = 0 ;
+   INT32 brakeStep = 0 ;
+   INT64 counter = 0 ;
    const CHAR *nodeState[] =
    {
       " 1",
       " 0",
       " x"
    } ;
+
+   getBrakeOptions( brakeTime, brakeStep ) ;
 
 retry:
    if ( bufferSize - 1 <= len )
@@ -472,6 +510,14 @@ retry:
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
 
       rd = link.next() ;
+
+      // Speed controller
+      ++counter ;
+      if ( brakeTime > 0 && brakeStep > 0 &&
+           ( ( counter % brakeStep ) == 0 ) )
+      {
+         ossSleepmillis( brakeTime ) ;
+      }
    }
    len += ossSnprintf( buffer + len, bufferSize - len, OSS_NEWLINE ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
@@ -509,23 +555,23 @@ retry:
                        "Inspect result:"OSS_NEWLINE ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total inspected group count       : %d"OSS_NEWLINE,
+                       "Total inspected group count       : %u"OSS_NEWLINE,
                        tail._groupCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total inspected collection        : %d"OSS_NEWLINE,
+                       "Total inspected collection        : %u"OSS_NEWLINE,
                        tail._clCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total different collections count : %d"OSS_NEWLINE,
+                       "Total different collections count : %u"OSS_NEWLINE,
                        tail._diffCLCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total different records count     : %d"OSS_NEWLINE,
+                       "Total different records count     : %lld"OSS_NEWLINE,
                        tail._recordCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
    len += ossSnprintf( buffer + len, bufferSize - len,
-                       "Total time cost                   : %d ms"OSS_NEWLINE,
+                       "Total time cost                   : %llu ms"OSS_NEWLINE,
                        tail._timeCount ) ;
    CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
 
@@ -897,6 +943,8 @@ INT32 readCiGroupHeader( OSSFILE &in, INT64 &offset, ciGroupHeader *header )
    ossMemcpy( &header->_clCount, buffer + len, sizeof( UINT32 ) ) ;
    len += sizeof( UINT32 ) ;
    ossMemcpy( &header->_groupName, buffer + len, CI_GROUPNAME_SIZE ) ;
+   len += CI_GROUPNAME_SIZE ;
+   ossMemcpy( &header->_maxCompleteLSN, buffer + len, sizeof( UINT64 ) ) ;
 
 done:
    return rc ;
@@ -921,6 +969,8 @@ INT32 writeCiGroupHeader( OSSFILE &out, const ciGroupHeader *header )
    ossMemcpy( buffer + len, &header->_clCount, sizeof( UINT32 ) ) ;
    len += sizeof( UINT32 ) ;
    ossMemcpy( buffer + len, header->_groupName, CI_GROUPNAME_SIZE ) ;
+   len += CI_GROUPNAME_SIZE ;
+   ossMemcpy( buffer + len, &header->_maxCompleteLSN, sizeof( UINT64 ) ) ;
 
    rc = writeToFile( out, buffer, CI_GROUP_HEADER_SIZE ) ;
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
@@ -1124,10 +1174,19 @@ error:
 }
 
 /**
-** get next record
-***/
+ * @brief Prepare the next group of records for comparison.
+ * @param st  Last comparison status.
+ * @param cursors  Cursors for the current collection on each node.
+ * @param docs  Group of records fetched by this round.
+ * @param inited
+ *
+ * It may fetch the next record from one or more nodes in the group, depending
+ * on the last comparison result.
+ * If the records of the last group are exactly the same, move forward on all
+ * nodes. Otherwise, only move forward on the group(s) with the smallest OID.
+ */
 INT32 getNext( ciState &st, ciLinkList< ciCursor > &cursors,
-               const INT32 minIndex, ciBson &docs, BOOLEAN inited = TRUE )
+               ciBson &docs, BOOLEAN inited = TRUE )
 {
    INT32 rc = SDB_OK ;
    cursors.resetCurrentNode() ;
@@ -1135,8 +1194,7 @@ INT32 getNext( ciState &st, ciLinkList< ciCursor > &cursors,
    INT32 idx = 0 ;
    while ( NULL != cursor )
    {
-      // check last compare is all the same.
-      // if not, get next record of cursor which contains min bson object.
+      // Move forward on all nodes, or just the nodes with the smallest OID.
       if ( st.hit( ALL_THE_SAME_BIT ) || ( st.hit( idx ) ) )
       {
          if ( NULL != cursor->_cursor )
@@ -1189,7 +1247,8 @@ error:
 ***/
 INT32 getCiCursor( ciLinkList< ciNode > &nodes, const CHAR* clName,
                    ciLinkList< ciCursor > &cursors, bson::BSONObj &con,
-                   BOOLEAN orderCon = FALSE )
+                   BOOLEAN orderCon = FALSE,
+                   const bson::BSONObj &selector = sdbclient::_sdbStaticObject )
 {
    INT32 rc = SDB_OK ;
 
@@ -1261,11 +1320,11 @@ INT32 getCiCursor( ciLinkList< ciNode > &nodes, const CHAR* clName,
          if ( orderCon )
          {
             rc = cl.query( *cr, sdbclient::_sdbStaticObject,
-                           sdbclient::_sdbStaticObject, con ) ;
+                           selector, con ) ;
          }
          else
          {
-            rc = cl.query( *cr, con ) ;
+            rc = cl.query( *cr, con, selector ) ;
          }
          if ( SDB_OK != rc )
          {
@@ -1299,16 +1358,22 @@ BOOLEAN recordQuery( ciLinkList< ciNode > &nodes,
    INT32 nodeCount = nodes.count() ;
    ciNode *node = NULL ;
    ciBson docs ;
+   BSONElement baseOIDEle ;
 
    state.reset() ;
    // it's a trick to make sure that all cursors can get next.
    state.set( ALL_THE_SAME_BIT ) ;
-   rc = getNext( state, cursors, 0, docs, FALSE ) ;
+   rc = getNext( state, cursors, docs, FALSE ) ;
    CHECK_VALUE( ( SDB_OK != rc ), done ) ;
 
    nodes.resetCurrentNode() ;
    node = nodes.getHead() ;
    state.reset() ;
+
+   if ( gFastMode )
+   {
+      obj.getObjectID( baseOIDEle ) ;
+   }
 
    for ( INT32 idx = 0 ; idx < nodeCount ; ++idx, node = nodes.next() )
    {
@@ -1319,10 +1384,22 @@ BOOLEAN recordQuery( ciLinkList< ciNode > &nodes,
       {
          state.set( idx ) ;
       }
-      else if ( ciNode::STATE_NORMAL == node->_state &&
-                docs.objs[idx].equal( obj ) )
+      else if ( ciNode::STATE_NORMAL == node->_state )
       {
-         state.set( idx ) ;
+         if ( gFastMode )
+         {
+            // Only compare OID
+            BSONElement oidEle ;
+            if ( docs.objs[idx].getObjectID( oidEle ) &&
+                 oidEle.valuesEqual( baseOIDEle ) )
+            {
+               state.set( idx ) ;
+            }
+         }
+         else if ( docs.objs[idx].equal( obj ) )
+         {
+            state.set( idx ) ;
+         }
       }
    }
 
@@ -1341,17 +1418,24 @@ done:
 INT32 readCiRecord( OSSFILE &in, INT64 &offset,
                     ciLinkList< ciNode > &nodes,
                     const ciClHeader &header,
-                    ciLinkList< ciRecord > &records, BOOLEAN dump = FALSE )
+                    ciLinkList< ciRecord > &records, BOOLEAN dump = FALSE,
+                    BOOLEAN repaire = FALSE )
 {
    INT32 rc         = SDB_OK ;
    CHAR *bsonBuffer = NULL ;
    INT32 bufferLen  = 0 ;
+   INT32 brakeTime = 0 ;
+   INT32 brakeStep = 0 ;
+
+   getBrakeOptions( brakeTime, brakeStep ) ;
 
    UINT32 idx = 0 ;
+   // Check again for all the different records on all nodes in the group.
    while ( idx < header._recordCount )
    {
       INT32 recordLen = 0 ;
       CHAR  state ;
+      CHAR  origState = 0 ;
       rc = readFromFile( in, offset, (CHAR *)&recordLen, sizeof( INT32 ) ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
@@ -1373,6 +1457,9 @@ INT32 readCiRecord( OSSFILE &in, INT64 &offset,
 
       // read state
       rc = readFromFile( in, offset, ( CHAR * )&state, sizeof( CHAR ) ) ;
+      CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+
+      rc = readFromFile( in, offset, ( CHAR * )&origState, sizeof( CHAR ) ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
       // make a condition of query
@@ -1402,9 +1489,16 @@ INT32 readCiRecord( OSSFILE &in, INT64 &offset,
          record->_bson = obj.copy() ;
          record->_len = obj.objsize() ;
          record->_state = dump ? state : st._state ;
+         record->_origState = origState ;
          records.add( record ) ;
       }
       ++idx ;
+      // Speed controller
+      if ( brakeTime > 0 && brakeStep > 0 &&
+           ( ( idx % brakeStep ) == 0 ) )
+      {
+         ossSleepmillis( brakeTime ) ;
+      }
    }
 
 done:
@@ -1416,6 +1510,146 @@ done:
    return rc ;
 error:
    OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
+   goto done ;
+}
+
+INT32 repairConsistency( OSSFILE &in, INT64 &offset,
+                         ciLinkList<ciNode> &nodes,
+                         const ciClHeader &header,
+                         ciLinkList< ciRecord > &records )
+{
+   INT32 rc = SDB_OK ;
+   UINT32 index = 0 ;
+   CHAR *bsonBuffer = NULL ;
+   INT32 bufferLen = 0 ;
+
+   PD_LOG( PDEVENT, "Begin processing consistency for collection: %s",
+           header._fullname ) ;
+
+   while ( index < header._recordCount )
+   {
+      INT32 recordLen = 0 ;
+      CHAR state = 0 ;
+      CHAR origState = 0 ;
+      rc = readFromFile( in, offset, (CHAR *)&recordLen, sizeof(INT32) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get record from file at offset[%lld] failed: "
+                                "%d", offset, rc ) ;
+
+      if ( recordLen > bufferLen )
+      {
+         bsonBuffer = (CHAR *)SDB_OSS_REALLOC( bsonBuffer, recordLen ) ;
+         PD_CHECK( NULL != bsonBuffer, SDB_OOM, error, PDERROR,
+                   "Allocate memory for record failed: %d", rc ) ;
+         bufferLen = recordLen ;
+      }
+
+      // read the record from the file.
+      rc = readFromFile( in, offset, (CHAR *)bsonBuffer, recordLen ) ;
+      PD_RC_CHECK( rc, PDERROR, "Read record from file at offset[%lld] failed: "
+                                "%d", offset, rc) ;
+
+      // read the state of this record from the file
+      rc = readFromFile( in, offset, &state, sizeof(CHAR) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Read record status from file at offset[%lld] "
+                                "failed: %d", offset, rc ) ;
+
+      rc = readFromFile( in, offset, &origState, sizeof(CHAR) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Read record original status from file at "
+                                "offset[%lld] failed: %d", offset, rc ) ;
+
+      // Query the different OID on all nodes in one group. If it's not there,
+      // insert it.
+      BSONObj obj( bsonBuffer ) ;
+      BSONElement e ;
+      obj.getObjectID( e ) ;
+      BSONObj queryCond = bob().append( e ).obj() ;
+      ciState origStateObj( origState ) ;
+
+      ciLinkList<ciCursor> cursors ;
+      rc = getCiCursor( nodes, header._fullname, cursors, queryCond ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get cursors failed: %d", rc ) ;
+
+      BSONObj record ;     // Hold the full record from server.
+      BOOLEAN existOnMaster = TRUE ;
+      vector<sdbclient::sdb *> pendingDBs ;  // Nodes who dose not have
+                                             // the record.
+      for ( ciCursor *cursor = cursors.getHead(); cursor != NULL;
+            cursor = cursors.next() )
+      {
+         BSONObj tmpRecord ;
+         rc = cursor->_cursor->next( tmpRecord ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            pendingDBs.push_back( cursor->_db ) ;
+            if ( cursor == cursors.getHead() )
+            {
+               existOnMaster = FALSE ;
+            }
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            // In case of other unexpected error, just skip this record this
+            // time.
+            break ;
+         }
+         else if ( record.isEmpty() )
+         {
+            record = tmpRecord ;
+         }
+      }
+
+      if ( SDB_OK == rc && !record.isEmpty() && pendingDBs.size() > 0 )
+      {
+         // There are two scenarios that we need to repair some node:
+         // (1) The primary node always has this record, so other pending nodes
+         //     may have lost the record.
+         // (2) The primary node dosen't have the record for a long time(from
+         //     the first round of inspecting). If some one else dose, then
+         //     maybe it's the primary node who has lost the record.
+         if ( ( origStateObj.hit(0) && existOnMaster ) ||
+              ( !( origStateObj.hit(0) || existOnMaster ) ) )
+         {
+            // Insert on pending nodes.
+            for ( vector<sdb*>::iterator itr = pendingDBs.begin();
+                  itr != pendingDBs.end(); ++itr )
+            {
+               sdbCollection cl ;
+               rc = (*itr)->getCollection( header._fullname, cl ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Get collection handle for[%] failed: %d",
+                          header._fullname, rc ) ;
+                  continue ;
+               }
+               // Don't want to log in the log file. Just ignore.
+               (void)cl.insert( record ) ;
+            }
+         }
+      }
+
+      {
+         ciRecord *record = records.createNode() ;
+         PD_CHECK( NULL != record, SDB_OOM, error, PDERROR,
+                   "Allocate memory for record failed: %d", rc ) ;
+         // Repaire the record, but don't change the status. Wait for next
+         // inspect.
+         record->_bson = obj.copy() ;
+         record->_len = obj.objsize() ;
+         record->_state = state ;
+         record->_origState = origState ;
+         records.add( record ) ;
+      }
+      ++index ;
+   }
+
+done:
+   if ( bsonBuffer )
+   {
+      SDB_OSS_FREE( bsonBuffer ) ;
+   }
+   return rc ;
+error:
    goto done ;
 }
 
@@ -1431,13 +1665,14 @@ INT32 ciRecordToBuffer( ciLinkList< ciRecord > &records, CHAR *&buffer,
 
    validSize = 0 ;
 
+   // Calculate the total size of all the records.
    records.resetCurrentNode() ;
    curRecord = records.getHead() ;
    while ( NULL != curRecord )
    {
       validSize += sizeof( INT32 ) ;
       validSize += curRecord->_len ;
-      validSize += sizeof( CHAR ) ;
+      validSize += ( sizeof( CHAR ) * 2 ) ;  // For _state and _origState.
       curRecord = records.next() ;
    }
 
@@ -1464,6 +1699,8 @@ INT32 ciRecordToBuffer( ciLinkList< ciRecord > &records, CHAR *&buffer,
       ossMemcpy( buffer + pos, curRecord->_bson.objdata(), size ) ;
       pos += size ;
       ossMemcpy( buffer + pos, &curRecord->_state, sizeof( CHAR ) ) ;
+      pos += 1 ;
+      ossMemcpy( buffer + pos, &curRecord->_origState, sizeof( CHAR ) ) ;
       pos += 1 ;
 
       curRecord = records.next() ;
@@ -2018,6 +2255,12 @@ error:
    goto done ;
 }
 
+/**
+ * @brief Get all main and sub collections information by using snapshot.
+ * @param coord Connection to coordinator.
+ * @param mainCls [out] Main collections, with all their sub collections
+ *        together.
+ */
 INT32 getMainAndSubCl( sdbclient::sdb *coord, mainCl &mainCls )
 {
    INT32 rc = SDB_OK ;
@@ -2075,15 +2318,21 @@ error:
 }
 
 /**
-** get groups through coord
-***/
-INT32 getCiGroup( sdbclient::sdb *coord, const CHAR *groupName,
+ * @brief Get group list by 'listReplicaGroups' interface from coordinator.
+ * @param coord Connection to coordinator.
+ * @param groupName Group name specified by the user, or NULL.
+ * @param groupList [out] The groups need to be checked.
+ *
+ * Get group list by 'listReplicaGroups' interface from coordinator. If group is
+ * specified by the user, just get that group. Otherwise, get all groups except
+ * "SYS" groups.
+ */
+INT32 getCiGroup( sdbclient::sdb *coord, const vector<string>& groupNames,
                   ciLinkList< ciGroup > &groupList )
 {
    INT32 rc = SDB_OK ;
 
-   BOOLEAN hasGroup = ( 0 != ossStrncmp( "", groupName,
-                        CI_GROUPNAME_SIZE ) ) ;
+   BOOLEAN hasGroup = groupNames.size() > 0 ? TRUE : FALSE ;
    bson::BSONObj obj ;
    sdbclient::sdbCursor cursor ;
 
@@ -2121,9 +2370,11 @@ INT32 getCiGroup( sdbclient::sdb *coord, const CHAR *groupName,
          if ( 0 != ossStrncmp( beginWith.c_str(),
                                "SYS", ossStrlen( "SYS") ) )
          {
-            // fill group item
-            if ( !hasGroup || ( 0 == ossStrncmp( name.String().c_str(),
-                 groupName, CI_GROUPNAME_SIZE ) ) )
+            // If no group is specified, all data groups(except sys groups) will
+            // be inspected.
+            if ( !hasGroup || ( groupNames.end() != find( groupNames.begin(),
+                                                          groupNames.end(),
+                                                          name.String() ) ) )
             {
                ciGroup *group = groupList.createNode() ;
                if ( NULL == group )
@@ -2147,8 +2398,7 @@ INT32 getCiGroup( sdbclient::sdb *coord, const CHAR *groupName,
 
    if ( 0 >= groupList.count() )
    {
-      std::cout << "Error: Cannot get replica group: "
-                << groupName << std::endl ;
+      std::cout << "Error: Cannot get replica group" << std::endl;
       rc = SDB_INVALIDARG ;
       goto error ;
    }
@@ -2161,9 +2411,31 @@ error:
    goto done ;
 }
 
-/**
-** get nodes info through group
-***/
+INT32 getCompleteLSN( sdb &conn, UINT64 &completeLSN )
+{
+   INT32 rc = SDB_OK ;
+   sdbCursor cursor ;
+   BSONObj result ;
+   BSONObj cond = bob().append("CompleteLSN", "").obj() ;
+
+   rc = conn.getSnapshot( cursor, SDB_SNAP_DATABASE, _sdbStaticObject, cond ) ;
+   PD_RC_CHECK( rc, PDERROR, "Get snapshot database failed: %d", rc ) ;
+   rc = cursor.next( result ) ;
+   PD_RC_CHECK( rc, PDERROR, "Get snapshot database result from cursor "
+                             "failed: %d", rc ) ;
+   completeLSN = result.firstElement().Long() ;
+
+done:
+   cursor.close() ;
+   return rc ;
+error:
+   goto done ;
+}
+
+/*
+ * Get all nodes in the specified group. Master node is the first one in the
+ * list.
+ */
 INT32 getCiNode( sdbclient::sdb *coord, ciGroup *group,
                  ciGroupHeader &header, ciLinkList<ciNode> &nodeList )
 {
@@ -2224,6 +2496,18 @@ INT32 getCiNode( sdbclient::sdb *coord, ciGroup *group,
       ++index ;
       masterNode->_index = index ;
       nodeList.add( masterNode ) ;
+
+      {
+         sdb conn ;
+         rc = master.connect( conn ) ;
+         PD_RC_CHECK( rc, PDERROR, "Connect to master node[%s:%s] failed: %d",
+                      masterNode->_hostname, masterNode->_serviceName, rc ) ;
+
+         rc = getCompleteLSN( conn, header._maxCompleteLSN ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get completeLSN by snapshot for node[%s:%s]"
+                                   " failed: %d",
+                      masterNode->_hostname, masterNode->_serviceName, rc ) ;
+      }
 
       // query slave nodes of group
       bson::BSONObj result ;
@@ -2286,6 +2570,17 @@ INT32 getCiNode( sdbclient::sdb *coord, ciGroup *group,
                   node->_state = ciNode::STATE_DISCONN ;
                   rc = SDB_OK ;
                }
+               else
+               {
+                  UINT64 completeLSN = 0 ;
+                  rc = getCompleteLSN( db, completeLSN ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Get completeLSN by snapshot "
+                                            "failed: %d", rc ) ;
+                  if ( completeLSN > header._maxCompleteLSN )
+                  {
+                     header._maxCompleteLSN = completeLSN ;
+                  }
+               }
             }
             node->_nodeID = nodeID ;
             ++index ;
@@ -2305,6 +2600,10 @@ error:
    goto done ;
 }
 
+/*
+ * Check if collection named subClName is a sub collection in the main
+ * collection named mainClName.
+ */
 BOOLEAN isInMainSubCl( const CHAR *mainClName,
                        const CHAR *subClName, const mainCl &mainCls )
 {
@@ -2349,17 +2648,24 @@ const CHAR* getMainClName( const mainCl &mainCls, const CHAR *subClName )
 
    return pName ;
 }
-/**
-** get collection space in nodes
-***/
-INT32 getCiCollection( ciNode *master, const CHAR *csName,
-                       const CHAR *clName,
+
+// Get all the collections we need to inspect from MASTER node.
+// The flow is as follows:
+// (1) Connect to master node directly, and list all the collections.
+// (2) Tranverse all these collections to check if they are what we want:
+//     a> If no collectionspace is specified, all collections need to be
+//       inspected.
+//     b> If cs is specified, but not the collection, all collections in the
+//       matching collectionspace need to be inspected.
+//     c> If cs and cl are specified, only this collection needs to be inspected.
+INT32 getCiCollection( ciNode *master, const CHAR *groupName,
+                       const CHAR *csName, const CHAR *clName,
                        ciLinkList< ciCollection > &collections,
                        const mainCl &mainCls )
 {
    INT32 rc              = SDB_OK ;
-   BOOLEAN hasCollection = FALSE ;
-   BOOLEAN hasCs         = FALSE ;
+   BOOLEAN hasCollection = FALSE ;  // Whether collection is specified.
+   BOOLEAN hasCs         = FALSE ;  // Whether cs is specified.
    sdbclient::sdb db ;
    sdbclient::sdbCursor cursor ;
    bson::BSONObj collection ;
@@ -2398,6 +2704,8 @@ INT32 getCiCollection( ciNode *master, const CHAR *csName,
       goto error ;
    }
 
+   // Check all the collections on master node one by one, to see it any of them
+   // needs to be inspected according to the rule.
    rc = cursor.next( collection ) ;
    while ( SDB_DMS_EOC != rc )
    {
@@ -2419,7 +2727,7 @@ INT32 getCiCollection( ciNode *master, const CHAR *csName,
          std::string cs ;
          std::string cl ;
          BOOLEAN csMatch     = FALSE ;
-         BOOLEAN allMatch    = FALSE ;
+         BOOLEAN allMatch    = FALSE ;  // Both cs and cl match the parameters.
          BOOLEAN inMainSubCl = FALSE ;
          std::string name    = collection.getField( "Name" ).String() ;
          std::size_t dot     = name.find( '.' ) ;
@@ -2432,15 +2740,32 @@ INT32 getCiCollection( ciNode *master, const CHAR *csName,
          }
          cs = name.substr( 0, dot ) ;
          cl = name.substr( dot + 1 ) ;
-         // no cl name input and cs name match
-         csMatch = ( !hasCollection &&
-                     ( 0 == ossStrncmp( csName, cs.c_str(),
-                                        CI_CS_NAME_SIZE ) ) ) ;
-         allMatch = ( hasCs && hasCollection &&
-                      ( 0 == ossStrncmp( csName, cs.c_str(),
-                                         CI_CS_NAME_SIZE ) ) &&
-                      ( 0 == ossStrncmp( clName, cl.c_str(),
-                                         CI_CL_NAME_SIZE ) ) ) ;
+         if ( gTargetParser )
+         {
+            allMatch = gTargetParser->isTarget( groupName, name.c_str() ) ;
+            if ( !allMatch )
+            {
+               rc = cursor.next( collection ) ;
+               continue ;
+            }
+         }
+         else
+         {
+            // no cl name input and cs name match
+            csMatch = ( !hasCollection &&
+                        ( 0 == ossStrncmp( csName, cs.c_str(),
+                                           CI_CS_NAME_SIZE ) ) ) ;
+            allMatch = ( hasCs && hasCollection &&
+                         ( 0 == ossStrncmp( csName, cs.c_str(),
+                                            CI_CS_NAME_SIZE ) ) &&
+                         ( 0 == ossStrncmp( clName, cl.c_str(),
+                                            CI_CL_NAME_SIZE ) ) ) ;
+         }
+
+         // The collection specified by the user may be a main collection.
+         // Check if the collection referred by the cursor is a sub collection
+         // of the main collection. If yes, the sub collection needs to be
+         // inspected.
          inMainSubCl = ( hasCs && hasCollection &&
                          isInMainSubCl( fullName, name.c_str(), mainCls ) ) ;
          if ( !hasCs || csMatch || allMatch || inMainSubCl )
@@ -2467,6 +2792,8 @@ INT32 getCiCollection( ciNode *master, const CHAR *csName,
                              mainClName, CI_CL_FULLNAME_SIZE ) ;
                }
             }
+            PD_LOG( PDDEBUG, "Add collection [%s] to process list",
+                    cl->_clName ) ;
             collections.add( cl ) ;
          }
       }
@@ -2486,8 +2813,11 @@ error:
 }
 
 /**
-** check if reach end of condition
-***/
+ * @brief Whether hit the ends of all the cursors.
+ * @param doc  Current record.
+ * @param nodeCount Node number for comparison in the replica groups.
+ * @return TRUE if all cursors hit the end.
+ */
 BOOLEAN reachEnd( const ciBson &doc, const INT32 nodeCount )
 {
    BOOLEAN end = TRUE ;
@@ -2538,9 +2868,12 @@ done:
    return equal ;
 }
 
-/**
-** compare each record among nodes
-***/
+// Compare one group of records, each from one node in the replica group.
+// obj is the record who has the smallest OID among them. All the records are
+// compared with it one by one. If they are the same, the state bit according to
+// the index will be set to 1. Otherwise, the state bit will remain as 0. In
+// this case, we can use the state bits to known which ones are the same, and
+// which ones are not.
 BOOLEAN compare( ciLinkList< ciNode > &nodes,
                  const bson::BSONObj &obj,
                  ciState &state, ciBson &doc )
@@ -2549,7 +2882,13 @@ BOOLEAN compare( ciLinkList< ciNode > &nodes,
    INT32 nodeCount = nodes.count() ;
    nodes.resetCurrentNode() ;
    ciNode *node = nodes.getHead() ;
+   BSONElement baseOIDEle ;
    state.reset() ;
+
+   if ( gFastMode )
+   {
+      obj.getObjectID( baseOIDEle ) ;
+   }
 
    for ( INT32 idx = 0 ; idx < nodeCount ; ++idx, node = nodes.next() )
    {
@@ -2562,7 +2901,18 @@ BOOLEAN compare( ciLinkList< ciNode > &nodes,
       }
       else if ( ciNode::STATE_NORMAL == node->_state )
       {
-         if ( doc.objs[idx].equal( obj ) || _objSortCmp( doc.objs[idx], obj ) )
+         if ( gFastMode )
+         {
+            // Only compare OID
+            BSONElement oidEle ;
+            if ( doc.objs[idx].getObjectID( oidEle ) &&
+                 oidEle.valuesEqual( baseOIDEle ) )
+            {
+               state.set( idx ) ;
+            }
+         }
+         else if ( doc.objs[idx].equal( obj ) ||
+                   _objSortCmp( doc.objs[idx], obj ) )
          {
             state.set( idx ) ;
          }
@@ -2581,8 +2931,13 @@ BOOLEAN compare( ciLinkList< ciNode > &nodes,
 }
 
 /**
-** compare each record among nodes
-***/
+ * @brief Compare all records for one collection and get the different ones.
+ * @param nodes  Nodes in the same replica groups.
+ * @param cursors  cursors of the collection on each node.
+ * @param records [out]  List of records which are not the same on the nodes. It
+ *                       contains the whole record, and the state info(from
+ *                       which we can know on which nodes it's different).
+ */
 INT32 getCiRecord( ciLinkList< ciNode > &nodes,
                    ciLinkList< ciCursor > &cursors,
                    ciLinkList< ciRecord > &records )
@@ -2591,20 +2946,25 @@ INT32 getCiRecord( ciLinkList< ciNode > &nodes,
    BOOLEAN equal   = FALSE ;
    INT32 min       = 0 ;
    INT32 nodeCount = 0 ;
+   INT64 counter   = 0 ;
+   INT32 brakeTime = 0 ;
+   INT32 brakeStep = 0 ;
    ciBson record ;
    ciState state ;
    state.reset() ;
+
+   getBrakeOptions( brakeTime, brakeStep ) ;
    cursors.resetCurrentNode() ;
 
    nodeCount = cursors.count() ;
    // get first record and compare
    state.set( ALL_THE_SAME_BIT ) ;
-   rc = getNext( state, cursors, 0, record, FALSE ) ;
+   rc = getNext( state, cursors, record, FALSE ) ;
    while ( !reachEnd( record, nodeCount ) )
    {
+      // brake here
       min = getMinObjectIndex( record, nodeCount ) ;
       equal = compare( nodes, record.objs[ min ], state, record ) ;
-
       if ( !equal )
       {
          ciRecord *rd = records.createNode() ;
@@ -2617,10 +2977,24 @@ INT32 getCiRecord( ciLinkList< ciNode > &nodes,
          }
          rd->_bson = record.objs[min].copy() ;
          rd->_state = state._state ;
+         rd->_origState = state._state ;
          rd->_len = rd->_bson.objsize() ;
          records.add( rd ) ;
       }
-      rc = getNext( state, cursors, min, record ) ;
+
+      // Speed controller
+      ++counter ;
+      if ( brakeTime > 0 && brakeStep > 0 &&
+           ( ( counter % brakeStep ) == 0 ) )
+      {
+         ossSleepmillis( brakeTime ) ;
+      }
+      if ( counter % 1000000 == 0 )
+      {
+         PD_LOG( PDDEBUG, "Processed number: %lld", counter ) ;
+      }
+
+      rc = getNext( state, cursors, record ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
    }
 
@@ -2643,10 +3017,121 @@ void makeTmpFileName( const CHAR *outFile, UINT32 loopIndex, CHAR *tmpFile, UINT
 }
 
 /**
-** inspect node without file specified
-***/
-INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
-                          const CHAR *outFile, UINT64 &count )
+ * @brief Check max complete LSN of each group and write to the file.
+ * @param out
+ * @param tail
+ * @return
+ */
+INT32 refreshGroupMaxCompleteLSN( sdbclient::sdb *coord,
+                                  OSSFILE &out,
+                                  const vector<string>& targetGroups,
+                                  ciLinkList< ciGroup > &groupList,
+                                  ciTail &tail )
+{
+   INT32 rc = SDB_OK ;
+   ciGroup *curGroup = NULL ;
+   ciGroupHeader groupHeader ;
+   ciLinkList< ciNode > nodeList ;
+   std::map<const CHAR *, UINT64, str_compare> groupLSNMap ;
+
+   groupList.resetCurrentNode() ;
+   curGroup = groupList.getHead() ;
+   while ( curGroup )
+   {
+      if ( targetGroups.end() != find( targetGroups.begin(), targetGroups.end(),
+                                       curGroup->_groupName ) )
+      {
+         rc = getCiNode( coord, curGroup, groupHeader, nodeList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get node info for group[%s] failed: %d",
+                      curGroup->_groupName, rc ) ;
+         groupLSNMap[ curGroup->_groupName ] = groupHeader._maxCompleteLSN ;
+      }
+      curGroup = groupList.next() ;
+   }
+
+   // Traverse all the group header, and update the completeLSN.
+   {
+      ciOffset *offsetItem ;
+      ciLinkList<ciOffset> *groupOffsets = &(tail._groupOffset) ;
+      groupOffsets->resetCurrentNode() ;
+      offsetItem = groupOffsets->getHead() ;
+      while ( offsetItem )
+      {
+         ciGroupHeader header ;
+         INT64 groupOffset = offsetItem->_offset ;
+         // This function will change the second parameter! So don't pass
+         // offsetItem->_offset.
+         readCiGroupHeader( out, groupOffset, &header ) ;
+         std::map<const CHAR *, UINT64, str_compare>::iterator itr =
+               groupLSNMap.find( header._groupName ) ;
+         if ( itr != groupLSNMap.end() )
+         {
+            header._maxCompleteLSN = itr->second ;
+            ossSeek( &out, offsetItem->_offset, OSS_SEEK_SET ) ;
+            writeCiGroupHeader( out, &header ) ;
+            PD_LOG( PDDEBUG, "Update max complete LSN for group %s to %lld",
+                    header._groupName, itr->second ) ;
+         }
+
+         offsetItem = groupOffsets->next() ;
+      }
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+/**
+ * @brief Inspect the targets using a complete flow. Without file means without
+ *        any intermedia files.
+ * @param coord  Connection to coordinator.
+ * @param header Header to write into file.
+ * @param outFile Output file name.
+ * @param count [out] Total different record number.
+ *
+ * The structure of the intermediate file is as follows:
+ *                 _________________________________
+ *                |           file header           |
+ *                |---------------------------------|
+ *                |          group1 header          |
+ *                |---------------------------------|
+ *                |           node11 info           |
+ *                |           node12 info           |
+ *                |           node13 info           |
+ *                |---------------------------------|
+ *                |          diff record1           |
+ *                |          diff record1           |
+ *                |          diff record1           |
+ *                |          diff record1           |
+ *                |          diff record1           |
+ *                |---------------------------------|
+ *                |          group2 header          |
+ *                |---------------------------------|
+ *                |           node21 info           |
+ *                |           node22 info           |
+ *                |           node23 info           |
+ *                |---------------------------------|
+ *                |          diff record1           |
+ *                |          diff record1           |
+ *                |          diff record1           |
+ *                |          diff record1           |
+ *                |          diff record1           |
+ *                |---------------------------------|
+ *                |                                 |
+ *                |               ...               |
+ *                |                                 |
+ *                |---------------------------------|
+ *                |           file tail             |
+ *                |       maintain offset of        |
+ *                |       each group header         |
+ *                |_________________________________|
+ *
+ */
+INT32 inspectWithoutFile( _IParam *options, sdbclient::sdb *coord,
+                          ciHeader *header, const CHAR *outFile,
+                          UINT64 &count )
 {
    INT32 rc                                 = SDB_OK ;
    BOOLEAN hasGroup                         = FALSE ;
@@ -2654,10 +3139,10 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
    ciGroup *curGroup                        = NULL ;
    ciCollection *curCollection              = NULL ;
    CHAR *buffer                             = NULL ;
-   INT64 offset                             = 0 ;
+   INT64 offset                             = 0 ;  // Write position in the
+                                                   // output file.
    INT64 bufferSize                         = 0 ;
    INT64 validSize                          = 0 ;
-   CHAR fullName[ CI_CL_FULLNAME_SIZE + 1 ] = { 0 } ;
    ciLinkList< ciGroup > groupList ;
    ciLinkList< ciNode > nodeList ;
    ciLinkList< ciCollection > collections ;
@@ -2669,8 +3154,10 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
    OSSFILE file ;
    ossTimestamp beginTime ;
    ossTimestamp endTime ;
+   vector<string> groupNames ;   // Target group names.
 
    ossGetCurrentTime( beginTime ) ;
+   PD_LOG( PDEVENT, "Begin inspect without any existing file..." ) ;
 
    count = 0 ;
    rc = ossOpen( outFile, OSS_REPLACE | OSS_READWRITE,
@@ -2687,36 +3174,64 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
    offset += validSize ;
 
-   rc = getCiGroup( coord, header->_groupName, groupList ) ;
+   if ( gTargetParser )
+   {
+      // Loop and get all groups.
+      groupNames = gTargetParser->getGroups() ;
+   }
+   else if ( ossStrlen( header->_groupName ) > 0 )
+   {
+      groupNames.push_back( header->_groupName ) ;
+   }
+
+   rc = getCiGroup( coord, groupNames, groupList ) ;
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
+   // Get all main and sub collections information.
    rc = getMainAndSubCl( coord, tail._mainCls ) ;
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
    tail._mainClCount = tail._mainCls.size() ;
 
-   hasGroup = ( 0 != ossStrncmp( "", header->_groupName,
-                CI_GROUPNAME_SIZE ) ) ;
-   // combine collection full name
-   ossSnprintf( fullName, sizeof( fullName ), "%s.%s",
-                header->_csName, header->_clName ) ;
+   hasGroup = groupNames.size() > 0 ? TRUE : FALSE ;
 
+   // Inspect on all the target groups one by one. And on each group, inspect
+   // all the target collections. Only collections which are available on the
+   // group master node will be inspected.
    groupList.resetCurrentNode() ;
    curGroup = groupList.getHead() ;
    while( NULL != curGroup )
    {
-      if ( !hasGroup || 0 == ossStrncmp( curGroup->_groupName,
-                                         header->_groupName,
-                                         CI_GROUPNAME_SIZE ) )
+      BOOLEAN match = FALSE ;
+      // Only when no group/cs/cl is specified that the gTargetParser will be
+      // initialized.
+      if ( gTargetParser )
       {
+         match = gTargetParser->isTarget( curGroup->_groupName ) ;
+      }
+      else if ( !hasGroup || 0 == ossStrncmp( curGroup->_groupName,
+                                              header->_groupName,
+                                              CI_GROUPNAME_SIZE ) )
+      {
+         match = TRUE ;
+      }
+
+      if ( match )
+      {
+         PD_LOG( PDEVENT, "Begin to inspect group %s...",
+                 curGroup->_groupName ) ;
+
          nodeList.clear() ;
          collections.clear() ;
 
+         // Get all nodes in the current group.
          rc = getCiNode( coord, curGroup, groupHeader, nodeList ) ;
          CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
-         // get collections
-         rc = getCiCollection( nodeList.getHead(), header->_csName,
-                               header->_clName, collections, tail._mainCls ) ;
+         // Get the list of collections which need to be inspected on this
+         // group.
+         rc = getCiCollection( nodeList.getHead(), curGroup->_groupName,
+                               header->_csName, header->_clName, collections,
+                               tail._mainCls ) ;
          CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
          groupHeader._clCount = collections.count() ;
@@ -2731,6 +3246,9 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
             rc = SDB_OOM ;
             goto error ;
          }
+
+         // Remember the offset of the beginning of the group header in the
+         // tail.
          off->_offset = offset ;
          tail._groupOffset.add( off ) ;
          ++tail._groupCount ;
@@ -2747,12 +3265,21 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
          CHECK_VALUE( ( SDB_OK != rc ), error ) ;
          offset += validSize ;
 
+         // Inspect all target collections in this group.
+         // One round of loop processes one collection. This is single thread,
          while ( NULL != curCollection )
          {
+            PD_LOG( PDEVENT, "Begin to inspect collection %s on group %s",
+                    curCollection->_clName, curGroup->_groupName ) ;
             cursors.clear() ;
             bson::BSONObj order = bob().append("_id", 1).obj();
+            bson::BSONObj selector = sdbclient::_sdbStaticObject ;
+            if ( gFastMode )
+            {
+               selector = bob().append("_id", "").obj() ;
+            }
             rc = getCiCursor( nodeList, curCollection->_clName,
-                              cursors, order, TRUE ) ;
+                              cursors, order, TRUE, selector ) ;
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
             ossMemset( clHeader._fullname, 0, CI_CL_FULLNAME_SIZE ) ;
@@ -2762,6 +3289,7 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
                        CI_CL_FULLNAME_SIZE ) ;
 
             records.clear() ;
+            // Get all inconsistent records for the collection.
             rc = getCiRecord( nodeList, cursors, records ) ;
             if ( SDB_OK != rc )
             {
@@ -2798,6 +3326,8 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
                offset += validSize ;
             }
 
+            PD_LOG( PDEVENT, "Inspect collection %s on group %s done",
+                    curCollection->_clName, curGroup->_groupName ) ;
             curCollection = collections.next() ;
          }
       }
@@ -2847,6 +3377,10 @@ INT32 inspectWithoutFile( sdbclient::sdb *coord, ciHeader *header,
    rc = writeCiHeader( file, header, buffer, bufferSize, validSize, TRUE ) ;
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
+   // Update all group max completeLSN after compare all records.
+   rc = refreshGroupMaxCompleteLSN( coord, file, groupNames, groupList, tail ) ;
+   PD_RC_CHECK( rc, PDERROR, "Refresh group max complete LSN failed: %d", rc ) ;
+
 done:
    // close file
    if ( opened )
@@ -2866,11 +3400,97 @@ error:
    goto done ;
 }
 
+
+INT32 ensureNodeConnection( ciNode &node, BOOLEAN reconnect = FALSE )
+{
+   INT32 rc = SDB_OK ;
+   sdb *db = node._db ;
+   if ( !db )
+   {
+      db = new sdb() ;
+      PD_CHECK( db, SDB_OOM, error, PDERROR,
+                "Allocate memory for node connection failed: %d", rc ) ;
+      node._db = db ;
+      rc = db->connect( node._hostname, node._serviceName,
+                        g_username, g_password ) ;
+      if ( rc )
+      {
+         // In case of connection error, keep the connection object.
+         node._state = ciNode::STATE_DISCONN ;
+         PD_LOG( PDERROR, "Connect to node[%s:%s] failed: %d",
+                 node._hostname, node._serviceName, rc ) ;
+         goto error ;
+      }
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+/**
+ * @brief Whether all nodes have reached or exceeded the max complete LSN
+ *        recorded in the first round. This is to avoid repair normal records
+ *        which have not been synchronized between nodes.
+ * @param maxCompleteLSN  Maximum complete LSN of nodes in this group in the
+ *                        first round.
+ * @param nodes           Nodes to be checked.
+ * @return Return true if all nodes are checked correctly and all their complete
+ *         LSN match the condition.
+ *
+ * In case of any error, such as node down, query exception, need to return
+ * false.
+ */
+BOOLEAN allNodesCatchUp( UINT64 maxCompleteLSN,
+                         ciLinkList<ciNode>& nodes )
+{
+   INT32 rc = SDB_OK ;
+   BOOLEAN result = FALSE ;
+   ciNode *node = NULL ;
+
+   if ( ( 0 == maxCompleteLSN ) || ( nodes.count() == 0 ) )
+   {
+      goto done ;
+   }
+
+   nodes.resetCurrentNode() ;
+   node = nodes.getHead() ;
+   while ( NULL != node )
+   {
+      UINT64 completeLSN = 0 ;
+      rc = ensureNodeConnection( *node ) ;
+      PD_RC_CHECK( rc, PDERROR, "Connection error: %d", rc ) ;
+
+      rc = getCompleteLSN( *node->_db, completeLSN ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get completeLSN failed: %d", rc ) ;
+      if ( completeLSN < maxCompleteLSN )
+      {
+         PD_LOG( PDWARNING, "Complete LSN of node[%s:%s] is %llu. Start point "
+                            "is %llu. Collections on this group will not be "
+                            "repaired in this round. Wait for next round to "
+                            "check",
+                            node->_hostname, node->_serviceName, completeLSN,
+                            maxCompleteLSN ) ;
+         result = FALSE ;
+         goto done ;
+      }
+      node = nodes.next() ;
+   }
+   result = TRUE ;
+
+done:
+   return result ;
+error:
+   goto done ;
+}
+
 /**
 ** inspect node with file specified
 ***/
 INT32 inspectWithFile( ciHeader *header, const CHAR *inFile,
-                       const CHAR *outFile, UINT64 &count, BOOLEAN &finish )
+                       const CHAR *outFile, UINT64 &count, BOOLEAN &finish,
+                       BOOLEAN tryToRepair = FALSE )
 {
    INT32 rc           = SDB_OK ;
    BOOLEAN inOpened   = FALSE ;
@@ -2892,6 +3512,8 @@ INT32 inspectWithFile( ciHeader *header, const CHAR *inFile,
    OSSFILE out ;
    ossTimestamp beginTime ;
    ossTimestamp endTime ;
+
+   PD_LOG( PDDEBUG, "Begin inspect with existing file: %s", inFile ) ;
 
    ossGetCurrentTime( beginTime ) ;
 
@@ -3019,7 +3641,19 @@ INT32 inspectWithFile( ciHeader *header, const CHAR *inFile,
          {
             records.clear() ;
 
-            rc = readCiRecord( in, offset, ciNodes, clHeader, records ) ;
+            // Only when the completeLSN of all the nodes in the group have
+            // catched up with the original largest completeLSN, then we can
+            // start repairing. Otherwise, just do inspect. All nodes should
+            // be in normal status.
+            if ( tryToRepair && allNodesCatchUp( groupHeader._maxCompleteLSN,
+                                                 ciNodes ) )
+            {
+               rc = repairConsistency( in, offset, ciNodes, clHeader, records ) ;
+            }
+            else
+            {
+               rc = readCiRecord( in, offset, ciNodes, clHeader, records ) ;
+            }
             CHECK_VALUE( ( SDB_OK != rc ), error ) ;
          }
 
@@ -3136,9 +3770,19 @@ const CHAR *_ciNode::stateDesc[ _ciNode::STATE_COUNT ] =
 } ;
 
 _sdbCi::_sdbCi()
+: _repair( FALSE ) ,
+  _repairRetryTimes( 0 ),
+  _brakeTime(0 ),
+  _brakeStep( 1000 )
 {
    ossMemset( _coordAddr, 0, CI_ADDRESS_SIZE + 1 ) ;
    ossMemset( _auth, 0, CI_AUTH_SIZE + 1 ) ;
+   ossMemset( _list, 0, CI_ARG_MAX_SIZE + 1 ) ;
+   ossMemset( _listFile, 0, OSS_MAX_PATHSIZE + 1 ) ;
+#ifdef _DEBUG
+   ossMemset(_encodeFile, 0, OSS_MAX_PATHSIZE + 1 ) ;
+   ossMemset(_decodeFile, 0, OSS_MAX_PATHSIZE + 1 ) ;
+#endif
 }
 
 _sdbCi::~_sdbCi()
@@ -3151,29 +3795,134 @@ void _sdbCi::displayArgs( const po::options_description &desc )
 }
 
 INT32 _sdbCi::init( INT32 argc, CHAR **argv,
-                    po::options_description &desc,
                     po::variables_map &vm )
 {
    INT32 rc = SDB_OK ;
+   po::options_description all( "Command options" ) ;
+   po::options_description display( "Command options" ) ;
 
-   INSPECT_ADD_OPTIONS_BEGIN( desc )
+#ifdef _DEBUG
+   INSPECT_ADD_OPTIONS_BEGIN( all )
+         INSPECT_OPTIONS
+         INSPECT_HIDDEN_OPTIONS
+         INSPECT_HIDDEN_OPTIONS_DEBUG
+         ( PMD_OPTION_HELPFULL, "help all configs" )
+   INSPECT_ADD_OPTIONS_END
+#else
+   INSPECT_ADD_OPTIONS_BEGIN( all )
+      INSPECT_OPTIONS
+      INSPECT_HIDDEN_OPTIONS
+      ( PMD_OPTION_HELPFULL, "help all configs" )
+   INSPECT_ADD_OPTIONS_END
+#endif
+
+   INSPECT_ADD_OPTIONS_BEGIN( display )
       INSPECT_OPTIONS
    INSPECT_ADD_OPTIONS_END
 
-   rc = utilReadCommandLine( argc, argv, desc, vm ) ;
+   rc = utilReadCommandLine( argc, argv, all, vm ) ;
    if ( SDB_OK != rc )
    {
       std::cout << "Invalid parameters" << std::endl ;
-      displayArgs( desc ) ;
+      displayArgs( display ) ;
       goto error ;
    }
+
+   if ( vm.empty() || vm.count( CONSISTENCY_INSPECT_HELP ) )
+   {
+      std::cout << display << std::endl ;
+      rc = SDB_PMD_HELP_ONLY ;
+      goto done ;
+   }
+   else if ( vm.count( CONSISTENCY_INSPECT_HELPFULL ) )
+   {
+      std::cout << all << std::endl ;
+
+   }
+
+   if ( vm.count( CONSISTENCY_INSPECT_VER ) )
+   {
+      ossPrintVersion( "sdbinspect version" ) ;
+      rc = SDB_PMD_VERSION_ONLY ;
+      goto done ;
+   }
+
+   PD_LOG( PDEVENT, "Start sdbinspect" ) ;
 
    rc = _pmdCfgRecord::init( NULL, &vm ) ;
    if ( SDB_OK != rc )
    {
       std::cout << "Invalid parameters" << std::endl ;
-      displayArgs( desc ) ;
+      displayArgs( display ) ;
       goto error ;
+   }
+
+#ifdef _DEBUG
+   if ( vm.count( CONSISTENCY_INSPECT_ENCODE ) )
+   {
+      const CHAR *outFileName = vm.count( CONSISTENCY_INSPECT_OUTPUT ) ?
+                                _header._outfile : INSPECT_DEFAULT_BFILE_NAME ;
+      rc = gFileGuard.encrypt( _encodeFile, outFileName ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Encrypt file[%s] failed: %d", _encodeFile, rc ) ;
+         ossPrintf( "Encrypt file[%s] failed. Error(%d): %s"OSS_NEWLINE,
+                    _encodeFile, rc, getErrDesp( rc ) ) ;
+         goto error ;
+      }
+      rc = SDB_PMD_HELP_ONLY ;
+      goto done ;
+   }
+
+   if ( vm.count( CONSISTENCY_INSPECT_DECODE ) )
+   {
+      const CHAR *outFileName = vm.count( CONSISTENCY_INSPECT_OUTPUT ) ?
+                                _header._outfile : INSPECT_DEFAULT_TFILE_NAME ;
+      rc = gFileGuard.decrypt(_decodeFile, outFileName ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Decrypt file[%s] failed: %d", _decodeFile, rc ) ;
+         ossPrintf( "Decrypt file[%s] failed. Error(%d): %s"OSS_NEWLINE,
+                    _decodeFile, rc, getErrDesp( rc ) ) ;
+         goto error ;
+      }
+      rc = SDB_PMD_HELP_ONLY ;
+      goto done ;
+   }
+#endif
+
+   {
+      BOOLEAN initParser = FALSE ;
+      // Priority: -g/-c/-s > --list > --listfile
+      if ( ossStrlen( _header._groupName ) > 0 ||
+           ossStrlen( _header._csName ) > 0 ||
+           ossStrlen( _header._clName ) > 0 )
+      {
+         ossMemset( _list, 0, sizeof( _list ) ) ;
+         ossMemset( _listFile, 0, sizeof( _listFile ) ) ;
+      }
+      else if ( ossStrlen( _list ) > 0 )
+      {
+         ossMemset( _listFile, 0, sizeof( _listFile ) ) ;
+         initParser = TRUE ;
+      }
+      else if ( ossStrlen( _listFile ) > 0 )
+      {
+         initParser = TRUE ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Inspect target is not specified" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( initParser )
+      {
+         gTargetParser = new inspectTargetParser() ;
+         PD_CHECK( NULL != gTargetParser, SDB_OOM, error, PDERROR,
+                   "Allocate memory for inspectTargetParser failed: %d", rc ) ;
+      }
    }
 
 done:
@@ -3182,8 +3931,7 @@ error:
    goto done ;
 }
 
-INT32 _sdbCi::handle( const po::options_description &desc,
-                      const po::variables_map &vm )
+INT32 _sdbCi::handle( const po::variables_map &vm )
 {
    INT32 rc = SDB_OK ;
    BOOLEAN byGroup = TRUE ;
@@ -3194,27 +3942,6 @@ INT32 _sdbCi::handle( const po::options_description &desc,
    OSSFILE startupFile ;
    BOOLEAN startupFileOpened = FALSE ;
    BOOLEAN startupFileLocked = FALSE ;
-
-   if ( vm.empty() || vm.count( CONSISTENCY_INSPECT_HELP ) )
-   {
-      std::cout << "This tool is used to inspect data among nodes in each "
-                << "group. It will scan all records."
-                << std::endl << std::endl ;
-
-      displayArgs(desc) ;
-      goto done ;
-   }
-
-   if ( vm.count( CONSISTENCY_INSPECT_VER ) )
-   {
-      ossPrintVersion( "SequoiaDB version" ) ;
-
-      CHAR version[ 64 ] = { 0 } ;
-      std::cout << "sdbConsistencyInspect version : " ;
-      ossSnprintf( version, 64, "%d.%d", CI_MAIN_VERSION, CI_SUB_VERSION ) ;
-      std::cout << version << std::endl ;
-      goto done ;
-   }
 
    if ( 0 != ossStrncmp( CI_ACTION_INSPECT, _header._action, CI_ACTION_SIZE ) &&
         0 != ossStrncmp( CI_ACTION_REPORT, _header._action, CI_ACTION_SIZE ) )
@@ -3284,21 +4011,38 @@ INT32 _sdbCi::handle( const po::options_description &desc,
       goto done ;
    }
 
+   rc = splitAuth();
+   CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+
    if ( vm.count( CONSISTENCY_INSPECT_FILE ) &&
         0 == ossStrncmp( CI_ACTION_INSPECT, _header._action, CI_ACTION_SIZE ) )
    {
       std::cout << "file is specified, initialize all options according to file"
                 << std::endl ;
       rc = initialize( &_header ) ;
+      PD_RC_CHECK( rc, PDERROR, "Initialize from existing file failed: %d",
+                   rc ) ;
    }
    else
    {
       rc = splitAddr() ;
+      PD_RC_CHECK( rc, PDERROR, "Parse coordinator address failed: %d", rc ) ;
+      if ( gTargetParser )
+      {
+         if ( '\0' != _list[0] )
+         {
+            rc = gTargetParser->parseByData( _list, ossStrlen( _list ) ) ;
+         }
+         else
+         {
+            rc = gTargetParser->parseByConfFile( _listFile, _header._coordAddr,
+                                                 _header._serviceName,
+                                                 g_username, g_password ) ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Parse target from list file failed: %d",
+                      rc ) ;
+      }
    }
-   CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-
-   rc = splitAuth() ;
-   CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
    if ( 0 != ossStrncmp( CI_VIEW_GROUP, _header._view, CI_VIEWOPTION_SIZE ) &&
         0 != ossStrncmp( CI_VIEW_CL, _header._view, CI_VIEWOPTION_SIZE ) )
@@ -3349,6 +4093,7 @@ INT32 _sdbCi::handle( const po::options_description &desc,
       ossMemcpy( outReport, _header._outfile, OSS_MAX_PATHSIZE ) ;
    }
    ossStrncat( outReport, CI_FILE_REPORT, ossStrlen( CI_FILE_REPORT ) ) ;
+   // Read the binary file and print the repord in a text file.
    rc = byGroup ? report ( _header._outfile, outReport,
                            tailBuffer, tailBufferSize )
                 : report2( _header._outfile, outReport,
@@ -3393,6 +4138,7 @@ INT32 _sdbCi::inspect()
    sdbclient::sdb *coord = NULL ;
    CHAR inFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
    CHAR tmpFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 }  ;
+   INT32 loopNum = 0 ;
 
    coord = new sdbclient::sdb() ;
    if( NULL == coord )
@@ -3419,12 +4165,17 @@ INT32 _sdbCi::inspect()
 
    if ( 0 == ossStrncmp( _header._filepath, "", OSS_MAX_PATHSIZE ) )
    {
+      // No -f/--file argument is given, start from the beginning.
       do
       {
          curLoop += 1 ;
-         makeTmpFileName( _header._outfile, curLoop, tmpFile, OSS_MAX_PATHSIZE ) ;
+         PD_LOG( PDDEBUG, "Begin to inspect for round[%d]...", curLoop ) ;
 
-         rc = inspectWithoutFile( coord, &_header, tmpFile, totalRecord ) ;
+         makeTmpFileName( _header._outfile, curLoop,
+                          tmpFile, OSS_MAX_PATHSIZE ) ;
+
+         rc = inspectWithoutFile( this, coord, &_header,
+                                  tmpFile, totalRecord ) ;
       }while ( CI_INSPECT_ERROR == rc ) ;
 
       if ( CI_INSPECT_CL_NOT_FOUND == rc )
@@ -3439,7 +4190,7 @@ INT32 _sdbCi::inspect()
          finish = TRUE ;
       }
 
-      if ( _header._loop > 1 )
+      if ( _header._loop > 1 || _repair )
       {
          // use out file as input file for next loop
          ossMemcpy( inFile, tmpFile, OSS_MAX_PATHSIZE ) ;
@@ -3447,21 +4198,59 @@ INT32 _sdbCi::inspect()
    }
    else
    {
+      // Argument -f/--file is given, using existing intermediate file to
+      // generate the report.
       ossMemcpy( inFile, _header._filepath, OSS_MAX_PATHSIZE ) ;
    }
 
-   for (INT32 idx = curLoop ; idx < _header._loop && !finish ; ++idx)
+   for (INT32 idx = curLoop; idx < _header._loop && !finish ; ++idx)
    {
       makeTmpFileName( _header._outfile, idx + 1, tmpFile, OSS_MAX_PATHSIZE ) ;
-
+      PD_LOG( PDDEBUG, "Begin to inspect for round[%d] with temporary output "
+                       "file[%s]", idx + 1, tmpFile ) ;
       rc = inspectWithFile( &_header, inFile, tmpFile, totalRecord, finish ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
       // use out file as input file for next loop
       ossMemset( inFile, 0, OSS_MAX_PATHSIZE ) ;
       ossMemcpy( inFile, tmpFile, OSS_MAX_PATHSIZE ) ;
+      curLoop = idx ;
    }
 
+   if ( !finish && _repair )
+   {
+      for ( INT32 idx = curLoop; idx < curLoop + _repairRetryTimes && !finish ;
+            ++idx )
+      {
+         makeTmpFileName( _header._outfile, idx + 2, tmpFile,
+                          OSS_MAX_PATHSIZE ) ;
+         PD_LOG( PDDEBUG, "Begin post-inspect operation for round[%d] with "
+                          "temporary output file[%s]",
+                 idx + 1 - curLoop, tmpFile ) ;
+         rc = inspectWithFile( &_header, inFile, tmpFile, totalRecord, finish,
+                               TRUE ) ;
+         CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+
+         // After try to repair, inspect once again.
+         rc = inspectWithFile( &_header, inFile, tmpFile, totalRecord, finish ) ;
+         CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+
+         // use out file as input file for next loop
+         ossMemset( inFile, 0, OSS_MAX_PATHSIZE ) ;
+         ossMemcpy( inFile, tmpFile, OSS_MAX_PATHSIZE ) ;
+
+         // Remove the eldest temp file.
+         CHAR eldestTmpFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 }  ;
+         makeTmpFileName( _header._outfile, idx + 2 - _header._loop,
+                          eldestTmpFile, OSS_MAX_PATHSIZE ) ;
+         PD_LOG( PDDEBUG, "Remove the eldest temporary file: %s",
+                 eldestTmpFile ) ;
+         ossDelete( eldestTmpFile ) ;
+      }
+   }
+
+   // Keep the last intermediate file as the output file(in binary format) and
+   // delete all the other temporary files.
    if ( 0 != ossStrncmp( "", _header._outfile, OSS_MAX_PATHSIZE ) )
    {
       rc = ossRenamePath( tmpFile, _header._outfile ) ;
@@ -3478,7 +4267,7 @@ INT32 _sdbCi::inspect()
    }
 
    // delete temp file
-   for ( INT32 idx = 0 ; idx < _header._loop ; ++idx )
+   for ( INT32 idx = 0 ; idx < loopNum ; ++idx )
    {
       makeTmpFileName( _header._outfile, idx + 1, tmpFile, OSS_MAX_PATHSIZE ) ;
 
@@ -3800,6 +4589,36 @@ INT32 _sdbCi::doDataExchange( engine::pmdCfgExchange *pEx )
    rdxString( pEx, CONSISTENCY_INSPECT_VIEW, _header._view,
                    CI_VIEWOPTION_SIZE, FALSE, FALSE, CI_VIEW_GROUP, FALSE ) ;
 
+   rdxBooleanS( pEx, CONSISTENCY_INSPECT_FAST, gFastMode,
+                FALSE, FALSE, FALSE ) ;
+
+   rdxString( pEx, CONSISTENCY_INSPECT_LIST, _list,
+              CI_ARG_MAX_SIZE, FALSE, FALSE, "" ) ;
+
+   rdxString( pEx, CONSISTENCY_INSPECT_LISTFILE, _listFile,
+                   OSS_MAX_PATHSIZE, FALSE, FALSE, "" ) ;
+
+   rdxInt( pEx, CONSISTENCY_INSPECT_BRAKETIME, _brakeTime, FALSE, FALSE, 0 ) ;
+
+   rdxInt( pEx, CONSISTENCY_INSPECT_BRAKESTEP, _brakeStep, FALSE, FALSE,
+           CI_BRAKE_DEFAULT_STEP ) ;
+
+   rdxBooleanS( pEx, CONSISTENCY_INSPECT_REPAIR, _repair,
+                FALSE, FALSE, FALSE, TRUE ) ;
+
+   rdxInt( pEx, CONSISTENCY_INSPECT_RETRY, _repairRetryTimes, FALSE, FALSE,
+           CI_REPAIR_RETRY_TIMES, TRUE ) ;
+
+#ifdef _DEBUG
+   rdxString( pEx, CONSISTENCY_INSPECT_ENCODE, _encodeFile,
+              OSS_MAX_PATHSIZE, FALSE, FALSE, "", TRUE ) ;
+
+   rdxString( pEx, CONSISTENCY_INSPECT_DECODE, _decodeFile,
+              OSS_MAX_PATHSIZE, FALSE, FALSE, "", TRUE ) ;
+#endif
+
+   gOptionMgr = this ;
+
    return getResult() ;
 }
 
@@ -3813,6 +4632,7 @@ INT32 _sdbCi::preSaving()
    return SDB_OK ;
 }
 
+// Parse coordinate address.
 INT32 _sdbCi::splitAddr()
 {
    INT32 rc        = SDB_OK ;
@@ -3900,28 +4720,37 @@ INT32 main(INT32 argc, CHAR** argv)
 {
    INT32 rc  = SDB_OK ;
    sdbCi *ci = NULL ;
-   po::options_description desc( "Command options" ) ;
    po::variables_map vm ;
 
+   sdbEnablePD( INSPECT_LOG_NAME ) ;
+   setPDLevel( PDDEBUG ) ;
+
    ci = SDB_OSS_NEW sdbCi() ;
-   if ( NULL == ci )
+   PD_CHECK( NULL != ci, SDB_OOM, error, PDERROR,
+             "Allocate memory for inspector failed: %d", rc ) ;
+
+   rc = ci->init( argc, argv, vm ) ;
+   if ( SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc )
    {
-      std::cout << "Error: failed to allocate sdbCi" << std::endl ;
-      rc = SDB_OOM ;
+      rc = SDB_OK ;
       goto done ;
    }
+   else if ( rc )
+   {
+      goto error ;
+   }
 
-   rc = ci->init( argc, argv, desc, vm ) ;
-   CHECK_VALUE( ( SDB_OK != rc ), done ) ;
-
-   rc = ci->handle( desc, vm ) ;
-   CHECK_VALUE( ( SDB_OK != rc ), done ) ;
+   rc = ci->handle( vm ) ;
+   PD_RC_CHECK( rc, PDERROR, "Operation failed: %d", rc ) ;
 
 done:
-   if ( NULL != ci )
+   if ( ci )
    {
       SDB_OSS_DEL ci ;
-      ci = NULL ;
    }
    return rc ;
+error:
+   ossPrintf( "Something went wrong. Please check the log file[%s] at current "
+              "directory"OSS_NEWLINE, INSPECT_LOG_NAME ) ;
+   goto done ;
 }

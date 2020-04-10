@@ -445,7 +445,14 @@ namespace engine
                    "Failed to prepare dictionary creator, rc: %d", rc ) ;
 
       rc = _createDict( su->data(), mbContext ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create dictionary, rc: %d", rc ) ;
+      if ( rc )
+      {
+         if ( RTN_DICT_CREATE_COND_NOT_MATCH != rc )
+         {
+            PD_LOG( PDERROR, "Failed to create dictionary, rc: %d", rc ) ;
+         }
+         goto error ;
+      }
 
       dictBuf = (CHAR*)SDB_OSS_MALLOC( dictBufLen ) ;
       PD_CHECK( dictBuf, SDB_OOM, error, PDERROR,

@@ -52,6 +52,7 @@
 #include "sdbInterface.hpp"
 #include "pmdMemPool.hpp"
 #include "pmdSyncMgr.hpp"
+#include "pmdFTMgr.hpp"
 
 #if defined ( SDB_ENGINE )
 #include "monCB.hpp"
@@ -130,6 +131,7 @@ namespace engine
       virtual IControlBlock*     getCBByType( SDB_CB_TYPE type ) ;
       virtual void*              getOrgPointByType( SDB_CB_TYPE type ) ;
       virtual BOOLEAN            isCBValue( SDB_CB_TYPE type ) const ;
+      virtual ICluster*          getCluster() ;
 
       virtual SDB_DB_STATUS      getDBStatus() const ;
       virtual const CHAR*        getDBStatusDesp() const ;
@@ -221,6 +223,7 @@ namespace engine
       ossTick        _curTime ;
 
       pmdEDUCB*      _mainEDU ;
+      pmdFTMgr       *_pFTMgr ;
 
 #if defined ( SDB_ENGINE )
       monConfigCB    _monCfgCB ;
@@ -239,6 +242,10 @@ namespace engine
       pmdSyncMgr *getSyncMgr()
       {
          return &_syncMgr ;
+      }
+      pmdFTMgr* getFTMgr()
+      {
+         return _pFTMgr ;
       }
       CHAR *getGroupName ( CHAR *pBuffer, UINT32 size ) const
       {

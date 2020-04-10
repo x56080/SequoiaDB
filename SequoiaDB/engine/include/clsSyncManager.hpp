@@ -109,7 +109,7 @@ namespace engine
          _enableSync = enable ;
       }
 
-      void cut( UINT32 alives ) ;
+      void cut( UINT32 alives, BOOLEAN isStopNode = FALSE ) ;
 
       DPS_LSN_OFFSET getSyncCtrlArbitLSN() ;
 
