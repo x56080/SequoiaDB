@@ -1150,8 +1150,8 @@ namespace engine
             {
                if ( 0 != ossStrcmp( doing, lastdoing ) )
                {
-                  ossPrintf( "(%d) doing: %s"OSS_NEWLINE,
-                             node._pid, doing ) ;
+                  ossPrintf( "(%s) : %s"OSS_NEWLINE,
+                             node._svcname.c_str(), doing ) ;
                   ossStrcpy( lastdoing, doing ) ;
                }
             }
