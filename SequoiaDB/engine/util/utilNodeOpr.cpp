@@ -1101,6 +1101,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 slapedTime = 0 ;
+      CHAR lastdoing[ PMD_DOING_STR_LEN + 1 ] = { 0 } ;
 
       if ( timeout < 0 )
       {
@@ -1140,16 +1141,19 @@ namespace engine
               slapedTime %  60 == 0 )
          {
             CHAR doing[ PMD_DOING_STR_LEN + 1 ] = { 0 } ;
-            _utilWriteReadPipe( node._svcname.c_str(), node._pid,
-                                ENGINE_NPIPE_MSG_DOING,
-                                sizeof( ENGINE_NPIPE_MSG_DOING ),
-                                doing,
-                                sizeof( doing ),
-                                FALSE ) ;
-            if ( doing[0] != 0 )
+            if ( SDB_OK == _utilWriteReadPipe( node._svcname.c_str(), node._pid,
+                                               ENGINE_NPIPE_MSG_DOING,
+                                               sizeof( ENGINE_NPIPE_MSG_DOING ),
+                                               doing,
+                                               sizeof( doing ),
+                                               FALSE ) )
             {
-               ossPrintf( "(%d): %s"OSS_NEWLINE,
-                          node._pid, doing ) ;
+               if ( 0 != ossStrcmp( doing, lastdoing ) )
+               {
+                  ossPrintf( "(%d) doing: %s"OSS_NEWLINE,
+                             node._pid, doing ) ;
+                  ossStrcpy( lastdoing, doing ) ;
+               }
             }
          }
 

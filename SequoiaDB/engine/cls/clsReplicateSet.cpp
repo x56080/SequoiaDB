@@ -316,7 +316,7 @@ namespace engine
                  "all size: %d, agent number: %d]", _replBucket.bucketSize(),
                  _replBucket.size(), _replBucket.curAgentNum() ) ;
 
-         pmdSetDoing( "Begin wait repl bucket to replay empty..." ) ;
+         pmdSetDoing( "Waiting repl bucket to replay empty..." ) ;
          _replBucket.waitEmpty() ;
          pmdCleanDoing() ;
 
@@ -343,7 +343,7 @@ namespace engine
               _vote.primaryIsMe() )
          {
             PD_LOG( PDEVENT, "Begin to wait data consistent..." ) ;
-            pmdSetDoing( "Begin to wait data consistent..." ) ;
+            pmdSetDoing( "Waiting data consistent..." ) ;
             /// When i'm primary, wait other node keep the data consistence
             while ( _vote.primaryIsMe() && timeout < _shutdownWaitTimeout )
             {
