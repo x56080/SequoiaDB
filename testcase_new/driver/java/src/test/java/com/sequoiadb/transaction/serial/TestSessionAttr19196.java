@@ -25,6 +25,7 @@ public class TestSessionAttr19196 extends SdbTestBase {
         defaultValue.put( "PreferedInstance", "M" );
         defaultValue.put( "PreferedInstanceMode", "random" );
         defaultValue.put( "PreferedStrict", false );
+        defaultValue.put( "PreferedPeriod", 60 );
         defaultValue.put( "Timeout", -1 );
         defaultValue.put( "TransIsolation", 0 );
         defaultValue.put( "TransTimeout", 60 );
