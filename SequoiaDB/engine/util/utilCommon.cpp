@@ -336,6 +336,8 @@ namespace engine
    INT32 utilStrToFTMask( const CHAR *pStr, UINT32 &ftMask )
    {
       INT32 rc = SDB_OK ;
+      ftMask = 0 ;
+
       if ( !pStr || !*pStr )
       {
          return SDB_OK ;

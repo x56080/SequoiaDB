@@ -913,6 +913,8 @@ INT32 pdString2AuditMask( const CHAR *pStr,
                           UINT32 *pConfigMask )
 {
    INT32 rc = SDB_OK ;
+   mask = 0 ;
+
    if ( !pStr || !*pStr )
    {
       return SDB_OK ;
