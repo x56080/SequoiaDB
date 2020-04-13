@@ -46,12 +46,12 @@ function main ()
 
    //get master/slave datanode
    var db1 = new Sdb( db );
-   db1.setSessionAttr( { PreferedInstance: "m" } );
+   db1.setSessionAttr( { PreferedInstance: "m", PreferedPeriod: -1 } );
    var dbclPrimary1 = db1.getCS( csName ).getCL( clName1 );
    var dbclPrimary2 = db1.getCS( csName ).getCL( clName2 );
 
    db1 = new Sdb( db );
-   db1.setSessionAttr( { PreferedInstance: "s" } );
+   db1.setSessionAttr( { PreferedInstance: "s", PreferedPeriod: -1 } );
    var dbclSlave1 = db1.getCS( csName ).getCL( clName1 );
    var dbclSlave2 = db1.getCS( csName ).getCL( clName2 );
 
