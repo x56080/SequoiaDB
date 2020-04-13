@@ -69,7 +69,7 @@ public class TransUtils extends SdbTestBase {
 
     public static Domain createDomain( Sequoiadb sdb, String name,
             ArrayList< String > groupArr, int size, boolean autoSplit )
-                    throws BaseException {
+            throws BaseException {
         Domain domain = null;
         try {
             if ( sdb.isDomainExist( name ) ) {
@@ -522,14 +522,14 @@ public class TransUtils extends SdbTestBase {
                 orderBy, hint );
         if ( actList.size() != expList.size() ) {
             Assert.fail( "lists don't have the same size expected ["
-                    + actList.size() + "] but found [" + expList.size()
+                    + expList.size() + "] but found [" + actList.size()
                     + "], actList: " + actList.toString() + ", expList: "
                     + expList.toString() );
         }
         for ( int i = 0; i < actList.size(); i++ ) {
             if ( !actList.get( i ).equals( expList.get( i ) ) ) {
-                Assert.fail( "expected [" + actList.get( i ) + "], but found ["
-                        + expList.get( i ) + "], actList: " + actList.toString()
+                Assert.fail( "expected [" + expList.get( i ) + "], but found ["
+                        + actList.get( i ) + "], actList: " + actList.toString()
                         + ", expList: " + expList.toString() );
             }
         }
