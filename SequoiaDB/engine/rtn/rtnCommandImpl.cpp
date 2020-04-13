@@ -2183,9 +2183,9 @@ namespace engine
             {
                rc = SDB_DMS_CS_UNIQUEID_CONFLICT ;
             }
-            PD_LOG ( PDERROR,
-                     "CS[%u] unique id error, expect: %u, rc: %d",
-                     curCsUniqueID, expCsUniqueID, rc ) ;
+            PD_LOG ( PDERROR, "Collection[%s]'s cs unique id error, "
+                     "expect: %u, actual: %u, rc: %d",
+                     pCollection, expCsUniqueID, curCsUniqueID, rc ) ;
             goto error ;
          }
       }
@@ -2210,9 +2210,9 @@ namespace engine
             {
                rc = SDB_DMS_UNIQUEID_CONFLICT ;
             }
-            PD_LOG ( PDERROR,
-                     "CL[%llu] unique id error, expect: %llu, rc: %d",
-                     curClUniqueID, *pClUniqueID, rc ) ;
+            PD_LOG ( PDERROR, "Collection[%s]'s cl unique id error, "
+                     "expect: %u, actual: %u, rc: %d",
+                     pCollection, *pClUniqueID, curClUniqueID, rc ) ;
             goto error ;
          }
       }

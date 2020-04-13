@@ -307,8 +307,8 @@ namespace engine
             {
                BSONElement eleGroupName = obj.getField( CAT_GROUPNAME_NAME ) ;
                PD_CHECK( String == eleGroupName.type(), SDB_SYS, error, PDERROR,
-                         "Parse catalog item failed, field[%s] type error",
-                         CAT_GROUPNAME_NAME ) ;
+                         "Parse catalog item failed, field[%s] type error, "
+                         "type: %d", CAT_GROUPNAME_NAME, eleGroupName.type() ) ;
                _groupName = eleGroupName.String() ;
             }
          }
@@ -1698,7 +1698,8 @@ namespace engine
       BSONElement ele = catSet.getField ( CAT_CATALOGVERSION_NAME ) ;
       PD_CHECK ( !ele.eoo() && ele.type() == NumberInt, SDB_CAT_CORRUPTION,
                  error, PDSEVERE,
-                 "Catalog [%s] type error", CAT_CATALOGVERSION_NAME ) ;
+                 "Catalog [%s] type error, type: %d",
+                 CAT_CATALOGVERSION_NAME, ele.type() ) ;
       _version = (INT32)ele.Int() ;
 
       //update w, optional, 1 for default
@@ -1712,7 +1713,8 @@ namespace engine
       {
          // if type is not Number, something wrong
          PD_RC_CHECK ( SDB_CAT_CORRUPTION, PDSEVERE,
-                       "Catalog [%s] type error", CAT_CATALOG_W_NAME ) ;
+                       "Catalog [%s] type error, type: %d",
+                       CAT_CATALOG_W_NAME, ele.type() ) ;
       }
       else
       {
@@ -1731,7 +1733,8 @@ namespace engine
          {
             // if type is not Number, something wrong
             PD_RC_CHECK ( SDB_CAT_CORRUPTION, PDSEVERE,
-                          "Catalog [%s] type error", CAT_CL_UNIQUEID ) ;
+                          "Catalog [%s] type error, type: %d",
+                          CAT_CL_UNIQUEID, ele.type() ) ;
          }
          else
          {
@@ -1822,7 +1825,7 @@ namespace engine
       }
       else
       {
-         PD_LOG( PDERROR, "Catalog [%s] type error: %d" ,
+         PD_LOG( PDERROR, "Catalog [%s] type error, type: %d" ,
                  CAT_COMPRESSIONTYPE, ele.type() ) ;
          rc = SDB_SYS ;
          goto error ;
@@ -1877,8 +1880,8 @@ namespace engine
       else if ( ele.type() != Object )
       {
          PD_RC_CHECK ( SDB_CAT_CORRUPTION, PDSEVERE,
-                       "Catalog [%s] type error",
-                       CAT_SHARDINGKEY_NAME ) ;
+                       "Catalog [%s] type error, type: %d",
+                       CAT_SHARDINGKEY_NAME, ele.type() ) ;
       }
       else
       {
@@ -2004,8 +2007,8 @@ namespace engine
          goto done ;
       }
       PD_CHECK ( ele.type() == Array, SDB_CAT_CORRUPTION, error,
-                 PDSEVERE, "Catalog [%s] type error",
-                 CAT_CATALOGINFO_NAME ) ;
+                 PDSEVERE, "Catalog [%s] type error, type: %d",
+                 CAT_CATALOGINFO_NAME, ele.type() ) ;
       // parse ranges!!!
       {
          clsCatalogItem *cataItem = NULL ;
@@ -2021,9 +2024,9 @@ namespace engine
          {
             BSONElement eleCataItem = objItr.next () ;
             // each element has to be object type
-            PD_CHECK ( !eleCataItem.eoo() && eleCataItem.type () == Object,
+            PD_CHECK ( !eleCataItem.eoo() && eleCataItem.type() == Object,
                        SDB_CAT_CORRUPTION, error, PDSEVERE,
-                       "CataItem type error" ) ;
+                       "CataItem type error, type: %d", eleCataItem.type() ) ;
 
             // new Item
             cataItem = SDB_OSS_NEW _clsCatalogItem( _saveName, _isMainCL ) ;
@@ -3064,7 +3067,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTAGENT_GETALLNAMES, "_clsCatalogAgent::getAllNames" )
    INT32 _clsCatalogAgent::getAllNames( std::vector<string> &names )
    {
-      INT32 rc = SDB_OK ; 
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSCTAGENT_GETALLNAMES ) ;
       CAT_MAP_IT itr = _mapCatalog.begin() ;
 
