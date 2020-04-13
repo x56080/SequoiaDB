@@ -67,23 +67,35 @@ using SequoiaDB.Bson;
   根据名字，得到对应的 CollectionSpace，如果不存在，则创建：
 
   ```lang-c#
-  // create collectionspace, if collectionspace exists get it
+  // get if the CollectionSpace exists, otherwise create
   string csName = "TestCS";
-  CollectionSpace cs = sdb.GetCollecitonSpace(csName);
-  if (cs == null)
-  cs = sdb.CreateCollectionSpace(csName);
-  // or sdb.CreateCollectionSpace(csName, pageSize), need to specify the pageSize
+  CollectionSpace cs = null;
+  if (sdb.IsCollectionSpaceExist(csName))
+  {
+        cs = sdb.GetCollectionSpace(csName);
+  }
+  else
+  {
+        cs = sdb.CreateCollectionSpace(csName);
+        // or sdb.CreateCollectionSpace(csName, pageSize), need to specify the pageSize
+  }
   ```
 
   根据名字，得到对应的 Collection，如果不存在，则创建：
 
   ```lang-c#
-  // create collection, if collection exists get it
+  // get if the Collection exists, otherwise create
   string clName = "TestCL";
-  DBCollection dbc = cs.GetCollection(clName);
-  if (dbc == null)
-  dbc = cs.CreateCollection(clName);
-  //or cs.createCollection(collectionName, options), create collection with some options
+  DBCollection dbc = null;
+  if (cs.IsCollectionExist(clName))
+  {
+        dbc = cs.GetCollection(clName);
+  }
+  else
+  {
+        dbc = cs.CreateCollection(clName);
+        //or cs.CreateCollection(clName, options), create collection with some options
+  }
   ```
 
 * 对 Collection 进行插入操作
