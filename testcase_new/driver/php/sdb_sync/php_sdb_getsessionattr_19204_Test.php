@@ -31,7 +31,8 @@ class GetSessionAttr19204 extends PHPUnit_Framework_TestCase
                                   "TransAutoCommit" => false,
                                   "TransAutoRollback" => true,
                                   "TransRCCount" => true,
-                                  "Source" => "" );
+                                  "Source" => "",
+                                  "PreferedPeriod" => 60);
    }
    
    function test()
