@@ -659,7 +659,8 @@ public class FullTextUtils {
             isConsistency = isConsistency( db, groupName, cappedName,
                     cappedName );
             if ( !isConsistency ) {
-                break;
+                throw new Exception( cappedName
+                        + " cappedcl is not consistency in the " + groupName );
             }
         }
         return isConsistency;
@@ -844,18 +845,15 @@ public class FullTextUtils {
                     .getCollection( clName );
             for ( int i = 1; i < nodeNames.size(); i++ ) {
 
-                if ( firstNode.getNodeName().equals( nodeNames.get( i ) ) ) {
-                }
-
                 try ( Sequoiadb nextNode = rg.getNode( nodeNames.get( i ) )
                         .connect()) {
                     DBCollection cl2 = nextNode.getCollectionSpace( csName )
                             .getCollection( clName );
                     if ( cl1.getCount() != cl2.getCount() ) {
-                        // System.err.println(cl1.getFullName() + " from " +
-                        // nodeNames.get(0) + "'s count: "
-                        // + cl1.getCount() + ", cl from " + nodeNames.get(i) +
-                        // "'s count: " + cl2.getCount());
+                         System.out.println(cl1.getFullName() + " from " +
+                         nodeNames.get(0) + "'s count: "
+                         + cl1.getCount() + ", cl from " + nodeNames.get(i) +
+                         "'s count: " + cl2.getCount());
                         return false;
                     }
                     DBCursor cl1Cursor = cl1.query( null, null, "{\"_id\":1}",
