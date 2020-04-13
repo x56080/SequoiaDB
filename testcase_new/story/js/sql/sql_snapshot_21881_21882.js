@@ -16,7 +16,7 @@ function test ()
    {
       var tmpObj = cur.current().toObj();
       // snapshot 带条件查询快照信息
-      var snapshotCur = db.snapshot( SDB_SNAP_CONTEXTS, { NodeName: tmpObj["NodeName"] } );
+      var snapshotCur = db.snapshot( SDB_SNAP_CONTEXTS, { NodeName: tmpObj["NodeName"], SessionID: tmpObj["SessionID"] } );
       var snapshotCount = 0;
       // 对比查询信息是否一致
       while( snapshotCur.next() )
@@ -24,11 +24,11 @@ function test ()
          snapshotCount++;
          var snapshotTmpObj = snapshotCur.current().toObj();
          var expObj = {
-            SessionID: tmpObj["SessionID"], Type: tmpObj["Contexts"][0]["Type"], Description: tmpObj["Contexts"][0]["Description"],
+            Type: tmpObj["Contexts"][0]["Type"], Description: tmpObj["Contexts"][0]["Description"],
             DataRead: tmpObj["Contexts"][0]["DataRead"], IndexRead: tmpObj["Contexts"][0]["IndexRead"], QueryTimeSpent: tmpObj["Contexts"][0]["QueryTimeSpent"]
          };
          var actObj = {
-            SessionID: snapshotTmpObj["SessionID"], Type: snapshotTmpObj["Contexts"][0]["Type"],
+            Type: snapshotTmpObj["Contexts"][0]["Type"],
             Description: snapshotTmpObj["Contexts"][0]["Description"], DataRead: snapshotTmpObj["Contexts"][0]["DataRead"],
             IndexRead: snapshotTmpObj["Contexts"][0]["IndexRead"], QueryTimeSpent: snapshotTmpObj["Contexts"][0]["QueryTimeSpent"]
          };
@@ -49,7 +49,7 @@ function test ()
    {
       var tmpObj = cur.current().toObj();
       // snapshot 带条件查询快照信息
-      var snapshotCur = db.snapshot( SDB_SNAP_CONTEXTS_CURRENT, { NodeName: tmpObj["NodeName"] } );
+      var snapshotCur = db.snapshot( SDB_SNAP_CONTEXTS_CURRENT, { NodeName: tmpObj["NodeName"], SessionID: tmpObj["SessionID"] } );
       var snapshotCount = 0;
       // 对比查询信息是否一致
       while( snapshotCur.next() )
@@ -57,11 +57,11 @@ function test ()
          snapshotCount++;
          var snapshotTmpObj = snapshotCur.current().toObj();
          var expObj = {
-            SessionID: tmpObj["SessionID"], Type: tmpObj["Contexts"][0]["Type"], Description: tmpObj["Contexts"][0]["Description"],
+            Type: tmpObj["Contexts"][0]["Type"], Description: tmpObj["Contexts"][0]["Description"],
             DataRead: tmpObj["Contexts"][0]["DataRead"], IndexRead: tmpObj["Contexts"][0]["IndexRead"], QueryTimeSpent: tmpObj["Contexts"][0]["QueryTimeSpent"]
          };
          var actObj = {
-            SessionID: snapshotTmpObj["SessionID"], Type: snapshotTmpObj["Contexts"][0]["Type"],
+            Type: snapshotTmpObj["Contexts"][0]["Type"],
             Description: snapshotTmpObj["Contexts"][0]["Description"], DataRead: snapshotTmpObj["Contexts"][0]["DataRead"],
             IndexRead: snapshotTmpObj["Contexts"][0]["IndexRead"], QueryTimeSpent: snapshotTmpObj["Contexts"][0]["QueryTimeSpent"]
          };
