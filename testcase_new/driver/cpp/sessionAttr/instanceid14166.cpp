@@ -52,9 +52,25 @@ protected:
    void SetUp()
    {
       testBase::SetUp() ;
+      if( isStandalone( db ) )
+      {
+         cout << "Run mode is standalone" << endl ;
+         return ;
+      }
+
+      INT32 rc = init() ;
+      ASSERT_EQ( SDB_OK, rc ) ;
    }
+
+
+
    void TearDown()
    {
+      if( !isStandalone( db ) )
+      {  
+         fini();
+      }
+
       testBase::TearDown() ;
    }
 
@@ -174,8 +190,8 @@ TEST_F( sessionAttrTest14166, cache )
       cout << "Run mode is standalone" << endl ;
       return ;
    }  
-   rc = init() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
+   //rc = init() ;
+   //ASSERT_EQ( SDB_OK, rc ) ;
 
    BSONObj option = BSON( "PreferedInstance" << 10 ) ;
    rc = db.setSessionAttr( option ) ;
@@ -195,8 +211,8 @@ TEST_F( sessionAttrTest14166, cache )
    ASSERT_EQ( SDB_OK, rc ) << "fail to getSessionAttr again" ;
    ASSERT_EQ( 9, result.getField( "PreferedInstance" ).Int() ) ;
 
-   rc = fini() ;   
-   ASSERT_EQ( SDB_OK, rc ) ;
+   //rc = fini() ;   
+   //ASSERT_EQ( SDB_OK, rc ) ;
 }
 
 TEST_F( sessionAttrTest14166, mix )
