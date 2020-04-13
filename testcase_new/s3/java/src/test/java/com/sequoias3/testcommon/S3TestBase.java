@@ -122,7 +122,7 @@ public class S3TestBase {
         getInstallPath();
 
         storage.envPrePare( coordUrl );
-        // changeConfAndStartS3();
+        changeConfAndStartS3();
         // clean file
         File workDirFile = new File( workDir );
         if ( !workDirFile.exists() ) {
