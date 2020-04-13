@@ -62,6 +62,7 @@
             <package name="com.sequoiadb.transaction.uniqueIndex" />
             <package name="com.sequoiadb.transaction.metadata" />
             <package name="com.sequoiadb.transaction.unlock" />
+            <package name="com.sequoiadb.transaction.session" />
         </packages>
     </test>
 
