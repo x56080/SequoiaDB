@@ -3138,10 +3138,13 @@ namespace engine
                const CHAR      *pCLShort = NULL ;
                dmsMBContext    *pContext = NULL ;
                dmsStorageUnitID suID     = DMS_INVALID_SUID ;
+               stpAgent timeAgent ;
                stpLogicalTimeUS finishTime ;
 
-               // get glob trans time
-               rc = pTransCB->getGlobTransTime( finishTime, OSS_ONE_SEC ) ;
+               // get global logical time
+               rc = timeAgent.getLogicalTimeUS( finishTime,
+                                                OSS_ONE_SEC,
+                                                FALSE ) ;
 
                // lock su
                if ( ( SDB_OK == rc ) &&

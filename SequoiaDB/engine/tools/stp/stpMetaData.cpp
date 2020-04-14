@@ -157,6 +157,14 @@ namespace engine
          //       passed later
          if ( monotonic && curHWTime < syncHWTime )
          {
+            // it is not thread-safe, even after checking, recheck synchronize
+            // hardware time
+            // checking busy first before checking ahead after synchronize
+            PD_CHECK( syncHWTime == _syncHWTime, STP_SYNC_BUSY, error, PDERROR,
+                      "Failed to get STP logical time, "
+                      "it is busy for synchronizing, ignore this "
+                      "logical time" ) ;
+
             rc = STP_TIME_AHEAD_AFTER_SYNC ;
             waitTimeUS = syncHWTime.toMicroSecond() -
                          curHWTime.toMicroSecond() ;

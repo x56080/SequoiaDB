@@ -111,8 +111,11 @@ namespace engine
       if ( transCB->isRRSupported() &&
            DPS_MAX_TRANS_TIME == currentRebuildTime )
       {
+         stpAgent timeAgent ;
          stpLogicalTimeUS logicalTime ;
-         if ( SDB_OK == transCB->getGlobTransTime( logicalTime, OSS_ONE_SEC ) )
+         if ( SDB_OK == timeAgent.getLogicalTimeUS( logicalTime,
+                                                    OSS_ONE_SEC,
+                                                    FALSE ) )
          {
             rebuildTime = logicalTime.getTime() ;
          }
