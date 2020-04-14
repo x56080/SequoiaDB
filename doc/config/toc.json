@@ -1903,6 +1903,12 @@
                            "en": "forceGC()"
                         },
                         {
+                           "id": 1586831518,
+                           "file": "showClass",
+                           "cn": "showClass()",
+                           "en": "showClass()"
+                        },
+                        {
                            "id": 1529976605,
                            "file": "getErr",
                            "cn": "getErr()",
