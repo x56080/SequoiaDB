@@ -61,10 +61,10 @@ function main ()
 
    //获取主备节点
    var db1 = new Sdb( db );
-   db1.setSessionAttr( { PreferedInstance: "m" } );
+   db1.setSessionAttr( { PreferedInstance: "m", PreferedPeriod: -1 } );
    var dbclPrimary = db1.getCS( COMMCSNAME ).getCL( clName );
    var db2 = new Sdb( db );
-   db2.setSessionAttr( { PreferedInstance: "s" } );
+   db2.setSessionAttr( { PreferedInstance: "s", PreferedPeriod: -1 } );
    var dbclSlave = db2.getCS( COMMCSNAME ).getCL( clName );
 
    //收集统计信息
