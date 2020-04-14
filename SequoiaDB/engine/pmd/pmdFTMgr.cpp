@@ -50,7 +50,7 @@ namespace engine
       Self Define
    */
    #define PMD_FT_CATCHUP_LSNDIFF_THRESHOLD           ( 4 * 1024 * 1024 )
-   #define PMD_FT_SLOWNODE_HISWND_SZ                  ( 20 )
+   #define PMD_FT_SLOWNODE_N_WND_SZ                   ( 40 )
 
    /*
       _ftSampleWindow implement
@@ -421,25 +421,36 @@ namespace engine
                        "LsnDiff(%llu) >= Threshold(%llu) ",
                        lsnDiff, _slowNodeThreshold ) ;
             }
-            else if ( _sampleWnd.getCount() > PMD_FT_SLOWNODE_HISWND_SZ )
+            else if ( _sampleWnd.getCount() > PMD_FT_SLOWNODE_N_WND_SZ )
             {
-               UINT64 topNLsnDiff = _sumPrevnLsnDiff( pItem,
-                                                      PMD_FT_SLOWNODE_HISWND_SZ ) ;
-               UINT64 topHLsnDiff = _sumPrevnLsnDiff( pItem,
-                                                      PMD_FT_SLOWNODE_HISWND_SZ / 2 ) ;
+               UINT64 lsnDiffN = _sumPrevnLsnDiff( pItem,
+                                                   PMD_FT_SLOWNODE_N_WND_SZ ) ;
+               UINT64 prevLsnDiffN = _sumPrevnLsnDiff( pPrevItem,
+                                                       PMD_FT_SLOWNODE_N_WND_SZ ) ;
 
-               UINT64 avgN = topNLsnDiff / PMD_FT_SLOWNODE_HISWND_SZ ;
-               UINT64 avgH = topHLsnDiff / ( PMD_FT_SLOWNODE_HISWND_SZ / 2 ) ;
+               UINT64 avgN = lsnDiffN / PMD_FT_SLOWNODE_N_WND_SZ ;
+               UINT64 prevAvgN = prevLsnDiffN / PMD_FT_SLOWNODE_N_WND_SZ ;
 
-               if ( avgH >= avgN + _slowNodeIncrement )
+               if ( avgN >= prevAvgN + _slowNodeIncrement )
                {
                   _sampleWnd.reportRisk( FT_RISK_SLOW_NODE ) ;
                   PD_LOG( PDINFO, "Report risk( FT_RISK_SLOW_NODE ), Expr: "
                           "LsnDiff(%llu) >= Threshold(%llu) && "
-                          "AvgH(%llu) >= AvgN(%llu) + Increment(%llu)",
+                          "AvgN(%llu) >= PrevAvgN(%llu) + Increment(%llu)",
                           lsnDiff, _slowNodeThreshold,
-                          avgH, avgN,
+                          avgN, prevAvgN,
                           _slowNodeIncrement ) ;
+               }
+               else if ( avgN > prevAvgN &&
+                         pPrevItem->_risk[ FT_RISK_SLOW_NODE ]._count > 0 )
+               {
+                  _sampleWnd.reportRisk( FT_RISK_SLOW_NODE ) ;
+                  PD_LOG( PDINFO, "Report risk( FT_RISK_SLOW_NODE ), Expr: "
+                          "LsnDiff(%llu) >= Threshold(%llu) && "
+                          "AvgN(%llu) > PrevAvgN(%llu) &&"
+                          "PrevItem is FT_RISK_SLOW_NODE",
+                          lsnDiff, _slowNodeThreshold,
+                          avgN, prevAvgN ) ;
                }
             }
          }

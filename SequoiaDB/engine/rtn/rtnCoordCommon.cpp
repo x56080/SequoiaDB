@@ -4262,10 +4262,20 @@ namespace engine
          return TRUE ;
       }
       else if ( SDB_CLS_FULL_SYNC == flag ||
-                SDB_RTN_IN_REBUILD == flag )
+                SDB_RTN_IN_REBUILD == flag ||
+                SDB_DATABASE_DOWN == flag )
       {
          // don't update group info
          rtnCoordUpdateNodeStatByRC( cb, nodeID, groupInfo, flag ) ;
+
+         if ( !isReadCmd && SDB_DATABASE_DOWN == flag )
+         {
+            PD_LOG( PDWARNING, "Node[%d.%d] is doing shutdown, sleep "
+                    "%d seconds", nodeID.columns.groupID,
+                    nodeID.columns.nodeID,
+                    NET_NODE_FAULTUP_MIN_TIME ) ;
+            ossSleep( NET_NODE_FAULTUP_MIN_TIME * OSS_ONE_SEC ) ;
+         }
          return TRUE ;
       }
 

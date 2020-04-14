@@ -1151,6 +1151,7 @@ namespace engine
          case SDB_COORD_REMOTE_DISC:
          case SDB_INVALID_ROUTEID:
          case SDB_TIMEOUT:
+         case SDB_DATABASE_DOWN:
             status = NET_NODE_STAT_OFFLINE ;
             break ;
          default:
