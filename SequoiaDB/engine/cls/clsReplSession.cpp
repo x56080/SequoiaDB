@@ -138,6 +138,29 @@ namespace engine
       }
       _timeout = 0 ;
 
+      // has error, need to rollback
+      if ( CLS_BUCKET_WAIT_ROLLBACK == _pReplBucket->getStatus() )
+      {
+         _pReplBucket->waitEmptyAndRollback() ;
+         DPS_LSN expectLSN = _pReplBucket->completeLSN() ;
+         INT32 rcTmp = _logger->move( expectLSN.offset, expectLSN.version ) ;
+         if ( rcTmp )
+         {
+            PD_LOG( PDERROR, "Session[%s]: Failed to move lsn to "
+                    "[%u, %llu], rc: %d", sessionName(), expectLSN.version,
+                    expectLSN.offset, rcTmp ) ;
+            _status = CLS_SESSION_STATUS_FULL_SYNC ;
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Session[%s]: Move lsn to[%u, %llu]",
+                    sessionName(), expectLSN.version, expectLSN.offset ) ;
+         }
+         // force to increase request ID
+         // ignore results from earlier requests
+         ++ _requestID ;
+      }
+
       if ( !_sync->isReadyToReplay() && pmdGetStartup().isOK() )
       {
          _isFirstToSync = TRUE ;
@@ -166,29 +189,6 @@ namespace engine
          _selector.addToBlakList ( _syncSrc ) ;
          _selector.clearSrc () ;
          _syncSrc = _selector.src() ;
-      }
-
-      // has error, need to rollback
-      if ( CLS_BUCKET_WAIT_ROLLBACK == _pReplBucket->getStatus() )
-      {
-         _pReplBucket->waitEmptyAndRollback() ;
-         DPS_LSN expectLSN = _pReplBucket->completeLSN() ;
-         INT32 rcTmp = _logger->move( expectLSN.offset, expectLSN.version ) ;
-         if ( rcTmp )
-         {
-            PD_LOG( PDERROR, "Session[%s]: Failed to move lsn to "
-                    "[%u, %llu], rc: %d", sessionName(), expectLSN.version,
-                    expectLSN.offset, rcTmp ) ;
-            _status = CLS_SESSION_STATUS_FULL_SYNC ;
-         }
-         else
-         {
-            PD_LOG( PDEVENT, "Session[%s]: Move lsn to[%u, %llu]",
-                    sessionName(), expectLSN.version, expectLSN.offset ) ;
-         }
-         // force to increase request ID
-         // ignore results from earlier requests
-         ++ _requestID ;
       }
 
       if ( CLS_SESSION_STATUS_SYNC == _status )
