@@ -356,6 +356,7 @@ namespace engine
                   "record transaction should be doing status" ) ;
       SDB_ASSERT( NULL != _gtsAgent, "GTS agent is invalid" ) ;
 
+      stpAgent timeAgent ;
       stpLogicalTimeUS currentTime ;
 
       visible = FALSE ;
@@ -370,7 +371,9 @@ namespace engine
       }
 
       // check current time to find out if we need to do arbitration
-      rc = getGlobTransTime( currentTime, eduCB->getTransTimeout() ) ;
+      rc = timeAgent.getLogicalTimeUS( currentTime,
+                                       eduCB->getTransTimeout(),
+                                       FALSE ) ;
       if ( SDB_OK == rc )
       {
          currentTime.setTimeError( _gtsAgent->getMaxNodeTimeError() ) ;
@@ -1790,6 +1793,7 @@ namespace engine
 
       INT32 rc = SDB_OK ;
 
+      stpAgent timeAgent ;
       stpLogicalTimeUS activeTime ;
 
       // if I am not primary, or global transaction is not enabled,
@@ -1800,8 +1804,8 @@ namespace engine
          goto done ;
       }
 
-      // try get global transaction time
-      rc = getGlobTransTime( activeTime, 0 ) ;
+      // try get global logical time
+      rc = timeAgent.getLogicalTimeUS( activeTime, 0, FALSE ) ;
       if ( SDB_OK == rc )
       {
          // set primary active time
@@ -1829,6 +1833,7 @@ namespace engine
 
       INT32 rc = SDB_OK ;
 
+      stpAgent timeAgent ;
       stpLogicalTimeUS activeTime ;
 
       // if I am not primary, or global transaction is not enabled,
@@ -1846,10 +1851,12 @@ namespace engine
          goto done ;
       }
 
-      // try to get a global time in a short period
+      // try to get a global logical time in a short period
       // NOTE: if STP is unavailable temporarily, timeout > 0
       //       will trigger STP checking
-      rc = getGlobTransTime( activeTime, STP_AGENT_RETRY_INTERVAL ) ;
+      rc = timeAgent.getLogicalTimeUS( activeTime,
+                                       STP_AGENT_RETRY_INTERVAL,
+                                       FALSE ) ;
       if ( SDB_OK == rc )
       {
          // try set primary active time

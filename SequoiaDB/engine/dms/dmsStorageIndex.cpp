@@ -572,6 +572,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__PRECRTIDX ) ;
 
       dpsTransCB *transCB = sdbGetTransCB() ;
+      stpAgent timeAgent ;
       UINT64 createTimeUS = DPS_INVALID_TRANS_TIME ;
       UINT64 rebuildTimeUS = DPS_INVALID_TRANS_TIME ;
       stpLogicalTimeUS createTime ;
@@ -584,8 +585,9 @@ namespace engine
          createTimeUS = DPS_MIN_TRANS_TIME ;
          rebuildTimeUS = DPS_MIN_TRANS_TIME ;
       }
-      else if ( SDB_OK == transCB->getGlobTransTime( createTime,
-                                                     OSS_ONE_SEC ) )
+      else if ( SDB_OK == timeAgent.getLogicalTimeUS( createTime,
+                                                      OSS_ONE_SEC,
+                                                      FALSE ) )
       {
          createTimeUS = createTime.getTime() ;
          rebuildTimeUS = DPS_MAX_TRANS_TIME ;

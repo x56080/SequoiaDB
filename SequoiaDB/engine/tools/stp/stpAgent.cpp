@@ -352,6 +352,17 @@ namespace engine
                   waitTime = STP_AGENT_RETRY_INTERVAL ;
                }
 
+               // reset wait time against timeout
+               // don't make it sleep for a long time
+               if ( timeout > 0 && waitTime > (UINT32)timeout )
+               {
+                  waitTime = (UINT32)timeout ;
+               }
+               else if ( waitTime > OSS_ONE_SEC )
+               {
+                  waitTime = OSS_ONE_SEC ;
+               }
+
                // we could retry, sleep and continue loop
                ossSleep( waitTime ) ;
                if ( timeout > 0 )
