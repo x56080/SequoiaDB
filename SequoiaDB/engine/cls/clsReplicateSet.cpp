@@ -306,6 +306,12 @@ namespace engine
       SDB_ASSERT( PMD_IS_DB_DOWN(), "DB must be down" ) ;
        UINT32 timeout = 0 ;
 
+      /// disconnect al shard agent
+      if ( _clsCB )
+      {
+         _clsCB->getShardRouteAgent()->disconnectAll() ;
+      }
+
       /// wait sync replay packet
       _syncEmptyEvent.wait() ;
       /// wait sync bucket
