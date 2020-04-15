@@ -558,8 +558,17 @@ namespace engine
          if ( ratio >= confirmRatio )
          {
             OSS_BIT_SET( confirmStat, PMD_FT_MASK_SLOWNODE ) ;
-            PD_LOG( PDWARNING, "Confirm Risk( FT_RISK_SLOW_NODE ), Expr: "
+            PD_LOG( ( ( _confirmedStat & PMD_FT_MASK_SLOWNODE ) ?
+                    PDINFO : PDWARNING ),
+                    "Confirm Risk( FT_RISK_SLOW_NODE ), Expr: "
                     "Ratio(%.2f) >= ConfirmRatio(%.2f)",
+                    ratio, confirmRatio ) ;
+         }
+         else if ( _confirmedStat & PMD_FT_MASK_SLOWNODE )
+         {
+            PD_LOG( PDEVENT,
+                    "Disable Risk( FT_RISK_SLOW_NODE ), Expr: "
+                    "Ratio(%.2f) < ConfirmRatio(%.2f)",
                     ratio, confirmRatio ) ;
          }
       }
@@ -572,8 +581,17 @@ namespace engine
          if ( ratio >= confirmRatio )
          {
             OSS_BIT_SET( confirmStat, PMD_FT_MASK_DEADSYNC ) ;
-            PD_LOG( PDWARNING, "Confirm Risk( FT_RISK_DEADSYNC ), Expr: "
+            PD_LOG( ( ( _confirmedStat & PMD_FT_MASK_DEADSYNC ) ?
+                    PDINFO : PDWARNING ),
+                    "Confirm Risk( FT_RISK_DEADSYNC ), Expr: "
                     "Ratio(%.2f) >= ConfirmRatio(%.2f)",
+                    ratio, confirmRatio ) ;
+         }
+         else if ( _confirmedStat & PMD_FT_MASK_DEADSYNC )
+         {
+            PD_LOG( PDEVENT,
+                    "Disable Risk( FT_RISK_DEADSYNC ), Expr: "
+                    "Ratio(%.2f) < ConfirmRatio(%.2f)",
                     ratio, confirmRatio ) ;
          }
       }
@@ -595,8 +613,17 @@ namespace engine
          if ( ratio >= confirmRatio )
          {
             OSS_BIT_SET( confirmStat, PMD_FT_MASK_NOSPC ) ;
-            PD_LOG( PDWARNING, "Confirm Err( FT_ERR_NOSPC ), Expr: "
+            PD_LOG( ( ( _confirmedStat & PMD_FT_MASK_NOSPC ) ?
+                    PDINFO : PDWARNING ),
+                    "Confirm Err( FT_ERR_NOSPC ), Expr: "
                     "Ratio(%.2f) >= ConfirmRatio(%.2f)",
+                    ratio, confirmRatio ) ;
+         }
+         else if ( _confirmedStat & PMD_FT_MASK_NOSPC )
+         {
+            PD_LOG( PDEVENT,
+                    "Disable Err( FT_ERR_NOSPC ), Expr: "
+                    "Ratio(%.2f) < ConfirmRatio(%.2f)",
                     ratio, confirmRatio ) ;
          }
       }

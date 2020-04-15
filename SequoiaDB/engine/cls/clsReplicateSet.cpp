@@ -1169,7 +1169,7 @@ namespace engine
             utilFTMaskToStr( beat.getFTConfirmStat(),
                              newStatStr, CLS_FORMART_STR_128 ) ;
             PD_LOG( PDEVENT, "Node[%d]'s fault-tolerance confirm stat "
-                    "changed: %08x(%s) => %08x(%s), indoubt error: %d",
+                    "changed: 0x%08x(%s) => 0x%08x(%s), indoubt error: %d",
                     beat.identity.columns.nodeID,
                     statusItem.beat.ftConfirmStat,
                     oldStatStr,
