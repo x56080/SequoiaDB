@@ -8931,7 +8931,7 @@ do                                                            \
       {
          BSONElement ele = it.next() ;
          const CHAR * key = ele.fieldName() ;
-         if ( 0 == strcmp( FIELD_NAME_PREFERED_INSTANCE, key ) )
+         if ( 0 == ossStrcasecmp( FIELD_NAME_PREFERED_INSTANCE, key ) )
          {
             switch ( ele.type() )
             {
@@ -8941,26 +8941,20 @@ do                                                            \
                   {
                      INT32 value = PREFER_REPL_TYPE_MAX ;
                      const CHAR * str_value = ele.valuestrsafe() ;
-                     if ( 0 == strcmp( "M", str_value ) ||
-                          0 == strcmp( "m", str_value ) ||
-                          0 == strcmp( "-M", str_value ) ||
-                          0 == strcmp( "-m", str_value ) )
+                     if ( 0 == ossStrcasecmp( "M", str_value ) ||
+                          0 == ossStrcasecmp( "-M", str_value ) )
                      {
                         // master
                         value = PREFER_REPL_MASTER ;
                      }
-                     else if ( 0 == strcmp( "S", str_value ) ||
-                               0 == strcmp( "s", str_value ) ||
-                               0 == strcmp( "-S", str_value ) ||
-                               0 == strcmp( "-s", str_value ) )
+                     else if ( 0 == ossStrcasecmp( "S", str_value ) ||
+                               0 == ossStrcasecmp( "-S", str_value ) )
                      {
                         // slave
                         value = PREFER_REPL_SLAVE ;
                      }
-                     else if ( 0 == strcmp( "A", str_value ) ||
-                               0 == strcmp( "a", str_value ) ||
-                               0 == strcmp( "-A", str_value ) ||
-                               0 == strcmp( "-a", str_value ) )
+                     else if ( 0 == ossStrcasecmp( "A", str_value ) ||
+                               0 == ossStrcasecmp( "-A", str_value ) )
                      {
                         //anyone
                         value = PREFER_REPL_ANYONE ;
