@@ -1798,6 +1798,67 @@ function commDropDomain( db, domainName, ignoreNotExist, message)
    
 }
 
+/* *******************************************************************
+@Description: comparison two objects are equal
+@author: luweikang
+@return: true/false
+******************************************************************* */
+function commCompareObject ( expObj, actObj )
+{
+   function isDirectCompare ( value )
+   {
+      if( typeof ( value ) !== "object" )
+      {
+         return true;
+      }
+      else if( value === null )
+      {
+         return true;
+      }
+      else if( value.constructor === Date )
+      {
+         return true;
+      }
+      else
+      {
+         return false;
+      }
+   }
+
+   if( typeof ( expObj ) != typeof ( actObj ) )
+   {
+      return false;
+   }
+   if( isDirectCompare( actObj ) )
+   {
+      if( typeof ( actObj ) === "number" && isNaN( actObj ) )
+      {
+         if( typeof ( actObj ) === "number" )
+         {
+            return isNaN( expObj );
+         }
+         return false;
+      }
+      return expObj === actObj;
+   }
+   else
+   {
+      if( Object.keys( expObj ).length != Object.keys( actObj ).length )
+      {
+         return false;
+      }
+      for( var key in expObj )
+      {
+         if( !commCompareObject( expObj[key], actObj[key] ) )
+         {
+            return false;
+         }
+      }
+   }
+   return true;
+}
+
+
 //example
 //var db = new Sdb(COORDHOSTNAME,COORDSVCNAME ) ;
 
