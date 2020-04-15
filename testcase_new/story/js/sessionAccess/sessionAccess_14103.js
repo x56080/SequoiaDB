@@ -1,40 +1,32 @@
 /* *****************************************************************************
-@discretion: setSessionAttr(),set instatceid for group slave node,than query after insert data
-@author��2018-1-29 wuyan  Init
+@description: seqDB-14103: 设置会话属性指定实例为备节点对应instanceid，写入数据后再查询 
+@author: 2020-4-15 zhaoxiaoni  Init
 ***************************************************************************** */
-
 main();
 
 function main()
-{	  
-	try
-	{	  
-      var clName = CHANGEDPREFIX + "_sessionAcess14103";       
-      var db = new Sdb(COORDHOSTNAME, COORDSVCNAME ) ;  
-      var groups = commGetGroups( db ) ;
-      var clGroupName = groups[0][0]["GroupName"] ;       
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {ReplSize:0,Group:clGroupName}, true, true );  
-      
-      println("---begin to set instanceid ");
-      db.setSessionAttr( { PreferedInstance: "S" } )      
-      insertData( dbcl);  
-      var queryNode = getAccessNode(dbcl);
-      checkAccessNodeIsPrimary( queryNode, clGroupName, true );      
-      println("---end to set instanceid ");
-      
-      commDropCL( db, COMMCSNAME, clName, true, true,
-               "clear collection in the beginning" ) ;
-   }
-   catch( e )
+{
+   if( commIsStandalone( db ) )
    {
-      throw e;
+      println( "run mode is standalone" );
+      return;
    }
-   finally
-   {
-      if( db != null )
-      {
-         db.close()
-      }
-   }
-}
 
+   var clName = CHANGEDPREFIX + "_14103";
+   var groupName = commGetGroups( db )[0][0]["GroupName"] ;
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groupName }, true, true );
+
+   db.setSessionAttr( { PreferedInstance: "S" } )
+   insertData( cl );
+
+   var master = db.getRG( groupName ).getMaster();
+   var expAccessNode = master.getHostName() + ":" + master.getServiceName();
+   var actAccessNode = cl.find().explain().current().toObj().NodeName;
+   if( actAccessNode !== expAccessNode )
+   {
+      throw new Error( "The expected result is " + expAccessNode + ", but the actual result is " + actAccessNode );
+   }
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+}

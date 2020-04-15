@@ -1,105 +1,102 @@
-/* *****************************************************************************
-@discretion: setSessionAttr(),set instanceid and [M/S/A],the preferedInstanceMode is ordered
-             test the following scenes:
-             a: set multiple instanceid and ["M"]/["m"]
-             b: set multiple instanceid and ["S"]/["s"]
-             c: set multiple instanceid and ["A"]/["a"]
-             d: set multiple instanceid and [M/S/A]
-@author��2018-1-24 wuyan  Init
-***************************************************************************** */
+/******************************************************************************
+@discretion:seqDB-14093:设置会话访问属性，指定preferedinstance为instanceid存在节点和[M/S/A/m/s/a/-M/-S/-A/-m/-s/-a]，preferedinstanceMode覆盖不同值 
+@author: 2020-4-9 zhaoxiaoni  Init
+******************************************************************************/
 main();
 
 function main()
-{	  
-	try
-	{	
-	   var db = new Sdb(COORDHOSTNAME, COORDSVCNAME ) ;      
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }     
-      
-      //create group and node
-      var groupName = "group14093";      
-      var nodeList = []; 
-      var instanceidList = [ 30, 124, 8, 22 ]; 
-      var nodeNum = 4;
-      var clName = CHANGEDPREFIX + "_sessionAcess14093"; 
-      nodeList = createRGAndNode(db, groupName, instanceidList, nodeNum); 
-      //expSvcNameList[i] : instanceidList[i]
-      var expSvcNameList = getSvcNameList(db,groupName);  
-         
-      //create cl ,then insert data  
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {ReplSize:0,Group:groupName});  
-      insertData( dbcl);
-      
-      //a: set multiple instanceid and ["M"]
-      println("---begin to test set multiple instanceid and ['M']/['m'] ");  
-      var queryInstanceidList = [124, 8, 30, "M"];    
-      var expQueryNode_a1 = expSvcNameList[0];
-      setSessionAttrAndCheckResult(db, dbcl, queryInstanceidList, expQueryNode_a1)      
-      //a: set multiple instanceid and ["m"] 
-      var queryInstanceidList_a2 = [124, 8, 30, "m"];      
-      var expQueryNode_a2 = expSvcNameList[1];
-      setSessionAttrAndCheckResult(db, dbcl, queryInstanceidList_a2, expQueryNode_a2);
-      println("---end to test set multiple instanceid and ['M']/['m'] ");  
-      
-      //b: set multiple instanceid and ["S"]
-      println("---begin to test set multiple instanceid and ['S']/['s'] ");  
-      var queryInstanceidList_b1 = [124, 8, 30, "S"];      
-      var expQueryNode_b1 = expSvcNameList[1];
-      setSessionAttrAndCheckResult(db, dbcl, queryInstanceidList_b1, expQueryNode_b1);
-      //b: set multiple instanceid and ["s"],the instanceid:30 is masterNode
-      var queryInstanceidList_b2 = [30,124, 8,"s"];       
-      var expQueryNode_b2 = expSvcNameList[0];
-      setSessionAttrAndCheckResult(db, dbcl, queryInstanceidList_b2, expQueryNode_b2);
-      println("---end to test set multiple instanceid and ['S']/['s'] "); 
-      
-      //c: set multiple instanceid and ["A"]
-      println("---begin to test set multiple instanceid and ['A']/['a'] ");  
-      var queryInstanceidList_c1 = [124, 8, 30, "A"];   
-      var expQueryNode_c1 = expSvcNameList[1];
-      setSessionAttrAndCheckResult(db, dbcl, queryInstanceidList_c1, expQueryNode_c1);
-      //c: set multiple instanceid and ["a"],the instanceid:30 is masternode
-      var queryInstanceidList_c2 = [22,124, 8,"a"];      
-      var expQueryNode_c2 = expSvcNameList[3];
-      setSessionAttrAndCheckResult(db, dbcl, queryInstanceidList_c2, expQueryNode_c2);
-      println("---end to test set multiple instanceid and ['A']/['a'] "); 
-      
-      //d: set multiple instanceid and ["M/S/A"]
-      println("---begin to test set multiple instanceid and ['M/S/A'] ");  
-      var queryInstanceidList_d = [124, 8, 30, "M", "S", "A"];   
-      var expQueryNode_d = expSvcNameList[0];
-      setSessionAttrAndCheckResult(db, dbcl, queryInstanceidList_d, expQueryNode_d);      
-      println("---end to test set multiple instanceid and ['M/S/A'] ");        
-   }
-   catch( e )
+{
+   if( commIsStandalone( db ) )
    {
-      println("catch e : " + e);
-      //���½�����־���ݵ�/tmp/ci/rsrvnodelogĿ¼��
-      var backupDir = "/tmp/ci/rsrvnodelog/14093";
-      File.mkdir(backupDir);
-      for(var i = 0 ; i < nodeList.length ; i++)
-      {
-         File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
-      }       
-      throw e;
+      println( "run mode is standalone" );
+      return;
    }
-   finally
-   {
-      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" ) ;
-      db.removeRG(groupName);
-      
-      if( db != null )
-      {
-         db.close()
-      }
-   }
+
+   var nodeNum = 3;
+   var groupName = "rg_14093";
+   var instanceidList = [ 30, 124, 8 ];
+   var clName = CHANGEDPREFIX + "_14093";
+   var hostName = commGetGroups( db )[0][1].HostName;
+   var nodeNames = createRGAndNodes( db, groupName, hostName, nodeNum, instanceidList );
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groupName, ReplSize: 0 });
+   insertData( cl );
+
+   var expAccessNodes = [ nodeNames[0] ];
+   //SEQUOIADBMAINSTREAM-5283待开发修改问题单后此用例需要整体进行优化及调试
+   var options = { PreferedInstance: [124, 8, 30, "M"], PreferedInstanceMode: "random" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   var options = { PreferedInstance: [124, 8, 30, "M"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "m"], PreferedInstanceMode: "random" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "m"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   expAccessNodes = [ nodeNames[1], nodeNames[2] ];
+   options = { PreferedInstance: [124, 8, 30, "S"], PreferedInstanceMode: "random" };
+   checkAccessNodes( cl, expAccessNodes, options );
+   options = { PreferedInstance: [124, 8, 30, "s"], PreferedInstanceMode: "random" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   expAccessNodes.pop();
+   options = { PreferedInstance: [ 30, 124, 8, "S"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [ 30, 124, 8, "s"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   expAccessNodes = nodeNames;
+   options = { PreferedInstance: [124, 8, 30, "A"], PreferedInstanceMode: "random" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "a"], PreferedInstanceMode: "random" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "-M"], PreferedInstanceMode: "random" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "-m"], PreferedInstanceMode: "random" };
+   checkAccessNodes( cl, expAccessNodes, options );
+   options = { PreferedInstance: [124, 8, 30, "-s"], PreferedInstanceMode: "random" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "-A"], PreferedInstanceMode: "random" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "-a"], PreferedInstanceMode: "random" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   expAccessNodes = [ nodeNames[1] ];
+   options = { PreferedInstance: [124, 8, 30, "A"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "a"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "-M"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "-m"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "-S"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "-s"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "-A"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [124, 8, 30, "-a"], PreferedInstanceMode: "ordered" };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   commDropCL( db, COMMCSNAME, clName, false );
+   db.removeRG( groupName );
 }
 
-function setSessionAttrAndCheckResult(db, dbcl, queryInstanceidList, expQueryNode)
-{
-   db.setSessionAttr( { PreferedInstance: queryInstanceidList, PreferedInstanceMode: "ordered"  } ) ;
-   checkAcessNodeResult( getAccessNode( dbcl), expQueryNode );     
-}
+

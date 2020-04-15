@@ -2,8 +2,9 @@
 @description:  seqDB-14094:设置会话访问属性，指定preferedinstance值instanceid不存在对应节点和[S/M/A/s/m/a/-S/-M/-A/-s/-m/-a]
 @author: 2020-4-9 zhaoxiaoni  Init
 ***************************************************************************** */
-test();
-function test()
+main();
+
+function main()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )
@@ -17,7 +18,7 @@ function test()
    var clName = CHANGEDPREFIX + "_14094";
 
    commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groupName });
+   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groupName, ReplSize: 0 });
    insertData( cl );
 
    var expAccessNodes = [];

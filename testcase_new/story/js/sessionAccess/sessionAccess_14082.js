@@ -1,9 +1,10 @@
 /* *****************************************************************************
 @description: seqDB-14082:设置会话访问属性，单值指定preferedinstance为M/S/A/-M/-S/-A
-@author: 2020/4/9 zhaoxiaoni  Init
+@author: 2020-4-9 zhaoxiaoni  Init
 ***************************************************************************** */
-test();
-function test( )
+main();
+
+function main()
 {
    if( commIsStandalone( db ) )
    {

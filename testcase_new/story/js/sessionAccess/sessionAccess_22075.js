@@ -2,8 +2,9 @@
 @description: seqDB-22075 : 设置preferedPeriod的值，执行插入操作后，检查访问计划中选取节点的情况 
 @author: 2020-4-9 zhaoxiaoni  Init
 ***************************************************************************** */
-test();
-function test()
+main();
+
+function main()
 {
    if( commIsStandalone( db ) )
    {

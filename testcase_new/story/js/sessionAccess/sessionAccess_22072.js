@@ -2,8 +2,9 @@
 @description: seqDB-22072:设置会话访问属性preferedinstance/PreferedInstanceMode/PreferedStrict/PreferedPeriod的值，检查设置成功 
 @author: 2020-4-9 zhaoxiaoni  Init
 ***************************************************************************** */
-test();
-function test()
+main();
+
+function main()
 {
    if( commIsStandalone( db ) )
    {

@@ -1,75 +1,39 @@
 /* *****************************************************************************
-@discretion: setSessionAttr(),set instanceid is 8/9/10( old version 8 is master,9 is slave,
-               new version query node by instanceid)
-@author£º2018-1-24 wuyan  Init
+@description: seqDB-14096:è®¾ç½®ä¼šè¯è®¿é—®å±æ€§ï¼ŒæŒ‡å®špreferedinstanceåŒ…å«ã€8/9/10ã€‘
+@author: 2020-4-15 Zhao xiaoni  Init
 ***************************************************************************** */
 main();
-function main()
-{	  
-	try
-	{      
-      var db = new Sdb(COORDHOSTNAME, COORDSVCNAME ) ; 
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }  
-             
-      //create group and node
-      var groupName = "group14096";
-      var nodeList = [];       
-      var instanceidList = [ 9, 8, 10, 11 ]; 
-      var nodeNum = 4;
-      var clName = CHANGEDPREFIX + "_sessionAcess14096"; 
-      nodeList = createRGAndNode(db, groupName, instanceidList, nodeNum);
-      var expSvcNameList = getSvcNameList(db,groupName);        
-      
-      //create cl ,then insert data  
-      var dbcl = commCreateCLByOption( db, COMMCSNAME, clName, {ReplSize:0,Group:groupName});  
-      insertData( dbcl);
-      
-      //set instanceid is 8,the query node is slave node
-      var queryInstanceid = 8; 
-      setSessionAttrAndCheckResult(db, dbcl, groupName, queryInstanceid, expSvcNameList[1], false );
-      
-      //set instanceid is 9,the query node is master node
-      var queryInstanceid1 = 9; 
-      setSessionAttrAndCheckResult(db, dbcl, groupName, queryInstanceid1, expSvcNameList[0], true );
-      
-      //set instanceid is 10,the query node is slave node
-      var queryInstanceid2 = 10;      
-      setSessionAttrAndCheckResult(db, dbcl, groupName,queryInstanceid2, expSvcNameList[2], false );             
-   }
-   catch( e )
-   {
-      println("catch e : " + e);
-      //½«ĞÂ½¨×éÈÕÖ¾±¸·İµ½/tmp/ci/rsrvnodelogÄ¿Â¼ÏÂ
-      var backupDir = "/tmp/ci/rsrvnodelog/14096";
-      File.mkdir(backupDir);
-      for(var i = 0 ; i < nodeList.length ; i++)
-      {
-         File.scp( nodeList[i].logSourcePath, backupDir + "/sdbdiag" + i + ".log" );
-      }
-      throw e;
-   }
-   finally
-   {
-      commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the end" ) ;
-      db.removeRG(groupName);
-      
-      if( db != null )
-      {
-         db.close()
-      }
-   }   
-}
 
-function setSessionAttrAndCheckResult(db,dbcl, groupName,queryInstanceid, expQueryNode, isPrimary )
+function main()
 {
-   println("---begin to set and query instanceid is "+queryInstanceid);
-   db.setSessionAttr( { PreferedInstance: queryInstanceid } ) ;  
-   var queryNode = getAccessNode( dbcl);
-   checkAcessNodeResult( queryNode, expQueryNode );
-   checkAccessNodeIsPrimary( queryNode, groupName, isPrimary );
-   println("---end to set and query instanceid is "+queryInstanceid);
+   if( commIsStandalone( db ) )
+   {
+      println( "run mode is standalone" );
+      return;
+   }
+
+   var nodeNum = 3;
+   var groupName = "rg_14096";
+   var instanceidList = [ 8, 9, 10 ];
+   var clName = CHANGEDPREFIX + "_14093";
+   var hostName = commGetGroups( db )[0][1].HostName;
+   var nodeNames = createRGAndNodes( db, groupName, hostName, nodeNum, instanceidList );
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groupName, ReplSize: 0 });
+   insertData( cl );
+  
+   var options = { PreferedInstance: 8 };
+   var expAccessNodes = [ nodeNames[0] ];
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: 9 };
+   var expAccessNodes = [ nodeNames[1] ];
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: 10 };
+   var expAccessNodes = [ nodeNames[2] ];
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   commDropCL( db, COMMCSNAME, clName, false, false ) ;
+   db.removeRG( groupName );
 }

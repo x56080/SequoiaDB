@@ -1,6 +1,6 @@
 /* *****************************************************************************
-@description: seqDB-14081:设置会话访问属性，单值指定preferedinstance存在的实例 
-@author: 2020-4-15 zhaoxiaoni  Init
+@description: seqDB-14102:设置会话访问属性，指定preferedinstance值instanceid所在节点为主/备，同时指定S/M 
+@author: 2020-4-15 zhaoxiaoni Init
 ***************************************************************************** */
 main();
 
@@ -13,25 +13,24 @@ function main()
    }
 
    var nodeNum = 3;
-   var groupName = "rg_14081";
-   var instanceidList = [ 4, 11, 67 ];
-   var clName = CHANGEDPREFIX + "_14081";
+   var groupName = "rg_14102";
+   var instanceidList = [ 30, 31 ];
+   var clName = CHANGEDPREFIX + "_14102";
    var hostName = commGetGroups( db )[0][1].HostName;
    var nodeNames = createRGAndNodes( db, groupName, hostName, nodeNum, instanceidList );
-
    commDropCL( db, COMMCSNAME, clName );
    var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Group: groupName, ReplSize: 0 });
    insertData( cl );
-
-   var options = { PreferedInstance: 4 };
+  
    var expAccessNodes = [ nodeNames[0] ];
+   var options = { PreferedInstance: [30, "S"] };
    checkAccessNodes( cl, expAccessNodes, options );
-
+  
    expAccessNodes = [ nodeNames[1] ];
-   options = { PreferedInstance:  [11] };
+   options = { PreferedInstance: [31, "M"] };
    checkAccessNodes( cl, expAccessNodes, options );
-   
+ 
    commDropCL( db, COMMCSNAME, clName, false, false ) ;
-   db.removeRG( groupName );
+   db.removeRG( groupName);
 }
 
