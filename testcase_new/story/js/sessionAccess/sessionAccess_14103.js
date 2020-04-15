@@ -4,25 +4,22 @@
 ***************************************************************************** */
 testConf.skipStandAlone = true;
 
+testConf.clName = CHANGEDPREFIX + "_14103";
+var groupName = commGetGroups( db )[0][0]["GroupName"] ;
+testConf.clOpt = { Group: groupName };
+
 main( test );
 
-function test()
+function test( testPara )
 {
-   var clName = CHANGEDPREFIX + "_14103";
-   var groupName = commGetGroups( db )[0][0]["GroupName"] ;
-   commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName }, true, true );
-
    db.setSessionAttr( { PreferedInstance: "S" } )
-   insertData( cl );
+   insertData( testPara.testCL );
 
    var master = db.getRG( groupName ).getMaster();
    var expAccessNode = master.getHostName() + ":" + master.getServiceName();
-   var actAccessNode = cl.find().explain().current().toObj().NodeName;
+   var actAccessNode = testPara.testCL.find().explain().current().toObj().NodeName;
    if( actAccessNode !== expAccessNode )
    {
       throw new Error( "The expected result is " + expAccessNode + ", but the actual result is " + actAccessNode );
    }
-
-   commDropCL( db, COMMCSNAME, clName, false, false );
 }

@@ -4,15 +4,13 @@
 ***************************************************************************** */
 testConf.skipStandAlone = true;
 
+testConf.clName = CHANGEDPREFIX + "_14114";
 //SEQUOIADBMAINSTREAM-5245
 //main( test );
 
-function test()
+function test( testPara )
 {
-   var clName = CHANGEDPREFIX + "_14114";
-   commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCSNAME, clName );
-   insertData( cl, 80000 );
+   bulkInsert( testPara.testCL, 80000 );
  
    var timeoutValues = [1, 1000, 2000];
    for( var i = 0; i < timeoutValues.length; i++ )
@@ -20,7 +18,7 @@ function test()
       db.setSessionAttr({ PreferedInstance: "M", Timeout: timeoutValues[i] });
       try
       {
-         cl.update({ $set: {a: "aaaaaa" }});
+         testPara.testCL.update({ $set: {a: "aaaaaa" }});
          throw "NEED_TIMEOUT_ERROR";
       }
       catch( e )
@@ -37,8 +35,6 @@ function test()
          db.setSessionAttr({ Timeout: -1});
       }
    }
-
-   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 
 function checkTimeoutValue( timeoutValue )

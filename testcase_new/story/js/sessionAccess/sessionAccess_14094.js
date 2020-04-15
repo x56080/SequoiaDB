@@ -1,6 +1,6 @@
 /* *****************************************************************************
-@description: seqDB-14094:设置会话访问属性，指定preferedinstance值instanceid不存在对应节点和[S/M/A]
-@author: 2018-1-24 wuyan  Init
+@description:  seqDB-14094:设置会话访问属性，指定preferedinstance值instanceid不存在对应节点和[S/M/A/s/m/a/-S/-M/-A/-s/-m/-a]
+@author: 2020-4-9 zhaoxiaoni  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
 
@@ -16,18 +16,27 @@ function test()
    var group = groups[0];
    var groupName = group[0].GroupName;
    var primaryPos = group[0].PrimaryPos;
+   var primaryNode = group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname;
    var clName = CHANGEDPREFIX + "_14094";
+
    commDropCL( db, COMMCSNAME, clName );
    var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
    insertData( cl );
+
+   var expAccessNodes = [];
+   expAccessNodes.push( primaryNode );
    var options = { PreferedInstance: [11, 224, 38, "M"] };
-   var expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [11, 224, 38, "-M"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
    options = { PreferedInstance: [11, 224, 38, "m"] };
    checkAccessNodes( cl, expAccessNodes, options );
+   
+   options = { PreferedInstance: [11, 224, 38, "-m"] };
+   checkAccessNodes( cl, expAccessNodes, options );
 
-   options = { PreferedInstance: [11, 224, 38, "S"] };
    expAccessNodes = [];
    for( var i = 1; i < group.length; i++ )
    {
@@ -36,23 +45,42 @@ function test()
          expAccessNodes.push( group[i]["HostName"] + ":" + group[i]["svcname"]);
       }
    }
+   options = { PreferedInstance: [11, 224, 38, "S"] };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [11, 224, 38, "-S"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
    options = { PreferedInstance: [11, 224, 38, "s"] };
    checkAccessNodes( cl, expAccessNodes, options );
+  
+   options = { PreferedInstance: [11, 224, 38, "-s"] };
+   checkAccessNodes( cl, expAccessNodes, options );
 
-   options = { PreferedInstance: [11, 224, 38, "A"] };
    expAccessNodes = getGroupNodes( groupName );
+   options = { PreferedInstance: [11, 224, 38, "A"] };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [11, 224, 38, "-A"] }; 
    checkAccessNodes( cl, expAccessNodes, options );
 
    options = { PreferedInstance: [11, 224, 38, "a"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
+   options = { PreferedInstance: [11, 224, 38, "-a"] };
+   checkAccessNodes( cl, expAccessNodes, options );
+   
    options = { PreferedInstance: [11, 224, 30, "A", "M", "S"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
-   options = { PreferedInstance: [11, 224, 38, "M", "S", "A"] };
+   options = { PreferedInstance: [11, 224, 30, "-A", "-M", "-S"] };
+   checkAccessNodes( cl, expAccessNodes, options );
+
    expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
+   options = { PreferedInstance: [11, 224, 38, "M", "S", "A"] };
+   checkAccessNodes( cl, expAccessNodes, options );
+  
+   options = { PreferedInstance: [11, 224, 38, "-M", "-S", "-A"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
    commDropCL( db, COMMCSNAME, clName, false, false ) ;

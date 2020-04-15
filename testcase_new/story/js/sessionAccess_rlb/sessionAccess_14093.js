@@ -1,12 +1,10 @@
 /* *****************************************************************************
-@description: seqDB-14093:设置会话访问属性，指定preferedinstance为instanceid存在的节点和[M/S/A]
-@author: 2018-1-24 wuyan  Init
+@description:seqDB-14093:设置会话访问属性，指定preferedinstance为instanceid存在节点和[M/S/A/m/s/a/-M/-S/-A/-m/-s/-a]，preferedinstanceMode覆盖不同值 
+@author: 2020-4-9 zhaoxiaoni  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
 
-//SEQUOIADBMAINSTREAM-5283，待开发修改问题单后此用例需要整体进行优化及调试
-//main( test );
-
+main( test );
 function test()
 {
    var groups = getGroupsWithNodeNum( 3 );
@@ -17,10 +15,12 @@ function test()
    var group = groups[0];
    var groupName = group[0].GroupName;
    var primaryPos = group[0].PrimaryPos;
+   var primaryNode = group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname;
    var clName = CHANGEDPREFIX + "_14093";
    commDropCL( db, COMMCSNAME, clName );
    var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
    insertData( cl );
+
    var instanceid = [ 30, 124, 8 ];
    for( var i = 0; i < instanceid.length; i++ )
    {
@@ -32,87 +32,96 @@ function test()
    db.getRG( groupName ).start();
    commCheckBusinessStatus( db );
    db.invalidateCache();
+   
    try
    {
-      instanceid  = [124, 8, 30, "M"];
-      actAccessNodes = [];
-      for( var j = 0; j < 10; j++ )
+      var expAccessNodes = [];
+      expAccessNodes.push( primaryNode );
+      //SEQUOIADBMAINSTREAM-5283，待开发修改问题单后此用例需要整体进行优化及调试
+      var options = { PreferedInstance: [124, 8, 30, "M"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
+
+      var options = { PreferedInstance: [124, 8, 30, "M"], preferedinstanceMode: "ordered" };
+      checkAccessNodes( cl, expAccessNodes, options );
+
+      options = { PreferedInstance: [124, 8, 30, "m"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
+ 
+      options = { PreferedInstance: [124, 8, 30, "m"], preferedinstanceMode: "ordered" };
+      checkAccessNodes( cl, expAccessNodes, options );     
+
+      expAccessNodes = [];
+      for( var i = 1; i < group.length; i++ )
       {
-         db.setSessionAttr({ PreferedInstance: instanceid });
-         var actAccessNode = cl.find().explain().current().toObj().NodeName;
-         println("actAccessNode:::::"+actAccessNode);
-         if( actAccessNodes.indexOf( actAccessNode ) === -1 )
+         if( i !== primaryPos )
          {
-            actAccessNodes.push( actAccessNode );
+            expAccessNodes.push( group[i]["HostName"] + ":" + group[i]["svcname"]);
          }
       }
-      var expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
-    println("expAccessNodes1:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
-      checkAccessNodes( expAccessNodes, actAccessNodes );
+      options = { PreferedInstance: [124, 8, 30, "S"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
 
-      var actAccessNodes = [];
-      instanceid = [124, 8, 30, "m"];
-      db.setSessionAttr({ PreferedInstance: instanceid });
+      options = { PreferedInstance: [124, 8, 30, "s"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
+ 
+      expAccessNodes.pop(); 
+      options = { PreferedInstance: [ 30, 124, 8, "S"], preferedinstanceMode: "ordered" };//取的节点为备节点中靠前的数字
+      checkAccessNodes( cl, expAccessNodes, options );  
+ 
+      options = { PreferedInstance: [ 30, 124, 8, "s"], preferedinstanceMode: "ordered" };
+      checkAccessNodes( cl, expAccessNodes, options ); 
+
       expAccessNodes = getGroupNodes( groupName );
-      for( var i = 0; i < 10; i++ )
-      {
-        db.setSessionAttr({ PreferedInstance: instanceid });
-         actAccessNode = cl.find().explain().current().toObj().NodeName;
-        println("actAccessNode:::::"+actAccessNode);
-         if( actAccessNodes.indexOf( actAccessNode ) === -1 )
-         {
-            actAccessNodes.push( actAccessNode );
-         }
-      }
-      println("expAccessNodes2:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
-      checkAccessNodes( expAccessNodes, actAccessNodes );
+      options = { PreferedInstance: [124, 8, 30, "A"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
 
-      instanceid = [124, 8, 30, "S"];
-      expAccessNodes = [ group[1].HostName + ":" + group[1].svcname ];
-      actAccessNode = cl.find().explain().current().toObj().NodeName;
-      actAccessNodes = [ actAccessNode ];
-println("expAccessNodes3:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
-      checkAccessNodes( expAccessNodes, actAccessNodes );
+      options = { PreferedInstance: [124, 8, 30, "a"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
 
-      instanceid = [124, 8, 30, "s"];
-      expAccessNodes = [ group[1].HostName + ":" + group[1].svcname ];
-      actAccessNode = cl.find().explain().current().toObj().NodeName;
-      actAccessNodes = [ actAccessNode ];
-println("expAccessNodes4:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
-      checkAccessNodes( expAccessNodes, actAccessNodes );
-      instanceid = [124, 8, 30, "A"];
-      expAccessNodes = [ group[1].HostName + ":" + group[1].svcname ];
-      actAccessNode = cl.find().explain().current().toObj().NodeName;
-      actAccessNodes = [ actAccessNode ];
-println("expAccessNodes5:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
-      checkAccessNodes( expAccessNodes, actAccessNodes );
+      options = { PreferedInstance: [124, 8, 30, "-M"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
 
-      instanceid = [124, 8, 30, "a"];
-      expAccessNodes = [ group[1].HostName + ":" + group[1].svcname ];
-      actAccessNode = cl.find().explain().current().toObj().NodeName;
-      actAccessNodes = [ actAccessNode ];
-println("expAccessNodes6:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
-      checkAccessNodes( expAccessNodes, actAccessNodes );
-     instanceid = [124, 8, 30, "M", "S", "A"];
-      expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
-      actAccessNode = cl.find().explain().current().toObj().NodeName;
-      actAccessNodes = [ actAccessNode ];
-      println("expAccessNodes7:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
-      checkAccessNodes( expAccessNodes, actAccessNodes );
-     instanceid = [124, 8, 30, "A", "M", "S"];
-      actAccessNodes = [];
-      for( var j = 0; j < 20; j++ )
-      {
-         db.setSessionAttr({ PreferedInstance: instanceid });
-         var actAccessNode = cl.find().explain().current().toObj().NodeName;
-         if( actAccessNodes.indexOf( actAccessNode ) === -1 )
-         {
-            actAccessNodes.push( actAccessNode );
-         }
-      }
-      expAccessNodes = getGroupNodes( groupName );
-println("expAccessNodes8:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JSON.stringify(actAccessNodes));
-      checkAccessNodes( expAccessNodes, actAccessNodes );
+      options = { PreferedInstance: [124, 8, 30, "-m"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
+
+      options = { PreferedInstance: [124, 8, 30, "-S"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
+
+      options = { PreferedInstance: [124, 8, 30, "-s"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
+   
+      options = { PreferedInstance: [124, 8, 30, "-A"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
+      
+      options = { PreferedInstance: [124, 8, 30, "-a"], preferedinstanceMode: "random" };
+      checkAccessNodes( cl, expAccessNodes, options );
+
+      expAccessNodes = [];
+      expAccessNodes.push( group[ 2 ].HostName + ":" + group[ 2 ].svcname );
+
+      options = { PreferedInstance: [124, 8, 30, "A"], preferedinstanceMode: "ordered" };
+      checkAccessNodes( cl, expAccessNodes, options );
+
+      options = { PreferedInstance: [124, 8, 30, "a"], preferedinstanceMode: "ordered" };
+      checkAccessNodes( cl, expAccessNodes, options );      
+
+      options = { PreferedInstance: [124, 8, 30, "-M"], preferedinstanceMode: "ordered" };
+      checkAccessNodes( cl, expAccessNodes, options );
+
+      options = { PreferedInstance: [124, 8, 30, "-m"], preferedinstanceMode: "ordered" };
+      checkAccessNodes( cl, expAccessNodes, options );
+  
+      options = { PreferedInstance: [124, 8, 30, "-S"], preferedinstanceMode: "ordered" };
+      checkAccessNodes( cl, expAccessNodes, options );
+      
+      options = { PreferedInstance: [124, 8, 30, "-s"], preferedinstanceMode: "ordered" };
+      checkAccessNodes( cl, expAccessNodes, options );
+  
+      options = { PreferedInstance: [124, 8, 30, "-A"], preferedinstanceMode: "ordered" };
+      checkAccessNodes( cl, expAccessNodes, options );
+      
+      options = { PreferedInstance: [124, 8, 30, "-a"], preferedinstanceMode: "ordered" };
+      checkAccessNodes( cl, expAccessNodes, options );
    }
    finally
    {
@@ -121,6 +130,7 @@ println("expAccessNodes8:"+JSON.stringify(expAccessNodes)+"\nactAccessNodes:"+JS
       db.getRG( groupName ).start();
       commCheckBusinessStatus( db );
    }
+
    commDropCL( db, COMMCSNAME, clName, false, false ) ;
 }
 

@@ -1,27 +1,29 @@
 /* *****************************************************************************
-@description: seqDB-14082:设置会话访问属性，单值指定preferedinstance为M/S/A
+@description: seqDB-14082:设置会话访问属性，单值指定preferedinstance为M/S/A/-M/-S/-A
 @author: 2018-1-24 wuyan  Init
 ***************************************************************************** */
 testConf.skipStandAlone = true;
 testConf.skipOneDuplicatePerGroup = true;
 
+var group = commGetGroups( db )[0];
+var groupName = group[0].GroupName;
+testConf.clName = CHANGEDPREFIX + "_14082";
+testConf.clOpt = { Group: groupName };
+
 main( test );
 
-function test( )
+function test( testPara )
 {
-   var group = commGetGroups( db )[0];
-   var groupName = group[0].GroupName;
-   var clName = CHANGEDPREFIX + "_14082";
-   commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName } );
-   insertData( cl );
+   insertData( testPara.testCL );
 
    var options = { PreferedInstance: "M" };
    var primaryPos = group[0].PrimaryPos;
    var expAccessNodes = [ group[primaryPos]["HostName"] + ":" + group[primaryPos]["svcname"] ];
-   checkAccessNodes( cl, expAccessNodes, options );
+   checkAccessNodes( testPara.testCL, expAccessNodes, options );
 
-   options = { PreferedInstance: "S" };
+   options = { PreferedInstance: "-M" };
+   checkAccessNodes( testPara.testCL, expAccessNodes, options );
+
    expAccessNodes = [];
    for( var i = 1; i < group.length; i++ )
    {
@@ -30,12 +32,17 @@ function test( )
          expAccessNodes.push( group[i]["HostName"] + ":" + group[i]["svcname"]);
       }
    }
-   checkAccessNodes( cl, expAccessNodes, options );
+   options = { PreferedInstance: "S" };
+   checkAccessNodes( testPara.testCL, expAccessNodes, options );
+  
+   options = { PreferedInstance: "-S" };
+   checkAccessNodes( testPara.testCL, expAccessNodes, options );
 
    expAccessNodes = getGroupNodes( groupName );
    options =  { PreferedInstance: "A" };
-   checkAccessNodes( cl, expAccessNodes, options );
+   checkAccessNodes( testPara.testCL, expAccessNodes, options );
 
-   commDropCL( db, COMMCSNAME, clName, false, false ) ;
+   options =  { PreferedInstance: "-A" };
+   checkAccessNodes( testPara.testCL, expAccessNodes, options );
 }
 

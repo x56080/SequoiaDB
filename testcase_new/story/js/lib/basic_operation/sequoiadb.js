@@ -453,6 +453,20 @@ function Sequoiadb ( hostname, svcname, username, password )
             throw new Error( e );
          }
       }
+  
+   this.getSessionAttr =
+      function()
+      {  
+         try
+         {  
+            var cursor = db.getSessionAttr();
+         }
+         catch( e )
+         {  
+            throw new Error( e );
+         }
+         return new Cursor( cursor );
+      }
 
    this.updateConf =
       function( config, options )
