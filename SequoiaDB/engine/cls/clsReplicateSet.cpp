@@ -966,20 +966,22 @@ namespace engine
          map<UINT64, _clsSharingStatus>::iterator itr = _info.info.begin() ;
          for ( ; itr != _info.info.end(); itr++ )
          {
+            _clsSharingStatus &status = itr->second ;
+
             /// decrease dead time for heartbeat
-            if ( itr->second.deadtime >= pmdGetOptionCB()->sharingBreakTime() &&
-                 itr->second.deadtime >= _beatTime )
+            if ( status.deadtime >= pmdGetOptionCB()->sharingBreakTime() &&
+                 status.deadtime >= _beatTime )
             {
-               itr->second.deadtime -= _beatTime ;
+               status.deadtime -= _beatTime ;
                continue ;
             }
-            msg.beat.syncStatus = clsSyncWindow( itr->second.beat.endLsn,
+            msg.beat.syncStatus = clsSyncWindow( status.beat.endLsn,
                                                  fBegin, mBegin, expectLSN ) ;
 
-            rc = _agent->syncSend( itr->second.beat.identity, &msg ) ;
+            rc = _agent->syncSend( status.beat.identity, &msg ) ;
             if ( SDB_OK == rc )
             {
-               itr->second.sendFailedTimes = 0 ;
+               status.sendFailedTimes = 0 ;
             }
             else
             {
@@ -987,7 +989,7 @@ namespace engine
 
                if ( sysErr == CLS_CONNREFUSED )
                {
-                  ++( itr->second.sendFailedTimes ) ;
+                  ++( status.sendFailedTimes ) ;
                }
 
                /// if send heartbeat msg failed, and the node is not in active,
@@ -995,7 +997,7 @@ namespace engine
                if ( _info.alives.find( itr->first ) == _info.alives.end() )
                {
                   UINT32 resetTimeout = 0 ;
-                  itr->second.deadtime = pmdGetOptionCB()->sharingBreakTime() - 1 ;
+                  status.deadtime = pmdGetOptionCB()->sharingBreakTime() - 1 ;
                   if ( sysErr == CLS_CONNREFUSED )
                   {
                      resetTimeout = 1800 * OSS_ONE_SEC ;
@@ -1004,11 +1006,17 @@ namespace engine
                   {
                      resetTimeout = 120 * OSS_ONE_SEC ;
                   }
-                  itr->second.deadtime += resetTimeout ;
+                  status.deadtime += resetTimeout ;
 
                   PD_LOG( PDEVENT, "Reset node[%d] sharing-beat time to %u(sec)",
-                          itr->second.beat.identity.columns.nodeID,
+                          status.beat.identity.columns.nodeID,
                           resetTimeout / OSS_ONE_SEC ) ;
+               }
+               /// When the node is alive, but run stat is CLS_NODE_STOP, and
+               /// send heart-beat failed, should set timeout
+               else if ( CLS_NODE_STOP == status.beat.nodeRunStat )
+               {
+                  status.timeout = pmdGetOptionCB()->sharingBreakTime() ;
                }
             }
          }
@@ -1189,10 +1197,6 @@ namespace engine
          }
 
          statusItem.beat = beat ;
-         if ( CLS_NODE_STOP == statusItem.beat.nodeRunStat )
-         {
-            statusItem.timeout = pmdGetOptionCB()->sharingBreakTime() ;
-         }
 
          if ( CLS_GROUP_ROLE_PRIMARY == beat.role )
          {
@@ -1304,9 +1308,11 @@ namespace engine
    INT32 _clsReplicateSet::_alive( const _MsgRouteID &id )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__CLSREPSET__ALIVE );
-      map<UINT64, _clsSharingStatus>::iterator itr=
-                     _info.info.find( id.value ) ;
+      PD_TRACE_ENTRY ( SDB__CLSREPSET__ALIVE ) ;
+
+      map<UINT64, _clsSharingStatus>::iterator itr ;
+
+      itr = _info.info.find( id.value ) ;
       if ( _info.info.end() == itr )
       {
          rc = SDB_REPL_INVALID_GROUP_MEMBER ;
