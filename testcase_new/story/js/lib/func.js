@@ -1468,6 +1468,15 @@ function commCompareResults ( cursor, expRecs, exceptId )
          }
          actRecs.push( actRecord );
       }
+      if( actRecs.length !== expRecs.length )
+      {
+         isSuccess = false;
+         posOfFailure = pos - 1;
+         if( JSON.stringify( expRecs[posOfFailure] ).length > 1024 )
+         {
+            isLong = true;
+         }
+      }
    }
    catch( e )
    {
