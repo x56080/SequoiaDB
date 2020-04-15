@@ -710,7 +710,7 @@ public class FullTextUtils {
                             .connect()) {
                         DBCursor cur = null;
                         long checkCompleteLSN = -3;
-                        for ( int i = 0; i < 600; i++ ) {
+                        for ( int i = 0; i < 1800; i++ ) {
                             cur = nodeConn.getSnapshot(
                                     Sequoiadb.SDB_SNAP_SYSTEM, null,
                                     "{CompleteLSN: ''}", null );
