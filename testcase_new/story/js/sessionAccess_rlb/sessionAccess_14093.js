@@ -4,7 +4,8 @@
 ***************************************************************************** */
 testConf.skipStandAlone = true;
 
-main( test );
+//main( test );SEQUOIADBMAINSTREAM-5283，待开发修改问题单后放开此用例
+
 function test()
 {
    var groups = getGroupsWithNodeNum( 3 );
@@ -37,7 +38,6 @@ function test()
    {
       var expAccessNodes = [];
       expAccessNodes.push( primaryNode );
-      //SEQUOIADBMAINSTREAM-5283，待开发修改问题单后此用例需要整体进行优化及调试
       var options = { PreferedInstance: [124, 8, 30, "M"], preferedinstanceMode: "random" };
       checkAccessNodes( cl, expAccessNodes, options );
 
