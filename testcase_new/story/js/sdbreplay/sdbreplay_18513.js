@@ -2,7 +2,8 @@
 *@Description: seqDB-18513:tables.fields.doubleQuote配置true/false
 *@Author: 2019-6-28  xiaoni huang init
 ************************************************************************/
-main();
+
+//main();SEQUOIADBMAINSTREAM-5608
 
 function main ()
 {
