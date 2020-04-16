@@ -360,6 +360,10 @@ namespace engine
             dpsTransSNToHEXString( treeLowTran, szTmp, DPS_TRANS_STR_LEN ) ;
             subTrans.append( FIELD_NAME_IDX_TREE_LOW_TRAN, szTmp ) ;
 
+            // number of transaction ID allocation conflicts
+            subTrans.append( FIELD_NAME_TRANS_TRANSIDCONFLICTS,
+                             (INT64)( transCB->getTransIDConflict() ) ) ;
+
             subTrans.done() ;
          }
 
