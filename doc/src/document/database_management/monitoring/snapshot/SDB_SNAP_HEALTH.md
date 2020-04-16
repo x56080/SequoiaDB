@@ -15,7 +15,7 @@ SDB_SNAP_HEALTH
 | NodeName             | 字符串 | 节点名，为“< HostName > : < ServiceName >” |
 | IsPrimary            | 布尔   | 是否为主节点 |
 | ServiceStatus        | 布尔   | 是否为可提供服务状态<br>一些特殊状态，例如[全量同步](infrastructure/replication/replicate.md#全量同步)会使该状态为 false |
-| Status               | 字符串 | 节点状态，为 “Normal” / “Rebuilding” / “FullSync” / “OfflineBackup”  |
+| Status               | 字符串 | 节点状态：<br/>1."Normal"：正常工作状态。<br/>2."Shutdown"：正在关闭状态，表示节点正在被关闭。<br/>3."Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步，则节点会进入该状态，重新构建数据。<br/>4."FullSync"：[全量同步](infrastructure/replication/replicate.md#全量同步)状态。<br/>5."OfflineBackup"：[数据备份](database_management/backup_and_recovery/data_backup.md)状态。|
 | BeginLSN.Offset      | 长整型 | 起始 LSN 的偏移 |
 | BeginLSN.Version     | 整型   | 起始 LSN 的版本号 |
 | CurrentLSN.Offset    | 长整型 | 当前 LSN 的偏移 |
@@ -25,7 +25,7 @@ SDB_SNAP_HEALTH
 | CompleteLSN          | 长整型 | 已完成 LSN 的偏移 |
 | LSNQueSize           | 整型   | 等待同步的LSN队列长度 |
 | NodeID               | 数组   | 节点的 ID，为“[ <分区组 ID>, <节点 ID> ]”<br>在 standalone 模式下，该字段为“[ 0，0 ]” |
-| DataStatus           | 字符串 | 数据状态 “Normal” / “Repairing” / “Fault” |
+| DataStatus           | 字符串 | 数据状态:<br/>1."Normal": 正常状态。<br/>2."Repairing"：修复状态，当节点状态为 "Rebuilding" 或 "FullSync" 时，数据状态为 "Repairing"。 <br/>3."Fault"：错误状态，当节点异常启动，且节点状态不为"Rebuilding" 或 "FullSync" 时，数据状态为 "Fault"。 |
 | SyncControl          | 布尔   | 节点是否处于同步控制 |
 | Ulimit.CoreFileSize  | 长整型 | 节点进程的core文件大小限制（-1表示unlimited） |
 | Ulimit.VirtualMemory | 长整型 | 节点进程的虚拟内存限制（-1表示unlimited） |
