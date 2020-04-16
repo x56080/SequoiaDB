@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction.rc;
+package com.sequoiadb.transaction.metadata;
 
 /**
  * @testcase seqDB-18220 : 元数据操作失败不会导致内置sql事务回滚 
@@ -23,7 +23,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
-@Test(groups = "rc")
+@Test(groups = "ru")
 public class Transaction18220 extends SdbTestBase {
     private String clName = "cl_18220";
     private Sequoiadb sdb = null;

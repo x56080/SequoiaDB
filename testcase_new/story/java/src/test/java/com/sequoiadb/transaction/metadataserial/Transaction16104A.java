@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction.rename;
+package com.sequoiadb.transaction.metadataserial;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -23,11 +23,11 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @date 2018年10月17日
  */
 @Test(groups = "ru")
-public class RenameCS_16104B extends SdbTestBase {
+public class Transaction16104A extends SdbTestBase {
 
-    private String csName = "renameCS_16104B";
-    private String newCSName = "renameCS_16104B_new";
-    private String clName = "rename_CL_16104B";
+    private String csName = "renameCS_16104A";
+    private String newCSName = "renameCS_16104A_new";
+    private String clName = "rename_CL_16104A";
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
     private int recordNum = 1000;
@@ -101,10 +101,8 @@ public class RenameCS_16104B extends SdbTestBase {
         public void exec() throws Exception {
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
-                db.beginTransaction();
                 Thread.sleep( new Random().nextInt( 50 ) + 50 );
                 db.renameCollectionSpace( csName, newCSName );
-                db.commit();
             }
         }
     }

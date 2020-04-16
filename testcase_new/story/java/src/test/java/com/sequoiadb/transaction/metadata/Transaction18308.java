@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction.rc;
+package com.sequoiadb.transaction.metadata;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,25 +11,35 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
- * @testcase seqDB-18310:集合上存在事务操作，并发创建/删除集合
+ * @testcase seqDB-18308:集合空间上存在事务操作，并发创建/删除集合空间
  * @date 2019-4-25
  * @author yinzhen
  *
  */
-
-@Test(groups = "rc")
-public class Transaction18310 extends SdbTestBase {
+@Test(groups = "ru")
+public class Transaction18308 extends SdbTestBase {
+    private String clName = "cl18308";
     private CountDownLatch latch;
 
     @BeforeClass
     public void setUp() {
+        Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        for ( int i = 0; i < 10; i++ ) {
+            String csName = "cs18308_" + i;
+            if ( sdb.isCollectionSpaceExist( csName ) ) {
+                sdb.dropCollectionSpace( csName );
+            }
+        }
+        if ( sdb != null ) {
+            sdb.close();
+        }
     }
 
     @AfterClass
@@ -40,15 +50,16 @@ public class Transaction18310 extends SdbTestBase {
     public void test() {
         latch = new CountDownLatch( 5 );
 
-        List< CreateAndDropCLTh > thList = new ArrayList<>();
+        List< CreateAndDropCSTh > thList = new ArrayList<>();
         for ( int i = 0; i < 5; i++ ) {
-            CreateAndDropCLTh th = new CreateAndDropCLTh( "cl18310_" + i );
+            CreateAndDropCSTh th = new CreateAndDropCSTh( "cs18308_" + i );
             thList.add( th );
             th.start();
         }
-        for ( CreateAndDropCLTh createAndDropCLTh : thList ) {
-            Assert.assertTrue( createAndDropCLTh.isSuccess(),
-                    createAndDropCLTh.getErrorMsg() );
+
+        for ( CreateAndDropCSTh createAndDropCSTh : thList ) {
+            Assert.assertTrue( createAndDropCSTh.isSuccess(),
+                    createAndDropCSTh.getErrorMsg() );
         }
 
         try {
@@ -58,23 +69,22 @@ public class Transaction18310 extends SdbTestBase {
         }
     }
 
-    class CreateAndDropCLTh extends SdbThreadBase {
-        private String clName;
+    class CreateAndDropCSTh extends SdbThreadBase {
+        private String csName;
 
-        private CreateAndDropCLTh( String clName ) {
-            this.clName = clName;
+        private CreateAndDropCSTh( String csName ) {
+            this.csName = csName;
         }
 
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;
-            CollectionSpace cs = null;
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-                cs = db.getCollectionSpace( csName );
                 int doTimes = 0;
                 while ( true ) {
-                    DBCollection cl = cs.createCollection( clName );
+                    DBCollection cl = db.createCollectionSpace( csName )
+                            .createCollection( clName );
                     cl.createIndex( "idx", "{a:1}", false, false );
                     cl.insert(
                             ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" ) );
@@ -85,16 +95,19 @@ public class Transaction18310 extends SdbTestBase {
                     cl.delete( "{a:10}", "{'':'idx'}" );
                     db.commit();
 
-                    // 删除集合
-                    cs.dropCollection( clName );
+                    // 删除集合空间,由于后台清理记录的线程会对集合空间加锁，且是异步的，需要规避该错误码，
+                    TransUtils.dropCS( db, csName );
+
                     if ( ++doTimes == 30 ) {
+                        System.out.println(
+                                "CSNAME: " + csName + " doTimes: " + doTimes );
                         break;
                     }
                 }
             } finally {
                 db.commit();
-                if ( cs.isCollectionExist( clName ) ) {
-                    cs.dropCollection( clName );
+                if ( db.isCollectionSpaceExist( csName ) ) {
+                    db.dropCollectionSpace( csName );
                 }
                 db.close();
                 latch.countDown();

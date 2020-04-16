@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction.rename;
+package com.sequoiadb.transaction.metadataserial;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -23,7 +23,7 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @date 2018年10月17日
  */
 @Test(groups = "ru")
-public class RenameCL_16092B extends SdbTestBase {
+public class Transaction16092B extends SdbTestBase {
 
     private String csName = "renameCS_16092B";
     private String clName = "rename_CL_16092B";

@@ -45,7 +45,6 @@
         <packages>
             <package name="com.sequoiadb.transaction.rc" />
             <package name="com.sequoiadb.transaction.uniqueIndex" />
-            <package name="com.sequoiadb.transaction.metadata" />
             <package name="com.sequoiadb.transaction.unlock" />
         </packages>
     </test>
@@ -97,7 +96,7 @@
             </run>
         </groups>
         <packages>
-            <package name="com.sequoiadb.transaction.rename" />
+            <package name="com.sequoiadb.transaction.metadataserial" />
         </packages>
     </test>
 
@@ -122,7 +121,6 @@
             <package name="com.sequoiadb.transaction.rcuserbs" />
             <package name="com.sequoiadb.transaction.rcwaitlock" />
             <package name="com.sequoiadb.transaction.uniqueIndex" />
-            <package name="com.sequoiadb.transaction.metadata" />
         </packages>
     </test>
 
