@@ -399,18 +399,6 @@ public class SdbTestBase {
             // }
             // sdb.close() ;
 
-            // 检查事务快照
-            DBCursor cursor = sequoiadb
-                    .getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS, "", "", "" );
-            ArrayList< BSONObject > List = new ArrayList<>();
-            while ( cursor.hasNext() ) {
-                List.add( cursor.getNext() );
-            }
-            if ( !List.isEmpty() ) {
-                System.out.println( "SDB_SNAP_TRANSACTIONS in List:" + List );
-                Assert.fail( "SDB_SNAP_TRANSACTIONS is not empty！" );
-            }
-
         } catch ( BaseException e ) {
             e.printStackTrace();
         } finally {
