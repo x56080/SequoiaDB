@@ -7,7 +7,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -18,7 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
-import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeSuite;
@@ -338,18 +336,6 @@ public class SdbTestBase {
             // sequoiadb.dropCollectionSpace(cappedCSName);
             // }
             // sdb.close() ;
-
-            // 检查事务快照
-            DBCursor cursor = sequoiadb
-                    .getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS, "", "", "" );
-            ArrayList< BSONObject > List = new ArrayList<>();
-            while ( cursor.hasNext() ) {
-                List.add( cursor.getNext() );
-            }
-            if ( !List.isEmpty() ) {
-                System.out.println( "SDB_SNAP_TRANSACTIONS in List:" + List );
-                Assert.fail( "SDB_SNAP_TRANSACTIONS is not empty！" );
-            }
 
         } catch ( BaseException e ) {
             e.printStackTrace();
