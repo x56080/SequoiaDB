@@ -1,75 +1,40 @@
 ﻿/*******************************************************************************
 *@Description : seqDB-7526::shell_输入strict格式，查询显示
 seqDB-7527::shell_输入js格式，查询显示
-*@Modify List : 2016-3-28  Ting YU  Init
+*@author : 2020-4-16 Zhao Xiaoni  Init
 *******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-
-function main ()
+function test()
 {
    var clName = COMMCLNAME + "_7526";
-
    commDropCL( db, COMMCSNAME, clName );
    var cl = commCreateCL( db, COMMCSNAME, clName );
 
-   testStrictFormat( cl );
-   testJSFormat( cl );
+   var record = { a: NumberLong( "-2147483647" ) };
+   cl.insert( record );
+   var rc = cl.find();
+   var expRecord = [ { a: -2147483647 } ];
+   commCompareResults( rc, expRecord );
 
-   commDropCL( db, COMMCSNAME, clName );
+   record = { a: NumberLong( -2147483648 ) };
+   cl.insert( record );
+   rc = cl.find();
+   expRecord.push( { a: -2147483648 } );
+   commCompareResults( rc, expRecord );
+   
+   record = { a: { $numberLong: "2147483647" } };
+   cl.insert( record );
+   rc = cl.find();
+   expRecord.push( { a: 2147483647 } );
+   commCompareResults( rc, expRecord );
+   
+   record = { a: { $numberLong: "9007199254740992" } };
+   cl.insert( record );
+   rc = cl.find();
+   expRecord.push( record );
+   commCompareResults( rc, expRecord );
+   
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 
-function testStrictFormat ( cl )
-{
-   cl.remove();
-
-   var val = 2147483647;
-   var rec = { a: { $numberLong: val.toString() } };
-   cl.insert( rec );
-
-   var rc = cl.find();
-   var expRec = { a: 2147483647 };
-   commCompareResults( rc, [expRec] );
-
-   cl.remove();
-
-   var val = 9007199254740992;
-   var rec = { a: { $numberLong: val.toString() } };
-   cl.insert( rec );
-
-   var rc = cl.find();
-   var expRec = rec;
-   commCompareResults( rc, [expRec] );
-}
-
-function testJSFormat ( cl )
-{
-   cl.remove();
-
-   var val = -2147483647;
-   var rec = { a: NumberLong( val.toString() ) };
-   cl.insert( rec );
-
-   var rc = cl.find();
-   var expRec = { a: val };
-   commCompareResults( rc, [expRec] );
-
-   cl.remove();
-
-   var val = -2147483648;
-   var rec = { a: NumberLong( val ) };
-   var expRec = { a: val };
-   cl.insert( rec );
-   commCompareResults( rc, [expRec] );
-}

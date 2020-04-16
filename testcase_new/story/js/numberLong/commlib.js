@@ -2,7 +2,7 @@
 @Description : common functions
 @Modify list : 2016-3-28  Ting YU  Init
 *******************************************************************************/
-
+import( "../lib/main.js" );
 import( "../lib/basic_operation/sequoiadb.js" );
 
 function checkExplain ( rc, expIdxName )
