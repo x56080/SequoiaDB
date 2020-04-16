@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction.session.serial;
+package com.sequoiadb.transaction.sessionserial;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,20 +14,23 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
  * 
- * @description seqDB-19188:coord及数据节点均开启事务，TransIsolation属性不一致
+ * @description seqDB-19193:coord及数据节点均开启事务，TransAutoRollback属性不一致
  * @author yinzhen
  * @date 2019年9月18日
  */
-public class Transaction19188 extends SdbTestBase {
+@Test(groups = "ru")
+public class Transaction19193 extends SdbTestBase {
 
     private Sequoiadb sdb;
-    private String clName = "cl_19188";
+    private String clName = "cl_19193";
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeClass
     public void setUp() {
@@ -35,53 +38,44 @@ public class Transaction19188 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
-        sdb.getCollectionSpace( SdbTestBase.csName ).createCollection( clName,
-                ( BSONObject ) JSON
-                        .parse( "{ShardingKey:{_id:1}, AutoSplit:true}" ) );
-        sdb.updateConfig( ( BSONObject ) JSON.parse( "{transisolation:1}" ),
+        DBCollection cl = sdb.getCollectionSpace( SdbTestBase.csName )
+                .createCollection( clName );
+        cl.createIndex( "idx_19193", "{a:1}", true, false );
+        cl.insert( "{_id:1, a:1, b:1}" );
+        expList.add( ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" ) );
+        sdb.updateConfig(
+                ( BSONObject ) JSON.parse( "{transautorollback:false}" ),
                 ( BSONObject ) JSON.parse( "{Global:false}" ) );
     }
 
     @Test
     public void test() {
         Sequoiadb db1 = null;
-        Sequoiadb db2 = null;
 
         try {
 
-            // 开启事务1，插入记录R1
+            // 开启事务1，插入记录R1与集合中已存在的记录唯一索引重复，
+            // 再次插入记录R2，回滚事务，检查结果
             db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db1.beginTransaction();
             DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
-            BSONObject obj = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
-            cl1.insert( obj );
-            List< BSONObject > expList = new ArrayList<>();
-            expList.add( obj );
+            try {
+                cl1.insert( "{_id:2, a:1, b:2}" );
+                Assert.fail();
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -38 );
+            }
+            cl1.insert( "{_id:3, a:3, b:3}" );
 
-            // 开启事务2，执行查询
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db2.beginTransaction();
-            DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
-                    .getCollection( clName );
-            DBCursor cursor = cl2.query();
+            db1.rollback();
+            DBCursor cursor = cl1.query();
             List< BSONObject > actList = TransUtils.getReadActList( cursor );
-            Assert.assertTrue( actList.isEmpty() );
-
-            // 提交所有事务
-            db1.commit();
-            db2.commit();
-            cursor = cl2.query();
-            actList = TransUtils.getReadActList( cursor );
             Assert.assertEquals( actList, expList );
         } finally {
             if ( null != db1 ) {
                 db1.commit();
                 db1.close();
-            }
-            if ( null != db2 ) {
-                db2.commit();
-                db2.close();
             }
         }
     }
@@ -92,7 +86,7 @@ public class Transaction19188 extends SdbTestBase {
             sdb.getCollectionSpace( SdbTestBase.csName )
                     .dropCollection( clName );
             sdb.deleteConfig(
-                    ( BSONObject ) JSON.parse( "{transisolation:''}" ),
+                    ( BSONObject ) JSON.parse( "{transautorollback:''}" ),
                     ( BSONObject ) JSON.parse( "{Global:false}" ) );
             sdb.close();
         }

@@ -1,6 +1,4 @@
-package com.sequoiadb.transaction.session.serial;
-
-import java.util.List;
+package com.sequoiadb.transaction.sessionserial;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
@@ -11,22 +9,21 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.transaction.TransUtils;
 
 /**
  * 
- * @description seqDB-19190:coord及数据节点均开启事务，TransUseRBS属性不一致
+ * @description seqDB-19194:coord及数据节点均开启事务，TransRCCount属性不一致
  * @author yinzhen
  * @date 2019年9月18日
  */
-public class Transaction19190 extends SdbTestBase {
+@Test(groups = "ru")
+public class Transaction19194 extends SdbTestBase {
 
     private Sequoiadb sdb;
-    private String clName = "cl_19190";
+    private String clName = "cl_19194";
 
     @BeforeClass
     public void setUp() {
@@ -39,7 +36,7 @@ public class Transaction19190 extends SdbTestBase {
                         .parse( "{ShardingKey:{_id:1}, AutoSplit:true}" ) );
         sdb.updateConfig( ( BSONObject ) JSON.parse( "{transisolation:1}" ),
                 ( BSONObject ) JSON.parse( "{Global:true}" ) );
-        sdb.updateConfig( ( BSONObject ) JSON.parse( "{transuserbs:false}" ),
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{transrccount:false}" ),
                 ( BSONObject ) JSON.parse( "{Role:'data'}" ) );
     }
 
@@ -58,21 +55,17 @@ public class Transaction19190 extends SdbTestBase {
             BSONObject obj = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
             cl1.insert( obj );
 
-            // 开启事务2，查询记录R1
+            // 开启事务2，执行count查询，检查结果
             db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db2.beginTransaction();
             DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
-            DBCursor cursor = cl2.query();
-            List< BSONObject > actList = TransUtils.getReadActList( cursor );
-            Assert.assertTrue( actList.isEmpty() );
+            long count = cl2.getCount();
+            Assert.assertEquals( count, 0 );
 
-            // 回滚所有事务
-            db1.rollback();
-            db2.rollback();
-            cursor = cl1.query();
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertTrue( actList.isEmpty() );
+            // 提交所有事务
+            db1.commit();
+            db2.commit();
         } finally {
             if ( null != db1 ) {
                 db1.commit();
@@ -93,7 +86,7 @@ public class Transaction19190 extends SdbTestBase {
             sdb.deleteConfig(
                     ( BSONObject ) JSON.parse( "{transisolation:''}" ),
                     ( BSONObject ) JSON.parse( "{Global:true}" ) );
-            sdb.deleteConfig( ( BSONObject ) JSON.parse( "{transuserbs:''}" ),
+            sdb.deleteConfig( ( BSONObject ) JSON.parse( "{transrccount:''}" ),
                     ( BSONObject ) JSON.parse( "{Role:'data'}" ) );
             sdb.close();
         }

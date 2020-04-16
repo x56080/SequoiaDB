@@ -97,6 +97,7 @@
         </groups>
         <packages>
             <package name="com.sequoiadb.transaction.metadataserial" />
+            <package name="com.sequoiadb.transaction.sessionserial" />
         </packages>
     </test>
 
@@ -124,11 +125,6 @@
         </packages>
     </test>
 
-    <test name="normal" parallel="classes" thread-count="5">
-        <packages>
-            <package name="com.sequoiadb.transaction.session" />
-        </packages>
-    </test>
 
 </suite>
     

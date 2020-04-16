@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction.session.serial;
+package com.sequoiadb.transaction.sessionserial;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +25,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @author yinzhen
  * @date 2019年9月18日
  */
+@Test(groups = "ru")
 public class Transaction19191 extends SdbTestBase {
 
     private Sequoiadb sdb;

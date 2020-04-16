@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction.session.serial;
+package com.sequoiadb.transaction.sessionserial;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
@@ -18,6 +18,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @author yinzhen
  * @date 2019年9月18日
  */
+@Test(groups = "ru")
 public class Transaction19195 extends SdbTestBase {
 
     private Sequoiadb sdb;

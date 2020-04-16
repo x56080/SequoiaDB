@@ -1,6 +1,5 @@
-package com.sequoiadb.transaction.session.serial;
+package com.sequoiadb.transaction.sessionserial;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -14,21 +13,21 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
  * 
- * @description seqDB-19189:coord及数据节点均开启事务，TransTimeout属性不一致
+ * @description seqDB-19190:coord及数据节点均开启事务，TransUseRBS属性不一致
  * @author yinzhen
  * @date 2019年9月18日
  */
-public class Transaction19189 extends SdbTestBase {
+@Test(groups = "ru")
+public class Transaction19190 extends SdbTestBase {
 
     private Sequoiadb sdb;
-    private String clName = "cl_19189";
+    private String clName = "cl_19190";
 
     @BeforeClass
     public void setUp() {
@@ -39,9 +38,10 @@ public class Transaction19189 extends SdbTestBase {
         sdb.getCollectionSpace( SdbTestBase.csName ).createCollection( clName,
                 ( BSONObject ) JSON
                         .parse( "{ShardingKey:{_id:1}, AutoSplit:true}" ) );
-        sdb.updateConfig(
-                ( BSONObject ) JSON.parse( "{transactiontimeout:30}" ),
-                ( BSONObject ) JSON.parse( "{Global:false}" ) );
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{transisolation:1}" ),
+                ( BSONObject ) JSON.parse( "{Global:true}" ) );
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{transuserbs:false}" ),
+                ( BSONObject ) JSON.parse( "{Role:'data'}" ) );
     }
 
     @Test
@@ -58,34 +58,22 @@ public class Transaction19189 extends SdbTestBase {
                     .getCollection( clName );
             BSONObject obj = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
             cl1.insert( obj );
-            List< BSONObject > expList = new ArrayList<>();
-            expList.add( obj );
 
-            // 开启事务2，更新记录R1为R2
+            // 开启事务2，查询记录R1
             db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             db2.beginTransaction();
             DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
-            long start = System.currentTimeMillis();
-            try {
-                cl2.update( "{a:1}", "{$set:{b:2}}", null );
-                Assert.fail();
-            } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -13 );
-            }
-            long end = System.currentTimeMillis();
-            int useTime = ( int ) ( ( end - start ) / 1000 );
-            if ( useTime > 35 || useTime < 25 ) {
-                Assert.fail( "transaction timeout check failed, actual timeout:"
-                        + useTime );
-            }
-
-            // 提交所有事务
-            db1.commit();
-            db2.commit();
             DBCursor cursor = cl2.query();
             List< BSONObject > actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            Assert.assertTrue( actList.isEmpty() );
+
+            // 回滚所有事务
+            db1.rollback();
+            db2.rollback();
+            cursor = cl1.query();
+            actList = TransUtils.getReadActList( cursor );
+            Assert.assertTrue( actList.isEmpty() );
         } finally {
             if ( null != db1 ) {
                 db1.commit();
@@ -104,8 +92,10 @@ public class Transaction19189 extends SdbTestBase {
             sdb.getCollectionSpace( SdbTestBase.csName )
                     .dropCollection( clName );
             sdb.deleteConfig(
-                    ( BSONObject ) JSON.parse( "{transactiontimeout:''}" ),
-                    ( BSONObject ) JSON.parse( "{Global:false}" ) );
+                    ( BSONObject ) JSON.parse( "{transisolation:''}" ),
+                    ( BSONObject ) JSON.parse( "{Global:true}" ) );
+            sdb.deleteConfig( ( BSONObject ) JSON.parse( "{transuserbs:''}" ),
+                    ( BSONObject ) JSON.parse( "{Role:'data'}" ) );
             sdb.close();
         }
     }
