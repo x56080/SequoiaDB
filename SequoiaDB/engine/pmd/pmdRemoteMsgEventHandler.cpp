@@ -71,7 +71,7 @@ namespace engine
    INT32 _pmdRemoteMsgHandler::handleMsg( const NET_HANDLE &handle,
                                           const _MsgHeader *header,
                                           const CHAR *msg,
-                                          netUserDataHolder *userDataHolder )
+                                          UINT64 msgUserData )
    {
       INT32 rc = SDB_OK ;
 

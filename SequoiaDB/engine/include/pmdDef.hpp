@@ -100,23 +100,27 @@ namespace engine
    public :
       pmdEDUEventTypes  _eventType ;
       UINT64            _userData ;
+      UINT64            _recvTime ;
       pmdEDUMemTypes    _dataMemType ;
       void              *_Data ;
 
       _pmdEDUEvent ( pmdEDUEventTypes type = PMD_EDU_EVENT_NONE,
                      pmdEDUMemTypes dataMemType = PMD_EDU_MEM_NONE,
                      void *data = NULL,
-                     UINT64 userData = 0 )
+                     UINT64 userData = 0LL,
+                     UINT64 recvTime = 0LL )
       {
-         _reset ( type, dataMemType, data, userData ) ;
+         _reset ( type, dataMemType, data, userData, recvTime ) ;
       }
       _pmdEDUEvent( const _pmdEDUEvent &rhs )
       {
-         _reset ( rhs._eventType, rhs._dataMemType, rhs._Data, rhs._userData ) ;
+         _reset ( rhs._eventType, rhs._dataMemType, rhs._Data, rhs._userData,
+                  rhs._recvTime ) ;
       }
       _pmdEDUEvent& operator=( const _pmdEDUEvent &rhs )
       {
-         _reset( rhs._eventType, rhs._dataMemType, rhs._Data, rhs._userData ) ;
+         _reset( rhs._eventType, rhs._dataMemType, rhs._Data, rhs._userData,
+                 rhs._recvTime ) ;
          return *this ;
       }
       void reset ()
@@ -128,12 +132,14 @@ namespace engine
       void _reset ( pmdEDUEventTypes type = PMD_EDU_EVENT_NONE,
                     pmdEDUMemTypes dataMemType = PMD_EDU_MEM_NONE,
                     void *data = NULL,
-                    UINT64 userData = 0 )
+                    UINT64 userData = 0LL,
+                    UINT64 recvTime = 0LL )
       {
          _eventType  = type ;
          _dataMemType= dataMemType ;
          _Data       = data ;
          _userData   = userData ;
+         _recvTime   = recvTime ;
       }
 
    } ;

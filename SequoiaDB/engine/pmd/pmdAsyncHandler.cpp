@@ -160,7 +160,7 @@ namespace engine
    INT32 _pmdAsyncMsgHandler::handleMsg( const NET_HANDLE & handle,
                                          const _MsgHeader *header,
                                          const CHAR *msg,
-                                         netUserDataHolder *userDataHolder )
+                                         UINT64 msgUserData )
    {
       //If TID not Zero, implicate external business require form client
       //or repl sync messages
@@ -180,7 +180,9 @@ namespace engine
          /// When _handleAdapterMsg failed, need call _handleSessionMsg
          if ( !_pTaskAdapter || rc )
          {
-            rc = _handleSessionMsg( handle, header, msg, userDataHolder ) ;
+            // in asynchronous message, use use data as global logical time
+            // to receive message
+            rc = _handleSessionMsg( handle, header, msg, msgUserData ) ;
          }
       }
       //Other msg will push to cb queue
@@ -325,12 +327,12 @@ namespace engine
    INT32 _pmdAsyncMsgHandler::_handleSessionMsg ( const NET_HANDLE &handle,
                                                   const _MsgHeader *header,
                                                   const CHAR *msg,
-                                                  netUserDataHolder *userDataHolder )
+                                                  UINT64 recvTime )
    {
       return _pSessionMgr->dispatchMsg( handle,
                                         header,
                                         PMD_EDU_MEM_NONE,
-                                        userDataHolder,
+                                        recvTime,
                                         FALSE ) ;
    }
 

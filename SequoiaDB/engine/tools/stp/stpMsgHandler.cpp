@@ -64,7 +64,7 @@ namespace engine
    INT32 _stpNetMsgHandler::handleMsg( const NET_HANDLE &handle,
                                        const MsgHeader *header,
                                        const CHAR *message,
-                                       netUserDataHolder *userDataHolder )
+                                       UINT64 msgUserData )
    {
       INT32 rc = SDB_OK ;
 

@@ -87,7 +87,7 @@ namespace engine
          virtual INT32 handleMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,
                                   const CHAR *msg,
-                                  netUserDataHolder *userDataHolder ) ;
+                                  UINT64 msgUserData ) ;
          virtual void  handleConnect( const NET_HANDLE &handle,
                                       _MsgRouteID id,
                                       BOOLEAN isPositive,
@@ -103,7 +103,7 @@ namespace engine
          INT32 _handleSessionMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,
                                   const CHAR *msg,
-                                  netUserDataHolder *userDataHolder ) ;
+                                  UINT64 recvTime ) ;
 
          INT32 _handleAdapterMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,

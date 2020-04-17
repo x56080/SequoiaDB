@@ -112,6 +112,12 @@ namespace engine
          return _opCode ;
       }
 
+      // get user data
+      OSS_INLINE virtual UINT64 getUserData() const
+      {
+         return 0LL ;
+      }
+
       // get type of user data
       virtual NET_USER_DATA_TYPE getType() const = 0 ;
 
@@ -139,13 +145,13 @@ namespace engine
       }
 
       // get user data
-      OSS_INLINE INetUserData *getUserData()
+      OSS_INLINE INetUserData *getUserDataPtr()
       {
          return _userData ;
       }
 
       // set user data
-      OSS_INLINE void setUserData( INetUserData *userData )
+      OSS_INLINE void setUserDataPtr( INetUserData *userData )
       {
          SAFE_OSS_DELETE( _userData ) ;
          _userData = userData ;
@@ -162,6 +168,13 @@ namespace engine
       {
          return ( NULL != _userData &&
                   type == _userData->getType() ) ;
+      }
+
+      // get user data
+      OSS_INLINE UINT64 getUserData() const
+      {
+         return ( NULL != _userData ) ?
+                      ( _userData->getUserData() ) : 0LL ;
       }
 
    protected:

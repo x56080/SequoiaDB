@@ -83,7 +83,7 @@ namespace engine
 
          if ( bPop )
          {
-            _pSessionMgr->dispatchMsg( handle, pHeader, memType, NULL,
+            _pSessionMgr->dispatchMsg( handle, pHeader, memType, 0LL,
                                        TRUE, &hasDispatched ) ;
             if ( !hasDispatched )
             {

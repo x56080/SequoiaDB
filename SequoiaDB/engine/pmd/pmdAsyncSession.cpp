@@ -300,36 +300,6 @@ namespace engine
       _info.reset() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSN_ALLOCSESSDATA, "_pmdAsyncSession::allocSessData" )
-   INT32 _pmdAsyncSession::allocSessData( pmdAsyncSessData **sessionData )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__PMDSN_ALLOCSESSDATA ) ;
-
-      pmdAsyncSessData *data = NULL ;
-
-      if ( NULL == sessionData )
-      {
-         goto done ;
-      }
-
-      *sessionData = NULL ;
-
-      data = SDB_OSS_NEW pmdAsyncSessData() ;
-      PD_CHECK( NULL != data, SDB_OOM, error, PDERROR,
-                "Failed to allocate user data" ) ;
-
-      *sessionData = data ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__PMDSN_ALLOCSESSDATA, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSN_RESET, "_pmdAsyncSession::_reset" )
    void _pmdAsyncSession::_reset()
    {
@@ -883,7 +853,7 @@ namespace engine
    INT32 _pmdAsycSessionMgr::dispatchMsg( const NET_HANDLE &handle,
                                           const MsgHeader *pMsg,
                                           pmdEDUMemTypes memType,
-                                          netUserDataHolder *netDataHolder,
+                                          UINT64 recvTime,
                                           BOOLEAN decPending,
                                           BOOLEAN *hasDispatched )
    {
@@ -1011,9 +981,7 @@ namespace engine
       pSession->onRecieve( handle, (_MsgHeader*)pMsg ) ;
 
       // push the message into session manager
-      rc = _pushMessage( pSession, pMsg, memType, handle,
-                         NULL == netDataHolder ?
-                               NULL : netDataHolder->getUserData() ) ;
+      rc = _pushMessage( pSession, pMsg, memType, handle, recvTime ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to push message[Len:%u, opCode:%d, "
@@ -1052,13 +1020,13 @@ namespace engine
                                            const MsgHeader *header,
                                            pmdEDUMemTypes memType,
                                            const NET_HANDLE &handle,
-                                           INetUserData *netData )
+                                           UINT64 recvTime )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY ( PMD_SESSMGR_PUSHMSG ) ;
       CHAR *pNewBuff          = NULL ;
-      UINT32 poolType         = PMD_SESSION_MSG_INPOOL ;
-      pmdAsyncSessData *sessData = NULL ;
+      UINT64 userData         = PMD_MAKE_SESSION_USERDATA( handle,
+                                                 PMD_SESSION_MSG_INPOOL ) ;
 
       if ( pSession->isClosed() )
       {
@@ -1136,28 +1104,22 @@ namespace engine
                goto error ;
             }
             ossMemcpy( pNewBuff, (void*)header, header->messageLength ) ;
-            poolType = PMD_SESSION_MSG_UNPOOL ;
+            userData = PMD_MAKE_SESSION_USERDATA( handle,
+                                                  PMD_SESSION_MSG_UNPOOL ) ;
             memType  = PMD_EDU_MEM_THREAD ;
          }
       }
       else
       {
-         poolType = PMD_SESSION_MSG_UNPOOL ;
+         userData = PMD_MAKE_SESSION_USERDATA( handle,
+                                               PMD_SESSION_MSG_UNPOOL ) ;
          pNewBuff = ( CHAR* )header ;
       }
-
-      rc = pSession->allocSessData( &sessData ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to allocate session data for "
-                   "handle %u, rc: %d", handle, rc ) ;
-
-      sessData->setHandle( handle ) ;
-      sessData->setPoolType( poolType ) ;
-      sessData->copyNetData( netData ) ;
 
       // post edu event
       pSession->eduCB()->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
                                                  memType, pNewBuff,
-                                                 (UINT64)sessData ) ) ;
+                                                 userData, recvTime ) ) ;
    done:
       PD_TRACE_EXITRC ( PMD_SESSMGR_PUSHMSG, rc ) ;
       return rc ;
