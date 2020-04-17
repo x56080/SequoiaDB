@@ -107,7 +107,7 @@ namespace engine
       BOOLEAN isIndexProtectionRequired() ;
 
       BOOLEAN isIndexProtected( INT32 idxTreeId, INT32 latchMode = -1 ) ;
-        
+
       const dmsRBSOffset & getRBSRecordOffset() ;
 
       void  setRBSRecordOffset( dmsRBSOffset & loc )
@@ -223,13 +223,13 @@ namespace engine
                                        BOOLEAN allowSelfDup,
                                        utilWriteResult *pResult ) ;
 
-   enum _DELETE_CURSOR
-   {
-      _DELETE_NONE,
-      _DELETE_IGNORE,
-      _DELETE_SAVE
-   } ;
-   INT32            _checkDeleteIndex( preIdxTreePtr &treePtr,
+      enum _DELETE_CURSOR
+      {
+         _DELETE_NONE,
+         _DELETE_IGNORE,
+         _DELETE_SAVE
+      } ;
+      INT32         _checkDeleteIndex( preIdxTreePtr &treePtr,
                                        _DELETE_CURSOR &deleteCursor,
                                        const ixmIndexCB *indexCB,
                                        BOOLEAN isUnique,
@@ -253,6 +253,29 @@ namespace engine
                                      const dmsRecordID &rid,
                                      const BSONObj &obj,
                                      UINT32 ownerTID ) ;
+
+      INT32    _afterAcquireUXLockOrNonRRread(
+                                     const dpsTransLockId      &lockId,
+                                     INT32                      irc,
+                                     DPS_TRANSLOCK_TYPE         requestLockMode,
+                                     UINT32                     refCounter,
+                                     DPS_TRANSLOCK_OP_MODE_TYPE opMode,
+                                     const dpsTransLRBHeader   *pLRBHeader,
+                                     dpsLRBExtData             *pExtData ) ;
+
+      INT32    _afterAcquireSLockRRread(
+                                     const dpsTransLockId      &lockId,
+                                     INT32                      irc,
+                                     DPS_TRANSLOCK_TYPE         requestLockMode,
+                                     UINT32                     refCounter,
+                                     DPS_TRANSLOCK_OP_MODE_TYPE opMode,
+                                     const dpsTransLRBHeader   *pLRBHeader,
+                                     dpsLRBExtData             *pExtData ) ;
+
+      INT32    _validateRecordFromOldVer( pmdEDUCB             *eduCB,
+                                          const DPS_TRANS_ID   &transID,
+                                          BOOLEAN              &visible ) ;
+
    private:
       dpsTransCB           *_transCB ;    // use it to access global old copy tree
       pmdEDUCB             *_eduCB ;
@@ -276,7 +299,7 @@ namespace engine
       // Only need the cleanup when the operation was successfull.
       // Note that because this is for Non-transactional, it's set/reset
       // per record, and per record lock
-      BOOLEAN              _nonTransNeedCleanup;  
+      BOOLEAN              _nonTransNeedCleanup;
       dpsOldRecordPtr      _recordPtr ;
       dmsRBSOffset         _rbsRecordOffset ;
 

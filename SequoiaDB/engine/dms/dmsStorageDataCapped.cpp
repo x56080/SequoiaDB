@@ -1136,7 +1136,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__EXTENTINSERTRECORD ) ;
       dmsCappedRecord *pRecord     = NULL ;
       monAppCB        *pMonAppCB   = cb ? cb->getMonAppCB() : NULL ;
-      dmsExtentInfo   *workExtInfo = getWorkExtInfo( context->mbID() ) ;   
+      dmsExtentInfo   *workExtInfo = getWorkExtInfo( context->mbID() ) ;
       DPS_TRANS_ID     transID ;
 
       // get transaction ID
@@ -1175,16 +1175,18 @@ namespace engine
          pRecord->setLogicalID( *lidPtr ) ;
       // FIXME: remove
 #ifdef _DEBUG
-         PD_LOG( PDDEBUG, 
+         PD_LOG( PDDEBUG,
                  "insert record (recordsize=%d, Bson obj size=%d) to capped cl,"
                  "with flag(%d) logicalid(%lld), rid(%d, %d), "
-                 "recsize(%d),reclogicID(%lld), recTransID(%s)",
+                 "recsize(%d), recNo(%d), reclogicID(%lld), recTransID(%s)",
                  //"recLSN(%llu)",
-                 recordSize, recordData.len(), (*lidPtr), 
+                 recordSize, recordData.len(),
+                 (*lidPtr),
                  pRecord->getFlag(),
-                 recordRW.getRecordID()._extent, 
+                 recordRW.getRecordID()._extent,
                  recordRW.getRecordID()._offset,
                  pRecord->getSize(),
+                 pRecord->getRecordNo(),
                  pRecord->getLogicalID(),
                  dpsTransIDToString( pRecord->getGlobTransID() ).c_str() );
                  //pRecord->getLSNOffset() ) ;
@@ -2419,14 +2421,14 @@ namespace engine
    }
 
    // given recordID, fetch a record from capped CL, return BSON object
-   // if user want to retrieve its version, return it as well. 
+   // if user want to retrieve its version, return it as well.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED_FETCH, "_dmsStorageDataCapped::fetch" )
    INT32 _dmsStorageDataCapped::fetch ( dmsMBContext *context,
                                         const dmsRecordID &recordID,
                                         BSONObj &dataRecord,
                                         _pmdEDUCB *cb,
                                         BOOLEAN dataOwned,
-                                        DPS_TRANS_ID *version ) 
+                                        DPS_TRANS_ID *version )
    {
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED_FETCH) ;
       INT32          rc = SDB_OK ;
@@ -2436,7 +2438,7 @@ namespace engine
       dmsRecordRW      recordRW ;
 
 
-      //rc = fetch( context, recordID, recordData, cb ); 
+      //rc = fetch( context, recordID, recordData, cb );
       if ( !context->isMBLock() )
       {
          rc = SDB_SYS ;
@@ -2482,9 +2484,12 @@ namespace engine
             // TODO: dump record data for verification
 #ifdef _DEBUG
             PD_LOG( PDDEBUG,
-                    "Read record from capped cl, recNo(%d), logicalid(%ld)",
-                    pRecord->_recNo, 
-                    pRecord->_logicalID ) ;
+                    "Read record rid(%d, %d) from capped cl, recNo(%d), reclogicID(%lld), "
+                    "transID(%s)",
+                    recordID._extent, recordID._offset,
+                    pRecord->getRecordNo(),
+                    pRecord->getLogicalID(),
+                    dpsTransIDToString( pRecord->getGlobTransID() ).c_str() );
 #endif
          }
 
