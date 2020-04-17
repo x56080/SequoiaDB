@@ -730,7 +730,7 @@ namespace engine
       // decide if we were provided with start and finish position in RBS.
       // index scan does this type of search. Either of this can be valid.
       BOOLEAN       useRange   = ( startPos.isValid() || endPos.isValid() );
-      DPS_TRANS_ID  ownerTransid ;
+      DPS_TRANS_ID  ownerTransid, lastRecTransID ;
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
                "Transaction (%s) tries to find a proper version from RBS, "
@@ -830,7 +830,7 @@ namespace engine
                             eduCB, FALSE, &ownerTransid ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, 
+               PD_LOG ( PDERROR,
                         "Failed to fetch rbsrecord,rid(%d, %d), rc=%d",
                         extID, offset, rc ) ;
                goto error ;
@@ -879,6 +879,48 @@ namespace engine
                {
                   BOOLEAN isVisible = FALSE ;
 
+                  // check visibility for current trans against owner transId
+                  //
+                  // for same RID on the chain, the ownerTransID of previous
+                  // record is the recTransID of next record :
+                  // {owner:T3,rec:T2} -> {owner:T2,rec:T1} -> {owner:T1,rec:T0}
+                  // thus, we can remember last record transID, lastRecTransID,
+                  // if the lastRecTransID is equal to ownerTransID, no need
+                  // to check owner trans visibility any further, since it had
+                  // been checked as recTransID last time.
+                  if ( ownerTransid != lastRecTransID )
+                  {
+                     rc = sdbGetTransCB()->isVersionVisible(
+                                                        eduCB,
+                                                        ownerTransid,
+                                                        transid,
+                                                        eduCB->getTransBeginTime(),
+                                                        TRANS_ISOLATION_RR,
+                                                        FALSE,
+                                                        isVisible ) ;
+                     PD_RC_CHECK( rc, PDERROR,
+                                  "Failed to check version visibility for "
+                                  "current transaction [%s] against owner "
+                                  "transaction [%s], rc: %d",
+                                  dpsTransIDToString( transid ).c_str(),
+                                  dpsTransIDToString( ownerTransid ).c_str(), rc ) ;
+
+                     if ( isVisible )
+                     {
+#ifdef _DEBUG
+                        PD_LOG ( PDDEBUG,
+                                 "Hit owner trans version(%s) at position(%d, %lld)",
+                                 dpsTransIDToString( ownerTransid ).c_str(),
+                                 position._clID,
+                                 position._logicalID ) ;
+#endif
+                        _su->data()->releaseMBContext( context ) ;
+                        context = NULL ;
+                        break ;
+                     }
+                  }
+                  lastRecTransID = recordTransID ;
+
                   // check version visible for current transaction against record
                   // transaction
                   rc = sdbGetTransCB()->isVersionVisible(
@@ -889,7 +931,8 @@ namespace engine
                                                   TRANS_ISOLATION_RR,
                                                   FALSE,
                                                   isVisible ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to check version visible for "
+                  PD_RC_CHECK( rc, PDERROR,
+                               "Failed to check version visibility for "
                                "current transaction [%s] against record "
                                "transaction [%s], rc: %d",
                                dpsTransIDToString( transid ).c_str(),

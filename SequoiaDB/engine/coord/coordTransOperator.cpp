@@ -885,9 +885,12 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
-                         "Commit failed, received unexpected error: %s",
-                         e.what() ) ;
+            /*
+             * For old driver, TransCommit message use the wrong length
+             * which can cause the exception when we build the hint here.
+             */
+            PD_LOG( PDWARNING, "Build transcommit hint occur exception: %s",
+                    e.what() ) ;
          }
       }
 
