@@ -3,24 +3,19 @@
 @Modify list :
 2020-03-11  chensiqin  Create
 ****************************************************************************/
-
-testConf.csName = COMMCSNAME;
 testConf.clName = COMMCLNAME + "_21935";
 
 main( test );
 
 function test( testPara )
 {
-
-   cl = testPara.testCL;
-   clName = testConf.clName
-   testImprtJson1( clName, cl );
-   testImprtJson2( clName, cl );
-   testImprtCsv1( clName, cl );
-   testImprtCsv2( clName, cl );
+   testImprtJson1( testPara.testCL );
+   testImprtJson2( testPara.testCL );
+   testImprtCsv1( testPara.testCL );
+   testImprtCsv2( testPara.testCL );
 }
 
-function testImprtJson1( clName, cl )
+function testImprtJson1( cl )
 {
    var filename = tmpFileDir + "21935_1.json";
    var file = fileInit( filename );
@@ -30,7 +25,7 @@ function testImprtJson1( clName, cl )
    var command = installDir + "bin/sdbimprt" +
       " --hosts " + COORDHOSTNAME + ":" + COORDSVCNAME +
       " -c " + COMMCSNAME +
-      " -l " + clName +
+      " -l " + testConf.clName +
       " --type json " + 
       "--fields a,b,c " +
       "--file " + filename;
@@ -39,21 +34,23 @@ function testImprtJson1( clName, cl )
    cmd.run( command );
    var expectResult = [];
    commCompareResults( cl.find(), expectResult );
+   
    //linepriority auto
    cmd.run( command + " --linepriority auto");
    commCompareResults( cl.find(), expectResult );
+   
    //linepriority flase
    cmd.run( command + " --linepriority false");
    commCompareResults( cl.find(), expectResult );
+   
    // linepriority true
    cmd.run( command + " --linepriority true");
    expectResult =  [ { "a": 1, "b": 2 } ];
    commCompareResults( cl.find(), expectResult ); 
 }
 
-function testImprtJson2( clName, cl )
+function testImprtJson2( cl )
 {
-   cl.remove();
    var filename = tmpFileDir + "21935_2.json";
    var file = fileInit( filename );
    file.write( "{ \"a\": \"Mike\n\" }\n" );
@@ -62,23 +59,27 @@ function testImprtJson2( clName, cl )
    var command = installDir + "bin/sdbimprt" +
       " --hosts " + COORDHOSTNAME + ":" + COORDSVCNAME +
       " -c " + COMMCSNAME +
-      " -l " + clName +
+      " -l " + testConf.clName +
       " --type json " + 
       "--fields a,b,c " +
       "--file " + filename;
    
    //不指定--linepriority 
+   cl.remove();
    cmd.run( command );
    var expectResult = [{"a":"Mike\n"},{"a":1,"b":2}];
    commCompareResults( cl.find(), expectResult );
+   
    //linepriority auto
    cl.remove();
    cmd.run( command + " --linepriority auto");
    commCompareResults( cl.find(), expectResult );
+   
    //linepriority flase
    cl.remove();
    cmd.run( command + " --linepriority false");
    commCompareResults( cl.find(), expectResult );
+   
    // linepriority true
    cl.remove();
    cmd.run( command + " --linepriority true");
@@ -86,7 +87,7 @@ function testImprtJson2( clName, cl )
    commCompareResults( cl.find(), expectResult );
 }
 
-function testImprtCsv1( clName, cl )
+function testImprtCsv1( cl )
 {
    var filename = tmpFileDir + "21935_1.csv";
    var file = fileInit( filename );
@@ -96,31 +97,35 @@ function testImprtCsv1( clName, cl )
    var command = installDir + "bin/sdbimprt" +
       " --hosts " + COORDHOSTNAME + ":" + COORDSVCNAME +
       " -c " + COMMCSNAME +
-      " -l " + clName +
+      " -l " + testConf.clName +
       " --type csv " + 
       "--fields a,b,c " +
       "--file " + filename;
-   cl.remove();
+   
    //不指定--linepriority 
+   cl.remove();
    cmd.run( command );
    var expectResult = [ {"a": "Mike","b": 20,"c": "USA"} ];
    commCompareResults( cl.find(), expectResult );
    cl.remove();
+   
    //linepriority auto
    cmd.run( command + " --linepriority auto");
    commCompareResults( cl.find(), expectResult );
    cl.remove();
-   //linepriority flase
+   
+   //linepriority true 
    cmd.run( command + " --linepriority true");
    commCompareResults( cl.find(), expectResult );
    cl.remove();
-   // linepriority true
+   
+   // linepriority false
    cmd.run( command + " --linepriority false");
-   expResult =  [];
+   expectResult = [];
    commCompareResults( cl.find(), expectResult );
 }
 
-function testImprtCsv2( clName, cl )
+function testImprtCsv2( cl )
 {
    var filename = tmpFileDir + "21935_2.csv";
    var file = fileInit( filename );
@@ -131,24 +136,28 @@ function testImprtCsv2( clName, cl )
    var command = installDir + "bin/sdbimprt" +
       " --hosts " + COORDHOSTNAME + ":" + COORDSVCNAME +
       " -c " + COMMCSNAME +
-      " -l " + clName +
+      " -l " + testConf.clName +
       " --type csv " + 
       "--fields a,b,c " +
       "--file " + filename;
-   cl.remove();
+   
    //不指定--linepriority 
+   cl.remove();
    cmd.run( command );
    var expectResult = [ {"a": "Jack","b": 18,"c": "Chi"}, {"a": "na"}, {"a": "Mike","b": 20,"c": "USA"} ];
    commCompareResults( cl.find(), expectResult );
    cl.remove();
+  
    //linepriority auto
    cmd.run( command + " --linepriority auto");
    commCompareResults( cl.find(), expectResult );
    cl.remove();
+
    //linepriority flase
    cmd.run( command + " --linepriority true");
    commCompareResults( cl.find(), expectResult );
    cl.remove();
+
    // linepriority true
    cmd.run( command + " --linepriority false");
    expectResult =  [{"a": "Jack","b": 18,"c": "Chi\nna"}, {"a": "Mike","b": 20,"c": "USA"} ];
