@@ -1692,7 +1692,8 @@ namespace engine
       }
       else
       {
-         rc = _handler->handleMsg( eh->handle(), pMsg, eh->msg(), eh.get() ) ;
+         rc = _handler->handleMsg( eh->handle(), pMsg, eh->msg(),
+                                   eh->getUserData() ) ;
          _netIn.add( pMsg->messageLength ) ;
          if ( SDB_NET_BROKEN_MSG == rc )
          {

@@ -74,10 +74,11 @@ namespace engine
     */
    _clsShdNetData::_clsShdNetData()
    : INetUserData(),
-     clsShdRecvTimeInfo(),
      _totalBlockSize( 0 ),
      _blockInfoIndex( 0 ),
-     _blockInfoSize( 0 )
+     _blockInfoSize( 0 ),
+     _recvTimeRC( SDB_OK ),
+     _recvTime()
    {
    }
 
@@ -265,46 +266,6 @@ namespace engine
       goto done ;
    }
 
-   /*
-      _clsShdSessData implement
-    */
-   _clsShdSessData::_clsShdSessData()
-   : pmdAsyncSessData(),
-     clsShdRecvTimeInfo()
-   {
-   }
-
-   _clsShdSessData::~_clsShdSessData()
-   {
-   }
-
-   void _clsShdSessData::copyNetData( INetUserData *netData )
-   {
-      if ( NULL != netData &&
-           NET_USER_DATA_SHARD == netData->getType() )
-      {
-         clsShdNetData *shardNetData = NULL ;
-
-         // check if it is shard user data
-         shardNetData = dynamic_cast<clsShdNetData *>( netData ) ;
-
-         if ( NULL != shardNetData )
-         {
-            // copy receive time if needed
-            if ( shardNetData->isGlobTimeRequest() )
-            {
-               _recvTimeRC = shardNetData->getRecvTimeRC() ;
-               _recvTime = shardNetData->getRecvTime() ;
-            }
-            else
-            {
-               _recvTimeRC = SDB_OK ;
-               _recvTime.reset() ;
-            }
-         }
-      }
-   }
-
    BEGIN_OBJ_MSG_MAP( _clsShdSession, _pmdAsyncSession )
       ON_MSG ( MSG_BS_UPDATE_REQ, _onOPMsg )
       ON_MSG ( MSG_BS_INSERT_REQ, _onOPMsg )
@@ -368,6 +329,7 @@ namespace engine
 
       _transWaitTimeout = 0 ;
       _transWaitID.reset() ;
+      _recvGlobTime = 0LL ;
 
       PD_TRACE_EXIT ( SDB__CLSSDSESS__CLSSHDSESS ) ;
    }
@@ -429,31 +391,10 @@ namespace engine
 
    void _clsShdSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
                                             const MsgHeader *pHeader,
-                                            pmdAsyncSessData *sessData )
+                                            UINT64 recvTime )
    {
       _pTaskInfo->beginATask() ;
-
-      if ( NULL != pHeader )
-      {
-         BOOLEAN needReset = TRUE ;
-
-         if ( NULL != sessData &&
-              PMD_SESS_DATA_SHARD == sessData->getType() )
-         {
-            clsShdSessData *data = dynamic_cast<clsShdSessData *>( sessData ) ;
-            if ( NULL != data )
-            {
-               _msgRecvTimeInfo.setRecvTimeRC( data->getRecvTimeRC() ) ;
-               _msgRecvTimeInfo.setRecvTime( data->getRecvTime() ) ;
-               needReset = FALSE ;
-            }
-         }
-
-         if ( needReset )
-         {
-            _msgRecvTimeInfo.reset( STP_NOT_AVAILABLE ) ;
-         }
-      }
+      _recvGlobTime = recvTime ;
    }
 
    void _clsShdSession::onDispatchMsgEnd( INT64 costUsecs )
@@ -472,36 +413,6 @@ namespace engine
                                         costUsecs ) ;
          }
       }
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS_ALLOCSESSDATA, "_clsShdSession::allocSessData" )
-   INT32 _clsShdSession::allocSessData( pmdAsyncSessData **sessionData )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSSHDSESS_ALLOCSESSDATA ) ;
-
-      clsShdSessData *data = NULL ;
-
-      if ( NULL == sessionData )
-      {
-         goto done ;
-      }
-
-      *sessionData = NULL ;
-
-      data = SDB_OSS_NEW clsShdSessData() ;
-      PD_CHECK( NULL != data, SDB_OOM, error, PDERROR,
-                "Failed to allocate shard user data" ) ;
-
-      *sessionData = (pmdAsyncSessData *)data ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSSHDSESS_ALLOCSESSDATA, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS_TMOUT, "_clsShdSession::timeout" )
@@ -895,11 +806,10 @@ namespace engine
       if ( transCB->isGlobTransSyncCheck() ||
            transCB->isGlobTransArbitOn() )
       {
-         if ( SDB_OK != _msgRecvTimeInfo.getRecvTimeRC() )
+         if ( 0LL == _recvGlobTime )
          {
             PD_LOG( PDWARNING, "Failed to get global transaction time "
-                    "for RR transaction checking, rc: %d",
-                    _msgRecvTimeInfo.getRecvTimeRC() ) ;
+                    "for RR transaction checking" ) ;
             stpAgent agent ;
             rc = agent.getLogicalTimeUS( receivedTime,
                                          _pEDUCB->getTransTimeout(),
@@ -910,18 +820,16 @@ namespace engine
          }
          else
          {
-            receivedTime = _msgRecvTimeInfo.getRecvTime() ;
+            receivedTime.setTime( _recvGlobTime ) ;
          }
 
 #if defined (_DEBUG)
          PD_LOG( PDDEBUG, "Check RR transaction begin [%s], "
                  "begin time [%s], send time [%s], "
-                 "receive time [%s], rc: %d",
-                 dpsTransIDToString( transID ).c_str(),
+                 "receive time [%s]", dpsTransIDToString( transID ).c_str(),
                  dpsTransTimeToString( transBeginTime ).c_str(),
                  dpsTransTimeToString( sendTime ).c_str(),
-                 dpsTransTimeToString( receivedTime ).c_str(),
-                 _msgRecvTimeInfo.getRecvTimeRC() ) ;
+                 dpsTransTimeToString( receivedTime ).c_str() ) ;
 #endif
       }
 
@@ -3174,12 +3082,12 @@ namespace engine
 
          SDB_ASSERT( NULL != gtsAgent, "GTS agent is invalid" ) ;
 
-         if ( SDB_OK != _msgRecvTimeInfo.getRecvTimeRC() )
+         if ( 0LL == _recvGlobTime )
          {
             // failed to get logical time when receiving message
             // retry now
             PD_LOG( PDWARNING, "Failed to get receive time for pre-commit "
-                    "message, rc: %d", _msgRecvTimeInfo.getRecvTimeRC() ) ;
+                    "message" ) ;
 
             stpAgent agent ;
             rc = agent.getLogicalTimeUS( receivedTime,
@@ -3191,18 +3099,17 @@ namespace engine
          }
          else
          {
-            receivedTime = _msgRecvTimeInfo.getRecvTime() ;
+            receivedTime.setTime( _recvGlobTime ) ;
          }
 
 #if defined (_DEBUG)
          PD_LOG( PDDEBUG, "Check RR transaction pre-commit [%s], "
                  "pre-commit time [%s], send time [%s], "
-                 "receive time [%s], rc: %d",
+                 "receive time [%s]",
                  dpsTransIDToString( _pEDUCB->getTransID() ).c_str(),
                  dpsTransTimeToString( preCommitTime ).c_str(),
                  dpsTransTimeToString( sendTime ).c_str(),
-                 dpsTransTimeToString( receivedTime ).c_str(),
-                 _msgRecvTimeInfo.getRecvTimeRC() ) ;
+                 dpsTransTimeToString( receivedTime ).c_str() ) ;
 #endif
 
          // we check doing transaction arbitration with maximum time error,

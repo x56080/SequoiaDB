@@ -114,7 +114,7 @@ namespace engine
       INT32 handleMsg( const NET_HANDLE &handle,
                        const _MsgHeader *header,
                        const CHAR *msg,
-                       netUserDataHolder *userDataHolder ) ;
+                       UINT64 msgUserData ) ;
       void  handleClose( const NET_HANDLE &handle, _MsgRouteID id ) ;
 
       void  handleTimeout( const UINT32 &millisec, const UINT32 &id ) ;

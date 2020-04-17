@@ -80,6 +80,8 @@ namespace engine
       INT64 timeDiff = 0 ;
       pmdKRCB *krcb    = pmdGetKRCB() ;
       monDBCB *mondbcb = krcb->getMonDBCB () ;
+      NET_HANDLE netHandle = 0 ;
+      UINT32 poolType = 0 ;
 
       pmdAsyncSessionScope assitScope( pSession, cb ) ;
 
@@ -115,14 +117,9 @@ namespace engine
             {
                mondbcb->addReceiveNum() ;
 
-               pmdAsyncSessData *sessData =
-                     (pmdAsyncSessData *)( event._userData ) ;
-               NET_HANDLE handle =
-                     ( NULL != sessData ) ? sessData->getHandle() :
-                                            NET_INVALID_HANDLE ;
-               UINT32 poolType =
-                     ( NULL != sessData ) ? sessData->getPoolType() :
-                                            PMD_SESSION_MSG_INPOOL ;
+               PMD_UNMAKE_SESSION_USERDATA( event._userData,
+                                            netHandle,
+                                            poolType ) ;
 
                if ( PMD_SESSION_MSG_INPOOL == poolType )
                {
@@ -149,8 +146,10 @@ namespace engine
                           pMsg->TID, pMsg->messageLength, timeDiff ) ;
                }
 
-               pSession->onDispatchMsgBegin( handle, pMsg, sessData ) ;
-               pSession->dispatchMsg ( handle, pMsg, &timeDiff ) ;
+               pSession->onDispatchMsgBegin( netHandle,
+                                             pMsg,
+                                             event._recvTime ) ;
+               pSession->dispatchMsg ( netHandle, pMsg, &timeDiff ) ;
                pSession->onDispatchMsgEnd( timeDiff ) ;
 
                // if msg processed time over 20 seconds
@@ -167,8 +166,6 @@ namespace engine
                {
                   pBuffInfo->setFree () ;
                }
-               // release sesseion data
-               SAFE_OSS_DELETE( sessData ) ;
             }
             else
             {

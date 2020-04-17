@@ -89,7 +89,7 @@ namespace engine
    INT32 _rtnMsgHandler::handleMsg( const NET_HANDLE &handle,
                                     const _MsgHeader *header,
                                     const CHAR *msg,
-                                    netUserDataHolder *userDataHolder )
+                                    UINT64 msgUserData )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNMSGHANDLER_HANDLEMSG ) ;

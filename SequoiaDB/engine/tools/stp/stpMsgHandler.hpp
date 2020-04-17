@@ -66,7 +66,7 @@ namespace engine
       virtual INT32 handleMsg( const NET_HANDLE &handle,
                                const MsgHeader *header,
                                const CHAR *message,
-                               netUserDataHolder *userDataHolder ) ;
+                               UINT64 msgUserData ) ;
       // handle close message ( disconnect )
       virtual void handleClose( const NET_HANDLE &handle,
                                 MsgRouteID id ) ;

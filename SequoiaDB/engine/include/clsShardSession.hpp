@@ -90,62 +90,6 @@ namespace engine
    #define CLS_SHD_MAX_BLOCK_SIZE   ( 16 )
 
    /*
-      _clsShdRecvTimeInfo define
-    */
-   class _clsShdRecvTimeInfo : public utilPooledObject
-   {
-   public:
-      _clsShdRecvTimeInfo()
-      : _recvTimeRC( SDB_OK ),
-        _recvTime()
-      {
-      }
-
-      virtual ~_clsShdRecvTimeInfo()
-      {
-      }
-
-      // set return code to acquire global logical time
-      OSS_INLINE void setRecvTimeRC( INT32 rc )
-      {
-         _recvTimeRC = rc ;
-      }
-
-      // get return code to acquire global logical time
-      OSS_INLINE UINT32 getRecvTimeRC() const
-      {
-         return _recvTimeRC ;
-      }
-
-      // set global logical time to receive message
-      OSS_INLINE void setRecvTime( const stpLogicalTimeUS &recvTime )
-      {
-         _recvTime = recvTime ;
-      }
-
-      // get global logical time to receive message
-      OSS_INLINE const stpLogicalTimeUS &getRecvTime() const
-      {
-         return _recvTime ;
-      }
-
-      // reset receive time info with given return code
-      OSS_INLINE void reset( INT32 rc = SDB_OK )
-      {
-         _recvTimeRC = SDB_OK ;
-         _recvTime.reset() ;
-      }
-
-   protected:
-      // return code to acquire global logical time
-      UINT32            _recvTimeRC ;
-      // global logical time to receive message
-      stpLogicalTimeUS  _recvTime ;
-   } ;
-
-   typedef class _clsShdRecvTimeInfo clsShdRecvTimeInfo ;
-
-   /*
       _clsShdBlockInfo define
     */
    // information of blocking messages, contains block size and logical time
@@ -177,8 +121,7 @@ namespace engine
       _clsShdUserData define
     */
    // shard user data to save info from net message
-   class _clsShdNetData : public INetUserData,
-                          public clsShdRecvTimeInfo
+   class _clsShdNetData : public INetUserData
    {
    public:
       // constructor and destructor
@@ -186,9 +129,16 @@ namespace engine
       virtual ~_clsShdNetData() ;
 
    public:
-      virtual OSS_INLINE NET_USER_DATA_TYPE getType() const
+      OSS_INLINE virtual NET_USER_DATA_TYPE getType() const
       {
          return NET_USER_DATA_SHARD ;
+      }
+
+      // get user data
+      // use global logical time as user data
+      OSS_INLINE virtual UINT64 getUserData() const
+      {
+         return ( SDB_OK == _recvTimeRC ) ? ( _recvTime.getTime() ) : 0LL ;
       }
 
       // indicate if message requires global logical time
@@ -203,6 +153,37 @@ namespace engine
 
       // callback event to handle receive messages
       void onReceiveMsg( UINT32 receivedSize, UINT32 currentSize ) ;
+
+      // set return code to acquire global logical time
+      OSS_INLINE void setRecvTimeRC( INT32 rc )
+      {
+         _recvTimeRC = rc ;
+      }
+
+      // get return code to acquire global logical time
+      OSS_INLINE UINT32 getRecvTimeRC() const
+      {
+         return _recvTimeRC ;
+      }
+
+      // set global logical time to receive message
+      OSS_INLINE void setRecvTime( const stpLogicalTimeUS &recvTime )
+      {
+         _recvTime = recvTime ;
+      }
+
+      // get global logical time to receive message
+      OSS_INLINE const stpLogicalTimeUS &getRecvTime() const
+      {
+         return _recvTime ;
+      }
+
+      // reset receive time info with given return code
+      OSS_INLINE void reset( INT32 rc = SDB_OK )
+      {
+         _recvTimeRC = rc ;
+         _recvTime.reset() ;
+      }
 
    protected:
       // calculate blocking size
@@ -219,29 +200,13 @@ namespace engine
       UINT8             _blockInfoSize ;
       // blocking info list
       clsShdBlockInfo   _blockInfo[ CLS_SHD_MAX_BLOCK_SIZE ] ;
+      // return code to acquire global logical time
+      UINT32            _recvTimeRC ;
+      // global logical time to receive message
+      stpLogicalTimeUS  _recvTime ;
    } ;
 
    typedef class _clsShdNetData clsShdNetData ;
-
-   /*
-      _clsShdSessData define
-    */
-   class _clsShdSessData : public pmdAsyncSessData,
-                           public clsShdRecvTimeInfo
-   {
-   public:
-      _clsShdSessData() ;
-      virtual ~_clsShdSessData() ;
-
-      OSS_INLINE virtual PMD_SESS_DATA_TYPE getType() const
-      {
-         return PMD_SESS_DATA_SHARD ;
-      }
-
-      virtual void copyNetData( INetUserData *netData ) ;
-   } ;
-
-   typedef class _clsShdSessData clsShdSessData ;
 
    /*
       _clsShdSession implement
@@ -267,10 +232,8 @@ namespace engine
 
          virtual void    onDispatchMsgBegin( const NET_HANDLE netHandle,
                                              const MsgHeader *pHeader,
-                                             pmdAsyncSessData *sessData ) ;
+                                             UINT64 recvTime ) ;
          virtual void    onDispatchMsgEnd( INT64 costUsecs ) ;
-
-         virtual INT32 allocSessData( pmdAsyncSessData **sessionData ) ;
 
          BOOLEAN isSetLogout() const ;
          BOOLEAN isDelayLogin() const ;
@@ -575,7 +538,6 @@ namespace engine
          BOOLEAN                _hasUpdateCataInfo ;
 
          ossTimestamp           _lastRecvTime ;
-         clsShdRecvTimeInfo     _msgRecvTimeInfo ;
 
          CHAR                   _detailName[SESSION_NAME_LEN+1] ;
          BOOLEAN                _logout ;
@@ -593,6 +555,9 @@ namespace engine
 
          UINT32                 _transWaitTimeout ;
          DPS_TRANS_ID           _transWaitID ;
+
+         // global logical time to receive message
+         UINT64                 _recvGlobTime ;
 
          BSONObjBuilder         _retBuilder ;
    } ;

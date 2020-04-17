@@ -99,7 +99,7 @@ namespace engine
             rc = _messageHandler.handleMsg( handle,
                                             message,
                                             (const CHAR *)message,
-                                            NULL ) ;
+                                            0LL ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to handle message [%d], rc: %d",
                          message->opCode, rc ) ;
             break ;

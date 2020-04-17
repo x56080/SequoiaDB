@@ -58,12 +58,11 @@ namespace engine
         // - handle: net handle
         // - header: header of message
         // - msg: content of message
-        // - userDataHolder: holder of user data, pass user data to handle
-        //                   session
+        // - msgUserData: user data with the receive message
         virtual INT32   handleMsg( const NET_HANDLE &handle,
                                    const _MsgHeader *header,
                                    const CHAR *msg,
-                                   netUserDataHolder *userDataHolder ) = 0 ;
+                                   UINT64 msgUserData ) = 0 ;
 
         // callback to handle connection close
         // - handle: net handle

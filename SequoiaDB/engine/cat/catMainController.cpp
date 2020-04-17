@@ -298,7 +298,7 @@ namespace engine
    INT32 catMainController::handleMsg( const NET_HANDLE &handle,
                                        const _MsgHeader *header,
                                        const CHAR *msg,
-                                       netUserDataHolder *userDataHolder )
+                                       UINT64 msgUserData )
    {
       SDB_ASSERT ( _pEduMgr && _pCatCB && _pDmsCB,
                    "all of the members must be initialized before init "

@@ -108,7 +108,7 @@ namespace engine
       netData->setHandle( handle ) ;
 
       // set user data to given holder
-      userDataHolder->setUserData( netData ) ;
+      userDataHolder->setUserDataPtr( netData ) ;
 
    done:
       return rc ;
@@ -174,7 +174,7 @@ namespace engine
          goto done ;
       }
 
-      if ( NULL == userDataHolder->getUserData() )
+      if ( NULL == userDataHolder->getUserDataPtr() )
       {
          rc = _allocUserData( handle, userDataHolder ) ;
          PD_RC_CHECK( rc, PDERROR, "Connection [Handle:%d, Node:%s] failed "
@@ -183,7 +183,8 @@ namespace engine
                       msg2String( header, MSG_MASK_ALL, 0 ).c_str(), rc ) ;
       }
 
-      netData = dynamic_cast<clsShdNetData *>( userDataHolder->getUserData() ) ;
+      netData =
+            dynamic_cast<clsShdNetData *>( userDataHolder->getUserDataPtr() ) ;
       PD_CHECK( NULL != netData, SDB_SYS, error, PDERROR,
                 "Connection [Handle:%d, Node:%s] failed to convert user data",
                 handle, routeID2String( id ).c_str(),
