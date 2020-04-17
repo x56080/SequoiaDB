@@ -858,7 +858,7 @@ namespace engine
          {
             if ( !startStop._startKey._inclusive )
             {
-               cmpResult = 1 * pOrder->get( i ) ;
+               cmpResult = 1 ;
                break ;
             }
          }
@@ -895,7 +895,7 @@ namespace engine
             if ( !startStop._stopKey._inclusive )
             {
                /// stop not include means <
-               cmpResult = -1 * pOrder->get( i ) ;
+               cmpResult = -1 ;
                break ;
             }
          }

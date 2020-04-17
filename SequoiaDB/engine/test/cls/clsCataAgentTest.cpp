@@ -1281,7 +1281,6 @@ TEST(clsTest, clsCataMatcher_Range_Multi_Desc_01)
                                                                BSON( "b" <<
                                                                   BSON( "$gte" << 100 ) ) ) ),
                                                vecGroup ) ) ;
-   expect.push_back( 4 ) ;
    expect.push_back( 5 ) ;
    ASSERT_TRUE( _checkVecResult( expect, vecGroup ) ) ;
 
