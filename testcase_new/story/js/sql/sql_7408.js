@@ -3,7 +3,7 @@
                         1. drop/create collectionspace/collection/index
                            1. create/drop,name为空，error:create/drop cs:-195,create/drop cl:-6,
                            2. create/drop,name包含特殊非法字符，如"$"、"."、"a.",error:-6,drop cs还会有-34
-                           3. create/drop,name长度128B，error:create cs/cl:-6,drop cl:-23,drop cs:-34
+                           3. create/drop,name长度128B，error:-6
                            4. create/drop,name长度127B，成功 
                            5. create，name已存在，error:create cs:-33,create cl:-22
                            5. drop，name不存在，error:drop cl:-23,drop cs:-34
@@ -18,6 +18,9 @@
 @author liyuanyue
 @date 2020-4-7
 ******************************************************************************/
+//  单号：5767
+// TODO: testConf.skipStandAlone = false;
+testConf.skipStandAlone = true;
 main( test )
 
 function test ()
@@ -140,7 +143,9 @@ function test ()
 
    var tmpclName = succlName + "a";
    var sql = "drop collection " + succsName + "." + tmpclName;
-   compareError( sql, "drop collection success when the length of the name is 128B (invalid length), Except errorno: -23", -23 );
+   // 单号：5767
+   // TODO: compareError( sql, "drop collection success when the length of the name is 128B (invalid length), Except errorno: -6", -6 );
+   compareError( sql, "drop collection success when the length of the name is 128B (invalid length), Except errorno: -23 or -6", -23, -6 );
    var sql = "drop collection " + succsName + "." + succlName;
    db.execUpdate( sql );
 
@@ -159,7 +164,9 @@ function test ()
 
    var tmpcsName = succsName + "a";
    var sql = "drop collectionspace " + tmpcsName;
-   compareError( sql, "drop collectionspace success when the length of the name is 128B (invalid length), Except errorno: -34", -34 );
+   // 单号：5767
+   // TODO：compareError( sql, "drop collectionspace success when the length of the name is 128B (invalid length), Except errorno:-6", -6 );
+   compareError( sql, "drop collectionspace success when the length of the name is 128B (invalid length), Except errorno: -34 or -6", -34, -6 );
 
    var sql = "drop collectionspace " + succsName;
    db.execUpdate( sql );
