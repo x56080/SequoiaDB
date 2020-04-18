@@ -1178,7 +1178,11 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_GCRBS );
       SINT32      rc         = SDB_OK ;
-      SDB_DPSCB  *dpsCB      = pmdGetKRCB()->getDPSCB() ;
+      // we explicitly set dpsCB to NULL as we decided to fail the transaction
+      // after failover to new primary node. If we decide to life this
+      // restriction, we will setup the proper dpsCB
+      //SDB_DPSCB  *dpsCB      = pmdGetKRCB()->getDPSCB() ;
+      SDB_DPSCB    *dpsCB    = NULL ;
 
       // make sure that the RBSCS(su) is not changed while we are doing gc.
       DMSSYSSUMGR_SLOCK() ;
