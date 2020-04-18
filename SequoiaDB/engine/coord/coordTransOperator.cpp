@@ -104,6 +104,9 @@ namespace engine
             }
             // need add transaction info for the send msg
             _prepareForTrans( cb, inMsg.msg() ) ;
+
+            /// transaction should access with primary
+            options._primary = TRUE ;
          }
       }
 
