@@ -2042,6 +2042,169 @@ namespace engine
       goto done ;
    }
 
+   INT32 _rtnDBOprBase::_rewriteCLCommitLSN( _SDB_DMSCB *dmsCB,
+                                             dmsStorageUnit *su,
+                                             MAP_SU_STATUS &validCLs,
+                                             DPS_LSN_OFFSET dpsMaxLSN )
+   {
+      INT32 rc = SDB_OK ;
+      MAP_SU_STATUS::iterator statusIter ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      const CHAR *pCLShortName = NULL ;
+      dmsMBContext *pContext = NULL ;
+
+      for( statusIter = validCLs.begin(); statusIter != validCLs.end();
+           ++statusIter )
+      {
+         BOOLEAN needFlush = FALSE ;
+         rtnRUInfo &info = statusIter->second ;
+         suID = DMS_INVALID_SUID ;
+         pContext = NULL ;
+
+         /// not all valid, continue
+         if ( !info.isAllValid() )
+         {
+            continue ;
+         }
+
+         rc = rtnResolveCollectionNameAndLock( statusIter->first.c_str(), dmsCB,
+                                               &su, &pCLShortName, suID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock collection[%s], rc: %d",
+                      statusIter->first.c_str(), rc ) ;
+
+         /// get mb context
+         rc = su->data()->getMBContext( &pContext, pCLShortName, EXCLUSIVE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s]'s mblock, "
+                      "rc: %d", statusIter->first.c_str(), rc ) ;
+
+         if ( DPS_INVALID_LSN_OFFSET == pContext->mb()->_commitLSN
+              || pContext->mb()->_commitLSN > dpsMaxLSN )
+         {
+            UINT64 oldCommitLSN = pContext->mb()->_commitLSN ;
+            pContext->mbStat()->_lastLSN.init( dpsMaxLSN ) ;
+            pContext->mb()->_commitLSN = dpsMaxLSN ;
+            PD_LOG( PDEVENT, "Flush collection[%s]'s commitlsn "
+                    "from[%lld] to [%lld]",
+                    statusIter->first.c_str(), oldCommitLSN, dpsMaxLSN ) ;
+
+            needFlush = TRUE ;
+         }
+
+         if ( DPS_INVALID_LSN_OFFSET == pContext->mb()->_idxCommitLSN
+              || pContext->mb()->_idxCommitLSN > dpsMaxLSN )
+         {
+            UINT64 oldCommitLSN = pContext->mb()->_idxCommitLSN ;
+            pContext->mbStat()->_idxLastLSN.init( dpsMaxLSN ) ;
+            pContext->mb()->_idxCommitLSN = dpsMaxLSN ;
+            PD_LOG( PDEVENT, "Flush collection[%s]'s idxCommitLSN "
+                    "from[%lld] to [%lld]",
+                    statusIter->first.c_str(), oldCommitLSN, dpsMaxLSN ) ;
+
+            needFlush = TRUE ;
+         }
+
+         if ( 0 != su->data()->getHeader()->_createLobs
+              && pContext->mb()->_totalLobPages > 0
+              && ( DPS_INVALID_LSN_OFFSET == pContext->mb()->_lobCommitLSN
+                   || pContext->mb()->_lobCommitLSN > dpsMaxLSN ) )
+         {
+            UINT64 oldCommitLSN = pContext->mb()->_lobCommitLSN ;
+            pContext->mbStat()->_lobLastLSN.init( dpsMaxLSN ) ;
+            pContext->mb()->_lobCommitLSN = dpsMaxLSN ;
+            PD_LOG( PDEVENT, "Flush collection[%s]'s lobCommitLSN"
+                    " from[%lld] to [%lld]",
+                    statusIter->first.c_str(), oldCommitLSN, dpsMaxLSN ) ;
+
+            needFlush = TRUE ;
+         }
+
+         if ( needFlush )
+         {
+            /// flush meta
+            rc = su->data()->flushMeta( TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to flush meta, cl: %s, rc: %d",
+                         statusIter->first.c_str(), rc ) ;
+
+            PD_LOG( PDEVENT, "Flush all commit lsn success" ) ;
+         }
+
+         su->data()->releaseMBContext( pContext ) ;
+         pContext = NULL ;
+
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+      }
+
+   done:
+      if ( NULL != pContext && NULL != su )
+      {
+         su->data()->releaseMBContext( pContext ) ;
+         pContext = NULL ;
+      }
+
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+      }
+
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnDBOprBase::_rewriteCommitLSN( _SDB_DMSCB *dmsCB,
+                                           MON_CS_SIM_LIST &csList,
+                                           DPS_LSN_OFFSET dpsMaxLSN )
+   {
+      INT32 rc = SDB_OK ;
+      MON_CS_SIM_LIST::iterator it ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+
+      for ( it = csList.begin() ; it != csList.end() ; ++it )
+      {
+         const monCSSimple &csInfo = *it ;
+         if ( 0 == ossStrcmp( csInfo._name, SDB_DMSTEMP_NAME ) )
+         {
+            continue ;
+         }
+
+         suID = DMS_INVALID_SUID ;
+         dmsStorageUnit *su = NULL ;
+         rc = dmsCB->nameToSUAndLock( csInfo._name, suID, &su ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to lock collectionspace[%s], rc: %d",
+                    csInfo._name, rc ) ;
+            goto error ;
+         }
+
+         rtnRecoverUnit recoverUnit ;
+         rc = recoverUnit.init( su ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to init recover unit, rc: %d", rc ) ;
+
+         MAP_SU_STATUS validCLs ;
+         recoverUnit.getValidCLItem( validCLs ) ;
+
+         rc = _rewriteCLCommitLSN( dmsCB, su, validCLs, dpsMaxLSN ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to rewrite cs[%s]'s commit lsn, "
+                      "rc: %d", csInfo._name, rc ) ;
+
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+      }
+
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
       _rtnDBOprBase define
    */
@@ -2195,7 +2358,14 @@ namespace engine
          dpsCB->move( 0, expectLSN.version ) ;
          /// then move to non-zero
          dpsCB->move( expectLSN.offset, expectLSN.version ) ;
-         PD_LOG( PDEVENT, "Clean replica-logs succeed" ) ;
+         PD_LOG( PDEVENT, "Clean replica-logs succeed, move lsn to %lld.%lld",
+                 expectLSN.version, expectLSN.offset ) ;
+
+         // expectLSN.offset -1 is the impossible offset in dps, so this can
+         // force other data-node to full-sync the collection that have be
+         // rewritten.( SEQUOIADBMAINSTREAM-5738 )
+         rc = _rewriteCommitLSN( dmsCB, csList, expectLSN.offset - 1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to rewrite commitLSN, rc: %d", rc ) ;
       }
 
       /// on end
