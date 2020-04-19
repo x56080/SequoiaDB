@@ -62,7 +62,8 @@ namespace engine
          virtual ~_IGroupSessionHandler() {}
 
       public:
-         virtual void   prepareForSend( pmdSubSession *pSub,
+         virtual void   prepareForSend( UINT32 groupID,
+                                        pmdSubSession *pSub,
                                         _coordGroupSel *pSel,
                                         _coordGroupSessionCtrl *pCtrl ) = 0 ;
    } ;
@@ -234,6 +235,9 @@ namespace engine
 
          BOOLEAN  isPrimary() const ;
          BOOLEAN  isRequiredPrimary() const ;
+         BOOLEAN  isPreferredPrimary() const ;
+         BOOLEAN  isPreferredSecondary() const ;
+         BOOLEAN  existLastNode( UINT32 groupID ) const ;
 
          INT32    selBegin( UINT32 groupID, MsgRouteID &nodeID ) ;
          INT32    selNext( MsgRouteID &nodeID ) ;

@@ -2754,5 +2754,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_CLS_NOT_SECONDARY</name>
+         <description>
+            <en>Node is not secondary</en>
+            <cn>非备节点</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

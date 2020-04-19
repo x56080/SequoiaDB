@@ -116,6 +116,7 @@ namespace engine
       protected:
          INT32 _checkWriteStatus() ;
          INT32 _checkPrimaryWhenRead( INT32 flag, INT32 reqFlag ) ;
+         INT32 _checkSecondaryWhenRead( INT32 flag, INT32 reqFlag ) ;
 
          /// do multi things to reduce times of getting lock
          INT32 _checkCLStatusAndGetSth( const CHAR *name,

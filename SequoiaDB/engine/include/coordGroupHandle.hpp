@@ -52,7 +52,8 @@ namespace engine
          virtual ~_coordGroupHandler() ;
 
       public:
-         virtual void   prepareForSend( pmdSubSession *pSub,
+         virtual void   prepareForSend( UINT32 groupID,
+                                        pmdSubSession *pSub,
                                         _coordGroupSel *pSel,
                                         _coordGroupSessionCtrl *pCtrl ) ;
 

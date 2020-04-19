@@ -1025,7 +1025,8 @@ namespace engine
                         sessionName(), opCode, rc ) ;
             }
 
-            if ( SDB_CLS_NOT_PRIMARY == rc )
+            if ( SDB_CLS_NOT_PRIMARY == rc ||
+                 SDB_CLS_NOT_SECONDARY == rc )
             {
                if ( 0 == _primaryID.columns.nodeID )
                {
@@ -1969,6 +1970,13 @@ namespace engine
             {
                goto error ;
             }
+
+            rc = _checkSecondaryWhenRead( FLG_QUERY_SECONDARY, flags ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+
             rc = _checkCLStatusAndGetSth( pCollectionName, pQuery->version,
                                           &_isMainCL, NULL, mainCLName ) ;
             if ( SDB_OK != rc )
@@ -2121,6 +2129,12 @@ namespace engine
          {
             rc = _checkPrimaryWhenRead( FLG_QUERY_PRIMARY, flags ) ;
             if ( rc )
+            {
+               goto error ;
+            }
+
+            rc = _checkSecondaryWhenRead( FLG_QUERY_SECONDARY, flags ) ;
+            if ( SDB_OK != rc )
             {
                goto error ;
             }
@@ -4077,6 +4091,14 @@ namespace engine
             PD_LOG( PDWARNING, "failed to check read status:%d", rc ) ;
             goto error ;
          }
+
+         rc = _checkSecondaryWhenRead( FLG_LOBREAD_SECONDARY, header->flags ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to check read secondary status, "
+                    "rc: %d", rc ) ;
+            goto error ;
+         }
       }
 
       rc = _checkCLStatusAndGetSth( fullName.valuestr(),
@@ -4470,6 +4492,14 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDWARNING, "failed to check read status:%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _checkSecondaryWhenRead( FLG_LOBREAD_SECONDARY, header->flags ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING, "Failed to check read secondary status, "
+                 "rc: %d", rc ) ;
          goto error ;
       }
 
@@ -5322,6 +5352,40 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB__CLSSHDSESS__CKPRIMARYWHENREAD, rc ) ;
       return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CKSECONDARYWHENREAD, "_clsShdSession::_checkSecondaryWhenRead" )
+   INT32 _clsShdSession::_checkSecondaryWhenRead( INT32 flag, INT32 reqFlag )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CKSECONDARYWHENREAD ) ;
+
+      if ( flag & reqFlag )
+      {
+         rc = _checkPrimaryStatus() ;
+         // check return code
+         if ( SDB_OK == rc && _pReplSet->groupSize() > 1 )
+         {
+            rc = SDB_CLS_NOT_SECONDARY ;
+         }
+         else if ( SDB_CLS_NOT_PRIMARY == rc )
+         {
+            rc = SDB_OK ;
+         }
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDINFO, "Failed to check secondary status, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CKSECONDARYWHENREAD, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }

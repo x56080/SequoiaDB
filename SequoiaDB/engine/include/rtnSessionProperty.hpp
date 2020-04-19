@@ -243,6 +243,16 @@ namespace engine
             _instanceOption.setPreferredInstanceMode( PREFER_INSTANCE_MODE_RANDOM ) ;
          }
 
+         OSS_INLINE BOOLEAN isMasterPreferred() const
+         {
+            return _instanceOption.isMasterPreferred() ;
+         }
+
+         OSS_INLINE BOOLEAN isSlavePreferred() const
+         {
+            return _instanceOption.isSlavePreferred() ;
+         }
+
          OSS_INLINE void setOperationTimeout ( INT64 operationTimeout )
          {
             if ( operationTimeout < 0 )

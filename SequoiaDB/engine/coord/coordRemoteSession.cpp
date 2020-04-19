@@ -531,6 +531,33 @@ namespace engine
       return FALSE ;
    }
 
+   BOOLEAN _coordGroupSel::isPreferredPrimary() const
+   {
+      if ( _pPropSite && _pPropSite->isMasterPreferred() )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
+   BOOLEAN _coordGroupSel::isPreferredSecondary() const
+   {
+      if ( _pPropSite && _pPropSite->isSlavePreferred() )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
+   BOOLEAN _coordGroupSel::existLastNode( UINT32 groupID ) const
+   {
+      if ( _pPropSite && _pPropSite->existNode( groupID ) )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
    void _coordGroupSel::setServiceType( MSG_ROUTE_SERVICE_TYPE svcType )
    {
       _svcType          = svcType ;
@@ -1896,16 +1923,26 @@ namespace engine
             goto done ;
          }
       }
+      else if ( SDB_CLS_NOT_SECONDARY == flag )
+      {
+         // the node reports not secondary, which means it is
+         // primary node, so update primary node directly
+         groupPtr->updatePrimary( nodeID, TRUE ) ;
+         goto done ;
+      }
 
       if ( !bRetry )
       {
          goto done ;
       }
 
+      // start-from field is not set by reply, but we could guess the node
+      // status by return flag
       if ( SDB_CLS_NOT_PRIMARY == flag || SDB_INVALID_ROUTEID == flag )
       {
          if ( groupPtr.get() && SDB_CLS_NOT_PRIMARY == flag )
          {
+            // report it is not primary
             groupPtr->updatePrimary( nodeID, FALSE ) ;
          }
 
@@ -2249,7 +2286,8 @@ namespace engine
 
          if ( _pGroupHandle )
          {
-            _pGroupHandle->prepareForSend( pSub, &_groupSel, &_groupCtrl ) ;
+            _pGroupHandle->prepareForSend( groupID, pSub, &_groupSel,
+                                           &_groupCtrl ) ;
          }
 
          rc = _pSession->sendMsg( pSub ) ;

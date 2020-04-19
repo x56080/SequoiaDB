@@ -576,6 +576,8 @@ typedef struct _MsgOpInsert MsgOpInsert ;
 #define FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE 0x00008000
 // query for update
 #define FLG_QUERY_FOR_UPDATE                 0x00010000
+// query from the secondary node( only use in inner )
+#define FLG_QUERY_SECONDARY                  0x00020000
 
 // For query takes 4 document
 // Query + returnFieldSelector + orderBy + hint
@@ -789,6 +791,8 @@ typedef struct _MsgOpAggregate
 #define FLG_LOBOPEN_WITH_RETURNDATA       0X00000002
 /// write or update in write operation( when mode = write )
 #define FLG_LOBWRITE_OR_UPDATE            0x00000004
+/// read on secondary node( use only in secondary )
+#define FLG_LOBREAD_SECONDARY             0x00000008
 
 /// when it is open reg |MsgOpLob|bsonobj|
 /// when it is open res |MsgOpReply|bsonobj|

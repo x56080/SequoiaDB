@@ -50,38 +50,79 @@ namespace engine
    {
    }
 
-   void _coordGroupHandler::prepareForSend( pmdSubSession *pSub,
+   void _coordGroupHandler::prepareForSend( UINT32 groupID,
+                                            pmdSubSession *pSub,
                                             _coordGroupSel *pSel,
                                             _coordGroupSessionCtrl *pCtrl )
    {
-      if ( !pSel->isPrimary() && pSel->isRequiredPrimary() )
+      if ( !pSel->isPrimary() )
       {
          MsgHeader *pMsg = pSub->getReqMsg() ;
          BOOLEAN isResend = pCtrl->getRetryTimes() > 0 ? TRUE : FALSE ;
 
-         if ( MSG_BS_QUERY_REQ == pMsg->opCode )
+         // NOTE: we need to set query flags for below cases
+         // - primary is preferred
+         // - secondary is preferred, and not select from the last node
+         // NOTE: for secondary case, only set flag for node which is not
+         //       selected from the last node, since we need to keep use
+         //       the last node during preferred period after a write operator
+         if ( pSel->isPreferredPrimary() )
          {
-            MsgOpQuery *pQuery = ( MsgOpQuery* )pMsg ;
-            if ( FALSE == isResend )
+            // if primary is required or preferred, set primary query flag
+            if ( MSG_BS_QUERY_REQ == pMsg->opCode )
             {
-               pQuery->flags |= FLG_QUERY_PRIMARY ;
+               MsgOpQuery *pQuery = ( MsgOpQuery* )pMsg ;
+               if ( FALSE == isResend )
+               {
+                  OSS_BIT_SET( pQuery->flags, FLG_QUERY_PRIMARY ) ;
+               }
+               else
+               {
+                  OSS_BIT_CLEAR( pQuery->flags, FLG_QUERY_PRIMARY ) ;
+               }
             }
-            else
+            else if ( pMsg->opCode > ( SINT32 )MSG_LOB_BEGIN &&
+                      pMsg->opCode < ( SINT32 )MSG_LOB_END )
             {
-               pQuery->flags &= ~FLG_QUERY_PRIMARY ;
+               MsgOpLob *pLobMsg = ( MsgOpLob* )pMsg ;
+               if ( FALSE == isResend )
+               {
+                  OSS_BIT_SET( pLobMsg->flags, FLG_LOBREAD_PRIMARY ) ;
+               }
+               else
+               {
+                  OSS_BIT_CLEAR( pLobMsg->flags, FLG_LOBREAD_PRIMARY ) ;
+               }
             }
          }
-         else if ( pMsg->opCode > ( SINT32 )MSG_LOB_BEGIN &&
-                   pMsg->opCode < ( SINT32 )MSG_LOB_END )
+         else if ( pSel->isPreferredSecondary() &&
+                   !pSel->existLastNode( groupID ) )
          {
-            MsgOpLob *pLobMsg = ( MsgOpLob* )pMsg ;
-            if ( FALSE == isResend )
+            // if secondary is required or preferred, set secondary query flag
+            if ( MSG_BS_QUERY_REQ == pMsg->opCode )
             {
-               pLobMsg->flags |= FLG_LOBREAD_PRIMARY ;
+               MsgOpQuery *pQuery = ( MsgOpQuery* )pMsg ;
+               if ( FALSE == isResend )
+               {
+                  OSS_BIT_SET( pQuery->flags, FLG_QUERY_SECONDARY ) ;
+               }
+               else
+               {
+                  OSS_BIT_CLEAR( pQuery->flags, FLG_QUERY_SECONDARY ) ;
+               }
             }
-            else
+            else if ( pMsg->opCode > ( SINT32 )MSG_LOB_BEGIN &&
+                  pMsg->opCode < ( SINT32 )MSG_LOB_END )
             {
-               pLobMsg->flags &= ~FLG_LOBREAD_PRIMARY ;
+               MsgOpLob *pLobMsg = ( MsgOpLob* )pMsg ;
+               if ( FALSE == isResend )
+               {
+                  OSS_BIT_SET( pLobMsg->flags, FLG_LOBREAD_SECONDARY ) ;
+               }
+               else
+               {
+                  OSS_BIT_CLEAR( pLobMsg->flags, FLG_LOBREAD_SECONDARY ) ;
+               }
             }
          }
       }
