@@ -98,7 +98,7 @@ namespace engine
    #define DMS_STATE_READONLY          1
    #define DMS_STATE_ONLINE_BACKUP     2
    #define DMS_STATE_FULLSYNC          3
-   
+
    /*
       OTHER DEFINE
    */
@@ -310,6 +310,8 @@ namespace engine
       dmsIxmKeySorterCreator* getIxmKeySorterCreator() ;
       dmsIxmKeySorter* createIxmKeySorter( INT64 bufSize, const _dmsIxmKeyComparer& comparer ) ;
       void releaseIxmKeySorter( dmsIxmKeySorter* sorter ) ;
+
+      INT32 getMaxDMSLSN( DPS_LSN_OFFSET &maxLsn ) ;
 
    public:
       typedef std::vector<SDB_DMS_CSCB*>::iterator CSCB_ITERATOR;

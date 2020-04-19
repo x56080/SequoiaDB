@@ -115,6 +115,36 @@ namespace engine
          }
          return lsn ;
       }
+
+      UINT64 maxValidLSN() const
+      {
+         UINT64 lsn = DPS_INVALID_LSN_OFFSET ;
+         if ( 1 == _dataCommitFlag && DPS_INVALID_LSN_OFFSET != _dataCommitLSN )
+         {
+            if ( DPS_INVALID_LSN_OFFSET == lsn || lsn < _dataCommitLSN )
+            {
+               lsn = _dataCommitLSN ;
+            }
+         }
+
+         if ( 1 == _idxCommitFlag && DPS_INVALID_LSN_OFFSET != _idxCommitLSN )
+         {
+            if ( DPS_INVALID_LSN_OFFSET == lsn || lsn < _idxCommitLSN )
+            {
+               lsn = _idxCommitLSN ;
+            }
+         }
+
+         if ( 1 == _lobCommitFlag && DPS_INVALID_LSN_OFFSET != _lobCommitLSN )
+         {
+            if ( DPS_INVALID_LSN_OFFSET == lsn || lsn < _lobCommitLSN )
+            {
+               lsn = _lobCommitLSN ;
+            }
+         }
+
+         return lsn ;
+      }
    } ;
    typedef _rtnRUInfo rtnRUInfo ;
 

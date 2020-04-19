@@ -601,62 +601,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsMgr::_getMaxDMSLSN( SDB_DMSCB *dmsCB, DPS_LSN_OFFSET &maxLsn )
-   {
-      INT32 rc = SDB_OK ;
-      set< monCSSimple >  csList ;
-      set< monCSSimple >::iterator it ;
-      dmsStorageUnitID suID = DMS_INVALID_SUID ;
-
-      dmsCB->dumpInfo( csList, TRUE ) ;
-
-      for ( it = csList.begin() ; it != csList.end() ; ++it )
-      {
-         const monCSSimple &csInfo = *it ;
-
-         if ( 0 == ossStrcmp( csInfo._name, SDB_DMSTEMP_NAME ) )
-         {
-            continue ;
-         }
-
-         dmsStorageUnit *su = NULL ;
-         suID = DMS_INVALID_SUID ;
-         rc = dmsCB->nameToSUAndLock( csInfo._name, suID, &su ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to lock collectionspace[%s], rc: %d",
-                    csInfo._name, rc ) ;
-            goto error ;
-         }
-
-         rtnRecoverUnit recoverUnit ;
-         rc = recoverUnit.init( su ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to init recover unit:rc=%d", rc ) ;
-
-         if ( DPS_INVALID_LSN_OFFSET == maxLsn ||
-              maxLsn < recoverUnit.getMaxValidLsn() )
-         {
-            maxLsn = recoverUnit.getMaxValidLsn() ;
-         }
-
-         if ( DMS_INVALID_SUID != suID )
-         {
-            dmsCB->suUnlock( suID ) ;
-            suID = DMS_INVALID_SUID ;
-         }
-      }
-
-   done:
-      if ( DMS_INVALID_SUID != suID )
-      {
-         dmsCB->suUnlock( suID ) ;
-         suID = DMS_INVALID_SUID ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_ACTIVE, "_clsMgr::active" )
    INT32 _clsMgr::active ()
    {
@@ -673,7 +617,7 @@ namespace engine
             DPS_LSN expectLSN = dpsCB->expectLsn() ;
             if ( 0 == expectLSN.version && 0 == expectLSN.offset )
             {
-               rc = _getMaxDMSLSN( dmsCB, maxLSN ) ;
+               rc = dmsCB->getMaxDMSLSN( maxLSN ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to get max dms lsn:rc=%d",
                             rc ) ;
 
@@ -681,7 +625,8 @@ namespace engine
                     && expectLSN.offset < maxLSN )
                {
                   DPS_LSN newDPSLSN = expectLSN ;
-                  newDPSLSN.offset = maxLSN
+                  // make sure newDPSLSN.offset is 4 byte align
+                  newDPSLSN.offset = ossAlign4( maxLSN )
                            + ossAlign4( (UINT32)sizeof( dpsLogRecordHeader ) ) ;
                   if ( DPS_INVALID_LSN_VERSION == newDPSLSN.version )
                   {
