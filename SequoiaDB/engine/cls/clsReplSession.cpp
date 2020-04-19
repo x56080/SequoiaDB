@@ -140,36 +140,6 @@ namespace engine
       }
       _timeout = 0 ;
 
-      if ( !_sync->isReadyToReplay() && pmdGetStartup().isOK() )
-      {
-         _isFirstToSync = TRUE ;
-         _lastSyncNode.value = MSG_INVALID_ROUTEID ;
-         _status = CLS_SESSION_STATUS_SYNC ;
-         ++_requestID ;
-         goto done ;
-      }
-      else if ( _isFirstToSync &&
-                CLS_SESSION_STATUS_FULL_SYNC != _status &&
-                pmdGetKRCB()->getEDUMgr()->getWritingEDUCount() > 0 )
-      {
-         PD_LOG( PDWARNING, "Session[%s]: Has some writing edus don't "
-                 "exit, can't to sync", sessionName() ) ;
-         goto done ;
-      }
-
-      _isFirstToSync = FALSE ;
-
-      //if the peer node is sharing-break, shoud change node
-      if ( MSG_INVALID_ROUTEID != _syncSrc.value &&
-           !_repl->isAlive ( _syncSrc ) )
-      {
-         PD_LOG ( PDWARNING, "Session[%s]: Peer node sharing-break",
-                  sessionName() ) ;
-         _selector.addToBlakList ( _syncSrc ) ;
-         _selector.clearSrc () ;
-         _syncSrc = _selector.src() ;
-      }
-
       // has error, need to rollback
       if ( CLS_BUCKET_WAIT_ROLLBACK == _pReplBucket->getStatus() )
       {
@@ -202,6 +172,36 @@ namespace engine
          // force to increase request ID
          // ignore results from earlier requests
          ++ _requestID ;
+      }
+
+      if ( !_sync->isReadyToReplay() && pmdGetStartup().isOK() )
+      {
+         _isFirstToSync = TRUE ;
+         _lastSyncNode.value = MSG_INVALID_ROUTEID ;
+         _status = CLS_SESSION_STATUS_SYNC ;
+         ++_requestID ;
+         goto done ;
+      }
+      else if ( _isFirstToSync &&
+                CLS_SESSION_STATUS_FULL_SYNC != _status &&
+                pmdGetKRCB()->getEDUMgr()->getWritingEDUCount() > 0 )
+      {
+         PD_LOG( PDWARNING, "Session[%s]: Has some writing edus don't "
+                 "exit, can't to sync", sessionName() ) ;
+         goto done ;
+      }
+
+      _isFirstToSync = FALSE ;
+
+      //if the peer node is sharing-break, shoud change node
+      if ( MSG_INVALID_ROUTEID != _syncSrc.value &&
+           !_repl->isAlive ( _syncSrc ) )
+      {
+         PD_LOG ( PDWARNING, "Session[%s]: Peer node sharing-break",
+                  sessionName() ) ;
+         _selector.addToBlakList ( _syncSrc ) ;
+         _selector.clearSrc () ;
+         _syncSrc = _selector.src() ;
       }
 
       if ( CLS_SESSION_STATUS_SYNC == _status )
