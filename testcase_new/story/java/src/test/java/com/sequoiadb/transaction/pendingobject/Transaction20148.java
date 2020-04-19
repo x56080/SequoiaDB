@@ -21,10 +21,10 @@ import com.sequoiadb.transaction.TransUtils;
  * @Author zhaoyu
  * @Date 2019年11月1日
  */
-@Test
+@Test(groups = "ru")
 public class Transaction20148 extends SdbTestBase {
 
-    private String clName = "transCL_20148";
+    private String clName = "cl20148";
     private Sequoiadb sdb = null;
     private DBCollection cl = null;
     private List< BSONObject > expDataList = new ArrayList< BSONObject >();
@@ -34,11 +34,10 @@ public class Transaction20148 extends SdbTestBase {
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        cl.createIndex( "a20148", "{a:1}", true, false );
     }
 
     @Test
-    public void test() {
+    public void testIdIndex() {
         Sequoiadb db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         Sequoiadb db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
@@ -55,6 +54,58 @@ public class Transaction20148 extends SdbTestBase {
             }
             tcl1.insert( insertR1s );
             for ( int i = 0; i < insertNum - 1; i++ ) {
+                tcl1.update( "{_id:" + i + "}",
+                        "{$inc:{_id:" + insertNum + "}}", null );
+            }
+
+            // 事务中插入记录，唯一索引值与插入记录的值相同
+            DBCollection tcl2 = db2.getCollectionSpace( csName )
+                    .getCollection( clName );
+            expDataList.clear();
+            for ( int i = 0; i < insertNum - 1; i++ ) {
+                String record = "{_id:" + i + ",a:" + i + ",b:'insert20148'}";
+                expDataList.add( ( BSONObject ) JSON.parse( record ) );
+            }
+            tcl2.insert( expDataList );
+            db1.rollback();
+            db2.rollback();
+
+            // 校验结果
+            List< String > groupNames = CommLib.getCLGroups( cl );
+            String groupName = groupNames.get( 0 );
+            Assert.assertTrue( TransUtils.isLsnConsistency( sdb, groupName ) );
+            Assert.assertTrue(
+                    TransUtils.getDatabaseSnapshot( sdb, groupName ) );
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{_id:''}",
+                    new ArrayList< BSONObject >() );
+        } finally {
+            db1.commit();
+            db2.commit();
+            db1.close();
+            db2.close();
+            cl.delete( "" );
+        }
+    }
+
+    @Test
+    public void testcommonUniqueIdx() {
+        Sequoiadb db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        Sequoiadb db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl.createIndex( "idx20148", "{a:1}", true, true );
+
+        try {
+            // 事务中插入删除记录
+            db1.beginTransaction();
+            db2.beginTransaction();
+            DBCollection tcl1 = db1.getCollectionSpace( csName )
+                    .getCollection( clName );
+            ArrayList< BSONObject > insertR1s = new ArrayList< BSONObject >();
+            for ( int i = 0; i < insertNum; i++ ) {
+                insertR1s.add( ( BSONObject ) JSON
+                        .parse( "{a:" + i + ",b:" + i + "}" ) );
+            }
+            tcl1.insert( insertR1s );
+            for ( int i = 0; i < insertNum - 1; i++ ) {
                 tcl1.update( "{a:" + i + "}", "{$inc:{a:" + insertNum + "}}",
                         null );
             }
@@ -62,9 +113,9 @@ public class Transaction20148 extends SdbTestBase {
             // 事务中插入记录，唯一索引值与插入记录的值相同
             DBCollection tcl2 = db2.getCollectionSpace( csName )
                     .getCollection( clName );
+            expDataList.clear();
             for ( int i = 0; i < insertNum - 1; i++ ) {
-                String record = "{_id:20148" + i + ",a:" + i
-                        + ",b:'insert20148'}";
+                String record = "{a:" + i + ",b:'insert20148'}";
                 expDataList.add( ( BSONObject ) JSON.parse( record ) );
             }
             tcl2.insert( expDataList );
@@ -84,6 +135,7 @@ public class Transaction20148 extends SdbTestBase {
             db2.commit();
             db1.close();
             db2.close();
+            cl.delete( "" );
         }
     }
 

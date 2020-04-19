@@ -21,25 +21,23 @@ import com.sequoiadb.transaction.TransUtils;
  * @Author zhaoyu
  * @Date 2019年11月1日
  */
-@Test
+@Test(groups = "ru")
 public class Transaction20144 extends SdbTestBase {
 
-    private String clName = "transCL_20144";
+    private String clName = "cl20144";
     private Sequoiadb sdb = null;
     private DBCollection cl = null;
     private List< BSONObject > expDataList = new ArrayList< BSONObject >();
-
     private int insertNum = 100;
 
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        cl.createIndex( "a20144", "{a:1}", true, false );
     }
 
     @Test
-    public void test() {
+    public void testIdIndex() {
         Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         try {
@@ -55,13 +53,59 @@ public class Transaction20144 extends SdbTestBase {
             tcl.insert( insertR1s );
 
             for ( int i = 0; i < insertNum; i++ ) {
+                tcl.update( "{_id:" + i + "}", "{$inc:{_id:100}}", null );
+            }
+
+            // 非事务中插入记录，唯一索引值与插入记录的值相同
+            expDataList.clear();
+            for ( int i = 0; i < insertNum; i++ ) {
+                String record = "{_id:" + i + ",a:" + i + ",b:'insert20144'}";
+                expDataList.add( ( BSONObject ) JSON.parse( record ) );
+            }
+            cl.insert( expDataList );
+            db.rollback();
+
+            // 校验结果
+            List< String > groupNames = CommLib.getCLGroups( cl );
+            String groupName = groupNames.get( 0 );
+            Assert.assertTrue( TransUtils.isLsnConsistency( sdb, groupName ) );
+            Assert.assertTrue(
+                    TransUtils.getDatabaseSnapshot( sdb, groupName ) );
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{_id:''}", expDataList );
+
+        } finally {
+            db.commit();
+            if ( db != null ) {
+                db.close();
+            }
+            cl.delete( "" );
+        }
+    }
+
+    @Test
+    public void testcommonUniqueIdx() {
+        Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl.createIndex( "idx20144", "{a:1}", true, true );
+        try {
+            // 事务中插入删除记录
+            db.beginTransaction();
+            DBCollection tcl = db.getCollectionSpace( csName )
+                    .getCollection( clName );
+            ArrayList< BSONObject > insertR1s = new ArrayList< BSONObject >();
+            for ( int i = 0; i < insertNum; i++ ) {
+                insertR1s.add( ( BSONObject ) JSON
+                        .parse( "{a:" + i + ",b:" + i + "}" ) );
+            }
+            tcl.insert( insertR1s );
+
+            for ( int i = 0; i < insertNum; i++ ) {
                 tcl.update( "{a:" + i + "}", "{$inc:{a:100}}", null );
             }
 
             // 非事务中插入记录，唯一索引值与插入记录的值相同
+            expDataList.clear();
             for ( int i = 0; i < insertNum; i++ ) {
-                String record = "{_id:20144" + i + ",a:" + i
-                        + ",b:'insert20144'}";
+                String record = "{a:" + i + ",b:'insert20144'}";
                 expDataList.add( ( BSONObject ) JSON.parse( record ) );
             }
             cl.insert( expDataList );
@@ -80,6 +124,7 @@ public class Transaction20144 extends SdbTestBase {
             if ( db != null ) {
                 db.close();
             }
+            cl.delete( "" );
         }
     }
 

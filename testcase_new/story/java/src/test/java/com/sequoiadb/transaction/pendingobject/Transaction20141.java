@@ -21,23 +21,23 @@ import com.sequoiadb.transaction.TransUtils;
  * @Author zhaoyu
  * @Date 2019年11月1日
  */
-@Test
+@Test(groups = "ru")
 public class Transaction20141 extends SdbTestBase {
 
-    private String clName = "transCL_20141";
+    private String clName = "cl20141";
     private Sequoiadb sdb = null;
     private DBCollection cl = null;
     private List< BSONObject > expDataList = new ArrayList< BSONObject >();
+    private int recordNum = 100;
 
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        cl.createIndex( "a20141", "{a:1}", true, false );
     }
 
     @Test
-    public void test() {
+    public void testIdIndex() {
         Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         try {
@@ -46,18 +46,66 @@ public class Transaction20141 extends SdbTestBase {
             DBCollection tcl = db.getCollectionSpace( csName )
                     .getCollection( clName );
             ArrayList< BSONObject > insertR1s = new ArrayList< BSONObject >();
-            for ( int i = 0; i < 100; i++ ) {
+            for ( int i = 0; i < recordNum; i++ ) {
                 insertR1s.add( ( BSONObject ) JSON
                         .parse( "{_id:" + i + ",a:" + i + ",b:" + i + "}" ) );
             }
             tcl.insert( insertR1s );
-            tcl.delete( "{a:{$lt:" + 99 + "}}" );
+            int deleteNum = recordNum - 1;
+            tcl.delete( "{a:{$lt:" + deleteNum + "}}" );
 
             // 非事务中插入记录，唯一索引值与插入记录的值相同
-            for ( int i = 0; i < 100; i++ ) {
+            expDataList.clear();
+            for ( int i = 0; i < recordNum; i++ ) {
                 if ( i % 2 == 0 ) {
                     String record = "{_id:" + i + ",a:" + i
                             + ",b:'insert20141'}";
+                    expDataList.add( ( BSONObject ) JSON.parse( record ) );
+                }
+            }
+            cl.insert( expDataList );
+            db.rollback();
+
+            // 校验结果
+            List< String > groupNames = CommLib.getCLGroups( cl );
+            String groupName = groupNames.get( 0 );
+            Assert.assertTrue( TransUtils.isLsnConsistency( sdb, groupName ) );
+            Assert.assertTrue(
+                    TransUtils.getDatabaseSnapshot( sdb, groupName ) );
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{_id:''}", expDataList );
+
+        } finally {
+            db.commit();
+            if ( db != null ) {
+                db.close();
+            }
+            cl.delete( "" );
+        }
+    }
+
+    @Test
+    public void testcommonUniqueIdx() {
+        Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cl.createIndex( "idx20140", "{a:1}", true, true );
+        try {
+            // 事务中插入删除记录
+            db.beginTransaction();
+            DBCollection tcl = db.getCollectionSpace( csName )
+                    .getCollection( clName );
+            ArrayList< BSONObject > insertR1s = new ArrayList< BSONObject >();
+            for ( int i = 0; i < recordNum; i++ ) {
+                insertR1s.add( ( BSONObject ) JSON
+                        .parse( "{a:" + i + ",b:" + i + "}" ) );
+            }
+            tcl.insert( insertR1s );
+            int deleteNum = recordNum - 1;
+            tcl.delete( "{a:{$lt:" + deleteNum + "}}" );
+
+            // 非事务中插入记录，唯一索引值与插入记录的值相同
+            expDataList.clear();
+            for ( int i = 0; i < recordNum; i++ ) {
+                if ( i % 2 == 0 ) {
+                    String record = "{a:" + i + ",b:'insert20141'}";
                     expDataList.add( ( BSONObject ) JSON.parse( record ) );
                 }
             }
@@ -77,6 +125,7 @@ public class Transaction20141 extends SdbTestBase {
             if ( db != null ) {
                 db.close();
             }
+            cl.delete( "" );
         }
     }
 

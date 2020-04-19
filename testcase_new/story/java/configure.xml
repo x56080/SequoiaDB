@@ -98,6 +98,7 @@
         <packages>
             <package name="com.sequoiadb.transaction.metadataserial" />
             <package name="com.sequoiadb.transaction.sessionserial" />
+            <package name="com.sequoiadb.transaction.pendingobject" />
         </packages>
     </test>
 
