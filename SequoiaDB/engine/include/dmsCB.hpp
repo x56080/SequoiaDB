@@ -429,6 +429,8 @@ namespace engine
       dmsIxmKeySorter* createIxmKeySorter( INT64 bufSize, const _dmsIxmKeyComparer& comparer ) ;
       void releaseIxmKeySorter( dmsIxmKeySorter* sorter ) ;
 
+      INT32 getMaxDMSLSN( DPS_LSN_OFFSET &maxLsn ) ;
+
    public:
       typedef std::vector<SDB_DMS_CSCB*>::iterator CSCB_ITERATOR;
 

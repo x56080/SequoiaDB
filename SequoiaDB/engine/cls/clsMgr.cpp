@@ -762,6 +762,46 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR_ACTIVE ) ;
 
+      if ( pmdGetStartup().isOK() )
+      {
+         SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+         SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+         if ( NULL != dmsCB && NULL != dpsCB )
+         {
+            DPS_LSN_OFFSET maxLSN = DPS_INVALID_LSN_OFFSET ;
+            DPS_LSN expectLSN = dpsCB->expectLsn() ;
+            if ( 0 == expectLSN.version && 0 == expectLSN.offset )
+            {
+               rc = dmsCB->getMaxDMSLSN( maxLSN ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get max dms lsn:rc=%d",
+                            rc ) ;
+
+               if ( DPS_INVALID_LSN_OFFSET != maxLSN
+                    && expectLSN.offset < maxLSN )
+               {
+                  DPS_LSN newDPSLSN = expectLSN ;
+                  // make sure newDPSLSN.offset is 4 byte align
+                  newDPSLSN.offset = ossAlign4( maxLSN )
+                           + ossAlign4( (UINT32)sizeof( dpsLogRecordHeader ) ) ;
+                  if ( DPS_INVALID_LSN_VERSION == newDPSLSN.version )
+                  {
+                     newDPSLSN.version = DPS_INVALID_LSN_VERSION + 1 ;
+                  }
+
+                  /// clear transinfo
+                  sdbGetTransCB()->clearTransInfo() ;
+                  /// then move to new dps lsn
+                  rc = dpsCB->move( newDPSLSN.offset, newDPSLSN.version ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to move(%lld:%lld)",
+                               newDPSLSN.version, newDPSLSN.offset ) ;
+
+                  PD_LOG( PDEVENT, "Move new lsn(%lld:%lld) succeed",
+                          newDPSLSN.version, newDPSLSN.offset ) ;
+               }
+            }
+         }
+      }
+
       // 1. start cls edu and shard edu
       _attachEvent.reset() ;
       rc = _startEDU ( EDU_TYPE_CLUSTER, PMD_EDU_UNKNOW,

@@ -1716,6 +1716,7 @@ namespace engine
    {
       _pSU = NULL ;
       _maxLsn = DPS_INVALID_LSN_OFFSET ;
+      _maxValidLsn = DPS_INVALID_LSN_OFFSET ;
    }
 
    _rtnRecoverUnit::~_rtnRecoverUnit()
@@ -1738,6 +1739,7 @@ namespace engine
       /// analyse the file
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
+         DPS_LSN_OFFSET tmpMaxlLsn = DPS_INVALID_LSN_OFFSET ;
          const dmsMB *mb = pData->getMBInfo( i ) ;
          if ( DMS_IS_MB_INUSE ( mb->_flag ) )
          {
@@ -1765,10 +1767,24 @@ namespace engine
             /// add to map
             _clStatus[ clFullName ] = info ;
 
-            if ( DPS_INVALID_LSN_OFFSET == _maxLsn ||
-                 _maxLsn < info.maxLSN() )
+            tmpMaxlLsn = info.maxLSN() ;
+            if ( DPS_INVALID_LSN_OFFSET != tmpMaxlLsn )
             {
-               _maxLsn = info.maxLSN() ;
+               if ( DPS_INVALID_LSN_OFFSET == _maxLsn ||
+                    _maxLsn < tmpMaxlLsn )
+               {
+                  _maxLsn = tmpMaxlLsn ;
+               }
+            }
+
+            tmpMaxlLsn = info.maxValidLSN() ;
+            if ( DPS_INVALID_LSN_OFFSET != tmpMaxlLsn )
+            {
+               if ( DPS_INVALID_LSN_OFFSET == _maxValidLsn
+                    || _maxValidLsn < tmpMaxlLsn )
+               {
+                  _maxValidLsn = tmpMaxlLsn ;
+               }
             }
 
             PD_LOG( PDINFO, "Collection[%s] commit status[DataFlag:%u, "

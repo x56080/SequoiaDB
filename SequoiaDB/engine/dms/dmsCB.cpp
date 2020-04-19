@@ -53,6 +53,7 @@
 #include "rtn.hpp"
 #include "ossLatch.hpp"
 #include "rtnExtDataHandler.hpp"
+#include "rtnRecover.hpp"
 
 #include <list>
 
@@ -2704,7 +2705,7 @@ namespace engine
       CSCB_MAP_CONST_ITER it ;
 
       ossScopedLock _lock(&_mutex, SHARED) ;
-      
+
       for ( it = _cscbNameMap.begin(); it != _cscbNameMap.end(); it++ )
       {
          dmsStorageUnit *su = NULL ;
@@ -3053,6 +3054,65 @@ namespace engine
       {
          _ixmKeySorterCreator->releaseSorter( sorter ) ;
       }
+   }
+
+   INT32 _SDB_DMSCB::getMaxDMSLSN( DPS_LSN_OFFSET &maxLsn )
+   {
+      INT32 rc = SDB_OK ;
+      MON_CS_SIM_LIST csList ;
+      MON_CS_SIM_LIST::iterator it ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dumpInfo( csList, TRUE ) ;
+
+      for ( it = csList.begin() ; it != csList.end() ; ++it )
+      {
+         const monCSSimple &csInfo = *it ;
+
+         if ( 0 == ossStrcmp( csInfo._name, SDB_DMSTEMP_NAME ) )
+         {
+            continue ;
+         }
+
+         dmsStorageUnit *su = NULL ;
+         suID = DMS_INVALID_SUID ;
+         rc = nameToSUAndLock( csInfo._name, suID, &su ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to lock collectionspace[%s], rc: %d",
+                    csInfo._name, rc ) ;
+            goto error ;
+         }
+
+         DPS_LSN_OFFSET tmpMaxLsn = DPS_INVALID_LSN_OFFSET ;
+         rtnRecoverUnit recoverUnit ;
+         rc = recoverUnit.init( su ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to init recover unit:rc=%d", rc ) ;
+
+         tmpMaxLsn = recoverUnit.getMaxValidLsn() ;
+         if ( DPS_INVALID_LSN_OFFSET != tmpMaxLsn )
+         {
+            if ( DPS_INVALID_LSN_OFFSET == maxLsn || maxLsn < tmpMaxLsn )
+            {
+               maxLsn = tmpMaxLsn ;
+            }
+         }
+
+         if ( DMS_INVALID_SUID != suID )
+         {
+            suUnlock( suID ) ;
+            suID = DMS_INVALID_SUID ;
+         }
+      }
+
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+      }
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_FIXTRANSMBSTATS, "_SDB_DMSCB::fixTransMBStats" )
