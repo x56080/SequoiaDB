@@ -6,7 +6,7 @@ setup.sh支持以下功能：
   2.提供可选参数--sdb，表示安装sequoiadb
   3.提供可选参数--mysql，表示安装sequoiasql-mysql
   4.提供可选参数--pg，表示安装sequoiasql-postgresql 
-clean.sh支持以下功能：
+setup.sh --clean支持以下功能：
   1.用户可以指定--sdb只清除 SequoiaDB 的安装和数据
   2.用户可以指定--mysql只清除 MySQL 实例组件的安装和数据
   3.用户可以指定--pg只清除 PostgreSQL 实例组件的的安装和数据

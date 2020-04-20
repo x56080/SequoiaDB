@@ -33,12 +33,6 @@
          "en": "Quickstart"
       },
       {
-         "id": 1571970210,
-         "file": "quickstart_clean",
-         "cn": "快速入门之一键清理",
-         "en": "Quickclean"
-      },
-      {
          "id": 1432190594,
          "dir": "installation",
          "cn": "安装",

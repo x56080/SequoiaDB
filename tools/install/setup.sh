@@ -1,6 +1,9 @@
 #!/bin/bash
 
-TYPE="unknown"
+TYPE="install"
+SDB=false
+MYSQL=false
+PG=false
 SETUP_CONF="/etc/default/sequoiadb-setup.list"
 
 function install()
@@ -39,7 +42,7 @@ function install()
    echo 
 }
 
-function ask_user()
+function install_by_ask_user()
 {
    read -p "Install sequoiadb Y/n: " choice
    [ -z $choice ] && choice="Y"
@@ -65,19 +68,126 @@ function ask_user()
    [[ "$select" == 1 ]] && install "sequoiasql-mysql" || install "sequoiasql-postgresql"
 }
 
+function clean_by_dbtype()
+{
+   local name=$1
+   local installInfos=`cat /etc/default/sequoiadb-setup.list | grep "$name"`
+   
+   #installInfo record the installed config file and md5 in the /etc/default/sequoiadb-setup.list, eg: "/etc/default/sequoiadb,md5"
+   for installInfo in $installInfos
+   do
+      local file=`echo $installInfo |awk -F, '{print $1}'`
+      local md5=`echo $installInfo |awk -F, '{print $2}'`
+      [ -z $md5 ] && md5="xx"
+      
+      . $file
+      if [ $MD5 == $md5 ]; 
+      then
+         case $name in
+            "sequoiadb")
+                          clean_sdb $installInfo
+                          shift
+                          ;;
+            "sequoiasql-mysql" | "sequoiasql-postgresql")
+                          clean_sql $installInfo
+                          shift
+                          ;;
+            *)            echo "Internal error!"
+                          exit 64
+                          ;;
+         esac
+      fi
+   done
+}
+
+function clean_sdb()
+{
+   local installInfo=$1
+   local file=`echo $installInfo |awk -F, '{print $1}'`
+   
+   . $file
+   #filter record the installed config file and md5 in the /etc/default/sequoiadb-setup.list, eg: "sequoiadb,md5"
+   local filter=`echo $installInfo |awk -F / '{print $4}'`
+   
+   read -p "clean $INSTALL_DIR $name Y/n: " choice
+   [ -z $choice ] && choice="Y"
+   if [[ "$choice" == "Y" || "$choice" == "y" ]];then
+      
+      local datadir_list=`$INSTALL_DIR/bin/sdblist -l | grep -v "Total"|awk 'NR>1{print $NF}'`
+      echo "begin to uninstall $name"
+      echo "$INSTALL_DIR/uninstall --mode unattended"
+      `$INSTALL_DIR/uninstall --mode unattended`
+      test $? -ne 0 && { echo "ERROR: Fail to $INSTALL_DIR/uninstall --mode unattended" >&2 && exit 1; }
+      
+      echo "ok"
+      for datadir in $datadir_list
+      do
+         echo "rm -rf $datadir"
+         rm -rf $datadir
+      done
+      echo "begin to clean install dir"
+      echo "rm -rf $INSTALL_DIR"
+      rm -rf $INSTALL_DIR
+      
+      `sed -i '/'$filter'/d' /etc/default/sequoiadb-setup.list`
+      echo "ok"
+   fi
+   return 0
+}
+
+function clean_sql()
+{
+   local installInfo=$1
+   local file=`echo $installInfo |awk -F, '{print $1}'`
+   
+   . $file
+   #filter record the installed config file and md5 in the /etc/default/sequoiadb-setup.list, eg: "sequoiasql-mysql,md5"
+   local filter=`echo $installInfo |awk -F / '{print $4}'`
+   
+   read -p "clean $INSTALL_DIR $name Y/n: " choice
+   [ -z $choice ] && choice="Y"
+   if [[ "$choice" == "Y" || "$choice" == "y" ]];then
+
+      local datadir_list=`$INSTALL_DIR/bin/sdb_sql_ctl listinst | grep -v "Total"|awk 'NR>1{print $2 " " $3}'`
+      echo "begin to uninstall $name"
+      echo "$INSTALL_DIR/uninstall --mode unattended"
+      `$INSTALL_DIR/uninstall --mode unattended`
+      test $? -ne 0 && { echo "ERROR: Fail to $INSTALL_DIR/uninstall --mode unattended" >&2 && exit 1; }
+      
+      echo "ok"
+      for datadir in $datadir_list
+      do
+         echo "rm -rf $datadir"
+         rm -rf $datadir
+      done
+      echo "begin to clean install dir"
+      echo "rm -rf $INSTALL_DIR"
+      if [ $INSTALL_DIR != '/' ];then
+         rm -rf $INSTALL_DIR
+      fi
+      
+      
+      `sed -i '/'$filter'/d' /etc/default/sequoiadb-setup.list`
+      echo "ok"
+   fi
+      
+   return 0
+}
+
 function build_help()
 {
    echo ""
    echo "Usage:"
-   echo "  --sdb        install sequoiadb"
-   echo "  --pg         install sequoiasql-postgresql"
-   echo "  --mysql      install sequoiasql-mysql"
+   echo "  --sdb        install or clean sequoiadb"
+   echo "  --pg         install or clean sequoiasql-postgresql"
+   echo "  --mysql      install or clean sequoiasql-mysql"
+   echo "  --clean      clean installation"
 }
 
 #Parse command line parameters
 #test $# -eq 0 && { build_help && exit 64; }
 
-ARGS=`getopt -o h --long help,sdb,pg,mysql -n 'test' -- "$@"`
+ARGS=`getopt -o h --long help,sdb,pg,mysql,clean -n 'test' -- "$@"`
 ret=$?
 test $ret -ne 0 && exit $ret
 
@@ -86,16 +196,16 @@ eval set -- "${ARGS}"
 while true
 do
    case "$1" in
-      --sdb )          TYPE="sequoiadb"
-                       install $TYPE
+      --sdb )          SDB=true
                        shift
                        ;;
-      --pg )           TYPE="sequoiasql-postgresql"
-                       install $TYPE
+      --pg )           PG=true
                        shift
                        ;;
-      --mysql )        TYPE="sequoiasql-mysql"
-                       install $TYPE
+      --mysql )        MYSQL=true
+                       shift
+                       ;;
+      --clean )        TYPE="clean"
                        shift
                        ;;
       -h | --help )    build_help
@@ -110,7 +220,34 @@ do
    esac
 done
 
-case "$TYPE" in
-   unknown)           ask_user; shift 1;;
-   *)             shift 1;;
-esac
+if [ $SDB == false ] && [ $PG == false ] && [ $MYSQL == false ];then
+   if [ $TYPE == "install" ];then
+      install_by_ask_user
+   elif [ $TYPE == "clean" ];then
+      SDB=true
+      MYSQL=true
+      PG=true
+   fi
+fi
+
+if [ $TYPE == "install" ];then
+   if [ $SDB == true ];then
+      install "sequoiadb"
+   fi
+   if [ $MYSQL == true ];then
+      install "sequoiasql-mysql"
+   fi
+   if [ $PG == true ];then
+      install "sequoiasql-postgresql"
+   fi
+elif [ $TYPE == "clean" ];then
+   if [ $SDB == true ];then
+      clean_by_dbtype "sequoiadb"
+   fi
+   if [ $MYSQL == true ];then
+      clean_by_dbtype "sequoiasql-mysql"
+   fi
+   if [ $PG == true ];then
+      clean_by_dbtype "sequoiasql-postgresql"
+   fi
+fi

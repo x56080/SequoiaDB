@@ -330,7 +330,7 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   >
   > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](database_management/tools/quickdeploy.md)  
   >
-  > * 错误处理：如果执行快速部署工具的过程中，发生异常，如端口占用，在恢复异常后，即端口可用后，可尝试再次执行 quickDeploy.sh 命令。如果再次执行 quickDeploy.sh 也失败，请先用解压目录下的 [clean.sh](quickstart_clean.md) 清除所有的安装部署，重头按快速入门教程执行命令。
+  > * 错误处理：如果执行快速部署的过程中发生异常（如端口号被占用），在造成异常的问题解除后，可尝试再次执行 quickDeploy.sh 命令。如果依然失败，请先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
 
 ### 集群部署
 
@@ -416,7 +416,7 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   >
   > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](database_management/tools/quickdeploy.md)  
   >
-  > * 错误处理：如果执行快速部署工具的过程中，发生异常，如端口占用，在恢复异常后，即端口可用后，可尝试再次执行 quickDeploy.sh 命令。如果再次执行 quickDeploy.sh 也失败，请先用解压目录下的 [clean.sh](quickstart_clean.md) 清除所有的安装部署，重头按快速入门教程执行命令。
+  > * 错误处理：如果执行快速部署的过程中发生异常（如端口号被占用），在造成异常的问题解除后，可尝试再次执行 quickDeploy.sh 命令。如果依然失败，请先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
 
 
 ## 使用 MySQL shell 进行操作
@@ -480,4 +480,54 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   1 row in set (0.00 sec)
   ```
 
-如需一键清理安装的所有 SequoiaDB、MySQL 实例组件以及 PostgreSQL 实例组件和数据，前往[快速入门之一键清理](quickstart_clean.md)。
+
+##清除 SequoiaDB 及 MySQL 实例组件
+
++ 指定 --sdb 只清除 SequoiaDB 的安装和数据
++ 指定 --mysql 只清除 MySQL 实例组件的安装和数据
++ 指定 --pg 只清除 PostgreSQL 实例组件的的安装和数据
+   
+###清理前准备###
+
++ 清理过程需要使用操作系统 root 用户权限
+
++ 请确保清理脚本setup.sh具有可执行权限
+
+###清理步骤###
+
+- 运行清理脚本，通过交互式的方式清除当前主机上 setup.sh 安装的所有 SequoiaDB、MySQL 实例组件以及 PostgreSQL 实例组件和数据
+
+  ```lang-bash
+  # ./setup.sh --clean
+  ```
+
+- 程序提示是否清除安装路径下的 SequoiaDB，默认是清理，输入n不清理
+
+  ```
+   clean /opt/sequoiadb sequoiadb Y/n: 
+   begin to uninstall sequoiadb
+   /opt/sequoiadb/uninstall --mode unattended
+   ok
+   rm -rf /opt/sequoiadb/database/catalog/11800/
+   rm -rf /opt/sequoiadb/database/coord/11810/
+   rm -rf /opt/sequoiadb/database/data/11820/
+   rm -rf /opt/sequoiadb/database/data/11830/
+   rm -rf /opt/sequoiadb/database/data/11840/
+   begin to clean install dir
+   rm -rf /opt/sequoiadb
+   ok
+  ```
+
+- 程序提示是否清除安装路径下的 MySQL 实例组件，默认是清理，输入n不清理
+
+  ```
+   clean /opt/sequoiasql/mysql sequoiasql-mysql Y/n: 
+   begin to uninstall sequoiasql-mysql
+   /opt/sequoiasql/mysql/uninstall --mode unattended
+   ok
+   rm -rf /opt/sequoiasql/mysql/database/3306
+   rm -rf /opt/sequoiasql/mysql/myinst.log
+   begin to clean install dir
+   rm -rf /opt/sequoiasql/mysql
+   ok
+  ```
