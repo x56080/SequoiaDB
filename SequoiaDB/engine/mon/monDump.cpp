@@ -290,6 +290,8 @@ namespace engine
             DPS_TRANSID_SN expireTran = DPS_INVALID_TRANSID_SN ;
             DPS_TRANSID_SN treeLowTran = DPS_INVALID_TRANSID_SN ;
             CHAR szTmp[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+            SINT64 treeSizeHWM = 0 ;
+            SINT64 curTreeMem = 0 ;
 
             if ( transCB )
             {
@@ -303,6 +305,8 @@ namespace engine
                if ( NULL != transCB->getOldVCB() )
                {
                   treeLowTran = transCB->getOldVCB()->getMinLowTranSN() ;
+                  treeSizeHWM = transCB->getOldVCB()->getTreeSizeHWM() ;
+                  curTreeMem = transCB->getOldVCB()->getCurTreeMem() ;
                }
             }
 
@@ -334,6 +338,12 @@ namespace engine
             // tree min lowTran
             dpsTransSNToHEXString( treeLowTran, szTmp, DPS_TRANS_STR_LEN ) ;
             subTrans.append( FIELD_NAME_IDX_TREE_LOW_TRAN, szTmp ) ;
+
+            // tree size High water mark
+            subTrans.append( FIELD_NAME_IDX_TREE_SIZE_HWM, treeSizeHWM ) ;
+
+            // tree current memory consumption
+            subTrans.append( FIELD_NAME_IDX_TREE_CUR_MEM, curTreeMem ) ;
 
             // number of transaction ID allocation conflicts
             subTrans.append( FIELD_NAME_TRANS_TRANSIDCONFLICTS,

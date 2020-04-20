@@ -368,7 +368,7 @@ namespace engine
                  "Cleanup old indexes for rid[%s] in mvcc for nontrans change"
                  "refCounter=%d, pExtData=%p, _data=%p",
                  lockId.toString().c_str(), refCounter, pExtData,
-                 pExtData ? pExtData->_data : NULL ) ;
+                 pExtData ? pExtData->_data : 0 ) ;
 #endif
          transCB->getOldVCB()->cleanIdxNodesForRecord( lockId.csID(),
                                                        lockId.clID(),
@@ -566,6 +566,7 @@ namespace engine
       _recordPtr        = dpsOldRecordPtr() ;
       _recordInfo.reset() ;
       _rbsRecordOffset.reset() ;
+      _needPostAction   = FALSE ;
    }
 
    const dmsRBSOffset & dmsTransLockCallback::getRBSRecordOffset() 
@@ -621,12 +622,13 @@ namespace engine
       DPS_TRANSLOCK_TYPE          requestLockMode,
       UINT32                      refCounter,
       DPS_TRANSLOCK_OP_MODE_TYPE  opMode,
-      const dpsTransLRBHeader    *pLRBHeader,
       dpsLRBExtData              *pExtData
    )
    {
       INT32   rc                 = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIRE ) ;
+
+      clearStatus() ;
 
       /// when not leaf level, do nothing
       if ( !lockId.isLeafLevel() )
@@ -653,23 +655,21 @@ namespace engine
 
       {
          rc = _afterAcquireSLockRRread( lockId,
-                                                irc,
-                                                requestLockMode,
-                                                refCounter,
-                                                opMode,
-                                                pLRBHeader,
-                                                pExtData ) ;
+                                        irc,
+                                        requestLockMode,
+                                        refCounter,
+                                        opMode,
+                                        pExtData ) ;
       }
       // X,U lock or isolation RU, RC, RS
       else
       {
-         rc = _afterAcquireUXLockOrNonRRread( lockId,
-                                              irc,
-                                              requestLockMode,
-                                              refCounter,
-                                              opMode,
-                                              pLRBHeader,
-                                              pExtData ) ;
+         _afterAcquireUXLockOrNonRRread( lockId,
+                                         irc,
+                                         requestLockMode,
+                                         refCounter,
+                                         opMode,
+                                         pExtData ) ;
       }
    done :
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIRE ) ;
@@ -691,26 +691,22 @@ namespace engine
    // be made due to other critieras. However, we will do some preparation
    // work at this time.
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIREUXLOCKORNONRRREAD, "dmsTransLockCallback::_afterAcquireUXLockOrNonRRread" )
-   INT32 dmsTransLockCallback::_afterAcquireUXLockOrNonRRread
+   void dmsTransLockCallback::_afterAcquireUXLockOrNonRRread
    (
       const dpsTransLockId       &lockId,
       INT32                       irc,
       DPS_TRANSLOCK_TYPE          requestLockMode,
       UINT32                      refCounter,
       DPS_TRANSLOCK_OP_MODE_TYPE  opMode,
-      const dpsTransLRBHeader    *pLRBHeader,
       dpsLRBExtData              *pExtData
    )
    {
-      INT32   rc                 = SDB_OK ;
       BOOLEAN notTransOrRollback = FALSE  ;
       dmsRecordID rid( lockId.extentID(), lockId.offset() ) ;
 #ifdef _DEBUG
       DPS_TRANS_ID transID       = _eduCB->getTransID() ;
 #endif
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIREUXLOCKORNONRRREAD );
-
-      clearStatus() ;
 
       /// not in transaction
       if ( _eduCB->getTransID().isInvalid() || _eduCB->isInTransRollback() )
@@ -896,15 +892,15 @@ namespace engine
      PD_LOG( PDDEBUG,
              "oldVer[%x] for rid[%s] in memory, lockmod=%s, "
              "_useOldVersion=%d, _skipRecord=%d, "
-             "_rbsRecordData->isEmpty()=%d, rc=%d, transID(%s)",
+             "_rbsRecordData->isEmpty()=%d, transID(%s)",
              _oldVer, lockId.toString().c_str(),
              lockModeToString( requestLockMode ),
              _useOldVersion, _skipRecord,
-             (_rbsRecordData ? _rbsRecordData->isEmpty() : -1 ), rc,
+             (_rbsRecordData ? _rbsRecordData->isEmpty() : -1 ), 
              dpsTransIDToString( transID ).c_str() ) ;
 #endif
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIREUXLOCKORNONRRREAD ) ;
-      return rc ;
+      return ;
    }
 
    //
@@ -1041,7 +1037,6 @@ namespace engine
       DPS_TRANSLOCK_TYPE          requestLockMode,
       UINT32                      refCounter,
       DPS_TRANSLOCK_OP_MODE_TYPE  opMode,
-      const dpsTransLRBHeader    *pLRBHeader,
       dpsLRBExtData              *pExtData
    )
    {
@@ -1049,11 +1044,10 @@ namespace engine
 
       INT32        rc            = SDB_OK ;
       DPS_TRANS_ID transID       = _eduCB->getTransID() ;
-      BOOLEAN      found         = FALSE ;
+      BOOLEAN      visible       = FALSE ;
       BOOLEAN notTransOrRollback = FALSE ;
       dmsRecordID rid( lockId.extentID(), lockId.offset() ) ;
 
-      clearStatus() ;
 
       if ( transID.isInvalid() || _eduCB->isInTransRollback() )
       {
@@ -1127,8 +1121,6 @@ namespace engine
       if ( _pScanner &&
            ( SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() ) )
       {
-         BOOLEAN visible = FALSE ;
-
          // old version container is available
          if ( 0 != pExtData->_data )
          {
@@ -1170,39 +1162,27 @@ namespace engine
          }
          if ( !visible )
          {
-            // setup search RBS range
-            preIdxTreePtr dummy ;
-            dmsRBSOffset  startPos, endPos ;
-            _pScanner->getRBSPositions( startPos, endPos, rid, dummy ) ;
-            // search RBS if we have a proper range
-            if ( startPos.isValid() || endPos.isValid() )
-            {
-               rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
-                                           rid, transID, found,
-                                           *_rbsRecordData,
-                                           startPos, endPos ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "idxScan failed to read record from RBS, rc:%d",
-                            rc ) ;
-            }
-            if ( !found )
-            {
-               _skipRecord = TRUE ;
-               _useOldVersion = FALSE ;
-            }
-            else
-            {
-               _useOldVersion = TRUE ;
-            }
+            _needPostAction = TRUE ;
          }
       }
       /// TBScan or merge scan from disk index
       else
       {
-         BOOLEAN visible = FALSE ;
 
-         // if have the record lock, read from disk first
-         if ( SDB_OK == irc )
+         // if no matter we have the record lock or not, always verify disk
+         // version first. Following scenario described the case we could
+         // endup using the disk version:
+         // T1 start, T2 start, T3 start;
+         // T2 did update on record(r1), hold record lock in X;
+         // T3 tries to delete r1, wait on lock X;
+         // As soon as T2 rollback, T1 tries to read r1 through idx scan,
+         // coming from disk scanner. Note that T1 will fail on record lock
+         // because there is a X waiter. But rollback will remove the old
+         // version from the in memory tree, and put back the original record.
+         // So the record should be visiable. The oldver is still exist in
+         // LRBHdr. If we don't return the record, we could end up skipping
+         // the record because _oldVer->idxLidExist() could be true.
+         // We won't read partial page because we hold mbLatch in S.
          {
             const dmsRecord* record = _recordRW->readPtr( 0 ) ;
             // record doesn't have glob trans, might come from
@@ -1250,6 +1230,11 @@ namespace engine
                        SCANNER_TYPE_DISK == _pScanner->getCurScanType() &&
                        _oldVer->idxLidExist( _latchedIdxLid ) )
                   {
+#ifdef  _DEBUG
+                     PD_LOG( PDDEBUG,
+                             "skipping rid(%d, %d) because can't use disk version",
+                             rid._extent, rid._offset ) ;
+#endif
                      _skipRecord = TRUE ;
                      /// remove the duplicate rid
                      _pScanner->removeDuplicatRID( _oldVer->getRecordID() ) ;
@@ -1292,33 +1277,7 @@ namespace engine
             // try to get record from RBS
             if ( !visible )
             {
-               dmsRBSOffset  startPos, endPos ;
-               // setup search RBS range if it is merge scan from disk index.
-               // As for TBScan, it can directly hash and use RBS based on
-               // the chain.
-               if ( _pScanner )
-               {
-                  SDB_ASSERT((SCANNER_TYPE_DISK == _pScanner->getCurScanType()),
-                             "Invalid scanner type!" ) ;
-                  preIdxTreePtr dummy ;
-                  _pScanner->getRBSPositions(startPos, endPos, rid, dummy) ;
-               }
-               rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
-                                           rid, transID, found,
-                                           *_rbsRecordData,
-                                           startPos, endPos ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to read record from RBS, rc: %d", rc ) ;
-
-               if ( !found )
-               {
-                  _skipRecord = TRUE ;
-                  _useOldVersion = FALSE ;
-               }
-               else
-               {
-                  _useOldVersion = TRUE ;
-               }
+               _needPostAction = TRUE ;
             }
          }
       }
@@ -1336,19 +1295,93 @@ namespace engine
          _oldVer = NULL ;
       }
 
-     //FIXME remove
+      //FIXME remove
 #ifdef _DEBUG
-     PD_LOG( PDDEBUG,
-             "oldVer[%x] for rid[%s] in memory, lockmod=%s, "
-             "_useOldVersion=%d, _skipRecord=%d, "
+      PD_LOG( PDDEBUG,
+             "oldVer[%x] for rid[%s] in memory, lockmod=%s, visible=%d, "
+             "_useOldVersion=%d, _skipRecord=%d, _needPostAction=%d, "
              "_rbsRecordData->isEmpty()=%d, rc=%d, transID(%s)",
              _oldVer, lockId.toString().c_str(),
-             lockModeToString( requestLockMode ),
-             _useOldVersion, _skipRecord,
+             lockModeToString( requestLockMode ), visible,
+             _useOldVersion, _skipRecord, _needPostAction,
              (_rbsRecordData ? _rbsRecordData->isEmpty() : -1 ), rc,
              dpsTransIDToString( transID ).c_str() ) ;
 #endif
-      PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIRESLOCKRRREAD ) ;
+      PD_TRACE_EXITRC( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIRESLOCKRRREAD, rc ) ;
+      return  rc ;
+   error :
+      goto done ;
+   }
+
+   // Description:
+   //    Once "afterLockAcquire" was invoked, there could be move heavy work
+   // want to do, but can be done outside of bucket latch. This is the place
+   // to execute them.
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIREPOSTACTION, "dmsTransLockCallback::afterLockAcquirePostAction" )
+   INT32 dmsTransLockCallback::afterLockAcquirePostAction(
+                                           const dpsTransLockId &lockId )
+   {
+      PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIREPOSTACTION ) ;
+      SINT32        rc      = SDB_OK ;
+      BOOLEAN       found   = FALSE ;
+      preIdxTreePtr dummy ;
+      dmsRBSOffset  startPos, endPos ;
+      DPS_TRANS_ID  transID = _eduCB->getTransID() ;
+      dmsRecordID   rid( lockId.extentID(), lockId.offset() ) ;
+
+      // decide if need to do any work
+      if ( !isPostActionRequired() )
+      {
+         goto done ;
+      }
+      
+      // setup search RBS range if it is index scan.
+      // As for TBScan, it can directly hash and use RBS following
+      // the chain.
+      if ( _pScanner )
+      {
+         preIdxTreePtr dummy ;
+         _pScanner->getRBSPositions(startPos, endPos, rid, dummy) ;
+      }
+
+      // TB scanner and IXdisk scanner can have invalid start/end Pos, at which
+      // time was scan all RBS record. IXmemTree scanner must have one pos 
+      // valid to scan the RBS chain. 
+      if ( !_pScanner ||
+           ( SCANNER_TYPE_DISK == _pScanner->getCurScanType() ) ||
+           ( startPos.isValid() || endPos.isValid() ) )
+      {
+         rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
+                                     rid, transID, found,
+                                     *_rbsRecordData,
+                                     startPos, endPos ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to read record from RBS, rc: %d", rc ) ;
+      }
+
+      if ( !found )
+      {
+         _skipRecord = TRUE ;
+         _useOldVersion = FALSE ;
+      }
+      else
+      {
+         _useOldVersion = TRUE ;
+      }
+
+      //FIXME remove
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG,
+             "postaction for rid[%s], found=%d, "
+             "_useOldVersion=%d, _skipRecord=%d, _needPostAction=%d, "
+             "_rbsRecordData->isEmpty()=%d, rc=%d",
+             lockId.toString().c_str(), found,
+             _useOldVersion, _skipRecord, _needPostAction,
+             (_rbsRecordData ? _rbsRecordData->isEmpty() : -1 ), rc ) ;
+#endif
+   done :
+      PD_TRACE_EXITRC( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIREPOSTACTION, 
+                       rc ) ;
       return  rc ;
    error :
       goto done ;
@@ -1382,7 +1415,6 @@ namespace engine
    void dmsTransLockCallback::beforeLockRelease( const dpsTransLockId &lockId,
                                                  DPS_TRANSLOCK_TYPE lockMode,
                                                  UINT32 refCounter,
-                                                 const dpsTransLRBHeader *pLRBHeader,
                                                  dpsLRBExtData *pExtData )
    {
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_BEFORELOCKRELEASE ) ;

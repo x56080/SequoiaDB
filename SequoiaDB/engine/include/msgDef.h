@@ -59,6 +59,8 @@
 #define FIELD_NAME_COMMIT_LSN                "CommittedLSN"
 #define FIELD_NAME_COMPLETE_LSN              "CompleteLSN"
 #define FIELD_NAME_IDX_TREE_LOW_TRAN         "IdxTreeLowTran"
+#define FIELD_NAME_IDX_TREE_SIZE_HWM         "IdxTreeSizeHWM"
+#define FIELD_NAME_IDX_TREE_CUR_MEM          "IdxTreeCurMem"
 #define FIELD_NAME_LSN_QUE_SIZE              "LSNQueSize"
 #define FIELD_NAME_LSN_OFFSET                "Offset"
 #define FIELD_NAME_LSN_VERSION               "Version"

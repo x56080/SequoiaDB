@@ -874,7 +874,7 @@ namespace engine
    done:
       PD_TRACE1 ( SDB_DPSTRANSCB_ISVERSIONVISIBLE,
                   PD_PACK_UINT( visible ) ) ;
-      PD_TRACE_EXIT( SDB_DPSTRANSCB_ISVERSIONVISIBLE ) ;
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_ISVERSIONVISIBLE, rc ) ;
       return rc ;
 
    error:

@@ -3487,6 +3487,10 @@ namespace engine
          {
             insertResult->setInsertLoc( foundRID._extent, foundRID._offset ) ;
          }
+// FIXME: remove
+         PD_LOG( PDDEBUG, "Inserting (%s) to rid(%d, %d)",
+                 record.toString().c_str(), 
+                 foundRID._extent, foundRID._offset ) ;
 
          // update totalInsert monitor counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INSERT, 1 ) ;
