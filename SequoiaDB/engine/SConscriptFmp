@@ -103,7 +103,11 @@ ssh2Files = [
       "ssh2/sftp.c",
       "ssh2/transport.c",
       "ssh2/userauth.c",
-      "ssh2/version.c"
+      "ssh2/version.c",
+      "ssh2/bcrypt_pbkdf.c",
+      "ssh2/blowfish.c",
+      "ssh2/mbedtls.c",
+      "ssh2/wincng.c"
       ]
 
 ossFiles = [

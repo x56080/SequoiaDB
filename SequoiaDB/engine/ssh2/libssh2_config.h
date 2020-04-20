@@ -153,11 +153,17 @@
 /* Enable newer diffie-hellman-group-exchange-sha1 syntax */
 #define LIBSSH2_DH_GEX_NEW 1
 
+/* Compile in zlib support */
+#define LIBSSH2_HAVE_ZLIB 1
+
 /* Use libgcrypt */
 /* #undef LIBSSH2_LIBGCRYPT */
 
 /* Enable "none" MAC -- NOT RECOMMENDED */
 /* #undef LIBSSH2_MAC_NONE */
+
+/* Use openssl */
+#define LIBSSH2_OPENSSL 1
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
@@ -274,6 +280,12 @@
 
 /* Enable newer diffie-hellman-group-exchange-sha1 syntax */
 #define LIBSSH2_DH_GEX_NEW 1
+
+/* Compile in zlib support */
+#define LIBSSH2_HAVE_ZLIB 1
+
+/* Use openssl */
+#define LIBSSH2_OPENSSL 1
 
 #endif /* LIBSSH2_CONFIG_H */
 
