@@ -105,6 +105,7 @@ namespace engine
       DPS_TRANS_ID getOwnerTransID() ;
 
       BOOLEAN isIndexProtectionRequired() ;
+      BOOLEAN isPostActionRequired() { return _needPostAction ; }
 
       BOOLEAN isIndexProtected( INT32 idxTreeId, INT32 latchMode = -1 ) ;
 
@@ -124,13 +125,13 @@ namespace engine
                                      DPS_TRANSLOCK_TYPE requestLockMode,
                                      UINT32 refCounter,
                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode,
-                                     const dpsTransLRBHeader *pLRBHeader,
                                      dpsLRBExtData *pExtData ) ;
+
+      virtual INT32 afterLockAcquirePostAction( const dpsTransLockId &lockId );
 
       virtual void beforeLockRelease( const dpsTransLockId &lockId,
                                       DPS_TRANSLOCK_TYPE lockMode,
                                       UINT32 refCounter,
-                                      const dpsTransLRBHeader *pLRBHeader,
                                       dpsLRBExtData *pExtData ) ;
 
    public:
@@ -254,13 +255,12 @@ namespace engine
                                      const BSONObj &obj,
                                      UINT32 ownerTID ) ;
 
-      INT32    _afterAcquireUXLockOrNonRRread(
+      void     _afterAcquireUXLockOrNonRRread(
                                      const dpsTransLockId      &lockId,
                                      INT32                      irc,
                                      DPS_TRANSLOCK_TYPE         requestLockMode,
                                      UINT32                     refCounter,
                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode,
-                                     const dpsTransLRBHeader   *pLRBHeader,
                                      dpsLRBExtData             *pExtData ) ;
 
       INT32    _afterAcquireSLockRRread(
@@ -269,7 +269,6 @@ namespace engine
                                      DPS_TRANSLOCK_TYPE         requestLockMode,
                                      UINT32                     refCounter,
                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode,
-                                     const dpsTransLRBHeader   *pLRBHeader,
                                      dpsLRBExtData             *pExtData ) ;
 
       INT32    _validateRecordFromOldVer( pmdEDUCB             *eduCB,
@@ -293,6 +292,7 @@ namespace engine
       /// control var
       BOOLEAN              _skipRecord ;
       INT32                _result ;
+      BOOLEAN              _needPostAction ;
       BOOLEAN              _useOldVersion ;
       // used for non-transactional operation to track if the operation
       // (update/delete) need to cleanup nodes for this rid in memidxtree.

@@ -1771,9 +1771,10 @@ namespace engine
       {
          if( callback )
          {
+            SINT32 temprc = SDB_OK ;
             // need to call this under bktlatch to make sure we are safe to
             // lookup information in LRBHdr
-            callback->afterLockAcquire(
+            temprc = callback->afterLockAcquire(
                          lockId, rc,
                          requestLockMode,
                          pLRB ? pLRB->refCounter : 0,
@@ -1782,6 +1783,7 @@ namespace engine
                            ? DPS_TRANSLOCK_OP_MODE_TEST : opMode ),
                          pLRBHdr,
                          pLRBHdr ? &(pLRBHdr->extData) : NULL ) ;
+            SDB_ASSERT( SDB_OK == temprc, "Error during lock callback " ) ;
          }
          // there is a scenario, using testX to clean up 'old version'
          // hanging off LRB header. Release LRB header if it is possible
@@ -1807,6 +1809,15 @@ namespace engine
          _releaseOpLatch( bktIdx ) ;
          bLatched = FALSE ;
       }
+
+      // post action after release the bkt latch
+      if ( callback )
+      {
+         SINT32 temprc = SDB_OK ;
+         temprc = callback->afterLockAcquirePostAction( lockId ) ;
+         SDB_ASSERT( SDB_OK == temprc, "Error during lock callback " ) ;
+      }
+
       if ( bFreeLRB )
       {
          _releaseLRB( pLRBNew ) ;
@@ -2422,7 +2433,6 @@ namespace engine
             callback->beforeLockRelease( lockId,
                                          pMyLRB->lockMode,
                                          pMyLRB->refCounter,
-                                         pLRBHdr,
                                          pLRBHdr ? &(pLRBHdr->extData) :
                                                    NULL ) ;
          }

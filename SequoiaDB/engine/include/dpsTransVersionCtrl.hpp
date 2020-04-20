@@ -249,6 +249,11 @@ namespace engine
 
       string toString() const ;
 
+      const UINT32 size() const
+      {
+         return ( _keyObj.objsize() + sizeof(dmsRecordID) + 
+                  sizeof(DPS_TRANS_ID) + sizeof(Ordering *) ) ;
+      }
       // private attributes:
    private:
       BSONObj           _keyObj ;
@@ -349,6 +354,11 @@ namespace engine
 
       DPS_PREIDXTREENODEVALUE_STATUS getStatus() const ;
 
+      const UINT32 size() const
+      {
+         return ( sizeof(INDEX_TREE_POS) * 2 + sizeof(dmsRBSOffset) +
+                  sizeof(oldVersionContainer *) ) ;
+      }
    // private member
    private:
       oldVersionContainer    *_pOldVer ;
@@ -520,6 +530,36 @@ namespace engine
       // assistant function to print out the whole tree.
       void printTree( BOOLEAN detailed = TRUE) const ;
 
+      SINT64 getSizeHWM ( ) const
+      {
+         return _sizeHWM.peek() ;
+      }
+
+      SINT64 getPreSize ( ) const
+      {
+         return _preSize.peek() ;
+      }
+
+      SINT64 getCurMem ( ) const
+      {
+         return _curMem.peek() ;
+      }
+
+      void reduceCurMem ( SINT64 size )
+      {
+         _curMem.sub( size ) ;
+      }
+
+      SINT64 getMemHWM ( ) const
+      {
+         return _memHWM.peek() ;
+      }
+
+      void updateMemHWM ( )
+      {
+         _memHWM.swapGreaterThan( _curMem.peek() ) ;
+      }
+
    protected:
       // insert a node to map
       INT32 insert ( const preIdxTreeNodeKey &keyNode,
@@ -587,6 +627,12 @@ namespace engine
       // _latch. Note that we normally update the _ridTree the same time we
       // touch _tree, under the same _latch at the same time.
       INDEX_RID_TREE      _ridTree ;
+      // tree statistic data
+      ossAtomic64  _sizeHWM ; // max number of elements ever existed in the map
+      ossAtomic64  _preSize ; // previous number of elements before GC/cleanup
+      ossAtomic64  _memHWM ;  // max memory consumption by the _tree
+      ossAtomic64  _curMem ;  // cur memory consumption by the _tree
+
    } ;
 
    typedef utilSharePtr<preIdxTree>       preIdxTreePtr ;
@@ -825,10 +871,26 @@ namespace engine
          _minTransIDSN.swapGreaterThan( lowTran ) ;
       }
 
-      DPS_TRANSID_SN      getMinLowTranSN( )
+      void              updateCurTreeMem( UINT32 totalMem )
+      {
+         _curTreeMem.poke( totalMem ) ;
+      }
+
+      DPS_TRANSID_SN    getMinLowTranSN( )
       {
          return _minTransIDSN.fetch() ;
       }
+
+      UINT64            getTreeSizeHWM( )
+      {
+         return _treeSizeHWM.peek() ;
+      }
+
+      UINT64            getCurTreeMem( )
+      {
+         return _curTreeMem.peek() ;
+      }
+
    // private attributes
    private:
       // latch to protect the fields. Should hold it in X to initialize and 
@@ -837,7 +899,13 @@ namespace engine
       IDXID_TO_TREE_MAP   _idxTrees ;     // in memory trees holding older 
                                           // version of indexes
       MAP_OLDVERION_UNIT  _mapOldVersionUnit ;
-      DPS_TRANSID_SN_ATOMIC _minTransIDSN ;   // The smallest transID among all trees
+      // The smallest transID among all trees
+      DPS_TRANSID_SN_ATOMIC _minTransIDSN ;
+      // statistic data
+      // max number of elements ever existed in any tree
+      ossAtomic64  _treeSizeHWM ;
+      // current memory consumption by all trees
+      ossAtomic64  _curTreeMem ;
    } ;
 
    /*

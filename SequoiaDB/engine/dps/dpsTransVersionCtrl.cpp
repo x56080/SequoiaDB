@@ -209,6 +209,10 @@ namespace engine
       preIdxTree implement
    */
    preIdxTree::preIdxTree( const SINT32 idxID, const ixmIndexCB *indexCB )
+    : _sizeHWM(0) ,
+      _preSize(0) ,
+      _memHWM(0) ,
+      _curMem(0)
    {
       _isValid = TRUE ;
       _lastLowTranID = DPS_INVALID_TRANSID_SN ;
@@ -219,6 +223,10 @@ namespace engine
 
    // copy constructor
    preIdxTree::preIdxTree( const preIdxTree &intree )
+    : _sizeHWM( intree.getSizeHWM() ) ,
+      _preSize( intree.getPreSize() ) ,
+      _memHWM( intree.getMemHWM() ) ,
+      _curMem( intree.getCurMem() )
    {
       _idxLID = intree._idxLID ;
       _keyPattern = intree._keyPattern ;
@@ -284,6 +292,10 @@ namespace engine
       }
 
       _tree.clear() ;
+      _sizeHWM.init(0) ;
+      _preSize.init(0) ;
+      _memHWM.init(0) ;
+      _curMem.init(0) ;
 
       if ( !hasLock )
       {
@@ -307,6 +319,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_PREIDXTREE_INSERT );
 
       INT32 rc = SDB_OK ;
+      UINT32 nodeSize = 0 ;
       std::pair< INDEX_TREE_POS, BOOLEAN > ret ;
       preIdxTreeNodeValue tmpValue ;
 
@@ -319,6 +332,9 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
+
+      // calculate the size of the key node pair
+      nodeSize = keyNode.size() + + value.size() ;
 
       // insert the pair into the map(tree)
       if( !hasLock )
@@ -345,6 +361,8 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
+
+      _sizeHWM.swapGreaterThan( _tree.size() ) ;
 
       // if mvccOn, we need to modify the _ridTree and _ridPre/_ridNext
       if ( ret.second && pmdGetOptionCB()->mvccOn() )
@@ -429,6 +447,7 @@ namespace engine
       }
 #endif
 
+      _curMem.add( nodeSize ) ;
    done:
       PD_TRACE_EXITRC( SDB_PREIDXTREE_INSERT, rc ) ;
       return rc ;
@@ -555,6 +574,8 @@ namespace engine
       INDEX_TREE_POS pos ;
       UINT32 numDeleted = 0 ;
       preIdxTreeNodeValue tmpValue ;
+      SINT64  nodeSize = 0 ;
+
 
       SDB_ASSERT( keyNode.isValid(), "KeyNode is invalid" ) ;
 
@@ -577,8 +598,12 @@ namespace engine
             {
                _adjustRidChainForErase( pos ) ;
             }
+            // calculate memory usage
+            nodeSize = pos->first.size() + tmpValue.size() ;
 
             _tree.erase( pos ) ;
+            updateMemHWM() ;
+            reduceCurMem( nodeSize ) ;
          }
       }
 
@@ -1075,6 +1100,9 @@ namespace engine
       // Only gc if lowtran moved up
       if ( lowTran > _lastLowTranID )
       {
+         SINT64 removedNodeSize = 0 ;
+         _preSize.poke( _tree.size() ) ;
+
          pos = _tree.begin() ;
 
          // go through each node and check its transID, remove the node
@@ -1101,6 +1129,7 @@ namespace engine
 #endif
                   _adjustRidChainForErase( pos ) ;
                   pos++ ;
+                  removedNodeSize += temp->first.size() + temp->second.size() ;
                   _tree.erase(temp) ;
                }
                else
@@ -1122,6 +1151,8 @@ namespace engine
                pos++ ;
             }
          }
+         updateMemHWM() ;
+         reduceCurMem( removedNodeSize ) ;
 
          // All the nodes are older than lowTran
          if ( idxTreeLowTran == DPS_MAX_TRANSID_SN )
@@ -1223,6 +1254,10 @@ namespace engine
                << ", LID:" << _idxLID
                << ", lastLowTranID:" << _lastLowTranID
                << ", Size:" << _tree.size()
+               << ", preSize:" << getPreSize()
+               << ", SizeHWM:" << getSizeHWM()
+               << ", curMem:" << getCurMem()
+               << ", memHWM:" << getMemHWM()
                << " nodes:" << std::endl ;
             // only print each node if asked for detailed info
             if ( detailed )
@@ -1512,7 +1547,9 @@ namespace engine
       oldVersionCB implement
    */
    oldVersionCB::oldVersionCB()
-      : _minTransIDSN( DPS_INVALID_TRANSID_SN )
+      : _minTransIDSN( DPS_INVALID_TRANSID_SN ),
+      _treeSizeHWM(0),
+      _curTreeMem(0)
    {
    }
 
@@ -1726,6 +1763,7 @@ namespace engine
       DPS_TRANSID_SN  expiredVersion = DPS_INVALID_TRANSID_SN ;
       DPS_TRANSID_SN  minTreeLowTran = DPS_MAX_TRANSID_SN ;
 
+      SINT64  totalMem = 0 ;
       latchS() ;
       it = _idxTrees.begin() ;
 
@@ -1764,10 +1802,12 @@ namespace engine
             {
                minTreeLowTran = treeLowTran ;
             }
-#ifdef _DEBUG
-            treePtr->printTree( FALSE ) ;
-#endif
+            _treeSizeHWM.swapGreaterThan( treePtr->getSizeHWM() ) ;
+
          }
+
+         totalMem += treePtr->getCurMem() ;
+
          latchS() ;
          // We have released latch of oldVerContainer after we got
          // the tree pointer from this iterator. But during we gc the current
@@ -1781,7 +1821,10 @@ namespace engine
       {
          updateMinLowTranSN( minTreeLowTran ) ;
       }
+      updateCurTreeMem( totalMem ) ;
+
       releaseS() ;
+      
       PD_TRACE_EXIT ( SDB_OLDVERSIONCB_GCIDXTREES ) ;
    }
 
@@ -1861,13 +1904,12 @@ namespace engine
               it->first._clID == clID )
          {
             treePtr = it->second ;
+            PD_LOG( PDDEBUG, "Removing index tree[%s], Key:%s",
+                    it->first.toString().c_str(),
+                    treePtr->getKeyPattern().toString().c_str() ) ;
 
             if ( treePtr.get() )
             {
-               PD_LOG( PDDEBUG, "Has removed index tree[%s], Key:%s",
-                       it->first.toString().c_str(),
-                       treePtr->getKeyPattern().toString().c_str() ) ;
-
                treePtr->setDeleted() ;
                try
                {
@@ -1890,7 +1932,8 @@ namespace engine
          releaseX() ;
       }
 
-      /// clear trees's node out of latch mutex
+      // clear trees's node out of latch mutex, it's safe to do so because
+      // scanner would have found the tree invalid after having the lock again
       it = mapTmpTree.begin() ;
       while( it != mapTmpTree.end() )
       {
