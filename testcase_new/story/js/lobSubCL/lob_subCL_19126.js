@@ -71,7 +71,7 @@ function main ()
    listLobsWithSortAndCheckResult( mainCL, filePath, sortCond, sortKey, sortOrder );
 
    //test c :listLobs with sort(), desc Order by CreateTime; 
-   var sortCond = { "CreateTime": -1, "ModificationTime": 1 };
+   var sortCond = { "CreateTime": -1, "ModificationTime": -1 };
    var sortKey = "CreateTime";
    var sortOrder = -1;
    listLobsWithSortAndCheckResult( mainCL, filePath, sortCond, sortKey, sortOrder );
