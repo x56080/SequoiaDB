@@ -49,9 +49,9 @@ function importData ( csName, clName, imprtFile )
 
    //check import results
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: 5";
-   var expParseFailure = "parse failure: 31";
-   var expImportedRecords = "imported records: 5";
+   var expParseRecords = "parsed records: 6";
+   var expParseFailure = "parse failure: 30";
+   var expImportedRecords = "imported records: 6";
    var actParseRecords = rcObj[0];
    var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];
@@ -67,7 +67,7 @@ function importData ( csName, clName, imprtFile )
    var rec = cmd.run( "ls " + tmpRec ).split( "\n" )[0];
    var actFailedNum = cmd.run( "cat -v " + rec ).split( "\n" ).length - 1;
    println( rec + "\nrecords number: " + actFailedNum );
-   var expFailedNum = 31;
+   var expFailedNum = 30;
    if( expFailedNum !== actFailedNum )
    {
       throw buildException( "checkCLdata", null, "[find]",

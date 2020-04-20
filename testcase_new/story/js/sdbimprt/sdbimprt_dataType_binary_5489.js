@@ -90,8 +90,8 @@ function checkCLData ( cl )
       recsArray.push( tmpRecs.toObj() );
    }
 
-   var expCnt = 5;  //skip a records: {"num":8,"type":"null","v1":null,"v2":null}
-   var expRecs = '[{"num":9,"type":"oid","v1":{"$binary":"5791b549b1f90a1171000016","$type":"0"},"v2":{"$binary":"abcdef01230123456789cdef","$type":"0"}},{"num":12,"type":"binary","v1":{"$binary":"aGVsbG8gd29ybGQ=","$type":"0"},"v2":{"$binary":"adc=","$type":"0"}},{"num":37,"type":"nullStr","v1":{"$binary":"null","$type":"0"},"v2":{"$binary":"null","$type":"0"}},{"num":38,"type":"oidStr","v1":{"$binary":"5791b549b1f90a1171000016","$type":"0"},"v2":{"$binary":"abcdef01230123456789cdef","$type":"0"}},{"num":41,"type":"binaryStr","v1":{"$binary":"aGVsbG8gd29ybGQ=","$type":"0"},"v2":{"$binary":"adc=","$type":"0"}}]';
+   var expCnt = 6;
+   var expRecs = '[{"num":8,"type":"null","v1":{"$binary":"null","$type":"0"},"v2":{"$binary":"null","$type":"0"}},{"num":9,"type":"oid","v1":{"$binary":"5791b549b1f90a1171000016","$type":"0"},"v2":{"$binary":"abcdef01230123456789cdef","$type":"0"}},{"num":12,"type":"binary","v1":{"$binary":"aGVsbG8gd29ybGQ=","$type":"0"},"v2":{"$binary":"adc=","$type":"0"}},{"num":37,"type":"nullStr","v1":{"$binary":"null","$type":"0"},"v2":{"$binary":"null","$type":"0"}},{"num":38,"type":"oidStr","v1":{"$binary":"5791b549b1f90a1171000016","$type":"0"},"v2":{"$binary":"abcdef01230123456789cdef","$type":"0"}},{"num":41,"type":"binaryStr","v1":{"$binary":"aGVsbG8gd29ybGQ=","$type":"0"},"v2":{"$binary":"adc=","$type":"0"}}]';
    var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )

@@ -18,9 +18,9 @@ var csvContent = "a,b,c\n" +
 var jsonContent = "{ \"a\": 1 }\n" +
    "{ \"a\": 2, \"b\": 2, \"c\": 3 }\n" +
    "{  }\n";
-var csvRecs = ["{\"a\":1,\"b\":null}",
+var csvRecs = ["{\"a\":1}",
    "{\"a\":2,\"b\":2,\"c\":3}",
-   "{\"a\":null,\"b\":null}"];
+   "{}"];
 var jsonRecs = ["{\"a\":1}",
    "{\"a\":2,\"b\":2,\"c\":3}",
    "{}"];

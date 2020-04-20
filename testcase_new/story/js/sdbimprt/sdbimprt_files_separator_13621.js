@@ -88,10 +88,10 @@ function checkCLData ( cl )
    }
 
    var expCnt = 4;
-   var expRecs = '[{"a":1,"b":2,"c":null,"d":4},\
-{"a":null,"b":null,"c":3,"d":4},\
-{"a":1,"b":2,"c":null,"d":null},\
-{"a":1,"b":null,"c":3,"d":null}]';
+   var expRecs = '[{"a":1,"b":2,"d":4},\
+{"c":3,"d":4},\
+{"a":1,"b":2},\
+{"a":1,"c":3}]';
    var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )

@@ -3760,10 +3760,7 @@ namespace import
 
       if (_startWith(str, len, fieldDel, fieldDelLen))
       {
-         if (CSV_TYPE_SKIP != type)
-         {
-            type = CSV_TYPE_NULL;
-         }
+         type = CSV_TYPE_SKIP ;
          valueLength = 0;
          fieldEnd = TRUE;
          goto done;
@@ -3839,6 +3836,18 @@ namespace import
          autoDateTime = TRUE;
          // pass through
       case CSV_TYPE_TIMESTAMP:
+         {
+            BOOLEAN tmpFieldEnd = FALSE ;
+            // null
+            rc = _stringToRawNull( data, length, fieldDel, fieldDelLen,
+                                   valueLength, tmpFieldEnd ) ;
+            if( SDB_OK == rc )
+            {
+               type = CSV_TYPE_NULL;
+               fieldEnd = tmpFieldEnd ;
+               goto done;
+            }
+         }
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
                               fieldDelLen, fieldValue.strVal,
                               valueLength, fieldEnd);
@@ -3856,6 +3865,18 @@ namespace import
          autoDateTime = TRUE;
          // pass through
       case CSV_TYPE_DATE:
+         {
+            BOOLEAN tmpFieldEnd = FALSE ;
+            // null
+            rc = _stringToRawNull( data, length, fieldDel, fieldDelLen,
+                                   valueLength, tmpFieldEnd ) ;
+            if( SDB_OK == rc )
+            {
+               type = CSV_TYPE_NULL;
+               fieldEnd = tmpFieldEnd ;
+               goto done;
+            }
+         }
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
                               fieldDelLen, fieldValue.strVal,
                               valueLength, fieldEnd);
@@ -4233,16 +4254,17 @@ namespace import
 
       SDB_ASSERT(CSV_TYPE_AUTO != data.type, "data.type can't be CSV_TYPE_AUTO");
 
-      if (CSV_TYPE_NULL == data.type)
+      if( CSV_TYPE_NULL == data.type || CSV_TYPE_SKIP == data.type )
       {
-         if (CSV_TYPE_AUTO != field.type && field.hasDefault)
+         if( CSV_TYPE_AUTO != field.type && CSV_TYPE_SKIP != field.type &&
+             field.hasDefault )
          {
             type = (CSV_TYPE_NUMBER == field.type) ? field.subType: field.type;
             value = &(field.defaultValue);
          }
          else
          {
-            type = CSV_TYPE_NULL;
+            type = data.type;
          }
       }
       else

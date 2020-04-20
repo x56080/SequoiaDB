@@ -35,7 +35,7 @@ function testImprtCsv( clName, cl )
    
    cl.remove();
    cmd.run( command + " --fields 'a decimal, b int' " );
-   var expectResult = [ {"a": {"$decimal": "123.4"},"b": 1},{"a": {"$decimal": "123.4"},"b": 2},{"a": null,"b": 3},{"a": null,"b": 4} ];
+   var expectResult = [ {"a": {"$decimal": "123.4"},"b": 1},{"a": {"$decimal": "123.4"},"b": 2},{"a": null,"b": 3},{"b": 4} ];
    commCompareResults( cl.find(), expectResult );
    
    cl.remove();

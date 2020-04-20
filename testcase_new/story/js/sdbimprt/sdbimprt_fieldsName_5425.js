@@ -75,7 +75,7 @@ function checkCLData ( cl )
    }
 
    var expCnt = 2;
-   var expRecs = '[{"a":1,"b":1,"field1":null},{"a":2,"b":2,"field1":"test"}]';
+   var expRecs = '[{"a":1,"b":1},{"a":2,"b":2,"field1":"test"}]';
    var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
