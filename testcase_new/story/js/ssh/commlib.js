@@ -110,11 +110,21 @@ function isUserExist( hostName, user )
 {
    var remote = new Remote( hostName, CMSVCNAME );
    var cmd = remote.getCmd();
-   var content = cmd.run( "cat /etc/passwd | grep " + user );
-   if( content == "")
+   try
    {
-      println( "There is no user: " + user );
-      return false;
+      cmd.run( "cat /etc/passwd | grep " + user );
+   }
+   catch( e )
+   {
+      if( e == 1 )
+      {
+         println( "There is no user: " + user );
+         return false;
+      }
+      else
+      {
+         throw new Error( e );
+      }
    }
    return true;
 }
