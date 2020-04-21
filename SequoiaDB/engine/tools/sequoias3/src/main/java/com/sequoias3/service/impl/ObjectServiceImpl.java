@@ -1348,7 +1348,7 @@ public class ObjectServiceImpl implements ObjectService {
 
             transaction.commit(connection);
             deleteObjectLobAndAcl(oldObjectMeta);
-            uploadStatusDao.deleteUploadId(uploadId);
+            cleanUploadStatus(uploadId);
 
             //build response
             CompleteMultipartUploadResult response = new CompleteMultipartUploadResult();
