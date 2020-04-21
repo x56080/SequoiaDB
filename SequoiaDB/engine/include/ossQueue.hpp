@@ -45,14 +45,28 @@
 #include <boost/thread.hpp>
 #include <boost/thread/thread_time.hpp>
 #include <boost/thread/cv_status.hpp>
-template<typename Data>
+
+template<typename Data, class Container = std::deque<Data> >
 class ossQueue : public SDBObject
 {
 private :
-   std::queue<Data> _queue ;
+   std::queue<Data,Container> _queue ;
    mutable boost::mutex _mutex ;
    boost::condition_variable _cond ;
 public :
+   ossQueue()
+   {
+   }
+
+   ossQueue( const Container &container )
+   : _queue( container )
+   {
+   }
+
+   ~ossQueue()
+   {
+   }
+
    UINT32 size ()
    {
       boost::mutex::scoped_lock lock ( _mutex ) ;
