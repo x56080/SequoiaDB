@@ -112,7 +112,10 @@ public class UploadPartWithKillData18785 extends S3TestBase {
                 PartUploadUtils.completeMultipartUpload( s3Client, bucketName,
                         keyName, uploadId, partEtags );
             } catch ( AmazonServiceException e ) {
-                if ( e.getStatusCode() != 500 ) {
+                // Status Code: 0; Error Code: CompleteMultipartUploadFailed;
+                // Request ID: null; S3 Extended Request ID: null
+                // 完成上传时合入lob失败，清理失败，可能报Status Code: 0
+                if ( e.getStatusCode() != 500 && e.getStatusCode() != 0 ) {
                     throw e;
                 }
             } finally {
