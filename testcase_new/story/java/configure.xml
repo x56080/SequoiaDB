@@ -34,6 +34,8 @@
             class-name="com.sequoiadb.testcommon.TimePrinterListener" />
         <listener
             class-name="com.sequoiadb.testcommon.SdbTestListener" />
+        <listener
+            class-name="com.sequoiadb.testcommon.StoryInvokeMethodListener" />
     </listeners>
 
     <!--The testcases of different configure should be placed in different 
