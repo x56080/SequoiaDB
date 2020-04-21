@@ -980,7 +980,7 @@
       <long>preferedinstancemode</long>
       <description>
          <en>The mode to choose query instance when multiple prefered instances are found. Could be 'random' or 'ordered'. Default is 'random'.</en>
-         <cn>指定当多个实例符合 --preferedinstance 的条件时的选择模式。可选值有 'random' 和 'ordered'。默认值是 'random'。</cn>
+         <cn>指定当多个实例符合 preferedinstance 的条件时的选择模式。可选值有 'random' 和 'ordered'。默认值是 'random'。</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
@@ -994,14 +994,14 @@
          <en>1. The mode to choose query instance when multiple prefered instances are found.<fig></fig>
              2. value enumeration:<fig></fig>
                 ● "random": choose the instance from matched instances by random.<fig></fig>
-                ● "ordered": choose the instance from matched instances by the order of --preferedinstance.<fig></fig>
-                ● ROLE value in --preferedinstance has higher or lower piority than INSTRANCE value.<fig></fig>
+                ● "ordered": choose the instance from matched instances by the order of preferedinstance.<fig></fig>
+                ● ROLE value in preferedinstance has higher or lower piority than INSTRANCE value.<fig></fig>
              3. Default value is 'random'.</en>
-         <cn>1. 指定当多个实例符合 --preferedinstance 的条件时的选择模式。<fig></fig>
+         <cn>1. 指定当多个实例符合 preferedinstance 的条件时的选择模式。<fig></fig>
              2. 取值列表：<fig></fig>
                 ● "random": 从候选的实例取值中随机选择。<fig></fig>
-                ● "ordered": 从候选的实例取值中按照 --perferedinstance 的顺序进行选择。<fig></fig>
-                ● --preferedinstance 中的角色取值，根据规则选择时优于或者次于实例取值，与 -preferedinstancemode 取值无关。<fig></fig>
+                ● "ordered": 从候选的实例取值中按照 perferedinstance 的顺序进行选择。<fig></fig>
+                ● preferedinstance 中的角色取值，根据规则选择时优于或者次于实例取值，与 preferedinstancemode 取值无关。<fig></fig>
              3. 默认值为 "random"。<fig></fig>
              4. 更详细的内容请参考 [db.setSessionAttr()](reference/Sequoiadb_command/Sdb/setSessionAttr.md)。</cn>
       </detail>
@@ -1057,7 +1057,7 @@
          <cn>1. 优先实例的有效周期，单位为秒。<fig></fig>
              2. 如果上一次选择进行请求的节点在有效周期内，读请求仍使用该节点进行查询，周期之后，将根据 preferedinstance 重新选择。<fig></fig>
              3. 默认值为 60 秒。<fig></fig>
-             4. 取值范围为 [-1, 2^31]<fig></fig>
+             4. 取值范围为 [-1, 2^31 - 1]<fig></fig>
              5. -1 表示不失效<fig></fig>
              6. 0 表示本次查询不使用上次选择的实例，根据 preferedinstance 进行重新选择。</cn>
       </detail>
@@ -1078,11 +1078,11 @@
          <cn>重启生效</cn>
       </reloadable>
       <detail>
-         <en>1. Instance ID of node, used by --preferedinstance to choose query instance.<fig></fig>
+         <en>1. Instance ID of node, used by preferedinstance to choose query instance.<fig></fig>
              2. Valid value could be [1, 255].<fig></fig>
              3. If not given or give out-of-range value, will use the order in CATALOG meta-data.<fig></fig>
              4. Different nodes could use the same instance ID.</en>
-         <cn>1. 节点的实例 ID，用于 --preferedinstance 进行实例选择。<fig></fig>
+         <cn>1. 节点的实例 ID，用于 preferedinstance 进行实例选择。<fig></fig>
              2. 有效的取值包括 [1, 255]。<fig></fig>
              3. 如不指定，或者指定超出有效范围，则按照节点在编目信息中的下标进行自动分配。<fig></fig>
              4. 多个节点可以指定相同的实例 ID。</cn>
