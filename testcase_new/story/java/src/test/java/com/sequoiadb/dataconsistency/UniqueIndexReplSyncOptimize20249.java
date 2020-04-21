@@ -3,7 +3,6 @@ package com.sequoiadb.dataconsistency;
 import java.util.ArrayList;
 
 import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -19,24 +18,23 @@ import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
- * @testlink seqDB-16995:集合中存在多个唯一索引，长时间执行数据操作
- * @author wuyan
- * @Date 2019.1.3
- * @version 1.00
- * @modify zhaoyu 2020.3.28
+ * @testlink seqDB-20249:存在多个唯一索引，插入/更新记录在备节点重放记录与多个桶产生duplicated key错误
+ * @author zhaoyu
+ * @Date 2019.11.11
  */
-public class UniqueIndexReplSyncOptimize16995 extends SdbTestBase {
+public class UniqueIndexReplSyncOptimize20249 extends SdbTestBase {
+
+    private String clName = "cl20249";
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
-    private String clName = "cl16995";
-    private DBCollection cl = null;
-    private String groupName = "";
-    private int loopNum = 1000;
+    private DBCollection dbcl = null;
+    private int loopNum = 10000;
+    private String groupName;
+    private ArrayList< BSONObject > insertRecords = new ArrayList<>();
 
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        cs = sdb.getCollectionSpace( csName );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "standAlone skip testcase" );
         }
@@ -45,34 +43,33 @@ public class UniqueIndexReplSyncOptimize16995 extends SdbTestBase {
         if ( DataConsistencyUtil.isOneNodeInGroup( sdb, groupName ) ) {
             throw new SkipException( "one node in group skip testcase" );
         }
-        cl = cs.createCollection( clName,
+        cs = sdb.getCollectionSpace( csName );
+        dbcl = cs.createCollection( clName,
                 ( BSONObject ) JSON.parse( "{Group:'" + groupName + "'}" ) );
-
-        // 创建2个唯一索引
-        cl.createIndex( "index16995_a", "{a:1}", true, true );
-        cl.createIndex( "index16995_b", "{b:1}", true, true );
+        dbcl.createIndex( "a20249", "{a:1}", true, true );
+        insertRecords.add( ( BSONObject ) JSON.parse( "{_id:7,a:7,order:1}" ) );
+        insertRecords.add( ( BSONObject ) JSON.parse( "{_id:8,a:8,order:2}" ) );
+        insertRecords.add( ( BSONObject ) JSON.parse( "{_id:9,a:9,order:3}" ) );
+        insertRecords
+                .add( ( BSONObject ) JSON.parse( "{_id:10,a:10,order:4}" ) );
+        dbcl.bulkInsert( insertRecords, 0 );
     }
 
     @Test
     public void test() throws Exception {
-        ArrayList< BSONObject > insertRecords = insertDatas( cl, 0, 100 );
         ThreadExecutor thExecutor = new ThreadExecutor(
                 DataConsistencyUtil.THREAD_TIMEOUT );
         thExecutor.addWorker( new InsertThread() );
         thExecutor.addWorker( new UpdateThread() );
         thExecutor.run();
 
-        // 从主节点查询获取预期结果
-        for ( int i = 0; i < insertRecords.size(); i++ ) {
-            BSONObject record = insertRecords.get( i );
-            int a = ( int ) record.get( "a" ) - loopNum * 100;
-            int b = ( int ) record.get( "b" ) - loopNum * 100;
-            record.put( "a", a );
-            record.put( "b", b );
+        int bValue = loopNum - 1;
+        for ( BSONObject doc : insertRecords ) {
+            doc.put( "b", bValue );
         }
-
         DataConsistencyUtil.checkDataConsistency( sdb, csName, clName,
                 insertRecords, "" );
+
     }
 
     @AfterClass
@@ -82,20 +79,6 @@ public class UniqueIndexReplSyncOptimize16995 extends SdbTestBase {
         } finally {
             sdb.disconnect();
         }
-    }
-
-    private ArrayList< BSONObject > insertDatas( DBCollection cl, int startID,
-            int stopID ) {
-        ArrayList< BSONObject > records = new ArrayList< BSONObject >();
-        for ( int i = startID; i < stopID; i++ ) {
-            BSONObject record = new BasicBSONObject();
-            record.put( "a", i );
-            record.put( "b", i );
-            record.put( "order", i );
-            records.add( record );
-        }
-        cl.bulkInsert( records, 0 );
-        return records;
     }
 
     private class InsertThread {
@@ -108,13 +91,25 @@ public class UniqueIndexReplSyncOptimize16995 extends SdbTestBase {
                         .getCollection( clName );
 
                 for ( int i = 0; i < loopNum; i++ ) {
-                    int startID = 100 * ( 1 + i );
-                    int stopID = 100 * ( 2 + i );
-                    insertDatas( cl, startID, stopID );
-                    cl.delete(
-                            "{a:{$lt:" + stopID + ",$gte:" + startID + "}}" );
-                }
+                    cl.insert( "{_id:1,a:1}" );
+                    cl.insert( "{_id:3,a:2}" );
+                    cl.insert( "{_id:5,a:3}" );
+                    cl.delete( "{_id:1}" );
+                    cl.delete( "{_id:3}" );
+                    cl.delete( "{_id:5}" );
+                    cl.insert( "{_id:2,a:1}" );
+                    cl.insert( "{_id:4,a:2}" );
+                    cl.insert( "{_id:6,a:3}" );
+                    cl.delete( "{_id:2}" );
+                    cl.delete( "{_id:4}" );
+                    cl.delete( "{_id:6}" );
+                    // ddl会写日志，但是这个日志不会并发重放，验证并发重放转成非并发重放的正确性
+                    if ( 0 == i % 1000 ) {
+                        cl.createIndex( "b1", "{b1:1}", false, false );
+                        cl.dropIndex( "b1" );
+                    }
 
+                }
             } finally {
                 db.disconnect();
             }
@@ -131,7 +126,20 @@ public class UniqueIndexReplSyncOptimize16995 extends SdbTestBase {
                         .getCollection( clName );
 
                 for ( int i = 0; i < loopNum; i++ ) {
-                    cl.update( "{a:{$lt:100}}", "{$inc:{a:-100,b:-100}}}", "" );
+                    cl.update( "{_id:7}", "{$set:{a:17}}", null );
+                    cl.update( "{_id:7}", "{$set:{a:7,b:" + i + "}}", null );
+                    cl.update( "{_id:8}", "{$set:{a:17}}", null );
+                    cl.update( "{_id:8}", "{$set:{a:8,b:" + i + "}}", null );
+                    cl.update( "{_id:9}", "{$set:{a:19}}", null );
+                    cl.update( "{_id:9}", "{$set:{a:9,b:" + i + "}}", null );
+                    cl.update( "{_id:10}", "{$set:{a:100}}", null );
+                    cl.update( "{_id:10}", "{$set:{a:10,b:" + i + "}}", null );
+
+                    if ( 0 == i % 1000 ) {
+
+                        cl.createIndex( "b2", "{b2:1}", false, false );
+                        cl.dropIndex( "b2" );
+                    }
                 }
 
             } finally {
