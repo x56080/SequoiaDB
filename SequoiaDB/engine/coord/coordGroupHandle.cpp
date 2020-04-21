@@ -74,11 +74,15 @@ namespace engine
                MsgOpQuery *pQuery = ( MsgOpQuery* )pMsg ;
                if ( FALSE == isResend )
                {
+                  // set primary flag, clear secondary flag
                   OSS_BIT_SET( pQuery->flags, FLG_QUERY_PRIMARY ) ;
+                  OSS_BIT_CLEAR( pQuery->flags, FLG_QUERY_SECONDARY ) ;
                }
                else
                {
+                  // clear both primary or secondary flag
                   OSS_BIT_CLEAR( pQuery->flags, FLG_QUERY_PRIMARY ) ;
+                  OSS_BIT_CLEAR( pQuery->flags, FLG_QUERY_SECONDARY ) ;
                }
             }
             else if ( pMsg->opCode > ( SINT32 )MSG_LOB_BEGIN &&
@@ -87,11 +91,15 @@ namespace engine
                MsgOpLob *pLobMsg = ( MsgOpLob* )pMsg ;
                if ( FALSE == isResend )
                {
+                  // set secondary flag, clear primary flag
                   OSS_BIT_SET( pLobMsg->flags, FLG_LOBREAD_PRIMARY ) ;
+                  OSS_BIT_CLEAR( pLobMsg->flags, FLG_LOBREAD_SECONDARY ) ;
                }
                else
                {
+                  // clear both primary or secondary flag
                   OSS_BIT_CLEAR( pLobMsg->flags, FLG_LOBREAD_PRIMARY ) ;
+                  OSS_BIT_CLEAR( pLobMsg->flags, FLG_LOBREAD_SECONDARY ) ;
                }
             }
          }
@@ -104,25 +112,50 @@ namespace engine
                MsgOpQuery *pQuery = ( MsgOpQuery* )pMsg ;
                if ( FALSE == isResend )
                {
+                  // set primary flag, clear secondary flag
                   OSS_BIT_SET( pQuery->flags, FLG_QUERY_SECONDARY ) ;
+                  OSS_BIT_CLEAR( pQuery->flags, FLG_QUERY_PRIMARY ) ;
                }
                else
                {
+                  // clear both primary or secondary flag
                   OSS_BIT_CLEAR( pQuery->flags, FLG_QUERY_SECONDARY ) ;
+                  OSS_BIT_CLEAR( pQuery->flags, FLG_QUERY_PRIMARY ) ;
                }
             }
             else if ( pMsg->opCode > ( SINT32 )MSG_LOB_BEGIN &&
-                  pMsg->opCode < ( SINT32 )MSG_LOB_END )
+                      pMsg->opCode < ( SINT32 )MSG_LOB_END )
             {
                MsgOpLob *pLobMsg = ( MsgOpLob* )pMsg ;
                if ( FALSE == isResend )
                {
+                  // set secondary flag, clear primary flag
                   OSS_BIT_SET( pLobMsg->flags, FLG_LOBREAD_SECONDARY ) ;
+                  OSS_BIT_CLEAR( pLobMsg->flags, FLG_LOBREAD_PRIMARY ) ;
                }
                else
                {
+                  // clear both primary or secondary flag
                   OSS_BIT_CLEAR( pLobMsg->flags, FLG_LOBREAD_SECONDARY ) ;
+                  OSS_BIT_CLEAR( pLobMsg->flags, FLG_LOBREAD_PRIMARY ) ;
                }
+            }
+         }
+         else if ( isResend )
+         {
+            // make sure to clear both primary or secondary flag when resend
+            if ( MSG_BS_QUERY_REQ == pMsg->opCode )
+            {
+               MsgOpQuery *pQuery = ( MsgOpQuery* )pMsg ;
+               OSS_BIT_CLEAR( pQuery->flags, FLG_QUERY_SECONDARY ) ;
+               OSS_BIT_CLEAR( pQuery->flags, FLG_QUERY_PRIMARY ) ;
+            }
+            else if ( pMsg->opCode > ( SINT32 )MSG_LOB_BEGIN &&
+                      pMsg->opCode < ( SINT32 )MSG_LOB_END )
+            {
+               MsgOpLob *pLobMsg = ( MsgOpLob* )pMsg ;
+               OSS_BIT_CLEAR( pLobMsg->flags, FLG_LOBREAD_SECONDARY ) ;
+               OSS_BIT_CLEAR( pLobMsg->flags, FLG_LOBREAD_PRIMARY ) ;
             }
          }
       }
