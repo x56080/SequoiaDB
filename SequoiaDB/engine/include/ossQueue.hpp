@@ -54,6 +54,19 @@ private :
    mutable boost::mutex       _mutex ;
    boost::condition_variable  _cond ;
 public :
+   ossQueue()
+   {
+   }
+
+   ossQueue( const Container &container )
+   : _queue( container )
+   {
+   }
+
+   ~ossQueue()
+   {
+   }
+
    UINT32 size ()
    {
       boost::mutex::scoped_lock lock ( _mutex ) ;

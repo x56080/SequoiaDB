@@ -117,7 +117,21 @@ namespace engine
       SDB_ASSERT ( path, "path can't be NULL" ) ;
 
       dpsMetaFileContent metaContent ;
+
       _transCB = pTransCB ;
+
+      // initialize queue buffer
+      PD_CHECK( _queueBuffer.initBuffer( pageNum ), SDB_OOM, error, PDERROR,
+                "Failed to allocate queue buffer with page number [%u]",
+                pageNum ) ;
+
+      // allocate page queue
+      // NOTE: maximum queue length is page number, so we use a circular buffer
+      _queue =
+            SDB_OSS_NEW DPS_PAGE_QUEUE( DPS_QUEUE_CONTAINER( &_queueBuffer ) ) ;
+      PD_CHECK( NULL != _queue, SDB_OOM, error, PDERROR,
+                "Failed to allocate page queue with page number [%u]",
+                pageNum ) ;
 
       // free in destructor
       _pages = SDB_OSS_NEW _dpsLogPage[pageNum];
@@ -205,6 +219,14 @@ namespace engine
          SDB_OSS_DEL []_pages;
          _pages = NULL;
       }
+
+      if ( NULL != _queue )
+      {
+         SDB_OSS_DEL _queue ;
+         _queue = NULL ;
+      }
+
+      _queueBuffer.finiBuffer() ;
    }
 
    INT32 _dpsReplicaLogMgr::_restoreMeta()
@@ -1194,6 +1216,8 @@ namespace engine
       // the moment
 
       SDB_ASSERT( allocated.valid(), "impossible" ) ;
+      SDB_ASSERT( NULL != _queue, "queue is invalid" ) ;
+
       for ( UINT32 i = 0; i < allocated.pageNum; ++i )
       {
          _dpsLogPage *page = PAGE(allocated.beginSub + i) ;
@@ -1201,7 +1225,7 @@ namespace engine
          {
             if ( !_restoreFlag )
             {
-               _queue.push ( page ) ;
+               _queue->push ( page ) ;
                _queSize.inc() ;
             }
             else
@@ -1327,8 +1351,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR_RUN );
       _dpsLogPage *page = NULL;
+
+      SDB_ASSERT( NULL != _queue, "queue is invalid" ) ;
+
       // wait for queue for 1 second
-      if ( _queue.timed_wait_and_pop( page, OSS_ONE_SEC  ) )
+      if ( _queue->timed_wait_and_pop( page, OSS_ONE_SEC  ) )
       {
          if ( cb )
          {
@@ -1399,10 +1426,13 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR__FLUSHALL );
       _dpsLogPage *page = NULL ;
+
+      SDB_ASSERT( NULL != _queue, "queue is invalid" ) ;
+
       // clean up queue
       while ( TRUE )
       {
-         if ( !_queue.try_pop( page ) )
+         if ( !_queue->try_pop( page ) )
          {
             break;
          }

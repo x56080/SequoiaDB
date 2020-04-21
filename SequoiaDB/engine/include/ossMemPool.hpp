@@ -55,6 +55,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include <deque>
 
 /*
  * Memory pool ideal for allocation of objects one chunk at a time, such as
@@ -182,6 +183,31 @@ typedef ossPoolVector<INT64>              VEC_INT64 ;
 typedef ossPoolVector<BOOLEAN>            VEC_BOOLEAN ;
 typedef ossPoolVector<std::string>        VEC_STRING ;
 typedef ossPoolVector<ossPoolString>      VEC_POOLSTR ;
+
+/*
+ * Deque
+ */
+template < typename K >
+class ossPoolDeque : public std::deque< K, typename ossPoolAllocator<K>::Type >
+{
+   typedef typename std::deque< K, typename ossPoolAllocator<K>::Type >::size_type size_type ;
+
+public:
+   ossPoolDeque()
+   : std::deque< K, typename ossPoolAllocator<K>::Type >()
+   {
+   }
+
+   ossPoolDeque( size_type n, const K& val = K() )
+   : std::deque< K, typename ossPoolAllocator<K>::Type >( n, val )
+   {
+   }
+
+   /**
+    * DO NOT ADD ANY MEMBER/FUNCTION IN THIS CLASS
+    * DO NOT USE THIS CLASS IN POLYMORPHISM
+    */
+} ;
 
 #endif
 

@@ -51,6 +51,7 @@
 #include "ossEvent.hpp"
 #include "ossQueue.hpp"
 #include "dpsMetaFile.hpp"
+#include "utilCircularQueue.hpp"
 
 #include <vector>
 using namespace std ;
@@ -74,7 +75,13 @@ namespace engine
    class _dpsReplicaLogMgr : public SDBObject
    {
    private:
-      ossQueue<_dpsLogPage *>    _queue;
+      typedef _utilCircularBuffer< _dpsLogPage * >       DPS_QUEUE_BUFFER ;
+      typedef _utilCircularQueue< _dpsLogPage * >        DPS_QUEUE_CONTAINER ;
+      typedef ossQueue< _dpsLogPage *, DPS_QUEUE_CONTAINER >
+                                                         DPS_PAGE_QUEUE ;
+
+      DPS_PAGE_QUEUE             *_queue ;
+      DPS_QUEUE_BUFFER           _queueBuffer ;
       _dpsLogFileMgr             _logger;
       _dpsLogPage                *_pages;
       _ossSpinXLatch             _mtx ;
