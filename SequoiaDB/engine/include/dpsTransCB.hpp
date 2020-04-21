@@ -185,6 +185,20 @@ namespace engine
                                 BOOLEAN &removed ) ;
 
    /*
+      TRANS_COMMIT_FLAG
+    */
+   // indicates flags when transaction commit
+   // NOTE: tags like auto commit, multi-groups is not saved in transaction
+   //       map of dpsTransCB, saving a flag in
+   //       dpsTransBackInfo/dpsTransHistInfo may help functions processing
+   //       dpsTransBackInfo/dpsTransHistInfo know more about the transaction
+   #define TRANS_COMMIT_FLAG_EMPTY           ( 0x00000000 )
+   // indicates this transaction is auto-commit
+   #define TRANS_COMMIT_FLAG_AUTOCOMMIT      ( 0x00000001 )
+   // indicates this transaction involves in multiple groups
+   #define TRANS_COMMIT_FLAG_MULTIGROUPS     ( 0x00000002 )
+
+   /*
       _dpsTransBackInfo define
    */
    struct _dpsTransBackInfo
@@ -199,8 +213,14 @@ namespace engine
       // during rollback pending
       ossPoolSet< DPS_LSN_OFFSET >  _curNonPendingLSN ;
 
+      // logical time of transaction begin
       stpLogicalTimeUS              _beginTime ;
+      // logical time of transaction pre-commit
       stpLogicalTimeUS              _preCommitTime ;
+      // logical time of transaction commit
+      stpLogicalTimeUS              _commitTime ;
+      // flags for transaction commit
+      UINT32                        _commitFlag ;
 
       _dpsTransBackInfo( DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET,
                          INT32 status = DPS_TRANS_DOING )
@@ -208,6 +228,7 @@ namespace engine
          _lsn = lsn ;
          _curLSNWithRBPending = DPS_INVALID_LSN_OFFSET ;
          _status = status ;
+         _commitFlag = TRANS_COMMIT_FLAG_EMPTY ;
       }
    } ;
    typedef _dpsTransBackInfo dpsTransBackInfo ;
@@ -233,23 +254,30 @@ namespace engine
       stpLogicalTimeUS  _beginTime ;
       // logical time of transaction pre-commit
       stpLogicalTimeUS  _preCommitTime ;
+      // logical time of transaction commit
+      stpLogicalTimeUS  _commitTime ;
+      // flags for transaction commit
+      UINT32            _commitFlag ;
 
       _dpsHisTransStatus()
       : _status( DPS_TRANS_COMMIT ),
         _lsn( DPS_INVALID_LSN_OFFSET ),
         _beginTime(),
-        _preCommitTime()
+        _preCommitTime(),
+        _commitTime(),
+        _commitFlag( TRANS_COMMIT_FLAG_EMPTY )
       {
       }
 
       _dpsHisTransStatus( INT32 status,
                           DPS_LSN_OFFSET lsn,
                           const stpLogicalTimeUS &beginTime,
-                          const stpLogicalTimeUS &commitTime )
+                          const stpLogicalTimeUS &preCommitTime )
       : _status( status ),
         _lsn( lsn ),
         _beginTime( beginTime ),
-        _preCommitTime( commitTime )
+        _preCommitTime( preCommitTime ),
+        _commitFlag( TRANS_COMMIT_FLAG_EMPTY )
       {
       }
    } ;
@@ -438,19 +466,63 @@ namespace engine
       INT32 getGlobTransTime( stpLogicalTimeUS &time,
                               INT32 timeout = OSS_ONE_SEC ) ;
 
-      // get logical time from STP for pre-commit/commit of transaction
+      // get logical time from STP which should after expecting time
       // input:
-      //    - eduCB: EDUCB of transaction
+      //    - eduCB: EDU CB of current transaction
+      //    - expectTimeUS: expecting time in microseconds
+      //    - timeout: timeout to get logical time
+      //               0 means try once, -1 means never timeout
       // output:
-      //    - preCommitTime: logical time to pre-commit/commit transaction
+      //    - time: time from STP
       // return:
       //    - SDB_OK: succeed to get time
       //    - STP_NOT_AVAILABLE: STP is not available for global transaction
       //    - SDB_TIMEOUT: failed to get time in given timeout
-      // NOTE: for global transaction, it should be pre-commit or commit in
+      INT32 getGlobTransTime( _pmdEDUCB *eduCB,
+                              UINT64 expectTimeUS,
+                              stpLogicalTimeUS &time,
+                              INT32 timeout = OSS_ONE_SEC ) ;
+
+      // get logical time from STP for pre-commit of transaction
+      // input:
+      //    - eduCB: EDUCB of transaction
+      // output:
+      //    - preCommitTime: logical time to pre-commit transaction
+      // return:
+      //    - SDB_OK: succeed to get time
+      //    - STP_NOT_AVAILABLE: STP is not available for global transaction
+      //    - SDB_TIMEOUT: failed to get time in given timeout
+      // NOTE: for global transaction, it should be pre-commit in
       //       a time error period later after transaction begin
-      INT32 getGlobTransPreCommitTime( _pmdEDUCB *eduCB,
-                                       stpLogicalTimeUS &preCommitTime ) ;
+      INT32 getGlobPreCommitTime( _pmdEDUCB *eduCB,
+                                  stpLogicalTimeUS &preCommitTime ) ;
+
+      // get logical time to pre-commit transaction by searching the maximum
+      // running global transaction ID in this node
+      // return:
+      //    - transaction ID of maximum running global transaction ID
+      // NOTE:
+      //    - consider with time error
+      //    - pre-commit time on current node should be larger than
+      //      maximum running global transaction ID ( to resolve conflicts )
+      //    - pre-commit time might be delayed by maximum running global
+      //      transaction in this node
+      INT32 getLocalPreCommitTime( const stpLogicalTimeUS &currentTime,
+                                   stpLogicalTimeUS &preCommitTime ) ;
+
+      // get logical time from STP for commit transaction
+      // input:
+      //    - eduCB: EDUCB of transaction
+      // output:
+      //    - commitTime: logical time to commit transaction
+      // return:
+      //    - SDB_OK: succeed to get time
+      //    - STP_NOT_AVAILABLE: STP is not available for global transaction
+      //    - SDB_TIMEOUT: failed to get time in given timeout
+      // NOTE: for global transaction, it should be commit after
+      //       pre-commit time
+      INT32 getGlobCommitTime( _pmdEDUCB *eduCB,
+                               stpLogicalTimeUS &commitTime ) ;
 
       // get transaction info
       // input:
@@ -516,28 +588,6 @@ namespace engine
                               const DPS_TRANS_ID &writeTransID,
                               DPS_TRANS_STATUS writeTransStatus,
                               BOOLEAN &visible ) ;
-
-      // pre-arbitrate global write transaction
-      // input:
-      //    - writeTransID: transaction ID of current write transaction
-      //    - currentTime: current time to get candidate transactions
-      // return:
-      //    - SDB_OK: succeed to do pre-arbitration
-      //    - other errors: failed to do pre-arbitration
-      // NOTE: transactions started before current time could be candidate
-      //       pre-arbitrate transaction
-      INT32 doPreArbitGlobTrans( const DPS_TRANS_ID &writeTransID,
-                                 const stpLogicalTimeUS &currentTime ) ;
-
-      // handle pre-arbitrate request for global write transaction
-      // input:
-      //    - writeTransID: transaction ID of current write transaction
-      //    - preArbitList: list of pre-arbitrate read transactions
-      // return:
-      //    - SDB_OK: succeed to do pre-arbitration
-      //    - other errors: failed to do pre-arbitration
-      INT32 onPreArbitGlobTrans( const DPS_TRANS_ID &writeTransID,
-                                 const TRANS_ID_LIST &preArbitList ) ;
 
       DPS_TRANS_ID getRollbackID( const DPS_TRANS_ID &transID ) ;
       DPS_TRANS_ID getTransID( const DPS_TRANS_ID &rollbackID ) ;
@@ -648,8 +698,12 @@ namespace engine
       // input:
       //    - transID: transaction ID
       //    - status: transaction status to update
-      void updateTransStatus( const DPS_TRANS_ID &transID,
-                              INT32 status ) ;
+      // return:
+      //    - SDB_OK: update succeed
+      //    - SDB_DPS_TRANS_NO_TRANS: transaction info is not found
+      INT32 updateTransStatus( const DPS_TRANS_ID &transID,
+                               INT32 status,
+                               UINT32 commitFlag = TRANS_COMMIT_FLAG_EMPTY ) ;
 
       BOOLEAN  addTransCB( const DPS_TRANS_ID &transID, _pmdEDUCB *eduCB ) ;
       void     delTransCB( const DPS_TRANS_ID &transID ) ;
@@ -664,8 +718,6 @@ namespace engine
       void     delHisTrans( const DPS_TRANS_ID &transID ) ;
       void     clearHisTrans() ;
       void     clearOutDateHisTrans( DPS_LSN_OFFSET lsn ) ;
-      INT32    checkTransStatus( const DPS_TRANS_ID &transID,
-                                 DPS_LSN_OFFSET & lsn ) ;
 
       void     clearTransInfo() ;
 
@@ -867,34 +919,6 @@ namespace engine
       //    - other values: global expireTran with time error as offset
       DPS_TRANSID_SN _getGlobExpireTran() ;
 
-      // get candidate global transactions to pre-arbitrate for
-      // given write transactions
-      // input:
-      //    - writeTransID: global write transaction for pre-arbitration
-      //    - currentTime: current global logical time
-      // output:
-      //    - preArbitList: candidate transactions to be pre-arbitrated
-      // return:
-      //    - SDB_OK: succeed to get list
-      //    - other values: failed to get list
-      INT32 _getPreArbitTrans( const DPS_TRANS_ID &writeTransID,
-                               const stpLogicalTimeUS &currentTime,
-                               TRANS_ID_LIST &preArbitList ) ;
-
-      // filter candidate global transactions to pre-arbitrate for
-      // given write transactions
-      // input:
-      //    - currentTime: current global logical time
-      //    - preArbitList: candidate transactions to be pre-arbitrated
-      //                    will remove non matched transactions from list
-      // return:
-      //    - SDB_OK: succeed to get list
-      //    - other values: failed to get list
-      // NOTE: we only want running transactions, so filter out non-doing
-      //       transactions ( rollback or wait commit, etc )
-      INT32 _filterPreArbitTrans( const stpLogicalTimeUS &currentTime,
-                                  TRANS_ID_LIST &preArbitList ) ;
-
       // get running transaction info
       // input:
       //    - transID: transaction ID to search
@@ -981,6 +1005,7 @@ namespace engine
 
       // checks version visibility in local node without time error
       // input:
+      //    - eduCB: EDUCB of current transaction
       //    - recTransID: transaction ID of record transaction
       //    - transID: transaction ID of current transaction
       //    - transBeginTime: begin time of current transaction
@@ -991,7 +1016,8 @@ namespace engine
       //    - other errors: failed to check visibility
       // NOTE: this functions checks visibility between transactions without
       //       arbitration enabled or from the same node
-      INT32 _isLocalVisible( const DPS_TRANS_ID &recTransID,
+      INT32 _isLocalVisible( _pmdEDUCB *eduCB,
+                             const DPS_TRANS_ID &recTransID,
                              const DPS_TRANS_ID &transID,
                              const stpLogicalTimeUS &transBeginTime,
                              BOOLEAN &visible ) ;

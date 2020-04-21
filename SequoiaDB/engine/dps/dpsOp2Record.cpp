@@ -1743,18 +1743,28 @@ namespace engine
          }
       }
 
-      // for global transaction, pre-commit or auto-commit needs logical
-      // time in the record
-      if ( transInfo._transID.isGlobTrans() &&
-           ( DPS_TS_COMMIT_ATTR_PRE == attr ||
-             transInfo._transID.isAutoCommit() ) )
+      // for global transaction, commit needs logical time in the record
+      if ( transInfo._transID.isGlobTrans() )
       {
          // add time component
-         // NOTE: time error for pre-commit, ( will reuse time error of
-         //       transaction begin time
-         rc = record.push( DPS_LOG_PUBLIC_TRANS_TIME,
-                           sizeof( transInfo._preCommitTime ),
-                           (const CHAR *)( &( transInfo._preCommitTime ) ) ) ;
+         // NOTE: time error for pre-commit or commit,
+         //       will reuse time error of transaction begin time
+         // - DPS_TS_COMMIT_ATTR_PRE means pre-commit transaction record,
+         //   it should add global logical time for pre-commit
+         // - DPS_TS_COMMIT_ATTR_SND or no attribute means commit transaction
+         //   record, it should add global logical tim for commit transaction
+         if ( DPS_TS_COMMIT_ATTR_PRE == attr )
+         {
+            rc = record.push( DPS_LOG_PUBLIC_TRANS_TIME,
+                              sizeof( transInfo._preCommitTime ),
+                              (const CHAR *)( &( transInfo._preCommitTime ) ) ) ;
+         }
+         else
+         {
+            rc = record.push( DPS_LOG_PUBLIC_TRANS_TIME,
+                              sizeof( transInfo._commitTime ),
+                              (const CHAR *)( &( transInfo._commitTime ) ) ) ;
+         }
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -3039,13 +3049,13 @@ namespace engine
       // for global transactions, there is two logical time for transaction
       // - transaction begin time: which is in record of first operator of
       //   transaction
-      // - transaction pre-commit time: which is in record of transaction
-      //   commit
-      // NOTE: no time error for pre-commit record, which will reuse time error
-      //       of transaction begin time
+      // - transaction commit time: which is in record of transaction
+      //   pre-commit or commit
+      // NOTE: no time error for pre-commit and commit record, which will
+      //       reuse time error of transaction begin time
       if ( LOG_TYPE_TS_COMMIT == record.head()._type )
       {
-         // pre-commit or auto-commit DPS record of global transaction has
+         // pre-commit or commit DPS record of global transaction has
          // commit time of transaction
 
          // get time component

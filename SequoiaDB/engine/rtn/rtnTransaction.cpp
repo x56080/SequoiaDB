@@ -214,6 +214,8 @@ namespace engine
                             SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
+
+      dpsTransCB *transCB = sdbGetTransCB() ;
       DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
       UINT8 attr = DPS_TS_COMMIT_ATTR_PRE ;
 
@@ -224,7 +226,9 @@ namespace engine
                                     cb->getCurTransLsn(),
                                     DPS_INVALID_LSN_OFFSET,
                                     cb->getTransBeginTime(),
-                                    preCommitTime ) ;
+                                    preCommitTime,
+                                    cb->getTransCommitTime() ) ;
+      UINT32 commitFlag = TRANS_COMMIT_FLAG_EMPTY ;
 
       if ( transInfo._transID.isInvalid() ||
            DPS_INVALID_LSN_OFFSET == transInfo._preTransLSN )
@@ -237,7 +241,30 @@ namespace engine
          goto done ;
       }
 
-      firstTransLsn = sdbGetTransCB()->getBeginLsn( transInfo._transID ) ;
+      // set commit flags if needed, auto-commit and multiple-groups
+      if ( transInfo._transID.isAutoCommit() )
+      {
+         OSS_BIT_SET( commitFlag, TRANS_COMMIT_FLAG_AUTOCOMMIT ) ;
+      }
+      if ( nodeNum > 1 )
+      {
+         OSS_BIT_SET( commitFlag, TRANS_COMMIT_FLAG_MULTIGROUPS ) ;
+      }
+
+      // update transaction status to PRE_WAIT_COMMIT
+      // which will make other reading transaction to wait for status change
+      // of this transaction if they need to access records changed by
+      // this transaction
+      rc = transCB->updateTransStatus( transInfo._transID,
+                                       DPS_TRANS_PRE_WAIT_COMMIT,
+                                       commitFlag ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update status to [%s] for "
+                   "transaction [%s], rc: %d",
+                   dpsTransStatusToString( DPS_TRANS_PRE_WAIT_COMMIT ),
+                   dpsTransIDToString( transInfo._transID ).c_str(),
+                   rc ) ;
+
+      firstTransLsn = transCB->getBeginLsn( transInfo._transID ) ;
       SDB_ASSERT( firstTransLsn != DPS_INVALID_LSN_OFFSET,
                   "First transaction lsn can't be invalid" ) ;
 
@@ -280,7 +307,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTRANSCOMMIT, "rtnTransCommit" )
-   INT32 rtnTransCommit( _pmdEDUCB * cb, SDB_DPSCB *dpsCB )
+   INT32 rtnTransCommit( _pmdEDUCB *cb,
+                         SDB_DPSCB *dpsCB,
+                         const stpLogicalTimeUS &specCommitTime )
    {
       PD_TRACE_ENTRY ( SDB_RTNTRANSCOMMIT ) ;
       SDB_ASSERT( cb, "cb can't be null" ) ;
@@ -292,12 +321,13 @@ namespace engine
       DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
       dpsMergeInfo info ;
       dpsLogRecord &record = info.getMergeBlock().record() ;
-
+      stpLogicalTimeUS commitTime = specCommitTime ;
       dpsRecordTransInfo transInfo( cb->getTransID(),
                                     cb->getCurTransLsn(),
                                     DPS_INVALID_LSN_OFFSET,
                                     cb->getTransBeginTime(),
-                                    cb->getTransPreCommitTime() ) ;
+                                    cb->getTransPreCommitTime(),
+                                    commitTime ) ;
 
       SDB_ASSERT( NULL != transExecutor, "transaction executor is invalid" ) ;
 
@@ -335,20 +365,53 @@ namespace engine
       {
          attr = DPS_TS_COMMIT_ATTR_SND ;
       }
-      else if ( transInfo._transID.isGlobTrans() &&
-                transInfo._transID.isAutoCommit() )
+      else if ( cb->isGlobTrans() &&
+                cb->isAutoCommitTrans() )
       {
-         // auto-commit global transaction needs pre-commit time
-         stpLogicalTimeUS preCommitTime ;
+         // generate pre-commit time for auto-commit transaction
+         stpLogicalTimeUS currentTime, preCommitTime ;
 
-         rc = transCB->getGlobTransPreCommitTime( cb, preCommitTime ) ;
+         // update status first
+         rc = transCB->updateTransStatus( transInfo._transID,
+                                          DPS_TRANS_PRE_WAIT_COMMIT,
+                                          TRANS_COMMIT_FLAG_AUTOCOMMIT ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update status to [%s] for "
+                      "transaction [%s], rc: %d",
+                      dpsTransStatusToString( DPS_TRANS_PRE_WAIT_COMMIT ),
+                      dpsTransIDToString( transInfo._transID ).c_str(),
+                      rc ) ;
+
+         // get pre-commit time
+         rc = transCB->getGlobPreCommitTime( cb, currentTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
-                      "pre-commit time of transaction %s, rc: %d",
-                      dpsTransIDToString( transInfo._transID ).c_str(), rc ) ;
-         // no time error for pre-commit time ( will reuse time error of
-         // transaction begin time
-         transInfo._preCommitTime = preCommitTime.getTime() ;
+                      "pre-commit of transaction [%s], rc: %d",
+                      dpsTransIDToString( transInfo._transID ).c_str(),
+                      rc ) ;
+
+         // check if we need to delay pre-commit time
+         rc = transCB->getLocalPreCommitTime( currentTime, preCommitTime ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get local logical time for "
+                      "pre-commit of transaction [%s], rc: %d",
+                      dpsTransIDToString( transInfo._transID ).c_str(),
+                      rc ) ;
+
+         cb->setTransPreCommitTime( preCommitTime ) ;
+
+         commitTime.reset() ;
       }
+
+      // need get commit time if needed
+      if ( cb->isGlobTrans() && !commitTime.isValid() )
+      {
+         rc = transCB->getGlobCommitTime( cb, commitTime ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
+                      "commit transaction [%s], rc: %d",
+                      dpsTransIDToString( transInfo._transID ).c_str(),
+                      rc ) ;
+      }
+
+      // update commit time
+      transInfo._commitTime = commitTime.getTime() ;
 
       firstTransLsn = transCB->getBeginLsn( transInfo._transID ) ;
       SDB_ASSERT( firstTransLsn != DPS_INVALID_LSN_OFFSET,
@@ -372,6 +435,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "
                    "log(rc=%d)", rc ) ;
       dpsCB->writeData( info ) ;
+
+      // set transaction commit time
+      cb->setTransCommitTime( commitTime ) ;
 
       cb->setTransStatus( DPS_TRANS_COMMIT ) ;
 

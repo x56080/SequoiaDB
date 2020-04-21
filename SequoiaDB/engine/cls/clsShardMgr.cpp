@@ -3629,10 +3629,11 @@ namespace engine
             }
             reply.flags = checkRC ;
          }
-         else if ( DPS_TRANS_DOING == transInfo._status )
+         else if ( DPS_TRANS_DOING == transInfo._status ||
+                   DPS_TRANS_PRE_WAIT_COMMIT == transInfo._status )
          {
-            // the status is still doing, it might be processing
-            // pre-commit/rollback messages
+            // the status is still DOING/PRE-WAIT-COMMIT
+            // it might be processing pre-commit/rollback messages
             // tell the requester to wait
             reply.flags = SDB_RTN_EXIST_INDOUBT_TRANS ;
          }
@@ -3645,7 +3646,11 @@ namespace engine
                         (INT64)( pReq->transID ) <<
                         FIELD_NAME_TRANSACTION_ID_NODEID <<
                         (INT32)( pReq->transIDNodeID ) <<
-                        FIELD_NAME_STATUS << transInfo._status ) ;
+                        FIELD_NAME_STATUS << transInfo._status <<
+                        FIELD_NAME_PRECOMMITTIME <<
+                        (INT64)( transInfo._preCommitTime.getTime() ) <<
+                        FIELD_NAME_COMMITTIME <<
+                        (INT64)( transInfo._commitTime.getTime() ) ) ;
       }
 
       reply.header.messageLength += retObj.objsize() ;

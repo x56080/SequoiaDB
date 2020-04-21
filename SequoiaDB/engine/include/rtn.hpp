@@ -538,7 +538,9 @@ namespace engine
                             const stpLogicalTimeUS &preCommitTime,
                             INT16 w,
                             SDB_DPSCB *dpsCB ) ;
-   INT32 rtnTransCommit( _pmdEDUCB *cb, SDB_DPSCB *dpsCB );
+   INT32 rtnTransCommit( _pmdEDUCB *cb,
+                         SDB_DPSCB *dpsCB,
+                         const stpLogicalTimeUS &specCommitTime = stpLogicalTimeUS() );
    INT32 rtnTransRollback( _pmdEDUCB * cb, SDB_DPSCB *dpsCB );
    INT32 rtnTransRollbackAll( _pmdEDUCB * cb );
    INT32 rtnTransSaveWaitCommit ( _pmdEDUCB * cb, SDB_DPSCB * dpsCB,

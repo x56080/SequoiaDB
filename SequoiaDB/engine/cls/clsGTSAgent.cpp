@@ -60,8 +60,13 @@ namespace engine
 
    // wait time interval for GTS transaction
    #define CLS_GTS_WAIT_INTERVAL       ( OSS_ONE_SEC )
+
    // small wait time interval for GTS transaction
-   #define CLS_GTS_WAIT_SMALL_INTERVAL ( 100 )
+   #define CLS_GTS_WAIT_SMALL_INTERVAL    ( 10 )
+   #define CLS_GTS_WAIT_SMALL_COUNT       ( 10 )
+   // medium wait time interval for GTS transaction
+   #define CLS_GTS_WAIT_MEDIUM_INTERVAL   ( 100 )
+   #define CLS_GTS_WAIT_MEDIUM_COUNT      ( 100 )
 
    #define CLS_GTS_INC_TIME_ERROR_STEP    ( 1.1 )
    #define CLS_GTS_DEC_TIME_ERROR_STEP    ( 0.95 )
@@ -118,13 +123,17 @@ namespace engine
       // to avoid erase iterator and insert in the same map
       _transCB->cloneTransMap( tmpTransMap ) ;
 
-      // check doing transactions, update to doing interrupted
+      // update to DOING-INTERRUPTED in below cases
+      // - DOING transaction: which means no pre-commit is received
+      // - PRE_WAIT_COMMIT transaction: which means pre-commit is still
+      //   processing, but the eduCB is detached, so it should be rolled back
       it = tmpTransMap.begin() ;
       while ( it != tmpTransMap.end() )
       {
          transID = it->first ;
          dpsTransBackInfo &transInfo = it->second ;
-         if ( DPS_TRANS_DOING == transInfo._status )
+         if ( DPS_TRANS_DOING == transInfo._status ||
+              DPS_TRANS_PRE_WAIT_COMMIT == transInfo._status )
          {
             PD_LOG( PDDEBUG, "Transaction(ID:%s, IDAttr:%s) is doing, "
                     "need interrupt", dpsTransIDToString( transID ).c_str(),
@@ -145,14 +154,23 @@ namespace engine
          if ( DPS_TRANS_WAIT_COMMIT == transInfo._status &&
               DPS_INVALID_LSN_OFFSET != transInfo._lsn )
          {
+            UINT64 preCommitTime = transInfo._preCommitTime.getTime() ;
+            UINT64 commitTime = 0LL ;
             PD_LOG( PDWARNING, "Transaction(ID:%s, IDAttr:%s) is in-doubt",
                     dpsTransIDToString( transID ).c_str(),
                     dpsTransIDAttrToString( transID ).c_str() ) ;
 
-            rc = _syncCheckTransStatus( transID, transInfo._lsn, status ) ;
+            // check transaction status on other groups involved
+            rc = _syncCheckTransStatus( transID, transInfo._lsn, status,
+                                        preCommitTime, commitTime ) ;
             if ( SDB_OK == rc && DPS_TRANS_COMMIT == status )
             {
-               rc = _commitTrans( transID, transInfo._lsn, transInfo._lsn ) ;
+               // get back commit time
+               transInfo._commitTime.setTime( commitTime ) ;
+               transInfo._commitTime.setTimeError(
+                                    transInfo._beginTime.getTimeError() ) ;
+               rc = _commitTrans( transID, transInfo._lsn, commitTime,
+                                  transInfo._lsn ) ;
                if ( SDB_OK == rc )
                {
                   pTransMap->erase( transID ) ;
@@ -180,13 +198,16 @@ namespace engine
                                          UINT32 nodeNum,
                                          const UINT64 *pNodes,
                                          IExecutor *cb,
-                                         DPS_TRANS_STATUS &status )
+                                         UINT64 preCommitTime,
+                                         DPS_TRANS_STATUS &status,
+                                         UINT64 &commitTime )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__CLSGTSAGENT_CHKTRANSSTATUS ) ;
 
-      rc = _checkTransStatus( transID, nodeNum, pNodes, cb, FALSE, status ) ;
+      rc = _checkTransStatus( transID, nodeNum, pNodes, cb, FALSE,
+                              preCommitTime, status, commitTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check status for transaction [%s], "
                    "rc: %d", dpsTransIDToString( transID ).c_str(), rc ) ;
 
@@ -204,7 +225,9 @@ namespace engine
                                           const UINT64 *pNodes,
                                           IExecutor *cb,
                                           BOOLEAN checkForArbit,
-                                          DPS_TRANS_STATUS &status )
+                                          UINT64 preCommitTime,
+                                          DPS_TRANS_STATUS &status,
+                                          UINT64 &commitTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -214,6 +237,8 @@ namespace engine
 
       BOOLEAN hasCommit = FALSE ;
       BOOLEAN hasRollback = FALSE ;
+      UINT64 tmpPreCommitTime = 0LL ;
+      UINT64 tmpCommitTime = 0LL ;
 
       for ( UINT32 i = 0 ; i < nodeNum; ++i )
       {
@@ -223,7 +248,8 @@ namespace engine
             continue ;
          }
 
-         rc = _checkTransStatus( transID, nodeID.columns.groupID, cb, status ) ;
+         rc = _checkTransStatus( transID, nodeID.columns.groupID, cb, status,
+                                 tmpPreCommitTime, tmpCommitTime ) ;
          if ( rc )
          {
             goto error ;
@@ -238,13 +264,28 @@ namespace engine
          // pre-commit/rollback request )
          switch( status )
          {
+            case DPS_TRANS_WAIT_COMMIT :
+            {
+               // if transaction is WAIT_COMMIT on peer node
+               // use the maximum pre-commit time as the final commit time
+               if ( transID.isGlobTrans() )
+               {
+                  preCommitTime = OSS_MAX( preCommitTime, tmpPreCommitTime ) ;
+               }
+               break ;
+            }
             case DPS_TRANS_COMMIT :
             {
+               if ( transID.isGlobTrans() )
+               {
+                  commitTime = tmpCommitTime ;
+               }
                hasCommit= TRUE ;
                break ;
             }
             case DPS_TRANS_DOING :
             case DPS_TRANS_DOING_INTERRUPT :
+            case DPS_TRANS_PRE_WAIT_COMMIT :
             {
                if ( !checkForArbit )
                {
@@ -289,6 +330,10 @@ namespace engine
       }
       else
       {
+         if ( transID.isGlobTrans() )
+         {
+            commitTime = preCommitTime ;
+         }
          status = DPS_TRANS_COMMIT ;
       }
 
@@ -304,7 +349,9 @@ namespace engine
    INT32 _clsGTSAgent::_checkTransStatus( DPS_TRANS_ID transID,
                                           UINT32 group,
                                           IExecutor *cb,
-                                          DPS_TRANS_STATUS &status )
+                                          DPS_TRANS_STATUS &status,
+                                          UINT64 &preCommitTime,
+                                          UINT64 &commitTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -386,13 +433,28 @@ namespace engine
             try
             {
                BSONObj obj( ( CHAR* )pRecvMsg + sizeof( MsgOpReply ) ) ;
+
+               // status
                BSONElement e = obj.getField( FIELD_NAME_STATUS ) ;
                status = ( DPS_TRANS_STATUS )e.numberInt() ;
 
+               // pre-commit time
+               e = obj.getField( FIELD_NAME_PRECOMMITTIME ) ;
+               preCommitTime = (UINT64)( e.numberLong() ) ;
+
+               // commit time
+               e = obj.getField( FIELD_NAME_COMMITTIME ) ;
+               commitTime = (UINT64)( e.numberLong() ) ;
+
                PD_LOG( PDEVENT, "Check trans(%s) by node(%u,%u) succeed["
-                       "Status:%s(%d)]", dpsTransIDToString( transID ).c_str(),
+                       "Status:%s(%d), pre-commit [%s], commit [%s]]",
+                       dpsTransIDToString( transID ).c_str(),
                        group, pReply->header.routeID.columns.nodeID,
-                       dpsTransStatusToString( status ), status ) ;
+                       dpsTransStatusToString( status ), status,
+                       dpsTransSNToString(
+                             (DPS_TRANSID_SN)preCommitTime ).c_str(),
+                       dpsTransSNToString(
+                             (DPS_TRANSID_SN)commitTime ).c_str() ) ;
             }
             catch( std::exception &e )
             {
@@ -478,7 +540,9 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT__SYNCCHKTRANSSTATUS, "_clsGTSAgent::_syncCheckTransStatus" )
    INT32 _clsGTSAgent::_syncCheckTransStatus( DPS_TRANS_ID transID,
                                               DPS_LSN_OFFSET curLsn,
-                                              DPS_TRANS_STATUS &status )
+                                              DPS_TRANS_STATUS &status,
+                                              UINT64 preCommitTime,
+                                              UINT64 &commitTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -505,7 +569,8 @@ namespace engine
 
       do
       {
-         rc = checkTransStatus( transID, nodeNum, pNodes, cb, status ) ;
+         rc = checkTransStatus( transID, nodeNum, pNodes, cb, preCommitTime,
+                                status, commitTime ) ;
          if ( rc )
          {
             ossSleep( CLS_GTS_WAIT_INTERVAL ) ;
@@ -524,6 +589,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT__COMMITTRANS, "_clsGTSAgent::_commitTrans" )
    INT32 _clsGTSAgent::_commitTrans( DPS_TRANS_ID transID,
                                      DPS_LSN_OFFSET lastLsn,
+                                     UINT64 commitTime,
                                      DPS_LSN_OFFSET &curLsn )
    {
       INT32 rc = SDB_OK ;
@@ -542,6 +608,7 @@ namespace engine
       dpsRecordTransInfo transInfo ;
       transInfo._transID = transID ;
       transInfo._preTransLSN = lastLsn ;
+      transInfo._commitTime = commitTime ;
 
       cb->setTransID( transID ) ;
       cb->setCurTransLsn( lastLsn ) ;
@@ -818,134 +885,13 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_PREARBITGLOBTRAN, "_clsGTSAgent::preArbitGlobTrans" )
-   INT32 _clsGTSAgent::preArbitGlobTrans( const DPS_TRANS_ID writeTransID,
-                                          TRANS_ID_LIST &preArbitList )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_PREARBITGLOBTRAN ) ;
-
-      PD_CHECK( writeTransID.isValid(), SDB_SYS, error, PDERROR,
-                "Failed to arbitrate global transaction, "
-                "write transaction is invalid" ) ;
-
-      PD_LOG( PDDEBUG, "Start pre-arbitration: write transaction [%s]",
-              dpsTransIDToString( writeTransID ).c_str() ) ;
-
-      // no need to do pre-arbitration for non-global transaction
-      if ( !writeTransID.isGlobTrans() )
-      {
-         PD_LOG( PDDEBUG, "Write transaction [%s] is not global transaction",
-                 dpsTransIDToString( writeTransID ).c_str() ) ;
-         goto done ;
-      }
-
-      // no candidate transactions for pre-arbitration
-      if ( preArbitList.empty() )
-      {
-         PD_LOG( PDDEBUG, "Pre-arbitrate transactions are empty" ) ;
-         goto done ;
-      }
-
-      while ( !preArbitList.empty() )
-      {
-         TRANS_ID_LIST curList ;
-         DPS_TRANSID_NODEID curNodeID = DPS_INVALID_TRANSID_NODEID ;
-
-         // do the pre-arbitration one node by one node
-         // merge transactions from the same node, and send in a batch
-         // NOTE: the remote node should be COORD node
-         TRANS_ID_LIST::iterator iter = preArbitList.begin() ;
-         while ( preArbitList.end() != iter )
-         {
-            DPS_TRANS_ID curTransID = ( *iter ) ;
-
-            if ( DPS_INVALID_TRANSID_NODEID == curNodeID )
-            {
-               // found the first node
-               PD_LOG( PDDEBUG, "Pre-arbitration: write transaction [%s] "
-                       "against read transaction [%s]",
-                       dpsTransIDToString( writeTransID ).c_str(),
-                       dpsTransIDToString( curTransID ).c_str() ) ;
-
-               curNodeID = curTransID.getNodeID() ;
-
-               // add to current list
-               try
-               {
-                  curList.push_back( curTransID ) ;
-               }
-               catch ( exception &e )
-               {
-                  PD_LOG( PDERROR, "Failed to add transaction to current "
-                          "list, error: %s", e.what() ) ;
-                  rc = SDB_SYS ;
-                  goto error ;
-               }
-
-               // remove from candidate list
-               iter = preArbitList.erase( iter ) ;
-            }
-            else if ( curTransID.getNodeID() == curNodeID )
-            {
-               // from the same node, merge to a batch
-               PD_LOG( PDDEBUG, "Pre-arbitration: write transaction [%s] "
-                       "against read transaction [%s]",
-                       dpsTransIDToString( writeTransID ).c_str(),
-                       dpsTransIDToString( curTransID ).c_str() ) ;
-
-               // add to current list
-               try
-               {
-                  curList.push_back( curTransID ) ;
-               }
-               catch ( exception &e )
-               {
-                  PD_LOG( PDERROR, "Failed to add transaction to current "
-                          "list, error: %s", e.what() ) ;
-                  rc = SDB_SYS ;
-                  goto error ;
-               }
-
-               // remove from candidate list
-               iter = preArbitList.erase( iter ) ;
-            }
-            else
-            {
-               // not from the same node, skip for next time
-               ++ iter ;
-            }
-         }
-
-         // do pre-arbitration on remote node
-         PD_LOG( PDDEBUG, "Pre-arbitration: write transaction [%s] on "
-                 "node [%u]", dpsTransIDToString( writeTransID ).c_str(),
-                 curNodeID ) ;
-         rc = _preArbitRemote( writeTransID, curNodeID, curList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to do pre-arbitrate write "
-                      "transaction [%s] on remote node [%u], rc: %d",
-                      dpsTransIDToString( writeTransID ).c_str(),
-                      curNodeID, rc ) ;
-      }
-
-      PD_LOG( PDDEBUG, "Finish pre-arbitration: write transaction [%s]",
-              dpsTransIDToString( writeTransID ).c_str() ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_PREARBITGLOBTRAN, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_WAITARBITCOMMIT, "_clsGTSAgent::waitArbitCommit" )
    INT32 _clsGTSAgent::waitArbitCommit( pmdEDUCB *eduCB,
                                         const DPS_TRANS_ID &arbitTransID,
                                         INT32 timeout,
-                                        BOOLEAN &commited,
-                                        BOOLEAN &multiGroups )
+                                        BOOLEAN &committed,
+                                        BOOLEAN &multiGroups,
+                                        stpLogicalTimeUS &commitTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -958,7 +904,7 @@ namespace engine
 
       // assuming that the transaction is not committed and involved in
       // multiple groups
-      commited = FALSE ;
+      committed = FALSE ;
       multiGroups = TRUE ;
 
    retry:
@@ -971,7 +917,10 @@ namespace engine
       if ( !_transCB->getTransInfo( arbitTransID, info ) )
       {
          // not found, must be removed
-         commited = TRUE ;
+         // set commit time to minimum, so running transactions can
+         // access changes from this transaction
+         commitTime.setTime( DPS_MIN_TRANS_TIME ) ;
+         committed = TRUE ;
          goto done ;
       }
 
@@ -1004,6 +953,8 @@ namespace engine
                DPS_LOG_TYPE logType = LOG_TYPE_DUMMY ;
                UINT8 attr = 0 ;
                UINT32 nodeNum = 0 ;
+               UINT64 tmpPreCommitTime = 0 ;
+               UINT64 tmpCommitTime = 0 ;
                const UINT64 *nodes = NULL ;
 
                // get commit info from DPS log
@@ -1031,13 +982,14 @@ namespace engine
                if ( DPS_TS_COMMIT_ATTR_PRE != attr )
                {
                   // not pre-commit record, transaction is committed
-                  commited = TRUE ;
+                  committed = TRUE ;
                   goto done ;
                }
 
                // check transaction status with involved groups
                rc = _checkTransStatus( arbitTransID, nodeNum, nodes, eduCB,
-                                       TRUE, status ) ;
+                                       TRUE, tmpPreCommitTime, status,
+                                       tmpCommitTime ) ;
                if ( SDB_OK != rc )
                {
                   // failed, we could wait a while and retry
@@ -1049,24 +1001,26 @@ namespace engine
                else if ( DPS_TRANS_COMMIT == status )
                {
                   // it is committed
-                  commited = TRUE ;
+                  commitTime.setTime( tmpCommitTime ) ;
+                  committed = TRUE ;
                   goto done ;
                }
                else if ( DPS_TRANS_ROLLBACK == status )
                {
                   // it is rollbacked
-                  commited = FALSE ;
+                  committed = FALSE ;
                   goto done ;
                }
                // doing or rollback status, we need to recheck
-               waitTime = CLS_GTS_WAIT_INTERVAL ;
+               waitTime = CLS_GTS_WAIT_MEDIUM_INTERVAL ;
             }
             break ;
          }
          case DPS_TRANS_COMMIT :
          {
             // it is commit
-            commited = TRUE ;
+            commitTime.setTime( info._commitTime.getTime() ) ;
+            committed = TRUE ;
             goto done ;
          }
          case DPS_TRANS_ROLLBACK :
@@ -1074,14 +1028,15 @@ namespace engine
             // it is rollback
             PD_LOG( PDDEBUG, "Transaction [%s] is rollbacked",
                     dpsTransIDToString( arbitTransID ).c_str() ) ;
-            commited = FALSE ;
+            committed = FALSE ;
             goto done ;
          }
          case DPS_TRANS_UNKNOWN :
          {
             // unknown means it is removed by lowTran
             // treat as commit
-            commited = TRUE ;
+            commitTime.setTime( DPS_MIN_TRANS_TIME ) ;
+            committed = TRUE ;
             goto done ;
          }
          default :
@@ -1109,7 +1064,97 @@ namespace engine
       goto retry ;
 
    done:
+#if defined (_DEBUG)
+      if ( SDB_OK == rc )
+      {
+         PD_LOG( PDDEBUG, "Wait transaction [%s] commit done, committed [%s], "
+                 "multi-groups [%s], commit time [%s]",
+                 dpsTransIDToString( arbitTransID ).c_str(),
+                 committed ? "TRUE" : "FALSE",
+                 multiGroups ? "TRUE" : "FALSE",
+                 dpsTransTimeToString( commitTime ).c_str() ) ;
+      }
+#endif
       PD_TRACE_EXITRC( SDB__CLSGTSAGENT_WAITARBITCOMMIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_WAITARBITCHANGE, "_clsGTSAgent::waitArbitChange" )
+   INT32 _clsGTSAgent::waitArbitChange( pmdEDUCB *eduCB,
+                                        const DPS_TRANS_ID &arbitTransID,
+                                        DPS_TRANS_STATUS currentStatus,
+                                        INT32 timeout,
+                                        dpsTransBackInfo &newInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_WAITARBITCHANGE ) ;
+
+      INT32 waitedTime = 0 ;
+      UINT32 retryCount = 0 ;
+
+   retry:
+      // check if EDUCB is interrupted
+      PD_CHECK( !eduCB->isInterrupted(), SDB_APP_INTERRUPT, error, PDERROR,
+                "Failed to wait status change for transaction [%s], "
+                "EDUCB is interrupted",
+                dpsTransIDToString( arbitTransID ).c_str() ) ;
+
+      if ( !_transCB->getTransInfo( arbitTransID, newInfo ) )
+      {
+         // not found, must be removed
+         // NOTE: the history transaction map will be cleared by
+         // global expired transaction ID
+         goto done ;
+      }
+
+      // check if status is changed
+      // NOTE: we only care status is changed, we don't care about what status
+      //       we will wait for
+      if ( newInfo._status == currentStatus )
+      {
+         INT32 waitTime = CLS_GTS_WAIT_MEDIUM_INTERVAL ;
+
+         // check timeout
+         PD_CHECK( timeout < 0 || timeout >= waitedTime,
+                   SDB_TIMEOUT, error, PDWARNING,
+                   "Failed to wait transaction [%s] status change, "
+                   "timeout [%d], waited [%d], status [%s]",
+                   dpsTransIDToString( arbitTransID ).c_str(), timeout,
+                   waitedTime, dpsTransStatusToString( currentStatus ) ) ;
+
+         // increase wait time if already waited for a while
+         if ( retryCount < CLS_GTS_WAIT_SMALL_COUNT )
+         {
+            waitTime = (INT32)(
+                  STP_NANOSEC_TO_MILLISEC( eduCB->getTransTimeError() ) ) ;
+         }
+         else if ( retryCount < 2 * CLS_GTS_WAIT_SMALL_COUNT )
+         {
+            waitTime = CLS_GTS_WAIT_SMALL_INTERVAL ;
+         }
+
+         ossSleep( waitTime ) ;
+         waitedTime += waitTime ;
+         ++ retryCount ;
+         goto retry ;
+      }
+
+   done:
+#if defined (_DEBUG)
+      if ( SDB_OK == rc )
+      {
+         PD_LOG( PDDEBUG, "Wait transaction [%s] status change done, "
+                 "old status [%s], new status [%s]",
+                 dpsTransIDToString( arbitTransID ).c_str(),
+                 dpsTransStatusToString( currentStatus ),
+                 dpsTransStatusToString( newInfo._status ) ) ;
+      }
+#endif
+      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_WAITARBITCHANGE, rc ) ;
       return rc ;
 
    error:
@@ -1228,74 +1273,6 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__CLSGTSAGENT_ARBITLOCAL, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGTSAGENT_PREARBITREMOTE, "_clsGTSAgent::_preArbitRemote" )
-   INT32 _clsGTSAgent::_preArbitRemote( const DPS_TRANS_ID &writeTransID,
-                                        DPS_TRANSID_NODEID preArbitNodeID,
-                                        const TRANS_ID_LIST &preArbitList )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSGTSAGENT_PREARBITREMOTE ) ;
-
-      MsgRouteID routeID ;
-      MsgClsGTSPreArbitReq request ;
-      BSONObj requestObject ;
-      MsgHeader *replyMessage = NULL ;
-      MsgClsGTSPreArbitRsp *response = NULL ;
-
-      // send to node of read transaction
-      // should be a COORD
-      routeID.columns.groupID = COORD_GROUPID ;
-      routeID.columns.nodeID = preArbitNodeID ;
-      routeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
-
-      // fill request
-      rc = _fillGTSPreArbitReq( &request,
-                                writeTransID,
-                                preArbitNodeID,
-                                preArbitList,
-                                requestObject ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to fill pre-arbitrate request, rc: %d",
-                   rc ) ;
-
-      // send request
-      rc = _pShardMgr->syncSend( (MsgHeader *)( &request ),
-                                 routeID,
-                                 &replyMessage,
-                                 CLS_SHARD_TIMEOUT,
-                                 requestObject.objdata(),
-                                 requestObject.objsize() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to send pre-arbitrate request to "
-                   "route ID %s, rc: %d", routeID2String( routeID ).c_str(),
-                   rc ) ;
-      PD_CHECK( MSG_CLS_GTS_PREARBIT_RSP == replyMessage->opCode,
-                SDB_SYS, error, PDERROR,
-                "Failed to receive reply from route ID %s, message type "
-                "is not matched, given [%d], expected [%d]",
-                routeID2String( routeID ).c_str(), replyMessage->opCode,
-                MSG_CLS_GTS_PREARBIT_RSP ) ;
-      PD_CHECK( sizeof( MsgClsGTSPreArbitRsp ) == replyMessage->messageLength,
-                SDB_SYS, error, PDERROR,
-                "Failed to receive reply from route ID %s, message length "
-                "is not matched, given [%d], expected [%d]",
-                routeID2String( routeID ).c_str(), replyMessage->messageLength,
-                sizeof( MsgClsGTSPreArbitRsp ) ) ;
-
-      response = (MsgClsGTSPreArbitRsp *)replyMessage ;
-
-      // check return code
-      rc = response->header.res ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to do pre-arbitrate on route ID %s, "
-                   "rc: %d", routeID2String( routeID ).c_str(), rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSGTSAGENT_PREARBITREMOTE, rc ) ;
       return rc ;
 
    error:

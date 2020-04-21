@@ -2554,7 +2554,8 @@ namespace engine
                                     eduCB->getCurTransLsn(),
                                     eduCB->getRelatedTransLSN(),
                                     eduCB->getTransBeginTime(),
-                                    eduCB->getTransPreCommitTime() ) ;
+                                    eduCB->getTransPreCommitTime(),
+                                    eduCB->getTransCommitTime() ) ;
 
       PD_CHECK( DPS_INVALID_LSN_OFFSET == transInfo._preTransLSN,
                 SDB_SYS, error, PDERROR,

@@ -423,6 +423,8 @@ namespace engine
       UINT32   getTransTimeout() const ;
       // check if current transaction is global transaction
       BOOLEAN  isGlobTrans() const ;
+      // get global transaction time error
+      UINT32   getTransTimeError() const ;
       void     startTransRollback() { _isDoTransRollback = TRUE ; }
       void     stopTransRollback() { _isDoTransRollback = FALSE ; }
       BOOLEAN  isInTransRollback() const { return _isDoTransRollback ; }
@@ -474,6 +476,18 @@ namespace engine
                                  const stpLogicalTimeUS &preCommitTime )
       {
          _transExecutor.setPreCommitTime( preCommitTime ) ;
+      }
+
+      // get commit time of transaction
+      OSS_INLINE const stpLogicalTimeUS &getTransCommitTime() const
+      {
+         return _transExecutor.getCommitTime() ;
+      }
+
+      // set commit time of transaction
+      OSS_INLINE void setTransCommitTime( const stpLogicalTimeUS &commitTime )
+      {
+         _transExecutor.setCommitTime( commitTime ) ;
       }
 
       // check if transaction has passed doing arbitration time
@@ -601,10 +615,6 @@ namespace engine
       UINT64                  _processEventCount ;
 
       DPS_TRANS_ID            _curTransID ;
-      // logical time of transaction begin
-      stpLogicalTimeUS        _transBeginTime ;
-      // logical time of transaction pre-commit
-      stpLogicalTimeUS        _transPreCommitTime ;
       DPS_LSN_OFFSET          _curTransLSN ;
       UINT64                  _transWritingID ;
 

@@ -103,19 +103,6 @@ namespace engine
                                     BOOLEAN forceLocal,
                                     BOOLEAN &visible ) ;
 
-      // pre-arbitrate global write transaction
-      // input:
-      //    - writeTransID: transaction ID of current write transaction
-      //    - preArbitList: list of pre-arbitrate read transactions
-      // return:
-      //    - SDB_OK: succeed to do pre-arbitration
-      //    - other errors: failed to do pre-arbitration
-      // NOTE: writeTransID should be original transaction ID without tags
-      //       except for global transaction tag
-      // WARNINGL should not be called for COORD
-      virtual INT32 preArbitGlobTrans( const DPS_TRANS_ID writeTransID,
-                                       TRANS_ID_LIST &preArbitList ) ;
-
       // wait arbitrating transaction to commit
       // input:
       //    - eduCB: EDUCB of current transaction
@@ -124,16 +111,36 @@ namespace engine
       // output:
       //    - committed: indicate if the waiting transaction has committed
       //    - multiGroups: transaction is involved in multiple DATA groups
+      //    - commiteTime: commit time of transaction
       // return:
       //    - SDB_OK: succeed to wait result
       //    - SDB_TIMEOUT: timeout to wait result
       //    - other errors: failed to wait result
       // WARNINGL should not be called for COORD
       virtual INT32 waitArbitCommit( pmdEDUCB *eduCB,
-                                     const DPS_TRANS_ID &transID,
+                                     const DPS_TRANS_ID &arbitTransID,
                                      INT32 timeout,
-                                     BOOLEAN &commited,
-                                     BOOLEAN &multiGroups ) ;
+                                     BOOLEAN &committed,
+                                     BOOLEAN &multiGroups,
+                                     stpLogicalTimeUS &commitTime ) ;
+
+      // wait arbitrating transaction to change status
+      // input:
+      //    - eduCB: EDUCB of current transaction
+      //    - arbitTransID: transaction ID of arbitrating write transaction
+      //    - timeout: timeout to wait ( in milliseconds )
+      // output:
+      //    - newInfo: transaction info after status changed
+      // return:
+      //    - SDB_OK: succeed to wait result
+      //    - SDB_TIMEOUT: timeout to wait result
+      //    - other errors: failed to wait result
+      // WARNINGL should not be called for COORD
+      virtual INT32 waitArbitChange( pmdEDUCB *eduCB,
+                                     const DPS_TRANS_ID &arbitTransID,
+                                     DPS_TRANS_STATUS currentStatus,
+                                     INT32 timeout,
+                                     dpsTransBackInfo &newInfo ) ;
 
       // on attach event
       virtual void   onAttach( pmdEDUCB *eduCB ) ;

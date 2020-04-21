@@ -641,6 +641,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      stpLogicalTimeUS commitTime ;
+
       if ( DPS_INVALID_LSN_OFFSET == _pEDUCB->getCurTransLsn() )
       {
          // readonly transaction goes to rollback directly
@@ -711,9 +713,13 @@ namespace engine
 
          do
          {
+            UINT64 tmpPreCommitTime =
+                                 _pEDUCB->getTransPreCommitTime().getTime() ;
+            UINT64 tmpCommitTime = 0LL ;
             rc = pGTSAgent->checkTransStatus( _pEDUCB->getTransID(),
                                               nodeNum, pNodes,
-                                              _pEDUCB, status ) ;
+                                              _pEDUCB, tmpPreCommitTime,
+                                              status, tmpCommitTime ) ;
             if ( rc )
             {
                ossSleep( OSS_ONE_SEC ) ;
@@ -729,14 +735,24 @@ namespace engine
 
             if ( DPS_TRANS_COMMIT == status )
             {
+               // it is committed on other groups, go commit
+               if ( transID.isGlobTrans() )
+               {
+                  // set commit time for global transaction
+                  commitTime.setTime( tmpCommitTime ) ;
+                  commitTime.setTimeError( _pEDUCB->getTransTimeError() ) ;
+               }
                goto commit ;
             }
             else
             {
+               // it is rollbacked on other groups, go rollback
                goto rollback ;
             }
          } while( pmdIsPrimary() ) ;
          {
+            // not primary now, save as wait commit and to be processed
+            // when switch to primary again
             BOOLEAN savedAsWaitCommit = FALSE ;
             rc = rtnTransSaveWaitCommit( _pEDUCB, _pDpsCB, savedAsWaitCommit ) ;
             if ( rc )
@@ -749,9 +765,9 @@ namespace engine
             }
          }
       }
-      else if ( DPS_TRANS_DOING == _pEDUCB->getTransStatus() )
+      else if ( DPS_TRANS_DOING == _pEDUCB->getTransStatus() ||
+                DPS_TRANS_PRE_WAIT_COMMIT == _pEDUCB->getTransStatus() )
       {
-         stpLogicalTimeUS dummyTime ;
          _pEDUCB->setTransStatus( DPS_TRANS_DOING_INTERRUPT ) ;
          sdbGetTransCB()->updateTransStatus( _pEDUCB->getTransID(),
                                              DPS_TRANS_DOING_INTERRUPT ) ;
@@ -774,7 +790,7 @@ namespace engine
       {
          *pHasRollback = FALSE ;
       }
-      rc = rtnTransCommit( _pEDUCB, _pDpsCB ) ;
+      rc = rtnTransCommit( _pEDUCB, _pDpsCB, commitTime ) ;
       if ( rc )
       {
          goto error ;
@@ -787,16 +803,15 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKTRANSRR, "_clsShdSession::_checkTransRR" )
-   INT32 _clsShdSession::_checkTransRR( const DPS_TRANS_ID &transID,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKRRBEGIN, "_clsShdSession::_checkRRBegin" )
+   INT32 _clsShdSession::_checkRRBegin( const DPS_TRANS_ID &transID,
                                         const MsgRouteID &remoteRID,
                                         const stpLogicalTimeUS &transBeginTime,
-                                        const stpLogicalTimeUS &sendTime,
-                                        BOOLEAN nextIsWrite )
+                                        const stpLogicalTimeUS &sendTime )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKTRANSRR ) ;
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKRRBEGIN ) ;
 
       dpsTransCB *transCB = sdbGetTransCB() ;
       clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
@@ -899,26 +914,6 @@ namespace engine
          }
       }
 
-      // pre-arbitrate for write transactions
-      // NOTE: considering that, this write transaction could be quickly
-      //       committed after this operator, the commit time could before a
-      //       read transaction in this node with time error, so it might cause
-      //       stale read issue on other groups
-      //       the read transaction should not see changes from this writing
-      //       transaction, but on other group, the read operator might be
-      //       sent later
-      //       so if we do not do pre-arbitration for read transaction to
-      //       tell that the read transaction is not visible for this
-      //       write transaction, the read transaction might have a chance to
-      //       see changes in a staled read request to other groups
-      if ( transCB->isGlobTransArbitOn() && nextIsWrite )
-      {
-          rc = transCB->doPreArbitGlobTrans( transID, receivedTime ) ;
-          PD_RC_CHECK( rc, PDERROR, "Failed to do pre-arbitration "
-                       "with write transaction [%s], rc: %d",
-                       dpsTransIDToString( transID ).c_str(), rc ) ;
-      }
-
       // check if transaction passed doing arbitration time ( after that
       // time, no need to launch arbitration against doing write transactions )
       receivedTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
@@ -934,10 +929,135 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKTRANSRR, rc ) ;
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKRRBEGIN, rc ) ;
       return rc ;
 
    error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKRRPRECOMMIT, "_clsShdSession::_checkRRPreCommit" )
+   INT32 _clsShdSession::_checkRRPreCommit( const DPS_TRANS_ID &transID,
+                                            const MsgRouteID &remoteRID,
+                                            const stpLogicalTimeUS &transBeginTime,
+                                            const stpLogicalTimeUS &sendTime,
+                                            stpLogicalTimeUS &preCommitTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKRRPRECOMMIT ) ;
+
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
+      stpAgent agent ;
+      stpLogicalTimeUS receivedTime, currentTime ;
+
+      SDB_ASSERT( NULL != gtsAgent, "GTS agent is invalid" ) ;
+
+      // update to PRE_WAIT_COMMIT status to notify other transactions
+      // should wait for status change of current transaction if they are
+      // reading the same records updated by current transaction
+      rc = transCB->updateTransStatus( transID, DPS_TRANS_PRE_WAIT_COMMIT ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update status to [%s] for "
+                   "transaction [%s], rc: %d",
+                   dpsTransStatusToString( DPS_TRANS_PRE_WAIT_COMMIT ),
+                   dpsTransIDToString( transID ).c_str(), rc ) ;
+
+      // get global logical time for pre-commit in this DATA node
+      rc = agent.getLogicalTimeUS( currentTime,
+                                   _pEDUCB->getTransTimeout(),
+                                   FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get global logical "
+                   "time for transaction pre-commit on this node, "
+                   "rc: %d", rc ) ;
+
+      if ( transCB->isGlobTransSyncCheck() )
+      {
+         if ( 0LL == _recvGlobTime )
+         {
+            // failed to get logical time when receiving message
+            // retry now
+            PD_LOG( PDWARNING, "Failed to get receive time for pre-commit "
+                    "message" ) ;
+
+            // use current time
+            receivedTime = currentTime ;
+         }
+         else
+         {
+            receivedTime.setTime( _recvGlobTime ) ;
+         }
+
+#if defined (_DEBUG)
+         PD_LOG( PDDEBUG, "Check RR transaction pre-commit [%s] "
+                 "sent at [%s], received at [%s], current time [%s]",
+                 dpsTransIDToString( transID ).c_str(),
+                 dpsTransTimeToString( sendTime ).c_str(),
+                 dpsTransTimeToString( receivedTime ).c_str(),
+                 dpsTransTimeToString( currentTime ).c_str() ) ;
+#endif
+
+         // we check doing transaction arbitration with maximum time error,
+         // ( read transaction started after a maximum time error period, it
+         // needn't to do arbitration with doing transaction anymore )
+         // so we could check pre-commit with maximum time error too
+         receivedTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
+
+         // check logical time between remote and local
+         if ( sendTime != receivedTime )
+         {
+            stpAgent agent ;
+
+            PD_LOG( PDWARNING, "Failed to check time for transaction [%s], "
+                    "global transaction times between nodes "
+                    "are not synchronized with node time error, "
+                    "remote node %s sent at [%s], "
+                    "local node %s received at [%s], current time [%s], "
+                    "diff [%lld]/[%lld]",
+                    dpsTransIDToString( transID ).c_str(),
+                    routeID2String( remoteRID ).c_str(),
+                    dpsTransTimeToString( sendTime ).c_str(),
+                    routeID2String( pmdGetNodeID() ).c_str(),
+                    dpsTransTimeToString( receivedTime ).c_str(),
+                    dpsTransTimeToString( currentTime ).c_str(),
+                    (INT64)( receivedTime.getTime() ) -
+                          (INT64)( sendTime.getTime() ),
+                    (INT64)( currentTime.getTime() ) -
+                          (INT64)( sendTime.getTime() ) ) ;
+
+            // notify local to synchronize time
+            agent.notifySync() ;
+
+            rc = SDB_GLOB_TRANS_NOT_SYNC ;
+            goto error ;
+         }
+      }
+
+      // pre-arbitrate for write transactions
+      // NOTE: considering that, this write transaction could be quickly
+      //       committed after this operator, the commit time could before a
+      //       read transaction in this node with time error, so it might cause
+      //       stale read issue on other groups
+      //       the read transaction should not see changes from this writing
+      //       transaction, but on other group, the read operator might be
+      //       sent later
+      //       so if we do not do pre-arbitration for read transaction to
+      //       tell that the read transaction is not visible for this
+      //       write transaction, the read transaction might have a chance to
+      //       see changes in a staled read request to other groups
+      currentTime.setTimeError( _pEDUCB->getTransTimeError() ) ;
+      rc = transCB->getLocalPreCommitTime( currentTime, preCommitTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get pre-commit time for "
+                   "transaction [%s], rc: %d",
+                   dpsTransIDToString( transID ).c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKRRPRECOMMIT, rc ) ;
+      return rc ;
+
+   error:
+      // failed to check pre-commit, update back to DOING status
+      transCB->updateTransStatus( transID, DPS_TRANS_DOING ) ;
       goto done ;
    }
 
@@ -1207,7 +1327,9 @@ namespace engine
 
             case MSG_BS_TRANS_COMMITPRE_REQ:
                isNeedRollback = TRUE ;
-               rc = _onTransCommitPreMsg( handle, msg );
+               rc = _onTransCommitPreMsg( handle, msg, buffObj,
+                                          ( _inPacketLevel > 0 ?
+                                                NULL : &_retBuilder ) ) ;
                break;
 
             case MSG_COM_SESSION_INIT_REQ:
@@ -2926,10 +3048,9 @@ namespace engine
             {
                stpLogicalTimeUS sendTime( pTransBegin->sendTime,
                                           pTransBegin->transTimeError ) ;
-               rc = _checkTransRR( transID, remoteRID, beginTime, sendTime,
-                                   pTransBegin->nextIsWrite ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to check transaction "
-                            "isolation for RR, rc: %d", rc ) ;
+               rc = _checkRRBegin( transID, remoteRID, beginTime, sendTime ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check transaction begin "
+                            "with RR isolation, rc: %d", rc ) ;
             }
          }
 
@@ -2960,6 +3081,9 @@ namespace engine
       CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
       CHAR tmpAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
+      MsgOpTransCommit *commitMsg = ( MsgOpTransCommit *)msg ;
+      stpLogicalTimeUS specCommitTime ;
+
       if ( !_pReplSet->primaryIsMe() )
       {
          return SDB_CLS_NOT_PRIMARY ;
@@ -2975,7 +3099,14 @@ namespace engine
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                           "TransactionID: %s(%s)", tmpID, tmpAttr ) ;
-      return rtnTransCommit( _pEDUCB, _pDpsCB ) ;
+
+      if ( 0LL != commitMsg->commitTime )
+      {
+         // commit time is specified by COORD
+         specCommitTime.setTime( commitMsg->commitTime ) ;
+         specCommitTime.setTimeError( eduCB()->getTransTimeError() ) ;
+      }
+      return rtnTransCommit( _pEDUCB, _pDpsCB, specCommitTime ) ;
    }
 
    INT32 _clsShdSession::_onTransRollbackMsg( NET_HANDLE handle, MsgHeader *msg )
@@ -3000,30 +3131,34 @@ namespace engine
    }
 
    INT32 _clsShdSession::_onTransCommitPreMsg( NET_HANDLE handle,
-                                               MsgHeader *msg )
+                                               MsgHeader *msg,
+                                               rtnContextBuf &retBuffer,
+                                               BSONObjBuilder *retBuilder )
    {
       INT32 rc = SDB_OK ;
       CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
       CHAR tmpAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
-      dpsTransCB *transCB = sdbGetTransCB() ;
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
       MsgOpTransCommitPre *pCommitPreMsg = ( MsgOpTransCommitPre* )msg ;
 
+      DPS_TRANS_ID transID = _pEDUCB->getTransID() ;
+
       UINT32 transTimeError = _pEDUCB->getTransBeginTime().getTimeError() ;
-      stpLogicalTimeUS preCommitTime( pCommitPreMsg->preCommitTime,
-                                      transTimeError ) ;
       stpLogicalTimeUS sendTime( pCommitPreMsg->sendTime, transTimeError ) ;
+      stpLogicalTimeUS preCommitTime ;
 
       INT16 replSize = optCB->transReplSize() ;
       INT16 w = 0 ;
+
+      BSONObj retObject ;
 
       if ( !_pReplSet->primaryIsMe() )
       {
          rc = SDB_CLS_NOT_PRIMARY ;
          goto error ;
       }
-      if ( _pEDUCB->getTransID().isInvalid() )
+      if ( transID.isInvalid() )
       {
          rc = SDB_DPS_TRANS_NO_TRANS ;
          goto error ;
@@ -3036,72 +3171,34 @@ namespace engine
       //       affect visibility of other transactions
       if ( _pEDUCB->isGlobTrans() &&
            _pEDUCB->isTransRRRequired() &&
-           transCB->isGlobTransSyncCheck() &&
            DPS_INVALID_LSN_OFFSET != _pEDUCB->getCurTransLsn() )
       {
-         stpLogicalTimeUS receivedTime ;
-         clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
+         rc = _checkRRPreCommit( transID,
+                                 pCommitPreMsg->header.routeID,
+                                 _pEDUCB->getTransBeginTime(),
+                                 sendTime,
+                                 preCommitTime ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check transaction pre-commit "
+                      "with RR isolation, rc: %d", rc ) ;
 
-         SDB_ASSERT( NULL != gtsAgent, "GTS agent is invalid" ) ;
-
-         if ( 0LL == _recvGlobTime )
+         // build reply object if needed, for global transaction, we send
+         // back pre-commit time on this node to COORD, and COORD will
+         // calculate the final commit time
+         if ( NULL != retBuilder )
          {
-            // failed to get logical time when receiving message
-            // retry now
-            PD_LOG( PDWARNING, "Failed to get receive time for pre-commit "
-                    "message" ) ;
-
-            stpAgent agent ;
-            rc = agent.getLogicalTimeUS( receivedTime,
-                                         _pEDUCB->getTransTimeout(),
-                                         FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get global logical "
-                         "time for transaction pre-commit on this node, "
-                         "rc: %d", rc ) ;
-         }
-         else
-         {
-            receivedTime.setTime( _recvGlobTime ) ;
-         }
-
-#if defined (_DEBUG)
-         PD_LOG( PDDEBUG, "Check RR transaction pre-commit [%s], "
-                 "pre-commit time [%s], send time [%s], "
-                 "receive time [%s]",
-                 dpsTransIDToString( _pEDUCB->getTransID() ).c_str(),
-                 dpsTransTimeToString( preCommitTime ).c_str(),
-                 dpsTransTimeToString( sendTime ).c_str(),
-                 dpsTransTimeToString( receivedTime ).c_str() ) ;
-#endif
-
-         // we check doing transaction arbitration with maximum time error,
-         // ( read transaction started after a maximum time error period, it
-         // needn't to do arbitration with doing transaction anymore )
-         // so we could check pre-commit with maximum time error too
-         receivedTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
-
-         // check logical time between remote and local
-         if ( transCB->isGlobTransSyncCheck() && sendTime != receivedTime )
-         {
-            stpAgent agent ;
-
-            PD_LOG( PDWARNING, "Global transaction times between nodes "
-                    "are not synchronized with node time error, "
-                    "remote node %s is pre-committed at [%s], sent at [%s], "
-                    "local node %s is received at [%s], diff [%lld]",
-                    routeID2String( pCommitPreMsg->header.routeID ).c_str(),
-                    dpsTransTimeToString( preCommitTime ).c_str(),
-                    dpsTransTimeToString( sendTime ).c_str(),
-                    routeID2String( pmdGetNodeID() ).c_str(),
-                    dpsTransTimeToString( receivedTime ).c_str(),
-                    (INT64)( receivedTime.getTime() ) -
-                          (INT64)( sendTime.getTime() ) ) ;
-
-            // notify local to synchronize time
-            agent.notifySync() ;
-
-            rc = SDB_GLOB_TRANS_NOT_SYNC ;
-            goto error ;
+            try
+            {
+               retBuilder->append( FIELD_NAME_PRECOMMITTIME,
+                                   (INT64)( preCommitTime.getTime() ) ) ;
+               retObject = retBuilder->done() ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to build reply object, error: %s",
+                       e.what() ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
          }
       }
 
@@ -3132,9 +3229,20 @@ namespace engine
          goto error ;
       }
 
+      // copy reply object to output buffer
+      if ( NULL != retBuilder && !retObject.isEmpty() )
+      {
+         retBuffer = rtnContextBuf( retObject ) ;
+      }
+
    done:
       return rc ;
+
    error:
+      if ( NULL != retBuilder )
+      {
+         retBuilder->reset() ;
+      }
       goto done ;
    }
 

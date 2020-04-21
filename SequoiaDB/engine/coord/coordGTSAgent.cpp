@@ -236,33 +236,13 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDGTSAGENT_PREARBITGLOBTRANS, "_coordGTSAgent::preArbitGlobTrans" )
-   INT32 _coordGTSAgent::preArbitGlobTrans( const DPS_TRANS_ID writeTransID,
-                                            TRANS_ID_LIST &preArbitList )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__COORDGTSAGENT_PREARBITGLOBTRANS ) ;
-
-      // COORD shouldn't pre-arbitrate global transaction
-      SDB_ASSERT( FALSE, "COORD should not pre-arbitrate global transaction" ) ;
-      PD_CHECK( FALSE, SDB_SYS, error, PDERROR,
-                "COORD should not do pre-arbitrate global transaction" ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__COORDGTSAGENT_PREARBITGLOBTRANS, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDGTSAGENT_WAITARBITCOMMIT, "_coordGTSAgent::waitArbitCommit" )
    INT32 _coordGTSAgent::waitArbitCommit( pmdEDUCB *eduCB,
-                                          const DPS_TRANS_ID &transID,
+                                          const DPS_TRANS_ID &arbitTransID,
                                           INT32 timeout,
-                                          BOOLEAN &commited,
-                                          BOOLEAN &multiGroups )
+                                          BOOLEAN &committed,
+                                          BOOLEAN &multiGroups,
+                                          stpLogicalTimeUS &commitTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -275,6 +255,30 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__COORDGTSAGENT_WAITARBITCOMMIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDGTSAGENT_WAITARBITCHANGE, "_coordGTSAgent::waitArbitChange" )
+   INT32 _coordGTSAgent::waitArbitChange( pmdEDUCB *eduCB,
+                                          const DPS_TRANS_ID &arbitTransID,
+                                          DPS_TRANS_STATUS currentStatus,
+                                          INT32 timeout,
+                                          dpsTransBackInfo &newInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__COORDGTSAGENT_WAITARBITCHANGE ) ;
+
+      // COORD shouldn't wait for transaction status
+      SDB_ASSERT( FALSE, "COORD should not wait for transaction status" ) ;
+      PD_CHECK( FALSE, SDB_SYS, error, PDERROR,
+                "COORD should not wait for transaction status" ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__COORDGTSAGENT_WAITARBITCHANGE, rc ) ;
       return rc ;
 
    error:

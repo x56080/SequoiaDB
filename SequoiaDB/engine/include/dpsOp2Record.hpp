@@ -60,7 +60,8 @@ namespace engine
         _relatedLSN( DPS_INVALID_LSN_OFFSET ),
         _beginTime( 0LL ),
         _beginTimeError( 0 ),
-        _preCommitTime( 0LL )
+        _preCommitTime( 0LL ),
+        _commitTime( 0LL )
       {
       }
 
@@ -68,13 +69,15 @@ namespace engine
                            const DPS_LSN_OFFSET &preTransLSN,
                            const DPS_LSN_OFFSET &relatedLSN,
                            const stpLogicalTimeUS &beginTime,
-                           const stpLogicalTimeUS &preCommitTime )
+                           const stpLogicalTimeUS &preCommitTime,
+                           const stpLogicalTimeUS &commitTime )
       : _transID( transID ),
         _preTransLSN( preTransLSN ),
         _relatedLSN( relatedLSN ),
         _beginTime( beginTime.getTime() ),
         _beginTimeError( beginTime.getTimeError() ),
-        _preCommitTime( preCommitTime.getTime() )
+        _preCommitTime( preCommitTime.getTime() ),
+        _commitTime( commitTime.getTime() )
       {
       }
 
@@ -86,6 +89,7 @@ namespace engine
          _beginTime = 0LL ;
          _beginTimeError = 0 ;
          _preCommitTime = 0LL ;
+         _commitTime = 0LL ;
       }
 
       DPS_TRANS_ID      _transID ;
@@ -94,9 +98,12 @@ namespace engine
       // DPS record use values, split logical time into POD
       UINT64            _beginTime ;
       UINT32            _beginTimeError ;
-      // NOTE: no time error of pre-commit time ( will reuse time error of
-      //       transaction begin time
+      // NOTE: no time error of pre-commit time
+      //       will reuse time error of transaction begin time
       UINT64            _preCommitTime ;
+      // NOTE: no time error of commit time
+      //       will reuse time error of transaction begin time
+      UINT64            _commitTime ;
    } dpsRecordTransInfo ;
 
    /// warning: any value can not be value-passed. and, the value's life scope

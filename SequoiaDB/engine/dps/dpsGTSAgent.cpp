@@ -294,60 +294,6 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSGTSAGENT__FILLGTSPREARBITREQ, "_dpsGTSAgent::_fillGTSPreArbitReq" )
-   INT32 _dpsGTSAgent::_fillGTSPreArbitReq( MsgClsGTSPreArbitReq *request,
-                                            const DPS_TRANS_ID &writeTransID,
-                                            DPS_TRANSID_NODEID preArbitNodeID,
-                                            const TRANS_ID_LIST &preArbitList,
-                                            BSONObj &requestObject )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DPSGTSAGENT__FILLGTSPREARBITREQ ) ;
-
-      SDB_ASSERT( NULL != request, "request is invalid" ) ;
-
-      // build request object
-      try
-      {
-         BSONObjBuilder builder ;
-
-         BSONArrayBuilder subBuilder(
-               builder.subarrayStart( FIELD_NAME_TRANS_PREARBITLIST ) ) ;
-
-         for ( TRANS_ID_LIST::const_iterator iter = preArbitList.begin() ;
-               preArbitList.end() != iter ;
-               ++ iter )
-         {
-            const DPS_TRANS_ID &transID = ( *iter ) ;
-            subBuilder.append( (INT64)( transID.getGlobSN() ) ) ;
-         }
-
-         subBuilder.doneFast() ;
-
-         requestObject = builder.obj() ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to build request object, error: %s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      request->header.messageLength += requestObject.objsize() ;
-      request->writeTransNodeID = (UINT16)( writeTransID.getNodeID() ) ;
-      request->writeTransID = (UINT64)(writeTransID.getGlobSN() ) ;
-      request->preArbitNodeID = (UINT16)preArbitNodeID ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DPSGTSAGENT__FILLGTSPREARBITREQ, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    /*
        _dpsGTSLowTranJob implement
     */

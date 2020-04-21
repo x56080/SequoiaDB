@@ -56,7 +56,6 @@ namespace engine
    BEGIN_OBJ_MSG_MAP( _CoordCB, _pmdObjBase )
       ON_MSG ( MSG_CAT_REG_RES, _onCatRegisterRes )
       ON_MSG ( MSG_CLS_GTS_ARBIT_REQ, _onGTSArbitReq )
-      ON_MSG ( MSG_CLS_GTS_PREARBIT_REQ, _onGTSPreArbitReq )
    END_OBJ_MSG_MAP()
 
    _CoordCB::_CoordCB()
@@ -686,102 +685,6 @@ retry :
 
    done:
       PD_TRACE_EXITRC( SDB__COORDCB__ONGTSARBITREQ, rc ) ;
-      return rc ;
-
-   error:
-      // fill response with error code
-      response.header.res = rc ;
-      _pAgent->syncSend( handle, (MsgHeader *)( &response ) ) ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDCB__ONGTSPREARBITREQ, "_CoordCB::_onGTSPreArbitReq" )
-   INT32 _CoordCB::_onGTSPreArbitReq( NET_HANDLE handle, MsgHeader *message )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__COORDCB__ONGTSPREARBITREQ ) ;
-
-      MsgClsGTSPreArbitReq *request = (MsgClsGTSPreArbitReq *)message ;
-      BSONObj requestObject ;
-      MsgClsGTSPreArbitRsp response ;
-      dpsTransCB *transCB = sdbGetTransCB() ;
-      DPS_TRANS_ID writeTransID ;
-      DPS_TRANSID_NODEID preArbitNodeID = DPS_INVALID_TRANSID_NODEID ;
-      TRANS_ID_LIST preArbitList ;
-
-      PD_CHECK( (UINT32)( request->header.messageLength ) >
-                sizeof( MsgClsGTSPreArbitReq ) + requestObject.objsize(),
-                SDB_SYS, error, PDERROR,
-                "Failed to parse pre-arbitrate request, message length is "
-                "not matched, expected > [%u], given [%u]",
-                sizeof( MsgClsGTSPreArbitReq ) + requestObject.objsize(),
-                request->header.messageLength ) ;
-
-      preArbitNodeID = (DPS_TRANSID_NODEID)( request->preArbitNodeID ) ;
-
-      writeTransID.setNodeID(
-            (DPS_TRANSID_NODEID)( request->writeTransNodeID ) ) ;
-      writeTransID.setSN( (DPS_TRANSID_SN)( request->writeTransID ) ) ;
-
-      try
-      {
-         requestObject = BSONObj( (const CHAR *)message +
-                                  sizeof( MsgClsGTSPreArbitReq ) ) ;
-         BSONElement element =
-               requestObject.getField( FIELD_NAME_TRANS_PREARBITLIST ) ;
-         PD_CHECK( EOO != element.type(), SDB_SYS, error, PDERROR,
-                   "Failed to parse pre-arbitration request, "
-                   "field [%s] is empty", FIELD_NAME_TRANS_PREARBITLIST ) ;
-         PD_CHECK( Array == element.type(), SDB_SYS, error, PDERROR,
-                   "Failed to parse pre-arbitration request, "
-                   "field [%s] is not array type",
-                   FIELD_NAME_TRANS_PREARBITLIST ) ;
-         {
-            BSONObjIterator iter( element.embeddedObject() ) ;
-            while ( iter.more() )
-            {
-               DPS_TRANS_ID preArbitTransID ;
-
-               BSONElement subElement = iter.next() ;
-               PD_CHECK( NumberLong == subElement.type(),
-                         SDB_SYS, error, PDERROR,
-                         "Failed to parse pre-arbitration request, "
-                         "element of array [%s] is not number long type",
-                         FIELD_NAME_TRANS_PREARBITLIST ) ;
-
-               preArbitTransID.setNodeID( preArbitNodeID ) ;
-               preArbitTransID.setSN(
-                              (DPS_TRANSID_SN)( subElement.numberLong() ) ) ;
-
-               preArbitList.push_back( preArbitTransID ) ;
-            }
-         }
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to parse pre-arbitrate request, error: %s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      rc = transCB->onPreArbitGlobTrans( writeTransID, preArbitList ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to pre-arbitrate, rc: %d", rc ) ;
-
-      // fill response
-      response.header.res = SDB_OK ;
-
-      rc = _pAgent->syncSend( handle, (MsgHeader *)( &response ) ) ;
-      if ( SDB_OK != rc )
-      {
-         // no need to goto error
-         PD_LOG( PDERROR, "Failed to send pre-arbitrate response, "
-                 "rc: %d", rc ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__COORDCB__ONGTSPREARBITREQ, rc ) ;
       return rc ;
 
    error:
