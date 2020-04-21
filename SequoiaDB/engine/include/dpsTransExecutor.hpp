@@ -426,6 +426,14 @@ namespace engine
                              DPS_TRANS_STATUS writeTransStatus,
                              BOOLEAN visible ) ;
 
+         // get time error of transaction
+         // NOTE: all transaction times ( begin, pre-commit and commit )
+         //       will reuse the time error of transaction begin
+         OSS_INLINE UINT32 getTimeError() const
+         {
+            return _beginTime.getTimeError() ;
+         }
+
          // get begin time of transaction
          OSS_INLINE const stpLogicalTimeUS &getBeginTime() const
          {
@@ -451,6 +459,21 @@ namespace engine
             // transaction begin time
             _preCommitTime = preCommitTime ;
             _preCommitTime.setTimeError( _beginTime.getTimeError() ) ;
+         }
+
+         // get commit time of transaction
+         OSS_INLINE const stpLogicalTimeUS &getCommitTime() const
+         {
+            return _commitTime ;
+         }
+
+         // set commit time of transaction
+         OSS_INLINE void setCommitTime( const stpLogicalTimeUS &commitTime )
+         {
+            // no time error for commit time, will reuse time error of
+            // transaction begin time
+            _commitTime = commitTime ;
+            _commitTime.setTimeError( _beginTime.getTimeError() ) ;
          }
 
          // check if transaction passed doing arbitration time
@@ -543,6 +566,8 @@ namespace engine
          stpLogicalTimeUS        _beginTime ;
          // logical time of transaction pre-commit
          stpLogicalTimeUS        _preCommitTime ;
+         // logical time of transaction commit
+         stpLogicalTimeUS        _commitTime ;
 
          // indicate if transaction has passed doing arbitration time
          // - before that time, current transaction needs arbitrate for all

@@ -86,6 +86,9 @@ namespace engine
       DPS_TRANS_ROLLBACK      = 4,
       // transaction is doing but interrupted (it is going to rollback)
       DPS_TRANS_DOING_INTERRUPT = 5,
+      // transaction is preparing to pre-commit
+      // NOTE: only used in global transaction with RR isolation
+      DPS_TRANS_PRE_WAIT_COMMIT = 6,
       // transaction is not found in history map ( cleared by gc )
       DPS_TRANS_UNKNOWN       = 99
    } ;

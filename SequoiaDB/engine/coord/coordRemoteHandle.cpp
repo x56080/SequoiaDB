@@ -646,8 +646,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDREMOTEHANDLERBASE_ONTRANSBEGIN, "_coordRemoteHandlerBase::onTransBegin" )
    INT32 _coordRemoteHandlerBase::onTransBegin( MsgOpTransBegin *request,
-                                                pmdEDUCB *cb,
-                                                BOOLEAN nextIsWrite )
+                                                pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
@@ -655,8 +654,6 @@ namespace engine
 
       if ( cb->isGlobTrans() && cb->isTransRR() && !isVersion0() )
       {
-         // set next operation, DATA node will do pre-arbitration if needed
-         request->nextIsWrite = nextIsWrite ? 1 : 0 ;
          // need synchronize global logical time for global RR transaction
          request->header.opCode =
                MAKE_GLOBTIME_TYPE( request->header.opCode ) ;
@@ -696,14 +693,12 @@ namespace engine
             // NOTE: node ID of transaction ID is in routeID of message header
             msgReq.transID = (UINT64)( cb->getTransID().getGlobSN() ) ;
             // time error of logical time for global transaction
-            msgReq.transTimeError =
-                        (UINT32)( cb->getTransBeginTime().getTimeError() ) ;
+            msgReq.transTimeError = cb->getTransTimeError() ;
             msgReq.sendTime = 0LL ;
-            msgReq.nextIsWrite = 0 ;
             ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
 
             // call on transaction begin event, fill current time of message
-            rc = onTransBegin( &msgReq, cb, isWriteMsg ) ;
+            rc = onTransBegin( &msgReq, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to call on transaction begin "
                          "event, rc: %d", rc ) ;
 

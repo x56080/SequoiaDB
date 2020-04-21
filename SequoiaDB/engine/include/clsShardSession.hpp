@@ -309,7 +309,10 @@ namespace engine
          INT32 _onTransBeginMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onTransCommitMsg (NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onTransRollbackMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
-         INT32 _onTransCommitPreMsg( NET_HANDLE handle, MsgHeader *msg );
+         INT32 _onTransCommitPreMsg( NET_HANDLE handle,
+                                     MsgHeader *msg,
+                                     rtnContextBuf &retBuffer,
+                                     BSONObjBuilder *pBuilder ) ;
          INT32 _onTransUpdateReqMsg ( NET_HANDLE handle, MsgHeader *msg,
                                       utilUpdateResult &upResult ) ;
          INT32 _onTransInsertReqMsg ( NET_HANDLE handle, MsgHeader *msg,
@@ -497,25 +500,45 @@ namespace engine
                                INT32 waitSyncTimeout = OSS_ONE_SEC * 60,
                                BOOLEAN ignoreWaitSyncError = FALSE ) ;
 
-         // check transaction with RR isolation
+         // check transaction begin with RR isolation
          // input:
          //    - transID: transaction ID of current transaction
          //    - remoteRID: route ID of remote node to launch this transaction
          //    - transBeginTime: global logical time to begin transaction
          //    - sendTime: global logical time to send transaction begin
          //                message of this transaction
-         //    - nextIsWrite: indicate if this is a write operator
          // return:
          //    - SDB_OK: succeed to check transaction with RR isolation
          //    - other errors: failed to check transaction with RR isolation
-         // NOTE: the RR isolation requires global transaction support
-         //    - check global time synchronization between nodes
-         //    - do pre-arbitration for write transaction
-         INT32 _checkTransRR( const DPS_TRANS_ID &transID,
+         // NOTE:
+         //    - the RR isolation requires global transaction support
+         //    - also check global time synchronization between nodes
+         INT32 _checkRRBegin( const DPS_TRANS_ID &transID,
                               const MsgRouteID &remoteRID,
                               const stpLogicalTimeUS &transBeginTime,
-                              const stpLogicalTimeUS &sendTime,
-                              BOOLEAN nextIsWrite ) ;
+                              const stpLogicalTimeUS &sendTime ) ;
+
+         // check transaction pre-commit with RR isolation
+         // input:
+         //    - transID: transaction ID of current transaction
+         //    - remoteRID: route ID of remote node to launch this transaction
+         //    - transBeginTime: global logical time to begin transaction
+         //    - sendTime: global logical time to send transaction pre-commit
+         //                message of this transaction
+         // output:
+         //    - preCommitTime: global logical time to pre-commit transaction
+         //                     in this DATA node
+         // return:
+         //    - SDB_OK: succeed to check transaction with RR isolation
+         //    - other errors: failed to check transaction with RR isolation
+         // NOTE:
+         //    - the RR isolation requires global transaction support
+         //    - also check global time synchronization between nodes
+         INT32 _checkRRPreCommit( const DPS_TRANS_ID &transID,
+                                  const MsgRouteID &remoteRID,
+                                  const stpLogicalTimeUS &transBeginTime,
+                                  const stpLogicalTimeUS &sendTime,
+                                  stpLogicalTimeUS &preCommitTime ) ;
 
       protected:
          _clsReplicateSet       *_pReplSet ;

@@ -1035,6 +1035,7 @@ namespace engine
 
       _beginTime.reset() ;
       _preCommitTime.reset() ;
+      _commitTime.reset() ;
       _passedDoingArbit = FALSE ;
 
       PD_TRACE_EXIT( SDB__DPSTRANSEXE_RESETTRANSTIME ) ;

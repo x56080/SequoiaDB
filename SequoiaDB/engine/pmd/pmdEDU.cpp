@@ -1193,12 +1193,18 @@ namespace engine
       return _curTransID.isGlobTrans() ;
    }
 
+   UINT32 _pmdEDUCB::getTransTimeError() const
+   {
+      return _transExecutor.getTimeError() ;
+   }
+
    void _pmdEDUCB::dumpTransInfo( monTransInfo &transInfo )
    {
       transInfo._eduID        = _eduID ;
       transInfo._transID      = _curTransID ;
       transInfo._transBeginTime = _transExecutor.getBeginTime() ;
       transInfo._transPreCommitTime = _transExecutor.getPreCommitTime() ;
+      transInfo._transCommitTime = _transExecutor.getCommitTime() ;
       transInfo._curTransLsn  = _curTransLSN ;
 
       {

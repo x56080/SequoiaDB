@@ -98,30 +98,6 @@ namespace engine
                                        BOOLEAN forceLocal,
                                        BOOLEAN &visible ) ;
 
-         // pre-arbitrate global write transaction
-         // input:
-         //    - writeTransID: transaction ID of current write transaction
-         //    - preArbitList: list of pre-arbitrate read transactions
-         // return:
-         //    - SDB_OK: succeed to do pre-arbitration
-         //    - other errors: failed to do pre-arbitration
-         // NOTE:
-         //    - writeTransID should be original transaction ID without tags
-         //      except for global transaction tag
-         //    - considering that, this write transaction could be quickly
-         //      committed after this operator, the commit time could before a
-         //      read transaction in this node with time error, so it might cause
-         //      stale read issue on other groups
-         //      the read transaction should not see changes from this writing
-         //      transaction, but on other group, the read operator might be
-         //      sent later
-         //      so if we do not do pre-arbitration for read transaction to
-         //      tell that the read transaction is not visible for this
-         //      write transaction, the read transaction might have a chance to
-         //      see changes in a staled read request to other groups
-         virtual INT32 preArbitGlobTrans( const DPS_TRANS_ID writeTransID,
-                                          TRANS_ID_LIST &preArbitList ) ;
-
          // wait arbitrating transaction to commit
          // input:
          //    - eduCB: EDUCB of current transaction
@@ -130,6 +106,7 @@ namespace engine
          // output:
          //    - committed: indicate if the waiting transaction has committed
          //    - multiGroups: transaction is involved in multiple DATA groups
+         //    - commiteTime: commit time of transaction
          // return:
          //    - SDB_OK: succeed to wait result
          //    - SDB_TIMEOUT: timeout to wait result
@@ -137,8 +114,26 @@ namespace engine
          virtual INT32 waitArbitCommit( pmdEDUCB *eduCB,
                                         const DPS_TRANS_ID &arbitTransID,
                                         INT32 timeout,
-                                        BOOLEAN &commited,
-                                        BOOLEAN &multiGroups ) ;
+                                        BOOLEAN &committed,
+                                        BOOLEAN &multiGroups,
+                                        stpLogicalTimeUS &commitTime ) ;
+
+         // wait arbitrating transaction to change status
+         // input:
+         //    - eduCB: EDUCB of current transaction
+         //    - arbitTransID: transaction ID of arbitrating write transaction
+         //    - timeout: timeout to wait ( in milliseconds )
+         // output:
+         //    - newInfo: transaction info after status changed
+         // return:
+         //    - SDB_OK: succeed to wait result
+         //    - SDB_TIMEOUT: timeout to wait result
+         //    - other errors: failed to wait result
+         virtual INT32 waitArbitChange( pmdEDUCB *eduCB,
+                                        const DPS_TRANS_ID &arbitTransID,
+                                        DPS_TRANS_STATUS currentStatus,
+                                        INT32 timeout,
+                                        dpsTransBackInfo &newInfo ) ;
 
          // get node time error
          UINT32      getNodeTimeError() ;
@@ -168,9 +163,11 @@ namespace engine
          //    - nodeNum: number of nodes to be checked
          //    - pNodes: nodes to be checked
          //    - cb: EDUCB of current transaction
+         //    - preCommitTime: pre-commit time of transaction on current node
          // output:
          //    - status: transaction status of other nodes ( indicates whether
          //              this transaction should be committed )
+         //    - commitTime: commit time of transaction
          // return:
          //    - SDB_OK: succeed to check status
          //    - other errors: failed to check status
@@ -182,7 +179,9 @@ namespace engine
                                        UINT32 nodeNum,
                                        const UINT64 *pNodes,
                                        IExecutor *cb,
-                                       DPS_TRANS_STATUS &status ) ;
+                                       UINT64 preCommitTime,
+                                       DPS_TRANS_STATUS &status,
+                                       UINT64 &commitTime ) ;
 
       protected:
          // check transaction status in other groups
@@ -194,9 +193,11 @@ namespace engine
          //    - checkForArbit: if check for arbitrate, it will return when
          //                     transaction is found committed or rollbacked
          //                     in one node
+         //    - preCommitTime: pre-commit time of transaction on current node
          // output:
          //    - status: transaction status of other nodes ( indicates whether
          //              this transaction should be committed )
+         //    - commitTime: commit time of transaction
          // return:
          //    - SDB_OK: succeed to check status
          //    - other errors: failed to check status
@@ -213,7 +214,9 @@ namespace engine
                                         const UINT64 *pNodes,
                                         IExecutor *cb,
                                         BOOLEAN checkForArbit,
-                                        DPS_TRANS_STATUS &status ) ;
+                                        UINT64 preCommitTime,
+                                        DPS_TRANS_STATUS &status,
+                                        UINT64 &commitTime ) ;
 
          // check transaction status in a given group
          // input:
@@ -223,6 +226,8 @@ namespace engine
          // output:
          //    - status: transaction status of other nodes ( indicates whether
          //              this transaction should be committed )
+         //    - preCommitTime: global logical time to pre-commit transaction
+         //    - commitTime: global logical time to commit transaction
          // return:
          //    - SDB_OK: succeed to check status
          //    - other errors: failed to check status
@@ -235,7 +240,9 @@ namespace engine
          INT32       _checkTransStatus( DPS_TRANS_ID transID,
                                         UINT32 group,
                                         IExecutor *cb,
-                                        DPS_TRANS_STATUS &status ) ;
+                                        DPS_TRANS_STATUS &status,
+                                        UINT64 &preCommitTime,
+                                        UINT64 &commitTime ) ;
 
          // get commit info from DPS log
          // input:
@@ -267,17 +274,22 @@ namespace engine
          //    - curLsn: current LSN of transaction ( pre-commit record )
          // output:
          //    - status: status of transaction after check
+         //    - preCommitTime: global logical time to pre-commit transaction
+         //    - commitTime: global logical time to commit transaction
          // return:
          //    - SDB_OK: succeed to check transaction status
          //    - other errors: failed to check transaction status
          INT32       _syncCheckTransStatus( DPS_TRANS_ID transID,
                                             DPS_LSN_OFFSET curLsn,
-                                            DPS_TRANS_STATUS &status ) ;
+                                            DPS_TRANS_STATUS &status,
+                                            UINT64 preCommitTime,
+                                            UINT64 &commitTime ) ;
 
          // commit transaction
          // input:
          //    - transID: transaction ID of committing transaction
          //    - lastLsn: last LSN of transaction
+         //    - commitTime: commit time of transaction
          // output:
          //    - curLsn: LSN of commit record
          // return:
@@ -285,6 +297,7 @@ namespace engine
          //    - other errors: failed to commit transaction
          INT32       _commitTrans( DPS_TRANS_ID transID,
                                    DPS_LSN_OFFSET lastLsn,
+                                   UINT64 commitTime,
                                    DPS_LSN_OFFSET &curLsn ) ;
 
          // arbitrate transactions on remote node
@@ -332,20 +345,6 @@ namespace engine
                                   const DPS_TRANS_ID &writeTransID,
                                   DPS_TRANS_STATUS writeTransStatus,
                                   BOOLEAN &visible ) ;
-
-         // pre-arbitrate transactions on remote node
-         // input:
-         //    - writeTransID: transaction ID of write transaction
-         //    - preArbitNodeID: node ID to do pre-arbitration
-         // return:
-         //    - SDB_OK: succeed to pre-arbitrate transactions
-         //    - other error: failed to pre-arbitrate transactions
-         // NOTE:
-         //    - remote node is the node to launch write transactions, it
-         //      should be a COORD node
-         INT32       _preArbitRemote( const DPS_TRANS_ID &writeTransID,
-                                      DPS_TRANSID_NODEID preArbitNodeID,
-                                      const TRANS_ID_LIST &preArbitList ) ;
 
       private:
          _clsShardMgr         *_pShardMgr ;

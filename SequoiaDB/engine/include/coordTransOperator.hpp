@@ -87,8 +87,7 @@ namespace engine
       protected:
          INT32          buildTransSession( const CoordGroupList &groupLst,
                                            pmdEDUCB *cb,
-                                           ROUTE_RC_MAP &newNodeMap,
-                                           BOOLEAN nextIsWrite ) ;
+                                           ROUTE_RC_MAP &newNodeMap ) ;
     
          INT32          releaseTransSession( SET_NODEID &nodes,
                                              pmdEDUCB *cb  ) ;
@@ -161,7 +160,8 @@ namespace engine
          virtual INT32 buildPhase2Msg( const CHAR *pReceiveBuffer,
                                        CHAR **pMsg,
                                        INT32 *pMsgSize,
-                                       pmdEDUCB *cb ) = 0 ;
+                                       pmdEDUCB *cb,
+                                       BOOLEAN inCompact ) = 0 ;
 
          virtual void  releasePhase1Msg( CHAR *pMsg,
                                          INT32 msgSize,
@@ -174,7 +174,8 @@ namespace engine
          virtual INT32 executeOnDataGroup ( MsgHeader *pMsg,
                                             pmdEDUCB *cb,
                                             INT64 &contextID,
-                                            rtnContextBuf *buf ) = 0 ;
+                                            rtnContextBuf *buf,
+                                            SET_NODEID *retryNodes ) = 0 ;
 
          virtual BOOLEAN canCompactCommit() = 0 ;
 
@@ -214,7 +215,8 @@ namespace engine
          virtual INT32 buildPhase2Msg( const CHAR *pReceiveBuffer,
                                        CHAR **pMsg,
                                        INT32 *pMsgSize,
-                                       pmdEDUCB *cb ) ;
+                                       pmdEDUCB *cb,
+                                       BOOLEAN inCompact ) ;
 
          virtual void  releasePhase1Msg( CHAR *pMsg,
                                          INT32 msgSize,
@@ -227,7 +229,8 @@ namespace engine
          virtual INT32 executeOnDataGroup ( MsgHeader *pMsg,
                                             pmdEDUCB *cb,
                                             INT64 &contextID,
-                                            rtnContextBuf *buf ) ;
+                                            rtnContextBuf *buf,
+                                            SET_NODEID *retryNodes ) ;
 
          virtual BOOLEAN canCompactCommit() ;
 
@@ -240,9 +243,11 @@ namespace engine
                                             INT32 msgSize,
                                             pmdEDUCB *cb ) ;
 
+      protected:
+         INT32 _onReply( pmdEDUCB *cb,
+                         MsgOpReply *reply ) ;
       private:
          MsgOpTransCommit                 _phase2Msg ;
-         
    } ;
    typedef _coordTransCommit coordTransCommit ;
 

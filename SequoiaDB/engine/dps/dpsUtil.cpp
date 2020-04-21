@@ -80,6 +80,9 @@ namespace engine
          case DPS_TRANS_DOING_INTERRUPT :
             pStr = "DoingInterrupted" ;
             break ;
+         case DPS_TRANS_PRE_WAIT_COMMIT :
+            pStr = "PrepareWaitCommit" ;
+            break ;
          default :
             break ;
       }

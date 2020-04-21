@@ -92,30 +92,6 @@ namespace engine
                                     BOOLEAN forceLocal,
                                     BOOLEAN &visible ) = 0 ;
 
-      // pre-arbitrate global write transaction
-      // input:
-      //    - writeTransID: transaction ID of current write transaction
-      //    - preArbitList: list of pre-arbitrate read transactions
-      // return:
-      //    - SDB_OK: succeed to do pre-arbitration
-      //    - other errors: failed to do pre-arbitration
-      // NOTE:
-      //    - writeTransID should be original transaction ID without tags
-      //      except for global transaction tag
-      //    - considering that, this write transaction could be quickly
-      //      committed after this operator, the commit time could before a
-      //      read transaction in this node with time error, so it might cause
-      //      stale read issue on other groups
-      //      the read transaction should not see changes from this writing
-      //      transaction, but on other group, the read operator might be
-      //      sent later
-      //      so if we do not do pre-arbitration for read transaction to
-      //      tell that the read transaction is not visible for this
-      //      write transaction, the read transaction might have a chance to
-      //      see changes in a staled read request to other groups
-      virtual INT32 preArbitGlobTrans( const DPS_TRANS_ID writeTransID,
-                                       TRANS_ID_LIST &preArbitList ) = 0 ;
-
       // wait arbitrating transaction to commit
       // input:
       //    - eduCB: EDUCB of current transaction
@@ -124,6 +100,7 @@ namespace engine
       // output:
       //    - committed: indicate if the waiting transaction has committed
       //    - multiGroups: transaction is involved in multiple DATA groups
+      //    - commiteTime: commit time of transaction
       // return:
       //    - SDB_OK: succeed to wait result
       //    - SDB_TIMEOUT: timeout to wait result
@@ -131,8 +108,26 @@ namespace engine
       virtual INT32 waitArbitCommit( pmdEDUCB *eduCB,
                                      const DPS_TRANS_ID &arbitTransID,
                                      INT32 timeout,
-                                     BOOLEAN &commited,
-                                     BOOLEAN &multiGroups ) = 0 ;
+                                     BOOLEAN &committed,
+                                     BOOLEAN &multiGroups,
+                                     stpLogicalTimeUS &commitTime ) = 0 ;
+
+      // wait arbitrating transaction to change status
+      // input:
+      //    - eduCB: EDUCB of current transaction
+      //    - arbitTransID: transaction ID of arbitrating write transaction
+      //    - timeout: timeout to wait ( in milliseconds )
+      // output:
+      //    - newInfo: transaction info after status changed
+      // return:
+      //    - SDB_OK: succeed to wait result
+      //    - SDB_TIMEOUT: timeout to wait result
+      //    - other errors: failed to wait result
+      virtual INT32 waitArbitChange( pmdEDUCB *eduCB,
+                                     const DPS_TRANS_ID &arbitTransID,
+                                     DPS_TRANS_STATUS currentStatus,
+                                     INT32 timeout,
+                                     dpsTransBackInfo &newInfo ) = 0 ;
 
       // on attach event
       OSS_INLINE virtual void onAttach( pmdEDUCB *eduCB ) {}
@@ -241,24 +236,6 @@ namespace engine
       //    - other errors: failed to parse response
       INT32 _parseGTSArbitRsp( const MsgClsGTSArbitRsp *response,
                                BOOLEAN &visible ) ;
-
-      // fill GTS pre-arbitrate request
-      // input:
-      //    - request: GTS pre-arbitrate request
-      //    - writeTransID: transaction ID of current writing transaction ID
-      //    - preArbitNodeID: node ID to do pre-arbitrate
-      //    - preArbitList: transaction ID list to be pre-arbitrated
-      // output:
-      //    - requestObject: BSON object contains pre-arbitrate list
-      // return:
-      //    - SDB_OK: succeed to fill request
-      //    - other errors: failed to fill request
-      // NOTE: the node should be a COORD
-      INT32 _fillGTSPreArbitReq( MsgClsGTSPreArbitReq *request,
-                                 const DPS_TRANS_ID &writeTransID,
-                                 DPS_TRANSID_NODEID preArbitNodeID,
-                                 const TRANS_ID_LIST &preArbitList,
-                                 bson::BSONObj &requestObject ) ;
 
    protected:
       // pointer to transCB

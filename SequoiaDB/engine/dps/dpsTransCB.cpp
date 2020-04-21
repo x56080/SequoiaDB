@@ -446,6 +446,7 @@ namespace engine
 
       BOOLEAN committed = FALSE ;
       BOOLEAN multiGroups = TRUE ;
+      stpLogicalTimeUS commitTime ;
 
       visible = FALSE ;
 
@@ -454,7 +455,7 @@ namespace engine
                   "record transaction should be wait commit status" ) ;
       SDB_ASSERT( NULL != _gtsAgent, "GTS agent is invalid" ) ;
 
-      // record transaction committed after current transaction
+      // record transaction pre-committed after current transaction
       // the record should not be seen
       if ( transBeginTime <= recTransInfo._preCommitTime )
       {
@@ -469,7 +470,8 @@ namespace engine
                                        recTransID,
                                        eduCB->getTransTimeout(),
                                        committed,
-                                       multiGroups ) ;
+                                       multiGroups,
+                                       commitTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to wait transaction [%s] to "
                    "commit, rc: %d",
                    dpsTransIDToString( recTransID ).c_str(), rc ) ;
@@ -481,6 +483,14 @@ namespace engine
          PD_LOG( PDWARNING, "Failed to wait transaction [%s] "
                  "to be committed, it is rollbacked",
                  dpsTransIDToString( recTransID ).c_str() ) ;
+         visible = FALSE ;
+         goto done ;
+      }
+
+      // record transaction committed after current transaction
+      // the record should not be seen
+      if ( transBeginTime <= recTransInfo._preCommitTime )
+      {
          visible = FALSE ;
          goto done ;
       }
@@ -541,6 +551,13 @@ namespace engine
       //       without getting transaction information for record
       if ( transID.getGlobSN() < minCheckSN )
       {
+         // use FALSE visible
+         goto done ;
+      }
+      // check if we already have arbitration done
+      if ( eduCB->getTransExecutor()->findArbit( recTransID, visible ) )
+      {
+         // use visible from find result
          goto done ;
       }
 
@@ -554,44 +571,53 @@ namespace engine
 #if defined (_DEBUG)
       PD_LOG( PDDEBUG, "Check local visibility for current transaction [%s] "
               "with begin time [%s] against record transaction [%s] with "
-              "status [%s], begin time [%s], pre-commit time [%s]",
+              "status [%s], begin time [%s], pre-commit time [%s], "
+              "commit time [%s]",
               dpsTransIDToString( transID ).c_str(),
               dpsTransTimeToString( transBeginTime ).c_str(),
               dpsTransIDToString( recTransID ).c_str(),
               dpsTransStatusToString( recTransInfo._status ),
               dpsTransTimeToString( recTransInfo._beginTime ).c_str(),
-              dpsTransTimeToString( recTransInfo._preCommitTime ).c_str() ) ;
+              dpsTransTimeToString( recTransInfo._preCommitTime ).c_str(),
+              dpsTransTimeToString( recTransInfo._commitTime ).c_str() ) ;
 #endif
 
       if ( transBeginTime < recTransInfo._beginTime )
       {
-         if ( DPS_TRANS_DOING == recTransInfo._status ||
-              DPS_TRANS_DOING_INTERRUPT == recTransInfo._status ||
-              DPS_TRANS_WAIT_COMMIT == recTransInfo._status ||
-              DPS_TRANS_COMMIT == recTransInfo._status )
-         {
-            // current transaction is definitely started after record
-            // transaction, the record should not be seen by the
-            // transaction
-            visible = FALSE ;
-            goto done ;
-         }
+         // current transaction is definitely started before record
+         // transaction, the record should not be seen by the
+         // transaction
+         // use FALSE visible
+         goto done ;
       }
-      else
+      else if ( ( DPS_TRANS_DOING == recTransInfo._status ||
+                  DPS_TRANS_DOING_INTERRUPT == recTransInfo._status ) &&
+                transBeginTime <=
+                      recTransInfo._beginTime.getUpperLogicalTime() )
       {
-         if ( ( DPS_TRANS_DOING == recTransInfo._status ||
-                DPS_TRANS_DOING_INTERRUPT == recTransInfo._status ) &&
-              transBeginTime <= recTransInfo._beginTime.getUpperLogicalTime() )
-         {
-            // in this case, record transaction could not be committed
-            // before current transaction ( should be committed after an
-            // interval given by time error of record transaction )
-            // current transaction is definitely started after record
-            // transaction, the record should not be seen by the
-            // transaction
-            visible = FALSE ;
-            goto done ;
-         }
+         // in this case, record transaction could not be committed
+         // before current transaction ( should be committed after an
+         // interval given by time error of record transaction )
+         // current transaction is definitely started before record
+         // transaction, the record should not be seen by the
+         // transaction
+         // use FALSE visible
+         goto done ;
+      }
+      else if ( DPS_TRANS_PRE_WAIT_COMMIT == recTransInfo._status )
+      {
+         // record transaction is processing pre-commit request
+         // wait for status change
+         rc = _gtsAgent->waitArbitChange( eduCB,
+                                          recTransID,
+                                          DPS_TRANS_PRE_WAIT_COMMIT,
+                                          eduCB->getTransTimeout(),
+                                          recTransInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to wait transaction [%s] "
+                      "status change, rc: %d",
+                      dpsTransIDToString( recTransID ).c_str(), rc ) ;
+         SDB_ASSERT( DPS_TRANS_PRE_WAIT_COMMIT != recTransInfo._status,
+                     "should not be PRE_WAIT_COMMIT for record transaction" ) ;
       }
 
       // record transaction is started before current transaction with time
@@ -629,7 +655,7 @@ namespace engine
             //       should be at least wait-commit status, in arbitration of
             //       wait-commit status, it should wait for commit, so it is
             //       safe to decide the visibility here
-            if ( transBeginTime > recTransInfo._preCommitTime )
+            if ( transBeginTime > recTransInfo._commitTime )
             {
                visible = TRUE ;
             }
@@ -643,7 +669,7 @@ namespace engine
             // rollback, or this is an old version record which was not
             // cleared in time
             // so, the record should not be seen anyway
-            visible = FALSE ;
+            // use FALSE visible
             break ;
          }
          case DPS_TRANS_DOING_INTERRUPT :
@@ -651,7 +677,7 @@ namespace engine
             // if transaction is DOING INTERRUPTED status,
             // it is going to rollback, so this record could not be seen
             // like ROLLBACK status
-            visible = FALSE ;
+            // use FALSE visible
             break ;
          }
          case DPS_TRANS_UNKNOWN :
@@ -663,9 +689,14 @@ namespace engine
          }
          default :
          {
+            PD_LOG( PDWARNING, "Invalid transaction status [%s]/[%d] for "
+                    "transaction [%s]",
+                    dpsTransStatusToString( recTransInfo._status ),
+                    recTransInfo._status,
+                    dpsTransIDToString( recTransID ).c_str() ) ;
             SDB_ASSERT( FALSE, "invalid status, should not go here" ) ;
-            visible = FALSE ;
-            break ;
+            rc = SDB_SYS ;
+            goto error ;
          }
       }
 
@@ -681,7 +712,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB__ISLOCALVISIBLE, "dpsTransCB::_isLocalVisible" )
-   INT32 dpsTransCB::_isLocalVisible( const DPS_TRANS_ID &recTransID,
+   INT32 dpsTransCB::_isLocalVisible( pmdEDUCB *eduCB,
+                                      const DPS_TRANS_ID &recTransID,
                                       const DPS_TRANS_ID &transID,
                                       const stpLogicalTimeUS &transBeginTime,
                                       BOOLEAN &visible )
@@ -689,6 +721,8 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB__ISLOCALVISIBLE ) ;
+
+      SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
 
       dpsTransBackInfo recTransInfo ;
 
@@ -714,25 +748,83 @@ namespace engine
 #if defined (_DEBUG)
       PD_LOG( PDDEBUG, "Check local visibility for current transaction [%s] "
               "with begin time [%s] against record transaction [%s] with "
-              "status [%s], begin time [%s], pre-commit time [%s]",
+              "status [%s], begin time [%s], pre-commit time [%s], "
+              "commit time [%s]",
               dpsTransIDToString( transID ).c_str(),
               dpsTransTimeToString( transBeginTime ).c_str(),
               dpsTransIDToString( recTransID ).c_str(),
               dpsTransStatusToString( recTransInfo._status ),
               dpsTransTimeToString( recTransInfo._beginTime ).c_str(),
-              dpsTransTimeToString( recTransInfo._preCommitTime ).c_str() ) ;
+              dpsTransTimeToString( recTransInfo._preCommitTime ).c_str(),
+              dpsTransTimeToString( recTransInfo._commitTime ).c_str() ) ;
 #endif
+
+      if ( DPS_TRANS_PRE_WAIT_COMMIT == recTransInfo._status )
+      {
+         // record transaction is processing pre-commit request
+         // wait for status change
+         rc = _gtsAgent->waitArbitChange( eduCB,
+                                          recTransID,
+                                          DPS_TRANS_PRE_WAIT_COMMIT,
+                                          eduCB->getTransTimeout(),
+                                          recTransInfo ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to wait transaction [%s] "
+                      "status change, rc: %d",
+                      dpsTransIDToString( recTransID ).c_str(), rc ) ;
+         SDB_ASSERT( DPS_TRANS_PRE_WAIT_COMMIT != recTransInfo._status,
+                     "should not be PRE_WAIT_COMMIT for record transaction" ) ;
+      }
 
       switch ( recTransInfo._status )
       {
          case DPS_TRANS_DOING :
-         case DPS_TRANS_DOING_INTERRUPT :
          {
-            // transaction is still doing, the record should not been seen
+            // transaction is still doing, the record should not be seen
             visible = FALSE ;
             break ;
          }
          case DPS_TRANS_WAIT_COMMIT :
+         {
+            if ( OSS_BIT_TEST( recTransInfo._commitFlag,
+                               TRANS_COMMIT_FLAG_MULTIGROUPS ) )
+            {
+               // transaction is waiting commit for multiple groups,
+               // need to wait transaction committed to find out commit time
+               BOOLEAN committed = FALSE ;
+               BOOLEAN multiGroups = FALSE ;
+               stpLogicalTimeUS commitTime ;
+               rc = _gtsAgent->waitArbitCommit( eduCB, recTransID,
+                                                eduCB->getTransTimeout(),
+                                                committed, multiGroups,
+                                                commitTime ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to wait transaction [%s] to "
+                            "commit, rc: %d",
+                            dpsTransIDToString( recTransID ).c_str(), rc ) ;
+
+               // if transaction is committed, and current transaction is
+               // started after commit of record transaction, the record should
+               // be seen by transaction
+               // otherwise, the record should not be seen
+               if ( committed &&
+                    transBeginTime.getTime() > commitTime.getTime() )
+               {
+                  visible = TRUE ;
+               }
+            }
+            else
+            {
+               // transaction is waiting commit in this group only
+               // in this case, commit time is the same as pre-commit time
+               // check pre-commit time will be enough
+               if ( transBeginTime.getTime() >
+                           recTransInfo._preCommitTime.getTime() )
+               {
+                  visible = TRUE ;
+               }
+            }
+
+            break ;
+         }
          case DPS_TRANS_COMMIT :
          {
             // the transaction of record is committed, check with commit
@@ -740,19 +832,21 @@ namespace engine
             // transaction had been committed, the record is visible to current
             // transaction
             if ( transBeginTime.getTime() >
-                 recTransInfo._preCommitTime.getTime() )
+                        recTransInfo._commitTime.getTime() )
             {
                visible = TRUE ;
             }
             break ;
          }
          case DPS_TRANS_ROLLBACK :
+         case DPS_TRANS_DOING_INTERRUPT :
          {
             // if rollbacked, record should be rollbacked to old version
             // before this transaction, if we could see rollbacked
             // transaction ID, which means the transaction is doing
             // rollback, or this is an old version record which was not
             // cleared in time
+            // if doing interrupted, the transaction is going to rollback
             // so, the record should not been seen anyway
             visible = FALSE ;
             break ;
@@ -841,8 +935,7 @@ namespace engine
       }
       else if ( isGlobTransArbitOn() &&
                 recTransID.getNodeID() != transID.getNodeID() &&
-                _TransIDH16 != recTransID.getNodeID() &&
-                _TransIDH16 != transID.getNodeID() )
+                _TransIDH16 != recTransID.getNodeID() )
       {
          // from different node, check visible in global cluster with
          // time error
@@ -858,7 +951,8 @@ namespace engine
          // from the same node, or from this node, or arbitration is off
          // check visible in this node
          // NOTE: we could check visible without time error
-         rc = _isLocalVisible( recTransID, transID, transBeginTime, visible ) ;
+         rc = _isLocalVisible( eduCB, recTransID, transID, transBeginTime,
+                               visible ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check local visible for "
                       "transaction [%s] against record transaction [%s], "
                       "rc: %d", dpsTransIDToString( transID ).c_str(),
@@ -1244,22 +1338,17 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBTRANSPRECOMMITTIME, "dpsTransCB::getGlobTransPreCommitTime" )
-   INT32 dpsTransCB::getGlobTransPreCommitTime( pmdEDUCB *eduCB,
-                                                stpLogicalTimeUS &preCommitTime )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBTRANSTIME_EXP, "dpsTransCB::getGlobTransTime" )
+   INT32 dpsTransCB::getGlobTransTime( pmdEDUCB *eduCB,
+                                       UINT64 expectTimeUS,
+                                       stpLogicalTimeUS &time,
+                                       INT32 timeout )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBTRANSPRECOMMITTIME ) ;
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBTRANSTIME_EXP ) ;
 
       SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
-      SDB_ASSERT( eduCB->isGlobTrans(), "should be in global transaction" ) ;
-
-      stpLogicalTimeUS beginTime = eduCB->getTransBeginTime() ;
-
-      // we should commit transaction after an interval given by time error
-      UINT64 expectingTimeUS = beginTime.getTime() +
-                               beginTime.getTimeErrorUS() ;
 
    retry:
       // check if interrupted
@@ -1267,21 +1356,19 @@ namespace engine
                 "Failed to get global logical time for pre-commit, "
                 "it is interrupted" ) ;
 
-      rc = getGlobTransTime( preCommitTime,
-                             (INT32)( eduCB->getTransTimeout() ) ) ;
+      rc = getGlobTransTime( time, (INT32)( eduCB->getTransTimeout() ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction time, "
                    "rc: %d", rc ) ;
 
-      if ( !isGlobTransArbitOn() || eduCB->isAutoCommitTrans() )
+      if ( 0LL == expectTimeUS )
       {
-         // if global transaction arbitration is not enabled, or it is
-         // auto-commit, no need to wait
+         // no need to wait
          goto done ;
       }
-      else if ( expectingTimeUS > preCommitTime.getTime() )
+      else if ( expectTimeUS > time.getTime() )
       {
          // there is an interval to reach expecting time, sleep and retry
-         UINT32 sleepTimeUS = expectingTimeUS - preCommitTime.getTime() ;
+         UINT32 sleepTimeUS = expectTimeUS - time.getTime() ;
          if ( sleepTimeUS > STP_MAX_TIME_ERROR_US )
          {
             sleepTimeUS = STP_MAX_TIME_ERROR_US ;
@@ -1289,19 +1376,139 @@ namespace engine
          ossSleep( STP_MICROSEC_TO_MILLISEC( sleepTimeUS ) ) ;
          goto retry ;
       }
-      else if ( expectingTimeUS == preCommitTime.getTime() )
+      else if ( expectTimeUS == time.getTime() )
       {
          // we are close to expecting time, retry immediately
          goto retry ;
       }
 
    done:
-      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETGLOBTRANSPRECOMMITTIME, rc ) ;
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETGLOBTRANSTIME_EXP, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBPRECOMMITTIME, "dpsTransCB::getGlobPreCommitTime" )
+   INT32 dpsTransCB::getGlobPreCommitTime( pmdEDUCB *eduCB,
+                                           stpLogicalTimeUS &preCommitTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBPRECOMMITTIME ) ;
+
+      SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
+      SDB_ASSERT( eduCB->isGlobTrans(), "should be in global transaction" ) ;
+
+      UINT64 expectTimeUS = 0LL ;
+
+      // we should commit transaction after an interval given by time error
+      if ( !eduCB->isAutoCommitTrans() )
+      {
+         expectTimeUS = eduCB->getTransBeginTime().getUpperTime() ;
+      }
+
+      rc = getGlobTransTime( eduCB, expectTimeUS, preCommitTime,
+                             (INT32)( eduCB->getTransTimeout() ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
+                   "pre-commit of transaction [%s], rc: %d",
+                   dpsTransIDToString( eduCB->getTransID() ).c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETGLOBPRECOMMITTIME, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETLOCALPRECOMMITTIME, "dpsTransCB::getLocalPreCommitTime" )
+   INT32 dpsTransCB::getLocalPreCommitTime( const stpLogicalTimeUS &currentTime,
+                                            stpLogicalTimeUS &preCommitTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETLOCALPRECOMMITTIME ) ;
+
+      preCommitTime = currentTime ;
+
+      ossScopedLock _lock( &_CBMapMutex, SHARED ) ;
+
+      // reverse search
+      for ( TRANS_CB_MAP::reverse_iterator iterCB = _cbMap.rbegin() ;
+            _cbMap.rend() != iterCB ;
+            ++ iterCB )
+      {
+         if ( !iterCB->first.isGlobTrans() )
+         {
+            // no global transaction anymore
+            // stop searching
+            break ;
+         }
+         else if ( iterCB->first.getLogicalTime() + STP_MAX_TIME_ERROR_US <
+                                                    preCommitTime.getTime() )
+         {
+            // no transaction which might started before pre-commit time with
+            // maximum time error anymore
+            // stop searching
+            break ;
+         }
+         else
+         {
+            stpLogicalTimeUS curBeginTime =
+                                       iterCB->second->getTransBeginTime() ;
+            if ( curBeginTime > preCommitTime )
+            {
+               // in this case, the found transaction might read data from
+               // the pre-committing transaction, and it will be considered to
+               // be visible to changes of the pre-committing transaction if
+               // we do not delay the pre-commit time
+               // need delay pre-commit time, make sure the new pre-commit time
+               // must after the begin time of the found transaction with
+               // time error
+               preCommitTime.setTime(
+                     curBeginTime.getTime() +
+                     OSS_MAX( curBeginTime.getTimeErrorUS(),
+                              preCommitTime.getTimeErrorUS() ) ) ;
+            }
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETLOCALPRECOMMITTIME, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBCOMMITTIME, "dpsTransCB::getGlobCommitTime" )
+   INT32 dpsTransCB::getGlobCommitTime( pmdEDUCB *eduCB,
+                                        stpLogicalTimeUS &commitTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBPRECOMMITTIME ) ;
+
+      SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
+      SDB_ASSERT( eduCB->isGlobTrans(), "should be in global transaction" ) ;
+
+      // commit time should after pre-commit time
+      // NOTE: pre-commit time might be delayed by DATA nodes
+      UINT64 expectTimeUS = eduCB->getTransPreCommitTime().getTime() ;
+
+      rc = getGlobTransTime( eduCB, expectTimeUS, commitTime,
+                             (INT32)( eduCB->getTransTimeout() ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
+                   "pre-commit of transaction [%s], rc: %d",
+                   dpsTransIDToString( eduCB->getTransID() ).c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETGLOBPRECOMMITTIME, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETTRANSINFO_INFO, "dpsTransCB::getTransInfo" )
    BOOLEAN dpsTransCB::getTransInfo( const DPS_TRANS_ID &transID,
@@ -1324,6 +1531,8 @@ namespace engine
             info._status = histInfo._status ;
             info._beginTime = histInfo._beginTime ;
             info._preCommitTime = histInfo._preCommitTime ;
+            info._commitTime = histInfo._commitTime ;
+            info._commitFlag = histInfo._commitFlag ;
             found = TRUE ;
          }
          else
@@ -1518,161 +1727,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_DOPREARBITGLOBTRANS, "dpsTransCB::doPreArbitGlobTrans" )
-   INT32 dpsTransCB::doPreArbitGlobTrans( const DPS_TRANS_ID &writeTransID,
-                                          const stpLogicalTimeUS &currentTime )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_DPSTRANSCB_DOPREARBITGLOBTRANS ) ;
-
-      SDB_ASSERT( NULL != _gtsAgent, "GTS agent is invalid" ) ;
-
-      TRANS_ID_LIST preArbitList ;
-
-      DPS_TRANS_ID origWriteTransID = writeTransID.getOrigTransID() ;
-
-      // get candidate transactions for pre-arbitration
-      rc = _getPreArbitTrans( origWriteTransID, currentTime, preArbitList ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get pre-arbitrate transactions, "
-                   "rc: %d", rc ) ;
-
-      // further check for candidate transactions
-      rc = _filterPreArbitTrans( currentTime, preArbitList ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to filter pre-arbitrate transactions, "
-                   "rc: %d", rc ) ;
-
-      // do pre-arbitration for write transaction
-      rc = _gtsAgent->preArbitGlobTrans( origWriteTransID, preArbitList ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to do pre-arbitrate for write "
-                   "transaction [%s], rc: %d",
-                   dpsTransIDToString( origWriteTransID ).c_str(), rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB_DPSTRANSCB_DOPREARBITGLOBTRANS, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB__GETPREARBITTRANS, "dpsTransCB::_getPreArbitTrans" )
-   INT32 dpsTransCB::_getPreArbitTrans( const DPS_TRANS_ID &writeTransID,
-                                        const stpLogicalTimeUS &currentTime,
-                                        TRANS_ID_LIST &preArbitList )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_DPSTRANSCB__GETPREARBITTRANS ) ;
-
-      // use minimum arbitTran as bound to search
-      DPS_TRANS_ID minArbitTran ;
-      DPS_TRANSID_SN minArbitSN = currentTime.getTime() ;
-
-      DPS_SET_TRANSID_SN_GLOBAL( minArbitSN ) ;
-      DPS_ADJUST_TRANSID_SN( minArbitSN, -STP_MAX_TIME_ERROR_US ) ;
-
-      minArbitTran.resetSN( minArbitSN ) ;
-      minArbitTran.setGlobTrans() ;
-
-      ossScopedLock lock( &_CBMapMutex, SHARED ) ;
-
-      // get transactions started after minimum bound
-      // NOTE: we are locking for read transactions, it is the only way to get
-      //       from CB map
-      for ( TRANS_CB_MAP::iterator iter = _cbMap.lower_bound( minArbitTran ) ;
-            _cbMap.end() != iter ;
-            ++ iter )
-      {
-         const DPS_TRANS_ID &transID = iter->first ;
-
-         // transaction begin time is set before adding into CB map and reset
-         // after remove from CB map, so it is safe to acquire
-         stpLogicalTimeUS transBeginTime = iter->second->getTransBeginTime() ;
-
-         // assert the transaction is global
-         // NOTE: minGlobTran already contains global transaction tag
-         SDB_ASSERT( transID.isGlobTrans(),
-                     "transaction should be global" ) ;
-
-         // transaction is filtered out in below cases:
-         // - transaction is from local node, it won't have stale read in
-         //   other DATA nodes
-         // - transaction is from the same node of write transaction, then
-         //   they could be ordered by that node ( probably it is a COORD )
-         // - transaction begin before current time with time error, since the
-         //   write transaction could not commit before current time with time
-         //   error, so the write transaction is always not visible to this
-         //   transaction
-         if ( transID.getNodeID() == _TransIDH16 ||
-              transID.getNodeID() == writeTransID.getNodeID() ||
-              transBeginTime <= currentTime )
-         {
-            continue ;
-         }
-
-         try
-         {
-            preArbitList.push_back( transID ) ;
-         }
-         catch ( exception &e )
-         {
-            PD_LOG( PDERROR, "Failed to get pre-arbitrate transactions, "
-                    "error: %s", e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_DPSTRANSCB__GETPREARBITTRANS, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB__FILTERPREARBITTRANS, "dpsTransCB::_filterPreArbitTrans" )
-   INT32 dpsTransCB::_filterPreArbitTrans( const stpLogicalTimeUS &currentTime,
-                                           TRANS_ID_LIST &preArbitList )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_DPSTRANSCB__FILTERPREARBITTRANS ) ;
-
-      // filter out non-doing transactions
-
-      TRANS_ID_LIST::iterator iter = preArbitList.begin() ;
-
-      while ( preArbitList.end() != iter )
-      {
-         const DPS_TRANS_ID &transID = ( *iter ) ;
-         dpsTransBackInfo transInfo ;
-
-         // NOTE: if not found, will return unknown status in transaction info
-         getTransInfo( transID, transInfo ) ;
-
-         // filter out below cases
-         // - status of transaction is not doing and unknown, it might be
-         //   already committed or rollbacked
-         //   NOTE: read-only transaction doesn't have DPS log, so there is no
-         //         transaction info in transaction map, will return unknown
-         if ( DPS_TRANS_DOING != transInfo._status &&
-              DPS_TRANS_UNKNOWN != transInfo._status )
-         {
-            iter = preArbitList.erase( iter ) ;
-         }
-         else
-         {
-            ++ iter ;
-         }
-      }
-
-      PD_TRACE_EXITRC( SDB_DPSTRANSCB__FILTERPREARBITTRANS, rc ) ;
-
-      return rc ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB__GETTRANSINFO_INFO, "dpsTransCB::_getTransInfo" )
    BOOLEAN dpsTransCB::_getTransInfo( const DPS_TRANS_ID &transID,
                                       dpsTransBackInfo &info )
@@ -1690,6 +1744,8 @@ namespace engine
          info._status = (DPS_TRANS_STATUS)( iterTrans->second._status ) ;
          info._beginTime = iterTrans->second._beginTime ;
          info._preCommitTime = iterTrans->second._preCommitTime ;
+         info._commitTime = iterTrans->second._commitTime ;
+         info._commitFlag = iterTrans->second._commitFlag ;
          found = TRUE ;
       }
 
@@ -1715,77 +1771,14 @@ namespace engine
          histInfo._lsn = iterHist->second._lsn ;
          histInfo._beginTime = iterHist->second._beginTime ;
          histInfo._preCommitTime = iterHist->second._preCommitTime ;
+         histInfo._commitTime = iterHist->second._commitTime ;
+         histInfo._commitFlag = iterHist->second._commitFlag ;
          found = TRUE ;
       }
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB__GETTRANSHISTINFO_INFO ) ;
 
       return found ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ONPREARBITGLOBTRANS, "dpsTransCB::onPreArbitGlobTrans" )
-   INT32 dpsTransCB::onPreArbitGlobTrans( const DPS_TRANS_ID &writeTransID,
-                                          const TRANS_ID_LIST &preArbitList )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_DPSTRANSCB_ONPREARBITGLOBTRANS ) ;
-
-      if ( !writeTransID.isGlobTrans() ||
-            preArbitList.empty() )
-      {
-         goto done ;
-      }
-
-      for ( TRANS_ID_LIST::const_iterator iter = preArbitList.begin() ;
-            preArbitList.end() != iter ;
-            ++ iter )
-      {
-         const DPS_TRANS_ID &readTransID = ( *iter ) ;
-
-         if ( _TransIDH16 == readTransID.getNodeID() &&
-              readTransID.isGlobTrans() )
-         {
-            pmdEDUCB *readEDUCB = NULL ;
-
-            ossScopedLock lock( &_CBMapMutex, SHARED ) ;
-
-            TRANS_CB_MAP::iterator iter = _cbMap.find( readTransID ) ;
-            if ( _cbMap.end() == iter )
-            {
-               PD_LOG( PDDEBUG, "Failed to get EDUCB for read "
-                       "transaction [%s], it is not found, ignore",
-                       dpsTransIDToString( readTransID ).c_str() ) ;
-               continue ;
-            }
-
-            readEDUCB = iter->second ;
-            SDB_ASSERT( NULL != readEDUCB,
-                        "EDUCB for read transaction is invalid" ) ;
-
-            rc = readEDUCB->getTransExecutor()->saveArbit( writeTransID,
-                                                           DPS_TRANS_DOING,
-                                                           FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to save arbitrate record "
-                         "for read transaction [%s] with write "
-                         "transaction [%s], rc: %d",
-                         dpsTransIDToString( readTransID ).c_str(),
-                         dpsTransIDToString( writeTransID ).c_str(),
-                         rc ) ;
-
-            PD_LOG( PDDEBUG, "Finish pre-arbitrate: save arbitrate record for "
-                    "read transaction [%s] with write transaction [%s]",
-                    dpsTransIDToString( readTransID ).c_str(),
-                    dpsTransIDToString( writeTransID ).c_str() ) ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_DPSTRANSCB_ONPREARBITGLOBTRANS, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SETPRIMARYACTIVETIME, "dpsTransCB::setPrimaryActiveTime" )
@@ -2073,6 +2066,7 @@ namespace engine
                histInfo._status = status ;
                histInfo._lsn = it->second._lsn ;
                histInfo._beginTime = it->second._beginTime ;
+               histInfo._commitFlag = it->second._commitFlag ;
                if ( transID.isAutoCommit() )
                {
                   // auto-commit doesn't have pre-commit
@@ -2081,11 +2075,20 @@ namespace engine
                   histInfo._preCommitTime = transTime ;
                   histInfo._preCommitTime.setTimeError(
                                     histInfo._beginTime.getTimeError() ) ;
+                  histInfo._commitTime = transTime ;
+                  histInfo._commitTime.setTimeError(
+                                    histInfo._beginTime.getTimeError() ) ;
                }
                else
                {
                   // must have pre-commit, pre-commit time had saved
                   histInfo._preCommitTime = it->second._preCommitTime ;
+                  histInfo._preCommitTime.setTimeError(
+                                    histInfo._beginTime.getTimeError() ) ;
+                  // use given transaction time as commit time
+                  histInfo._commitTime = transTime ;
+                  histInfo._commitTime.setTimeError(
+                                    histInfo._beginTime.getTimeError() ) ;
                }
 
                // check if still rollback pending
@@ -2234,9 +2237,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_UPDATETRANSSTATUS, "dpsTransCB::updateTransStatus" )
-   void dpsTransCB::updateTransStatus( const DPS_TRANS_ID &transID,
-                                       INT32 status )
+   INT32 dpsTransCB::updateTransStatus( const DPS_TRANS_ID &transID,
+                                        INT32 status,
+                                        UINT32 commitFlag )
    {
+      INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_UPDATETRANSSTATUS ) ;
 
       DPS_TRANS_ID origID = getTransID( transID ) ;
@@ -2244,12 +2250,29 @@ namespace engine
       ossScopedLock _lock( &_MapMutex, EXCLUSIVE ) ;
 
       TRANS_MAP::iterator iter = _TransMap.find( origID ) ;
+
+      PD_CHECK( _TransMap.end() != iter,
+                SDB_DPS_TRANS_NO_TRANS, error, PDERROR,
+                "Failed to get status for transaction [%s], rc: %d",
+                dpsTransIDToString( transID ).c_str(), rc ) ;
+
       if ( _TransMap.end() != iter )
       {
+         // set status
          iter->second._status = status ;
+         // set flag if needed
+         if ( TRANS_COMMIT_FLAG_EMPTY != commitFlag )
+         {
+            OSS_BIT_SET( iter->second._commitFlag, commitFlag ) ;
+         }
       }
 
-      PD_TRACE_EXIT( SDB_DPSTRANSCB_UPDATETRANSSTATUS ) ;
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_UPDATETRANSSTATUS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ADDTRANSCB, "dpsTransCB::addTransCB" )
@@ -2548,9 +2571,7 @@ namespace engine
                transStatus = DPS_TRANS_WAIT_COMMIT ;
             }
 
-            if ( transID.isGlobTrans() &&
-                 ( DPS_TRANS_WAIT_COMMIT == transStatus ||
-                   transID.isAutoCommit() ) )
+            if ( transID.isGlobTrans() )
             {
                dpsGetTransTimeFromRecord( record, transID, transTime ) ;
             }
@@ -2584,10 +2605,14 @@ namespace engine
    void dpsTransCB::addHisTrans( const DPS_TRANS_ID &transID,
                                  const dpsHisTransStatus &histInfo  )
    {
-      /// non-global auto-commit transaction don't need add to history list
-      /// NOTE: we added committed and rollbacked transactions into history
-      /// TODO: we need to clear with lowTran
-      if ( !transID.isAutoCommit() || transID.isGlobTrans() )
+      /// save history transaction in below cases
+      /// - transaction is global
+      /// - transaction is not global and not auto-commit
+      /// - transaction is not global, but is rollbacked
+      /// NOTE: will be gc by lowTran/expiredTran
+      if ( transID.isGlobTrans() ||
+           ( DPS_TRANS_COMMIT != histInfo._status &&
+             !transID.isAutoCommit() ) )
       {
          DPS_TRANS_ID origID = transID.getOrigTransID() ;
 
@@ -2652,42 +2677,6 @@ namespace engine
             break ;
          }
       }
-   }
-
-   INT32 dpsTransCB::checkTransStatus( const DPS_TRANS_ID &transID,
-                                       DPS_LSN_OFFSET & lsn )
-   {
-      /// first check in-line trans, then check history trans
-      INT32 transStatus = DPS_TRANS_UNKNOWN ;
-      // should use origin transaction ID
-      DPS_TRANS_ID origID = transID.getOrigTransID() ;
-
-      lsn = DPS_INVALID_LSN_OFFSET ;
-
-      {
-         ossScopedLock _lock( &_MapMutex, SHARED ) ;
-         TRANS_MAP::iterator it = _TransMap.find( origID ) ;
-         if ( it != _TransMap.end() )
-         {
-            transStatus = it->second._status ;
-            lsn = it->second._lsn ;
-            goto done ;
-         }
-      }
-
-      {
-         ossScopedLock lock( &_hisMutex, SHARED ) ;
-         TRANS_ID_2_STATUS::iterator it = _hisTransStatus.find( origID ) ;
-         if ( it != _hisTransStatus.end() )
-         {
-            transStatus = it->second._status ;
-            lsn = it->second._lsn ;
-            goto done ;
-         }
-      }
-
-   done:
-      return transStatus ;
    }
 
    void dpsTransCB::addBeginLsn( DPS_LSN_OFFSET beginLsn,

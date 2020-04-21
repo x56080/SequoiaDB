@@ -3508,7 +3508,6 @@ INT32 clientBuildTransactionBegMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transBeginMsg->transID              = 0 ;
    transBeginMsg->transTimeError       = 0 ;
    transBeginMsg->sendTime             = 0 ;
-   transBeginMsg->nextIsWrite          = 0 ;
    ossMemset( transBeginMsg->reserved, 0, sizeof( transBeginMsg->reserved ) ) ;
    if( endianConvert )
    {
@@ -3560,6 +3559,7 @@ INT32 clientBuildTransactionCommitMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transCommitMsg->header.messageLength = len ;
    transCommitMsg->header.routeID.value = 0 ;
    transCommitMsg->header.TID           = ossGetCurrentThreadID() ;
+   transCommitMsg->commitTime           = 0LL ;
 
    offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 ) ;
 

@@ -3183,7 +3183,8 @@ namespace engine
                                     cb->getCurTransLsn(),
                                     cb->getRelatedTransLSN(),
                                     cb->getTransBeginTime(),
-                                    cb->getTransPreCommitTime() ) ;
+                                    cb->getTransPreCommitTime(),
+                                    cb->getTransCommitTime() ) ;
       BOOLEAN        isTransLocked  = FALSE ;
       // delete record related
       dmsRecordID          foundRID ;
@@ -3681,7 +3682,8 @@ namespace engine
                                     cb->getCurTransLsn(),
                                     cb->getRelatedTransLSN(),
                                     cb->getTransBeginTime(),
-                                    cb->getTransPreCommitTime() ) ;
+                                    cb->getTransPreCommitTime(),
+                                    cb->getTransCommitTime() ) ;
       dmsExtRW extRW ;
       dmsRecordRW recordRW ;
       dmsExtent *pExtent            = NULL ;
@@ -4154,7 +4156,8 @@ namespace engine
                                     cb->getCurTransLsn(),
                                     cb->getRelatedTransLSN(),
                                     cb->getTransBeginTime(),
-                                    cb->getTransPreCommitTime() ) ;
+                                    cb->getTransPreCommitTime(),
+                                    cb->getTransCommitTime() ) ;
 
       dmsExtRW         extRW ;
       dmsRecordRW      recordRW ;
