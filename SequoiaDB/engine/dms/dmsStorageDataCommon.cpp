@@ -3905,35 +3905,9 @@ namespace engine
             // when we mark the record deleting or we decide to immediately
             // wipe out the record which means it's no longer visiable to
             // anyone else. It does not matter what's in the record header.
-            if( !pRecord->hasGlobTransID() )
-            {
-               // migrate to V1 record header before we can set transID
-               PD_LOG ( PDDEBUG, 
-                        "In-flight migration of record during delet object(%s) ",
-                        recordRW.toString().c_str() ) ;
-               pRecord->migrateFromV0() ;
-            }
-
-            if( pRecord->hasGlobTransID() )
-            {
-               pRecord->setGlobTransID( transInfo._transID ) ;
-            }
-#if _DEBUG
-            else
-            {
-               // because we don't free up the space occupied in OVF from
-               // record, we should not fail the migration. Here we'll
-               // just dump some debug message. But functional wise, we
-               // can continue.
-               PD_LOG ( PDDEBUG, 
-                        "Failed In-flight migration of record during "
-                        "truely delet object(%s), but we will continue ",
-                        recordRW.toString().c_str() ) ;
-               PD_LOG ( PDDEBUG,
-                        "Record: ",
-                         pRecord->toString().c_str() );
-            }
-#endif
+            //
+            // Finally, we decided not to do so.
+            //
 
             if ( ovfRID.isValid() )
             {
