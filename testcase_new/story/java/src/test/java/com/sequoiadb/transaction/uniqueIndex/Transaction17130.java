@@ -4,178 +4,165 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.testng.Assert;
+import org.bson.util.JSON;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
- * @Description seqDB-17130 : 更新已提交记录与本事务中删除的记录唯一索引重复
+ * @Description seqDB-17130:更新已提交记录与本事务中删除的记录唯一索引重复
  * @author luweikang
  * @date 2019年1月15日
  */
-@Test(groups = { "rc", "ru", "rcuserbs" })
 public class Transaction17130 extends SdbTestBase {
-
-    private String clName = "transCL_17130";
+    private String clName = "cl17130";
+    private String idxName = "idx17130";
     private Sequoiadb sdb = null;
     private DBCollection cl = null;
-    private BSONObject data = null;
-    private BSONObject data2 = null;
-    private BSONObject data3 = null;
-    private BSONObject modifier = null;
-    private DBCursor recordCur = null;
-    private List< BSONObject > expDataList = null;
-    private List< BSONObject > actDataList = null;
+    private List< BSONObject > expDataList = new ArrayList< BSONObject >();
 
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        data = new BasicBSONObject();
-        data.put( "a", 1 );
-        data.put( "b", "testTrans_17130" );
-        data.put( "c", 13700000000L );
-        data.put( "d", "customer transaction type data application." );
+    }
 
-        data2 = new BasicBSONObject();
-        data2.put( "_id", "id17130" );
-        data2.put( "a", 2 );
-        data2.put( "b", 1024 );
-        data2.put( "c", 13700000000L );
-        data2.put( "d", "customer transaction type data application." );
+    @Test(priority = 1)
+    public void testIdIndex1() {
+        BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:'id17130_1'}" );
+        BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:'id17130_2'}" );
+        cl.insert( data1 );
+        cl.insert( data2 );
 
-        expDataList = new ArrayList< BSONObject >();
-        expDataList.add( data );
-        expDataList.add( data2 );
-        cl.insert( expDataList );
-        cl.createIndex( "a", "{a:1}", true, false );
+        try {
+            sdb.beginTransaction();
+            cl.delete( "{_id:'id17130_1'}" );
+            cl.update( "{_id:'id17130_2'}", "{$set:{_id:'id17130_1'}}", "" );
 
-        data3 = new BasicBSONObject();
-        data3.put( "_id", "id17130" );
-        data3.put( "a", 1 );
-        data3.put( "b", "1024_update" );
-        data3.put( "c", 13700000000L );
-        data3.put( "d", "customer transaction type data application." );
+            expDataList.clear();
+            expDataList.add( data1 );
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'_id'}",
+                    expDataList );
 
-        modifier = new BasicBSONObject();
-        modifier.put( "$set", data3 );
+            sdb.rollback();
+
+            expDataList.clear();
+            expDataList.add( data1 );
+            expDataList.add( data2 );
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'_id'}",
+                    expDataList );
+
+        } finally {
+            sdb.rollback();
+            cl.delete( "" );
+        }
 
     }
 
-    @Test
-    public void test1() {
-        Sequoiadb transDB = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+    @Test(priority = 2)
+    public void testIdIndex2() {
+        BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:'id17130_1'}" );
+        BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:'id17130_2'}" );
+        cl.insert( data1 );
+        cl.insert( data2 );
+
         try {
-            transDB.beginTransaction();
-            DBCollection transCL = transDB.getCollectionSpace( csName )
-                    .getCollection( clName );
-            // delete record R2
-            transCL.delete( new BasicBSONObject( "a", data2.get( "a" ) ) );
-            // update record R1 to R3 same as the R2
-            transCL.update( new BasicBSONObject( "a", 1 ), modifier, null );
+            sdb.beginTransaction();
+            cl.delete( "{_id:'id17130_1'}" );
+            cl.update( "{_id:'id17130_2'}", "{$set:{_id:'id17130_1'}}", "" );
+
+            sdb.commit();
 
             expDataList.clear();
-            expDataList.add( data3 );
+            expDataList.add( data1 );
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'_id'}",
+                    expDataList );
 
-            recordCur = cl.query( null, null, null, "{'': null}" );
-            actDataList = TransUtils.getReadActList( recordCur );
-            Assert.assertEquals( actDataList, expDataList );
-            actDataList.clear();
-
-            recordCur = cl.query( null, null, null, "{'': 'a'}" );
-            actDataList = TransUtils.getReadActList( recordCur );
-            Assert.assertEquals( actDataList, expDataList );
-            actDataList.clear();
-
-            transDB.rollback();
         } finally {
-            transDB.commit();
-            if ( transDB != null ) {
-                transDB.close();
-            }
+            sdb.commit();
+            cl.delete( "" );
         }
-
-        expDataList.clear();
-        expDataList.add( data );
-        expDataList.add( data2 );
-
-        recordCur = cl.query( null, null, null, "{'': null}" );
-        actDataList = TransUtils.getReadActList( recordCur );
-        Assert.assertEquals( actDataList, expDataList );
-        actDataList.clear();
-
-        recordCur = cl.query( null, null, null, "{'': 'a'}" );
-        actDataList = TransUtils.getReadActList( recordCur );
-        Assert.assertEquals( actDataList, expDataList );
-        actDataList.clear();
 
     }
 
-    @Test
-    public void test2() {
-        Sequoiadb transDB = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+    @Test(priority = 3)
+    public void testCommonUniqueIdx1() {
+        cl.createIndex( idxName, "{a:1}", true, true );
+        BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:1,a:'id17130_1'}" );
+        BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:2,a:'id17130_2'}" );
+        cl.insert( data1 );
+        cl.insert( data2 );
+
         try {
-            transDB.beginTransaction();
-            DBCollection transCL = transDB.getCollectionSpace( csName )
-                    .getCollection( clName );
-            // delete record R2
-            transCL.delete( new BasicBSONObject( "a", data2.get( "a" ) ) );
-            // update record R1 to R3 same as the R2
-            transCL.update( new BasicBSONObject( "a", 1 ), modifier, null );
+            sdb.beginTransaction();
+            cl.delete( "{a:'id17130_1'}" );
+            cl.update( "{a:'id17130_2'}", "{$set:{a:'id17130_1'}}", "" );
 
             expDataList.clear();
+            BSONObject data3 = ( BSONObject ) JSON
+                    .parse( "{_id:2,a:'id17130_1'}" );
             expDataList.add( data3 );
+            TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expDataList );
 
-            recordCur = cl.query( null, null, null, "{'': null}" );
-            actDataList = TransUtils.getReadActList( recordCur );
-            Assert.assertEquals( actDataList, expDataList );
-            actDataList.clear();
+            sdb.rollback();
 
-            recordCur = cl.query( null, null, null, "{'': 'a'}" );
-            actDataList = TransUtils.getReadActList( recordCur );
-            Assert.assertEquals( actDataList, expDataList );
-            actDataList.clear();
+            expDataList.clear();
+            expDataList.add( data1 );
+            expDataList.add( data2 );
+            TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expDataList );
 
-            transDB.commit();
         } finally {
-            transDB.commit();
-            if ( transDB != null ) {
-                transDB.close();
-            }
+            sdb.rollback();
+            cl.delete( "" );
+            cl.dropIndex( idxName );
         }
 
-        recordCur = cl.query( null, null, null, "{'': null}" );
-        actDataList = TransUtils.getReadActList( recordCur );
-        Assert.assertEquals( actDataList, expDataList );
-        actDataList.clear();
+    }
 
-        recordCur = cl.query( null, null, null, "{'': 'a'}" );
-        actDataList = TransUtils.getReadActList( recordCur );
-        Assert.assertEquals( actDataList, expDataList );
-        actDataList.clear();
+    @Test(priority = 4)
+    public void testCommonUniqueIdx2() {
+        cl.createIndex( idxName, "{a:1}", true, true );
+        BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:1,a:'id17130_1'}" );
+        BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:2,a:'id17130_2'}" );
+        cl.insert( data1 );
+        cl.insert( data2 );
 
-        cl.delete( "{'a': {'$isnull' :0}}" );
-        Assert.assertEquals( cl.getCount(), 0 );
+        try {
+            sdb.beginTransaction();
+            cl.delete( "{a:'id17130_1'}" );
+            cl.update( "{a:'id17130_2'}", "{$set:{a:'id17130_1'}}", "" );
+
+            sdb.commit();
+
+            expDataList.clear();
+            BSONObject data3 = ( BSONObject ) JSON
+                    .parse( "{_id:2,a:'id17130_1'}" );
+            expDataList.add( data3 );
+            TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expDataList );
+
+        } finally {
+            sdb.commit();
+            cl.delete( "" );
+            cl.dropIndex( idxName );
+        }
 
     }
 
     @AfterClass
     public void tearDown() {
         sdb.getCollectionSpace( csName ).dropCollection( clName );
-        if ( recordCur != null ) {
-            recordCur.close();
-        }
-        if ( sdb != null ) {
-            sdb.close();
-        }
+        sdb.close();
     }
 
 }

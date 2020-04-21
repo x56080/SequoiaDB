@@ -24,7 +24,6 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @author yinzhen
  *
  */
-@Test(groups = "ru")
 public class Transaction18212A extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String csName = "cs18212A";

@@ -17,18 +17,18 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @Author zhaoyu
  * @Date 2019年4月24日
  */
-@Test(groups = { "rc", "ru", "rcuserbs" })
 public class Transaction18304 extends SdbTestBase {
 
-    private String clName = "transCL_18304";
+    private String clName = "cl18304";
     private Sequoiadb sdb = null;
     private DBCollection cl = null;
 
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        cl.createIndex( "a", "{a:1}", true, false );
+        cl = sdb.getCollectionSpace( csName ).createCollection( clName,
+                ( BSONObject ) JSON.parse( "{AutoIncrement :{Field:'a'}}" ) );
+        cl.createIndex( "a", "{a:1}", true, true );
     }
 
     @Test
@@ -39,7 +39,7 @@ public class Transaction18304 extends SdbTestBase {
         cl.insert( insertR1 );
         try {
             cl.insert( insertR1 );
-            Assert.fail( "can not insert duplicate key" );
+            Assert.fail( "Need throw error -38." );
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(), -38 );
         } finally {

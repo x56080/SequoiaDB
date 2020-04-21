@@ -21,7 +21,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @author zhaoyu
  *
  */
-@Test(groups = "ru")
 public class Transaction22085 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl22085";

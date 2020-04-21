@@ -44,7 +44,6 @@
         </groups>
         <packages>
             <package name="com.sequoiadb.transaction.rc" />
-            <package name="com.sequoiadb.transaction.uniqueIndex" />
             <package name="com.sequoiadb.transaction.unlock" />
         </packages>
     </test>
@@ -58,7 +57,6 @@
         <packages>
             <package name="com.sequoiadb.transaction" />
             <package name="com.sequoiadb.transaction.ru" />
-            <package name="com.sequoiadb.transaction.uniqueIndex" />
             <package name="com.sequoiadb.transaction.metadata" />
             <package name="com.sequoiadb.transaction.unlock" />
             <package name="com.sequoiadb.transaction.session" />
@@ -89,19 +87,6 @@
         </packages>
     </test>
 
-    <test name="rusync" parallel="classes" thread-count="1">
-        <groups>
-            <run>
-                <include name="ru" />
-            </run>
-        </groups>
-        <packages>
-            <package name="com.sequoiadb.transaction.metadataserial" />
-            <package name="com.sequoiadb.transaction.sessionserial" />
-            <package name="com.sequoiadb.transaction.pendingobject" />
-        </packages>
-    </test>
-
     <test name="rcauto" parallel="classes" thread-count="5">
         <groups>
             <run>
@@ -122,6 +107,29 @@
         <packages>
             <package name="com.sequoiadb.transaction.rcuserbs" />
             <package name="com.sequoiadb.transaction.rcwaitlock" />
+        </packages>
+    </test>
+    
+    <test name="rusync" parallel="classes" thread-count="1">
+        <groups>
+            <run>
+                <include name="ru" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.sessionserial" />
+        </packages>
+    </test>
+    
+    <test name="synctest" parallel="classes" thread-count="1">
+        <packages>
+            <package name="com.sequoiadb.transaction.metadataserial" />
+            <package name="com.sequoiadb.transaction.pendingobject" />
+        </packages>
+    </test>
+    
+    <test name="normaltest" parallel="classes" thread-count="5">
+        <packages>
             <package name="com.sequoiadb.transaction.uniqueIndex" />
         </packages>
     </test>

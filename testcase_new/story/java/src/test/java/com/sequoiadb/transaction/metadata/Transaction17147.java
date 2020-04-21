@@ -25,7 +25,6 @@ import com.sequoiadb.transaction.TransUtils;
  * @author yinzhen
  *
  */
-@Test(groups = "ru")
 public class Transaction17147 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb db2 = null;

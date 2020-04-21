@@ -23,7 +23,6 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
-@Test(groups = "ru")
 public class Transaction18220 extends SdbTestBase {
     private String clName = "cl_18220";
     private Sequoiadb sdb = null;

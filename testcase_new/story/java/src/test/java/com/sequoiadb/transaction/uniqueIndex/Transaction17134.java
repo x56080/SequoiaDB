@@ -17,13 +17,13 @@ import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
- * @Description seqDB-17136:回滚的记录与其他事务的记录重复
+ * @Description seqDB-17134:回滚的记录与已提交记录唯一索引重复
  * @author luweikang
  * @date 2019年1月15日
  */
-public class Transaction17136 extends SdbTestBase {
-    private String clName = "cl17136";
-    private String idxName = "idx17136";
+public class Transaction17134 extends SdbTestBase {
+    private String clName = "cl17134";
+    private String idxName = "idx17134";
     private Sequoiadb sdb = null;
     private Sequoiadb sdb2 = null;
     private DBCollection cl = null;
@@ -38,68 +38,49 @@ public class Transaction17136 extends SdbTestBase {
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
     }
 
-    @Test(priority = 1)
-    public void testIdIndex1() {
-        BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:'id17136_1'}" );
-        cl.insert( data1 );
-
-        try {
-            sdb.beginTransaction();
-            cl.delete( "{_id:'id17136_1'}" );
-
-            try {
-                sdb2.beginTransaction();
-                cl2.insert( data1 );
-                Assert.fail( "Need throw error -38." );
-            } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -38 );
-            } finally {
-                sdb2.rollback();
-            }
-
-            expDataList.clear();
-            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'_id'}",
-                    expDataList );
-
-            sdb.rollback();
-
-            expDataList.clear();
-            expDataList.add( data1 );
-            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'_id'}",
-                    expDataList );
-
-        } finally {
-            sdb.rollback();
-            cl.delete( "" );
-        }
-
-    }
-
-    @Test(priority = 2)
+    @Test
     public void testCommonUniqueIdx1() {
-        cl.createIndex( idxName, "{a:1}", true, true );
-        BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:1,a:'id17136_1'}" );
+        BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:1,a:'id17134_1'}" );
+        BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:2,a:'id17134_1'}" );
         cl.insert( data1 );
+        cl.insert( data2 );
 
         try {
             sdb.beginTransaction();
-            cl.delete( "{a:'id17136_1'}" );
+            cl.update( "{_id:2}", "{$set:{a:'id17134_2'}}", "" );
 
+            // 本事务中创建索引
+            try {
+                cl.createIndex( idxName, "{a:1}", true, true );
+                Assert.fail( "Need throw error -38." );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -38 );
+            }
+
+            // 非事务中创建索引
+            try {
+                cl2.createIndex( idxName, "{a:1}", true, true );
+                Assert.fail( "Need throw error -38." );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -38 );
+            }
+
+            // 事务2中创建索引
             try {
                 sdb2.beginTransaction();
-                BSONObject data2 = ( BSONObject ) JSON
-                        .parse( "{_id:2,a:'id17136_1'}" );
-                cl2.insert( data2 );
+                cl2.createIndex( idxName, "{a:1}", true, true );
                 Assert.fail( "Need throw error -38." );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(), -38 );
             } finally {
-                sdb2.rollback();
+                sdb2.commit();
             }
 
             expDataList.clear();
+            BSONObject data3 = ( BSONObject ) JSON
+                    .parse( "{_id:2,a:'id17134_2'}" );
+            expDataList.add( data1 );
+            expDataList.add( data3 );
             TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expDataList );
             TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expDataList );
 
@@ -107,6 +88,7 @@ public class Transaction17136 extends SdbTestBase {
 
             expDataList.clear();
             expDataList.add( data1 );
+            expDataList.add( data2 );
             TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expDataList );
             TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expDataList );
 

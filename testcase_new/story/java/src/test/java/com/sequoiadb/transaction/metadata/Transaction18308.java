@@ -23,7 +23,6 @@ import com.sequoiadb.transaction.TransUtils;
  * @author yinzhen
  *
  */
-@Test(groups = "ru")
 public class Transaction18308 extends SdbTestBase {
     private String clName = "cl18308";
     private CountDownLatch latch;

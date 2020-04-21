@@ -23,7 +23,6 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @author yinzhen
  *
  */
-@Test(groups = "ru")
 public class Transaction18310 extends SdbTestBase {
     private CountDownLatch latch;
 

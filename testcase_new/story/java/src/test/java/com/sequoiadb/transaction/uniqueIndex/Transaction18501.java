@@ -27,7 +27,6 @@ import com.sequoiadb.transaction.TransUtils;
  * @date 2019-6-11
  *
  */
-@Test(groups = { "rc", "rcuserbs" })
 public class Transaction18501 extends SdbTestBase {
     private Sequoiadb sdb;
     private Sequoiadb db;

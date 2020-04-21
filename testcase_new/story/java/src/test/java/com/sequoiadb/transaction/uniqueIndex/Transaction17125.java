@@ -4,14 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
+import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
@@ -22,140 +21,169 @@ import com.sequoiadb.transaction.TransUtils;
  * @author luweikang
  * @date 2019年1月15日
  */
-@Test(groups = { "rc", "ru", "rcuserbs" })
 public class Transaction17125 extends SdbTestBase {
-
-    private String clName = "transCL_17125";
+    private String clName = "cl17125";
+    private String idxName = "idx17125";
     private Sequoiadb sdb = null;
     private Sequoiadb sdb2 = null;
     private DBCollection cl = null;
     private DBCollection cl2 = null;
-    private BSONObject data = null;
-    private BSONObject data2 = null;
-    private BSONObject data3 = null;
-    private BSONObject matcher = null;
-    private BSONObject modifier = null;
-    private DBCursor recordCur = null;
-    private List< BSONObject > expDataList = null;
-    private List< BSONObject > actDataList = null;
+    private List< BSONObject > expDataList = new ArrayList< BSONObject >();
 
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        cl.createIndex( "a", "{a:1}", true, false );
-        expDataList = new ArrayList< BSONObject >();
-
-        data = new BasicBSONObject();
-        data.put( "a", 1 );
-        data.put( "b", 2 );
-        data.put( "c", 13700000000L );
-        data.put( "d", "customer transaction type data application." );
-        cl.insert( data );
-
-        modifier = new BasicBSONObject();
-        data2 = new BasicBSONObject();
-        data2.put( "_id", "id17125_2" );
-        data2.put( "a", 2 );
-        data2.put( "b", 2 );
-        data2.put( "c", 13700000000L );
-        data2.put( "d", "customer transaction type data application." );
-        modifier.put( "$set", data2 );
-        matcher = new BasicBSONObject( "a", 1 );
-
-        data3 = new BasicBSONObject();
-        data3.put( "_id", "id17125_2" );
-        data3.put( "a", 2 );
-        data3.put( "b", 3 );
-        data3.put( "flag", "data3" );
-        data3.put( "c", 13700017125L );
-        data3.put( "d", "customer transaction type data application." );
 
         sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
     }
 
-    @Test
-    public void test1() {
-        // 1 trans1 update R1 to R2
-        sdb.beginTransaction();
-        cl.update( matcher, modifier, null );
+    @Test(priority = 1)
+    public void testIdIndex1() {
+        BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:'id17125_1'}" );
+        BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:'id17125_2'}" );
+        cl.insert( data1 );
 
-        // 2 trans2 insert record R3 same as the R2
-        sdb2.beginTransaction();
         try {
-            cl2.insert( data3 );
-            Assert.fail(
-                    "insert an existing record with an index,should be failed" );
-        } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(), -38, e.getMessage() );
+            sdb.beginTransaction();
+            cl.update( "{_id:'id17125_1'}", "{$set:{_id:'id17125_2'}}", null );
+            sdb2.beginTransaction();
+            try {
+                cl2.insert( data1 );
+                Assert.fail( "Need throw error -38." );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -38, e.getMessage() );
+            }
+
+            expDataList.clear();
+            expDataList.add( data2 );
+            TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'_id'}", expDataList );
+
+            sdb.rollback();
+
+            expDataList.clear();
+            expDataList.add( data1 );
+            TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'_id'}", expDataList );
+        } finally {
+            sdb2.rollback();
+            sdb.rollback();
+            cl.delete( "" );
         }
-
-        sdb.rollback();
-
-        expDataList.add( data );
-        recordCur = cl.query( null, null, null, "{'': null}" );
-        actDataList = TransUtils.getReadActList( recordCur );
-        Assert.assertEquals( actDataList, expDataList );
-        actDataList.clear();
-
-        recordCur = cl.query( null, null, null, "{'': 'a'}" );
-        actDataList = TransUtils.getReadActList( recordCur );
-        Assert.assertEquals( actDataList, expDataList );
-        actDataList.clear();
-
     }
 
-    @Test
-    public void test2() {
+    @Test(priority = 2)
+    public void testIdIndex2() {
+        BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:'id17125_1'}" );
+        BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:'id17125_2'}" );
+        cl.insert( data1 );
 
-        // 1 trans1 update R1 to R2
-        sdb.beginTransaction();
-        cl.update( matcher, modifier, null );
-
-        // 2 trans2 insert record R3 same as the R2
-        sdb2.beginTransaction();
         try {
-            cl2.insert( data3 );
-            Assert.fail(
-                    "insert an existing record with an index,should be failed" );
-        } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(), -38, e.getMessage() );
+            sdb.beginTransaction();
+            cl.update( "{_id:'id17125_1'}", "{$set:{_id:'id17125_2'}}", null );
+            sdb2.beginTransaction();
+            try {
+                cl2.insert( data1 );
+                Assert.fail( "Need throw error -38." );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -38, e.getMessage() );
+            }
+            sdb.commit();
+
+            expDataList.clear();
+            expDataList.add( data2 );
+            TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'_id'}", expDataList );
+        } finally {
+            sdb2.commit();
+            sdb.commit();
+            cl.delete( "" );
         }
+    }
 
-        sdb.commit();
+    @Test(priority = 3)
+    public void testCommonUniqueIdx1() {
+        cl.createIndex( idxName, "{a:1}", true, true );
 
-        expDataList.clear();
-        expDataList.add( data2 );
-        recordCur = cl.query( null, null, null, "{'': null}" );
-        actDataList = TransUtils.getReadActList( recordCur );
-        Assert.assertEquals( actDataList, expDataList );
-        actDataList.clear();
+        BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:1,a:'id17125_1'}" );
+        BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:2,a:'id17125_1'}" );
+        cl.insert( data1 );
 
-        recordCur = cl.query( null, null, null, "{'': 'a'}" );
-        actDataList = TransUtils.getReadActList( recordCur );
-        Assert.assertEquals( actDataList, expDataList );
-        actDataList.clear();
+        try {
+            sdb.beginTransaction();
+            cl.update( "{a:'id17125_1'}", "{$set:{a:'id17125_2'}}", null );
+            sdb2.beginTransaction();
+            try {
+                cl2.insert( data2 );
+                Assert.fail( "Need throw error -38." );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -38, e.getMessage() );
+            }
 
-        cl.delete( "{'a': {'$isnull' :0}}" );
-        Assert.assertEquals( cl.getCount(), 0 );
+            expDataList.clear();
+            BSONObject data3 = ( BSONObject ) JSON
+                    .parse( "{_id:1,a:'id17125_2'}" );
+            expDataList.add( data3 );
+            TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'" + idxName + "'}",
+                    expDataList );
+
+            sdb.rollback();
+
+            expDataList.clear();
+            expDataList.add( data1 );
+            TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'" + idxName + "'}",
+                    expDataList );
+        } finally {
+            sdb2.rollback();
+            sdb.rollback();
+            cl.dropIndex( idxName );
+            cl.delete( "" );
+        }
+    }
+
+    @Test(priority = 4)
+    public void testCommonUniqueIdx2() {
+        cl.createIndex( idxName, "{a:1}", true, true );
+        BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:1,a:'id17125_1'}" );
+        BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:2,a:'id17125_1'}" );
+        cl.insert( data1 );
+
+        try {
+            sdb.beginTransaction();
+            cl.update( "{a:'id17125_1'}", "{$set:{a:'id17125_2'}}", null );
+            sdb2.beginTransaction();
+            try {
+                cl2.insert( data2 );
+                Assert.fail( "Need throw error -38." );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -38, e.getMessage() );
+            }
+            sdb.commit();
+
+            expDataList.clear();
+            BSONObject data3 = ( BSONObject ) JSON
+                    .parse( "{_id:1,a:'id17125_2'}" );
+            expDataList.add( data3 );
+            TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'" + idxName + "'}",
+                    expDataList );
+        } finally {
+            sdb2.commit();
+            sdb.commit();
+            cl.dropIndex( idxName );
+            cl.delete( "" );
+        }
     }
 
     @AfterClass
     public void tearDown() {
-        sdb.commit();
-        sdb2.commit();
-
         sdb.getCollectionSpace( csName ).dropCollection( clName );
-        if ( recordCur != null ) {
-            recordCur.close();
-        }
-        if ( sdb != null ) {
-            sdb.close();
-        }
-        if ( sdb2 != null ) {
-            sdb2.close();
-        }
+        sdb.close();
+        sdb2.close();
     }
 
 }

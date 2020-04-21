@@ -22,7 +22,6 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @author luweikang
  * @date 2018年10月17日
  */
-@Test(groups = "ru")
 public class Transaction16092A extends SdbTestBase {
 
     private String csName = "renameCS_16092A";
