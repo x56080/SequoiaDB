@@ -75,7 +75,7 @@ public class CappedCL11782 extends SdbTestBase {
                 { ( BSONObject ) JSON.parse( "{maxreplsync:10}" ) } };
     }
 
-    @Test(dataProvider = "updateConf", enabled = false) // SEQUOIADBMAINSTREAM-5744
+    @Test(dataProvider = "updateConf")
     public void test( BSONObject config ) throws Exception {
         sdb.updateConfig( config, new BasicBSONObject() );
 
