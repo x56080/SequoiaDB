@@ -138,15 +138,15 @@ function main()
       pgInfo = checkPostgresql() ;
    }
 
-   if ( DEPLOY_SEQUOIADB )
+   if ( DEPLOY_SEQUOIADB && nodesConf !== undefined )
    {
       deploySequoiadb( nodesConf ) ;
    }
-   if ( DEPLOY_MYSQL )
+   if ( DEPLOY_MYSQL && mysqlInfo !== undefined )
    {
       deployMysql( mysqlInfo ) ;
    }
-   if ( DEPLOY_POSTGRESQL )
+   if ( DEPLOY_POSTGRESQL && pgInfo !== undefined )
    {
       deployPostgresql( pgInfo ) ;
    }
@@ -1345,6 +1345,10 @@ function checkMysql()
                                         MYSQL_INSTALL_PATH ) ;
    if ( installInfo == undefined && ignoreNotInstall )
    {
+      if( USER_SET_DEPLOY == true )
+      {
+         println("sequoiasql-mysql does not exist, please install ");
+      }
       return ;
    }
    var installedPath = installInfo.INSTALL_DIR ;
@@ -1397,6 +1401,10 @@ function checkPostgresql()
                                         PG_INSTALL_PATH ) ;
    if ( installInfo == undefined && ignoreNotInstall )
    {
+      if( USER_SET_DEPLOY == true )
+      {
+         println("sequoiasql-postgresql does not exist, please install ");
+      }
       return ;
    }
    var installedPath = installInfo.INSTALL_DIR ;
