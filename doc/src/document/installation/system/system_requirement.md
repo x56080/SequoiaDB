@@ -1,4 +1,4 @@
-在安装 SequoiaDB 产品之前，请确保您选择的系统满足必须的操作系统，硬件，通信，磁盘和内存的要求。
+在安装 SequoiaDB 巨杉数据库产品之前，需确保所选择的系统满足产品对操作系统、硬件、通信、磁盘和内存的要求。
 
 ##硬件要求##
 
@@ -14,9 +14,13 @@
 
 | 系统类型       | 系统列表                                                   |
 |----------------|------------------------------------------------------------|
-| Linux          |- Red Hat Enterprise Linux (RHEL) 6<br> - Red Hat Enterprise Linux (RHEL) 7<br> - SUSE Linux Enterprise Server (SLES) 11 Service Pack 1 <br>   - SUSE Linux Enterprise Server (SLES) 11 Service Pack 2 <br> 	- SUSE Linux Enterprise Server (SLES) 12 Service Pack 1 <br> 	- Ubuntu 12.x <br> - Ubuntu 14.x <br> - Ubuntu 16.x <br> - CentOS 6.x <br> - CentOS 7.x <br>                                    |
+| Linux          |- Red Hat Enterprise Linux (RHEL) 6<br> - Red Hat Enterprise Linux (RHEL) 7<br> - Red Hat Enterprise Linux (RHEL) 8<br>- SUSE Linux Enterprise Server (SLES) 11 Service Pack 1 <br>   - SUSE Linux Enterprise Server (SLES) 11 Service Pack 2 <br> 	- SUSE Linux Enterprise Server (SLES) 12 Service Pack 1 <br> 	- Ubuntu 12.x <br> - Ubuntu 14.x <br> - Ubuntu 16.x <br> - CentOS 6.x <br> - CentOS 7.x <br> - CentOS 8.x <br>                                   |
 
-注意：未在上述列表中列举的 Linux 操作系统并不代表不能用于安装 SequoiaDB。当将这些 Linux 操作系统应用于生产环境时，建议联系 SequoiaDB 技术支持，以获得更详细的信息。
+> **Note：**
+>
+>* 未列举在上述列表中的 Linux 操作系统并不代表不能用于安装 SequoiaDB。
+>
+>* 需要将这些 Linux 操作系统应用于生产环境时，建议联系 SequoiaDB 技术支持，以获得更详细的信息。
 
 
 ##软件要求##
@@ -33,204 +37,202 @@
 
  * 配置 SELinux
 
+配置说明：
+
+* 需要使用 root 用户权限进行配置，应确保 root 用户对相关命令或配置文件具有访问权限；
+
+* 示例中"sdbserver1"为主机名称，用户可以根据需要修改该主机名。
+
 ####配置主机名####
 
 - **配置方法**
 
   - 对于SUSE:
-     1. 使用 root 权限登陆，执行 hostname sdbserver1 （sdbserver1为主机名称，可根据需要修改。）；
+     1. 设置主机名
 
          ```lang-bash
-         $ hostname sdbserver1
+         # hostname sdbserver1
          ```
-     2. 打开 /etc/HOSTNAME 文件；
+     2. 将主机名持久化到配置文件
 
          ```lang-bash
-         $ vi /etc/HOSTNAME
+         # echo "sdbserver1" > /etc/HOSTNAME
          ```
-     3. 修改文件内容，配置为主机名称 sdbserver1 （主机名称）；
 
-         ```lang-ini
-         sdbserver1
-         ```
-     4. 按 : wq 保存退出；
-
-  - 对于 RedHat：
-     1. 使用 root 权限登陆，执行 hostname sdbserver1 （sdbserver1为主机名称，可根据需要修改。）；
+  - 对于 Red Hat 6/CentOS 6 及以下的系统：
+     1. 设置主机名
 
          ```lang-bash
-         $ hostname sdbserver1
+         # hostname sdbserver1
          ```
-     2. RedHat7 以下的系统，打开 /etc/sysconfig/network 文件；
+     2. 将主机名持久化到配置文件
 
          ```lang-bash
-         $ vi /etc/sysconfig/network
+         # sed -i "s/HOSTNAME=.*/HOSTNAME=sdbserver1/g" /etc/sysconfig/network
          ```
 
-         如果是 RedHat7 系统，则打开 /etc/hostname 文件：
+  - 对于 Red Hat 7/Red Hat 8 和 CentOS 7/CentOS 8：
+     1. 设置主机名
 
          ```lang-bash
-         $ vi /etc/hostname
+         # hostname sdbserver1
          ```
+     2. 将主机名持久化到配置文件
 
-     3. 将 HOSTNAME 一行修改为 HOSTNAME = sdbserver1 （其中sdbserver1 为新主机名）；
-
-         ```lang-ini
-         HOSTNAME = sdbserver1
+         ```lang-bash
+         # echo "sdbserver1" > /etc/hostname
          ```
-     4. 按 : wq 保存退出；
 
   - 对于 Ubuntu：
-     1. 使用 root 权限登陆，执行 hostname sdbserver1 （sdbserver1为主机名称，可根据需要修改。）；
+     1. 设置主机名
 
          ```lang-bash
-             $ hostname sdbserver1
-             ```
-     2. 打开 /etc/hostname 文件；
+         # hostname sdbserver1
+         ```
+     2. 将主机名持久化到配置文件
 
          ```lang-bash
-         $ vi /etc/hostname
+         # echo "sdbserver1" > /etc/hostname
          ```
-     3. 修改文件内容，配置为主机名称: sdbserver1
-
-         ```lang-ini
-         sdbserver1
-         ```
-     4. 按 : wq 保存退出；
 
 - **验证方法**
-  执行 hostname 命令，确认打印信息是否为 “sdbserver1”
+
+  执行 hostname 命令，若打印信息是为 “sdbserver1”，说明配置主机名成功
 
   ```lang-bash
-  $ hostname
+  # hostname
+  sdbserver1
   ```
 
 ####配置主机名IP地址映射####
 
 - **配置方法**
 
-  	1. 使用 root 权限，打开 /etc/hosts 文件
+  	将服务器节点的主机名与IP映射关系配置到 /etc/hosts 文件中
 
-     	```lang-bash
-     	$ vi /etc/hosts
-     	```
-  	2. 修改 /etc/hosts ，将服务器节点的主机名与IP映射关系配置到该文件中
-
-     	```lang-ini
-     	192.168.20.200 sdbserver1
-     	192.168.20.201 sdbserver2
-     	192.168.20.202 sdbserver3
-     	```
-
-  	3. 保存退出
+     ```lang-bash
+     # echo "192.168.20.200 sdbserver1" >> /etc/hosts
+     # echo "192.168.20.201 sdbserver2" >> /etc/hosts
+     ```
 
 - **验证方法**
   1. ping sdbserver1（本机主机名） 可以 ping 通
 
      ```lang-bash
-     $ ping sdbserver1
+     # ping sdbserver1
      ```
   2. ping sdbserver2（远端主机名） 可以 ping 通
 
      ```lang-bash
-     $ ping sdbserver2
+     # ping sdbserver2
      ```
 
-####关闭防火墙 (需要管理员权限)####
+####关闭防火墙####
 
 - **配置方法**
 
-  - 对于 SUSE:
+  - 对于 SUSE：
 
      	执行如下命令
 
          ```lang-bash
-         $ SuSEfirewall2 stop
-         $ chkconfig SuSEfirewall2_init off
-         $ chkconfig SuSEfirewall2_setup off
+         # SuSEfirewall2 stop
+         # chkconfig SuSEfirewall2_init off
+         # chkconfig SuSEfirewall2_setup off
 	       ```
 
-  - 对于 RedHat：
+  - 对于 Red Hat 6/CentOS 6 及以下的系统：
 
 		执行如下命令
 
          ```lang-bash
-         $ service iptables stop
-         $ chkconfig iptables off
+         # service iptables stop
+         # chkconfig iptables off
          ```
+
+  - 对于 Red Hat 7/Red Hat 8 和 CentOS 7/CentOS 8：
+
+		执行如下命令
+
+         ```lang-bash
+         # systemctl stop firewalld.service
+         # systemctl disable firewalld.service
+         ```
+
   - 对于 Ubuntu：
 
      	执行如下命令
 
          ```lang-bash
-         $ ufw disable
+         # ufw disable
          ```
 
 - **验证方法**
 
-  - 对于 SUSE
+  - 对于 SUSE：
+
+     执行命令，若打印以下信息，说明关闭防火墙成功
 
      ```lang-bash
-     $ chkconfig -list | grep fire
+     # chkconfig -list | grep fire
+     SuSEfirewall2_init       	0:off	1:off	2:off	3:off	4:off	5:off	6:off
+     SuSEfirewall2_setup      	0:off	1:off	2:off	3:off	4:off	5:off	6:off
      ```
 
-  - 对于 RedHat:
+  - 对于 Red Hat 6/CentOS 6 及以下的系统：
+
+     执行命令，若打印以下信息，说明关闭防火墙成功
 
      ```lang-bash
-     $ service iptables status
+     # chkconfig --list iptables
+     iptables       	0:off	1:off	2:off	3:off	4:off	5:off	6:off
      ```
+
+  - 对于 Red Hat 7/Red Hat 8 和 CentOS 7/CentOS 8：
+
+     执行命令，若打印以下信息，说明关闭防火墙成功
+
+     ```lang-bash
+     # systemctl status firewalld.service
+     ● firewalld.service - firewalld - dynamic firewall daemon
+           Loaded: loaded(/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+           Active: inactive (dead)
+             Docs: man:firewalld(1)
+      ```
 
   - 对于 Ubuntu:
 
+     执行命令，若打印以下信息，说明关闭防火墙成功
+
      ```lang-bash
-     $ ufw status
+     # ufw status
+     Status: inactive
      ```
 
->**Note:**
->1. 以上“配置主机名”、“配置主机名/IP地址映射”和“配置防火墙”这几个步骤都需要在每台作为数据库服务器的机器上配置;
->2. 社区版要求系统安装glibc 2.15以及libstdc++ 6.0.18以上版本。
-
-#### SELinux 配置 ####
+#### 配置 SELinux ####
 
 针对 SELinux 可以配置为关闭或者将模式调整成 permissive，建议关闭 SELinux。
 
 - **关闭 SELinux**
 
- - 配置方法
+  - 配置方法
 
-   1. 使用 root 权限，打开 /etc/selinux/config 文件
-
-     ```lang-bash
-     $ vi /etc/selinux/config
-     ```
-
-   2. 将 SELINUX 调整成 disabled
-
-     ```lang-ini
-     # This file controls the state of SELinux on the system.
-     # SELINUX= can take one of these three values:
-     #     enforcing - SELinux security policy is enforced.
-     #     permissive - SELinux prints warnings instead of enforcing.
-     #     disabled - No SELinux policy is loaded.
-     SELINUX=disabled
-     # SELINUX=enforcing
-     # SELINUXTYPE= can take one of three two values:
-     #     targeted - Targeted processes are protected,
-     #     minimum - Modification of targeted policy. Only selected processes are protected.
-     #     mls - Multi Level Security protection.
-     SELINUXTYPE=targeted
-     ```
-
-   3. 重启操作系统
+   1. 修改配置文件，将 SELINUX 配置为 disabled
 
      ```lang-bash
-     $ reboot # 需要重启系统
+     # sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config
+     ```
+
+   2. 重启操作系统
+
+     ```lang-bash
+     # reboot # 需要重启系统
      ```
 
   - 验证方法
 
      ```lang-bash
-     $ sestatus
+     # sestatus
      SELinux status:                 disabled
      ```
 
@@ -238,34 +240,22 @@
 
   - 配置方法
 
-   1. 使用 root 权限，执行命令 setenforce 0 ; 打开 /etc/selinux/config 文件
+   1. 关闭 SELinux 防火墙
 
      ```lang-bash
-     $ setenforce 0
-     $ vi /etc/selinux/config
+     # setenforce 0
      ```
 
-   2. 调整 SELINUX 的值为 permissive
+   2. 修改配置文件，将 SELINUX 配置为 permissive
 
-     ```lang-ini
-     # This file controls the state of SELinux on the system.
-     # SELINUX= can take one of these three values:
-     #     enforcing - SELinux security policy is enforced.
-     #     permissive - SELinux prints warnings instead of enforcing.
-     #     disabled - No SELinux policy is loaded.
-     SELINUX=permissive
-     # SELINUX=enforcing
-     # SELINUXTYPE= can take one of three two values:
-     #     targeted - Targeted processes are protected,
-     #     minimum - Modification of targeted policy. Only selected processes are protected.
-     #     mls - Multi Level Security protection.
-     SELINUXTYPE=targeted
+     ```lang-bash
+    # sed -i "s/SELINUX=.*/SELINUX=permissive/g" /etc/selinux/config
      ```
 
   - 验证方法
 
      ```lang-bash
-     $ sestatus
+     # sestatus
      SELinux status:                 enabled
      SELinuxfs mount:                /sys/fs/selinux
      SELinux root directory:         /etc/selinux
@@ -276,3 +266,9 @@
      Policy deny_unknown status:     allowed
      Max kernel policy version:      28
      ```
+
+>**Note:**
+>
+>* 主机名、主机名/IP地址映射、防火墙和 SELinux 需要在每台物理机器上进行配置；
+>
+>* 社区版要求系统安装 glibc 2.15 以及 libstdc++ 6.0.18 以上版本。
