@@ -642,7 +642,7 @@ namespace engine
             // there could be timing hole that the cl we want to use was
             if ( SDB_OSS_UP_TO_LIMIT == rc )
             {
-               PD_LOG ( PDDEBUG,
+               PD_LOG ( PDEVENT,
                         "Failed to insert into RBS(%d), going to retry. rc: %d",
                         clContext->mbID(), rc ) ;
                _su->data()->releaseMBContext( clContext ) ;
@@ -771,12 +771,12 @@ namespace engine
          // finish if the hasbucket entry is invalid Or hit the end of range
          // Or the position is pointing to a version no longer exist
          // (CL has been recycled)
-         if ( !position.isValid() || 
+         if ( !position.isValid() ||
               ( useRange && ( endPos == position ) ) ||
               _rbsPositionExpired( position ) )
          {
 #ifdef _DEBUG
-            PD_LOG ( PDDEBUG, 
+            PD_LOG ( PDDEBUG,
                      "no more older version found, useRange(%d)"
                      "position(%d, %llu), endPos(%d, %llu)"
                      "curCL(%d), lastFreeCL(%d)",
@@ -822,17 +822,26 @@ namespace engine
                goto error ;
             }
 
-            // get the record's onwer transid as well. 
+            // get the record's onwer transid as well.
             // TODO: we may want to skip the record if the ownerTransID
-            // is visiable. But the logic is already handled by upper 
+            // is visiable. But the logic is already handled by upper
             // caller (see afterLockAquired)
-            rc = sd->fetch( context, recordID, cappedRecord, 
+            rc = sd->fetch( context, recordID, cappedRecord,
                             eduCB, FALSE, &ownerTransid ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR,
-                        "Failed to fetch rbsrecord,rid(%d, %d), rc=%d",
-                        extID, offset, rc ) ;
+                        "Failed to fetch rbsrecord, rid(%d, %d), rc=%d, "
+                        "useRange(%d), position(%d, %llu), "
+                        "endPos(%d, %llu), startPos(%d, %llu), "
+                        "curCL(%d), lastFreeCL(%d), bucketID(%d); "
+                        "csid(%d), clid(%d), record rid(%d, %d), cllid(%d)" ,
+                        extID, offset, rc,
+                        useRange, position._clID, position._logicalID,
+                        endPos._clID, endPos._logicalID,
+                        startPos._clID, startPos._logicalID,
+                        _currentCollection, _lastFreeCollection, bkt,
+                        csid, clid, rid._extent, rid._offset, clLID ) ;
                goto error ;
             }
 
