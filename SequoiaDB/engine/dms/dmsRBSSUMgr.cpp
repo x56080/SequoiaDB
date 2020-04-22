@@ -294,6 +294,8 @@ namespace engine
       // latch and lookup curCL for space first
       _latchS() ;
       DMS_BUILD_RBS_CL_NAME( clName, _currentCollection ) ;
+      // Has to cache the curCL under protection
+      tempCurCL = _currentCollection ;
       _releaseS() ;
 
       rc = _su->data()->getMBContext( &clContext, clName, SHARED ) ;
@@ -305,9 +307,6 @@ namespace engine
       }
       mbLocked = TRUE ;
 
-      // Has to get clID from context as the _curCL could change outside
-      // of latch protection
-      tempCurCL = _currentCollection ;
       //if( !sd->clDataSpaceEnough( clContext, recordSize ) )
       if( sd->spaceEnough( clContext, recordSize ) )
       {
