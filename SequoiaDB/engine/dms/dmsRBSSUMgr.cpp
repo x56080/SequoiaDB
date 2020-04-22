@@ -294,10 +294,9 @@ namespace engine
    begin:
       // latch and lookup curCL for space first
       _latchS() ;
-      DMS_BUILD_RBS_CL_NAME( clName, _currentCollection ) ;
-      // Has to cache the curCL under protection
       tempCurCL = _currentCollection ;
       _releaseS() ;
+      DMS_BUILD_RBS_CL_NAME( clName, tempCurCL ) ;
 
       rc = _su->data()->getMBContext( &clContext, clName, SHARED ) ;
       if ( rc )
