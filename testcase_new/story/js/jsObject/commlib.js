@@ -1,3 +1,60 @@
+// 获取本地主机和远程主机
+var localhost = toolGetLocalhost();
+var remotehost = toolGetRemotehost();
+
+var localSystem = new SystemTest( localhost, CMSVCNAME );
+var remoteSystem = new SystemTest( remotehost, CMSVCNAME );
+var systems = [localSystem, remoteSystem];
+
+/******************************************************************************
+*@Description : check user name  in /etc/passwd
+*@author      : Liang XueWang            
+******************************************************************************/
+function checkUser ( cmd, username )
+{
+   var names = cmd.run( "cat /etc/passwd | grep -w " + username + " | awk -F : '{print $1}'" ).split( "\n" );
+   if( names.indexOf( username ) === -1 )
+   {
+      throw new Error( username + " is not exist in /etc/passwd" );
+   }
+}
+
+/******************************************************************************
+*@Description : check group and Group of user with id command
+*@author      : Liang XueWang            
+******************************************************************************/
+function checkGroup ( cmd, groupname, username )
+{
+   var info = cmd.run( "id " + username ).split( "\n" )[0];
+   if( info.indexOf( groupname ) === -1 )
+   {
+      throw new Error( groupname + " is not contained user: " + username );
+   }
+}
+
+/******************************************************************************
+*@Description : check user dir
+*@author      : Liang XueWang            
+******************************************************************************/
+function checkDir ( cmd, dir, createDir )
+{
+   try
+   {
+      cmd.run( "ls -al " + dir );
+      if( !createDir )
+      {
+         throw new Error( "command should be failed!" );
+      }
+   }
+   catch( e )
+   {
+      if( createDir || ( !createDir && e !== 2 ) )
+      {
+         throw new Error( e );
+      }
+   }
+}
+
 /******************************************************************************
 *@Description : common function for js object System/Oma
 *@auhor       : Liang XueWang
@@ -521,51 +578,69 @@ function toolGetSequoiadbDir( hostname, svcname )
 *@Description : check user exist or not
 *@author      : Liang XueWang              
 ******************************************************************************/
-function isUserExist( hostname, svcname, username )
+function isUserExist ( hostname, svcname, username, system, execDel )
 {
-   var remote = new Remote( hostname, svcname ) ;
-   var cmd = remote.getCmd() ;
-   var exist ;
+   if( execDel == undefined ){ execDel = false; }
+   var remote = new Remote( hostname, svcname );
+   var cmd = remote.getCmd();
+   var exist = true;
    try
    {
-      cmd.run( "grep '^" + username + ":' /etc/passwd" ) ;
-      exist = true ;
+      cmd.run( "grep '^" + username + ":' /etc/passwd" );
+      if( execDel )
+      {
+         var option = {};
+         option["name"] = username;
+         option["isRemoveDir"] = true;
+         system.delUser( option );
+      }
    }
    catch( e )
    {
       if( e === 1 )
-         exist = false ;
+      {
+         exist = false;
+      }
       else
-         throw buildException( "isUserExist", e, "check " + username, "1 0", e ) ;
+      {
+         throw new Error( e );
+      }
    }
-   remote.close() ;
-   return exist ;
+   remote.close();
+   return exist;
 }
 
 /******************************************************************************
 *@Description : check group exist or not
 *@author      : Liang XueWang              
 ******************************************************************************/
-function isGroupExist( hostname, svcname, groupname )
+function isGroupExist ( hostname, svcname, groupname, system, execDel )
 {
-   var remote = new Remote( hostname, svcname ) ;
-   var cmd = remote.getCmd() ;
-   var exist ;
+   if( execDel == undefined ){ execDel = false; }
+   var remote = new Remote( hostname, svcname );
+   var cmd = remote.getCmd();
+   var exist = true;
    try
    {
-      cmd.run( "grep '^" + groupname + ":' /etc/group" ) ;
-      exist = true ;
+      cmd.run( "grep '^" + groupname + ":' /etc/group" );
+      if( execDel )
+      {
+        system.delGroup( groupname );
+      }
    }
    catch( e )
    {
       if( e === 1 )
-         exist = false ;
+      {
+         exist = false;
+      }
       else
-         throw buildException( "isGroupExist", e, 
-                               "check " + groupname, "1 0", e )  ;
+      {
+         throw new Error( e );
+      }
    }
-   remote.close() ;
-   return exist ;
+   remote.close();
+   return exist;
 }
 
 /******************************************************************************
