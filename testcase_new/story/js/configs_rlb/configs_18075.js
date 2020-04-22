@@ -20,7 +20,7 @@ function test()
    var options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() };
    deleteConf( db, config, options );
 
-   configs = { "transactionon": "TRUE" };
+   configs = { "transactionon": "FALSE" };
    updateConf( db, configs, options, -264 );
    check( nodes, configs );
 

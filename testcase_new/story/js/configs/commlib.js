@@ -283,7 +283,7 @@ function updateConf ( db, configs, options, errno )
       db.updateConf( configs, options );
       if( errno !== undefined ) 
       {
-         throw errno;
+         throw "Update config should be failed!";
       }
    }
    catch( e )
@@ -310,7 +310,7 @@ function deleteConf( db, configs, options, errno )
       db.deleteConf( configs, options );
       if( errno !== undefined )
       {
-         throw errno;
+         throw "Delete config should be failed!";
       } 
    }
    catch( e )

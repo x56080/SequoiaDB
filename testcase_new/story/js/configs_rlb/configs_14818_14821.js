@@ -50,17 +50,8 @@ function test()
    //删除配置参数值，将配置恢复为默认值
    deleteConf( db, config, options );
 
-   config = getRandomRunConfig( "defaultVal" );
-   snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
-   checkResult( config, snapshotInfo );
-   fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
-   checkResult( config, fileInfo, true );
-
-   //当前值为默认值，修改参数值为无效值
-   config = getRandomRunConfig( "invalidVal" );
-   updateConf( db, config, options, -264 );
-
-   config = getRandomRunConfig( "defaultVal" );
+   var key = Object.getOwnPropertyNames( config )[0];
+   config[ key ] = getConfigs( "defaultVal" )[ "runConfigs" ][ key ];
    snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
    checkResult( config, snapshotInfo );
    fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );

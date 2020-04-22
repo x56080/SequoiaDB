@@ -16,7 +16,7 @@ function test()
    //当前值为默认值，删除配置
    var config = getRandomRunConfig( "defaultVal" );
    var options = { HostName: hostName, svcname: svcName };
-   db.deleteConf( config, options );
+   deleteConf( db, config, options );
 
    var snapshotInfo = getConfFromSnapshot( db, hostName, svcName );
    checkResult( config, snapshotInfo );
@@ -26,16 +26,15 @@ function test()
    //当前值为非默认值，删除配置
    var config = getRandomRunConfig( "validVal" );
    var options = { HostName: hostName, svcname: svcName };
-   db.updateConf( config, options );
+   updateConf ( db, config, options ); 
 
    var snapshotInfo = getConfFromSnapshot( db, hostName, svcName );
    checkResult( config, snapshotInfo );
    var fileInfo = getConfFromFile( hostName, svcName );
    checkResult( config, fileInfo );
 
-   db.deleteConf( config, options );
+   deleteConf( db, config, options );
 
-   var config = {};
    var key = Object.getOwnPropertyNames( config )[0];
    config[ key ] = getConfigs( "defaultVal" )[ "runConfigs" ][ key ];
    var snapshotInfo = getConfFromSnapshot( db, hostName, svcName );
