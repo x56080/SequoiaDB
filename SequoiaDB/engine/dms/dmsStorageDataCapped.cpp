@@ -2465,7 +2465,23 @@ namespace engine
          // validate extent
          if ( !pExtent->validate( context->mbID()) )
          {
-            PD_LOG ( PDERROR, "Invalid extent[%d]", recordID._extent ) ;
+            PD_LOG ( PDERROR,
+                     "Invalid extent[%d], "
+                     "pExtent->_mbID[%d], pExtent->_logicalID[%d], "
+                     "pExtent->_flag[%d], pExtent->_eye[%c%c], "
+                     "pExtent->_prev[%d], pExtent->_next[%d], "
+                     "pExtent->_firstRec[%d], pExtent->_lastRec[%d], "
+                     "pExtent->_free[%d], pExtent->_recCount, "
+                     "context->mbID[%d], context:%s",
+                     recordID._extent,
+                     pExtent->_mbID, pExtent->_logicID,
+                     pExtent->_flag,
+                     pExtent->_eyeCatcher[0], pExtent->_eyeCatcher[1],
+                     pExtent->_prevExtent, pExtent->_nextExtent,
+                     pExtent->_firstRecordOffset, pExtent->_lastRecordOffset,
+                     pExtent->_freeSpace, pExtent->_recCount,
+                     context->mbID(),
+                     context->toString().c_str() ) ;
             rc = SDB_SYS ;
             goto error ;
          }
