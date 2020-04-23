@@ -89,12 +89,12 @@ public class TransferTh extends OperateTask {
             }
         } catch ( BaseException e ) {
             if ( "rcauto".equals( SdbTestBase.testGroupOfCurrent ) ) {
-                if ( db != null ) {
+                if ( db != null && !db.isClosed() ) {
                     db.rollback();
                 }
             }
         } finally {
-            if ( db != null ) {
+            if ( db != null && !db.isClosed() ) {
                 db.close();
             }
         }
@@ -131,7 +131,7 @@ public class TransferTh extends OperateTask {
             }
         } catch ( BaseException e ) {
         } finally {
-            if ( db != null ) {
+            if ( db != null && !db.isClosed() ) {
                 db.close();
             }
         }
