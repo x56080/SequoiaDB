@@ -42,8 +42,8 @@ function main ()
       println( "\n---Begin to ready cs / cl." );
       commDropCS( db, csName, true, "Failed to drop cs in the pre-condition." );
       var cs = db.createCS( csName );
-      var cl1 = cs.createCL( clName1, { Group: srcGroup } );
-      var cl2 = cs.createCL( clName2, { Group: srcGroup, ShardingType: "hash", ShardingKey: { a: 1 } } );
+      var cl1 = cs.createCL( clName1, { Group: srcGroup, ReplSize: 0 } );
+      var cl2 = cs.createCL( clName2, { Group: srcGroup, ShardingType: "hash", ShardingKey: { a: 1 }, ReplSize: 0 } );
 
       println( "\n---Begin to cl1.putLob." );
       var putLobMd5 = cmd.run( "md5sum " + pubLobFile ).split( " " )[0];
