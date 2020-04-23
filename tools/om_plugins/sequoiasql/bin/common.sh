@@ -214,5 +214,5 @@ function startupPlugin()
 {
    cd $1
 
-   nohup $2 --__omhttpname=$3 $4 >/dev/null 2>&1 &
+   nohup $2 --__omhttpname=$3 $4 >>plugin.log 2>&1 &
 }
