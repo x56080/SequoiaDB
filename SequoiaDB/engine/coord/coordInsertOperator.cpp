@@ -331,7 +331,8 @@ namespace engine
       }
       else if ( cataPtr->hasAutoIncrement() &&
                 SDB_OK == cb->getTransRC() &&
-                _canRetry( count, rc, hasExplicitKey ) )
+                _canRetry( count, nokRC, cataPtr->getAutoIncSet(),
+                           hasExplicitKey ) )
       {
          nokRC.clear() ;
          _removeLocalSeqCache( cataPtr->getAutoIncSet() ) ;
@@ -1268,16 +1269,61 @@ namespace engine
    }
 
    BOOLEAN _coordInsertOperator::_canRetry( INT32 count,
-                                            INT32 rc,
+                                            ROUTE_RC_MAP &failedNodes,
+                                            const clsAutoIncSet &set,
                                             BOOLEAN hasExplicitKey )
    {
       BOOLEAN retry = FALSE ;
-      if (1 == count && SDB_IXM_DUP_KEY == rc &&
-          !hasExplicitKey && !_hasRetry )
+      ROUTE_RC_MAP::iterator iter ;
+
+      if ( count > 1 || hasExplicitKey || _hasRetry )
       {
-         _hasRetry = TRUE ;
-         retry = TRUE ;
+         goto done ;
       }
+
+      for ( iter = failedNodes.begin() ;
+            iter != failedNodes.end() ;
+            ++iter )
+      {
+         if ( iter->second._rc != SDB_IXM_DUP_KEY )
+         {
+            continue ;
+         }
+
+         BSONElement ele = iter->second._obj.getField( FIELD_NAME_INDEX ) ;
+         if ( ele.type() != Object )
+         {
+            PD_LOG( PDWARNING,
+                    "Cannot recognize which index was conflicted." ) ;
+            break ;
+         }
+
+         BSONObjIterator iter( ele.embeddedObject() ) ;
+         while ( iter.more() )
+         {
+            try
+            {
+               if ( set.find( iter.next().fieldName() ) )
+               {
+                  _hasRetry = TRUE ;
+                  retry = TRUE ;
+                  break ;
+               }
+            }
+            catch ( std::exception &e )
+            {
+               PD_LOG( PDWARNING,
+                       "Unexpected exception occurred: %e", e.what() ) ;
+               break ;
+            }
+         }
+
+         if ( retry )
+         {
+            break ;
+         }
+      }
+    done:
       return retry ;
    }
 

@@ -139,7 +139,8 @@ namespace engine
                                     _SimpleBSONBuilder &builder ) ;
 
          BOOLEAN _canRetry( INT32 count,
-                            INT32 rc,
+                            ROUTE_RC_MAP &failedNodes,
+                            const clsAutoIncSet &set,
                             BOOLEAN hasExplicitKey ) ;
 
          void _removeLocalSeqCache( const clsAutoIncSet &set ) ;
