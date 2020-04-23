@@ -277,7 +277,8 @@ namespace engine
    SINT32 _dmsRBSSUMgr::_prepareRBSCLForRecord( UINT32          recordSize,
                                                 pmdEDUCB     *  eduCB,
                                                 SDB_DPSCB    *  dpsCB,
-                                                dmsMBContext *& clContext )
+                                                dmsMBContext *& clContext,
+                                                UINT16        & rbsclID )
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD);
       SINT32       rc           = SDB_OK ;
@@ -441,6 +442,9 @@ namespace engine
             goto error ;
          }
       } // end of !spaceEnough
+
+      // remember _currentCollection
+      rbsclID  = tempCurCL ;
    done:
       PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD, rc );
       return rc ;
@@ -480,8 +484,11 @@ namespace engine
       dmsRecordID   foundRID ;
       BOOLEAN       mbLocked   = FALSE ;
 
+      // candidate collection to save RBS record
+      UINT16        curClID = DMS_MAX_RBS_CL ;
+
       // mblatch will be held after this call
-      rc = _prepareRBSCLForRecord( size, eduCB, dpsCB, clContext ) ;
+      rc = _prepareRBSCLForRecord( size, eduCB, dpsCB, clContext, curClID ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR,
@@ -575,6 +582,8 @@ namespace engine
       // type conversion for following use
       SINT32        cl           = clid ;
       _dmsStorageDataCapped *sd = (_dmsStorageDataCapped*)_su->data();
+      // candidate collection to save RBS record
+      UINT16        curClID = DMS_MAX_RBS_CL ;
 
       PD_TRACE4( SDB__DMSRBSSUMGR_RBSAPPENDRECORD,
                  PD_PACK_UINT(csid),
@@ -623,13 +632,17 @@ namespace engine
          // move to proper RBS CL which has enough space
          // We do not hold the cl lock on return as insertRecord would
          // take the lock
-         rc = _prepareRBSCLForRecord( recSize, eduCB, dpsCB, clContext ) ;
+         rc = _prepareRBSCLForRecord( recSize, eduCB, dpsCB, clContext, curClID ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to prepare RBSCL for record, rc: %d",
                      rc ) ;
             goto error ;
          }
+
+         // upon _prepareRBSCLForRecord successfully return,
+         // the curClID shall be set
+         SDB_ASSERT( ( curClID != DMS_MAX_RBS_CL ), "Invalid clID !" ) ;
 
          // insert the record to RBS
          rc = _su->insertRecord ( clName, record, eduCB, dpsCB,
@@ -670,7 +683,7 @@ namespace engine
          SINT32       ext, offset ;
          insertResult.getInsertLoc( ext, offset ) ;
          sd->_extLidAndOffset2RecLid( ext, offset, location._logicalID ) ;
-         location._clID = _currentCollection ;
+         location._clID = curClID ;
          _rbsRecordBkt.setOffset( location, bkt ) ;
       }
       // unlock the bucket
