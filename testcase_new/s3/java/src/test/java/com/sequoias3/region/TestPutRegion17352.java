@@ -3,10 +3,11 @@ package com.sequoias3.region;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
-import com.sequoias3.testcommon.s3utils.bean.Region;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
+import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
+import com.sequoias3.testcommon.s3utils.bean.Region;
+import org.springframework.web.client.HttpServerErrorException;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -125,10 +126,11 @@ public class TestPutRegion17352 extends S3TestBase {
 
     @Test
     public void illegalParameterName() throws Exception {
+        String regionName = "region17352";
         // specified mode
         try {
             Region region = new Region();
-            region.withName( "region17352" ).withMetaLocation( "" )
+            region.withName( regionName ).withMetaLocation( "" )
                     .withMetaHisLocation( metaCSName + "." + metaClNames[ 1 ] )
                     .withDataLocation( dataCSName + "." + dataClName[ 0 ] );
             RegionUtils.putRegion( region );
@@ -139,7 +141,7 @@ public class TestPutRegion17352 extends S3TestBase {
 
         try {
             Region region = new Region();
-            region.withName( "region17352" )
+            region.withName( regionName )
                     .withMetaLocation( metaCSName + "." + metaClNames[ 0 ] )
                     .withMetaHisLocation( "" )
                     .withDataLocation( dataCSName + "." + dataClName[ 0 ] );
@@ -152,7 +154,7 @@ public class TestPutRegion17352 extends S3TestBase {
 
         try {
             Region region = new Region();
-            region.withName( "region17352" )
+            region.withName( regionName )
                     .withMetaLocation( metaCSName + "." + metaClNames[ 0 ] )
                     .withMetaHisLocation( metaCSName + "." + metaClNames[ 1 ] )
                     .withDataLocation( "" );
@@ -165,7 +167,7 @@ public class TestPutRegion17352 extends S3TestBase {
         // ShardingType mode
         try {
             Region region = new Region();
-            region.withName( "region17352" ).withDataCSShardingType( "day" )
+            region.withName( regionName ).withDataCSShardingType( "day" )
                     .withDataCLShardingType( "month" )
                     .withDataDomain( dataDomain ).withMetaDomain( metaDomain );
             RegionUtils.putRegion( region );
@@ -177,7 +179,7 @@ public class TestPutRegion17352 extends S3TestBase {
 
         try {
             Region region = new Region();
-            region.withName( "region17352" ).withDataCSShardingType( "year" )
+            region.withName( regionName ).withDataCSShardingType( "year" )
                     .withDataCLShardingType( "day" )
                     .withDataDomain( dataDomain ).withMetaDomain( metaDomain );
             RegionUtils.putRegion( region );
@@ -185,6 +187,41 @@ public class TestPutRegion17352 extends S3TestBase {
                     "put region with illegal dataCLShardingType should fail!" );
         } catch ( AmazonS3Exception e ) {
             Assert.assertEquals( e.getErrorCode(), "InvalidShardingType" );
+        }
+
+        // DataLobPageSize DataReplSize
+        String[] dataLobPageSizes = { "-1", "65535", "524289", "a" };
+        String[] dataReplSizes = { "-2", "8", "a" };
+        for ( String dataLobPageSize : dataLobPageSizes ) {
+            try {
+                Region region = new Region();
+                region.withName( regionName ).withDataCSShardingType( "year" )
+                        .withDataCLShardingType( "month" )
+                        .withDataLobPageSize( dataLobPageSize );
+                RegionUtils.putRegion( region );
+                Assert.fail(
+                        "put region with illegal dataLobPageSizes should fail!" );
+            } catch ( AmazonS3Exception e ) {
+                Assert.assertEquals( e.getErrorCode(), "InvalidLobPageSize" );
+            } catch ( HttpServerErrorException e ) {
+                Assert.assertEquals( e.getStatusCode().value(), 500 );
+            }
+        }
+
+        for ( String dataReplSize : dataReplSizes ) {
+            try {
+                Region region = new Region();
+                region.withName( regionName ).withDataCSShardingType( "year" )
+                        .withDataCLShardingType( "month" )
+                        .withDataReplSize( dataReplSize );
+                RegionUtils.putRegion( region );
+                Assert.fail(
+                        "put region with illegal dataReplSize should fail!" );
+            } catch ( AmazonS3Exception e ) {
+                Assert.assertEquals( e.getErrorCode(), "InvalidReplSize" );
+            } catch ( HttpServerErrorException e ) {
+                Assert.assertEquals( e.getStatusCode().value(), 500 );
+            }
         }
         actSuccessTests.getAndIncrement();
     }
@@ -194,7 +231,7 @@ public class TestPutRegion17352 extends S3TestBase {
         if ( actSuccessTests.get() == ( generateRegionName().length
                 + generateIllegalRegionName().length + 1 ) ) {
             try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
-                    "" )) {
+                    "" ) ) {
                 sdb.dropCollectionSpace( metaCSName );
                 sdb.dropCollectionSpace( dataCSName );
                 sdb.dropDomain( dataDomain );
