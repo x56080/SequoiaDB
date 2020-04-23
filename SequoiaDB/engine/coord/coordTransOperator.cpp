@@ -1047,7 +1047,7 @@ namespace engine
              * For old driver, TransCommit message use the wrong length
              * which can cause the exception when we build the hint here.
              */
-            PD_LOG( PDWARNING, "Build transcommit hint occur exception: %s",
+            PD_LOG( PDDEBUG, "Build transcommit hint occur exception: %s",
                     e.what() ) ;
          }
       }

@@ -48,6 +48,16 @@ using namespace bson;
 using namespace std;
 
 /*
+ * Old driver use old MsgOpTransBegin length as the
+ * commit message length by mistake. We need MsgOpTransBegin
+ * length to determine whether the commit is from old driver.
+ * The MsgOpTransBegin has been changed in MVCC so the length
+ * has been changed too. That's why here we need to define the
+ * old length.
+ */
+#define MSG_OLD_MSGOPTRANSBEGIN_SIZE ( 44 )
+
+/*
    When cb is not null, will allocate from cb. So must use cb->releaseBuf
    to free the ppBuffer
 */
