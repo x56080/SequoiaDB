@@ -235,12 +235,26 @@ INT32 msgExtractTransCommit ( const CHAR *pBuffer, const CHAR **ppHint )
    INT32 offset = 0 ;
    INT32 length = 0 ;
    MsgOpTransCommit *pCommit = (MsgOpTransCommit*)pBuffer ;
-   offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 );
 
-   if ( offset  < pCommit->header.messageLength && ppHint )
+   //old driver use MsgOpTransBegin as messageLength and old driver does not have hint
+   if ( pCommit->header.messageLength != MSG_OLD_MSGOPTRANSBEGIN_SIZE )
    {
-      *ppHint  = &pBuffer[offset] ;
+      offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 );
+
+      if ( offset  < pCommit->header.messageLength && ppHint )
+      {
+         *ppHint  = &pBuffer[offset] ;
+         length = *((SINT32*)(&pBuffer[offset])) ;
+
+         // the result may not exactly match because messageLength is 4 bytes aligned
+         if ( offset + length > pCommit->header.messageLength )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
    }
+
 done :
    return rc ;
 error :
