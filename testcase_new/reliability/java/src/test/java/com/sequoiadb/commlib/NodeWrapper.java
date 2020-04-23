@@ -7,14 +7,15 @@
  */
 package com.sequoiadb.commlib;
 
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
+
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Node;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
 
 public class NodeWrapper {
     public enum NodeStatus {
@@ -104,11 +105,14 @@ public class NodeWrapper {
             status = NodeStatus.STOP_SUCCESS;
 
         } catch ( BaseException e ) {
-            System.out.println( "stop " + node.getNodeName() + " failed "
-                    + e.getErrorCode() );
-            status = NodeStatus.STOP_FAILURE;
-            e.printStackTrace();
-            throw new ReliabilityException( e );
+            // -140 停止节点超时，但节点最终仍然停止成功，捕获此错误码规避该错误。
+            if ( e.getErrorCode() != -140 ) {
+                System.out.println( "stop " + node.getNodeName() + " failed "
+                        + e.getErrorCode() );
+                status = NodeStatus.STOP_FAILURE;
+                e.printStackTrace();
+                throw new ReliabilityException( e );
+            }
         }
         return true;
     }
