@@ -263,7 +263,8 @@ namespace engine
       SINT32 _prepareRBSCLForRecord( UINT32        recordSize,
                                      pmdEDUCB     *eduCB,
                                      SDB_DPSCB    *dpsCB,
-                                     dmsMBContext *& clContext ) ;
+                                     dmsMBContext *& clContext,
+                                     UINT16        & rbsclID ) ;
 
       SINT32 _allocRBSRecordSpace( UINT32        size,
                                    dmsRBSOffset &newOffset,
