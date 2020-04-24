@@ -7051,13 +7051,15 @@ do                                                            \
          SDB_OSS_FREE ( pStr ) ;
          pStr = NULL ;
          pTmp = NULL ;
-         if ( rc == SDB_OK)
+         if ( SDB_AUTH_AUTHORITY_FORBIDDEN == rc || SDB_OK == rc )
          {
-            goto done ;
+            break;
          }
       } while ( mark != i ) ;
-      // if we go here, means no valid addresses
-      rc = SDB_NET_CANNOT_CONNECT ;
+      if( rc )
+      {
+        goto error;
+      }
    done :
       return rc ;
    error :
