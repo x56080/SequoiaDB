@@ -306,7 +306,6 @@ public class Transaction17362A extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        sdb.updateConfig( ( BSONObject ) JSON.parse( "{diaglevel:3}" ) );
         if ( sdb1 != null ) {
             sdb1.close();
         }
