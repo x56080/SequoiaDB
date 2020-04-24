@@ -38,6 +38,7 @@
             <package name="com.sequoiadb.metadataconsistency.data"/>
             <package name="com.sequoiadb.sortOptimize"/>
             <package name="com.sequoiadb.dataconsistency"/>
+            <package name="com.sequoiadb.index"/>
         </packages>    
     </test>
    
