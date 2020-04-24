@@ -225,6 +225,8 @@ do_start()
     set_ulimits "-v" "$virtual_memory"
     #open files
     set_ulimits "-n" "$open_files"
+    #max stack size
+    set_ulimits "-s" "$stack_size"
   fi
   mkdir -p ${LOCK_FILE_DIR}
   touch ${LOCK_FILE}
