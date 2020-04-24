@@ -26,9 +26,9 @@ SystemTest.prototype.addDelUser = function( createDir )
    }
 
    // 检查用户组tmpGroup testGroup和用户ceateUser是否存在，若存在则删除
-   isUserExist( this.hostname, this.svcname, "createUser", this.system, true );
-   isGroupExist( this.hostname, this.svcname, "tmpGroup", this.system, true );
-   isGroupExist( this.hostname, this.svcname, "testGroup", this.system, true );
+   deleteUser( this.hostname, this.svcname, "createUser", this.system );
+   deleteGroup( this.hostname, this.svcname, "tmpGroup", this.system );
+   deleteGroup( this.hostname, this.svcname, "testGroup", this.system );
 
    try
    {
@@ -60,9 +60,9 @@ SystemTest.prototype.addDelUser = function( createDir )
    finally
    {
       //删除用户和用户组
-      isUserExist( this.hostname, this.svcname, "createUser", this.system, true );
-      isGroupExist( this.hostname, this.svcname, "tmpGroup", this.system, true );
-      isGroupExist( this.hostname, this.svcname, "testGroup", this.system, true );
+      deleteUser( this.hostname, this.svcname, "createUser", this.system, false );
+      deleteGroup( this.hostname, this.svcname, "tmpGroup", this.system, false );
+      deleteGroup( this.hostname, this.svcname, "testGroup", this.system, false );
    }
 
    this.release();
