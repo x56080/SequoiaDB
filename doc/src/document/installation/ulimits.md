@@ -11,6 +11,7 @@ data_seg_size=-1
 file_size=-1
 virtual_memory=-1
 open_files=60000
+stack_size=512
 ```
  
  * 配置描述：
@@ -22,6 +23,7 @@ open_files=60000
    | file_size      | 进程所允许寻址的文件大小。                                 | -1（表示unlimited） |
    | virtual_memory | 进程所允许最大虚拟内存寻址空间限制。                       | -1（表示unlimited） |
    | open_files     | 进程允许的最大文件句柄数。                                 | 60000               |
+   | stack_size     | 进程允许的最大堆栈大小。                                   | 512                 |
 
 
    >**Note:**
@@ -65,7 +67,7 @@ Limit                     Soft Limit           Hard Limit           Units
 Max cpu time              unlimited            unlimited            seconds   
 Max file size             unlimited            unlimited            bytes     
 Max data size             unlimited            unlimited            bytes     
-Max stack size            8388608              unlimited            bytes     
+Max stack size            524288               524288               bytes     
 Max core file size        0                    0                    bytes     
 Max resident set          unlimited            unlimited            bytes     
 Max processes             23711                23711                processes 
