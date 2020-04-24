@@ -577,72 +577,52 @@ function toolGetSequoiadbDir ( hostname, svcname )
 }
 
 /******************************************************************************
-*@Description : check user exist or not
+*@Description : delete user 
 *@author      : Liang XueWang              
 ******************************************************************************/
-function isUserExist ( hostname, svcname, username, system, execDel )
+function deleteUser( hostname, svcname, username, system, ignoreNotExist )
 {
-   if( execDel == undefined ){ execDel = false; }
+   if( ignoreNotExist == undefined ){ ignoreNotExist = true; }
    var remote = new Remote( hostname, svcname );
    var cmd = remote.getCmd();
-   var exist = true;
    try
    {
       cmd.run( "grep '^" + username + ":' /etc/passwd" );
-      if( execDel )
-      {
-         var option = {};
-         option["name"] = username;
-         option["isRemoveDir"] = true;
-         system.delUser( option );
-      }
+      var option = { "name": username, "isRemoveDir": true };
+      system.delUser( option );
    }
    catch( e )
    {
-      if( e === 1 )
-      {
-         exist = false;
-      }
-      else
+      if( !ignoreNotExist || e !== 1 )
       {
          throw new Error( e );
       }
    }
    remote.close();
-   return exist;
 }
 
 /******************************************************************************
-*@Description : check group exist or not
+*@Description : delete group
 *@author      : Liang XueWang              
 ******************************************************************************/
-function isGroupExist ( hostname, svcname, groupname, system, execDel )
+function deleteGroup( hostname, svcname, groupname, system, ignoreNotExist )
 {
-   if( execDel == undefined ){ execDel = false; }
+   if( ignoreNotExist == undefined ){ ignoreNotExist = true; }
    var remote = new Remote( hostname, svcname );
    var cmd = remote.getCmd();
-   var exist = true;
    try
    {
       cmd.run( "grep '^" + groupname + ":' /etc/group" );
-      if( execDel )
-      {
-        system.delGroup( groupname ); 
-      }
+      system.delGroup( groupname ); 
    }
    catch( e )
    {
-      if( e === 1 )
-      {
-         exist = false;
-      }
-      else
+      if( !ignoreNotExist || e !== 1 )
       {
          throw new Error( e );
       }
    }
    remote.close();
-   return exist;
 }
 
 /******************************************************************************

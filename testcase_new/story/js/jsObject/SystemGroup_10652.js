@@ -12,12 +12,11 @@
 // 测试创建删除用户组
 SystemTest.prototype.testAddDelGroup = function( isUnique )
 {
-   // 检查tmpGroup或testgroup是否存在
-   if( isGroupExist( this.hostname, this.svcname, "tmpGroup" ) ||
-      isGroupExist( this.hostname, this.svcname, "testGroup" ) )
-      return;
-
    this.init();
+
+   // 检查tmpGroup或testgroup是否存在
+   deleteGroup( this.hostname, this.svcname, "tmpGroup", this.system );
+   deleteGroup( this.hostname, this.svcname, "testGroup", this.system );
 
    // 检查用户是否有权限
    var user = this.system.getCurrentUser().toObj()["user"];
@@ -54,11 +53,6 @@ SystemTest.prototype.testAddDelGroup = function( isUnique )
       // 删除用户组
       this.system.delGroup( "tmpGroup" );
       this.system.delGroup( "testGroup" );
-      if( isGroupExist( this.hostname, this.svcname, "tmpGroup" ) ||
-         isGroupExist( this.hostname, this.svcname, "testGroup" ) )
-      {
-         throw ( "tmpGroup/testGroup should be deled after del" );
-      }
    }
    catch( e )
    {

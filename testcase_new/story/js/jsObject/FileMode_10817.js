@@ -271,19 +271,10 @@ FileTest.prototype.testChgrpRecursive = function()
 
 function createUserAndGroup ( ft, user, group )
 {
-   try
-   {
-      if( !isGroupExist( ft.hostname, ft.svcname, "tmpGroup" ) )
-         ft.system.addGroup( { "name": group } );
-      if( !isUserExist( ft.hostname, ft.svcname, "tmpUser" ) )
-         ft.system.addUser( { "name": user, "group": group } );
-   }
-   catch( e )
-   {
-      throw buildException( "createUserAndGroup", e,
-         "create " + user + " " + group + " " + ft,
-         0, e );
-   }
+   deleteGroup( ft.hostname, ft.svcname, group, ft.system );     
+   deleteUser( ft.hostname, ft.svcname, user, ft.system );
+   ft.system.addGroup( { "name": group } );
+   ft.system.addUser( { "name": user, "group": group } );
 }
 
 function deleteUserAndGroup ( ft, user, group )

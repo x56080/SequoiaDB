@@ -23,10 +23,10 @@ SystemTest.prototype.setUserConfigs = function()
       return;
    }
 
-   isUserExist( this.hostname, this.svcname, "modifyUser", this.system, true );
-   isGroupExist( this.hostname, this.svcname, "tmpGroup", this.system, true );
-   isGroupExist( this.hostname, this.svcname, "testGroup", this.system, true );
-   isGroupExist( this.hostname, this.svcname, "modifyUser", this.system, true );  
+   deleteUser( this.hostname, this.svcname, "modifyUser", this.system );
+   deleteGroup( this.hostname, this.svcname, "tmpGroup", this.system );
+   deleteGroup( this.hostname, this.svcname, "testGroup", this.system );
+   deleteGroup( this.hostname, this.svcname, "modifyUser", this.system );  
  
    try
    {
@@ -64,13 +64,13 @@ SystemTest.prototype.setUserConfigs = function()
    finally
    {
       //检查用户和组存在，并删除
-      isUserExist( this.hostname, this.svcname, "modifyUser", this.system, true );
-      isGroupExist( this.hostname, this.svcname, "tmpGroup", this.system, true );
-      isGroupExist( this.hostname, this.svcname, "testGroup", this.system, true );
-      isGroupExist( this.hostname, this.svcname, "modifyUser", this.system, true );
+      deleteUser( this.hostname, this.svcname, "modifyUser", this.system, false );
+      deleteGroup( this.hostname, this.svcname, "tmpGroup", this.system, false );
+      deleteGroup( this.hostname, this.svcname, "testGroup", this.system, false );
+      deleteGroup( this.hostname, this.svcname, "modifyUser", this.system, false );
    }
 
    this.release();
 }
 
-main( test );
+//main( test );SEQUOIADBMAINSTREAM-5792
