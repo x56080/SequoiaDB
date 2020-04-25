@@ -63,14 +63,14 @@ namespace engine
       }
 
       /// Interface
-      virtual INT32 afterLockAcquire( const dpsTransLockId &lockId,
+      virtual void afterLockAcquire( const dpsTransLockId &lockId,
                                      INT32 irc,
                                      DPS_TRANSLOCK_TYPE requestLockMode,
                                      UINT32 refCounter,
                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode,
                                      dpsLRBExtData *pExtData ) = 0 ;
 
-      virtual INT32 afterLockAcquirePostAction( const dpsTransLockId &lockId )
+      virtual void afterLockAcquirePostAction( const dpsTransLockId &lockId )
                                      = 0 ;
 
       virtual void beforeLockRelease( const dpsTransLockId &lockId,
@@ -78,6 +78,8 @@ namespace engine
                                       UINT32 refCounter,
                                       dpsLRBExtData *pExtData ) = 0 ;
 
+      virtual INT32 getResult()  = 0 ;
+      virtual BOOLEAN hasError() = 0 ;
    } ;
 
 }

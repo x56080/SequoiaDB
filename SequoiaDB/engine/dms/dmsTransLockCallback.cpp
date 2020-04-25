@@ -615,7 +615,7 @@ namespace engine
    // TODO: there could be some code cleanup in this function, including:
    //  duplicated code, logic maybe simplified, remove debug code...
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIRE, "dmsTransLockCallback::afterLockAcquire" )
-   INT32 dmsTransLockCallback::afterLockAcquire
+   void dmsTransLockCallback::afterLockAcquire
    (
       const dpsTransLockId       &lockId,
       INT32                       irc,
@@ -625,7 +625,6 @@ namespace engine
       dpsLRBExtData              *pExtData
    )
    {
-      INT32   rc                 = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIRE ) ;
 
       clearStatus() ;
@@ -654,12 +653,12 @@ namespace engine
             ( DPS_TRANSLOCK_S == requestLockMode ) )
 
       {
-         rc = _afterAcquireSLockRRread( lockId,
-                                        irc,
-                                        requestLockMode,
-                                        refCounter,
-                                        opMode,
-                                        pExtData ) ;
+         _afterAcquireSLockRRread( lockId,
+                                   irc,
+                                   requestLockMode,
+                                   refCounter,
+                                   opMode,
+                                   pExtData ) ;
       }
       // X,U lock or isolation RU, RC, RS
       else
@@ -673,7 +672,7 @@ namespace engine
       }
    done :
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIRE ) ;
-      return rc ;
+      return ;
    }
 
    // Description:
@@ -1030,7 +1029,7 @@ namespace engine
 
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIRESLOCKRRREAD, "dmsTransLockCallback::_afterAcquireSLockRRread" )
-   INT32 dmsTransLockCallback::_afterAcquireSLockRRread
+   void dmsTransLockCallback::_afterAcquireSLockRRread
    (
       const dpsTransLockId       &lockId,
       INT32                       irc,
@@ -1307,8 +1306,9 @@ namespace engine
              (_rbsRecordData ? _rbsRecordData->isEmpty() : -1 ), rc,
              dpsTransIDToString( transID ).c_str() ) ;
 #endif
-      PD_TRACE_EXITRC( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIRESLOCKRRREAD, rc ) ;
-      return  rc ;
+      _result = rc ;
+      PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIRESLOCKRRREAD ) ;
+      return ;
    error :
       goto done ;
    }
@@ -1318,8 +1318,10 @@ namespace engine
    // want to do, but can be done outside of bucket latch. This is the place
    // to execute them.
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIREPOSTACTION, "dmsTransLockCallback::afterLockAcquirePostAction" )
-   INT32 dmsTransLockCallback::afterLockAcquirePostAction(
-                                           const dpsTransLockId &lockId )
+   void dmsTransLockCallback::afterLockAcquirePostAction
+   (
+      const dpsTransLockId &lockId
+   )
    {
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIREPOSTACTION ) ;
       SINT32        rc      = SDB_OK ;
@@ -1334,7 +1336,7 @@ namespace engine
       {
          goto done ;
       }
-      
+
       // setup search RBS range if it is index scan.
       // As for TBScan, it can directly hash and use RBS following
       // the chain.
@@ -1345,8 +1347,8 @@ namespace engine
       }
 
       // TB scanner and IXdisk scanner can have invalid start/end Pos, at which
-      // time was scan all RBS record. IXmemTree scanner must have one pos 
-      // valid to scan the RBS chain. 
+      // time was scan all RBS record. IXmemTree scanner must have one pos
+      // valid to scan the RBS chain.
       if ( !_pScanner ||
            ( SCANNER_TYPE_DISK == _pScanner->getCurScanType() ) ||
            ( startPos.isValid() || endPos.isValid() ) )
@@ -1380,9 +1382,9 @@ namespace engine
              (_rbsRecordData ? _rbsRecordData->isEmpty() : -1 ), rc ) ;
 #endif
    done :
-      PD_TRACE_EXITRC( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIREPOSTACTION, 
-                       rc ) ;
-      return  rc ;
+      _result = rc ;
+      PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIREPOSTACTION ) ;
+      return ;
    error :
       goto done ;
    }
