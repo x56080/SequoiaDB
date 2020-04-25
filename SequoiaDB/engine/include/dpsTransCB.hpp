@@ -60,6 +60,8 @@ using namespace bson ;
 
 namespace engine
 {
+   #define DPS_TRANS_BUCKET_SIZE ( 64 )
+
    class _pmdEDUCB ;
    class _dmsExtScanner ;
    class _dmsIXSecScanner ;
@@ -1052,8 +1054,8 @@ namespace engine
       monSpinSLatch     _MapMutex ;
       TRANS_MAP         _TransMap ;
 
-      monSpinSLatch     _CBMapMutex ;
-      TRANS_CB_MAP      _cbMap ;
+      monSpinSLatch     _cbMapLatch[ DPS_TRANS_BUCKET_SIZE ] ;
+      TRANS_CB_MAP      _cbMap[ DPS_TRANS_BUCKET_SIZE ] ;
 
       BOOLEAN           _isOn ;
       BOOLEAN           _isGlobTransOn ;
@@ -1074,9 +1076,9 @@ namespace engine
       TRANS_LSN_ID_MAP  _beginLsnIdMap ;
       TRANS_ID_LSN_MAP  _idBeginLsnMap ;
 
-      monSpinSLatch     _hisMutex ;
-      TRANS_ID_2_STATUS _hisTransStatus ;
-      TRANS_LSN_ID_MAP  _hisLsnTrans ;
+      monSpinSLatch     _histMapLatch[ DPS_TRANS_BUCKET_SIZE ] ;
+      TRANS_ID_2_STATUS _histMap[ DPS_TRANS_BUCKET_SIZE ] ;
+      TRANS_LSN_ID_MAP  _histLSNMap[ DPS_TRANS_BUCKET_SIZE ] ;
 
       BOOLEAN           _isNeedSyncTrans ;
       monSpinXLatch     _maxFileSizeMutex ;
@@ -1128,6 +1130,15 @@ namespace engine
       // - archived lowTran is the largest finished transaction ID
       // - if cb map is empty, archived lowTran will be the local lowTran
       ossAtomic64          _archivedLowTran ;
+
+      // upper bound of max running transaction ID ( with time error )
+      // NOTE:
+      // - maxRunTran is the transaction ID of the latest started transaction
+      //   with upper bound of time error
+      // - maxRunTran is used to check pre-commit time of write transactions
+      //   which should be delayed by running read transactions ( which is
+      //   indicates by maxRunTran )
+      ossAtomic64          _maxRunTran ;
 
       // update event to notify lowTran job to update global lowTran
       ossEvent             _updateLowTranEvent ;
