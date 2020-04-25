@@ -62,6 +62,9 @@
 #include <sys/syscall.h>
 #include "fuse.h"
 #include "fuse_lowlevel.h"
+#include "utilPidFile.hpp"
+#include "ossFile.hpp"
+#include "ossCmdRunner.hpp"
 
 #ifndef SEQUOIAFS_SUPPORT_FUSE_VERSION
 /*SequoiaFS support libfuse version, 0x0286 means 2.8.6*/

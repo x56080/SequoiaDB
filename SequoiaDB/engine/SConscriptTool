@@ -661,10 +661,10 @@ sdbSEAdptFiles = [
       ]
 
 sequoiaFSFiles = [
-      "tools/sequoiafs/sequoiaFS.cpp",
-      "tools/sequoiafs/sequoiaFSLruCache.cpp",
-      "tools/sequoiafs/sequoiaFSMain.cpp",
-      "tools/sequoiafs/sequoiaFSOptionMgr.cpp",
+      "tools/sequoiafs/src/sequoiaFS.cpp",
+      "tools/sequoiafs/src/sequoiaFSLruCache.cpp",
+      "tools/sequoiafs/src/sequoiaFSMain.cpp",
+      "tools/sequoiafs/src/sequoiaFSOptionMgr.cpp",
     ]
 sdbPasswdFiles = [
       "tools/passwd/passwdOptions.cpp",
@@ -827,5 +827,5 @@ toolEnv.Install( '#/bin', sdbinspect )
 if linux:
    toolEnv.Install( '#/bin', sdbomtool )
 if linux64:
-   toolEnv.Install('#/bin', sequoiafs)
+   toolEnv.Install('#/tools/sequoiafs/bin', sequoiafs)
 toolEnv.Install( '#/bin', sdbseadapter )

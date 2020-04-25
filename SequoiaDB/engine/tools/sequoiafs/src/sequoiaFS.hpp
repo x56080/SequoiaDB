@@ -224,6 +224,7 @@ namespace sequoiafs
                          const bson::BSONObj &indexDef,
                          BOOLEAN isUnique = FALSE,
                          BOOLEAN isEnforced = FALSE);
+      INT32 initDataCSCL(sdb *db, const string collection);
       void setReplSize(INT32 replsize)
       {
         _replsize = replsize;

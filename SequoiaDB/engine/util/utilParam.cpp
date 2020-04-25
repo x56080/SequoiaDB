@@ -112,10 +112,55 @@ namespace engine
       goto done;
    }
 
+   INT32 utilReadCommandLine3( INT32 argc, CHAR **argv,
+                               po::options_description &desc,
+                               po::positional_options_description &posDesc,
+                               po::variables_map &vm,
+                               BOOLEAN allowUnreg )
+   {
+      INT32 rc = SDB_OK;
+
+      try
+      {
+         po::parsed_options parsed = po::command_line_parser(
+               argc, argv).options( desc ).positional(posDesc).allow_unregistered().run() ;
+         po::store ( parsed, vm ) ;
+         if ( !allowUnreg )
+         {
+            vector<string> to_pass_further = po::collect_unrecognized(
+               parsed.options, po::include_positional ) ;
+            if ( to_pass_further.size() )
+            {
+               std::cerr << "Unrecongnized options: ";
+               for ( vector<string>::iterator i = to_pass_further.begin() ;
+                     i != to_pass_further.end() ; ++i )
+               {
+                  std::cerr << *i << ' ' ;
+               }
+               std::cerr << std::endl ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+         po::notify ( vm ) ;
+      }
+      catch( po::error &e )
+      {
+         std::cerr << e.what () << std::endl ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 utilReadCommandLine2( INT32 argc, CHAR **argv,
-                              po::options_description &desc,
-                              po::variables_map &vm,
-                              BOOLEAN allowUnreg )
+                               po::options_description &desc,
+                               po::variables_map &vm,
+                               BOOLEAN allowUnreg )
    {
       INT32 rc = SDB_OK;
 

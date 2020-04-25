@@ -51,11 +51,16 @@ namespace po = boost::program_options ;
 using namespace std ;
 
 namespace engine
-{
-
+{                                  
    INT32 utilReadConfigureFile( const CHAR *file,
                                 po::options_description &desc,
                                 po::variables_map &vm ) ;
+   
+   INT32 utilReadCommandLine3( INT32 argc, CHAR **argv,
+                               po::options_description &desc,
+                               po::positional_options_description &posDesc,
+                               po::variables_map &vm,
+                               BOOLEAN allowUnreg );   
 
    INT32 utilReadCommandLine2( INT32 argc, CHAR **argv,
                                po::options_description &desc,

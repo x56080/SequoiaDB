@@ -37,6 +37,7 @@
 
 #include"sequoiaFSMain.hpp"
 
+using namespace engine;
 using namespace std;
 using namespace sequoiafs;
 
@@ -401,11 +402,16 @@ error:
 INT32 main(INT32 argc, CHAR *argv[])
 {
    INT32 rc = SDB_OK ;
+   INT32 rc2 = SDB_OK ;
    struct fuse_args fuseArgs = {0};
    CHAR optionTemp[OSS_MAX_PATHSIZE] = {0};
    vector<string> options4fuse;
    string option;
    struct sfsOptionInfo lobFuseOption = {0};
+   CHAR pidName[OSS_MAX_PATHSIZE + 1];
+   OSSFILE pidFile ;
+   BOOLEAN isCreatePidFile = FALSE;
+   _ossCmdRunner runner ;
 
    rc = sfsOptInitArgs(&fuseArgs);
    if(SDB_OK != rc)
@@ -455,64 +461,175 @@ INT32 main(INT32 argc, CHAR *argv[])
       goto done;
    }
 
-   if(lobFuseOption.is_help)
+   sfs->_mountpoint = lobFuseOption.mountpoint;
+   rc = fuse_opt_add_arg(&fuseArgs, lobFuseOption.mountpoint);
+   if(0 != rc)
    {
-      rc = fuse_opt_add_arg(&fuseArgs, "--help");
-      if(0 != rc)
-      {
-         ossPrintf("Failed to add arg:\"%s\" (error=%d), exit."OSS_NEWLINE,
-                   "--help", rc);
-         goto error;
-      }
-   }
-
-   if(lobFuseOption.mountpoint)
-   {
-      sfs->_mountpoint = lobFuseOption.mountpoint;
-      rc = fuse_opt_add_arg(&fuseArgs, lobFuseOption.mountpoint);
-      if(0 != rc)
-      {
-         ossPrintf("Failed to add arg:%s (error=%d), exit."OSS_NEWLINE,
-                   lobFuseOption.mountpoint, rc);
-         goto error;
-      }
-      //write mount map history
-      rc = sfs->writeMapHistory(sfs->getHosts());
-      if(SDB_OK != rc)
-      {
-         ossPrintf("Failed to write map history collection(error=%d), "
-                   "exit."OSS_NEWLINE, rc);
-         goto error;
-      }
-
-      //close datasource to avoid the bgtask threads being closed by fuse_main,
-      //start when first called getattr,
-      rc = sfs->disableDataSource();
-      if(SDB_OK != rc)
-      {
-         goto error;
-      }
-   }
-
-   else if(!lobFuseOption.is_help && !lobFuseOption.is_version)
-   {
-      ossPrintf("The mountpoint must be specified, exit."OSS_NEWLINE);
-      rc = SDB_INVALIDARG;
+      PD_LOG( PDERROR, "Failed to add arg:%s. rc:%d", lobFuseOption.mountpoint, rc ) ;
+      ossPrintf("Failed to add arg:%s (error=%d), exit."OSS_NEWLINE,
+                lobFuseOption.mountpoint, rc);
       goto error;
+   }
+   //write mount map history
+   rc = sfs->writeMapHistory(sfs->getHosts());
+   if(SDB_OK != rc)
+   {
+      PD_LOG( PDERROR, "Failed to write map history collection. rc:%d", rc ) ;
+      ossPrintf("Failed to write map history collection(error=%d), "
+                "exit."OSS_NEWLINE, rc);
+      goto error;
+   }
+
+   //close datasource to avoid the bgtask threads being closed by fuse_main,
+   //start when first called getattr,
+   rc = sfs->disableDataSource();
+   if(SDB_OK != rc)
+   {
+      goto error;
+   }
+
+   //Alias is unique. Mountpoints can not use the same alias.
+   if(ossStrlen((sfs->getOptionMgr())->getAlias()))
+   {
+      CHAR mount[512] = {0};
+      UINT32 exitCode = 0 ;
+      ossSnprintf( mount, sizeof( mount ),
+          "mount -t fuse.sequoiafs | grep '%s('", (sfs->getOptionMgr())->getAlias() );
+      rc = runner.exec( mount, exitCode,
+                     FALSE, -1, FALSE, NULL, TRUE ) ;
+      if (SDB_OK != rc)
+      {
+         PD_LOG( PDERROR, "mount query failed. cmd:(%s). rc:%d",  mount, rc ) ;
+         ossPrintf("mount query failed. cmd:(%s). errorcode:(%d). exit."OSS_NEWLINE, mount, rc);
+         rc = SDB_OPERATION_CONFLICT;
+         goto error;
+      }
+      if ( SDB_OK == exitCode )
+      {
+         PD_LOG( PDERROR, "The alias(%s) is already in use.",  (sfs->getOptionMgr())->getAlias() ) ;
+         ossPrintf("The alias(%s) is already in use. exit."OSS_NEWLINE, (sfs->getOptionMgr())->getAlias() );
+         rc = SDB_OPERATION_CONFLICT;
+         goto error;
+      }
+   }
+
+   //Create a pidfile in diagpath and lock it.
+   //When the process is exit, the pidfile will be unlocked and deleted.
+   if (ossStrlen((sfs->getOptionMgr())->getDiaglogPath()))
+   {  
+      rc = engine::utilBuildFullPath((sfs->getOptionMgr())->getDiaglogPath(), SDB_SEQUOIAFS_PID_FILE_NAME,
+                                  OSS_MAX_PATHSIZE, pidName);
+      if(SDB_OK != rc)
+      {
+         PD_LOG( PDERROR, "get pidName failed, rc: %d",  rc ) ;
+         ossPrintf("get pidName failed. rc: %d."OSS_NEWLINE, rc);
+         goto error;
+      }
+      else 
+      {
+         rc = ossAccess( pidName, OSS_MODE_READ );
+         if(SDB_OK == rc)
+         {
+            rc = ossOpen ( pidName, OSS_READONLY, OSS_RU|OSS_RG, pidFile ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Open pidfile(%s) failed, rc: %d", pidName, rc ) ;
+               ossPrintf("Open pidfile(%s) failed. exit."OSS_NEWLINE, pidName);
+               rc = SDB_OPERATION_CONFLICT;
+               goto error;
+            }
+            rc = ossLockFile ( &pidFile, OSS_LOCK_EX ) ;
+            if ( SDB_OK != rc )
+            {
+               CHAR oldPid[10] = {0};
+               INT64 readSize = 0;
+               ossRead( &pidFile, oldPid, (INT64)(sizeof(oldPid) - 1), &readSize);
+               ossClose( pidFile );
+               PD_LOG( PDERROR, "Lock pidfile(%s) failed, maybe the mountpoint(%s)"
+                       "has been mounted by other process(%s), rc: %d", 
+                       pidName, lobFuseOption.mountpoint, oldPid, rc ) ;
+               ossPrintf("Lock pidfile(%s) failed, maybe the mountpoint(%s) has "
+                         "been mounted by other process(%s). exit."OSS_NEWLINE, 
+                         pidName, lobFuseOption.mountpoint, oldPid);
+               rc = SDB_OPERATION_CONFLICT;
+               goto error;
+            }
+            ossLockFile ( &pidFile, OSS_LOCK_UN ) ;
+            ossClose( pidFile );
+            engine::removePIDFile( pidName ) ;
+         }
+         
+         rc = engine::createPIDFile( pidName ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to create pid file(%s), rc: %d", pidName, rc ) ;
+            ossPrintf("Failed to create pid file(%s). exit."OSS_NEWLINE, pidName);
+            goto error;
+         }
+         isCreatePidFile = TRUE;
+         rc = ossOpen ( pidName, OSS_READONLY, OSS_RU|OSS_RG, pidFile ) ;
+         if ( SDB_OK != rc )
+         {
+            engine::removePIDFile( pidName ) ;
+            PD_LOG( PDERROR, "open pidfile(%s) failed. rc:%d.", pidName, rc ) ;
+            ossPrintf("open pidfile(%s) failed. exit."OSS_NEWLINE, pidName);
+            rc = SDB_OPERATION_CONFLICT;
+            goto error;
+         }
+         rc = ossLockFile ( &pidFile, OSS_LOCK_EX ) ;
+         if ( SDB_OK != rc )
+         {
+            ossClose( pidFile );
+            engine::removePIDFile( pidName ) ;
+            PD_LOG( PDERROR, "Lock pidfile(%s) failed. rc:%d.", pidName, rc ) ;
+            ossPrintf("Lock pidfile(%s) failed. exit."OSS_NEWLINE, pidName);
+            rc = SDB_OPERATION_CONFLICT;
+            goto error;
+         }
+      }
    }
 
    rc = fuse_main(fuseArgs.argc, fuseArgs.argv, &sfsFuseOper, NULL);
-   if(SDB_OK != rc && !lobFuseOption.is_help && !lobFuseOption.is_version)
-   {
-      ossPrintf("Failed to start fuse main(error=%d), exit."OSS_NEWLINE, rc);
-   }
-
-   rc = sfs->closeDataSource();
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to start close conn pool(error=%d), exit."OSS_NEWLINE, rc);
-      goto error;
+      PD_LOG( PDERROR, "Failed to start fuse main. rc:%d.", rc ) ;
+      ossPrintf("Failed to start fuse main(error=%d), exit."OSS_NEWLINE, rc);
    }
+   else
+   {
+      rc2 = (sfs->getOptionMgr())->save(); 
+      if(SDB_OK != rc2)
+      {
+         PD_LOG( PDWARNING, "Failed to start close conn pool. rc:%d.", rc2 ) ;
+         ossPrintf("Failed to save config (error=%d), exit."OSS_NEWLINE, rc2);
+      }
+   }
+   
+   rc2 = sfs->closeDataSource();
+   if(SDB_OK != rc2 )
+   {
+      PD_LOG( PDWARNING, "Failed to close conn pool. rc:%d.", rc2 ) ;
+      ossPrintf("Failed to close conn pool(error=%d)."OSS_NEWLINE, rc2);
+   }
+
+   if(isCreatePidFile)
+   {
+      rc2 = ossLockFile ( &pidFile, OSS_LOCK_UN ) ;
+      if (SDB_OK != rc2)
+      {
+         PD_LOG( PDWARNING, "Failed to unlock pid file. rc:%d.", rc2 ) ;
+      }
+      rc2 = ossClose( pidFile );
+      if (SDB_OK != rc2)
+      {
+         PD_LOG( PDWARNING, "Failed to close pid file. rc:%d.", rc2 ) ;
+      }
+      rc2 = engine::removePIDFile( pidName ) ;
+      if (SDB_OK != rc2)
+      {
+         PD_LOG( PDWARNING, "Failed to remove pid file. rc:%d.", rc2 ) ;
+      }
+   } 
 
 done:
    delete sfs;

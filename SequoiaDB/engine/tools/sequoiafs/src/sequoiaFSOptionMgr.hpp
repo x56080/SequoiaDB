@@ -39,11 +39,12 @@
 #define _SEQUOIAFS_OPTIONMGR_HPP_
 
 #include "pmdOptionsMgr.hpp"
+#include "utilStr.hpp"
 
 #define SDB_SEQUOIAFS_EXE_FILE_NAME    "sequoiafs"
-#define SDB_SEQUOIAFS_LOG_DIR          SDB_SEQUOIAFS_EXE_FILE_NAME"log"
 #define SDB_SEQUOIAFS_CFG_FILE_NAME    SDB_SEQUOIAFS_EXE_FILE_NAME".conf"
 #define SDB_SEQUOIAFS_LOG_FILE_NAME    SDB_SEQUOIAFS_EXE_FILE_NAME".log"
+#define SDB_SEQUOIAFS_PID_FILE_NAME    SDB_SEQUOIAFS_EXE_FILE_NAME".pid"
 
 #define SDB_SEQUOIAFS_HELP            "help"
 #define SDB_SEQUOIAFS_HELP_FUSE       "helpfuse"
@@ -62,7 +63,17 @@
 #define SDB_SEQUOIAFS_DIAGPATH        "diagpath"
 #define SDB_SEQUOIAFS_DIAGNUM         "diagnum"
 #define SDB_SEQUOIAFS_REPLSIZE        "replsize"
+#define SDB_SEQUOIAFS_MOUNTPOINT      "mountpoint"
+#define SDB_SEQUOIAFS_ALIAS           "alias"
+#define SDB_SEQUOIAFS_ALLOWOTHER      "fuse_allow_other"
+#define SDB_SEQUOIAFS_BIGWRITES       "fuse_big_writes"
+#define SDB_SEQUOIAFS_MAXWRITE        "fuse_max_write"
+#define SDB_SEQUOIAFS_MAXREAD         "fuse_max_read"
+#define SDB_SEQUOIAFS_LARGEREAD       "fuse_large_read"
 
+#define SDB_SEQUOIAFS_FUSE_PREFIX          "fuse_"
+#define SDB_SEQUOIAFS_FUSE_EQUAL           "="
+#define SDB_SEQUOIAFS_FUSE_ARG             "-o"
 
 #define SDB_SEQUOIAFS_CONNECTION_DEFAULT_MAX_NUM 100
 #define SDB_SEQUOIAFS_CACHE_DEFAULT_SIZE 2
@@ -70,10 +81,12 @@
 #define SDB_SEQUOIAFS_USER_DEFAULT_NAME "sdbadmin"
 #define SDB_SEQUOIAFS_USER_DEFAULT_PASSWD "sdbadmin"
 #define SDB_SEQUOIAFS_REPLSIZE_DEFAULT_VALUE 2
+#define SDB_SEQUOIAFS_MAXWRITE_DEFAULT_VALUE 131072
+#define SDB_SEQUOIAFS_MAXREAD_DEFAULT_VALUE 131072 
 
 const string SEQUOIAFS_META_CS = "sequoiafs" ;
-const string SEQUOIAFS_META_DIR_SUFFIX = "_dir" ;
-const string SEQUOIAFS_META_FILE_SUFFIX = "_file" ;
+const string SEQUOIAFS_META_DIR_SUFFIX = "_FS_SYS_DirMeta" ;
+const string SEQUOIAFS_META_FILE_SUFFIX = "_FS_SYS_FileMeta" ;
 
 namespace sequoiafs
 {
@@ -98,8 +111,12 @@ namespace sequoiafs
          const CHAR *getMetaDirCL()const{return _metaDirCollection ;}
          const INT32 getCacheSize()const{return _cacheSize ;}
          const INT32 replsize()const{return _replsize ;}
+         const CHAR *getCfgPath()const{return _cfgPath ;}
+         const CHAR *getmountpoint()const{return _mountpoint ;}
+         const CHAR *getAlias()const{return _alias;}
          CHAR *getDiaglogPath(){return _diagPath ;}
          INT32 parseCollection( const string collection, string *cs, string *cl ) ;
+         INT32 parseAliasName();
 
 
       protected:
@@ -111,6 +128,8 @@ namespace sequoiafs
          CHAR _userName[OSS_MAX_PATHSIZE + 1] ;
          CHAR _passwd[OSS_MAX_PATHSIZE + 1] ;
          CHAR _collection[OSS_MAX_PATHSIZE + 1] ;
+         CHAR _mountpoint[OSS_MAX_PATHSIZE + 1] ;
+         CHAR _alias[OSS_MAX_PATHSIZE + 1] ;
          CHAR _metaFileCollection[OSS_MAX_PATHSIZE + 1] ;
          CHAR _metaDirCollection[OSS_MAX_PATHSIZE + 1] ;
          INT32 _connectionNum ;
@@ -121,8 +140,11 @@ namespace sequoiafs
          INT32 _diagnum ;
          UINT16 _diagLevel ;
          INT32 _replsize ;
-         BOOLEAN _hasOptionAutocreate ;
-
+         BOOLEAN _fuse_allow_other;
+         BOOLEAN _fuse_big_writes;
+         INT32 _fuse_max_write;
+         INT32 _fuse_max_read;
+         BOOLEAN _fuse_large_read;
    } ;
    typedef _sequoiafsOptionMgr sequoiafsOptionMgr ;
 }
