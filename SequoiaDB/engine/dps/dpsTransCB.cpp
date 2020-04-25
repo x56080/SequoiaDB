@@ -72,9 +72,7 @@ namespace engine
    dpsTransCB::dpsTransCB()
    :_TransIDL56Cur( 1 ) ,
     _MapMutex( MON_LATCH_DPSTRANSCB_MAPMUTEX ),
-    _CBMapMutex( MON_LATCH_DPSTRANSCB_CBMAPMUTEX ),
     _lsnMapMutex( MON_LATCH_DPSTRANSCB_LSNMAPMUTEX ),
-    _hisMutex( MON_LATCH_DPSTRANSCB_HISMUTEX ),
     _maxFileSizeMutex( MON_LATCH_DPSTRANSCB_MAXFILESIZEMUTEX ),
     _reservedRBSpace( 0 ) ,
     _reservedSpace( 0 ),
@@ -82,6 +80,7 @@ namespace engine
     _globLowTran( DPS_INVALID_TRANSID_SN ),
     _globExpireTran( DPS_INVALID_TRANSID_SN ),
     _archivedLowTran( DPS_INVALID_TRANSID_SN ),
+    _maxRunTran( DPS_INVALID_TRANSID_SN ),
     _numTransIDConflict( 0LL ),
     _stpAgent(),
     _gtsAgent( NULL )
@@ -104,6 +103,12 @@ namespace engine
       _maxLRLSN2           = DPS_INVALID_LSN_OFFSET ;
 
       _pEventHandler       = NULL ;
+
+      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+      {
+         _cbMapLatch[ i ].latchID = MON_LATCH_DPSTRANSCB_CBMAPMUTEX ;
+         _histMapLatch[ i ].latchID = MON_LATCH_DPSTRANSCB_HISMUTEX ;
+      }
    }
 
    dpsTransCB::~dpsTransCB()
@@ -1188,13 +1193,20 @@ namespace engine
 
       // NOTE: cbMap contains transactions between rtnTransBegin and
       //       rtnTransCommit / rtnTransRollback
-      ossScopedLock _lock( &_CBMapMutex, SHARED ) ;
 
-      // get first transaction
-      TRANS_CB_MAP::iterator iterCB = _cbMap.upper_bound( minGlobTran ) ;
-      if ( iterCB != _cbMap.end() )
+      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
       {
-         lowTran = iterCB->first ;
+         ossScopedLock _lock( &_cbMapLatch[ i ], SHARED ) ;
+
+         // get first transaction
+         TRANS_CB_MAP::iterator iterCB =
+                     _cbMap[ i ].upper_bound( minGlobTran ) ;
+         if ( iterCB != _cbMap[ i ].end() &&
+              ( lowTran.isInvalid() ||
+                iterCB->first < lowTran ) )
+         {
+            lowTran = iterCB->first ;
+         }
       }
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB_GETLOCALLOWTRAN ) ;
@@ -1247,35 +1259,49 @@ namespace engine
          UINT64 lowTranTime = globLowTranID.getLogicalTime() ;
          DPS_TRANS_ID lastGlobExpireTran = getGlobExpireTran() ;
 
-         ossScopedLock lock( &_hisMutex, SHARED ) ;
-
-         // iterate from last global expireTran to the global lowTran, find
-         // transactions with commit time greater than global lowTran
-         // ( with a maximum time error for network delay consideration ),
-         // and assign the minimum one for local expireTran
-         for ( TRANS_ID_2_STATUS::iterator iter =
-                           _hisTransStatus.lower_bound( lastGlobExpireTran ) ;
-               _hisTransStatus.end() != iter ;
-               ++ iter )
+         // find out the oldest transactions (among all buckets) that
+         // committed after global lowTran
+         for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
          {
-            const DPS_TRANS_ID &histTransID = iter->first ;
-            UINT64 commitTime = iter->second._preCommitTime.getTime() ;
+            ossScopedLock lock( &_histMapLatch[ i ], SHARED ) ;
 
-            if ( DPS_TRANS_COMMIT != iter->second._status )
+            // iterate from last global expireTran to the global lowTran, find
+            // transactions with commit time greater than global lowTran
+            // ( with a maximum time error for network delay consideration ),
+            // and assign the minimum one for local expireTran
+            for ( TRANS_ID_2_STATUS::iterator iter =
+                        _histMap[ i ].lower_bound( lastGlobExpireTran ) ;
+                  _histMap[ i ].end() != iter ;
+                  ++ iter )
             {
-               // we only check commit transaction
-               continue ;
-            }
-            else if ( globLowTranID < histTransID )
-            {
-               // end of searching, this transaction is after global lowTran
-               break ;
-            }
-            else if ( commitTime + STP_MAX_TIME_ERROR_US >= lowTranTime )
-            {
-               // end of searching, find the minimum one
-               expireTran = histTransID ;
-               break ;
+               const DPS_TRANS_ID &histTransID = iter->first ;
+               UINT64 commitTime = iter->second._preCommitTime.getTime() ;
+
+               if ( DPS_TRANS_COMMIT != iter->second._status )
+               {
+                  // we only check commit transaction
+                  continue ;
+               }
+               else if ( globLowTranID < histTransID )
+               {
+                  // end of searching, this transaction is after global lowTran
+                  break ;
+               }
+               else if ( expireTran.isValid() &&
+                         !( histTransID < expireTran ) )
+               {
+                  // end of searching, this transaction is after current
+                  // expireTran calculated from other buckets
+                  break ;
+               }
+               else if ( commitTime + STP_MAX_TIME_ERROR_US >= lowTranTime &&
+                         ( expireTran.isInvalid() ||
+                           histTransID < expireTran ) )
+               {
+                  // end of searching, find the minimum one
+                  expireTran = histTransID ;
+                  break ;
+               }
             }
          }
       }
@@ -1424,48 +1450,23 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETLOCALPRECOMMITTIME ) ;
 
-      preCommitTime = currentTime ;
+      // get upper bound of max running transaction ID
+      UINT64 maxRunTran = _maxRunTran.fetch() ;
 
-      ossScopedLock _lock( &_CBMapMutex, SHARED ) ;
-
-      // reverse search
-      for ( TRANS_CB_MAP::reverse_iterator iterCB = _cbMap.rbegin() ;
-            _cbMap.rend() != iterCB ;
-            ++ iterCB )
+      if ( maxRunTran > preCommitTime.getUpperTime() )
       {
-         if ( !iterCB->first.isGlobTrans() )
-         {
-            // no global transaction anymore
-            // stop searching
-            break ;
-         }
-         else if ( iterCB->first.getLogicalTime() + STP_MAX_TIME_ERROR_US <
-                                                    preCommitTime.getTime() )
-         {
-            // no transaction which might started before pre-commit time with
-            // maximum time error anymore
-            // stop searching
-            break ;
-         }
-         else
-         {
-            stpLogicalTimeUS curBeginTime =
-                                       iterCB->second->getTransBeginTime() ;
-            if ( curBeginTime > preCommitTime )
-            {
-               // in this case, the found transaction might read data from
-               // the pre-committing transaction, and it will be considered to
-               // be visible to changes of the pre-committing transaction if
-               // we do not delay the pre-commit time
-               // need delay pre-commit time, make sure the new pre-commit time
-               // must after the begin time of the found transaction with
-               // time error
-               preCommitTime.setTime(
-                     curBeginTime.getTime() +
-                     OSS_MAX( curBeginTime.getTimeErrorUS(),
-                              preCommitTime.getTimeErrorUS() ) ) ;
-            }
-         }
+         // In this case, if we don't defer the pre-commit time,
+         // there could potentially be transaction (the one with maxRunTran)
+         // eligible of reading the changes made by pre-committing transaction.
+         // Need delay pre-commit time, make sure the new pre-commit time
+         // must after the maxRunTran ( which indicates the latest started
+         // transaction with upper time error )
+         preCommitTime.setTime( maxRunTran ) ;
+         preCommitTime.setTimeError( currentTime.getTimeError() ) ;
+      }
+      else
+      {
+         preCommitTime = currentTime ;
       }
 
       PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETLOCALPRECOMMITTIME, rc ) ;
@@ -1688,10 +1689,14 @@ namespace engine
       else
       {
          // get read transaction's executor to do arbitration
-         ossScopedLock lock( &_CBMapMutex, SHARED ) ;
+         UINT32 bucketIndex = dpsTransIDHash( readTransID,
+                                              DPS_TRANS_BUCKET_SIZE ) ;
+         ossScopedLock lock( &_cbMapLatch[ bucketIndex ], SHARED ) ;
 
-         TRANS_CB_MAP::iterator iter = _cbMap.find( readTransID ) ;
-         PD_CHECK( _cbMap.end() != iter, SDB_DPS_TRANS_NO_TRANS, error, PDERROR,
+         TRANS_CB_MAP::iterator iter =
+                     _cbMap[ bucketIndex ].find( readTransID ) ;
+         PD_CHECK( _cbMap[ bucketIndex ].end() != iter,
+                   SDB_DPS_TRANS_NO_TRANS, error, PDERROR,
                    "Failed to get EDUCB for transaction [%s], it is not found",
                    dpsTransIDToString( readTransID ).c_str() ) ;
 
@@ -1755,10 +1760,13 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB__GETTRANSHISTINFO_INFO ) ;
 
-      ossScopedLock lock( &_hisMutex, SHARED ) ;
+      DPS_TRANS_ID origID = transID.getOrigTransID() ;
+      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
 
-      TRANS_ID_2_STATUS::iterator iterHist = _hisTransStatus.find( transID ) ;
-      if ( iterHist != _hisTransStatus.end() )
+      ossScopedLock lock( &( _histMapLatch[ bucketIndex ] ), SHARED ) ;
+      TRANS_ID_2_STATUS::iterator iterHist =
+                  _histMap[ bucketIndex ].find( origID ) ;
+      if ( iterHist != _histMap[ bucketIndex ].end() )
       {
          histInfo._status = iterHist->second._status ;
          histInfo._lsn = iterHist->second._lsn ;
@@ -2264,13 +2272,15 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_ADDTRANSCB ) ;
       BOOLEAN hasInsert = FALSE ;
+
+      DPS_TRANS_ID origID = getTransID( transID ) ;
       {
-         DPS_TRANS_ID origID = getTransID( transID ) ;
-         ossScopedLock _lock( &_CBMapMutex, EXCLUSIVE ) ;
+         UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
+         ossScopedLock _lock( &_cbMapLatch[ bucketIndex ], EXCLUSIVE ) ;
          try
          {
-            hasInsert = _cbMap.insert(
-                                 std::make_pair( origID, eduCB ) ).second ;
+            hasInsert = _cbMap[ bucketIndex ].insert(
+                                    std::make_pair( origID, eduCB ) ).second ;
          }
          catch ( exception &e )
          {
@@ -2279,6 +2289,12 @@ namespace engine
             hasInsert = FALSE ;
          }
       }
+
+      if ( hasInsert && origID.isGlobTrans() )
+      {
+         _maxRunTran.swapGreaterThan( eduCB->getTransBeginTime().getUpperTime() ) ;
+      }
+
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_ADDTRANSCB ) ;
       return hasInsert ;
    }
@@ -2290,12 +2306,13 @@ namespace engine
 
       TRANS_CB_MAP::iterator it ;
       DPS_TRANS_ID origID = getTransID( transID ) ;
+      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
 
-      ossScopedLock _lock( &_CBMapMutex, EXCLUSIVE ) ;
-      it = _cbMap.find( origID ) ;
-      if ( it != _cbMap.end() )
+      ossScopedLock _lock( &_cbMapLatch[ bucketIndex ], EXCLUSIVE ) ;
+      it = _cbMap[ bucketIndex ].find( origID ) ;
+      if ( it != _cbMap[ bucketIndex ].end() )
       {
-         _cbMap.erase( it ) ;
+         _cbMap[ bucketIndex ].erase( it ) ;
       }
 
       // update archived lowTran
@@ -2309,12 +2326,15 @@ namespace engine
 
    void dpsTransCB::dumpTransEDUList( TRANS_EDU_LIST & eduList )
    {
-      ossScopedLock _lock( &_CBMapMutex, SHARED ) ;
-      TRANS_CB_MAP::iterator iter = _cbMap.begin() ;
-      while( iter != _cbMap.end() )
+      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
       {
-         eduList.push( iter->second->getID() ) ;
-         ++iter ;
+         ossScopedLock _lock( &_cbMapLatch[ i ], SHARED ) ;
+         TRANS_CB_MAP::iterator iter = _cbMap[ i ].begin() ;
+         while( iter != _cbMap[ i ].end() )
+         {
+            eduList.push( iter->second->getID() ) ;
+            ++iter ;
+         }
       }
    }
 
@@ -2335,14 +2355,24 @@ namespace engine
 
    UINT32 dpsTransCB::getTransCBSize ()
    {
-      ossScopedLock _lock( &_CBMapMutex, SHARED ) ;
-      return _cbMap.size() ;
+      UINT32 res = 0 ;
+
+      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+      {
+         ossScopedLock _lock( &_cbMapLatch[ i ], SHARED ) ;
+         res += _cbMap[ i ].size() ;
+      }
+
+      return res ;
    }
 
    void dpsTransCB::clearTransInfo()
    {
       _TransMap.clear();
-      _cbMap.clear();
+      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+      {
+         _cbMap[ i ].clear() ;
+      }
       _beginLsnIdMap.clear();
       _idBeginLsnMap.clear();
 
@@ -2598,12 +2628,13 @@ namespace engine
              !transID.isAutoCommit() ) )
       {
          DPS_TRANS_ID origID = transID.getOrigTransID() ;
+         UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
 
-         ossScopedLock lock( &_hisMutex, EXCLUSIVE ) ;
+         ossScopedLock lock( &_histMapLatch[ bucketIndex ], EXCLUSIVE ) ;
          try
          {
-            _hisTransStatus[ origID ] = histInfo ;
-            _hisLsnTrans[ histInfo._lsn ] = origID ;
+            _histMap[ bucketIndex ][ origID ] = histInfo ;
+            _histLSNMap[ bucketIndex ][ histInfo._lsn ] = origID ;
          }
          catch ( exception &e )
          {
@@ -2616,22 +2647,26 @@ namespace engine
    void dpsTransCB::delHisTrans( const DPS_TRANS_ID &transID )
    {
       DPS_TRANS_ID origID = transID.getOrigTransID() ;
+      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
 
-      ossScopedLock lock( &_hisMutex, EXCLUSIVE ) ;
-      TRANS_ID_2_STATUS::iterator it = _hisTransStatus.find( origID ) ;
-      if ( it != _hisTransStatus.end() )
+      ossScopedLock lock( &( _histMapLatch[ bucketIndex ] ), EXCLUSIVE ) ;
+      TRANS_ID_2_STATUS::iterator it = _histMap[ bucketIndex ].find( origID ) ;
+      if ( it != _histMap[ bucketIndex ].end() )
       {
-         _hisLsnTrans.erase( it->second._lsn ) ;
-         _hisTransStatus.erase( it ) ;
+         _histLSNMap[ bucketIndex ].erase( it->second._lsn ) ;
+         _histMap[ bucketIndex ].erase( it ) ;
       }
    }
 
    void dpsTransCB::clearHisTrans()
    {
-      ossScopedLock lock( &_hisMutex, EXCLUSIVE ) ;
+      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+      {
+         ossScopedLock lock( &_histMapLatch[ i ], EXCLUSIVE ) ;
 
-      _hisLsnTrans.clear() ;
-      _hisTransStatus.clear() ;
+         _histLSNMap[ i ].clear() ;
+         _histMap[ i ].clear() ;
+      }
    }
 
    void dpsTransCB::clearOutDateHisTrans( DPS_LSN_OFFSET lsn )
@@ -2641,23 +2676,26 @@ namespace engine
 
       if ( DPS_INVALID_LSN_OFFSET != lsn )
       {
-         ossScopedLock lock( &_hisMutex, EXCLUSIVE ) ;
-
-         it = _hisLsnTrans.begin() ;
-         while( it != _hisLsnTrans.end() )
+         for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
          {
-            // history is expired in below cases
-            // - DPS LSN is expired
-            // - global transaction is older than expired global lowTran
-            if ( it->first < lsn ||
-                 ( it->second.isGlobTrans() &&
-                   it->second.getGlobSN() < expiredVersion ) )
+            ossScopedLock lock( &( _histMapLatch[ i ] ), EXCLUSIVE ) ;
+
+            it = _histLSNMap[ i ].begin() ;
+            while( it != _histLSNMap[ i ].end() )
             {
-               _hisTransStatus.erase( it->second ) ;
-               _hisLsnTrans.erase( it++ ) ;
-               continue ;
+               // history is expired in below cases
+               // - DPS LSN is expired
+               // - global transaction is older than expired global lowTran
+               if ( it->first < lsn ||
+                    ( it->second.isGlobTrans() &&
+                      it->second.getGlobSN() < expiredVersion ) )
+               {
+                  _histMap[ i ].erase( it->second ) ;
+                  _histLSNMap[ i ].erase( it++ ) ;
+                  continue ;
+               }
+               break ;
             }
-            break ;
          }
       }
    }
@@ -2763,13 +2801,16 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TERMALLTRANS ) ;
 
-      ossScopedLock _lock( &_CBMapMutex, SHARED );
-      for ( TRANS_CB_MAP::iterator iterMap = _cbMap.begin() ;
-            iterMap != _cbMap.end() ;
-            ++ iterMap )
+      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
       {
-         iterMap->second->postEvent( pmdEDUEvent(
-                                     PMD_EDU_EVENT_TRANS_STOP ) ) ;
+         ossScopedLock _lock( &_cbMapLatch[ i ], SHARED );
+         for ( TRANS_CB_MAP::iterator iterMap = _cbMap[ i ].begin() ;
+               iterMap != _cbMap[ i ].end() ;
+               ++ iterMap )
+         {
+            iterMap->second->postEvent( pmdEDUEvent(
+                                        PMD_EDU_EVENT_TRANS_STOP ) ) ;
+         }
       }
 
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_TERMALLTRANS );

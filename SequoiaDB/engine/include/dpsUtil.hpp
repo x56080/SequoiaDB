@@ -107,6 +107,9 @@ namespace engine
    INT32 dpsTransIDFromBSON( const bson::BSONObj &object,
                              DPS_TRANS_ID &transID ) ;
 
+   // calculate hash value of transaction ID
+   UINT64 dpsTransIDHash( const DPS_TRANS_ID &transID ) ;
+   UINT32 dpsTransIDHash( const DPS_TRANS_ID &transID, UINT32 modSize ) ;
 }
 
 #endif // DPSUTIL_HPP_
