@@ -2128,7 +2128,18 @@ function dbpathEscape( str, hostname, svcname, role, groupname )
 				}
 				else if( order == 'groupname' )
 				{
-					newPath += groupname + '' ;
+					if( groupname == 'coord' )
+					{
+						newPath += 'SYScoord' ;
+					}
+					else if( groupname == 'catalog' )
+					{
+						newPath += 'SYScatalog' ;
+					}
+					else
+					{
+						newPath += groupname + '' ;
+					}
 				}
 				else
 				{
