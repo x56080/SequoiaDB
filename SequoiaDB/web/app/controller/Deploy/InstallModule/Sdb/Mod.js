@@ -551,7 +551,7 @@
                                                               formVal['HostName'],
                                                               newFormVal['svcname'].length == 0 ? $scope.NodeList[index]['svcname'] : newFormVal['svcname'],
                                                               $scope.NodeList[index]['role'],
-                                                              formVal['datagroupname'] ) ;
+                                                              $scope.NodeList[index]['datagroupname'] ) ;
                         $scope.NodeList[index] = {
                            'HostName': $scope.NodeList[index]['HostName'],
                            'datagroupname': $scope.NodeList[index]['datagroupname'],
