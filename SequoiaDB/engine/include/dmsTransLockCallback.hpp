@@ -89,8 +89,6 @@ namespace engine
       BOOLEAN  isSkipRecord() const { return _skipRecord ; }
       BOOLEAN  isNonTransNeedCleanup() const { return _nonTransNeedCleanup ; }
       void     setNonTransNeedCleanup() { _nonTransNeedCleanup = TRUE ; }
-      INT32    getResult() const { return _result ; }
-      BOOLEAN  hasError() const { return SDB_OK != _result ? TRUE : FALSE ; }
       BOOLEAN  isUseOldVersion() const { return _useOldVersion ; }
 
       BOOLEAN  idxTreeLatched ( SINT32 lid )
@@ -120,19 +118,24 @@ namespace engine
    public:
 
       /// Interface
-      virtual INT32 afterLockAcquire( const dpsTransLockId &lockId,
+      virtual void afterLockAcquire( const dpsTransLockId &lockId,
                                      INT32 irc,
                                      DPS_TRANSLOCK_TYPE requestLockMode,
                                      UINT32 refCounter,
                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode,
                                      dpsLRBExtData *pExtData ) ;
 
-      virtual INT32 afterLockAcquirePostAction( const dpsTransLockId &lockId );
+      virtual void afterLockAcquirePostAction( const dpsTransLockId &lockId );
 
       virtual void beforeLockRelease( const dpsTransLockId &lockId,
                                       DPS_TRANSLOCK_TYPE lockMode,
                                       UINT32 refCounter,
                                       dpsLRBExtData *pExtData ) ;
+      virtual INT32 getResult() { return _result ; }
+      virtual BOOLEAN hasError()
+      {
+         return SDB_OK != _result ? TRUE : FALSE ;
+      }
 
    public:
       virtual void  onCSClosed( INT32 csID ) ;
@@ -263,7 +266,7 @@ namespace engine
                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode,
                                      dpsLRBExtData             *pExtData ) ;
 
-      INT32    _afterAcquireSLockRRread(
+      void    _afterAcquireSLockRRread(
                                      const dpsTransLockId      &lockId,
                                      INT32                      irc,
                                      DPS_TRANSLOCK_TYPE         requestLockMode,
@@ -271,9 +274,9 @@ namespace engine
                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode,
                                      dpsLRBExtData             *pExtData ) ;
 
-      INT32    _validateRecordFromOldVer( pmdEDUCB             *eduCB,
-                                          const DPS_TRANS_ID   &transID,
-                                          BOOLEAN              &visible ) ;
+      INT32   _validateRecordFromOldVer( pmdEDUCB             *eduCB,
+                                         const DPS_TRANS_ID   &transID,
+                                         BOOLEAN              &visible ) ;
 
    private:
       dpsTransCB           *_transCB ;    // use it to access global old copy tree

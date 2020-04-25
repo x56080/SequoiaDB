@@ -1197,7 +1197,7 @@ namespace engine
 #ifdef _DEBUG
       SDB_ASSERT( dpsTxExectr, "dpsTxExectr can't be null" ) ;
 #endif
-      INT32 rc = SDB_OK ;
+      INT32 rc    = SDB_OK ;
       dpsTransLRB *pLRBNew          = NULL ,
                   *pLRBIncompatible = NULL ,
                   *pLRBDeadlock     = NULL ,
@@ -1771,10 +1771,9 @@ namespace engine
       {
          if( callback )
          {
-            SINT32 temprc = SDB_OK ;
             // need to call this under bktlatch to make sure we are safe to
             // lookup information in LRBHdr
-            temprc = callback->afterLockAcquire(
+            callback->afterLockAcquire(
                          lockId, rc,
                          requestLockMode,
                          pLRB ? pLRB->refCounter : 0,
@@ -1783,7 +1782,11 @@ namespace engine
                            ? DPS_TRANSLOCK_OP_MODE_TEST : opMode ),
                          pLRBHdr,
                          pLRBHdr ? &(pLRBHdr->extData) : NULL ) ;
-            SDB_ASSERT( SDB_OK == temprc, "Error during lock callback " ) ;
+            if ( callback->hasError() )
+            {
+               PD_LOG( PDERROR, "callback failed (rc=%d)",
+                       callback->getResult() ) ;
+            }
          }
          // there is a scenario, using testX to clean up 'old version'
          // hanging off LRB header. Release LRB header if it is possible
@@ -1811,11 +1814,14 @@ namespace engine
       }
 
       // post action after release the bkt latch
-      if ( callback )
+      if ( callback && ( FALSE == callback->hasError() ) )
       {
-         SINT32 temprc = SDB_OK ;
-         temprc = callback->afterLockAcquirePostAction( lockId ) ;
-         SDB_ASSERT( SDB_OK == temprc, "Error during lock callback " ) ;
+         callback->afterLockAcquirePostAction( lockId ) ;
+         if ( callback->hasError() )
+         {
+            PD_LOG( PDERROR, "callback post action failed (rc=%d)",
+                    callback->getResult() ) ;
+         }
       }
 
       if ( bFreeLRB )
@@ -2053,6 +2059,16 @@ namespace engine
 
       if ( SDB_OK == rc )
       {
+         if ( callback && callback->hasError() )
+         {
+            release( dpsTxExectr, lockId, FALSE ) ;
+            if ( isIntentLockAcquired )
+            {
+               isIntentLockAcquired = FALSE ;
+            }
+            rc = callback->getResult() ;
+            goto error ;
+         }
          // lock acquired sucessfully, job done
          goto done ;
       }
@@ -2931,6 +2947,19 @@ nextLock:
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+      else
+      {
+         if ( callback && callback->hasError() )
+         {
+            release( dpsTxExectr, lockId, FALSE ) ;
+            if ( isIntentLockAcquired )
+            {
+               isIntentLockAcquired = FALSE ;
+            }
+            rc = callback->getResult() ;
+            goto error ;
+         }
       }
 
    done:
