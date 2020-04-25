@@ -203,6 +203,8 @@ public class Transaction20437A extends SdbTestBase {
         // 判断事务是返回成功
         Assert.assertTrue( queryThread1.isSuccess(),
                 queryThread1.getErrorMsg() );
+        Assert.assertTrue( queryThread2.isSuccess(),
+                queryThread1.getErrorMsg() );
         Assert.assertTrue( queryThread3.isSuccess(),
                 queryThread3.getErrorMsg() );
         Assert.assertTrue( queryThread4.isSuccess(),
@@ -253,7 +255,7 @@ public class Transaction20437A extends SdbTestBase {
         private Sequoiadb db = null;
         private DBCollection cl = null;
         private String hint = null;
-        private List< BSONObject > expList = new ArrayList< >();
+        private List< BSONObject > expList = new ArrayList<>();
 
         public QueryThread( Sequoiadb db, String hint,
                 List< BSONObject > expList ) {
