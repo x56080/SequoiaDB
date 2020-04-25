@@ -674,6 +674,7 @@ public class TransUtils extends SdbTestBase {
     // 获取事务ID
     public static String getTransactionID( Sequoiadb db ) {
         // 在已开启事务的会话上，执行一个无关的查询，以获取当前会话上的事务id
+        String transactionID = null;
         DBCollection cl = db.getCollectionSpace( csName )
                 .getCollection( reservedCL );
         DBCursor cursor = cl.query();
@@ -681,10 +682,16 @@ public class TransUtils extends SdbTestBase {
             cursor.getNext();
         }
         cursor.close();
-        String transactionID = ( String ) db
-                .getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT, "",
-                        "{TransactionID:''}", "" )
-                .getCurrent().get( "TransactionID" );
+
+        // 同一个事务只有1个事务id
+        DBCursor snapshotCursor = db.getSnapshot(
+                Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT, "",
+                "{TransactionID:''}", "" );
+        while ( snapshotCursor.hasNext() ) {
+            transactionID = ( String ) snapshotCursor.getNext()
+                    .get( "TransactionID" );
+        }
+        snapshotCursor.close();
         return transactionID;
     }
 
