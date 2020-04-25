@@ -154,7 +154,8 @@ public class RandomWriteLobUtil {
 
     public static void assertByteArrayEqual( byte[] actual, byte[] expect,
             String msg ) {
-        if ( !Arrays.equals( actual, expect ) ) {
+        if ( !RandomWriteLobUtil.getMd5( actual )
+                .equals( RandomWriteLobUtil.getMd5( expect ) ) ) {
             String workDirPath = SdbTestBase.getWorkDir();
             File workDir = new File( workDirPath );
             if ( !workDir.isDirectory() )
