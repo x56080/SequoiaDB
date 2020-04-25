@@ -3,6 +3,7 @@
 *@author : XiaoJun Hu 2014.6.17 init
 ******************************************************************************/
 import( "./basic_operation/sequoiadb.js" );
+import( "./main.js" );
 
 function insertData ( cl, insertNum )
 {
@@ -80,6 +81,102 @@ function checkHashDistribution ( groupNames, csName, clName, expRecsNum )
       {
          throw new Error( "expDiffVal = " + expDiffVal + ", actDiffVal = " + actDiffVal
             + ", totalRecsNum = " + actTotalRecsNum + ", groupNames = [" + groupNames + "], actRecsNumArr = [" + actRecsNumArr + "]" );
+      }
+   }
+}
+
+/* *****************************************************************************
+@discription: 检查命中的数据组和子表
+@author: XiaoNi Huang
+@parameter
+   explainCursor: cursor，查询计划返回的游标
+   expDataGroups: groupNames，预期命中的数据组
+   isMainCL     : false / true, default false
+   expSubCLs    : subCL fullNames, 命中的子表，格式：[[组1的子表], [组2的子表], .......]
+      如：命中组1的子表1和组2的子表1、子表2，传入参数：
+      checkHitDataGroups ( explainCursor, [rg1, rg2], isMainCL, [ [subCL1], [subCL1, subCL2] ] )
+***************************************************************************** */
+function checkHitDataGroups ( explainCursor, expDataGroups, isMainCL, expSubCLs )
+{
+   if( isMainCL === undefined ) { isMainCL = false; }
+   if( expSubCLs === undefined ) { expSubCLs = ""; }
+
+   // find.explain, check hit subCLs and data groups
+   var groupsInfo = [];
+   while( obj = explainCursor.next() )
+   {
+      var info = obj.toObj();
+      if( !isMainCL )
+      {
+         // normal cl, explain e.g::{"GroupName":"group1"}
+         groupsInfo.push( { "GroupName": info.GroupName } );
+      }
+      else
+      {
+         // main-sub cl, explain e.g:{"GroupName":"group1","SubCollections":[{"Name":"subcl1"},{"Name":"subcl2"}]}
+         var SubCollections = [];
+         for( var i = 0; i < info.SubCollections.length; i++ )
+         {
+            SubCollections.push( { "Name": info.SubCollections[i].Name } );
+         }
+         groupsInfo.push( { "GroupName": info.GroupName, "SubCollections": SubCollections } );
+      }
+   }
+   // sort
+   var commpare = function( obj1, obj2 )
+   {
+      var x = obj1.GroupName;
+      var y = obj2.GroupName;
+      if( x < y ) 
+      {
+         return -1;
+      }
+      else if( x > y )
+      {
+         return 1;
+      }
+      else 
+      {
+         return 0;
+      }
+   }
+   groupsInfo.sort( commpare );
+
+   // check hit dataGroups number
+   if( expDataGroups.length !== groupsInfo.length )
+   {
+      throw new Error( "expHitDataGroupNum: " + expDataGroups.length + ", actHitDataGroupNum:"
+         + groupsInfo.length + ", actGroupsInfo: \n" + JSON.stringify( groupsInfo ) );
+   }
+
+   // check hit data Groups
+   for( var i = 0; i < groupsInfo.length; i++ )
+   {
+      if( expDataGroups[i] !== groupsInfo[i].GroupName )
+      {
+         throw new Error( "expDataGroup: " + expDataGroups[i] + ", actDataGroup:" + groupsInfo[i].GroupName
+            + ", actGroupsInfo: \n" + JSON.stringify( groupsInfo ) );
+      }
+
+      // check hit subCLs
+      if( isMainCL )
+      {
+         // check hit subCLs number
+         if( expSubCLs[i].length !== groupsInfo[i].SubCollections.length )
+         {
+            throw new Error( "expSubCLsNum: " + expSubCLs[i].length + ", actSubCLsNum:"
+               + groupsInfo[i].SubCollections.length + ", actGroupsInfo: \n" + JSON.stringify( groupsInfo ) );
+         }
+
+         // check hit subCLs
+         for( var j = 0; j < expSubCLs[i].length; j++ )
+         {
+            if( expSubCLs[i][j] !== groupsInfo[i].SubCollections[j].Name )
+            {
+               throw new Error( "expSubCL: " + expSubCLs[i][j] + ", actSubCL:" + groupsInfo[i].SubCollections[j].Name
+                  + ", actGroupsInfo: \n" + JSON.stringify( groupsInfo ) );
+            }
+         }
       }
    }
 }
