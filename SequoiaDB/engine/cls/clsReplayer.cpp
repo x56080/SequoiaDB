@@ -660,7 +660,8 @@ namespace engine
 
             pBucket->clearParallaInfo() ;
 
-            rc = replay( recordHeader, eduCB ) ;
+            // should not ignore duplicated keys on user indexes
+            rc = replay( recordHeader, eduCB, TRUE, FALSE ) ;
             // re-calc complete lsn
             if ( SDB_OK == rc && !pBucket->_expectLSN.invalid() )
             {

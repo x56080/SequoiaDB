@@ -44,13 +44,15 @@ namespace engine
                                        _dmsMBContext* mbContext,
                                        _pmdEDUCB* eduCB,
                                        dmsExtentID indexExtentID,
-                                       dmsExtentID indexLogicID )
+                                       dmsExtentID indexLogicID,
+                                       dmsDupKeyProcessor *dkProcessor )
    : _suIndex ( indexSU ),
      _suData ( dataSU ),
      _mbContext ( mbContext ),
      _eduCB ( eduCB ),
      _indexExtentID ( indexExtentID ),
-     _indexLID( indexLogicID )
+     _indexLID( indexLogicID ),
+     _dkProcessor( dkProcessor )
    {
       _indexCB = NULL ;
       _scanExtLID = DMS_INVALID_EXTENT ;
@@ -380,6 +382,34 @@ namespace engine
             PD_LOG ( PDWARNING, "Identical key is detected "
                      "during index rebuild, ignore" ) ;
          }
+         else if ( SDB_IXM_DUP_KEY == rc && NULL != _dkProcessor )
+         {
+            // try to fix with duplicated key processor
+            INT32 tmpRC = SDB_OK ;
+
+            PD_LOG( PDWARNING, "Failed to insert into index with duplicated "
+                    "key record at ( extent %d, offset %d ), rc: %d",
+                    rid._extent, rid._offset, rc ) ;
+            tmpRC = _dkProcessor->processDupKeyRecord( _suData,
+                                                       _mbContext,
+                                                       rid, 0, _eduCB ) ;
+            if ( tmpRC != SDB_OK )
+            {
+               // failed to process
+               PD_LOG( PDWARNING, "Failed to process duplicated key "
+                       "record at ( extent %d, offset %d ), rc: %d",
+                       rid._extent, rid._offset, tmpRC ) ;
+            }
+            else
+            {
+               // succeed to process, reset result
+               rc = SDB_OK ;
+               if ( NULL != _pResult )
+               {
+                  _pResult->reset() ;
+               }
+            }
+         }
          else
          {
             // for any other index insert error, let's return error
@@ -479,7 +509,8 @@ namespace engine
                                                        INT32 sortBufferSize,
                                                        UINT16 indexType,
                                                        IDmsOprHandler *pOprHandler,
-                                                       utilWriteResult *pResult )
+                                                       utilWriteResult *pResult,
+                                                       dmsDupKeyProcessor *dkProcessor )
    {
       _dmsIndexBuilder* builder = NULL ;
 
@@ -492,7 +523,8 @@ namespace engine
       {
          builder = SDB_OSS_NEW _dmsIndexExtBuilder( indexSU, dataSU, mbContext,
                                                     eduCB, indexExtentID,
-                                                    indexLogicID ) ;
+                                                    indexLogicID,
+                                                    dkProcessor ) ;
          if ( NULL == builder)
          {
             PD_LOG ( PDERROR, "failed to allocate _dmsIndexExtBuilder" ) ;
@@ -511,7 +543,8 @@ namespace engine
             builder = SDB_OSS_NEW _dmsIndexOnlineBuilder( indexSU, dataSU,
                                                           mbContext, eduCB,
                                                           indexExtentID,
-                                                          indexLogicID ) ;
+                                                          indexLogicID,
+                                                          dkProcessor ) ;
             if ( NULL == builder)
             {
                PD_LOG ( PDERROR, "failed to allocate _dmsIndexOnlineBuilder" ) ;
@@ -523,7 +556,8 @@ namespace engine
                                                            mbContext, eduCB,
                                                            indexExtentID,
                                                            indexLogicID,
-                                                           sortBufferSize ) ;
+                                                           sortBufferSize,
+                                                           dkProcessor ) ;
             if ( NULL == builder)
             {
                PD_LOG ( PDERROR, "failed to allocate _dmsIndexSortingBuilder" ) ;

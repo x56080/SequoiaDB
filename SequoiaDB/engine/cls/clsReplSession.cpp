@@ -1186,7 +1186,8 @@ namespace engine
       }
       else
       {
-         return _replayer.replay( header, eduCB() ) ;
+         // should not ignore duplicated keys on user indexes
+         return _replayer.replay( header, eduCB(), TRUE, FALSE ) ;
       }
    }
 

@@ -46,6 +46,30 @@ namespace engine
    class _ixmIndexCB ;
    class _dmsMBContext ;
 
+   /*
+      _dmsDupKeyProcessor define
+    */
+   class _dmsDupKeyProcessor : public SDBObject
+   {
+   public:
+      _dmsDupKeyProcessor()
+      {
+      }
+
+      virtual ~_dmsDupKeyProcessor()
+      {
+      }
+
+   public:
+      virtual INT32 processDupKeyRecord( _dmsStorageData *suData,
+                                         _dmsMBContext *mbContext,
+                                         const dmsRecordID &recordID,
+                                         ossValuePtr recordDataPtr,
+                                         _pmdEDUCB *eduCB ) = 0 ;
+   } ;
+
+   typedef class _dmsDupKeyProcessor dmsDupKeyProcessor ;
+
    class _dmsIndexBuilder: public SDBObject
    {
    public:
@@ -54,7 +78,8 @@ namespace engine
                         _dmsMBContext* mbContext,
                         _pmdEDUCB* eduCB,
                         dmsExtentID indexExtentID,
-                        dmsExtentID indexLogicID ) ;
+                        dmsExtentID indexLogicID,
+                        dmsDupKeyProcessor *dkProcessor ) ;
       virtual ~_dmsIndexBuilder() ;
       INT32 build() ;
 
@@ -97,6 +122,7 @@ namespace engine
       IDmsOprHandler     *_pOprHandler ;
       utilWriteResult    *_pResult ;
       bson::BufBuilder   _bufBuilder ;
+      dmsDupKeyProcessor *_dkProcessor ;
 
    public:
       static _dmsIndexBuilder* createInstance( _dmsStorageIndex* indexSU,
@@ -108,7 +134,8 @@ namespace engine
                                                INT32 sortBufferSize,
                                                UINT16 indexType,
                                                IDmsOprHandler *pOprHandler,
-                                               utilWriteResult *pResult ) ;
+                                               utilWriteResult *pResult,
+                                               dmsDupKeyProcessor *dkProcessor ) ;
 
       static void releaseInstance( _dmsIndexBuilder* builder ) ;
    } ;

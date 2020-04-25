@@ -56,6 +56,7 @@ namespace engine
    class _ixmIndexCB ;
    class _dmsMBContext ;
    class _ixmKey ;
+   class _dmsDupKeyProcessor ;
 
    #define DMS_INDEXSU_EYECATCHER         "SDBIDX"
    #define DMS_INDEXSU_CUR_VERSION        1
@@ -105,7 +106,8 @@ namespace engine
                               SDB_DPSCB *dpscb, BOOLEAN isSys = FALSE ) ;
 
          INT32    rebuildIndexes ( _dmsMBContext *context, _pmdEDUCB *cb,
-                                   INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ) ;
+                                   INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                   _dmsDupKeyProcessor *dkProcessor = NULL ) ;
 
          // Caller must hold mb exclusive lock
          INT32    indexesInsert ( _dmsMBContext *context, dmsExtentID extLID,
@@ -177,7 +179,8 @@ namespace engine
                                  INT32 sortBufferSize,
                                  UINT16 indexType,
                                  IDmsOprHandler *pOprHandle = NULL,
-                                 utilWriteResult *pResult = NULL ) ;
+                                 utilWriteResult *pResult = NULL,
+                                 _dmsDupKeyProcessor *dkProcessor = NULL ) ;
 
          INT32    _indexInsert( _ixmIndexCB *indexCB,
                                  const _ixmKey &key, const dmsRecordID &rid,

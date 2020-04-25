@@ -137,7 +137,7 @@ namespace engine
       INT32 replay( dpsLogRecordHeader *recordHeader,
                     pmdEDUCB *eduCB,
                     BOOLEAN incMonCount = TRUE,
-                    BOOLEAN ignoreDupKey = TRUE ) ;
+                    BOOLEAN ignoreDupKey = FALSE ) ;
       INT32 replayByBucket( dpsLogRecordHeader *recordHeader,
                             _pmdEDUCB *eduCB, _clsBucket *pBucket ) ;
 

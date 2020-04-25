@@ -1114,6 +1114,10 @@ namespace engine
       BOOLEAN isWaiting = FALSE ;
 
       // in record parallel mode, need capture duplicated key issues
+      // NOTE: record parallel mode may cause duplicated key issue, in both
+      //       replay and rollback phases which will cause some records are
+      //       left, so we need to ignore those duplicated keys in collection
+      //       parallel mode
       BOOLEAN ignoreDupKey =
                   ( CLS_PARALLA_REC == info._parallaType ) ? FALSE : TRUE ;
 

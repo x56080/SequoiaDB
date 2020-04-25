@@ -1606,13 +1606,13 @@ INT32 _dpsDumper::_writeTo( OSSFILE &file,
    if (curFileSize < FILE_MAX_SIZE)
    {
       // write a enter into file
-      rc = ossWriteN( &file, OSS_NEWLINE, 1) ;
+      rc = ossWriteN( &file, OSS_NEWLINE, OSS_NEWLINE_SIZE ) ;
       if ( SDB_OK != rc)
       {
          LogError( "Failed to write data to file, data: %s", pContent ) ;
          goto error ;
       }
-      curFileSize += 1;
+      curFileSize += OSS_NEWLINE_SIZE ;
    }
 
 done:

@@ -1275,7 +1275,8 @@ namespace engine
             }
          }
 
-         rc = _replayer.replay( header, eduCB() ) ;
+         // should not ignore duplicated keys on user indexes
+         rc = _replayer.replay( header, eduCB(), TRUE, FALSE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG ( PDWARNING, "Session[%s] replay dps log record failed"

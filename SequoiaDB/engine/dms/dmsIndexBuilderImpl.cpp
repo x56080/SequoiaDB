@@ -46,9 +46,10 @@ namespace engine
                                                    _dmsMBContext* mbContext,
                                                    _pmdEDUCB* eduCB,
                                                    dmsExtentID indexExtentID,
-                                                   dmsExtentID indexLogicID )
+                                                   dmsExtentID indexLogicID,
+                                                   dmsDupKeyProcessor *dkProcessor )
    : _dmsIndexBuilder( indexSU, dataSU, mbContext,
-                       eduCB, indexExtentID, indexLogicID )
+                       eduCB, indexExtentID, indexLogicID, dkProcessor )
    {
    }
 
@@ -132,9 +133,10 @@ namespace engine
                                                      _pmdEDUCB* eduCB,
                                                      dmsExtentID indexExtentID,
                                                      dmsExtentID indexLogicID,
-                                                     INT32 sortBufferSize )
+                                                     INT32 sortBufferSize,
+                                                     dmsDupKeyProcessor *dkProcessor )
    : _dmsIndexBuilder( indexSU, dataSU, mbContext,
-                       eduCB, indexExtentID, indexLogicID )
+                       eduCB, indexExtentID, indexLogicID, dkProcessor )
    {
       _sorter = NULL ;
       _eoc = FALSE ;
@@ -384,9 +386,10 @@ namespace engine
                                              dmsMBContext* mbContext,
                                              pmdEDUCB* eduCB,
                                              dmsExtentID indexExtentID,
-                                             dmsExtentID indexLogicID )
+                                             dmsExtentID indexLogicID,
+                                             dmsDupKeyProcessor *dkProcessor )
    : _dmsIndexBuilder( indexSU, dataSU, mbContext,
-                       eduCB, indexExtentID, indexLogicID ),
+                       eduCB, indexExtentID, indexLogicID, dkProcessor ),
      _extHandler( NULL )
    {
       ossMemset( _collectionName, 0, DMS_COLLECTION_NAME_SZ + 1 ) ;

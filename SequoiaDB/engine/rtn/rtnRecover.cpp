@@ -43,6 +43,7 @@
 #include "rtn.hpp"
 #include "rtnContextData.hpp"
 #include "dmsStorageDataCapped.hpp"
+#include "dmsIndexBuilder.hpp"
 
 using namespace bson ;
 
@@ -54,6 +55,232 @@ namespace engine
    #define RTN_REBUILD_RESET_LSN       ( (UINT64)~0 )
 
    #define RTN_REBUILD_MAX_LSN_DIFF    ( 32 * 1024 * 1024 )
+
+   /*
+      _rtnRBDupKeyProcessor define and implement
+    */
+   #define RTN_RBDK_FILE_MAX     ( 500 * 1024 * 1024 )
+   #define RTN_RBDK_FILE_PREFIX  ( 200 )
+
+   class _rtnRBDupKeyProcessor : public dmsDupKeyProcessor
+   {
+   public:
+      _rtnRBDupKeyProcessor( const CHAR *clFullName,
+                             utilCLUniqueID clUniqueID ) ;
+      virtual ~_rtnRBDupKeyProcessor() ;
+
+   public:
+      virtual INT32 processDupKeyRecord( dmsStorageData *suData,
+                                         dmsMBContext *mbContext,
+                                         const dmsRecordID &recordID,
+                                         ossValuePtr recordDataPtr,
+                                         pmdEDUCB *eduCB ) ;
+
+   protected:
+      INT32 _writeToFile( const CHAR *buffer,
+                          UINT32 bufferSize ) ;
+
+   protected:
+      const CHAR *   _clFullName ;
+      OSSFILE        _dkFile ;
+      CHAR           _dkFilePath[ OSS_MAX_PATHSIZE + 1 ] ;
+      UINT32         _dkFilePrefixLen ;
+      UINT32         _curFileSize ;
+      UINT32         _fileID ;
+   } ;
+
+   typedef class _rtnRBDupKeyProcessor rtnRBDupKeyProcessor ;
+
+   _rtnRBDupKeyProcessor::_rtnRBDupKeyProcessor( const CHAR *clFullName,
+                                                 utilCLUniqueID clUniqueID )
+   : _clFullName( clFullName ),
+     _curFileSize( 0 ),
+     _fileID( 0 )
+   {
+      const CHAR *dbPath = pmdGetOptionCB()->getDbPath() ;
+      time_t timestamp = time( NULL ) ;
+      CHAR timeBuffer[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { '\0' } ;
+      CHAR filePrefix[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { '\0' } ;
+      UINT32 prefix = 0 ;
+
+      // file name: <cs.cl>_<unique ID>_<timestamp>.dup.<file ID>
+      // e.g. foo.bar_12345_2020-01-20.17.18.19.dup.0
+
+      // construct timestamp of file
+      utilAscTime( timestamp, timeBuffer, OSS_TIMESTAMP_STRING_LEN ) ;
+
+      // cut collection name when it is too long
+      ossStrncpy( filePrefix, clFullName,
+                  RTN_RBDK_FILE_PREFIX - ossStrlen( dbPath ) ) ;
+      prefix = ossStrlen( filePrefix ) ;
+      // construct file name prefix
+      ossSnprintf( filePrefix + prefix, OSS_MAX_PATHSIZE - prefix + 1,
+                   "_%llu_%s.dup", clUniqueID, timeBuffer ) ;
+
+      // construct file name with DB path
+      utilBuildFullPath( pmdGetOptionCB()->getDbPath(),
+                         filePrefix, OSS_MAX_PATHSIZE, _dkFilePath ) ;
+
+      _dkFilePrefixLen = ossStrlen( _dkFilePath ) ;
+   }
+
+   _rtnRBDupKeyProcessor::~_rtnRBDupKeyProcessor()
+   {
+      if ( _dkFile.isOpened() )
+      {
+         ossClose( _dkFile ) ;
+      }
+   }
+
+   INT32 _rtnRBDupKeyProcessor::processDupKeyRecord( dmsStorageData *suData,
+                                                     dmsMBContext *mbContext,
+                                                     const dmsRecordID &recordID,
+                                                     ossValuePtr recordDataPtr,
+                                                     pmdEDUCB *eduCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      BOOLEAN lockHere = FALSE ;
+      INT32 origLockType = mbContext->mbLockType() ;
+
+      // should lock exclusive
+      if ( EXCLUSIVE != origLockType )
+      {
+         rc = mbContext->mbLock( EXCLUSIVE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock collection [%s] for "
+                      "exclusive, rc: %d", _clFullName, rc ) ;
+         lockHere = TRUE ;
+      }
+
+      try
+      {
+         BSONObj record ;
+         ossPoolString recordStr ;
+
+         // extract duplicated key record
+         if ( 0 == recordDataPtr )
+         {
+            rc = suData->fetch( mbContext, recordID, record, eduCB, FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to fetch duplicated key record "
+                         "for collection [%s] at ( extent %d, offset %d ), "
+                         "rc: %d", _clFullName, recordID._extent,
+                         recordID._offset, rc ) ;
+         }
+         else
+         {
+            record = BSONObj( (CHAR*)recordDataPtr ) ;
+         }
+
+         // need full text and no exception
+         recordStr = record.toPoolString( false, true, false ) ;
+
+         // write record to duplicated key file
+         rc = _writeToFile( recordStr.c_str(), recordStr.size() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write duplicated key record "
+                      "for collection [%s] at ( extent %d, offset %d ) "
+                      "to file, rc: %d", _clFullName, recordID._extent,
+                      recordID._offset, rc ) ;
+
+         // remove duplicated key record
+         rc = suData->deleteRecord( mbContext, recordID, 0, eduCB, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to remove duplicated key record "
+                      "for collection [%s] at ( extent %u offset %u ), "
+                      "rc: %d", _clFullName, recordID._extent,
+                      recordID._offset, rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to process duplicated key record for "
+                 "collection [%s] at ( extent %u, offset %u ), "
+                 "occur exception: %s", _clFullName, recordID._extent,
+                 recordID._offset, e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      // resume lock
+      if ( lockHere )
+      {
+         if ( SHARED == origLockType )
+         {
+            INT32 tmpRC = mbContext->mbLock( origLockType ) ;
+            if ( SDB_OK != tmpRC )
+            {
+               PD_LOG( PDERROR, "Failed to lock collection [%s] for shared, "
+                       "rc: %d", _clFullName, tmpRC ) ;
+               if ( SDB_OK == rc )
+               {
+                  rc = tmpRC ;
+               }
+            }
+         }
+         else
+         {
+            mbContext->mbUnlock() ;
+         }
+      }
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnRBDupKeyProcessor::_writeToFile( const CHAR *buffer,
+                                              UINT32 bufferSize )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( bufferSize + _curFileSize > RTN_RBDK_FILE_MAX ||
+           !_dkFile.isOpened() )
+      {
+         // close previous duplicated key file
+         if ( _dkFile.isOpened() )
+         {
+            ossClose( _dkFile ) ;
+         }
+
+         // append file ID
+         ossSnprintf( _dkFilePath + _dkFilePrefixLen,
+                      OSS_MAX_PATHSIZE - _dkFilePrefixLen + 1,
+                      ".%u", _fileID ++ ) ;
+
+         // open new file
+         rc = ossOpen( _dkFilePath, OSS_REPLACE | OSS_WRITEONLY,
+                       OSS_RU | OSS_WU | OSS_RG, _dkFile ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open output file [%s], rc: %d",
+                      _dkFilePath, rc ) ;
+
+         PD_LOG( PDEVENT, "Open duplicated key file [%s] for collection [%s]",
+                 _dkFilePath, _clFullName ) ;
+
+         _curFileSize = 0 ;
+      }
+
+      SDB_ASSERT( _dkFile.isOpened(), "file should be opened" ) ;
+
+      // write data
+      rc = ossWriteN( &_dkFile, buffer, bufferSize ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to write data to file [%s], rc: %d",
+                   _dkFilePath, rc ) ;
+
+      _curFileSize += bufferSize ;
+
+      if ( _curFileSize < RTN_RBDK_FILE_MAX )
+      {
+         // write a enter into file
+         rc = ossWriteN( &_dkFile, OSS_NEWLINE, OSS_NEWLINE_SIZE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write data to file [%s], rc: %d",
+                      _dkFilePath, rc ) ;
+         _curFileSize += OSS_NEWLINE_SIZE ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
 
    _rtnCLRebuilderBase::_rtnCLRebuilderBase( dmsStorageUnit *pSU,
                                              const CHAR *pCLShortName )
@@ -1030,8 +1257,12 @@ namespace engine
       {
          PD_LOG( PDEVENT, "Start rebuild phase" ) ;
 
+         rtnRBDupKeyProcessor dkProcessor( _clFullName.c_str(),
+                                           mbContext->mb()->_clUniqueID ) ;
+
          rc = _pSU->index()->rebuildIndexes( mbContext, cb,
-                                             SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ) ;
+                                             SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
+                                             &dkProcessor ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Rebuild indexes failed, rc: %d", rc ) ;

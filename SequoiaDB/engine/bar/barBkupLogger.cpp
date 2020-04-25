@@ -3031,7 +3031,10 @@ namespace engine
             }
             else
             {
-               rc = replayer.replay( pHeader, cb ) ;
+               // should ignore duplicated keys on user indexes
+               // NOTE: data backup from secondary node with parallel replay
+               //       mode may contain duplicated keys
+               rc = replayer.replay( pHeader, cb, TRUE, TRUE ) ;
             }
             if ( rc )
             {

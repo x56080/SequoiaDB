@@ -1589,7 +1589,8 @@ namespace engine
                                           INT32 sortBufferSize,
                                           UINT16 indexType,
                                           IDmsOprHandler *pOprHandle,
-                                          utilWriteResult *pResult )
+                                          utilWriteResult *pResult,
+                                          dmsDupKeyProcessor *dkProcessor )
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEINDEX__REBUILDINDEX );
 
@@ -1647,7 +1648,7 @@ namespace engine
                                                  indexExtentID, indexLID,
                                                  sortBufferSize, indexType,
                                                  pOprHandle,
-                                                 pResult ) ;
+                                                 pResult, dkProcessor ) ;
       if ( NULL == builder )
       {
          PD_LOG ( PDERROR,
@@ -1684,7 +1685,8 @@ namespace engine
    }
 
    INT32 _dmsStorageIndex::rebuildIndexes( dmsMBContext *context, pmdEDUCB *cb,
-                                           INT32 sortBufferSize )
+                                           INT32 sortBufferSize,
+                                           _dmsDupKeyProcessor *dkProcessor )
    {
       INT32 rc                     = SDB_OK ;
       INT32  indexID               = 0 ;
@@ -1721,7 +1723,8 @@ namespace engine
 
          rc = _rebuildIndex( context, context->mb()->_indexExtent[ indexID ],
                              indexCB.getLogicalID(), cb, sortBufferSize,
-                             indexCB.getIndexType() ) ;
+                             indexCB.getIndexType(), NULL, NULL,
+                             dkProcessor ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to rebuild index %d, rc: %d", indexID,

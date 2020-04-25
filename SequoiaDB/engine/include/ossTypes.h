@@ -41,8 +41,10 @@
 
 #if defined (_WINDOWS)
    #define OSS_NEWLINE "\r\n"
+   #define OSS_NEWLINE_SIZE ( 2 )
 #else
    #define OSS_NEWLINE "\n"
+   #define OSS_NEWLINE_SIZE ( 1 )
    #define SDB_INVALID_FH (-1)
 #endif
 
