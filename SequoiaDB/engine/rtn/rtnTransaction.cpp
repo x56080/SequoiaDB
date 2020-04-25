@@ -296,7 +296,6 @@ namespace engine
                                     cb->getTransBeginTime(),
                                     preCommitTime,
                                     cb->getTransCommitTime() ) ;
-      UINT32 commitFlag = TRANS_COMMIT_FLAG_EMPTY ;
 
       if ( transInfo._transID.isInvalid() ||
            DPS_INVALID_LSN_OFFSET == transInfo._preTransLSN )
@@ -308,29 +307,6 @@ namespace engine
       {
          goto done ;
       }
-
-      // set commit flags if needed, auto-commit and multiple-groups
-      if ( transInfo._transID.isAutoCommit() )
-      {
-         OSS_BIT_SET( commitFlag, TRANS_COMMIT_FLAG_AUTOCOMMIT ) ;
-      }
-      if ( nodeNum > 1 )
-      {
-         OSS_BIT_SET( commitFlag, TRANS_COMMIT_FLAG_MULTIGROUPS ) ;
-      }
-
-      // update transaction status to PRE_WAIT_COMMIT
-      // which will make other reading transaction to wait for status change
-      // of this transaction if they need to access records changed by
-      // this transaction
-      rc = transCB->updateTransStatus( transInfo._transID,
-                                       DPS_TRANS_PRE_WAIT_COMMIT,
-                                       commitFlag ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update status to [%s] for "
-                   "transaction [%s], rc: %d",
-                   dpsTransStatusToString( DPS_TRANS_PRE_WAIT_COMMIT ),
-                   dpsTransIDToString( transInfo._transID ).c_str(),
-                   rc ) ;
 
       firstTransLsn = transCB->getBeginLsn( transInfo._transID ) ;
       SDB_ASSERT( firstTransLsn != DPS_INVALID_LSN_OFFSET,

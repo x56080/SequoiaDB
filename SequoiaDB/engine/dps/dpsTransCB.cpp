@@ -785,11 +785,17 @@ namespace engine
          }
          case DPS_TRANS_WAIT_COMMIT :
          {
-            if ( OSS_BIT_TEST( recTransInfo._commitFlag,
-                               TRANS_COMMIT_FLAG_MULTIGROUPS ) )
+            if ( transBeginTime.getTime() <=
+                        recTransInfo._preCommitTime.getTime() )
             {
-               // transaction is waiting commit for multiple groups,
-               // need to wait transaction committed to find out commit time
+               // record transaction pre-committed after current transaction
+               // the record should not be seen
+               visible = FALSE ;
+            }
+            else
+            {
+               // transaction is waiting commit, need to wait transaction
+               // committed to find out commit time
                BOOLEAN committed = FALSE ;
                BOOLEAN multiGroups = FALSE ;
                stpLogicalTimeUS commitTime ;
@@ -807,17 +813,6 @@ namespace engine
                // otherwise, the record should not be seen
                if ( committed &&
                     transBeginTime.getTime() > commitTime.getTime() )
-               {
-                  visible = TRUE ;
-               }
-            }
-            else
-            {
-               // transaction is waiting commit in this group only
-               // in this case, commit time is the same as pre-commit time
-               // check pre-commit time will be enough
-               if ( transBeginTime.getTime() >
-                           recTransInfo._preCommitTime.getTime() )
                {
                   visible = TRUE ;
                }
