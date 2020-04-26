@@ -1445,7 +1445,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETLOCALPRECOMMITTIME, "dpsTransCB::getLocalPreCommitTime" )
-   INT32 dpsTransCB::getLocalPreCommitTime( const stpLogicalTimeUS &currentTime,
+   INT32 dpsTransCB::getLocalPreCommitTime( const stpLogicalTimeUS &localTime,
                                             stpLogicalTimeUS &preCommitTime )
    {
       INT32 rc = SDB_OK ;
@@ -1455,7 +1455,7 @@ namespace engine
       // get upper bound of max running transaction ID
       UINT64 maxRunTran = _maxRunTran.fetch() ;
 
-      if ( maxRunTran > preCommitTime.getUpperTime() )
+      if ( maxRunTran > localTime.getUpperTime() )
       {
          // In this case, if we don't defer the pre-commit time,
          // there could potentially be transaction (the one with maxRunTran)
@@ -1464,11 +1464,11 @@ namespace engine
          // must after the maxRunTran ( which indicates the latest started
          // transaction with upper time error )
          preCommitTime.setTime( maxRunTran ) ;
-         preCommitTime.setTimeError( currentTime.getTimeError() ) ;
+         preCommitTime.setTimeError( localTime.getTimeError() ) ;
       }
       else
       {
-         preCommitTime = currentTime ;
+         preCommitTime = localTime ;
       }
 
       PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETLOCALPRECOMMITTIME, rc ) ;

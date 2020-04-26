@@ -950,7 +950,7 @@ namespace engine
       dpsTransCB *transCB = sdbGetTransCB() ;
       clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
       stpAgent agent ;
-      stpLogicalTimeUS receivedTime, currentTime ;
+      stpLogicalTimeUS receivedTime, localTime ;
 
       SDB_ASSERT( NULL != gtsAgent, "GTS agent is invalid" ) ;
 
@@ -964,7 +964,7 @@ namespace engine
                    dpsTransIDToString( transID ).c_str(), rc ) ;
 
       // get global logical time for pre-commit in this DATA node
-      rc = agent.getLogicalTimeUS( currentTime,
+      rc = agent.getLogicalTimeUS( localTime,
                                    _pEDUCB->getTransTimeout(),
                                    FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get global logical "
@@ -981,7 +981,7 @@ namespace engine
                     "message" ) ;
 
             // use current time
-            receivedTime = currentTime ;
+            receivedTime = localTime ;
          }
          else
          {
@@ -994,7 +994,7 @@ namespace engine
                  dpsTransIDToString( transID ).c_str(),
                  dpsTransTimeToString( sendTime ).c_str(),
                  dpsTransTimeToString( receivedTime ).c_str(),
-                 dpsTransTimeToString( currentTime ).c_str() ) ;
+                 dpsTransTimeToString( localTime ).c_str() ) ;
 #endif
 
          // we check doing transaction arbitration with maximum time error,
@@ -1019,10 +1019,10 @@ namespace engine
                     dpsTransTimeToString( sendTime ).c_str(),
                     routeID2String( pmdGetNodeID() ).c_str(),
                     dpsTransTimeToString( receivedTime ).c_str(),
-                    dpsTransTimeToString( currentTime ).c_str(),
+                    dpsTransTimeToString( localTime ).c_str(),
                     (INT64)( receivedTime.getTime() ) -
                           (INT64)( sendTime.getTime() ),
-                    (INT64)( currentTime.getTime() ) -
+                    (INT64)( localTime.getTime() ) -
                           (INT64)( sendTime.getTime() ) ) ;
 
             // notify local to synchronize time
@@ -1045,8 +1045,14 @@ namespace engine
       //       tell that the read transaction is not visible for this
       //       write transaction, the read transaction might have a chance to
       //       see changes in a staled read request to other groups
-      currentTime.setTimeError( _pEDUCB->getTransTimeError() ) ;
-      rc = transCB->getLocalPreCommitTime( currentTime, preCommitTime ) ;
+      if ( sendTime.getTime() > localTime.getTime() )
+      {
+         // if send time is large than local time, means the logical time
+         // of COORD is a little ahead, need delay current time on DATA node
+         localTime.setTime( sendTime.getTime() ) ;
+      }
+      localTime.setTimeError( _pEDUCB->getTransTimeError() ) ;
+      rc = transCB->getLocalPreCommitTime( localTime, preCommitTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get pre-commit time for "
                    "transaction [%s], rc: %d",
                    dpsTransIDToString( transID ).c_str(), rc ) ;
