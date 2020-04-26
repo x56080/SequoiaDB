@@ -540,26 +540,6 @@ namespace engine
          return _preSize.peek() ;
       }
 
-      SINT64 getCurMem ( ) const
-      {
-         return _curMem.peek() ;
-      }
-
-      void reduceCurMem ( SINT64 size )
-      {
-         _curMem.sub( size ) ;
-      }
-
-      SINT64 getMemHWM ( ) const
-      {
-         return _memHWM.peek() ;
-      }
-
-      void updateMemHWM ( )
-      {
-         _memHWM.swapGreaterThan( _curMem.peek() ) ;
-      }
-
    protected:
       // insert a node to map
       INT32 insert ( const preIdxTreeNodeKey &keyNode,
@@ -615,7 +595,7 @@ namespace engine
       //    latch, reverse order is OK. Keep in mind we store the _lrbHdrIdx
       //    in the tree so that we have direct access to lrbHdr without need
       //    to go through lrbhash bkt.
-      ossSpinSLatch       _latch ;  // latch for concurrency control, 
+      monSpinSLatch       _latch ;  // latch for concurrency control, 
                                     // adding/removing node need latch in X
                                     // find/travers need latch in S
       INDEX_BINARY_TREE   _tree ;   // tree to hold all old index key value
@@ -630,8 +610,6 @@ namespace engine
       // tree statistic data
       ossAtomic64  _sizeHWM ; // max number of elements ever existed in the map
       ossAtomic64  _preSize ; // previous number of elements before GC/cleanup
-      ossAtomic64  _memHWM ;  // max memory consumption by the _tree
-      ossAtomic64  _curMem ;  // cur memory consumption by the _tree
 
    } ;
 
@@ -871,11 +849,6 @@ namespace engine
          _minTransIDSN.swapGreaterThan( lowTran ) ;
       }
 
-      void              updateCurTreeMem( UINT32 totalMem )
-      {
-         _curTreeMem.poke( totalMem ) ;
-      }
-
       DPS_TRANSID_SN    getMinLowTranSN( )
       {
          return _minTransIDSN.fetch() ;
@@ -884,11 +857,6 @@ namespace engine
       UINT64            getTreeSizeHWM( )
       {
          return _treeSizeHWM.peek() ;
-      }
-
-      UINT64            getCurTreeMem( )
-      {
-         return _curTreeMem.peek() ;
       }
 
    // private attributes
@@ -904,8 +872,6 @@ namespace engine
       // statistic data
       // max number of elements ever existed in any tree
       ossAtomic64  _treeSizeHWM ;
-      // current memory consumption by all trees
-      ossAtomic64  _curTreeMem ;
    } ;
 
    /*

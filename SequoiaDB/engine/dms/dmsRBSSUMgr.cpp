@@ -63,7 +63,9 @@ namespace engine
 {
 
    _dmsRBSSUMgr::_dmsRBSSUMgr ( SDB_DMSCB *dmsCB )
-      : _dmsSysSUMgr( dmsCB ), _numActiveGC( 0 )
+      : _dmsSysSUMgr( dmsCB ),
+        _latch( MON_LATCH_RBSSUMGR_LATCH ) ,
+        _numActiveGC( 0 )
    {
       // By default, start with second collection as the first one stores meta
       _currentCollection  = DMS_FIRST_RBS_CL ;
@@ -316,12 +318,7 @@ namespace engine
       }
       else
       {
-         // current CL does NOT have enough space, create the new CL
-         BSONObjBuilder builder ;
-         BSONObj        extOptions ;
-         UINT32         logicalID    = DMS_INVALID_CLID ;
-         UINT16         collectionID = DMS_INVALID_MBID ;
-
+         // current CL does NOT have enough space, may need to create new CL
 #ifdef _DEBUG
          {
             const dmsMBStatInfo *mbStatInfo =
@@ -344,84 +341,46 @@ namespace engine
 
          // take latch in X so that no one read stale data
          _latchX() ;
-         // It's possible that another thread has already moved up the
-         // _curCollection, we should just go back and retry
-         if ( _currentCollection != tempCurCL )
+         // there is a prepared cl to use, move to it. 
+         if ( _currentCollection != _preparedCollection ) 
          {
-            PD_LOG ( PDDEBUG, 
-                     "CurrentCollection(%d) changed from %d, retry.",
-                     _currentCollection, tempCurCL, rc ) ;
+            _currentCollection = _preparedCollection ;
             _releaseX() ;
             goto begin ;
          }
 
-         tempCurCL++ ;
-         // if reached max, wrap to first one.
-         if ( tempCurCL >= DMS_MAX_RBS_CL )
+         // It's possible that another thread has already moved up the
+         // _curCollection or is preparing a new CL, we should just go
+         // back and retry
+         if ( ( _currentCollection != tempCurCL ) || _prepInProgress )
          {
-            tempCurCL = DMS_FIRST_RBS_CL ;
-         }
-
-         // new curCL should not be overlap with last free
-         // special case is lastFree never changed after system start
-         if ( ( tempCurCL == _lastFreeCollection )      ||
-              ( DMS_MAX_RBS_CL == _lastFreeCollection && 
-                DMS_FIRST_RBS_CL == tempCurCL ) )
-         {
-            rc = SDB_DMS_NOSPC ;
-            PD_LOG ( PDWARNING, 
-                     "Run out of space in RBS collection lastFreeCL=%d,"
-                     "curCL(full)=%d, rc=%d",
-                     _lastFreeCollection, _currentCollection, rc ) ;
-            _releaseX() ;
-            goto error ;
-         }
-
-         // create next CL
-         try
-         {
-            builder.append( FIELD_NAME_SIZE, _maxCollectionSize ) ;
-            builder.append( FIELD_NAME_MAX, 0 ) ;
-            builder.appendBool( FIELD_NAME_OVERWRITE, FALSE ) ;
-            extOptions = builder.done() ;
-
-            // add the collection for RBS
-            DMS_BUILD_RBS_CL_NAME( clName, tempCurCL ) ;
-
-            rc = _su->data()->addCollection ( clName, &collectionID,
-                                              UTIL_UNIQUEID_NULL,
-                                              DMS_MB_ATTR_CAPPED |
-                                              DMS_MB_ATTR_NOIDINDEX,
-                                              eduCB, dpsCB, 0, TRUE,
-                                              UTIL_COMPRESSOR_INVALID,
-                                              &logicalID,
-                                              &extOptions ) ;
-            if ( rc )
+#ifdef _DEBUG
+            PD_LOG ( PDDEBUG, 
+                     "CurrentCollection(%d) changed from %d or "
+                     "prepInProgress(%d). retry.",
+                     _currentCollection, tempCurCL,
+                     _prepInProgress, rc ) ;
+#endif
+            if ( _currentCollection == tempCurCL )
             {
-               PD_LOG ( PDERROR, "Failed to add RBS collection %s, rc: %d",
-                        clName, rc ) ;
                _releaseX() ;
-               goto error ;
+               // sleep for short period time for in progress prepare to finish
+               ossSleep(DMS_RBS_CREATECL_SMALL_INTERVAL) ;
             }
-            PD_TRACE2 ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD,
-                        PD_PACK_STRING(clName),
-                        PD_PACK_UINT(logicalID) );
-            PD_LOG ( PDDEBUG, "Successfully created RBS collection %s, logicalID= %d",
-                     clName, logicalID ) ;
+            else
+            {
+               _releaseX() ;
+            }
+            goto begin ;
          }
-         catch( std::exception &e )
+
+         // prepare/allocate the CL. Note that latch is released on return
+         rc = _prepareRBSCL( eduCB, dpsCB, TRUE ) ;
+         if ( rc )
          {
-            rc = SDB_SYS ;
-            PD_LOG( PDERROR, "Occur exception when adding RBSCL : %s",
-                    e.what() ) ;
-            _releaseX() ;
+            PD_LOG ( PDERROR, "Failed to get curCL mbLock, rc: %d", rc ) ;
             goto error ;
          }
-
-         // update curCL under the latch, but after everything succeeded
-         _currentCollection = tempCurCL ;
-
-         _releaseX() ;
 
          // trigger GC event,
          if ( allowGC() )
@@ -435,13 +394,8 @@ namespace engine
             }
          }
 
-         // get curCL context and take mbLock here
-         rc = _su->data()->getMBContext( &clContext, clName ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get curCL mbLock, rc: %d", rc ) ;
-            goto error ;
-         }
+         // we have prepared new collection, just go back and retry
+         goto begin ;
       } // end of !spaceEnough
 
       // remember _currentCollection
@@ -458,10 +412,145 @@ namespace engine
       goto done ;
    }
 
+   // prepare or allocate the RBSCL. 
+   // CALLER MUST HOLD _dmsRBSSUMgr::_latch in X
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__PREPARERBSCL, "_dmsRBSSUMgr::_prepareRBSCL" )
+   SINT32 _dmsRBSSUMgr::_prepareRBSCL( pmdEDUCB   * eduCB,
+                                       SDB_DPSCB  * dpsCB,
+                                       BOOLEAN      updateCurCL )
+   {
+      SINT32       rc           = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR__PREPARERBSCL);
+      // set prepCL to next one
+      UINT16       prepCL       = _preparedCollection + 1 ;
+      CHAR         clName[30]   = {0} ;
+
+
+      // setup prepare in progress 
+      _prepInProgress = TRUE ;
+
+      // if reached max, wrap to first one.
+      if ( prepCL >= DMS_MAX_RBS_CL )
+      {
+         prepCL = DMS_FIRST_RBS_CL ;
+      }
+
+      // new curCL should not be overlap with last free.
+      // A special case is lastFree never changed after system start, but we
+      // are trying to wrap around
+      if ( ( prepCL == _lastFreeCollection ) || 
+           ( DMS_MAX_RBS_CL == _lastFreeCollection &&
+                DMS_FIRST_RBS_CL == prepCL ) )
+      {
+         rc = SDB_DMS_NOSPC ;
+         PD_LOG ( PDWARNING,
+                  "Run out of space in RBS collection lastFreeCL=%d,"
+                  "curCL=%d, prepCL(full)=%d, rc=%d",
+                  _lastFreeCollection, _currentCollection, 
+                  _preparedCollection, rc ) ;
+         _releaseX() ;   
+         goto error ;
+      }
+      // now we can release the latch and do the real create. Releasing the
+      // latch give better concurrency for sync thread to continue working
+      // on curCL if it has space.
+      _releaseX() ;
+
+      try
+      {
+         // current CL does NOT have enough space, create the new CL
+         BSONObjBuilder builder ;
+         BSONObj        extOptions ;
+         UINT32         logicalID    = DMS_INVALID_CLID ;
+         UINT16         collectionID = DMS_INVALID_MBID ;
+
+         builder.append( FIELD_NAME_SIZE, _maxCollectionSize ) ;
+         builder.append( FIELD_NAME_MAX, 0 ) ;
+         builder.appendBool( FIELD_NAME_OVERWRITE, FALSE ) ;
+         extOptions = builder.done() ;
+
+         // add the collection for RBS
+         DMS_BUILD_RBS_CL_NAME( clName, prepCL ) ;
+
+         rc = _su->data()->addCollection ( clName, &collectionID,
+                                           UTIL_UNIQUEID_NULL,
+                                           DMS_MB_ATTR_CAPPED |
+                                           DMS_MB_ATTR_NOIDINDEX,
+                                           eduCB, dpsCB, 0, TRUE,
+                                           UTIL_COMPRESSOR_INVALID,
+                                           &logicalID,
+                                           &extOptions ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to add RBS collection %s, rc: %d",
+                     clName, rc ) ;
+            goto error ;
+         }
+         PD_TRACE2 ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD,
+                     PD_PACK_STRING(clName),
+                     PD_PACK_UINT(logicalID) );
+         PD_LOG ( PDDEBUG,
+                  "Successfully created RBS collection %s, logicalID= %d, "
+                  "updateCurCL=%d",
+                  clName, logicalID, updateCurCL ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception when adding RBSCL : %s",
+                 e.what() ) ;
+         goto error ;
+      }
+
+      _latchX() ;
+      // update the preparedCollection and unset the progress flag
+      _preparedCollection = prepCL ;
+      // only update currentCollection if caller want to
+      if( updateCurCL )
+      {
+         _currentCollection = prepCL ;
+      }
+      _prepInProgress = FALSE ;      
+      _releaseX() ;
+   done:
+      PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__PREPARERBSCL, rc );
+      return rc ;
+
+   error:
+      // unset prepare in progress on error
+      _latchX() ;
+      _prepInProgress = FALSE ;      
+      _releaseX() ;
+      
+      goto done ;
+   }
+
    BOOLEAN _dmsRBSSUMgr::allowGC() 
    {
       // simple logic to only allow certain amount of light job tasks
       return getNumActiveGC() < MAX_RBS_GC_TASK ;
+   }
+
+   BOOLEAN _dmsRBSSUMgr::_needPrepareRBSCL( BOOLEAN latched ) 
+   {
+      BOOLEAN need = FALSE ;
+      if ( !latched )
+      {
+         _latchS() ;
+      }
+
+      if ( !_prepInProgress && ( _preparedCollection == _currentCollection ) )
+      {
+         // need prepare if there is no prepare in progress and we are using
+         // the last prepared collection
+         need = TRUE ;
+      }
+
+      if ( !latched )
+      {
+         _releaseS() ;
+      }
+      return need ; 
    }
 
    // allocate space for RBS record and return the beginning offset
@@ -1024,8 +1113,8 @@ namespace engine
       goto done ;
    }
 
-   // Given start position, try to run RBS garbage collection to recycle space
-   // once finished, the new position is returned.
+   // Given start position(_lastFreedCL), try to run RBS garbage collection
+   // to recycle space(RBSCL and idxTree nodes).
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR__GCRBS, "_dmsRBSSUMgr::_gcRBS" )
    SINT32 _dmsRBSSUMgr::_gcRBS ( UINT16 position, SDB_DPSCB *dpsCB )
    {
@@ -1039,7 +1128,6 @@ namespace engine
       SINT32      beginPos   = curPos ;
 #endif
       dmsMBContext *pContext = NULL ;
-      BOOLEAN     latched    = FALSE ;
 
       // finish if transCB or oldVersionCB was not setup. This can happen
       // during start time
@@ -1052,15 +1140,14 @@ namespace engine
       // recycle the CL by dropping it.
       while ( TRUE )
       {
-         _latchX() ;
-         latched = TRUE ;
-
          // handle the logic to flip to 1
          if ( curPos >= DMS_MAX_RBS_CL )
          {
             curPos = DMS_FIRST_RBS_CL ;
          }
 
+         // Stop if we are about to reach _currentCollection
+         _latchS() ;
          if ( curPos == _currentCollection )
          {
 #ifdef _DEBUG
@@ -1069,15 +1156,21 @@ namespace engine
                      " start(%d), end(%d)",
                      beginPos, curPos) ;
 #endif
+            _releaseS() ;
             break ;
          }
+         _releaseS() ;
 
+         // got curPos, can directly use the cached curPos to access the CL
          DMS_BUILD_RBS_CL_NAME( clName, curPos ) ;
 
-         // retrieve system lowtran
-
          // acquire mbLock before work on this CL, since we will try
-         // to drop it, let's take X directly
+         // to drop it, let's take X directly. It's possible that multiple
+         // GC can get to here, but there will be only one get in first with
+         // mbLock held in X. Others will break out. There is no point to
+         // work on next CL either as the one had mbLock will work on them
+         // anyway. 
+         // Early break out if the CL no long exist or it's held by others.
          if ( SDB_OK != _su->data()->getMBContext( &pContext, clName, -1 ) ||
               SDB_OK != pContext->mbTryLock( EXCLUSIVE ) )
          {
@@ -1085,7 +1178,7 @@ namespace engine
             break ;
          }
 
-         // retrieve maxGlobTransID of current CL
+         // retrieve maxGlobTransID of current CL after we hold the mbLock.
          // NOTE: set with global transaction tag
          maxGlobTransID.setSN( pContext->mbStat()->getMaxGlobTransID() ) ;
 
@@ -1100,9 +1193,7 @@ namespace engine
                         sdbGetTransCB()->getGlobExpireTran() ).c_str(),
                   curPos ) ;
 #endif
-         // Do GC when the cl max transID is older than lowtran
-         // TODO: we may want to do GC when lowTran is invalid, meaning no 
-         // running transaction
+         // Do GC when the cl max transID is expired
          if ( sdbGetTransCB()->isVersionExpired( maxGlobTransID ) )
          {
             rc = _su->data()->dropCollection( clName, eduCB, dpsCB,
@@ -1116,8 +1207,15 @@ namespace engine
                goto error ;
             }
 
-            // assignement as atomic operation
-            _lastFreeCollection = curPos ;
+            // if the lastFree was not changed, update it under protection. 
+            // modify position as it's a cached version of lastFreeCollection
+            _latchX() ;
+            if ( position == _lastFreeCollection )
+            {
+               _lastFreeCollection = curPos ;
+               position = curPos ;
+            }
+            _releaseX() ;
 
             PD_LOG ( PDDEBUG, "Successfully recycled %s. ",
                      clName ) ;
@@ -1128,15 +1226,21 @@ namespace engine
             _su->data()->releaseMBContext( pContext ) ;
             break ;
          }
-         _releaseX() ;
-         latched = FALSE ;
          curPos++ ;
       } // end of while
 
-      if ( latched )
+      _latchX() ;
+      if ( _needPrepareRBSCL( TRUE ) )
+      {
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, "GC prepare CL." ) ;
+#endif
+         // don't update curCL
+         rc = _prepareRBSCL( eduCB, dpsCB, FALSE ) ;
+      }
+      else
       {
          _releaseX() ;
-         latched = FALSE ;
       }
 
 #ifdef _DEBUG
@@ -1147,10 +1251,6 @@ namespace engine
       sdbGetTransCB()->getOldVCB()->gcIdxTrees( ) ;
 
    done:
-      if ( latched )
-      {
-         _releaseX() ;
-      }
 
       PD_TRACE_EXITRC ( SDB__DMSRBSSUMGR__GCRBS, rc );
       return  rc ;

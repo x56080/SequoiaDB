@@ -41,7 +41,7 @@
 
 #include "core.hpp"
 #include "oss.hpp"
-#include "ossLatch.hpp"
+#include "monLatch.hpp"
 #include "ossUtil.hpp"
 #include "dms.hpp"
 #include "dmsSysSUMgr.hpp"
@@ -58,7 +58,9 @@ namespace engine
    class dmsTransLockCallback ;
 
    // number of slots in RBS hash bucket, a prime number less than 32K
-   #define  DMS_RBS_HASH_BKT_SLOTS   ( (UINT32) 32749 )
+   //#define  DMS_RBS_HASH_BKT_SLOTS   ( (UINT32) 32749 )
+   // number of slots in RBS hash bucket, a prime number less than 128K
+   #define  DMS_RBS_HASH_BKT_SLOTS   ( (UINT32) 131071 )
 
    #define DMS_BUILD_RBS_CL_NAME( clName, cl )             \
                ossSnprintf ( clName, sizeof(clName),       \
@@ -118,11 +120,16 @@ namespace engine
       // lock. 
       // Full size is 32k* (40+12)B = 1.6MB
       dmsRBSOffset   _offset[ DMS_RBS_HASH_BKT_SLOTS ] ;  // offset on disk
-      ossSpinXLatch  _latch[ DMS_RBS_HASH_BKT_SLOTS ] ;   // latch to protect the bucket
+      monSpinXLatch  _latch[ DMS_RBS_HASH_BKT_SLOTS ] ;   // latch to protect the bucket
+      //ossSpinXLatch  _latch[ DMS_RBS_HASH_BKT_SLOTS ] ;   // latch to protect the bucket
 
    public: 
       _dmsRBSHashBkt()
       {
+         for ( UINT32 i = 0; i < DMS_RBS_HASH_BKT_SLOTS; i++ )
+         {
+            _latch[i] = monSpinXLatch( MON_LATCH_RBSHASHBKT_BUCKETLATCH ) ;
+         }
       }
 
       void   lock( UINT32 bkt )
@@ -164,20 +171,34 @@ namespace engine
 
    // Max allowed RBS GC tasks
    #define MAX_RBS_GC_TASK 3
+   // small wait time interval for rbs cl creation
+   #define DMS_RBS_CREATECL_SMALL_INTERVAL ( 1 )
 
    class _dmsRBSSUMgr : public _dmsSysSUMgr
    {
    private :
 
-      // The collection currently in use and the previously freed collecion
+      // Keep track of 
+      // - the collection currently in use;
+      // - the collection previously freed;
+      // - the collection prepared by async thread;
+      //
       // They are protected by _latch. Protocol as following:
-      //    Read of the two fields require _latch in S;
+      // -  Read of any of the three fields require _latch in S;
       //    Update of them require X. 
-      //    Creation/drop on new RBSCL require the latch in X so that there
-      //    is only one guy creating new RBSCL or drop expired CLs.
+      // -  Creation on new RBSCL require the latch in X so that there
+      //    is only one guy creating new RBSCL.
+      // -  Drop expired CLs only need holding mbLock of the CL. So caller
+      //    need to check if the CL exist and try the mbLock in X.
+      // -  Background job (GC) will try its best to prepare one new CL ahead
+      //    of team so the writer does not have to create CL synchronously.
+      //    Since we may have more than one GC thread, we use _prepInProgress
+      //    to multiple guys from preparing the collections at same time.
       UINT16          _currentCollection ;
       UINT16          _lastFreeCollection ;
-      _ossSpinSLatch  _latch ;
+      UINT16          _preparedCollection ;
+      monSpinSLatch   _latch ;
+      BOOLEAN         _prepInProgress ;
 
       // The max size of each collection
       UINT32          _maxCollectionSize ;
@@ -272,6 +293,13 @@ namespace engine
                                    SDB_DPSCB    *dpsCB,
                                    dmsMBContext *metaContext,
                                    dmsMBContext *&clContext ) ;
+
+      BOOLEAN _needPrepareRBSCL( BOOLEAN latched ) ;
+
+      SINT32 _prepareRBSCL( pmdEDUCB   * eduCB,
+                            SDB_DPSCB  * dpsCB,
+                            BOOLEAN      updateCurCL ) ;
+
       SINT32 _gcRBS ( UINT16 position, SDB_DPSCB *dpsCB ) ;
 
       BOOLEAN _rbsPositionExpired( dmsRBSOffset &pos ) ;
