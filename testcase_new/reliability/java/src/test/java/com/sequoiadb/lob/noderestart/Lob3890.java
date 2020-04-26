@@ -1,7 +1,6 @@
 package com.sequoiadb.lob.noderestart;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -140,7 +139,14 @@ public class Lob3890 extends SdbTestBase {
         public void exec() {
             try ( Sequoiadb db = new Sequoiadb( safeCoordUrl, "", "" )) {
                 System.err.println( "stop group: " + groupName );
-                db.getReplicaGroup( this.groupName ).stop();
+                try {
+                    db.getReplicaGroup( this.groupName ).stop();
+                } catch ( BaseException e ) {
+                    // -160 停止节点超时，但节点最终仍然停止成功，捕获此错误码规避该错误。
+                    if ( e.getErrorCode() != -160 ) {
+                        throw e;
+                    }
+                }
                 System.err.println( "start group: " + groupName );
                 db.getReplicaGroup( this.groupName ).start();
             }
