@@ -10,4 +10,5 @@ requests >=0.14.0
 pytz >=2011k
 ordereddict
 httplib2
-lxml
+xmlrunner
+#lxml

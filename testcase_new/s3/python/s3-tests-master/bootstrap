@@ -43,7 +43,7 @@ else
 fi
 
 
-${virtualenv} --python=$(which python3.5) --no-site-packages --distribute --no-setuptools --no-pip --no-wheel virtualenv
+${virtualenv} --python=$(which python3) --no-site-packages --distribute --no-setuptools --no-pip --no-wheel virtualenv
 
 path=`pwd`
 # avoid pip bugs
