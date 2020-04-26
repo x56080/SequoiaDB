@@ -345,7 +345,7 @@ namespace engine
                 cb->isAutoCommitTrans() )
       {
          // generate pre-commit time for auto-commit transaction
-         stpLogicalTimeUS currentTime, preCommitTime ;
+         stpLogicalTimeUS localTime, preCommitTime ;
 
          // update status first
          rc = transCB->updateTransStatus( transInfo._transID,
@@ -358,14 +358,14 @@ namespace engine
                       rc ) ;
 
          // get pre-commit time
-         rc = transCB->getGlobPreCommitTime( cb, currentTime ) ;
+         rc = transCB->getGlobPreCommitTime( cb, localTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
                       "pre-commit of transaction [%s], rc: %d",
                       dpsTransIDToString( transInfo._transID ).c_str(),
                       rc ) ;
 
          // check if we need to delay pre-commit time
-         rc = transCB->getLocalPreCommitTime( currentTime, preCommitTime ) ;
+         rc = transCB->getLocalPreCommitTime( localTime, preCommitTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get local logical time for "
                       "pre-commit of transaction [%s], rc: %d",
                       dpsTransIDToString( transInfo._transID ).c_str(),

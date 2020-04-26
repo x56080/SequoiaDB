@@ -501,15 +501,21 @@ namespace engine
 
       // get logical time to pre-commit transaction by searching the maximum
       // running global transaction ID in this node
+      // input:
+      //    - localTime: local time to test with the maximum running
+      //                 global transaction ID
+      // output:
+      //    - preCommitTime: global logical time to pre-commit transaction
       // return:
-      //    - transaction ID of maximum running global transaction ID
+      //    - SDB_OK: get pre-commit time succeed
+      //    - other errors: failed to get pre-commit time
       // NOTE:
       //    - consider with time error
       //    - pre-commit time on current node should be larger than
       //      maximum running global transaction ID ( to resolve conflicts )
       //    - pre-commit time might be delayed by maximum running global
       //      transaction in this node
-      INT32 getLocalPreCommitTime( const stpLogicalTimeUS &currentTime,
+      INT32 getLocalPreCommitTime( const stpLogicalTimeUS &localTime,
                                    stpLogicalTimeUS &preCommitTime ) ;
 
       // get logical time from STP for commit transaction
