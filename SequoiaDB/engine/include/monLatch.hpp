@@ -129,6 +129,9 @@ enum MON_LATCH_IDENTIFIER
    MON_LATCH_RTNREMOTEMESSENGER_LOCK,
    MON_LATCH_UTILCACHEBUCKET_RWMUTEX,
    MON_LATCH_UTILHASHTABLE_BUCKETNUMLOCK,
+   MON_LATCH_PREIDXTREE_LATCH,
+   MON_LATCH_RBSHASHBKT_BUCKETLATCH,
+   MON_LATCH_RBSSUMGR_LATCH,
 
    MON_LATCH_ID_MAX  // max id
 
@@ -140,9 +143,14 @@ class monSpinXLatch : public ossXLatch
 {
 public:
    monSpinXLatch( MON_LATCH_IDENTIFIER latchID ) ;
-
+   monSpinXLatch() ;
    ~monSpinXLatch() ;
 
+   monSpinXLatch& operator=(const monSpinXLatch& rhs )
+   {
+      latchID = rhs.latchID ;
+      return *this ;
+   }
    void get() ;
 
    void release() ;
