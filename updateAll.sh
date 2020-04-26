@@ -1,4 +1,4 @@
-#bash
+#!/bin/bash
 
 needUpdate=1
 buildStr=""
