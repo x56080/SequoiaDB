@@ -1855,27 +1855,31 @@ public class Sequoiadb implements Closeable {
             return;
         }
         BSONObject newObj = new BasicBSONObject();
-        newObj.putAll(options);
-        if (options.containsField(SdbConstants.FIELD_NAME_PREFERED_INSTANCE)) {
-            // Add old version of preferred instance
-            Object value = options.get(SdbConstants.FIELD_NAME_PREFERED_INSTANCE);
-            if (value instanceof String) {
-                int v = PreferInstance.MASTER;
-                if (value.equals("M") || value.equals("m")) {
-                    v = PreferInstance.MASTER;
-                } else if (value.equals("S") || value.equals("s")) {
-                    v = PreferInstance.SLAVE;
-                } else if (value.equals("A") || value.equals("a")) {
-                    v = PreferInstance.ANYONE;
-                } else {
-                    throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
+
+        for (String key: options.keySet()) {
+            Object value = options.get(key);
+            if (key.equalsIgnoreCase(SdbConstants.FIELD_NAME_PREFERED_INSTANCE)){
+                if (value instanceof String) {
+                    String valueStr = (String)value;
+                    int v ;
+                    if (valueStr.equalsIgnoreCase("M") ||valueStr.equalsIgnoreCase("-M")) {
+                        v = PreferInstance.MASTER;
+                    } else if (valueStr.equalsIgnoreCase("S") ||valueStr.equalsIgnoreCase("-S")) {
+                        v = PreferInstance.SLAVE;
+                    } else if (valueStr.equalsIgnoreCase("A") ||valueStr.equalsIgnoreCase("-A")) {
+                        v = PreferInstance.ANYONE;
+                    } else {
+                        throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
+                    }
+                    newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE, v);
+                } else if (value instanceof Integer) {
+                    newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE, value);
                 }
-                newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE, v);
-            } else if (value instanceof Integer) {
-                newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE, value);
+                // Add new version of preferred instance
+                newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE_V1, value);
+            }else {
+                newObj.put(key, value);
             }
-            // Add new version of preferred instance
-            newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE_V1, value);
         }
 
         clearSessionAttrCache();

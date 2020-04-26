@@ -9,6 +9,8 @@ import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.junit.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import static org.junit.Assert.assertTrue;
@@ -231,9 +233,14 @@ public class SdbSetSessionAttr {
         String expectString = "{ \"PreferedInstance\" : \"M\" , \"PreferedInstanceMode\" : \"random\" , \"PreferedStrict\" : false , \"Timeout\" : -1 , \"TransIsolation\" : 1 , \"TransTimeout\" : 120 , \"TransUseRBS\" : false , \"TransLockWait\" : true , \"TransAutoCommit\" : true , \"TransAutoRollback\" : false }";
         BSONObject expectObject =(BSONObject)JSON.parse(expectString);
         System.out.println(expectObject);
-//        boolean result = sessionAttr.toString().equals(expectString);
+
         boolean result = sessionAttr.equals(expectObject);
-        Assert.assertTrue(result);
+        Assert.assertEquals(sessionAttr.get("TransIsolation"),expectObject.get("TransIsolation"));
+        Assert.assertEquals(sessionAttr.get("TransTimeout"),expectObject.get("TransTimeout"));
+        Assert.assertEquals(sessionAttr.get("TransLockWait"),expectObject.get("TransLockWait"));
+        Assert.assertEquals(sessionAttr.get("TransUseRBS"),expectObject.get("TransUseRBS"));
+        Assert.assertEquals(sessionAttr.get("TransAutoCommit"),expectObject.get("TransAutoCommit"));
+        Assert.assertEquals(sessionAttr.get("TransAutoRollback"),expectObject.get("TransAutoRollback"));
     }
 
     @Test
@@ -275,4 +282,67 @@ public class SdbSetSessionAttr {
         }
     }
 
+    @Test
+    public void setSessionAttr_IgnoreCase_test() {
+
+        Object resultObj;
+        BasicBSONObject option;
+        String originalKey = "PreferedInstance";
+        String lowercaseKey = "preferedinstance";
+        String uppercaseKey = "PREFEREDINSTANCE";
+        String useKey;
+
+        // test value
+        String value1 = "M";
+        String value2 = "a";
+        String value3 = "-A";
+        String value4 = "-s";
+        int value5 = 1;
+        Object[] value6 = {1,"A"};
+        Object[] value7 = {1,"m"};
+        Object[] value8 = {1,"-s"};
+        Object[] value9 = {1,"-A"};
+
+        // expected object
+        String expected1 = "M";
+        String expected2 = "A";
+        String expected3 = "-A";
+        String expected4 = "-S";
+        int expected5 = 1;
+        BasicBSONList expected6 = new BasicBSONList();
+        expected6.put(0,1);
+        expected6.put(1,"A");
+        BasicBSONList expected7 = new BasicBSONList();
+        expected7.put(0,1);
+        expected7.put(1,"M");
+        BasicBSONList expected8 = new BasicBSONList();
+        expected8.put(0,1);
+        expected8.put(1,"-S");
+        BasicBSONList expected9 = new BasicBSONList();
+        expected9.put(0,1);
+        expected9.put(1,"-A");
+
+        Map<Object,Object> caseMap = new HashMap<>();
+        // case 1-9:
+        caseMap.put(value1,expected1);
+        caseMap.put(value2,expected2);
+        caseMap.put(value3,expected3);
+        caseMap.put(value4,expected4);
+        caseMap.put(value5,expected5);
+        caseMap.put(value6,expected6);
+        caseMap.put(value7,expected7);
+        caseMap.put(value8,expected8);
+        caseMap.put(value9,expected9);
+
+        int i = 1;
+        for (Object value: caseMap.keySet()) {
+            Object expected = caseMap.get(value);
+            useKey = ((i++)%2 == 0)? lowercaseKey:uppercaseKey;     // use lowercaseKey or uppercaseKey
+            option = new BasicBSONObject(useKey,value);
+            sdb.setSessionAttr(option);
+            resultObj = sdb.getSessionAttr().get(originalKey);
+            assertTrue(resultObj.equals(expected));
+            option.remove(useKey);
+        }
+    }
 }

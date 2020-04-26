@@ -1577,28 +1577,29 @@ namespace SequoiaDB
             while (it.MoveNext())
             {
                 BsonElement e = it.Current;
-                if (e.Name == SequoiadbConstants.FIELD_PREFERED_INSTANCE)
+                StringComparison ignoreCase = StringComparison.CurrentCultureIgnoreCase;
+                if (String.Equals(e.Name, SequoiadbConstants.FIELD_PREFERED_INSTANCE, ignoreCase))
                 {
                     BsonValue value = e.Value;
-                    if (e.Value.IsInt32)
+                    if (value.IsInt32)
                     {
-                        attrObj.Add(SequoiadbConstants.FIELD_PREFERED_INSTANCE, e.Value.AsInt32);
+                        attrObj.Add(SequoiadbConstants.FIELD_PREFERED_INSTANCE, value.AsInt32);
                     }
                     else if (value.IsString)
                     {
-                        string v = options[SequoiadbConstants.FIELD_PREFERED_INSTANCE].AsString;
+                        string v = value.AsString;
                         int val = (int)PreferInstanceType.INS_TYPE_MIN;
-                        if (v.Equals("M") || v.Equals("m"))
+                        if (String.Equals(v, "M", ignoreCase) || String.Equals(v, "-M", ignoreCase))
                             val = (int)PreferInstanceType.INS_MASTER;
-                        else if (v.Equals("S") || v.Equals("s"))
+                        else if (String.Equals(v, "S", ignoreCase) || String.Equals(v, "-S", ignoreCase))
                             val = (int)PreferInstanceType.INS_SLAVE;
-                        else if (v.Equals("A") || v.Equals("a"))
+                        else if (String.Equals(v, "A", ignoreCase) || String.Equals(v, "-A", ignoreCase))
                             val = (int)PreferInstanceType.INS_SLAVE;
                         else
                             throw new BaseException("SDB_INVALIDARG");
                         attrObj.Add(SequoiadbConstants.FIELD_PREFERED_INSTANCE, val);
                     }
-                    attrObj.Add(SequoiadbConstants.FIELD_PREFERED_INSTANCE_V1, e.Value);
+                    attrObj.Add(SequoiadbConstants.FIELD_PREFERED_INSTANCE_V1, value);
                 }
                 else
                 {
