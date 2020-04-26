@@ -110,54 +110,6 @@ SequoiaDB 中有两类协调节点：
 > db.getCoordRG().getDetail()
 ```
 
-###手工创建协调节点###
-
-1. 创建协调节点配置目录，其中11810为协调节点的服务端口，可根据需要配置
-
-  ```lang-javascript
-  $ mkdir -p /opt/sequoiadb/conf/local/11810
-  ```
-
-2. 拷贝协调节点样例配置文件
-
-  ```lang-javascript
-  $cp /opt/sequoiadb/conf/samples/sdb.conf.coord /opt/sequoiadb/conf/local/11810/sdb.conf
-  ```
-
-3. 修改配置文件
-
-  ```lang-javascript
-  $ vi /opt/sequoiadb/conf/local/11810/sdb.conf
-  ```
-
-  修改数据库放置路径（可根据实际路径进行配置）
-
-  ```
-  # database path
-  dbpath=/opt/sequoiadb/database/coord
-  ```
-
-  修改Catalog服务地址和端口
-
-  ```
-  # catalog addr(hostname1:servicename1,hostname2:servicename2,...)
-  catalogaddr=sdbserver1:11803,sdbserver2:11803,sdbserver3:11803
-  ```
-
-4. 输入 :wq，保存退出
-
-5. 创建数据文件存放路径，路径为上一步骤配置的路径
-
-  ```lang-javascript
-  $ mkdir -p /opt/sequoiadb/database/coord
-  ```
-
-6. 启动协调节点进程
-
-  ```lang-javascript
-  $ /opt/sequoiadb/bin/sdbstart -c /opt/sequoiadb/conf/local/11810/
-  ```
-
 ##故障恢复##
 
 由于协调节点不存在用户数据，因此发生故障后可以直接重新启动，不参与任何额外的故障恢复步骤。
