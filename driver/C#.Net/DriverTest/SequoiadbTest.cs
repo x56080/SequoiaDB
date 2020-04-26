@@ -1169,6 +1169,73 @@ namespace DriverTest
         }
 
         [TestMethod()]
+        public void setSessionAttr_ingorecase_Test()
+        {
+            string originalKey = "PreferedInstance";
+            string lowercaseKey = "preferedinstance";
+            string uppercaseKey = "PREFEREDINSTANCE";
+            string useKey;
+
+            Dictionary<BsonValue, BsonValue> caseDic = new Dictionary<BsonValue, BsonValue>();
+
+            string value1 = "M";
+            string value2 = "a";
+            string value3 = "-A";
+            string value4 = "-s";
+            int value5 = 1;
+            BsonArray value6 = new BsonArray();
+            value6.Add(1);
+            value6.Add("A");
+            BsonArray value7 = new BsonArray();
+            value7.Add(1);
+            value7.Add("m");
+            BsonArray value8 = new BsonArray();
+            value8.Add(1);
+            value8.Add("-s");
+            BsonArray value9 = new BsonArray();
+            value9.Add(1);
+            value9.Add("-A");
+
+            string expected1 = "M";
+            string expected2 = "A";
+            string expected3 = "-A";
+            string expected4 = "-S";
+            int expected5 = 1;
+            BsonArray expected6 = new BsonArray();
+            expected6.Add(1);
+            expected6.Add("A");
+            BsonArray expected7 = new BsonArray();
+            expected7.Add(1);
+            expected7.Add("M");
+            BsonArray expected8 = new BsonArray();
+            expected8.Add(1);
+            expected8.Add("-S");
+            BsonArray expected9 = new BsonArray();
+            expected9.Add(1);
+            expected9.Add("-A");
+
+            caseDic.Add(value1, expected1);
+            caseDic.Add(value2, expected2);
+            caseDic.Add(value3, expected3);
+            caseDic.Add(value4, expected4);
+            caseDic.Add(value5, expected5);
+            caseDic.Add(value6, expected6);
+            caseDic.Add(value7, expected7);
+            caseDic.Add(value8, expected8);
+            caseDic.Add(value9, expected9);
+
+            int n = 1;
+            foreach(KeyValuePair<BsonValue,BsonValue> caseObj in caseDic)
+            {
+                useKey = ((n++) % 2 == 0) ? lowercaseKey : uppercaseKey;
+                BsonDocument attribute = new BsonDocument(useKey, caseObj.Key);
+                sdb.SetSessionAttr(attribute);
+                BsonElement result = sdb.GetSessionAttr(false).GetElement(originalKey);
+                Assert.IsTrue(result.Value == caseObj.Value);
+            }
+        }
+
+        [TestMethod()]
         public void getSessionAttr_Test()
         {
             // case 1:
