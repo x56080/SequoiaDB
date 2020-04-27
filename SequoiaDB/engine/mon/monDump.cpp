@@ -1585,6 +1585,8 @@ namespace engine
                        (INT64)(rbsMgr->getNumTotalCL()) * (rbsMgr->getCLSize()) ) ;
             ob.append( FIELD_NAME_FREE_RBS_SIZE,
                        (INT64)(rbsMgr->getNumFreeCL()) * (rbsMgr->getCLSize()) ) ;
+            ob.append( FIELD_NAME_NUM_SYNC_ADD_RBS_CL,
+                       (INT32)(rbsMgr->getNumSyncAddCL()) ) ;
          }
          catch ( std::exception &e )
          {

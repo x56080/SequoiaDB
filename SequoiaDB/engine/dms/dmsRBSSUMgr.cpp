@@ -65,7 +65,8 @@ namespace engine
    _dmsRBSSUMgr::_dmsRBSSUMgr ( SDB_DMSCB *dmsCB )
       : _dmsSysSUMgr( dmsCB ),
         _latch( MON_LATCH_RBSSUMGR_LATCH ) ,
-        _numActiveGC( 0 )
+        _numActiveGC( 0 ) ,
+        _numSyncAddCL( 0 )
    {
       // By default, start with second collection as the first one stores meta
       _currentCollection  = DMS_FIRST_RBS_CL ;
@@ -245,7 +246,7 @@ namespace engine
          // setup the curCL
          _currentCollection = DMS_FIRST_RBS_CL;
          _lastFreeCollection = DMS_MAX_RBS_CL ;
-
+         _numSyncAddCL.init(0) ;
          PD_LOG ( PDDEBUG, "Created RBS collection %s(%d) successfully.",
                   clName, logicalID );
       }
@@ -382,6 +383,8 @@ namespace engine
             goto error ;
          }
 
+         _numSyncAddCL.inc() ;
+
          // trigger GC event,
          if ( allowGC() )
          {
@@ -424,7 +427,6 @@ namespace engine
       // set prepCL to next one
       UINT16       prepCL       = _preparedCollection + 1 ;
       CHAR         clName[30]   = {0} ;
-
 
       // setup prepare in progress 
       _prepInProgress = TRUE ;
@@ -480,12 +482,10 @@ namespace engine
                                            UTIL_COMPRESSOR_INVALID,
                                            &logicalID,
                                            &extOptions ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to add RBS collection %s, rc: %d",
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to add RBS collection %s, rc: %d",
                      clName, rc ) ;
-            goto error ;
-         }
+
          PD_TRACE2 ( SDB__DMSRBSSUMGR__PREPARERBSCLFORRECORD,
                      PD_PACK_STRING(clName),
                      PD_PACK_UINT(logicalID) );
@@ -517,7 +517,10 @@ namespace engine
       return rc ;
 
    error:
-      // unset prepare in progress on error
+      // unset prepare in progress on error. We may not neccessarily need
+      // the latch because everyone else is only checking at this moment.
+      // But to make sure PD_LOG dump correct value in other places, we
+      // still take the latch. BTW, this is error code path. 
       _latchX() ;
       _prepInProgress = FALSE ;      
       _releaseX() ;
