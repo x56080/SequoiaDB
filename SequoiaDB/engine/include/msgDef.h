@@ -551,6 +551,7 @@
 #define FIELD_NAME_RBS_PRERECORD_CL          "RBSPRERECORDCL"
 #define FIELD_NAME_RBS_PRERECORD_OFFSET      "RBSPRERECORDOFFSET"
 #define FIELD_NAME_RBS_HASH_BKT              "RBSHASHBKT"
+#define FIELD_NAME_NUM_SYNC_ADD_RBS_CL       "NumSyncAddRBSCL"
 #define FIELD_NAME_LATCH_WAIT_TIME           "LatchWaitTime"
 #define FIELD_NAME_MSG_SENT_TIME             "MsgSentTime"
 #define FIELD_NAME_XOWNER_TID                "XOwnerTID"

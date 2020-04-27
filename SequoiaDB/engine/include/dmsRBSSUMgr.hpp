@@ -59,8 +59,8 @@ namespace engine
 
    // number of slots in RBS hash bucket, a prime number less than 32K
    //#define  DMS_RBS_HASH_BKT_SLOTS   ( (UINT32) 32749 )
-   // number of slots in RBS hash bucket, a prime number less than 128K
-   #define  DMS_RBS_HASH_BKT_SLOTS   ( (UINT32) 131071 )
+   // number of slots in RBS hash bucket, a prime number less than 256K
+   #define  DMS_RBS_HASH_BKT_SLOTS   ( (UINT32) 262139 )
 
    #define DMS_BUILD_RBS_CL_NAME( clName, cl )             \
                ossSnprintf ( clName, sizeof(clName),       \
@@ -118,9 +118,10 @@ namespace engine
       // the old versions. Eventually, we may want to cache the newest 
       // old "version" in memory, which could be hanging off the record
       // lock. 
-      // Full size is 32k* (40+12)B = 1.6MB
+      // Full size is 256k* (12+56)B = 16MB
       dmsRBSOffset   _offset[ DMS_RBS_HASH_BKT_SLOTS ] ;  // offset on disk
       monSpinXLatch  _latch[ DMS_RBS_HASH_BKT_SLOTS ] ;   // latch to protect the bucket
+      // Full size is 32k* (12+40)B = 1.6MB
       //ossSpinXLatch  _latch[ DMS_RBS_HASH_BKT_SLOTS ] ;   // latch to protect the bucket
 
    public: 
@@ -205,6 +206,8 @@ namespace engine
 
       // Number of active GC thread
       ossAtomic32     _numActiveGC ;
+      // Number of time the add CL was not performed by GC
+      ossAtomic32     _numSyncAddCL ;
 
       CHAR            _metaCLName[30] ;
 
@@ -243,6 +246,7 @@ namespace engine
       void incActiveGC() { _numActiveGC.inc() ; }
       void decActiveGC() { _numActiveGC.dec() ; }
       UINT32 getNumActiveGC() { return _numActiveGC.fetch() ; }
+      UINT32 getNumSyncAddCL() { return _numSyncAddCL.fetch() ; }
       BOOLEAN allowGC() ;
 
       UINT32 getCLSize() { return DMS_DFT_RBSCL_SIZE ; }
