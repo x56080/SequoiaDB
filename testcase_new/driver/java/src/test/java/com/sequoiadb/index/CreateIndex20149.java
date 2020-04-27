@@ -23,7 +23,7 @@ public class CreateIndex20149 extends SdbTestBase {
     private Sequoiadb sdb;
     private CollectionSpace cs;
     private DBCollection cl;
-    private String clName = "cl20053";
+    private String clName = "cl20149";
     private String indexName = "idx";
 
     @BeforeClass
