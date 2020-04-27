@@ -1290,20 +1290,22 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    fsName[ fsNameSize ] = '\0' ;
 
 #elif defined (_LINUX) || defined (_AIX)
+   INT32 retcode = 0 ;
    struct statvfs vfs ;
    FILE *fp = NULL ;
    struct mntent *me = NULL ;
    struct mntent dummy ;
    CHAR tmpBuff[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
    struct stat pathStat ;
-   INT32 retcode = 0 ;
    BOOLEAN findOut = FALSE ;
    dev_t pathDevID ;
 
    /// 1. get total and free space
-   retcode = statvfs ( pPath, &vfs ) ;
-   PD_CHECK( 0 == retcode, SDB_SYS, error, PDERROR, "Failed to statvfs"
-             ", errno: %d, rc = %d", ossGetLastError (), rc );
+   if ( statvfs ( pPath, &vfs ) )
+   {
+      retcode = ossGetLastError() ;
+      goto error ;
+   }
 
    totalBytes = vfs.f_frsize * vfs.f_blocks ;
    freeBytes = vfs.f_bsize * vfs.f_bfree ;
@@ -1315,32 +1317,34 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    }
 
    // 2.1 get device id of the specified path
-   retcode = stat ( pPath, &pathStat );
-   PD_CHECK( 0 == retcode, SDB_SYS, error, PDERROR, "Failed to stat"
-             ", errno: %d, rc = %d", ossGetLastError (), rc );
+   if ( stat ( pPath, &pathStat ) )
+   {
+      retcode = ossGetLastError() ;
+      goto error ;
+   }
+
    pathDevID = pathStat.st_dev ;
 
    // 2.2 get disk name of this path
    fp = setmntent ( OSS_GET_DISK_INFO_FILE, "r" ) ;
-   PD_CHECK( NULL != fp, SDB_SYS, error, PDERROR, "Failed to set mnt entry"
-             ", errno: %d, rc = %d", ossGetLastError (), rc );
+   if ( NULL == fp )
+   {
+      retcode = ossGetLastError() ;
+      goto error ;
+   }
 
-   while ( NULL != ( me = getmntent_r ( fp, &dummy, tmpBuff, OSS_MAX_PATHSIZE ) ) )
+   while ( NULL != ( me = getmntent_r ( fp, &dummy,
+                                        tmpBuff, OSS_MAX_PATHSIZE ) ) )
    {
       struct stat fsStat ;
-      INT32 retcode = stat ( me->mnt_fsname, &fsStat );
-      if ( -1 == retcode )
-      {
-         //skip error
-         PD_LOG ( PDINFO, "Failed to stat %s, errno: %d, rc = %d",
-                  me->mnt_fsname, errno, rc ) ;
-      }
-      else
+
+      if ( !stat ( me->mnt_fsname, &fsStat ) )
       {
          dev_t devID = fsStat.st_rdev ;
+
          if ( pathDevID == devID )
          {
-            ossStrncpy( fsName, me->mnt_fsname, fsNameSize -1 ) ;
+            ossStrncpy( fsName, me->mnt_fsname, fsNameSize - 1 ) ;
             fsName[ fsNameSize ] = '\0' ;
             findOut = TRUE ;
             break ;
@@ -1372,6 +1376,34 @@ done :
    if ( NULL != fp )
    {
       endmntent( fp ) ;
+   }
+   switch( retcode )
+   {
+   case 0:
+      break ;
+   case EACCES:
+      rc = SDB_PERM ;
+      break ;
+   case EINTR:
+      rc = SDB_INTERRUPT ;
+      break ;
+   case EIO:
+      rc = SDB_IO ;
+      break ;
+   case ENOENT:
+      rc = SDB_FNE ;
+      break ;
+   case ENOMEM:
+      rc = SDB_OOM ;
+      break ;
+   case ENOTDIR:
+   case EFAULT:
+      rc = SDB_INVALIDARG ;
+      break ;
+   default:
+      rc = SDB_SYS ;
+      PD_LOG( PDERROR, "Failed to get disk info, errno = %d", retcode ) ;
+      break ;
    }
 #endif
    PD_TRACE_EXITRC ( SDB_OSSGETDISKINFO, rc );

@@ -1031,32 +1031,41 @@ namespace engine
             continue ;
          }
 
-         fs = columns.at( 0 ).c_str() ;
          fsType = columns.at( 2 ).c_str() ;
-         mount = columns.at( 1 ).c_str() ;
-         if ( SDB_OK == ossGetDiskInfo( mount, totalBytes, freeBytes ) )
+         if ( ossStrcasecmp( CMD_DISK_IGNORE_TYPE_BINFMT_MISC, fsType ) == 0 ||
+              ossStrcasecmp( CMD_DISK_IGNORE_TYPE_SYSFS, fsType ) == 0 ||
+              ossStrcasecmp( CMD_DISK_IGNORE_TYPE_PROC, fsType ) == 0 ||
+              ossStrcasecmp( CMD_DISK_IGNORE_TYPE_DEVPTS, fsType ) == 0 ||
+              ossStrcasecmp( CMD_DISK_IGNORE_TYPE_FUSECTL, fsType ) == 0 ||
+              ossStrcasecmp( CMD_DISK_IGNORE_TYPE_GVFS, fsType ) == 0 ||
+              ossStrcasecmp( CMD_DISK_IGNORE_TYPE_SECURITYFS, fsType ) == 0 )
          {
-            if ( ossStrcasecmp( CMD_DISK_IGNORE_TYPE_BINFMT_MISC, fsType ) == 0
-                 || ossStrcasecmp( CMD_DISK_IGNORE_TYPE_SYSFS, fsType ) == 0
-                 || ossStrcasecmp( CMD_DISK_IGNORE_TYPE_PROC, fsType ) == 0
-                 || ossStrcasecmp( CMD_DISK_IGNORE_TYPE_DEVPTS, fsType ) == 0
-                 || ossStrcasecmp( CMD_DISK_IGNORE_TYPE_FUSECTL, fsType ) == 0
-                 || ossStrcasecmp( CMD_DISK_IGNORE_TYPE_GVFS, fsType ) == 0
-                 || ossStrcasecmp( CMD_DISK_IGNORE_TYPE_SECURITYFS,
-                                                                 fsType ) == 0 )
-            {
-               continue ;
-            }
+            continue ;
+         }
 
-            diskBuilder.append( CMD_USR_SYSTEM_FILESYSTEM,
-                                fs ) ;
+         fs = columns.at( 0 ).c_str() ;
+         mount = columns.at( 1 ).c_str() ;
+
+         rc = ossGetDiskInfo( mount, totalBytes, freeBytes ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to get disk info, rc: %d, path: %s",
+                    rc, mount ) ;
+            rc = SDB_OK ;
+         }
+         else
+         {
+            diskBuilder.append( CMD_USR_SYSTEM_FILESYSTEM, fs ) ;
             diskBuilder.append( CMD_USR_SYSTEM_FSTYPE, fsType ) ;
-            diskBuilder.appendNumber( CMD_USR_SYSTEM_SIZE, totalBytes / ( 1024 * 1024 ) ) ;
-            diskBuilder.appendNumber( CMD_USR_SYSTEM_USED, ( totalBytes - freeBytes ) / ( 1024 * 1024 ) ) ;
+            diskBuilder.appendNumber( CMD_USR_SYSTEM_SIZE,
+                                      totalBytes / ( 1024 * 1024 ) ) ;
+            diskBuilder.appendNumber( CMD_USR_SYSTEM_USED,
+                              ( totalBytes - freeBytes ) / ( 1024 * 1024 ) ) ;
             diskBuilder.append( CMD_USR_SYSTEM_UNIT, "MB" ) ;
             diskBuilder.append( CMD_USR_SYSTEM_MOUNT, mount ) ;
 
-            BOOLEAN isLocal = ( string::npos != columns.at( 0 ).find( "/dev/", 0, 5 ) ) ;
+            BOOLEAN isLocal = ( string::npos != columns.at( 0 ).find( "/dev/",
+                                                                      0, 5 ) ) ;
             BOOLEAN gotStat = FALSE ;
             diskBuilder.appendBool( CMD_USR_SYSTEM_ISLOCAL, isLocal ) ;
 
