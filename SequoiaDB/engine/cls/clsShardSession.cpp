@@ -3010,94 +3010,117 @@ namespace engine
       return SDB_OK ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__ONTRANSBEGINMSG, "_clsShdSession::_onTransBeginMsg" )
    INT32 _clsShdSession::_onTransBeginMsg( NET_HANDLE handle, MsgHeader *msg )
    {
       INT32 rc = SDB_OK ;
-      MsgOpTransBegin *pTransBegin = ( MsgOpTransBegin* )msg ;
-      MsgRouteID remoteRID ;
 
-      remoteRID.value = pTransBegin->header.routeID.value ;
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS__ONTRANSBEGINMSG ) ;
 
-      if ( DPS_TRANS_WAIT_COMMIT == eduCB()->getTransStatus() )
-      {
-         rc = SDB_RTN_EXIST_INDOUBT_TRANS ;
-         goto error ;
-      }
+      BOOLEAN isGlobTrans = FALSE ;
+      DPS_TRANS_ID transID ;
+      stpLogicalTimeUS beginTime ;
+
+      PD_CHECK( DPS_TRANS_WAIT_COMMIT != eduCB()->getTransStatus(),
+                SDB_RTN_EXIST_INDOUBT_TRANS, error, PDERROR,
+                "Failed to begin transaction, has in-doubt transaction" ) ;
 
       rc = _checkPrimaryStatus() ;
-      if ( rc )
+      PD_RC_CHECK( rc, PDERROR, "Failed to check primary status for "
+                   "transaction begin, rc: %d", rc ) ;
+
+      if ( msg->messageLength == sizeof( MsgOpTransBegin_V0 ) )
       {
-         goto error ;
+         // version 0
+         // transaction begin message is only a header, do nothing
+         isGlobTrans = FALSE ;
       }
-
-      /// Old trans begin msg is only a MsgHeader
-      if ( msg->messageLength > (INT32)sizeof( MsgHeader ) &&
-           // only serial number for backward compatibility
-           DPS_INVALID_TRANSID_SN != pTransBegin->transID &&
-           // check node ID component, which is hidden in route ID of message
-           DPS_INVALID_TRANSID_NODEID != remoteRID.columns.nodeID )
+      else if ( msg->messageLength == sizeof( MsgOpTransBegin_V1 ) )
       {
-         DPS_TRANS_ID transID ;
-         stpLogicalTimeUS beginTime ;
+         // version 1
+         // transaction begin message with transaction ID of version 0
+         MsgOpTransBegin_V1 *message = (MsgOpTransBegin_V1 *)msg ;
 
-         transID.setSN( pTransBegin->transID ) ;
-         transID.setNodeID( remoteRID.columns.nodeID ) ;
-
-         // if transaction is global, get transaction begin time
-         if ( transID.isGlobTrans() )
+         if ( DPS_INVALID_TRANSID_V0 != message->transID &&
+              0 != DPS_TRANS_GET_NODEID_V0( message->transID ) )
          {
-            beginTime.setTime( transID.getLogicalTime() ) ;
-            beginTime.setTimeError( pTransBegin->transTimeError ) ;
-
-            // for RR isolation, we need to do transaction arbitration
-            if ( _pEDUCB->isTransRRRequired() )
-            {
-               stpLogicalTimeUS sendTime( pTransBegin->sendTime,
-                                          pTransBegin->transTimeError ) ;
-               rc = _checkRRBegin( transID, remoteRID, beginTime, sendTime ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to check transaction begin "
-                            "with RR isolation, rc: %d", rc ) ;
-            }
+            transID.convertFromV0( message->transID ) ;
          }
 
-         rc = rtnTransBegin( _pEDUCB, transID.isAutoCommit(),
-                             transID.isGlobTrans(), transID, beginTime ) ;
+         isGlobTrans = FALSE ;
       }
       else
       {
-         // old transaction message, auto-commit and global transaction is not
-         // supported
-         rc = rtnTransBegin( _pEDUCB, FALSE, FALSE ) ;
+         // new version
+         // transaction begin message with transaction ID of version 1
+         // supports global transaction
+         MsgOpTransBegin *message = (MsgOpTransBegin *)msg ;
+         MsgRouteID remoteRID ;
+
+         remoteRID.value = msg->routeID.value ;
+
+         if ( DPS_INVALID_TRANSID_SN != message->transID &&
+              DPS_INVALID_TRANSID_NODEID != remoteRID.columns.nodeID )
+         {
+            // node ID component is hidden in route ID of message
+            transID.setSN( message->transID ) ;
+            transID.setNodeID( remoteRID.columns.nodeID ) ;
+
+            // if transaction is global, get transaction begin time
+            if ( transID.isGlobTrans() )
+            {
+               beginTime.setTime( transID.getLogicalTime() ) ;
+               beginTime.setTimeError( message->transTimeError ) ;
+
+               // for RR isolation, we need to do transaction arbitration
+               if ( _pEDUCB->isTransRRRequired() )
+               {
+                  stpLogicalTimeUS sendTime( message->sendTime,
+                                             message->transTimeError ) ;
+                  rc = _checkRRBegin( transID, remoteRID, beginTime,
+                                      sendTime ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check transaction "
+                               "begin with RR isolation, rc: %d", rc ) ;
+               }
+
+               isGlobTrans = TRUE ;
+            }
+         }
       }
 
-      if ( SDB_OK == rc )
-      {
-         /// unset all trans context
-         rtnUnsetTransContext( eduCB(), _pRtnCB ) ;
-      }
+      rc = rtnTransBegin( _pEDUCB, FALSE, isGlobTrans, transID, beginTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction [%s], rc: %d",
+                   dpsTransIDToString( transID ).c_str(), rc ) ;
+
+      /// unset all trans context
+      rtnUnsetTransContext( eduCB(), _pRtnCB ) ;
 
    done:
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS__ONTRANSBEGINMSG, rc ) ;
       return rc ;
+
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__ONTRANSCOMMITMSG, "_clsShdSession::_onTransCommitMsg" )
    INT32 _clsShdSession::_onTransCommitMsg( NET_HANDLE handle, MsgHeader *msg )
    {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS__ONTRANSCOMMITMSG ) ;
+
       CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
       CHAR tmpAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
-      MsgOpTransCommit *commitMsg = ( MsgOpTransCommit *)msg ;
       stpLogicalTimeUS specCommitTime ;
 
-      if ( !_pReplSet->primaryIsMe() )
-      {
-         return SDB_CLS_NOT_PRIMARY ;
-      }
-      if ( _pEDUCB->getTransID().isInvalid() )
-      {
-         return SDB_DPS_TRANS_NO_TRANS ;
-      }
+      PD_CHECK( _pReplSet->primaryIsMe(), SDB_CLS_NOT_PRIMARY, error, PDERROR,
+                "Failed to commit transaction, node is not primary" ) ;
+      PD_CHECK( _pEDUCB->getTransID().isValid(), SDB_DPS_TRANS_NO_TRANS,
+                error, PDERROR, "Failed to commit transaction, "
+                "session is not in transaction" ) ;
+
       dpsTransIDToString( eduCB()->getTransID(),
                           tmpID, DPS_TRANS_STR_LEN ) ;
       dpsTransIDAttrToString( eduCB()->getTransID(),
@@ -3106,13 +3129,35 @@ namespace engine
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                           "TransactionID: %s(%s)", tmpID, tmpAttr ) ;
 
-      if ( 0LL != commitMsg->commitTime )
+      if ( msg->messageLength == sizeof( MsgOpTransCommit_V0 ) )
       {
-         // commit time is specified by COORD
-         specCommitTime.setTime( commitMsg->commitTime ) ;
-         specCommitTime.setTimeError( eduCB()->getTransTimeError() ) ;
+         // version 0
+         // do nothing
       }
-      return rtnTransCommit( _pEDUCB, _pDpsCB, specCommitTime ) ;
+      else
+      {
+         // version 1
+         // transaction commit message with global logical time of transaction
+         // commit
+         MsgOpTransCommit *message = (MsgOpTransCommit *)msg ;
+         if ( 0LL != message->commitTime )
+         {
+            // commit time is specified by COORD
+            specCommitTime.setTime( message->commitTime ) ;
+            specCommitTime.setTimeError( eduCB()->getTransTimeError() ) ;
+         }
+      }
+
+      rc = rtnTransCommit( _pEDUCB, _pDpsCB, specCommitTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to commit transaction [%s], rc: %d",
+                   dpsTransIDToString( _pEDUCB->getTransID() ).c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS__ONTRANSCOMMITMSG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _clsShdSession::_onTransRollbackMsg( NET_HANDLE handle, MsgHeader *msg )
@@ -3150,8 +3195,6 @@ namespace engine
 
       DPS_TRANS_ID transID = _pEDUCB->getTransID() ;
 
-      UINT32 transTimeError = _pEDUCB->getTransBeginTime().getTimeError() ;
-      stpLogicalTimeUS sendTime( pCommitPreMsg->sendTime, transTimeError ) ;
       stpLogicalTimeUS preCommitTime ;
 
       INT16 replSize = optCB->transReplSize() ;
@@ -3170,40 +3213,49 @@ namespace engine
          goto error ;
       }
 
-      // for global transaction with RR isolation, we need to do transaction
-      // time synchronization checking before pre-commit
-      // NOTE: only write transaction needs pre-commit check, read-only
-      //       transaction does not care about pre-commit time which won't
-      //       affect visibility of other transactions
-      if ( _pEDUCB->isGlobTrans() &&
-           _pEDUCB->isTransRRRequired() &&
-           DPS_INVALID_LSN_OFFSET != _pEDUCB->getCurTransLsn() )
+      if ( (UINT32)( msg->messageLength ) ==
+                  MSG_TRANS_COMMIT_PRE_SIZE_V1( pCommitPreMsg ) )
       {
-         rc = _checkRRPreCommit( transID,
-                                 pCommitPreMsg->header.routeID,
-                                 _pEDUCB->getTransBeginTime(),
-                                 sendTime,
-                                 preCommitTime ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to check transaction pre-commit "
-                      "with RR isolation, rc: %d", rc ) ;
+         // version 1, has send time
+         stpLogicalTimeUS sendTime(
+                     MSG_TRANS_COMMIT_PRE_GET_SEND_TIME( pCommitPreMsg ),
+                     _pEDUCB->getTransBeginTime().getTimeError() ) ;
 
-         // build reply object if needed, for global transaction, we send
-         // back pre-commit time on this node to COORD, and COORD will
-         // calculate the final commit time
-         if ( NULL != retBuilder )
+         // for global transaction with RR isolation, we need to do transaction
+         // time synchronization checking before pre-commit
+         // NOTE: only write transaction needs pre-commit check, read-only
+         //       transaction does not care about pre-commit time which won't
+         //       affect visibility of other transactions
+         if ( _pEDUCB->isGlobTrans() &&
+              _pEDUCB->isTransRRRequired() &&
+              DPS_INVALID_LSN_OFFSET != _pEDUCB->getCurTransLsn() )
          {
-            try
+            rc = _checkRRPreCommit( transID,
+                                    pCommitPreMsg->header.routeID,
+                                    _pEDUCB->getTransBeginTime(),
+                                    sendTime,
+                                    preCommitTime ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check transaction pre-commit "
+                         "with RR isolation, rc: %d", rc ) ;
+
+            // build reply object if needed, for global transaction, we send
+            // back pre-commit time on this node to COORD, and COORD will
+            // calculate the final commit time
+            if ( NULL != retBuilder )
             {
-               retBuilder->append( FIELD_NAME_PRECOMMITTIME,
-                                   (INT64)( preCommitTime.getTime() ) ) ;
-               retObject = retBuilder->done() ;
-            }
-            catch ( exception &e )
-            {
-               PD_LOG( PDERROR, "Failed to build reply object, error: %s",
-                       e.what() ) ;
-               rc = SDB_SYS ;
-               goto error ;
+               try
+               {
+                  retBuilder->append( FIELD_NAME_PRECOMMITTIME,
+                                      (INT64)( preCommitTime.getTime() ) ) ;
+                  retObject = retBuilder->done() ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDERROR, "Failed to build reply object, error: %s",
+                          e.what() ) ;
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
             }
          }
       }
@@ -5718,7 +5770,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 pos = 0 ;
-      MsgPacketReq *packetMsg = (MsgPacketReq *)msg ;
       MsgHeader *pTmpMsg = NULL ;
 
       ++_inPacketLevel ;
@@ -5732,18 +5783,6 @@ namespace engine
          pTmpMsg->routeID.value = msg->routeID.value ;
 
          opCode = pTmpMsg->opCode ;
-
-         // copy send time from packet message to packed message
-         if ( MSG_BS_TRANS_BEGIN_REQ == opCode )
-         {
-            MsgOpTransBegin *request = (MsgOpTransBegin *)pTmpMsg ;
-            request->sendTime = packetMsg->sendTime ;
-         }
-         else if ( MSG_BS_TRANS_COMMITPRE_REQ == opCode )
-         {
-            MsgOpTransCommitPre *request = (MsgOpTransCommitPre *)pTmpMsg ;
-            request->sendTime = packetMsg->sendTime ;
-         }
 
          rc = _onOPMsg( handle, pTmpMsg ) ;
          if ( rc )

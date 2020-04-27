@@ -173,31 +173,7 @@ namespace engine
                       msg2String( header, MSG_MASK_ALL, 0 ).c_str(),
                       routeID2String( id ).c_str(), handle, rc ) ;
 
-         switch ( GET_REQUEST_TYPE( header->opCode ) )
-         {
-            case MSG_PACKET :
-            {
-               MsgPacketReq *request = (MsgPacketReq *)header ;
-               request->sendTime = currentTime.getTime() ;
-               break ;
-            }
-            case MSG_BS_TRANS_BEGIN_REQ :
-            {
-               MsgOpTransBegin *request = (MsgOpTransBegin *)header ;
-               request->sendTime = currentTime.getTime() ;
-               break ;
-            }
-            case MSG_BS_TRANS_COMMITPRE_REQ :
-            {
-               MsgOpTransCommitPre *request = (MsgOpTransCommitPre *)header ;
-               request->sendTime = currentTime.getTime() ;
-               break ;
-            }
-            default :
-            {
-               break ;
-            }
-         }
+         _setSendTime( header, currentTime ) ;
       }
 
    done:
@@ -206,6 +182,70 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDRMTMSGHDL__SETSENDTIME, "_pmdRemoteMsgHandler::_setSendTime" )
+   BOOLEAN _pmdRemoteMsgHandler::_setSendTime( MsgHeader *header,
+                                               const stpLogicalTimeUS &sendTime )
+   {
+      BOOLEAN setTime = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__PMDRMTMSGHDL__SETSENDTIME ) ;
+
+      switch ( GET_REQUEST_TYPE( header->opCode ) )
+      {
+         case MSG_PACKET :
+         {
+            // for packet message, we need to iterate all messages to find
+            // position to look for transaction begin or transaction pre-commit
+            // messages to set send time
+            // transaction messages will be packeted in below cases
+            // - session init -> transaction begin -> transaction operation
+            // - transaction begin -> transaction operation
+            // - transaction pre-commit -> transaction commit
+            // so we need to iterate one or two messages to set the send time
+            // NOTE: transaction begin -> transaction operation -> commit
+            //       will be send as one transaction operation message, DATA
+            //       node will handle as auto-commit transaction
+            INT32 pos = sizeof( MsgPacketReq ) ;
+            while ( pos < header->messageLength )
+            {
+               MsgHeader *tmpMsg = (MsgHeader *)( ( CHAR *)header + pos ) ;
+
+               setTime = _setSendTime( tmpMsg, sendTime ) ;
+               if ( setTime )
+               {
+                  // set done, break loop
+                  break ;
+               }
+
+               pos += tmpMsg->messageLength ;
+            }
+            break ;
+         }
+         case MSG_BS_TRANS_BEGIN_REQ :
+         {
+            MsgOpTransBegin *request = (MsgOpTransBegin *)header ;
+            request->sendTime = sendTime.getTime() ;
+            setTime = TRUE ;
+            break ;
+         }
+         case MSG_BS_TRANS_COMMITPRE_REQ :
+         {
+            MsgOpTransCommitPre *request = (MsgOpTransCommitPre *)header ;
+            MSG_TRANS_COMMIT_PRE_SET_SEND_TIME( request, sendTime.getTime() ) ;
+            setTime = TRUE ;
+            break ;
+         }
+         default :
+         {
+            break ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__PMDRMTMSGHDL__SETSENDTIME ) ;
+
+      return setTime ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDRMTMSGHDL__POSTMSG, "_pmdRemoteMsgHandler::_postMsg" )
