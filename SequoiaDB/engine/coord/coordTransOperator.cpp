@@ -879,8 +879,10 @@ namespace engine
       pNodeMap = _groupSession.getPropSite()->getTransNodeMap() ;
       writeTransNodes = _groupSession.getPropSite()->getWriteTransNodeSize() ;
 
+      // message + node list + send time
       msgLen = sizeof( MsgOpTransCommitPre ) +
-               writeTransNodes * sizeof( UINT64 ) ;
+               writeTransNodes * sizeof( UINT64 ) +
+               sizeof( UINT64 ) ;
 
       pCommitPreMsg = ( MsgOpTransCommitPre* )SDB_THREAD_ALLOC( msgLen ) ;
       if ( !pCommitPreMsg )
@@ -895,6 +897,25 @@ namespace engine
       pCommitPreMsg->header.requestID = 0 ;
       pCommitPreMsg->header.TID = cb->getTID() ;
 
+      /// build node info
+      pCommitPreMsg->nodeNum = writeTransNodes ;
+
+      /// set node id
+      for ( cit = pNodeMap->begin() ; cit != pNodeMap->end() ; ++cit )
+      {
+         /// only use written nodes
+         if ( cit->second._hasWritten )
+         {
+            pCommitPreMsg->nodes[ i++ ] = cit->second._nodeID.value ;
+            if ( i >= writeTransNodes )
+            {
+               break ;
+            }
+         }
+      }
+      SDB_ASSERT( i == writeTransNodes, "Write transaction node is invalid" ) ;
+
+      // set send time
       if ( cb->isGlobTrans() )
       {
          // global transaction requires commit time
@@ -915,30 +936,13 @@ namespace engine
 
          // we set send time here in case that we fail to generate send time
          // in send message callback
-         pCommitPreMsg->sendTime = preCommitTime.getTime() ;
+         MSG_TRANS_COMMIT_PRE_SET_SEND_TIME( pCommitPreMsg,
+                                             preCommitTime.getTime() ) ;
       }
       else
       {
-         pCommitPreMsg->sendTime = 0LL ;
+         MSG_TRANS_COMMIT_PRE_SET_SEND_TIME( pCommitPreMsg, 0LL ) ;
       }
-
-      /// build node info
-      pCommitPreMsg->nodeNum = writeTransNodes ;
-
-      /// set node id
-      for ( cit = pNodeMap->begin() ; cit != pNodeMap->end() ; ++cit )
-      {
-         /// only use written nodes
-         if ( cit->second._hasWritten )
-         {
-            pCommitPreMsg->nodes[ i++ ] = cit->second._nodeID.value ;
-            if ( i >= writeTransNodes )
-            {
-               break ;
-            }
-         }
-      }
-      SDB_ASSERT( i == writeTransNodes, "Write transaction node is invalid" ) ;
 
       *pMsg = ( CHAR* )pCommitPreMsg ;
       *pMsgSize = msgLen ;

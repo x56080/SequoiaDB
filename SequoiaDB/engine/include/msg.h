@@ -545,7 +545,6 @@ typedef struct _MsgInternalReplyHeader MsgInternalReplyHeader ;
 struct _MsgPacketReq
 {
    MsgHeader header ;
-   UINT64    sendTime ;
 } ;
 
 typedef struct _MsgPacketReq MsgPacketReq ;
@@ -783,38 +782,90 @@ struct _MsgAuthDelUsr
 } ;
 typedef struct _MsgAuthDelUsr MsgAuthDelUsr ;
 
-typedef struct _MsgOpTransBegin
+/*
+   MsgOpTransBegin
+ */
+// version 0 ( version < 3.0 )
+typedef struct _MsgOpTransBegin_V0
 {
-   MsgHeader header ;
+   MsgHeader   header ;
+} MsgOpTransBegin_V0 ;
+
+// old version ( version >= 3.0 and version < 5.0 )
+typedef struct _MsgOpTransBegin_V1
+{
+   MsgHeader   header ;
+   UINT64      transID ;
+   CHAR        reserved[ 8 ] ;
+} MsgOpTransBegin_V1 ;
+
+// new version ( version >= 5.0 )
+typedef struct _MsgOpTransBegin_V2
+{
+   MsgHeader   header ;
    // serial number component in transaction ID of V1
    // NOTE: node ID is in MsgHeader
-   UINT64    transID ;
+   UINT64      transID ;
    // time error of logical time for global transaction
-   UINT32    transTimeError ;
+   UINT32      transTimeError ;
    // fields to do logical time adjustment
-   UINT64    sendTime ;
+   UINT64      sendTime ;
    // reserved new fields in minor version upgrade
-   CHAR      reserved[ 8 ] ;
-} MsgOpTransBegin;
+   CHAR        reserved[ 8 ] ;
+} MsgOpTransBegin_V2 ;
 
-typedef struct _MsgOpTransCommit
+typedef MsgOpTransBegin_V2 MsgOpTransBegin ;
+
+/*
+   MsgOpTransCommit
+ */
+typedef struct _MsgOpTransCommit_V0
+{
+   MsgHeader header;
+} MsgOpTransCommit_V0 ;
+
+typedef struct _MsgOpTransCommit_V1
 {
    MsgHeader header ;
    // logical time for commit transaction
    UINT64    commitTime ;
-} MsgOpTransCommit ;
+} MsgOpTransCommit_V1 ;
 
+typedef MsgOpTransCommit_V1 MsgOpTransCommit ;
+
+/*
+   MsgOpTransCommitPre
+ */
 typedef struct _MsgOpTransCommitPre
 {
    MsgHeader header ;
    // global logical time to send message
-   UINT64    sendTime ;
    // number of nodes ( primary node of groups ) involved in transaction
    UINT32    nodeNum ;
    // node list involved in transaction
    UINT64    nodes[0] ;
-} MsgOpTransCommitPre;
+   // version 0/1: node list
+   // version 1: UINT64 send time
+} MsgOpTransCommitPre ;
 
+// size of version 0: message + node list
+#define MSG_TRANS_COMMIT_PRE_SIZE_V0( msg ) \
+            ( sizeof( MsgOpTransCommitPre ) + \
+              ( ( msg )->nodeNum ) * sizeof( UINT64 ) )
+
+// size of version 1: message + node list + send time
+#define MSG_TRANS_COMMIT_PRE_SIZE_V1( msg ) \
+            ( MSG_TRANS_COMMIT_PRE_SIZE_V0( msg ) + sizeof( UINT64 ) )
+
+#define MSG_TRANS_COMMIT_PRE_GET_SEND_TIME( msg ) \
+            ( *(UINT64 *)( (CHAR *)msg + MSG_TRANS_COMMIT_PRE_SIZE_V0( msg ) ) )
+
+#define MSG_TRANS_COMMIT_PRE_SET_SEND_TIME( msg, sendTime ) \
+            ( MSG_TRANS_COMMIT_PRE_GET_SEND_TIME( msg ) = sendTime )
+
+/*
+   MsgOpTransRollback
+ */
 typedef struct _MsgOpTransRollback
 {
    MsgHeader header;

@@ -36,6 +36,7 @@
 
 #include "netMsgHandler.hpp"
 #include "netTimer.hpp"
+#include "stpLogicalTime.hpp"
 
 namespace engine
 {
@@ -72,6 +73,9 @@ namespace engine
          INT32 _postMsg( const NET_HANDLE &handle,
                          const MsgHeader *header,
                          const CHAR *msg = NULL ) ;
+
+         BOOLEAN  _setSendTime( MsgHeader *header,
+                                const stpLogicalTimeUS &sendTime ) ;
 
       protected:
          _pmdRemoteSessionMgr                *_pRSManager ;
