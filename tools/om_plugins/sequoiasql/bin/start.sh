@@ -29,12 +29,12 @@ fi
 pid=`getProcId $binFileName "--__omhttpname=$omhttpname"`
 if [ "$pid"x == ""x ]; then
 
-   echo "" >> plugin.log
+   echo "" >> "$currentPath/plugin.log"
    if [ "$?" == "1" ]; then
       exit 1
    fi
 
-   lines1=`wc -l plugin.log | awk '{print $1}'`
+   lines1=`wc -l "$currentPath/plugin.log" | awk '{print $1}'`
 
    startupPlugin $currentPath "$javaPath -jar $currentPath/$binFileName" $omhttpname ""
 
@@ -53,7 +53,7 @@ if [ "$pid"x == ""x ]; then
 
    echo "Error: failed to start $binFileName" ;
 
-   lines2=`wc -l plugin.log | awk '{print $1}'`
+   lines2=`wc -l "$currentPath/plugin.log" | awk '{print $1}'`
    lines=$((10#${lines2}-10#${lines1}))
    if [ "$lines" -ne "0" ]; then
       tail -n $lines plugin.log
