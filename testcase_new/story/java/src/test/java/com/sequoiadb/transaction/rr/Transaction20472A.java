@@ -39,6 +39,9 @@ public class Transaction20472A extends SdbTestBase {
     private String indexKey = null;
     private int insertNum = 100;
     private int loopNum = 1000;
+    // 经过实际测试，由于写操作优先于读操作，设置并发数会导致读操作极少，测试点覆盖不到，并发数暂时设置为1
+    private int threadNum = 1;
+    private int expSum = 1000000;
 
     @BeforeClass
     public void setUp() {
@@ -69,8 +72,10 @@ public class Transaction20472A extends SdbTestBase {
 
         // 开启 3 个并发事务
         ThreadExecutor threadExecutor = new ThreadExecutor( 3600000 );
-        threadExecutor.addWorker( new UpdateThread() );
-        threadExecutor.addWorker( new QueryThread() );
+        for ( int i = 0; i < threadNum; i++ ) {
+            threadExecutor.addWorker( new UpdateThread() );
+            threadExecutor.addWorker( new QueryThread() );
+        }
         threadExecutor.addWorker( new DropIndexThread() );
         threadExecutor.run();
     }
@@ -92,7 +97,11 @@ public class Transaction20472A extends SdbTestBase {
         private void update() {
             try {
                 for ( int i = 0; i < loopNum * 3; i++ ) {
-                    System.out.println( "update times:" + i );
+                    System.out
+                            .println( "testcase: "
+                                    + new Exception().getStackTrace()[ 0 ]
+                                            .getClassName()
+                                    + " update times:" + i );
                     int aid = ( int ) ( Math.random() * insertNum );
                     int bid = ( int ) ( Math.random() * insertNum );
                     int value = ( int ) ( Math.random() * 100 ) + 1;
@@ -128,7 +137,9 @@ public class Transaction20472A extends SdbTestBase {
             } finally {
                 db.commit();
                 db.close();
-                System.out.println( "udpate thread end" + new Date() );
+                System.out.println( "testcase: "
+                        + new Exception().getStackTrace()[ 0 ].getClassName()
+                        + " udpate thread end" + new Date() );
             }
         }
     }
@@ -140,8 +151,12 @@ public class Transaction20472A extends SdbTestBase {
         private void query() throws Exception {
             try {
                 for ( int i = 0; i < loopNum * 3; i++ ) {
-                    System.out.println( "query times:" + i );
-                    // 开启查询事务，索引扫描
+                    System.out
+                            .println( "testcase: "
+                                    + new Exception().getStackTrace()[ 0 ]
+                                            .getClassName()
+                                    + " query times:" + i );
+                    // 开启查询事务，表扫描
                     db.beginTransaction();
                     String sqlIdxScan = "select sum(a) as sum from " + csName
                             + "." + clName + " /*+use_index(NULL)*/";
@@ -153,14 +168,13 @@ public class Transaction20472A extends SdbTestBase {
                     double sumValue = ( double ) actNums.get( 0 ).get( "sum" );
                     int sum = ( int ) sumValue;
                     db.commit();
-                    if ( sum != 1000000 ) {
-                        System.out.println( "TblScan Sum Value: " + sum );
+                    if ( sum != expSum ) {
                         throw new Exception(
-                                "TblScan check sum error, expect sum is 1000000, but actual sum:"
-                                        + sum );
+                                "TblScan check sum error, expect sum is "
+                                        + expSum + " , but actual sum:" + sum );
                     }
 
-                    // 开启查询事务，表扫描
+                    // 开启查询事务，索引扫描
                     db.beginTransaction();
                     String sqlTblScan = "select sum(a) as sum from " + csName
                             + "." + clName + " /*+use_index(" + idxName + ")*/";
@@ -183,18 +197,19 @@ public class Transaction20472A extends SdbTestBase {
                     sumValue = ( double ) actNums.get( 0 ).get( "sum" );
                     sum = ( int ) sumValue;
                     db.commit();
-                    if ( sum != 1000000 ) {
-                        System.out.println( "IdxScan Sum Value: " + sum );
+                    if ( sum != expSum ) {
                         throw new Exception(
-                                "IdxScan check sum error, expect sum is 1000000, but actual sum:"
-                                        + +sum );
+                                "IdxScan check sum error, expect sum is "
+                                        + expSum + ", but actual sum:" + +sum );
                     }
                 }
             } finally {
                 db.commit();
                 db.closeAllCursors();
                 db.close();
-                System.out.println( "query thread end" + new Date() );
+                System.out.println( "testcase: "
+                        + new Exception().getStackTrace()[ 0 ].getClassName()
+                        + " query thread end" + new Date() );
             }
         }
     }
@@ -206,7 +221,10 @@ public class Transaction20472A extends SdbTestBase {
         private void dropIndex() {
             try {
                 for ( int i = 0; i < loopNum * 3; i++ ) {
-                    System.out.println( "drop and create index:" + i );
+                    System.out.println( "testcase: "
+                            + new Exception().getStackTrace()[ 0 ]
+                                    .getClassName()
+                            + " drop and create index:" + i );
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     cl.createIndex( idxName, indexKey, false, false );
@@ -218,8 +236,9 @@ public class Transaction20472A extends SdbTestBase {
             } finally {
                 db.commit();
                 db.close();
-                System.out
-                        .println( "create drop index thread end" + new Date() );
+                System.out.println( "testcase: "
+                        + new Exception().getStackTrace()[ 0 ].getClassName()
+                        + " create drop index thread end" + new Date() );
             }
         }
     }
