@@ -107,7 +107,8 @@ public class IdIndex6622 extends SdbTestBase {
                 }
                 Assert.assertEquals( recsNum, num );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -48 ) {
+                // -10: SEQUOIADBMAINSTREAM-5796
+                if ( e.getErrorCode() != -48 && e.getErrorCode() != -10 ) {
                     throw e;
                 }
             } finally {
