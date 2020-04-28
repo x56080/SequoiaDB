@@ -6,31 +6,18 @@
 testConf.skipStandAlone = true;
 testConf.skipOneGroup = true;
 
-main( test );
+main( testRange, testHash, testSubCL );
 
-function test ()
+function testRange ()
 {
    var dataGroupNames = commGetDataGroupNames( db );
    dataGroupNames.sort();
-   var csName = COMMCSNAME;
 
-   var recsNum = 200;
-   var docs = [];
-   for( var i = 0; i < recsNum; i++ )
-   {
-      docs.push( { "a": i, "b": i } );
-   }
-
-   testHash( csName, dataGroupNames, docs );
-   testRange( csName, dataGroupNames, docs );
-   testSubCL( csName, dataGroupNames, docs )
-}
-function testRange ( csName, dataGroupNames, docs )
-{
    var rangeclName = CHANGEDPREFIX + "_rangecl_21956_21957";
-   commDropCL( db, csName, rangeclName );
-   var rangecl = commCreateCL( db, csName, rangeclName, { ShardingKey: { "a": 1 }, ShardingType: "range", Group: dataGroupNames[0] }, false );
+   commDropCL( db, COMMCSNAME, rangeclName );
+   var rangecl = commCreateCL( db, COMMCSNAME, rangeclName, { ShardingKey: { "a": 1 }, ShardingType: "range", Group: dataGroupNames[0] }, false );
 
+   var docs = getDocs();
    rangecl.insert( docs );
    rangecl.split( dataGroupNames[0], dataGroupNames[1], 50 );
 
@@ -49,17 +36,21 @@ function testRange ( csName, dataGroupNames, docs )
    commCompareResults( rangecl.find( findCond ), docs.slice( 100, 101 ) );
    checkHitDataGroups( rangecl.find( findCond ).explain( { "Run": true } ), [dataGroupNames[1]] );
 
-   commDropCL( db, csName, rangeclName, false );
+   commDropCL( db, COMMCSNAME, rangeclName, false );
 }
 
-function testHash ( csName, dataGroupNames, docs )
+function testHash ( docs )
 {
+   var dataGroupNames = commGetDataGroupNames( db );
+   dataGroupNames.sort();
+
    var hashclName = CHANGEDPREFIX + "_hashcl_21956_21957";
 
-   commDropCL( db, csName, hashclName );
+   commDropCL( db, COMMCSNAME, hashclName );
 
-   var hashcl = commCreateCL( db, csName, hashclName, { ShardingKey: { "a": 1 }, ShardingType: "range", Group: dataGroupNames[0] }, false );
+   var hashcl = commCreateCL( db, COMMCSNAME, hashclName, { ShardingKey: { "a": 1 }, ShardingType: "range", Group: dataGroupNames[0] }, false );
 
+   var docs = getDocs();
    hashcl.insert( docs );
    hashcl.split( dataGroupNames[0], dataGroupNames[1], 50 );
 
@@ -78,27 +69,32 @@ function testHash ( csName, dataGroupNames, docs )
    commCompareResults( hashcl.find( findCond ), docs.slice( 100, 101 ) );
    checkHitDataGroups( hashcl.find( findCond ).explain( { "Run": true } ), [dataGroupNames[1]] );
 
-   commDropCL( db, csName, hashclName, false );
+   commDropCL( db, COMMCSNAME, hashclName, false );
 }
-function testSubCL ( csName, dataGroupNames, docs )
+
+function testSubCL ( docs )
 {
+   var dataGroupNames = commGetDataGroupNames( db );
+   dataGroupNames.sort();
+
    var mclName = CHANGEDPREFIX + "_mcl_21956_21957";
    var sclName1 = CHANGEDPREFIX + "_scl_21956_21957_1";
    var sclName2 = CHANGEDPREFIX + "_scl_21956_21957_2";
-   var sclFullName1 = csName + "." + sclName1;
-   var sclFullName2 = csName + "." + sclName2;
+   var sclFullName1 = COMMCSNAME + "." + sclName1;
+   var sclFullName2 = COMMCSNAME + "." + sclName2;
 
-   commDropCL( db, csName, mclName );
-   commDropCL( db, csName, sclName1 );
-   commDropCL( db, csName, sclName2 );
+   commDropCL( db, COMMCSNAME, mclName );
+   commDropCL( db, COMMCSNAME, sclName1 );
+   commDropCL( db, COMMCSNAME, sclName2 );
 
-   var mcl = commCreateCL( db, csName, mclName, { ShardingKey: { "a": 1 }, IsMainCL: true }, false );
-   var scl1 = commCreateCL( db, csName, sclName1, { ShardingKey: { "a": 1 }, "ShardingType": "range", Group: dataGroupNames[0] }, false );
-   var scl2 = commCreateCL( db, csName, sclName2, { ShardingKey: { "a": 1 }, "ShardingType": "range", Group: dataGroupNames[0] }, false );
+   var mcl = commCreateCL( db, COMMCSNAME, mclName, { ShardingKey: { "a": 1 }, IsMainCL: true }, false );
+   var scl1 = commCreateCL( db, COMMCSNAME, sclName1, { ShardingKey: { "a": 1 }, "ShardingType": "range", Group: dataGroupNames[0] }, false );
+   var scl2 = commCreateCL( db, COMMCSNAME, sclName2, { ShardingKey: { "a": 1 }, "ShardingType": "range", Group: dataGroupNames[0] }, false );
 
    mcl.attachCL( sclFullName1, { LowBound: { "a": 0 }, UpBound: { "a": 100 } } );
    mcl.attachCL( sclFullName2, { LowBound: { "a": 100 }, UpBound: { "a": 200 } } );
 
+   var docs = getDocs();
    mcl.insert( docs );
 
    // scl1 [min,50) [50,max)
@@ -121,5 +117,15 @@ function testSubCL ( csName, dataGroupNames, docs )
    commCompareResults( mcl.find( findCond ), docs.slice( 50, 51 ) );
    checkHitDataGroups( mcl.find( findCond ).explain( { "Run": true } ), [dataGroupNames[1]], true, [[sclFullName1]] );
 
-   commDropCL( db, csName, mclName, false );
+   commDropCL( db, COMMCSNAME, mclName, false );
+}
+
+function getDocs ()
+{
+   var docs = [];
+   for( var i = 0; i < 200; i++ )
+   {
+      docs.push( { "a": i, "b": i } );
+   }
+   return docs;
 }
