@@ -519,6 +519,16 @@ namespace engine
       {
          _transExecutor.setPassedDoingArbit( passed ) ;
       }
+
+      // register read transaction
+      OSS_INLINE void regReadTran()
+      {
+         if ( isTransRR() )
+         {
+            _transExecutor.regReadTranTime() ;
+         }
+      }
+
    #endif // SDB_ENGINE
 
    protected:

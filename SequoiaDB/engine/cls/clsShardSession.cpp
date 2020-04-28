@@ -3256,11 +3256,6 @@ namespace engine
       if ( (UINT32)( msg->messageLength ) ==
                   MSG_TRANS_COMMIT_PRE_SIZE_V1( pCommitPreMsg ) )
       {
-         // version 1, has send time
-         stpLogicalTimeUS sendTime(
-                     MSG_TRANS_COMMIT_PRE_GET_SEND_TIME( pCommitPreMsg ),
-                     _pEDUCB->getTransBeginTime().getTimeError() ) ;
-
          // for global transaction with RR isolation, we need to do transaction
          // time synchronization checking before pre-commit
          // NOTE: only write transaction needs pre-commit check, read-only
@@ -3270,6 +3265,11 @@ namespace engine
               _pEDUCB->isTransRRRequired() &&
               DPS_INVALID_LSN_OFFSET != _pEDUCB->getCurTransLsn() )
          {
+            // version 1, has send time
+            stpLogicalTimeUS sendTime(
+                        MSG_TRANS_COMMIT_PRE_GET_SEND_TIME( pCommitPreMsg ),
+                        _pEDUCB->getTransBeginTime().getTimeError() ) ;
+
             rc = _checkRRPreCommit( transID,
                                     pCommitPreMsg->header.routeID,
                                     _pEDUCB->getTransBeginTime(),

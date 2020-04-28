@@ -493,6 +493,8 @@ namespace engine
             _passedDoingArbit = passed ;
          }
 
+         void regReadTranTime() ;
+
          // reset transaction times ( begin time, pre-commit time and
          // pass arbitration time flag )
          void resetTransTime() ;
@@ -576,6 +578,8 @@ namespace engine
          //   commit by that time, so the records created or updated by them
          //   won't be seen by this transaction
          BOOLEAN                 _passedDoingArbit ;
+         // indicate if transaction registered for read transaction
+         BOOLEAN                 _regReadTranTime ;
 
       private:
          BOOLEAN                 _useTransLock ;
