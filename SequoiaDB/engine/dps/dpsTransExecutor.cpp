@@ -387,6 +387,7 @@ namespace engine
       _lockWaitStarted  = FALSE ;
       _monLock          = NULL ;
       _passedDoingArbit = FALSE ;
+      _regReadTranTime  = FALSE ;
    }
 
    _dpsTransExecutor::~_dpsTransExecutor()
@@ -1028,6 +1029,20 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_REGREADTRANTIME, "_dpsTransExecutor::regReadTranTime" )
+   void _dpsTransExecutor::regReadTranTime()
+   {
+      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_REGREADTRANTIME ) ;
+
+      if ( !_regReadTranTime )
+      {
+         sdbGetTransCB()->regReadTranTime( _beginTime.getUpperTime() ) ;
+         _regReadTranTime = TRUE ;
+      }
+
+      PD_TRACE_EXIT( SDB__DPSTRANSEXE_REGREADTRANTIME ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_RESETTRANSTIME, "_dpsTransExecutor::resetTransTime" )
    void _dpsTransExecutor::resetTransTime()
    {
@@ -1037,6 +1052,7 @@ namespace engine
       _preCommitTime.reset() ;
       _commitTime.reset() ;
       _passedDoingArbit = FALSE ;
+      _regReadTranTime = FALSE ;
 
       PD_TRACE_EXIT( SDB__DPSTRANSEXE_RESETTRANSTIME ) ;
    }

@@ -365,6 +365,9 @@ namespace engine
          _hitEnd = TRUE ;
       }
 
+      // register read transaction
+      cb->regReadTran() ;
+
    done:
       mbContext->mbUnlock() ;
       return rc ;

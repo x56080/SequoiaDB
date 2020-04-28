@@ -80,7 +80,7 @@ namespace engine
     _globLowTran( DPS_INVALID_TRANSID_SN ),
     _globExpireTran( DPS_INVALID_TRANSID_SN ),
     _archivedLowTran( DPS_INVALID_TRANSID_SN ),
-    _maxRunTran( DPS_INVALID_TRANSID_SN ),
+    _maxReadTran( DPS_INVALID_TRANSID_SN ),
     _numTransIDConflict( 0LL ),
     _stpAgent(),
     _gtsAgent( NULL )
@@ -1450,18 +1450,18 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETLOCALPRECOMMITTIME ) ;
 
-      // get upper bound of max running transaction ID
-      UINT64 maxRunTran = _maxRunTran.fetch() ;
+      // get upper bound of max read transaction ID
+      UINT64 maxReadTran = _maxReadTran.fetch() ;
 
-      if ( maxRunTran > localTime.getUpperTime() )
+      if ( maxReadTran > localTime.getUpperTime() )
       {
          // In this case, if we don't defer the pre-commit time,
-         // there could potentially be transaction (the one with maxRunTran)
+         // there could potentially be transaction (the one with maxReadTran)
          // eligible of reading the changes made by pre-committing transaction.
          // Need delay pre-commit time, make sure the new pre-commit time
-         // must after the maxRunTran ( which indicates the latest started
+         // must after the maxReadTran ( which indicates the latest started
          // transaction with upper time error )
-         preCommitTime.setTime( maxRunTran ) ;
+         preCommitTime.setTime( maxReadTran ) ;
          preCommitTime.setTimeError( localTime.getTimeError() ) ;
       }
       else
@@ -1502,7 +1502,6 @@ namespace engine
    error:
       goto done ;
    }
-
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETTRANSINFO_INFO, "dpsTransCB::getTransInfo" )
    BOOLEAN dpsTransCB::getTransInfo( const DPS_TRANS_ID &transID,
@@ -2288,11 +2287,6 @@ namespace engine
                     "error: %s", e.what() ) ;
             hasInsert = FALSE ;
          }
-      }
-
-      if ( hasInsert && origID.isGlobTrans() )
-      {
-         _maxRunTran.swapGreaterThan( eduCB->getTransBeginTime().getUpperTime() ) ;
       }
 
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_ADDTRANSCB ) ;

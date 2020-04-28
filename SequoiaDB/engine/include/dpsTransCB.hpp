@@ -625,6 +625,17 @@ namespace engine
       // it not set, try to set primary active time
       void checkPrimaryActiveTime() ;
 
+      // register read transaction
+      OSS_INLINE void regReadTranTime( UINT64 readTime )
+      {
+         // maxReadTran is the transaction ID of the latest started read
+         // transaction with upper bound of time error
+         // maxReadTran is used to check pre-commit time of write transactions
+         // which should be delayed by running read transactions ( which is
+         // indicates by maxReadTran )
+         _maxReadTran.swapGreaterThan( readTime ) ;
+      }
+
       OSS_INLINE ossEvent *getUpdateLowTranEvent()
       {
          return &( _updateLowTranEvent ) ;
@@ -1111,14 +1122,14 @@ namespace engine
       // - if cb map is empty, archived lowTran will be the local lowTran
       ossAtomic64          _archivedLowTran ;
 
-      // upper bound of max running transaction ID ( with time error )
+      // upper bound of max read transaction ID ( with time error )
       // NOTE:
-      // - maxRunTran is the transaction ID of the latest started transaction
-      //   with upper bound of time error
-      // - maxRunTran is used to check pre-commit time of write transactions
+      // - maxReadTran is the transaction ID of the latest started read
+      //   transaction with upper bound of time error
+      // - maxReadTran is used to check pre-commit time of write transactions
       //   which should be delayed by running read transactions ( which is
-      //   indicates by maxRunTran )
-      ossAtomic64          _maxRunTran ;
+      //   indicates by maxReadTran )
+      ossAtomic64          _maxReadTran ;
 
       // update event to notify lowTran job to update global lowTran
       ossEvent             _updateLowTranEvent ;
