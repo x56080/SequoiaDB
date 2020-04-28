@@ -1,16 +1,5 @@
 package com.sequoias3.delimiter;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -30,6 +19,16 @@ import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.DelimiterUtils;
 import com.sequoias3.commlibs3.s3utils.ObjectUtils;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @Description seqDB-18198 :: 增加对象过程中db端节点异常
@@ -41,7 +40,7 @@ public class PutObjectWithKillCoord18198 extends S3TestBase {
     private boolean runSuccess = false;
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * new Random().nextInt( 1025 );
-    private int objectNums = 1000;
+    private int objectNums = 100;
     private String filePath = null;
     private String bucketName = "bucket18198";
     private String objectNameBase = "object18198?";

@@ -3,8 +3,8 @@ package com.sequoias3.delimiter;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.BucketVersioningConfiguration;
-import com.amazonaws.services.s3.model.ListVersionsRequest;
-import com.amazonaws.services.s3.model.VersionListing;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
@@ -17,8 +17,6 @@ import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.DelimiterUtils;
 import com.sequoias3.commlibs3.s3utils.ObjectUtils;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -26,7 +24,6 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -42,9 +39,10 @@ public class UpdateObjectWithKillCoord18199 extends S3TestBase {
     private int fileSize = 1024 * new Random().nextInt( 1025 );
     private String filePath = null;
     private String bucketName = "bucket18204";
-    private String objectName = "PutObject18199?";
+    private String objectName = "PutObject18199?%";
     private String delimiter = "?";
-    private int versionNum = 1000;
+    private String updateDelimiter = "%";
+    private int versionNum = 100;
     private AtomicInteger count = new AtomicInteger( 0 );
     private File localPath = null;
     private GroupMgr groupMgr = null;
@@ -69,6 +67,9 @@ public class UpdateObjectWithKillCoord18199 extends S3TestBase {
                 BucketVersioningConfiguration.ENABLED );
         DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
         DelimiterUtils.checkCurrentDelimiteInfo( bucketName, delimiter );
+        s3Client.putObject( bucketName, objectName, new File( filePath ) );
+        DelimiterUtils.updateDelimiterSuccessAgain( bucketName,
+                updateDelimiter );
     }
 
     @Test
@@ -84,12 +85,18 @@ public class UpdateObjectWithKillCoord18199 extends S3TestBase {
         }
         mgr.execute();
         Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+
+        // check result
+        getObjectAndCheck( 0, count.get() );
+
+        // put last failed version
         for ( int i = count.get(); i < versionNum; i++ ) {
             s3Client.putObject( bucketName, this.objectName,
                     new File( filePath ) );
         }
-        // check result
-        listVersionsAndCheck();
+
+        // check again
+        getObjectAndCheck( count.get(), versionNum );
         runSuccess = true;
     }
 
@@ -116,41 +123,53 @@ public class UpdateObjectWithKillCoord18199 extends S3TestBase {
 
         @Override
         public void exec() throws Exception {
+            AmazonS3 s3 = null;
             try {
-                s3Client.putObject( bucketName, this.objectName,
+                s3 = CommLibS3.buildS3Client();
+                s3.putObject( bucketName, this.objectName,
                         new File( filePath ) );
                 count.incrementAndGet();
             } catch ( AmazonS3Exception e ) {
                 if ( e.getStatusCode() != 500 ) {
                     throw e;
                 }
+            } finally {
+                if ( s3 != null ) {
+                    s3.shutdown();
+                }
             }
         }
     }
 
-    private void listVersionsAndCheck() throws IOException {
-        String keyMarker = objectName;
-        String versionIdMarker = String.valueOf( versionNum );
-        VersionListing vsList;
-        int i = 0;
-        do {
-            // list by prefix/keyMarker/versionIdMarker
-            vsList = s3Client.listVersions( new ListVersionsRequest()
-                    .withBucketName( bucketName ).withDelimiter( delimiter )
-                    .withKeyMarker( keyMarker )
-                    .withVersionIdMarker( versionIdMarker ) );
-            // check
-            MultiValueMap< String, String > expMap = new LinkedMultiValueMap< String, String >();
-            for ( int j = versionNum - i * 1000 - 1; j >= vsList.getMaxKeys()
-                    - i * 1000; j-- ) {
-                expMap.add( objectName, String.valueOf( j ) );
-            }
-            ObjectUtils.checkListVSResults( vsList, new ArrayList< String >(),
-                    expMap );
-            i++;
-            // next keyMark and versionIdMrker
-            keyMarker = vsList.getNextKeyMarker();
-            versionIdMarker = vsList.getNextVersionIdMarker();
-        } while ( vsList.isTruncated() );
+    private void getObjectAndCheck( int startVersionId, int endVersionId )
+            throws IOException {
+        String expMd5 = TestTools.getMD5( filePath );
+        for ( int i = startVersionId; i < endVersionId; i++ ) {
+            GetObjectRequest request = new GetObjectRequest( bucketName,
+                    objectName ).withVersionId( String.valueOf( i ) );
+            S3Object object = s3Client.getObject( request );
+            String downloadPath = localPath + File.separator + "download" + i;
+            Assert.assertEquals( object.getObjectMetadata().getETag(), expMd5,
+                    "objectName = " + objectName + "versionId = " + i );
+            ObjectUtils.inputStream2File( object.getObjectContent(),
+                    downloadPath );
+            Assert.assertEquals( TestTools.getMD5( downloadPath ), expMd5,
+                    "objectName = " + objectName + ",versionId = " + i );
+        }
+        // check current version
+        S3Object object = s3Client.getObject( bucketName, objectName );
+        int currentVersionId = Integer
+                .parseInt( object.getObjectMetadata().getVersionId() );
+        Assert.assertTrue( currentVersionId >= endVersionId,
+                "currentVersionId = " + currentVersionId + "expVersionIdNum = "
+                        + endVersionId );
+        if ( currentVersionId > endVersionId ) {
+            String downloadPath = localPath + File.separator + "download"
+                    + currentVersionId;
+            ObjectUtils.inputStream2File( object.getObjectContent(),
+                    downloadPath );
+            Assert.assertEquals( TestTools.getMD5( new File( downloadPath ) ),
+                    expMd5 );
+        }
     }
 }

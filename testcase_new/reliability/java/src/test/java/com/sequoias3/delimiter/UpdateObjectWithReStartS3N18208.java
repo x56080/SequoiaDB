@@ -1,17 +1,5 @@
 package com.sequoias3.delimiter;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -31,6 +19,17 @@ import com.sequoias3.commlibs3.s3utils.DelimiterUtils;
 import com.sequoias3.commlibs3.s3utils.ObjectUtils;
 import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @Description seqDB-18208 :: 更新对象过程中s3节点异常
@@ -42,7 +41,7 @@ public class UpdateObjectWithReStartS3N18208 extends S3TestBase {
     private boolean runSuccess = false;
     private AmazonS3 s3Client = null;
     private int fileSize = 1024 * new Random().nextInt( 1025 );
-    private int versionNums = 1000;
+    private int versionNums = 100;
     private String bucketName = "bucket18208";
     private String objectName = "Put18208*Object*18208";
     private String filePath = null;

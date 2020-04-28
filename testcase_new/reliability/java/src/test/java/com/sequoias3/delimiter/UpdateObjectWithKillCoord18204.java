@@ -39,7 +39,7 @@ public class UpdateObjectWithKillCoord18204 extends S3TestBase {
     private String objectNameBase = "PutObject18204?!";
     private String oldDelimiter = "?";
     private String newDelimiter = "!";
-    private int objectNums = 1000;
+    private int objectNums = 100;
     private List< String > objectNameList = new ArrayList<>();
     private File localPath = null;
     private GroupMgr groupMgr = null;
