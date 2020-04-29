@@ -170,23 +170,6 @@ log_warning_msg () {
 }
 
 #
-# Set ulimit 
-#
-set_ulimits() {
-    local type="$1"
-    local value="$2"
-    if [ "$value" = -1 ]; then
-       ulimit $type unlimited
-    else
-       ulimit $type "$value"
-    fi
-    
-    if [ $? != 0 ]; then
-       echo "please check ${INSTALL_DIR}/conf/limits.conf!"
-    fi
-}
-
-#
 # Return LSB status
 #
 status_of_proc () {
@@ -213,21 +196,6 @@ status_of_proc () {
 #
 do_start()
 {
-  if [ -f "${INSTALL_DIR}/conf/limits.conf" ]; then
-    . ${INSTALL_DIR}/conf/limits.conf
-    #no coredump
-    set_ulimits "-c" "$core_file_size"
-    #data seg size
-    set_ulimits "-d" "$data_seg_size"
-    #file size 
-    set_ulimits "-f" "$file_size"
-    #virtual memory
-    set_ulimits "-v" "$virtual_memory"
-    #open files
-    set_ulimits "-n" "$open_files"
-    #max stack size
-    set_ulimits "-s" "$stack_size"
-  fi
   mkdir -p ${LOCK_FILE_DIR}
   touch ${LOCK_FILE}
 
