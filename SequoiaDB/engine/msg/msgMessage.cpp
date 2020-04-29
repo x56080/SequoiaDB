@@ -237,7 +237,7 @@ INT32 msgExtractTransCommit ( const CHAR *pBuffer, const CHAR **ppHint )
    MsgOpTransCommit *pCommit = (MsgOpTransCommit*)pBuffer ;
 
    //old driver use MsgOpTransBegin as messageLength and old driver does not have hint
-   if ( pCommit->header.messageLength != MSG_OLD_MSGOPTRANSBEGIN_SIZE )
+   if ( pCommit->header.messageLength != sizeof( MsgOpTransBegin_V1 ) )
    {
       offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 );
 
