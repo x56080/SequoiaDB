@@ -34,7 +34,7 @@ public class Transaction17945 extends SdbTestBase {
     private String clName = "cl17945";
     private String idxName = "idx17945";
     private DBCollection cl = null;
-    private int insertNum = 100;
+    private int maxId = 200;
     private int loopNum = 1000;
     // 经过实际测试，由于写操作优先于读操作，设置并发数会导致读操作极少，测试点覆盖不到，并发数暂时设置为1
     private int threadNum = 1;
@@ -44,7 +44,8 @@ public class Transaction17945 extends SdbTestBase {
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        insertData();
+        // 插入b字段为0-200之间偶数；
+        insertData( cl, maxId );
     }
 
     @AfterClass
@@ -64,7 +65,7 @@ public class Transaction17945 extends SdbTestBase {
 
     }
 
-    @Test(dataProvider = "index")
+    @Test(dataProvider = "index", enabled = false) // SEQUOIADBMAINSTREAM-5624
     public void test( String indexKey ) throws Exception {
         try {
 
@@ -84,12 +85,14 @@ public class Transaction17945 extends SdbTestBase {
         }
     }
 
-    private void insertData() {
+    private void insertData( DBCollection cl, int maxId ) {
         List< BSONObject > records = new ArrayList< BSONObject >();
-        for ( int i = 0; i < insertNum; i++ ) {
-            BSONObject object = ( BSONObject ) JSON
-                    .parse( "{_id:" + i + ", a:10000, b:" + i + "}" );
-            records.add( object );
+        for ( int i = 0; i < maxId; i++ ) {
+            if ( i % 2 == 0 ) {
+                BSONObject object = ( BSONObject ) JSON
+                        .parse( "{_id:" + i + ", a:10000, b:" + i + "}" );
+                records.add( object );
+            }
         }
         cl.insert( records );
     }
@@ -101,43 +104,37 @@ public class Transaction17945 extends SdbTestBase {
         private void insertDelete() {
             try {
                 for ( int i = 0; i < loopNum * 2; i++ ) {
-                    int aId = ( int ) ( Math.random() * insertNum ) + insertNum;
-                    int bId = ( int ) ( Math.random() * insertNum );
-                    int cId = ( int ) ( Math.random() * insertNum ) - insertNum;
+                    // bId为0-200内的奇数
+                    int bId = 0;
+                    int id = ( int ) ( Math.random() * maxId );
+                    if ( id % 2 == 1 ) {
+                        bId = id;
+                    } else {
+                        bId = id + 1;
+                    }
 
-                    int aBalance = aId + 10000;
-                    int bBalance = bId + 10000;
-                    int cBalance = cId + 10000;
+                    int balance = bId + 10000;
 
                     // 开启写事务
                     db.beginTransaction();
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
-                    BSONObject object = ( BSONObject ) JSON.parse( "{_id:" + aId
-                            + ", a:" + aBalance + ", b:" + aId + "}" );
-                    cl.insert( object );
-                    cl.delete( "{b:" + aId + "}", "{'':'" + idxName + "'}" );
 
-                    object = ( BSONObject ) JSON
-                            .parse( "{_id:" + ( bId + insertNum * 2 ) + ", a:"
-                                    + bBalance + ", b:" + bId + "}" );
+                    BSONObject object = ( BSONObject ) JSON.parse( "{_id:" + bId
+                            + ", a:" + balance + ", b:" + bId + "}" );
                     cl.insert( object );
-                    cl.delete( "{_id:" + ( bId + insertNum * 2 ) + "}",
-                            "{'':'$id'}" );
-
-                    object = ( BSONObject ) JSON.parse( "{_id:" + cId + ", a:"
-                            + cBalance + ", b:" + cId + "}" );
-                    cl.insert( object );
-                    cl.delete( "{b:" + cId + "}", "{'':'" + idxName + "'}" );
+                    cl.delete( "{b:" + bId + "}", "{'':'" + idxName + "'}" );
 
                     // 提交、回滚更新事务
-                    if ( aId % 2 == 0 ) {
+                    if ( id % 2 == 0 ) {
                         db.commit();
                     } else {
                         db.rollback();
                     }
                 }
-            } finally {
+            } finally
+
+            {
                 db.commit();
                 db.close();
                 System.out.println( "testcase: "
