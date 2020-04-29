@@ -378,15 +378,72 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETADATA_ADJUSTSLEWRATE, "_stpMetaData::adjustSlewRate" )
    void _stpMetaData::adjustSlewRate( UINT64 sourceInterval,
-                                     UINT64 localInterval )
+                                      UINT64 localInterval )
    {
       PD_TRACE_ENTRY( SDB__STPMETADATA_ADJUSTSLEWRATE ) ;
 
+      UINT64 oldSlewRate = _slewRate ;
+      INT64 oldOffset = _offset ;
+
       // calculate slew rate
       // slew rate = old slew rate * source interval / local interval
-      _slewRate = (UINT64)( (double)( _slewRate ) *
+      _slewRate = (UINT64)( (double)( oldSlewRate ) *
                             (double)( sourceInterval ) /
                             (double)( localInterval ) ) ;
+
+      if ( oldSlewRate != _slewRate )
+      {
+         // based on the formula to calculate logical time
+         //
+         //    logical time =
+         //          ( current HW time -
+         //            base HW time +
+         //            base real time ) * slew rate / STP_DEF_SLEWRATE +
+         //          offset
+         //
+         // simplify to
+         //
+         //    LT = HWDiff * SR + O
+         //
+         // if we adjust slew rate, we need to adjust offset as well, we need
+         // to make the LT are the same before and after adjusting slew rate
+         //
+         //                  LT1 = LT2
+         //    HWDiff * SR1 + O1 = HWDiff * SR2 + O2
+         //
+         // so we have
+         //
+         //    O2 = ( HWDiff * SR1 - HWDiff * SR2 ) + O1
+         //
+         stpHPTime curHWTime ;
+         curHWTime.sampleMonotonic() ;
+         stpHPTime result = curHWTime - _baseHWTime + _baseRealTime ;
+         // HPTime only handles postive values, so we need to process by
+         // different ways
+         if ( oldSlewRate > _slewRate )
+         {
+            UINT64 diff = oldSlewRate - _slewRate ;
+            result.scale( diff ) ;
+            diff = result.toNanoSecond() ;
+            _offset = _offset + (INT64)diff ;
+         }
+         else
+         {
+            UINT64 diff = _slewRate - oldSlewRate ;
+            result.scale( diff ) ;
+            diff = result.toNanoSecond() ;
+            _offset = _offset - (INT64)diff ;
+         }
+
+         if ( curHWTime > _syncHWTime )
+         {
+            _syncHWTime = curHWTime ;
+         }
+
+         PD_LOG( PDEVENT, "Adjust slew rate from [%llu] to [%llu] "
+                 "offset from [%lld] to [%lld]", oldSlewRate, _slewRate,
+                 oldOffset, _offset ) ;
+      }
 
       PD_TRACE_EXIT( SDB__STPMETADATA_ADJUSTSLEWRATE ) ;
    }
