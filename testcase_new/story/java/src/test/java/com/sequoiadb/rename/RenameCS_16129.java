@@ -182,9 +182,15 @@ public class RenameCS_16129 extends SdbTestBase {
                 sdbcl.listLobs();
                 byte[] data = new byte[ fileSize ];
                 for ( int i = lobNum / 2; i < lobNum; i++ ) {
-                    DBLob lob = sdbcl.openLob( lobIdList.get( i ) );
-                    lob.read( data );
-                    lob.close();
+                    DBLob lob = null;
+                    try {
+                        lob = sdbcl.openLob( lobIdList.get( i ) );
+                        lob.read( data );
+                    } finally {
+                        if ( lob != null ) {
+                            lob.close();
+                        }
+                    }
                 }
             }
         }
@@ -216,7 +222,15 @@ public class RenameCS_16129 extends SdbTestBase {
                         .getCollection( clName );
                 for ( int i = 0; i < 10; i++ ) {
                     Thread.sleep( 500 );
-                    sdbcl.listLobs();
+                    DBCursor cur = null;
+                    try {
+                        cur = sdbcl.listLobs();
+                    } finally {
+                        if ( cur != null ) {
+                            cur.close();
+                        }
+                    }
+
                 }
             }
         }
@@ -228,10 +242,11 @@ public class RenameCS_16129 extends SdbTestBase {
         DBCursor cur = cl.listLobs();
         int actLobNum = 0;
         while ( cur.hasNext() ) {
+            BSONObject idObj = cur.getNext();
+            ObjectId id = ( ObjectId ) idObj.get( "Oid" );
+            DBLob lob = null;
             try {
-                BSONObject idObj = cur.getNext();
-                ObjectId id = ( ObjectId ) idObj.get( "Oid" );
-                DBLob lob = cl.openLob( id );
+                lob = cl.openLob( id );
                 byte[] data = new byte[ fileSize ];
                 lob.read( data );
                 String actMD5 = RenameUtil.getMd5( data );
@@ -240,6 +255,9 @@ public class RenameCS_16129 extends SdbTestBase {
                             + actMD5 );
                 }
             } catch ( BaseException e ) {
+                if ( lob != null ) {
+                    lob.close();
+                }
                 Assert.assertEquals( e.getErrorCode(), -269, e.getMessage() );
             }
             actLobNum++;
@@ -247,7 +265,6 @@ public class RenameCS_16129 extends SdbTestBase {
         cur.close();
         Assert.assertEquals( actLobNum, lobNum + putLobNum - deleteLobNum,
                 "check lob num" );
-        cur.close();
     }
 
     private List< ObjectId > putLob( DBCollection cl, byte[] data,
