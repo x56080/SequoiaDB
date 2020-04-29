@@ -410,6 +410,12 @@ namespace engine
          limOb.append( FIELD_NAME_FILESZ, soft ) ;
       }
 
+      isSucc = limInfo->getLimit( OSS_LIMIT_STACK_SIZE, soft, hard ) ;
+      if ( isSucc )
+      {
+         limOb.append( FIELD_NAME_STACKSZ, soft ) ;
+      }
+
       limOb.done() ;
 
       PD_TRACE_EXIT( SDB_MONAPPENDULIMIT ) ;

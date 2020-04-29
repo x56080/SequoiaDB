@@ -214,6 +214,7 @@
 #define FIELD_NAME_OPENFL                    "OpenFiles"
 #define FIELD_NAME_NPROC                     "NumProc"
 #define FIELD_NAME_FILESZ                    "FileSize"
+#define FIELD_NAME_STACKSZ                   "StackSize"
 #define FIELD_NAME_ULIMIT                    "Ulimit"
 #define FIELD_NAME_OOM                       "SDB_OOM"
 #define FIELD_NAME_NOSPC                     "SDB_NOSPC"

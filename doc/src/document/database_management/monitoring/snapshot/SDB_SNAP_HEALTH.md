@@ -27,11 +27,12 @@ SDB_SNAP_HEALTH
 | NodeID               | 数组   | 节点的 ID，为“[ <分区组 ID>, <节点 ID> ]”<br>在 standalone 模式下，该字段为“[ 0，0 ]” |
 | DataStatus           | 字符串 | 数据状态:<br/>1."Normal": 正常状态。<br/>2."Repairing"：修复状态，当节点状态为 "Rebuilding" 或 "FullSync" 时，数据状态为 "Repairing"。 <br/>3."Fault"：错误状态，当节点异常启动，且节点状态不为"Rebuilding" 或 "FullSync" 时，数据状态为 "Fault"。 |
 | SyncControl          | 布尔   | 节点是否处于同步控制 |
-| Ulimit.CoreFileSize  | 长整型 | 节点进程的core文件大小限制（-1表示unlimited） |
-| Ulimit.VirtualMemory | 长整型 | 节点进程的虚拟内存限制（-1表示unlimited） |
+| Ulimit.CoreFileSize  | 长整型 | 节点进程的core文件大小限制（-1表示unlimited，单位：字节） |
+| Ulimit.VirtualMemory | 长整型 | 节点进程的虚拟内存限制（-1表示unlimited，单位：字节） |
 | Ulimit.OpenFiles     | 长整型 | 节点进程的文件句柄数限制 |
 | Ulimit.NumProc       | 长整型 | 节点进程的线程数限制（-1表示unlimited） |
-| Ulimit.FileSize      | 长整型 | 节点进程的文件大小限制（-1表示unlimited） |
+| Ulimit.FileSize      | 长整型 | 节点进程的文件大小限制（-1表示unlimited，单位：字节） |
+| Ulimit.StackSize     | 长整型 | 节点进程的栈空间大小限制（-1表示unlimited，单位：字节） |
 | ResetTimestamp       | 时间戳 | 重置快照的时间 |
 | ErrNum.SDB_OOM       | 长整型 | 节点发生错误 SDB_OOM 的次数 |
 | ErrNum.SDB_NOSPC     | 长整型 | 节点发生错误 SDB_NOSPC 的次数 |
@@ -94,7 +95,8 @@ SDB_SNAP_HEALTH
     "VirtualMemory": -1,
     "OpenFiles": 1024,
     "NumProc": 23948,
-    "FileSize": -1
+    "FileSize": -1,
+    "StackSize": 524288
   },
   "ResetTimestamp": "2018-03-09-09.47.04.826497",
   "ErrNum": {

@@ -11,24 +11,24 @@ data_seg_size=-1
 file_size=-1
 virtual_memory=-1
 open_files=60000
-stack_size=512
+stack_size=524288
 ```
  
  * 配置描述：
 
-   | 配置项         | 描述                                                       | 默认值              |
-   | -------------- | ---------------------------------------------------------- | ------------------- |
-   | core_file_size | 出现故障时产生 core 文件，用于故障诊断，生产系统建议关闭。 | 0                   |
-   | data_seg_size  | 进程所允许分配的数据段大小。                               | -1（表示unlimited） |
-   | file_size      | 进程所允许寻址的文件大小。                                 | -1（表示unlimited） |
-   | virtual_memory | 进程所允许最大虚拟内存寻址空间限制。                       | -1（表示unlimited） |
-   | open_files     | 进程允许的最大文件句柄数。                                 | 60000               |
-   | stack_size     | 进程允许的最大堆栈大小。                                   | 512                 |
+   | 配置项         | 描述                                                       | 默认值              | 单位 |
+   | -------------- | ---------------------------------------------------------- | ------------------- | ---- |
+   | core_file_size | 出现故障时产生 core 文件，用于故障诊断，生产系统建议关闭。 | 0                   | 字节 |
+   | data_seg_size  | 进程所允许分配的数据段大小。                               | -1（表示unlimited） | 字节 |
+   | file_size      | 进程所允许寻址的文件大小。                                 | -1（表示unlimited） | 字节 |
+   | virtual_memory | 进程所允许最大虚拟内存寻址空间限制。                       | -1（表示unlimited） | 字节 |
+   | open_files     | 进程允许的最大文件句柄数。                                 | 60000               | 文件个数 |
+   | stack_size     | 进程允许的最大栈空间大小。                                 | 524288              | 字节 |
 
 
    >**Note:**
    >
-   > * conf/limits.conf 只能配置以上5个参数，其他 ulimit 值，如最大进程数，由当前 Linux Shell 中的 ulimit 值决定。
+   > * conf/limits.conf 只能配置以上参数，其他 ulimit 值，如最大进程数，由当前 Linux Shell 中的 ulimit 值决定。
    > * service sdbcm sdbcm、bin/sdbcmart、bin/sdbstart 启动节点和 sdbcm 时，均会引用该配置文件中的配置。
    > * 如果不想使用 conf/limits.conf 中的配置，可使用 -i 参数：bin/sdbcmart -i ; bin/sdbstart -i 。
    > * 创建节点时，新节点的 ulimit 值跟随 sdbcm 进程的 ulimit 值 。
@@ -94,7 +94,8 @@ Max realtime timeout      unlimited            unlimited            us
     "VirtualMemory": -1,
     "OpenFiles": 1024,
     "NumProc": 23948,
-    "FileSize": -1
+    "FileSize": -1,
+    "StackSize": 524288
   }
   ...
 }

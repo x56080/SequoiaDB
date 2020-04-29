@@ -62,6 +62,7 @@ namespace engine
    #define UTIL_OPTION_LIMIT_FILESIZE   "file_size"
    #define UTIL_OPTION_LIMIT_VM         "virtual_memory"
    #define UTIL_OPTION_LIMIT_FD         "open_files"
+   #define UTIL_OPTION_LIMIT_STACKSIZE  "stack_size"
 
    INT32 utilReadConfigureFile( const CHAR *file,
                                 po::options_description &desc,
@@ -622,7 +623,8 @@ namespace engine
       ( UTIL_OPTION_LIMIT_DATA,      po::value<INT64>(), "" )
       ( UTIL_OPTION_LIMIT_FILESIZE,  po::value<INT64>(), "" )
       ( UTIL_OPTION_LIMIT_VM,        po::value<INT64>(), "" )
-      ( UTIL_OPTION_LIMIT_FD,        po::value<INT64>(), "" ) ;
+      ( UTIL_OPTION_LIMIT_FD,        po::value<INT64>(), "" )
+      ( UTIL_OPTION_LIMIT_STACKSIZE, po::value<INT64>(), "" ) ;
       rc = utilReadConfigureFile( confFileName, limitDesc, limitVarmap ) ;
       if ( rc )
       {
@@ -649,6 +651,8 @@ namespace engine
                                                OSS_LIMIT_VIRTUAL_MEM ) ) ;
       vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_FD,
                                                OSS_LIMIT_OPEN_FILE ) ) ;
+      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_STACKSIZE,
+                                               OSS_LIMIT_STACK_SIZE ) ) ;
       for( it = vec.begin() ; it != vec.end() ; it++ )
       {
          string option = it->first ;

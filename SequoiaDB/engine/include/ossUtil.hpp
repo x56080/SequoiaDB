@@ -1176,17 +1176,17 @@ private:
 };
 
 #define OSS_LIMIT_VIRTUAL_MEM "virtual memory"
-#define OSS_LIMIT_CORE_SZ "core file size"
+#define OSS_LIMIT_CORE_SZ     "core file size"
 #define OSS_LIMIT_DATA_SEG_SZ "data seg size"
-#define OSS_LIMIT_FILE_SZ "file size"
-#define OSS_LIMIT_CPU_TIME "cpu time"
-#define OSS_LIMIT_FILE_LOCK "file locks"
-#define OSS_LIMIT_MEM_LOCK "max locked memory"
-#define OSS_LIMIT_MSG_QUEUE "POSIX message queues"
-#define OSS_LIMIT_OPEN_FILE "open files"
-#define OSS_LIMIT_SCHE_PRIO "scheduling priority"
-#define OSS_LIMIT_STACK_SIZE "stack size"
-#define OSS_LIMIT_PROC_NUM "process num"
+#define OSS_LIMIT_FILE_SZ     "file size"
+#define OSS_LIMIT_CPU_TIME    "cpu time"
+#define OSS_LIMIT_FILE_LOCK   "file locks"
+#define OSS_LIMIT_MEM_LOCK    "max locked memory"
+#define OSS_LIMIT_MSG_QUEUE   "POSIX message queues"
+#define OSS_LIMIT_OPEN_FILE   "open files"
+#define OSS_LIMIT_SCHE_PRIO   "scheduling priority"
+#define OSS_LIMIT_STACK_SIZE  "stack size"
+#define OSS_LIMIT_PROC_NUM    "process num"
 
 class ossProcLimits
 {
