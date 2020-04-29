@@ -59,10 +59,10 @@ public class Transaction20450A extends SdbTestBase {
         clTW2 = TW2.getCollectionSpace( csName ).getCollection( clName );
 
         // 1 begin trans TR1 read
-        TR1.beginTransaction();
+        TransUtils.beginTransaction( TR1 );
 
         // 2 begin trans TW1 upsert R1s to R3s
-        TW1.beginTransaction();
+        TransUtils.beginTransaction( TW1 );
         clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r2s'}}",
                 "{'': 'a'}" );
@@ -90,7 +90,7 @@ public class Transaction20450A extends SdbTestBase {
         Assert.assertEquals( actList, tw1ExpList );
 
         // 4 trans TR1 read 判断事务阻塞需先获取事务id
-        TW2.beginTransaction();
+        TransUtils.beginTransaction( TW2 );
         String transactionID2 = TransUtils.getTransactionID( TW2 );
         UpdateThread updateThread = new UpdateThread();
         updateThread.start();

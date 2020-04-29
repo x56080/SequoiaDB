@@ -82,10 +82,10 @@ public class Transaction20512 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{TransIsolation:3}" ) );
             BSONObject attr1 = sdb1.getSessionAttr();
             Assert.assertEquals( 3, attr1.get( "TransIsolation" ) );
-            sdb1.beginTransaction();
+            TransUtils.beginTransaction( sdb1 );
 
             // 开启写事务,插入R3，更新R1，删除R2
-            sdbw1.beginTransaction();
+            TransUtils.beginTransaction( sdbw1 );
 
             BSONObject insertR3 = ( BSONObject ) JSON
                     .parse( "{_id:3,a:3,b:3}" );
@@ -108,10 +108,10 @@ public class Transaction20512 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{TransIsolation:1}" ) );
             BSONObject attr2 = sdb1.getSessionAttr();
             Assert.assertEquals( 1, attr2.get( "TransIsolation" ) );
-            sdb1.beginTransaction();
+            TransUtils.beginTransaction( sdb1 );
 
             // 开启写事务TW2,插入R3，更新R4，删除R3
-            sdbw2.beginTransaction();
+            TransUtils.beginTransaction( sdbw2 );
 
             BSONObject insertR5 = ( BSONObject ) JSON
                     .parse( "{_id:5,a:5,b:5}" );
@@ -139,10 +139,10 @@ public class Transaction20512 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{TransIsolation:0}" ) );
             BSONObject attr3 = sdb1.getSessionAttr();
             Assert.assertEquals( 0, attr3.get( "TransIsolation" ) );
-            sdb1.beginTransaction();
+            TransUtils.beginTransaction( sdb1 );
 
             // 开启写事务TW3,插入R7，更新R6，删除R5
-            sdbw3.beginTransaction();
+            TransUtils.beginTransaction( sdbw3 );
 
             BSONObject insertR7 = ( BSONObject ) JSON
                     .parse( "{_id:7,a:7,b:7}" );

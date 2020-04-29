@@ -52,7 +52,7 @@ public class Transaction20440A extends SdbTestBase {
 
                 // 1.分别在事务中及非事务中插入记录，R1s+R2s+R3s
                 TransUtils.insertRandomDatas( cl, 0, 100 );// 插入记录为0-100
-                sdb.beginTransaction();
+                TransUtils.beginTransaction( sdb );
                 TransUtils.insertRandomDatas( cl, 100, 200 );// 插入记录为100-200
                 sdb.commit();
                 TransUtils.insertRandomDatas( cl, 200, 300 );// 插入记录为200-300
@@ -71,13 +71,13 @@ public class Transaction20440A extends SdbTestBase {
     @Test(dataProvider = "index")
     public void test( String hint ) {
         // 1.开启读事务TR1,所有事务读记录
-        TR1.beginTransaction();
+        TransUtils.beginTransaction( TR1 );
         QueryThread queryThread1 = new QueryThread( TR1, hint,
                 new ArrayList< BSONObject >( expList ) );
         queryThread1.start();
 
         // 2.开启写事务TW1，在多个集合下插入记录R4s，更新记录R1s为R5s,删除记录R2s，并提交
-        TW1.beginTransaction();
+        TransUtils.beginTransaction( TW1 );
         for ( int i = 0; i < 2; i++ ) {
             CollectionSpace cs = TW1.getCollectionSpace( "cs_20440A_" + i );
             for ( int j = 0; j < 2; j++ ) {
@@ -93,7 +93,7 @@ public class Transaction20440A extends SdbTestBase {
         TW1.commit();
 
         // 3.开启读事务TR3，所有读事务读记录,检查结果
-        TR2.beginTransaction();
+        TransUtils.beginTransaction( TR2 );
         expList = TransUtils.addList( expList, 300, 400 );
         expList = TransUtils.updateList( expList, 0, 100, 400 );
         expList = TransUtils.deleteList( expList, 100, 200 );
@@ -102,7 +102,7 @@ public class Transaction20440A extends SdbTestBase {
         queryThread2.start();
 
         // 4.开启写事务TW2在多个集合下插入记录R6s,更新记录R5s为R7s,删除记录R3s;
-        TW2.beginTransaction();
+        TransUtils.beginTransaction( TW2 );
         for ( int i = 0; i < 2; i++ ) {
             CollectionSpace cs = TW2.getCollectionSpace( "cs_20440A_" + i );
             for ( int j = 0; j < 2; j++ ) {
@@ -115,7 +115,7 @@ public class Transaction20440A extends SdbTestBase {
         }
 
         // 5.开启读事务TR3,所有读事务读记录
-        TR3.beginTransaction();
+        TransUtils.beginTransaction( TR3 );
         QueryThread queryThread3 = new QueryThread( TR3, hint,
                 new ArrayList< BSONObject >( expList ) );
         queryThread3.start();
@@ -124,7 +124,7 @@ public class Transaction20440A extends SdbTestBase {
         TW2.commit();
 
         // 7.开启读事务TR4,所有读事务读记录，检查结果
-        TR4.beginTransaction();
+        TransUtils.beginTransaction( TR4 );
         expList = TransUtils.addList( expList, 500, 600 );
         expList = TransUtils.updateList( expList, 0, 100, 600 );
         expList = TransUtils.deleteList( expList, 100, 200 );

@@ -43,7 +43,7 @@ public class Transaction20443A extends SdbTestBase {
         cl.createIndex( "index_20443A", "{ a: 1 }", false, false );
 
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         expList.addAll( TransUtils.insertRandomDatas( cl, 50, 100 ) );
         sdb.commit();
     }
@@ -57,7 +57,7 @@ public class Transaction20443A extends SdbTestBase {
     @Test(dataProvider = "index")
     public void test( String hint ) {
         // 开启读事务TR1
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
 
         // TR1使用内置SQL读记录
         String sql = "select * from " + csName + "." + clName
@@ -74,7 +74,7 @@ public class Transaction20443A extends SdbTestBase {
         Assert.assertEquals( actList, expList );
 
         // 2.开启事务TW1，插入记录R2s,提交
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db2 );
         TransUtils.insertRandomDatas( cl2, 100, 200 );
         db2.commit();
 
@@ -94,7 +94,7 @@ public class Transaction20443A extends SdbTestBase {
         Assert.assertEquals( actList, expList );
 
         // 3.开启事务TW2，更新记录R2s为R3s，提交
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db2 );
         cl2.update(
                 "{ '$and': [ { '_id': { '$gte': 100 } }, { '_id': { '$lt': 200 } } ] }",
                 "{ '$set': { 'a': 'a'} }", hint );
@@ -116,7 +116,7 @@ public class Transaction20443A extends SdbTestBase {
         Assert.assertEquals( actList, expList );
 
         // 4.开启事务TW3,删除记录R3s,提交
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db2 );
         cl2.delete(
                 "{ '$and': [ { '_id': { '$gte': 100 } }, { '_id': { '$lt': 200 } } ] }",
                 "{ a: 'a'}" );

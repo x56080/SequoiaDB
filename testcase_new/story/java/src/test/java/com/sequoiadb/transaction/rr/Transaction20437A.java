@@ -73,7 +73,7 @@ public class Transaction20437A extends SdbTestBase {
         cl.createIndex( "index_20437A", "{ a: 1 }", false, false );
 
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 200 ) );// 插入记录为0-200
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         expList.addAll( TransUtils.insertRandomDatas( cl, 200, 400 ) );// 插入记录为200-400
         sdb.commit();
     }
@@ -87,29 +87,29 @@ public class Transaction20437A extends SdbTestBase {
     @Test(dataProvider = "index")
     public void test( String hint ) {
         // 1.开启读事务TR1，所有读事务读记录
-        TR1.beginTransaction();
+        TransUtils.beginTransaction( TR1 );
         QueryThread queryThread1 = new QueryThread( TR1, hint,
                 new ArrayList< BSONObject >( expList ) );
         queryThread1.start();
 
         // 2.开启写事务TW1
-        TW1.beginTransaction();
+        TransUtils.beginTransaction( TW1 );
 
         // 3.开启读事务TR2，所有读事务读记录
-        TR2.beginTransaction();
+        TransUtils.beginTransaction( TR2 );
         QueryThread queryThread2 = new QueryThread( TR2, hint,
                 new ArrayList< BSONObject >( expList ) );
         queryThread2.start();
 
         // 4.开启写事务TW2,插入记录R5s，更新记录R1s为R6s，删除记录R2s，开启读事务TR3,所有读事务读记录
-        TW2.beginTransaction();
+        TransUtils.beginTransaction( TW2 );
         TransUtils.insertRandomDatas( cl2, 400, 500 );// 插入记录400-500
         cl2.update( "{ '_id': { '$lt': 100 } }", "{ '$set': { 'a': 600 } }",
                 hint );// 将0-100的记录更新成600
         cl2.delete(
                 "{ '$and': [ { '_id': { '$gte': 100 } }, { '_id': { '$lt': 200 } }] }" );// 删除100-200记录
 
-        TR3.beginTransaction();
+        TransUtils.beginTransaction( TR3 );
         QueryThread queryThread3 = new QueryThread( TR3, hint,
                 new ArrayList< BSONObject >( expList ) );
         queryThread3.start();
@@ -117,7 +117,7 @@ public class Transaction20437A extends SdbTestBase {
         // 5.提交TW2,开启读事务TR4，所有读事务读记录
         TW2.commit();
         TW2.close();
-        TR4.beginTransaction();
+        TransUtils.beginTransaction( TR4 );
         expList = TransUtils.addList( expList, 400, 500 );
         expList = TransUtils.updateList( expList, 0, 100, 600 );
         expList = TransUtils.deleteList( expList, 100, 200 );
@@ -126,14 +126,14 @@ public class Transaction20437A extends SdbTestBase {
         queryThread4.start();
 
         // 6.开启写事务TW3,插入记录R7s，更新R6s为R8s，删除记录R3s，开启读事务TR5,所有读事务读记录
-        TW3.beginTransaction();
+        TransUtils.beginTransaction( TW3 );
         TransUtils.insertRandomDatas( cl3, 600, 700 );// 插入记录600-700
         cl3.update( "{ '_id': { '$lt': 100 } }", "{ '$set': { 'a': 800 } }",
                 hint );// 将0-100的记录更新成800
         cl3.delete(
                 "{ '$and': [ { '_id': { '$gte': 200 } }, { '_id': { '$lt': 300 } }] }" );// 删除200-300记录
 
-        TR5.beginTransaction();
+        TransUtils.beginTransaction( TR5 );
         QueryThread queryThread5 = new QueryThread( TR5, hint,
                 new ArrayList< BSONObject >( expList ) );
         queryThread5.start();
@@ -141,7 +141,7 @@ public class Transaction20437A extends SdbTestBase {
         // 7.提交TW3,开启读事务TR6,所有读事务读记录
         TW3.commit();
         TW3.close();
-        TR6.beginTransaction();
+        TransUtils.beginTransaction( TR6 );
         expList = TransUtils.addList( expList, 600, 700 );
         expList = TransUtils.updateList( expList, 0, 100, 800 );
         expList = TransUtils.deleteList( expList, 100, 200 );// 由于R2s被删除，所以删除的位置应该还是100-200
@@ -150,14 +150,14 @@ public class Transaction20437A extends SdbTestBase {
         queryThread6.start();
 
         // 8.开启写事务TW4，插入记录R9s,更新R8s为R10s，删除记录R4s，开启读事务TR7,所有读事务读记录
-        TW4.beginTransaction();
+        TransUtils.beginTransaction( TW4 );
         TransUtils.insertRandomDatas( cl4, 800, 900 );// 插入字段值为800-900的记录
         cl4.update( "{ '_id': { '$lt': 100 } }", "{ '$set': { 'a': 900 } }",
                 hint );// 将_id字段值为0-100的记录的a字段值更新成900
         cl4.delete(
                 "{ '$and': [ { '_id': { '$gte': 300 } }, { '_id': { '$lt': 400 } }] }" );// 删除_id字段值为300-400的记录
 
-        TR7.beginTransaction();
+        TransUtils.beginTransaction( TR7 );
         QueryThread queryThread7 = new QueryThread( TR7, hint,
                 new ArrayList< BSONObject >( expList ) );
         queryThread7.start();
@@ -165,7 +165,7 @@ public class Transaction20437A extends SdbTestBase {
         // 9.提交TW4,开启读事务TR8,所有读事务读记录
         TW4.commit();
         TW4.close();
-        TR8.beginTransaction();
+        TransUtils.beginTransaction( TR8 );
         expList = TransUtils.addList( expList, 800, 900 );
         expList = TransUtils.updateList( expList, 0, 100, 900 );
         expList = TransUtils.deleteList( expList, 100, 200 );
@@ -180,7 +180,7 @@ public class Transaction20437A extends SdbTestBase {
         cl1.delete(
                 "{ '$and': [ { '_id': { '$gte': 400 } }, { '_id': { '$lt': 900 } }] }" );
 
-        TR9.beginTransaction();
+        TransUtils.beginTransaction( TR9 );
         QueryThread queryThread9 = new QueryThread( TR9, hint,
                 new ArrayList< BSONObject >( expList ) );
         queryThread9.start();
@@ -188,7 +188,7 @@ public class Transaction20437A extends SdbTestBase {
         // 11.提交事务TW1,开启读事务TR10,所有读事务读记录
         TW1.commit();
         TW1.close();
-        TR10.beginTransaction();
+        TransUtils.beginTransaction( TR10 );
         expList = TransUtils.addList( expList, 1000, 1100 );
         expList = TransUtils.updateList( expList, 0, 100, 1100 );
         expList = TransUtils.deleteList( expList, 100, 200 );

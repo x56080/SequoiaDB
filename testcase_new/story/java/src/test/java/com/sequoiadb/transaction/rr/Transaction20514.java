@@ -19,6 +19,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @testcase seqDB-20514:事务内不允许切分
@@ -67,7 +68,7 @@ public class Transaction20514 extends SdbTestBase {
     public void test() {
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.split( srcGroup, desGroup, 50 );
             Assert.fail( "Split should not success!" );
         } catch ( BaseException e ) {

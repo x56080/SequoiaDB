@@ -46,7 +46,7 @@ public class Transaction20454 extends SdbTestBase {
             db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
-            db1.beginTransaction();
+            TransUtils.beginTransaction( db1 );
             String transID1 = TransUtils.getTransactionID( db1 );
             System.out.println( "transID query:" + transID1 );
 
@@ -57,7 +57,7 @@ public class Transaction20454 extends SdbTestBase {
 
             // 集合的写锁优先于读锁,读写线程不采用线程的方式(会导致更新执行完成后才执行读事务)
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
-                db2.beginTransaction();
+                TransUtils.beginTransaction( db2 );
                 String transID2 = TransUtils.getTransactionID( db2 );
                 System.out.println( "transID update:" + transID2 );
                 cl2.update( null, "{$inc:{a:1}}", "{'':'a'}", 0 );

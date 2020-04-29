@@ -36,11 +36,11 @@ public class Transaction20506 extends SdbTestBase {
     public void setUp() {
         sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         expDataList = TransUtils.insertRandomDatas( cl, 0, 300 );
         sdb.commit();
         expDataList.addAll( TransUtils.insertRandomDatas( cl, 300, 700 ) );
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         expDataList.addAll( TransUtils.insertRandomDatas( cl, 700, 1000 ) );
         sdb.commit();
     }
@@ -56,10 +56,10 @@ public class Transaction20506 extends SdbTestBase {
         clTW2 = TW2.getCollectionSpace( csName ).getCollection( clName );
 
         // 2 begin trans TR1 read
-        TR1.beginTransaction();
+        TransUtils.beginTransaction( TR1 );
 
         // 3 begin trans TW1 upsert R1s to R3s
-        TW1.beginTransaction();
+        TransUtils.beginTransaction( TW1 );
         clTW1.update( null, "{'$inc': {'a': 1}}}", "{'': 'a'}" );
         TW1.commit();
 
@@ -73,7 +73,7 @@ public class Transaction20506 extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 6 begin trans TW2 upsert R2s to R3s
-        TW2.beginTransaction();
+        TransUtils.beginTransaction( TW2 );
         clTW2.update( null, "{'$inc': {'b': 1}}}", "{'': 'a'}" );
         TW2.commit();
 

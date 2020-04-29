@@ -49,7 +49,7 @@ public class Transaction20457 extends SdbTestBase {
 
             // 更新记录在RBS中保存多个集合的老版本
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
-                db1.beginTransaction();
+                TransUtils.beginTransaction( db1 );
                 cl.update( null, "{$inc:{a:1}}", null );
                 db1.commit();
             }
@@ -59,13 +59,13 @@ public class Transaction20457 extends SdbTestBase {
             expDataList = TransUtils.getReadActList( cursor );
 
             // 开启读事务
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
             String transID = TransUtils.getTransactionID( db2 );
             System.out.println( "transID query:" + transID );
 
             // 由于集合加锁是写锁优化采取一边更新一边查询的方式(不使用读写并发线程)
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
-                db1.beginTransaction();
+                TransUtils.beginTransaction( db1 );
                 cl1.update( null, "{$inc:{a:1}}", null );
                 db1.commit();
                 TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}",

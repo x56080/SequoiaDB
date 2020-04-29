@@ -73,7 +73,7 @@ public class Transaction20511 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{TransIsolation:0}" ) );
             BSONObject attr1 = sdb1.getSessionAttr();
             Assert.assertEquals( 0, attr1.get( "TransIsolation" ) );
-            sdb1.beginTransaction();
+            TransUtils.beginTransaction( sdb1 );
 
             // 配置session为RC隔离级别，开启读事务TR2
 
@@ -81,7 +81,7 @@ public class Transaction20511 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{TransIsolation:1}" ) );
             BSONObject attr2 = sdb2.getSessionAttr();
             Assert.assertEquals( 1, attr2.get( "TransIsolation" ) );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
 
             // 配置session为RR隔离级别，开启读事务TR3
 
@@ -89,11 +89,11 @@ public class Transaction20511 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{TransIsolation:3}" ) );
             BSONObject attr3 = sdb3.getSessionAttr();
             Assert.assertEquals( 3, attr3.get( "TransIsolation" ) );
-            sdb3.beginTransaction();
+            TransUtils.beginTransaction( sdb3 );
 
             // 开启写事务,插入R3，更新R1，删除R2
 
-            sdbw.beginTransaction();
+            TransUtils.beginTransaction( sdbw );
 
             BSONObject insertR3 = ( BSONObject ) JSON
                     .parse( "{_id:3,a:3,b:3}" );

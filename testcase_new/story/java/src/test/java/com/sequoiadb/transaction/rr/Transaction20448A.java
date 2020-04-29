@@ -52,14 +52,14 @@ public class Transaction20448A extends SdbTestBase {
         clT2 = T2.getCollectionSpace( csName ).getCollection( clName );
 
         // 1 begin trans T1 read
-        T1.beginTransaction();
+        TransUtils.beginTransaction( T1 );
         TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 2 begin trans T2 update R1S to R2s
-        T2.beginTransaction();
+        TransUtils.beginTransaction( T2 );
         clT2.update( "{'a': {'$gte': 0, '$lt': 1000}}", "{'$inc': {'a': 1000}}",
                 "{'': 'a'}" );
         T2.commit();

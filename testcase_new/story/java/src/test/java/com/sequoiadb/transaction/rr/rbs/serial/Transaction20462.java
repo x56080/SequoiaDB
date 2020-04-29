@@ -57,7 +57,7 @@ public class Transaction20462 extends SdbTestBase {
 
             // 产生多个老版本
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
-                db1.beginTransaction();
+                TransUtils.beginTransaction( db1 );
                 String transID = TransUtils.getTransactionID( db1 );
                 System.out.println( "transID update:" + transID );
                 cl1.update( "", "{$inc:{a:1}}", "{'':'a'}" );
@@ -66,7 +66,7 @@ public class Transaction20462 extends SdbTestBase {
             }
 
             // lowTrans为更新事务
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
             BSONObject record1 = ( BSONObject ) JSON.parse(
                     "{_id:1000000,a:-1,b:1000000,name:'insert data in transaction but not commit'}" );
             cl2.insert( record1 );
@@ -78,8 +78,8 @@ public class Transaction20462 extends SdbTestBase {
 
             // 更新并执行查询
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
-                db3.beginTransaction();
-                db1.beginTransaction();
+                TransUtils.beginTransaction( db3 );
+                TransUtils.beginTransaction( db1 );
                 String transID = TransUtils.getTransactionID( db1 );
                 System.out.println( "transID update:" + transID );
                 cl1.update( "{a:{$gt:0}}", "{$inc:{a:1}}", "{'':'a'}" );

@@ -57,7 +57,7 @@ public class Transaction20453 extends SdbTestBase {
             Thread.sleep( 1000 );
 
             // 开启事务T1
-            T1.beginTransaction();
+            TransUtils.beginTransaction( T1 );
 
             // 创建索引
             cl.createIndex( "index20453_2", "{a:1,b:1}", false, false );
@@ -66,7 +66,7 @@ public class Transaction20453 extends SdbTestBase {
             Thread.sleep( 1000 );
 
             // 开启事务T2
-            T2.beginTransaction();
+            TransUtils.beginTransaction( T2 );
 
             // 执行5次查询生成访问计划缓存
             ArrayList< BSONObject > expList = new ArrayList< >();

@@ -52,10 +52,10 @@ public class Transaction20505 extends SdbTestBase {
         clTW2 = TW2.getCollectionSpace( csName ).getCollection( clName );
 
         // 1 begin trans TR1 read
-        TR1.beginTransaction();
+        TransUtils.beginTransaction( TR1 );
 
         // 2 begin trans TW1 upsert R1s to R3s
-        TW1.beginTransaction();
+        TransUtils.beginTransaction( TW1 );
         clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'$inc': {'a': 1000}}}", "{'': 'a'}" );
         clTW1.update( "{'a': {'$gte': 1000, '$lt': 2000}}",
@@ -63,7 +63,7 @@ public class Transaction20505 extends SdbTestBase {
         TW1.commit();
 
         // 3 begin trans TW2 upsert R1s to R3s
-        TW2.beginTransaction();
+        TransUtils.beginTransaction( TW2 );
         clTW2.update( "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'$inc': {'a': 1000}}}", "{'': 'a'}" );
         clTW2.delete( "{'a': {'$gte': 1000, '$lt': 2000}}", "{'': 'a'}" );

@@ -42,7 +42,7 @@ public class Transaction20438A extends SdbTestBase {
 
         // 1.分别在事务中及非事务中插入记录，为R1s
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );// 插入记录为0-50
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         expList.addAll( TransUtils.insertRandomDatas( cl, 50, 100 ) );// 插入记录为50-100
         sdb.commit();
     }
@@ -57,7 +57,7 @@ public class Transaction20438A extends SdbTestBase {
     public void test( String hint ) {
         // 2.开启读事务TR1
         // 4.过程中TR1反复读，检查结果
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         QueryThread queryThread = new QueryThread( hint, expList );
         queryThread.start();
 
@@ -122,7 +122,7 @@ public class Transaction20438A extends SdbTestBase {
                 int timeOut = 100;
                 while ( true ) {
                     // 开启更新事务
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
 
                     cl.update(
                             null, "{ '$set': { 'a': "
