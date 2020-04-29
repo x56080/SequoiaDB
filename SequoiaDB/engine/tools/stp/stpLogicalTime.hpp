@@ -180,6 +180,13 @@ namespace engine
          _nanoSecond = 0LL ;
       }
 
+      // convert to nanoseconds
+      // WARNING: may overflow
+      OSS_INLINE UINT64 toNanoSecond() const
+      {
+         return STP_SEC_TO_NANOSEC( _second ) + _nanoSecond ;
+      }
+
       // parse from nanoseconds
       OSS_INLINE void fromNanoSecond( UINT64 nanoSecond )
       {
