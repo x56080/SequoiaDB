@@ -4,6 +4,7 @@
 *@createDate:  2017.11.8
 **************************************/
 import( "./basic_operation/sequoiadb.js" );
+import( "./main.js" );
 
 function insertDiffDatas ( dbcl, insertNum )
 {
@@ -1198,7 +1199,7 @@ function checkStats ( db, csName, clNames, indexName, clExistStat, indexExistSta
 *@author:      liuxiaoxuan
 *@createDate:  2020.2.25
 **************************************/
-function isOnlyOneNodeInGroup()
+function isOnlyOneNodeInGroup ()
 {
    //获取所有数据组
    var allGroupObj = db.listReplicaGroups();
