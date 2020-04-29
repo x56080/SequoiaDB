@@ -51,6 +51,9 @@ function main ()
       println( "Mode is standalone!" );
       return;
    }
+   // 暂时增加打印信息，方便定位
+   println( "coord ssl info: " );
+   println( db.snapshot( 13, {"role":"coord"}, {"usessl":1,"NodeName":1} ) );
    commDropCL( db, csName, clName, true, true, "drop cl in begin" );
    createclAndCheck();
    dropclAndCheck();
