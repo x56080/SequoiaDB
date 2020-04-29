@@ -84,6 +84,10 @@ public class TestLobCreate22108 extends SdbTestBase {
                             "lob data is wrong" );
                     lob.close();
                 }
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -317 ) {
+                    throw e;
+                }
             }
         }
     }
