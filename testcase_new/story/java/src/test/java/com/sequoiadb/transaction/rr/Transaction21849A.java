@@ -42,7 +42,7 @@ public class Transaction21849A extends SdbTestBase {
         cl.createIndex( "index_20426A", "{ a: 1 }", false, false );
 
         expList.addAll( insertDatas( cl, 0, 50, 128 ) );
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         expList.addAll( insertDatas( cl, 50, 100, 128 ) );
         sdb.commit();
     }
@@ -61,7 +61,7 @@ public class Transaction21849A extends SdbTestBase {
         TransUtils.updateList( expList, 0, 100, aValue );
 
         // 2.开启读事务TR1，开启写事务TW1,更新记录R2s为R3s，并提交，TR1读记录
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         QueryThread queryThread = new QueryThread( hint );
         queryThread.start();
         UpdateThread updateThread1 = new UpdateThread( 64, hint );
@@ -129,7 +129,7 @@ public class Transaction21849A extends SdbTestBase {
                 int timeOut = 60;
                 while ( true ) {
                     // 开启更新事务
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
 
                     String aValue = getRandomString( aLength );
                     int num = new Random().nextInt( expList.size() );

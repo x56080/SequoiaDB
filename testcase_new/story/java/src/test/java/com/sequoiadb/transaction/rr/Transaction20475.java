@@ -50,7 +50,7 @@ public class Transaction20475 extends SdbTestBase {
         try {
 
             // 1 trans TR1 read
-            TR1.beginTransaction();
+            TransUtils.beginTransaction( TR1 );
             TransUtils.queryAndCheck( clTR1,
                     "{'a': {'$gte': 0, '$lt': " + recordNum + "}}",
                     "{'_id': 1}", "{'': null}", expDataList );
@@ -59,7 +59,7 @@ public class Transaction20475 extends SdbTestBase {
                     "{'_id': 1}", "{'': 'a'}", expDataList );
 
             // 2 begin trans TW1
-            TW1.beginTransaction();
+            TransUtils.beginTransaction( TW1 );
             clTW1.update( null, "{'$inc':{a: " + recordNum + "}}", null );
             TW1.commit();
 
@@ -80,7 +80,7 @@ public class Transaction20475 extends SdbTestBase {
                     "{'a':1}", "{'': 'a'}", new ArrayList< BSONObject >() );
 
             // 2 begin trans TW1
-            TW1.beginTransaction();
+            TransUtils.beginTransaction( TW1 );
             clTW1.update( null, "{'$inc':{a: -" + recordNum + "}}", null );
             clTW1.update( null, "{'$inc':{a: 1}}", null );
             TW1.commit();
@@ -102,7 +102,7 @@ public class Transaction20475 extends SdbTestBase {
                     "{'a':1}", "{'': 'a'}", new ArrayList< BSONObject >() );
 
             // 2 begin trans TW1
-            TW1.beginTransaction();
+            TransUtils.beginTransaction( TW1 );
             clTW1.update( null, "{'$inc':{a: -1}}", null );
             clTW1.update( null, "{'$inc':{a: -" + recordNum
                     + "}, '$set': {'b': 'update r1s to r4s'}}", null );
@@ -131,7 +131,7 @@ public class Transaction20475 extends SdbTestBase {
                     "{'': 'a'}", new ArrayList< BSONObject >() );
 
             // 2 begin trans TW1
-            TW1.beginTransaction();
+            TransUtils.beginTransaction( TW1 );
             clTW1.delete( "" );
             insertDatas( clTW1, recordNum );
             TW1.commit();

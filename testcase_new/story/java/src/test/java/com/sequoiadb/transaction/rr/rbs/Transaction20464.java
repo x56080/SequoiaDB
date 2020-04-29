@@ -32,7 +32,7 @@ public class Transaction20464 extends SdbTestBase {
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
         TransUtils.insertRandomLengthRecords( cl, recordNum, 10, 1024 );
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         TransUtils.insertRandomLengthRecords( cl, recordNum, recordNum * 2, 10,
                 1024 );
         sdb.commit();
@@ -53,10 +53,10 @@ public class Transaction20464 extends SdbTestBase {
             // 一边更新一遍查询
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
                 // 开启写事务
-                db1.beginTransaction();
+                TransUtils.beginTransaction( db1 );
 
                 // 开启读事务
-                db2.beginTransaction();
+                TransUtils.beginTransaction( db2 );
 
                 // 写事务更新记录
                 String transID = TransUtils.getTransactionID( db1 );

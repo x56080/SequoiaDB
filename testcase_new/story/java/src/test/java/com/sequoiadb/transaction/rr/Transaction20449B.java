@@ -49,14 +49,14 @@ public class Transaction20449B extends SdbTestBase {
         clTW1 = TW1.getCollectionSpace( csName ).getCollection( clName );
 
         // 1 begin trans TR1 read
-        TR1.beginTransaction();
+        TransUtils.beginTransaction( TR1 );
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 2 begin trans TW1 upsert R1s to R3s
-        TW1.beginTransaction();
+        TransUtils.beginTransaction( TW1 );
         clTW1.upsert(
                 ( BSONObject ) JSON.parse( "{'a': {'$gte': 0, '$lt': 1000}}" ),
                 ( BSONObject ) JSON
@@ -71,7 +71,7 @@ public class Transaction20449B extends SdbTestBase {
         TW1.rollback();
 
         // 1 trans TR1 read
-        TR1.beginTransaction();
+        TransUtils.beginTransaction( TR1 );
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",

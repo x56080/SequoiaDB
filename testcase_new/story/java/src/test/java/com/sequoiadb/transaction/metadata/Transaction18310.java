@@ -39,7 +39,7 @@ public class Transaction18310 extends SdbTestBase {
     public void test() {
         latch = new CountDownLatch( 5 );
 
-        List< CreateAndDropCLTh > thList = new ArrayList<>();
+        List< CreateAndDropCLTh > thList = new ArrayList< >();
         for ( int i = 0; i < 5; i++ ) {
             CreateAndDropCLTh th = new CreateAndDropCLTh( "cl18310_" + i );
             thList.add( th );

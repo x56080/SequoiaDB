@@ -81,7 +81,7 @@ public class TransUtils extends SdbTestBase {
 
     public static Domain createDomain( Sequoiadb sdb, String name,
             ArrayList< String > groupArr, int size, boolean autoSplit )
-            throws BaseException {
+                    throws BaseException {
         Domain domain = null;
         try {
             if ( sdb.isDomainExist( name ) ) {
@@ -163,7 +163,7 @@ public class TransUtils extends SdbTestBase {
     public static boolean isCollectionContainThisJSON( DBCollection cl,
             String dest ) throws BaseException {
         BSONObject bobj = ( BSONObject ) JSON.parse( dest );
-        ArrayList< Object > resaults = new ArrayList<>();
+        ArrayList< Object > resaults = new ArrayList< >();
         DBCursor dc = null;
         try {
             dc = cl.query( bobj, null, null, null );
@@ -203,7 +203,7 @@ public class TransUtils extends SdbTestBase {
     public static ArrayList< String > getGroupName( Sequoiadb sdb,
             String csName, String clName ) throws BaseException {
         DBCursor dbc = null;
-        ArrayList< String > resault = new ArrayList<>();
+        ArrayList< String > resault = new ArrayList< >();
         try {
             ArrayList< String > groups = CommLib.getDataGroupNames( sdb );
             dbc = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
@@ -238,7 +238,7 @@ public class TransUtils extends SdbTestBase {
 
     public static ArrayList< BSONObject > getReadActList( DBCursor cursor )
             throws BaseException {
-        ArrayList< BSONObject > actRList = new ArrayList<>();
+        ArrayList< BSONObject > actRList = new ArrayList< >();
         while ( cursor.hasNext() ) {
             BSONObject record = cursor.getNext();
             actRList.add( record );
@@ -249,7 +249,7 @@ public class TransUtils extends SdbTestBase {
 
     public static ArrayList< BSONObject > insertDatas( DBCollection cl,
             int startId, int endId, int insertValue ) throws BaseException {
-        ArrayList< BSONObject > insertDatas = new ArrayList<>();
+        ArrayList< BSONObject > insertDatas = new ArrayList< >();
         for ( int i = startId; i < endId; i++ ) {
             insertDatas.add( ( BSONObject ) JSON.parse(
                     "{_id:" + i + ",a:" + insertValue + ",b:" + i + "}" ) );
@@ -260,8 +260,8 @@ public class TransUtils extends SdbTestBase {
 
     public static ArrayList< BSONObject > insertRandomDatas( DBCollection cl,
             int startId, int endId ) throws BaseException {
-        ArrayList< BSONObject > insertDatas = new ArrayList<>();
-        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        ArrayList< BSONObject > insertDatas = new ArrayList< >();
+        ArrayList< BSONObject > expDatas = new ArrayList< >();
         for ( int i = startId; i < endId; i++ ) {
             BSONObject data = ( BSONObject ) JSON
                     .parse( "{_id:" + i + ",a:" + i + ",b:" + i + "}" );
@@ -276,8 +276,8 @@ public class TransUtils extends SdbTestBase {
     public static ArrayList< BSONObject > insertRandomLengthRecords(
             DBCollection cl, int insertNum, int minStringLength,
             int maxStringLenth ) throws BaseException {
-        ArrayList< BSONObject > insertDatas = new ArrayList<>();
-        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        ArrayList< BSONObject > insertDatas = new ArrayList< >();
+        ArrayList< BSONObject > expDatas = new ArrayList< >();
         for ( int i = 0; i < insertNum; i++ ) {
             StringBuilder sb = new StringBuilder();
             int stringLength = new Random().nextInt( maxStringLenth )
@@ -297,8 +297,8 @@ public class TransUtils extends SdbTestBase {
     public static ArrayList< BSONObject > insertRandomLengthRecords(
             DBCollection cl, int starId, int stopId, int minStringLength,
             int maxStringLenth ) throws BaseException {
-        ArrayList< BSONObject > insertDatas = new ArrayList<>();
-        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        ArrayList< BSONObject > insertDatas = new ArrayList< >();
+        ArrayList< BSONObject > expDatas = new ArrayList< >();
         for ( int i = starId; i < stopId; i++ ) {
             StringBuilder sb = new StringBuilder();
             int stringLength = new Random().nextInt( maxStringLenth )
@@ -317,8 +317,8 @@ public class TransUtils extends SdbTestBase {
 
     public static ArrayList< BSONObject > prepareDatas( Sequoiadb db,
             DBCollection cl, int recordNums ) throws BaseException {
-        ArrayList< BSONObject > insertDatas = new ArrayList<>();
-        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        ArrayList< BSONObject > insertDatas = new ArrayList< >();
+        ArrayList< BSONObject > expDatas = new ArrayList< >();
         int times = 0;
         int maxInsertNum = 100;
         int insertTimes = recordNums / 100;
@@ -343,7 +343,7 @@ public class TransUtils extends SdbTestBase {
             }
             Collections.shuffle( insertDatas );
             if ( new Random().nextInt( 2 ) != 0 ) {
-                db.beginTransaction();
+                TransUtils.beginTransaction( db );
                 cl.insert( insertDatas );
                 db.commit();
             } else {
@@ -355,7 +355,7 @@ public class TransUtils extends SdbTestBase {
     }
 
     public static ArrayList< BSONObject > getPrepareDatas( int recordNums ) {
-        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        ArrayList< BSONObject > expDatas = new ArrayList< >();
         for ( int i = 0; i < recordNums; i++ ) {
             BSONObject data = ( BSONObject ) JSON.parse( "{_id:" + i + ", a:"
                     + i + ", b:'test trans rr mode" + i + "'}" );
@@ -442,7 +442,7 @@ public class TransUtils extends SdbTestBase {
 
     public static ArrayList< BSONObject > getUpdateDatas( int startId,
             int endId, int updateValue ) {
-        ArrayList< BSONObject > updateDatas = new ArrayList<>();
+        ArrayList< BSONObject > updateDatas = new ArrayList< >();
         for ( int i = startId; i < endId; i++ ) {
             updateDatas.add( ( BSONObject ) JSON.parse(
                     "{_id:" + i + ",a:" + updateValue + ",b:" + i + "}" ) );
@@ -452,7 +452,7 @@ public class TransUtils extends SdbTestBase {
 
     public static ArrayList< BSONObject > getIncDatas( int startId, int endId,
             int incValue ) {
-        ArrayList< BSONObject > incDatas = new ArrayList<>();
+        ArrayList< BSONObject > incDatas = new ArrayList< >();
         for ( int i = startId; i < endId; i++ ) {
             incDatas.add( ( BSONObject ) JSON.parse( "{_id:" + i + ",a:"
                     + ( incValue + i ) + ",b:" + i + "}" ) );
@@ -473,7 +473,7 @@ public class TransUtils extends SdbTestBase {
         int a = 0;
         int b = 0;
         int id = ( aStart / 2 ) * 11 + aStart % 2;
-        List< BSONObject > records = new ArrayList<>();
+        List< BSONObject > records = new ArrayList< >();
         for ( int i = aStart; i < aEnd; i++ ) {
             if ( i % 2 == 0 ) {
                 a = i;

@@ -57,28 +57,28 @@ public class Transaction20446B extends SdbTestBase {
         clT4 = T4.getCollectionSpace( csName ).getCollection( clName );
 
         // 1 begin trans T1 read
-        T1.beginTransaction();
+        TransUtils.beginTransaction( T1 );
         TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 3000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 3000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 2 begin trans T2 update R1s to R4s
-        T2.beginTransaction();
+        TransUtils.beginTransaction( T2 );
         clT2.update( "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r4s'}}",
                 "{'': 'a'}" );
         T2.rollback();
 
         // 3 begin trans T3 update R2s to R5s
-        T3.beginTransaction();
+        TransUtils.beginTransaction( T3 );
         clT3.update( "{'a': {'$gte': 1000, '$lt': 2000}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r2s to r5s'}}",
                 "{'': 'a'}" );
         T3.rollback();
 
         // 4 begin trans T4 update R3s to R6s
-        T4.beginTransaction();
+        TransUtils.beginTransaction( T4 );
         clT4.update( "{'a': {'$gte': 2000, '$lt': 3000}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r3s to r6s'}}",
                 "{'': 'a'}" );

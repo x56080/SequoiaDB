@@ -43,8 +43,8 @@ public class Transaction20541 extends SdbTestBase {
         clTR1 = TR1.getCollectionSpace( csName ).getCollection( clName );
         clTW1 = TW1.getCollectionSpace( csName ).getCollection( clName );
 
-        TR1.beginTransaction();
-        TW1.beginTransaction();
+        TransUtils.beginTransaction( TR1 );
+        TransUtils.beginTransaction( TW1 );
 
         List< BSONObject > expList = TransUtils.insertRandomDatas( clTW1, 0,
                 1000 );

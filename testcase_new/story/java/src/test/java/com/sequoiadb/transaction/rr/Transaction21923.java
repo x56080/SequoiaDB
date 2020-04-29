@@ -47,7 +47,7 @@ public class Transaction21923 extends SdbTestBase {
 
         try {
             // 开启事务T1
-            T1.beginTransaction();
+            TransUtils.beginTransaction( T1 );
 
             // 创建索引
             cl.createIndex( "index21923", "{a:1}", false, false );
@@ -56,7 +56,7 @@ public class Transaction21923 extends SdbTestBase {
             Thread.sleep( 1000 );
 
             // 开启事务T2
-            T2.beginTransaction();
+            TransUtils.beginTransaction( T2 );
 
             // T1执行查询，走表扫描
             checkAccessPlan( cl1, 1, "tbscan" );

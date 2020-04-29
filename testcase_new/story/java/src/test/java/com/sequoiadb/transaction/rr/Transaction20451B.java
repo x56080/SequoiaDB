@@ -59,10 +59,10 @@ public class Transaction20451B extends SdbTestBase {
         clTW1 = TW1.getCollectionSpace( csName ).getCollection( mainCLName );
 
         // 1 begin trans TR1
-        TR1.beginTransaction();
+        TransUtils.beginTransaction( TR1 );
 
         // 2 begin trans TW1 upsert R1s to R2s
-        TW1.beginTransaction();
+        TransUtils.beginTransaction( TW1 );
         clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r2s'}}",
                 "{'': 'a'}" );

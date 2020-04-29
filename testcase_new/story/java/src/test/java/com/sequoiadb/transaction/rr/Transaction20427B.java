@@ -42,7 +42,7 @@ public class Transaction20427B extends SdbTestBase {
         cl.createIndex( "index_20427B", "{ a: 1 }", false, false );
 
         expList.addAll( insertDatas( cl, 0, 100, 128 ) );
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         expList.addAll( insertDatas( cl, 100, 200, 128 ) );
         sdb.commit();
     }
@@ -56,7 +56,7 @@ public class Transaction20427B extends SdbTestBase {
     @Test(dataProvider = "index")
     public void test( String hint ) {
         // 开启查询事务
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
 
         // 开启3个并发事务
         QueryThread queryThread = new QueryThread( hint );
@@ -129,7 +129,7 @@ public class Transaction20427B extends SdbTestBase {
                 int timeOut = 100;
                 while ( true ) {
                     // 开启更新事务
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
 
                     String aValue = getRandomString( aLength );
                     int num = ( int ) ( expList.size() / 2
@@ -172,7 +172,7 @@ public class Transaction20427B extends SdbTestBase {
                 int timeOut = 100;
                 while ( true ) {
                     // 开启删除事务
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
 
                     int num = ( int ) ( Math.random()
                             * ( expList.size() / 2 ) );

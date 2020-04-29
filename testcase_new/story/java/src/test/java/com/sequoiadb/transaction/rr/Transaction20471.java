@@ -65,7 +65,7 @@ public class Transaction20471 extends SdbTestBase {
 
     }
 
-    @Test(dataProvider = "index")
+    @Test(dataProvider = "index", enabled = false) // SEQUOIADBMAINSTREAM-5718
     public void test( String indexKey ) throws Exception {
         try {
 
@@ -113,7 +113,7 @@ public class Transaction20471 extends SdbTestBase {
                     int value = ( int ) ( Math.random() * 100 ) + 1;
 
                     // 开启更新事务
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     cl.update( "{b:" + aid + "}", "{$inc:{a:-" + value + "}}",
@@ -158,7 +158,7 @@ public class Transaction20471 extends SdbTestBase {
                     int cBalance = cId + 10000;
 
                     // 开启写事务
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     BSONObject object = ( BSONObject ) JSON.parse( "{_id:" + aId
@@ -208,7 +208,7 @@ public class Transaction20471 extends SdbTestBase {
                                             .getClassName()
                                     + " query times:" + i );
                     // 开启查询事务，表扫描
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     String sqlIdxScan = "select sum(a) as sum from " + csName
                             + "." + clName + " /*+use_index(NULL)*/";
                     DBCursor cursor = null;
@@ -225,8 +225,8 @@ public class Transaction20471 extends SdbTestBase {
                                         + expSum + ", but actual sum:" + sum );
                     }
 
-                    // 开启查询事务，索引扫描
-                    db.beginTransaction();
+                    // 开启查询事务，表扫描
+                    TransUtils.beginTransaction( db );
                     String sqlTblScan = "select sum(a) as sum from " + csName
                             + "." + clName + " /*+use_index(" + idxName + ")*/";
                     cursor = db.exec( sqlTblScan );

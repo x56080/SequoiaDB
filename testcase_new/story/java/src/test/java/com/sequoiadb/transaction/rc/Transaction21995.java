@@ -40,9 +40,11 @@ public class Transaction21995 extends SdbTestBase {
     public void test() throws InterruptedException {
         TransUtils.beginTransaction( sdb );
         cl.getCount();
-        DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT, "", null, null );
-        while( cursor.hasNext() ){
-            BasicBSONList gotLocks = (BasicBSONList) cursor.getNext().get( "GotLocks" );
+        DBCursor cursor = sdb.getSnapshot(
+                Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT, "", null, null );
+        while ( cursor.hasNext() ) {
+            BasicBSONList gotLocks = ( BasicBSONList ) cursor.getNext()
+                    .get( "GotLocks" );
             Assert.assertEquals( gotLocks.size(), 0 );
         }
         sdb.commit();

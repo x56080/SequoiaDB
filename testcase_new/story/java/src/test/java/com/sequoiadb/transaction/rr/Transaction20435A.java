@@ -126,14 +126,14 @@ public class Transaction20435A extends SdbTestBase {
         clTR9 = TR9.getCollectionSpace( csName ).getCollection( clName );
 
         // 1 trans TR1 read
-        TR1.beginTransaction();
+        TransUtils.beginTransaction( TR1 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 2 begin trans TW1
-        TW1.beginTransaction();
+        TransUtils.beginTransaction( TW1 );
         List< BSONObject > tw1InsertList = TransUtils.insertRandomDatas( clTW1,
                 recordNum, recordNum + 1000 );
         clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
@@ -142,7 +142,7 @@ public class Transaction20435A extends SdbTestBase {
         clTW1.delete( "{'a': {'$gte': 1000, '$lt': 2000}}", "{'': 'a'}" );
 
         // 3 trans TR2 read
-        TR2.beginTransaction();
+        TransUtils.beginTransaction( TR2 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -160,7 +160,7 @@ public class Transaction20435A extends SdbTestBase {
         TransUtils.removeList( tw1ExpList, 999, 2000 );
         tw1ExpList.addAll( tw1InsertList );
 
-        TR3.beginTransaction();
+        TransUtils.beginTransaction( TR3 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -175,10 +175,10 @@ public class Transaction20435A extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", tw1ExpList );
 
         // 5 begin trans TW2
-        TW2.beginTransaction();
+        TransUtils.beginTransaction( TW2 );
 
         // 6 begin trans TR4
-        TR4.beginTransaction();
+        TransUtils.beginTransaction( TR4 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -197,7 +197,7 @@ public class Transaction20435A extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", tw1ExpList );
 
         // 7 begin trans TW3, TW1 insert R7s
-        TW3.beginTransaction();
+        TransUtils.beginTransaction( TW3 );
         List< BSONObject > tw3InsertList = TransUtils.insertRandomDatas( clTW3,
                 recordNum + 1000, recordNum + 2000 );
         clTW3.update( "{'a': {'$gte': 0, '$lt': 1000}}",
@@ -206,7 +206,7 @@ public class Transaction20435A extends SdbTestBase {
         clTW3.delete( "{'a': {'$gte': 2000, '$lt': 3000}}", "{'': 'a'}" );
 
         // 8 begin trans TR5
-        TR5.beginTransaction();
+        TransUtils.beginTransaction( TR5 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -236,7 +236,7 @@ public class Transaction20435A extends SdbTestBase {
         TransUtils.removeList( tw3ExpList, 999, 1999 );
         tw3ExpList.addAll( tw3InsertList );
 
-        TR6.beginTransaction();
+        TransUtils.beginTransaction( TR6 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -277,7 +277,7 @@ public class Transaction20435A extends SdbTestBase {
         TransUtils.removeList( tw2ExpList, 999, 1999 );
         tw2ExpList.addAll( tw2InsertList );
 
-        TR7.beginTransaction();
+        TransUtils.beginTransaction( TR7 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -308,7 +308,7 @@ public class Transaction20435A extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", tw2ExpList );
 
         // 11 begin trans TR4 insert R11s, begin TR8 read
-        TW4.beginTransaction();
+        TransUtils.beginTransaction( TW4 );
         List< BSONObject > tw4InsertList = TransUtils.insertRandomDatas( clTW4,
                 recordNum + 3000, recordNum + 4000 );
         clTW4.update( "{'a': {'$gte': 0, '$lt': 1000}}",
@@ -316,7 +316,7 @@ public class Transaction20435A extends SdbTestBase {
                 "{'': 'a'}" );
         clTW4.delete( "{'a': {'$gte': 4000, '$lt': 7000}}", "{'': 'a'}" );
 
-        TR8.beginTransaction();
+        TransUtils.beginTransaction( TR8 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -358,7 +358,7 @@ public class Transaction20435A extends SdbTestBase {
         TransUtils.removeList( tw4ExpList, 999, 3999 );
         tw4ExpList.addAll( tw4InsertList );
 
-        TR9.beginTransaction();
+        TransUtils.beginTransaction( TR9 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",

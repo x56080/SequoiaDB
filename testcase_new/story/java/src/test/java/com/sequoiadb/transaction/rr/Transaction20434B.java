@@ -112,17 +112,17 @@ public class Transaction20434B extends SdbTestBase {
         clTR7 = TR7.getCollectionSpace( csName ).getCollection( clName );
 
         // 1 trans TR1 read
-        TR1.beginTransaction();
+        TransUtils.beginTransaction( TR1 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 2 begin trans TW1
-        TW1.beginTransaction();
+        TransUtils.beginTransaction( TW1 );
 
         // 3 trans TR2 read
-        TR2.beginTransaction();
+        TransUtils.beginTransaction( TR2 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -133,7 +133,7 @@ public class Transaction20434B extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 4 begin trans TW2 insert R5s
-        TW2.beginTransaction();
+        TransUtils.beginTransaction( TW2 );
         TransUtils.insertRandomDatas( clTW2, recordNum, recordNum + 1000 );
         clTW2.update( "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r6s'}}",
@@ -141,7 +141,7 @@ public class Transaction20434B extends SdbTestBase {
         clTW2.delete( "{'a': {'$gte': 1000, '$lt': 2000}}", "{'': 'a'}" );
 
         // 5 trans TR3 read
-        TR3.beginTransaction();
+        TransUtils.beginTransaction( TR3 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -158,7 +158,7 @@ public class Transaction20434B extends SdbTestBase {
         // 6 commit TW2, begin TR4
         TW2.rollback();
 
-        TR4.beginTransaction();
+        TransUtils.beginTransaction( TR4 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -177,7 +177,7 @@ public class Transaction20434B extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 7 begin trans TW3, TW1 insert R7s, begin trans TR5 read
-        TW3.beginTransaction();
+        TransUtils.beginTransaction( TW3 );
 
         TransUtils.insertRandomDatas( clTW1, recordNum + 1000,
                 recordNum + 2000 );
@@ -186,7 +186,7 @@ public class Transaction20434B extends SdbTestBase {
                 "{'': 'a'}" );
         clTW1.delete( "{'a': {'$gte': 2000, '$lt': 3000}}", "{'': 'a'}" );
 
-        TR5.beginTransaction();
+        TransUtils.beginTransaction( TR5 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -218,7 +218,7 @@ public class Transaction20434B extends SdbTestBase {
                 "{'': 'a'}" );
         clTW3.delete( "{'a': {'$gte': 3000, '$lt': 4000}}", "{'': 'a'}" );
 
-        TR6.beginTransaction();
+        TransUtils.beginTransaction( TR6 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
@@ -247,7 +247,7 @@ public class Transaction20434B extends SdbTestBase {
         // 9 commit TW3, begin trans TR7 read
         TW3.rollback();
 
-        TR7.beginTransaction();
+        TransUtils.beginTransaction( TR7 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 4000}}",

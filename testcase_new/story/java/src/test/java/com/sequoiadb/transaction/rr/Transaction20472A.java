@@ -66,7 +66,7 @@ public class Transaction20472A extends SdbTestBase {
         return new Object[][] { { "{'b':-1}" }, { "{'b':1}" } };
     }
 
-    @Test(dataProvider = "index")
+    @Test(dataProvider = "index", enabled = false) // SEQUOIADBMAINSTREAM-5718
     public void test( String indexKey ) throws Exception {
         this.indexKey = indexKey;
 
@@ -107,7 +107,7 @@ public class Transaction20472A extends SdbTestBase {
                     int value = ( int ) ( Math.random() * 100 ) + 1;
 
                     // 开启更新事务
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
 
@@ -157,7 +157,7 @@ public class Transaction20472A extends SdbTestBase {
                                             .getClassName()
                                     + " query times:" + i );
                     // 开启查询事务，表扫描
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     String sqlIdxScan = "select sum(a) as sum from " + csName
                             + "." + clName + " /*+use_index(NULL)*/";
                     DBCursor cursor = null;
@@ -174,8 +174,8 @@ public class Transaction20472A extends SdbTestBase {
                                         + expSum + " , but actual sum:" + sum );
                     }
 
-                    // 开启查询事务，索引扫描
-                    db.beginTransaction();
+                    // 开启查询事务，表扫描
+                    TransUtils.beginTransaction( db );
                     String sqlTblScan = "select sum(a) as sum from " + csName
                             + "." + clName + " /*+use_index(" + idxName + ")*/";
                     try {
