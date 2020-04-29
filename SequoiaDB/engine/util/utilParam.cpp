@@ -122,7 +122,7 @@ namespace engine
             if ( to_pass_further.size() )
             {
                std::cerr << "Unrecongnized options: ";
-               for ( vector<string>::iterator i = to_pass_further.begin() ; 
+               for ( vector<string>::iterator i = to_pass_further.begin() ;
                      i != to_pass_further.end() ; ++i )
                {
                   std::cerr << *i << ' ' ;
@@ -568,7 +568,8 @@ namespace engine
       ( PMD_OPTION_LIMIT_DATA,      po::value<INT64>(), "" )
       ( PMD_OPTION_LIMIT_FILESIZE,  po::value<INT64>(), "" )
       ( PMD_OPTION_LIMIT_VM,        po::value<INT64>(), "" )
-      ( PMD_OPTION_LIMIT_FD,        po::value<INT64>(), "" ) ;
+      ( PMD_OPTION_LIMIT_FD,        po::value<INT64>(), "" )
+      ( PMD_OPTION_LIMIT_STACKSIZE, po::value<INT64>(), "" ) ;
       rc = utilReadConfigureFile( confFileName, limitDesc, limitVarmap ) ;
       if ( rc )
       {
@@ -595,6 +596,8 @@ namespace engine
                                                OSS_LIMIT_VIRTUAL_MEM ) ) ;
       vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_FD,
                                                OSS_LIMIT_OPEN_FILE ) ) ;
+      vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_STACKSIZE,
+                                               OSS_LIMIT_STACK_SIZE ) ) ;
       for( it = vec.begin() ; it != vec.end() ; it++ )
       {
          string option = it->first ;

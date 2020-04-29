@@ -292,6 +292,7 @@ namespace engine
    #define PMD_OPTION_LIMIT_FILESIZE   "file_size"
    #define PMD_OPTION_LIMIT_VM         "virtual_memory"
    #define PMD_OPTION_LIMIT_FD         "open_files"
+   #define PMD_OPTION_LIMIT_STACKSIZE  "stack_size"
 
    /*
      SDBLIST_TYPE_STR
