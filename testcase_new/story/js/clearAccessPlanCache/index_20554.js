@@ -86,7 +86,7 @@ function testMainSubCL ()
    checkResults( rc, "ixscan", "$shard", true );
 }
 
-function checkResults ( rc, scanType, indexName, isMainCL )
+function checkResults ( rc, expScanType, expIndexName, isMainCL )
 {
    if( isMainCL == undefined ) { isMainCL = false; }
    var obj = {};
@@ -98,14 +98,11 @@ function checkResults ( rc, scanType, indexName, isMainCL )
    {
       obj = rc.current().toObj().SubCollections[0];
    }
-   compareString( scanType, obj.ScanType );
-   compareString( indexName, obj.IndexName );
-}
 
-function compareString ( expStr, actStr )
-{
-   if( expStr !== actStr )
+   if( expScanType !== obj.ScanType || expIndexName !== obj.IndexName )
    {
-      throw new Error( "expStr = " + expStr + ", actStr = " + actStr );
+      throw new Error( "\nexpScanType: " + expScanType + ", expIndexName: " + expIndexName
+         + "\nactScanType: " + obj.ScanType + ", atcIndexName: " + obj.IndexName
+         + "\nexplain: " + JSON.stringify( obj ) );
    }
 }
