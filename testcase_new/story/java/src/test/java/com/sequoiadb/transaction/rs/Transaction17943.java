@@ -104,11 +104,6 @@ public class Transaction17943 extends SdbTestBase {
                 db.setSessionAttr(
                         ( BSONObject ) JSON.parse( "{TransTimeout:5}" ) );
                 for ( int i = 0; i < loopNum; i++ ) {
-                    System.out
-                            .println( "testcase: "
-                                    + new Exception().getStackTrace()[ 0 ]
-                                            .getClassName()
-                                    + " update times:" + i );
                     int aid = ( int ) ( Math.random() * insertNum );
                     int bid = ( int ) ( Math.random() * insertNum );
                     int value = ( int ) ( Math.random() * 100 ) + 1;
@@ -159,11 +154,6 @@ public class Transaction17943 extends SdbTestBase {
                 db.setSessionAttr(
                         ( BSONObject ) JSON.parse( "{TransTimeout:5}" ) );
                 for ( int i = 0; i < loopNum; i++ ) {
-                    System.out
-                            .println( "testcase: "
-                                    + new Exception().getStackTrace()[ 0 ]
-                                            .getClassName()
-                                    + " query times:" + i );
 
                     // 开启查询事务，索引扫描
                     db.beginTransaction();

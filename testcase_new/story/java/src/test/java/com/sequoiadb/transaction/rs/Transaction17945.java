@@ -101,10 +101,6 @@ public class Transaction17945 extends SdbTestBase {
         private void insertDelete() {
             try {
                 for ( int i = 0; i < loopNum * 2; i++ ) {
-                    System.out.println( "testcase: "
-                            + new Exception().getStackTrace()[ 0 ]
-                                    .getClassName()
-                            + " insert delete times:" + i );
                     int aId = ( int ) ( Math.random() * insertNum ) + insertNum;
                     int bId = ( int ) ( Math.random() * insertNum );
                     int cId = ( int ) ( Math.random() * insertNum ) - insertNum;
@@ -158,11 +154,6 @@ public class Transaction17945 extends SdbTestBase {
         public void query() throws Exception {
             try {
                 for ( int i = 0; i < loopNum; i++ ) {
-                    System.out
-                            .println( "testcase: "
-                                    + new Exception().getStackTrace()[ 0 ]
-                                            .getClassName()
-                                    + " query times:" + i );
                     // 开启查询事务，表扫描
                     db.beginTransaction();
                     String sqlIdxScan = "select sum(a) as sum from " + csName

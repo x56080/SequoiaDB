@@ -17,7 +17,6 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
@@ -91,7 +90,7 @@ public class Transaction17960A extends SdbTestBase {
     }
 
     private class UpdateThread {
-        private Sequoiadb db = CommLib.getRandomSequoiadb();
+        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         @ExecuteOrder(step = 1, desc = "转账")
         private void update() {
@@ -99,11 +98,6 @@ public class Transaction17960A extends SdbTestBase {
                 db.setSessionAttr(
                         ( BSONObject ) JSON.parse( "{TransTimeout:5}" ) );
                 for ( int i = 0; i < loopNum; i++ ) {
-                    System.out
-                            .println( "testcase: "
-                                    + new Exception().getStackTrace()[ 0 ]
-                                            .getClassName()
-                                    + " update times:" + i );
                     int aid = ( int ) ( Math.random() * insertNum );
                     int bid = ( int ) ( Math.random() * insertNum );
                     int value = ( int ) ( Math.random() * 100 ) + 1;
@@ -148,7 +142,7 @@ public class Transaction17960A extends SdbTestBase {
     }
 
     private class QueryThread {
-        private Sequoiadb db = CommLib.getRandomSequoiadb();
+        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         @ExecuteOrder(step = 1, desc = "查询记录总账")
         private void query() throws Exception {
@@ -156,11 +150,6 @@ public class Transaction17960A extends SdbTestBase {
                 db.setSessionAttr(
                         ( BSONObject ) JSON.parse( "{TransTimeout:5}" ) );
                 for ( int i = 0; i < loopNum; i++ ) {
-                    System.out
-                            .println( "testcase: "
-                                    + new Exception().getStackTrace()[ 0 ]
-                                            .getClassName()
-                                    + " query times:" + i );
 
                     // 开启查询事务，索引扫描
                     db.beginTransaction();
@@ -205,16 +194,12 @@ public class Transaction17960A extends SdbTestBase {
     }
 
     private class DropIndexThread {
-        private Sequoiadb db = CommLib.getRandomSequoiadb();
+        private Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         @ExecuteOrder(step = 1, desc = "删除索引")
         private void dropIndex() {
             try {
                 for ( int i = 0; i < loopNum; i++ ) {
-                    System.out.println( "testcase: "
-                            + new Exception().getStackTrace()[ 0 ]
-                                    .getClassName()
-                            + " drop and create index:" + i );
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     cl.createIndex( idxName, indexKey, false, false );
