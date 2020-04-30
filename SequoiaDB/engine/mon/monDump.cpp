@@ -320,7 +320,7 @@ namespace engine
             if ( transCB )
             {
                transCount = pmdIsPrimary() ? transCB->getTransCBSize() :
-                            (UINT32)transCB->getTransMap()->size() ;
+                            (UINT32)transCB->getTransMapSize() ;
                beginLSNOff = transCB->getOldestBeginLsn() ;
                globLowTran = transCB->getGlobLowTran().getGlobSN() ;
                globExpireTran = transCB->getGlobExpireTran().getGlobSN() ;

@@ -98,7 +98,6 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSGTSAGENT_ONROLLBACKALL ) ;
 
       DPS_TRANS_ID transID ;
-      TRANS_MAP *pTransMap = _transCB->getTransMap() ;
       TRANS_MAP tmpTransMap ;
       TRANS_MAP::iterator it ;
       BOOLEAN isStoped = FALSE ;
@@ -173,7 +172,7 @@ namespace engine
                                   transInfo._lsn ) ;
                if ( SDB_OK == rc )
                {
-                  pTransMap->erase( transID ) ;
+                  _transCB->removeTrans( transID ) ;
                   tmpTransMap.erase( it++ ) ;
                   continue ;
                }
