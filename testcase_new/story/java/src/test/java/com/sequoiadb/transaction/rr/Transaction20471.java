@@ -65,7 +65,7 @@ public class Transaction20471 extends SdbTestBase {
 
     }
 
-    @Test(dataProvider = "index", enabled = false) // SEQUOIADBMAINSTREAM-5718
+    @Test(dataProvider = "index")
     public void test( String indexKey ) throws Exception {
         try {
 
