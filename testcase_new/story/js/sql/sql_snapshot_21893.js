@@ -23,13 +23,17 @@ function test ()
          var snapshotTmpObj = snapshotCur.current().toObj();
          var expObj = {
             IsPrimary: tmpObj["IsPrimary"], NodeID: JSON.stringify( tmpObj["NodeID"] ),
-            TotalSpace: tmpObj["Disk"]["TotalSpace"], SDB_OOM: tmpObj["ErrNum"]["SDB_OOM"],
-            TotalRAM: tmpObj["Memory"]["TotalRAM"], FreeNum: tmpObj["FileDesp"]["FreeNum"]
+            CoreFileSize: tmpObj["Ulimit"]["CoreFileSize"], VirtualMemory: tmpObj["Ulimit"]["VirtualMemory"],
+            OpenFiles: tmpObj["Ulimit"]["OpenFiles"], NumProc: tmpObj["Ulimit"]["NumProc"],
+            FileSize: tmpObj["Ulimit"]["FileSize"], VMLimit: tmpObj["Memory"]["VMLimit"],
+            TotalSpace: tmpObj["Disk"]["TotalSpace"], TotalNum: tmpObj["FileDesp"]["TotalNum"],
          };
          var actObj = {
             IsPrimary: snapshotTmpObj["IsPrimary"], NodeID: JSON.stringify( snapshotTmpObj["NodeID"] ),
-            TotalSpace: snapshotTmpObj["Disk"]["TotalSpace"], SDB_OOM: snapshotTmpObj["ErrNum"]["SDB_OOM"],
-            TotalRAM: snapshotTmpObj["Memory"]["TotalRAM"], FreeNum: snapshotTmpObj["FileDesp"]["FreeNum"]
+            CoreFileSize: snapshotTmpObj["Ulimit"]["CoreFileSize"], VirtualMemory: snapshotTmpObj["Ulimit"]["VirtualMemory"],
+            OpenFiles: snapshotTmpObj["Ulimit"]["OpenFiles"], NumProc: snapshotTmpObj["Ulimit"]["NumProc"],
+            FileSize: snapshotTmpObj["Ulimit"]["FileSize"], VMLimit: snapshotTmpObj["Memory"]["VMLimit"],
+            TotalSpace: snapshotTmpObj["Disk"]["TotalSpace"], TotalNum: snapshotTmpObj["FileDesp"]["TotalNum"],
          };
          if( !( commCompareObject( expObj, actObj ) ) )
          {
