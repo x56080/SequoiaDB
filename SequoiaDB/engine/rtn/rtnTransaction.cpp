@@ -645,7 +645,6 @@ namespace engine
       INT32 rc = SDB_OK;
       dpsTransCB *pTransCB = sdbGetTransCB() ;
       SDB_DPSCB *pDpsCB = sdbGetDPSCB() ;
-      TRANS_MAP *pTransMap = pTransCB->getTransMap();
       TRANS_MAP tmpTransMap ;
       DPS_LSN dpsLsn;
       DPS_TRANS_ID transID ;
@@ -829,7 +828,7 @@ namespace engine
          }
 
          /// remove the transaction
-         pTransMap->erase( iterMap->first ) ;
+         pTransCB->removeTrans( transID ) ;
          tmpTransMap.erase( iterMap ) ;
          PD_LOG( PDEVENT, "Rollback transaction(ID:%s, IDAttr:%s) finished "
                  "with rc[%d]", dpsTransIDToString( transID ).c_str(),

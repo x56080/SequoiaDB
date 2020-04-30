@@ -106,6 +106,7 @@ namespace engine
 
       for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
       {
+         _mapLatch[ i ].latchID = MON_LATCH_DPSTRANSCB_MAPMUTEX ;
          _cbMapLatch[ i ].latchID = MON_LATCH_DPSTRANSCB_CBMAPMUTEX ;
          _histMapLatch[ i ].latchID = MON_LATCH_DPSTRANSCB_HISMUTEX ;
       }
@@ -191,6 +192,7 @@ namespace engine
       if ( pmdGetKRCB()->isCBValue( SDB_CB_DPS ) &&
            !pmdGetKRCB()->isRestore() )
       {
+         UINT32 transMapSize = 0 ;
          UINT64 logFileSize = pmdGetOptionCB()->getReplLogFileSz() ;
          UINT32 logFileNum = pmdGetOptionCB()->getReplLogFileNum() ;
          _logFileTotalSize = logFileSize * logFileNum ;
@@ -209,12 +211,13 @@ namespace engine
          }
          setIsNeedSyncTrans( FALSE ) ;
 
+         transMapSize = getTransMapSize() ;
          // if have trans info, need log
-         if ( getTransMap()->size() > 0 )
+         if ( transMapSize > 0 )
          {
-            PD_LOG( PDEVENT, "Restored trans info, have %d trans not "
+            PD_LOG( PDEVENT, "Restored trans info, have %u trans not "
                     "be complete, the oldest lsn offset is %lld",
-                    getTransMap()->size(), getOldestBeginLsn() ) ;
+                    transMapSize, getOldestBeginLsn() ) ;
          }
       }
 
@@ -1732,10 +1735,12 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB__GETTRANSINFO_INFO ) ;
 
-      ossScopedLock lock( &_MapMutex, SHARED ) ;
+      UINT32 bucketIndex = dpsTransIDHash( transID, DPS_TRANS_BUCKET_SIZE ) ;
 
-      TRANS_MAP::iterator iterTrans = _TransMap.find( transID ) ;
-      if ( iterTrans != _TransMap.end() )
+      ossScopedLock lock( &( _mapLatch[ bucketIndex ] ), SHARED ) ;
+
+      TRANS_MAP::iterator iterTrans = _transMap[ bucketIndex ].find( transID ) ;
+      if ( iterTrans != _transMap[ bucketIndex ].end() )
       {
          info._lsn = iterTrans->second._lsn ;
          info._status = (DPS_TRANS_STATUS)( iterTrans->second._status ) ;
@@ -1759,12 +1764,11 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB__GETTRANSHISTINFO_INFO ) ;
 
-      DPS_TRANS_ID origID = transID.getOrigTransID() ;
-      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
+      UINT32 bucketIndex = dpsTransIDHash( transID, DPS_TRANS_BUCKET_SIZE ) ;
 
       ossScopedLock lock( &( _histMapLatch[ bucketIndex ] ), SHARED ) ;
       TRANS_ID_2_STATUS::iterator iterHist =
-                  _histMap[ bucketIndex ].find( origID ) ;
+                  _histMap[ bucketIndex ].find( transID ) ;
       if ( iterHist != _histMap[ bucketIndex ].end() )
       {
          histInfo._status = iterHist->second._status ;
@@ -1977,14 +1981,17 @@ namespace engine
 
    BOOLEAN dpsTransCB::hasRBPendingTrans()
    {
-      ossScopedLock _lock( &_MapMutex, SHARED ) ;
-      for ( TRANS_MAP::iterator iter = _TransMap.begin() ;
-            iter != _TransMap.end() ;
-            ++ iter )
+      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
       {
-         if ( DPS_INVALID_LSN_OFFSET != iter->second._curLSNWithRBPending )
+         ossScopedLock _lock( &( _mapLatch[ i ] ), SHARED ) ;
+         for ( TRANS_MAP::iterator iter = _transMap[ i ].begin() ;
+               iter != _transMap[ i ].end() ;
+               ++ iter )
          {
-            return TRUE ;
+            if ( DPS_INVALID_LSN_OFFSET != iter->second._curLSNWithRBPending )
+            {
+               return TRUE ;
+            }
          }
       }
       return FALSE ;
@@ -2049,15 +2056,17 @@ namespace engine
          dpsHisTransStatus histInfo ;
          TRANS_MAP::iterator it ;
 
-         ossScopedLock _lock( &_MapMutex, EXCLUSIVE ) ;
+         UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
 
-         it = _TransMap.find( origID ) ;
+         ossScopedLock _lock( &( _mapLatch[ bucketIndex ] ), EXCLUSIVE ) ;
+
+         it = _transMap[ bucketIndex ].find( origID ) ;
 
          if ( DPS_INVALID_LSN_OFFSET == lsnOffset )
          {
             // invalid-lsn means the transaction is complete
             // need be moved to history map
-            if ( it != _TransMap.end() )
+            if ( it != _transMap[ bucketIndex ].end() )
             {
                // transaction is finished and need to be moved to history map
                transFinished = TRUE ;
@@ -2102,12 +2111,12 @@ namespace engine
                }
 
                // remove from transaction map
-               _TransMap.erase( it ) ;
+               _transMap[ bucketIndex ].erase( it ) ;
             }
          }
          else
          {
-            if ( it != _TransMap.end() )
+            if ( it != _transMap[ bucketIndex ].end() )
             {
                updateTransInfo( it->second, status, lsnOffset, rbPending ) ;
 
@@ -2126,19 +2135,19 @@ namespace engine
 
                try
                {
-                  _TransMap[ origID ] = dpsTransBackInfo( lsnOffset, status ) ;
+                  dpsTransBackInfo transInfo( lsnOffset, status ) ;
+                  // the begin time is only valid for first operator of
+                  // transaction
+                  if ( transID.isFirstOp() && transID.isGlobTrans() )
+                  {
+                     transInfo._beginTime = transTime ;
+                  }
+                  _transMap[ bucketIndex ][ origID ] = transInfo ;
                }
                catch ( exception &e )
                {
                   PD_LOG( PDERROR, "Failed to add transaction info, "
                           "error: %s", e.what() ) ;
-               }
-
-               // the begin time is only valid for first operator of
-               // transaction
-               if ( transID.isFirstOp() && transID.isGlobTrans() )
-               {
-                  _TransMap[ origID ]._beginTime = transTime ;
                }
             }
          }
@@ -2167,16 +2176,19 @@ namespace engine
       BOOLEAN rbPending = isRBPending( transID ) ;
       DPS_TRANS_ID origID = getTransID( transID ) ;
 
-      ossScopedLock _lock( &_MapMutex, EXCLUSIVE ) ;
+      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
 
-      it = _TransMap.find( origID ) ;
-      if ( it == _TransMap.end() )
+      ossScopedLock _lock( &( _mapLatch[ bucketIndex ] ), EXCLUSIVE ) ;
+
+      it = _transMap[ bucketIndex ].find( origID ) ;
+      if ( it == _transMap[ bucketIndex ].end() )
       {
          SDB_ASSERT( !rbPending, "should not be rollback pending" ) ;
          try
          {
             // it is means transaction is synchronous by log if transID is exist
-            _TransMap[ origID ] = dpsTransBackInfo( lsnOffset, status ) ;
+            _transMap[ bucketIndex ][ origID ] = dpsTransBackInfo( lsnOffset,
+                                                                   status ) ;
          }
          catch ( exception &e )
          {
@@ -2236,25 +2248,22 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_UPDATETRANSSTATUS ) ;
 
       DPS_TRANS_ID origID = getTransID( transID ) ;
+      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
+      ossScopedLock _lock( &( _mapLatch[ bucketIndex ] ), EXCLUSIVE ) ;
 
-      ossScopedLock _lock( &_MapMutex, EXCLUSIVE ) ;
+      TRANS_MAP::iterator iter = _transMap[ bucketIndex ].find( origID ) ;
 
-      TRANS_MAP::iterator iter = _TransMap.find( origID ) ;
-
-      PD_CHECK( _TransMap.end() != iter,
+      PD_CHECK( _transMap[ bucketIndex ].end() != iter,
                 SDB_DPS_TRANS_NO_TRANS, error, PDERROR,
                 "Failed to get status for transaction [%s], rc: %d",
                 dpsTransIDToString( transID ).c_str(), rc ) ;
 
-      if ( _TransMap.end() != iter )
+      // set status
+      iter->second._status = status ;
+      // set flag if needed
+      if ( TRANS_COMMIT_FLAG_EMPTY != commitFlag )
       {
-         // set status
-         iter->second._status = status ;
-         // set flag if needed
-         if ( TRANS_COMMIT_FLAG_EMPTY != commitFlag )
-         {
-            OSS_BIT_SET( iter->second._commitFlag, commitFlag ) ;
-         }
+         OSS_BIT_SET( iter->second._commitFlag, commitFlag ) ;
       }
 
    done:
@@ -2337,13 +2346,37 @@ namespace engine
       return &_TransMap;
    }
 
+   UINT32 dpsTransCB::getTransMapSize()
+   {
+      UINT32 res = 0 ;
+
+      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+      {
+         ossScopedLock _lock( &_mapLatch[ i ], SHARED ) ;
+         res += _transMap[ i ].size() ;
+      }
+
+      return res ;
+   }
+
+   void dpsTransCB::removeTrans( const DPS_TRANS_ID &transID )
+   {
+      DPS_TRANS_ID origID = getTransID( transID ) ;
+      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
+      ossScopedLock _lock( &_mapLatch[ bucketIndex ], EXCLUSIVE ) ;
+      _transMap[ bucketIndex ].erase( origID ) ;
+   }
+
    void dpsTransCB::cloneTransMap( TRANS_MAP &result )
    {
-      TRANS_MAP::iterator it = _TransMap.begin() ;
-      while ( it != _TransMap.end() )
+      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
       {
-         result[ it->first ] = it->second ;
-         ++it ;
+         TRANS_MAP::iterator it = _transMap[ i ].begin() ;
+         while ( it != _transMap[ i ].end() )
+         {
+            result[ it->first ] = it->second ;
+            ++it ;
+         }
       }
    }
 
@@ -2362,9 +2395,9 @@ namespace engine
 
    void dpsTransCB::clearTransInfo()
    {
-      _TransMap.clear();
       for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
       {
+         _transMap[ i ].clear() ;
          _cbMap[ i ].clear() ;
       }
       _beginLsnIdMap.clear();

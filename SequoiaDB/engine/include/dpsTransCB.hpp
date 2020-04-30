@@ -730,6 +730,8 @@ namespace engine
       UINT32   getTransCBSize() ;
       void     termAllTrans() ;
       TRANS_MAP *getTransMap() ;
+      UINT32   getTransMapSize() ;
+      void     removeTrans( const DPS_TRANS_ID &transID ) ;
       void     cloneTransMap( TRANS_MAP &result ) ;
 
       void     addHisTrans( const DPS_TRANS_ID &transID,
@@ -946,6 +948,7 @@ namespace engine
       // return:
       //    - TRUE: transaction info is found
       //    - FALSE: transaction info is not found
+      // NOTE: must be origin transaction ID
       BOOLEAN _getTransInfo( const DPS_TRANS_ID &transID,
                              dpsTransBackInfo &info ) ;
 
@@ -957,6 +960,7 @@ namespace engine
       // return:
       //    - TRUE: history transaction info is found
       //    - FALSE: history transaction info is not found
+      // NOTE: must be origin transaction ID
       BOOLEAN _getTransHistInfo( const DPS_TRANS_ID &transID,
                                  dpsHisTransStatus &histInfo ) ;
 
@@ -1049,6 +1053,9 @@ namespace engine
 
       monSpinSLatch     _MapMutex ;
       TRANS_MAP         _TransMap ;
+
+      monSpinSLatch     _mapLatch[ DPS_TRANS_BUCKET_SIZE ] ;
+      TRANS_MAP         _transMap[ DPS_TRANS_BUCKET_SIZE ] ;
 
       monSpinSLatch     _cbMapLatch[ DPS_TRANS_BUCKET_SIZE ] ;
       TRANS_CB_MAP      _cbMap[ DPS_TRANS_BUCKET_SIZE ] ;
