@@ -30,9 +30,12 @@ class S3Config(object):
         self.tenant_access_key = configs['tenant_access_key']
         self.tenant_secret_key = configs['tenant_secret_key']
         self.tenant_email = configs['tenant_email']
+        self.remote_host = configs['remote_host']
+        self.remote_user = configs['remote_user']
+        self.remote_password = configs['remote_password']
         fp.close()
 
 
 if __name__ == '__main__':
     s3_config = S3Config()
-    print('conf = ', s3_config.host)
+    print('conf = ', s3_config)

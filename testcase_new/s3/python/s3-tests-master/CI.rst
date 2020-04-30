@@ -54,7 +54,7 @@ virtualenv -p /usr/local/bin/python3  --no-site-packages --distribute --no-setup
 
 -------------------
 
-7、给virtualenv离线安装相关s3 python驱动包
+7、给virtualenv离线安装相关s3 python驱动包,每次ci执行用例时需要执行以下命令
 
 s3 python驱动包在./tools/s3-requirements/requirements-py3.5目录下
 
@@ -69,6 +69,12 @@ s3 python驱动包在./tools/s3-requirements/requirements-py3.5目录下
   "host":, 
   #s3端口号：
   "port":
+  #远程主机地址（s3主机）
+ "remote_host": "localhost",
+ #远程主机用户名
+ "remote_user": "root",
+  #远程主机用户密码
+ "remote_password": "sequoiadb"
 
 ./s3virtualenv/bin/python run_all_case.py
 

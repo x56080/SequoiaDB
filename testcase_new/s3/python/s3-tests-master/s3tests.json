@@ -1,5 +1,5 @@
 {
- "host": "192.168.31.31",
+ "host": "localhost",
  "port": 8002,
  "is_secure": "False",
  "bucket_prefix": "s3-{random}-",
@@ -19,5 +19,8 @@
  "tenant_user_id": "9876543210abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
  "tenant_access_key": "ABCDEFGHIJKLMNOPQRST",
  "tenant_secret_key": "abcdefghijklmnopqrstuvwxyz0123456789ABCD",
- "tenant_email": "tenanteduser@example.com"
+ "tenant_email": "tenanteduser@example.com",
+ "remote_host": "localhost",
+ "remote_user": "root",
+ "remote_password": "sequoiadb"
 }
