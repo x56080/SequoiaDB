@@ -596,6 +596,9 @@ namespace engine
                /// wait lock
                if ( needWaitForLock() || rc )
                {
+                  // test S lock failed and the record is not in old version
+                  // container nor in RBS, most likely the one hold / wait X
+                  // hasn't finish updating the record.
                   rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
                                                  _context->mbID(), &_curRID,
                                                  & tbTxContext,
@@ -1933,7 +1936,7 @@ namespace engine
             {
                if ( !needWaitForLock() )
                {
-                  // for new RC logic, we should first try on S lock instead
+                  // for new RC/RR logic, we should first test on S lock instead
                   // of directly wait on the record lock. Under the cover,
                   // the lock call back function would try to use the old copy
                   // (previous committed version) if exist
@@ -1961,6 +1964,9 @@ namespace engine
                /// wait lock
                if ( needWaitForLock() || rc )
                {
+                  // test S lock failed and the record is not in old version
+                  // container nor in RBS. most likely the one hold / wait X
+                  // hasn't finish updating the record.
                   rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
                                                  _context->mbID(), &_curRID,
                                                  &ixTxContext,

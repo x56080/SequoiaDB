@@ -118,6 +118,10 @@ namespace engine
    public:
 
       /// Interface
+      virtual void beforeLockAcquire( const dpsTransLockId &lockId,
+                                      DPS_TRANSLOCK_TYPE requestLockMode,
+                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode );
+
       virtual void afterLockAcquire( const dpsTransLockId &lockId,
                                      INT32 irc,
                                      DPS_TRANSLOCK_TYPE requestLockMode,
@@ -297,6 +301,7 @@ namespace engine
       INT32                _result ;
       BOOLEAN              _needPostAction ;
       BOOLEAN              _useOldVersion ;
+      BOOLEAN              _recordOnDiskVisible ;
       // used for non-transactional operation to track if the operation
       // (update/delete) need to cleanup nodes for this rid in memidxtree.
       // Only need the cleanup when the operation was successfull.

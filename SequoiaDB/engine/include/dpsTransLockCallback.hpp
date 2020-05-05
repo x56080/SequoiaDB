@@ -70,6 +70,10 @@ namespace engine
                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode,
                                      dpsLRBExtData *pExtData ) = 0 ;
 
+      virtual void beforeLockAcquire( const dpsTransLockId &lockId,
+                                      DPS_TRANSLOCK_TYPE requestLockMode,
+                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode ) = 0 ;
+
       virtual void afterLockAcquirePostAction( const dpsTransLockId &lockId )
                                      = 0 ;
 

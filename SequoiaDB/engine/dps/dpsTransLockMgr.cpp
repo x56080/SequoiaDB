@@ -1212,6 +1212,8 @@ namespace engine
               bFreeLRBHeader = FALSE ,
               bLatched       = FALSE ;
 
+      BOOLEAN bIsLockLeafLevel = lockId.isLeafLevel() ;
+
 #ifdef _DEBUG
       EDUID eduId    = dpsTxExectr->getEDUID() ;
       CHAR lockIdStr[ DPS_LOCKID_STRING_MAX_SIZE ] = { '\0' } ;
@@ -1234,10 +1236,30 @@ namespace engine
                  PD_PACK_BYTE( requestLockMode ),
                  PD_PACK_BYTE( opMode ) );
 #endif
-
       if ( bktLatched )
       {
          bLatched = TRUE ;
+      }
+
+      // in case of reading with isolation mode RR, beforeLockAcquire
+      // will read record on disk to check the visibility. Since the
+      // mblatch latch should be already acquired at this time,
+      // we can read record on disk safely without acquiring bkt latch
+      // or record lock, no need to worry about partial reading.
+      // Although bkt latch is not acquired for calling beforeLockAcquire,
+      // it is possible we hold the bucket latch this time. Here is the
+      // scenario, when getS was put on waiter queue and previous
+      // owner woke it up when released a record lock. It acquires the
+      // bucket latch first, then removes itself from waiter queue and
+      // executes _tryAcquireOrTest again.
+      if ( callback )
+      {
+         callback->beforeLockAcquire( lockId, requestLockMode, opMode ) ;
+         if ( callback->hasError() )
+         {
+            PD_LOG( PDERROR, "before lock acquire callback failed (rc=%d)",
+                    callback->getResult() ) ;
+         }
       }
 
       // short cut for non-leaf lock ( CS, CL ),
@@ -1363,6 +1385,7 @@ namespace engine
          // job done
          goto done ;
       }
+
 #ifdef _DEBUG
       SDB_ASSERT( ( NULL != pLRBHdr ), "Invalid LRB Header" ) ;
 #endif
@@ -1376,7 +1399,7 @@ namespace engine
       }
 
       // leaf level lock ( e.g., record lock or index page lock )
-      if (  lockId.isLeafLevel() || ( FALSE == _autoUpperLockOp ) )
+      if ( bIsLockLeafLevel || ( FALSE == _autoUpperLockOp ) )
       {
          // search owner LRB list, which is sorted on lock mode
          // in descending order, to find
@@ -1769,7 +1792,7 @@ namespace engine
       }  // if in owner list
    done:
       {
-         if( callback )
+         if ( callback && ( FALSE == callback->hasError() ) )
          {
             // need to call this under bktlatch to make sure we are safe to
             // lookup information in LRBHdr
@@ -1784,7 +1807,7 @@ namespace engine
                          pLRBHdr ? &(pLRBHdr->extData) : NULL ) ;
             if ( callback->hasError() )
             {
-               PD_LOG( PDERROR, "callback failed (rc=%d)",
+               PD_LOG( PDERROR, "after lock acquire callback failed (rc=%d)",
                        callback->getResult() ) ;
             }
          }
@@ -3082,6 +3105,14 @@ nextLock:
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+      else
+      {
+         if ( callback && callback->hasError() )
+         {
+            rc = callback->getResult() ;
+            goto error ;
+         }
       }
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER_TESTACQUIRE, rc ) ;
