@@ -578,7 +578,8 @@ namespace engine
       _recordPtr        = dpsOldRecordPtr() ;
       _recordInfo.reset() ;
       _rbsRecordOffset.reset() ;
-      _needPostAction   = FALSE ;
+      _needPostAction      = FALSE ;
+      _recordOnDiskVisible = FALSE ;
    }
 
    const dmsRBSOffset & dmsTransLockCallback::getRBSRecordOffset() 
@@ -639,23 +640,18 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIRE ) ;
 
-      clearStatus() ;
-
       /// when not leaf level, do nothing
       if ( !lockId.isLeafLevel() )
       {
          goto done ;
       }
 
-      if ( !pExtData )
-      {
-         goto done ;
-      }
-
-      SDB_ASSERT( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ),
-                  "Test mode shouldn't have call back" ) ;
-
-      if ( DPS_TRANSLOCK_OP_MODE_TEST == opMode )
+      // In test lock mode, pExtData( pLRBHdr ) could be NULL, but we would
+      // still have actions (RC/RR handling) to do. However, in other
+      // acquiring mode, if LRBHdr does not exist, we do not have further
+      // handling at this moment. Early exit.
+      if ( ( NULL == pExtData ) &&
+           ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) )
       {
          goto done ;
       }
@@ -758,11 +754,9 @@ namespace engine
       // in that case
       if( (SDB_DPS_TRANS_LOCK_INCOMPATIBLE == irc ) &&
           (DPS_TRANSLOCK_S == requestLockMode)     &&
-          (DPS_TRANSLOCK_OP_MODE_TRY == opMode) )
+          (DPS_TRANSLOCK_OP_MODE_TEST == opMode) )
       {
-         SDB_ASSERT( pExtData, "ExtData is invalid " ) ;
-
-         if ( 0 == pExtData->_data )
+         if ( ( NULL == pExtData ) || ( 0 == pExtData->_data ) )
          {
             goto done ;
          }
@@ -821,8 +815,12 @@ namespace engine
       // up old copy if the copy is not already there
       else if ( SDB_OK == irc )
       {
-         SDB_ASSERT( refCounter > 0, "Ref count must > 0" ) ;
-
+#ifdef _DEBUG
+         if ( DPS_TRANSLOCK_OP_MODE_TEST != opMode )
+         {
+            SDB_ASSERT( refCounter > 0, "Ref count must > 0" ) ;
+         }
+#endif
          _recordInfo._refCount = refCounter ;
 
          /// from memory tree
@@ -833,6 +831,16 @@ namespace engine
             /// remove the duplicate rid
             _pScanner->removeDuplicatRID( rid ) ;
             _oldVer = NULL ;
+            goto done ;
+         }
+
+         // when test lock the pExtData (LRB Header)
+         // could be NULL.
+         if ( NULL == pExtData )
+         {
+            // For isolation RC, test S lock successfully and
+            // there is no LRB header, so no old ver, we may
+            // read from disk directly
             goto done ;
          }
 
@@ -907,7 +915,7 @@ namespace engine
              _oldVer, lockId.toString().c_str(),
              lockModeToString( requestLockMode ),
              _useOldVersion, _skipRecord,
-             (_rbsRecordData ? _rbsRecordData->isEmpty() : -1 ), 
+             (_rbsRecordData ? _rbsRecordData->isEmpty() : -1 ),
              dpsTransIDToString( transID ).c_str() ) ;
 #endif
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIREUXLOCKORNONRRREAD ) ;
@@ -1092,29 +1100,34 @@ namespace engine
          goto done ;
       }
 
-      // In case of RR read, if tryS fails and neither skipping the record
-      // nor using old version, it will end up with getS, i.e., wait on
-      // the S lock.
+      // RR read normally won't fail, only if there is something wrong with
+      // version check or stp. In this case, we will try to tolerant those
+      // by getS.
       // When getS returns error other than SDB_DPS_TRANS_LOCK_INCOMPATIBLE,
       // say SDB_DPS_TRANS_APPEND_TO_WAIT, that is, about to be added into lock
       // waiter list. Nothing need to be done in this case, since it will
       // come back when it acquires the lock.
       if ( ( SDB_OK != irc ) &&
            ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE != irc ) ||
-             ( DPS_TRANSLOCK_OP_MODE_TRY != opMode ) ) )
+             ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) ) )
       {
          goto done ;
       }
       else if ( SDB_OK == irc )
       {
-         SDB_ASSERT( refCounter > 0, "Ref count must > 0" ) ;
+#ifdef _DEBUG
+         if ( DPS_TRANSLOCK_OP_MODE_TEST != opMode )
+         {
+            SDB_ASSERT( refCounter > 0, "Ref count must > 0" ) ;
+         }
+#endif
          _recordInfo._refCount = refCounter ;
       }
 
       // some cases we can skip the record quickly
       if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == irc ) &&
-           ( DPS_TRANSLOCK_OP_MODE_TRY == opMode )  &&
-           ( 0 != pExtData->_data ) )
+           ( DPS_TRANSLOCK_OP_MODE_TEST == opMode )  &&
+           ( pExtData && ( 0 != pExtData->_data ) ) )
       {
          _oldVer = (oldVersionContainer*)(pExtData->_data) ;
          SDB_ASSERT( _oldVer->getRecordID() == rid, "LockID is not the same" ) ;
@@ -1133,7 +1146,7 @@ namespace engine
            ( SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType() ) )
       {
          // old version container is available
-         if ( 0 != pExtData->_data )
+         if ( pExtData && ( 0 != pExtData->_data ) )
          {
             _oldVer = (oldVersionContainer*)(pExtData->_data) ;
             SDB_ASSERT( _oldVer->getRecordID() == rid,
@@ -1179,117 +1192,80 @@ namespace engine
       /// TBScan or merge scan from disk index
       else
       {
-
-         // if no matter we have the record lock or not, always verify disk
-         // version first. Following scenario described the case we could
-         // endup using the disk version:
-         // T1 start, T2 start, T3 start;
-         // T2 did update on record(r1), hold record lock in X;
-         // T3 tries to delete r1, wait on lock X;
-         // As soon as T2 rollback, T1 tries to read r1 through idx scan,
-         // coming from disk scanner. Note that T1 will fail on record lock
-         // because there is a X waiter. But rollback will remove the old
-         // version from the in memory tree, and put back the original record.
-         // So the record should be visiable. The oldver is still exist in
-         // LRBHdr. If we don't return the record, we could end up skipping
-         // the record because _oldVer->idxLidExist() could be true.
-         // We won't read partial page because we hold mbLatch in S.
+         if ( _recordOnDiskVisible )
          {
-            const dmsRecord* record = _recordRW->readPtr( 0 ) ;
-            // record doesn't have glob trans, might come from
-            // non-transactional update, visible
-            if ( ! record->hasGlobTransID() )
-            {
-               goto done ;
-            }
-            DPS_TRANS_ID recTransID = record->getGlobTransID() ;
-            rc = _transCB->isVersionVisible( _eduCB,
-                                             recTransID,
-                                             transID,
-                                             _eduCB->getTransBeginTime(),
-                                             TRANS_ISOLATION_RR,
-                                             FALSE,
-                                             visible ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to check visibility for "
-                         "read transaction [%s] against record"
-                         "transaction [%s], rc: %d",
-                         dpsTransIDToString( transID ).c_str(),
-                         dpsTransIDToString( recTransID ).c_str(), rc ) ;
+            goto done ;
          }
-         if ( !visible )
+         // old version container is available
+         if ( pExtData && ( 0 != pExtData->_data ) )
          {
-            // old version container is available
-            if ( 0 != pExtData->_data )
+            _oldVer = (oldVersionContainer*)(pExtData->_data) ;
+            SDB_ASSERT( _oldVer->getRecordID() == rid,
+                        "LockID is not the same" ) ;
+
+            _recordPtr = _oldVer->getRecordPtr() ;
+            if ( _recordPtr.get() && !_oldVer->isRecordDummy() )
             {
-               _oldVer = (oldVersionContainer*)(pExtData->_data) ;
-               SDB_ASSERT( _oldVer->getRecordID() == rid,
-                           "LockID is not the same" ) ;
-
-               _recordPtr = _oldVer->getRecordPtr() ;
-               if ( _recordPtr.get() && !_oldVer->isRecordDummy() )
+               // We need to re-verify the record with the index again.
+               // Here is how this could happen:
+               // Session 1 did update, changed index from 1 to 2, paused;
+               // session 2 does index scan, searching for record with
+               // index 2. It found the index on disk. It ended up using
+               // the old version from memory. But the old version record
+               // contain the index 1. We must verify this case and skip
+               // this record.
+               if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
+                    SCANNER_TYPE_DISK == _pScanner->getCurScanType() &&
+                    _oldVer->idxLidExist( _latchedIdxLid ) )
                {
-                  // We need to re-verify the record with the index again.
-                  // Here is how this could happen:
-                  // Session 1 did update, changed index from 1 to 2, paused;
-                  // session 2 does index scan, searching for record with
-                  // index 2. It found the index on disk. It ended up using
-                  // the old version from memory. But the old version record
-                  // contain the index 1. We must verify this case and skip
-                  // this record.
-                  if ( _pScanner && _latchedIdxLid != DMS_INVALID_EXTENT &&
-                       SCANNER_TYPE_DISK == _pScanner->getCurScanType() &&
-                       _oldVer->idxLidExist( _latchedIdxLid ) )
-                  {
 #ifdef  _DEBUG
-                     PD_LOG( PDDEBUG,
-                             "skipping rid(%d, %d) because can't use disk version",
-                             rid._extent, rid._offset ) ;
+                  PD_LOG( PDDEBUG,
+                          "skipping rid(%d, %d) because can't use disk version",
+                          rid._extent, rid._offset ) ;
 #endif
-                     _skipRecord = TRUE ;
-                     /// remove the duplicate rid
-                     _pScanner->removeDuplicatRID( _oldVer->getRecordID() ) ;
-                     goto done ;
-                  }
-               }
-
-               rc = _validateRecordFromOldVer( _eduCB, transID, visible ) ;
-               if ( SDB_OK != rc )
-               {
-                  goto error ;
-               }
-
-               // when oldVer record owner version is visible,
-               // _validateRecordFromOldVer set _oldVer = NULL visible = FALSE
-               //
-               // if both read transaction ( current transaction ) and write
-               // transaction ( who is holding the lock ) are global RR
-               // transactions, we need to check if the write transaction
-               // could be committed before read transaction started ( compare
-               // global logical time with time error ).
-               // if the visible is TRUE returned by checking, the write
-               // transaction must be committed in other groups to access
-               // this record updated by the write transaction, we need to
-               // wait for write transaction to commit to release locks
-               // instead of reading the old version
-               if ( ( NULL == _oldVer ) && ( !visible ) )
-               {
-                  // only set _skipRecord when have the record lock
-                  // if we don't have the record lock, DO NOT set _skipRecord
-                  // because we are going to wait on the lock after coming
-                  // out of this function
-                  if ( SDB_OK == irc )
-                  {
-                     _skipRecord = TRUE ;
-                  }
+                  _skipRecord = TRUE ;
+                  /// remove the duplicate rid
+                  _pScanner->removeDuplicatRID( _oldVer->getRecordID() ) ;
                   goto done ;
                }
             }
-            // try to get record from RBS
-            if ( !visible )
+
+            rc = _validateRecordFromOldVer( _eduCB, transID, visible ) ;
+            if ( SDB_OK != rc )
             {
-               _needPostAction = TRUE ;
+               goto error ;
             }
+
+            // when oldVer record owner version is visible,
+            // _validateRecordFromOldVer set _oldVer = NULL visible = FALSE
+            //
+            // if both read transaction ( current transaction ) and write
+            // transaction ( who is holding the lock ) are global RR
+            // transactions, we need to check if the write transaction
+            // could be committed before read transaction started ( compare
+            // global logical time with time error ).
+            // if the visible is TRUE returned by checking, the write
+            // transaction must be committed in other groups to access
+            // this record updated by the write transaction, we need to
+            // wait for write transaction to commit to release locks
+            // instead of reading the old version
+            if ( ( NULL == _oldVer ) && ( !visible ) )
+            {
+               // only set _skipRecord when have the record lock
+               // if we don't have the record lock, DO NOT set _skipRecord
+               // because we are going to wait on the lock after coming
+               // out of this function
+               if ( SDB_OK == irc )
+               {
+                  _skipRecord = TRUE ;
+               }
+               goto done ;
+            }
+         }
+         // try to get record from RBS
+         if ( !visible )
+         {
+            _needPostAction = TRUE ;
          }
       }
 
@@ -1400,6 +1376,131 @@ namespace engine
    error :
       goto done ;
    }
+
+   // Description:
+   //   reads record on disk and verify the record trans version visibility
+   //   before acquiring a record lock.
+   // Note:
+   //   It doesn't need the bucket latch / record lock, but it must be
+   //   protected by mblatch latch to make sure no one can update/change
+   //   the record it is going to read.
+   //   Although bkt latch is not acquired for calling beforeLockAcquire,
+   //   it is possible we hold the bucket latch this time. Here is the
+   //   scenario, when getS was put on waiter queue and previous
+   //   owner woke it up when released a record lock. It acquires the
+   //   bucket latch first, then removes itself from waiter queue and
+   //   executes _tryAcquireOrTest again.
+   void dmsTransLockCallback::beforeLockAcquire
+   (
+      const dpsTransLockId       &lockId,
+      DPS_TRANSLOCK_TYPE          requestLockMode,
+      DPS_TRANSLOCK_OP_MODE_TYPE  opMode
+   )
+   {
+      INT32        rc            = SDB_OK ;
+      DPS_TRANS_ID transID       = _eduCB->getTransID() ;
+      BOOLEAN      visible       = FALSE ;
+
+      /// when not leaf level, do nothing
+      if ( !lockId.isLeafLevel() )
+      {
+         goto done ;
+      }
+
+      clearStatus() ;
+
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG,
+              "beforeLockAcquire enter: rid[%s], transid(%s), "
+              "requestLockMode(%s), opMode:%d, ISO:%d, "
+              "_recordOnDiskVisible=%d, _needPostAction=%d, "
+              "scanner:%s",
+              lockId.toString().c_str(),
+              dpsTransIDToString( transID ).c_str(),
+              lockModeToString( requestLockMode ), opMode, _transIsolation,
+              _recordOnDiskVisible, _needPostAction,
+              ( (!_pScanner)
+                ? "TBScan"
+                : ( (SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType())
+                    ? "Memory tree"
+                    : "Disk index" ) ) ) ;
+#endif
+
+      if ( ( DPS_TRANSLOCK_S == requestLockMode ) &&
+           ( TRANS_ISOLATION_RR == _transIsolation ) )
+      {
+         if ( transID.isInvalid() || _eduCB->isInTransRollback() )
+         {
+            // not in transaction or roll back
+            goto done ;
+         }
+
+         // TBScan or disk index scan
+         if ( !_pScanner ||
+              ( SCANNER_TYPE_DISK == _pScanner->getCurScanType() ) )
+         {
+            // if no matter we have the record lock or not, always verify disk
+            // version first. Following scenario described the case we could
+            // endup using the disk version:
+            // T1 start, T2 start, T3 start;
+            // T2 did update on record(r1), hold record lock in X;
+            // T3 tries to delete r1, wait on lock X;
+            // As soon as T2 rollback, T1 tries to read r1 through idx scan,
+            // coming from disk scanner. Note that T1 will fail on record lock
+            // because there is a X waiter. But rollback will remove the old
+            // version from the in memory tree, and put back the original
+            // record. So the record should be visiable. The oldver is still
+            // exist in LRBHdr. If we don't return the record, we could end up
+            // skipping the record because _oldVer->idxLidExist() could be true.
+            // We won't read partial page because we hold mbLatch in S.
+
+            const dmsRecord* record = _recordRW->readPtr( 0 ) ;
+
+            // record doesn't have glob trans, might come from
+            // non-transactional update, visible
+            if ( ! record->hasGlobTransID() )
+            {
+               _recordOnDiskVisible = TRUE ;
+               goto done ;
+            }
+            DPS_TRANS_ID recTransID = record->getGlobTransID() ;
+            rc = _transCB->isVersionVisible( _eduCB,
+                                             recTransID,
+                                             transID,
+                                             _eduCB->getTransBeginTime(),
+                                             TRANS_ISOLATION_RR,
+                                             FALSE,
+                                             visible ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to check visibility for "
+                         "read transaction [%s] against record"
+                         "transaction [%s], rc: %d",
+                         dpsTransIDToString( transID ).c_str(),
+                         dpsTransIDToString( recTransID ).c_str(), rc ) ;
+
+            _recordOnDiskVisible = visible ;
+         }
+      }
+   done :
+      _result = rc ;
+
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG,
+              "beforeLockAcquire exit: "
+              "rid[%s], lockmod=%s, opMode:%d, "
+              "_recordOnDiskVisible=%d, _needPostAction=%d, "
+              "rc=%d, transID(%s)",
+              lockId.toString().c_str(),
+              lockModeToString( requestLockMode ), opMode,
+              _recordOnDiskVisible, _needPostAction,
+              rc, dpsTransIDToString( transID ).c_str() ) ;
+#endif
+
+      return ;
+   error:
+      goto done ;
+   }
+
 
    // Description:
    //    Function called before lock release(in dpsTransLockManager::_release)
