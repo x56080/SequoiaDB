@@ -56,12 +56,6 @@ namespace engine
    #define DPS_LOCKID_STRING_MAX_SIZE      ( 128 )
    #define DPS_TRANSLOCK_DUMP_SLICE_SIZE   ( 1000 )
 
-   dpsTransLRBHeader::dpsTransLRBHeader()
-   : nextLRBHdr(NULL), ownerLRB(NULL),
-     waiterLRB(NULL), upgradeLRB(NULL), bktIdx(DPS_LOCK_INVALID_BUCKET_SLOT)
-   {
-   }
-
    dpsTransLockManager::dpsTransLockManager( LOCKMGR_TYPE managerType )
    : _LockHdrBkt( NULL ),
      _bktSlotMax( 0 ) ,
@@ -543,6 +537,34 @@ namespace engine
 
 
    //
+   // Description: after add an IX or IS LRB to owner list,
+   //              update the newestIXOwnerList or newestISOwnerList in LRBHdr
+   // Input:
+   //    lrbNew -- the LRB to be added in
+   // Output:     None
+   // Return:     None
+   // Dependency:  the lock bucket latch shall be acquired
+   //
+   void dpsTransLockManager::_setNewestISIXOwner
+   (
+      dpsTransLRB *lrbNew
+   )
+   {
+      if ( lrbNew )
+      {
+         if ( DPS_TRANSLOCK_IS == lrbNew->lockMode )
+         {
+            lrbNew->lrbHdr->newestISOwner = lrbNew ;
+         }
+         else if ( DPS_TRANSLOCK_IX == lrbNew->lockMode )
+         {
+            lrbNew->lrbHdr->newestIXOwner = lrbNew ;
+         }
+      }
+   }
+
+
+   //
    // Description: search owner LRB list and find the expected LRB
    // Function:    walk through owner LRB list ( it is sorted on lockMode in
    //              descending order ) and find out :
@@ -668,7 +690,36 @@ namespace engine
          // the owner list is sorted on lock mode in descending order
          if ( ! foundIns )
          {
-            if ( lockMode >= plrb->lockMode )
+            // if request mode is IS or IX
+            if ( DPS_TRANSLOCK_IX >= lockMode )
+            {
+               dpsTransLRBHeader * pLRBHdr = plrb->lrbHdr ;
+
+               if ( DPS_TRANSLOCK_IS == lockMode )
+               {
+                  if ( pLRBHdr->newestISOwner )
+                  {
+                     // when pLRBHdr->newestISOwner->prevLRB is NULL,
+                     // it implies that is the first one in the list.
+                     // The later code ( add to the new LRB after
+                     // this pLRBToInsert into owner list ) shall
+                     // be able to handle this case.
+                     pLRBToInsert = pLRBHdr->newestISOwner->prevLRB ;
+                     foundIns     = TRUE ;
+                  }
+               }
+               else
+               {
+                  if ( pLRBHdr->newestIXOwner )
+                  {
+                     // ditto, when pLRBHdr->newestIXOwner->prevLRB is NULL,
+                     // implies that is the first one in the list.
+                     pLRBToInsert = pLRBHdr->newestIXOwner->prevLRB ;
+                     foundIns     = TRUE ;
+                  }
+               }
+            }
+            if ( ( !foundIns ) && ( lockMode >= plrb->lockMode ) )
             {
                // save the LRB pointer where it shall be inserted after
                pLRBToInsert = plrb->prevLRB ;
@@ -840,6 +891,38 @@ namespace engine
    {
       if ( beginLRB && delLRB )
       {
+         dpsTransLRBHeader * pLRBHdr = delLRB->lrbHdr ;
+
+         // if remove from owner list
+         if ( beginLRB == pLRBHdr->ownerLRB )
+         {
+            // if delLRB is the newestISOwner or newestIXOwner
+            if ( delLRB == pLRBHdr->newestISOwner )
+            {
+               if ( ( delLRB->nextLRB ) &&
+                    ( DPS_TRANSLOCK_IS == delLRB->nextLRB->lockMode ) )
+               {
+                  pLRBHdr->newestISOwner = delLRB->nextLRB ;
+               }
+               else
+               {
+                  pLRBHdr->newestISOwner = NULL ;
+               }
+            }
+            else if ( delLRB == pLRBHdr->newestIXOwner )
+            {
+               if ( ( delLRB->nextLRB ) &&
+                    ( DPS_TRANSLOCK_IX == delLRB->nextLRB->lockMode ) )
+               {
+                  pLRBHdr->newestIXOwner = delLRB->nextLRB ;
+               }
+               else
+               {
+                  pLRBHdr->newestIXOwner = NULL ;
+               }
+            }
+         }
+
          // if the first one is the one to be removed
          if ( delLRB == beginLRB )
          {
@@ -1587,6 +1670,9 @@ namespace engine
                // remove from current place
                _removeFromLRBList( pLRBHdr->ownerLRB, pLRB ) ;
 
+               // update current lock mode to the request mode
+               pLRB->lockMode = requestLockMode ;
+
                // insert it to the new position
                if ( pLRBToInsert )
                {
@@ -1598,13 +1684,13 @@ namespace engine
                   _addToLRBListHead( pLRBHdr->ownerLRB, pLRB ) ;
                }
 
+               // set newestISOwner or newestIXOwner in lrbhdr
+               _setNewestISIXOwner( pLRB ) ;
+
                _moveToEDULRBListTail( dpsTxExectr, pLRB ) ;
 
                // clear the wait info in dpsTxExectr
                dpsTxExectr->clearWaiterInfo( _lockMgrType ) ;
-
-               // update current lock mode to the request mode
-               pLRB->lockMode = requestLockMode ;
 
                pLRB->refCounter ++ ;
             }
@@ -1686,6 +1772,9 @@ namespace engine
                      _addToLRBListHead( pLRBHdr->ownerLRB, pLRBNew ) ;
                   }
 
+                  // set newestISOwner or newestIXOwner in lrbhdr
+                  _setNewestISIXOwner( pLRBNew ) ;
+
                   // sample tick before adding to edulist or setting
                   // waiter info to make sure snapshot trans is correct.
                   pLRBNew->beginTick.sample() ;
@@ -1724,6 +1813,9 @@ namespace engine
                         {
                            _addToLRBListHead( pLRBHdr->ownerLRB, pLRBNew ) ;
                         }
+
+                        // set newestISOwner or newestIXOwner in lrbhdr
+                        _setNewestISIXOwner( pLRBNew ) ;
 
                         // sample tick before adding to edulist or setting
                         // waiter info to make sure snapshot trans is correct.
@@ -1900,6 +1992,15 @@ namespace engine
       }
 
       pLRBHdrNew->ownerLRB   = pLRBNew;
+
+      if ( DPS_TRANSLOCK_IS == requestLockMode )
+      {
+         pLRBHdrNew->newestISOwner = pLRBNew ;
+      }
+      else if ( DPS_TRANSLOCK_IX == requestLockMode )
+      {
+         pLRBHdrNew->newestIXOwner = pLRBNew ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRBANDHEADER, rc ) ;
@@ -3228,12 +3329,15 @@ nextLock:
          ossSnprintf( pBuf, bufSz,
           "LRB Header: %p, nextLRBHdr: %p, "
           "ownerLRB: %p, waiterLRB : %p, upgradeLRB: %p, "
+          "newestISOwner: %p, newestIXOwner: %p,"
           "lockId: ( %s )",
           pLRBHdr,
           pLRBHdr->nextLRBHdr,
           pLRBHdr->ownerLRB,
           pLRBHdr->waiterLRB,
           pLRBHdr->upgradeLRB,
+          pLRBHdr->newestISOwner,
+          pLRBHdr->newestIXOwner,
           pLRBHdr->lockId.toString().c_str() ) ;
       }
       return pBuf;
@@ -3271,6 +3375,12 @@ nextLock:
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
                                "%supgradeLRB : %p"OSS_NEWLINE, pStr,
                                pLRBHdr->upgradeLRB );
+         pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
+                               "%sISOwner    : %p"OSS_NEWLINE, pStr,
+                               pLRBHdr->newestISOwner );
+         pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
+                               "%sIXOwner    : %p"OSS_NEWLINE, pStr,
+                               pLRBHdr->newestIXOwner );
          pBuff += ossSnprintf( pBuff, bufSz - strlen( pBuf ),
                                "%slockId     : ( %s )"OSS_NEWLINE, pStr,
                                pLRBHdr->lockId.toString().c_str() ) ;

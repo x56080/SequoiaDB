@@ -96,8 +96,8 @@ namespace engine
 
       void reset()
       {
-         dpsTxExectr = NULL ; 
-         eduLrbNext  = NULL ; 
+         dpsTxExectr = NULL ;
+         eduLrbNext  = NULL ;
          eduLrbPrev  = NULL ;
          lrbHdr      = NULL ;
          nextLRB     = NULL ;
@@ -202,28 +202,35 @@ namespace engine
       dpsTransLRB       * ownerLRB ;     // the first owner LRB in its chain
       dpsTransLRB       * waiterLRB ;    // the first waiter LRB in its chain
       dpsTransLRB       * upgradeLRB;    // the first upgrader LRB in its chain
+      dpsTransLRB       * newestIXOwner ;// the newest IX LRB in owner list
+      dpsTransLRB       * newestISOwner ;// the newest IS LRB in owner list
       dpsTransLockId      lockId ;       // lockId, 16 bytes
       UINT32              bktIdx ;       // hash bucket index
       /// user data
       dpsLRBExtData extData ;
 
    public :
-      dpsTransLRBHeader();
-
       dpsTransLRBHeader( dpsTransLockId lock, UINT32 _bktIdx )
-      : nextLRBHdr(NULL), ownerLRB(NULL),
-        waiterLRB(NULL), upgradeLRB(NULL),
-        lockId(lock), bktIdx(_bktIdx)
+      : nextLRBHdr( NULL ),
+        ownerLRB( NULL ),
+        waiterLRB( NULL ),
+        upgradeLRB( NULL),
+        newestIXOwner( NULL ),
+        newestISOwner( NULL ),
+        lockId( lock ),
+        bktIdx( _bktIdx )
       {
       }
 
       void reset()
       {
-         nextLRBHdr = NULL ;
-         ownerLRB   = NULL ;
-         waiterLRB  = NULL ;
-         upgradeLRB = NULL ;
-         bktIdx     = ( (UINT32) -1 ) ;
+         nextLRBHdr    = NULL ;
+         ownerLRB      = NULL ;
+         waiterLRB     = NULL ;
+         upgradeLRB    = NULL ;
+         newestIXOwner = NULL ;
+         newestISOwner = NULL ;
+         bktIdx        = ( (UINT32) -1 ) ;
          lockId.reset() ;
          extData.reset() ;
       }

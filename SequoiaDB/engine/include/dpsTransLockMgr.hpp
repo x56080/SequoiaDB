@@ -307,6 +307,13 @@ namespace engine
          dpsTransLRB * idxNew
       ) ;
 
+      // set newestIXOwner or newestIXOwner in LRBHdr after
+      // an IS or IX LRB is added into owner list
+      void _setNewestISIXOwner
+      (
+         dpsTransLRB *lrbNew
+      ) ;
+
       // search owner LRB list, and find
       //  . if the edu is in owner list
       //  . the position where the new LRB shall be inserted after
