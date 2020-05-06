@@ -1950,10 +1950,23 @@ namespace engine
 
                /// remove the duplicate key
                _scanner->removeDuplicatRID( _curRID ) ;
+
 #ifdef _DEBUG
-               PD_LOG( PDDEBUG, "Cursor changed while waiting for lock,"
-                       " rid(%d, %d)", _curRID._extent, _curRID._offset ) ;
+               PD_LOG( PDDEBUG, "Cursor changed while waiting for lock, "
+                       "rid(%d, %d), isCursorSame(%d), _onceRestNum(%d), "
+                       "isSkipRecord(%d)",
+                       _curRID._extent, _curRID._offset,
+                       ixTxContext.isCursorSame(), _onceRestNum,
+                       _callback.isSkipRecord()) ;
 #endif
+               // When cursor changed, we may need to go back to previous
+               // key to retry, don't count as a step. Also avoid potential
+               // pause here if step becomes 0, in which case we may unexpectly
+               // lose previously savedObj and savedRID and cause skip record.
+               if ( !ixTxContext.isCursorSame() )
+               {
+                  _onceRestNum++ ;
+               }
                continue ;
             }
          } // end of (_recordLock != -1)
