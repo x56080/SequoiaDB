@@ -4,7 +4,7 @@
 ***************************************************************************** */
 testConf.skipStandAlone = true;
 
-//main( test );SEQUOIADBMAINSTREAM-5283，待开发修改问题单后放开此用例
+main( test );
 
 function test()
 {

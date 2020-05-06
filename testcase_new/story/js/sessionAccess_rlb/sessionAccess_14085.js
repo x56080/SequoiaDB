@@ -8,7 +8,7 @@ testConf.skipOneDuplicatePerGroup = true;
 //SEQUOIADBMAINSTREAM-5283
 //与用例14101相似，与开发确认当节点的instanceid更新成与另外一个节点的下标相同时，访问的节点从两个节点中随机选择，但实际结果是大多数
 //情况下只访问了被设置instanceid值的节点，不确定是否是上面问题单中的问题导致的，待问题单解决后再放开此用例
-//main( test );
+main( test );
 function test()
 {
    var clName = CHANGEDPREFIX + "_14085";
