@@ -992,10 +992,7 @@ namespace engine
 
          // use the last pre-commit as commit time
          // NOTE: it might retry for several times due to network traffic
-         rc = transCB->getGlobCommitTime( cb, commitTime ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get commit time for transaction "
-                      "[%s], rc: %d",
-                      dpsTransIDToString( cb->getTransID() ).c_str(), rc ) ;
+         transCB->getGlobCommitTime( cb, commitTime ) ;
 
          // NOTE: commit time uses time error of transaction begin time
          cb->setTransCommitTime( commitTime ) ;
@@ -1009,11 +1006,7 @@ namespace engine
       *pMsg = ( CHAR* )&_phase2Msg ;
       *pMsgSize = _phase2Msg.header.messageLength ;
 
-   done:
       return rc ;
-
-   error:
-      goto done ;
    }
 
    void _coordTransCommit::releasePhase2Msg( CHAR *pMsg,

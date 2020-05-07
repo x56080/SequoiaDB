@@ -379,11 +379,7 @@ namespace engine
       // need get commit time if needed
       if ( cb->isGlobTrans() && !commitTime.isValid() )
       {
-         rc = transCB->getGlobCommitTime( cb, commitTime ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
-                      "commit transaction [%s], rc: %d",
-                      dpsTransIDToString( transInfo._transID ).c_str(),
-                      rc ) ;
+         transCB->getGlobCommitTime( cb, commitTime ) ;
       }
 
       // update commit time
