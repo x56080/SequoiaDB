@@ -818,35 +818,33 @@ namespace engine
 
       stpLogicalTimeUS receivedTime ;
 
-      if ( transCB->isGlobTransSyncCheck() ||
-           transCB->isGlobTransArbitOn() )
+      // check if received global transaction time is valid
+      // if not valid, retry now
+      if ( 0LL == _recvGlobTime )
       {
-         if ( 0LL == _recvGlobTime )
-         {
-            PD_LOG( PDWARNING, "Failed to get global transaction time "
-                    "for RR transaction checking" ) ;
-            stpAgent agent ;
-            rc = agent.getLogicalTimeUS( receivedTime,
-                                         _pEDUCB->getTransTimeout(),
-                                         FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get global logical "
-                         "time for transaction begin on this node, "
-                         "rc: %d", rc ) ;
-         }
-         else
-         {
-            receivedTime.setTime( _recvGlobTime ) ;
-         }
+         PD_LOG( PDWARNING, "Failed to get global transaction time "
+                 "for RR transaction checking" ) ;
+         stpAgent agent ;
+         rc = agent.getLogicalTimeUS( receivedTime,
+                                      _pEDUCB->getTransTimeout(),
+                                      FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get global logical "
+                      "time for transaction begin on this node, "
+                      "rc: %d", rc ) ;
+      }
+      else
+      {
+         receivedTime.setTime( _recvGlobTime ) ;
+      }
 
 #if defined (_DEBUG)
-         PD_LOG( PDDEBUG, "Check RR transaction begin [%s], "
-                 "begin time [%s], send time [%s], "
-                 "receive time [%s]", dpsTransIDToString( transID ).c_str(),
-                 dpsTransTimeToString( transBeginTime ).c_str(),
-                 dpsTransTimeToString( sendTime ).c_str(),
-                 dpsTransTimeToString( receivedTime ).c_str() ) ;
+      PD_LOG( PDDEBUG, "Check RR transaction begin [%s], "
+              "begin time [%s], send time [%s], "
+              "receive time [%s]", dpsTransIDToString( transID ).c_str(),
+              dpsTransTimeToString( transBeginTime ).c_str(),
+              dpsTransTimeToString( sendTime ).c_str(),
+              dpsTransTimeToString( receivedTime ).c_str() ) ;
 #endif
-      }
 
       // check transaction with RR isolation
       // - check logical times between remote and local nodes, the logical time

@@ -90,7 +90,6 @@ namespace engine
       _TransIDH16          = DPS_INVALID_TRANSID_NODEID ;
       _isOn                = FALSE ;
       _isGlobTransOn       = FALSE ;
-      _isGlobTransArbitOn  = FALSE ;
       _isGlobTransSyncCheck = FALSE ;
       _isMVCCOn            = FALSE ;
       _doRollback          = FALSE ;
@@ -135,8 +134,10 @@ namespace engine
 
       _isOn = pmdGetOptionCB()->transactionOn() ;
       _isGlobTransOn = pmdGetOptionCB()->globTransOn() ;
-      _isGlobTransArbitOn = pmdGetOptionCB()->globTransArbitOn() ;
-      _isGlobTransSyncCheck = pmdGetOptionCB()->globTransSyncCheck() ;
+      // if --globtransmaxtimeerror < 0, means no need to check global time
+      // synchronization between SequoiaDB nodes
+      _isGlobTransSyncCheck =
+            pmdGetOptionCB()->globTransMaxTimeError() >= 0 ? TRUE : FALSE ;
       _isMVCCOn = pmdGetOptionCB()->mvccOn() ;
       _rollbackEvent.signal() ;
 
@@ -936,8 +937,7 @@ namespace engine
          // global expireTran is passed, should see
          visible = TRUE ;
       }
-      else if ( isGlobTransArbitOn() &&
-                recTransID.getNodeID() != transID.getNodeID() &&
+      else if ( recTransID.getNodeID() != transID.getNodeID() &&
                 _TransIDH16 != recTransID.getNodeID() )
       {
          // from different node, check visible in global cluster with
@@ -3095,11 +3095,6 @@ namespace engine
    BOOLEAN dpsTransCB::isGlobTransSyncCheck() const
    {
       return _isGlobTransSyncCheck ;
-   }
-
-   BOOLEAN dpsTransCB::isGlobTransArbitOn() const
-   {
-      return _isGlobTransArbitOn ;
    }
 
    BOOLEAN dpsTransCB::isMVCCOn() const
