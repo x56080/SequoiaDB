@@ -1885,8 +1885,6 @@ done:
       _transactionOn       = TRUE ;
       _mvccOn              = FALSE ;
       _globTransOn         = FALSE ;
-      _globTransSyncCheck  = TRUE ;
-      _globTransArbitOn    = TRUE ;
       _globTransMaxTimeError = DPS_DEF_GLOBTRANS_MAXTIMEERROR ;
       _transIsolation      = DPS_TRANS_ISOLATION_DFT ;
       _transLockwait       = DPS_TRANS_LOCKWAIT_DFT ;
@@ -2212,19 +2210,11 @@ done:
       rdxBooleanS( pEX, PMD_OPTION_GLOBTRANSON, _globTransOn, FALSE,
                    PMD_CFG_CHANGE_REBOOT, FALSE ) ;
 
-      // --globtransarbiton
-      rdxBooleanS( pEX, PMD_OPTION_GLOBTRANSARBITON, _globTransArbitOn, FALSE,
-                   PMD_CFG_CHANGE_REBOOT, _globTransOn, TRUE ) ;
-
-      // --globtranssyncchk
-      rdxBooleanS( pEX, PMD_OPTION_GLOBTRANSSYNCCHK, _globTransSyncCheck, FALSE,
-                   PMD_CFG_CHANGE_REBOOT, _globTransOn, TRUE ) ;
-
       // --globtransmaxtimeerror
-      rdxUInt( pEX, PMD_OPTION_GLOBTRANMAXTIMEERROR, _globTransMaxTimeError,
-               FALSE, PMD_CFG_CHANGE_RUN, DPS_DEF_GLOBTRANS_MAXTIMEERROR,
-               TRUE ) ;
-      rdvMinMax( pEX, _globTransMaxTimeError, 0,
+      rdxInt( pEX, PMD_OPTION_GLOBTRANSMAXTIMEERROR, _globTransMaxTimeError,
+              FALSE, PMD_CFG_CHANGE_REBOOT, DPS_DEF_GLOBTRANS_MAXTIMEERROR,
+              TRUE ) ;
+      rdvMinMax( pEX, _globTransMaxTimeError, -1,
                  DPS_MAX_GLOBTRANS_MAXTIMEERROR, TRUE ) ;
 
       // --transactiontimeout
@@ -2557,23 +2547,6 @@ done:
          std::cerr << PMD_OPTION_GLOBTRANSON << " value error, use default"
                    << endl ;
          _globTransOn = FALSE ;
-      }
-
-      // globtransarbiton check, requires globtranson
-      if ( !_globTransOn && _globTransArbitOn )
-      {
-         std::cerr << PMD_OPTION_GLOBTRANSARBITON << " requires "
-                   << PMD_OPTION_GLOBTRANSON << ", set to FALSE"
-                   << endl ;
-         _globTransArbitOn = FALSE ;
-      }
-
-      if ( !_globTransOn && _globTransSyncCheck )
-      {
-         std::cerr << PMD_OPTION_GLOBTRANSSYNCCHK << " requires "
-                   << PMD_OPTION_GLOBTRANSON << ", set to FALSE"
-                   << endl ;
-         _globTransSyncCheck = FALSE ;
       }
 
       // audit mask check

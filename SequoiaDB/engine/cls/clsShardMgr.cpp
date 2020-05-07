@@ -894,9 +894,20 @@ namespace engine
       // set maximum acceptable time error
       if ( NULL != _pGTSAgent )
       {
-         _pGTSAgent->setMaxNodeTimeError(
-               (UINT32)( STP_MICROSEC_TO_NANOSEC(
-                     pmdGetOptionCB()->globTransMaxTimeError() ) ) ) ;
+         if ( pmdGetOptionCB()->globTransMaxTimeError() >= 0 )
+         {
+            _pGTSAgent->setMaxNodeTimeError(
+                  (UINT32)( STP_MICROSEC_TO_NANOSEC(
+                        pmdGetOptionCB()->globTransMaxTimeError() ) ) ) ;
+         }
+         else
+         {
+            // if --globtransmaxtimeerror < 0, means no need to check global time
+            // synchronization between SequoiaDB nodes, set max node time error
+            // to invalid value ( maximum value in UINT32 )
+            _pGTSAgent->setMaxNodeTimeError(
+                        DPS_INVALID_GLOBTRANS_MAXTIMEERROR ) ;
+         }
       }
 
    done:
@@ -959,13 +970,6 @@ namespace engine
          pNetFrame->setMaxSockPerNode( optionCB->maxSockPerNode() ) ;
          pNetFrame->setMaxSockPerThread( optionCB->maxSockPerThread() ) ;
          pNetFrame->setMaxThreadNum( optionCB->maxSockThread() ) ;
-      }
-      // set maximum acceptable time error
-      if ( NULL != _pGTSAgent )
-      {
-         _pGTSAgent->setMaxNodeTimeError(
-               (UINT32)( STP_MICROSEC_TO_NANOSEC(
-                     optionCB->globTransMaxTimeError() ) ) ) ;
       }
    }
 

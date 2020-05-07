@@ -808,7 +808,6 @@ namespace engine
       BOOLEAN isTransOn() const ;
       BOOLEAN isGlobTransOn() const ;
       BOOLEAN isGlobTransSyncCheck() const ;
-      BOOLEAN isGlobTransArbitOn() const ;
       BOOLEAN isMVCCOn() const ;
       // RR requires --transactionon, --globtranson and --mvccon
       BOOLEAN isRRSupported() const ;
@@ -1062,10 +1061,6 @@ namespace engine
       // hidden option to indicate if we need to check logical time
       // synchronization between transaction nodes
       BOOLEAN           _isGlobTransSyncCheck ;
-
-      // hidden option to indicate if we need to do arbitration between
-      // global transactions
-      BOOLEAN           _isGlobTransArbitOn ;
 
       BOOLEAN           _isMVCCOn ;
       BOOLEAN           _doRollback ;

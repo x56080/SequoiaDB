@@ -2554,75 +2554,25 @@
    </opt>
 
    <opt>
-      <name>PMD_OPTION_GLOBTRANSSYNCCHK</name>
-      <long>globtranssyncchk</long>
+      <name>PMD_OPTION_GLOBTRANSMAXTIMEERROR</name>
+      <long>globtransmaxtimeerror</long>
       <description>
-         <en>Turn on global transaction time synchronize check, default: true</en>
-         <cn>是否打开全局事务时间校对，默认值为：true</cn>
+        <en>Maximum acceptable time error ( in microsecond ) between global transaction nodes caused by network delay, default is 500000. -1 means global transaction nodes will not check transaction times.</en>
+        <cn>全局事务节点间可以接受的由于网络传输造成的最大时间误差（单位为微秒），默认是 500000。-1 表示全局事务节点间不进行全局时间校对。</cn>
       </description>
       <reloadable>
          <en>Take effect after restart</en>
          <cn>重启生效</cn>
-      </reloadable>
-      <default>true</default>
-      <hidden>true</hidden>
-      <detail>
-         <en>1. It specifies whether global transaction time synchronize check is enabled or not.<fig></fig>
-             2. If it is not specifed, the default value is true.<fig></fig>
-             3. Only takes effect when globtranson is true.<fig></fig>
-             4. Global transaction time synchronize check requires STP support.</en>
-         <cn>1. 指定是否打开全局事务时间校对。<fig></fig>
-             2. 如果不指定，则默认值为 true。<fig></fig>
-             3. 只有当 globtranson 开启时，取值才会有效。<fig></fig>
-             4. 全局事务时间校对要求接入全局时间服务支持。</cn>
-      </detail>
-      <typeofweb>boolean</typeofweb>
-   </opt>
-
-   <opt>
-      <name>PMD_OPTION_GLOBTRANSARBITON</name>
-      <long>globtransarbiton</long>
-      <description>
-         <en>Turn on global transaction arbitration, default: true</en>
-         <cn>是否打开全局事务仲裁，默认值为：true</cn>
-      </description>
-      <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
-      </reloadable>
-      <default>true</default>
-      <hidden>true</hidden>
-      <detail>
-         <en>1. It specifies whether global transaction arbitration is enabled or not.<fig></fig>
-             2. If it is not specifed, the default value is true.<fig></fig>
-             3. Only takes effect when globtranson is true.<fig></fig>
-             4. Global transaction arbitration requires STP support.</en>
-         <cn>1. 指定是否打开全局事务仲裁。<fig></fig>
-             2. 如果不指定，则默认值为 true。<fig></fig>
-             3. 只有当 globtranson 开启时，取值才会有效。<fig></fig>
-             4. 全局事务仲裁要求接入全局时间服务支持。</cn>
-      </detail>
-      <typeofweb>boolean</typeofweb>
-   </opt>
-
-   <opt>
-      <name>PMD_OPTION_GLOBTRANMAXTIMEERROR</name>
-      <long>globtranmaxtimeerror</long>
-      <description>
-        <en>Maximum acceptable time error ( in microsecond ) between global transaction nodes caused by network delay, default is 500000</en>
-        <cn>全局事务节点间可以接受的由于网络传输造成的最大时间误差（单位为微秒），默认是 500000</cn>
-      </description>
-      <reloadable>
-         <en>Take effect immediately</en>
-         <cn>在线生效</cn>
       </reloadable>
       <detail>
         <en>1. Maximum acceptable time error ( in microsecond ) between global transaction nodes caused by network delay.<fig></fig>
             2. default is 500000.<fig></fig>
-            3. maximum is 5000000.</en>
+            3. maximum is 5000000.<fig></fig>
+            4. minimum is -1, means global transaction nodes will not check transaction times.</en>
         <cn>1. 全局事务节点间可以接受的由于网络传输造成的最大时间误差（单位为微秒）。<fig></fig>
             2. 默认是 500000。<fig></fig>
-            3. 最大值是 5000000。</cn>
+            3. 最大值是 5000000。<fig></fig>
+            4. 最小值为 -1，表示全局事务节点间不进行全局时间校对。</cn>
       </detail>
       <type>int</type>
       <default>500000</default>
