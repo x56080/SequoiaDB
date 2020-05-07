@@ -4,7 +4,7 @@
 *@createdate:  2017.8.22
 **************************************/
 var clName = CHANGEDPREFIX + "_updateShardingKey_12169";
-main();
+//main();
 function main ()
 {
    if( true == commIsStandalone( db ) )
