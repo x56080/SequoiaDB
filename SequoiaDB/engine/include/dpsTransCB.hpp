@@ -523,14 +523,10 @@ namespace engine
       //    - eduCB: EDUCB of transaction
       // output:
       //    - commitTime: logical time to commit transaction
-      // return:
-      //    - SDB_OK: succeed to get time
-      //    - STP_NOT_AVAILABLE: STP is not available for global transaction
-      //    - SDB_TIMEOUT: failed to get time in given timeout
       // NOTE: for global transaction, it should be commit after
       //       pre-commit time
-      INT32 getGlobCommitTime( _pmdEDUCB *eduCB,
-                               stpLogicalTimeUS &commitTime ) ;
+      void getGlobCommitTime( _pmdEDUCB *eduCB,
+                              stpLogicalTimeUS &commitTime ) ;
 
       // get transaction info
       // input:

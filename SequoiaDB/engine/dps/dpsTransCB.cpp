@@ -1480,32 +1480,21 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBCOMMITTIME, "dpsTransCB::getGlobCommitTime" )
-   INT32 dpsTransCB::getGlobCommitTime( pmdEDUCB *eduCB,
-                                        stpLogicalTimeUS &commitTime )
+   void dpsTransCB::getGlobCommitTime( pmdEDUCB *eduCB,
+                                       stpLogicalTimeUS &commitTime )
    {
-      INT32 rc = SDB_OK ;
-
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBPRECOMMITTIME ) ;
 
       SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
       SDB_ASSERT( eduCB->isGlobTrans(), "should be in global transaction" ) ;
 
-      // commit time should after pre-commit time
-      // NOTE: pre-commit time might be delayed by DATA nodes
-      UINT64 expectTimeUS = eduCB->getTransPreCommitTime().getTime() ;
+      // global commit time should be >= global pre-commit time
+      // NOTE: global pre-commit time might be delayed by DATA nodes, and
+      //       conflict read transactions are waiting in DATA nodes, so we
+      //       could use global pre-commit time directly
+      commitTime = eduCB->getTransPreCommitTime() ;
 
-      rc = getGlobTransTime( eduCB, expectTimeUS, commitTime,
-                             (INT32)( eduCB->getTransTimeout() ) ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
-                   "pre-commit of transaction [%s], rc: %d",
-                   dpsTransIDToString( eduCB->getTransID() ).c_str(), rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETGLOBPRECOMMITTIME, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
+      PD_TRACE_EXIT( SDB_DPSTRANSCB_GETGLOBPRECOMMITTIME ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETTRANSINFO_INFO, "dpsTransCB::getTransInfo" )
