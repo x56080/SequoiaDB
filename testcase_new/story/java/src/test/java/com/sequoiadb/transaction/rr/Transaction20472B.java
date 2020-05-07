@@ -97,10 +97,6 @@ public class Transaction20472B extends SdbTestBase {
         private void insertDelete() {
             try {
                 for ( int i = 0; i < loopNum * 2; i++ ) {
-                    System.out.println( "testcase: "
-                            + new Exception().getStackTrace()[ 0 ]
-                                    .getClassName()
-                            + " insert delete times:" + i );
                     int aId = ( int ) ( Math.random() * insertNum ) + insertNum;
                     int bId = ( int ) ( Math.random() * insertNum );
                     int cId = ( int ) ( Math.random() * insertNum ) - insertNum;
@@ -167,11 +163,6 @@ public class Transaction20472B extends SdbTestBase {
         private void query() throws Exception {
             try {
                 for ( int i = 0; i < loopNum * 3; i++ ) {
-                    System.out
-                            .println( "testcase: "
-                                    + new Exception().getStackTrace()[ 0 ]
-                                            .getClassName()
-                                    + " query times:" + i );
                     // 开启查询事务,表扫描
                     TransUtils.beginTransaction( db );
                     String sqlIdxScan = "select sum(a) as sum from " + csName
@@ -237,10 +228,6 @@ public class Transaction20472B extends SdbTestBase {
         private void dropIndex() {
             try {
                 for ( int i = 0; i < loopNum * 3; i++ ) {
-                    System.out.println( "testcase: "
-                            + new Exception().getStackTrace()[ 0 ]
-                                    .getClassName()
-                            + " drop and create index:" + i );
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     cl.createIndex( idxName, indexKey, false, false );

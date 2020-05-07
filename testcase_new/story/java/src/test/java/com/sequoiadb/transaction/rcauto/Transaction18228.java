@@ -72,8 +72,6 @@ public class Transaction18228 extends SdbTestBase {
 
         DBCursor cursor = cl.query( "", "", "{a:1, b:1}", "" );
         List< BSONObject > actList = TransUtils.getReadActList( cursor );
-        System.out.println( "actList:" + actList );
-        System.out.println( "expList:" + expList );
         Assert.assertEquals( actList, expList );
 
         // 使用update批量更新记录R1s为R2s，过程中某条记录由于唯一索引键与R2冲突导致更新失败，更新操作走索引
