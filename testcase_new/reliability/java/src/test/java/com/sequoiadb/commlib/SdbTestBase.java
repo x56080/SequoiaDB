@@ -47,6 +47,7 @@ public class SdbTestBase {
     private static final String TRANSUSERBS = "transuserbs";
     private static final String TRANSREPLSIZE = "transreplsize";
     private static final String GLOBTRANSON = "globtranson";
+    private static final String TRANSREPLSIZE = "transreplsize";
     private static final String MVCCON = "mvccon";
     private static final String RCAUTO = "rcauto";
     private static final String RC = "rc";
@@ -150,14 +151,18 @@ public class SdbTestBase {
         group2Conf.put( RR, new BasicBSONObject() );
         group2Conf.get( RR ).put( TRANSISOLATION, 3 );
         group2Conf.get( RR ).put( TRANSLOCKWAIT, false );
-        group2Conf.get( RR ).put( MVCCON, true );
+        group2Conf.get( RR ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( RR ).put( TRANSAUTOROLLBACK, true );
         group2Conf.get( RR ).put( TRANSUSERBS, true );
+        group2Conf.get( RR ).put( MVCCON, true );
         group2Conf.get( RR ).put( GLOBTRANSON, true );
 
         group2Conf.put( RRAUTO, new BasicBSONObject() );
         group2Conf.get( RRAUTO ).put( TRANSISOLATION, 3 );
+        group2Conf.get( RRAUTO ).put( TRANSLOCKWAIT, false );
         group2Conf.get( RRAUTO ).put( TRANSAUTOCOMMIT, true );
         group2Conf.get( RRAUTO ).put( TRANSAUTOROLLBACK, false );
+        group2Conf.get( RRAUTO ).put( TRANSUSERBS, true );
         group2Conf.get( RRAUTO ).put( MVCCON, true );
         group2Conf.get( RRAUTO ).put( GLOBTRANSON, true );
 
