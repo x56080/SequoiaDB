@@ -39,6 +39,12 @@ public class Transaction18420B extends SdbTestBase {
         db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1.setSessionAttr( ( BSONObject ) JSON.parse(
+                "{TransTimeout:" + TransUtils.transTimeoutSession + "}" ) );
+        db2.setSessionAttr( ( BSONObject ) JSON.parse(
+                "{TransTimeout:" + TransUtils.transTimeoutSession + "}" ) );
+        db3.setSessionAttr( ( BSONObject ) JSON.parse(
+                "{TransTimeout:" + TransUtils.transTimeoutSession + "}" ) );
         DBCollection cl = sdb.getCollectionSpace( csName )
                 .createCollection( clName );
         cl.createIndex( idxName, "{a:1}", false, false );

@@ -3,6 +3,7 @@ package com.sequoiadb.transaction.unlock;
 import java.util.List;
 
 import org.bson.BSONObject;
+import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -39,6 +40,12 @@ public class Transaction18405 extends SdbTestBase {
         db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1.setSessionAttr( ( BSONObject ) JSON.parse(
+                "{TransTimeout:" + TransUtils.transTimeoutSession + "}" ) );
+        db2.setSessionAttr( ( BSONObject ) JSON.parse(
+                "{TransTimeout:" + TransUtils.transTimeoutSession + "}" ) );
+        db3.setSessionAttr( ( BSONObject ) JSON.parse(
+                "{TransTimeout:" + TransUtils.transTimeoutSession + "}" ) );
         DBCollection cl = sdb.getCollectionSpace( csName )
                 .createCollection( clName );
         cl.createIndex( idxName, "{a:1}", false, false );
