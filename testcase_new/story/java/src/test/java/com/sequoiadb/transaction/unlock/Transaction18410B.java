@@ -99,12 +99,20 @@ public class Transaction18410B extends SdbTestBase {
         Assert.assertTrue(
                 TransUtils.isTransWaitLock( sdb, th3.getTransactionID() ) );
 
-        // 待事务2等锁超时后，提交事务1，事务3删除记录R1成功，提交所有事务，再次开启事务，执行查询，检查结果
+        // 待事务2等锁超时
         Assert.assertFalse(
                 th2.isSuccess() || ( int ) th2.getExecResult() != -13,
                 th2.getErrorMsg() );
+
+        // 事务3继续等锁
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th3.getTransactionID() ) );
+
+        // 提交事务1后,事务3返回
         db1.commit();
         Assert.assertTrue( th3.isSuccess(), th3.getErrorMsg() );
+
+        // 提交所有事务后开启事务查询
         db2.commit();
         db3.commit();
         TransUtils.beginTransaction( db1 );

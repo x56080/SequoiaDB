@@ -101,10 +101,16 @@ public class Transaction18412B extends SdbTestBase {
         Assert.assertTrue(
                 TransUtils.isTransWaitLock( sdb, th3.getTransactionID() ) );
 
-        // 提交事务1，事务3返回，返回R1
+        // 事务2等锁超时
         Assert.assertFalse(
                 th2.isSuccess() || ( int ) th2.getExecResult() != -13,
                 th2.getErrorMsg() );
+
+        // 事务3继续等锁
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, th3.getTransactionID() ) );
+
+        // 提交事务1后,事务3返回
         db1.commit();
         Assert.assertTrue( th3.isSuccess(), th3.getErrorMsg() );
         List< BSONObject > actList = ( List< BSONObject > ) th3.getExecResult();
