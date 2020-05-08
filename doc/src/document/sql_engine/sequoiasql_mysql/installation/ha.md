@@ -42,7 +42,13 @@ tools/
 如上所述，审计插件的动态库已经包含在 SequoiaSQL-MySQL 安装目录中的 tools/lib 目录下，需要将其安装到 MySQL 中。在此之前，需要先完成 MySQL 环境的搭建及实例启动，插件安装完成后再重启 MySQL 服务。所有的 MySQL 环境都需要完成该插件的安装及配置。具体的安装步骤如下：
 
 + 切换到 SequoiaSQL-MySQL 安装用户（默认为 sdbadmin）
-+ 在所有 MySQL 实例上创建用于同步元数据的 MySQL 用户，并授予所有权限，用户名与密码在所有实例上保持一致。注意：此处使用的密码 'sdbadmin' 仅为示例，请根据需要自行设置安全的密码
+
+   ```lang-bash
+    $ su - sdbadmin
+    $ cd /opt/sequoiasql/mysql
+   ```
+   
++ 登录 MySQL shell，操作步骤可参考[使用](sql_engine/sequoiasql_mysql/connection.md#使用)章节。在所有 MySQL 实例上创建用于同步元数据的 MySQL 用户，并授予所有权限，用户名与密码在所有实例上保持一致。注意：此处使用的密码 'sdbadmin' 仅为示例，请根据需要自行设置安全的密码
 
    ```sql
    mysql> CREATE USER 'sdbadmin'@'%' IDENTIFIED BY 'sdbadmin';
@@ -50,7 +56,13 @@ tools/
    ```
 
 + 将上述审计插件 server_audit.so 文件复制到 MySQL 安装目录中的 lib/plugin 目录下，并赋予 MySQL 运行用户的可执行权限
-+ 修改 MySQL 实例的配置文件（SequoiaSQL-MySQL 实例的配置文件为数据路径下的 auto.cnf），在 mysqld 部分添加以下内容，审计日志文件路径请根据实际情况进行配置，并手动完成创建，如以下示例中的 auditlog 目录
++ 创建审计日志存储目录，如以下示例中的 auditlog 目录
+
+   ```lang-bash
+    $ mkdir database/auditlog
+   ```
+
++ 修改 MySQL 实例的配置文件（SequoiaSQL-MySQL 实例的配置文件为数据路径下的 auto.cnf），在 mysqld 部分添加以下内容
 
    ```config
    # 加载审计插件
