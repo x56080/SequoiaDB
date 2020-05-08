@@ -71,7 +71,6 @@ namespace engine
 
    dpsTransCB::dpsTransCB()
    :_TransIDL56Cur( 1 ) ,
-    _MapMutex( MON_LATCH_DPSTRANSCB_MAPMUTEX ),
     _lsnMapMutex( MON_LATCH_DPSTRANSCB_LSNMAPMUTEX ),
     _maxFileSizeMutex( MON_LATCH_DPSTRANSCB_MAXFILESIZEMUTEX ),
     _reservedRBSpace( 0 ) ,
@@ -2340,11 +2339,6 @@ namespace engine
             ++iter ;
          }
       }
-   }
-
-   TRANS_MAP *dpsTransCB::getTransMap()
-   {
-      return &_TransMap;
    }
 
    UINT32 dpsTransCB::getTransMapSize()
