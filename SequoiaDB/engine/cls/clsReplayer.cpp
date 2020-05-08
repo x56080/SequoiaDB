@@ -781,13 +781,8 @@ namespace engine
 
       if ( !_dpsCB )
       {
-         // retrieve transID from record and put in eduCB, remember to
-         // reset the transID before exit
+         // set last replay LSN
          eduCB->insertLsn( recordHeader->_lsn ) ;
-         if ( transID.isValid())
-         {
-            eduCB->setTransID( transID ) ;
-         }
       }
 
       // check if a rollback DPS log, if so, mark rollback status
@@ -1540,7 +1535,6 @@ namespace engine
          eduCB->stopTransRollback() ;
       }
       eduCB->resetLsn() ;
-      eduCB->resetTransID() ;
       if ( SDB_OK != rc )
       {
          ftReportErr( rc ) ;
