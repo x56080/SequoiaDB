@@ -40,10 +40,12 @@ public class SdbTestBase {
     public static String esServiceName;
     public static String sdbseadapterDir;
 
-    private static final String TRANSAUTOCOMMIT = "transautocommit";
-    private static final String TRANSAUTOROLLBACK = "transautorollback";
     private static final String TRANSISOLATION = "transisolation";
     private static final String TRANSLOCKWAIT = "translockwait";
+    private static final String TRANSAUTOCOMMIT = "transautocommit";
+    private static final String TRANSAUTOROLLBACK = "transautorollback";
+    private static final String TRANSUSERBS = "transuserbs";
+    private static final String TRANSREPLSIZE = "transreplsize";
     private static final String RCAUTO = "rcauto";
     private static final String RC = "rc";
     private static final String NODENAME = "NodeName";
@@ -52,6 +54,7 @@ public class SdbTestBase {
     private static final Map< String, AtomicInteger > groupName2Count = new HashMap<>();
     private static BasicBSONObject confObj = new BasicBSONObject();
     public static String testGroupOfCurrent;
+    private static final int transReplsize = 2;
 
     public static void setTestGroup( List< String > testGroup ) {
         if ( testGroup == null || testGroup.isEmpty() )
@@ -124,14 +127,20 @@ public class SdbTestBase {
     }
 
     static {
-        group2Conf.put( RCAUTO, new BasicBSONObject() );
+        group2Conf.get( RCAUTO ).put( TRANSISOLATION, 1 );
+        group2Conf.get( RCAUTO ).put( TRANSLOCKWAIT, false );
         group2Conf.get( RCAUTO ).put( TRANSAUTOCOMMIT, true );
         group2Conf.get( RCAUTO ).put( TRANSAUTOROLLBACK, false );
-        group2Conf.get( RCAUTO ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RCAUTO ).put( TRANSUSERBS, true );
+        group2Conf.get( RCAUTO ).put( TRANSREPLSIZE, transReplsize );
 
         group2Conf.put( RC, new BasicBSONObject() );
         group2Conf.get( RC ).put( TRANSISOLATION, 1 );
         group2Conf.get( RC ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RC ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( RC ).put( TRANSAUTOROLLBACK, true );
+        group2Conf.get( RC ).put( TRANSUSERBS, true );
+        group2Conf.get( RC ).put( TRANSREPLSIZE, transReplsize );
 
         for ( String key : group2Conf.keySet() ) {
             groupName2Count.put( key, new AtomicInteger( 0 ) );
