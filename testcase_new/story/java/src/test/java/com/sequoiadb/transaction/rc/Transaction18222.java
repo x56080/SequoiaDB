@@ -62,7 +62,7 @@ public class Transaction18222 extends SdbTestBase {
     public void test() {
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
 
-        sdb2.beginTransaction();
+        TransUtils.beginTransaction( sdb2 );
 
         // query.remove R1
         DBCursor tbCur = cl2.queryAndRemove( null, null,

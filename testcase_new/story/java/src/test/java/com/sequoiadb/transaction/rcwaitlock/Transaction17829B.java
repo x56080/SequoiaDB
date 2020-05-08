@@ -103,9 +103,9 @@ public class Transaction17829B extends SdbTestBase {
         cl.insert( data2 );
         cl.insert( data );
 
-        sdb1.beginTransaction();
-        sdb2.beginTransaction();
-        sdb3.beginTransaction();
+        TransUtils.beginTransaction( sdb1 );
+        TransUtils.beginTransaction( sdb2 );
+        TransUtils.beginTransaction( sdb3 );
 
         // 2 trans1 update record R1 to R3
         cl1.update( new BasicBSONObject( "a", 1 ), modifier3, null );

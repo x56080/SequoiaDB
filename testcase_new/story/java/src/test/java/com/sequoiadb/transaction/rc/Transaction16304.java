@@ -55,8 +55,8 @@ public class Transaction16304 extends SdbTestBase {
     @Test
     private void testTrans16304() throws InterruptedException {
         // 因query接口使用QUERY_FLG_FOR_UPDATE执行查询已在用例17111中覆盖，这里只测试queryone接口
-        sdb.beginTransaction();
-        sdb2.beginTransaction();
+        TransUtils.beginTransaction( sdb );
+        TransUtils.beginTransaction( sdb2 );
         cl1 = sdb.getCollectionSpace( commCSName ).getCollection( clName );
         cl2 = sdb2.getCollectionSpace( commCSName ).getCollection( clName );
 

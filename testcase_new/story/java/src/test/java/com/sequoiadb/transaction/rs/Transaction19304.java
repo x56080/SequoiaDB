@@ -88,8 +88,8 @@ public class Transaction19304 extends SdbTestBase {
             expList.add( ( BSONObject ) JSON.parse( recordR1 ) );
 
             // 开启两个并发事务
-            db1.beginTransaction();
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db1 );
+            TransUtils.beginTransaction( db2 );
             cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
 

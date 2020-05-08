@@ -45,10 +45,10 @@ public class Transaction17131 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:'id17131_2'}" );
             cl.insert( data2 );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.update( "{_id:'id17131_1'}", "{$set:{_id:'id17131_2'}}",
                         "" );
@@ -84,10 +84,10 @@ public class Transaction17131 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:'id17131_2'}" );
             cl.insert( data2 );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.update( "{_id:'id17131_1'}", "{$set:{_id:'id17131_2'}}",
                         "" );
@@ -119,11 +119,11 @@ public class Transaction17131 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             BSONObject data2 = ( BSONObject ) JSON
                     .parse( "{_id:2,a:'id17131_2'}" );
             cl.insert( data2 );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.update( "{a:'id17131_1'}", "{$set:{a:'id17131_2'}}", "" );
                 Assert.fail( "Need throw error -38." );
@@ -158,11 +158,11 @@ public class Transaction17131 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             BSONObject data2 = ( BSONObject ) JSON
                     .parse( "{_id:2,a:'id17131_2'}" );
             cl.insert( data2 );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.update( "{a:'id17131_1'}", "{$set:{a:'id17131_2'}}", "" );
                 Assert.fail( "Need throw error -38." );

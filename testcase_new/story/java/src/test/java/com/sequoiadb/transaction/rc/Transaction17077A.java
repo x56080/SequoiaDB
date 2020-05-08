@@ -46,8 +46,8 @@ public class Transaction17077A extends SdbTestBase {
         cl.insert( insertR1 );
         expList.add( insertR1 );
 
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 记录新增索引字段
         cl1.update( null, "{$set:{c:1}}", hintTbScan );

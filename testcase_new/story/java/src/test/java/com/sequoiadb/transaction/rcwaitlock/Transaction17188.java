@@ -51,7 +51,7 @@ public class Transaction17188 extends SdbTestBase {
     @Test
     public void test() throws InterruptedException {
         // 开启事务1
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
 
         cl1.update( null, "{$set:{a:2, b:2, c:2}}", "{'':null}" );
         BSONObject updateR1 = ( BSONObject ) JSON
@@ -122,7 +122,7 @@ public class Transaction17188 extends SdbTestBase {
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
 
             // 开启并发事务2
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
 
             // 判断事务阻塞需先获取事务id
             setTransactionID( db2 );

@@ -89,7 +89,7 @@ public class Transaction18308 extends SdbTestBase {
                             ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" ) );
 
                     // 开启事务，对该记录进行更新后删除，提交事务
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     cl.update( "{a:1}", "{$set:{a:10}}", "{'':'idx'}" );
                     cl.delete( "{a:10}", "{'':'idx'}" );
                     db.commit();

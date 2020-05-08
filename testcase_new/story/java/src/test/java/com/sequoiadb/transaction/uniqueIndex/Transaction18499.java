@@ -87,7 +87,7 @@ public class Transaction18499 extends SdbTestBase {
                 .getCollection( clName );
 
         // 开启事务，插入多条记录R2s
-        db.beginTransaction();
+        TransUtils.beginTransaction( db );
         try {
             insertData( cl1 );
             Assert.fail();
@@ -112,7 +112,7 @@ public class Transaction18499 extends SdbTestBase {
         Assert.assertEquals( actList, expList );
 
         // 事务查询表扫描
-        db.beginTransaction();
+        TransUtils.beginTransaction( db );
         cursor = cl2.query( "", "", "{a:1, b:1}", "{'':null}" );
         actList = TransUtils.getReadActList( cursor );
         Assert.assertEquals( actList, expList );

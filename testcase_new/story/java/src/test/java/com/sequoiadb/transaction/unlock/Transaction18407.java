@@ -75,13 +75,13 @@ public class Transaction18407 extends SdbTestBase {
                 .getCollection( clName );
 
         // 开启事务1，select for update R1
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         DBCursor cursor = cl1.query( "{a:1}", "", "", "{'':'" + idxName + "'}",
                 DBQuery.FLG_QUERY_FOR_UPDATE );
         TransUtils.getReadActList( cursor );
 
         // 开启事务2，select for update R1
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db2 );
         CL2Query th2 = new CL2Query();
         th2.start();
         Assert.assertTrue(
@@ -90,7 +90,7 @@ public class Transaction18407 extends SdbTestBase {
         Thread.sleep( TransUtils.delayTime );
 
         // 开启事务3，更新记录R1为R2
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db3 );
         CL3Update th3 = new CL3Update();
         th3.start();
         Assert.assertTrue(
@@ -103,7 +103,7 @@ public class Transaction18407 extends SdbTestBase {
         db1.commit();
         Assert.assertTrue( th3.isSuccess(), th3.getErrorMsg() );
         db3.commit();
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         cursor = cl1.query();
         List< BSONObject > actList = TransUtils.getReadActList( cursor );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:2, b:1}" );

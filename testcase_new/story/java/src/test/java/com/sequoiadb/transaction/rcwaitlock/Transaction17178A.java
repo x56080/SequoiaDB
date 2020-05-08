@@ -82,9 +82,9 @@ public class Transaction17178A extends SdbTestBase {
     public void test() throws InterruptedException {
 
         // 开启3个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
+        TransUtils.beginTransaction( db3 );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = db3.getCollectionSpace( csName ).getCollection( clName );

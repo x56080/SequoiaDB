@@ -85,8 +85,8 @@ public class Transaction17264 extends SdbTestBase {
         // 开启并发事务
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1插入记录，并读记录走表扫描
         long oid = 128L;

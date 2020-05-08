@@ -14,6 +14,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @testcase seqDB-22085:删除_id索引，对集合加s锁，锁兼容/锁升级验证
@@ -51,7 +52,7 @@ public class Transaction22085 extends SdbTestBase {
         // 开启事务，插入记录
         Sequoiadb db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         try {
-            db1.beginTransaction();
+            TransUtils.beginTransaction( db1 );
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
             cl1.insert( ( BSONObject ) JSON.parse( "{a:1,b:1}" ) );
@@ -73,7 +74,7 @@ public class Transaction22085 extends SdbTestBase {
             }
 
             try {
-                sdb.beginTransaction();
+                TransUtils.beginTransaction( sdb );
                 cl.dropIdIndex();
                 Assert.fail( "Need throw error -190." );
             } catch ( BaseException e ) {

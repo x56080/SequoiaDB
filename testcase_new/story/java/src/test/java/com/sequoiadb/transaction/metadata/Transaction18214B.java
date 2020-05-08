@@ -19,6 +19,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @testcase seqDB-18214:lob操作与事务操作并发
@@ -88,7 +89,7 @@ public class Transaction18214B extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             try {
-                db.beginTransaction();
+                TransUtils.beginTransaction( db );
                 insertDatas( cl, 10000, 20000 );
                 cl.delete( "{$and:[{a:{$gte:0}},{a:{$lt:5000}}]}",
                         "{'':'idx18214'}" );

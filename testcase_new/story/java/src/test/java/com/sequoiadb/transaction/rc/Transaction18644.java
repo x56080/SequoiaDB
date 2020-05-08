@@ -72,8 +72,8 @@ public class Transaction18644 extends SdbTestBase {
     @Test
     public void test() {
         // 开启两个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( hashCLName );
 

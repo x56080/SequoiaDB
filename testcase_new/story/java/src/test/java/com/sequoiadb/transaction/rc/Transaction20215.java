@@ -46,7 +46,7 @@ public class Transaction20215 extends SdbTestBase {
 
     @Test
     public void test() {
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         DBCollection cl1 = sdb.getCollectionSpace( csName )
                 .getCollection( clName );
 

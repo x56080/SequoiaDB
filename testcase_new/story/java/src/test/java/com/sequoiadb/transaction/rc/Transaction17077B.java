@@ -50,8 +50,8 @@ public class Transaction17077B extends SdbTestBase {
         cl.insert( insertR1 );
         expList.add( insertR1 );
 
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 记录删除索引字段
         BSONObject updateR1 = ( BSONObject ) JSON.parse( "{_id:1, b:1}" );

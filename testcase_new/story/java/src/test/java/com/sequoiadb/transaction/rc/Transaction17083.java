@@ -65,12 +65,12 @@ public class Transaction17083 extends SdbTestBase {
         }
 
         // 开启两个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务2并发表扫描
         dbT = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        dbT.beginTransaction();
+        TransUtils.beginTransaction( dbT );
         Read read1 = new Read( dbT, "{'':null}" );
         read1.start();
 
@@ -80,7 +80,7 @@ public class Transaction17083 extends SdbTestBase {
 
         // 事务2并发索引扫描
         dbI = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        dbI.beginTransaction();
+        TransUtils.beginTransaction( dbI );
         Read read2 = new Read( dbI, "{'':'a'}" );
         read2.start();
 

@@ -8,6 +8,7 @@ package com.sequoiadb.transaction.rc;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -15,6 +16,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
@@ -95,8 +97,8 @@ public class Transaction17116 extends SdbTestBase {
             cl.createIndex( "a", indexKey, false, false );
             List< BSONObject > insertRs = getData();
             cl.insert( insertRs );
-            db1.beginTransaction();
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db1 );
+            TransUtils.beginTransaction( db2 );
 
             sortOldExp( indexKey, insertRs );
             ReadThread readThread = new ReadThread( indexKey, insertRs );

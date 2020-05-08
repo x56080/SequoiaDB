@@ -40,7 +40,7 @@ public class Transaction17130 extends SdbTestBase {
         cl.insert( data2 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{_id:'id17130_1'}" );
             cl.update( "{_id:'id17130_2'}", "{$set:{_id:'id17130_1'}}", "" );
 
@@ -74,7 +74,7 @@ public class Transaction17130 extends SdbTestBase {
         cl.insert( data2 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{_id:'id17130_1'}" );
             cl.update( "{_id:'id17130_2'}", "{$set:{_id:'id17130_1'}}", "" );
 
@@ -102,7 +102,7 @@ public class Transaction17130 extends SdbTestBase {
         cl.insert( data2 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{a:'id17130_1'}" );
             cl.update( "{a:'id17130_2'}", "{$set:{a:'id17130_1'}}", "" );
 
@@ -138,7 +138,7 @@ public class Transaction17130 extends SdbTestBase {
         cl.insert( data2 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{a:'id17130_1'}" );
             cl.update( "{a:'id17130_2'}", "{$set:{a:'id17130_1'}}", "" );
 

@@ -46,7 +46,7 @@ public class Transaction17135 extends SdbTestBase {
         cl.insert( data2 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{_id:1}" );
 
             // 本事务中创建索引
@@ -67,7 +67,7 @@ public class Transaction17135 extends SdbTestBase {
 
             // 事务2中创建索引
             try {
-                sdb2.beginTransaction();
+                TransUtils.beginTransaction( sdb2 );
                 cl2.createIndex( idxName, "{a:1}", true, true );
                 Assert.fail( "Need throw error -38." );
             } catch ( BaseException e ) {

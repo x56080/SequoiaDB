@@ -57,7 +57,7 @@ public class Transaction17160 extends SdbTestBase {
             cl.insert( insertR1 );
         }
 
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
 
         // 事务1对同一条记录执行多个操作
         for ( int i = 0; i < 10; i++ ) {
@@ -134,7 +134,7 @@ public class Transaction17160 extends SdbTestBase {
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
 
             // 开启并发事务2
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
             setTransactionID( db2 );
 
             try {

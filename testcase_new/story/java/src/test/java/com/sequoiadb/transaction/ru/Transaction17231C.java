@@ -52,8 +52,8 @@ public class Transaction17231C extends SdbTestBase {
     @Test
     public void test() {
         // 开启两个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1新增部分索引字段
         cl1.update( null, "{$set:{a:1}}", "{'':'a'}" );

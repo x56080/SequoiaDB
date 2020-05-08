@@ -109,7 +109,7 @@ public class Transaction17943 extends SdbTestBase {
                     int value = ( int ) ( Math.random() * 100 ) + 1;
 
                     // 开启更新事务
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     try {
@@ -156,7 +156,7 @@ public class Transaction17943 extends SdbTestBase {
                 for ( int i = 0; i < loopNum; i++ ) {
 
                     // 开启查询事务，索引扫描
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     String sqlTblScan = "select sum(a) as sum from " + csName
                             + "." + clName + " /*+use_index(" + idxName + ")*/";
                     ArrayList< BSONObject > actNums;

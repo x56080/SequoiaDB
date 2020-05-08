@@ -62,11 +62,11 @@ public class Transaction19180 extends SdbTestBase {
             Assert.assertEquals( false, attr.get( "TransUseRBS" ) );
 
             // db1上开启事务，执行update操作
-            db1.beginTransaction();
+            TransUtils.beginTransaction( db1 );
             cl1.update( "{a:1}", "{$set:{b:2}}", null );
 
             // db2上开启事务，执行查询，检查结果
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
             DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             try {

@@ -76,7 +76,7 @@ public class Transaction18424A extends SdbTestBase {
                 .getCollection( clName );
 
         // 开启事务1，查询记录R1
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
         DBCursor cursor = cl1.query( "{a:1}", "", "",
                 "{'':'" + idxName + "'}" );
@@ -86,7 +86,7 @@ public class Transaction18424A extends SdbTestBase {
                 "actList: " + actList );
 
         // 开启事务2，查询记录R1
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db2 );
         cursor = cl2.query( "{a:1}", "", "", "{'':'" + idxName + "'}" );
         actList = TransUtils.getReadActList( cursor );
         Assert.assertTrue(
@@ -94,12 +94,12 @@ public class Transaction18424A extends SdbTestBase {
                 "actList: " + actList );
 
         // 开启事务3，删除记录R1
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db3 );
         cl3.delete( "{a:1}", "{'':'" + idxName + "'}" );
 
         // 提交事务3，再次开启事务，执行查询检查结果
         db3.commit();
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db3 );
         cursor = cl3.query();
         actList = TransUtils.getReadActList( cursor );
         Assert.assertTrue( actList.size() == 0, "actList: " + actList );

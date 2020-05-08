@@ -49,8 +49,8 @@ public class Transaction17194B extends SdbTestBase {
     @Test
     public void test() {
 
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 记录删除索引字段
         cl1.update( "{a:1}", "{$unset:{a:1}}", hintIxScan );

@@ -11,6 +11,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @FileName seqDB-18304 : 存在自增字段及唯一索引，插入索引键重复记录
@@ -33,7 +34,7 @@ public class Transaction18304 extends SdbTestBase {
 
     @Test
     public void test() {
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
 
         BSONObject insertR1 = ( BSONObject ) JSON.parse( "{a:1,b:1,c:1}" );
         cl.insert( insertR1 );

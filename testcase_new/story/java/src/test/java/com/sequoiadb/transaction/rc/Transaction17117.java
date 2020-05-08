@@ -8,6 +8,7 @@ package com.sequoiadb.transaction.rc;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -75,7 +76,7 @@ public class Transaction17117 extends SdbTestBase {
         TransUtils.sortCompositeRecords( invExpList, false );
         Collections.reverse( invExpList );
 
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db2 );
 
         ReadThread readThread = new ReadThread();
         readThread.start();
@@ -129,7 +130,7 @@ public class Transaction17117 extends SdbTestBase {
             try {
                 db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                 cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
-                db1.beginTransaction();
+                TransUtils.beginTransaction( db1 );
 
                 cl1.update( "{$and:[{a:{$gte:0}},{a:{$lt:2000}}]}",
                         "{$inc:{_id:15000, a:15001, b:-10}}", "{'':'a'}" );

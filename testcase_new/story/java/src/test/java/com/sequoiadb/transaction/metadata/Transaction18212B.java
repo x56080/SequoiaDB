@@ -17,6 +17,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @testcase seqDB-18212:删除集合空间与事务操作并发
@@ -101,7 +102,7 @@ public class Transaction18212B extends SdbTestBase {
             try {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
-                db.beginTransaction();
+                TransUtils.beginTransaction( db );
                 insertDatas( cl, 10000, 20000 );
                 cl.delete( "{$and:[{a:{$gte:0}},{a:{$lt:5000}}]}",
                         "{'':'idx18212'}" );

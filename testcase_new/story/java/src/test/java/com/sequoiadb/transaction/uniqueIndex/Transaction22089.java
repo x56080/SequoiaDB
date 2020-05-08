@@ -54,7 +54,7 @@ public class Transaction22089 extends SdbTestBase {
     @Test
     public void test() {
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 3; i++ ) {
                 cl.update( "", "{$inc:{a:1}}", "" );
             }

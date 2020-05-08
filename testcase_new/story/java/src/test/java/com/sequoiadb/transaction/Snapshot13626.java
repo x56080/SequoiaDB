@@ -76,7 +76,7 @@ public class Snapshot13626 extends SdbTestBase {
                 DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
                         .getCollection( clName );
                 for ( int i = 0; i < 70; i++ ) {
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     for ( int j = 0; j < 10; j++ ) {
                         cl.insert( new BasicBSONObject( "a", i ) );
                     }

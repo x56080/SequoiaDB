@@ -92,9 +92,9 @@ public class Transaction17833B extends SdbTestBase {
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
         cl3 = sdb3.getCollectionSpace( csName ).getCollection( clName );
 
-        sdb1.beginTransaction();
-        sdb2.beginTransaction();
-        sdb3.beginTransaction();
+        TransUtils.beginTransaction( sdb1 );
+        TransUtils.beginTransaction( sdb2 );
+        TransUtils.beginTransaction( sdb3 );
 
         // 2 trans1 insert record
         cl1.insert( data2 );

@@ -42,7 +42,7 @@ public class Transaction17129 extends SdbTestBase {
         cl.insert( data2 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
 
             try {
                 cl.update( "{_id:'id17129_1'}", "{$set:{_id:'id17129_3'}}",
@@ -76,7 +76,7 @@ public class Transaction17129 extends SdbTestBase {
         cl.insert( data2 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
 
             try {
                 cl.update( "{a:'id17129_1'}", "{$set:{a:'id17129_3'}}", "" );

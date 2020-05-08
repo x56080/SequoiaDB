@@ -42,7 +42,7 @@ public class Transaction17127 extends SdbTestBase {
         cl.insert( data2 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
 
             try {
                 cl.update( "{_id:'id17127_1'}", "{$set:{_id:'id17127_2'}}",
@@ -76,7 +76,7 @@ public class Transaction17127 extends SdbTestBase {
         cl.insert( data2 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             try {
                 cl.update( "{a:'id17127_1'}", "{$set:{a:'id17127_2'}}", "" );
                 Assert.fail( "Need throw error -38." );

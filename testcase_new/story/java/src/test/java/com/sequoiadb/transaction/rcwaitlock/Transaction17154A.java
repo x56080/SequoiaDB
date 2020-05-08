@@ -61,11 +61,11 @@ public class Transaction17154A extends SdbTestBase {
     @Test
     public void test() throws InterruptedException {
         // 开启事务1及事务2
-        db1.beginTransaction();
-        db2.beginTransaction();
-        db3.beginTransaction();
-        db4.beginTransaction();
-        db5.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
+        TransUtils.beginTransaction( db3 );
+        TransUtils.beginTransaction( db4 );
+        TransUtils.beginTransaction( db5 );
 
         // 事务1更新索引字段的值
         cl1.update( null, "{$set:{a:2}}", "{'':'a'}" );

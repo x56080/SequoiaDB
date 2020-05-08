@@ -51,8 +51,8 @@ public class Transaction17198 extends SdbTestBase {
         // 集合中插入带索引的记录
         TransUtils.insertRandomDatas( cl, 0, 10000 );
 
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1对同一条记录执行多个原子操作
         BSONObject insertR = ( BSONObject ) JSON

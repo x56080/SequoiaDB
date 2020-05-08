@@ -51,7 +51,7 @@ public class Transaction19178 extends SdbTestBase {
 
             // 创建一个连接db1，开启事务，并插入1条记录R1
             db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db1.beginTransaction();
+            TransUtils.beginTransaction( db1 );
             DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             BSONObject obj = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
@@ -68,21 +68,21 @@ public class Transaction19178 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{TransIsolation:1}" ) );
             BSONObject attr = db3.getSessionAttr();
             Assert.assertEquals( 1, attr.get( "TransIsolation" ) );
-            db3.beginTransaction();
+            TransUtils.beginTransaction( db3 );
             DBCollection cl3 = db3.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             TransUtils.queryAndCheck( cl3, "{_id:1}",
                     new ArrayList< BSONObject >() );
 
             // 在连接db2上，开启事务，执行查询
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
             DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             TransUtils.queryAndCheck( cl2, "{_id:1}", expList );
 
             // 创建一个连接db4，开启事务，执行查询
             db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db4.beginTransaction();
+            TransUtils.beginTransaction( db4 );
             DBCollection cl4 = db4.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             TransUtils.queryAndCheck( cl4, "{_id:1}", expList );

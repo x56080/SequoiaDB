@@ -69,8 +69,8 @@ public class Transaction17090 extends SdbTestBase {
         expList = TransUtils.insertDatas( cl, 0, 50000, 1 );
 
         // 开启两个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1批量删除记录
         cl1.delete( "{a:1}", hintIxScan );

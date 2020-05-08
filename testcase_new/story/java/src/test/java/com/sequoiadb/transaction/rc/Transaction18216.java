@@ -45,8 +45,8 @@ public class Transaction18216 extends SdbTestBase {
         List< BSONObject > insertR1s = TransUtils.insertRandomDatas( cl, 0,
                 100 );
 
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         for ( int i = 0; i < 100; i++ ) {
             db1.execUpdate( "insert into " + csName + "." + clName

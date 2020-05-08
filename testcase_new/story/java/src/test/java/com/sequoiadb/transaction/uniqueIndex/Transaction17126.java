@@ -45,9 +45,9 @@ public class Transaction17126 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{_id:'id17126_1'}" );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.insert( data1 );
                 Assert.fail( "Need throw error -38." );
@@ -78,9 +78,9 @@ public class Transaction17126 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{_id:'id17126_1'}" );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.insert( data1 );
                 Assert.fail( "Need throw error -38." );
@@ -110,9 +110,9 @@ public class Transaction17126 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{a:'id17126_1'}" );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.insert( data1 );
                 Assert.fail( "Need throw error -38." );
@@ -148,9 +148,9 @@ public class Transaction17126 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{a:'id17126_1'}" );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.insert( data1 );
                 Assert.fail( "Need throw error -38." );

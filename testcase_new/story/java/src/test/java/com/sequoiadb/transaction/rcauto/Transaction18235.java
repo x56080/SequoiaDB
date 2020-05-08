@@ -58,7 +58,7 @@ public class Transaction18235 extends SdbTestBase {
                 .getCollection( clName );
 
         // 开启事务1，插入记录
-        sdb1.beginTransaction();
+        TransUtils.beginTransaction( sdb1 );
         TransUtils.insertDatas( cl1, 0, 1000, 1 );
         cl1.update( "{a: 1}", "{$set: {a: 1000}}", null );
         cl1.delete( "{b:{$gte: 0, $lt: 500}}", null );

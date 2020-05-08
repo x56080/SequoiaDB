@@ -60,8 +60,8 @@ public class Transaction17201 extends SdbTestBase {
         }
 
         // 开启两个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1执行多个操作
         for ( int i = 0; i < 10; i++ ) {

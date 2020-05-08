@@ -65,7 +65,7 @@ public class Transaction18223 extends SdbTestBase {
     public void test() {
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
 
-        sdb2.beginTransaction();
+        TransUtils.beginTransaction( sdb2 );
 
         // trans1 insert R2
         TransUtils.insertDatas( cl2, startId2, endId2, 1000 );

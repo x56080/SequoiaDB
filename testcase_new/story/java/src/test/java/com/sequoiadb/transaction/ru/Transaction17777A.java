@@ -117,9 +117,9 @@ public class Transaction17777A extends SdbTestBase {
             cl3 = sdb3.getCollectionSpace( csName ).getCollection( clName );
 
             // 开启事务
-            sdb1.beginTransaction();
-            sdb2.beginTransaction();
-            sdb3.beginTransaction();
+            TransUtils.beginTransaction( sdb1 );
+            TransUtils.beginTransaction( sdb2 );
+            TransUtils.beginTransaction( sdb3 );
 
             // 插入记录
             cl.insert( insertR1 );

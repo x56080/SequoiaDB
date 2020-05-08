@@ -57,7 +57,7 @@ public class Transaction19193 extends SdbTestBase {
             // 开启事务1，插入记录R1与集合中已存在的记录唯一索引重复，
             // 再次插入记录R2，回滚事务，检查结果
             db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db1.beginTransaction();
+            TransUtils.beginTransaction( db1 );
             DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             try {

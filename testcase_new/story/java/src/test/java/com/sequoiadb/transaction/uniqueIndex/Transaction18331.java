@@ -42,13 +42,13 @@ public class Transaction18331 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 3; i++ ) {
                 cl.update( "", "{$inc:{_id:1}}", "" );
             }
 
             // 其他事务插入记录
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:2}" );
             cl2.insert( data2 );
 
@@ -76,7 +76,7 @@ public class Transaction18331 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 3; i++ ) {
                 cl.update( "", "{$inc:{_id:1}}", "" );
             }
@@ -106,7 +106,7 @@ public class Transaction18331 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 3; i++ ) {
                 cl.update( "", "{$inc:{_id:1}}", "" );
             }
@@ -137,13 +137,13 @@ public class Transaction18331 extends SdbTestBase {
         BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:1,a:1}" );
         cl.insert( data1 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 3; i++ ) {
                 cl.update( "", "{$inc:{a:1}}", "" );
             }
 
             // 其他事务插入记录
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             BSONObject data2 = ( BSONObject ) JSON.parse( "{a:2}" );
             cl2.insert( data2 );
 
@@ -172,7 +172,7 @@ public class Transaction18331 extends SdbTestBase {
         BSONObject data1 = ( BSONObject ) JSON.parse( "{a:1}" );
         cl.insert( data1 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 3; i++ ) {
                 cl.update( "", "{$inc:{a:1}}", "" );
             }
@@ -203,7 +203,7 @@ public class Transaction18331 extends SdbTestBase {
         BSONObject data1 = ( BSONObject ) JSON.parse( "{a:1}" );
         cl.insert( data1 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 3; i++ ) {
                 cl.update( "", "{$inc:{a:1}}", "" );
             }

@@ -67,11 +67,11 @@ public class Transaction18238 extends SdbTestBase {
         cl4 = sdb4.getCollectionSpace( csName ).getCollection( clName );
         cl5 = sdb5.getCollectionSpace( csName ).getCollection( clName );
 
-        sdb1.beginTransaction();
-        sdb2.beginTransaction();
-        sdb3.beginTransaction();
-        sdb4.beginTransaction();
-        sdb5.beginTransaction();
+        TransUtils.beginTransaction( sdb1 );
+        TransUtils.beginTransaction( sdb2 );
+        TransUtils.beginTransaction( sdb3 );
+        TransUtils.beginTransaction( sdb4 );
+        TransUtils.beginTransaction( sdb5 );
 
         // 1 trans1 query
         expDataList.clear();

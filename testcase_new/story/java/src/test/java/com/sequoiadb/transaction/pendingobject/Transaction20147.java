@@ -41,7 +41,7 @@ public class Transaction20147 extends SdbTestBase {
 
         try {
             // 事务中插入删除记录
-            db.beginTransaction();
+            TransUtils.beginTransaction( db );
             DBCollection tcl = db.getCollectionSpace( csName )
                     .getCollection( clName );
             ArrayList< BSONObject > insertR1s = new ArrayList< BSONObject >();
@@ -101,7 +101,7 @@ public class Transaction20147 extends SdbTestBase {
 
         try {
             // 事务中插入删除记录
-            db.beginTransaction();
+            TransUtils.beginTransaction( db );
             DBCollection tcl = db.getCollectionSpace( csName )
                     .getCollection( clName );
             ArrayList< BSONObject > insertR1s = new ArrayList< BSONObject >();

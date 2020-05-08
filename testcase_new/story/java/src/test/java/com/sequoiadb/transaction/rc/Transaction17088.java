@@ -65,8 +65,8 @@ public class Transaction17088 extends SdbTestBase {
         cl.createIndex( "a", "{a:1}", false, false );
 
         // 开启两个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1执行批量插入记录
         expList = TransUtils.insertDatas( cl1, 0, 50000, 1 );

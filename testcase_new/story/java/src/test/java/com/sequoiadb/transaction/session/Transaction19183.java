@@ -61,7 +61,7 @@ public class Transaction19183 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{TransAutoRollback:false}" ) );
             BSONObject attr = db2.getSessionAttr();
             Assert.assertEquals( false, attr.get( "TransAutoRollback" ) );
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
             DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             try {
@@ -75,7 +75,7 @@ public class Transaction19183 extends SdbTestBase {
             TransUtils.queryAndCheck( cl2, "{_id:1}", expList );
 
             // 在连接db1上，开启事务，插入记录R3与集合中已存在的记录唯一索引重复，再次插入记录R4成功，回滚事务
-            db1.beginTransaction();
+            TransUtils.beginTransaction( db1 );
             DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             try {

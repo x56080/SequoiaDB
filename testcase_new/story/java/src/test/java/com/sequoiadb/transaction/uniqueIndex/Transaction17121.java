@@ -42,7 +42,7 @@ public class Transaction17121 extends SdbTestBase {
         expDataList.clear();
         expDataList.add( data1 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.update( "{_id:'id17121_1'}", "{$set:{_id:'id17121_2'}}", null );
             BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:'id17121_2'}" );
             cl.insert( data2 );
@@ -69,7 +69,7 @@ public class Transaction17121 extends SdbTestBase {
         expDataList.clear();
         expDataList.add( data1 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.update( "{a:'id17121_1'}", "{$set:{a:'id17121_2'}}", null );
             BSONObject data2 = ( BSONObject ) JSON
                     .parse( "{_id:2,a:'id17121_2'}" );

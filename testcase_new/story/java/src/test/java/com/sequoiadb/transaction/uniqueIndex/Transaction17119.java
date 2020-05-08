@@ -43,7 +43,7 @@ public class Transaction17119 extends SdbTestBase {
         expDataList.add( data );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.insert( data );
             Assert.fail( "Need throw error -38." );
         } catch ( BaseException e ) {
@@ -68,7 +68,7 @@ public class Transaction17119 extends SdbTestBase {
         expDataList.clear();
         expDataList.add( data1 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.insert( data2 );
             Assert.fail( "Need throw error -38." );
         } catch ( BaseException e ) {

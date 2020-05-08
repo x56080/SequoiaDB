@@ -14,6 +14,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @testcase seqDB-22087:事务中不存在_id索引，执行事务写操作
@@ -48,7 +49,7 @@ public class Transaction22087 extends SdbTestBase {
     @Test
     public void test() {
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             // 插入
             try {
                 cl.insert( ( BSONObject ) JSON.parse( "{a:1,b:1}" ) );

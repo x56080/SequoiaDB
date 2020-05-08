@@ -63,7 +63,7 @@ public class Split18392 extends SdbTestBase {
         try {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             cl = db.getCollectionSpace( csName ).getCollection( clName );
-            db.beginTransaction();
+            TransUtils.beginTransaction( db );
             insertData( cl );
             cl.split( srcGroup, desGroup, 50 );
             Assert.fail( "Split should not success!" );

@@ -139,13 +139,13 @@ public class Transaction17114 extends SdbTestBase {
             cl5 = db5.getCollectionSpace( csName ).getCollection( clName );
             cl6 = db6.getCollectionSpace( csName ).getCollection( clName );
             cl7 = db7.getCollectionSpace( csName ).getCollection( clName );
-            db1.beginTransaction();
-            db2.beginTransaction();
-            db3.beginTransaction();
-            db4.beginTransaction();
-            db5.beginTransaction();
-            db6.beginTransaction();
-            db7.beginTransaction();
+            TransUtils.beginTransaction( db1 );
+            TransUtils.beginTransaction( db2 );
+            TransUtils.beginTransaction( db3 );
+            TransUtils.beginTransaction( db4 );
+            TransUtils.beginTransaction( db5 );
+            TransUtils.beginTransaction( db6 );
+            TransUtils.beginTransaction( db7 );
 
             // 事务1插入记录
             InsertThread insertThread = new InsertThread();

@@ -18,6 +18,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @testcase seqDB-18211:删除集合与事务操作并发
@@ -82,7 +83,7 @@ public class Transaction18211A extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             try {
-                db.beginTransaction();
+                TransUtils.beginTransaction( db );
                 insertDatas( cl, 10000, 20000 );
                 cl.delete( "{$and:[{a:{$gte:0}},{a:{$lt:5000}}]}",
                         "{'':'idx18211'}" );
@@ -110,7 +111,7 @@ public class Transaction18211A extends SdbTestBase {
                 while ( true ) {
                     try {
                         Thread.sleep( 1000 );
-                        db.beginTransaction();
+                        TransUtils.beginTransaction( db );
                         db.getCollectionSpace( csName )
                                 .dropCollection( clName );
                         db.commit();

@@ -198,7 +198,7 @@ public class Transaction17185 extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             try {
-                db1.beginTransaction();
+                TransUtils.beginTransaction( db1 );
                 cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
                 List< BSONObject > records = new ArrayList<>();
                 for ( int i = 40001; i <= 50000; i++ ) {
@@ -221,7 +221,7 @@ public class Transaction17185 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl2.update( "{$and:[{a:{$gt:0}},{a:{$lt:10001}}]}",
                     "{$inc:{a:-10}}", "{'':'textIndex17185'}" );
@@ -233,7 +233,7 @@ public class Transaction17185 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            db3.beginTransaction();
+            TransUtils.beginTransaction( db3 );
 
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
             cl3.delete( "{$and:[{a:{$gt:10000}},{a:{$lt:20001}}]}",
@@ -260,7 +260,7 @@ public class Transaction17185 extends SdbTestBase {
             Sequoiadb db = null;
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-                db.beginTransaction();
+                TransUtils.beginTransaction( db );
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 DBCursor cursor = cl.query(
@@ -296,7 +296,7 @@ public class Transaction17185 extends SdbTestBase {
             Sequoiadb db = null;
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-                db.beginTransaction();
+                TransUtils.beginTransaction( db );
                 // 判断事务阻塞需先获取事务id
                 String transactionID2 = TransUtils.getTransactionID( db );
                 setExecResult( transactionID2 );

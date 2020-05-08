@@ -52,10 +52,10 @@ public class Transaction18047 extends SdbTestBase {
             cl.createIndex( "a", "{a:1}", false, false );
             insertR1s = TransUtils.insertRandomDatas( cl, 0, 10000 );
 
-            db1.beginTransaction();
+            TransUtils.beginTransaction( db1 );
             cl1.delete( null, "{'':'a'}" );
 
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
 
             Operation operation2 = new Operation( cl2 );
             operation2.start();
@@ -126,7 +126,7 @@ public class Transaction18047 extends SdbTestBase {
         public void exec() throws Exception {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                db.beginTransaction();
+                TransUtils.beginTransaction( db );
                 cl = db.getCollectionSpace( csName ).getCollection( clName );
                 cursor = cl.query( null, null, "{a : 1}", hint );
                 Assert.assertEquals( TransUtils.getReadActList( cursor ),

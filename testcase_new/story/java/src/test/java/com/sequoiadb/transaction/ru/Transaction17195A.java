@@ -51,8 +51,8 @@ public class Transaction17195A extends SdbTestBase {
         cl.insert( insertR1 );
 
         // 开启两个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 更新索引字段的值
         cl1.update( "{a:1}", "{$set:{a:2}}", hintTbScan );

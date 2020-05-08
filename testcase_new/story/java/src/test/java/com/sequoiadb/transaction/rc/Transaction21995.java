@@ -6,11 +6,13 @@ import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.transaction.TransUtils;
 /**
  * @testcase seqDB-21995:事务中使用count查询记录数，检查此事务不持有事务锁
  * @date 2020-03-31
@@ -36,7 +38,7 @@ public class Transaction21995 extends SdbTestBase {
 
     @Test
     public void test() throws InterruptedException {
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         cl.getCount();
         DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT, "", null, null );
         while( cursor.hasNext() ){

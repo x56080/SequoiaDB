@@ -56,9 +56,9 @@ public class Transaction17155D extends SdbTestBase {
         expList1.add( insertR1 );
 
         // 开启事务1
-        db1.beginTransaction();
-        db2.beginTransaction();
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
+        TransUtils.beginTransaction( db3 );
 
         // 事务1删除非索引字段的值
         BSONObject updateR1 = ( BSONObject ) JSON.parse( "{_id:1, a:1}" );

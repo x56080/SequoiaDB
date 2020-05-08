@@ -85,9 +85,9 @@ public class Transaction18136C extends SdbTestBase {
             cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
-            db1.beginTransaction();
-            db2.beginTransaction();
-            db3.beginTransaction();
+            TransUtils.beginTransaction( db1 );
+            TransUtils.beginTransaction( db2 );
+            TransUtils.beginTransaction( db3 );
 
             // 事务1读记录走表扫描
             expList.clear();

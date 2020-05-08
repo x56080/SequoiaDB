@@ -45,8 +45,8 @@ public class Transaction17208 extends SdbTestBase {
     @Test
     public void test() {
         // 开启两个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1执行批量删除
         cl1.delete( "{a:1}", hintIxScan );

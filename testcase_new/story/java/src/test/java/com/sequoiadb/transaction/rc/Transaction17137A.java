@@ -54,8 +54,8 @@ public class Transaction17137A extends SdbTestBase {
     @Test
     public void test() {
 
-        sdb1.beginTransaction();
-        sdb2.beginTransaction();
+        TransUtils.beginTransaction( sdb1 );
+        TransUtils.beginTransaction( sdb2 );
 
         CRUDThread crudThread = new CRUDThread();
         crudThread.start();

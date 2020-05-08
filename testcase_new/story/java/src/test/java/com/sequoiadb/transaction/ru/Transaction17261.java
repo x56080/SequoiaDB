@@ -50,8 +50,8 @@ public class Transaction17261 extends SdbTestBase {
     public void test() {
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
 
-        sdb.beginTransaction();
-        sdb2.beginTransaction();
+        TransUtils.beginTransaction( sdb );
+        TransUtils.beginTransaction( sdb2 );
 
         // 2 trans1 upsert record
         BSONObject modifier = null;

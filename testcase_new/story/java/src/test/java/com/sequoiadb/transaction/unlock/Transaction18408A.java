@@ -75,19 +75,19 @@ public class Transaction18408A extends SdbTestBase {
                 .getCollection( clName );
 
         // 开启事务1，插入记录R1
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
         cl1.insert( record );
 
         // 开启事务2，更新记录R1为R2
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db2 );
         CL2Update th2 = new CL2Update();
         th2.start();
         Assert.assertTrue(
                 TransUtils.isTransWaitLock( sdb, th2.getTransactionID() ) );
 
         // 开启事务3，查询记录R1
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db3 );
         DBCursor cursor = cl3.query( "{a:1}", "", "",
                 "{'':'" + idxName + "'}" );
         List< BSONObject > actList = TransUtils.getReadActList( cursor );
@@ -100,7 +100,7 @@ public class Transaction18408A extends SdbTestBase {
         db1.commit();
         db2.commit();
         db3.commit();
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db3 );
         cursor = cl3.query();
         actList = TransUtils.getReadActList( cursor );
         Assert.assertTrue(

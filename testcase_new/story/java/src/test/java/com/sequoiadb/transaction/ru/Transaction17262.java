@@ -67,8 +67,8 @@ public class Transaction17262 extends SdbTestBase {
     public void test() {
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
 
-        sdb.beginTransaction();
-        sdb2.beginTransaction();
+        TransUtils.beginTransaction( sdb );
+        TransUtils.beginTransaction( sdb2 );
 
         // 2 query.update
         DBCursor tbCur = cl.queryAndUpdate( new BasicBSONObject( "a", 1 ), null,

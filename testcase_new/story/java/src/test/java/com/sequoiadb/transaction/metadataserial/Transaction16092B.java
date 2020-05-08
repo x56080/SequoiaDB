@@ -16,6 +16,7 @@ import com.sequoiadb.rename.RenameUtil;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @Description RenameCL_16092.java 并发事务操作和修改cl名
@@ -103,7 +104,7 @@ public class Transaction16092B extends SdbTestBase {
         public void exec() throws Exception {
             try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
-                db.beginTransaction();
+                TransUtils.beginTransaction( db );
                 CollectionSpace cs = db.getCollectionSpace( csName );
                 Thread.sleep( new Random().nextInt( 50 ) + 50 );
                 cs.renameCollection( clName, newCLName );
@@ -119,7 +120,7 @@ public class Transaction16092B extends SdbTestBase {
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
-                db.beginTransaction();
+                TransUtils.beginTransaction( db );
                 RenameUtil.insertData( cl, recordNum );
                 db.commit();
             }

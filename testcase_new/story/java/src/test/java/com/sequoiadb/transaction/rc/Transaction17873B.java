@@ -68,8 +68,8 @@ public class Transaction17873B extends SdbTestBase {
         // 开启2个并发事务
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1更新记录更新_id字段
         cl1.update( "{_id:1}", "{$set:{_id:10}}", "{'':'$id'}" );

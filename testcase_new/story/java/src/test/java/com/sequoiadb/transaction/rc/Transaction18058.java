@@ -57,7 +57,7 @@ public class Transaction18058 extends SdbTestBase {
         // 开启事务
         db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
 
         // 插入记录R1及R2
         BSONObject insertR1 = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );

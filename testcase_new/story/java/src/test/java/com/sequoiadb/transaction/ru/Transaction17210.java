@@ -81,9 +81,9 @@ public class Transaction17210 extends SdbTestBase {
     @Test
     public void test() {
         // 开启3个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
+        TransUtils.beginTransaction( db3 );
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
         DBCollection cl2 = db2.getCollectionSpace( csName )

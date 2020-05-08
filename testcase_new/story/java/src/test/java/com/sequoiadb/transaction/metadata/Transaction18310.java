@@ -16,6 +16,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @testcase seqDB-18310:集合上存在事务操作，并发创建/删除集合
@@ -78,7 +79,7 @@ public class Transaction18310 extends SdbTestBase {
                             ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" ) );
 
                     // 开启事务，对该记录进行更新后删除，提交事务
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     cl.update( "{a:1}", "{$set:{a:10}}", "{'':'idx'}" );
                     cl.delete( "{a:10}", "{'':'idx'}" );
                     db.commit();

@@ -46,9 +46,9 @@ public class Transaction17125 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.update( "{_id:'id17125_1'}", "{$set:{_id:'id17125_2'}}", null );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.insert( data1 );
                 Assert.fail( "Need throw error -38." );
@@ -81,9 +81,9 @@ public class Transaction17125 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.update( "{_id:'id17125_1'}", "{$set:{_id:'id17125_2'}}", null );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.insert( data1 );
                 Assert.fail( "Need throw error -38." );
@@ -112,9 +112,9 @@ public class Transaction17125 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.update( "{a:'id17125_1'}", "{$set:{a:'id17125_2'}}", null );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.insert( data2 );
                 Assert.fail( "Need throw error -38." );
@@ -153,9 +153,9 @@ public class Transaction17125 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.update( "{a:'id17125_1'}", "{$set:{a:'id17125_2'}}", null );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.insert( data2 );
                 Assert.fail( "Need throw error -38." );

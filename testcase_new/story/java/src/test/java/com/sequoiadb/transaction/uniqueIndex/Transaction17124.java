@@ -44,8 +44,8 @@ public class Transaction17124 extends SdbTestBase {
         BSONObject data = ( BSONObject ) JSON.parse( "{_id:'id17124_1'}" );
         cl.insert( data );
         try {
-            sdb.beginTransaction();
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb );
+            TransUtils.beginTransaction( sdb2 );
 
             cl.update( "{_id:'id17124_1'}", "{$set:{_id:'id17124_2'}}", null );
 
@@ -80,8 +80,8 @@ public class Transaction17124 extends SdbTestBase {
         BSONObject data = ( BSONObject ) JSON.parse( "{_id:'id17124_1'}" );
         cl.insert( data );
         try {
-            sdb.beginTransaction();
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb );
+            TransUtils.beginTransaction( sdb2 );
 
             cl.update( "{_id:'id17124_1'}", "{$set:{_id:'id17124_2'}}", null );
 
@@ -113,8 +113,8 @@ public class Transaction17124 extends SdbTestBase {
         BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:2,a:'id17124_1'}" );
         cl.insert( data1 );
         try {
-            sdb.beginTransaction();
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb );
+            TransUtils.beginTransaction( sdb2 );
 
             cl.update( "{a:'id17124_1'}", "{$set:{a:'id17124_2'}}", null );
 
@@ -156,8 +156,8 @@ public class Transaction17124 extends SdbTestBase {
 
         cl.insert( data1 );
         try {
-            sdb.beginTransaction();
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb );
+            TransUtils.beginTransaction( sdb2 );
 
             cl.update( "{a:'id17124_1'}", "{$set:{a:'id17124_2'}}", null );
 

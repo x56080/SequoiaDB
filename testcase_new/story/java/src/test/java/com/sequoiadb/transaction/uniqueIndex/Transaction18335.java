@@ -44,14 +44,14 @@ public class Transaction18335 extends SdbTestBase {
         cl.insert( data1 );
         cl.insert( data2 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 10; i++ ) {
                 cl.update( "{a:2}", "{$inc:{_id:1}}",
                         "{'':'" + idxName + "'}" );
             }
 
             // 其他事务更新记录
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             for ( int i = 0; i < 5; i++ ) {
                 cl2.update( "{a:1}", "{$inc:{_id:2}}",
                         "{'':'" + idxName + "'}" );
@@ -85,7 +85,7 @@ public class Transaction18335 extends SdbTestBase {
         cl.insert( data1 );
         cl.insert( data2 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 10; i++ ) {
                 cl.update( "{a:2}", "{$inc:{_id:1}}",
                         "{'':'" + idxName + "'}" );
@@ -123,7 +123,7 @@ public class Transaction18335 extends SdbTestBase {
         cl.insert( data1 );
         cl.insert( data2 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 10; i++ ) {
                 cl.update( "{a:2}", "{$inc:{_id:1}}",
                         "{'':'" + idxName + "'}" );
@@ -162,13 +162,13 @@ public class Transaction18335 extends SdbTestBase {
         cl.insert( data1 );
         cl.insert( data2 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 10; i++ ) {
                 cl.update( "{_id:2}", "{$inc:{a:1}}", "{'':'_id'}" );
             }
 
             // 其他事务更新记录
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             for ( int i = 0; i < 5; i++ ) {
                 cl2.update( "{_id:1}", "{$inc:{a:2}}", "{'':'_id'}" );
             }
@@ -201,7 +201,7 @@ public class Transaction18335 extends SdbTestBase {
         cl.insert( data1 );
         cl.insert( data2 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 10; i++ ) {
                 cl.update( "{_id:2}", "{$inc:{a:1}}", "{'':'_id'}" );
             }
@@ -237,7 +237,7 @@ public class Transaction18335 extends SdbTestBase {
         cl.insert( data1 );
         cl.insert( data2 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 10; i++ ) {
                 cl.update( "{_id:2}", "{$inc:{a:1}}", "{'':'_id'}" );
             }

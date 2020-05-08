@@ -73,7 +73,7 @@ public class Transaction18231 extends SdbTestBase {
         insertData();
 
         // 开启事务1，插入记录R2，索引字段值R1s大于R2
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         BSONObject record = ( BSONObject ) JSON
                 .parse( "{_id:-10, a:-10, b:-10}" );
         expList.add( 0, record );

@@ -116,7 +116,7 @@ public class Transaction17945 extends SdbTestBase {
                     int balance = bId + 10000;
 
                     // 开启写事务
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
 
@@ -152,7 +152,7 @@ public class Transaction17945 extends SdbTestBase {
             try {
                 for ( int i = 0; i < loopNum; i++ ) {
                     // 开启查询事务，表扫描
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     String sqlIdxScan = "select sum(a) as sum from " + csName
                             + "." + clName + " /*+use_index(NULL)*/";
                     DBCursor cursor = null;
@@ -170,7 +170,7 @@ public class Transaction17945 extends SdbTestBase {
                     }
 
                     // 开启查询事务，索引扫描
-                    db.beginTransaction();
+                    TransUtils.beginTransaction( db );
                     String sqlTblScan = "select sum(a) as sum from " + csName
                             + "." + clName + " /*+use_index(" + idxName + ")*/";
                     cursor = db.exec( sqlTblScan );

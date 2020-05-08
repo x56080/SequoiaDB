@@ -52,9 +52,9 @@ public class Transaction17154C extends SdbTestBase {
     @Test
     public void test() throws InterruptedException {
         // 开启事务1
-        db1.beginTransaction();
-        db2.beginTransaction();
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
+        TransUtils.beginTransaction( db3 );
 
         // 事务1删除索引字段
         cl1.update( null, "{$unset:{a:1}}", "{'':'a'}" );

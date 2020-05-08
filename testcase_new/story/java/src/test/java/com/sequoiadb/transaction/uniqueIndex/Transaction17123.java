@@ -43,11 +43,11 @@ public class Transaction17123 extends SdbTestBase {
     public void testIdIndex1() {
         BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:'id17123'}" );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.insert( data1 );
             expDataList.clear();
             expDataList.add( data1 );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.insert( data1 );
                 Assert.fail( "Need throw error -38." );
@@ -76,11 +76,11 @@ public class Transaction17123 extends SdbTestBase {
 
         BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:'id17123'}" );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.insert( data1 );
             expDataList.clear();
             expDataList.add( data1 );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 cl2.insert( data1 );
                 Assert.fail( "Need throw error -38." );
@@ -107,11 +107,11 @@ public class Transaction17123 extends SdbTestBase {
         cl.createIndex( idxName, "{a:1}", true, true );
         BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:1,a:'id17123'}" );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.insert( data1 );
             expDataList.clear();
             expDataList.add( data1 );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 BSONObject data2 = ( BSONObject ) JSON
                         .parse( "{_id:2,a:'id17123'}" );
@@ -145,11 +145,11 @@ public class Transaction17123 extends SdbTestBase {
         cl.createIndex( idxName, "{a:1}", true, true );
         BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:1,a:'id17123'}" );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.insert( data1 );
             expDataList.clear();
             expDataList.add( data1 );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             try {
                 BSONObject data2 = ( BSONObject ) JSON
                         .parse( "{_id:2,a:'id17123'}" );

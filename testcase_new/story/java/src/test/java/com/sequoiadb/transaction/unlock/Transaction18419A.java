@@ -77,7 +77,7 @@ public class Transaction18419A extends SdbTestBase {
                 .getCollection( clName );
 
         // 开启事务1，查询记录R1
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
         DBCursor cursor = cl1.query( "{a:1}", "", "",
                 "{'':'" + idxName + "'}" );
@@ -87,11 +87,11 @@ public class Transaction18419A extends SdbTestBase {
                 "actList: " + actList );
 
         // 开启事务2，删除记录R1
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db2 );
         cl2.delete( "{a:1}", "{'':'" + idxName + "'}" );
 
         // 开启事务3，select for update R1
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db3 );
         CL3Query th3 = new CL3Query();
         th3.start();
         Assert.assertTrue(

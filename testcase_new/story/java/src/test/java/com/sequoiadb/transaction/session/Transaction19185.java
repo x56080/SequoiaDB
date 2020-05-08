@@ -12,6 +12,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * 
@@ -43,7 +44,7 @@ public class Transaction19185 extends SdbTestBase {
             // 创建一个连接db1，开启事务，设置事务属性，覆盖：Timeout、TransIsolation、TransTimeout、
             // TransUseRBS、TransLockWait、TransAutoCommit、TransAutoRollback、TransRCCount，查询事务属性
             db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db1.beginTransaction();
+            TransUtils.beginTransaction( db1 );
             db1.setSessionAttr(
                     ( BSONObject ) JSON.parse( "{TransTimeout:120}" ) );
             try {

@@ -53,7 +53,7 @@ public class Transaction17189 extends SdbTestBase {
     @Test
     public void test() {
         // 开启事务
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
         cl.insert( record );
         expList.add( record );

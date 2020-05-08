@@ -48,8 +48,8 @@ public class Transaction18219 extends SdbTestBase {
         sdb.execUpdate( "insert into " + csName + "." + clName
                 + "(_id, a, b) values (1, 1, 1)" );
 
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         db1.execUpdate( "update " + csName + "." + clName
                 + " set _id = 2, a = 2, b = 2 where a = 1" );

@@ -38,7 +38,7 @@ public class Transaction21879 extends SdbTestBase {
         cl.insert( data1 );
         try {
             for ( int i = 0; i < 10; i++ ) {
-                sdb.beginTransaction();
+                TransUtils.beginTransaction( sdb );
                 cl.delete( "" );
                 cl.insert( data1 );
 
@@ -62,7 +62,7 @@ public class Transaction21879 extends SdbTestBase {
         cl.insert( data1 );
         try {
             for ( int i = 0; i < 10; i++ ) {
-                sdb.beginTransaction();
+                TransUtils.beginTransaction( sdb );
                 cl.delete( "" );
                 BSONObject data2 = ( BSONObject ) JSON
                         .parse( "{_id:2,a:'id21879_1'}" );

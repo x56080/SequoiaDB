@@ -132,10 +132,10 @@ public class Transaction17761E extends SdbTestBase {
             cl4 = sdb4.getCollectionSpace( csName ).getCollection( clName );
 
             // 开启事务
-            sdb1.beginTransaction();
-            sdb2.beginTransaction();
-            sdb3.beginTransaction();
-            sdb4.beginTransaction();
+            TransUtils.beginTransaction( sdb1 );
+            TransUtils.beginTransaction( sdb2 );
+            TransUtils.beginTransaction( sdb3 );
+            TransUtils.beginTransaction( sdb4 );
 
             // 插入记录
             cl.insert( insertR1 );

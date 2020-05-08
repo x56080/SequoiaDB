@@ -62,7 +62,7 @@ public class Transaction18221 extends SdbTestBase {
     public void test() {
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
 
-        sdb2.beginTransaction();
+        TransUtils.beginTransaction( sdb2 );
 
         // query.update R1 to R2
         BSONObject update = new BasicBSONObject( "$set",

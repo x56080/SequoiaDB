@@ -51,9 +51,9 @@ public class Transaction17153 extends SdbTestBase {
     @Test
     public void test() throws InterruptedException {
         // 开启事务1
-        db1.beginTransaction();
-        db2.beginTransaction();
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
+        TransUtils.beginTransaction( db3 );
 
         // 事务1插入记录R1
         BSONObject insertR1 = ( BSONObject ) JSON.parse( "{_id:1,a:1,b:1}" );

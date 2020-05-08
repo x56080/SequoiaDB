@@ -69,8 +69,8 @@ public class Transaction18224 extends SdbTestBase {
         cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
 
-        sdb1.beginTransaction();
-        sdb2.beginTransaction();
+        TransUtils.beginTransaction( sdb1 );
+        TransUtils.beginTransaction( sdb2 );
 
         // trans1 update R1 to R2
         cl1.update( "{'a': 1000}",

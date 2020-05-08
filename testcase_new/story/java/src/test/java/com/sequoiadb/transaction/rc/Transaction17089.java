@@ -65,8 +65,8 @@ public class Transaction17089 extends SdbTestBase {
         cl.createIndex( "a", "{a:1}", false, false );
         expList = TransUtils.insertDatas( cl, 0, 50000, 1 );
 
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1批量更新全部记录
         cl1.update( "{a:1}", "{$set:{a:2}}", "{'':'a'}" );

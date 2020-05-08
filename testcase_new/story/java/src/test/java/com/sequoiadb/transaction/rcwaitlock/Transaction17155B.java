@@ -56,9 +56,9 @@ public class Transaction17155B extends SdbTestBase {
         expList1.add( insertR1 );
 
         // 开启事务1
-        db1.beginTransaction();
-        db2.beginTransaction();
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
+        TransUtils.beginTransaction( db3 );
 
         // 事务1更新索引字段的值
         cl1.update( null, "{$set:{c:1}}", "{'':'a'}" );

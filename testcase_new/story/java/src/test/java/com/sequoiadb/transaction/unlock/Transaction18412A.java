@@ -75,19 +75,19 @@ public class Transaction18412A extends SdbTestBase {
                 .getCollection( clName );
 
         // 开启事务1，插入记录R1
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
         cl1.insert( record );
 
         // 开启事务2，查询记录R1
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db2 );
         DBCursor cursor = cl2.query( "{a:1}", "", "",
                 "{'':'" + idxName + "'}" );
         List< BSONObject > actList = TransUtils.getReadActList( cursor );
         Assert.assertTrue( actList.size() == 0, "actList: " + actList );
 
         // 开启事务3，查询记录R1
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db3 );
         cursor = cl3.query( "{a:1}", "", "", "{'':'" + idxName + "'}" );
         actList = TransUtils.getReadActList( cursor );
         Assert.assertTrue( actList.size() == 0, "actList: " + actList );

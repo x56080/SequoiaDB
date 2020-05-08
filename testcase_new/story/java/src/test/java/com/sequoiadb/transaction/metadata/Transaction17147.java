@@ -67,7 +67,7 @@ public class Transaction17147 extends SdbTestBase {
     @Test
     public void test() {
         // 开启事务执行增删改操作
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:3, a:3, b:3}" );
         cl.insert( record );
         expList.add( record );
@@ -170,7 +170,7 @@ public class Transaction17147 extends SdbTestBase {
             }
         }
         try {
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
             cl2.truncate();
             throw new BaseException( -999, "TRUNCATE ERROR" );
         } catch ( BaseException e ) {

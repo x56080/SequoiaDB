@@ -49,7 +49,7 @@ public class Transaction20142 extends SdbTestBase {
 
         try {
             // 事务中插入删除记录
-            db.beginTransaction();
+            TransUtils.beginTransaction( db );
             for ( int i = 0; i < clNames.size(); i++ ) {
                 DBCollection tcl = db.getCollectionSpace( csName )
                         .getCollection( clNames.get( i ) );
@@ -120,7 +120,7 @@ public class Transaction20142 extends SdbTestBase {
         try {
 
             // 事务中插入删除记录
-            db.beginTransaction();
+            TransUtils.beginTransaction( db );
             for ( int i = 0; i < clNames.size(); i++ ) {
                 DBCollection tcl = db.getCollectionSpace( csName )
                         .getCollection( clNames.get( i ) );

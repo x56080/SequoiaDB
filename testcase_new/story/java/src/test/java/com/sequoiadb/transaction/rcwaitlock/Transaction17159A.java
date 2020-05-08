@@ -49,8 +49,8 @@ public class Transaction17159A extends SdbTestBase {
 
     @Test
     public void test() throws InterruptedException {
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1对同一条记录执行多个原子操作
         BSONObject insertR3 = ( BSONObject ) JSON.parse( "{a:10000,b:10000}" );
@@ -114,7 +114,7 @@ public class Transaction17159A extends SdbTestBase {
             cl = db.getCollectionSpace( csName ).getCollection( clName );
 
             // 开启并发事务2
-            db.beginTransaction();
+            TransUtils.beginTransaction( db );
 
             // 判断事务阻塞需先获取事务id
             setTransactionID( db );

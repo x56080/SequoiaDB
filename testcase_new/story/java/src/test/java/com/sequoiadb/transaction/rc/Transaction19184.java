@@ -49,7 +49,7 @@ public class Transaction19184 extends SdbTestBase {
 
             // 创建一个连接db1，开启事务，并插入1条记录R1
             db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db1.beginTransaction();
+            TransUtils.beginTransaction( db1 );
             DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             BSONObject obj = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
@@ -66,14 +66,14 @@ public class Transaction19184 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{TransRCCount:false}" ) );
             BSONObject attr = db3.getSessionAttr();
             Assert.assertEquals( false, attr.get( "TransRCCount" ) );
-            db3.beginTransaction();
+            TransUtils.beginTransaction( db3 );
             DBCollection cl3 = db3.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             long count = cl3.getCount();
             Assert.assertEquals( count, 1 );
 
             // 在连接db2上，开启事务，执行count查询
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
             DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             count = cl2.getCount();
@@ -83,7 +83,7 @@ public class Transaction19184 extends SdbTestBase {
             db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             DBCollection cl4 = db4.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
-            db4.beginTransaction();
+            TransUtils.beginTransaction( db4 );
             count = cl4.getCount();
             Assert.assertEquals( count, 0 );
 

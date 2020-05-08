@@ -66,8 +66,8 @@ public class Transaction20262 extends SdbTestBase {
     public void test() throws InterruptedException {
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1指定_id字段更新记录R1为R2；事务2指定_id字段更新记录R1为R3。
         cl1.update( "{_id:1}", "{$set:{a:2}}", "" );

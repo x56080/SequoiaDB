@@ -45,7 +45,7 @@ public class Transaction18217 extends SdbTestBase {
                 + "(_id, a, b) values (1, 1, 1)" );
         expList.add( ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" ) );
 
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
 
         sdb.execUpdate( "insert into " + csName + "." + clName
                 + "(_id, a, b) values (2, 2, 2)" );

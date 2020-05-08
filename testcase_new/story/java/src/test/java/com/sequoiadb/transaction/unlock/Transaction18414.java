@@ -76,7 +76,7 @@ public class Transaction18414 extends SdbTestBase {
                 .getCollection( clName );
 
         // 开启事务1，select for update R1
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
         DBCursor cursor = cl1.query( "{a:1}", "", "", "{'':'" + idxName + "'}",
                 DBQuery.FLG_QUERY_FOR_UPDATE );
@@ -86,14 +86,14 @@ public class Transaction18414 extends SdbTestBase {
                 "actList: " + actList );
 
         // 开启事务2，select for update R1
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db2 );
         CL2Update th2 = new CL2Update();
         th2.start();
         Assert.assertTrue(
                 TransUtils.isTransWaitLock( sdb, th2.getTransactionID() ) );
 
         // 开启事务3，查询记录R1
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db3 );
         cursor = cl3.query( "{a:1}", "", "", "{'':'" + idxName + "'}" );
         actList = TransUtils.getReadActList( cursor );
         Assert.assertTrue(

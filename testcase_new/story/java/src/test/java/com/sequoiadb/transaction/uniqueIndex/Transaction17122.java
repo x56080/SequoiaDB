@@ -40,7 +40,7 @@ public class Transaction17122 extends SdbTestBase {
         expDataList.clear();
         expDataList.add( data1 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{'_id': 'id17122'}" );
             cl.insert( data1 );
             TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
@@ -62,7 +62,7 @@ public class Transaction17122 extends SdbTestBase {
         expDataList.clear();
         expDataList.add( data1 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{'_id': 'id17122'}" );
             cl.insert( data1 );
             TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
@@ -84,7 +84,7 @@ public class Transaction17122 extends SdbTestBase {
         BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:1,a:'id17122'}" );
         cl.insert( data1 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{'a': 'id17122'}" );
             BSONObject data2 = ( BSONObject ) JSON
                     .parse( "{_id:2,a:'id17122'}" );
@@ -114,7 +114,7 @@ public class Transaction17122 extends SdbTestBase {
         BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:1,a:'id17122'}" );
         cl.insert( data1 );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{'a': 'id17122'}" );
             BSONObject data2 = ( BSONObject ) JSON
                     .parse( "{_id:2,a:'id17122'}" );

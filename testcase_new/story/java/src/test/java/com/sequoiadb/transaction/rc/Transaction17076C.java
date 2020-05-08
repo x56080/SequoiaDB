@@ -50,8 +50,8 @@ public class Transaction17076C extends SdbTestBase {
     @Test
     public void test() {
         // 开启两个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 记录新增索引字段
         cl1.update( "{_id:1}", "{$set:{a:3}}", hintTbScan );

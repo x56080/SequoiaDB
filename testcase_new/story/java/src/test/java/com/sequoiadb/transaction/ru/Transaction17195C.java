@@ -50,8 +50,8 @@ public class Transaction17195C extends SdbTestBase {
         BSONObject insertR1 = ( BSONObject ) JSON.parse( "{_id:1,a:1,b:1}" );
         cl.insert( insertR1 );
 
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 记录新增索引字段
         cl1.update( "{_id:1}", "{$set:{c:1}}", hintTbScan );

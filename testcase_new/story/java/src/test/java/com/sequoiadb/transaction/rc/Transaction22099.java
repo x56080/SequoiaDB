@@ -54,7 +54,7 @@ public class Transaction22099 extends SdbTestBase {
         sdb.setSessionAttr(
                 ( BSONObject ) JSON.parse( "{PreferedInstance:'S'}" ) );
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             int recordNum = ( int ) cl.getCount();
             Assert.assertEquals( recordNum, 1 );
 

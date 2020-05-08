@@ -71,8 +71,8 @@ public class Transaction17205 extends SdbTestBase {
         // 开启2个并发事务
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1更新记录为原值
         cl1.update( "{a:1}", "{$set:{a:1}}", "{'':null}" );

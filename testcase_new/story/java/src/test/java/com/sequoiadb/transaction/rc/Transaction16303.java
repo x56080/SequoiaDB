@@ -18,6 +18,7 @@ import com.sequoiadb.base.DBQuery;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @FileName:TestTransaction16303 test query() without QUERY_FLG_FOR_UPDATE
@@ -69,8 +70,8 @@ public class Transaction16303 extends SdbTestBase {
 
     private void testQueryAndUpdate( String flag ) {
         try {
-            sdb.beginTransaction();
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb );
+            TransUtils.beginTransaction( sdb2 );
             DBCollection cl1 = sdb.getCollectionSpace( commCSName )
                     .getCollection( clName );
             DBCollection cl2 = sdb2.getCollectionSpace( commCSName )
@@ -109,8 +110,8 @@ public class Transaction16303 extends SdbTestBase {
 
     private void testQueryOneAndUpdate( String flag ) {
         try {
-            sdb.beginTransaction();
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb );
+            TransUtils.beginTransaction( sdb2 );
             DBCollection cl1 = sdb.getCollectionSpace( commCSName )
                     .getCollection( clName );
             DBCollection cl2 = sdb2.getCollectionSpace( commCSName )

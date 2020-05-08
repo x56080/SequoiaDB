@@ -76,13 +76,13 @@ public class Transaction18406 extends SdbTestBase {
                 .getCollection( clName );
 
         // 开启事务1，select for update R1
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         DBCursor cursor = cl1.query( "{a:1}", "", "", "{'':'" + idxName + "'}",
                 DBQuery.FLG_QUERY_FOR_UPDATE );
         TransUtils.getReadActList( cursor );
 
         // 开启事务2，select for update R1
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db2 );
         CL2Query th2 = new CL2Query();
         th2.start();
         Assert.assertTrue(
@@ -91,7 +91,7 @@ public class Transaction18406 extends SdbTestBase {
         Thread.sleep( TransUtils.delayTime );
 
         // 开启事务3，select for update R1
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db3 );
         CL3Query th3 = new CL3Query();
         th3.start();
         Assert.assertTrue(

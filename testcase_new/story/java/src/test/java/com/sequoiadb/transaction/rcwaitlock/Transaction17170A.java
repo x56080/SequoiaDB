@@ -77,9 +77,9 @@ public class Transaction17170A extends SdbTestBase {
     public void test() throws InterruptedException {
 
         // 开启3个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
+        TransUtils.beginTransaction( db3 );
 
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
@@ -134,7 +134,7 @@ public class Transaction17170A extends SdbTestBase {
         }
 
         // 事务3再次索引读
-        db3.beginTransaction();
+        TransUtils.beginTransaction( db3 );
         try {
             DBCursor indexCursor = cl3.query( null, null, null, hint );
             while ( indexCursor.hasNext() ) {

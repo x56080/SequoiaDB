@@ -49,7 +49,7 @@ public class Transaction19179 extends SdbTestBase {
 
             // 创建一个连接db1，开启事务，并插入1条记录R1
             db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db1.beginTransaction();
+            TransUtils.beginTransaction( db1 );
             DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             BSONObject obj = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );
@@ -66,7 +66,7 @@ public class Transaction19179 extends SdbTestBase {
                     ( BSONObject ) JSON.parse( "{TransTimeout:30}" ) );
             BSONObject attr = db3.getSessionAttr();
             Assert.assertEquals( 30, attr.get( "TransTimeout" ) );
-            db3.beginTransaction();
+            TransUtils.beginTransaction( db3 );
             DBCollection cl3 = db3.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             long start = System.currentTimeMillis();
@@ -83,7 +83,7 @@ public class Transaction19179 extends SdbTestBase {
             }
 
             // 在连接db2上，开启事务，更新R1为R2
-            db2.beginTransaction();
+            TransUtils.beginTransaction( db2 );
             DBCollection cl2 = db2.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             start = System.currentTimeMillis();
@@ -101,7 +101,7 @@ public class Transaction19179 extends SdbTestBase {
 
             // 创建一个连接db4，开启事务，更新R1为R2
             db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db4.beginTransaction();
+            TransUtils.beginTransaction( db4 );
             DBCollection cl4 = db4.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             start = System.currentTimeMillis();

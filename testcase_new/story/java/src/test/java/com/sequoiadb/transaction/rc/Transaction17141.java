@@ -64,8 +64,8 @@ public class Transaction17141 extends SdbTestBase {
     public void test() {
         cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
 
-        sdb.beginTransaction();
-        sdb2.beginTransaction();
+        TransUtils.beginTransaction( sdb );
+        TransUtils.beginTransaction( sdb2 );
 
         // 2 trans1 query and remove
         DBCursor tbCur = cl.queryAndRemove( new BasicBSONObject( "a", 1 ), null,

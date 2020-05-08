@@ -48,8 +48,8 @@ public class Transaction17196 extends SdbTestBase {
         cl.insert( insertR1 );
 
         // 开启两个并发事务
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1删除记录R1
         cl1.delete( "{a:1}", hintIxScan );

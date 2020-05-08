@@ -41,13 +41,13 @@ public class Transaction20011 extends SdbTestBase {
     public void testIdIndex1() {
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             BSONObject data1 = ( BSONObject ) JSON.parse( "{_id:'id20011_1'}" );
             BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:'id20011_2'}" );
             cl.insert( data1 );
             cl.insert( data2 );
             cl.delete( "{_id:'id20011_1'}" );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
             cl2.insert( data1 );
 
             sdb.rollback();
@@ -74,7 +74,7 @@ public class Transaction20011 extends SdbTestBase {
         cl.createIndex( idxName, "{a:1}", true, true );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             BSONObject data1 = ( BSONObject ) JSON
                     .parse( "{_id:1,a:'id20011_1'}" );
             BSONObject data2 = ( BSONObject ) JSON
@@ -82,7 +82,7 @@ public class Transaction20011 extends SdbTestBase {
             cl.insert( data1 );
             cl.insert( data2 );
             cl.delete( "{a:'id20011_1'}" );
-            sdb2.beginTransaction();
+            TransUtils.beginTransaction( sdb2 );
 
             BSONObject data3 = ( BSONObject ) JSON
                     .parse( "{_id:3,a:'id20011_1'}" );

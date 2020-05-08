@@ -124,9 +124,9 @@ public class Transaction17823A extends SdbTestBase {
             cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );
             cl3 = sdb3.getCollectionSpace( csName ).getCollection( clName );
 
-            sdb1.beginTransaction();
-            sdb2.beginTransaction();
-            sdb3.beginTransaction();
+            TransUtils.beginTransaction( sdb1 );
+            TransUtils.beginTransaction( sdb2 );
+            TransUtils.beginTransaction( sdb3 );
 
             // 事务1更新记录R1为R2
             cl1.update( "{a:1}", "{$inc:{a:2,b:2}}", hintTbScan );

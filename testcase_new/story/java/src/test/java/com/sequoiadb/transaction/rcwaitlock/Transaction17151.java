@@ -55,7 +55,7 @@ public class Transaction17151 extends SdbTestBase {
     @Test
     public void test() {
         // 开启事务
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
 
         // 删除记录
         cl.delete( "", "{'':'textIndex17151'}" );

@@ -50,8 +50,8 @@ public class Transaction17079 extends SdbTestBase {
         cl.insert( insertR1 );
         expList.add( insertR1 );
 
-        db1.beginTransaction();
-        db2.beginTransaction();
+        TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 事务1删除记录R1
         cl1.delete( "{a:1}", hintTbScan );

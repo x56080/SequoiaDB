@@ -143,7 +143,7 @@ public class Split10537 extends SdbTestBase {
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                 cl = db.getCollectionSpace( csName ).getCollection( clName );
-                db.beginTransaction();
+                TransUtils.beginTransaction( db );
                 cl.delete( "{sk:{$gte:40000,$lt:60000}}" );
                 for ( int i = 40000; i < 60000; i++ ) {
                     cl.insert( "{sk:" + i + ",beta:1}" );

@@ -40,7 +40,7 @@ public class Transaction17128 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             try {
                 BSONObject data2 = ( BSONObject ) JSON
                         .parse( "{_id:'id17128_2'}" );
@@ -71,7 +71,7 @@ public class Transaction17128 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
 
             try {
                 BSONObject data2 = ( BSONObject ) JSON

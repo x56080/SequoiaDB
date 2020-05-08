@@ -40,7 +40,7 @@ public class Transaction19226 extends SdbTestBase {
     public void test() {
         ArrayList< BSONObject > records = TransUtils.insertRandomDatas( cl, 0,
                 10000 );
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
         cl.update( null, "{$set:{a:1024}}", null, 0 );
 
         cl1.dropIndex( indexName );
@@ -49,7 +49,7 @@ public class Transaction19226 extends SdbTestBase {
 
         cl1.createIndex( indexName, "{a:1}", false, false );
 
-        db1.beginTransaction();
+        TransUtils.beginTransaction( db1 );
         TransUtils.queryAndCheck( cl1, "{a:1}", "{'':'a'}", records );
         TransUtils.queryAndCheck( cl1, "{a:1}", "{'':null}", records );
 

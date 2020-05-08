@@ -54,7 +54,7 @@ public class Transaction17072 extends SdbTestBase {
     @Test
     public void test() {
         // 开启事务
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
 
         // 更新索引字段值
         cl.update( "{a:1}", "{$set:{a:2}}", hintIxScan );

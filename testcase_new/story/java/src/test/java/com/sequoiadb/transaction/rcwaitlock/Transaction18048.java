@@ -48,7 +48,7 @@ public class Transaction18048 extends SdbTestBase {
 
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
-            db1.beginTransaction();
+            TransUtils.beginTransaction( db1 );
             TransUtils.insertRandomDatas( cl1, 10000, 20000 );
             cl1.delete( null, "{'':'a'}" );
 
@@ -98,7 +98,7 @@ public class Transaction18048 extends SdbTestBase {
         public void exec() throws Exception {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
-                db.beginTransaction();
+                TransUtils.beginTransaction( db );
                 cl = db.getCollectionSpace( csName ).getCollection( clName );
 
                 // 判断事务阻塞需先获取事务id

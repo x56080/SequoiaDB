@@ -54,7 +54,7 @@ public class Transaction17073 extends SdbTestBase {
     @Test
     public void test() {
         // 开启事务
-        sdb.beginTransaction();
+        TransUtils.beginTransaction( sdb );
 
         // 删除记录R1
         cl.delete( "", hintIxScan );

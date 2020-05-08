@@ -44,11 +44,11 @@ public class Transaction17136 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{_id:'id17136_1'}" );
 
             try {
-                sdb2.beginTransaction();
+                TransUtils.beginTransaction( sdb2 );
                 cl2.insert( data1 );
                 Assert.fail( "Need throw error -38." );
             } catch ( BaseException e ) {
@@ -84,11 +84,11 @@ public class Transaction17136 extends SdbTestBase {
         cl.insert( data1 );
 
         try {
-            sdb.beginTransaction();
+            TransUtils.beginTransaction( sdb );
             cl.delete( "{a:'id17136_1'}" );
 
             try {
-                sdb2.beginTransaction();
+                TransUtils.beginTransaction( sdb2 );
                 BSONObject data2 = ( BSONObject ) JSON
                         .parse( "{_id:2,a:'id17136_1'}" );
                 cl2.insert( data2 );
