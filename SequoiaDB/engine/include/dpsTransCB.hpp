@@ -725,7 +725,6 @@ namespace engine
       void     dumpTransEDUList( TRANS_EDU_LIST  &eduList ) ;
       UINT32   getTransCBSize() ;
       void     termAllTrans() ;
-      TRANS_MAP *getTransMap() ;
       UINT32   getTransMapSize() ;
       void     removeTrans( const DPS_TRANS_ID &transID ) ;
       void     cloneTransMap( TRANS_MAP &result ) ;
@@ -1045,9 +1044,6 @@ namespace engine
       DPS_TRANSID_NODEID _TransIDH16 ;
       // atomic to generate 56 bit SN for non global transactions
       ossAtomic64       _TransIDL56Cur ;
-
-      monSpinSLatch     _MapMutex ;
-      TRANS_MAP         _TransMap ;
 
       monSpinSLatch     _mapLatch[ DPS_TRANS_BUCKET_SIZE ] ;
       TRANS_MAP         _transMap[ DPS_TRANS_BUCKET_SIZE ] ;
