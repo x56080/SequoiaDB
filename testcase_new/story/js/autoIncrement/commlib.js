@@ -463,3 +463,15 @@ function insertAndGetExpList ( cl, increment_1, increment_2, currentValue_1, cur
    return expList;
 }
 
+/*******************************************************************************
+@Description : 检查自增字段的lastGenerateID值
+@return: 
+@Modify list : 2020-05-08 liuxiaoxuan
+*******************************************************************************/
+function checkLastGenerateID ( actLastGenerateID, expLastGenerateID )
+{
+   if( expLastGenerateID !== actLastGenerateID )
+   {
+      throw new Error( "actual LastGenerateID: " + actLastGenerateID + ", expect LastGenerateID: " + expLastGenerateID );
+   }
+}
