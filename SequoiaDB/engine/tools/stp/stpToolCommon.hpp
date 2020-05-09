@@ -40,6 +40,7 @@
 #define STP_TOOL_COMMON_HPP__
 
 #include "oss.hpp"
+#include "ossUtil.hpp"
 #include "pd.hpp"
 #include "omagentDef.hpp"
 
@@ -51,7 +52,7 @@ namespace engine
    // name of stpstart program
    #define STPSTART_NAME            "stpstart"
    // name of stpstop program
-   #define STPSTOP_NAME                "stpstop"
+   #define STPSTOP_NAME             "stpstop"
 
 #if defined (_LINUX)
    // name of executable file of STP
@@ -116,6 +117,8 @@ namespace engine
    #define STP_OPTION_SYNCINTERVAL     "syncinterval"
    // max time error
    #define STP_OPTION_MAXTIMEERROR     "maxtimeerror"
+   // max synchronize history records
+   #define STP_OPTION_MAXSYNCHIST      "maxsynchist"
    // daemon mode
    #define STP_OPTION_DAEMON           "daemon"
    // test mode
@@ -160,6 +163,24 @@ namespace engine
             break ;
       }
       return STP_ROLE_MANE_UNKNOWN ;
+   }
+
+   // convert to STP role by name
+   OSS_INLINE STP_ROLE stpGetRoleByName( const CHAR *roleName )
+   {
+      if ( NULL != roleName )
+      {
+         if ( 0 == ossStrcmp( roleName, STP_ROLE_NAME_CLIENT ) )
+         {
+            return STP_ROLE_CLIENT ;
+         }
+         else if ( 0 == ossStrcmp( roleName, STP_ROLE_NAME_SERVER ) )
+         {
+            return STP_ROLE_SERVER ;
+         }
+      }
+      // default is server
+      return STP_ROLE_SERVER ;
    }
 
    // check if role is valid
@@ -234,6 +255,46 @@ namespace engine
       return STP_SYNC_STATUS_NAME_UNKNOWN ;
    }
 
+   // convert to STP synchronize status by name
+   OSS_INLINE STP_SYNC_STATUS stpGetSyncStatusByName( const CHAR *statusName )
+   {
+      if ( NULL != statusName )
+      {
+         if ( 0 == ossStrcmp( statusName,
+                              STP_SYNC_STATUS_NAME_NOSOURCE ) )
+         {
+            return STP_SYNC_NOSOURCE ;
+         }
+         else if ( 0 == ossStrcmp( statusName,
+                                   STP_SYNC_STATUS_NAME_CHECKOFFSET ) )
+         {
+            return STP_SYNC_CHECKOFFSET ;
+         }
+         else if ( 0 == ossStrcmp( statusName,
+                                   STP_SYNC_STATUS_NAME_CHECKSLEWRATE ) )
+         {
+            return STP_SYNC_CHECKSLEWRATE ;
+         }
+         else if ( 0 == ossStrcmp( statusName,
+                                   STP_SYNC_STATUS_NAME_RECHECKOFFSET) )
+         {
+            return STP_SYNC_RECHECKOFFSET ;
+         }
+         else if ( 0 == ossStrcmp( statusName,
+                                   STP_SYNC_STATUS_NAME_INTERVALCHECK ) )
+         {
+            return STP_SYNC_INTERVALCHECK ;
+         }
+         else if ( 0 == ossStrcmp( statusName,
+                                   STP_SYNC_STATUS_NAME_CHECKERROR ) )
+         {
+            return STP_SYNC_CHECKERROR ;
+         }
+      }
+      // default is no-source
+      return STP_SYNC_NOSOURCE ;
+   }
+
    // check if synchronize status is valid
    OSS_INLINE BOOLEAN stpCheckSyncStatus( STP_SYNC_STATUS status )
    {
@@ -298,22 +359,29 @@ namespace engine
    #define STP_FIELD_NAME_SERVICE            FIELD_NAME_SERVICE
    #define STP_FIELD_NAME_GROUP              FIELD_NAME_GROUP
    #define STP_FIELD_NAME_SYNC_CLIENTS       "SyncClients"
+   #define STP_FIELD_NAME_SYNC_SOURCE        "SyncSource"
    #define STP_FIELD_NAME_SYNC_SOURCES       "SyncSources"
    #define STP_FIELD_NAME_NODE_OID           "OID"
    #define STP_FIELD_NAME_SYNC_STATUS        "SyncStatus"
    #define STP_FIELD_NAME_SYNC_INTERVAL      "SyncInterval"
    #define STP_FIELD_NAME_TIME_ERROR         "TimeError"
    #define STP_FIELD_NAME_MAX_TIME_ERROR     "MaxTimeError"
-   #define STP_FIELD_NAME_LAST_SYNC_PASSED   "LastSyncPassed"
+   #define STP_FIELD_NAME_SYNC_PASSED        "SyncPassed"
+   #define STP_FIELD_NAME_UPDATE_PASSED      "LastPassed"
    #define STP_FIELD_NAME_SYNC_COUNT         "SyncCount"
+   #define STP_FIELD_NAME_SYNC_PORT          "SyncPort"
+   #define STP_FIELD_NAME_SYNC_HISTORY       "SyncHistory"
    #define STP_FIELD_NAME_VALID_COUNT        "ValidCount"
    #define STP_FIELD_NAME_MAX_DELAY          "MaxDelay"
    #define STP_FIELD_NAME_MIN_DELAY          "MinDelay"
-   #define STP_FIELD_NAME_MAX_POS_OFFSET     "MaxPosOffset"
-   #define STP_FIELD_NAME_MAX_NEG_OFFSET     "MaxNegOffset"
-   #define STP_FIELD_NAME_MIN_POS_OFFSET     "MinPosOffset"
-   #define STP_FIELD_NAME_MIN_POS_OFFSET     "MinPosOffset"
+   #define STP_FIELD_NAME_LAST_DELAY         "LastDelay"
    #define STP_FIELD_NAME_INIT_OFFSET        "InitOffset"
+   #define STP_FIELD_NAME_POS_OFFSET         "PosOffset"
+   #define STP_FIELD_NAME_NEG_OFFSET         "NegOffset"
+   #define STP_FIELD_NAME_LAST_OFFSET        "LastOffset"
+   #define STP_FIELD_NAME_OFFSET_COUNT       FIELD_NAME_COUNT
+   #define STP_FIELD_NAME_OFFSET_MIN         FIELD_NAME_MIN
+   #define STP_FIELD_NAME_OFFSET_MAX         FIELD_NAME_MAX
    #define STP_FIELD_NAME_TIMESTAMP          "TimeStamp"
    #define STP_FIELD_NAME_OFFSET             "Offset"
    #define STP_FIELD_NAME_SLEW_RATE          "SlewRate"
@@ -327,6 +395,8 @@ namespace engine
    #define STP_FIELD_NAME_META_VERSION       FIELD_NAME_LSN_VERSION
    #define STP_FIELD_NAME_SECOND             "Second"
    #define STP_FIELD_NAME_NANO_SECOND        "NanoSecond"
+   #define STP_FIELD_NAME_REQUEST_ID         "RequestID"
+   #define STP_FIELD_NAME_DELAY              "Delay"
 
 }
 

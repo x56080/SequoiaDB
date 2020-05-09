@@ -185,8 +185,6 @@ namespace engine
       INT32 registerSource( const stpSourceNode &source ) ;
       // get synchronize source by route ID
       INT32 getSource( const MsgRouteID &routeID, stpSourceNode &source ) ;
-      // update synchronize source
-      INT32 updateSource( const stpSourceNode &source ) ;
       // remove synchronize source by route ID
       INT32 removeSource( const MsgRouteID &routeID ) ;
       // remove expired synchronize source
@@ -197,12 +195,15 @@ namespace engine
    protected:
       // on event of synchronize register response
       INT32 _onRegRsp( const MsgRouteID &routeID ) ;
+
       // on event of time synchronize request
       INT32 _onSyncReq( const MsgRouteID &routeID ) ;
+
       // on event of time synchronize response
       INT32 _onSyncRsp( const MsgRouteID &routeID,
                         const stpSyncRecord &record,
                         BOOLEAN isValid ) ;
+
       // remove expired synchronize sources
       INT32 _clearExpiredSources() ;
 

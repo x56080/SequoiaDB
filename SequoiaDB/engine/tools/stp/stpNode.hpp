@@ -150,9 +150,17 @@ namespace engine
       }
 
    protected:
-      INT32 _fromBSON( const bson::BSONObj &nodeObject ) ;
+      // parse node from BSON format
+      // - forDisplay: TRUE for output to STP shell commands
+      //               FALSE for internal messages
+      INT32 _fromBSON( const bson::BSONObj &nodeObject,
+                       BOOLEAN forDisplay ) ;
+
+      // format node into BSON format
+      // - forDisplay: TRUE for output to STP shell commands
+      //               FALSE for internal messages
       INT32 _toBSON( bson::BSONObjBuilder &nodeBuilder,
-                     BOOLEAN toDisplay ) const ;
+                     BOOLEAN forDisplay ) const ;
 
    protected:
       // role of node
@@ -192,7 +200,10 @@ namespace engine
       ossPoolString toString() const ;
 
       // parse server node from BSON format
-      INT32 fromBSON( const bson::BSONObj &nodeObject ) ;
+      // - forDisplay: TRUE for output to STP shell commands
+      //               FALSE for internal messages
+      INT32 fromBSON( const bson::BSONObj &nodeObject,
+                      BOOLEAN forDisplay ) ;
       // format server node into BSON format
       // NOTE:
       // - forDisplay: TRUE for output to STP shell commands
@@ -237,9 +248,9 @@ namespace engine
 
    public:
       // get functions
-      OSS_INLINE UINT64 getLastSyncTick() const
+      OSS_INLINE UINT64 getUpdateTick() const
       {
-         return _lastSyncTick ;
+         return _curStats.getUpdateTick() ;
       }
 
       OSS_INLINE const stpSyncStats &getCurStats() const
@@ -263,21 +274,30 @@ namespace engine
       // on event sending synchronize request to this source
       void onPreSync() ;
       // on event receiving synchronize response from this source
-      void onPostSync( const stpSyncRecord &record, BOOLEAN isValid ) ;
+      void onPostSync( const stpSyncRecord &record,
+                       BOOLEAN isValid,
+                       UINT32 maxSyncHist ) ;
 
-
+      // merge current statistics into history statistics
       void mergeStats() ;
 
       // format source node into BSON format
+      // - isCurrent: format current statistics or history statistics
       // - forDisplay: TRUE for output to STP shell commands
       //               FALSE for internal messages
       INT32 toBSON( bson::BSONObjBuilder &nodeBuilder,
-                    BOOLEAN current,
+                    BOOLEAN isCurrent,
                     BOOLEAN forDisplay ) const ;
 
+      // parse source node from BSON format
+      // - isCurrent: parse current statistics or history statistics
+      // - forDisplay: TRUE for output to STP shell commands
+      //               FALSE for internal messages
+      INT32 fromBSON( const bson::BSONObj &object,
+                      BOOLEAN isCurrent,
+                      BOOLEAN forDisplay ) ;
+
    protected:
-      // last tick to synchronize with
-      UINT64         _lastSyncTick ;
       // current synchronize statistics from this source
       // NOTE: will not always synchronize with only one source since the
       //       primary switch
@@ -294,6 +314,7 @@ namespace engine
    typedef ossPoolMap< MsgRouteID,
                        stpClientNode,
                        MsgRouteIDComp > STP_CLIENT_MAP ;
+   typedef ossPoolList< stpClientNode > STP_CLIENT_LIST ;
 
    class _stpClientNode : public stpNode
    {
@@ -384,15 +405,36 @@ namespace engine
          _syncCount = syncCount ;
       }
 
+      OSS_INLINE UINT16 getSyncPort() const
+      {
+         return _syncPort ;
+      }
+
+      OSS_INLINE void setSyncPort( UINT16 port )
+      {
+         _syncPort = port ;
+      }
+
+      OSS_INLINE void resetSyncPort()
+      {
+         _syncPort = STP_INVALID_SYNCPORT ;
+      }
+
    public:
       // format client node into string format
       ossPoolString toString() const ;
 
       // parse client node from BSON format
-      INT32 fromBSON( const bson::BSONObj &nodeObject ) ;
+      // - forDisplay: TRUE for output to STP shell commands
+      //               FALSE for internal messages
+      INT32 fromBSON( const bson::BSONObj &nodeObject,
+                      BOOLEAN forDisplay ) ;
+
       // format client node into BSON format
+      // - forDisplay: TRUE for output to STP shell commands
+      //               FALSE for internal messages
       INT32 toBSON( bson::BSONObjBuilder &nodeBuilder,
-                    BOOLEAN toDisplay ) const ;
+                    BOOLEAN forDisplay ) const ;
 
       // check if role is valid
       OSS_INLINE BOOLEAN isValidRole() const
@@ -452,6 +494,8 @@ namespace engine
       UINT64            _lastSyncTick ;
       // counts of synchronize from client
       UINT64            _syncCount ;
+      // synchronize port
+      UINT16            _syncPort ;
    } ;
 
 }

@@ -71,6 +71,8 @@ namespace engine
    #define STP_NANOSEC_TO_MILLISEC( x )      ( (UINT64)( x ) / 1000000LL )
    // convert microseconds to milliseconds
    #define STP_MICROSEC_TO_MILLISEC( x )     ( (UINT32)( x ) / 1000 )
+   // convert milliseconds to microseconds
+   #define STP_MILLISEC_TO_MICROSEC( x )     ( (UINT64)( x ) * 1000LL )
    // convert milliseconds to seconds
    #define STP_MILLISEC_TO_SEC( x )          ( ( x ) / 1000 )
 
@@ -101,6 +103,8 @@ namespace engine
    // STP default slew rate for CPU ticks
    #define STP_DEF_SLEWRATE   ( 10000LL )
 
+   // STP to keep history synchronize records
+   #define STP_DEF_SYNC_HIST_SIZE ( 20 )
 }
 
 #endif // STP_COMMON_HPP__

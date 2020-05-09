@@ -871,6 +871,10 @@ Stp.prototype.getTime = function() {
    return this._runCommand( "stp get time" ) ;
 }
 
+Stp.prototype.getTimeUS = function() {
+   return this._runCommand( "stp get time us" ) ;
+}
+
 Stp.prototype.getMeta = function() {
    return this._runCommand( "stp get meta" ) ;
 }

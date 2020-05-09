@@ -84,6 +84,16 @@ namespace engine
          _syncInterval = syncInterval ;
       }
 
+      OSS_INLINE const stpHPTime &getSyncHardwareTime() const
+      {
+         return _syncHWTime ;
+      }
+
+      OSS_INLINE void setSyncHardwareTime( const stpHPTime &syncHWTime )
+      {
+         _syncHWTime = syncHWTime ;
+      }
+
       OSS_INLINE const stpHPTime &getBaseHardwareTime() const
       {
          return _baseHWTime ;
@@ -191,6 +201,8 @@ namespace engine
 
       // output meta data to BSON format
       INT32 toBSON( bson::BSONObjBuilder &builder ) const ;
+      // parse meta from BSON object
+      INT32 fromBSON( const bson::BSONObj &object ) ;
       // output meta data to string format
       ossPoolString toString() const ;
 
@@ -235,6 +247,16 @@ namespace engine
          result.adjust( _offset ) ;
          return result ;
       }
+
+      // format high precision time to BSON format
+      INT32 _timeToBSON( bson::BSONObjBuilder &builder,
+                         const CHAR *fieldName,
+                         const stpHPTime &hpTime ) const ;
+
+      // parse high precision time from BSON format
+      INT32 _timeFromBSON( const bson::BSONObj &object,
+                           const CHAR *fieldName,
+                           stpHPTime &hpTime ) ;
 
    protected:
       // version of meta data ( STP_VERSION )

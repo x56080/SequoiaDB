@@ -228,7 +228,7 @@ namespace engine
    // pipe messages
 
    // prefix for pipe message
-   #define STP_PIPE_MSG_PREFIX   "$tps_"
+   #define STP_PIPE_MSG_PREFIX   "$stp_"
    // test command to test alive of STP
    #define STP_PIPE_MSG_TEST     STP_PIPE_MSG_PREFIX "test"
    // synchronize command to tell STP to launch synchronize time
