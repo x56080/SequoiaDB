@@ -648,12 +648,6 @@ namespace engine
          ++ _numTransIDConflict ;
       }
 
-      // get count of transaction ID allocation conflict
-      OSS_INLINE UINT64 getTransIDConflict()
-      {
-         return _numTransIDConflict ;
-      }
-
       // Check if EDU hold certain lock and return the holding mode
       BOOLEAN isHolding( _pmdEDUCB *eduCB,
                          INT8   & owningLockMode, 
