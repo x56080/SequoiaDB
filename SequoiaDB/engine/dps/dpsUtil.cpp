@@ -331,16 +331,7 @@ namespace engine
 
    UINT64 dpsTransIDHash( const DPS_TRANS_ID &transID )
    {
-      UINT64 hashValue = 0LL ;
-
-      DPS_TRANS_ID origID = transID.getOrigTransID() ;
-
-      hashValue ^= ossHash( (const CHAR *)( origID.getSNPtr() ),
-                            (UINT32)( sizeof( DPS_TRANSID_SN ) ) ) ;
-      hashValue ^= ossHash( (const CHAR *)( origID.getNodeIDPtr() ),
-                            (UINT32)( sizeof( DPS_TRANSID_NODEID ) ) ) ;
-
-      return hashValue ;
+      return transID.getGlobSN() ;
    }
 
    UINT32 dpsTransIDHash( const DPS_TRANS_ID &transID, UINT32 modSize )

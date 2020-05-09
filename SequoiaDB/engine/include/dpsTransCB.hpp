@@ -60,7 +60,7 @@ using namespace bson ;
 
 namespace engine
 {
-   #define DPS_TRANS_BUCKET_SIZE ( 64 )
+   #define DPS_TRANS_BUCKET_SIZE ( 67 )
 
    class _pmdEDUCB ;
    class _dmsExtScanner ;
