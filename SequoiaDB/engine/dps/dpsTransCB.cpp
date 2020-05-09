@@ -2716,7 +2716,7 @@ namespace engine
       SDB_ASSERT( beginLsn != DPS_INVALID_LSN_OFFSET, "invalid begin-lsn" ) ;
       SDB_ASSERT( transID.isValid(), "invalid transaction-ID" ) ;
       DPS_TRANS_ID origID = getTransID( transID );
-      ossScopedLock _lock( &_lsnMapMutex ) ;
+      ossScopedLock _lock( &_lsnMapMutex, EXCLUSIVE ) ;
       try
       {
          _beginLsnIdMap[ beginLsn ] = origID ;
@@ -2732,7 +2732,7 @@ namespace engine
    void dpsTransCB::delBeginLsn( const DPS_TRANS_ID &transID )
    {
       DPS_TRANS_ID origID = getTransID( transID );
-      ossScopedLock _lock( &_lsnMapMutex );
+      ossScopedLock _lock( &_lsnMapMutex, EXCLUSIVE );
       DPS_LSN_OFFSET beginLsn;
       TRANS_ID_LSN_MAP::iterator iter = _idBeginLsnMap.find( origID ) ;
       if ( iter != _idBeginLsnMap.end() )
@@ -2746,7 +2746,7 @@ namespace engine
    DPS_LSN_OFFSET dpsTransCB::getBeginLsn( const DPS_TRANS_ID &transID )
    {
       DPS_TRANS_ID origID = getTransID( transID ) ;
-      ossScopedLock _lock( &_lsnMapMutex ) ;
+      ossScopedLock _lock( &_lsnMapMutex, SHARED ) ;
       TRANS_ID_LSN_MAP::iterator iter = _idBeginLsnMap.find( origID ) ;
       if ( iter != _idBeginLsnMap.end() )
       {
@@ -2757,7 +2757,7 @@ namespace engine
 
    DPS_LSN_OFFSET dpsTransCB::getOldestBeginLsn()
    {
-      ossScopedLock _lock( &_lsnMapMutex );
+      ossScopedLock _lock( &_lsnMapMutex, SHARED );
       if ( _beginLsnIdMap.size() > 0 )
       {
          return _beginLsnIdMap.begin()->first;
