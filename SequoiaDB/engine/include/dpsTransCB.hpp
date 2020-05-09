@@ -1077,7 +1077,7 @@ namespace engine
       BOOLEAN           _doRollback ;
       ossEvent          _rollbackEvent ;
 
-      monSpinXLatch     _lsnMapMutex ;
+      monSpinSLatch     _lsnMapMutex ;
       TRANS_LSN_ID_MAP  _beginLsnIdMap ;
       TRANS_ID_LSN_MAP  _idBeginLsnMap ;
 
