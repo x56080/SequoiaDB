@@ -37,7 +37,7 @@ public class Transaction20472B extends SdbTestBase {
     private String idxName = "idx20472B";
     private DBCollection cl = null;
     private String indexKey = null;
-    private int insertNum = 100;
+    private int maxId = 200;
     private int loopNum = 1000;
     // 经过实际测试，由于写操作优先于读操作，设置并发数会导致读操作极少，测试点覆盖不到，并发数暂时设置为1
     private int threadNum = 1;
@@ -47,7 +47,8 @@ public class Transaction20472B extends SdbTestBase {
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        insertData();
+        // 插入b字段为0-200之间偶数；
+        insertData( cl, maxId );
     }
 
     @AfterClass
@@ -80,12 +81,14 @@ public class Transaction20472B extends SdbTestBase {
         threadExecutor.run();
     }
 
-    private void insertData() {
+    private void insertData( DBCollection cl, int maxId ) {
         List< BSONObject > records = new ArrayList< BSONObject >();
-        for ( int i = 0; i < insertNum; i++ ) {
-            BSONObject object = ( BSONObject ) JSON
-                    .parse( "{_id:" + i + ", a:10000, b:" + i + "}" );
-            records.add( object );
+        for ( int i = 0; i < maxId; i++ ) {
+            if ( i % 2 == 0 ) {
+                BSONObject object = ( BSONObject ) JSON
+                        .parse( "{_id:" + i + ", a:10000, b:" + i + "}" );
+                records.add( object );
+            }
         }
         cl.insert( records );
     }
@@ -97,37 +100,26 @@ public class Transaction20472B extends SdbTestBase {
         private void insertDelete() {
             try {
                 for ( int i = 0; i < loopNum * 2; i++ ) {
-                    int aId = ( int ) ( Math.random() * insertNum ) + insertNum;
-                    int bId = ( int ) ( Math.random() * insertNum );
-                    int cId = ( int ) ( Math.random() * insertNum ) - insertNum;
+                    // bId为0-200内的奇数
+                    int bId = 0;
+                    int id = ( int ) ( Math.random() * maxId );
+                    if ( id % 2 == 1 ) {
+                        bId = id;
+                    } else {
+                        bId = id + 1;
+                    }
 
-                    int aBalance = aId + 10000;
-                    int bBalance = bId + 10000;
-                    int cBalance = cId + 10000;
+                    int balance = bId + 10000;
 
                     // 开启更新事务
                     TransUtils.beginTransaction( db );
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     try {
-                        BSONObject object = ( BSONObject ) JSON
-                                .parse( "{_id:" + aId + ", a:" + aBalance
-                                        + ", b:" + aId + "}" );
+                        BSONObject object = ( BSONObject ) JSON.parse( "{_id:"
+                                + bId + ", a:" + balance + ", b:" + bId + "}" );
                         cl.insert( object );
-                        cl.delete( "{b:" + aId + "}",
-                                "{'':'" + idxName + "'}" );
-
-                        object = ( BSONObject ) JSON.parse(
-                                "{_id:" + ( bId + insertNum * 2 ) + ", a:"
-                                        + bBalance + ", b:" + bId + "}" );
-                        cl.insert( object );
-                        cl.delete( "{_id:" + ( bId + insertNum * 2 ) + "}",
-                                "{'':'$id'}" );
-
-                        object = ( BSONObject ) JSON.parse( "{_id:" + cId
-                                + ", a:" + cBalance + ", b:" + cId + "}" );
-                        cl.insert( object );
-                        cl.delete( "{b:" + cId + "}",
+                        cl.delete( "{b:" + bId + "}",
                                 "{'':'" + idxName + "'}" );
 
                     } catch ( BaseException e ) {
