@@ -37,7 +37,7 @@ public class TestAlterCS14994 extends SdbTestBase {
     private static Sequoiadb sdb = null;
     private String domainName1 = "domain14994a";
     private String domainName2 = "domain14994b";
-    private List< String > dataGroupNames = new ArrayList< String >();
+    private List< String > dataGroupNames = new ArrayList<>();
 
     @BeforeClass
     public void setUp() {
@@ -86,6 +86,7 @@ public class TestAlterCS14994 extends SdbTestBase {
         Assert.assertTrue( alterTask1.isSuccess(), alterTask1.getErrorMsg() );
         Assert.assertTrue( alterTask2.isSuccess(), alterTask2.getErrorMsg() );
         Assert.assertTrue( alterTask3.isSuccess(), alterTask3.getErrorMsg() );
+        Assert.assertTrue( alterTask4.isSuccess(), alterTask4.getErrorMsg() );
         checkAlterResult();
     }
 
@@ -103,6 +104,7 @@ public class TestAlterCS14994 extends SdbTestBase {
     }
 
     private class AlterUseEnable extends SdbThreadBase {
+        @Override
         public void exec() throws BaseException {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
@@ -115,6 +117,7 @@ public class TestAlterCS14994 extends SdbTestBase {
     }
 
     private class AlterUseSet extends SdbThreadBase {
+        @Override
         public void exec() throws BaseException {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
@@ -127,6 +130,7 @@ public class TestAlterCS14994 extends SdbTestBase {
     }
 
     private class AlterSameValue extends SdbThreadBase {
+        @Override
         public void exec() throws BaseException {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
@@ -139,6 +143,7 @@ public class TestAlterCS14994 extends SdbTestBase {
     }
 
     private class AlterDiffValue extends SdbThreadBase {
+        @Override
         public void exec() throws BaseException {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "",
                     "" )) {
@@ -163,7 +168,6 @@ public class TestAlterCS14994 extends SdbTestBase {
             query.setMatcher( matcher );
             DBCursor cur = dbcl.query( query );
             int actLobPageSize = 0;
-            ;
             int actPageSize = 0;
             int expLobPageSize = 16384;
             int expPageSize = 16384;
