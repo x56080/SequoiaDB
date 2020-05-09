@@ -176,7 +176,7 @@ namespace engine
    /*
       _stpGetTimeCMD define
     */
-   // _stpGetTimeCMD gets logical time
+   // _stpGetTimeCMD gets logical time in nanosecond
    class _stpGetTimeCMD : public stpCommand
    {
       DECLARE_STP_CMD_AUTO_REGISTER()
@@ -198,6 +198,32 @@ namespace engine
    } ;
 
    typedef class _stpGetTimeCMD stpGetTimeCMD ;
+
+   /*
+      _stpGetTimeUSCMD define
+    */
+   // _stpGetTimeUSCMD gets logical time in microsecond
+   class _stpGetTimeUSCMD : public stpCommand
+   {
+      DECLARE_STP_CMD_AUTO_REGISTER()
+
+   public:
+      // constructor and destructor
+      _stpGetTimeUSCMD( STPCB *stpCB ) ;
+      virtual ~_stpGetTimeUSCMD() ;
+
+   public:
+      // get name of command
+      OSS_INLINE virtual const CHAR *getName() const
+      {
+         return CMD_NAME_STP_GET_TIME_US ;
+      }
+
+      // run command
+      virtual INT32 doit( bson::BSONObj &result ) ;
+   } ;
+
+   typedef class _stpGetTimeUSCMD stpGetTimeUSCMD ;
 
    /*
       _stpGetMetaCMD define

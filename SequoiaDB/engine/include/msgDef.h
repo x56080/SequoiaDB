@@ -279,6 +279,8 @@
 #define FIELD_NAME_COLLECTIONHWM             "CollectionHWM"
 #define FIELD_NAME_SIZE                      "Size"
 #define FIELD_NAME_MAX                       "Max"
+#define FIELD_NAME_MIN                       "Min"
+#define FIELD_NAME_COUNT                     "Count"
 #define FIELD_NAME_TRACE                     "trace"
 #define FIELD_NAME_TO                        "To"
 #define FIELD_NAME_OLDNAME                   "OldName"
@@ -808,6 +810,7 @@
 
 // run in sdbtp
 #define CMD_NAME_STP_GET_TIME             CMD_NAME_STP_PREFIX "get time"
+#define CMD_NAME_STP_GET_TIME_US          CMD_NAME_STP_PREFIX "get time us"
 #define CMD_NAME_STP_GET_META             CMD_NAME_STP_PREFIX "get meta"
 #define CMD_NAME_STP_GET_SERVERS          CMD_NAME_STP_PREFIX "get servers"
 #define CMD_NAME_STP_GET_SYNC_CLIENTS     CMD_NAME_STP_PREFIX "get sync clients"

@@ -219,15 +219,24 @@ clsReplFiles = [
       "cls/clsSyncManager.cpp"
       ]
 
+clientCFiles = [
+      "client/client.c",
+      "client/common.c",
+      "client/network.c"
+      ]
+
+stpCommonFiles = [
+      "tools/stp/stpNode.cpp",
+      "tools/stp/stpSyncStats.cpp",
+      "tools/stp/stpMetaData.cpp",
+      "tools/stp/stpOptions.cpp"
+      ]
+
 stpFiles = [
       "tools/stp/stpCB.cpp",
       "tools/stp/stpModule.cpp",
       "tools/stp/stpServerSession.cpp",
-      "tools/stp/stpOptions.cpp",
-      "tools/stp/stpMetaData.cpp",
       "tools/stp/stpMetaStore.cpp",
-      "tools/stp/stpNode.cpp",
-      "tools/stp/stpSyncStats.cpp",
       "tools/stp/stpMsgHandler.cpp",
       "tools/stp/stpServiceManager.cpp",
       "tools/stp/stpNodeManager.cpp",
@@ -243,6 +252,11 @@ stpToolFiles = [
       "tools/stp/stpToolUtil.cpp"
       ]
 
+stpClientFiles = [
+      "tools/stp/stpClientInternal.cpp",
+      "tools/stp/stpClient.cpp"
+      ]
+
 stpMainFiles = [
       "tools/stp/stp.cpp"
       ]
@@ -253,6 +267,10 @@ stpstartFiles = [
 
 stpstopFiles = [
       "tools/stp/stpstop.cpp"
+      ]
+
+stpqFiles = [
+      "tools/stp/stpq.cpp"
       ]
 
 # Runtime
@@ -277,17 +295,24 @@ stpEnv.StaticLibrary('net', netFiles)
 stpEnv.StaticLibrary('ssh2', ssh2Files)
 # cls replication
 stpEnv.StaticLibrary('clsRepl', clsReplFiles)
+#Client Driver
+stpEnv.StaticLibrary('clientc', clientCFiles)
 # Serial Time Protocol
 stpEnv.StaticLibrary('stp', stpFiles)
+# STP common
+stpEnv.StaticLibrary('stpCommon', stpCommonFiles)
 # STP tool
 stpEnv.StaticLibrary('stpTool', stpToolFiles)
+# STP client
+stpEnv.StaticLibrary('stpClient', stpClientFiles)
 
 #Executable
 stp = stpEnv.Program(
       "stp",
       stpMainFiles,
       LIBDEPS = [ "pd", "oss", "msg", "bson", "util", "net", "pmd",
-                  "pmdMT", "ssh2", "rtnJob", "clsRepl", "stp", "stpTool" ],
+                  "pmdMT", "ssh2", "rtnJob", "clsRepl", "stp", "stpTool",
+                  "stpCommon" ],
       _LIBDEPS = '$_LIBDEPS_OBJS'
       )
 
@@ -305,6 +330,15 @@ stpstop = stpEnv.Program(
       _LIBDEPS = '$_LIBDEPS_OBJS'
       )
 
+stpq = stpEnv.Program(
+      "stpq",
+      stpqFiles,
+      LIBDEPS = [ "pd", "oss", "pmd", "bson", "util", "stpClient",
+                  "stpCommon", "stpTool", "clientc" ],
+      _LIBDEPS = '$_LIBDEPS_OBJS'
+      )
+
 stpEnv.Install( '#/bin', stp )
 stpEnv.Install( '#/bin', stpstart )
 stpEnv.Install( '#/bin', stpstop )
+stpEnv.Install( '#/bin', stpq )

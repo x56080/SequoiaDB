@@ -318,18 +318,9 @@ namespace engine
 
       try
       {
-         BSONObjBuilder builder ;
-
-         // build time into BSON format
-         rc = time.getTime().toBSON( STP_FIELD_NAME_TIMESTAMP, builder ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for [%s], rc: %d",
-                      STP_FIELD_NAME_TIMESTAMP, rc ) ;
-
-         // append time error
-         builder.append( STP_FIELD_NAME_TIME_ERROR,
-                         (INT64)time.getTimeError() ) ;
-
-         result = builder.obj() ;
+         rc = time.toBSON( result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for logical time, "
+                      "rc: %d", rc ) ;
       }
       catch ( exception &e )
       {
@@ -341,6 +332,57 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__STPGETTIMECMD_DOIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _stpGetTimeUSCMD implement
+    */
+   IMPLEMENT_STP_CMD_AUTO_REGISTER( _stpGetTimeUSCMD )
+
+   _stpGetTimeUSCMD::_stpGetTimeUSCMD( STPCB *stpCB )
+   : stpCommand( stpCB )
+   {
+   }
+
+   _stpGetTimeUSCMD::~_stpGetTimeUSCMD()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETTIMEUSCMD_DOIT, "_stpGetTimeUSCMD::doit" )
+   INT32 _stpGetTimeUSCMD::doit( BSONObj &result )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPGETTIMEUSCMD_DOIT ) ;
+
+      stpLogicalTimeUS time ;
+      UINT32 waitTimeUS = 0 ;
+
+      // get logical time in microseconds
+      rc = _stpCB->getMetaData()->getLogicalTimeUS( time, FALSE, FALSE,
+                                                    waitTimeUS ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
+
+      try
+      {
+         rc = time.toBSON( result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for logical time, "
+                      "rc: %d", rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build result for command [%s], "
+                 "occurred unexpected error: %s", getName(), e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPGETTIMEUSCMD_DOIT, rc ) ;
       return rc ;
 
    error:
@@ -370,7 +412,6 @@ namespace engine
 
       const CHAR *metaSHMKey = NULL ;
       stpMetaData *metaData = NULL ;
-      BOOLEAN gotLSN = FALSE ;
       DPS_LSN metaLSN ;
 
       // get key of shared memory of meta data
@@ -388,7 +429,6 @@ namespace engine
       if ( _stpCB->getMetaManager()->isActivated() )
       {
          _stpCB->getMetaManager()->getMetaLSN( metaLSN ) ;
-         gotLSN = TRUE ;
       }
 
       try
@@ -403,7 +443,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for meta data, "
                       "rc: %d", rc ) ;
 
-         if ( gotLSN )
          {
             // append meta LSN
             BSONObjBuilder lsnBuilder(
@@ -583,15 +622,20 @@ namespace engine
                             stpGetSyncStatusName(
                                   _stpCB->getSyncManager()->getStatus() ) ) ;
 
+            BSONObjBuilder sourceBuilder(
+                        builder.subobjStart( STP_FIELD_NAME_SYNC_SOURCE ) ) ;
+
             // append source as BSON format
             if ( MSG_INVALID_ROUTEID != primaryRID.value &&
                  SDB_OK == _stpCB->getSyncManager()->getSource( primaryRID,
                                                                 source ) )
             {
-               rc = source.toBSON( builder, TRUE, TRUE ) ;
+               rc = source.toBSON( sourceBuilder, TRUE, TRUE ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for source %s, "
                             "rc: %d", source.toString().c_str(), rc ) ;
             }
+
+            sourceBuilder.doneFast() ;
          }
 
          // copy to output

@@ -236,24 +236,60 @@ namespace engine
       }
 
       // format time to BSON with field name
-      OSS_INLINE INT32 toBSON( const CHAR *fieldName,
-                               bson::BSONObjBuilder &builder ) const
+      OSS_INLINE INT32 toBSON( bson::BSONObj &object ) const
       {
          INT32 rc = SDB_OK ;
 
-         SDB_ASSERT( NULL != fieldName, "field name is invalid" ) ;
-
          try
          {
-            // append with given field name
-            bson::BSONObjBuilder subBuilder(
-                                          builder.subobjStart( fieldName ) ) ;
-            rc = toBSON( subBuilder ) ;
+            bson::BSONObjBuilder builder ;
+            rc = toBSON( builder ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
-            subBuilder.doneFast() ;
+            object = builder.obj() ;
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      // parse time from BSON object
+      OSS_INLINE INT32 fromBSON( const bson::BSONObj &object )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            bson::BSONElement element ;
+
+            // parse second component
+            element = object.getField( STP_FIELD_NAME_SECOND ) ;
+            if ( bson::NumberLong != element.type() )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            _second = (UINT64)( element.numberLong() ) ;
+
+            // parse nanosecond component
+            element = object.getField( STP_FIELD_NAME_NANO_SECOND ) ;
+            if ( bson::NumberLong != element.type() )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            _nanoSecond = (UINT64)( element.numberLong() ) ;
          }
          catch ( std::exception &e )
          {
@@ -674,6 +710,121 @@ namespace engine
          _timeError = 0 ;
       }
 
+   public:
+      // format logical time into BSON format
+      OSS_INLINE INT32 toBSON( bson::BSONObjBuilder &builder ) const
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            bson::BSONObjBuilder subBuilder(
+                  builder.subobjStart( STP_FIELD_NAME_TIMESTAMP ) ) ;
+
+            // build time into BSON format
+            rc = _time.toBSON( subBuilder ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+
+            subBuilder.doneFast() ;
+
+            // append time error
+            builder.append( STP_FIELD_NAME_TIME_ERROR,
+                            (INT32)_timeError ) ;
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      // format logical time into BSON format
+      OSS_INLINE INT32 toBSON( bson::BSONObj &object ) const
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            bson::BSONObjBuilder builder ;
+
+            rc = toBSON( builder ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+
+            object = builder.obj() ;
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      // parse logical time from BSON object
+      OSS_INLINE INT32 fromBSON( const bson::BSONObj &object )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            bson::BSONElement element ;
+
+            // parse time component
+            element = object.getField( STP_FIELD_NAME_TIMESTAMP ) ;
+            if ( bson::Object != element.type() )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+
+            rc = _time.fromBSON( element.embeddedObject() ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+
+            // parse time error component
+            element = object.getField( STP_FIELD_NAME_TIME_ERROR ) ;
+            if ( bson::NumberInt != element.type() )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            _timeError = (UINT32)( element.numberInt() ) ;
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
    protected:
       // time in high precision time ( nanoseconds )
       stpHPTime _time ;
@@ -830,6 +981,106 @@ namespace engine
       OSS_INLINE stpLogicalTimeUS getLowerLogicalTime() const
       {
          return stpLogicalTimeUS( getLowerTime(), _timeError ) ;
+      }
+
+      // format logical time into BSON format
+      OSS_INLINE INT32 toBSON( bson::BSONObjBuilder &builder ) const
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            // append time
+            builder.append( STP_FIELD_NAME_TIMESTAMP, (INT64)_time ) ;
+
+            // append time error
+            builder.append( STP_FIELD_NAME_TIME_ERROR,
+                            (INT32)_timeError ) ;
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      // format logical time into BSON format
+      OSS_INLINE INT32 toBSON( bson::BSONObj &object ) const
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            bson::BSONObjBuilder builder ;
+
+            rc = toBSON( builder ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+
+            object = builder.obj() ;
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      // parse logical time from BSON object
+      OSS_INLINE INT32 fromBSON( const bson::BSONObj &object )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            bson::BSONElement element ;
+
+            // parse time component
+            element = object.getField( STP_FIELD_NAME_TIMESTAMP ) ;
+            if ( bson::NumberLong != element.type() )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            _time = (UINT64)( element.numberLong() ) ;
+
+            // parse time error component
+            element = object.getField( STP_FIELD_NAME_TIME_ERROR ) ;
+            if ( bson::NumberInt != element.type() )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            _timeError = (UINT32)( element.numberInt() ) ;
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
       }
 
    protected:

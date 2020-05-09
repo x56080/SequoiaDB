@@ -345,7 +345,7 @@ namespace engine
       // check return code of response
       if ( SDB_OK == rc )
       {
-         stpSyncRecord record( response ) ;
+         stpSyncRecord record( response, getStatus() ) ;
 
          // check request ID, if it is expired, ignore this response
          UINT64 lastRequestID = _lastRequestID.fetch() ;
@@ -1011,7 +1011,7 @@ namespace engine
 
       ossScopedRWLock lock( ( &_sourceMutex ), SHARED ) ;
 
-      // find souce by route ID
+      // find source by route ID
       STP_SOURCE_MAP::const_iterator iter = _sources.find( routeID ) ;
       PD_CHECK( iter != _sources.end(), SDB_INVALID_ROUTEID, error, PDERROR,
                 "Failed to get source node %s, it is not found",
@@ -1028,28 +1028,56 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR_UPDATESOURCE, "_stpSyncClientManager::updateSource" )
-   INT32 _stpSyncClientManager::updateSource( const stpSourceNode &source )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__ONSYNCREQ, "_stpSyncClientManager::_onSyncReq" )
+   INT32 _stpSyncClientManager::_onSyncReq( const MsgRouteID &routeID )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR_UPDATESOURCE ) ;
+      PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR__ONSYNCREQ ) ;
 
       ossScopedRWLock lock( &_sourceMutex, EXCLUSIVE ) ;
 
-      // find souce by route ID
-      STP_SOURCE_MAP::iterator iter = _sources.find( source.getRouteID() ) ;
+      // find source by route ID
+      STP_SOURCE_MAP::iterator iter = _sources.find( routeID ) ;
       PD_CHECK( iter != _sources.end(), SDB_INVALID_ROUTEID, error, PDERROR,
-                "Failed to find source node %s", source.toString().c_str() ) ;
+                "Failed to get source node %s, it is not found",
+                routeID2String( routeID ).c_str() ) ;
 
-      // update source
-      iter->second = source ;
-
-      PD_LOG( PDEVENT, "Update source node %s done",
-              source.toString().c_str() ) ;
+      // on previous to send synchronize time request
+      // increase synchronize count, etc
+      iter->second.onPreSync() ;
 
    done:
-      PD_TRACE_EXITRC( SDB__TPSYNCCLIENTMGR_UPDATESOURCE, rc ) ;
+      PD_TRACE_EXITRC( SDB__TPSYNCCLIENTMGR__ONSYNCREQ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__ONSYNCRSP, "_stpSyncClientManager::_onSyncRsp" )
+   INT32 _stpSyncClientManager::_onSyncRsp( const MsgRouteID &routeID,
+                                            const stpSyncRecord &record,
+                                            BOOLEAN isValid )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR__ONSYNCRSP ) ;
+
+      ossScopedRWLock lock( &_sourceMutex, EXCLUSIVE ) ;
+
+      // find source by route ID
+      STP_SOURCE_MAP::iterator iter = _sources.find( routeID ) ;
+      PD_CHECK( iter != _sources.end(), SDB_INVALID_ROUTEID, error, PDERROR,
+                "Failed to get source node %s, it is not found",
+                routeID2String( routeID ).c_str() ) ;
+
+      // on post synchronize time, update source history by synchronize
+      // record
+      iter->second.onPostSync( record, isValid, _options->getMaxSyncHist() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__TPSYNCCLIENTMGR__ONSYNCRSP, rc ) ;
       return rc ;
 
    error:
@@ -1073,7 +1101,7 @@ namespace engine
                 "Failed to remove source node %s, route ID is not found",
                 routeID2String( routeID ).c_str() ) ;
 
-      // remove souce
+      // remove source
       _sources.erase( iter ) ;
 
       PD_LOG( PDEVENT, "Remove source node %s done",
@@ -1107,7 +1135,7 @@ namespace engine
 
       // check if the source is expired ( no synchronize since given expired
       // tick )
-      if ( iter->second.getLastSyncTick() <= expiredTick )
+      if ( iter->second.getUpdateTick() <= expiredTick )
       {
          // remove expired source
          _sources.erase( iter ) ;
@@ -1196,76 +1224,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__ONSYNCREQ, "_stpSyncClientManager::_onSyncReq" )
-   INT32 _stpSyncClientManager::_onSyncReq( const MsgRouteID &routeID )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR__ONSYNCREQ ) ;
-
-      // on event we are going to send synchronize time request, we need to
-      // update statistics of given source
-
-      stpSourceNode source ;
-
-      // get source by route ID
-      rc = getSource( routeID, source ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get source %s, rc: %d",
-                   routeID2String( routeID ).c_str(), rc ) ;
-
-      // on previous to send synchronize time request
-      // increase synchronize count, etc
-      source.onPreSync() ;
-
-      // update source
-      rc = updateSource( source ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update source %s, rc: %d",
-                   source.toString().c_str(), rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__TPSYNCCLIENTMGR__ONSYNCREQ, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__ONSYNCRSP, "_stpSyncClientManager::_onSyncRsp" )
-   INT32 _stpSyncClientManager::_onSyncRsp( const MsgRouteID &routeID,
-                                            const stpSyncRecord &record,
-                                            BOOLEAN isValid )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR__ONSYNCRSP ) ;
-
-      // on event we received synchronize time response, we need to update
-      // statistics of given source
-
-      stpSourceNode source ;
-
-      // get source by route ID
-      rc = getSource( routeID, source ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get source %s, rc: %d",
-                   routeID2String( routeID ).c_str(), rc ) ;
-
-      // on post synchronize time, update source history by synchronize
-      // record
-      source.onPostSync( record, isValid ) ;
-
-      // update source
-      rc = updateSource( source ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update source %s, rc: %d",
-                   source.toString().c_str(), rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__TPSYNCCLIENTMGR__ONSYNCRSP, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__CLEAREXPIREDSOURCES, "_stpSyncClientManager::_clearExpiredSources" )
    INT32 _stpSyncClientManager::_clearExpiredSources()
    {
@@ -1285,12 +1243,12 @@ namespace engine
             ++ iter )
       {
          // check if no synchronize for a long time
-         UINT64 syncTick = iter->second.getLastSyncTick() ;
-         UINT64 syncPassed = pmdGetTickSpanTime( syncTick ) ;
-         if ( syncPassed > STP_CLEAR_SOURCE_INTERVAL )
+         UINT64 updateTick = iter->second.getUpdateTick() ;
+         UINT64 updatePassed = pmdGetTickSpanTime( updateTick ) ;
+         if ( updatePassed > STP_CLEAR_SOURCE_INTERVAL )
          {
             // if no synchronize for 2 hours, remove this source
-            removeSource( iter->first, syncTick ) ;
+            removeSource( iter->first, updateTick ) ;
          }
       }
 

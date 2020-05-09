@@ -79,7 +79,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODE__FROMBSON, "_stpNode::_fromBSON" )
-   INT32 _stpNode::_fromBSON( const BSONObj &nodeObject )
+   INT32 _stpNode::_fromBSON( const BSONObj &nodeObject,
+                              BOOLEAN forDisplay )
    {
       INT32 rc = SDB_OK ;
 
@@ -96,53 +97,81 @@ namespace engine
       {
          BSONElement element ;
 
-         // get role field
-         element = nodeObject.getField( STP_FIELD_NAME_ROLE ) ;
-         // role field should not be empty
-         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse node object, "
-                   "field [%s] is not found", STP_FIELD_NAME_ROLE ) ;
-         // role field should be integer type
-         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse node object, "
-                   "field [%s] is not an integer", STP_FIELD_NAME_ROLE ) ;
-         // get role
-         role = (STP_ROLE)( element.numberInt() ) ;
+         if ( forDisplay )
+         {
+            // get role field
+            element = nodeObject.getField( STP_FIELD_NAME_ROLE ) ;
+            // role field should not be empty
+            PD_CHECK( EOO != element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse node object, "
+                      "field [%s] is not found", STP_FIELD_NAME_ROLE ) ;
+            // role field should be string
+            PD_CHECK( String == element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse node object, "
+                      "field [%s] is not a string", STP_FIELD_NAME_ROLE ) ;
+            // get role
+            role = stpGetRoleByName( element.valuestr() ) ;
+         }
+         else
+         {
+            // get role field
+            element = nodeObject.getField( STP_FIELD_NAME_ROLE ) ;
+            // role field should not be empty
+            PD_CHECK( EOO != element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse node object, "
+                      "field [%s] is not found", STP_FIELD_NAME_ROLE ) ;
+            // role field should be integer type
+            PD_CHECK( NumberInt == element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse node object, "
+                      "field [%s] is not an integer", STP_FIELD_NAME_ROLE ) ;
+            // get role
+            role = (STP_ROLE)( element.numberInt() ) ;
 
-         // get group ID field
-         element = nodeObject.getField( STP_FIELD_NAME_GROUPID ) ;
-         // group ID field should not be empty
-         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse node object, "
-                   "field [%s] is not found", STP_FIELD_NAME_GROUPID ) ;
-         // group ID field should be integer type
-         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse node object, "
-                   "field [%s] is not an integer", STP_FIELD_NAME_GROUPID ) ;
-         // get group ID
-         groupID = (UINT32)( element.numberInt() ) ;
+            // get group ID field
+            element = nodeObject.getField( STP_FIELD_NAME_GROUPID ) ;
+            // group ID field should not be empty
+            PD_CHECK( EOO != element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse node object, "
+                      "field [%s] is not found", STP_FIELD_NAME_GROUPID ) ;
+            // group ID field should be integer type
+            PD_CHECK( NumberInt == element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse node object, "
+                      "field [%s] is not an integer", STP_FIELD_NAME_GROUPID ) ;
+            // get group ID
+            groupID = (UINT32)( element.numberInt() ) ;
 
-         // get node ID field
-         element = nodeObject.getField( STP_FIELD_NAME_NODEID ) ;
-         // node ID field should not be empty
-         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse node object, "
-                   "field [%s] is not found", STP_FIELD_NAME_NODEID ) ;
-         // node ID field should be integer type
-         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse node object, "
-                   "field [%s] is not an integer", STP_FIELD_NAME_NODEID ) ;
-         // get node ID
-         nodeID = (UINT16)( element.numberInt() ) ;
+            // get node ID field
+            element = nodeObject.getField( STP_FIELD_NAME_NODEID ) ;
+            // node ID field should not be empty
+            PD_CHECK( EOO != element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse node object, "
+                      "field [%s] is not found", STP_FIELD_NAME_NODEID ) ;
+            // node ID field should be integer type
+            PD_CHECK( NumberInt == element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse node object, "
+                      "field [%s] is not an integer", STP_FIELD_NAME_NODEID ) ;
+            // get node ID
+            nodeID = (UINT16)( element.numberInt() ) ;
+         }
 
          // get host name field
          element = nodeObject.getField( STP_FIELD_NAME_HOST ) ;
          // host name field should not be empty
-         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+         PD_CHECK( EOO != element.type(),
+                   SDB_INVALIDARG, error, PDERROR,
                    "Failed to parse node object, "
                    "field [%s] is not found", STP_FIELD_NAME_HOST ) ;
          // host name field should be string type
-         PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
+         PD_CHECK( String == element.type(),
+                   SDB_INVALIDARG, error, PDERROR,
                    "Failed to parse node object, "
                    "field [%s] is not a string", STP_FIELD_NAME_HOST ) ;
          // get host name
@@ -151,11 +180,13 @@ namespace engine
          // get service name field
          element = nodeObject.getField( STP_FIELD_NAME_SERVICE ) ;
          // service name field should not be empty
-         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+         PD_CHECK( EOO != element.type(),
+                   SDB_INVALIDARG, error, PDERROR,
                    "Failed to parse node object, "
                    "field [%s] is not found", STP_FIELD_NAME_SERVICE ) ;
          // service name field should be string type
-         PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
+         PD_CHECK( String == element.type(),
+                   SDB_INVALIDARG, error, PDERROR,
                    "Failed to parse node object, "
                    "field [%s] is not a string", STP_FIELD_NAME_SERVICE ) ;
          // get service name
@@ -169,44 +200,48 @@ namespace engine
          goto error ;
       }
 
-      // check if role is valid
-      PD_CHECK( stpCheckRole( role ), SDB_INVALIDARG, error, PDERROR,
-                "Failed to parse node object, "
-                "role [%d] is invalid", role ) ;
+      if ( !forDisplay )
+      {
+         // check if role is valid
+         PD_CHECK( stpCheckRole( role ), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "role [%d] is invalid", role ) ;
 
-      // check if group ID is valid
-      PD_CHECK( INVALID_GROUPID != groupID,
-                SDB_INVALIDARG, error, PDERROR,
-                "Failed to parse node object, "
-                "group ID [%u] is invalid", groupID ) ;
+         // check if group ID is valid
+         PD_CHECK( INVALID_GROUPID != groupID,
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "group ID [%u] is invalid", groupID ) ;
 
-      // check if node ID is valid
-      PD_CHECK( INVALID_NODEID != nodeID,
-                SDB_INVALIDARG, error, PDERROR,
-                "Failed to parse node object, "
-                "node ID [%u] is invalid", nodeID ) ;
+         // check if node ID is valid
+         PD_CHECK( INVALID_NODEID != nodeID,
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "node ID [%u] is invalid", nodeID ) ;
 
-      // check if host name is valid
-      PD_CHECK( NULL != hostName && '\0' != hostName,
-                SDB_INVALIDARG, error, PDERROR,
-                "Failed to parse node object, "
-                "host name is invalid" ) ;
+         // check if host name is valid
+         PD_CHECK( NULL != hostName && '\0' != hostName,
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "host name is invalid" ) ;
 
-      // check if service name is valid
-      PD_CHECK( NULL != serviceName && '\0' != serviceName,
-                SDB_INVALIDARG, error, PDERROR,
-                "Failed to parse node object, "
-                "service name is invalid" ) ;
+         // check if service name is valid
+         PD_CHECK( NULL != serviceName && '\0' != serviceName,
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse node object, "
+                   "service name is invalid" ) ;
 
-      // set route ID
-      // NOTE: always use local service as service ID
-      routeID.columns.groupID = groupID ;
-      routeID.columns.nodeID = nodeID ;
-      routeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
+         // set route ID
+         // NOTE: always use local service as service ID
+         routeID.columns.groupID = groupID ;
+         routeID.columns.nodeID = nodeID ;
+         routeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
+
+         setRouteID( routeID ) ;
+      }
 
       // set fields of node
       setRole( role ) ;
-      setRouteID( routeID ) ;
       setHostName( hostName ) ;
       setServiceName( serviceName ) ;
 
@@ -220,7 +255,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODE__TOBSON, "_stpNode::_toBSON" )
    INT32 _stpNode::_toBSON( BSONObjBuilder &nodeBuilder,
-                            BOOLEAN toDisplay ) const
+                            BOOLEAN forDisplay ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -228,7 +263,7 @@ namespace engine
 
       try
       {
-         if ( toDisplay )
+         if ( forDisplay )
          {
             // to display, we use name of role
             nodeBuilder.append( STP_FIELD_NAME_ROLE,
@@ -314,14 +349,15 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSERVERNODE_FROMBSON, "_stpServerNode::fromBSON" )
-   INT32 _stpServerNode::fromBSON( const BSONObj &nodeObject )
+   INT32 _stpServerNode::fromBSON( const BSONObj &nodeObject,
+                                   BOOLEAN forDisplay )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPSERVERNODE_FROMBSON ) ;
 
       // parse BSON object
-      rc = _fromBSON( nodeObject ) ;
+      rc = _fromBSON( nodeObject, forDisplay ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse BSON object of server node, "
                    "rc: %d", rc ) ;
 
@@ -386,14 +422,12 @@ namespace engine
       _stpSourceNode implement
     */
    _stpSourceNode::_stpSourceNode()
-   : stpServerNode(),
-     _lastSyncTick( 0LL )
+   : stpServerNode()
    {
    }
 
    _stpSourceNode::_stpSourceNode( const stpSourceNode &source )
    : stpServerNode( source ),
-     _lastSyncTick( source._lastSyncTick ),
      _curStats( source._curStats ),
      _histStats( source._histStats )
    {
@@ -408,7 +442,6 @@ namespace engine
       stpServerNode::operator =( source ) ;
 
       _curStats = source._curStats ;
-      _lastSyncTick = source._lastSyncTick ;
 
       return ( *this ) ;
    }
@@ -416,7 +449,7 @@ namespace engine
    BOOLEAN _stpSourceNode::operator <( const stpSourceNode &source ) const
    {
       // sort by last synchronize time
-      return _lastSyncTick < source._lastSyncTick ;
+      return getUpdateTick() < source.getUpdateTick() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSOURCENODE_ONREG, "_stpSourceNode::onRegister" )
@@ -444,14 +477,13 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSOURCENODE_ONPOSTSYNC, "_stpSourceNode::onPostSync" )
    void _stpSourceNode::onPostSync( const stpSyncRecord &record,
-                                    BOOLEAN isValid )
+                                    BOOLEAN isValid,
+                                    UINT32 maxSyncHist )
    {
       PD_TRACE_ENTRY( SDB__STPSOURCENODE_ONPOSTSYNC ) ;
 
       // update current statistics
-      _curStats.updateStats( record, isValid ) ;
-      // update last synchronize tick
-      _lastSyncTick = pmdGetDBTick() ;
+      _curStats.updateStats( record, isValid, maxSyncHist ) ;
 
       PD_TRACE_EXIT( SDB__STPSOURCENODE_ONPOSTSYNC ) ;
    }
@@ -465,13 +497,15 @@ namespace engine
       _histStats.updateStats( _curStats ) ;
       // clear current statistics
       _curStats.reset() ;
+      // set update tick
+      _curStats.setUpdateTick( pmdGetDBTick() ) ;
 
       PD_TRACE_EXIT( SDB__STPSOURCENODE_MERGESTATS ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSOURCENODE_TOBSON, "_stpSourceNode::toBSON" )
    INT32 _stpSourceNode::toBSON( BSONObjBuilder &nodeBuilder,
-                                 BOOLEAN current,
+                                 BOOLEAN isCurrent,
                                  BOOLEAN forDisplay ) const
    {
       INT32 rc = SDB_OK ;
@@ -481,24 +515,25 @@ namespace engine
       try
       {
          // build server fields into BSON format
+         // NOTE: no need to display role, always SERVER for source
          rc = stpServerNode::toBSON( nodeBuilder, forDisplay ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build source node %s, "
                       "rc: %d", toString().c_str(), rc ) ;
 
-         if ( current )
+         if ( isCurrent && forDisplay )
          {
             // only current statistics is needed, build current statistics
             // into BSON format
-            rc = _curStats.toBSON( nodeBuilder ) ;
+            rc = _curStats.toBSON( nodeBuilder, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build current synchronize "
                          "statistics for source node %s, rc: %d",
                          toString().c_str(), rc ) ;
          }
-         else
+         else if ( forDisplay )
          {
             // need history statistics, build history statistics
             // into BSON format
-            rc = _histStats.toBSON( nodeBuilder ) ;
+            rc = _histStats.toBSON( nodeBuilder, FALSE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build history synchronize "
                          "statistics for source node %s, rc: %d",
                          toString().c_str(), rc ) ;
@@ -520,6 +555,54 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSOURCENODE_FROMBSON, "_stpSourceNode::fromBSON" )
+   INT32 _stpSourceNode::fromBSON( const BSONObj &object,
+                                   BOOLEAN isCurrent,
+                                   BOOLEAN forDisplay )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSOURCENODE_FROMBSON ) ;
+
+      try
+      {
+         // parse server fields from BSON
+         rc = stpServerNode::fromBSON( object, forDisplay ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse source node from BSON, "
+                      "rc: %d", rc ) ;
+
+         if ( isCurrent )
+         {
+            // parse current statistics
+            rc = _curStats.fromBSON( object ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse synchronize statistics "
+                         "from BSON, rc: %d", rc ) ;
+         }
+         else
+         {
+            // parse history statistics
+            rc = _histStats.fromBSON( object ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse synchronize statistics "
+                         "from BSON, rc: %d", rc ) ;
+         }
+
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse source node from BSON object, "
+                 "occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSOURCENODE_FROMBSON, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       _stpClientNode implement
     */
@@ -530,7 +613,8 @@ namespace engine
      _maxTimeError( STP_MAX_TIME_ERROR ),
      _timeError( STP_DEF_TIME_ERROR ),
      _lastSyncTick(),
-     _syncCount( 0LL )
+     _syncCount( 0LL ),
+     _syncPort( STP_INVALID_SYNCPORT )
    {
    }
 
@@ -542,7 +626,8 @@ namespace engine
      _maxTimeError( client._maxTimeError ),
      _timeError( client._timeError ),
      _lastSyncTick( client._lastSyncTick ),
-     _syncCount( client._syncCount )
+     _syncCount( client._syncCount ),
+     _syncPort( client._syncPort )
    {
    }
 
@@ -561,6 +646,7 @@ namespace engine
       _timeError = client._timeError ;
       _lastSyncTick = client._lastSyncTick ;
       _syncCount = client._syncCount ;
+      _syncPort = client._syncPort ;
 
       return ( *this ) ;
    }
@@ -578,7 +664,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTNODE_FROMBSON, "_stpClientNode::fromBSON" )
-   INT32 _stpClientNode::fromBSON( const BSONObj &nodeObject )
+   INT32 _stpClientNode::fromBSON( const BSONObj &nodeObject,
+                                   BOOLEAN forDisplay )
    {
       INT32 rc = SDB_OK ;
 
@@ -589,8 +676,11 @@ namespace engine
       UINT32 syncInterval = STP_DEF_SYNC_INTERVAL ;
       UINT32 timeError = STP_DEF_TIME_ERROR ;
       UINT32 maxTimeError = STP_MAX_TIME_ERROR ;
+      UINT16 syncPort = STP_INVALID_SYNCPORT ;
+      UINT64 syncCount = 0LL ;
+      UINT64 lastSyncTime = 0LL ;
 
-      rc = _fromBSON( nodeObject ) ;
+      rc = _fromBSON( nodeObject, forDisplay ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse BSON object of client node, "
                    "rc: %d", rc ) ;
 
@@ -611,19 +701,88 @@ namespace engine
          // get OID
          oid = element.OID() ;
 
-         // get synchronize status field
-         element = nodeObject.getField( STP_FIELD_NAME_SYNC_STATUS ) ;
-         // synchronize status field should not be empty
-         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse client node object, "
-                   "field [%s] is not found", STP_FIELD_NAME_SYNC_STATUS ) ;
-         // synchronize status field should be integer type
-         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse client node object, "
-                   "field [%s] is not an integer",
-                   STP_FIELD_NAME_SYNC_STATUS ) ;
-         // get synchronize status
-         syncStatus = (STP_SYNC_STATUS)( element.numberInt() ) ;
+         if ( forDisplay )
+         {
+            // get synchronize status field
+            element = nodeObject.getField( STP_FIELD_NAME_SYNC_STATUS ) ;
+            // synchronize status field should not be empty
+            PD_CHECK( EOO != element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse client node object, "
+                      "field [%s] is not found", STP_FIELD_NAME_SYNC_STATUS ) ;
+            // synchronize status field should be integer type
+            PD_CHECK( String == element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse client node object, "
+                      "field [%s] is not a string",
+                      STP_FIELD_NAME_SYNC_STATUS ) ;
+            // get synchronize status
+            syncStatus = stpGetSyncStatusByName( element.valuestr() ) ;
+
+            // get synchronize port
+            element = nodeObject.getField( STP_FIELD_NAME_SYNC_PORT ) ;
+            // synchronize port field should not be empty
+            PD_CHECK( EOO != element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse client node object, "
+                      "field [%s] is not found", STP_FIELD_NAME_SYNC_PORT ) ;
+            // synchronize port field should be an integer type
+            PD_CHECK( NumberInt == element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse client node object, "
+                      "field [%s] is not an integer",
+                      STP_FIELD_NAME_SYNC_PORT ) ;
+            syncPort = element.numberInt() ;
+
+            // get synchronize count
+            element = nodeObject.getField( STP_FIELD_NAME_SYNC_COUNT ) ;
+            // synchronize count field should not be empty
+            PD_CHECK( EOO != element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse client node object, "
+                      "field [%s] is not found", STP_FIELD_NAME_SYNC_COUNT ) ;
+            // synchronize count field should be an long type
+            PD_CHECK( NumberLong == element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse client node object, "
+                      "field [%s] is not a long integer",
+                      STP_FIELD_NAME_SYNC_COUNT ) ;
+            syncCount = (UINT64)( element.numberLong() ) ;
+
+            // get last synchronize time
+            element = nodeObject.getField( STP_FIELD_NAME_SYNC_PASSED ) ;
+            // last synchronize time field should not be empty
+            PD_CHECK( EOO != element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse client node object, "
+                      "field [%s] is not found",
+                      STP_FIELD_NAME_SYNC_PASSED ) ;
+            // last synchronize time field should be an long type
+            PD_CHECK( NumberLong == element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse client node object, "
+                      "field [%s] is not a long integer",
+                      STP_FIELD_NAME_SYNC_PASSED ) ;
+            lastSyncTime = (UINT64)( element.numberLong() ) ;
+         }
+         else
+         {
+            // get synchronize status field
+            element = nodeObject.getField( STP_FIELD_NAME_SYNC_STATUS ) ;
+            // synchronize status field should not be empty
+            PD_CHECK( EOO != element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse client node object, "
+                      "field [%s] is not found", STP_FIELD_NAME_SYNC_STATUS ) ;
+            // synchronize status field should be integer type
+            PD_CHECK( NumberInt == element.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to parse client node object, "
+                      "field [%s] is not an integer",
+                      STP_FIELD_NAME_SYNC_STATUS ) ;
+            // get synchronize status
+            syncStatus = (STP_SYNC_STATUS)( element.numberInt() ) ;
+         }
 
          // get synchronize interval field
          element = nodeObject.getField( STP_FIELD_NAME_SYNC_INTERVAL ) ;
@@ -692,6 +851,19 @@ namespace engine
       setTimeError( timeError ) ;
       setMaxTimeError( maxTimeError ) ;
 
+      if ( forDisplay )
+      {
+         setSyncPort( syncPort ) ;
+         setSyncCount( syncCount ) ;
+         setLastSyncTime( lastSyncTime ) ;
+      }
+      else
+      {
+         // not parsed from BSON, set to default value
+         setSyncCount( 0LL ) ;
+         setSyncPort( STP_INVALID_SYNCPORT ) ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__STPCLIENTNODE_FROMBSON, rc ) ;
       return rc ;
@@ -702,13 +874,13 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTNODE_TOBSON, "_stpClientNode::toBSON" )
    INT32 _stpClientNode::toBSON( BSONObjBuilder &nodeBuilder,
-                                 BOOLEAN toDisplay ) const
+                                 BOOLEAN forDisplay ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPCLIENTNODE_TOBSON ) ;
 
-      rc = _toBSON( nodeBuilder, toDisplay ) ;
+      rc = _toBSON( nodeBuilder, forDisplay ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build client node into "
                    "BSON object, rc: %d", rc ) ;
 
@@ -722,16 +894,18 @@ namespace engine
                              (INT32)getTimeError() ) ;
          nodeBuilder.append( STP_FIELD_NAME_MAX_TIME_ERROR,
                              (INT32)getMaxTimeError() ) ;
-         if ( toDisplay )
+         if ( forDisplay )
          {
             // calculate time after last synchronize ( in milliseconds )
             INT64 syncPassed = pmdGetTickSpanTime( getLastSyncTick() ) ;
-            nodeBuilder.append( STP_FIELD_NAME_LAST_SYNC_PASSED, syncPassed ) ;
+            nodeBuilder.append( STP_FIELD_NAME_SYNC_PASSED, syncPassed ) ;
             nodeBuilder.append( STP_FIELD_NAME_SYNC_COUNT,
                                 (INT64)getSyncCount() ) ;
             // output name of synchronize status to display
             nodeBuilder.append( STP_FIELD_NAME_SYNC_STATUS,
                                 stpGetSyncStatusName( getStatus() ) ) ;
+            nodeBuilder.append( STP_FIELD_NAME_SYNC_PORT,
+                                (UINT32)( getSyncPort() ) ) ;
          }
          else
          {

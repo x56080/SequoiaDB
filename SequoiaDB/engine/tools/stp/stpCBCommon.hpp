@@ -50,6 +50,9 @@ namespace engine
    // invalid timer ID ( for net agent timer )
    #define STP_INVALID_TIMERID ( 0 )
 
+   // invalid synchronize port
+   #define STP_INVALID_SYNCPORT ( 0 )
+
    // invalid server group version
    #define STP_GROUP_INVALID_VERSION      ( 0 )
    // initial version of server group

@@ -58,6 +58,7 @@ namespace engine
          ( STP_OPTION_WEIGHT, po::value<INT32>(), "STP vote weight" ) \
          ( STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "STP synchronize interval" ) \
          ( STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "STP max time error" ) \
+         ( STP_OPTION_MAXSYNCHIST, po::value<INT32>(), "STP save history records of synchronize for statistics" ) \
          ( STP_OPTION_DIAGLEVEL, po::value<INT32>(), "STP dialog level, default is 3" ) \
          ( STP_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
          ( STP_OPTION_STARTSHIFTTIME, po::value<INT32>(), "Nodes starting shift time( in seconds ), default:600, value range:[0,7200]" ) \
@@ -67,20 +68,21 @@ namespace engine
          ( PMD_COMMANDS_STRING( STP_OPTION_PORT, ",p" ), po::value<string>(), "STP listening port, default is 9622" ) \
          ( STP_OPTION_SERVERLIST, po::value<string>(), "STP server list" ) \
          ( STP_OPTION_ROLE, po::value<string>(), "STP role, default is server" ) \
-         ( STP_OPTION_WEIGHT, po::value<INT32>(), "STP vote weight" ) \
          ( STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "STP synchronize interval" ) \
          ( STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "STP max time error" ) \
+         ( STP_OPTION_MAXSYNCHIST, po::value<INT32>(), "STP save history records of synchronize for statistics" ) \
          ( STP_OPTION_DIAGLEVEL, po::value<INT32>(), "STP dialog level, default is 3" ) \
-         ( STP_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
-         ( STP_OPTION_STARTSHIFTTIME, po::value<INT32>(), "Nodes starting shift time( in seconds ), default:600, value range:[0,7200]" ) \
          ( STP_OPTION_DAEMON, "Start STP in daemon mode" ) \
-         ( STP_OPTION_TESTMODE, "Start STP in test mode" ) \
          ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h" ), "help" ) \
          ( STP_OPTION_VERSION, "version" ) \
          ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), po::value<string>(), "STP configuration file path" )
 
    #define COMMANDS_HIDE_OPTIONS \
          ( STP_OPTION_HELPFULL, "help all configs" ) \
+         ( STP_OPTION_TESTMODE, "Start STP in test mode" ) \
+         ( STP_OPTION_WEIGHT, po::value<INT32>(), "STP vote weight" ) \
+         ( STP_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
+         ( STP_OPTION_STARTSHIFTTIME, po::value<INT32>(), "Nodes starting shift time( in seconds ), default:600, value range:[0,7200]" ) \
          ( STP_OPTION_CURUSER, "use current user" )
 
    /*
@@ -90,6 +92,7 @@ namespace engine
    : _weight( 0 ),
      _syncInterval( STP_DEF_SYNC_INTERVAL ),
      _maxTimeErrorUS( STP_MAX_TIME_ERROR_US ),
+     _maxSyncHist( STP_DEF_SYNC_HIST_SIZE ),
      _diagLevel( PDWARNING ),
      _sharingBreakTime( PMD_STP_OPTION_BREAKTIME_DFT ),
      _startShiftTime( PMD_STP_OPTION_STARTSHIFTTIME_DFT ),
@@ -279,14 +282,7 @@ namespace engine
       if ( NULL != role && '\0' != role[ 0 ] )
       {
          // parse role
-         if ( 0 == ossStrcmp( role, STP_ROLE_NAME_CLIENT ) )
-         {
-            _role = STP_ROLE_CLIENT ;
-         }
-         else if ( 0 == ossStrcmp( role, STP_ROLE_NAME_SERVER ) )
-         {
-            _role = STP_ROLE_SERVER ;
-         }
+         _role = stpGetRoleByName( role ) ;
          // copy string
          ossStrncpy( _roleString, role, PMD_MAX_SHORT_STR_LEN ) ;
          _roleString[ PMD_MAX_SHORT_STR_LEN ] = '\0' ;
@@ -353,6 +349,10 @@ namespace engine
       // --maxtimeerror
       rdxUInt( ex, STP_OPTION_MAXTIMEERROR, _maxTimeErrorUS, FALSE,
                PMD_CFG_CHANGE_RUN, _maxTimeErrorUS ) ;
+
+      // --maxsynchist
+      rdxUInt( ex, STP_OPTION_MAXSYNCHIST, _maxSyncHist, FALSE,
+               PMD_CFG_CHANGE_RUN, _maxSyncHist ) ;
 
       // --diaglevel
       rdxUShort( ex, STP_OPTION_DIAGLEVEL, _diagLevel, FALSE,

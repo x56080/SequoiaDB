@@ -41,8 +41,8 @@
 #include "stpTrace.hpp"
 #include "stpToolCommon.hpp"
 
-using namespace bson ;
 using namespace std ;
+using namespace bson ;
 
 namespace engine
 {
@@ -273,31 +273,38 @@ namespace engine
                            builder.subobjStart( STP_FIELD_NAME_META_DATA ) ) ;
 
          // append version
-         builder.append( STP_FIELD_NAME_VERSION, (INT32)_version ) ;
+         metaBuilder.append( STP_FIELD_NAME_VERSION, (INT32)_version ) ;
          // append synchronize interval
-         builder.append( STP_FIELD_NAME_SYNC_INTERVAL, (INT32)_syncInterval ) ;
+         metaBuilder.append( STP_FIELD_NAME_SYNC_INTERVAL,
+                             (INT32)_syncInterval ) ;
 
          // append synchronize hardware time
-         rc = _syncHWTime.toBSON( STP_FIELD_NAME_SYNC_HW_TIME, builder ) ;
+         rc = _timeToBSON( metaBuilder,
+                           STP_FIELD_NAME_SYNC_HW_TIME,
+                           _syncHWTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for [%s], rc: %d",
                       STP_FIELD_NAME_SYNC_HW_TIME, rc ) ;
 
          // append based hardware time
-         rc = _baseHWTime.toBSON( STP_FIELD_NAME_BASE_HW_TIME, builder ) ;
+         rc = _timeToBSON( metaBuilder,
+                           STP_FIELD_NAME_BASE_HW_TIME,
+                           _baseHWTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for [%s], rc: %d",
                       STP_FIELD_NAME_BASE_HW_TIME, rc ) ;
 
          // append based real time
-         rc = _baseRealTime.toBSON( STP_FIELD_NAME_BASE_REAL_TIME, builder ) ;
+         rc = _timeToBSON( metaBuilder,
+                           STP_FIELD_NAME_BASE_REAL_TIME,
+                           _baseRealTime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for [%s], rc: %d",
                       STP_FIELD_NAME_BASE_REAL_TIME, rc ) ;
 
          // append offset
-         builder.append( STP_FIELD_NAME_OFFSET, _offset ) ;
+         metaBuilder.append( STP_FIELD_NAME_OFFSET, _offset ) ;
          // append slew rate
-         builder.append( STP_FIELD_NAME_SLEW_RATE, (INT64)_slewRate ) ;
+         metaBuilder.append( STP_FIELD_NAME_SLEW_RATE, (INT64)_slewRate ) ;
          // append time error
-         builder.append( STP_FIELD_NAME_TIME_ERROR, (INT32)_timeError ) ;
+         metaBuilder.append( STP_FIELD_NAME_TIME_ERROR, (INT32)_timeError ) ;
 
          metaBuilder.doneFast() ;
       }
@@ -311,6 +318,160 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__STPMETADATA_TOBSON, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETADATA__TIMETOBSON, "_stpMetaData::_timeToBSON" )
+   INT32 _stpMetaData::_timeToBSON( BSONObjBuilder &builder,
+                                    const CHAR *fieldName,
+                                    const stpHPTime &hpTime ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMETADATA__TIMETOBSON ) ;
+
+      // format high precision time to BSON format with given field name
+      try
+      {
+         BSONObjBuilder subBuilder( builder.subobjStart( fieldName ) ) ;
+
+         rc = hpTime.toBSON( subBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for time [%s], "
+                      "rc: %d", fieldName, rc ) ;
+
+         subBuilder.doneFast() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON for time [%s], "
+                 "occurred unexpected error: %s", fieldName, e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPMETADATA__TIMETOBSON, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETADATA_FROMBSON, "_stpMetaData::fromBSON" )
+   INT32 _stpMetaData::fromBSON( const BSONObj &object )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMETADATA_FROMBSON ) ;
+
+      try
+      {
+         BSONElement subElement ;
+
+         // parse version
+         subElement = object.getField( STP_FIELD_NAME_VERSION ) ;
+         PD_CHECK( NumberInt == subElement.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it is not integer",
+                   STP_FIELD_NAME_VERSION ) ;
+         _version = (UINT32)( subElement.numberInt() ) ;
+
+         // parse synchronize interval
+         subElement = object.getField( STP_FIELD_NAME_SYNC_INTERVAL ) ;
+         PD_CHECK( NumberInt == subElement.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it is not integer",
+                   STP_FIELD_NAME_SYNC_INTERVAL ) ;
+         _syncInterval = (UINT32)( subElement.numberInt() ) ;
+
+         // parse synchronize hardware time
+         rc = _timeFromBSON( object, STP_FIELD_NAME_SYNC_HW_TIME,
+                             _syncHWTime ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse [%s] from BSON, rc: %d",
+                      STP_FIELD_NAME_SYNC_HW_TIME, rc ) ;
+
+         // parse based hardware time
+         rc = _timeFromBSON( object, STP_FIELD_NAME_BASE_HW_TIME,
+                             _baseHWTime ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse [%s] from BSON, rc: %d",
+                      STP_FIELD_NAME_BASE_HW_TIME, rc ) ;
+
+         // parse based real time
+         rc = _timeFromBSON( object, STP_FIELD_NAME_BASE_REAL_TIME,
+                             _baseRealTime ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse [%s] from BSON, rc: %d",
+                      STP_FIELD_NAME_BASE_REAL_TIME, rc ) ;
+
+         // parse offset
+         subElement = object.getField( STP_FIELD_NAME_OFFSET ) ;
+         PD_CHECK( NumberLong == subElement.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it is not number long",
+                   STP_FIELD_NAME_OFFSET ) ;
+         _offset = subElement.numberLong() ;
+
+         // parse slew rate
+         subElement = object.getField( STP_FIELD_NAME_SLEW_RATE ) ;
+         PD_CHECK( NumberLong == subElement.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it is not number long",
+                   STP_FIELD_NAME_SLEW_RATE ) ;
+         _slewRate = (UINT64)subElement.numberLong() ;
+
+         // parse time error
+         subElement = object.getField( STP_FIELD_NAME_TIME_ERROR ) ;
+         PD_CHECK( NumberInt == subElement.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it is not integer",
+                   STP_FIELD_NAME_TIME_ERROR ) ;
+         _timeError = (UINT32)subElement.numberInt() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse BSON for meta, "
+                 "occurred unexpected error: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPMETADATA_FROMBSON, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETADATA__TIMEFROMBSON, "_stpMetaData::_timeFromBSON" )
+   INT32 _stpMetaData::_timeFromBSON( const BSONObj &object,
+                                      const CHAR *fieldName,
+                                      stpHPTime &hpTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMETADATA__TIMETOBSON ) ;
+
+      try
+      {
+         // get field for high precision time to parse
+         BSONElement subElement = object.getField( fieldName ) ;
+         // check type
+         PD_CHECK( Object == subElement.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it is not an object",
+                   fieldName ) ;
+         // parse from BSON
+         rc = hpTime.fromBSON( subElement.embeddedObject() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse time for [%s], rc: %d",
+                      fieldName, rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse BSON for time [%s], "
+                 "occurred unexpected error: %s", fieldName, e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPMETADATA__TIMETOBSON, rc ) ;
       return rc ;
 
    error:

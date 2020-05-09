@@ -235,7 +235,7 @@ namespace engine
          regObject = BSONObj( (CHAR *)( request ) + sizeof( stpRegReq ) ) ;
 
          // parse client node
-         rc = client.fromBSON( regObject ) ;
+         rc = client.fromBSON( regObject, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse client node object, "
                       "rc: %d", rc ) ;
       }
@@ -254,6 +254,9 @@ namespace engine
                 "net route ID %s, register request ID %s",
                 routeID2String( routeID ).c_str(),
                 routeID2String( client.getRouteID() ).c_str() ) ;
+
+      // assign default port
+      client.setSyncPort( _options->getPort() ) ;
 
       // register client node
       rc = registerClient( request->version, client ) ;

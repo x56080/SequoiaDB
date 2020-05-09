@@ -64,7 +64,8 @@ namespace engine
       // constructors and destructor
       _stpSyncRecord() ;
       _stpSyncRecord( const stpSyncRecord &record ) ;
-      _stpSyncRecord( const stpTimeSyncRsp *response ) ;
+      _stpSyncRecord( const stpTimeSyncRsp *response,
+                      STP_SYNC_STATUS status ) ;
       ~_stpSyncRecord() ;
 
    public:
@@ -76,6 +77,16 @@ namespace engine
       OSS_INLINE UINT64 getRequestID() const
       {
          return _requestID ;
+      }
+
+      OSS_INLINE UINT64 getSyncTick() const
+      {
+         return _syncTick ;
+      }
+
+      OSS_INLINE STP_SYNC_STATUS getStatus() const
+      {
+         return _status ;
       }
 
       OSS_INLINE const stpHPTime &getReqSendTime() const
@@ -135,40 +146,49 @@ namespace engine
       // format record into string
       ossPoolString toString() const ;
 
+      // format record into BSON
+      INT32 toBSON( bson::BSONObjBuilder &builder ) const ;
+
+      // parse record from BSON
+      INT32 fromBSON( const bson::BSONObj &object ) ;
+
    protected:
       // internal calculation function
       void _calculate() ;
 
    protected:
       // request ID for time synchronize request
-      UINT64   _requestID ;
+      UINT64      _requestID ;
+      // tick to finish synchronize
+      UINT64      _syncTick ;
+      STP_SYNC_STATUS _status ;
       // send time of time synchronize request ( T1 in synchronize client )
-      stpHPTime _reqSendTime ;
+      stpHPTime   _reqSendTime ;
       // receive time of time synchronize request ( T2 in synchronize source )
-      stpHPTime _reqReceiveTime ;
+      stpHPTime   _reqReceiveTime ;
       // send time of time synchronize response ( T3 in synchronize source )
-      stpHPTime _rspSendTime ;
+      stpHPTime   _rspSendTime ;
       // receive time of time synchronize response ( T4 in synchronize client )
-      stpHPTime _rspReceiveTime ;
+      stpHPTime    _rspReceiveTime ;
       // time error in nanoseconds of request ( from synchronize client )
-      UINT32   _reqTimeError ;
+      UINT32      _reqTimeError ;
       // time error in nanoseconds of response ( from synchronize source )
       // tell client to update with this time error
-      UINT32   _rspTimeError ;
+      UINT32      _rspTimeError ;
 
       // internal result of calculations
       // send delay between client and source ( T2 - T1 )
-      INT64    _sendDelay ;
+      INT64       _sendDelay ;
       // receive delay between source and client ( T4 - T3 )
-      INT64    _receiveDelay ;
+      INT64       _receiveDelay ;
       // offset between source and client
-      INT64    _offset ;
+      INT64       _offset ;
       // network delay between source and client
-      INT64    _delay ;
+      INT64       _delay ;
       // time cost for synchronize round trip ( measured with client's time )
       // generally, time cost contains network delay and process time in
       // source
-      INT64    _cost ;
+      INT64       _cost ;
    } ;
 
    /*
@@ -262,32 +282,12 @@ namespace engine
          _maxNegOffset = offset ;
       }
 
-      OSS_INLINE INT64 getMaxValidPosOffset() const
-      {
-         return _maxValidPosOffset ;
-      }
-
-      OSS_INLINE void setMaxValidPosOffset( INT64 offset )
-      {
-         _maxValidPosOffset = offset ;
-      }
-
-      OSS_INLINE INT64 getMaxValidNegOffset() const
-      {
-         return _maxValidNegOffset ;
-      }
-
-      OSS_INLINE void setMaxValidNegOffset( INT64 offset )
-      {
-         _maxValidNegOffset = offset ;
-      }
-
       OSS_INLINE INT64 getMinPosOffset() const
       {
          return _minPosOffset ;
       }
 
-      OSS_INLINE void setMinPosOffset( UINT64 offset )
+      OSS_INLINE void setMinPosOffset( INT64 offset )
       {
          _minPosOffset = offset ;
       }
@@ -297,9 +297,44 @@ namespace engine
          return _minNegOffset ;
       }
 
-      OSS_INLINE void setMinMegOffset( UINT64 offset )
+      OSS_INLINE void setMinMegOffset( INT64 offset )
       {
          _minNegOffset = offset ;
+      }
+
+      OSS_INLINE UINT64 getLastDelay() const
+      {
+         return _lastDelay ;
+      }
+
+      OSS_INLINE void setLastDelay( UINT64 delay )
+      {
+         _lastDelay = delay ;
+      }
+
+      OSS_INLINE INT64 getLastOffset() const
+      {
+         return _lastOffset ;
+      }
+
+      OSS_INLINE void setLastOffset( INT64 offset )
+      {
+         _lastOffset = offset ;
+      }
+
+      OSS_INLINE UINT64 getUpdateTick() const
+      {
+         return _updateTick ;
+      }
+
+      OSS_INLINE void setUpdateTick( UINT64 updateTick )
+      {
+         _updateTick = updateTick ;
+      }
+
+      OSS_INLINE const STP_SYNC_REC_LIST &getHistList() const
+      {
+         return _histList ;
       }
 
    public:
@@ -308,12 +343,24 @@ namespace engine
       // increase synchronize count ( called on sending synchronize request )
       void incSyncCount() ;
       // update statistics by a synchronize record
-      void updateStats( const stpSyncRecord &record, BOOLEAN isValid ) ;
+      // WANRING: should be protected by source lock of stpSyncClientManager
+      void updateStats( const stpSyncRecord &record, BOOLEAN isValid,
+                        UINT32 maxSyncHist ) ;
       // update statistics by another history ( merge histories )
+      // WANRING: should be protected by source lock of stpSyncClientManager
       void updateStats( const stpSyncStats &stats ) ;
 
       // format history to BSON object
-      INT32 toBSON( bson::BSONObjBuilder &builder ) const ;
+      INT32 toBSON( bson::BSONObjBuilder &builder,
+                    BOOLEAN isCurrent ) const ;
+
+      // parse from BSONObj
+      INT32 fromBSON( const bson::BSONObj &object ) ;
+
+   protected:
+      // add history record
+      // WANRING: should be protected by source lock of stpSyncClientManager
+      void _addHist( const stpSyncRecord &record, UINT32 maxSyncHist ) ;
 
    protected:
       // count of synchronizes ( how many times to send synchronize requests )
@@ -322,8 +369,6 @@ namespace engine
       UINT64   _validCount ;
       // maximum delay of all synchronizes
       UINT64   _maxDelay ;
-      // maximum delay of all valid synchronizes
-      UINT64   _maxValidDelay ;
       // minimum delay of all synchronizes
       UINT64   _minDelay ;
       // first offset of all synchronizes
@@ -332,14 +377,23 @@ namespace engine
       INT64    _maxPosOffset ;
       // maximum negative offset of all synchronizes ( ahead source )
       INT64    _maxNegOffset ;
-      // maximum positive offset of all valid synchronizes ( behind source )
-      INT64    _maxValidPosOffset ;
-      // maximum negative offset of all valid synchronizes ( ahead source )
-      INT64    _maxValidNegOffset ;
       // minimum positive offset of all synchronizes ( behind source )
       INT64    _minPosOffset ;
       // minimum negative offset of all synchronizes ( ahead source )
       INT64    _minNegOffset ;
+      // counts of positive offsets of all synchronizes
+      UINT64   _posOffsetCount ;
+      // counts of negative offsets of all synchronizes
+      UINT64   _negOffsetCount ;
+      // last delay
+      UINT64   _lastDelay ;
+      // last offset
+      INT64    _lastOffset ;
+      // last sync tick
+      UINT64   _updateTick ;
+
+      // history of synchronize records
+      STP_SYNC_REC_LIST _histList ;
    } ;
 
 }

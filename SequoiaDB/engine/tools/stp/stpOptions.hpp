@@ -176,6 +176,18 @@ namespace engine
          return STP_MICROSEC_TO_NANOSEC( _maxTimeErrorUS ) ;
       }
 
+      // set max number of synchronize history records
+      OSS_INLINE void setMaxSyncHist( UINT32 maxSyncHist )
+      {
+         _maxSyncHist = maxSyncHist ;
+      }
+
+      // set max number of synchronize history records
+      OSS_INLINE UINT32 getMaxSyncHist() const
+      {
+         return _maxSyncHist ;
+      }
+
       // get diagnostic log level
       OSS_INLINE PDLEVEL getDiagLevel() const
       {
@@ -256,6 +268,8 @@ namespace engine
       UINT32         _syncInterval ;
       // max time error allowed in microseconds
       UINT32         _maxTimeErrorUS ;
+      // max history records of synchronize
+      UINT32         _maxSyncHist ;
       // level of diagnostic log
       UINT16         _diagLevel ;
       // sharing break time for vote

@@ -1697,7 +1697,7 @@ namespace engine
                          "node object is not an object" ) ;
 
                // parse BSON into server
-               rc = server.fromBSON( serverElement.embeddedObject() ) ;
+               rc = server.fromBSON( serverElement.embeddedObject(), FALSE ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to parse server node %s, "
                             "rc: %d", serverElement.toPoolString().c_str(),
                             rc ) ;
