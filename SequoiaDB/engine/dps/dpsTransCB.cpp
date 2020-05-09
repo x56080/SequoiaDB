@@ -3107,6 +3107,7 @@ namespace engine
                                         callback );
    }
 
+
    INT32 dpsTransCB::transLockTestSPreempt( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                             UINT16 collectionID,
                                             const dmsRecordID *recordID,
@@ -3124,6 +3125,7 @@ namespace engine
                                         pdpsTxResInfo,
                                         callback );
    }
+
 
    INT32 dpsTransCB::transLockTestIS( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                       UINT16 collectionID,

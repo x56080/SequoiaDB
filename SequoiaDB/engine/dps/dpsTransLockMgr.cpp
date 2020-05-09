@@ -1803,7 +1803,6 @@ namespace engine
                          ( ( ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT == opMode ) ||
                              ( DPS_TRANSLOCK_OP_MODE_TEST == opMode ) )
                            ? DPS_TRANSLOCK_OP_MODE_TEST : opMode ),
-                         pLRBHdr,
                          pLRBHdr ? &(pLRBHdr->extData) : NULL ) ;
             if ( callback->hasError() )
             {
