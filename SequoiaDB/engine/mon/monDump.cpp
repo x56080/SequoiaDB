@@ -340,10 +340,6 @@ namespace engine
             // tree size High water mark
             subTrans.append( FIELD_NAME_IDX_TREE_SIZE_HWM, treeSizeHWM ) ;
 
-            // number of transaction ID allocation conflicts
-            subTrans.append( FIELD_NAME_TRANS_TRANSIDCONFLICTS,
-                             (INT64)( transCB->getTransIDConflict() ) ) ;
-
             subTrans.done() ;
          }
 
