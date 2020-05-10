@@ -189,3 +189,5 @@
 | port     | SequoiaDB 集群管理端口                                 | 11790              |
 | processAutoStart     | 机器重启时是否自动重启 SequoiaDB 相关进程，true 表示是，false 表示否                                 | true              |
 | SMS     | 是否安装 OM 服务，true 表示是，false 表示否                                 | false              |
+| om-port     | SequoiaDB OM 服务端口号                                | 11780             |
+| http-port    | SequoiaDB SAC 网页端口号                                | 8000             |
