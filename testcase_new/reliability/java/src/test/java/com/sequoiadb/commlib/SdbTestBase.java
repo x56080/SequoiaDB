@@ -49,8 +49,8 @@ public class SdbTestBase {
     private static final String RCAUTO = "rcauto";
     private static final String RC = "rc";
     private static final String NODENAME = "NodeName";
-    private static final Map< String, BSONObject > group2Conf = new HashMap< String, BSONObject >();
-    private static final Map< String, BSONObject > node2Conf = new HashMap< String, BSONObject >();
+    private static final Map< String, BSONObject > group2Conf = new HashMap< >();
+    private static final Map< String, BSONObject > node2Conf = new HashMap< >();
     private static final Map< String, AtomicInteger > groupName2Count = new HashMap<>();
     private static BasicBSONObject confObj = new BasicBSONObject();
     public static String testGroupOfCurrent;
@@ -127,6 +127,7 @@ public class SdbTestBase {
     }
 
     static {
+        group2Conf.put( RCAUTO, new BasicBSONObject() );
         group2Conf.get( RCAUTO ).put( TRANSISOLATION, 1 );
         group2Conf.get( RCAUTO ).put( TRANSLOCKWAIT, false );
         group2Conf.get( RCAUTO ).put( TRANSAUTOCOMMIT, true );
