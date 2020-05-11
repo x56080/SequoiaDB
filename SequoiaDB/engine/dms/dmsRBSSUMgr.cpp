@@ -72,6 +72,8 @@ namespace engine
       _lastFreeCollection = DMS_MAX_RBS_CL ;
       // use default size for now, we may want to add config parm later on
       _maxCollectionSize  = DMS_DFT_RBSCL_SIZE ;
+
+      _preparedCollection = DMS_FIRST_RBS_CL ;
    }
 
    // Initialization of RBS during node start up
@@ -246,8 +248,9 @@ namespace engine
          _currentCollection = DMS_FIRST_RBS_CL;
          _lastFreeCollection = DMS_MAX_RBS_CL ;
          _numSyncAddCL.init(0) ;
-         PD_LOG ( PDDEBUG, "Created RBS collection %s(%d) successfully.",
-                  clName, logicalID );
+         PD_LOG ( PDDEBUG, 
+                  "Created RBS collection %s(%d) successfully, mbID(%d)",
+                  clName, logicalID, collectionID );
       }
 
       catch( std::exception &e )
@@ -301,6 +304,7 @@ namespace engine
       _releaseS() ;
       DMS_BUILD_RBS_CL_NAME( clName, tempCurCL ) ;
 
+      SDB_ASSERT( ( clContext == NULL ), "stale clContext !" ) ;
       rc = _su->data()->getMBContext( &clContext, clName, SHARED ) ;
       if ( rc )
       {
@@ -324,10 +328,10 @@ namespace engine
             const dmsMBStatInfo *mbStatInfo =
                                    sd->getMBStatInfo( clContext->mbID() ) ;
             PD_LOG ( PDINFO,
-                  "Out of space in %s, allocating next RBSCL. recordsize(%d),"
-                  "clfreespace(%d), clTotalPages(%d), cltotalrecord(%d),"
-                  "cl max(%lld), squareroot(%d)",
-                  clName, recordSize,
+                  "Out of space in %s(%d), allocating next RBSCL. "
+                  "recordsize(%d), clfreespace(%d), clTotalPages(%d), "
+                  "cltotalrecord(%d), cl max(%lld), squareroot(%d)",
+                  clName, clContext->mbID(), recordSize,
                   mbStatInfo->_totalDataFreeSpace,
                   mbStatInfo->_totalDataPages,
                   mbStatInfo->_totalRecords,
@@ -437,8 +441,8 @@ namespace engine
       }
 
       // new curCL should not be overlap with last free.
-      // A special case is lastFree never changed after system start, but we
-      // are trying to wrap around
+      // A special case is lastFree never changed after system start, but the
+      // prepare is trying to wrap around
       if ( ( prepCL == _lastFreeCollection ) || 
            ( DMS_MAX_RBS_CL == _lastFreeCollection &&
                 DMS_FIRST_RBS_CL == prepCL ) )
@@ -489,9 +493,9 @@ namespace engine
                      PD_PACK_STRING(clName),
                      PD_PACK_UINT(logicalID) );
          PD_LOG ( PDDEBUG,
-                  "Successfully created RBS collection %s, logicalID= %d, "
-                  "updateCurCL=%d",
-                  clName, logicalID, updateCurCL ) ;
+                  "Successfully created RBS collection %s, logicalID=%d, "
+                  "mbID=%d, updateCurCL=%d",
+                  clName, logicalID, collectionID, updateCurCL ) ;
       }
       catch( std::exception &e )
       {
@@ -1235,7 +1239,10 @@ namespace engine
       if ( _needPrepareRBSCL( TRUE ) )
       {
 #ifdef _DEBUG
-         PD_LOG( PDDEBUG, "GC prepare CL." ) ;
+         PD_LOG( PDDEBUG,
+                 "GC prepare CL: "
+                 "preparedCl(%d), currentCl(%d), lastFreeCl(%d).",
+                 _preparedCollection, _currentCollection, _lastFreeCollection) ;
 #endif
          // don't update curCL
          rc = _prepareRBSCL( eduCB, dpsCB, FALSE ) ;
