@@ -1341,7 +1341,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
          {
             //to string
             INT32 strLen = 0 ;
-            const CHAR *pString = NULL ;
+            CHAR *pString = NULL ;
 
             sdb_decimal_to_str_get_len( &bsonDecimal, &strLen ) ;
 
