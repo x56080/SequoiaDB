@@ -15,8 +15,6 @@ function test()
    }
    var group = groups[0];
    var groupName = group[0].GroupName;
-   var primaryPos = group[0].PrimaryPos;
-   var primaryNode = group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname;
    var clName = CHANGEDPREFIX + "_14093";
    commDropCL( db, COMMCSNAME, clName );
    var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
@@ -33,6 +31,11 @@ function test()
    db.getRG( groupName ).start();
    commCheckBusinessStatus( db );
    db.invalidateCache();
+
+   groups = getGroupsWithNodeNum( 3 );
+   group = groups[0];
+   var primaryPos = group[0].PrimaryPos;
+   var primaryNode = group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname;
    
    try
    {

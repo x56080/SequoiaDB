@@ -15,7 +15,6 @@ function test()
    }
    var group = groups[0];
    var groupName = group[0].GroupName;
-   var primaryPos = group[0].PrimaryPos;
    var clName = CHANGEDPREFIX + "_18601";
 
    commDropCL( db, COMMCSNAME, clName ) ;
