@@ -116,7 +116,7 @@ function clean_sdb()
       local datadir_list=`$INSTALL_DIR/bin/sdblist -l | grep -v "Total"|awk 'NR>1{print $NF}'`
       echo "begin to uninstall $name"
       echo "$INSTALL_DIR/uninstall --mode unattended"
-      `$INSTALL_DIR/uninstall --mode unattended`
+      $INSTALL_DIR/uninstall --mode unattended
       test $? -ne 0 && { echo "ERROR: Fail to $INSTALL_DIR/uninstall --mode unattended" >&2 && exit 1; }
       
       echo "ok"
@@ -151,7 +151,7 @@ function clean_sql()
       local datadir_list=`$INSTALL_DIR/bin/sdb_sql_ctl listinst | grep -v "Total"|awk 'NR>1{print $2 " " $3}'`
       echo "begin to uninstall $name"
       echo "$INSTALL_DIR/uninstall --mode unattended"
-      `$INSTALL_DIR/uninstall --mode unattended`
+      $INSTALL_DIR/uninstall --mode unattended
       test $? -ne 0 && { echo "ERROR: Fail to $INSTALL_DIR/uninstall --mode unattended" >&2 && exit 1; }
       
       echo "ok"
