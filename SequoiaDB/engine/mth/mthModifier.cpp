@@ -135,6 +135,56 @@ namespace engine
 #define SET_ARRAY_POS_NAME    "pos"
 #define SET_ARRAY_OBJS_NAME   "objs"
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDFELEMENT_ANALYZEMODIFYELE, "_ModifierElement::analyzeModifyEle" )
+   INT32 _ModifierElement::analyzeModifyEle()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHMDFELEMENT_ANALYZEMODIFYELE ) ;
+
+      try
+      {
+         if ( Object == _toModify.type() )
+         {
+            BSONObj subObj = _toModify.Obj() ;
+            BSONElement ele = subObj.getField( MTH_OPERATOR_STR_FIELD ) ;
+            if ( !ele.eoo() )
+            {
+               if ( 1 != subObj.nFields() )
+               {
+                  PD_LOG_MSG( PDERROR, "'$field' cannot be used with other "
+                                       "field: %s",
+                              subObj.toString().c_str() ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               else if ( String != ele.type() ||
+                         ( 0 == ossStrcmp( ele.valuestrsafe(), "" ) ) )
+               {
+                  PD_LOG_MSG( PDERROR, "Value of '$field' should be a valid "
+                                       "field name: %s",
+                              ele.toString().c_str() ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+
+               _sourceField = ele.valuestrsafe() ;
+            }
+         }
+      }
+      catch ( std::exception& e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHMDFELEMENT_ANALYZEMODIFYELE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _mthModifier::_addToKeepSet( const CHAR *fieldName )
    {
       INT32 rc = SDB_OK ;
@@ -179,6 +229,7 @@ namespace engine
 
    /*
       _mthModifier implement
+      The parameter ele stands for the operands for the operator of type.
    */
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF__ADDMDF, "_mthModifier::_addModifier" )
    INT32 _mthModifier::_addModifier ( const BSONElement &ele, ModType type )
@@ -204,7 +255,11 @@ namespace engine
                       "be array, %s", ele.toString().c_str() ) ;
          goto error ;
       }
-      else if ( POP == type && !ele.isNumber() )
+      else if ( POP == type && !ele.isNumber() &&
+                !( ele.isABSONObj() &&
+                   ( 1 == ele.Obj().nFields() ) &&
+                   ( 0 == ossStrcmp( ele.Obj().firstElementFieldName(),
+                                     MTH_OPERATOR_STR_FIELD ) ) ) )
       {
          PD_LOG_MSG ( PDERROR, "$pop field must be number, %s",
                       ele.toString().c_str() ) ;
@@ -268,79 +323,8 @@ namespace engine
       }
       else if ( INC == type )
       {
-         if ( ele.isNumber() )
-         {
-            IncModifierElement *pMe = SDB_OSS_NEW IncModifierElement( ele,
-                                                                   dollarNum ) ;
-            PD_CHECK( NULL != pMe, SDB_OOM, error, PDERROR,
-                      "Failed to new IncModifierElement:rc=%d", rc ) ;
-
-            rc = _addToModifierVector( pMe ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to add modifier:rc=%d", rc ) ;
-         }
-         else if ( Object == ele.type() )
-         {
-            BSONElement valueEle ;
-            BSONElement minEle ;
-            BSONElement maxEle ;
-            BSONElement defaultEle ;
-            BSONObjIterator iterIncOpt( ele.embeddedObject() ) ;
-            while ( iterIncOpt.more() )
-            {
-               BSONElement eIncOpt = iterIncOpt.next() ;
-               if ( 0 == ossStrcmp( eIncOpt.fieldName(), MTH_INC_VALUE ) )
-               {
-                  valueEle = eIncOpt ;
-               }
-               else if ( 0 == ossStrcmp( eIncOpt.fieldName(),
-                                         MTH_INC_DEFAULT ) )
-               {
-                  defaultEle = eIncOpt ;
-               }
-               else if ( 0 == ossStrcmp( eIncOpt.fieldName(), MTH_INC_MIN ) )
-               {
-                  minEle = eIncOpt ;
-               }
-               else if ( 0 == ossStrcmp( eIncOpt.fieldName(), MTH_INC_MAX ) )
-               {
-                  maxEle = eIncOpt ;
-               }
-            }
-
-            if ( !valueEle.isNumber() || ( !minEle.isNumber() && !minEle.eoo() )
-                 || ( !maxEle.isNumber() && !maxEle.eoo() )
-                 || ( !defaultEle.isNumber() && !defaultEle.eoo()
-                      && !defaultEle.isNull() ) )
-            {
-               PD_LOG_MSG ( PDERROR, "inc field is invalid, %s",
-                            ele.toString().c_str() ) ;
-               goto error ;
-            }
-
-            IncModifierElement *incMe = SDB_OSS_NEW IncModifierElement( ele,
-                                                  valueEle, defaultEle, minEle,
-                                                  maxEle, dollarNum ) ;
-            PD_CHECK( NULL != incMe, SDB_OOM, error, PDERROR,
-                      "Failed to new IncModifierElement:rc=%d", rc ) ;
-
-            rc = incMe->calcDefaultResult( _strictDataMode ) ;
-            if ( SDB_OK != rc )
-            {
-               SDB_OSS_DEL incMe ;
-               PD_LOG( PDERROR, "Failed to calculate default result:rc=%d",
-                       rc ) ;
-               goto error ;
-            }
-
-            rc = _addToModifierVector( incMe ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to add modifier:rc=%d", rc ) ;
-         }
-         else
-         {
-            PD_LOG_MSG ( PDERROR, "inc field must be number or object , %s",
-                         ele.toString().c_str() ) ;
-            goto error ;
-         }
+         rc = _parseInc( ele, dollarNum ) ;
+         PD_RC_CHECK( rc, PDERROR, "Parse $inc operation failed: %d", rc ) ;
       }
       else
       {
@@ -348,6 +332,9 @@ namespace engine
                                                             dollarNum ) ;
          PD_CHECK( NULL != me, SDB_OOM, error, PDERROR,
                    "Failed to new IncModifierElement:rc=%d", rc ) ;
+
+         rc = me->analyzeModifyEle() ;
+         PD_RC_CHECK( rc, PDERROR, "Analyze modifier failed: %d", rc ) ;
 
          rc = _addToModifierVector( me ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to add modifier:rc=%d", rc ) ;
@@ -379,7 +366,32 @@ namespace engine
       BSONElement elt ;
       BOOLEAN strictMode = _strictDataMode ;
 
-      if ( me._isSimple )
+      if ( me.isModifyByField() )
+      {
+         rc = _getFieldModifier( me.getSourceFieldName(), elt ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "Get value of '$field' failed: %d",
+                        rc ) ;
+            goto error ;
+         }
+         // If the specified field dose not exist in the original record, just
+         // keep the original field.
+         if ( elt.eoo() )
+         {
+            bb.append( in ) ;
+            goto done ;
+         }
+         else if ( !elt.isNumber() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Field %s is not a nubmer in record: %s",
+                        me.getSourceFieldName(),
+                        _sourceRecord.toString().c_str() ) ;
+            goto error ;
+         }
+      }
+      else if ( me._isSimple )
       {
          elt = me._toModify ;
       }
@@ -441,9 +453,33 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__MTHMDF__APPSETMDF ) ;
       BOOLEAN isNeedSetNewValue = TRUE ;
+      BSONElement realEle ;
 
-      if ( in.type() == me._toModify.type()
-           && 0 == in.woCompare( me._toModify, false ) )
+      if ( me.isModifyByField() )
+      {
+         // Use value of other field to set the current field.
+         rc = _getFieldModifier( me.getSourceFieldName(), realEle ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "Get value of '$field' failed: %d",
+                        rc ) ;
+            goto error ;
+         }
+
+         // If the field specified by '$field' dose not exist in the source
+         // record, just keep the origin field.
+         if ( realEle.eoo() )
+         {
+            isNeedSetNewValue = FALSE ;
+         }
+      }
+      else
+      {
+         realEle = me._toModify ;
+      }
+
+      if ( isNeedSetNewValue && in.type() == realEle.type()
+           && 0 == in.woCompare( realEle, false ) )
       {
          isNeedSetNewValue = FALSE ;
       }
@@ -451,9 +487,8 @@ namespace engine
       if ( isNeedSetNewValue )
       {
          ADD_CHG_ELEMENT_AS ( _srcChgBuilder, in, pRoot, "$set" ) ;
-         ADD_CHG_ELEMENT_AS ( _dstChgBuilder, me._toModify, pRoot, "$set" ) ;
-         // set new element
-         bb.appendAs ( me._toModify, in.fieldName() ) ;
+         ADD_CHG_ELEMENT_AS ( _dstChgBuilder, realEle, pRoot, "$set" ) ;
+         bb.appendAs ( realEle, in.fieldName() ) ;
       }
       // not change
       else
@@ -461,8 +496,11 @@ namespace engine
          bb.append ( in ) ;
       }
 
+   done:
       PD_TRACE_EXITRC ( SDB__MTHMDF__APPSETMDF, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF__APPPSHMDF, "_mthModifier::_applyPushModifier" )
@@ -473,6 +511,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__MTHMDF__APPPSHMDF );
       INT32 rc= SDB_OK ;
+      BSONElement actualModifyEle ;
       // make sure the original type is array
       if ( Array != in.type() )
       {
@@ -500,16 +539,33 @@ namespace engine
             sub.append( i.next() ) ;
             n++ ;
          }
-         sub.appendAs ( me._toModify, sub.numStr(n) ) ;
+
+         if ( me.isModifyByField() )
+         {
+            rc = _getFieldModifier( me.getSourceFieldName(), actualModifyEle ) ;
+            if ( rc )
+            {
+               PD_LOG_MSG( PDERROR, "Get value of '$field' failed: %d",
+                           rc ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            actualModifyEle = me._toModify ;
+         }
+         sub.appendAs ( actualModifyEle, sub.numStr(n) ) ;
          BSONObj newObj = sub.done() ;
 
-         _buildSetArray( _dstChgBuilder, pRoot, n, me._toModify ) ;
+         _buildSetArray( _dstChgBuilder, pRoot, n, actualModifyEle ) ;
          _buildSetArray( _srcChgBuilder, pRoot, n, BSONArrayBuilder().arr() ) ;
       }
 
    done :
       PD_TRACE_EXITRC ( SDB__MTHMDF__APPPSHMDF, rc );
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF__APPPSHALLMDF, "_mthModifier::_applyPushAllModifier" )
@@ -619,7 +675,22 @@ namespace engine
             BOOLEAN allowed = TRUE ;
             if ( PULL == me._modType || PULL_BY == me._modType )
             {
-               allowed = ! _pullElementMatch ( ele, me._toModify,
+               BSONElement realEle ;
+               if ( me.isModifyByField() )
+               {
+                  rc = _getFieldModifier( me.getSourceFieldName(), realEle ) ;
+                  if ( rc )
+                  {
+                     PD_LOG_MSG( PDERROR, "Get value of '$field' failed: %d",
+                                 rc ) ;
+                     goto error ;
+                  }
+               }
+               else
+               {
+                  realEle = me._toModify ;
+               }
+               allowed = ! _pullElementMatch ( ele, realEle,
                                                ( PULL == me._modType ?
                                                  TRUE : FALSE ) ) ;
             }
@@ -664,6 +735,8 @@ namespace engine
    done :
       PD_TRACE_EXITRC ( SDB__MTHMDF__APPPLLMDF, rc );
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF__APPPOPMDF, "_mthModifier::_applyPopModifier" )
@@ -678,6 +751,9 @@ namespace engine
       // if input number is 0, then it doesn't do anything
       // input number < 0 means remove from front
       // input number > 0 means remove from end
+
+      BSONElement actualEle ;
+
       if ( Array != in.type() )
       {
          PD_LOG_MSG ( ( _ignoreTypeError ? PDDEBUG : PDERROR ),
@@ -694,7 +770,27 @@ namespace engine
          goto done ;
       }
 
-      if ( !me._toModify.isNumber() )
+      if ( me.isModifyByField() )
+      {
+         rc = _getFieldModifier( me.getSourceFieldName(), actualEle ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "Get value of '$field' failed: %d",
+                        rc ) ;
+            goto error ;
+         }
+         if ( actualEle.eoo() )
+         {
+            bb.append( in ) ;
+            goto done ;
+         }
+      }
+      else
+      {
+         actualEle = me._toModify ;
+      }
+
+      if ( !actualEle.isNumber() )
       {
          PD_LOG_MSG ( PDERROR, "pop data type must be a number: %s",
                       me._toModify.toString().c_str());
@@ -703,7 +799,7 @@ namespace engine
       }
 
       // if specify 0, which means don't pop anything
-      if ( me._toModify.number() == 0 )
+      if ( actualEle.number() == 0 )
       {
          bb.append ( in ) ;
          goto done ;
@@ -713,10 +809,10 @@ namespace engine
          INT32 n = 0 ;
          INT32 changedPos = 0 ;
          // if specify < 0, which means pop the n'th element from front
-         if ( me._toModify.number() < 0 )
+         if ( actualEle.number() < 0 )
          {
             changedPos = 0 ;
-            INT32 m = (INT32)me._toModify.number() ;
+            INT32 m = (INT32)actualEle.number() ;
             BSONObjIterator i ( in.embeddedObject() ) ;
             while ( i.more() )
             {
@@ -733,7 +829,7 @@ namespace engine
             // if specify > 0, we need to pop the n'th element from end
             // first we need to know how many elements in total
             INT32 count = 0 ;
-            INT32 m = (INT32)me._toModify.number() ;
+            INT32 m = (INT32)actualEle.number() ;
             BSONObjIterator i ( in.embeddedObject() ) ;
             while ( i.more())
             {
@@ -766,6 +862,8 @@ namespace engine
    done :
       PD_TRACE_EXITRC ( SDB__MTHMDF__APPPOPMDF, rc );
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF__APPBITMDF, "_mthModifier::_applyBitModifier" )
@@ -1785,6 +1883,208 @@ namespace engine
       return UNKNOW ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF__PARSEINCSIMPLE, "_mthModifier::_parseIncSimple" )
+   INT32 _mthModifier::_parseIncSimple( const BSONElement& ele,
+                                        INT32 dollarNum )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHMDF__PARSEINCSIMPLE ) ;
+
+      IncModifierElement *me = SDB_OSS_NEW IncModifierElement( ele,
+                                                               dollarNum ) ;
+      PD_CHECK( NULL != me, SDB_OOM, error, PDERROR,
+                "Allocate memory for IncModifierElement failed: %d", rc ) ;
+
+      rc = me->analyzeModifyEle() ;
+      PD_RC_CHECK( rc, PDERROR, "Analyze modifier failed: %d", rc  ) ;
+
+      // In case of error, the modifier element will be deleted in
+      // _addToModifierVector.
+      rc = _addToModifierVector( me ) ;
+      PD_RC_CHECK( rc, PDERROR, "Add modifier for $inc failed: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHMDF__PARSEINCSIMPLE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // The arguments of the $inc operator is in the following format:
+   // {$inc:{Value:<number>[...]}}
+   // {$inc:{Value:{$field:{}}[...]}}
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF__PARSEINCADVANCE, "_mthModifier::_parseIncAdvance" )
+   INT32 _mthModifier::_parseIncAdvance( const BSONElement& ele,
+                                         INT32 dollarNum )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHMDF__PARSEINCADVANCE ) ;
+
+      BSONElement valueEle ;
+      BSONElement minEle ;
+      BSONElement maxEle ;
+      BSONElement defaultEle ;
+      BSONElement fieldTagEle ;
+      BSONObjIterator itr( ele.embeddedObject() ) ;
+      while ( itr.more() )
+      {
+         BSONElement incOptEle = itr.next() ;
+         const CHAR *optName = incOptEle.fieldName() ;
+         if ( 0 == ossStrcmp( optName, MTH_INC_VALUE ) )
+         {
+            valueEle = incOptEle ;
+         }
+         else if ( 0 == ossStrcmp( optName, MTH_INC_DEFAULT ) )
+         {
+            defaultEle = incOptEle ;
+         }
+         else if ( 0 == ossStrcmp( optName, MTH_INC_MIN ) )
+         {
+            minEle = incOptEle ;
+         }
+         else if ( 0 == ossStrcmp( optName, MTH_INC_MAX ) )
+         {
+            maxEle = incOptEle ;
+         }
+         else if ( 0 == ossStrcmp( optName, MTH_OPERATOR_STR_FIELD ) )
+         {
+            fieldTagEle = incOptEle ;
+         }
+         else
+         {
+            PD_LOG_MSG( PDERROR, "Unrecognized option for $inc: %s", optName ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
+      // Use can use either the format {$inc:{a:{$field:"b"}} or
+      // {$inc:{a:{Value:1...}}}, but not both of them at the same time.
+      // Wrong format: {$inc:{a:{$field:"b", Value:1...}}}
+      if ( !fieldTagEle.eoo() &&
+           !( valueEle.eoo() && defaultEle.eoo() &&
+              minEle.eoo() && maxEle.eoo() ) )
+      {
+         PD_LOG_MSG( PDERROR, "'$field' can not be used at the same level with "
+                              "'Value/Default/Min/Max'") ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( valueEle.eoo() )
+      {
+         rc = _parseIncSimple( ele, dollarNum ) ;
+      }
+      else
+      {
+         rc = _parseIncByOptObj( ele, valueEle, defaultEle,
+                                 minEle, maxEle, dollarNum ) ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Parse '$inc' operands failed: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHMDF__PARSEINCADVANCE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF__PARSEINCBYOPTOBJ, "_mthModifier::_parseIncByOptObj" )
+   INT32 _mthModifier::_parseIncByOptObj( const BSONElement& ele,
+                                          const BSONElement& valueEle,
+                                          const BSONElement& defaultEle,
+                                          const BSONElement& minEle,
+                                          const BSONElement& maxEle,
+                                          INT32 dollarNum )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHMDF__PARSEINCBYOPTOBJ ) ;
+      IncModifierElement *me = NULL ;
+
+      if ( !( valueEle.isNumber() || Object == valueEle.type() )
+           || ( !minEle.isNumber() && !minEle.eoo() )
+           || ( !maxEle.isNumber() && !maxEle.eoo() )
+           || ( !defaultEle.isNumber() && !defaultEle.eoo()
+                && !defaultEle.isNull() ) )
+      {
+         rc = SDB_INVALIDARG ;
+      }
+      else if ( Object == valueEle.type() )
+      {
+         BSONObj subObj = valueEle.embeddedObject() ;
+         // If the value element is an object, it should contain only one string
+         // field.
+         if ( 1 != subObj.nFields() ||
+              0 != ossStrcmp( subObj.firstElement().fieldName(),
+                              MTH_OPERATOR_STR_FIELD ) ||
+              String != subObj.firstElement().type() )
+         {
+            rc = SDB_INVALIDARG ;
+         }
+      }
+
+      if ( SDB_INVALIDARG == rc )
+      {
+         PD_LOG_MSG( PDERROR, "$inc option is invalid: %s",
+                     ele.toString().c_str() ) ;
+         goto error ;
+      }
+
+      me = SDB_OSS_NEW IncModifierElement( ele, valueEle, defaultEle, minEle,
+                                           maxEle, dollarNum ) ;
+      PD_CHECK( NULL != me, SDB_OOM, error, PDERROR,
+                "Allocate memory for IncModifierElement failed: %d", rc ) ;
+
+      rc = me->analyzeModifyEle() ;
+      PD_RC_CHECK( rc, PDERROR, "Analyze modifier failed: %d", rc ) ;
+
+      rc = me->calcDefaultResult( _strictDataMode ) ;
+      if ( rc )
+      {
+         SDB_OSS_DEL me ;
+         PD_LOG( PDERROR, "Failed to calculate default result: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = _addToModifierVector( me ) ;
+      PD_RC_CHECK( rc, PDERROR, "Add modifier for '$inc' failed: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHMDF__PARSEINCBYOPTOBJ, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF__PARSEINC, "_mthModifier::_parseInc" )
+   INT32 _mthModifier::_parseInc( const BSONElement& ele, INT32 dollarNum )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHMDF__PARSEINC ) ;
+
+      if ( Object == ele.type() )
+      {
+         rc = _parseIncAdvance( ele, dollarNum ) ;
+      }
+      else if ( ele.isNumber() )
+      {
+         rc = _parseIncSimple( ele, dollarNum ) ;
+      }
+      else
+      {
+         PD_LOG_MSG( PDERROR, "The value type of $inc operator should be number"
+                              " or object: %s", ele.toString().c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHMDF__PARSEINC, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF_PASELE, "_mthModifier::_parseElement" )
    INT32 _mthModifier::_parseElement ( const BSONElement &ele )
    {
@@ -2191,6 +2491,27 @@ namespace engine
       goto done ;
    }
 
+   INT32 _mthModifier::_setSourceRecord( const BSONObj &record )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         _sourceRecord = record ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF_LDPTN, "_mthModifier::loadPattern" )
    INT32 _mthModifier::loadPattern ( const BSONObj &modifierPattern,
                                      vector<INT64> *dollarList,
@@ -2218,6 +2539,7 @@ namespace engine
          BSONObjIterator i( _modifierPattern ) ;
          while ( i.more() )
          {
+            // Each element contains a modification operator and it's operands.
             rc = _parseElement(i.next() ) ;
             if ( rc )
             {
@@ -2309,19 +2631,38 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__MTHMDF__APPNEW );
       ModifierElement *me = _modifierElements[(*modifierIndex)] ;
+      BSONElement realEle = me->_toModify ;
+      if ( me->isModifyByField() )
+      {
+         rc = _getFieldModifier( me->getSourceFieldName(), realEle ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "Get value of '$field' failed: %d",
+                        rc ) ;
+            goto error ;
+         }
+
+         if ( realEle.eoo() )
+         {
+            // If the field specified by '$field' dose not exist in the original
+            // record, just skip.
+            _incModifierIndex( modifierIndex ) ;
+            goto done ;
+         }
+      }
+
 
       switch ( me->_modType )
       {
-      case INC:
-      {
-         try
+         case INC:
          {
-            IncModifierElement *incModifier = ( IncModifierElement * ) me ;
+            try
+            {
+               IncModifierElement *incModifier = ( IncModifierElement * ) me ;
             if ( incModifier->_isSimple )
             {
-               b.appendAs ( incModifier->_toModify, pShort ) ;
-               ADD_CHG_ELEMENT_AS ( _dstChgBuilder, incModifier->_toModify,
-                                    pRoot, "$set" ) ;
+               b.appendAs ( realEle, pShort ) ;
+               ADD_CHG_ELEMENT_AS ( _dstChgBuilder, realEle, pRoot, "$set" ) ;
             }
             else
             {
@@ -2334,8 +2675,36 @@ namespace engine
                   if ( incModifier->_default.eoo()
                        || incModifier->_default.isNumber() )
                   {
-                     BSONElement defaultResultEle =
+                     _interBuilder.reset() ;
+                     BSONElement defaultResultEle ;
+                     if ( incModifier->isModifyByField() )
+                     {
+                        if ( !realEle.isNumber() )
+                        {
+                           rc = SDB_INVALIDARG ;
+                           PD_LOG_MSG( PDERROR, "Field %s is not a number in "
+                                                "record: %s",
+                                       me->getSourceFieldName(),
+                                       _sourceRecord.toString().c_str() ) ;
+                           goto error ;
+                        }
+
+                        rc = mthModifierInc( incModifier->_default, realEle,
+                                             _strictDataMode, _interBuilder ) ;
+                        if ( rc )
+                        {
+                           PD_LOG_MSG( PDERROR, "Calculate default value "
+                                                "failed: %d", rc ) ;
+                           goto done ;
+                        }
+                        defaultResultEle = _interBuilder.done().firstElement() ;
+                     }
+                     else
+                     {
+                        defaultResultEle =
                               incModifier->_defaultResult.firstElement() ;
+                     }
+
                      if ( !incModifier->isValidRange( defaultResultEle ) )
                      {
                         rc = SDB_VALUE_OVERFLOW ;
@@ -2368,7 +2737,7 @@ namespace engine
          {
             PD_LOG_MSG ( ( _ignoreTypeError ? PDINFO : PDERROR ),
                          "Failed to append for %s: %s",
-                         me->_toModify.toString().c_str(), e.what() ) ;
+                         realEle.toString().c_str(), e.what() ) ;
             if ( !_ignoreTypeError )
             {
                rc = SDB_INVALIDARG ;
@@ -2382,20 +2751,20 @@ namespace engine
       {
          try
          {
-            b.appendAs ( me->_toModify, pShort ) ;
+            b.appendAs ( realEle, pShort ) ;
          }
          catch( std::exception &e )
          {
             PD_LOG_MSG ( ( _ignoreTypeError ? PDINFO : PDERROR ),
                          "Failed to append for %s: %s",
-                         me->_toModify.toString().c_str(), e.what() ) ;
+                         realEle.toString().c_str(), e.what() ) ;
             if ( !_ignoreTypeError )
             {
                rc = SDB_INVALIDARG ;
                goto done ;
             }
          }
-         ADD_CHG_ELEMENT_AS ( _dstChgBuilder, me->_toModify, pRoot, "$set" ) ;
+         ADD_CHG_ELEMENT_AS ( _dstChgBuilder, realEle, pRoot, "$set" ) ;
          break ;
       }
       // this codepath should never been hit
@@ -2416,7 +2785,7 @@ namespace engine
       {
          // create bson builder for the array
          BSONObjBuilder bb ( b.subarrayStart( pShort ) ) ;
-         bb.appendAs ( me->_toModify, bb.numStr(0) ) ;
+         bb.appendAs ( realEle, bb.numStr(0) ) ;
          BSONObj newObj = bb.done() ;
 
          ADD_CHG_ARRAY_OBJ ( _dstChgBuilder, newObj, pRoot, "$set" ) ;
@@ -2502,6 +2871,8 @@ namespace engine
       }
       PD_TRACE_EXITRC ( SDB__MTHMDF__APPNEW, rc );
       return rc ;
+   error:
+      goto done ;
    }
 
    // Builder could be BSONObjBuilder or BSONArrayBuilder
@@ -2761,7 +3132,7 @@ namespace engine
          rc = _applySetArrayModifier( *ppRoot, b, e, *me ) ;
          break ;
       default :
-         PD_LOG_MSG ( PDERROR, "unknow modifier type[%d]", me->_modType ) ;
+         PD_LOG_MSG ( PDERROR, "unknown modifier type[%d]", me->_modType ) ;
          rc = SDB_INVALIDARG ;
          goto done ;
       }
@@ -2910,7 +3281,7 @@ namespace engine
 
          // 3) current field is not same as requested field, and alphabatically
          // current field is greater than requested field
-         // for example current field is user.myname, requested fialed is
+         // for example current field is user.myname, requested field is
          // user.abc
          // this situation called LEFT_BEFORE
 
@@ -3179,6 +3550,28 @@ namespace engine
       }
    }
 
+   INT32 _mthModifier::_getFieldModifier( const CHAR* fieldName,
+                                          BSONElement& fieldEle )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         fieldEle = _sourceRecord.getFieldDotted( fieldName ) ;
+      }
+      catch ( std::exception& e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    BSONElement _mthModifier::getErrorElement()
    {
       return _errorFieldElement ;
@@ -3257,6 +3650,10 @@ namespace engine
             goto error ;
          }
       }
+
+      rc = _setSourceRecord( source ) ;
+      PD_RC_CHECK( rc, PDERROR, "Set source record when modifing failed: %d",
+                   rc ) ;
 
       // create a new object based on the source
       // "" is empty root, builder is BSONObjBuilder
@@ -3380,6 +3777,58 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__INCMTHMDFELEMENT_ANALYZEMODIFYELE, "_IncModifierElement::analyzeModifyEle" )
+   INT32 _IncModifierElement::analyzeModifyEle()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__INCMTHMDFELEMENT_ANALYZEMODIFYELE ) ;
+
+      try
+      {
+         if ( _valueEle.eoo() )
+         {
+            rc = ModifierElement::analyzeModifyEle() ;
+            PD_RC_CHECK( rc, PDERROR, "Analyze modifier failed: %d", rc ) ;
+         }
+         else if ( Object == _valueEle.type() )
+         {
+            BSONObj subObj = _valueEle.Obj();
+            BSONElement ele = subObj.getField( MTH_OPERATOR_STR_FIELD ) ;
+            if (!ele.eoo())
+            {
+               if (1 != subObj.nFields())
+               {
+                  PD_LOG_MSG( PDERROR, "'$field' cannot be used with other "
+                                       "field: %s", subObj.toString().c_str());
+                  rc = SDB_INVALIDARG;
+                  goto error;
+               } else if (String != ele.type())
+               {
+                  PD_LOG_MSG( PDERROR, "Value of '$field' should be a valid "
+                                       "field name: %s",
+                              ele.toString().c_str());
+                  rc = SDB_INVALIDARG;
+                  goto error;
+               }
+
+               _sourceField = ele.valuestrsafe();
+            }
+         }
+      }
+      catch( std::exception& e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__INCMTHMDFELEMENT_ANALYZEMODIFYELE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _IncModifierElement::calcDefaultResult( BOOLEAN strictMode )
    {
       INT32 rc = SDB_OK ;
@@ -3434,24 +3883,28 @@ namespace engine
             strictMode = FALSE ;
          }
 
-         rc = mthModifierInc( leftEle, _valueEle, strictMode, builder ) ;
-         if ( SDB_OK != rc )
+         if ( !_sourceField )
          {
-            PD_LOG_MSG( PDERROR, "Invalid inc:default=%s,inc=%s,min=%s,max=%s,"
-                        "rc=%d", leftEle.toString( FALSE ).c_str(),
-                        _valueEle.toString( FALSE ).c_str(),
-                        _minEle.toString( FALSE ).c_str(),
-                        _maxEle.toString( FALSE ).c_str(), rc ) ;
-            goto error ;
-         }
-
-         _defaultResult = builder.obj() ;
-         if ( 0 == _defaultResult.nFields() )
-         {
-            // empty builder imply leftEle is not changed. set leftEle as result
-            BSONObjBuilder defaultBuilder( 20 ) ;
-            defaultBuilder.appendAs( leftEle, "" ) ;
-            _defaultResult = defaultBuilder.obj() ;
+            // Increase by fixed value, the _defaultResult can be calculated
+            // at parsing time.
+            rc = mthModifierInc( leftEle, _valueEle, strictMode, builder ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG_MSG( PDERROR, "Invalid inc:default=%s,inc=%s,min=%s,max=%s,"
+                                    "rc=%d", leftEle.toString( FALSE ).c_str(),
+                           _valueEle.toString( FALSE ).c_str(),
+                           _minEle.toString( FALSE ).c_str(),
+                           _maxEle.toString( FALSE ).c_str(), rc ) ;
+               goto error ;
+            }
+            _defaultResult = builder.obj() ;
+            if ( 0 == _defaultResult.nFields() )
+            {
+               // empty builder imply leftEle is not changed. set leftEle as result
+               BSONObjBuilder defaultBuilder( 20 ) ;
+               defaultBuilder.appendAs( leftEle, "" ) ;
+               _defaultResult = defaultBuilder.obj() ;
+            }
          }
       }
 
@@ -3658,6 +4111,10 @@ namespace engine
                goto error ;
             }
          }
+      }
+      else if ( existElement.eoo() && incElement.isNumber() )
+      {
+         resBuilder.append( incElement ) ;
       }
       else
       {

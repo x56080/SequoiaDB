@@ -49,6 +49,7 @@
 #include "mthCommon.hpp"
 #include "ixmIndexKey.hpp"
 #include "dms.hpp"
+#include "msgDef.hpp"
 
 using namespace bson ;
 
@@ -91,6 +92,9 @@ namespace engine
    {
    public :
       BSONElement _toModify ; // the element to modify
+      const CHAR *_sourceField ; // Used in format {$field:<name>}, pointing to
+                                 // the <name>, will be used in evaluation stage
+                                 // to fetch the field from the source record.
       ModType     _modType ;
       INT32       _dollarNum ;
 
@@ -98,8 +102,25 @@ namespace engine
                          INT32 dollarNum = 0 )
       {
          _toModify = e ;
+         _sourceField = NULL ;
          _modType = type ;
          _dollarNum = dollarNum ;
+      }
+
+      virtual ~_ModifierElement() {}
+
+      // Analyze the modifier. If it uses the '$field' format, get the field
+      // name.
+      virtual INT32 analyzeModifyEle() ;
+
+      BOOLEAN isModifyByField() const
+      {
+         return ( NULL != _sourceField ) ;
+      }
+
+      const CHAR* getSourceFieldName() const
+      {
+         return _sourceField ;
       }
    } ;
    typedef _ModifierElement ModifierElement ;
@@ -139,6 +160,7 @@ namespace engine
          _isSimple = FALSE ;
       }
 
+      INT32 analyzeModifyEle() ;
       INT32 calcDefaultResult( BOOLEAN strictMode ) ;
       BOOLEAN isValidRange( BSONElement &resultEle ) ;
    } ;
@@ -222,6 +244,7 @@ namespace engine
    private :
       BSONObjBuilder *_srcChgBuilder ;
       BSONObjBuilder *_dstChgBuilder ;
+      BSONObjBuilder  _interBuilder ;
 
       BSONObj _modifierPattern ;
       BOOLEAN _initialized ;
@@ -245,14 +268,44 @@ namespace engine
       BOOLEAN        _ignoreTypeError ;
       BOOLEAN        _strictDataMode ;
 
+      // For support of using {$field:<name>} format in some of updating
+      // operators. The value of {$field:<name>} should be evaluated by using
+      // the original record. So we set it for each record.
+      BSONObj        _sourceRecord ;
+
       INT32 _addToKeepSet( const CHAR *fieldName ) ;
       INT32 _addToModifierVector( ModifierElement *element ) ;
       INT32 _addModifier ( const BSONElement &ele, ModType type ) ;
       INT32 _parseElement ( const BSONElement &ele ) ;
+
+      /**
+       * Parse simple $inc operation format, just increase by a value
+       * the {$field:<name>} format.
+       */
+      INT32 _parseIncSimple( const BSONElement& ele, INT32 dollarNum ) ;
+
+      /**
+       * Parse complicated $inc operation format, an object is used.
+       */
+      INT32 _parseIncAdvance( const BSONElement& ele, INT32 dollarNum ) ;
+
+      /**
+       * Parse complicated $inc operation format, an option object is used.
+       */
+      INT32 _parseIncByOptObj( const BSONElement& ele,
+                               const BSONElement& valueEle,
+                               const BSONElement& defaultEle,
+                               const BSONElement& minEle,
+                               const BSONElement& maxEle,
+                               INT32 dollarNum ) ;
+
+      INT32 _parseInc( const BSONElement& ele, INT32 dollarNum ) ;
       ModType _parseModType ( const CHAR *field ) ;
       OSS_INLINE void _incModifierIndex( INT32 *modifierIndex ) ;
 
       INT32 _parseFullRecord( const BSONObj &record ) ;
+
+      INT32 _setSourceRecord( const BSONObj &record ) ;
 
       template<class VType>
       INT32 _bitCalc ( ModType type, VType l, VType r, VType &out );
@@ -392,8 +445,11 @@ namespace engine
       void _resetErrorElement() ;
       void _saveErrorElement( BSONElement &errorEle ) ;
       void _saveErrorElement( const CHAR *fieldName ) ;
+      INT32 _getFieldModifier( const CHAR* fieldName, BSONElement& fieldEle ) ;
+
    public :
       _mthModifier ()
+      : _interBuilder( 20 )
       {
          _initialized   = FALSE ;
          _srcChgBuilder = NULL ;
@@ -480,6 +536,14 @@ namespace engine
    BOOLEAN mthIsBiggerNumberType( const BSONElement &left,
                                   const BSONElement &right ) ;
 
+   /**
+    * @brief Evaluate the fields to be updated by '$inc' operator, and put them
+    *        into the builder for the final record.
+    * @param existElement   The current field element to be modified.
+    * @param inc            '$inc' value for the field to be modified.
+    * @param strictMode     Whether overflow is allowed in calculation.
+    * @param resBuilder     Builder for the final record.
+    */
    INT32 mthModifierInc( const BSONElement& existElement,
                          const BSONElement &inc, BOOLEAN strictMode,
                          BSONObjBuilder &resBuilder ) ;
