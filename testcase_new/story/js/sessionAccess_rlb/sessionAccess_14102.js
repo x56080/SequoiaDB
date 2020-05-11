@@ -27,30 +27,5 @@ function test()
  
    commDropCL( db, COMMCSNAME, clName, false, false ) ;
    db.removeRG( groupName);
-
-/*   var groups = getGroupsWithNodeNum( 3 );
-   if( groups.length === 0 )
-   {
-      return;
-   }
-   var group = groups[0];
-   var groupName = group[0].GroupName;
-   var primaryPos = group[0].PrimaryPos;println(primaryPos);
-   var clName = CHANGEDPREFIX + "_14102";
-
-   commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
-   insertData( cl );
-
-   var options = { PreferedInstance: [ primaryPos, "S"] };
-   var expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
-   checkAccessNodes( cl, expAccessNodes, options );
- 
-   primaryPos == 1 ? slavePos = 2 : slavePos = 1;
-   options = { PreferedInstance: [ slavePos, "M"] };
-   var expAccessNodes = [ group[ slavePos ].HostName + ":" + group[ slavePos ].svcname ];
-   checkAccessNodes( cl, expAccessNodes, options );
-
-   commDropCL( db, COMMCSNAME, clName, false, false ) ;*/
 }
 
