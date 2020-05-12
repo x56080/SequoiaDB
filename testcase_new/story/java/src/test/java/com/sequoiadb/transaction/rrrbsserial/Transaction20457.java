@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction.rr.rbs.serial;
+package com.sequoiadb.transaction.rrrbsserial;
 
 import java.util.ArrayList;
 
