@@ -77,7 +77,7 @@ public class Transaction18413 extends SdbTestBase {
     }
 
     @SuppressWarnings("unchecked")
-    @Test(enabled = false)
+    @Test(enabled = false) // SEQUOIADBMAINSTREAM-5814
     public void test() throws InterruptedException {
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
