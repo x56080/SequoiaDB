@@ -44,7 +44,7 @@ public class Transaction17772B extends SdbTestBase {
     private BSONObject insertR2 = new BasicBSONObject();
     private BSONObject updateR1 = new BasicBSONObject();
     private BSONObject updateR2 = new BasicBSONObject();
-    private ArrayList< BSONObject > actList = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > actList = new ArrayList< >();
     private DBCursor cursor = null;
     private String hint = "{\"\":\"a\"}";
 
@@ -69,25 +69,25 @@ public class Transaction17772B extends SdbTestBase {
     @DataProvider(name = "index")
     public Object[][] createIndex() {
         // 正序索引，正序索引读
-        List< BSONObject > expPositiveReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList1 = new ArrayList< >();
         expPositiveReadList1.add( updateR2 );
 
         // 事务提交，正序索引，正序索引读
-        List< BSONObject > expPositiveReadList2 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList2 = new ArrayList< >();
         expPositiveReadList2.add( updateR2 );
         expPositiveReadList2.add( updateR1 );
 
         // 事务提交，正序索引，逆序索引读
-        List< BSONObject > expReverseReadList2 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList2 = new ArrayList< >();
         expReverseReadList2.add( updateR1 );
         expReverseReadList2.add( updateR2 );
 
         // 逆序索引，正序索引读
-        List< BSONObject > expPositiveReadList3 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList3 = new ArrayList< >();
         expPositiveReadList3.add( insertR2 );
 
         // 逆序索引，正序索引读
-        List< BSONObject > expPositiveReadList4 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList4 = new ArrayList< >();
         expPositiveReadList4.add( insertR2 );
         expPositiveReadList4.add( updateR1 );
 
@@ -122,9 +122,9 @@ public class Transaction17772B extends SdbTestBase {
             cl4 = db4.getCollectionSpace( csName ).getCollection( clName );
 
             // 插入记录R1、R2，R1<R2
+            cl.createIndex( "a", indexKey, false, false );
             cl.insert( insertR1 );
             cl.insert( insertR2 );
-            cl.createIndex( "a", indexKey, false, false );
 
             // 事务1匹配R1删除
             cl1.delete( "{a:2}", hint );

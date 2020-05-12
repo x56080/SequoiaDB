@@ -41,7 +41,7 @@ public class Transaction17364C extends SdbTestBase {
     private BSONObject insertR1 = new BasicBSONObject();
     private BSONObject insertR2 = new BasicBSONObject();
     private BSONObject updateR1 = new BasicBSONObject();
-    private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > expList = new ArrayList< >();
     private String hintTbScan = "{\"\":null}";
     private String hintIxScan = "{\"\":\"a\"}";
     private String orderBy1 = "{a: 1, b: -1}";
@@ -67,17 +67,17 @@ public class Transaction17364C extends SdbTestBase {
     public Object[][] createIndex() {
 
         // 第一次非事务读正序查询的预期结果
-        List< BSONObject > expPositiveReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList1 = new ArrayList< >();
         expPositiveReadList1.add( updateR1 );
         expPositiveReadList1.add( insertR2 );
 
         // 第一次非事务读逆序查询的预期结果
-        List< BSONObject > expReverseReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList1 = new ArrayList< >();
         expReverseReadList1.add( insertR2 );
         expReverseReadList1.add( updateR1 );
 
         // 第一次非事务读逆序查询的预期结果
-        List< BSONObject > expReadList3 = new ArrayList< BSONObject >();
+        List< BSONObject > expReadList3 = new ArrayList< >();
         expReadList3.add( updateR1 );
 
         return new Object[][] {
@@ -98,9 +98,9 @@ public class Transaction17364C extends SdbTestBase {
             throws InterruptedException {
         try {
             // 插入记录R1、R2,R1<R2
+            cl.createIndex( "a", indexKey, false, false );
             cl.insert( insertR1 );
             cl.insert( insertR2 );
-            cl.createIndex( "a", indexKey, false, false );
 
             // 开启3个并发事务
             TransUtils.beginTransaction( db1 );

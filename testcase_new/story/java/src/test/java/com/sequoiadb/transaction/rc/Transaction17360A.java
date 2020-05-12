@@ -39,7 +39,7 @@ public class Transaction17360A extends SdbTestBase {
     private DBCollection cl = null;
     private BSONObject insertR1 = new BasicBSONObject();
     private BSONObject insertR2 = new BasicBSONObject();
-    private List< BSONObject > expDataList = new ArrayList< BSONObject >();
+    private List< BSONObject > expDataList = new ArrayList< >();
     private String orderBy1 = "{a: 1, b: -1}";
     private String orderBy2 = "{a: -1, b: 1}";
     private String hintTbScan = "{'': null}";
@@ -63,17 +63,17 @@ public class Transaction17360A extends SdbTestBase {
     public Object[][] createIndex() {
 
         // 第一次非事务读正序查询的预期结果
-        List< BSONObject > expPositiveReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList1 = new ArrayList< >();
         expPositiveReadList1.add( insertR2 );
         expPositiveReadList1.add( insertR1 );
 
         // 第一次非事务读逆序查询的预期结果
-        List< BSONObject > expReverseReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList1 = new ArrayList< >();
         expReverseReadList1.add( insertR1 );
         expReverseReadList1.add( insertR2 );
 
         // 第一次非事务读的预期结果
-        List< BSONObject > expReadList3 = new ArrayList< BSONObject >();
+        List< BSONObject > expReadList3 = new ArrayList< >();
         expReadList3.add( insertR2 );
 
         return new Object[][] {
@@ -94,8 +94,8 @@ public class Transaction17360A extends SdbTestBase {
             throws InterruptedException {
         try {
             // 插入记录R1
-            cl.insert( insertR1 );
             cl.createIndex( "a", indexKey, false, false );
+            cl.insert( insertR1 );
 
             cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );

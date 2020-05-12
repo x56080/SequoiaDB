@@ -39,7 +39,7 @@ public class Transaction17822 extends SdbTestBase {
     private DBCollection cl = null;
     private BSONObject insertR1 = new BasicBSONObject();
     private BSONObject insertR2 = new BasicBSONObject();
-    private List< BSONObject > expDataList = new ArrayList< BSONObject >();
+    private List< BSONObject > expDataList = new ArrayList< >();
     private String orderBy1 = "{a: 1, b: -1}";
     private String orderBy2 = "{a: -1, b: 1}";
     private String hintTbScan = "{'': null}";
@@ -63,7 +63,7 @@ public class Transaction17822 extends SdbTestBase {
     public Object[][] createIndex() {
 
         // 第一次非事务读正序查询的预期结果
-        List< BSONObject > expReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expReadList1 = new ArrayList< >();
         expReadList1.add( insertR2 );
 
         return new Object[][] { { "{'a': 1}", expReadList1 },
@@ -81,8 +81,8 @@ public class Transaction17822 extends SdbTestBase {
             throws InterruptedException {
         try {
             // 插入记录R1
-            cl.insert( insertR1 );
             cl.createIndex( "a", indexKey, false, false );
+            cl.insert( insertR1 );
 
             cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );

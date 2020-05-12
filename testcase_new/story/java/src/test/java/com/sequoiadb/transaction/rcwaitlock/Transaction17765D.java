@@ -72,41 +72,41 @@ public class Transaction17765D extends SdbTestBase {
     @DataProvider(name = "index")
     public Object[][] createIndex() {
         // 事务未提交，正序索引，正序索引读
-        List< BSONObject > expPositiveReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList1 = new ArrayList< >();
         expPositiveReadList1.add( insertR2 );
         expPositiveReadList1.add( updateR1 );
 
         // 事务未提交，正序索引，逆序索引读
-        List< BSONObject > expReverseReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList1 = new ArrayList< >();
         expReverseReadList1.add( updateR1 );
         expReverseReadList1.add( insertR2 );
 
         // 事务1提交，正序索引，正序索引读
-        List< BSONObject > expPositiveReadList2 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList2 = new ArrayList< >();
         expPositiveReadList2.add( updateR2 );
         expPositiveReadList2.add( updateR3 );
 
         // 事务1提交，正序索引，逆序索引读
-        List< BSONObject > expReverseReadList2 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList2 = new ArrayList< >();
         expReverseReadList2.add( updateR3 );
         expReverseReadList2.add( updateR2 );
 
         // 正序索引，事务3逆序索引读
-        List< BSONObject > expReverseReadList3 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList3 = new ArrayList< >();
         expReverseReadList3.add( updateR2 );
 
         // 事务未提交，逆序索引，正序索引读
-        List< BSONObject > expPositiveReadList4 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList4 = new ArrayList< >();
         expPositiveReadList4.add( updateR1 );
         expPositiveReadList4.add( updateR2 );
 
         // 事务未提交，逆序索引，正序索引读
-        List< BSONObject > expReverseReadList4 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList4 = new ArrayList< >();
         expReverseReadList4.add( updateR2 );
         expReverseReadList4.add( updateR1 );
 
         // 逆序索引，事务3正序索引读
-        List< BSONObject > expPositiveReadList5 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList5 = new ArrayList< >();
         expPositiveReadList5.add( insertR2 );
         expPositiveReadList5.add( updateR3 );
 
@@ -141,9 +141,9 @@ public class Transaction17765D extends SdbTestBase {
             TransUtils.beginTransaction( sdb4 );
 
             // 插入记录R1、R2
+            cl.createIndex( "a", indexKey, false, false );
             cl.insert( insertR1 );
             cl.insert( insertR2 );
-            cl.createIndex( "a", indexKey, false, false );
 
             // 事务1更新R1为R3
             cl1.update( "{a:2}", "{$set:{a:3,b:3}}", "{\"\":\"a\"}" );

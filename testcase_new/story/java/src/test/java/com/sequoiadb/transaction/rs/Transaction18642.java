@@ -51,8 +51,8 @@ public class Transaction18642 extends SdbTestBase {
         // 创建分区表并插入记录R1s
         TransUtils.createHashCL( sdb, csName, hashCLName );
         cl = sdb.getCollectionSpace( csName ).getCollection( hashCLName );
-        TransUtils.insertRandomDatas( cl, 0, 10000 );
         cl.createIndex( "idx18642", "{a:1}", false, false );
+        TransUtils.insertRandomDatas( cl, 0, 10000 );
     }
 
     @AfterClass

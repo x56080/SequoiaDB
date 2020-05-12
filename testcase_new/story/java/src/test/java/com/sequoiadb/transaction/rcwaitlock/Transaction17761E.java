@@ -46,7 +46,7 @@ public class Transaction17761E extends SdbTestBase {
     private BSONObject updateR1 = new BasicBSONObject();
     private BSONObject updateR2 = new BasicBSONObject();
     private DBCursor recordCur = null;
-    private List< BSONObject > actDataList = new ArrayList< BSONObject >();
+    private List< BSONObject > actDataList = new ArrayList< >();
 
     @BeforeClass
     public void setUp() {
@@ -69,41 +69,41 @@ public class Transaction17761E extends SdbTestBase {
     @DataProvider(name = "index")
     public Object[][] createIndex() {
         // 正序索引，正序索引读
-        List< BSONObject > expPositiveReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList1 = new ArrayList< >();
         expPositiveReadList1.add( insertR2 );
         expPositiveReadList1.add( insertR1 );
 
         // 正序索引，逆序索引读
-        List< BSONObject > expReverseReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList1 = new ArrayList< >();
         expReverseReadList1.add( insertR1 );
         expReverseReadList1.add( insertR2 );
 
         // 事务提交，正序索引，正序索引读
-        List< BSONObject > expPositiveReadList2 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList2 = new ArrayList< >();
         expPositiveReadList2.add( updateR2 );
         expPositiveReadList2.add( updateR1 );
 
         // 事务提交，正序索引，逆序索引读
-        List< BSONObject > expReverseReadList2 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList2 = new ArrayList< >();
         expReverseReadList2.add( updateR1 );
         expReverseReadList2.add( updateR2 );
 
         // 事务提交，正序索引，事务中逆序索引读
-        List< BSONObject > expReverseReadList3 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList3 = new ArrayList< >();
         expReverseReadList3.add( insertR1 );
         expReverseReadList3.add( updateR2 );
 
         // 事务提交，正序索引，事务中正序索引读
-        List< BSONObject > expPositiveReadList3 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList3 = new ArrayList< >();
         expPositiveReadList3.add( updateR1 );
 
         // 逆序索引，正序索引读
-        List< BSONObject > expPositiveReadList4 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList4 = new ArrayList< >();
         expPositiveReadList4.add( updateR1 );
         expPositiveReadList4.add( insertR2 );
 
         // 逆序索引，逆序索引读
-        List< BSONObject > expReverseReadList4 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList4 = new ArrayList< >();
         expReverseReadList4.add( insertR2 );
         expReverseReadList4.add( updateR1 );
 
@@ -138,8 +138,8 @@ public class Transaction17761E extends SdbTestBase {
             TransUtils.beginTransaction( sdb4 );
 
             // 插入记录
-            cl.insert( insertR1 );
             cl.createIndex( "a", indexKey, false, false );
+            cl.insert( insertR1 );
 
             // 事务1插入记录R2
             cl1.insert( insertR2 );

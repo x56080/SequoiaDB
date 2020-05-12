@@ -39,8 +39,8 @@ public class Transaction17782 extends SdbTestBase {
     private DBCollection cl = null;
     private BSONObject insertR1 = new BasicBSONObject();
     private BSONObject insertR2 = new BasicBSONObject();
-    private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
-    private ArrayList< BSONObject > actList = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > expList = new ArrayList< >();
+    private ArrayList< BSONObject > actList = new ArrayList< >();
     private DBCursor cursor = null;
     private String hint;
 
@@ -75,6 +75,7 @@ public class Transaction17782 extends SdbTestBase {
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
 
             // 插入记录R1、R2
+            cl.createIndex( "a", indexKey, false, false );
             cl.insert( insertR1 );
             cl.insert( insertR2 );
 

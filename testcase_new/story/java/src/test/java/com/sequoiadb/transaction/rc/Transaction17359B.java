@@ -41,7 +41,7 @@ public class Transaction17359B extends SdbTestBase {
     BSONObject insertR2 = new BasicBSONObject();
     BSONObject updateR1 = new BasicBSONObject();
     BSONObject updateR2 = new BasicBSONObject();
-    private List< BSONObject > expDataList = new ArrayList< BSONObject >();
+    private List< BSONObject > expDataList = new ArrayList< >();
     private String orderBy1 = "{a: 1, b: -1}";
     private String orderBy2 = "{a: -1, b: 1}";
     private String hintTbScan = "{'': null}";
@@ -70,26 +70,26 @@ public class Transaction17359B extends SdbTestBase {
     public Object[][] createIndex() {
 
         // 第一次非事务读正序查询的预期结果
-        List< BSONObject > expPositiveReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList1 = new ArrayList< >();
         expPositiveReadList1.add( insertR2 );
         expPositiveReadList1.add( insertR1 );
 
         // 第一次非事务读逆序查询的预期结果
-        List< BSONObject > expReverseReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList1 = new ArrayList< >();
         expReverseReadList1.add( insertR1 );
         expReverseReadList1.add( insertR2 );
 
         // 第二次非事务读正序查询的预期结果
-        List< BSONObject > expPositiveReadList2 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList2 = new ArrayList< >();
         expPositiveReadList2.add( updateR1 );
 
         // 第一次非事务读正序查询的预期结果
-        List< BSONObject > expPositiveReadList3 = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList3 = new ArrayList< >();
         expPositiveReadList3.add( insertR2 );
         expPositiveReadList3.add( updateR1 );
 
         // 第一次非事务读逆序查询的预期结果
-        List< BSONObject > expReverseReadList3 = new ArrayList< BSONObject >();
+        List< BSONObject > expReverseReadList3 = new ArrayList< >();
         expReverseReadList3.add( updateR1 );
         expReverseReadList3.add( insertR2 );
 
@@ -118,8 +118,8 @@ public class Transaction17359B extends SdbTestBase {
             throws InterruptedException {
         try {
             // 插入记录R1
-            cl.insert( insertR1 );
             cl.createIndex( "a", indexKey, false, false );
+            cl.insert( insertR1 );
 
             cl1 = sdb1.getCollectionSpace( csName ).getCollection( clName );
             cl2 = sdb2.getCollectionSpace( csName ).getCollection( clName );

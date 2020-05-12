@@ -42,8 +42,8 @@ public class Transaction17770A extends SdbTestBase {
     private DBCollection cl4 = null;
     private BSONObject insertR1 = new BasicBSONObject();
     private BSONObject insertR2 = new BasicBSONObject();
-    private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
-    private ArrayList< BSONObject > actList = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > expList = new ArrayList< >();
+    private ArrayList< BSONObject > actList = new ArrayList< >();
     private DBCursor cursor = null;
     private String hint = "{\"\":\"a\"}";
 
@@ -64,7 +64,7 @@ public class Transaction17770A extends SdbTestBase {
     @DataProvider(name = "index")
     public Object[][] createIndex() {
         // 正序索引，正序索引读
-        List< BSONObject > expPositiveReadList = new ArrayList< BSONObject >();
+        List< BSONObject > expPositiveReadList = new ArrayList< >();
         expPositiveReadList.add( insertR2 );
 
         return new Object[][] { { "{'a': 1}", expPositiveReadList },
@@ -88,9 +88,9 @@ public class Transaction17770A extends SdbTestBase {
             cl4 = db4.getCollectionSpace( csName ).getCollection( clName );
 
             // 插入记录R1、R2，R1小于R2
+            cl.createIndex( "a", indexKey, false, false );
             cl.insert( insertR1 );
             cl.insert( insertR2 );
-            cl.createIndex( "a", indexKey, false, false );
 
             // 事务1匹配R1删除
             cl1.delete( "{a:1}", hint );

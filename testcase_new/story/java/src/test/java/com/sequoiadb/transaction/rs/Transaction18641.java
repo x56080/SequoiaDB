@@ -52,8 +52,8 @@ public class Transaction18641 extends SdbTestBase {
         TransUtils.createMainCL( sdb, csName, mainCLName, "subcl18641_1",
                 "subcl18641_2", 3000 );
         cl = sdb.getCollectionSpace( csName ).getCollection( mainCLName );
-        expList = TransUtils.insertRandomDatas( cl, 0, 10000 );
         cl.createIndex( "idx18641", "{a:1}", false, false );
+        expList = TransUtils.insertRandomDatas( cl, 0, 10000 );
     }
 
     @AfterClass

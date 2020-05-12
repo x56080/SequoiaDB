@@ -41,8 +41,8 @@ public class Transaction20262 extends SdbTestBase {
         }
         DBCollection cl = sdb.getCollectionSpace( csName )
                 .createCollection( clName );
-        cl.insert( "{_id:1, a:1, b:1}" );
         cl.createIndex( "idx20262", "{a:1}", false, false );
+        cl.insert( "{_id:1, a:1, b:1}" );
     }
 
     @AfterClass

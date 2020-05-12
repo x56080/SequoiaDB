@@ -41,8 +41,8 @@ public class Transaction17368D extends SdbTestBase {
     private BSONObject insertR1 = new BasicBSONObject();
     private BSONObject insertR2 = new BasicBSONObject();
     private BSONObject updateR2 = new BasicBSONObject();
-    private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
-    private ArrayList< BSONObject > actList = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > expList = new ArrayList< >();
+    private ArrayList< BSONObject > actList = new ArrayList< >();
     private String hint;
     private String hintTbScan = "{\"\":null}";
     private String hintIxScan = "{\"\":\"a\"}";
@@ -68,11 +68,11 @@ public class Transaction17368D extends SdbTestBase {
     public Object[][] createIndex() {
 
         // 第一次非事务读查询的预期结果
-        List< BSONObject > expReadList1 = new ArrayList< BSONObject >();
+        List< BSONObject > expReadList1 = new ArrayList< >();
         expReadList1.add( insertR2 );
 
         // 第二次非事务读查询的预期结果
-        List< BSONObject > expReadList2 = new ArrayList< BSONObject >();
+        List< BSONObject > expReadList2 = new ArrayList< >();
         expReadList2.add( updateR2 );
 
         return new Object[][] { { "{'a': 1}", expReadList2, expReadList2 },
@@ -90,9 +90,9 @@ public class Transaction17368D extends SdbTestBase {
             List< BSONObject > expReadList2 ) throws InterruptedException {
         try {
             // 插入记录R1、R2,R1小于R2
+            cl.createIndex( "a", indexKey, false, false );
             cl.insert( insertR1 );
             cl.insert( insertR2 );
-            cl.createIndex( "a", indexKey, false, false );
 
             // 开启3个并发事务
             TransUtils.beginTransaction( db1 );
