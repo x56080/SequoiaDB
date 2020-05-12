@@ -47,7 +47,6 @@ public class SdbTestBase {
     private static final String TRANSUSERBS = "transuserbs";
     private static final String TRANSREPLSIZE = "transreplsize";
     private static final String GLOBTRANSON = "globtranson";
-    private static final String TRANSREPLSIZE = "transreplsize";
     private static final String MVCCON = "mvccon";
     private static final String RCAUTO = "rcauto";
     private static final String RC = "rc";
