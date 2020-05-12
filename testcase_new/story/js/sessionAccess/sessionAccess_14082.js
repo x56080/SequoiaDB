@@ -25,47 +25,25 @@ function test( testPara )
    options = { PreferedInstance: "-M" };
    checkAccessNodes( testPara.testCL, expAccessNodes, options );
 
-   options = { PreferedInstance: "S" };
-   //校验访问备节点负载均衡
-   checkBalance( testPara.testCL, options );
-  
-   options = { PreferedInstance: "-S" };
-   //校验访问备节点负载均衡
-   checkBalance( testPara.testCL, options );
-
-   expAccessNodes = getGroupNodes( groupName );
-   options =  { PreferedInstance: "A" };
-   checkAccessNodes( testPara.testCL, expAccessNodes, options );
-
-   options =  { PreferedInstance: "-A" };
-   checkAccessNodes( testPara.testCL, expAccessNodes, options );
-}
-
-function checkBalance( cl, options )
-{
-   var actAccessNodes = {};
-   for( var i = 0; i < 1000; i++ )
-   {   
-      db.setSessionAttr( options );
-      var cursor = cl.find().explain();
-      while( cursor.next() )
-      {
-         var actAccessNode = cursor.current().toObj().NodeName;
-         if( actAccessNode == primaryNode )
-         {
-            throw new Error( "actAccessNode is primary node: " + primaryNode );
-         }
-         actAccessNodes[ actAccessNode ] == undefined ? actAccessNodes[ actAccessNode ] = 1 :
-                                          actAccessNodes[ actAccessNode ] = actAccessNodes[ actAccessNode ] + 1;        
-      }
-
-   }
-
-   //跟开发确认并没有固定的均衡率，因此暂时认为访问节点差值大于20%为负载不均衡
-   var num =  actAccessNodes[ Object.keys( actAccessNodes )[0] ] - actAccessNodes[ Object.keys( actAccessNodes )[1] ];
-   if( Math.abs( num ) > 100 )
+   expAccessNodes = [];
+   for( var i = 1; i < group.length; i++ )
    {
-      throw new Error( "num:" + num );
+      if( i !== primaryPos )
+      {
+         expAccessNodes.push( group[i]["HostName"] + ":" + group[i]["svcname"]);
+      }
    }
+   options = { PreferedInstance: "S" };  
+   checkAccessNodes( testPara.testCL, expAccessNodes, options );   
+
+   options = { PreferedInstance: "-S" };
+   checkAccessNodes( testPara.testCL, expAccessNodes, options );
+   expAccessNodes = getGroupNodes( groupName );
+   options = { PreferedInstance: "A" };
+   checkAccessNodes( testPara.testCL, expAccessNodes, options );
+
+   options = { PreferedInstance: "-A" };
+   checkAccessNodes( testPara.testCL, expAccessNodes, options );
 }
+
 
