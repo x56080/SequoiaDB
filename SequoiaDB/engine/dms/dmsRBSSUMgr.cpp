@@ -247,6 +247,7 @@ namespace engine
          // setup the curCL
          _currentCollection = DMS_FIRST_RBS_CL;
          _lastFreeCollection = DMS_MAX_RBS_CL ;
+         _preparedCollection = DMS_FIRST_RBS_CL ;
          _numSyncAddCL.init(0) ;
          PD_LOG ( PDDEBUG, 
                   "Created RBS collection %s(%d) successfully, mbID(%d)",
