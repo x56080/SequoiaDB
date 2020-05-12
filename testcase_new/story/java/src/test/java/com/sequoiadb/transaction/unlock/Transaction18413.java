@@ -76,7 +76,8 @@ public class Transaction18413 extends SdbTestBase {
         }
     }
 
-    @Test
+    @SuppressWarnings("unchecked")
+    @Test(enabled = false)
     public void test() throws InterruptedException {
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
