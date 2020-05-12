@@ -110,6 +110,31 @@
         </packages>
     </test>
 
+    <test name="rr" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="rr" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.rr" />
+            <package name="com.sequoiadb.transaction.rrrbs" />
+            <package name="com.sequoiadb.transaction.rc" />
+        </packages>
+    </test>
+
+    <test name="rrauto" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="rrauto" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.rr" />
+            <package name="com.sequoiadb.transaction.rcauto" />
+        </packages>
+    </test>
+
     <test name="normaltest" parallel="classes" thread-count="5">
         <packages>
             <package name="com.sequoiadb.transaction.uniqueIndex" />
@@ -135,25 +160,6 @@
         </packages>
     </test>
     
-    <test name="normaltest" parallel="classes" thread-count="5">
-        <packages>
-            <package name="com.sequoiadb.transaction.uniqueIndex" />
-        </packages>
-    </test>
-
-    <test name="rr" parallel="classes" thread-count="5">
-        <groups>
-            <run>
-                <include name="rr" />
-            </run>
-        </groups>
-        <packages>
-            <package name="com.sequoiadb.transaction.rr" />
-            <package name="com.sequoiadb.transaction.rr.rbs" />
-            <package name="com.sequoiadb.transaction.rc" />
-        </packages>
-    </test>
-    
     <test name="rrsync" parallel="classes" thread-count="1">
        <groups>
           <run>
@@ -161,22 +167,9 @@
           </run>
        </groups>
        <packages>
-          <package name="com.sequoiadb.transaction.rr.rbs.serial" />
+          <package name="com.sequoiadb.transaction.rrrbsserial" />
        </packages>
     </test>
     
-    <test name="rrauto" parallel="classes" thread-count="5">
-        <groups>
-            <run>
-                <include name="rrauto" />
-            </run>
-        </groups>
-        <packages>
-            <package name="com.sequoiadb.transaction.rr" />
-            <package name="com.sequoiadb.transaction.rcauto" />
-        </packages>
-    </test>
-
-
 </suite>
     
