@@ -39,23 +39,26 @@ function List_run()
         pidinfo="-"
         collectioninfo="-"
         confpathinfo="-"
+        aliasinfo=$( mount -t $fusetype |grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $1}')
+        pidinfo=$( mount -t $fusetype|grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')
+        if [ "$pidinfo" != "" ]; then
+            cmdconfpathinfo=$( ps -ef| grep  $pidinfo | grep " -c " |grep -v grep | awk -F" -c " '{print $2}' | awk -F" " '{print $1}')
+            if [ -z $cmdconfpathinfo ]; then
+               cmdconfpathinfo=$( ps -ef| grep  $pidinfo | grep " --confpath " |grep -v grep | awk -F" --confpath " '{print $2}' | awk -F" " '{print $1}')
+            fi
+            
+            if [ "$cmdconfpathinfo" != "" ]; then 
+                confpathinfo=$cmdconfpathinfo
+            else
+                if [ -f "$BashPath/sequoiafs.conf" ]; then
+                    confpathinfo=$BashPath
+                fi                
+            fi
+        fi
         if [ "$showlong" == "true" ]; then
             aliasinfo=$( mount -t $fusetype |grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $1}')
             pidinfo=$( mount -t $fusetype|grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')
-            if [ "$pidinfo" != "" ]; then
-                cmdconfpathinfo=$( ps -ef| grep  $pidinfo | grep " -c " |grep -v grep | awk -F" -c " '{print $2}' | awk -F" " '{print $1}')
-                if [ -z $cmdconfpathinfo ]; then
-                   cmdconfpathinfo=$( ps -ef| grep  $pidinfo | grep " --confpath " |grep -v grep | awk -F" --confpath " '{print $2}' | awk -F" " '{print $1}')
-                fi
-                
-                if [ "$cmdconfpathinfo" != "" ]; then 
-                    confpathinfo=$cmdconfpathinfo
-                else
-                    if [ -f "$BashPath/sequoiafs.conf" ]; then
-                        confpathinfo=$BashPath
-                    fi                
-                fi
-                
+            if [ "$pidinfo" != "" ]; then    
                 if [ "$confpathinfo" != "-" ]; then 
                     if [ -f "$confpathinfo/sequoiafs.conf" ]; then
                         source "$confpathinfo/sequoiafs.conf"
@@ -75,9 +78,7 @@ function List_run()
             fi
             
             echo -e "$aliasinfo\t $mountinfo\t $pidinfo\t $collectioninfo\t $confpathinfo"  >> /tmp/22.$$
-        else 
-            aliasinfo=$( mount -t $fusetype|grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $1}')
-            pidinfo=$( mount -t $fusetype|grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')            
+        else           
             echo -e "$mountinfo($aliasinfo)\t $pidinfo"  >> /tmp/22.$$
         fi
         
@@ -150,7 +151,7 @@ function List_local()
                 collectioninfo=$collection
             fi
             if [ "$mountpoint" != "" ]; then
-                mountinfo=$mountpoint
+                mountinfo=$(cd "$mountpoint"; pwd)
                 mountpid=$( mount -t $fusetype |grep $mountinfo | awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')    
                 if [ -n "$mountpid" ]; then
                   cmdconfpathinfo=$( ps -ef| grep  $mountpid | grep " -c " |grep -v grep | awk -F" -c " '{print $2}' | awk -F" " '{print $1}')
@@ -211,7 +212,7 @@ done
 
 if [[ "$mode" == "run" || "$mode" == "local" ]]; then 
     touch /tmp/22.$$
-	touch /tmp/11.$$
+    touch /tmp/11.$$
     echo $sepline> /tmp/11.$$
     touch /tmp/111.$$
     touch /tmp/222.$$
