@@ -434,9 +434,10 @@ public class GroupMgr {
         refresh();
         long timestamp = System.currentTimeMillis();
         boolean ret = true;
+        boolean printAndThrowAllException = false;
         do {
             ret = true;
-            boolean printAndThrowAllException = false;
+            printAndThrowAllException = false;
             if ( System.currentTimeMillis() - timestamp > timeOutSecond
                     * 1000 ) {
                 printAndThrowAllException = true;
@@ -450,6 +451,10 @@ public class GroupMgr {
                     BasicBSONObject nodeInfo = ( BasicBSONObject ) snapCur
                             .getNext();
                     if ( nodeInfo.containsField( "ErrNodes" ) ) {
+                        if ( printAndThrowAllException ) {
+                            System.out.println(
+                                    "ErrNodes: " + nodeInfo.get( "ErrNodes" ) );
+                        }
                         ret = false;
                         break;
                     }
@@ -488,8 +493,8 @@ public class GroupMgr {
                     // ignore
                 }
             }
-        } while ( !ret );
-        return true;
+        } while ( !ret && !printAndThrowAllException );
+        return ret;
     }
 
     /**

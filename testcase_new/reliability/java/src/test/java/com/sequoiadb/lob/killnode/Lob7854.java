@@ -5,8 +5,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
+import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -59,8 +59,8 @@ public class Lob7854 extends SdbTestBase {
 
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         CollectionSpace cs = sdb.getCollectionSpace( SdbTestBase.csName );
-        cl = cs.createCollection( clName,
-                new BasicBSONObject( "Group", groupName ) );
+        cl = cs.createCollection( clName, ( BSONObject ) JSON
+                .parse( "{Group: '" + groupName + "', ReplSize: 0}" ) );
         lobBuff = LobUtil.getRandomBytes( writeLobSize );
     }
 
@@ -124,26 +124,15 @@ public class Lob7854 extends SdbTestBase {
     }
 
     private void checkPutLobResult( DBCollection dbcl ) {
-        // 检查故障前创建lob结果,主节点故障后，备节点升主后之前未同步的lob会丢失,如果lob不存在则重新插入
         for ( ObjectId lobId : lobIds ) {
+            byte[] data = new byte[ lobBuff.length ];
+            DBLob rlob = null;
             try {
-                byte[] data = new byte[ lobBuff.length ];
-                DBLob rlob = dbcl.openLob( lobId );
+                rlob = dbcl.openLob( lobId );
                 rlob.read( data );
-                rlob.close();
-            } catch ( BaseException e ) {
-                if ( e.getErrorCode() == -4 ) {
-                    try {
-                        DBLob wlob = dbcl.createLob( lobId );
-                        wlob.write( lobBuff );
-                        wlob.close();
-                    } catch ( BaseException e1 ) {
-                        if ( e1.getErrorCode() != -297 ) {
-                            throw e1;
-                        }
-                    }
-                } else {
-                    Assert.fail( "write lob fail! loboid is " + lobId );
+            } finally {
+                if ( rlob != null ) {
+                    rlob.close();
                 }
             }
         }
