@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction;
+package com.sequoiadb.transaction.ru;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +18,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @FileName:seqDB-16147:数据组节点开启事务，并发执行非事务操作（bulkinsert和truncate并发） 插入数据，一条线程执行insert，另一条线程执行truncate
@@ -26,7 +27,7 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @Version 1.00
  */
 @Test(groups = "ru")
-public class TestTruncate16147 extends SdbTestBase {
+public class Transaction16147 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl16147";
     private CollectionSpace cs = null;

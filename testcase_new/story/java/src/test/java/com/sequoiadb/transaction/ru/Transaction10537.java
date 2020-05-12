@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction;
+package com.sequoiadb.transaction.ru;
 
 /**
  * @FileName:SEQDB-10537 切分过程中执行事务操作
@@ -24,9 +24,10 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.transaction.TransUtils;
 
 @Test(groups = "ru")
-public class Split10537 extends SdbTestBase {
+public class Transaction10537 extends SdbTestBase {
     private String clName = "testcaseCL10537";
     private String srcGroupName;
     private String destGroupName;

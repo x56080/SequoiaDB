@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction;
+package com.sequoiadb.transaction.ru;
 
 /**
  * @FileName: seqDB-18392:开启事务的过程中执行切分
@@ -27,9 +27,10 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.transaction.TransUtils;
 
 @Test(groups = "ru")
-public class Split18392 extends SdbTestBase {
+public class Transaction18392 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_18392";
     private String srcGroup = null;

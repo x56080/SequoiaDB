@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction;
+package com.sequoiadb.transaction.ru;
 
 import java.util.List;
 
@@ -16,6 +16,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @FileName:TestSnapshot,并发事务过程中查询快照
@@ -23,7 +24,7 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @version 1.00
  */
 @Test(groups = "ru")
-public class Snapshot13626 extends SdbTestBase {
+public class Transaction13626 extends SdbTestBase {
 
     private String clName = "cl13626";
     private Sequoiadb sdb = null;

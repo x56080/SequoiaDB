@@ -55,7 +55,6 @@
             </run>
         </groups>
         <packages>
-            <package name="com.sequoiadb.transaction" />
             <package name="com.sequoiadb.transaction.ru" />
             <package name="com.sequoiadb.transaction.metadata" />
             <package name="com.sequoiadb.transaction.unlock" />
@@ -109,6 +108,12 @@
             <package name="com.sequoiadb.transaction.rcwaitlock" />
         </packages>
     </test>
+
+    <test name="normaltest" parallel="classes" thread-count="5">
+        <packages>
+            <package name="com.sequoiadb.transaction.uniqueIndex" />
+        </packages>
+    </test>
     
     <test name="rusync" parallel="classes" thread-count="1">
         <groups>
@@ -128,12 +133,5 @@
         </packages>
     </test>
     
-    <test name="normaltest" parallel="classes" thread-count="5">
-        <packages>
-            <package name="com.sequoiadb.transaction.uniqueIndex" />
-        </packages>
-    </test>
-
-
 </suite>
     
