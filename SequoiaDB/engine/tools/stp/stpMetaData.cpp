@@ -558,9 +558,8 @@ namespace engine
          //
          //    logical time =
          //          ( current HW time -
-         //            base HW time +
-         //            base real time ) * slew rate / STP_DEF_SLEWRATE +
-         //          offset
+         //            base HW time ) * slew rate / STP_DEF_SLEWRATE +
+         //          offset + base real time
          //
          // simplify to
          //
@@ -570,7 +569,7 @@ namespace engine
          // to make the LT are the same before and after adjusting slew rate
          //
          //                  LT1 = LT2
-         //    HWDiff * SR1 + O1 = HWDiff * SR2 + O2
+         //    HWDiff * SR1 + O1 + BaseRT = HWDiff * SR2 + O2 + BaseRT
          //
          // so we have
          //
@@ -578,8 +577,8 @@ namespace engine
          //
          stpHPTime curHWTime ;
          curHWTime.sampleMonotonic() ;
-         stpHPTime result = curHWTime - _baseHWTime + _baseRealTime ;
-         // HPTime only handles postive values, so we need to process by
+         stpHPTime result = curHWTime - _baseHWTime ;
+         // HPTime only handles positive values, so we need to process by
          // different ways
          if ( oldSlewRate > _slewRate )
          {

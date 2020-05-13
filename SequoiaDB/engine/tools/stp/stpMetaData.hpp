@@ -236,15 +236,15 @@ namespace engine
       OSS_INLINE stpHPTime _getLTValue( const stpHPTime &curHWTime ) const
       {
          // logical time = ( current HW time -
-         //                  base HW time +
-         //                  base real time ) * slew rate / STP_DEF_SLEWRATE +
-         //                offset
+         //                  base HW time ) * slew rate / STP_DEF_SLEWRATE +
+         //                offset + base real time
          // NOTE: HW ( hardware time ) is monotonic time from machine
          //       slew rate is to adjust speeds of CPU ticks between different
          //       machines
-         stpHPTime result = curHWTime - _baseHWTime + _baseRealTime ;
+         stpHPTime result = curHWTime - _baseHWTime ;
          result.scale( _slewRate ) ;
          result.adjust( _offset ) ;
+         result = result + _baseRealTime ;
          return result ;
       }
 
