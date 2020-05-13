@@ -62,16 +62,12 @@ public class Transaction20428A extends SdbTestBase {
     public void setUp() {
         sdb = CommLib.getRandomSequoiadb();
         CollectionSpace cs = sdb.getCollectionSpace( csName );
-        DBCollection cl = cs.createCollection( clName );
+        cs.createCollection( clName );
         if ( !CommLib.isStandAlone( sdb ) ) {
-            DBCollection hashCL = TransUtils.createHashCL( sdb, csName,
-                    hashCLName );
-            DBCollection mainCL = TransUtils.createMainCL( sdb, csName,
-                    mainCLName, subCLName1, subCLName2, 500 );
-            TransUtils.prepareDatas( sdb, hashCL, recordNum );
-            TransUtils.prepareDatas( sdb, mainCL, recordNum );
+            TransUtils.createHashCL( sdb, csName, hashCLName );
+            TransUtils.createMainCL( sdb, csName, mainCLName, subCLName1,
+                    subCLName2, 500 );
         }
-        expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 
     @Test(dataProvider = "clNameProvider")
@@ -83,6 +79,8 @@ public class Transaction20428A extends SdbTestBase {
 
         cl = sdb.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", indexKey, false, false );
+        expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
+
         TW1 = CommLib.getRandomSequoiadb();
         TW2 = CommLib.getRandomSequoiadb();
         TR1 = CommLib.getRandomSequoiadb();
@@ -128,7 +126,7 @@ public class Transaction20428A extends SdbTestBase {
                 "{'': 'a'}" );
         clTW1.delete( "{'a': {'$gte': 1000, '$lt': 2000}}", "{'': 'a'}" );
         TW1.commit();
-        List< BSONObject > tw1ExpList = new ArrayList< >();
+        List< BSONObject > tw1ExpList = new ArrayList<>();
         tw1ExpList.addAll( expDataList );
         tw1ExpList.addAll( tw1InsertList );
         TransUtils.updateList( tw1ExpList, 1, "update r1s to r5s", 0, 1000 );
@@ -179,7 +177,7 @@ public class Transaction20428A extends SdbTestBase {
 
         // 8 commit TR2
         TW2.commit();
-        List< BSONObject > tw2ExpList = new ArrayList< >();
+        List< BSONObject > tw2ExpList = new ArrayList<>();
         tw2ExpList.addAll( tw1ExpList );
         tw2ExpList.addAll( tw2InsertList );
         TransUtils.updateList( tw2ExpList, 1, "update r5s to r7s", 0, 1000 );

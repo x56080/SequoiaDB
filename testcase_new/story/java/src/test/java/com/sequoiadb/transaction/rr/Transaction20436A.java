@@ -70,16 +70,12 @@ public class Transaction20436A extends SdbTestBase {
     public void setUp() {
         sdb = CommLib.getRandomSequoiadb();
         CollectionSpace cs = sdb.getCollectionSpace( csName );
-        DBCollection cl = cs.createCollection( clName );
+        cs.createCollection( clName );
         if ( !CommLib.isStandAlone( sdb ) ) {
-            DBCollection hashCL = TransUtils.createHashCL( sdb, csName,
-                    hashCLName );
-            DBCollection mainCL = TransUtils.createMainCL( sdb, csName,
-                    mainCLName, subCLName1, subCLName2, 500 );
-            TransUtils.prepareDatas( sdb, hashCL, recordNum );
-            TransUtils.prepareDatas( sdb, mainCL, recordNum );
+            TransUtils.createHashCL( sdb, csName, hashCLName );
+            TransUtils.createMainCL( sdb, csName, mainCLName, subCLName1,
+                    subCLName2, 500 );
         }
-        expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 
     @Test(dataProvider = "clNameProvider")
@@ -91,6 +87,7 @@ public class Transaction20436A extends SdbTestBase {
 
         cl = sdb.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", indexKey, false, false );
+        expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
         TW1 = CommLib.getRandomSequoiadb();
         TW2 = CommLib.getRandomSequoiadb();
         TW3 = CommLib.getRandomSequoiadb();
