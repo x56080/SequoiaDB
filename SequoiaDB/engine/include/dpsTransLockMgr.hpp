@@ -280,9 +280,10 @@ namespace engine
       // first incompatible
       BOOLEAN _checkLockModeWithOthers
       (
-         const dpsTransLRB *  lrbBegin,
-         const dpsTransLRB *  pLRBToBeChecked,
-         dpsTransLRB *     &  pLRBIncompatible
+         const dpsTransLRB *       lrbBegin,
+         _dpsTransExecutor *       dpsTxExectr,
+         const DPS_TRANSLOCK_TYPE  requestLockMode,
+         dpsTransLRB     *       & pLRBIncompatible
       ) ;
 
       // add a LRB at the end of the queue ( waiter or upgrade list )

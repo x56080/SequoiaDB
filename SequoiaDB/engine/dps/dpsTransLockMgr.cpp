@@ -338,7 +338,8 @@ namespace engine
    //              and find the first incompatible
    // Input:
    //    lrbBegin -- the LRB in the queue to start searching
-   //    pLRBTobeChecked -- the input LRB to be checked with others
+   //    dpsTxExectr --  the request dpsTxExectr
+   //    requestLockMode -- the request lock mode
    // Output:
    //    pLRBIncompatible -- the first incompatible LRB
    // Return:
@@ -348,25 +349,25 @@ namespace engine
    //
    BOOLEAN dpsTransLockManager::_checkLockModeWithOthers
    (
-      const dpsTransLRB *  lrbBegin,
-      const dpsTransLRB *  pLRBTobeChecked,
-      dpsTransLRB *     &  pLRBIncompatible
+      const dpsTransLRB *         lrbBegin,
+      _dpsTransExecutor        *  dpsTxExectr,
+      const DPS_TRANSLOCK_TYPE    requestLockMode,
+      dpsTransLRB *            &  pLRBIncompatible
    )
    {
       dpsTransLRB *plrb = (dpsTransLRB *)lrbBegin ;
       BOOLEAN foundIncomp = FALSE ;
 
       pLRBIncompatible = NULL ;
-      if ( ( NULL == pLRBTobeChecked ) || ( NULL == lrbBegin ) )
+      if ( NULL == lrbBegin )
       {
          goto exit ;
       }
 
       while ( plrb )
       {
-         if ( ( pLRBTobeChecked->dpsTxExectr != plrb->dpsTxExectr ) &&
-              ( ! dpsIsLockCompatible( plrb->lockMode,
-                                       pLRBTobeChecked->lockMode ) ) )
+         if ( ( dpsTxExectr != plrb->dpsTxExectr ) &&
+              ( ! dpsIsLockCompatible( plrb->lockMode, requestLockMode ) ) )
          {
             pLRBIncompatible = plrb ;
             foundIncomp = TRUE ;
@@ -1101,9 +1102,10 @@ namespace engine
                   // wake up next waiter if owner list is empty
                   _wakeUp( pLRBNext->dpsTxExectr ) ;
                }
-               else if ( FALSE == _checkLockModeWithOthers( pLRBHdr->ownerLRB,
-                                                            pLRBNext,
-                                                            pLRBIncompatible ) )
+               else if ( ! _checkLockModeWithOthers( pLRBHdr->ownerLRB,
+                                                     pLRBNext->dpsTxExectr,
+                                                     pLRBNext->lockMode,
+                                                     pLRBIncompatible ) )
                {
                   // wake up next waiter if it is compatible with all owners :
                   //  . A is holding U lock
@@ -1795,11 +1797,13 @@ namespace engine
                // if the requested locked mode is compabile with all members
                // in both upgrade and waiter list, then add it into owner list
                if ( FALSE == _checkLockModeWithOthers( pLRBHdr->upgradeLRB,
-                                                       pLRBNew,
+                                                       dpsTxExectr,
+                                                       requestLockMode,
                                                        pLRBIncompatible ) )
                {
                   if ( FALSE == _checkLockModeWithOthers( pLRBHdr->waiterLRB,
-                                                          pLRBNew,
+                                                          dpsTxExectr,
+                                                          requestLockMode,
                                                           pLRBIncompatible ) )
                   {
                      // add to owner list
@@ -1893,7 +1897,9 @@ namespace engine
          // there is a scenario, using testX to clean up 'old version'
          // hanging off LRB header. Release LRB header if it is possible
          // when test opreation succeeded.
-         if ( ( DPS_TRANSLOCK_OP_MODE_TEST == opMode ) && ( SDB_OK == rc ) )
+         if ( ( DPS_TRANSLOCK_OP_MODE_TEST == opMode ) &&
+              ( DPS_TRANSLOCK_X == requestLockMode ) &&
+              ( SDB_OK == rc ) )
          {
             if (    ( NULL != pLRBHdr )
                  && ( NULL == pLRBHdr->ownerLRB )
@@ -2562,7 +2568,8 @@ namespace engine
             // lookup owner list check if the waiter lockMode is compabile
             // with other owners
             foundIncomp = _checkLockModeWithOthers( pLRBHdr->ownerLRB,
-                                                    pWaiterLRB,
+                                                    pWaiterLRB->dpsTxExectr,
+                                                    pWaiterLRB->lockMode,
                                                     pLRBIncompatible ) ;
          }
 
