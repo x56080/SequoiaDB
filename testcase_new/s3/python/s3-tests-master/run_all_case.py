@@ -1,4 +1,5 @@
 import os
+import os.path
 import unittest
 import paramiko
 
@@ -14,6 +15,9 @@ pattern_param = "test_*_support.py"
 global cfg
 global sdb_install_path
 global s
+global sftp
+global propertiesFileName
+global replaceFileName
 
 if tmp_case_path1.endswith('.py'):
     pattern_param = tmp_case_path1
@@ -32,6 +36,17 @@ def get_ssh(hostname=None, port=22, username='root', password=None):
     return s
 
 
+def get_sftp(hostname=None, port=22, username='root', password=None):
+    client = paramiko.Transport(hostname, port)
+    client.connect(username=username, password=password)
+    return client
+
+
+def scp(local_file=None, remote_dir="/tmp"):
+    sftp_client = paramiko.SFTPClient.from_transport(sftp)
+    sftp_client.put(local_file, remote_dir)
+
+
 def ssh_exce_command(command=None):
     stdin, stdout, stderr = s.exec_command(command=command)
     return stdout.readlines()
@@ -46,7 +61,9 @@ def start_s3():
         ssh_exce_command(command=start_command)
         status_result = ssh_exce_command(command=status_command)
         if not str(status_result).__contains__("Total: 0"):
-            break
+            return
+    raise Exception("it has been try 3 times to satrt s3 node, but still start s3 failed, please check "
+                    "/tmp/s3start.log and sequoias3.log")
 
 
 def stop_s3():
@@ -58,19 +75,64 @@ def stop_s3():
             ssh_exce_command(command=stop_command)
             status_result = ssh_exce_command(command=status_command)
             if str(status_result).__contains__("Total: 0"):
-                break
+                return
+        raise Exception("it has been try 3 times to stop s3 node, but still stop s3 failed, please check sequoias3.log")
+
+
+def change_s3_conf():
+    command = "cp -f " + propertiesFileName + " " + replaceFileName + ";"
+    command += "echo -e 'server.port=" + str(cfg.port) + "\nsdbs3.sequoiadb.url=sequoiadb://" + cfg.sdb_coord_urls \
+               + "\nsdbs3.multipartupload.completereservetime=1' "
+    command += " >>" + propertiesFileName
+    ssh_exce_command(command=command)
+
+
+def restore_s3_conf():
+    command = "mv " + replaceFileName + " " + propertiesFileName
+    ssh_exce_command(command=command)
+
+
+def update_sdb_conf():
+    config = "'{ transisolation:1,translockwait:true}'"
+    path = os.path.realpath("script") + "/updateSdbConf.js"
+    scp(local_file=path, remote_dir="/tmp/updateSdbConf.js")
+    command = sdb_install_path + "/bin/sdb -f /tmp/updateSdbConf.js" + " -e \"var hostname=\'" + str(cfg.sdb_coord_urls).split(":")[0] + \
+              "\';var port=" + str(cfg.sdb_coord_urls).split(":")[1] + ";var config=" + config + "\""
+
+    print(command)
+    result = ssh_exce_command(command=command)
+    print("result  : " + str(result))
+
+
+def delete_sdb_conf():
+    config = "'{ transisolation:1,translockwait:true}'"
+    path = os.path.realpath("script") + "/deleteSdbConf.js"
+    scp(local_file=path, remote_dir="/tmp/deleteSdbConf.js")
+    command = sdb_install_path + "/bin/sdb -f /tmp/deleteSdbConf.js" + " -e \"var hostname=\'" + str(cfg.sdb_coord_urls).split(":")[0] + \
+              "\';var port=" + str(cfg.sdb_coord_urls).split(":")[1] + ";var config=" + config + "\""
+    print(command)
+    result = ssh_exce_command(command=command)
+    print("result  : " + str(result))
 
 
 if __name__ == "__main__":
+    cfg = s3conf.S3Config()
+    s = get_ssh(hostname=cfg.remote_host, username=cfg.remote_user, password=cfg.remote_password)
+    sftp = get_sftp(hostname=cfg.remote_host, username=cfg.remote_user, password=cfg.remote_password)
+    command = "cat /etc/default/sequoiadb | grep 'INSTALL_DIR' | awk -F '=' '{printf(\"%s\",$2)}'"
+    result = ssh_exce_command(command=command)
+    sdb_install_path = result[0]
+    propertiesFileName = sdb_install_path + "/tools/sequoias3/config/application.properties"
+    replaceFileName = sdb_install_path + "/tools/sequoias3/config/ori_application.properties"
     try:
-        cfg = s3conf.S3Config()
-        s = get_ssh(hostname=cfg.remote_host, username=cfg.remote_user, password=cfg.remote_password)
-        command = "cat /etc/default/sequoiadb | grep 'INSTALL_DIR' | awk -F '=' '{printf(\"%s\",$2)}'"
-        result = ssh_exce_command(command=command)
-        sdb_install_path = result[0]
+        update_sdb_conf()
+        change_s3_conf()
         start_s3()
         runner = xmlrunner.XMLTestRunner(output=report_path)
         test_result = runner.run(all_case())
     finally:
+        delete_sdb_conf()
         stop_s3()
+        restore_s3_conf()
         s.close()
+        sftp.close()

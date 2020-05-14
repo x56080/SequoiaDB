@@ -33,6 +33,7 @@ class S3Config(object):
         self.remote_host = configs['remote_host']
         self.remote_user = configs['remote_user']
         self.remote_password = configs['remote_password']
+        self.sdb_coord_urls = configs['sdb_coord_urls']
         fp.close()
 
 

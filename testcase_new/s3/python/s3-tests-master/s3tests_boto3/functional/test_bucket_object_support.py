@@ -3954,8 +3954,8 @@ class TestBucketObject(S3TestBase):
             t = self._do_clear_versioned_bucket_concurrent(client, bucket_name)
             self._do_wait_completion(t)
 
-            response = client.list_object_versions(Bucket=bucket_name)
-            self.assertEqual(('Versions' in response), False)
+        response = client.list_object_versions(Bucket=bucket_name)
+        self.assertEqual(('Versions' in response), False, response)
 
     # @attr(resource='object')
     # @attr(method='put')
@@ -3987,7 +3987,7 @@ class TestBucketObject(S3TestBase):
         self._do_wait_completion(t)
 
         response = client.list_object_versions(Bucket=bucket_name)
-        self.assertEqual(('Versions' in response), False)
+        self.assertEqual(('Versions' in response), False, response)
 
     def setUp(self):
         # print(self.__module__ + " setup: " + str(datetime.now()))
