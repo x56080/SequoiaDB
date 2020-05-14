@@ -1192,7 +1192,7 @@ namespace sdbclient
                           const BSONObj *arg4 = NULL,
                           SINT32 flag = 0,
                           UINT64 reqID = 0,
-                          SINT64 numToSkip = -1,
+                          SINT64 numToSkip = 0,
                           SINT64 numToReturn = -1,
                           _sdbCursor **ppCursor = NULL ) ;
 
