@@ -33,7 +33,9 @@ function checkResultsInGroup ( groupName, csName, clName, expRecords, sort )
    var mstDB = null;
    try
    {
-      mstDB = db.getRG( groupName ).getMaster().connect();
+      var rg = db.getRG( groupName );
+      var node = rg.getMaster();
+      mstDB = node.connect();
       var cl = mstDB.getCS( csName ).getCL( clName );
       var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( sort );
       commCompareResults( cursor, expRecords );
