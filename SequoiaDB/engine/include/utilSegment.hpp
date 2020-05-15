@@ -1515,7 +1515,7 @@ namespace engine
                   break ;
                }
             } while ( ( SDB_OSS_UP_TO_LIMIT == rc ) &&
-                      ( retryCount <= _poolNum ) ) ;
+                      ( retryCount < _poolNum ) ) ;
             return rc ;
          }
 
