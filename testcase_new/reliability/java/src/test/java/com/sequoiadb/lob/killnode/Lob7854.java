@@ -87,7 +87,7 @@ public class Lob7854 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            sdb.dropCollectionSpace( csName );
+            sdb.getCollectionSpace( csName ).dropCollection( clName );
         } finally {
             if ( sdb != null ) {
                 sdb.close();

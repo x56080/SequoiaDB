@@ -209,6 +209,10 @@ public class GroupMgr {
         boolean ret = false;
         ReliabilityException prev = null;
         do {
+            if ( System.currentTimeMillis() - timestamp >= timeOutSecond
+                    * 1000 ) {
+                isPrintRes = true;
+            }
             try {
                 ret = checkBusiness( isPrintRes, ignoreIndeploy );
                 if ( ret ) {
@@ -228,11 +232,6 @@ public class GroupMgr {
                 Thread.sleep( 1000 );
             } catch ( InterruptedException e ) {
                 // ignore
-            }
-
-            if ( System.currentTimeMillis() - timestamp >= timeOutSecond
-                    * 1000 ) {
-                isPrintRes = true;
             }
         } while ( !isPrintRes );
 
