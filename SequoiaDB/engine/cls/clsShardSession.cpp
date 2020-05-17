@@ -1502,10 +1502,14 @@ namespace engine
             BOOLEAN inTrans = _pEDUCB->isTransaction() ;
             BOOLEAN hasRollbacked = FALSE ;
 
-            /// when coord catalog info is old, can't rollback, coord will retry
+            /// in below casees, can't rollback, coord will retry
+            /// - when coord catalog info is old
+            /// - global logical time is not synchronized
             if ( inTrans &&
                  ( isAutoCommit ||
-                   ( isNeedRollback && SDB_CLS_COORD_NODE_CAT_VER_OLD != rc &&
+                   ( isNeedRollback &&
+                     SDB_CLS_COORD_NODE_CAT_VER_OLD != rc &&
+                     SDB_GLOB_TRANS_NOT_SYNC != rc &&
                      _pEDUCB->getTransExecutor()->isTransAutoRollback() )
                   )
                 )
