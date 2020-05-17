@@ -240,6 +240,7 @@ namespace sequoiafs
                              struct fileMetaNode &fileNode);
       INT32 getAndUpdateID(sdbCollection *cl, INT64 *sequenceId);
       INT32 initMetaID(sdb *db);
+      INT32 initRootPath();
       INT32 do_access(struct stat *stbuf);
       INT32 isDir(sdbCollection *sysFileMetaCL,
                   sdbCollection *sysDirMetaCL,

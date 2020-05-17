@@ -728,6 +728,85 @@ error:
    goto done;
 }
 
+INT32 sequoiaFS::initRootPath()
+{
+   INT32 rc = SDB_OK;
+   sdb *db = NULL;
+   sdbCollection sysDirMetaCL;
+   INT64 pid = 0;
+   INT64 id = ROOT_ID;
+   struct dirMetaNode dirNode;
+   struct timeval tval;
+   UINT64 ctime = 0;
+   UINT64 mtime = 0;
+   uid_t uid = getuid();
+   gid_t gid = getgid();
+   BSONObj options;
+   INT32 pageSize = getpagesize();
+
+   rc = getConnection(&db);
+   if(SDB_OK != rc)
+   {
+      goto error;
+   }
+   
+   options = BSON("PreferedInstance" << "M");
+   rc = db->setSessionAttr(options);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
+             "in the current session (PreferedInstance:M), error=%d", rc);
+      rc = -EIO;
+      goto error;
+   }
+
+   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
+             _sysDirMetaCLFullName.c_str(), rc);
+      rc = -EIO;
+      goto error;
+   }
+
+   gettimeofday(&tval, NULL);
+   ctime = tval.tv_sec * 1000 + tval.tv_usec/1000;
+   mtime = ctime;
+
+   dirNode.name = "/";
+   dirNode.mode = S_IFDIR | 0755;
+   dirNode.uid = uid;
+   dirNode.gid = gid;
+   dirNode.nLink = 2;
+   dirNode.pid= pid;
+   dirNode.id = id;
+   dirNode.size = pageSize;
+   dirNode.ctime = ctime;
+   dirNode.mtime = mtime;
+   dirNode.atime= mtime;
+
+   rc = doSetDirNodeAttr(sysDirMetaCL, dirNode);
+   if(SDB_OK != rc)
+   {
+      if (SDB_IXM_DUP_KEY == rc)
+      {
+         rc = SDB_OK;
+      }
+      else
+      {
+         PD_LOG(PDERROR, "Failed to set attr, error=%d", rc);
+         goto error;
+      }
+   }
+
+done:
+   releaseConnection(db);
+   return rc;
+
+error:
+   goto done;
+}
+
 INT32 sequoiaFS::writeMapHistory(const CHAR *hosts)
 {
    INT32 rc = SDB_OK;
@@ -923,6 +1002,14 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
              _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
       ossPrintf("Failed to init dir meta collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
                 _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
+      goto error;
+   }
+
+   rc = initRootPath();
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to init root path, rc:%d", rc);
+      ossPrintf("Failed to init root path, error=%d, exit."OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -1358,7 +1445,6 @@ INT64 sequoiaFS::getDirPIno(sdbCollection *sysDirMetaCL,
    const CHAR *delimiter = "/";
    CHAR *pTemp = NULL;
    vector<string> dirName;
-   pid = ROOT_ID;
    PD_LOG(PDDEBUG, "All nodes path:%s", pathStr);
    dir = ossStrtok(pathStr, delimiter, &pTemp);
    while(dir)
@@ -1372,6 +1458,8 @@ INT64 sequoiaFS::getDirPIno(sdbCollection *sysDirMetaCL,
       *basePath = "/";
       goto done;
    }
+
+   pid = ROOT_ID;
 
    for(vector<string>::size_type i = 0; i < dirName.size() - 1; i++)
    {
@@ -1478,45 +1566,6 @@ INT32 sequoiaFS::getattr(const CHAR *path, struct stat *sbuf)
    {
       rc = pid;
       goto error;
-   }
-
-   if(ossStrcmp(path, "/") == 0)
-   {
-      condition = BSON(SEQUOIAFS_PID<<pid);
-      rc = sysDirMetaCL.query(*cursor, condition);
-      if(SDB_OK != rc)
-      {
-          PD_LOG(PDERROR, "Fail to query files in the root directory, error=%d",
-                 rc);
-          rc = -EIO;
-          goto error;
-      }
-
-      while(SDB_OK == rc)
-      {
-          rc = cursor->next(record);
-          if(SDB_OK != rc)
-          {
-           if(SDB_DMS_EOC == rc)
-           {
-            rc = SDB_OK;
-            break;
-           }
-           PD_LOG(PDERROR, "Error happened during do cursor next in the root "
-                  "directory, error=%d", rc);
-           rc = -EIO;
-           goto error;
-          }
-          nlink++;
-      }
-
-      sbuf->st_mode = S_IFDIR | 0755;
-      sbuf->st_nlink = 2 + nlink;
-      sbuf->st_size = pageSize;
-      blocks = sbuf->st_size / pageSize;
-      blocks = (sbuf->st_size % pageSize == 0) ? blocks : blocks + 1;
-      sbuf->st_blocks = blocks * 8;
-      goto done;
    }
 
    condition = BSON(SEQUOIAFS_NAME<<basePath<<SEQUOIAFS_PID<<pid);
@@ -2651,7 +2700,7 @@ INT32 sequoiaFS::chmod(const CHAR *path, mode_t mode)
    string basePath;
    BSONObj options;
 
-   PD_LOG(PDDEBUG, "Called: chmod(), path:%s", path);
+   PD_LOG(PDDEBUG, "Called: chmod(), path:%s, mode:%u", path, mode);
 
    pathStr = ossStrdup(path);
    rc = getConnection(&db);
@@ -2659,11 +2708,6 @@ INT32 sequoiaFS::chmod(const CHAR *path, mode_t mode)
    {
       rc = -EIO;
       goto error;
-   }
-
-   if(ossStrcmp(path, "/") == 0)
-   {
-      goto done;
    }
 
    options = BSON("PreferedInstance" << "M");
@@ -3836,7 +3880,7 @@ INT32 sequoiaFS::create(const CHAR *path,
    INIT_LOBHANDLE(lh);
    INIT_FILE_NODE(fileNode);
 
-   PD_LOG(PDDEBUG, "Called: create(), path:%s, flags:%d", path, fi->flags);
+   PD_LOG(PDDEBUG, "Called: create(), path:%s, mode:%u, flags:%d", path, mode, fi->flags);
 
    pathStr = ossStrdup(path);
    rc = getConnection(&db);
@@ -3958,7 +4002,6 @@ INT32 sequoiaFS::create(const CHAR *path,
    }
 
    fileNode.name= fileName;
-   fileNode.mode= mtime;
    fileNode.uid = uid;
    fileNode.gid = gid;
    fileNode.pid= pid;
@@ -3967,7 +4010,7 @@ INT32 sequoiaFS::create(const CHAR *path,
    fileNode.ctime= ctime;
    fileNode.atime= mtime;
    fileNode.mtime = mtime;
-   fileNode.mode= S_IFREG | 0644;
+   fileNode.mode= S_IFREG | mode;
    //here to remove the Name uniq index, cause there may be some same name
    //of files in different dirs
    rc = doSetFileNodeAttr(*sysFileMetaCL, fileNode);
