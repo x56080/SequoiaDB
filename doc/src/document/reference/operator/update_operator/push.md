@@ -16,7 +16,7 @@ $push将给定数值（<值1>）插入到目标数组（<字段名1>）中，操
   { $push: { arr: 1 } }
   ```
   
-* 通过 "$field" 指定的原始记录中的某字段，如：
+* 通过[字段操作符](reference/operator/field_operator/field.md)指定的原始记录中的某字段，如：
 
   ```lang-json
   { $push: { arr: { $field: "fieldName" } } }

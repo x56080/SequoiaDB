@@ -16,7 +16,7 @@ $pop 操作是删除指定数组对象（<字段名1>,<字段名2>,...）最后 
   { $pop: { arr: 2 } }
   ```
   
-* 通过 "$field" 指定的原始记录中某数值类型的字段，如：
+* 通过[字段操作符](reference/operator/field_operator/field.md)指定的原始记录中某数值类型的字段，如：
 
   ```lang-json
   { $pop: { arr: { $field: "fieldName" } } }

@@ -4159,12 +4159,6 @@
                            "en": "$regex"
                         },
                         {
-                           "id": 1457512366,
-                           "file": "field",
-                           "cn": "$field",
-                           "en": "$field"
-                        },
-                        {
                            "id": 1476088802,
                            "file": "expand",
                            "cn": "$expand",
@@ -4483,6 +4477,20 @@
                            "file": "SQL_to_aggregate",
                            "cn": "SQL to Aggregate 映射表",
                            "en": "Mapping Table from SQL to Aggregate"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1589449291,
+                     "dir": "field_operator",
+                     "cn": "字段操作符",
+                     "en": "Field Operator",
+                     "contents": [
+                        {
+                           "id": 1589449292,
+                           "file": "field",
+                           "cn": "$field",
+                           "en": "$field"
                         }
                      ]
                   }
