@@ -91,7 +91,9 @@ namespace engine
 
    BSONObj _rtnParamList::toBSON () const
    {
-      BSONObjBuilder builder ;
+      // parameter with one integer is about 29 bytes
+      // no need to use default initial size of BSON builder (512)
+      BSONObjBuilder builder( 32 ) ;
       toBSON( builder ) ;
       return builder.obj() ;
    }

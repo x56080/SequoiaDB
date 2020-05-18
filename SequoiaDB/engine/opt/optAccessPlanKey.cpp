@@ -195,7 +195,10 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPKEY_NORMALIZE ) ;
 
-      BSONObjBuilder normalBuilder ;
+      // normalized query is a little larger than origin query
+      // no need to use default initial size of BSON builder (512)
+      BSONObjBuilder normalBuilder(
+                  ossRoundUpToMultipleX( getQuery().objsize(), 32 ) ) ;
       BOOLEAN invalidMatcher = FALSE ;
 
       SDB_ASSERT( matchRuntime, "matchRuntime is invalid" ) ;
