@@ -74,6 +74,7 @@ namespace engine
       } ;
 
       SINT32      _pageSize ;
+      UINT32      _segmentSize ;
       INT32       _headSize ;
       BOOLEAN     _readOnly ;
       CHAR        _fileName [ OSS_MAX_PATHSIZE + 1 ] ;
@@ -96,6 +97,7 @@ namespace engine
 
       INT32 open ( const CHAR *pFileName,
                    SINT32 pageSize,
+                   UINT32 segmentSize,
                    BOOLEAN createNew ) ;
 
       void  close () ;

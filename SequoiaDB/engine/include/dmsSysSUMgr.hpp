@@ -42,8 +42,6 @@
 #include "oss.hpp"
 #include "ossLatch.hpp"
 #include "dms.hpp"
-#include <queue>
-#include <map>
 
 using namespace std ;
 
@@ -74,15 +72,8 @@ namespace engine
          }
 
       protected :
-      #ifdef DMSSYSSUMGR_XLOCK
-      #undef DMSSYSSUMGR_XLOCK
-      #endif
-      #define DMSSYSSUMGR_XLOCK ossScopedLock _lock(&_mutex, EXCLUSIVE);
-
-      #ifdef DMSSYSSUMGR_SLOCK
-      #undef DMSSYSSUMGR_SLOCK
-      #endif
-      #define DMSSYSSUMGR_SLOCK ossScopedLock _lock(&_mutex, SHARED) ;
+         #define DMSSYSSUMGR_XLOCK() ossScopedLock _lock(&_mutex, EXCLUSIVE)
+         #define DMSSYSSUMGR_SLOCK() ossScopedLock _lock(&_mutex, SHARED)
 
          ossSpinSLatch        _mutex ;
          _dmsStorageUnit      *_su ;

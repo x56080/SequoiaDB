@@ -744,6 +744,8 @@ namespace engine
       PD_LOG( PDDEBUG, "sync: wait [w:%d]", CLS_SUB_2_W( sub ) ) ;
       pmdEDUEvent ev ;
       INT64 tmpTime = 0 ;
+      BOOLEAN hasBlock = FALSE ;
+
       while ( !cb->isInterrupted() )
       {
          tmpTime = timeout >= 0 ?
@@ -761,12 +763,24 @@ namespace engine
                   break ;
                }
             }
+
+            if ( !hasBlock )
+            {
+               cb->setBlock( EDU_BLOCK_SYNCWAIT, "Waiting replicas sync" ) ;
+               hasBlock = TRUE ;
+            }
             continue ;
          }
          else
          {
             goto done ;
          }
+      }
+
+      if ( hasBlock )
+      {
+         cb->unsetBlock() ;
+         hasBlock = FALSE ;
       }
 
       /// interrupted or timeout, clear info.
@@ -795,6 +809,10 @@ namespace engine
       }
 
    done:
+      if ( hasBlock )
+      {
+         cb->unsetBlock() ;
+      }
       PD_TRACE_EXITRC ( SDB__CLSSYNCMAG__WAIT, rc ) ;
       return rc ;
    }

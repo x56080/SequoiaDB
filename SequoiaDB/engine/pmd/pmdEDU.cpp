@@ -101,6 +101,7 @@ namespace engine
       _interruptRC      = SDB_OK ;
       _writingDB        = FALSE ;
       _writingID        = 0 ;
+      _blockType        = EDU_BLOCK_NONE ;
       _processEventCount= 0 ;
       ossMemset( _name, 0, sizeof( _name ) ) ;
       ossMemset( _source, 0, sizeof( _source ) ) ;
@@ -127,6 +128,7 @@ namespace engine
 
       _curTransLSN      = DPS_INVALID_LSN_OFFSET ;
       _curTransID       = DPS_INVALID_TRANS_ID ;
+      _transWritingID   = 0 ;
 
 #if defined (_LINUX)
       _threadID         = 0 ;
@@ -187,6 +189,7 @@ namespace engine
       resetLsn() ;
       resetMon() ;
       writingDB( FALSE ) ;
+      unsetBlock() ;
       releaseAlignedBuff() ;
       releaseBuffer() ;
 
@@ -339,6 +342,9 @@ namespace engine
             buff = _pErrorBuff ;
             size = EDU_ERROR_BUFF_SIZE ;
             break ;
+         case EDU_INFO_DOING :
+            buff = _doingBuff ;
+            size = EDU_DOING_BUFF_SIZE ;
          default :
             break ;
       }
@@ -686,13 +692,40 @@ namespace engine
          _writingDB = TRUE ;
          _writingID = pmdAcquireGlobalID() ;
       }
-      else if ( !writing && 0 == getLockItem(SDB_LOCK_DMS)->lockCount() &&
-                ( DPS_INVALID_TRANS_ID == _curTransID ||
-                  DPS_INVALID_LSN_OFFSET == _curTransLSN ) )
+      else if ( !writing && 0 == getLockItem(SDB_LOCK_DMS)->lockCount() )
       {
          _writingDB = FALSE ;
          _writingID = 0 ;
       }
+   }
+
+   void _pmdEDUCB::setBlock( EDU_BLOCK_TYPE type, const CHAR *pBlockDesp )
+   {
+      _blockType = type ;
+      /// reset
+      resetInfo( EDU_INFO_DOING ) ;
+
+      if ( pBlockDesp )
+      {
+         printInfo( EDU_INFO_DOING, "%s", pBlockDesp ) ;
+      }
+   }
+
+   void _pmdEDUCB::unsetBlock()
+   {
+      _blockType = EDU_BLOCK_NONE ;
+
+      resetInfo( EDU_INFO_DOING ) ;
+   }
+
+   EDU_BLOCK_TYPE _pmdEDUCB::getBlockType() const
+   {
+      return _blockType ;
+   }
+
+   BOOLEAN _pmdEDUCB::isBlocked() const
+   {
+      return EDU_BLOCK_NONE != _blockType ? TRUE : FALSE ;
    }
 
    void _pmdEDUCB::resetLsn()
@@ -739,6 +772,14 @@ namespace engine
 
    void _pmdEDUCB::setCurTransLsn( UINT64 lsn )
    {
+      if ( 0 == _transWritingID && DPS_INVALID_LSN_OFFSET != lsn )
+      {
+         _transWritingID = _writingID ;
+      }
+      else if ( DPS_INVALID_LSN_OFFSET == lsn )
+      {
+         _transWritingID = 0 ;
+      }
       _curTransLSN = lsn ;
    }
 
@@ -969,10 +1010,12 @@ namespace engine
       full._eduStatus[0] = 0 ;
       full._eduType[0] = 0 ;
       full._eduName[0] = 0 ;
+      full._doing[0] = 0 ;
       full._source[0] = 0 ;
       full._eduID = _eduID ;
       full._tid = _tid ;
       full._processEventCount = _processEventCount ;
+      full._isBlock = isBlocked() ;
       full._queueSize = _queue.size() ;
       if ( _pMemPool )
       {
@@ -989,6 +1032,8 @@ namespace engine
       full._eduType[ MON_EDU_TYPE_SZ ] = 0 ;
       ossStrncpy ( full._eduName, _name, MON_EDU_NAME_SZ ) ;
       full._eduName[ MON_EDU_NAME_SZ ] = 0 ;
+      ossStrncpy( full._doing, _doingBuff, MON_EDU_DOING_SZ ) ;
+      full._doing[ MON_EDU_DOING_SZ ] = 0 ;
       ossStrncpy ( full._source, _source, MON_EDU_NAME_SZ ) ;
       full._source[ MON_EDU_NAME_SZ ] = 0 ;
 
@@ -1017,6 +1062,7 @@ namespace engine
       _curTransLSN = DPS_INVALID_LSN_OFFSET ;
       _transRC = SDB_OK ;
       _transStatus = DPS_TRANS_UNKNOWN ;
+      _transWritingID = 0 ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       if ( pTransCB )
       {

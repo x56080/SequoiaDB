@@ -1785,7 +1785,7 @@ namespace engine
             }
             else
             {
-               onceLen = _curOffset + DMS_SEGMENT_SZ ;
+               onceLen = _curOffset + pLobData->getSegmentSize() ;
                if ( onceLen > (UINT64)pLobData->getFileSz() )
                {
                   onceLen = pLobData->getFileSz() ;

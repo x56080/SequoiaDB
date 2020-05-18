@@ -60,6 +60,10 @@ namespace engine
       void     disableIndexErrInfo() ;
       BOOLEAN  isEnaleIndexErrInfo() const ;
 
+      void     enableReturnIDInfo() ;
+      void     disableReturnIDInfo() ;
+      BOOLEAN  isEnableReturnIDInfo() const ;
+
       UINT64               insertedNum() const { return _insertedNum ; }
       UINT64               duplicatedNum() const { return _duplicatedNum ; }
 
@@ -73,9 +77,14 @@ namespace engine
          _duplicatedNum += step ;
       }
 
+      void                 setReturnIDByObj( const BSONObj &obj ) ;
+      BSONObj              getReturnIDObj() const ;
+
    private:
       UINT64               _insertedNum ;
       UINT64               _duplicatedNum ;
+      BOOLEAN              _enableReturnID ;
+      BSONObj              _returnIDObj ;
    } ;
 
    /*

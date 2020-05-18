@@ -67,7 +67,6 @@ namespace engine
                                    utilCacheUnit *pCacheUnit )
    :_dmsStorageBase( lobmFileName, info ),
     _dmsBME( NULL ),
-    _segmentSize( 0 ),
     _dmsData( (dmsStorageData *)pDataSu ),      // TODO: temporary cast
     _data( lobdFileName, info->_enableSparse, info->_directIO ),
     _pCacheUnit( pCacheUnit ),
@@ -1995,6 +1994,7 @@ namespace engine
    {
       pHeader->_pageSize = DMS_PAGE_SIZE64B ;
       pHeader->_lobdPageSize = pInfo->_lobdPageSize ;
+      pHeader->_segmentSize = 0 ;
    }
 
    INT32 _dmsStorageLob::_checkPageSize( dmsStorageUnitHeader * pHeader )
@@ -2029,6 +2029,11 @@ namespace engine
 
       _segmentSize = _data.getSegmentSize() / pHeader->_lobdPageSize *
                      pHeader->_pageSize ;
+      if ( 0 != pHeader->_segmentSize &&
+           pHeader->_segmentSize != _segmentSize )
+      {
+         pHeader->_segmentSize = _segmentSize ;
+      }
 
    done:
       return rc ;

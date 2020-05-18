@@ -2520,7 +2520,8 @@ namespace engine
          UINT32 tmpCacheSize = ossAlignX( cacheSize, _pageSize ) ;
 
          if ( tmpCacheSize != _cacheMerge.capacity() ||
-              alignment != _cacheMerge.isAlignment() )
+              ( _cacheMerge.getData() &&
+                alignment != _cacheMerge.isAlignment() ) )
          {
             lockPageCleaner() ;
 

@@ -49,6 +49,7 @@
 #include "dmsTempSUMgr.hpp"
 #include "dmsStatSUMgr.hpp"
 #include "dmsRBSSUMgr.hpp"
+#include "dmsLocalSUMgr.hpp"
 #include "ossAtomic.hpp"
 #include "ossRWMutex.hpp"
 #include "dpsLogWrapper.hpp"
@@ -204,6 +205,7 @@ namespace engine
       dmsTempSUMgr            _tempSUMgr ;
       dmsStatSUMgr            _statSUMgr ;
       dmsRBSSUMgr             _rbsSUMgr ;
+      dmsLocalSUMgr           _localSUMgr ;
 
       dmsIxmKeySorterCreator* _ixmKeySorterCreator ;
 
@@ -403,6 +405,8 @@ namespace engine
       dmsStatSUMgr *getStatSUMgr () ;
 
       _dmsRBSSUMgr  *getRBSSUMgr () ;
+
+      dmsLocalSUMgr *getLocalSUMgr() ;
 
       void clearSUCaches ( UINT32 mask ) ;
 

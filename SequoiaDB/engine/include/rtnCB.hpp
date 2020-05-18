@@ -54,6 +54,7 @@
 #include "optAPM.hpp"
 #include <map>
 #include "ossMemPool.hpp"
+#include "rtnLocalTaskMgr.hpp"
 #include "rtnRemoteMessenger.hpp"
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
@@ -63,7 +64,7 @@ namespace engine
    /*
       _SDB_RTNCB define
    */
-   class _SDB_RTNCB : public _IControlBlock, public _IContextMgr
+   class _SDB_RTNCB : public _IControlBlock, public _IContextMgr, public _IEventHander
    {
    private :
       typedef utilConcurrentMap<INT64, rtnContext*> RTN_CTX_MAP ;
@@ -84,9 +85,14 @@ namespace engine
                                           // index information.
       ossAtomicSigned64    _textIdxVersion ;
 
+      rtnLocalTaskMgr      *_pLTMgr ;
+
    public:
       virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
       virtual void* queryInterface( SDB_INTERFACE_TYPE type ) ;
+
+      virtual void   onPrimaryChange( BOOLEAN primary,
+                                      SDB_EVENT_OCCUR_TYPE occurType ) ;
 
    public :
       _SDB_RTNCB() ;
@@ -209,6 +215,11 @@ namespace engine
       OSS_INLINE _rtnLobAccessManager* getLobAccessManager()
       {
          return &_lobAccessManager ;
+      }
+
+      OSS_INLINE rtnLocalTaskMgr* getLTMgr()
+      {
+         return _pLTMgr ;
       }
 
    } ;

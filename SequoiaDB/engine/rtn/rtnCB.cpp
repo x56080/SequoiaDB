@@ -51,6 +51,7 @@ namespace engine
         _remoteMessenger( NULL ),
         _textIdxVersion((INT64)RTN_INIT_TEXT_INDEX_VERSION)
    {
+      _pLTMgr = NULL ;
    }
 
    _SDB_RTNCB::~_SDB_RTNCB()
@@ -73,6 +74,18 @@ namespace engine
       return IControlBlock::queryInterface( type ) ;
    }
 
+   void _SDB_RTNCB::onPrimaryChange( BOOLEAN primary,
+                                     SDB_EVENT_OCCUR_TYPE occurType )
+   {
+      if ( !primary && SDB_EVT_OCCUR_AFTER == occurType )
+      {
+         if ( _pLTMgr )
+         {
+            _pLTMgr->clear() ;
+         }
+      }
+   }
+
    INT32 _SDB_RTNCB::init ()
    {
       INT32 rc = SDB_OK ;
@@ -84,6 +97,17 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
+
+      _pLTMgr = SDB_OSS_NEW rtnLocalTaskMgr() ;
+      if ( !_pLTMgr )
+      {
+         PD_LOG( PDERROR, "Failed to create local task manager" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      // register event handle
+      pmdGetKRCB()->regEventHandler( this ) ;
 
       sdbGetDMSCB()->setIxmKeySorterCreator( creator ) ;
 
@@ -124,6 +148,9 @@ namespace engine
    {
       _accessPlanManager.fini() ;
 
+      // unregister event handle
+      pmdGetKRCB()->unregEventHandler( this ) ;
+
       dmsIxmKeySorterCreator* creator = sdbGetDMSCB()->getIxmKeySorterCreator() ;
       if ( NULL != creator )
       {
@@ -137,6 +164,13 @@ namespace engine
       if ( _remoteMessenger )
       {
          SDB_OSS_DEL _remoteMessenger ;
+      }
+
+      if ( _pLTMgr )
+      {
+         _pLTMgr->fini() ;
+         SDB_OSS_DEL _pLTMgr ;
+         _pLTMgr = NULL ;
       }
 
       return SDB_OK ;

@@ -41,6 +41,7 @@
 
 #include "rtnContext.hpp"
 #include "utilRenameLogger.hpp"
+#include "rtnLocalTaskFactory.hpp"
 
 namespace engine
 {
@@ -48,6 +49,7 @@ namespace engine
       _rtnContextDelCS define
    */
    class _clsCatalogAgent ;
+   class _clsFreezingWindow ;
    class dpsTransCB ;
    class _SDB_DMSCB ;
 
@@ -177,8 +179,9 @@ namespace engine
    typedef class _rtnContextDelMainCL rtnContextDelMainCL ;
 
    #define RTN_RENAME_BLOCKWRITE_INTERAL ( 0.1 * OSS_ONE_SEC )
-   #define RTN_RENAME_BLOCKWRITE_TIMES   ( 10 )
+   #define RTN_RENAME_BLOCKWRITE_TIMES   ( 30 )
 
+   class _rtnLocalTaskMgr ;
    /*
       _rtnContextRenameCS define
    */
@@ -199,7 +202,7 @@ namespace engine
       virtual BOOLEAN          isWrite() const { return TRUE ; }
 
       INT32 open( const CHAR *pCSName, const CHAR *pNewCSName,
-                  _pmdEDUCB *cb );
+                  _pmdEDUCB *cb, BOOLEAN useLocalTask = TRUE );
 
    protected:
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
@@ -215,13 +218,17 @@ namespace engine
       _SDB_DMSCB           *_pDmsCB ;
       dpsTransCB           *_pTransCB ;
       _clsCatalogAgent     *_pCatAgent ;
+      _clsFreezingWindow   *_pFreezingWnd ;
+      _rtnLocalTaskMgr     *_pLTMgr ;
       CHAR                 _oldName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
       CHAR                 _newName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
-      BOOLEAN              _lockDMS ;
+      UINT64               _blockID ;
+      BOOLEAN              _lockDms ;
       UINT32               _logicCSID ;
       renameCSPhase        _status ;
       utilRenameLogger     _logger ;
       BOOLEAN              _skipGetMore ;
+      rtnLocalTaskPtr      _taskPtr ;
    };
    typedef class _rtnContextRenameCS rtnContextRenameCS ;
 
@@ -241,7 +248,8 @@ namespace engine
 
       INT32 open( const CHAR *csName, const CHAR *clShortName,
                   const CHAR *newCLShortName,
-                  _pmdEDUCB *cb, INT16 w = 1 ) ;
+                  _pmdEDUCB *cb, INT16 w = 1,
+                  BOOLEAN useLocalTask = TRUE ) ;
 
    protected:
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
@@ -254,16 +262,20 @@ namespace engine
    private:
       _SDB_DMSCB           *_pDmsCB ;
       _clsCatalogAgent     *_pCatAgent ;
+      _clsFreezingWindow   *_pFreezingWnd ;
       dpsTransCB           *_pTransCB ;
+      _rtnLocalTaskMgr     *_pLTMgr ;
 
       CHAR                 _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
       CHAR                 _clShortName[ DMS_COLLECTION_NAME_SZ + 1 ] ;
       CHAR                 _newCLShortName[ DMS_COLLECTION_NAME_SZ + 1 ] ;
 
-      BOOLEAN              _lockDMS ;
+      UINT64               _blockID ;
+      BOOLEAN              _lockDms ;
       _dmsStorageUnit      *_su ;
       UINT16               _mbID ;
       BOOLEAN              _skipGetMore ;
+      rtnLocalTaskPtr      _taskPtr ;
    };
    typedef class _rtnContextRenameCL rtnContextRenameCL ;
 

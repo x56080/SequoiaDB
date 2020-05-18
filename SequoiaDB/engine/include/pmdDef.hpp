@@ -234,6 +234,24 @@ namespace engine
    #define PMD_IS_EDU_IDLE(x)          ( PMD_EDU_IDLE     == x )
 
    /*
+      EDU_BLOCK_TYPE define
+   */
+   enum EDU_BLOCK_TYPE
+   {
+      EDU_BLOCK_NONE             = 0,
+      EDU_BLOCK_FREEZING_WND,
+      EDU_BLOCK_DMS,
+      EDU_BLOCK_PRIMARY,
+      EDU_BLOCK_TRANSROLLBACK,
+      EDU_BLOCK_REELECT,
+      EDU_BLOCK_SYNCWAIT,
+      EDU_BLOCK_SYNCCONTROL,
+      EDU_BLOCK_WAITREPLY,
+
+      EDU_BLOCK_MAX
+   } ;
+
+   /*
       SDB_TYPE_STR DEFINE
    */
    #define SDB_TYPE_DB_STR             "sequoiadb"

@@ -102,6 +102,8 @@ namespace engine
       _timeCounter = 0 ;
       _curExtID = DMS_INVALID_EXTENT ;
       _curCollection = ~0 ;
+      _curCSLID = DMS_INVALID_LOGICCSID ;
+      _curMBID = DMS_INVALID_MBID ;
       _beginLSNOffset = 0 ;
 
       //init disconnect msg
@@ -115,7 +117,7 @@ namespace engine
 
    _clsDataSrcBaseSession::~_clsDataSrcBaseSession ()
    {
-      _reset () ;
+      _resetInfo () ;
    }
 
    void _clsDataSrcBaseSession::onRecieve ( const NET_HANDLE netHandle,
@@ -171,13 +173,13 @@ namespace engine
    {
       // unregister session
       _pRepl->unregSession ( this ) ;
-      _reset() ;
+      _resetInfo() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSBS__RESET, "_clsDataSrcBaseSession::_reset" )
-   void _clsDataSrcBaseSession::_reset ()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSBS__RESETINFO, "_clsDataSrcBaseSession::_resetInfo" )
+   void _clsDataSrcBaseSession::_resetInfo ( BOOLEAN all )
    {
-      PD_TRACE_ENTRY ( SDB__CLSDSBS__RESET );
+      PD_TRACE_ENTRY ( SDB__CLSDSBS__RESETINFO );
       _indexs.clear() ;
       if ( -1 != _contextID )
       {
@@ -198,7 +200,14 @@ namespace engine
       _curExtID = DMS_INVALID_EXTENT ;
       _curScanKeyObj = BSONObj() ;
       _curCollection = ~0 ;
-      PD_TRACE_EXIT ( SDB__CLSDSBS__RESET );
+
+      if ( all )
+      {
+         _curCSLID = DMS_INVALID_LOGICCSID ;
+         _curMBID = DMS_INVALID_MBID ;
+      }
+
+      PD_TRACE_EXIT ( SDB__CLSDSBS__RESETINFO );
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSBS__RESEND, "_clsDataSrcBaseSession::_resend" )
@@ -1130,6 +1139,8 @@ namespace engine
       _dmsStorageUnit *su = NULL ;
       dmsMBContext *mbContext = NULL ;
       UINT64 curCollection = ~0 ;
+      UINT32 csLID = DMS_INVALID_LOGICCSID ;
+      UINT16 mbID = DMS_INVALID_MBID ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
 
       MsgClsFSMetaRes res ;
@@ -1221,7 +1232,8 @@ namespace engine
          }
 
          clUniqueID = mbContext->mb()->_clUniqueID ;
-
+         csLID = su->LogicalCSID() ;
+         mbID = mbContext->mbID() ;
          curCollection = ossPack32To64 ( su->LogicalCSID(),
                                          mbContext->clLID() ) ;
          /// get indexes
@@ -1258,6 +1270,8 @@ namespace engine
                goto error ;
             }
             _curCollection = curCollection ;
+            _curCSLID = csLID ;
+            _curMBID = mbID ;
          }
          _constructMeta( meta, cs, collection, clUniqueID, su ) ;
          PD_LOG( PDDEBUG, "Session[%s]: get meta [%s]", sessionName(),
@@ -1303,6 +1317,8 @@ namespace engine
          }
          rc = SDB_OK ;
          _curCollection = ~0 - 1 ;
+         _curCSLID = DMS_INVALID_LOGICCSID ;
+         _curMBID = DMS_INVALID_MBID ;
       }
       else
       {
@@ -1394,7 +1410,7 @@ namespace engine
             PD_LOG( PDERROR, "Session[%s]: Add complete collection occur "
                     "exception: %s", sessionName(), e.what() ) ;
          }
-         _reset() ;
+         _resetInfo( FALSE ) ;
          _LSNlatch.release() ;
 
          if ( rc )
@@ -1403,7 +1419,11 @@ namespace engine
          }
          else
          {
-            _onNotifyOver( _curCollecitonName.c_str() ) ;
+            rc = _onNotifyOver( _curCollecitonName.c_str() ) ;
+            if ( rc )
+            {
+               _disconnect() ;
+            }
          }
          goto done ;
       }
@@ -1650,7 +1670,7 @@ namespace engine
       /// end
 
       {
-         _reset() ;
+         _resetInfo() ;
          BSONObj obj ;
          INT32 sendSlice = 1 ;
          INT32 sendNomore = 1 ;
@@ -1968,8 +1988,9 @@ namespace engine
       return SDB_OK ;
    }
 
-   void _clsFSSrcSession::_onNotifyOver( const CHAR *clFullName )
+   INT32 _clsFSSrcSession::_onNotifyOver( const CHAR *clFullName )
    {
+      return SDB_OK ;
    }
 
    INT32 _clsFSSrcSession::_scanType() const
@@ -2818,8 +2839,10 @@ namespace engine
       return rc ;
    }
 
-   void _clsSplitSrcSession::_onNotifyOver( const CHAR *clFullName )
+   INT32 _clsSplitSrcSession::_onNotifyOver( const CHAR *clFullName )
    {
+      INT32 rc = SDB_OK ;
+
       if ( _ntyOverTime > 0 )
       {
          /// Blocking has been started, the sync process might be restarted
@@ -2829,42 +2852,30 @@ namespace engine
                  "collection [%s] has been started, end blocking for further "
                  "process", sessionName(), clFullName ) ;
 
-         _pFreezingWindow->unregisterCL( clFullName, _mainCLName.c_str(),
-                                         _ntyOverTime ) ;
+         _pFreezingWindow->unregisterCL( clFullName, _ntyOverTime ) ;
          PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
-                 "of collection[%s]", sessionName(), clFullName ) ;
-         if ( !_mainCLName.empty() )
-         {
-            PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
-                    "of the main collection[%s]", sessionName(),
-                    _mainCLName.c_str() ) ;
-         }
+                 "of collection[%s], ID: %llu", sessionName(), clFullName,
+                 _ntyOverTime ) ;
       }
 
       _ntyOverTime = 0 ;
-      _mainCLName.clear() ;
-
-      /// If the collection has main collection, need to block its main
-      /// collection
-      _pCatAgent->lock_r() ;
-      clsCatalogSet *pSet = _pCatAgent->collectionSet( clFullName ) ;
-      if ( pSet )
-      {
-         _mainCLName = pSet->getMainCLName() ;
-      }
-      _pCatAgent->release_r() ;
 
       /// Block collection and main-collection ( if have ) together
-      _pFreezingWindow->registerCL( clFullName, _mainCLName.c_str(),
-                                    _ntyOverTime ) ;
-      PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
-              "of collection[%s]", sessionName(), clFullName ) ;
-      if ( !_mainCLName.empty() )
+      rc = _pFreezingWindow->registerCL( clFullName, _ntyOverTime ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Session[%s]: Block all write operations of "
+                 "collection[%s] failed, rc: %d",
+                 sessionName(), clFullName, rc ) ;
+      }
+      else
       {
          PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
-                 "of the main collection[%s]", sessionName(),
-                 _mainCLName.c_str() ) ;
+                 "of collection[%s], ID: %llu", sessionName(), clFullName,
+                 _ntyOverTime ) ;
       }
+
+      return rc ;
    }
 
    INT32 _clsSplitSrcSession::_scanType() const
@@ -2881,7 +2892,10 @@ namespace engine
       if ( _ntyOverTime > 0 )
       {
          pmdEDUMgr *pEDUMgr = eduCB()->getEDUMgr() ;
-         if ( pEDUMgr->getWritingEDUCount( -1, _ntyOverTime ) > 0 )
+         dpsTransLockId lockID( _curCSLID, _curMBID, NULL ) ;
+         if ( pEDUMgr->getWritingEDUCount( -1, _ntyOverTime,
+                                           EDU_BLOCK_FREEZING_WND,
+                                           lockID ) > 0 )
          {
             PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : Waiting for "
                     "other operations to finish", sessionName(),
@@ -2959,7 +2973,7 @@ namespace engine
       }
 
       {
-         _reset() ;
+         _resetInfo() ;
          _lsn = pmdGetKRCB()->getDPSCB()->expectLsn() ;
          msg.lsn = _lsn ;
          _beginLSNOffset = _lsn.offset ;
@@ -3139,20 +3153,12 @@ namespace engine
       {
          /// Unblock
          _pFreezingWindow->unregisterCL( _curCollecitonName.c_str(),
-                                         _mainCLName.c_str(),
                                          _ntyOverTime ) ;
          PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
-                 "of collection[%s]", sessionName(),
-                 _curCollecitonName.c_str() ) ;
-         if ( !_mainCLName.empty() )
-         {
-            PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
-                    "of the main collection[%s]", sessionName(),
-                    _mainCLName.c_str() ) ;
-         }
+                 "of collection[%s], ID: %llu", sessionName(),
+                 _curCollecitonName.c_str(), _ntyOverTime ) ;
 
          _ntyOverTime = 0 ;
-         _mainCLName.clear() ;
 
          MsgClsFSLEndRes res ;
          res.header.header.requestID = header->requestID ;
@@ -3480,16 +3486,10 @@ namespace engine
       if ( _ntyOverTime > 0 )
       {
          _pFreezingWindow->unregisterCL( _curCollecitonName.c_str(),
-                                         _mainCLName.c_str(), _ntyOverTime ) ;
+                                         _ntyOverTime ) ;
          PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
-                 "of collection[%s]", sessionName(),
-                 _curCollecitonName.c_str() ) ;
-         if ( !_mainCLName.empty() )
-         {
-            PD_LOG( PDEVENT, "Session[%s]: End to block all write operations "
-                    "of the main collection[%s]", sessionName(),
-                    _mainCLName.c_str() ) ;
-         }
+                 "of collection[%s], ID: %llu", sessionName(),
+                 _curCollecitonName.c_str(), _ntyOverTime ) ;
       }
 
       // wait cleanup done

@@ -146,7 +146,7 @@ namespace engine
       // and to prevent sorter's buffer overflowing.
       // so we assign max extent size to ensure the sorter can't
       // overflow when fetching records from a extent.
-      _bufExtSize = DMS_MAX_EXTENT_SZ ;
+      _bufExtSize = DMS_MAX_EXTENT_SZ(dataSU) ;
    }
 
    _dmsIndexSortingBuilder::~_dmsIndexSortingBuilder()

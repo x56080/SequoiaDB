@@ -282,7 +282,10 @@ rtnFiles = [
       "rtn/rtnAlter.cpp",
       "rtn/rtnContextAlter.cpp",
       "rtn/rtnExtContext.cpp",
-      "rtn/rtnTSClt.cpp"
+      "rtn/rtnTSClt.cpp",
+      "rtn/rtnLocalTaskMgr.cpp",
+      "rtn/rtnLocalTaskFactory.cpp",
+      "rtn/rtnLocalTask.cpp"
       ]
 
 msgFiles = [
@@ -306,6 +309,7 @@ dmsFiles = [
       "dms/dmsStorageUnit.cpp",
       "dms/dmsTempSUMgr.cpp",
       "dms/dmsRBSSUMgr.cpp",
+      "dms/dmsLocalSUMgr.cpp",
       "dms/dmsCB.cpp",
       "dms/dmsReorgUnit.cpp",
       "dms/dmsSMEMgr.cpp",

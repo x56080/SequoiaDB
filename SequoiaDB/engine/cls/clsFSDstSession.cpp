@@ -56,6 +56,7 @@ using namespace bson ;
 namespace engine
 {
    const UINT32 CLS_FS_TIMEOUT = 10000 ;
+   const UINT32 CLS_FS_END_SYNC_TIMEOUT = 2000 ;
    const UINT32 CLS_SPLIT_DST_SYNC_TIME = 60 * OSS_ONE_SEC ;
    const UINT32 CLS_FS_MAX_REPEAT_CNT = 180 * OSS_ONE_SEC / CLS_FS_TIMEOUT ;
 
@@ -2846,6 +2847,10 @@ namespace engine
       {
          // get the last log
          _notify ( CLS_FS_NOTIFY_TYPE_LOG ) ;
+         if ( CLS_FS_TIMEOUT > CLS_FS_END_SYNC_TIMEOUT )
+         {
+            _timeout = CLS_FS_TIMEOUT - CLS_FS_END_SYNC_TIMEOUT ;
+         }
       }
       else if ( STEP_POST_SYNC == _step )
       {

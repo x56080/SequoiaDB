@@ -276,7 +276,6 @@ namespace engine
 
    private:
       dmsBucketsManagementExtent    *_dmsBME ;
-      UINT32                        _segmentSize ;
       _dmsStorageData               *_dmsData ;
       _dmsStorageLobData            _data ;
       CHAR                          _path[ OSS_MAX_PATHSIZE + 1 ] ;

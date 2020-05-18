@@ -14,8 +14,10 @@ $SNAPSHOT_SESSIONS
 | SessionID         | 长整型        | 会话 ID                                            |
 | TID               | 整型          | 该会话所对应的系统线程 ID                          |
 | Status            | 字符串        | 会话状态<br>- Creating：创建状态<br>- Running：运行状态<br>- Waiting：等待状态<br>- Idle：线程池待机状态<br>- Destroying：销毁状态 |
+| IsBlocked         | 布尔型        | 会话当前是否处理阻塞状态                           |
 | Type              | 字符串        | [EDU 类型](database_management/EDU.md)             |
 | Name              | 字符串        | EDU 名，一般系统 EDU 名为空                        |
+| Doing             | 字符串        | 会话当前阻塞状态的详细描述信息                     |
 | QueueSize         | 整型          | 等待处理请求的队列长度                             |
 | ProcessEventCount | 长整型        | 已经处理请求的数量                                 |
 | RelatedID         | 字符串        | 会话的内部标识                                     |
@@ -51,8 +53,10 @@ $SNAPSHOT_SESSIONS
   "SessionID": 183,
   "TID": 4024,
   "Status": "Idle",
+  "IsBlocked": false,
   "Type": "Unknow",
   "Name": "",
+  "Doing": "",
   "Source": "",
   "QueueSize": 0,
   "ProcessEventCount": 0,

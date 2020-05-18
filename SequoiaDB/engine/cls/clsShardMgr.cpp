@@ -149,10 +149,11 @@ namespace engine
    {
    }
 
-   void _clsFreezingWindow::registerCL ( const CHAR * pName,
-                                         const CHAR * pMainCLName,
-                                         UINT64 & opID )
+   INT32 _clsFreezingWindow::registerCL ( const CHAR *pName, UINT64 &opID )
    {
+      INT32 rc = SDB_OK ;
+      UINT64 oldOpID = opID ;
+
       ossScopedLock lock( &_latch ) ;
 
       /// first increase _clCount. Because waitForOpr will use _clCount without
@@ -174,72 +175,325 @@ namespace engine
 
       if ( !pName || !*pName )
       {
-         _regWholeInternal( opID ) ;
+         rc = SDB_INVALIDARG ;
+         SDB_ASSERT( FALSE, "Name is invalid" ) ;
       }
       else
       {
-         _registerCLInternal( pName, opID ) ;
-
-         if ( NULL != pMainCLName && '\0' != pMainCLName[0] )
+         try
          {
-            _registerCLInternal( pMainCLName, opID ) ;
+            ossPoolString name( pName ) ;
+            rc = _registerCLInternal( name, opID ) ;
+         }
+         catch( std::exception &e )
+         {
+            /// ossPoolString maybe throw exception when out of memory
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          }
       }
 
       /// last decrease _clCount
       --_clCount ;
 
+      if ( rc && opID != oldOpID )
+      {
+         /// restore opID when failed
+         opID = oldOpID ;
+      }
+
+      return rc ;
    }
 
-   void _clsFreezingWindow::_regWholeInternal( UINT64 opID )
+   INT32 _clsFreezingWindow::registerCS( const CHAR *pName,
+                                         UINT64 &opID )
    {
+      INT32 rc = SDB_OK ;
+      UINT64 oldOpID = opID ;
+
+      ossScopedLock lock( &_latch ) ;
+
+      /// first increase _clCount. Because waitForOpr will use _clCount without
+      /// latch. If don't increase first, the case will occur:
+      /// 1. split thread has run to opID = pmdAcquireGlobalID() ;
+      /// 2. write thread run to pmdAcquireGlobalID(), then run to waitForOpr::
+      ///    if ( isWrite && _clCount > 0 )
+      /// 3. the split thread will not wait write thread, so some data will lost
+      ++_clCount ;
+
+      // operator ID is not given, acquire one for it
+      // Must be acquired inside latch, which could avoid other operators to
+      // acquire operator ID and pass the checking between acquiring and
+      // registering
+      if ( 0 == opID )
+      {
+         opID = pmdAcquireGlobalID() ;
+      }
+
+      if ( !pName || !*pName || ossStrchr( pName, '.' ) )
+      {
+         rc = SDB_INVALIDARG ;
+         SDB_ASSERT( FALSE, "Name is invalid" ) ;
+      }
+      else
+      {
+         try
+         {
+            ossPoolString name( pName ) ;
+            rc = _registerCSInternal( name, opID ) ;
+         }
+         catch( std::exception &e )
+         {
+            /// ossPoolString maybe throw exception when out of memory
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+      }
+
+      /// last decrease _clCount
+      --_clCount ;
+
+      if ( rc && opID != oldOpID )
+      {
+         /// restore opID when failed
+         opID = oldOpID ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _clsFreezingWindow::registerWhole( UINT64 &opID  )
+   {
+      INT32 rc = SDB_OK ;
+      UINT64 oldOpID = opID ;
+
+      ossScopedLock lock( &_latch ) ;
+
+      /// first increase _clCount. Because waitForOpr will use _clCount without
+      /// latch. If don't increase first, the case will occur:
+      /// 1. split thread has run to opID = pmdAcquireGlobalID() ;
+      /// 2. write thread run to pmdAcquireGlobalID(), then run to waitForOpr::
+      ///    if ( isWrite && _clCount > 0 )
+      /// 3. the split thread will not wait write thread, so some data will lost
+      ++_clCount ;
+
+      // operator ID is not given, acquire one for it
+      // Must be acquired inside latch, which could avoid other operators to
+      // acquire operator ID and pass the checking between acquiring and
+      // registering
+      if ( 0 == opID )
+      {
+         opID = pmdAcquireGlobalID() ;
+      }
+
+      rc = _regWholeInternal( opID ) ;
+
+      /// last decrease _clCount
+      --_clCount ;
+
+      if ( rc && opID != oldOpID )
+      {
+         /// restore opID when failed
+         opID = oldOpID ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _clsFreezingWindow::_regWholeInternal( UINT64 opID )
+   {
+      INT32 rc = SDB_OK ;
+
       if ( _setWholeID.empty() )
       {
          ++_clCount ;
       }
-      _setWholeID.insert( opID ) ;
+
+      try
+      {
+         _setWholeID.insert( opID ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         --_clCount ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      return rc ;
    }
 
-   void _clsFreezingWindow::_registerCLInternal ( const CHAR * pName,
-                                                  UINT64 opID )
+   INT32 _clsFreezingWindow::_registerCLInternal ( const ossPoolString &name,
+                                                   UINT64 opID )
    {
-      MAP_WINDOW::iterator it = _mapWindow.find( pName ) ;
+      INT32 rc = SDB_OK ;
+      MAP_WINDOW::iterator it = _mapWindow.find( name ) ;
 
       if ( _mapWindow.end() == it )
       {
          ++_clCount ;
 
-         OP_SET newOpSet ;
-         newOpSet.insert( opID ) ;
+         try
+         {
+            OP_SET newOpSet ;
+            newOpSet.insert( opID ) ;
 
-         _mapWindow[ pName ] = newOpSet ;
+            _mapWindow[ name ] = newOpSet ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_OOM ;
+            --_clCount ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         }
       }
       else
       {
-         it->second.insert( opID ) ;
+         try
+         {
+            it->second.insert( opID ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         }
       }
+
+      return rc ;
    }
 
-   void _clsFreezingWindow::unregisterCL ( const CHAR * pName,
-                                           const CHAR * pMainCLName,
-                                           UINT64 opID )
+   INT32 _clsFreezingWindow::_registerCSInternal( const ossPoolString &name,
+                                                  UINT64 opID )
+   {
+      INT32 rc = SDB_OK ;
+      MAP_CS_WINDOW::iterator it = _mapCSWindow.find( name ) ;
+
+      if ( _mapCSWindow.end() == it )
+      {
+         ++_clCount ;
+
+         try
+         {
+            OP_SET newOpSet ;
+            newOpSet.insert( opID ) ;
+
+            _mapCSWindow[ name ] = newOpSet ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_OOM ;
+            --_clCount ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+      }
+      else
+      {
+         try
+         {
+            it->second.insert( opID ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+      }
+
+      return rc ;
+   }
+
+   void _clsFreezingWindow::unregisterCL ( const CHAR *pName, UINT64 opID )
    {
       ossScopedLock lock( &_latch ) ;
 
-      if ( !pName || !*pName )
+      if ( pName && *pName )
       {
-         _unregWholeInternal( opID ) ;
-      }
-      else
-      {
-         _unregisterCLInternal( pName, opID ) ;
-      }
-      if ( NULL != pMainCLName && '\0' != pMainCLName[0] )
-      {
-         _unregisterCLInternal( pMainCLName, opID ) ;
+         try
+         {
+            ossPoolString name( pName ) ;
+            _unregisterCLInternal( name, opID ) ;
+         }
+         catch( ... )
+         {
+            _unregisterCLByIter( pName, opID ) ;
+         }
       }
 
       _event.signalAll() ;
+   }
+
+   void _clsFreezingWindow::unregisterCS( const CHAR *pName, UINT64 opID )
+   {
+      ossScopedLock lock( &_latch ) ;
+
+      if ( pName && *pName )
+      {
+         try
+         {
+            ossPoolString name( pName ) ;
+            _unregisterCSInternal( name, opID ) ;
+         }
+         catch( ... )
+         {
+            _unregisterCSByIter( pName, opID ) ;
+         }
+      }
+
+      _event.signalAll() ;
+   }
+
+   void _clsFreezingWindow::unregisterWhole( UINT64 opID )
+   {
+      ossScopedLock lock( &_latch ) ;
+
+      _unregWholeInternal( opID ) ;
+
+      _event.signalAll() ;
+   }
+
+   void _clsFreezingWindow::_unregisterCLByIter( const CHAR *pName,
+                                                 UINT64 opID )
+   {
+      MAP_WINDOW::iterator it = _mapWindow.begin() ;
+
+      while ( it != _mapWindow.end() )
+      {
+         if ( 0 == ossStrcmp( it->first.c_str(), pName ) )
+         {
+            it->second.erase( opID ) ;
+
+            if ( it->second.empty() )
+            {
+               _mapWindow.erase( it ) ;
+               --_clCount ;
+            }
+            break ;
+         }
+         ++it ;
+      }
+   }
+
+   void _clsFreezingWindow::_unregisterCSByIter( const CHAR *pName,
+                                                 UINT64 opID )
+   {
+      MAP_CS_WINDOW::iterator it = _mapCSWindow.begin() ;
+
+      while ( it != _mapCSWindow.end() )
+      {
+         if ( 0 == ossStrcmp( it->first._name.c_str(), pName ) )
+         {
+            it->second.erase( opID ) ;
+
+            if ( it->second.empty() )
+            {
+               _mapCSWindow.erase( it ) ;
+               --_clCount ;
+            }
+            break ;
+         }
+         ++it ;
+      }
    }
 
    void _clsFreezingWindow::unregisterAll()
@@ -248,6 +502,7 @@ namespace engine
 
       _setWholeID.clear() ;
       _mapWindow.clear() ;
+      _mapCSWindow.clear() ;
       _clCount = 0 ;
    }
 
@@ -260,10 +515,10 @@ namespace engine
       }
    }
 
-   void _clsFreezingWindow::_unregisterCLInternal ( const CHAR * pName,
+   void _clsFreezingWindow::_unregisterCLInternal ( const ossPoolString &name,
                                                     UINT64 opID )
    {
-      MAP_WINDOW::iterator it = _mapWindow.find( pName ) ;
+      MAP_WINDOW::iterator it = _mapWindow.find( name ) ;
 
       if ( _mapWindow.end() != it )
       {
@@ -271,14 +526,34 @@ namespace engine
 
          if ( it->second.empty() )
          {
-            _mapWindow.erase( pName ) ;
+            _mapWindow.erase( it ) ;
             --_clCount ;
          }
       }
    }
 
-   void _clsFreezingWindow::_blockCheck( const _clsFreezingWindow::OP_SET &setID,
+   void _clsFreezingWindow::_unregisterCSInternal( const ossPoolString &name,
+                                                   UINT64 opID )
+   {
+      MAP_CS_WINDOW::iterator it = _mapCSWindow.find( name ) ;
+
+      if ( _mapCSWindow.end() != it )
+      {
+         it->second.erase( opID ) ;
+
+         if ( it->second.empty() )
+         {
+            _mapCSWindow.erase( it ) ;
+            --_clCount ;
+         }
+      }
+   }
+
+   void _clsFreezingWindow::_blockCheck( const CHAR *pName,
+                                         const _clsFreezingWindow::OP_SET &setID,
                                          UINT64 testOPID,
+                                         UINT64 testTransOPID,
+                                         _pmdEDUCB *cb,
                                          BOOLEAN &result,
                                          BOOLEAN &forceEnd )
    {
@@ -293,41 +568,126 @@ namespace engine
             forceEnd = TRUE ;
             break ;
          }
-         else if ( *cit < testOPID )
+         else if ( *cit < testOPID  )
          {
             // Should not break, we need to test if testOpID matches
             // the remaining blocking op IDs which may be the blocking op
             // itself
-            result = TRUE ;
+            if ( 0 == testTransOPID || *cit < testTransOPID )
+            {
+               result = TRUE ;
+            }
+            else if ( 0 != *pName ) /// Not whole
+            {
+               if ( NULL == ossStrchr( pName, '.' ) ) /// CS
+               {
+                  SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+                  dmsStorageUnitID suID = DMS_INVALID_CS ;
+                  _dmsStorageUnit *su = NULL ;
+
+                  if ( SDB_OK == dmsCB->nameToSUAndLock( pName, suID, &su ) )
+                  {
+                     dpsTransLockId lockID( su->LogicalCSID(),
+                                            DMS_INVALID_MBID,
+                                            NULL ) ;
+                     if ( cb->getTransExecutor()->countLock( lockID ) <= 0 )
+                     {
+                        result = TRUE ;
+                     }
+
+                     dmsCB->suUnlock( suID ) ;
+                  }
+                  else
+                  {
+                     result = TRUE ;
+                  }
+               }
+               else  /// CL
+               {
+                  SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+                  _dmsStorageUnit *su = NULL ;
+                  const CHAR *pShortName = NULL ;
+                  dmsStorageUnitID suID = DMS_INVALID_CS ;
+                  UINT16 collectionID = DMS_INVALID_MBID ;
+
+                  if ( SDB_OK == rtnResolveCollectionNameAndLock( pName, dmsCB,
+                                                                  &su,
+                                                                  &pShortName,
+                                                                  suID ) )
+                  {
+                     if ( SDB_OK == su->data()->findCollection( pShortName,
+                                                                collectionID ) )
+                     {
+                        dpsTransLockId lockID( su->LogicalCSID(),
+                                               collectionID,
+                                               NULL ) ;
+                        if ( cb->getTransExecutor()->countLock( lockID ) <= 0 )
+                        {
+                           result = TRUE ;
+                        }
+                     }
+                     else
+                     {
+                        result = TRUE ;
+                     }
+
+                     dmsCB->suUnlock( suID ) ;
+                  }
+                  else
+                  {
+                     result = TRUE ;
+                  }
+               }
+            }
          }
          ++cit ;
       }
    }
 
-   BOOLEAN _clsFreezingWindow::needBlockOpr( const CHAR *pName,
-                                             UINT64 testOpID )
+   BOOLEAN _clsFreezingWindow::needBlockOpr( const ossPoolString &name,
+                                             UINT64 testOpID,
+                                             UINT64 testTransOpID,
+                                             _pmdEDUCB *cb )
    {
       MAP_WINDOW::iterator it ;
+      MAP_CS_WINDOW::iterator itCS ;
       BOOLEAN needBlock = FALSE ;
       BOOLEAN forceEnd = FALSE ;
 
-      _latch.get() ;
+      ossScopedLock lock( &_latch ) ;
 
       /// whole block check
       if ( !_setWholeID.empty() )
       {
-         _blockCheck( _setWholeID, testOpID, needBlock, forceEnd ) ;
+         _blockCheck( "", _setWholeID, testOpID,
+                      testTransOpID, cb, needBlock, forceEnd ) ;
+         if ( forceEnd )
+         {
+            goto done ;
+         }
       }
 
-      if ( !forceEnd &&
-           !_mapWindow.empty() &&
-           _mapWindow.end() != ( it = _mapWindow.find( pName ) ) )
+      /// cs block check
+      if ( !_mapCSWindow.empty() &&
+           _mapCSWindow.end() != ( itCS = _mapCSWindow.find( name ) ) )
       {
-         _blockCheck( it->second, testOpID, needBlock, forceEnd ) ;
+         _blockCheck( itCS->first._name.c_str(), itCS->second, testOpID,
+                      testTransOpID, cb, needBlock, forceEnd ) ;
+         if ( forceEnd )
+         {
+            goto done ;
+         }
       }
 
-      _latch.release() ;
+      /// cl block check
+      if ( !_mapWindow.empty() &&
+           _mapWindow.end() != ( it = _mapWindow.find( name ) ) )
+      {
+         _blockCheck( it->first.c_str(), it->second, testOpID,
+                      testTransOpID, cb, needBlock, forceEnd ) ;
+      }
 
+   done:
       return needBlock ;
    }
 
@@ -336,32 +696,54 @@ namespace engine
                                          BOOLEAN isWrite )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN hasBlock = FALSE ;
 
       if ( isWrite && _clCount > 0 )
       {
-         string clName = pName ;
-         BOOLEAN needBlock = TRUE ;
-         MAP_WINDOW::iterator it ;
-         UINT64 opID = cb->getWritingID() ;
-
-         while( needBlock )
+         try
          {
-            if ( cb->isInterrupted() )
-            {
-               rc = SDB_APP_INTERRUPT ;
-               break ;
-            }
+            ossPoolString clName( pName ) ;
+            BOOLEAN needBlock = TRUE ;
+            MAP_WINDOW::iterator it ;
+            UINT64 opID = cb->getWritingID() ;
+            UINT64 transOpID = cb->getTransWritingID() ;
 
-            needBlock = needBlockOpr( clName.c_str(), opID ) ;
-
-            if ( needBlock )
+            while( needBlock )
             {
-               _event.reset() ;
-               _event.wait( OSS_ONE_SEC ) ;
+               if ( cb->isInterrupted() )
+               {
+                  rc = SDB_APP_INTERRUPT ;
+                  break ;
+               }
+
+               needBlock = needBlockOpr( clName, opID, transOpID, cb ) ;
+               if ( needBlock )
+               {
+                  if ( !hasBlock )
+                  {
+                     cb->setBlock( EDU_BLOCK_FREEZING_WND, "" ) ;
+                     cb->printInfo( EDU_INFO_DOING,
+                                    "Waiting for freezing window(Name:%s)",
+                                    pName ) ;
+                     hasBlock = TRUE ;
+                  }
+
+                  _event.reset() ;
+                  _event.wait( OSS_ONE_SEC ) ;
+               }
             }
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          }
       }
 
+      if ( hasBlock )
+      {
+         cb->unsetBlock() ;
+      }
       return rc ;
    }
 
@@ -2582,7 +2964,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsShardMgr::_onQueryCSInfoRsp( NET_HANDLE handle, MsgHeader * msg )
+   INT32 _clsShardMgr::_onQueryCSInfoRsp( NET_HANDLE handle, MsgHeader *msg )
    {
       INT32 rc = SDB_OK ;
       clsCSEventItem *csItem = NULL ;
@@ -2658,66 +3040,75 @@ namespace engine
          SDB_ASSERT ( numReturned == 1 && objList.size() == 1,
                       "Collection space item num must be 1" ) ;
 
-         //signal collection info event
-         ele = objList[0].getField ( CAT_PAGE_SIZE_NAME ) ;
-         if ( ele.isNumber() )
+         try
          {
-            csItem->pageSize = (UINT32)ele.numberInt() ;
-         }
-         else
-         {
-            csItem->pageSize = DMS_PAGE_SIZE_DFT ;
-         }
+            //signal collection info event
+            ele = objList[0].getField ( CAT_PAGE_SIZE_NAME ) ;
+            if ( ele.isNumber() )
+            {
+               csItem->pageSize = (UINT32)ele.numberInt() ;
+            }
+            else
+            {
+               csItem->pageSize = DMS_PAGE_SIZE_DFT ;
+            }
 
-         ele = objList[0].getField( CAT_LOB_PAGE_SZ_NAME ) ;
-         if ( ele.isNumber() )
-         {
-            csItem->lobPageSize = (UINT32)ele.numberInt() ;
-         }
-         else
-         {
-            csItem->lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
-         }
+            ele = objList[0].getField( CAT_LOB_PAGE_SZ_NAME ) ;
+            if ( ele.isNumber() )
+            {
+               csItem->lobPageSize = (UINT32)ele.numberInt() ;
+            }
+            else
+            {
+               csItem->lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
+            }
 
-         ele = objList[0].getField( CAT_TYPE_NAME ) ;
-         if ( ele.isNumber() &&
-              (INT32)DMS_STORAGE_CAPPED == ele.numberInt() )
-         {
-            csItem->type = DMS_STORAGE_CAPPED ;
-         }
-         else
-         {
-            csItem->type = DMS_STORAGE_NORMAL ;
-         }
+            ele = objList[0].getField( CAT_TYPE_NAME ) ;
+            if ( ele.isNumber() &&
+                 (INT32)DMS_STORAGE_CAPPED == ele.numberInt() )
+            {
+               csItem->type = DMS_STORAGE_CAPPED ;
+            }
+            else
+            {
+               csItem->type = DMS_STORAGE_NORMAL ;
+            }
 
-         ele = objList[0].getField( CAT_COLLECTION_SPACE_NAME ) ;
-         if ( ele.type() == String )
-         {
-            csItem->csName = ele.str() ;
-         }
+            ele = objList[0].getField( CAT_COLLECTION_SPACE_NAME ) ;
+            if ( ele.type() == String )
+            {
+               csItem->csName = ele.str() ;
+            }
 
-         ele = objList[0].getField( CAT_CS_UNIQUEID ) ;
-         if ( ele.eoo() )
-         {
-            // it is ok, catalog hasn't been upgraded to new version.
-            csItem->csUniqueID = UTIL_UNIQUEID_NULL ;
-         }
-         else if ( ele.isNumber() )
-         {
-            csItem->csUniqueID = ( utilCSUniqueID ) ele.numberInt() ;
-         }
-         else
-         {
-            csItem->csUniqueID = UTIL_UNIQUEID_NULL ;
-         }
+            ele = objList[0].getField( CAT_CS_UNIQUEID ) ;
+            if ( ele.eoo() )
+            {
+               // it is ok, catalog hasn't been upgraded to new version.
+               csItem->csUniqueID = UTIL_UNIQUEID_NULL ;
+            }
+            else if ( ele.isNumber() )
+            {
+               csItem->csUniqueID = ( utilCSUniqueID ) ele.numberInt() ;
+            }
+            else
+            {
+               csItem->csUniqueID = UTIL_UNIQUEID_NULL ;
+            }
 
-         // eg:
-         // { "Collection": [ { "Name": "bar1", "UniqueID": 2667174690817 } ,
-         //                   { "Name": "bar2", "UniqueID": 2667174690818 } ] }
-         ele = objList[0].getField( CAT_COLLECTION ) ;
-         if ( Array == ele.type() )
+            // eg:
+            // { "Collection": [ { "Name": "bar1", "UniqueID": 2667174690817 } ,
+            //                   { "Name": "bar2", "UniqueID": 2667174690818 } ] }
+            ele = objList[0].getField( CAT_COLLECTION ) ;
+            if ( Array == ele.type() )
+            {
+               csItem->clInfo = ele.embeddedObject().getOwned() ;
+            }
+         }
+         catch( std::exception &e )
          {
-            csItem->clInfo = ele.embeddedObject().getOwned() ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+            goto error ;
          }
       }
 

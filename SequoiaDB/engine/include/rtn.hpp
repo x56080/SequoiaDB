@@ -105,19 +105,21 @@ namespace engine
                               _rtnInternalSorting &sorter,
                               UINT32 &levels, UINT32 &pages ) ;
 
-   INT32 rtnInsert ( const CHAR *pCollectionName, BSONObj &objs, INT32 objNum,
+   INT32 rtnInsert ( const CHAR *pCollectionName,
+                     const BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb,
                      utilInsertResult *pResult = NULL ) ;
 
    // for insert/update/delete, if dpsCB = NULL, that means we don't log
-   INT32 rtnInsert ( const CHAR *pCollectionName, BSONObj &objs, INT32 objNum,
+   INT32 rtnInsert ( const CHAR *pCollectionName,
+                     const BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                      SDB_DPSCB *dpsCB, INT16 w = 1,
                      utilInsertResult *pResult = NULL ) ;
 
    // for replaying insert operation. Only one record will be inserted in one
    // call.
-   INT32 rtnReplayInsert( const CHAR *pCollectionName, BSONObj &obj,
+   INT32 rtnReplayInsert( const CHAR *pCollectionName, const BSONObj &obj,
                           INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                           SDB_DPSCB *dpsCB, INT16 w = 1,
                           utilInsertResult *pResult = NULL ) ;
@@ -418,7 +420,8 @@ namespace engine
                                       const CHAR *newCLShortName,
                                       _pmdEDUCB *cb,
                                       SDB_DMSCB *dmsCB,
-                                      SDB_DPSCB *dpsCB ) ;
+                                      SDB_DPSCB *dpsCB,
+                                      BOOLEAN blockWrite ) ;
 
    INT32 rtnTruncCollectionCommand( const CHAR *pCollection,
                                     _pmdEDUCB *cb,
@@ -429,7 +432,8 @@ namespace engine
                                            const CHAR *pNewCSName,
                                            _pmdEDUCB *cb,
                                            SDB_DMSCB *dmsCB,
-                                           SDB_DPSCB *dpsCB ) ;
+                                           SDB_DPSCB *dpsCB,
+                                           BOOLEAN blockWrite ) ;
 
    INT32 rtnDropCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                          _pmdEDUCB *cb,

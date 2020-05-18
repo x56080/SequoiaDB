@@ -309,6 +309,7 @@ namespace engine
       public :
          virtual const CHAR * name () { return NAME_ALTER_COLLECTION_SPACE ; }
          virtual RTN_COMMAND_TYPE type () { return CMD_ALTER_COLLECTIONSPACE ; }
+         virtual const CHAR* spaceName() ;
 
       protected :
          virtual RTN_ALTER_OBJECT_TYPE _getObjectType () const

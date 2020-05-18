@@ -927,6 +927,12 @@ namespace engine
    {
    }
 
+   const CHAR* _rtnAlterCollectionSpace::spaceName()
+   {
+      return ( NULL != _alterJob &&
+               RTN_ALTER_COLLECTION_SPACE == _alterJob->getObjectType() ) ?
+             _alterJob->getObjectName() : NULL ;
+   }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__CLSALTERCOLLECTIONSPACE__EXECTASK, "_rtnAlterCollectionSpace::_executeTask" )
    INT32 _rtnAlterCollectionSpace::_executeTask ( const CHAR * collectionSpace,

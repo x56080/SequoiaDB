@@ -55,7 +55,8 @@ namespace engine
    static BSONObj generateUpdator( const BSONObj &record ) ;
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNINSERT1, "rtnInsert" )
-   INT32 rtnInsert ( const CHAR *pCollectionName, BSONObj &objs, INT32 objNum,
+   INT32 rtnInsert ( const CHAR *pCollectionName,
+                     const BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb, utilInsertResult *pResult )
    {
       INT32 rc = SDB_OK ;
@@ -77,7 +78,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNINSERT2, "rtnInsert" )
-   INT32 rtnInsert ( const CHAR *pCollectionName, BSONObj &objs, INT32 objNum,
+   INT32 rtnInsert ( const CHAR *pCollectionName,
+                     const BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                      SDB_DPSCB *dpsCB, INT16 w, utilInsertResult *pResult )
    {
@@ -249,7 +251,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNREPLAYINERT, "rtnReplayInsert" )
-   INT32 rtnReplayInsert( const CHAR *pCollectionName, BSONObj &obj,
+   INT32 rtnReplayInsert( const CHAR *pCollectionName, const BSONObj &obj,
                           INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                           SDB_DPSCB *dpsCB, INT16 w,
                           utilInsertResult *pResult )

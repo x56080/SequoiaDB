@@ -67,7 +67,7 @@ namespace engine
 
       if ( CLS_REELECTION_LEVEL_NONE != _level )
       {
-         rc = _wait( timePassed, timeout, cb ) ;
+         rc = _wait( timePassed, timeout, cb, TRUE ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -180,6 +180,8 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4ALLWRITEDONE ) ;
       pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
       UINT32 writingCount = 0 ;
+      UINT32 transCount = 0 ;
+
       while ( timePassed < timeout )
       {
          if ( cb->isInterrupted() )
@@ -188,21 +190,20 @@ namespace engine
             goto error ;
          }
 
-         writingCount = eduMgr->getWritingEDUCount() ;
-         if ( 0 == writingCount )
+         writingCount = eduMgr->getWritingEDUCount( -1, 0, EDU_BLOCK_REELECT,
+                                                    dpsTransLockId(),
+                                                    &transCount ) ;
+         if ( 0 == writingCount || writingCount == transCount )
          {
+            rc = SDB_OK ;
             break ;
          }
 
          ossSleepsecs( 1 ) ;
          ++timePassed ;
+         rc = SDB_TIMEOUT ;
       }
 
-      if ( 0 < writingCount )
-      {
-         rc = SDB_TIMEOUT ;
-         goto error ;
-      }
    done:
       PD_TRACE_EXITRC( SDB__CLSREELECTION__WAIT4ALLWRITEDONE, rc ) ;
       return rc ;
@@ -263,7 +264,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _wait( timePassed, timeout, cb ) ;
+      rc = _wait( timePassed, timeout, cb, FALSE ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -277,9 +278,12 @@ namespace engine
 
    INT32 _clsReelection::_wait( UINT32 &timePassed,
                                 UINT32 timeout,
-                                pmdEDUCB *cb )
+                                pmdEDUCB *cb,
+                                BOOLEAN canSetBlock )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN hasBlock = FALSE ;
+
       while ( timePassed <= timeout )
       {
          if ( cb->isInterrupted() )
@@ -295,6 +299,11 @@ namespace engine
          }
          else if ( SDB_TIMEOUT == rc )
          {
+            if ( !hasBlock && canSetBlock )
+            {
+               cb->setBlock( EDU_BLOCK_REELECT, "Waiting for reelect" ) ;
+               hasBlock = TRUE ;
+            }
             rc = SDB_OK ;
             ++timePassed ;
             continue ;
@@ -311,7 +320,12 @@ namespace engine
          rc = SDB_TIMEOUT ;
          goto error ;
       }
+
    done:
+      if ( hasBlock )
+      {
+         cb->unsetBlock() ;
+      }
       return rc ;
    error:
       goto done ;

@@ -197,6 +197,13 @@ namespace engine
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Commit Time : %s (%llu)"OSS_NEWLINE,
                               strTime, header->_commitTime ) ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " Unique ID   : 0x%08x (%u)"OSS_NEWLINE,
+                              header->_csUniqueID, header->_csUniqueID ) ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              " Segment Size: %u"OSS_NEWLINE,
+                              header->_segmentSize ) ;
+
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
 

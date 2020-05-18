@@ -1592,7 +1592,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_INSERTRECORD, "_dmsStorageUnit::insertRecord" )
    INT32 _dmsStorageUnit::insertRecord ( const CHAR *pName,
-                                         BSONObj &record,
+                                         const BSONObj &record,
                                          pmdEDUCB *cb,
                                          SDB_DPSCB *dpscb,
                                          BOOLEAN mustOID,

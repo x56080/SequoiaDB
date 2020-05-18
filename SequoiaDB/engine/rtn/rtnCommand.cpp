@@ -108,6 +108,11 @@ namespace engine
       return NULL ;
    }
 
+   const CHAR *_rtnCommand::spaceName()
+   {
+      return NULL ;
+   }
+
    _rtnCmdBuilder::_rtnCmdBuilder ()
    {
       _pCmdInfoRoot = NULL ;
@@ -889,6 +894,11 @@ namespace engine
    BOOLEAN _rtnCreateCollectionspace::writable ()
    {
       return TRUE ;
+   }
+
+   const CHAR* _rtnCreateCollectionspace::spaceName()
+   {
+      return _spaceName ;
    }
 
    INT32 _rtnCreateCollectionspace::init ( INT32 flags, INT64 numToSkip,
@@ -1754,7 +1764,7 @@ namespace engine
       {
          rc = rtnRenameCollectionCommand( _csName, _clShortName,
                                           _newCLShortName, cb,
-                                          dmsCB, dpsCB ) ;
+                                          dmsCB, dpsCB, TRUE ) ;
          string clFullName, newCLFullName ;
          clFullName = _csName ;
          clFullName += "." ;
@@ -1879,7 +1889,7 @@ namespace engine
       else
       {
          rc = rtnRenameCollectionSpaceCommand( _oldName, _newName, cb,
-                                               dmsCB, dpsCB ) ;
+                                               dmsCB, dpsCB, TRUE ) ;
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CS,
                            _oldName, rc, "NewName:%s", _newName ) ;
       }

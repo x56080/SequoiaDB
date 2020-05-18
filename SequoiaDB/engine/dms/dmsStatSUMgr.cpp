@@ -100,7 +100,7 @@ namespace engine
       // exclusive lock SYSSTAT cb. this function should be called during
       // process initialization, so it shouldn't be called in parallel by
       // agents
-      DMSSYSSUMGR_XLOCK
+      DMSSYSSUMGR_XLOCK() ;
 
       // first to load collection space
       rc = rtnCollectionSpaceLock( DMS_STAT_SPACE_NAME, _dmsCB, TRUE,
@@ -114,13 +114,13 @@ namespace engine
                                                 DMS_PAGE_SIZE_MAX,
                                                 DMS_DO_NOT_CREATE_LOB,
                                                 DMS_STORAGE_NORMAL, TRUE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to create SYSSTAT collection "
-                      "space, rc: %d", rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create %s collection "
+                      "space, rc: %d", DMS_STAT_SPACE_NAME, rc ) ;
 
          rc = rtnCollectionSpaceLock ( DMS_STAT_SPACE_NAME, _dmsCB, TRUE,
                                        &_su, suID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to lock SYSSTAT collection space, "
-                      "rc: %d", rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock %s collection space, "
+                      "rc: %d", DMS_STAT_SPACE_NAME, rc ) ;
       }
       else if ( SDB_OK != rc )
       {

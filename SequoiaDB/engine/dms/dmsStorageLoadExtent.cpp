@@ -79,9 +79,9 @@ namespace engine
       {
          requestSize = DMS_MIN_EXTENT_SZ(_pageSize) ;
       }
-      else if ( requestSize > DMS_MAX_EXTENT_SZ )
+      else if ( requestSize > (INT32)DMS_MAX_EXTENT_SZ(_su->data()) )
       {
-         requestSize = DMS_MAX_EXTENT_SZ ;
+         requestSize = DMS_MAX_EXTENT_SZ(_su->data()) ;
       }
       else
       {

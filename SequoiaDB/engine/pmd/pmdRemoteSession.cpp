@@ -1094,6 +1094,8 @@ namespace engine
       _milliTimeout = _milliTimeoutHard ;
       totalUnReplyNum = getSubSessionCount( PMD_SSITR_UNREPLY ) ;
       ossTick startTimer ;
+      BOOLEAN hasBlock = FALSE ;
+      UINT32 waitTimes = 0 ;
 
       if ( monQuery )
       {
@@ -1157,6 +1159,8 @@ namespace engine
          if ( !gotEvent )
          {
             _milliTimeout -= timeout ;
+            waitTimes += timeout ;
+
             if ( 0 == replyNum || waitAll )
             {
                if ( _milliTimeout <= 0 )
@@ -1172,6 +1176,29 @@ namespace engine
                   _milliTimeout = 1 ;
                }
                goto done ;
+            }
+
+            /// get the first unreply sub-session
+            {
+               _pEDUCB->setBlock( EDU_BLOCK_WAITREPLY, "" ) ;
+               _pEDUCB->printInfo( EDU_INFO_DOING,
+                                   "Waiting for node(Num:%u) reply:",
+                                   totalUnReplyNum ) ;
+               hasBlock = TRUE ;
+
+               /// Print detial nodes
+               if ( waitTimes > 2 * OSS_ONE_SEC )
+               {
+                  pmdSubSessionItr itr = getSubSessionItr( PMD_SSITR_UNREPLY ) ;
+                  while ( itr.more() )
+                  {
+                     MsgRouteID tmpNodeID = itr.next()->getNodeID() ;
+                     _pEDUCB->appendInfo( EDU_INFO_DOING,
+                                          " (%u.%u)",
+                                          tmpNodeID.columns.groupID,
+                                          tmpNodeID.columns.nodeID ) ;
+                  }
+               }
             }
             continue ;
          }

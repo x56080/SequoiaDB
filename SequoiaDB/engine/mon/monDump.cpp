@@ -2598,8 +2598,10 @@ namespace engine
          ob.append( FIELD_NAME_SESSIONID, (INT64)full._eduID ) ;
          ob.append( FIELD_NAME_TID, full._tid ) ;
          ob.append( FIELD_NAME_STATUS, full._eduStatus ) ;
+         ob.appendBool( FIELD_NAME_ISBLOCKED, full._isBlock ) ;
          ob.append( FIELD_NAME_TYPE, full._eduType ) ;
          ob.append( FIELD_NAME_EDUNAME, full._eduName ) ;
+         ob.append( FIELD_NAME_DOING, full._doing ) ;
          ob.append( FIELD_NAME_SOURCE, full._source ) ;
          ob.append( FIELD_NAME_QUEUE_SIZE, full._queueSize ) ;
          ob.append( FIELD_NAME_PROCESS_EVENT_COUNT,

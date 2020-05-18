@@ -1100,11 +1100,10 @@ namespace engine
       {
          // inc dps log version
          sdbGetDPSCB()->incVersion() ;
-
-         if ( SDB_ROLE_DATA == pmdGetDBRole() &&
-              0 == pDmsCB->nullCSUniqueIDCnt() )
+         // start namecheck
+         if ( SDB_ROLE_DATA == pmdGetDBRole() )
          {
-            startNameCheckJob() ;
+            clsStartRenameCheckJobs() ;
          }
       }
       // if we are switching to slave, let's interrupt all EDUs that doing write

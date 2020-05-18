@@ -73,7 +73,8 @@ namespace engine
 
       INT32 _wait( UINT32 &timePassed,
                    UINT32 timeout,
-                   pmdEDUCB *cb ) ;
+                   pmdEDUCB *cb,
+                   BOOLEAN canSetBlock ) ;
 
    private:
       _clsVoteMachine *_vote ;

@@ -52,6 +52,7 @@ namespace engine
       enableMask( UTIL_RESULT_MASK_IDX ) ;
       _insertedNum = 0 ;
       _duplicatedNum = 0 ;
+      _enableReturnID = FALSE ;
    }
 
    utilInsertResult::~utilInsertResult()
@@ -61,6 +62,8 @@ namespace engine
    void utilInsertResult::_resetStat()
    {
       utilWriteResult::_resetStat() ;
+
+      _returnIDObj = BSONObj() ;
 
       _insertedNum = 0 ;
       _duplicatedNum = 0 ;
@@ -111,6 +114,43 @@ namespace engine
    BOOLEAN utilInsertResult::isEnaleIndexErrInfo() const
    {
       return isMaskEnabled( UTIL_RESULT_MASK_IDX ) ;
+   }
+
+   void utilInsertResult::enableReturnIDInfo()
+   {
+      _enableReturnID = TRUE ;
+   }
+
+   void utilInsertResult::disableReturnIDInfo()
+   {
+      _enableReturnID = FALSE ;
+   }
+
+   BOOLEAN utilInsertResult::isEnableReturnIDInfo() const
+   {
+      return _enableReturnID ;
+   }
+
+   void utilInsertResult::setReturnIDByObj( const BSONObj &obj )
+   {
+      if ( _enableReturnID )
+      {
+         try
+         {
+            BSONObjBuilder builder( 30 ) ;
+            builder.append( obj.getField( DMS_ID_KEY_NAME ) ) ;
+            _returnIDObj = builder.obj() ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+         }
+      }
+   }
+
+   BSONObj utilInsertResult::getReturnIDObj() const
+   {
+      return _returnIDObj ;
    }
 
    /*

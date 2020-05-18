@@ -1172,6 +1172,7 @@ namespace engine
       UINT32 waitTime = 0 ;
       DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN expectLSN ;
+      BOOLEAN hasBlock = FALSE ;
 
       while ( SDB_OK == rc && PMD_IS_DB_AVAILABLE() )
       {
@@ -1209,6 +1210,13 @@ namespace engine
                        "waitTime: %d]", expectLSN.offset, offset,
                        threshTime, reqLen, waitTime ) ;
             }
+
+            if ( !hasBlock )
+            {
+               cb->setBlock( EDU_BLOCK_SYNCCONTROL,
+                             "Waiting for sync control" ) ;
+               hasBlock = TRUE ;
+            }
             ossSleep( CLS_SYNCCTRL_BASE_TIME ) ;
             waitTime += CLS_SYNCCTRL_BASE_TIME ;
          }
@@ -1228,6 +1236,10 @@ namespace engine
       }
 
    done:
+      if ( hasBlock )
+      {
+         cb->unsetBlock() ;
+      }
       if ( 0 == waitTime && _inSyncCtrl )
       {
          _inSyncCtrl = FALSE ;

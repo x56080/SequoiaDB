@@ -648,6 +648,7 @@ namespace engine
       }
       rc = pSU->open( orgFileName.c_str(),
                       _pSU->getPageSize(),
+                      _pSU->data()->getSegmentSize(),
                       createNew ) ;
       if ( rc )
       {

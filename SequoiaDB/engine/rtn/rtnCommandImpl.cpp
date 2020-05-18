@@ -1669,7 +1669,8 @@ namespace engine
                                            const CHAR *newCSName,
                                            _pmdEDUCB *cb,
                                            SDB_DMSCB *dmsCB,
-                                           SDB_DPSCB *dpsCB )
+                                           SDB_DPSCB *dpsCB,
+                                           BOOLEAN blockWrite )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNRENAMECSCOMMAND ) ;
@@ -1677,16 +1678,24 @@ namespace engine
       utilRenameLogger logger ;
 
       /// dms lock
-      // When two threads concurrently do rename, blockWrite() will report
-      // -148. We retry multiple times to reduce the error.
-      INT16 i = 0 ;
-      while ( ( rc = dmsCB->blockWrite( cb ) )  &&
-              ( i < RTN_RENAME_BLOCKWRITE_TIMES ) )
+      if ( blockWrite )
       {
-         ossSleep( RTN_RENAME_BLOCKWRITE_INTERAL ) ;
-         i++ ;
+         // When two threads concurrently do rename, blockWrite() will report
+         // -148. We retry multiple times to reduce the error.
+         INT16 i = 0 ;
+         while ( ( rc = dmsCB->blockWrite( cb ) )  &&
+                 ( i < RTN_RENAME_BLOCKWRITE_TIMES ) )
+         {
+            ossSleep( RTN_RENAME_BLOCKWRITE_INTERAL ) ;
+            i++ ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
       }
-      PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
+      else
+      {
+         rc = dmsCB->writable( cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
+      }
       lockDMS = TRUE ;
 
       /// log to .SEQUOIADB_RENAME_INFO
@@ -1716,7 +1725,14 @@ namespace engine
    done:
       if ( lockDMS )
       {
-         dmsCB->unblockWrite( cb ) ;
+         if ( blockWrite )
+         {
+            dmsCB->unblockWrite( cb ) ;
+         }
+         else
+         {
+            dmsCB->writeDown( cb ) ;
+         }
          lockDMS = FALSE ;
       }
       PD_TRACE_EXITRC ( SDB_RTNRENAMECSCOMMAND, rc ) ;
@@ -1941,7 +1957,8 @@ namespace engine
                                       const CHAR *newCLShortName,
                                       _pmdEDUCB *cb,
                                       SDB_DMSCB *dmsCB,
-                                      SDB_DPSCB *dpsCB )
+                                      SDB_DPSCB *dpsCB,
+                                      BOOLEAN blockWrite )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNRENAMECLCOMMAND ) ;
@@ -1951,14 +1968,22 @@ namespace engine
 
       // When two threads concurrently do rename, blockWrite() will report
       // -148. We retry multiple times to reduce the error.
-      INT16 i = 0 ;
-      while ( ( rc = dmsCB->blockWrite( cb ) )  &&
-              ( i < RTN_RENAME_BLOCKWRITE_TIMES ) )
+      if ( blockWrite )
       {
-         ossSleep( RTN_RENAME_BLOCKWRITE_INTERAL ) ;
-         i++ ;
+         INT16 i = 0 ;
+         while ( ( rc = dmsCB->blockWrite( cb ) )  &&
+                 ( i < RTN_RENAME_BLOCKWRITE_TIMES ) )
+         {
+            ossSleep( RTN_RENAME_BLOCKWRITE_INTERAL ) ;
+            i++ ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
       }
-      PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
+      else
+      {
+         rc = dmsCB->writable( cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
+      }
       lockDMS = TRUE ;
 
       rc = rtnCollectionSpaceLock ( csName, dmsCB, FALSE,
@@ -1983,7 +2008,14 @@ namespace engine
       }
       if ( lockDMS )
       {
-         dmsCB->unblockWrite( cb ) ;
+         if ( blockWrite )
+         {
+            dmsCB->unblockWrite( cb ) ;
+         }
+         else
+         {
+            dmsCB->writeDown( cb ) ;
+         }
          lockDMS = FALSE ;
       }
       PD_TRACE_EXITRC ( SDB_RTNRENAMECLCOMMAND, rc ) ;

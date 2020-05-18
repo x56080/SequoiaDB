@@ -134,7 +134,8 @@ namespace engine
                   }
 
                   // limit to min and max range
-                  totalSize = OSS_MIN ( totalSize, DMS_MAX_EXTENT_SZ ) ;
+                  totalSize = OSS_MIN ( totalSize,
+                                        DMS_MAX_EXTENT_SZ(su->data()) ) ;
 
                   pData = extRW.readPtr( 0, totalSize ) ;
                   if ( pData )

@@ -112,38 +112,104 @@ namespace engine
    */
    class _clsFreezingWindow : public SDBObject
    {
-      typedef ossPoolSet< UINT64 >              OP_SET ;
-      typedef ossPoolMap< std::string, OP_SET > MAP_WINDOW ;
+      typedef ossPoolSet< UINT64 >                 OP_SET ;
+      typedef ossPoolMap< ossPoolString, OP_SET >  MAP_WINDOW ;
+
+      typedef struct _csKeyName
+      {
+         ossPoolString        _name ;
+
+         _csKeyName( const ossPoolString &name )
+         {
+            _name = name ;
+         }
+
+         _csKeyName()
+         {
+         }
+
+         bool operator< ( const _csKeyName &rhs ) const
+         {
+            UINT32 llen = _name.length() ;
+            UINT32 rlen = rhs._name.length() ;
+            UINT32 len = llen <= rlen ? llen : rlen ;
+
+            INT32 cmp = ossStrncmp( _name.c_str(), rhs._name.c_str(), len ) ;
+            if ( 0 == cmp && llen == len && rlen != len &&
+                 '.' != rhs._name[len] )
+            {
+               cmp = -1 ;
+            }
+
+            return cmp < 0 ? true : false ;
+         }
+
+         bool operator== ( const _csKeyName &rhs ) const
+         {
+            UINT32 llen = _name.length() ;
+            UINT32 rlen = rhs._name.length() ;
+            UINT32 len = llen <= rlen ? llen : rlen ;
+
+            INT32 cmp = ossStrncmp( _name.c_str(), rhs._name.c_str(), len ) ;
+            if ( 0 == cmp && ( llen == len || '.' == _name[len] ) &&
+                 ( rlen == len || '.' == rhs._name[len] ) )
+            {
+               return true ;
+            }
+            return false ;
+         }
+
+      } csKeyName ;
+
+      typedef ossPoolMap< csKeyName, OP_SET >   MAP_CS_WINDOW ;
 
       public:
          _clsFreezingWindow() ;
          ~_clsFreezingWindow() ;
 
-         void registerCL ( const CHAR * pName, const CHAR * pMainCLName,
-                           UINT64 & opID ) ;
-         void unregisterCL ( const CHAR * pName, const CHAR * pMainCLName,
-                             UINT64 opID ) ;
-         void unregisterAll() ;
+         INT32 registerCL ( const CHAR *pName, UINT64 &opID ) ;
+         void  unregisterCL ( const CHAR *pName, UINT64 opID ) ;
 
-         BOOLEAN needBlockOpr( const CHAR *pName, UINT64 testOpID ) ;
+         INT32 registerCS ( const CHAR *pName, UINT64 &opID ) ;
+         void  unregisterCS ( const CHAR *pName, UINT64 opID ) ;
+
+         INT32 registerWhole( UINT64 &opID ) ;
+         void  unregisterWhole( UINT64 opID ) ;
+
+         void  unregisterAll() ;
 
          INT32 waitForOpr( const CHAR *pName,
                            _pmdEDUCB *cb,
                            BOOLEAN isWrite ) ;
 
-      private :
-         void _registerCLInternal ( const CHAR * pName, UINT64 opID ) ;
-         void _unregisterCLInternal ( const CHAR * pName, UINT64 opID ) ;
-         void _regWholeInternal( UINT64 opID ) ;
-         void _unregWholeInternal( UINT64 opID ) ;
+         BOOLEAN needBlockOpr( const ossPoolString &name,
+                               UINT64 testOpID,
+                               UINT64 testTransOpID,
+                               _pmdEDUCB *cb ) ;
 
-         void _blockCheck( const OP_SET &setID, UINT64 testOPID,
-                           BOOLEAN &result,
-                           BOOLEAN &forceEnd ) ;
+      private :
+         INT32 _registerCLInternal ( const ossPoolString &name, UINT64 opID ) ;
+         void  _unregisterCLInternal ( const ossPoolString &name, UINT64 opID ) ;
+         INT32 _registerCSInternal( const ossPoolString &name, UINT64 opID ) ;
+         void  _unregisterCSInternal( const ossPoolString &name, UINT64 opID ) ;
+         INT32 _regWholeInternal( UINT64 opID ) ;
+         void  _unregWholeInternal( UINT64 opID ) ;
+
+         void  _blockCheck( const CHAR *pName,
+                            const OP_SET &setID,
+                            UINT64 testOPID,
+                            UINT64 testTransOPID,
+                            _pmdEDUCB *cb,
+                            BOOLEAN &result,
+                            BOOLEAN &forceEnd ) ;
+
+         void  _unregisterCLByIter ( const CHAR * pName, UINT64 opID ) ;
+         void  _unregisterCSByIter ( const CHAR * pName, UINT64 opID ) ;
 
       private:
          volatile UINT32   _clCount ;
          MAP_WINDOW        _mapWindow ;
+         MAP_CS_WINDOW     _mapCSWindow ;
          OP_SET            _setWholeID ;
          ossSpinXLatch     _latch ;
          ossEvent          _event ;

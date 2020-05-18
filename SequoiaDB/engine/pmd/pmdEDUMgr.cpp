@@ -982,35 +982,88 @@ namespace engine
    }
 
    UINT32 _pmdEDUMgr::_getWritingEDUCount( INT32 eduTypeFilter,
-                                           UINT64 idThreshold )
+                                           UINT64 idThreshold,
+                                           INT32 excludeBlockType,
+                                           const dpsTransLockId &lockID,
+                                           UINT32 *pTransCnt )
    {
       pmdEDUCB *cb = NULL ;
       UINT32 eduCount = 0 ;
+      UINT32 transCnt = 0 ;
       MAP_EDUCB_IT it ;
+      UINT64 opID = 0 ;
+      UINT64 transOpID = 0 ;
+      UINT64 minID = 0 ;
+      pmdEDUCB *self = pmdGetThreadEDUCB() ;
 
       _latch.get_shared() ;
 
       for ( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
       {
          cb = it->second ;
-         if ( cb->isWritingDB() )
+
+         opID = cb->getWritingID() ;
+         transOpID = cb->getTransWritingID() ;
+
+         if ( self == cb )
          {
+            continue ;
+         }
+         else if ( cb->isWritingDB() || 0 != transOpID )
+         {
+            minID = opID ;
+            if ( 0 == minID || ( 0 != transOpID && transOpID < minID ) )
+            {
+               minID = transOpID ;
+            }
+
             if ( -1 != eduTypeFilter && eduTypeFilter != cb->getType() )
             {
                continue ;
             }
-            else if ( 0 != idThreshold && cb->getWritingID() > idThreshold )
+            else if ( 0 != idThreshold && minID > idThreshold )
             {
                continue ;
             }
+            else if ( -1 == excludeBlockType && cb->isBlocked() )
+            {
+               continue ;
+            }
+            else if ( 0 != excludeBlockType &&
+                      excludeBlockType == cb->getBlockType() )
+            {
+               continue ;
+            }
+#if defined ( SDB_ENGINE )
+            else if ( 0 == opID || ( 0 != idThreshold && opID > idThreshold ) )
+            {
+               if ( lockID.isValid() &&
+                    0 == cb->getTransExecutor()->countLock( lockID,
+                                                            DPS_TRANSLOCK_IX,
+                                                            LOCKMGR_TRANS_LOCK,
+                                                            TRUE ) )
+               {
+                  continue ;
+               }
+               else
+               {
+                  ++transCnt ;
+               }
+            }
+#endif // SDB_ENGINE
 
             PD_LOG ( PDDEBUG, "Session [%lld] TID [%u] writing ID [%llu] "
                      "is writing", cb->getID(), cb->getTID(),
-                     cb->getWritingID() ) ;
+                     minID ) ;
             ++eduCount ;
          }
       }
       _latch.release_shared() ;
+
+      if ( pTransCnt )
+      {
+         *pTransCnt = transCnt ;
+      }
 
       return eduCount ;
    }
@@ -1061,9 +1114,14 @@ namespace engine
    }
 
    UINT32 _pmdEDUMgr::getWritingEDUCount( INT32 eduTypeFilter,
-                                          UINT64 idThreshold )
+                                          UINT64 idThreshold,
+                                          INT32 excludeBlockType,
+                                          const dpsTransLockId &lockID,
+                                          UINT32 *pTransCnt )
    {
-      return _getWritingEDUCount( eduTypeFilter, idThreshold ) ;
+      return _getWritingEDUCount( eduTypeFilter, idThreshold,
+                                  excludeBlockType, lockID,
+                                  pTransCnt ) ;
    }
 
    void _pmdEDUMgr::resetIOService()

@@ -220,13 +220,15 @@ namespace engine
                                       const BSONObj &orderBy,
                                       BOOLEAN &result ) ;
          INT32 _insertToMainCL( BSONObj &objs, INT32 objNum, INT32 flags,
-                                INT16 w, utilInsertResult &inResult ) ;
+                                INT16 w, BOOLEAN onlyCheck,
+                                utilInsertResult &inResult ) ;
 
          INT32 _queryToMainCL( rtnQueryOptions &options,
                                pmdEDUCB *cb,
                                SINT64 &contextID,
                                _rtnContextBase **ppContext = NULL,
-                               INT16 w = 1 ) ;
+                               INT16 w = 1,
+                               BOOLEAN isWrite = FALSE ) ;
          INT32 _updateToMainCL( rtnQueryOptions &options,
                                 const BSONObj &updator,
                                 pmdEDUCB *cb,
@@ -293,10 +295,12 @@ namespace engine
 
          INT32 _getSubCLList( const BSONObj &matcher,
                               const CHAR *pCollectionName,
+                              BOOLEAN isWrite,
                               BSONObj &boNewMatcher,
                               CLS_SUBCL_LIST &strSubCLList ) ;
 
          INT32 _getSubCLList( const CHAR *pCollectionName,
+                              BOOLEAN isWrite,
                               CLS_SUBCL_LIST &subCLList ) ;
 
          INT32 _sortSubCLListByBound( const CHAR *pCollectionName,

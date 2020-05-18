@@ -338,15 +338,16 @@ namespace engine
          UINT32 logicalCSID = DMS_INVALID_LOGICCSID ;
          dmsStorageUnit * su = NULL ;
 
-         _releaseTransaction( cb ) ;
-
          rc = _dmsCB->nameToSUAndLock( collectionSpace, suID, &su ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to lock collection space [%s], "
                       "rc: %d", collectionSpace, rc ) ;
          logicalCSID = su->LogicalCSID() ;
          _dmsCB->suUnlock( suID ) ;
 
-         rc = _transCB->transLockTryX( cb, logicalCSID, DMS_INVALID_MBID,
+         /*
+         Modified by Xujianhui: Alter collection don't need trans lock
+
+         rc = _transCB->transLockTryS( cb, logicalCSID, DMS_INVALID_MBID,
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get transaction-lock of "
                       "collection space [%s], rc: %d"OSS_NEWLINE
@@ -360,6 +361,7 @@ namespace engine
                       lockConflict._tid,
                       lockConflict._lockID.toString().c_str(),
                       lockModeToString( lockConflict._lockType ) ) ;
+         */
 
          _logicalCSID = logicalCSID ;
       }
@@ -381,7 +383,11 @@ namespace engine
       if ( NULL != cb && NULL != getDPSCB() &&
            DMS_INVALID_LOGICCSID != _logicalCSID )
       {
+         /*
+         Modified by Xujianhui: Alter collection don't need trans lock
+
          _transCB->transLockRelease( cb, _logicalCSID ) ;
+         */
          _logicalCSID = DMS_INVALID_LOGICCSID ;
       }
 
@@ -555,12 +561,14 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get mb context with exclusive lock, "
                    "rc: %d", rc ) ;
 
-      if ( NULL != getDPSCB() && _transCB->isTransOn() )
+      if ( NULL != getDPSCB() )
       {
          dpsTransRetInfo lockConflict ;
-         _releaseTransaction( cb ) ;
 
-         rc = _transCB->transLockTryX( cb, _su->LogicalCSID(),
+         /*
+         Modified by Xujianhui: Alter collection don't need trans lock
+
+         rc = _transCB->transLockTryS( cb, _su->LogicalCSID(),
                                        _mbContext->mbID(),
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get transaction-lock of "
@@ -575,6 +583,7 @@ namespace engine
                       lockConflict._tid,
                       lockConflict._lockID.toString().c_str(),
                       lockModeToString( lockConflict._lockType ) ) ;
+         */
 
          _logicalCSID = _su->LogicalCSID() ;
          _mbID = _mbContext->mbID() ;
@@ -597,7 +606,11 @@ namespace engine
       if ( NULL != cb && DMS_INVALID_LOGICCSID != _logicalCSID &&
            DMS_INVALID_MBID != _mbID )
       {
+         /*
+         Modified by Xujianhui: Alter collection don't need trans lock
+
          _transCB->transLockRelease( cb, _logicalCSID, _mbID ) ;
+         */
          _logicalCSID = DMS_INVALID_LOGICCSID ;
          _mbID = DMS_INVALID_MBID ;
       }

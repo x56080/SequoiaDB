@@ -513,6 +513,8 @@ namespace engine
       // only add CS or CL lock into the map
       if ( ! lockID.isLeafLevel() )
       {
+         ossScopedLock lock( &_mapMutex ) ;
+
          if ( _mapCSCLLockID[ lockMgrType ].insert(
                   std::make_pair( lockID, lrb ) ).second )
          {
@@ -524,19 +526,33 @@ namespace engine
 
    BOOLEAN _dpsTransExecutor::findLock( const dpsTransLockId &lockID,
                                         dpsTransLRB * &lrb,
-                                        LOCKMGR_TYPE lockMgrType ) const
+                                        LOCKMGR_TYPE lockMgrType,
+                                        BOOLEAN needLock )
    {
+      BOOLEAN hasFound = FALSE ;
+
       // only search the map if it is CS or CL lock
       if ( ! lockID.isLeafLevel() )
       {
+         if ( needLock )
+         {
+            _mapMutex.get() ;
+         }
+
          DPS_LOCKID_MAP_CIT cit = _mapCSCLLockID[ lockMgrType ].find( lockID ) ;
          if ( cit != _mapCSCLLockID[ lockMgrType ].end() )
          {
             lrb = cit->second ;
-            return TRUE ;
+            hasFound = TRUE ;
+         }
+
+         if ( needLock )
+         {
+            _mapMutex.release() ;
          }
       }
-      return FALSE ;
+
+      return hasFound ;
    }
 
    BOOLEAN _dpsTransExecutor::removeLock( const dpsTransLockId &lockID,
@@ -545,6 +561,8 @@ namespace engine
       // only do the remove if it is CS or CL lock
       if ( ! lockID.isLeafLevel() )
       {
+         ossScopedLock lock( &_mapMutex ) ;
+
          return _mapCSCLLockID[ lockMgrType ].erase( lockID ) ? TRUE : FALSE ;
       }
       return FALSE ;
@@ -552,7 +570,54 @@ namespace engine
 
    void _dpsTransExecutor::clearLock( LOCKMGR_TYPE lockMgrType )
    {
+      ossScopedLock lock( &_mapMutex ) ;
+
       _mapCSCLLockID[ lockMgrType ].clear() ;
+   }
+
+   UINT32 _dpsTransExecutor::countLock( const dpsTransLockId &lockID,
+                                        UINT8 lockType,
+                                        LOCKMGR_TYPE managerType,
+                                        BOOLEAN needLock )
+   {
+      UINT32 count = 0 ;
+      DPS_LOCKID_MAP_CIT cit ;
+
+      if ( !lockID.isValid() )
+      {
+         if ( needLock )
+         {
+            _mapMutex.get() ;
+         }
+
+         cit = _mapCSCLLockID[ managerType ].begin() ;
+         while ( cit != _mapCSCLLockID[ managerType ].end() )
+         {
+            const dpsTransLRB *lrb = cit->second ;
+            if ( -1 == lockType || lrb->lockMode == lockType )
+            {
+               count += lrb->refCounter ;
+            }
+            ++cit ;
+         }
+
+         if ( needLock )
+         {
+            _mapMutex.release() ;
+         }
+      }
+      else
+      {
+         dpsTransLRB *lrb = NULL ;
+
+         if ( findLock( lockID, lrb, managerType, needLock ) &&
+              ( -1 == lockType || lrb->lockMode == lockType ) )
+         {
+            count = lrb->refCounter ;
+         }
+      }
+
+      return count ;
    }
 
    void _dpsTransExecutor::incLockCount( LOCKMGR_TYPE lockMgrType )

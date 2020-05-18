@@ -56,6 +56,7 @@ namespace engine
       _buffSize = 0 ;
       ossMemset ( _fileName, 0, sizeof(_fileName) ) ;
       _pageSize = 0 ;
+      _segmentSize = 0 ;
       _headSize = 0 ;
       _readOnly = TRUE ;
    }
@@ -173,6 +174,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSROUNIT_OPEN, "_dmsReorgUnit::open" )
    INT32 _dmsReorgUnit::open ( const CHAR *pFileName,
                                SINT32 pageSize,
+                               UINT32 segmentSize,
                                BOOLEAN createNew )
    {
       INT32 rc = SDB_OK ;
@@ -180,6 +182,7 @@ namespace engine
 
       ossStrncpy ( _fileName, pFileName, OSS_MAX_PATHSIZE ) ;
       _pageSize = pageSize ;
+      _segmentSize = segmentSize ;
 
       // if this is creating new reorg, then we only allow creating a brandnew
       // file, that means if there's existing file, we will return error
@@ -236,9 +239,9 @@ namespace engine
       {
          requestSize = DMS_MIN_EXTENT_SZ(_pageSize) ;
       }
-      else if ( requestSize > DMS_MAX_EXTENT_SZ )
+      else if ( requestSize > (INT32)_segmentSize )
       {
-         requestSize = DMS_MAX_EXTENT_SZ ;
+         requestSize = _segmentSize ;
       }
       else
       {

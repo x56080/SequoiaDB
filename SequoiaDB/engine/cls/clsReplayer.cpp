@@ -1081,7 +1081,7 @@ namespace engine
                goto error ;
             }
             rc = rtnRenameCollectionCommand( cs, oldCl, newCl,
-                                             eduCB, _dmsCB, _dpsCB ) ;
+                                             eduCB, _dmsCB, _dpsCB, FALSE ) ;
             if ( SDB_DMS_NOTEXIST == rc )
             {
                INT32 rcTmp = SDB_OK ;
@@ -1128,7 +1128,8 @@ namespace engine
             while ( TRUE )
             {
                rc = rtnRenameCollectionSpaceCommand( oldName, newName,
-                                                     eduCB, _dmsCB, _dpsCB ) ;
+                                                     eduCB, _dmsCB, _dpsCB,
+                                                     FALSE ) ;
                if ( SDB_LOCK_FAILED == rc )
                {
                   ossSleep ( 100 ) ;
@@ -1138,7 +1139,8 @@ namespace engine
             }
 #else
             rc = rtnRenameCollectionSpaceCommand( oldName, newName,
-                                                  eduCB, _dmsCB, _dpsCB ) ;
+                                                  eduCB, _dmsCB, _dpsCB,
+                                                  FALSE ) ;
 #endif
             if ( SDB_DMS_CS_NOTEXIST == rc )
             {
@@ -1752,7 +1754,7 @@ namespace engine
                goto error ;
             }
             rc = rtnRenameCollectionCommand( cs, newCl, oldCl,
-                                             eduCB, _dmsCB, _dpsCB ) ;
+                                             eduCB, _dmsCB, _dpsCB, FALSE ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to rename cs[%s] cl %s to %s, rc: %d",
@@ -1773,7 +1775,8 @@ namespace engine
                goto error ;
             }
             rc = rtnRenameCollectionSpaceCommand( newName, oldName,
-                                                  eduCB, _dmsCB, _dpsCB ) ;
+                                                  eduCB, _dmsCB, _dpsCB,
+                                                  FALSE ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to rename %s to %s, rc: %d",

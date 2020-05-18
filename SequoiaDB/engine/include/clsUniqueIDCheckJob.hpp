@@ -36,8 +36,11 @@
 #define CLS_UNIQUEID_CHECK_JOB_HPP__
 
 #include "rtnBackgroundJobBase.hpp"
+#include "utilLightJobBase.hpp"
+#include "rtnLocalTaskFactory.hpp"
 #include "monDMS.hpp"
 #include "clsMgr.hpp"
+
 using namespace std ;
 
 namespace engine
@@ -66,47 +69,36 @@ namespace engine
    INT32 startUniqueIDCheckJob ( EDUID* pEDUID ) ;
 
    /*
-    *  _clsNameCheckJob define
-    */
-   class _clsNameCheckJob : public _rtnBaseJob
+      _clsRenameCheckJob
+   */
+   class _clsRenameCheckJob : public _utilLightJob
    {
-   public:
-      _clsNameCheckJob ( UINT64 opID ) ;
-      virtual ~_clsNameCheckJob () ;
+      public:
+         _clsRenameCheckJob( const rtnLocalTaskPtr &taskPtr, UINT64 opID ) ;
+         virtual ~_clsRenameCheckJob() ;
 
-   public:
-      virtual RTN_JOB_TYPE type () const
-      {
-         return RTN_JOB_CLS_NAME_CHECK_BY_UNIQUEID ;
-      }
+         INT32                   init() ;
 
-      virtual const CHAR* name () const { return "Name-Check-By-UniqueID" ; }
+         virtual const CHAR*     name() const ;
+         virtual INT32           doit( IExecutor *pExe,
+                                       UTIL_LJOB_DO_RESULT &result,
+                                       UINT64 &sleepTime ) ;
 
-      virtual BOOLEAN muteXOn ( const _rtnBaseJob *pOther ) ;
+      protected:
+         void                    _release() ;
 
-      virtual INT32 doit () ;
+      protected:
+         UINT64                  _tick ;
+         clsFreezingWindow*      _pFreezeWindow ;
+         rtnLocalTaskPtr         _taskPtr ;
+         UINT64                  _opID ;
 
-   protected:
-      INT32 _renameCSCL( vector<monCSSimple>& csList, BOOLEAN unregCL ) ;
-
-      void _registerCLs( const vector<monCSSimple>& csList ) ;
-
-      void _unregisterCL( const string& clName ) ;
-
-      virtual void _onAttach() ;
-      virtual void _onDetach() ;
-
-   private:
-      UINT64 _opID ;
-      map<string, string> _mapRegisterCL ; // <failed cl name, its maincl name>
-      clsFreezingWindow* _pFreezeWindow ;
-      shardCB* _pShdMgr ;
-      BOOLEAN  _hasBlockGlobal ;
    } ;
+   typedef _clsRenameCheckJob clsRenameCheckJob ;
 
-   typedef _clsNameCheckJob clsNameCheckJob ;
+   INT32 clsStartRenameCheckJob( const rtnLocalTaskPtr &taskPtr, UINT64 opID ) ;
 
-   INT32 startNameCheckJob ( EDUID* pEDUID = NULL ) ;
+   INT32 clsStartRenameCheckJobs() ;
 
 }
 

@@ -34,6 +34,7 @@
 #include "clsUniqueIDCheckJob.hpp"
 #include "pmd.hpp"
 #include "dmsStorageUnit.hpp"
+#include "rtnLocalTask.hpp"
 #include "rtn.hpp"
 #include "clsTrace.hpp"
 
@@ -235,434 +236,444 @@ namespace engine
       goto done ;
    }
 
-   #define CLS_NAME_CHECK_PRIMARY_INTERAL    ( 100 )           /// ms
-   #define CLS_NAME_CHECK_DC_INTERAL         ( 100 )           /// ms
-   #define CLS_NAME_CHECK_INTERVAL           ( OSS_ONE_SEC )   /// ms
-
+   #define CLS_RENAME_RETRY_TIME             ( 3 * OSS_ONE_SEC )
+   #define CLS_RENAME_PRIMARY_TIMEOUT        ( 5 * OSS_ONE_SEC )
+   #define CLS_NAME_CHECK_PRIMARY_INTERVAL   ( 100 )  
    /*
-    *  _clsNameCheckJob implement
-    */
-   _clsNameCheckJob::_clsNameCheckJob( UINT64 opID )
-   : _opID( opID )
+      _clsRenameCheckJob implement
+   */
+   _clsRenameCheckJob::_clsRenameCheckJob( const rtnLocalTaskPtr &taskPtr,
+                                           UINT64 opID )
    {
-      _pShdMgr = sdbGetShardCB() ;
-      _pFreezeWindow = _pShdMgr->getFreezingWindow() ;
-      _hasBlockGlobal = FALSE ;
+      _tick = pmdGetDBTick() ;
+      shardCB *shardCB = pmdGetKRCB()->getClsCB()->getShardCB() ;
+      _pFreezeWindow = shardCB->getFreezingWindow() ;
+      _taskPtr = taskPtr ;
+      _opID = opID ;
    }
 
-   _clsNameCheckJob::~_clsNameCheckJob()
+   _clsRenameCheckJob::~_clsRenameCheckJob()
    {
+      _release() ;
    }
 
-   void _clsNameCheckJob::_onAttach()
+   void _clsRenameCheckJob::_release()
    {
-      _hasBlockGlobal = TRUE ;
-   }
-
-   void _clsNameCheckJob::_onDetach()
-   {
-      /// unregister collections and whole
-      if ( _hasBlockGlobal )
+      if ( 0 != _opID )
       {
-         _pFreezeWindow->unregisterCL( NULL, NULL, _opID ) ;
-      }
+         rtnLTRename *pRename = (rtnLTRename*)_taskPtr.get() ;
 
-      map<string, string>::iterator it = _mapRegisterCL.begin() ;
-      while( it != _mapRegisterCL.end() )
-      {
-         _pFreezeWindow->unregisterCL( it->first.c_str(),
-                                       it->second.c_str(),
-                                       _opID ) ;
-         ++it ;
+         if ( RTN_LOCAL_TASK_RENAMECS == _taskPtr->getTaskType() )
+         {
+            _pFreezeWindow->unregisterCS( pRename->getFrom(), _opID ) ;
+            PD_LOG( PDEVENT, "End to block all write operations of "
+                    "collectionspace(%s), ID: %llu",
+                    pRename->getFrom(), _opID ) ;
+         }
+         else
+         {
+            _pFreezeWindow->unregisterCL( pRename->getFrom(), _opID ) ;
+            PD_LOG( PDEVENT, "End to block all write operations of "
+                    "collection(%s), ID: %llu",
+                    pRename->getFrom(), _opID ) ;
+         }
+
+         _opID = 0 ;
       }
-      _mapRegisterCL.clear() ;
    }
 
-   BOOLEAN _clsNameCheckJob::muteXOn( const _rtnBaseJob *pOther )
+   const CHAR* _clsRenameCheckJob::name() const
    {
-      if ( type() == pOther->type() )
+      if ( _taskPtr.get() )
       {
-         return TRUE ;
+         return rtnLocalTaskType2Str( _taskPtr->getTaskType() ) ;
       }
-      return FALSE ;
+      return "Unknown" ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSNAMECHKJOB_DOIT, "_clsNameCheckJob::doit" )
-   INT32 _clsNameCheckJob::doit()
+   INT32 _clsRenameCheckJob::init()
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSNAMECHKJOB_DOIT ) ;
 
-      pmdEDUCB *cb = eduCB() ;
-      pmdKRCB* pKrcb = pmdGetKRCB() ;
-      SDB_DMSCB *pDmsCB = pKrcb->getDMSCB() ;
-      clsDCMgr* pDcMgr = _pShdMgr->getDCMgr() ;
-      UINT64 loopCnt = 0 ;
-      MON_CS_SIM_LIST csSet ;
-      vector<monCSSimple> csList ;
-
-      PD_LOG( PDEVENT, "Start job[%s]: check cs/cl name by unique id",
-              name() ) ;
-
-      // wait _clsVSPrimary::active() set primary
-      while ( !PMD_IS_DB_DOWN() &&
-              !cb->isForced() )
+      if ( 0 == _opID )
       {
-         if ( loopCnt++ != 0 )
-         {
-            pmdEDUEvent event ;
-            cb->waitEvent( event, CLS_NAME_CHECK_PRIMARY_INTERAL, TRUE ) ;
-         }
+         rtnLTRename *pRename = (rtnLTRename*)_taskPtr.get() ;
 
-         if ( pmdIsPrimary() )
+         if ( RTN_LOCAL_TASK_RENAMECS == _taskPtr->getTaskType() )
          {
-            break ;
+            rc = _pFreezeWindow->registerCS( pRename->getFrom(), _opID ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Block all write operations of "
+                       "collectionspace[%s] failed, rc: %d",
+                       pRename->getFrom(), rc ) ;
+            }
+            else
+            {
+               PD_LOG( PDEVENT, "Begin to block all write operations "
+                       "of collectionspace[%s], ID: %llu", pRename->getFrom(),
+                       _opID ) ;
+            }
+         }
+         else
+         {
+            rc = _pFreezeWindow->registerCL( pRename->getFrom(), _opID ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Block all write operations of "
+                       "collection[%s] failed, rc: %d",
+                       pRename->getFrom(), rc ) ;
+            }
+            else
+            {
+               PD_LOG( PDEVENT, "Begin to block all write operations "
+                       "of collection[%s], ID: %llu", pRename->getFrom(),
+                       _opID ) ;
+            }
          }
       }
 
-      /// 1. check if the cs/cl unique id on catalog have been generated.
-      loopCnt = 0 ;
-      while ( !PMD_IS_DB_DOWN() &&
-              !cb->isForced() &&
-              pmdIsPrimary() )
+      return rc ;
+   }
+
+   INT32 _clsRenameCheckJob::doit( IExecutor *pExe,
+                                   UTIL_LJOB_DO_RESULT &result,
+                                   UINT64 &sleepTime )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      shardCB *pShdMgr = sdbGetShardCB() ;
+      clsCB *pClsCB = sdbGetClsCB() ;
+      _dpsLogWrapper *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      _rtnLocalTaskMgr *pLTMgr = pmdGetKRCB()->getRTNCB()->getLTMgr() ;
+
+      rtnLTRename *pRename = (rtnLTRename*)_taskPtr.get() ;
+      BOOLEAN needRemove = FALSE ;
+
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      _dmsStorageUnit *su = NULL ;
+
+      /*
+         When not primary, finish the light job
+      */
+      if ( !pClsCB->isPrimary() )
       {
-         if ( loopCnt++ != 0 )
+         if ( pmdGetTickSpanTime( _tick ) < CLS_RENAME_PRIMARY_TIMEOUT )
          {
-            pmdEDUEvent event ;
-            cb->waitEvent( event, CLS_NAME_CHECK_INTERVAL, TRUE ) ;
+            result = UTIL_LJOB_DO_CONT ;
+            sleepTime = CLS_NAME_CHECK_PRIMARY_INTERVAL ;
+            goto done ;
+         }
+         else
+         {
+            goto finish ;
+         }
+      }
+      else if ( PMD_IS_DB_DOWN() )
+      {
+         goto finish ;
+      }
+
+      needRemove = TRUE ;
+
+      if ( RTN_LOCAL_TASK_RENAMECS == _taskPtr->getTaskType() )
+      {
+         utilCSUniqueID remoteCSUID = UTIL_UNIQUEID_NULL ;
+         utilCSUniqueID localCSUID = UTIL_UNIQUEID_NULL ;
+
+         /// Get to cs info
+         rc = pShdMgr->rGetCSInfo( pRename->getTo(), remoteCSUID ) ;
+         if ( SDB_DMS_CS_NOTEXIST == rc )
+         {
+            /// The dest collectionspace is not exist, finish
+            goto finish ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDINFO, "Get collectionspace(%s) information failed, "
+                    "rc: %d", pRename->getTo(), rc ) ;
+            result = UTIL_LJOB_DO_CONT ;
+            sleepTime = CLS_RENAME_RETRY_TIME ;
+            goto error ;
          }
 
-         rc = _pShdMgr->updateDCBaseInfo() ;
+         /// test from cs
+         rc = dmsCB->nameToSUAndLock( pRename->getFrom(), suID, &su ) ;
+         if ( SDB_DMS_CS_NOTEXIST == rc )
+         {
+            /// The source colletionspace is not exist, finish
+            goto finish ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDWARNING, "Lock collectionspace(%s) failed, rc: %d",
+                    pRename->getFrom(), rc ) ;
+            result = UTIL_LJOB_DO_CONT ;
+            sleepTime = CLS_RENAME_RETRY_TIME ;
+            goto error ;
+         }
+
+         localCSUID = su->CSUniqueID() ;
+
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+
+         /// check suid
+         if ( remoteCSUID != localCSUID )
+         {
+            goto finish ;
+         }
+
+         /// rename cs
+         rc = rtnRenameCollectionSpaceCommand( pRename->getFrom(),
+                                               pRename->getTo(),
+                                               (pmdEDUCB*)pExe,
+                                               dmsCB,
+                                               dpsCB,
+                                               FALSE ) ;
          if ( rc )
          {
-            PD_LOG( PDWARNING, "Job[%s]: "
-                    "Update data center base info failed, rc: %d",
-                    name(), rc ) ;
-            continue ;
+            PD_LOG( PDWARNING, "Rename collectionspace(%s) to (%s) failed, "
+                    "rc: %d", pRename->getFrom(), pRename->getTo(), rc ) ;
+            result = UTIL_LJOB_DO_CONT ;
+            sleepTime = CLS_RENAME_RETRY_TIME ;
+            goto error ;
          }
 
-         clsDCBaseInfo* pDcInfo = pDcMgr->getDCBaseInfo() ;
-         if ( UTIL_UNIQUEID_NULL != pDcInfo->getCSUniqueHWM() )
+         goto finish ;
+      }
+      else
+      {
+         utilCLUniqueID remoteCLUID = UTIL_UNIQUEID_NULL ;
+         utilCLUniqueID localCLUID = UTIL_UNIQUEID_NULL ;
+         clsCatalogSet *pSet = NULL ;
+         UINT32 groupCount = 0 ;
+         const CHAR *pShortName = NULL ;
+         const CHAR *pNewShortName = NULL ;
+         UINT16 mbID = DMS_INVALID_MBID ;
+         CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+
+         pNewShortName = ossStrchr( pRename->getTo(), '.' ) + 1 ;
+
+         /// clear local catalog info
+         pShdMgr->getCataAgent()->lock_w() ;
+         pShdMgr->getCataAgent()->clear( pRename->getTo() ) ;
+         pShdMgr->getCataAgent()->release_w() ;
+
+         /// Get to cl info
+         rc = pShdMgr->getAndLockCataSet( pRename->getTo(), &pSet ) ;
+         if ( SDB_DMS_NOTEXIST == rc )
          {
-            break ;
+            /// The dest collection is not exist, finish
+            goto finish ;
          }
+         else if ( rc )
+         {
+            PD_LOG( PDINFO, "Update collection(%s)'s catalog information "
+                    "failed, rc: %d", pRename->getTo(), rc ) ;
+            result = UTIL_LJOB_DO_CONT ;
+            sleepTime = CLS_RENAME_RETRY_TIME ;
+            goto error ;
+         }
+
+         remoteCLUID = pSet->clUniqueID() ;
+         groupCount = pSet->groupCount() ;
+         pShdMgr->unlockCataSet( pSet ) ;
+
+         if ( 0 == groupCount )
+         {
+            /// The collection is not on the group
+            pShdMgr->getCataAgent()->lock_w() ;
+            pShdMgr->getCataAgent()->clear( pRename->getTo() ) ;
+            pShdMgr->getCataAgent()->release_w() ;
+
+            goto finish ;
+         }
+
+         /// get local cl unique id
+         rc = rtnResolveCollectionNameAndLock( pRename->getFrom(), dmsCB,
+                                               &su, &pShortName, suID ) ;
+         if ( SDB_DMS_CS_NOTEXIST == rc )
+         {
+            /// The source collectionspace not exist, finish
+            goto finish ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDWARNING, "Lock collectionspace(%s) failed, rc: %d",
+                    pRename->getFrom(), rc ) ;
+            result = UTIL_LJOB_DO_CONT ;
+            sleepTime = CLS_RENAME_RETRY_TIME ;
+            goto error ;
+         }
+
+         /// copy cs name
+         ossStrncpy( csName, pRename->getFrom(),
+                     pShortName - pRename->getFrom() - 1 ) ;
+
+         rc = su->data()->findCollection( pShortName, mbID, &localCLUID ) ;
+         if ( SDB_DMS_NOTEXIST == rc )
+         {
+            /// The source collection not exist, finish
+            goto finish ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDWARNING, "Get collection(%s)'s unique id failed, rc: %d",
+                    pRename->getFrom(), rc ) ;
+            result = UTIL_LJOB_DO_CONT ;
+            sleepTime = CLS_RENAME_RETRY_TIME ;
+         }
+
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+
+         /// check unique id
+         if ( remoteCLUID != localCLUID )
+         {
+            goto finish ;
+         }
+
+         /// rename cl
+         rc = rtnRenameCollectionCommand( csName,
+                                          pShortName,
+                                          pNewShortName,
+                                          (pmdEDUCB*)pExe,
+                                          dmsCB,
+                                          dpsCB,
+                                          FALSE ) ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Rename collection(%s) to (%s) failed, "
+                    "rc: %d", pRename->getFrom(), pRename->getTo(), rc ) ;
+            result = UTIL_LJOB_DO_CONT ;
+            sleepTime = CLS_RENAME_RETRY_TIME ;
+            goto error ;
+         }
+
+         goto finish ;
       }
 
-      if ( !pmdIsPrimary() )
+   finish:
+      rc = SDB_OK ;
+      result = UTIL_LJOB_DO_FINISH ;
+      _release() ;
+      if ( needRemove && pClsCB->isPrimary() )
+      {
+         pLTMgr->removeTask( _taskPtr,(pmdEDUCB*)pExe, dpsCB ) ;
+      }
+   done:
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 clsStartRenameCheckJob( const rtnLocalTaskPtr &taskPtr, UINT64 opID )
+   {
+      INT32 rc = SDB_OK ;
+      _clsRenameCheckJob *pJob = NULL ;
+
+      if ( !taskPtr.get() )
       {
          goto done ;
       }
 
-      /// 2. get all cs
-      pDmsCB->dumpInfo( csSet, FALSE, TRUE ) ;
-      for ( MON_CS_SIM_LIST::iterator it = csSet.begin() ;
-            it!= csSet.end() ;
-            it++ )
-      {
-         csList.push_back( *it ) ;
-      }
-
-      /// 3. loop all cs, util all cs done
-      _renameCSCL( csList, FALSE ) ;
-
-      // after first traversal, block all failed cl,
-      // instead of blocking the global
-      _registerCLs( csList ) ;
-      _pFreezeWindow->unregisterCL( NULL, NULL, _opID ) ;
-      _hasBlockGlobal = FALSE ;
-
-      while ( !PMD_IS_DB_DOWN() &&
-              !cb->isForced() &&
-              pmdIsPrimary() &&
-              !csList.empty() )
-      {
-         _renameCSCL( csList, TRUE ) ;
-
-         // wait for a litter time
-         pmdEDUEvent event ;
-         cb->waitEvent( event, CLS_NAME_CHECK_INTERVAL, TRUE ) ;
-      }
-
-   done:
-      if ( _hasBlockGlobal )
-      {
-         _pFreezeWindow->unregisterCL( NULL, NULL, _opID ) ;
-         _hasBlockGlobal = FALSE ;
-      }
-      PD_LOG( PDEVENT, "Stop job[%s]", name() ) ;
-      PD_TRACE_EXITRC( SDB__CLSNAMECHKJOB_DOIT, rc ) ;
-      return rc ;
-   }
-
-   // csList is both input parameter and output parameter
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSNAMECHKJOB__RENAMECSCL, "_clsNameCheckJob::_renameCSCL" )
-   INT32 _clsNameCheckJob::_renameCSCL( vector<monCSSimple>& csList,
-                                        BOOLEAN unregCL )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSNAMECHKJOB__RENAMECSCL ) ;
-
-      pmdKRCB* pKrcb = pmdGetKRCB() ;
-      SDB_DMSCB *pDmsCB = pKrcb->getDMSCB() ;
-      SDB_DPSCB *pDpsCB = pKrcb->getDPSCB() ;
-      pmdEDUCB *cb = eduCB() ;
-
-      vector<monCSSimple>::iterator iterCS = csList.begin() ;
-      while ( iterCS != csList.end() )
-      {
-         monCSSimple &cs = *iterCS ;
-         utilCSUniqueID csUniqueID = cs._csUniqueID ;
-         BSONObj clInfoObj ;
-         string newCSName ;
-         MAP_CLID_NAME clInfoInCata ;
-
-         PD_LOG( PDDEBUG,
-                 "Job[%s]: Check cs[name: %s, id: %u]",
-                 name(), cs._name, csUniqueID ) ;
-
-         if ( PMD_IS_DB_DOWN() ||
-              cb->isForced() ||
-              !pmdIsPrimary() )
-         {
-            break ;
-         }
-
-         /// we only need to operate cs which has valid unique id
-         if ( ! UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
-         {
-            iterCS = csList.erase( iterCS ) ;
-            continue ;
-         }
-
-         /// update catalog info
-         rc = _pShdMgr->rGetCSInfo( cs._name, csUniqueID, NULL, NULL,
-                                    NULL, &clInfoObj, &newCSName ) ;
-         if ( SDB_DMS_CS_NOTEXIST == rc )
-         {
-            PD_LOG( PDWARNING,
-                    "Job[%s]: update cs[name: %s, id: %u] catalog info, "
-                    "rc: %d. CS doesn't exist in catalog",
-                    name(), cs._name, csUniqueID, rc ) ;
-            iterCS = csList.erase( iterCS ) ;
-            continue ;
-         }
-         else if ( rc )
-         {
-            iterCS++ ;
-            PD_LOG( PDWARNING,
-                    "Job[%s]: update cs[name: %s, id: %u] catalog info, "
-                    "rc: %d", name(), cs._name, csUniqueID, rc ) ;
-            continue ;
-         }
-
-         /// rename collections
-         clInfoInCata = utilBson2ClIdName( clInfoObj ) ;
-
-         MON_CL_SIM_VEC::iterator itrCL = cs._clList.begin() ;
-         while ( itrCL!= cs._clList.end() )
-         {
-            utilCLUniqueID clUniqueID = itrCL->_clUniqueID ;
-            string clShortName = itrCL->_clname ;
-            string clFullName = itrCL->_name ;
-
-            PD_LOG( PDDEBUG,
-                    "Job[%s]: Check cl[name: %s, id: %llu]",
-                    name(), clFullName.c_str(), clUniqueID ) ;
-
-            if ( ! UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
-            {
-               itrCL = cs._clList.erase( itrCL ) ;
-               if ( unregCL )
-               {
-                  _unregisterCL( clFullName.c_str() ) ;
-               }
-               continue ;
-            }
-
-            MAP_CLID_NAME::iterator it = clInfoInCata.find( clUniqueID ) ;
-            if ( it == clInfoInCata.end() )
-            {
-               // the cl is not exist in catalog
-               itrCL = cs._clList.erase( itrCL ) ;
-               if ( unregCL )
-               {
-                  _unregisterCL( clFullName.c_str() ) ;
-               }
-               continue ;
-            }
-
-            // find out the cl in catalog
-            string clShortNameInCata = it->second ;
-            if ( clShortNameInCata == clShortName )
-            {
-               // data clname is the same with cata clname
-               itrCL = cs._clList.erase( itrCL ) ;
-               if ( unregCL )
-               {
-                  _unregisterCL( clFullName.c_str() ) ;
-               }
-               continue ;
-            }
-
-            // need to rename
-            rc = rtnRenameCollectionCommand( newCSName.c_str(),
-                                             clShortName.c_str(),
-                                             clShortNameInCata.c_str(),
-                                             cb, pDmsCB, pDpsCB ) ;
-            if ( SDB_OK == rc )
-            {
-               // rename succeed
-               itrCL = cs._clList.erase( itrCL ) ;
-               if ( unregCL )
-               {
-                  _unregisterCL( clFullName.c_str() ) ;
-               }
-               continue ;
-            }
-            else
-            {
-               // ignore error, continue next cl
-               itrCL++ ;
-               PD_LOG( PDWARNING,"Job[%s]: Rename cl"
-                       "[name: %s, id: %llu] failed, rc: %d",
-                       name(), clShortName.c_str(), clUniqueID, rc ) ;
-               continue ;
-            }
-         }// end for all cl
-
-         /// rename collection space
-         if ( !cs._clList.empty() )
-         {
-            iterCS++ ;
-            continue ;
-         }
-
-         // rename all collections succeed, then begin to rename cs
-         if ( 0 == ossStrcmp( cs._name, newCSName.c_str() ) )
-         {
-            // data csname is the same with cata csname
-            iterCS = csList.erase( iterCS ) ;
-            continue ;
-         }
-
-         // need to rename cs
-         rc = rtnRenameCollectionSpaceCommand( cs._name,
-                                               newCSName.c_str(),
-                                               cb, pDmsCB, pDpsCB ) ;
-         if ( SDB_OK == rc )
-         {
-            iterCS = csList.erase( iterCS ) ;
-            continue ;
-         }
-         else
-         {
-            // ignore error, continue next cs
-            PD_LOG( PDWARNING,
-                    "Job[%s]: Rename cs[name: %s, id: %u] failed, "
-                    "rc: %d", name(), cs._name, csUniqueID, rc ) ;
-            iterCS++ ;
-            continue ;
-         }
-
-      }
-
-      PD_TRACE_EXITRC( SDB__CLSNAMECHKJOB__RENAMECSCL, rc ) ;
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSNAMECHKJOB__REGCLS, "_clsNameCheckJob::_registerCLs" )
-   void _clsNameCheckJob::_registerCLs( const vector<monCSSimple>& csList )
-   {
-      PD_TRACE_ENTRY( SDB__CLSNAMECHKJOB__REGCLS ) ;
-
-      catAgent* pCatAgent = _pShdMgr->getCataAgent() ;
-
-      vector<monCSSimple>::const_iterator itCS = csList.begin() ;
-      for ( ; itCS != csList.end() ; itCS++ )
-      {
-         MON_CL_SIM_VEC::const_iterator itCL = itCS->_clList.begin() ;
-         for ( ; itCL != itCS->_clList.end() ; itCL++ )
-         {
-            string clName = itCL->_name ;
-            string mainCLName ;
-            clsCatalogSet *pSet = NULL ;
-
-            // get or update
-            if ( SDB_OK == _pShdMgr->getAndLockCataSet( clName.c_str(),
-                                                        &pSet, TRUE ) )
-            {
-               // get main cl name
-               mainCLName = pSet->getMainCLName() ;
-               pCatAgent->release_r() ;
-            }
-            /// when can not get the collection info, ignore the main cl
-            /// Block collection and main-collection ( if have ) together
-            _pFreezeWindow->registerCL( clName.c_str(),
-                                        mainCLName.c_str(),
-                                        _opID ) ;
-            _mapRegisterCL[ clName ] = mainCLName ;
-         }
-      }
-
-      PD_TRACE_EXIT( SDB__CLSNAMECHKJOB__REGCLS ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSNAMECHKJOB__UNREGCL, "_clsNameCheckJob::_unregisterCL" )
-   void _clsNameCheckJob::_unregisterCL( const string& clName )
-   {
-      PD_TRACE_ENTRY( SDB__CLSNAMECHKJOB__UNREGCL ) ;
-
-      string mainCLName ;
-      map<string, string>::iterator it ;
-
-      it = _mapRegisterCL.find( clName ) ;
-      if( it != _mapRegisterCL.end() )
-      {
-         mainCLName = it->second ;
-      }
-
-      _pFreezeWindow->unregisterCL( clName.c_str(),
-                                    mainCLName.c_str(),
-                                    _opID ) ;
-
-      _mapRegisterCL.erase( clName ) ;
-
-      PD_TRACE_EXIT( SDB__CLSNAMECHKJOB__UNREGCL ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_STARTNAMECHKJOB, "startNameCheckJob" )
-   INT32 startNameCheckJob ( EDUID* pEDUID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_STARTNAMECHKJOB ) ;
-
-      clsNameCheckJob *pJob = NULL ;
-      shardCB* pShdMgr = sdbGetShardCB() ;
-      clsFreezingWindow* pFreezeWindow = pShdMgr->getFreezingWindow() ;
-      UINT64 opID = 0 ;
-
-      pFreezeWindow->registerCL( NULL, NULL, opID ) ;
-
-      pJob = SDB_OSS_NEW clsNameCheckJob( opID ) ;
+      pJob = SDB_OSS_NEW _clsRenameCheckJob( taskPtr, opID ) ;
       if ( !pJob )
       {
          rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Allocate failed" ) ;
+         PD_LOG( PDERROR, "Alloc rename check job failed" ) ;
          goto error ;
       }
 
-      rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_STOP_CONT, pEDUID ) ;
+      rc = pJob->init() ;
       if ( rc )
       {
+         PD_LOG( PDERROR, "Init rename check job(%s) failed, rc: %d",
+                 taskPtr->toPrintString().c_str(), rc ) ;
+         goto error ;
+      }
+
+      rc = pJob->submit() ;
+      pJob = NULL ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Submit rename check job(%s) failed, rc: %d",
+                 taskPtr->toPrintString().c_str(), rc ) ;
          goto error ;
       }
 
    done:
-      PD_TRACE_EXITRC( SDB_STARTNAMECHKJOB, rc ) ;
       return rc ;
    error:
-      pFreezeWindow->unregisterCL( NULL, NULL, opID ) ;
+      if ( pJob )
+      {
+         SDB_OSS_DEL pJob ;
+      }
       goto done ;
+   }
+
+   INT32 clsStartRenameCheckJobs()
+   {
+      INT32 rc = SDB_OK ;
+      rtnLocalTaskMgr *pLTMgr = pmdGetKRCB()->getRTNCB()->getLTMgr() ;
+      _rtnLocalTaskMgr::MAP_TASK mapTask ;
+      _rtnLocalTaskMgr::MAP_TASK_IT it ;
+      UINT32 succeed = 0 ;
+      UINT32 failed = 0 ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+
+      rc = pLTMgr->reload( cb ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Reload local tasks failed, rc: %d", rc ) ;
+         /// ignore
+      }
+
+      rc = pLTMgr->dumpTask( mapTask) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Dump local task failed, rc: %d", rc ) ;
+         /// ignore
+      }
+
+      it = mapTask.begin() ;
+      while( it != mapTask.end() )
+      {
+         const rtnLocalTaskPtr &taskPtr = it->second ;
+
+         if ( RTN_LOCAL_TASK_RENAMECS == taskPtr->getTaskType() ||
+              RTN_LOCAL_TASK_RENAMECL == taskPtr->getTaskType() )
+         {
+            rc = clsStartRenameCheckJob( it->second, 0 ) ;
+            if ( rc )
+            {
+               ++failed ;
+            }
+            else
+            {
+               ++succeed ;
+            }
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Unknown local task(%s)",
+                    taskPtr->toPrintString().c_str() ) ;
+         }
+         ++it ;
+      }
+
+      if ( succeed + failed > 0 )
+      {
+         PD_LOG( PDEVENT, "Start name check jos, succed: %u, failed: %u",
+                 succeed, failed ) ;
+      }
+
+      return rc ;
    }
 
 }

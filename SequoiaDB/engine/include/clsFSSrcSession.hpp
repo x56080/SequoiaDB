@@ -96,11 +96,10 @@ namespace engine
          virtual const CHAR* _onObjFilter ( const CHAR* inBuff, INT32 inSize,
                                             INT32 &outSize ) = 0 ;
          virtual INT32     _onFSMeta ( const CHAR *clFullName ) = 0 ;
-         virtual void      _onNotifyOver( const CHAR *clFullName ) = 0 ;
+         virtual INT32     _onNotifyOver( const CHAR *clFullName ) = 0 ;
          virtual INT32     _scanType () const = 0 ;
          virtual BOOLEAN   _canSwitchWhenSyncLog() = 0 ;
 
-         virtual void      _reset () ;
          virtual INT32     _onLobFilter( const bson::OID &oid,
                                          UINT32 sequence,
                                          BOOLEAN &need2Send ) = 0 ;
@@ -116,6 +115,7 @@ namespace engine
          INT32 handleFSNotify( NET_HANDLE handle, MsgHeader* header ) ;
 
       protected:
+         void              _resetInfo ( BOOLEAN all = TRUE ) ;
          void              _resend( const NET_HANDLE &handle,
                                     const _MsgClsFSNotify *req ) ;
          void              _eraseDefaultIndex() ;
@@ -178,6 +178,8 @@ namespace engine
 
          map<UINT64, UINT32>              _mapOveredCLs ;
          UINT64                           _curCollection ; // suLID+clLID
+         UINT32                           _curCSLID ;
+         UINT16                           _curMBID ;
          dmsExtentID                      _curExtID ;
          BSONObj                          _curScanKeyObj ;
          deque<DPS_LSN_OFFSET>            _deqLSN ;
@@ -220,7 +222,7 @@ namespace engine
                                   UINT32 sequence,
                                   BOOLEAN &need2Send ) ;
       virtual INT32   _onFSMeta ( const CHAR *clFullName ) ;
-      virtual void    _onNotifyOver( const CHAR *clFullName ) ;
+      virtual INT32   _onNotifyOver( const CHAR *clFullName ) ;
       virtual INT32   _scanType () const ;
       virtual BOOLEAN _canSwitchWhenSyncLog() ;
 
@@ -273,7 +275,7 @@ namespace engine
          virtual const CHAR* _onObjFilter ( const CHAR* inBuff, INT32 inSize,
                                             INT32 &outSize ) ;
          virtual INT32   _onFSMeta ( const CHAR *clFullName ) ;
-         virtual void    _onNotifyOver( const CHAR *clFullName ) ;
+         virtual INT32   _onNotifyOver( const CHAR *clFullName ) ;
          virtual INT32   _scanType () const ;
          virtual BOOLEAN _canSwitchWhenSyncLog() ;
          virtual INT32   _onLobFilter( const bson::OID &oid,
@@ -317,7 +319,6 @@ namespace engine
          UINT32                           _collectionW ;
          UINT64                           _lastOprLSN ;
          UINT32                           _internalV ;
-         string                           _mainCLName ;
    };
 }
 

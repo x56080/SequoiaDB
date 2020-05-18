@@ -2875,7 +2875,7 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryX( cb, _logicalCSID, mbID,
+         rc = pTransCB->transLockTryS( cb, _logicalCSID, mbID,
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to lock the collection, rc: %d"OSS_NEWLINE
@@ -3412,13 +3412,14 @@ namespace engine
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
       }
+      if ( insertResult && SDB_OK == rc )
+      {
+         insertResult->setReturnIDByObj( insertObj ) ;
+         insertResult->incInsertedNum() ;
+      }
       if ( pMergedData )
       {
          cb->releaseBuff( pMergedData ) ;
-      }
-      if ( insertResult && SDB_OK == rc )
-      {
-         insertResult->incInsertedNum() ;
       }
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, rc ) ;
       return rc ;

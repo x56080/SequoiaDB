@@ -310,10 +310,20 @@ namespace engine
                                        LOCKMGR_TYPE managerType ) ;
          BOOLEAN              findLock( const dpsTransLockId &lockID,
                                         dpsTransLRB * &lrb,
-                                        LOCKMGR_TYPE managerType ) const ;
+                                        LOCKMGR_TYPE managerType,
+                                        BOOLEAN needLock = FALSE ) ;
          BOOLEAN              removeLock( const dpsTransLockId &lockID,
                                           LOCKMGR_TYPE managerType ) ;
          void                 clearLock( LOCKMGR_TYPE managerType ) ;
+
+         /*
+            lockID is invalid, means count all the cs/cl lock
+            lockType is -1, means all the lock type
+         */
+         UINT32               countLock( const dpsTransLockId &lockID,
+                                         UINT8 lockType = DPS_TRANSLOCK_IX,
+                                         LOCKMGR_TYPE managerType = LOCKMGR_TRANS_LOCK,
+                                         BOOLEAN needLock = FALSE ) ;
 
          void                 incLockCount( LOCKMGR_TYPE managerType ) ;
          void                 decLockCount( LOCKMGR_TYPE managerType ) ;
@@ -415,6 +425,7 @@ namespace engine
          DPS_TRANS_QUE_TYPE      _waiterQueType[ LOCKMGR_TYPE_MAX ] ;
          dpsTransLRB *           _lastLRB[ LOCKMGR_TYPE_MAX ] ;
 
+         ossSpinXLatch           _mapMutex ;
          DPS_LOCKID_MAP          _mapCSCLLockID[ LOCKMGR_TYPE_MAX ] ;
          UINT32                  _lockCount[ LOCKMGR_TYPE_MAX ] ;
 

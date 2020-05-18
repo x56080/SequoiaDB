@@ -189,7 +189,17 @@ namespace engine
          ++it ;
       }
       // add to map
-      _taskMap[ taskID ] = pTask ;
+      try
+      {
+         _taskMap[ taskID ] = pTask ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB__CLSTKMGR_ADDTK, rc ) ;
       return rc ;

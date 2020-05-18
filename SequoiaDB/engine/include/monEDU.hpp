@@ -54,6 +54,7 @@ namespace engine
    #define MON_EDU_STATUS_SZ        (19)
    #define MON_EDU_TYPE_SZ          (19)
    #define MON_EDU_NAME_SZ          (127)
+   #define MON_EDU_DOING_SZ         (128)
 
    /*
       _monEDUSimple define
@@ -99,9 +100,11 @@ namespace engine
       UINT32   _queueSize ;
       UINT32   _memPoolSize ;
       UINT64   _processEventCount ;
+      BOOLEAN  _isBlock ;
       CHAR     _eduStatus[MON_EDU_STATUS_SZ+1] ;
       CHAR     _eduType[MON_EDU_TYPE_SZ+1] ;
       CHAR     _eduName[MON_EDU_NAME_SZ+1] ;
+      CHAR     _doing[MON_EDU_DOING_SZ+1] ;
       CHAR     _source[MON_EDU_NAME_SZ+1] ;
       UINT64   _relatedNID ;
       UINT32   _relatedTID ;
@@ -120,12 +123,14 @@ namespace engine
          ossMemset ( _eduStatus, 0, sizeof(_eduStatus) ) ;
          ossMemset ( _eduType, 0, sizeof(_eduType) ) ;
          ossMemset ( _eduName, 0, sizeof(_eduName) ) ;
+         ossMemset ( _doing, 0, sizeof(_doing) ) ;
          ossMemset ( _source, 0, sizeof(_source) ) ;
          _eduID = 0 ;
          _tid = 0 ;
          _queueSize = 0 ;
          _memPoolSize = 0 ;
          _processEventCount = 0 ;
+         _isBlock = FALSE ;
          _relatedNID = 0 ;
          _relatedTID = 0 ;
       }
@@ -140,9 +145,11 @@ namespace engine
          _queueSize      = rhs._queueSize ;
          _memPoolSize    = rhs._memPoolSize ;
          _processEventCount = rhs._processEventCount ;
+         _isBlock = rhs._isBlock ;
          ossStrcpy( _eduStatus, rhs._eduStatus ) ;
          ossStrcpy( _eduType, rhs._eduType ) ;
          ossStrcpy( _eduName, rhs._eduName ) ;
+         ossStrcpy( _doing, rhs._doing ) ;
          ossStrcpy( _source, rhs._source ) ;
          _eduContextList = rhs._eduContextList ;
          _monApplCB      = rhs._monApplCB ;

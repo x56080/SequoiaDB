@@ -433,7 +433,7 @@ namespace engine
          // Currently it's used in capped collection, holding the logical id
          // of the record.
          INT32    insertRecord ( const CHAR *pName,
-                                 BSONObj &record,
+                                 const BSONObj &record,
                                  _pmdEDUCB *cb,
                                  SDB_DPSCB *dpscb,
                                  BOOLEAN mustOID = TRUE,

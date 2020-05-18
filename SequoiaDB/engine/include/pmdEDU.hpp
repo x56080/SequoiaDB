@@ -74,8 +74,9 @@ namespace engine
    /*
       CONST VALUE DEFINE
    */
-   #define PMD_EDU_NAME_LENGTH         ( 127 )
+   #define PMD_EDU_NAME_LENGTH         MON_EDU_NAME_SZ
    #define EDU_ERROR_BUFF_SIZE         ( 1024 )
+   #define EDU_DOING_BUFF_SIZE         MON_EDU_DOING_SZ
 
    /*
       TOOL FUNCTIONS
@@ -198,6 +199,12 @@ namespace engine
          void              setTransRBPending() ;
          void              clearTransRBPending() ;
 
+         void              setBlock( EDU_BLOCK_TYPE type,
+                                     const CHAR *pBlockDesp ) ;
+         void              unsetBlock() ;
+         EDU_BLOCK_TYPE    getBlockType() const ;
+         BOOLEAN           isBlocked() const ;
+
    public:
       _pmdEDUCB( _pmdEDUMgr *mgr, INT32 type ) ;
       ~_pmdEDUCB() ;
@@ -257,6 +264,8 @@ namespace engine
          // no need latch since _queue is already latched
          _queue.push ( data ) ;
       }
+
+      UINT64   getTransWritingID() const { return _transWritingID ; }
 
       BOOLEAN waitEvent ( pmdEDUEvent &data, INT64 millsec,
                           BOOLEAN resetStat = FALSE )
@@ -470,6 +479,7 @@ namespace engine
 
       // thread specific error message buffer, aka SQLCA
       CHAR              *_pErrorBuff ;
+      CHAR              _doingBuff[ EDU_DOING_BUFF_SIZE + 1 ] ;
    #if defined ( _WINDOWS )
       HANDLE            _threadHdl ;
    #elif defined ( _LINUX )
@@ -518,6 +528,7 @@ namespace engine
 
       DPS_TRANS_ID            _curTransID ;
       DPS_LSN_OFFSET          _curTransLSN ;
+      UINT64                  _transWritingID ;
 
       sdbLockItem             _lockInfo[ SDB_LOCK_MAX ] ;
 
@@ -527,6 +538,7 @@ namespace engine
       INT32                   _interruptRC ;
       BOOLEAN                 _writingDB ;
       UINT64                  _writingID ;
+      EDU_BLOCK_TYPE          _blockType ;
       /// aligned memory.
       void                    *_alignedMem ;
       UINT32                   _alignedMemSize ;

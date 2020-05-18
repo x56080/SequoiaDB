@@ -42,6 +42,8 @@
 #include "clsMgr.hpp"
 #include "rtnTrace.hpp"
 #include "ossMemPool.hpp"
+#include "rtnLocalTask.hpp"
+#include "clsUniqueIDCheckJob.hpp"
 
 namespace engine
 {
@@ -778,8 +780,11 @@ namespace engine
       _pDmsCB     = pmdGetKRCB()->getDMSCB() ;
       _pDpsCB     = pmdGetKRCB()->getDPSCB() ;
       _pCatAgent  = pmdGetKRCB()->getClsCB()->getCatAgent() ;
+      _pFreezingWnd = pmdGetKRCB()->getClsCB()->getShardCB()->getFreezingWindow() ;
+      _pLTMgr     = pmdGetKRCB()->getRTNCB()->getLTMgr() ;
       _pTransCB   = pmdGetKRCB()->getTransCB();
-      _lockDMS    = FALSE ;
+      _blockID    = 0 ;
+      _lockDms    = FALSE ;
       _logicCSID  = DMS_INVALID_LOGICCSID ;
       _status     = RENAMECSPHASE_0 ;
       _skipGetMore = FALSE ;
@@ -808,9 +813,32 @@ namespace engine
       }
 #endif
 
-      _logger.clear() ;
+      if ( _taskPtr.get() && _taskPtr->isTaskValid() )
+      {
+         /// context is killed by interrupted
+         if ( cb->isInterrupted() )
+         {
+            _pCatAgent->lock_w() ;
+            _pCatAgent->clearBySpaceName( _oldName ) ;
+            _pCatAgent->release_w() ;
+
+            if ( SDB_OK == clsStartRenameCheckJob( _taskPtr, _blockID ) )
+            {
+               _blockID = 0 ;
+            }
+            else
+            {
+               _pLTMgr->removeTask( _taskPtr, cb, _pDpsCB ) ;
+            }
+         }
+         else
+         {
+            _pLTMgr->removeTask( _taskPtr, cb, _pDpsCB ) ;
+         }
+      }
 
       _releaseLock( cb ) ;
+      _logger.clear() ;
    }
 
    const CHAR* _rtnContextRenameCS::name() const
@@ -826,11 +854,13 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXRENAMECS_OPEN, "_rtnContextRenameCS::open" )
    INT32 _rtnContextRenameCS::open( const CHAR *pCSName,
                                     const CHAR *pNewCSName,
-                                    _pmdEDUCB *cb )
+                                    _pmdEDUCB *cb,
+                                    BOOLEAN useLocalTask )
    {
       INT32 rc = SDB_OK ;
       INT32 rcNew = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCTXRENAMECS_OPEN ) ;
+      rtnLTRename *pRenameTask = NULL ;
 
       /// check cs name
       SDB_ASSERT( pCSName, "cs name can't be null!" );
@@ -870,7 +900,7 @@ namespace engine
       {
          // Ignore collection space not exist, because it may be a cs of maincl.
          // And do not set _status to phase_1
-         PD_LOG( PDINFO, "Ignored error[%d] when drop collection space[%s]",
+         PD_LOG( PDINFO, "Ignored error[%d] when rename collection space[%s]",
                  rc, pCSName ) ;
          rc = SDB_OK ;
          _isOpened = TRUE ;
@@ -909,6 +939,47 @@ namespace engine
                       _oldName, _newName, rc ) ;
 #endif
 
+      /// add task
+      if ( useLocalTask )
+      {
+         INT16 i = 0 ;
+
+         rc = rtnGetLTFactory()->create( RTN_LOCAL_TASK_RENAMECS, _taskPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Alloc rename task failed, rc: %d", rc ) ;
+
+         pRenameTask = ( rtnLTRename* )_taskPtr.get() ;
+         pRenameTask->setInfo( pCSName, pNewCSName ) ;
+
+         while( TRUE )
+         {
+            rc = _pLTMgr->addTask( _taskPtr, cb, _pDpsCB ) ;
+            if ( SDB_CLS_MUTEX_TASK_EXIST == rc &&
+                 i++ < RTN_RENAME_BLOCKWRITE_TIMES )
+            {
+               // When two threads concurrently do rename, addTask() will report
+               // -175. We retry multiple times to reduce the error.
+               _pLTMgr->waitTaskEvent( OSS_ONE_SEC ) ;
+               continue ;
+            }
+
+            if ( rc )
+            {
+               if ( SDB_CLS_MUTEX_TASK_EXIST == rc )
+               {
+                  PD_LOG_MSG( PDERROR, "Rename cs is mutually exclusive with "
+                              "other rename cs/cl" ) ;
+               }
+               else
+               {
+                  PD_LOG( PDERROR, "Add task(%s) failed, rc: %d",
+                          _taskPtr->toPrintString().c_str(), rc ) ;
+               }
+               goto error ;
+            }
+            break ;
+         }
+      }
+
       _status   = RENAMECSPHASE_1 ;
       _isOpened = TRUE ;
 
@@ -917,6 +988,10 @@ namespace engine
       return rc;
    error:
       _releaseLock( cb ) ;
+      if ( _taskPtr.get() && _taskPtr->isTaskValid() )
+      {
+         _pLTMgr->removeTask( _taskPtr, cb, _pDpsCB ) ;
+      }
       goto done;
    }
 
@@ -1005,6 +1080,11 @@ namespace engine
       rc = SDB_DMS_EOC ;
 
    done:
+      if ( SDB_DMS_EOC == rc && _taskPtr.get() &&
+           _taskPtr->isTaskValid() )
+      {
+         _pLTMgr->removeTask( _taskPtr, cb, _pDpsCB ) ;
+      }
       PD_TRACE_EXITRC( SDB__RTNCTXRENAMECS_PREPAREDATA, rc ) ;
       return rc ;
    error:
@@ -1015,7 +1095,8 @@ namespace engine
    {
       ss << ",Name:" << _oldName
          << ",NewName:" << _newName
-         << ",LockDMS:" << _lockDMS
+         << ",BlockID:" << _blockID
+         << ",LockDMS:" << _lockDms
          << ",LogicalID:" << _logicCSID
          << ",Step:" << _status ;
    }
@@ -1026,51 +1107,84 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCTXRENAMECS__TRYLOCK ) ;
       dmsStorageUnitID suID = DMS_INVALID_CS ;
+      UINT32 logicCSID = DMS_INVALID_LOGICCSID ;
+      dmsStorageUnit *su = NULL ;
+      pmdEDUMgr *eduMgr = cb->getEDUMgr() ;
+      UINT32 i = 0 ;
 
-      // When two threads concurrently do rename, blockWrite() will report
-      // -148. We retry multiple times to reduce the error.
-      INT16 i = 0 ;
-      while( i < RTN_RENAME_BLOCKWRITE_TIMES )
+      /// get cs logical id
+      rc = _pDmsCB->nameToSUAndLock( pCSName, suID, &su ) ;
+      PD_RC_CHECK(rc, PDERROR, "lock collection space[%s] failed, rc: %d",
+                  pCSName, rc ) ;
+
+      logicCSID = su->LogicalCSID() ;
+
+      _pDmsCB->suUnlock ( suID ) ;
+      suID = DMS_INVALID_CS ;
+      su = NULL ;
+
+      /// block cs write
+      rc = _pFreezingWnd->registerCS( _oldName, _blockID ) ;
+      if ( rc )
       {
-         rc = _pDmsCB->blockWrite( cb, SDB_DB_NORMAL, OSS_ONE_SEC * 30 ) ;
-         if ( SDB_OK == rc || SDB_APP_INTERRUPT == rc || SDB_TIMEOUT == rc )
+         PD_LOG( PDERROR, "Block all write operations of "
+                 "collectionspace[%s] failed, rc: %d",
+                 _oldName, rc ) ;
+         goto error ;
+      }
+      else
+      {
+         PD_LOG( PDEVENT, "Begin to block all write operations "
+                 "of collectionspace[%s], ID: %llu", _oldName,
+                 _blockID ) ;
+      }
+
+      /// wait write done
+      i = 0 ;
+      while( TRUE )
+      {
+         ++i ;
+         UINT32 cnt = 0 ;
+         UINT32 transCnt = 0 ;
+         dpsTransLockId lockID( logicCSID, DMS_INVALID_MBID, NULL ) ;
+         cnt = eduMgr->getWritingEDUCount( -1, _blockID, EDU_BLOCK_FREEZING_WND,
+                                          lockID, &transCnt ) ;
+         if ( cnt > 0 )
          {
-            break ;
+            if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
+            {
+               ossSleep( OSS_ONE_SEC ) ;
+               continue ;
+            }
+            else if ( cb->isInterrupted() )
+            {
+               rc = SDB_APP_INTERRUPT ;
+            }
+            else
+            {
+               rc = ( cnt == transCnt ) ?
+                    SDB_DPS_TRANS_LOCK_INCOMPATIBLE : SDB_LOCK_FAILED ;
+               PD_LOG_MSG( PDERROR, "Failed to wait for other write "
+                           "operations to finish" ) ;
+            }
          }
-         ossSleep( RTN_RENAME_BLOCKWRITE_INTERAL ) ;
-         i++ ;
+
+         break ;
       }
-      if ( SDB_DMS_STATE_NOT_COMPATIBLE == rc )
+
+      if ( rc )
       {
-         PD_LOG_MSG( PDERROR, "Rename cs is mutually exclusive with "
-                     "other rename cs/cl" ) ;
+         goto error ;
       }
-      else if ( SDB_TIMEOUT == rc )
-      {
-         rc = SDB_LOCK_FAILED ;
-         PD_LOG_MSG( PDERROR,
-                     "Failed to wait for other write operations to finish" ) ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
-      _lockDMS = TRUE ;
+
+      rc = _pDmsCB->writable( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
+      _lockDms = TRUE ;
 
       if ( getDPSCB() )
       {
-         UINT32 logicCSID = DMS_INVALID_LOGICCSID ;
-         dmsStorageUnit *su = NULL ;
          dpsTransRetInfo lockConflict ;
-
-         rc = _pDmsCB->nameToSUAndLock( pCSName, suID, &su ) ;
-         PD_RC_CHECK(rc, PDERROR, "lock collection space[%s] failed, rc: %d",
-                     pCSName, rc ) ;
-
-         logicCSID = su->LogicalCSID() ;
-
-         _pDmsCB->suUnlock ( suID ) ;
-         suID = DMS_INVALID_CS ;
-         su = NULL ;
-
-         rc = _pTransCB->transLockTryX( cb, logicCSID, DMS_INVALID_MBID,
+         rc = _pTransCB->transLockTryS( cb, logicCSID, DMS_INVALID_MBID,
                                         NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Get transaction-lock of CS[%s] failed, rc: %d"OSS_NEWLINE
@@ -1111,10 +1225,19 @@ namespace engine
          _logicCSID = DMS_INVALID_LOGICCSID;
       }
 
-      if ( _lockDMS )
+      if ( 0 != _blockID )
       {
-         _pDmsCB->unblockWrite( cb ) ;
-         _lockDMS = FALSE;
+         _pFreezingWnd->unregisterCS( _oldName, _blockID ) ;
+         PD_LOG( PDEVENT, "End to block all write operations of "
+                 "collectionspace(%s), ID: %llu",
+                 _oldName, _blockID ) ;
+         _blockID = 0 ;
+      }
+
+      if ( _lockDms )
+      {
+         _pDmsCB->writeDown( cb ) ;
+         _lockDms = FALSE ;
       }
 
       PD_TRACE_EXIT( SDB__RTNCTXRENAMECS__RELLOCK ) ;
@@ -1129,8 +1252,11 @@ namespace engine
       _pDmsCB        = pmdGetKRCB()->getDMSCB() ;
       _pDpsCB        = pmdGetKRCB()->getDPSCB() ;
       _pCatAgent     = pmdGetKRCB()->getClsCB()->getCatAgent () ;
+      _pFreezingWnd = pmdGetKRCB()->getClsCB()->getShardCB()->getFreezingWindow() ;
+      _pLTMgr        = pmdGetKRCB()->getRTNCB()->getLTMgr() ;
       _pTransCB      = pmdGetKRCB()->getTransCB() ;
-      _lockDMS       = FALSE ;
+      _blockID       = 0 ;
+      _lockDms       = FALSE ;
       _mbID          = DMS_INVALID_MBID ;
       _su            = NULL ;
       _skipGetMore   = FALSE ;
@@ -1144,6 +1270,31 @@ namespace engine
    {
       pmdEDUMgr *eduMgr    = pmdGetKRCB()->getEDUMgr() ;
       pmdEDUCB *cb         = eduMgr->getEDUByID( eduID() ) ;
+
+      if ( _taskPtr.get() && _taskPtr->isTaskValid() )
+      {
+         /// context is killed by interrupted
+         if ( cb->isInterrupted() )
+         {
+            _pCatAgent->lock_w() ;
+            _pCatAgent->clear( _clFullName ) ;
+            _pCatAgent->release_w() ;
+
+            if ( SDB_OK == clsStartRenameCheckJob( _taskPtr, _blockID ) )
+            {
+               _blockID = 0 ;
+            }
+            else
+            {
+               _pLTMgr->removeTask( _taskPtr, cb, _pDpsCB ) ;
+            }
+         }
+         else
+         {
+            _pLTMgr->removeTask( _taskPtr, cb, _pDpsCB ) ;
+         }
+      }
+
       _releaseLock( cb ) ;
    }
 
@@ -1160,13 +1311,15 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXRENAMECL_OPEN, "_rtnContextRenameCL::open" )
    INT32 _rtnContextRenameCL::open( const CHAR *csName, const CHAR *clShortName,
                                     const CHAR *newCLShortName,
-                                    _pmdEDUCB *cb, INT16 w )
+                                    _pmdEDUCB *cb, INT16 w,
+                                    BOOLEAN useLocalTask )
    {
       INT32 rc = SDB_OK ;
       INT32 rcNew = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCTXRENAMECL_OPEN ) ;
 
       CHAR newCLFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+      rtnLTRename *pRenameTask = NULL ;
 
       /// set w info
       _w = w ;
@@ -1234,6 +1387,48 @@ namespace engine
       /// lock
       rc = _tryLock( csName, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to lock, rc: %d", rc ) ;
+      _lockDms = TRUE ;
+
+      /// add task
+      if ( useLocalTask )
+      {
+         INT16 i = 0 ;
+
+         rc = rtnGetLTFactory()->create( RTN_LOCAL_TASK_RENAMECS, _taskPtr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Alloc rename task failed, rc: %d", rc ) ;
+
+         pRenameTask = ( rtnLTRename* )_taskPtr.get() ;
+         pRenameTask->setInfo( _clFullName, newCLFullName ) ;
+
+         while( TRUE )
+         {
+            rc = _pLTMgr->addTask( _taskPtr, cb, _pDpsCB ) ;
+            if ( SDB_CLS_MUTEX_TASK_EXIST == rc &&
+                 i++ < RTN_RENAME_BLOCKWRITE_TIMES )
+            {
+               // When two threads concurrently do rename, addTask() will report
+               // -175. We retry multiple times to reduce the error.
+               _pLTMgr->waitTaskEvent( OSS_ONE_SEC ) ;
+               continue ;
+            }
+
+            if ( rc )
+            {
+               if ( SDB_CLS_MUTEX_TASK_EXIST == rc )
+               {
+                  PD_LOG_MSG( PDERROR, "Rename cl is mutually exclusive with "
+                              "other rename cs/cl" ) ;
+               }
+               else
+               {
+                  PD_LOG( PDERROR, "Add task(%s) failed, rc: %d",
+                          _taskPtr->toPrintString().c_str(), rc ) ;
+               }
+               goto error ;
+            }
+            break ;
+         }
+      }
 
       _isOpened = TRUE ;
 
@@ -1242,6 +1437,10 @@ namespace engine
       return rc ;
    error:
       _releaseLock( cb ) ;
+      if ( _taskPtr.get() && _taskPtr->isTaskValid() )
+      {
+         _pLTMgr->removeTask( _taskPtr, cb, _pDpsCB ) ;
+      }
       goto done ;
    }
 
@@ -1289,6 +1488,11 @@ namespace engine
       rc = SDB_DMS_EOC ;
 
    done:
+      if ( SDB_DMS_EOC == rc && _taskPtr.get() &&
+           _taskPtr->isTaskValid() )
+      {
+         _pLTMgr->removeTask( _taskPtr, cb, _pDpsCB ) ;
+      }
       PD_TRACE_EXITRC( SDB__RTNCTXRENAMECL_PREPAREDATA, rc ) ;
       return rc ;
    error:
@@ -1299,7 +1503,8 @@ namespace engine
    {
       ss << ",Name:" << _clFullName
          << ",NewCLName:" << _newCLShortName
-         << ",LockDMS:" << _lockDMS
+         << ",BlockID:" << _blockID
+         << ",LockDMS:" << _lockDms
          << ",MBID:" << _mbID ;
    }
 
@@ -1312,52 +1517,86 @@ namespace engine
       dmsStorageUnitID suID   = DMS_INVALID_CS ;
       dmsMBContext* mbContext = NULL ;
       UINT16 mbID             = DMS_INVALID_MBID ;
+      pmdEDUMgr *eduMgr = cb->getEDUMgr() ;
+      UINT32 i = 0 ;
 
-      // When two threads concurrently do rename, blockWrite() will report
-      // -148. We retry multiple times to reduce the error.
-      INT16 i = 0 ;
-      while( i < RTN_RENAME_BLOCKWRITE_TIMES )
+      // get collection info
+      rc = _pDmsCB->nameToSUAndLock( csName, suID, &_su, SHARED );
+      PD_RC_CHECK( rc, PDERROR, "lock collection space[%s] failed, rc: %d",
+                   csName, rc );
+
+      rc = _su->data()->getMBContext( &mbContext, _clShortName, SHARED ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
+                   "rc: %d", _clShortName, rc ) ;
+
+      mbID = mbContext->mbID() ;
+
+      _su->data()->releaseMBContext( mbContext ) ;
+      mbContext = NULL ;
+
+      /// block collection write
+      rc = _pFreezingWnd->registerCL( _clFullName, _blockID ) ;
+      if ( rc )
       {
-         rc = _pDmsCB->blockWrite( cb, SDB_DB_NORMAL, OSS_ONE_SEC * 30 ) ;
-         if ( SDB_OK == rc || SDB_APP_INTERRUPT == rc || SDB_TIMEOUT == rc )
+         PD_LOG( PDERROR, "Block all write operations of "
+                 "collection[%s] failed, rc: %d",
+                 _clFullName, rc ) ;
+         goto error ;
+      }
+      else
+      {
+         PD_LOG( PDEVENT, "Begin to block all write operations "
+                 "of collection[%s], ID: %llu", _clFullName,
+                 _blockID ) ;
+      }
+
+      /// wait write done
+      i = 0 ;
+      while( TRUE )
+      {
+         ++i ;
+         UINT32 cnt = 0 ;
+         UINT32 transCnt = 0 ;
+         dpsTransLockId lockID( _su->LogicalCSID(), DMS_INVALID_MBID, NULL ) ;
+         cnt = eduMgr->getWritingEDUCount( -1, _blockID, EDU_BLOCK_FREEZING_WND,
+                                          lockID, &transCnt ) ;
+         if ( cnt > 0 )
          {
-            break ;
+            if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
+            {
+               ossSleep( OSS_ONE_SEC ) ;
+               continue ;
+            }
+            else if ( cb->isInterrupted() )
+            {
+               rc = SDB_APP_INTERRUPT ;
+            }
+            else
+            {
+               rc = ( cnt == transCnt ) ?
+                    SDB_DPS_TRANS_LOCK_INCOMPATIBLE : SDB_LOCK_FAILED ;
+               PD_LOG_MSG( PDERROR, "Failed to wait for other write "
+                           "operations to finish" ) ;
+            }
          }
-         ossSleep( RTN_RENAME_BLOCKWRITE_INTERAL ) ;
-         i++ ;
+
+         break ;
       }
-      if ( SDB_DMS_STATE_NOT_COMPATIBLE == rc )
+
+      if ( rc )
       {
-         PD_LOG_MSG( PDERROR, "Rename cl is mutually exclusive with "
-                     "other rename cs/cl" ) ;
+         goto error ;
       }
-      else if ( SDB_TIMEOUT == rc )
-      {
-         rc = SDB_LOCK_FAILED ;
-         PD_LOG_MSG( PDERROR,
-                     "Failed to wait for other write operations to finish" ) ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
-      _lockDMS = TRUE ;
+
+      rc = _pDmsCB->writable( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
+      _lockDms = TRUE ;
 
       if ( getDPSCB() )
       {
          dpsTransRetInfo lockConflict ;
 
-         rc = _pDmsCB->nameToSUAndLock( csName, suID, &_su, SHARED );
-         PD_RC_CHECK( rc, PDERROR, "lock collection space[%s] failed, rc: %d",
-                      csName, rc );
-
-         rc = _su->data()->getMBContext( &mbContext, _clShortName, SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
-                      "rc: %d", _clShortName, rc ) ;
-
-         mbID = mbContext->mbID() ;
-
-         _su->data()->releaseMBContext( mbContext ) ;
-         mbContext = NULL ;
-
-         rc = _pTransCB->transLockTryX( cb, _su->LogicalCSID(), mbID,
+         rc = _pTransCB->transLockTryS( cb, _su->LogicalCSID(), mbID,
                                         NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Get transaction-lock of collection[%s] failed, rc: %d"
@@ -1405,10 +1644,19 @@ namespace engine
          _su = NULL ;
       }
 
-      if ( _lockDMS )
+      if ( 0 != _blockID )
       {
-         _pDmsCB->unblockWrite( cb ) ;
-         _lockDMS = FALSE;
+         _pFreezingWnd->unregisterCL( _clFullName, _blockID ) ;
+         PD_LOG( PDEVENT, "End to block all write operations of "
+                 "collection(%s), ID: %llu",
+                 _clFullName, _blockID ) ;
+         _blockID = 0 ;
+      }
+
+      if ( _lockDms )
+      {
+         _pDmsCB->writeDown( cb ) ;
+         _lockDms = FALSE ;
       }
 
       PD_TRACE_EXIT( SDB__RTNCTXRENAMECL__RELLOCK ) ;
@@ -1431,6 +1679,29 @@ namespace engine
    {
       pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
       pmdEDUCB *cb = eduMgr->getEDUByID( eduID() ) ;
+
+      /// context is killed by interrupted
+      if ( _lockDms && cb->isInterrupted() )
+      {
+         SDB_RTNCB *pRtnCB = sdbGetRTNCB() ;
+
+         /// clear main collection's catalog info
+         _pCatAgent->lock_w () ;
+         _pCatAgent->clear ( _name ) ;
+         _pCatAgent->release_w () ;
+
+         /// clear main collection's access plan
+         pRtnCB->getAPM()->invalidateCLPlans( _name ) ;
+
+         if ( sdbGetClsCB()->isPrimary() )
+         {
+            /// tell secondary nodes to clear catalog info and access plan
+            sdbGetClsCB()->invalidateCache( _name,
+                                            DPS_LOG_INVALIDCATA_TYPE_CATA |
+                                            DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
+         }
+      }
+
       _clean( cb ) ;
    }
 

@@ -328,7 +328,8 @@ namespace engine
    */
    enum EDU_INFO_TYPE
    {
-      EDU_INFO_ERROR                   = 1   //Error
+      EDU_INFO_ERROR                   = 1,     // Error
+      EDU_INFO_DOING                            // Current doing
    } ;
 
    /*

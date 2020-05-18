@@ -146,7 +146,8 @@ namespace engine
       UINT64 _commitLsn ;                                // commit LSN
       UINT64 _commitTime ;                               // commit timestamp
       utilCSUniqueID _csUniqueID ;                       // cs unique id
-      CHAR   _pad [ 65332 ] ;
+      UINT32 _segmentSize ;                              // segment size
+      CHAR   _pad [ 65328 ] ;
 
       _dmsStorageUnitHeader()
       {
@@ -418,12 +419,14 @@ namespace engine
          OSS_INLINE UINT32  getLobdPageSize() const ;
          OSS_INLINE UINT32  segmentPages () const ;
          OSS_INLINE UINT32  segmentPagesSquareRoot () const ;
+         OSS_INLINE UINT32  getSegmentSize() const ;
          OSS_INLINE UINT32  maxSegmentNum() const ;
          OSS_INLINE UINT32  pageNum () const ;
          OSS_INLINE UINT32  freePageNum () const ;
          OSS_INLINE INT32   maxSegID () const ;
          OSS_INLINE UINT32  dataStartSegID () const ;
          OSS_INLINE BOOLEAN isTempSU () const { return _isTempSU ; }
+         OSS_INLINE BOOLEAN isSysSU () const { return _isSysSU ; }
          OSS_INLINE BOOLEAN isBlockScanSupport() const
          {
             return _blockScanSupport ;
@@ -581,6 +584,7 @@ namespace engine
          dmsStorageInfo                *_pStorageInfo ;
          UINT32                        _pageSize ;    // cache, not use header
          UINT32                        _lobPageSize ; // cache, not use header
+         UINT32                        _segmentSize ; // cache, not use header
 
          BOOLEAN                       _transSupport ;
 
@@ -618,6 +622,7 @@ namespace engine
          UINT32                        _pageSizeSquare ;
          CHAR                          _fullPathName[ OSS_MAX_PATHSIZE + 1 ] ;
          BOOLEAN                       _isTempSU ;
+         BOOLEAN                       _isSysSU ;
          BOOLEAN                       _blockScanSupport ;
    } ;
    typedef _dmsStorageBase dmsStorageBase ;
@@ -644,6 +649,10 @@ namespace engine
    OSS_INLINE UINT32 _dmsStorageBase::segmentPagesSquareRoot () const
    {
       return _segmentPagesSquare ;
+   }
+   OSS_INLINE UINT32 _dmsStorageBase::getSegmentSize() const
+   {
+      return _getSegmentSize() ;
    }
    OSS_INLINE UINT32 _dmsStorageBase::maxSegmentNum() const
    {

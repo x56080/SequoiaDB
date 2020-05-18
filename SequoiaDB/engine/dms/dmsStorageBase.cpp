@@ -337,6 +337,7 @@ namespace engine
    }
 
    #define DMS_EXTEND_THRESHOLD_SIZE      ( 33554432 )   // 32MB
+   #define DMS_SYS_EXTEND_THRESHOLD_SIZE  ( 4194304 )    // 4MB
 
    /*
       Sync Config Default Value
@@ -365,10 +366,12 @@ namespace engine
       _segmentPagesSquare = 0 ;
       _pageSizeSquare     = 0 ;
       _isTempSU           = FALSE ;
+      _isSysSU            = FALSE ;
       _transSupport       = TRUE ;
       _blockScanSupport   = TRUE ;
       _pageSize           = 0 ;
       _lobPageSize        = 0 ;
+      _segmentSize        = 0 ;
 
       ossStrncpy( _suFileName, pSuFileName, DMS_SU_FILENAME_SZ ) ;
       _suFileName[ DMS_SU_FILENAME_SZ ] = 0 ;
@@ -377,6 +380,12 @@ namespace engine
       if ( 0 == ossStrcmp( pInfo->_suName, SDB_DMSTEMP_NAME ) )
       {
          _isTempSU = TRUE ;
+         _isSysSU = TRUE ;
+         _blockScanSupport = FALSE ;
+      }
+      else if ( 0 == ossStrncmp( pInfo->_suName, "SYS", 3 ) )
+      {
+         _isSysSU = TRUE ;
          _blockScanSupport = FALSE ;
       }
 
@@ -1305,6 +1314,15 @@ namespace engine
    {
       pHeader->_pageSize      = pInfo->_pageSize ;
       pHeader->_lobdPageSize  = pInfo->_lobdPageSize ;
+
+      if ( !_isSysSU )
+      {
+         pHeader->_segmentSize= DMS_SEGMENT_SZ ;
+      }
+      else
+      {
+         pHeader->_segmentSize= DMS_SYS_SEGMENT_SZ ;
+      }
    }
 
    void _dmsStorageBase::_initHeader( dmsStorageUnitHeader * pHeader )
@@ -1359,6 +1377,15 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      /// change segmentsize
+      else if ( 0 != pHeader->_segmentSize &&
+                !DMS_IS_VALID_SEGMENT( pHeader->_segmentSize ) )
+      {
+         PD_LOG( PDERROR, "Invalid segment size: %d in file[%s]",
+                 pHeader->_segmentSize, getSuFileName() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
 
       // must be set storage info page size here, because lob meta page size
       // is 256B, so can't be assign to storage page size in later code
@@ -1402,6 +1429,11 @@ namespace engine
       }
       _pageSize = pHeader->_pageSize ;
       _lobPageSize = pHeader->_lobdPageSize ;
+      /// lobm _segmentSize update in _checkPageSize
+      if ( 0 == _segmentSize )
+      {
+         _segmentSize = pHeader->_segmentSize ;
+      }
 
       if ( 0 != _dataOffset() % pHeader->_pageSize )
       {
@@ -1639,7 +1671,11 @@ namespace engine
 
    UINT32 _dmsStorageBase::_extendThreshold () const
    {
-      if ( _pStorageInfo )
+      if ( _isSysSU )
+      {
+         return DMS_SYS_EXTEND_THRESHOLD_SIZE >> _pageSizeSquare ;
+      }
+      else if ( _pStorageInfo )
       {
          return _pStorageInfo->_extentThreshold >> _pageSizeSquare ;
       }
@@ -1648,7 +1684,11 @@ namespace engine
 
    UINT32 _dmsStorageBase::_getSegmentSize() const
    {
-      return DMS_SEGMENT_SZ ;
+      if ( 0 == _segmentSize )
+      {
+         return DMS_SEGMENT_SZ ;
+      }
+      return _segmentSize ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEBASE__FINDFREESPACE, "_dmsStorageBase::_findFreeSpace" )

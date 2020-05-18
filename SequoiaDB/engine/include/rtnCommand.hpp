@@ -88,6 +88,7 @@ namespace engine
          virtual RTN_COMMAND_TYPE type () = 0 ;
          virtual BOOLEAN      writable () ;
          virtual const CHAR * collectionFullName () ;
+         virtual const CHAR * spaceName() ;
 
          virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
                               const CHAR *pMatcherBuff,
@@ -573,6 +574,7 @@ namespace engine
          virtual const CHAR * name () ;
          virtual RTN_COMMAND_TYPE type () ;
          virtual BOOLEAN      writable () ;
+         virtual const CHAR*  spaceName() ;
 
          virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
                               const CHAR *pMatcherBuff,
@@ -657,7 +659,7 @@ namespace engine
          _rtnDropCollectionspace () ;
          virtual ~_rtnDropCollectionspace () ;
 
-         const CHAR *spaceName () ;
+         virtual const CHAR *spaceName () ;
 
          virtual const CHAR * name () ;
          virtual RTN_COMMAND_TYPE type () ;
@@ -1494,7 +1496,7 @@ namespace engine
                            _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
 
-      const CHAR* csName () { return _csName ; }
+      virtual const CHAR* spaceName () { return _csName ; }
       void setCSUniqueID ( utilCSUniqueID csUniqueID ) ;
       void setCLInfo ( const BSONObj& clInfoObj ) ;
 

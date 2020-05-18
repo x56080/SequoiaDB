@@ -75,7 +75,6 @@ namespace engine
       RTN_JOB_GTS_DISPATH        = 25,
 
       RTN_JOB_CLS_UNIQUEID_CHECK = 26,
-      RTN_JOB_CLS_NAME_CHECK_BY_UNIQUEID = 27,
 
       RTN_JOB_STOPNODE           = 28, // stop node
 
