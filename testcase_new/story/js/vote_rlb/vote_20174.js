@@ -4,7 +4,7 @@
 ***************************************************************************** */
 testConf.skipStandAlone = true;
 
-main( test );
+//main( test );SEQUOIADBMAINSTREAM-5845
 
 function test()
 {
@@ -20,19 +20,19 @@ function test()
    var slaveNode2Pos = primaryPos === group.length -1 ? primaryPos - 1 : group.length -1;
    var slaveNode1 = group[ slaveNode1Pos ];
    var slaveNode2 = group[ slaveNode2Pos ];
-   var masterNode = group[ primaryPos ];
+   var primaryNode = group[ primaryPos ];
 
-   waitSync( masterNode, slaveNode1 );
+   waitSync( primaryNode, slaveNode1 );
 
    //指定HostName执行选主
    var hostName = slaveNode1.HostName;
-   println("start to reelect node with hostName " + hostName + " to primary node");
+   println( groupName + " start to reelect node with hostName " + hostName + " to primary node" );
    db.getRG(groupName).reelect({Seconds: 60, HostName: hostName});
 
    var masterNodeHostName = db.getRG(groupName).getMaster().getHostName();
    if( masterNodeHostName != hostName )
    {
-      throw new Error( "Reelect failed!" );
+      throw new Error( "Expected master node's hostName is " + hostName + ", but actual is " + masterNodeHostName );
    }
 
    waitSync( slaveNode1, slaveNode2 );

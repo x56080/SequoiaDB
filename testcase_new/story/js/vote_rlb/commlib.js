@@ -212,6 +212,7 @@ function waitSync(masterNode, slaveNode)
          break;
       }
    }
+   println("masterNodeLSN: " + masterNodeLSN + ", slaveNodeLSN: " + slaveNodeLSN );
    if( !isSync )
    {
       throw new Error( "wait sync failed!" );
