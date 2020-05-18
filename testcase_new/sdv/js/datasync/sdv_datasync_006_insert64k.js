@@ -15,6 +15,7 @@ function main ()
          return;
       }
 
+      
       var clName = COMMCLNAME + "_testins64k6";
       var mgr = new groupMgr( db );
       mgr.init();
@@ -22,11 +23,19 @@ function main ()
       var nodeNum = 2;
       var group = selectGroupByNodeNum( mgr, nodeNum );
 
+      if ( !group.checkLSN( group ) )
+      {
+         return ;
+      }
       var cl = new collection( COMMCSNAME, clName, w.ONE );
       cl.drop( db );
       cl.create( db, group.name );
       var pageSize = 64 * 1024;
       cl.insert( pageSize );
+      if( !group.checkResult( false, group.checkLSN ))
+      {
+         throw new Error( "data is not consistency" );
+      }
       if( !group.checkConsistency( cl ) )
       {
          throw new Error( "data is not consistency" );
