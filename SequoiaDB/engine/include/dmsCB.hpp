@@ -430,8 +430,10 @@ namespace engine
 
       void setIxmKeySorterCreator( dmsIxmKeySorterCreator* creator ) ;
       dmsIxmKeySorterCreator* getIxmKeySorterCreator() ;
-      dmsIxmKeySorter* createIxmKeySorter( INT64 bufSize, const _dmsIxmKeyComparer& comparer ) ;
-      void releaseIxmKeySorter( dmsIxmKeySorter* sorter ) ;
+      INT32 createIxmKeySorter( INT64 bufSize,
+                                const _dmsIxmKeyComparer& comparer,
+                                dmsIxmKeySorter** ppSorter ) ;
+      void releaseIxmKeySorter( dmsIxmKeySorter* pSorter ) ;
 
       INT32 getMaxDMSLSN( DPS_LSN_OFFSET &maxLsn ) ;
 

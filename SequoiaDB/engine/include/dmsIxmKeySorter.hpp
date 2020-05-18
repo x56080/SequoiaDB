@@ -94,8 +94,10 @@ namespace engine
 
    public:
       virtual ~_dmsIxmKeySorterCreator() {}
-      virtual _dmsIxmKeySorter* createSorter(  INT64 bufSize, const _dmsIxmKeyComparer& comparer  ) = 0 ;
-      virtual void releaseSorter( _dmsIxmKeySorter* sorter ) = 0 ;
+      virtual INT32 createSorter( INT64 bufSize,
+                                  const _dmsIxmKeyComparer& comparer,
+                                  _dmsIxmKeySorter** ppSorter ) = 0 ;
+      virtual void releaseSorter( _dmsIxmKeySorter* pSorter ) = 0 ;
    } ;
    typedef class _dmsIxmKeySorterCreator dmsIxmKeySorterCreator ;
 }

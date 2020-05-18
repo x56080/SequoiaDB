@@ -69,8 +69,10 @@ namespace engine
    public:
       _rtnIxmKeySorterCreator() {}
       ~_rtnIxmKeySorterCreator() {}
-      _dmsIxmKeySorter* createSorter(  INT64 bufSize, const _dmsIxmKeyComparer& comparer  ) ;
-      void releaseSorter( _dmsIxmKeySorter* sorter ) ;
+      INT32 createSorter( INT64 bufSize,
+                          const _dmsIxmKeyComparer& comparer,
+                          _dmsIxmKeySorter** ppSorter ) ;
+      void releaseSorter( _dmsIxmKeySorter* pSorter ) ;
 
    private:
       // disallow copy and assign

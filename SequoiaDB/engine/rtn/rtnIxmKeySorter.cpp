@@ -177,42 +177,45 @@ namespace engine
       return ( _bufSize - _tailOffset + _headOffset ) ;
    }
 
-   _dmsIxmKeySorter* _rtnIxmKeySorterCreator::createSorter(  INT64 bufSize, const _dmsIxmKeyComparer& comparer )
+   INT32 _rtnIxmKeySorterCreator::createSorter( INT64 bufSize,
+                                                const _dmsIxmKeyComparer& comparer,
+                                                _dmsIxmKeySorter** ppSorter )
    {
       INT32 rc = SDB_OK ;
-      _rtnIxmKeySorter* sorter = NULL ;
+      _rtnIxmKeySorter* pSorter = NULL ;
 
-      sorter = SDB_OSS_NEW _rtnIxmKeySorter( bufSize, comparer ) ;
-      if ( NULL == sorter )
+      pSorter = SDB_OSS_NEW _rtnIxmKeySorter( bufSize, comparer ) ;
+      if ( NULL == pSorter )
       {
          rc = SDB_OOM ;
-         PD_LOG( PDERROR, "failed to create _rtnIxmKeySorter, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "Failed to create _rtnIxmKeySorter, rc: %d", rc ) ;
          goto error ;
       }
 
-      rc = sorter->init() ;
+      rc = pSorter->init() ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to init _rtnIxmKeySorter, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init _rtnIxmKeySorter, rc: %d", rc ) ;
          goto error ;
       }
 
    done:
-      return sorter ;
+      *ppSorter = pSorter ;
+      return rc ;
    error:
-      if ( NULL != sorter )
+      if ( NULL != pSorter )
       {
-         SDB_OSS_DEL( sorter ) ;
-         sorter = NULL ;
+         SDB_OSS_DEL( pSorter ) ;
+         pSorter = NULL ;
       }
       goto done ;
    }
 
-   void _rtnIxmKeySorterCreator::releaseSorter( _dmsIxmKeySorter* sorter )
+   void _rtnIxmKeySorterCreator::releaseSorter( _dmsIxmKeySorter* pSorter )
    {
-      SDB_ASSERT( NULL != sorter, "sorter can't be NULL" ) ;
+      SDB_ASSERT( NULL != pSorter, "sorter can't be NULL" ) ;
 
-      SDB_OSS_DEL( sorter ) ;
+      SDB_OSS_DEL( pSorter ) ;
    }
 }
 

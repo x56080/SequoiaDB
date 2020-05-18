@@ -165,11 +165,11 @@ namespace engine
       Ordering ordering = Ordering::make( _indexCB->keyPattern() ) ;
       _dmsIxmKeyComparer comparer( ordering ) ;
 
-      _sorter = sdbGetDMSCB()->createIxmKeySorter( _bufSize + _bufExtSize, comparer ) ;
-      if ( NULL == _sorter )
+      rc = sdbGetDMSCB()->createIxmKeySorter( _bufSize + _bufExtSize, comparer,
+                                              &_sorter ) ;
+      if ( rc != SDB_OK )
       {
-         PD_LOG( PDERROR, "failed to create ixmKey sorter" ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to create ixmKey sorter, rc: %d", rc ) ;
          goto error ;
       }
 

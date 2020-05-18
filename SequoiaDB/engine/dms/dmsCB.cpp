@@ -3085,20 +3085,22 @@ namespace engine
       return _ixmKeySorterCreator ;
    }
 
-   dmsIxmKeySorter* _SDB_DMSCB::createIxmKeySorter( INT64 bufSize, const _dmsIxmKeyComparer& comparer )
+   INT32 _SDB_DMSCB::createIxmKeySorter( INT64 bufSize,
+                                         const _dmsIxmKeyComparer& comparer,
+                                         dmsIxmKeySorter** ppSorter )
    {
       SDB_ASSERT( NULL != _ixmKeySorterCreator, "_ixmKeySorterCreator can't be NULL" ) ;
 
-      return _ixmKeySorterCreator->createSorter( bufSize, comparer ) ;
+      return _ixmKeySorterCreator->createSorter( bufSize, comparer, ppSorter ) ;
    }
 
-   void _SDB_DMSCB::releaseIxmKeySorter( dmsIxmKeySorter* sorter )
+   void _SDB_DMSCB::releaseIxmKeySorter( dmsIxmKeySorter* pSorter )
    {
       SDB_ASSERT( NULL != _ixmKeySorterCreator, "_ixmKeySorterCreator can't be NULL" ) ;
 
-      if ( NULL != sorter )
+      if ( NULL != pSorter )
       {
-         _ixmKeySorterCreator->releaseSorter( sorter ) ;
+         _ixmKeySorterCreator->releaseSorter( pSorter ) ;
       }
    }
 
