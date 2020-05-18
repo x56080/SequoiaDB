@@ -333,8 +333,30 @@ namespace engine
 
          INT32 _checkTransAutoCommit( const MsgHeader *msg ) ;
 
+         // wait synchronized for offset
+         // - offset: LSN offset to wait
+         // - w: number of replica to wait
+         // - timeout: timeout to wait,
+         //            0 means only test,
+         //            <0 means wait forever
+         INT32 _waitSync( const DPS_LSN_OFFSET &offset,
+                          INT32 w,
+                          INT32 timeout ) ;
+         // rollback current transaction
+         // for wait commit status, we need to wait pre-commit log to be
+         // replicated for at lease one another node
+         // - checkStatusTimeout: timeout to check status with other groups
+         //                       involved in transaction
+         // - waitSyncTimeout: timeout to wait for pre-commit log to be
+         //                    replicated,
+         //                    0 means only test, <0 means wait forever
+         // - ignoreWaitSyncError: indicate whether to ignore wait sync error
+         //                        if so, it may cause inconsistent status in
+         //                        different groups
          INT32 _rollbackTrans( BOOLEAN *pHasRollback = NULL,
-                               UINT32 timeout = OSS_ONE_SEC * 60 ) ;
+                               INT32 checkStatusTimeout = OSS_ONE_SEC * 60,
+                               INT32 waitSyncTimeout = OSS_ONE_SEC * 60,
+                               BOOLEAN ignoreWaitSyncError = FALSE ) ;
 
       protected:
          _clsReplicateSet       *_pReplSet ;

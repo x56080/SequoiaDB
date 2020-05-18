@@ -252,7 +252,8 @@ namespace engine
                     "status(WaitCommit), begin to consult with other nodes",
                     dpsTransIDToString( _pEDUCB->getTransID() ).c_str() ) ;
 
-            _rollbackTrans( NULL, OSS_ONE_SEC ) ;
+            // only test wait-sync for pre-commit log
+            _rollbackTrans( NULL, OSS_ONE_SEC, 0 ) ;
 
             if ( _transWaitTimeout >= SHD_TRANS_WAITCOMMIT_INTERVAL )
             {
@@ -325,53 +326,8 @@ namespace engine
             _pRtnCB->contextDelete ( contextID, NULL ) ;
          }
 
-         // for wait-commit status, we need to make sure pre-commit log
-         // is replicated to at least one other replicate node ( group with
-         // multiple nodes )
-         // wait for 5 minutes
-         if ( DPS_TRANS_WAIT_COMMIT == _pEDUCB->getTransStatus() &&
-              DPS_INVALID_LSN_OFFSET != _pEDUCB->getCurTransLsn() )
-         {
-            replCB * replCB = sdbGetClsCB()->getReplCB() ;
-            UINT32 timeout = 0 ;
-
-            // start rollback to avoid interrupt during wait-sync
-            _pEDUCB->startTransRollback() ;
-            while ( replCB->groupSize() > 1 &&
-                    pmdIsPrimary() &&
-                    timeout < 5 * 60 * OSS_ONE_SEC )
-            {
-               // just wait for one replica node in this special case
-               INT32 checkRC = replCB->sync( _pEDUCB->getCurTransLsn(),
-                                             _pEDUCB, 2, OSS_ONE_SEC ) ;
-               if ( SDB_OK == checkRC )
-               {
-                  break ;
-               }
-               else if ( SDB_TIMEOUT == checkRC )
-               {
-                  // could wait again
-                  timeout += OSS_ONE_SEC ;
-                  continue ;
-               }
-               else if ( SDB_CLS_WAIT_SYNC_FAILED == checkRC )
-               {
-                  // wait sync may not pass 1 second, so sleep and retry
-                  ossSleep( OSS_ONE_SEC ) ;
-                  timeout += OSS_ONE_SEC ;
-               }
-               else
-               {
-                  PD_LOG( PDWARNING, "Failed to wait sync for pre-commit "
-                          "lsn [%llu], rc: %d", _pEDUCB->getCurTransLsn(),
-                          checkRC ) ;
-                  break ;
-               }
-            }
-            _pEDUCB->stopTransRollback() ;
-         }
-
-         INT32 rcTmp = _rollbackTrans( NULL, 0 ) ;
+         // wait pre-commit for 5 minutes, after that ignore sync error
+         INT32 rcTmp = _rollbackTrans( NULL, -1, 5 * 60 * OSS_ONE_SEC, TRUE ) ;
          if ( rcTmp)
          {
             PD_LOG ( PDERROR, "Failed to rollback(rc=%d)", rcTmp ) ;
@@ -410,8 +366,72 @@ namespace engine
       PD_TRACE_EXIT ( SDB__CLSSHDSESS__ONDETACH ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__WAITSYNC, "_clsShdSession::_waitSync" )
+   INT32 _clsShdSession::_waitSync( const DPS_LSN_OFFSET &offset,
+                                    INT32 w,
+                                    INT32 waitSyncTimeout )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS__WAITSYNC ) ;
+
+      replCB * replCB = sdbGetClsCB()->getReplCB() ;
+      INT32 timePassed = 0, waitTime = OSS_ONE_SEC ;
+
+      if ( 0 == waitSyncTimeout )
+      {
+         waitSyncTimeout = 10 ;
+         waitTime = 10 ;
+      }
+      else if ( waitSyncTimeout < 0 )
+      {
+         waitSyncTimeout = OSS_SINT32_MAX ;
+      }
+
+      // start rollback to avoid interrupt during wait-sync
+      _pEDUCB->startTransRollback() ;
+
+      while ( replCB->groupSize() > 1 &&
+              pmdIsPrimary() &&
+              timePassed < waitSyncTimeout )
+      {
+         // just wait for one replica node in this special case
+         rc = replCB->sync( offset, _pEDUCB, w, waitTime ) ;
+         if ( SDB_OK == rc )
+         {
+            break ;
+         }
+         else if ( SDB_TIMEOUT == rc )
+         {
+            // could wait again
+            timePassed += waitTime ;
+            continue ;
+         }
+         else if ( SDB_CLS_WAIT_SYNC_FAILED == rc )
+         {
+            // wait sync may not pass 1 second, so sleep and retry
+            ossSleep( OSS_ONE_SEC ) ;
+            timePassed += OSS_ONE_SEC ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Failed to wait sync for lsn [%llu], rc: %d",
+                    offset, rc ) ;
+            break ;
+         }
+      }
+
+      _pEDUCB->stopTransRollback() ;
+
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS__WAITSYNC, rc ) ;
+
+      return rc ;
+   }
+
    INT32 _clsShdSession::_rollbackTrans( BOOLEAN *pHasRollback,
-                                         UINT32 timeout )
+                                         INT32 checkStatusTimeout,
+                                         INT32 waitSyncTimeout,
+                                         BOOLEAN ignoreWaitSyncError )
    {
       INT32 rc = SDB_OK ;
 
@@ -435,7 +455,30 @@ namespace engine
          UINT8 attr = 0 ;
          UINT32 nodeNum = 0 ;
          const UINT64 *pNodes = NULL ;
-         UINT32 timeCounter = 0 ;
+         INT32 timeCounter = 0 ;
+
+         // for wait-commit status, we need to make sure pre-commit log
+         // is replicated to at least one other replicate node ( group with
+         // multiple nodes )
+         rc = _waitSync( lsn.offset, 2, waitSyncTimeout ) ;
+         if ( SDB_OK != rc )
+         {
+            if ( ignoreWaitSyncError )
+            {
+               PD_LOG( PDWARNING, "Failed to wait pre-commit log for "
+                       "transaction [%s], lsn [%llu], rc: %d, ignore now",
+                       dpsTransIDToString( transID ).c_str(),
+                       lsn.offset, rc ) ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to wait pre-commit log for "
+                       "transaction [%s], lsn [%llu], rc: %d",
+                       dpsTransIDToString( transID ).c_str(),
+                       lsn.offset, rc ) ;
+               goto error ;
+            }
+         }
 
          /// load lsn
          rc = _pDpsCB->search( lsn, &mb ) ;
@@ -470,7 +513,8 @@ namespace engine
                ossSleep( OSS_ONE_SEC ) ;
                timeCounter += OSS_ONE_SEC ;
 
-               if ( timeout > 0 && timeCounter > timeout )
+               if ( checkStatusTimeout >= 0 &&
+                    timeCounter > checkStatusTimeout )
                {
                   goto error ;
                }
