@@ -1,3 +1,3 @@
 import( "../lib/main.js" );
 import( "../lib/rest_commlib.js" );
-import( "../autoIncrement/commlib.js" );
+import( "../lib/autoIncrement_commlib.js" );
