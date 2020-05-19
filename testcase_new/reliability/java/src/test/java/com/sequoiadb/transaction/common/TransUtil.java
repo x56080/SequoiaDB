@@ -302,31 +302,33 @@ public class TransUtil {
         try {
             if ( dropCS ) {
                 int count = 0;
-                while ( count++ < 1000 ) {
+                while ( count < 600 ) {
                     try {
                         sdb.dropCollectionSpace( csName );
                         break;
                     } catch ( BaseException e ) {
-                        if ( -190 != e.getErrorCode() ) {
+                        if ( -190 != e.getErrorCode() || count > 600 ) {
                             throw e;
                         }
                     }
-                    Thread.sleep( 200 );
+                    Thread.sleep( 1000 );
+                    count++;
                 }
             } else {
                 CollectionSpace cs = sdb.getCollectionSpace( csName );
                 for ( String clName : clNames ) {
                     int count = 0;
-                    while ( count++ < 1000 ) {
+                    while ( count < 600 ) {
                         try {
                             cs.dropCollection( clName );
                             break;
                         } catch ( BaseException e ) {
-                            if ( -190 != e.getErrorCode() ) {
+                            if ( -190 != e.getErrorCode() || count > 600 ) {
                                 throw e;
                             }
                         }
-                        Thread.sleep( 200 );
+                        Thread.sleep( 1000 );
+                        count++;
                     }
                 }
             }
