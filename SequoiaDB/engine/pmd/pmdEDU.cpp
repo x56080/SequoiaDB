@@ -148,6 +148,7 @@ namespace engine
       {
          ossMemset( _pErrorBuff, 0, EDU_ERROR_BUFF_SIZE + 1 ) ;
       }
+      ossMemset( _doingBuff, 0, sizeof( _doingBuff ) ) ;
 
       _curAutoTransCtxID = -1 ;
       _pMemPool = NULL ;
