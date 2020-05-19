@@ -23,10 +23,9 @@ function check_user()
       exit 129
     fi
   fi
-  echo $USER
 }
 
 
 check_user
 
-su $USER -c "cd $BashPath; pwd; ./start_i.sh $*"
+su $USER -c "./start_i.sh $*"
