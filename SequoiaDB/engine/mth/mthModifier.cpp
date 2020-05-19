@@ -2697,7 +2697,29 @@ namespace engine
                                                 "failed: %d", rc ) ;
                            goto done ;
                         }
-                        defaultResultEle = _interBuilder.done().firstElement() ;
+
+                        if ( _interBuilder.isEmpty() )
+                        {
+                           // _interBuilder empty means the function
+                           // mthModifierInc invoked above has done nothing.
+                           // This will happend when the number value of realEle
+                           // is 0. In this case, we should use the value of
+                           // the 'Default' field.
+                           if ( incModifier->_default.eoo() )
+                           {
+                              _interBuilder.append( "", 0 ) ;
+                              defaultResultEle =
+                                    _interBuilder.done().firstElement() ;
+                           }
+                           else
+                           {
+                              defaultResultEle = incModifier->_default ;
+                           }
+                        }
+                        else
+                        {
+                           defaultResultEle = _interBuilder.done().firstElement() ;
+                        }
                      }
                      else
                      {
