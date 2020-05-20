@@ -173,7 +173,7 @@ namespace engine
       // Let's clear them and reload from beginning
       _clearTags() ;
 
-      rc = loadBody( rowData, dataLen ) ;
+      rc = loadBody( rowData, dataLen, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse row-record(rc=%d)!", rc ) ;
       }
 
@@ -185,7 +185,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGRECD_LOADBODY, "_dpsLogRecord::loadBody" )
-   INT32 _dpsLogRecord::loadBody( const CHAR * pData, INT32 totalSize )
+   INT32 _dpsLogRecord::loadBody( const CHAR * pData,
+                                  INT32 totalSize,
+                                  BOOLEAN checkEnd )
    {
       PD_TRACE_ENTRY ( SDB__DPSLGRECD_LOADBODY );
       SDB_ASSERT( pData, "pData can't be null!" ) ;
@@ -209,6 +211,12 @@ namespace engine
          else if ( DPS_INVALID_TAG == tag )
          {
             /// the length might be changed. DPS_INVALID_TAG is a stop flag.
+            if ( checkEnd )
+            {
+               PD_CHECK( 0 == valueSize, SDB_DPS_CORRUPTED_LOG, error, PDERROR,
+                         "Failed to load body, value of ending invalid tag is "
+                         "not zero" ) ;
+            }
             break ;
          }
          else if ( (UINT32)( totalSize - loadSize ) < valueSize )
@@ -233,7 +241,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGRECD_LOAD, "_dpsLogRecord::load" )
-   INT32 _dpsLogRecord::load( const CHAR *pData )
+   INT32 _dpsLogRecord::load( const CHAR *pData, BOOLEAN checkEnd )
    {
       PD_TRACE_ENTRY ( SDB__DPSLGRECD_LOAD );
       SDB_ASSERT( NULL != pData, "impossible" ) ;
@@ -263,7 +271,7 @@ namespace engine
       totalSize = _head._length
                   - sizeof( dpsLogRecordHeader )
                   - DPS_RECORD_ELE_HEADER_LEN ;
-      rc = loadBody( location, totalSize ) ;
+      rc = loadBody( location, totalSize, checkEnd ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse row-record(rc=%d)!", rc ) ;
    done:
       PD_TRACE_EXITRC ( SDB__DPSLGRECD_LOAD, rc );

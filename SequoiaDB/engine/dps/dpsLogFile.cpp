@@ -453,7 +453,7 @@ namespace engine
             goto error ;
          }
 
-         rc = lr.load( lastRecord ) ;
+         rc = lr.load( lastRecord, TRUE ) ;
          if ( SDB_DPS_CORRUPTED_LOG == rc )
          {
             /// the last record is corrupted. move to pre one.

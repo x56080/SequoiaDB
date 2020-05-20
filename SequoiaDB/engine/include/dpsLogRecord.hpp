@@ -230,9 +230,11 @@ namespace engine
    public:
       UINT32 dump ( CHAR *outBuf, UINT32 outSize, UINT32 options ) const ;
 
-      INT32 load ( const CHAR *pData ) ;
+      INT32 load ( const CHAR *pData, BOOLEAN checkEnd = FALSE ) ;
 
-      INT32 loadBody( const CHAR *pData, INT32 totalSize ) ;
+      INT32 loadBody( const CHAR *pData,
+                      INT32 totalSize,
+                      BOOLEAN checkEnd = FALSE ) ;
 
       INT32 loadRowBody() ;
 
