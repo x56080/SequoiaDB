@@ -66,6 +66,7 @@
             <!--全文索引用例暂时屏蔽，待问题单SEQUOIADBMAINSTREAM-4325修复后再统一放开 -->
             <!-- <package name="com.sequoiadb.fulltext.killnode" /> <package 
              name="com.sequoiadb.fulltext.restartnode" /> -->
+            <package name="com.sequoiadb.compress" />
         </packages>
     </test>
 
