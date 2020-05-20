@@ -84,7 +84,7 @@ Terminating process 22754: sequoias3(8002)
 |参数|配置说明|
 |----|----------|
 |server.port | SequoiaS3 监听端口号|
-|sdbs3.sequoiadb.url | SequoiaS3 对接的 SequoiaDB 的 coord 节点 IP 和端口 |
+|sdbs3.sequoiadb.url | SequoiaS3 对接的 SequoiaDB 的 coord 节点 IP 和端口，以sequoiadb://为前缀，多组之间使用逗号分隔。例如：sdbs3.sequoiadb.url=sequoiadb://localhost:11810,192.168.20.69:11810 |
 |sdbs3.sequoiadb.auth | SequoiaS3 对接的 SequoiaDB 用户名密码。如果 SequoiaDB 未配置密码，此处不需要配置。 |
 |sdbs3.sequoiadb.meta.csName  | SequoiaS3 存储元数据的集合空间名称，默认为 S3_SYS_Meta，系统启动时检测如果没有此集合空间时会创建。|
 |sdbs3.sequoiadb.meta.domain  | SequoiaS3 存储元数据的集合空间所在的域，只在初次启动系统时生效。 |
