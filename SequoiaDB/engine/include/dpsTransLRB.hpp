@@ -50,6 +50,9 @@ namespace engine
    class _dpsTransExecutor ;
    class dpsTransLRBHeader ;
 
+   #define DPS_LRB_STATUS_NONE  ( (UINT8) 0x00 )
+   #define DPS_LRB_STATUS_AWAKE ( (UINT8) 0x01 )
+
    // Lock Request Block ( LRB )
    class dpsTransLRB : public utilPooledObject
    {
@@ -64,7 +67,8 @@ namespace engine
       UINT32              refCounter ; // lock reference counter
       DPS_TRANSLOCK_TYPE  lockMode ;   // lock mode owned/request, UINT8, 1 byte
       DPS_TRANSLOCK_TYPE  originMode ; // origin lock mode before upgrade
-      UINT8               pad[2] ;     // 2 byte for padding
+      UINT8               status ;     // 1 byte for status, wake up
+      UINT8               pad[1] ;     // 1 byte for padding
 
       dpsTransLRB()
       : dpsTxExectr( NULL ),
@@ -75,7 +79,8 @@ namespace engine
         prevLRB( NULL ),
         refCounter( 0 ),
         lockMode( DPS_TRANSLOCK_MAX ),
-        originMode( DPS_TRANSLOCK_MAX )
+        originMode( DPS_TRANSLOCK_MAX ),
+        status( DPS_LRB_STATUS_NONE )
       {
       }
 
@@ -90,7 +95,8 @@ namespace engine
         prevLRB( NULL ),
         refCounter( 1 ),
         lockMode( _lockMode ),
-        originMode( DPS_TRANSLOCK_MAX )
+        originMode( DPS_TRANSLOCK_MAX ),
+        status( DPS_LRB_STATUS_NONE )
       {
       }
 
@@ -105,6 +111,7 @@ namespace engine
          refCounter  = 0 ;
          lockMode    = DPS_TRANSLOCK_MAX ;
          originMode  = DPS_TRANSLOCK_MAX ;
+         status      = DPS_LRB_STATUS_NONE ;
       }
    } ;  // 64 bytes in total
 

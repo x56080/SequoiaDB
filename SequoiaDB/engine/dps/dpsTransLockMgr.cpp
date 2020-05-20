@@ -1034,33 +1034,29 @@ namespace engine
          {
             // remove from upgrade list
             _removeFromLRBList( pLRBHdr->upgradeLRB, pLRB ) ;
-
-            // clear the wait info in dpsTxExectr
-            dpsTxExectr->clearWaiterInfo( _lockMgrType ) ;
-
-            // if it is the last one in upgrade list,
-            // set pLRBNext to the first one in waiter list
-            if ( ! pLRBNext )
-            {
-               pLRBNext = pLRBHdr->waiterLRB ;
-            }
          }
          else if ( DPS_QUE_WAITER ==
                    dpsTxExectr->getWaiterQueType( _lockMgrType ) )
          {
             // remove from waiter list
             _removeFromLRBList( pLRBHdr->waiterLRB, pLRB ) ;
+         }
 
-            // clear the wait info in dpsTxExectr
-            dpsTxExectr->clearWaiterInfo( _lockMgrType ) ;
+         // no need to clear the status of current pLRB
+         // since it will be released
+         // OSS_BIT_CLEAR( pLRB->status, DPS_LRB_STATUS_AWAKE ) ;
 
-            // in case upgrade is not empty,
-            // set the pLRBNext to the first one in upgrade list,
-            // as the upgrade list is actually high priority waiter list
-            if ( pLRBHdr->upgradeLRB  )
-            {
-               pLRBNext = pLRBHdr->upgradeLRB ;
-            }
+         // clear the wait info in dpsTxExectr
+         dpsTxExectr->clearWaiterInfo( _lockMgrType ) ;
+
+         // get the waiter LRB pointer
+         if ( pLRBHdr->upgradeLRB )
+         {
+            pLRBNext = pLRBHdr->upgradeLRB ;
+         }
+         else if ( pLRBHdr->waiterLRB  )
+         {
+            pLRBNext = pLRBHdr->waiterLRB  ;
          }
 
          // wake up the next waiting one if necessary.
@@ -1079,7 +1075,8 @@ namespace engine
          //    another approach is treat this EDU same as been waken up case
          //    and retry acquire. Or, do nothing let other waiters timeout.
          //
-         if ( pLRBNext )
+         if ( pLRBNext &&
+              ( ! OSS_BIT_TEST( pLRBNext->status, DPS_LRB_STATUS_AWAKE ) ) )
          {
 #ifdef _DEBUG
             SDB_ASSERT( pLRB->lrbHdr == pLRBNext->lrbHdr, "Invalid LRB" ) ;
@@ -1090,16 +1087,17 @@ namespace engine
                if ( dpsIsLockCompatible( pLRB->lockMode, pLRBNext->lockMode ) )
                {
                   // wake up next waiter if the lock mode is compatible
+                  OSS_BIT_SET( pLRBNext->status, DPS_LRB_STATUS_AWAKE ) ;
                   _wakeUp( pLRBNext->dpsTxExectr ) ;
                }
             }
             else
             {
                // the _waitLock() returned timeout or interrupted
-
                if ( ! pLRBHdr->ownerLRB )
                {
                   // wake up next waiter if owner list is empty
+                  OSS_BIT_SET( pLRBNext->status, DPS_LRB_STATUS_AWAKE ) ;
                   _wakeUp( pLRBNext->dpsTxExectr ) ;
                }
                else if ( ! _checkLockModeWithOthers( pLRBHdr->ownerLRB,
@@ -1113,6 +1111,7 @@ namespace engine
                   //  . C requests S and is put in waiter queue
                   //  B timed out, it shall try to wake up C if C is compatible
                   //  with current owners.
+                  OSS_BIT_SET( pLRBNext->status, DPS_LRB_STATUS_AWAKE ) ;
                   _wakeUp( pLRBNext->dpsTxExectr ) ;
                }
             }
@@ -2563,7 +2562,9 @@ namespace engine
          {
             pWaiterLRB = pLRBHdr->waiterLRB  ;
          }
-         if ( pWaiterLRB )
+
+         if ( pWaiterLRB &&
+              ( ! OSS_BIT_TEST( pWaiterLRB->status, DPS_LRB_STATUS_AWAKE ) ) )
          {
             // lookup owner list check if the waiter lockMode is compabile
             // with other owners
@@ -2571,15 +2572,16 @@ namespace engine
                                                     pWaiterLRB->dpsTxExectr,
                                                     pWaiterLRB->lockMode,
                                                     pLRBIncompatible ) ;
-         }
 
-         // if the owner queue is empty ( after remove current owner ),
-         // or if the waiter lockMode is compabile with other owners
-         // wake it up
-         if ( pWaiterLRB && ( FALSE == foundIncomp ) )
-         {
-            // wake up the edu by posting an event
-            _wakeUp( pWaiterLRB->dpsTxExectr ) ;
+            // if the owner queue is empty ( after remove current owner ),
+            // or if the waiter lockMode is compabile with other owners
+            // wake it up
+            if ( FALSE == foundIncomp )
+            {
+               // wake up the edu by posting an event
+               OSS_BIT_SET( pWaiterLRB->status, DPS_LRB_STATUS_AWAKE ) ;
+               _wakeUp( pWaiterLRB->dpsTxExectr ) ;
+            }
          }
 
          // save the pointer of owner LRB to be released
@@ -2907,6 +2909,10 @@ nextLock:
       PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER__WAKEUP ) ;
 #ifdef _DEBUG
       SDB_ASSERT( dpsTxExectr, "dpsTransExecutor can't be NULL" ) ;
+      // dpsTransLRB *pLRB = dpsTxExectr->getWaiterLRB( _lockMgrType ) ;
+      // dpsTransLRBHeader * pLRBHdr = pLRB->lrbHdr ;
+      // PD_LOG( PDDEBUG, "Waking up TID:%d for lock(%s)",
+      //         dpsTxExectr->getTID(), pLRBHdr->lockId.toString().c_str() ) ;
 #endif
       dpsTxExectr->wakeup() ;
       PD_TRACE_EXIT( SDB_DPSTRANSLOCKMANAGER__WAKEUP ) ;
