@@ -734,9 +734,12 @@ namespace engine
                   _addSearchPath( ixScanPath, planHelper ) ;
                }
 
-               if ( ixScanPath.isBetterPath(bestPath) )
+               if ( ixScanPath.isCandidate() )
                {
-                  bestPath.setPath( ixScanPath, TRUE ) ;
+                  if ( ixScanPath.isBetterPath(bestPath) )
+                  {
+                     bestPath.setPath( ixScanPath, TRUE ) ;
+                  }
                   candidateCount ++ ;
                }
             }
@@ -788,9 +791,12 @@ namespace engine
                _addSearchPath( ixScanPath, planHelper ) ;
             }
 
-            if ( ixScanPath.isBetterPath( bestPath ) )
+            if ( ixScanPath.isCandidate() )
             {
-               bestPath.setPath( ixScanPath, TRUE ) ;
+               if ( ixScanPath.isBetterPath( bestPath ) )
+               {
+                  bestPath.setPath( ixScanPath, TRUE ) ;
+               }
                candidateCount ++ ;
 
                // Needn't to evaluate all indexes if we got enough
