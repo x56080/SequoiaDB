@@ -431,8 +431,7 @@ namespace engine
 
          // update status first
          rc = transCB->updateTransStatus( transInfo._transID,
-                                          DPS_TRANS_PRE_WAIT_COMMIT,
-                                          TRANS_COMMIT_FLAG_AUTOCOMMIT ) ;
+                                          DPS_TRANS_PRE_WAIT_COMMIT ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update status to [%s] for "
                       "transaction [%s], rc: %d",
                       dpsTransStatusToString( DPS_TRANS_PRE_WAIT_COMMIT ),
@@ -740,7 +739,7 @@ namespace engine
       INT32 rc = SDB_OK;
       dpsTransCB *pTransCB = sdbGetTransCB() ;
       SDB_DPSCB *pDpsCB = sdbGetDPSCB() ;
-      TRANS_MAP tmpTransMap ;
+      TRANS_DUMP_MAP tmpTransMap ;
       DPS_LSN dpsLsn;
       DPS_TRANS_ID transID ;
       DPS_TRANS_ID rollbackID ;
@@ -757,7 +756,7 @@ namespace engine
 
       while ( tmpTransMap.size() != 0 )
       {
-         TRANS_MAP::iterator iterMap = tmpTransMap.begin();
+         TRANS_DUMP_MAP::iterator iterMap = tmpTransMap.begin();
          dpsTransBackInfo &transInfo = iterMap->second ;
          MAP_TRANS_PENDING_OBJ mapPendingObj ;
          transID = iterMap->first ;

@@ -104,12 +104,7 @@ namespace engine
 
       _pEventHandler       = NULL ;
 
-      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
-      {
-         _mapLatch[ i ].latchID = MON_LATCH_DPSTRANSCB_MAPMUTEX ;
-         _cbMapLatch[ i ].latchID = MON_LATCH_DPSTRANSCB_CBMAPMUTEX ;
-         _histMapLatch[ i ].latchID = MON_LATCH_DPSTRANSCB_HISMUTEX ;
-      }
+      _initTransMaps() ;
    }
 
    dpsTransCB::~dpsTransCB()
@@ -287,6 +282,33 @@ namespace engine
 
    void dpsTransCB::onConfigChange()
    {
+   }
+
+   void dpsTransCB::_initTransMaps()
+   {
+      FOR_EACH_CMAP_BUCKET( TRANS_MAP, _transMap )
+      {
+         bucket.getLatch()->setLatchID( MON_LATCH_DPSTRANSCB_MAPMUTEX ) ;
+      }
+      FOR_EACH_CMAP_BUCKET_END
+
+      FOR_EACH_CMAP_BUCKET( TRANS_CB_MAP, _cbMap )
+      {
+         bucket.getLatch()->setLatchID( MON_LATCH_DPSTRANSCB_CBMAPMUTEX ) ;
+      }
+      FOR_EACH_CMAP_BUCKET_END
+
+      FOR_EACH_CMAP_BUCKET( TRANS_HIST_MAP, _histGlobMap )
+      {
+         bucket.getLatch()->setLatchID( MON_LATCH_DPSTRANSCB_HISMUTEX ) ;
+      }
+      FOR_EACH_CMAP_BUCKET_END
+
+      FOR_EACH_CMAP_BUCKET( TRANS_HIST_MAP, _histRBMap )
+      {
+         bucket.getLatch()->setLatchID( MON_LATCH_DPSTRANSCB_HISMUTEX ) ;
+      }
+      FOR_EACH_CMAP_BUCKET_END
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ALLOCTRANSID, "dpsTransCB::allocTransID" )
@@ -1198,20 +1220,19 @@ namespace engine
       // NOTE: cbMap contains transactions between rtnTransBegin and
       //       rtnTransCommit / rtnTransRollback
 
-      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+      // for each element in concurrent map
+      FOR_EACH_CMAP_BUCKET_S( TRANS_CB_MAP, _cbMap )
       {
-         ossScopedLock _lock( &_cbMapLatch[ i ], SHARED ) ;
-
-         // get first transaction
-         TRANS_CB_MAP::iterator iterCB =
-                     _cbMap[ i ].upper_bound( minGlobTran ) ;
-         if ( iterCB != _cbMap[ i ].end() &&
+         TRANS_CB_MAP::map_iterator iterCB =
+                     bucket.getMap().upper_bound( minGlobTran ) ;
+         if ( iterCB != bucket.end() &&
               ( lowTran.isInvalid() ||
                 iterCB->first < lowTran ) )
          {
             lowTran = iterCB->first ;
          }
       }
+      FOR_EACH_CMAP_BUCKET_END
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB_GETLOCALLOWTRAN ) ;
 
@@ -1265,17 +1286,15 @@ namespace engine
 
          // find out the oldest transactions (among all buckets) that
          // committed after global lowTran
-         for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+         FOR_EACH_CMAP_BUCKET_S( TRANS_HIST_MAP, _histGlobMap )
          {
-            ossScopedLock lock( &_histMapLatch[ i ], SHARED ) ;
-
             // iterate from last global expireTran to the global lowTran, find
             // transactions with commit time greater than global lowTran
             // ( with a maximum time error for network delay consideration ),
             // and assign the minimum one for local expireTran
-            for ( TRANS_ID_2_STATUS::iterator iter =
-                        _histMap[ i ].lower_bound( lastGlobExpireTran ) ;
-                  _histMap[ i ].end() != iter ;
+            for ( TRANS_HIST_MAP::map_iterator iter =
+                        bucket.getMap().lower_bound( lastGlobExpireTran ) ;
+                  bucket.end() != iter ;
                   ++ iter )
             {
                const DPS_TRANS_ID &histTransID = iter->first ;
@@ -1308,6 +1327,7 @@ namespace engine
                }
             }
          }
+         FOR_EACH_CMAP_BUCKET_END
       }
 
       // if no matched transactions found,
@@ -1518,7 +1538,6 @@ namespace engine
             info._beginTime = histInfo._beginTime ;
             info._preCommitTime = histInfo._preCommitTime ;
             info._commitTime = histInfo._commitTime ;
-            info._commitFlag = histInfo._commitFlag ;
             found = TRUE ;
          }
          else
@@ -1681,17 +1700,20 @@ namespace engine
       else
       {
          // get read transaction's executor to do arbitration
-         UINT32 bucketIndex = dpsTransIDHash( readTransID,
-                                              DPS_TRANS_BUCKET_SIZE ) ;
-         ossScopedLock lock( &_cbMapLatch[ bucketIndex ], SHARED ) ;
 
-         TRANS_CB_MAP::iterator iter =
-                     _cbMap[ bucketIndex ].find( readTransID ) ;
-         PD_CHECK( _cbMap[ bucketIndex ].end() != iter,
+         // get and lock bucket
+         TRANS_CB_MAP::Bucket &bucket = _cbMap.getBucket( readTransID ) ;
+         BUCKET_SLOCK( bucket ) ;
+
+         // find EDU by transaction
+         TRANS_CB_MAP::map_iterator iter = bucket.find( readTransID ) ;
+         PD_CHECK( bucket.end() != iter,
                    SDB_DPS_TRANS_NO_TRANS, error, PDERROR,
                    "Failed to get EDUCB for transaction [%s], it is not found",
                    dpsTransIDToString( readTransID ).c_str() ) ;
 
+         // do arbitrate with EDU ( need protected by bucket lock to avoid
+         // ending transaction during arbitration
          rc = iter->second->getTransExecutor()->arbit( writeTransID,
                                                        writeTransStatus,
                                                        visible ) ;
@@ -1725,19 +1747,19 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB__GETTRANSINFO_INFO ) ;
 
-      UINT32 bucketIndex = dpsTransIDHash( transID, DPS_TRANS_BUCKET_SIZE ) ;
+      // get and lock bucket
+      TRANS_MAP::Bucket &bucket = _transMap.getBucket( transID ) ;
+      BUCKET_SLOCK( bucket ) ;
 
-      ossScopedLock lock( &( _mapLatch[ bucketIndex ] ), SHARED ) ;
-
-      TRANS_MAP::iterator iterTrans = _transMap[ bucketIndex ].find( transID ) ;
-      if ( iterTrans != _transMap[ bucketIndex ].end() )
+      // find transaction
+      TRANS_MAP::map_iterator iterTrans = bucket.find( transID ) ;
+      if ( bucket.end() != iterTrans )
       {
          info._lsn = iterTrans->second._lsn ;
          info._status = (DPS_TRANS_STATUS)( iterTrans->second._status ) ;
          info._beginTime = iterTrans->second._beginTime ;
          info._preCommitTime = iterTrans->second._preCommitTime ;
          info._commitTime = iterTrans->second._commitTime ;
-         info._commitFlag = iterTrans->second._commitFlag ;
          found = TRUE ;
       }
 
@@ -1754,19 +1776,25 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB__GETTRANSHISTINFO_INFO ) ;
 
-      UINT32 bucketIndex = dpsTransIDHash( transID, DPS_TRANS_BUCKET_SIZE ) ;
+      // find and lock bucket
+      // - for global transaction, we find from global history map
+      // - for other transaction, we find from rollback history map
+      TRANS_HIST_MAP::Bucket &bucket =
+                  transID.isGlobTrans() ?
+                              _histGlobMap.getBucket( transID ) :
+                              _histRBMap.getBucket( transID ) ;
 
-      ossScopedLock lock( &( _histMapLatch[ bucketIndex ] ), SHARED ) ;
-      TRANS_ID_2_STATUS::iterator iterHist =
-                  _histMap[ bucketIndex ].find( transID ) ;
-      if ( iterHist != _histMap[ bucketIndex ].end() )
+      BUCKET_SLOCK( bucket ) ;
+
+      // find transaction
+      TRANS_HIST_MAP::map_iterator iterHist = bucket.find( transID ) ;
+      if ( iterHist != bucket.end() )
       {
          histInfo._status = iterHist->second._status ;
          histInfo._lsn = iterHist->second._lsn ;
          histInfo._beginTime = iterHist->second._beginTime ;
          histInfo._preCommitTime = iterHist->second._preCommitTime ;
          histInfo._commitTime = iterHist->second._commitTime ;
-         histInfo._commitFlag = iterHist->second._commitFlag ;
          found = TRUE ;
       }
 
@@ -1971,20 +1999,22 @@ namespace engine
 
    BOOLEAN dpsTransCB::hasRBPendingTrans()
    {
-      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+      BOOLEAN hasRBPending = FALSE ;
+
+      // iterate each elements in concurrent map to find rollback pending
+      // transactions
+      FOR_EACH_CMAP_ELEMENT_S( TRANS_MAP, _transMap )
       {
-         ossScopedLock _lock( &( _mapLatch[ i ] ), SHARED ) ;
-         for ( TRANS_MAP::iterator iter = _transMap[ i ].begin() ;
-               iter != _transMap[ i ].end() ;
-               ++ iter )
+         if ( DPS_INVALID_LSN_OFFSET != it->second._curLSNWithRBPending )
          {
-            if ( DPS_INVALID_LSN_OFFSET != iter->second._curLSNWithRBPending )
-            {
-               return TRUE ;
-            }
+            hasRBPending = TRUE ;
+            goto done ;
          }
       }
-      return FALSE ;
+      FOR_EACH_CMAP_ELEMENT_END
+
+   done:
+      return hasRBPending ;
    }
 
    INT32 dpsTransCB::startRollbackTask()
@@ -2044,28 +2074,27 @@ namespace engine
          BOOLEAN rbPending = isRBPending( transID ) ;
          DPS_TRANS_ID origID = getTransID( transID ) ;
          dpsHisTransStatus histInfo ;
-         TRANS_MAP::iterator it ;
 
-         UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
+         // find and lock bucket
+         TRANS_MAP::Bucket &bucket = _transMap.getBucket( origID ) ;
+         BUCKET_XLOCK( bucket ) ;
 
-         ossScopedLock _lock( &( _mapLatch[ bucketIndex ] ), EXCLUSIVE ) ;
-
-         it = _transMap[ bucketIndex ].find( origID ) ;
+         // get transaction
+         TRANS_MAP::map_iterator iterTrans = bucket.find( origID ) ;
 
          if ( DPS_INVALID_LSN_OFFSET == lsnOffset )
          {
             // invalid-lsn means the transaction is complete
             // need be moved to history map
-            if ( it != _transMap[ bucketIndex ].end() )
+            if ( iterTrans != bucket.end() )
             {
                // transaction is finished and need to be moved to history map
                transFinished = TRUE ;
 
                // prepare history transaction info
                histInfo._status = status ;
-               histInfo._lsn = it->second._lsn ;
-               histInfo._beginTime = it->second._beginTime ;
-               histInfo._commitFlag = it->second._commitFlag ;
+               histInfo._lsn = iterTrans->second._lsn ;
+               histInfo._beginTime = iterTrans->second._beginTime ;
                if ( transID.isAutoCommit() )
                {
                   // auto-commit doesn't have pre-commit
@@ -2081,7 +2110,7 @@ namespace engine
                else
                {
                   // must have pre-commit, pre-commit time had saved
-                  histInfo._preCommitTime = it->second._preCommitTime ;
+                  histInfo._preCommitTime = iterTrans->second._preCommitTime ;
                   histInfo._preCommitTime.setTimeError(
                                     histInfo._beginTime.getTimeError() ) ;
                   // use given transaction time as commit time
@@ -2101,26 +2130,30 @@ namespace engine
                }
 
                // remove from transaction map
-               _transMap[ bucketIndex ].erase( it ) ;
+               bucket.erase( iterTrans ) ;
             }
          }
          else
          {
-            if ( it != _transMap[ bucketIndex ].end() )
+            // transaction is not completed yet
+            if ( iterTrans != bucket.end() )
             {
-               updateTransInfo( it->second, status, lsnOffset, rbPending ) ;
+               // found trans info
+               updateTransInfo( iterTrans->second, status, lsnOffset,
+                                rbPending ) ;
 
                if ( DPS_TRANS_WAIT_COMMIT == status &&
                     transID.isGlobTrans() )
                {
-                  it->second._preCommitTime = transTime ;
+                  iterTrans->second._preCommitTime = transTime ;
                   // use begin time error as pre-commit time error
-                  it->second._preCommitTime.setTimeError(
-                        it->second._beginTime.getTimeError() ) ;
+                  iterTrans->second._preCommitTime.setTimeError(
+                              iterTrans->second._beginTime.getTimeError() ) ;
                }
             }
             else
             {
+               // trans info is not found, create a new one
                SDB_ASSERT( !rbPending, "should not be rollback pending" ) ;
 
                try
@@ -2132,18 +2165,21 @@ namespace engine
                   {
                      transInfo._beginTime = transTime ;
                   }
-                  _transMap[ bucketIndex ][ origID ] = transInfo ;
+                  bucket.getMap()[ origID ] = transInfo ;
                }
                catch ( exception &e )
                {
                   PD_LOG( PDERROR, "Failed to add transaction info, "
-                          "error: %s", e.what() ) ;
+                          "occur exception: %s", e.what() ) ;
                }
             }
          }
 
          /// add to his trans
          /// the transaction is finished, add this transaction into history
+         // NOTE: must hold lock of transaction map, otherwise, during the gap,
+         //       transaction will not be found from neither transaction map
+         //       nor history map
          if ( transFinished )
          {
             addHisTrans( transID, histInfo ) ;
@@ -2163,25 +2199,25 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_ADDTRANSINFO ) ;
 
-      TRANS_MAP::iterator it ;
-
       BOOLEAN rbPending = isRBPending( transID ) ;
       DPS_TRANS_ID origID = getTransID( transID ) ;
 
-      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
+      // find and lock bucket
+      TRANS_MAP::Bucket &bucket = _transMap.getBucket( origID ) ;
+      BUCKET_XLOCK( bucket ) ;
 
-      ossScopedLock _lock( &( _mapLatch[ bucketIndex ] ), EXCLUSIVE ) ;
-
-      it = _transMap[ bucketIndex ].find( origID ) ;
-      if ( it == _transMap[ bucketIndex ].end() )
+      // check if transaction already exists
+      TRANS_MAP::map_iterator iterTrans = bucket.find( origID ) ;
+      if ( bucket.end() == iterTrans )
       {
+         // not found in transaction map, insert a new one
          SDB_ASSERT( !rbPending, "should not be rollback pending" ) ;
          try
          {
             // it is means transaction is synchronous by log if transID
             // is exist
-            _transMap[ bucketIndex ][ origID ] = dpsTransBackInfo( lsnOffset,
-                                                                   status ) ;
+            bucket.getMap()[ origID ] = dpsTransBackInfo( lsnOffset,
+                                                          status ) ;
          }
          catch ( exception &e )
          {
@@ -2193,7 +2229,8 @@ namespace engine
       }
       else
       {
-         updateTransInfo( it->second, status, lsnOffset, rbPending ) ;
+         // found existing, update it
+         updateTransInfo( iterTrans->second, status, lsnOffset, rbPending ) ;
       }
 
    done:
@@ -2240,31 +2277,29 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_UPDATETRANSSTATUS, "dpsTransCB::updateTransStatus" )
    INT32 dpsTransCB::updateTransStatus( const DPS_TRANS_ID &transID,
-                                        INT32 status,
-                                        UINT32 commitFlag )
+                                        INT32 status )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_UPDATETRANSSTATUS ) ;
 
       DPS_TRANS_ID origID = getTransID( transID ) ;
-      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
-      ossScopedLock _lock( &( _mapLatch[ bucketIndex ] ), EXCLUSIVE ) ;
 
-      TRANS_MAP::iterator iter = _transMap[ bucketIndex ].find( origID ) ;
+      // find and lock bucket
+      TRANS_MAP::Bucket &bucket = _transMap.getBucket( origID ) ;
+      BUCKET_XLOCK( bucket ) ;
 
-      PD_CHECK( _transMap[ bucketIndex ].end() != iter,
+      // find transaction by original transaction ID
+      TRANS_MAP::map_iterator iterTrans = bucket.find( origID ) ;
+
+      // check if transaction is found
+      PD_CHECK( bucket.end() != iterTrans,
                 SDB_DPS_TRANS_NO_TRANS, error, PDERROR,
                 "Failed to get status for transaction [%s], rc: %d",
                 dpsTransIDToString( transID ).c_str(), rc ) ;
 
       // set status
-      iter->second._status = status ;
-      // set flag if needed
-      if ( TRANS_COMMIT_FLAG_EMPTY != commitFlag )
-      {
-         OSS_BIT_SET( iter->second._commitFlag, commitFlag ) ;
-      }
+      iterTrans->second._status = status ;
 
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSCB_UPDATETRANSSTATUS, rc ) ;
@@ -2282,20 +2317,21 @@ namespace engine
       BOOLEAN hasInsert = FALSE ;
 
       DPS_TRANS_ID origID = getTransID( transID ) ;
+
+      // find and lock bucket
+      TRANS_CB_MAP::Bucket &bucket = _cbMap.getBucket( origID ) ;
+      BUCKET_XLOCK( bucket ) ;
+
+      // try to insert new transaction
+      try
       {
-         UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
-         ossScopedLock _lock( &_cbMapLatch[ bucketIndex ], EXCLUSIVE ) ;
-         try
-         {
-            hasInsert = _cbMap[ bucketIndex ].insert(
-                                    std::make_pair( origID, eduCB ) ).second ;
-         }
-         catch ( exception &e )
-         {
-            PD_LOG( PDERROR, "Failed to add transaction into cb map, "
-                    "error: %s", e.what() ) ;
-            hasInsert = FALSE ;
-         }
+         hasInsert = bucket.insert( make_pair( origID, eduCB ) ).second ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add transaction into cb map, "
+                 "occur exception: %s", e.what() ) ;
+         hasInsert = FALSE ;
       }
 
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_ADDTRANSCB ) ;
@@ -2307,15 +2343,17 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_DELTRANSCB ) ;
 
-      TRANS_CB_MAP::iterator it ;
       DPS_TRANS_ID origID = getTransID( transID ) ;
-      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
 
-      ossScopedLock _lock( &_cbMapLatch[ bucketIndex ], EXCLUSIVE ) ;
-      it = _cbMap[ bucketIndex ].find( origID ) ;
-      if ( it != _cbMap[ bucketIndex ].end() )
+      // find and lock bucket
+      TRANS_CB_MAP::Bucket &bucket = _cbMap.getBucket( origID ) ;
+      BUCKET_XLOCK( bucket ) ;
+
+      // get transaction by original transaction ID
+      TRANS_CB_MAP::map_iterator it = bucket.find( origID ) ;
+      if ( it != bucket.end() )
       {
-         _cbMap[ bucketIndex ].erase( it ) ;
+         bucket.erase( it ) ;
       }
 
       // update archived lowTran
@@ -2329,75 +2367,63 @@ namespace engine
 
    void dpsTransCB::dumpTransEDUList( TRANS_EDU_LIST & eduList )
    {
-      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+      // for each element in concurrent map
+      FOR_EACH_CMAP_ELEMENT_S( TRANS_CB_MAP, _cbMap )
       {
-         ossScopedLock _lock( &_cbMapLatch[ i ], SHARED ) ;
-         TRANS_CB_MAP::iterator iter = _cbMap[ i ].begin() ;
-         while( iter != _cbMap[ i ].end() )
+         // try add into EDU list
+         try
          {
-            eduList.push( iter->second->getID() ) ;
-            ++iter ;
+            eduList.push( it->second->getID() ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add EDU list, occur exception: %s",
+                    e.what() ) ;
          }
       }
+      FOR_EACH_CMAP_ELEMENT_END
    }
 
    UINT32 dpsTransCB::getTransMapSize()
    {
-      UINT32 res = 0 ;
-
-      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
-      {
-         ossScopedLock _lock( &_mapLatch[ i ], SHARED ) ;
-         res += _transMap[ i ].size() ;
-      }
-
-      return res ;
+      // need lock to get size
+      return _transMap.size( TRUE ) ;
    }
 
    void dpsTransCB::removeTrans( const DPS_TRANS_ID &transID )
    {
       DPS_TRANS_ID origID = getTransID( transID ) ;
-      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
-      ossScopedLock _lock( &_mapLatch[ bucketIndex ], EXCLUSIVE ) ;
-      _transMap[ bucketIndex ].erase( origID ) ;
+
+      // find and lock bucket
+      TRANS_MAP::Bucket &bucket = _transMap.getBucket( origID ) ;
+      BUCKET_XLOCK( bucket ) ;
+
+      // remove transaction by original transaction ID
+      bucket.erase( origID ) ;
    }
 
-   void dpsTransCB::cloneTransMap( TRANS_MAP &result )
+   void dpsTransCB::cloneTransMap( TRANS_DUMP_MAP &result )
    {
-      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+      // iterate each elements in concurrent map
+      FOR_EACH_CMAP_ELEMENT_S( TRANS_MAP, _transMap )
       {
-         TRANS_MAP::iterator it = _transMap[ i ].begin() ;
-         while ( it != _transMap[ i ].end() )
-         {
-            result[ it->first ] = it->second ;
-            ++it ;
-         }
+         result[ it->first ] = it->second ;
       }
+      FOR_EACH_CMAP_ELEMENT_END
    }
 
    UINT32 dpsTransCB::getTransCBSize ()
    {
-      UINT32 res = 0 ;
-
-      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
-      {
-         ossScopedLock _lock( &_cbMapLatch[ i ], SHARED ) ;
-         res += _cbMap[ i ].size() ;
-      }
-
-      return res ;
+      // need lock to get size
+      return _cbMap.size( TRUE ) ;
    }
 
    void dpsTransCB::clearTransInfo()
    {
-      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
-      {
-         _transMap[ i ].clear() ;
-         _cbMap[ i ].clear() ;
-      }
       _beginLsnIdMap.clear();
       _idBeginLsnMap.clear();
-
+      _transMap.clear( TRUE ) ;
+      _cbMap.clear( TRUE ) ;
       clearHisTrans() ;
    }
 
@@ -2640,23 +2666,20 @@ namespace engine
    void dpsTransCB::addHisTrans( const DPS_TRANS_ID &transID,
                                  const dpsHisTransStatus &histInfo  )
    {
-      /// save history transaction in below cases
-      /// - transaction is global
-      /// - transaction is not global and not auto-commit
-      /// - transaction is not global, but is rollbacked
-      /// NOTE: will be gc by lowTran/expiredTran
-      if ( transID.isGlobTrans() ||
-           ( DPS_TRANS_COMMIT != histInfo._status &&
-             !transID.isAutoCommit() ) )
+      if ( transID.isGlobTrans() )
       {
+         // transaction is global, save to global transaction map
+         /// NOTE: will be gc by lowTran/expiredTran
          DPS_TRANS_ID origID = transID.getOrigTransID() ;
-         UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
 
-         ossScopedLock lock( &_histMapLatch[ bucketIndex ], EXCLUSIVE ) ;
+         // find and lock bucket
+         TRANS_HIST_MAP::Bucket &bucket = _histGlobMap.getBucket( origID ) ;
+         BUCKET_XLOCK( bucket ) ;
+
+         // try insert transaction
          try
          {
-            _histMap[ bucketIndex ][ origID ] = histInfo ;
-            _histLSNMap[ bucketIndex ][ histInfo._lsn ] = origID ;
+            bucket.getMap()[ origID ] = histInfo ;
          }
          catch ( exception &e )
          {
@@ -2664,60 +2687,137 @@ namespace engine
                     "map, error: %s", e.what() ) ;
          }
       }
+      else if ( DPS_TRANS_COMMIT != histInfo._status &&
+                !transID.isAutoCommit() )
+      {
+         // transaction is rollback and not global, save to rollback map
+         DPS_TRANS_ID origID = transID.getOrigTransID() ;
+         INT32 bucketIndex = _histRBMap.getIndex( origID ) ;
+
+         TRANS_HIST_MAP::Bucket &bucket = _histRBMap.getBucketAt( bucketIndex ) ;
+         BUCKET_XLOCK( bucket ) ;
+
+         try
+         {
+            bucket.getMap()[ origID ] = histInfo ;
+            _histRBLSNMap[ bucketIndex ][ histInfo._lsn ] = origID ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add transaction info to rollback "
+                    "history map, error: %s", e.what() ) ;
+         }
+      }
    }
 
    void dpsTransCB::delHisTrans( const DPS_TRANS_ID &transID )
    {
       DPS_TRANS_ID origID = transID.getOrigTransID() ;
-      UINT32 bucketIndex = dpsTransIDHash( origID, DPS_TRANS_BUCKET_SIZE ) ;
 
-      ossScopedLock lock( &( _histMapLatch[ bucketIndex ] ), EXCLUSIVE ) ;
-      TRANS_ID_2_STATUS::iterator it = _histMap[ bucketIndex ].find( origID ) ;
-      if ( it != _histMap[ bucketIndex ].end() )
+      if ( origID.isGlobTrans() )
       {
-         _histLSNMap[ bucketIndex ].erase( it->second._lsn ) ;
-         _histMap[ bucketIndex ].erase( it ) ;
+         // global transaction, remove from global history map
+
+         // find and lock bucket
+         TRANS_HIST_MAP::Bucket &bucket = _histGlobMap.getBucket( origID ) ;
+         BUCKET_XLOCK( bucket ) ;
+
+         // remove transaction
+         bucket.erase( origID ) ;
+      }
+      else
+      {
+         // rollback transaction, remove from rollback transaction
+
+         // find and lock bucket
+         INT32 bucketIndex = _histRBMap.getIndex( origID ) ;
+         TRANS_HIST_MAP::Bucket &bucket = _histRBMap.getBucketAt( bucketIndex ) ;
+         BUCKET_XLOCK( bucket ) ;
+
+         TRANS_HIST_MAP::map_iterator it = bucket.find( origID ) ;
+         if ( it != bucket.end() )
+         {
+            // remove corresponding LSN item
+            _histRBLSNMap[ bucketIndex ].erase( it->second._lsn ) ;
+            // remove transaction
+            bucket.erase( it ) ;
+         }
       }
    }
 
    void dpsTransCB::clearHisTrans()
    {
-      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+      // clear rollback history map
+      UINT32 bucketIndex = 0 ;
+      // iterate each bucket in rollback history map
+      FOR_EACH_CMAP_BUCKET_X( TRANS_HIST_MAP, _histRBMap )
       {
-         ossScopedLock lock( &_histMapLatch[ i ], EXCLUSIVE ) ;
+         bucket.clear() ;
+         // clear corresponding LSN map
+         _histRBLSNMap[ bucketIndex ].clear() ;
+         ++ bucketIndex ;
+      }
+      FOR_EACH_CMAP_BUCKET_END
 
-         _histLSNMap[ i ].clear() ;
-         _histMap[ i ].clear() ;
+      if ( _isGlobTransOn )
+      {
+         // clear global history map
+         // iterate each bucket in global history map
+         FOR_EACH_CMAP_BUCKET_X( TRANS_HIST_MAP, _histGlobMap )
+         {
+            bucket.clear() ;
+         }
+         FOR_EACH_CMAP_BUCKET_END
       }
    }
 
    void dpsTransCB::clearOutDateHisTrans( DPS_LSN_OFFSET lsn )
    {
-      TRANS_LSN_ID_MAP::iterator it ;
-      DPS_TRANSID_SN expiredVersion = getExpiredVersion() ;
-
       if ( DPS_INVALID_LSN_OFFSET != lsn )
       {
-         for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+         // clear expired rollback history transaction by given LSN
+         UINT32 bucketIndex = 0 ;
+         FOR_EACH_CMAP_BUCKET_X( TRANS_HIST_MAP, _histRBMap )
          {
-            ossScopedLock lock( &( _histMapLatch[ i ] ), EXCLUSIVE ) ;
-
-            it = _histLSNMap[ i ].begin() ;
-            while( it != _histLSNMap[ i ].end() )
+            TRANS_LSN_ID_MAP &lsnMap = _histRBLSNMap[ bucketIndex ] ;
+            TRANS_LSN_ID_MAP::iterator itLSN = lsnMap.begin() ;
+            while( itLSN != lsnMap.end() )
             {
-               // history is expired in below cases
-               // - DPS LSN is expired
-               // - global transaction is older than expired global lowTran
-               if ( it->first < lsn ||
-                    ( it->second.isGlobTrans() &&
-                      it->second.getGlobSN() < expiredVersion ) )
+               // remove transactions whose DPS LSN is expired
+               if ( itLSN->first < lsn )
                {
-                  _histMap[ i ].erase( it->second ) ;
-                  _histLSNMap[ i ].erase( it++ ) ;
+                  bucket.erase( itLSN->second ) ;
+                  lsnMap.erase( itLSN++ ) ;
                   continue ;
                }
                break ;
             }
+            ++ bucketIndex ;
+         }
+         FOR_EACH_CMAP_BUCKET_END
+      }
+
+      if ( _isGlobTransOn )
+      {
+         // clear expired global history transaction by expireTran
+         DPS_TRANSID_SN expiredVersion = getExpiredVersion() ;
+         if ( DPS_INVALID_TRANSID_SN != expiredVersion )
+         {
+            DPS_TRANS_ID expireTran ;
+            expireTran.setSN( expiredVersion ) ;
+
+            FOR_EACH_CMAP_BUCKET_X( TRANS_HIST_MAP, _histGlobMap )
+            {
+               // remove transactions who is expired against expireTran
+               TRANS_HIST_MAP::map_iterator iterTrans =
+                           bucket.getMap().lower_bound( expireTran ) ;
+               if ( iterTrans != bucket.end() )
+               {
+                  // NOTE: erase range is [ begin, end )
+                  bucket.erase( bucket.begin(), iterTrans ) ;
+               }
+            }
+            FOR_EACH_CMAP_BUCKET_END
          }
       }
    }
@@ -2823,17 +2923,12 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TERMALLTRANS ) ;
 
-      for ( UINT32 i = 0 ; i < DPS_TRANS_BUCKET_SIZE ; ++ i )
+      // iterate each element in concurrent
+      FOR_EACH_CMAP_ELEMENT_S( TRANS_CB_MAP, _cbMap )
       {
-         ossScopedLock _lock( &_cbMapLatch[ i ], SHARED );
-         for ( TRANS_CB_MAP::iterator iterMap = _cbMap[ i ].begin() ;
-               iterMap != _cbMap[ i ].end() ;
-               ++ iterMap )
-         {
-            iterMap->second->postEvent( pmdEDUEvent(
-                                        PMD_EDU_EVENT_TRANS_STOP ) ) ;
-         }
+         it->second->postEvent( pmdEDUEvent( PMD_EDU_EVENT_TRANS_STOP ) ) ;
       }
+      FOR_EACH_CMAP_ELEMENT_END
 
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_TERMALLTRANS );
    }

@@ -51,7 +51,8 @@ namespace engine
    template < class Key,
               class T,
               INT32 BUCKET_NUM = UTIL_CONCURRENT_MAP_DEFAULT_BUCKET_NUM,
-              class Hash = boost::hash<Key> >
+              class Hash = boost::hash<Key>,
+              class Latch = ossSpinSLatch >
    class utilConcurrentMap: public SDBObject
    {
    public:
@@ -60,7 +61,7 @@ namespace engine
       typedef typename map_type::iterator       map_iterator ;
       typedef typename map_type::const_iterator map_const_iterator ;
    private:
-      typedef utilConcurrentMap< Key, T, BUCKET_NUM, Hash > cmap_type ;
+      typedef utilConcurrentMap< Key, T, BUCKET_NUM, Hash, Latch > cmap_type ;
 
    private:
       // disallow copy and assign
@@ -81,9 +82,9 @@ namespace engine
       }
 
    public:
-      class Bucket: public ossSpinSLatch
+      class Bucket
       {
-         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash > ;
+         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash, Latch > ;
       private:
          // disallow copy and assign
          Bucket( const Bucket& ) ;
@@ -133,6 +134,32 @@ namespace engine
             return _map.erase( key ) ;
          }
 
+         OSS_INLINE void erase( map_const_iterator iter )
+         {
+            _map.erase( iter ) ;
+         }
+
+         OSS_INLINE void erase( map_iterator iter )
+         {
+            _map.erase( iter ) ;
+         }
+
+         OSS_INLINE void erase( map_const_iterator begin,
+                                map_const_iterator end )
+         {
+            _map.erase( begin, end ) ;
+         }
+
+         OSS_INLINE void erase( map_iterator begin, map_iterator end )
+         {
+            _map.erase( begin, end ) ;
+         }
+
+         OSS_INLINE map_iterator find( const Key &key )
+         {
+            return _map.find( key ) ;
+         }
+
          OSS_INLINE map_const_iterator find( const Key& key ) const
          {
             return _map.find( key ) ;
@@ -143,12 +170,30 @@ namespace engine
             _map.clear() ;
          }
 
+         OSS_INLINE const map_type &getMap() const
+         {
+            return _map ;
+         }
+
+         OSS_INLINE map_type &getMap()
+         {
+            return _map ;
+         }
+
+         OSS_INLINE Latch *getLatch()
+         {
+            return &_latch ;
+         }
+
       private:
+         Latch    _latch ;
          map_type _map ;
       } ;
 
-      #define BUCKET_XLOCK( _bucket ) ossScopedLock __lock( &(_bucket), EXCLUSIVE )
-      #define BUCKET_SLOCK( _bucket ) ossScopedLock __lock( &(_bucket), SHARED )
+      #define BUCKET_XLOCK( _bucket ) \
+                  ossScopedLock __lock( (_bucket).getLatch(), EXCLUSIVE )
+      #define BUCKET_SLOCK( _bucket ) \
+                  ossScopedLock __lock( (_bucket).getLatch(), SHARED )
 
    private:
       OSS_INLINE INT32 _getBucketIndex( const Key& key ) const
@@ -166,9 +211,19 @@ namespace engine
       }
 
    public:
+      OSS_INLINE INT32 getIndex( const Key &key )
+      {
+         return _getBucketIndex( key ) ;
+      }
+
       OSS_INLINE Bucket& getBucket( const Key& key )
       {
          INT32 index = _getBucketIndex( key ) ;
+         return _bucketAt( index ) ;
+      }
+
+      OSS_INLINE Bucket &getBucketAt( INT32 index )
+      {
          return _bucketAt( index ) ;
       }
 
@@ -252,7 +307,7 @@ namespace engine
    public:
       class bucket_iterator: public SDBObject
       {
-         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash > ;
+         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash, Latch > ;
       public:
          bucket_iterator()
          {

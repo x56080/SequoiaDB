@@ -108,8 +108,17 @@ namespace engine
                              DPS_TRANS_ID &transID ) ;
 
    // calculate hash value of transaction ID
-   UINT64 dpsTransIDHash( const DPS_TRANS_ID &transID ) ;
-   UINT32 dpsTransIDHash( const DPS_TRANS_ID &transID, UINT32 modSize ) ;
+   UINT64 dpsTransIDHashMod( const DPS_TRANS_ID &transID ) ;
+   UINT32 dpsTransIDHashMod( const DPS_TRANS_ID &transID, UINT32 modSize ) ;
+
+   typedef struct _dpsTransIDHash
+   {
+      std::size_t operator()( const DPS_TRANS_ID &transID ) const
+      {
+         return (std::size_t)( transID.getGlobSN() ) ;
+      }
+   } dpsTransIDHash ;
+
 }
 
 #endif // DPSUTIL_HPP_

@@ -54,13 +54,15 @@
 #include "ossMemPool.hpp"
 #include "monLatch.hpp"
 #include "stpAgent.hpp"
+#include "dpsUtil.hpp"
+#include "utilConcurrentMap.hpp"
 #include "../bson/bson.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
-   #define DPS_TRANS_BUCKET_SIZE ( 67 )
+   #define DPS_TRANS_BUCKET_SIZE ( 64 )
 
    class _pmdEDUCB ;
    class _dmsExtScanner ;
@@ -187,20 +189,6 @@ namespace engine
                                 BOOLEAN &removed ) ;
 
    /*
-      TRANS_COMMIT_FLAG
-    */
-   // indicates flags when transaction commit
-   // NOTE: tags like auto commit, multi-groups is not saved in transaction
-   //       map of dpsTransCB, saving a flag in
-   //       dpsTransBackInfo/dpsTransHistInfo may help functions processing
-   //       dpsTransBackInfo/dpsTransHistInfo know more about the transaction
-   #define TRANS_COMMIT_FLAG_EMPTY           ( 0x00000000 )
-   // indicates this transaction is auto-commit
-   #define TRANS_COMMIT_FLAG_AUTOCOMMIT      ( 0x00000001 )
-   // indicates this transaction involves in multiple groups
-   #define TRANS_COMMIT_FLAG_MULTIGROUPS     ( 0x00000002 )
-
-   /*
       _dpsTransBackInfo define
    */
    struct _dpsTransBackInfo
@@ -221,8 +209,6 @@ namespace engine
       stpLogicalTimeUS              _preCommitTime ;
       // logical time of transaction commit
       stpLogicalTimeUS              _commitTime ;
-      // flags for transaction commit
-      UINT32                        _commitFlag ;
 
       _dpsTransBackInfo( DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET,
                          INT32 status = DPS_TRANS_DOING )
@@ -230,13 +216,21 @@ namespace engine
          _lsn = lsn ;
          _curLSNWithRBPending = DPS_INVALID_LSN_OFFSET ;
          _status = status ;
-         _commitFlag = TRANS_COMMIT_FLAG_EMPTY ;
       }
    } ;
    typedef _dpsTransBackInfo dpsTransBackInfo ;
 
-   typedef ossPoolMap<DPS_TRANS_ID, dpsTransBackInfo> TRANS_MAP ;
-   typedef ossPoolMap<DPS_TRANS_ID, _pmdEDUCB * >     TRANS_CB_MAP ;
+   typedef ossPoolMap<DPS_TRANS_ID, dpsTransBackInfo> TRANS_DUMP_MAP ;
+   typedef utilConcurrentMap< DPS_TRANS_ID,
+                              dpsTransBackInfo,
+                              DPS_TRANS_BUCKET_SIZE,
+                              dpsTransIDHash,
+                              monSpinSLatch >         TRANS_MAP ;
+   typedef utilConcurrentMap< DPS_TRANS_ID,
+                              _pmdEDUCB *,
+                              DPS_TRANS_BUCKET_SIZE,
+                              dpsTransIDHash,
+                              monSpinSLatch >         TRANS_CB_MAP ;
    typedef ossPoolMap<DPS_LSN_OFFSET, DPS_TRANS_ID>   TRANS_LSN_ID_MAP ;
    typedef ossPoolMap<DPS_TRANS_ID, DPS_LSN_OFFSET>   TRANS_ID_LSN_MAP ;
    typedef std::queue< EDUID >                        TRANS_EDU_LIST ;
@@ -258,16 +252,13 @@ namespace engine
       stpLogicalTimeUS  _preCommitTime ;
       // logical time of transaction commit
       stpLogicalTimeUS  _commitTime ;
-      // flags for transaction commit
-      UINT32            _commitFlag ;
 
       _dpsHisTransStatus()
       : _status( DPS_TRANS_COMMIT ),
         _lsn( DPS_INVALID_LSN_OFFSET ),
         _beginTime(),
         _preCommitTime(),
-        _commitTime(),
-        _commitFlag( TRANS_COMMIT_FLAG_EMPTY )
+        _commitTime()
       {
       }
 
@@ -278,14 +269,17 @@ namespace engine
       : _status( status ),
         _lsn( lsn ),
         _beginTime( beginTime ),
-        _preCommitTime( preCommitTime ),
-        _commitFlag( TRANS_COMMIT_FLAG_EMPTY )
+        _preCommitTime( preCommitTime )
       {
       }
    } ;
    typedef _dpsHisTransStatus dpsHisTransStatus ;
 
-   typedef ossPoolMap<DPS_TRANS_ID, dpsHisTransStatus>   TRANS_ID_2_STATUS ;
+   typedef utilConcurrentMap< DPS_TRANS_ID,
+                              dpsHisTransStatus,
+                              DPS_TRANS_BUCKET_SIZE,
+                              dpsTransIDHash,
+                              monSpinSLatch >      TRANS_HIST_MAP ;
 
    // delta between runtime log and undo log due to TransRelatedLSN
    #define DPS_TRANS_LOG_UNDO_DELTA  ( 12 )
@@ -711,8 +705,7 @@ namespace engine
       //    - SDB_OK: update succeed
       //    - SDB_DPS_TRANS_NO_TRANS: transaction info is not found
       INT32 updateTransStatus( const DPS_TRANS_ID &transID,
-                               INT32 status,
-                               UINT32 commitFlag = TRANS_COMMIT_FLAG_EMPTY ) ;
+                               INT32 status ) ;
 
       BOOLEAN  addTransCB( const DPS_TRANS_ID &transID, _pmdEDUCB *eduCB ) ;
       void     delTransCB( const DPS_TRANS_ID &transID ) ;
@@ -721,7 +714,7 @@ namespace engine
       void     termAllTrans() ;
       UINT32   getTransMapSize() ;
       void     removeTrans( const DPS_TRANS_ID &transID ) ;
-      void     cloneTransMap( TRANS_MAP &result ) ;
+      void     cloneTransMap( TRANS_DUMP_MAP &result ) ;
 
       void     addHisTrans( const DPS_TRANS_ID &transID,
                             const dpsHisTransStatus &histInfo ) ;
@@ -933,6 +926,9 @@ namespace engine
                                       DPS_TRANS_ID &transID ) ;
 
    protected:
+      // initialize transaction maps
+      void _initTransMaps() ;
+
       // get global lowTran with a given time error as offset
       // return:
       //    - DPS_INVALID_TRANSID_SN: global lowTran is invalid
@@ -1060,11 +1056,11 @@ namespace engine
       // atomic to generate 56 bit SN for non global transactions
       ossAtomic64       _TransIDL56Cur ;
 
-      monSpinSLatch     _mapLatch[ DPS_TRANS_BUCKET_SIZE ] ;
-      TRANS_MAP         _transMap[ DPS_TRANS_BUCKET_SIZE ] ;
+      // transaction map ( running write transactions )
+      TRANS_MAP         _transMap ;
 
-      monSpinSLatch     _cbMapLatch[ DPS_TRANS_BUCKET_SIZE ] ;
-      TRANS_CB_MAP      _cbMap[ DPS_TRANS_BUCKET_SIZE ] ;
+      // transaction to edu CB map ( all running transactions )
+      TRANS_CB_MAP      _cbMap ;
 
       BOOLEAN           _isOn ;
       BOOLEAN           _isGlobTransOn ;
@@ -1081,9 +1077,18 @@ namespace engine
       TRANS_LSN_ID_MAP  _beginLsnIdMap ;
       TRANS_ID_LSN_MAP  _idBeginLsnMap ;
 
-      monSpinSLatch     _histMapLatch[ DPS_TRANS_BUCKET_SIZE ] ;
-      TRANS_ID_2_STATUS _histMap[ DPS_TRANS_BUCKET_SIZE ] ;
-      TRANS_LSN_ID_MAP  _histLSNMap[ DPS_TRANS_BUCKET_SIZE ] ;
+      // history map for global transactions
+      // NOTE: global transactions are cleared by expireTran, so no need to
+      //       save LSN map as secondary index
+      TRANS_HIST_MAP    _histGlobMap ;
+
+      // history map for rolled back ( non-global ) transactions
+      TRANS_HIST_MAP    _histRBMap ;
+      // LSN map for rolled back ( non-global ) transactions
+      // NOTE: non-global transactions are cleared by begin LSN of DPS logger
+      //       so we need a LSN map as secondary index
+      // WARNING: should be protected by _histRBMap's bucket lock
+      TRANS_LSN_ID_MAP  _histRBLSNMap[ DPS_TRANS_BUCKET_SIZE ] ;
 
       BOOLEAN           _isNeedSyncTrans ;
       monSpinXLatch     _maxFileSizeMutex ;
