@@ -16,7 +16,6 @@ import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.commlib.CommLib;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
@@ -38,8 +37,7 @@ public class LzwKillNode22182 extends SdbTestBase {
     private boolean runSuccess = false;
     private GroupMgr groupMgr = null;
     private String groupName = null;
-    private List< String > nodeAddrs = new ArrayList<>();
-    private String csName = "cs7525";
+    private String csName = "cs22182";
     // CS默认申请的磁盘空间足够CL插入足够量数据并生成字典，
     // 所以默认至少需要2~3个表插入大量数据把CS申请的那部分空间占用，已方便模拟构建字典过程磁盘满的场景
     // clNum 至少 3个
@@ -62,7 +60,6 @@ public class LzwKillNode22182 extends SdbTestBase {
             db = new Sequoiadb( coordUrl, "", "" );
             groupName = groupMgr.getAllDataGroupName().get( 0 );
             System.out.println( "cl group: " + groupName );
-            nodeAddrs = CommLib.getNodeAddress( db, groupName );
 
             // 清理CS
             if ( db.isCollectionSpaceExist( csName ) ) {
