@@ -32,8 +32,8 @@ public class CreateRegion20403 extends S3TestBase {
     private boolean runSuccess = false;
     private String bucketName = "bucket20403";
     private String objectNameBase = "object20403-";
-    private int objectNum = 20;
-    private int dataCSRange = 20;
+    private int objectNum = 10;
+    private int dataCSRange = 5;
     private AtomicInteger counter = new AtomicInteger( objectNum );
     private String regionName = "region20403";
     private AmazonS3 s3Client = null;
