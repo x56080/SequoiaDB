@@ -498,6 +498,7 @@
                   copyNode = formVal['copyNode'] ;
                }
 
+               $scope.AddNodeWindow['callback']['Close']() ;
                SdbSignal.commit( 'CreateNode', { 'type': formVal['createModel'], 'hostName': formVal['hostname'], 'role': role, 'groupName': groupName, 'copyNode': copyNode, 'callback': function(){
                   ++groupInfo['extendNodeNum'] ;
                } } ) ;
@@ -1437,11 +1438,17 @@
          {
             $.each( $scope.SetNodeConfWindow['config']['form1']['inputList'], function( index, inputInfo ){
                var key = inputInfo['name'] ;
-               inputInfo['value'] = copyNode[key] ;
+               if( hasKey( copyNode, key ) )
+               {
+                  inputInfo['value'] = copyNode[key] ;
+               }
             } ) ;
             $.each( $scope.SetNodeConfWindow['config']['form2']['inputList'], function( index, inputInfo ){
                var key = inputInfo['name'] ;
-               inputInfo['value'] = copyNode[key] ;
+               if( hasKey( copyNode, key ) )
+               {
+                  inputInfo['value'] = copyNode[key] ;
+               }
             } ) ;
          }
          $scope.SetNodeConfWindow['callback']['SetIcon']( '' ) ;
