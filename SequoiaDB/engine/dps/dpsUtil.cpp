@@ -329,14 +329,14 @@ namespace engine
       goto done ;
    }
 
-   UINT64 dpsTransIDHash( const DPS_TRANS_ID &transID )
+   UINT64 dpsTransIDHashMod( const DPS_TRANS_ID &transID )
    {
       return transID.getGlobSN() ;
    }
 
-   UINT32 dpsTransIDHash( const DPS_TRANS_ID &transID, UINT32 modSize )
+   UINT32 dpsTransIDHashMod( const DPS_TRANS_ID &transID, UINT32 modSize )
    {
-      return (UINT32)( dpsTransIDHash( transID ) % (UINT64)modSize ) ;
+      return (UINT32)( dpsTransIDHashMod( transID ) % (UINT64)modSize ) ;
    }
 
 }

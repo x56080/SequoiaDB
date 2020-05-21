@@ -158,6 +158,12 @@ public:
    BOOLEAN try_get() ;
 
    INT32 getNumOwner() ;
+
+   OSS_INLINE void setLatchID( MON_LATCH_IDENTIFIER id )
+   {
+      latchID = id ;
+   }
+
 public:
    ossSpinXLatch latch ;
    MON_LATCH_IDENTIFIER latchID ;
@@ -196,6 +202,12 @@ public:
    BOOLEAN try_get_shared() ;
 
    INT32 getNumOwner() ;
+
+   OSS_INLINE void setLatchID( MON_LATCH_IDENTIFIER id )
+   {
+      latchID = id ;
+   }
+
 public:
    ossSpinSLatch latch ;
    MON_LATCH_IDENTIFIER latchID ;

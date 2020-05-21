@@ -98,8 +98,8 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSGTSAGENT_ONROLLBACKALL ) ;
 
       DPS_TRANS_ID transID ;
-      TRANS_MAP tmpTransMap ;
-      TRANS_MAP::iterator it ;
+      TRANS_DUMP_MAP tmpTransMap ;
+      TRANS_DUMP_MAP::iterator it ;
       BOOLEAN isStoped = FALSE ;
 
       while ( TRUE )
