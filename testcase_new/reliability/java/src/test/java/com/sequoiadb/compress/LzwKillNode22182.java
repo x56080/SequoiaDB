@@ -42,7 +42,7 @@ public class LzwKillNode22182 extends SdbTestBase {
     // 所以默认至少需要2~3个表插入大量数据把CS申请的那部分空间占用，已方便模拟构建字典过程磁盘满的场景
     // clNum 至少 3个
     private int clNum = 3;
-    private String clNameBase = "cl7525_";
+    private String clNameBase = "cl22182_";
     // 准备数据
     private int recsNum = 400000;
     private int maxRecsNumForDict = 1000000;
