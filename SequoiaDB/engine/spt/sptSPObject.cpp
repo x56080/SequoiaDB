@@ -500,6 +500,11 @@ namespace engine
                   JSObject *tmpObj = JSVAL_TO_OBJECT( val ) ;
                   BOOLEAN isSpecialObj = FALSE ;
                   const sptObjDesc *objDesc = NULL ;
+                  if ( NULL == tmpObj )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     goto error ;
+                  }
                   rc = _getObjectDesc( tmpObj, isSpecialObj, &objDesc ) ;
                   if( SDB_OK != rc )
                   {
