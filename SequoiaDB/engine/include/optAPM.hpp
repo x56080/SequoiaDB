@@ -271,6 +271,8 @@ namespace engine
 
          void clearCachedPlans () ;
 
+         void clearExpiredCachedPlans () ;
+
       protected :
          INT32 _allocateActivity ( optAccessPlan *pPlan ) ;
 

@@ -962,6 +962,64 @@ namespace engine
       PD_TRACE_EXIT( SDB_OPTCPMON_CLEARCP ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCPMON_CLEAREXPCP, "_optCachedPlanMonitor::clearExpiredCachedPlans" )
+   void _optCachedPlanMonitor::clearExpiredCachedPlans ()
+   {
+      PD_TRACE_ENTRY( SDB_OPTCPMON_CLEAREXPCP ) ;
+
+      if ( _clearThread.compareAndSwap( 0, 1 ) )
+      {
+         // Only one thread could enter this branch
+
+         UINT32 removedCount = 0 ;
+
+         // Lock the clear lock exclusively, so other threads could not
+         // remove plans during this procedure
+         ossScopedRWLock scopedLock( &_clearLock, EXCLUSIVE ) ;
+
+         UINT64 expiredTimestamp = _lastClearTimestamp ;
+         UINT32 lastClockIndex = _clockIndex ;
+
+         while ( TRUE )
+         {
+            optCachedPlanActivity &activity = _pActivities[ _clockIndex ] ;
+            if ( activity.isEmpty() )
+            {
+               _clockIndex = ( _clockIndex + 1 ) % _activityNum ;
+               // Searched one loop
+               if ( _clockIndex == lastClockIndex )
+               {
+                  break ;
+               }
+               continue ;
+            }
+
+            // plan is not accessed after expired timestamp, clear it
+            if ( activity.getLastAccessTime() < expiredTimestamp )
+            {
+               _pPlanCache->removeCachedPlan( activity.getPlan() ) ;
+               ++ removedCount ;
+            }
+
+            _clockIndex = ( _clockIndex + 1 ) % _activityNum ;
+            if ( _clockIndex == lastClockIndex )
+            {
+               // Searched one loop and could be stopped
+               break ;
+            }
+         }
+
+         PD_LOG( PDDEBUG, "Cached Plan Monitor: "
+                 "cleared %u expired cached plans, %u left", removedCount,
+                 _cachedPlanCount.peek() ) ;
+
+         _lastClearTimestamp = _accessTimestamp.inc() ;
+         _clearThread.swap( 0 ) ;
+      }
+
+      PD_TRACE_EXIT( SDB_OPTCPMON_CLEAREXPCP ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCPMON__ALLOCACT, "_optCachedPlanMonitor::_allocateActivity" )
    INT32 _optCachedPlanMonitor::_allocateActivity ( optAccessPlan *pPlan )
    {

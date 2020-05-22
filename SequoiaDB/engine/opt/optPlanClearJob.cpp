@@ -46,6 +46,8 @@ namespace engine
 {
 
    #define OPT_PLANCLEARJOB_WAIT_INTERVAL ( OSS_ONE_SEC )
+   // try clear expired cached plan for each 10 minutes
+   #define OPT_PLANCLEARJOB_EXPIRE_INTERVAL ( OSS_ONE_SEC * 60 * 10 )
 
    /*
     *  _optPlanClearJob implement
@@ -65,6 +67,8 @@ namespace engine
       optAccessPlanManager *apm = sdbGetRTNCB()->getAPM() ;
       optCachedPlanMonitor *monitor = apm->getPlanMonitor() ;
       ossEvent *clearEvent = monitor->getClearEvent() ;
+
+      UINT64 lastClearTick = pmdGetDBTick() ;
 
       while ( !PMD_IS_DB_DOWN() &&
               !cb->isForced() )
@@ -89,6 +93,16 @@ namespace engine
          // No signals
          if ( SDB_TIMEOUT == rc )
          {
+            if ( pmdGetTickSpanTime( lastClearTick ) >
+                             OPT_PLANCLEARJOB_EXPIRE_INTERVAL )
+            {
+               // timeout to clear expired plans
+               PD_LOG( PDDEBUG, "optPlanClearJob: start clearing "
+                       "expired cached plans" ) ;
+               monitor->clearExpiredCachedPlans() ;
+
+               lastClearTick = pmdGetDBTick() ;
+            }
             continue ;
          }
 
@@ -98,6 +112,7 @@ namespace engine
 
          // Clear for too frequent signals
          clearEvent->reset() ;
+         lastClearTick = pmdGetDBTick() ;
       } // End while
 
       PD_LOG( PDDEBUG, "optPlanClearJob: end job" ) ;
