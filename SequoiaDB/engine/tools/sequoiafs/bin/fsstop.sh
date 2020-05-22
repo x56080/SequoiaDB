@@ -54,6 +54,8 @@ function Stop()
     done
   else
     if [ -n "$mountpoint" ]; then
+      # remove the last slash
+      mountpoint=$(echo ${mountpoint%*/})
       aliasinfo=$( mount -t $fusetype|grep $mountpoint" " |  awk '{print $1}' | awk -F"(" '{print $1}')
       pidinfo=$( mount -t $fusetype|grep $mountpoint" " |  awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')    
       if [ -n "$pidinfo" ]; then
@@ -68,8 +70,8 @@ function Stop()
         fi
       fi    
     else
-      mountpoint=$(mount -t $fusetype | grep $alias"(" | grep -v grep | awk '{print $3}')
-      pidinfo=$( mount -t $fusetype|grep $alias"(" |  awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')     
+      mountpoint=$(mount -t $fusetype | grep $alias"(" | awk '{print $3}')
+      pidinfo=$( mount -t $fusetype | grep $alias"(" |  awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')     
       if [ -n "$mountpoint"  ]; then
         echo "Terminating process $pidinfo: $mountpoint($alias)"
         $unmount "$mountpoint"

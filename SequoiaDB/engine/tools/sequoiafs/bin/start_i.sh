@@ -139,6 +139,7 @@ function Start()
         fi
         confpatharg=$confpath
       else
+        # remove the last slash
         mountpointarg=$(echo ${mountpointarg%*/})
         for dir in `ls "$confrootpath"`
         do
