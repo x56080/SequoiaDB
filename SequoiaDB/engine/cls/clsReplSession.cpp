@@ -1186,8 +1186,10 @@ namespace engine
       }
       else
       {
-         // should not ignore duplicated keys on user indexes
-         return _replayer.replay( header, eduCB(), TRUE, FALSE ) ;
+         // could ignore duplicated keys on user indexes
+         // NOTE: maxreplsync might be changed to 0, so duplicated key
+         //       records by parallel replay might be left
+         return _replayer.replay( header, eduCB(), TRUE, TRUE ) ;
       }
    }
 
