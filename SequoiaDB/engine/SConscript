@@ -108,6 +108,7 @@ pmdFiles = [
       "pmd/pmdRestSession.cpp",
       "pmd/pmdEntryPoint.cpp",
       "pmd/pmdRemoteMsgEventHandler.cpp",
+      "pmd/pmdFTMgr.cpp",
 
       "sched/schedDef.cpp",
       "sched/schedTaskQue.cpp",

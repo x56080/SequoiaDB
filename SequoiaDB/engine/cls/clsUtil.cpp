@@ -154,5 +154,21 @@ namespace engine
       return rc ;
    }
 
+   const CHAR* clsNodeRunStat2String( INT32 stat )
+   {
+      if ( CLS_NODE_RUNNING == stat )
+      {
+         return "Running" ;
+      }
+      else if ( CLS_NODE_CATCHUP == stat )
+      {
+         return "StartCatchup" ;
+      }
+      else if ( CLS_NODE_STOP == stat )
+      {
+         return "Shutdown" ;
+      }
+      return "Unknown" ;
+   }
 
 }

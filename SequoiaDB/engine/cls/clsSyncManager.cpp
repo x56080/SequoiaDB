@@ -49,16 +49,12 @@ using namespace std ;
 namespace engine
 {
    const UINT32 CLS_REPLSE_WRITE_ONE = 1 ;
-   const UINT32 CLS_SYNC_REQ_INTERVAL = 2000 ;
-   const UINT32 CLS_CONSULT_INTERVAL = 5000 ;
    const UINT32 CLS_SYNC_SET_NUM = CLS_REPLSET_MAX_NODE_SIZE - 1;
-   const UINT32 CLS_IS_CONSULTING = 0 ;
-   const UINT32 CLS_IS_SYNCING = 1 ;
 
    #define CLS_W_2_SUB( num ) ( (num) - 2 )
    #define CLS_SUB_2_W( sub ) ( (sub) + 2 )
 
-   #define CLS_WAKE_W_TIMEOUT             ( CLS_SYNC_REQ_INTERVAL )
+   #define CLS_WAKE_W_TIMEOUT             ( 2000 )
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__CLSSYNCMAG, "_clsSyncManager::_clsSyncManager" )
    _clsSyncManager::_clsSyncManager( _netRouteAgent *agent,
@@ -546,7 +542,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_CUT, "_clsSyncManager::cut" )
-   void _clsSyncManager::cut( UINT32 alives )
+   void _clsSyncManager::cut( UINT32 alives, BOOLEAN isStopNode )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_CUT ) ;
       SDB_ASSERT( alives <= _validSync, "impossible" ) ;
@@ -564,7 +560,14 @@ namespace engine
             _mtxs[i].get() ;
             while ( SDB_OK == _syncList[i].pop( session ) )
             {
-               session.eduCB->getEvent().signal ( SDB_CLS_WAIT_SYNC_FAILED ) ;
+               if ( isStopNode && -1 == session.eduCB->getOrgReplSize() )
+               {
+                  session.eduCB->getEvent().signal( SDB_DATABASE_DOWN ) ;
+               }
+               else
+               {
+                  session.eduCB->getEvent().signal ( SDB_CLS_WAIT_SYNC_FAILED ) ;
+               }
             }
             _mtxs[i].release() ;
          }
@@ -578,7 +581,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_ATLEASTONE, "_clsSyncManager::atLeastOne" )
    BOOLEAN _clsSyncManager::atLeastOne( const DPS_LSN_OFFSET &offset )
    {
-      BOOLEAN res = FALSE ;
+      BOOLEAN res = _validSync > 0 ? FALSE : TRUE ;
       PD_TRACE_ENTRY( SDB__CLSSYNCMAG_ATLEASTONE ) ;
       DPS_LSN lsn ;
       lsn.offset = offset ;

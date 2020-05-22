@@ -42,6 +42,7 @@
 #include "ossUtil.hpp"
 #include "ossPath.hpp"
 #include "utilParam.hpp"
+#include "pmdEnv.hpp"
 #include "pd.hpp"
 
 #if defined( _LINUX )
@@ -1094,9 +1095,12 @@ namespace engine
    }
 
    INT32 utilStopNode( utilNodeInfo & node, INT32 timeout,
-                       BOOLEAN force, BOOLEAN skipKill )
+                       BOOLEAN force, BOOLEAN skipKill,
+                       BOOLEAN askDoing )
    {
       INT32 rc = SDB_OK ;
+      INT32 slapedTime = 0 ;
+      CHAR lastdoing[ PMD_DOING_STR_LEN + 1 ] = { 0 } ;
 
       if ( timeout < 0 )
       {
@@ -1124,11 +1128,34 @@ namespace engine
       while ( timeout > 0 )
       {
          --timeout ;
+         ++slapedTime ;
          if ( !ossIsProcessRunning( node._pid ) )
          {
             rc = SDB_OK ;
             goto done ;
          }
+
+         /// every minute to ask doing
+         if ( askDoing && slapedTime > 0 &&
+              slapedTime % 60  == 0 )
+         {
+            CHAR doing[ PMD_DOING_STR_LEN + 1 ] = { 0 } ;
+            if ( SDB_OK == _utilWriteReadPipe( node._svcname.c_str(), node._pid,
+                                               ENGINE_NPIPE_MSG_DOING,
+                                               sizeof( ENGINE_NPIPE_MSG_DOING ),
+                                               doing,
+                                               sizeof( doing ),
+                                               FALSE ) )
+            {
+               if ( 0 != ossStrcmp( doing, lastdoing ) )
+               {
+                  ossPrintf( "(%s): %s"OSS_NEWLINE,
+                             node._svcname.c_str(), doing ) ;
+                  ossStrcpy( lastdoing, doing ) ;
+               }
+            }
+         }
+
          ossSleep( OSS_ONE_SEC ) ;
       }
       rc = SDB_TIMEOUT ;

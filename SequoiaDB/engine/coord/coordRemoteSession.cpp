@@ -1971,12 +1971,23 @@ namespace engine
       {
          /// do nothing
       }
-      else if ( SDB_CLS_FULL_SYNC == flag || SDB_RTN_IN_REBUILD == flag )
+      else if ( SDB_CLS_FULL_SYNC == flag ||
+                SDB_RTN_IN_REBUILD == flag ||
+                SDB_DATABASE_DOWN == flag )
       {
          if( groupPtr.get() )
          {
             groupPtr->updateNodeStat( nodeID.columns.nodeID,
                                       netResult2Status( flag ) ) ;
+         }
+
+         if ( !isReadCmd && SDB_DATABASE_DOWN == flag )
+         {
+            PD_LOG( PDWARNING, "Node[%d.%d] is doing shutdown, sleep "
+                    "%d seconds", nodeID.columns.groupID,
+                    nodeID.columns.nodeID,
+                    NET_NODE_FAULTUP_MIN_TIME ) ;
+            ossSleep( NET_NODE_FAULTUP_MIN_TIME * OSS_ONE_SEC ) ;
          }
       }
       else if ( SDB_CLS_DATA_NOT_SYNC == flag )

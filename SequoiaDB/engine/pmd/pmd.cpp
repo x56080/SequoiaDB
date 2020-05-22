@@ -97,6 +97,7 @@ namespace engine
       _optioncb.setConfigHandler( this ) ;
 
       _pLightJobMgr   = NULL ;
+      _pFTMgr         = NULL ;
       _timeCounter    = 0 ;
       _monTimeCounter = 0 ;
    }
@@ -149,6 +150,16 @@ namespace engine
       if ( rtnCB )
       {
          return (IContextMgr*)( rtnCB->queryInterface( SDB_IF_CTXMGR ) ) ;
+      }
+      return NULL ;
+   }
+
+   ICluster* _SDB_KRCB::getCluster()
+   {
+      IControlBlock *pClsCB = getCBByType( SDB_CB_CLS ) ;
+      if ( pClsCB )
+      {
+         return (ICluster*)( pClsCB->queryInterface( SDB_IF_CLS ) ) ;
       }
       return NULL ;
    }
@@ -336,6 +347,24 @@ namespace engine
 
       utilSetGlobalJobMgr( _pLightJobMgr ) ;
 
+      _pFTMgr = SDB_OSS_NEW pmdFTMgr() ;
+      if ( !_pFTMgr )
+      {
+         PD_LOG( PDERROR, "Alloc FT manager failed" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      rc = _pFTMgr->init( _optioncb.ftMask(), _optioncb.ftConfirmPeriod(),
+                          _optioncb.ftConfirmRatio(),
+                          _optioncb.ftLevel() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Init FT manager failed, rc: %d", rc ) ;
+         goto error ;
+      }
+      _pFTMgr->setSlowNodeInfo( _optioncb.ftSlowNodeThreshold(),
+                                _optioncb.ftSlowNodeIncrement() ) ;
+
       rc = _svcTaskMgr.init() ;
       if ( rc )
       {
@@ -451,9 +480,14 @@ namespace engine
       }
 
       _isActive = FALSE ;
+      INT64 shutdownWaitTimeout = _optioncb.shutdownWaitTimeout() ;
+      if ( shutdownWaitTimeout < PMD_STOP_DEADCHECK_TIMEOUT )
+      {
+         shutdownWaitTimeout = PMD_STOP_DEADCHECK_TIMEOUT ;
+      }
 
       /// start dead check
-      _eduMgr.startDeadCheck() ;
+      _eduMgr.startDeadCheck( shutdownWaitTimeout ) ;
 
       // Deactive all registered cbs
       for ( index = SDB_CB_MAX ; index > 0 ; --index )
@@ -470,12 +504,19 @@ namespace engine
          }
       }
 
+      pmdUpdateDeadCheckWaitTime( PMD_STOP_DEADCHECK_TIMEOUT ) ;
+
       // stop all io services and edus(thread)
       // The quit flag is set inside reset()
       normalStop = _eduMgr.reset() ;
 
       /// sync complete lsn
       _syncMgr.syncAndGetLastLSN() ;
+
+      if ( _pFTMgr )
+      {
+         _pFTMgr->fini() ;
+      }
 
       if ( _pLightJobMgr )
       {
@@ -511,6 +552,12 @@ namespace engine
       }
 
       _svcTaskMgr.fini() ;
+
+      if ( _pFTMgr )
+      {
+         SDB_OSS_DEL _pFTMgr ;
+         _pFTMgr = NULL ;
+      }
 
       if ( _pLightJobMgr )
       {

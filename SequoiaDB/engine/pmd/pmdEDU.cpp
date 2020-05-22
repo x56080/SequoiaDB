@@ -141,6 +141,8 @@ namespace engine
 
       _curRequestID     = 1 ;
       _confChangeID     = 0 ;
+
+      _orgReplSize      = 1 ;
 #endif // SDB_ENGINE
 
       _pErrorBuff = (CHAR *)SDB_OSS_MALLOC( EDU_ERROR_BUFF_SIZE + 1 ) ;

@@ -593,6 +593,15 @@ namespace engine
          OSS_INLINE INT32 diagFileNum() const { return _dialogFileNum ; }
          OSS_INLINE INT32 auditFileNum() const { return _auditFileNum ; }
          OSS_INLINE UINT32 auditMask() const { return _auditMask ; }
+         OSS_INLINE UINT32 ftMask() const { return _ftMask ; }
+         OSS_INLINE UINT32 ftConfirmPeriod() const { return _ftConfirmPeriod ; }
+         OSS_INLINE UINT32 ftConfirmRatio() const { return _ftConfirmRatio ; }
+         OSS_INLINE INT32  ftLevel() const { return _ftLevel ; }
+         OSS_INLINE UINT32 ftFusingTimeout() const { return _ftFusingTimeout ; }
+         OSS_INLINE UINT32 ftSlowNodeThreshold() const { return _ftSlowNodeThreshold ; }
+         OSS_INLINE UINT32 ftSlowNodeIncrement() const { return _ftSlowNodeIncrement ; }
+         OSS_INLINE UINT32 syncwaitTimeout() const { return _syncwaitTimeout ; }
+         OSS_INLINE UINT32 shutdownWaitTimeout() const { return _shutdownWaitTimeout ; }
          OSS_INLINE BOOLEAN isDpsLocal() const { return _dpslocal ; }
          OSS_INLINE UINT32 sharingBreakTime() const { return _sharingBreakTime ; }
          OSS_INLINE UINT32 startShiftTime() const { return _startShiftTime * OSS_ONE_SEC ; }
@@ -685,6 +694,7 @@ namespace engine
          CHAR        _prefInstStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _prefInstModeStr[ PMD_MAX_SHORT_STR_LEN + 1 ] ;
          CHAR        _auditMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
+         CHAR        _ftMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _memDebugMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _monGroupMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          UINT32      _logFileSz ;
@@ -722,6 +732,15 @@ namespace engine
          INT32       _dialogFileNum ;
          INT32       _auditFileNum ;
          UINT32      _auditMask ;
+         UINT32      _ftMask ;
+         UINT32      _ftConfirmPeriod ;
+         UINT32      _ftConfirmRatio ;
+         INT32       _ftLevel ;
+         UINT32      _ftFusingTimeout ;
+         UINT32      _ftSlowNodeThreshold ;
+         UINT32      _ftSlowNodeIncrement ;
+         UINT32      _syncwaitTimeout ;
+         UINT32      _shutdownWaitTimeout ;
          BOOLEAN     _directIOInLob ;
          BOOLEAN     _sparseFile ;
          UINT32      _weight ;

@@ -113,6 +113,15 @@ namespace engine
       SERVICE_UNKNOWN                  /// node is abnormal(crashed)
    } ;
 
+   enum CLS_NODE_RUN_STAT
+   {
+      CLS_NODE_RUNNING  = 0,
+      CLS_NODE_CATCHUP  = 1,
+      CLS_NODE_STOP     = 2
+   } ;
+
+   #define CLS_BEAT_VERSION_1       ( 1 )
+
    /*
       _clsGroupBeat define
    */
@@ -122,7 +131,9 @@ namespace engine
       DPS_LSN                 endLsn ;
       _MsgRouteID             identity ;
       UINT8                   weight ;
-      CHAR                    pad[3] ;
+      UINT8                   beatVersion ;
+      UINT8                   nodeRunStat ;
+      CHAR                    pad[1] ;
       CHAR                    hashCode[4] ;
       CLS_GROUP_VERSION       version ;
       CLS_GROUP_ROLE          role ;         // self role
@@ -130,14 +141,73 @@ namespace engine
       UINT32                  beatID ;
       CLS_NODE_SERVICE_STATUS serviceStatus ;
 
+      /*
+         >= CLS_BEAT_VERSION_1
+      */
+      UINT32                  ftConfirmStat ;
+      INT32                   indoubtErr ;
+
       _clsGroupBeat(): version( 0 ),
                        role( CLS_GROUP_ROLE_SECONDARY ),
                        syncStatus( CLS_SYNC_STATUS_NONE ),
                        beatID( CLS_BEATID_INVALID ),
                        serviceStatus( SERVICE_UNKNOWN )
       {
-         UINT64 *p = ( UINT64 *)(&weight) ;
-         *p = 0 ;
+         weight = 0 ;
+         beatVersion = CLS_BEAT_VERSION_1 ;
+         nodeRunStat = (UINT8)CLS_NODE_RUNNING ;
+         pad[0] = 0 ;
+
+         ftConfirmStat = 0 ;
+         indoubtErr = SDB_OK ;
+      }
+
+      UINT32 getFTConfirmStat() const
+      {
+         if ( beatVersion >= CLS_BEAT_VERSION_1 )
+         {
+            return ftConfirmStat ;
+         }
+         return 0 ;
+      }
+
+      INT32 getIndoubtErr() const
+      {
+         if ( beatVersion >= CLS_BEAT_VERSION_1 )
+         {
+            return indoubtErr ;
+         }
+         return SDB_OK ;
+      }
+
+      _clsGroupBeat& operator= ( const _clsGroupBeat &rhs )
+      {
+         endLsn = rhs.endLsn ;
+         identity = rhs.identity ;
+         weight = rhs.weight ;
+         nodeRunStat = rhs.nodeRunStat ;
+         version = rhs.version ;
+         role = rhs.role ;
+         syncStatus = rhs.syncStatus ;
+         beatID = rhs.beatID ;
+         serviceStatus = rhs.serviceStatus ;
+
+         ossMemcpy( pad, rhs.pad, sizeof( pad ) ) ;
+         ossMemcpy( hashCode, rhs.hashCode, sizeof( hashCode ) ) ;
+
+         if ( rhs.beatVersion >= CLS_BEAT_VERSION_1 )
+         {
+            beatVersion = rhs.beatVersion ;
+            ftConfirmStat = rhs.ftConfirmStat ;
+            indoubtErr = rhs.indoubtErr ;
+         }
+         else
+         {
+            beatVersion = CLS_BEAT_VERSION_1 ;
+            ftConfirmStat = 0 ;
+            indoubtErr = SDB_OK ;
+         }
+         return *this ;
       }
 
       BOOLEAN isValidID( const UINT32 &id )

@@ -2321,5 +2321,175 @@
       <default>1000</default>
       <hidden>true</hidden>
    </opt>
-
+   <opt>
+      <name>PMD_OPTION_FT_MASK</name>
+      <long>ftmask</long>
+      <description>
+         <en>Fault-tolerant mask,default:NOSPC|DEADSYNC,value list: NOSPC,DEADSYNC,SLOWNODE, use '|' join multiple values, ALL enable all mask, NONE disable all mask</en>
+         <cn>容错掩码,默认值:NOSPC|DEADSYNC,取值列表为: NOSPC,DEADSYNC,SLOWNODE, 使用'|'连接多个取值, ALL取值表示开启所有, NONE关闭全部</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>1. It specifies the mask of fault-tolerant. Mask type in sequoiaDB as follow: NOSPC,DEADSYNC,SLOWNODE.<fig></fig>
+             2. If it is not specified, the default value is "NOSPC|DEADSYNC". ALL enable all mask, NONE disable all mask</en>
+         <cn>1. 指定开启容错处理的掩码。SequoiaDB中容错掩码有：NOSPC,DEADSYNC,SLOWNODE<fig></fig>
+             2. 如果不指定，则默认为"NOSPC|DEADSYNC", ALL取值表示开启所有,NONE关闭全部。</cn>
+      </detail>
+      <typeofweb>str</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_CONFIRM_PERIOD</name>
+      <long>ftconfirmperiod</long>
+      <description>
+         <en>Time period of fault confirmation, default:30, value range:[1,600], unit:s</en>
+         <cn>故障确认的时间周期，默认为30，取值范围:[1,600],单位为秒</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Time period of fault confirmation, default:30, value range:[1,600], unit:s</en>
+         <cn>故障确认的时间周期，默认为30，取值范围:[1,600],单位为秒</cn>
+      </detail>
+      <type>int</type>
+      <default>30</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_CONFIRM_RATIO</name>
+      <long>ftconfirmratio</long>
+      <description>
+         <en>Failure ratio threshold of fault confirmation, default:80, value range:[1,100], unit:Percentage</en>
+         <cn>故障确认的故障比阈值，默认为80，取值范围:[1,100],单位为百分比</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Failure ratio threshold of fault confirmation, default:80, value range:[1,100], unit:Percentage</en>
+         <cn>故障确认的故障比阈值，默认为80，取值范围:[1,100],单位为百分比</cn>
+      </detail>
+      <type>int</type>
+      <default>80</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_LEVEL</name>
+      <long>ftlevel</long>
+      <description>
+         <en>Fault tolerance level. 1(Fusing), 2(Semi fault-tolerant), 3(Whole fault-tolerant). Default:2</en>
+         <cn>容错级别，1(熔断), 2(半容错), 3(全容错). 默认为2</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Fault tolerance level. 1(Fusing), 2(Semi fault-tolerant), 3(Whole fault-tolerant). Default:2</en>
+         <cn>容错级别，1(熔断), 2(半容错), 3(全容错). 默认为2</cn>
+      </detail>
+      <type>int</type>
+      <default>2</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_FUSING_TIMEOUT</name>
+      <long>ftfusingtimeout</long>
+      <description>
+         <en>The timeout value for fusing. Default:10, value range:[0,3600], Unit:second</en>
+         <cn>熔断超时时间，默认为10，取值范围：[0,3600]，单位：秒</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>The timeout value for fusing. Default:10, value range:[0,3600], Unit:second</en>
+         <cn>熔断超时时间，默认为10，取值范围：[0,3600]，单位：秒</cn>
+      </detail>
+      <type>int</type>
+      <default>10</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_SLOWNODE_THRESHOLD</name>
+      <long>ftslownodethreshold</long>
+      <description>
+         <en>The log difference threshold for slow node detection. Default:256, value range:[1,10000], Unit:MB</en>
+         <cn>慢节点检测的日志差阈值，默认：256，取值范围：[1,10000]，单位：MB</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>The log difference threshold for slow node detection. Default:256, value range:[1,10000], Unit:MB</en>
+         <cn>慢节点检测的日志差阈值，默认：256，取值范围：[1,10000]，单位：MB</cn>
+      </detail>
+      <type>int</type>
+      <default>256</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_SLOWNODE_INCREMENT</name>
+      <long>ftslownodeincrement</long>
+      <description>
+         <en>The log difference increment for slow node detection. Default:8, value range:[0,10000], Unit:MB</en>
+         <cn>慢节点检测的日志增量值，默认：8，取值范围：[0,10000]，单位：MB</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>The log difference increment for slow node detection. Default:8, value range:[0,10000], Unit:MB</en>
+         <cn>慢节点检测的日志增量值，默认：8，取值范围：[0,10000]，单位：MB</cn>
+      </detail>
+      <type>int</type>
+      <default>8</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_SYNCWAIT_TIMEOUT</name>
+      <long>syncwaittimeout</long>
+      <description>
+         <en>The timeout value for data consistency synchronization. Default:600, value range:[1,3600], Unit:second</en>
+         <cn>数据一致性同步等待超时时间，默认为600，取值范围：[1,3600]，单位：秒</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>The timeout value for data consistency synchronization. Default:600, value range:[1,3600], Unit:second</en>
+         <cn>数据一致性同步等待超时时间，默认为600，取值范围：[1,3600]，单位：秒</cn>
+      </detail>
+      <type>int</type>
+      <default>600</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_SHUTDOWN_WAITTIMEOUT</name>
+      <long>shutdownwaittimeout</long>
+      <description>
+         <en>The timeout value for data consistency synchronization on primary node shutdown. Default:1200, value range:[0,864000], Unit:second</en>
+         <cn>主数据节点停机时等待备节点数据同步超时时间，默认为1200，取值范围：[0,864000]，单位：秒</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>The timeout value for data consistency synchronization on primary node shutdown. Default:1200, value range:[0,864000], Unit:second</en>
+         <cn>主数据节点停机时等待备节点数据同步超时时间，默认为1200，取值范围：[0,864000]，单位：秒</cn>
+      </detail>
+      <type>int</type>
+      <default>1200</default>
+      <typeofweb>num</typeofweb>
+   </opt>
 </optlist>

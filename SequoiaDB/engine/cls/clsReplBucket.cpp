@@ -1131,6 +1131,8 @@ namespace engine
                        SDB_NOSPC == rc ||
                        ( SDB_IXM_DUP_KEY == rc && !ignoreDupKey ) ),
                      "Unexpected error occurred" ) ;
+         ftReportErr( rc ) ;
+
          // NOTE: all running threads could not be waiting
          if ( CLS_BUCKET_NORMAL == _status &&
               SDB_IXM_DUP_KEY == rc &&

@@ -288,6 +288,17 @@ namespace engine
 
       pdSetAuditMask( pmdGetOptionCB()->auditMask() ) ;
 
+      pmdFTMgr *ftMgr = pmdGetKRCB()->getFTMgr() ;
+      if ( ftMgr )
+      {
+         ftMgr->setConfirmPeriod( pmdGetOptionCB()->ftConfirmPeriod() ) ;
+         ftMgr->setConfrimRatio( pmdGetOptionCB()->ftConfirmRatio() ) ;
+         ftMgr->setMask( pmdGetOptionCB()->ftMask() ) ;
+         ftMgr->setFTLevel( pmdGetOptionCB()->ftLevel() ) ;
+         ftMgr->setSlowNodeInfo( pmdGetOptionCB()->ftSlowNodeThreshold(),
+                                 pmdGetOptionCB()->ftSlowNodeIncrement() ) ;
+      }
+
       pmdGetKRCB()->getBuffPool()->enablePerfStat(
          pmdGetOptionCB()->isEnabledPerfStat() ) ;
       pmdGetKRCB()->getBuffPool()->setMaxCacheSize(

@@ -292,6 +292,120 @@ namespace engine
       return modeFlag ;
    }
 
+   static INT32 _utilStrToFTMask( const CHAR *pStr, UINT32 &ftMask )
+   {
+      if ( !pStr || !*pStr )
+      {
+         return SDB_OK ;
+      }
+      ftMask = 0 ;
+
+      const CHAR *start = pStr ;
+
+      while( ' ' == *start || '\t' == *start )
+      {
+         ++start ;
+      }
+
+      if ( !*start )
+      {
+         return SDB_OK ;
+      }
+
+      const CHAR *end = start + ossStrlen( start ) - 1 ;
+      while( end != start && ( ' ' == *end || '\t' == *end ) )
+      {
+         --end ;
+      }
+      UINT32 len = end - start + 1 ;
+      /// compare
+      if ( 0 == ossStrncasecmp( start, PMD_FT_MASK_NOSPC_STR, len ) )
+      {
+         ftMask |= PMD_FT_MASK_NOSPC ;
+      }
+      else if ( 0 == ossStrncasecmp( start, PMD_FT_MASK_DEADSYNC_STR, len ) )
+      {
+         ftMask |= PMD_FT_MASK_DEADSYNC ;
+      }
+      else if ( 0 == ossStrncasecmp( start, PMD_FT_MASK_SLOWNODE_STR, len ) )
+      {
+         ftMask |= PMD_FT_MASK_SLOWNODE ;
+      }
+      else if ( 0 == ossStrncasecmp( start, "NONE", len ) )
+      {
+         /// do nothing
+      }
+      else if ( 0 == ossStrncasecmp( start, "ALL", len ) )
+      {
+         ftMask = PMD_FT_MASK_ALL ;
+      }
+      else
+      {
+         return SDB_INVALIDARG ;
+      }
+
+      return SDB_OK ;
+   }
+
+   INT32 utilStrToFTMask( const CHAR *pStr, UINT32 &ftMask )
+   {
+      INT32 rc = SDB_OK ;
+      if ( !pStr || !*pStr )
+      {
+         return SDB_OK ;
+      }
+      const CHAR *p = pStr ;
+      CHAR *p1 = NULL ;
+      while( p && *p )
+      {
+         p1 = (CHAR*)ossStrchr( p, '|' ) ;
+         if ( p1 )
+         {
+            *p1 = 0 ;
+         }
+         rc = _utilStrToFTMask( p, ftMask ) ;
+         if ( p1 )
+         {
+            *p1 = '|' ;
+         }
+         if ( rc )
+         {
+            break ;
+         }
+         p = p1 ? p1 + 1 : NULL ;
+      }
+      return rc ;
+   }
+
+   static void _utilAppendOrString( CHAR *pBuffer, INT32 bufSize,
+                                    const CHAR *flagStr )
+   {
+      if ( 0 != *pBuffer )
+      {
+         ossStrncat( pBuffer, "|",
+                     bufSize - ossStrlen( pBuffer ) ) ;
+      }
+      ossStrncat( pBuffer, flagStr, bufSize - ossStrlen( pBuffer ) ) ;
+   }
+
+   void utilFTMaskToStr( UINT32 ftMask, CHAR *pBuff, UINT32 size )
+   {
+      ossMemset ( pBuff, 0, size ) ;
+
+      if ( OSS_BIT_TEST ( ftMask, PMD_FT_MASK_NOSPC ) )
+      {
+         _utilAppendOrString( pBuff, size, PMD_FT_MASK_NOSPC_STR ) ;
+      }
+      if ( OSS_BIT_TEST ( ftMask, PMD_FT_MASK_DEADSYNC ) )
+      {
+         _utilAppendOrString( pBuff, size, PMD_FT_MASK_DEADSYNC_STR ) ;
+      }
+      if ( OSS_BIT_TEST ( ftMask, PMD_FT_MASK_SLOWNODE ) )
+      {
+         _utilAppendOrString( pBuff, size, PMD_FT_MASK_SLOWNODE_STR ) ;
+      }
+   }
+
    BOOLEAN utilCheckInstanceID ( UINT32 instanceID, BOOLEAN includeUnknown )
    {
       if ( ( includeUnknown &&

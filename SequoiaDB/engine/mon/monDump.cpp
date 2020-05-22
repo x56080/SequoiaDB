@@ -78,6 +78,7 @@ namespace engine
    #define OSS_MAX_FILE_SZ          ( 8796093022208ll )
 
    #define MON_DUMP_DFT_BUILDER_SZ  ( 1024 )
+   #define MON_DUMP_BUFF_STAT_SZ    ( 128 )
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONGETNODENAME, "monGetNodeName" )
    static CHAR *monGetNodeName ( CHAR *nodeName,
@@ -225,6 +226,10 @@ namespace engine
                             PMD_IS_DB_AVAILABLE() ) ;
             ob.append( FIELD_NAME_GROUP_STATUS,
                        utilDBStatusStr( krcb->getDBStatus() ) ) ;
+            CHAR tmpText[ MON_DUMP_BUFF_STAT_SZ + 1 ] = { 0 } ;
+            utilFTMaskToStr( pmdGetKRCB()->getFTMgr()->getConfirmedStat(),
+                             tmpText, MON_DUMP_BUFF_STAT_SZ ) ;
+            ob.append( FIELD_NAME_FT_STATUS, tmpText ) ;
          }
 
          if ( MON_MASK_LSN_INFO & mask )

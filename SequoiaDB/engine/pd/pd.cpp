@@ -807,6 +807,7 @@ static INT32 _pdString2AuditMask( const CHAR *pStr,
    {
       return SDB_OK ;
    }
+   mask = 0 ;
 
    const CHAR *start = pStr ;
    BOOLEAN isNot = FALSE ;

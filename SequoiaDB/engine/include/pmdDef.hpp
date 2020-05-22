@@ -247,6 +247,7 @@ namespace engine
       EDU_BLOCK_SYNCWAIT,
       EDU_BLOCK_SYNCCONTROL,
       EDU_BLOCK_WAITREPLY,
+      EDU_BLOCK_FT,
 
       EDU_BLOCK_MAX
    } ;
@@ -352,6 +353,7 @@ namespace engine
    #define ENGINE_NPIPE_MSG_PRIMARY    "$primary"
    #define ENGINE_NPIPE_MSG_ENDPIPE    "$endpipe"
    #define ENGINE_NPIPE_MSG_STARTTIME  "$starttime"
+   #define ENGINE_NPIPE_MSG_DOING      "$doing"
 
    /*
       Config define
@@ -392,6 +394,74 @@ namespace engine
    */
    #define PMD_IPADDR_LEN              ( 40 )
    #define PMD_CLIENTNAME_LEN          ( 64 )
+
+   /*
+      PMD_FT_RISK_TYPE define
+   */
+   enum PMD_FT_RISK_TYPE
+   {
+      FT_RISK_NONE            = 0,
+      FT_RISK_SLOW_NODE,
+      FT_RISK_DEADSYNC,
+
+      FT_RISK_MAX
+   } ;
+
+   /*
+      PMD_FT_ERR_TYPE define
+   */
+   enum PMD_FT_ERR_TYPE
+   {
+      FT_ERR_NONE             = 0,
+      FT_ERR_NOSPC,
+
+      FT_ERR_MAX
+   } ;
+
+   /*
+      define FT MASK
+   */
+   #define PMD_FT_MASK_NOSPC           0x00000001
+   #define PMD_FT_MASK_DEADSYNC        0x00000002
+   #define PMD_FT_MASK_SLOWNODE        0x00000004
+
+   #define PMD_FT_MASK_ALL             0xFFFFFFFF
+
+   #define PMD_FT_MASK_DFT             ( PMD_FT_MASK_NOSPC|\
+                                         PMD_FT_MASK_DEADSYNC)
+
+   #define PMD_FT_MASK_NOSPC_STR       "NOSPC"
+   #define PMD_FT_MASK_DEADSYNC_STR    "DEADSYNC"
+   #define PMD_FT_MASK_SLOWNODE_STR    "SLOWNODE"
+
+   #define PMD_FT_MASK_DFT_STR         ( PMD_FT_MASK_NOSPC_STR"|"\
+                                         PMD_FT_MASK_DEADSYNC_STR)
+
+   #define PMD_FT_IS_FATAL_FAULT(mask) \
+      ((PMD_FT_MASK_NOSPC & (mask)) || (PMD_FT_MASK_DEADSYNC & (mask)))
+
+   /*
+      Global define
+   */
+   #define PMD_FT_SAMPLE_WINDOW_SZ     ( 200 )
+   #define PMD_FT_SAMPLE_INTERVAL      ( 3 )       /// second
+   #define PMD_FT_CACL_INTERVAL_MIN    PMD_FT_SAMPLE_INTERVAL
+   #define PMD_FT_CACL_INTERVAL_MAX    ( PMD_FT_SAMPLE_INTERVAL * PMD_FT_SAMPLE_WINDOW_SZ )
+   #define PMD_FT_CACL_INTERVAL_DFT    ( PMD_FT_SAMPLE_INTERVAL * 10 )
+
+   #define PMD_FT_CACL_RATIO_DFT       ( 80 )   /// %
+   #define PMD_FT_CACL_RATIO_MIN       ( 1 )
+   #define PMD_FT_CACL_RATIO_MAX       ( 100 )
+
+   /*
+      PMD_FT_LEVEL define
+   */
+   enum PMD_FT_LEVEL
+   {
+      FT_LEVEL_FUSING   = 1,
+      FT_LEVEL_SEMI     = 2,
+      FT_LEVEL_WHOLE    = 3
+   } ;
 
 }
 

@@ -87,6 +87,12 @@ namespace engine
    UINT32      utilGetDBModeFlag( const string &mode ) ;
 
    /*
+      PMD_FT_MASK AND STRING TRANSFER
+   */
+   INT32       utilStrToFTMask( const CHAR *pStr, UINT32 &ftMask ) ;
+   void        utilFTMaskToStr( UINT32 ftMask, CHAR *pBuff, UINT32 size ) ;
+
+   /*
       instance ID
     */
    BOOLEAN     utilCheckInstanceID ( UINT32 instanceID, BOOLEAN includeUnknown ) ;

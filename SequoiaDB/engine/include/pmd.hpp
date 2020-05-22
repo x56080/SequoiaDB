@@ -56,6 +56,7 @@
 #include "schedTaskMgr.hpp"
 #include "utilMemBlockPool.hpp"
 #include "pmdLightJobMgr.hpp"
+#include "pmdFTMgr.hpp"
 #include "monMgr.hpp"
 
 namespace engine
@@ -131,6 +132,7 @@ namespace engine
       virtual BOOLEAN            isCBValue( SDB_CB_TYPE type ) const ;
       virtual IExecutorMgr*      getExecutorMgr() ;
       virtual IContextMgr*       getContextMgr() ;
+      virtual ICluster*          getCluster() ;
 
       virtual SDB_DB_STATUS      getDBStatus() const ;
       virtual const CHAR*        getDBStatusDesp() const ;
@@ -232,6 +234,7 @@ namespace engine
       schedTaskMgr   _svcTaskMgr ;
 
       pmdLightJobMgr    *_pLightJobMgr ;
+      pmdFTMgr          *_pFTMgr ;
       UINT32            _timeCounter ;    /// ms
       UINT32            _monTimeCounter ; /// ms
 
@@ -254,6 +257,10 @@ namespace engine
       utilMemBlockPool *getMemBlockPool()
       {
          return utilGetGlobalMemPool() ;
+      }
+      pmdFTMgr* getFTMgr()
+      {
+         return _pFTMgr ;
       }
       CHAR *getGroupName ( CHAR *pBuffer, UINT32 size ) const
       {

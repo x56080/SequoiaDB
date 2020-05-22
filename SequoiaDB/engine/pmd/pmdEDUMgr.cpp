@@ -48,6 +48,14 @@
 
 namespace engine
 {
+
+   ossAtomic64 __deadCheckAdjustTime( 0 ) ;
+
+   void pmdUpdateDeadCheckWaitTime( INT64 timeout )
+   {
+      __deadCheckAdjustTime.swap( timeout ) ;
+   }
+
    /*
       Local Define
    */
@@ -2230,6 +2238,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT64 restTimeout = timeout > PMD_STOP_MIN_TIMEOUT ?
                           timeout : PMD_STOP_MIN_TIMEOUT ;
+      INT64 adjustTime = 0 ;
+
+      __deadCheckAdjustTime.swap( 0 ) ;
 
       while( TRUE )
       {
@@ -2241,6 +2252,11 @@ namespace engine
          }
 
          restTimeout -= OSS_ONE_SEC ;
+         adjustTime = __deadCheckAdjustTime.swap( 0 ) ;
+         if ( adjustTime > 0 && restTimeout < adjustTime )
+         {
+            restTimeout = adjustTime ;
+         }
 
          if ( restTimeout <= 0 )
          {

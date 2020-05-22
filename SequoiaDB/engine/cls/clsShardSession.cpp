@@ -59,7 +59,7 @@ namespace engine
 
 #define SHD_SESSION_TIMEOUT         (60)
 #define SHD_INTERRUPT_CHECKPOINT    (10)
-#define SHD_NOTPRIMARY_WAITTIME     (15000)     //ms
+#define SHD_NOTPRIMARY_WAITTIME     (20000)     //ms
 #define SHD_TRANSROLLBACK_WAITTIME  (60000)     //ms
 #define SHD_WAITTIME_INTERVAL       (200)       //ms
 
@@ -409,7 +409,8 @@ namespace engine
             timePassed += waitTime ;
             continue ;
          }
-         else if ( SDB_CLS_WAIT_SYNC_FAILED == rc )
+         else if ( SDB_CLS_WAIT_SYNC_FAILED == rc ||
+                   SDB_DATABASE_DOWN == rc )
          {
             // wait sync may not pass 1 second, so sleep and retry
             ossSleep( OSS_ONE_SEC ) ;
@@ -1118,6 +1119,11 @@ namespace engine
          if ( _replyHeader.flags != SDB_OK )
          {
             pmdIncErrNum( _replyHeader.flags ) ;
+
+            if ( eduCB()->isWritingDB() )
+            {
+               ftReportErr( _replyHeader.flags ) ;
+            }
          }
       }
 
@@ -5593,6 +5599,10 @@ namespace engine
       {
          rc = SDB_RTN_IN_REBUILD ;
       }
+      else if ( SDB_DB_SHUTDOWN == PMD_DB_STATUS() )
+      {
+         rc = SDB_DATABASE_DOWN ;
+      }
       else if ( !pmdGetStartup().isOK() )
       {
          rc = SDB_RTN_IN_REBUILD ;
@@ -5662,10 +5672,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CALCW ) ;
-      UINT32 N = 0 ; /// node count
-      UINT32 A = 0 ; /// alive count
       INT16 w = 0 ;
-      _pReplSet->getBoth( N, A ) ;
 
       if ( NULL != replSize )
       {
@@ -5683,59 +5690,27 @@ namespace engine
 
       /// When first operation in transaction, should adjust the replsize
       /// by param 'transreplsize'
-      if ( _pEDUCB->isTransaction() &&
+      if ( w >= 1 &&
+           _pEDUCB->isTransaction() &&
            DPS_INVALID_LSN_OFFSET == _pEDUCB->getCurTransLsn() )
       {
          INT16 transReplSize = pmdGetOptionCB()->transReplSize() ;
-         if ( w < transReplSize )
+         if ( transReplSize <= 0 )
+         {
+            w = transReplSize ;
+         }
+         else if ( w < transReplSize )
          {
             w = transReplSize ;
          }
       }
 
-      if ( 1 <= w &&
-           w <= CLS_REPLSET_MAX_NODE_SIZE )
+      rc = _pReplSet->replSizeCheck( w, final, _pEDUCB ) ;
+      if ( rc )
       {
-         w = w <= ( INT16 )N ? w: ( INT16 )N ;
-      }
-      else if ( -1 == w )
-      {
-         w = A ;
-      }
-      else if ( 0 == w )
-      {
-         w = N ;
-      }
-      else
-      {
-         stringstream ss ;
-         ss << "node size[" << N << "],"
-            << "alive size[" << A << "]," ;
-         if ( NULL != replSize )
-         {
-            ss << "repl size[" << *replSize << "]," ;
-         }
-         if ( NULL != clientW )
-         {
-            ss << "client w[" << *clientW << "]" ;
-         }
-         PD_LOG( PDERROR, "can not calculate w:%s",
-                 ss.str().c_str() ) ;
-         rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      SDB_ASSERT( 1 <= w && w <= CLS_REPLSET_MAX_NODE_SIZE, "must be valid" ) ;
-      w = w <= 0 ? 1 : w ;
-      if ( ( INT16 )A < w )
-      {
-         PD_LOG( PDERROR, "alive num[%d] can not meet need[%d]",
-                 A, w ) ;
-         rc = SDB_CLS_NODE_NOT_ENOUGH ;
-         goto error ;
-      }
-
-      final = w ;
    done:
       PD_TRACE_EXITRC( SDB__CLSSHDSESS__CALCW, rc ) ;
       return rc ;

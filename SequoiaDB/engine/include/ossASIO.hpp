@@ -68,7 +68,7 @@ private :
    ossAsioProcessFunction _onReceive ;
    ossAsioProcessFunction _onDisconnect ;
    tcp::socket _socket ;
-   MsgReplHeader _header ;
+   _MsgHeader _header ;
    io_service *_ioservice ;
    CHAR *_message ;
    INT32 _bufferLen ;

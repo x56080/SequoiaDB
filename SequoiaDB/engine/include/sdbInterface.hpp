@@ -86,6 +86,7 @@ namespace engine
       SDB_IF_EVT_HOLDER,
 
       SDB_IF_CTXMGR,
+      SDB_IF_CLS,
 
       // THD MAX IF TYPE
       SDB_IF_MAX
@@ -537,6 +538,22 @@ namespace engine
    typedef _IContextMgr IContextMgr ;
 
    /*
+      _ICluster define
+   */
+   class _ICluster
+   {
+      public:
+         _ICluster() {}
+         virtual ~_ICluster() {}
+
+      public:
+         virtual UINT64    completeLsn( UINT32 *pVer = NULL ) = 0 ;
+         virtual UINT32    lsnQueSize() = 0 ;
+         virtual BOOLEAN   primaryLsn( UINT64 &lsn, UINT32 *pVer = NULL ) = 0 ;
+   } ;
+   typedef _ICluster ICluster ;
+
+   /*
       _IControlBlock define
    */
    class _IControlBlock : public SDBObject, public _ISDBRoot
@@ -574,6 +591,7 @@ namespace engine
          virtual void*              getOrgPointByType( SDB_CB_TYPE type ) = 0 ;
          virtual IExecutorMgr*      getExecutorMgr() = 0 ;
          virtual IContextMgr*       getContextMgr() = 0 ;
+         virtual ICluster*          getCluster() = 0 ;
 
          virtual SDB_DB_STATUS      getDBStatus() const = 0 ;
          virtual const CHAR*        getDBStatusDesp() const = 0 ;

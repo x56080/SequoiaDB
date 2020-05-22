@@ -278,6 +278,8 @@ namespace engine
    };
    typedef _pmdEDUMgr pmdEDUMgr ;
 
+   void  pmdUpdateDeadCheckWaitTime( INT64 timeout ) ;
+
 }
 
 #endif // PMDEDUMGR_HPP__

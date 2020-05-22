@@ -45,7 +45,7 @@ namespace engine
    const UINT16 CLS_SYNC_INTERVAL = 2000 ;
    const UINT16 CLS_CONSULT_INTERVAL = 5000 ;
 
-   #define CLS_REPL_MAX_TIME           (2)
+   #define CLS_REPL_MAX_TIME              ( 2 )
 
    /*
       _clsReplDstSession implement
@@ -199,7 +199,7 @@ namespace engine
       {
          PD_LOG ( PDWARNING, "Session[%s]: Peer node sharing-break",
                   sessionName() ) ;
-         _selector.addToBlakList ( _syncSrc ) ;
+         _selector.addToBlackList ( _syncSrc ) ;
          _selector.clearSrc () ;
          _syncSrc = _selector.src() ;
       }
@@ -362,7 +362,7 @@ namespace engine
 
                /// sync res is ok but remote has no more new data.
                /// we choose a new node to sync data.
-               _selector.addToBlakList( _syncSrc ) ;
+               _selector.addToBlackList( _syncSrc ) ;
                _selector.clearSrc() ;
 
                // can't call _sendSyncReq, because the primary maybe
@@ -400,7 +400,7 @@ namespace engine
          _syncFailedNum++ ;
          if ( _syncFailedNum < _repl->groupSize() - 1 )
          {
-            _selector.addToBlakList( _syncSrc ) ;
+            _selector.addToBlackList( _syncSrc ) ;
             _selector.clearSrc() ;
             /// must to clear the _lastSyncNode, because next selector
             /// will select the same node with last. But the log maybe
@@ -850,6 +850,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN__SNDSYNCREQ );
 
+      INT32 rc = SDB_OK ;
       _syncSrc = _selector.selected() ;
 
       if ( MSG_INVALID_ROUTEID != _syncSrc.value )
@@ -887,12 +888,28 @@ namespace engine
          }
 
          msg.identity = routeAgent()->localID() ;
-         routeAgent()->syncSend( _syncSrc, &msg ) ;
-         PD_LOG( PDDEBUG, "Session[%s]: Send sync req to [node: %d, "
-                 "group:%d], lsn: [%llu][%u], complete lsn: [%lld][%u]",
-                 sessionName(), _syncSrc.columns.nodeID,
-                 _syncSrc.columns.groupID, msg.next.offset, msg.next.version,
-                 msg.completeNext.offset, msg.completeNext.version ) ;
+         rc = routeAgent()->syncSend( _syncSrc, &msg ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Session[%s]: Send sync req to [node: %d, "
+                    "group:%d], lsn: [%llu][%u], complete lsn: [%lld][%u] "
+                    "failed, rc: %d",
+                    sessionName(), _syncSrc.columns.nodeID,
+                    _syncSrc.columns.groupID, msg.next.offset, msg.next.version,
+                    msg.completeNext.offset, msg.completeNext.version,
+                    rc ) ;
+
+            _selector.addToBlackList( _syncSrc ) ;
+            _selector.clearSrc() ;
+         }
+         else
+         {
+            PD_LOG( PDDEBUG, "Session[%s]: Send sync req to [node: %d, "
+                    "group:%d], lsn: [%llu][%u], complete lsn: [%lld][%u]",
+                    sessionName(), _syncSrc.columns.nodeID,
+                    _syncSrc.columns.groupID, msg.next.offset, msg.next.version,
+                    msg.completeNext.offset, msg.completeNext.version ) ;
+         }
       }
 
       PD_TRACE_EXIT ( SDB__CLSDSTREPSN__SNDSYNCREQ ) ;
@@ -902,6 +919,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSTREPSN__SNDCSTREQ, "_clsReplDstSession::_sendConsultReq" )
    void _clsReplDstSession::_sendConsultReq()
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN__SNDCSTREQ );
 
       if ( CLS_SESSION_STATUS_CONSULT != _status )
@@ -946,11 +964,24 @@ namespace engine
             }
          }
 
-         routeAgent()->syncSend( _syncSrc, &msg ) ;
-         PD_LOG( PDEVENT, "Session[%s]: Send consult req to [node: %d, "
-                 "group:%d], [LSN: %d:%lld]", sessionName(),
-                 _syncSrc.columns.nodeID, _syncSrc.columns.groupID,
-                 msg.current.version,  msg.current.offset ) ;
+         rc = routeAgent()->syncSend( _syncSrc, &msg ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Session[%s]: Send consult req to [node: %d, "
+                    "group:%d], [LSN: %d:%lld] failed, rc: %d", sessionName(),
+                    _syncSrc.columns.nodeID, _syncSrc.columns.groupID,
+                    msg.current.version,  msg.current.offset, rc ) ;
+
+            _selector.addToBlackList( _syncSrc ) ;
+            _selector.clearSrc() ;
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Session[%s]: Send consult req to [node: %d, "
+                    "group:%d], [LSN: %d:%lld]", sessionName(),
+                    _syncSrc.columns.nodeID, _syncSrc.columns.groupID,
+                    msg.current.version,  msg.current.offset ) ;
+         }
       }
 
    done:
@@ -1098,6 +1129,7 @@ namespace engine
                         "Unexpect error occured" ) ;
             PD_LOG( PDERROR, "Session[%s]: Failed to replay log, rc: %d",
                     sessionName(), rc ) ;
+            ftReportErr( rc ) ;
             goto error ;
          }
 

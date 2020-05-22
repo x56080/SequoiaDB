@@ -218,6 +218,8 @@ namespace engine
          virtual INT32  fini () ;
          virtual void   onConfigChange() ;
 
+         virtual void* queryInterface( SDB_INTERFACE_TYPE type ) ;
+
          virtual void   attachCB( _pmdEDUCB *cb ) ;
          virtual void   detachCB( _pmdEDUCB *cb ) ;
 

@@ -126,6 +126,24 @@ namespace engine
       pmdGetSysInfo()->_quitFlag = TRUE ;
    }
 
+   void pmdSetDoing( const CHAR *str )
+   {
+      ossScopedLock lock( &(pmdGetSysInfo()->_latch) ) ;
+      ossStrncpy( pmdGetSysInfo()->_doing, str, PMD_DOING_STR_LEN ) ;
+   }
+
+   void pmdCleanDoing()
+   {
+      ossScopedLock lock( &(pmdGetSysInfo()->_latch) ) ;
+      ossMemset( pmdGetSysInfo()->_doing, 0, PMD_DOING_STR_LEN ) ;
+   }
+
+   void pmdGetDoing( CHAR *buff, UINT32 size )
+   {
+      ossScopedLock lock( &(pmdGetSysInfo()->_latch) ) ;
+      ossStrncpy( buff, pmdGetSysInfo()->_doing, size ) ;
+   }
+
    INT32& pmdGetSigNum()
    {
       static INT32 s_sigNum = -1 ;

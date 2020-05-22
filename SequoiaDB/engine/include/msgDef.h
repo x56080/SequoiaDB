@@ -72,6 +72,7 @@
 #define FIELD_NAME_W                         "ReplSize"
 #define FIELD_NAME_PRIMARY                   "PrimaryNode"
 #define FIELD_NAME_GROUP_STATUS              "Status"
+#define FIELD_NAME_FT_STATUS                 "FTStatus"
 #define FIELD_NAME_DATA_STATUS               "DataStatus"
 #define FIELD_NAME_SYNC_CONTROL              "SyncControl"
 #define FIELD_NAME_PAGE_SIZE                 "PageSize"

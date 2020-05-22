@@ -70,9 +70,16 @@ namespace engine
                                         MSG_ROUTE_SERVICE_TYPE type =
                                         MSG_ROUTE_SHARD_SERVCIE ) ;
 
-      OSS_INLINE void addToBlakList( const MsgRouteID &id )
+      OSS_INLINE BOOLEAN addToBlackList( const MsgRouteID &id )
       {
-         _blacklist.insert( id.value ) ;
+         try
+         {
+            return _blacklist.insert( id.value ).second ;
+         }
+         catch( ... )
+         {
+         }
+         return FALSE ;
       }
 
       OSS_INLINE void clearBlacklist()

@@ -100,6 +100,10 @@ namespace engine
 
       if ( _noRes > CLS_FS_NORES_TIMEOUT )
       {
+         if ( _src.value != MSG_INVALID_ROUTEID )
+         {
+            addToBlackList( _src ) ;
+         }
          _src.value = MSG_INVALID_ROUTEID ;
       }
 

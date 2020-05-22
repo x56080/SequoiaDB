@@ -1523,7 +1523,7 @@ namespace engine
          PD_LOG ( PDWARNING, "Session[%s]: Node[%d] refused full sync "
                   "seq[rc:%d]", sessionName(), _selector.src().columns.nodeID,
                   msg->header.res ) ;
-         _selector.addToBlakList ( _selector.src() ) ;
+         _selector.addToBlackList ( _selector.src() ) ;
          _selector.clearSrc () ;
          goto done ;
       }

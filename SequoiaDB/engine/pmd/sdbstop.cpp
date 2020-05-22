@@ -395,7 +395,8 @@ namespace engine
                      info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
                      info._svcname.c_str() ) ;
 
-         rc = utilStopNode( info, UTIL_STOP_NODE_TIMEOUT, bForce, TRUE ) ;
+         rc = utilStopNode( info, UTIL_STOP_NODE_TIMEOUT, bForce,
+                            TRUE, TRUE ) ;
          if ( SDB_OK == rc )
          {
             ++success ;
