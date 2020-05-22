@@ -72,6 +72,7 @@ testFiles = [
    [ "./ssl/sslFalse.cpp" ],
    [ "./ssl/sslTrue.cpp" ],  # conf
    [ "./lob/lobAbnormal.cpp" ],
+   [ "./lob/lobCreateAndList_22190.cpp" ],
    [ "./lob/lobNormal.cpp" ],
    [ "./lob/lobTruncate13434.cpp" ],
    [ "./lob/lobTruncate13437.cpp" ],

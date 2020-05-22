@@ -44,9 +44,24 @@ INT32 createNormalCsCl( sdbConnectionHandle db, sdbCSHandle* cs, sdbCollectionHa
    INT32 rc = SDB_OK ;
    // create cs
    rc = sdbCreateCollectionSpace( db, csName, SDB_PAGESIZE_4K, cs ) ;
+   if ( rc == -33)
+   {
+      rc = sdbGetCollectionSpace(db, csName, cs) ;
+   }
+
    CHECK_RC( SDB_OK, rc, "fail to create cs %s", csName ) ;
    // create cl
-   rc = sdbCreateCollection( *cs, clName, cl ) ;
+   do{
+      rc = sdbCreateCollection(*cs, clName, cl) ;
+      if ( rc == -22 ){
+         rc = sdbDropCollection(*cs, clName) ;
+         CHECK_RC( SDB_OK, rc, "fail to create cl %s", clName ) ;	
+         continue ;
+      } 
+
+      if ( rc == 0 ) break ;
+   }while( TRUE ) ;
+
    CHECK_RC( SDB_OK, rc, "fail to create cl %s", clName ) ;	
 done:
    return rc ;
