@@ -1394,7 +1394,7 @@ namespace engine
       {
          INT16 i = 0 ;
 
-         rc = rtnGetLTFactory()->create( RTN_LOCAL_TASK_RENAMECS, _taskPtr ) ;
+         rc = rtnGetLTFactory()->create( RTN_LOCAL_TASK_RENAMECL, _taskPtr ) ;
          PD_RC_CHECK( rc, PDERROR, "Alloc rename task failed, rc: %d", rc ) ;
 
          pRenameTask = ( rtnLTRename* )_taskPtr.get() ;
