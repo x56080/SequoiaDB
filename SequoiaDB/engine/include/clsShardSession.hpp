@@ -133,6 +133,13 @@ namespace engine
                             const INT16 *clientW,
                             INT16 &w ) ;
 
+         INT32 _checkCLVersion( const CHAR *name,
+                                INT32 version,
+                                BOOLEAN *isMainCL = NULL,
+                                INT16 *w = NULL,
+                                CHAR *mainCLName = NULL,
+                                utilCLUniqueID *clUniqueID = NULL ) ;
+
          INT32   _reply ( MsgOpReply *header, const CHAR *buff, UINT32 size ) ;
 
          virtual void   _onDetach () ;
@@ -373,6 +380,7 @@ namespace engine
          BSONObj                _errorInfo ;
          const CHAR             *_pCollectionName ;
          std::string             _cmdCollectionName ;
+         INT32                   _clVersion ;
 
          BOOLEAN                _isMainCL ;
          BOOLEAN                _hasUpdateCataInfo ;

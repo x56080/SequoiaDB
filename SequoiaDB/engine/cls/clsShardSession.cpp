@@ -108,6 +108,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSSDSESS__CLSSHDSESS ) ;
       _pCollectionName  = NULL ;
+      _clVersion        = 0 ;
       _isMainCL         = FALSE ;
       _hasUpdateCataInfo= FALSE ;
       pmdKRCB *pKRCB = pmdGetKRCB () ;
@@ -144,6 +145,7 @@ namespace engine
       _pRtnCB    = NULL ;
       _pDpsCB    = NULL ;
       _pCollectionName = NULL ;
+      _clVersion = 0 ;
       _cmdCollectionName.clear() ;
    }
 
@@ -645,6 +647,7 @@ namespace engine
       INT32 startFrom = 0 ;
       rtnContextBuf buffObj ;
       _pCollectionName = NULL ;
+      _clVersion = 0 ;
       _cmdCollectionName.clear() ;
       _isMainCL        = FALSE ;
       _hasUpdateCataInfo = FALSE ;
@@ -2967,6 +2970,15 @@ namespace engine
          goto error ;
       }
 
+      if ( onlyCheck )
+      {
+         // need recheck version of main-collection
+         rc = _checkCLVersion( _pCollectionName, _clVersion ) ;
+         PD_RC_CHECK( rc, PDDEBUG, "Failed to check message version [%d] of "
+                      "collection [%s], rc: %d", _clVersion, _pCollectionName,
+                      rc ) ;
+      }
+
    done:
       return rc ;
    error:
@@ -3346,6 +3358,14 @@ namespace engine
             goto error ;
          }
       }
+      else
+      {
+         // need recheck version of main-collection
+         rc = _checkCLVersion( pCollectionName, _clVersion ) ;
+         PD_RC_CHECK( rc, PDDEBUG, "Failed to check message version [%d] of "
+                      "collection [%s], rc: %d", _clVersion, pCollectionName,
+                      rc ) ;
+      }
 
       PD_CHECK( !strSubCLList.empty(), SDB_INVALID_MAIN_CL, error, PDERROR,
                 "main-collection has no sub-collection!" ) ;
@@ -3434,6 +3454,14 @@ namespace engine
          _pCatAgent->lock_w() ;
          _pCatAgent->clear( pCollectionName ) ;
          _pCatAgent->release_w() ;
+      }
+      else
+      {
+         // need recheck version of main-collection
+         rc = _checkCLVersion( _pCollectionName, _clVersion ) ;
+         PD_RC_CHECK( rc, PDDEBUG, "Failed to check message version [%d] of "
+                      "collection [%s], rc: %d", _clVersion, _pCollectionName,
+                      rc ) ;
       }
 
    done:
@@ -5584,13 +5612,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHECKCLSANDGET ) ;
-      INT32 curVer = -1 ;
-      INT16 replSize = 0 ;
-      UINT32 groupCount = 0 ;
-      _clsCatalogSet *set = NULL ;
-      BOOLEAN mainCL = FALSE ;
-      BOOLEAN agentLocked = FALSE ;
-      const CHAR *clShortName = NULL ;
 
       rc = _checkReplStatus() ;
       if ( SDB_OK != rc )
@@ -5620,91 +5641,14 @@ namespace engine
          goto error ;
       }
 
-      // For SYS collections, do not check the version. This limit is added when
-      // developping text search. The search engine adapter will query and pop
-      // data from capped collections through the shard flat, if the version
-      // checking is enable, no operations can be done.
-      clShortName = ossStrchr( name, '.' ) ;
-      if ( !clShortName || ( clShortName == name + ossStrlen( name ) ) )
+      rc = _checkCLVersion( name, version, isMainCL, w, mainCLName,
+                            clUniqueID ) ;
+      if ( rc )
       {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Collection name[%s] is invalid. Full name is "
-                          "expected", name ) ;
          goto error ;
       }
 
-      clShortName++ ;
-      if ( dmsIsSysCLName( clShortName ) )
-      {
-         goto done ;
-      }
-
-      _pCatAgent->lock_r () ;
-      agentLocked = TRUE ;
-      set = _pCatAgent->collectionSet( name ) ;
-      if ( NULL == set )
-      {
-         rc = SDB_CLS_NO_CATALOG_INFO ;
-         goto error ;
-      }
-
-      replSize = set->getW() ;
-      curVer = set->getVersion() ;
-      groupCount = set->groupCount() ;
-      mainCL = set->isMainCL() ;
-      if(  NULL != clUniqueID )
-      {
-         *clUniqueID = set->clUniqueID() ;
-      }
-      if ( NULL != mainCLName && !set->getMainCLName().empty() )
-      {
-         ossStrncpy( mainCLName, set->getMainCLName().c_str(),
-                     DMS_COLLECTION_FULL_NAME_SZ ) ;
-      }
-      _pCatAgent->release_r () ;
-      agentLocked = FALSE ;
-
-      if ( curVer < 0 )
-      {
-         rc = SDB_CLS_NO_CATALOG_INFO ;
-         goto error ;
-      }
-      else if ( curVer < version )
-      {
-         rc = SDB_CLS_DATA_NODE_CAT_VER_OLD ;
-         goto error ;
-      }
-      else if ( curVer > version
-                || ( 0 == groupCount && !mainCL ) )
-      {
-         if ( 0 == groupCount )
-         {
-            _pCatAgent->lock_w() ;
-            _pCatAgent->clear( name ) ;
-            _pCatAgent->release_w() ;
-         }
-         PD_LOG ( PDINFO, "Collecton[%s]: self verions:%d, coord version:%d, "
-                  "groupCount:%d", name, curVer, version, groupCount ) ;
-         rc = SDB_CLS_COORD_NODE_CAT_VER_OLD ;
-         goto error ;
-      }
-      else
-      {
-         if ( NULL != isMainCL )
-         {
-            *isMainCL = mainCL ;
-         }
-
-         if ( NULL != w )
-         {
-            *w = replSize ;
-         }
-      }
    done:
-      if ( agentLocked )
-      {
-         _pCatAgent->release_r () ;
-      }
       PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHECKCLSANDGET, rc ) ;
       return rc ;
    error:
@@ -5795,6 +5739,124 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB__CLSSHDSESS__CALCW, rc ) ;
       return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKCLVER, "_clsShdSession::_checkCLVersion" )
+   INT32 _clsShdSession::_checkCLVersion( const CHAR *name,
+                                          INT32 version,
+                                          BOOLEAN *isMainCL,
+                                          INT16 *w,
+                                          CHAR *mainCLName,
+                                          utilCLUniqueID *clUniqueID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKCLVER ) ;
+
+      INT32 curVer = -1 ;
+      INT16 replSize = 0 ;
+      UINT32 groupCount = 0 ;
+      _clsCatalogSet *set = NULL ;
+      BOOLEAN mainCL = FALSE ;
+      BOOLEAN agentLocked = FALSE ;
+      const CHAR *clShortName = NULL ;
+
+      // For SYS collections, do not check the version. This limit is added when
+      // developing text search. The search engine adapter will query and pop
+      // data from capped collections through the shard flat, if the version
+      // checking is enable, no operations can be done.
+      clShortName = ossStrchr( name, '.' ) ;
+      if ( !clShortName || ( clShortName == name + ossStrlen( name ) ) )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Collection name[%s] is invalid. Full name is "
+                          "expected", name ) ;
+         goto error ;
+      }
+
+      clShortName++ ;
+      if ( dmsIsSysCLName( clShortName ) )
+      {
+         goto done ;
+      }
+
+      _pCatAgent->lock_r () ;
+      agentLocked = TRUE ;
+      set = _pCatAgent->collectionSet( name ) ;
+      if ( NULL == set )
+      {
+         rc = SDB_CLS_NO_CATALOG_INFO ;
+         goto error ;
+      }
+
+      replSize = set->getW() ;
+      curVer = set->getVersion() ;
+      groupCount = set->groupCount() ;
+      mainCL = set->isMainCL() ;
+      if(  NULL != clUniqueID )
+      {
+         *clUniqueID = set->clUniqueID() ;
+      }
+      if ( NULL != mainCLName && !set->getMainCLName().empty() )
+      {
+         ossStrncpy( mainCLName, set->getMainCLName().c_str(),
+                     DMS_COLLECTION_FULL_NAME_SZ ) ;
+      }
+      _pCatAgent->release_r () ;
+      agentLocked = FALSE ;
+
+      if ( curVer < 0 )
+      {
+         rc = SDB_CLS_NO_CATALOG_INFO ;
+         goto error ;
+      }
+      else if ( curVer < version )
+      {
+         rc = SDB_CLS_DATA_NODE_CAT_VER_OLD ;
+         goto error ;
+      }
+      else if ( curVer > version
+                || ( 0 == groupCount && !mainCL ) )
+      {
+         if ( 0 == groupCount )
+         {
+            _pCatAgent->lock_w() ;
+            _pCatAgent->clear( name ) ;
+            _pCatAgent->release_w() ;
+         }
+         PD_LOG ( PDINFO, "Collecton[%s]: self verions:%d, coord version:%d, "
+                  "groupCount:%d", name, curVer, version, groupCount ) ;
+         rc = SDB_CLS_COORD_NODE_CAT_VER_OLD ;
+         goto error ;
+      }
+      else
+      {
+         if ( NULL != isMainCL )
+         {
+            *isMainCL = mainCL ;
+         }
+
+         if ( NULL != w )
+         {
+            *w = replSize ;
+         }
+      }
+
+      // save version
+      _clVersion = curVer ;
+
+   done:
+      if ( agentLocked )
+      {
+         _pCatAgent->release_r () ;
+      }
+
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKCLVER, rc ) ;
+
+      return rc ;
+
    error:
       goto done ;
    }
