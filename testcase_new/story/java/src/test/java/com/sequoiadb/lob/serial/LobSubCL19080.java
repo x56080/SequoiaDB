@@ -53,7 +53,7 @@ public class LobSubCL19080 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor thread = new ThreadExecutor();
+        ThreadExecutor thread = new ThreadExecutor( 600000 );
         thread.addWorker( new ReadLobThread() );
         thread.addWorker( new RemoveLobThread() );
         thread.addWorker( new PutLobThread() );
