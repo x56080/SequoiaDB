@@ -204,7 +204,6 @@ namespace engine
 
       dmsTempSUMgr            _tempSUMgr ;
       dmsStatSUMgr            _statSUMgr ;
-      dmsRBSSUMgr             _rbsSUMgr ;
       dmsLocalSUMgr           _localSUMgr ;
 
       dmsIxmKeySorterCreator* _ixmKeySorterCreator ;
@@ -403,8 +402,6 @@ namespace engine
       dmsTempSUMgr *getTempSUMgr () ;
 
       dmsStatSUMgr *getStatSUMgr () ;
-
-      _dmsRBSSUMgr  *getRBSSUMgr () ;
 
       dmsLocalSUMgr *getLocalSUMgr() ;
 
