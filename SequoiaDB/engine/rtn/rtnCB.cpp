@@ -40,6 +40,7 @@
 #include "rtnTrace.hpp"
 #include "dmsCB.hpp"
 #include "rtnIxmKeySorter.hpp"
+#include "rtnBackgroundJob.hpp"
 
 #include "pmdController.hpp"
 
@@ -160,6 +161,9 @@ namespace engine
 
       rtnJobMgr* jobMgr = rtnGetJobMgr() ;
       jobMgr->fini() ;
+
+      rtnIndexJobHolder *idxJobHolder = rtnGetIndexJobHolder() ;
+      idxJobHolder->fini() ;
 
       if ( _remoteMessenger )
       {

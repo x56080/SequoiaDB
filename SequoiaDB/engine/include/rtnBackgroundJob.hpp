@@ -89,9 +89,46 @@ namespace engine
          SDB_DMSCB*              _dmsCB ;
          UINT64                  _lsn ;
          BOOLEAN                 _isRollback ;
-
+         BOOLEAN                 _regCLJob ;
    };
    typedef _rtnIndexJob rtnIndexJob ;
+
+   /*
+      _rtnIndexJobHolder define
+    */
+   class _rtnIndexJobHolder : public utilPooledObject
+   {
+   public:
+      _rtnIndexJobHolder() ;
+      ~_rtnIndexJobHolder() ;
+
+      // register collection index job
+      INT32 regCLJob( const CHAR *collection ) ;
+
+      // unregister collection index job
+      void  unregCLJob( const CHAR *collection ) ;
+
+      // has collection job
+      BOOLEAN hasCLJob( const CHAR *collection ) ;
+
+      // clear job holder
+      void fini() ;
+
+   protected:
+      void _unregCLJob( const ossPoolString &collection ) ;
+      void _unregCLJobIter( const CHAR *collection ) ;
+      BOOLEAN _hasCLJob( const ossPoolString &collection ) ;
+      BOOLEAN _hasCLJobIter( const CHAR *collection ) ;
+
+   protected:
+      typedef ossPoolMap< ossPoolString, UINT32 > CL_JOB_MAP ;
+      ossSpinSLatch  _mapLatch ;
+      CL_JOB_MAP     _clJobs ;
+   } ;
+
+   typedef class _rtnIndexJobHolder rtnIndexJobHolder ;
+
+   rtnIndexJobHolder *rtnGetIndexJobHolder() ;
 
    /*
       _rtnLoadJob define

@@ -68,6 +68,7 @@ namespace engine
       _dmsCB = pmdGetKRCB()->getDMSCB() ;
       _lsn = offset ;
       _isRollback = isRollBack ;
+      _regCLJob = FALSE ;
       PD_TRACE_EXIT ( SDB__RTNINDEXJOB__RTNINDEXJOB ) ;
    }
 
@@ -120,6 +121,12 @@ namespace engine
       if ( DMS_INVALID_SUID != suID )
       {
          _dmsCB->suUnlock( suID ) ;
+      }
+      // unregister collection index job if needed
+      if ( _regCLJob )
+      {
+         rtnGetIndexJobHolder()->unregCLJob( _clFullName ) ;
+         _regCLJob = FALSE ;
       }
       return ;
    error:
@@ -296,6 +303,13 @@ namespace engine
                      indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
                   }
                }
+
+               // register drop index job to prevent other operators to be
+               // executed before drop index is finished ( e.g. truncate )
+               rc = rtnGetIndexJobHolder()->regCLJob( _clFullName ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to register drop index job "
+                            "for collection [%s], rc: %d", _clFullName, rc ) ;
+               _regCLJob = TRUE ;
             }
             break ;
          default :
@@ -406,6 +420,224 @@ namespace engine
 
       PD_TRACE_EXITRC ( SDB__RTNINDEXJOB_DOIT, rc ) ;
       return rc ;
+   }
+
+   /*
+      _rtnIndexJobHolder implement
+    */
+   _rtnIndexJobHolder::_rtnIndexJobHolder()
+   {
+   }
+
+   _rtnIndexJobHolder::~_rtnIndexJobHolder()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_HASCLJOB, "_rtnIndexJobHolder::hasCLJob" )
+   BOOLEAN _rtnIndexJobHolder::hasCLJob( const CHAR *collection )
+   {
+      BOOLEAN res = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_HASCLJOB ) ;
+
+      ossScopedLock lock( &_mapLatch, SHARED ) ;
+
+      try
+      {
+         ossPoolString tmpCLName( collection ) ;
+         res = _hasCLJob( tmpCLName ) ;
+      }
+      catch ( ... )
+      {
+         // failed to construct key, find by iterator
+         res = _hasCLJobIter( collection ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNIDXJOBHOLDER_HASCLJOB ) ;
+
+      return res ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNIDXJOBHOLDER_REGCLJOB, "_rtnIndexJobHolder::regCLJob" )
+   INT32 _rtnIndexJobHolder::regCLJob( const CHAR *collection )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNIDXJOBHOLDER_REGCLJOB ) ;
+
+      SDB_ASSERT( NULL != collection, "collection is invalid" ) ;
+
+      ossScopedLock lock( &_mapLatch, EXCLUSIVE ) ;
+
+      try
+      {
+         ossPoolString tmpCLName( collection ) ;
+         CL_JOB_MAP::iterator iterCL = _clJobs.find( tmpCLName ) ;
+         if ( iterCL != _clJobs.end() )
+         {
+            // found existing, increase count
+            ++ ( iterCL->second ) ;
+         }
+         else
+         {
+            // not found, create new count
+            _clJobs.insert( make_pair( collection, 1 ) ) ;
+
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to register collection job [%s], "
+                 "occur exception: %s", collection, e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNIDXJOBHOLDER_REGCLJOB, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR_UNREGCLJOB, "_rtnIndexJobHolder::unregCLJob" )
+   void _rtnIndexJobHolder::unregCLJob( const CHAR *collection )
+   {
+      PD_TRACE_ENTRY( SDB__RTNJOBMGR_UNREGCLJOB ) ;
+
+      ossScopedLock lock( &_mapLatch, EXCLUSIVE ) ;
+
+      try
+      {
+         ossPoolString tmpCLName( collection ) ;
+         _unregCLJob( tmpCLName ) ;
+      }
+      catch ( ... )
+      {
+         // failed to construct key, find by iterator
+         _unregCLJobIter( collection ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNJOBMGR_UNREGCLJOB ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR_FINI, "_rtnIndexJobHolder::fini" )
+   void _rtnIndexJobHolder::fini()
+   {
+      PD_TRACE_ENTRY( SDB__RTNJOBMGR_FINI ) ;
+
+      ossScopedLock _lock( &_mapLatch, EXCLUSIVE ) ;
+      _clJobs.clear() ;
+
+      PD_TRACE_EXIT( SDB__RTNJOBMGR_FINI ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR__UNREGCLJOB, "_rtnIndexJobHolder::_unregCLJob" )
+   void _rtnIndexJobHolder::_unregCLJob( const ossPoolString &collection )
+   {
+      PD_TRACE_ENTRY( SDB__RTNJOBMGR__UNREGCLJOB ) ;
+
+      CL_JOB_MAP::iterator iterCL = _clJobs.find( collection ) ;
+      SDB_ASSERT( iterCL != _clJobs.end(), "collection job is not found" ) ;
+      if ( iterCL != _clJobs.end() )
+      {
+         if ( iterCL->second > 1 )
+         {
+            // decrease count
+            -- ( iterCL->second ) ;
+         }
+         else
+         {
+            // no more jobs for this collection
+            _clJobs.erase( iterCL ) ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__RTNJOBMGR__UNREGCLJOB ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR__UNREGCLJOBITER, "_rtnIndexJobHolder::_unregCLJobIter" )
+   void _rtnIndexJobHolder::_unregCLJobIter( const CHAR *collection )
+   {
+      PD_TRACE_ENTRY( SDB__RTNJOBMGR__UNREGCLJOBITER ) ;
+
+      CL_JOB_MAP::iterator iterCL = _clJobs.begin() ;
+      while ( iterCL != _clJobs.end() )
+      {
+         if ( 0 == ossStrcmp( iterCL->first.c_str(),
+                              collection ) )
+         {
+            // found by name
+            if ( iterCL->second > 1 )
+            {
+               // decrease count
+               -- ( iterCL->second ) ;
+            }
+            else
+            {
+               // no more jobs for this collection
+               _clJobs.erase( iterCL ) ;
+            }
+            break ;
+         }
+         ++ iterCL ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNJOBMGR__UNREGCLJOBITER ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR__HASCLJOB, "_rtnIndexJobHolder::_hasCLJob" )
+   BOOLEAN _rtnIndexJobHolder::_hasCLJob( const ossPoolString &collection )
+   {
+      BOOLEAN res = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__RTNJOBMGR__HASCLJOB ) ;
+
+      CL_JOB_MAP::iterator iter = _clJobs.find( collection ) ;
+      if ( _clJobs.end() != iter &&
+           iter->second > 0 )
+      {
+         res = TRUE ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNJOBMGR__HASCLJOB ) ;
+
+      return res ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR__HASCLJOBITER, "_rtnIndexJobHolder::_hasCLJobIter" )
+   BOOLEAN _rtnIndexJobHolder::_hasCLJobIter( const CHAR *collection )
+   {
+      BOOLEAN res = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__RTNJOBMGR__HASCLJOBITER ) ;
+
+      CL_JOB_MAP::iterator iterCL = _clJobs.begin() ;
+      while ( iterCL != _clJobs.end() )
+      {
+         if ( 0 == ossStrcmp( iterCL->first.c_str(),
+                              collection ) )
+         {
+            // found by name
+            if ( iterCL->second > 0 )
+            {
+               res = TRUE ;
+            }
+            break ;
+         }
+         ++ iterCL ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNJOBMGR__HASCLJOBITER ) ;
+
+      return res ;
+   }
+
+   rtnIndexJobHolder *rtnGetIndexJobHolder()
+   {
+      static rtnIndexJobHolder s_jobHolder ;
+      return &s_jobHolder ;
    }
 
    /*

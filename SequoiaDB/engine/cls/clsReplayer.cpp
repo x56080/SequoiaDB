@@ -56,6 +56,8 @@ using namespace bson ;
 namespace engine
 {
 
+   #define CLS_REPLAY_CHECK_INTERVAL         ( 200 )  /// ms
+
    static BSONObj s_replayHint = BSON( "" << IXM_ID_KEY_NAME ) ;
 
    INT32 startIndexJob ( RTN_JOB_TYPE type,
@@ -1176,6 +1178,12 @@ namespace engine
             if ( SDB_OK != rc )
             {
                goto error ;
+            }
+            // truncate will reset index flag of dropping indexes,
+            // so we need to wait for collection jobs ( for drop indexes )
+            while ( rtnGetIndexJobHolder()->hasCLJob( clname ) )
+            {
+               ossSleep( CLS_REPLAY_CHECK_INTERVAL ) ;
             }
             rc = rtnTruncCollectionCommand( clname, eduCB, _dmsCB, _dpsCB ) ;
             if ( SDB_OK != rc )
@@ -2858,8 +2866,6 @@ namespace engine
       return ( 0 == ossStrcmp( ele.valuestrsafe(), IXM_TEXT_KEY_TYPE ) ) ;
    }
 
-   #define CLS_CRTIDX_CHECK_INTERVAL         ( 200 )  /// ms
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_STARTINXJOB, "startIndexJob" )
    INT32 startIndexJob ( RTN_JOB_TYPE type,
                          const dpsLogRecordHeader *recordHeader,
@@ -2970,7 +2976,7 @@ namespace engine
                {
                   break ;
                }
-               ossSleep( CLS_CRTIDX_CHECK_INTERVAL ) ;
+               ossSleep( CLS_REPLAY_CHECK_INTERVAL ) ;
             }
          }
       }
