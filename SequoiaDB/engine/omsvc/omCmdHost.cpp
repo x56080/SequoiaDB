@@ -173,9 +173,10 @@ namespace engine
       {
          const CHAR *hostName = pmdGetKRCB()->getHostName() ;
 
-         _errorMsg.setError( TRUE,"%s package does not exist, host=%s, path=%s",
+         _errorMsg.setError( TRUE,"the %s package does not exist, please put it"
+                             " in %s of the %s host",
                              _packageName.c_str(),
-                             hostName, packetPath.c_str() ) ;
+                             packetPath.c_str(), hostName ) ;
          PD_LOG( PDERROR, _errorMsg.getError() ) ;
          goto error ;
       }
