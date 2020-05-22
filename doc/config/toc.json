@@ -561,16 +561,50 @@
                "en": "Mount"          
                },
                {
-               "id": 1578562788,
-               "file": "samba",
-               "cn": "Samba共享目录",
-               "en": "Samba"          
-               },
-               {
                "id": 1525956070,
                "file": "unmount",
                "cn": "卸载目录",
                "en": "Unmount"
+               }   
+             ]
+          }, 
+          {
+             "id": 1525956080,
+             "dir": "management",
+             "cn": "管理",
+             "en": "anagement",
+             "contents": [
+               {
+               "id": 1525956090,
+               "file": "sequoiafsconfig",
+               "cn": "配置管理",
+               "en": "ConfigManagement"          
+               },
+               {
+               "id": 1525956100,
+               "file": "sequoiafsbash",
+               "cn": "SequoiaFS启、停",
+               "en": "Bash"
+               }   
+             ]
+          },
+          {
+             "id": 1525956110,
+             "dir": "develop",
+             "cn": "开发指南",
+             "en": "Development",
+             "contents": [
+               {
+               "id": 1525956120,
+               "file": "datadefine",
+               "cn": "数据设计",
+               "en": "Datadefine"          
+               },
+               {
+               "id": 1525956130,
+               "file": "fileapi",
+               "cn": "API",
+               "en": "API"
                }   
              ]
           }               

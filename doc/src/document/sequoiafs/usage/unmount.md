@@ -1,18 +1,17 @@
-###卸载目录###
-卸载目录可以通过fusermount程序指定-u来进行，也可以直接kill掉sequoiafs进程。   
+本章介绍如何卸载已挂载的 SequoiaFS 目录。
 
-####1、fusermount卸载####
+##fsstop.sh 卸载##
 
-```lang-bash
-$fusermount -u /opt/sequoiadb/mountpoint
-```
-####2、kill进程####
+卸载脚本位于 SequoiaFS 安装目录的bin目录中。
 
+指定挂载目录名称卸载。
 
 ```lang-bash
-$ps -ef | grep sequoiafs
-$kill 程序PID
+$ ./fsstop.sh -m /opt/guestdir
 ```
-  
->Tips：  
->如果使用kill -9进行强杀进程，进程结束后会导致原 mountpoint 目录无法被 linux 文件系统正常访问的情况，需要使用fusermount -u \<DIR\> 来进行 unmount 即可。
+
+或使用别名卸载指定目录（--alias 参数指定挂载目录的别名）。
+
+```lang-bash
+$ ./fsstop.sh --alias guestdir
+```
