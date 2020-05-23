@@ -745,6 +745,12 @@
                      "file": "STOREPROCEDURES",
                      "cn": "STOREPROCEDURES 集合",
                      "en": "STOREPROCEDURES"
+                  },
+                  {
+                     "id": 1588131727,
+                     "file": "SEQUENCES",
+                     "cn": "SEQUENCES 集合",
+                     "en": "SEQUENCES"
                   }
                ]
             },
