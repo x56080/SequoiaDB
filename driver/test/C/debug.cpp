@@ -18,8 +18,457 @@ TEST(debug, debug)
    ASSERT_TRUE( 1 == 1 ) ;
 }
 
+TEST(debug, lob_global_test)
+{
+   INT32 rc = SDB_OK ;
+   BOOLEAN eof = FALSE ;
+   INT32 counter = 0 ;
+   // initialize the word environment
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // initialize local variables
+   sdbConnectionHandle db            = 0 ;
+   sdbCollectionHandle cl            = 0 ;
+   sdbCursorHandle cur               = 0 ;
+   sdbLobHandle lob                  = 0 ;
+   INT32 NUM                         = 10 ;
+   SINT64 count                      = 0 ;
+   bson_oid_t oid ;
+   bson obj ;
+   #define BUFSIZE1 (1024 * 1024 * 3)
+   //#define BUFSIZE1 ( 1024 * 2 )
+   #define BUFSIZE2 (1024 * 1024 * 2)
+   SINT64 lobSize = -1 ;
+   UINT64 createTime = -1 ;
+   CHAR buf[BUFSIZE1] = { 0 } ;
+   CHAR readBuf[BUFSIZE2] = { 0 } ;
+   UINT32 readCount = 0 ;
+   CHAR c = 'a' ;
+   for ( INT32 i = 0; i < BUFSIZE1; i++ )
+   {
+      buf[i] = c ;
+   }
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get collection
+   rc = getCollection ( db,
+                        COLLECTION_FULL_NAME,
+                        &cl ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // open lob
+   bson_oid_gen( &oid ) ;
+   rc = sdbOpenLob( cl, &oid, SDB_LOB_CREATEONLY, &lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   eof = sdbLobIsEof( lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( TRUE, eof ) ;
+   // get lob size
+   rc = sdbGetLobSize( lob, &lobSize ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( 0, lobSize ) ;
+   // get lob create time
+//   rc = sdbGetLobCreateTime( lob, &createTime ) ;
+//   ASSERT_EQ( 0, createTime ) ;
+//   ASSERT_EQ( 0, createTime ) ;
+   // write lob
+   rc = sdbWriteLob( lob, buf, BUFSIZE1 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   eof = sdbLobIsEof( lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( TRUE, eof ) ;
+   // get lob size
+   rc = sdbGetLobSize( lob, &lobSize ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( BUFSIZE1, lobSize ) ;
+   // write lob
+   rc = sdbWriteLob( lob, buf, BUFSIZE1 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   eof = sdbLobIsEof( lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( TRUE, eof ) ;
+   // get lob size
+   rc = sdbGetLobSize( lob, &lobSize ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( 2 * BUFSIZE1, lobSize ) ;
+   // close lob
+   rc = sdbCloseLob ( &lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // open lob with the mode SDB_LOB_READ
+   rc = sdbOpenLob( cl, &oid, SDB_LOB_READ, &lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   eof = sdbLobIsEof( lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( FALSE, eof ) ;
+   // read lob
+   rc = sdbReadLob( lob, 1000, readBuf, &readCount ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_TRUE( readCount > 0 ) ;
+   eof = sdbLobIsEof( lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( FALSE, eof ) ;
+   for ( INT32 i = 0; i < readCount; i++ )
+   {
+      ASSERT_EQ( c, readBuf[i] ) ;
+   }
+   // read lob
+   rc = sdbReadLob( lob, BUFSIZE2, readBuf, &readCount ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_TRUE( readCount > 0 ) ;
+   eof = sdbLobIsEof( lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( FALSE, eof ) ;
+   for ( INT32 i = 0; i < readCount; i++ )
+   {
+      ASSERT_EQ( c, readBuf[i] ) << "readCount is: " << readCount
+         << ", c is: " << c << ", i is: "
+         << i << ", readBuf[i] is: " << readBuf[i] ;
+   }
+   // close lob
+   rc = sdbCloseLob ( &lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // reopen it, and read all the content
+   rc = sdbOpenLob( cl, &oid, SDB_LOB_READ, &lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = SDB_OK ;
+   counter = 0 ;
+   while( SDB_EOF != ( rc = sdbReadLob( lob, BUFSIZE2, readBuf, &readCount ) ) )
+   {
+       eof = sdbLobIsEof( lob ) ;
+       ASSERT_EQ( SDB_OK, rc ) ;
+       if ( TRUE == eof )
+       {
+          counter = 1 ;
+       }
+   }
+   ASSERT_EQ( 1, counter ) ;
+   //eof = sdbLobIsEof( lob ) ;
+   //ASSERT_EQ( SDB_OK, rc ) ;
+   //ASSERT_EQ( TRUE, eof ) ;
+   // close lob
+   rc = sdbCloseLob ( &lob ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // remove lob
+   rc = sdbRemoveLob( cl, &oid ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = sdbDropCollectionSpace( db, COLLECTION_SPACE_NAME);
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // disconnect the connection
+   sdbDisconnect ( db ) ;
+   //release the local variables
+   sdbReleaseCursor ( cur ) ;
+   sdbReleaseCollection ( cl ) ;
+   sdbReleaseConnection ( db ) ;
+}
+
 
 /*
+TEST(debug, sdbGetLastErrorObjTest)
+{
+   sdbConnectionHandle connection = 0 ;
+   sdbCSHandle collectionspace    = 0 ;
+   sdbCollectionHandle collection = 0 ;
+   sdbCollectionHandle cl         = 0 ;
+   sdbCursorHandle cursor         = 0 ;
+   INT32 rc                       = SDB_OK ;
+   const CHAR *pIndexName         = "aIndex" ;
+   bson errorResult ;
+   bson indexDef ;
+   bson_init( &indexDef ) ;
+   bson_append_int( &indexDef, "a", 1 ) ;
+   bson_finish( &indexDef ) ;
+   bson_destroy( &indexDef ) ;
+
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cs
+   rc = getCollectionSpace ( connection,
+                             COLLECTION_SPACE_NAME,
+                             &collectionspace ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cl
+   rc = getCollection ( connection,
+                        COLLECTION_FULL_NAME,
+                        &collection ) ;
+   sleep( 1 ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   bson_init( &errorResult ) ;
+   rc = sdbGetLastErrorObj( connection, &errorResult ) ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+   ASSERT_EQ( 0, bson_size( &errorResult ) ) ;
+   bson_destroy( &errorResult ) ;
+
+   // case 1:
+   rc = sdbGetCollection1( collectionspace, "aaaa", &cl ) ;
+   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
+   bson_init( &errorResult ) ;
+   rc = sdbGetLastErrorObj( connection, &errorResult ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   printf( "get cl fail, error obj is: \n" ) ;
+   bson_print( &errorResult ) ;
+   ASSERT_TRUE( bson_size( &errorResult ) > 5 ) ;
+   bson_destroy( &errorResult ) ;
+
+   bson_init( &errorResult ) ;
+   rc = sdbGetLastErrorObj( collectionspace, &errorResult ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   printf( "get cl fail, error obj is: \n" ) ;
+   bson_print( &errorResult ) ;
+   ASSERT_TRUE( bson_size( &errorResult ) > 5 ) ;
+   bson_destroy( &errorResult ) ;
+
+   sdbCleanLastErrorObj( connection ) ;
+
+   bson_init( &errorResult ) ;
+   rc = sdbGetLastErrorObj( connection, &errorResult ) ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+   ASSERT_EQ( 0, bson_size( &errorResult ) ) ;
+   bson_destroy( &errorResult ) ;
+
+   rc = sdbGetCollection1( collectionspace, "aaaa", &cl ) ;
+   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
+
+   sdbDisconnect ( connection ) ;
+
+   sdbCleanLastErrorObj( connection ) ;
+   sdbCleanLastErrorObj( collectionspace ) ;
+   bson_init( &errorResult ) ;
+   rc = sdbGetLastErrorObj( connection, &errorResult ) ;
+   bson_destroy( &errorResult ) ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+   bson_init( &errorResult ) ;
+   rc = sdbGetLastErrorObj( collectionspace, &errorResult ) ;
+   bson_destroy( &errorResult ) ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+
+
+   sdbReleaseCollection ( cl ) ;
+   sdbReleaseCollection ( collection ) ;
+   sdbReleaseCS ( collectionspace ) ;
+   sdbReleaseConnection ( connection ) ;
+
+   // case 2:
+//   rc = sdbGetLastErrorObj( connection, &errorResult ) ;
+//   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+//   rc = sdbGetLastErrorObj( collectionspace, &errorResult ) ;
+//   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+//   sdbCleanLastErrorObj( connection ) ;
+//   sdbCleanLastErrorObj( collectionspace ) ;
+}
+
+TEST(debug, sdbCloseAllCursors)
+{
+   sdbConnectionHandle connection = 0 ;
+   sdbCSHandle cs                 = 0 ;
+   sdbCollectionHandle cl         = 0 ;
+   sdbCursorHandle cursor         = 0 ;
+   sdbCursorHandle cursor1        = 0 ;
+   INT32 rc                       = SDB_OK ;
+   SINT64 count                   = 0 ;
+   const CHAR *CLNAME             = "transaction" ;
+   INT32 num                      = 10 ;
+
+   bson obj ;
+   bson obj1 ;
+   bson obj2 ;
+   bson obj3 ;
+   bson obj4 ;
+   bson conf ;
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cs
+   rc = getCollectionSpace ( connection,
+                             COLLECTION_SPACE_NAME,
+                             &cs ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cl
+   rc = getCollection ( connection, COLLECTION_FULL_NAME, &cl ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // prepare some records
+   insertRecords( cl, num ) ;
+   rc = sdbGetCount ( cl, NULL, &count ) ;
+   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( num, count ) ;
+   // query
+   rc = sdbQuery( cl, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
+   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbQuery( cl, NULL, NULL, NULL, NULL, 0, -1, &cursor1 ) ;
+   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get record
+   bson_init ( &obj3 ) ;
+   rc = sdbCurrent( cursor, &obj3 ) ;
+   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // close all the cursors
+   rc = sdbCloseAllCursors( connection );
+   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+//   // check
+//   bson_init ( &obj ) ;
+//   rc = sdbCurrent( cursor, &obj ) ; // getCurrent in cursor, expect SDB_OK
+//   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+//   ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) ;
+//   bson_init ( &obj1 ) ;
+//   rc = sdbNext( cursor, &obj1 ) ; // getNext in cursor, -31
+//   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+//   ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) ;
+//   rc = sdbCloseCursor( cursor ) ; // close in cursor, 0
+//   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+//   ASSERT_EQ( SDB_OK, rc ) ;
+//
+//   bson_init ( &obj2 ) ;
+//   rc = sdbNext( cursor1, &obj2 ) ; // getNext in cursor1, expect -31
+//   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+//   ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) ;
+//   bson_init ( &obj4 ) ;
+//   rc = sdbCurrent( cursor1, &obj4 ) ; // getCurrent in cursor1, expect -31
+//   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+//   ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) ;
+//   rc = sdbCloseCursor( cursor1 ) ; // close in cursor1, expect 0
+//   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+//   ASSERT_EQ( SDB_OK, rc ) ;
+//
+//   bson_destroy( &obj );
+//   bson_destroy( &obj1 );
+//   bson_destroy( &obj2 );
+   bson_destroy( &obj3 );
+//   bson_destroy( &obj4 );
+
+   sdbDisconnect ( connection ) ;
+   sdbReleaseCursor ( cursor ) ;
+   sdbReleaseCursor ( cursor1 ) ;
+   sdbReleaseCollection( cl ) ;
+   sdbReleaseCS( cs ) ;
+   sdbDisconnect( connection ) ;
+   sdbReleaseConnection ( connection ) ;
+}
+
+TEST(debug, sdbConnect_with_usr)
+{
+   sdbConnectionHandle connection  = 0 ;
+   sdbCursorHandle cursor          = 0 ;
+   INT32 rc                        = SDB_OK ;
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // check whether it is in the cluster environment
+   rc = sdbGetList( connection, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
+   if ( rc == SDB_RTN_COORD_ONLY )
+   {
+      printf("sdbConnect_with_usr is use in cluster environment only\n") ;
+      return ;
+   }
+//   sdbReleaseCursor ( cursor ) ;
+   // create a new user
+   rc = sdbCreateUsr( connection, USERDEF, PASSWDDEF ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // disconnect to db
+   sdbDisconnect ( connection ) ;
+   sdbReleaseConnection( connection ) ;
+   connection = 0 ;
+   // connect to database again with usrname and passwd
+   rc = sdbConnect ( HOST, SERVER, USERDEF, PASSWDDEF, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // Remove a user
+   rc = sdbRemoveUsr( connection, USERDEF, PASSWDDEF ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   sdbDisconnect ( connection ) ;
+
+   sdbReleaseCursor ( cursor ) ;
+   sdbReleaseConnection ( connection ) ;
+}
+
+TEST(debug, sdbQuery_with_some_flags)
+{
+   sdbConnectionHandle connection = 0 ;
+   sdbCSHandle cs                 = 0 ;
+   sdbCollectionHandle cl         = 0 ;
+   sdbCursorHandle cursor         = 0 ;
+   INT32 rc                       = SDB_OK ;
+   bson obj ;
+   bson index ;
+   bson condition ;
+   bson select ;
+   bson orderBy ;
+   bson hint ;
+   int num = 10;
+
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cl
+   rc = getCollection ( connection, COLLECTION_FULL_NAME , &cl ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   //create indexes
+   bson_init( &hint );
+   bson_append_string( &hint, "", "indexForNotExist" );
+   bson_finish( &hint );
+   bson_destroy( &hint ) ;
+   // insert some records
+
+   insertRecords( cl, num ) ;
+   printf( "query the specifeed record :" OSS_NEWLINE ) ;
+   // execute query
+   rc = sdbQuery1 ( cl, NULL, NULL,
+                    NULL, NULL, 0, -1, 0, &cursor ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // execute query
+   sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
+
+   rc = sdbQuery1 ( cl, NULL, NULL,
+                    NULL, NULL, 0, -1, QUERY_FORCE_HINT, &cursor ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
+   // execute query
+   rc = sdbQuery1 ( cl, NULL, NULL,
+                    NULL, NULL, 0, -1, QUERY_WITH_RETURNDATA, &cursor ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
+   // execute query
+   rc = sdbQuery1 ( cl, NULL, NULL,
+                    NULL, NULL, 0, -1, QUERY_FORCE_HINT | QUERY_WITH_RETURNDATA, &cursor ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
+   // execute query
+   rc = sdbQuery1 ( cl, NULL, NULL,
+                    NULL, NULL, 0, -1, QUERY_FORCE_HINT | QUERY_PARALLED | QUERY_WITH_RETURNDATA, &cursor ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
+
+   sdbReleaseCollection ( cl ) ;
+   sdbDisconnect ( connection ) ;
+   sdbReleaseConnection ( connection ) ;
+
+}
+*/
+
+/*
+
 TEST(debug, load_unload_rename_cs_cl)
 {
    sdbConnectionHandle connection = 0 ;

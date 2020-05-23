@@ -95,6 +95,8 @@ TEST(sdb,disconnect)
    ASSERT_EQ( TRUE, connection.isClosed() ) ;
    // get cs , just test whether we connet to db or not
    rc = getCollectionSpace( connection, COLLECTION_SPACE_NAME, cs ) ;
+   //ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;
+   rc = cs.dropCollection("aaaa") ;
    ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;
 }
 

@@ -200,7 +200,7 @@ INT32 _tmain( INT32 argc, CHAR* argv[] )
    return RUN_ALL_TESTS() ;
 }
 
-TEST( replicaGroupTest, not_connect )
+TEST_F( replicaGroupTest, not_connect )
 {
    sdbReplicaGroup rg ;
    BSONObj obj ;
@@ -234,8 +234,9 @@ TEST_F( replicaGroupTest, detachNode )
 
    INT32 rc = SDB_OK ;
    sdbNode node ;
+   BSONObj dump ;
    // detach node 
-   rc = rg.detachNode( pNodeHostName2, pNodeSvcName2 ) ;
+   rc = rg.detachNode( pNodeHostName2, pNodeSvcName2, dump ) ;
    ASSERT_EQ( SDB_OK, rc ) << "Failed to detach data node from group " <<
       pGroupName << ", rc = " << rc ;
 
@@ -245,7 +246,7 @@ TEST_F( replicaGroupTest, detachNode )
       "SDB_CLS_NODE_NOT_EXIST, but rc = " << rc ;
 
    // attach node
-   rc = rg.attachNode( pNodeHostName2, pNodeSvcName2 ) ;
+   rc = rg.attachNode( pNodeHostName2, pNodeSvcName2, dump ) ;
    ASSERT_EQ( SDB_OK, rc ) << "Failed to attach data node to group " <<
       pGroupName << ", rc = " << rc ;
   

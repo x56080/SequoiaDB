@@ -359,22 +359,30 @@ INT32 initEnv( const CHAR* host, const CHAR* server,
    // connect to db
    rc = sdbConnect ( host, server, user, passwd, &connection ) ;
    if( SDB_OK != rc )
-      return rc ;
+   {
+      goto error ;
+   }
    // get(create) the specified cs than drop it
    rc = getCollectionSpace( connection, COLLECTION_SPACE_NAME, &cs ) ;
    if( SDB_OK != rc )
-      return rc ;
+   {
+      goto error ;
+   }
    sdbReleaseCS( cs ) ;
    cs = 0 ;
    // drop cs ( cs may not exist )
    rc = sdbDropCollectionSpace ( connection, COLLECTION_SPACE_NAME ) ;
    if( SDB_OK != rc )
-      return rc ;
+   {
+      goto error ;
+   }
    // create cs
    rc = sdbCreateCollectionSpace ( connection, COLLECTION_SPACE_NAME,
                                    SDB_PAGESIZE_4K, &cs );
    if( SDB_OK != rc )
-      return rc ;
+   {
+      goto error ;
+   }
    // create cl
    bson_init( &conf ) ;
    bson_append_int ( &conf, "ReplSize", 0 ) ;
@@ -382,16 +390,20 @@ INT32 initEnv( const CHAR* host, const CHAR* server,
    rc = sdbCreateCollection1 ( cs, COLLECTION_NAME, &conf, &cl ) ;
    bson_destroy ( &conf ) ;
    if( SDB_OK != rc )
-      return rc ;
-
-   // disconnect the connection
-   sdbDisconnect ( connection ) ;
+   {
+      goto error ;
+   }
+done:
    // release the local variables
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCollection ( cl ) ;
    sdbReleaseCS( cs ) ;
+   // disconnect the connection
+   sdbDisconnect ( connection ) ;
    sdbReleaseConnection ( connection ) ;
    return rc ;
+error:
+   goto done ;
 }
 
 /* insert record into database */
@@ -627,7 +639,7 @@ int insertToDB ( sdbConnectionHandle *sdb, const char *clFullName, long numToIns
    {
       printf ( "Failed to get collection %s, rc = %d\n",
                COLLECTION_NAME, rc ) ;
-      return rc ;
+      goto error ;
    }
    while ( numToInsert > 0 )
    {
@@ -644,13 +656,20 @@ int insertToDB ( sdbConnectionHandle *sdb, const char *clFullName, long numToIns
          {
             printf ( "Failed to insert into collection, rc = %d\n",
                      rc ) ;
-            return rc ;
+            goto error ;
          }
       }
       -- numToInsert ;
       ++ sNo ;
    }
+done:
+   if ( 0 != cl )
+   {
+      sdbReleaseCollection( cl ) ;
+   }
    return rc ;
+error:
+   goto done ;
 }
 int genRecord ( sdbConnectionHandle *sdb, const char* clFullName, long num )
 {
@@ -706,8 +725,10 @@ BOOLEAN isCluster( sdbConnectionHandle db )
    rc = sdbListReplicaGroups( db, &cur ) ;
    if ( SDB_OK != rc )
    {
+      sdbReleaseCursor( cur ) ;
       return FALSE ;
    }
+   sdbReleaseCursor( cur ) ;
    return TRUE ;
 }
 
@@ -753,6 +774,7 @@ INT32 isTranOn( sdbConnectionHandle db, BOOLEAN *flag )
    
 final:
    bson_destroy( &obj ) ;
+   sdbReleaseCollection( cl ) ;
    if ( TRUE == tranOn )
    {
       tmpRC = sdbTransactionRollback( db ) ;
@@ -767,8 +789,9 @@ final:
       rc = tmpRC ;
       goto done ;
    }
-done:
    return rc ;
+done:
+   goto final ;
 error:
    goto done ;
 }

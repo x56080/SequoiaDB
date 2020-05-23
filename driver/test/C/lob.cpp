@@ -3,6 +3,7 @@
 #include "testcommon.h"
 #include "client.h"
 #include <iostream>
+
 TEST(lob, lob_global_test)
 {
    INT32 rc = SDB_OK ;
@@ -326,7 +327,6 @@ TEST(lob,lob_createLob_test)
 
 }
 
-
 TEST(lob,lob_listLobs_test)
 {
    INT32 rc = SDB_OK ;
@@ -404,7 +404,6 @@ TEST(lob,lob_listLobs_test)
    sdbReleaseCollection ( cl ) ;
    sdbReleaseConnection ( db ) ;
 }
-
 
 TEST(lob,lob_primaryAndSubLob_test)
 {

@@ -34,6 +34,7 @@ TEST(sdb,sdbConnect_with_usr)
       printf("sdbConnect_with_usr is use in cluster environment only\n") ;
       return ;
    }
+   sdbReleaseCursor ( cursor ) ;
    // create a new user
    rc = sdbCreateUsr( connection, USERDEF, PASSWDDEF ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -48,7 +49,6 @@ TEST(sdb,sdbConnect_with_usr)
    rc = sdbRemoveUsr( connection, USERDEF, PASSWDDEF ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    sdbDisconnect ( connection ) ;
-   sdbReleaseCursor ( cursor ) ;
    sdbReleaseConnection ( connection ) ;
 }
 
@@ -721,7 +721,7 @@ TEST(sdb, sdbCloseAllCursors)
    rc = sdbCurrent( cursor, &obj3 ) ;
    CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // TO DO:
+
    // close all the cursors
    rc = sdbCloseAllCursors( connection );
    CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
@@ -936,6 +936,7 @@ TEST(sdb, sdbIsClosed)
    ASSERT_EQ ( TRUE, result ) ;
    
    sdbDisconnect( connection ) ;
+   sdbDisconnect( connection1 ) ;
    sdbReleaseCS ( cs ) ;
    sdbReleaseConnection ( connection ) ;
    sdbReleaseConnection ( connection1 ) ;
@@ -997,6 +998,7 @@ TEST(sdb, sdbGetLastErrorObjTest)
    bson_init( &indexDef ) ;
    bson_append_int( &indexDef, "a", 1 ) ;
    bson_finish( &indexDef ) ;
+   bson_destroy( &indexDef ) ;
 
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -1051,19 +1053,20 @@ TEST(sdb, sdbGetLastErrorObjTest)
    rc = sdbGetCollection1( collectionspace, "aaaa", &cl ) ;
    ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
 
+   // case 2:
+   sdbCleanLastErrorObj( connection ) ;
+   sdbCleanLastErrorObj( collectionspace ) ;
+   rc = sdbGetLastErrorObj( connection, &errorResult ) ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+   rc = sdbGetLastErrorObj( collectionspace, &errorResult ) ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+
    sdbDisconnect ( connection ) ;
    sdbReleaseCollection ( cl ) ;
    sdbReleaseCollection ( collection ) ;
    sdbReleaseCS ( collectionspace ) ;
    sdbReleaseConnection ( connection ) ;
 
-   // case 2:
-   rc = sdbGetLastErrorObj( connection, &errorResult ) ;
-   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
-   rc = sdbGetLastErrorObj( collectionspace, &errorResult ) ;
-   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
-   sdbCleanLastErrorObj( connection ) ;
-   sdbCleanLastErrorObj( collectionspace ) ;
 }
 
 TEST(sdb, sdbGetListAndSnapshot)

@@ -1319,15 +1319,11 @@ static INT32 _getRetInfo ( sdbConnectionHandle cHandle,
       *size = 0 ;
    }
 
-   // register cursor
-   if ( -1 != contextID )
+   // register cursor in connection handle
+   rc = _regCursor ( cHandle, (sdbCursorHandle)cursor ) ;
+   if ( SDB_OK != rc )
    {
-      // register cursor in connection
-      rc = _regCursor ( cHandle, (sdbCursorHandle)cursor ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
+      goto error ;
    }
 
    // return cursor
@@ -7628,8 +7624,7 @@ SDB_EXPORT INT32 sdbCloseCursor ( sdbCursorHandle cHandle )
    }
    if ( NULL == cs->_sock || -1 == cs->_contextID )
    {
-      cs->_isClosed = TRUE ;
-      goto done ;
+      goto unregister ;
    }
 
    rc = clientBuildKillContextsMsg ( &cs->_pSendBuffer,
@@ -7662,15 +7657,11 @@ SDB_EXPORT INT32 sdbCloseCursor ( sdbCursorHandle cHandle )
    // check return msg header
    CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
                         cs->_connection ) ;
-   // unregister from connection
+unregister:
+   // unregister from connection handle
    _unregCursor ( cs->_connection, cHandle ) ;
    cs->_contextID = -1 ;
    cs->_isClosed = TRUE ;
-
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
 
 done :
    return rc ;
@@ -7686,7 +7677,8 @@ SDB_EXPORT INT32 sdbCloseAllCursors ( sdbConnectionHandle cHandle )
 SDB_EXPORT INT32 sdbInterrupt ( sdbConnectionHandle cHandle )
 {
    INT32 rc            = SDB_OK ;
-   Node *pCursorHandle = NULL ;
+   Node *pNodeHandle = NULL ;
+   Node *pNextHandle   = NULL ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
 
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
@@ -7706,16 +7698,18 @@ SDB_EXPORT INT32 sdbInterrupt ( sdbConnectionHandle cHandle )
       goto error ;
    }
    // unregister cursor handles
-   pCursorHandle = connection->_cursors ;
-   while ( pCursorHandle )
+   pNodeHandle = connection->_cursors ;
+   while ( pNodeHandle )
    {
-      // unregister from connection
-      _unregCursor ( cHandle, pCursorHandle->data ) ;
       // mark the cursor to be closed
-      ((sdbCursorStruct*)pCursorHandle->data)->_contextID = -1 ;
-      ((sdbCursorStruct*)pCursorHandle->data)->_isClosed = TRUE ;
-      // goto next cursor node
-      pCursorHandle = pCursorHandle->next ;
+      ((sdbCursorStruct*)pNodeHandle->data)->_contextID = -1 ;
+      ((sdbCursorStruct*)pNodeHandle->data)->_isClosed = TRUE ;
+      // get next node handle
+      pNextHandle = pNodeHandle->next ;
+      // unregister from connection handle, _unregCursor() will free(pNodeHandle)
+      // so, we can not use pNodeHandle after calling _unregCursor()
+      _unregCursor ( cHandle, pNodeHandle->data ) ;
+      pNodeHandle = pNextHandle ;
    }
 
 done :
