@@ -170,22 +170,16 @@ namespace engine
             return _postTasks.size() > 0 ;
          }
 
-         OSS_INLINE void addPostTask ( UINT64 postTask )
-         {
-            _postTasks.push_back( postTask ) ;
-         }
+         INT32 addPostTask ( UINT64 postTask ) ;
 
          OSS_INLINE const ossPoolList<UINT64> & getPostTasks () const
          {
             return _postTasks ;
          }
 
-         OSS_INLINE void addPostTaskObj ( BSONObj taskObj )
-         {
-            _postTasksObj.push_back( taskObj ) ;
-         }
+         INT32 addPostTaskObj ( const BSONObj &taskObj ) ;
 
-         OSS_INLINE const vector<BSONObj> & getPostTasksObj () const
+         OSS_INLINE const ossPoolVector<BSONObj> & getPostTasksObj () const
          {
             return _postTasksObj ;
          }
@@ -193,9 +187,9 @@ namespace engine
          void clear () ;
 
       protected :
-         const rtnAlterTask * _task ;
-         ossPoolList<UINT64>  _postTasks ;
-         vector<BSONObj>      _postTasksObj ;
+         const rtnAlterTask *    _task ;
+         ossPoolList<UINT64>     _postTasks ;
+         ossPoolVector<BSONObj>  _postTasksObj ;
    } ;
 
    typedef class _coordAlterCMDArguments coordAlterCMDArguments ;
@@ -265,6 +259,7 @@ namespace engine
 
          virtual INT32 _extractPostTasks ( const bson::BSONObj & reply ) ;
          INT32 _getPostTasksObj ( pmdEDUCB * cb ) ;
+         INT32 _checkPostTask( pmdEDUCB *cb, const bson::BSONObj &taskObj ) ;
 
          virtual INT32 _buildPostTasks ( const ossPoolList< UINT64 > & postTasks,
                                          bson::BSONObj & taskDesc ) ;

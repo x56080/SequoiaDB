@@ -304,6 +304,52 @@ namespace engine
       _task = NULL ;
    }
 
+   INT32 _coordAlterCMDArguments::addPostTask( UINT64 postTask )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         _postTasks.push_back( postTask ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add post task, occur exception: %s",
+                 e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _coordAlterCMDArguments::addPostTaskObj( const BSONObj &taskObj )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         _postTasksObj.push_back( taskObj ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add post task info, "
+                 "occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       _coordDataCMDAlter implement
     */
@@ -655,7 +701,8 @@ namespace engine
                BSONElement beTask = iterTask.next() ;
                PD_CHECK( beTask.isNumber(), SDB_SYS, error, PDERROR,
                          "Failed to post task" ) ;
-               _arguments.addPostTask( (UINT64)beTask.numberLong() ) ;
+               rc = _arguments.addPostTask( (UINT64)beTask.numberLong() ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to add task, rc: %d", rc ) ;
             }
          }
          else
@@ -713,7 +760,12 @@ namespace engine
             iterTask != reply.end() ;
             iterTask ++ )
       {
-         _arguments.addPostTaskObj( *iterTask ) ;
+         rc = _checkPostTask( cb, *iterTask ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check task info, rc: %d", rc ) ;
+
+         rc = _arguments.addPostTaskObj( *iterTask ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add task info, rc: %d",
+                      rc ) ;
       }
 
    done :
@@ -729,6 +781,52 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DATAALTER__CHKPOSTTASK, "_coordDataCMDAlter::_checkPostTask" )
+   INT32 _coordDataCMDAlter::_checkPostTask( pmdEDUCB *cb,
+                                             const BSONObj &taskObj )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( COORD_DATAALTER__CHKPOSTTASK ) ;
+
+      CLS_TASK_TYPE taskType = CLS_TASK_UNKNOW ;
+
+      try
+      {
+         BSONElement ele ;
+         PD_CHECK( taskObj.hasField( FIELD_NAME_TASKTYPE ),
+                   SDB_SYS, error, PDERROR,
+                   "Failed to get task field[%s]", FIELD_NAME_TASKTYPE);
+         ele = taskObj.getField( FIELD_NAME_TASKTYPE ) ;
+         PD_CHECK( NumberInt == ele.type(), SDB_SYS, error, PDERROR,
+                   "Failed to parse task info [%s]: task type is not a integer",
+                   taskObj.toString().c_str() ) ;
+         taskType = (CLS_TASK_TYPE)ele.Int() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse task info, occur exception: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      /// in transaction, can't do split
+      if ( taskType == CLS_TASK_SPLIT &&
+           cb->isTransaction() )
+      {
+         rc = SDB_OPERATION_INCOMPATIBLE ;
+         PD_LOG_MSG( PDERROR, "Can't do split in transaction" ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_DATAALTER__CHKPOSTTASK, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATAALTER__BLDPOSTTASKS, "_coordDataCMDAlter::_buildPostTasks" )
    INT32 _coordDataCMDAlter::_buildPostTasks ( const ossPoolList< UINT64 > & postTasks,
@@ -2253,16 +2351,15 @@ namespace engine
       INT32 msgSize = 0 ;
       MsgHeader * msgHeader = NULL ;
       CLS_TASK_TYPE taskType = CLS_TASK_UNKNOW ;
-      vector<BSONObj> taskObj ;
       BSONObj taskDesc ;
       BSONObjBuilder builder ;
       BSONObjBuilder taskBuilder( builder.subobjStart( FIELD_NAME_TASKID ) ) ;
       BSONArrayBuilder arrBuilder( taskBuilder.subarrayStart( "$in" ) ) ;
 
-      taskObj = _arguments.getPostTasksObj() ;
+      const ossPoolVector<BSONObj> &taskObj = _arguments.getPostTasksObj() ;
 
       /// notify all groups to start task.
-      for ( vector<BSONObj>::const_iterator iterTask = taskObj.begin() ;
+      for ( ossPoolVector<BSONObj>::const_iterator iterTask = taskObj.begin() ;
             iterTask != taskObj.end() ;
             iterTask ++ )
       {
