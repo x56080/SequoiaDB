@@ -14,18 +14,18 @@ function check_user()
     . $SYS_CONF_FILE
   else
     echo "ERROR: $SYS_CONF_FILE does not exist"
-    exit 129
+    exit 1
   fi
 
   if [ -n "$SDBADMIN_USER" ];then
     USER=$SDBADMIN_USER
     if [ "$cur_user" != "$SDBADMIN_USER" -a "$cur_user" != "root" ]; then
       echo "ERROR: fsstart requires USER [$USER] permission"
-      exit 129
+      exit 126
     fi
   else
     echo "ERROR: SDBADMIN_USER is null"
-    exit 129
+    exit 125
   fi
 }
 
