@@ -235,4 +235,13 @@ namespace engine
       return ;
    }
 
+   BOOLEAN _clsVoteMachine::isStatus( const INT32 &id ) const
+   {
+      if ( _current )
+      {
+         return id == _current->id() ? TRUE : FALSE ;
+      }
+      return FALSE ;
+   }
+
 }

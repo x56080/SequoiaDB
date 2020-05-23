@@ -441,6 +441,7 @@ namespace engine
    :_timeout( 30 ),
     _level( CLS_REELECTION_LEVEL_3 )
    {
+      _nodeID = 0 ;
       _isDestNotify = FALSE ;
    }
 
@@ -486,12 +487,13 @@ namespace engine
          {
             if ( !e.isNumber() )
             {
-               PD_LOG( PDERROR, "invalid reelection msg:%s",
+               PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
+                       FIELD_NAME_REELECTION_TIMEOUT,
                        obj.toString( FALSE, TRUE ).c_str() ) ;
                rc = SDB_INVALIDARG ;
                goto error ;
             }
-            _timeout = e.Number() ;
+            _timeout = e.numberInt() ;
          }
 
          e = obj.getField( FIELD_NAME_REELECTION_LEVEL ) ;
@@ -499,12 +501,27 @@ namespace engine
          {
             if ( !e.isNumber() )
             {
-               PD_LOG( PDERROR, "invalid reelection msg:%s",
+               PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
+                       FIELD_NAME_REELECTION_LEVEL,
                        obj.toString( FALSE, TRUE ).c_str() ) ;
                rc = SDB_INVALIDARG ;
                goto error ;
             }
-            _level = ( CLS_REELECTION_LEVEL )((INT32)e.Number()) ;
+            _level = ( CLS_REELECTION_LEVEL )((INT32)e.numberInt()) ;
+         }
+
+         e = obj.getField( FIELD_NAME_NODEID ) ;
+         if ( !e.eoo() )
+         {
+            if ( !e.isNumber() )
+            {
+               PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
+                       FIELD_NAME_NODEID,
+                       obj.toString( FALSE, TRUE ).c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            _nodeID = (UINT16)e.numberInt() ;
          }
       }
       catch ( std::exception &e )
@@ -535,7 +552,7 @@ namespace engine
       }
       else
       {
-         rc = repl->reelect( _level, _timeout, cb ) ;
+         rc = repl->reelect( _level, _timeout, cb, _nodeID ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to reelect:%d", rc ) ;

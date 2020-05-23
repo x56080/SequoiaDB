@@ -190,6 +190,7 @@ namespace engine
    private:
       BOOLEAN _isDestNotify ;
       UINT32 _timeout ;
+      UINT16 _nodeID ;
       CLS_REELECTION_LEVEL _level ;
    } ;
 

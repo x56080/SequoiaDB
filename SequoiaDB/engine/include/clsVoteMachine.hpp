@@ -101,6 +101,7 @@ namespace engine
       INT32 active() ;
 
       void  force( const INT32 &id, UINT32 mills = 0 ) ;
+      BOOLEAN  isStatus( const INT32 &id ) const ;
 
    private:
       vector<_clsVoteStatus *>   _status ;

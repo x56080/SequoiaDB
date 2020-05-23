@@ -114,7 +114,8 @@ namespace engine
       DPS_LSN_OFFSET getSyncCtrlArbitLSN() ;
 
       /// offset is current offset.
-      BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset ) ;
+      BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset,
+                          UINT16 ensureNodeID = 0 ) ;
 
    private:
       INT32 _wait( _pmdEDUCB *&cb, UINT32 sub, INT64 timeout = -1 ) ;

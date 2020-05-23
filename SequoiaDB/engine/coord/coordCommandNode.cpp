@@ -2815,7 +2815,10 @@ namespace engine
       const CHAR *gpName = NULL ;
       CoordGroupInfoPtr gpInfo ;
       CoordGroupList gpLst ;
+      CHAR *pBuffer = NULL ;
+      INT32 buffSize = 0 ;
 
+      MsgHeader *pReelectMsg = pMsg ;
       MsgRouteID nodeID ;
 
       contextID = -1 ;
@@ -2834,6 +2837,36 @@ namespace engine
          {
             goto error ;
          }
+
+         if ( MSG_INVALID_ROUTEID != nodeID.value )
+         {
+            /// rebuild the message
+            BSONObjIterator itr( options ) ;
+            BSONObjBuilder builder ;
+            builder.append( FIELD_NAME_NODEID, (INT32)nodeID.columns.nodeID ) ;
+            while ( itr.more() )
+            {
+               BSONElement e = itr.next() ;
+               if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_NODEID ) )
+               {
+                  continue ;
+               }
+               builder.append( e ) ;
+            }
+            BSONObj newOption = builder.obj() ;
+
+            rc = msgBuildQueryMsg( &pBuffer, &buffSize,
+                                   CMD_ADMIN_PREFIX CMD_NAME_REELECT,
+                                   0, 0, 0, -1,
+                                   &newOption, NULL, NULL, NULL,
+                                   cb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDWARNING, "Build message failed, rc: %d", rc ) ;
+               goto done ;
+            }
+            pReelectMsg = ( MsgHeader* )pBuffer ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -2849,7 +2882,7 @@ namespace engine
       }
 
       gpLst[gpInfo->groupID()] = gpInfo->groupID() ;
-      rc = executeOnDataGroup( pMsg, cb, gpLst, TRUE, NULL, NULL,
+      rc = executeOnDataGroup( pReelectMsg, cb, gpLst, TRUE, NULL, NULL,
                                NULL, buf ) ;
       if ( SDB_OK != rc )
       {
@@ -2859,6 +2892,12 @@ namespace engine
       }
 
    done:
+      if ( pBuffer )
+      {
+         msgReleaseBuffer( pBuffer, cb ) ;
+         pBuffer = NULL ;
+         buffSize = 0 ;
+      }
       PD_TRACE_EXITRC( COORD_REELECT_EXE, rc ) ;
       return rc ;
    error:

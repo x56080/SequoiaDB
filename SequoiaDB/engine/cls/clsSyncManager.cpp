@@ -579,20 +579,39 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_ATLEASTONE, "_clsSyncManager::atLeastOne" )
-   BOOLEAN _clsSyncManager::atLeastOne( const DPS_LSN_OFFSET &offset )
+   BOOLEAN _clsSyncManager::atLeastOne( const DPS_LSN_OFFSET &offset,
+                                        UINT16 ensureNodeID )
    {
       BOOLEAN res = _validSync > 0 ? FALSE : TRUE ;
       PD_TRACE_ENTRY( SDB__CLSSYNCMAG_ATLEASTONE ) ;
       DPS_LSN lsn ;
       lsn.offset = offset ;
+
       ossScopedRWLock lock( &_info->mtx, SHARED ) ;
 
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
-         if ( 0 > lsn.compareOffset( _notifyList[i].offset ) )
+         /// Found ensureNodeID
+         if ( 0 != ensureNodeID &&
+              ensureNodeID == _notifyList[i].id.columns.nodeID )
+         {
+            if ( 0 > lsn.compareOffset( _notifyList[i].offset ) )
+            {
+               res = TRUE ;
+            }
+            else
+            {
+               res = FALSE ;
+            }
+            break ;
+         }
+         else if ( 0 > lsn.compareOffset( _notifyList[i].offset ) )
          {
             res = TRUE ;
-            break ;
+            if ( 0 == ensureNodeID )
+            {
+               break ;
+            }
          }
       }
       PD_TRACE_EXIT( SDB__CLSSYNCMAG_ATLEASTONE ) ;

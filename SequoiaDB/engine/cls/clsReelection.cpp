@@ -80,23 +80,22 @@ namespace engine
       goto done ;
    }
 
-   void _clsReelection::signal( CLS_REELECTION_LEVEL lvl )
+   void _clsReelection::signal()
    {
-      if ( CLS_REELECTION_LEVEL_NONE != _level && _level < lvl )
-      {
-         _event.signalAll() ;
-         _level = CLS_REELECTION_LEVEL_NONE ;
-      }
-   } 
+      _event.signalAll() ;
+      ossAtomicExchange32( &_level, CLS_REELECTION_LEVEL_NONE ) ;
+   }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION_RUN, "_clsReelection::run" )
    INT32 _clsReelection::run( CLS_REELECTION_LEVEL lvl,
                               UINT32 seconds,
-                              pmdEDUCB *cb )
+                              pmdEDUCB *cb,
+                              UINT16 destID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION_RUN ) ;
       UINT32 timePassed = 0 ;
+      BOOLEAN resetEvent = FALSE ;
 
       if ( CLS_REELECTION_LEVEL_1 != lvl &&
            CLS_REELECTION_LEVEL_3 != lvl ) 
@@ -113,7 +112,21 @@ namespace engine
          goto error ;
       }
 
-      if ( CLS_REELECTION_LEVEL_NONE != _level )
+      if ( !_vote->primaryIsMe() )
+      {
+         rc = SDB_CLS_NOT_PRIMARY ;
+         PD_LOG( PDERROR, "only primary node can reelect" ) ;
+         goto error ;
+      }
+      /// is self
+      else if ( 0 != destID && destID == pmdGetNodeID().columns.nodeID )
+      {
+         // restore
+         _vote->setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
+         goto done ;
+      }
+
+      if ( !ossCompareAndSwap32( &_level, CLS_REELECTION_LEVEL_NONE, lvl ) )
       {
          PD_LOG( PDERROR, "can not do reelection when last"
                  " reelection is not done" ) ;
@@ -121,18 +134,8 @@ namespace engine
          goto error ;
       }
 
-      if ( !_vote->primaryIsMe() )
-      {
-         rc = SDB_CLS_NOT_PRIMARY ;
-         PD_LOG( PDERROR, "only primary node can reelect" ) ;
-         goto error ;
-      }
-
       _event.reset() ;
-
-      /// if node changes to secondary now, all write requests
-      /// may be waked up. they will get 'not primary'.
-      _level = lvl ;
+      resetEvent = TRUE ;
 
       rc = _wait4AllWriteDone( timePassed, seconds, cb ) ;
       if ( SDB_OK != rc )
@@ -147,7 +150,7 @@ namespace engine
       /// WARNING: do not compare with _level.
       if ( CLS_REELECTION_LEVEL_1 < lvl )
       {
-         rc = _wait4Replica( timePassed, seconds, cb ) ;
+         rc = _wait4Replica( timePassed, seconds, cb, destID ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "reelection is out of time" ) ;
@@ -164,7 +167,10 @@ namespace engine
       }
 
    done:
-      signal() ;
+      if ( resetEvent )
+      {
+         signal() ;
+      }
       PD_TRACE_EXITRC( SDB__CLSREELECTION_RUN, rc ) ;
       return rc ;
    error:
@@ -214,7 +220,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__WAIT4REPLICA, "_clsReelection::_wait4Replica" )
    INT32 _clsReelection::_wait4Replica( UINT32 &timePassed,
                                         UINT32 timeout,
-                                        pmdEDUCB *cb )
+                                        pmdEDUCB *cb,
+                                        UINT16 destID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4REPLICA ) ;
@@ -227,7 +234,7 @@ namespace engine
             goto error ;
          }
 
-         if ( _syncMgr->atLeastOne( lsn.offset ) )
+         if ( _syncMgr->atLeastOne( lsn.offset, destID ) )
          {
             break ;
          }

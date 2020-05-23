@@ -1242,6 +1242,12 @@ namespace engine
                _info.mtx.lock_w() ;
                _info.primary = beat.identity ;
                _info.mtx.release_w() ;
+
+               /// when self is in slice, force to secondary
+               if ( _vote.isStatus( CLS_ELECTION_STATUS_SILENCE ) )
+               {
+                  _vote.force( CLS_ELECTION_STATUS_SEC ) ;
+               }
             }
 
             // if find new primary node, should to wake up reelection
@@ -1479,7 +1485,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_REELECT, "_clsReplicateSet::reelect" )
    INT32 _clsReplicateSet::reelect( CLS_REELECTION_LEVEL lvl,
                                     UINT32 seconds,
-                                    pmdEDUCB *cb )
+                                    pmdEDUCB *cb,
+                                    UINT16 destID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET_REELECT ) ;
@@ -1488,7 +1495,7 @@ namespace engine
          goto done ;
       }
 
-      rc = _reelection.run( lvl, seconds, cb ) ;
+      rc = _reelection.run( lvl, seconds, cb, destID ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to reelect:%d", rc ) ;

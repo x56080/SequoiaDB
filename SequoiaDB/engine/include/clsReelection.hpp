@@ -51,12 +51,12 @@ namespace engine
    public:
       INT32 run( CLS_REELECTION_LEVEL lvl,
                  UINT32 seconds,
-                 pmdEDUCB *cb ) ;
+                 pmdEDUCB *cb,
+                 UINT16 destID = 0 ) ;
 
       INT32 wait( pmdEDUCB *cb ) ;
 
-      void signal( CLS_REELECTION_LEVEL lvl =
-                   CLS_REELECTION_LEVEL_MAX ) ;
+      void  signal() ;
 
    private:
       INT32 _wait4AllWriteDone( UINT32 &timePassed,
@@ -65,7 +65,8 @@ namespace engine
 
       INT32 _wait4Replica( UINT32 &timePassed,
                            UINT32 timeout,
-                           pmdEDUCB *cb ) ;
+                           pmdEDUCB *cb,
+                           UINT16 destID ) ;
 
       INT32 _stepDown( UINT32 &timePassed,
                        UINT32 timeout,
@@ -79,7 +80,7 @@ namespace engine
    private:
       _clsVoteMachine *_vote ;
       _clsSyncManager *_syncMgr ;
-      volatile CLS_REELECTION_LEVEL _level ;
+      volatile UINT32 _level ;
       ossEvent _event ;
    } ;
    typedef class _clsReelection clsReelection ;
