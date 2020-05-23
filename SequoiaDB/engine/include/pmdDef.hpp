@@ -443,11 +443,11 @@ namespace engine
    /*
       Global define
    */
-   #define PMD_FT_SAMPLE_WINDOW_SZ     ( 200 )
+   #define PMD_FT_SAMPLE_WINDOW_SZ     ( 1200 )
    #define PMD_FT_SAMPLE_INTERVAL      ( 3 )       /// second
    #define PMD_FT_CACL_INTERVAL_MIN    PMD_FT_SAMPLE_INTERVAL
    #define PMD_FT_CACL_INTERVAL_MAX    ( PMD_FT_SAMPLE_INTERVAL * PMD_FT_SAMPLE_WINDOW_SZ )
-   #define PMD_FT_CACL_INTERVAL_DFT    ( PMD_FT_SAMPLE_INTERVAL * 10 )
+   #define PMD_FT_CACL_INTERVAL_DFT    ( PMD_FT_SAMPLE_INTERVAL * 20 )
 
    #define PMD_FT_CACL_RATIO_DFT       ( 80 )   /// %
    #define PMD_FT_CACL_RATIO_MIN       ( 1 )

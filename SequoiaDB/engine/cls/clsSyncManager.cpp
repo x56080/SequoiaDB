@@ -560,7 +560,7 @@ namespace engine
             _mtxs[i].get() ;
             while ( SDB_OK == _syncList[i].pop( session ) )
             {
-               if ( isStopNode && -1 == session.eduCB->getOrgReplSize() )
+               if ( -1 == session.eduCB->getOrgReplSize() )
                {
                   session.eduCB->getEvent().signal( SDB_DATABASE_DOWN ) ;
                }
