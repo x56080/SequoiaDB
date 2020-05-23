@@ -674,7 +674,14 @@ namespace engine
          {
             rc = _onPacketMsg( handle, msg, contextID, buffObj,
                                startFrom, opCode ) ;
-            break ;
+            if ( 0 == _inPacketLevel )
+            {
+               goto reply ;
+            }
+            else
+            {
+               goto done ;
+            }
          }
 
          rc = _checkClusterActive( msg ) ;
@@ -1100,6 +1107,7 @@ namespace engine
                  e.what() ) ;
       }
 
+   reply:
       if ( _inPacketLevel > 0 )
       {
          _pendingContextID = contextID ;
