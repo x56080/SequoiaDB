@@ -54,6 +54,98 @@ namespace engine
 
    static BSONObj generateUpdator( const BSONObj &record ) ;
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINSERTREC, "_rtnInsertRecord" )
+   static INT32 _rtnInsertRecord( dmsStorageUnit *su,
+                                  const CHAR *clFullName,
+                                  const CHAR *clShortName,
+                                  const BSONObj &record,
+                                  INT32 flags,
+                                  pmdEDUCB *cb,
+                                  SDB_DPSCB *dpsCB,
+                                  BOOLEAN mustOID,
+                                  BOOLEAN canUnLock,
+                                  dmsMBContext *context,
+                                  INT64 position,
+                                  utilInsertResult *insertResult )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNINSERTREC ) ;
+
+      SDB_ASSERT( NULL != su, "su is invalid" ) ;
+      SDB_ASSERT( NULL != clFullName, "collection full name is invalid" ) ;
+      SDB_ASSERT( NULL != clShortName, "collection short name is invalid" ) ;
+      SDB_ASSERT( NULL != insertResult, "insert result is invalid" ) ;
+
+      rc = su->insertRecord( clShortName, record, cb, dpsCB,
+                             mustOID, canUnLock, context, position,
+                             insertResult ) ;
+      // check return code
+      if ( SDB_IXM_DUP_KEY == rc )
+      {
+         if ( FLG_INSERT_CONTONDUP & flags )
+         {
+            insertResult->incDuplicatedNum();
+            insertResult->resetInfo() ;
+            // skip duplicate key error
+            rc = SDB_OK ;
+         }
+         else if ( FLG_INSERT_REPLACEONDUP & flags )
+         {
+            // update record when duplicate key error
+            BSONObj hint ;
+            BSONObj updator ;
+            BSONObj matcher ;
+            utilUpdateResult upResult ;
+
+            utilIdxDupErrAssit dupErrAssit( insertResult->getIdxKeyPattern(),
+                                            insertResult->getIdxValue() ) ;
+
+            rc = dupErrAssit.getIdxMatcher( matcher ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            insertResult->resetInfo() ;
+
+            updator = generateUpdator( record ) ;
+            rc = rtnUpdate( clFullName, matcher, updator, hint,
+                            0, cb, &upResult ) ;
+            if ( rc )
+            {
+               insertResult->setErrInfo( &upResult ) ;
+
+               PD_LOG( PDERROR, "Failed to update record[%s] in "
+                       "collection[%s] when insert exists duplicate key, "
+                       "rc: %d", record.toString().c_str(), clFullName,
+                       rc ) ;
+               goto error ;
+            }
+            else
+            {
+               // update success.
+               insertResult->incDuplicatedNum( upResult.updateNum() ) ;
+               rc = SDB_OK ;
+            }
+         }
+         else
+         {
+            PD_LOG ( PDERROR, "Failed to insert record %s into "
+                     "collection: %s, rc: %d",
+                     record.toPoolString().c_str(),
+                     clFullName, rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNINSERTREC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNINSERT1, "rtnInsert" )
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,
@@ -148,74 +240,12 @@ namespace engine
          try
          {
             BSONObj record ( (const CHAR*)pDataPos ) ;
-            rc = su->insertRecord ( pCollectionShortName, record, cb, dpsCB,
-                                    TRUE, TRUE, NULL, -1, pResult ) ;
-            // check return code
-            if ( SDB_IXM_DUP_KEY == rc )
-            {
-               if ( FLG_INSERT_CONTONDUP & flags )
-               {
-                  pResult->incDuplicatedNum();
-                  pResult->resetInfo() ;
-                  // skip duplicate key error
-                  rc = SDB_OK ;
-               }
-               else if ( FLG_INSERT_REPLACEONDUP & flags )
-               {
-                  // update record when duplicate key error
-                  BSONObj hint ;
-                  BSONObj updator ;
-                  BSONObj matcher ;
-                  utilUpdateResult upResult ;
 
-                  utilIdxDupErrAssit dupErrAssit( pResult->getIdxKeyPattern(),
-                                                  pResult->getIdxValue() ) ;
-
-                  rc = dupErrAssit.getIdxMatcher( matcher ) ;
-                  if ( rc )
-                  {
-                     goto error ;
-                  }
-                  pResult->resetInfo() ;
-
-                  updator = generateUpdator( record ) ;
-                  rc = rtnUpdate( pCollectionName, matcher, updator, hint,
-                                  0, cb, &upResult ) ;
-                  if ( rc )
-                  {
-                     pResult->setErrInfo( &upResult ) ;
-
-                     PD_LOG( PDERROR, "Failed to update record[%s] in "
-                             "collection[%s] when insert exists duplicate key, "
-                             "rc: %d",
-                             record.toString().c_str(), pCollectionName,
-                             rc ) ;
-                     goto error ;
-                  }
-                  else
-                  {
-                     // update success.
-                     pResult->incDuplicatedNum( upResult.updateNum() ) ;
-                     rc = SDB_OK ;
-                  }
-               }
-               else
-               {
-                  PD_LOG ( PDERROR, "Failed to insert record %s into "
-                           "collection: %s, rc: %d",
-                           record.toPoolString().c_str(),
-                           pCollectionName, rc ) ;
-                  goto error ;
-               }
-            }
-            else if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to insert record %s into "
-                       "collection: %s, rc: %d",
-                       record.toPoolString().c_str(),
-                       pCollectionName, rc ) ;
-               goto error ;
-            }
+            rc = _rtnInsertRecord( su, pCollectionName, pCollectionShortName,
+                                   record, flags, cb, dpsCB, TRUE, TRUE, NULL,
+                                   -1, pResult ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "
+                         "collection [%s], rc: %d", pCollectionName, rc ) ;
 
             pDataPos += ossAlignX ( (ossValuePtr)record.objsize(), 4 ) ;
          }
@@ -268,6 +298,13 @@ namespace engine
       BSONElement positionEle ;
       INT64 position = -1 ;
 
+      utilInsertResult inTmpResult ;
+
+      if ( !pResult )
+      {
+         pResult = &inTmpResult ;
+      }
+
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;
@@ -301,21 +338,23 @@ namespace engine
             position = positionEle.numberLong() ;
          }
 
-         rc = su->insertRecord( clShortName, obj, cb, dpsCB, TRUE,
-                                TRUE, NULL, position, pResult ) ;
-         if ( rc )
+         rc = _rtnInsertRecord( su, pCollectionName, clShortName, obj, flags,
+                                cb, dpsCB, TRUE, TRUE, NULL, position,
+                                pResult ) ;
+         if ( SDB_OK != rc )
          {
-            if ( ( SDB_IXM_DUP_KEY == rc ) &&
-                 ( FLG_INSERT_CONTONDUP & flags ) )
+            if ( DMS_STORAGE_CAPPED == su->type() )
             {
-               rc = SDB_OK ;
+               PD_LOG( PDERROR, "Failed to insert record into collection [%s] "
+                       "by position[%lld], rc: %d", pCollectionName,
+                       positionEle.numberLong(), rc ) ;
             }
             else
             {
-               PD_LOG( PDERROR, "Insert record by position[ %lld ] failed, "
-                       "rc: %d", positionEle.numberLong(), rc) ;
-               goto error ;
+               PD_LOG( PDERROR, "Failed to insert record into collection [%s] "
+                       "by replay, rc: %d", pCollectionName, rc ) ;
             }
+            goto error ;
          }
       }
       catch( std::exception &e )
