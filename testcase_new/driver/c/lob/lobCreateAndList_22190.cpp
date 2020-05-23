@@ -187,7 +187,7 @@ TEST_F( lobCreateandListTest, listLobs_22191 )
    bson_append_int(&hint, "ListPieces", 1) ;
    bson_finish(&hint) ;
    rc = sdbListLobs1(cl, &cond, &selected, &selected, &hint, 0, 1, &cursor);
-   ASSERT_EQ( SDB_OK, rc ) << "fail to create lob" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to list lob" ;
    while ( (rc = sdbNext(cursor, &obj)) == 0 )
    {
       bson_print( &obj ) ;
@@ -205,6 +205,10 @@ TEST_F( lobCreateandListTest, listLobs_22191 )
    ASSERT_EQ( isFind, TRUE) << "fail to list lobs" ;
    sdbCloseCursor(cursor) ;
    sdbReleaseCursor(cursor) ;
+   bson_destroy( &cond );
+   bson_destroy( &selected );
+   bson_destroy( &orderby );
+   bson_destroy( &hint );
 }
 
 TEST_F( lobCreateandListTest, listLobPieces_22192 )
@@ -216,7 +220,7 @@ TEST_F( lobCreateandListTest, listLobPieces_22192 )
    ASSERT_EQ( SDB_OK, rc ) << "fail to create lob" ;
    sdbCursorHandle cursor ;
    rc = sdbListLobPieces(cl, &cursor);
-   ASSERT_EQ( SDB_OK, rc ) << "fail to list lobpieces" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to list lob pieces" ;
    bson obj ;
    bson_init(&obj) ;
    BOOLEAN isFind = FALSE ;
@@ -232,8 +236,8 @@ TEST_F( lobCreateandListTest, listLobPieces_22192 )
       bson_destroy( &obj ) ;
       bson_init(&obj) ;
    }
-   ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to list lobs" ;
-   ASSERT_EQ( isFind, TRUE) << "fail to list lobs" ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to list lob pieces" ;
+   ASSERT_EQ( isFind, TRUE) << "fail to list lob pieces" ;
    sdbCloseCursor(cursor) ;
    sdbReleaseCursor(cursor) ;
    
@@ -274,8 +278,8 @@ TEST_F( lobCreateandListTest, listLobPieces_22192 )
       bson_init(&obj) ;
    }
    
-   ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to list lobs" ;
-   ASSERT_EQ( isFind, TRUE) << "fail to list lobs" ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to list lob pieces" ;
+   ASSERT_EQ( isFind, TRUE) << "fail to list lob pieces" ;
    sdbCloseCursor(cursor) ;
    sdbReleaseCursor(cursor) ;
    bson_destroy( &cond );
