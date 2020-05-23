@@ -1585,19 +1585,19 @@
       <name>PMD_OPTION_FT_CONFIRM_PERIOD</name>
       <long>ftconfirmperiod</long>
       <description>
-         <en>Time period of fault confirmation, default:30, value range:[1,600], unit:s</en>
-         <cn>故障确认的时间周期，默认为30，取值范围:[1,600],单位为秒</cn>
+         <en>Time period of fault confirmation, default:60, value range:[1,3600], unit:s</en>
+         <cn>故障确认的时间周期，默认为60，取值范围:[1,3600],单位为秒</cn>
       </description>
       <reloadable>
          <en>Yes</en>
          <cn>动态生效</cn>
       </reloadable>
       <detail>
-         <en>Time period of fault confirmation, default:30, value range:[1,600], unit:s</en>
-         <cn>故障确认的时间周期，默认为30，取值范围:[1,600],单位为秒</cn>
+         <en>Time period of fault confirmation, default:60, value range:[1,3600], unit:s</en>
+         <cn>故障确认的时间周期，默认为60，取值范围:[1,3600],单位为秒</cn>
       </detail>
       <type>int</type>
-      <default>30</default>
+      <default>60</default>
       <typeofweb>num</typeofweb>
    </opt>
    <opt>
