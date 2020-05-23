@@ -2516,4 +2516,29 @@
       <hidden>false</hidden>
       <typeofweb>str</typeofweb>
    </opt>
+
+   <opt>
+      <name>PMD_OPTION_MVCCON</name>
+      <long>mvccon</long>
+      <short>e</short>
+      <description>
+         <en>Turn on MVCC support, default:false</en>
+         <cn>是否打开多版本功能,默认为:false</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <default>false</default>
+      <detail>
+        <en>1. It specifies whether support MVCC or not.<fig></fig>
+             2. If it is not specifed, the default value is false.<fig></fig>
+             3. Only takes effect when transactionon is true.</en>
+         <cn>1. 指定是否打开多版本。<fig></fig>
+             2. 如果不指定，则默认为false。<fig></fig>
+             3. 只有当 transactionon 开启时，取值才会有效。</cn>
+      </detail>
+      <typeofweb>boolean</typeofweb>
+   </opt>
+
 </optlist>
