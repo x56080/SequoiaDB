@@ -25,8 +25,8 @@ protected:
    {
       testBase::SetUp() ;
       INT32 rc = SDB_OK ;
-      csName = "lobAbnormalTestCs" ;
-      clName = "lobAbnormalTestCl" ;
+      csName = "lobCreateandList_22190" ;
+      clName = "lobCreateandList_22190" ;
       rc = createNormalCsCl( db, &cs, &cl, csName, clName ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName << " cl " << clName ;   
    }
@@ -145,7 +145,7 @@ TEST_F( lobCreateandListTest, listLobs_22191 )
    ASSERT_EQ( SDB_OK, rc ) << "fail to create lob" ;
 
    rc = sdbListLobs(cl, &cursor) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to list lob" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to list lobs" ;
    bson obj ;
    bson_init(&obj) ;
    while ( (rc = sdbNext(cursor, &obj)) == 0 ){
