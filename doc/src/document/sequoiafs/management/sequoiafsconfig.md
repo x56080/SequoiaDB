@@ -5,11 +5,11 @@
 查询 SequoiaDB 安装信息。
 
 ```lang-bash
-# . /etc/default/sequoiadb
-# echo $INSTALL_DIR
+$ . /etc/default/sequoiadb
+$ echo $INSTALL_DIR
 ```
 ```lang-text
-INSTALL_DIR=/opt/sequoiadb
+/opt/sequoiadb
 ```
 
 INSTALL_DIR 为 SequoiaDB 的安装目录，SequoiaFS 目录为 $INSTALL_DIR/tools/sequoiafs。
@@ -24,13 +24,13 @@ INSTALL_DIR 为 SequoiaDB 的安装目录，SequoiaFS 目录为 $INSTALL_DIR/too
 
 示例：
 
-本样例中待挂载目录为 /opt/guestdir，别名为 guestdir，分别创建配置目录和日志目录，并拷贝一份配置文件样例到配置目录。
+本样例中待挂载目录为 /opt/sequoiadb/guestdir/，别名为 guestdir，分别创建配置目录和日志目录，并拷贝一份配置文件样例到配置目录。
 
 ```lang-bash
-# alias=guestdir
-# mkdir -p $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
-# mkdir -p $INSTALL_DIR/tools/sequoiafs/log/$alias/
-# cp $INSTALL_DIR/tools/sequoiafs/conf/sample/sequoiafs.conf $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
+$ alias=guestdir
+$ mkdir -p $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
+$ mkdir -p $INSTALL_DIR/tools/sequoiafs/log/$alias/
+$ cp $INSTALL_DIR/tools/sequoiafs/conf/sample/sequoiafs.conf $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
 ```
 
 配置文件修改参考下面的参数及配置项说明。

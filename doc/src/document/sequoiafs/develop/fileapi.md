@@ -58,7 +58,7 @@ API使用实例
 
 static char testdata[] = "abcdefghijklmnopqrstuvwxyz";
 static int testdatalen = sizeof(testdata) - 1;
-#define testfile "/opt/guestdir/testfile"
+#define testfile "/opt/sequoiadb/guestdir/testfile"
 
 int main()
 {

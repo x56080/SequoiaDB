@@ -4,8 +4,6 @@
 
 当前系统已经安装 SequoiaDB，并已部署 SequoiaDB 集群。
 
-以下操作在 root 用户下执行。
-
 查询 SequoiaDB 安装信息。
 
 ```lang-bash
@@ -17,15 +15,19 @@ SDBADMIN_USER=sdbadmin
 INSTALL_DIR=/opt/sequoiadb
 ```
 
-SDBADMIN_USER 为安装用户名，INSTALL_DIR 为安装目录名称。
-
-在本样例中，待挂载目录为 /opt/guestdir，挂载目录别名为 guestdir（别名一般为挂载目录全路径的最后一层文件夹名称），挂载目标集合名称为 “mountcs.mountcl”。将这些基本信息分别做如下定义。加载 SequoiaDB 安装信息。
+SDBADMIN_USER 为安装用户名，INSTALL_DIR 为安装目录名称。以下操作切换到 SDBADMIN_USER 用户下执行。
 
 ```lang-bash
-# mountpoint=/opt/guestdir/
-# alias=guestdir
-# collection=mountcs.mountcl
-# . /etc/default/sequoiadb
+# su sdbadmin
+```
+
+在本样例中，待挂载目录为 /opt/sequoiadb/guestdir/ ，挂载目录别名为 guestdir（别名一般为挂载目录全路径的最后一层文件夹名称），挂载目标集合名称为 “mountcs.mountcl”。将这些基本信息分别做如下定义。加载 SequoiaDB 安装信息。
+
+```lang-bash
+$ mountpoint=/opt/sequoiadb/guestdir/
+$ alias=guestdir
+$ collection=mountcs.mountcl
+$ . /etc/default/sequoiadb
 ```
 
 ###创建挂载目录及配置文件###
@@ -33,29 +35,28 @@ SDBADMIN_USER 为安装用户名，INSTALL_DIR 为安装目录名称。
 创建待挂载目录。
   
 ```lang-bash
-# mkdir -p $mountpoint
-# chmod 777 $mountpoint
+$ mkdir -p $mountpoint
 ```
 
 首次挂载前先创建配置文件目录。
 
 ```lang-bash
-# mkdir -p $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
+$ mkdir -p $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
 ```
 
 复制一份配置样例到配置文件路径。
 
 ```lang-bash
-# cp $INSTALL_DIR/tools/sequoiafs/conf/sample/sequoiafs.conf $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
+$ cp $INSTALL_DIR/tools/sequoiafs/conf/sample/sequoiafs.conf $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
 ```
 
 修改配置文件中的待挂载目录、别名、集合名称，其他配置请参考[配置管理](sequoiafs/management/sequoiafsconfig.md)。
 
 ```lang-bash
-# FS_ALIAS_CONF=$INSTALL_DIR/tools/sequoiafs/conf/local/$alias/sequoiafs.conf
-# sed -i "s|^mountpoint=|mountpoint=$mountpoint|" $FS_ALIAS_CONF
-# sed -i "s|^alias=|alias=$alias|" $FS_ALIAS_CONF
-# sed -i "s|^collection=|collection=$collection|" $FS_ALIAS_CONF
+$ FS_ALIAS_CONF=$INSTALL_DIR/tools/sequoiafs/conf/local/$alias/sequoiafs.conf
+$ sed -i "s|^mountpoint=|mountpoint=$mountpoint|" $FS_ALIAS_CONF
+$ sed -i "s|^alias=|alias=$alias|" $FS_ALIAS_CONF
+$ sed -i "s|^collection=|collection=$collection|" $FS_ALIAS_CONF
 ```
 
 ###挂载目录###
@@ -63,8 +64,8 @@ SDBADMIN_USER 为安装用户名，INSTALL_DIR 为安装目录名称。
 使用 fsstart.sh 指定别名挂载目录。
 
 ```lang-bash
-# cd $INSTALL_DIR/tools/sequoiafs/bin
-# ./fsstart.sh --alias $alias
+$ cd $INSTALL_DIR/tools/sequoiafs/bin
+$ ./fsstart.sh --alias $alias
 ```
 挂载成功。
 
@@ -77,24 +78,24 @@ Total: 1; Succeed: 1; Failed: 0
 通过 fslist.sh 查看挂载信息。
 
 ```lang-bash
-# ./fslist.sh -l
+$ ./fslist.sh -l
 ```
 ```lang-text
-Alias     Mountpoint     PID     Collection       ConfPath
-guestdir  /opt/guestdir  104735  mountcs.mountcl  /opt/sequoiadb/tools/sequoiafs/conf/local/guestdir
+Alias     Mountpoint               PID     Collection       ConfPath
+guestdir  /opt/sequoiadb/guestdir  129326  mountcs.mountcl  /opt/sequoiadb/tools/sequoiafs/conf/local/guestdir
 Total: 1
 ```
-可以看到，目录 /opt/guestdir 已经挂载。
+可以看到，目录 /opt/sequoiadb/guestdir 已经挂载。
 
 ###验证###
 
 在挂载目录下创建文件 testfile 并写入'hello, this is a testfile!'，创建子目录 testdir。
 
 ```lang-bash
-# cd /opt/guestdir
-# touch testfile
-# echo 'hello, this is a testfile!' >> testfile
-# cat testfile 
+$ cd $mountpoint
+$ touch testfile
+$ echo 'hello, this is a testfile!' >> testfile
+$ cat testfile 
 ```
 
 ```lang-text
@@ -102,8 +103,8 @@ hello, this is a testfile!
 ```
 
 ```lang-bash
-# mkdir testdir
-# ls
+$ mkdir testdir
+$ ls
 ```
 
 ```lang-text
@@ -167,6 +168,13 @@ Version 4.3.11-Ubuntu
 # smbpasswd -a sambauser
 ```
 
+定义挂载目录，并加载 SequoiaDB 安装信息获取安装用户。
+
+```lang-bash
+# mountpoint=/opt/sequoiadb/guestdir/
+# . /etc/default/sequoiadb
+```
+
 在 Samba 的配置文件 /etc/samba/smb.conf 尾部追加共享目录的信息，其中 path 需根据挂载目录填写，force user 需根据安装用户名称填写。
 
 ```lang-bash
@@ -186,7 +194,7 @@ Version 4.3.11-Ubuntu
 ```lang-text
 [mountpoint]
 comment = mountpoint
-path = /opt/guestdir/
+path = /opt/sequoiadb/guestdir/
 browseable = Yes
 guest ok = Yes
 writable = Yes

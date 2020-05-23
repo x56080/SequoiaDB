@@ -10,8 +10,12 @@ logrootpath="$BashPath/../log"
   
 function check_user()
 {
-  . $SYS_CONF_FILE
-
+  if [ -f "$SYS_CONF_FILE" ]; then
+    . $SYS_CONF_FILE
+  else
+    echo "ERROR: $SYS_CONF_FILE does not exist"
+    exit 129
+  fi
 
   if [ -n "$SDBADMIN_USER" ];then
     USER=$SDBADMIN_USER
@@ -20,12 +24,8 @@ function check_user()
       exit 129
     fi
   else
-    local author=`ls -l $BashPath/fsstart.sh | awk '{print $3}'`
-    USER=$author
-    if [ "$cur_user" != "$author" -a "$cur_user" != "$root" ]; then
-      echo "ERROR: fsstart requires USER [$USER] permission"
-      exit 129
-    fi
+    echo "ERROR: SDBADMIN_USER is null"
+    exit 129
   fi
 }
 
@@ -33,12 +33,6 @@ function check_user()
 check_user
 
 if [ "$cur_user" == "root" ]; then
-  if [ -d "$confrootpath" ]; then
-    chown $USER -R "$confrootpath"
-  fi
-  if [ -d "$logrootpath" ]; then
-    chown $USER -R "$logrootpath"
-  fi 
   su $USER -c "./start_i.sh $*"
 else
   ./start_i.sh $*

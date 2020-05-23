@@ -1,10 +1,10 @@
 本章介绍挂载目录后数据库元数据的存放规则。
 
-将 Linux 下创建的 /opt/guestdir 目录挂载到 SequoiaDB 中，挂载之后 guestdir 目录的操作仍然和普通文件系统目录一样，可以在 guestdir 目录下执行常见的创建子目录、创建文件、修改文件、删除文件等命令，也可以通过常见的文件 API 接口对目录文件进行操作，此时所有的文件内容及目录结构都存储于 SequoiaDB 中。
+将 Linux 下创建的 /opt/sequoiadb/guestdir/ 目录挂载到 SequoiaDB 中，挂载之后 guestdir 目录的操作仍然和普通文件系统目录一样，可以在 guestdir 目录下执行常见的创建子目录、创建文件、修改文件、删除文件等命令，也可以通过常见的文件 API 接口对目录文件进行操作，此时所有的文件内容及目录结构都存储于 SequoiaDB 中。
 
 ##挂载目录的信息查看##
 
-通过 SequoiaFS 将 /opt/guestdir 目录挂载到 SequoiaDB 中，挂载的目标集合为 mountcs.mountcl，挂载成功后，挂载目录和如下五个集合相关：
+通过 SequoiaFS 将 /opt/sequoiadb/guestdir/ 目录挂载到 SequoiaDB 中，挂载的目标集合为 mountcs.mountcl，挂载成功后，挂载目录和如下五个集合相关：
 
 ```lang-javascript
 > var db = new Sdb("localhost", 11810) 
@@ -53,7 +53,7 @@
   "DirMetaCL": "mountcs.mountcl_FS_SYS_DirMeta",
   "FileMetaCL": "mountcs.mountcl_FS_SYS_FileMeta",
   "Address": "ens160:192.168.20.69;",
-  "MountPoint": "/opt/guestdir",
+  "MountPoint": "/opt/sequoiadb/guestdir/",
   "MountTime": {
     "MountTime": "2020-05-21-06.30.18.793845"
   }
@@ -74,7 +74,7 @@
 在本示例中，在挂载目录下创建了文件 testfile 并写入'hello, this is a testfile!'，创建了子目录 testdir。
 
 ```lang-bash
-$ cd /opt/guestdir/
+$ cd /opt/sequoiadb/guestdir/
 $ touch testfile
 $ echo 'hello, this is a testfile!' >> testfile
 $ mkdir testdir
