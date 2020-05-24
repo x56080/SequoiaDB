@@ -141,13 +141,20 @@ namespace engine
       }
    }
 
-   UINT64 _clsReplicateSet::completeLsn( UINT32 *pVer )
+   UINT64 _clsReplicateSet::completeLsn( BOOLEAN doFast, UINT32 *pVer )
    {
       DPS_LSN lsn ;
 
       if ( !primaryIsMe() && _replBucket.maxReplSync() > 0 )
       {
-         lsn = _replBucket.completeLSN() ;
+         if ( doFast )
+         {
+            lsn = _replBucket.fastCompleteLSN() ;
+         }
+         else
+         {
+            lsn = _replBucket.completeLSN() ;
+         }
       }
 
       if ( pVer )
@@ -358,6 +365,13 @@ namespace engine
               _info.groupSize() > 1 &&
               _vote.primaryIsMe() )
          {
+            UINT32 nodeCnt = 0 ;
+            UINT32 aliveCnt = 0 ;
+            UINT32 falutCnt = 0 ;
+            UINT32 ssCnt = 0 ;
+            INT32 indoubtErr = 0 ;
+            UINT16 indoubtNodeID = 0 ;
+
             PD_LOG( PDEVENT, "Begin to wait data consistent..." ) ;
             pmdSetDoing( "Waiting data consistent..." ) ;
             /// When i'm primary, wait other node keep the data consistence
@@ -370,6 +384,15 @@ namespace engine
                           "Wait other node keep data consistent succeed" ) ;
                   break ;
                }
+               /// check active node
+               getDetailInfo( nodeCnt, aliveCnt, falutCnt, ssCnt,
+                              indoubtErr, indoubtNodeID ) ;
+               if ( 1 == aliveCnt )
+               {
+                  /// All node stoped
+                  break ;
+               }
+
                ossSleep( OSS_ONE_SEC ) ;
                timeout += OSS_ONE_SEC ;
             }

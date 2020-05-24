@@ -603,6 +603,11 @@ namespace engine
          _monMgr.relocate() ;
          _monTimeCounter = 0 ;
       }
+
+      if ( _pFTMgr )
+      {
+         _pFTMgr->run() ;
+      }
    }
 
    void _SDB_KRCB::onConfigChange ( UINT32 changeID )

@@ -86,7 +86,8 @@ namespace engine
             When is SDB_DPS_INVALID_LSN_OFFSET means keep the same with
             ExpectLSN(in dps)
          */
-         virtual UINT64    completeLsn( UINT32 *pVer = NULL ) ;
+         virtual UINT64    completeLsn( BOOLEAN doFast = TRUE,
+                                        UINT32 *pVer = NULL ) ;
          virtual UINT32    lsnQueSize() ;
          /*
             When is SDB_DPS_INVALID_LSN_OFFSET means keep the same with
@@ -154,7 +155,11 @@ namespace engine
                pStatus = it->second ;
                ++it ;
 
-               if ( 0 != pStatus->beat.ftConfirmStat )
+               if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat )
+               {
+                  --aliveCnt ;
+               }
+               else if ( 0 != pStatus->beat.ftConfirmStat )
                {
                   ++falutCnt ;
                   if ( SDB_OK == indoubtErr )
@@ -162,10 +167,6 @@ namespace engine
                      indoubtErr = pStatus->beat.indoubtErr ;
                      indoubtNodeID = pStatus->beat.identity.columns.nodeID ;
                   }
-               }
-               else if ( CLS_NODE_STOP == pStatus->beat.nodeRunStat )
-               {
-                  --aliveCnt ;
                }
                else if ( CLS_NODE_RUNNING != pStatus->beat.nodeRunStat )
                {

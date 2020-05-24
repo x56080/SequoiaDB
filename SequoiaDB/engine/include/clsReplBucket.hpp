@@ -150,6 +150,8 @@ namespace engine
       CLS_SUBMIT_GT_MAX
    } ;
 
+   #define CLS_FAST_LSN_RETRY_TIMES             ( 200 )
+
    /*
       _clsBucket define
    */
@@ -185,7 +187,8 @@ namespace engine
          INT32       waitQueEmpty( INT64 millisec = -1 ) ;
          INT32       waitEmpty( INT64 millisec = -1 ) ;
          INT32       waitSubmit( INT64 millisec = -1 ) ;
-         INT32       waitEmptyAndRollback( UINT32 *pNum = NULL ) ;
+         INT32       waitEmptyAndRollback( UINT32 *pNum = NULL,
+                                           DPS_LSN *pCompleteLsn = NULL ) ;
          INT32       waitEmptyWithCheck() ;
 
          UINT32      size () ;
@@ -207,12 +210,9 @@ namespace engine
          void        decIdelAgent() { _idleAgentNum.dec() ; }
          UINT32      idleAgentNum() { return _idleAgentNum.fetch() ; }
 
-         DPS_LSN     completeLSN ()
-         {
-            ossScopedLock lock( &_bucketLatch ) ;
-            _submitEvent.reset() ;
-            return _expectLSN ;
-         }
+         DPS_LSN     completeLSN ( BOOLEAN withRetEvent = FALSE ) ;
+         DPS_LSN     fastCompleteLSN( UINT32 retryTimes = CLS_FAST_LSN_RETRY_TIMES,
+                                      BOOLEAN *pDirty = NULL ) ;
 
          BOOLEAN     hasPending() ;
 

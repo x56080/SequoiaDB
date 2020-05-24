@@ -48,6 +48,8 @@ namespace engine
    #define PMD_FT_CATCHUP_LSNDIFF_THRESHOLD           ( 4 * 1024 * 1024 )
    #define PMD_FT_SLOWNODE_N_WND_SZ                   ( 40 )
 
+   #define PMD_FT_NOSPC_ADJ_MAX                       ( 30 )
+
    /*
       _ftSampleWindow implement
    */
@@ -334,8 +336,6 @@ namespace engine
       ICluster *pCluster = krcb->getCluster() ;
       SDB_DPSCB *pDpsCB = krcb->getDPSCB() ;
 
-      DPS_LSN beginLsn ;
-      DPS_LSN endLsn ;
       DPS_LSN expectLsn ;
 
       UINT64 completeLsn = DPS_INVALID_LSN_OFFSET ;
@@ -357,7 +357,7 @@ namespace engine
       /// false inspection
       if ( pCluster )
       {
-         completeLsn = pCluster->completeLsn() ;
+         completeLsn = pCluster->completeLsn( TRUE ) ;
          lsnQueSize = pCluster->lsnQueSize() ;
 
          if ( !pCluster->primaryLsn( primaryLsn ) )
@@ -367,7 +367,7 @@ namespace engine
          }
       }
 
-      pDpsCB->getLsnWindow( beginLsn, endLsn, &expectLsn, NULL ) ;
+      expectLsn = pDpsCB->expectLsn() ;
 
       if ( DPS_INVALID_LSN_OFFSET == completeLsn )
       {
@@ -441,7 +441,7 @@ namespace engine
                   _sampleWnd.reportRisk( FT_RISK_SLOW_NODE ) ;
                   PD_LOG( PDINFO, "Report risk( FT_RISK_SLOW_NODE ), Expr: "
                           "LsnDiff(%llu) >= Threshold(%llu) && "
-                          "AvgN(%llu) > PrevAvgN(%llu) &&"
+                          "AvgN(%llu) > PrevAvgN(%llu) && "
                           "PrevItem is FT_RISK_SLOW_NODE",
                           lsnDiff, _slowNodeThreshold,
                           avgN, prevAvgN ) ;
@@ -490,10 +490,27 @@ namespace engine
          }
          _lastSucCount = sucCount ;
 
-         if ( 0 != pPrevItem->_time &&
-              completeLsn > pPrevItem->_sys._completeLsn )
+         if ( 0 != pPrevItem->_time )
          {
-            pPrevItem->_err[ FT_ERR_NONE ]._count = countInc ;
+            if ( completeLsn > pPrevItem->_sys._completeLsn )
+            {
+               pPrevItem->_err[ FT_ERR_NONE ]._count = countInc ;
+            }
+            /// when countInc is zero
+            else if ( 0 == countInc &&
+                      pPrevItem->_err[ FT_ERR_NOSPC ]._count > 0 )
+            {
+               if ( pPrevItem->_err[ FT_ERR_NOSPC ]._count >
+                    PMD_FT_NOSPC_ADJ_MAX )
+               {
+                  pItem->_err[ FT_ERR_NOSPC ]._count = PMD_FT_NOSPC_ADJ_MAX ;
+               }
+               else
+               {
+                  pItem->_err[ FT_ERR_NOSPC ]._count =
+                     pPrevItem->_err[ FT_ERR_NOSPC ]._count - 1 ;
+               }
+            }
          }
       }
 

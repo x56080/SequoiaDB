@@ -129,7 +129,7 @@ namespace engine
 
    #define CLS_REPLSYNC_ONCE_NUM             (5)
 #if defined OSS_ARCH_64
-   #define CLS_REPL_BUCKET_MAX_MEM_POOL      (5*1024)          // MB
+   #define CLS_REPL_BUCKET_MAX_MEM_POOL      (2*1024)          // MB
 #elif defined OSS_ARCH_32
    #define CLS_REPL_BUCKET_MAX_MEM_POOL      (512)             // MB
 #endif
@@ -810,7 +810,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_WAITANDROLLBACK, "_clsBucket::waitEmptyAndRollback" )
-   INT32 _clsBucket::waitEmptyAndRollback( UINT32 *pNum )
+   INT32 _clsBucket::waitEmptyAndRollback( UINT32 *pNum,
+                                           DPS_LSN *pCompleteLsn )
    {
       INT32 rc = SDB_OK ;
       UINT32 num = 0 ;
@@ -854,6 +855,10 @@ namespace engine
       if ( pNum )
       {
          *pNum = num ;
+      }
+      if ( pCompleteLsn )
+      {
+         *pCompleteLsn = _expectLSN ;
       }
 
       PD_TRACE_EXITRC( SDB__CLSBUCKET_WAITANDROLLBACK, rc ) ;
@@ -1357,6 +1362,45 @@ namespace engine
    BOOLEAN _clsBucket::hasPending()
    {
       return ( UTIL_UNIQUEID_NULL != _pendingCLUniqueID ) ;
+   }
+
+   DPS_LSN _clsBucket::completeLSN ( BOOLEAN withRetEvent )
+   {
+      ossScopedLock lock( &_bucketLatch ) ;
+      if ( withRetEvent )
+      {
+         _submitEvent.reset() ;
+      }
+      return _expectLSN ;
+   }
+
+   DPS_LSN _clsBucket::fastCompleteLSN( UINT32 retryTimes,
+                                        BOOLEAN *pDirty )
+   {
+      UINT32 i = 0 ;
+      DPS_LSN expectLsn ;
+
+      while( i++ < retryTimes )
+      {
+         if ( _bucketLatch.try_get() )
+         {
+            expectLsn = _expectLSN ;
+            _bucketLatch.release() ;
+            if ( pDirty )
+            {
+               *pDirty = FALSE ;
+            }
+            return expectLsn ;
+         }
+         _submitEvent.wait( 1 ) ;
+      }
+
+      expectLsn = _expectLSN ;
+      if ( pDirty )
+      {
+         *pDirty = TRUE ;
+      }
+      return expectLsn ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__CLSBUCKET_FORCECOMPLETE, "_clsBucket::forceCompleteAll" )

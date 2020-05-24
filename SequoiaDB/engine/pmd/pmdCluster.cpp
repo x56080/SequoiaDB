@@ -84,7 +84,6 @@ namespace engine
    INT32 pmdDBMonitorEntryPoint( pmdEDUCB *cb, void *arg )
    {
       INT32 rc = SDB_OK ;
-      pmdFTMgr *pFTMgr = pmdGetKRCB()->getFTMgr() ;
       pmdEDUMgr *pEduMgr = cb->getEDUMgr() ;
       pmdEDUEvent data ;
       _clsLocalValidation v ;
@@ -106,12 +105,6 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to run local validation: %d", rc ) ;
-         }
-
-         /// FT
-         if ( pFTMgr )
-         {
-            pFTMgr->run() ;
          }
 
          if ( pmdDBIsAbnormal() )

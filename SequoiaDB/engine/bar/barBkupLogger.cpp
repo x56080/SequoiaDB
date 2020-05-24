@@ -2924,7 +2924,8 @@ namespace engine
                  _replBucket.toBson().toString().c_str() ) ;
          std::cout << "Begin to wait repl bucket empty..." << std::endl ;
 
-         INT32 rcTmp = _replBucket.waitEmptyAndRollback() ;
+         DPS_LSN expectLSN ;
+         INT32 rcTmp = _replBucket.waitEmptyAndRollback( NULL, &expectLSN ) ;
          if ( SDB_OK == rc && rcTmp )
          {
             rc = rcTmp ;
@@ -2934,8 +2935,6 @@ namespace engine
 
          if ( rcTmp )
          {
-            DPS_LSN expectLSN = _replBucket.completeLSN() ;
-
             if ( NULL != _pTransCB )
             {
                rcTmp = _pTransCB->rollbackTransInfoFromLog( _pDPSCB, expectLSN ) ;

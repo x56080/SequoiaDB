@@ -547,7 +547,8 @@ namespace engine
          virtual ~_ICluster() {}
 
       public:
-         virtual UINT64    completeLsn( UINT32 *pVer = NULL ) = 0 ;
+         virtual UINT64    completeLsn( BOOLEAN doFast = TRUE,
+                                        UINT32 *pVer = NULL ) = 0 ;
          virtual UINT32    lsnQueSize() = 0 ;
          virtual BOOLEAN   primaryLsn( UINT64 &lsn, UINT32 *pVer = NULL ) = 0 ;
    } ;

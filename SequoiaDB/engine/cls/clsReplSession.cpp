@@ -143,10 +143,10 @@ namespace engine
       // has error, need to rollback
       if ( CLS_BUCKET_WAIT_ROLLBACK == _pReplBucket->getStatus() )
       {
-         _pReplBucket->waitEmptyAndRollback() ;
-
          INT32 rcTmp = SDB_OK ;
-         DPS_LSN expectLSN = _pReplBucket->completeLSN() ;
+         DPS_LSN expectLSN ;
+
+         _pReplBucket->waitEmptyAndRollback( NULL, &expectLSN ) ;
 
          rcTmp = sdbGetTransCB()->rollbackTransInfoFromLog( _logger, expectLSN ) ;
          if ( SDB_OK != rcTmp )
@@ -246,12 +246,11 @@ namespace engine
 
    void _clsReplDstSession::_onDetach()
    {
-      if ( _pReplBucket->waitEmptyAndRollback() )
+      DPS_LSN expectLSN ;
+
+      if ( _pReplBucket->waitEmptyAndRollback( NULL, &expectLSN ) )
       {
          INT32 rcTmp = SDB_OK ;
-
-         DPS_LSN expectLSN = _pReplBucket->completeLSN() ;
-
          rcTmp = sdbGetTransCB()->rollbackTransInfoFromLog( _logger, expectLSN ) ;
          if ( SDB_OK != rcTmp )
          {
@@ -373,7 +372,7 @@ namespace engine
             if ( _pReplBucket->maxReplSync() > 0 )
             {
                // if has complete some log replay,need to notify primary
-               DPS_LSN completeLSN = _pReplBucket->completeLSN() ;
+               DPS_LSN completeLSN = _pReplBucket->completeLSN( TRUE ) ;
                if ( !completeLSN.invalid() &&
                     _completeLSN.offset != completeLSN.offset )
                {
@@ -1001,6 +1000,7 @@ namespace engine
       const CHAR *log = NULL ;
       BOOLEAN needRollback = FALSE ;
       DPS_LSN expectLSN ;
+      DPS_LSN completeLSN ;
       DPS_LSN_OFFSET firstOffset = DPS_INVALID_LSN_OFFSET ;
       BOOLEAN inRetry = FALSE ;
       num = 0 ;
@@ -1150,10 +1150,8 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__CLSDSTREPSN__REPLG, rc );
       return rc ;
    error:
-      if ( _pReplBucket->waitEmptyAndRollback() )
+      if ( _pReplBucket->waitEmptyAndRollback( NULL, &completeLSN ) )
       {
-         DPS_LSN completeLSN = _pReplBucket->completeLSN() ;
-
          rcTmp = sdbGetTransCB()->rollbackTransInfoFromLog( _logger,
                                                             completeLSN ) ;
          if ( SDB_OK != rcTmp )

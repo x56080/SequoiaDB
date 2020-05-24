@@ -268,7 +268,7 @@ namespace engine
             if ( pClsCB )
             {
                clsBucket *pBucket = pClsCB->getReplCB()->getBucket() ;
-               completeLSN = pBucket->completeLSN() ;
+               completeLSN = pBucket->fastCompleteLSN() ;
                lsnQueSize = pBucket->bucketSize() ;
                if ( pClsCB->isPrimary() || completeLSN.invalid() )
                {

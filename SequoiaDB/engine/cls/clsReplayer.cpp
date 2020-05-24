@@ -93,7 +93,7 @@ namespace engine
 
       SDB_ASSERT( NULL != pBucket, "bucket is invalid" ) ;
 
-      DPS_LSN completeLSN = pBucket->completeLSN() ;
+      DPS_LSN completeLSN = pBucket->completeLSN( TRUE ) ;
       while ( completeLSN.compareOffset( _lastLSN ) <= 0 )
       {
          if ( CLS_BUCKET_NORMAL != pBucket->getStatus() ||
@@ -103,7 +103,7 @@ namespace engine
             break ;
          }
          pBucket->waitSubmit( OSS_ONE_SEC ) ;
-         completeLSN = pBucket->completeLSN() ;
+         completeLSN = pBucket->completeLSN( TRUE ) ;
       }
 
       return rc ;
