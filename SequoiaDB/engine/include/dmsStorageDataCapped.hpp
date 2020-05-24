@@ -197,7 +197,8 @@ namespace engine
                                 INT64 logicalID,
                                 _pmdEDUCB *cb,
                                 SDB_DPSCB *dpscb,
-                                INT8 direction = 1 ) ;
+                                INT8 direction = 1,
+                                BOOLEAN byNumber = FALSE ) ;
 
       virtual INT32 dumpExtOptions( dmsMBContext *context,
                                     BSONObj &extOptions ) ;
@@ -370,6 +371,14 @@ namespace engine
 
       INT32 _limitProcess( dmsMBContext *context, UINT32 sizeReq,
                            dmsExtentInfo *workExtInfo ) ;
+
+      INT32 _popRecordByLID( dmsMBContext *context, INT64 logicalID,
+                             pmdEDUCB *cb, SDB_DPSCB *dpscb,
+                             INT8 direction = 1 ) ;
+
+      INT32 _popRecordByNumber( dmsMBContext *context, INT64 number,
+                                pmdEDUCB *cb, SDB_DPSCB *dpscb,
+                                INT8 direction = 1 ) ;
 
    private:
       dmsCappedCLOptions *_options[ DMS_MME_SLOTS ] ;

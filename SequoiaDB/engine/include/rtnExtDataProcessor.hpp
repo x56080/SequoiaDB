@@ -143,7 +143,7 @@ namespace engine
       INT32 prepare( DMS_EXTOPR_TYPE oprType, rtnExtOprData *oprData ) ;
 
       INT32 processDML( BSONObj &oprRecord, pmdEDUCB *cb,
-                        SDB_DPSCB *dpsCB = NULL ) ;
+                        BOOLEAN isRollback = FALSE, SDB_DPSCB *dpsCB = NULL ) ;
 
       INT32 processTruncate( pmdEDUCB *cb, BOOLEAN needChangeCLID,
                              SDB_DPSCB *dpsCB = NULL ) ;

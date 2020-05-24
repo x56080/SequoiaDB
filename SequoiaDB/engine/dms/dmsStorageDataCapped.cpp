@@ -2152,15 +2152,27 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED_POPRECORD, "_dmsStorageDataCapped::popRecord" )
    INT32 _dmsStorageDataCapped::popRecord( dmsMBContext *context,
-                                           INT64 logicalID,
+                                           INT64 value,
                                            pmdEDUCB *cb,
                                            SDB_DPSCB *dpscb,
-                                           INT8 direction )
+                                           INT8 direction,
+                                           BOOLEAN byNumber )
+   {
+      return byNumber ?
+             _popRecordByNumber( context, value, cb, dpscb, direction ) :
+             _popRecordByLID( context, value, cb, dpscb, direction ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYLID, "_dmsStorageDataCapped::_popRecordByLID" )
+   INT32 _dmsStorageDataCapped::_popRecordByLID( dmsMBContext *context,
+                                                 INT64 logicalID,
+                                                 pmdEDUCB *cb,
+                                                 SDB_DPSCB *dpscb,
+                                                 INT8 direction )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED_POPRECORD ) ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYLID ) ;
       dmsRecordID firstRID ;
       dmsExtRW extRW ;
       const dmsExtent *startExtent = NULL ;
@@ -2248,7 +2260,69 @@ namespace engine
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
       }
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED_POPRECORD, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYLID, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYNUMBER, "_dmsStorageDataCapped::_popRecordByNumber" )
+   INT32 _dmsStorageDataCapped::_popRecordByNumber( dmsMBContext *context,
+                                                    INT64 number,
+                                                    pmdEDUCB *cb,
+                                                    SDB_DPSCB *dpscb,
+                                                    INT8 direction )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYNUMBER ) ;
+      dmsExtentInfo *extInfo = NULL ;
+
+      if ( !context->isMBLock( EXCLUSIVE ) )
+      {
+         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+                 context->toString().c_str() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      while ( number-- > 0 )
+      {
+         INT64 recordLID = DMS_INVALID_REC_LOGICALID ;
+         if ( 0 == _mbStatInfo[context->mbID()]._totalRecords )
+         {
+            // No more records
+            goto done ;
+         }
+
+         if ( 1 == direction )
+         {
+            // Pop the first record in the first extent.
+            const dmsExtent *extent = NULL ;
+            dmsExtRW extRW = extent2RW( context->mb()->_firstExtentID,
+                                        context->mbID() ) ;
+            extRW.setNothrow( TRUE ) ;
+            extent = extRW.readPtr<dmsExtent>() ;
+            PD_CHECK( extent, SDB_SYS, error, PDERROR, "Read extent[%d] "
+                                                       "failed: %d",
+                      context->mb()->_firstExtentID, rc ) ;
+            _extLidAndOffset2RecLid( extent->_logicID,
+                                     extent->_firstRecordOffset, recordLID ) ;
+         }
+         else
+         {
+            // Pop the last record in the last extent(working extent).
+            extInfo = getWorkExtInfo( context->mbID() ) ;
+            _extLidAndOffset2RecLid( extInfo->_extLogicID,
+                                     extInfo->_lastRecordOffset, recordLID ) ;
+         }
+
+         rc = _popRecordByLID( context, recordLID, cb, dpscb, direction ) ;
+         PD_RC_CHECK( rc, PDERROR, "Pop record of logical id[%lld] failed: %d",
+                      recordLID, rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__POPRECORDBYNUMBER, rc ) ;
       return rc ;
    error:
       goto done ;

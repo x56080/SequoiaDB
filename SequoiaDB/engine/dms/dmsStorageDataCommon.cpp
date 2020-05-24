@@ -4132,7 +4132,8 @@ namespace engine
                                            INT64 targetID,
                                            pmdEDUCB *cb,
                                            SDB_DPSCB *dpscb,
-                                           INT8 direction )
+                                           INT8 direction,
+                                           BOOLEAN byNumber )
    {
       INT32 rc = SDB_OK ;
 

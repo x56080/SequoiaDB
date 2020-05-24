@@ -87,6 +87,7 @@ namespace engine
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATA__ONALLOCEXTENT ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__PREPAREINSERTDATA, "_dmsStorageData::_prepareInsertData" )
    INT32 _dmsStorageData::_prepareInsertData( const BSONObj &record,
                                               BOOLEAN mustOID,
                                               pmdEDUCB *cb,
@@ -95,6 +96,7 @@ namespace engine
                                               INT64 position )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__PREPAREINSERTDATA ) ;
       IDToInsert oid ;
       idToInsertEle oidEle((CHAR*)(&oid)) ;
       CHAR *pMergedData = NULL ;
@@ -147,6 +149,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__PREPAREINSERTDATA, rc ) ;
       return rc ;
    error:
       goto done ;

@@ -2318,9 +2318,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPOPCOMMAND, "rtnPopCommand" )
-   INT32 rtnPopCommand( const CHAR *pCollectionName, INT64 logicalID,
+   INT32 rtnPopCommand( const CHAR *pCollectionName, INT64 value,
                         pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
-                        INT16 w, INT8 direction )
+                        INT16 w, INT8 direction, BOOLEAN byNumber )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNPOPCOMMAND ) ;
@@ -2338,11 +2338,11 @@ namespace engine
       rtnExtDataHandler *extHandler = NULL ;
       LOCK_HANDLE lockHandle = RTN_INVALID_LOCK_HANDLE ;
 
-      if ( logicalID < 0 )
+      if ( value < 0 )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "LogicalID for pop is invalid[%lld], rc: %d",
-                 logicalID, rc ) ;
+         PD_LOG( PDERROR, "Target value for pop is invalid[%lld], rc: %d",
+                 value, rc ) ;
          goto error ;
       }
 
@@ -2387,7 +2387,8 @@ namespace engine
          cb->registerMonCRUDCB( &( mbContext->mbStat()->_crudCB ) ) ;
       }
 
-      rc = su->data()->popRecord( mbContext, logicalID, cb, dpsCB, direction ) ;
+      rc = su->data()->popRecord( mbContext, value, cb, dpsCB, direction,
+                                  byNumber ) ;
       PD_RC_CHECK( rc, PDERROR, "Pop record failed, rc: %d", rc ) ;
 
    done:

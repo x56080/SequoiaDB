@@ -165,7 +165,7 @@ namespace engine
       // end stat
 
       // for persistence
-      UINT64         _maxGlobTransID ;  
+      UINT64         _maxGlobTransID ;
       CHAR           _pad2[ 8 ] ;  // reserved
       UINT32         _commitFlag ;
       UINT64         _commitLSN ;
@@ -500,7 +500,7 @@ namespace engine
       // compare and update GTID is the one passed in is newer
       UINT64 getMaxGlobTransID( )
       {
-         return _maxGlobTransID.peek() ; 
+         return _maxGlobTransID.peek() ;
       }
 
       _dmsMBStatInfo ()
@@ -951,7 +951,8 @@ namespace engine
                                   INT64 targetID,
                                   _pmdEDUCB *cb,
                                   SDB_DPSCB *dpscb,
-                                  INT8 direction = 1 ) ;
+                                  INT8 direction = 1,
+                                  BOOLEAN byNumber = FALSE ) ;
 
          // the dataRecord is not owned
          // Caller must hold mb exclusive/shared lock
