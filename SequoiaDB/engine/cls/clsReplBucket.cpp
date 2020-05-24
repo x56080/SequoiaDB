@@ -289,6 +289,8 @@ namespace engine
       _allEmptyEvent.signal() ;
 
       _pendingCLUniqueID = UTIL_UNIQUEID_NULL ;
+      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
+      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
    }
 
    _clsBucket::~_clsBucket ()
@@ -442,6 +444,9 @@ namespace engine
 
       _pendingCLUniqueID = UTIL_UNIQUEID_NULL ;
 
+      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
+      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
+
    done:
       return rc ;
    error:
@@ -478,6 +483,9 @@ namespace engine
       _memPool.clear() ;
 
       _pendingCLUniqueID = UTIL_UNIQUEID_NULL ;
+
+      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
+      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
    }
 
    void _clsBucket::close ()
@@ -1234,12 +1242,19 @@ namespace engine
             ossSleep( CLS_REPL_RETRY_INTERVAL ) ;
             continue ;
          }
-         if ( SDB_OK != rc )
+         else if ( SDB_RTN_AUTOINDEXID_IS_FALSE == rc )
+         {
+            // id index is missing, we should start full sync
+            PD_LOG( PDERROR, "Failed to rollback lsn [%llu] need restart to "
+                    "full sync, rc: %d", header->_lsn, rc ) ;
+            PMD_RESTART_DB_FULLSYNC( rc ) ;
+         }
+         else if ( SDB_OK != rc )
          {
             PD_LOG( PDDEBUG, "Failed to rollback lsn [%llu], rc: %d",
                     header->_lsn, rc ) ;
+            SDB_ASSERT( SDB_OK == rc, "Rollback dps log failed" ) ;
          }
-         SDB_ASSERT( SDB_OK == rc, "Rollback dps log failed" ) ;
          break ;
       }
 
@@ -1501,6 +1516,77 @@ namespace engine
    void _clsBucket::clearParallaInfo()
    {
       _mapParallaInfo.clear() ;
+      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
+      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
+   }
+
+   INT32 _clsBucket::waitForLSN( DPS_LSN_OFFSET lsn )
+   {
+      INT32 rc = SDB_OK ;
+
+      DPS_LSN curLSN = completeLSN( TRUE ) ;
+      while ( curLSN.compareOffset( lsn ) <= 0 )
+      {
+         if ( CLS_BUCKET_NORMAL != getStatus() ||
+              bucketSize() == 0 )
+         {
+            rc = waitEmptyWithCheck() ;
+            break ;
+         }
+         waitSubmit( OSS_ONE_SEC ) ;
+         curLSN = completeLSN( TRUE ) ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _clsBucket::waitForIDLSNComp( DPS_LSN_OFFSET nidRecLSN  )
+   {
+      INT32 rc = SDB_OK ;
+
+      // no ID record parallel LSN is set, OK to return
+      if ( DPS_INVALID_LSN_OFFSET == _lastIDRecParaLSN )
+      {
+         _lastNIDRecParaLSN = nidRecLSN ;
+         goto done ;
+      }
+
+      // wait LSN to be completed
+      rc = waitForLSN( _lastIDRecParaLSN ) ;
+      if ( SDB_OK == rc )
+      {
+         // last ID record parallel LSN is completed, we could skip next time
+         _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
+         _lastNIDRecParaLSN = nidRecLSN ;
+      }
+
+   done:
+      return rc ;
+   }
+
+   INT32 _clsBucket::waitForNIDLSNComp( DPS_LSN_OFFSET idRecLSN  )
+   {
+      INT32 rc = SDB_OK ;
+
+      // no non-ID record parallel LSN is set, OK to return
+      if ( DPS_INVALID_LSN_OFFSET == _lastNIDRecParaLSN )
+      {
+         _lastIDRecParaLSN = idRecLSN ;
+         goto done ;
+      }
+
+      // wait LSN to be completed
+      rc = waitForLSN( _lastNIDRecParaLSN ) ;
+      if ( SDB_OK == rc )
+      {
+         // last non-ID record parallel LSN is completed
+         // we could skip next time
+         _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
+         _lastIDRecParaLSN = idRecLSN ;
+      }
+
+   done:
+      return rc ;
    }
 
    /*

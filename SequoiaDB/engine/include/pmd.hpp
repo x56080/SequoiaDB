@@ -57,6 +57,7 @@
 #include "utilMemBlockPool.hpp"
 #include "pmdLightJobMgr.hpp"
 #include "pmdFTMgr.hpp"
+#include "pmdStartup.hpp"
 #include "monMgr.hpp"
 
 namespace engine
@@ -83,6 +84,14 @@ namespace engine
 
    #define PMD_RESTART_DB(code)   \
       do { \
+         pmdGetKRCB()->setExitCode( code ) ; \
+         pmdGetKRCB()->setDBStatus( SDB_DB_SHUTDOWN ) ; \
+         pmdGetKRCB()->setRestart( TRUE ) ; \
+      } while ( 0 )
+
+   #define PMD_RESTART_DB_FULLSYNC(code)   \
+      do { \
+         pmdGetStartup().ok( FALSE ) ; \
          pmdGetKRCB()->setExitCode( code ) ; \
          pmdGetKRCB()->setDBStatus( SDB_DB_SHUTDOWN ) ; \
          pmdGetKRCB()->setRestart( TRUE ) ; \

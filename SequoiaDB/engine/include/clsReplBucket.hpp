@@ -222,6 +222,11 @@ namespace engine
                                  DPS_LSN_OFFSET lsn ) ;
          void        clearParallaInfo() ;
 
+         INT32       waitForLSN( DPS_LSN_OFFSET lsn ) ;
+
+         INT32       waitForIDLSNComp( DPS_LSN_OFFSET nidRecLSN ) ;
+         INT32       waitForNIDLSNComp( DPS_LSN_OFFSET idRecLSN ) ;
+
       protected:
          void        _submitResult( DPS_LSN_OFFSET offset, DPS_LSN_VER version,
                                     UINT32 lsnLen, clsReplayInfo &info,
@@ -290,6 +295,9 @@ namespace engine
 
          // parallel info
          MAP_CL_PARALLAINFO               _mapParallaInfo ;
+
+         DPS_LSN_OFFSET                   _lastIDRecParaLSN ;
+         DPS_LSN_OFFSET                   _lastNIDRecParaLSN ;
    } ;
    typedef _clsBucket clsBucket ;
 

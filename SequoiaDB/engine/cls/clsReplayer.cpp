@@ -89,24 +89,8 @@ namespace engine
 
    INT32 _clsCLParallaInfo::waitLastLSN( clsBucket *pBucket )
    {
-      INT32 rc = SDB_OK ;
-
       SDB_ASSERT( NULL != pBucket, "bucket is invalid" ) ;
-
-      DPS_LSN completeLSN = pBucket->completeLSN( TRUE ) ;
-      while ( completeLSN.compareOffset( _lastLSN ) <= 0 )
-      {
-         if ( CLS_BUCKET_NORMAL != pBucket->getStatus() ||
-              pBucket->bucketSize() == 0 )
-         {
-            rc = pBucket->waitEmptyWithCheck() ;
-            break ;
-         }
-         pBucket->waitSubmit( OSS_ONE_SEC ) ;
-         completeLSN = pBucket->completeLSN( TRUE ) ;
-      }
-
-      return rc ;
+      return pBucket->waitForLSN( _lastLSN ) ;
    }
 
    BOOLEAN _clsCLParallaInfo::checkParalla( UINT16 type,
@@ -506,6 +490,7 @@ namespace engine
       const CHAR *pShortName = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
       clsCLParallaInfo *pInfo = NULL ;
+      BOOLEAN noIDIndex = FALSE ;
 
       rc = rtnResolveCollectionNameAndLock( fullname, _dmsCB, &su, &pShortName,
                                             suID ) ;
@@ -540,6 +525,9 @@ namespace engine
                 "Failed to get collection parallel information for "
                 "collection [%s]", fullname ) ;
 
+      noIDIndex = OSS_BIT_TEST( mbContext->mb()->_attributes,
+                                DMS_MB_ATTR_NOIDINDEX ) ? TRUE : FALSE ;
+
       // For collection who has text indices, parallel replay should
       // also be forbidden. Otherwise, the records in the capped
       // collection will not be exactly the same.
@@ -567,11 +555,51 @@ namespace engine
          if ( SDB_OK != rc )
          {
             INT32 bucketStatus = (INT32)pBucket->getStatus() ;
-            PD_LOG( PDWARNING, "Wait repl bucket empty failed, its "
+            PD_LOG( PDWARNING, "Failed to wait repl bucket to switch LSN, its "
                     "status[%s(%d)] is error",
                     clsGetReplBucketStatusDesp( bucketStatus ),
                     bucketStatus ) ;
             goto error ;
+         }
+      }
+
+      if ( CLS_PARALLA_REC == parallaType )
+      {
+         // we need to check ID index
+         // - record without ID index could not rollback, so we need to
+         //   wait all previous records with ID index to be finished
+         // - in another way, record with ID index could cause rollback
+         //   so we need to wait all previous records without ID index to be
+         //   finished
+         if ( noIDIndex )
+         {
+            // without ID index case
+            rc = pBucket->waitForIDLSNComp( recordHeader->_lsn ) ;
+            if ( SDB_OK != rc )
+            {
+               INT32 bucketStatus = (INT32)pBucket->getStatus() ;
+               PD_LOG( PDWARNING, "Failed to wait repl bucket to complement "
+                       "the last record parallel mode with ID index, its "
+                       "status[%s(%d)] is error",
+                       clsGetReplBucketStatusDesp( bucketStatus ),
+                       bucketStatus ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            // with ID index case
+            rc = pBucket->waitForNIDLSNComp( recordHeader->_lsn ) ;
+            if ( SDB_OK != rc )
+            {
+               INT32 bucketStatus = (INT32)pBucket->getStatus() ;
+               PD_LOG( PDWARNING, "Failed to wait repl bucket to complement "
+                       "the last record parallel mode without ID index, its "
+                       "status[%s(%d)] is error",
+                       clsGetReplBucketStatusDesp( bucketStatus ),
+                       bucketStatus ) ;
+               goto error ;
+            }
          }
       }
 
