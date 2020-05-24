@@ -7,14 +7,14 @@
 
 |参数名    |参数类型    |描述         |是否必填|
 |--------- |----------- |------------ |----------|
-| options  | Json对象   | 设定配置过滤类型 以及 **[命令位置参数](reference/Sequoiadb_command/Overview/location.md)** | 否 |
+| options  | Json对象   | 设定配置过滤类型 以及 **[命令位置参数](reference/Sequoiadb_command/location.md)** | 否 |
 
 1. **options 格式**
 
  | 属性名 | 描述 | 格式 |
  | ------ | ------ | ------ |
  | Type   | 配置过滤类型， 0:所有配置; 1:屏敝未修改的隐藏参数; 2:屏敝未修改的所有参数; 3:屏敝未配置的参数。缺省取值为 3。 | Type:3 |
- | Location Elements | 命令位置参数项，详细见 **[命令位置参数](reference/Sequoiadb_command/Overview/location.md)** | GroupName:"db1" |
+ | Location Elements | 命令位置参数项，详细见 **[命令位置参数](reference/Sequoiadb_command/location.md)** | GroupName:"db1" |
 
 > **Note:**
 >

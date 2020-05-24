@@ -7,7 +7,7 @@
 
 | 参数名  | 参数类型 | 描述   | 是否必填 |
 | ------- | -------- | ------ | -------- |
-| options | Json 对象| 设定快照类型、会话号、[命令位置参数](reference/Sequoiadb_command/Overview/location.md) | 否 |
+| options | Json 对象| 设定快照类型、会话号、[命令位置参数](reference/Sequoiadb_command/location.md) | 否 |
 
 1. **options 格式**
 
@@ -17,7 +17,7 @@
  | SessionID | 指定重置的会话ID。 | 所有会话 | SessionID: 1 |
  | CollectionSpace | 指定需要重置快照统计信息的集合空间名称，字符串类型。 | 空 | CollectionSpace : "foo" |
  | Collection | 指定需要重置快照统计信息的集合名称，字符串类型。需要为集合全名。 | 空 | Collection : "foo.bar" |
- | Location Elements | [命令位置参数](reference/Sequoiadb_command/Overview/location.md) | 所有节点 | GroupName:"db1" |
+ | Location Elements | [命令位置参数](reference/Sequoiadb_command/location.md) | 所有节点 | GroupName:"db1" |
 
  > **Note:**
  >

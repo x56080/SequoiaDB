@@ -8,7 +8,7 @@
 | 参数名   | 参数类型    | 描述   													| 是否必填 |
 |----------|-------------|----------------------------------------------------------|----------|
 | listType | 枚举        | [列表类型](database_management/monitoring/list/list.md)。| 是 	   |
-| cond     | Json 对象   | 设置匹配条件以及[命令位置参数](reference/Sequoiadb_command/Overview/location.md)。 | 否 	   |
+| cond     | Json 对象   | 设置匹配条件以及[命令位置参数](reference/Sequoiadb_command/location.md)。 | 否 	   |
 | sel      | Json 对象   | 选择返回的字段名。为 null 时，返回所有的字段名。         | 否 	   |
 | sort     | Json 对象   | 对返回的记录按选定的字段排序。1为升序；-1为降序。        | 否 	   |
 

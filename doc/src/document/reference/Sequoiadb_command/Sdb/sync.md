@@ -7,7 +7,7 @@
 
 | 参数名 |参数类型| 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
-| options |Json 对象| 设定 **深度刷盘**、 **阻塞模式**、 **指定集合空间** 以及 **[命令位置参数](reference/Sequoiadb_command/Overview/location.md)** | 否 |
+| options |Json 对象| 设定 **深度刷盘**、 **阻塞模式**、 **指定集合空间** 以及 **[命令位置参数](reference/Sequoiadb_command/location.md)** | 否 |
 
 1. **Options 格式**
 
@@ -16,7 +16,7 @@
  | Deep| 是否开启深度刷盘，取值0/1/-1, 0表示不开启，1表示开启，-1表示采用服务器端默认配置。缺省为1。<br/> Deep取值兼容bool类型。 | Deep:1 |
  | Block | 持久化期间是否阻塞所有的变更操作，取值true/false，缺省为false。 | Block:false |
  | CollectionSpace | 指定持久化的集合空间名称，字符串类型。<br/>如果指定该参数，则只会持久化该集合空间，否则会持久化所有的集合空间和日志文件。<br/> |  CollectionSpace:"foo" |
- | Location Elements | 命令位置参数项，详细见 **[命令位置参数](reference/Sequoiadb_command/Overview/location.md)** | GroupName:"db1" |
+ | Location Elements | 命令位置参数项，详细见 **[命令位置参数](reference/Sequoiadb_command/location.md)** | GroupName:"db1" |
 
 ##返回值##
 

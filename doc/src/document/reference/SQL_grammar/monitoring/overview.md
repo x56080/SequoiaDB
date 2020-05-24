@@ -126,7 +126,7 @@ SdbSnapshotOption[.cond(<cond>)]
 
 ##SQL使用命令位置参数##
 
-[命令位置参数](reference/Sequoiadb_command/Overview/location.md) 是用于控制命令执行的位置信息。SQL 可以用 where 语句来使用命令位置参数。
+[命令位置参数](reference/Sequoiadb_command/location.md) 是用于控制命令执行的位置信息。SQL 可以用 where 语句来使用命令位置参数。
 
 ###示例###
 

@@ -15,7 +15,7 @@ Sdb
 | 参数名  | 参数类型 | 默认值  | 描述               | 是否必填 |
 | ------- | -------- | ------- | ------------------ | -------- |
 | csName  | string   | ---     | 集合空间名         | 是       |
-| options | JSON     | 空      | [命令位置参数](reference/Sequoiadb_command/Overview/location.md) | 否       |
+| options | JSON     | 空      | [命令位置参数](reference/Sequoiadb_command/location.md) | 否       |
 
 >**Note:**
 

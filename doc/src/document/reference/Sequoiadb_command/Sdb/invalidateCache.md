@@ -7,7 +7,7 @@
 
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
-| options | Json对象 | **[命令位置参数](reference/Sequoiadb_command/Overview/location.md)** | 否 |
+| options | Json对象 | **[命令位置参数](reference/Sequoiadb_command/location.md)** | 否 |
 
 > **Note:**
 >

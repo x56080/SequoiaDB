@@ -19,7 +19,7 @@ Load the specific collection space into memory.
 | Name    | Type   | Default | Description                          | Required or not |
 | ------- | ------ | ------- | ------------------------------------ | --------------- |
 | csName  | string | ---     | collection space name                | yes             |
-| options | JSON   | NULL    | [command position parameter](reference/Sequoiadb_command/Overview/location.md) | not             |
+| options | JSON   | NULL    | [command position parameter](reference/Sequoiadb_command/location.md) | not             |
 
 >**Note:**
 

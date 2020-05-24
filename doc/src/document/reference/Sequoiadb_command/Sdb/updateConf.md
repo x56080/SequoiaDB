@@ -8,7 +8,7 @@
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
 | config | Json对象 |配置参数，包含配置名和配置值，例如：{ preferedinstance:'A', diaglevel:3 } | 是 |
-| options| Json对象 | **[命令位置参数](reference/Sequoiadb_command/Overview/location.md)** | 否 |
+| options| Json对象 | **[命令位置参数](reference/Sequoiadb_command/location.md)** | 否 |
 
 > **Note:**
 >
