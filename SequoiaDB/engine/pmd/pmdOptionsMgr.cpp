@@ -2831,6 +2831,7 @@ done:
          _maxSubQuery      = 0 ;
          _maxReplSync      = 0 ;
          _syncStrategy     = CLS_SYNC_NONE ;
+         _recycleRecord    = TRUE ;
 
          if ( 0 == _syncInterval || _syncInterval > 60000 )
          {
