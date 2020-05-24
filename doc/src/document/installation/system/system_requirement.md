@@ -131,23 +131,32 @@
 
 - **配置方法**
 
-  - 对于 SUSE：
+  - 对于 SUSE 11：
 
      	执行如下命令
 
          ```lang-bash
-         # SuSEfirewall2 stop
-         # chkconfig SuSEfirewall2_init off
+         # SuSEfirewall2 stop    # 临时关闭防火墙
+         # chkconfig SuSEfirewall2_init off    #设置开机禁用防火墙
          # chkconfig SuSEfirewall2_setup off
 	       ```
+
+  - 对于 SUSE 12：
+
+         执行如下命令
+
+         ```lang-bash
+         # systemctl stop SuSEfirewall2.service    # 临时关闭防火墙
+         # systemctl disable SuSEfirewall2.service    # 设置开机禁用防火墙
+         ```
 
   - 对于 Red Hat 6/CentOS 6 及以下的系统：
 
 		执行如下命令
 
          ```lang-bash
-         # service iptables stop
-         # chkconfig iptables off
+         # service iptables stop    # 临时关闭防火墙
+         # chkconfig iptables off    #设置开机禁用防火墙
          ```
 
   - 对于 Red Hat 7/Red Hat 8 和 CentOS 7/CentOS 8：
@@ -155,8 +164,8 @@
 		执行如下命令
 
          ```lang-bash
-         # systemctl stop firewalld.service
-         # systemctl disable firewalld.service
+         # systemctl stop firewalld.service    # 临时关闭防火墙
+         # systemctl disable firewalld.service    # 设置开机禁用防火墙
          ```
 
   - 对于 Ubuntu：
@@ -169,7 +178,7 @@
 
 - **验证方法**
 
-  - 对于 SUSE：
+  - 对于 SUSE 11：
 
      执行命令，若打印以下信息，说明关闭防火墙成功
 
@@ -178,6 +187,18 @@
      SuSEfirewall2_init       	0:off	1:off	2:off	3:off	4:off	5:off	6:off
      SuSEfirewall2_setup      	0:off	1:off	2:off	3:off	4:off	5:off	6:off
      ```
+
+  - 对于 SUSE 12：
+
+     执行命令，若打印以下信息，说明关闭防火墙成功
+
+     ```lang-bash
+     # systemctl status SuSEfirewall2.service
+     ● SuSEfirewall2.service - SuSEfirewall2 phase 2
+           Loaded: loaded (/usr/lib/systemd/system/SuSEfirewall2.service; disabled; vendor preset: disabled)
+           Active: inactive (dead)
+     ```
+
 
   - 对于 Red Hat 6/CentOS 6 及以下的系统：
 
@@ -200,7 +221,7 @@
              Docs: man:firewalld(1)
       ```
 
-  - 对于 Ubuntu:
+  - 对于 Ubuntu：
 
      执行命令，若打印以下信息，说明关闭防火墙成功
 
