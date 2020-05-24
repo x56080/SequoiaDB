@@ -1301,18 +1301,10 @@
                "en": "SequoiaDB Shell Method List",
                "contents": [
                   {
-                     "id": 1482317421,
-                     "dir": "Overview",
-                     "cn": "概述",
-                     "en": "Overview",
-                     "contents": [
-                        {
-                           "id": 1482314609,
-                           "file": "location",
-                           "cn": "命令位置参数",
-                           "en": "location"
-                        }
-                     ]
+                     "id": 1482314609,
+                     "file": "location",
+                     "cn": "命令位置参数",
+                     "en": "location"
                   },
                   {
                      "id": 1432190765,

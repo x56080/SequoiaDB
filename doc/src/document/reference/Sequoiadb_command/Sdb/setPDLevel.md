@@ -8,7 +8,7 @@
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
 | level  | int    | 日志级别，取值 0~5，分别对应<br> 0: SEVERE<br> 1: ERROR<br> 2: EVENT<br> 3: WARNING<br> 4: INFO<br> 5: DEBUG   | 是 |
-| options | Json对象 | **[命令位置参数](reference/Sequoiadb_command/Overview/location.md)** | 否 |
+| options | Json对象 | **[命令位置参数](reference/Sequoiadb_command/location.md)** | 否 |
 
 > **Note:**
 >
