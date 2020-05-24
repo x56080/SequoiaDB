@@ -945,6 +945,10 @@ static INT32 _readNextBuffer ( sdbCursorHandle cursor )
    if ( SDB_OK != rc )
    {
       MsgOpReply *pReply = (MsgOpReply*)pCursor->_pReceiveBuffer ;
+      if ( !pReply )
+      {
+         goto error ;
+      }
       if ( SDB_OK != pReply->flags )
       {
          lcontextID = -1 ;
@@ -7186,6 +7190,11 @@ SDB_EXPORT INT32 sdbNext ( sdbCursorHandle cHandle,
    }
 retry :
    pReply = (MsgOpReply*)cs->_pReceiveBuffer ;
+   if ( !pReply )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
    if ( -1 == cs->_offset )
    {
       cs->_offset = ossRoundUpToMultipleX ( sizeof(MsgOpReply), 4 ) ;
@@ -7298,6 +7307,11 @@ SDB_EXPORT INT32 sdbCurrent ( sdbCursorHandle cHandle,
    }
 retry :
    pReply = (MsgOpReply*)cs->_pReceiveBuffer ;
+   if ( !pReply )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
    if ( -1 == cs->_offset )
    {
       cs->_offset = ossRoundUpToMultipleX ( sizeof(MsgOpReply), 4 ) ;

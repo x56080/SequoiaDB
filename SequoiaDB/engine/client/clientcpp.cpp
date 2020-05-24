@@ -424,6 +424,10 @@ do                                                            \
       if ( SDB_OK != rc )
       {
          MsgOpReply *pReply = (MsgOpReply*)_pReceiveBuffer ;
+         if ( !pReply )
+         {
+            goto error ;
+         }
          if ( SDB_OK != pReply->flags )
          {
             _contextID = -1 ;
@@ -482,6 +486,11 @@ do                                                            \
 
    retry :
       pReply = (MsgOpReply*)_pReceiveBuffer ;
+      if ( !pReply )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
       // let it jump to next record
       if ( -1 == _offset )
       {
@@ -550,6 +559,11 @@ do                                                            \
       }
       else
       {
+         if ( !_pReceiveBuffer )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
          obj.init ( &_pReceiveBuffer [ _offset ] ) ;
 
          if ( TRUE == getOwned )
