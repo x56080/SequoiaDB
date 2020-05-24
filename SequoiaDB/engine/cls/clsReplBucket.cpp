@@ -1133,31 +1133,40 @@ namespace engine
                      "Unexpected error occurred" ) ;
          ftReportErr( rc ) ;
 
-         // NOTE: all running threads could not be waiting
          if ( CLS_BUCKET_NORMAL == _status &&
               SDB_IXM_DUP_KEY == rc &&
               !ignoreDupKey &&
-              canRetry &&
-              _waitAgentNum.fetch() >= _curAgentNum.fetch() - 1 )
+              canRetry )
          {
-            PD_LOG( PDDEBUG, "Bucket [%u]: failed to replay lsn [%llu], "
-                    "wait to resolve duplicated key, %u threads waiting",
-                    unitID, header->_lsn, _waitAgentNum.fetch() ) ;
-
             // found a duplicated key issue
             // wait complete LSN to reach this record, and retry
             if ( !isWaiting )
             {
                _waitAgentNum.inc() ;
                isWaiting = TRUE ;
+
+               PD_LOG( PDDEBUG, "Bucket [%u]: failed to replay lsn [%llu], "
+                       "wait to resolve duplicated key, %u threads waiting",
+                       unitID, header->_lsn, _waitAgentNum.fetch() ) ;
             }
-            waitSubmit( CLS_REPL_RETRY_INTERVAL ) ;
-            if ( completeLSN().compareOffset( header->_lsn ) >= 0 )
+            // NOTE: all running threads could not be waiting
+            if ( _waitAgentNum.fetch() < _curAgentNum.fetch() )
             {
-               // when meets expect LSN, do the last retry
-               canRetry = FALSE ;
+               // not all agents are waiting, so this agent could wait
+               waitSubmit( CLS_REPL_RETRY_INTERVAL ) ;
+               if ( completeLSN().compareOffset( header->_lsn ) >= 0 )
+               {
+                  // when meets expect LSN, do the last retry
+                  canRetry = FALSE ;
+               }
+               goto retry ;
             }
-            goto retry ;
+            else
+            {
+               // all agents are waiting, stop waiting
+               PD_LOG( PDDEBUG, "Bucket [%u]: too many waiting threads, "
+                       "stop waiting", unitID ) ;
+            }
          }
          if ( CLS_BUCKET_WAIT_ROLLBACK != _status )
          {
