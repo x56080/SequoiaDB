@@ -1236,6 +1236,10 @@ namespace engine
       }
 
    done:
+      if ( hasBlock )
+      {
+         _pEDUCB->unsetBlock() ;
+      }
       if ( monQuery )
       {
          ossTick endTimer;
