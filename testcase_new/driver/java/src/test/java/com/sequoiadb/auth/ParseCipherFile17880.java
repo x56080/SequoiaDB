@@ -1,11 +1,8 @@
 package com.sequoiadb.auth;
 
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.testcommon.CommLib;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.util.SdbDecrypt;
-import com.sequoiadb.util.SdbDecryptUserInfo;
+import java.io.File;
+import java.util.Random;
+
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -13,12 +10,16 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.util.Random;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.util.SdbDecrypt;
+import com.sequoiadb.util.SdbDecryptUserInfo;
 
 /**
- * @author fanyu
  * @Description: seqDB-17880:parseCipherFile参数检验,此用例密码文件中包含多个用户
+ * @author fanyu
  * @Date:2019年02月22日
  * @version:1.0
  */
@@ -32,7 +33,7 @@ public class ParseCipherFile17880 extends SdbTestBase {
             "token17880A", "token17880B", "token17880C" };
     private String passwdFileName = "/password17880";
     private String passwordFilePath;
-    private String[] tokens = { getRandomString( 257 ), " ", "测试" };
+    private String[] tokens = { getRandomString( 256 ), " ", "测试" };
 
     @BeforeClass(alwaysRun = true)
     private void setUp() throws Exception {
@@ -92,7 +93,7 @@ public class ParseCipherFile17880 extends SdbTestBase {
         db.close();
     }
 
-    @AfterClass
+    @AfterClass(alwaysRun = true)
     private void tearDown() throws Exception {
         try {
             for ( int i = 0; i < usernames.length; i++ ) {

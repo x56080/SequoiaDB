@@ -5,6 +5,7 @@ import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
@@ -42,7 +43,7 @@ public class TestSdbUser16280 extends SdbTestBase {
         }
     }
 
-    @AfterClass
+    @AfterClass(alwaysRun = true)
     public void tearDown() {
         sdb.removeUser( userName, "admin" );
         sdb.close();

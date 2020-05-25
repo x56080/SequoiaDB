@@ -1,20 +1,21 @@
 package com.sequoiadb.auth;
 
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.testcommon.CommLib;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.util.SdbDecrypt;
-import com.sequoiadb.util.SdbDecryptUserInfo;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.util.SdbDecrypt;
+import com.sequoiadb.util.SdbDecryptUserInfo;
 
 /**
  * @Description: seqDB-17876:不带token,单个cluster,密码文件包含每个cluster单个或多个用户
@@ -92,7 +93,7 @@ public class ParseCipherFile17876 extends SdbTestBase {
         db.close();
     }
 
-    @AfterClass
+    @AfterClass(alwaysRun = true)
     private void tearDown() throws Exception {
         try {
             sdb.removeUser( username, password );
