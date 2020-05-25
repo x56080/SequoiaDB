@@ -183,6 +183,8 @@ namespace engine
          const CHAR *pFromDot = ossStrchr( _from, '.' ) ;
          const CHAR *pToDot = ossStrchr( _to, '.' ) ;
 
+         pOtherRename = ( _rtnLTRename* )pOther ;
+
          if ( pFromDot && pToDot )
          {
             /*

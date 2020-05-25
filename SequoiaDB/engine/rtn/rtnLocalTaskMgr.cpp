@@ -130,6 +130,10 @@ namespace engine
                goto error ;
             }
 
+            rc = ptr->initFromBson( obj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to initialize task from BSON, "
+                         "rc: %d", rc ) ;
+
             /// add task
             ptr->_setTaskID( taskID ) ;
             _taskMap[ taskID ] = ptr ;
