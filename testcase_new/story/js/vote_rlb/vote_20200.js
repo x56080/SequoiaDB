@@ -4,7 +4,7 @@
 ***************************************************************************** */
 testConf.skipStandAlone = true;
  
-//main( test );SEQUOIADBMAINSTREAM-5557
+main( test );
 
 function test()
 {
