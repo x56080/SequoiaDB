@@ -3197,6 +3197,19 @@ INT32 _sdbCi::handle( const po::options_description &desc,
       goto done ;
    }
 
+   if( vm.count( CONSISTENCY_INSPECT_AUTH ) )
+   {
+      if ( NULL == ossStrrchr( _auth, ':' ) )
+      {
+         if( !_cipher && ( vm.count( CONSISTENCY_INSPECT_TOKEN ) ||
+                           vm.count( CONSISTENCY_INSPECT_CIPHERFILE ) ) )
+         {
+            std::cout << "If you want to use cipher text, you should use"
+                      << " \"--cipher true\"" << std::endl ;
+         }
+      }
+   }
+
    if ( 0 != ossStrncmp( CI_ACTION_INSPECT, _header._action, CI_ACTION_SIZE ) &&
         0 != ossStrncmp( CI_ACTION_REPORT, _header._action, CI_ACTION_SIZE ) )
    {
@@ -3375,13 +3388,7 @@ INT32 _sdbCi::inspect()
    if ( SDB_OK != rc )
    {
       std::cout << "Error: failed to connect to " << _header._coordAddr
-                << ":" << _header._serviceName ;
-      if ( SDB_AUTH_AUTHORITY_FORBIDDEN == rc )
-      {
-         std::cout << "user: " << g_username
-                   << "   password: " << g_password;
-      }
-      std::cout << std::endl ;
+                << ":" << _header._serviceName << ", rc: "  << rc << std::endl ;
       goto error ;
    }
 
@@ -3747,7 +3754,7 @@ INT32 _sdbCi::doDataExchange( engine::pmdCfgExchange *pEx )
 
    rdxString( pEx, CONSISTENCY_INSPECT_CIPHERFILE, _cipherfile,
               CI_CIPHERFILE_SIZE , FALSE, PMD_CFG_CHANGE_FORBIDDEN,
-              "./passwd", FALSE ) ;
+              "", FALSE ) ;
 
    rdxString( pEx, CONSISTENCY_INSPECT_ACTION, _header._action, CI_ACTION_SIZE,
               FALSE, PMD_CFG_CHANGE_FORBIDDEN, CI_ACTION_INSPECT, FALSE ) ;
@@ -3858,30 +3865,49 @@ INT32 _sdbCi::splitAuth()
    // assume the user has only specified 'user' as in the case of cipherfile
    if ( NULL == pch )
    {
-      utilPasswordTool passwdTool ;
+      passwd::utilPasswordTool passwdTool ;
       std::string user = _auth ;
       std::string connectionUserName ;
       std::string passwd ;
+      std::string filePath = _cipherfile ;
 
       if ( _cipher )
       {
          rc = passwdTool.getPasswdByCipherFile( user, _token,
-                                                _cipherfile,
-                                                connectionUserName,
+                                                filePath,
                                                 passwd ) ;
          if ( SDB_OK != rc )
          {
-            std::cerr << "get user password failed" << endl ;
+            std::cerr << "Failed to get user[" << user.c_str()
+                      << "]'s password from cipher file"
+                      << "[" << filePath.c_str() << "], rc: " << rc
+                      << std::endl ;
             goto error ;
          }
+
+         if ( filePath.empty() || filePath.length() > CI_CIPHERFILE_SIZE )
+         {
+            rc = SDB_INVALIDARG ;
+            std::cerr << "Invalid cipher file path[" << filePath.c_str()
+                      << "]. Its maximum length is " <<  CI_CIPHERFILE_SIZE
+                      << ", rc: " << rc << std::endl ;
+            goto error ;
+         }
+         ossStrncpy ( _cipherfile, filePath.c_str(), filePath.length() ) ;
+         connectionUserName = passwd::utilGetUserShortNameFromUserFullName(
+                              user ) ;
       }
       else
       {
-         if ( '\0' != _token[0] )
+         connectionUserName = _auth ;
+         if ( 0 != ossStrlen( _token ) || 0 != ossStrlen( _cipherfile ) )
          {
-            cout << "to use cipherfile, provide --cipher" << endl ;
+            passwd = "" ;
          }
-         passwd = passwdTool.interactivePasswdInput() ;
+         else
+         {
+            passwd = passwdTool.interactivePasswdInput() ;
+         }
       }
       ossStrcpy( g_username, connectionUserName.c_str() ) ;
       ossStrcpy( g_password, passwd.c_str() ) ;

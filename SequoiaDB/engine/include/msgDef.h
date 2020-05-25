@@ -747,6 +747,7 @@
 
 #define SDB_MAX_USERNAME_LENGTH              256
 #define SDB_MAX_PASSWORD_LENGTH              256
+#define SDB_MAX_TOKEN_LENGTH                 256
 
 #define INVALID_GROUPID                      0
 #define CATALOG_GROUPID                      1

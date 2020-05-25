@@ -31,16 +31,18 @@
 *******************************************************************************/
 #include "utilPasswdTool.hpp"
 #include "linenoise.h"
+#include <stdlib.h>
+#include <iostream>
+#include <sstream>
 
-namespace engine
+namespace passwd
 {
-
    string _utilPasswordTool::interactivePasswdInput()
    {
       CHAR* line = NULL ;
       string passwd ;
       setEchoOff() ;
-      if ( ( line = linenoise( "password:" ) ) != NULL )
+      if ( ( line = linenoise( "password: " ) ) != NULL )
       {
          passwd = line ;
          SDB_OSS_ORIGINAL_FREE( line ) ;
@@ -49,22 +51,18 @@ namespace engine
       return passwd ;
    }
 
-   INT32 _utilPasswordTool::getPasswdByCipherFile( const string &user,
+   INT32 _utilPasswordTool::getPasswdByCipherFile( const string &userFullName,
                                                    const string &token,
-                                                   const string &cipherFile,
-                                                   string &connectionUserName,
+                                                   string &filePath,
                                                    string &password )
    {
       INT32  rc = SDB_OK ;
 
-      string filePath = cipherFile ;
-
-      if ( filePath.empty() )
+      rc = _cipherfile.init( filePath, R_ROLE ) ;
+      if ( SDB_OK != rc )
       {
-         filePath = "./passwd" ;
+         goto error ;
       }
-
-      _cipherfile.initFile( filePath, utilCipherFile::RRole ) ;
 
       rc = _cipherMgr.init( &_cipherfile ) ;
       if ( SDB_OK != rc )
@@ -72,9 +70,7 @@ namespace engine
          goto error ;
       }
 
-      _cipherMgr.getConnectionUserName( user, connectionUserName ) ;
-
-      rc = _cipherMgr.getPasswd( user, token, password ) ;
+      rc = _cipherMgr.getPasswd( filePath, userFullName, token, password ) ;
       if ( SDB_OK != rc )
       {
          goto error ;

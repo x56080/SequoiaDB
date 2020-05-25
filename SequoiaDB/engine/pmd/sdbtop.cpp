@@ -435,11 +435,10 @@ BOOLEAN useSSL = FALSE ;
        ( COMMANDS_STRING(OPTION_SERVICENAME, ",s"), boost::program_options::value<string>(), "service name, default: 11810" ) \
        ( COMMANDS_STRING(OPTION_USRNAME, ",u"), boost::program_options::value<string>(), "username, default: \"\"" ) \
        ( COMMANDS_STRING(OPTION_PASSWORD, ",p"), implicit_value<string>(""), "password, default: \"\"" ) \
-       ( OPTION_CIPHERFILE,boost::program_options::value<string>(), "cipherfile location, default ./passwd" ) \
-       ( OPTION_CIPHER,boost::program_options::value<bool>(), "input password using a cipherfile" ) \
+       ( OPTION_CIPHERFILE,boost::program_options::value<string>(), "cipher file location, default ~/sequoiadb/passwd" ) \
+       ( OPTION_CIPHER,boost::program_options::value<bool>(), "input password using a cipher file" ) \
        ( OPTION_TOKEN,boost::program_options::value<string>(), "password encryption token" )
 
-#define DEFAULT_CIPHER   "passwd"
 struct Colours
 {
    INT32 foreGroundColor ;
@@ -5952,7 +5951,7 @@ INT32 resolveArgument ( po::options_description &desc,
 {
    INT32 rc = SDB_OK ;
    INT32 pathLen = 0 ;
-   string cipherfile = DEFAULT_CIPHER;
+   string cipherfile ;
    string token;
    po::variables_map vm ;
    try
@@ -6026,13 +6025,15 @@ INT32 resolveArgument ( po::options_description &desc,
    {
       cipherfile = vm[OPTION_CIPHERFILE].as<string>();
    }
+
    if( vm.count( OPTION_TOKEN) )
    {
       token = vm[OPTION_TOKEN].as<string>();
    }
+
    if( vm.count( OPTION_USRNAME) )
    {
-      engine::utilPasswordTool passwdTool ;
+      passwd::utilPasswordTool passwdTool ;
 
       usrName = vm[OPTION_USRNAME].as<string>();
 
@@ -6052,24 +6053,25 @@ INT32 resolveArgument ( po::options_description &desc,
       {
          if ( vm.count(OPTION_CIPHER) && vm[OPTION_CIPHER].as<bool>() )
          {
-            string connectionUserName ;
-
             rc = passwdTool.getPasswdByCipherFile( usrName, token,
                                                    cipherfile,
-                                                   connectionUserName,
                                                    password ) ;
             if ( SDB_OK != rc )
             {
-               std::cerr << "get user password failed" << endl ;
+               std::cerr << "Failed to get user[" << usrName.c_str()
+                         << "]'s password from cipher file"
+                         << "[" << cipherfile.c_str() << "], rc: " << rc
+                         << std::endl ;
                goto error ;
             }
-            usrName = connectionUserName ;
+            usrName = passwd::utilGetUserShortNameFromUserFullName( usrName ) ;
          }
          else
          {
             if ( vm.count(OPTION_TOKEN) || vm.count(OPTION_CIPHERFILE) )
             {
-               std::cout << "to use cipherfile, provide --cipher" << endl ;
+               std::cout << "If you want to use cipher text, you should use"
+                         << " \"--cipher true\"" << std::endl ;
             }
          }
       }

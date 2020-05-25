@@ -24,7 +24,7 @@
 	> * transaction 设置 SequoiaDB 是否开启事务，默认为off。开启为on
     > * cipher 设置是否使用加密文件输入密码，默认为off。开启为on
     > * token 设置加密口令
-    > * cipherfile 设置加密文件，默认为 ./passwd
+    > * cipherfile 设置加密文件，默认为 ~/sequoiadb/passwd
 
 3. 关联SequoiaDB的集合空间与集合
 

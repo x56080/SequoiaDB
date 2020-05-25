@@ -34,20 +34,19 @@
 
 #include "utilCipherMgr.hpp"
 
-namespace engine
+namespace passwd
 {
-
    class _utilPasswordTool : public SDBObject
    {
    public:
       _utilPasswordTool() {}
       ~_utilPasswordTool() {}
-      static std::string interactivePasswdInput() ;
-      INT32              getPasswdByCipherFile( const std::string &user,
-                                                const std::string &token,
-                                                const std::string &cipherFile,
-                                                std::string &connectionUser,
-                                                std::string &password ) ;
+      static string interactivePasswdInput() ;
+      INT32  getPasswdByCipherFile( const string &userFullName,
+                                    const string &token,
+                                    string &filePath,
+                                    string &password ) ;
+
    private:
       utilCipherMgr    _cipherMgr ;
       utilCipherFile   _cipherfile ;

@@ -97,8 +97,8 @@ namespace import
    #define IMP_EXPLAIN_HOSTS            "host addresses(hostname:svcname), separated by ',', such as 'localhost:11810,localhost:11910', default: 'localhost:11810'"
    #define IMP_EXPLAIN_USER             "username"
    #define IMP_EXPLAIN_PASSWORD         "password"
-   #define IMP_EXPLAIN_CIPHERFILE       "cipherfile location, default ./passwd"
-   #define IMP_EXPLAIN_CIPHER           "input password using a cipherfile"
+   #define IMP_EXPLAIN_CIPHERFILE       "cipher file location, default ~/sequoiadb/passwd"
+   #define IMP_EXPLAIN_CIPHER           "input password using a cipher file"
    #define IMP_EXPLAIN_TOKEN            "password encryption token"
    #define IMP_EXPLAIN_DELCHAR          "string delimiter, default: '\"' ( csv only )"
    #define IMP_EXPLAIN_DELFIELD         "field delimiter, default: ',' ( csv only )"
@@ -144,7 +144,6 @@ namespace import
    #define IMP_DEFAULT_HOSTNAME "localhost"
    #define IMP_DEFAULT_SVCNAME  "11810"
    #define IMP_DEFAULT_HOST     "localhost:11810"
-   #define IMP_DEFAULT_CIPHER   "passwd"
 
    #define IMP_STR_TRIM_NO    "no"
    #define IMP_STR_TRIM_RIGHT "right"
@@ -307,7 +306,6 @@ namespace import
       _hostname = IMP_DEFAULT_HOSTNAME;
       _svcname = IMP_DEFAULT_SVCNAME;
       _hostsString = IMP_DEFAULT_HOST;
-      _cipherfile = IMP_DEFAULT_CIPHER;
       _recordDelimiter = "\n";
       _inputType = INPUT_STDIN;
       _inputFormat = FORMAT_CSV;
@@ -529,10 +527,12 @@ namespace import
       {
          _cipherfile = get<string>(IMP_OPTION_CIPHERFILE);
       }
+
       if (has(IMP_OPTION_TOKEN))
       {
          _token = get<string>(IMP_OPTION_TOKEN);
       }
+
       if (has(IMP_OPTION_USER))
       {
          _user = get<string>(IMP_OPTION_USER) ;
@@ -542,35 +542,38 @@ namespace import
             string passwd = get<string>(IMP_OPTION_PASSWORD) ;
             if ( "" == passwd )
             {
-               passwd = utilPasswordTool::interactivePasswdInput() ;
+               passwd = passwd::utilPasswordTool::interactivePasswdInput() ;
             }
             _password = passwd ;
          }
          else
          {
-            utilPasswordTool passwdTool ;
+            passwd::utilPasswordTool passwdTool ;
 
             if ( has(IMP_OPTION_CIPHER) && get<bool>(IMP_OPTION_CIPHER) )
             {
-               string connectionUserName ;
-
                rc = passwdTool.getPasswdByCipherFile( _user, _token,
                                                       _cipherfile,
-                                                      connectionUserName,
                                                       _password ) ;
                if ( SDB_OK != rc )
                {
-                  cerr << "get user password failed" << endl ;
-                  PD_LOG( PDERROR, "get user password failed" ) ;
+                  std::cerr << "Failed to get user[" << _user.c_str()
+                            << "]'s password from cipher file"
+                            << "[" << _cipherfile.c_str() << "], rc: " << rc
+                            << std::endl ;
+                  PD_LOG( PDERROR, "Failed to get user[%s]'s password from "
+                          "cipher file[%s], rc: %d", _user.c_str(),
+                          _cipherfile.c_str(), rc ) ;
                   goto error ;
                }
-               _user = connectionUserName ;
+               _user = passwd::utilGetUserShortNameFromUserFullName( _user ) ;
             }
             else
             {
                if ( has(IMP_OPTION_TOKEN) || has(IMP_OPTION_CIPHERFILE) )
                {
-                  cout << "to use cipherfile, provide --cipher" << endl ;
+                  std::cout << "If you want to use cipher text, you should use"
+                            << " \"--cipher true\"" << std::endl ;
                }
             }
          }

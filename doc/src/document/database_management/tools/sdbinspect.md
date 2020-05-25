@@ -26,7 +26,7 @@ sdbinspect 需要与数据库协调节点（Coord 节点）连接。
 | --auth            | -u   | 指定数据库鉴权需要的用户名和密码，格式：username:password，默认值为 "":""。只提供用户名而不提供密码时，使用命令行提示输入密码，格式: username |
 | --cipher          |      | 是否使用加密文件输入密码，默认值为 false |
 | --token           |      | 加密口令 |
-| --cipherfile      |      | 加密文件，默认值为 ./passwd |
+| --cipherfile      |      | 加密文件，默认值为 ~/sequoiadb/passwd |
 
 ##用法##
 

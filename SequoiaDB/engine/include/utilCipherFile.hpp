@@ -34,47 +34,35 @@
 
 #include "ossFile.hpp"
 
-namespace engine
+namespace passwd
 {
-
-   class _utilCipherAbstractFile : public SDBObject
+   enum CIPHER_FILE_ROLE
    {
-   public:
-      enum cipherRole
-      {
-         RRole,
-         WRole
-      } ;
-
-      _utilCipherAbstractFile() {}
-      virtual ~_utilCipherAbstractFile() {}
-
-      virtual INT32 initFile( const std::string &fileName, 
-                              cipherRole role ) = 0 ;
-      virtual INT32 readFromFile( const CHAR **fileContent,
-                                  INT64 *contentLen ) = 0 ;
-      virtual INT32 writeToFile( const std::string& fileContent ) = 0 ;
+      R_ROLE = 0,
+      W_ROLE
    } ;
-   typedef _utilCipherAbstractFile utilCipherAbstractFile ;
 
-
-   class _utilCipherFile : public _utilCipherAbstractFile
+   class _utilCipherFile
    {
    public:
-      _utilCipherFile() : _fileContent( NULL ) {}
+      _utilCipherFile() : _isOpen( FALSE ) {}
       ~_utilCipherFile() ;
 
-      INT32 initFile( const std::string &fileName, 
-                      cipherRole role) ;
-      INT32 readFromFile( const CHAR **fileContent,
-                          INT64 *contentLen ) ;
-      INT32 writeToFile( const std::string& fileContent ) ;
+      INT32       init( string &filePath, UINT32 role ) ;
+      INT32       read( CHAR **fileContent, INT64 &contentLen ) ;
+      INT32       write( const string &fileContent ) ;
+      const CHAR* getFilePath(){ return _filePath.c_str() ; }
    private:
-      ossFile  _file ;
-      CHAR    *_fileContent ;
+      INT32       _buildDefaultCipherFilePath() ;
+
+   private:
+      BOOLEAN _isOpen ;
+      string  _filePath ;
+      engine::ossFile _file ;
    } ;
    typedef _utilCipherFile utilCipherFile ;
 
+   string utilGetUserShortNameFromUserFullName( const string &userFullName ) ;
 }
 
 #endif

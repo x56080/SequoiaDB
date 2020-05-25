@@ -33,46 +33,36 @@
 #define UTILCIPHERMGR_H_
 
 #include "utilCipherFile.hpp"
-#include "ossTypes.hpp"
-#include <string>
 #include <map>
 #include <vector>
 
-namespace engine
+namespace passwd
 {
-
    class _utilCipherMgr : public SDBObject
    {
    public:
-      static const INT32  BYTES_PER_TIME = 8 ;
-      static const INT32  KEY_BYTE_LENGTH = 8 ;
-      static const INT32  RANDOM_ARRAY_BYTE_LENGTH = 16 ;
-      static const INT32  UINT8_MAX_NUMBER = 65536 ;
-      static const UINT32 INSERTABLE_MAX_LENGTH = 234 ;
-
       _utilCipherMgr() {}
       ~_utilCipherMgr() {}
 
-      INT32 init( utilCipherAbstractFile *file ) ;
-      INT32 addUser( const std::string &user, const std::string &token,
-                     const std::string &passwd ) ;
-      INT32 removeUser( const std::string &user ) ;
-      INT32 getPasswd( const std::string &userInfo, const std::string &token,
-                       std::string &passwd ) ;
-      void  getConnectionUserName( const std::string &userInfo,
-                                   std::string &connectionUserName ) ;
+      INT32   init( utilCipherFile *file ) ;
+      INT32   addUser( const string &userFullName, const string &token,
+                       const string &passwd ) ;
+      INT32   removeUser( const string &userFullName, INT32 &retCode ) ;
+      INT32   getPasswd( const string &filePath,
+                         const string &userFullName,
+                         const string &token,
+                         string &passwd ) ;
 
    private:
-
-      INT32  _parseLine( std::string line, std::string& usr, std::string& cipherText ) ;
-      INT32  _write( const std::string& fileContent ) ;
-      void   _extractUserInfo( const std::string &userInfo, std::string &userName,
-                               std::string &fullName ) ;
-      INT32  _findCipherText( const std::string &userName, const std::string &fullName,
-                              std::string &cipherText ) ;
+      INT32   _parseLine( const string &line,
+                          string &userFullName,
+                          string &cipherText ) ;
+      INT32   _findCipherText( const string &userFullName,
+                               string &cipherText ) ;
+      BOOLEAN _isValidHex( const CHAR *hexString ) ;
 
    private:
-      utilCipherAbstractFile *_cipherfile ;
+      utilCipherFile *_cipherfile ;
       std::map<std::string, std::string> _usersCipher ;
    } ;
    typedef _utilCipherMgr utilCipherMgr ;

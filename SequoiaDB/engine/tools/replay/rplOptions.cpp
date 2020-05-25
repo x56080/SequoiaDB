@@ -77,8 +77,8 @@ namespace replay
    #define RPL_EXPLAIN_SVC              "service name"
    #define RPL_EXPLAIN_USER             "username"
    #define RPL_EXPLAIN_PASSWD           "password"
-   #define RPL_EXPLAIN_CIPHERFILE       "cipherfile location, default ./passwd"
-   #define RPL_EXPLAIN_CIPHER           "input password using a cipherfile"
+   #define RPL_EXPLAIN_CIPHERFILE       "cipher file location, default ~/sequoiadb/passwd"
+   #define RPL_EXPLAIN_CIPHER           "input password using a cipher file"
    #define RPL_EXPLAIN_TOKEN            "password encryption token"
    #define RPL_EXPLAIN_SSL              "use SSL connection (arg: [true|false], e.g. --ssl true), default: false"
    #define RPL_EXPLAIN_PATH             "archive or replica log directory or file path"
@@ -107,7 +107,6 @@ namespace replay
 
    #define RPL_OPTION_TYPE_ARCHIVE      "archive"
    #define RPL_OPTION_TYPE_REPLICA      "replica"
-   #define DEFAULT_CIPHER               "passwd"
 
    #define _TYPE(T) utilOptType(T)
    #define _IMPLICIT_TYPE(T,V) implicit_value<T>(V)
@@ -127,7 +126,6 @@ namespace replay
       _deflate = FALSE;
       _inflate = FALSE;
       _isReplicaFile = FALSE;
-      _cipherfile = DEFAULT_CIPHER;
       _updateWithShardingKey = TRUE;
       _intervalNum = RPL_DEFAULT_INTERVAL_NUM;
    }
@@ -347,14 +345,17 @@ namespace replay
          PD_LOG(PDERROR, "Missing argument: %s", RPL_OPTION_SVC);
          goto error;
       }
+
       if (has(RPL_OPTION_CIPHERFILE))
       {
          _cipherfile = get<string>(RPL_OPTION_CIPHERFILE);
       }
+
       if (has(RPL_OPTION_TOKEN))
       {
          _token = get<string>(RPL_OPTION_TOKEN);
       }
+
       if (has(RPL_OPTION_USER))
       {
          _user = get<string>(RPL_OPTION_USER) ;
@@ -364,35 +365,38 @@ namespace replay
             string passwd = get<string>(RPL_OPTION_PASSWD) ;
             if ( "" == passwd )
             {
-               passwd = engine::utilPasswordTool::interactivePasswdInput() ;
+               passwd = passwd::utilPasswordTool::interactivePasswdInput() ;
             }
             _password = passwd ;
          }
          else
          {
-            engine::utilPasswordTool passwdTool ;
+            passwd::utilPasswordTool passwdTool ;
 
             if ( has(RPL_OPTION_CIPHER) && get<bool>(RPL_OPTION_CIPHER) )
             {
-               string connectionUserName ;
-
                rc = passwdTool.getPasswdByCipherFile( _user, _token,
                                                       _cipherfile,
-                                                      connectionUserName,
                                                       _password ) ;
                if ( SDB_OK != rc )
                {
-                  std::cerr << "get user password failed" << endl ;
-                  PD_LOG( PDERROR, "get user password failed" ) ;
+                  std::cerr << "Failed to get user[" << _user.c_str()
+                            << "]'s password from cipher file"
+                            << "[" << _cipherfile.c_str() << "], rc: " << rc
+                            << std::endl ;
+                  PD_LOG( PDERROR, "Failed to get user[%s]'s password from "
+                          "cipher file[%s], rc: %d", _user.c_str(),
+                          _cipherfile.c_str(), rc ) ;
                   goto error ;
                }
-               _user = connectionUserName ;
+               _user = passwd::utilGetUserShortNameFromUserFullName( _user ) ;
             }
             else
             {
                if ( has(RPL_OPTION_TOKEN) || has(RPL_OPTION_CIPHERFILE) )
                {
-                  std::cout << "to use cipherfile, provide --cipher" << endl ;
+                  std::cout << "If you want to use cipher text, you should use"
+                            << " \"--cipher true\"" << std::endl ;
                }
             }
          }

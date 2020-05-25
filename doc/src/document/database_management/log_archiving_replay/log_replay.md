@@ -42,7 +42,7 @@
 |password|-|密码|string|-|指定值则使用明文输入，不指定值则命令行提示输入
 |cipher|-|使用加密文件输入密码|bool|false|
 |token|-|加密口令|string|-|
-|cipherfile|-|加密文件|string|./passwd|
+|cipherfile|-|加密文件|string|~/sequoiadb/passwd|
 |ssl|-|使用SSL连接|bool|false|
 |path|-|归档目录|string|-|必填，可以是文件或目录|
 |outputconf|-|输出格式的配置文件路径|string|-|用于配置回放工具的输出规则，当hostname设置时，该参数无效。详细说明参见下一小节|

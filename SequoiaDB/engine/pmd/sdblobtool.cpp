@@ -52,8 +52,8 @@ using namespace std ;
         ( MIG_SERVICE, boost::program_options::value<string>(), "The service name of coord. Default value is \"11810\"." )\
         ( MIG_USRNAME, boost::program_options::value<string>(), "Username" )\
         ( MIG_PASSWD, implicit_value<string>(""), "Password" )\
-        ( MIG_CIPHERFILE, boost::program_options::value<string>(), "cipherfile location, default ./passwd" )\
-        ( MIG_CIPHER, boost::program_options::value<bool>(), "input password using a cipherfile" )\
+        ( MIG_CIPHERFILE, boost::program_options::value<string>(), "cipher file location, default ~/sequoiadb/passwd" )\
+        ( MIG_CIPHER, boost::program_options::value<bool>(), "input password using a cipher file" )\
         ( MIG_TOKEN, boost::program_options::value<string>(), "password encryption token" )\
         ( MIG_OP, boost::program_options::value<string>(), "import/export/migration" )\
         ( MIG_CL, boost::program_options::value<string>(), "Full name of collection, eg:\"foo.bar\"" )\
@@ -65,8 +65,6 @@ using namespace std ;
         ( MIG_DST_PASSWD, boost::program_options::value<string>(), "Destination password(Specify it when use migration)" )\
         ( MIG_DST_CL, boost::program_options::value<string>(), "Destination collection(Specify it when use migration)" )\
         ( MIG_SESSION_PREFER, boost::program_options::value<string>(), "Indicate which instance to respond export request in current session. (\"m\"/\"M\"/\"s\"/\"S\"/\"a\"/\"A\"/1-7 default is \"M\")" ) \
-
-#define DEFAULT_CIPHER  "passwd"
 
 static void initDesc( po::options_description &desc )
 {
@@ -88,7 +86,7 @@ static INT32 parseCmdLine( const po::options_description &desc,
    doNothing = FALSE ;
    std::string optype ;
    BOOLEAN isMig = FALSE ;
-   std::string cipherfile = DEFAULT_CIPHER;
+   std::string cipherfile ;
    std::string token;
 
    if ( vm.count( "help" ) )
@@ -127,10 +125,12 @@ static INT32 parseCmdLine( const po::options_description &desc,
    {
       cipherfile = vm[MIG_CIPHERFILE].as<string>() ;
    }
+
    if ( vm.count( MIG_TOKEN ) )
    {
       token = vm[MIG_TOKEN].as<string>() ;
    }
+
    if ( vm.count( MIG_USRNAME ) )
    {
       string user = vm[MIG_USRNAME].as<string>();
@@ -140,30 +140,36 @@ static INT32 parseCmdLine( const po::options_description &desc,
          string passwd = vm[MIG_PASSWD].as<string>() ;
          if ( "" == passwd )
          {
-            passwd = engine::utilPasswordTool::interactivePasswdInput() ;
+            passwd = passwd::utilPasswordTool::interactivePasswdInput() ;
          }
          builder.append( MIG_USRNAME, user ) ;
          builder.append( MIG_PASSWD, passwd ) ;
       }
       else
       {
-         engine::utilPasswordTool passwdTool ;
+         passwd::utilPasswordTool passwdTool ;
          string passwd ;
 
          if ( vm.count(MIG_CIPHER) && vm[MIG_CIPHER].as<bool>() )
          {
             string connectionUserName ;
-            
+
             rc = passwdTool.getPasswdByCipherFile( user, token,
                                                    cipherfile,
-                                                   connectionUserName,
                                                    passwd ) ;
             if ( SDB_OK != rc )
             {
-               cerr << "get user password failed" << endl ;
-               PD_LOG( PDERROR, "get user password failed" ) ;
+               std::cerr << "Failed to get user[" << user.c_str()
+                         << "]'s password from cipher file"
+                         << "[" << cipherfile.c_str() << "], rc: " << rc
+                         << std::endl ;
+               PD_LOG( PDERROR, "Failed to get user[%s]'s password from cipher"
+                       " file[%s], rc: %d", user.c_str(),
+                       cipherfile.c_str(), rc ) ;
                goto error ;
             }
+            connectionUserName = passwd::utilGetUserShortNameFromUserFullName(
+                                 user ) ;
             builder.append( MIG_USRNAME, connectionUserName ) ;
             builder.append( MIG_PASSWD, passwd ) ;
          }
@@ -172,7 +178,8 @@ static INT32 parseCmdLine( const po::options_description &desc,
             builder.append( MIG_USRNAME, user ) ;
             if ( vm.count(MIG_TOKEN) || vm.count(MIG_CIPHERFILE) )
             {
-               cout << "to use cipherfile, provide --cipher" << endl ;
+               std::cout << "If you want to use cipher text, you should use"
+                         << " \"--cipher true\"" << std::endl ;
             }
          }
       }
@@ -281,7 +288,7 @@ static INT32 parseCmdLine( const po::options_description &desc,
    {
       if ( vm.count( MIG_DST_CL ) )
       {
-         builder.append( MIG_DST_CL, vm[MIG_DST_CL].as<string>() ) ; 
+         builder.append( MIG_DST_CL, vm[MIG_DST_CL].as<string>() ) ;
       }
       else
       {
@@ -312,7 +319,7 @@ INT32 main( INT32 argc, CHAR *argv[] )
    bson::BSONObj options ;
    BOOLEAN doNothing = FALSE ;
    lobtool::migLobTool tool ;
-   
+
    sdbEnablePD( LOG_FILE ) ;
 
    PD_LOG ( PDEVENT ,

@@ -109,9 +109,9 @@ namespace exprt
    #define EXPLAIN_HOSTS            "host addresses(hostname:svcname), separated by ',', such as 'localhost:11810,localhost:11910', default: 'localhost:11810'"
    #define EXPLAIN_USER             "username"
    #define EXPLAIN_PASSWORD         "password"
-   #define EXPLAIN_CIPHER           "input password using a cipherfile"
+   #define EXPLAIN_CIPHER           "input password using a cipher file"
    #define EXPLAIN_TOKEN            "password encryption token"
-   #define EXPLAIN_CIPHERFILE       "cipherfile location, default ./passwd"
+   #define EXPLAIN_CIPHERFILE       "cipher file location, default ~/sequoiadb/passwd"
    #define EXPLAIN_FILELIMIT        "the limit of max size for one file, in K/k/M/m/G/g, default: 16G"
    #define EXPLAIN_DELRECORD        "record delimiter, default: '\\n' "
    #define EXPLAIN_TYPE             "type of file to output, default: csv (json,csv)"
@@ -163,7 +163,6 @@ namespace exprt
    #define DEFAULT_HOSTNAME         "localhost"
    #define DEFAULT_SVCNAME          "11810"
    #define DEFAULT_HOST             "localhost:11810"
-   #define DEFAULT_CIPHERFILE       "passwd"
    #define DEFAULT_DELCHAR_CHAR     "\""
    #define DEFAULT_DELFIELD_CHAR    ","
    #define DEFAULT_FILELIMIT        ( 16LL * 1024 * 1024 * 1024 ) // 16G
@@ -331,7 +330,6 @@ namespace exprt
                               _hostName      (DEFAULT_HOSTNAME),
                               _svcName       (DEFAULT_SVCNAME),
                               _hostsString   (DEFAULT_HOST),
-                              _cipherfile    (DEFAULT_CIPHERFILE),
                               _delRecord     ("\n"),
                               _typeName      (formatNames[FORMAT_CSV]),
                               _type          (FORMAT_CSV),
@@ -1243,35 +1241,38 @@ namespace exprt
             string passwd = _get<string>(OPTION_PASSWORD) ;
             if ( "" == passwd )
             {
-               passwd = utilPasswordTool::interactivePasswdInput() ;
+               passwd = passwd::utilPasswordTool::interactivePasswdInput() ;
             }
             _password = passwd ;
          }
          else
          {
-            utilPasswordTool passwdTool ;
+            passwd::utilPasswordTool passwdTool ;
 
             if ( _has(OPTION_CIPHER) && _get<bool>(OPTION_CIPHER) )
             {
-               string connectionUserName ;
-
                rc = passwdTool.getPasswdByCipherFile( _user, _token,
                                                       _cipherfile,
-                                                      connectionUserName,
                                                       _password ) ;
                if ( SDB_OK != rc )
                {
-                  cerr << "get user password failed" << endl ;
-                  PD_LOG( PDERROR, "get user password failed" ) ;
+                  std::cerr << "Failed to get user[" << _user.c_str()
+                            << "]'s password from cipher file"
+                            << "[" << _cipherfile.c_str() << "], rc: " << rc
+                            << std::endl ;
+                  PD_LOG( PDERROR, "Failed to get user[%s]'s password from "
+                          "cipher file[%s], rc: %d", _user.c_str(),
+                          _cipherfile.c_str(), rc ) ;
                   goto error ;
                }
-               _user = connectionUserName ;
+               _user = passwd::utilGetUserShortNameFromUserFullName( _user ) ;
             }
             else
             {
                if ( _has(OPTION_TOKEN) || _has(OPTION_CIPHERFILE) )
                {
-                  cout << "to use cipherfile, provide --cipher" << endl ;
+                  std::cout << "If you want to use cipher text, you should use"
+                            << " \"--cipher true\"" << std::endl ;
                }
             }
          }

@@ -670,7 +670,6 @@ sequoiaFSFiles = [
       "tools/sequoiafs/src/sequoiaFSOptionMgr.cpp",
     ]
 sdbPasswdFiles = [
-      "tools/passwd/passwdOptions.cpp",
       "tools/passwd/sdbPasswd.cpp"
     ]
 

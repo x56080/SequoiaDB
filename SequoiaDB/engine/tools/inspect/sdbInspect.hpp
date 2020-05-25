@@ -347,7 +347,7 @@ typedef _ciGroup ciGroup ;
 
 struct _ciNode
 {
-   enum 
+   enum
    {
       STATE_NORMAL = 0,    // normal
       STATE_DISCONN,       // failed to connect to
@@ -361,12 +361,12 @@ struct _ciNode
 
    INT32           _index ;
    INT32           _nodeID ;
-   INT32           _state ; 
+   INT32           _state ;
    sdbclient::sdb *_db ;
    _ciNode        *_next ;
    CHAR            _hostname[ CI_HOSTNAME_SIZE + 1 ] ;
    CHAR            _serviceName[ CI_SERVICENAME_SIZE + 1 ] ;
-   _ciNode() : _index( 0 ), _nodeID( 0 ), 
+   _ciNode() : _index( 0 ), _nodeID( 0 ),
                _state( STATE_NORMAL ), _db( NULL ), _next( NULL )
    {
       ossMemset( _hostname, 0, CI_HOSTNAME_SIZE + 1 ) ;
@@ -544,7 +544,7 @@ typedef _ciTail ciTail ;
 struct _ciState
 {
    //    0   1   1   0   1   1   0   0             bits of state
-   //    1   2   3   4   5   6   7   -             index if node 
+   //    1   2   3   4   5   6   7   -             index if node
    //  if 8th of state is 1, means that all node has current record, and every
    //  cursor should get next record. or the min bson( of "oid" ) need get next
    //  record.
@@ -605,8 +605,8 @@ typedef _ciState ciState ;
    ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_OUTPUT, ",o" ), boost::program_options::value< std::string >(), "specify the output file" ) \
    ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_VIEW, ",w" ), boost::program_options::value< std::string >(), "specify the way to view the report, \"group\" or \"collection\" is avaliable, \"group\" is set default" ) \
    ( CONSISTENCY_INSPECT_TOKEN, boost::program_options::value< std::string >(), "specify the password encryption token" ) \
-   ( CONSISTENCY_INSPECT_CIPHER, boost::program_options::value< std::string >(), "specify input password using a cipherfile" ) \
-   ( CONSISTENCY_INSPECT_CIPHERFILE, boost::program_options::value< std::string >(), "user specified cipherfile, default ./passwd" )
+   ( CONSISTENCY_INSPECT_CIPHER, boost::program_options::value< std::string >(), "specify input password using a cipher file" ) \
+   ( CONSISTENCY_INSPECT_CIPHERFILE, boost::program_options::value< std::string >(), "cipher file location, default ~/sequoiadb/passwd" )
 
 class _sdbCi : public engine::_pmdCfgRecord
 {

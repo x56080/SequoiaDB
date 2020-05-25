@@ -12,13 +12,12 @@ sdbpasswd 不需要与数据库连接。
 
 | 参数        | 缩写 | 描述                                              | 是否必填 |
 | ----------- | ---- | ------------------------------------------------- | -------- |
-| --help      | -h   | 返回基本帮助说明                                  |    否    |
-| --adduser   | -a   | 增加用户，支持使用 @ 符区分同名用户，格式：user@cluster1         |  adduser/removeuser 必选其一 |
+| --help      | -h   | 返回帮助说明                                      |    否    |
+| --adduser   | -a   | 增加用户，支持使用 @ 符区分同名用户，格式：user@cluster1，最大值 256 个字符 |  adduser/removeuser 必选其一 |
 | --removeuser| -r   | 删除用户                                          | adduser/removeuser 必选其一 |
-| --password  | -p   | 用户密码，指定值则使用明文输入，不指定值则命令行提示输入         |  是         |
+| --password  | -p   | 用户密码，指定值则使用明文输入，不指定值则命令行提示输入，最大值 256 个字符 | 是 |
 | --token     | -t   | 对保存的密码指定加密口令以增强安全性，最大值 256 个字符 | 否 |
-| --file      | -f   | 指定加密文件用于密码的保存，默认 ./passwd         |    否    |
-
+| --file      | -f   | 指定加密文件用于密码的保存，默认为 ~/sequoiadb/passwd | 否 |
 
 ##用法##
 
@@ -73,7 +72,7 @@ sdbpasswd 不需要与数据库连接。
 下列工具都是通过指定用户名，再加上打开 cipher 开关来指定使用加密文件，指定的用户名对应通过 sdbpasswd 增加的用户名，对于参数的详细介绍请访问各工具的介绍页面：
 
 |   工具名        | 使用加密文件的参数组合 |                                           
-| --------------- | ---- | ------------------------------------------------- |
+| --------------- | ---------------------- |
 | sdbexprt        | --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd          |
 | sdbimprt        | --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd          |
 | sdbreplay       | --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd          |

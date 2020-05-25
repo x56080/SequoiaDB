@@ -41,6 +41,7 @@
 
 #define BYTES_PER_TIME               8
 #define KEY_BYTE_LENGTH              8
+#define EIGHT_BYTE_ALIGNED_BITS      8
 
 #define RANDOM_ARRAY_MAX_LENGTH      16
 #define ARRAY_PIECE_LENGTH           RANDOM_ARRAY_MAX_LENGTH
@@ -50,6 +51,12 @@
 
 #define TOKEN_MAX_LENGTH             256
 #define CIPHER_STRING_MAX_LENGTH     TOKEN_MAX_LENGTH + RANDOM_ARRAY_MAX_LENGTH
+
+// When reorganizing the ciphertext, 6 extra auxiliary fields are used to record
+// the offset of each key in the entire ciphertext and the length of each key
+#define EXTRA_AUXILIARY_FIELDS_COUNT 6
+
+#define INVALID_HEX_VALUE   0xFFFF
 
 static BOOLEAN _sdbIsSrand = FALSE ;
 
@@ -102,9 +109,13 @@ static INT16 _hexChar2dec( CHAR c )
    {
       i = 10 + c - 'a' ;
    }
-   else
+   else if ( c >= 'A' && c <= 'F' )
    {
       i = 10 + c - 'A' ;
+   }
+   else
+   {
+      return INVALID_HEX_VALUE ;
    }
    return i ;
 }
@@ -120,7 +131,7 @@ static void _hexToByte( const CHAR *hex, CHAR *bytes, UINT32 *byteLength )
   {
 	 const CHAR* c = base + i ;
 	 bytes[pos] =  ( CHAR )( ( _hexChar2dec( c[0] ) << 4 ) |
-							         _hexChar2dec( c[1] ) );
+							         _hexChar2dec( c[1] ) ) ;
     ( *byteLength )++ ;
   }
 }
@@ -237,10 +248,10 @@ void utilCipherInsertRandomArray( CHAR *destArray, UINT32 destArrayLen,
                                   CHAR *randArray, UINT32 randArrayLen,
                                   UINT32 *destArrayNewLen )
 {
-   UINT32       insertLowPos = 0 ;
-   UINT32       insertMidPos = 0 ;
+   UINT32       insertLowPos  = 0 ;
+   UINT32       insertMidPos  = 0 ;
    UINT32       insertHighPos = 0 ;
-   UINT32       insertLen = 0 ;
+   UINT32       insertLen     = 0 ;
    UINT32       destArrayEndIndex = destArrayLen > INSERTABLE_MAX_LENGTH ?
                                     INSERTABLE_MAX_LENGTH - 1 : destArrayLen - 1 ;
    CHAR         randArrayPiece1[RANDOM_ARRAY_MAX_LENGTH] = { '\0' } ;
@@ -266,8 +277,8 @@ void utilCipherInsertRandomArray( CHAR *destArray, UINT32 destArrayLen,
    splitPos1     = _randBetween( 1, randArrayEndIndex - 2 ) ;
    splitPos2     = _randBetween( splitPos1 + 1, randArrayEndIndex - 1 ) ;
 
-   // construct a randArray piece: randArray length + piece of randArray itself + offset to next
-   // randArray length
+   // construct a randArray piece: randArray length + piece of randArray itself
+   // + offset to next randArray length
    randArrayPiece1[piece1Len++] = splitPos1 - 0 ;
    // randArray piece
    _arrayAppendElement( randArrayPiece1, piece1Len,
@@ -306,19 +317,19 @@ void utilCipherInsertRandomArray( CHAR *destArray, UINT32 destArrayLen,
 }
 
 INT32 utilCipherExtractRandomArray( CHAR *cipherText, UINT32 cipherTextLen,
-                                    CHAR *array, UINT32 *cipherTextNewLen, UINT32 *arrayNewLen )
+                                    CHAR *array, UINT32 *cipherTextNewLen,
+                                    UINT32 *arrayNewLen )
 {
-   INT32          rc = SDB_OK ;
-
-   UINT32         insertLowPos = 0 ;
-   UINT32         insertMidPos = 0 ;
-   UINT32         insertHighPos = 0 ;
-   CHAR           randArrayPiece1[ARRAY_PIECE_LENGTH] = { '\0' } ;
-   CHAR           randArrayPiece2[ARRAY_PIECE_LENGTH] = { '\0' } ;
-   CHAR           randArrayPiece3[ARRAY_PIECE_LENGTH] = { '\0' } ;
-   UINT8          randArrayPiece1Len = 0 ;
-   UINT8          randArrayPiece2Len = 0 ;
-   UINT8          randArrayPiece3Len = 0 ;
+   INT32    rc            = SDB_OK ;
+   UINT32   insertLowPos  = 0 ;
+   UINT32   insertMidPos  = 0 ;
+   UINT32   insertHighPos = 0 ;
+   CHAR     randArrayPiece1[ARRAY_PIECE_LENGTH] = { '\0' } ;
+   CHAR     randArrayPiece2[ARRAY_PIECE_LENGTH] = { '\0' } ;
+   CHAR     randArrayPiece3[ARRAY_PIECE_LENGTH] = { '\0' } ;
+   UINT8    randArrayPiece1Len = 0 ;
+   UINT8    randArrayPiece2Len = 0 ;
+   UINT8    randArrayPiece3Len = 0 ;
 
    SDB_ASSERT( NULL != cipherText && NULL != array,
                "cipherText & array can't be NULL" ) ;
@@ -360,12 +371,12 @@ INT32 utilCipherExtractRandomArray( CHAR *cipherText, UINT32 cipherTextLen,
    cipherText[(*cipherTextNewLen)] = '\0' ;
 
    *arrayNewLen = 0 ;
-   _arrayAppendElement( array, *arrayNewLen,
-                        randArrayPiece1, 1, randArrayPiece1Len - 2, arrayNewLen ) ;
-   _arrayAppendElement( array, *arrayNewLen,
-                        randArrayPiece2, 1, randArrayPiece2Len - 2, arrayNewLen ) ;
-   _arrayAppendElement( array, *arrayNewLen,
-                        randArrayPiece3, 1, randArrayPiece3Len - 1, arrayNewLen ) ;
+   _arrayAppendElement( array, *arrayNewLen, randArrayPiece1, 1,
+                        randArrayPiece1Len - 2, arrayNewLen ) ;
+   _arrayAppendElement( array, *arrayNewLen, randArrayPiece2, 1,
+                        randArrayPiece2Len - 2, arrayNewLen ) ;
+   _arrayAppendElement( array, *arrayNewLen, randArrayPiece3, 1,
+                        randArrayPiece3Len - 1, arrayNewLen ) ;
 
 done:
    return rc ;
@@ -381,22 +392,21 @@ error:
 INT32 utilCipherEncrypt( const CHAR *clearText, const CHAR *token,
                          CHAR *cipherText )
 {
-   INT32                 rc = SDB_OK ;
-
-   UINT32                clearTextSize = ossStrlen( clearText ) ;
-
-   CHAR                  randArray[RANDOM_ARRAY_MAX_LENGTH] = { '\0' } ;
-   CHAR                  cipherString[CIPHER_STRING_MAX_LENGTH] = {'\0' } ;
-   UINT32                cipherStringSize = 0 ;
-
-   DES_cblock            keyEncrypt ;
-   DES_key_schedule      keySchedule ;
-   const_DES_cblock      inputText ;
-   DES_cblock            outputText ;
-   CHAR                  *result ;
-   UINT32                resultSize = 0 ;
-   UINT32                i = 0 ;
-   INT32                 copiedTokenLen = 0 ;
+   INT32            rc = SDB_OK ;
+   UINT32           clearTextSize = ossStrlen( clearText ) ;
+   CHAR             randArray[RANDOM_ARRAY_MAX_LENGTH]     = { '\0' } ;
+   CHAR             cipherString[CIPHER_STRING_MAX_LENGTH] = {'\0' } ;
+   UINT32           cipherStringSize = 0 ;
+   DES_cblock       keyEncrypt ;
+   DES_key_schedule keySchedule ;
+   const_DES_cblock inputText ;
+   DES_cblock       outputText ;
+   CHAR             *result        = NULL ;
+   UINT32           resultLen      = 0 ;
+   UINT32           resultSize     = 0 ;
+   INT32            copiedTokenLen = 0 ;
+   UINT32           extraBits      = 0 ; // 8-byte aligned supplementary bits
+   UINT32           i              = 0 ;
 
    SDB_ASSERT( NULL != clearText, "clearText can't be NULL" ) ;
    SDB_ASSERT( NULL != cipherText, "cipherText can't be NULL" ) ;
@@ -406,12 +416,14 @@ INT32 utilCipherEncrypt( const CHAR *clearText, const CHAR *token,
    if ( NULL != token && 0 != ossStrlen( token ) )
    {
       INT32 tokenLen = ossStrlen( token ) ;
-      copiedTokenLen = tokenLen > TOKEN_MAX_LENGTH ? TOKEN_MAX_LENGTH : tokenLen ;
+      copiedTokenLen = tokenLen > TOKEN_MAX_LENGTH ?
+                       TOKEN_MAX_LENGTH : tokenLen ;
       ossStrncpy( cipherString, token, copiedTokenLen ) ;
       cipherStringSize += copiedTokenLen ;
    }
    _arrayAppendElement( cipherString, copiedTokenLen,
-                        randArray, 0, RANDOM_ARRAY_MAX_LENGTH, &cipherStringSize ) ;
+                        randArray, 0, RANDOM_ARRAY_MAX_LENGTH,
+                        &cipherStringSize ) ;
 
    _hashToKey( cipherString, cipherStringSize,
                ( UINT8 * )&keyEncrypt, KEY_BYTE_LENGTH ) ;
@@ -423,73 +435,83 @@ INT32 utilCipherEncrypt( const CHAR *clearText, const CHAR *token,
       goto error ;
    }
 
-   result = ( CHAR * )SDB_OSS_MALLOC( clearTextSize + RANDOM_ARRAY_MAX_LENGTH * 2  ) ;
-
+   if ( clearTextSize % BYTES_PER_TIME != 0 )
+   {
+      extraBits = EIGHT_BYTE_ALIGNED_BITS - ( clearTextSize % BYTES_PER_TIME ) ;
+   }
+   else
+   {
+      extraBits = 0 ;
+   }
+   resultLen = clearTextSize + extraBits + RANDOM_ARRAY_MAX_LENGTH +
+               EXTRA_AUXILIARY_FIELDS_COUNT ;
+   result = ( CHAR * )SDB_OSS_MALLOC( resultLen ) ;
    if ( NULL == result )
    {
       rc = SDB_OOM ;
       goto error ;
    }
-   ossMemset( result, 0, clearTextSize + RANDOM_ARRAY_MAX_LENGTH * 2 ) ;
+   ossMemset( result, 0, resultLen ) ;
 
    for ( i = 0; i < clearTextSize / BYTES_PER_TIME; i++ )
    {
       ossMemcpy( inputText, clearText + i * BYTES_PER_TIME, BYTES_PER_TIME ) ;
       DES_ecb_encrypt( &inputText, &outputText, &keySchedule, DES_ENCRYPT ) ;
-      _arrayAppendElement( result, resultSize,
-                           (CHAR *)outputText, 0 , BYTES_PER_TIME, &resultSize ) ;
+      _arrayAppendElement( result, resultSize, (CHAR *)outputText, 0 ,
+                           BYTES_PER_TIME, &resultSize ) ;
    }
 
    if ( clearTextSize % BYTES_PER_TIME != 0 )
    {
       INT32 remainTextIndex = ( clearTextSize / BYTES_PER_TIME ) *
                                 BYTES_PER_TIME ;
-      INT32 remainTextLen = clearTextSize % BYTES_PER_TIME ;
+      INT32 remainTextLen = EIGHT_BYTE_ALIGNED_BITS - extraBits ;
 
       // padding using 0s
       ossMemset( inputText, 0, BYTES_PER_TIME ) ;
       ossMemcpy( inputText, clearText + remainTextIndex, remainTextLen ) ;
       DES_ecb_encrypt( &inputText, &outputText, &keySchedule, DES_ENCRYPT ) ;
-      _arrayAppendElement( result, resultSize,
-                           (CHAR *)outputText, 0 , BYTES_PER_TIME, &resultSize ) ;
+      _arrayAppendElement( result, resultSize, (CHAR *)outputText, 0 ,
+                           BYTES_PER_TIME, &resultSize ) ;
    }
 
-   utilCipherInsertRandomArray( result, resultSize,
-                                randArray, RANDOM_ARRAY_MAX_LENGTH, &resultSize ) ;
+   utilCipherInsertRandomArray( result, resultSize, randArray,
+                                RANDOM_ARRAY_MAX_LENGTH, &resultSize ) ;
 
    // serialize
    _byteToHex( result, resultSize, cipherText ) ;
 
-   if ( NULL != result )
+done:
+   if ( result )
    {
       SDB_OSS_FREE( result ) ;
+      result = NULL ;
    }
-
    return rc ;
 error:
-   goto error ;
+   goto done ;
 }
 
-INT32 utilCipherDecrypt( const CHAR *cipherText, const CHAR *token, CHAR *clearText )
+INT32 utilCipherDecrypt( const CHAR *cipherText, const CHAR *token,
+                         CHAR *clearText )
 {
-   INT32                 rc = SDB_OK ;
-
-   CHAR                  randArray[RANDOM_ARRAY_MAX_LENGTH] = {'\0'} ;
-   UINT32                randArraySize = 0 ;
-   CHAR                  *passwdEncrypted = NULL ;
-   UINT32                passwdEncryptedSize = 0 ;
-   UINT32                passwdLen = 0 ;
-   CHAR                  *passwd = NULL ;
-   CHAR                  cipherString[CIPHER_STRING_MAX_LENGTH] = {'\0'} ;
-   UINT32                cipherStringSize = 0 ;
-   DES_cblock            keyEncrypt ;
-   DES_key_schedule      keySchedule ;
-   const_DES_cblock      inputText ;
-   DES_cblock            outputText ;
-   UINT32                posInClearText = 0 ;
-   UINT32                clearTextSize = 0 ;
-   UINT32                i = 0 ;
-   UINT32                j = 0 ;
+   INT32              rc = SDB_OK ;
+   CHAR               randArray[RANDOM_ARRAY_MAX_LENGTH] = {'\0'} ;
+   UINT32             randArraySize = 0 ;
+   CHAR               *passwdEncrypted = NULL ;
+   UINT32             passwdEncryptedSize = 0 ;
+   UINT32             passwdLen = 0 ;
+   CHAR               *passwd = NULL ;
+   CHAR               cipherString[CIPHER_STRING_MAX_LENGTH] = {'\0'} ;
+   UINT32             cipherStringSize = 0 ;
+   DES_cblock         keyEncrypt ;
+   DES_key_schedule   keySchedule ;
+   const_DES_cblock   inputText ;
+   DES_cblock         outputText ;
+   UINT32             posInClearText = 0 ;
+   UINT32             clearTextSize = 0 ;
+   UINT32             i = 0 ;
+   UINT32             j = 0 ;
 
    if ( NULL == cipherText )
    {
@@ -498,7 +520,6 @@ INT32 utilCipherDecrypt( const CHAR *cipherText, const CHAR *token, CHAR *clearT
    }
 
    passwdEncrypted = ( CHAR * )SDB_OSS_MALLOC( ossStrlen( cipherText ) / 2 ) ;
-
    if ( NULL == passwdEncrypted )
    {
       rc = SDB_OOM ;
@@ -508,7 +529,8 @@ INT32 utilCipherDecrypt( const CHAR *cipherText, const CHAR *token, CHAR *clearT
    _hexToByte( cipherText, passwdEncrypted, &passwdEncryptedSize ) ;
 
    rc = utilCipherExtractRandomArray( passwdEncrypted, passwdEncryptedSize,
-                                      randArray, &passwdEncryptedSize, &randArraySize ) ;
+                                      randArray, &passwdEncryptedSize,
+                                      &randArraySize ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -516,7 +538,8 @@ INT32 utilCipherDecrypt( const CHAR *cipherText, const CHAR *token, CHAR *clearT
 
    if ( NULL != token && 0 != ossStrlen( token ) )
    {
-      ossStrncpy( cipherString, token, CIPHER_STRING_MAX_LENGTH - randArraySize  ) ;
+      ossStrncpy( cipherString, token,
+                  CIPHER_STRING_MAX_LENGTH - randArraySize  ) ;
       cipherStringSize += ossStrlen( token ) ;
    }
    _arrayAppendElement( cipherString, NULL == token ? 0 : ossStrlen( token ),
@@ -543,7 +566,8 @@ INT32 utilCipherDecrypt( const CHAR *cipherText, const CHAR *token, CHAR *clearT
       for ( j = 0; j < BYTES_PER_TIME; j++ )
       {
          _arrayAppendElement( clearText, clearTextSize,
-                              ( CHAR * )&outputText[j], 0, 1, &clearTextSize ) ;
+                              ( CHAR * )&outputText[j], 0, 1,
+                              &clearTextSize ) ;
       }
    }
 
@@ -559,11 +583,11 @@ INT32 utilCipherDecrypt( const CHAR *cipherText, const CHAR *token, CHAR *clearT
    }
 
 done:
-   if ( NULL != passwdEncrypted )
+   if ( passwdEncrypted )
    {
       SDB_OSS_FREE( passwdEncrypted ) ;
+      passwdEncrypted = NULL ;
    }
-
    return rc ;
 error:
    goto done ;
@@ -574,9 +598,9 @@ INT32 _readn( INT32 fd, void *vptr, size_t n )
    size_t  nleft ;
    INT32   nread ;
    CHAR   *ptr ;
-
    ptr = ( CHAR *)vptr ;
    nleft = n ;
+
    while ( nleft > 0 )
    {
 #if defined (_LINUX)
@@ -596,13 +620,13 @@ INT32 _readn( INT32 fd, void *vptr, size_t n )
       nleft -= nread ;
       ptr += nread ;
    }
+
    return ( n - nleft ) ;         /* return >= 0 */
 }
 
 INT32 _readFile( const CHAR *path, CHAR **fileContent, UINT32 *readLength )
 {
    INT32  rc = SDB_OK ;
-
    off_t  fileSize = 0 ;
    INT32  fd ;
    UINT32 nleft = 0 ;
@@ -616,13 +640,11 @@ INT32 _readFile( const CHAR *path, CHAR **fileContent, UINT32 *readLength )
    fd = open( path, O_RDONLY ) ;
    if ( -1 == fd )
    {
-      rc = SDB_FNE ;
       goto error ;
    }
 
    if ( -1 == fstat( fd, &stat ) )
    {
-      rc = SDB_IO ;
       goto error ;
    }
 
@@ -630,13 +652,11 @@ INT32 _readFile( const CHAR *path, CHAR **fileContent, UINT32 *readLength )
    fd = _open( path, O_RDONLY ) ;
    if ( -1 == fd )
    {
-      rc = SDB_FNE ;
       goto error ;
    }
 
    if ( -1 == _fstat( fd, &stat ) )
    {
-      rc = SDB_IO ;
       goto error ;
    }
 #endif
@@ -652,7 +672,6 @@ INT32 _readFile( const CHAR *path, CHAR **fileContent, UINT32 *readLength )
    nleft = _readn( fd, ( void * )*fileContent, fileSize ) ;
    if ( 0 > nleft )
    {
-      rc = SDB_SYS ;
       goto error ;
    }
 
@@ -664,13 +683,35 @@ INT32 _readFile( const CHAR *path, CHAR **fileContent, UINT32 *readLength )
    if ( -1 == _close( fd ) )
 #endif
    {
-      rc = SDB_IO ;
       goto error ;
    }
 
 done:
    return rc ;
 error:
+   if ( SDB_OK == rc )
+   {
+      switch ( errno )
+      {
+      case ENOENT:
+         rc = SDB_FNE ;
+         break ;
+      case EACCES:
+      case EPERM:
+         rc = SDB_PERM ;
+         break ;
+      case ENOTDIR:
+      case EINVAL:
+         rc = SDB_INVALIDARG ;
+         break ;
+      case EIO:
+         rc = SDB_IO ;
+         break ;
+      default :
+         rc = SDB_SYS ;
+         break ;
+      }
+   }
    goto done ;
 }
 
@@ -698,22 +739,21 @@ INT32 utilDecryptUserCipher( const CHAR *user, const CHAR *token,
                              const CHAR *path, CHAR *connectionUser,
                              CHAR *clearText )
 {
-   INT32  rc = SDB_OK ;
-
+   INT32  rc                 = SDB_OK ;
    INT32  foundFullNameCount = 0 ;
    INT32  foundHalfNameCount = 0 ;
-   CHAR   *atPos = NULL ;
-   CHAR   *colonPos = NULL ;
-   CHAR   *fileContent = NULL ;
-   UINT32 fileLength = 0 ;
-   CHAR   *foundNewline = NULL ;
-   CHAR   *startPosition = NULL ;
-   CHAR   *matchedPosition = NULL ;
-   UINT32 matchedLength = 0 ;
-   UINT32 fileFullNameLen = 0 ;
-   UINT32 fileUserNameLen = 0 ;
-   UINT32 fullNameLen = 0 ;
-   UINT32 userNameLen = 0 ;
+   UINT32 fileLength         = 0 ;
+   CHAR   *fileContent       = NULL ;
+   CHAR   *foundNewline      = NULL ;
+   CHAR   *atPos             = NULL ;
+   CHAR   *colonPos          = NULL ;
+   CHAR   *startPosition     = NULL ;
+   CHAR   *matchedPosition   = NULL ;
+   UINT32 matchedLength      = 0 ;
+   UINT32 fileFullNameLen    = 0 ;
+   UINT32 fileUserNameLen    = 0 ;
+   UINT32 fullNameLen        = 0 ;
+   UINT32 userNameLen        = 0 ;
    CHAR   userName[SDB_MAX_USERNAME_LENGTH] = { '\0' } ;
    CHAR   fullName[SDB_MAX_USERNAME_LENGTH] = { '\0' } ;
 
@@ -738,7 +778,7 @@ INT32 utilDecryptUserCipher( const CHAR *user, const CHAR *token,
    startPosition = fileContent ;
    while ( fileLength > 0 )
    {
-      foundNewline = ( CHAR * )memchr( startPosition + 1, '\n', fileLength ) ;
+      foundNewline = ( CHAR * )memchr( startPosition, '\n', fileLength ) ;
       if ( NULL != foundNewline )
       {
          colonPos = ( CHAR * )memchr( startPosition, ':',
@@ -807,12 +847,11 @@ INT32 utilDecryptUserCipher( const CHAR *user, const CHAR *token,
    }
 
 done:
-
-   if ( NULL != fileContent )
+   if ( fileContent )
    {
       SDB_OSS_FREE( fileContent ) ;
+      fileContent = NULL ;
    }
-
    return rc ;
 error:
    goto done ;
