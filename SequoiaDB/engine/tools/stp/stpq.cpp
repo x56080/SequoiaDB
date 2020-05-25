@@ -433,7 +433,7 @@ namespace engine
    static INT32 _stpqOutputTime( const stpLogicalTimeNS &currentTime )
    {
       ossPrintf( "Time:"OSS_NEWLINE
-                 "   %-9s : ( %llu sec, %llu nanosec )"OSS_NEWLINE
+                 "   %-9s : ( %llu second, %llu nanosec )"OSS_NEWLINE
                  "   %-9s : %u"OSS_NEWLINE,
                  STP_FIELD_NAME_TIMESTAMP,
                  currentTime.getTime().getSecond(),

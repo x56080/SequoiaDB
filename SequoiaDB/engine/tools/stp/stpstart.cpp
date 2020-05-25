@@ -70,23 +70,45 @@ namespace engine
    #define STPSTART_OPTION_IGNOREULIMIT   PMD_OPTION_IGNOREULIMIT
 
 #if defined (_WINDOWS)
+   // windows options
    #define COMMANDS_OPTIONS \
-       ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h"), "help" ) \
-       ( STP_OPTION_VERSION, "version" ) \
-       ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c"), po::value<string>(), "configuration file path" ) \
-       ( STPSTART_OPTION_OPTIONS, po::value<string>(), "options" )
-#else
-   #define COMMANDS_OPTIONS \
-       ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h"), "help" ) \
-       ( STP_OPTION_VERSION, "version" ) \
-       ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c"), po::value<string>(), "configuration file path" ) \
-       ( STPSTART_OPTION_OPTIONS, po::value<string>(), "options" ) \
-       ( PMD_COMMANDS_STRING( STPSTART_OPTION_IGNOREULIMIT, ",i"), "skip checking ulimit" )
-#endif
+      ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h" ), \
+            "help" ) \
+      ( STP_OPTION_VERSION, \
+            "version" ) \
+      ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), \
+            po::value<string>(), \
+            "configuration file path of STP\n" \
+            "e.g. \"E:\\Sequoiadb\\conf\\stp\\\"" ) \
+      ( STPSTART_OPTION_OPTIONS, po::value<string>(), \
+            "options" )
 
    #define COMMANDS_HIDE_OPTIONS \
       ( STP_OPTION_HELPFULL, "help all configs" ) \
       ( STP_OPTION_CURUSER, "use current user" )
+
+#else
+   // linux options
+   #define COMMANDS_OPTIONS \
+      ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h" ), \
+            "help" ) \
+      ( STP_OPTION_VERSION, \
+            "version" ) \
+      ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), \
+            po::value<string>(), \
+            "configuration file path of STP\n" \
+            "e.g. \"/opt/sequoiadb/conf/stp\"") \
+      ( STPSTART_OPTION_OPTIONS, \
+            po::value<string>(), \
+            "options" )
+
+   #define COMMANDS_HIDE_OPTIONS \
+      ( STP_OPTION_HELPFULL, "help all configs" ) \
+      ( STP_OPTION_CURUSER, "use current user" ) \
+      ( PMD_COMMANDS_STRING( STPSTART_OPTION_IGNOREULIMIT, ",i" ), \
+            "skip checking ulimit" )
+
+#endif
 
    static void init( po::options_description &desc,
                      po::options_description &all )
@@ -208,7 +230,7 @@ namespace engine
          rc = utilSetAndCheckUlimit() ;
          if ( SDB_OK != rc )
          {
-            ossPrintf( "Error: start sdbtp will set ulimit by file"
+            ossPrintf( "Error: start stp will set ulimit by file"
                        "[conf/limits.conf], if you want to set ulimit by "
                        "current terminal, please use parameter '-i'."
                        OSS_NEWLINE ) ;

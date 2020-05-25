@@ -243,13 +243,13 @@ namespace engine
       stpSyncClientManager _syncClientManager ;
       // replica manager handles replica vote between servers
       stpReplManager       _replManager ;
-      // module list registered to SDBTP
+      // module list registered to STP
       // register all modules ( node manager, etc), into module list, and
       // call initialize, active functions by iterating module list
       STP_MODULE_LIST      _moduleList ;
    } ;
 
-   // get SDBTP
+   // get STP control block
    STPCB *stpGetSTPCB() ;
 
 }

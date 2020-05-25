@@ -331,9 +331,9 @@ namespace engine
    #define PMD_OPTION_ALIVE_TIME       "alivetime"       // for om
    #define PMD_OPTION_FORCE            "force"
 
-   #define PMD_OPTION_SERVERLIST       "serverlist"      // for tp
-   #define PMD_OPTION_SYNCINTERVAL     "syncinterval"    // for tp
-   #define PMD_OPTION_MAXTIMEERROR     "maxtimeerror"    // for tp
+   #define PMD_OPTION_SERVERLIST       "serverlist"      // for stp
+   #define PMD_OPTION_SYNCINTERVAL     "syncinterval"    // for stp
+   #define PMD_OPTION_MAXTIMEERROR     "maxtimeerror"    // for stp
 
    /*
       SDB_RUN_MODE_TYPE_STR DEFINE
