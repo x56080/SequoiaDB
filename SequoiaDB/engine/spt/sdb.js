@@ -876,13 +876,24 @@ Sdb.prototype._resolveCS = function(csName) {
    this.getCS( csName ) ;
 }
 
+// getCatalogRG will be remove, suggest using getCataRG
 Sdb.prototype.getCatalogRG = function() {
+   return this.getCataRG() ;
+}
+
+Sdb.prototype.getCataRG = function() {
    return this.getRG( SDB_CATALOG_GROUP_NAME ) ;
 }
 
+// removeCatalogRG will be remove, suggest using removeCataRG
 Sdb.prototype.removeCatalogRG = function() {
+   return this.removeCataRG() ;
+}
+
+Sdb.prototype.removeCataRG = function() {
    return this.removeRG( SDB_CATALOG_GROUP_NAME ) ;
 }
+
 
 Sdb.prototype.createCoordRG = function() {
    return this.createRG( SDB_COORD_GROUP_NAME ) ;

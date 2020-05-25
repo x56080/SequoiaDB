@@ -1,0 +1,35 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.removeCataRG()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+removeCataRG - remove catalog replica group.
+
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.removeCataRG()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Remove catalog replica group, require that there is no data node and coord node information on the catalog replica group, remove catalog replica group will remove all catalog node in the replica group.
+.SH "Examples"
+
+.sp 2
+Remove catalog replica group:
+.sp 2
+db.removeCataRG()
