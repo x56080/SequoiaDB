@@ -32,8 +32,10 @@ function check_user()
 
 check_user
 
+startfs="$BashPath/start_i.sh"
+
 if [ "$cur_user" == "root" ]; then
-  su $USER -c "./start_i.sh $*"
+  su $USER -c "$startfs $*"
 else
-  ./start_i.sh $*
+  $startfs $*
 fi  
