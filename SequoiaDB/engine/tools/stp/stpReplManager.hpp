@@ -143,10 +143,12 @@ namespace engine
       // event after primary deactive
       virtual void afterPrimaryDeactive( const MsgRouteID &newPrimaryRID,
                                          const MsgRouteID &oldPrimaryRID ) ;
-      // event on local gorup expired
+      // event on local group expired
       virtual void onLocalGroupExpired() ;
-      // event on notify of primary change
-      virtual void onNotifiedPrimaryChange() ;
+      // event before new primary is found
+      virtual void beforeFoundNewPrimary() ;
+      // event after new primary is found
+      virtual void afterFoundNewPrimary( const MsgRouteID &newPrimaryRID ) ;
 
    protected:
       // activate replica group to vote

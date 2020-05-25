@@ -346,7 +346,8 @@ namespace engine
          virtual void afterPrimaryDeactive( const MsgRouteID &newPrimaryRID,
                                             const MsgRouteID &oldPrimaryRID ) ;
          virtual void onLocalGroupExpired() ;
-         virtual void onNotifiedPrimaryChange() ;
+         virtual void beforeFoundNewPrimary() ;
+         virtual void afterFoundNewPrimary( const MsgRouteID &newPrimaryRID ) ;
 
       protected:
          OSS_INLINE virtual UINT32 _getConfirmedStat() const

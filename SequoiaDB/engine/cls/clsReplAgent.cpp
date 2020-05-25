@@ -830,11 +830,12 @@ namespace engine
             {
                PD_LOG( PDEVENT, "vote: the discovery of new primary[%d]",
                        beat.identity.columns.nodeID ) ;
-               onNotifiedPrimaryChange() ;
+               beforeFoundNewPrimary() ;
                _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
                _info.mtx.lock_w() ;
                _info.primary = beat.identity ;
                _info.mtx.release_w() ;
+               afterFoundNewPrimary( getPrimary() ) ;
 
                /// when self is in slice, force to secondary
                if ( _vote.isStatus( CLS_ELECTION_STATUS_SILENCE ) )
@@ -856,10 +857,11 @@ namespace engine
             {
                PD_LOG( PDEVENT, "vote: primary node[%d] is down",
                        beat.identity.columns.nodeID ) ;
-               onNotifiedPrimaryChange() ;
+               beforeFoundNewPrimary() ;
                _info.mtx.lock_w() ;
                _info.primary.value = MSG_INVALID_ROUTEID ;
                _info.mtx.release_w() ;
+               afterFoundNewPrimary( getPrimary() ) ;
             }
          }
       }
