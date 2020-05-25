@@ -937,11 +937,21 @@ Sdb.prototype._resolveCS = function(csName) {
    }
 }
 
+// getCatalogRG will be remove, suggest using getCataRG
 Sdb.prototype.getCatalogRG = function() {
+   return this.getCatalRG() ;
+}
+
+Sdb.prototype.getCatalRG = function() {
    return this.getRG( SDB_CATALOG_GROUP_NAME ) ;
 }
 
+// removeCatalogRG will be remove, suggest using removeCataRG
 Sdb.prototype.removeCatalogRG = function() {
+   return this.removeCataRG() ;
+}
+
+Sdb.prototype.removeCataRG = function() {
    return this.removeRG( SDB_CATALOG_GROUP_NAME ) ;
 }
 
