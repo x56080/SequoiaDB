@@ -23,6 +23,7 @@ function Start()
   fsbin="$BashPath/sequoiafs"
   confrootpath="$BashPath/../conf/local"
   logrootpath="$BashPath/../log"
+  fusetype="fuse.sequoiafs"
   if [ -d "$confrootpath" ]; then
     confrootpath=$(cd "$BashPath/../conf/local"; pwd)
   fi
@@ -56,6 +57,7 @@ function Start()
     fi 
     for dir in `ls "$confrootpath"`
     do
+      mountinfo=""
       nessargs=()
       curfspid=""
       confpatharg="$confrootpath/$dir"
@@ -65,6 +67,7 @@ function Start()
         nessargs[$nesscount]="$confpatharg"
         let "nesscount++"
         source "$confpatharg/sequoiafs.conf"
+        mountinfo=$(echo ${mountpoint%*/})
         if [ -z $diagpath ]; then
           nessargs[$nesscount]="--diagpath"
           let "nesscount++"
@@ -76,24 +79,16 @@ function Start()
         fi
         echo "$fsbin ${nessargs[*]} ${otherargs[*]}"
         $fsbin ${nessargs[*]} ${otherargs[*]} &
-        curfspid=$(jobs -l| grep "+" | grep -v grep | awk '{print $2}')
+        curfspid="$!"
+        
+        sleep 1
         
         loop=0
         while(( $loop < 100 ))
         do
           let "loop++"
-          if [ -f "$logpath/sequoiafs.pid" ]; then
-            fslogpid=$(cat "$logpath/sequoiafs.pid")
-            if [ "$fslogpid" == "$curfspid" ]; then
-              break
-            else
-              if [ -n "$( ps -ef |grep $curfspid |grep -v grep)" ]; then
-                sleep 1
-                continue
-              else
-                break
-              fi
-            fi
+          mountpidinfo=$( mount -t $fusetype|grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')
+          if [ "$mountpidinfo" == "$curfspid" ]; then
             break
           else
             if [ -n "$( ps -ef |grep $curfspid |grep -v grep)" ]; then
@@ -104,9 +99,7 @@ function Start()
             fi              
           fi
         done
-        
-        sleep 1
-        
+
         if [ -f "$logpath/sequoiafs.pid" ]; then
           fslogpid=$(cat "$logpath/sequoiafs.pid")
           if [ "$fslogpid" == "$curfspid" ]; then
@@ -160,11 +153,16 @@ function Start()
       fi  
     fi
     
+    mountinfo=""
     if [ "$confpatharg" != "" ]; then
       nessargs[$nesscount]="-c"
       let "nesscount++"
       nessargs[$nesscount]="$confpatharg"
-      let "nesscount++"    
+      let "nesscount++"  
+      if [ -f "$confpatharg/sequoiafs.conf" ]; then
+        source "$confpatharg/sequoiafs.conf"   
+        mountinfo=$(echo ${mountpoint%*/})
+      fi        
     fi
     
     if [ "$mountpointarg" != "" ]; then
@@ -172,6 +170,7 @@ function Start()
       let "nesscount++"
       nessargs[$nesscount]="$mountpointarg"    
       let "nesscount++"
+      mountinfo=$(echo ${mountpointarg%*/})
     fi
     if [ "$aliasarg" != "" ]; then
       nessargs[$nesscount]="--alias"
@@ -204,24 +203,17 @@ function Start()
 
     echo "$fsbin ${nessargs[*]} ${otherargs[*]} "
     $fsbin ${nessargs[*]} ${otherargs[*]} & 
-    curfspid=$(jobs -l| grep "+" | grep -v grep | awk '{print $2}')
+    curfspid="$!"
+    
+    sleep 1
     
     loop=0
     while(( $loop < 100 ))
     do
       let "loop++"
-      if [ -f "$logpath/sequoiafs.pid" ]; then
-        fslogpid=$(cat "$logpath/sequoiafs.pid")
-        if [ "$fslogpid" == "$curfspid" ]; then
-          break
-        else
-          if [ -n "$( ps -ef |grep $curfspid |grep -v grep)" ]; then
-            sleep 1
-            continue
-          else
-            break
-          fi
-        fi
+      mountpidinfo=$( mount -t $fusetype|grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')
+      if [ "$mountpidinfo" == "$curfspid" ]; then
+        break
       else
         if [ -n "$( ps -ef |grep $curfspid |grep -v grep)" ]; then
           sleep 1
@@ -231,8 +223,6 @@ function Start()
         fi              
       fi
     done
-    
-    sleep 1 
     
     if [ -f "$logpath/sequoiafs.pid" ]; then
       fslogpid=$(cat "$logpath/sequoiafs.pid")
@@ -262,7 +252,7 @@ function Start()
 }
 
 all=""
-mountpoint=""
+mountpointin=""
 alias=""
 logpath=""
 configpath=""
@@ -280,7 +270,7 @@ do
       all="true"
       ;;
     -m|--mountpoint)
-      mountpoint=$2
+      mountpointin=$2
       shift
       ;;
     --alias)
@@ -306,6 +296,6 @@ do
 shift
 done
 
-Start "$all" "$mountpoint" "$alias" "$configpath" "$logpath" ${otherargs[*]}
+Start "$all" "$mountpointin" "$alias" "$configpath" "$logpath" ${otherargs[*]}
 
 exit 0
