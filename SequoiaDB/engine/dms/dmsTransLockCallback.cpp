@@ -424,7 +424,6 @@ namespace engine
       /// so use try
       if ( oldVer && oldVer->tryReleaseRecord() )
       {
-         // FIXME: remove after stable
 #ifdef _DEBUG
          PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
                  lockId.toString().c_str() ) ;
@@ -613,8 +612,6 @@ namespace engine
    // Note that _rbsRecordData is only setup from RBS, not the in memory version
    // Dependency:
    //    caller must hold lrb bucket latch
-   // TODO: there could be some code cleanup in this function, including:
-   //  duplicated code, logic maybe simplified, remove debug code...
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKACQUIRE, "dmsTransLockCallback::afterLockAcquire" )
    void dmsTransLockCallback::afterLockAcquire
    (
@@ -698,9 +695,6 @@ namespace engine
    {
       BOOLEAN notTransOrRollback = FALSE  ;
       dmsRecordID rid( lockId.extentID(), lockId.offset() ) ;
-#ifdef _DEBUG
-      DPS_TRANS_ID transID       = _eduCB->getTransID() ;
-#endif
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIREUXLOCKORNONRRREAD );
 
       /// not in transaction
@@ -708,23 +702,6 @@ namespace engine
       {
          notTransOrRollback = TRUE ;
       }
-
-      //FIXME remove
-#ifdef _DEBUG
-      PD_LOG( PDDEBUG,
-              "Begin check for rid(%d, %d), transid(%s), clLID(%d), irc(%d), "
-              "requestLockMode(%s), notTransOrRollback(%d), ISO:%d, scanner:%s",
-              rid._extent, rid._offset,
-              dpsTransIDToString( transID ).c_str(),
-              _clLID, irc, lockModeToString( requestLockMode ),
-              notTransOrRollback,
-              _transIsolation,
-              ( (!_pScanner)
-                ? "TBScan"
-                : ( (SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType())
-                    ? "Memory tree"
-                    : "Disk index" ) ) ) ;
-#endif
 
       // when roll back or transaction is not avaiable
       if ( notTransOrRollback )
@@ -894,18 +871,6 @@ namespace engine
 
    done :
 
-     //FIXME remove
-#ifdef _DEBUG
-     PD_LOG( PDDEBUG,
-             "oldVer[%x] for rid[%s] in memory, lockmod=%s, "
-             "_useOldVersion=%d, _skipRecord=%d, "
-             "_rbsRecordData->isEmpty()=%d, transID(%s)",
-             _oldVer, lockId.toString().c_str(),
-             lockModeToString( requestLockMode ),
-             _useOldVersion, _skipRecord,
-             (_rbsRecordData ? _rbsRecordData->isEmpty() : -1 ),
-             dpsTransIDToString( transID ).c_str() ) ;
-#endif
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK__AFTERACQUIREUXLOCKORNONRRREAD ) ;
       return ;
    }
@@ -1061,22 +1026,6 @@ namespace engine
          // not in transaction
          notTransOrRollback = TRUE ;
       }
-
-     //FIXME remove
-#ifdef _DEBUG
-      PD_LOG( PDDEBUG,
-              "Begin check for rid(%d, %d), transid(%s), clLID(%d), irc(%d), "
-              "requestLockMode(%s), notTransOrRollback(%d), ISO:RR, scanner:%s",
-              rid._extent, rid._offset,
-              dpsTransIDToString( transID ).c_str(),
-              _clLID, irc, lockModeToString( requestLockMode ),
-              notTransOrRollback,
-              ( (!_pScanner)
-                ? "TBScan"
-                : ( (SCANNER_TYPE_MEM_TREE == _pScanner->getCurScanType())
-                    ? "Memory tree"
-                    : "Disk index" ) ) ) ;
-#endif
 
       // when roll back or transaction is not avaiable
       if ( notTransOrRollback )
@@ -1270,8 +1219,7 @@ namespace engine
          _oldVer = NULL ;
       }
 
-      //FIXME remove
-#ifdef _DEBUG
+#if SDB_INTERNAL_DEBUG
       PD_LOG( PDDEBUG,
              "oldVer[%x] for rid[%s] in memory, lockmod=%s, visible=%d, "
              "_useOldVersion=%d, _skipRecord=%d, _needPostAction=%d, "
@@ -1347,8 +1295,7 @@ namespace engine
          _useOldVersion = TRUE ;
       }
 
-      //FIXME remove
-#ifdef _DEBUG
+#if SDB_INTERNAL_DEBUG
       PD_LOG( PDDEBUG,
              "postaction for rid[%s], found=%d, "
              "_useOldVersion=%d, _skipRecord=%d, _needPostAction=%d, "
@@ -1557,20 +1504,14 @@ namespace engine
          else
          {
             const dmsRecord *pRecord= pRecordRW->readPtr( 0 ) ;
-#ifdef _DEBUG
-            // TODO: for record from V0, we do not have LSN on page header.
-            // and we haven't done inflight migration yet. 
-            // we must either force export/import all the records during
-            // migration OR only support mvcc in newly created record(CS/CL)
-            // OR use same method to generate a create LSN for hash purpose.
+#if SDB_INTERNAL_DEBUG
 
-        // FIXME: remove
-      PD_LOG( PDDEBUG, "saving old record to memory and RBS:"
-              "rid(%d, %d), ownertransid(%s), "
-              "recordTransID(%s)",
-              rid._extent, rid._offset, 
-              dpsTransIDToString( transID ).c_str(),
-              dpsTransIDToString( pRecord->getGlobTransID() ).c_str() ) ;
+         PD_LOG( PDDEBUG, "saving old record to memory and RBS:"
+                 "rid(%d, %d), ownertransid(%s), "
+                 "recordTransID(%s)",
+                 rid._extent, rid._offset, 
+                 dpsTransIDToString( transID ).c_str(),
+                 dpsTransIDToString( pRecord->getGlobTransID() ).c_str() ) ;
 #endif
 
             // 1. get to overflow record if needed

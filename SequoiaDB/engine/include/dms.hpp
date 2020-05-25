@@ -49,7 +49,6 @@ namespace engine
 {
 
 // Use this to force smaller Capped CL size for testing purpose
-// FIXME set back to 0
 #define SMALL_CAP  0
 
 #define DMS_COLLECTION_SPACE_NAME_SZ      127

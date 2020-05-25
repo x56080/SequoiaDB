@@ -218,18 +218,6 @@ namespace engine
          {
             pOvfRecord->setGlobTransID( transID ) ;
          }
-         // FIXME: remove
-#ifdef _DEBUG
-         PD_LOG( PDDEBUG, "set record(%d, %d) transid(%s) ",
-                 recordID._extent, recordID._offset,
-                 dpsTransIDToString( transID ).c_str() ) ;
-         if ( bSetOvfRecord && pOvfRecord )
-         {
-            PD_LOG( PDDEBUG, "set record(%d, %d)(ovf) transid(%s)",
-                    ovfRID._extent, ovfRID._offset,
-                    dpsTransIDToString( transID ).c_str() ) ;
-         }
-#endif
       }
       else
       {
@@ -248,20 +236,6 @@ namespace engine
             {
                pOvfRecord->setGlobTransID( transID ) ;
             }
-            // FIXME: remove
-#ifdef _DEBUG
-            PD_LOG( PDDEBUG,
-                    "set record(%d, %d) transid(%s) when rollback",
-                    recordID._extent, recordID._offset,
-                    dpsTransIDToString( transID ).c_str() ) ;
-            if ( bSetOvfRecord && pOvfRecord )
-            {
-               PD_LOG( PDDEBUG,
-                       "set record(%d, %d)(ovf) transid(%s) when rollback",
-                       ovfRID._extent, ovfRID._offset,
-                       dpsTransIDToString( transID ).c_str() ) ;
-            }
-#endif
          }
       }
       return rc ;
@@ -400,11 +374,8 @@ namespace engine
 
             if ( !(pRecord->hasGlobTransID()) )
             {
-               // FIXME: need to figure out solution on this. Otherwise we
-               // have to always force read of the OVT record to determin
-               // if a record can be used
-               // it might not be a problem for now as we don't release
-               // the space on OVF record now.
+               // We should not be here as we currently don't release the
+               // original space when a record becomes OV. 
                PD_LOG ( PDERROR, 
                         "Update could not in-flight migrate on OVF record(%s)",
                         recordRW.toString().c_str() ) ;
@@ -416,6 +387,8 @@ namespace engine
                         pOvfRecord->toString().c_str() );
                SDB_ASSERT ( FALSE, 
                             "Update failed to migrate existing OVF record." ) ;
+               rc = SDB_SYS ;
+               goto error ;
             }
          }
 

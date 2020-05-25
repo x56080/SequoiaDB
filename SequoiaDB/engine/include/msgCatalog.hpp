@@ -256,7 +256,6 @@ namespace engine
       _MsgGTSLowTranRsp
     */
    // | reply | BSON { GlobLowTran : ... } |
-   // TODO: append arbiter groups for transaction visibility
    typedef MsgOpReply MsgGTSLowTranRsp ;
 
 }

@@ -930,9 +930,8 @@ namespace engine
             }
 
             // get the record's onwer transid as well.
-            // TODO: we may want to skip the record if the ownerTransID
-            // is visiable. But the logic is already handled by upper
-            // caller (see afterLockAquired)
+            // Caller current will skip the record if the ownerTransID
+            // is visiable(see afterLockAquired)
             rc = sd->fetch( context, recordID, cappedRecord,
                             eduCB, FALSE, &ownerTransid ) ;
             if ( rc )

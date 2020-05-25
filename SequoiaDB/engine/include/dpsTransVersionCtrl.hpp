@@ -264,9 +264,8 @@ namespace engine
       // This is NOT reflecting the record transID, but the owner transID, 
       // which is the transaction adding the version into the tree. We will 
       // use this to decide when to recycle the node from the mem tree, i.e.
-      // we can delete the tree node if the transID is older than lowTran
-      // FIXME: since this is not reflecting the version of the record itself
-      // should we still use it in comparison 
+      // we can delete the tree node if the transID is older than lowTran.
+      // This is also used for visiability check as the "owner" transID.
       DPS_TRANS_ID      _transID ;
       // it's shared from the tree. Check clsCataOrder()
       const Ordering    *_order ;

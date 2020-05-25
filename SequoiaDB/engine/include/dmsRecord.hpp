@@ -391,13 +391,6 @@ namespace engine
    class _dmsRecord_v1 : public _dmsRecord_v0
    {
    public :
-/*
-      DPS_LSN_OFFSET _lsnOffset ;   // record creation lsn. We can use this to
-                                    // uniquely identify a record cross the
-                                    // nodes. It is set during insertRecord.
-                                    // However, we are not using it yet. 
-                                    // Keep it for debug and future expension.
-*/
       DPS_TRANS_ID   _globTransID ; // global transaction ID
       CHAR           _pad[2]      ; // force 4B alignment with pragma pack
       /*
@@ -472,7 +465,7 @@ namespace engine
             // set globTransID flag and initialize the value
             resetGlobTransID() ;
          }
-#if _DEBUG
+#ifdef _DEBUG
          else
          {
             PD_LOG ( PDDEBUG,
@@ -494,7 +487,6 @@ namespace engine
    typedef _dmsRecord_v1 dmsRecord_v1 ;
 
    // current version is v1 which has GlobTransID for MVCC purpose
-   // FIXME: before final deliver, we should set to V0 in main
    typedef _dmsRecord_v1 _dmsRecord ;
    typedef _dmsRecord dmsRecord ;
 
@@ -790,7 +782,6 @@ namespace engine
       // the position of the lsn/GTID is same as v1 record. So once a record 
       // is deleted under new release, it's automatically converted to
       // v1 type
-//      DPS_LSN_OFFSET    _lsnOffset ;
       DPS_TRANS_ID      _globTransID ;
       CHAR              _pad[2] ; // force 4B alignment with pragma pack
 
@@ -837,12 +828,6 @@ namespace engine
       {
          _head._recordHead[ 0 ] = DMS_RECORD_FLAG_DELETED ;
       }
-/*
-      void resetLSNOffset ( )
-      {
-         _lsnOffset = DPS_INVALID_LSN_OFFSET ;
-      }
-*/
    } ;
 #pragma pack()
    typedef _dmsDeletedRecord dmsDeletedRecord ;
