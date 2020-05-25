@@ -370,7 +370,7 @@ namespace engine
                ret.first->second.setRidNext( _tree.end() ) ;
                _ridTree.insert( INDEX_RID_TREE::value_type( keyNode.getRID(),
                                                             ret.first) ) ;
-#if defined ( _DEBUG )
+#if SDB_INTERNAL_DEBUG
                PD_LOG( PDDEBUG,
                        "Inserted rid[%d, %d] version(%s) to rid tree[%d]",
                        keyNode.getRID()._extent, keyNode.getRID()._offset,
@@ -388,7 +388,7 @@ namespace engine
                ret.first->second.setRidNext( _tree.end() ) ;
                _ridTree[keyNode.getRID()] = ret.first ;
 
-#if defined ( _DEBUG )
+#if SDB_INTERNAL_DEBUG
                PD_LOG( PDDEBUG, 
                        "Added new rid[%d, %d] version(%s) to rid tree[%d]",
                        keyNode.getRID()._extent, keyNode.getRID()._offset,
@@ -430,7 +430,7 @@ namespace engine
 
          goto error ;
       }
-#ifdef _DEBUG   // FIXME: to be removed
+#ifdef _DEBUG
       else
       {
          PD_LOG( PDDEBUG, "Inserted key[%s] to index tree(%d) with value[%s]",
@@ -481,7 +481,7 @@ namespace engine
          preIdxTreeNodeValue keyValue( oldVer ) ;
          INDEX_TREE_POS pos ;
 
-         // TODO: when insert node, we need to add the RBS offset and pre/next
+         // when insert node, we need to add the RBS offset and pre/next
          // if mvccon
          if( pmdGetOptionCB()->mvccOn() )
          {
@@ -1064,7 +1064,7 @@ namespace engine
       return found ;
    }
 
-   // run garbage collection on a tree, erase all nodes older than lowtran
+   // Run garbage collection on a tree, erase all nodes older than lowtran.
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_GC, "preIdxTree::gc" )
    DPS_TRANSID_SN preIdxTree::gc( DPS_TRANSID_SN lowTran )
    {
@@ -1094,8 +1094,9 @@ namespace engine
          // if it's oldver than lowTran
          while ( pos != _tree.end() )
          {
-            // FIXME: use proper comparison
-            // only compare serial number with global transaction tag
+             // Note that this lowtran passed in should has expired version
+             // and max error considered. so we can do the simple sn
+             // comparison with global transaction tag
             if ( pos->first.getNodeTransID().getGlobSN() < lowTran )
             {
                // only remove the node if old version container
@@ -1756,22 +1757,19 @@ namespace engine
 
          releaseS() ;
 
-         // get current expired version for each tree
+         // get current expired version for each tree. Max time error is
+         // already considered
          expiredVersion = sdbGetTransCB()->getExpiredVersion() ;
 
-         // TODO: may add optimization to check if the tree is changed
-         // after last gc
          if ( treePtr.get() &&
               DPS_INVALID_TRANSID_SN != expiredVersion )
          {
             DPS_TRANSID_SN treeLowTran ;
-#ifdef _DEBUG  // FIXME remove after stable
+#ifdef _DEBUG
             PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, expired version[%s]",
                     it->first.toString().c_str(),
                     treePtr->getKeyPattern().toString().c_str(),
                     dpsTransSNToString( expiredVersion ).c_str() ) ;
-                    //lowTran.getGlobSN() ) ;
-            treePtr->printTree( FALSE ) ;
 #endif
             // NOTE: we need global transaction tag with SN
             treeLowTran = treePtr->gc( expiredVersion ) ;
@@ -2284,7 +2282,7 @@ namespace engine
       // transaction had been rolledback
       if ( !pmdGetOptionCB()->mvccOn() || isRolledback() )
       {
-#ifdef _DEBUG   // FIXME: to be removed
+#if SDB_INTERNAL_DEBUG
    PD_LOG( PDDEBUG, "Removing index from mem tree, latchHeld(%d): "
            "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
             treeLatchHeld, _rid._extent, _rid._offset,
@@ -2296,7 +2294,7 @@ namespace engine
       }
       else
       {
-#ifdef _DEBUG   // FIXME: to be removed
+#if SDB_INTERNAL_DEBUG
    PD_LOG( PDDEBUG, "Resetting index in mem tree, latchHeld(%d): "
            "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
             treeLatchHeld, _rid._extent, _rid._offset,
@@ -2323,7 +2321,7 @@ namespace engine
       ///        release due to rollback. But it won't hurt much
       ///        if we just write it out. There could be an identical
       ///        version in RBS, waste one disk read in the future
-/*    //FIXME: potential perf improvement to only write RBS during commit
+/*    //FIXME: potential perf improvement to only write RBS during commit(5505)
       if ( pmdGetOptionCB()->mvccOn()  && this->hasRecord() )
       {
          // FIXME, decide on the API during review

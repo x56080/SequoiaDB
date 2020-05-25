@@ -1173,13 +1173,12 @@ namespace engine
          INT64 *lidPtr = (INT64 *)ele.value() ;
          *lidPtr = workExtInfo->getRecordLogicID() ;
          pRecord->setLogicalID( *lidPtr ) ;
-      // FIXME: remove
-#ifdef _DEBUG
+#if SDB_INTERNAL_DEBUG
+         // only enabled this for internal test when needed
          PD_LOG( PDDEBUG,
                  "insert record (recordsize=%d, Bson obj size=%d) to capped cl,"
                  "with flag(%d) logicalid(%lld), rid(%d, %d), "
                  "recsize(%d), recNo(%d), reclogicID(%lld), recTransID(%s)",
-                 //"recLSN(%llu)",
                  recordSize, recordData.len(),
                  (*lidPtr),
                  pRecord->getFlag(),
@@ -1189,7 +1188,6 @@ namespace engine
                  pRecord->getRecordNo(),
                  pRecord->getLogicalID(),
                  dpsTransIDToString( pRecord->getGlobTransID() ).c_str() );
-                 //pRecord->getLSNOffset() ) ;
 #endif
       }
 
@@ -2496,17 +2494,6 @@ namespace engine
             {
                *version = pRecord->getGlobTransID() ;
             }
-
-            // TODO: dump record data for verification
-#ifdef _DEBUG
-            PD_LOG( PDDEBUG,
-                    "Read record rid(%d, %d) from capped cl, recNo(%d), reclogicID(%lld), "
-                    "transID(%s)",
-                    recordID._extent, recordID._offset,
-                    pRecord->getRecordNo(),
-                    pRecord->getLogicalID(),
-                    dpsTransIDToString( pRecord->getGlobTransID() ).c_str() );
-#endif
          }
 
       }

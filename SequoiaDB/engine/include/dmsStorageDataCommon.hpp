@@ -374,7 +374,6 @@ namespace engine
 
       ossAtomic32 _commitFlag ;
       ossAtomic64 _lastLSN ;
-      // FIXME: need "atomic" for DPS_TRANS_ID later
       ossAtomic64 _maxGlobTransID ;
       UINT64      _lastWriteTick ;
       BOOLEAN     _isCrash ;
@@ -501,13 +500,11 @@ namespace engine
       }
 
       // compare and update GlobTransID if the one passed in is newer
-      // FIXME: need implement automic compare and swap for DPS_TRANS_ID later
-      // Also, we have to use global serial number for comparison purpose, but
-      // we should remove it after switching to timestamp
+      // Note: that we only compare serial number with global transaction tag
+      //       here. When user use this maxGlobTranID, he may need to consider
+      //       max error if needed.
       void updateGlobTransIDWithComp( DPS_TRANS_ID transID )
       {
-         // TODO: should consider maximum time error
-         // only compare serial number with global transaction tag
          _maxGlobTransID.swapGreaterThan( transID.getGlobSN() ) ;
       }
 

@@ -352,9 +352,6 @@ namespace engine
          void        getValidFlag( BOOLEAN &dataFlag,
                                    BOOLEAN &idxFlag,
                                    BOOLEAN &lobFlag ) const ;
-         // FIXME: enable this after fully test
-       //  SINT32      getCurRBSCollection() const ;
-       //  SINT32      getLastFreeRBSCollection() const ;
 
       public:
          INT32    dumpInfo ( MON_CL_SIM_LIST &clList,
