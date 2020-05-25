@@ -2122,9 +2122,9 @@
                         },
                         {
                            "id": 1432190787,
-                           "file": "getCatalogRG",
-                           "cn": "getCatalogRG()",
-                           "en": "getCatalogRG()"
+                           "file": "getCataRG",
+                           "cn": "getCataRG()",
+                           "en": "getCataRG()"
                         },
                         {
                            "id": 1432190788,
@@ -2236,9 +2236,9 @@
                         },
                         {
                            "id": 1432190803,
-                           "file": "removeCatalogRG",
-                           "cn": "removeCatalogRG()",
-                           "en": "removeCatalogRG()"
+                           "file": "removeCataRG",
+                           "cn": "removeCataRG()",
+                           "en": "removeCataRG()"
                         },
                         {
                            "id": 1432190804,

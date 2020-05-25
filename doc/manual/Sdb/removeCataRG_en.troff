@@ -38,6 +38,6 @@ Remove catalog replica group.
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.removeCataRG()
+>\ db.removeCataRG()
 \f[]
 .fi

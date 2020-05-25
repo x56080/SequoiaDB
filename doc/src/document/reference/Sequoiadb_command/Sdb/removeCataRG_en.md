@@ -43,5 +43,5 @@ Since v1.10
 * Remove catalog replica group.
 
 ```lang-javascript
-> var rg = db.removeCataRG()
+> db.removeCataRG()
 ```
