@@ -298,9 +298,14 @@ namespace engine
       // do nothing
    }
 
-   void _stpReplManager::onNotifiedPrimaryChange()
+   void _stpReplManager::beforeFoundNewPrimary()
    {
       // do nothing
+   }
+
+   void _stpReplManager::afterFoundNewPrimary( const MsgRouteID &newPrimaryRID )
+   {
+      _stpCB->onChangePrimary( newPrimaryRID, FALSE ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPREPLMGR__ACTIVATEREPLGROUP, "_stpReplManager::_activateReplGroup" )

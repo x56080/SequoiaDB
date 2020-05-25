@@ -1162,9 +1162,14 @@ namespace engine
       _cata.call( (MsgHeader *)(&msg) ) ;
    }
 
-   void _clsReplicateSet::onNotifiedPrimaryChange()
+   void _clsReplicateSet::beforeFoundNewPrimary()
    {
       _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
+   }
+
+   void _clsReplicateSet::afterFoundNewPrimary( const MsgRouteID &newPrimaryRID )
+   {
+      // do nothing
    }
 
 }

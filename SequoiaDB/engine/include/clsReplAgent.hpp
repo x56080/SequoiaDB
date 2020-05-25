@@ -107,7 +107,8 @@ namespace engine
       /// handle case when information of local group is expired
       virtual void onLocalGroupExpired() = 0 ;
       /// handle case when is notified that primary is changed
-      virtual void onNotifiedPrimaryChange() = 0 ;
+      virtual void beforeFoundNewPrimary() = 0 ;
+      virtual void afterFoundNewPrimary( const MsgRouteID &newPrimaryRID ) = 0 ;
 
    public:
       OSS_INLINE EDUID getMainEDUID()
