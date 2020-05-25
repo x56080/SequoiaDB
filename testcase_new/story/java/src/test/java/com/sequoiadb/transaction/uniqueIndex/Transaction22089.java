@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
+import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -52,7 +53,7 @@ public class Transaction22089 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws Exception {
         try {
             TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 3; i++ ) {
@@ -64,6 +65,7 @@ public class Transaction22089 extends SdbTestBase {
 
         }
         TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expList );
+        Assert.assertTrue( TransUtils.isCLConsistency( cl ) );
         sdb.setSessionAttr(
                 ( BSONObject ) JSON.parse( "{PreferedInstance:'s'}" ) );
 
