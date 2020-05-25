@@ -808,7 +808,7 @@
 #define CMD_NAME_STP_STOP                 CMD_NAME_STP_PREFIX "stop"
 #define CMD_NAME_STP_GET                  CMD_NAME_STP_PREFIX "get"
 
-// run in sdbtp
+// run in stp
 #define CMD_NAME_STP_GET_TIME             CMD_NAME_STP_PREFIX "get time"
 #define CMD_NAME_STP_GET_TIME_US          CMD_NAME_STP_PREFIX "get time us"
 #define CMD_NAME_STP_GET_META             CMD_NAME_STP_PREFIX "get meta"

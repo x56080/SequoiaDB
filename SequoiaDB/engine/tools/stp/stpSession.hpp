@@ -96,7 +96,7 @@ namespace engine
                         const bson::BSONObj &result ) ;
 
    protected:
-      // pointer to SDBTP
+      // pointer to STP control block
       STPCB * _stpCB ;
    } ;
 
@@ -148,7 +148,7 @@ namespace engine
                                                 void *data = NULL ) ;
 
    protected:
-      // pointer to SDBTP
+      // pointer to STP control block
       STPCB * _stpCB ;
    } ;
 
