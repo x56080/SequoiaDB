@@ -105,6 +105,40 @@ namespace engine
       return eh ;
    }
 
+   ip::address_v4 _netEventHandler::localIP() const
+   {
+      ip::address_v4 addr ;
+
+      try
+      {
+         addr = _sock.local_endpoint().address().to_v4() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "get local address occurred exception: %s",
+                 e.what() ) ;
+      }
+
+      return addr ;
+   }
+
+   ip::address_v4 _netEventHandler::remoteIP() const
+   {
+      ip::address_v4 addr ;
+
+      try
+      {
+         addr = _sock.remote_endpoint().address().to_v4() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "get remote address occurred exception: %s",
+                 e.what() ) ;
+      }
+
+      return addr ;
+   }
+
    string _netEventHandler::localAddr() const
    {
       string addr ;

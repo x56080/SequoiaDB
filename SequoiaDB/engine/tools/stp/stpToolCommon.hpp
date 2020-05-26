@@ -99,15 +99,28 @@ namespace engine
    #define STP_LOG_PATH             STP_ROOT_PATH
 
    // names of STP options
+   // port of STP
    #define STP_OPTION_PORT             PMD_OPTION_PORT
+   // role of STP
    #define STP_OPTION_ROLE             PMD_OPTION_ROLE
+   // weight of STP server to vote for primary
    #define STP_OPTION_WEIGHT           PMD_OPTION_WEIGHT
+   // diagnostic level of STP
    #define STP_OPTION_DIAGLEVEL        PMD_OPTION_DIAGLEVEL
+   // sharing break timeout of STP servers
+   // NOTE: timeout between servers to detect each other
    #define STP_OPTION_SHARINGBRK       PMD_OPTION_SHARINGBRK
+   // start shift time of STP servers
+   // NOTE: for new added server, it will not become primary in
+   //       start shift time
    #define STP_OPTION_STARTSHIFTTIME   PMD_OPTION_START_SHIFT_TIME
+   // configuration path of STP
    #define STP_OPTION_CONFPATH         PMD_OPTION_CONFPATH
+   // get version of STP
    #define STP_OPTION_VERSION          PMD_OPTION_VERSION
+   // get help of STP
    #define STP_OPTION_HELP             PMD_OPTION_HELP
+   // get full help of STP
    #define STP_OPTION_HELPFULL         PMD_OPTION_HELPFULL
    #define STP_OPTION_CURUSER          PMD_OPTION_CURUSER
 
@@ -119,6 +132,14 @@ namespace engine
    #define STP_OPTION_MAXTIMEERROR     "maxtimeerror"
    // max synchronize history records
    #define STP_OPTION_MAXSYNCHIST      "maxsynchist"
+   // maximum UDP ports to synchronize time
+   #define STP_OPTION_MAXSYNCPORTS     "maxsyncports"
+   // default synchronize clients per UDP port
+   #define STP_OPTION_DEFCLIENTSPERPORT "defclientsperport"
+   // force to start synchronize ports
+   #define STP_OPTION_PREOPENPORTS     "preopenports"
+   // allow synchronize with system port
+   #define STP_OPTION_SYNCWITHSYSPORT  "allowsyncwithsysport"
    // daemon mode
    #define STP_OPTION_DAEMON           "daemon"
    // test mode

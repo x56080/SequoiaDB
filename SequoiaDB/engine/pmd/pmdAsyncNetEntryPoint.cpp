@@ -200,6 +200,6 @@ namespace engine
 
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_STP_NET_AGENT, TRUE,
                           pmdAsyncNetEntryPoint,
-                          "TPNetAgent" ) ;
+                          "STPNetAgent" ) ;
 
 }

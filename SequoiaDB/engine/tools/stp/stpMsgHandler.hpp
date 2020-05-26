@@ -49,11 +49,81 @@
 namespace engine
 {
 
+   class _stpNetMsgHandlerBase : public INetMsgHandler,
+                                 public stpHandlerBase
+   {
+   public:
+      _stpNetMsgHandlerBase( STPCB *stpCB ) ;
+      virtual ~_stpNetMsgHandlerBase() ;
+
+   public:
+      // allocate request ID
+      OSS_INLINE UINT64 allocateRequestID()
+      {
+         return _requestID.inc() ;
+      }
+
+      // helper function to fill request
+      void fillRequestHeader( MsgHeader &request,
+                              UINT32 requestSize,
+                              INT32 opCode ) ;
+
+      // helper function to fill reply
+      void fillReplyHeader( const MsgHeader &request,
+                             MsgOpReply &reply,
+                             UINT32 replySize,
+                             INT32 returnCode,
+                             BOOLEAN needRouteID ) ;
+
+      // helper function to fill internal reply
+      void fillReplyHeader( const MsgHeader &request,
+                            MsgInternalReplyHeader &reply,
+                            UINT32 replySize,
+                            INT32 returnCode ) ;
+
+   protected:
+      // current request ID ( used to allocate new request ID )
+      ossAtomic64 _requestID ;
+   } ;
+
+   /*
+      _stpSyncSourceMsgHandler define
+    */
+   // _stpSyncSourceMsgHandler handles time synchronize messages
+   class _stpSyncSourceMsgHandler : public stpNetMsgHandlerBase
+   {
+   public:
+      // construct and destructor
+      _stpSyncSourceMsgHandler( STPCB *stpCB, stpSyncSource *source ) ;
+      virtual ~_stpSyncSourceMsgHandler() ;
+
+   public:
+      // override functions of message handler
+      // handle message
+      virtual INT32 handleMsg( const NET_HANDLE &handle,
+                               const MsgHeader *header,
+                               const CHAR *message,
+                               UINT64 msgUserData ) ;
+
+      // handle event on sending message ( via UDP )
+      virtual INT32 onSendMsg( const NET_HANDLE &handle,
+                               const MsgRouteID &id,
+                               MsgHeader *header ) ;
+      // handle event on receiving message ( via UDP )
+      virtual INT32 onReceiveMsg( const NET_HANDLE &handle,
+                                  const MsgRouteID &id,
+                                  MsgHeader *header,
+                                  UINT32 availableSize,
+                                  netUserDataHolder *userDataHolder ) ;
+
+   protected:
+      stpSyncSource * _source ;
+   } ;
+
    /*
       _stpNetMsgHandler define
     */
-   class _stpNetMsgHandler : public INetMsgHandler,
-                             public stpHandlerBase
+   class _stpNetMsgHandler : public stpNetMsgHandlerBase
    {
    public:
       // construct and destructor
@@ -90,20 +160,9 @@ namespace engine
          return STP_NET_MSG_HANDLER_NAME ;
       }
 
-   public:
-      // allocate request ID
-      OSS_INLINE UINT64 allocateRequestID()
-      {
-         return _requestID.inc() ;
-      }
-
    protected:
       // handle system info message
       INT32 _handleSysInfo( const NET_HANDLE &handle ) ;
-
-   public:
-      // current request ID ( used to allocate new request ID )
-      ossAtomic64 _requestID ;
    } ;
 
    /*

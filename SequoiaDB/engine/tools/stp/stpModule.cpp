@@ -79,6 +79,12 @@ namespace engine
          goto done ;
       }
 
+      // set net agent
+      _netAgent = _stpCB->getNetAgent() ;
+      PD_CHECK( NULL != _netAgent, SDB_SYS, error, PDERROR,
+                "Failed to initialize [%s], net agent is invalid",
+                getModuleName() ) ;
+
       // call internal initialize
       rc = _initialize() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to call [%s] initialize, "
@@ -240,7 +246,7 @@ namespace engine
      _nodeManager( stpCB->getNodeManager() ),
      _metaManager( stpCB->getMetaManager() ),
      _syncSourceManager( stpCB->getSyncSourceManager() ),
-     _syncClientManager( stpCB->getSyncManager() ),
+     _syncClientManager( stpCB->getSyncClientManager() ),
      _replManager( stpCB->getReplManager() )
    {
    }
@@ -259,6 +265,7 @@ namespace engine
      _eduID( PMD_INVALID_EDUID ),
      _eduCB( NULL ),
      _session( stpCB ),
+     _netManager( stpCB->getNetManager() ),
      _netMsgHandler( stpCB->getNetMsgHandler() ),
      _pipeMsgHandler( stpCB->getPipeMsgHandler() ),
      _timerID( STP_INVALID_TIMERID )
@@ -655,75 +662,6 @@ namespace engine
    done:
       PD_TRACE_EXIT( SDB__STPMGRBASE__ASYNCHANDLEMESSAGE ) ;
       return handled ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMGRBASE__FILLREQHEADER, "_stpManagerBase::_fillRequestHeader" )
-   void _stpManagerBase::_fillRequestHeader( MsgHeader &request,
-                                             UINT32 requestSize,
-                                             INT32 opCode )
-   {
-      PD_TRACE_ENTRY( SDB__STPMGRBASE__FILLREQHEADER ) ;
-
-      // get route ID of local node
-      MsgRouteID localRID = getNodeManager()->getLocalRID() ;
-
-      // fill fields of request
-      request.messageLength = requestSize ;
-      request.opCode = opCode ;
-      request.TID = 0 ;
-      request.routeID.value = localRID.value ;
-
-      // allocate request ID
-      request.requestID = _netMsgHandler->allocateRequestID() ;
-
-      PD_TRACE_EXIT( SDB__STPMGRBASE__FILLREQHEADER ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMGRBASE__FILLREPHEADER, "_stpManagerBase::_fillReplyHeader" )
-   void _stpManagerBase::_fillReplyHeader( const MsgHeader &request,
-                                           MsgOpReply &reply,
-                                           UINT32 replySize,
-                                           INT32 returnCode )
-   {
-      PD_TRACE_ENTRY( SDB__STPMGRBASE__FILLREPHEADER ) ;
-
-      // get route ID of local node
-      MsgRouteID localRID = getNodeManager()->getLocalRID() ;
-
-      // fill fields of reply
-      reply.header.messageLength = replySize ;
-      reply.header.opCode = MAKE_REPLY_TYPE( request.opCode ) ;
-      reply.header.TID = 0 ;
-      reply.header.routeID.value = localRID.value ;
-      reply.header.requestID = request.requestID ;
-      reply.contextID = -1 ;
-      reply.flags = returnCode ;
-      reply.startFrom = 0 ;
-      reply.numReturned = 1 ;
-
-      PD_TRACE_EXIT( SDB__STPMGRBASE__FILLREPHEADER ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMGRBASE__FILLREPHEADER_INT, "_stpManagerBase::_fillReplyHeader" )
-   void _stpManagerBase::_fillReplyHeader( const MsgHeader &request,
-                                           MsgInternalReplyHeader &reply,
-                                           UINT32 replySize,
-                                           INT32 returnCode )
-   {
-      PD_TRACE_ENTRY( SDB__STPMGRBASE__FILLREPHEADER_INT ) ;
-
-      // get route ID of local node
-      MsgRouteID localRID = getNodeManager()->getLocalRID() ;
-
-      // fill fields of reply
-      reply.header.messageLength = replySize ;
-      reply.header.opCode = MAKE_REPLY_TYPE( request.opCode ) ;
-      reply.header.TID = 0 ;
-      reply.header.routeID.value = localRID.value ;
-      reply.header.requestID = request.requestID ;
-      reply.res = returnCode ;
-
-      PD_TRACE_EXIT( SDB__STPMGRBASE__FILLREPHEADER_INT ) ;
    }
 
 }

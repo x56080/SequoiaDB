@@ -109,11 +109,21 @@ namespace engine
    #define STP_CLEAR_SYNCHRONIZE_INTERVAL       \
                                  ( STP_SEC_TO_MILLISEC( ( 2 * 3600 ) ) )
 
+   // interval to clear expired clients ( without synchronize in 2 hours )
+   #define STP_CLEAR_CLIENT_INTERVAL   ( STP_CLEAR_SYNCHRONIZE_INTERVAL )
+
    // pre-declaration of classes
 
    // main control block of STP ( STPCB )
    class _stpCB ;
    typedef class _stpCB STPCB ;
+
+   class _stpNetMsgHandlerBase ;
+   typedef class _stpNetMsgHandlerBase stpNetMsgHandlerBase ;
+
+   // synchronize source message handler
+   class _stpSyncSourceMsgHandler ;
+   typedef class _stpSyncSourceMsgHandler stpSyncSourceMsgHandler ;
 
    // net message handler
    class _stpNetMsgHandler ;
@@ -135,7 +145,11 @@ namespace engine
    class _stpMetaManager ;
    typedef class _stpMetaManager stpMetaManager ;
 
-   // synchronize source manager handles time synchronize as source
+   // synchronize source handles time synchronize as source
+   class _stpSyncSource ;
+   typedef class _stpSyncSource stpSyncSource ;
+
+   // synchronize source manager manages time synchronize sources
    class _stpSyncSourceManager ;
    typedef class _stpSyncSourceManager stpSyncSourceManager ;
 

@@ -47,12 +47,238 @@ namespace engine
 {
 
    /*
-      _stpNetMsgHandler implement
+      _stpNetMsgHandlerBase implement
     */
-   _stpNetMsgHandler::_stpNetMsgHandler( STPCB *stpCB )
+   _stpNetMsgHandlerBase::_stpNetMsgHandlerBase( STPCB *stpCB )
    : INetMsgHandler(),
      stpHandlerBase( stpCB ),
      _requestID( 0 )
+   {
+   }
+
+   _stpNetMsgHandlerBase::~_stpNetMsgHandlerBase()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNETMSGHANDLERBASE_FILLREQHEADER, "_stpNetMsgHandlerBase::fillRequestHeader" )
+   void _stpNetMsgHandlerBase::fillRequestHeader( MsgHeader &request,
+                                                  UINT32 requestSize,
+                                                  INT32 opCode )
+   {
+      PD_TRACE_ENTRY( SDB__STPNETMSGHANDLERBASE_FILLREQHEADER ) ;
+
+      // get route ID of local node
+      MsgRouteID localRID = getNodeManager()->getLocalRID() ;
+
+      // fill fields of request
+      request.messageLength = requestSize ;
+      request.opCode = opCode ;
+      request.TID = 0 ;
+      request.routeID.value = localRID.value ;
+
+      // allocate request ID
+      request.requestID = allocateRequestID() ;
+
+      PD_TRACE_EXIT( SDB__STPNETMSGHANDLERBASE_FILLREQHEADER ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNETMSGHANDLERBASE_FILLREPHEADER, "_stpNetMsgHandlerBase::fillReplyHeader" )
+   void _stpNetMsgHandlerBase::fillReplyHeader( const MsgHeader &request,
+                                                MsgOpReply &reply,
+                                                UINT32 replySize,
+                                                INT32 returnCode,
+                                                BOOLEAN needRouteID )
+   {
+      PD_TRACE_ENTRY( SDB__STPNETMSGHANDLERBASE_FILLREPHEADER ) ;
+
+      // get route ID of local node
+      MsgRouteID localRID ;
+
+      if ( needRouteID )
+      {
+         localRID.value = getNodeManager()->getLocalRIDValue() ;
+      }
+      else
+      {
+         localRID.value = MSG_INVALID_ROUTEID ;
+      }
+
+      // fill fields of reply
+      reply.header.messageLength = replySize ;
+      reply.header.opCode = MAKE_REPLY_TYPE( request.opCode ) ;
+      reply.header.TID = 0 ;
+      reply.header.routeID.value = localRID.value ;
+      reply.header.requestID = request.requestID ;
+      reply.contextID = -1 ;
+      reply.flags = returnCode ;
+      reply.startFrom = 0 ;
+      reply.numReturned = 1 ;
+
+      PD_TRACE_EXIT( SDB__STPNETMSGHANDLERBASE_FILLREPHEADER ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNETMSGHANDLERBASE_FILLREPHEADER_INT, "_stpNetMsgHandlerBase::fillReplyHeader" )
+   void _stpNetMsgHandlerBase::fillReplyHeader( const MsgHeader &request,
+                                                MsgInternalReplyHeader &reply,
+                                                UINT32 replySize,
+                                                INT32 returnCode )
+   {
+      PD_TRACE_ENTRY( SDB__STPNETMSGHANDLERBASE_FILLREPHEADER_INT ) ;
+
+      MsgRouteID localRID ;
+
+      // get route ID of local node
+      localRID.value = getNodeManager()->getLocalRIDValue() ;
+
+      // fill fields of reply
+      reply.header.messageLength = replySize ;
+      reply.header.opCode = MAKE_REPLY_TYPE( request.opCode ) ;
+      reply.header.TID = 0 ;
+      reply.header.routeID.value = localRID.value ;
+      reply.header.requestID = request.requestID ;
+      reply.res = returnCode ;
+
+      PD_TRACE_EXIT( SDB__STPNETMSGHANDLERBASE_FILLREPHEADER_INT ) ;
+   }
+
+   /*
+      _stpSyncSourceMsgHandler implement
+    */
+   _stpSyncSourceMsgHandler::_stpSyncSourceMsgHandler( STPCB *stpCB,
+                                                       stpSyncSource *source )
+   : stpNetMsgHandlerBase( stpCB ),
+     _source( source )
+   {
+   }
+
+   _stpSyncSourceMsgHandler::~_stpSyncSourceMsgHandler()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSRCMSGHANDLER_HANDLEMSG, "_stpSyncSourceMsgHandler::handleMsg" )
+   INT32 _stpSyncSourceMsgHandler::handleMsg( const NET_HANDLE &handle,
+                                              const MsgHeader *header,
+                                              const CHAR *message,
+                                              UINT64 msgUserData )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSYNCSRCMSGHANDLER_HANDLEMSG ) ;
+
+      SDB_ASSERT( NULL != header, "message is invalid" ) ;
+
+      // check operator code of message
+      switch ( header->opCode )
+      {
+         case MSG_STP_TIME_SYNC_REQ :
+         {
+            if ( NULL != _source )
+            {
+               rc = _source->handleTimeSyncReq(
+                                    handle, (const stpTimeSyncReq *)header) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to handle time synchronize "
+                            "request with source, rc: %d", rc ) ;
+            }
+            else
+            {
+               // synchronize requests, handle by synchronize source manager
+               rc = getSyncSourceManager()->
+                     handleTimeSyncReq( handle,
+                                        (const stpTimeSyncReq *)header ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to handle time synchronize "
+                            "request, rc: %d", rc ) ;
+            }
+            break ;
+         }
+         default :
+         {
+            // unknown message
+            PD_CHECK( FALSE, SDB_UNKNOWN_MESSAGE, error, PDERROR,
+                      "Unknown STP synchronize message [%d]",
+                      header->opCode ) ;
+            break ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSYNCSRCMSGHANDLER_HANDLEMSG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSRCMSGHANDLER_ONSENDMSG, "_stpSyncSourceMsgHandler::onSendMsg" )
+   INT32 _stpSyncSourceMsgHandler::onSendMsg( const NET_HANDLE &handle,
+                                              const MsgRouteID &id,
+                                              MsgHeader *header )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSYNCSRCMSGHANDLER_ONSENDMSG ) ;
+
+      SDB_ASSERT( NULL != header, "message is invalid" ) ;
+
+      switch ( header->opCode )
+      {
+         case MSG_STP_TIME_SYNC_RSP :
+         {
+            // on sending synchronize time response
+            getSyncSourceManager()->
+                        onSendTimeSyncRsp( (stpTimeSyncRsp *)header ) ;
+            break ;
+         }
+         default :
+         {
+            // do nothing
+            break ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB__STPSYNCSRCMSGHANDLER_ONSENDMSG, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSRCNETMSGHANDLER_ONRECEIVEMSG, "_stpSyncSourceMsgHandler::onReceiveMsg" )
+   INT32 _stpSyncSourceMsgHandler::onReceiveMsg( const NET_HANDLE &handle,
+                                                 const MsgRouteID &id,
+                                                 MsgHeader *header,
+                                                 UINT32 availableSize,
+                                                 netUserDataHolder *userDataHolder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSYNCSRCNETMSGHANDLER_ONRECEIVEMSG ) ;
+
+      SDB_ASSERT( NULL != header, "message is invalid" ) ;
+
+      switch ( header->opCode )
+      {
+         case MSG_STP_TIME_SYNC_REQ :
+         {
+            // on receiving synchronize time request
+            getSyncSourceManager()->
+                        onReceiveTimeSyncReq( (stpTimeSyncReq *)header ) ;
+            break ;
+         }
+         default :
+         {
+            // do nothing
+            break ;
+         }
+      }
+
+      PD_TRACE_EXITRC( SDB__STPSYNCSRCNETMSGHANDLER_ONRECEIVEMSG, rc ) ;
+
+      return rc ;
+   }
+
+   /*
+      _stpNetMsgHandler implement
+    */
+   _stpNetMsgHandler::_stpNetMsgHandler( STPCB *stpCB )
+   : stpNetMsgHandlerBase( stpCB )
    {
    }
 
@@ -69,6 +295,8 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPNETMSGHANDLER_HANDLEMSG ) ;
+
+      SDB_ASSERT( NULL != header, "message is invalid" ) ;
 
       // check if it is a system info message
       if ( (UINT32)MSG_SYSTEM_INFO_LEN == (UINT32)( header->messageLength ) )
@@ -193,15 +421,15 @@ namespace engine
          case MSG_STP_TIME_SYNC_REQ :
          {
             // on sending synchronize time request
-            getSyncClientManager()->onSendTimeSyncReq(
-                                                   (stpTimeSyncReq *)header ) ;
+            getSyncClientManager()->
+                        onSendTimeSyncReq( (stpTimeSyncReq *)header ) ;
             break ;
          }
          case MSG_STP_TIME_SYNC_RSP :
          {
             // on sending synchronize time response
-            getSyncSourceManager()->onSendTimeSyncRsp(
-                                                   (stpTimeSyncRsp *)header ) ;
+            getSyncSourceManager()->
+                        onSendTimeSyncRsp( (stpTimeSyncRsp *)header ) ;
             break ;
          }
          default :
@@ -234,15 +462,15 @@ namespace engine
          case MSG_STP_TIME_SYNC_REQ :
          {
             // on receiving synchronize time request
-            getSyncSourceManager()->onReceiveTimeSyncReq(
-                                                   (stpTimeSyncReq *)header ) ;
+            getSyncSourceManager()->
+                        onReceiveTimeSyncReq( (stpTimeSyncReq *)header ) ;
             break ;
          }
          case MSG_STP_TIME_SYNC_RSP :
          {
             // on receiving synchronize time response
-            getSyncClientManager()->onReceiveTimeSyncRsp(
-                                                   (stpTimeSyncRsp *)header ) ;
+            getSyncClientManager()->
+                        onReceiveTimeSyncRsp( (stpTimeSyncRsp *)header ) ;
             break ;
          }
          default :
@@ -273,7 +501,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to build system info reply, rc: %d",
                    rc ) ;
       // send system info reply by net agent
-      rc = _netAgent->syncSendRaw( handle, (const CHAR *)replyBuffer,
+      rc = _netAgent->syncSendRaw( handle,
+                                   (const CHAR *)replyBuffer,
                                    (UINT32)replySize ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send system info reply, "
                    "rc: %d", rc ) ;
@@ -285,7 +514,6 @@ namespace engine
    error:
       goto done ;
    }
-
 
    /*
       _stpPipeMsgHandler implement

@@ -482,8 +482,9 @@ namespace engine
       stpMetaNotify notify ;
 
       // fill request header
-      _fillRequestHeader( notify.header, sizeof( stpMetaNotify ),
-                          MSG_STP_META_NOTIFY ) ;
+      _netMsgHandler->fillRequestHeader( notify.header,
+                                         sizeof( stpMetaNotify ),
+                                         MSG_STP_META_NOTIFY ) ;
 
       // send notify by net agent
       rc = _netAgent->syncSend( routeID, &notify ) ;
@@ -508,8 +509,9 @@ namespace engine
       stpMetaSyncReq request ;
 
       // fill request header
-      _fillRequestHeader( request.header, sizeof( stpMetaSyncReq ),
-                          MSG_STP_META_SYNC_REQ ) ;
+      _netMsgHandler->fillRequestHeader( request.header,
+                                         sizeof( stpMetaSyncReq ),
+                                         MSG_STP_META_SYNC_REQ ) ;
 
       // send request by net agent
       rc = _netAgent->syncSend( routeID, &request ) ;
@@ -541,8 +543,10 @@ namespace engine
       stpMetaSyncRsp response ;
 
       // fill reply header
-      _fillReplyHeader( request->header, response.reply,
-                        sizeof( stpMetaSyncRsp ), returnCode ) ;
+      _netMsgHandler->fillReplyHeader( request->header,
+                                       response.reply,
+                                       sizeof( stpMetaSyncRsp ),
+                                       returnCode ) ;
 
       // fill meta LSN fields
       response.time = time ;

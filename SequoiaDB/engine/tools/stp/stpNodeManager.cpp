@@ -206,8 +206,11 @@ namespace engine
 
       // extract fields from request
       STP_SERVER_REQ_TYPE reqType = (STP_SERVER_REQ_TYPE)( request->type ) ;
-      MsgRouteID routeID = request->header.routeID ;
+      MsgRouteID routeID ;
       BSONObj groupObject ;
+
+      // set route ID
+      routeID.value = request->header.routeID.value ;
 
       PD_LOG( PDEVENT, "Got server quest [%s] from %s",
               stpGetServerReqName( reqType ),
@@ -348,14 +351,13 @@ namespace engine
                 "Failed to handle add server request, "
                 "current node is not primary" ) ;
 
-      // get event handler
       eh = _netAgent->getFrame()->getEventHandle( handle ) ;
       PD_CHECK( NULL != eh.get(), SDB_NET_INVALID_HANDLE, error, PDERROR,
-                "Failed to get net event handler [%u], rc: %d", handle, rc ) ;
+                "Failed to get event handler for handle [%u]",
+                handle ) ;
 
-      // get event handler's port as service name of new server
-      ossSnprintf( serviceName, OSS_MAX_SERVICENAME, "%d",
-                   eh->remotePort() ) ;
+      ossSnprintf( serviceName, OSS_MAX_SERVICENAME, "%u",
+                   routeID.columns.nodeID ) ;
 
       // set fields of new server
       server.setRouteID( routeID ) ;
@@ -444,8 +446,9 @@ namespace engine
       stpServerReq request ;
 
       // fill request header
-      _fillRequestHeader( request.header, sizeof( stpServerReq ),
-                          MSG_STP_SERVER_REQ ) ;
+      _netMsgHandler->fillRequestHeader( request.header,
+                                         sizeof( stpServerReq ),
+                                         MSG_STP_SERVER_REQ ) ;
 
       // fill type of server request
       request.type = (UINT16)type ;
@@ -476,11 +479,13 @@ namespace engine
       SDB_ASSERT( NULL != request, "request is invalid" ) ;
 
       stpServerRsp response ;
+      UINT32 replySize = sizeof( stpServerRsp ) + object.objsize() ;
 
       // fill reply header
-      _fillReplyHeader( request->header, response.reply,
-                        sizeof( stpServerRsp ) + object.objsize(),
-                        returnCode ) ;
+      _netMsgHandler->fillReplyHeader( request->header,
+                                       response.reply,
+                                       replySize,
+                                       returnCode ) ;
 
       // send server response with result
       rc = _netAgent->syncSend( handle,
@@ -746,7 +751,7 @@ namespace engine
             iter != servers.end() ;
             ++ iter )
       {
-         _netAgent->delRoute( iter->getRouteID() ) ;
+         _netManager->deleteRouteID( iter->getRouteID() ) ;
       }
 
       PD_LOG( PDEVENT, "Remove all server nodes done" ) ;
@@ -870,9 +875,9 @@ namespace engine
             ++ iter )
       {
          stpServerNode &server = ( *iter ) ;
-         rc = _updateRouteID( server.getRouteID(),
-                              server.getHostName(),
-                              server.getServiceName() ) ;
+         rc = _netManager->updateRouteID( server.getRouteID(),
+                                          server.getHostName(),
+                                          server.getServiceName() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update route %s:%s for "
                       "server node %s, rc: %d", server.getHostName(),
                       server.getServiceName(), server.toString().c_str(),
@@ -887,7 +892,7 @@ namespace engine
             iter != removedServers.end() ;
             ++ iter )
       {
-         _deleteRouteID( iter->getRouteID() ) ;
+         _netManager->deleteRouteID( iter->getRouteID() ) ;
       }
 
       // save servers to configs
@@ -962,48 +967,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR__UPDATEROUTEID, "_stpNodeManager::_updateRouteID" )
-   INT32 _stpNodeManager::_updateRouteID( const MsgRouteID &routeID,
-                                          const CHAR *hostName,
-                                          const CHAR *serviceName )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPNODEMGR__UPDATEROUTEID ) ;
-
-      // update route ID from net agent
-      rc = _netAgent->updateRoute( routeID, hostName, serviceName ) ;
-      if ( SDB_OK != rc && SDB_NET_UPDATE_EXISTING_NODE != rc )
-      {
-         PD_RC_CHECK( rc, PDERROR, "Failed to update route %s:%s for "
-                      "route ID %s, rc: %d", hostName, serviceName,
-                      routeID2String( routeID ).c_str(), rc ) ;
-      }
-      rc = SDB_OK ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPNODEMGR__UPDATEROUTEID, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR__DELETEROUTEID, "_stpNodeManager::_deleteRouteID" )
-   INT32 _stpNodeManager::_deleteRouteID( const MsgRouteID &routeID )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPNODEMGR__DELETEROUTEID ) ;
-
-      // delete route ID from net agent
-      _netAgent->delRoute( routeID ) ;
-
-      PD_TRACE_EXITRC( SDB__STPNODEMGR__DELETEROUTEID, rc ) ;
-
-      return rc ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR__INITLOCAL, "_stpNodeManager::_initLocal" )
    INT32 _stpNodeManager::_initLocal()
    {
@@ -1023,14 +986,9 @@ namespace engine
 
       // get route ID by host and service
       routeID.value = MSG_INVALID_ROUTEID ;
-      rc = _getRouteID( hostName, serviceName, routeID ) ;
+      rc = _netManager->getRouteID( hostName, serviceName, routeID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get route ID %s:%s, "
                    "rc: %d", hostName, serviceName, rc ) ;
-
-      // update route ID to net agent
-      rc = _updateRouteID( routeID, hostName, serviceName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update route ID for node %s, "
-                   "rc: %d", _local.toString().c_str(), rc ) ;
 
       // set fields of local node
       local.setHostName( hostName ) ;
@@ -1838,8 +1796,9 @@ namespace engine
       STP_SERVER_LIST::iterator iter ;
 
       // update route ID to net agent
-      rc = _updateRouteID( server.getRouteID(), server.getHostName(),
-                           server.getServiceName() ) ;
+      rc = _netManager->updateRouteID( server.getRouteID(),
+                                       server.getHostName(),
+                                       server.getServiceName() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update routeID for node %s, rc: %d",
                    server.toString().c_str(), rc ) ;
 
@@ -1923,7 +1882,7 @@ namespace engine
       locked = FALSE ;
 
       // delete route ID from net agent
-      _deleteRouteID( routeID ) ;
+      _netManager->deleteRouteID( routeID ) ;
 
       PD_LOG( PDEVENT, "Remove server node %s done",
               routeID2String( routeID ).c_str() ) ;
@@ -1966,7 +1925,7 @@ namespace engine
          // format IP address into 32 bit integer used as group ID
          // and port is used as node ID
          routeID.value = MSG_INVALID_ROUTEID ;
-         rc = _getRouteID( hostName, serviceName, routeID ) ;
+         rc = _netManager->getRouteID( hostName, serviceName, routeID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get route ID %s:%s, rc: %d",
                       hostName, serviceName, rc ) ;
 
@@ -1990,58 +1949,6 @@ namespace engine
 
    error:
       goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR__GETROUTEID_HOST, "_stpNodeManager::_getRouteID" )
-   INT32 _stpNodeManager::_getRouteID( const CHAR *hostName,
-                                       const CHAR *serviceName,
-                                       MsgRouteID &routeID )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPNODEMGR__GETROUTEID_HOST ) ;
-
-      // get route ID for given host name and service name
-
-      netUDPEndPoint udpEP ;
-
-      // get remote end point by host and service
-      rc = netRoute::getUDPEndPoint( hostName, serviceName, udpEP ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to resolve local UDP end point %s:%s, "
-                   "rc: %d", hostName, serviceName, rc ) ;
-
-      // get route ID from remote end point
-      rc = _getRouteID( udpEP, routeID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get local route ID %s:%s, "
-                   "rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPNODEMGR__GETROUTEID_HOST, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR__GETROUTEID_UDP, "_stpNodeManager::_getRouteID" )
-   INT32 _stpNodeManager::_getRouteID( const netUDPEndPoint &udpEP,
-                                       MsgRouteID &routeID )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPNODEMGR__GETROUTEID_UDP ) ;
-
-      // get route ID by remote end point
-      // - format IP into 32 bit integer as group ID
-      // - format port to node ID
-      // - always use local service
-      routeID.columns.groupID = udpEP.address().to_v4().to_ulong() ;
-      routeID.columns.nodeID = udpEP.port() ;
-      routeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
-
-      PD_TRACE_EXITRC( SDB__STPNODEMGR__GETROUTEID_UDP, rc ) ;
-
-      return rc ;
    }
 
 }

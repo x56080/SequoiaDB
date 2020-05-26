@@ -1731,6 +1731,44 @@ namespace engine
                                      eh.get() ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_ISLISTENING, "_netFrame::isListening" )
+   BOOLEAN _netFrame::isListening( UINT32 protocolMask )
+   {
+      BOOLEAN result = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__NETFRAME_ISLISTENING ) ;
+
+      if ( OSS_BIT_TEST( protocolMask, NET_FRAME_MASK_TCP ) )
+      {
+         if ( _acceptor.is_open() )
+         {
+            result = TRUE ;
+         }
+         else
+         {
+            result = FALSE ;
+            goto done ;
+         }
+      }
+      if ( OSS_BIT_TEST( protocolMask, NET_FRAME_MASK_UDP ) )
+      {
+         if ( NULL != _udpMainSuit.get() &&
+              _udpMainSuit->isOpened() )
+         {
+            result = TRUE ;
+         }
+         else
+         {
+            result = FALSE ;
+            goto done ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXIT( SDB__NETFRAME_ISLISTENING ) ;
+      return result ;
+   }
+
    //TODO rewrite it later
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__ADDRT, "_netFrame::_addRoute" )
    void _netFrame::_addRoute( NET_EH eh )

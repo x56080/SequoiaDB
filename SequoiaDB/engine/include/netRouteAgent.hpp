@@ -124,6 +124,12 @@ namespace engine
             return _route.route( id, node ) ;
          }
 
+         OSS_INLINE BOOLEAN isListening(
+                                    UINT32 protocolMask = NET_FRAME_MASK_TCP )
+         {
+            return _frame.isListening( protocolMask ) ;
+         }
+
       public:
          INT32 listen( const _MsgRouteID &id,
                        UINT32 protocolMask = NET_FRAME_MASK_TCP,

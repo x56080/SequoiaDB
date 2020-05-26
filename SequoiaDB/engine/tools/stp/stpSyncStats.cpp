@@ -701,20 +701,24 @@ namespace engine
    void _stpSyncStats::_addHist( const stpSyncRecord &record,
                                  UINT32 maxSyncHist )
    {
-      try
+
+      if ( maxSyncHist > 0 )
       {
-         // release old records to keep size
-         while ( _histList.size() > maxSyncHist - 1 )
+         try
          {
-            _histList.pop_front() ;
+            // release old records to keep size
+            while ( _histList.size() > maxSyncHist - 1 )
+            {
+               _histList.pop_front() ;
+            }
+            // add new records
+            _histList.push_back( record ) ;
          }
-         // add new records
-         _histList.push_back( record ) ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDWARNING, "Failed to add synchronize history, "
-                 "occur exception: %s", e.what() ) ;
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to add synchronize history, "
+                    "occur exception: %s", e.what() ) ;
+         }
       }
    }
 

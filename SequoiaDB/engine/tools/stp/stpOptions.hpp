@@ -109,6 +109,7 @@ namespace engine
 
       // set role by string format
       void setRole( const CHAR *role ) ;
+
       // set role
       void setRole( STP_ROLE role ) ;
 
@@ -186,6 +187,54 @@ namespace engine
       OSS_INLINE UINT32 getMaxSyncHist() const
       {
          return _maxSyncHist ;
+      }
+
+      // set maximum UDP ports to synchronize time
+      OSS_INLINE void setMaxSyncPorts( UINT32 maxSyncPorts )
+      {
+         _maxSyncPorts = maxSyncPorts ;
+      }
+
+      // get maximum UDP ports to synchronize time
+      OSS_INLINE UINT32 getMaxSyncPorts() const
+      {
+         return _maxSyncPorts ;
+      }
+
+      // set default synchronize clients per port
+      OSS_INLINE void setDefClientsPerPort( UINT32 defClientsPerPort )
+      {
+         _defClientsPerPort = defClientsPerPort ;
+      }
+
+      // get default synchronize clients per port
+      OSS_INLINE UINT32 getDefClientsPerPort() const
+      {
+         return _defClientsPerPort ;
+      }
+
+      // set pre-open synchronize ports
+      OSS_INLINE void setPreOpenPorts( BOOLEAN preOpenPorts )
+      {
+         _preOpenPorts = preOpenPorts ;
+      }
+
+      // get pre-open synchronize ports
+      OSS_INLINE BOOLEAN isPreOpenPorts() const
+      {
+         return _preOpenPorts ;
+      }
+
+      // set synchronize with system port
+      OSS_INLINE void setSyncWithSysPort( BOOLEAN syncWithSysPort )
+      {
+         _syncWithSysPort = syncWithSysPort ;
+      }
+
+      // get synchronize with system port
+      OSS_INLINE BOOLEAN isSyncWithSysPort() const
+      {
+         return _syncWithSysPort ;
       }
 
       // get diagnostic log level
@@ -270,6 +319,14 @@ namespace engine
       UINT32         _maxTimeErrorUS ;
       // max history records of synchronize
       UINT32         _maxSyncHist ;
+      // maximum UDP ports to synchronize time
+      UINT32         _maxSyncPorts ;
+      // default synchronize clients per port
+      UINT32         _defClientsPerPort ;
+      // pre-open synchronize ports
+      BOOLEAN        _preOpenPorts ;
+      // allow synchronize with system port
+      BOOLEAN        _syncWithSysPort ;
       // level of diagnostic log
       UINT16         _diagLevel ;
       // sharing break time for vote

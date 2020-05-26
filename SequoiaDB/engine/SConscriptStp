@@ -238,6 +238,8 @@ stpFiles = [
       "tools/stp/stpServerSession.cpp",
       "tools/stp/stpMetaStore.cpp",
       "tools/stp/stpMsgHandler.cpp",
+      "tools/stp/stpNetManager.cpp",
+      "tools/stp/stpSyncSource.cpp",
       "tools/stp/stpServiceManager.cpp",
       "tools/stp/stpNodeManager.cpp",
       "tools/stp/stpMetaManager.cpp",

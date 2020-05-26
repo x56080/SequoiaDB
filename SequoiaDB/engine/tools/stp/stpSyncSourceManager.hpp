@@ -42,6 +42,7 @@
 #include "stpCBCommon.hpp"
 #include "stpModule.hpp"
 #include "stpNode.hpp"
+#include "stpSyncSource.hpp"
 #include "stpMsg.hpp"
 
 namespace engine
@@ -89,7 +90,35 @@ namespace engine
       // process message callback
       virtual INT32 processMessage( NET_HANDLE handle, MsgHeader *message ) ;
 
+   protected:
+      // override functions of STP module
+
+      // internal call of initialize
+      virtual INT32 _initialize() ;
+
+      // internal call of finalize
+      virtual INT32 _finalize() ;
+
+      // internal call on event before activate
+      virtual INT32 _preActivate() ;
+
+      // internal call on event after activate
+      virtual INT32 _postActivate() ;
+
+      // internal call on event before deactivate
+      virtual INT32 _preDeactivate() ;
+
+      // internal call on event after deactivate
+      virtual INT32 _postDeactivate() ;
+
    public:
+      // handle time synchronize request
+      OSS_INLINE INT32 handleTimeSyncReq( NET_HANDLE handle,
+                                          const stpTimeSyncReq *request )
+      {
+         return _handleTimeSyncReq( handle, request ) ;
+      }
+
       // on event to receive time synchronize request
       INT32 onReceiveTimeSyncReq( stpTimeSyncReq *request ) ;
       // on event to send time synchronize response
@@ -107,52 +136,67 @@ namespace engine
                          const stpRegReq *request,
                          const stpClientNode &client,
                          INT32 returnCode ) ;
-      // send time synchronize response
-      INT32 _sendTimeSyncRsp( NET_HANDLE handle,
-                              const stpTimeSyncReq *request,
-                              const stpClientNode &client,
-                              INT32 returnCode ) ;
 
    public:
       // functions to manage synchronize clients
-      // get synchronize client by given route ID
-      INT32 getClient( const MsgRouteID &routeID, stpClientNode &client ) ;
       // register synchronize client
-      INT32 registerClient( UINT32 version, const stpClientNode &client ) ;
-      // remove synchronize client by given route ID
-      INT32 removeClient( const MsgRouteID &routeID ) ;
-      // remove expired synchronize client
-      INT32 removeClient( const MsgRouteID &routeID, UINT64 syncTick ) ;
-      // update synchronize client
-      INT32 updateClient( UINT32 version, const stpClientNode &client ) ;
+      INT32 registerClient( const MsgRouteID &routeID,
+                            UINT32 version,
+                            stpClientNode &client ) ;
       // dump all synchronize clients
       INT32 dumpClients( STP_CLIENT_MAP &clients ) ;
       // remove all synchronize clients
       INT32 removeClients() ;
 
+      // signal to push time forward
+      void signalPushTime() ;
+
    protected:
       // remove expired synchronize clients
       INT32 _clearExpiredClients() ;
 
-      // signal to push time forward
-      void _signalPushTime() ;
+      // assign a synchronize client to synchronize source
+      // WARNING: should be protected by source mutex
+      INT32 _assignSource( const MsgRouteID &routeID,
+                           stpSyncSource **source ) ;
+
+      // allocate a synchronize source
+      // - force: force to listen a specified port
+      // WARNING: should be protected by source mutex
+      INT32 _allocSource( stpSyncSource **source,
+                          BOOLEAN force ) ;
+
+      // add synchronize source into list
+      // WARNING: should be protected by source mutex
+      INT32 _addSource( stpSyncSource *source ) ;
+
       // check whether need to push time forward
       BOOLEAN _needPushTime() ;
       // push time forward ( by one minutes )
       void _pushTime() ;
 
    protected:
-      // lock to protected synchronize clients
-      ossRWMutex        _clientMutex ;
-      // map of synchronize clients
-      // NOTE: client contains synchronize history
-      STP_CLIENT_MAP    _clients ;
       // event to push time forward
       volatile BOOLEAN  _pushEvent ;
       // last time to push time forward
       UINT64            _lastPushTick ;
       // last time to clear expired synchronize clients
       UINT64            _clearClientTimeout ;
+      // mutex to protect synchronize sources
+      ossRWMutex        _sourceMutex ;
+      // index to dispatch ports to synchronize client
+      UINT16            _portIndex ;
+      // system synchronize source
+      stpSyncSource     _sysSource ;
+      // list of synchronize sources
+      // WARNING: should be protected by source mutex
+      STP_SYNC_SOURCE_LIST _syncSources ;
+      // option of maximum number of synchronize ports
+      UINT32            _maxSyncPorts ;
+      // number of ports is allowed to use for synchronize
+      UINT32            _allowSyncPorts ;
+      // option of default number of clients per port
+      UINT32            _defClientsPerPort ;
    } ;
 
 }
