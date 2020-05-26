@@ -206,7 +206,7 @@ namespace engine
          _blockInfoSize = 0 ;
       }
 
-#if defined (_DEBUG)
+#if SDB_INTERNAL_DEBUG
       PD_LOG( PDDEBUG, "handle %u: total blocking size %u, "
               "blocking list size %u, first blocking size %u",
               _handle, _totalBlockSize, _blockInfoSize,
@@ -249,7 +249,7 @@ namespace engine
       ++ _blockInfoSize ;
       _totalBlockSize += blockSize ;
 
-#if defined (_DEBUG)
+#if SDB_INTERNAL_DEBUG
       PD_LOG( PDDEBUG, "handle %u: add new blocking info %u, "
               "total blocking size %u, blocking list size %u, "
               "first blocking info size %u",
@@ -837,7 +837,7 @@ namespace engine
          receivedTime.setTime( _recvGlobTime ) ;
       }
 
-#if defined (_DEBUG)
+#if SDB_INTERNAL_DEBUG
       PD_LOG( PDDEBUG, "Check RR transaction begin [%s], "
               "begin time [%s], send time [%s], "
               "receive time [%s]", dpsTransIDToString( transID ).c_str(),
@@ -917,7 +917,7 @@ namespace engine
       receivedTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
       if ( transBeginTime < receivedTime )
       {
-#if defined (_DEBUG)
+#if SDB_INTERNAL_DEBUG
          PD_LOG( PDDEBUG, "current transaction [%s] passed doing "
                  "arbit limit, current time [%s]",
                  dpsTransIDToString( transID ).c_str(),
@@ -986,7 +986,7 @@ namespace engine
             receivedTime.setTime( _recvGlobTime ) ;
          }
 
-#if defined (_DEBUG)
+#if SDB_INTERNAL_DEBUG
          PD_LOG( PDDEBUG, "Check RR transaction pre-commit [%s] "
                  "sent at [%s], received at [%s], current time [%s]",
                  dpsTransIDToString( transID ).c_str(),
