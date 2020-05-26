@@ -614,21 +614,23 @@ namespace engine
          {
             // if local node is not primary, get synchronize status
             stpSourceNode source ;
-            MsgRouteID primaryRID =
-                              _stpCB->getNodeManager()->getPrimaryRID() ;
+            MsgRouteID sourceRID ;
+
+            sourceRID.value =
+                  _stpCB->getSyncClientManager()->getRegSourceRIDValue() ;
 
             // append synchronize status
             builder.append( STP_FIELD_NAME_SYNC_STATUS,
                             stpGetSyncStatusName(
-                                  _stpCB->getSyncManager()->getStatus() ) ) ;
+                                  _stpCB->getSyncClientManager()->getStatus() ) ) ;
 
             BSONObjBuilder sourceBuilder(
                         builder.subobjStart( STP_FIELD_NAME_SYNC_SOURCE ) ) ;
 
             // append source as BSON format
-            if ( MSG_INVALID_ROUTEID != primaryRID.value &&
-                 SDB_OK == _stpCB->getSyncManager()->getSource( primaryRID,
-                                                                source ) )
+            if ( MSG_INVALID_ROUTEID != sourceRID.value &&
+                 SDB_OK == _stpCB->getSyncClientManager()->getSource( sourceRID,
+                                                                      source ) )
             {
                rc = source.toBSON( sourceBuilder, TRUE, TRUE ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for source %s, "
@@ -682,7 +684,7 @@ namespace engine
       STP_SOURCE_LIST sourceList ;
 
       // get all synchronize sources
-      rc = _stpCB->getSyncManager()->dumpSources( sources ) ;
+      rc = _stpCB->getSyncClientManager()->dumpSources( sources ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to dump sources, rc: %d", rc ) ;
 
       // sort sources by last synchronize time

@@ -120,10 +120,11 @@ namespace engine
       _stpRegRsp define
     */
    // response for register request
-   // | replay header | verified OID | port ( not used yet ) |
+   // | replay header | real routeID | verified OID | port ( not used yet ) |
    struct _stpRegRsp
    {
       MsgInternalReplyHeader  reply ;
+      MsgRouteID              routeID ;
       bson::OID               oid ;
       UINT16                  port ;
    } ;

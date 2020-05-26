@@ -50,6 +50,7 @@
 #include "ossMemPool.hpp"
 #include "stpServerSession.hpp"
 #include "stpMetaData.hpp"
+#include "stpNetManager.hpp"
 
 namespace engine
 {
@@ -178,7 +179,6 @@ namespace engine
 
    typedef class _stpModule stpModule ;
    typedef ossPoolList< stpModule * > STP_MODULE_LIST ;
-
 
    /*
       _stpHandlerBase define
@@ -311,23 +311,6 @@ namespace engine
       BOOLEAN _asyncHandleMessage( NET_HANDLE handle,
                                    const MsgHeader *message ) ;
 
-      // helper function to fill request
-      void _fillRequestHeader( MsgHeader &request,
-                               UINT32 requestSize,
-                               INT32 opCode ) ;
-
-      // helper function to fill reply
-      void _fillReplyHeader( const MsgHeader &request,
-                             MsgOpReply &reply,
-                             UINT32 replySize,
-                             INT32 returnCode ) ;
-
-      // helper function to fill internal reply
-      void _fillReplyHeader( const MsgHeader &request,
-                             MsgInternalReplyHeader &reply,
-                             UINT32 replySize,
-                             INT32 returnCode ) ;
-
    protected:
       // EDU latch to protect EDU info
       // NOTE: we could create another EDU ( thread ) to handle messages for
@@ -339,6 +322,8 @@ namespace engine
       pmdEDUCB *           _eduCB ;
       // session to server ( used to choose server to send message )
       stpServerSession     _session ;
+      // STP net agent
+      stpNetManager *      _netManager ;
       // pointer to net message handler
       stpNetMsgHandler *   _netMsgHandler ;
       // pointer to pipe message handler

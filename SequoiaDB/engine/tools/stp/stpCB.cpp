@@ -55,7 +55,7 @@ namespace engine
     */
    _stpCB::_stpCB()
    : _options(),
-     _netAgent( &_netMsgHandler ),
+     _netManager( &_netMsgHandler ),
      _pipeManager(),
      _netMsgHandler( this ),
      _pipeMsgHandler( this ),
@@ -86,6 +86,16 @@ namespace engine
       // set config handler ( handles config change )
       _options.setConfigHandler( pmdGetKRCB() ) ;
 
+      // initialize net agent
+      rc = _initNetAgent() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize net agent, "
+                   "rc: %d", rc ) ;
+
+      // initialize pipe manager
+      rc = _initPipeManager() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize pipe manager, "
+                   "rc: %d", rc ) ;
+
       // initialize modules
       rc = _initializeModules() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize modules, rc: %d", rc ) ;
@@ -99,16 +109,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to initialize [%s], rc: %d",
                       (*iter)->getModuleName(), rc ) ;
       }
-
-      // initialize net agent
-      rc = _initNetAgent() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to initialize net agent, "
-                   "rc: %d", rc ) ;
-
-      // initialize pipe manager
-      rc = _initPipeManager() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to initialize pipe manager, "
-                   "rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__STPCB_INIT, rc ) ;
@@ -180,8 +180,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__STPCB_DEACTIVE ) ;
 
       // close and stop net agent
-      _netAgent.closeListen() ;
-      _netAgent.stop() ;
+      _netManager.deactiveNetAgent() ;
 
       // deactivate each module
       for ( STP_MODULE_LIST::iterator iter = _moduleList.begin() ;
@@ -372,7 +371,7 @@ namespace engine
       // should be register in main thread ( only assert here )
       SDB_ASSERT( NULL != pmdGetThreadEDUCB() &&
                   EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
-                  "must register in main thread" ) ;
+                  "must unregister in main thread" ) ;
 
       _moduleList.clear() ;
 
@@ -470,16 +469,22 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__STPCB__INITNETAGENT ) ;
 
-      stpClientNode local = _nodeManager.getLocal() ;
+      // get host name
+      const CHAR *hostName = pmdGetKRCB()->getHostName() ;
+      // get service name
+      const CHAR *serviceName = _options.getServiceName() ;
 
-      // listen on both TCP and UDP
-      rc = _netAgent.listen( local.getRouteID(),
-                             ( NET_FRAME_MASK_TCP | NET_FRAME_MASK_UDP ) ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to listen on port [%u], rc: %d",
-                   _options.getPort(), rc ) ;
+      rc = _netManager.initNetAgent( hostName,
+                                     serviceName,
+                                     ( NET_FRAME_MASK_TCP |
+                                       NET_FRAME_MASK_UDP ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize net agent, rc: %d",
+                   rc ) ;
+
+      PD_LOG( PDEVENT, "Listening on TCP and UDP port [%s]", serviceName ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__STPCB__INITNETAGENT, rc ) ;
+      PD_TRACE_EXITRC( SDB__STPCB__INITNETAGENT, rc ) ;;
       return rc ;
 
    error:
@@ -546,19 +551,8 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__STPCB__ACTIVENETAGENT ) ;
 
-      pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
-      EDUID eduID = PMD_INVALID_EDUID ;
-
-      // start EDU for net agent
-      rc = eduMgr->startEDU( EDU_TYPE_STP_NET_AGENT, (void *)( &_netAgent ),
-                             &eduID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to start STP network EDU, rc: %d",
-                   rc ) ;
-
-      // wait until EDU is running
-      rc = eduMgr->waitUntil( eduID, PMD_EDU_RUNNING ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to wait STP network to be running, "
-                   "rc: %d", rc ) ;
+      rc = _netManager.activeNetAgent() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to active net agent, rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__STPCB__ACTIVENETAGENT, rc ) ;

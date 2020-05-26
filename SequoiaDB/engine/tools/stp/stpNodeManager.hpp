@@ -285,6 +285,13 @@ namespace engine
          return _local.getRouteID() ;
       }
 
+      // get route ID value of local node
+      OSS_INLINE UINT64 getLocalRIDValue()
+      {
+         ossScopedRWLock lock( &_mutex, SHARED ) ;
+         return _local.getRouteIDValue() ;
+      }
+
       // get local node and version of servers
       OSS_INLINE void getLocalAndVersion( stpClientNode & local,
                                           UINT32 &version )
@@ -308,11 +315,15 @@ namespace engine
          return _local.getRole() ;
       }
 
-      // get OID of local node
-      OSS_INLINE void setLocalOID( const bson::OID & oid )
+      // update OID and synchronize port of local node
+      OSS_INLINE void updateLocalSyncInfo( const MsgRouteID &routeID,
+                                           const bson::OID & oid,
+                                           UINT16 port )
       {
          ossScopedRWLock lock( &_mutex, EXCLUSIVE ) ;
+         _local.setRouteID( routeID ) ;
          _local.setOID( oid ) ;
+         _local.setSyncPort( port ) ;
       }
 
       // update time error of local node
@@ -320,7 +331,8 @@ namespace engine
       OSS_INLINE void updateLocalTimeError( UINT32 timeError )
       {
          ossScopedRWLock lock( &_mutex, EXCLUSIVE ) ;
-         _local.setTimeError( OSS_MIN( _local.getMaxTimeError(), timeError ) ) ;
+         _local.setTimeError( OSS_MIN( _local.getMaxTimeError(),
+                                       timeError ) ) ;
       }
 
       // check whether version of servers is expired
@@ -406,14 +418,6 @@ namespace engine
          return STP_GROUP_INVALID_VERSION != _version ;
       }
 
-      // update route ID in net agent for given host name and service name
-      INT32 _updateRouteID( const MsgRouteID &routeID,
-                            const CHAR *hostName,
-                            const CHAR *serviceName ) ;
-
-      // delete route ID from net agent
-      INT32 _deleteRouteID( const MsgRouteID &routeID ) ;
-
       // initialize local node
       INT32 _initLocal() ;
       // initialize servers
@@ -468,15 +472,6 @@ namespace engine
                            BOOLEAN increaseVersion ) ;
       // update servers by server list from configs
       INT32 _updateServers( const vector< pmdAddrPair > &serverList ) ;
-
-   protected:
-      // get route ID by host name and server name
-      static INT32 _getRouteID( const CHAR *hostName,
-                                const CHAR *serviceName,
-                                MsgRouteID &routeID ) ;
-      // get route ID by remote end point
-      static INT32 _getRouteID( const netUDPEndPoint &endPoint,
-                                MsgRouteID &routeID ) ;
 
    protected:
       // lock to protect catalog information

@@ -43,6 +43,7 @@
 #include "stpMsg.hpp"
 #include "stpOptions.hpp"
 #include "stpMsgHandler.hpp"
+#include "stpNetManager.hpp"
 #include "stpServiceManager.hpp"
 #include "stpNodeManager.hpp"
 #include "stpMetaManager.hpp"
@@ -103,10 +104,16 @@ namespace engine
          return ( &_options ) ;
       }
 
-      // get net agent
+      // get net route agent
       OSS_INLINE netRouteAgent *getNetAgent()
       {
-         return ( &_netAgent ) ;
+         return _netManager.getNetAgent() ;
+      }
+
+      // get net agent
+      OSS_INLINE stpNetManager *getNetManager()
+      {
+         return ( &_netManager ) ;
       }
 
       // get pipe manager
@@ -152,7 +159,7 @@ namespace engine
       }
 
       // get synchronize client manager
-      OSS_INLINE stpSyncClientManager *getSyncManager()
+      OSS_INLINE stpSyncClientManager *getSyncClientManager()
       {
          return ( &_syncClientManager ) ;
       }
@@ -221,8 +228,8 @@ namespace engine
    protected:
       // options from config file
       stpOptions           _options ;
-      // net agent
-      netRouteAgent        _netAgent ;
+      // net manager
+      stpNetManager        _netManager ;
       // pipe manager ( owned by STP )
       pmdPipeManager       _pipeManager ;
       // net message handler processes network message

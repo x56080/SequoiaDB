@@ -82,6 +82,8 @@ namespace engine
       virtual CHAR *msg() ;
       virtual UINT32 getAvailableSize() ;
 
+      virtual boost::asio::ip::address_v4 localIP() const ;
+      virtual boost::asio::ip::address_v4 remoteIP() const ;
       virtual std::string localAddr() const ;
       virtual std::string remoteAddr() const ;
       virtual UINT16 localPort() const ;

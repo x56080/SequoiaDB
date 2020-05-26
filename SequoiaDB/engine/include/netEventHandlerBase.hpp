@@ -267,6 +267,9 @@ namespace engine
       // get available size in the receive buffer
       virtual UINT32 getAvailableSize() = 0 ;
 
+      virtual boost::asio::ip::address_v4 localIP() const = 0 ;
+      virtual boost::asio::ip::address_v4 remoteIP() const = 0 ;
+
       virtual std::string localAddr() const = 0 ;
       virtual std::string remoteAddr() const = 0 ;
       virtual UINT16 localPort() const = 0 ;

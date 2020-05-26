@@ -48,42 +48,135 @@ using namespace std ;
 namespace engine
 {
 
-   #define PMD_STP_OPTION_BREAKTIME_DFT          (7000)
-   #define PMD_STP_OPTION_STARTSHIFTTIME_DFT     (600)
+   // default sharing break time in 7 seconds
+   #define STP_OPTION_BREAKTIME_DFT          ( 7000 )
+   // default start shift time in 600 seconds
+   #define STP_OPTION_STARTSHIFTTIME_DFT     ( 600 )
+   // default value for maximum synchronize ports is 1
+   #define STP_OPTION_MAXSYNCPORTS_DFT       ( 1 )
+   // default value for default synchronize clients per port is 10
+   #define STP_OPTION_DEFCLIENTSPERPORT_DFT  ( 10 )
 
    #define FILE_OPTIONS \
-         ( STP_OPTION_PORT, po::value<string>(), "STP listening port, default is 9622" ) \
-         ( STP_OPTION_SERVERLIST, po::value<string>(), "STP server list" ) \
-         ( STP_OPTION_ROLE, po::value<string>(), "STP role, default is server" ) \
-         ( STP_OPTION_WEIGHT, po::value<INT32>(), "STP vote weight" ) \
-         ( STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "STP synchronize interval" ) \
-         ( STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "STP max time error" ) \
-         ( STP_OPTION_MAXSYNCHIST, po::value<INT32>(), "STP save history records of synchronize for statistics" ) \
-         ( STP_OPTION_DIAGLEVEL, po::value<INT32>(), "STP dialog level, default is 3" ) \
-         ( STP_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
-         ( STP_OPTION_STARTSHIFTTIME, po::value<INT32>(), "Nodes starting shift time( in seconds ), default:600, value range:[0,7200]" ) \
-         ( STP_OPTION_TESTMODE, "Start STP in test mode" )
+      ( STP_OPTION_PORT, \
+            po::value<string>(), \
+            "STP listening port, default is 9622" ) \
+      ( STP_OPTION_SERVERLIST, \
+            po::value<string>(), \
+            "STP server list, if not specified, " \
+            "will use host name of this machine" ) \
+      ( STP_OPTION_ROLE, \
+            po::value<string>(), \
+            "STP role, default is \"server\"" ) \
+      ( STP_OPTION_WEIGHT, \
+            po::value<INT32>(), \
+            "STP vote weight, default is 0" ) \
+      ( STP_OPTION_SYNCINTERVAL, \
+            po::value<INT32>(), \
+            "STP synchronize interval in seconds, default is 60" ) \
+      ( STP_OPTION_MAXTIMEERROR, \
+            po::value<INT32>(), \
+            "STP max time error in microseconds, default is 50000" ) \
+      ( STP_OPTION_MAXSYNCHIST, \
+            po::value<INT32>(), \
+            "STP save history records of synchronize for statistics, " \
+            "default is 20, range is [ 0, 200 ]" ) \
+      ( STP_OPTION_MAXSYNCPORTS, \
+            po::value<INT32>(), \
+            "maximum UDP ports used to synchronize time, default is 1, " \
+            "means only use default port to synchronize, the extra ports " \
+            "will start from <port> + 1, maximum is 128" ) \
+      ( STP_OPTION_DEFCLIENTSPERPORT, \
+            po::value<INT32>(), \
+            "default synchronize clients could be assigned to a " \
+            "synchronize UDP port, default is 10" ) \
+      ( STP_OPTION_PREOPENPORTS, \
+            "indicates whether to open all synchronize UDP ports during " \
+            "start of STP node, default is false" ) \
+      ( STP_OPTION_SYNCWITHSYSPORT, \
+            "indicates whether to allow synchronize only on system port, " \
+            "default is true" ) \
+      ( STP_OPTION_DIAGLEVEL, \
+            po::value<INT32>(), \
+            "STP dialog level, default is 3" ) \
+      ( STP_OPTION_SHARINGBRK, \
+            po::value<INT32>(), \
+            "the timeout period for heartbeat in each replica group " \
+            "( in ms ), default is 7000, value range is [ 5000, 300000 ]" ) \
+      ( STP_OPTION_STARTSHIFTTIME, \
+            po::value<INT32>(), \
+            "nodes starting shift time ( in seconds ), " \
+            "default is 600, value range is [ 0, 7200 ]" ) \
+      ( STP_OPTION_TESTMODE, \
+            "start STP in test mode" )
 
    #define COMMANDS_OPTIONS \
-         ( PMD_COMMANDS_STRING( STP_OPTION_PORT, ",p" ), po::value<string>(), "STP listening port, default is 9622" ) \
-         ( STP_OPTION_SERVERLIST, po::value<string>(), "STP server list" ) \
-         ( STP_OPTION_ROLE, po::value<string>(), "STP role, default is server" ) \
-         ( STP_OPTION_SYNCINTERVAL, po::value<INT32>(), "STP synchronize interval" ) \
-         ( STP_OPTION_MAXTIMEERROR, po::value<INT32>(), "STP max time error" ) \
-         ( STP_OPTION_MAXSYNCHIST, po::value<INT32>(), "STP save history records of synchronize for statistics" ) \
-         ( STP_OPTION_DIAGLEVEL, po::value<INT32>(), "STP dialog level, default is 3" ) \
-         ( STP_OPTION_DAEMON, "Start STP in daemon mode" ) \
-         ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h" ), "help" ) \
-         ( STP_OPTION_VERSION, "version" ) \
-         ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), po::value<string>(), "STP configuration file path" )
+      ( PMD_COMMANDS_STRING( STP_OPTION_PORT, ",p" ), \
+            po::value<string>(), \
+            "STP listening port, default is 9622" ) \
+      ( STP_OPTION_SERVERLIST, \
+            po::value<string>(), \
+            "STP server list, if not specified, " \
+            "will use host name of this machine" ) \
+      ( STP_OPTION_ROLE, \
+            po::value<string>(), \
+            "STP role, default is server" ) \
+      ( STP_OPTION_SYNCINTERVAL, \
+            po::value<INT32>(), \
+            "STP synchronize interval in seconds, default is 60" ) \
+      ( STP_OPTION_MAXTIMEERROR, \
+            po::value<INT32>(), \
+            "STP max time error in microseconds, default is 50000" ) \
+      ( STP_OPTION_DIAGLEVEL, \
+            po::value<INT32>(), \
+            "STP dialog level, default is 3" ) \
+      ( STP_OPTION_DAEMON, \
+            "Start STP in daemon mode" ) \
+      ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h" ), \
+            "help" ) \
+      ( STP_OPTION_VERSION, \
+            "version" ) \
+      ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), \
+            po::value<string>(), \
+            "STP configuration file path" )
 
    #define COMMANDS_HIDE_OPTIONS \
-         ( STP_OPTION_HELPFULL, "help all configs" ) \
-         ( STP_OPTION_TESTMODE, "Start STP in test mode" ) \
-         ( STP_OPTION_WEIGHT, po::value<INT32>(), "STP vote weight" ) \
-         ( STP_OPTION_SHARINGBRK, po::value<INT32>(), "The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] " ) \
-         ( STP_OPTION_STARTSHIFTTIME, po::value<INT32>(), "Nodes starting shift time( in seconds ), default:600, value range:[0,7200]" ) \
-         ( STP_OPTION_CURUSER, "use current user" )
+      ( STP_OPTION_HELPFULL, \
+            "help all configs" ) \
+      ( STP_OPTION_TESTMODE, \
+            "start STP in test mode" ) \
+      ( STP_OPTION_MAXSYNCHIST, \
+            po::value<INT32>(), \
+            "STP save history records of synchronize for statistics, " \
+            "default is 20, range is [ 0, 200 ]" ) \
+      ( STP_OPTION_MAXSYNCPORTS, \
+            po::value<INT32>(), \
+            "maximum UDP ports used to synchronize time, default is 1, " \
+            "means only use default port to synchronize, the extra ports " \
+            "will start from <port> + 1, maximum is 128" ) \
+      ( STP_OPTION_DEFCLIENTSPERPORT, \
+            po::value<INT32>(), \
+            "default synchronize clients could be assigned to a " \
+            "synchronize UDP port, default is 10" ) \
+      ( STP_OPTION_PREOPENPORTS, \
+            "indicates whether to open all synchronize UDP ports during " \
+            "start of STP node, default is false" ) \
+      ( STP_OPTION_SYNCWITHSYSPORT, \
+            "indicates whether to allow synchronize only on system port, " \
+            "default is true" ) \
+      ( STP_OPTION_WEIGHT, \
+            po::value<INT32>(), \
+            "STP vote weight, default is 0" ) \
+      ( STP_OPTION_SHARINGBRK, \
+            po::value<INT32>(), \
+            "the timeout period for heartbeat in each replica group " \
+            "( in ms ), default is 7000, value range is [ 5000, 300000 ]" ) \
+      ( STP_OPTION_STARTSHIFTTIME, \
+            po::value<INT32>(), \
+            "nodes starting shift time ( in seconds ), " \
+            "default is 600, value range is [ 0, 7200 ]" ) \
+      ( STP_OPTION_CURUSER, \
+            "use current user to start STP node" )
 
    /*
       _tpOptions implement
@@ -93,9 +186,13 @@ namespace engine
      _syncInterval( STP_DEF_SYNC_INTERVAL ),
      _maxTimeErrorUS( STP_MAX_TIME_ERROR_US ),
      _maxSyncHist( STP_DEF_SYNC_HIST_SIZE ),
+     _maxSyncPorts( STP_OPTION_MAXSYNCPORTS_DFT ),
+     _defClientsPerPort( STP_OPTION_DEFCLIENTSPERPORT_DFT ),
+     _preOpenPorts( FALSE ),
+     _syncWithSysPort( TRUE ),
      _diagLevel( PDWARNING ),
-     _sharingBreakTime( PMD_STP_OPTION_BREAKTIME_DFT ),
-     _startShiftTime( PMD_STP_OPTION_STARTSHIFTTIME_DFT ),
+     _sharingBreakTime( STP_OPTION_BREAKTIME_DFT ),
+     _startShiftTime( STP_OPTION_STARTSHIFTTIME_DFT ),
      _port( STP_DEF_PORT ),
      _role( STP_ROLE_SERVER ),
      _testMode( FALSE )
@@ -182,6 +279,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to start STP node, rc: %d", rc ) ;
 
          daemonMode = TRUE ;
+
+         goto done ;
       }
 
       // build stp config file path
@@ -352,7 +451,26 @@ namespace engine
 
       // --maxsynchist
       rdxUInt( ex, STP_OPTION_MAXSYNCHIST, _maxSyncHist, FALSE,
-               PMD_CFG_CHANGE_RUN, _maxSyncHist ) ;
+               PMD_CFG_CHANGE_RUN, _maxSyncHist, TRUE ) ;
+      rdvMinMax( ex, _maxSyncHist, 0, 200, TRUE ) ;
+
+      // --maxsyncports
+      rdxUInt( ex, STP_OPTION_MAXSYNCPORTS, _maxSyncPorts, FALSE,
+               PMD_CFG_CHANGE_REBOOT, _maxSyncPorts, TRUE ) ;
+      rdvMinMax( ex, _maxSyncPorts, 1, 128, TRUE ) ;
+
+      // --defclientsperport
+      rdxUInt( ex, STP_OPTION_DEFCLIENTSPERPORT, _defClientsPerPort, FALSE,
+               PMD_CFG_CHANGE_REBOOT, _defClientsPerPort, TRUE ) ;
+      rdvMinMax( ex, _defClientsPerPort, 1, 128, TRUE ) ;
+
+      // --preopenports
+      rdxBooleanS( ex, STP_OPTION_PREOPENPORTS, _preOpenPorts, FALSE,
+                   PMD_CFG_CHANGE_REBOOT, FALSE, TRUE ) ;
+
+      // --syncwithsysport
+      rdxBooleanS( ex, STP_OPTION_SYNCWITHSYSPORT, _syncWithSysPort,
+                   FALSE, PMD_CFG_CHANGE_REBOOT, TRUE, TRUE ) ;
 
       // --diaglevel
       rdxUShort( ex, STP_OPTION_DIAGLEVEL, _diagLevel, FALSE,
@@ -361,12 +479,12 @@ namespace engine
 
       // --sharingBreak
       rdxUInt( ex, STP_OPTION_SHARINGBRK, _sharingBreakTime, FALSE,
-               PMD_CFG_CHANGE_RUN, PMD_STP_OPTION_BREAKTIME_DFT, TRUE ) ;
+               PMD_CFG_CHANGE_RUN, STP_OPTION_BREAKTIME_DFT, TRUE ) ;
       rdvMinMax( ex, _sharingBreakTime, 5000, 300000, TRUE ) ;
 
       // --startshifttime
       rdxUInt( ex, STP_OPTION_STARTSHIFTTIME, _startShiftTime, FALSE,
-               PMD_CFG_CHANGE_RUN, PMD_STP_OPTION_STARTSHIFTTIME_DFT, TRUE ) ;
+               PMD_CFG_CHANGE_RUN, STP_OPTION_STARTSHIFTTIME_DFT, TRUE ) ;
       rdvMinMax( ex, _startShiftTime, 0, 7200, TRUE ) ;
 
       return getResult () ;

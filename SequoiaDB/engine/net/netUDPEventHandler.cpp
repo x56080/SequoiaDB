@@ -227,6 +227,16 @@ namespace engine
       return 0 ;
    }
 
+   ip::address_v4 _netUDPEventHandler::localIP() const
+   {
+      return _evSuitPtr->getLocalEndPoint().address().to_v4() ;
+   }
+
+   ip::address_v4 _netUDPEventHandler::remoteIP() const
+   {
+      return _remoteEndPoint.address().to_v4() ;
+   }
+
    string _netUDPEventHandler::localAddr() const
    {
       boost::system::error_code error ;

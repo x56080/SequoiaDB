@@ -128,6 +128,17 @@ namespace engine
          return _status ;
       }
 
+      // get registered source route ID
+      OSS_INLINE const MsgRouteID &getRegSourceRID() const
+      {
+         return _regSourceRID ;
+      }
+
+      OSS_INLINE UINT64 getRegSourceRIDValue() const
+      {
+         return _regSourceRID.value ;
+      }
+
    public:
       // signal to start synchronize
       OSS_INLINE void signalSync()
@@ -176,7 +187,7 @@ namespace engine
                              UINT32 version,
                              const stpClientNode &local ) ;
       // launch time synchronization
-      INT32 _launchTimeSync( const MsgRouteID &primaryRID,
+      INT32 _launchTimeSync( const MsgRouteID &sourceRID,
                              UINT32 version,
                              const stpClientNode &local ) ;
 
@@ -194,7 +205,7 @@ namespace engine
 
    protected:
       // on event of synchronize register response
-      INT32 _onRegRsp( const MsgRouteID &routeID ) ;
+      INT32 _onRegRsp( const MsgRouteID &routeID, UINT16 port ) ;
 
       // on event of time synchronize request
       INT32 _onSyncReq( const MsgRouteID &routeID ) ;
@@ -207,11 +218,19 @@ namespace engine
       // remove expired synchronize sources
       INT32 _clearExpiredSources() ;
 
+      void  _resetSourceRID() ;
+
    protected:
       // status of time synchronize
-      STP_SYNC_STATUS       _status ;
+      STP_SYNC_STATUS      _status ;
       // event to start synchronize
       volatile BOOLEAN     _syncEvent ;
+      // route ID to registered synchronize
+      // NOTE: default port
+      MsgRouteID           _regSourceRID ;
+      // route ID to send time synchronize messages
+      // NOTE: may be assigned to an extra synchronize port
+      MsgRouteID           _syncSourceRID ;
       // last request ID of time synchronize request
       ossAtomic64          _lastRequestID ;
       // last version of servers to send time synchronize request
@@ -230,6 +249,8 @@ namespace engine
       STP_SOURCE_MAP       _sources ;
       // timeout to launch time synchronize
       UINT64               _syncTimeTimeout ;
+      // indicates whether to wait for synchronize response
+      BOOLEAN              _waitSyncRsp ;
       // timeout to clear expired sources
       UINT64               _sourceClearTimeout ;
    } ;

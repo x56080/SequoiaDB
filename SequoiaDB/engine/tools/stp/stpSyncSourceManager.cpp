@@ -48,9 +48,6 @@ using namespace bson ;
 namespace engine
 {
 
-   // interval to clear expired clients ( without synchronize in 2 hours )
-   #define STP_CLEAR_CLIENT_INTERVAL   ( STP_CLEAR_SYNCHRONIZE_INTERVAL )
-
    // interval ( in milliseconds ) to push time forward
    // NOTE: push 60 seconds each time
    #define STP_SOURCE_PUSH_INTERVAL       \
@@ -58,6 +55,10 @@ namespace engine
    // interval ( in nanoseconds ) to push time forward
    #define STP_SOURCE_PUSH_INTERVAL_NS    \
                      ( STP_MILLISEC_TO_NANOSEC( STP_SOURCE_PUSH_INTERVAL ) )
+   #define STP_SOURCE_MIN_PORT            ( 1000 )
+   #define STP_SOURCE_MAX_PORT            ( 65535 )
+   // retry times to allocate source port
+   #define STP_SOURCE_PORT_RETRY_TIME     ( 5 )
 
    /*
       _stpSyncSourceManager implement
@@ -72,7 +73,12 @@ namespace engine
    : stpManagerBase( stpCB ),
      _pushEvent( FALSE ),
      _lastPushTick( 0LL ),
-     _clearClientTimeout( 0LL )
+     _clearClientTimeout( 0LL ),
+     _portIndex( 0 ),
+     _sysSource( stpCB, TRUE ),
+     _maxSyncPorts( 0 ),
+     _allowSyncPorts( 0 ),
+     _defClientsPerPort( 0 )
    {
    }
 
@@ -154,6 +160,194 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__INITIALIZE, "_stpSyncSourceManager::_initialize" )
+   INT32 _stpSyncSourceManager::_initialize()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__INITIALIZE ) ;
+
+      SDB_ASSERT( NULL != pmdGetThreadEDUCB() &&
+                  EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
+                  "must register in main thread" ) ;
+
+      _maxSyncPorts = _options->getMaxSyncPorts() ;
+      _defClientsPerPort = _options->getDefClientsPerPort() ;
+
+      PD_CHECK( NULL != pmdGetThreadEDUCB() &&
+                EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
+                SDB_SYS, error, PDERROR,
+                "Failed to initialize synchronize source, should be "
+                "initialize in main thread" ) ;
+
+      _allowSyncPorts = _maxSyncPorts ;
+      if ( _maxSyncPorts > 1 )
+      {
+         if ( _options->isSyncWithSysPort() )
+         {
+            // system port is allowed to be used for synchronize
+            rc = _addSource( &_sysSource ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add synchronize source, "
+                         "rc: %d", rc ) ;
+         }
+         else
+         {
+            // system port is not allowed to be used for synchronize
+            _allowSyncPorts = _maxSyncPorts - 1 ;
+         }
+      }
+      else
+      {
+         // only system port could be used for synchronize
+         rc = _addSource( &_sysSource ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add synchronize source, "
+                      "rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__INITIALIZE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__FINALIZE, "_stpSyncSourceManager::_finalize" )
+   INT32 _stpSyncSourceManager::_finalize()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__FINALIZE ) ;
+
+      ossScopedRWLock lock( &_sourceMutex, EXCLUSIVE ) ;
+
+      SDB_ASSERT( NULL != pmdGetThreadEDUCB() &&
+                  EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
+                  "must unregister in main thread" ) ;
+
+      PD_CHECK( NULL != pmdGetThreadEDUCB() &&
+                EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
+                SDB_SYS, error, PDERROR,
+                "Failed to finalize synchronize source, should be "
+                "finalize in main thread" ) ;
+
+      for ( STP_SYNC_SOURCE_LIST::iterator iter = _syncSources.begin() ;
+            iter != _syncSources.end() ;
+            ++ iter )
+      {
+         stpSyncSource *source = ( *iter ) ;
+         source->freeNetManager() ;
+         if ( !( source->isSystem() ) )
+         {
+            SAFE_OSS_DELETE( source ) ;
+         }
+      }
+
+      _syncSources.clear() ;
+      _sysSource.freeNetManager() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__FINALIZE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__PREACTIVE, "_stpSyncSourceManager::_preActivate" )
+   INT32 _stpSyncSourceManager::_preActivate()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__PREACTIVE ) ;
+
+      const CHAR *hostName = pmdGetKRCB()->getHostName() ;
+      UINT16 port = _options->getPort() ;
+
+      SDB_ASSERT( NULL != hostName, "host name is invalid" ) ;
+
+      // default synchronize source used default settings
+      rc = _sysSource.setNetManager( _netManager, port, NET_FRAME_MASK_UDP ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to set default synchronize source, "
+                   "rc: %d", rc ) ;
+
+      _portIndex = port ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__PREACTIVE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__POSTACTIVE, "_stpSyncSourceManager::_postActivate" )
+   INT32 _stpSyncSourceManager::_postActivate()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__POSTACTIVE ) ;
+
+      BOOLEAN forceSyncPorts = _options->isPreOpenPorts() ;
+
+      // activate net manager for extra synchronize sources
+      // NOTE: net manager for default synchronize source is already activated
+      if ( forceSyncPorts )
+      {
+         for ( UINT32 index = 1 ; index < _maxSyncPorts ; ++ index )
+         {
+            stpSyncSource *source = NULL ;
+
+            rc = _allocSource( &source, TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to allocate synchronize source, "
+                         "rc: %d", rc ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__POSTACTIVE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__PREDEACTIVE, "_stpSyncSourceManager::_preDeactivate" )
+   INT32 _stpSyncSourceManager::_preDeactivate()
+   {
+      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__PREDEACTIVE ) ;
+
+      ossScopedRWLock lock( &_sourceMutex, EXCLUSIVE ) ;
+
+      // deactive net manager for extra sources
+      // NOTE: net manager for default source is deactivated by stpCB
+      for ( STP_SYNC_SOURCE_LIST::iterator iter = _syncSources.begin() ;
+            iter != _syncSources.end() ;
+            ++ iter )
+      {
+         stpSyncSource *source = ( *iter ) ;
+         SDB_ASSERT( NULL != source, "synchronize source is invalid" ) ;
+         source->deactiveNetManager() ;
+      }
+
+      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__PREDEACTIVE, SDB_OK ) ;
+
+      return SDB_OK ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__POSTDEACTIVE, "_stpSyncSourceManager::_postDeactivate" )
+   INT32 _stpSyncSourceManager::_postDeactivate()
+   {
+      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__POSTDEACTIVE ) ;
+
+      // remove all clients
+      removeClients() ;
+
+      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__POSTDEACTIVE, SDB_OK ) ;
+
+      return SDB_OK ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR_ONRECEIVETIMESYNCREQ, "_stpSyncSourceManager::onReceiveTimeSyncReq" )
    INT32 _stpSyncSourceManager::onReceiveTimeSyncReq( stpTimeSyncReq *request )
    {
@@ -208,15 +402,40 @@ namespace engine
       SDB_ASSERT( MSG_STP_REG_REQ == request->header.opCode,
                   "opcode of message is invalid" ) ;
 
-      const MsgRouteID &routeID = request->header.routeID ;
+      MsgRouteID routeID ;
       stpClientNode client ;
+
+      routeID.value = MSG_INVALID_ROUTEID ;
 
       // only primary server could be synchronize source to handle register
       // request
       PD_CHECK( _stpCB->isPrimaryServer(),
                 SDB_CLS_NOT_PRIMARY, error, PDERROR,
                 "Failed to register client %s, primary is not me",
-                routeID2String( routeID ).c_str() ) ;
+                routeID2String( request->header.routeID ).c_str() ) ;
+
+      // get route ID from net
+      // NOTE: STP nodes do not have route ID in meta data, route ID of STP
+      //       node is generated by IP address bind with host name and port
+      //       of STP node
+      //       if the client bind host name with a local IP ( e.g.
+      //       127.0.0.1 ), the route ID from client will be indistinguishable
+      //       so, we need to get the real route ID from net agent
+      rc = _netManager->getRouteID( _netAgent, handle, routeID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get route ID from handle [%u], "
+                   "rc: %d", handle, rc ) ;
+
+      if ( request->header.routeID.columns.groupID != routeID.columns.groupID )
+      {
+         PD_LOG( PDWARNING, "Register client with different group ID, "
+                 "given [%u], get from net [%u]",
+                 request->header.routeID.columns.groupID,
+                 routeID.columns.groupID ) ;
+      }
+
+      // adjust node ID and service ID
+      routeID.columns.nodeID = request->header.routeID.columns.nodeID ;
+      routeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
 
       try
       {
@@ -247,19 +466,22 @@ namespace engine
          goto error ;
       }
 
-      // check route ID
-      PD_CHECK( routeID.value == client.getRouteIDValue(),
-                SDB_SYS, error, PDERROR,
-                "Failed to register client, route IDs are different, "
-                "net route ID %s, register request ID %s",
-                routeID2String( routeID ).c_str(),
-                routeID2String( client.getRouteID() ).c_str() ) ;
+      // check route ID of register client
+      if ( client.getRouteIDValue() != routeID.value )
+      {
+         PD_LOG( PDWARNING, "Register client with different route ID, "
+                 "given %s, get from net %s",
+                 routeID2String( client.getRouteID() ).c_str(),
+                 routeID2String( routeID ).c_str() ) ;
+
+         client.setRouteID( routeID ) ;
+      }
 
       // assign default port
       client.setSyncPort( _options->getPort() ) ;
 
       // register client node
-      rc = registerClient( request->version, client ) ;
+      rc = registerClient( routeID, request->version, client ) ;
       if ( SDB_OK != rc && SDB_REPL_REMOTE_G_V_EXPIRED != rc )
       {
          PD_RC_CHECK( rc, PDERROR, "Failed to register client %s, rc: %d",
@@ -296,85 +518,15 @@ namespace engine
       SDB_ASSERT( MSG_STP_TIME_SYNC_REQ == request->header.opCode,
                   "opcode of message is invalid" ) ;
 
-      const MsgRouteID &routeID = request->header.routeID ;
-      STP_SYNC_STATUS status = (STP_SYNC_STATUS)( request->status ) ;
-      UINT16 flag = request->flag ;
-
-      stpClientNode client ;
-
-      // only primary server could be synchronize source to handle synchronize
-      // time request
-      PD_CHECK( _stpCB->isPrimaryServer(), SDB_CLS_NOT_PRIMARY, error, PDERROR,
-                "Failed to register node %s, primary is not me",
-                routeID2String( routeID ).c_str() ) ;
-
-      // get registered client ( it it not registered if not found )
-      rc = getClient( routeID, client ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get client %s, rc: %d",
-                   routeID2String( routeID ).c_str(), rc ) ;
-
-      // handle flags
-      // NOTE: increase time error should be exclusive with decrease time error
-      if ( OSS_BIT_TEST( flag, STP_SYNC_TIME_FLAG_INCTIMEERROR ) &&
-           !OSS_BIT_TEST( flag, STP_SYNC_TIME_FLAG_DECTIMEERROR ) )
-      {
-         // need increase time error
-         client.incTimeError() ;
-         PD_LOG( PDEVENT, "Client %s is in [%s] status, time error: [%u], "
-                 "increase to [%u]", client.toString().c_str(),
-                 stpGetSyncStatusName( status ), request->timeError,
-                 client.getTimeError() ) ;
-      }
-      else if ( OSS_BIT_TEST( flag, STP_SYNC_TIME_FLAG_DECTIMEERROR ) &&
-                !OSS_BIT_TEST( flag, STP_SYNC_TIME_FLAG_INCTIMEERROR ) )
-      {
-         // need decrease time error
-         client.decTimeError() ;
-         PD_LOG( PDEVENT, "Client %s is in [%s] status, time error: [%u], "
-                 "decrease to [%u]", client.toString().c_str(),
-                 stpGetSyncStatusName( status ), request->timeError,
-                 client.getTimeError() ) ;
-      }
-
-      if ( OSS_BIT_TEST( flag, STP_SYNC_TIME_FLAG_PUSHTIME ) )
-      {
-         // need push time forward
-         // NOTE: do it in asynchronous
-         _signalPushTime() ;
-         PD_LOG( PDEVENT, "Client %s is in [%s] status, need push time",
-                 client.toString().c_str(),
-                 stpGetSyncStatusName( status ) ) ;
-      }
-
-      PD_LOG( PDDEBUG, "Client %s is in [%s] status",
-              client.toString().c_str(),
-              stpGetSyncStatusName( status ) ) ;
-
-      // save status
-      client.onSync( (STP_SYNC_STATUS)request->status ) ;
-
-      // update registered client
-      rc = updateClient( request->version, client ) ;
-      if ( SDB_OK != rc && SDB_REPL_REMOTE_G_V_EXPIRED != rc )
-      {
-         PD_RC_CHECK( rc, PDERROR, "Failed to update client %s, rc: %d",
-                      client.toString().c_str(), rc ) ;
-      }
-
-      // send response
-      rc = _sendTimeSyncRsp( handle, request, client, rc ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to send synchronize response, rc: %d", rc ) ;
-      }
+      rc = _sysSource.handleTimeSyncReq( handle, request ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to handle time synchronize request, "
+                   "rc: %d", rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__HANDLETIMESYNCREQ, rc ) ;
       return rc ;
 
    error:
-      // send error response
-      _sendTimeSyncRsp( handle, request, client, rc ) ;
       goto done ;
    }
 
@@ -393,14 +545,17 @@ namespace engine
       stpRegRsp response ;
 
       // fill reply header
-      _fillReplyHeader( request->header, response.reply,
-                        sizeof( stpRegRsp ), returnCode ) ;
+      _netMsgHandler->fillReplyHeader( request->header,
+                                       response.reply,
+                                       sizeof( stpRegRsp ),
+                                       returnCode ) ;
 
+      // set real route ID
+      response.routeID.value = client.getRouteIDValue() ;
       // set verified OID
       response.oid = client.getOID() ;
       // set synchronize time port
-      // TODO: assign to different port to relieve stress
-      response.port = _options->getPort() ;
+      response.port = client.getSyncPort() ;
 
       // send by net agent
       rc = _netAgent->syncSend( handle, &response ) ;
@@ -415,93 +570,19 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__SENDTIMESYNCRSP, "_stpSyncSourceManager::_sendTimeSyncRsp" )
-   INT32 _stpSyncSourceManager::_sendTimeSyncRsp( NET_HANDLE handle,
-                                                  const stpTimeSyncReq *request,
-                                                  const stpClientNode &client,
-                                                  INT32 returnCode )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__SENDTIMESYNCRSP ) ;
-
-      SDB_ASSERT( NULL != request, "request is invalid" ) ;
-
-      stpTimeSyncRsp response ;
-
-      // fill reply header
-      _fillReplyHeader( request->header, response.reply,
-                        sizeof( stpTimeSyncRsp ), returnCode ) ;
-
-      // copy field's from request
-      response.reqSendTimeSec = request->sendTimeSec ;
-      response.reqSendTimeNanoSec = request->sendTimeNanoSec ;
-      response.reqReceiveTimeSec = request->receiveTimeSec ;
-      response.reqReceiveTimeNanoSec = request->receiveTimeNanoSec ;
-      response.reqTimeError = request->timeError ;
-      // send time is filled in callback, set 0 here
-      response.rspSendTimeSec = 0LL ;
-      response.rspSendTimeNanoSec = 0LL ;
-      // receive time is filled by client
-      response.rspReceiveTimeSec = 0LL ;
-      response.rspReceiveTimeNanoSec = 0LL ;
-      // set adjusted time error
-      response.rspTimeError = client.getTimeError() ;
-
-      // send by net agent
-      rc = _netAgent->syncSend( handle, &response ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize time response, "
-                   "rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__SENDTIMESYNCRSP, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR_GETCLIENT, "_stpSyncSourceManager::getClient" )
-   INT32 _stpSyncSourceManager::getClient( const MsgRouteID &routeID,
-                                           stpClientNode &client )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR_GETCLIENT ) ;
-
-      ossScopedRWLock lock( ( &_clientMutex ), SHARED ) ;
-
-      // find registered client from map
-      STP_CLIENT_MAP::const_iterator iter = _clients.find( routeID ) ;
-      PD_CHECK( iter != _clients.end(),
-                SDB_INVALID_ROUTEID, error, PDERROR,
-                "Failed to get client node %s, it is not found",
-                routeID2String( routeID ).c_str() ) ;
-
-      // copy client to output
-      client = iter->second ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR_GETCLIENT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR_REGISTERCLIENT, "_stpSyncSourceManager::registerClient" )
-   INT32 _stpSyncSourceManager::registerClient( UINT32 version,
-                                                const stpClientNode &client )
+   INT32 _stpSyncSourceManager::registerClient( const MsgRouteID &routeID,
+                                                UINT32 version,
+                                                stpClientNode &client )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR_REGISTERCLIENT ) ;
 
+      BOOLEAN lockedSource = FALSE ;
       BOOLEAN versionExpired = FALSE ;
       UINT32 localVersion = STP_GROUP_INVALID_VERSION ;
-      BOOLEAN locked = FALSE ;
-      STP_CLIENT_MAP::iterator iter ;
+      stpSyncSource *assignSource = NULL ;
 
       // check role of client
       PD_CHECK( client.isValidRole(), SDB_INVALIDARG, error, PDERROR,
@@ -533,42 +614,33 @@ namespace engine
          versionExpired = TRUE ;
       }
 
-      _clientMutex.lock_w() ;
-      locked = TRUE ;
+      _sourceMutex.lock_w() ;
+      lockedSource = TRUE ;
 
-      // find if already registered
-      iter = _clients.find( client.getRouteID() ) ;
-      if ( iter != _clients.end() )
-      {
-         PD_LOG( PDWARNING, "route ID is the same, remove old client "
-                 "node %s", iter->second.toString().c_str() ) ;
-         _clients.erase( iter ) ;
-      }
+      rc = _assignSource( routeID, &assignSource ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to assign synchronize source, "
+                   "rc: %d", rc ) ;
 
-      // check if has the same OID
-      for ( iter = _clients.begin() ;
-            iter != _clients.end() ;
-            ++ iter )
-      {
-         PD_CHECK( client.getOID() != iter->second.getOID(),
-                   SDB_INVALIDARG, error, PDERROR,
-                   "Failed to register client node %s, OID is conflicts",
-                   client.toString().c_str() ) ;
-      }
+      PD_CHECK( NULL != assignSource, SDB_SYS, error, PDERROR,
+                "Failed to assign synchronize source" ) ;
 
-      // force to replace
-      _clients[ client.getRouteID() ] = client ;
+      client.setSyncPort( assignSource->getPort() ) ;
 
-      _clientMutex.release_w() ;
-      locked = FALSE ;
+      // register to synchronize source
+      rc = assignSource->registerClient( routeID, client ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register client %s, rc: %d",
+                   client.toString().c_str(), rc ) ;
 
-      PD_LOG( PDEVENT, "Register client node %s done",
-              client.toString().c_str() ) ;
+      _sourceMutex.release_w() ;
+      lockedSource = FALSE ;
+
+      PD_LOG( PDEVENT, "Register client node %s done, assigned port %u",
+              client.toString().c_str(), client.getSyncPort() ) ;
 
    done:
-      if ( locked )
+      if ( lockedSource )
       {
-         _clientMutex.release_w() ;
+         _sourceMutex.release_w() ;
       }
       if ( versionExpired )
       {
@@ -582,166 +654,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR_REMOVECLIENT, "_stpSyncSourceManager::removeClient" )
-   INT32 _stpSyncSourceManager::removeClient( const MsgRouteID &routeID )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR_REMOVECLIENT ) ;
-
-      ossScopedRWLock lock( ( &_clientMutex ), EXCLUSIVE ) ;
-
-      STP_CLIENT_MAP::iterator iter = _clients.find( routeID ) ;
-
-      // find client to remove
-      PD_CHECK( iter != _clients.end(),
-                SDB_INVALID_ROUTEID, error, PDWARNING,
-                "Failed to remove client node %s, route ID is not found",
-                routeID2String( routeID ).c_str() ) ;
-
-      // remove client
-      _clients.erase( iter ) ;
-
-      PD_LOG( PDEVENT, "Remove client node %s done",
-              routeID2String( routeID ).c_str() ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR_REMOVECLIENT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR_REMOVECLIENT_EXPIRED, "_stpSyncSourceManager::removeClient" )
-   INT32 _stpSyncSourceManager::removeClient( const MsgRouteID &routeID,
-                                              UINT64 syncTick )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR_REMOVECLIENT_EXPIRED ) ;
-
-      ossScopedRWLock lock( ( &_clientMutex ), EXCLUSIVE ) ;
-
-      STP_CLIENT_MAP::iterator iter = _clients.find( routeID ) ;
-
-      // find client to be removed
-      PD_CHECK( iter != _clients.end(),
-                SDB_INVALID_ROUTEID, error, PDWARNING,
-                "Failed to remove client node %s, route ID is not found",
-                routeID2String( routeID ).c_str() ) ;
-
-      // check if expired ( no synchronize since given time )
-      if ( iter->second.getLastSyncTick() <= syncTick )
-      {
-         // remove expired client
-         _clients.erase( iter ) ;
-      }
-      else
-      {
-         // not expired ( new synchronization happened after we first check
-         // expiration ), ignore
-         PD_LOG( PDDEBUG, "Ignored remove expired client node %s, "
-                 "synchronize time is updated",
-                 routeID2String( routeID ).c_str() ) ;
-         goto done ;
-      }
-
-      PD_LOG( PDEVENT, "Remove expired client node %s done",
-              routeID2String( routeID ).c_str() ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR_REMOVECLIENT_EXPIRED, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR_UPDATECLIENT, "_stpSyncSourceManager::updateClient" )
-   INT32 _stpSyncSourceManager::updateClient( UINT32 version,
-                                              const stpClientNode &client )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR_UPDATECLIENT ) ;
-
-      BOOLEAN versionExpired = FALSE ;
-      UINT32 localVersion = STP_GROUP_INVALID_VERSION ;
-      BOOLEAN locked = FALSE ;
-      STP_CLIENT_MAP::iterator iter ;
-
-      // check role of client
-      PD_CHECK( client.isValidRole(), SDB_INVALIDARG, error, PDERROR,
-                "Failed to check client node %s, role is invalid",
-                client.toString().c_str() ) ;
-
-      // check group version of client, if it is too old, we need to tell
-      // the client to update information of servers
-      // NOTE: Event the version is expired, but we still need to finish
-      //       the time synchronization.
-      //       Client only needs to know who is primary, which's enough for a
-      //       client to finish time synchronization.
-      localVersion = getNodeManager()->getVersion() ;
-      if ( version < localVersion )
-      {
-         PD_LOG( PDWARNING, "Client node %s's version is expired, "
-                 "given is [%u], current is [%u]", client.toString().c_str(),
-                 version, localVersion ) ;
-         versionExpired = TRUE ;
-      }
-
-      _clientMutex.lock_w() ;
-      locked = TRUE ;
-
-      // find client to be updated
-      iter = _clients.find( client.getRouteID() ) ;
-      PD_CHECK( iter != _clients.end(),
-                SDB_INVALID_ROUTEID, error, PDERROR,
-                "Failed to find client node %s", client.toString().c_str() ) ;
-
-      // check if has the same route ID
-      PD_CHECK( iter->second.getRouteIDValue() == client.getRouteIDValue(),
-                SDB_INVALIDARG, error, PDERROR,
-                "Failed to update client node %s, route ID is different, "
-                "expected %s, given %s", client.toString().c_str(),
-                routeID2String( iter->second.getRouteID() ).c_str(),
-                routeID2String( client.getRouteID() ).c_str() ) ;
-
-      // check if has the same OID
-      PD_CHECK( iter->second.getOID() == client.getOID(),
-                SDB_INVALIDARG, error, PDERROR,
-                "Failed to update client node %s, OID is different, "
-                "expected %s, given %s", client.toString().c_str(),
-                iter->second.getOID().toString().c_str(),
-                client.getOID().toString().c_str() ) ;
-
-      // update client
-      iter->second = client ;
-
-      _clientMutex.release_w() ;
-      locked = FALSE ;
-
-      PD_LOG( PDEVENT, "Update client node %s done",
-              client.toString().c_str() ) ;
-
-   done:
-      if ( locked )
-      {
-         _clientMutex.release_w() ;
-      }
-      if ( versionExpired )
-      {
-         // tell client to update information of servers
-         rc = SDB_REPL_REMOTE_G_V_EXPIRED ;
-      }
-      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR_UPDATECLIENT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR_DUMPCLIENTS, "_stpSyncSourceManager::dumpClients" )
    INT32 _stpSyncSourceManager::dumpClients( STP_CLIENT_MAP &clients )
    {
@@ -749,19 +661,56 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR_DUMPCLIENTS ) ;
 
-      ossScopedRWLock lock( ( &_clientMutex ), SHARED ) ;
+      ossScopedRWLock lock( &_sourceMutex, SHARED ) ;
 
       try
       {
-         // copy clients to output
-         clients = _clients ;
+         // dump clients from synchronize sources
+         for ( STP_SYNC_SOURCE_LIST::iterator iter = _syncSources.begin() ;
+               iter != _syncSources.end() ;
+               ++ iter )
+         {
+            STP_CLIENT_MAP tempClients ;
+            stpSyncSource *source = ( *iter ) ;
+
+            SDB_ASSERT( NULL != source, "synchronize source is invalid" ) ;
+
+            rc = source->dumpClients( tempClients ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to dump clients from "
+                         "synchronize source for port [%u], rc: %d",
+                         source->getPort(), rc ) ;
+
+            // remove duplicated clients
+            // NOTE: clients may register to different ports
+            for ( STP_CLIENT_MAP::iterator tempIter = tempClients.begin() ;
+                  tempIter != tempClients.end() ;
+                  ++ tempIter )
+            {
+               STP_CLIENT_MAP::iterator iter = clients.find( tempIter->first ) ;
+               if ( iter == clients.end() )
+               {
+                  // not found duplicated one
+                  clients.insert( make_pair( tempIter->first,
+                                             tempIter->second ) ) ;
+               }
+               else
+               {
+                  // found a duplicated one
+                  // the client from current synchronize source is
+                  // synchronized later replace with the newer one
+                  if ( iter->second.getLastSyncTick() <
+                       tempIter->second.getLastSyncTick() )
+                  {
+                     clients[ tempIter->first ] = tempIter->second ;
+                  }
+               }
+            }
+         }
       }
       catch ( exception &e )
       {
-         PD_LOG( PDERROR, "Failed to dump servers, "
-                 "occurred unexpected error: %s", e.what() ) ;
+         PD_LOG( PDERROR, "Failed to dump clients, error: %s", e.what() ) ;
          rc = SDB_SYS ;
-         goto error ;
       }
 
    done:
@@ -779,10 +728,19 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__REMOVECLIENTS ) ;
 
-      ossScopedRWLock lock( ( &_clientMutex ), EXCLUSIVE ) ;
+      ossScopedRWLock lock( &_sourceMutex, SHARED ) ;
 
-      // remove all clients
-      _clients.clear() ;
+      // remove clients from extra synchronize sources
+      for ( STP_SYNC_SOURCE_LIST::iterator iter = _syncSources.begin() ;
+            iter != _syncSources.end() ;
+            ++ iter )
+      {
+         stpSyncSource *source = ( *iter ) ;
+
+         SDB_ASSERT( NULL != source, "synchronize source is invalid" ) ;
+
+         source->removeClients() ;
+      }
 
       PD_LOG( PDEVENT, "Remove all client nodes done" ) ;
 
@@ -794,48 +752,221 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__CLEAREXPIREDCLIENTS, "_stpSyncSourceManager::_clearExpiredClients" )
    INT32 _stpSyncSourceManager::_clearExpiredClients()
    {
-      INT32 rc = SDB_OK ;
-
       PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__CLEAREXPIREDCLIENTS ) ;
 
-      STP_CLIENT_MAP clients ;
+      ossScopedRWLock lock( &_sourceMutex, SHARED ) ;
 
-      // dump all clients to check
-      rc = dumpClients( clients ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to dump clients, rc: %d", rc ) ;
-
-      // check each client
-      for ( STP_CLIENT_MAP::iterator iter = clients.begin() ;
-            iter != clients.end() ;
+      for ( STP_SYNC_SOURCE_LIST::iterator iter = _syncSources.begin() ;
+            iter != _syncSources.end() ;
             ++ iter )
       {
-         // check if no synchronize for a long time
-         UINT64 syncTick = iter->second.getLastSyncTick() ;
-         UINT64 syncPassed = pmdGetTickSpanTime( syncTick ) ;
-         if ( syncPassed > STP_CLEAR_CLIENT_INTERVAL )
+         stpSyncSource *source = ( *iter ) ;
+         source->clearExpiredClients() ;
+      }
+
+      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__CLEAREXPIREDCLIENTS, SDB_OK ) ;
+
+      return SDB_OK ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__ASSIGNSOURCE, "_stpSyncSourceManager::_assignSource" )
+   INT32 _stpSyncSourceManager::_assignSource( const MsgRouteID &routeID,
+                                               stpSyncSource **source )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__ASSIGNSOURCE ) ;
+
+      stpSyncSource *minUsedSource = NULL ;
+
+      if ( _maxSyncPorts <= 1 )
+      {
+         // use system source
+         *source = &_sysSource ;
+         goto done ;
+      }
+
+      // check if already assigned to a source
+      for ( STP_SYNC_SOURCE_LIST::iterator iter = _syncSources.begin() ;
+            _syncSources.end() != iter ;
+            ++ iter )
+      {
+         stpSyncSource *tmpSource = ( *iter ) ;
+         if ( tmpSource->hasClient( routeID ) )
          {
-            // if no synchronize for 2 hours, remove this client
-            removeClient( iter->first, syncTick ) ;
+            *source = tmpSource ;
+            goto done ;
          }
       }
 
+      // not assigned yet, assigned a new one
+      // find minimum used source first
+      for ( STP_SYNC_SOURCE_LIST::iterator iter = _syncSources.begin() ;
+            _syncSources.end() != iter ;
+            ++ iter )
+      {
+         stpSyncSource *tmpSource = ( *iter ) ;
+         if ( NULL == minUsedSource )
+         {
+            minUsedSource = tmpSource ;
+         }
+         else if ( tmpSource->getClientNum() <
+                   minUsedSource->getClientNum() )
+         {
+            minUsedSource = tmpSource ;
+         }
+      }
+      // if minimum used source is not full or new port is not allowed, use
+      // the minimum used source
+      if ( NULL != minUsedSource &&
+           ( minUsedSource->getClientNum() < _defClientsPerPort ||
+             _syncSources.size() >= _allowSyncPorts ) )
+      {
+         // minimum
+         *source = minUsedSource ;
+         goto done ;
+      }
+
+      // if needed and allowed, create a new one
+      rc = _allocSource( source, FALSE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING, "Failed to allocate synchronize source, rc: %d",
+                 rc ) ;
+         if ( NULL != minUsedSource )
+         {
+            *source = minUsedSource ;
+         }
+         else
+         {
+            *source = &_sysSource ;
+         }
+         rc = SDB_OK ;
+      }
+
    done:
-      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__CLEAREXPIREDCLIENTS, rc ) ;
+      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__ASSIGNSOURCE, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__ALLOCSOURCE, "_stpSyncSourceManager::_allocSource" )
+   INT32 _stpSyncSourceManager::_allocSource( stpSyncSource **source,
+                                              BOOLEAN force )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__ALLOCSOURCE ) ;
+
+      SDB_ASSERT( NULL != source, "source is invalid" ) ;
+
+      stpSyncSource *newSource = NULL ;
+      UINT32 index = (UINT32)( _syncSources.size() ) ;
+
+      UINT32 retryTimes = 0 ;
+      const CHAR *hostName = pmdGetKRCB()->getHostName() ;
+
+      newSource = SDB_OSS_NEW stpSyncSource( _stpCB, FALSE ) ;
+      PD_CHECK( NULL != newSource, SDB_OOM, error, PDERROR,
+                "Failed to allocate memory for synchronize "
+                "source [%d]", index ) ;
+
+      while ( TRUE )
+      {
+         UINT16 port = (UINT16)( ++ _portIndex ) ;
+         if ( port > STP_SOURCE_MAX_PORT )
+         {
+            _portIndex = STP_SOURCE_MIN_PORT ;
+            port = STP_SOURCE_MIN_PORT ;
+         }
+         rc = newSource->initNetManager( hostName,
+                                         port,
+                                         NET_FRAME_MASK_UDP ) ;
+         if ( SDB_OK != rc )
+         {
+            if ( force ||
+                 retryTimes >= STP_SOURCE_PORT_RETRY_TIME )
+            {
+               PD_LOG( PDERROR, "Failed to initialize net manager "
+                       "for %s:%u, rc: %d", hostName, port, rc ) ;
+
+               goto error ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Failed to initialize net manager "
+                       "for %s:%u, rc: %d, retry next port", hostName, port,
+                       rc ) ;
+
+               rc = SDB_OK ;
+               ++ retryTimes ;
+               continue ;
+            }
+         }
+         break ;
+      }
+
+      rc = newSource->activeNetManager() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to active net manager, rc: %d", rc ) ;
+
+      rc = _addSource( newSource ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add synchronize source, rc: %d",
+                   rc ) ;
+
+      *source = newSource ;
+      newSource = NULL ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__ALLOCSOURCE, rc ) ;
+      return rc ;
+
+   error:
+      // on error, should free net manager
+      if ( NULL != newSource )
+      {
+         newSource->deactiveNetManager() ;
+         newSource->freeNetManager() ;
+         SDB_OSS_DEL newSource ;
+         newSource = NULL ;
+      }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__ADDSOURCE, "_stpSyncSourceManager::_addSource" )
+   INT32 _stpSyncSourceManager::_addSource( stpSyncSource *source )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__ADDSOURCE ) ;
+
+      try
+      {
+         _syncSources.push_back( source ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add synchronize source, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSYNCSOURCEMGR__ADDSOURCE, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__SIGNALPUSHTIME, "_stpSyncSourceManager::_signalPushTime" )
-   void _stpSyncSourceManager::_signalPushTime()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR_SIGNALPUSHTIME, "_stpSyncSourceManager::signalPushTime" )
+   void _stpSyncSourceManager::signalPushTime()
    {
-      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR__SIGNALPUSHTIME ) ;
+      PD_TRACE_ENTRY( SDB__STPSYNCSOURCEMGR_SIGNALPUSHTIME ) ;
 
       // signal we need push time forward
       _pushEvent = TRUE ;
 
-      PD_TRACE_EXIT( SDB__STPSYNCSOURCEMGR__SIGNALPUSHTIME ) ;
+      PD_TRACE_EXIT( SDB__STPSYNCSOURCEMGR_SIGNALPUSHTIME ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSYNCSOURCEMGR__NEEDPUSHTIME, "_stpSyncSourceManager::_needPushTime" )

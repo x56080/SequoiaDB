@@ -326,6 +326,9 @@ namespace engine
             return _handler ;
          }
 
+         // check if listening on protocol
+         BOOLEAN isListening( UINT32 protocolMask = NET_FRAME_MASK_TCP ) ;
+
       protected:
          netEvSuitPtr      _getEvSuit( BOOLEAN needLock ) ;
          void              _stopAllEvSuit() ;

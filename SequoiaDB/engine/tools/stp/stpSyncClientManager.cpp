@@ -88,8 +88,11 @@ namespace engine
      _lastVersion( STP_GROUP_INVALID_VERSION ),
      _lastStableTick( 0LL ),
      _syncTimeTimeout( 0LL ),
+     _waitSyncRsp( FALSE ),
      _sourceClearTimeout( 0LL )
    {
+      _regSourceRID.value = MSG_INVALID_ROUTEID ;
+      _syncSourceRID.value = MSG_INVALID_ROUTEID ;
    }
 
    _stpSyncClientManager::~_stpSyncClientManager()
@@ -103,6 +106,14 @@ namespace engine
 
       if ( timerID == _timerID )
       {
+         if ( _waitSyncRsp )
+         {
+            PD_LOG( PDWARNING, "Failed to wait for synchronize response, "
+                    "timeout, restart synchronize" ) ;
+            restartSync() ;
+            _waitSyncRsp = FALSE ;
+         }
+
          // check timeout to synchronize time
          _syncTimeTimeout += interval ;
          if ( _syncTimeTimeout >= getCurrentSyncInterval() )
@@ -114,6 +125,7 @@ namespace engine
             }
             _syncTimeTimeout = 0LL ;
          }
+
          // check timeout to clear expired sources
          // ( no synchronize for a long time, e.g. 2 hours )
          _sourceClearTimeout += interval ;
@@ -274,10 +286,14 @@ namespace engine
 
          // on event of register response, register a source node to save
          // synchronize history
-         _onRegRsp( response->reply.header.routeID ) ;
+         rc = _onRegRsp( response->reply.header.routeID, response->port ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to call event on register, rc: %d",
+                      rc ) ;
 
          // update verified OID of local node
-         _nodeManager->setLocalOID( response->oid ) ;
+         _nodeManager->updateLocalSyncInfo( response->routeID,
+                                            response->oid,
+                                            response->port ) ;
 
          // active check-offset status to start synchronize time
          activeStatus( STP_SYNC_CHECKOFFSET ) ;
@@ -289,11 +305,6 @@ namespace engine
          {
             // not primary, reset primary to node manager
             _nodeManager->resetPrimary() ;
-         }
-         else
-         {
-            // other errors, set status to no-source to re-choose a source
-            activeStatus( STP_SYNC_NOSOURCE ) ;
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to register node, "
                       "received response with error: %d", rc ) ;
@@ -320,6 +331,9 @@ namespace engine
       SDB_ASSERT( NULL != response, "response is invalid" ) ;
       SDB_ASSERT( MSG_STP_TIME_SYNC_RSP == response->reply.header.opCode,
                   "opcode of message is invalid" ) ;
+
+      // reset wait synchronize response
+      _waitSyncRsp = FALSE ;
 
       // only synchronize client to handle synchronize time response
       PD_CHECK( _nodeManager->isSyncClient(), SDB_OK, done, PDWARNING,
@@ -380,7 +394,7 @@ namespace engine
             // send time synchronize request
             // - indicate to increase time error
             // - tell source the delay of last synchronize round-trip
-            _sendTimeSyncReq( response->reply.header.routeID,
+            _sendTimeSyncReq( _syncSourceRID,
                               version,
                               STP_SYNC_TIME_FLAG_INCTIMEERROR,
                               STP_SYNC_CHECKERROR,
@@ -420,11 +434,12 @@ namespace engine
       PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR__SENDREGREQ ) ;
 
       stpRegReq request ;
+      UINT32 requestSize = sizeof( stpRegReq ) + regObject.objsize() ;
 
       // fill request header
-      _fillRequestHeader( request.header,
-                          sizeof( stpRegReq ) + regObject.objsize(),
-                          MSG_STP_REG_REQ ) ;
+      _netMsgHandler->fillRequestHeader( request.header,
+                                         requestSize,
+                                         MSG_STP_REG_REQ ) ;
 
       // fill fields for register request
       request.version = version ;
@@ -462,8 +477,9 @@ namespace engine
       stpTimeSyncReq request ;
 
       // fill request header
-      _fillRequestHeader( request.header, sizeof( stpTimeSyncReq ),
-                          MSG_STP_TIME_SYNC_REQ ) ;
+      _netMsgHandler->fillRequestHeader( request.header,
+                                         sizeof( stpTimeSyncReq ),
+                                         MSG_STP_TIME_SYNC_REQ ) ;
 
       // fill fields of synchronize time request
       request.version = version ;
@@ -481,12 +497,15 @@ namespace engine
       _setLastRequestID( request.header.requestID, version ) ;
 
       // on sending request event: save synchronize history
-      _onSyncReq( routeID ) ;
+      _onSyncReq( _regSourceRID ) ;
 
       // send by net agent with UDP
       rc = _netAgent->syncSendUDP( routeID, &request ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize request to %s, "
                    "rc: %d", routeID2String( routeID ).c_str(), rc ) ;
+
+      // set waiting for synchronize response
+      _waitSyncRsp = TRUE ;
 
    done:
       PD_TRACE_EXITRC( SDB__TPSYNCCLIENTMGR__SENDTIMESYNCREQ, rc ) ;
@@ -506,19 +525,20 @@ namespace engine
       // only synchronize client could start time synchronize
       if ( _nodeManager->isSyncClient() )
       {
-         MsgRouteID primaryRID ;
          stpClientNode localNode ;
          UINT32 version = STP_GROUP_INVALID_VERSION ;
 
          // get local node and group version
          _nodeManager->getLocalAndVersion( localNode, version ) ;
 
-         // get primary server as source
-         rc = _session.getPrimaryRID( primaryRID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get primary RID, rc: %d", rc ) ;
-
          if ( STP_SYNC_NOSOURCE == _status )
          {
+            MsgRouteID primaryRID ;
+
+            // get primary server as source
+            rc = _session.getPrimaryRID( primaryRID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get primary RID, rc: %d", rc ) ;
+
             // current is no source status, means we are first time to
             // synchronize to the node in this round, send register request
             // first
@@ -528,8 +548,22 @@ namespace engine
          }
          else
          {
+            MsgRouteID sourceRID ;
+            if ( MSG_INVALID_ROUTEID == _syncSourceRID.value )
+            {
+               // get primary server as source
+               rc = _session.getPrimaryRID( sourceRID ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get primary RID, "
+                            "rc: %d", rc ) ;
+            }
+            else
+            {
+               // source ID is valid, use it
+               sourceRID.value = _syncSourceRID.value ;
+            }
+
             // for other status, send synchronize time request
-            rc = _launchTimeSync( primaryRID, version, localNode ) ;
+            rc = _launchTimeSync( sourceRID, version, localNode ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to launch time synchronize, "
                          "rc: %d", rc ) ;
          }
@@ -746,6 +780,11 @@ namespace engine
          // set last stable tick to 0, means it is not stable relatively
          _lastStableTick = 0LL ;
       }
+
+      if ( STP_SYNC_NOSOURCE == status )
+      {
+         _resetSourceRID() ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__HASENOUGHRECORDS, "_stpSyncClientManager::_hasEnoughRecords" )
@@ -925,7 +964,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__LAUNCHTIMESYNC, "_stpSyncClientManager::_launchTimeSync" )
-   INT32 _stpSyncClientManager::_launchTimeSync( const MsgRouteID &primaryRID,
+   INT32 _stpSyncClientManager::_launchTimeSync( const MsgRouteID &sourceRID,
                                                  UINT32 version,
                                                  const stpClientNode &local )
    {
@@ -945,7 +984,7 @@ namespace engine
       }
 
       // send time synchronize request
-      rc = _sendTimeSyncReq( primaryRID, version, flag, _status, timeError ) ;
+      rc = _sendTimeSyncReq( sourceRID, version, flag, _status, timeError ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize request, "
                    "rc: %d", rc ) ;
 
@@ -1192,7 +1231,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__ONREGRSP, "_stpSyncClientManager::_onRegRsp" )
-   INT32 _stpSyncClientManager::_onRegRsp( const MsgRouteID &routeID )
+   INT32 _stpSyncClientManager::_onRegRsp( const MsgRouteID &routeID,
+                                           UINT16 port )
    {
       INT32 rc = SDB_OK ;
 
@@ -1203,6 +1243,7 @@ namespace engine
       // synchronization, we need to:
       // - check if route ID is known by node manager
       // - register this server as source
+      // - assign port
 
       stpSourceNode source ;
 
@@ -1215,6 +1256,30 @@ namespace engine
       rc = registerSource( source ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to register source %s, rc: %d",
                    routeID2String( routeID ).c_str(), rc ) ;
+
+      // assigned port by source
+      _syncSourceRID.value = source.getRouteIDValue() ;
+
+      if ( port != source.getNodeID() )
+      {
+         // assigned to extra synchronize port
+         CHAR serviceName[ OSS_MAX_SERVICENAME + 1 ] = { '\0' } ;
+         ossSnprintf( serviceName, OSS_MAX_SERVICENAME, "%u", port ) ;
+
+         _syncSourceRID.columns.nodeID = port ;
+
+         rc = _netManager->updateRouteID( _syncSourceRID,
+                                          source.getHostName(),
+                                          serviceName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update route ID %s, rc: %d",
+                      routeID2String( _syncSourceRID ).c_str(), rc ) ;
+      }
+
+      // set register source ID
+      _regSourceRID.value = source.getRouteIDValue() ;
+
+      PD_LOG( PDEVENT, "Register synchronize to %s with port %u",
+              source.toString().c_str(), port ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__TPSYNCCLIENTMGR__ONREGRSP, rc ) ;
@@ -1248,7 +1313,7 @@ namespace engine
          if ( updatePassed > STP_CLEAR_SOURCE_INTERVAL )
          {
             // if no synchronize for 2 hours, remove this source
-            removeSource( iter->first, updateTick ) ;
+            removeSource( iter->second.getRouteID(), updateTick ) ;
          }
       }
 
@@ -1258,6 +1323,26 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__RESETSOURCERID, "_stpSyncClientManager::_resetSourceRID" )
+   void _stpSyncClientManager::_resetSourceRID()
+   {
+      PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR__RESETSOURCERID ) ;
+
+      if ( _syncSourceRID.value != _regSourceRID.value &&
+            MSG_INVALID_ROUTEID != _syncSourceRID.value &&
+            MSG_INVALID_ROUTEID != _regSourceRID.value )
+      {
+         // synchronize source route ID is different from register
+         // source route ID, means using extra synchronize port
+         // remove route ID with extra port
+         _netManager->deleteRouteID( _syncSourceRID ) ;
+      }
+      _syncSourceRID.value = MSG_INVALID_ROUTEID ;
+      _regSourceRID.value = MSG_INVALID_ROUTEID ;
+
+      PD_TRACE_EXIT( SDB__TPSYNCCLIENTMGR__RESETSOURCERID ) ;
    }
 
 }
