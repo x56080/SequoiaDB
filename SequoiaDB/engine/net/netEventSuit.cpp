@@ -98,6 +98,12 @@ namespace engine
       return _setHandle ;
    }
 
+   void _netEventSuit::removeAllEH()
+   {
+      ossScopedRWLock lock( &_rwMutex, EXCLUSIVE ) ;
+      _setHandle.clear() ;
+   }
+
    UINT32 _netEventSuit::getHandleNum()
    {
       ossScopedRWLock lock( &_rwMutex, SHARED ) ;

@@ -352,6 +352,11 @@ namespace engine
          }
          ++itr ;
       }
+      // make sure event handlers are released
+      // NOTE: handler has shared pointer of event suit, if we
+      //       don't release handlers, the event suit will not be
+      //       released
+      evSuitPtr->removeAllEH() ;
    }
 
    void _netFrame::onSuitTimer( netEvSuitPtr evSuitPtr )

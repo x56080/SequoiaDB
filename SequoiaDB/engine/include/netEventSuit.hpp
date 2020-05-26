@@ -83,7 +83,7 @@ namespace engine
          void           delHandle( const NET_HANDLE &handle ) ;
          BOOLEAN        exist( const NET_HANDLE &handle ) ;
          SET_HANDLE     getHandles() ; 
-
+         void           removeAllEH() ;
          UINT32         getHandleNum() ;
 
          INT32          waitAttach( INT64 millsec ) ;
