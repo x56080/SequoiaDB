@@ -74,6 +74,7 @@ clientCPPLibFiles = [
       "util/json2rawbson.c",
       "util/utilStr.cpp",
       "util/utilTypeCast.c",
+      "util/utilCipher.c",
       "bson/bsonobj.cpp",
       "bson/oid.cpp",
       "bson/base64.cpp",

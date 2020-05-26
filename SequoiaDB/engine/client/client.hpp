@@ -4296,6 +4296,11 @@ namespace sdbclient
                               INT32 arrSize,
                               const CHAR *pUsrName,
                               const CHAR *pPasswd ) = 0 ;
+      virtual INT32 connect ( const CHAR **pConnAddrs, 
+                              INT32 arrSize,
+                              const CHAR *pUsrName,
+                              const CHAR *pToken,
+                              const CHAR *pCipherFile ) = 0 ;
 
       virtual void disconnect () = 0 ;
 
@@ -4780,6 +4785,35 @@ namespace sdbclient
          }
          return pSDB->connect ( pConnAddrs, arrSize,
                                  pUsrName, pPasswd ) ;
+      }
+
+      /** \fn INT32 connect ( const CHAR **pConnAddrs,
+                           INT32 arrSize,
+                           const CHAR *pUsrName,
+                           const CHAR *pToken,
+                           const CHAR *pCipherFile
+                           )
+          \brief Connect to database used  a random  valid address in the array.
+          \param [in] pConnAddrs The array of the coord's address
+          \param [in] arrSize The size of the array
+          \param [in] pUsrName The connection user name.
+          \param [in] pToken The Password encryption token.
+          \param [in] pCipherFile The Cipherfile location.
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 connect ( const CHAR **pConnAddrs, 
+                      INT32 arrSize,
+                      const CHAR *pUsrName,
+                      const CHAR *pToken,
+                      const CHAR *pCipherFile )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->connect ( pConnAddrs, arrSize,
+                                 pUsrName, pToken, pCipherFile ) ;
       }
 
       /** \fn INT32 createUsr( const CHAR *pUsrName,

@@ -74,6 +74,8 @@ Records: 0  Duplicates: 0  Warnings: 0
    |sequoiadb_use_bulk_insert|bool|ON|Yes|Global|是否启用批量插入。|
    |sequoiadb_use_transaction|bool|ON|No|Global|是否开启事务功能。|
    |sequoiadb_user|string|""|Yes|Global|SequoiaDB 鉴权用户。|
+   |sequoiadb_token|string|""|Yes|Global|鉴权加密口令。|
+   |sequoiadb_cipherfile|string|"~/sequoiadb/passwd"|Yes|Global|鉴权密码文件路径。|
 
 + **配置修改方式**
 
@@ -109,8 +111,14 @@ Records: 0  Duplicates: 0  Warnings: 0
 
    **sequoiadb_conn_addr** 可以配置 MySQL 实例所连接的 SequoiaDB 存储集群。可以配置一个或多个协调节点的地址。使用多个时，地址之间要以逗号隔开。如“sdbserver1:11810,sdbserver2:11810”。在配置多个地址时，每次连接会从地址中随机随机选择。在 MySQL 会话数很多时，压力会基本平均地分摊给每个协调节点。
    
-   **sequoiadb_user** 和 **sequoiadb_password** 则需设置为所连接的 SequoiaDB 集群的鉴权用户和密码。
-   以上的配置在命令行修改后，均在建立新连接时才生效，不影响旧连接。
+   **sequoiadb_user** 为 SequoiaDB 集群鉴权的用户。SequoiaDB 鉴权支持明文密码和密码文件两种方式。<br>
+   **sequoiadb_password** 为 SequoiaDB 集群鉴权的明文密码。<br>
+   **sequoiadb_token** 和 **sequoiadb_cipherfile** 为 SequoiaDB 集群鉴权的加密口令和密码文件路径。在配置这两个参数前，需通过 sdbpassword 工具生成密码文件，具体可参考[数据库密码工具](database_management/tools/sdbpasswd.md#引擎配置)章节。建议采用密码文件的方式建立连接。
+
+   > **Note:**
+   >
+   >* 以上的配置在命令行修改后，均在建立新连接时才生效，不影响旧连接。<br>
+   >* 两种密码都配置的情况下，优先使用明文密码。<br>
 
 + **配置自动分区功能**
 

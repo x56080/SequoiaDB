@@ -43,6 +43,7 @@
 #include "pd.hpp"
 #include "fmpDef.hpp"
 #include "../bson/lib/md5.hpp"
+#include "utilCipher.hpp"
 #include <string>
 #include <vector>
 #ifdef SDB_SSL
@@ -7081,6 +7082,88 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbImpl::connect ( const CHAR **pConnAddrs, 
+                             INT32 arrSize,
+                             const CHAR *pUsrName,
+                             const CHAR *pToken,
+                             const CHAR *pCipherFile )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 tmp_rc = SDB_OK ;
+      CHAR pPasswd[SDB_MAX_PASSWORD_LENGTH + 1] = { '\0' } ;
+      CHAR pUser[SDB_MAX_USERNAME_LENGTH + 1] = { '\0' } ;
+      const CHAR *pHostName = NULL ;
+      const CHAR *pServiceName = NULL ;
+      const CHAR *addr = NULL ;
+      CHAR *pStr = NULL ;
+      CHAR *pTmp = NULL ;
+      INT32 mark = 0 ;
+      INT32 i = 0 ;
+      INT32 tmp = 0 ;
+      if ( !pConnAddrs || arrSize <= 0 || !pUsrName || !pToken || !pCipherFile )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      // calculate the start position
+      i = _sdbRand() % arrSize ;
+      mark = i ;
+      // get password
+      if ( '\0' != *pUsrName )
+      {
+         tmp_rc = utilDecryptUserCipher( pUsrName, pToken,
+                                        pCipherFile, pUser, pPasswd ) ;
+      }
+
+      // get host and port
+      do
+      {
+         addr = pConnAddrs[i] ;
+         tmp = (++i) % arrSize ;
+         i = tmp ;
+         pStr = ossStrdup ( addr ) ;
+         if ( pStr == NULL )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         pTmp = ossStrchr ( pStr, ':' ) ;
+         if ( pTmp == NULL )
+         {
+            SDB_OSS_FREE ( pStr ) ;
+            rc = SDB_NET_CANNOT_CONNECT ;
+            continue ;
+         }
+         *pTmp = 0 ;
+         pHostName = pStr ;
+         pServiceName = pTmp + 1 ;
+         rc = connect ( pHostName, pServiceName, pUser, pPasswd ) ;
+         SDB_OSS_FREE ( pStr ) ;
+         pStr = NULL ;
+         pTmp = NULL ;
+         if( SDB_AUTH_AUTHORITY_FORBIDDEN == rc )
+         {
+            if ( SDB_OK != tmp_rc )
+            {
+               rc = tmp_rc ;
+            }
+            break;
+         }
+         if ( SDB_OK == rc )
+         {
+            break;
+         }
+      } while ( mark != i ) ;
+      if( rc )
+      {
+         goto error;
+      }
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+   
    INT32 _sdbImpl::createUsr( const CHAR *pUsrName,
                               const CHAR *pPasswd,
                               const bson::BSONObj &options )

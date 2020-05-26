@@ -225,7 +225,7 @@ namespace passwd
          }
          _filePath += UTIL_CIPHER_FILE_SUFFIX_PATH ;
       }
-      catch( std::exception &e )
+      catch( std::exception )
       {
          rc = SDB_OOM ;
          PD_LOG ( PDERROR, "Failed to build cipher file path, rc: %d", rc ) ;

@@ -52,6 +52,12 @@
 #define TOKEN_MAX_LENGTH             256
 #define CIPHER_STRING_MAX_LENGTH     TOKEN_MAX_LENGTH + RANDOM_ARRAY_MAX_LENGTH
 
+#ifdef _LINUX
+#define UTIL_USER_DIRECTORY            "HOME"
+#else
+#define UTIL_USER_DIRECTORY            "USERPROFILE"
+#endif
+
 // When reorganizing the ciphertext, 6 extra auxiliary fields are used to record
 // the offset of each key in the entire ciphertext and the length of each key
 #define EXTRA_AUXILIARY_FIELDS_COUNT 6
@@ -515,7 +521,7 @@ INT32 utilCipherDecrypt( const CHAR *cipherText, const CHAR *token,
 
    if ( NULL == cipherText )
    {
-      rc = SDB_SYS ;
+      rc = SDB_INVALIDARG ;
       goto error ;
    }
 
@@ -662,6 +668,12 @@ INT32 _readFile( const CHAR *path, CHAR **fileContent, UINT32 *readLength )
 #endif
 
    fileSize = stat.st_size ;
+   if( 0 == fileSize ) 
+   {  
+      *readLength = 0;
+      goto done;
+   }
+
    *fileContent = ( CHAR * )SDB_OSS_MALLOC( fileSize ) ;
    if ( NULL == *fileContent )
    {
@@ -677,17 +689,17 @@ INT32 _readFile( const CHAR *path, CHAR **fileContent, UINT32 *readLength )
 
    *readLength = nleft ;
 
-#if defined (_LINUX)
-   if ( -1 == close( fd ) )
-#elif defined (_WINDOWS)
-   if ( -1 == _close( fd ) )
-#endif
-   {
-      goto error ;
-   }
-
 done:
+   if ( -1 != fd )
+   {
+#if defined (_LINUX)
+      close( fd ) ; 
+#elif defined (_WINDOWS)
+      _close( fd ) ;
+#endif
+   }
    return rc ;
+
 error:
    if ( SDB_OK == rc )
    {
@@ -754,6 +766,7 @@ INT32 utilDecryptUserCipher( const CHAR *user, const CHAR *token,
    UINT32 fileUserNameLen    = 0 ;
    UINT32 fullNameLen        = 0 ;
    UINT32 userNameLen        = 0 ;
+   CHAR   filePath[OSS_MAX_PATHSIZE]        = { '\0' };
    CHAR   userName[SDB_MAX_USERNAME_LENGTH] = { '\0' } ;
    CHAR   fullName[SDB_MAX_USERNAME_LENGTH] = { '\0' } ;
 
@@ -766,7 +779,18 @@ INT32 utilDecryptUserCipher( const CHAR *user, const CHAR *token,
    _extractUserName( user, userName, fullName ) ;
    ossStrncpy( connectionUser, userName, SDB_MAX_USERNAME_LENGTH ) ;
 
-   rc = _readFile( path, &fileContent, &fileLength ) ;
+   if ( '~' == *path && '/' == *(path + 1) )
+   {
+      ossStrncpy( filePath, getenv(UTIL_USER_DIRECTORY), OSS_MAX_PATHSIZE ) ;
+      path++;
+      ossStrncat( filePath, path, ossStrlen(path) );
+   }
+   else
+   {
+      ossStrncpy( filePath, path, OSS_MAX_PATHSIZE ) ;
+   }
+
+   rc = _readFile( filePath, &fileContent, &fileLength ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -787,7 +811,7 @@ INT32 utilDecryptUserCipher( const CHAR *user, const CHAR *token,
                                    foundNewline - startPosition ) ;
          if ( NULL == colonPos )
          {
-            rc = SDB_SYS ;
+            rc = SDB_INVALIDARG ;
             goto error ;
          }
 
@@ -842,7 +866,7 @@ INT32 utilDecryptUserCipher( const CHAR *user, const CHAR *token,
    }
    else
    {
-      rc = SDB_INVALIDARG ;
+      rc = SDB_AUTH_USER_NOT_EXIST ;
       goto error ;
    }
 
