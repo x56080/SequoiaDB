@@ -33,8 +33,8 @@ import com.sequoiadb.task.TaskMgr;
  */
 public class RenameCSNetworkfailNode16771A extends SdbTestBase {
 
-    private List< String > oldCSNameList = new ArrayList< >();
-    private List< String > newCSNameList = new ArrayList< >();
+    private List< String > oldCSNameList = new ArrayList<>();
+    private List< String > newCSNameList = new ArrayList<>();
     private String oldCSName = "oldcs_16771A";
     private String newCSName = "newcs_16771A";
     private String clName = "cl_16771A";
@@ -82,7 +82,7 @@ public class RenameCSNetworkfailNode16771A extends SdbTestBase {
         Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
         Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 
-        String match = "\\\"OldName\\\": \\\"" + oldCSName;
+        String match = "Name:" + oldCSName;
         CommLib.waitContextClose( sdb, match, 300, false );
         for ( int i = 0; i < oldCSNameList.size(); i++ ) {
             if ( completeTimes < i + 1 ) {
