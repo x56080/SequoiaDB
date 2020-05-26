@@ -104,7 +104,7 @@ public class TestSplit10525C extends SdbTestBase {
             // 连接源组从节点data验证数据
             dataDb = replicaGroup.getSlave().connect();
             boolean clFlag = false;
-            for ( int i = 0; i < 100; i++ ) {
+            for ( int i = 0; i < 300; i++ ) { // 5min
                 // 元数据
                 try {
                     CollectionSpace cs = dataDb
@@ -114,7 +114,7 @@ public class TestSplit10525C extends SdbTestBase {
                     break;
                 } catch ( BaseException e ) {
                     if ( e.getErrorCode() == -34 || e.getErrorCode() == -23 ) {
-                        Thread.sleep( 300 );
+                        Thread.sleep( 1000 );
                         continue;
                     }
                     throw e;
@@ -126,7 +126,7 @@ public class TestSplit10525C extends SdbTestBase {
 
             // 数据
             boolean flag = false;
-            for ( int j = 0; j < 100; j++ ) {
+            for ( int j = 0; j < 300; j++ ) { // 5min
                 DBCursor cursor = dbcl.query( null, null, "{\"_id\":1}", null );
                 List< BSONObject > actual = new ArrayList< BSONObject >();
                 while ( cursor.hasNext() ) {
@@ -137,7 +137,7 @@ public class TestSplit10525C extends SdbTestBase {
                     flag = true;
                     break;
                 } else {
-                    Thread.sleep( 300 );
+                    Thread.sleep( 1000 );
                 }
             }
             if ( !flag ) {
