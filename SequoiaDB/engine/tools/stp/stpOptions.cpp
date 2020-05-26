@@ -494,14 +494,18 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // make sure directory exist
-      rc = ossMkdir( _stpPath ) ;
-      if ( rc && SDB_FE != rc )
+      if ( '\0' != _stpPath[ 0 ] )
       {
-         PD_LOG( PDERROR, "Failed to create dir: %s, rc: %d", _stpPath, rc ) ;
-         goto error ;
+         // make sure directory exist
+         rc = ossMkdir( _stpPath ) ;
+         if ( rc && SDB_FE != rc )
+         {
+            PD_LOG( PDERROR, "Failed to create dir: %s, rc: %d",
+                    _stpPath, rc ) ;
+            goto error ;
+         }
+         rc = SDB_OK ;
       }
-      rc = SDB_OK ;
 
       // parse port
       rc = ossGetPort( _serviceName, _port ) ;

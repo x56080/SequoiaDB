@@ -548,22 +548,34 @@ namespace engine
    {
       // print result
       ossPrintf( "Config:"OSS_NEWLINE
-                 "   %-10s : %s"OSS_NEWLINE  // port
-                 "   %-10s : %s"OSS_NEWLINE  // serverlist
-                 "   %-10s : %s"OSS_NEWLINE  // role
-                 "   %-10s : %u"OSS_NEWLINE  // weight
-                 "   %-10s : %u"OSS_NEWLINE  // syncinterval
-                 "   %-10s : %u"OSS_NEWLINE  // maxtimeerror
-                 "   %-10s : %d"OSS_NEWLINE  // diaglevel
-                 "   %-10s : %u"OSS_NEWLINE  // sharingbreak
-                 "   %-10s : %u"OSS_NEWLINE  // startshifttime
-                 "   %-10s : %s"OSS_NEWLINE, // testmode
+                 "   %-24s : %s"OSS_NEWLINE  // port
+                 "   %-24s : %s"OSS_NEWLINE  // serverlist
+                 "   %-24s : %s"OSS_NEWLINE  // role
+                 "   %-24s : %u"OSS_NEWLINE  // weight
+                 "   %-24s : %u"OSS_NEWLINE  // syncinterval
+                 "   %-24s : %u"OSS_NEWLINE  // maxtimeerror
+                 "   %-24s : %u"OSS_NEWLINE  // maxsynchist
+                 "   %-24s : %u"OSS_NEWLINE  // maxsyncports
+                 "   %-24s : %u"OSS_NEWLINE  // defclientsperport
+                 "   %-24s : %s"OSS_NEWLINE  // preopenports
+                 "   %-24s : %s"OSS_NEWLINE  // allowsyncwithsysport
+                 "   %-24s : %d"OSS_NEWLINE  // diaglevel
+                 "   %-24s : %u"OSS_NEWLINE  // sharingbreak
+                 "   %-24s : %u"OSS_NEWLINE  // startshifttime
+                 "   %-24s : %s"OSS_NEWLINE, // testmode
                  STP_OPTION_PORT, options.getServiceName(),
                  STP_OPTION_SERVERLIST, options.getServerListString(),
                  STP_OPTION_ROLE, options.getRoleString(),
                  STP_OPTION_WEIGHT, options.getWeight(),
                  STP_OPTION_SYNCINTERVAL, options.getSyncInterval(),
                  STP_OPTION_MAXTIMEERROR, options.getMaxTimeErrorUS(),
+                 STP_OPTION_MAXSYNCHIST, options.getMaxSyncHist(),
+                 STP_OPTION_MAXSYNCPORTS, options.getMaxSyncPorts(),
+                 STP_OPTION_DEFCLIENTSPERPORT, options.getDefClientsPerPort(),
+                 STP_OPTION_PREOPENPORTS,
+                 options.isPreOpenPorts() ? "TRUE" : "FALSE",
+                 STP_OPTION_SYNCWITHSYSPORT,
+                 options.isSyncWithSysPort() ? "TRUE" : "FALSE",
                  STP_OPTION_DIAGLEVEL, options.getDiagLevel(),
                  STP_OPTION_SHARINGBRK, options.getSharingBreakTime(),
                  STP_OPTION_STARTSHIFTTIME, options.getStartShiftTime(),
@@ -577,12 +589,12 @@ namespace engine
    static INT32 _stpqOutputConfig( const stpOptions &options )
    {
       ossPrintf( "Config:"OSS_NEWLINE
-                 "   %-10s : %s"OSS_NEWLINE  // port
-                 "   %-10s : %s"OSS_NEWLINE  // serverlist
-                 "   %-10s : %s"OSS_NEWLINE  // role
-                 "   %-10s : %u"OSS_NEWLINE  // syncinterval
-                 "   %-10s : %u"OSS_NEWLINE  // maxtimeerror
-                 "   %-10s : %d"OSS_NEWLINE, // diaglevel
+                 "   %-14s : %s"OSS_NEWLINE  // port
+                 "   %-14s : %s"OSS_NEWLINE  // serverlist
+                 "   %-14s : %s"OSS_NEWLINE  // role
+                 "   %-14s : %u"OSS_NEWLINE  // syncinterval
+                 "   %-14s : %u"OSS_NEWLINE  // maxtimeerror
+                 "   %-14s : %d"OSS_NEWLINE, // diaglevel
                  STP_OPTION_PORT, options.getServiceName(),
                  STP_OPTION_SERVERLIST, options.getServerListString(),
                  STP_OPTION_ROLE, options.getRoleString(),
