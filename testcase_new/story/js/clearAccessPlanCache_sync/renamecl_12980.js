@@ -7,17 +7,17 @@
 function main ()
 {
    if( commIsStandalone( db ) ) 
-   {   
+   {
       println( "skip standalone environment" );
       return;
-   }   
+   }
 
    //判断1节点模式
    if( true == isOnlyOneNodeInGroup() )
-   {   
+   {
       println( "only one node" );
       return;
-   }   
+   }
 
    var allGroups = commGetGroups( db );
    var groups = new Array();
@@ -146,7 +146,7 @@ function main ()
    //rename CL1
    var oldClName = clName1;
    var newClName = "newClName";
-   db.getCS(csName).renameCL( oldClName, newClName );
+   db.getCS( csName ).renameCL( oldClName, newClName );
 
    //get new primary/slave node
    var newclPrimary1 = db1.getCS( csName ).getCL( newClName );
@@ -219,6 +219,9 @@ function main ()
    insertDiffDatas( dbcl, insertNums );
    insertSameDatas( dbcl, insertNums, sameValues );
 
+   //检查主备同步
+   checkConsistency( db, null, null, groups );
+
    //query from primary/slave node
    var findConf = { a: 9000 };
 
@@ -243,9 +246,9 @@ function checkAnalyzeStatInfo ( csName, clName )
    try
    {
       var groupName = commGetCLGroups( db, csName + "." + clName );
-      var primaryNode = db.getRG(groupName[0]).getMaster();
+      var primaryNode = db.getRG( groupName[0] ).getMaster();
       var matcher = { CollectionSpace: csName, Collection: clName }
-      var rec = primaryNode.connect().getCS('SYSSTAT').getCL('SYSCOLLECTIONSTAT').find( matcher ).toArray();
+      var rec = primaryNode.connect().getCS( 'SYSSTAT' ).getCL( 'SYSCOLLECTIONSTAT' ).find( matcher ).toArray();
 
       if( 0 === rec.length )
       {
