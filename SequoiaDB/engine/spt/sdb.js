@@ -939,10 +939,10 @@ Sdb.prototype._resolveCS = function(csName) {
 
 // getCatalogRG will be remove, suggest using getCataRG
 Sdb.prototype.getCatalogRG = function() {
-   return this.getCatalRG() ;
+   return this.getCataRG() ;
 }
 
-Sdb.prototype.getCatalRG = function() {
+Sdb.prototype.getCataRG = function() {
    return this.getRG( SDB_CATALOG_GROUP_NAME ) ;
 }
 
