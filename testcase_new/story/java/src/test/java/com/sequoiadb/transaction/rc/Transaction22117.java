@@ -92,55 +92,39 @@ public class Transaction22117 extends SdbTestBase {
             cl2.split( srcGroup, desGroup, 50 );
 
             // 事务1读集合1中的记录
-            TransUtils.queryAndCheck( cl11, null, "{_id:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl11, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl11, "{_id:1}", "{'':null}", expList1 );
+            TransUtils.queryAndCheck( cl11, "{_id:1}", "{'':'a'}", expList1 );
 
             // 事务2读集合1中的记录
-            TransUtils.queryAndCheck( cl21, null, "{_id:1}", "{'':null}",
-                    expList2 );
-            TransUtils.queryAndCheck( cl21, null, "{_id:1}", "{'':'a'}",
-                    expList2 );
+            TransUtils.queryAndCheck( cl21, "{_id:1}", "{'':null}", expList2 );
+            TransUtils.queryAndCheck( cl21, "{_id:1}", "{'':'a'}", expList2 );
 
             // 事务1读集合2中的记录
-            TransUtils.queryAndCheck( cl12, null, "{_id:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl12, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl12, "{_id:1}", "{'':null}", expList1 );
+            TransUtils.queryAndCheck( cl12, "{_id:1}", "{'':'a'}", expList1 );
 
             // 事务2读集合2中的记录
-            TransUtils.queryAndCheck( cl22, null, "{_id:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl22, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl22, "{_id:1}", "{'':null}", expList1 );
+            TransUtils.queryAndCheck( cl22, "{_id:1}", "{'':'a'}", expList1 );
 
             // 非事务中读记录
-            TransUtils.queryAndCheck( cl1, null, "{_id:1}", "{'':null}",
-                    expList2 );
-            TransUtils.queryAndCheck( cl2, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl1, "{_id:1}", "{'':null}", expList2 );
+            TransUtils.queryAndCheck( cl2, "{_id:1}", "{'':'a'}", expList1 );
 
             // 提交事务
             db1.commit();
 
             // 事务1读集合1中的记录
-            TransUtils.queryAndCheck( cl11, null, "{_id:1}", "{'':null}",
-                    expList2 );
-            TransUtils.queryAndCheck( cl11, null, "{_id:1}", "{'':'a'}",
-                    expList2 );
+            TransUtils.queryAndCheck( cl11, "{_id:1}", "{'':null}", expList2 );
+            TransUtils.queryAndCheck( cl11, "{_id:1}", "{'':'a'}", expList2 );
 
             // 事务2读集合2中的记录
-            TransUtils.queryAndCheck( cl12, null, "{_id:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl12, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl12, "{_id:1}", "{'':null}", expList1 );
+            TransUtils.queryAndCheck( cl12, "{_id:1}", "{'':'a'}", expList1 );
 
             // 非事务中读记录
-            TransUtils.queryAndCheck( cl1, null, "{_id:1}", "{'':null}",
-                    expList2 );
-            TransUtils.queryAndCheck( cl2, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl1, "{_id:1}", "{'':null}", expList2 );
+            TransUtils.queryAndCheck( cl2, "{_id:1}", "{'':'a'}", expList1 );
 
         } finally {
             db1.rollback();
@@ -200,55 +184,39 @@ public class Transaction22117 extends SdbTestBase {
             cl2.split( srcGroup, desGroup, 50 );
 
             // 事务1读集合1中的记录
-            TransUtils.queryAndCheck( cl11, null, "{_id:1}", "{'':null}",
-                    expList2 );
-            TransUtils.queryAndCheck( cl11, null, "{_id:1}", "{'':'a'}",
-                    expList2 );
+            TransUtils.queryAndCheck( cl11, "{_id:1}", "{'':null}", expList2 );
+            TransUtils.queryAndCheck( cl11, "{_id:1}", "{'':'a'}", expList2 );
 
             // 事务2读集合1中的记录
-            TransUtils.queryAndCheck( cl21, null, "{_id:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl21, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl21, "{_id:1}", "{'':null}", expList1 );
+            TransUtils.queryAndCheck( cl21, "{_id:1}", "{'':'a'}", expList1 );
 
             // 事务1读集合2中的记录
-            TransUtils.queryAndCheck( cl12, null, "{_id:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl12, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl12, "{_id:1}", "{'':null}", expList1 );
+            TransUtils.queryAndCheck( cl12, "{_id:1}", "{'':'a'}", expList1 );
 
             // 事务2读集合2中的记录
-            TransUtils.queryAndCheck( cl22, null, "{_id:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl22, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl22, "{_id:1}", "{'':null}", expList1 );
+            TransUtils.queryAndCheck( cl22, "{_id:1}", "{'':'a'}", expList1 );
 
             // 非事务中读记录
-            TransUtils.queryAndCheck( cl1, null, "{_id:1}", "{'':null}",
-                    expList2 );
-            TransUtils.queryAndCheck( cl2, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl1, "{_id:1}", "{'':null}", expList2 );
+            TransUtils.queryAndCheck( cl2, "{_id:1}", "{'':'a'}", expList1 );
 
             // 回滚事务
             db1.rollback();
 
             // 事务2读集合1中的记录
-            TransUtils.queryAndCheck( cl21, null, "{_id:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl21, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl21, "{_id:1}", "{'':null}", expList1 );
+            TransUtils.queryAndCheck( cl21, "{_id:1}", "{'':'a'}", expList1 );
 
             // 事务2读集合2中的记录
-            TransUtils.queryAndCheck( cl22, null, "{_id:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl22, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl22, "{_id:1}", "{'':null}", expList1 );
+            TransUtils.queryAndCheck( cl22, "{_id:1}", "{'':'a'}", expList1 );
 
             // 非事务中读记录
-            TransUtils.queryAndCheck( cl1, null, "{_id:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl2, null, "{_id:1}", "{'':'a'}",
-                    expList1 );
+            TransUtils.queryAndCheck( cl1, "{_id:1}", "{'':null}", expList1 );
+            TransUtils.queryAndCheck( cl2, "{_id:1}", "{'':'a'}", expList1 );
 
         } finally {
             db1.rollback();

@@ -935,6 +935,24 @@ public class TransUtils extends SdbTestBase {
 
         return groupNames;
     }
+
+    /*
+     * @description 获取切分任务状态
+     * @param db
+     * @param clFullName
+     * @author zhaoyu
+     */
+    public static int getSplitTaskStatus( Sequoiadb db, String clFullName ) {
+        int status = -1;
+        BasicBSONObject matcher = new BasicBSONObject( "Name", clFullName );
+        DBCursor cursor = db.listTasks( matcher, null, null, null );
+        while ( cursor.hasNext() ) {
+            BSONObject record = cursor.getNext();
+            status = ( int ) record.get( "Status" );
+        }
+        cursor.close();
+        return status;
+    }
 }
 
 /**
