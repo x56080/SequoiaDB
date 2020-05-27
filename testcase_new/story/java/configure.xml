@@ -171,16 +171,5 @@
        </packages>
     </test>
     
-      <test name="splitserial" parallel="classes" thread-count="1">
-       <groups>
-          <run>
-             <include name="rr" />
-          </run>
-       </groups>
-       <packages>
-          <package name="com.sequoiadb.transaction.splitserial" />
-       </packages>
-    </test>
-    
 </suite>
     

@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction.rc;
+package com.sequoiadb.transaction.rr;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +28,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @author Lena,moodify zhaoyu 2020.2.27
  * 
  */
-@Test(groups = "rc")
+@Test(groups = "rr")
 public class Transaction20515 extends SdbTestBase {
 
     private Sequoiadb sdb = null;
@@ -132,8 +132,18 @@ public class Transaction20515 extends SdbTestBase {
             // 提交写事务T2
             db2.commit();
 
-            // 校验切分任务
-            Assert.assertTrue( split.isSuccess(), split.getErrorMsg() );
+            // 切分任务返回
+            for ( int i = 0; i < 10; i++ ) {
+                DBCursor cursor = sdb.listTasks(
+                        new BasicBSONObject( "Name", csName + "." + clName ),
+                        null, null, null );
+                while ( cursor.hasNext() ) {
+                    isTaskExist = false;
+                    break;
+                }
+                cursor.close();
+            }
+            Assert.assertFalse( isTaskExist );
 
             // 非事务读记录
             TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':null}",
@@ -142,16 +152,36 @@ public class Transaction20515 extends SdbTestBase {
                     expList1 );
 
             // T1读记录
-            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':'a'}",
-                    expList1 );
+            // SEQUOIADBMAINSTREAM-5890,待该问题单修改后，需要去掉sleep
+            Thread.sleep( 1000 );
+            try {
+                cl1.query( "", "", "{a:1}", "{'':null}" );
+                Assert.fail( "need throw -349" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+            }
+
+            try {
+                cl1.query( "", "", "{a:1}", "{'':'a'}" );
+                Assert.fail( "need throw -349" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+            }
 
             // T3 读记录
-            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':null}",
-                    expList1 );
-            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':'a'}",
-                    expList1 );
+            try {
+                cl3.query( "", "", "{a:1}", "{'':null}" );
+                Assert.fail( "need throw -349" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+            }
+
+            try {
+                cl3.query( "", "", "{a:1}", "{'':'a'}" );
+                Assert.fail( "need throw -349" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+            }
 
             // 开启事务T4读记录
             db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
@@ -280,8 +310,18 @@ public class Transaction20515 extends SdbTestBase {
             // 提交写事务T2
             db2.rollback();
 
-            // 校验切分任务
-            Assert.assertTrue( split.isSuccess(), split.getErrorMsg() );
+            // 切分任务返回
+            for ( int i = 0; i < 10; i++ ) {
+                DBCursor cursor = sdb.listTasks(
+                        new BasicBSONObject( "Name", csName + "." + clName ),
+                        null, null, null );
+                while ( cursor.hasNext() ) {
+                    isTaskExist = false;
+                    break;
+                }
+                cursor.close();
+            }
+            Assert.assertFalse( isTaskExist );
 
             // 非事务读记录
             TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':null}",
@@ -289,14 +329,36 @@ public class Transaction20515 extends SdbTestBase {
             TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':'a'}", expList );
 
             // T1读记录
-            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':null}",
-                    expList );
-            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':'a'}", expList );
+            // SEQUOIADBMAINSTREAM-5890,待该问题单修改后，需要去掉sleep
+            Thread.sleep( 1000 );
+            try {
+                cl1.query( "", "", "{a:1}", "{'':null}" );
+                Assert.fail( "need throw -349" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+            }
+
+            try {
+                cl1.query( "", "", "{a:1}", "{'':'a'}" );
+                Assert.fail( "need throw -349" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+            }
 
             // T3 读记录
-            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':null}",
-                    expList );
-            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':'a'}", expList );
+            try {
+                cl3.query( "", "", "{a:1}", "{'':null}" );
+                Assert.fail( "need throw -349" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+            }
+
+            try {
+                cl3.query( "", "", "{a:1}", "{'':'a'}" );
+                Assert.fail( "need throw -349" );
+            } catch ( BaseException e ) {
+                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+            }
 
             // 开启事务T4读记录
             db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
