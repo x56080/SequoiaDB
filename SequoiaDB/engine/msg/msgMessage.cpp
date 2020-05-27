@@ -237,11 +237,23 @@ INT32 msgExtractTransCommit ( const CHAR *pBuffer, const CHAR **ppHint )
    MsgOpTransCommit *pCommit = (MsgOpTransCommit*)pBuffer ;
 
    //old driver use MsgOpTransBegin as messageLength and old driver does not have hint
-   if ( pCommit->header.messageLength != sizeof( MsgOpTransBegin_V1 ) )
+   if ( NULL != ppHint &&
+        pCommit->header.messageLength != sizeof( MsgOpTransBegin_V1 ) )
    {
-      offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 );
+      if ( ( pCommit->header.messageLength >=
+                 (INT32)( sizeof( MsgOpTransCommit ) ) ) &&
+           ( 0LL == pCommit->commitTime ) )
+      {
+         // version 1: fill commit time with zero by client
+         offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 ) ;
+      }
+      else
+      {
+         // version 0: no commit time field, this place is head of BSON hint
+         offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit_V0 ), 4 ) ;
+      }
 
-      if ( offset  < pCommit->header.messageLength && ppHint )
+      if ( offset  < pCommit->header.messageLength )
       {
          *ppHint  = &pBuffer[offset] ;
          length = *((SINT32*)(&pBuffer[offset])) ;
