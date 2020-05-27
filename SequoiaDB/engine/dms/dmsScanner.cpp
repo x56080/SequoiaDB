@@ -425,7 +425,8 @@ namespace engine
       }
 
 #ifdef _DEBUG
-      if ( TRANS_ISOLATION_RR == _transIsolation )
+      if ( ( TRANS_ISOLATION_RR == _transIsolation ) &&
+           ( DPS_TRANSLOCK_S == _recordLock ) )
       {
          SDB_ASSERT( ( FALSE == _waitLock ),
                      "_waitLock must be set to FALSE when isolation is RR" ) ;
@@ -1660,7 +1661,8 @@ namespace engine
       }
 
 #ifdef _DEBUG
-      if ( TRANS_ISOLATION_RR == _transIsolation )
+      if ( ( TRANS_ISOLATION_RR == _transIsolation ) &&
+           ( DPS_TRANSLOCK_S == _recordLock ) )
       {
          SDB_ASSERT( ( FALSE == _waitLock ),
                      "_waitLock must be set to FALSE when isolation is RR" ) ;
