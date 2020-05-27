@@ -1,8 +1,8 @@
-sdbdpsdump 是一个 SequoiaDB 数据库的同步日志文件 dump 工具。它可以解析 replica log 同步日志文件的内容，并且给出结果报告。
+sdbdpsdump 是一个 SequoiaDB 数据库的同步日志文件 dump 工具。它可以解析 [replica log 同步日志](database_management/database_configuration/special_configuration_modify/log_synchronization.md)文件的内容，并且给出结果报告。
 
 ##权限需求##
 
-运行 sdbdpsdump 命令的用户必须对数据库的数据与索引文件拥有读权限。
+运行 sdbdpsdump 命令的用户必须对数据库的 replica log 同步日志文件拥有读权限。
 
 ##连接需求##
 
