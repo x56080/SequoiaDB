@@ -376,7 +376,9 @@ namespace engine
 
          OSS_INLINE BOOLEAN isWriteOp() const
          {
-            return _writeOp || testFlag( FLG_QUERY_PREPARE_MORE ) ;
+            // set to write operator ( remove, update, etc )
+            // or query and modify
+            return _writeOp || testFlag( FLG_QUERY_MODIFY ) ;
          }
 
          OSS_INLINE void setWriteOp( BOOLEAN writeOp )
