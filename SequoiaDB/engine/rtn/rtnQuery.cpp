@@ -727,9 +727,10 @@ namespace engine
       }
 
       // if a transaction isolation is RR and it starts before
-      // the split operation finishes, return with error
-      // SDB_GLOB_TRANS_NOT_AVAILABLE
-      if ( cb->isTransaction() &&
+      // the split operation finishes, and it is a read operator ( not find
+      // and modify )return with error SDB_GLOB_TRANS_NOT_AVAILABLE
+      if ( !options.testFlag( FLG_QUERY_MODIFY ) &&
+           cb->isTransaction() &&
            cb->isGlobTrans() &&
            ( TRANS_ISOLATION_RR == cb->getTransIsolation() ) )
       {
