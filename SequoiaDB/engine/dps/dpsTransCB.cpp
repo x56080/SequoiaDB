@@ -419,7 +419,7 @@ namespace engine
             // doing transactions, since it passed maximum time error,
             // and doing transactions could not commit before current
             // transaction any more
-#if defined (_DEBUG)
+#if SDB_INTERNAL_DEBUG
             PD_LOG( PDDEBUG, "current transaction [%s] passed doing "
                     "arbit limit, current time [%s]",
                     dpsTransIDToString( transID ).c_str(),
@@ -598,7 +598,7 @@ namespace engine
       // NOTE: if not found, will return unknown status in transaction info
       getTransInfo( recTransID, recTransInfo ) ;
 
-#if defined (_DEBUG)
+#if SDB_INTERNAL_DEBUG
       PD_LOG( PDDEBUG, "Check local visibility for current transaction [%s] "
               "with begin time [%s] against record transaction [%s] with "
               "status [%s], begin time [%s], pre-commit time [%s], "
@@ -775,7 +775,7 @@ namespace engine
       // NOTE: if not found, will return unknown status in transaction info
       getTransInfo( recTransID, recTransInfo ) ;
 
-#if defined (_DEBUG)
+#if SDB_INTERNAL_DEBUG
       PD_LOG( PDDEBUG, "Check local visibility for current transaction [%s] "
               "with begin time [%s] against record transaction [%s] with "
               "status [%s], begin time [%s], pre-commit time [%s], "
