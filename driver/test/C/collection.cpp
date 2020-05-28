@@ -2010,13 +2010,17 @@ TEST( collection, sdbQueryAndUpdate )
    bson_append_bson( &condition, pField1, &tmp ) ;
    bson_finish( &condition ) ;
 
+   bson_init( &hint ) ;
+   bson_append_null( &hint, "" ) ;
+   bson_finish( &hint ) ;
+
    sdbReleaseCursor ( cursor ) ;
-   rc = sdbQueryAndUpdate( cl, &condition, &selector, &orderBy, NULL,
+   rc = sdbQueryAndUpdate( cl, &condition, &selector, &orderBy, &hint,
                            &update, 0, -1, 0, TRUE, &cursor ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   //ASSERT_EQ( SDB_RTN_QUERYMODIFY_SORT_NO_IDX, rc ) ;
+   ASSERT_EQ( SDB_RTN_QUERYMODIFY_SORT_NO_IDX, rc ) ;
 
    /// in case: use selector orderBy with hint
+   bson_destroy( &hint ) ;
    bson_init( &hint ) ;
    bson_append_string( &hint, "", pIndexName2 ) ;
    bson_finish( &hint ) ;

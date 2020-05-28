@@ -64,7 +64,7 @@ TEST(sdb,sdbConnect_with_several_address)
                               ":12340",
                               "192.168.20.40",
                               "localhost:50000",
-                              "localhost:12340",
+                              "192.168.31.17:21810",
                               "localhost:11810"} ;
    // connect to database
    rc = sdbConnect1 ( connArr, 9, USER, PASSWD, &connection ) ;
@@ -401,6 +401,8 @@ TEST(sdb,sdbTransactionBegin)
    ASSERT_EQ( SDB_OK, rc ) ;
    if ( FALSE == isTranOnFlag )
    {
+      sdbDisconnect( connection ) ;
+      sdbReleaseConnection( connection ) ;
       printf( "transaction is disable\n" ) ;
       return ;
    }
@@ -472,6 +474,8 @@ TEST(sdb,sdbTransactionCommit)
    ASSERT_EQ( SDB_OK, rc ) ;
    if ( FALSE == isTranOnFlag )
    {
+      sdbDisconnect( connection ) ;
+      sdbReleaseConnection( connection ) ;
       printf( "transaction is disable\n" ) ;
       return ;
    }
@@ -546,6 +550,8 @@ TEST(sdb,sdbTransactionRollback)
    ASSERT_EQ( SDB_OK, rc ) ;
    if ( FALSE == isTranOnFlag )
    {
+      sdbDisconnect( connection ) ;
+      sdbReleaseConnection( connection ) ;
       printf( "transaction is disable\n" ) ;
       return ;
    }
