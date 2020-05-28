@@ -737,7 +737,7 @@ namespace engine
          UINT64 splitFinTm = mbContext->mbStat()->_splitFinishTime.fetch() ;
          stpLogicalTimeUS txBeginTm = cb->getTransBeginTime() ;
          if ( splitFinTm &&
-              ( splitFinTm > txBeginTm.getTime() + STP_MAX_TIME_ERROR_US ) )
+              ( splitFinTm + STP_MAX_TIME_ERROR_US > txBeginTm.getTime() ) )
          {
             rc = SDB_GLOB_TRANS_NOT_AVAILABLE ;
             goto error ;

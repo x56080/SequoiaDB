@@ -1108,7 +1108,7 @@ namespace engine
             // if we don't want to find from file
             else
             {
-               PD_LOG ( PDDEBUG, "Failed to find [%lld, %d] from memory, "
+               PD_LOG ( PDINFO, "Failed to find [%lld, %d] from memory, "
                         "rc = %d", minLsn.offset, minLsn.version, rc ) ;
                goto error ;
             }

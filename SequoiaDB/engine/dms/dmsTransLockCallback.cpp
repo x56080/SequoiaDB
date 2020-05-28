@@ -1431,18 +1431,6 @@ namespace engine
    done :
       _result = rc ;
 
-#ifdef _DEBUG
-      PD_LOG( PDDEBUG,
-              "beforeLockAcquire exit: "
-              "rid[%s], lockmod=%s, opMode:%d, "
-              "_recordOnDiskVisible=%d, _needPostAction=%d, "
-              "rc=%d, transID(%s)",
-              lockId.toString().c_str(),
-              lockModeToString( requestLockMode ), opMode,
-              _recordOnDiskVisible, _needPostAction,
-              rc, dpsTransIDToString( transID ).c_str() ) ;
-#endif
-
       return ;
    error:
       goto done ;
