@@ -1805,12 +1805,13 @@ namespace engine
                ++ delayIter,
                ++ offsetIter )
          {
+            const stpSyncStats &histStats = sourceIter->getHistStats() ;
             ossPrintf( output.c_str(),
                        addressIter->c_str(),
                        countIter->c_str(),
                        delayIter->c_str(),
                        offsetIter->c_str(),
-                       STP_MILLISEC_TO_MICROSEC( sourceIter->getUpdateTick() ) ) ;
+                       STP_MILLISEC_TO_MICROSEC( histStats.getUpdateTick() ) ) ;
          }
       }
       else
