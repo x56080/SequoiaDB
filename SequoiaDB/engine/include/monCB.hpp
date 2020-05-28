@@ -48,67 +48,17 @@
 
 namespace engine
 {
-   #define MON_START_OP( _pMonAppCB_ )                      \
-   {                                                        \
-      if ( NULL != _pMonAppCB_ )                            \
-      {                                                     \
-         _pMonAppCB_->startOperator() ;                     \
-      }                                                     \
-   }
+   #define MON_START_OP( _pMonAppCB_ )
 
-   #define MON_END_OP( _pMonAppCB_ )                        \
-   {                                                        \
-      if ( NULL != _pMonAppCB_ )                            \
-      {                                                     \
-         _pMonAppCB_->endOperator() ;                       \
-      }                                                     \
-   }
+   #define MON_END_OP( _pMonAppCB_ )
 
-   #define MON_SET_OP_TYPE( _pMonAppCB_, opType )           \
-   {                                                        \
-      if ( NULL != _pMonAppCB_ )                            \
-      {                                                     \
-         _pMonAppCB_->setLastOpType( opType ) ;             \
-      }                                                     \
-   }
+   #define MON_SET_OP_TYPE( _pMonAppCB_, opType )
 
-   #define MON_SAVE_OP_DETAIL( _pMonAppCB_, opType, format, ... )    \
-   {                                                                 \
-      if ( NULL != _pMonAppCB_ )                                     \
-      {                                                              \
-         try {                                                       \
-            _pMonAppCB_->setLastOpType( opType ) ;                   \
-            _pMonAppCB_->setLastCmdType( CMD_UNKNOW ) ;              \
-            _pMonAppCB_->saveLastOpDetail( format,                   \
-                                           ##__VA_ARGS__ ) ;         \
-         } catch( ... ) {}                                           \
-      }                                                              \
-   }
+   #define MON_SAVE_OP_DETAIL( _pMonAppCB_, opType, format, ... )
 
-   #define MON_SAVE_OP_OPTION( _pMonAppCB_, opType, options )        \
-   {                                                                 \
-      if ( NULL != _pMonAppCB_ )                                     \
-      {                                                              \
-         try {                                                       \
-            _pMonAppCB_->setLastOpType( opType ) ;                   \
-            _pMonAppCB_->setLastCmdType( CMD_UNKNOW ) ;              \
-            _pMonAppCB_->saveLastOpQuery( options ) ;                \
-         } catch( ... ) {}                                           \
-      }                                                              \
-   }
+   #define MON_SAVE_OP_OPTION( _pMonAppCB_, opType, options )
 
-   #define MON_SAVE_CMD_DETAIL( _pMonAppCB_, cmdType, format, ... )  \
-   {                                                                 \
-      if ( NULL != _pMonAppCB_ )                                     \
-      {                                                              \
-         try {                                                       \
-            _pMonAppCB_->setLastOpType( MSG_BS_QUERY_REQ ) ;         \
-            _pMonAppCB_->setLastCmdType( cmdType ) ;                 \
-            _pMonAppCB_->saveLastOpDetail( format,                   \
-                                           ##__VA_ARGS__ ) ;         \
-         } catch(...) {}                                             \
-      }                                                              \
-   }
+   #define MON_SAVE_CMD_DETAIL( _pMonAppCB_, cmdType, format, ... )
 
    /*
       Common Define

@@ -560,7 +560,7 @@ namespace engine
    {
       _prefetchID = 1 ;
       _pPrefWatcher = pWatcher ;
-      _pMonAppCB = cb->getMonAppCB() ;
+      //_pMonAppCB = cb->getMonAppCB() ;
    }
 
    string _rtnContextBase::toString()
