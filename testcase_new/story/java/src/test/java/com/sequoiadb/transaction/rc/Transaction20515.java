@@ -128,18 +128,8 @@ public class Transaction20515 extends SdbTestBase {
             // 提交写事务T2
             db2.commit();
 
-            // 切分任务返回
-            for ( int i = 0; i < 10; i++ ) {
-                DBCursor cursor = sdb.listTasks(
-                        new BasicBSONObject( "Name", csName + "." + clName ),
-                        null, null, null );
-                while ( cursor.hasNext() ) {
-                    isTaskExist = false;
-                    break;
-                }
-                cursor.close();
-            }
-            Assert.assertFalse( isTaskExist );
+            // 校验切分任务
+            Assert.assertTrue( split.isSuccess(), split.getErrorMsg() );
 
             // 非事务读记录
             TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList1 );
@@ -274,18 +264,8 @@ public class Transaction20515 extends SdbTestBase {
             // 提交写事务T2
             db2.rollback();
 
-            // 切分任务返回
-            for ( int i = 0; i < 10; i++ ) {
-                DBCursor cursor = sdb.listTasks(
-                        new BasicBSONObject( "Name", csName + "." + clName ),
-                        null, null, null );
-                while ( cursor.hasNext() ) {
-                    isTaskExist = false;
-                    break;
-                }
-                cursor.close();
-            }
-            Assert.assertFalse( isTaskExist );
+            // 校验切分任务
+            Assert.assertTrue( split.isSuccess(), split.getErrorMsg() );
 
             // 非事务读记录
             TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList );
