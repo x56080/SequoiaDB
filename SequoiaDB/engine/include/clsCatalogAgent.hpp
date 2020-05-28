@@ -334,9 +334,6 @@ namespace engine
          INT32             _parseLobKeyFormat( const CHAR *formatStr ) ;
          BOOLEAN           _checkLobBound( const BSONObj &boundObj,
                                            BSONObj &lobBoundObj ) ;
-         INT32             _findLobSubCLNamesByMatcher( const BSONObj &matcher,
-                                                        CLS_SUBCL_LIST &subCLList,
-                                                        CLS_SUBCL_SORT_TYPE sortType ) ;
          INT32             _rewriteMatcherForLob( const BSONObj &matcher,
                                              BSONArrayBuilder &arrayBuilder ) ;
          INT32             _rewriteMatcherForLob( const BSONObj &matcher,
@@ -344,6 +341,7 @@ namespace engine
          INT32             _rewriteOidField( const BSONElement &oidEle,
                                              BSONArrayBuilder &arrayBuilder ) ;
          INT32             _rewriteOidField( const BSONElement &oidEle,
+                                             const CHAR *fieldName,
                                              BSONObjBuilder &builder ) ;
 
       private:

@@ -2595,8 +2595,7 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to parse seconds from oid[%s]",
                    oid.toString().c_str() ) ;
 
-      // SDB_TIME_INVALID for the seconds 1569888000 => "20191001000000"
-      rc = clsGetLobTimeStr( seconds, SDB_TIME_INVALID, timeStr,
+      rc = clsGetLobTimeStr( seconds, _lobShardingKeyFormat, timeStr,
                              OSS_TIMESTAMP_STRING_LEN ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to get lob timeStr:seconds=%lld,"
                    "_lobShardingKeyFormat=%d", seconds, _lobShardingKeyFormat ) ;
@@ -2609,6 +2608,7 @@ namespace engine
    }
 
    INT32 _clsCatalogSet::_rewriteOidField( const BSONElement &oidEle,
+                                           const CHAR *fieldName,
                                            BSONObjBuilder &builder )
    {
       INT32 rc = SDB_OK ;
@@ -2623,13 +2623,12 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to parse seconds from oid[%s]",
                    oid.toString().c_str() ) ;
 
-      // SDB_TIME_INVALID for the seconds 1569888000 => "20191001000000"
-      rc = clsGetLobTimeStr( seconds, SDB_TIME_INVALID, timeStr,
+      rc = clsGetLobTimeStr( seconds, getLobShardingKeyFormat(), timeStr,
                              OSS_TIMESTAMP_STRING_LEN ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to get lob timeStr:seconds=%lld,"
                    "_lobShardingKeyFormat=%d", seconds, _lobShardingKeyFormat ) ;
 
-      builder.append( oidEle.fieldName(), timeStr ) ;
+      builder.append( fieldName, timeStr ) ;
    done:
       return rc ;
    error:
@@ -2722,7 +2721,9 @@ namespace engine
             // ele.fieldName() == FIELD_NAME_LOB_OID
             if ( jstOID == ele.type() )
             {
-               rc = _rewriteOidField( ele, builder ) ;
+               rc = _rewriteOidField( ele,
+                                      _shardingKey.firstElement().fieldName(),
+                                      builder ) ;
                if ( SDB_OK != rc )
                {
                   goto error ;
@@ -2730,9 +2731,9 @@ namespace engine
             }
             else if ( Object == ele.type() )
             {
-               // { Oid: { $lt :{ $id:"xxx" } } }
-               BSONObjBuilder subObjBuidler(
-                                    builder.subobjStart( ele.fieldName() ) ) ;
+               // { Oid: { $lt :{ $id:"xxx" } } } => { ShardingKeyName: {$lt :"201907"}}
+               BSONObjBuilder subObjBuidler( builder.subobjStart(
+                                   _shardingKey.firstElement().fieldName() ) ) ;
                BSONObj subObj = ele.embeddedObject() ;
                BSONObjIterator subIter( subObj ) ;
                while ( subIter.more() )
@@ -2749,7 +2750,8 @@ namespace engine
                   if ( jstOID == subEle.type() )
                   {
                      // { Oid: { $lt :{ $id:"xxx" } } }
-                     rc = _rewriteOidField( subEle, subObjBuidler ) ;
+                     rc = _rewriteOidField( subEle, subFieldName,
+                                            subObjBuidler ) ;
                      if ( SDB_OK != rc )
                      {
                         goto error ;
@@ -2798,37 +2800,6 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to rewrite matcher: %s", e.what() ) ;
          rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _clsCatalogSet::_findLobSubCLNamesByMatcher( const BSONObj &matcher,
-                                                      CLS_SUBCL_LIST &subCLList,
-                                                      CLS_SUBCL_SORT_TYPE sortType )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj lobShardingKey ;
-
-      try
-      {
-         lobShardingKey = BSON( FIELD_NAME_LOB_OID
-                                << _shardingKey.firstElement().numberInt() ) ;
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      rc = findSubCLNames( matcher, subCLList, sortType ) ;
-      if ( rc )
-      {
          goto error ;
       }
 
@@ -2888,7 +2859,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _findLobSubCLNamesByMatcher( newMatcher, subCLList, sortType ) ;
+      rc = findSubCLNames( newMatcher, subCLList, sortType ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Match catalog item failed, rc: %d", rc ) ;
