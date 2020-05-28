@@ -12,7 +12,7 @@ TEST(dc, dc_all_api)
    sdbDCHandle dc             = 0 ;
 #define DC_NAME 255
    CHAR dcName[ DC_NAME + 1 ] =  { 0 } ;
-   const CHAR *pPeerCataAddr  = "192.168.20.166:11823" ;
+   const CHAR *pPeerCataAddr  = "192.168.20.42:30003" ;
    bson obj ;
    bson arr1 ;
    bson arr2 ;

@@ -227,7 +227,7 @@ TEST( concurrent, insert )
 
    timeval starttime, endtime ;
    gettimeofday( &starttime, 0 ) ;
-   for( i=0; i<N-1; ++i )
+   for( i=0; i<N; ++i )
    {
       pthread_join( tt[i], NULL ) ;
    }

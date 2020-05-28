@@ -181,6 +181,7 @@ TEST(collection,sdbCreateIndex)
    ASSERT_EQ( SDB_OK, rc ) ;
    bson_destroy ( &obj ) ;
    // get the newly build index
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbGetIndexes( collection, pIndexName2, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // print the index record
@@ -423,6 +424,11 @@ TEST(collection,sdbInsert1_check_id)
    key = bson_iterator_key( &it ) ;
    value = bson_iterator_int( &it ) ;
    printf("The insert record is {%s:%d}\n", key, value ) ;
+   rc = sdbInsert2 ( collection, &obj, FLG_INSERT_CONTONDUP, &it ) ;
+   CHECK_MSG( "%s%d\n", "rc = ", rc );
+   key = bson_iterator_key( &it ) ;
+   value = bson_iterator_int( &it ) ;
+   printf("The insert record's id is {%s:%d}\n", key, value ) ;
    bson_destroy ( &obj ) ;
 
    sdbDisconnect ( connection ) ;
@@ -839,6 +845,7 @@ TEST(collection, sdbUpdate_with_regex1)
    ASSERT_EQ( SDB_OK, rc ) ;
    // update with regex expression
    rc = sdbUpdate( cl, &rule, &cond, NULL ) ;
+   bson_destroy( &cond ) ;
    CHECK_MSG("%s%d\n","rc = ", rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
@@ -852,10 +859,14 @@ TEST(collection, sdbUpdate_with_regex1)
    rc = sdbQuery( cl, &rule, NULL, NULL, NULL, 0, -1, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    bson_destroy( &rule ) ;
+   bson_init( &rule ) ;
    while ( !( rc = sdbNext( cursor, &rule ) ) )
    {
+      bson_destroy( &rule ) ;
+      bson_init( &rule ) ;
       i++ ;
    }
+   bson_destroy( &rule ) ;
    ASSERT_EQ( num, i ) ;
    // print the records
 //   displayRecord( &cursor ) ;
@@ -962,10 +973,15 @@ TEST(collection, sdbUpdate_with_regex2)
    rc = sdbQuery( cl, &rule, NULL, NULL, NULL, 0, -1, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    bson_destroy( &rule ) ;
+   bson_init( &rule ) ;
    while ( !( rc = sdbNext( cursor, &rule ) ) )
    {
+      bson_destroy( &rule ) ;
+      bson_init( &rule ) ;
       i++ ;
    }
+   bson_destroy( &rule ) ;
+   bson_destroy( &cond ) ;
    ASSERT_EQ( num, i ) ;
    // print the records
 //   displayRecord( &cursor ) ;
@@ -1101,6 +1117,7 @@ TEST(collection, sdbQuery_with_flag1)
    // execute query
    rc = sdbQuery1 ( collection, NULL, &select,
                    NULL, NULL, 0, -1, 1, &cursor ) ;
+   bson_destroy( &select ) ;
    CHECK_MSG("%s%d\n","rc = ", rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    printf( "The records queried are as below:" OSS_NEWLINE ) ;
@@ -1274,6 +1291,7 @@ TEST(collection, sdbQuery_with_flag256)
    bson_init( &hint );
    bson_append_string( &hint, "", "indexForNotExist" );
    bson_finish( &hint );
+   bson_destroy( &hint ) ;
    // insert some records
    insertRecords( cl, num ) ;
 
@@ -1318,6 +1336,7 @@ TEST(collection, sdbQuery_with_some_flags)
    bson_init( &hint );
    bson_append_string( &hint, "", "indexForNotExist" );
    bson_finish( &hint );
+   bson_destroy( &hint ) ;
    // insert some records
 
    insertRecords( cl, num ) ;
@@ -1328,30 +1347,41 @@ TEST(collection, sdbQuery_with_some_flags)
    CHECK_MSG("%s%d\n","rc = ", rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // execute query
+   sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
+
    rc = sdbQuery1 ( cl, NULL, NULL,
                     NULL, NULL, 0, -1, QUERY_FORCE_HINT, &cursor ) ;
    CHECK_MSG("%s%d\n","rc = ", rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
    // execute query
    rc = sdbQuery1 ( cl, NULL, NULL,
                     NULL, NULL, 0, -1, QUERY_WITH_RETURNDATA, &cursor ) ;
    CHECK_MSG("%s%d\n","rc = ", rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
    // execute query
    rc = sdbQuery1 ( cl, NULL, NULL,
                     NULL, NULL, 0, -1, QUERY_FORCE_HINT | QUERY_WITH_RETURNDATA, &cursor ) ;
    CHECK_MSG("%s%d\n","rc = ", rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   sdbCloseCursor( cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
    // execute query
    rc = sdbQuery1 ( cl, NULL, NULL,
                     NULL, NULL, 0, -1, QUERY_FORCE_HINT | QUERY_PARALLED | QUERY_WITH_RETURNDATA, &cursor ) ;
    CHECK_MSG("%s%d\n","rc = ", rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-
-   sdbDisconnect ( connection ) ;
+   sdbCloseCursor( cursor ) ;
    sdbReleaseCursor ( cursor ) ;
+
    sdbReleaseCollection ( cl ) ;
+   sdbDisconnect ( connection ) ;
    sdbReleaseConnection ( connection ) ;
+
 }
 
 TEST(collection, sdbGetCount_with_condition)
@@ -1554,6 +1584,8 @@ TEST( collection, sdbGetQueryMeta )
    // test
    rc = sdbGetQueryMeta( cl, &condition, NULL, NULL,
                          0, -1, &cursor ) ;
+   bson_destroy( &condition ) ;
+   bson_destroy( &hint ) ;
    ASSERT_EQ ( SDB_OK, rc ) ;
 
    // get indexBlock from return cursor
@@ -1571,9 +1603,11 @@ TEST( collection, sdbGetQueryMeta )
       }
    }
    bson_finish ( &indexBlock ) ;
+   bson_destroy( &dataBlock ) ;
    // use dataBlock to query
    rc = sdbQuery ( cl, NULL, NULL, NULL, &indexBlock, 0, -1, &dataCursor ) ;
    long count = getRecordNum( dataCursor ) ;
+   bson_destroy( &indexBlock ) ;
    printf ( "count is : %ld\n", count ) ;
    ASSERT_EQ ( NUM, count ) ;
 
@@ -1615,21 +1649,26 @@ TEST(collection, sdbIsClose)
                              COLLECTION_SPACE_NAME,
                              &cs ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // TO DO:
-   rc = sdbIsValid( connection, &result );
+   result = FALSE ; 
+   sdbIsValid( connection, &result );
    CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
    ASSERT_EQ ( SDB_OK, rc ) ;
    std::cout << "before close connection, result is " << result << std::endl ;
    ASSERT_EQ ( TRUE, result ) ;
    sdbDisconnect ( connection ) ;
-   rc = sdbIsValid( connection, &result );
+   sdbDisconnect ( connection1 ) ;
+   result = TRUE ;
+   sdbIsValid( connection, &result );
    CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
    ASSERT_EQ ( SDB_OK, rc ) ;
    std::cout << "after close connection, result is " << result << std::endl ;
    ASSERT_EQ ( FALSE, result ) ;
-
+   
    sdbReleaseCursor ( cursor ) ;
+   sdbReleaseCS( cs ) ;
+   sdbReleaseCollection( cl ) ;
    sdbReleaseConnection ( connection ) ;
+   sdbReleaseConnection ( connection1 ) ;
 }
 
 
@@ -1757,6 +1796,7 @@ TEST( collection, sdbCQueryOne )
    bson_init( &obj ) ;
    bson_append_string( &obj, "description", "testcase for query limit one" ) ;
    bson_finish( &obj ) ;
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQuery( cl, &obj, NULL, NULL, NULL, NULL, 1, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    bson_destroy( &obj ) ;
@@ -1774,6 +1814,7 @@ TEST( collection, sdbCQueryOne )
    /****************************
    * specify none [TestPoint_3]
    ****************************/
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQuery( cl, NULL, NULL, NULL, NULL, NULL, 1, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    bson_init( &obj ) ;
@@ -1789,6 +1830,8 @@ TEST( collection, sdbCQueryOne )
    printf( "success specify none query \n" ) ;
    rc = sdbDropCollectionSpace( db, csName ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   sdbDisconnect( db ) ;
+   sdbReleaseCursor ( cursor ) ;
    sdbReleaseCollection( cl ) ;
    sdbReleaseCS( cs ) ;
    sdbReleaseConnection( db ) ;
@@ -1887,6 +1930,7 @@ TEST( collection, sdbQueryAndUpdate )
    bson_destroy( &condition ) ;
    // check
    i = 0 ;
+   bson_init( &tmp ) ;
    while ( SDB_OK == ( rc = sdbNext( cursor, &tmp ) ) )
    {
       i++ ;
@@ -1903,7 +1947,9 @@ TEST( collection, sdbQueryAndUpdate )
          bson_iterator_next( &it ) ;
       }
       bson_destroy( &tmp ) ;
+      bson_init( &tmp ) ;
    }
+   bson_destroy( &tmp ) ;
    ASSERT_EQ( 10, i ) ;
 
    /// in case: update and return the original one
@@ -1916,6 +1962,7 @@ TEST( collection, sdbQueryAndUpdate )
    bson_finish( &condition ) ;
 
    // test
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQueryAndUpdate( cl, &condition, NULL, NULL, NULL, &update,
                            0, -1, 0, FALSE, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -1923,6 +1970,7 @@ TEST( collection, sdbQueryAndUpdate )
    bson_destroy( &condition ) ;
    // check
    i = 0 ;
+   bson_init( &tmp ) ;
    while ( SDB_OK == ( rc = sdbNext( cursor, &tmp ) ) )
    {
       i++ ;
@@ -1939,7 +1987,9 @@ TEST( collection, sdbQueryAndUpdate )
          bson_iterator_next( &it ) ;
       }
       bson_destroy( &tmp ) ;
+      bson_init( &tmp ) ;
    }
+   bson_destroy( &tmp ) ;
    ASSERT_EQ( 10, i ) ;
    /// in case: use selector orderBy without hint
    bson_init( &selector ) ;
@@ -1958,16 +2008,23 @@ TEST( collection, sdbQueryAndUpdate )
    bson_append_bson( &condition, pField1, &tmp ) ;
    bson_finish( &condition ) ;
 
-   rc = sdbQueryAndUpdate( cl, &condition, &selector, &orderBy, NULL,
+   bson_init( &hint ) ;
+   bson_append_null( &hint, "" ) ;
+   bson_finish( &hint ) ;
+
+   sdbReleaseCursor ( cursor ) ;
+   rc = sdbQueryAndUpdate( cl, &condition, &selector, &orderBy, &hint,
                            &update, 0, -1, 0, TRUE, &cursor ) ;
    ASSERT_EQ( SDB_RTN_QUERYMODIFY_SORT_NO_IDX, rc ) ;
 
    /// in case: use selector orderBy with hint
+   bson_destroy( &hint ) ;
    bson_init( &hint ) ;
    bson_append_string( &hint, "", pIndexName2 ) ;
    bson_finish( &hint ) ;
 
    // test
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQueryAndUpdate( cl, &condition, &selector, &orderBy, &hint,
                            &update, 0, -1, 0, TRUE, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -1978,6 +2035,7 @@ TEST( collection, sdbQueryAndUpdate )
    bson_destroy( &hint ) ;
    // check
    i = 0 ;
+   bson_init( &tmp ) ;
    while ( SDB_OK == ( rc = sdbNext( cursor, &tmp ) ) )
    {
       i++ ;
@@ -1988,7 +2046,9 @@ TEST( collection, sdbQueryAndUpdate )
       INT32 value =  bson_iterator_int( &it ) ;
       ASSERT_EQ( set_value, value ) ;
       bson_destroy( &tmp ) ;
+      bson_init( &tmp ) ;
    }
+   bson_destroy( &tmp ) ;
    ASSERT_EQ( 10, i ) ;
 
    /// in case: use limit and skip in single group
@@ -2000,9 +2060,11 @@ TEST( collection, sdbQueryAndUpdate )
    bson_init( &condition ) ;
    bson_append_bson( &condition, pField1, &tmp ) ;
    bson_finish( &condition ) ;
-
+   bson_destroy( &tmp ) ;
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQueryAndUpdate( cl, &condition, NULL, NULL, NULL,
                            &update, 10, -1, 0, TRUE, &cursor ) ;
+   bson_destroy( &condition ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
    /// in case: use limit and skip in different groups, need to split
@@ -2021,30 +2083,39 @@ TEST( collection, sdbQueryAndUpdate )
    bson_init( &hint ) ;
    bson_append_string( &hint, "", pIndexName2 ) ;
    bson_finish( &hint ) ;
+   bson_destroy( &tmp ) ;
 
    // watch what index sdbQueryAndUpdate going to use
    bson option ;
    bson_init( &option ) ;
    bson_append_int( &option, "Run", 1 ) ;
    bson_finish( &option ) ;
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbExplain( cl, &condition, NULL, NULL, &hint,
                     0x00000080, 0, -1, &option, &cursor ) ;
+   bson_destroy( &option ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
    printf("The explain of query with FLG_QUERY_FORCE_HINT is: \n") ;
+   bson_init( &tmp ) ;
    while ( SDB_OK == ( rc = sdbNext(cursor, &tmp ) ) )
    {
       bson_print( &tmp ) ;
       bson_destroy( &tmp ) ;
+      bson_init( &tmp ) ;
    }
+   bson_destroy( &tmp ) ;
 
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQueryAndUpdate( cl, &condition, NULL, NULL, &hint,
                            &update, 0, -1, 0x00000080, TRUE, &cursor ) ;
+   bson_destroy( &condition ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    bson_destroy( &hint ) ;
    // check
    printf("Test using flag: FLG_QUERY_FORCE_HINT\n") ;
    i = 0 ;
+   bson_init( &tmp ) ;
    while ( SDB_OK == ( rc = sdbNext( cursor, &tmp ) ) )
    {
       i++ ;
@@ -2052,7 +2123,9 @@ TEST( collection, sdbQueryAndUpdate )
       bson_iterator_init( &it, &tmp ) ;
       bson_print( &tmp ) ;
       bson_destroy( &tmp ) ;
+      bson_init( &tmp ) ;
    }
+   bson_destroy( &tmp ) ;
    ASSERT_EQ( 10, i ) ;
 
    // FLG_QUERY_PARALLED
@@ -2063,12 +2136,16 @@ TEST( collection, sdbQueryAndUpdate )
    bson_init( &condition ) ;
    bson_append_bson( &condition, pField1, &tmp ) ;
    bson_finish( &condition ) ;
+   bson_destroy( &tmp ) ;
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQueryAndUpdate( cl, &condition, NULL, NULL, NULL,
                            &update, 0, -1, 0x00000100, TRUE, &cursor ) ;
+   bson_destroy( &condition ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // check
    printf("Test using flag: FLG_QUERY_PARALLED\n") ;
    i = 0 ;
+   bson_init( &tmp ) ;
    while ( SDB_OK == ( rc = sdbNext( cursor, &tmp ) ) )
    {
       i++ ;
@@ -2076,7 +2153,9 @@ TEST( collection, sdbQueryAndUpdate )
       bson_iterator_init( &it, &tmp ) ;
       bson_print( &tmp ) ;
       bson_destroy( &tmp ) ;
+      bson_init( &tmp ) ;
    }
+   bson_destroy( &tmp ) ;
    ASSERT_EQ( 10, i ) ;
 
 
@@ -2088,12 +2167,16 @@ TEST( collection, sdbQueryAndUpdate )
    bson_init( &condition ) ;
    bson_append_bson( &condition, pField1, &tmp ) ;
    bson_finish( &condition ) ;
+   bson_destroy( &tmp ) ;
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQueryAndUpdate( cl, &condition, NULL, NULL, NULL,
                            &update, 0, -1, 0x00000200, TRUE, &cursor ) ;
+   bson_destroy( &condition ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // check
    printf("Test using flag: FLG_QUERY_WITH_RETURNDATA\n") ;
    i = 0 ;
+   bson_init( &tmp ) ;
    while ( SDB_OK == ( rc = sdbNext( cursor, &tmp ) ) )
    {
       i++ ;
@@ -2101,9 +2184,11 @@ TEST( collection, sdbQueryAndUpdate )
       bson_iterator_init( &it, &tmp ) ;
       bson_print( &tmp ) ;
       bson_destroy( &tmp ) ;
+      bson_init( &tmp ) ;
    }
+   bson_destroy( &tmp ) ;
    ASSERT_EQ( 10, i ) ;
-
+   bson_destroy( &update ) ;
    // realse
    sdbCloseCursor( cursor ) ;
    sdbReleaseCursor ( cursor ) ;
@@ -2214,6 +2299,7 @@ TEST( collection, sdbQueryAndRemove )
    bson_finish( &hint ) ;
 
    // test
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQueryAndRemove( cl, &condition, &selector, &orderBy, &hint,
                            50, 10, 0x00000080, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -2224,6 +2310,7 @@ TEST( collection, sdbQueryAndRemove )
    bson_destroy( &hint ) ;
    // check
    i = 0 ;
+   bson_init( &tmp ) ;
    while ( SDB_OK == ( rc = sdbNext( cursor, &tmp ) ) )
    {
       bson_iterator it ;
@@ -2233,8 +2320,10 @@ TEST( collection, sdbQueryAndRemove )
       INT32 value =  bson_iterator_int( &it ) ;
       ASSERT_EQ( 50 + i, value ) ;
       bson_destroy( &tmp ) ;
+      bson_init( &tmp ) ;
       i++ ;
    }
+   bson_destroy( &tmp ) ;
    ASSERT_EQ( 10, i ) ;
    i = 100 ;
    while ( i-- )
@@ -2262,7 +2351,6 @@ TEST( collection, alter_collection )
    sdbCSHandle cs         = 0 ;
    sdbCollectionHandle cl = 0 ;
    sdbCursorHandle cursor = 0 ;
-   sdbCursorHandle cursor2 = 0 ;
 
    INT32 rc                = SDB_OK ;
    const CHAR *pCSName     = "test_alter_cs_in_c" ;
@@ -2324,10 +2412,6 @@ TEST( collection, alter_collection )
    bson_finish( &matcher ) ;
    rc = sdbGetSnapshot( db, SDB_SNAP_CATALOG, &matcher, NULL, NULL, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   rc = sdbGetSnapshot1( db, SDB_SNAP_COLLECTIONS, NULL, NULL, NULL, NULL, 0, -1, &cursor2 ) ;
-   ASSERT_TRUE( rc == SDB_OK ) ;
-   displayRecord( &cursor2 ) ;
-
 
    bson_init( &record ) ;
    rc = sdbNext( cursor, &record ) ;
@@ -2388,10 +2472,78 @@ TEST( collection, alter_collection )
 
    sdbDisconnect ( db ) ;
    sdbReleaseCursor ( cursor ) ;
-   sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCollection ( cl ) ;
    sdbReleaseCS ( cs ) ;
    sdbReleaseConnection ( db ) ;
+}
+
+TEST( collection, bson_timestamp_over_millis )
+{
+   sdbConnectionHandle connection = 0 ;
+   sdbCollectionHandle collection = 0 ;
+   sdbCursorHandle cursor         = 0 ;
+   INT32 rc                       = SDB_OK ;
+   const char *key                = NULL ;
+   int value                      = 0 ;
+   int sec = 1534942305 ;
+   const CHAR *expect = "{ \"ts1\": { \"$timestamp\": \"2018-08-22-20.51.45.000000\" }, \"ts2\": { \"$timestamp\": \"2018-08-22-20.51.44.999999\" }, \"ts3\": { \"$timestamp\": \"2018-08-22-20.51.45.000001\" }, \"ts4\": { \"$timestamp\": \"2018-08-22-20.53.48.456789\" }, \"ts5\": { \"$timestamp\": \"2018-08-22-20.49.41.543211\" }, \"ts6\": { \"$timestamp\": \"1921-05-12-19.10.18.456789\" }, \"ts7\": { \"$timestamp\": \"1921-05-12-19.06.11.543211\" } }" ;
+   bson obj ;
+   bson_iterator it ;
+   bson_init( &obj ) ;
+   bson_append_timestamp2( &obj, "ts1", sec, 0 ) ;
+   bson_append_timestamp2( &obj, "ts2", sec, -1 ) ;
+   bson_append_timestamp2( &obj, "ts3", sec, 1 ) ;
+   bson_append_timestamp2( &obj, "ts4", sec, 123456789 ) ;
+   bson_append_timestamp2( &obj, "ts5", sec, -123456789 ) ;
+   bson_append_timestamp2( &obj, "ts6", -sec, 123456789 ) ;
+   bson_append_timestamp2( &obj, "ts7", -sec, -123456789 ) ;
+   bson_finish( &obj ) ;
+   bson selector ;
+   bson_init( &selector ) ;
+   bson_append_start_object( &selector, "_id" ) ;
+   bson_append_int( &selector, "$include", 0 ) ;
+   bson_append_finish_object( &selector ) ;
+   bson_finish( &selector ) ;
+   bson sel ;
+   bson_init( &sel ) ;
+   json2bson2( "{ \"_id\": { \"$include\": 0 } }", &sel ) ;
+   bson_destroy( &sel ) ;
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cl
+   rc = getCollection ( connection,
+                        COLLECTION_FULL_NAME ,
+                        &collection ) ;
+
+   rc = sdbInsert( collection, &obj ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_TRUE( rc == SDB_OK ) ;
+   bson_destroy( &obj ) ;
+   // execute query
+   rc = sdbQuery1 ( collection, NULL, &selector,
+                   NULL, NULL, 0, -1, 0, &cursor ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_TRUE( rc == SDB_OK ) ;
+   printf( "The records queried are as below:" OSS_NEWLINE ) ;
+   bson_destroy( &selector ) ;
+   bson_init ( &obj ) ;
+   char buff[500] = { 0 } ;
+   while( SDB_OK == ( rc = sdbNext( cursor, &obj ) ) )
+   {
+      bson_print( &obj ) ;
+      bsonToJson( buff, 500, &obj, false, false ) ;
+      //printf( "buff is: %s\n", buff ) ;
+      ASSERT_EQ( 0, strncmp( expect, buff, strlen( expect ) ) ) ;
+      bson_destroy( &obj ) ;
+   }
+
+   sdbDisconnect ( connection ) ;
+   sdbReleaseCursor ( cursor ) ;
+   sdbReleaseCollection ( collection ) ;
+   sdbReleaseConnection ( connection ) ;
 }
 
 TEST( collection, create_and_remove_id_index )
@@ -2458,6 +2610,7 @@ TEST( collection, create_and_remove_id_index )
    }
    ASSERT_EQ( 0, count ) << "after drop id index, &id index still exist" ;
 
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQuery( cl, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
@@ -2497,14 +2650,20 @@ TEST( collection, create_and_remove_id_index )
    rc = sdbUpsert( cl, &record, NULL, NULL ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQuery( cl, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
    count = 0 ;
+   bson_destroy( &obj ) ;
+   bson_init( &obj ) ;
    while( SDB_OK == ( rc = sdbNext( cursor, &obj ) ) )
    {
+       bson_destroy( &obj ) ;
+       bson_init( &obj ) ;
       count++ ;
    }
+   bson_destroy( &obj ) ;
    ASSERT_EQ( 1, count ) ;
 
    rc = sdbUpdate( cl, &updater, NULL, NULL ) ;
@@ -2513,6 +2672,7 @@ TEST( collection, create_and_remove_id_index )
    bson_init( &obj ) ;
    bson_append_int( &obj, "a", 10 ) ;
    bson_finish( &obj ) ;
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbQuery( cl, &obj, NULL, NULL, NULL, 0, -1, &cursor ) ;
    count = 0 ;
    while( SDB_OK == ( rc = sdbNext( cursor, &record ) ) )
@@ -2530,5 +2690,280 @@ TEST( collection, create_and_remove_id_index )
    sdbReleaseCollection ( cl ) ;
    sdbReleaseCS ( cs ) ;
    sdbReleaseConnection ( db ) ;
+}
+
+void _bulkInsertTest( sdbCollectionHandle cHandle )
+{
+   INT32 rc = 0 ;
+   INT32 i = 0 ;
+   const INT32 num = 10 ;
+   bson* obj[num] ;
+   printf( "in _bulkInsertTest\n" ) ;
+
+   // create bson poiter array
+   for ( i = 0; i < num; i++ )
+   {
+      obj[i] = bson_create();
+      rc = bson_append_int( obj[i], "num", i ) ;
+      rc = bson_append_string( obj[i], "op", "bulkInsert" ) ;
+      if ( rc != 0 )
+         printf ( "something wrong.\n" ) ;
+      rc = bson_finish ( obj[i] ) ;
+      if ( rc != 0 )
+         printf ( "something wrong.\n" ) ;
+   }
+   // bulk insert
+   rc = sdbBulkInsert ( cHandle, 0, obj, num ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbBulkInsert ( cHandle, FLG_INSERT_CONTONDUP, obj, num ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbBulkInsert ( cHandle, FLG_INSERT_CONTONDUP | FLG_INSERT_RETURN_OID, obj, num ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // free memory
+   for ( i = 0; i < num; i++ )
+   {
+      printf ( "after insert, record is: \n" ) ;
+      bson_print( obj[i] ) ;
+      bson_dispose ( obj[i] ) ;
+   }
+   printf( "\n" ) ;
+}
+
+void _insert2Test( sdbCollectionHandle cHandle )
+{
+   INT32 rc = SDB_OK ;
+   bson obj ;
+   bson obj2 ;
+   bson obj3 ;
+   bson obj4 ;
+   bson_iterator it ;
+   bson *obj5 = bson_create() ;
+
+   printf( "in _insert2Test\n" ) ;
+
+   bson_init( &obj ) ;
+   bson_append_int( &obj, "insert2", 1 ) ;
+   bson_finish( &obj ) ;
+
+   bson_init( &obj2 ) ;
+   bson_append_int( &obj2, "insert2", 2 ) ;
+   bson_finish( &obj2 ) ;
+
+   bson_init( &obj3 ) ;
+   bson_append_string( &obj3, "_id", "aaaaaa" ) ;
+   bson_append_int( &obj3, "insert2", 3 ) ;
+   bson_finish( &obj3 ) ;
+
+   bson_init( &obj4 ) ;
+   bson_append_string( &obj4, "_id", "bbbbbb" ) ;
+   bson_append_int( &obj4, "insert2", 4 ) ;
+   bson_finish( &obj4 ) ;
+
+   bson_append_int( obj5, "insert2", 5 ) ;
+   bson_finish( obj5 ) ;
+
+   // case 1:
+   rc = sdbInsert2( cHandle, &obj, 0, NULL ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbInsert2( cHandle, &obj, FLG_INSERT_RETURN_OID | FLG_INSERT_CONTONDUP, &it ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 2:
+   rc = sdbInsert2( cHandle, &obj2, 0, &it ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbInsert2( cHandle, &obj2, FLG_INSERT_RETURN_OID, &it ) ;
+   ASSERT_EQ( SDB_IXM_DUP_KEY, rc ) ;
+   rc = sdbInsert2( cHandle, &obj2, FLG_INSERT_CONTONDUP, &it ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbInsert2( cHandle, &obj2, FLG_INSERT_CONTONDUP | FLG_INSERT_RETURN_OID, &it ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 3:
+   rc = sdbInsert2( cHandle, &obj3, 0, &it ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbInsert2( cHandle, &obj4, FLG_INSERT_RETURN_OID, &it ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbInsert2( cHandle, &obj4, FLG_INSERT_CONTONDUP, &it ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 5:
+   rc = sdbInsert2( cHandle, obj5, FLG_INSERT_CONTONDUP, &it ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   bson_destroy( &obj ) ;
+   bson_destroy( &obj2 ) ;
+   bson_destroy( &obj3 ) ;
+   bson_destroy( &obj4 ) ;
+   bson_dispose( obj5 ) ;
+
+   printf( "\n" ) ;
+}
+
+void _insert1Test( sdbCollectionHandle cHandle )
+{
+   INT32 rc = SDB_OK ;
+   bson_iterator it ;
+   bson_iterator it2 ;
+   bson obj ;
+   bson obj2 ;
+   bson obj3 ;
+   bson obj4 ;
+
+   printf( "in _insert1Test\n" ) ;
+
+   bson_init( &obj ) ;
+   bson_append_int( &obj, "insert1", 1 ) ;
+   bson_finish( &obj ) ;
+
+   bson_init( &obj2 ) ;
+   bson_append_string( &obj2, "_id", "aaa" ) ;
+   bson_append_int( &obj2, "insert1", 2 ) ;
+   bson_finish( &obj2 ) ;
+
+   rc = sdbInsert1( cHandle, &obj, &it ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( BSON_OID, bson_iterator_type(&it) ) ;
+   rc = sdbInsert1( cHandle, &obj2, &it2 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( BSON_STRING, bson_iterator_type(&it2) ) ;
+
+   printf( "API(insert1): \n" ) ;
+   bson_print( &obj ) ;
+   bson_print( &obj2 ) ;
+
+   bson_init( &obj3 ) ;
+   bson_append_element( &obj3, NULL, &it ) ;
+   bson_finish( &obj3 ) ;
+   bson_init( &obj4 ) ;
+   bson_append_element( &obj4, NULL, &it2 ) ;
+   bson_finish( &obj4 ) ;
+
+   printf( "return _id is: \n" ) ;
+   bson_print( &obj3 ) ;
+   bson_print( &obj4 ) ;
+
+   bson_destroy( &obj ) ;
+   bson_destroy( &obj2 ) ;
+   bson_destroy( &obj3 ) ;
+   bson_destroy( &obj4 ) ;
+   printf( "\n" ) ;
+}
+
+void _insertTest( sdbCollectionHandle cHandle )
+{
+   INT32 rc = SDB_OK ;
+   bson obj ;
+   bson obj2 ;
+
+   printf( "in _insertTest\n" ) ;
+
+   bson_init( &obj ) ;
+   bson_append_int( &obj, "insert", 1 ) ;
+   bson_finish( &obj ) ;
+
+   bson_init( &obj2 ) ;
+   bson_append_int( &obj2, "_id", 1 ) ;
+   bson_append_int( &obj2, "insert", 2 ) ;
+   bson_finish( &obj2 ) ;
+
+   rc = sdbInsert( cHandle, &obj ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbInsert( cHandle, &obj2 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   printf( "API(insert): \n" ) ;
+   bson_print( &obj ) ;
+   bson_print( &obj2 ) ;
+   printf( "\n" ) ;
+   bson_destroy( &obj ) ;
+   bson_destroy( &obj2 ) ;
+
+}
+TEST(debug, insertTest)
+{
+   sdbConnectionHandle connection = 0 ;
+   sdbCollectionHandle collection = 0 ;
+   INT32 rc                       = SDB_OK ;
+   const char *key                = "" ;
+   int value                      = 0 ;
+   bson obj ;
+   bson result ;
+   bson_iterator it ;
+   const char *ret = NULL;
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cl
+   rc = getCollection ( connection,
+                        COLLECTION_FULL_NAME ,
+                        &collection ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   _insertTest( collection ) ;
+   _insert1Test( collection ) ;
+   _insert2Test( collection ) ;
+   _bulkInsertTest( collection ) ;
+
+   sdbDisconnect ( connection ) ;
+   sdbReleaseCollection ( collection ) ;
+   sdbReleaseConnection ( connection ) ;
+}
+
+TEST(debug, sdbGetIndexTest)
+{
+   sdbConnectionHandle connection = 0 ;
+   sdbCSHandle collectionspace    = 0 ;
+   sdbCollectionHandle collection = 0 ;
+   sdbCursorHandle cursor         = 0 ;
+   INT32 rc                       = SDB_OK ;
+   const CHAR *pIndexName         = "aIndex" ;
+   bson indexDef ;
+   bson_init( &indexDef ) ;
+   bson_append_int( &indexDef, "a", 1 ) ;
+   bson_finish( &indexDef ) ;
+
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cs
+   rc = getCollectionSpace ( connection,
+                             COLLECTION_SPACE_NAME,
+                             &collectionspace ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cl
+   rc = getCollection ( connection,
+                        COLLECTION_FULL_NAME,
+                        &collection ) ;
+   sleep( 1 ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = sdbCreateIndex( collection, &indexDef, pIndexName, FALSE, FALSE ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // case 1:
+   rc = sdbGetIndexes( collection, "$id", &cursor ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   printf( "case 1: \n" ) ;
+   displayRecord( &cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
+
+   // case 2:
+   rc = sdbGetIndexes( collection, NULL, &cursor ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   printf( "case 2: \n" ) ;
+   displayRecord( &cursor ) ;
+   sdbReleaseCursor ( cursor ) ;
+
+   bson_destroy( &indexDef ) ;
+
+   sdbDisconnect ( connection ) ;
+   sdbReleaseCollection ( collection ) ;
+   sdbReleaseCS ( collectionspace ) ;
+   sdbReleaseConnection ( connection ) ;
 }
 

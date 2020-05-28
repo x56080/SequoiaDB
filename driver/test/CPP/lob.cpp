@@ -722,9 +722,10 @@ static INT32 putData( UINT32 putSize, CHAR *buffer )
    do
    {
       putNum = 26*( 1 << i ) ;
+      INT32 num = 0 ;
       if( putNum <= putSize )
       {
-         sprintf( tmpBuf, "%s%s", tmpBuf, tmpBuf ) ;
+         num = sprintf( tmpBuf, "%s%s", tmpBuf, tmpBuf ) ;
       }
       else
       {
@@ -787,7 +788,7 @@ void genLobData( CHAR *lobWriteBuf, UINT64 size )
          printf( "Failed to put data\n" ) ;
       sprintf( lobWriteBuf, "%s%s", lobWriteBuf, buffer ) ;
    }
-   sprintf( lobWriteBuf, "%s%s%s", head, lobWriteBuf, tail ) ;
+   INT32 num = sprintf( lobWriteBuf, "%s%s%s", head, lobWriteBuf, tail ) ;
    free( buffer ) ;
    buffer = NULL ;
 }
@@ -900,7 +901,7 @@ TEST( lob, lobApiBasicOperation )
    BSONObj obj = BSON( "ReplSize" << 0 ) ;   //replsize = 0
    rc = cs.createCollection( clName, obj, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   if( NULL == ( lobBuffer = (CHAR*)calloc( lobSize, sizeof(char) ) ) )
+   if( NULL == ( lobBuffer = (CHAR*)calloc( lobSize + 1, sizeof(char) ) ) )
    {
       perror( "lobBuffer" ) ;
       ASSERT_TRUE( false ) ;
@@ -1029,7 +1030,7 @@ TEST( lob, NotExistLob )
    BSONObj obj = BSON( "ReplSize" << 0 ) ;   //replsize = 0
    rc = cs.createCollection( clName, obj, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   if( NULL == ( lobBuffer = (CHAR*)calloc( lobSize, sizeof(char) ) ) )
+   if( NULL == ( lobBuffer = (CHAR*)calloc( lobSize + 1, sizeof(char) ) ) )
    {
       perror( "lobBuffer" ) ;
       ASSERT_TRUE( false ) ;

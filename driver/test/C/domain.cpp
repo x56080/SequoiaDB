@@ -34,7 +34,7 @@ TEST( sdbDomainTest, abnormal )
    const CHAR *pDomName2          = "NULLHandle" ;
    const CHAR *getDomName1        = "NoCreateDomainName" ;
    const CHAR *altDomName1        = "AlterCorrectDomainName" ;
-   CHAR pDomainName[256] ;
+   CHAR pDomainName[512] ;
    CHAR pDomName1[50] ;
    CHAR getDomName[50] ;
    CHAR altDomName[50] ;
@@ -94,6 +94,8 @@ TEST( sdbDomainTest, abnormal )
    rc = sdbDropDomain( db, altDomName ) ;
    EXPECT_TRUE( SDB_OK == rc ) << "Failed to drop domain for alter, rc = " << rc ;
 
+   sdbReleaseDomain( dom ) ;
+   sdbReleaseCursor( cursor ) ;
    sdbDisconnect( db ) ;
    sdbReleaseConnection( db ) ;
 }
@@ -165,8 +167,10 @@ TEST( sdbDomainTest, normal )
    // Create domain
    rc = sdbCreateDomain( db, pDomainName, &domObj, &dom ) ;
    ASSERT_EQ( rc, SDB_OK ) << "Failed to create domain, rc = " << rc ;
+   sdbReleaseDomain( dom ) ;
    dom = 0 ;              // let the domain handle is 0, test alter domain
    // List domain
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbListDomains( db, NULL, NULL, NULL, &cursor ) ;
    EXPECT_TRUE( SDB_OK == rc ) << "Failed to list domains, rc = " << rc ;
    // Get domain
@@ -174,6 +178,7 @@ TEST( sdbDomainTest, normal )
    ASSERT_EQ( rc, SDB_OK ) << "Failed to get domain, rc = " << rc ;
 
    // Get the datagroup where the database have
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, &condRG, &selectRG, NULL, &cursor) ;
    ASSERT_EQ( rc, SDB_OK ) ;
    int i = 0 ;
@@ -194,13 +199,16 @@ TEST( sdbDomainTest, normal )
       bson_print( &altObj ) ;
       // Alter domain
       rc = sdbAlterDomain( dom, &altObj ) ;
+      bson_destroy( &altObj ) ;
       ASSERT_EQ( rc, SDB_OK ) << "Failed to alter domain, rc =" << rc ;
       ++i ;
    }
    // List collection space
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbListCollectionSpacesInDomain( dom, &cursor ) ;
    EXPECT_TRUE( SDB_OK == rc ) << "Failed to list CS, rc = " << rc ;
    // List collection
+   sdbReleaseCursor ( cursor ) ;
    rc = sdbListCollectionsInDomain( dom, &cursor ) ;
    EXPECT_TRUE( SDB_OK == rc ) << "Failed to list CL, rc = " << rc ;
 
@@ -214,6 +222,8 @@ TEST( sdbDomainTest, normal )
    bson_destroy( &selectRG ) ;
    bson_destroy( &obj ) ;
 
+   sdbReleaseDomain( dom ) ;
+   sdbReleaseCursor ( cursor ) ;
    sdbDisconnect( db ) ;
    sdbReleaseConnection( db ) ;
 }

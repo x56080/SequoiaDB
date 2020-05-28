@@ -198,6 +198,45 @@ TEST(collection,bulkInsert_empty)
    connection.disconnect() ;
 }
 
+TEST(collection, insert)
+{
+   sdb connection ;
+   sdbCollectionSpace cs ;
+   sdbCollection cl ;
+   // initialize local variables
+   const CHAR *pHostName                    = HOST ;
+   const CHAR *pPort                        = SERVER ;
+   const CHAR *pUsr                         = USER ;
+   const CHAR *pPasswd                      = PASSWD ;
+   INT32 rc                                 = SDB_OK ;
+   bson::OID oid ;
+   bson::OID oid2 ;
+   BSONObj record = BSON( "_id" << 1 << "a" << 1 ) ;
+   BSONObj rec_arr[3] ;
+   rec_arr[0] = BSON( "_id" << 2 << "a" << 2 ) ;
+   rec_arr[1] = BSON( "_id" << 3 << "a" << 3 ) ;
+   rec_arr[2] = BSON( "_id" << 3 << "a" << 4 ) ;
+   // initialize the work environment
+   rc = initEnv() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cs
+   rc = getCollectionSpace( connection, COLLECTION_SPACE_NAME, cs ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cl
+   rc = getCollection( cs, COLLECTION_NAME, cl ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // insert
+   rc = cl.insert( record, NULL ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   cout << "oid is: " << oid.toString().c_str() << endl ;
+
+   // disconnect the connection
+   connection.disconnect() ;
+}
+
 TEST(collection,insert_without_iterator)
 {
    sdb connection ;
@@ -1705,6 +1744,8 @@ TEST( collection, alter_collection )
    rc = cl.alterCollection( option ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
+   sleep( 1 ) ;
+
    // check
    rc = db.getSnapshot( cursor, SDB_SNAP_CATALOG, matcher ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -1714,7 +1755,8 @@ TEST( collection, alter_collection )
 
    ele = record.getField( "Name" ) ;
    ASSERT_EQ( String, ele.type() ) << "bson element is not a string type" ;
-   pValue = ele.String().c_str() ;
+//   pValue = ele.String().c_str() ;
+   pValue = ele.valuestr() ;
    ASSERT_EQ( 0, strcmp( pValue, pCLFullName ) ) << "after alter cl, the cl's name is not what we want" ;
 
    ele = record.getField( "ReplSize" ) ;
@@ -1861,16 +1903,144 @@ TEST( collection, create_remove_id_index )
    db.disconnect() ;
 }
 
+TEST( collection, bson_timestamp_test )
+{
+   sdb connection ;
+   sdbCollectionSpace cs ;
+   sdbCollection cl ;
+   sdbCursor cursor ;
+   // initialize local variables
+   const CHAR *pHostName                    = HOST ;
+   const CHAR *pPort                        = SERVER ;
+   const CHAR *pUsr                         = USER ;
+   const CHAR *pPasswd                      = PASSWD ;
+   const CHAR *expect = "{ \"ts1\": {\"$timestamp\": \"2018-08-22-20.51.45.000000\"}, \"ts2\": {\"$timestamp\": \"2018-08-22-20.51.45.000001\"}, \"ts3\": {\"$timestamp\": \"2018-08-22-20.53.48.456789\"}, \"ts4\": {\"$timestamp\": \"1921-05-12-19.10.18.456789\"} }" ;
+   INT32 rc                                 = SDB_OK ;
+   INT64 ms = 1534942305000 ;
+   BSONObj obj ;
+   BSONObjBuilder bob ;
+   bob.appendTimestamp( "ts1", ms, 0 ) ;
+   bob.appendTimestamp( "ts2", ms, 1 ) ;
+   bob.appendTimestamp( "ts3", ms, 123456789 ) ;
+   bob.appendTimestamp( "ts4", -ms, 123456789 ) ;
+   obj = bob.obj() ;
+   BSONObj sel =  BSON( "_id" << BSON("$include" << 0) ) ;
+   BSONObj empty ;
+   // initialize the work environment
+   rc = initEnv() ;
+   CHECK_MSG("%s%d\n","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get collection
+   rc = getCollectionSpace( connection, COLLECTION_SPACE_NAME, cs ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get collection
+   rc = getCollection( cs, COLLECTION_NAME, cl ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // insert records
+   rc = cl.insert( obj ) ;
+   CHECK_MSG("%s%d","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // query all the record in this collection
+   rc = cl.query( cursor, empty, sel ) ;
+   CHECK_MSG("%s%d","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get the current record
+   rc = cursor.current( obj ) ;
+   CHECK_MSG("%s%d","rc = ",rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   cout<<"The current record is:"<<endl;
+   cout<< obj.toString() <<endl ;
+   ASSERT_EQ( 0, strncmp( expect, obj.toString().c_str(), strlen(expect) ) ) ;
+   // disconnect the connection
+   connection.disconnect() ;
+}
 
+void insertTest( sdbCollection &cl )
+{
+   INT32 rc = SDB_OK ;
 
+   const CHAR *pOid = "123456789012345678901234" ;
+   bson::OID oid( pOid ) ;
+   bson::OID oid0 ;
+   bson::OID oid1 ;
+   bson::OID oid2 ;
+   BSONObj record = BSON( "_id" << oid << "a" << 0 ) ;
+   BSONObj record0 = BSON( "_id" << 100 << "a" << 0 ) ;
+   BSONObj record1 = BSON( "_id" << 1 << "a" << 1 ) ;
+   vector<BSONObj> vec ;
+   vec.push_back( BSON( "_id" << 10 << "a" << 3 ) ) ;
+   vec.push_back( BSON( "_id" << 11 << "a" << 4 ) ) ;
+   vec.push_back( BSON( "_id" << 11 << "a" << 5 ) ) ;
+   const CHAR *pStr = NULL ;
 
-// TODO:
-/*
+   // initialize the work environment
+   // insert
+   printf( "in insert and bulk insert\n" ) ;
+   rc = cl.insert( record, &oid0 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   cout << "oid is: " << oid0.toString().c_str() << endl ;
+   ASSERT_EQ( 0, strncmp( pOid, oid0.toString().c_str(), strlen( pOid ) ) ) ;
 
-queryOne
-create // deprecated
-drop   // deprecated
-explain
+   rc = cl.insert( record0, &oid0 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   cout << "oid is: " << oid0.toString().c_str() << endl ;
+   pStr = "000000000000000000000000" ;
+   ASSERT_EQ( 0, strncmp( pStr, oid0.toString().c_str(), strlen( pStr ) ) ) ;
 
+   rc = cl.insert( record1 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = cl.bulkInsert( FLG_INSERT_CONTONDUP, vec ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
 
-*/
+}
+
+TEST(debug, getIndexes)
+{
+   sdb connection ;
+   sdbCollectionSpace cs ;
+   sdbCollection cl ;
+   sdbCursor cursor ;
+   // initialize local variables
+   const CHAR *pHostName                    = HOST ;
+   const CHAR *pPort                        = SERVER ;
+   const CHAR *pUsr                         = USER ;
+   const CHAR *pPasswd                      = PASSWD ;
+   INT32 rc                                 = SDB_OK ;
+   const CHAR *pIndexName                   = "aIndex" ;
+   BSONObj obj ;
+   vector<BSONObj> vec ;
+
+   // initialize the work environment
+   rc = initEnv() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cs
+   rc = getCollectionSpace( connection, COLLECTION_SPACE_NAME, cs );
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cl
+   rc = getCollection( cs, COLLECTION_NAME, cl ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = cl.createIndex( BSON( "a" << 1 ), pIndexName, TRUE, TRUE ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // case 1:
+   rc = cl.getIndexes( cursor, "$id" ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   printf( "case 1: \n" ) ;
+   displayRecord( cursor ) ;
+
+   // case 2:
+   rc = cl.getIndexes( cursor, NULL ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   printf( "case 2: \n" ) ;
+   displayRecord( cursor ) ;
+
+   // disconnect the connection
+   connection.disconnect() ;
+}
+

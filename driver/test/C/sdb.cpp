@@ -6,6 +6,8 @@
 #define USERDEF       "sequoiadb"
 #define PASSWDDEF     "sequoiadb"
 
+using namespace std ;
+
 TEST(sdb,sdbConnect_without_usr)
 {
    sdbConnectionHandle connection = 0 ;
@@ -32,6 +34,7 @@ TEST(sdb,sdbConnect_with_usr)
       printf("sdbConnect_with_usr is use in cluster environment only\n") ;
       return ;
    }
+   sdbReleaseCursor ( cursor ) ;
    // create a new user
    rc = sdbCreateUsr( connection, USERDEF, PASSWDDEF ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -46,7 +49,6 @@ TEST(sdb,sdbConnect_with_usr)
    rc = sdbRemoveUsr( connection, USERDEF, PASSWDDEF ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    sdbDisconnect ( connection ) ;
-   sdbReleaseCursor ( cursor ) ;
    sdbReleaseConnection ( connection ) ;
 }
 
@@ -62,7 +64,7 @@ TEST(sdb,sdbConnect_with_several_address)
                               ":12340",
                               "192.168.20.40",
                               "localhost:50000",
-                              "localhost:12340",
+                              "192.168.31.17:21810",
                               "localhost:11810"} ;
    // connect to database
    rc = sdbConnect1 ( connArr, 9, USER, PASSWD, &connection ) ;
@@ -94,16 +96,6 @@ TEST(sdb,sdbCreateUsr)
    // create a new user
    rc = sdbCreateUsr( connection, USERDEF, PASSWDDEF ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get list
-   rc = sdbGetList1( connection, SDB_LIST_USERS, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
-   if ( rc == SDB_RTN_COORD_ONLY )
-   {
-   }
-   else
-   {
-      displayRecord( &cursor ) ;
-      ASSERT_TRUE( rc == SDB_OK ) ;
-   }
    // Remove a user
    rc = sdbRemoveUsr( connection, USERDEF, PASSWDDEF ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -409,6 +401,8 @@ TEST(sdb,sdbTransactionBegin)
    ASSERT_EQ( SDB_OK, rc ) ;
    if ( FALSE == isTranOnFlag )
    {
+      sdbDisconnect( connection ) ;
+      sdbReleaseConnection( connection ) ;
       printf( "transaction is disable\n" ) ;
       return ;
    }
@@ -480,6 +474,8 @@ TEST(sdb,sdbTransactionCommit)
    ASSERT_EQ( SDB_OK, rc ) ;
    if ( FALSE == isTranOnFlag )
    {
+      sdbDisconnect( connection ) ;
+      sdbReleaseConnection( connection ) ;
       printf( "transaction is disable\n" ) ;
       return ;
    }
@@ -547,6 +543,8 @@ TEST(sdb,sdbTransactionRollback)
    ASSERT_EQ( SDB_OK, rc ) ;
    if ( false == isCluster(connection) )
    {
+      sdbDisconnect( connection ) ;
+      sdbReleaseConnection( connection ) ;
       printf( "it's not in cluster environment\n" ) ;
       return ;
    }
@@ -554,6 +552,8 @@ TEST(sdb,sdbTransactionRollback)
    ASSERT_EQ( SDB_OK, rc ) ;
    if ( FALSE == isTranOnFlag )
    {
+      sdbDisconnect( connection ) ;
+      sdbReleaseConnection( connection ) ;
       printf( "transaction is disable\n" ) ;
       return ;
    }
@@ -729,7 +729,7 @@ TEST(sdb, sdbCloseAllCursors)
    rc = sdbCurrent( cursor, &obj3 ) ;
    CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // TO DO:
+
    // close all the cursors
    rc = sdbCloseAllCursors( connection );
    CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
@@ -845,6 +845,9 @@ TEST(sdb, sdbCloseAllCursors_cursor_close_first)
    rc = sdbCloseAllCursors( connection );
    CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbCloseAllCursors( connection );
+   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
    // check
    bson_init ( &obj ) ;
    rc = sdbCurrent( cursor, &obj ) ; // getCurrent in cursor, expect -31
@@ -883,65 +886,6 @@ TEST(sdb, sdbCloseAllCursors_cursor_close_first)
    sdbReleaseCollection( cl ) ;
    sdbReleaseCS ( cs ) ;
    sdbReleaseConnection ( connection ) ;
-}
-
-TEST(sdb, sdbIsClose)
-{
-   sdbConnectionHandle connection  = 0 ;
-   sdbConnectionHandle connection1 = 0 ;
-   sdbCSHandle cs                 = 0 ;
-   sdbCollectionHandle cl         = 0 ;
-   sdbCursorHandle cursor         = 0 ;
-   INT32 rc                       = SDB_OK ;
-   SINT64 count                   = 0 ;
-   BOOLEAN result = FALSE ;
-   bson conf ;
-   bson obj ;
-   bson tmp ;
-   bson c ;
-   bson record ;
-   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
-   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
-   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection1 ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
-   rc = getCollectionSpace ( connection,
-                             COLLECTION_SPACE_NAME,
-                             &cs ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // TO DO:
-   // scene 1
-   // test when we get nornal business packet back from server,
-   // wether sdbIsValid() return false. if so, it means error
-   rc = sdbIsValid( connection, &result );
-   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
-   ASSERT_EQ ( SDB_OK, rc ) ;
-   std::cout << "before close connection, result is " << result << std::endl ;
-   ASSERT_EQ( TRUE, result ) ;
-
-   // scene 2
-   // test close connection manually
-   result = FALSE ;
-   rc = sdbIsValid( connection, &result );
-   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
-   ASSERT_EQ ( SDB_OK, rc ) ;
-   std::cout << "after close connection manually, result is " << result << std::endl ;
-   ASSERT_EQ( TRUE, result ) ;
-
-   // scene 3
-   // test close after disconnect
-   sdbDisconnect ( connection ) ;
-   rc = sdbIsValid( connection, &result );
-   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
-   ASSERT_EQ ( SDB_OK, rc ) ;
-   std::cout << "after close connection, result is " << result << std::endl ;
-   ASSERT_EQ ( FALSE, result ) ;
-   sdbDisconnect( connection ) ;
-   sdbReleaseCS ( cs ) ;
-   sdbReleaseConnection ( connection ) ;
-   sdbReleaseConnection ( connection1 ) ;
 }
 
 TEST(sdb, truncate)
@@ -986,9 +930,122 @@ TEST(sdb, truncate)
    sdbReleaseConnection ( connection ) ;
 }
 
+TEST(sdb, sdbGetLastErrorObjTest)
+{
+   sdbConnectionHandle connection = 0 ;
+   sdbCSHandle collectionspace    = 0 ;
+   sdbCollectionHandle collection = 0 ;
+   sdbCollectionHandle cl         = 0 ;
+   sdbCursorHandle cursor         = 0 ;
+   INT32 rc                       = SDB_OK ;
+   const CHAR *pIndexName         = "aIndex" ;
+   bson errorResult ;
+   bson indexDef ;
+   bson_init( &indexDef ) ;
+   bson_append_int( &indexDef, "a", 1 ) ;
+   bson_finish( &indexDef ) ;
+   bson_destroy( &indexDef ) ;
 
+   rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cs
+   rc = getCollectionSpace ( connection,
+                             COLLECTION_SPACE_NAME,
+                             &collectionspace ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get cl
+   rc = getCollection ( connection,
+                        COLLECTION_FULL_NAME,
+                        &collection ) ;
+   sleep( 1 ) ;
+   CHECK_MSG("%s%d\n","rc = ", rc) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   bson_init( &errorResult ) ;
+   rc = sdbGetLastErrorObj( &errorResult ) ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+   ASSERT_EQ( 0, bson_size( &errorResult ) ) ;
+   bson_destroy( &errorResult ) ;
 
+   // case 1:
+   rc = sdbGetCollection1( collectionspace, "aaaa", &cl ) ;
+   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
+   bson_init( &errorResult ) ;
+   rc = sdbGetLastErrorObj( &errorResult ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   printf( "get cl fail, error obj is: \n" ) ;
+   bson_print( &errorResult ) ;
+   ASSERT_TRUE( bson_size( &errorResult ) > 5 ) ;
+   bson_destroy( &errorResult ) ;
 
+   bson_init( &errorResult ) ;
+   rc = sdbGetLastErrorObj( &errorResult ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   printf( "get cl fail, error obj is: \n" ) ;
+   bson_print( &errorResult ) ;
+   ASSERT_TRUE( bson_size( &errorResult ) > 5 ) ;
+   bson_destroy( &errorResult ) ;
+
+   sdbCleanLastErrorObj() ;
+
+   bson_init( &errorResult ) ;
+   rc = sdbGetLastErrorObj( &errorResult ) ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+   ASSERT_EQ( 0, bson_size( &errorResult ) ) ;
+   bson_destroy( &errorResult ) ;
+
+   rc = sdbGetCollection1( collectionspace, "aaaa", &cl ) ;
+   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
+
+   // case 2:
+   sdbCleanLastErrorObj() ;
+   sdbCleanLastErrorObj() ;
+   rc = sdbGetLastErrorObj( &errorResult ) ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+   rc = sdbGetLastErrorObj( &errorResult ) ;
+   ASSERT_EQ( SDB_DMS_EOC, rc ) ;
+
+   sdbDisconnect ( connection ) ;
+   sdbReleaseCollection ( cl ) ;
+   sdbReleaseCollection ( collection ) ;
+   sdbReleaseCS ( collectionspace ) ;
+   sdbReleaseConnection ( connection ) ;
+
+}
+
+TEST(sdb, sdbGetListAndSnapshot)
+{
+   sdbConnectionHandle db         = 0 ;
+   sdbConnectionHandle cdb        = 0 ;
+   sdbConnectionHandle ddb        = 0 ;
+   sdbCursorHandle cursor         = 0 ;
+   sdbCursorHandle cursor1        = 0 ;
+   sdbCursorHandle cursor2        = 0 ;
+   sdbCursorHandle cursor3        = 0 ;
+   INT32 rc                       = SDB_OK ;
+
+   // connect to database
+   rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
+   ASSERT_TRUE( rc == SDB_OK ) ;
+   // get list
+   rc = sdbGetList1( db, SDB_LIST_COLLECTIONS, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
+   if ( rc == SDB_RTN_COORD_ONLY )
+   ASSERT_TRUE( rc == SDB_OK ) ;
+   cout << "get list shows: " << endl ;
+   displayRecord( &cursor ) ;
+   // get snapshot
+   rc = sdbGetSnapshot1( db, SDB_SNAP_COLLECTIONS, NULL, NULL, NULL, NULL, 0, -1, &cursor1 ) ;
+   ASSERT_TRUE( rc == SDB_OK ) ;
+   cout << "get snapshot shows: " << endl ;
+   displayRecord( &cursor1 ) ;
+
+   sdbReleaseCursor ( cursor ) ;
+   sdbReleaseCursor ( cursor1 ) ;
+   sdbDisconnect ( db ) ;
+   sdbReleaseConnection ( db ) ;
+}
 
 
 /*

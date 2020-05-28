@@ -142,6 +142,7 @@ TEST(domainTest, normalAll )
    const CHAR *pPort                        = SERVER ;
    const CHAR *pUsr                         = USER ;
    const CHAR *pPasswd                      = PASSWD ;
+   const CHAR *pGroupName                   = GROUPNAME ;
    INT32 rc                                 = SDB_OK ;
    BSONObj obj ;
    CHAR pCS[64] ;
@@ -186,7 +187,7 @@ TEST(domainTest, normalAll )
    rc = db.getDomain( pDM, dm2 ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // alter domain
-   BSONObj arr2 = BSON( "0" << "group1" ) ;
+   BSONObj arr2 = BSON( "0" << pGroupName ) ;
    BSONObjBuilder bob2 ;
    bob2.appendArray( "Groups", arr2 ) ;
    BSONObj options2 = bob2.obj() ;

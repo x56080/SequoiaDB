@@ -37,6 +37,8 @@ def GuessArch():
     return 'ia64'
   elif id == 'amd64':
     return 'ia64'
+  elif id == 'aarch64':
+    return 'arm64'
   elif id == 'ppc64' :
     return 'ppc64'
   elif id == 'ppc64le' :
@@ -183,7 +185,11 @@ elif guess_os == "linux":
     if guess_arch == "ia64":
         env.Append( LIBPATH="/usr/lib64")
         env.Append( LIBPATH="/lib64")
-        env.Append( LIBPATH=[join(boost_lib_dir,'linux64')] )
+        env.Append( LIBPATH=[join(boost_lib_dir,'linux64/')] )
+    elif guess_arch == 'arm64':
+        env.Append( LIBPATH="/usr/lib64")
+        env.Append( LIBPATH="/lib64")
+        env.Append( LIBPATH=[join(boost_lib_dir,'armlinux64/release')] )
     elif guess_arch == "ia32":
         env.Append( LIBPATH="/usr/lib")
         env.Append( LIBPATH="/lib")

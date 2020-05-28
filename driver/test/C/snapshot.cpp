@@ -48,11 +48,11 @@ TEST(sdb,sdbGetSnapshot_SDB_SANP_CONTEXTS)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -108,11 +108,11 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_CONTEXTS_CURRENT)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -168,11 +168,11 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SESSIONS)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -227,11 +227,11 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SESSIONS_CURRENT)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -286,11 +286,11 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_COLLECTIONS)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -345,11 +345,11 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_COLLECTIONSPACES)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -404,11 +404,11 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_DATABASE)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -463,11 +463,11 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SYSTEM)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -542,11 +542,11 @@ TEST(sdb,sdbGetList_SDB_LIST_CONTEXTS)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -601,11 +601,11 @@ TEST(sdb,sdbGetList_SDB_LIST_CONTEXTS_CURRENT)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -660,11 +660,11 @@ TEST(sdb,sdbGetList_SDB_LIST_SESSIONS)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -719,11 +719,11 @@ TEST(sdb,sdbGetList_SDB_LIST_SESSIONS_CURRENT)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -778,11 +778,11 @@ TEST(sdb,sdbGetList_SDB_LIST_COLLECTIONS)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -837,11 +837,11 @@ TEST(sdb,sdbGetList_SDB_LIST_COLLECTIONSPACES)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;
@@ -896,11 +896,11 @@ TEST(sdb,sdbGetList_SDB_LIST_STORAGEUNITS)
       ASSERT_EQ( SDB_OK, rc ) ;
    }
 
+done:
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCursor ( cursor1 ) ;
    sdbReleaseCursor ( cursor2 ) ;
    sdbReleaseCursor ( cursor3 ) ;
-done:
    sdbDisconnect ( db ) ;
    sdbReleaseConnection ( db ) ;
    return ;

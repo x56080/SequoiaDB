@@ -49,7 +49,7 @@ TEST(sdb,connect_with_serval_addr)
                               "192.168.20.40",
                               "localhost:50000",
                               "192.168.20.40:12340",
-                              "localhost:12340",
+                              "192.168.31.17:21810",
                               "localhost:11810"} ;
    // connect to database
    rc = connection.connect( connArr, 10, pUsr, pPasswd ) ;
@@ -71,22 +71,30 @@ TEST(sdb,disconnect)
    const CHAR *pUsr                         = USER ;
    const CHAR *pPasswd                      = PASSWD ;
    INT32 rc                                 = SDB_OK ;
+   BOOLEAN result                           = TRUE ;
    // initialize the work environment
    rc = initEnv() ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( FALSE, connection.isValid() ) ;
+   
    // connect to database
    rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( TRUE, connection.isValid() ) ;
    // get cs , just test whether we connet to db or not
    rc = getCollectionSpace( connection, COLLECTION_SPACE_NAME, cs ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // disconnect the connection
    connection.disconnect() ;
+   ASSERT_EQ( FALSE, connection.isValid() ) ;
+   connection.disconnect() ;
+   ASSERT_EQ( FALSE, connection.isValid() ) ;
    // get cs , just test whether we connet to db or not
    rc = getCollectionSpace( connection, COLLECTION_SPACE_NAME, cs ) ;
+   //ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;
+   rc = cs.dropCollection("aaaa") ;
    ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;
 }
-
 
 TEST(sdb,createUsr)
 {
@@ -331,16 +339,6 @@ TEST(sdb,getSnapshot_SDB_SNAP_COLLECTIONSPACES)
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = connection.getSnapshot( cursor, SDB_SNAP_COLLECTIONSPACES ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   BSONObj empty ;
-   rc = connection.getList( cursor, SDB_LIST_COLLECTIONSPACES, empty, empty, empty, empty, 0, -1 ) ;
-   ASSERT_TRUE( rc==SDB_OK ) ;
-   cout << "getList: " << endl ;
-   displayRecord( cursor ) ;
-   rc = connection.getSnapshot( cursor, SDB_SNAP_COLLECTIONSPACES, empty, empty, empty, empty, 0, -1 ) ;
-   ASSERT_TRUE( rc==SDB_OK ) ;
-   cout << "getSnapshot: " << endl ;
-   displayRecord( cursor ) ;
-
    // display records
 //   displayRecord( cursor ) ;
    // disconnect the connection
@@ -1044,190 +1042,3 @@ TEST( sdb, SdbIsValid )
    ASSERT_TRUE( result == FALSE ) ;
 }
 
-
-/*************************************
-  the follow tests have some problems
-***************************************/
-/*
-// setSessionAttr need at lease 2 note, so far, it is tested manually
-TEST( sdb, setSessionAttr )
-{
-   sdb connection ;
-   sdbCollectionSpace cs ;
-   sdbCollection cl ;
-   sdbShard shard ;
-   sdbCursor cursor ;
-   // initialize local variables
-   const CHAR *pHostName                    = HOST ;
-   const CHAR *pPort                        = SERVER ;
-   const CHAR *pUsr                         = USER ;
-   const CHAR *pPasswd                      = PASSWD ;
-   INT32 rc                                 = SDB_OK ;
-   BSONObj conf ;
-   BSONObj obj ;
-   const char* str = "{PreferedInstance:\"s\"}" ;
-   rc = fromjson( str, conf ) ;
-    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
-   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // initialize the work environment
-   rc = initEnv() ;
-   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
-   rc = getCollectionSpace( connection, COLLECTION_SPACE_NAME, cs ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
-   rc = getCollection( cs, COLLECTION_NAME, cl ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // insert record
-   rc = fromjson( "{a:1}", obj ) ;
-   rc = cl.insert( obj ) ;
-   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // todo:
-   rc = connection.setSessionAttr( conf ) ;
-   CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   for ( int i = 0; i < 10; i++ )
-   {
-      rc = cl.query( cursor );
-      CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
-      ASSERT_EQ( SDB_OK, rc ) ;
-   }
-   // disconnect the connection
-   connection.disconnect() ;
-}
-*/
-
-/*
-TEST(sdb,resetSnapshot)
-{
-   sdb connection ;
-   sdbCollectionSpace cs ;
-   sdbCursor cursor ;
-   // initialize local variables
-   const CHAR *pHostName                    = HOST ;
-   const CHAR *pPort                        = SERVER ;
-   const CHAR *pUsr                         = USER ;
-   const CHAR *pPasswd                      = PASSWD ;
-   INT32 rc                                 = SDB_OK ;
-   BSONObj condition ;
-   // initialize the work environment
-   rc = initEnv() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
-   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   ASSERT_TRUE( 0==1 ) ;
-   // reset snapshot
-   rc = connection.resetSnapshot( condition ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // display records
-//   displayRecord( cursor ) ;
-   // disconnect the connection
-   connection.disconnect() ;
-}
-
-
-TEST(sdb,transactionBegin)
-{
-   sdb connection ;
-   // initialize local variables
-   const CHAR *pHostName                    = HOST ;
-   const CHAR *pPort                        = SERVER ;
-   const CHAR *pUsr                         = USER ;
-   const CHAR *pPasswd                      = PASSWD ;
-   INT32 rc                                 = SDB_OK ;
-
-   bson obj ;
-   rc = initEnv() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   // connect to database
-   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   ASSERT_TRUE( 0==1 ) ;
-   // disconnect the connection
-   connection.disconnect() ;
-}
-
-TEST(sdb,transactionCommit)
-{
-   sdb connection ;
-   // initialize local variables
-   const CHAR *pHostName                    = HOST ;
-   const CHAR *pPort                        = SERVER ;
-   const CHAR *pUsr                         = USER ;
-   const CHAR *pPasswd                      = PASSWD ;
-   INT32 rc                                 = SDB_OK ;
-
-   bson obj ;
-   rc = initEnv() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   // connect to database
-   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   ASSERT_TRUE( 0==1 ) ;
-   // disconnect the connection
-   connection.disconnect() ;
-}
-
-TEST(sdb,transactionRollback)
-{
-   sdb connection ;
-   // initialize local variables
-   const CHAR *pHostName                    = HOST ;
-   const CHAR *pPort                        = SERVER ;
-   const CHAR *pUsr                         = USER ;
-   const CHAR *pPasswd                      = PASSWD ;
-   INT32 rc                                 = SDB_OK ;
-
-   bson obj ;
-   initEnv() ;
-
-   // connect to database
-   rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   ASSERT_TRUE( 0==1 ) ;
-   // disconnect the connection
-   connection.disconnect() ;
-}
-*/
-
-
-// TODO:
-/*
-resetSnapshot
-createCollectionSpace // option
-listCollections
-listReplicaGroups
-getReplicaGroup // name
-getReplicaGroup // id
-createReplicaGroup
-removeReplicaGroup
-createReplicaCataGroup
-activateReplicaGroup
-transactionBegin
-transactionCommit
-transactionRollback
-flushConfigure
-crtJSProcedure
-rmProcedure
-listProcedures
-evalJS
-backupOffline
-listBackup
-removeBackup
-listTasks
-waitTasks
-cancelTask
-setSessionAttr
-listDomains
-
-*/

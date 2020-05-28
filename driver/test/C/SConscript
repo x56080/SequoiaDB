@@ -78,7 +78,11 @@ testFiles15 = [
 
 testFiles16 = [
         "bson_test.cpp"
-      ]      
+      ]
+
+testFiles17 = [
+        "jira.cpp"
+      ]
 
 # compile common lib
 gtestall = env.StaticLibrary('gtest', gtestFiles)
@@ -103,6 +107,7 @@ rg = dllBuildEnv.Program("rg", [testFiles13, testCommon, gtestMainObj])
 mutex = dllBuildEnv.Program("mutex", [testFiles14, testCommon, gtestMainObj])
 dc = dllBuildEnv.Program("dc", [testFiles15, testCommon, gtestMainObj])
 bson_test = dllBuildEnv.Program("bson_test", [testFiles16, testCommon, gtestMainObj])
+jira = dllBuildEnv.Program("jira", [testFiles17, testCommon, gtestMainObj])
 
 # static compile
 collection.static = staticBuildEnv.Program("collection.static", [testFiles1, testCommon, gtestMainObj])
@@ -121,6 +126,7 @@ rg.static = staticBuildEnv.Program("rg.static", [testFiles13, testCommon, gtestM
 mutex.static = staticBuildEnv.Program("mutex.static", [testFiles14, testCommon, gtestMainObj])
 dc.static = staticBuildEnv.Program("dc.static", [testFiles15, testCommon, gtestMainObj])
 bson_test.static = staticBuildEnv.Program("bson_test.static", [testFiles16, testCommon, gtestMainObj])
+jira.static = staticBuildEnv.Program("jira.static", [testFiles17, testCommon, gtestMainObj])
 
 
 ## dll compile
@@ -138,12 +144,12 @@ bson_test.static = staticBuildEnv.Program("bson_test.static", [testFiles16, test
 # we don't run "rg, mutex, dc, shard" in ci
 env.Install( '#/build_test', [collection,collectionspace,cursor,sdb,snapshot,concurrent,
                               debug, cbson, domain, lob, selector,
-                              bson_test] )
+                              bson_test, jira] )
 # static compile
 # we don't run "rg, mutex, dc, shard" in ci
 env.Install( '#/build_test', [collection.static, collectionspace.static, cursor.static,
                               sdb.static, snapshot.static, concurrent.static,
                               debug.static, cbson.static, domain.static, lob.static,
                               selector.static,
-                              bson_test.static] )
+                              bson_test.static, jira.static] )
 

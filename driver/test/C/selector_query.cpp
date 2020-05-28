@@ -18,7 +18,7 @@
 #include "jstobs.h"
 
 // create collection
-void selectCreateCL( sdbCollectionHandle *cl )
+void selectCreateCL( sdbConnectionHandle *sdb, sdbCollectionHandle *cl )
 {
    sdbConnectionHandle db = SDB_OK ;
    sdbCSHandle cs = SDB_OK ;
@@ -28,8 +28,9 @@ void selectCreateCL( sdbCollectionHandle *cl )
    const CHAR *clName = "selector_query_cl" ;
 
    // connect to sdb
-   rc = sdbConnect( HOST, SERVER, USER, PASSWD, &db ) ;
+   rc = sdbConnect( HOST, SERVER, USER, PASSWD, sdb ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
+   db = *sdb ;
    // create collection space
    bson csOptions ;
    bson_init( &csOptions ) ;
@@ -60,11 +61,13 @@ void selectCreateCL( sdbCollectionHandle *cl )
    rc = sdbCreateCollection1( cs, clName, &clOptions, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    bson_destroy( &clOptions ) ;
+   sdbReleaseCS( cs ) ;
 }
 
 // test for $elementMatch
 TEST( selector, elementMatch )
 {
+   sdbConnectionHandle db = SDB_OK ;
    sdbCollectionHandle cl = SDB_OK ;
    sdbCursorHandle cursor = SDB_OK ;
    INT32 rc = SDB_OK ;
@@ -72,7 +75,7 @@ TEST( selector, elementMatch )
    const CHAR *pStr = "{ Group: [ { \"GroupInfo\":[ { \"GroupName\":\"group1\", \"SvcType\": 1000, \"SvcName\": 41000 } ] } ] }" ;
 
    // create colleciton and insert data
-   selectCreateCL( &cl ) ;
+   selectCreateCL( &db, &cl ) ;
    // { Group: [{"GroupInfo":[ { "GroupName":"group1", "SvcType": 1000, "SvcName": 41000},...]}]}
    rc = jsonToBson( &recordObj, pStr ) ;
    ASSERT_EQ( TRUE, rc ) ; 
@@ -105,18 +108,23 @@ TEST( selector, elementMatch )
    }
    // parse object
    bson_destroy( &retObj ) ;
+   sdbReleaseCursor( cursor ) ;
+   sdbReleaseCollection( cl ) ;
+   sdbDisconnect( db ) ;
+   sdbReleaseConnection( db ) ;
 }
 
 // test for $elemMatchOne
 TEST( selector, elementMatchOne )
 {
+   sdbConnectionHandle db = SDB_OK ;
    sdbCollectionHandle cl = SDB_OK ;
    sdbCursorHandle cursor = SDB_OK ;
    INT32 rc = SDB_OK ;
    const CHAR *pStr = "{ Group: [ { \"GroupInfo\":[ { \"GroupName\":\"group1\", \"SvcType\": 1000, \"SvcName\": 41000 } ] } ] }" ;
 
    // create colleciton and insert data
-   selectCreateCL( &cl ) ;
+   selectCreateCL( &db, &cl ) ;
    // { Group: [{"GroupInfo":[ { "GroupName":"group1", "SvcType": 1000, "SvcName": 41000},...]}]}
 
    bson recordObj ;
@@ -151,17 +159,22 @@ TEST( selector, elementMatchOne )
    }
    // parse object
    bson_destroy( &retObj ) ;
+   sdbReleaseCursor( cursor ) ;
    printf( "test over\n" ) ;
+   sdbReleaseCollection( cl ) ;
+   sdbDisconnect( db ) ;
+   sdbReleaseConnection( db ) ;
 }
 // test for $slice
 TEST( selector, slice )
 {
+   sdbConnectionHandle db = SDB_OK ;
    sdbCollectionHandle cl = SDB_OK ;
    sdbCursorHandle cursor = SDB_OK ;
    INT32 rc = SDB_OK ;
 
    // create colleciton and insert data
-   selectCreateCL( &cl ) ;
+   selectCreateCL( &db, &cl ) ;
    // { Group:[ "rg1", "rg2", "rg3", "rg4", "rg5", "rg6" ]}
    bson recordObj ;
    bson subObj ;
@@ -207,17 +220,22 @@ TEST( selector, slice )
    // parse object
    bson_destroy( &retObj ) ;
    printf( "test over\n" ) ;
+   sdbReleaseCursor( cursor ) ;
+   sdbReleaseCollection( cl ) ; 
+   sdbDisconnect( db ) ;
+   sdbReleaseConnection( db ) ;
 }
 
 // test for $default
 TEST( selector, _default )
 {
+   sdbConnectionHandle db = SDB_OK ;
    sdbCollectionHandle cl = SDB_OK ;
    sdbCursorHandle cursor = SDB_OK ;
    INT32 rc = SDB_OK ;
 
    // create colleciton and insert data
-   selectCreateCL( &cl ) ;
+   selectCreateCL( &db, &cl ) ;
    // { Group1: "rg1", Group2:"rg2", Group3: "rg3", Group1:"rg4", Group1: "rg5"}
    bson recordObj ;
    bson subObj ;
@@ -257,17 +275,22 @@ TEST( selector, _default )
    // parse object
    bson_destroy( &retObj ) ;
    printf( "test over\n" ) ;
+   sdbReleaseCursor( cursor ) ;
+   sdbReleaseCollection( cl ) ;
+   sdbDisconnect( db ) ;
+   sdbReleaseConnection( db ) ;
 }
 
 // test for $include
 TEST( selector, include )
 {
+   sdbConnectionHandle db = SDB_OK ;
    sdbCollectionHandle cl = SDB_OK ;
    sdbCursorHandle cursor = SDB_OK ;
    INT32 rc = SDB_OK ;
 
    // create colleciton and insert data
-   selectCreateCL( &cl ) ;
+   selectCreateCL( &db, &cl ) ;
    // { Group1: "rg1", Group2:"rg2", Group3: "rg3", Group1:"rg4", Group1: "rg5"}
    bson recordObj ;
    bson subObj ;
@@ -307,17 +330,22 @@ TEST( selector, include )
    // parse object
    bson_destroy( &retObj ) ;
    printf( "test over\n" ) ;
+   sdbReleaseCursor( cursor ) ;
+   sdbReleaseCollection( cl ) ;
+   sdbDisconnect( db ) ;
+   sdbReleaseConnection( db ) ;
 }
 
 // test for $include
 TEST( selector, includeAbnormal )
 {
+   sdbConnectionHandle db = SDB_OK ;
    sdbCollectionHandle cl = SDB_OK ;
    sdbCursorHandle cursor = SDB_OK ;
    INT32 rc = SDB_OK ;
 
    // create colleciton and insert data
-   selectCreateCL( &cl ) ;
+   selectCreateCL( &db, &cl ) ;
    // { Group1: "rg1", Group2:"rg2", Group3: "rg3", Group1:"rg4", Group1: "rg5"}
    bson recordObj ;
    bson subObj ;
@@ -365,4 +393,8 @@ TEST( selector, includeAbnormal )
    bson_destroy( &retObj ) ;
 */
    printf( "test over\n" ) ;
+   sdbReleaseCursor( cursor ) ;
+   sdbReleaseCollection( cl ) ;
+   sdbDisconnect( db ) ;
+   sdbReleaseConnection( db ) ;
 }

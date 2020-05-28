@@ -20,6 +20,7 @@ TEST(cbson, test)
 {
    bson obj ;
    const char *pStr = "{\"_id\":{\"$oid\":\"0123456789abcdef01234567\"}}" ;
+   bson_init( &obj ) ;
    BOOLEAN flag = jsonToBson( &obj, pStr ) ;
    if ( TRUE == flag )
    {
@@ -30,6 +31,7 @@ TEST(cbson, test)
    {
       printf( "Failed\n" ) ;
    }
+   bson_destroy( &obj ) ;
 }
 
 
@@ -38,9 +40,11 @@ TEST(cbson, binary)
    INT32 rc = SDB_OK ;
    bson obj ;
    const char *str = "{ \"key\": { \"$binary\" : \"aGVsbG8gd29ybGQ=\", \"$type\": \"1\" } }" ;
+   bson_init( &obj ) ;
    BOOLEAN flag = jsonToBson2( &obj, str, FALSE, FALSE ) ;
    ASSERT_EQ( flag, TRUE ) ;
    bson_print( &obj ) ;
+   bson_destroy( &obj ) ;
    ASSERT_EQ( rc, SDB_OK ) ;
 }
 
@@ -384,7 +388,7 @@ TEST(cbson, dateType)
 
    const CHAR* ppAbnormalDate[] = {
       // the dates which are not in [1900-01-01, 9999-12-31]
-      "{ \"myDate1\": { \"$date\": \"1899-12-31\" } }",
+      "{ \"myDate1\": { \"$date\": \"-1-12-31\" } }",
       "{ \"myDate2\": { \"$date\": \"10000-01-01\" } }",
       // the dates which are not in [0001-01-01T00:00:00.000000Z, 9999-12-31T23:59:59.999999Z]
       "{ \"myDate1\": { \"$date\": \"0000-01-01T00:00:00.000000Z\" } }",
@@ -613,5 +617,6 @@ TEST(cbson, cbson_jsCompatibility_toString)
    cout << "disable js compatibility: " ;
    bson_print( &obj );
    ASSERT_EQ( 0, bson_compare(pExpect1, &obj) );
+   bson_destroy( &obj ) ;
 }
 

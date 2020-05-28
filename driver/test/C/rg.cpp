@@ -142,6 +142,8 @@ void replicaGroupTest::TearDownTestCase()
       }
    }
    sdbDisconnect( db ) ; 
+   sdbReleaseReplicaGroup( rg ) ;
+   sdbReleaseConnection( db ) ;
 }
 
 void replicaGroupTest::SetUp()
@@ -159,6 +161,7 @@ void replicaGroupTest::SetUp()
    bson_append_int( &option, "logfilenum", 1 ) ;
    bson_finish( &option ) ;
    rc = sdbCreateNode( rg, pNodeHostName, pNodeSvcName2, pNodePath2, &option ) ;
+   bson_destroy( &option ) ;
    if ( SDB_OK != rc )
    {
       sprintf( tmp_buf, "Error: Failed to create data node[%s:%s] in "
