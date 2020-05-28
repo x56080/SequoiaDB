@@ -14,8 +14,13 @@
 
 >   **Note:**
 >
->   访问计划缓存的相关 SequoiaDB 配置参数
->   1.  --planbuckets：定义全局的访问计划缓存的桶的个数，默认为：500；设置为 0 时，不开启访问计划缓存；
+>   * 访问计划缓存的 SequoiaDB 配置参数 planbuckets，详细请参考[数据库配置](database_management/database_configuration/configuration_parameters.md)
+>        * planbuckets 定义全局的访问计划缓存的桶的个数，默认为 500，最大值为 4096
+>        * SequoiaDB 内部自动向上取整为 0, 128, 256, 512, 1024, 2048, 4096
+>        * planbuckets 设置为 0 时，不开启访问计划缓存
+>        * 每个缓存桶中平均存储 3 个访问计划缓存，因此访问计划缓存的容量约为 `planbuckets * 3`
+>   * 当访问计划缓存的容量使用满 80% 时，后台任务将开始清理最近最少使用的访问计划，直至访问计划缓存的使用量降到 50% 左右
+>   * 另外，访问计划的缓存有效时间为 10 分钟，如果 10 分钟内没有被再次使用，则会被后台清理
 
 ###OPT_PLAN_NOCACHE###
 
