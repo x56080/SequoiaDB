@@ -959,7 +959,8 @@ namespace engine
          visible = TRUE ;
       }
       else if ( recTransID.getNodeID() != transID.getNodeID() &&
-                _TransIDH16 != recTransID.getNodeID() )
+                _TransIDH16 != recTransID.getNodeID() &&
+                _TransIDH16 != transID.getNodeID() )
       {
          // from different node, check visible in global cluster with
          // time error
