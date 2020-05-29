@@ -60,7 +60,7 @@ public class CommLib {
      * @return dataGroupNames
      */
     public static ArrayList< String > getDataGroupNames( Sequoiadb sdb ) {
-        ArrayList< String > dataGroupNames = new ArrayList< String >();
+        ArrayList< String > dataGroupNames = new ArrayList< >();
         try {
             dataGroupNames = sdb.getReplicaGroupNames();
             dataGroupNames.remove( "SYSCatalogGroup" );
@@ -81,7 +81,7 @@ public class CommLib {
      */
     public static List< String > getNodeAddress( Sequoiadb sdb,
             String rgName ) {
-        List< String > nodeAddrs = new ArrayList< String >();
+        List< String > nodeAddrs = new ArrayList< >();
         try {
             ReplicaGroup tmpArray = sdb.getReplicaGroup( rgName );
             BasicBSONObject doc = ( BasicBSONObject ) tmpArray.getDetail();
@@ -111,7 +111,7 @@ public class CommLib {
      * @return csInfoOfCata
      */
     public ArrayList< BSONObject > getCSInfoOfCatalog( Sequoiadb sdb ) {
-        ArrayList< BSONObject > csInfoOfCata = new ArrayList< BSONObject >();
+        ArrayList< BSONObject > csInfoOfCata = new ArrayList< >();
         Sequoiadb cataDB = null;
         try {
             String nodeName = sdb.getReplicaGroup( "SYSCATALOG" ).getMaster()
@@ -241,7 +241,7 @@ public class CommLib {
                 int maxCnt = 20;
                 boolean checkSucc = false;
                 do {
-                    ArrayList< String > allNodeData = new ArrayList< String >();
+                    ArrayList< String > allNodeData = new ArrayList< >();
 
                     for ( int j = 0; j < nodeAddrs.size(); j++ ) {
                         Sequoiadb dataDB = new Sequoiadb( nodeAddrs.get( j ),
@@ -249,7 +249,7 @@ public class CommLib {
                         DBCursor cursor = dataDB.listCollections();
 
                         // get the data for each node
-                        ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                        ArrayList< BSONObject > oneNodeData = new ArrayList< >();
                         while ( cursor.hasNext() ) {
                             BSONObject clList = cursor.getNext();
                             if ( clList.get( "Name" ).toString()
@@ -346,7 +346,7 @@ public class CommLib {
                     int maxCnt = 8;
                     boolean checkSucc = false;
                     do {
-                        ArrayList< String > allNodeData = new ArrayList< String >();
+                        ArrayList< String > allNodeData = new ArrayList< >();
                         for ( int j = 0; j < nodeAddrs.size(); j++ ) {
                             Sequoiadb dataDB = new Sequoiadb(
                                     nodeAddrs.get( j ), "", "" );
@@ -356,7 +356,7 @@ public class CommLib {
                                     .getCollectionSpace( tmpCSName )
                                     .getCollection( tmpCLName ).getIndexes();
                             // get the data for each node
-                            ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                            ArrayList< BSONObject > oneNodeData = new ArrayList< >();
                             while ( cur.hasNext() ) {
                                 BSONObject idxList = cur.getNext();
                                 oneNodeData.add( idxList );
@@ -518,7 +518,7 @@ public class CommLib {
             int maxCnt = 15;
             boolean checkSucc = false;
             do {
-                ArrayList< String > allNodeData = new ArrayList< String >();
+                ArrayList< String > allNodeData = new ArrayList< >();
 
                 for ( int i = 0; i < nodeAdrrs.size(); ++i ) {
                     dataDB = new Sequoiadb( nodeAdrrs.get( i ), "", "" );
@@ -527,7 +527,7 @@ public class CommLib {
                     DBCursor cursor = clDB.query( matcher, null, null, null );
 
                     // get the data for each node
-                    ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                    ArrayList< BSONObject > oneNodeData = new ArrayList< >();
                     while ( cursor.hasNext() ) {
                         BSONObject csInfo = cursor.getNext();
                         oneNodeData.add( csInfo );
@@ -961,7 +961,7 @@ public class CommLib {
         // 根据匹配条件筛选复制组主节点，context只残留在主节点上.
         DBCursor snapshot = db.getSnapshot( Sequoiadb.SDB_SNAP_DATABASE,
                 matcher, "{'NodeName': 1}", null );
-        List< String > nodes = new ArrayList< String >();
+        List< String > nodes = new ArrayList< >();
         while ( snapshot.hasNext() ) {
             BasicBSONObject obj = ( BasicBSONObject ) snapshot.getNext();
             if ( !obj.containsField( "ErrNodes" ) ) {
@@ -983,7 +983,7 @@ public class CommLib {
                     DBCursor cur = dataConn.getSnapshot(
                             Sequoiadb.SDB_SNAP_CONTEXTS,
                             "{'Contexts': {'$elemMatch': {'Description': {'$regex': '"
-                                    + match + "'}}}}",
+                                    + match + "'}, 'Type': {'$ne': 'DUMP'}}}}",
                             null, null );
                     if ( cur.hasNext() ) {
                         errorContext = cur.getNext();
