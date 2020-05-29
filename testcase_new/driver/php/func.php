@@ -217,7 +217,7 @@ class BaseOperator
          $this -> err = $this -> getErrno();
          if( $this -> err !== 0 )
          {
-            echo "\nFailed to select cs. Errno: ". $this -> err ."\n";
+            throw new Exception( "Failed to select cs. Errno: ". $this -> err );
          }
       }
       
@@ -225,13 +225,13 @@ class BaseOperator
       $this -> err = $this -> getErrno();
       if( $this -> err !== 0 )
       {
-         echo "\nFailed to get cs. Errno: ". $this -> err ."\n";
+         throw new Exception( "Failed to get cs. Errno: ". $this -> err );
       }
       
       $this -> err = $csDB -> createCL( $clName, $options );
       if( $this -> err['errno'] !== 0 )
       {
-         echo "\nFailed to create cl. Errno: ". $this -> err['errno'] ."\n";
+         throw new Exception( "Failed to create cl. Errno: ". $this -> err['errno'] );
       }
       return $csDB -> getCL( $clName ) ;
    }
