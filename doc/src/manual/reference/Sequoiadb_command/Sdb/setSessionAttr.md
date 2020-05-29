@@ -21,7 +21,7 @@ setSessionAttr - 设置会话属性
 | PreferedStrict   |  指定节点选择是否为严格模式，当为严格模式时，节点只能从 preferedinstance 指定的 ID 中选取 |  ```PreferedStrict : true ``` |
 | PreferedPeriod   | 优先实例的有效周期，单位为秒。 | ```PreferedPeriod : 60``` |
 | Timeout | 指定会话执行操作的超时时间（单位：毫秒）。<br>-1 表示不进行超时检测。<br>最小值为 1000 毫秒。 | ```Timeout : 10000``` |
-| TransIsolation | 会话事务的隔离级别，0为RU级别，1为RC级别，2为RS级别。 | ```TransIsolation : 1``` |
+| TransIsolation | 会话事务的隔离级别，0为RU级别，1为RC级别，2为RS级别，3为RR级别。 | ```TransIsolation : 1``` |
 | TransTimeout   | 会话事务锁等待超时时间（单位：秒）。 | ```TransTimeout : 10``` |
 | TransLockWait  | 会话事务在 RC 隔离级别下是否需要等锁。 | ```TransLockWait : true``` |
 | TransUseRBS    | 会话事务是否使用回滚段。             | ```TransUseRBS : true``` |
@@ -54,6 +54,9 @@ setSessionAttr - 设置会话属性
 >       *   该参数仅适用于 SequoiaDB 2.8.9 版本，3.2.5 及以上版本。
 >   *   Timeout 的默认值是 -1，即不进行超时检测。
 >   *   事务相关属性只有 TransTimeout 允许在事务中设置，其它事务属性需要在非事务中设置。
+>   *   RR 隔离级别需要全局事务的支持：
+>       *   开启全局事务需要设置 SequoiaDB 的配置参数 [mvccon](database_management/database_configuration/configuration_parameters.md#mvccon) 和 [globtranson](database_management/database_configuration/configuration_parameters.md#globtranson) 为 true
+>       *   另外，需要时间序列服务(STP)的支持，详细请参考 [时间序列服务](database_management/stp/overview.md)
 >   *   获取会话属性请参考 [Sdb.getSessionAttr()](reference/Sequoiadb_command/Sdb/getSessionAttr.md) 。
 
 ##返回值##

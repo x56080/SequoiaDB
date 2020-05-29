@@ -30,13 +30,16 @@
 
 | 配置项 | 描述 | 取值 | 默认值 |
 | :----- | :--- | :--- | :----- |
-| [transisolation][cluster_config] | 表示在开启事务的情况下，使用的事务隔离级别。 | 0 表示 RU，1 表示 RC，2 表示 RS | 0 |
+| [transisolation][cluster_config] | 表示在开启事务的情况下，使用的事务隔离级别。 | 0 表示 RU，1 表示 RC，2 表示 RS，3为RR级别。 | 0 |
 
 用户可以通过 [Sdb.setSessionAttr()][set_session_attr] 的 TransIsolation 修改单个会话的隔离级别设置
 
 > **Note:**
 >
-> 事务的隔离级别可参考[隔离级别][isolation]
+> - 事务的隔离级别可参考[隔离级别][isolation]
+> - RR 隔离级别需要全局事务的支持：
+>   - 开启全局事务需要设置 SequoiaDB 的配置参数 [mvccon](database_management/database_configuration/configuration_parameters.md#mvccon) 和 [globtranson](database_management/database_configuration/configuration_parameters.md#globtranson) 为 true
+>   - 另外，需要时间序列服务(STP)的支持，详细请参考 [时间序列服务](database_management/stp/overview.md)
 
 事务自动回滚
 ----
