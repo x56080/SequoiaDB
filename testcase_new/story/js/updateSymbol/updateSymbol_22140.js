@@ -1,0 +1,46 @@
+/************************************
+*@Description: seqDB-22140 :开启严格数据控制，使用inc更新后数值溢出  
+*@author:      wuyan
+*@createdate:  2020.5.19
+**************************************/
+testConf.clName = COMMCLNAME + "_update_field_22140";
+testConf.clOpt = { ShardingKey: { no: 1 }, StrictDataMode: true };
+main(test);
+
+function test(testPara)
+{
+   var docs =[{ no: 0, a: 12.34, testa:{$numberLong: "9000000000000000000"}, fieldb: {$numberLong: "223372036854775808"}, testc:"test0"},
+   { no: 1, a: -1, testa: -2147483648, fieldb: -10.67, testc:"test1"},
+   { no: 2, a: 20, testa:2147483658, fieldb: 1.7e+308, testc:"test2"}];
+   insertData( testPara.testCL, docs );   
+
+   var updateCondition = { $inc: { testa: { $field: 'fieldb'} } };
+   var findCondition = { no: { $et: 0 } };
+   updateError( updateCondition, findCondition );
+   checkResult( testPara.testCL, null, null, docs, { _id: 1 } );
+
+   var updateCondition1 = { $inc: { testa: { $field: 'fieldb'} } };
+   var findCondition1 = { no: { $gt: 0 } };
+   updateData( testPara.testCL, updateCondition1, findCondition1 );
+   var expRecs1 = [{ no: 0, a: 12.34, testa:{$numberLong: "9000000000000000000"}, fieldb: {$numberLong: "223372036854775808"}, testc:"test0"},
+   { no: 1, a: -1, testa: -2147483658.67, fieldb: -10.67, testc:"test1"},
+   { no: 2, a: 20, testa:1.7e+308, fieldb: 1.7e+308, testc:"test2"}];
+   checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );   
+}
+
+function updateError( updateCondition, findCondition )
+{
+   try
+   {
+      testPara.testCL.update( updateCondition, findCondition );
+      throw new Error( "need throw error" );
+   }
+   catch(e)
+   {
+      if( e !== -318 )
+      {
+         throw new Error( e );
+      }
+   }
+}
+
