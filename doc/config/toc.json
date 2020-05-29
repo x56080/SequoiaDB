@@ -1555,6 +1555,58 @@
                      "en": "Statistics"
                   }
                ]
+            },
+            {
+               "id": 1589351530,
+               "dir": "stp",
+               "cn": "时间序列服务",
+               "en": "Serial Time Protocol",
+               "contents": [
+                  {
+                     "id": 1589351531,
+                     "file": "overview",
+                     "cn": "概述",
+                     "en": "Overview"
+                  },
+                  {
+                     "id": 1589351532,
+                     "file": "logicaltime",
+                     "cn": "逻辑时间",
+                     "en": "Logical Time"
+                  },
+                  {
+                     "id": 1589351540,
+                     "dir": "tools",
+                     "cn": "工具",
+                     "en": "Tools",
+                     "contents": [
+                        {
+                           "id": 1589351541,
+                           "file": "stp",
+                           "cn": "stp",
+                           "en": "stp"
+                        },
+                        {
+                           "id": 1589351542,
+                           "file": "stpstart",
+                           "cn": "stpstart",
+                           "en": "stpstart"
+                        },
+                        {
+                           "id": 1589351543,
+                           "file": "stpstop",
+                           "cn": "stpstop",
+                           "en": "stpstop"
+                        },
+                        {
+                           "id": 1589351544,
+                           "file": "stpq",
+                           "cn": "stpq",
+                           "en": "stpq"
+                        }
+                     ]
+                  }
+               ]
             }
          ]
       },
