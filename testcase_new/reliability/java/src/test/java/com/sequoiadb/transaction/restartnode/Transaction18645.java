@@ -30,7 +30,7 @@ import com.sequoiadb.transaction.common.TransUtil;
  * @date 2019-6-19
  *
  */
-@Test(groups = "rc")
+@Test(groups = { "rc", "rcauto" })
 public class Transaction18645 extends SdbTestBase {
     private Sequoiadb sdb;
     private Sequoiadb db1;

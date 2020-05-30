@@ -29,7 +29,7 @@ import com.sequoiadb.transaction.common.TransferTh;
  * @date 2019-7-17
  *
  */
-@Test(groups = "rcauto")
+@Test(groups = { "rc", "rcauto" })
 public class Transaction18835 extends SdbTestBase {
     private Sequoiadb sdb;
     private String hashCLName = "cl18835_hash";

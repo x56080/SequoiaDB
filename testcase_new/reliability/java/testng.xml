@@ -98,13 +98,6 @@
             </run>
         </groups>
         <packages>
-            <package name="com.sequoiadb.transaction.killnode" />
-            <package name="com.sequoiadb.transaction.restartnode" />
-        </packages>
-    </test>
-
-    <test name="reliability_transaction_normal" preserve-order="true">
-        <packages>
             <package name="com.sequoiadb.transaction.brokennetwork" />
             <package name="com.sequoiadb.transaction.killnode" />
             <package name="com.sequoiadb.transaction.restartnode" />
