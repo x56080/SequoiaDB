@@ -126,7 +126,7 @@ public class TransRBS {
                     .getMaster().connect();
             BSONObject findOption = new BasicBSONObject( "Name",
                     new BasicBSONObject( "$regex", "^SYSRBS" ) );
-            BSONObject sortOption = new BasicBSONObject( "Name", -1 );
+            BSONObject sortOption = new BasicBSONObject( "Name", 1 );
             String rbsCLName = ( String ) nodeMaster
                     .getList( Sequoiadb.SDB_LIST_COLLECTIONS, findOption, null,
                             sortOption, null, 0, 1 )
