@@ -45,16 +45,16 @@ public class SdbTestBase {
     private static final String TRANSAUTOCOMMIT = "transautocommit";
     private static final String TRANSAUTOROLLBACK = "transautorollback";
     private static final String TRANSUSERBS = "transuserbs";
-    private static final String TRANSREPLSIZE = "transreplsize";
     private static final String GLOBTRANSON = "globtranson";
+    private static final String TRANSREPLSIZE = "transreplsize";
     private static final String MVCCON = "mvccon";
     private static final String RCAUTO = "rcauto";
     private static final String RC = "rc";
     private static final String RR = "rr";
     private static final String RRAUTO = "rrauto";
     private static final String NODENAME = "NodeName";
-    private static final Map< String, BSONObject > group2Conf = new HashMap< >();
-    private static final Map< String, BSONObject > node2Conf = new HashMap< >();
+    private static final Map< String, BSONObject > group2Conf = new HashMap<>();
+    private static final Map< String, BSONObject > node2Conf = new HashMap<>();
     private static final Map< String, AtomicInteger > groupName2Count = new HashMap<>();
     private static BasicBSONObject confObj = new BasicBSONObject();
     public static String testGroupOfCurrent;
@@ -155,6 +155,7 @@ public class SdbTestBase {
         group2Conf.get( RR ).put( TRANSUSERBS, true );
         group2Conf.get( RR ).put( MVCCON, true );
         group2Conf.get( RR ).put( GLOBTRANSON, true );
+        group2Conf.get( RC ).put( TRANSREPLSIZE, transReplsize );
 
         group2Conf.put( RRAUTO, new BasicBSONObject() );
         group2Conf.get( RRAUTO ).put( TRANSISOLATION, 3 );
@@ -164,6 +165,7 @@ public class SdbTestBase {
         group2Conf.get( RRAUTO ).put( TRANSUSERBS, true );
         group2Conf.get( RRAUTO ).put( MVCCON, true );
         group2Conf.get( RRAUTO ).put( GLOBTRANSON, true );
+        group2Conf.get( RC ).put( TRANSREPLSIZE, transReplsize );
 
         for ( String key : group2Conf.keySet() ) {
             groupName2Count.put( key, new AtomicInteger( 0 ) );

@@ -112,8 +112,9 @@ public class Transaction20520 extends SdbTestBase {
         cl = sdb.getCollectionSpace( csName ).getCollection( clName );
         try {
             cl.query();
+            Assert.fail( "Need throw error: -349" );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(), -348 );
+            Assert.assertEquals( e.getErrorCode(), -349 );
             sdb.rollback();
         }
 
