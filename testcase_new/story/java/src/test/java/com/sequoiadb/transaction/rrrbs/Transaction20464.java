@@ -37,7 +37,7 @@ public class Transaction20464 extends SdbTestBase {
         TransUtils.beginTransaction( sdb );
         TransUtils.insertRandomLengthRecords( cl, recordNum, recordNum * 2, 10,
                 1024 );
-        sdb.commit();
+        TransUtils.commitTransaction( sdb );
     }
 
     @Test
@@ -64,7 +64,7 @@ public class Transaction20464 extends SdbTestBase {
                 String transID = TransUtils.getTransactionID( db1 );
                 System.out.println( "transID update:" + transID );
                 cl1.update( null, "{$inc:{a:1}}", "{'':'a'}" );
-                db1.commit();
+                TransUtils.commitTransaction( db1 );
                 cl1.update( null, "{$inc:{a:1}}", "{'':'a'}" );
 
                 // 读事务读记录
@@ -73,11 +73,11 @@ public class Transaction20464 extends SdbTestBase {
                         .getReadActList( cursor );
                 TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}",
                         expDataList );
-                db2.commit();
+                TransUtils.commitTransaction( db2 );
             }
         } finally {
-            db1.commit();
-            db2.commit();
+            TransUtils.commitTransaction( db1 );
+            TransUtils.commitTransaction( db2 );
             db1.close();
             db2.close();
         }

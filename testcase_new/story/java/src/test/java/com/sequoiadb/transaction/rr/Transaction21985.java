@@ -73,7 +73,7 @@ public class Transaction21985 extends SdbTestBase {
             TransUtils.queryAndCheck( cl1, "{'':null}", expList );
 
         } finally {
-            db.commit();
+            TransUtils.commitTransaction(db);
         }
 
     }

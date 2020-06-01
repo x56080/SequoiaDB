@@ -182,7 +182,7 @@ public class Transaction20436A extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 8 commit TW3, TW1 insert R7s, begin trans TR5
-        TW3.commit();
+        TransUtils.commitTransaction(TW3);
         List< BSONObject > tw3ExpList = new ArrayList<>();
         tw3ExpList.addAll( expDataList );
         TransUtils.updateList( tw3ExpList, 1, "update r1s to r6s", 0, 1000 );
@@ -219,7 +219,7 @@ public class Transaction20436A extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", tw3ExpList );
 
         // 9 commit trans TW1, TW2 insert R9s, begin trans TR6
-        TW1.commit();
+        TransUtils.commitTransaction(TW1);
         List< BSONObject > tw1ExpList = new ArrayList<>();
         tw1ExpList.addAll( tw3ExpList );
         TransUtils.updateList( tw1ExpList, 1, "update r6s to r8s", 0, 1000 );
@@ -260,7 +260,7 @@ public class Transaction20436A extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", tw1ExpList );
 
         // 9 commit TW3, begin trans TR7 read
-        TW2.commit();
+        TransUtils.commitTransaction(TW2);
         List< BSONObject > tw2ExpList = new ArrayList<>();
         tw2ExpList.addAll( tw1ExpList );
         TransUtils.updateList( tw2ExpList, 1, "update r8s to r10s", 0, 998 );
@@ -297,13 +297,13 @@ public class Transaction20436A extends SdbTestBase {
         TransUtils.queryAndCheck( clTR7, "{'a': {'$gte': 0, '$lt': 7000}}",
                 "{'_id': 1}", "{'': 'a'}", tw2ExpList );
 
-        TR1.commit();
-        TR2.commit();
-        TR3.commit();
-        TR4.commit();
-        TR5.commit();
-        TR6.commit();
-        TR7.commit();
+        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction(TR2);
+        TransUtils.commitTransaction(TR3);
+        TransUtils.commitTransaction(TR4);
+        TransUtils.commitTransaction(TR5);
+        TransUtils.commitTransaction(TR6);
+        TransUtils.commitTransaction(TR7);
     }
 
     @AfterClass

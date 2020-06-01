@@ -77,7 +77,7 @@ public class Transaction20437A extends SdbTestBase {
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 200 ) );// 插入记录为0-200
         TransUtils.beginTransaction( sdb );
         expList.addAll( TransUtils.insertRandomDatas( cl, 200, 400 ) );// 插入记录为200-400
-        sdb.commit();
+        TransUtils.commitTransaction(sdb);
     }
 
     @DataProvider(name = "index")
@@ -117,7 +117,7 @@ public class Transaction20437A extends SdbTestBase {
         queryThread3.start();
 
         // 5.提交TW2,开启读事务TR4，所有读事务读记录
-        TW2.commit();
+        TransUtils.commitTransaction(TW2);
         TW2.close();
         TransUtils.beginTransaction( TR4 );
         expList = TransUtils.addList( expList, 400, 500 );
@@ -141,7 +141,7 @@ public class Transaction20437A extends SdbTestBase {
         queryThread5.start();
 
         // 7.提交TW3,开启读事务TR6,所有读事务读记录
-        TW3.commit();
+        TransUtils.commitTransaction(TW3);
         TW3.close();
         TransUtils.beginTransaction( TR6 );
         expList = TransUtils.addList( expList, 600, 700 );
@@ -165,7 +165,7 @@ public class Transaction20437A extends SdbTestBase {
         queryThread7.start();
 
         // 9.提交TW4,开启读事务TR8,所有读事务读记录
-        TW4.commit();
+        TransUtils.commitTransaction(TW4);
         TW4.close();
         TransUtils.beginTransaction( TR8 );
         expList = TransUtils.addList( expList, 800, 900 );
@@ -188,7 +188,7 @@ public class Transaction20437A extends SdbTestBase {
         queryThread9.start();
 
         // 11.提交事务TW1,开启读事务TR10,所有读事务读记录
-        TW1.commit();
+        TransUtils.commitTransaction(TW1);
         TW1.close();
         TransUtils.beginTransaction( TR10 );
         expList = TransUtils.addList( expList, 1000, 1100 );
@@ -227,25 +227,25 @@ public class Transaction20437A extends SdbTestBase {
 
     @AfterMethod
     public void tearDown() {
-        TR1.commit();
+        TransUtils.commitTransaction(TR1);
         TR1.close();
-        TR2.commit();
+        TransUtils.commitTransaction(TR2);
         TR2.close();
-        TR3.commit();
+        TransUtils.commitTransaction(TR3);
         TR3.close();
-        TR4.commit();
+        TransUtils.commitTransaction(TR4);
         TR4.close();
-        TR5.commit();
+        TransUtils.commitTransaction(TR5);
         TR5.close();
-        TR6.commit();
+        TransUtils.commitTransaction(TR6);
         TR6.close();
-        TR7.commit();
+        TransUtils.commitTransaction(TR7);
         TR7.close();
-        TR8.commit();
+        TransUtils.commitTransaction(TR8);
         TR8.close();
-        TR9.commit();
+        TransUtils.commitTransaction(TR9);
         TR9.close();
-        TR10.commit();
+        TransUtils.commitTransaction(TR10);
         TR10.close();
 
         sdb.getCollectionSpace( csName ).dropCollection( clName );

@@ -66,7 +66,7 @@ public class Transaction20451B extends SdbTestBase {
         clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r2s'}}",
                 "{'': 'a'}" );
-        TW1.commit();
+        TransUtils.commitTransaction(TW1);
 
         // 3 trans TR1 read
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
@@ -89,7 +89,7 @@ public class Transaction20451B extends SdbTestBase {
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
-        TR1.commit();
+        TransUtils.commitTransaction(TR1);
 
     }
 

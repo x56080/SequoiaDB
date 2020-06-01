@@ -109,7 +109,7 @@ public class Transaction20514 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        sdb.commit();
+        TransUtils.commitTransaction(sdb);
         cs.dropCollection( clName );
 
         if ( !sdb.isClosed() ) {

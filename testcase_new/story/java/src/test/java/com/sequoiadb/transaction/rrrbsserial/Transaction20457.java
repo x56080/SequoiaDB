@@ -53,7 +53,7 @@ public class Transaction20457 extends SdbTestBase {
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
                 TransUtils.beginTransaction( db1 );
                 cl.update( null, "{$inc:{a:1}}", null );
-                db1.commit();
+                TransUtils.commitTransaction( db1 );
             }
 
             // 作为后续事务查询的预期结果
@@ -69,14 +69,14 @@ public class Transaction20457 extends SdbTestBase {
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
                 TransUtils.beginTransaction( db1 );
                 cl1.update( null, "{$inc:{a:1}}", null );
-                db1.commit();
+                TransUtils.commitTransaction( db1 );
                 TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}",
                         expDataList );
                 System.out.println( "query exec: " + i + " times." );
             }
         } finally {
-            db1.commit();
-            db2.commit();
+            TransUtils.commitTransaction( db1 );
+            TransUtils.commitTransaction( db2 );
             db1.close();
             db2.close();
         }

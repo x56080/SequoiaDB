@@ -59,14 +59,14 @@ public class Transaction20541 extends SdbTestBase {
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'_id': 1}", "{'': 'a'}", expList1 );
 
-        TW1.commit();
+        TransUtils.commitTransaction(TW1);
 
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'_id': 1}", "{'': null}", expList1 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'_id': 1}", "{'': 'a'}", expList1 );
 
-        TR1.commit();
+        TransUtils.commitTransaction(TR1);
 
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'_id': 1}", "{'': null}", expList );

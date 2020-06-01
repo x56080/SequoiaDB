@@ -70,7 +70,7 @@ public class Transaction20449A extends SdbTestBase {
                 ( BSONObject ) JSON.parse(
                         "{'$inc':{a: 1}, '$set': {'b': 'update r2s to r4s'}}" ),
                 ( BSONObject ) JSON.parse( "{'': 'a'}" ) );
-        TW1.commit();
+        TransUtils.commitTransaction(TW1);
 
         // 1 trans TR1 read
         TransUtils.beginTransaction( TR1 );
@@ -79,7 +79,7 @@ public class Transaction20449A extends SdbTestBase {
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
-        TR1.commit();
+        TransUtils.commitTransaction(TR1);
     }
 
     @AfterClass
