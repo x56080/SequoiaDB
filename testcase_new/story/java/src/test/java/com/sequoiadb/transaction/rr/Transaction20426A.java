@@ -31,15 +31,17 @@ public class Transaction20426A extends SdbTestBase {
     private String clName = "cl_20426A";
     private DBCollection cl = null;
     private DBCollection cl1 = null;
-    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeMethod
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         db1 = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20426A", "{ a: 1 }", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
 
         expList.addAll( insertDatas( cl, 0, 100, 128 ) );
         TransUtils.beginTransaction( sdb );
@@ -87,7 +89,7 @@ public class Transaction20426A extends SdbTestBase {
 
     private List< BSONObject > insertDatas( DBCollection cl, int start, int end,
             int aLength ) {
-        List< BSONObject > records = new ArrayList< BSONObject >();
+        List< BSONObject > records = new ArrayList<>();
         for ( int i = start; i < end; i++ ) {
             String aValue = getRandomString( aLength );
             BSONObject object = ( BSONObject ) JSON.parse(

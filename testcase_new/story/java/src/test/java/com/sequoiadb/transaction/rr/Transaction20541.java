@@ -30,9 +30,13 @@ public class Transaction20541 extends SdbTestBase {
     private DBCollection clTW1 = null;
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
-        sdb.getCollectionSpace( csName ).createCollection( clName );
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .createCollection( clName );
+        cl.createIndex( "a", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
     }
 
     @Test
@@ -49,7 +53,7 @@ public class Transaction20541 extends SdbTestBase {
         List< BSONObject > expList = TransUtils.insertRandomDatas( clTW1, 0,
                 1000 );
 
-        List< BSONObject > expList1 = new ArrayList< >();
+        List< BSONObject > expList1 = new ArrayList<>();
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'_id': 1}", "{'': null}", expList1 );
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",

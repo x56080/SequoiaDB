@@ -37,10 +37,12 @@ public class Transaction20447B extends SdbTestBase {
     private List< BSONObject > expDataList = null;
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 
@@ -87,7 +89,7 @@ public class Transaction20447B extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         clT1.delete( "{'a': {'$gte': 1000, '$lt': 2000}}", "{'': 'a'}" );
-        List< BSONObject > T1ExpList = new ArrayList< >();
+        List< BSONObject > T1ExpList = new ArrayList<>();
         T1ExpList.addAll( expDataList );
         TransUtils.removeList( T1ExpList, 1000, 2000 );
 

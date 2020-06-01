@@ -28,10 +28,12 @@ public class Transaction20454 extends SdbTestBase {
     private List< BSONObject > expDataList = new ArrayList<>();
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
         expDataList = TransUtils.insertRandomLengthRecords( cl, recordNum, 10,
                 1024 );
 

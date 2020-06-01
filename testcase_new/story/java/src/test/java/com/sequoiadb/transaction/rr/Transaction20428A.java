@@ -71,7 +71,8 @@ public class Transaction20428A extends SdbTestBase {
     }
 
     @Test(dataProvider = "clNameProvider")
-    public void test( String clName, String indexKey ) {
+    public void test( String clName, String indexKey )
+            throws InterruptedException {
         if ( CommLib.isStandAlone( sdb ) ) {
             if ( clName.equals( mainCLName ) || clName.equals( hashCLName ) )
                 throw new SkipException( "is standalone skip testcase!" );
@@ -79,6 +80,8 @@ public class Transaction20428A extends SdbTestBase {
 
         cl = sdb.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", indexKey, false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
 
         TW1 = CommLib.getRandomSequoiadb();

@@ -30,10 +30,10 @@ public class Transaction21985 extends SdbTestBase {
     private String clName = "cl21985";
     private CollectionSpace cs = null;
     private DBCollection cl = null;
-    private List< BSONObject > expList = new ArrayList< >();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         db = CommLib.getRandomSequoiadb();
         if ( CommLib.isStandAlone( sdb ) ) {
@@ -45,8 +45,9 @@ public class Transaction21985 extends SdbTestBase {
 
         cs = sdb.getCollectionSpace( csName );
         cl = cs.createCollection( clName );
-        cl.createIndex( "idx18227", "{a:1}", true, false );
-
+        cl.createIndex( "a", "{a:1}", true, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
     }
 
     @AfterClass

@@ -34,8 +34,8 @@ public class Transaction22117 extends SdbTestBase {
     private DBCollection cl2;
     private String srcGroup;
     private String desGroup;
-    private List< BSONObject > expList1 = new ArrayList< BSONObject >();
-    private List< BSONObject > expList2 = new ArrayList< BSONObject >();
+    private List< BSONObject > expList1 = new ArrayList<>();
+    private List< BSONObject > expList2 = new ArrayList<>();
 
     @BeforeClass
     public void setUp() {
@@ -54,7 +54,7 @@ public class Transaction22117 extends SdbTestBase {
     }
 
     @Test
-    public void testCommit() {
+    public void testCommit() throws InterruptedException {
         cl1 = cs.createCollection( clName,
                 ( BSONObject ) JSON.parse( "{Group:'" + srcGroup + "'} " ) );
         cl2 = cs.createCollection( clName2,
@@ -62,6 +62,8 @@ public class Transaction22117 extends SdbTestBase {
                         "{ShardingKey:{'a':1},ShardingType:'range',Group:'"
                                 + srcGroup + "'}" ) );
         cl1.createIndex( "a", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
 
         expList1.clear();
         expList1 = TransUtils.insertRandomDatas( cl1, 0, 6 );

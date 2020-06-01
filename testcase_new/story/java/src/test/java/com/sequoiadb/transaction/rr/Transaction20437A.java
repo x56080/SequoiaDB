@@ -46,10 +46,10 @@ public class Transaction20437A extends SdbTestBase {
     private DBCollection cl2 = null;
     private DBCollection cl3 = null;
     private DBCollection cl4 = null;
-    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeMethod
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         TR1 = CommLib.getRandomSequoiadb();
         TW1 = CommLib.getRandomSequoiadb();
@@ -71,6 +71,8 @@ public class Transaction20437A extends SdbTestBase {
         cl3 = TW3.getCollectionSpace( csName ).getCollection( clName );
         cl4 = TW4.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20437A", "{ a: 1 }", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
 
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 200 ) );// 插入记录为0-200
         TransUtils.beginTransaction( sdb );
@@ -89,7 +91,7 @@ public class Transaction20437A extends SdbTestBase {
         // 1.开启读事务TR1，所有读事务读记录
         TransUtils.beginTransaction( TR1 );
         QueryThread queryThread1 = new QueryThread( TR1, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread1.start();
 
         // 2.开启写事务TW1
@@ -98,7 +100,7 @@ public class Transaction20437A extends SdbTestBase {
         // 3.开启读事务TR2，所有读事务读记录
         TransUtils.beginTransaction( TR2 );
         QueryThread queryThread2 = new QueryThread( TR2, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread2.start();
 
         // 4.开启写事务TW2,插入记录R5s，更新记录R1s为R6s，删除记录R2s，开启读事务TR3,所有读事务读记录
@@ -111,7 +113,7 @@ public class Transaction20437A extends SdbTestBase {
 
         TransUtils.beginTransaction( TR3 );
         QueryThread queryThread3 = new QueryThread( TR3, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread3.start();
 
         // 5.提交TW2,开启读事务TR4，所有读事务读记录
@@ -122,7 +124,7 @@ public class Transaction20437A extends SdbTestBase {
         expList = TransUtils.updateList( expList, 0, 100, 600 );
         expList = TransUtils.deleteList( expList, 100, 200 );
         QueryThread queryThread4 = new QueryThread( TR4, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread4.start();
 
         // 6.开启写事务TW3,插入记录R7s，更新R6s为R8s，删除记录R3s，开启读事务TR5,所有读事务读记录
@@ -135,7 +137,7 @@ public class Transaction20437A extends SdbTestBase {
 
         TransUtils.beginTransaction( TR5 );
         QueryThread queryThread5 = new QueryThread( TR5, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread5.start();
 
         // 7.提交TW3,开启读事务TR6,所有读事务读记录
@@ -146,7 +148,7 @@ public class Transaction20437A extends SdbTestBase {
         expList = TransUtils.updateList( expList, 0, 100, 800 );
         expList = TransUtils.deleteList( expList, 100, 200 );// 由于R2s被删除，所以删除的位置应该还是100-200
         QueryThread queryThread6 = new QueryThread( TR6, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread6.start();
 
         // 8.开启写事务TW4，插入记录R9s,更新R8s为R10s，删除记录R4s，开启读事务TR7,所有读事务读记录
@@ -159,7 +161,7 @@ public class Transaction20437A extends SdbTestBase {
 
         TransUtils.beginTransaction( TR7 );
         QueryThread queryThread7 = new QueryThread( TR7, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread7.start();
 
         // 9.提交TW4,开启读事务TR8,所有读事务读记录
@@ -170,7 +172,7 @@ public class Transaction20437A extends SdbTestBase {
         expList = TransUtils.updateList( expList, 0, 100, 900 );
         expList = TransUtils.deleteList( expList, 100, 200 );
         QueryThread queryThread8 = new QueryThread( TR8, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread8.start();
 
         // 10.TW1插入记录R11s，更新R10s为R12s,删除记录R5s+R7s+R9s,开启读事务TR9,所有读事务读记录
@@ -182,7 +184,7 @@ public class Transaction20437A extends SdbTestBase {
 
         TransUtils.beginTransaction( TR9 );
         QueryThread queryThread9 = new QueryThread( TR9, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread9.start();
 
         // 11.提交事务TW1,开启读事务TR10,所有读事务读记录
@@ -195,7 +197,7 @@ public class Transaction20437A extends SdbTestBase {
         expList = TransUtils.deleteList( expList, 100, 200 );
         expList = TransUtils.deleteList( expList, 100, 200 );
         QueryThread queryThread10 = new QueryThread( TR10, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread10.start();
 
         // 12.循环写事务操作，写操作覆盖：插入、更新、删除；写任意记录，过程中所有读事务读记录

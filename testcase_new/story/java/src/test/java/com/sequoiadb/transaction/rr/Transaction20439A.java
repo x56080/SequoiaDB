@@ -29,15 +29,17 @@ public class Transaction20439A extends SdbTestBase {
     private String clName = "cl_20439A";
     private DBCollection cl = null;
     private DBCollection cl1 = null;
-    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeMethod
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         db1 = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20439A", "{ a: 1 }", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
 
         // 1.分别在事务中及非事务中插入记录，为R1s
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );// 插入记录为0-50
@@ -48,7 +50,7 @@ public class Transaction20439A extends SdbTestBase {
 
     @DataProvider(name = "index")
     public Object[][] useIndex() {
-        return new Object[][] { { "{ \"\": \"index_20439\" }" },
+        return new Object[][] { { "{ \"\": \"index_20439A\" }" },
                 { "{ \"\": null }" } };
     }
 
@@ -133,7 +135,7 @@ public class Transaction20439A extends SdbTestBase {
 
     class QueryThread extends SdbThreadBase {
         private String hint;
-        private List< BSONObject > expList = new ArrayList< >();
+        private List< BSONObject > expList = new ArrayList<>();
 
         public QueryThread( String hint, List< BSONObject > expList ) {
             // TODO Auto-generated constructor stub

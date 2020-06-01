@@ -46,10 +46,10 @@ public class Transaction20437B extends SdbTestBase {
     private DBCollection cl2 = null;
     private DBCollection cl3 = null;
     private DBCollection cl4 = null;
-    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeMethod
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         TR1 = CommLib.getRandomSequoiadb();
         TW1 = CommLib.getRandomSequoiadb();
@@ -71,6 +71,8 @@ public class Transaction20437B extends SdbTestBase {
         cl3 = TW3.getCollectionSpace( csName ).getCollection( clName );
         cl4 = TW4.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20437B", "{ a: 1 }", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
 
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 200 ) );// 插入记录为0-200
         TransUtils.beginTransaction( sdb );
@@ -89,7 +91,7 @@ public class Transaction20437B extends SdbTestBase {
         // 1.开启读事务TR1，所有读事务读记录
         TransUtils.beginTransaction( TR1 );
         QueryThread queryThread1 = new QueryThread( TR1, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread1.start();
 
         // 2.开启写事务TW1
@@ -98,7 +100,7 @@ public class Transaction20437B extends SdbTestBase {
         // 3.开启读事务TR2，所有读事务读记录
         TransUtils.beginTransaction( TR2 );
         QueryThread queryThread2 = new QueryThread( TR2, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread2.start();
 
         // 4.开启写事务TW2,插入记录R5s，更新记录R1s为R6s，删除记录R2s，开启读事务TR3,所有读事务读记录
@@ -111,7 +113,7 @@ public class Transaction20437B extends SdbTestBase {
 
         TransUtils.beginTransaction( TR3 );
         QueryThread queryThread3 = new QueryThread( TR3, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread3.start();
 
         // 5.回滚TW2,开启读事务TR4，所有读事务读记录
@@ -131,7 +133,7 @@ public class Transaction20437B extends SdbTestBase {
 
         TransUtils.beginTransaction( TR5 );
         QueryThread queryThread5 = new QueryThread( TR5, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread5.start();
 
         // 7.回滚TW3,开启读事务TR6,所有读事务读记录
@@ -151,7 +153,7 @@ public class Transaction20437B extends SdbTestBase {
 
         TransUtils.beginTransaction( TR7 );
         QueryThread queryThread7 = new QueryThread( TR7, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread7.start();
 
         // 9.回滚TW4,开启读事务TR8,所有读事务读记录
@@ -170,7 +172,7 @@ public class Transaction20437B extends SdbTestBase {
 
         TransUtils.beginTransaction( TR9 );
         QueryThread queryThread9 = new QueryThread( TR9, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread9.start();
 
         // 11.回滚事务TW1,开启读事务TR10,所有读事务读记录
@@ -233,7 +235,7 @@ public class Transaction20437B extends SdbTestBase {
         private Sequoiadb db = null;
         private DBCollection cl = null;
         private String hint = null;
-        private List< BSONObject > expList = new ArrayList< >();
+        private List< BSONObject > expList = new ArrayList<>();
 
         public QueryThread( Sequoiadb db, String hint,
                 List< BSONObject > expList ) {

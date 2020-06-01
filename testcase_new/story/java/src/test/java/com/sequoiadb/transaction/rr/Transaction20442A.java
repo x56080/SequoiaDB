@@ -32,11 +32,11 @@ public class Transaction20442A extends SdbTestBase {
     private DBCollection cl = null;
     private DBCollection cl1 = null;
     private DBCollection cl2 = null;
-    private List< BSONObject > actList = new ArrayList< BSONObject >();
-    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > actList = new ArrayList<>();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeMethod
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         db1 = CommLib.getRandomSequoiadb();
         db2 = CommLib.getRandomSequoiadb();
@@ -44,6 +44,8 @@ public class Transaction20442A extends SdbTestBase {
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20442A", "{ a: 1 }", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
 
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );
         TransUtils.beginTransaction( sdb );
@@ -63,7 +65,7 @@ public class Transaction20442A extends SdbTestBase {
         TransUtils.beginTransaction( db1 );
 
         // TR1使用aggregate接口读记录
-        List< BSONObject > objects = new ArrayList< BSONObject >();
+        List< BSONObject > objects = new ArrayList<>();
         objects.add( ( BSONObject ) JSON.parse( "{ $sort: { _id: 1 } }" ) );
         DBCursor cursor = cl1.aggregate( objects );
         actList = TransUtils.getReadActList( cursor );

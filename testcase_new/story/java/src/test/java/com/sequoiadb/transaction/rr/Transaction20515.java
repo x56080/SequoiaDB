@@ -37,7 +37,7 @@ public class Transaction20515 extends SdbTestBase {
     private CollectionSpace cs;
     private String srcGroup;
     private String desGroup;
-    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeClass
     public void setUp() {
@@ -62,6 +62,8 @@ public class Transaction20515 extends SdbTestBase {
                         "{ShardingKey:{'b':1},ShardingType:'range',Group:'"
                                 + srcGroup + "'}" ) );
         cl.createIndex( "a", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
         expList.clear();
         expList = TransUtils.insertRandomDatas( cl, 0, 6 );
 
