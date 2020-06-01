@@ -33,10 +33,12 @@ public class Transaction20449B extends SdbTestBase {
     private List< BSONObject > expDataList = null;
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 
@@ -59,14 +61,14 @@ public class Transaction20449B extends SdbTestBase {
         TransUtils.beginTransaction( TW1 );
         clTW1.upsert(
                 ( BSONObject ) JSON.parse( "{'a': {'$gte': 0, '$lt': 1000}}" ),
-                ( BSONObject ) JSON
-                        .parse( "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r3s'}}" ),
+                ( BSONObject ) JSON.parse(
+                        "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r3s'}}" ),
                 ( BSONObject ) JSON.parse( "{'': 'a'}" ) );
         clTW1.upsert(
                 ( BSONObject ) JSON
                         .parse( "{'a': {'$gte': 2000, '$lt': 3000}}" ),
-                ( BSONObject ) JSON
-                        .parse( "{'$inc':{a: 1}, '$set': {'b': 'update r2s to r4s'}}" ),
+                ( BSONObject ) JSON.parse(
+                        "{'$inc':{a: 1}, '$set': {'b': 'update r2s to r4s'}}" ),
                 ( BSONObject ) JSON.parse( "{'': 'a'}" ) );
         TW1.rollback();
 

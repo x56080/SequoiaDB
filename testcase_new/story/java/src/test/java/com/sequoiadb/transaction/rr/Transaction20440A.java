@@ -32,10 +32,10 @@ public class Transaction20440A extends SdbTestBase {
     private Sequoiadb TW2 = null;
     private Sequoiadb TR3 = null;
     private Sequoiadb TR4 = null;
-    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeMethod
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         TR1 = CommLib.getRandomSequoiadb();
         TW1 = CommLib.getRandomSequoiadb();
@@ -49,6 +49,8 @@ public class Transaction20440A extends SdbTestBase {
             for ( int j = 0; j < 2; j++ ) {
                 DBCollection cl = cs.createCollection( "cl_20440A_" + j );
                 cl.createIndex( "index_20440A", "{ a: 1 }", false, false );
+                // 创建索引后，休眠0.1s，避免索引未创建完成
+                Thread.sleep( 100 );
 
                 // 1.分别在事务中及非事务中插入记录，R1s+R2s+R3s
                 TransUtils.insertRandomDatas( cl, 0, 100 );// 插入记录为0-100
@@ -73,7 +75,7 @@ public class Transaction20440A extends SdbTestBase {
         // 1.开启读事务TR1,所有事务读记录
         TransUtils.beginTransaction( TR1 );
         QueryThread queryThread1 = new QueryThread( TR1, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread1.start();
 
         // 2.开启写事务TW1，在多个集合下插入记录R4s，更新记录R1s为R5s,删除记录R2s，并提交
@@ -98,7 +100,7 @@ public class Transaction20440A extends SdbTestBase {
         expList = TransUtils.updateList( expList, 0, 100, 400 );
         expList = TransUtils.deleteList( expList, 100, 200 );
         QueryThread queryThread2 = new QueryThread( TR2, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread2.start();
 
         // 4.开启写事务TW2在多个集合下插入记录R6s,更新记录R5s为R7s,删除记录R3s;
@@ -117,7 +119,7 @@ public class Transaction20440A extends SdbTestBase {
         // 5.开启读事务TR3,所有读事务读记录
         TransUtils.beginTransaction( TR3 );
         QueryThread queryThread3 = new QueryThread( TR3, hint,
-                new ArrayList< BSONObject >( expList ) );
+                new ArrayList<>( expList ) );
         queryThread3.start();
 
         // 6.提交写事务TW2
@@ -162,7 +164,7 @@ public class Transaction20440A extends SdbTestBase {
     class QueryThread extends SdbThreadBase {
         private Sequoiadb db = null;
         private String hint = null;
-        private List< BSONObject > expList = new ArrayList< >();
+        private List< BSONObject > expList = new ArrayList<>();
 
         public QueryThread( Sequoiadb db, String hint,
                 List< BSONObject > expList ) {

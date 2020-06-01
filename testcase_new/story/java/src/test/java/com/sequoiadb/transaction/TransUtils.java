@@ -697,6 +697,23 @@ public class TransUtils extends SdbTestBase {
 
     }
 
+    public static void checkIndexScan( DBCollection cl, String matcher,
+            String selector, String orderBy, String hint ) {
+        DBCursor cur = cl.explain( ( BSONObject ) JSON.parse( matcher ),
+                ( BSONObject ) JSON.parse( selector ),
+                ( BSONObject ) JSON.parse( orderBy ),
+                ( BSONObject ) JSON.parse( hint ), 0, -1, 0,
+                new BasicBSONObject( "Run", false ) );
+        if ( !cur.hasNext() ) {
+            Assert.fail( "the query access plan did not return." );
+        }
+        while ( cur.hasNext() ) {
+            BSONObject explain = cur.getNext();
+            Assert.assertEquals( explain.get( "ScanType" ), "ixscan" );
+        }
+        cur.close();
+    }
+
     /**
      * 校验记录
      * 
@@ -705,6 +722,12 @@ public class TransUtils extends SdbTestBase {
     public static void checkRecord( DBCollection cl, String matcher,
             String selector, String orderBy, String hint,
             List< BSONObject > expList ) {
+        // 检查指定索引扫描时是否走了索引扫描
+        BSONObject hintType = ( BSONObject ) JSON.parse( hint );
+        if ( hintType.get( "" ) != null ) {
+            checkIndexScan( cl, matcher, selector, orderBy, hint );
+        }
+
         List< BSONObject > actList = queryToBSONList( cl, matcher, selector,
                 orderBy, hint );
         if ( actList.size() != expList.size() ) {
@@ -1092,7 +1115,7 @@ public class TransUtils extends SdbTestBase {
      * @Date 2018-11-15
      */
     public static List< String > getCLGroups( DBCollection cl ) {
-        List< String > groupNames = new ArrayList< String >();
+        List< String > groupNames = new ArrayList<>();
         Sequoiadb db = cl.getSequoiadb();
         if ( CommLib.isStandAlone( db ) ) {
             return groupNames;
@@ -1102,7 +1125,7 @@ public class TransUtils extends SdbTestBase {
         matcher.put( "Name", cl.getFullName() );
         DBCursor cur = db.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG, matcher,
                 null, null );
-        HashSet< String > groupNamesSet = new HashSet< String >();
+        HashSet< String > groupNamesSet = new HashSet<>();
         while ( cur.hasNext() ) {
             BasicBSONList bsonLists = ( BasicBSONList ) cur.getNext()
                     .get( "CataInfo" );

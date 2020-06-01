@@ -41,10 +41,12 @@ public class Transaction20450B extends SdbTestBase {
     private List< BSONObject > expDataList = null;
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 
@@ -74,11 +76,11 @@ public class Transaction20450B extends SdbTestBase {
         TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
-        List< BSONObject > actList = new ArrayList< >();
+        List< BSONObject > actList = new ArrayList<>();
         DBCursor cur = clTR1.queryAndUpdate( null, null,
                 new BasicBSONObject( "a", 1 ), new BasicBSONObject( "", "a" ),
-                ( BSONObject ) JSON
-                        .parse( "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r3s'}}" ),
+                ( BSONObject ) JSON.parse(
+                        "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r3s'}}" ),
                 0, -1, 0, false );
         while ( cur.hasNext() ) {
             actList.add( cur.getNext() );

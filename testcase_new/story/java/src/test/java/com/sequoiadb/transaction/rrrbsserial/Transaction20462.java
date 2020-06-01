@@ -26,15 +26,17 @@ public class Transaction20462 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private DBCollection cl = null;
     private int recordNum = 10000;
-    private ArrayList< BSONObject > expDataList = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > expDataList = new ArrayList<>();
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         cl = sdb.getCollectionSpace( csName ).createCollection( clName,
                 ( BSONObject ) JSON.parse( "{Compressed:false}" ) );
         cl.createIndex( "a", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
         TransUtils.insertRandomLengthRecords( cl, recordNum, 10, 1024 );
     }
 

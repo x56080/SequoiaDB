@@ -30,10 +30,12 @@ public class Transaction20475 extends SdbTestBase {
     private List< BSONObject > expDataList = null;
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 
@@ -175,7 +177,7 @@ public class Transaction20475 extends SdbTestBase {
     }
 
     private void insertDatas( DBCollection cl, int recordNums ) {
-        ArrayList< BSONObject > expDatas = new ArrayList< >();
+        ArrayList< BSONObject > expDatas = new ArrayList<>();
         for ( int i = -recordNums; i < recordNums; i++ ) {
             BSONObject data = ( BSONObject ) JSON.parse( "{_id:" + i + ", a:"
                     + i + ", b:'test trans rr mode" + i + "'}" );
