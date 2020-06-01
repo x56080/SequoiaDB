@@ -36,9 +36,9 @@ public class Transaction17102 extends SdbTestBase {
     private DBCollection cl1 = null;
     private DBCollection cl2 = null;
     private DBCollection cl3 = null;
-    private ArrayList< BSONObject > expList2 = new ArrayList< BSONObject >();
-    private ArrayList< BSONObject > expList3 = new ArrayList< BSONObject >();
-    private ArrayList< BSONObject > expList4 = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > expList2 = new ArrayList< >();
+    private ArrayList< BSONObject > expList3 = new ArrayList< >();
+    private ArrayList< BSONObject > expList4 = new ArrayList< >();
     private int startId = 0;
     private int stopId = 1000;
     private int updateValue = 20000;
@@ -109,6 +109,8 @@ public class Transaction17102 extends SdbTestBase {
         try {
             cl = sdb.getCollectionSpace( csName ).getCollection( clName );
             cl.createIndex( "a", indexKey, false, false );
+            // 创建索引后，休眠0.1s，避免索引未创建完成
+            Thread.sleep( 100 );
 
             // 开启3个并发事务
             TransUtils.beginTransaction( db1 );

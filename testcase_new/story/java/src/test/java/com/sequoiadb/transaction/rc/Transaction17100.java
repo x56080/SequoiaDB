@@ -36,10 +36,10 @@ public class Transaction17100 extends SdbTestBase {
     private DBCollection cl1 = null;
     private DBCollection cl2 = null;
     private DBCollection cl3 = null;
-    private ArrayList< BSONObject > expList1 = new ArrayList< BSONObject >();
-    private ArrayList< BSONObject > expList2 = new ArrayList< BSONObject >();
-    private ArrayList< BSONObject > expList3 = new ArrayList< BSONObject >();
-    private ArrayList< BSONObject > expList4 = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > expList1 = new ArrayList<>();
+    private ArrayList< BSONObject > expList2 = new ArrayList<>();
+    private ArrayList< BSONObject > expList3 = new ArrayList<>();
+    private ArrayList< BSONObject > expList4 = new ArrayList<>();
     private int startId1 = 0;
     private int stopId1 = 10;
     private int updateValue = 1000;
@@ -109,10 +109,13 @@ public class Transaction17100 extends SdbTestBase {
     }
 
     @Test(dataProvider = "index")
-    public void test( String indexKey, String clName ) {
+    public void test( String indexKey, String clName )
+            throws InterruptedException {
         try {
             cl = sdb.getCollectionSpace( csName ).getCollection( clName );
             cl.createIndex( "a", indexKey, false, false );
+            // 创建索引后，休眠0.1s，避免索引未创建完成
+            Thread.sleep( 100 );
 
             // 开启3个并发事务
             TransUtils.beginTransaction( db1 );
@@ -352,8 +355,8 @@ public class Transaction17100 extends SdbTestBase {
 
     private ArrayList< BSONObject > insertRandomDatas( DBCollection cl,
             int startId, int endId, int startValue ) throws BaseException {
-        ArrayList< BSONObject > insertDatas = new ArrayList< BSONObject >();
-        ArrayList< BSONObject > expDatas = new ArrayList< BSONObject >();
+        ArrayList< BSONObject > insertDatas = new ArrayList<>();
+        ArrayList< BSONObject > expDatas = new ArrayList<>();
         for ( int i = startId; i < endId; i++ ) {
             BSONObject data = ( BSONObject ) JSON.parse( "{_id:" + i + ",a:"
                     + ( startValue + i ) + ",b:" + ( startId + i ) + "}" );

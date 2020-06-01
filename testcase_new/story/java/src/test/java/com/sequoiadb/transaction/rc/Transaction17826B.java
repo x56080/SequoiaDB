@@ -42,7 +42,7 @@ public class Transaction17826B extends SdbTestBase {
     private BSONObject insertR1 = new BasicBSONObject();
     private BSONObject insertR2 = new BasicBSONObject();
     private BSONObject updateR2 = new BasicBSONObject();
-    private ArrayList< BSONObject > expList = new ArrayList< >();
+    private ArrayList< BSONObject > expList = new ArrayList<>();
     private String hintTbScan = "{\"\":null}";
     private String hintIxScan = "{\"\":\"a\"}";
     private String orderBy1 = "{a: 1, b: -1}";
@@ -67,7 +67,7 @@ public class Transaction17826B extends SdbTestBase {
     public Object[][] createIndex() {
 
         // 第一次非事务读查询的预期结果
-        List< BSONObject > expReadList = new ArrayList< >();
+        List< BSONObject > expReadList = new ArrayList<>();
         expReadList.add( updateR2 );
 
         return new Object[][] { { "{'a': 1}", expReadList },
@@ -86,6 +86,9 @@ public class Transaction17826B extends SdbTestBase {
         try {
             // 插入记录R1、R2
             cl.createIndex( "a", indexKey, false, false );
+            // 创建索引后，休眠0.1s，避免索引未创建完成
+            Thread.sleep( 100 );
+
             cl.insert( insertR2 );
             cl.insert( insertR1 );
 

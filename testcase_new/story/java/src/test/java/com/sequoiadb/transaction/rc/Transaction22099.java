@@ -27,17 +27,20 @@ import com.sequoiadb.transaction.TransUtils;
 public class Transaction22099 extends SdbTestBase {
     private Sequoiadb sdb;
     private String clName = "cl22099";
-    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > expList = new ArrayList<>();
     private DBCollection cl;
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a22099", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
+
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1,a:1,b:1}" );
         expList.add( record );
         cl.insert( record );
