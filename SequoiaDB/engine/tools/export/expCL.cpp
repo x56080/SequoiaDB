@@ -545,7 +545,7 @@ namespace exprt
                goto error ;
             }
          }
-         else if ( FORMAT_CSV == _options.type()  )
+         else if ( FORMAT_CSV == _options.type() )
          {
             const CHAR* pSelect = EXP_SELECT_WITHOUT_ID ;
             if ( _options.withId() ) 
@@ -577,6 +577,18 @@ namespace exprt
                        it->fullName().c_str() ) ;
                rc = SDB_INVALIDARG ;
                goto error ;
+            }
+         }
+         else if( FORMAT_JSON == _options.type() )
+         {
+            it->select = EXP_SELECT_WITHOUT_ID ;
+            if ( _options.withId() )
+            {
+               it->select = "" ; 
+            }
+            if ( !_options.select().empty() )
+            {
+               it->select = _options.select().c_str() ;
             }
          }
 

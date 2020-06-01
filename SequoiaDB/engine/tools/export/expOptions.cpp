@@ -433,6 +433,7 @@ namespace exprt
       WRITE_BOOL_OPTION( writeBuf, OPTION_SSL, _useSSL, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_FLOATFMT, _floatFmt, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_REPLACE, "", _has( OPTION_REPLACE ) ) ;
+      WRITE_BOOL_OPTION( writeBuf, OPTION_WITHID, _withId, _has(OPTION_WITHID) ) ;
 
       // json options
       WRITE_BOOL_OPTION( writeBuf, OPTION_STRICT, _strict, _has(OPTION_STRICT) ) ;
@@ -445,7 +446,6 @@ namespace exprt
       WRITE_BOOL_OPTION( writeBuf, OPTION_INCLUDEREGEX, _includeRegex, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_FORCE, _force, FALSE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_KICKNULL, _kickNull, TRUE ) ;
-      WRITE_BOOL_OPTION( writeBuf, OPTION_WITHID, _withId, FALSE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_CHECKDELIMETER, _strictCheckDel, TRUE ) ;
 
       // single collection options
@@ -1305,10 +1305,6 @@ namespace exprt
       {
          _strict = _get<bool>(OPTION_STRICT) ;
       }
-      if ( _has(OPTION_WITHID) )
-      {
-         _withId = _get<bool>(OPTION_WITHID) ;
-      }
 
       if ( _has(OPTION_TYPE) )
       {
@@ -1319,6 +1315,22 @@ namespace exprt
             cerr << "invalid value for option \"" << OPTION_TYPE << "\"" <<endl;
             PD_LOG( PDERROR, "invalid value for option \"" OPTION_TYPE "\"" ) ;
             goto error ;
+         }
+      }
+
+      if ( _has( OPTION_WITHID ) )
+      {
+         _withId = _get<bool>( OPTION_WITHID ) ;
+      }
+      else
+      {
+         if( FORMAT_CSV == _type )
+         {
+            _withId = FALSE ;
+         }
+         else if( FORMAT_JSON == _type )
+         {
+            _withId = TRUE ;
          }
       }
 
