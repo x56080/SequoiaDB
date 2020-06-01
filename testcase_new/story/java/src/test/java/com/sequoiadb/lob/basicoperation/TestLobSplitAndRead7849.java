@@ -61,14 +61,14 @@ public class TestLobSplitAndRead7849 extends SdbTestBase {
                 ( BSONObject ) JSON.parse( clOptions ) );
 
         // write lob
-        int lobtimes = 10;
+        int lobtimes = 100;
         writeLobAndGetMd5( cl, lobtimes );
     }
 
     @Test
     public void testSplitAndWrite() {
         ReadLobsTask readLobsTask = new ReadLobsTask();
-        readLobsTask.start( 10 );
+        readLobsTask.start( 100 );
         SplitCL splitCL = new SplitCL();
         splitCL.start();
         Assert.assertTrue( readLobsTask.isSuccess(),
@@ -162,7 +162,7 @@ public class TestLobSplitAndRead7849 extends SdbTestBase {
 
     private void writeLobAndGetMd5( DBCollection cl, int lobtimes ) {
         for ( int i = 0; i < lobtimes; i++ ) {
-            int writeLobSize = 1024 * 1024 * 10;
+            int writeLobSize = 1024 * 1024;
             byte[] wlobBuff = LobOprUtils.getRandomBytes( writeLobSize );
             ObjectId oid = LobOprUtils.createAndWriteLob( cl, wlobBuff );
 
