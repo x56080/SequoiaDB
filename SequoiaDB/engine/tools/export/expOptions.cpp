@@ -106,7 +106,7 @@ namespace exprt
    #define EXPLAIN_FILELIMIT        "the limit of max size for one file, in K/k/M/m/G/g, default: 16G"
    #define EXPLAIN_DELRECORD        "record delimiter, default: '\\n' "
    #define EXPLAIN_TYPE             "type of file to output, default: csv (json,csv)"
-   #define EXPLAIN_WITHID           "keep the fields with '_id' when force to export or generate the fields"  
+   #define EXPLAIN_WITHID           "keep the fields with '_id' when force to export or generate the fields"
    #define EXPLAIN_ERRORSTOP        "whether stop by hitting error, default false"
    #define EXPLAIN_SSL              "use SSL connection (arg: [true|false], e.g. --ssl true)"
    #define EXPLAIN_FIELDS           "field names for each collections, " \
@@ -185,15 +185,15 @@ namespace exprt
       ( OPTION_SORT,                   _TYPE(string),    EXPLAIN_SORT ) \
       ( OPTION_FILENAME,               _TYPE(string),    EXPLAIN_FILENAME ) \
       ( OPTION_SKIP,                   _TYPE(INT64),     EXPLAIN_SKIP ) \
-      ( OPTION_LIMIT,                  _TYPE(INT64),     EXPLAIN_LIMIT ) 
+      ( OPTION_LIMIT,                  _TYPE(INT64),     EXPLAIN_LIMIT )
 
    #define EXP_MULTI_COLLECTION_OPTIONS \
       ( OPTION_CSCL,                   _TYPE(string),    EXPLAIN_CSCL ) \
       ( OPTION_EXCLUDECSCL,            _TYPE(string),    EXPLAIN_EXCLUDECSCL ) \
-      ( OPTION_DIRNAME,                _TYPE(string),    EXPLAIN_DIRNAME ) 
+      ( OPTION_DIRNAME,                _TYPE(string),    EXPLAIN_DIRNAME )
 
    #define EXP_JSON_OPTIONS \
-      ( OPTION_STRICT,                 _TYPE(bool),      EXPLAIN_STRICT ) 
+      ( OPTION_STRICT,                 _TYPE(bool),      EXPLAIN_STRICT )
 
    #define EXP_CSV_OPTIONS \
       ( OPTION_DELCHAR",a",            _TYPE(string),    EXPLAIN_DELCHAR ) \
@@ -208,7 +208,7 @@ namespace exprt
    #define EXP_CONF_OPTIONS \
       ( OPTION_CONF,                   _TYPE(string),    EXPLAIN_CONF ) \
       ( OPTION_GENCONF,                _TYPE(string),    EXPLAIN_GENCONF ) \
-      ( OPTION_GENFIELDS,              _TYPE(bool),      EXPLAIN_GENFIELDS ) 
+      ( OPTION_GENFIELDS,              _TYPE(bool),      EXPLAIN_GENFIELDS )
 
    #define WRITE_STR_OPTION( buf, option, value, has ) \
       if ( has ) \
@@ -275,7 +275,7 @@ namespace exprt
       if      ( 'k' == last || 'K' == last ) { unit = 1024 ; }
       else if ( 'm' == last || 'M' == last ) { unit = 1024 * 1024 ; }
       else if ( 'g' == last || 'G' == last ) { unit = 1024 * 1024 * 1024 ; }
-      else 
+      else
       {
          PD_LOG( PDERROR, "Invalid value for filelimit" ) ;
          goto error ;
@@ -288,7 +288,7 @@ namespace exprt
       }
 
       fileLimit *= unit ;
-      
+
    done:
       return rc ;
    error:
@@ -346,7 +346,7 @@ namespace exprt
       return _cmdHas(OPTION_GENCONF) ;
    }
 
-   void expOptions::printHelpInfo() const 
+   void expOptions::printHelpInfo() const
    {
       po::options_description general("General Options") ;
       po::options_description sCL("Single-collection Options") ;
@@ -386,25 +386,25 @@ namespace exprt
       WRITE_BOOL_OPTION( writeBuf, OPTION_SSL, _useSSL, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_FLOATFMT, _floatFmt, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_REPLACE, "", _has( OPTION_REPLACE ) ) ;
+      WRITE_BOOL_OPTION( writeBuf, OPTION_WITHID, _withId, _has(OPTION_WITHID) ) ;
 
       // json options
       WRITE_BOOL_OPTION( writeBuf, OPTION_STRICT, _strict, _has(OPTION_STRICT) ) ;
 
       // csv options
-      WRITE_STR_OPTION( writeBuf, OPTION_DELCHAR, _delChar, TRUE ) ; 
-      WRITE_STR_OPTION( writeBuf, OPTION_DELFIELD, _delField, TRUE ) ; 
+      WRITE_STR_OPTION( writeBuf, OPTION_DELCHAR, _delChar, TRUE ) ;
+      WRITE_STR_OPTION( writeBuf, OPTION_DELFIELD, _delField, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_INCLUDE, _headLine, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_INCLUDEBINARY, _includeBinary, TRUE );
       WRITE_BOOL_OPTION( writeBuf, OPTION_INCLUDEREGEX, _includeRegex, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_FORCE, _force, FALSE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_KICKNULL, _kickNull, TRUE ) ;
-      WRITE_BOOL_OPTION( writeBuf, OPTION_WITHID, _withId, FALSE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_CHECKDELIMETER, _strictCheckDel, TRUE ) ;
 
       // single collection options
       WRITE_STR_OPTION( writeBuf, OPTION_COLLECTSPACE, _csName, _has(OPTION_COLLECTSPACE) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_COLLECTION, _clName, _has(OPTION_COLLECTION) ) ;
-      WRITE_STR_OPTION( writeBuf, OPTION_SELECT, _select, _has(OPTION_SELECT) ); 
+      WRITE_STR_OPTION( writeBuf, OPTION_SELECT, _select, _has(OPTION_SELECT) );
       WRITE_STR_OPTION( writeBuf, OPTION_FILTER, _filter, _has(OPTION_FILTER) );
       WRITE_STR_OPTION( writeBuf, OPTION_SORT,   _sort, _has(OPTION_SORT) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_FILENAME, _file,_has(OPTION_FILENAME));
@@ -430,7 +430,7 @@ namespace exprt
             writeBuf += OSS_NEWLINE ;
          }
       }
-      
+
       // write conf
       rc = utilWriteConfigFile( _genConf.c_str(), writeBuf.c_str(), TRUE ) ;
       if ( SDB_FE == rc )
@@ -443,7 +443,7 @@ namespace exprt
          PD_LOG( PDERROR, "Failed to write conf file, rc = ", rc ) ;
          goto error ;
       }
-      
+
    done:
       return rc ;
    error:
@@ -477,7 +477,7 @@ namespace exprt
          goto done ;
       }
 
-      rc = _setConfOptions() ; 
+      rc = _setConfOptions() ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to set conf options" ) ;
@@ -521,7 +521,7 @@ namespace exprt
          EXP_CSV_OPTIONS
          EXP_CONF_OPTIONS ;
 
-      rc = utilReadConfigureFile( fileName,_confDesc, _confVm ) ;
+      rc = utilReadConfigureFile( fileName, _confDesc, _confVm ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to Read conf file , rc = %d", rc ) ;
@@ -603,12 +603,12 @@ namespace exprt
          PD_LOG( PDERROR, "Invalid value for char" ) ;
          goto error ;
       }
-      
+
       if ( 3 == rawChar.size() && IS_HEX( rawChar[2] ) )
       {
          chr = (CHAR)hexValue( rawChar[2] ) ;
       }
-      else if ( 4 == rawChar.size() && 
+      else if ( 4 == rawChar.size() &&
                 IS_HEX( rawChar[2] ) && IS_HEX( rawChar[3] ) )
       {
          chr = (CHAR)( 16 * hexValue( rawChar[2] ) + hexValue( rawChar[3] ) );
@@ -619,7 +619,7 @@ namespace exprt
          goto error ;
       }
 
-         
+
    done:
       return rc ;
    error:
@@ -633,8 +633,8 @@ namespace exprt
       stringstream ss ;
       const CHAR* str = in.c_str() ;
       INT32 len = in.length() ;
-      BOOLEAN hasEscape = false ;
-      BOOLEAN hasHex = false ;
+      BOOLEAN hasEscape = FALSE ;
+      BOOLEAN hasHex = FALSE ;
 
       while ( len > 0 )
       {
@@ -764,11 +764,11 @@ namespace exprt
          len-- ;
       }
 
-      if ( true == hasEscape && true == hasHex )
+      if ( TRUE == hasEscape && TRUE == hasHex )
       {
-         cerr << "doesn't support value in mixed format for option \""  OPTION_DELFIELD "\"" 
+         cerr << "doesn't support value in mixed format for option \""  OPTION_DELFIELD "\""
               << endl ;
-         PD_LOG( PDERROR, "Doesn't support value in mixed format for option \""  
+         PD_LOG( PDERROR, "Doesn't support value in mixed format for option \""
                           OPTION_DELFIELD "\"" ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -783,7 +783,7 @@ namespace exprt
    }
 
    // check and set the delimiter options
-   INT32 expOptions::_setDelOptions() 
+   INT32 expOptions::_setDelOptions()
    {
       INT32 rc = SDB_OK ;
 
@@ -793,46 +793,46 @@ namespace exprt
       }
 
       if ( _has(OPTION_DELCHAR) )
-      { 
-         string rawStr = _get<string>(OPTION_DELCHAR) ; 
+      {
+         string rawStr = _get<string>(OPTION_DELCHAR) ;
 
          rc = _convertAsciiChar( rawStr, _delChar ) ;
 
          if ( SDB_OK != rc )
          {
-            cerr << "invalid value for option \""  OPTION_DELCHAR "\"" 
+            cerr << "invalid value for option \""  OPTION_DELCHAR "\""
                  << endl ;
-            PD_LOG( PDERROR, "Invalid value for option \""  
+            PD_LOG( PDERROR, "Invalid value for option \""
                              OPTION_DELCHAR "\"" ) ;
             goto error ;
          }
       }
       if ( _has(OPTION_DELFIELD) )
-      { 
+      {
          string rawStr = _get<string>(OPTION_DELFIELD) ;
 
          rc = _convertAsciiChar( rawStr, _delField ) ;
 
          if ( SDB_OK != rc )
          {
-            cerr << "invalid value for option \""  OPTION_DELFIELD "\"" 
+            cerr << "invalid value for option \""  OPTION_DELFIELD "\""
                  << endl ;
-            PD_LOG( PDERROR, "Invalid value for option \""  
+            PD_LOG( PDERROR, "Invalid value for option \""
                              OPTION_DELFIELD "\"" ) ;
             goto error ;
          }
       }
-      if ( _has(OPTION_DELRECORD) )   
-      { 
+      if ( _has(OPTION_DELRECORD) )
+      {
          string rawStr = _get<string>(OPTION_DELRECORD) ;
 
          rc = _convertAsciiChar( rawStr, _delRecord ) ;
 
          if ( SDB_OK != rc )
          {
-            cerr << "invalid value for option \""  OPTION_DELFIELD "\"" 
+            cerr << "invalid value for option \""  OPTION_DELFIELD "\""
                  << endl ;
-            PD_LOG( PDERROR, "Invalid value for option \""  
+            PD_LOG( PDERROR, "Invalid value for option \""
                              OPTION_DELFIELD "\"" ) ;
             goto error ;
          }
@@ -842,7 +842,7 @@ namespace exprt
       {
          cerr << "option \"" << OPTION_DELCHAR << "\" cant be same as "
               << "option \"" << OPTION_DELFIELD  << "\"" << endl ;
-         PD_LOG( PDERROR, "option \"%s\" cant be same as option \"%s\"", 
+         PD_LOG( PDERROR, "option \"%s\" cant be same as option \"%s\"",
                  OPTION_DELCHAR, OPTION_DELFIELD ) ;
          goto error ;
       }
@@ -850,7 +850,7 @@ namespace exprt
       {
          cerr << "option \"" << OPTION_DELCHAR << "\" cant be same as "
               << "option \"" << OPTION_DELRECORD  << "\"" << endl ;
-         PD_LOG( PDERROR, "option \"%s\" cant be same as option \"%s\"", 
+         PD_LOG( PDERROR, "option \"%s\" cant be same as option \"%s\"",
                  OPTION_DELCHAR, OPTION_DELRECORD ) ;
          goto error ;
       }
@@ -858,7 +858,7 @@ namespace exprt
       {
          cerr << "option \"" << OPTION_DELFIELD << "\" cant be same as "
               << "option \"" << OPTION_DELRECORD << "\"" << endl ;
-         PD_LOG( PDERROR, "option \"%s\" cant be same as option \"%s\"", 
+         PD_LOG( PDERROR, "option \"%s\" cant be same as option \"%s\"",
                  OPTION_DELFIELD, OPTION_DELRECORD ) ;
          goto error ;
       }
@@ -928,34 +928,34 @@ namespace exprt
    }
 
    // check and set the configure-file options
-   INT32 expOptions::_setConfOptions() 
+   INT32 expOptions::_setConfOptions()
    {
       INT32 rc = SDB_OK ;
 
       if ( _cmdHas(OPTION_CONF) && _cmdHas(OPTION_GENCONF) )
       {
          cerr << "option \"" << OPTION_CONF << "\" and "
-              << "option \"" << OPTION_GENCONF << "\" " 
+              << "option \"" << OPTION_GENCONF << "\" "
               << "cant be specified at the same time" << endl ;
          PD_LOG( PDERROR, "option \"%s\" and option \"%s\""
-                          "cant be specified at the same time", 
+                          "cant be specified at the same time",
                  OPTION_CONF, OPTION_GENCONF ) ;
          goto error ;
       }
 
-      if ( _cmdHas(OPTION_CONF) ) 
-      { 
-         _conf = _get<string>(OPTION_CONF) ; 
+      if ( _cmdHas(OPTION_CONF) )
+      {
+         _conf = _get<string>(OPTION_CONF) ;
       }
-      if ( _cmdHas(OPTION_GENCONF) ) 
-      { 
+      if ( _cmdHas(OPTION_GENCONF) )
+      {
          _genConf = _get<string>(OPTION_GENCONF) ;
       }
-      if ( _cmdHas(OPTION_GENFIELDS) ) 
-      { 
+      if ( _cmdHas(OPTION_GENFIELDS) )
+      {
          _genFields= _get<bool>(OPTION_GENFIELDS) ;
       }
-      
+
    done:
       return rc ;
    error:
@@ -963,28 +963,28 @@ namespace exprt
       goto done ;
    }
 
-   INT32 expOptions::_setFilePathOptions() 
+   INT32 expOptions::_setFilePathOptions()
    {
       INT32 rc = SDB_OK ;
       if ( _has(OPTION_FILENAME) && _has(OPTION_DIRNAME) )
       {
          cerr << "option \"" << OPTION_FILENAME << "\" and "
-              << "option \"" << OPTION_DIRNAME << "\" " 
+              << "option \"" << OPTION_DIRNAME << "\" "
               << "cant be specified at the same time" << endl ;
          PD_LOG( PDERROR, "option \"%s\" and option \"%s\""
-                          "cant be specified at the same time", 
+                          "cant be specified at the same time",
                  OPTION_FILENAME, OPTION_DIRNAME ) ;
          goto error ;
       }
-      else if ( !_has(OPTION_FILENAME) && 
+      else if ( !_has(OPTION_FILENAME) &&
                 !_has(OPTION_DIRNAME) &&
                 !_has(OPTION_GENCONF) )
       {
          cerr << "option \"" << OPTION_FILENAME << "\" or "
-              << "option \"" << OPTION_DIRNAME << "\" " 
+              << "option \"" << OPTION_DIRNAME << "\" "
               << "must be specified" << endl ;
          PD_LOG( PDERROR, "option \"%s\" or option \"%s\""
-                          "must be specified ", 
+                          "must be specified ",
                  OPTION_FILENAME, OPTION_DIRNAME ) ;
          goto error ;
       }
@@ -992,9 +992,9 @@ namespace exprt
       if ( _has(OPTION_DIRNAME) )
       {
          _dir = _get<string>(OPTION_DIRNAME) ;
-         if ( _dir.empty() ) 
-         { 
-            _dir = "."OSS_FILE_SEP ; 
+         if ( _dir.empty() )
+         {
+            _dir = "."OSS_FILE_SEP ;
          }
          else if( OSS_FILE_SEP_CHAR != _dir[ _dir.size() - 1 ] )
          {
@@ -1019,7 +1019,7 @@ namespace exprt
       {
          _file = _get<string>(OPTION_FILENAME) ;
       }
-      
+
    done:
       return rc ;
    error:
@@ -1028,7 +1028,7 @@ namespace exprt
    }
 
    // check and set the single collection options
-   INT32 expOptions::_setCollectionOptions() 
+   INT32 expOptions::_setCollectionOptions()
    {
       INT32 rc = SDB_OK ;
 
@@ -1036,10 +1036,10 @@ namespace exprt
       if ( ( !_has(OPTION_COLLECTSPACE) && _has(OPTION_COLLECTION) ) ||
            ( _has(OPTION_COLLECTSPACE) && !_has(OPTION_COLLECTION) ) )
       {
-         cerr << "option \"" << OPTION_COLLECTSPACE 
-              << "\" must be specified with " 
+         cerr << "option \"" << OPTION_COLLECTSPACE
+              << "\" must be specified with "
               << "option \"" << OPTION_COLLECTION << "\"" << endl ;
-         PD_LOG( PDERROR, "Option \"%s\" must be specified with option \"%s\"", 
+         PD_LOG( PDERROR, "Option \"%s\" must be specified with option \"%s\"",
                  OPTION_COLLECTSPACE, OPTION_COLLECTION ) ;
          goto error ;
       }
@@ -1063,18 +1063,18 @@ namespace exprt
       if ( _has(OPTION_SELECT) && _has(OPTION_FIELDS) )
       {
          cerr << "option \"" << OPTION_SELECT << "\" and "
-              << "option \"" << OPTION_FIELDS << "\" " 
+              << "option \"" << OPTION_FIELDS << "\" "
               << "cant be specified at the same time" << endl ;
          PD_LOG( PDERROR, "option \"%s\" and option \"%s\""
-                          "cant be specified at the same time", 
+                          "cant be specified at the same time",
                  OPTION_SELECT, OPTION_FIELDS ) ;
          goto error ;
       }
-      
-      if ( _has(OPTION_COLLECTSPACE) ) 
-      { 
+
+      if ( _has(OPTION_COLLECTSPACE) )
+      {
          _csName = _get<string>(OPTION_COLLECTSPACE) ;
-         _clName = _get<string>(OPTION_COLLECTION) ; 
+         _clName = _get<string>(OPTION_COLLECTION) ;
          _cscl =  _csName ;
          _cscl += "." ;
          _cscl += _clName ;
@@ -1100,12 +1100,12 @@ namespace exprt
          _limit = _get<INT64>( OPTION_LIMIT ) ;
       }
 
-      if ( _has(OPTION_CSCL) ) 
-      { 
-         _cscl = _get<string>(OPTION_CSCL) ; 
+      if ( _has(OPTION_CSCL) )
+      {
+         _cscl = _get<string>(OPTION_CSCL) ;
       }
-      if ( _has(OPTION_EXCLUDECSCL) ) 
-      { 
+      if ( _has(OPTION_EXCLUDECSCL) )
+      {
          _excludeCscl = _get<string>(OPTION_EXCLUDECSCL ) ;
       }
 
@@ -1115,14 +1115,14 @@ namespace exprt
          cmdCLFields = _cmdVm[OPTION_FIELDS].as< vector<string> >() ;
          _fields = _confVm[OPTION_FIELDS].as< vector<string> >() ;
          _fields.reserve( _fields.size() + cmdCLFields.size() ) ;
-         _fields.insert( _fields.begin(), 
+         _fields.insert( _fields.begin(),
                            cmdCLFields.begin(), cmdCLFields.end() ) ;
       }
       else if ( _has(OPTION_FIELDS) )
       {
          _fields = _get< vector<string> >(OPTION_FIELDS) ;
       }
-      
+
    done:
       return rc ;
    error:
@@ -1155,32 +1155,28 @@ namespace exprt
          _useSSL = _get<bool>(OPTION_SSL) ;
       }
       if ( _has(OPTION_INCLUDE) )
-      {  
+      {
          _headLine = _get<bool>(OPTION_INCLUDE) ;
       }
       if ( _has(OPTION_INCLUDEREGEX) )
-      {  
+      {
          _includeRegex = _get<bool>(OPTION_INCLUDEREGEX) ;
       }
       if ( _has(OPTION_INCLUDEBINARY) )
-      {  
+      {
          _includeBinary = _get<bool>(OPTION_INCLUDEBINARY) ;
       }
       if ( _has(OPTION_FORCE) )
-      {  
+      {
          _force = _get<bool>(OPTION_FORCE) ;
       }
       if ( _has(OPTION_KICKNULL) )
-      {  
+      {
          _kickNull = _get<bool>(OPTION_KICKNULL) ;
       }
       if ( _has(OPTION_STRICT) )
-      {  
+      {
          _strict = _get<bool>(OPTION_STRICT) ;
-      }
-      if ( _has(OPTION_WITHID) )
-      {  
-         _withId = _get<bool>(OPTION_WITHID) ;
       }
 
       if ( _has(OPTION_TYPE) )
@@ -1195,12 +1191,28 @@ namespace exprt
          }
       }
 
+      if ( _has( OPTION_WITHID ) )
+      {
+         _withId = _get<bool>( OPTION_WITHID ) ;
+      }
+      else
+      {
+         if( FORMAT_CSV == _type )
+         {
+            _withId = FALSE ;
+         }
+         else if( FORMAT_JSON == _type )
+         {
+            _withId = TRUE ;
+         }
+      }
+
       if ( _has(OPTION_FILELIMIT) )
       {
          rc = getFileLimit( _get<string>(OPTION_FILELIMIT), _fileLimit ) ;
          if ( SDB_OK != rc )
          {
-            cerr << "invalid value for option \"" 
+            cerr << "invalid value for option \""
                  << OPTION_FILELIMIT << "\"" <<endl;
             PD_LOG( PDERROR, "invalid value for option \""OPTION_FILELIMIT"\"");
             goto error ;
@@ -1224,19 +1236,19 @@ namespace exprt
          PD_LOG( PDERROR, "Failed to set del options" ) ;
          goto error ;
       }
-      rc = _setCollectionOptions() ; 
+      rc = _setCollectionOptions() ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to set collection options" ) ;
          goto error ;
       }
-      rc = _setFilePathOptions() ; 
+      rc = _setFilePathOptions() ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to set file-path options" ) ;
          goto error ;
       }
-      
+
    done:
       return rc ;
    error:

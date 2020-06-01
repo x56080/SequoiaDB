@@ -38,7 +38,7 @@ CSV（Comma Separated Value）导出格式以逗号分隔数值。默认情况�
 | --type      |      | 导出数据格式，为 csv 或 json，默认为 csv |
 | --filelimit |      | 指定单个导出文件的大小上限，单位可以为 k、K、M、m、G、g、T 或 t，默认值为 16G。<br>当导出文件将超过限制时，会切分为多个文件，具有编号后缀，如 file.csv，file.csv.1，file.csv.2 |
 | --fields    |      | 导出集合的字段。该选项可以指定多次以指定多个导出集合的字段。<br>格式为 ```[csName.clName:][field1[,...]]``` ，当确定只导出一个集合时，可以仅指定字段列表 ```[field1[,...]]``` |
-| --withid    |      | 强制导出或者在配置文件中生成字段时，是否包含 _id 字段，默认为false |
+| --withid    |      | 强制导出或者在配置文件中生成字段时，是否包含 _id 字段。<br>当 type 为 json 时，默认 true；当 type 为 csv 时，默认 false。 |
 | --floatfmt  |      | 指定浮点数格式，默认是 '%.16g'，输入 'db2' 表示 '%+.14E'，其他格式 %[+][.precision]\(f\|e\|E\|g\|G\) |
 | --ssl       |      | 使用 SSL 连接，默认 false |
 | --replace   |      | 覆盖导出数据文件 |
@@ -74,7 +74,7 @@ CSV（Comma Separated Value）导出格式以逗号分隔数值。默认情况�
 | --includebinary |      | 是否导出完整二进制数据，默认值为 false |
 | --includeregex  |      | 是否导出完整的正则表达式，默认值为 false |
 | --force         |      | 对于导出 csv 格式，每个集合必须指定对应的字段，否则不允许导出；<br>--force 选项可以强制导出，未指定字段的集合默认为第一行记录中除了 _id 以外的字段 |
-| --kicknull      |      | 是否踢掉null值，true输出空字符，false输出null，默认为false | 
+| --kicknull      |      | 是否踢掉 null 值，true 输出空字符，false 输出 null，默认为 false | 
 | --checkdelimeter|      | 是否严格校验分隔符，默认为 true。<br>true：禁止字符分隔符、字段分隔符、记录分隔符互相包含；<br>false：允许字符分隔符、字段分隔符、记录分隔符互相包含。|
 
 ###配置文件选项###
@@ -103,7 +103,7 @@ CSV（Comma Separated Value）导出格式以逗号分隔数值。默认情况�
 
 1.  导出集合“foo.bar”，导出格式为 csv，导出文件为“foo.bar.csv”，指定字段“field1”、“fieldNotExist”、“field3”，其中字段“fieldNotExist”在集合中不存在
 
-    ```lang-javascript
+    ```lang-bash
     $ sdbexprt -s localhost -p 11810 --type csv --file foo.bar.csv --fields field1,fieldNotExist,field3 -c foo -l bar
     ```
 
@@ -117,13 +117,13 @@ CSV（Comma Separated Value）导出格式以逗号分隔数值。默认情况�
 
 2.  导出数据库中所有的集合，排除集合空间“cs1”和集合“cs2.cla”以外，导出文件到目录“exportpath”下
 
-    ```lang-javascript
+    ```lang-bash
     $ sdbexprt --type json --dir exportpath --excludecscl cs1,cs2.cla
     ```
 
 3.  导出一个集合空间中所有的集合和另外一个集合，排除一个集合，导出 csv 格式，由于必须指定每一个集合的 --fields，使用 --force 选项强制导出
 
-    ```lang-javascript
+    ```lang-bash
     $ sdbexprt --dir exportpath --cscl cs1.cla,cs2 --excludecscl cs2.cla --force true
     ```
 
@@ -131,13 +131,13 @@ CSV（Comma Separated Value）导出格式以逗号分隔数值。默认情况�
 
     生成配置文件：
 
-    ```lang-javascript
+    ```lang-bash
     $ sdbexprt --dir exportpath --cscl cs1.cla,cs2 --excludecscl cs2.cla --genconf export.conf
     ```
 
     配置文件文件内容可能如下：
 
-    ```
+    ```lang-ini
     hostname = localhost
     ...
     dir = exportpath/
@@ -151,6 +151,6 @@ CSV（Comma Separated Value）导出格式以逗号分隔数值。默认情况�
 
     执行导出：
 
-    ```lang-javascript
+    ```lang-bash
     $ sdbexprt --conf export.conf
     ```
