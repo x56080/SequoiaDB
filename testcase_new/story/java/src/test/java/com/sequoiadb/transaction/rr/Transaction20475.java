@@ -63,7 +63,7 @@ public class Transaction20475 extends SdbTestBase {
             // 2 begin trans TW1
             TransUtils.beginTransaction( TW1 );
             clTW1.update( null, "{'$inc':{a: " + recordNum + "}}", null );
-            TW1.commit();
+            TransUtils.commitTransaction(TW1);
 
             // 3 trans TR2 read
             TransUtils.queryAndCheck( clTR1,
@@ -85,7 +85,7 @@ public class Transaction20475 extends SdbTestBase {
             TransUtils.beginTransaction( TW1 );
             clTW1.update( null, "{'$inc':{a: -" + recordNum + "}}", null );
             clTW1.update( null, "{'$inc':{a: 1}}", null );
-            TW1.commit();
+            TransUtils.commitTransaction(TW1);
 
             // 3 trans TR2 read
             TransUtils.queryAndCheck( clTR1,
@@ -108,7 +108,7 @@ public class Transaction20475 extends SdbTestBase {
             clTW1.update( null, "{'$inc':{a: -1}}", null );
             clTW1.update( null, "{'$inc':{a: -" + recordNum
                     + "}, '$set': {'b': 'update r1s to r4s'}}", null );
-            TW1.commit();
+            TransUtils.commitTransaction(TW1);
 
             // 3 trans TR2 read
             TransUtils.queryAndCheck( clTR1,
@@ -136,7 +136,7 @@ public class Transaction20475 extends SdbTestBase {
             TransUtils.beginTransaction( TW1 );
             clTW1.delete( "" );
             insertDatas( clTW1, recordNum );
-            TW1.commit();
+            TransUtils.commitTransaction(TW1);
 
             // 3 trans TR2 read
             TransUtils.queryAndCheck( clTR1,
@@ -160,8 +160,8 @@ public class Transaction20475 extends SdbTestBase {
                     "{'a': {'$gte': -" + recordNum + ", '$lt': 0}}", "{'a':1}",
                     "{'': 'a'}", new ArrayList< BSONObject >() );
         } finally {
-            TW1.commit();
-            TR1.commit();
+            TransUtils.commitTransaction(TW1);
+            TransUtils.commitTransaction(TR1);
             TW1.close();
             TR1.close();
         }

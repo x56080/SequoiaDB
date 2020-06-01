@@ -709,7 +709,18 @@ public class TransUtils extends SdbTestBase {
         }
         while ( cur.hasNext() ) {
             BSONObject explain = cur.getNext();
-            Assert.assertEquals( explain.get( "ScanType" ), "ixscan" );
+            if ( explain.containsField( "SubCollections" ) ) {
+                BasicBSONList subCollections = ( BasicBSONList ) explain
+                        .get( "SubCollections" );
+                for ( int i = 0; i < subCollections.size(); i++ ) {
+                    String scanType = ( String ) ( ( BSONObject ) subCollections
+                            .get( i ) ).get( "ScanType" );
+                    Assert.assertEquals( scanType, "ixscan" );
+                }
+            } else {
+                Assert.assertEquals( explain.get( "ScanType" ), "ixscan" );
+            }
+
         }
         cur.close();
     }
@@ -1019,6 +1030,20 @@ public class TransUtils extends SdbTestBase {
         // // 写入用例事务ID到节点日志
         // sequoiadb.msg( new Exception().getStackTrace()[ 1 ].getClassName()
         // + ": transID: " + transId );
+    }
+
+    /**
+     * @description提交事务后sleep 0.1s,避免从其他coord连过来的读事务，由于时间不同导致读不到记录
+     * @param sequoiadb
+     * @author zhaoyu
+     */
+    public static void commitTransaction( Sequoiadb sequoiadb ) {
+        sequoiadb.commit();
+        try {
+            Thread.sleep( 100 );
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+        }
     }
 
     /**

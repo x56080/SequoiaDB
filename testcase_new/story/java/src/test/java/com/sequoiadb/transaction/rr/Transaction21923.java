@@ -65,8 +65,8 @@ public class Transaction21923 extends SdbTestBase {
             checkAccessPlan( cl2, 1, "ixscan" );
 
         } finally {
-            T1.commit();
-            T2.commit();
+            TransUtils.commitTransaction(T1);
+            TransUtils.commitTransaction(T2);
         }
 
     }

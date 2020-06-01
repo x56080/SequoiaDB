@@ -63,7 +63,7 @@ public class Transaction20462 extends SdbTestBase {
                 String transID = TransUtils.getTransactionID( db1 );
                 System.out.println( "transID update:" + transID );
                 cl1.update( "", "{$inc:{a:1}}", "{'':'a'}" );
-                db1.commit();
+                TransUtils.commitTransaction( db1 );
 
             }
 
@@ -85,19 +85,19 @@ public class Transaction20462 extends SdbTestBase {
                 String transID = TransUtils.getTransactionID( db1 );
                 System.out.println( "transID update:" + transID );
                 cl1.update( "{a:{$gt:0}}", "{$inc:{a:1}}", "{'':'a'}" );
-                db1.commit();
+                TransUtils.commitTransaction( db1 );
 
                 DBCursor cursor = cl3.query( "", "", "{a:1}", "{'':null}" );
                 expDataList = TransUtils.getReadActList( cursor );
                 TransUtils.queryAndCheck( cl3, "{a:1}", "{'':'a'}",
                         expDataList );
-                db3.commit();
+                TransUtils.commitTransaction( db3 );
             }
 
         } finally {
-            db1.commit();
-            db2.commit();
-            db3.commit();
+            TransUtils.commitTransaction( db1 );
+            TransUtils.commitTransaction( db2 );
+            TransUtils.commitTransaction( db3 );
             db1.close();
             db2.close();
             db3.close();

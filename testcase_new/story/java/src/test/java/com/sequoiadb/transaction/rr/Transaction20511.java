@@ -113,7 +113,7 @@ public class Transaction20511 extends SdbTestBase {
                     expList );
 
             // 提交写事务TW1
-            sdbw.commit();
+            TransUtils.commitTransaction(sdbw);
 
             // 所有读事务读记录
             TransUtils.queryAndCheck( cl1, null, null, "{'':'_id:1'}",
@@ -124,10 +124,10 @@ public class Transaction20511 extends SdbTestBase {
                     expList );
         } finally {
 
-            sdb1.commit();
-            sdb2.commit();
-            sdb3.commit();
-            sdbw.commit();
+            TransUtils.commitTransaction( sdb1 );
+            TransUtils.commitTransaction( sdb2 );
+            TransUtils.commitTransaction(sdb3);
+            TransUtils.commitTransaction(sdbw);
 
             if ( !sdb1.isClosed() ) {
                 sdb1.close();

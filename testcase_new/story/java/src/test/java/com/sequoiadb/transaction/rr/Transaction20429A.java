@@ -215,7 +215,7 @@ public class Transaction20429A extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 10 commit TW3, trans TR6 read
-        TW3.commit();
+        TransUtils.commitTransaction(TW3);
         List< BSONObject > tw3ExpList = new ArrayList<>();
         tw3ExpList.addAll( expDataList );
         TransUtils.updateList( tw3ExpList, 1, "update r1s to r6s", 0, 1000 );
@@ -287,7 +287,7 @@ public class Transaction20429A extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", tw3ExpList );
 
         // 12 commit TW2, all trans read
-        TW2.commit();
+        TransUtils.commitTransaction(TW2);
         List< BSONObject > tw2ExpList = new ArrayList<>();
         tw2ExpList.addAll( tw3ExpList );
         TransUtils.updateList( tw2ExpList, 1, "update r6s to r8s", 0, 1000 );
@@ -367,7 +367,7 @@ public class Transaction20429A extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", tw2ExpList );
 
         // 14 commit TW1, begin trans TR9 read
-        TW1.commit();
+        TransUtils.commitTransaction(TW1);
         List< BSONObject > tw1ExpList = new ArrayList<>();
         tw1ExpList.addAll( tw2ExpList );
         TransUtils.updateList( tw1ExpList, 1, "update r8s to r10s", 0, 998 );
@@ -412,15 +412,15 @@ public class Transaction20429A extends SdbTestBase {
         TransUtils.queryAndCheck( clTR9, "{'a': {'$gte': 0, '$lt': 7000}}",
                 "{'_id': 1}", "{'': 'a'}", tw1ExpList );
 
-        TR1.commit();
-        TR2.commit();
-        TR3.commit();
-        TR4.commit();
-        TR5.commit();
-        TR6.commit();
-        TR7.commit();
-        TR8.commit();
-        TR9.commit();
+        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction(TR2);
+        TransUtils.commitTransaction(TR3);
+        TransUtils.commitTransaction(TR4);
+        TransUtils.commitTransaction(TR5);
+        TransUtils.commitTransaction(TR6);
+        TransUtils.commitTransaction(TR7);
+        TransUtils.commitTransaction(TR8);
+        TransUtils.commitTransaction(TR9);
     }
 
     @AfterClass

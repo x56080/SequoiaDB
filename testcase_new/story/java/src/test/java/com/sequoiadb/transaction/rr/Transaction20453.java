@@ -102,8 +102,8 @@ public class Transaction20453 extends SdbTestBase {
             Assert.assertEquals( accessPlanNum, 2 );
 
         } finally {
-            T1.commit();
-            T2.commit();
+            TransUtils.commitTransaction(T1);
+            TransUtils.commitTransaction(T2);
         }
 
     }

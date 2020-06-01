@@ -282,13 +282,13 @@ public class Transaction20433B extends SdbTestBase {
         TransUtils.queryAndCheck( clTR7, "{'a': {'$gte': 0, '$lt': 7000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
-        TR1.commit();
-        TR2.commit();
-        TR3.commit();
-        TR4.commit();
-        TR5.commit();
-        TR6.commit();
-        TR7.commit();
+        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction(TR2);
+        TransUtils.commitTransaction(TR3);
+        TransUtils.commitTransaction(TR4);
+        TransUtils.commitTransaction(TR5);
+        TransUtils.commitTransaction(TR6);
+        TransUtils.commitTransaction(TR7);
     }
 
     @AfterClass

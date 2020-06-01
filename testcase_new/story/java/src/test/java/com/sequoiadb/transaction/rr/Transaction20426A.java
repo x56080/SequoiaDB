@@ -46,7 +46,7 @@ public class Transaction20426A extends SdbTestBase {
         expList.addAll( insertDatas( cl, 0, 100, 128 ) );
         TransUtils.beginTransaction( sdb );
         expList.addAll( insertDatas( cl, 100, 200, 128 ) );
-        sdb.commit();
+        TransUtils.commitTransaction( sdb );
     }
 
     @DataProvider(name = "index")
@@ -79,7 +79,7 @@ public class Transaction20426A extends SdbTestBase {
     @AfterMethod
     public void tearDown() {
         // 提交查询事务
-        db1.commit();
+        TransUtils.commitTransaction(db1);
         db1.close();
 
         sdb.getCollectionSpace( csName ).dropCollection( clName );
@@ -140,7 +140,7 @@ public class Transaction20426A extends SdbTestBase {
                             "{ '$set': { a: '" + aValue + "' } }", hint );
 
                     // 提交更新事务
-                    db.commit();
+                    TransUtils.commitTransaction(db);
                     if ( doTimes == timeOut ) {
                         break;
                     } else {
@@ -148,7 +148,7 @@ public class Transaction20426A extends SdbTestBase {
                     }
                 }
             } finally {
-                db.commit();
+                TransUtils.commitTransaction(db);
                 db.close();
             }
         }

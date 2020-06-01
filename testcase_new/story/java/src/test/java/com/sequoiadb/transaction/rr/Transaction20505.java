@@ -62,7 +62,7 @@ public class Transaction20505 extends SdbTestBase {
                 "{'$inc': {'a': 1000}}}", "{'': 'a'}" );
         clTW1.update( "{'a': {'$gte': 1000, '$lt': 2000}}",
                 "{'$inc': {'a': -1000}}}", "{'': 'a'}" );
-        TW1.commit();
+        TransUtils.commitTransaction(TW1);
 
         // 3 begin trans TW2 upsert R1s to R3s
         TransUtils.beginTransaction( TW2 );
@@ -71,7 +71,7 @@ public class Transaction20505 extends SdbTestBase {
         clTW2.delete( "{'a': {'$gte': 1000, '$lt': 2000}}", "{'': 'a'}" );
         List< BSONObject > datas = TransUtils.getPrepareDatas( 2000 );
         clTW2.insert( datas );
-        TW2.commit();
+        TransUtils.commitTransaction(TW2);
 
         // 3 TR1 query records
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
@@ -79,7 +79,7 @@ public class Transaction20505 extends SdbTestBase {
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
-        TR1.commit();
+        TransUtils.commitTransaction(TR1);
     }
 
     @AfterClass

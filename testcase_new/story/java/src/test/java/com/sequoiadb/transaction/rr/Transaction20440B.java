@@ -56,7 +56,7 @@ public class Transaction20440B extends SdbTestBase {
                 TransUtils.insertRandomDatas( cl, 0, 100 );// 插入记录为0-100
                 TransUtils.beginTransaction( sdb );
                 TransUtils.insertRandomDatas( cl, 100, 200 );// 插入记录为100-200
-                sdb.commit();
+                TransUtils.commitTransaction(sdb);
                 TransUtils.insertRandomDatas( cl, 200, 300 );// 插入记录为200-300
             }
         }
@@ -138,13 +138,13 @@ public class Transaction20440B extends SdbTestBase {
 
     @AfterMethod
     public void tearDown() {
-        TR1.commit();
+        TransUtils.commitTransaction(TR1);
         TR1.close();
-        TR2.commit();
+        TransUtils.commitTransaction(TR2);
         TR2.close();
-        TR3.commit();
+        TransUtils.commitTransaction(TR3);
         TR3.close();
-        TR4.commit();
+        TransUtils.commitTransaction(TR4);
         TR4.close();
 
         for ( int i = 0; i < 2; i++ ) {

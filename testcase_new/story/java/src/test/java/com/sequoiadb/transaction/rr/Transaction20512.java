@@ -96,12 +96,12 @@ public class Transaction20512 extends SdbTestBase {
             expList2.add( ( BSONObject ) JSON.parse( "{_id:1, a:1, b:4}" ) );
             expList2.add( insertR3 );
 
-            sdbw1.commit();
+            TransUtils.commitTransaction(sdbw1);
 
             // 读事务TR1读记录,并提交
             TransUtils.queryAndCheck( cl1, null, null, "{'':'_id:1'}",
                     expList );
-            sdb1.commit();
+            TransUtils.commitTransaction( sdb1 );
 
             // 配置同一session为RC隔离级别，开启读事务TR2
             sdb1.setSessionAttr(
@@ -127,12 +127,12 @@ public class Transaction20512 extends SdbTestBase {
                     expList2 );
 
             // 写事务TW2提交
-            sdbw2.commit();
+            TransUtils.commitTransaction(sdbw2);
 
             // 读事务TR2读记录
             TransUtils.queryAndCheck( cl1, null, null, "{'':'_id:1'}",
                     expList3 );
-            sdb1.commit();
+            TransUtils.commitTransaction( sdb1 );
 
             // 配置同一session为RU隔离级别，开启读事务TR3
             sdb1.setSessionAttr(
@@ -156,17 +156,17 @@ public class Transaction20512 extends SdbTestBase {
             // 读事务TR3读记录
             TransUtils.queryAndCheck( cl1, null, null, "{'':'_id:1'}",
                     expList4 );
-            sdb1.commit();
+            TransUtils.commitTransaction( sdb1 );
 
             // 写事务TW3提交
-            sdbw3.commit();
+            TransUtils.commitTransaction(sdbw3);
 
         } finally {
 
-            sdb1.commit();
-            sdbw1.commit();
-            sdbw2.commit();
-            sdbw3.commit();
+            TransUtils.commitTransaction( sdb1 );
+            TransUtils.commitTransaction(sdbw1);
+            TransUtils.commitTransaction(sdbw2);
+            TransUtils.commitTransaction(sdbw3);
 
             if ( !sdb1.isClosed() ) {
                 sdb1.close();
@@ -188,7 +188,7 @@ public class Transaction20512 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        sdb.commit();
+        TransUtils.commitTransaction( sdb );
 
         CollectionSpace cs = sdb.getCollectionSpace( csName );
 

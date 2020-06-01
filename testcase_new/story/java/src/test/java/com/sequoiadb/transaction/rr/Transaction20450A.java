@@ -68,7 +68,7 @@ public class Transaction20450A extends SdbTestBase {
         clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r2s'}}",
                 "{'': 'a'}" );
-        TW1.commit();
+        TransUtils.commitTransaction(TW1);
         List< BSONObject > tw1ExpList = new ArrayList<>();
         tw1ExpList.addAll( expDataList );
         TransUtils.updateList( tw1ExpList, 1, "update r1s to r2s", 0, 1000 );
@@ -98,10 +98,10 @@ public class Transaction20450A extends SdbTestBase {
         updateThread.start();
         Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
-        TR1.commit();
+        TransUtils.commitTransaction(TR1);
 
         Assert.assertTrue( updateThread.isSuccess() );
-        TW2.commit();
+        TransUtils.commitTransaction(TW2);
         List< BSONObject > tw2ExpList = new ArrayList<>();
         tw2ExpList.addAll( tw1ExpList );
         TransUtils.updateList( tw2ExpList, 1, "update r1s to r3s", 0, 1000 );

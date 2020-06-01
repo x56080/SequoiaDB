@@ -128,7 +128,7 @@ public class Transaction20428A extends SdbTestBase {
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r5s'}}",
                 "{'': 'a'}" );
         clTW1.delete( "{'a': {'$gte': 1000, '$lt': 2000}}", "{'': 'a'}" );
-        TW1.commit();
+        TransUtils.commitTransaction(TW1);
         List< BSONObject > tw1ExpList = new ArrayList<>();
         tw1ExpList.addAll( expDataList );
         tw1ExpList.addAll( tw1InsertList );
@@ -179,7 +179,7 @@ public class Transaction20428A extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", tw1ExpList );
 
         // 8 commit TR2
-        TW2.commit();
+        TransUtils.commitTransaction(TW2);
         List< BSONObject > tw2ExpList = new ArrayList<>();
         tw2ExpList.addAll( tw1ExpList );
         tw2ExpList.addAll( tw2InsertList );
@@ -209,11 +209,11 @@ public class Transaction20428A extends SdbTestBase {
         TransUtils.queryAndCheck( clTR5, "{'a': {'$gte': 0, '$lt': 5000}}",
                 "{'_id': 1}", "{'': 'a'}", tw2ExpList );
 
-        TR1.commit();
-        TR2.commit();
-        TR3.commit();
-        TR4.commit();
-        TR5.commit();
+        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction(TR2);
+        TransUtils.commitTransaction(TR3);
+        TransUtils.commitTransaction(TR4);
+        TransUtils.commitTransaction(TR5);
     }
 
     @AfterClass

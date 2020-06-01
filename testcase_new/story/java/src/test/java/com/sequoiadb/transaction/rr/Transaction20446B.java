@@ -104,7 +104,7 @@ public class Transaction20446B extends SdbTestBase {
         TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 3000}}",
                 "{'_id': 1}", "{'': 'a'}", T1ExpList );
 
-        T1.commit();
+        TransUtils.commitTransaction(T1);
     }
 
     @AfterClass

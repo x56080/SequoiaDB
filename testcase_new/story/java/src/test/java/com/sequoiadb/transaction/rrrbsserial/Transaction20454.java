@@ -63,7 +63,7 @@ public class Transaction20454 extends SdbTestBase {
                 String transID2 = TransUtils.getTransactionID( db2 );
                 System.out.println( "transID update:" + transID2 );
                 cl2.update( null, "{$inc:{a:1}}", "{'':'a'}", 0 );
-                db2.commit();
+                TransUtils.commitTransaction( db2 );
 
                 TransUtils.queryAndCheck( cl1, "{a:1}", "{'':null}",
                         expDataList );
@@ -72,8 +72,8 @@ public class Transaction20454 extends SdbTestBase {
             }
 
         } finally {
-            db1.commit();
-            db2.commit();
+            TransUtils.commitTransaction( db1 );
+            TransUtils.commitTransaction( db2 );
             db1.close();
             db2.close();
         }

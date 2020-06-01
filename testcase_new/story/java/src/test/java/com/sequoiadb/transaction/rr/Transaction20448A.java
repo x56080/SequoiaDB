@@ -64,7 +64,7 @@ public class Transaction20448A extends SdbTestBase {
         TransUtils.beginTransaction( T2 );
         clT2.update( "{'a': {'$gte': 0, '$lt': 1000}}", "{'$inc': {'a': 1000}}",
                 "{'': 'a'}" );
-        T2.commit();
+        TransUtils.commitTransaction(T2);
 
         // T1 read
         TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
@@ -102,7 +102,7 @@ public class Transaction20448A extends SdbTestBase {
         TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
-        T1.commit();
+        TransUtils.commitTransaction(T1);
     }
 
     @AfterClass

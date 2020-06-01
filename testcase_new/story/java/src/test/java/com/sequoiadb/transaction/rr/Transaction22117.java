@@ -138,7 +138,7 @@ public class Transaction22117 extends SdbTestBase {
             }
 
             // 提交事务
-            db1.commit();
+            TransUtils.commitTransaction(db1);
 
             // 事务2读集合1中的记录
             TransUtils.queryAndCheck( cl21, null, "{_id:1}", "{'':null}",

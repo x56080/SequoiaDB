@@ -127,10 +127,10 @@ public class Transaction20472A extends SdbTestBase {
                         }
                     }
                     // 提交更新事务
-                    db.commit();
+                    TransUtils.commitTransaction(db);
                 }
             } finally {
-                db.commit();
+                TransUtils.commitTransaction(db);
                 db.close();
                 System.out.println( "testcase: "
                         + new Exception().getStackTrace()[ 0 ].getClassName()
@@ -157,7 +157,7 @@ public class Transaction20472A extends SdbTestBase {
                     Assert.assertEquals( actNums.size(), 1 );
                     double sumValue = ( double ) actNums.get( 0 ).get( "sum" );
                     int sum = ( int ) sumValue;
-                    db.commit();
+                    TransUtils.commitTransaction(db);
                     if ( sum != expSum ) {
                         throw new Exception(
                                 "TblScan check sum error, expect sum is "
@@ -186,7 +186,7 @@ public class Transaction20472A extends SdbTestBase {
                     Assert.assertEquals( actNums.size(), 1 );
                     sumValue = ( double ) actNums.get( 0 ).get( "sum" );
                     sum = ( int ) sumValue;
-                    db.commit();
+                    TransUtils.commitTransaction(db);
                     if ( sum != expSum ) {
                         throw new Exception(
                                 "IdxScan check sum error, expect sum is "
@@ -194,7 +194,7 @@ public class Transaction20472A extends SdbTestBase {
                     }
                 }
             } finally {
-                db.commit();
+                TransUtils.commitTransaction(db);
                 db.closeAllCursors();
                 db.close();
                 System.out.println( "testcase: "
@@ -220,7 +220,7 @@ public class Transaction20472A extends SdbTestBase {
 
                 }
             } finally {
-                db.commit();
+                TransUtils.commitTransaction(db);
                 db.close();
                 System.out.println( "testcase: "
                         + new Exception().getStackTrace()[ 0 ].getClassName()

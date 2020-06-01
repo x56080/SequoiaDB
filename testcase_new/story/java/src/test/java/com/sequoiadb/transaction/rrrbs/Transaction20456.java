@@ -68,7 +68,7 @@ public class Transaction20456 extends SdbTestBase {
 
                 // 写事务更新记录集合中的索引，并提交;
                 cl1.update( null, "{$inc:{a:1}}", null, 0 );
-                db1.commit();
+                TransUtils.commitTransaction( db1 );
 
                 // 读事务读记录并比较结果
                 DBCursor cursor = cl2.query( "", "", "{a:1}", "{'':null}" );
@@ -76,11 +76,11 @@ public class Transaction20456 extends SdbTestBase {
                         .getReadActList( cursor );
                 TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}",
                         expDataList );
-                db2.commit();
+                TransUtils.commitTransaction( db2 );
             }
         } finally {
-            db1.commit();
-            db2.commit();
+            TransUtils.commitTransaction( db1 );
+            TransUtils.commitTransaction( db2 );
             db1.close();
             db2.close();
         }

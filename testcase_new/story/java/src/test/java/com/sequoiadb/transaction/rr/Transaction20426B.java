@@ -46,7 +46,9 @@ public class Transaction20426B extends SdbTestBase {
         expList.addAll( insertDatas( cl, 0, 100, 128 ) );
         TransUtils.beginTransaction( sdb );
         expList.addAll( insertDatas( cl, 100, 200, 128 ) );
-        sdb.commit();
+        TransUtils.commitTransaction(sdb);
+        // 随机取coord，休眠0.1s，避免从别的coord发起的事务早于上一个事务
+        Thread.sleep( 100 );
     }
 
     @DataProvider(name = "index")
@@ -79,7 +81,7 @@ public class Transaction20426B extends SdbTestBase {
     @AfterMethod
     public void tearDown() {
         // 提交查询事务
-        db1.commit();
+        TransUtils.commitTransaction(db1);
         db1.close();
 
         sdb.getCollectionSpace( csName ).dropCollection( clName );
