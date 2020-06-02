@@ -38,7 +38,7 @@ public class Transaction20451B extends SdbTestBase {
     private List< BSONObject > expDataList = null;
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         mainCS = sdb.createCollectionSpace( csName );
         mainCL = mainCS.createCollection( mainCLName, ( BSONObject ) JSON.parse(
@@ -47,6 +47,9 @@ public class Transaction20451B extends SdbTestBase {
         mainCS.createCollection( subCLName2 );
         mainCL.attachCollection( csName + "." + subCLName1, ( BSONObject ) JSON
                 .parse( "{LowBound:{a: 0}, UpBound:{a: 2000}}" ) );
+        mainCL.createIndex( "a", "{a:-1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
         expDataList = TransUtils.prepareDatas( sdb, mainCL, recordNum );
     }
 
@@ -66,30 +69,30 @@ public class Transaction20451B extends SdbTestBase {
         clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r2s'}}",
                 "{'': 'a'}" );
-        TransUtils.commitTransaction(TW1);
+        TransUtils.commitTransaction( TW1 );
 
         // 3 trans TR1 read
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': null}", expDataList );
+                "{'a': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': 'a'}", expDataList );
+                "{'a': 1}", "{'': 'a'}", expDataList );
 
         // attachCL
         mainCL.attachCollection( csName + "." + subCLName2, ( BSONObject ) JSON
                 .parse( "{LowBound:{a: 2000}, UpBound:{a: 4000}}" ) );
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': null}", expDataList );
+                "{'a': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': 'a'}", expDataList );
+                "{'a': 1}", "{'': 'a'}", expDataList );
 
         // detachCL
         mainCL.detachCollection( csName + "." + subCLName2 );
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': null}", expDataList );
+                "{'a': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': 'a'}", expDataList );
+                "{'a': 1}", "{'': 'a'}", expDataList );
 
-        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction( TR1 );
 
     }
 

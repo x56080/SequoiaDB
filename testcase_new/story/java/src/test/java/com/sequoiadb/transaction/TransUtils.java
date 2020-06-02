@@ -630,7 +630,7 @@ public class TransUtils extends SdbTestBase {
     }
 
     /**
-     * 查询并检查记录正确性
+     * 查询并检查记录正确性，同时校验扫描方式
      * 
      * @param cl
      * @param hint
@@ -643,7 +643,7 @@ public class TransUtils extends SdbTestBase {
     }
 
     /**
-     * 查询并检查记录正确性
+     * 查询并检查记录正确性，同时校验扫描方式
      * 
      * @param cl
      * @param orderBy
@@ -657,7 +657,7 @@ public class TransUtils extends SdbTestBase {
     }
 
     /**
-     * 查询并检查记录正确性
+     * 查询并检查记录正确性，同时校验扫描方式
      * 
      * @param cl
      * @param matcher
@@ -667,6 +667,28 @@ public class TransUtils extends SdbTestBase {
      *            预期结果，记录 BSONObject 的 List
      */
     public static void queryAndCheck( DBCollection cl, String matcher,
+            String orderBy, String hint, List< BSONObject > expList ) {
+        // 检查指定索引扫描时是否走了索引扫描
+        BSONObject hintType = ( BSONObject ) JSON.parse( hint );
+        if ( hintType.get( "" ) != null ) {
+            checkIndexScan( cl, matcher, null, orderBy, hint );
+        }
+        List< BSONObject > actList = queryToBSONList( cl, matcher, null,
+                orderBy, hint );
+        Assert.assertEquals( actList, expList );
+    }
+
+    /**
+     * 查询并检查记录正确性，不校验扫描方式
+     * 
+     * @param cl
+     * @param matcher
+     * @param orderBy
+     * @param hint
+     * @param expList
+     *            预期结果，记录 BSONObject 的 List
+     */
+    public static void checkQueryResultOnly( DBCollection cl, String matcher,
             String orderBy, String hint, List< BSONObject > expList ) {
         List< BSONObject > actList = queryToBSONList( cl, matcher, null,
                 orderBy, hint );

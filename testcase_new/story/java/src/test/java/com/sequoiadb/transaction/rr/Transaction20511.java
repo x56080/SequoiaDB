@@ -97,37 +97,31 @@ public class Transaction20511 extends SdbTestBase {
 
             BSONObject insertR3 = ( BSONObject ) JSON
                     .parse( "{_id:3,a:3,b:3}" );
-            clw.update( "{a:1}", "{$set:{b:4}}", "{_id:1}" );
-            clw.delete( "{a:2}", "{_id:2}" );
+            clw.update( "{a:1}", "{$set:{b:4}}", "{'':null}" );
+            clw.delete( "{a:2}", "{'':null}" );
             clw.insert( insertR3 );
 
             expList2.add( ( BSONObject ) JSON.parse( "{_id:1, a:1, b:4}" ) );
             expList2.add( insertR3 );
 
             // 所有读事务读记录
-            TransUtils.queryAndCheck( cl1, null, null, "{'':'_id:1'}",
-                    expList2 );
-            TransUtils.queryAndCheck( cl2, null, null, "{'':'_id:1'}",
-                    expList );
-            TransUtils.queryAndCheck( cl3, null, null, "{'':'_id:1'}",
-                    expList );
+            TransUtils.queryAndCheck( cl1, null, null, "{'':null}", expList2 );
+            TransUtils.queryAndCheck( cl2, null, null, "{'':null}", expList );
+            TransUtils.queryAndCheck( cl3, null, null, "{'':null}", expList );
 
             // 提交写事务TW1
-            TransUtils.commitTransaction(sdbw);
+            TransUtils.commitTransaction( sdbw );
 
             // 所有读事务读记录
-            TransUtils.queryAndCheck( cl1, null, null, "{'':'_id:1'}",
-                    expList2 );
-            TransUtils.queryAndCheck( cl2, null, null, "{'':'_id:1'}",
-                    expList2 );
-            TransUtils.queryAndCheck( cl3, null, null, "{'':'_id:1'}",
-                    expList );
+            TransUtils.queryAndCheck( cl1, null, null, "{'':null}", expList2 );
+            TransUtils.queryAndCheck( cl2, null, null, "{'':null}", expList2 );
+            TransUtils.queryAndCheck( cl3, null, null, "{'':null}", expList );
         } finally {
 
             TransUtils.commitTransaction( sdb1 );
             TransUtils.commitTransaction( sdb2 );
-            TransUtils.commitTransaction(sdb3);
-            TransUtils.commitTransaction(sdbw);
+            TransUtils.commitTransaction( sdb3 );
+            TransUtils.commitTransaction( sdbw );
 
             if ( !sdb1.isClosed() ) {
                 sdb1.close();

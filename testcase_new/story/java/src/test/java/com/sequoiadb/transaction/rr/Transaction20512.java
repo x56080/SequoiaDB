@@ -89,18 +89,17 @@ public class Transaction20512 extends SdbTestBase {
 
             BSONObject insertR3 = ( BSONObject ) JSON
                     .parse( "{_id:3,a:3,b:3}" );
-            clw1.update( "{a:1}", "{$set:{b:4}}", "{_id:1}" );
-            clw1.delete( "{a:2}", "{_id:2}" );
+            clw1.update( "{a:1}", "{$set:{b:4}}", "{'':null}" );
+            clw1.delete( "{a:2}", "{'':null}" );
             clw1.insert( insertR3 );
 
             expList2.add( ( BSONObject ) JSON.parse( "{_id:1, a:1, b:4}" ) );
             expList2.add( insertR3 );
 
-            TransUtils.commitTransaction(sdbw1);
+            TransUtils.commitTransaction( sdbw1 );
 
             // 读事务TR1读记录,并提交
-            TransUtils.queryAndCheck( cl1, null, null, "{'':'_id:1'}",
-                    expList );
+            TransUtils.queryAndCheck( cl1, null, null, "{'':null}", expList );
             TransUtils.commitTransaction( sdb1 );
 
             // 配置同一session为RC隔离级别，开启读事务TR2
@@ -115,23 +114,21 @@ public class Transaction20512 extends SdbTestBase {
 
             BSONObject insertR5 = ( BSONObject ) JSON
                     .parse( "{_id:5,a:5,b:5}" );
-            clw2.update( "{a:1}", "{$set:{b:6}}", "{_id:1}" );
-            clw2.delete( "{a:3}", "{_id:3}" );
+            clw2.update( "{a:1}", "{$set:{b:6}}", "{'':null}" );
+            clw2.delete( "{a:3}", "{'':null}" );
             clw2.insert( insertR5 );
 
             expList3.add( ( BSONObject ) JSON.parse( "{_id:1, a:1, b:6}" ) );
             expList3.add( insertR5 );
 
             // 读事务TR2读记录
-            TransUtils.queryAndCheck( cl1, null, null, "{'':'_id:1'}",
-                    expList2 );
+            TransUtils.queryAndCheck( cl1, null, null, "{'':null}", expList2 );
 
             // 写事务TW2提交
-            TransUtils.commitTransaction(sdbw2);
+            TransUtils.commitTransaction( sdbw2 );
 
             // 读事务TR2读记录
-            TransUtils.queryAndCheck( cl1, null, null, "{'':'_id:1'}",
-                    expList3 );
+            TransUtils.queryAndCheck( cl1, null, null, "{'':null}", expList3 );
             TransUtils.commitTransaction( sdb1 );
 
             // 配置同一session为RU隔离级别，开启读事务TR3
@@ -146,27 +143,26 @@ public class Transaction20512 extends SdbTestBase {
 
             BSONObject insertR7 = ( BSONObject ) JSON
                     .parse( "{_id:7,a:7,b:7}" );
-            clw3.update( "{a:1}", "{$set:{b:8}}", "{_id:1}" );
-            clw3.delete( "{a:5}", "{_id:5}" );
+            clw3.update( "{a:1}", "{$set:{b:8}}", "{'':null}" );
+            clw3.delete( "{a:5}", "{'':null}" );
             clw3.insert( insertR7 );
 
             expList4.add( ( BSONObject ) JSON.parse( "{_id:1, a:1, b:8}" ) );
             expList4.add( insertR7 );
 
             // 读事务TR3读记录
-            TransUtils.queryAndCheck( cl1, null, null, "{'':'_id:1'}",
-                    expList4 );
+            TransUtils.queryAndCheck( cl1, null, null, "{'':null}", expList4 );
             TransUtils.commitTransaction( sdb1 );
 
             // 写事务TW3提交
-            TransUtils.commitTransaction(sdbw3);
+            TransUtils.commitTransaction( sdbw3 );
 
         } finally {
 
             TransUtils.commitTransaction( sdb1 );
-            TransUtils.commitTransaction(sdbw1);
-            TransUtils.commitTransaction(sdbw2);
-            TransUtils.commitTransaction(sdbw3);
+            TransUtils.commitTransaction( sdbw1 );
+            TransUtils.commitTransaction( sdbw2 );
+            TransUtils.commitTransaction( sdbw3 );
 
             if ( !sdb1.isClosed() ) {
                 sdb1.close();

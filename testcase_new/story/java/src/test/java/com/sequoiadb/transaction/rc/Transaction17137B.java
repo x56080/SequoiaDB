@@ -202,12 +202,12 @@ public class Transaction17137B extends SdbTestBase {
 
                     try {
                         // 正序查询
-                        TransUtils.queryAndCheck( dbcl, "{a :1}", "{'': 'a'}",
-                                positiveRsList );
+                        TransUtils.checkQueryResultOnly( dbcl, "", "{a :1}",
+                                "{'': 'a'}", positiveRsList );
 
                         // 逆序查询
-                        TransUtils.queryAndCheck( dbcl, "{a : -1}", "{'': 'a'}",
-                                reversedRsList );
+                        TransUtils.checkQueryResultOnly( dbcl, "", "{a : -1}",
+                                "{'': 'a'}", reversedRsList );
                     } catch ( BaseException e ) {
                         int actErrCode = e.getErrorCode();
                         if ( actErrCode != -48 && actErrCode != -52
