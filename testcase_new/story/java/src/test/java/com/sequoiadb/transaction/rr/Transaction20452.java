@@ -63,13 +63,13 @@ public class Transaction20452 extends SdbTestBase {
             TransUtils.beginTransaction( T2 );
 
             // 执行5次查询生成访问计划缓存
-            ArrayList< BSONObject > expList = new ArrayList< >();
+            ArrayList< BSONObject > expList = new ArrayList<>();
             for ( int i = 0; i < 5; i++ ) {
                 expList.clear();
                 BSONObject record = ( BSONObject ) JSON
                         .parse( "{_id:" + i + ",a:" + i + ",b:" + i + "}" );
                 expList.add( record );
-                TransUtils.queryAndCheck( cl, "{a:" + i + "}", "", "",
+                TransUtils.checkQueryResultOnly( cl, "{a:" + i + "}", "", "",
                         expList );
             }
             Boolean planValid = getAccessPlanValid( sdb,
@@ -83,8 +83,8 @@ public class Transaction20452 extends SdbTestBase {
             checkAccessPlan( cl2, 1, "HitCache" );
 
         } finally {
-            TransUtils.commitTransaction(T1);
-            TransUtils.commitTransaction(T2);
+            TransUtils.commitTransaction( T1 );
+            TransUtils.commitTransaction( T2 );
         }
 
     }

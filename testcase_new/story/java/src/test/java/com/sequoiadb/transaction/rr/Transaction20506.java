@@ -38,11 +38,11 @@ public class Transaction20506 extends SdbTestBase {
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         TransUtils.beginTransaction( sdb );
         expDataList = TransUtils.insertRandomDatas( cl, 0, 300 );
-        TransUtils.commitTransaction(sdb);
+        TransUtils.commitTransaction( sdb );
         expDataList.addAll( TransUtils.insertRandomDatas( cl, 300, 700 ) );
         TransUtils.beginTransaction( sdb );
         expDataList.addAll( TransUtils.insertRandomDatas( cl, 700, 1000 ) );
-        TransUtils.commitTransaction(sdb);
+        TransUtils.commitTransaction( sdb );
     }
 
     @Test
@@ -61,7 +61,7 @@ public class Transaction20506 extends SdbTestBase {
         // 3 begin trans TW1 upsert R1s to R3s
         TransUtils.beginTransaction( TW1 );
         clTW1.update( null, "{'$inc': {'a': 1}}}", "{'': 'a'}" );
-        TransUtils.commitTransaction(TW1);
+        TransUtils.commitTransaction( TW1 );
 
         // 4 create unique index
         cl.createIndex( "a", "{a: 1}", true, false );
@@ -70,25 +70,25 @@ public class Transaction20506 extends SdbTestBase {
 
         // 5 TR1 read
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': 'a'}", expDataList );
+                "{'a': 1}", "{'': null}", expDataList );
+        TransUtils.checkQueryResultOnly( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+                "{'a': 1}", "{'': 'a'}", expDataList );
 
         // 6 begin trans TW2 upsert R2s to R3s
         TransUtils.beginTransaction( TW2 );
         clTW2.update( null, "{'$inc': {'b': 1}}}", "{'': 'a'}" );
-        TransUtils.commitTransaction(TW2);
+        TransUtils.commitTransaction( TW2 );
 
         // 7 create unique index
         cl.createIndex( "b", "{b: 1}", true, false );
 
         // 3 TR1 query records
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': 'a'}", expDataList );
+                "{'a': 1}", "{'': null}", expDataList );
+        TransUtils.checkQueryResultOnly( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+                "{'a': 1}", "{'': 'a'}", expDataList );
 
-        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction( TR1 );
     }
 
     @AfterClass

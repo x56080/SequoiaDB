@@ -54,7 +54,7 @@ public class Transaction20453 extends SdbTestBase {
             cl.createIndex( "index20453_1", "{a:1}", false, false );
 
             // 创建索引的过程是同步的，不需要sleep，但是全局事务必须要考虑节点之间的时间差，因此，需要一个sleep时间
-            Thread.sleep( 1000 );
+            Thread.sleep( 100 );
 
             // 开启事务T1
             TransUtils.beginTransaction( T1 );
@@ -69,14 +69,14 @@ public class Transaction20453 extends SdbTestBase {
             TransUtils.beginTransaction( T2 );
 
             // 执行5次查询生成访问计划缓存
-            ArrayList< BSONObject > expList = new ArrayList< >();
+            ArrayList< BSONObject > expList = new ArrayList<>();
             for ( int i = 0; i < 5; i++ ) {
                 expList.clear();
                 BSONObject record = ( BSONObject ) JSON
                         .parse( "{_id:" + i + ",a:" + i + ",b:" + i + "}" );
                 expList.add( record );
-                TransUtils.queryAndCheck( cl, "{a:" + i + ",b:" + i + "}", "",
-                        "", expList );
+                TransUtils.checkQueryResultOnly( cl,
+                        "{a:" + i + ",b:" + i + "}", "", "", expList );
             }
             int accessPlanNum = getAccessPlanNum( sdb, csName + "." + clName );
             Assert.assertEquals( accessPlanNum, 1 );
@@ -92,18 +92,18 @@ public class Transaction20453 extends SdbTestBase {
             expList.clear();
             BSONObject record = ( BSONObject ) JSON.parse( "{_id:1,a:1,b:1}" );
             expList.add( record );
-            TransUtils.queryAndCheck( cl1, "{a:1}", "", "", expList );
+            TransUtils.checkQueryResultOnly( cl1, "{a:1}", "", "", expList );
             accessPlanNum = getAccessPlanNum( sdb, csName + "." + clName );
             Assert.assertEquals( accessPlanNum, 1 );
 
             // T2执行{a:1}的匹配查询，正常生成新的访问计划缓存
-            TransUtils.queryAndCheck( cl2, "{a:1}", "", "", expList );
+            TransUtils.checkQueryResultOnly( cl2, "{a:1}", "", "", expList );
             accessPlanNum = getAccessPlanNum( sdb, csName + "." + clName );
             Assert.assertEquals( accessPlanNum, 2 );
 
         } finally {
-            TransUtils.commitTransaction(T1);
-            TransUtils.commitTransaction(T2);
+            TransUtils.commitTransaction( T1 );
+            TransUtils.commitTransaction( T2 );
         }
 
     }
