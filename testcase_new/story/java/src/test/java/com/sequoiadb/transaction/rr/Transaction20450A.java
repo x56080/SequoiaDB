@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -13,6 +12,7 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.DBQuery;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
@@ -68,7 +68,7 @@ public class Transaction20450A extends SdbTestBase {
         clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r2s'}}",
                 "{'': 'a'}" );
-        TransUtils.commitTransaction(TW1);
+        TransUtils.commitTransaction( TW1 );
         List< BSONObject > tw1ExpList = new ArrayList<>();
         tw1ExpList.addAll( expDataList );
         TransUtils.updateList( tw1ExpList, 1, "update r1s to r2s", 0, 1000 );
@@ -80,11 +80,8 @@ public class Transaction20450A extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         List< BSONObject > actList = new ArrayList<>();
-        DBCursor cur = clTR1.queryAndUpdate( null, null,
-                new BasicBSONObject( "a", 1 ), new BasicBSONObject( "", "a" ),
-                ( BSONObject ) JSON.parse(
-                        "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r3s'}}" ),
-                0, -1, 0, false );
+        DBCursor cur = clTR1.query( null, null, new BasicBSONObject( "a", 1 ),
+                new BasicBSONObject( "", "a" ), DBQuery.FLG_QUERY_FOR_UPDATE );
         while ( cur.hasNext() ) {
             actList.add( cur.getNext() );
         }
@@ -98,18 +95,17 @@ public class Transaction20450A extends SdbTestBase {
         updateThread.start();
         Assert.assertTrue( TransUtils.isTransWaitLock( sdb, transactionID2 ) );
 
-        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction( TR1 );
 
         Assert.assertTrue( updateThread.isSuccess() );
-        TransUtils.commitTransaction(TW2);
+        TransUtils.commitTransaction( TW2 );
         List< BSONObject > tw2ExpList = new ArrayList<>();
         tw2ExpList.addAll( tw1ExpList );
-        TransUtils.updateList( tw2ExpList, 1, "update r1s to r3s", 0, 1000 );
-        TransUtils.updateList( tw2ExpList, 0, "update r2s to r3s", 0, 998 );
+        TransUtils.updateList( tw2ExpList, 0, "update r2s to r3s", 0, 999 );
 
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 2, '$lt': 1002}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1002}}",
                 "{'_id': 1}", "{'': null}", tw2ExpList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 2, '$lt': 1002}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1002}}",
                 "{'_id': 1}", "{'': 'a'}", tw2ExpList );
     }
 
