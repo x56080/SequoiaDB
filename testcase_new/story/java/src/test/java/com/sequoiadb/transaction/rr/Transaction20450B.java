@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -13,6 +12,7 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.DBQuery;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
@@ -77,11 +77,9 @@ public class Transaction20450B extends SdbTestBase {
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         List< BSONObject > actList = new ArrayList<>();
-        DBCursor cur = clTR1.queryAndUpdate( null, null,
-                new BasicBSONObject( "a", 1 ), new BasicBSONObject( "", "a" ),
-                ( BSONObject ) JSON.parse(
-                        "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r3s'}}" ),
-                0, -1, 0, false );
+        DBCursor cur = clTR1.query( null, null, new BasicBSONObject( "a", 1 ),
+                new BasicBSONObject( "", "a" ), DBQuery.FLG_QUERY_FOR_UPDATE );
+
         while ( cur.hasNext() ) {
             actList.add( cur.getNext() );
         }
