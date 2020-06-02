@@ -192,7 +192,8 @@ utilFiles = [
       "util/utilInsertResult.cpp",
       "util/utilResult.cpp",
       "util/utilTypeCast.c",
-      "util/utilLobID.cpp"
+      "util/utilLobID.cpp",
+      "util/utilCipher.c"
       ]
 
 rtnFiles = [
