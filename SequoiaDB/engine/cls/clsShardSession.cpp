@@ -899,7 +899,7 @@ namespace engine
             // try decrease time error
             gtsAgent->decNodeTimeError( acceptTimeError ) ;
 
-            PD_LOG( PDWARNING, "Global transaction times between nodes "
+            PD_LOG( PDDEBUG, "Global transaction times between nodes "
                     "pass synchronization check with node time error, "
                     "remote node %s is [%s], local node %s is [%s], "
                     "diff [%lld]",
