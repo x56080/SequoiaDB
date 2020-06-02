@@ -56,13 +56,13 @@ public class Transaction17123 extends SdbTestBase {
             }
 
             TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl2, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'$id'}", expDataList );
 
             sdb.rollback();
 
             TransUtils.queryAndCheck( cl2, "{'':null}",
                     new ArrayList< BSONObject >() );
-            TransUtils.queryAndCheck( cl2, "{'':'_id'}",
+            TransUtils.queryAndCheck( cl2, "{'':'$id'}",
                     new ArrayList< BSONObject >() );
         } finally {
             sdb.rollback();
@@ -89,11 +89,11 @@ public class Transaction17123 extends SdbTestBase {
             }
 
             TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl2, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'$id'}", expDataList );
 
             sdb.commit();
             TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl2, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'$id'}", expDataList );
         } finally {
             sdb.commit();
             sdb2.commit();

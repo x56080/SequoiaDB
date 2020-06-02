@@ -46,7 +46,7 @@ public class Transaction21879 extends SdbTestBase {
                 cl.delete( "" );
                 expDataList.clear();
                 TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-                TransUtils.queryAndCheck( cl, "{'':'_id'}", expDataList );
+                TransUtils.queryAndCheck( cl, "{'':'$id'}", expDataList );
             }
 
         } finally {
@@ -72,7 +72,8 @@ public class Transaction21879 extends SdbTestBase {
                 cl.delete( "" );
                 expDataList.clear();
                 TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-                TransUtils.queryAndCheck( cl, "{'':'a'}", expDataList );
+                TransUtils.queryAndCheck( cl, "{'':'" + idxName + "'}",
+                        expDataList );
             }
 
         } finally {

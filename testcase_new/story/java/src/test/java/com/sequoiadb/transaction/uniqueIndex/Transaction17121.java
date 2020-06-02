@@ -54,7 +54,7 @@ public class Transaction17121 extends SdbTestBase {
         }
 
         TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-        TransUtils.queryAndCheck( cl, "{'':'_id'}", expDataList );
+        TransUtils.queryAndCheck( cl, "{'':'$id'}", expDataList );
 
         cl.delete( "" );
         Assert.assertEquals( cl.getCount(), 0 );

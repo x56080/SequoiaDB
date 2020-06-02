@@ -59,14 +59,14 @@ public class Transaction17124 extends SdbTestBase {
             BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:'id17124_2'}" );
             expDataList.add( data2 );
             TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl2, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'$id'}", expDataList );
 
             sdb.rollback();
 
             expDataList.clear();
             expDataList.add( data );
             TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl, "{'':'$id'}", expDataList );
 
         } finally {
             sdb.rollback();
@@ -97,7 +97,7 @@ public class Transaction17124 extends SdbTestBase {
             BSONObject data2 = ( BSONObject ) JSON.parse( "{_id:'id17124_2'}" );
             expDataList.add( data2 );
             TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl2, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'$id'}", expDataList );
 
         } finally {
             sdb.commit();
