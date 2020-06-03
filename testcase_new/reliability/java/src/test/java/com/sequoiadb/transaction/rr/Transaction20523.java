@@ -40,6 +40,8 @@ import com.sequoiadb.transaction.common.TransUtil;
 public class Transaction20523 extends SdbTestBase {
     private String clName = "cl20523";
     private Sequoiadb sdb = null;
+    private String coordUrl;
+    private Sequoiadb db = null;
     private DBCollection cl = null;
     private GroupMgr groupMgr;
     private CollectionSpace cs = null;
@@ -48,6 +50,8 @@ public class Transaction20523 extends SdbTestBase {
     @BeforeClass
     public void setUp() throws ReliabilityException {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        coordUrl = TransUtil.getCoordUrl( sdb );
+        db = new Sequoiadb( coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -56,7 +60,7 @@ public class Transaction20523 extends SdbTestBase {
         if ( !groupMgr.checkBusiness( TransUtil.ClusterRestoreTimeOut ) ) {
             throw new SkipException( "GROUP ERROR" );
         }
-        cs = sdb.getCollectionSpace( csName );
+        cs = db.getCollectionSpace( csName );
         BSONObject clOption = ( BSONObject ) JSON.parse(
                 "{ShardingKey:{_id:1},ShardingType:'hash',AutoSplit:true}" );
         cl = cs.createCollection( clName, clOption );
@@ -67,10 +71,13 @@ public class Transaction20523 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() throws InterruptedException {
-        sdb.commit();
+        db.commit();
         cs.dropCollection( clName );
         if ( sdb != null ) {
             sdb.close();
+        }
+        if ( db != null ) {
+            db.close();
         }
     }
 
@@ -79,17 +86,16 @@ public class Transaction20523 extends SdbTestBase {
         // 获取组上的GlobLowTran及GlobExpireTran
         List< String > groupNames = groupMgr.getAllDataGroupName();
         BasicBSONList globTransIDGroups = TransRBS
-                .getGlobTransIDInDataGroup( sdb, groupNames );
+                .getGlobTransIDInDataGroup( db, groupNames );
 
         // 获取组上主节点的rbs最大集合id
-        BasicBSONList rbsCLNameInGroups = TransRBS.getMaxRBSCLInDataGroup( sdb,
+        BasicBSONList rbsCLNameInGroups = TransRBS.getMaxRBSCLInDataGroup( db,
                 groupNames );
 
-        sdb.beginTransaction();
+        db.beginTransaction();
 
         // 重启coord节点
-        NodeWrapper coordNode = TransUtil.getCoordNode(
-                new Sequoiadb( TransUtil.getCoordUrl( sdb ), "", "" ) );
+        NodeWrapper coordNode = TransUtil.getCoordNode( db );
 
         // 建立并行任务
         TaskMgr mgr = new TaskMgr();
@@ -107,10 +113,10 @@ public class Transaction20523 extends SdbTestBase {
                 TransUtil.ClusterRestoreTimeOut ), "GROUP ERROR" );
 
         // 事务查询报错
-        cl = sdb.getCollectionSpace( csName ).getCollection( clName );
+        cl = db.getCollectionSpace( csName ).getCollection( clName );
         try {
             cl.query();
-            Assert.fail( "Need throw error: -349" );
+            throw new BaseException( -1000, "Need throw error: -349" );
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(), -349 );
             sdb.rollback();
