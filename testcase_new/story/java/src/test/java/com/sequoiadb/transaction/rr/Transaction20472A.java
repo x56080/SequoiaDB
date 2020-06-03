@@ -81,7 +81,7 @@ public class Transaction20472A extends SdbTestBase {
     }
 
     private void insertData() {
-        List< BSONObject > records = new ArrayList< BSONObject >();
+        List< BSONObject > records = new ArrayList<>();
         for ( int i = 0; i < insertNum; i++ ) {
             BSONObject object = ( BSONObject ) JSON
                     .parse( "{_id:" + i + ", a:10000, b:" + i + "}" );
@@ -127,10 +127,10 @@ public class Transaction20472A extends SdbTestBase {
                         }
                     }
                     // 提交更新事务
-                    TransUtils.commitTransaction(db);
+                    TransUtils.commitTransaction( db );
                 }
             } finally {
-                TransUtils.commitTransaction(db);
+                TransUtils.commitTransaction( db );
                 db.close();
                 System.out.println( "testcase: "
                         + new Exception().getStackTrace()[ 0 ].getClassName()
@@ -157,7 +157,7 @@ public class Transaction20472A extends SdbTestBase {
                     Assert.assertEquals( actNums.size(), 1 );
                     double sumValue = ( double ) actNums.get( 0 ).get( "sum" );
                     int sum = ( int ) sumValue;
-                    TransUtils.commitTransaction(db);
+                    TransUtils.commitTransaction( db );
                     if ( sum != expSum ) {
                         throw new Exception(
                                 "TblScan check sum error, expect sum is "
@@ -186,7 +186,7 @@ public class Transaction20472A extends SdbTestBase {
                     Assert.assertEquals( actNums.size(), 1 );
                     sumValue = ( double ) actNums.get( 0 ).get( "sum" );
                     sum = ( int ) sumValue;
-                    TransUtils.commitTransaction(db);
+                    TransUtils.commitTransaction( db );
                     if ( sum != expSum ) {
                         throw new Exception(
                                 "IdxScan check sum error, expect sum is "
@@ -194,7 +194,7 @@ public class Transaction20472A extends SdbTestBase {
                     }
                 }
             } finally {
-                TransUtils.commitTransaction(db);
+                TransUtils.commitTransaction( db );
                 db.closeAllCursors();
                 db.close();
                 System.out.println( "testcase: "
@@ -208,19 +208,22 @@ public class Transaction20472A extends SdbTestBase {
         private Sequoiadb db = CommLib.getRandomSequoiadb();
 
         @ExecuteOrder(step = 1, desc = "删除索引")
-        private void dropIndex() {
+        private void dropIndex() throws InterruptedException {
             try {
                 for ( int i = 0; i < loopNum * 3; i++ ) {
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     cl.createIndex( idxName, indexKey, false, false );
+                    // 创建索引后，休眠0.1s，避免索引未创建完成
+                    Thread.sleep( 100 );
+
                     Assert.assertTrue( cl.isIndexExist( idxName ) );
                     cl.dropIndex( idxName );
                     Assert.assertFalse( cl.isIndexExist( idxName ) );
 
                 }
             } finally {
-                TransUtils.commitTransaction(db);
+                TransUtils.commitTransaction( db );
                 db.close();
                 System.out.println( "testcase: "
                         + new Exception().getStackTrace()[ 0 ].getClassName()

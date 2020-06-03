@@ -72,6 +72,8 @@ public class Transaction20471 extends SdbTestBase {
 
             // 创建索引
             cl.createIndex( idxName, indexKey, false, false );
+            // 创建索引后，休眠0.1s，避免索引未创建完成
+            Thread.sleep( 100 );
 
             // 开启 3 个并发事务
             ThreadExecutor threadExecutor = new ThreadExecutor( 3600000 );
@@ -88,7 +90,7 @@ public class Transaction20471 extends SdbTestBase {
     }
 
     private void insertData( DBCollection cl, int maxId ) {
-        List< BSONObject > records = new ArrayList< BSONObject >();
+        List< BSONObject > records = new ArrayList< >();
         for ( int i = 0; i < maxId; i++ ) {
             if ( i % 2 == 0 ) {
                 BSONObject object = ( BSONObject ) JSON
@@ -133,14 +135,14 @@ public class Transaction20471 extends SdbTestBase {
                             "{'':'" + idxName + "'}" );
                     // 提交、回滚更新事务
                     if ( aid % 2 == 0 ) {
-                        TransUtils.commitTransaction(db);
+                        TransUtils.commitTransaction( db );
                     } else {
                         db.rollback();
                     }
 
                 }
             } finally {
-                TransUtils.commitTransaction(db);
+                TransUtils.commitTransaction( db );
                 db.close();
                 System.out.println( "testcase: "
                         + new Exception().getStackTrace()[ 0 ].getClassName()
@@ -179,13 +181,13 @@ public class Transaction20471 extends SdbTestBase {
 
                     // 提交、回滚更新事务
                     if ( id % 2 == 0 ) {
-                        TransUtils.commitTransaction(db);
+                        TransUtils.commitTransaction( db );
                     } else {
                         db.rollback();
                     }
                 }
             } finally {
-                TransUtils.commitTransaction(db);
+                TransUtils.commitTransaction( db );
                 db.close();
                 System.out.println( "testcase: "
                         + new Exception().getStackTrace()[ 0 ].getClassName()
@@ -212,7 +214,7 @@ public class Transaction20471 extends SdbTestBase {
                     Assert.assertEquals( actNums.size(), 1 );
                     double sumValue = ( double ) actNums.get( 0 ).get( "sum" );
                     int sum = ( int ) sumValue;
-                    TransUtils.commitTransaction(db);
+                    TransUtils.commitTransaction( db );
                     if ( sum != expSum ) {
                         throw new Exception(
                                 "TblScan check sum error, expect sum is "
@@ -228,7 +230,7 @@ public class Transaction20471 extends SdbTestBase {
                     Assert.assertEquals( actNums.size(), 1 );
                     sumValue = ( double ) actNums.get( 0 ).get( "sum" );
                     sum = ( int ) sumValue;
-                    TransUtils.commitTransaction(db);
+                    TransUtils.commitTransaction( db );
                     if ( sum != expSum ) {
                         throw new Exception(
                                 "IdxScan check sum error, expect sum is "
@@ -237,7 +239,7 @@ public class Transaction20471 extends SdbTestBase {
 
                 }
             } finally {
-                TransUtils.commitTransaction(db);
+                TransUtils.commitTransaction( db );
                 db.closeAllCursors();
                 db.close();
                 System.out.println( "testcase: "

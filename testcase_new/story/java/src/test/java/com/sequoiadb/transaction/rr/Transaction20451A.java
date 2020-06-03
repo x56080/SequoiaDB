@@ -69,7 +69,7 @@ public class Transaction20451A extends SdbTestBase {
         clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r2s'}}",
                 "{'': 'a'}" );
-        TransUtils.commitTransaction(TW1);
+        TransUtils.commitTransaction( TW1 );
 
         // 3 trans TR1 read
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
@@ -104,6 +104,9 @@ public class Transaction20451A extends SdbTestBase {
 
         // createIndex
         cl.createIndex( "b", "{b: 1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
+
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
@@ -137,7 +140,7 @@ public class Transaction20451A extends SdbTestBase {
                 "{'_id': 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
-        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction( TR1 );
 
     }
 
