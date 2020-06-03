@@ -132,7 +132,7 @@ public class Transaction20515 extends SdbTestBase {
             TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':'a'}", expList );
 
             // 提交写事务T2
-            TransUtils.commitTransaction(db2);
+            TransUtils.commitTransaction( db2 );
 
             // 校验切分任务
             Assert.assertTrue( split.isSuccess(), split.getErrorMsg() );
@@ -191,7 +191,7 @@ public class Transaction20515 extends SdbTestBase {
                     .getCollection( clName );
             db5.beginTransaction();
             cl5.update( "", "{$inc:{a:1}}", null );
-            TransUtils.commitTransaction(db5);
+            TransUtils.commitTransaction( db5 );
 
             // 集合中记录正确
             expList1.clear();
@@ -232,6 +232,9 @@ public class Transaction20515 extends SdbTestBase {
                         "{ShardingKey:{'b':1},ShardingType:'range',Group:'"
                                 + srcGroup + "'}" ) );
         cl.createIndex( "a", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
+
         expList.clear();
         expList = TransUtils.insertRandomDatas( cl, 0, 6 );
 
@@ -357,7 +360,7 @@ public class Transaction20515 extends SdbTestBase {
                     .getCollection( clName );
             db5.beginTransaction();
             cl5.update( "", "{$inc:{a:1}}", null );
-            TransUtils.commitTransaction(db5);
+            TransUtils.commitTransaction( db5 );
 
             // 集合中记录正确
             expList1.clear();

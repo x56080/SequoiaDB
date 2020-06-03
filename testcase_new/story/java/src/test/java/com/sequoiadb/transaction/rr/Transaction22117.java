@@ -138,7 +138,7 @@ public class Transaction22117 extends SdbTestBase {
             }
 
             // 提交事务
-            TransUtils.commitTransaction(db1);
+            TransUtils.commitTransaction( db1 );
 
             // 事务2读集合1中的记录
             TransUtils.queryAndCheck( cl21, null, "{_id:1}", "{'':null}",
@@ -185,7 +185,7 @@ public class Transaction22117 extends SdbTestBase {
     }
 
     @Test
-    public void testRollback() {
+    public void testRollback() throws InterruptedException {
         cl1 = cs.createCollection( clName,
                 ( BSONObject ) JSON.parse( "{Group:'" + srcGroup + "'} " ) );
         cl2 = cs.createCollection( clName2,
@@ -193,6 +193,8 @@ public class Transaction22117 extends SdbTestBase {
                         "{ShardingKey:{'a':1},ShardingType:'range',Group:'"
                                 + srcGroup + "'}" ) );
         cl1.createIndex( "a", "{a:1}", false, false );
+        // 创建索引后，休眠0.1s，避免索引未创建完成
+        Thread.sleep( 100 );
 
         expList1.clear();
         expList1 = TransUtils.insertRandomDatas( cl1, 0, 6 );
