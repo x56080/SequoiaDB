@@ -107,7 +107,7 @@
         </packages>
     </test>
 
-    <test name="reliability_transaction_rcauto"preserve-order="true">
+    <test name="reliability_transaction_rrauto" preserve-order="true">
         <groups>
             <run>
                 <include name="rrauto" />
