@@ -1756,7 +1756,7 @@ namespace engine
       // try to update index rebuild time if needed
       if ( DPS_MAX_TRANS_TIME == indexCB->getRebuildTime() )
       {
-         dmsIndexBuilder::updateRebuildTime( mbContext, *indexCB ) ;
+         dmsIndexBuilder::updateRebuildTime( mbContext, *indexCB, FALSE ) ;
       }
 
    done :

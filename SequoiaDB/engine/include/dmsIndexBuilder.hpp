@@ -93,7 +93,8 @@ namespace engine
       // set rebuild time of index
       // WARNING: must have exclusive lock for mbContext
       static INT32 updateRebuildTime( _dmsMBContext* mbContext,
-                                      ixmIndexCB &indexCB ) ;
+                                      ixmIndexCB &indexCB,
+                                      BOOLEAN isEmpty ) ;
 
    protected:
       virtual INT32 _build() = 0 ;
