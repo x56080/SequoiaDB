@@ -86,14 +86,16 @@ namespace engine
       _pResult = pResult ;
    }
 
-   INT32 _dmsIndexBuilder::updateRebuildTime( dmsMBContext *mbContext,
-                                              ixmIndexCB &indexCB )
+   INT32 _dmsIndexBuilder::updateRebuildTime( _dmsMBContext* mbContext,
+                                              ixmIndexCB &indexCB,
+                                              BOOLEAN isEmpty )
    {
       INT32 rc = SDB_OK ;
 
       dpsTransCB *transCB = sdbGetTransCB() ;
       UINT64 rebuildTime = DPS_MIN_TRANS_TIME ;
       UINT64 currentRebuildTime = DPS_INVALID_TRANS_TIME ;
+      INT32 getTimeRC = SDB_OK ;
 
       SDB_ASSERT( NULL != mbContext, "meta-block context is invalid" ) ;
       SDB_ASSERT( mbContext->isMBLock( EXCLUSIVE ),
@@ -108,25 +110,32 @@ namespace engine
 
       currentRebuildTime = indexCB.getRebuildTime() ;
 
-      // only RR requires index rebuild time
-      // otherwise, set to invalid value, so all transaction could get access
-      // to this index
-      if ( transCB->isRRSupported() &&
-           DPS_MAX_TRANS_TIME == currentRebuildTime )
+      if ( DPS_MAX_TRANS_TIME == currentRebuildTime )
       {
-         stpAgent timeAgent ;
-         stpLogicalTimeUS logicalTime ;
-         if ( SDB_OK == timeAgent.getLogicalTimeUS( logicalTime,
-                                                    OSS_ONE_SEC,
-                                                    FALSE ) )
+         if ( isEmpty )
          {
-            rebuildTime = logicalTime.getTime() ;
+            // empty collection, so everyone is safe to access this index
+            // set index rebuild time to a minimum transaction time
+            rebuildTime = DPS_MIN_TRANS_TIME ;
          }
-         else
+         else if ( transCB->isRRSupported() )
          {
-            // failed to get logical time, set to max value, and later
-            // transactions could try to set rebuild time
-            rebuildTime = DPS_MAX_TRANS_TIME ;
+            // RR requires index rebuild time
+            stpAgent timeAgent ;
+            stpLogicalTimeUS logicalTime ;
+            getTimeRC = timeAgent.getLogicalTimeUS( logicalTime,
+                                                    OSS_ONE_SEC,
+                                                    FALSE ) ;
+            if ( SDB_OK == getTimeRC )
+            {
+               rebuildTime = logicalTime.getTime() ;
+            }
+            else
+            {
+               // failed to get logical time, set to max value, and later
+               // transactions could try to set rebuild time
+               rebuildTime = DPS_MAX_TRANS_TIME ;
+            }
          }
       }
 
@@ -144,6 +153,10 @@ namespace engine
       }
 
    done:
+      if ( SDB_OK == rc )
+      {
+         rc = getTimeRC ;
+      }
       return rc ;
 
    error:
@@ -259,7 +272,7 @@ namespace engine
          if ( sdbGetTransCB()->isRRSupported() )
          {
             // try to set rebuild logical time if global transaction enabled
-            updateRebuildTime( _mbContext, *_indexCB ) ;
+            updateRebuildTime( _mbContext, *_indexCB, TRUE ) ;
          }
 
          _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
@@ -279,6 +292,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       dpsTransCB *transCB = sdbGetTransCB() ;
+      BOOLEAN updatedRebuildTime = FALSE ;
 
       // if in global transaction, we need to update rebuild time in index
       // definition, so we need a exclusive lock
@@ -291,13 +305,24 @@ namespace engine
          if ( transCB->isRRSupported() )
          {
             // try to set rebuild logical time if global transaction enabled
-            updateRebuildTime( _mbContext, *_indexCB ) ;
+            if ( SDB_OK == updateRebuildTime( _mbContext, *_indexCB, FALSE ) )
+            {
+               updatedRebuildTime = TRUE ;
+            }
          }
 
          // set index normal to be used
          _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
          _indexCB->scanExtLID ( DMS_INVALID_EXTENT ) ;
          _mbContext->mbUnlock() ;
+
+         // if rebuild time is updated, make a sleep, so later transaction
+         // from the same session could use this index
+         if ( updatedRebuildTime &&
+              _eduCB->getTransExecutor()->useTransLock() )
+         {
+            ossSleep( STP_MICROSEC_TO_MILLISEC( STP_MAX_TIME_ERROR_US ) ) ;
+         }
       }
 
       return rc ;

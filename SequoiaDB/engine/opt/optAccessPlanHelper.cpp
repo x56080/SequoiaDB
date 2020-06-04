@@ -468,8 +468,7 @@ namespace engine
                       SDB_DMS_INVALID_INDEXCB, error, PDWARNING,
                       "Failed to get index CB, it is not initialized" ) ;
 
-            dmsIndexBuilder::updateRebuildTime( mbContext,
-                                                indexCB ) ;
+            dmsIndexBuilder::updateRebuildTime( mbContext, indexCB, FALSE ) ;
          }
       }
 
