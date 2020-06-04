@@ -2400,6 +2400,7 @@ INT32 getCiCollection( ciNode *master, const CHAR *csName,
          BOOLEAN csMatch     = FALSE ;
          BOOLEAN allMatch    = FALSE ;
          BOOLEAN inMainSubCl = FALSE ;
+         BOOLEAN skipSYSRBS  = FALSE ;
          std::string name    = collection.getField( "Name" ).String() ;
          std::size_t dot     = name.find( '.' ) ;
          if ( std::string::npos == dot )
@@ -2422,7 +2423,12 @@ INT32 getCiCollection( ciNode *master, const CHAR *csName,
                                          CI_CL_NAME_SIZE ) ) ) ;
          inMainSubCl = ( hasCs && hasCollection &&
                          isInMainSubCl( fullName, name.c_str(), mainCls ) ) ;
-         if ( !hasCs || csMatch || allMatch || inMainSubCl )
+         // skip SYSRBS if it is not specified
+         skipSYSRBS = ( !hasCs  &&
+                        ( 0 == ossStrncmp( SYSRBS_NAME, cs.c_str(),
+                                           (sizeof(SYSRBS_NAME) - 1) ) ) ) ;
+
+         if ( ( !hasCs && !skipSYSRBS ) || csMatch || allMatch || inMainSubCl )
          {
             ciCollection *cl = collections.createNode() ;
             if ( NULL == cl )
