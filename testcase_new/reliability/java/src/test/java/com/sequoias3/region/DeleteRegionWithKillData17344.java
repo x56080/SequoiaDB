@@ -46,7 +46,7 @@ public class DeleteRegionWithKillData17344 extends S3TestBase {
         }
     }
 
-    @Test
+    @Test // 可能遇到已知问题 SEQUOIADBMAINSTREAM-5197
     public void testDeleteRegion() throws Exception {
         TaskMgr mgr = new TaskMgr();
         GroupMgr groupMgr = GroupMgr.getInstance();
