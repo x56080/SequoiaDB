@@ -52,6 +52,7 @@
 #include "dpsUtil.hpp"
 #include "ossMem.hpp"
 #include "dmsRBSGCJob.hpp"
+#include "dmsRBSMgr.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
@@ -62,10 +63,14 @@ namespace fs = boost::filesystem ;
 namespace engine
 {
 
-   _dmsRBSSUMgr::_dmsRBSSUMgr ( SDB_DMSCB *dmsCB )
-      : _dmsSysSUMgr( dmsCB ),
+   // small wait time interval for rbs cl creation
+   #define DMS_RBS_CREATECL_SMALL_INTERVAL ( 1 )
+
+   _dmsRBSSUMgr::_dmsRBSSUMgr ()
+      : _dmsSysSUMgr( sdbGetDMSCB() ),
+        _index( 0 ),
+        _rbsMgr( NULL ),
         _latch( MON_LATCH_RBSSUMGR_LATCH ) ,
-        _numActiveGC( 0 ) ,
         _numSyncAddCL( 0 )
    {
       // By default, start with second collection as the first one stores meta
@@ -75,11 +80,12 @@ namespace engine
       _maxCollectionSize  = DMS_DFT_RBSCL_SIZE ;
 
       _preparedCollection = DMS_FIRST_RBS_CL ;
+      _prepInProgress = FALSE ;
    }
 
    // Initialization of RBS during node start up
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_INIT, "_dmsRBSSUMgr::init" )
-   SINT32 _dmsRBSSUMgr::init ()
+   SINT32 _dmsRBSSUMgr::init( _dmsRBSMgr *rbsMgr, UINT32 index )
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_INIT ) ;
       SINT32            rc    = SDB_OK ;
@@ -97,25 +103,32 @@ namespace engine
       SDB_DPSCB        *dpsCB = NULL ;
 
       SDB_ASSERT ( _dmsCB, "dmsCB can't be NULL" ) ;
+      SDB_ASSERT( NULL != rbsMgr, "rbsMgr is invalid" ) ;
+
+      _rbsMgr = rbsMgr ;
+
+      // initialize collection space name with index
+      _index = index ;
+      ossSnprintf( _metaCSName, 30, "%s%u", SDB_DMSRBS_NAME, index ) ;
 
       // exclusive lock temp cb. this function should be called during process
       // initialization, so it shouldn't be called in parallel by agents
       DMSSYSSUMGR_XLOCK() ;
 
       // first to load collection space
-      rc = rtnLoadCollectionSpace( SDB_DMSRBS_NAME,
+      rc = rtnLoadCollectionSpace( _metaCSName,
                                    pmdGetOptionCB()->getDbPath(),
                                    pmdGetOptionCB()->getIndexPath(),
                                    pmdGetOptionCB()->getLobPath(),
                                    pmdGetOptionCB()->getLobMetaPath(),
                                    NULL, _dmsCB, FALSE ) ;
       // FIXME: remove
-      PD_LOG ( PDDEBUG, "load RBS cs %s with rc:%d", SDB_DMSRBS_NAME, rc ) ;
+      PD_LOG ( PDDEBUG, "load RBS cs %s with rc:%d", _metaCSName, rc ) ;
 
       if ( SDB_OK == rc )
       {
          // Drop existing RBSCS
-         rc = rtnDelCollectionSpaceCommand( SDB_DMSRBS_NAME, NULL, _dmsCB,
+         rc = rtnDelCollectionSpaceCommand( _metaCSName, NULL, _dmsCB,
                                             dpsCB, TRUE, TRUE ) ;
          if ( rc )
          {
@@ -142,9 +155,9 @@ namespace engine
          pageSize = DMS_PAGE_SIZE_MAX ;
 #endif
          // Rollback Segment not exist, create one
-         PD_LOG ( PDDEBUG, "Creating RBS cs %s.", SDB_DMSRBS_NAME ) ;
+         PD_LOG ( PDDEBUG, "Creating RBS cs %s.", _metaCSName ) ;
 
-         rc = rtnCreateCollectionSpaceCommand( SDB_DMSRBS_NAME, NULL, _dmsCB,
+         rc = rtnCreateCollectionSpaceCommand( _metaCSName, NULL, _dmsCB,
                                                dpsCB, UTIL_UNIQUEID_NULL,
                                                pageSize,
                                                DMS_DO_NOT_CREATE_LOB,
@@ -157,12 +170,12 @@ namespace engine
             goto error ;
          }
 
-         rc = rtnCollectionSpaceLock ( SDB_DMSRBS_NAME, _dmsCB, TRUE,
+         rc = rtnCollectionSpaceLock ( _metaCSName, _dmsCB, TRUE,
                                        &_su, suID ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to get collection space and lock for %s, "
-                     "rc: %d", SDB_DMSRBS_NAME, rc ) ;
+                     "rc: %d", _metaCSName, rc ) ;
             goto error ;
          }
 
@@ -177,17 +190,6 @@ namespace engine
 
          // Memset hash bucket
          _rbsRecordBkt.reset() ;
-
-         // trigger GC background job, we will use the light weight background
-         // to run gc every minute
-         rc = dmsStartAsyncRBSGC() ;
-         if ( rc )
-         {
-            // log error message and reset to OK
-            PD_LOG ( PDWARNING, "Failed to trigger GC during start, rc=%d ",
-                     rc ) ;
-            rc = SDB_OK ;
-         }
       }
 
    done :
@@ -391,7 +393,7 @@ namespace engine
          _numSyncAddCL.inc() ;
 
          // trigger GC event,
-         if ( allowGC() )
+         if ( NULL != _rbsMgr && _rbsMgr->allowGC() )
          {
             rc = dmsStartAsyncRBSGC() ;
             if ( rc )
@@ -533,12 +535,6 @@ namespace engine
       goto done ;
    }
 
-   BOOLEAN _dmsRBSSUMgr::allowGC() 
-   {
-      // simple logic to only allow certain amount of light job tasks
-      return getNumActiveGC() < MAX_RBS_GC_TASK ;
-   }
-
    BOOLEAN _dmsRBSSUMgr::_needPrepareRBSCL( BOOLEAN latched ) 
    {
       BOOLEAN need = FALSE ;
@@ -648,13 +644,14 @@ namespace engine
    // 4. update bucket with the returned offset, unlock bucket
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSSUMGR_RBSAPPENDRECORD, "_dmsRBSSUMgr::rbsAppendRecord" )
    SINT32 _dmsRBSSUMgr::rbsAppendRecord ( dmsStorageUnitID   csid,
-                                       UINT16                clid,
-                                       UINT32                clLID,
-                                       const dmsRecordID    &rid,
-                                       DPS_TRANS_ID         &recordTransID,
-                                       DPS_TRANS_ID         &ownerTransID,
-                                       const BSONObj        &data,
-                                       dmsTransLockCallback * callback )
+                                          UINT16                clid,
+                                          UINT32                clLID,
+                                          const dmsRecordID    &rid,
+                                          UINT32               bucketID,
+                                          DPS_TRANS_ID         &recordTransID,
+                                          DPS_TRANS_ID         &ownerTransID,
+                                          const BSONObj        &data,
+                                          dmsTransLockCallback * callback )
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_RBSAPPENDRECORD );
       SINT32        rc          = SDB_OK ;
@@ -669,7 +666,7 @@ namespace engine
       // If we decide to life this restriction, we will setup the proper dpsCB
       //SDB_DPSCB    *dpsCB = pmdGetKRCB()->getDPSCB() ;
       SDB_DPSCB    *dpsCB = NULL ;
-      UINT32        bkt          = _hash( csid, clid, rid );
+      UINT32        bkt          = bucketID ;
       BSONObjBuilder builder ;
       utilInsertResult insertResult ;
       BSONObj       record ;
@@ -818,6 +815,7 @@ namespace engine
                                        UINT16            clid,
                                        UINT32            clLID,
                                        dmsRecordID      &rid,
+                                       UINT32             bucketID,
                                        DPS_TRANS_ID     &transid,
                                        BOOLEAN          &found,
                                        dmsRecordData    &recordData,
@@ -827,7 +825,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_RBSGETRECORD );
       SINT32        rc         = SDB_OK ;
-      UINT32        bkt        = _hash( csid, clid, rid );
+      UINT32        bkt        = bucketID ;
       dmsMBContext *context    = NULL ;
       pmdEDUCB     *eduCB      = pmdGetThreadEDUCB() ;
       dmsRecordRW   recordRW ;
@@ -1359,9 +1357,6 @@ namespace engine
 #ifdef _DEBUG
       PD_LOG( PDDEBUG, "RBS GC on index trees." ) ;
 #endif
-
-      // clean up in memory index tree nodes
-      sdbGetTransCB()->getOldVCB()->gcIdxTrees( ) ;
 
    done:
 

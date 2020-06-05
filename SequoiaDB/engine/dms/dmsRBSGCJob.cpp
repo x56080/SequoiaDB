@@ -40,14 +40,14 @@
 #include "pmd.hpp"
 #include "dmsCB.hpp"
 #include "dmsRBSGCJob.hpp"
-#include "dmsRBSSUMgr.hpp"
+#include "dmsRBSMgr.hpp"
 #include "dmsTrace.hpp"
 #include "pdTrace.hpp"
 
 namespace engine
 {
 
-   _dmsRBSGCJob::_dmsRBSGCJob( _dmsRBSSUMgr  *rbsSUMgr )
+   _dmsRBSGCJob::_dmsRBSGCJob( _dmsRBSMgr  *rbsSUMgr )
    {
       _rbsSUMgr = rbsSUMgr ;
       _rbsSUMgr->incActiveGC() ;

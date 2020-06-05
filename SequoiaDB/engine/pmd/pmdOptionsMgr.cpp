@@ -110,6 +110,8 @@ namespace engine
    #define PMD_DFT_PREFINST_PERIOD     ( PREFER_INSTANCE_DEF_PERIOD )
    #define PMD_DFT_MAX_CONN            (0)   // unlimited
    #define PMD_DFT_LOGWRITEMOD         ( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR )
+   #define PMD_DFT_MVCCRBSNUM          ( 16 )
+   #define PMD_MAX_MVCCRBSNUM          ( 128 )
    /*
       _pmdCfgExchange implement
    */
@@ -1979,6 +1981,8 @@ done:
       ossMemset( _krcbConfFile, 0, sizeof( _krcbConfFile ) ) ;
       ossMemset( _krcbCatFile, 0, sizeof( _krcbCatFile ) ) ;
       _krcbSvcPort    = OSS_DFT_SVCPORT ;
+      _mvccRBSNum     = PMD_DFT_MVCCRBSNUM ;
+
       _invalidConfNum = 0 ;
    }
 
@@ -2474,6 +2478,11 @@ done:
                  sizeof( _serviceMaskStr ), FALSE, PMD_CFG_CHANGE_REBOOT,
                  PMD_SVC_MASK_NONE_STR ) ;
 
+      // --mvccrbsnum
+      rdxUInt( pEX, PMD_OPTION_MVCCRBSNUM, _mvccRBSNum, FALSE,
+               PMD_CFG_CHANGE_REBOOT, PMD_DFT_MVCCRBSNUM, TRUE ) ;
+      rdvMinMax( pEX, _mvccRBSNum, 1, PMD_MAX_MVCCRBSNUM, TRUE ) ;
+
       // end map
 
       return getResult () ;
@@ -2555,6 +2564,20 @@ done:
          std::cerr << PMD_OPTION_MVCCON << " value error, use default"
                    << endl ;
          _mvccOn = FALSE ;
+      }
+      // for catalog, om, coord, no need to use mvcc
+      if ( SDB_ROLE_CATALOG == dbRole ||
+           SDB_ROLE_OM == dbRole ||
+           SDB_ROLE_COORD == dbRole )
+      {
+         _mvccOn = FALSE ;
+      }
+      // number of MVCC RBS collection spaces should be power of 2
+      if ( !ossIsPowerOf2( _mvccRBSNum ) )
+      {
+         // cut to power or 2
+         UINT32 tmpNum = ossNextPowerOf2( _mvccRBSNum ) ;
+         _mvccRBSNum = tmpNum >> 1 ;
       }
 
       // globtranson check, requires transactionon

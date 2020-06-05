@@ -98,7 +98,7 @@ namespace engine
     _nullCSUniqueIDCnt( 0 ),
     _tempSUMgr( this ),
     _statSUMgr( this ),
-    _rbsSUMgr( this ),
+    _rbsSUMgr(),
     _localSUMgr( this ),
     _ixmKeySorterCreator( NULL )
    {
@@ -170,7 +170,7 @@ namespace engine
       // check if MVCC is supported
       if ( pmdGetOptionCB()->mvccOn() )
       {
-         rc = _rbsSUMgr.init() ;
+         rc = _rbsSUMgr.init( pmdGetOptionCB()->mvccRBSNum() ) ;
       }
 
       rc = _localSUMgr.init() ;
@@ -2927,7 +2927,7 @@ namespace engine
       return &_statSUMgr ;
    }
 
-   _dmsRBSSUMgr *_SDB_DMSCB::getRBSSUMgr ()
+   _dmsRBSMgr *_SDB_DMSCB::getRBSSUMgr ()
    {
       return &_rbsSUMgr ;
    }

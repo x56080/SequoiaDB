@@ -45,7 +45,7 @@ namespace engine
 {
 
    // forward class declaration
-   class _dmsRBSSUMgr ; 
+   class _dmsRBSMgr ;
 
    /*
       _dmsRBSGCJob define
@@ -54,7 +54,7 @@ namespace engine
    class _dmsRBSGCJob : public _utilLightJob
    {
       public:
-         _dmsRBSGCJob( _dmsRBSSUMgr  *rbsSUMgr ) ;
+         _dmsRBSGCJob( _dmsRBSMgr  *rbsSUMgr ) ;
          virtual ~_dmsRBSGCJob() ;
          virtual const CHAR*     name() const ;
          virtual INT32   doit( IExecutor *pExe,
@@ -62,7 +62,7 @@ namespace engine
                                UINT64 &sleepTime ) ;
      
       private:
-         _dmsRBSSUMgr * _rbsSUMgr ;
+         _dmsRBSMgr * _rbsSUMgr ;
    } ;
    typedef _dmsRBSGCJob dmsRBSGCJob ;
 

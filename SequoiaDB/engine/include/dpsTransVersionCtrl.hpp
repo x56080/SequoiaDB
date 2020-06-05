@@ -51,7 +51,7 @@
 #include "../bson/ordering.h"
 #include "ossMemPool.hpp"
 #include "rtnPredicate.hpp"
-#include "dmsRBSSUMgr.hpp"
+#include "dmsRBSMgr.hpp"
 #include <boost/shared_ptr.hpp>
 
 using namespace bson ;

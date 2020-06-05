@@ -56,6 +56,7 @@ namespace engine
 {
    // class forward declaration
    class dmsTransLockCallback ;
+   class _dmsRBSMgr ;
 
    // number of slots in RBS hash bucket, a prime number less than 32K
    //#define  DMS_RBS_HASH_BKT_SLOTS   ( (UINT32) 32749 )
@@ -170,15 +171,11 @@ namespace engine
       }
    } ;
 
-   // Max allowed RBS GC tasks
-   #define MAX_RBS_GC_TASK 3
-   // small wait time interval for rbs cl creation
-   #define DMS_RBS_CREATECL_SMALL_INTERVAL ( 1 )
-
    class _dmsRBSSUMgr : public _dmsSysSUMgr
    {
    private :
-
+      UINT32          _index ;
+      _dmsRBSMgr *    _rbsMgr ;
       // Keep track of 
       // - the collection currently in use;
       // - the collection previously freed;
@@ -204,8 +201,6 @@ namespace engine
       // The max size of each collection
       UINT32          _maxCollectionSize ;
 
-      // Number of active GC thread
-      ossAtomic32     _numActiveGC ;
       // Number of time the add CL was not performed by GC
       ossAtomic32     _numSyncAddCL ;
 
@@ -213,19 +208,22 @@ namespace engine
 
       // The hash bucket to point to the head of the record. 
       _dmsRBSHashBkt  _rbsRecordBkt ;
+
+      CHAR            _metaCSName[ 30 ] ;
  
    public :
-      _dmsRBSSUMgr ( _SDB_DMSCB *dmsCB ) ;
+      _dmsRBSSUMgr () ;
 
       // this function verify whether RBS collection space exist. If it
       // is not exist then create one. And then reset all temp collections
-      SINT32 init() ;
+      SINT32 init( _dmsRBSMgr *rbsMgr, UINT32 index ) ;
       SINT32 fini() ;
 
       SINT32 rbsAppendRecord ( dmsStorageUnitID   csid,
                                UINT16             clid,
                                UINT32             clLID,
                                const dmsRecordID &rid,
+                               UINT32             bucketID,
                                DPS_TRANS_ID      &recordTransid,
                                DPS_TRANS_ID      &ownerTransid,
                                const BSONObj     &obj,
@@ -235,6 +233,7 @@ namespace engine
                             UINT16            clid,
                             UINT32            clLID,
                             dmsRecordID      &rid,
+                            UINT32             bucketID,
                             DPS_TRANS_ID     &transid,
                             BOOLEAN          &found,
                             dmsRecordData    &record,
@@ -244,11 +243,7 @@ namespace engine
 
 
       void gcRBS ( ) ;
-      void incActiveGC() { _numActiveGC.inc() ; }
-      void decActiveGC() { _numActiveGC.dec() ; }
-      UINT32 getNumActiveGC() { return _numActiveGC.fetch() ; }
       UINT32 getNumSyncAddCL() { return _numSyncAddCL.fetch() ; }
-      BOOLEAN allowGC() ;
 
       UINT32 getCLSize() { return DMS_DFT_RBSCL_SIZE ; }
       UINT32 getNumTotalCL() { return DMS_MAX_RBS_CL ; }
@@ -260,7 +255,7 @@ namespace engine
          }
          else
          {
-            return getNumTotalCL() - _currentCollection + _lastFreeCollection  ;
+            return getNumTotalCL() - _currentCollection + _lastFreeCollection ;
          }
       }
 
@@ -275,16 +270,6 @@ namespace engine
       void  _latchS() { _latch.get_shared() ; }
 
       void  _releaseS() { _latch.release_shared() ; }
-
-      // based on csId, clID and rid to hash to a bucket
-      OSS_INLINE UINT32 _hash ( dmsStorageUnitID   _csID ,
-                                UINT16             _clID ,
-                                const dmsRecordID &_rid ) ;
-
-      // based on csId, clID and lsn to hash to a bucket
-      OSS_INLINE UINT32 _hash ( dmsStorageUnitID  _csID ,
-                                UINT16            _clID ,
-                                DPS_LSN_OFFSET   &_lsn ) ;
 
       SINT32 _prepareRBSCLForRecord( UINT32        recordSize,
                                      pmdEDUCB     *eduCB,
@@ -311,46 +296,6 @@ namespace engine
       BOOLEAN _rbsCLExpired( UINT16 cl ) ;
    } ;
    typedef class _dmsRBSSUMgr dmsRBSSUMgr ;
-
-   OSS_INLINE UINT32 _dmsRBSSUMgr::_hash ( dmsStorageUnitID   _csID ,
-                                           UINT16             _clID ,
-                                           const dmsRecordID &_rid ) 
-   {
-      UINT64 b = 0 ;
-      b |= (UINT64)(_csID & 0xFFF) << 52 ;
-      b |= (UINT64)(_rid._extent & 0xFFFFFF) << 28 ;
-      b |= (_rid._offset & 0xFFFFFFF) ;
-
-      // ossHash use DJB Hash ( Daniel J. Bernstein ) algorithm :
-      //   h(i) = h(i-1) * 33 + str[i]
-      // bitwise multiplication x << 5 + x it equivalent to x * 33,
-      // where the magic 5 comes. However, there is no adequate
-      // explaination on why 33 is choosed as multiplier
-      return ( ossHash( (CHAR*)&( b ), (sizeof( b )), 5 ) ) % 
-               DMS_RBS_HASH_BKT_SLOTS ;
-   }
-
-   OSS_INLINE UINT32 _dmsRBSSUMgr::_hash ( dmsStorageUnitID  _csID ,
-                                           UINT16            _clID ,
-                                           DPS_LSN_OFFSET   &_lsn ) 
-   {
-      UINT64 b = 0 ;
-      // Use 12 bits out of 32 for CSID ( cover 4096 CSs ),
-      // Use 8 bits out of 16 for CLID ( cover 256 CLs),
-      // Use 44 bits out 64 for lsn offset ( which can cover years
-      // of logs for busy system )
-      b |= (UINT64)(_csID & 0xFFF) << 52 ;
-      b |= (UINT64)(_clID & 0xFF) << 44 ;
-      b |= (_lsn & 0xFFFFFFFFFFF) ;
-
-      // ossHash use DJB Hash ( Daniel J. Bernstein ) algorithm :
-      //   h(i) = h(i-1) * 33 + str[i]
-      // bitwise multiplication x << 5 + x it equivalent to x * 33,
-      // where the magic 5 comes. However, there is no adequate
-      // explaination on why 33 is choosed as multiplier
-      return ( ossHash( (CHAR*)&( b ), (sizeof( b )), 5 ) ) %
-               DMS_RBS_HASH_BKT_SLOTS ;
-   }
 
 }
 #endif //DMSRBSSUMGR_HPP__
