@@ -560,7 +560,8 @@ namespace engine
       // in that case
       if( (SDB_DPS_TRANS_LOCK_INCOMPATIBLE == irc ) &&
           (DPS_TRANSLOCK_S == requestLockMode)     &&
-          (DPS_TRANSLOCK_OP_MODE_TEST == opMode) )
+          (DPS_TRANSLOCK_OP_MODE_TEST == opMode ||
+           DPS_TRANSLOCK_OP_MODE_TRY == opMode) )
       {
          if ( !pExtData || 0 == pExtData->_data )
          {
