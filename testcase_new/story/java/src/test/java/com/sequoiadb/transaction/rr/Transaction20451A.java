@@ -27,8 +27,6 @@ public class Transaction20451A extends SdbTestBase {
     private String newCSName = "transCS_20451new";
     private String clName = "transCL_20451";
     private String newCLName = "transCL_20451new";
-    private String srcGroup;
-    private String tarGroup;
     private Sequoiadb sdb = null;
     private Sequoiadb TR1 = null;
     private Sequoiadb TW1 = null;
@@ -41,13 +39,10 @@ public class Transaction20451A extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = CommLib.getRandomSequoiadb();
-        List< String > groupNames = CommLib.getDataGroupNames( sdb );
-        srcGroup = groupNames.get( 0 );
-        tarGroup = groupNames.get( 1 );
         BSONObject options = new BasicBSONObject();
         options.put( "ShardingType", "hash" );
         options.put( "ShardingKey", new BasicBSONObject( "a", 1 ) );
-        options.put( "Group", srcGroup );
+        options.put( "AutoSplit", true );
         cl = sdb.createCollectionSpace( csName ).createCollection( clName,
                 options );
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
@@ -134,14 +129,7 @@ public class Transaction20451A extends SdbTestBase {
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
-        // split cl SEQUOIADBMAINSTREAM-5432
-        // cl.split( srcGroup, tarGroup, 50 );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
-                "{'_id': 1}", "{'': 'a'}", expDataList );
         TransUtils.commitTransaction( TR1 );
-
     }
 
     @AfterClass
