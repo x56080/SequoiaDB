@@ -573,7 +573,11 @@ replicaNode.prototype.getAllCS =
          while( cursor.next() )
          {
             var obj = cursor.current().toObj();
-            csSet.push( obj.Name );
+            //适配mvcc分支，RBS集合目前实现，只写主节点不写备节点，该集合空间不对主备一致性进行校验
+            if(obj.Name !== "SYSRBS")
+            {
+               csSet.push( obj.Name );
+            }
          }
       }
       catch( e )
@@ -599,7 +603,11 @@ replicaNode.prototype.getAllCL =
          while( cursor.next() )
          {
             var obj = cursor.current().toObj();
-            clSet.push( obj.Name );
+            //mvcc分支，RBS集合目前实现，只写主节点不写备节点，该集合空间下的集合不对主备一致性进行校验
+            if(obj.Name.split(".")[0] !== "SYSRBS")
+            {
+               clSet.push( obj.Name );
+            }
          }
       }
       catch( e )
@@ -784,6 +792,18 @@ replicaGroup.prototype.create =
       }
    }
 
+replicaGroup.prototype.getSequoiadb =
+   function( )
+   {
+	   return this.db ;
+   }
+
+replicaGroup.prototype.getName =
+   function()
+   {
+      return this.name ;
+   }
+
 replicaGroup.prototype.drop =
    function()
    {
@@ -859,30 +879,31 @@ replicaGroup.prototype.checkResult =
 replicaGroup.prototype.checkLSN =
    function( group )
    {
+      var db = group.getSequoiadb();
+      var snapshotRes = db.snapshot(6, {RawData:1,"GroupName":group.getName()},{NodeName:"", CompleteLSN:"", CurrentLSN:"",IsPrimary:""},{IsPrimary:-1}) ;
+	  
       var prevLsn = 0;
       var prevSvc = "" ;
       if ( typeof(this.failedCound) === "undefined" )
       {
          this.failedCound = 0;
       }
-
-      for( var i = 0; i < group.size(); ++i )
+      while ( snapshotRes.next() )
       {
-         var node = group.getNodeByPos( i ) ;
-         var currentLsn = node.getCurrentLsn();
-         if( 0 === i )
+         var obj = snapshotRes.current().toObj() ;
+         if ( prevSvc === "" )
          {
-            prevLsn = currentLsn;
-            prevSvc = node.toString() ;
+            prevLsn = obj.CompleteLSN;
+            prevSvc = obj.NodeName;
          }
-         else if( prevLsn !== currentLsn && this.failedCound++ % 100 == 0 )
+         else if( prevLsn !== obj.CompleteLSN && this.failedCound++ % 100 == 0 )
          {
-            println( prevSvc + "is LSN: " + prevLsn + node.toString() + " is LSN:" + currentLsn );
+            println( prevSvc + "is LSN: " + prevLsn + obj.NodeName + " is LSN:" + obj.CompleteLSN );
             return false;
          }
       }
+      
       this.failedCound = 0 ;
-
       return true;
    }
 
