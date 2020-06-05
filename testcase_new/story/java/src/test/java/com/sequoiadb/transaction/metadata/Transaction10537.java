@@ -1,4 +1,4 @@
-package com.sequoiadb.transaction.ru;
+package com.sequoiadb.transaction.metadata;
 
 /**
  * @FileName:SEQDB-10537 切分过程中执行事务操作
@@ -92,7 +92,7 @@ public class Transaction10537 extends SdbTestBase {
     private void queryUpdatedAndDeletedData( DBCollection cl ) {
         DBCursor cusor = null;
         try {
-            List< BSONObject > expectData = new ArrayList< BSONObject >();
+            List< BSONObject > expectData = new ArrayList< >();
             for ( int i = 40000; i < 60000; i++ ) {
                 expectData.add(
                         ( BSONObject ) JSON.parse( "{sk:" + i + ",beta:2}" ) );
@@ -159,7 +159,7 @@ public class Transaction10537 extends SdbTestBase {
     }
 
     private void insertData( DBCollection cl ) {
-        List< BSONObject > insertedData = new ArrayList< BSONObject >();
+        List< BSONObject > insertedData = new ArrayList< >();
         for ( int i = 0; i < 100000; i++ ) {
             BSONObject obj = ( BSONObject ) JSON
                     .parse( "{sk:" + i + ",alpha:" + i + "}" );
@@ -169,7 +169,7 @@ public class Transaction10537 extends SdbTestBase {
     }
 
     private void checkDestAndSrcGroup() {
-        List< BSONObject > srcExpect = new ArrayList< BSONObject >();
+        List< BSONObject > srcExpect = new ArrayList< >();
         for ( int i = 0; i < 40000; i++ ) {
             srcExpect.add( ( BSONObject ) JSON
                     .parse( "{sk:" + i + ",alpha:" + i + "}" ) );
@@ -180,7 +180,7 @@ public class Transaction10537 extends SdbTestBase {
         }
         checkGroupData( sdb, srcGroupName, srcExpect );
 
-        List< BSONObject > destExpect = new ArrayList< BSONObject >();
+        List< BSONObject > destExpect = new ArrayList< >();
         for ( int i = 50000; i < 60000; i++ ) {
             destExpect.add(
                     ( BSONObject ) JSON.parse( "{sk:" + i + ",beta:2}" ) );
@@ -200,7 +200,7 @@ public class Transaction10537 extends SdbTestBase {
         try {
             dataNode = db.getReplicaGroup( groupName ).getMaster().connect();
             cl = dataNode.getCollectionSpace( csName ).getCollection( clName );
-            List< BSONObject > actual = new ArrayList< BSONObject >();
+            List< BSONObject > actual = new ArrayList< >();
             cursor = cl.query( null, null, "{sk:1}", null );
             while ( cursor.hasNext() ) {
                 BSONObject obj = cursor.getNext();
