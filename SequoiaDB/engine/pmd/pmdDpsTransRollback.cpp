@@ -74,7 +74,7 @@ namespace engine
                // re-initialize RBS before node start service
                if ( pmdGetOptionCB()->mvccOn() )
                {
-                  pmdGetKRCB()->getDMSCB()->getRBSSUMgr()->init() ;
+                  pmdGetKRCB()->getDMSCB()->getRBSSUMgr()->init( pmdGetOptionCB()->mvccRBSNum() ) ;
                }
 
                if ( SDB_OK == rc )

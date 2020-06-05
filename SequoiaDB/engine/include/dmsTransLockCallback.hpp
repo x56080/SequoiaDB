@@ -286,7 +286,7 @@ namespace engine
       dpsTransCB           *_transCB ;    // use it to access global old copy tree
       pmdEDUCB             *_eduCB ;
       oldVersionCB         *_oldVerCB ;
-      _dmsRBSSUMgr         *_rbsMgr ;
+      _dmsRBSMgr         *_rbsMgr ;
 
       // DMS related information
       _dmsRecordRW         *_recordRW ;

@@ -1547,7 +1547,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       if ( pmdGetOptionCB()->mvccOn() )
       {
-         dmsRBSSUMgr *rbsMgr = pmdGetKRCB()->getDMSCB()->getRBSSUMgr() ;
+         dmsRBSMgr *rbsMgr = pmdGetKRCB()->getDMSCB()->getRBSSUMgr() ;
          try
          {
             ob.append( FIELD_NAME_NUM_ACTIVE_RBS_GC, rbsMgr->getNumActiveGC() ) ;

@@ -2579,4 +2579,24 @@
       <hidden>true</hidden>
    </opt>
 
+   <opt>
+      <name>PMD_OPTION_MVCCRBSNUM</name>
+      <long>mvccrbsnum</long>
+      <description>
+         <en>Number of RBS collection spaces, default: 16, range: [ 1, 128 ]</en>
+         <cn>多版本回滚段集合空间的个数，默认值为：16，取值范围：[ 1, 128 ]</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <default>16</default>
+      <detail>
+         <en>Number of RBS collection spaces, default: 16, range: [ 1, 128 ]</en>
+         <cn>多版本回滚段集合空间的个数，默认值为：16，取值范围：[ 1, 128 ]</cn>
+      </detail>
+      <type>int</type>
+      <hidden>true</hidden>
+   </opt>
+
 </optlist>

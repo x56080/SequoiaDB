@@ -48,7 +48,7 @@
 #include "monDMS.hpp"
 #include "dmsTempSUMgr.hpp"
 #include "dmsStatSUMgr.hpp"
-#include "dmsRBSSUMgr.hpp"
+#include "dmsRBSMgr.hpp"
 #include "dmsLocalSUMgr.hpp"
 #include "ossAtomic.hpp"
 #include "ossRWMutex.hpp"
@@ -207,7 +207,7 @@ namespace engine
 
       dmsTempSUMgr            _tempSUMgr ;
       dmsStatSUMgr            _statSUMgr ;
-      dmsRBSSUMgr             _rbsSUMgr ;
+      dmsRBSMgr               _rbsSUMgr ;
       dmsLocalSUMgr           _localSUMgr ;
 
       dmsIxmKeySorterCreator* _ixmKeySorterCreator ;
@@ -403,7 +403,7 @@ namespace engine
 
       dmsStatSUMgr *getStatSUMgr () ;
 
-      _dmsRBSSUMgr  *getRBSSUMgr () ;
+      _dmsRBSMgr  *getRBSSUMgr () ;
 
       dmsLocalSUMgr *getLocalSUMgr() ;
 

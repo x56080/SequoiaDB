@@ -664,6 +664,7 @@ namespace engine
          OSS_INLINE UINT32 slowQueryThreshold() const { return _slowQueryThreshold ; }
          OSS_INLINE UINT32 monGroupMask() const { return _monGroupMask ; }
          OSS_INLINE UINT32 monHistEvent() const { return _monHistEvent ; }
+         OSS_INLINE UINT32 mvccRBSNum() const { return _mvccRBSNum ; }
 
          std::string getOmAddr() const ;
 
@@ -797,6 +798,7 @@ namespace engine
          BOOLEAN     _mvccOn ;
          BOOLEAN     _globTransOn ;
          INT32       _globTransMaxTimeError ;
+         UINT32      _mvccRBSNum ;
 
 #ifdef SDB_ENTERPRISE
 
