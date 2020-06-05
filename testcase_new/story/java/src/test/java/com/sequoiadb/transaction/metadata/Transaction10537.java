@@ -26,7 +26,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 import com.sequoiadb.transaction.TransUtils;
 
-@Test(groups = "ru")
+@Test
 public class Transaction10537 extends SdbTestBase {
     private String clName = "testcaseCL10537";
     private String srcGroupName;
@@ -54,8 +54,7 @@ public class Transaction10537 extends SdbTestBase {
         insertData( cl );
     }
 
-    // SEQUOIADBMAINSTREAM-5432
-    @Test(enabled = false)
+    @Test
     public void transaction() {
         Sequoiadb db = null;
         DBCollection cl = null;
