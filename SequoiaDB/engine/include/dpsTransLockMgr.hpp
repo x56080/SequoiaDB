@@ -160,6 +160,7 @@ namespace engine
          _dpsTransExecutor        * dpsTxExectr,
          const dpsTransLockId     & lockId,
          const DPS_TRANSLOCK_TYPE   requestLockMode,
+         const BOOLEAN              isPreemptMode = FALSE,
          dpsTransRetInfo          * pdpsTxResInfo = NULL,
          _dpsITransLockCallback   * callback = NULL
       ) ;

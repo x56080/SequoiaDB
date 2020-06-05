@@ -553,30 +553,27 @@ namespace engine
             {
                if ( !needWaitForLock() )
                {
-                  // for new RC logic, we should first try on S lock instead
+                  // for new RC logic, we should first test on S lock instead
                   // of directly wait on the record lock. Under the cover,
                   // the lock call back function would try to use the old copy
                   // (previous committed version) if exist
-                  rc = _pTransCB->transLockTryS( cb, _pSu->logicalID(),
-                                                 _context->mbID(), &_curRID,
-                                                  & lockConflict,
-                                                  & _callback ) ;
-                  if ( rc )
+                  rc = _pTransCB->transLockTestSPreempt( cb, _pSu->logicalID(),
+                                                         _context->mbID(),
+                                                         &_curRID,
+                                                         &lockConflict,
+                                                         &_callback ) ;
+                  ignoredLock = TRUE ;
+                  if ( _callback.isSkipRecord() )
                   {
-                     if ( _callback.isSkipRecord() )
-                     {
-                        // For newly created records by another transaction,
-                        // we could still find it through diskIXScan, we will
-                        // skip those records without waiting for lock.
-                        rc = SDB_OK ;
-                        ignoredLock = TRUE ;
-                        continue ;
-                     }
-                     else if ( _callback.isUseOldVersion() )
-                     {
-                        ignoredLock = TRUE ;
-                        rc = SDB_OK ;
-                     }
+                     // For newly created records by another transaction,
+                     // we could still find it through diskIXScan, we will
+                     // skip those records without waiting for lock.
+                     rc = SDB_OK ;
+                     continue ;
+                  }
+                  if ( _callback.isUseOldVersion() )
+                  {
+                     rc = SDB_OK ;
                   }
                }
 
@@ -587,6 +584,10 @@ namespace engine
                                                  _context->mbID(), &_curRID,
                                                  & tbTxContext,
                                                  &lockConflict ) ;
+                  if ( SDB_OK == rc )
+                  {
+                     ignoredLock = FALSE ;
+                  }
                }
             }
 
@@ -1861,30 +1862,28 @@ namespace engine
             {
                if ( !needWaitForLock() )
                {
-                  // for new RC logic, we should first try on S lock instead
+                  // for new RC logic, we should first test on S lock instead
                   // of directly wait on the record lock. Under the cover,
                   // the lock call back function would try to use the old copy
                   // (previous committed version) if exist
-                  rc = _pTransCB->transLockTryS( cb, _pSu->logicalID(),
-                                                 _context->mbID(), &_curRID,
-                                                  &lockConflict,
-                                                  &_callback ) ;
-                  if ( rc )
+                  rc = _pTransCB->transLockTestSPreempt( cb, _pSu->logicalID(),
+                                                         _context->mbID(),
+                                                         &_curRID,
+                                                         &lockConflict,
+                                                         &_callback ) ;
+                  ignoredLock = TRUE ;
+                  if ( _callback.isSkipRecord() )
                   {
-                     if ( _callback.isSkipRecord() )
-                     {
-                        // For newly created records by another transaction,
-                        // we could still find it through diskIXScan, we will
-                        // skip those records without waiting for lock.
-                        rc = SDB_OK ;
-                        ignoredLock = TRUE ;
-                        continue ;
-                     }
-                     else if ( _callback.isUseOldVersion() )
-                     {
-                        ignoredLock = TRUE ;
-                        rc = SDB_OK ;
-                     }
+                     // For newly created records by another transaction,
+                     // we could still find it through diskIXScan, we will
+                     // skip those records without waiting for lock.
+                     rc = SDB_OK ;
+                     _scanner->removeDuplicatRID( _curRID ) ;
+                     continue ;
+                  }
+                  if ( _callback.isUseOldVersion() )
+                  {
+                     rc = SDB_OK ;
                   }
                }
 
@@ -1896,6 +1895,10 @@ namespace engine
                                                  &ixTxContext,
                                                  &lockConflict,
                                                  &_callback ) ;
+                  if ( SDB_OK == rc )
+                  {
+                     ignoredLock = FALSE ;
+                  }
                }
             }
 

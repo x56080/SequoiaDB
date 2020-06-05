@@ -728,6 +728,20 @@ namespace engine
             }
          }
 
+         if ( ( DPS_TRANSLOCK_IX >= lockMode ) && foundIns )
+         {
+            // as the owner list is sorted on lockMode in
+            // descending order, when IS/IX lock request found
+            // the position to insert, no need to walk through
+            // rest of the list to search for incompatible,
+            // beause IX/IS lock is the lowest lock mode value,
+            // i.e., stays at the tail end of the owner list,
+            // if there is an incompatible one in the list,
+            // it must be found already since it has greater
+            // lock mode value than IX/IS lock
+            break ;
+         }
+
          // check if the requested lock mode is compatible other owners.
          // If not, remember the first incompatible one.
          if ( NULL == pLRBIncompatible )
@@ -1285,7 +1299,7 @@ namespace engine
    //       . can't upgrade to requested lock mode
    //     return SDB_DPS_TRANS_LOCK_INCOMPATIBLE
    //       . request lock mode can't be acquired
-   //   3 DPS_TRANSLOCK_OP_MODE_TEST
+   //   3 DPS_TRANSLOCK_OP_MODE_TEST,  DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT
    //     return SDB_OK
    //       . request lock can be acquired
    //     return SDB_DPS_INVALID_LOCK_UPGRADE_REQUEST
@@ -1300,6 +1314,7 @@ namespace engine
    //    opMode          -- try     ( DPS_TRANSLOCK_OP_MODE_TRY )
    //                       acquire ( DPS_TRANSLOCK_OP_MODE_ACQUIRE )
    //                       test    ( DPS_TRANSLOCK_OP_MODE_TEST )
+   //                       testPreempt( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT )
    //    bktIdx          -- bucket index
    //    bktLatched      -- if bucket is already latched
    //
@@ -1386,7 +1401,8 @@ namespace engine
             pLRBOwner = pLRB ;
             if ( dpsLockCoverage( pLRB->lockMode, requestLockMode ) )
             {
-               if ( DPS_TRANSLOCK_OP_MODE_TEST != opMode )
+               if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+                    ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
                {
                   pLRB->refCounter++ ;
 
@@ -1408,7 +1424,8 @@ namespace engine
       }
 
       // acquire and prepare new LRB and LRB Header
-      if ( DPS_TRANSLOCK_OP_MODE_TEST != opMode )
+      if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+           ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
       {
          // no need to allocate LRB Header and LRB for test mode
          rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, requestLockMode,
@@ -1433,7 +1450,8 @@ namespace engine
       // if no LRB Header
       if ( NULL == _LockHdrBkt[ bktIdx ].lrbHdr )
       {
-         if ( DPS_TRANSLOCK_OP_MODE_TEST != opMode )
+         if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+              ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
          {
             // add new LRB header to the link
             _LockHdrBkt[ bktIdx ].lrbHdr = pLRBHdrNew;
@@ -1462,7 +1480,8 @@ namespace engine
       {
          // no LRB header with same lockId is found,
          // add the new LRB Header in the lrb header list
-         if ( DPS_TRANSLOCK_OP_MODE_TEST != opMode )
+         if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+              ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
          {
             // at this time, pLRBHdr shall be the tail of LRB header list.
             // add the new LRB header to LRB Header list ;
@@ -1494,7 +1513,8 @@ namespace engine
       // found the LRB header with same lockId
 
       // update the lrbHdrIdx of new LRB to current LRB Header
-      if ( DPS_TRANSLOCK_OP_MODE_TEST != opMode )
+      if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+           ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
       {
          pLRBNew->lrbHdr = pLRBHdr;
       }
@@ -1550,7 +1570,8 @@ namespace engine
          // then job is done
          if ( dpsLockCoverage( pLRB->lockMode, requestLockMode ) )
          {
-            if ( DPS_TRANSLOCK_OP_MODE_TEST != opMode )
+            if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+                 ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
             {
                pLRB->refCounter ++ ;
 
@@ -1658,7 +1679,8 @@ namespace engine
          else
          {
             // compatible with all others
-            if ( DPS_TRANSLOCK_OP_MODE_TEST != opMode )
+            if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+                 ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
             {
                // upgrade/convert to request mode.
                //   when upgrade, it implies the request mode is greater
@@ -1761,7 +1783,8 @@ namespace engine
             if (    ( ( ! pLRBHdr->upgradeLRB ) && ( ! pLRBHdr->waiterLRB ) )
                  || ( bktLatched ) )
             {
-               if ( DPS_TRANSLOCK_OP_MODE_TEST != opMode )
+               if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+                    ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
                {
                   // add the owner list
                   if ( pLRBToInsert )
@@ -1793,6 +1816,14 @@ namespace engine
             }
             else
             {
+               // when test lock with preemptive mode, return succeess
+               // if there is no conflict with current owners regardless
+               // the upgrade or wait list.
+               if ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT == opMode )
+               {
+                  goto done ;
+               }
+
                // if the requested locked mode is compabile with all members
                // in both upgrade and waiter list, then add it into owner list
                if ( FALSE == _checkLockModeWithOthers( pLRBHdr->upgradeLRB,
@@ -1886,12 +1917,15 @@ namespace engine
          {
             // need to call this under bktlatch to make sure we are safe to
             // lookup information in LRBHdr
-            callback->afterLockAcquire( lockId, rc,
-                                        requestLockMode,
-                                        pLRB ? pLRB->refCounter : 0,
-                                        opMode,
-                                        pLRBHdr,
-                                        pLRBHdr ? &(pLRBHdr->extData) : NULL ) ;
+            callback->afterLockAcquire(
+                         lockId, rc,
+                         requestLockMode,
+                         pLRB ? pLRB->refCounter : 0,
+                         ( ( ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT == opMode ) ||
+                             ( DPS_TRANSLOCK_OP_MODE_TEST == opMode ) )
+                           ? DPS_TRANSLOCK_OP_MODE_TEST : opMode ),
+                         pLRBHdr,
+                         pLRBHdr ? &(pLRBHdr->extData) : NULL ) ;
          }
          // there is a scenario, using testX to clean up 'old version'
          // hanging off LRB header. Release LRB header if it is possible
@@ -1925,7 +1959,9 @@ namespace engine
       else
       {
          // sample lock owning( first time ) or waiting timestamp ( ossTick )
-         if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) && pLRBNew )
+         if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+              ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) &&
+              pLRBNew )
          {
             if ( !(BOOLEAN) (pLRBNew->beginTick) )
             {
@@ -3098,6 +3134,7 @@ nextLock:
       _dpsTransExecutor        * dpsTxExectr,
       const dpsTransLockId     & lockId,
       const DPS_TRANSLOCK_TYPE   requestLockMode,
+      const BOOLEAN              isPreemptMode,
       dpsTransRetInfo          * pdpsTxResInfo,
       _dpsITransLockCallback   * callback
    )
@@ -3119,6 +3156,10 @@ nextLock:
       dpsTransLockId iLockId;
       DPS_TRANSLOCK_TYPE iLockMode = DPS_TRANSLOCK_MAX ;
       UINT32 bktIdx = DPS_LOCK_INVALID_BUCKET_SLOT ;
+      const DPS_TRANSLOCK_OP_MODE_TYPE testOpMode =
+               ( isPreemptMode ? DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT
+                               : DPS_TRANSLOCK_OP_MODE_TEST ) ;
+
 
       if ( ! lockId.isValid() )
       {
@@ -3142,7 +3183,7 @@ nextLock:
                     PD_PACK_BYTE( iLockMode )  ) ;
 #endif
          rc = testAcquire( dpsTxExectr, iLockId, iLockMode,
-                           pdpsTxResInfo, callback );
+                           isPreemptMode, pdpsTxResInfo, callback );
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -3156,7 +3197,7 @@ nextLock:
       // it will not acquire the lock, the LRB will not be added to
       // owner, upgrade or waiter list
       rc = _tryAcquireOrTest( dpsTxExectr, lockId, requestLockMode,
-                              DPS_TRANSLOCK_OP_MODE_TEST,
+                              testOpMode,
                               bktIdx,
                               FALSE,
                               pdpsTxResInfo,
