@@ -1,5 +1,6 @@
 package com.sequoiadb.transaction.unlock;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -75,7 +76,6 @@ public class Transaction18413 extends SdbTestBase {
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void test() throws InterruptedException {
         DBCollection cl1 = db1.getCollectionSpace( csName )
@@ -102,20 +102,17 @@ public class Transaction18413 extends SdbTestBase {
 
         // 开启事务3，查询记录R1
         TransUtils.beginTransaction( db3 );
-        CL3Query th3 = new CL3Query();
-        th3.start();
-        Assert.assertTrue(
-                TransUtils.isTransWaitLock( sdb, th3.getTransactionID() ) );
+        DBCollection cl3 = db3.getCollectionSpace( csName )
+                .getCollection( clName );
+        List< BSONObject > expList = new ArrayList<>();
+        expList.add( record );
+        TransUtils.queryAndCheck( cl3, "{a:1}", "", "",
+                "{'':'" + idxName + "'}", expList );
 
         // 待事务2等锁超时后，事务3返回R1
         Assert.assertFalse(
                 th2.isSuccess() || ( int ) th2.getExecResult() != -13,
                 th2.getErrorMsg() );
-        Assert.assertTrue( th3.isSuccess(), th3.getErrorMsg() );
-        actList = ( List< BSONObject > ) th3.getExecResult();
-        Assert.assertTrue(
-                actList.size() == 1 && record.equals( actList.get( 0 ) ),
-                "actList: " + actList );
         db1.commit();
         db2.commit();
         db3.commit();
@@ -138,18 +135,4 @@ public class Transaction18413 extends SdbTestBase {
         }
     }
 
-    private class CL3Query extends SdbThreadBase {
-        @Override
-        public void exec() throws Exception {
-            // 判断事务阻塞需先获取事务id
-            setTransactionID( db3 );
-
-            DBCollection cl3 = db3.getCollectionSpace( csName )
-                    .getCollection( clName );
-            DBCursor cursor = cl3.query( "{a:1}", "", "",
-                    "{'':'" + idxName + "'}" );
-            List< BSONObject > actList = TransUtils.getReadActList( cursor );
-            setExecResult( actList );
-        }
-    }
 }
