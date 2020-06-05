@@ -71,13 +71,13 @@ namespace engine
       if( arg.argc() != 2 )
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Need two arguments" ) ;
+         detail = BSON( SPT_ERR << "BinData() need two arguments" ) ;
          goto error ;
       }
       rc = arg.getString( 0, binData ) ;
       if( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Data must be string" ) ;
+         detail = BSON( SPT_ERR << "BinData binary argument must be String" ) ;
          goto error ;
       }
       if( arg.isString( 1 ) )
@@ -94,14 +94,14 @@ namespace engine
             if ( typeNumber < 0 || 255 < typeNumber )
             {
                rc = SDB_INVALIDARG ;
-               detail = BSON( SPT_ERR << "Type must to be between 0 and 255" ) ;
+               detail = BSON( SPT_ERR << "BinData type argument must to be between 0 and 255" ) ;
                goto error ;
             }
          }
          catch ( std::exception & )
          {
             rc = SDB_INVALIDARG ;
-            detail = BSON( SPT_ERR << "Invalid argument: type" ) ;
+            detail = BSON( SPT_ERR << "Invalid BinData type value: " + type ) ;
             goto error ;
          }
       }
@@ -116,7 +116,7 @@ namespace engine
          if ( typeNumber < 0 || 255 < typeNumber )
          {
             rc = SDB_INVALIDARG ;
-            detail = BSON( SPT_ERR << "Type must to be between 0 and 255" ) ;
+            detail = BSON( SPT_ERR << "BinData type argument must to be between 0 and 255" ) ;
             goto error ;
          }
          try
@@ -126,14 +126,14 @@ namespace engine
          catch ( std::exception & )
          {
             rc = SDB_INVALIDARG ;
-            detail = BSON( SPT_ERR << "Invalid argument: type" ) ;
+            detail = BSON( SPT_ERR << "Invalid BinData type value: " + typeNumber ) ;
             goto error ;
          }
       }
       else
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Type must be string or int" ) ;
+         detail = BSON( SPT_ERR << "BinData type argument must be String or int" ) ;
          goto error ;
       }
       rval.addSelfProperty( SPT_BINDATA_DATA_FIELD )->setValue( binData ) ;
@@ -184,13 +184,13 @@ namespace engine
          rc = value.getStringField( SPT_BINDATA_SPECIALOBJ_BINARY_FIELD, data ) ;
          if( SDB_OK != rc )
          {
-            errMsg = "Failed to get bindata data field" ;
+            errMsg = "BinData binary value must be String" ;
             goto error ;
          }
          rc = value.getStringField( SPT_BINDATA_SPECIALOBJ_TYPE_FIELD, type ) ;
          if( SDB_OK != rc )
          {
-            errMsg = "Failed to get bindata type field" ;
+            errMsg = "BinData type value must be String" ;
             goto error ;
          }
       }
@@ -199,13 +199,13 @@ namespace engine
          rc = value.getStringField( SPT_BINDATA_DATA_FIELD, data ) ;
          if( SDB_OK != rc )
          {
-            errMsg = "Failed to get bindata data field" ;
+            errMsg = "BinData binary value must be String" ;
             goto error ;
          }
          rc = value.getStringField( SPT_BINDATA_TYPE_FIELD, type ) ;
          if( SDB_OK != rc )
          {
-            errMsg = "Failed to get bindata type field" ;
+            errMsg = "BinData type value must be String" ;
             goto error ;
          }
       }
@@ -214,21 +214,21 @@ namespace engine
          binType = boost::lexical_cast<INT32>( type.c_str() ) ;
          if ( binType > 255 )
          {
-            errMsg = "Bad type for binary" ;
+            errMsg = "Invalid BinData type value: " + type + ", type value must to be between 0 and 255";
             rc = SDB_INVALIDARG ;
             goto error ;
          }
       }
       catch ( std::bad_cast & )
       {
-         errMsg = "Bad type for binary" ;
+         errMsg = "Invalid BinData type value: " + type ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
       decodeSize = getDeBase64Size( data.c_str() ) ;
       if ( decodeSize < 0 )
       {
-         errMsg = "Invalid bindata" ;
+         errMsg = "Invalid BinData binary value: " + data ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }

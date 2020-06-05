@@ -68,7 +68,7 @@ namespace engine
       if( arg.argc() != 1 )
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Only need one argument" ) ;
+         detail = BSON( SPT_ERR << "NumberLong() only need one argument" ) ;
          goto error ;
       }
 
@@ -97,7 +97,7 @@ namespace engine
       else
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Data must be string or number" ) ;
+         detail = BSON( SPT_ERR << "NumberLong argument must be String or Number" ) ;
          goto error ;
       }
    done:
@@ -124,12 +124,12 @@ namespace engine
          rc = value.getStringField( SPT_NUMBERLONG_SPECIALOBJ_FIELD, valStr ) ;
          if( SDB_OK != rc )
          {
-            errMsg = "Numberlong $numberLong field must be string" ;
+            errMsg = "Numberlong $numberlong value must be String" ;
             goto error ;
          }
          if ( !_isValidNumberLong( valStr.c_str() ) )
          {
-            errMsg = "Failed to conversion NumberLong" ;
+            errMsg = "Invalid Numberlong value: " + valStr ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -150,7 +150,7 @@ namespace engine
                                        SPT_CVT_FLAGS_FROM_STRING ) ;
             if( SDB_OK != rc )
             {
-               errMsg = "Failed to get _v field string value" ;
+               errMsg = "Numberlong data value must be String or Number" ;
                goto error ;
             }
             try
@@ -159,7 +159,7 @@ namespace engine
             }
             catch ( std::bad_cast &e )
             {
-               errMsg = "Failed to conversion NumberLong: " ;
+               errMsg =  "Invalid NumberLong value: " + valStr + ", " ;
                errMsg += e.what() ;
                rc = SDB_INVALIDARG ;
                goto error ;
@@ -174,7 +174,7 @@ namespace engine
                                        SPT_CVT_FLAGS_FROM_DOUBLE ) ;
             if( SDB_OK != rc )
             {
-               errMsg = "Failed to get _v field string value" ;
+               errMsg = "Numberlong data value must be String or Number" ;
                goto error ;
             }
             val = static_cast< INT64 >( tmpNumber ) ;
@@ -182,7 +182,7 @@ namespace engine
          else
          {
             rc = SDB_INVALIDARG ;
-            errMsg = "Numberlong _v field must be string or number" ;
+            errMsg = "Numberlong data value must be String or Number" ;
             goto error ;
          }
       }

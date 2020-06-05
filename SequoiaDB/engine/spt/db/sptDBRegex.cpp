@@ -70,23 +70,23 @@ namespace engine
       rc = arg.getString( 0, pattern ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Pattern must be config" ) ;
+         detail = BSON( SPT_ERR << "Regex pattern argument must be config" ) ;
          goto error ;
       }
       else if( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Pattern must be string" ) ;
+         detail = BSON( SPT_ERR << "Regex Pattern argument must be String" ) ;
          goto error ;
       }
       rc = arg.getString( 1, options ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Options must be config" ) ;
+         detail = BSON( SPT_ERR << "Regex options argument must be config" ) ;
          goto error ;
       }
       else if( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Options must be string" ) ;
+         detail = BSON( SPT_ERR << "Regex options argument must be String" ) ;
          goto error ;
       }
       rval.addSelfProperty( SPT_REGEX_REGEX_FIELD )->setValue( pattern ) ;
@@ -124,7 +124,7 @@ namespace engine
             rc = value.toBSON( tmpBSON ) ;
             if( SDB_OK != rc )
             {
-               errMsg = "Invalid obj" ;
+               errMsg = "Invalid Object" ;
                goto error ;
             }
             builder.append( key, tmpBSON ) ;
@@ -135,7 +135,7 @@ namespace engine
                                     regexStr ) ;
          if( SDB_OK != rc )
          {
-            errMsg = "Failed to get regex field" ;
+            errMsg = "Regex regex value must be String" ;
             goto error ;
          }
          rc = value.getStringField( SPT_REGEX_SPECIALOBJ_OPTION_FIELD,
@@ -143,7 +143,7 @@ namespace engine
          if( SDB_OK != rc )
          {
             rc = SDB_SPT_NOT_SPECIAL_JSON ;
-            errMsg = "Failed to get option field" ;
+            errMsg = "Regex option value must be String" ;
             goto error ;
          }
       }
@@ -152,13 +152,13 @@ namespace engine
          rc = value.getStringField( SPT_REGEX_REGEX_FIELD, regexStr ) ;
          if( SDB_OK != rc )
          {
-            errMsg = "Failed to get regex field" ;
+            errMsg = "Regex regex value must be String" ;
             goto error ;
          }
          rc = value.getStringField( SPT_REGEX_OPTION_FIELD, option ) ;
          if( SDB_OK != rc )
          {
-            errMsg = "Failed to get option field" ;
+            errMsg = "Regex option value must be String" ;
             goto error ;
          }
       }

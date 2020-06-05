@@ -75,11 +75,20 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONObj obj ;
+      string errMsgStr ;
 
       rc = arg.getBsonobj( 0, obj ) ;
       if ( rc )
       {
-         detail = BSON( SPT_ERR << "The 1st param must be Object" ) ;
+         errMsgStr = arg.getErrMsg() ;
+         if ( errMsgStr.empty() )
+         {
+            detail = BSON( SPT_ERR <<  "The 1st param is invalid") ;
+         }
+         else
+         {
+            detail = BSON( SPT_ERR << errMsgStr ) ;
+         }
          goto error ;
       }
       _obj = obj ;

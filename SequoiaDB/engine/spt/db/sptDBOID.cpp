@@ -76,7 +76,7 @@ namespace engine
       }
       else if( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Data must be string" ) ;
+         detail = BSON( SPT_ERR << "ObjectId argument must be String" ) ;
          goto error ;
       }
       else
@@ -84,7 +84,7 @@ namespace engine
          if( SPT_OID_STR_LENGTH != oidStr.size() )
          {
             stringstream ss ;
-            ss << "The length of ObjectId is not equal " << SPT_OID_STR_LENGTH ;
+            ss << "The length of ObjectId argument is not equal " << SPT_OID_STR_LENGTH ;
             rc = SDB_INVALIDARG ;
             detail = BSON( SPT_ERR << ss.str() ) ;
             goto error ;
@@ -93,7 +93,7 @@ namespace engine
          if( !utilIsValidOID( oidStr.c_str() ) )
          {
             rc = SDB_INVALIDARG ;
-            detail = BSON( SPT_ERR << "The ObjectId is invalid" ) ;
+            detail = BSON( SPT_ERR << "invalid ObjectId value: " + oidStr ) ;
             goto error ;
          }
       }
@@ -127,13 +127,13 @@ namespace engine
       rc = value.getStringField( fieldName, data ) ;
       if( SDB_OK != rc )
       {
-         errMsg = "Failed to get oid str" ;
+         errMsg = "ObjectId oid value must be String" ;
          goto error ;
       }
       if( SPT_OID_STR_LENGTH != data.size() )
       {
          stringstream ss ;
-         ss << "The length of oid str is not equal " << SPT_OID_STR_LENGTH ;
+         ss << "The length of oid value is not equal " << SPT_OID_STR_LENGTH ;
          errMsg = ss.str() ;
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -142,7 +142,7 @@ namespace engine
       if( !utilIsValidOID( data.c_str() ) )
       {
          rc = SDB_INVALIDARG ;
-         errMsg = "The oid str is invalid" ;
+         errMsg = "invalid ObjectId value: " + data ;
          goto error ;
       }
 

@@ -73,7 +73,7 @@ namespace engine
       if( arg.argc() < 1 )
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Need at least one argument" ) ;
+         detail = BSON( SPT_ERR << "NumberDecimal() need at least one argument" ) ;
          goto error ;
       }
 
@@ -98,7 +98,7 @@ namespace engine
       else
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Data must be string or number" ) ;
+         detail = BSON( SPT_ERR << "NumberDecimal decimal argument must be String" ) ;
          goto error ;
       }
 
@@ -127,7 +127,7 @@ namespace engine
                   {
                      rc = SDB_INVALIDARG ;
                      detail = BSON( SPT_ERR <<
-                                    "Precision has too many arguments" ) ;
+                                    "NumberDecimal precision has too many arguments" ) ;
                      goto error ;
                   }
                   itr.next().Val( precision[i] ) ;
@@ -137,7 +137,7 @@ namespace engine
                {
                   rc = SDB_INVALIDARG ;
                   detail = BSON( SPT_ERR <<
-                                 "Precision has too few arguments" ) ;
+                                 "NumberDecimal precision has too few arguments" ) ;
                   goto error ;
                }
                else
@@ -156,7 +156,7 @@ namespace engine
          else
          {
             rc = SDB_INVALIDARG ;
-            detail = BSON( SPT_ERR << "Precision must be int array" ) ;
+            detail = BSON( SPT_ERR << "NumberDecimal precision argument must be int array" ) ;
             goto error ;
          }
 
@@ -212,7 +212,7 @@ namespace engine
                                     decimalStr ) ;
          if( SDB_OK != rc )
          {
-            errMsg = "Decimal $decimal must be string" ;
+            errMsg = "NumberDecimal decimal value must be String" ;
             goto error ;
          }
 
@@ -223,7 +223,7 @@ namespace engine
                                        SPT_CVT_FLAGS_FROM_OBJECT ) ;
             if( SDB_OK != rc )
             {
-               errMsg = "Decimal $precision must be obj" ;
+               errMsg = "NumberDecimal precision value must be int array" ;
                goto error ;
             }
 
@@ -231,7 +231,7 @@ namespace engine
                                        &scale ) ;
             if ( SDB_OK != rc )
             {
-               errMsg = "Failed to conversion precision" ;
+               errMsg = "Invalid precision value: " + precisionStr ;
                goto error ;
             }
 
@@ -249,7 +249,7 @@ namespace engine
                                     decimalStr ) ;
          if( SDB_OK != rc )
          {
-            errMsg = "Failed to get decimal field" ;
+            errMsg = "NumberDecimal decimal value must be String" ;
             goto error ;
          }
 
@@ -264,7 +264,7 @@ namespace engine
 
                if ( SDB_OK != rc )
                {
-                  errMsg = "Failed to conversion precision" ;
+                  errMsg = "Invalid precision value: " + precisionStr ;
                   goto error ;
                }
                appendSuccess = builder.appendDecimal( key, decimalStr,
@@ -272,7 +272,7 @@ namespace engine
             }
             else
             {
-               errMsg = "Failed to get precision field" ;
+               errMsg = "NumberDecimal precision value must be String" ;
                goto error ;
             }
          }
@@ -285,7 +285,7 @@ namespace engine
       if( FALSE == appendSuccess )
       {
          rc = SDB_INVALIDARG ;
-         errMsg = "Failed to append deciaml" ;
+         errMsg = "Invalid decimal value: " + decimalStr ;
          goto error ;
       }
 
@@ -438,7 +438,7 @@ namespace engine
          if ( 0 != rc )
          {
             rc = SDB_INVALIDARG ;
-            detail = BSON( SPT_ERR << "Precision invalid" ) ;
+            detail = BSON( SPT_ERR << "Invalid precision value" ) ;
             goto error ;
          }
       }
@@ -447,7 +447,7 @@ namespace engine
       if ( 0 != rc )
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Decimal data invalid" ) ;
+         detail = BSON( SPT_ERR << "Invalid decimal value" ) ;
          goto error ;
       }
 

@@ -94,13 +94,13 @@ namespace engine
          rc = arg.getString( 0, timeStr ) ;
          if( SDB_OK != rc )
          {
-            detail = BSON( SPT_ERR << "Time must be string" ) ;
+            detail = BSON( SPT_ERR << "Timestamp time argument must be String" ) ;
             goto error ;
          }
          rc = utilStr2TimeT( timeStr.c_str(), tm, &usec ) ;
          if( SDB_OK != rc )
          {
-            detail = BSON( SPT_ERR << "Failed to convert string to time" );
+            detail = BSON( SPT_ERR << "Invalid Timestamp value: " + timeStr );
             goto error ;
          }
 
@@ -117,19 +117,19 @@ namespace engine
          if( !arg.isInt( 0 ) || !arg.isInt( 1 ) )
          {
             rc = SDB_INVALIDARG ;
-            detail = BSON( SPT_ERR << "Argument must be int" ) ;
+            detail = BSON( SPT_ERR << "Timestamp arguments must be int" ) ;
             goto error ;
          }
          rc = arg.getNative( 0, &time, SPT_NATIVE_INT32 ) ;
          if( SDB_OK != rc )
          {
-            detail = BSON( SPT_ERR << "Second must be int" ) ;
+            detail = BSON( SPT_ERR << "Timestamp second argument must be int" ) ;
             goto error ;
          }
          rc = arg.getNative( 1, &inc, SPT_NATIVE_INT32 ) ;
          if( SDB_OK != rc )
          {
-            detail = BSON( SPT_ERR << "Microsecond must be int" ) ;
+            detail = BSON( SPT_ERR << "Timestamp microsecond argument must be int" ) ;
             goto error ;
          }
          t = time ;
@@ -155,7 +155,7 @@ namespace engine
       else
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Inalid argument number" ) ;
+         detail = BSON( SPT_ERR << "Timestamp() was given too many arguments" ) ;
          goto error ;
       }
       rval.addSelfProperty( SPT_TIMESTAMP_TIME_FIELD )->setValue( timeStr ) ;
@@ -199,18 +199,18 @@ namespace engine
       }
       if( SDB_OK != rc )
       {
-         errMsg = "Failed to get Timestamp property" ;
+         errMsg = "Timestamp timestamp value must be String" ;
          goto error ;
       }
       rc = engine::utilStr2TimeT( timeStr.c_str(), tm, &usec ) ;
       if( SDB_OK != rc )
       {
-         errMsg = "Failed to convert Timestamp property" ;
+         errMsg = "Invalid Timestamp value: " + timeStr ;
       }
       if ( !ossIsTimestampValid( ( INT64 )tm ) )
       {
          rc = SDB_INVALIDARG ;
-         errMsg = "Invalid timestamp value" ;
+         errMsg = "Invalid Timestamp value: " + timeStr ;
          goto error ;
       }
       builder.appendTimestamp( key, tm * 1000, usec ) ;

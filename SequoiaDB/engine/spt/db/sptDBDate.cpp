@@ -110,7 +110,7 @@ namespace engine
                catch( boost::bad_lexical_cast & )
                {
                   rc = SDB_INVALIDARG ;
-                  detail = BSON( SPT_ERR << "Invalid time str" ) ;
+                  detail = BSON( SPT_ERR << "Invalid SdbDate value: " + timeStr ) ;
                   goto error ;
                }
             }
@@ -129,11 +129,17 @@ namespace engine
             }
             mills = static_cast< INT64 >( dp ) ;
          }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "SdbDate argument must be String or Number") ;
+            goto error ;
+         }
       }
       else
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Invalid argument number" ) ;
+         detail = BSON( SPT_ERR << "SdbDate() was given too many arguments" ) ;
          goto error ;
       }
 
@@ -182,7 +188,7 @@ namespace engine
                                     SPT_CVT_FLAGS_FROM_INT ) ;
          if( SDB_OK != rc )
          {
-            errMsg = "Failed to convert Date, field: " ;
+            errMsg = "SdbDate date value mast be String or Number" ;
             goto error ;
          }
          tm = tmpDateVal ;
@@ -199,7 +205,7 @@ namespace engine
             }
             catch( boost::bad_lexical_cast & )
             {
-               errMsg = "Failed to convert Date:" + dateStr ;
+               errMsg = "Invalid SdbDate value: " + dateStr ;
                rc = SDB_INVALIDARG ;
                goto error ;
             }
