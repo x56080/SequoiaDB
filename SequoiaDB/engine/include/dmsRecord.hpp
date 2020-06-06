@@ -442,17 +442,21 @@ namespace engine
       void migrateFromV0( BOOLEAN moveData = TRUE )
       {
          UINT32 oldsize = ((dmsRecord_v0 *) this)->getSize() ;
-         SDB_ASSERT( !(this->hasGlobTransID()), 
+         // NOTE: when record is overflow-from, data length is invalid,
+         //       but we need to copy record ID of overflow-to
+         UINT32 moveSize = isOvf() ?
+                           sizeof( dmsRecordID ) :
+                           ( ((dmsRecord_v0 *) this)->getDataLength() ) ;
+         SDB_ASSERT( !(this->hasGlobTransID()),
                      "This is not a V0 record" ) ;
          // Only migrate if has enough space for the extra size difference
-         if ( moveData  &&
-              ( oldsize - DMS_RECORD_V1_METADATA_SZ >
-                ((dmsRecord_v0 *) this)->getDataLength() ) )
+         if ( moveData &&
+              oldsize - DMS_RECORD_V1_METADATA_SZ > moveSize )
          {
 
-            ossMemmove( (CHAR*)this + DMS_RECORD_V1_METADATA_SZ, 
-                        (CHAR*)this + DMS_RECORD_V0_METADATA_SZ, 
-                        ((dmsRecord_v0 *) this)->getDataLength() ) ;
+            ossMemmove( (CHAR*)this + DMS_RECORD_V1_METADATA_SZ,
+                        (CHAR*)this + DMS_RECORD_V0_METADATA_SZ,
+                        moveSize ) ;
             // set globTransID flag and initialize the value
             resetGlobTransID() ;
          }
