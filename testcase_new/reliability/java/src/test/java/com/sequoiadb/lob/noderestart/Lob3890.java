@@ -97,7 +97,7 @@ public class Lob3890 extends SdbTestBase {
 
         redoPutLob( cl, lastOid );
 
-        List< ObjectId > lobIds1 = new ArrayList< ObjectId >();
+        List< ObjectId > lobIds1 = new ArrayList<>();
         DBCursor cur = cl.listLobs();
         while ( cur.hasNext() ) {
             BSONObject lobInfo = cur.getNext();
@@ -169,8 +169,8 @@ public class Lob3890 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -104 && e.getErrorCode() != -134
-                        && e.getErrorCode() != -79
-                        && e.getErrorCode() != -81 ) {
+                        && e.getErrorCode() != -79 && e.getErrorCode() != -81
+                        && e.getErrorCode() != -17 ) {
                     e.printStackTrace();
                     throw e;
                 }
@@ -190,8 +190,8 @@ public class Lob3890 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -104 && e.getErrorCode() != -134
-                        && e.getErrorCode() != -79
-                        && e.getErrorCode() != -81 ) {
+                        && e.getErrorCode() != -79 && e.getErrorCode() != -81
+                        && e.getErrorCode() != -17 ) {
                     e.printStackTrace();
                     throw e;
                 }
@@ -211,8 +211,8 @@ public class Lob3890 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -104 && e.getErrorCode() != -134
-                        && e.getErrorCode() != -79
-                        && e.getErrorCode() != -81 ) {
+                        && e.getErrorCode() != -79 && e.getErrorCode() != -81
+                        && e.getErrorCode() != -17 ) {
                     e.printStackTrace();
                     throw e;
                 }
