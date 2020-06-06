@@ -42,9 +42,9 @@ function List_run()
         aliasinfo=$( mount -t $fusetype |grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $1}')
         pidinfo=$( mount -t $fusetype|grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')
         if [ "$pidinfo" != "" ]; then
-            cmdconfpathinfo=$( ps -ef| grep  $pidinfo | grep " -c " |grep -v grep | awk -F" -c " '{print $2}' | awk -F" " '{print $1}')
+            cmdconfpathinfo=$( ps -ef| grep  $pidinfo" " | grep " -c " |grep -v grep | awk -F" -c " '{print $2}' | awk -F" " '{print $1}')
             if [ -z $cmdconfpathinfo ]; then
-               cmdconfpathinfo=$( ps -ef| grep  $pidinfo | grep " --confpath " |grep -v grep | awk -F" --confpath " '{print $2}' | awk -F" " '{print $1}')
+               cmdconfpathinfo=$( ps -ef| grep  $pidinfo" " | grep " --confpath " |grep -v grep | awk -F" --confpath " '{print $2}' | awk -F" " '{print $1}')
             fi
             
             if [ "$cmdconfpathinfo" != "" ]; then 
@@ -152,11 +152,11 @@ function List_local()
             fi
             if [ "$mountpoint" != "" ]; then
                 mountinfo=$(cd "$mountpoint"; pwd)
-                mountpid=$( mount -t $fusetype |grep $mountinfo | awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')    
+                mountpid=$( mount -t $fusetype |grep $mountinfo" " | awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')    
                 if [ -n "$mountpid" ]; then
-                  cmdconfpathinfo=$( ps -ef| grep  $mountpid | grep " -c " |grep -v grep | awk -F" -c " '{print $2}' | awk -F" " '{print $1}')
+                  cmdconfpathinfo=$( ps -ef| grep  $mountpid" " | grep " -c " |grep -v grep | awk -F" -c " '{print $2}' | awk -F" " '{print $1}')
                   if [ -z $cmdconfpathinfo ]; then
-                    cmdconfpathinfo=$( ps -ef| grep  $mountpid | grep " --confpath " |grep -v grep | awk -F" --confpath " '{print $2}' | awk -F" " '{print $1}')
+                    cmdconfpathinfo=$( ps -ef| grep  $mountpid" " | grep " --confpath " |grep -v grep | awk -F" --confpath " '{print $2}' | awk -F" " '{print $1}')
                   fi
                   if [ -n $cmdconfpathinfo ]; then
                     cmdconfpathinfo=$(cd "$cmdconfpathinfo"; pwd)    
