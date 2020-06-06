@@ -517,30 +517,54 @@ namespace engine
          goto done ;
       }
 
+      // check unique ID of collection
       clUniqueID = mbContext->mb()->_clUniqueID ;
+      if ( UTIL_UNIQUEID_NULL == clUniqueID ||
+           UTIL_CLUNIQUEID_LOCAL == clUniqueID )
+      {
+         // do not have unique ID ( not upgrade yet ) or local unique ID,
+         // could use record parallel replay in below condition
+         // - has no more than 1 unique indexes ( number <= 1 )
+         // - and has no text indexes
+         PD_LOG( PDDEBUG, "Collection [%s] does not have unique ID",
+                 fullname ) ;
+         if ( ( LOG_TYPE_DATA_INSERT == recordHeader->_type ||
+                LOG_TYPE_DATA_UPDATE == recordHeader->_type ||
+                LOG_TYPE_DATA_DELETE == recordHeader->_type ) &&
+                ( 0 == mbContext->mbStat()->_textIdxNum ) &&
+                ( mbContext->mbStat()->_uniqueIdxNum <= 1 ) )
+         {
+            parallaType = CLS_PARALLA_REC ;
+         }
+         goto done ;
+      }
+      else
+      {
+         // collection have valid unique ID
+         pInfo = pBucket->getOrCreateInfo( fullname,
+                                           mbContext->mb()->_clUniqueID ) ;
+         PD_CHECK( NULL != pInfo, SDB_OOM, error, PDERROR,
+                   "Failed to get collection parallel information for "
+                   "collection [%s]", fullname ) ;
 
-      pInfo = pBucket->getOrCreateInfo( fullname,
-                                        mbContext->mb()->_clUniqueID ) ;
-      PD_CHECK( NULL != pInfo, SDB_OOM, error, PDERROR,
-                "Failed to get collection parallel information for "
-                "collection [%s]", fullname ) ;
+         // For collection who has text indices, parallel replay should
+         // also be forbidden. Otherwise, the records in the capped
+         // collection will not be exactly the same.
+         if ( 0 != mbContext->mbStat()->_textIdxNum )
+         {
+            /// can't upgrade to recParalla
+         }
+         else if ( pInfo->checkParalla( recordHeader->_type,
+                                        recordHeader->_lsn,
+                                        pBucket ) )
+         {
+            parallaType = CLS_PARALLA_REC ;
+         }
+      }
 
+      // check if have $id index
       noIDIndex = OSS_BIT_TEST( mbContext->mb()->_attributes,
                                 DMS_MB_ATTR_NOIDINDEX ) ? TRUE : FALSE ;
-
-      // For collection who has text indices, parallel replay should
-      // also be forbidden. Otherwise, the records in the capped
-      // collection will not be exactly the same.
-      if ( 0 != mbContext->mbStat()->_textIdxNum )
-      {
-         /// can't upgrade to recParalla
-      }
-      else if ( pInfo->checkParalla( recordHeader->_type,
-                                     recordHeader->_lsn,
-                                     pBucket ) )
-      {
-         parallaType = CLS_PARALLA_REC ;
-      }
 
       su->data()->releaseMBContext( mbContext ) ;
       mbContext = NULL ;
@@ -549,8 +573,11 @@ namespace engine
       suID = DMS_INVALID_SUID ;
       su = NULL ;
 
-      if ( pInfo->isParallaTypeSwitch( parallaType ) )
+      if ( NULL != pInfo &&
+           pInfo->isParallaTypeSwitch( parallaType ) )
       {
+         // if parallel type is changed, wait for last LSN of the same
+         // collection
          rc = pInfo->waitLastLSN( pBucket ) ;
          if ( SDB_OK != rc )
          {
@@ -603,9 +630,12 @@ namespace engine
          }
       }
 
-      /// update paralla info
-      pInfo->updateParalla( parallaType, recordHeader->_type,
-                            recordHeader->_lsn ) ;
+      if ( NULL != pInfo )
+      {
+         /// update paralla info
+         pInfo->updateParalla( parallaType, recordHeader->_type,
+                               recordHeader->_lsn ) ;
+      }
 
    done:
       if ( NULL != mbContext )
