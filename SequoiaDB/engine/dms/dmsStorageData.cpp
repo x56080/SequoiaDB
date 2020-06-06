@@ -382,10 +382,10 @@ namespace engine
                         "Update could not in-flight migrate on OVF record(%s)",
                         recordRW.toString().c_str() ) ;
                PD_LOG ( PDERROR,
-                        "OVF Record: ",
+                        "OVF Record: %s",
                         pRecord->toString().c_str() );
                PD_LOG ( PDERROR,
-                        "OVT Record: ",
+                        "OVT Record: %s",
                         pOvfRecord->toString().c_str() );
                SDB_ASSERT ( FALSE, 
                             "Update failed to migrate existing OVF record." ) ;
