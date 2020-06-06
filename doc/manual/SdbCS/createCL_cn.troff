@@ -85,7 +85,8 @@ true。
 格式：\f[C]CompressionType:"snappy"|"lzw"\f[]
 .RE
 .IP " 7." 4
-\f[C]IsMainCL\f[] ( \f[I]Bool\f[] )：标示新集合是否为主分区集合，默认为 false。
+\f[C]IsMainCL\f[] ( \f[I]Bool\f[] )：标示新集合是否为主分区集合（主表），默认为
+false。
 .RS 4
 .PP
 格式：\f[C]IsMainCL:true|false\f[]
@@ -124,7 +125,7 @@ false。
 .IP \[bu] 2
 运算过程不改数据类型；
 .IP \[bu] 2
-数值运算出现溢出时直接报错，错误码SDB_VALUE_OVERFLOW；
+数值运算出现溢出时直接报错，错误码 SDB_VALUE_OVERFLOW；
 .PP
 格式：\f[C]StrictDataMode:true|false\f[]
 .RE
@@ -141,7 +142,7 @@ false。
 .RE
 .IP "14." 4
 \f[C]LobShardingKeyFormat\f[] ( \f[I]String\f[]
-)：指定大对象生成主表切分键键值的格式。目前支持将大对象ID中的时间属性转换成如下字符串形式：
+)：指定大对象生成主分区集合切分键键值的格式。目前支持将大对象ID中的时间属性转换成如下字符串形式：
 .RS 4
 .IP \[bu] 2
 "YYYYMMDD"：将大对象ID的时间属性转换为年月日的字符串形式，如"20190701"。
@@ -152,35 +153,25 @@ false。
 .PP
 格式：\f[C]LobShardingKeyFormat:"YYYYMMDD"|"YYYYMM"|"YYYY"\f[]
 .RE
+.RE
+.RS
 .PP
-\f[B]注意：\f[]
+\f[B]Note:\f[]
 .IP \[bu] 2
-参数 \f[C]name\f[]
-的值不能是空串、含点（.）或者美元符号（$），并且长度不能超过127B，否则操作失败。
+集合名限制请参考限制
 .IP \[bu] 2
 当参数 \f[C]options\f[]
 内设置了多个参数时，需用英文半角的逗号","将各参数的取值隔开。
 .IP \[bu] 2
-新集合从属于创建它的集合空间。若该集合空间从属于某个域，相关于新集合也从属于该域；若该集合空间不从属于任何域，相当于新集合也不从属于任何域。
+在创建集合空间时，可以指定所属的数据域。创建集合时，使用 Group
+参数，指定的复制组必须在域内；不使用 Group
+参数，集合将被创建在域的任意一个复制组上。
 .IP \[bu] 2
-使用 Group
-参数时，若新集合从属于某个域，该参数所指定的复制组也必须存在于该域；若新集合不从属于任何域，该参数所指定的复制组可以为当前集群的任意一个复制组；
+创建集合的 \f[C]AutoSplit\f[] 参数比数据域的 \f[C]AutoSplit\f[] 属性优先级更高。
 .IP \[bu] 2
-不使用 Group
-参数时，若新集合从属于某个域，该集合将被创建到该域任意一个复制组中；若新集合不从属于任何域，该集合将被创建到当前集群的任意一个复制组中。
+\f[C]AutoSplit\f[] 不能与 \f[C]Group\f[] 参数同时使用。
 .IP \[bu] 2
-AutoSplit 不能与 Group 参数同时使用。
-.IP \[bu] 2
-AutoSplit 必须配合散列分区使用。
-.IP \[bu] 2
-使用 AutoSplit 参数时，若该集合从属于某个域，当前的 AutoSplit 参数将覆盖域中的
-AutoSplit 参数作用于当前集合；
-.IP \[bu] 2
-使用 AutoSplit 参数时，若该集合不从属于某个域，集合将在系统域 SYSDOMAIN
-上进行自动切分；
-.IP \[bu] 2
-不使用 AutoSplit 参数时，若该集合从属于某个域，该域的 AutoSplit
-参数将作用于当前集合。
+\f[C]AutoSplit\f[] 必须配合散列分区使用。
 .IP \[bu] 2
 压缩算法选择策略：snappy
 压缩算法是以单条记录为单位进行压缩，记录内部的数据重复度直接影响到压缩率。因此，当记录内部数据重复度较高，如每条记录的字段名、字段值相似，使用
@@ -188,11 +179,26 @@ snappy
 算法可获得良好的压缩性能。如果记录内部数据重复度很低，但记录间具有更高的相似性，如不同记录之间有相同的字段名，相近的字段值等，则使用
 lzw 算法更优。
 .IP \[bu] 2
-LobShardingKeyFormat 只能在主表中使用，同时要求切分键只能有一个切分字段。
+\f[C]LobShardingKeyFormat\f[]
+只能在主分区集合中使用，同时要求切分键只能有一个切分字段。
+.IP \[bu] 2
+在使用主分区集合（主表）与子分区集合（子表）时，需要注意两者的属性使用关系：
+.RS 2
+.IP "1." 3
+当从主分区集合写入数据时，\f[C]ReplSize\f[]、\f[C]AutoIncrement\f[]
+属性会沿用主分区集合的属性值。
+.IP "2." 3
+当从子分区集合写入数据时，\f[C]ReplSize\f[]、\f[C]AutoIncrement\f[]
+属性会沿用子分区集合的属性值。
+.IP "3." 3
+集合的其他属性，如
+\f[C]ShardingKey\f[]、\f[C]Compressed\f[]、\f[C]AutoIndexId\f[]
+等，子分区集合会使用自己的属性值而不是沿用主分区集合对应的属性值。
+.RE
 .RE
 .SH 返回值
 .PP
-成功：返回一个新的SdbCollection对象。
+成功：返回一个新的 SdbCollection 对象。
 .PP
 失败：抛出异常。
 .SH 错误
@@ -346,10 +352,10 @@ Takes\ 0.120450s.
 .fi
 .RE
 .IP "4." 3
-在主表下使用大对象
+在主分区集合下使用大对象
 .RS 4
 .IP \[bu] 2
-在集合空间 foo 下创建支持大对象的主集合 maincl，同时关联子表 subcl。
+在集合空间 foo 下创建支持大对象的主分区集合 maincl，同时关联子表 subcl。
 .IP
 .nf
 \f[C]
@@ -380,7 +386,7 @@ Takes\ 0.246062s.
 .IP
 .nf
 \f[C]
->\ db.foo.maincl.createLobID(Timestamp("2019\-07\-23\-18.04.07.539050"))
+>\ db.foo.maincl.createLobID("2019\-07\-23\-18.04.07")
 00005d36db97360002de8081
 Takes\ 0.108365s.
 >\ db.foo.maincl.putLob(\[aq]/opt/data/test.dat\[aq],\ \[aq]00005d36db97360002de8081\[aq])
@@ -389,34 +395,3 @@ Takes\ 0.002216s.
 \f[]
 .fi
 .RE
-.SH 注意事项
-.PP
-创建主分区集合（对应主表）或是子分区集合（对应子表）之后，在使用主分区集合/子分区集合时需要注意一些特殊情况：
-.IP "1." 3
-从主分区集合中执行写操作时，replSize、AutoIncrement 会沿用主分区集合对应的属性。
-.IP "2." 3
-从子分区集合中执行写操作时，replSize、AutoIncrement 会沿用子分区集合对应的属性。
-.SS 例子
-.PP
-验证从主分区集合和子分区集合中执行写操作时，AutoIncrement 属性的对应情况。
-.PP
-创建主分区集合 masterCL，自增字段为：masterID。
-.PP
-\f[C]lang\-javascript\ \ \ \ \ >\ db.foo.createCL("masterCL",{\ IsMainCL:\ true,\ ShardingKey:\ {\ a:\ 1\ },\ ShardingType:\ "range",\ AutoIncrement:\ {\ Field:\ "masterID"\ }\ })\ \ \ \ \ localhost:11810.foo.masterCL\ \ \ \ \ Takes\ 0.002450s.\f[]
-创建子分区集合 slaveCL，自增字段为：slaveID。
-.PP
-\f[C]lang\-javascript\ \ \ \ \ >\ db.foo.createCL("slaveCL",{\ ShardingKey:\ {\ b:\ 1\ },\ ShardingType:\ "hash",\ Partition:\ 1024,\ AutoIncrement:\ {\ Field:\ "slaveID"\ }})\ \ \ \ \ localhost:11810.foo.slaveCL\ \ \ \ \ Takes\ 0.263536s.\f[]
-.PP
-将子分区集合附加到主分区集合中。
-.PP
-\f[C]lang\-javascript\ \ \ \ \ >\ db.foo.masterCL.attachCL(\ "foo.slaveCL",\ {\ LowBound:\ {\ a:\ 0\ },\ UpBound:\ {\ a:\ 100\ }\ }\ )\ \ \ \ \ Takes\ 0.002743s.\f[]
-.PP
-从主分区集合 masterCL 中插入数据 {"a":1} 时，AutoIncrement
-会沿用主分区集合对应的属性,所以数据会带有 masterID 信息 。从子分区集合 slaveCL
-中插入数据 {"a":2} 时，AutoIncrement 会沿用子分区集合的属性，所以数据会带有
-slaveID 信息。
-.PP
-\f[C]lang\-javascript\ \ \ \ \ >\ db.foo.masterCL.insert({"a":1})\ //主分区集合插入数据\ \ \ \ \ Takes\ 0.001877s.\ \ \ \ \ >\ db.foo.slaveCL.insert({"a":2})\ //子分区集合插入数据\ \ \ \ \ Takes\ 0.001238s.\ \ \ \ \ >\ db.foo.masterCL.find()\ //查看结果\ \ \ \ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ \ \ "$oid":\ "5d42b40d2d7dfa6391e3cbd9"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "a":\ 1,\ \ \ \ \ \ \ "masterID":\ 1\ \ \ \ \ }\ \ \ \ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ \ \ "$oid":\ "5d42b4342d7dfa6391e3cbda"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "a":\ 2,\ \ \ \ \ \ \ "slaveID":\ 1\ \ \ \ \ }\ \ \ \ \ Return\ 2\ row(s).\ \ \ \ \ Takes\ 0.001234s.\ \ \ \ \ >\f[]
-.PP
-集合的其他属性，如 ShardingKey、Compressed、AutoIndexId
-等，子分区集合会使用自己的属性而不是沿用主分区集合的对应属性。

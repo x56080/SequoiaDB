@@ -143,7 +143,7 @@ See AutoIncrement for more detail.
 .RE
 .IP "14." 4
 \f[C]LobShardingKeyFormat\f[] ( \f[I]String\f[] )：Specify Lob ShardingKey\[aq]s
-value format on MainCL.
+value format on main collection.
 Can be one of the follow:
 .RS 4
 .IP \[bu] 2
@@ -157,12 +157,14 @@ Can be one of the follow:
 .PP
 Format: \f[C]LobShardingKeyFormat:"YYYYMMDD"|"YYYYMM"|"YYYY"\f[]
 .RE
+.RE
+.RS
 .PP
 \f[B]Note:\f[]
 .IP \[bu] 2
-The parameter "name" can not be null or an empty string. It can not contain "."
-and can not begin with "SYS" or "$". The length of it can not be greater 
-than 127B, or exception will occur.
+The parameter \f[C]name\f[] can not be an empty string, and can not include "."
+or "$"; The length of it should not be greater than 127B, or exception will
+occur.
 .IP \[bu] 2
 The parameter \f[C]options\f[] haves one or more fields, please use comma(,) to
 separate.
@@ -175,9 +177,9 @@ the collection will be created on any replication group in the domain.
 \f[C]AutoSplit\f[] parameter in createCL() has higher priority than
 \f[C]AutoSplit\f[] attribute in domain.
 .IP \[bu] 2
-AutoSplit must cooperate with hash partitioning.
+\f[C]AutoSplit\f[] must cooperate with hash partitioning.
 .IP \[bu] 2
-AutoSplit and Group cannot be set at the same time.
+\f[C]AutoSplit\f[] and Group cannot be set at the same time.
 .IP \[bu] 2
 Compression algorithm selection strategy: the snappy algorithm compresses data
 in units of a single record, and the internal data repeatability directly
@@ -188,6 +190,24 @@ snappy algorithm can be used to obtain good compression performance.
 If the internal data of record is very low in repetition, but the records have
 higher similarity, such as different records with the same field name, similar
 field values, etc., lzw compression is better.
+.IP \[bu] 2
+\f[C]LobShardingKeyFormat\f[] can only be used in main collection and requires
+that the ShardingKey have only one partition field.
+.IP \[bu] 2
+When using main collection and sub collection, you need to pay attention to the
+use relationship of their attributes:
+.RS 2
+.IP "1." 3
+When inserting data from main collection, \f[C]ReplSize\f[],
+\f[C]AutoIncrement\f[] will use main collection attributes value.
+.IP "2." 3
+When inserting data from sub collection, \f[C]ReplSize\f[],
+\f[C]AutoIncrement\f[] will use sub collection attributes value.
+.IP "3." 3
+For other attributes of the collection, such as \f[C]ShardingKey\f[],
+\f[C]Compressed\f[], \f[C]AutoIndexId\f[] and so on, sub collection uses its own
+attributes instead of the attributes of main collection.
+.RE
 .RE
 .SH RETURN VALUE
 .PP
@@ -374,88 +394,3 @@ Takes\ 0.002216s.
 \f[]
 .fi
 .RE
-.SH MATTERS NEEDING ATTENTION
-.PP
-After creating the primary partition collection (the primary table) or
-subpartition collection, there are some special cases to be taken into account
-when using the primary/subpartition collection.
-.IP "1." 3
-Insert is performed from the primary partition collection, and the property uses
-the corresponding property of the primary partition collection.
-.IP "2." 3
-Insert is performed from a subpartition collection, and the property uses the
-corresponding property of the subpartition collection.
-.SS Example
-.PP
-Validates the use of AutoIncrement when writing from the primary partition
-collection and subpartition collections.
-.IP "1." 3
-Create primary partition collection "masterCL", and AutoIncrement set to
-"masterID".
-.nf
-\f[C]
->\ db.foo.createCL("masterCL",{\ IsMainCL:\ true,\ ShardingKey:\ {\ a:\ 1\ },\ ShardingType:\ "range",\ AutoIncrement:\ {\ Field:\ "masterID"\ }\ })
-localhost:11810.foo.masterCL
-Takes\ 0.002450s.
-\f[]
-.fi
-.RE
-.IP "2." 3
-Create subpartition collection "slaveCL", and AutoIncrement set to "slaveID".
-.nf
-\f[C]
->\ db.foo.createCL("slaveCL",{\ ShardingKey:\ {\ b:\ 1\ },\ ShardingType:\ "hash",\ Partition:\ 1024,\ AutoIncrement:\ {\ Field:\ "slaveID"\ }})
-localhost:11810.foo.slaveCL
-Takes\ 0.263536s.
-\f[]
-.fi
-.RE
-.IP "3." 3
-Subpartition collection "slaveCL" attach to primary partition collection
-"masterCL".
-.nf
-\f[C]
->\ db.foo.masterCL.attachCL(\ "foo.slaveCL",\ {\ LowBound:\ {\ a:\ 0\ },\ UpBound:\ {\ a:\ 100\ }\ }\ )
-localhost:11810.foo.slaveCL
-Takes\ 0.002743s.
-\f[]
-.fi
-.RE
-.IP "4." 3
-When inserting data from the primary partition: masterCL, AutoIncrement will use
-the corresponding property of the primary partition collection, so the data
-{"a":1} will have "masterID".
-When inserting data from the subpartition collection: slaveCL, AutoIncrement
-will use the corresponding property of the subpartition collection, so the data
-{"a":2} will have "slaveID".
-.nf
-\f[C]
->\ db.foo.masterCL.insert({"a":1})\ //inserting\ data\ from\ masterCL
-Takes\ 0.001877s.\ 
->\ db.foo.slaveCL.insert({"a":2})\ //inserting\ data\ from\ slaveCL
-Takes\ 0.001238s.
->\ db.foo.masterCL.find()\ //get\ results
-{
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5d42b40d2d7dfa6391e3cbd9"
-\ \ },
-\ \ "a":\ 1,
-\ \ "masterID":\ 1
-}
-{
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5d42b4342d7dfa6391e3cbda"
-\ \ },
-\ \ "a":\ 2,
-\ \ "slaveID":\ 1
-}
-Return\ 2\ row(s).
-Takes\ 0.001234s.
->\ 
-\f[]
-.fi
-.RE
-.PP
-For other properties of the collection, such as ShardingKey, Compressed,
-AutoIndexId and so on, the subpartition collection uses its own properties
-instead of the properties of the primary partition collection .

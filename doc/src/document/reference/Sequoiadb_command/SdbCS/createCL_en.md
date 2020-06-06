@@ -101,7 +101,7 @@ or not, default to be false.
 
         * See [AutoIncrement](data_model/auto_increment.md) for more detail.
         
-    14. `LobShardingKeyFormat` ( *String* )：Specify Lob ShardingKey's value format on MainCL. Can be one of the follow:
+    14. `LobShardingKeyFormat` ( *String* )：Specify Lob ShardingKey's value format on main collection. Can be one of the follow:
     
         * "YYYYMMDD": Transform a lob's ID to date string format, for example: "20190701".
         * "YYYYMM": Transform a lob's ID to month string format, for example: "201907".
@@ -109,24 +109,31 @@ or not, default to be false.
     
         Format: `LobShardingKeyFormat:"YYYYMMDD"|"YYYYMM"|"YYYY"`
 
-    **Note:**
-
-    * The parameter `name` can not be an empty string, and can not 
-      include "." or "$"; The length of it should not be greater 
-      than 127B, or exception will occur.
-
-    * The parameter `options` haves one or more fields, please use
-      comma(,) to separate.
-
-    * When creating collection space, user can specify `Domain`. When creating collection, using `Group` parameter, the specified replication group must be in the domain; when no using `Group` parameter, the collection will be created on any replication group in the domain.
-    
-    * `AutoSplit` parameter in createCL() has higher priority than `AutoSplit` attribute in domain.
-    
-    * AutoSplit must cooperate with hash partitioning.
-
-    * AutoSplit and Group cannot be set at the same time.
-
-    * Compression algorithm selection strategy: the snappy algorithm compresses data in units of a single record, and the internal data repeatability directly affects the compression ratio. Therefore, when the internal data of the record is relatively high in repetition, such as the field name and field value of a record are similar, the snappy algorithm can be used to obtain good compression performance. If the internal data of record is very low in repetition, but the records have higher similarity, such as different records with the same field name, similar field values, etc., lzw compression is better.
+> **Note:**
+> 
+> * The parameter `name` can not be an empty string, and can not 
+    include "." or "$"; The length of it should not be greater 
+    than 127B, or exception will occur.
+> 
+> * The parameter `options` haves one or more fields, please use
+    comma(,) to separate.
+> 
+> * When creating collection space, user can specify `Domain`. When creating collection, using `Group` parameter, the specified replication group must be in the domain; when no using `Group` parameter, the collection will be created on any replication group in the domain.
+>     
+> * `AutoSplit` parameter in createCL() has higher priority than `AutoSplit` attribute in domain.
+>     
+> * `AutoSplit` must cooperate with hash partitioning.
+> 
+> * `AutoSplit` and Group cannot be set at the same time.
+> 
+> * Compression algorithm selection strategy: the snappy algorithm compresses data in units of a single record, and the internal data repeatability directly affects the compression ratio. Therefore, when the internal data of the record is relatively high in repetition, such as the field name and field value of a record are similar, the snappy algorithm can be used to obtain good compression performance. If the internal data of record is very low in repetition, but the records have higher similarity, such as different records with the same field name, similar field values, etc., lzw compression is better.
+> 
+> * `LobShardingKeyFormat` can only be used in main collection and requires that the ShardingKey have only one partition field.
+> 
+> * When using main collection and sub collection, you need to pay attention to the use relationship of their attributes:
+>     1. When inserting data from main collection, `ReplSize`, `AutoIncrement` will use main collection attributes value.
+>     2. When inserting data from sub collection, `ReplSize`, `AutoIncrement` will use sub collection attributes value.
+>     3. For other attributes of the collection, such as `ShardingKey`, `Compressed`, `AutoIndexId` and so on, sub collection uses its own attributes instead of the attributes of main collection.
 
 ##RETURN VALUE##
 
@@ -212,74 +219,3 @@ Since v1.0.
     00005d36db97360002de8081
     Takes 0.002216s.
     ```
-
-
-##MATTERS NEEDING ATTENTION##
-
-After creating the primary partition collection (the primary table) or subpartition collection, there are some special cases to be taken into account when using the primary/subpartition collection.
-
-
-1. Insert is performed from the primary partition collection, and the property uses the corresponding property of the primary partition collection.
-
-2. Insert is performed from a subpartition collection, and the property uses the corresponding property of the subpartition collection.
-
- 
-###Example###
-
-Validates the use of AutoIncrement when writing from the primary partition collection and subpartition collections.
-
-
-1. Create primary partition collection "masterCL", and AutoIncrement set to "masterID".
-
-	```lang-javascript
-    > db.foo.createCL("masterCL",{ IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", AutoIncrement: { Field: "masterID" } })
-    localhost:11810.foo.masterCL
-    Takes 0.002450s.
-	```
-
-2. Create subpartition collection "slaveCL", and AutoIncrement set to "slaveID".
-
-	```lang-javascript
-    > db.foo.createCL("slaveCL",{ ShardingKey: { b: 1 }, ShardingType: "hash", Partition: 1024, AutoIncrement: { Field: "slaveID" }})
-    localhost:11810.foo.slaveCL
-    Takes 0.263536s.
-	```
-
-3. Subpartition collection "slaveCL" attach to primary partition collection "masterCL".
-
-	```lang-javascript
-    > db.foo.masterCL.attachCL( "foo.slaveCL", { LowBound: { a: 0 }, UpBound: { a: 100 } } )
-    localhost:11810.foo.slaveCL
-    Takes 0.002743s.
-	```
-
-4. When inserting data from the primary partition: masterCL, AutoIncrement will use the corresponding property of the primary partition collection, so the data {"a":1} will have "masterID".
- When inserting data from the subpartition collection: slaveCL, AutoIncrement will use the corresponding property of the subpartition collection, so the data {"a":2} will have "slaveID".
-
-	```lang-javascript
-    > db.foo.masterCL.insert({"a":1}) //inserting data from masterCL
-    Takes 0.001877s. 
-    > db.foo.slaveCL.insert({"a":2}) //inserting data from slaveCL
-    Takes 0.001238s.
-    > db.foo.masterCL.find() //get results
-	{
-	  "_id": {
-	    "$oid": "5d42b40d2d7dfa6391e3cbd9"
-	  },
-	  "a": 1,
-	  "masterID": 1
-	}
-	{
-	  "_id": {
-	    "$oid": "5d42b4342d7dfa6391e3cbda"
-	  },
-	  "a": 2,
-	  "slaveID": 1
-	}
-	Return 2 row(s).
-	Takes 0.001234s.
-	> 
-	```
-
-For other properties of the collection, such as ShardingKey, Compressed, AutoIndexId and so on, the subpartition collection uses its own properties instead of the properties of the primary partition collection
-.

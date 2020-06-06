@@ -58,7 +58,7 @@ Collection Space
 
         格式：`CompressionType:"snappy"|"lzw"`
 
-    7. `IsMainCL` ( *Bool* )：标示新集合是否为主分区集合，默认为 false。
+    7. `IsMainCL` ( *Bool* )：标示新集合是否为主分区集合（主表），默认为 false。
 
         格式：`IsMainCL:true|false`
 
@@ -81,7 +81,7 @@ Collection Space
     12. `StrictDataMode` ( *Bool* )：标示对该集合的操作是否开启严格数据类型模式，默认为false(不开启)。严格数据模式的开启标示对数值操作存在以下限制：
 
         * 运算过程不改数据类型；
-        * 数值运算出现溢出时直接报错，错误码SDB_VALUE_OVERFLOW；
+        * 数值运算出现溢出时直接报错，错误码 SDB_VALUE_OVERFLOW；
 
       	格式：`StrictDataMode:true|false`
 
@@ -93,7 +93,7 @@ Collection Space
 
         * 参数详情请参考[自增字段介绍](data_model/auto_increment.md)
         
-    14. `LobShardingKeyFormat` ( *String* )：指定大对象生成主表切分键键值的格式。目前支持将大对象ID中的时间属性转换成如下字符串形式：
+    14. `LobShardingKeyFormat` ( *String* )：指定大对象生成主分区集合切分键键值的格式。目前支持将大对象ID中的时间属性转换成如下字符串形式：
     
         * "YYYYMMDD"：将大对象ID的时间属性转换为年月日的字符串形式，如"20190701"。
         * "YYYYMM"：将大对象ID的时间属性转换为年月的字符串形式，如"201907"。
@@ -101,27 +101,32 @@ Collection Space
     
         格式：`LobShardingKeyFormat:"YYYYMMDD"|"YYYYMM"|"YYYY"`
 
-    **Note:**
-
-> * 集合名限制请参考[限制] (reference/Sequoiadb_limitation.md)。
-
+> **Note:**
+>
+> * 集合名限制请参考[限制](reference/Sequoiadb_limitation.md)
+>
 > * 当参数 `options` 内设置了多个参数时，需用英文半角的逗号","将各参数的取值隔开。
-
+>
 > * 在[创建集合空间](reference/Sequoiadb_command/Sdb/createCS.md)时，可以指定所属的[数据域](infrastructure/domain.md)。创建集合时，使用 Group 参数，指定的复制组必须在域内；不使用 Group 参数，集合将被创建在域的任意一个复制组上。
-
-> * 创建集合的 AutoSplit 参数比数据域的 AutoSplit 属性优先级更高。
-
-> * AutoSplit 不能与 Group 参数同时使用。
-
-> * AutoSplit 必须配合散列分区使用。
-    
+>
+> * 创建集合的 `AutoSplit` 参数比数据域的 `AutoSplit` 属性优先级更高。
+>
+> * `AutoSplit` 不能与 `Group` 参数同时使用。
+>
+> * `AutoSplit` 必须配合散列分区使用。
+>   
 > * 压缩算法选择策略：snappy 压缩算法是以单条记录为单位进行压缩，记录内部的数据重复度直接影响到压缩率。因此，当记录内部数据重复度较高，如每条记录的字段名、字段值相似，使用 snappy 算法可获得良好的压缩性能。如果记录内部数据重复度很低，但记录间具有更高的相似性，如不同记录之间有相同的字段名，相近的字段值等，则使用 lzw 算法更优。
-    
-> * LobShardingKeyFormat 只能在主表中使用，同时要求切分键只能有一个切分字段。
+>    
+> * `LobShardingKeyFormat` 只能在主分区集合中使用，同时要求切分键只能有一个切分字段。
+>
+> * 在使用主分区集合（主表）与子分区集合（子表）时，需要注意两者的属性使用关系： 
+>     1. 当从主分区集合写入数据时，`ReplSize`、`AutoIncrement` 属性会沿用主分区集合的属性值。
+>     2. 当从子分区集合写入数据时，`ReplSize`、`AutoIncrement` 属性会沿用子分区集合的属性值。
+>     3. 集合的其他属性，如 `ShardingKey`、`Compressed`、`AutoIndexId` 等，子分区集合会使用自己的属性值而不是沿用主分区集合对应的属性值。
 
 ##返回值##
 
-成功：返回一个新的SdbCollection对象。  
+成功：返回一个新的 SdbCollection 对象。  
 
 失败：抛出异常。
 
@@ -170,8 +175,8 @@ v1.0及以上版本。
     Takes 0.120450s.
     ```
     
-4. 在主表下使用大对象
-    * 在集合空间 foo 下创建支持大对象的主集合 maincl，同时关联子表 subcl。
+4. 在主分区集合下使用大对象
+    * 在集合空间 foo 下创建支持大对象的主分区集合 maincl，同时关联子表 subcl。
 
     ```lang-javascript
     > db.foo.createCL("maincl", { LobShardingKeyFormat:"YYYYMMDD", ShardingKey:{ date:1 }, IsMainCL:true, ShardingType:"range" } )
@@ -204,68 +209,3 @@ v1.0及以上版本。
     00005d36db97360002de8081
     Takes 0.002216s.
     ```
-
-##注意事项##
-创建主分区集合（对应主表）或是子分区集合（对应子表）之后，在使用主分区集合/子分区集合时需要注意一些特殊情况：
-
-1. 从主分区集合中执行写操作时，replSize、AutoIncrement 会沿用主分区集合对应的属性。
-2. 从子分区集合中执行写操作时，replSize、AutoIncrement 会沿用子分区集合对应的属性。
-
-
-###例子###
-验证从主分区集合和子分区集合中执行写操作时，AutoIncrement 属性的对应情况。
-
-创建主分区集合 masterCL，自增字段为：masterID。
-
-   ```lang-javascript
-    > db.foo.createCL("masterCL",{ IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", AutoIncrement: { Field: "masterID" } })
-    localhost:11810.foo.masterCL
-    Takes 0.002450s.
-   ```
-创建子分区集合 slaveCL，自增字段为：slaveID。
-
-
-   ```lang-javascript
-    > db.foo.createCL("slaveCL",{ ShardingKey: { b: 1 }, ShardingType: "hash", Partition: 1024, AutoIncrement: { Field: "slaveID" }})
-    localhost:11810.foo.slaveCL
-    Takes 0.263536s.
-   ```
-
-将子分区集合附加到主分区集合中。
-
-
-   ```lang-javascript
-    > db.foo.masterCL.attachCL( "foo.slaveCL", { LowBound: { a: 0 }, UpBound: { a: 100 } } )
-    Takes 0.002743s.
-   ```
-
-从主分区集合 masterCL 中插入数据 {"a":1} 时，AutoIncrement 会沿用主分区集合对应的属性,所以数据会带有 masterID 信息 。从子分区集合 slaveCL 中插入数据 {"a":2} 时，AutoIncrement 会沿用子分区集合的属性，所以数据会带有 slaveID 信息。
-
-   ```lang-javascript
-    > db.foo.masterCL.insert({"a":1}) //主分区集合插入数据
-    Takes 0.001877s.
-    > db.foo.slaveCL.insert({"a":2}) //子分区集合插入数据
-    Takes 0.001238s.
-    > db.foo.masterCL.find() //查看结果
-    {
-      "_id": {
-        "$oid": "5d42b40d2d7dfa6391e3cbd9"
-      },
-      "a": 1,
-      "masterID": 1
-    }
-    {
-      "_id": {
-        "$oid": "5d42b4342d7dfa6391e3cbda"
-      },
-      "a": 2,
-      "slaveID": 1
-    }
-    Return 2 row(s).
-    Takes 0.001234s.
-    > 
-   ```
- 
-集合的其他属性，如 ShardingKey、Compressed、AutoIndexId 等，子分区集合会使用自己的属性而不是沿用主分区集合的对应属性。
-    
-
