@@ -567,6 +567,8 @@ namespace engine
       _rbsRecordOffset.reset() ;
       _needPostAction      = FALSE ;
       _recordOnDiskVisible = FALSE ;
+
+      _diskRecordTransID.reset() ;
    }
 
    const dmsRBSOffset & dmsTransLockCallback::getRBSRecordOffset() 
@@ -1280,7 +1282,8 @@ namespace engine
          rc = _rbsMgr->rbsGetRecord( _csLID, _clID, _clLID,
                                      rid, transID, found,
                                      *_rbsRecordData,
-                                     startPos, endPos ) ;
+                                     startPos, endPos,
+                                     _diskRecordTransID ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to read record from RBS, rc: %d", rc ) ;
       }
@@ -1414,6 +1417,7 @@ namespace engine
                          dpsTransIDToString( recTransID ).c_str(), rc ) ;
 
             _recordOnDiskVisible = visible ;
+            _diskRecordTransID = recTransID ;
          }
       }
    done :

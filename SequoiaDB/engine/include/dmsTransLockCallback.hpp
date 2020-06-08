@@ -302,6 +302,9 @@ namespace engine
       BOOLEAN              _needPostAction ;
       BOOLEAN              _useOldVersion ;
       BOOLEAN              _recordOnDiskVisible ;
+      // save transaction ID of record from disk, which will be used
+      // in RBS to check MVCC record chain
+      DPS_TRANS_ID         _diskRecordTransID ;
       // used for non-transactional operation to track if the operation
       // (update/delete) need to cleanup nodes for this rid in memidxtree.
       // Only need the cleanup when the operation was successfull.
@@ -322,7 +325,6 @@ namespace engine
       oldVersionUnitPtr    _unitPtr ;
 
       dmsTransRecordInfo   _recordInfo ;
-
    } ;
 
 }
