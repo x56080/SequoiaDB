@@ -51,21 +51,14 @@ INT32 writeLob( sdbCollectionHandle cl, const bson_oid_t &oid, bson_oid_t& ret)
       return rc ;
    }
    rc = sdbWriteLob(lob, content, strlen(content)) ;
-   if ( rc != 0 )
+   if ( rc == 0 )
    {
-      return rc ;
+      rc = sdbGetLobId(lob, &ret) ;
    }
  
    rc = sdbGetLobId(lob, &ret) ;
-   if ( rc != 0 )
-   {
-      sdbCloseLob(&lob);
-	  return rc ;
-   }
-   else
-   {
-      sdbCloseLob(&lob);
-   }
+   sdbCloseLob(&lob);
+   return rc ;
 }
 
 INT32 readLob(sdbCollectionHandle cl, const bson_oid_t &oid, bson_oid_t &ret, char *buff, int len)
@@ -83,23 +76,19 @@ INT32 readLob(sdbCollectionHandle cl, const bson_oid_t &oid, bson_oid_t &ret, ch
       char *ptmp = buff ;
       rc = sdbReadLob( lob, size, ptmp, &read ) ;
       if ( rc != 0 && rc != SDB_EOF )
-	  {
-         return rc ;
+      {
+         break ;
       }
       ptmp += read ;
       size -= read ;
    }while( size != 0 && rc != SDB_EOF ) ;
    
-   rc = sdbGetLobId(lob, &ret) ;
-   if ( rc != 0 )
+   if ( rc == 0 || rc == SDB_EOF )
    {
-      sdbCloseLob(&lob);
-	  return rc ;
+      rc = sdbGetLobId(lob, &ret) ;
    }
-   else
-   {
-      sdbCloseLob(&lob);
-   }
+   sdbCloseLob(&lob);
+   return rc ;
 }
 
 TEST_F( lobCreateandListTest, createLob_22190 )
