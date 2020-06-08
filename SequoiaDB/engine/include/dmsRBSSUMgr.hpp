@@ -239,7 +239,8 @@ namespace engine
                             BOOLEAN          &found,
                             dmsRecordData    &record,
                             dmsRBSOffset     &startPos,
-                            dmsRBSOffset     &endPos ) ; 
+                            dmsRBSOffset     &endPos,
+                            const DPS_TRANS_ID &diskRecordTransID ) ;
 
 
       void gcRBS ( ) ;

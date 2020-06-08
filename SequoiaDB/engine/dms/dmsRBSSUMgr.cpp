@@ -822,7 +822,8 @@ namespace engine
                                        BOOLEAN          &found,
                                        dmsRecordData    &recordData,
                                        dmsRBSOffset     &startPos,
-                                       dmsRBSOffset     &endPos )
+                                       dmsRBSOffset     &endPos,
+                                       const DPS_TRANS_ID &diskRecordTransID )
    {
       PD_TRACE_ENTRY ( SDB__DMSRBSSUMGR_RBSGETRECORD );
       SINT32        rc         = SDB_OK ;
@@ -838,13 +839,18 @@ namespace engine
       // decide if we were provided with start and finish position in RBS.
       // index scan does this type of search. Either of this can be valid.
       BOOLEAN       useRange   = ( startPos.isValid() || endPos.isValid() );
-      DPS_TRANS_ID  ownerTransid, lastRecTransID ;
+      DPS_TRANS_ID  ownerTransID, lastRecTransID ;
+
+      lastRecTransID = diskRecordTransID ;
+
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
                "Transaction (%s) tries to find a proper version from RBS, "
-               "csid(%d), clid(%d), record rid(%d, %d), cllid(%d)",
+               "csid(%d), clid(%d), record rid(%d, %d), cllid(%d), "
+               "disk transid (%s)",
                dpsTransIDToString( transid ).c_str(),
-               csid, clid, rid._extent, rid._offset, clLID ) ;
+               csid, clid, rid._extent, rid._offset, clLID,
+               dpsTransIDToString( lastRecTransID ).c_str() ) ;
 #endif
       SDB_ASSERT( pmdGetOptionCB()->globTransOn() && 
                   pmdGetOptionCB()->mvccOn() , 
@@ -934,7 +940,7 @@ namespace engine
             // Caller current will skip the record if the ownerTransID
             // is visiable(see afterLockAquired)
             rc = sd->fetch( context, recordID, cappedRecord,
-                            eduCB, FALSE, &ownerTransid ) ;
+                            eduCB, FALSE, &ownerTransID ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR,
@@ -995,40 +1001,137 @@ namespace engine
                {
                   BOOLEAN isVisible = FALSE ;
 
-                  // check visibility for current trans against owner transId
+                  // check visibility for current transaction against
+                  // owner transaction
                   //
-                  // for same RID on the chain, the ownerTransID of previous
-                  // record is the recTransID of next record :
-                  // {owner:T3,rec:T2} -> {owner:T2,rec:T1} -> {owner:T1,rec:T0}
-                  // thus, we can remember last record transID, lastRecTransID,
-                  // if the lastRecTransID is equal to ownerTransID, no need
-                  // to check owner trans visibility any further, since it had
-                  // been checked as recTransID last time.
-                  if ( ownerTransid != lastRecTransID )
-                  {
-                     rc = sdbGetTransCB()->isVersionVisible(
-                                                        eduCB,
-                                                        ownerTransid,
-                                                        transid,
-                                                        eduCB->getTransBeginTime(),
-                                                        TRANS_ISOLATION_RR,
-                                                        FALSE,
-                                                        isVisible ) ;
-                     PD_RC_CHECK( rc, PDERROR,
-                                  "Failed to check version visibility for "
-                                  "current transaction [%s] against owner "
-                                  "transaction [%s], rc: %d",
-                                  dpsTransIDToString( transid ).c_str(),
-                                  dpsTransIDToString( ownerTransid ).c_str(), rc ) ;
+                  // 3 cases here
+                  //
+                  // - normal case: all records were created by committed
+                  //   transactions
+                  //
+                  //   disk ( rec: T3 )
+                  //   RBS  ( owner: T3, rec: T2 ) ->
+                  //        ( owner: T2, rec: T1 ) ->
+                  //        ( owner: T1, rec: T0 )
+                  //
+                  //   in this case, all owner transaction IDs equal to
+                  //   record transaction ID of previous searched item
+                  //
+                  // - rollback case: a rollback happened among committed
+                  //   transactions
+                  //
+                  //   disk ( rec: T3 )
+                  //   RBS  ( owner: T3, rec: T2 ) ->
+                  //        ( owner: T33, rec: T2 ) ->
+                  //        ( owner: T2, rec: T1 ) ->
+                  //        ( owner: T1, rec: T0 )
+                  //
+                  //   in this case, a record transaction ID equals to record
+                  //   transaction ID of previous searched item
+                  //   ( e.g. T33 is a rollbacked transaction )
+                  //
+                  // - non-transaction case: a non-transaction operators
+                  //   happened among committed transactions
+                  //
+                  //   in this case, a owner transaction ID is different from
+                  //   record transaction ID of previous searched item
+                  //   and record transaction IDs are different
+                  //
+                  //   - DELETE case:
+                  //
+                  //   disk ( rec: T3 )
+                  //   RBS  ( owner: T3, rec: T2 ) ->
+                  //        ( owner: T22, rec: T1 ) ->
+                  //        ( owner: T1, rec: T0 )
+                  //
+                  //   there is a non-transaction DELETE after T22,
+                  //   and then T2 INSERT back with the same RID )
+                  //
+                  //   - UPDATE case:
+                  //
+                  //   disk ( rec: T3 )
+                  //   RBS  ( owner: T3, rec: invalid ) ->
+                  //        ( owner: T22, rec: T1 ) ->
+                  //        ( owner: T1, rec: T0 )
+                  //
+                  //   there is a non-transaction UPDATE after T22,
+                  //   so the record transaction ID become invalid,
+                  //   so everyone could access this record with invalid
+                  //   record transaction ID
 
-                     if ( isVisible )
+                  if ( ownerTransID != lastRecTransID )
+                  {
+                     if ( lastRecTransID.isInvalid() )
                      {
-#ifdef _DEBUG
-                        PD_LOG ( PDDEBUG,
-                                 "Hit owner trans version(%s) at position(%d, %lld)",
-                                 dpsTransIDToString( ownerTransid ).c_str(),
-                                 position._clID,
-                                 position._logicalID ) ;
+                        SDB_ASSERT( diskRecordTransID.isInvalid(),
+                                    "disk record transaction ID should "
+                                    "be invalid also" ) ;
+                        // if last record transaction ID is invalid, means
+                        // it comes from mem-index tree searching
+                        // in this case, we need to reverify if we can access
+                        // the first item of RBS chain
+                        rc = sdbGetTransCB()->isVersionVisible(
+                                                           eduCB,
+                                                           ownerTransID,
+                                                           transid,
+                                                           eduCB->getTransBeginTime(),
+                                                           TRANS_ISOLATION_RR,
+                                                           FALSE,
+                                                           isVisible ) ;
+                        PD_RC_CHECK( rc, PDERROR,
+                                     "Failed to check version visibility for "
+                                     "current transaction [%s] against owner "
+                                     "transaction [%s], rc: %d",
+                                     dpsTransIDToString( transid ).c_str(),
+                                     dpsTransIDToString( ownerTransID ).c_str(), rc ) ;
+
+                        if ( isVisible )
+                        {
+#if defined (_DEBUG)
+                           PD_LOG ( PDDEBUG,
+                                    "Hit owner trans version(%s) at position(%d, %lld)",
+                                    dpsTransIDToString( ownerTransID ).c_str(),
+                                    position._clID,
+                                    position._logicalID ) ;
+#endif
+                           _su->data()->releaseMBContext( context ) ;
+                           context = NULL ;
+                           break ;
+                        }
+                     }
+                     else if ( recordTransID == lastRecTransID )
+                     {
+                        // rollback case, move to next record
+#if defined (_DEBUG)
+                        PD_LOG( PDDEBUG, "Got rollback transaction [%s], "
+                                "record transaction [%s], move to next",
+                                dpsTransIDToString( ownerTransID ).c_str(),
+                                dpsTransIDToString( recordTransID ).c_str() ) ;
+#endif
+                        // setup next position, release mblatch and continue
+                        position._clID =
+                          cappedRecord.getField(FIELD_NAME_RBS_PRERECORD_CL).numberInt();
+                        position._logicalID =
+                          cappedRecord.getField(FIELD_NAME_RBS_PRERECORD_OFFSET).numberLong();
+                        // release mblatch before move to next position
+                        _su->data()->releaseMBContext( context ) ;
+                        context = NULL ;
+                        continue ;
+                     }
+                     else
+                     {
+                        // non-transaction case, could not access this record,
+                        // since it had been changed by non-transaction
+                        // operators
+#if defined (_DEBUG)
+                        PD_LOG( PDDEBUG, "Got non transaction operators, "
+                                "transaction ID of previous [%s], "
+                                "owner transaction [%s], "
+                                "current record transaction [%s], "
+                                "could not access",
+                                dpsTransIDToString( lastRecTransID ).c_str(),
+                                dpsTransIDToString( ownerTransID ).c_str(),
+                                dpsTransIDToString( recordTransID ).c_str() ) ;
 #endif
                         _su->data()->releaseMBContext( context ) ;
                         context = NULL ;
