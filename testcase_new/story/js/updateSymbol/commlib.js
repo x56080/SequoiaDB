@@ -1,3 +1,7 @@
+import( "../lib/main.js" );
+
+var allTypeData = [ 2147483646, 9223372036854775806, 1.7E+30, { "$decimal": "123.456" }, "String", { "$oid" : "123abcd00ef12358902300ef" }, true, { "$date": "2012-01-01" }, { "$timestamp": "2012-01-01-13.14.26.124233" }, { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" }, { "$regex": "^张", "$options": "i" }, [ 1, "string" ], null, { "$minKey": 1 }, { "$maxKey": 1 }, { "parent": { "child": 1 } }, [ [ "child1", "child11" ], [ "child2", "child22" ] ], [ { "key1": "value1" }, { "key2": "value2" } ] ];
+
 /************************************
 *@Description: insert data
 *@author:      zhaoyu
