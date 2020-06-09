@@ -454,6 +454,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__MTHMDF__APPSETMDF ) ;
       BOOLEAN isNeedSetNewValue = TRUE ;
       BSONElement realEle ;
+      BOOLEAN needUnset = FALSE ;
 
       if ( me.isModifyByField() )
       {
@@ -467,10 +468,10 @@ namespace engine
          }
 
          // If the field specified by '$field' dose not exist in the source
-         // record, just keep the origin field.
+         // record, remove the target field.
          if ( realEle.eoo() )
          {
-            isNeedSetNewValue = FALSE ;
+            needUnset = TRUE ;
          }
       }
       else
@@ -487,8 +488,18 @@ namespace engine
       if ( isNeedSetNewValue )
       {
          ADD_CHG_ELEMENT_AS ( _srcChgBuilder, in, pRoot, "$set" ) ;
-         ADD_CHG_ELEMENT_AS ( _dstChgBuilder, realEle, pRoot, "$set" ) ;
-         bb.appendAs ( realEle, in.fieldName() ) ;
+         if ( needUnset )
+         {
+            BSONObjBuilder builder ;
+            builder.append( in.fieldName(), "" ) ;
+            ADD_CHG_ELEMENT_AS( _dstChgBuilder, builder.done().firstElement(),
+                                pRoot, "$unset" ) ;
+         }
+         else
+         {
+            ADD_CHG_ELEMENT_AS ( _dstChgBuilder, realEle, pRoot, "$set" ) ;
+            bb.appendAs ( realEle, in.fieldName() ) ;
+         }
       }
       // not change
       else
