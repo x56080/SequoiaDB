@@ -95,11 +95,13 @@ public class TestIndex {
 
     }
 
-
     @Test
     public void testCreateIndexWithOptions(){
         BasicBSONObject key = new BasicBSONObject();
         String name = "name";
+        String name2 = "name2";
+        String name3 = "name3";
+        String name4 = "name4";
         key.put(name,1);
         BSONObject indexObj;
 
@@ -111,32 +113,32 @@ public class TestIndex {
         cl.dropIndex(name);
 
         BasicBSONObject optionsCase2 = null;
-        cl.createIndex(name,key,optionsCase2);
-        indexObj = cl.getIndexInfo(name);
+        cl.createIndex(name2,key,optionsCase2);
+        indexObj = cl.getIndexInfo(name2);
         Assert.assertNotNull(indexObj);
         System.out.println("Case2 index is: " + indexObj.toString());
-        cl.dropIndex(name);
+        cl.dropIndex(name2);
 
         BasicBSONObject optionsCase3 = new BasicBSONObject();
-        optionsCase3.put("Unique",1);
-        optionsCase3.put("Enforced","1");
-        optionsCase3.put("NotNull",new Object());
-        optionsCase3.put("SortBufferSize", 1.1);
-        cl.createIndex(name,key,optionsCase3);
-        indexObj = cl.getIndexInfo(name);
+        optionsCase3.put("Unique",true);
+        optionsCase3.put("Enforced",true);
+        optionsCase3.put("NotNull",false);
+        optionsCase3.put("SortBufferSize", 100);
+        cl.createIndex(name3, new BasicBSONObject().append("Id", 1),optionsCase3);
+        indexObj = cl.getIndexInfo(name3);
         Assert.assertNotNull(indexObj);
         System.out.println("Case3 index is: " + indexObj.toString());
-        cl.dropIndex(name);
+        cl.dropIndex(name3);
 
         BasicBSONObject optionsCase4 = new BasicBSONObject();
         optionsCase4.put("Unique",true);
         optionsCase4.put("Enforced",false);
         optionsCase4.put("NotNull",false);
         optionsCase4.put("SortBufferSize", 64);
-        cl.createIndex(name,key,optionsCase4);
-        indexObj = cl.getIndexInfo(name);
+        cl.createIndex(name4,key,optionsCase4);
+        indexObj = cl.getIndexInfo(name4);
         Assert.assertNotNull(indexObj);
         System.out.println("Case4 index is: " + indexObj.toString());
-        cl.dropIndex(name);
+        cl.dropIndex(name4);
     }
 }

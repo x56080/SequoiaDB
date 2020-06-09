@@ -1284,19 +1284,19 @@ public class DBCollection {
     /**
      * Get all of or one of the indexes in current collection.
      *
-     * @param name The index name, returns all of the indexes if this parameter is null
-     * @return DBCursor of indexes
+     * @param indexName The index indexName, returns all of the indexes if this parameter is null.
+     * @return DBCursor of indexes.
      * @throws BaseException If error happens.
      * @deprecated use "getIndexInfo" or "getIndexes" API instead.
      */
     @Deprecated
-    public DBCursor getIndex(String name) throws BaseException {
-        if (name == null) {
+    public DBCursor getIndex(String indexName) throws BaseException {
+        if (indexName == null) {
             return getIndexes();
         }
 
         BSONObject condition = new BasicBSONObject();
-        condition.put(SdbConstants.IXM_INDEXDEF + "." + SdbConstants.IXM_NAME, name);
+        condition.put(SdbConstants.IXM_INDEXDEF + "." + SdbConstants.IXM_NAME, indexName);
 
         BSONObject obj = new BasicBSONObject();
         obj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
@@ -1380,161 +1380,153 @@ public class DBCollection {
     /**
      * Create a index with name and key.
      *
-     * @param name    The index name.
-     * @param key     The index keys in JSON format, like: { "a":1, "b":-1 }.
+     * @param indexName    The index name.
+     * @param indexKeys    The index keys in JSON format, like: { "a":1, "b":-1 }.
      * @param options Optional configuration, type is BSONObject. Please reference
      *                {@see <a href=http://doc.sequoiadb.com/cn/sequoiadb-cat_id-1432190830-edition_id-302>here</a>}
      *                for more detail, like: { "Unique" : false , "Enforced" : false , "NotNull" : false , "SortBufferSize" : 64 }
      * @throws BaseException
      */
-    public void createIndex(String name, BSONObject key, BSONObject options) throws BaseException {
-
+    public void createIndex(String indexName, BSONObject indexKeys, BSONObject options) throws BaseException {
+        int sortBufferSize = 0;
         BSONObject matcher = new BasicBSONObject();
         BSONObject hint = new BasicBSONObject();
+        BSONObject indexDef = new BasicBSONObject();
+        BSONObject indexOptions = new BasicBSONObject();
+        if (options != null) {
+            indexOptions.putAll(options);
+        }
 
-        // 校验 options, 设置 matcher 和 hint
-        checkOptions(options, matcher, hint);
 
-        matcher.put(SdbConstants.IXM_KEY, key);
-        matcher.put(SdbConstants.IXM_NAME, name);
+        // we are going to build the below message:
+        // matcher: { Collection: "foo.bar",
+        //           Index:{ key: {a:1}, name: 'aIdx', Unique: true,
+        //                   Enforced: true, NotNull: true },
+        //           SortBufferSize: 1024 }
+        // hint: { SortBufferSize: 1024 }
+        // For Compatibility with older engine( version <3.4 ), keep sort buffer
+        // size in hint. After several versions, we can delete it.
 
-        BSONObject createObj = new BasicBSONObject();
-        createObj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
-        createObj.put(SdbConstants.FIELD_INDEX, matcher);
-
-        AdminRequest request = new AdminRequest(AdminCommand.CREATE_INDEX, createObj, hint);
+        // prepare sortBufferSize
+        if (indexOptions.containsField(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE)) {
+            Object value = indexOptions.get(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE);
+            if (value instanceof Integer) {
+                sortBufferSize = (int)value;
+            } else {
+                throw new BaseException(SDBError.SDB_INVALIDARG, "sortBufferSize should be int value");
+            }
+            indexOptions.removeField(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE);
+        } else {
+            sortBufferSize = SdbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE;
+        }
+        // prepare indexDef
+        indexDef.put(SdbConstants.IXM_NAME, indexName);
+        indexDef.put(SdbConstants.IXM_KEY, indexKeys);
+        indexDef.putAll(indexOptions);
+        // build matcher
+        matcher.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
+        matcher.put(SdbConstants.FIELD_INDEX, indexDef);
+        matcher.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
+        // build hint
+        hint.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
+        // build and send message
+        AdminRequest request = new AdminRequest(AdminCommand.CREATE_INDEX, matcher, hint);
         SdbReply response = sequoiadb.requestAndResponse(request);
-
-        boolean isUnique = (boolean) matcher.get(SdbConstants.IXM_UNIQUE);
-
+        // check return info
         if (response.getFlag() != 0) {
-            String msg = "name = " + name + ", key = " + key + ", isUnique = " + isUnique;
+            String msg = "indexName = " + indexName + ", indexKeys = " + indexKeys.toString() +
+                    ", options = " + options.toString() +
+                    ", matcher = " + matcher.toString() + ", hint = " + hint.toString();
             sequoiadb.throwIfError(response, msg);
         }
         sequoiadb.upsertCache(collectionFullName);
     }
 
-    private void checkOptions(BSONObject options, BSONObject matcher, BSONObject hint) {
-        // 设置默认值
-        matcher.put(SdbConstants.IXM_UNIQUE, SdbConstants.IXM_UNIQUE_DEFAULT);
-        matcher.put(SdbConstants.IXM_ENFORCED, SdbConstants.IXM_ENFORCED_DEFAULT);
-        matcher.put(SdbConstants.IXM_NOTNULL, SdbConstants.IXM_NOTNULL_DEFAULT);
-        hint.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, SdbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE);
-
-        // 设置输入参数
-        if (options != null) {
-            Object isUnique = options.get(SdbConstants.IXM_UNIQUE);
-            if (isUnique instanceof Boolean) {
-                matcher.put(SdbConstants.IXM_UNIQUE, isUnique);
-            }
-            Object enforced = options.get(SdbConstants.IXM_ENFORCED);
-            if (enforced instanceof Boolean) {
-                matcher.put(SdbConstants.IXM_ENFORCED, enforced);
-            }
-            Object notNull = options.get(SdbConstants.IXM_NOTNULL);
-            if (notNull instanceof Boolean) {
-                matcher.put(SdbConstants.IXM_NOTNULL, notNull);
-            }
-            Object sortBufferSize = options.get(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE);
-            if (sortBufferSize instanceof Number) {
-                int value = ((Number) sortBufferSize).intValue();
-                if (value < 0) {
-                    throw new BaseException(SDBError.SDB_INVALIDARG, "sortBufferSize less than 0");
-                }
-                hint.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, value);
-            }
-        }
-    }
-
     /**
-     * Create a index with name and key.
+     * Create a index with indexName and indexKeys.
      *
-     * @param name           The index name
-     * @param key            The index keys in JSON format, like: { "a":1, "b":-1 }
-     * @param isUnique       Whether the index elements are unique or not
+     * @param indexName      The index indexName.
+     * @param indexKeys      The index keys in JSON format, like: { "a":1, "b":-1 }.
+     * @param isUnique       Whether the index elements are unique or not.
      * @param enforced       Whether the index is enforced unique, this element is meaningful when isUnique is
-     *                       set to true
+     *                       set to true.
      * @param sortBufferSize The size(MB) of sort buffer used when creating index, zero means don't use sort
-     *                       buffer
+     *                       buffer.
      * @throws BaseException If error happens.
      */
-    public void createIndex(String name, BSONObject key, boolean isUnique, boolean enforced,
+    public void createIndex(String indexName, BSONObject indexKeys, boolean isUnique, boolean enforced,
                             int sortBufferSize) throws BaseException {
-
         BSONObject options = new BasicBSONObject();
-        options.put(SdbConstants.IXM_KEY, key);
-        options.put(SdbConstants.IXM_NAME, name);
         options.put(SdbConstants.IXM_UNIQUE, isUnique);
         options.put(SdbConstants.IXM_ENFORCED, enforced);
         options.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
-
-        createIndex(name, key, options);
+        createIndex(indexName, indexKeys, options);
     }
 
     /**
-     * Create a index with name and key.
+     * Create a index with indexName and indexKeys.
      *
-     * @param name           The index name
-     * @param key            The index keys in JSON format, like: "{\"a\":1, \"b\":-1}"
-     * @param isUnique       Whether the index elements are unique or not
+     * @param indexName      The index indexName.
+     * @param indexKeys      The index keys in JSON format, like: "{\"a\":1, \"b\":-1}".
+     * @param isUnique       Whether the index elements are unique or not.
      * @param enforced       Whether the index is enforced unique, this element is meaningful when isUnique is
-     *                       set to true
+     *                       set to true.
      * @param sortBufferSize The size(MB) of sort buffer used when creating index, zero means don't use sort
-     *                       buffer
+     *                       buffer.
      * @throws BaseException If error happens.
      */
-    public void createIndex(String name, String key, boolean isUnique, boolean enforced,
+    public void createIndex(String indexName, String indexKeys, boolean isUnique, boolean enforced,
                             int sortBufferSize) throws BaseException {
         BSONObject k = null;
-        if (key != null) {
-            k = (BSONObject) JSON.parse(key);
+        if (indexKeys != null) {
+            k = (BSONObject) JSON.parse(indexKeys);
         }
-        createIndex(name, k, isUnique, enforced, sortBufferSize);
+        createIndex(indexName, k, isUnique, enforced, sortBufferSize);
     }
 
     /**
-     * Create a index with name and key
+     * Create a index with indexName and indexKeys
      *
-     * @param name     The index name
-     * @param key      The index keys in JSON format, like: { "a":1, "b":-1}
-     * @param isUnique Whether the index elements are unique or not
+     * @param indexName The index indexName.
+     * @param indexKeys The index keys in JSON format, like: { "a":1, "b":-1}.
+     * @param isUnique Whether the index elements are unique or not.
      * @param enforced Whether the index is enforced unique, this element is meaningful when isUnique is
-     *                  set to true
+     *                  set to true.
      * @throws BaseException If error happens.
      */
-    public void createIndex(String name, BSONObject key, boolean isUnique, boolean enforced)
+    public void createIndex(String indexName, BSONObject indexKeys, boolean isUnique, boolean enforced)
             throws BaseException {
-        createIndex(name, key, isUnique, enforced, SdbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE);
+        createIndex(indexName, indexKeys, isUnique, enforced, SdbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE);
     }
 
     /**
-     * Create a index with name and key.
+     * Create a index with indexName and indexKeys.
      *
-     * @param name     The index name
-     * @param key      The index keys in JSON format, like: "{\"a\":1, \"b\":-1}"
-     * @param isUnique Whether the index elements are unique or not
+     * @param indexName The index indexName.
+     * @param indexKeys The index keys in JSON format, like: "{\"a\":1, \"b\":-1}".
+     * @param isUnique Whether the index elements are unique or not.
      * @param enforced Whether the index is enforced unique, this element is meaningful when isUnique is
-     *                 set to true
+     *                 set to true.
      * @throws BaseException If error happens.
      */
-    public void createIndex(String name, String key, boolean isUnique, boolean enforced)
+    public void createIndex(String indexName, String indexKeys, boolean isUnique, boolean enforced)
             throws BaseException {
         BSONObject k = null;
-        if (key != null) {
-            k = (BSONObject) JSON.parse(key);
+        if (indexKeys != null) {
+            k = (BSONObject) JSON.parse(indexKeys);
         }
-        createIndex(name, k, isUnique, enforced, SdbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE);
+        createIndex(indexName, k, isUnique, enforced, SdbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE);
     }
 
     /**
      * Remove the named index of current collection.
      *
-     * @param name The index name
+     * @param indexName The index indexName.
      * @throws BaseException If error happens.
      */
-    public void dropIndex(String name) throws BaseException {
+    public void dropIndex(String indexName) throws BaseException {
         BSONObject index = new BasicBSONObject();
-        index.put("", name);
+        index.put("", indexName);
 
         BSONObject dropObj = new BasicBSONObject();
         dropObj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
@@ -1542,7 +1534,7 @@ public class DBCollection {
 
         AdminRequest request = new AdminRequest(AdminCommand.DROP_INDEX, dropObj);
         SdbReply response = sequoiadb.requestAndResponse(request);
-        sequoiadb.throwIfError(response, name);
+        sequoiadb.throwIfError(response, indexName);
         sequoiadb.upsertCache(collectionFullName);
     }
 
