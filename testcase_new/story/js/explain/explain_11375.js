@@ -1,0 +1,53 @@
+/******************************************************************************
+*@Description : seqDB-11375:查询并排序，且排序为外排的索引选择 
+*@author      : Li Yuanyue
+*@Date        : 2020.5.8
+******************************************************************************/
+testConf.clName = CHANGEDPREFIX + "_11375_cl";
+
+main( test );
+
+function test ()
+{
+   var dataGroupNames = commGetDataGroupNames( db );
+   var clName = CHANGEDPREFIX + "_11375_cl";
+   var idxNamea = "index_a_11375";
+   var idxNameb = "index_b_11375";
+   var tbIdx = "";
+
+   commDropCL( db, COMMCSNAME, clName );
+
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: dataGroupNames[0] }, false );
+
+   cl.createIndex( idxNamea, { a: 1 } );
+   cl.createIndex( idxNameb, { b: -1 } );
+
+   var field = new Array( 1024 * 10 ).toString();
+
+   try
+   {
+      db.updateConf( { sortbuf: 128 } );
+
+      // 灌 128MB 数据
+      var rd = new commDataGenerator();
+      for( var i = 0; i < 14; i++ )
+      {
+         var value = rd.getRecords( 1000, "int", ["a", "b", field] );
+         cl.insert( value );
+      }
+
+      db.analyze();
+
+      var cond = {};
+      var expIndexName = tbIdx;
+      var expScanType = "tbscan";
+      var sortCond = { "a": 1, "b": -1 };
+      checkExplain( cl, cond, expIndexName, expScanType, sortCond );
+   }
+   finally
+   {
+      db.updateConf( { sortbuf: 256 } );
+   }
+
+   commDropCL( db, COMMCSNAME, clName, false );
+}
