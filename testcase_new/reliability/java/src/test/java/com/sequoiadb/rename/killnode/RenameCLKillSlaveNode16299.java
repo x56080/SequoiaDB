@@ -1,7 +1,5 @@
 package com.sequoiadb.rename.killnode;
 
-import java.util.Date;
-
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
 import org.testng.SkipException;

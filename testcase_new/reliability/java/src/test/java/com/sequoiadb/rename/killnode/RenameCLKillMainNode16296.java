@@ -1,7 +1,5 @@
 package com.sequoiadb.rename.killnode;
 
-import java.util.Date;
-
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -21,6 +19,7 @@ import com.sequoiadb.fault.KillNode;
 import com.sequoiadb.rename.RenameUtils;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
+import com.sequoiadb.task.TaskMgr;
 
 /**
  * @Description MainNodeErrRename.java: seqDB-16296:rename cl未同步到备节点时主节点异常
@@ -56,7 +55,7 @@ public class RenameCLKillMainNode16296 extends SdbTestBase {
     }
 
     @Test
-    public void test() throws ReliabilityException {
+    public void test() throws ReliabilityException, InterruptedException {
         GroupWrapper dataGroup = groupMgr.getGroupByName( groupName );
         NodeWrapper dataMaster = dataGroup.getMaster();
 
@@ -65,18 +64,22 @@ public class RenameCLKillMainNode16296 extends SdbTestBase {
         slave.stop();
 
         // 建立并行任务
+        TaskMgr task = new TaskMgr();
         FaultMakeTask faultTask = KillNode.getFaultMakeTask(
                 dataMaster.hostName(), dataMaster.svcName(), 0 );
+        task.addTask( faultTask );
+
         Rename renameTask = new Rename();
         renameTask.start();
+        renameTask.join();
+
         if ( renameTask.isSuccess() ) {
-            faultTask.init();
-            faultTask.start();
+            task.execute();
         } else {
             Assert.fail( renameTask.getErrorMsg() );
         }
 
-        Assert.assertTrue( faultTask.isSuccess(), faultTask.getErrorMsg() );
+        Assert.assertTrue( task.isAllSuccess(), task.getErrorMsg() );
         slave.start();
         Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 

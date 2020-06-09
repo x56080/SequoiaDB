@@ -1,7 +1,6 @@
 package com.sequoiadb.rename.killnode;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BasicBSONObject;
@@ -24,6 +23,7 @@ import com.sequoiadb.fault.KillNode;
 import com.sequoiadb.rename.RenameUtils;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
+import com.sequoiadb.task.TaskMgr;
 
 /**
  * @Description RenameKillMainNode16297.java seqDB-16298:执行renameCL过程中，编目主节点故障
@@ -70,17 +70,17 @@ public class RenameCLKillCataMainNode16298 extends SdbTestBase {
         NodeWrapper cataMaster = cataGroup.getMaster();
 
         // 建立并行任务
+        TaskMgr task = new TaskMgr();
         FaultMakeTask faultTask = KillNode.getFaultMakeTask(
                 cataMaster.hostName(), cataMaster.svcName(), 0 );
 
         Rename renameTask = new Rename();
-        renameTask.start();
 
-        faultTask.init();
-        faultTask.start();
+        task.addTask( faultTask );
+        task.addTask( renameTask );
+        task.execute();
 
-        Assert.assertTrue( renameTask.isSuccess(), renameTask.getErrorMsg() );
-        Assert.assertTrue( faultTask.isSuccess(), faultTask.getErrorMsg() );
+        Assert.assertTrue( task.isAllSuccess(), faultTask.getErrorMsg() );
         Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 
         // 继续执行rename将剩下未修改的cl修改,然后再进行检查结果

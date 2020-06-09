@@ -1,9 +1,7 @@
 package com.sequoiadb.rename.killnode;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Random;
 
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -24,6 +22,7 @@ import com.sequoiadb.fault.KillNode;
 import com.sequoiadb.rename.RenameUtils;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
+import com.sequoiadb.task.TaskMgr;
 
 /**
  * @Description RenameKillMainNode16298.java seqDB-16298:执行renameCS过程中，编目主节点故障
@@ -68,18 +67,15 @@ public class RenameCSKillCataMainNode16298 extends SdbTestBase {
         NodeWrapper cataMaster = cataGroup.getMaster();
 
         // 建立并行任务
+        TaskMgr task = new TaskMgr();
         FaultMakeTask faultTask = KillNode.getFaultMakeTask(
                 cataMaster.hostName(), cataMaster.svcName(), 0 );
 
         Rename renameTask = new Rename();
-        faultTask.init();
+        task.addTask( faultTask );
+        task.addTask( renameTask );
 
-        renameTask.start();
-        Thread.sleep( new Random().nextInt( 50 ) );
-        faultTask.start();
-
-        Assert.assertTrue( renameTask.isSuccess(), renameTask.getErrorMsg() );
-        Assert.assertTrue( faultTask.isSuccess(), faultTask.getErrorMsg() );
+        Assert.assertTrue( task.isAllSuccess(), task.getErrorMsg() );
         Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 
         for ( int i = 0; i < oldCSNameList.size(); i++ ) {
