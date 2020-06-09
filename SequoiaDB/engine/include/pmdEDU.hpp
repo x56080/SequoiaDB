@@ -490,6 +490,24 @@ namespace engine
          _transExecutor.setCommitTime( commitTime ) ;
       }
 
+      // set expireTran cache
+      OSS_INLINE void setExpireTranCache( DPS_TRANSID_SN expireTran )
+      {
+         return _transExecutor.setExpireTranCache( expireTran ) ;
+      }
+
+      // get expireTran cache
+      OSS_INLINE DPS_TRANSID_SN getExpireTranCache() const
+      {
+         return _transExecutor.getExpireTranCache() ;
+      }
+
+      // check if given transaction passed cached expireTran
+      OSS_INLINE BOOLEAN isVersionExpired( const DPS_TRANS_ID &transID ) const
+      {
+         return _transExecutor.isVersionExpired( transID ) ;
+      }
+
       // check if transaction has passed doing arbitration time
       // - before that time, current transaction needs arbitrate for all
       //   records created or updated by doing transactions
