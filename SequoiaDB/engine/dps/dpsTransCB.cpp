@@ -921,6 +921,8 @@ namespace engine
 
       SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
 
+      DPS_TRANSID_SN globExpireTran = DPS_INVALID_TRANSID_SN ;
+
       if ( TRANS_ISOLATION_RR != isolation )
       {
          // not RR isolation, always visible
@@ -950,13 +952,22 @@ namespace engine
       }
       else if ( recTransID.getOrigTransID() == transID.getOrigTransID() )
       {
-         // the same transaction, should see
+         // the same transaction, should be visible
          visible = TRUE ;
       }
-      else if ( recTransID.getGlobSN() < _getGlobExpireTran() )
+      else if ( recTransID.getGlobSN() < eduCB->getExpireTranCache() )
       {
-         // global expireTran is passed, should see
+         // cached expireTran is passed, should be visible
          visible = TRUE ;
+      }
+      else if ( recTransID.getGlobSN() <
+                ( globExpireTran = getExpiredVersion() ) )
+      {
+         // global expireTran is passed, should be visible
+         visible = TRUE ;
+         // in this case, the global expireTran could updated
+         // update local cache as well
+         eduCB->setExpireTranCache( globExpireTran ) ;
       }
       else if ( recTransID.getNodeID() != transID.getNodeID() &&
                 _TransIDH16 != recTransID.getNodeID() &&
@@ -1074,7 +1085,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETGLOBEXPIRETRAN ) ;
 
       // get global expire transaction ID
-      DPS_TRANSID_SN globExpireTran = _getGlobExpireTran() ;
+      DPS_TRANSID_SN globExpireTran = getExpiredVersion() ;
       if ( DPS_INVALID_TRANSID_SN != globExpireTran )
       {
          expireTran.setNodeID( _TransIDH16 ) ;
@@ -1084,21 +1095,6 @@ namespace engine
       PD_TRACE_EXIT( SDB_DPSTRANSCB_GETGLOBEXPIRETRAN ) ;
 
       return expireTran ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB__GETGLOBEXPTRAN, "dpsTransCB::_getGlobExpireTran" )
-   DPS_TRANSID_SN dpsTransCB::_getGlobExpireTran()
-   {
-      DPS_TRANSID_SN globExpireTran = DPS_INVALID_TRANSID_SN ;
-
-      PD_TRACE_ENTRY( SDB_DPSTRANSCB__GETGLOBEXPTRAN ) ;
-
-      // get global expireTran
-      globExpireTran = (DPS_TRANSID_SN)( _globExpireTran.fetch() ) ;
-
-      PD_TRACE_EXIT( SDB_DPSTRANSCB__GETGLOBEXPTRAN ) ;
-
-      return globExpireTran ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SYNCUPDATEGLOBLOWTRAN, "dpsTransCB::syncUpdateGlobLowTran" )
@@ -1352,7 +1348,7 @@ namespace engine
 
       // no need to add consideration of maximum time error, already done
       // by CATALOG
-      expiredVersion = _getGlobExpireTran() ;
+      expiredVersion = (DPS_TRANSID_SN)( _globExpireTran.fetch() ) ;
 
       PD_TRACE_EXIT( SDB_DPSTRANSCB_GETEXPIREDVERSION ) ;
 

@@ -481,7 +481,7 @@ namespace engine
                      nodeVal.isRecordDeleted() ) &&
                    ((_transIsolation < TRANS_ISOLATION_RR) ||
                     ((TRANS_ISOLATION_RR == _transIsolation) &&
-                     (_pTransCB->isVersionExpired(nodeKey.getNodeTransID())))))
+                     ( _cb->isVersionExpired( nodeKey.getNodeTransID() )))))
                {
                   // FIXME: remove from set
 #ifdef _DEBUG

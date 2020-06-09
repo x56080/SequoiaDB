@@ -937,14 +937,6 @@ namespace engine
       //    - other values: global lowTran with time error as offset
       DPS_TRANSID_SN _getGlobLowTran() ;
 
-      // get global expireTran with a given time error as offset
-      // return:
-      //    - DPS_INVALID_TRANSID_SN: global expireTran is invalid
-      //    - DPS_MAX_TRANSID_SN: global transaction feature is not enabled
-      //                          among all nodes
-      //    - other values: global expireTran with time error as offset
-      DPS_TRANSID_SN _getGlobExpireTran() ;
-
       // get running transaction info
       // input:
       //    - transID: transaction ID to search

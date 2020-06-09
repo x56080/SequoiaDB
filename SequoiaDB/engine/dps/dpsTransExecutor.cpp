@@ -386,6 +386,7 @@ namespace engine
       _reservedLogSpace = 0 ;
       _lockWaitStarted  = FALSE ;
       _monLock          = NULL ;
+      _expireTranCache  = DPS_INVALID_TRANSID_SN ;
       _passedDoingArbit = FALSE ;
       _regReadTranTime  = FALSE ;
    }
@@ -1034,11 +1035,15 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__DPSTRANSEXE_REGREADTRANTIME ) ;
 
+      dpsTransCB *transCB = sdbGetTransCB() ;
+
       if ( !_regReadTranTime )
       {
-         sdbGetTransCB()->regReadTranTime( _beginTime.getUpperTime() ) ;
+         transCB->regReadTranTime( _beginTime.getUpperTime() ) ;
          _regReadTranTime = TRUE ;
       }
+      // start a read operator, it is a good time to set expireTran cache
+      _expireTranCache = transCB->getExpiredVersion() ;
 
       PD_TRACE_EXIT( SDB__DPSTRANSEXE_REGREADTRANTIME ) ;
    }
@@ -1051,6 +1056,7 @@ namespace engine
       _beginTime.reset() ;
       _preCommitTime.reset() ;
       _commitTime.reset() ;
+      _expireTranCache = DPS_INVALID_TRANSID_SN ;
       _passedDoingArbit = FALSE ;
       _regReadTranTime = FALSE ;
 

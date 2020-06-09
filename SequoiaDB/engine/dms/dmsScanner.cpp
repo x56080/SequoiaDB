@@ -674,9 +674,8 @@ namespace engine
             // we should simply skip without looking into RBS.
             // We can only delete the record if it expired
             if ( ( DPS_TRANSLOCK_X == _recordLock ) &&
-                 ( !pmdGetOptionCB()->mvccOn() || 
-                   _pTransCB->isVersionExpired(
-                        _curRecordPtr->getGlobTransID() ) ) )
+                 ( !pmdGetOptionCB()->mvccOn() ||
+                   cb->isVersionExpired( _curRecordPtr->getGlobTransID() ) ) )
             {
                INT32 rc1 = _pSu->deleteRecord( _context, _curRID,
                                                0, cb, NULL, NULL,
@@ -2069,9 +2068,8 @@ namespace engine
             // we should simply skip without looking into RBS
             // We can only delete the record if it expired
             if ( ( DPS_TRANSLOCK_X == _recordLock ) &&
-                 ( !pmdGetOptionCB()->mvccOn() || 
-                   _pTransCB->isVersionExpired(
-                        _curRecordPtr->getGlobTransID() ) ) )
+                 ( !pmdGetOptionCB()->mvccOn() ||
+                   cb->isVersionExpired( _curRecordPtr->getGlobTransID() ) ) )
             {
                INT32 rc1 = _pSu->deleteRecord( _context, _curRID, 0,
                                                cb, NULL, NULL,

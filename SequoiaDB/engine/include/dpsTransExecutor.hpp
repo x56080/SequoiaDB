@@ -476,6 +476,30 @@ namespace engine
             _commitTime.setTimeError( _beginTime.getTimeError() ) ;
          }
 
+         // set expireTran cache
+         OSS_INLINE void setExpireTranCache( DPS_TRANSID_SN expireTran )
+         {
+            _expireTranCache = expireTran ;
+         }
+
+         // get expireTran cache
+         OSS_INLINE DPS_TRANSID_SN getExpireTranCache() const
+         {
+            return _expireTranCache ;
+         }
+
+         // check if given transaction passed cached expireTran
+         OSS_INLINE BOOLEAN isVersionExpired( const DPS_TRANS_ID &transID ) const
+         {
+            BOOLEAN expired = FALSE ;
+            DPS_TRANSID_SN transSN= transID.getGlobSN() ;
+            if ( DPS_INVALID_TRANSID_SN != _expireTranCache )
+            {
+               expired = ( transSN < _expireTranCache ) ;
+            }
+            return expired ;
+         }
+
          // check if transaction passed doing arbitration time
          // - before that time, current transaction needs arbitrate for all
          //   records created or updated by doing transactions
@@ -570,6 +594,13 @@ namespace engine
          stpLogicalTimeUS        _preCommitTime ;
          // logical time of transaction commit
          stpLogicalTimeUS        _commitTime ;
+
+         // to avoid use atomic value or locks when doing visibility checks
+         // agains global expireTran, we cache expireTran in local transaction,
+         // so visibility checks could use this cache without any locks
+         // NOTE: this will be updated at the beginning of each read operators
+         //       in transaction
+         DPS_TRANSID_SN          _expireTranCache ;
 
          // indicate if transaction has passed doing arbitration time
          // - before that time, current transaction needs arbitrate for all
