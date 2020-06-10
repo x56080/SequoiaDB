@@ -45,14 +45,14 @@
 
 using namespace bson ;
 
-INT32 sptConvertor2::toBson( JSObject *obj , bson::BSONObj &bsobj )
+INT32 sptConvertor2::toBson( JSObject *obj , bson::BSONObj &bsobj,  string &errMsg )
 {
    INT32 rc = SDB_OK ;
    SDB_ASSERT( NULL != _cx, "can not be NULL" ) ;
 
    CHAR *pData = NULL ;
 
-   rc = JSObj2BsonRaw( _cx, obj, &pData ) ;
+   rc = JSObj2BsonRaw( _cx, obj, &pData, errMsg ) ;
    if ( rc )
    {
       goto error ;

@@ -105,6 +105,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       bson::BSONObjBuilder builder ;
+      string errMsg ;
 
       if ( JSVAL_IS_VOID( jsrval ) )
       {
@@ -192,7 +193,7 @@ namespace engine
          {
             sptConvertor2 c( cx ) ;
             bson::BSONObj v ;
-            rc = c.toBson( JSVAL_TO_OBJECT( jsrval ), v ) ;
+            rc = c.toBson( JSVAL_TO_OBJECT( jsrval ), v, errMsg ) ;
             if ( SDB_OK != rc )
             {
                goto error ;

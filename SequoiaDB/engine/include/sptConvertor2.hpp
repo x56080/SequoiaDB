@@ -58,7 +58,7 @@ public:
    }
 
 public:
-   INT32 toBson( JSObject *obj , bson::BSONObj &bsobj ) ;
+   INT32 toBson( JSObject *obj , bson::BSONObj &bsobj, std::string &errMsg ) ;
 
    static INT32 toString( JSContext *cx,
                           const jsval &val,

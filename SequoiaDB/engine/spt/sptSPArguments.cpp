@@ -132,6 +132,8 @@ namespace engine
       jsval *val = NULL ;
       sptConvertor2 convertor( _context ) ;
 
+      _errMsg.clear() ;
+
       if ( _argc <= pos )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -141,14 +143,16 @@ namespace engine
       val = _getValAtPos( pos ) ;
       if ( NULL == val )
       {
-         PD_LOG( PDERROR, "failed to get val at pos" ) ;
+         _errMsg = "Failed to get val at pos" ;
+         PD_LOG( PDERROR, _errMsg ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
       if ( !JSVAL_IS_OBJECT( *val ) )
       {
-         PD_LOG( PDERROR, "jsval is not a object" ) ;
+         _errMsg = "jsval is not a object" ;
+         PD_LOG( PDERROR, _errMsg ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -156,15 +160,23 @@ namespace engine
       jsObj = JSVAL_TO_OBJECT( *val ) ;
       if ( NULL == jsObj )
       {
-         PD_LOG( PDERROR, "failed to convert jsval to object" ) ;
+         _errMsg = "failed to convert jsval to object" ;
+         PD_LOG( PDERROR, _errMsg ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
-      rc = convertor.toBson( jsObj, value ) ;
+      rc = convertor.toBson( jsObj, value, _errMsg ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to convert jsobj to bsonobj:%d", rc ) ;
+         if ( _errMsg.empty() )
+         {
+             PD_LOG( PDERROR, "failed to convert jsobj to bsonobj:%d", rc ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, _errMsg.c_str(), rc ) ;
+         }
          goto error ;
       }
    done:
@@ -259,6 +271,16 @@ namespace engine
          return TRUE ;
       }
       return FALSE ;
+   }
+
+   string _sptSPArguments::getErrMsg() const
+   {
+      return _errMsg ;
+   }
+
+   BOOLEAN _sptSPArguments::hasErrMsg() const
+   {
+      return _errMsg.empty() ? FALSE : TRUE ;
    }
 
    #define NATIVE_VALUE_EQ( pData, type, value ) \

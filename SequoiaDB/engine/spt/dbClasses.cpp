@@ -8527,7 +8527,7 @@ static JSBool objectid_constructor( JSContext *cx, uintN argc, jsval *vp )
 
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
                                "/S" , &jsHexStr ) ;
-   REPORT_RC( ret, "ObjectId(): wrong arguments", SDB_INVALIDARG ) ;
+   REPORT_RC_MSG( ret, "ObjectId()", SDB_INVALIDARG, "Invalid ObjectId argument and the argument should be String" ) ;
 
    if ( NULL == jsHexStr )
    {
@@ -8545,14 +8545,14 @@ static JSBool objectid_constructor( JSContext *cx, uintN argc, jsval *vp )
       if ( SPT_OID_STR_LENGTH != ossStrlen( hexStr ) )
       {
          std::stringstream ss ;
-         ss << "The length of ObjectId is not equal " << SPT_OID_STR_LENGTH ;
-         REPORT_RC_MSG( FALSE, "ObjectId(): wrong arguments", SDB_INVALIDARG,
+         ss << "Invalid ObjectId argument, the argument should be String and the length of it should be equal to " << SPT_OID_STR_LENGTH ;
+         REPORT_RC_MSG( FALSE, "ObjectId()", SDB_INVALIDARG,
                         ss.str().c_str() ) ;
       }
       if ( !engine::utilIsValidOID( hexStr ) )
       {
-         REPORT_RC_MSG( FALSE, "ObjectId(): wrong arguments", SDB_INVALIDARG,
-                        "The ObjectId is invalid" ) ;
+         REPORT_RC_MSG( FALSE, "ObjectId()", SDB_INVALIDARG,
+                        "Invalid ObjectId arguments" ) ;
       }
       jsOidStr = JS_NewStringCopyN( cx, hexStr, SPT_OID_STR_LENGTH ) ;
       VERIFY( jsOidStr ) ;
@@ -8616,24 +8616,25 @@ static JSBool bindata_constructor( JSContext *cx, uintN argc, jsval *vp )
    CHAR *binData = NULL ;
    CHAR *binType = NULL ;
    std::string strType ;
+   std::string errMsg ;
 
    jsval *argv = JS_ARGV ( cx , vp ) ;
    VERIFY( argv ) ;
 
    if ( 2 != argc )
    {
-      REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+      REPORT_RC_MSG ( FALSE , "BinData()", SDB_INVALIDARG, "BinData() need two arguments" ) ;
    }
 
    if ( !JSVAL_IS_STRING(argv[0]) )
    {
-      REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+      REPORT_RC_MSG ( FALSE , "BinData()", SDB_INVALIDARG, "BinData binary argument must be String" ) ;
    }
 
    if ( !JSVAL_IS_STRING(argv[1]) &&
         !JSVAL_IS_INT(argv[1]) )
    {
-      REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+      REPORT_RC_MSG ( FALSE , "BinData()", SDB_INVALIDARG, "BinData type argument must be String or int" ) ;
    }
 
    binData = JS_EncodeString( cx, JSVAL_TO_STRING( argv[0]) ) ;
@@ -8649,13 +8650,14 @@ static JSBool bindata_constructor( JSContext *cx, uintN argc, jsval *vp )
          INT32 typeNumber = boost::lexical_cast<UINT32>( binType ) ;
          if ( typeNumber < 0 || 255 < typeNumber )
          {
-            REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+            REPORT_RC_MSG ( FALSE , "BinData()", SDB_INVALIDARG, "BinData type argument must to be between 0 and 255" ) ;
          }
          strType = std::string( binType ) ;
       }
       catch ( std::exception &e )
       {
-         REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+         errMsg = "Invalid BinData type value: " + std::string( binType ) ;
+         REPORT_RC_MSG ( FALSE , "BinData()", SDB_INVALIDARG, errMsg.c_str() ) ;
       }
    }
    else
@@ -8663,7 +8665,7 @@ static JSBool bindata_constructor( JSContext *cx, uintN argc, jsval *vp )
       INT32 typeNumber = JSVAL_TO_INT( argv[1] ) ;
       if ( typeNumber < 0 || 255 < typeNumber )
       {
-         REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+         REPORT_RC_MSG ( FALSE , "BinData()", SDB_INVALIDARG, "BinData type argument must to be between 0 and 255" ) ;
       }
       strType = boost::lexical_cast<string>( typeNumber ) ;
    }
@@ -8734,6 +8736,7 @@ static JSBool timestamp_constructor( JSContext *cx, uintN argc, jsval *vp )
    JSString *jsTimeProperty = NULL ;
    JSObject *jsObj = NULL ;
    jsval valTime = JSVAL_VOID ;
+   std::string errMsg ;
 
    jsval *argv = JS_ARGV ( cx , vp ) ;
    if ( 0 == argc )
@@ -8765,13 +8768,14 @@ static JSBool timestamp_constructor( JSContext *cx, uintN argc, jsval *vp )
 
       if ( !JSVAL_IS_STRING( argv[0]) )
       {
-         REPORT_RC ( FALSE , "Timestamp(): wrong arguments", SDB_INVALIDARG ) ;
+         REPORT_RC_MSG ( FALSE , "Timestamp()", SDB_INVALIDARG, "Timestamp time argument must be String" ) ;
       }
 
       timeStr = JS_EncodeString( cx, JSVAL_TO_STRING( argv[0]) ) ;
       VERIFY( timeStr ) ;
       rc = engine::utilStr2TimeT( timeStr, tm, &usec ) ;
-      REPORT_RC ( SDB_OK == rc , "Timestamp(): wrong arguments", SDB_INVALIDARG ) ;
+      errMsg = "Invalid Timestamp value: " + std::string( timeStr ) ;
+      REPORT_RC_MSG ( SDB_OK == rc , "Timestamp()", SDB_INVALIDARG, errMsg.c_str() ) ;
       jsTimeProperty = JS_NewStringCopyN( cx, timeStr, ossStrlen( timeStr ) ) ;
       VERIFY( jsTimeProperty ) ;
    }
@@ -8785,7 +8789,7 @@ static JSBool timestamp_constructor( JSContext *cx, uintN argc, jsval *vp )
       if ( !JSVAL_IS_INT( argv[0]) ||
            !JSVAL_IS_INT( argv[1] ))
       {
-         REPORT_RC ( FALSE, "Timestamp(): wrong arguments", SDB_INVALIDARG ) ;
+         REPORT_RC_MSG ( FALSE, "Timestamp()", SDB_INVALIDARG, "Timestamp second argument and microsecond argument must be int" ) ;
       }
 
       t = JSVAL_TO_INT( argv[0] ) ;
@@ -8810,7 +8814,7 @@ static JSBool timestamp_constructor( JSContext *cx, uintN argc, jsval *vp )
    }
    else
    {
-      REPORT_RC ( FALSE, "Timestamp(): wrong arguments", SDB_INVALIDARG ) ;
+      REPORT_RC_MSG ( FALSE, "Timestamp()", SDB_INVALIDARG, "Timestamp() was given too many arguments" ) ;
    }
 
    valTime = STRING_TO_JSVAL( jsTimeProperty ) ;
@@ -8878,7 +8882,7 @@ static JSBool regex_constructor( JSContext *cx, uintN argc, jsval *vp )
 
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
                                "SS" , &jsRegex, &jsOption ) ;
-   REPORT_RC( ret, "Regex(): wrong arguments", SDB_INVALIDARG ) ;
+   REPORT_RC_MSG( ret, "Regex()", SDB_INVALIDARG, "Regex: invalid pattern argument or invalid options argument and they should be String" ) ;
 
    regex = ( CHAR * )JS_EncodeString( cx, jsRegex ) ;
    VERIFY( regex ) ;
@@ -8945,7 +8949,7 @@ static JSBool minkey_constructor( JSContext *cx, uintN argc, jsval *vp )
 
    if ( 0 != argc )
    {
-      REPORT_RC( ret, "MinKey(): wrong arguments", SDB_INVALIDARG ) ;
+      REPORT_RC_MSG( ret, "MinKey()", SDB_INVALIDARG, "No arguments are required" ) ;
    }
 
    jsObj = JS_NewObject ( cx , &minkey_class, NULL, NULL ) ;
@@ -8987,7 +8991,7 @@ static JSBool maxkey_constructor( JSContext *cx, uintN argc, jsval *vp )
 
    if ( 0 != argc )
    {
-      REPORT_RC( ret, "MaxKey(): wrong arguments", SDB_INVALIDARG ) ;
+      REPORT_RC_MSG( ret, "MaxKey()", SDB_INVALIDARG, "No arguments are required" ) ;
    }
 
    jsObj = JS_NewObject ( cx , &maxkey_class, NULL, NULL ) ;
@@ -9033,21 +9037,26 @@ static JSBool numberlong_constructor( JSContext *cx, uintN argc, jsval *vp )
    CHAR *lnStr = NULL ;
    JSString *lnProperty = NULL ;
    string parsedStr ;
+   std::string errMsg ;
    jsval *argv = JS_ARGV ( cx , vp ) ;
    VERIFY( argv ) ;
 
-   if ( 1 != argc ||
-        ( !JSVAL_IS_NUMBER( argv[0]) &&
-          !JSVAL_IS_STRING( argv[0]) ) )
+   if ( 1 != argc )
    {
-      REPORT_RC ( FALSE , "NumberLong(): wrong arguments", SDB_INVALIDARG ) ;
+      REPORT_RC_MSG ( FALSE , "NumberLong()", SDB_INVALIDARG, "NumberLong only need one argument" ) ;  
+   }
+
+   
+   if ( !JSVAL_IS_NUMBER( argv[0]) && !JSVAL_IS_STRING( argv[0]) )
+   {
+      REPORT_RC_MSG ( FALSE , "NumberLong()", SDB_INVALIDARG, "NumberLong argument must be String or Number" ) ;  
    }
 
    if ( JSVAL_IS_NUMBER( argv[0] ) )
    {
       ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
                                   "d" , &v ) ;
-      REPORT_RC( ret, "NumberLong(): wrong arguments", SDB_INVALIDARG ) ;
+      REPORT_RC_MSG( ret, "NumberLong()", SDB_INVALIDARG, "Invalid Numberlong value" ) ;
       n = v ;
       v = n ;
       vval = DOUBLE_TO_JSVAL( v ) ;
@@ -9056,7 +9065,7 @@ static JSBool numberlong_constructor( JSContext *cx, uintN argc, jsval *vp )
    {
       ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
                                   "S" , &ln ) ;
-      REPORT_RC( ret, "NumberLong(): wrong arguments", SDB_INVALIDARG ) ;
+      REPORT_RC_MSG( ret, "NumberLong()", SDB_INVALIDARG, "Invalid Numberlong value" ) ;
       lnStr = ( CHAR * )JS_EncodeString( cx, ln ) ;
       VERIFY( lnStr ) ;
       try
@@ -9064,8 +9073,10 @@ static JSBool numberlong_constructor( JSContext *cx, uintN argc, jsval *vp )
          n = boost::lexical_cast<INT64>( lnStr ) ;
       }
       catch ( std::bad_cast &e )
-      {
-         REPORT_RC( FALSE, "NumberLong(): wrong arguments", SDB_INVALIDARG ) ;
+      { 
+         // errValue = lnStr ;
+         errMsg = "Invalid Numberlong value: " + std::string( lnStr ) ;
+         REPORT_RC_MSG ( FALSE , "NumberLong()", SDB_INVALIDARG, errMsg.c_str() ) ;
       }
 
       parsedStr = boost::lexical_cast<string>( n ) ;
@@ -9116,6 +9127,7 @@ static JSBool sdbdate_constructor( JSContext *cx, uintN argc, jsval *vp )
    JSString *jsTimeProperty = NULL ;
    JSObject *jsObj = NULL ;
    jsval valTime = JSVAL_VOID ;
+   std::string errMsg ;
 
    jsval *argv = JS_ARGV ( cx , vp ) ;
    if ( 0 == argc )
@@ -9162,7 +9174,8 @@ static JSBool sdbdate_constructor( JSContext *cx, uintN argc, jsval *vp )
             }
             catch( boost::bad_lexical_cast &e )
             {
-               REPORT_RC ( SDB_OK == rc , "SdbDate(): wrong arguments", SDB_INVALIDARG ) ;
+               errMsg = "Invalid SdbDate value: " + std::string( timeStr ) ;
+               REPORT_RC_MSG ( SDB_OK == rc , "SdbDate()", SDB_INVALIDARG, errMsg.c_str() ) ;
             }
             retFlag = JS_NewNumberValue ( cx , mills , &valTime ) ;
             VERIFY ( retFlag ) ;
@@ -9173,7 +9186,7 @@ static JSBool sdbdate_constructor( JSContext *cx, uintN argc, jsval *vp )
          jsdouble dp = 0 ;
          if ( !JS_ValueToNumber( cx, argv[0], &dp ))
          {
-            REPORT_RC ( SDB_OK == rc , "SdbDate(): wrong arguments", SDB_INVALIDARG ) ;
+            REPORT_RC_MSG ( FALSE , "SdbDate()", SDB_INVALIDARG, "SdbDate argument must be String or Number" ) ;
          }
          mills = dp ;
          retFlag = JS_NewNumberValue ( cx , mills , &valTime ) ;
@@ -9181,12 +9194,12 @@ static JSBool sdbdate_constructor( JSContext *cx, uintN argc, jsval *vp )
       }
       else
       {
-         REPORT_RC ( FALSE , "SdbDate(): wrong arguments", SDB_INVALIDARG ) ;
+         REPORT_RC_MSG ( FALSE , "SdbDate()", SDB_INVALIDARG, "SdbDate argument must be String or Number" ) ;
       }
    }
    else
    {
-      REPORT_RC ( FALSE, "SdbDate(): wrong arguments", SDB_INVALIDARG ) ;
+      REPORT_RC_MSG ( FALSE, "SdbDate()", SDB_INVALIDARG, "SdbDate() was given too many arguments" ) ;
    }
 
    jsObj = JS_NewObject( cx, &sdbdate_class, NULL, NULL ) ;

@@ -73,6 +73,8 @@ namespace engine
       virtual BOOLEAN isObject( UINT32 pos ) const = 0 ;
       virtual BOOLEAN isNull( UINT32 pos ) const = 0 ;
       virtual BOOLEAN isVoid( UINT32 pos ) const = 0 ;
+      virtual string  getErrMsg() const = 0 ;
+      virtual BOOLEAN hasErrMsg() const = 0 ;
    } ;
    typedef class _sptArguments sptArguments ;
 }

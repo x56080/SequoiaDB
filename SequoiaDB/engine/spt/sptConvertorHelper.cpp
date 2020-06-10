@@ -54,7 +54,7 @@ extern JSBool jsobj_is_cl( JSContext *cx, JSObject *obj ) ;
 extern JSBool jsobj_is_rn( JSContext *cx, JSObject *obj ) ;
 extern JSBool jsobj_is_rg( JSContext *cx, JSObject *obj ) ;
 
-INT32 JSObj2BsonRaw( JSContext *cx, JSObject *obj, CHAR **raw )
+INT32 JSObj2BsonRaw( JSContext *cx, JSObject *obj, CHAR **raw, std::string &errMsg )
 {
    INT32 rc = SDB_OK ;
    sptConvertor convertor( cx ) ;
@@ -62,6 +62,7 @@ INT32 JSObj2BsonRaw( JSContext *cx, JSObject *obj, CHAR **raw )
    rc = convertor.toBson( obj, &bs ) ;
    if ( SDB_OK != rc )
    {
+      errMsg = convertor.getErrorMsg() ;
       goto error ;
    }
 

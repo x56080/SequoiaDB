@@ -44,7 +44,7 @@
 #include "jsapi.h"
 #include <string>
 
-INT32 JSObj2BsonRaw( JSContext *cx, JSObject *obj, CHAR **raw ) ;
+INT32 JSObj2BsonRaw( JSContext *cx, JSObject *obj, CHAR **raw, std::string &errMsg ) ;
 
 INT32 JSVal2String( JSContext *cx, const jsval &val, std::string &str ) ;
 

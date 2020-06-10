@@ -76,7 +76,14 @@ namespace engine
       rc = arg.getBsonobj( 0, obj ) ;
       if ( rc )
       {
-         detail = BSON( SPT_ERR << "The 1st param must be Object" ) ;
+         if ( arg.hasErrMsg() )
+         {
+            detail = BSON( SPT_ERR << arg.getErrMsg() ) ;
+         }
+         else
+         {
+            detail = BSON( SPT_ERR <<  "The 1st param is invalid") ;
+         }
          goto error ;
       }
       _obj = obj ;

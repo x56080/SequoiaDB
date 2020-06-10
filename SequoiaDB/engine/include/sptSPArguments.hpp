@@ -64,6 +64,8 @@ namespace engine
       virtual BOOLEAN isObject( UINT32 pos ) const ;
       virtual BOOLEAN isNull( UINT32 pos ) const ;
       virtual BOOLEAN isVoid( UINT32 pos ) const ;
+      virtual string  getErrMsg() const ;
+      virtual BOOLEAN hasErrMsg() const ;
 
    private:
       jsval *_getValAtPos( UINT32 pos ) const ;
@@ -72,6 +74,7 @@ namespace engine
       JSContext *_context ;
       uintN _argc ;
       jsval *_vp ;
+      mutable string _errMsg ;
    } ;
 }
 
