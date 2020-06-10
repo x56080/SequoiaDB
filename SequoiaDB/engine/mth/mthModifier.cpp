@@ -565,11 +565,13 @@ namespace engine
          {
             actualModifyEle = me._toModify ;
          }
-         sub.appendAs ( actualModifyEle, sub.numStr(n) ) ;
-         BSONObj newObj = sub.done() ;
-
-         _buildSetArray( _dstChgBuilder, pRoot, n, actualModifyEle ) ;
-         _buildSetArray( _srcChgBuilder, pRoot, n, BSONArrayBuilder().arr() ) ;
+         if ( !actualModifyEle.eoo() )
+         {
+            sub.appendAs ( actualModifyEle, sub.numStr(n) ) ;
+            _buildSetArray( _dstChgBuilder, pRoot, n, actualModifyEle ) ;
+            _buildSetArray( _srcChgBuilder, pRoot, n, BSONArrayBuilder().arr() ) ;
+         }
+         sub.done() ;
       }
 
    done :
