@@ -4,7 +4,7 @@ fsstart.sh, fsstop.sh, fslist.sh 在 SequoiaFS 的 bin 目录中。
 
 ##fsstart.sh##
 
-启动脚本，用来挂载目录。可以根据
+挂载目录。
 
 ###用法###
 
@@ -24,21 +24,23 @@ fsstart.sh, fsstop.sh, fslist.sh 在 SequoiaFS 的 bin 目录中。
 
 **--confpath, -c**
 
-指定配置文件所在路径。根据配置文件路径中的配置文件启动 SequoiaFS。
+指定配置文件所在路径，根据该路径中的配置文件及其它指定参数启动 SequoiaFS。
 
 **--mountpoint, -m**
 
-指定待挂载目录。启动脚本根据挂载目录找到配置文件路径，根据配置文件启动 SequoiaFS。
+指定待挂载目录，并根据挂载目录找到配置文件路径，根据该路径中的配置文件及其它指定参数启动 SequoiaFS。
 
 **--alias**
 
-指定待挂载目录的别名。启动脚本根据别名找到配置文件路径，根据配置文件启动 SequoiaFS。
+指定待挂载目录的别名，并根据别名找到配置文件路径，根据该路径中的配置文件及其它指定参数启动 SequoiaFS。
 
 **--all, -a**
 
-启动所有待挂载目录。启动脚本在默认配置路径下找到全部配置文件，分别启动 SequoiaFS。当启动携带本参数时，--confpath，--alias，--mountpoint参数均无效。
+启动所有待挂载目录。启动脚本在默认配置路径下找到全部配置文件，分别启动 SequoiaFS。当启动时指定本参数，--confpath，--alias，--mountpoint，--logpath参数均无效。
 
 ##fsstop.sh##
+
+卸载目录。
 
 ###用法###
 

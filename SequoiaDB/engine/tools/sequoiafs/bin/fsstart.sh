@@ -35,7 +35,7 @@ check_user
 startfs="$BashPath/start_i.sh"
 
 if [ "$cur_user" == "root" ]; then
-  su $USER -c "$startfs $*"
+  su - $USER -c "$startfs $*"
 else
   $startfs $*
 fi  

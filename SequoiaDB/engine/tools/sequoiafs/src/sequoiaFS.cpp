@@ -932,7 +932,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    if(SDB_OK != rc)
    {
       closeDataSource();
-      PD_LOG( PDERROR, "Failed to init connection pool. rc:%d", rc ) ;
+      PD_LOG( PDERROR, "Failed to init connection pool, rc:%d", rc ) ;
       ossPrintf("Failed to init connection pool(error=%d), exit."OSS_NEWLINE, rc);
       goto done;
    }

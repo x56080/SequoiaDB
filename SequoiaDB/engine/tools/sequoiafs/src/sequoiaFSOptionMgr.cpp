@@ -492,7 +492,7 @@ INT32 _sequoiafsOptionMgr::parseAliasName()
    }
    else
    {
-      std::cerr << "ERROR: Parse alias failed. mountpoint is ["<< _mountpoint <<"]. exit."<< endl;
+      std::cerr << "ERROR: Parse alias failed. mountpoint is ["<< _mountpoint <<"], exit."<< endl;
       rc = SDB_INVALIDARG;
       goto error;
    }

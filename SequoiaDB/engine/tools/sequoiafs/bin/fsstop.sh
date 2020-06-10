@@ -3,6 +3,17 @@ BashPath=$(dirname $(readlink -f $0))
 
 pwdpath=$(pwd)
 
+if [ -f "/opt/sequoiadb/fuse/bin/fusermount" ]; then
+    PATH=/opt/sequoiadb/fuse/bin:$PATH
+fi
+if [ ! -x "$(command -v fusermount)" ] ; then
+  echo "cannot find fusermount"
+  exit 1
+fi 
+
+unmount="fusermount -u"
+fusetype="fuse.sequoiafs"
+
 function Usage()
 {
     echo  "Usage: fsstop.sh [options] <args>"
@@ -14,13 +25,6 @@ function Usage()
 
 function Stop()
 {
-  if [ -f "/opt/sequoiadb/fuse/bin/fusermount" ]; then
-    PATH=/opt/sequoiadb/fuse/bin:$PATH
-  fi 
-  
-  unmount="fusermount -u"
-  fusetype="fuse.sequoiafs"
-  
   stopall=$1
   mountpoint=$2
   alias=$3

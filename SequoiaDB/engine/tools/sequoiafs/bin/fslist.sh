@@ -56,8 +56,6 @@ function List_run()
             fi
         fi
         if [ "$showlong" == "true" ]; then
-            aliasinfo=$( mount -t $fusetype |grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $1}')
-            pidinfo=$( mount -t $fusetype|grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')
             if [ "$pidinfo" != "" ]; then    
                 if [ "$confpathinfo" != "-" ]; then 
                     if [ -f "$confpathinfo/sequoiafs.conf" ]; then

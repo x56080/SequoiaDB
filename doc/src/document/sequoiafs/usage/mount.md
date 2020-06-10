@@ -70,8 +70,8 @@ $ ./fsstart.sh --alias $alias
 挂载成功。
 
 ```lang-text
-/opt/sequoiadb/tools/sequoiafs/bin/sequoiafs -c /opt/sequoiadb/tools/sequoiafs/conf/local/guestdir 
-DONE
+Start /opt/sequoiadb/tools/sequoiafs/bin/sequoiafs -c /opt/sequoiadb/tools/sequoiafs/conf/local/guestdir --alias guestdir  
+Succeed: 19496
 Total: 1; Succeed: 1; Failed: 0
 ```
 
@@ -81,8 +81,8 @@ Total: 1; Succeed: 1; Failed: 0
 $ ./fslist.sh -l
 ```
 ```lang-text
-Alias     Mountpoint               PID     Collection       ConfPath
-guestdir  /opt/sequoiadb/guestdir  129326  mountcs.mountcl  /opt/sequoiadb/tools/sequoiafs/conf/local/guestdir
+Alias     Mountpoint               PID    Collection       ConfPath
+guestdir  /opt/sequoiadb/guestdir  19496  mountcs.mountcl  /opt/sequoiadb/tools/sequoiafs/conf/local/guestdir
 Total: 1
 ```
 可以看到，目录 /opt/sequoiadb/guestdir 已经挂载。
