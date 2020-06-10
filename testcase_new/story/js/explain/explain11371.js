@@ -17,8 +17,8 @@ function test ( testPara )
 
    //设置查询条件,构造valA及valB在mcv中存在统计信息且跨类型的场景 
    var conds = [{ $and: [{ a: { $gt: 250 } }, { a: { $lt: true } }] }, { $and: [{ a: { $gte: 250 } }, { a: { $lte: false } }] }];
-   indexName = "";
-   scanType = "tbscan";
+   indexName = "a";
+   scanType = "ixscan";
 
    //不计算IO代价
    var docs = [];
