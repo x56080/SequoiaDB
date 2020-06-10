@@ -1,5 +1,5 @@
 /******************************************************************************
-@Description : seqDB-22144: 使用set更新对象，$field指定字段不存在  
+@Description : seqDB-22144: 使用set更新对象，$field指定字段为不存在/NULL 
                seqDB-22151: 使用pop更新对象，$field指定字段不存在
                seqDB-22156: 使用pull更新对象，$field指定字段不存在 
                seqDB-22161: 使用pull_by更新对象，$field指定字段不存在 
@@ -13,9 +13,9 @@ main( test );
 function test( testPara )
 {
    //使用set更新对象
-   var expResult = [ { "a": 1 } ];
-   testPara.testCL.insert( { "a": 1 } );
-   testPara.testCL.update( { "$set": { "a": { "$field": "b" } } } );
+   var expResult = [ { "a": null, "c": null } ];
+   testPara.testCL.insert( { "a": 1, "b": 1, "c": null } );
+   testPara.testCL.update( { "$set": { "a": { "$field": "c" }, "b": { "$field": "d" } } } );
 
    var cursor = testPara.testCL.find();
    commCompareResults ( cursor, expResult );
@@ -42,7 +42,7 @@ function test( testPara )
    commCompareResults ( cursor, expResult );
 
    //使用push更新对象
-   //SEQUOIADBMAINSTREAM-5831
+   //SEQUOIADBMAINSTREAM-5942
    /*testPara.testCL.update( { "$push": { "a": { "$field": "b" } } } );
 
    cursor = testPara.testCL.find();
