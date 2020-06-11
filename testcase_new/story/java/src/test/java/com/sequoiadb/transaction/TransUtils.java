@@ -40,8 +40,8 @@ public class TransUtils extends SdbTestBase {
      * @param transTimeoutSession
      *            会话级别事务超时时间
      */
-    public static final int transTimeoutSession = 5;
-    public static final int delayTime = ( transTimeoutSession - 3 ) * 1000;
+    public static final int transTimeoutSession = 10;
+    public static final int delayTime = ( transTimeoutSession - 5 ) * 1000;
 
     /*
      * loopNum rbs清理的用例，重复执行次数
