@@ -686,6 +686,11 @@ namespace engine
                // check status by startup file
                _checkNodeByStartupFile( pSvcName, pInfo ) ;
             }
+            else if ( SDB_TYPE_STP == pInfo->_type )
+            {
+               // check status by startup file
+               _checkStpByStartupFile( pSvcName, pInfo ) ;
+            }
          }
 
          // if crashed, start job
@@ -908,6 +913,52 @@ namespace engine
 
    done:
       return ;
+   }
+
+   void _omAgentNodeMgr::_checkStpByStartupFile( const CHAR *pSvcName,
+                                                 dbProcessInfo *pInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      const CHAR *rootPath = sdbGetOMAgentOptions()->getCfgPath() ;
+      CHAR cfgPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+
+      // append "stp" to "conf" path
+      rc = utilBuildFullPath( rootPath, STP_DIR_NAME, OSS_MAX_PATHSIZE,
+                              cfgPath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build STP path from "
+                   "root path %s, rc: %d", rootPath, rc ) ;
+
+      {
+         pmdStartup startUpFile ;
+         rc = startUpFile.init( cfgPath, TRUE ) ;
+         if ( rc )
+         {
+            if ( pInfo->_errNum != 4 )
+            {
+               PD_LOG ( PDERROR, "Init startup file[%s] failed, rc: %d",
+                        cfgPath, rc ) ;
+               pInfo->_errNum = 4 ;
+            }
+            goto done ;
+         }
+
+         pInfo->_errNum = 0 ;
+
+         if ( startUpFile.needRestart() )
+         {
+            pInfo->_status = OMNODE_CRASH ;
+         }
+      }
+
+   done:
+      return ;
+
+   error:
+      PD_LOG( PDERROR, "Get node[%s] config path failed, rc: %d",
+              pSvcName, rc ) ;
+      pInfo->_status = OMNODE_REMOVING ;
+      goto done ;
    }
 
    INT32 _omAgentNodeMgr::startANode( const CHAR *svcname,
@@ -1447,9 +1498,7 @@ namespace engine
                    "path %s, rc: %d", cfgPath, rc ) ;
 
       nodeGuard.initStp( svcname.c_str(), cfgFileName ) ;
-      rc = addNodeGuard( nodeGuard ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to add STP node [%s] to guard, rc: %d",
-                   svcname.c_str(), rc ) ;
+      addNodeGuard( nodeGuard ) ;
 
    done:
       return rc ;

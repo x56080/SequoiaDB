@@ -302,6 +302,8 @@ namespace engine
 
          void     _checkNodeByStartupFile( const CHAR *pSvcName,
                                            dbProcessInfo *pInfo ) ;
+         void     _checkStpByStartupFile( const CHAR *pSvcName,
+                                          dbProcessInfo *pInfo ) ;
 
          _omaNodePathGuard*      _getNodeGuard( const CHAR *svcname ) ;
 

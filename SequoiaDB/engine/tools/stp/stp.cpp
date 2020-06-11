@@ -57,6 +57,34 @@ namespace engine
       PMD_SHUTDOWN_DB( SDB_INTERRUPT ) ;
    }
 
+   static INT32 _pmdSystemInit( const CHAR *confPath )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( NULL != confPath, "config path is invalid" ) ;
+
+      SDB_START_TYPE startType = SDB_START_NORMAL ;
+      BOOLEAN bOk = TRUE ;
+
+      // analysis the start type
+      rc = pmdGetStartup().init( confPath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check start up file [%s], "
+                   "rc: %d", confPath, rc ) ;
+
+      startType = pmdGetStartup().getStartType() ;
+      bOk = pmdGetStartup().isOK() ;
+
+      PD_LOG( PDEVENT, "Start up from %s, data is %s",
+              pmdGetStartTypeStr( startType ),
+              bOk ? "normal" : "abnormal" ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 pmdThreadMainEntry( INT32 argc, CHAR **argv )
    {
       INT32 rc = SDB_OK ;
@@ -66,7 +94,7 @@ namespace engine
       stpOptions *options = stpCB->getOptions() ;
 
       CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      CHAR dialogPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      CHAR confPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR dialogFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR pidFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       INT32 delSig[] = { 17, 0 } ; // del SIGCHLD
@@ -85,7 +113,7 @@ namespace engine
 
       // 3. create pid file
       rc = utilBuildFullPath( currentPath, STP_LOG_PATH, OSS_MAX_PATHSIZE,
-                              dialogPath ) ;
+                              confPath ) ;
       if ( SDB_OK != rc )
       {
          cout << "Build dialog path failed: " << rc << endl ;
@@ -93,15 +121,15 @@ namespace engine
       }
 
       // make sure the dir exist
-      rc = ossMkdir( dialogPath ) ;
+      rc = ossMkdir( confPath ) ;
       if ( SDB_OK != rc && SDB_FE != rc )
       {
-         cout << "Create dialog dir: " << dialogPath << " failed: "
+         cout << "Create dialog dir: " << confPath << " failed: "
                    << rc << endl ;
          goto error ;
       }
 
-      rc = utilBuildFullPath( dialogPath, STP_PID_FILE_NAME,
+      rc = utilBuildFullPath( confPath, STP_PID_FILE_NAME,
                               OSS_MAX_PATHSIZE, pidFile ) ;
       if ( SDB_OK != rc )
       {
@@ -117,7 +145,7 @@ namespace engine
       }
 
       // 2. enable dialog
-      rc = utilBuildFullPath( dialogPath, STP_DIAGLOG_FILE_NAME,
+      rc = utilBuildFullPath( confPath, STP_DIAGLOG_FILE_NAME,
                               OSS_MAX_PATHSIZE, dialogFile ) ;
       if ( SDB_OK != rc )
       {
@@ -145,7 +173,7 @@ namespace engine
       options->logOptions() ;
 
       // 6. handlers and init global mem
-      rc = pmdEnableSignalEvent( dialogPath, (PMD_ON_QUIT_FUNC)pmdOnQuit,
+      rc = pmdEnableSignalEvent( confPath, (PMD_ON_QUIT_FUNC)pmdOnQuit,
                                  delSig ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to enable trap, rc: %d", rc ) ;
 
@@ -155,6 +183,13 @@ namespace engine
 
       // 7. register agent cb
       PMD_REGISTER_CB( stpCB ) ;
+
+      // system init
+      rc = _pmdSystemInit( confPath ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       // 8. initialize pipe manager
       rc = sdbGetSystemPipeManager()->init( options->getServiceName(), TRUE ) ;
@@ -182,6 +217,11 @@ namespace engine
       pmdSetQuit() ;
       removePIDFile( pidFile ) ;
       krcb->destroy() ;
+      if ( krcb->needRestart() )
+      {
+         pmdGetStartup().restart( TRUE, rc ) ;
+      }
+      pmdGetStartup().final() ;
       PD_LOG( PDEVENT, "Stop program, exit code: %d",
               krcb->getShutdownCode() ) ;
       return rc == SDB_OK ? 0 : 1 ;
