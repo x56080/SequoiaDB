@@ -42,9 +42,8 @@ function test( testPara )
    commCompareResults ( cursor, expResult );
 
    //使用push更新对象
-   //SEQUOIADBMAINSTREAM-5942
-   /*testPara.testCL.update( { "$push": { "a": { "$field": "b" } } } );
+   testPara.testCL.update( { "$push": { "a": { "$field": "b" } } } );
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );*/
+   commCompareResults ( cursor, expResult );
 }
