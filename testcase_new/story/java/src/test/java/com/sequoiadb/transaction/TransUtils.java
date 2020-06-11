@@ -34,10 +34,13 @@ public class TransUtils extends SdbTestBase {
 
     public static final int FLG_INSERT_CONTONDUP = 0x00000001;
     /**
-     * delayTime 线程延时启动时间，线程Thread.sleep(事务等锁超时时间-20s)
+     * @param delayTime
+     *            线程延时启动时间，线程Thread.sleep(事务等锁超时时间-5s)
+     * @param transTimeoutSession
+     *            会话级别事务超时时间
      */
-    public static final int transTimeoutSession = 5;
-    public static final int delayTime = ( transTimeoutSession - 3 ) * 1000;
+    public static final int transTimeoutSession = 10;
+    public static final int delayTime = ( transTimeoutSession - 5 ) * 1000;
 
     public static CollectionSpace createCS( String csName, Sequoiadb db )
             throws BaseException {
@@ -698,27 +701,35 @@ public class TransUtils extends SdbTestBase {
         return transactionID;
     }
 
-    // 判断是否是否在等锁
+    // coord 节点到 data 节点的事务存在一定延时,因此需要增加一个超时时间,在超时时间内判断事务是否在等锁
     public static boolean isTransWaitLock( Sequoiadb db,
             String transactionID ) {
-        // 避免线程未启动
-        try {
-            Thread.sleep( 1000 );
-        } catch ( InterruptedException e ) {
-            e.printStackTrace();
-        }
+        int timeOut = 30;// 单位:秒
+        int waitTime = 0;
         boolean isTransWaitLock = false;
-        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS,
-                "{TransactionID:'" + transactionID + "'}", "{WaitLock:\"\"}",
-                "" );
-        while ( cursor.hasNext() ) {
-            BSONObject waitLock = ( BSONObject ) cursor.getNext()
-                    .get( "WaitLock" );
-            if ( !waitLock.isEmpty() ) {
-                isTransWaitLock = true;
+        while ( waitTime < timeOut ) {
+            DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS,
+                    "{TransactionID:'" + transactionID + "'}",
+                    "{WaitLock:\"\"}", "" );
+            while ( cursor.hasNext() ) {
+                BSONObject waitLock = ( BSONObject ) cursor.getNext()
+                        .get( "WaitLock" );
+                if ( !waitLock.isEmpty() ) {
+                    isTransWaitLock = true;
+                }
+            }
+            cursor.close();
+            if ( isTransWaitLock ) {
+                break;
+            } else {
+                try {
+                    Thread.sleep( 100 );
+                } catch ( InterruptedException e ) {
+                    e.printStackTrace();
+                }
+                waitTime++;
             }
         }
-        cursor.close();
         return isTransWaitLock;
     }
 
