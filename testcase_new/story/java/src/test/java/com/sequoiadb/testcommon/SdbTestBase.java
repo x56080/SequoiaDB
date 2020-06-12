@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,7 +19,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
-import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.AfterTest;
@@ -66,11 +66,11 @@ public class SdbTestBase {
     public static final String RS = "rs";
     public static final String RCAUTO = "rcauto";
     public static final String RCUSERBS = "rcuserbs";
-    public static final String TRANSREPLSIZE = "transreplsize";
     public static final String RR = "rr";
     public static final String RRAUTO = "rrauto";
     public static final String MVCCON = "mvccon";
     public static final String GLOBTRANSON = "globtranson";
+    public static final String TRANSREPLSIZE = "transreplsize";
 
     private static ConfigOptions options = new ConfigOptions();
     public static String testGroup = null;
@@ -328,7 +328,9 @@ public class SdbTestBase {
 
     private static void modifyNodeConf( BSONObject cfg, BSONObject object ) {
         if ( object == null ) {
-            object = new BasicBSONObject().append( "Global", true );
+            // coord 节点 globtranson 默认为 false,暂时只更新data节点的事务配置，待支持集群重启后，放开该限制
+            object = new BasicBSONObject().append( "Global", true )
+                    .append( "Role", "data" );
         }
         try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
                 options )) {
@@ -341,29 +343,49 @@ public class SdbTestBase {
 
     @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS, RR,
             RRAUTO })
-    public static synchronized void initTestGroups() {
+    public static synchronized void initTestGroups()
+            throws UnknownHostException {
         if ( testGroup == null )
             return;
         System.out.println( "init " + testGroup + " Groups..........." );
         if ( testGroup.equals( RR ) || testGroup.equals( RRAUTO ) ) {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
                     options )) {
-                DBCursor snapshot = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS,
-                        "{'Role': 'coord'}", null, null );
-                if ( snapshot.hasNext() ) {
-                    BSONObject configs = snapshot.getNext();
-                    Object mvccon = configs.get( "mvccon" );
-                    Object globtranson = configs.get( "globtranson" );
-                    if ( !mvccon.equals( "TRUE" )
-                            || !globtranson.equals( "TRUE" ) ) {
-                        throw new SkipException(
-                                "mvccon or globtranson disable!" );
+                Object coordGlobTransConfig = null;
+                Object dataGlobTransConfig;
+                Object dataMvccConfig;
+                DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS,
+                        null,
+                        "{NodeName:'',globtranson:'','role':'',mvccon:''}",
+                        null );
+                while ( cursor.hasNext() ) {
+                    BSONObject config = cursor.getNext();
+                    String role = ( String ) config.get( "role" );
+                    switch ( role ) {
+                    case "coord":
+                        coordGlobTransConfig = config.get( "globtranson" );
+                        if ( !coordGlobTransConfig.equals( "TRUE" ) ) {
+                            throw new SkipException(
+                                    "globtranson disable on coord!" );
+                        }
+                        break;
+                    case "data":
+                        dataGlobTransConfig = config.get( "globtranson" );
+                        dataMvccConfig = config.get( "mvccon" );
+                        if ( !( dataGlobTransConfig.equals( "TRUE" )
+                                && dataMvccConfig.equals( "TRUE" ) ) ) {
+                            throw new SkipException(
+                                    "mvccon or globtranson disable on data!" );
+                        }
+                        break;
+                    case "catalog":
+                        break;
+
                     }
-                } else {
-                    Assert.fail( "SDB_SNAP_CONFIGS is empty！" );
                 }
             }
         }
+
         modifyNodeConf( group2Conf.get( testGroup ), null );
     }
 
