@@ -60,7 +60,7 @@
       //获取table列表
       var queryTableList = function( dbName ){
          var sql = '' ;
-         sql = sprintf( 'select * from information_schema.TABLES where TABLE_SCHEMA = "?"', dbName ) ;
+         sql = sprintf( "select * from information_schema.TABLES where TABLE_SCHEMA = '?'", dbName ) ;
          var data = { 'Sql': sql, 'DbName': dbName, 'Type': 'mysql', 'IsAll': 'true' } ;
          SdbRest.DataOperationV2( '/sql', data, {
             'success': function( tableList ){
@@ -96,7 +96,7 @@
 
       //获取database列表
       var queryDbList = function(){
-         var sql = 'select * from information_schema.SCHEMATA where SCHEMA_NAME != "information_schema" and SCHEMA_NAME != "performance_schema" and SCHEMA_NAME != "mysql" and SCHEMA_NAME != "sys"' ;
+         var sql = "select * from information_schema.SCHEMATA where SCHEMA_NAME != 'information_schema' and SCHEMA_NAME != 'performance_schema' and SCHEMA_NAME != 'mysql' and SCHEMA_NAME != 'sys'" ;
          var data = { 'Sql': sql, 'DbName': $scope.CurrentDbName, 'Type': 'mysql', 'IsAll': 'true' } ;
          SdbRest.DataOperationV2( '/sql', data, {
             'success': function( dbList ){
@@ -147,7 +147,7 @@
 
       //创建数据库
       SdbSignal.on( 'createDatabase', function( dbName ){
-         var sql = 'create database ' + dbName ;
+         var sql = sprintf( 'create database `?`', dbName ) ;
          var data = { 'Sql': sql, 'DbName': 'mysql', 'Type': 'mysql' } ;
          SdbRest.DataOperationV2( '/sql', data, {
             'success': function( result ){
@@ -165,7 +165,7 @@
 
       //删除数据库
       SdbSignal.on( 'removeDatabase', function( dbName ){
-         var sql = 'drop database ' + dbName ;
+         var sql = sprintf( 'drop database `?`', dbName ) ;
          var data = { 'Sql': sql, 'DbName': $scope.CurrentDbName, 'Type': 'mysql' } ;
          SdbRest.DataOperationV2( '/sql', data, {
             'success': function( result ){
@@ -953,7 +953,7 @@
             {
                var formVal1 = $scope.CreateTableWindow['config']['Form1'].getValue() ;
                
-               var sql = sprintf( 'create table ? (', formVal1['tbName'] ) ;
+               var sql = sprintf( 'create table `?` (', formVal1['tbName'] ) ;
                var primaryKey = formVal1['tbName'] ;
                var primaryKey2 = ' primary key (' ;
                var indexName = ',index ' + formVal1['tbName'] ;
@@ -1106,17 +1106,17 @@
                   formVal2 = modalValue2Create( formVal2 ) ;
                   if( tableNote.length > 0 )
                   {
-                     sql += sprintf( ' comment = "?', tableNote.replace( /\"/g, "\\\"" ) ) ;
-                     sql += sprintf( ', sequoiadb:?"', JSON.stringify( formVal2 ).replace( /\"/g, "\\\"" ) ) ;
+                     sql += sprintf( " comment = '?", tableNote ) ;
+                     sql += sprintf( ", sequoiadb:?'", JSON.stringify( formVal2 ) ) ;
                   }
                   else
                   {
-                     sql += sprintf( ' comment = "sequoiadb:?"', JSON.stringify( formVal2 ).replace( /\"/g, "\\\"" ) ) ;
+                     sql += sprintf( " comment = 'sequoiadb:?'", JSON.stringify( formVal2 ) ) ;
                   }
                }
                else
                {
-                  sql += sprintf( ' comment = "?"', tableNote.replace( /\"/g, "\\\"" ) ) ;
+                  sql += sprintf( " comment = '?'", tableNote ) ;
                }
                $scope.createTable( sql, formVal1['dbName'] ) ;
                $scope.CreateTableWindow['callback']['Close']() ;
@@ -1221,7 +1221,7 @@
       SdbSignal.on( 'OpenRemoveTable', function( info ){
          var tableName = info['Name'] ;
          var sql = '' ;
-         sql = 'drop table ' + tableName ;
+         sql = sprintf( 'drop table `?`', tableName ) ;
          $scope.Components.Confirm.type = 3 ;
          $scope.Components.Confirm.context = sprintf( $scope.pAutoLanguage( '是否确定删除表：?？' ), tableName ) ;
          $scope.Components.Confirm.isShow = true ;
@@ -1261,7 +1261,7 @@
                var sql = '' ;
                var index = formVal['tbName'] ;
                var tableName = SdbSwap.deleteTableList[index]['key'] ;
-               sql = 'drop table ' + tableName ;
+               sql = sprintf( 'drop table `?`', tableName ) ;
                SdbSignal.commit( 'removeTable', sql ) ;
                $scope.RemoveTableWindow['callback']['Close']() ;
             } ) ;
@@ -1310,7 +1310,7 @@
             if( isClear == true )
             {
                var formVal = $scope.AlterTableWindow['config'].getValue() ;
-               var sql = sprintf( 'alter table ? rename to ?', formVal['oldTbName'], formVal['newTbName'] ) ;
+               var sql = sprintf( 'alter table `?` rename to `?`', formVal['oldTbName'], formVal['newTbName'] ) ;
                SdbSignal.commit( 'AlterTable', sql ) ;
                $scope.AlterTableWindow['callback']['Close']() ;
             }

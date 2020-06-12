@@ -420,7 +420,7 @@
                {
                   var formValue = $scope.QueryWindow['config'].getValue() ;
                   var isFirst = true ;
-                  var sql = sprintf( 'SELECT * FROM ?', SdbSwap.tbName ) ;
+                  var sql = sprintf( 'SELECT * FROM `?`', SdbSwap.tbName ) ;
                   $.each( formValue['filter']['condition'], function( index, info ){
                      if( info['field'].length > 0 && ( info['value'].length > 0 || info['logic'] == 'IS NULL' || info['logic'] == 'IS NOT NULL' ) )
                      {
@@ -678,7 +678,7 @@
                if( isClear )
                {
                   var formValue = $scope.UpdateWindow['config'].getValue() ;
-                  var sql = sprintf( 'UPDATE ? SET ', SdbSwap.tbName ) ;
+                  var sql = sprintf( 'UPDATE `?` SET ', SdbSwap.tbName ) ;
                   $.each( formValue['updator'], function( index, fieldInfo ){
                      if( fieldInfo['null'] == true )
                      {
@@ -823,7 +823,7 @@
                var fields = '' ;
                var params = '' ;
                var isFirst = true ;
-               var sql = sprintf( 'INSERT INTO ? ', SdbSwap.tbName ) ;
+               var sql = sprintf( 'INSERT INTO `?` ', SdbSwap.tbName ) ;
                var length = value.length ;
                for( var i = 0; i < length; ++i )
                {
@@ -1004,7 +1004,7 @@
                if( isClear )
                {
                   var formValue = $scope.DeleteWindow['config'].getValue() ;
-                  var sql = sprintf( 'DELETE FROM ?' ,SdbSwap.tbName ) ;
+                  var sql = sprintf( 'DELETE FROM `?`' ,SdbSwap.tbName ) ;
                   var isFirst = true ;
                   var condition = '' ;
                   $.each( formValue['filter']['condition'], function( index, info ){
@@ -1165,7 +1165,7 @@
                $scope.ErrorTip = '' ;
                var formValue = $scope.EditWindow['config'].getValue() ;
 
-               var sql = sprintf( 'UPDATE ? SET ', SdbSwap.tbName ) ;
+               var sql = sprintf( 'UPDATE `?` SET ', SdbSwap.tbName ) ;
                var tempNum = 1 ;
                $.each( formValue, function( index, fieldInfo ){
                   if( fieldInfo[2] != data[fieldInfo[0]] )
@@ -1243,7 +1243,7 @@
          $scope.Components.Confirm.isShow = true ;
          $scope.Components.Confirm.okText = $scope.pAutoLanguage( '确定' ) ;
          $scope.Components.Confirm.ok = function(){
-            var sql = sprintf( 'DELETE FROM ? WHERE ', SdbSwap.tbName ) ;
+            var sql = sprintf( 'DELETE FROM `?` WHERE ', SdbSwap.tbName ) ;
             var tempNum = 1 ;
             $.each( data, function( key, value ){
                if( tempNum > 1 )
@@ -1355,7 +1355,7 @@
    //sql语句输入框
    sacApp.controllerProvider.register( 'Data.MySQL.Data.InputBox.Ctrl', function( $scope, SdbSwap, SdbSignal ){
       
-      $scope.SqlCommand = sprintf( 'SELECT * FROM ?', SdbSwap.tbName ) ;
+      $scope.SqlCommand = sprintf( 'SELECT * FROM `?`', SdbSwap.tbName ) ;
       
       $scope.ExecQuery = function(){
          if( SdbSignal.commit( 'getTableLength' )[0] == 0 )

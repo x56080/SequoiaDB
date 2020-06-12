@@ -30,7 +30,7 @@
                SdbSignal.commit( 'setPrimarySelect', fieldList ) ;
 
                //查询索引
-               var sql = sprintf( 'select * from information_schema.STATISTICS where TABLE_SCHEMA = "?" and TABLE_NAME = "?"', SdbSwap.dbName, SdbSwap.tbName ) ;
+               var sql = sprintf( "select * from information_schema.STATISTICS where TABLE_SCHEMA = '?' and TABLE_NAME = '?'", SdbSwap.dbName, SdbSwap.tbName ) ;
                execSql( sql, true ) ;
             },
             'failed': function( errorInfo ){
@@ -198,14 +198,14 @@
             if( isClear )
             {
                var value = $scope.AddFieldWindow['config'].getValue() ;
-               var sql = sprintf( 'ALTER TABLE ? ', SdbSwap.tbName ) ;
+               var sql = sprintf( 'ALTER TABLE `?` ', SdbSwap.tbName ) ;
                $.each( value['fields'], function( index, fieldInfo ){
                   var subSql = '' ;
                   if( index > 0 )
                   {
                      subSql += ', ' ;
                   }
-                  subSql += 'ADD ' + fieldInfo['name'] + ' ' + fieldInfo['type'] ;
+                  subSql += 'ADD `' + fieldInfo['name'] + '` ' + fieldInfo['type'] ;
                   if( fieldInfo['length'].length > 0 )
                   {
                      switch( fieldInfo['type'] )
@@ -333,7 +333,7 @@
                ]
             } ;
             $scope.SetPrimaryWindow['callback']['SetOkButton']( $scope.pAutoLanguage('确定'), function(){
-               var sql = sprintf( 'ALTER TABLE ? ADD PRIMARY KEY ', SdbSwap.tbName ) ;
+               var sql = sprintf( 'ALTER TABLE `?` ADD PRIMARY KEY ', SdbSwap.tbName ) ;
                var formValue = $scope.SetPrimaryWindow['config'].getValue() ;
                var isFrist = true ;
                var existList = {} ;
@@ -373,7 +373,7 @@
             $scope.Components.Confirm.isShow = true ;
             $scope.Components.Confirm.okText = $scope.pAutoLanguage( '确定' ) ;
             $scope.Components.Confirm.ok = function(){
-               var sql = sprintf( 'alter table ? drop primary key', SdbSwap.tbName ) ;
+               var sql = sprintf( 'alter table `?` drop primary key', SdbSwap.tbName ) ;
                execSql( sql ) ;
                $scope.Components.Confirm.isShow = false ;
             }
@@ -434,11 +434,11 @@
             var formValue = $scope.CreateIndexWindow['config'].getValue() ;
             if( formValue['type'] == 'normal' )
             {
-               sql = sprintf( 'alter table ? add index ', SdbSwap.tbName ) ; 
+               sql = sprintf( 'alter table `?` add index ', SdbSwap.tbName ) ; 
             }
             else
             {
-               sql = sprintf( 'alter table ? add unique ', SdbSwap.tbName ) ; 
+               sql = sprintf( 'alter table `?` add unique ', SdbSwap.tbName ) ; 
             }
             var isFrist = true ;
             var existList = {} ;
@@ -503,11 +503,11 @@
                var sql = '' ;
                if( formValue['index'] == 'PRIMARY' )
                {
-                  sql = sprintf( 'alter table ? drop primary key', SdbSwap.tbName ) ;
+                  sql = sprintf( 'alter table `?` drop primary key', SdbSwap.tbName ) ;
                }
                else
                {
-                  sql = sprintf( 'alter table ? drop index ?', SdbSwap.tbName, formValue['index'] ) ;
+                  sql = sprintf( 'alter table `?` drop index ?', SdbSwap.tbName, formValue['index'] ) ;
                }
                execSql( sql ) ;
                $scope.DropIndexWindow['callback']['Close']() ;
@@ -592,7 +592,7 @@
          $scope.Components.Confirm.isShow = true ;
          $scope.Components.Confirm.okText = $scope.pAutoLanguage( '确定' ) ;
          $scope.Components.Confirm.ok = function(){
-            var sql = sprintf( 'alter table ? drop column ?', SdbSwap.tbName, fieldName ) ;
+            var sql = sprintf( 'alter table `?` drop column `?`', SdbSwap.tbName, fieldName ) ;
             execSql( sql ) ;
             $scope.Components.Confirm.isShow = false ;
          }
@@ -634,7 +634,7 @@
             if( isClear == true )
             {
                var formVal = $scope.SetfFieldDefaultWindow['config'].getValue() ;
-               var sql = sprintf( 'alter table ? alter ? set default ?', SdbSwap.tbName, fieldName, sqlEscape( formVal['default'] ) ) ;
+               var sql = sprintf( 'alter table `?` alter `?` set default ?', SdbSwap.tbName, fieldName, sqlEscape( formVal['default'] ) ) ;
                execSql( sql ) ;
                $scope.SetfFieldDefaultWindow['callback']['Close']() ;
             }
@@ -649,7 +649,7 @@
          $scope.Components.Confirm.isShow = true ;
          $scope.Components.Confirm.okText = $scope.pAutoLanguage( '确定' ) ;
          $scope.Components.Confirm.ok = function(){
-            var sql = sprintf( 'alter table ? alter ? drop default', SdbSwap.tbName, fieldName ) ;
+            var sql = sprintf( 'alter table `?` alter `?` drop default', SdbSwap.tbName, fieldName ) ;
             execSql( sql ) ;
             $scope.Components.Confirm.isShow = false ;
          }
@@ -739,7 +739,7 @@
             {
                var subSql = '' ;
                var formVal = $scope.EditFieldWindow['config'].getValue() ;
-               var sql = sprintf( 'alter table ? change ? ? ?', SdbSwap.tbName, fieldName, formVal['fieldName'], formVal['newType'] ) ;
+               var sql = sprintf( 'alter table `?` change `?` `?` ?', SdbSwap.tbName, fieldName, formVal['fieldName'], formVal['newType'] ) ;
                if( formVal['length'].length > 0 )
                {
                   switch( formVal['newType'] )
