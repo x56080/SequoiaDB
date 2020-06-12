@@ -42,7 +42,7 @@ public class Transaction18238 extends SdbTestBase {
     private DBCursor recordCur = null;
     private List< BSONObject > expDataList = null;
     private List< BSONObject > actDataList = null;
-    private String mvcc = null;
+    private Boolean isTransisolationRR;
 
     @BeforeClass
     public void setUp() {
@@ -57,7 +57,7 @@ public class Transaction18238 extends SdbTestBase {
         expDataList = new ArrayList< BSONObject >();
 
         cl.insert( "{'_id': 1, 'a': 1}" );
-        mvcc = TransUtils.getMvccConfig( sdb );
+        isTransisolationRR = TransUtils.isTransisolationRR( sdb );
     }
 
     @Test
@@ -109,7 +109,7 @@ public class Transaction18238 extends SdbTestBase {
         queryThread2.start();
 
         // mvcc分支下transuserbs在RR隔离级别下强制为true,查询不阻塞
-        if ( !mvcc.equals( "TRUE" ) ) {
+        if ( !isTransisolationRR ) {
             Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
                     queryThread1.getTransactionID() ) );
             Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
@@ -137,7 +137,7 @@ public class Transaction18238 extends SdbTestBase {
         sdb1.commit();
         sdb2.commit();
         sdb3.rollback();
-        if ( !mvcc.equals( "TRUE" ) ) {
+        if ( !isTransisolationRR ) {
             Assert.assertTrue( queryThread1.isSuccess(),
                     queryThread1.getErrorMsg() );
             Assert.assertTrue( queryThread2.isSuccess(),

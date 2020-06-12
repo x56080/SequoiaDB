@@ -328,16 +328,15 @@ public class SdbTestBase {
 
     private static void modifyNodeConf( BSONObject cfg, BSONObject object ) {
         if ( object == null ) {
-            // coord 节点 globtranson 默认为 false,暂时只更新data节点的事务配置，待支持集群重启后，放开该限制
-            object = new BasicBSONObject().append( "Global", true )
-                    .append( "Role", "data" );
+            object = new BasicBSONObject().append( "Global", true );
         }
         try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
                 options )) {
             sdb.updateConfig( cfg, object );
         } catch ( BaseException e ) {
             e.printStackTrace();
-            throw e;
+            // coord 节点 mvccon 默认为 false,更新配置时会报-264，由于不支持节点重启，暂不对外抛错；
+            // throw e;
         }
     }
 

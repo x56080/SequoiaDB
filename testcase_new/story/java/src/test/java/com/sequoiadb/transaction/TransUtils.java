@@ -132,16 +132,37 @@ public class TransUtils extends SdbTestBase {
         return true;
     }
 
-    public static String getMvccConfig( Sequoiadb db ) {
-        String mvccon = null;
-        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS,
-                "{\"svcname\":\"" + serviceName + "\"}", "{mvccon:''}", null );
-        while ( cursor.hasNext() ) {
-            BSONObject record = cursor.getNext();
-            mvccon = ( String ) record.get( "mvccon" );
+    public static Boolean isTransisolationRR( Sequoiadb db ) {
+        Boolean isRR = true;
+        Object coordGlobTransConfig = null;
+        Object dataGlobTransConfig;
+        Object dataMvccConfig;
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, null,
+                "{NodeName:'',globtranson:'','role':'',mvccon:''}", null );
+        while ( cursor.hasNext() && isRR ) {
+            BSONObject config = cursor.getNext();
+            String role = ( String ) config.get( "role" );
+            switch ( role ) {
+            case "coord":
+                coordGlobTransConfig = config.get( "globtranson" );
+                if ( !coordGlobTransConfig.equals( "TRUE" ) ) {
+                    isRR = false;
+                }
+                break;
+            case "data":
+                dataGlobTransConfig = config.get( "globtranson" );
+                dataMvccConfig = config.get( "mvccon" );
+                if ( !( dataGlobTransConfig.equals( "TRUE" )
+                        && dataMvccConfig.equals( "TRUE" ) ) ) {
+                    isRR = false;
+                }
+                break;
+            case "catalog":
+                break;
+
+            }
         }
-        cursor.close();
-        return mvccon;
+        return isRR;
     }
 
     public static DBCollection createCL( String clName, CollectionSpace cs,
