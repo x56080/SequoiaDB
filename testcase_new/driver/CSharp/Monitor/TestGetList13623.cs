@@ -210,7 +210,7 @@ namespace CSharp.Monitor
             {
                 doc = cursor.Current();
                 count++;
-                Assert.AreEqual("{ \"User\" : \"user13623_1\" }", doc.ToString());
+                Assert.AreEqual("user13623_1", doc.GetElement("User").Value.ToString());
             }
             cursor.Close();
             Assert.AreEqual(1, count);
