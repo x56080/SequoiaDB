@@ -109,7 +109,7 @@ public class CappedCL18836 extends SdbTestBase {
     public void tearDown() {
         try {
             for ( int i = 0; i < csNum; i++ ) {
-                // sdb.dropCollectionSpace( cappedCSName + "_" + i );
+                sdb.dropCollectionSpace( cappedCSName + "_" + i );
             }
         } finally {
             sdb.close();
