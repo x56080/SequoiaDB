@@ -1716,6 +1716,21 @@ namespace engine
       // unset first run
       _firstRun = FALSE ;
       _onceRestNum = (INT64)pmdGetKRCB()->getOptionCB()->indexScanStep() ;
+      // we can adjust step for index scan, normally it's an optimization for
+      // large range scan. if user didn't specify the step and the expected
+      // return is way too large, we will apply this
+      if ( ( DMS_DFT_INDEX_SCAN_STEP == _onceRestNum ) && 
+           ( _scanner->getExpReturn() > 
+             _onceRestNum * DMS_SCAN_STEP_SCALE_THRESH ) )
+      {
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, 
+                 "Adjust indexScanStep (%d -> %d ) based on access plan.",
+                 _onceRestNum, _onceRestNum*DMS_SCAN_STEP_SCALE_FACTOR ) ;
+#endif
+         _onceRestNum *= DMS_SCAN_STEP_SCALE_FACTOR ;
+         
+      }
 
    done:
       PD_TRACE_EXITRC ( SDB__DMSIXSECSCAN__FIRSTINIT, rc ) ;

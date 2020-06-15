@@ -1061,7 +1061,7 @@ namespace engine
          // set the traversal direction
          predList->setDirection ( dir ) ;
 
-         rc = f.createScanner( scannerType, &indexCB, predList,
+         rc = f.createScanner( scannerType, &indexCB, planRuntime,
                                su, cb, scanner ) ;
          if ( rc )
          {

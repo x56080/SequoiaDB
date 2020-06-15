@@ -52,6 +52,7 @@
 
 #include <map>
 #include <set>
+#include <boost/unordered_set.hpp>
 #include <list>
 #include <string>
 #include <vector>
@@ -108,6 +109,17 @@ class ossPoolMultiMap : public std::multimap<K, V, Compare, typename ossPoolAllo
  */
 template < typename K, class Compare = std::less<K> >
 class ossPoolSet : public std::set<K, Compare, typename ossPoolAllocator<K>::Type >{
+  /**
+   * DO NOT ADD ANY MEMBER/FUNCTION IN THIS CLASS
+   * DO NOT USE THIS CLASS IN POLYMORPHISM
+   */
+};
+
+/*
+ * Unordered Set utilizing memory pool
+ */
+template < typename K, typename Hash, typename Equal >
+class ossPoolUnordedSet : public boost::unordered_set<K, Hash, Equal, typename ossPoolAllocator<K>::Type >{
   /**
    * DO NOT ADD ANY MEMBER/FUNCTION IN THIS CLASS
    * DO NOT USE THIS CLASS IN POLYMORPHISM

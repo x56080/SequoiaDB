@@ -42,6 +42,7 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "dpsTransCB.hpp"
+#include "optAccessPlanRuntime.hpp"
 
 using namespace bson ;
 
@@ -59,11 +60,11 @@ namespace engine
    } ;
 
    _rtnMergeIXScanner::_rtnMergeIXScanner( ixmIndexCB *pIndexCB,
-                                           rtnPredicateList *predList,
+                                           optAccessPlanRuntime * planRuntime,
                                            _dmsStorageUnit  *su,
                                            _pmdEDUCB        *cb,
                                            BOOLEAN indexCBOwnned )
-   :_rtnIXScanner( pIndexCB, predList, su, cb, indexCBOwnned )
+   :_rtnIXScanner( pIndexCB, planRuntime, su, cb, indexCBOwnned )
    {
       _fromDir = SCAN_NONE ;
       _savedRID.reset() ;
@@ -138,14 +139,14 @@ namespace engine
       {
          case SCANNER_TYPE_DISK :
             pScanner = SDB_OSS_NEW _rtnDiskIXScanner( getIndexCB(),
-                                                      getPredicateList(),
+                                                      getPlanRuntime(),
                                                       getSu(),
                                                       getEDUCB(),
                                                       getIndexCBOwned() ) ;
             break ;
          case SCANNER_TYPE_MEM_TREE :
             pScanner = SDB_OSS_NEW _rtnMemIXTreeScanner( getIndexCB(),
-                                                         getPredicateList(),
+                                                         getPlanRuntime(),
                                                          getSu(),
                                                          getEDUCB(),
                                                          getIndexCBOwned() ) ;

@@ -46,13 +46,14 @@
 
 namespace engine
 {
+   class _optAccessPlanRuntime ;
    // class factory for initializing scanner purpose
    class _rtnScannerFactory
    {
    public:
       INT32             createScanner( IXScannerType type,
                                        ixmIndexCB *indexCB,
-                                       rtnPredicateList *predList,
+                                       _optAccessPlanRuntime * planRuntime,
                                        _dmsStorageUnit *su,
                                        _pmdEDUCB *cb,
                                        _rtnIXScanner *&pScanner )
@@ -64,15 +65,18 @@ namespace engine
          switch (type) 
          {
             case SCANNER_TYPE_DISK:
-               pScanner = SDB_OSS_NEW rtnDiskIXScanner( indexCB, predList,
+               pScanner = SDB_OSS_NEW rtnDiskIXScanner( indexCB,
+                                                        planRuntime,
                                                         su, cb ) ;
                break ;
             case SCANNER_TYPE_MEM_TREE:
-		         pScanner = SDB_OSS_NEW rtnMemIXTreeScanner( indexCB, predList,
-                                                           su, cb ) ;
+		         pScanner = SDB_OSS_NEW rtnMemIXTreeScanner( indexCB,
+                                                        planRuntime,
+                                                        su, cb ) ;
                break ;
             case SCANNER_TYPE_MERGE:
-               pScanner = SDB_OSS_NEW rtnMergeIXScanner( indexCB, predList,
+               pScanner = SDB_OSS_NEW rtnMergeIXScanner( indexCB,
+                                                         planRuntime,
                                                          su, cb ) ;
                break;
             default :

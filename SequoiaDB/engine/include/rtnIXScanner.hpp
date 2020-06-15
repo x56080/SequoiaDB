@@ -46,6 +46,7 @@
 #include "utilPooledObject.hpp"
 #include "rtnPredicate.hpp"
 #include "ossMemPool.hpp"
+#include "utilSet.hpp"
 #include "dmsRBSSUMgr.hpp"
 #include "dpsTransID.hpp"
 #include "dpsTransVersionCtrl.hpp"
@@ -58,6 +59,7 @@ namespace engine
 {
    class _dmsStorageUnit ;
    class _pmdEDUCB ;
+   class _optAccessPlanRuntime ;
 
    // define type of index scanners
    enum IXScannerType
@@ -68,7 +70,8 @@ namespace engine
       SCANNER_TYPE_MAX
    } ;
 
-   typedef ossPoolSet<dmsRecordID>           SET_RECORDID ;
+   // Performance optimization by using the utilSet.
+   typedef _utilSet< dmsRecordID >  SET_RECORDID ;
 
    /*
       _rtnScannerSharedInfo define
@@ -114,7 +117,7 @@ namespace engine
    {
    public:
       _rtnIXScanner( ixmIndexCB *pIndexCB,
-                     rtnPredicateList *predList,
+                     _optAccessPlanRuntime *planRuntime,
                      _dmsStorageUnit  *su,
                      _pmdEDUCB        *cb,
                      BOOLEAN indexCBOwned = FALSE ) ;
@@ -143,6 +146,8 @@ namespace engine
       INT32       syncPredStatus( _rtnIXScanner *source ) ;
 
       BOOLEAN     eof() const ;
+
+      INT64 getExpReturn () const ;
 
    /// Interface
    public:
@@ -181,7 +186,7 @@ namespace engine
    protected:
       virtual INT32 relocateRID( BOOLEAN &found ) = 0 ;
       virtual rtnPredicateListIterator*   getPredicateListInterator() = 0 ;
-
+      _optAccessPlanRuntime * getPlanRuntime () { return _planRuntime ; }
    protected:
       BOOLEAN                 _insert2Dup( const dmsRecordID &rid ) ;
 
@@ -189,6 +194,7 @@ namespace engine
       ixmIndexCB              *_indexCB ;
       BOOLEAN                 _owned ;
       rtnPredicateList        *_pPredList ;
+      _optAccessPlanRuntime   *_planRuntime ;
       _dmsStorageUnit         *_su ;
       _pmdEDUCB               *_cb ;
       rtnScannerSharedInfo    *_pInfo ;

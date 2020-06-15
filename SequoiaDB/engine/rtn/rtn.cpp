@@ -1713,7 +1713,7 @@ namespace engine
          // get the matcher from plan instead of manually loading it
          matchRuntime = planRuntime->getMatchRuntime( TRUE ) ;
 
-         rc = f.createScanner( scanType, &indexCB, predList, su, cb, scanner ) ;
+         rc = f.createScanner( scanType, &indexCB, planRuntime, su, cb, scanner ) ;
          if ( rc )
          {
             goto error ;

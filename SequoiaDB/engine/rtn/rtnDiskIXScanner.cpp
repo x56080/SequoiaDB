@@ -41,6 +41,7 @@
 #include "dmsStorageUnit.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
+#include "optAccessPlanRuntime.hpp"
 
 using namespace bson;
 
@@ -48,12 +49,12 @@ namespace engine
 {
 
    _rtnDiskIXScanner::_rtnDiskIXScanner ( ixmIndexCB *indexCB,
-                                          rtnPredicateList *predList,
+                                          optAccessPlanRuntime * planRuntime,
                                           _dmsStorageUnit *su,
                                           _pmdEDUCB *cb,
                                           BOOLEAN indexCBOwnned )
-   :_rtnIXScanner( indexCB, predList, su, cb, indexCBOwnned ),
-     _listIterator( *predList ),
+   :_rtnIXScanner( indexCB, planRuntime, su, cb, indexCBOwnned ),
+     _listIterator( *_pPredList ),
      _pMonCtxCB(NULL)
    {
       reset() ;

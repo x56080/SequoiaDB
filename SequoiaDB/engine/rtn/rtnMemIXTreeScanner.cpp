@@ -43,6 +43,7 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "dpsUtil.hpp"
+#include "optAccessPlanRuntime.hpp"
 
 using namespace bson ;
 
@@ -62,12 +63,12 @@ namespace engine
    // Dependency:
    //    All input except su should not be NULL
    _rtnMemIXTreeScanner::_rtnMemIXTreeScanner ( ixmIndexCB *pIndexCB,
-                                                rtnPredicateList *predList,
+                                                optAccessPlanRuntime * planRuntime,
                                                 _dmsStorageUnit  *su,
                                                 _pmdEDUCB        *cb,
                                                 BOOLEAN indexCBOwnned )
-   :_rtnIXScanner( pIndexCB, predList, su, cb, indexCBOwnned ),
-    _listIterator(*predList),
+   :_rtnIXScanner( pIndexCB, planRuntime, su, cb, indexCBOwnned ),
+    _listIterator(*_pPredList),
     _savedTransID()
    {
       _pTransCB = pmdGetKRCB()->getTransCB() ;

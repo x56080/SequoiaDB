@@ -293,6 +293,10 @@ namespace engine
       _dmsIXSecScanner define
       dms index section scanner
    */
+   #define  DMS_SCAN_STEP_SCALE_THRESH  ( (INT64) 100 )
+   #define  DMS_SCAN_STEP_SCALE_FACTOR  ( (INT64) 10 )
+   #define  DMS_DFT_INDEX_SCAN_STEP     (100)
+
    class _dmsIXSecScanner : public _dmsScanner
    {
       friend class _dmsIXScanner ;

@@ -40,6 +40,7 @@
 #include "ossMem.hpp"
 #include "ossUtil.hpp"
 #include "ossMemPool.hpp"
+#include "utilMemBlockPool.hpp"
 
 using namespace std ;
 
@@ -517,7 +518,8 @@ namespace engine
          {
             if ( resetMem )
             {
-               delete _pSet ;
+               _pSet->~ossPoolSet() ;
+               SDB_POOL_FREE(_pSet) ;
                _pSet = NULL ;
             }
             else
@@ -753,7 +755,8 @@ namespace engine
                   _staticBuf[ _eleSize++ ] = *it ;
                }
                /// release the deque
-               delete _pSet ;
+               _pSet->~ossPoolSet() ;
+               SDB_POOL_FREE(_pSet) ;
                _pSet = NULL ;
             }
          }
@@ -790,12 +793,14 @@ namespace engine
 
          if ( !_pSet && size > stackSize )
          {
-            _pSet = new (std::nothrow) ossPoolSet<T> ;
+            _pSet = ( ossPoolSet<T>* )SDB_POOL_ALLOC( sizeof( ossPoolSet<T> ) );
+                                                    
             if ( !_pSet )
             {
                rc = SDB_OOM ;
                goto error ;
             }
+            new ( _pSet ) ossPoolSet<T> ;
             /// copy stack data to deque
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {

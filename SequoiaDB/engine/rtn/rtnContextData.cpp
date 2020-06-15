@@ -202,7 +202,7 @@ namespace engine
          f.releaseScanner( _scanner ) ;
       }
 
-      rc = f.createScanner( scanType, &indexCB, predList, su, cb, _scanner ) ;
+      rc = f.createScanner( scanType, &indexCB, &_planRuntime, su, cb, _scanner ) ;
       if ( rc )
       {
          goto error ;

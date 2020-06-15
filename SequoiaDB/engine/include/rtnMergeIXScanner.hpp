@@ -47,6 +47,7 @@ using namespace bson ;
 
 namespace engine
 {
+   class _optAccessPlanRuntime ;
 
    // Index merge scanner is used to merge results from different scanner.
    // For instance, we have a scanner to traverse on disk index trees; we
@@ -60,7 +61,7 @@ namespace engine
    {
    public:
       _rtnMergeIXScanner( ixmIndexCB *pIndexCB,
-                          rtnPredicateList *predList,
+                          _optAccessPlanRuntime * planRuntime,
                           _dmsStorageUnit  *su,
                           _pmdEDUCB        *cb,
                           BOOLEAN indexCBOwnned = FALSE ) ;
