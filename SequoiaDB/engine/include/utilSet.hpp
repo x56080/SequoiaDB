@@ -518,8 +518,8 @@ namespace engine
          {
             if ( resetMem )
             {
-               _pSet->~ossPoolSet() ;
-               SDB_POOL_FREE(_pSet) ;
+               _pSet->~ossPoolSet<T>() ;
+               SDB_THREAD_FREE(_pSet) ;
                _pSet = NULL ;
             }
             else
@@ -755,8 +755,8 @@ namespace engine
                   _staticBuf[ _eleSize++ ] = *it ;
                }
                /// release the deque
-               _pSet->~ossPoolSet() ;
-               SDB_POOL_FREE(_pSet) ;
+               _pSet->~ossPoolSet<T>() ;
+               SDB_THREAD_FREE(_pSet) ;
                _pSet = NULL ;
             }
          }
@@ -793,14 +793,13 @@ namespace engine
 
          if ( !_pSet && size > stackSize )
          {
-            _pSet = ( ossPoolSet<T>* )SDB_POOL_ALLOC( sizeof( ossPoolSet<T> ) );
-                                                    
-            if ( !_pSet )
+            void *temp = SDB_THREAD_ALLOC( sizeof( ossPoolSet<T> ) );
+            if ( NULL == temp )
             {
                rc = SDB_OOM ;
                goto error ;
             }
-            new ( _pSet ) ossPoolSet<T> ;
+            _pSet = new ( temp ) ossPoolSet<T>() ;
             /// copy stack data to deque
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
