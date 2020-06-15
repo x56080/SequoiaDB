@@ -126,12 +126,8 @@ public class AbortMultipartUploadAndS3ReStart19138 extends S3TestBase {
                 }
             } catch ( AmazonS3Exception e ) {
                 // e:0 Get connection failed.
-                if ( e.getStatusCode() != 0 ) {
+                if ( e.getStatusCode() != 0 && e.getStatusCode() != 500 ) {
                     throw new Exception( keyName, e );
-                }
-            } catch ( AmazonServiceException e ) {
-                if ( e.getStatusCode() != 500 ) {
-                    throw e;
                 }
             } catch ( SdkClientException e ) {
                 if ( !e.getMessage()
