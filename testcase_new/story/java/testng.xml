@@ -31,6 +31,7 @@
 
     <test name="normaltest" parallel="classes" thread-count="5">
         <packages>
+            <package name="com.sequoiadb.explain" />
             <package name="com.sequoiadb.decimal" />
             <package name="com.sequoiadb.attachtest" />
             <package name="com.sequoiadb.lob.biglob" />
