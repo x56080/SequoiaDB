@@ -1,6 +1,6 @@
 ##NAME##
 
-scp - Remote copy file.
+scp - Remote copy file. The format of srcFile and dstFile is: ip:sdbcmPort@filePath.
 
 ##SYNOPSIS##
 
@@ -26,8 +26,8 @@ Remote copy file.
 The specific format of parameters srcFile and dstFile are as follows:
 
 ```lang-javascript
-ip:sdbcmPort@filepath
-hostname:sdbcmPort@filepath
+ip:sdbcmPort@filePath
+hostname:sdbcmPort@filePath
 ```
 
 >Note:

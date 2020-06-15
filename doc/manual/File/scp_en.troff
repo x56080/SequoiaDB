@@ -5,7 +5,8 @@
 .hy
 .SH NAME
 .PP
-scp \- Remote copy file.
+scp \- Remote copy file. The format of srcFile and dstFile is: ip:sdbcmPort@filePath.
+
 .SH SYNOPSIS
 .PP
 \f[B]\f[I]File.scp( <srcFile>, <dstFile>, [isreplace], [mode] )\f[]\f[]
@@ -98,9 +99,9 @@ T}
 .PP
 The specific format of parameters srcFile and dstFile are as follows:
 
-ip:sdbcmPort\@filepath
+ip:sdbcmPort\@filePath
 .PP
-hostname:sdbcmPort\@filepath
+hostname:sdbcmPort\@filePath
 .TE
 
 Note:
