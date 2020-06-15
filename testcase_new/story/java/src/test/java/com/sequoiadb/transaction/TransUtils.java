@@ -366,7 +366,7 @@ public class TransUtils extends SdbTestBase {
             if ( new Random().nextInt( 2 ) != 0 ) {
                 TransUtils.beginTransaction( db );
                 cl.insert( insertDatas );
-                db.commit();
+                TransUtils.commitTransaction( db );
             } else {
                 cl.insert( insertDatas );
             }
