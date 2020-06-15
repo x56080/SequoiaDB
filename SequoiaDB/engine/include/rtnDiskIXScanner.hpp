@@ -46,7 +46,7 @@ using namespace bson ;
 
 namespace engine
 {
-
+   class _optAccessPlanRuntime ;
    /*
       _rtnDiskIXScanner define
       A scanner to traverse through on disk index pages/slots
@@ -55,7 +55,7 @@ namespace engine
    {
    public:
       _rtnDiskIXScanner ( ixmIndexCB *pIndexCB,
-                          rtnPredicateList *predList,
+                          _optAccessPlanRuntime * planRuntime,
                           _dmsStorageUnit  *su,
                           _pmdEDUCB        *cb,
                           BOOLEAN indexCBOwnned = FALSE ) ;

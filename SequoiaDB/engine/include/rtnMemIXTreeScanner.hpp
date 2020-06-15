@@ -47,6 +47,7 @@ using namespace bson ;
 
 namespace engine
 {
+   class _optAccessPlanRuntime ;
 
    /*
       _rtnMemIXTreeScanner define
@@ -61,7 +62,7 @@ namespace engine
 
    public:
       _rtnMemIXTreeScanner( ixmIndexCB *pIndexCB,
-                            rtnPredicateList *predList,
+                            _optAccessPlanRuntime * planRuntime,
                             _dmsStorageUnit  *su,
                             _pmdEDUCB        *cb,
                             BOOLEAN indexCBOwnned = FALSE ) ;

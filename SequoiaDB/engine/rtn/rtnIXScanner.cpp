@@ -39,6 +39,7 @@
 
 #include "rtnIXScanner.hpp"
 #include "dmsStorageUnit.hpp"
+#include "optAccessPlanRuntime.hpp"
 
 using namespace bson ;
 
@@ -50,6 +51,7 @@ namespace engine
       _rtnScannerSharedInfo define
    */
    _rtnScannerSharedInfo::_rtnScannerSharedInfo()
+   : _setDuplicate ( )
    {
    }
 
@@ -93,18 +95,19 @@ namespace engine
       _rtnIXScanner implement
    */
    _rtnIXScanner::_rtnIXScanner( ixmIndexCB *pIndexCB,
-                                 rtnPredicateList *predList,
+                                 optAccessPlanRuntime * planRuntime,
                                  _dmsStorageUnit *su,
                                  _pmdEDUCB *cb,
                                  BOOLEAN indexCBOwned )
-   :_direction( predList->getDirection() ),
+   :_direction( planRuntime->getPredList()->getDirection() ),
     _indexLID( pIndexCB->getLogicalID() ),
     _indexCBExtent( pIndexCB->getExtentID() ),
     _order( Ordering::make( pIndexCB->keyPattern() ) )
    {
       _indexCB = NULL ;
       _owned = FALSE ;
-      _pPredList = predList ;
+      _planRuntime = planRuntime;
+      _pPredList = planRuntime->getPredList() ;
       _su = su ;
       _cb = cb ;
       _isReadonly = TRUE ;
@@ -189,6 +192,22 @@ namespace engine
          return _pInfo->remove( rid ) ;
       }
       return FALSE ;
+   }
+
+   INT64 _rtnIXScanner::getExpReturn () const
+   {
+      INT64 expReturn = 0 ;
+      if ( _planRuntime )
+      {
+         double score = _planRuntime->getPlan()->getScore();
+         INT64 numRecord = _planRuntime->getPlan()->getInputRecords();
+         expReturn = score * numRecord ;
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, "Plan score=%f, numRecord=%lld, expectReturn=%lld",
+                 score, numRecord, expReturn ) ;
+#endif
+      }
+      return expReturn ;
    }
 
    dmsExtentID _rtnIXScanner::getIdxLID() const
