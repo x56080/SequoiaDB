@@ -469,6 +469,28 @@ namespace DriverTest
                 Assert.IsTrue(e.ErrorCode == new BaseException("SDB_INVALIDARG").ErrorCode);
             }
             
+            // create index with options
+            BsonDocument key5 = new BsonDocument();
+            key5.Add("Last Name5", 1);
+            key5.Add("First Name5", -1);
+            string name5 = "index_name_with_options";
+            BsonDocument options5 = new BsonDocument();
+            options5.Add("Unique", true);
+            options5.Add("Enforced", true);
+            options5.Add("NotNull", false);
+            options5.Add("SortBufferSize", 100);
+            coll.CreateIndex(name5, key5, options5);
+            DBCursor cursor5 = coll.GetIndex(name5);
+            Assert.IsNotNull(cursor5);
+            BsonDocument index5 = cursor5.Next();
+            Assert.IsNotNull(index5);
+            Console.WriteLine("index5 is: " + index5);
+            Assert.IsTrue(index5["IndexDef"].AsBsonDocument["NotNull"].AsBoolean.Equals(false));
+            BsonDocument key6 = new BsonDocument();
+            key6.Add("Last Name6", 1);
+            key6.Add("First Name6", -1);
+            coll.CreateIndex(name5 + "123", key6, null);
+
             // Get Indexes
             DBCursor cursor = coll.GetIndex(name);
             Assert.IsNotNull(cursor);

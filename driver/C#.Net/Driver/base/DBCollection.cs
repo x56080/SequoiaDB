@@ -1206,9 +1206,9 @@ namespace SequoiaDB
         }
 
         /** \fn void CreateIndex(string name, BsonDocument key, bool isUnique, bool isEnforced)
-         *  \brief Create a index with name and key
-         *  \param name The index name
-         *  \param key The index key
+         *  \brief Create an index with name and key.
+         *  \param name The index name.
+         *  \param key The index key.
          *  \param isUnique Whether the index elements are unique or not
          *  \param isEnforced Whether the index is enforced unique.
          *                    This element is meaningful when isUnique is group to true.
@@ -1221,9 +1221,9 @@ namespace SequoiaDB
         }
 
         /** \fn void CreateIndex(string name, BsonDocument key, bool isUnique, bool isEnforced, int sortBufferSize)
-         *  \brief Specify sort buffer size to create a index
-         *  \param name The index name
-         *  \param key The index key
+         *  \brief Specify sort buffer size to create an index.
+         *  \param name The index name.
+         *  \param key The index key.
          *  \param isUnique Whether the index elements are unique or not
          *  \param isEnforced Whether the index is enforced unique.
          *                    This element is meaningful when isUnique is group to true.
@@ -1235,6 +1235,22 @@ namespace SequoiaDB
         public void CreateIndex(string name, BsonDocument key, bool isUnique, bool isEnforced, int sortBufferSize)
         {
             _CreateIndex(name, key, isUnique, isEnforced, sortBufferSize);
+        }
+
+        /** \fn void CreateIndex(string name, BsonDocument key, BsonDocument options)
+         *  \brief Create an index with options.
+         *  \param name The index name.
+         *  \param key The index key.
+         *  \param options Optional configuration for creating index, like: { "Unique" : false , "Enforced" : false , 
+         *                 "NotNull" : false , "SortBufferSize" : 64 }. Please reference
+         *                 <a href="http://doc.sequoiadb.com/cn/sequoiadb-cat_id-1432190830-edition_id-@SDB_SYMBOL_VERSION">HERE</a>
+         *                 for more detail.
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public void CreateIndex(string name, BsonDocument key, BsonDocument options)
+        {
+            _CreateIndex(name, key, options);
         }
 
         /** \fn void DropIndex(string name)
@@ -2195,31 +2211,73 @@ namespace SequoiaDB
             sdb.UpsertCache(collectionFullName);
         }
 
-        private void _CreateIndex(string name, BsonDocument key, bool isUnique, bool isEnforced, int sortBufferSize)
+        private void _CreateIndex(string indexName, BsonDocument indexKeys, BsonDocument options)
         {
-            if (sortBufferSize < 0)
-                throw new BaseException("SDB_INVALIDARG");
+            BsonDocument matcher = new BsonDocument();
+            BsonDocument hint = new BsonDocument();
+            BsonDocument indexDef = new BsonDocument();
+            BsonDocument indexOptions = new BsonDocument();
+            int sortBufferSize = 0;
+
+            if (options != null)
+            {
+                indexOptions.Add(options);
+            }
+
+            // we are going to build the below message:
+            // macher: { Collection: "foo.bar",
+            //           Index:{ key: {a:1}, name: 'aIdx', Unique: true,
+            //                   Enforced: true, NotNull: true },
+            //           SortBufferSize: 1024 }
+            // hint: { SortBufferSize: 1024 }
+            // For Compatibility with older engine( version <3.4 ), keep sort buffer
+            // size in hint. After several versions, we can delete it.
+
+            // prepare sortBufferSize
+            if (indexOptions.Contains(SequoiadbConstants.IXM_SORT_BUFFER_SIZE))
+            {
+                if (indexOptions[SequoiadbConstants.IXM_SORT_BUFFER_SIZE].IsInt32)
+                {
+                    sortBufferSize = indexOptions.GetValue(SequoiadbConstants.IXM_SORT_BUFFER_SIZE).AsInt32;
+                }
+                else
+                {
+                    throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "invalid sort buffer size");
+                }
+                indexOptions.Remove(SequoiadbConstants.IXM_SORT_BUFFER_SIZE);
+            }
+            else
+            {
+                sortBufferSize = SequoiadbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE;
+            }
+            // prepare indexDef
+            indexDef.Add(SequoiadbConstants.IXM_NAME, indexName);
+            indexDef.Add(SequoiadbConstants.IXM_KEY, indexKeys);
+            indexDef.Add(indexOptions);
+            // build matcher
+            matcher.Add(SequoiadbConstants.FIELD_COLLECTION, collectionFullName);
+            matcher.Add(SequoiadbConstants.FIELD_INDEX, indexDef);
+            matcher.Add(SequoiadbConstants.IXM_SORT_BUFFER_SIZE, sortBufferSize);
+            // build hint
+            hint.Add(SequoiadbConstants.IXM_SORT_BUFFER_SIZE, sortBufferSize);
+            // build and send message
             string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CREATE_INX;
-            BsonDocument obj = new BsonDocument();
-            BsonDocument dummyObj = new BsonDocument();
-            BsonDocument createObj = new BsonDocument();
-            BsonDocument hintObj = new BsonDocument();
-            obj.Add(SequoiadbConstants.IXM_NAME, name);
-            obj.Add(SequoiadbConstants.IXM_KEY, key);
-            obj.Add(SequoiadbConstants.IXM_UNIQUE, isUnique);
-            obj.Add(SequoiadbConstants.IXM_ENFORCED, isEnforced);
-            createObj.Add(SequoiadbConstants.FIELD_COLLECTION, collectionFullName);
-            createObj.Add(SequoiadbConstants.FIELD_INDEX, obj);
-
-            hintObj.Add(SequoiadbConstants.IXM_SORT_BUFFER_SIZE, sortBufferSize);
-
-            SDBMessage rtn = AdminCommand(commandString, createObj, dummyObj, dummyObj, hintObj, -1, -1, 0);
-
+            SDBMessage rtn = AdminCommand(commandString, matcher, null, null, hint, 0, -1, 0);
+            // check return info
             int flags = rtn.Flags;
             if (flags != 0)
                 throw new BaseException(flags, rtn.ErrorObject);
             // upsert cache
             sdb.UpsertCache(collectionFullName);
+        }
+
+        private void _CreateIndex(string indexName, BsonDocument indexKeys, bool isUnique, bool isEnforced, int sortBufferSize)
+        {
+            BsonDocument indexOptions = new BsonDocument();
+            indexOptions.Add(SequoiadbConstants.IXM_UNIQUE, isUnique);
+            indexOptions.Add(SequoiadbConstants.IXM_ENFORCED, isEnforced);
+            indexOptions.Add(SequoiadbConstants.IXM_SORT_BUFFER_SIZE, sortBufferSize);
+            _CreateIndex(indexName, indexKeys, indexOptions);
         }
 
         private SDBMessage AdminCommand(string command, BsonDocument query, BsonDocument selector, BsonDocument orderBy,
