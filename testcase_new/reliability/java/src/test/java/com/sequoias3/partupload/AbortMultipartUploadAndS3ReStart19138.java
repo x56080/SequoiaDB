@@ -129,10 +129,6 @@ public class AbortMultipartUploadAndS3ReStart19138 extends S3TestBase {
                 if ( e.getStatusCode() != 0 && e.getStatusCode() != 500 ) {
                     throw new Exception( keyName, e );
                 }
-            } catch ( AmazonServiceException e ) {
-                if ( e.getStatusCode() != 500 ) {
-                    throw e;
-                }
             } catch ( SdkClientException e ) {
                 if ( !e.getMessage()
                         .contains( "Unable to execute HTTP request" ) ) {
