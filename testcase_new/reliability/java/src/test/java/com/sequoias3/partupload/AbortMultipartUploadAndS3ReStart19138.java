@@ -12,6 +12,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
@@ -127,6 +128,10 @@ public class AbortMultipartUploadAndS3ReStart19138 extends S3TestBase {
                 // e:0 Get connection failed.
                 if ( e.getStatusCode() != 0 && e.getStatusCode() != 500 ) {
                     throw new Exception( keyName, e );
+                }
+            } catch ( AmazonServiceException e ) {
+                if ( e.getStatusCode() != 500 ) {
+                    throw e;
                 }
             } catch ( SdkClientException e ) {
                 if ( !e.getMessage()
