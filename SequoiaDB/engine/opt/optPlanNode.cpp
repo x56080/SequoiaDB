@@ -1790,7 +1790,6 @@ namespace engine
       UINT32 iterIdx = 0,
              matchedFields = 0,
              matchedOrders = 0 ;
-      BOOLEAN startIncluded = TRUE, stopIncluded = TRUE ;
       const BSONObj &keyPattern = indexStat->getKeyPattern() ;
       UINT32 keyNum = (UINT32)keyPattern.nFields() ;
 
@@ -1802,7 +1801,6 @@ namespace engine
       double scanSelectivity = 1.0 ;
       UINT32 savedCPUCost = 0 ;
 
-      BOOLEAN isEqual = TRUE ;
       const CHAR *pFirstField = NULL ;
 
       // The statistics of index are invalid, we need to evaluate each predicate
@@ -1826,6 +1824,8 @@ namespace engine
       {
          BSONElement beKey = iterKey.next() ;
          const CHAR *pFieldName = beKey.fieldName() ;
+         BOOLEAN isOrderField = FALSE ;
+         BOOLEAN needRecheckOrder = FALSE ;
 
          // Set the first name
          if ( !pFirstField )
@@ -1836,38 +1836,56 @@ namespace engine
          // Try to match order first
          if ( needMatchOrder && iterOrder.more() )
          {
-            BSONElement beOrder = iterOrder.next() ;
+            BSONElement beOrder = *iterOrder ;
             if ( 0 == ossStrcmp ( pFieldName, beOrder.fieldName() ) )
             {
+               // found order field, check direction
                BOOLEAN orderMatched = ( ( ( beKey.number() * direction ) > 0 ) ==
                                           ( beOrder.number() > 0 ) ) ;
+               isOrderField = TRUE ;
                if ( matchedOrders == 0 )
                {
+                  // first matched order field, set initial direction
                   direction = orderMatched ? 1 : -1 ;
-                  matchedOrders ++ ;
+                  ++ matchedOrders ;
+                  ++ iterOrder ;
                }
                else if ( orderMatched )
                {
-                  matchedOrders ++ ;
+                  ++ matchedOrders ;
+                  ++ iterOrder ;
                }
                else
                {
-                  needMatchOrder = FALSE ;
+                  // order is not matched, but we could recheck later
+                  // if the index field is equal predicate, we could skip
+                  // this one
+                  needRecheckOrder = TRUE ;
                }
             }
             else
             {
-               needMatchOrder = FALSE ;
+               // order is not matched, but we could recheck later
+               // if the index field is equal predicate, we could skip
+               // this one
+               needRecheckOrder = TRUE ;
             }
          }
 
          if ( predicates.empty() )
          {
+            // no predicates, if the order requires recheck, the order will not
+            // matched since we don't have predicates
+            if ( needRecheckOrder )
+            {
+               needMatchOrder = FALSE ;
+            }
             iterIdx ++ ;
             continue ;
          }
 
          RTN_PREDICATE_MAP::iterator iterPred = predicates.find( pFieldName ) ;
+         BOOLEAN isEqual = TRUE ;
 
          if ( iterPred == predicates.end() )
          {
@@ -1876,8 +1894,8 @@ namespace engine
             if ( !fieldOnly && !isBestIndex )
             {
                predicateList.push_back( NULL ) ;
-               isEqual = FALSE ;
             }
+            isEqual = FALSE ;
          }
          else
          {
@@ -1902,15 +1920,30 @@ namespace engine
                // Need to evaluate the whole predicate set together, add the
                // predicates into list, and evaluate them later
                predicateList.push_back( &curPredicate ) ;
-
-               isEqual &= curPredicate.isEquality() ;
-               startIncluded &= curPredicate.minInclusive() ;
-               stopIncluded &= curPredicate.maxInclusive() ;
             }
 
+            isEqual = curPredicate.isEquality() ;
             savedCPUCost += curPredicate.getSavedCPUCost() ;
-
             matchedFields ++ ;
+         }
+
+         if ( needRecheckOrder )
+         {
+            // if the order requires recheck, and the predicate is equal,
+            // we could skip this field for order matching, otherwise, we could
+            // mark the order is not matched
+            if ( isEqual )
+            {
+               if ( isOrderField )
+               {
+                  ++ matchedOrders ;
+                  ++ iterOrder ;
+               }
+            }
+            else
+            {
+               needMatchOrder = FALSE ;
+            }
          }
 
          iterIdx ++ ;
