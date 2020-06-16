@@ -159,7 +159,7 @@ formatter=loggerFormatter
 args=('logs/run.log', 'a+', 104857600, 10)
 
 [formatter_loggerFormatter]
-format=%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)s] %(message)s
+format=%(asctime)s [%(levelname)s] [%(threadName)s] [%(filename)s:%(lineno)s] %(message)s
 datefmt=
 ```
 
@@ -185,7 +185,7 @@ crontab -e
 其中 /opt/sequoiasql/mysql/tools/metaSync 为同步工具默认路径，/usr/bin/python 为系统 python 路径。如 SequoiaSQL-MySQL 或 python 安装路径与默认值不同，请对应修改上述命令中的相关路径。配置完成后，观察同步脚本是否能定时被拉起。
 
 ### 状态文件 ###
-工具在正常运行后，会在与 config 文件相同的目录下，创建名为 sync.stat 的文本文件，用于记录同步状态，以便工具在重启后，能接着之前的处理进度继续工作。
+工具正常运行后，会在与 config 文件相同的目录下，创建状态文件，用于记录向其它实例同步的进度。每个需要同步的实例对应一个状态文件，文件名称格式为 sync-host-port.stat，其中 host、port 分别为 config 文件中 hosts、port 配置的主机名（或 IP 地址）及端口号。同步工具重启时，从状态文件中加载同步状态，可以从之前中断的语句继续进行同步。
 该文件是在 3.2.4 版本中新增，早期版本进度信息也是存储于 config 文件中的。在从老版本升级到新版本后，会在第一次启动的时候自动进行升级，生成正确的配置文件和状态文件。状态文件的内容如下：
 
 ```
