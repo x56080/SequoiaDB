@@ -43,7 +43,8 @@ namespace CSharp.Index
         [TestMethod]
         public void Test14548()
         {
-            cs = sdb.GetCollectionSpace(SdbTestBase.csName);
+            string indexName = "index14548";
+            cs = sdb.GetCollecitonSpace(SdbTestBase.csName);
             if (cs.IsCollectionExist(clName))
             {
                 cs.DropCollection(clName);
@@ -68,10 +69,18 @@ namespace CSharp.Index
             {
                 Assert.AreEqual(-6, e.ErrorCode);
             }
+            try
+            {
+                cl.CreateIndex(indexName, new BsonDocument("a", null), new BsonDocument("NotNull", true));
+                Assert.Fail("expect CreateIndex failed !");
+            }
+            catch (BaseException e)
+            {
+                Assert.AreEqual(-6, e.ErrorCode);
+            }
 
             //合法值
             //createIndex (string name，BsonDocument key，bool isUnique，bool isEnforced，int sortBufferSize)
-            string indexName = "index14548";
             cl.CreateIndex(indexName, new BsonDocument("a", 1), true, true, 0);
             DBCursor cur = cl.GetIndex(indexName);
             while (cur.Next() != null)
@@ -83,8 +92,38 @@ namespace CSharp.Index
                 Assert.AreEqual("{ \"a\" : 1 }", indexDefInfo.GetElement("key").Value.ToString());
             }
             cur.Close();
-            
             cl.DropIndex(indexName);
+
+            BsonDocument options = new BsonDocument();
+            options.Add("Unique", true);
+            options.Add("Enforced", true);
+            options.Add("NotNull", true);
+            options.Add("SortBufferSize", 0);
+            cl.Insert(new BsonDocument("a", null));
+            try
+            {
+                cl.CreateIndex(indexName, new BsonDocument("a", 1), options);
+                Assert.Fail("expect CreateIndex failed !");
+            }
+            catch (BaseException e)
+            {
+                Assert.AreEqual(-339, e.ErrorCode);
+            }
+            cl.Truncate();
+
+            cl.CreateIndex(indexName, new BsonDocument("a", 1), options);
+            cur = cl.GetIndex(indexName);
+            while (cur.Next() != null)
+            {
+                BsonDocument doc = cur.Current();
+                BsonDocument indexDefInfo = doc.GetElement("IndexDef").Value.ToBsonDocument();
+                Assert.AreEqual(true, indexDefInfo.GetElement("unique").Value.ToBoolean());
+                Assert.AreEqual(true, indexDefInfo.GetElement("enforced").Value.ToBoolean());
+                Assert.AreEqual("{ \"a\" : 1 }", indexDefInfo.GetElement("key").Value.ToString());
+            }
+            cur.Close();
+            cl.DropIndex(indexName);
+
             cl.CreateIndex(indexName, new BsonDocument("a", 1), false, false, 64);
             cur = cl.GetIndex(indexName);
             while (cur.Next() != null)
@@ -112,7 +151,6 @@ namespace CSharp.Index
             while (cur.Next() != null)
             {
                 BsonDocument doc = cur.Current();
-                Console.WriteLine(doc.ToString());
                 count++;
             }
             cur.Close();
