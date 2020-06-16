@@ -2245,8 +2245,8 @@
       <code>
          <name>SDB_RTN_AUTOINDEXID_IS_FALSE</name>
          <description>
-            <en>can not update/delete records when $id index does not exist</en>
-            <cn>当集合没有$id索引时，无法update/delete记录</cn>
+            <en>no $id index found</en>
+            <cn>缺少 $id 索引</cn>
          </description>
       </code>
 
