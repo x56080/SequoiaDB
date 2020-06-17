@@ -144,8 +144,6 @@ public class Transaction20515 extends SdbTestBase {
                     expList1 );
 
             // T1读记录
-            // SEQUOIADBMAINSTREAM-5890,待该问题单修改后，需要去掉sleep
-            Thread.sleep( 1000 );
             try {
                 cl1.query( "", "", "{a:1}", "{'':null}" );
                 Assert.fail( "need throw -349" );
@@ -302,7 +300,7 @@ public class Transaction20515 extends SdbTestBase {
                     expList );
             TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':'a'}", expList );
 
-            // 提交写事务T2
+            // 回滚写事务T2
             db2.rollback();
 
             // 校验切分任务
@@ -314,8 +312,6 @@ public class Transaction20515 extends SdbTestBase {
             TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':'a'}", expList );
 
             // T1读记录
-            // SEQUOIADBMAINSTREAM-5890,待该问题单修改后，需要去掉sleep
-            Thread.sleep( 1000 );
             try {
                 cl1.query( "", "", "{a:1}", "{'':null}" );
                 Assert.fail( "need throw -349" );
