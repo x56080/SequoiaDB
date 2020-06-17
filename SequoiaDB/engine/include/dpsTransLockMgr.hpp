@@ -229,8 +229,6 @@ namespace engine
    private:
       // Latch for normal lock operation ( acquire, tryAcquire,
       // testAcquire, release, releaseAll, hasWait etc on ) :
-      //     . latch _rwMutext in shared mode
-      //     . latch a bucket slot in exclusively
       OSS_INLINE void _acquireOpLatch ( const UINT32  bucketIndex )
       {
          _LockHdrBkt[ bucketIndex ].hashHdrLatch.get() ;

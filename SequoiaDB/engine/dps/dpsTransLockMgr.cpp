@@ -57,6 +57,9 @@ namespace engine
    #define DPS_LOCKID_STRING_MAX_SIZE      ( 128 )
    #define DPS_TRANSLOCK_DUMP_SLICE_SIZE   ( 1000 )
 
+   // thredshold of EDU LRB list length when search whether owning a lock
+   #define DPS_LOCK_PRE_SEARCH_EDULIST_THRESHOLD ( 8 )
+
    dpsTransLockManager::dpsTransLockManager( LOCKMGR_TYPE managerType )
    : _LockHdrBkt( NULL ),
      _bktSlotMax( 0 ) ,
@@ -443,7 +446,6 @@ namespace engine
 #ifdef _DEBUG
       SDB_ASSERT( ( NULL == pLRBToInsert ),     "Invalid pLRBToInsert" ) ;
       SDB_ASSERT( ( NULL == pLRBIncompatible ), "Invalid pLRBIncompatible" ) ;
-      SDB_ASSERT( ( NULL == pLRBOwner ),        "Invalid pLRBOwner" ) ;
 #endif
       dpsTransLRB *plrb = lrbBegin, *plrbPrev = NULL;
       BOOLEAN foundIns = FALSE ;
@@ -482,6 +484,12 @@ namespace engine
                // save the address/pointer of first incompatible LRB
                pLRBIncompatible = plrb ;
             }
+         }
+
+         // early exit if all jobs are done
+         if ( pLRBOwner && foundIns && pLRBIncompatible )
+         {
+            break ;
          }
 
          // move to next
@@ -1209,10 +1217,10 @@ namespace engine
                         *pLRBHdr    = NULL ;
 
       BOOLEAN bFreeLRB       = FALSE ,
-              bFreeLRBHeader = FALSE ,
               bLatched       = FALSE ;
 
-      BOOLEAN bIsLockLeafLevel = lockId.isLeafLevel() ;
+      BOOLEAN bIsLockLeafLevel        =  lockId.isLeafLevel() ;
+      BOOLEAN bLockModeUpgradeChecked = FALSE ;
 
 #ifdef _DEBUG
       EDUID eduId    = dpsTxExectr->getEDUID() ;
@@ -1262,60 +1270,97 @@ namespace engine
          }
       }
 
-      // short cut for non-leaf lock ( CS, CL ),
-      // lookup the executor _mapLockID map, if it is found and current
-      // lock mode covers the requesting mode then increase refCounter,
-      // and job is done. Otherwise, still need to go through the normal
-      // routine.
-      // we actually don't need bkt latch for looking up CS,CL lock
-      // in the executor _mapLockID map
       //
-      // findLock works for non-leaf lock only
-      if ( _autoUpperLockOp &&
-           ( dpsTxExectr->findLock( lockId, pLRB, _lockMgrType ) ) )
+      // try to take a shortcut if it is less expensive to find out
+      // whether the lock is already acquired
+      //
+      // transaction CS/CL lock
+      if ( _autoUpperLockOp && ( ! bIsLockLeafLevel ) )
       {
-         if ( pLRB )
+         // lookup the executor _mapLockID map, if it is found and current
+         // lock mode covers the requesting mode then increase refCounter,
+         // and job is done. Otherwise, still need to go through the normal
+         // routine.
+         // we actually don't need bkt latch for looking up CS,CL lock
+         // in the executor _mapLockID map
+         //
+         // findLock works for non-leaf lock only
+         if ( ! dpsTxExectr->findLock( lockId, pLRB, _lockMgrType ) )
          {
-            pLRBOwner = pLRB ;
-            if ( dpsLockCoverage( pLRB->lockMode, requestLockMode ) )
-            {
-               if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
-                    ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
-               {
-                  pLRB->refCounter++ ;
-
-                  // clear the wait info in dpsTxExectr
-                  dpsTxExectr->clearWaiterInfo( _lockMgrType ) ;
-               }
-
-               pLRBHdr = pLRB->lrbHdr ;
-               goto done ;
-            }
+            pLRB = NULL ;
+         }
+      }
+      // record lock or non-transaction lock,
+      // e.g., index page lock, extent lock
+      else
+      {
+         // if the EDU doesn't hold many locks ( i.e., the EDU
+         // LRB list is short ), it would be less expensive
+         // to search on EDU LRB list without bkt latch.
+         // Otherwise, still need to go through the normal
+         // routine.
+         if ( DPS_LOCK_PRE_SEARCH_EDULIST_THRESHOLD >=
+              dpsTxExectr->getLockCount( _lockMgrType ) )
+         {
+            pLRB = _getLRBFromEDULRBList( dpsTxExectr, lockId ) ;
          }
       }
 
-      // normal lock acquire/try get/test routine
+      if ( pLRB )
+      {
+         pLRBOwner = pLRB ;
+         pLRBHdr   = pLRB->lrbHdr ;
+         if ( dpsLockCoverage( pLRB->lockMode, requestLockMode ) )
+         {
+            if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+                 ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
+            {
+               pLRB->refCounter++ ;
+
+               // clear the wait info in dpsTxExectr
+               dpsTxExectr->clearWaiterInfo( _lockMgrType ) ;
+            }
+            goto done ;
+         }
+         // if dpsUpgradeCheck is OK
+         rc = dpsUpgradeCheck( pLRB->lockMode, requestLockMode ) ;
+         if ( SDB_OK != rc )
+         {
+            // can't do upgrade, job done with error rc set
+
+            // constrct conflict lock info
+            if ( pdpsTxResInfo )
+            {
+               pdpsTxResInfo->_lockID   = pLRBHdr->lockId ;
+               pdpsTxResInfo->_lockType = pLRB->lockMode ;
+               pdpsTxResInfo->_eduID    = pLRB->dpsTxExectr->getEDUID();
+               pdpsTxResInfo->_tid      = pLRB->dpsTxExectr->getTID() ;
+            }
+            goto done ;
+         }
+         bLockModeUpgradeChecked = TRUE ;
+      }
+
+      /// normal lock acquire/try get/test routine
+
+      // allocate new LRB
+      if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+           ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
+      {
+         // no need to allocate LRB for test mode
+         pLRBNew = SDB_OSS_NEW dpsTransLRB( dpsTxExectr, requestLockMode, NULL ) ;
+         if ( ! pLRBNew )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to alloc a LRB (rc=%d)", rc ) ;
+            goto error ;
+         }
+         bFreeLRB = TRUE ;
+      }
 
       if ( bktIdx == DPS_LOCK_INVALID_BUCKET_SLOT )
       {
          bktIdx = _getBucketNo( lockId );
-      }
-
-      // acquire and prepare new LRB and LRB Header
-      if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
-           ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
-      {
-         // no need to allocate LRB Header and LRB for test mode
-         rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, requestLockMode,
-                                       bktIdx,
-                                       pLRBHdrNew,
-                                       pLRBNew ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-         bFreeLRB       = TRUE ;
-         bFreeLRBHeader = TRUE ;
       }
 
       // latch bucket
@@ -1325,65 +1370,93 @@ namespace engine
       }
       bLatched = TRUE ;
 
-      // if no LRB Header
-      if ( NULL == _LockHdrBkt[ bktIdx ].lrbHdr )
+      // if LRB header is not found by above shortcut
+      if ( NULL == pLRBHdr )
       {
-         if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
-              ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
+         // if no LRB Header
+         if ( NULL == _LockHdrBkt[ bktIdx ].lrbHdr )
          {
-            // add new LRB header to the link
-            _LockHdrBkt[ bktIdx ].lrbHdr = pLRBHdrNew;
+            if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+                 ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
+            {
+               // allocate LRB header prepare new LRB and LRB Header
+               rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, requestLockMode,
+                                             bktIdx,
+                                             pLRBHdrNew,
+                                             pLRBNew ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
 
-            // sample tick before adding to edulist or setting
-            // waiter info to make sure snapshot trans is correct.
-            pLRBNew->beginTick.sample() ;
+               // add new LRB header to the link
+               _LockHdrBkt[ bktIdx ].lrbHdr = pLRBHdrNew;
 
-            // add new LRB to EDU LRB list
-            _addToEDULRBListTail( dpsTxExectr, pLRBNew, lockId ) ;
+               // sample tick before adding to edulist or setting
+               // waiter info to make sure snapshot trans is correct.
+               pLRBNew->beginTick.sample() ;
 
-            // mark the new LRB and LRB Header are used
-            bFreeLRB       = FALSE ;
-            bFreeLRBHeader = FALSE ;
-            pLRBHdr        = pLRBHdrNew ;
-            pLRB           = pLRBNew ;
+               // add new LRB to EDU LRB list
+               _addToEDULRBListTail( dpsTxExectr, pLRBNew, lockId ) ;
+
+               // mark the new LRB and LRB Header are used
+               bFreeLRB       = FALSE ;
+               pLRBHdr        = pLRBHdrNew ;
+               pLRB           = pLRBNew ;
+
+               // clear the wait info in dpsTxExectr
+               dpsTxExectr->clearWaiterInfo( _lockMgrType ) ;
+            }
+            // job done
+            goto done;
          }
-         // job done
-         goto done;
-      }
 
-      // LRB header exists,
-      // lookup the LRB header list and find the one with same lockId
-      pLRBHdr = _LockHdrBkt[ bktIdx ].lrbHdr ;
-      if ( ! _getLRBHdrByLockId( lockId, pLRBHdr ) )
-      {
-         // no LRB header with same lockId is found,
-         // add the new LRB Header in the lrb header list
-         if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
-              ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
+         // LRB header exists,
+         // lookup the LRB header list and find the one with same lockId
+         pLRBHdr = _LockHdrBkt[ bktIdx ].lrbHdr ;
+         if ( ! _getLRBHdrByLockId( lockId, pLRBHdr ) )
          {
-            // at this time, pLRBHdr shall be the tail of LRB header list.
-            // add the new LRB header to LRB Header list ;
-            pLRBHdr->nextLRBHdr = pLRBHdrNew ;
+            // no LRB header with same lockId is found,
+            // add the new LRB Header in the lrb header list
+            if ( ( DPS_TRANSLOCK_OP_MODE_TEST != opMode ) &&
+                 ( DPS_TRANSLOCK_OP_MODE_TEST_PREEMPT != opMode ) )
+            {
+               // allocate LRB header prepare new LRB and LRB Header
+               rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, requestLockMode,
+                                             bktIdx,
+                                             pLRBHdrNew,
+                                             pLRBNew ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
 
-            // sample tick before adding to edulist or setting
-            // waiter info to make sure snapshot trans is correct.
-            pLRBNew->beginTick.sample() ;
+               // at this time, pLRBHdr shall be the tail of LRB header list.
+               // add the new LRB header to LRB Header list ;
+               pLRBHdr->nextLRBHdr = pLRBHdrNew ;
 
-            // add the new LRB to EDU LRB list
-            _addToEDULRBListTail( dpsTxExectr, pLRBNew, lockId ) ;
+               // sample tick before adding to edulist or setting
+               // waiter info to make sure snapshot trans is correct.
+               pLRBNew->beginTick.sample() ;
 
-            // mark the new LRB and new LRB Header are used
-            bFreeLRB       = FALSE ;
-            bFreeLRBHeader = FALSE ;
-            pLRBHdr        = pLRBHdrNew ;
-            pLRB           = pLRBNew ;
+               // add the new LRB to EDU LRB list
+               _addToEDULRBListTail( dpsTxExectr, pLRBNew, lockId ) ;
+
+               // mark the new LRB and new LRB Header are used
+               bFreeLRB       = FALSE ;
+               pLRBHdr        = pLRBHdrNew ;
+               pLRB           = pLRBNew ;
+
+               // clear the wait info in dpsTxExectr
+               dpsTxExectr->clearWaiterInfo( _lockMgrType ) ;
+            }
+            else
+            {
+               pLRBHdr = NULL ;
+            }
+            // job done
+            goto done ;
          }
-         else
-         {
-            pLRBHdr = NULL ;
-         }
-         // job done
-         goto done ;
       }
 
 #ifdef _DEBUG
@@ -1440,6 +1513,7 @@ namespace engine
          // in owner list
          //
          pLRB = pLRBOwner ;
+
 #ifdef _DEBUG
          SDB_ASSERT( pLRB && ( pLRB->lrbHdr == pLRBHdr ),
                      "Invalid LRB or the lrbHdr doesn't match "
@@ -1463,20 +1537,23 @@ namespace engine
          }
 
          // if dpsUpgradeCheck is OK
-         rc = dpsUpgradeCheck( pLRB->lockMode, requestLockMode ) ;
-         if ( SDB_OK != rc )
+         if ( FALSE == bLockModeUpgradeChecked )
          {
-            // can't do upgrade, job done with error rc set
-
-            // constrct conflict lock info
-            if ( pdpsTxResInfo )
+            rc = dpsUpgradeCheck( pLRB->lockMode, requestLockMode ) ;
+            if ( SDB_OK != rc )
             {
-               pdpsTxResInfo->_lockID   = pLRBHdr->lockId ;
-               pdpsTxResInfo->_lockType = pLRB->lockMode ;
-               pdpsTxResInfo->_eduID    = pLRB->dpsTxExectr->getEDUID();
-               pdpsTxResInfo->_tid      = pLRB->dpsTxExectr->getTID() ;
+               // can't do upgrade, job done with error rc set
+
+               // constrct conflict lock info
+               if ( pdpsTxResInfo )
+               {
+                  pdpsTxResInfo->_lockID   = pLRBHdr->lockId ;
+                  pdpsTxResInfo->_lockType = pLRB->lockMode ;
+                  pdpsTxResInfo->_eduID    = pLRB->dpsTxExectr->getEDUID();
+                  pdpsTxResInfo->_tid      = pLRB->dpsTxExectr->getTID() ;
+               }
+               goto done ;
             }
-            goto done ;
          }
 
          // try to do upgrade
@@ -1864,11 +1941,6 @@ namespace engine
             }
          }
       }
-      if ( bFreeLRBHeader )
-      {
-         _releaseLRBHdr( pLRBHdrNew ) ;
-         bFreeLRBHeader = FALSE ;
-      }
 
       PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER__TRYACQUIREORTEST, rc ) ;
       return rc;
@@ -1905,53 +1977,74 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRBANDHEADER ) ;
 
-      INT32   rc             = SDB_OK ;
+      INT32   rc           = SDB_OK ;
+      BOOLEAN bAllocLRBHdr = TRUE ;
+      BOOLEAN bAllocLRB    = TRUE ;
 
       // acquire a free LRB Header
-      pLRBHdrNew = SDB_OSS_NEW dpsTransLRBHeader( lockId, bktIdx ) ;
-      if ( !pLRBHdrNew )
+      if ( NULL == pLRBHdrNew )
       {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Failed to alloc a LRBHeader (rc=%d)", rc ) ;
-         goto error ;
+         pLRBHdrNew = SDB_OSS_NEW dpsTransLRBHeader( lockId, bktIdx ) ;
+         if ( ! pLRBHdrNew )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to alloc a LRBHeader (rc=%d)", rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         bAllocLRBHdr = FALSE ;
       }
 
-      /// acquire a lrb
-      pLRBNew = SDB_OSS_NEW dpsTransLRB( dpsTxExectr,
-                                         requestLockMode,
-                                         pLRBHdrNew ) ;
-      if ( !pLRBNew )
+      // acquire a lrb
+      if ( NULL == pLRBNew )
       {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Failed to alloc a LRB (rc=%d)", rc ) ;
-         goto error ;
+         pLRBNew = SDB_OSS_NEW dpsTransLRB( dpsTxExectr,
+                                            requestLockMode,
+                                            pLRBHdrNew ) ;
+         if ( ! pLRBNew )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to alloc a LRB (rc=%d)", rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         bAllocLRB = FALSE ;
+         pLRBNew->lrbHdr = pLRBHdrNew ;
       }
 
-      pLRBHdrNew->ownerLRB   = pLRBNew;
+      if ( bAllocLRBHdr )
+      {
+         pLRBHdrNew->ownerLRB = pLRBNew ;
 
-      if ( DPS_TRANSLOCK_IS == requestLockMode )
-      {
-         pLRBHdrNew->newestISOwner = pLRBNew ;
-      }
-      else if ( DPS_TRANSLOCK_IX == requestLockMode )
-      {
-         pLRBHdrNew->newestIXOwner = pLRBNew ;
+         if ( DPS_TRANSLOCK_IS == requestLockMode )
+         {
+            pLRBHdrNew->newestISOwner = pLRBNew ;
+         }
+         else if ( DPS_TRANSLOCK_IX == requestLockMode )
+         {
+            pLRBHdrNew->newestIXOwner = pLRBNew ;
+         }
       }
 
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRBANDHEADER, rc ) ;
       return rc ;
    error :
-      if( pLRBNew )
+      if( pLRBNew && bAllocLRB )
       {
          _releaseLRB( pLRBNew ) ;
       }
-      if( pLRBHdrNew )
+      if( pLRBHdrNew && bAllocLRBHdr )
       {
          _releaseLRBHdr( pLRBHdrNew ) ;
       }
       goto done;
    }
+
 
    //
    // Description: acquire a lock with given mode
