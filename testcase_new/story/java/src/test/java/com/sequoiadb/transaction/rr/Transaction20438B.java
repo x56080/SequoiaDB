@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BSONObject;
-import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
@@ -14,7 +13,6 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
@@ -22,23 +20,27 @@ import com.sequoiadb.transaction.TransUtils;
  * @date 2020-01-15
  * @author zhaoxiaoni
  */
-// SEQUOIADBMAINSTREAM-5543
 @Test(groups = "rr")
 public class Transaction20438B extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb db1 = null;
+    private Sequoiadb db2 = null;
     private String clName = "cl_20438B";
+    private String idxName = "index_20438";
     private DBCollection cl = null;
     private DBCollection cl1 = null;
+    private DBCollection cl2 = null;
     private List< BSONObject > expList = new ArrayList<>();
 
-    @BeforeMethod(enabled = false)
+    @BeforeMethod
     public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         db1 = CommLib.getRandomSequoiadb();
+        db2 = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
-        cl.createIndex( "index_20438B", "{ a: 1 }", false, false );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+        cl.createIndex( idxName, "{ a: 1 }", false, false );
         // 创建索引后，休眠0.1s，避免索引未创建完成
         Thread.sleep( 100 );
 
@@ -46,7 +48,7 @@ public class Transaction20438B extends SdbTestBase {
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );// 插入记录为0-50
         TransUtils.beginTransaction( sdb );
         expList.addAll( TransUtils.insertRandomDatas( cl, 50, 100 ) );// 插入记录为50-100
-        TransUtils.commitTransaction(sdb);
+        TransUtils.commitTransaction( sdb );
     }
 
     @DataProvider(name = "index")
@@ -55,50 +57,64 @@ public class Transaction20438B extends SdbTestBase {
                 { "{ \"\": null }" } };
     }
 
-    @Test(enabled = false, dataProvider = "index")
+    @Test(dataProvider = "index")
     public void test( String hint ) {
-        // 2.开启读事务TR1
-        // 4.过程中TR1反复读，检查结果
+        // 开启读事务TR1
         TransUtils.beginTransaction( db1 );
-        QueryThread queryThread = new QueryThread( hint, expList );
-        queryThread.start();
+        TransUtils.queryAndCheck( cl1, "{a:1}", hint, expList );
 
-        // 3.开启写事务TW1，更新R1s为R2s,提交事务，循环执行多次
-        OperatorThread operatorThread = new OperatorThread( hint );
-        operatorThread.start();
+        // 开启写事务TW1，更新R1s为R2s,提交事务，循环执行多次
+        for ( int i = 0; i < 3; i++ ) {
+            TransUtils.beginTransaction( db2 );
+            cl2.update( null, "{$inc:{a:1}}", hint );
+            db2.rollback();
+        }
 
-        // 5.非事务更新R2s为R3s
-        Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
-        Assert.assertTrue( operatorThread.isSuccess(),
-                operatorThread.getErrorMsg() );
-        cl.update( null, "{ '$set': { 'a': 200 } }", hint );
+        // 事务1查询
+        TransUtils.queryAndCheck( cl1, "{a:1}", hint, expList );
 
-        // 6.TR1读，检查结果
-        // 8.过程中TR1反复读，检查结果
-        expList = TransUtils.updateList( expList, 0, 100, 200 );
-        queryThread = new QueryThread( hint, expList );
-        queryThread.start();
+        // 非事务更新R2s为R3s
+        cl.update( null, "{ '$inc': { 'a': 1 } }", hint );
 
-        // 7.开启写事务TW2，更新R3s为R4s，提交事务，循环执行多次
-        operatorThread = new OperatorThread( hint );
-        operatorThread.start();
+        // TR1读，检查结果
+        expList.clear();
+        expList = TransUtils.getIncDatas( 0, 100, 1 );
+        TransUtils.queryAndCheck( cl1, "{a:1}", hint, expList );
 
-        // 9.非事务删除记录R4s
-        Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
-        Assert.assertTrue( operatorThread.isSuccess(),
-                operatorThread.getErrorMsg() );
+        // 开启写事务TW2，更新R3s为R4s，提交事务，循环执行多次
+        for ( int i = 0; i < 3; i++ ) {
+            TransUtils.beginTransaction( db2 );
+            cl2.update( null, "{$inc:{a:1}}", hint );
+            db2.rollback();
+        }
+
+        // TR1读，检查结果
+        TransUtils.queryAndCheck( cl1, "{a:1}", hint, expList );
+
+        // 非事务删除记录R4s
         cl.delete( "" );
 
-        // 10.TR1读，检查结果
+        // TR1读，检查结果
         expList = TransUtils.deleteList( expList, 0, 100 );
-        queryThread = new QueryThread( hint, expList );
-        queryThread.start();
+
+        // TR1读，检查结果
+        TransUtils.queryAndCheck( cl1, "{a:1}", hint, expList );
+
+        // 事务中插入记录
+        TransUtils.beginTransaction( db2 );
+        TransUtils.insertRandomDatas( cl2, 0, 100 );
+        TransUtils.commitTransaction( db2 );
+
+        // 查询结果
+        TransUtils.queryAndCheck( cl1, "{a:1}", hint, expList );
     }
 
-    @AfterMethod(enabled = false)
+    @AfterMethod
     public void tearDown() {
-        // 提交读事务
-        TransUtils.commitTransaction(db1);
+        // 提交事务
+        TransUtils.commitTransaction( db1 );
+        db1.close();
+        TransUtils.commitTransaction( db2 );
         db1.close();
 
         sdb.getCollectionSpace( csName ).dropCollection( clName );
@@ -106,70 +122,4 @@ public class Transaction20438B extends SdbTestBase {
         expList.clear();
     }
 
-    class OperatorThread extends SdbThreadBase {
-        private String hint;
-        private Sequoiadb db;
-        private DBCollection cl;
-
-        public OperatorThread( String hint ) {
-            this.hint = hint;
-        }
-
-        @Override
-        public void exec() throws Exception {
-            db = CommLib.getRandomSequoiadb();
-            cl = db.getCollectionSpace( csName ).getCollection( clName );
-            try {
-                int doTimes = 1;
-                int timeOut = 100;
-                while ( true ) {
-                    // 开启更新事务
-                    TransUtils.beginTransaction( db );
-
-                    cl.update(
-                            null, "{ '$set': { 'a': "
-                                    + ( int ) Math.random() * 100 + "} }",
-                            hint );
-
-                    // 回滚更新事务
-                    db.rollback();
-
-                    if ( doTimes == timeOut ) {
-                        break;
-                    } else {
-                        doTimes++;
-                    }
-                }
-            } finally {
-                db.rollback();
-                db.close();
-            }
-        }
-    }
-
-    class QueryThread extends SdbThreadBase {
-        private String hint;
-        private List< BSONObject > expList = new ArrayList<>();
-
-        public QueryThread( String hint, List< BSONObject > expList ) {
-            // TODO Auto-generated constructor stub
-            this.hint = hint;
-            this.expList = expList;
-        }
-
-        @Override
-        public void exec() throws Exception {
-            int doTimes = 1;
-            int timeOut = 100;
-            while ( true ) {
-                TransUtils.checkRecord( cl1, null, null, "{ _id: 1}", hint,
-                        expList );
-                if ( doTimes == timeOut ) {
-                    break;
-                } else {
-                    doTimes++;
-                }
-            }
-        }
-    }
 }
