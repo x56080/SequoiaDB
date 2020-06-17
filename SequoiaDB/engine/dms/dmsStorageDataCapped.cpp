@@ -615,8 +615,16 @@ namespace engine
          {
             if ( offset != workExtInfo->getNextRecOffset() )
             {
-               PD_LOG( PDERROR, "Extent logical id[ %d ] from position[ %lld ] "
-                       "is invalid", extLogicalID, position ) ;
+#ifdef _DEBUG
+               if ( EDU_TYPE_REPLAGENT == cb->getType() )
+               {
+                  SDB_ASSERT( FALSE, "Offset is out of range" ) ;
+               }
+#endif /* _DEBUG */
+               PD_LOG( PDERROR, "Record offset[%d] from position %lld dose not "
+                                "match next offset[%d] in extent[%d]",
+                       offset, position, workExtInfo->getNextRecOffset(),
+                       extLogicalID ) ;
                rc = SDB_INVALIDARG ;
                goto done ;
             }
@@ -629,6 +637,12 @@ namespace engine
                                      logicalID ) ;
             if ( position != logicalID )
             {
+#ifdef _DEBUG
+               if ( EDU_TYPE_REPLAGENT == cb->getType() )
+               {
+                  SDB_ASSERT( FALSE, "Invalid position to insert" ) ;
+               }
+#endif /* _DEBUG */
                PD_LOG( PDERROR, "Invalid position to insert[ %lld ]",
                        position ) ;
                rc = SDB_INVALIDARG ;
@@ -1197,8 +1211,38 @@ namespace engine
       dmsRecordID lastRID( workExtInfo->_id,
                            workExtInfo->_lastRecordOffset ) ;
 
+      // If the working extent is empty, the record to be deleted should be in
+      // the previous extent(if any). So recycle the current working extent, and
+      // swith to the previous one.
+      if ( 0 == workExtInfo->_recCount &&
+           ( context->mb()->_firstExtentID != context->mb()->_lastExtentID ) )
+      {
+         dmsExtRW extRW = extent2RW( workExtInfo->_id, context->mbID() ) ;
+         extRW.setNothrow( TRUE ) ;
+         const dmsExtent* extent = extRW.readPtr<dmsExtent>() ;
+         SDB_ASSERT( DMS_INVALID_EXTENT != extent->_prevExtent,
+                     "Previous extent is invalid" ) ;
+         rc = _syncWorkExtInfo( context->mbID() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Sync working extent info failed, rc: %d",
+                      rc ) ;
+         rc = _recycleExtents( context, extent->_prevExtent, -1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to recycle extents, rc: %d", rc ) ;
+         rc = _attachWorkExt( context->mbID(), extent->_prevExtent ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to attach to new working extent, rc: %d", rc ) ;
+         lastRID._extent = workExtInfo->_id ;
+         lastRID._offset = workExtInfo->_lastRecordOffset ;
+      }
+
       if ( recordRW.getRecordID() != lastRID )
       {
+#ifdef _DEBUG
+         if ( EDU_TYPE_REPLAGENT == cb->getType() )
+         {
+            SDB_ASSERT( FALSE, "Record to be removed is not the last one in "
+                               "the capped collection" ) ;
+         }
+#endif /* _DEBUG */
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Only allowed to delete the last record in "
                  "capped collection, rc: %d", rc ) ;
@@ -1682,44 +1726,51 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__SHRINKBACKWARD ) ;
+      dmsExtRW extRW ;
+      dmsExtent *extent = NULL ;
 
       rc = _syncWorkExtInfo( context->mbID() ) ;
       PD_RC_CHECK( rc, PDERROR, "Sync working extent info failed, rc: %d",
                    rc ) ;
 
-      // Recycle extents which are after the target extent.
-      if ( extID != context->mb()->_lastExtentID )
+      extRW = extent2RW( extID, context->mbID() ) ;
+      extRW.setNothrow( TRUE ) ;
+      extent = extRW.writePtr<dmsExtent>() ;
+      if ( !extent || !extent->validate( context->mbID() ))
       {
+         PD_LOG( PDERROR, "Invalid extent[%d]", extID ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      if ( offset == extent->_firstRecordOffset &&
+           DMS_INVALID_EXTENT != extent->_prevExtent )
+      {
+         // Pop all records in the target extent backwards. If it's not the last
+         // extent of the collection, recycle it directly, and attach the
+         // previous extent ad the working extent.
+         extID = extent->_prevExtent ;
          rc = _recycleExtents( context, extID, -1 ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to recycle extents, rc: %d", rc ) ;
       }
-
+      else
       {
-         dmsExtRW extRW ;
-         dmsExtent *extent = NULL ;
-         extRW = extent2RW( extID, context->mbID() ) ;
-         extRW.setNothrow( TRUE ) ;
-         extent = extRW.writePtr<dmsExtent>() ;
-         if ( !extent || !extent->validate( context->mbID() ))
+         // Recycle extents which are after the target extent.
+         if ( extID != context->mb()->_lastExtentID )
          {
-            PD_LOG( PDERROR, "Invalid extent[%d]", extID ) ;
-            rc = SDB_SYS ;
-            goto error ;
+            rc = _recycleExtents( context, extID, -1 ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to recycle extents, rc: %d", rc ) ;
          }
-         // If we are going to pop all the records at the target extent, and
-         // it's not the last remaining extent of the collection, recycle the
-         // extent, and change the first or last extent.
 
          rc = _popFromActiveExt( context, extID, offset, -1 ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to pop records from extent, extent id: %d, "
                       "offset: %d, direction: %d, rc: %d",
                       extID, offset, -1, rc ) ;
-         rc = _attachWorkExt( context->mbID(), extID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Attach working extent failed, rc: %d",
-                      rc ) ;
-         workExtInfo->seek( offset ) ;
       }
+      rc = _attachWorkExt( context->mbID(), extID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Attach working extent failed, rc: %d",
+                   rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__SHRINKBACKWARD, rc ) ;
@@ -1775,7 +1826,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__EXTRACTRECLID ) ;
-      dmsRecordID recordID ;
       dmsRecordRW recordRW ;
       const dmsCappedRecord *record = NULL ;
       const dmsExtent *extent = NULL ;
@@ -1927,12 +1977,14 @@ namespace engine
 
    // Get the offset of the previous record in the current extent. As there is
    // no backward link, we need to scan from the beginning.
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__GETPREVRECOFFSET, "_dmsStorageDataCapped::_getPrevRecOffset" )
    INT32 _dmsStorageDataCapped::_getPrevRecOffset( UINT16 collectionID,
-                                                  dmsExtentID extentID,
-                                                  dmsOffset offset,
-                                                  dmsOffset &prevOffset )
+                                                   dmsExtentID extentID,
+                                                   dmsOffset offset,
+                                                   dmsOffset &prevOffset )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__GETPREVRECOFFSET ) ;
 
       dmsExtentInfo *workExtInfo = getWorkExtInfo( collectionID ) ;
       dmsExtRW extentRW ;
@@ -1969,6 +2021,14 @@ namespace engine
       if ( DMS_INVALID_OFFSET == offset ||
            offset < firstOffset || offset > lastOffset )
       {
+#ifdef _DEBUG
+         pmdEDUCB* cb = pmdGetThreadEDUCB() ;
+         if ( EDU_TYPE_REPLAGENT == cb->getType() )
+         {
+            SDB_ASSERT( FALSE, "Offset is out of range" ) ;
+         }
+#endif /* _DEBUG */
+
          PD_LOG( PDERROR, "Offset[%d] out of range", offset ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -2007,6 +2067,7 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__GETPREVRECOFFSET, rc ) ;
       return rc ;
    error:
       goto done ;

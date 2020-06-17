@@ -311,6 +311,7 @@ namespace engine
 
       if ( obj.isEmpty() )
       {
+         SDB_ASSERT( FALSE, "Insert record can't be empty" ) ;
          PD_LOG( PDERROR, "Insert record can't be empty" ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -323,7 +324,9 @@ namespace engine
 
       try
       {
-         // Insertion on capped collection should be done by position.
+         // Insertion replaying on capped collection should be done by position,
+         // as the record positions on primary and slavery nodes should be
+         // exactly the same.
          if ( DMS_STORAGE_CAPPED == su->type() )
          {
             positionEle = obj.getField( DMS_ID_KEY_NAME ) ;
