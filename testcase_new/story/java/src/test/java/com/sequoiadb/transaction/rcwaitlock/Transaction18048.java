@@ -44,12 +44,12 @@ public class Transaction18048 extends SdbTestBase {
             DBCollection cl = sdb.getCollectionSpace( csName )
                     .createCollection( clName );
             cl.createIndex( "a", "{a:1}", false, false );
-            insertR1s = TransUtils.insertRandomDatas( cl, 0, 10000 );
+            insertR1s = TransUtils.insertRandomDatas( cl, 0, 100 );
 
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
             TransUtils.beginTransaction( db1 );
-            TransUtils.insertRandomDatas( cl1, 10000, 20000 );
+            TransUtils.insertRandomDatas( cl1, 100, 200 );
             cl1.delete( null, "{'':'a'}" );
 
             Read read1 = new Read( clName, "{'':null}" );

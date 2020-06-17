@@ -49,7 +49,7 @@ public class Transaction17089 extends SdbTestBase {
         db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         TransUtils.createCLs( sdb, csName, hashCLName, mainCLName, subCLName1,
-                subCLName2, 25000 );
+                subCLName2, 250 );
     }
 
     @DataProvider(name = "getCL")
@@ -63,7 +63,7 @@ public class Transaction17089 extends SdbTestBase {
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
-        expList = TransUtils.insertDatas( cl, 0, 50000, 1 );
+        expList = TransUtils.insertDatas( cl, 0, 500, 1 );
 
         TransUtils.beginTransaction( db1 );
         TransUtils.beginTransaction( db2 );
@@ -79,7 +79,7 @@ public class Transaction17089 extends SdbTestBase {
 
         // 非事务表扫描记录
         expList.clear();
-        expList = TransUtils.getUpdateDatas( 0, 50000, 2 );
+        expList = TransUtils.getUpdateDatas( 0, 500, 2 );
         TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expList );
 
         // 非事务索引扫描记录

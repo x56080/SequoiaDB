@@ -42,7 +42,10 @@ public class Transaction19191 extends SdbTestBase {
                         .parse( "{ShardingKey:{_id:1}, AutoSplit:true}" ) );
         sdb.updateConfig( ( BSONObject ) JSON.parse( "{transisolation:1}" ),
                 ( BSONObject ) JSON.parse( "{Global:true}" ) );
-        sdb.updateConfig( ( BSONObject ) JSON.parse( "{translockwait:true}" ),
+        sdb.updateConfig(
+                ( BSONObject ) JSON
+                        .parse( "{translockwait:true,transactiontimeout:"
+                                + TransUtils.transTimeoutSession + "}" ),
                 ( BSONObject ) JSON.parse( "{Global:false}" ) );
     }
 

@@ -49,7 +49,7 @@ public class Transaction17198 extends SdbTestBase {
     @Test
     public void test() {
         // 集合中插入带索引的记录
-        TransUtils.insertRandomDatas( cl, 0, 10000 );
+        TransUtils.insertRandomDatas( cl, 0, 100 );
 
         TransUtils.beginTransaction( db1 );
         TransUtils.beginTransaction( db2 );
@@ -57,7 +57,7 @@ public class Transaction17198 extends SdbTestBase {
         // 事务1对同一条记录执行多个原子操作
         BSONObject insertR = ( BSONObject ) JSON
                 .parse( "{_id:20000,a:20000,b:20000}" );
-        for ( int i = 0; i < 10000; i++ ) {
+        for ( int i = 0; i < 100; i++ ) {
             cl1.insert( insertR );
             cl1.update( "{a:20000}", "{$set:{a:20001}}", "{'':'a'}" );
             cl1.delete( "{a:20001}", "{'':'a'}" );

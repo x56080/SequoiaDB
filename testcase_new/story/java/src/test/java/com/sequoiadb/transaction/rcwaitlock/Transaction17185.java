@@ -95,7 +95,6 @@ public class Transaction17185 extends SdbTestBase {
             deleteThread.start();
 
             // 事务4读记录走索引扫描
-            Thread.sleep( 3000 );
             List< BSONObject > expRecords1 = getExpRecords();
             List< BSONObject > expRecords2 = new ArrayList<>( expRecords1 );
             Collections.reverse( expRecords2 );
@@ -167,7 +166,7 @@ public class Transaction17185 extends SdbTestBase {
 
     private void insertData() {
         List< BSONObject > records = new ArrayList<>();
-        for ( int i = 1; i <= 40000; i++ ) {
+        for ( int i = 1; i <= 400; i++ ) {
             BSONObject record = ( BSONObject ) JSON
                     .parse( "{_id:" + i + ",a:" + i + ", b:" + i + "}" );
             records.add( record );
@@ -178,7 +177,7 @@ public class Transaction17185 extends SdbTestBase {
 
     private void getExpList() {
         List< BSONObject > records = new ArrayList<>();
-        for ( int i = 1; i < 10001; i++ ) {
+        for ( int i = 1; i < 101; i++ ) {
             BSONObject record = ( BSONObject ) JSON.parse(
                     "{_id:" + i + ",a:" + ( i - 10 ) + ", b:" + i + "}" );
             records.add( record );
@@ -186,7 +185,7 @@ public class Transaction17185 extends SdbTestBase {
         expList.clear();
         expList.addAll( records );
         records.clear();
-        for ( int i = 20001; i <= 50000; i++ ) {
+        for ( int i = 201; i <= 500; i++ ) {
             BSONObject record = ( BSONObject ) JSON
                     .parse( "{_id:" + i + ",a:" + i + ", b:" + i + "}" );
             records.add( record );
@@ -201,7 +200,7 @@ public class Transaction17185 extends SdbTestBase {
                 TransUtils.beginTransaction( db1 );
                 cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
                 List< BSONObject > records = new ArrayList<>();
-                for ( int i = 40001; i <= 50000; i++ ) {
+                for ( int i = 401; i <= 500; i++ ) {
                     BSONObject record = ( BSONObject ) JSON.parse(
                             "{_id:" + i + ",a:" + i + ", b:" + i + "}" );
                     records.add( record );
@@ -223,8 +222,8 @@ public class Transaction17185 extends SdbTestBase {
         public void exec() throws Exception {
             TransUtils.beginTransaction( db2 );
             cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
-            cl2.update( "{$and:[{a:{$gt:0}},{a:{$lt:10001}}]}",
-                    "{$inc:{a:-10}}", "{'':'textIndex17185'}" );
+            cl2.update( "{$and:[{a:{$gt:0}},{a:{$lt:101}}]}", "{$inc:{a:-10}}",
+                    "{'':'textIndex17185'}" );
             latch.countDown();
         }
     }
@@ -236,7 +235,7 @@ public class Transaction17185 extends SdbTestBase {
             TransUtils.beginTransaction( db3 );
 
             cl3 = db3.getCollectionSpace( csName ).getCollection( clName );
-            cl3.delete( "{$and:[{a:{$gt:10000}},{a:{$lt:20001}}]}",
+            cl3.delete( "{$and:[{a:{$gt:100}},{a:{$lt:201}}]}",
                     "{'':'textIndex17185'}" );
             latch.countDown();
         }
@@ -264,7 +263,7 @@ public class Transaction17185 extends SdbTestBase {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 DBCursor cursor = cl.query(
-                        "{$and:[{a:{$gt:20000}},{a:{$lt:40001}}]}", null, sort,
+                        "{$and:[{a:{$gt:200}},{a:{$lt:401}}]}", null, sort,
                         hint );
                 List< BSONObject > records = TransUtils
                         .getReadActList( cursor );
@@ -304,7 +303,7 @@ public class Transaction17185 extends SdbTestBase {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 DBCursor cursor = cl.query(
-                        "{$and:[{a:{$gt:20000}},{a:{$lt:40001}}]}", null, sort,
+                        "{$and:[{a:{$gt:200}},{a:{$lt:401}}]}", null, sort,
                         hint );
                 List< BSONObject > records = null;
                 records = TransUtils.getReadActList( cursor );
@@ -321,7 +320,7 @@ public class Transaction17185 extends SdbTestBase {
 
     private List< BSONObject > getExpRecords() {
         List< BSONObject > expRecords = new ArrayList<>();
-        for ( int i = 20001; i <= 40000; i++ ) {
+        for ( int i = 201; i <= 400; i++ ) {
             BSONObject record = ( BSONObject ) JSON
                     .parse( "{_id:" + i + ", a:" + i + ", b:" + i + "}" );
             expRecords.add( record );

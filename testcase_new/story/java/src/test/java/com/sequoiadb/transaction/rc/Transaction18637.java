@@ -49,7 +49,7 @@ public class Transaction18637 extends SdbTestBase {
                 "subcl18637_2", 3000 );
         cl = sdb.getCollectionSpace( csName ).getCollection( mainCLName );
         cl.createIndex( "idx18637", "{a:1}", false, false );
-        expList = TransUtils.insertRandomDatas( cl, 0, 10000 );
+        expList = TransUtils.insertRandomDatas( cl, 0, 100 );
     }
 
     @AfterClass
@@ -80,24 +80,24 @@ public class Transaction18637 extends SdbTestBase {
                 .getCollection( mainCLName );
 
         // 事务1批量插入/更新/删除记录后为R2s
-        TransUtils.insertRandomDatas( cl1, 10000, 12000 );
-        cl1.update( "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}", "{$inc:{a:10}}",
+        TransUtils.insertRandomDatas( cl1, 100, 120 );
+        cl1.update( "{$and:[{a:{$gte:0}}, {a:{$lt:120}}]}", "{$inc:{a:10}}",
                 hintIxScan );
-        cl1.delete( "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}", hintIxScan );
+        cl1.delete( "{$and:[{a:{$gte:0}}, {a:{$lt:120}}]}", hintIxScan );
 
         // 事务1回滚
         db1.rollback();
 
         // 事务2表扫描/索引扫描记录
-        TransUtils.queryAndCheck( cl2, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}",
+        TransUtils.queryAndCheck( cl2, "{$and:[{a:{$gte:0}}, {a:{$lt:120}}]}",
                 null, "{a:1}", hintTbScan, expList );
-        TransUtils.queryAndCheck( cl2, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}",
+        TransUtils.queryAndCheck( cl2, "{$and:[{a:{$gte:0}}, {a:{$lt:120}}]}",
                 null, "{a:1}", hintIxScan, expList );
 
         // 非事务表扫描/索引扫描记录
-        TransUtils.queryAndCheck( cl, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}",
+        TransUtils.queryAndCheck( cl, "{$and:[{a:{$gte:0}}, {a:{$lt:120}}]}",
                 null, "{a:1}", hintTbScan, expList );
-        TransUtils.queryAndCheck( cl, "{$and:[{a:{$gte:0}}, {a:{$lt:12000}}]}",
+        TransUtils.queryAndCheck( cl, "{$and:[{a:{$gte:0}}, {a:{$lt:120}}]}",
                 null, "{a:1}", hintIxScan, expList );
 
         // 事务2提交

@@ -39,7 +39,7 @@ public class Transaction17167 extends SdbTestBase {
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
-        TransUtils.insertDatas( cl, 0, 50000, 1 );
+        TransUtils.insertDatas( cl, 0, 500, 1 );
     }
 
     @Test
@@ -49,7 +49,7 @@ public class Transaction17167 extends SdbTestBase {
 
         // 事务1执行批量更新
         cl1.update( "{a:1}", "{$set:{a:2}}", null );
-        expList = TransUtils.getUpdateDatas( 0, 50000, 2 );
+        expList = TransUtils.getUpdateDatas( 0, 500, 2 );
 
         // 非事务表扫描记录
         cursor = cl.query( null, null, "{_id:1}", "{'':null}" );

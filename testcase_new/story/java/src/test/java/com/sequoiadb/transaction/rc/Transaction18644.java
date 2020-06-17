@@ -49,7 +49,7 @@ public class Transaction18644 extends SdbTestBase {
         TransUtils.createHashCL( sdb, csName, hashCLName );
         cl = sdb.getCollectionSpace( csName ).getCollection( hashCLName );
         cl.createIndex( "idx18644", "{a:1}", false, false );
-        expList = TransUtils.insertRandomDatas( cl, 0, 10000 );
+        expList = TransUtils.insertRandomDatas( cl, 0, 100 );
     }
 
     @AfterClass
@@ -78,7 +78,7 @@ public class Transaction18644 extends SdbTestBase {
                 .getCollection( hashCLName );
 
         // 事务1批量插入记录后为R2s
-        TransUtils.insertRandomDatas( cl1, 10000, 12000 );
+        TransUtils.insertRandomDatas( cl1, 100, 120 );
 
         // 事务2内置SQL查询
         DBCursor cursor = db2
@@ -106,7 +106,7 @@ public class Transaction18644 extends SdbTestBase {
         Assert.assertEquals( countA, expList.size() );
 
         // 事务1批量删除记录为R4s
-        cl1.delete( "{$and:[{a:{$gte:0}}, {a:{$lt:2010}}]}", hintIxScan );
+        cl1.delete( "{$and:[{a:{$gte:0}}, {a:{$lt:30}}]}", hintIxScan );
 
         // 事务2内置SQL查询
         cursor = db2.exec( "select * from " + csName + "." + hashCLName );
@@ -122,8 +122,7 @@ public class Transaction18644 extends SdbTestBase {
         db1.commit();
 
         // 事务2内置SQL查询
-        List< BSONObject > expRecords = TransUtils.getIncDatas( 2000, 12000,
-                10 );
+        List< BSONObject > expRecords = TransUtils.getIncDatas( 20, 120, 10 );
         cursor = db2.exec( "select * from " + csName + "." + hashCLName );
         actList = TransUtils.getReadActList( cursor );
         TransUtils.sortList( actList );

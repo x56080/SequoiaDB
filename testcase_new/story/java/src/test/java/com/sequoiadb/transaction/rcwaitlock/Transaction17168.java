@@ -37,7 +37,7 @@ public class Transaction17168 extends SdbTestBase {
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
-        TransUtils.insertDatas( cl, 0, 50000, 1 );
+        TransUtils.insertDatas( cl, 0, 500, 1 );
     }
 
     @SuppressWarnings("unchecked")

@@ -39,7 +39,7 @@ public class Transaction19226 extends SdbTestBase {
     @Test
     public void test() {
         ArrayList< BSONObject > records = TransUtils.insertRandomDatas( cl, 0,
-                10000 );
+                100 );
         TransUtils.beginTransaction( sdb );
         cl.update( null, "{$set:{a:1024}}", null, 0 );
 

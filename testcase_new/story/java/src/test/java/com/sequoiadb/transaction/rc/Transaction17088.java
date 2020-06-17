@@ -49,7 +49,7 @@ public class Transaction17088 extends SdbTestBase {
         db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         TransUtils.createCLs( sdb, csName, hashCLName, mainCLName, subCLName1,
-                subCLName2, 25000 );
+                subCLName2, 250 );
     }
 
     @DataProvider(name = "getCL")
@@ -69,7 +69,7 @@ public class Transaction17088 extends SdbTestBase {
         TransUtils.beginTransaction( db2 );
 
         // 事务1执行批量插入记录
-        expList = TransUtils.insertDatas( cl1, 0, 50000, 1 );
+        expList = TransUtils.insertDatas( cl1, 0, 500, 1 );
 
         // 事务2表扫描记录
         TransUtils.queryAndCheck( cl2, "{'':null}",

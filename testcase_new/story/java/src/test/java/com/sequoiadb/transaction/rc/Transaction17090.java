@@ -52,7 +52,7 @@ public class Transaction17090 extends SdbTestBase {
         db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         TransUtils.createCLs( sdb, csName, hashCLName, mainCLName, subCLName1,
-                subCLName2, 25000 );
+                subCLName2, 500 );
     }
 
     @DataProvider(name = "getCL")
@@ -66,7 +66,7 @@ public class Transaction17090 extends SdbTestBase {
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
-        expList = TransUtils.insertDatas( cl, 0, 50000, 1 );
+        expList = TransUtils.insertDatas( cl, 0, 500, 1 );
 
         // 开启两个并发事务
         TransUtils.beginTransaction( db1 );

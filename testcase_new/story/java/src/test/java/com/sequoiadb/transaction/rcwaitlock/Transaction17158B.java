@@ -40,7 +40,7 @@ public class Transaction17158B extends SdbTestBase {
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
-        TransUtils.insertRandomDatas( cl, 0, 10000 );
+        TransUtils.insertRandomDatas( cl, 0, 100 );
     }
 
     @Test
@@ -49,7 +49,7 @@ public class Transaction17158B extends SdbTestBase {
         TransUtils.beginTransaction( db1 );
 
         // 事务1对不同记录执行多个原子操作
-        for ( int i = 0; i < 10000; i++ ) {
+        for ( int i = 0; i < 100; i++ ) {
             cl1.delete( "{a:" + i + "}" );
             cl1.insert( ( BSONObject ) JSON.parse(
                     "{_id:" + ( 10000 + i ) + ", a:" + i + ",b:" + i + "}" ) );

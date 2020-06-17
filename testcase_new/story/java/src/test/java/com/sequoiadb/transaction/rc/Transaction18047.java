@@ -50,7 +50,7 @@ public class Transaction18047 extends SdbTestBase {
             DBCollection cl2 = db2.getCollectionSpace( csName )
                     .getCollection( clName );
             cl.createIndex( "a", "{a:1}", false, false );
-            insertR1s = TransUtils.insertRandomDatas( cl, 0, 10000 );
+            insertR1s = TransUtils.insertRandomDatas( cl, 0, 100 );
 
             TransUtils.beginTransaction( db1 );
             cl1.delete( null, "{'':'a'}" );

@@ -64,8 +64,8 @@ public class Transaction19181 extends SdbTestBase {
 
             // 创建一个连接db3，并设置TransLockWait属性为true，查询TransLockWait属性，开启事务，查询R1
             db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db3.setSessionAttr( ( BSONObject ) JSON
-                    .parse( "{TransIsolation:1, TransLockWait:true}" ) );
+            db3.setSessionAttr( ( BSONObject ) JSON.parse(
+                    "{TransIsolation:1, TransLockWait:true,TransTimeout:5}" ) );
             BSONObject attr = db3.getSessionAttr();
             Assert.assertEquals( true, attr.get( "TransLockWait" ) );
             TransUtils.beginTransaction( db3 );

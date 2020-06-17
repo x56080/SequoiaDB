@@ -54,15 +54,15 @@ public class Transaction18499 extends SdbTestBase {
                 ( BSONObject ) JSON.parse(
                         "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit:true}" ) );
         cl.attachCollection( csName + ".sub118499", ( BSONObject ) JSON
-                .parse( "{LowBound:{b:{'$minKey':1}}, UpBound:{b:10000}}" ) );
+                .parse( "{LowBound:{b:{'$minKey':1}}, UpBound:{b:100}}" ) );
         cl.attachCollection( csName + ".sub218499", ( BSONObject ) JSON
-                .parse( "{LowBound:{b:10000}, UpBound:{b:20000}}" ) );
+                .parse( "{LowBound:{b:100}, UpBound:{b:200}}" ) );
         cl.attachCollection( csName + ".sub318499", ( BSONObject ) JSON
-                .parse( "{LowBound:{b:20000}, UpBound:{b:{'$maxKey':1}}}" ) );
+                .parse( "{LowBound:{b:200}, UpBound:{b:{'$maxKey':1}}}" ) );
         cl.createIndex( idxName, "{a:1, b:1}", true, false );
 
         // 插入多条记录R1s
-        expList = TransUtils.insertRandomDatas( cl, 0, 30000 );
+        expList = TransUtils.insertRandomDatas( cl, 0, 300 );
     }
 
     @AfterClass
@@ -127,9 +127,9 @@ public class Transaction18499 extends SdbTestBase {
 
     private void insertData( DBCollection cl ) {
         List< BSONObject > records = new ArrayList< BSONObject >();
-        for ( int i = 0; i < 29999; i++ ) {
-            BSONObject obj = ( BSONObject ) JSON.parse( "{_id:" + ( i + 50000 )
-                    + ", a:" + ( i + 50000 ) + ", b:" + i + "}" );
+        for ( int i = 0; i < 299; i++ ) {
+            BSONObject obj = ( BSONObject ) JSON.parse( "{_id:" + ( i + 50 )
+                    + ", a:" + ( i + 50 ) + ", b:" + i + "}" );
             records.add( obj );
         }
         BSONObject obj = ( BSONObject ) JSON.parse( "{a:1000, b:1000}" );

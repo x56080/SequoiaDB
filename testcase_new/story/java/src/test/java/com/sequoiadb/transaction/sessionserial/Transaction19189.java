@@ -40,8 +40,7 @@ public class Transaction19189 extends SdbTestBase {
         sdb.getCollectionSpace( SdbTestBase.csName ).createCollection( clName,
                 ( BSONObject ) JSON
                         .parse( "{ShardingKey:{_id:1}, AutoSplit:true}" ) );
-        sdb.updateConfig(
-                ( BSONObject ) JSON.parse( "{transactiontimeout:30}" ),
+        sdb.updateConfig( ( BSONObject ) JSON.parse( "{transactiontimeout:5}" ),
                 ( BSONObject ) JSON.parse( "{Global:false}" ) );
     }
 
@@ -76,7 +75,7 @@ public class Transaction19189 extends SdbTestBase {
             }
             long end = System.currentTimeMillis();
             int useTime = ( int ) ( ( end - start ) / 1000 );
-            if ( useTime > 35 || useTime < 25 ) {
+            if ( useTime > 10 || useTime < 1 ) {
                 Assert.fail( "transaction timeout check failed, actual timeout:"
                         + useTime );
             }

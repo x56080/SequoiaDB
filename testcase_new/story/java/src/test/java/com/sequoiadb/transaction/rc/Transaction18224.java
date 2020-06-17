@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
+import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -34,9 +35,9 @@ public class Transaction18224 extends SdbTestBase {
     private DBCollection cl1 = null;
     private DBCollection cl2 = null;
     private int startId = 0;
-    private int endId = 1000;
-    private int startId2 = 1000;
-    private int endId2 = 2000;
+    private int endId = 100;
+    private int startId2 = 100;
+    private int endId2 = 200;
     private int incValue = 10000;
     private List< BSONObject > expDataList = null;
 
@@ -45,6 +46,10 @@ public class Transaction18224 extends SdbTestBase {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb1.setSessionAttr( ( BSONObject ) JSON.parse(
+                "{TransTimeout:" + TransUtils.transTimeoutSession + "}" ) );
+        sdb2.setSessionAttr( ( BSONObject ) JSON.parse(
+                "{TransTimeout:" + TransUtils.transTimeoutSession + "}" ) );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "skip standalone" );
         }
@@ -97,8 +102,8 @@ public class Transaction18224 extends SdbTestBase {
 
         // no trans query
         expDataList.clear();
-        expDataList = TransUtils.getUpdateDatas( startId + 10000, endId + 10000,
-                1000 );
+        expDataList = TransUtils.getUpdateDatas( startId + incValue,
+                endId + incValue, 1000 );
 
         TransUtils.queryAndCheck( cl, "{ _id: 1}", "{'': null}", expDataList );
         TransUtils.queryAndCheck( cl, "{ _id: 1}", "{'': 'a'}", expDataList );

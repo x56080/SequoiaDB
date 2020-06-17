@@ -49,7 +49,7 @@ public class Transaction18501 extends SdbTestBase {
         cl.createIndex( idxName, "{a:1, b:1}", true, false );
 
         // 插入多条记录R1s
-        expList = TransUtils.insertRandomDatas( cl, 0, 30000 );
+        expList = TransUtils.insertRandomDatas( cl, 0, 300 );
     }
 
     @AfterClass
@@ -114,9 +114,9 @@ public class Transaction18501 extends SdbTestBase {
 
     private void insertData( DBCollection cl ) {
         List< BSONObject > records = new ArrayList< BSONObject >();
-        for ( int i = 0; i < 29999; i++ ) {
-            BSONObject obj = ( BSONObject ) JSON.parse( "{_id:" + ( i + 50000 )
-                    + ", a:" + ( i + 50000 ) + ", b:" + i + "}" );
+        for ( int i = 0; i < 299; i++ ) {
+            BSONObject obj = ( BSONObject ) JSON.parse( "{_id:" + ( i + 50 )
+                    + ", a:" + ( i + 50 ) + ", b:" + i + "}" );
             records.add( obj );
         }
         BSONObject obj = ( BSONObject ) JSON.parse( "{a:1000, b:1000}" );

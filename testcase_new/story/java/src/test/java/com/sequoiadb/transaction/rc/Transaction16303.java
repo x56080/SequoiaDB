@@ -43,8 +43,7 @@ public class Transaction16303 extends SdbTestBase {
         sdb = new Sequoiadb( coordAddr, "", "" );
         sdb2 = new Sequoiadb( coordAddr, "", "" );
         cs = sdb.getCollectionSpace( commCSName );
-        cl = cs.createCollection( clName,
-                new BasicBSONObject( "ReplSize", 0 ) );
+        cl = cs.createCollection( clName );
         insertData();
     }
 
@@ -189,7 +188,7 @@ public class Transaction16303 extends SdbTestBase {
         try {
             BSONObject bson;
             insertRecods = new ArrayList< BSONObject >();
-            for ( int i = 0; i < 10000; i++ ) {
+            for ( int i = 0; i < 100; i++ ) {
                 bson = new BasicBSONObject();
                 bson.put( "_id", i );
                 bson.put( "age", i );

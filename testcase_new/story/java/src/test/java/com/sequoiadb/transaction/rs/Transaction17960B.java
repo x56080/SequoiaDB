@@ -29,7 +29,7 @@ import com.sequoiadb.transaction.TransUtils;
  *
  */
 
-@Test(groups = "rr")
+@Test(groups = "rs")
 public class Transaction17960B extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl17960B";
@@ -37,7 +37,7 @@ public class Transaction17960B extends SdbTestBase {
     private DBCollection cl = null;
     private String indexKey = null;
     private int insertNum = 100;
-    private int loopNum = 1000;
+    private int loopNum = 100;
     // 经过实际测试，由于写操作优先于读操作，设置并发数会导致读操作极少，测试点覆盖不到，并发数暂时设置为1
     private int threadNum = 1;
     private int expSum = 1000000;
@@ -97,7 +97,7 @@ public class Transaction17960B extends SdbTestBase {
             try {
                 db.setSessionAttr(
                         ( BSONObject ) JSON.parse( "{TransTimeout:5}" ) );
-                for ( int i = 0; i < loopNum * 2; i++ ) {
+                for ( int i = 0; i < loopNum / 2; i++ ) {
                     int aId = ( int ) ( Math.random() * insertNum ) + insertNum;
                     int bId = ( int ) ( Math.random() * insertNum );
                     int cId = ( int ) ( Math.random() * insertNum ) - insertNum;
@@ -166,7 +166,7 @@ public class Transaction17960B extends SdbTestBase {
             try {
                 db.setSessionAttr(
                         ( BSONObject ) JSON.parse( "{TransTimeout:5}" ) );
-                for ( int i = 0; i < loopNum * 3; i++ ) {
+                for ( int i = 0; i < loopNum / 4; i++ ) {
 
                     // 开启查询事务，索引扫描
                     TransUtils.beginTransaction( db );
@@ -216,7 +216,7 @@ public class Transaction17960B extends SdbTestBase {
         @ExecuteOrder(step = 1, desc = "删除索引")
         private void dropIndex() {
             try {
-                for ( int i = 0; i < loopNum * 3; i++ ) {
+                for ( int i = 0; i < loopNum / 4; i++ ) {
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     cl.createIndex( idxName, indexKey, false, false );

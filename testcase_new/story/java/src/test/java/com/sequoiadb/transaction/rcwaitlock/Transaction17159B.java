@@ -45,13 +45,13 @@ public class Transaction17159B extends SdbTestBase {
 
     @Test
     public void test() throws InterruptedException {
-        insertR1s = TransUtils.insertRandomDatas( cl, 0, 10000 );
+        insertR1s = TransUtils.insertRandomDatas( cl, 0, 10 );
 
         // 开启事务1
         TransUtils.beginTransaction( db1 );
 
         // 事务1对不同记录执行多个原子操作
-        for ( int i = 0; i < 10000; i++ ) {
+        for ( int i = 0; i < 100; i++ ) {
             cl1.delete( "{a:" + i + "}", "{'':'a'}" );
             cl1.insert( ( BSONObject ) JSON.parse(
                     "{_id:" + ( 10000 + i ) + ", a:" + i + ",b:" + i + "}" ) );

@@ -38,7 +38,7 @@ public class Transaction17099 extends SdbTestBase {
     private DBCollection cl3 = null;
     private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
     private int startId = 0;
-    private int stopId = 1000;
+    private int stopId = 100;
     private int updateValue1 = 20000;
     private int updateValue2 = 30000;
     private String hashCLName = "cl17099_hash";
@@ -69,7 +69,7 @@ public class Transaction17099 extends SdbTestBase {
             throw new SkipException( "ONE GROUP MODE" );
         }
         TransUtils.createCLs( sdb, csName, hashCLName, mainCLName, subCLName1,
-                subCLName2, 500 );
+                subCLName2, 50 );
     }
 
     @AfterClass

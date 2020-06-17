@@ -50,7 +50,7 @@ public class Transaction17206 extends SdbTestBase {
         TransUtils.beginTransaction( db2 );
 
         // 事务1执行批量插入记录
-        expList = TransUtils.insertDatas( cl1, 0, 50000, 1 );
+        expList = TransUtils.insertDatas( cl1, 0, 500, 1 );
 
         // 事务2表扫描记录
         TransUtils.queryAndCheck( cl2, "{_id:1}", hintTbScan, expList );

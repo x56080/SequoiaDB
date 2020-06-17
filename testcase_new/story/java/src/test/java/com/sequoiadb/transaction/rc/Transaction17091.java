@@ -55,7 +55,7 @@ public class Transaction17091 extends SdbTestBase {
         TransUtils.beginTransaction( db2 );
 
         // 事务1更新全部索引
-        for ( int i = 0; i < 50000; i++ ) {
+        for ( int i = 0; i < 500; i++ ) {
             BSONObject modifier = new BasicBSONObject();
             modifier.put( "a", 2 );
             modifier.put( "b", 2 );
@@ -72,7 +72,7 @@ public class Transaction17091 extends SdbTestBase {
         // 非事务表扫描记录
         expList.clear();
         BSONObject updateR1 = ( BSONObject ) JSON
-                .parse( "{_id:1, a:100001, b:100001}" );
+                .parse( "{_id:1, a:1001, b:1001}" );
         expList.add( updateR1 );
         TransUtils.queryAndCheck( cl, hintTbScan, expList );
 

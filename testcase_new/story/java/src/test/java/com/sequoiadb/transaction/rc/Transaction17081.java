@@ -51,7 +51,7 @@ public class Transaction17081 extends SdbTestBase {
 
     @Test
     public void test() {
-        insertR1s = TransUtils.insertRandomDatas( cl, 0, 10000 );
+        insertR1s = TransUtils.insertRandomDatas( cl, 0, 10 );
 
         TransUtils.beginTransaction( db1 );
         TransUtils.beginTransaction( db2 );
@@ -105,7 +105,7 @@ public class Transaction17081 extends SdbTestBase {
         public void exec() throws Exception {
             BSONObject insertR = ( BSONObject ) JSON
                     .parse( "{_id:20000,a:20000,b:20000}" );
-            for ( int i = 0; i < 10000; i++ ) {
+            for ( int i = 0; i < 100; i++ ) {
                 cl1.insert( insertR );
                 cl1.update( "{a:20000}", "{$set:{a:20001}}", "{'':'a'}" );
                 cl1.delete( "{a:20001}", "{'':'a'}" );

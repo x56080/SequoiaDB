@@ -37,7 +37,7 @@ public class Transaction17960A extends SdbTestBase {
     private DBCollection cl = null;
     private String indexKey = null;
     private int insertNum = 100;
-    private int loopNum = 1000;
+    private int loopNum = 100;
     // 经过实际测试，由于写操作优先于读操作，设置并发数会导致读操作极少，测试点覆盖不到，并发数暂时设置为1
     private int threadNum = 1;
     private int expSum = 1000000;
@@ -97,7 +97,7 @@ public class Transaction17960A extends SdbTestBase {
             try {
                 db.setSessionAttr(
                         ( BSONObject ) JSON.parse( "{TransTimeout:5}" ) );
-                for ( int i = 0; i < loopNum; i++ ) {
+                for ( int i = 0; i < loopNum / 4; i++ ) {
                     int aid = ( int ) ( Math.random() * insertNum );
                     int bid = ( int ) ( Math.random() * insertNum );
                     int value = ( int ) ( Math.random() * 100 ) + 1;
@@ -149,7 +149,7 @@ public class Transaction17960A extends SdbTestBase {
             try {
                 db.setSessionAttr(
                         ( BSONObject ) JSON.parse( "{TransTimeout:5}" ) );
-                for ( int i = 0; i < loopNum; i++ ) {
+                for ( int i = 0; i < loopNum / 4; i++ ) {
 
                     // 开启查询事务，索引扫描
                     TransUtils.beginTransaction( db );

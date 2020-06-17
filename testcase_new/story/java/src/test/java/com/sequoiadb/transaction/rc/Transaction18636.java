@@ -51,7 +51,7 @@ public class Transaction18636 extends SdbTestBase {
         TransUtils.createHashCL( sdb, csName, hashCLName );
         cl = sdb.getCollectionSpace( csName ).getCollection( hashCLName );
         cl.createIndex( "idx18636", "{a:1}", false, false );
-        expList = TransUtils.insertRandomDatas( cl, 0, 10000 );
+        expList = TransUtils.insertRandomDatas( cl, 0, 100 );
     }
 
     @AfterClass
@@ -82,11 +82,11 @@ public class Transaction18636 extends SdbTestBase {
                 .getCollection( hashCLName );
 
         // 事务1批量插入记录后为R2s
-        List< BSONObject > addList = TransUtils.insertRandomDatas( cl1, 10000,
-                12000 );
+        List< BSONObject > addList = TransUtils.insertRandomDatas( cl1, 100,
+                120 );
 
         // 事务2表扫描/索引扫描记录
-        String range = Arrays.toString( getInRange( 0, 12010 ) );
+        String range = Arrays.toString( getInRange( 0, 120 ) );
         TransUtils.queryAndCheck( cl2, "{a:{$in:" + range + "}}", null, "{a:1}",
                 hintTbScan, expList );
         TransUtils.queryAndCheck( cl2, "{a:{$in:" + range + "}}", null, "{a:1}",
@@ -110,7 +110,7 @@ public class Transaction18636 extends SdbTestBase {
                 hintIxScan, expList );
 
         // 非事务表扫描/索引扫描记录
-        expRecords = TransUtils.getIncDatas( 0, 12000, 10 );
+        expRecords = TransUtils.getIncDatas( 0, 110, 10 );
         TransUtils.queryAndCheck( cl, "{a:{$in:" + range + "}}", null, "{a:1}",
                 hintTbScan, expRecords );
         TransUtils.queryAndCheck( cl, "{a:{$in:" + range + "}}", null, "{a:1}",

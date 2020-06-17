@@ -47,7 +47,7 @@ public class Transaction17166 extends SdbTestBase {
         TransUtils.beginTransaction( db1 );
 
         // 事务1执行批量插入记录
-        expList = TransUtils.insertDatas( cl1, 0, 50000, 1 );
+        expList = TransUtils.insertDatas( cl1, 0, 500, 1 );
 
         // 非事务表扫描记录
         cursor = cl.query( null, null, "{_id:1}", "{'':null}" );

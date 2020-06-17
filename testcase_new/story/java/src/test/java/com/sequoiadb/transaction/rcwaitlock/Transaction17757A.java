@@ -44,7 +44,7 @@ public class Transaction17757A extends SdbTestBase {
     private DBCursor cursor = null;
     private String hint = "{\"\":null}";
     private int startId = 0;
-    private int stopId = 1000;
+    private int stopId = 100;
     private int updateValue = 20000;
 
     @DataProvider(name = "index")

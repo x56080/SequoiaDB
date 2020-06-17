@@ -31,7 +31,7 @@ public class Transaction18221 extends SdbTestBase {
     private DBCollection cl = null;
     private DBCollection cl2 = null;
     private int startId = 0;
-    private int endId = 1000;
+    private int endId = 100;
     private List< BSONObject > expDataList = null;
 
     @BeforeClass

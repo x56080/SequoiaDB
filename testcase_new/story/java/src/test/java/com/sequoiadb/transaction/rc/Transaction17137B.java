@@ -32,7 +32,7 @@ public class Transaction17137B extends SdbTestBase {
     private Sequoiadb sdb1 = null;
     private Sequoiadb sdb2 = null;
     private DBCollection cl = null;
-    private int recordNum = 20000;
+    private int recordNum = 200;
     private DBCursor recordCur = null;
     private List< BSONObject > rs1 = null;
     private List< BSONObject > rs2 = null;
