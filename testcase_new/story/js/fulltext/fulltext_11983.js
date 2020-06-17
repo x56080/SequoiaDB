@@ -12,7 +12,7 @@ function main ()
    }
 
    var clName = COMMCLNAME + "_ES_11983";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    //创建64个索引
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
@@ -54,7 +54,7 @@ function main ()
          throw new Error( "fullIndex_11983 exists,index in cl: " + arrayIndexes );
       }
    }
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {

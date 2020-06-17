@@ -19,7 +19,7 @@ function main ()
    }
 
    var clName = COMMCLNAME + "_ES_15132";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    //创建range分区表，并创建全文索引
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "range", ShardingKey: { a: 1 }, Group: groups[0][0]["GroupName"] } );
@@ -173,7 +173,7 @@ function main ()
    println( "===skip < 10000 && limit > 10000 success===" );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_15132" );
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

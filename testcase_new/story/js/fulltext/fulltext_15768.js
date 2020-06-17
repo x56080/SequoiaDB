@@ -13,7 +13,7 @@ function main ()
    };
 
    var clName = COMMCLNAME + "_ES_15768";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    //创建集合并创建全文索引且同时为唯一索引 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
@@ -60,7 +60,7 @@ function main ()
    checkInspectResult( COMMCSNAME, clName, 5 );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

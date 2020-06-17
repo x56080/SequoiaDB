@@ -22,8 +22,8 @@ function main ()
    commCreateDomain( db, domainName, [groups[0][0]["GroupName"], groups[1][0]["GroupName"]] );
    var clName = COMMCLNAME + "_ES_12013";
    var csName = "cs12013";
-   commDropCL( db, csName, clName, true, true );
-   commDropCS( db, csName );
+   dropCL( db, csName, clName, true, true );
+   dropCS( db, csName );
 
    var dbcs = db.createCS( csName, { Domain: domainName } );
    var dbcl = commCreateCL( db, csName, clName, { ShardingType: "hash", ShardingKey: { a: 1 }, AutoSplit: true } );
@@ -72,7 +72,7 @@ function main ()
    checkInspectResult( csName, clName, 5 );
 
    var esIndexNames = dbOperator.getESIndexNames( csName, clName, "fullIndex_12013" );
-   commDropIndex( dbcl, "fullIndex_12013" );
+   dropIndex( dbcl, "fullIndex_12013" );
    commCheckIndexConsistency( dbcl, "fullIndex_12013", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( csName, clName );
@@ -118,7 +118,7 @@ function main ()
    checkInspectResult( csName, clName, 5 );
 
    var esIndexNames = dbOperator.getESIndexNames( csName, clName, "fullIndex_12013" );
-   commDropIndex( dbcl, "fullIndex_12013" );
+   dropIndex( dbcl, "fullIndex_12013" );
    commCheckIndexConsistency( dbcl, "fullIndex_12013", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( csName, clName );
@@ -126,7 +126,7 @@ function main ()
    println( "================分区键删除成功================" );
    println( "================================full index on ShardingKey================================" );
 
-   commDropCS( db, csName );
+   dropCS( db, csName );
    commDropDomain( db, domainName );
 }
 

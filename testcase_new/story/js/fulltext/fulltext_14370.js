@@ -12,7 +12,7 @@ function main ()
    }
 
    var clName = COMMCLNAME + "_ES_14370";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    dbcl.createIndex( "fullIndex_14370", { content: "text" } );
 
@@ -45,7 +45,7 @@ function main ()
    checkResult( expIndexes, actIndexes );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_14370" );
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

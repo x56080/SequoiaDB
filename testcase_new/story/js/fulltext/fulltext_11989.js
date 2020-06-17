@@ -19,7 +19,7 @@ function main ()
    }
 
    var clName = COMMCLNAME + "_ES_11989";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "range", ShardingKey: { a: 1 }, Group: groups[0][0]["GroupName"] } );
    //插入数据，数据分布覆盖：1个组、多个组上
@@ -54,7 +54,7 @@ function main ()
    checkInspectResult( COMMCSNAME, clName, 5 );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex1_11989" );
-   commDropIndex( dbcl, "fullIndex1_11989" );
+   dropIndex( dbcl, "fullIndex1_11989" );
    commCheckIndexConsistency( dbcl, "fullIndex1_11989", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
@@ -81,7 +81,7 @@ function main ()
    checkInspectResult( COMMCSNAME, clName, 5 );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex2_11989" );
-   commDropIndex( dbcl, "fullIndex2_11989" );
+   dropIndex( dbcl, "fullIndex2_11989" );
    commCheckIndexConsistency( dbcl, "fullIndex2_11989", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
@@ -116,7 +116,7 @@ function main ()
    checkInspectResult( COMMCSNAME, clName, 5 );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex3_11989" );
-   commDropIndex( dbcl, "fullIndex3_11989" );
+   dropIndex( dbcl, "fullIndex3_11989" );
    commCheckIndexConsistency( dbcl, "fullIndex3_11989", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
@@ -144,14 +144,14 @@ function main ()
    checkInspectResult( COMMCSNAME, clName, 5 );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex4_11989" );
-   commDropIndex( dbcl, "fullIndex4_11989" );
+   dropIndex( dbcl, "fullIndex4_11989" );
    commCheckIndexConsistency( dbcl, "fullIndex4_11989", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
    checkInspectResult( COMMCSNAME, clName, 5 );
    println( "================================Many Group on ShardingKey================================" );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 }
 
 try

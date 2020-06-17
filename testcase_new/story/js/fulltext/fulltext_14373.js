@@ -13,7 +13,7 @@ function main ()
    };
 
    var clName = COMMCLNAME + "_ES_14373";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
@@ -42,7 +42,7 @@ function main ()
    var expCLRecords = dbOperator.findFromCL( dbcl, findConf, { about: "", content: "" }, null, null );
    checkRecords( expCLRecords, actESRecords );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

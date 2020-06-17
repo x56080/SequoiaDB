@@ -18,7 +18,7 @@ function main ()
    }
 
    var clName = COMMCLNAME + "_ES_15134";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "hash", ShardingKey: { a: 1 }, Group: groups[0][0]["GroupName"] } );
    commCreateIndex( dbcl, "fullIndex_15134", { a: "text" } );
@@ -68,7 +68,7 @@ function main ()
    println( "===skip < 10000 && limit > 10000 success===" );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_15134" );
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

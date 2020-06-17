@@ -13,7 +13,7 @@ function main ()
    };
 
    var clName = COMMCLNAME + "_ES_12031";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    //创建全文索引 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
@@ -54,7 +54,7 @@ function main ()
 
    checkRecords( actESRecords, actCLRecords );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

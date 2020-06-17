@@ -22,9 +22,9 @@ function main ()
    var mainCLName = COMMCLNAME + "_ES_15137_maincl";
    var subCLName1 = COMMCLNAME + "_ES_15137_subcl_1";
    var subCLName2 = COMMCLNAME + "_ES_15137_subcl_2";
-   commDropCL( db, COMMCSNAME, mainCLName, true, true );
-   commDropCL( db, COMMCSNAME, subCLName1, true, true );
-   commDropCL( db, COMMCSNAME, subCLName2, true, true );
+   dropCL( db, COMMCSNAME, mainCLName, true, true );
+   dropCL( db, COMMCSNAME, subCLName1, true, true );
+   dropCL( db, COMMCSNAME, subCLName2, true, true );
 
    var mainCL = commCreateCL( db, COMMCSNAME, mainCLName, { ShardingKey: { a: 1 }, IsMainCL: true } );
    var subCL1 = commCreateCL( db, COMMCSNAME, subCLName1 );
@@ -177,9 +177,9 @@ function main ()
 
    var esIndexNames1 = dbOpr.getESIndexNames( COMMCSNAME, subCLName1, textIndexName );
    var esIndexNames2 = dbOpr.getESIndexNames( COMMCSNAME, subCLName2, textIndexName );
-   commDropCL( db, COMMCSNAME, subCLName1, true, true );
-   commDropCL( db, COMMCSNAME, subCLName2, true, true );
-   commDropCL( db, COMMCSNAME, mainCLName, true, true );
+   dropCL( db, COMMCSNAME, subCLName1, true, true );
+   dropCL( db, COMMCSNAME, subCLName2, true, true );
+   dropCL( db, COMMCSNAME, mainCLName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames1 );
    checkIndexNotExistInES( esIndexNames2 );

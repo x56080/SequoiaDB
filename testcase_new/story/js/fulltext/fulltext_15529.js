@@ -19,7 +19,7 @@ function main ()
    var selectorCond = { a: "" };
    var textIndexName = "a_15529";
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
@@ -66,7 +66,7 @@ function main ()
 
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 4 );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

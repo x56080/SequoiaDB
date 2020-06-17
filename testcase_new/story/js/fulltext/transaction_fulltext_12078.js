@@ -14,7 +14,7 @@ function main ()
 
    var clName = COMMCLNAME + "_ES_12078";
    var csName = "testCS_ES_12078";
-   commDropCS( db, csName );
+   dropCS( db, csName );
 
    //创建全文索引及普通索引，索引字段相同
    var dbcl = commCreateCL( db, csName, clName );
@@ -101,7 +101,7 @@ function main ()
    checkResult( expResult, actResult );
    println( "===truncate success===" );
 
-   commDropCS( db, csName );
+   dropCS( db, csName );
 }
 
 try

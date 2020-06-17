@@ -13,7 +13,7 @@ function main ()
    };
 
    var clName = COMMCLNAME + "_ES_12033";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    //创建全文索引 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
@@ -41,7 +41,7 @@ function main ()
    var expCLRecords = dbOperator.findFromCL( dbcl, findConf, { about: "", content: "" }, null, null );
    checkRecords( expCLRecords, actESRecords );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

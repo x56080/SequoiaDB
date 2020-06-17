@@ -13,13 +13,13 @@ function main ()
 
    //创建主子表，并在主表中创建全文索引 2.通过主表插入部分数据，数据分布在各子表中
    var mainclName = COMMCLNAME + "_ES_12072";
-   commDropCL( db, COMMCSNAME, mainclName, true, true );
+   dropCL( db, COMMCSNAME, mainclName, true, true );
    var mainCL = commCreateCL( db, COMMCSNAME, mainclName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true } );
    var subCLName1 = COMMCLNAME + "slave1_cl_12072";
-   commDropCL( db, COMMCSNAME, subCLName1, true, true );
+   dropCL( db, COMMCSNAME, subCLName1, true, true );
    var subCL1 = commCreateCL( db, COMMCSNAME, subCLName1 );
    var subCLName2 = COMMCLNAME + "slave2_cl_12072";
-   commDropCL( db, COMMCSNAME, subCLName2, true, true );
+   dropCL( db, COMMCSNAME, subCLName2, true, true );
    var subCL2 = commCreateCL( db, COMMCSNAME, subCLName2 );
    mainCL.attachCL( COMMCSNAME + "." + subCLName1, { LowBound: { a: 0 }, UpBound: { a: 4567 } } );
    mainCL.attachCL( COMMCSNAME + "." + subCLName2, { LowBound: { a: 4567 }, UpBound: { a: 10001 } } );
@@ -52,9 +52,9 @@ function main ()
    checkConsistency( COMMCSNAME, subCLName2 );
    checkInspectResult( COMMCSNAME, subCLName2, 5 );
 
-   commDropCL( db, COMMCSNAME, subCLName1, true, true );
-   commDropCL( db, COMMCSNAME, subCLName2, true, true );
-   commDropCL( db, COMMCSNAME, mainclName, true, true );
+   dropCL( db, COMMCSNAME, subCLName1, true, true );
+   dropCL( db, COMMCSNAME, subCLName2, true, true );
+   dropCL( db, COMMCSNAME, mainclName, true, true );
 
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames1 );

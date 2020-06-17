@@ -10,7 +10,7 @@ function main ()
 
    var clName = COMMCLNAME + "_19144";
    var textIndexName = "textIndex_19144";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    var objs = new Array( { id: 1, a: "string1" },
@@ -55,7 +55,7 @@ function main ()
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 0 );
 
    var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

@@ -976,3 +976,131 @@ function isMasterNodeExist ( groupName )
       throw new Error( "Check group has master node timeout" );
    }
 }
+
+/* *****************************************************************************
+@description: drop collection
+              删除集合
+@author: Zhao Xiaoni 
+@parameter
+   ignoreCSNotExist: default = true, value: true/false, 忽略集合空间不存在错误
+   ignoreCLNotExist: default = true, value: true/false, 忽略集合不存在错误
+   message: default = ""
+规避-147问题，当适配器向es同步时间时删除集合会报错-147
+***************************************************************************** */
+function dropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, message )
+{
+   if( message == undefined ) { message = ""; }
+   if( ignoreCSNotExist == undefined ) { ignoreCSNotExist = true; }
+   if( ignoreCLNotExist == undefined ) { ignoreCLNotExist = true; }
+
+   var timeout = 120;
+   var doTimes = 0;
+   while( doTimes < timeout )
+   {
+      try
+      {
+         db.getCS( csName ).dropCL( clName );
+         break;
+      }
+      catch( e )
+      {
+         doTimes++;
+         if( ( commCompareErrorCode( e, -34 ) && ignoreCSNotExist ) || ( commCompareErrorCode( e, -23 ) && ignoreCLNotExist ) )
+         {
+            break;
+         }
+         else if( e == -147 )
+         {
+            sleep( 1000 );
+         }
+         else
+         {
+            commThrowError( e, "commDropCL[" + funcCommDropCLTimes + "] Drop collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message )
+         }
+      }
+   }
+}
+
+
+/* *****************************************************************************
+@description: drop collection space
+              删除集合空间
+@author: Zhao Xiaoni 
+@parameter
+   ignoreNotExist: default = true, value: true/false, 忽略不存在错误
+   message: default = ""
+重写此方法，规避-147问题
+***************************************************************************** */
+function dropCS ( db, csName, ignoreNotExist, message )
+{
+   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
+   if( message == undefined ) { message = ""; }
+
+   var timeout = 120;
+   var doTimes = 0;
+   while( doTimes < timeout )
+   {
+      try
+      {
+         db.dropCS( csName );
+         break;
+      }
+      catch( e )
+      {
+         doTimes++;
+         if( commCompareErrorCode( e, -34 ) && ignoreNotExist )
+         {
+            break;
+         }
+         else if( e == -147 )
+         {
+            sleep( 1000 );
+         }
+         else
+         {
+            commThrowError( e, "commDropCS[" + funcCommDropCSTimes + "] Drop collection space[" + csName + "] failed: " + e + ",message: " + message )
+         }
+      }
+   }
+}
+
+/* *****************************************************************************
+@description: drop index
+              删除索引
+@author: Zhao Xiaoni
+@parameter
+   cl: 集合
+   name: 索引名 
+   ignoreNotExist: default is false, 忽略索引不存在错误
+***************************************************************************** */
+function dropIndex ( cl, name, ignoreNotExist )
+{
+   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
+
+   var timeout = 120;
+   var doTimes = 0;
+   while( doTimes < timeout )
+   {
+      try
+      {
+         cl.dropIndex( name );
+         break;
+      }
+      catch( e )
+      {
+         doTimes++;
+         if( ignoreNotExist && commCompareErrorCode( e, -47 ) )
+         {
+            break;
+         }
+         else if( e == -147 )
+         {
+            sleep( 1000 );
+         }
+         else
+         {
+            commThrowError( e, "commDropIndex: drop index[" + name + "] failed: " + e );
+         }
+      }
+   }
+}

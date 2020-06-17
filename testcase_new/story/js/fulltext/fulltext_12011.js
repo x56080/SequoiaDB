@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_12011";
    var textIndexName = "a_12011";
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
@@ -22,7 +22,7 @@ function main ()
 
    createIndexContainId( dbcl, textIndexName );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 }
 
 function createIndexOnId ( dbcl, textIndexName )

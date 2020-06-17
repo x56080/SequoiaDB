@@ -15,7 +15,7 @@ function main ()
    var clFullName = COMMCSNAME + "." + clName
    var indexName = "a_11996";
 
-   commDropCL( db, COMMCSNAME, clName );
+   dropCL( db, COMMCSNAME, clName );
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    dbcl.insert( { b: "text" } );
@@ -45,7 +45,7 @@ function main ()
    println( "---check remove success---" );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
-   commDropCL( db, COMMCSNAME, clName );
+   dropCL( db, COMMCSNAME, clName );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

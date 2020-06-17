@@ -12,14 +12,14 @@ function main ()
    }
 
    var clName = COMMCLNAME + "_ES_12069";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    var mainCL = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true } );
    var csName1 = "sub1_cs_12069";
-   commDropCS( db, csName1 );
+   dropCS( db, csName1 );
    var subCLName1 = "sub1_cl_12069";
    var subCL1 = commCreateCL( db, csName1, subCLName1 );
    var csName2 = "sub2_cs_12069";
-   commDropCS( db, csName2 );
+   dropCS( db, csName2 );
    var subCLName2 = "sub2_cl_12069";
    var subCL2 = commCreateCL( db, csName2, subCLName2 );
    mainCL.attachCL( csName1 + "." + subCLName1, { LowBound: { a: 0 }, UpBound: { a: 4567 } } );
@@ -62,9 +62,9 @@ function main ()
    actResult.sort( compare( "b" ) );
    checkResult( expResult, actResult );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
-   commDropCS( db, csName1 );
-   commDropCS( db, csName2 );
+   dropCL( db, COMMCSNAME, clName, true, true );
+   dropCS( db, csName1 );
+   dropCS( db, csName2 );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( subESIndexNames1 );
    checkIndexNotExistInES( subESIndexNames2 );

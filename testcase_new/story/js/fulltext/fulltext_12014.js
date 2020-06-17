@@ -19,7 +19,7 @@ function main ()
    }
 
    var clName = COMMCLNAME + "_ES_12014";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "range", ShardingKey: { a: 1 }, Group: groups[0][0]["GroupName"] } );
    dbcl.split( groups[0][0]["GroupName"], groups[1][0]["GroupName"], { a: "a1000" }, { a: "a6000" } );
@@ -68,7 +68,7 @@ function main ()
    checkInspectResult( COMMCSNAME, clName, 5 );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_12014" );
-   commDropIndex( dbcl, "fullIndex_12014" );
+   dropIndex( dbcl, "fullIndex_12014" );
    commCheckIndexConsistency( dbcl, "fullIndex_12014", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
@@ -114,7 +114,7 @@ function main ()
    checkInspectResult( COMMCSNAME, clName, 5 );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_12014" );
-   commDropIndex( dbcl, "fullIndex_12014" );
+   dropIndex( dbcl, "fullIndex_12014" );
    commCheckIndexConsistency( dbcl, "fullIndex_12014", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
@@ -124,7 +124,7 @@ function main ()
 
    //分区键覆盖：多分区键，索引字段覆盖：非分区键
    //插入包含全文索引字段的记录
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "range", ShardingKey: { a: 1, c: 1 }, Group: groups[0][0]["GroupName"] } );
    dbcl.split( groups[0][0]["GroupName"], groups[1][0]["GroupName"], { a: "a1000" }, { a: "a6000" } );
 
@@ -170,7 +170,7 @@ function main ()
    checkInspectResult( COMMCSNAME, clName, 5 );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_12014" );
-   commDropIndex( dbcl, "fullIndex_12014" );
+   dropIndex( dbcl, "fullIndex_12014" );
    commCheckIndexConsistency( dbcl, "fullIndex_12014", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
@@ -216,7 +216,7 @@ function main ()
    checkInspectResult( COMMCSNAME, clName, 5 );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_12014" );
-   commDropIndex( dbcl, "fullIndex_12014" );
+   dropIndex( dbcl, "fullIndex_12014" );
    commCheckIndexConsistency( dbcl, "fullIndex_12014", false );
    checkIndexNotExistInES( esIndexNames );
    checkConsistency( COMMCSNAME, clName );
@@ -224,7 +224,7 @@ function main ()
    println( "================多分区键 分区键删除成功================" );
    println( "================================full index on ShardingKey================================" );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 }
 
 try

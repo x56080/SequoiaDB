@@ -19,7 +19,7 @@ function main ()
    }
 
    var clName = COMMCLNAME + "_ES_12074";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    //创建切分集合，并创建普通索引及全文索引
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: "hash", ShardingKey: { a: 1 } } );
@@ -41,7 +41,7 @@ function main ()
    checkFullSyncToES( COMMCSNAME, clName, "fullIndex_12074", 100 );
 
    var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, "fullIndex_12074" );
-   commDropCL( db, COMMCSNAME, clName, false, false );
+   dropCL( db, COMMCSNAME, clName, false, false );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

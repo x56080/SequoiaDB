@@ -13,7 +13,7 @@ function main ()
 
    var clName = COMMCLNAME + "_ES_11978";
    var csName = "testCS_ES_11978";
-   commDropCS( db, csName );
+   dropCS( db, csName );
 
    //指定集合空间的PageSize、LobPageSize指定为非默认值
    commCreateCS( db, csName, false, { PageSize: 4096, LobPageSize: 4096 } );
@@ -37,7 +37,7 @@ function main ()
    }
 
    var esIndexNames = dbOperator.getESIndexNames( csName, clName, textIndexName );
-   commDropCS( db, csName );
+   dropCS( db, csName );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

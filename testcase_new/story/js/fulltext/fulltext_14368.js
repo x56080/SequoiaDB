@@ -13,8 +13,8 @@ function main ()
 
    var clName = COMMCLNAME + "_ES_14368";
    var csName = "testCS_ES_14368";
-   commDropCL( db, COMMCSNAME, clName, true, true );
-   commDropCS( db, csName, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
+   dropCS( db, csName, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var dbcl1 = commCreateCL( db, csName, clName );
@@ -89,8 +89,8 @@ function main ()
    var esIndexName6 = FULLTEXTPREFIX.toLowerCase() + cappedSubCLName2.toLowerCase() + "_" + groups[0];
    esOperator.isCreateIndexInES( esIndexName6 );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
-   commDropCS( db, csName, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
+   dropCS( db, csName, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexName1 );
    checkIndexNotExistInES( esIndexName2 );

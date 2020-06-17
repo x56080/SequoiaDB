@@ -12,7 +12,7 @@ function main ()
    }
 
    var clName = COMMCLNAME + "_ES_14369";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
@@ -23,7 +23,7 @@ function main ()
    println( "===create index success===" );
    var dbOperator = new DBOperator();
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
-   commDropIndex( dbcl, indexName, true );
+   dropIndex( dbcl, indexName, true );
    checkIndexNotExistInES( esIndexNames );
 
    //固定集合名长度小于127时，全文索引创建成功
@@ -35,7 +35,7 @@ function main ()
    dbcl.createIndex( indexName, { content: "text" } );
    commCheckIndexConsistency( dbcl, indexName, true );
    println( "===create index success===" );
-   commDropIndex( dbcl, indexName, true );
+   dropIndex( dbcl, indexName, true );
    checkIndexNotExistInES( esIndexNames );
 
    //固定集合名长度等于127时，全文索引创建成功
@@ -55,7 +55,7 @@ function main ()
 
    commCheckIndexConsistency( dbcl, indexName, true );
    println( "===create index success===" );
-   commDropIndex( dbcl, indexName, true );
+   dropIndex( dbcl, indexName, true );
    checkIndexNotExistInES( esIndexNames );
 
    //SEQUOIADBMAINSTREAM-3896
@@ -104,7 +104,7 @@ function main ()
    checkIndexNotExistInES( esIndexNames );
    println( "===create index fail===" );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {

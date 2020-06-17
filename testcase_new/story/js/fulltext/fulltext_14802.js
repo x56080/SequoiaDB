@@ -14,7 +14,7 @@ function main ()
    var clName = COMMCLNAME + "_ES_14802";
    var clFullName = COMMCSNAME + "." + clName;
 
-   commDropCL( db, COMMCSNAME, clName );
+   dropCL( db, COMMCSNAME, clName );
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    dbcl.insert( { a: "text" } );
 
@@ -31,7 +31,7 @@ function main ()
       }
    }
 
-   commDropCL( db, COMMCSNAME, clName );
+   dropCL( db, COMMCSNAME, clName );
 }
 try
 {

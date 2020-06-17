@@ -19,7 +19,7 @@ function main ()
    }
 
    var clName = COMMCLNAME + "_ES_11992";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groups[0][0]["GroupName"] } );
    var textIndexName = "fullIndex_11992";
@@ -51,7 +51,7 @@ function main ()
    checkResult( expResult, actResult );
 
    //alter为hash切分表，切分键覆盖：全文索引字段
-   dbcl.dropIndex( textIndexName );
+   dropIndex( dbcl, textIndexName );
    checkIndexNotExistInES( esIndexNames );
 
    commCreateIndex( dbcl, textIndexName, { a: "text" } );
@@ -64,7 +64,7 @@ function main ()
    actResult.sort( compare( "a" ) );
    checkResult( expResult, actResult );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );

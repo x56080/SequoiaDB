@@ -19,7 +19,7 @@ function main ()
    var selectorCond = { a: "", b: "" };
    var textIndexName = "a_12029";
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
@@ -46,7 +46,7 @@ function main ()
    actResult = esOperator.findFromES( esIndexNames[0], queryCond ).sort( compare( 'a', compare( 'b' ) ) );
    checkResult( expectResult, actResult );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }

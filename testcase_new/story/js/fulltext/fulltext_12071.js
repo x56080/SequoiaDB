@@ -12,15 +12,15 @@ function main ()
    }
 
    var mainclName = COMMCLNAME + "_ES_12071";
-   commDropCL( db, COMMCSNAME, mainclName, true, true );
+   dropCL( db, COMMCSNAME, mainclName, true, true );
 
    //主表及子表在相同和不同的集合空间上
    var mainCL = commCreateCL( db, COMMCSNAME, mainclName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true } );
    var subCLName1 = COMMCLNAME + "sub1_cl_12071";
-   commDropCL( db, COMMCSNAME, subCLName1, true, true );
+   dropCL( db, COMMCSNAME, subCLName1, true, true );
    var subCL1 = commCreateCL( db, COMMCSNAME, subCLName1 );
    var csName = COMMCSNAME + "sub2_cs_12071";
-   commDropCS( db, csName );
+   dropCS( db, csName );
    var subCLName2 = COMMCLNAME + "sub2_cl_12071";
    var subCL2 = commCreateCL( db, csName, subCLName2 );
    mainCL.attachCL( COMMCSNAME + "." + subCLName1, { LowBound: { a: 0 }, UpBound: { a: 4567 } } );
@@ -43,11 +43,11 @@ function main ()
    var dbOperator = new DBOperator();
    var esIndexNames1 = dbOperator.getESIndexNames( COMMCSNAME, subCLName1, "fullIndex_12071" );
    var esIndexNames2 = dbOperator.getESIndexNames( csName, subCLName2, "fullIndex_12071" );
-   commDropCL( db, COMMCSNAME, mainclName, false, false );
+   dropCL( db, COMMCSNAME, mainclName, false, false );
    checkIndexNotExistInES( esIndexNames1 );
    checkIndexNotExistInES( esIndexNames2 );
 
-   commDropCS( db, csName );
+   dropCS( db, csName );
 }
 
 try

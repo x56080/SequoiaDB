@@ -12,7 +12,7 @@ function main ()
    }
 
    var clName = COMMCLNAME + "_ES_11994";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
@@ -22,7 +22,7 @@ function main ()
    commCheckIndexConsistency( dbcl, indexName, true );
    var dbOperator = new DBOperator();
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
-   dbcl.dropIndex( indexName );
+   dropIndex ( dbcl, indexName );
 
    //删除不存在的全文索引，删除失败
    commCheckIndexConsistency( dbcl, indexName, false );
@@ -41,7 +41,7 @@ function main ()
    commCheckIndexConsistency( dbcl, indexName, false );
    checkIndexNotExistInES( esIndexNames );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 }
 try
 {

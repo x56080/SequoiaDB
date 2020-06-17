@@ -13,15 +13,15 @@ function main ()
 
    //创建固定集合空间，在固定集合空间上创建主表
    var csName = "capped_cs_15536";
-   commDropCS( db, csName );
+   dropCS( db, csName );
    initCappedCS( csName );
    var clName = COMMCLNAME + "_ES_15536";
    var mainCL = db.getCS( csName ).createCL( clName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true } );
    var slaveCLName1 = "slave1_cl_15536";
-   commDropCL( db, COMMCSNAME, slaveCLName1, true, true );
+   dropCL( db, COMMCSNAME, slaveCLName1, true, true );
    var slaveCL1 = commCreateCL( db, COMMCSNAME, slaveCLName1 );
    var slaveCLName2 = "slave2_cl_15536";
-   commDropCL( db, COMMCSNAME, slaveCLName2, true, true );
+   dropCL( db, COMMCSNAME, slaveCLName2, true, true );
    var slaveCL2 = commCreateCL( db, COMMCSNAME, slaveCLName2 );
    mainCL.attachCL( COMMCSNAME + "." + slaveCLName1, { LowBound: { a: 0 }, UpBound: { a: 4567 } } );
    mainCL.attachCL( COMMCSNAME + "." + slaveCLName2, { LowBound: { a: 4567 }, UpBound: { a: 10001 } } );
@@ -69,9 +69,9 @@ function main ()
 
    var esIndexNames1 = dbOperator.getESIndexNames( COMMCSNAME, slaveCLName1, textIndexName );
    var esIndexNames2 = dbOperator.getESIndexNames( COMMCSNAME, slaveCLName2, textIndexName );
-   commDropCL( db, COMMCSNAME, slaveCLName1, true, true );
-   commDropCL( db, COMMCSNAME, slaveCLName2, true, true );
-   commDropCS( db, csName );
+   dropCL( db, COMMCSNAME, slaveCLName1, true, true );
+   dropCL( db, COMMCSNAME, slaveCLName2, true, true );
+   dropCS( db, csName );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames1 );
    checkIndexNotExistInES( esIndexNames2 );
@@ -79,7 +79,7 @@ function main ()
 
 function initCappedCS ( csName )
 {
-   commDropCS( db, csName, true, "drop CS in the beginning" );
+   dropCS( db, csName, true, "drop CS in the beginning" );
    //create cappedCS
    var options = { Capped: true }
    commCreateCS( db, csName, false, "beginning to create cappedCS", options );

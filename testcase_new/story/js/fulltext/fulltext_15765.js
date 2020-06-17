@@ -13,7 +13,7 @@ function main ()
    };
 
    var clName = COMMCLNAME + "_ES_15765";
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    //创建集合并创建全文索引(AutoIndexId为false)
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0, AutoIndexId: false } );
@@ -56,7 +56,7 @@ function main ()
    checkRecords( expESRecords, actESRecords );
    checkRecords( expCLRecords, actCLRecords );
 
-   commDropCL( db, COMMCSNAME, clName, true, true );
+   dropCL( db, COMMCSNAME, clName, true, true );
 
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
