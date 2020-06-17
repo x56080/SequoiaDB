@@ -97,6 +97,7 @@ INT32 _fmpJSVM::eval( const BSONObj &func,
    BSONElement ele = func.getField( FMP_FUNC_VALUE ) ;
    BSONElement type ;
    const _sptResultVal *pRval = NULL ;
+   string errMsg;
    JSContext *pContext = NULL ;
    jsval val = JSVAL_VOID ;
 
@@ -378,12 +379,20 @@ INT32 _fmpJSVM::eval( const BSONObj &func,
       else
       {
          CHAR *raw = NULL ;
-         rc = JSObj2BsonRaw( pContext, obj, &raw ) ;
+         rc = JSObj2BsonRaw( pContext, obj, &raw, errMsg ) ;
          if ( SDB_OK != rc )
          {
             rc = SDB_SYS ;
-            res = BSON( FMP_ERR_MSG << "failed to convert jsobj to bson" <<
+            if ( errMsg.empty() )
+            {
+               res = BSON( FMP_ERR_MSG << "failed to convert jsobj to bson" <<
                         FMP_RES_CODE << rc ) ;
+            }
+            else
+            {
+               res = BSON( FMP_ERR_MSG << errMsg <<
+                        FMP_RES_CODE << rc ) ;
+            }
             goto error ;
          }
          else
