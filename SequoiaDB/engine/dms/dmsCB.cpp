@@ -166,13 +166,6 @@ namespace engine
          }
       }
 
-      // 4. init Rollback Segment CS mgr
-      // check if MVCC is supported
-      if ( pmdGetOptionCB()->mvccOn() )
-      {
-         rc = _rbsSUMgr.init( pmdGetOptionCB()->mvccRBSNum() ) ;
-      }
-
       rc = _localSUMgr.init() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init local su manager, rc: %d",
                    rc ) ;

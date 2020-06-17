@@ -76,6 +76,8 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSRBSMGR_INIT ) ;
 
+      fini() ;
+
       // initialize RBS number
       rc = _initRBSNum( rbsNum ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize number of RBS "
@@ -143,7 +145,7 @@ namespace engine
 
    INT32 _dmsRBSMgr::fini()
    {
-      INT32 rc = SDB_OK;
+      INT32 rc = SDB_OK ;
 
       if ( NULL != _rbsSUMgrs )
       {
@@ -152,6 +154,8 @@ namespace engine
             _rbsSUMgrs[ i ].fini() ;
          }
          SDB_OSS_DEL [] _rbsSUMgrs ;
+         _rbsSUMgrs = NULL ;
+         _rbsNum = 0 ;
       }
 
       return rc ;
