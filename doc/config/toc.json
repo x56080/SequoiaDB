@@ -831,6 +831,12 @@
                "en": "EDU"
             },
             {
+               "id": 1587027446,
+               "file": "auditlog",
+               "cn": "审计日志",
+               "en": "auditlog"
+            },
+            {
               "id": 1577931587,
               "dir": "database_configuration",
               "cn": "数据库配置",
