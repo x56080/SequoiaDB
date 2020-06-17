@@ -914,6 +914,62 @@ public class DBLobTest {
     }
 
     @Test
+    public void testLobMode() {
+        String writeData = "test lob mode";
+        byte readData[] ;
+
+        DBLob baseLob  = cl.createLob();
+        baseLob.close();
+        ObjectId oid = baseLob.getID();
+
+        // case 1, write data to lob after create.
+        DBLob lob1  = cl.createLob();
+        try {
+            lob1.write(writeData.getBytes());
+        }catch (BaseException e){
+            Assert.assertEquals(0,e.getErrorCode());
+        }finally {
+            lob1.close();
+        }
+
+        // case 2, read data from lob after create.
+        DBLob lob2  = cl.createLob();
+        try {
+            readData = new byte[(int)lob2.getSize()];
+            lob2.read(readData);
+        }catch (BaseException e){
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(),e.getErrorCode());
+        }finally {
+            lob2.close();
+        }
+
+        // case 3, open lob with read mode, write data to lob after read.
+        DBLob lob3  = cl.openLob(oid, DBLob.SDB_LOB_READ );
+        try {
+            readData = new byte[(int)lob3.getSize()];
+            lob3.read(readData);
+            lob3.write(writeData.getBytes());
+        }catch ( BaseException e ){
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }finally {
+            lob3.close();
+        }
+
+        // case 4, open lob with share write mode, read data from lob after write.
+        DBLob lob4  = cl.openLob(oid, DBLob.SDB_LOB_WRITE );
+        try {
+            lob4.write(writeData.getBytes());
+            readData = new byte[(int)lob4.getSize()];
+            lob4.read(readData);
+        }catch ( BaseException e ){
+            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }finally {
+            lob4.close();
+        }
+    }
+
+
+    @Test
     public void isEofTest() {
 
     }

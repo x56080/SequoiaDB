@@ -1331,6 +1331,83 @@ namespace DriverTest
         }
 
         [TestMethod()]
+        public void TestLobMode()
+        {
+
+            DBLob baseLob = cl.CreateLob();
+            ObjectId oid = baseLob.GetID();
+            baseLob.Close();
+
+            byte[] writeData = { 1, 2, 3 };
+            byte[] readData;
+
+            // case 1, write lob after create.
+            DBLob lob1 = cl.CreateLob();
+            try
+            {
+                lob1.Write(writeData);
+            }
+            catch (BaseException e)
+            {
+                Assert.AreEqual(0, e.ErrorCode);
+            }
+            finally
+            {
+                lob1.Close();
+            }
+
+            // case 2, read lob after create.
+            DBLob lob2 = cl.CreateLob();
+            try
+            {
+                readData = new byte[lob2.GetSize()];
+                lob2.Read(readData);
+            }
+            catch (BaseException e)
+            {
+                Assert.AreEqual((int)Errors.errors.SDB_INVALIDARG, e.ErrorCode);
+            }
+            finally
+            {
+                lob2.Close();
+            }
+
+            // case 3, open lob with read mode, write after read.
+            DBLob lob3 = cl.OpenLob(oid, DBLob.SDB_LOB_READ);
+            try
+            {
+                readData = new byte[lob3.GetSize()];
+                lob3.Read(readData);
+                lob3.Write(writeData);
+            }
+            catch (BaseException e)
+            {
+                Assert.AreEqual((int)Errors.errors.SDB_INVALIDARG, e.ErrorCode);
+            }
+            finally
+            {
+                lob3.Close();
+            }
+
+            // case 4, open lob with write mode, read after write.
+            DBLob lob4 = cl.OpenLob(oid, DBLob.SDB_LOB_WRITE);
+            try
+            {
+                lob4.Write(writeData);
+                readData = new byte[lob4.GetSize()];
+                lob4.Read(readData);
+            }
+            catch (BaseException e)
+            {
+                Assert.AreEqual((int)Errors.errors.SDB_INVALIDARG, e.ErrorCode);
+            }
+            finally
+            {
+                lob4.Close();
+            }
+        }
+
+        [TestMethod()]
         //[Ignore]
         public void LobAbnormalTest()
         {
