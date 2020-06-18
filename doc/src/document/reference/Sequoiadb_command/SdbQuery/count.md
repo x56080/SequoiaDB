@@ -12,7 +12,7 @@ SdbQuery
 
 > **Note:** 
  
-> query.count() 返回的结果忽略 query.skip() 及 query.limit() 的影响。
+> query.count() 返回的结果忽略 [query.skip()](reference/Sequoiadb_command/SdbQuery/skip.md) 及 [query.limit()](reference/Sequoiadb_command/SdbQuery/limit.md) 的影响。
 
 ##参数##
 
