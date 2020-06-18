@@ -55,5 +55,5 @@
  > db.createProcedure( function sum(x,y) { return x+y; } )
  ```
 
- 创建之后可以使用 db.listProcedures() 查看函数信息。
+ 创建之后可以使用 [db.listProcedures()](reference/Sequoiadb_command/Sdb/listProcedures.md) 查看函数信息。
 
