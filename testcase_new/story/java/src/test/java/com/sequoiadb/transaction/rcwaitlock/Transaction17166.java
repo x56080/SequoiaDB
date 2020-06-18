@@ -1,7 +1,7 @@
 package com.sequoiadb.transaction.rcwaitlock;
 
 /**
- * @Description seqDB-17166:   事务中批量插入与读并发 
+ * @Description seqDB-17166:   事务中批量增删改操作与读并发 
  * @author xiaoni Zhao
  * @date 2019-1-23
  */
@@ -29,7 +29,6 @@ public class Transaction17166 extends SdbTestBase {
     private Sequoiadb db1 = null;
     private DBCollection cl = null;
     private DBCollection cl1 = null;
-    private DBCursor cursor = null;
     private List< BSONObject > expList = new ArrayList< BSONObject >();
 
     @BeforeClass
@@ -43,19 +42,15 @@ public class Transaction17166 extends SdbTestBase {
 
     @Test
     public void test() throws InterruptedException {
-        // 开启事务1
+        // 开启事务1,执行插入操作
         TransUtils.beginTransaction( db1 );
-
-        // 事务1执行批量插入记录
-        expList = TransUtils.insertDatas( cl1, 0, 500, 1 );
+        expList = TransUtils.insertRandomDatas( cl1, 0, 500 );
 
         // 非事务表扫描记录
-        cursor = cl.query( null, null, "{_id:1}", "{'':null}" );
-        Assert.assertEquals( TransUtils.getReadActList( cursor ), expList );
+        TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expList );
 
         // 非事务索引扫描记录
-        cursor = cl.query( null, null, "{_id:1}", "{'':'a'}" );
-        Assert.assertEquals( TransUtils.getReadActList( cursor ), expList );
+        TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'a'}", expList );
 
         // 事务2表扫描记录
         Read read1 = new Read( "{'':null}" );
@@ -82,7 +77,79 @@ public class Transaction17166 extends SdbTestBase {
             Assert.fail( e.getMessage() );
         }
 
-        cursor.close();
+        // 开启事务1,执行更新操作
+        TransUtils.beginTransaction( db1 );
+        cl1.update( "", "{$inc:{a:1}}", "{'':'a'}" );
+
+        // 非事务表扫描记录
+        expList.clear();
+        expList = TransUtils.getIncDatas( 0, 500, 1 );
+        TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expList );
+
+        // 非事务索引扫描记录
+        TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'a'}", expList );
+
+        // 事务2表扫描记录
+        Read read3 = new Read( "{'':null}" );
+        read3.start();
+
+        // 事务2索引扫描记录
+        Read read4 = new Read( "{'':'a'}" );
+        read4.start();
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read3.getTransactionID() ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read4.getTransactionID() ) );
+
+        db1.commit();
+
+        // 校验被阻塞线程返回的记录
+        if ( !read3.isSuccess() || !read3.isSuccess() ) {
+            Assert.fail( read3.getErrorMsg() + read4.getErrorMsg() );
+        }
+        try {
+            Assert.assertEquals( read3.getExecResult(), expList );
+            Assert.assertEquals( read4.getExecResult(), expList );
+        } catch ( Exception e ) {
+            Assert.fail( e.getMessage() );
+        }
+
+        // 开启事务1,执行删除操作
+        TransUtils.beginTransaction( db1 );
+        cl1.delete( "", "{'':'a'}" );
+
+        // 非事务表扫描记录
+        expList.clear();
+        TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expList );
+
+        // 非事务索引扫描记录
+        TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'a'}", expList );
+
+        // 事务2表扫描记录
+        Read read5 = new Read( "{'':null}" );
+        read5.start();
+
+        // 事务2索引扫描记录
+        Read read6 = new Read( "{'':'a'}" );
+        read6.start();
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read5.getTransactionID() ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read6.getTransactionID() ) );
+
+        db1.commit();
+
+        // 校验被阻塞线程返回的记录
+        if ( !read5.isSuccess() || !read6.isSuccess() ) {
+            Assert.fail( read5.getErrorMsg() + read6.getErrorMsg() );
+        }
+        try {
+            Assert.assertEquals( read5.getExecResult(), expList );
+            Assert.assertEquals( read6.getExecResult(), expList );
+        } catch ( Exception e ) {
+            Assert.fail( e.getMessage() );
+        }
+
     }
 
     private class Read extends SdbThreadBase {

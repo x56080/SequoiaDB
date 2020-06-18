@@ -1,7 +1,7 @@
 package com.sequoiadb.transaction.rcwaitlock;
 
 /**
- * @Description seqDB-17153: 插入记录与读记录并发，事务回滚 
+ * @Description seqDB-17153: 增删改记录与读记录并发，事务回滚 
  * @author xiaoni Zhao
  * @date 2019-1-22
  */
@@ -34,6 +34,7 @@ public class Transaction17153 extends SdbTestBase {
     private DBCollection cl2 = null;
     private DBCollection cl3 = null;
     private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > expList1 = new ArrayList< BSONObject >();
 
     @BeforeClass
     public void setUp() {
@@ -95,6 +96,78 @@ public class Transaction17153 extends SdbTestBase {
                 new ArrayList< BSONObject >() );
         TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}",
                 new ArrayList< BSONObject >() );
+
+        // 事务1插入记录R1
+        cl1.insert( insertR1 );
+        TransUtils.beginTransaction( db1 );
+        cl1.update( "", "{$inc:{a:1}}", "{'':'a'}" );
+
+        // 事务2表扫描记录
+        Query read3 = new Query( cl2, "{'':null}", expList );
+        read3.start();
+
+        // 事务2索引扫描记录
+        Query read4 = new Query( cl3, "{'':'a'}", expList );
+        read4.start();
+
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read3.getTransactionID() ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read4.getTransactionID() ) );
+
+        // 非事务扫描记录
+        expList1.add( ( BSONObject ) JSON.parse( "{_id:1,a:2,b:1}" ) );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expList1 );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expList1 );
+
+        db1.rollback();
+
+        Assert.assertTrue( read3.isSuccess(), read3.getErrorMsg() );
+        Assert.assertTrue( read4.isSuccess(), read4.getErrorMsg() );
+
+        // 事务2表扫描/索引扫描记录
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}", expList );
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList );
+
+        // 非事务表扫描/索引扫描记录
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expList );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expList );
+
+        // 事务1插入记录R1
+        TransUtils.beginTransaction( db1 );
+        cl1.delete( "", "{'':'a'}" );
+
+        // 事务2表扫描记录
+        Query read5 = new Query( cl2, "{'':null}", expList );
+        read5.start();
+
+        // 事务2索引扫描记录
+        Query read6 = new Query( cl3, "{'':'a'}", expList );
+        read6.start();
+
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read5.getTransactionID() ) );
+        Assert.assertTrue(
+                TransUtils.isTransWaitLock( sdb, read6.getTransactionID() ) );
+
+        // 非事务扫描记录
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}",
+                new ArrayList< BSONObject >() );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}",
+                new ArrayList< BSONObject >() );
+
+        db1.rollback();
+
+        Assert.assertTrue( read5.isSuccess(), read5.getErrorMsg() );
+        Assert.assertTrue( read6.isSuccess(), read6.getErrorMsg() );
+
+        // 事务2表扫描/索引扫描记录
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}", expList );
+        TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList );
+
+        // 非事务表扫描/索引扫描记录
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expList );
+        TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expList );
 
         // 事务2提交
         db2.commit();

@@ -86,6 +86,74 @@ public class Transaction17075 extends SdbTestBase {
         // 非事务索引扫描记录
         TransUtils.queryAndCheck( cl, hintIxScan,
                 new ArrayList< BSONObject >() );
+
+        // 事务1更新记录R1
+        cl1.insert( insertR1 );
+        TransUtils.beginTransaction( db1 );
+        cl1.update( "", "{$inc:{a:1}}", "{'':'a'}" );
+
+        // 事务2表扫描记录
+        TransUtils.queryAndCheck( cl2, hintTbScan, expList );
+
+        // 事务2索引扫描记录
+        TransUtils.queryAndCheck( cl2, hintIxScan, expList );
+
+        // 非事务表扫描记录
+        expList.clear();
+        expList.add( ( BSONObject ) JSON.parse( "{_id:1,a:2,b:1}" ) );
+        TransUtils.queryAndCheck( cl, hintTbScan, expList );
+
+        // 非事务索引扫描记录
+        TransUtils.queryAndCheck( cl, hintIxScan, expList );
+
+        db1.rollback();
+
+        // 事务2表扫描记录
+        expList.clear();
+        expList.add( insertR1 );
+        TransUtils.queryAndCheck( cl2, hintTbScan, expList );
+
+        // 事务2索引扫描记录
+        TransUtils.queryAndCheck( cl2, hintIxScan, expList );
+
+        // 非事务表扫描记录
+        TransUtils.queryAndCheck( cl, hintTbScan, expList );
+
+        // 非事务索引扫描记录
+        TransUtils.queryAndCheck( cl, hintIxScan, expList );
+
+        // 事务1更新记录R1
+        TransUtils.beginTransaction( db1 );
+        cl1.delete( "", "{'':'a'}" );
+
+        // 事务2表扫描记录
+        TransUtils.queryAndCheck( cl2, hintTbScan, expList );
+
+        // 事务2索引扫描记录
+        TransUtils.queryAndCheck( cl2, hintIxScan, expList );
+
+        // 非事务表扫描记录
+        expList.clear();
+        TransUtils.queryAndCheck( cl, hintTbScan, expList );
+
+        // 非事务索引扫描记录
+        TransUtils.queryAndCheck( cl, hintIxScan, expList );
+
+        db1.rollback();
+
+        // 事务2表扫描记录
+        expList.clear();
+        expList.add( insertR1 );
+        TransUtils.queryAndCheck( cl2, hintTbScan, expList );
+
+        // 事务2索引扫描记录
+        TransUtils.queryAndCheck( cl2, hintIxScan, expList );
+
+        // 非事务表扫描记录
+        TransUtils.queryAndCheck( cl, hintTbScan, expList );
+
+        // 非事务索引扫描记录
+        TransUtils.queryAndCheck( cl, hintIxScan, expList );
         db2.rollback();
     }
 
