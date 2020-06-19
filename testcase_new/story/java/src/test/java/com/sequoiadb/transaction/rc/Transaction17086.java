@@ -36,9 +36,9 @@ public class Transaction17086 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "textIndex17086", "{a:1}", false, false );
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:1, a:1, b:1}" );

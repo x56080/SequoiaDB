@@ -31,7 +31,7 @@ public class Transaction19184 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -48,7 +48,7 @@ public class Transaction19184 extends SdbTestBase {
         try {
 
             // 创建一个连接db1，开启事务，并插入1条记录R1
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             TransUtils.beginTransaction( db1 );
             DBCollection cl1 = db1.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
@@ -58,10 +58,10 @@ public class Transaction19184 extends SdbTestBase {
             expList.add( obj );
 
             // 创建一个连接db2
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
 
             // 创建一个连接db3，并设置TransRCCount属性为false，查询TransRCCount属性，开启事务，执行count查询
-            db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db3 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             db3.setSessionAttr(
                     ( BSONObject ) JSON.parse( "{TransRCCount:false}" ) );
             BSONObject attr = db3.getSessionAttr();
@@ -80,7 +80,7 @@ public class Transaction19184 extends SdbTestBase {
             Assert.assertEquals( count, 0 );
 
             // 创建一个连接db4，开启事务，执行count查询
-            db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db4 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl4 = db4.getCollectionSpace( SdbTestBase.csName )
                     .getCollection( clName );
             TransUtils.beginTransaction( db4 );

@@ -1236,6 +1236,21 @@ public class TransUtils extends SdbTestBase {
         cursor.close();
         return status;
     }
+
+    /*
+     * @description 通过testGroup判断是否随机获取coord节点
+     * @param String testGroup
+     * @author zhaoyu
+     */
+    public static Sequoiadb getRandomSequoiadb( String testGroup ) {
+        if ( "rr".equals( SdbTestBase.testGroup )
+                || "rrauto".equals( SdbTestBase.testGroup ) ) {
+            return CommLib.getRandomSequoiadb();
+        } else {
+            return new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        }
+    }
+
 }
 
 /**

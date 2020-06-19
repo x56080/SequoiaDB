@@ -38,9 +38,9 @@ public class Transaction18047 extends SdbTestBase {
 
     @Test(dataProvider = "provider_18047", invocationCount = 5)
     public void test( String clName ) throws InterruptedException {
-        Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        Sequoiadb db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        Sequoiadb db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        Sequoiadb sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        Sequoiadb db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        Sequoiadb db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         try {
 
             DBCollection cl = sdb.getCollectionSpace( csName )
@@ -124,7 +124,7 @@ public class Transaction18047 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             try {
                 TransUtils.beginTransaction( db );
                 cl = db.getCollectionSpace( csName ).getCollection( clName );

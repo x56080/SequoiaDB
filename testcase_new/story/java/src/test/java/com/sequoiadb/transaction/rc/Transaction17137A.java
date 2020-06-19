@@ -40,9 +40,9 @@ public class Transaction17137A extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        sdb1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        sdb2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         expDataList = prepareData( recordNum );
         rs1 = expDataList.subList( 0, recordNum / 2 );

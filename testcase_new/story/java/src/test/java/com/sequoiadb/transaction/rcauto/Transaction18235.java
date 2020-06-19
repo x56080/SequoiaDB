@@ -36,8 +36,8 @@ public class Transaction18235 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        sdb1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }

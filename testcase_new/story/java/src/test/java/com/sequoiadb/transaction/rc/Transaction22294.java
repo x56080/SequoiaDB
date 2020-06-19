@@ -40,7 +40,7 @@ public class Transaction22294 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws InterruptedException {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "skip StandAlone!" );
         }
@@ -67,7 +67,7 @@ public class Transaction22294 extends SdbTestBase {
         Sequoiadb db1 = null;
         try {
             // 开启读事务T1
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
             db1.beginTransaction();

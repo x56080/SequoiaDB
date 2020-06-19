@@ -33,7 +33,7 @@ public class Transaction20262 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         db1 = new Sequoiadb( coordUrl, "", "" );
         db2 = new Sequoiadb( coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {

@@ -50,10 +50,10 @@ public class Transaction17113 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db3 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
     }
 

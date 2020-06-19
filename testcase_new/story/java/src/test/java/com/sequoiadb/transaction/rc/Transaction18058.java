@@ -32,7 +32,7 @@ public class Transaction18058 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
     }
@@ -55,7 +55,7 @@ public class Transaction18058 extends SdbTestBase {
     @Test
     public void test() {
         // 开启事务
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         TransUtils.beginTransaction( db1 );
 

@@ -32,7 +32,7 @@ public class Transaction22099 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws InterruptedException {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }

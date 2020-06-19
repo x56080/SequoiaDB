@@ -50,10 +50,10 @@ public class Transaction17826A extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db3 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         insertR1 = ( BSONObject ) JSON
                 .parse( "{_id:'insertID17826A_1',a:1,b:1,c:1}" );

@@ -46,12 +46,12 @@ public class Transaction18046 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db5 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db3 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db4 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db5 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
     }
 
     @AfterClass
