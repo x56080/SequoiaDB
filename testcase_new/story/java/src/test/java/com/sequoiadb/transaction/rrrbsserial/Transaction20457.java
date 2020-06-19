@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -29,7 +30,7 @@ public class Transaction20457 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws InterruptedException {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
         // 创建索引后，休眠0.1s，避免索引未创建完成
@@ -42,8 +43,8 @@ public class Transaction20457 extends SdbTestBase {
         Sequoiadb db1 = null;
         Sequoiadb db2 = null;
         try {
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db1 = CommLib.getRandomSequoiadb();
+            db2 = CommLib.getRandomSequoiadb();
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
             DBCollection cl2 = db2.getCollectionSpace( csName )
@@ -63,7 +64,8 @@ public class Transaction20457 extends SdbTestBase {
             // 开启读事务
             TransUtils.beginTransaction( db2 );
             String transID = TransUtils.getTransactionID( db2 );
-            System.out.println( "transID query:" + transID );
+            System.out.println(
+                    this.getClass().getName() + " transID query:" + transID );
 
             // 由于集合加锁是写锁优化采取一边更新一边查询的方式(不使用读写并发线程)
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
@@ -72,11 +74,11 @@ public class Transaction20457 extends SdbTestBase {
                 TransUtils.commitTransaction( db1 );
                 TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}",
                         expDataList );
-                System.out.println( "query exec: " + i + " times." );
+                System.out.println( this.getClass().getName() + " query exec: "
+                        + i + " times." );
             }
-        } finally {
-            TransUtils.commitTransaction( db1 );
             TransUtils.commitTransaction( db2 );
+        } finally {
             db1.close();
             db2.close();
         }

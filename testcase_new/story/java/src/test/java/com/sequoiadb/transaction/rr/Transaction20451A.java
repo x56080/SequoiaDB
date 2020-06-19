@@ -33,7 +33,7 @@ public class Transaction20451A extends SdbTestBase {
     private DBCollection cl = null;
     private DBCollection clTR1 = null;
     private DBCollection clTW1 = null;
-    private int recordNum = 1000;
+    private int recordNum = 100;
     private List< BSONObject > expDataList = null;
 
     @BeforeClass
@@ -61,40 +61,40 @@ public class Transaction20451A extends SdbTestBase {
 
         // 2 begin trans TW1 upsert R1s to R2s
         TransUtils.beginTransaction( TW1 );
-        clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
+        clTW1.update( "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r2s'}}",
                 "{'': 'a'}" );
         TransUtils.commitTransaction( TW1 );
 
         // 3 trans TR1 read
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // rename cs
         sdb.renameCollectionSpace( csName, newCSName );
         clTR1 = TR1.getCollectionSpace( newCSName ).getCollection( clName );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // rename cl
         sdb.getCollectionSpace( newCSName ).renameCollection( clName,
                 newCLName );
         clTR1 = TR1.getCollectionSpace( newCSName ).getCollection( newCLName );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // alter cl
         cl = sdb.getCollectionSpace( newCSName ).getCollection( newCLName );
         cl.alterCollection( new BasicBSONObject( "ReplSize", 7 ) );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // createIndex
@@ -102,31 +102,31 @@ public class Transaction20451A extends SdbTestBase {
         // 创建索引后，休眠0.1s，避免索引未创建完成
         Thread.sleep( 100 );
 
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // dropIndex
         cl.dropIndex( "b" );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // createAutoIncrement
         cl.createAutoIncrement( ( BSONObject ) JSON
                 .parse( "{Field: 'userID', Generated: 'always'}" ) );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // dropAutoIncrement
         cl.dropAutoIncrement( "userID" );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         TransUtils.commitTransaction( TR1 );

@@ -25,35 +25,37 @@ import com.sequoiadb.transaction.TransUtils;
  * @author zhaoxiaoni
  */
 @Test(groups = "rr")
-public class Transaction20427B extends SdbTestBase {
+public class Transaction20427 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb db1 = null;
-    private String clName = "cl_20427B";
+    private Sequoiadb db2 = null;
+    private String clName = "cl_20427";
     private DBCollection cl = null;
     private DBCollection cl1 = null;
+    private DBCollection cl2 = null;
     private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeMethod
     public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         db1 = CommLib.getRandomSequoiadb();
+        db2 = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
-        cl.createIndex( "index_20427B", "{ a: 1 }", false, false );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+        cl.createIndex( "index_20427", "{ a: 1 }", false, false );
         // 创建索引后，休眠0.1s，避免索引未创建完成
         Thread.sleep( 100 );
 
-        expList.addAll( insertDatas( cl, 0, 100, 128 ) );
+        expList.addAll( insertDatas( cl, 0, 10, 128 ) );
         TransUtils.beginTransaction( sdb );
-        expList.addAll( insertDatas( cl, 100, 200, 128 ) );
-        TransUtils.commitTransaction(sdb);
-        // 随机取coord，休眠0.1s，避免从别的coord发起的事务早于上一个事务
-        Thread.sleep( 100 );
+        expList.addAll( insertDatas( cl, 10, 20, 128 ) );
+        TransUtils.commitTransaction( sdb );
     }
 
     @DataProvider(name = "index")
     public Object[][] useIndex() {
-        return new Object[][] { { "{ \"\": \"index_20427B\" }" },
+        return new Object[][] { { "{ \"\": \"index_20427A\" }" },
                 { "{ \"\": null }" } };
     }
 
@@ -61,17 +63,16 @@ public class Transaction20427B extends SdbTestBase {
     public void test( String hint ) {
         // 开启查询事务
         TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
 
         // 开启3个并发事务
-        QueryThread queryThread = new QueryThread( hint );
-        queryThread.start();
-        UpdateThread updateThread = new UpdateThread( 256, hint );
+        UpdateQueryThread updateThread = new UpdateQueryThread( cl1, 256,
+                hint );
         updateThread.start();
-        DeleteThread deleteThread = new DeleteThread( hint );
+        DeleteQueryThread deleteThread = new DeleteQueryThread( cl2, hint );
         deleteThread.start();
 
         // 判断事务是返回成功
-        Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
         Assert.assertTrue( updateThread.isSuccess(),
                 updateThread.getErrorMsg() );
         Assert.assertTrue( deleteThread.isSuccess(),
@@ -81,7 +82,7 @@ public class Transaction20427B extends SdbTestBase {
     @AfterMethod
     public void tearDown() {
         // 提交读事务
-        TransUtils.commitTransaction(db1);
+        TransUtils.commitTransaction( db1 );
         db1.close();
 
         sdb.getCollectionSpace( csName ).dropCollection( clName );
@@ -113,15 +114,18 @@ public class Transaction20427B extends SdbTestBase {
         return sb.toString();
     }
 
-    class UpdateThread extends SdbThreadBase {
+    class UpdateQueryThread extends SdbThreadBase {
         private int aLength;
         private String hint;
         private Sequoiadb db;
         private DBCollection cl;
+        private DBCollection queryCL;
 
-        public UpdateThread( int aLength, String hint ) {
+        public UpdateQueryThread( DBCollection queryCL, int aLength,
+                String hint ) {
             this.aLength = aLength;
             this.hint = hint;
+            this.queryCL = queryCL;
         }
 
         @Override
@@ -141,8 +145,16 @@ public class Transaction20427B extends SdbTestBase {
                     cl.update( "{ 'b': " + num + " }",
                             "{ '$set': { 'a': '" + aValue + "'} }", hint );
 
-                    // 回滚更新事务
-                    db.rollback();
+                    // 提交更新事务
+                    if ( doTimes % 2 == 1 ) {
+                        TransUtils.commitTransaction( db );
+                    } else {
+                        db.rollback();
+                    }
+
+                    // 查询并比较结果
+                    TransUtils.queryAndCheck( queryCL, "{_id:1}", hint,
+                            expList );
 
                     if ( doTimes == timeOut ) {
                         break;
@@ -151,19 +163,21 @@ public class Transaction20427B extends SdbTestBase {
                     }
                 }
             } finally {
-                db.rollback();
+                TransUtils.commitTransaction( db );
                 db.close();
             }
         }
     }
 
-    class DeleteThread extends SdbThreadBase {
+    class DeleteQueryThread extends SdbThreadBase {
         private String hint;
         private Sequoiadb db;
         private DBCollection cl;
+        private DBCollection queryCL;
 
-        public DeleteThread( String hint ) {
+        public DeleteQueryThread( DBCollection queryCL, String hint ) {
             this.hint = hint;
+            this.queryCL = queryCL;
         }
 
         @Override
@@ -177,13 +191,20 @@ public class Transaction20427B extends SdbTestBase {
                 while ( true ) {
                     // 开启删除事务
                     TransUtils.beginTransaction( db );
-
                     int num = ( int ) ( Math.random()
                             * ( expList.size() / 2 ) );
                     cl.delete( "{ 'b': " + num + "}", hint );
 
-                    // 回滚更新事务
-                    db.rollback();
+                    // 提交更新事务
+                    if ( doTimes % 2 == 1 ) {
+                        TransUtils.commitTransaction( db );
+                    } else {
+                        db.rollback();
+                    }
+
+                    // 查询并比较结果
+                    TransUtils.queryAndCheck( queryCL, "{_id:1}", hint,
+                            expList );
 
                     if ( doTimes == timeOut ) {
                         break;
@@ -192,33 +213,10 @@ public class Transaction20427B extends SdbTestBase {
                     }
                 }
             } finally {
-                db.rollback();
+                TransUtils.commitTransaction( db );
                 db.close();
             }
         }
     }
 
-    class QueryThread extends SdbThreadBase {
-        private String hint = null;
-
-        public QueryThread( String hint ) {
-            // TODO Auto-generated constructor stub
-            this.hint = hint;
-        }
-
-        @Override
-        public void exec() throws Exception {
-            int doTimes = 1;
-            int timeOut = 200;
-            while ( true ) {
-                TransUtils.checkRecord( cl1, null, null, "{ _id: 1}", hint,
-                        expList );
-                if ( doTimes == timeOut ) {
-                    break;
-                } else {
-                    doTimes++;
-                }
-            }
-        }
-    }
 }

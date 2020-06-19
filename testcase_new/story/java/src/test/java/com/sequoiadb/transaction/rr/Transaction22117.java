@@ -39,7 +39,7 @@ public class Transaction22117 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "skip StandAlone!" );
         }
@@ -74,8 +74,8 @@ public class Transaction22117 extends SdbTestBase {
         Sequoiadb db1 = null;
         Sequoiadb db2 = null;
         try {
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db1 = CommLib.getRandomSequoiadb();
+            db2 = CommLib.getRandomSequoiadb();
             DBCollection cl11 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
             DBCollection cl12 = db1.getCollectionSpace( csName )
@@ -205,8 +205,8 @@ public class Transaction22117 extends SdbTestBase {
         Sequoiadb db1 = null;
         Sequoiadb db2 = null;
         try {
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db1 = CommLib.getRandomSequoiadb();
+            db2 = CommLib.getRandomSequoiadb();
             DBCollection cl11 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
             DBCollection cl12 = db1.getCollectionSpace( csName )

@@ -35,7 +35,7 @@ public class Transaction20444 extends SdbTestBase {
     private DBCollection clT2 = null;
     private DBCollection clT3 = null;
     private DBCollection clT4 = null;
-    private int recordNum = 3000;
+    private int recordNum = 300;
     private List< BSONObject > expDataList = null;
 
     @BeforeClass
@@ -63,41 +63,40 @@ public class Transaction20444 extends SdbTestBase {
 
         // 1 begin trans T1 read
         TransUtils.beginTransaction( T1 );
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 3000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 300}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 3000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 300}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 2 begin trans T2 update R1s to R4s
         TransUtils.beginTransaction( T2 );
-        clT2.update( "{'a': {'$gte': 0, '$lt': 1000}}",
+        clT2.update( "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r4s'}}",
                 "{'': 'a'}" );
-        TransUtils.commitTransaction(T2);
+        TransUtils.commitTransaction( T2 );
 
         // 3 begin trans T3 update R2s to R5s
         TransUtils.beginTransaction( T3 );
-        clT3.update( "{'a': {'$gte': 1000, '$lt': 2000}}",
+        clT3.update( "{'a': {'$gte': 100, '$lt': 200}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r2s to r5s'}}",
                 "{'': 'a'}" );
-        TransUtils.commitTransaction(T3);
+        TransUtils.commitTransaction( T3 );
 
         // 4 begin trans T4 update R3s to R6s
         TransUtils.beginTransaction( T4 );
-        clT4.update( "{'a': {'$gte': 2000, '$lt': 3000}}",
+        clT4.update( "{'a': {'$gte': 200, '$lt': 300}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r3s to r6s'}}",
                 "{'': 'a'}" );
-        TransUtils.commitTransaction(T4);
+        TransUtils.commitTransaction( T4 );
 
         // T1 read the records
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 3000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 300}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 3000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 300}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         DBCursor cur = clT1.queryAndUpdate(
-                ( BSONObject ) JSON
-                        .parse( "{'a': {'$gte': 1000, '$lt': 2000}}" ),
+                ( BSONObject ) JSON.parse( "{'a': {'$gte': 100, '$lt': 200}}" ),
                 null, null, ( BSONObject ) JSON.parse( "{'': 'a'}" ),
                 ( BSONObject ) JSON.parse(
                         "{'$inc':{a: 1}, '$set': {'b': 'update r5s to r7s'}}" ),
@@ -109,15 +108,15 @@ public class Transaction20444 extends SdbTestBase {
 
         List< BSONObject > T1ExpList = new ArrayList<>();
         T1ExpList.addAll( expDataList );
-        TransUtils.updateList( T1ExpList, 3, "update r5s to r7s", 999, 1000 );
-        TransUtils.updateList( T1ExpList, 2, "update r5s to r7s", 1000, 1999 );
+        TransUtils.updateList( T1ExpList, 3, "update r5s to r7s", 99, 100 );
+        TransUtils.updateList( T1ExpList, 2, "update r5s to r7s", 100, 199 );
 
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 3000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 300}}",
                 "{'_id': 1}", "{'': null}", T1ExpList );
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 3000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte:0, $lt: 300}}",
                 "{'_id': 1}", "{'': 'a'}", T1ExpList );
 
-        TransUtils.commitTransaction(T1);
+        TransUtils.commitTransaction( T1 );
     }
 
     @AfterClass

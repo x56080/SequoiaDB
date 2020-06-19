@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -29,7 +30,7 @@ public class Transaction20454 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws InterruptedException {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
         // 创建索引后，休眠0.1s，避免索引未创建完成
@@ -45,15 +46,16 @@ public class Transaction20454 extends SdbTestBase {
         Sequoiadb db2 = null;
         try {
             // 开启读事务并获取事务ID
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db1 = CommLib.getRandomSequoiadb();
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
             TransUtils.beginTransaction( db1 );
             String transID1 = TransUtils.getTransactionID( db1 );
-            System.out.println( "transID query:" + transID1 );
+            System.out.println(
+                    this.getClass().getName() + " transID query:" + transID1 );
 
             // 创建写事务连接
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2 = CommLib.getRandomSequoiadb();
             DBCollection cl2 = db2.getCollectionSpace( csName )
                     .getCollection( clName );
 
@@ -61,7 +63,8 @@ public class Transaction20454 extends SdbTestBase {
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
                 TransUtils.beginTransaction( db2 );
                 String transID2 = TransUtils.getTransactionID( db2 );
-                System.out.println( "transID update:" + transID2 );
+                System.out.println( this.getClass().getName()
+                        + " transID update:" + transID2 );
                 cl2.update( null, "{$inc:{a:1}}", "{'':'a'}", 0 );
                 TransUtils.commitTransaction( db2 );
 
@@ -70,10 +73,9 @@ public class Transaction20454 extends SdbTestBase {
                 TransUtils.queryAndCheck( cl1, "{a:1}", "{'':'a'}",
                         expDataList );
             }
+            TransUtils.commitTransaction( db1 );
 
         } finally {
-            TransUtils.commitTransaction( db1 );
-            TransUtils.commitTransaction( db2 );
             db1.close();
             db2.close();
         }

@@ -38,14 +38,14 @@ public class Transaction20472B extends SdbTestBase {
     private DBCollection cl = null;
     private String indexKey = null;
     private int maxId = 200;
-    private int loopNum = 1000;
+    private int loopNum = 100;
     // 经过实际测试，由于写操作优先于读操作，设置并发数会导致读操作极少，测试点覆盖不到，并发数暂时设置为1
     private int threadNum = 1;
     private int expSum = 1000000;
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         // 插入b字段为0-200之间偶数；
         insertData( cl, maxId );

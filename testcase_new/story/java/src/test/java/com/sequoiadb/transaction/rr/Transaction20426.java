@@ -20,68 +20,74 @@ import com.sequoiadb.testcommon.SdbThreadBase;
 import com.sequoiadb.transaction.TransUtils;
 
 /**
- * @testcase seqDB-20427 ： 只读事务与删除事务并发，删除的记录overflow，不同时刻发起事务读，隔离级别为RR
+ * @testcase seqDB-20426： 只读事务与更新事务并发，更新的记录overflow，不同时刻发起事务读，隔离级别为RR
  * @date 2020-01-15
  * @author zhaoxiaoni
  */
 @Test(groups = "rr")
-public class Transaction20427A extends SdbTestBase {
+public class Transaction20426 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb db1 = null;
-    private String clName = "cl_20427A";
+    private Sequoiadb db2 = null;
+    private String clName = "cl_20426";
     private DBCollection cl = null;
     private DBCollection cl1 = null;
+    private DBCollection cl2 = null;
     private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeMethod
     public void setUp() throws InterruptedException {
         sdb = CommLib.getRandomSequoiadb();
         db1 = CommLib.getRandomSequoiadb();
+        db2 = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
-        cl.createIndex( "index_20427A", "{ a: 1 }", false, false );
+        cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
+        cl.createIndex( "index_20426", "{ a: 1 }", false, false );
         // 创建索引后，休眠0.1s，避免索引未创建完成
         Thread.sleep( 100 );
 
-        expList.addAll( insertDatas( cl, 0, 100, 128 ) );
+        expList.addAll( insertDatas( cl, 0, 10, 128 ) );
         TransUtils.beginTransaction( sdb );
-        expList.addAll( insertDatas( cl, 100, 200, 128 ) );
-        TransUtils.commitTransaction(sdb);
-        // 随机取coord，休眠0.1s，避免从别的coord发起的事务早于上一个事务
-        Thread.sleep( 100 );
+        expList.addAll( insertDatas( cl, 10, 20, 128 ) );
+        TransUtils.commitTransaction( sdb );
     }
 
     @DataProvider(name = "index")
     public Object[][] useIndex() {
-        return new Object[][] { { "{ \"\": \"index_20427A\" }" },
+        return new Object[][] { { "{ \"\": \"index_20426A\" }" },
                 { "{ \"\": null }" } };
     }
 
-    @Test(dataProvider = "index")
-    public void test( String hint ) {
+    // SEQUOIADBMAINSTREAM-5975
+    @Test(dataProvider = "index", enabled = false)
+    public void test( String hint ) throws InterruptedException {
         // 开启查询事务
         TransUtils.beginTransaction( db1 );
+        TransUtils.beginTransaction( db2 );
+
+        // 不同coord开启事务需要sleep 100ms
+        Thread.sleep( 100 );
 
         // 开启3个并发事务
-        QueryThread queryThread = new QueryThread( hint );
-        queryThread.start();
-        UpdateThread updateThread = new UpdateThread( 256, hint );
-        updateThread.start();
-        DeleteThread deleteThread = new DeleteThread( hint );
-        deleteThread.start();
+        UpdateQueryThread updateThread1 = new UpdateQueryThread( cl1, 64,
+                hint );
+        updateThread1.start();
+        UpdateQueryThread updateThread2 = new UpdateQueryThread( cl2, 256,
+                hint );
+        updateThread2.start();
 
         // 判断事务是返回成功
-        Assert.assertTrue( queryThread.isSuccess(), queryThread.getErrorMsg() );
-        Assert.assertTrue( updateThread.isSuccess(),
-                updateThread.getErrorMsg() );
-        Assert.assertTrue( deleteThread.isSuccess(),
-                deleteThread.getErrorMsg() );
+        Assert.assertTrue( updateThread1.isSuccess(),
+                updateThread1.getErrorMsg() );
+        Assert.assertTrue( updateThread2.isSuccess(),
+                updateThread2.getErrorMsg() );
     }
 
     @AfterMethod
     public void tearDown() {
-        // 提交读事务
-        TransUtils.commitTransaction(db1);
+        // 提交查询事务
+        TransUtils.commitTransaction( db1 );
         db1.close();
 
         sdb.getCollectionSpace( csName ).dropCollection( clName );
@@ -113,21 +119,25 @@ public class Transaction20427A extends SdbTestBase {
         return sb.toString();
     }
 
-    class UpdateThread extends SdbThreadBase {
+    class UpdateQueryThread extends SdbThreadBase {
         private int aLength;
         private String hint;
-        private Sequoiadb db;
-        private DBCollection cl;
+        private DBCollection queryCL;
+        private Sequoiadb db = null;
+        private DBCollection cl = null;
 
-        public UpdateThread( int aLength, String hint ) {
+        public UpdateQueryThread( DBCollection queryCL, int aLength,
+                String hint ) {
             this.aLength = aLength;
             this.hint = hint;
+            this.queryCL = queryCL;
         }
 
         @Override
         public void exec() throws Exception {
             db = CommLib.getRandomSequoiadb();
             cl = db.getCollectionSpace( csName ).getCollection( clName );
+
             try {
                 int doTimes = 1;
                 int timeOut = 100;
@@ -136,14 +146,21 @@ public class Transaction20427A extends SdbTestBase {
                     TransUtils.beginTransaction( db );
 
                     String aValue = getRandomString( aLength );
-                    int num = ( int ) ( expList.size() / 2
-                            + Math.random() * ( expList.size() / 2 ) );
-                    cl.update( "{ 'b': " + num + " }",
-                            "{ '$set': { 'a': '" + aValue + "'} }", hint );
+                    int num = new Random().nextInt( expList.size() );
+                    System.out.println( "update num:" + num );
+                    cl.update( "{ 'b': " + num + "}",
+                            "{ '$set': { a: '" + aValue + "' } }", hint );
 
                     // 提交更新事务
-                    TransUtils.commitTransaction(db);
+                    if ( doTimes % 2 == 0 ) {
+                        TransUtils.commitTransaction( db );
+                    } else {
+                        db.rollback();
+                    }
 
+                    // 查询并比较结果
+                    TransUtils.queryAndCheck( queryCL, "{_id:1}", hint,
+                            expList );
                     if ( doTimes == timeOut ) {
                         break;
                     } else {
@@ -151,74 +168,10 @@ public class Transaction20427A extends SdbTestBase {
                     }
                 }
             } finally {
-                TransUtils.commitTransaction(db);
+                TransUtils.commitTransaction( db );
                 db.close();
             }
         }
     }
 
-    class DeleteThread extends SdbThreadBase {
-        private String hint;
-        private Sequoiadb db;
-        private DBCollection cl;
-
-        public DeleteThread( String hint ) {
-            this.hint = hint;
-        }
-
-        @Override
-        public void exec() throws Exception {
-            db = CommLib.getRandomSequoiadb();
-            cl = db.getCollectionSpace( csName ).getCollection( clName );
-
-            try {
-                int doTimes = 1;
-                int timeOut = 100;
-                while ( true ) {
-                    // 开启删除事务
-                    TransUtils.beginTransaction( db );
-
-                    int num = ( int ) ( Math.random()
-                            * ( expList.size() / 2 ) );
-                    cl.delete( "{ 'b': " + num + "}", hint );
-
-                    // 提交更新事务
-                    TransUtils.commitTransaction(db);
-
-                    if ( doTimes == timeOut ) {
-                        break;
-                    } else {
-                        doTimes++;
-                    }
-                }
-            } finally {
-                TransUtils.commitTransaction(db);
-                db.close();
-            }
-        }
-    }
-
-    class QueryThread extends SdbThreadBase {
-        private String hint = null;
-
-        public QueryThread( String hint ) {
-            // TODO Auto-generated constructor stub
-            this.hint = hint;
-        }
-
-        @Override
-        public void exec() throws Exception {
-            int doTimes = 1;
-            int timeOut = 200;
-            while ( true ) {
-                TransUtils.checkRecord( cl1, null, null, "{ _id: 1}", hint,
-                        expList );
-                if ( doTimes == timeOut ) {
-                    break;
-                } else {
-                    doTimes++;
-                }
-            }
-        }
-    }
 }

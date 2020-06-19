@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -30,7 +31,7 @@ public class Transaction20462 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws InterruptedException {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
 
         cl = sdb.getCollectionSpace( csName ).createCollection( clName,
                 ( BSONObject ) JSON.parse( "{Compressed:false}" ) );
@@ -47,13 +48,13 @@ public class Transaction20462 extends SdbTestBase {
         Sequoiadb db3 = null;
 
         try {
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db1 = CommLib.getRandomSequoiadb();
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2 = CommLib.getRandomSequoiadb();
             DBCollection cl2 = db2.getCollectionSpace( csName )
                     .getCollection( clName );
-            db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db3 = CommLib.getRandomSequoiadb();
             DBCollection cl3 = db3.getCollectionSpace( csName )
                     .getCollection( clName );
 
@@ -61,7 +62,8 @@ public class Transaction20462 extends SdbTestBase {
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
                 TransUtils.beginTransaction( db1 );
                 String transID = TransUtils.getTransactionID( db1 );
-                System.out.println( "transID update:" + transID );
+                System.out.println( this.getClass().getName()
+                        + " transID update:" + transID );
                 cl1.update( "", "{$inc:{a:1}}", "{'':'a'}" );
                 TransUtils.commitTransaction( db1 );
 
@@ -76,14 +78,16 @@ public class Transaction20462 extends SdbTestBase {
                     .getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT, "",
                             "{TransactionID:''}", "" )
                     .getCurrent().get( "TransactionID" );
-            System.out.println( "lowTransID:" + transactionID );
+            System.out.println( this.getClass().getName() + " lowTransID:"
+                    + transactionID );
 
             // 更新并执行查询
             for ( int i = 0; i < TransUtils.loopNum; i++ ) {
                 TransUtils.beginTransaction( db3 );
                 TransUtils.beginTransaction( db1 );
                 String transID = TransUtils.getTransactionID( db1 );
-                System.out.println( "transID update:" + transID );
+                System.out.println( this.getClass().getName()
+                        + " transID update:" + transID );
                 cl1.update( "{a:{$gt:0}}", "{$inc:{a:1}}", "{'':'a'}" );
                 TransUtils.commitTransaction( db1 );
 
@@ -93,11 +97,9 @@ public class Transaction20462 extends SdbTestBase {
                         expDataList );
                 TransUtils.commitTransaction( db3 );
             }
+            TransUtils.commitTransaction( db2 );
 
         } finally {
-            TransUtils.commitTransaction( db1 );
-            TransUtils.commitTransaction( db2 );
-            TransUtils.commitTransaction( db3 );
             db1.close();
             db2.close();
             db3.close();
