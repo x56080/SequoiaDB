@@ -37,7 +37,7 @@ public class Transaction20450B extends SdbTestBase {
     private DBCollection clTR1 = null;
     private DBCollection clTW1 = null;
     private DBCollection clTW2 = null;
-    private int recordNum = 1000;
+    private int recordNum = 100;
     private List< BSONObject > expDataList = null;
 
     @BeforeClass
@@ -65,15 +65,15 @@ public class Transaction20450B extends SdbTestBase {
 
         // 2 begin trans TW1 upsert R1s to R3s
         TransUtils.beginTransaction( TW1 );
-        clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
+        clTW1.update( "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r2s'}}",
                 "{'': 'a'}" );
         TW1.rollback();
 
         // 3 TR1 query records
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         List< BSONObject > actList = new ArrayList<>();
@@ -98,9 +98,9 @@ public class Transaction20450B extends SdbTestBase {
         Assert.assertTrue( updateThread.isSuccess() );
         TW2.rollback();
 
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1002}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 102}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1002}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 102}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
     }
 
@@ -125,7 +125,7 @@ public class Transaction20450B extends SdbTestBase {
 
         @Override
         public void exec() throws BaseException {
-            clTW2.update( "{'a': {'$gte': 0, '$lt': 1000}}",
+            clTW2.update( "{'a': {'$gte': 0, '$lt': 100}}",
                     "{'$set': {'b': 'update r2s to r3s'}}", "{'': null}" );
         }
     }

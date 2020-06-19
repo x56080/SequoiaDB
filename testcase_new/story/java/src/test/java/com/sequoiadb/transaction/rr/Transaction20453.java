@@ -38,13 +38,13 @@ public class Transaction20453 extends SdbTestBase {
     public void setUp() {
         sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        TransUtils.insertRandomDatas( cl, 0, 1000 );
+        TransUtils.insertRandomDatas( cl, 0, 100 );
     }
 
     @Test
     public void test() throws InterruptedException {
-        T1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        T2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        T1 = CommLib.getRandomSequoiadb();
+        T2 = CommLib.getRandomSequoiadb();
 
         cl1 = T1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = T2.getCollectionSpace( csName ).getCollection( clName );
@@ -63,7 +63,7 @@ public class Transaction20453 extends SdbTestBase {
             cl.createIndex( "index20453_2", "{a:1,b:1}", false, false );
 
             // 创建索引的过程是同步的，不需要sleep，但是全局事务必须要考虑节点之间的时间差，因此，需要一个sleep时间
-            Thread.sleep( 1000 );
+            Thread.sleep( 100 );
 
             // 开启事务T2
             TransUtils.beginTransaction( T2 );
@@ -82,7 +82,7 @@ public class Transaction20453 extends SdbTestBase {
             Assert.assertEquals( accessPlanNum, 1 );
 
             // T1执行{a:i,b:i}的查询，未命中查询计划缓存
-            BSONObject matcher = ( BSONObject ) JSON.parse( "{a:100,b:100}" );
+            BSONObject matcher = ( BSONObject ) JSON.parse( "{a:10,b:10}" );
             checkAccessPlan( cl1, matcher, 1, "NoCache" );
 
             // T2执行{a:i,b:i}的查询，命中查询计划缓存

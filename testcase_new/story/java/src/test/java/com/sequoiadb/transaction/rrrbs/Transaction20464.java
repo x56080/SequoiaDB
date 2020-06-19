@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -28,7 +29,7 @@ public class Transaction20464 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() throws InterruptedException {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
         // 创建索引后，休眠0.1s，避免索引未创建完成
@@ -45,8 +46,8 @@ public class Transaction20464 extends SdbTestBase {
         Sequoiadb db1 = null;
         Sequoiadb db2 = null;
         try {
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db1 = CommLib.getRandomSequoiadb();
+            db2 = CommLib.getRandomSequoiadb();
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
             DBCollection cl2 = db2.getCollectionSpace( csName )
@@ -62,7 +63,8 @@ public class Transaction20464 extends SdbTestBase {
 
                 // 写事务更新记录
                 String transID = TransUtils.getTransactionID( db1 );
-                System.out.println( "transID update:" + transID );
+                System.out.println( this.getClass().getName()
+                        + " transID update:" + transID );
                 cl1.update( null, "{$inc:{a:1}}", "{'':'a'}" );
                 TransUtils.commitTransaction( db1 );
                 cl1.update( null, "{$inc:{a:1}}", "{'':'a'}" );

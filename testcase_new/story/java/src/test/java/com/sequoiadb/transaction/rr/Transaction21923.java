@@ -32,9 +32,9 @@ public class Transaction21923 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        TransUtils.insertRandomDatas( cl, 0, 1000 );
+        TransUtils.insertRandomDatas( cl, 0, 100 );
     }
 
     @Test
@@ -53,7 +53,7 @@ public class Transaction21923 extends SdbTestBase {
             cl.createIndex( "index21923", "{a:1}", false, false );
 
             // 创建索引的过程是同步的，不需要sleep，但是全局事务必须要考虑节点之间的时间差，因此，需要一个sleep时间
-            Thread.sleep( 1000 );
+            Thread.sleep( 100 );
 
             // 开启事务T2
             TransUtils.beginTransaction( T2 );
@@ -65,8 +65,8 @@ public class Transaction21923 extends SdbTestBase {
             checkAccessPlan( cl2, 1, "ixscan" );
 
         } finally {
-            TransUtils.commitTransaction(T1);
-            TransUtils.commitTransaction(T2);
+            TransUtils.commitTransaction( T1 );
+            TransUtils.commitTransaction( T2 );
         }
 
     }
@@ -87,7 +87,7 @@ public class Transaction21923 extends SdbTestBase {
 
     private void checkAccessPlan( DBCollection cl, int expectRecordNum,
             String expectcanType ) {
-        BSONObject matcher = ( BSONObject ) JSON.parse( "{a:100}" );
+        BSONObject matcher = ( BSONObject ) JSON.parse( "{a:10}" );
         BSONObject options = ( BSONObject ) JSON.parse( "{Run:true}" );
         DBCursor cursor = cl.explain( matcher, null, null, null, 0, -1, 0,
                 options );

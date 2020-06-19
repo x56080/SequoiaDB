@@ -33,7 +33,7 @@ public class Transaction20448B extends SdbTestBase {
     private DBCollection cl = null;
     private DBCollection clT1 = null;
     private DBCollection clT2 = null;
-    private int recordNum = 1000;
+    private int recordNum = 100;
     private List< BSONObject > expDataList = null;
 
     @BeforeClass
@@ -56,28 +56,28 @@ public class Transaction20448B extends SdbTestBase {
 
         // 1 begin trans T1 read
         TransUtils.beginTransaction( T1 );
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 2 begin trans T2 update R1S to R2s
         TransUtils.beginTransaction( T2 );
-        clT2.update( "{'a': {'$gte': 0, '$lt': 1000}}", "{'$inc': {'a': 1000}}",
+        clT2.update( "{'a': {'$gte': 0, '$lt': 100}}", "{'$inc': {'a': 100}}",
                 "{'': 'a'}" );
         T2.rollback();
 
         // T1 read
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
-        clT1.update( "{'a': {'$gte': 0, '$lt': 1000}}", "{'$inc': {'a': 2000}}",
+        clT1.update( "{'a': {'$gte': 0, '$lt': 100}}", "{'$inc': {'a': 200}}",
                 "{'': 'a'}" );
 
         DBCursor cur = clT1.queryAndUpdate(
-                ( BSONObject ) JSON.parse( "{'a': {'$gte': 0, '$lt': 1000}}" ),
+                ( BSONObject ) JSON.parse( "{'a': {'$gte': 0, '$lt': 100}}" ),
                 null, null, ( BSONObject ) JSON.parse( "{'': 'a'}" ),
                 ( BSONObject ) JSON
                         .parse( "{'$set': {'b': 'update r1s to r3s'}}" ),
@@ -87,10 +87,10 @@ public class Transaction20448B extends SdbTestBase {
         }
         cur.close();
 
-        clT1.delete( "{'a': {'$gte': 0, '$lt': 1000}}", "{'': 'a'}" );
+        clT1.delete( "{'a': {'$gte': 0, '$lt': 100}}", "{'': 'a'}" );
 
         DBCursor cur1 = clT1.queryAndRemove(
-                ( BSONObject ) JSON.parse( "{'a': {'$gte': 0, '$lt': 1000}}" ),
+                ( BSONObject ) JSON.parse( "{'a': {'$gte': 0, '$lt': 100}}" ),
                 null, null, ( BSONObject ) JSON.parse( "{'': 'a'}" ), 0, -1,
                 0 );
         while ( cur1.hasNext() ) {
@@ -99,12 +99,12 @@ public class Transaction20448B extends SdbTestBase {
         cur1.close();
 
         List< BSONObject > t1ExpList = new ArrayList<>();
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", t1ExpList );
-        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clT1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", t1ExpList );
 
-        TransUtils.commitTransaction(T1);
+        TransUtils.commitTransaction( T1 );
     }
 
     @AfterClass

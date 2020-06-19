@@ -29,7 +29,7 @@ public class Transaction20449A extends SdbTestBase {
     private DBCollection cl = null;
     private DBCollection clTR1 = null;
     private DBCollection clTW1 = null;
-    private int recordNum = 1000;
+    private int recordNum = 100;
     private List< BSONObject > expDataList = null;
 
     @BeforeClass
@@ -52,34 +52,33 @@ public class Transaction20449A extends SdbTestBase {
 
         // 1 begin trans TR1 read
         TransUtils.beginTransaction( TR1 );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
         // 2 begin trans TW1 upsert R1s to R3s
         TransUtils.beginTransaction( TW1 );
         clTW1.upsert(
-                ( BSONObject ) JSON.parse( "{'a': {'$gte': 0, '$lt': 1000}}" ),
+                ( BSONObject ) JSON.parse( "{'a': {'$gte': 0, '$lt': 100}}" ),
                 ( BSONObject ) JSON.parse(
                         "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r3s'}}" ),
                 ( BSONObject ) JSON.parse( "{'': 'a'}" ) );
         clTW1.upsert(
-                ( BSONObject ) JSON
-                        .parse( "{'a': {'$gte': 2000, '$lt': 3000}}" ),
+                ( BSONObject ) JSON.parse( "{'a': {'$gte': 200, '$lt': 300}}" ),
                 ( BSONObject ) JSON.parse(
                         "{'$inc':{a: 1}, '$set': {'b': 'update r2s to r4s'}}" ),
                 ( BSONObject ) JSON.parse( "{'': 'a'}" ) );
-        TransUtils.commitTransaction(TW1);
+        TransUtils.commitTransaction( TW1 );
 
         // 1 trans TR1 read
         TransUtils.beginTransaction( TR1 );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': 'a'}", expDataList );
 
-        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction( TR1 );
     }
 
     @AfterClass

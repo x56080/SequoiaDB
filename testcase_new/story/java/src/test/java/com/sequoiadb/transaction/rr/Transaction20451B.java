@@ -34,7 +34,7 @@ public class Transaction20451B extends SdbTestBase {
     private DBCollection mainCL = null;
     private DBCollection clTR1 = null;
     private DBCollection clTW1 = null;
-    private int recordNum = 1000;
+    private int recordNum = 100;
     private List< BSONObject > expDataList = null;
 
     @BeforeClass
@@ -46,7 +46,7 @@ public class Transaction20451B extends SdbTestBase {
         mainCS.createCollection( subCLName1 );
         mainCS.createCollection( subCLName2 );
         mainCL.attachCollection( csName + "." + subCLName1, ( BSONObject ) JSON
-                .parse( "{LowBound:{a: 0}, UpBound:{a: 2000}}" ) );
+                .parse( "{LowBound:{a: 0}, UpBound:{a: 200}}" ) );
         mainCL.createIndex( "a", "{a:-1}", false, false );
         // 创建索引后，休眠0.1s，避免索引未创建完成
         Thread.sleep( 100 );
@@ -66,30 +66,30 @@ public class Transaction20451B extends SdbTestBase {
 
         // 2 begin trans TW1 upsert R1s to R2s
         TransUtils.beginTransaction( TW1 );
-        clTW1.update( "{'a': {'$gte': 0, '$lt': 1000}}",
+        clTW1.update( "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'$inc':{a: 1}, '$set': {'b': 'update r1s to r2s'}}",
                 "{'': 'a'}" );
         TransUtils.commitTransaction( TW1 );
 
         // 3 trans TR1 read
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'a': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'a': 1}", "{'': 'a'}", expDataList );
 
         // attachCL
         mainCL.attachCollection( csName + "." + subCLName2, ( BSONObject ) JSON
-                .parse( "{LowBound:{a: 2000}, UpBound:{a: 4000}}" ) );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+                .parse( "{LowBound:{a: 200}, UpBound:{a: 400}}" ) );
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'a': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'a': 1}", "{'': 'a'}", expDataList );
 
         // detachCL
         mainCL.detachCollection( csName + "." + subCLName2 );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'a': 1}", "{'': null}", expDataList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'a': 1}", "{'': 'a'}", expDataList );
 
         TransUtils.commitTransaction( TR1 );

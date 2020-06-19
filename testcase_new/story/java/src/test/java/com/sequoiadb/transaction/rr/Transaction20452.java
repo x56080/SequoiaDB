@@ -38,13 +38,13 @@ public class Transaction20452 extends SdbTestBase {
     public void setUp() {
         sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
-        TransUtils.insertRandomDatas( cl, 0, 1000 );
+        TransUtils.insertRandomDatas( cl, 0, 100 );
     }
 
     @Test
     public void test() throws InterruptedException {
-        T1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        T2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        T1 = CommLib.getRandomSequoiadb();
+        T2 = CommLib.getRandomSequoiadb();
 
         cl1 = T1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = T2.getCollectionSpace( csName ).getCollection( clName );
@@ -57,7 +57,7 @@ public class Transaction20452 extends SdbTestBase {
             cl.createIndex( "index20452", "{a:1}", false, false );
 
             // 创建索引的过程是同步的，不需要sleep，但是全局事务必须要考虑节点之间的时间差，因此，需要一个sleep时间
-            Thread.sleep( 1000 );
+            Thread.sleep( 100 );
 
             // 开启事务T2
             TransUtils.beginTransaction( T2 );
@@ -105,7 +105,7 @@ public class Transaction20452 extends SdbTestBase {
 
     private void checkAccessPlan( DBCollection cl, int expectRecordNum,
             String expectCacheStatus ) {
-        BSONObject matcher = ( BSONObject ) JSON.parse( "{a:100}" );
+        BSONObject matcher = ( BSONObject ) JSON.parse( "{a:10}" );
         BSONObject options = ( BSONObject ) JSON
                 .parse( "{Run:true,Detail:true}" );
         DBCursor cursor = cl.explain( matcher, null, null, null, 0, -1, 0,

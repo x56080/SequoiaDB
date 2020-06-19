@@ -51,26 +51,26 @@ public class Transaction20541 extends SdbTestBase {
         TransUtils.beginTransaction( TW1 );
 
         List< BSONObject > expList = TransUtils.insertRandomDatas( clTW1, 0,
-                1000 );
+                100 );
 
         List< BSONObject > expList1 = new ArrayList<>();
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'_id': 1}", "{'': null}", expList1 );
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'_id': 1}", "{'': 'a'}", expList1 );
 
-        TransUtils.commitTransaction(TW1);
+        TransUtils.commitTransaction( TW1 );
 
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'_id': 1}", "{'': null}", expList1 );
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'_id': 1}", "{'': 'a'}", expList1 );
 
-        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction( TR1 );
 
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'_id': 1}", "{'': null}", expList );
-        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 1000}}",
+        TransUtils.queryAndCheck( clTR1, "{'a': {'$gte': 0, '$lt': 100}}",
                 "{'_id': 1}", "{'': 'a'}", expList );
     }
 
