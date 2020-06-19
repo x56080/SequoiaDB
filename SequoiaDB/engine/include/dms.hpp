@@ -121,6 +121,7 @@ namespace engine
 #define DMS_INVALID_CLID            ~0
 #define DMS_INVALID_OFFSET          -1
 #define DMS_INVALID_EXTENT          -1
+#define DMS_MAX_SCANNED_EXTENT      OSS_SINT32_MAX
 #define DMS_INVALID_MBID            65535
 #define DMS_INVALID_PAGESIZE        0
 #define DMS_INVALID_LOGICCSID       0xffffffff

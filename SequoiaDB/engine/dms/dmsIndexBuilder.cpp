@@ -315,7 +315,16 @@ namespace engine
 
    INT32 _dmsIndexBuilder::_afterExtent()
    {
-      _indexCB->scanExtLID ( _extent->_logicID ) ;
+      if ( DMS_INVALID_EXTENT == _extent->_nextExtent )
+      {
+         // done scan, set scanned extent to maximum value
+         // so coming write operators will update this index
+         _indexCB->scanExtLID( DMS_MAX_SCANNED_EXTENT ) ;
+      }
+      else
+      {
+         _indexCB->scanExtLID ( _extent->_logicID ) ;
+      }
       return SDB_OK ;
    }
 
