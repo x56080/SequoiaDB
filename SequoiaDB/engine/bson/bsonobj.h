@@ -260,6 +260,7 @@ namespace bson {
             element if not found.
         */
         BSONElement getField(const StringData& name) const;
+        BSONElement getField(const char *name) const;
 
         /** Get several fields at once. This is faster than separate getField() calls as the size of
             elements iterated can then be calculated only once each.
