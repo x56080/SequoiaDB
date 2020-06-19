@@ -276,3 +276,39 @@ function getCursorResult( cursor )
    cursor.close();
    return cursorResult;
 }
+
+/*******************************************************************************
+@Description : 插入测试数据
+@Modify list : 2020-05-31 wuyan init
+*******************************************************************************/
+function insertRecs( dbcl, recsNum )
+{
+   if( typeof ( recsNum ) == "undefined" ) { recsNum = 100; }
+   var doc = [];
+   for( var i = 0; i < recsNum; i++ )
+   {
+      doc.push( { a: i, no: i, b:i, c: "test"+ i } );
+   }
+   dbcl.insert( doc );
+}
+
+/*******************************************************************************
+@Description : 直连主节点获取集合快照
+@Modify list : 2020-05-31 wuyan init
+*******************************************************************************/
+function getCLSnapshotFromMasterNode(groupName, clName)
+{
+   try
+   {
+      var masterNode = db.getRG( groupName ).getMaster();
+      var masterdb = new Sdb( masterNode.getHostName(),masterNode.getServiceName());      
+      var clSnapshotInfo = masterdb.snapshot(SDB_SNAP_COLLECTIONS,{ Name:COMMCSNAME + "." + clName}).next().toObj();
+   }
+   finally
+   {
+      if( masterdb !== undefined ){
+         masterdb.close();
+      }      
+   }   
+   return clSnapshotInfo;
+}

@@ -473,4 +473,18 @@ function Collection ( cl )
       {
          return cl.toString();
       }
+   
+   this.getDetail =
+      function()
+      {
+         try
+         {
+            var cursor = cl.getDetail();
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+         return new Cursor( cursor );
+      }
 }
