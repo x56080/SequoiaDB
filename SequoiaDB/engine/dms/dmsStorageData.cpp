@@ -496,22 +496,28 @@ namespace engine
             // if original record was not migrated, do the migration now
             if ( !(pRecord->hasGlobTransID()) )
             {
-               PD_LOG ( PDDEBUG, 
+               PD_LOG ( PDDEBUG,
                         "In-flight migration of record during update object(%s) ",
                         recordRW.toString().c_str() ) ;
                // No need to move data for OVF record
                pRecord->migrateFromV0( FALSE ) ;
             }
 
-            SDB_ASSERT( pRecord->hasGlobTransID(), 
+            SDB_ASSERT( pRecord->hasGlobTransID(),
                         "Original record was not migrated properly!") ;
-
-            // set or restore transID in record header
-            _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
 
             pRecord->setOvf() ;
             pRecord->setOvfRID( foundDeletedID ) ;
- 
+
+            // set or restore transID in record header
+            // NOTE: if in transaction rollback, the overflow-to record is
+            //       inserted back without setting transaction ID since
+            //       the RID of overflow-to record is not in old versions
+            //       only after we set link with overflow-from, we could
+            //       find the actual RID back from overflow-from record
+            _setRecordGlobTransID( context, recordRW, cb,
+                                   cb->isInTransRollback() ) ;
+
             /// sub the remove data info
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
             context->mbStat()->_totalOrgDataLen -= recordData.len() ;
