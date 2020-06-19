@@ -37,10 +37,10 @@
 删除数据表
 ---
 
-从数据表列表中，点击需要删除的数据表表 **X** 按钮，点击 **确定** 删除。
+从数据表列表中，点击需要删除的数据表 **X** 按钮，点击 **确定** 删除。
 
 > **Note:**  
 > 系统表不能删除。
 
-![删除数据表](sac/data_operation/PostgreSQL/drop_table.png)
+![删除数据表](sac/postgresql_data/database_5.png)
 

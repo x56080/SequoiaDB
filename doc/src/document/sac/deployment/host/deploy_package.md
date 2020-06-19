@@ -6,7 +6,7 @@
 
 1. 在 **部署** 页面勾选需要部署包的主机，点击 **主机操作 - 部署包** 进入配置页面。
 
-   ![部署包](sac/deployment/deploy_package_1.png)
+   ![部署包](sac/deployment/host/deploy_package_1.png)
 
 2. 填写好参数之后，点击下一步进行安装。
 
@@ -18,12 +18,12 @@
    > **用户名：**  
    > 支持 root 和 sudo 权限的用户。
 
-   ![部署包](sac/deployment/deploy_package_2.png)
+   ![部署包](sac/deployment/host/deploy_package_2.png)
 
 3. 安装完成。
 
-   ![部署包](sac/deployment/deploy_package_3.png)
+   ![部署包](sac/deployment/host/deploy_package_3.png)
 
 4. 点击 **完成**，回到 **部署** 页面，查看主机，可以看见主机已经安装 MySQL。
 
-   ![部署包](sac/deployment/deploy_package_4.png)
+   ![部署包](sac/deployment/host/deploy_package_4.png)
