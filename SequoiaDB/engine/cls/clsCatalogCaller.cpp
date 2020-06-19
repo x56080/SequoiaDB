@@ -83,8 +83,7 @@ namespace engine
       }
 
       ossMemcpy( meta.header, header, header->messageLength ) ;
-      PD_LOG( PDEVENT, "send msg[%d] to catalog node.",
-              meta.header->opCode ) ;
+      PD_LOG( PDINFO, "send msg[%d] to catalog node.", meta.header->opCode ) ;
 
       /// reset info
       meta.timeout = 0 ;
@@ -107,7 +106,7 @@ namespace engine
       callerMeta::iterator itr = _meta.find( header->opCode ) ;
       if ( _meta.end() != itr && SDB_OK == result )
       {
-         PD_LOG( PDEVENT, "response is ok, remove msg[(%d)%d]",
+         PD_LOG( PDINFO, "response is ok, remove msg[(%d)%d]",
                  IS_REPLY_TYPE( header->opCode ),
                  GET_REQUEST_TYPE( header->opCode ) ) ;
 
