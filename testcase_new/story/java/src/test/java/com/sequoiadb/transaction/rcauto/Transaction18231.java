@@ -65,7 +65,7 @@ public class Transaction18231 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
 
@@ -97,7 +97,7 @@ public class Transaction18231 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(), -13 );
         } finally {
-            db1.commit();
+            TransUtils.commitTransaction( db1 );
         }
 
         cursor = cl.query( "", "", "{a:1, b:1}", "" );
@@ -105,7 +105,7 @@ public class Transaction18231 extends SdbTestBase {
         Assert.assertEquals( actList, expList );
     }
 
-    private void insertData() {
+    private void insertData() throws InterruptedException {
         List< BSONObject > records = new ArrayList<>();
         for ( int i = 0; i < 51; i++ ) {
             BSONObject record = ( BSONObject ) JSON
@@ -115,5 +115,6 @@ public class Transaction18231 extends SdbTestBase {
         expList.addAll( records );
         Collections.shuffle( records );
         cl.insert( records );
+        Thread.sleep( 100 );
     }
 }

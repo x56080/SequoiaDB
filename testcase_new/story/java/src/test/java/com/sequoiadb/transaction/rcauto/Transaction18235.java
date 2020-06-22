@@ -92,7 +92,7 @@ public class Transaction18235 extends SdbTestBase {
         cl1.delete( "{b:{$gte: 4000, $lt: 4500}}", null );
         List< BSONObject > datas5 = TransUtils.getUpdateDatas( 4500, 5000, 5 );
 
-        sdb1.commit();
+        TransUtils.commitTransaction( sdb1 );
 
         // 索引扫描记录
         expList.clear();

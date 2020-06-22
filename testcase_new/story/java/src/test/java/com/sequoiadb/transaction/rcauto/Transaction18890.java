@@ -62,7 +62,7 @@ public class Transaction18890 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         // 插入记录
         insertData();
 
@@ -76,7 +76,7 @@ public class Transaction18890 extends SdbTestBase {
         cursor1.close();
     }
 
-    private void insertData() {
+    private void insertData() throws InterruptedException {
         for ( int j = 0; j < 10; j++ ) {
             List< BSONObject > records = new ArrayList<>();
             for ( int i = 0; i < 1000; i++ ) {
@@ -87,6 +87,7 @@ public class Transaction18890 extends SdbTestBase {
             Collections.shuffle( records );
             cl.insert( records );
         }
+        Thread.sleep( 100 );
 
     }
 }

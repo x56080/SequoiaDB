@@ -73,7 +73,7 @@ public class Transaction18233 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         BSONObject record = ( BSONObject ) JSON.parse( "{_id:0, a:0, b:0}" );
         cl.insert( record );
         expList.add( record );
@@ -95,7 +95,7 @@ public class Transaction18233 extends SdbTestBase {
         Assert.assertEquals( actList, expList );
     }
 
-    private void insertData() {
+    private void insertData() throws InterruptedException {
         List< BSONObject > records = new ArrayList<>();
         for ( int i = 0; i < 2000; i++ ) {
             BSONObject record = ( BSONObject ) JSON
@@ -104,5 +104,6 @@ public class Transaction18233 extends SdbTestBase {
         }
         Collections.shuffle( records );
         cl.insert( records );
+        Thread.sleep( 100 );
     }
 }

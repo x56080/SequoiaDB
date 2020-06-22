@@ -61,7 +61,7 @@ public class Transaction18230 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         // 在集合中创建正序的唯一索引，比如：a为唯一索引，并插入多条包含索引字段的记录R1s
         cl.createIndex( "idx18230", "{a:1, b:1}", true, false );
         insertData();
@@ -96,7 +96,7 @@ public class Transaction18230 extends SdbTestBase {
         Assert.assertEquals( actList, expList );
     }
 
-    private void insertData() {
+    private void insertData() throws InterruptedException {
         List< BSONObject > records = new ArrayList<>();
         for ( int i = 0; i < 99; i++ ) {
             BSONObject record = ( BSONObject ) JSON
@@ -108,5 +108,6 @@ public class Transaction18230 extends SdbTestBase {
         expList.addAll( records );
         Collections.shuffle( records );
         cl.insert( records );
+        Thread.sleep( 100 );
     }
 }
