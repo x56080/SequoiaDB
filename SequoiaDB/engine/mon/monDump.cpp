@@ -4551,83 +4551,99 @@ namespace engine
       ossTimestamp endTS = _queryCB->getEndTS() ;
       CHAR   timestamp[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
       UINT32 seconds, microseconds ;
-      double responseTime ;
-      double latchWaitTime ;
-      double lockWaitTime ;
+      FLOAT64 responseTime ;
+      FLOAT64 latchWaitTime ;
+      FLOAT64 lockWaitTime ;
       ossTickConversionFactor factor ;
       SDB_ROLE role = pmdGetKRCB()->getDBRole() ;
 
-      _builder.reset() ;
-      BSONObjBuilder builder( _builder ) ;
-
-      ossTimestampToString ( createTS, timestamp ) ;
-      _queryCB->responseTime.convertToTime ( factor, seconds, microseconds ) ;
-      responseTime = (double)(seconds*1000) + ( (double)(microseconds) / 1000) ;
-
-      /// add system info
-      monAppendSystemInfo( builder, _addInfoMask ) ;
-      builder.append( FIELD_NAME_STARTTIMESTAMP, timestamp ) ;
-
-      ossTimestampToString ( endTS, timestamp ) ;
-      builder.append( FIELD_NAME_ENDTIMESTAMP, timestamp ) ;
-      builder.append( FIELD_NAME_TID, _queryCB->tid ) ;
-      //FIXME: PASSING IN FALSE AS DEFAULT
-      builder.append( FIELD_NAME_OPTYPE,
-                    msgType2String( (MSG_TYPE)_queryCB->opCode, FALSE ) ) ;
-
-      builder.append( FIELD_NAME_NAME, _queryCB->name.c_str() ) ;
-      builder.append( FIELD_NAME_QUERYTIMESPENT, responseTime ) ;
-      builder.append( FIELD_NAME_RETURN_NUM, _queryCB->rowsReturned ) ;
-
-      if ( SDB_ROLE_COORD == role )
+      try
       {
-         double nodeWaitTime ;
-         double msgSentTime ;
-         _queryCB->remoteNodesResponseTime.convertToTime ( factor, seconds, microseconds ) ;
-         nodeWaitTime = (double)(seconds*1000) + ( (double)(microseconds) / 1000) ;
+         _builder.reset() ;
+         BSONObjBuilder builder( _builder ) ;
 
-         _queryCB->msgSentTime.convertToTime ( factor, seconds, microseconds ) ;
-         msgSentTime = (double)(seconds*1000) + ( (double)(microseconds) / 1000) ;
-         builder.append( FIELD_NAME_NUM_MSG_SENT, _queryCB->numMsgSent ) ;
-         builder.append( FIELD_NAME_LASTOPINFO, _queryCB->queryText.c_str() ) ;
-         builder.append( FIELD_NAME_MSG_SENT_TIME, msgSentTime ) ;
-         builder.append( FIELD_NAME_NODEWAITTIME, nodeWaitTime ) ;
-         if ( _queryCB->nodes.size() > 0 )
+         ossTimestampToString ( createTS, timestamp ) ;
+         _queryCB->responseTime.convertToTime ( factor, seconds, microseconds ) ;
+         responseTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+
+         /// add system info
+         rc = monAppendSystemInfo( builder, _addInfoMask ) ;
+         PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
+                      rc ) ;
+
+         builder.append( FIELD_NAME_STARTTIMESTAMP, timestamp ) ;
+
+         ossTimestampToString ( endTS, timestamp ) ;
+         builder.append( FIELD_NAME_ENDTIMESTAMP, timestamp ) ;
+         builder.append( FIELD_NAME_TID, _queryCB->tid ) ;
+         //FIXME: PASSING IN FALSE AS DEFAULT
+         builder.append( FIELD_NAME_OPTYPE,
+                         msgType2String( (MSG_TYPE)_queryCB->opCode, FALSE ) ) ;
+
+         builder.append( FIELD_NAME_NAME, _queryCB->name.c_str() ) ;
+         builder.append( FIELD_NAME_QUERYTIMESPENT, responseTime ) ;
+         builder.append( FIELD_NAME_RETURN_NUM, _queryCB->rowsReturned ) ;
+
+         if ( SDB_ROLE_COORD == role )
          {
-            builder.append( FIELD_NAME_RELATED_NODE, _queryCB->nodes ) ;
+            FLOAT64 nodeWaitTime ;
+            FLOAT64 msgSentTime ;
+            _queryCB->remoteNodesResponseTime.convertToTime ( factor, seconds, microseconds ) ;
+            nodeWaitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+
+            _queryCB->msgSentTime.convertToTime ( factor, seconds, microseconds ) ;
+            msgSentTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+            builder.append( FIELD_NAME_NUM_MSG_SENT, _queryCB->numMsgSent ) ;
+            builder.append( FIELD_NAME_LASTOPINFO, _queryCB->queryText.c_str() ) ;
+            builder.append( FIELD_NAME_MSG_SENT_TIME, msgSentTime ) ;
+            builder.append( FIELD_NAME_NODEWAITTIME, nodeWaitTime ) ;
+            if ( _queryCB->nodes.size() > 0 )
+            {
+               builder.append( FIELD_NAME_RELATED_NODE, _queryCB->nodes ) ;
+            }
          }
+         else
+         {
+            _queryCB->latchWaitTime.convertToTime ( factor, seconds, microseconds ) ;
+            latchWaitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+
+            _queryCB->lockWaitTime.convertToTime ( factor, seconds, microseconds ) ;
+            lockWaitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+
+            builder.append( FIELD_NAME_RELATED_NID, _queryCB->relatedNID.columns.nodeID ) ;
+            builder.append( FIELD_NAME_RELATED_TID, _queryCB->relatedTID ) ;
+            builder.append( FIELD_NAME_SESSIONID, _queryCB->sessionID ) ;
+            builder.append( FIELD_NAME_ACCESSPLAN_ID, _queryCB->accessPlanID ) ;
+            builder.append( FIELD_NAME_DATAREAD, _queryCB->dataRead ) ;
+            builder.append( FIELD_NAME_DATAWRITE, _queryCB->dataWrite ) ;
+            builder.append( FIELD_NAME_INDEXREAD, _queryCB->indexRead ) ;
+            builder.append( FIELD_NAME_INDEXWRITE, _queryCB->indexWrite ) ;
+            builder.append( FIELD_NAME_LOBREAD, _queryCB->lobRead ) ;
+            builder.append( FIELD_NAME_LOBWRITE, _queryCB->lobWrite ) ;
+            builder.append( FIELD_NAME_TRANS_WAITLOCKTIME, lockWaitTime ) ;
+            builder.append( FIELD_NAME_LATCH_WAIT_TIME, latchWaitTime ) ;
+         }
+
+         _queryCB = (monClassQuery*)_scanner->getNext() ;
+
+         if ( NULL == _queryCB )
+         {
+            _hitEnd = TRUE ;
+         }
+
+         obj = builder.done() ;
       }
-      else
+      catch ( std::exception &e )
       {
-         _queryCB->latchWaitTime.convertToTime ( factor, seconds, microseconds ) ;
-         latchWaitTime = (double)(seconds*1000) + ( (double)(microseconds) / 1000) ;
-
-         _queryCB->lockWaitTime.convertToTime ( factor, seconds, microseconds ) ;
-         lockWaitTime = (double)(seconds*1000) + ( (double)(microseconds) / 1000) ;
-
-         builder.append( FIELD_NAME_RELATED_NID, _queryCB->relatedNID.columns.nodeID ) ;
-         builder.append( FIELD_NAME_RELATED_TID, _queryCB->relatedTID ) ;
-         builder.append( FIELD_NAME_SESSIONID, _queryCB->sessionID ) ;
-         builder.append( FIELD_NAME_ACCESSPLAN_ID, _queryCB->accessPlanID ) ;
-         builder.append( FIELD_NAME_DATAREAD, _queryCB->dataRead ) ;
-         builder.append( FIELD_NAME_DATAWRITE, _queryCB->dataWrite ) ;
-         builder.append( FIELD_NAME_INDEXREAD, _queryCB->indexRead ) ;
-         builder.append( FIELD_NAME_INDEXWRITE, _queryCB->indexWrite ) ;
-         builder.append( FIELD_NAME_LOBREAD, _queryCB->lobRead ) ;
-         builder.append( FIELD_NAME_LOBWRITE, _queryCB->lobWrite ) ;
-         builder.append( FIELD_NAME_TRANS_WAITLOCKTIME, lockWaitTime ) ;
-         builder.append( FIELD_NAME_LATCH_WAIT_TIME, latchWaitTime ) ;
+         PD_LOG ( PDWARNING, "Failed to create BSON for query, %s",
+                  e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
       }
-
-      _queryCB = (monClassQuery*)_scanner->getNext() ;
-
-      if ( NULL == _queryCB )
-      {
-         _hitEnd = TRUE ;
-      }
-
-      obj = builder.done() ;
+   done:
       return rc ;
+   error:
+      goto done ;
    }
 
    IMPLEMENT_FETCH_AUTO_REGISTER( _monLatchWaitsFetch )
@@ -4698,65 +4714,85 @@ namespace engine
       CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
       CHAR addr[16] = { 0 } ;
       UINT32 seconds, microseconds ;
-      double waitTime ;
+      FLOAT64 waitTime ;
       ossTickConversionFactor factor ;
 
-      _builder.reset() ;
-      BSONObjBuilder builder( _builder ) ;
-
-      ossTimestamp createTS = _latchCB->getCreateTS() ;
-      ossTimestampToString ( createTS, timestamp ) ;
-
-      if ( !_viewArchive )
+      try
       {
-         ossTick now ;
-         now.sample() ;
-         ossTickDelta delta = now - _latchCB->getCreateTSTick() ;
-         delta.convertToTime ( factor, seconds, microseconds ) ;
-      }
-      else
-      {
-         _latchCB->waitTime.convertToTime ( factor, seconds, microseconds ) ;
-      }
+         _builder.reset() ;
+         BSONObjBuilder builder( _builder ) ;
 
-      waitTime = (double)(seconds*1000) + ( (double)(microseconds) / 1000) ;
+         ossTimestamp createTS = _latchCB->getCreateTS() ;
+         ossTimestampToString ( createTS, timestamp ) ;
 
-      /// add system info
-      monAppendSystemInfo( builder, _addInfoMask ) ;
+         if ( !_viewArchive )
+         {
+            ossTick now ;
+            now.sample() ;
+            ossTickDelta delta = now - _latchCB->getCreateTSTick() ;
+            delta.convertToTime ( factor, seconds, microseconds ) ;
+         }
+         else
+         {
+            _latchCB->waitTime.convertToTime ( factor, seconds, microseconds ) ;
+         }
 
-      ossSnprintf( addr, sizeof(addr)-1, "%p", _latchCB->latchAddr ) ;
-      builder.append( FIELD_NAME_ADDRESS, addr ) ;
-      if ( EXCLUSIVE == _latchCB->latchMode )
-      {
-         builder.append( FIELD_NAME_MODE, "X" ) ;
-      }
-      else
-      {
-         builder.append( FIELD_NAME_MODE, "S" ) ;
-      }
+         waitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
 
-      if ( _viewArchive )
-      {
+         /// add system info
+         rc = monAppendSystemInfo( builder, _addInfoMask ) ;
+         PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
+                      rc ) ;
+
+         builder.append( FIELD_NAME_WAITER_TID, _latchCB->waiterTID ) ;
+         if ( EXCLUSIVE == _latchCB->latchMode )
+         {
+            builder.append( FIELD_NAME_REQUIRED_MODE, "X" ) ;
+         }
+         else
+         {
+            builder.append( FIELD_NAME_REQUIRED_MODE, "S" ) ;
+         }
+         builder.append( FIELD_NAME_LATCH_NAME, monLatchIDtoName(_latchCB->latchID) ) ;
+
+         ossSnprintf( addr, sizeof(addr)-1, "%p", _latchCB->latchAddr ) ;
+         builder.append( FIELD_NAME_ADDRESS, addr ) ;
          builder.append( FIELD_NAME_STARTTIMESTAMP, timestamp ) ;
+         builder.append( FIELD_NAME_LATCH_WAIT_TIME, waitTime ) ;
+
+         if ( _latchCB->xOwnerTID )
+         {
+            builder.append( FIELD_NAME_LATEST_OWNER, _latchCB->xOwnerTID ) ;
+            builder.append( FIELD_NAME_LATEST_OWNER_MODE, "X" ) ;
+         }
+         else
+         {
+            builder.append( FIELD_NAME_LATEST_OWNER, _latchCB->lastSOwner ) ;
+            builder.append( FIELD_NAME_LATEST_OWNER_MODE, "S" ) ;
+         }
+         builder.append( FIELD_NAME_NUM_OWNER, _latchCB->numOwner ) ;
+
+         _latchCB = (monClassLatch*)_scanner->getNext() ;
+
+         if ( NULL == _latchCB )
+         {
+            _hitEnd = TRUE ;
+         }
+
+         obj = builder.done() ;
       }
-
-      builder.append( FIELD_NAME_TID, _latchCB->waiterTID ) ;
-      builder.append( FIELD_NAME_XOWNER_TID, _latchCB->xOwnerTID ) ;
-      builder.append( FIELD_NAME_LATCH_NAME, monLatchIDtoName(_latchCB->latchID) ) ;
-      builder.append( FIELD_NAME_LATCH_DESC, "" ) ;
-      builder.append( FIELD_NAME_LATCH_WAIT_TIME, waitTime ) ;
-      builder.append( FIELD_NAME_NUM_OWNER, _latchCB->numOwner ) ;
-      builder.append( FIELD_NAME_LAST_S_OWNER, _latchCB->lastSOwner ) ;
-
-      _latchCB = (monClassLatch*)_scanner->getNext() ;
-
-      if ( NULL == _latchCB )
+      catch ( std::exception &e )
       {
-         _hitEnd = TRUE ;
+         PD_LOG ( PDWARNING, "Failed to create BSON for latch wait, %s",
+                  e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
       }
-
-      obj = builder.done() ;
+   done:
       return rc ;
+   error:
+      goto done ;
+
    }
 
    IMPLEMENT_FETCH_AUTO_REGISTER( _monLockWaitsFetch )
@@ -4826,51 +4862,67 @@ namespace engine
    INT32 _monLockWaitsFetch::fetch( BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
-      _builder.reset() ;
-      BSONObjBuilder builder( _builder ) ;
 
       CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
 
       UINT32 seconds, microseconds ;
-      double waitTime ;
+      FLOAT64 waitTime ;
       ossTickConversionFactor factor ;
 
-      ossTimestamp createTS = _lockCB->getCreateTS() ;
-      ossTimestampToString ( createTS, timestamp ) ;
+      try
+      {
+         _builder.reset() ;
+         BSONObjBuilder builder( _builder ) ;
+         ossTimestamp createTS = _lockCB->getCreateTS() ;
+         ossTimestampToString ( createTS, timestamp ) ;
 
-      if ( !_viewArchive )
-      {
-         ossTick now ;
-         now.sample() ;
-         ossTickDelta delta = now - _lockCB->getCreateTSTick() ;
-         delta.convertToTime ( factor, seconds, microseconds ) ;
-      }
-      else
-      {
-         _lockCB->waitTime.convertToTime ( factor, seconds, microseconds ) ;
-      }
+         if ( !_viewArchive )
+         {
+            ossTick now ;
+            now.sample() ;
+            ossTickDelta delta = now - _lockCB->getCreateTSTick() ;
+            delta.convertToTime ( factor, seconds, microseconds ) ;
+         }
+         else
+         {
+            _lockCB->waitTime.convertToTime ( factor, seconds, microseconds ) ;
+         }
 
-      if ( _viewArchive )
-      {
+         waitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
+
+         rc = monAppendSystemInfo( builder, _addInfoMask ) ;
+         PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
+                      rc ) ;
+
+         builder.append( FIELD_NAME_WAITER_TID, _lockCB->waiterTID ) ;
+         builder.append( FIELD_NAME_REQUIRED_MODE, lockModeToString( _lockCB->lockMode ) );
+         _lockCB->lockID.toBson(builder) ;
          builder.append( FIELD_NAME_STARTTIMESTAMP, timestamp ) ;
+         builder.append( FIELD_NAME_TRANS_WAITLOCKTIME, waitTime ) ;
+         builder.append( FIELD_NAME_LATEST_OWNER, _lockCB->xOwnerTID ) ;
+         builder.append( FIELD_NAME_LATEST_OWNER_MODE, "X" ) ;
+         builder.append( FIELD_NAME_NUM_OWNER, _lockCB->numOwner ) ;
+
+         _lockCB = (monClassLock*)_scanner->getNext() ;
+
+         if ( NULL == _lockCB )
+         {
+            _hitEnd = TRUE ;
+         }
+
+         obj = builder.done() ;
       }
-      waitTime = (double)(seconds*1000) + ( (double)(microseconds) / 1000) ;
-      builder.append( FIELD_NAME_TID, _lockCB->waiterTID ) ;
-      builder.append( FIELD_NAME_XOWNER_TID, _lockCB->xOwnerTID ) ;
-      builder.append( FIELD_NAME_MODE, lockModeToString( _lockCB->lockMode ) );
-      _lockCB->lockID.toBson(builder) ;
-      builder.append( FIELD_NAME_TRANS_WAITLOCKTIME, waitTime ) ;
-      builder.append( FIELD_NAME_NUM_OWNER, _lockCB->numOwner ) ;
-
-      _lockCB = (monClassLock*)_scanner->getNext() ;
-
-      if ( NULL == _lockCB )
+      catch ( std::exception &e )
       {
-         _hitEnd = TRUE ;
+         PD_LOG ( PDWARNING, "Failed to create BSON for lock wait, %s",
+                  e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
       }
-
-      obj = builder.done() ;
+   done:
       return rc ;
+   error:
+      goto done ;
    }
 }
 
