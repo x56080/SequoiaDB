@@ -44,7 +44,6 @@
 namespace engine
 {
    #define RTN_DEFAULT_DICT_SCAN_INTERVAL ( OSS_ONE_SEC * 3 )
-   #define RTN_DICT_CREATE_COND_NOT_MATCH -1
 
    class _rtnDictCreatorJob : public _rtnBaseJob
    {
@@ -57,13 +56,14 @@ namespace engine
       virtual BOOLEAN muteXOn ( const _rtnBaseJob *pOther ) ;
       virtual INT32 doit () ;
    private:
-      INT32 _checkAndCreateDictForCL( dmsDictJob job, BOOLEAN &retry ) ;
-      BOOLEAN _conditionMatch( dmsStorageUnit *su, UINT16 mbID ) ;
-      INT32 _createDict( dmsStorageDataCommon *sd, dmsMBContext *context ) ;
+      INT32 _checkAndCreateDictForCL( const dmsDictJob &job, BOOLEAN &retry ) ;
+      BOOLEAN _conditionMatch( dmsStorageUnit *su, dmsMBContext *context,
+                               UINT16 mbID ) ;
+      INT32 _createDict( dmsStorageDataCommon *sd, dmsMBContext *context,
+                         utilLZWDictCreator *creator ) ;
       INT32 _transferDict( dmsStorageDataCommon *sd, dmsMBContext *context,
                            CHAR *dictStream, UINT32 dictSize ) ;
    private:
-      utilDictCreator *_creator ;
       UINT32 _scanInterval ;
    } ;
    typedef _rtnDictCreatorJob rtnDictCreatorJob ;
