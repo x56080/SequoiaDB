@@ -18,6 +18,9 @@
 | [SDB_SNAP_CONFIGS](database_management/monitoring/snapshot/SDB_SNAP_CONFIGS.md) | 配置快照 | 配置快照列出数据库中指定节点的配置信息 |
 | [SDB_SNAP_SVCTASKS](database_management/monitoring/snapshot/SDB_SNAP_SVCTASKS.md) | 服务任务快照 | 服务任务快照列出当前数据库节点中服务任务的统计信息 |
 | [SDB_SNAP_SEQUENCES](database_management/monitoring/snapshot/SDB_SNAP_SEQUENCES.md) | 序列快照 | 序列快照列出当前数据库的全部序列信息 |
+| [SDB_SNAP_QUERIES](database_management/monitoring/snapshot/SDB_SNAP_QUERIES.md) | 查询快照 | 查询快照列出当前数据库节点中查询信息 |
+| [SDB_SNAP_LOCKWAITS](database_management/monitoring/snapshot/SDB_SNAP_LOCKWAITS.md) | 锁等待快照 | 锁快照列出当前数据库节点中锁等待信息 |
+| [SDB_SNAP_LATCHWAITS](database_management/monitoring/snapshot/SDB_SNAP_LATCHWAITS.md) | 闩锁等待快照 | 闩锁快照列出当前数据库节点中闩锁等待信息 |
 
 
 

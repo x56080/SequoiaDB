@@ -42,6 +42,9 @@
 *   [配置快照](database_management/monitoring/snapshot/SDB_SNAP_CONFIGS.md)
 *   [序列快照](database_management/monitoring/snapshot/SDB_SNAP_SEQUENCES.md)
 *   [服务任务快照](database_management/monitoring/snapshot/SDB_SNAP_SVCTASKS.md)
+*   [查询快照](database_management/monitoring/snapshot/SDB_SNAP_QUERIES.md)
+*   [锁等待快照](database_management/monitoring/snapshot/SDB_SNAP_LOCKWAITS.md)
+*   [闩锁等待快照](database_management/monitoring/snapshot/SDB_SNAP_LATCHWAITS.md)
 
 
 ##列表##
