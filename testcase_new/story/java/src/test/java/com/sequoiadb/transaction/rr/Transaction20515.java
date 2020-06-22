@@ -17,6 +17,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
@@ -146,31 +147,39 @@ public class Transaction20515 extends SdbTestBase {
             // T1读记录
             try {
                 cl1.query( "", "", "{a:1}", "{'':null}" );
-                Assert.fail( "need throw -349" );
+                Assert.fail(
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
             }
 
             try {
                 cl1.query( "", "", "{a:1}", "{'':'a'}" );
-                Assert.fail( "need throw -349" );
+                Assert.fail(
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
             }
 
             // T3 读记录
             try {
                 cl3.query( "", "", "{a:1}", "{'':null}" );
-                Assert.fail( "need throw -349" );
+                Assert.fail(
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
             }
 
             try {
                 cl3.query( "", "", "{a:1}", "{'':'a'}" );
-                Assert.fail( "need throw -349" );
+                Assert.fail(
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
             }
 
             // 开启事务T4读记录
@@ -314,31 +323,39 @@ public class Transaction20515 extends SdbTestBase {
             // T1读记录
             try {
                 cl1.query( "", "", "{a:1}", "{'':null}" );
-                Assert.fail( "need throw -349" );
+                Assert.fail(
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
             }
 
             try {
                 cl1.query( "", "", "{a:1}", "{'':'a'}" );
-                Assert.fail( "need throw -349" );
+                Assert.fail(
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
             }
 
             // T3 读记录
             try {
                 cl3.query( "", "", "{a:1}", "{'':null}" );
-                Assert.fail( "need throw -349" );
+                Assert.fail(
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
             }
 
             try {
                 cl3.query( "", "", "{a:1}", "{'':'a'}" );
-                Assert.fail( "need throw -349" );
+                Assert.fail(
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -349, e.getMessage() );
+                Assert.assertEquals( e.getErrorCode(),
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
             }
 
             // 开启事务T4读记录
