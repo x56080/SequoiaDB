@@ -47,22 +47,13 @@ namespace engine
 {
    /*
     * Threshold of record number and data total size to create dictionary:
-    * 100 records and 10M data. If the final fetched records is less then 80% of
-    * these thresholds( thats 80 records and 8M data ), the current create
-    * operation will stop, and wait for the next round to create.
+    * 100 records and 64MB data.
     */
    #define RTN_DICT_CREATE_REC_NUM_THRESHOLD    100
    #define RTN_DICT_CREATE_REC_DATA_SIZE        ( 64 << 20 )
-   #define RTN_DICT_CREATE_MIN_REC_NUM    \
-                              ( RTN_DICT_CREATE_REC_NUM_THRESHOLD * 4 / 5 )
-   #define RTN_DICT_CREATE_MIN_DATA_SIZE  \
-                              ( RTN_DICT_CREATE_REC_DATA_SIZE * 4 / 5 )
-   #define RTN_DICT_BUF_SIZE ( 64 << 20 )
-   #define RTN_DICT_LOAD_TO_CACHE_MAX_TRY 3
 
    _rtnDictCreatorJob::_rtnDictCreatorJob( UINT32 scanInterval )
-   : _creator( NULL ),
-     _scanInterval( scanInterval )
+   : _scanInterval( scanInterval )
    {
    }
 
@@ -86,7 +77,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB_DOIT, "_rtnDictCreatorJob::doit" )
-   INT32 _rtnDictCreatorJob::doit ()
+   INT32 _rtnDictCreatorJob::doit()
    {
       /*
        * This thread will check all the collections in the list. If the
@@ -207,7 +198,6 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__CONDITIONMATCH ) ;
       const dmsMBStatInfo *mbStatInfo = NULL ;
-      UINT64 totalSize = 0 ;
       BOOLEAN rc = FALSE ;
 
       if ( DMS_INVALID_EXTENT == context->mb()->_firstExtentID ||
@@ -219,14 +209,8 @@ namespace engine
       {
          mbStatInfo = su->data()->getMBStatInfo( mbID ) ;
          SDB_ASSERT( mbStatInfo, "mbStatInfo should never be null" ) ;
-         totalSize = mbStatInfo->_totalDataPages * su->getPageSize() -
-                           mbStatInfo->_totalDataFreeSpace ;
-
-         if ( mbStatInfo->_totalRecords >= RTN_DICT_CREATE_REC_NUM_THRESHOLD
-            && totalSize >= RTN_DICT_CREATE_REC_DATA_SIZE )
-         {
-            rc = TRUE ;
-         }
+         rc = (mbStatInfo->_totalRecords >= RTN_DICT_CREATE_REC_NUM_THRESHOLD &&
+               mbStatInfo->_totalOrgDataLen >= RTN_DICT_CREATE_REC_DATA_SIZE) ;
       }
 
    done:
@@ -236,7 +220,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__CREATEDICT, "_rtnDictCreatorJob::_createDict" )
    INT32 _rtnDictCreatorJob::_createDict( dmsStorageData *sd,
-                                          dmsMBContext *context )
+                                          dmsMBContext *context,
+                                          utilLZWDictCreator* creator )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__CREATEDICT ) ;
@@ -244,50 +229,30 @@ namespace engine
       dmsRecordID recordID ;
       ossValuePtr recordDataPtr = 0 ;
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
-      UINT32 fetchNum = 0 ;
+      UINT64 fetchNum = 0 ;
       UINT64 fetchSize = 0 ;
-      BOOLEAN noMoreRecord = FALSE ;
       BOOLEAN dictFull = FALSE ;
 
-      SDB_ASSERT( sd && context, "Invalid argument value" ) ;
-      SDB_ASSERT( FALSE == context->isMBLock(),
-                  "mb should not have been locked" ) ;
+      SDB_ASSERT( sd && context && creator, "Invalid argument value" ) ;
 
-      dmsExtScanner scanner( sd, context, NULL, context->mb()->_firstExtentID ) ;
-
+      dmsTBScanner tbScanner( sd, context, NULL ) ;
       /*
        * The loop will end either all records have been fetched, or the
        * dictionary is full.
        */
-      do
+      while ( SDB_OK == ( rc = tbScanner.advance( recordID, generator,
+                                                  cb ) ) )
       {
-         rc = scanner.advance( recordID, generator, cb, NULL ) ;
-         if ( SDB_DMS_EOC == rc )
-         {
-            rc = scanner.stepToNextExtent() ;
-            if ( SDB_DMS_EOC == rc )
-            {
-               /* If the dictionary is not full, use the last batch of data. */
-               noMoreRecord = TRUE ;
-               rc = SDB_OK ;
-               break ;
-            }
-            continue ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to fetch record when creating "
-                      "dictionary, rc: %d", rc ) ;
-
          try
          {
             generator.getDataPtr( recordDataPtr ) ;
             BSONObj bs( (const CHAR*)recordDataPtr ) ;
-            _creator->build( bs.objdata(), bs.objsize(), dictFull ) ;
+            creator->build( bs.objdata(), bs.objsize(), dictFull ) ;
             if ( dictFull )
             {
                break ;
             }
-
-            fetchNum++ ;
+            ++fetchNum ;
             fetchSize += bs.objsize() ;
          }
          catch ( std::exception &e )
@@ -296,32 +261,31 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-      }while ( FALSE == noMoreRecord ) ;
+      }
 
-      PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
-                "Failed to fetch record when building dictionary, rc: %d, "
-                "Collection name: %s", rc, context->mb()->_collectionName ) ;
-
-      /*
-       * If the final record number we fetch is less then the threshold, skip
-       * it this time, leave it in the queue and wait for the next round to
-       * build the dictionary.
-       */
-      if ( !dictFull && (fetchNum < RTN_DICT_CREATE_MIN_REC_NUM
-           || fetchSize < RTN_DICT_CREATE_MIN_DATA_SIZE ) )
+      // The table scanner will release the mb latch when swithing to next
+      // extent. During that time, the data or event the collection may change.
+      // So after the scanner quit, we should check again.
+      if ( SDB_DMS_EOC == rc )
       {
-         PD_LOG( PDINFO, "Fetched records not enough when creating dictionary. "
-                 "Wait for next round to build" ) ;
-         rc = RTN_DICT_CREATE_COND_NOT_MATCH ;
+         // If break the loop because of data end hit, the dictionary is not
+         // full. If not data is fetched, need to retry later. Otherwise, the
+         // dictionary is OK.
+         if ( fetchNum < RTN_DICT_CREATE_REC_NUM_THRESHOLD ||
+              fetchSize < RTN_DICT_CREATE_REC_DATA_SIZE )
+         {
+            goto error ;
+         }
+         rc = SDB_OK ;
+      }
+      else if ( rc )
+      {
+         PD_LOG( PDERROR, "Fetching data and creating the dictionary "
+                          "failed: %d", rc ) ;
          goto error ;
       }
 
    done:
-      if ( context->isMBLock() )
-      {
-         context->mbUnlock() ;
-      }
-
       PD_TRACE_EXITRC( SDB__RTN_DICTCREATORJOB__CREATEDICT, rc ) ;
       return rc ;
    error:
@@ -355,7 +319,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__CHECKANDCREATEDICTFORCL, "_rtnDictCreatorJob::_checkAndCreateDictForCL" )
-   INT32 _rtnDictCreatorJob::_checkAndCreateDictForCL( dmsDictJob job,
+   INT32 _rtnDictCreatorJob::_checkAndCreateDictForCL( const dmsDictJob &job,
                                                        BOOLEAN &retry )
    {
       INT32 rc = SDB_OK ;
@@ -370,6 +334,7 @@ namespace engine
       pmdEDUCB *cb = pmdGetKRCB()->getEDUMgr()->getEDU() ;
       ossTimestamp begin ;
       ossTimestamp end ;
+      utilLZWDictCreator creator ;
 
       retry = FALSE ;
 
@@ -378,87 +343,94 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;
 
-      /*
-       * If the su is not there, the original storage unit(cs) was dropped.
-       */
+      // As no lock is taken after pushing the dictionary creation job into the
+      // queue, the original collection, or even the collection space may have
+      // been dropped. So need to check that before creating the dictionary.
       su = dmsCB->suLock( job._suID ) ;
       if ( ( NULL == su ) || ( su->LogicalCSID() != job._suLID ) )
       {
+         PD_LOG( PDDEBUG, "Original collection space with logical ID %u dose "
+                          "not exist any more. Skip the task", job._suLID ) ;
          goto done ;
       }
 
+      // Lock the collection, and check if its data match the condition. If yes,
+      // start to create the dictionary.
       rc = su->data()->getMBContext( &mbContext, job._clID,
-                                     job._clLID, DMS_INVALID_CLID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Get mb context failed[%d]", rc ) ;
-
-      if ( DMS_INVALID_EXTENT !=  mbContext->mb()->_dictExtentID )
+                                     job._clLID, SHARED ) ;
+      if ( SDB_DMS_NOTEXIST == rc )
       {
-         /*
-          * The dictionary has been created already. This scenario may happen in
-          * the following case:
-          * (1) collection with 'CompresstionType' configured was created, so it
-          *     will be added to the dictionary waiting list. Let's suppose its
-          *     mb ID is 0.
-          * (2) After that the original collection was dropped, but the item in
-          *     the dictionary waiting list will NOT be removed, and it will be
-          *     scanned by the dictionary creator.
-          *     thread.
-          * (3) Before the next scanning, another collection is created, and
-          *     it reuse the mb ID of the original collection, its
-          *     'CompresstionType' option is configured, and enough data has
-          *     been inserted. Now the scanner comes, and it found the item in
-          *     the list with the this mb ID. So the creating of the dictionary
-          *     starts. But when the latter collection was created, a new item
-          *     will be pushed into the list by itself. So when this new added
-          *     item was saw by the scanner, the collection's dictionary has
-          *     already been created.
-          *     In this case, just return success, and the new added item will
-          *     be removed.
-          */
+         PD_LOG( PDDEBUG, "Original collection with logical ID %u dose not "
+                          "exist any more. Skip the task", job._clID ) ;
          goto done ;
       }
-
-      /* Currently we only support LZW. */
-      if ( UTIL_COMPRESSOR_LZW != mbContext->mb()->_compressorType )
+      else if ( rc )
       {
-         /*
-          * The mbID has been reused, and the current collection's
-          * CompressionType is not configured.
-          */
+         PD_LOG( PDERROR, "Get mb context failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      if ( DMS_INVALID_EXTENT != mbContext->mb()->_dictExtentID ||
+           UTIL_COMPRESSOR_LZW != mbContext->mb()->_compressorType )
+      {
          goto done ;
       }
 
       if ( !_conditionMatch( su, mbContext, job._clID ) )
       {
+         mbContext->mbUnlock() ;
+         retry = TRUE ;
+         goto done ;
+      }
+
+      // As the preparation may take a while, release the mb latch first.
+      mbContext->pause() ;
+      rc = creator.prepare() ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to prepare dictionary creator, rc: %d", rc ) ;
+      rc = mbContext->resume() ;
+      if ( SDB_DMS_NOTEXIST == rc )
+      {
+         PD_LOG( PDDEBUG, "Original collection with logical ID %u dose not "
+                          "exist any more. Skip the task", job._clID ) ;
+         goto done ;
+      }
+      else if ( rc )
+      {
+         PD_LOG( PDERROR, "Get mb context failed[%d]", rc ) ;
+         goto error ;
+      }
+
+      // Double check of the condition after resuming the mb latch.
+      if ( !_conditionMatch( su, mbContext, job._clID ) )
+      {
+         mbContext->mbUnlock() ;
          retry = TRUE ;
          goto done ;
       }
 
       ossGetCurrentTime( begin ) ;
-      /* Now, create the dictionary for the collection. */
-      _creator = SDB_OSS_NEW _utilLZWDictCreator ;
-      PD_CHECK( _creator, SDB_OOM, error, PDERROR,
-                "Failed to allocate memory for dictionary creator, size: %u",
-                sizeof( _utilLZWDictCreator ) ) ;
-      rc = _creator->prepare() ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to prepare dictionary creator, rc: %d", rc ) ;
-
-      rc = _createDict( su->data(), mbContext ) ;
+      rc = _createDict( su->data(), mbContext, &creator ) ;
       if ( rc )
       {
-         if ( RTN_DICT_CREATE_COND_NOT_MATCH != rc )
+         if ( SDB_DMS_EOC != rc )
          {
+            // Data in the collection is not enough. Should not print any error.
             PD_LOG( PDERROR, "Failed to create dictionary, rc: %d", rc ) ;
          }
          goto error ;
+      }
+
+      if ( mbContext->isMBLock() )
+      {
+         mbContext->mbUnlock() ;
       }
 
       dictBuf = (CHAR*)SDB_OSS_MALLOC( dictBufLen ) ;
       PD_CHECK( dictBuf, SDB_OOM, error, PDERROR,
                 "Failed to allocate memory for dictionary, rc: %d", rc ) ;
 
-      rc = _creator->finalize( dictBuf, dictBufLen ) ;
+      rc = creator.finalize( dictBuf, dictBufLen ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to finalize dictionary, rc: %d", rc ) ;
 
@@ -494,18 +466,14 @@ namespace engine
          SDB_OSS_FREE( dictBuf ) ;
       }
 
-      if ( _creator )
-      {
-         SDB_OSS_DEL _creator ;
-         _creator = NULL ;
-      }
-
       PD_TRACE_EXITRC( SDB__RTN_DICTCREATORJOB__CHECKANDCREATEDICTFORCL, rc ) ;
       return rc ;
    error:
       // For other errors, let's try again later.
-      if ( SDB_DMS_CS_NOTEXIST != rc || SDB_DMS_NOTEXIST != rc )
+      if ( SDB_DMS_CS_NOTEXIST != rc && SDB_DMS_NOTEXIST != rc )
       {
+         PD_LOG( PDWARNING, "Create compression dictionary failed[%d]. "
+                            "Will try again later", rc ) ;
          rc = SDB_OK ;
          retry = TRUE ;
       }

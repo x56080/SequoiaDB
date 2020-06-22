@@ -14,6 +14,24 @@
 
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = rtnDictCreatorJob.hpp
+
+   Descriptive Name = Rtn Dictionary Creating Job.
+
+   When/how to use:
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          07/12/2015  YSD Initial Draft
+
+   Last Changed =
+
 *******************************************************************************/
 #ifndef RTN_DICTCREATOR_JOB_HPP_
 #define RTN_DICTCREATOR_JOB_HPP_
@@ -25,7 +43,6 @@
 namespace engine
 {
    #define RTN_DEFAULT_DICT_SCAN_INTERVAL ( OSS_ONE_SEC * 3 )
-   #define RTN_DICT_CREATE_COND_NOT_MATCH -1
 
    class _rtnDictCreatorJob : public _rtnBaseJob
    {
@@ -38,21 +55,20 @@ namespace engine
       virtual BOOLEAN muteXOn ( const _rtnBaseJob *pOther ) ;
       virtual INT32 doit () ;
    private:
-      INT32 _checkAndCreateDictForCL( dmsDictJob job, BOOLEAN &retry ) ;
+      INT32 _checkAndCreateDictForCL( const dmsDictJob &job, BOOLEAN &retry ) ;
       BOOLEAN _conditionMatch( dmsStorageUnit *su, dmsMBContext *context,
                                UINT16 mbID ) ;
-      BOOLEAN _conditionMatch( dmsStorageUnit *su, UINT16 mbID ) ;
-      INT32 _createDict( dmsStorageData *sd, dmsMBContext *context ) ;
+      INT32 _createDict( dmsStorageData *sd, dmsMBContext *context,
+                         utilLZWDictCreator *creator ) ;
       INT32 _transferDict( dmsStorageData *sd, dmsMBContext *context,
                            CHAR *dictStream, UINT32 dictSize ) ;
    private:
-      utilDictCreator *_creator ;
       UINT32 _scanInterval ;
    } ;
    typedef _rtnDictCreatorJob rtnDictCreatorJob ;
 
    INT32 startDictCreatorJob ( EDUID *pEDUID,
-                       UINT32 scanInterval = RTN_DEFAULT_DICT_SCAN_INTERVAL ) ;
+                               UINT32 scanInterval = RTN_DEFAULT_DICT_SCAN_INTERVAL ) ;
 }
 
 #endif /* RTN_DICT_CREATOR_JOB_HPP_ */
