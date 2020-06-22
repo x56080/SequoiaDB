@@ -23,6 +23,7 @@ import com.sequoiadb.commlib.NodeWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.fault.NodeRestart;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
@@ -116,9 +117,11 @@ public class Transaction20523 extends SdbTestBase {
         cl = db.getCollectionSpace( csName ).getCollection( clName );
         try {
             cl.query();
-            throw new BaseException( -1000, "Need throw error: -349" );
+            throw new BaseException( -1000, "Need throw error:"
+                    + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(), -349 );
+            Assert.assertEquals( e.getErrorCode(),
+                    SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
             sdb.rollback();
         }
 
