@@ -1058,6 +1058,11 @@ public class TransUtils extends SdbTestBase {
      */
     public static void beginTransaction( Sequoiadb sequoiadb ) {
         sequoiadb.beginTransaction();
+        try {
+            Thread.sleep( 100 );
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+        }
         // DBCollection cl = sequoiadb.getCollectionSpace( SdbTestBase.csName )
         // .getCollection( SdbTestBase.reservedCL );
         // DBCursor cur = cl.query();
