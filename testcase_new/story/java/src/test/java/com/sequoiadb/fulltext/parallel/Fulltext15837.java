@@ -118,7 +118,13 @@ public class Fulltext15837 extends FullTestBase {
                 BSONObject options = new BasicBSONObject();
                 options.put( "Block", true );
                 options.put( "CollectionSpace", csName );
-                db.sync( options );
+                try{
+                    db.sync( options );
+                }catch( BaseException e ){
+                    if( e.getErrorCode() != -264 ){
+                        throw e;
+                    }
+                }
             }
         }
     }
